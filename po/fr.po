@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:34+0100\n"
-"PO-Revision-Date: 2024-12-03 14:42+0000\n"
+"PO-Revision-Date: 2024-12-04 11:49+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -305,6 +305,21 @@ msgid ""
 "- for solar system objects: solsys (closest IAU observatory code can be "
 "passed in the dedicated text field."
 msgstr ""
+"Il s'agit des catalogues utilisés pour l'image chargée, résolue en "
+"astrométrie :\n"
+"\n"
+"- Automatique : utilise les catalogues locaux s'ils sont disponibles, sinon "
+"utilise le catalogue nomad par défaut.\n"
+"\n"
+"Vous pouvez également choisir un autre catalogue en ligne :\n"
+"\n"
+"- pour les étoiles : tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, "
+"simbad, aavso_chart\n"
+"- pour les exoplanètes : exo\n"
+"- pour le ciel profond : pgc.\n"
+"- pour les objets du système solaire : solsys (le code de l'observatoire de "
+"l'UAI le plus proche peut être indiqué dans le champ de texte prévu à cet "
+"effet."
 
 #: src/gui/uifiles/annotate_dialog.ui:133
 msgid "automatic"
@@ -425,17 +440,15 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:252
 msgid "Limit magnitude used in the query."
-msgstr ""
+msgstr "Magnitude limite utilisée dans la requête."
 
 #: src/gui/uifiles/annotate_dialog.ui:253
-#, fuzzy
 msgid "13"
-msgstr "1"
+msgstr "13"
 
 #: src/gui/uifiles/annotate_dialog.ui:273
-#, fuzzy
 msgid "Obs. code: "
-msgstr "Obscode : "
+msgstr "Obs. code : "
 
 #: src/gui/uifiles/annotate_dialog.ui:285
 #: src/gui/uifiles/settings_window.ui:1255
@@ -454,9 +467,8 @@ msgid "Conesearch"
 msgstr "Recherche en cône"
 
 #: src/gui/uifiles/annotate_dialog.ui:369
-#, fuzzy
 msgid "File: "
-msgstr "Fichier"
+msgstr "Fichier : "
 
 #: src/gui/uifiles/annotate_dialog.ui:381
 msgid ""
@@ -464,11 +476,14 @@ msgid ""
 "columns. If the passed file also contains a column name, names will be used "
 "as tags in the image and listed in the Console."
 msgstr ""
+"Plusieurs points sont transmis à l'aide d'un fichier CSV contenant au moins "
+"les colonnes ra et dec. Si le fichier transmis contient également un nom de "
+"colonne, les noms seront utilisés comme tags dans l'image et listés dans la "
+"console."
 
 #: src/gui/uifiles/annotate_dialog.ui:397
-#, fuzzy
 msgid "Click this button to select a csv file."
-msgstr "Cliquer sur ce bouton pour montrer le gradient calculé."
+msgstr "Cliquez sur ce bouton pour sélectionner un fichier csv."
 
 #: src/gui/uifiles/annotate_dialog.ui:430
 msgid ""
@@ -476,6 +491,9 @@ msgid ""
 "in the image and listed in the Console, unless toggled off with these "
 "checkbuttons."
 msgstr ""
+" Si le fichier transmis contient également un nom de colonne, les noms "
+"seront utilisés comme tags dans l'image et listés dans la console, à moins "
+"qu'ils ne soient désactivés à l'aide de ces boutons de contrôle."
 
 #: src/gui/uifiles/annotate_dialog.ui:446
 msgid ""
@@ -483,6 +501,9 @@ msgid ""
 "in the image and listed in the Console, unless toggled off with theses "
 "checkbuttons."
 msgstr ""
+" Si le fichier transmis contient également un nom de colonne, les noms "
+"seront utilisés comme tags dans l'image et listés dans la console, à moins "
+"qu'ils ne soient désactivés à l'aide de ces boutons de contrôle."
 
 #: src/gui/uifiles/annotate_dialog.ui:459
 msgid "Import CSV"
@@ -506,27 +527,32 @@ msgid ""
 "(degrees, minutes, seconds) for declination, or as decimal degrees (e.g., "
 "184.000785, 14.899070)."
 msgstr ""
+"Ces champs acceptent l'ascension droite et la déclinaison. Vous pouvez les "
+"saisir au format hms (heures, minutes, secondes) pour l'ascension droite et "
+"au format dms (degrés, minutes, secondes) pour la déclinaison, ou sous forme "
+"de degrés décimaux (par exemple, 184.000785, 14.899070)."
 
 #: src/gui/uifiles/annotate_dialog.ui:520
 msgid "Display Name:"
 msgstr "Nom affiché :"
 
 #: src/gui/uifiles/annotate_dialog.ui:531
-#, fuzzy
 msgid ""
 "The display name will be used as a tag for the image and listed in the "
 "console."
-msgstr "Affiche le manuel des commandes écrites dans la console."
+msgstr ""
+"Le nom d'affichage sera utilisé comme tag pour l'image et affiché dans la "
+"console."
 
 #: src/gui/uifiles/annotate_dialog.ui:543
-#, fuzzy
 msgid "Click this button to save the entry to the user DSO catalogue."
-msgstr "Cliquer sur ce bouton pour montrer le gradient calculé."
+msgstr ""
+"Cliquez sur ce bouton pour enregistrer l'entrée dans le catalogue Ciel "
+"Profond de l'utilisateur."
 
 #: src/gui/uifiles/annotate_dialog.ui:564
-#, fuzzy
 msgid "Get coordinates from selection"
-msgstr "Erreur de sélection des coordonnées du centre"
+msgstr "Obtenir les coordonnées de la sélection"
 
 #: src/gui/uifiles/annotate_dialog.ui:585
 msgid "Single Coordinates"
@@ -625,32 +651,27 @@ msgid "Preview"
 msgstr "Aperçu"
 
 #: src/gui/uifiles/asinh_dialog.ui:276
-#, fuzzy
 msgid "Clip mode"
-msgstr "Limite de saturation"
+msgstr "Mode d'écrêtage"
 
 #: src/gui/uifiles/asinh_dialog.ui:290 src/gui/uifiles/dialog_star_remix.ui:163
 #: src/gui/uifiles/histogram_dialog.ui:784 src/gui/utils.c:517
-#, fuzzy
 msgid "Clip"
-msgstr "Perte (%)"
+msgstr "Perte"
 
 #: src/gui/uifiles/asinh_dialog.ui:291 src/gui/uifiles/dialog_star_remix.ui:164
 #: src/gui/uifiles/histogram_dialog.ui:785
-#, fuzzy
 msgid "Rescale"
-msgstr "Mise à l'echelle du résultat"
+msgstr "Rééchelonner"
 
 #: src/gui/uifiles/asinh_dialog.ui:292 src/gui/uifiles/dialog_star_remix.ui:165
 #: src/gui/uifiles/histogram_dialog.ui:786
-#, fuzzy
 msgid "RGB Blend"
-msgstr "Aligner RVB"
+msgstr "Mélange RVB"
 
 #: src/gui/uifiles/asinh_dialog.ui:293
-#, fuzzy
 msgid "Global Rescale"
-msgstr "Rejet global"
+msgstr "Rééchelonner globalement"
 
 #: src/gui/uifiles/astrometry_dialog.ui:97
 msgid "Image Plate Solver"
@@ -944,9 +965,8 @@ msgstr ""
 "Astrometry.net local"
 
 #: src/gui/uifiles/astrometry_dialog.ui:770
-#, fuzzy
 msgid "Save distortion"
-msgstr "Alignement"
+msgstr "Enregistrer la distorsion"
 
 #: src/gui/uifiles/astrometry_dialog.ui:774
 msgid ""
@@ -956,11 +976,18 @@ msgid ""
 "When platesolving a sequence, the distortion file is saved from the "
 "reference image."
 msgstr ""
+"Enregistre la solution en tant que fichier de distorsion, à utiliser pour "
+"déformer les images lors de l'alignement.\n"
+"Cette option n'est activée que si l'ordre de la solution est supérieur à 1.\n"
+"Lorsque l'on fait l'astrométrie sur une séquence, le fichier de distorsion "
+"est enregistré à partir de l'image de référence."
 
 #: src/gui/uifiles/astrometry_dialog.ui:789
 msgid ""
 "Path to the distortion file to be created (ending with a *.wcs extension)"
 msgstr ""
+"Chemin d'accès au fichier de distorsion à créer (se terminant par une "
+"extension *.wcs)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:874
 msgid "Image Parameters"
@@ -1102,14 +1129,14 @@ msgid "Tick this box to solve the whole sequence."
 msgstr "Cochez cette case pour résoudre l'ensemble de la séquence."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1112
-#, fuzzy
 msgid "Use as registration information"
-msgstr "Activation/désactivation de l'encadrement de l'alignement"
+msgstr "Utiliser comme information d'alignement"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1116
-#, fuzzy
 msgid "Tick this box to use astrometric data to compute sequence registration."
-msgstr "Cochez cette case pour résoudre l'ensemble de la séquence."
+msgstr ""
+"Cochez cette case pour utiliser les données astrométriques afin de calculer "
+"l'alignement des séquences."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1129
 msgid "Skip already solved images"
@@ -1180,9 +1207,8 @@ msgstr ""
 "de celle indiquée dans cette boîte de dialogue"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1238
-#, fuzzy
 msgid "Sequence / Astrometric Registration"
-msgstr "Appliquer Alignement Existant"
+msgstr "Séquence / Alignement astrométrique"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:55
 #: src/algos/background_extraction.c:1331
@@ -1335,6 +1361,13 @@ msgid ""
 "placement: samples will automatically be created for each frame in the "
 "sequence."
 msgstr ""
+"Cliquez ici pour générer les échantillons définis automatiquement.\n"
+"\n"
+"Lors du traitement d'une séquence, les échantillons affichés servent "
+"uniquement de guide pour voir l'effet des paramètres \"échantillons par "
+"lignes\" et \"tolérance de la grille\" sur le placement des échantillons : "
+"des échantillons seront automatiquement créés pour chaque image de la "
+"séquence."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:476
 msgid "Click here to clear all the samples."
