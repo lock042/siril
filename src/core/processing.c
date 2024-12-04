@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <sys/socket.h>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -740,7 +741,7 @@ static gboolean thread_being_waited = FALSE;
 void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
 
-	if (com.run_thread || com.thread) {
+	if (com.run_thread || com.python_claims_thread || com.thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
 		free(p);
@@ -756,7 +757,7 @@ void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 
 void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
-	if (com.thread) {
+	if (com.thread || com.python_claims_thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
 		free(p);
@@ -780,6 +781,26 @@ gpointer waiting_for_thread() {
 	thread_being_waited = FALSE;
 	set_thread_run(FALSE);	// do it anyway in case of wait without stop
 	return retval;
+}
+
+gboolean claim_thread_for_python() {
+	g_mutex_lock(&com.mutex);
+	if (com.thread || com.run_thread || com.python_claims_thread) {
+		fprintf(stderr, "The processing thread is busy, stop it first.\n");
+		g_mutex_unlock(&com.mutex);
+		return FALSE;
+	}
+	com.python_claims_thread = TRUE;
+	g_mutex_unlock(&com.mutex);
+	set_cursor_waiting(TRUE);
+	return TRUE;
+}
+
+void python_releases_thread() {
+	g_mutex_lock(&com.mutex);
+	com.python_claims_thread = FALSE;
+	g_mutex_unlock(&com.mutex);
+	return;
 }
 
 void stop_processing_thread() {

@@ -443,6 +443,13 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 }
 
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
+	if (!conn->thread_claimed) {
+		const char* error_msg = _("Processing thread is not claimed: unable to update the current image. "
+								"This is a script error: claim_thread() has either not been called or has failed, or "
+								"the thread has been released too early.");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
 	if (!single_image_is_loaded()) {
 		const char* error_msg = _("No image loaded: set_pixel_data() can only be used to update a loaded image, not to create a new one");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -695,8 +702,16 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 	}
 #endif
 
+	// If we had the python thread lock and failed to release it, release it now
+	if (conn->thread_claimed) {
+		com.python_claims_thread = FALSE;
+	}
+
 	// Clean up shared memory resources
 	cleanup_shm_resources(conn);
+
+	// Clean up the Connection
+	free(conn);
 
 	// Close the process handle
 	g_spawn_close_pid(pid);

@@ -89,7 +89,9 @@ class _Command(IntEnum):
     GET_BUNDLE_PATH = 37
     ERROR_MESSAGEBOX = 38
     ERROR_MESSAGEBOX_MODAL = 39
-    SIRIL_PLOT = 40
+    SIRIL_PLOT = 40,
+    CLAIM_THREAD = 41,
+    RELEASE_THREAD = 42,
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -672,6 +674,84 @@ class SirilInterface:
         except Exception as e:
             print(f"Error sending log message: {e}", file=sys.stderr)
             return False
+
+    def claim_thread(self) -> bool:
+        """
+        Claim the processing thread. This prevents other processes using the
+        processing thread to operate on the current Siril image. This function
+        MUST always be called before starting any processing that will end with
+        ``SirilInterface.set_pixeldata()``. The sequence of operations should be:
+
+        * Call ``SirilInterface.claim_thread()``
+        * If the result is False, alert the user and await further input: the
+          thread is already in use.
+        * If the result is True, you have the thread claimed.
+        * Now you can call ``SirilInterface.get_image()`` or ``get_pixeldata()``
+        * Carry out your image processing
+        * Call ``SirilInterface.set_pixeldata()``
+        * Call ``SirilInterface.release_thread()``
+
+        As a precaution, the thread will be released automatically if it is still
+        held at the point the script process terminates, but that should not be
+        seen as an excuse for failing to call ``SirilInterface.release_thread()``
+
+        Returns:
+            True: if the processing thread is claimed successfully
+            False: if the thread is in use or if an error occured: in either case
+                   processing cannot continue.
+        """
+        try:
+            retval = self._execute_command(_Command.CLAIM_THREAD, None)
+            if retval == True:
+                return True
+            elif retval == None:
+                print(_("The processing thread is locked. Wait for the current "
+                    "processing task to finish."))
+                return False
+            else:
+                print(_("Error trying to claim the processing thread."))
+                return False
+
+        except Exception as e:
+            print(f"Error claiming processing thread: {e}", file=sys.stderr)
+
+    def release_thread(self) -> bool:
+        """
+        Release the processing thread. This permits other processes to use the
+        processing thread to operate on the current Siril image. This function
+        MUST always be called after completing any processing that has updated
+        the image loaded in Siril. The sequence of operations should be:
+
+        * Call ``SirilInterface.claim_thread()``
+        * If the result is False, alert the user and await further input: the
+          thread is already in use.
+        * If the result is True, you have the thread claimed.
+        * Now you can call ``SirilInterface.get_image()`` or ``get_pixeldata()``
+        * Carry out your image processing
+        * Call ``SirilInterface.set_pixeldata()``
+        * Call ``SirilInterface.release_thread()``
+
+        As a precaution, the thread will be released automatically if it is still
+        held at the point the script process terminates, but that should not be
+        seen as an excuse for failing to call this method.
+
+        Returns:
+            True: if the thread was successfully released
+
+        Raises:
+            SirilException: if an error occurred in releasing the thread
+        """
+        try:
+            retval = self._execute_command(_Command.RELEASE_THREAD, None)
+            if retval == True:
+                return True
+            else:
+                raise SirilException(_("Error trying to release the processing thread. "
+                    "It will be released when the script terminates."))
+
+        except Exception as e:
+            print(f"Error releasing the processing thread: {e}", file=sys.stderr)
+
 
     def error_messagebox(self, my_string: str, modal: Optional[bool] = False) -> bool:
         """

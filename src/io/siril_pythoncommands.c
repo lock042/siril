@@ -1599,6 +1599,31 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
+		case CMD_CLAIM_THREAD: {
+			gboolean ret = claim_thread_for_python();
+			if (!ret) {
+				// Unable to claim the thread
+				const char* error_msg = _("Unable to claim the processing thread");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+			} else {
+				// Thread claimed, we can safely do gfit processing tasks
+				conn->thread_claimed = TRUE;
+				success = send_response(conn, STATUS_OK, NULL, 0);
+			}
+			break;
+		}
+
+		case CMD_RELEASE_THREAD: {
+			if (conn->thread_claimed) {
+				python_releases_thread();
+				conn->thread_claimed = FALSE;
+			}
+			// Otherwise it's not ours to release. We fail silently here, because
+			// release_thread() should be called in a finally: block
+			success = send_response(conn, STATUS_OK, NULL, 0);
+			break;
+		}
+
 		default:
 			siril_debug_print("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");

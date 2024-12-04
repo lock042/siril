@@ -184,6 +184,10 @@ void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);
 gboolean reserve_thread();
 void unreserve_thread();
 
+// Functions to allow a python script to block other tasks from claiming the thread
+gboolean claim_thread_for_python();
+void python_releases_thread();
+
 gboolean get_script_thread_run();
 void wait_for_script_thread();
 

@@ -55,6 +55,8 @@ typedef enum {
 	CMD_ERROR_MESSAGEBOX = 38,
 	CMD_ERROR_MESSAGEBOX_MODAL = 39,
 	CMD_PLOT = 40,
+	CMD_CLAIM_THREAD = 41,
+	CMD_RELEASE_THREAD = 42,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -137,7 +139,7 @@ typedef struct _Connection {
 	GSList* g_shm_allocations;
 	GMutex g_shm_mutex;
 	gboolean g_shm_initialized;
-
+	gboolean thread_claimed;
 } Connection;
 
 typedef struct {
