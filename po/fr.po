@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:34+0100\n"
-"PO-Revision-Date: 2024-12-04 11:49+0000\n"
+"PO-Revision-Date: 2024-12-04 15:28+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -2963,14 +2963,12 @@ msgid "Tri-Profile (mono)"
 msgstr "Tri-Profil (mono)"
 
 #: src/gui/uifiles/cut_dialog.ui:179
-#, fuzzy
 msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile."
 msgstr ""
 "Génère 3 profils d'intensité parallèles séparés par un nombre donné de "
-"pixels. Les tri-profils tracent toujours la luminance le long de chaque "
-"profil et n'utilisent pas de données spectrométriques."
+"pixels. Ce mode trace toujours la luminance le long de chaque profil."
 
 #: src/gui/uifiles/cut_dialog.ui:194
 msgid "Set offset step size for tri-profile"
@@ -3058,9 +3056,8 @@ msgstr ""
 "profil et n'utilisent pas de données spectrométriques."
 
 #: src/gui/uifiles/cut_dialog.ui:303
-#, fuzzy
 msgid "Tri-Profile offset (px)"
-msgstr "Tri-Profil (mono)"
+msgstr "Tri-Profil décalage (px)"
 
 #: src/gui/uifiles/cut_dialog.ui:333
 msgid ""
@@ -3168,30 +3165,28 @@ msgid "Wavenumber"
 msgstr "Nombre d'onde"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:382
-#, fuzzy
 msgid "Spectroscopic Calibration Points"
-msgstr "Étalonnage des couleurs par spectrophotométrie"
+msgstr "Points d'étalonnage spectroscopiques"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:414
-#, fuzzy
 msgid "Polynomial degree"
-msgstr "Polynomiale"
+msgstr "Degré du polynôme"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:425
 msgid ""
 "Sets the degree of polynomial used for background fitting, between 1 (linear "
 "fit) and 6 (sextic polynomial)"
 msgstr ""
+"Définit le degré du polynôme utilisé pour l'ajustement du fond de ciel, "
+"entre 1 (ajustement linéaire) et 6 (polynôme sextique)"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:436
-#, fuzzy
 msgid "Plot measured and modelled background"
-msgstr "Impossible de charger l'arrière-plan\n"
+msgstr "Tracer le fond de ciel mesuré et modélisé"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:465
-#, fuzzy
 msgid "Background Removal"
-msgstr "Valeur de fond du ciel"
+msgstr "Suppression de fond"
 
 #: src/gui/uifiles/data_dialog.ui:50
 msgid "More details..."
@@ -3476,19 +3471,17 @@ msgid "Show advanced stretch options"
 msgstr "Afficher les options d'étirement avancées"
 
 #: src/gui/uifiles/dialog_star_remix.ui:148
-#, fuzzy
 msgid "Clipping mode"
-msgstr "MAD Clipping"
+msgstr "Mode d'écrêtage"
 
 #: src/gui/uifiles/dialog_star_remix.ui:160
 msgid "Select the clipping mode for partially clipped pixels."
-msgstr ""
+msgstr "Sélectionnez le mode d'écrêtage pour les pixels partiellement écrêtés."
 
 #: src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:787
-#, fuzzy
 msgid "Global rescale"
-msgstr "Rejet global"
+msgstr "Rééchelonnement global"
 
 #: src/gui/uifiles/dialog_star_remix.ui:227
 #: src/gui/uifiles/dialog_star_remix.ui:862
@@ -4203,9 +4196,8 @@ msgid "Toggle preview on / off"
 msgstr "Activer / désactiver l'aperçu"
 
 #: src/gui/uifiles/histogram_dialog.ui:765
-#, fuzzy
 msgid "Clip mode:"
-msgstr "Limite de saturation"
+msgstr "Mode d'écrêtage :"
 
 #: src/gui/uifiles/histogram_dialog.ui:777
 msgid ""
@@ -4217,6 +4209,14 @@ msgid ""
 "Globa rescale: Same as Rescale, but rescales to the global maximum component "
 "value"
 msgstr ""
+"Sélectionnez le mode de mélange.\n"
+"Écrêter : coupe les valeurs dans la plage 0,0 - 1,0\n"
+"Rééchelonner : redimensionne les valeurs RVB des pixels tronqués pour ne pas "
+"dépasser 1,0 par pixel\n"
+"Mélanger RVB : applique une fonction de fusion pour des couleurs de "
+"surbrillance reconstruites en douceur. <b>Par défaut</b>\n"
+"Rééchelonnement global : identique à Rééchelonner, mais redimensionne à la "
+"valeur maximale globale du composant"
 
 #: src/gui/uifiles/histogram_dialog.ui:854
 msgid ""
@@ -4338,14 +4338,12 @@ msgid "Protected"
 msgstr "Protégé"
 
 #: src/gui/uifiles/keywords_dialog.ui:208
-#, fuzzy
 msgid "Add a new keyword in the FITS header."
-msgstr "Il n'y a aucun mot clé stocké dans l'entête du fichier.\n"
+msgstr "Ajouter un nouveau mot-clé dans l'en-tête FITS."
 
 #: src/gui/uifiles/keywords_dialog.ui:229
-#, fuzzy
 msgid "Delete keyword in the FITS header."
-msgstr "Il n'y a aucun mot clé stocké dans l'entête du fichier.\n"
+msgstr "Supprimer un mot-clé dans l'en-tête FITS."
 
 #: src/gui/uifiles/keywords_dialog.ui:250
 msgid ""
@@ -4356,14 +4354,12 @@ msgstr ""
 "protégés, qui ne peuvent pas être modifiés."
 
 #: src/gui/uifiles/keywords_dialog.ui:272
-#, fuzzy
 msgid "Header Editor"
-msgstr "L'entête est vide"
+msgstr "Éditeur d'entête"
 
 #: src/gui/uifiles/keywords_dialog.ui:305
-#, fuzzy
 msgid "Saved Header"
-msgstr "Entête FITS"
+msgstr "Entête sauvegardé"
 
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4036
 #: src/gui/uifiles/settings_window.ui:4853 src/core/icc_profile.c:1241
@@ -4828,29 +4824,27 @@ msgstr ""
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:326
 msgid "CFA marker string"
-msgstr ""
+msgstr "Marqueur CFA"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:337
 msgid "Sequence output prefix"
 msgstr "Préfixe de sortie de la séquence"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:348
-#, fuzzy
 msgid ""
 "Identifier prefix used to denote CFA number in the separate CFA channel "
 "images. This should be set to whatever sequence prefix was used when the "
 "split_cfa process was run (default: CFA)."
 msgstr ""
-"Préfixe d'identifiant utilisé pour indiquer le numéro CFA dans les images de "
-"canal CFA distinctes. Il doit être défini sur le préfixe de séquence utilisé "
-"lors de l'exécution du processus split_cfa (par défaut : CFA_)."
+"Préfixe d'identification utilisé pour indiquer le numéro CFA dans les images "
+"des canaux CFA séparés. Ce préfixe doit correspondre au préfixe de séquence "
+"utilisé lors de l'exécution du processus split_cfa (par défaut : CFA)."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:365
 msgid "Prefix of the image names resulting from the merge CFA process."
 msgstr "Préfixe des noms d'images résultant du processus de fusion CFA."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:407
-#, fuzzy
 msgid ""
 "You must have one of the CFA sequences selected in the main window sequence "
 "tab. Siril will autodetect which CFA channel it corresponds to from the CFA "
@@ -4867,26 +4861,22 @@ msgid ""
 "\n"
 "Note that CFA merge does not work for X-Trans files."
 msgstr ""
-"Vous devez avoir sélectionné la séquence CFA0 dans l'onglet de séquence de "
-"la fenêtre principale.\n"
-"\n"
-"Vos séquences de CFA distinctes doivent avoir été traitées exactement de la "
-"même manière.\n"
-"\n"
-"Les noms de fichiers <b>doivent</b> se trouver dans le même répertoire et "
-"<b>doivent</b> différer uniquement par le nom du canal CFA. C'est-à-dire que "
-"si une image CFA0 est <i>r_pp_CFA_0_Light_0001.fit</i>, les images "
-"correspondantes pour les autres canaux CFA doivent être "
-"<i>r_pp_CFA_1_Light_0001.fit</i>, <i>r_pp_CFA_2_Light_0001.fit</i> et "
-"<i>r_pp_CFA_3_Light_0001.fit</i>.\n"
+"Vous devez avoir sélectionné l'une des séquences CFA dans l'onglet des "
+"séquences de la fenêtre principale. Siril détectera automatiquement le canal "
+"CFA auquel elle correspond à partir de la chaîne de marqueurs CFA. Les 4 "
+"séquences doivent avoir le même format de nom et la même chaîne de marqueurs "
+"CFA, différant uniquement par le numéro qui suit la chaîne (par exemple "
+"CFA0, CFA1, CFA2 et CFA3).\n"
 "\n"
 "Chaque image de la séquence ne sera traitée que si les images "
-"correspondantes pour les 3 autres canaux CFA peuvent être trouvées. V1 et V2 "
-"sont requis. Notez que cela signifie que si vous supprimez une image "
-"contenant un canal CFA d'une image entre split_cfa et merge_cfa, merge_cfa "
-"ne pourra pas fusionner les canaux CFA restants pour cette image. Tout "
-"filtrage de séquence doit être effectué soit avant split_cfa, soit après "
-"merge_cfa."
+"correspondantes pour les 3 autres canaux CFA peuvent être trouvées. Les "
+"fichiers V1 et V2 sont nécessaires. Notez que cela signifie que si vous "
+"rejetez une image contenant un canal CFA d'une image entre split_cfa et "
+"merge_cfa, merge_cfa sera incapable de fusionner les canaux CFA restants "
+"pour cette image. Tout filtrage de séquence doit être effectué soit avant "
+"split_cfa, soit après merge_cfa.\n"
+"\n"
+"Notez que la fusion CFA ne fonctionne pas pour les fichiers X-Trans."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:430
 msgid "Sequences"
@@ -5103,14 +5093,12 @@ msgid "Resample"
 msgstr "Ré-échantillonner"
 
 #: src/gui/uifiles/resample_dialog.ui:137
-#, fuzzy
 msgid "X scale"
-msgstr "Échelle X (%) : "
+msgstr "Échelle X"
 
 #: src/gui/uifiles/resample_dialog.ui:149
-#, fuzzy
 msgid "Y scale"
-msgstr "Échelle Y (%) : "
+msgstr "Échelle Y"
 
 #: src/gui/uifiles/resample_dialog.ui:158
 msgid "Preserve Aspect Ratio"
@@ -5153,9 +5141,8 @@ msgid "%"
 msgstr "%"
 
 #: src/gui/uifiles/resample_dialog.ui:291
-#, fuzzy
 msgid "pixels"
-msgstr "pixel"
+msgstr "pixels"
 
 #: src/gui/uifiles/resample_dialog.ui:310
 #: src/gui/uifiles/rotation_dialog.ui:226 src/gui/uifiles/siril.ui:7096
@@ -5395,14 +5382,12 @@ msgid "Quality: "
 msgstr "Qualité : "
 
 #: src/gui/uifiles/savepopup.ui:578
-#, fuzzy
 msgid "Estimate size"
-msgstr "Estimer"
+msgstr "Taille estimée"
 
 #: src/gui/uifiles/savepopup.ui:582
-#, fuzzy
 msgid "Computes the size of the compressed file"
-msgstr "Calcule l'inverse de l'image"
+msgstr "Calcule la taille du fichier compressé"
 
 #: src/gui/uifiles/savepopup.ui:630
 msgid "JPEG"
@@ -5427,7 +5412,7 @@ msgstr "Enregistrer les valeurs MIPS-HI et MIPS-LO"
 
 #: src/gui/uifiles/savepopup.ui:777
 msgid "Save CHECKSUM and DATASUM keywords"
-msgstr ""
+msgstr "Sauvegarde les mots clés CHECKSUM et DATASUM"
 
 #: src/gui/uifiles/savepopup.ui:797
 msgid "Embedded Data"
@@ -5975,6 +5960,8 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:799
 msgid "Verify file checksums in FITS header (DATASUM and CHECKSUM)"
 msgstr ""
+"Vérifier les sommes de contrôle dans l'entête du fichier FITS (DATASUM et "
+"CHECKSUM)"
 
 #: src/gui/uifiles/settings_window.ui:803
 msgid ""
@@ -5982,6 +5969,10 @@ msgid ""
 "file is read, which may significantly impact Siril's performance when using "
 "a sequence."
 msgstr ""
+"Vérifier les sommes de contrôle des fichiers si elles existent. La "
+"vérification a lieu à chaque lecture du fichier, ce qui peut avoir un impact "
+"significatif sur les performances de Siril lors de l'utilisation d'une "
+"séquence."
 
 #: src/gui/uifiles/settings_window.ui:821
 msgid "<b>FITS Header</b>"
@@ -6523,30 +6514,26 @@ msgstr ""
 "générique en cliquant sur le bouton \"Utiliser par défaut\"."
 
 #: src/gui/uifiles/settings_window.ui:2128
-#, fuzzy
 msgid "Master-distortion:"
-msgstr "Master-dark :"
+msgstr "Master-distorsion :"
 
 #: src/gui/uifiles/settings_window.ui:2152
-#, fuzzy
 msgid ""
 "Choose a master-distortion that can be used as generic master-distortion by "
 "clicking on the button \"Use it as default\"."
 msgstr ""
-"Choisissez un fichier maître dark qui peut être utilisé comme master-dark "
-"générique en cliquant sur le bouton \"Utiliser par défaut\"."
+"Choisissez un fichier maître distorsion qui peut être utilisé comme master-"
+"distorsion générique en cliquant sur le bouton \"Utiliser par défaut\"."
 
 #: src/gui/uifiles/settings_window.ui:2175
-#, fuzzy
 msgid "Use the chosen master as default file in the Astrometry dialog"
 msgstr ""
-"Utiliser le fichier choisi comme fichier maître par défaut dans l'onglet de "
-"calibration"
+"Utiliser le fichier choisi comme fichier maître par défaut dans la fenêtre "
+"d'astrométrie"
 
 #: src/gui/uifiles/settings_window.ui:2192
-#, fuzzy
 msgid "Dark/Bias/Flat/Distortion Libraries"
-msgstr "Bibliothèque des Dark/Offset/Flat"
+msgstr "Bibliothèque des Dark/Offset/Flat/Distorsion"
 
 #: src/gui/uifiles/settings_window.ui:2222
 msgid "Default name:"
@@ -7772,7 +7759,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5548
 msgid "Maximum slice size for sliced image operations"
-msgstr ""
+msgstr "Taille maximale des sections pour les opérations de découpage d'images"
 
 #: src/gui/uifiles/settings_window.ui:5559
 msgid ""
@@ -7781,6 +7768,11 @@ msgid ""
 "limited range of sizes in order to utilise a limited range of FFTW3 wisdom "
 "more effectively. It is always safe to leave this at the default setting."
 msgstr ""
+"Définit la taille maximale des segments pour les opérations sur les images "
+"qui peuvent utiliser le traitement en segment. L'objectif principal est de "
+"limiter les découpes typiques à une gamme limitée de tailles afin d'utiliser "
+"plus efficacement une gamme limitée de sagesse de FFTW3. Il est toujours "
+"prudent de laisser ce paramètre par défaut."
 
 #: src/gui/uifiles/settings_window.ui:5562
 msgid "Unlimited"
@@ -7942,9 +7934,8 @@ msgstr ""
 "Versions de StarNet basées sur Torch uniquement."
 
 #: src/gui/uifiles/settings_window.ui:5951
-#, fuzzy
 msgid "Must point to a valid GraXpert executable."
-msgstr "Doit pointer vers un exécutable StarNet valide."
+msgstr "Doit pointer vers un exécutable GraXpert valide."
 
 #: src/gui/uifiles/settings_window.ui:5970
 msgid "Software Location"
@@ -8200,9 +8191,8 @@ msgid "32 bits"
 msgstr "32 bits"
 
 #: src/gui/uifiles/siril.ui:1210
-#, fuzzy
 msgid "Stretches"
-msgstr "Auto ajustement"
+msgstr "Transformation d'étirements"
 
 #: src/gui/uifiles/siril.ui:1249
 msgid "Open the color saturation dialog"
@@ -8229,9 +8219,8 @@ msgid "Negative Transformation"
 msgstr "Transformation négative"
 
 #: src/gui/uifiles/siril.ui:1305
-#, fuzzy
 msgid "Filters"
-msgstr "Filter : "
+msgstr "Filtres"
 
 #: src/gui/uifiles/siril.ui:1330 src/gui/uifiles/siril.ui:1793
 msgid "Star Processing"
@@ -8251,12 +8240,11 @@ msgstr "Extraction du gradient..."
 
 #: src/gui/uifiles/siril.ui:1395
 msgid "Open the GraXpert external tool interface"
-msgstr ""
+msgstr "Ouvrir l'interface de l'outil externe GraXpert"
 
 #: src/gui/uifiles/siril.ui:1397
-#, fuzzy
 msgid "GraXpert Interface..."
-msgstr "Interface utilisateur"
+msgstr "Interface de GraXpert..."
 
 #: src/gui/uifiles/siril.ui:1424
 msgid "Open the linear match dialog"
@@ -8267,9 +8255,8 @@ msgid "Linear Match..."
 msgstr "Linear Match..."
 
 #: src/gui/uifiles/siril.ui:1450 src/gui/uifiles/siril.ui:1662
-#, fuzzy
 msgid "Composition"
-msgstr "position"
+msgstr "Composition"
 
 #: src/gui/uifiles/siril.ui:1464
 msgid "Open the pixel math dialog"
@@ -8287,9 +8274,8 @@ msgid "Go back to main menu"
 msgstr "Retourner au menu principal"
 
 #: src/gui/uifiles/siril.ui:1493
-#, fuzzy
 msgid "Stretches Processing"
-msgstr "Traitement des étoiles"
+msgstr "Traitement des étirements"
 
 #: src/gui/uifiles/siril.ui:1509
 msgid "Open the inverse hyperbolic sine dialog"
@@ -8300,9 +8286,8 @@ msgid "Asinh Transformation..."
 msgstr "Transformation asinh..."
 
 #: src/gui/uifiles/siril.ui:1524
-#, fuzzy
 msgid "Open the curves transform dialog"
-msgstr "Ouvrir la boîte de dialogue du gradient rotationnel"
+msgstr "Ouvrir la boîte de dialogue de la transformation des courbes"
 
 #: src/gui/uifiles/siril.ui:1539
 msgid "Open the hystogram transform dialog"
@@ -8444,9 +8429,8 @@ msgid "Open Dynamic PSF dialog."
 msgstr "Ouvrir la boîte de dialogue Dynamic PSF."
 
 #: src/gui/uifiles/siril.ui:1918
-#, fuzzy
 msgid "Filters Processing"
-msgstr "Traitement des étoiles"
+msgstr "Traitement des filtres"
 
 #: src/gui/uifiles/siril.ui:1934
 msgid "Open the À Trou wavelet transform dialog"
@@ -8532,9 +8516,8 @@ msgid "Open the unpurple filter dialog"
 msgstr "Ouvrir la boîte de dialogue du filtre médian"
 
 #: src/gui/uifiles/siril.ui:2086
-#, fuzzy
 msgid "Unpurple Filter..."
-msgstr "Filtre médian..."
+msgstr "Filtre unpurple..."
 
 #: src/gui/uifiles/siril.ui:2129
 msgid "Rotate  image 90 degrees, clockwise"
@@ -8645,9 +8628,8 @@ msgid "Show Tilt"
 msgstr "Montrer le tilt"
 
 #: src/gui/uifiles/siril.ui:2547
-#, fuzzy
 msgid "Show Distortions"
-msgstr "Itérations SOS"
+msgstr "Montrer les distorsions"
 
 #: src/gui/uifiles/siril.ui:2572
 msgid "Dynamic PSF..."
@@ -9225,7 +9207,6 @@ msgstr ""
 "photosites spécifiques donnant un carré visible au milieu des darks/offsets."
 
 #: src/gui/uifiles/siril.ui:4896
-#, fuzzy
 msgid ""
 "Dark subtraction can be optimized. Siril offers two ways of doing this.\n"
 "- The first method automatically evaluates the coefficients to be applied so "
@@ -9252,7 +9233,7 @@ msgstr ""
 "dans des conditions optimales. Il compense les différences de température et/"
 "ou de temps d'exposition entre les darks et les images à calibrer.\n"
 "\n"
-"<b>AVERTISSEMENT :</b> N'appliquez pas d'optimisation des darks au master-"
+"<b>AVERTISSEMENT :</b> N'appliquez pas d'optimisation des darks au master-"
 "dark si le master-bias n'a pas été soustrait au préalable."
 
 #: src/gui/uifiles/siril.ui:4905
@@ -9594,12 +9575,10 @@ msgstr ""
 "Appuyez sur ce bouton pour accéder aux paramètres de détection des étoiles"
 
 #: src/gui/uifiles/siril.ui:5693
-#, fuzzy
 msgid "2pass registration"
-msgstr "Appliquer l'alignement"
+msgstr "Alignement 2 passes"
 
 #: src/gui/uifiles/siril.ui:5697
-#, fuzzy
 msgid ""
 "When this box is checked, the transformed images are not saved as a newly "
 "registered sequence. The transformation matrices are saved to the sequence "
@@ -9611,17 +9590,19 @@ msgid ""
 "and immediately applied using the output registration options selected below."
 msgstr ""
 "Lorsque cette case est cochée, les images transformées ne sont pas "
-"sauvegardées comme une séquence nouvellement alignée.\n"
+"enregistrées en tant que nouvelle séquence. Les matrices de transformation "
+"sont enregistrées dans le fichier de séquence. Les données d'alignement "
+"peuvent alors être inspectées et certaines images désélectionnées, avant "
+"d'appliquer les transformations à l'aide de la méthode Appliquer "
+"l'alignement existant.\n"
 "\n"
-"Dans les deux cas, les matrices de transformation sont enregistrées dans le "
-"fichier de la séquence. Les données d'alignement peuvent alors être "
-"inspectées et certaines images désélectionnées, avant d'appliquer les "
-"transformations à l'aide de la méthode Appliquer l'alignement existant."
+"Lorsque cette case n'est pas cochée, l'alignement global sur les étoiles "
+"sera calculé et immédiatement appliqué en utilisant les options d'alignement "
+"de sortie sélectionnées ci-dessous."
 
 #: src/gui/uifiles/siril.ui:5721
-#, fuzzy
 msgid "Undistortion:"
-msgstr "pas dans l'image"
+msgstr "Détordre :"
 
 #: src/gui/uifiles/siril.ui:5732
 msgid ""
@@ -9630,21 +9611,23 @@ msgid ""
 "- distortion solution from an existing WCS file\n"
 "- distortion solution from distortions masters"
 msgstr ""
+"Pour corriger les distorsions des images, vous pouvez soit sélectionner :\n"
+"- solution de distorsion à partir de l'image en cours résolue par "
+"astrométrie\n"
+"- solution de distorsion à partir d'un fichier WCS existant\n"
+"- solution de distorsion à partir des masters de distorsion"
 
 #: src/gui/uifiles/siril.ui:5739
-#, fuzzy
 msgid "From image"
-msgstr "À partir des fichiers"
+msgstr "À partir de l'image"
 
 #: src/gui/uifiles/siril.ui:5740
-#, fuzzy
 msgid "From FITS/WCS file"
-msgstr "À partir des fichiers"
+msgstr "À partir d'un fichier FITS/WCS"
 
 #: src/gui/uifiles/siril.ui:5741
-#, fuzzy
 msgid "From distortion masters"
-msgstr "Calcul de la normalisation...\n"
+msgstr "À partir d'un master-distorsion"
 
 #: src/gui/uifiles/siril.ui:5758
 msgid ""
@@ -9652,6 +9635,11 @@ msgid ""
 "- a FITS file which has been platesolved with distortion.\n"
 "- a wcs file which was written by a previous registration with distortions."
 msgstr ""
+"Sélectionnez un fichier à partir duquel vous souhaitez lire les informations "
+"relatives à la distorsion :\n"
+"- un fichier FITS qui a été résolu par astrométrie avec des distorsions.\n"
+"- un fichier wcs qui a été précédemment écrit par un alignement avec des "
+"distorsions."
 
 #: src/gui/uifiles/siril.ui:5867 src/gui/uifiles/siril.ui:5881
 #: src/gui/uifiles/siril.ui:6015
@@ -9707,16 +9695,16 @@ msgid "Core Y-coordinates of the second image."
 msgstr "Coordonnées en Y du noyau dans la seconde image."
 
 #: src/gui/uifiles/siril.ui:6017
-#, fuzzy
 msgid "Prefix: "
-msgstr "Préfixe :"
+msgstr "Préfixe : "
 
 #: src/gui/uifiles/siril.ui:6028
-#, fuzzy
 msgid ""
 "Prefix of the sequence resulting from the registration. Only the seq file is "
 "created, not new images."
-msgstr "Préfixe du nom des images résultantes de l'alignement."
+msgstr ""
+"Préfixe de la séquence résultant de l'enregistrement. Seul le fichier seq "
+"est créé, pas de nouvelles images."
 
 #: src/gui/uifiles/siril.ui:6084
 msgid "Pick 1st star"
@@ -10061,31 +10049,33 @@ msgstr "Estime la taille finale et l'espace utilisé par l'image empilée."
 
 #: src/gui/uifiles/siril.ui:6986
 msgid "Scaling:"
-msgstr ""
+msgstr "Mise à l'échelle :"
 
 #: src/gui/uifiles/siril.ui:6999
 msgid ""
 "Scaling of the output images. Use Estimate button to determine the final "
 "image size."
 msgstr ""
+"Mise à l'échelle des images de sortie. Utilisez le bouton Estimation pour "
+"déterminer la taille finale de l'image."
 
 #: src/gui/uifiles/siril.ui:7036
 msgid ""
 "Choose whether to use an interpolation algorithm or Drizzle to apply "
 "registration"
 msgstr ""
+"Choisissez d'utiliser un algorithme d'interpolation ou le Drizzle pour "
+"appliquer l'alignement"
 
 #: src/gui/uifiles/siril.ui:7064
 msgid "Algorithm: "
 msgstr "Algorithme : "
 
 #: src/gui/uifiles/siril.ui:7075
-#, fuzzy
 msgid "Set the interpolation algorithm"
-msgstr "Commencer la résolution astrométrique."
+msgstr "Définir l'algorithme d'interpolation"
 
 #: src/gui/uifiles/siril.ui:7100
-#, fuzzy
 msgid ""
 "Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms\n"
 "\n"
@@ -10101,24 +10091,23 @@ msgstr ""
 "Active la contrainte des algorithmes d'interpolation Bicubique et Lancsoz4\n"
 "\n"
 "Le principal problème des algorithmes d'interpolation Lanczos et Bicubique "
-"est la génération de forts artefacts de sous-exposition (anneaux). Ces "
-"artefacts sont causés par les lobes négatifs des fonctions d'interpolation "
-"qui tombent sur les bords à fort contraste et les pixels brillants isolés "
-"(comme dans les étoiles). Cela ne se produit généralement qu'avec des "
-"données linéaires.\n"
+"est la génération de forts artefacts de rebonds (anneaux). Ces artefacts "
+"sont causés par les lobes négatifs des fonctions d'interpolation qui tombent "
+"sur les bords à fort contraste et les pixels brillants isolés (comme dans "
+"les étoiles). Cela ne se produit généralement qu'avec des données linéaires."
+"\n"
 "\n"
 "Dans les implémentations actuelles de Siril, nous avons inclus un mécanisme "
 "de contrainte qui empêche les valeurs interpolées négatives et les artefacts "
-"d'anneau pour la plupart des images."
+"de rebonds pour la plupart des images."
 
 #: src/gui/uifiles/siril.ui:7119
-#, fuzzy
 msgid "Use interpolation"
-msgstr "type d'interpolation"
+msgstr "Utiliser l'interpolation"
 
 #: src/gui/uifiles/siril.ui:7132
 msgid "Include master flat in initial pixel weighting"
-msgstr ""
+msgstr "Inclure le master flat dans la pondération initiale des pixels"
 
 #: src/gui/uifiles/siril.ui:7136
 msgid ""
@@ -10129,15 +10118,21 @@ msgid ""
 "\n"
 "The master flat must be set in the Calibration tab."
 msgstr ""
+"Cochez cette case pour inclure le master-flatdans la pondération initiale "
+"des pixels. Ainsi, les pixels des zones moins vignetées des images d'entrée "
+"seront plus fortement pondérés que les pixels des zones plus vignetées, "
+"lorsqu'ils atterrissent sur le même pixel de sortie. Il s'agit au mieux d'un "
+"gain mineur.\n"
+"\n"
+"Le master-flat doit être défini dans l'onglet Calibration."
 
 #: src/gui/uifiles/siril.ui:7152
 msgid "Droplet Model"
-msgstr ""
+msgstr "Modèle de la gouttelette"
 
 #: src/gui/uifiles/siril.ui:7164
-#, fuzzy
 msgid "Pixel Fraction"
-msgstr "Rejet des pixels :"
+msgstr "Fraction de pixel"
 
 #: src/gui/uifiles/siril.ui:7175
 msgid ""
@@ -10145,36 +10140,40 @@ msgid ""
 "Note that the Gaussian and Lanczos models do not conserve flux and should "
 "not be used f you wish to use the output for accurate photometry."
 msgstr ""
+"Sélectionnez le modèle de gouttelettes. Voir la documentation pour plus de "
+"détails\n"
+"Notez que les modèles gaussiens et de Lanczos ne conservent pas le flux "
+"lumineux et ne doivent pas être utilisés si vous souhaitez utiliser le "
+"résultat pour une photométrie précise."
 
 #: src/gui/uifiles/siril.ui:7179
-#, fuzzy
 msgid "Square"
 msgstr "Carré"
 
 #: src/gui/uifiles/siril.ui:7181
-#, fuzzy
 msgid "Point"
-msgstr "Point noir"
+msgstr "Point"
 
 #: src/gui/uifiles/siril.ui:7182
 msgid "Turbo"
-msgstr ""
+msgstr "Turbo"
 
 #: src/gui/uifiles/siril.ui:7183
-#, fuzzy
 msgid "Lanczos2"
-msgstr "Lanczos4"
+msgstr "Lanczos2"
 
 #: src/gui/uifiles/siril.ui:7184
-#, fuzzy
 msgid "Lanczos3"
-msgstr "Lanczos4"
+msgstr "Lanczos3"
 
 #: src/gui/uifiles/siril.ui:7196
 msgid ""
 "Sets the droplet size as a fraction of the input pixel size. Typically a "
 "good value for this is the reciprocal of the drizzle scale."
 msgstr ""
+"Définit la taille des gouttelettes en tant que fraction de la taille du "
+"pixel d'entrée. En général, une bonne valeur est la réciproque de l'échelle "
+"des gouttelettes."
 
 #: src/gui/uifiles/siril.ui:7197
 msgid "1.00"
@@ -10826,7 +10825,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:9085
 msgid "Maximize framing"
-msgstr ""
+msgstr "Maximiser le cadrage"
 
 #: src/gui/uifiles/siril.ui:9088
 msgid ""
@@ -11176,16 +11175,15 @@ msgstr "Nombre d'échantillons"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:46 src/gui/photometric_cc.c:89
 msgid "Checking Gaia archive status..."
-msgstr ""
+msgstr "Vérification de l'état de l'archive Gaia..."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:122
-#, fuzzy
 msgid "Status: "
-msgstr "Rayon : "
+msgstr "Status : "
 
 #: src/gui/uifiles/s_pcc_dialog.ui:126
 msgid "Click to update Gaia archive status check"
-msgstr ""
+msgstr "Cliquez pour mettre à jour la vérification de l'état de l'archive Gaia"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:160
 msgid "Start the photometric color calibration algorithm."
@@ -11410,23 +11408,24 @@ msgstr ""
 "filtres à bande étroite duo, etc."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:798
-#, fuzzy
 msgid "Atmospheric corrections"
-msgstr "Correction cosmétique"
+msgstr "Corrections atmosphériques"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:802
 msgid ""
 "Apply an atmosphere model to account for wavelength-dependent atmospheric "
 "extinction."
 msgstr ""
+"Appliquer un modèle d'atmosphère pour tenir compte de l'extinction "
+"atmosphérique en fonction de la longueur d'onde."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:828
 msgid "Observer height / m:"
-msgstr ""
+msgstr "Hauteur de l'observateur / m :"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:839
 msgid "Observer's height (altitude) above sea level."
-msgstr ""
+msgstr "Hauteur (altitude) de l'observateur au-dessus du niveau de la mer."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:840
 #, fuzzy
@@ -11435,7 +11434,7 @@ msgstr "10.00"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:855
 msgid "Atmospheric pressure / hPa:"
-msgstr ""
+msgstr "Pression atmosphérique / hPa :"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:866
 msgid ""
@@ -11443,28 +11442,29 @@ msgid ""
 "is taken to be sea level pressure, otherwise it is taken to be local "
 "pressure at the observer's height."
 msgstr ""
+"Pression atmosphérique en hPa. Si la case « niveau de la mer » est cochée, "
+"il s'agit de la pression au niveau de la mer, sinon il s'agit de la pression "
+"locale à la hauteur de l'observateur."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:867
 msgid "1013.00"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1118
-#, fuzzy
 msgid "sea level"
-msgstr "Niveau de zoom"
+msgstr "niveau de la mer"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:897
 msgid "Airmass:"
-msgstr ""
+msgstr "Masse d'air :"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:910
 msgid "Plot atmosphere model"
-msgstr ""
+msgstr "Tracer le modèle atmosphérique"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:940
-#, fuzzy
 msgid "Atmospheric Parameters"
-msgstr "Paramètres d'étirement"
+msgstr "Paramètres atmosphériques"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:960
 msgid "SPCC Parameters"
@@ -11745,23 +11745,20 @@ msgstr ""
 "sans étoile et, si sélectionné, avec masque d'étoile, seront générées."
 
 #: src/gui/uifiles/starnet_dialog.ui:272
-#, fuzzy
 msgid "Sequence to open on completion"
-msgstr "Sélection de la séquence"
+msgstr "Séquence à ouvrir à la fin"
 
 #: src/gui/uifiles/starnet_dialog.ui:286
-#, fuzzy
 msgid "Starless"
-msgstr "#Étoiles"
+msgstr "Sans étoile"
 
 #: src/gui/uifiles/starnet_dialog.ui:287
-#, fuzzy
 msgid "Star mask"
-msgstr "#Étoiles"
+msgstr "Masque d'étoiles"
 
 #: src/gui/uifiles/starnet_dialog.ui:288
 msgid "Original"
-msgstr ""
+msgstr "Original"
 
 #: src/gui/uifiles/stars_list_window.ui:84
 msgid "Export list of stars to a file"
@@ -12277,10 +12274,9 @@ msgid "Open light curve dialog"
 msgstr "Ouvrir la boîte de dialogue de la courbe de lumière"
 
 #: src/gui/siril-shortcuts.ui:205
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Open dialog for annotations"
-msgstr "Annotations standards :"
+msgstr "Ouvrir la fenêtre pour les annotations"
 
 #: src/gui/siril-shortcuts.ui:212
 msgctxt "shortcut window"
@@ -12396,7 +12392,7 @@ msgstr ""
 
 #: src/main-cli.c:128 src/main.c:133
 msgid "start in offline mode"
-msgstr ""
+msgstr "démarrer en mode hors ligne"
 
 #: src/main-cli.c:129 src/main.c:134
 msgid "print the application’s version"
@@ -12466,6 +12462,8 @@ msgid ""
 "Siril started in offline mode. Will not attempt to update siril-scripts or "
 "siril-spcc-database...\n"
 msgstr ""
+"Siril a démarré en mode hors ligne. Ne tentera pas de mettre à jour les "
+"scripts siril ou la base de données siril-spcc...\n"
 
 #: src/main.c:323
 msgid ""
@@ -12579,11 +12577,10 @@ msgstr ""
 "pôle)\n"
 
 #: src/algos/astrometry_solver.c:567
-#, fuzzy
 msgid "Up is %+.2lf deg CounterclockWise wrt. N%s\n"
 msgstr ""
-"Le haut est à %+.2lf deg (sens des aiguilles d'une montre) par rapport au "
-"Nord%s\n"
+"Le haut est à %+.2lf deg (sens inverse des aiguilles d'une montre) par "
+"rapport au Nord%s\n"
 
 #: src/algos/astrometry_solver.c:567
 msgid " (flipped)"
@@ -12688,14 +12685,13 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:1047 src/algos/astrometry_solver.c:1050
 #: src/algos/astrometry_solver.c:1055
-#, fuzzy
 msgid "Could not save distortion master file, skipping\n"
-msgstr "Impossible de charger ou de créer le fichier de paramètres.\n"
+msgstr ""
+"Impossible d'enregistrer le fichier maître de la distorsion, étape sautée\n"
 
 #: src/algos/astrometry_solver.c:1054
-#, fuzzy
 msgid "Solution has no distortion\n"
-msgstr "Calcul de la normalisation...\n"
+msgstr "La solution n'a pas de distorsion\n"
 
 #: src/algos/astrometry_solver.c:1063
 msgid "Flipping image and updating astrometry data.\n"
@@ -12787,9 +12783,8 @@ msgstr ""
 "des étoiles\n"
 
 #: src/algos/astrometry_solver.c:1960
-#, fuzzy
 msgid "Error: no reference stars available\n"
-msgstr "Non disponible"
+msgstr "Erreur : aucune étoile de référence disponible\n"
 
 #: src/algos/astrometry_solver.c:1977 src/registration/registration.c:94
 msgid "Recomputing already existing registration for this layer\n"
@@ -12797,14 +12792,12 @@ msgstr ""
 "Recalcule les informations d'alignement déjà existantes pour ce canal\n"
 
 #: src/algos/astrometry_solver.c:1990 src/io/fits_keywords.c:1188
-#, fuzzy
 msgid "Error when closing fitseq\n"
-msgstr "Erreur lors de l'ouverture du fichier"
+msgstr "Erreur lors de la fermeture de la séquence FITS\n"
 
 #: src/algos/astrometry_solver.c:1997 src/io/fits_keywords.c:1196
-#, fuzzy
 msgid "Error when reopening fitseq\n"
-msgstr "Erreur lors de l'ouverture du fichier"
+msgstr "Erreur lors de l'ouverture de la séquence FITS\n"
 
 #: src/algos/astrometry_solver.c:2019 src/algos/astrometry_solver.c:2061
 #, c-format
@@ -12812,14 +12805,14 @@ msgid "Image %d already platesolved, skipping\n"
 msgstr "L'image %d a déjà été traitée, sauter\n"
 
 #: src/algos/astrometry_solver.c:2048
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: no stars found\n"
-msgstr "Image %d introuvable pour l'écriture\n"
+msgstr "Image %d : aucune étoile trouvée\n"
 
 #: src/algos/astrometry_solver.c:2057 src/algos/astrometry_solver.c:2171
-#, fuzzy, c-format
+#, c-format
 msgid "Could not copy WCS data, skipping image %d\n"
-msgstr "Impossible de copier l'image d'entrée, abandon.\n"
+msgstr "Impossible de copier les données WCS, étape sautée.\n"
 
 #: src/algos/astrometry_solver.c:2106
 #, c-format
@@ -12874,9 +12867,8 @@ msgid "File %s updated\n"
 msgstr "Fichier %s mis à jour\n"
 
 #: src/algos/astrometry_solver.c:2203
-#, fuzzy
 msgid "Computing astrometric registration...\n"
-msgstr "Appliquer Alignement Existant"
+msgstr "Calcul de l'alignement par astrométrie...\n"
 
 #: src/algos/astrometry_solver.c:2286
 #, c-format
@@ -12919,20 +12911,17 @@ msgid "Background with %s interpolation computed.\n"
 msgstr "Arrière-plan avec interpolation %s calculée.\n"
 
 #: src/algos/background_extraction.c:930 src/algos/background_extraction.c:1141
-#, fuzzy
 msgid "Error: unsupported CFA pattern for this operation.\n"
-msgstr "Paramètres incorrects détectés"
+msgstr "Erreur : le modèle CFA n'est pas pris en charge pour cette opération.\n"
 
 #: src/algos/background_extraction.c:952 src/algos/background_extraction.c:1160
-#, fuzzy
 msgid "Error splitting into CFA subcannels, aborting...\n"
-msgstr "Erreur d'analyse des arguments, abandon.\n"
+msgstr "Erreur de découpage en sous-canaux CFA, abandon...\n"
 
 #: src/algos/background_extraction.c:967
-#, fuzzy
 msgid "Failed to adapt background samples for CFA image\n"
 msgstr ""
-"Impossible de générer des échantillons de fond de ciel pour l'image : %s\n"
+"Échec de l'adaptation des échantillons du fond de ciel pour l'image CFA\n"
 
 #: src/algos/background_extraction.c:974 src/algos/background_extraction.c:1051
 #: src/algos/background_extraction.c:1182
@@ -12940,9 +12929,9 @@ msgid "Out of memory - aborting"
 msgstr "Mémoire insuffisante - abandon"
 
 #: src/algos/background_extraction.c:1028
-#, fuzzy, c-format
+#, c-format
 msgid "Background with %s interpolation computed for CFA image.\n"
-msgstr "Arrière-plan avec interpolation %s calculée.\n"
+msgstr "Fond de ciel avec %s interpolation calculée pour l'image CFA.\n"
 
 #: src/algos/background_extraction.c:1058
 #: src/algos/background_extraction.c:1189
@@ -12956,12 +12945,16 @@ msgid ""
 "Warning: RBF background removal is not recommended for CFA images. Only "
 "linear background removal is recommended.\n"
 msgstr ""
+"Avertissement : La suppression de gradient RBF n'est pas recommandée pour "
+"les images CFA. Seule la suppression linéaire du gradient est recommandée.\n"
 
 #: src/algos/background_extraction.c:1126
 msgid ""
 "Warning: polynomial background removal order > 1 is not recommended for CFA "
 "images. Only linear background removal is recommended.\n"
 msgstr ""
+"Attention : l'ordre polynomial > 1 n'est pas recommandé pour les images CFA. "
+"Seule la suppression de gradient linéaire est recommandée.\n"
 
 #: src/algos/background_extraction.c:1282 src/algos/demosaicing.c:1300
 #: src/algos/extraction.c:1145 src/algos/star_finder.c:1133
@@ -12977,9 +12970,8 @@ msgstr ""
 "image, %s considéré comme disponible)\n"
 
 #: src/algos/background_extraction.c:1317
-#, fuzzy
 msgid "Error reading reference metadata.\n"
-msgstr "Erreur : impossible de lire l'image sans étoile à partir de TIFF...\n"
+msgstr "Erreur de lecture des métadonnées de référence.\n"
 
 #: src/algos/ccd-inspector.c:184 src/algos/ccd-inspector.c:253
 #, c-format
@@ -13051,6 +13043,12 @@ msgid ""
 "software you will need to multiply the values by 100, for example using the "
 "Siril command \"fmul 100\"\n"
 msgstr ""
+"Remarque : le canal L* est mis à l'échelle pour obtenir des valeurs "
+"comprises entre 0,0 et 1,0 afin de faciliter l'édition dans Siril. L'espace "
+"colorimétrique CIE L*a*b* définit le canal L* comme ayant une plage de 0,0 à "
+"100,0. Si vous souhaitez utiliser ce canal comme un véritable canal L* dans "
+"un autre logiciel, vous devrez multiplier les valeurs par 100, par exemple "
+"en utilisant la commande Siril « fmul 100 ».\n"
 
 #: src/algos/colors.c:1100 src/algos/colors.c:1191 src/algos/noise.c:86
 #: src/algos/photometric_cc.c:663 src/algos/star_finder.c:69
@@ -13270,9 +13268,8 @@ msgid "Cannot perform debayering\n"
 msgstr "Dématriçage impossible\n"
 
 #: src/algos/demosaicing.c:1357
-#, fuzzy
 msgid "Could not load metadata\n"
-msgstr "Impossible de charger le fichier"
+msgstr "Impossible de charger les métadonnées\n"
 
 #: src/algos/demosaicing.c:1368
 #, c-format
@@ -13489,9 +13486,8 @@ msgid "Crop Sequence"
 msgstr "Recadrer séquence"
 
 #: src/algos/geometry.c:806
-#, fuzzy
 msgid "Scale Sequence"
-msgstr "Nettoyer séquence"
+msgstr "Mise à l'échelle de la séquence"
 
 #: src/algos/noise.c:57
 msgid "Noise standard deviation: calculating...\n"
@@ -13636,11 +13632,15 @@ msgstr "Utilisation de %d étoiles pour étalonner la courbe de lumière\n"
 msgid ""
 "Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"
 msgstr ""
+"Barres d'erreur-- (%d images) médiane : %.2lfmmag, max : %.2lfmmag, min : %."
+"2lfmmag\n"
 
 #: src/algos/photometry.c:501
 msgid ""
 "Variable star SNR-- (%d images) median: %.2lfdB, max: %.2lfdB, min: %.2lfdB\n"
 msgstr ""
+"Étoile variable SNR-- (%d images) médiane : %.2lfdB, max : %.2lfdB, min : %."
+"2lfdB\n"
 
 #: src/algos/photometry.c:511
 #, c-format
@@ -14215,6 +14215,8 @@ msgid ""
 "Undebayered CFA image. Detection is done on green pixels only, using "
 "interpolation\n"
 msgstr ""
+"Image CFA non dématricée. La détection est effectuée sur les pixels verts "
+"uniquement, en utilisant l'interpolation\n"
 
 #: src/algos/star_finder.c:1407
 #, c-format
@@ -14264,11 +14266,12 @@ msgstr ""
 "supportée.\n"
 
 #: src/algos/statistics.c:1211
-#, fuzzy
 msgid ""
 "Error: statistics computation failed. Unable to check for out-of-range "
 "values.\n"
-msgstr "Erreur : échec du calcul des statistiques.\n"
+msgstr ""
+"Erreur : le calcul des statistiques a échoué. Impossible de vérifier les "
+"valeurs hors plage.\n"
 
 #: src/algos/statistics_float.c:240
 msgid "MAD is null. Statistics cannot be computed.\n"
@@ -14661,9 +14664,9 @@ msgid "This command is deprecated: %s should be used instead.\n"
 msgstr "Cette commande est obsolète : %s doit être utilisée à la place.\n"
 
 #: src/core/command.c:138
-#, fuzzy, c-format
+#, c-format
 msgid "The %s option is deprecated: %s should be used instead.\n"
-msgstr "Cette commande est obsolète : %s doit être utilisée à la place.\n"
+msgstr "L'option %s est obsolète : il faut utiliser %s à la place.\n"
 
 #: src/core/command.c:160
 msgid ""
@@ -14926,42 +14929,39 @@ msgstr "Entropie : %.3f\n"
 #: src/core/command.c:1176
 msgid "Warning: d > approx. 25 may result in lengthy execution times.\n"
 msgstr ""
+"Attention : d > environ 25 peut entraîner des temps longs d'exécution.\n"
 
 #: src/core/command.c:1207
-#, fuzzy
 msgid "-si= value must be > 0.0 and <= 65535\n"
-msgstr "Erreur : B doit être >= 0.0 et <= 15.0.\n"
+msgstr "-si= doit être > 0.0 et <= 65535\n"
 
 #: src/core/command.c:1212
-#, fuzzy
 msgid "-d= value must be > 0.0 and <= 20.0\n"
-msgstr "Erreur : D doit être > 0.0 et <= 10.0.\n"
+msgstr "-d= la valeur doit être > 0.0 et <= 20.0\n"
 
 #: src/core/command.c:1217
-#, fuzzy
 msgid "-ss= value must be > 0.0 and <= 32.0\n"
-msgstr "Erreur : D doit être > 0.0 et <= 10.0.\n"
+msgstr "La valeur de -ss= doit être > 0.0 et <= 32.0\n"
 
 #: src/core/command.c:1222
 msgid ""
 "Warning: spatial sigma > approx. 20 with auto diameter may result in lengthy "
 "execution times.\n"
 msgstr ""
+"Attention : un sigma spatial > 20 environ avec le diamètre automatique peut "
+"entraîner des temps longs d'exécution.\n"
 
 #: src/core/command.c:1225
-#, fuzzy
 msgid "-mod= value must be > 0.0 and <= 1.0\n"
-msgstr "Erreur : D doit être > 0.0 et <= 10.0.\n"
+msgstr "-mod= doit être > 0.0 et <= 1.0\n"
 
 #: src/core/command.c:1235
-#, fuzzy
 msgid "Error: guide image could not be loaded\n"
-msgstr "Erreur : l'image n'a pas pu être chargée"
+msgstr "Erreur : l'image guide n'a pas pu être chargée\n"
 
 #: src/core/command.c:1247
-#, fuzzy
 msgid "Error: guide image dimensions do not match\n"
-msgstr "Erreur : les images ne correspondent pas"
+msgstr "Erreur : les dimensions de l'image guide ne correspondent pas\n"
 
 #: src/core/command.c:1256
 msgid ""
@@ -16078,9 +16078,8 @@ msgstr ""
 "ignoré.\n"
 
 #: src/core/command.c:5887
-#, fuzzy
 msgid "Error generating background samples\n"
-msgstr "Effacer les échantillons."
+msgstr "Erreur dans la génération d'échantillons\n"
 
 #: src/core/command.c:5916
 msgid "Sigma low must be positive.\n"
@@ -16127,13 +16126,15 @@ msgstr "CieLAB"
 
 #: src/core/command.c:6203
 msgid "Upscaling x2\n"
-msgstr ""
+msgstr "Mise à l'échelle x2\n"
 
 #: src/core/command.c:6460
 msgid ""
 "Error: sequences don't match (dimensions, bitdepth, number of images must "
 "all be the same)\n"
 msgstr ""
+"Erreur : les séquences ne correspondent pas (les dimensions, la profondeur "
+"de bit, le nombre d'images doivent être identiques)\n"
 
 #: src/core/command.c:6501
 #, c-format
@@ -16303,9 +16304,9 @@ msgstr ""
 "%d plus petit que le minimum autorisé de paires d'étoiles : %d, abandon.\n"
 
 #: src/core/command.c:7585
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown distortion type %s, aborting.\n"
-msgstr "Type de transformation %s inconnu, abandon.\n"
+msgstr "Type de distorsion inconnu %s, abandon.\n"
 
 #: src/core/command.c:7594 src/core/command.c:7724 src/core/command.c:8184
 #: src/core/command.c:8814 src/core/command.c:10025 src/core/command.c:10684
@@ -23147,9 +23148,8 @@ msgid "percent below and above the expected sampling to allow"
 msgstr "pourcentage en dessous et au-dessus de l'échantillonnage prévu"
 
 #: src/core/settings.c:412
-#, fuzzy
 msgid "default IAU observatory code"
-msgstr "mode d'affichage par défaut"
+msgstr "code de l'observatoire de l'UAI par défaut"
 
 #: src/core/settings.c:414
 msgid "panel size of aberration inspector"
@@ -23612,9 +23612,8 @@ msgid "Load another image"
 msgstr "Charger une nouvelle image"
 
 #: src/core/siril_actions.c:709 src/core/siril_actions.c:717
-#, fuzzy
 msgid "Close current image?"
-msgstr "Fermer la fenêtre courante"
+msgstr "Fermer l'image courante ?"
 
 #: src/core/siril_actions.c:709
 msgid ""
@@ -23920,9 +23919,9 @@ msgid "kernel:         %s\n"
 msgstr ""
 
 #: src/drizzle/cdrizzleutil.c:125
-#, fuzzy, c-format
+#, c-format
 msgid "pixel_fraction: %f\n"
-msgstr "Rejet des pixels :"
+msgstr "fraction du pixel : %f\n"
 
 #: src/drizzle/cdrizzleutil.c:126
 #, c-format
@@ -24632,9 +24631,8 @@ msgid "Sharpless Catalogue (Sh2)"
 msgstr "Catalogue Sharpless (Sh2)"
 
 #: src/gui/annotations_pref.c:34
-#, fuzzy
 msgid "Star Catalogue"
-msgstr "Catalogue d'étoiles : "
+msgstr "Catalogue d'étoiles"
 
 #: src/gui/annotations_pref.c:35
 #, fuzzy
@@ -26746,16 +26744,14 @@ msgstr ""
 #. Fill the 2nd box
 #. The label
 #: src/gui/nina_light_curve.c:155
-#, fuzzy
 msgid "Inner radius of the annulus (px):"
-msgstr "rayon interne de l'anneau de fond de ciel"
+msgstr "Rayon interne de l'anneau de fond de ciel (px) :"
 
 #. Fill the 3rd box
 #. The label
 #: src/gui/nina_light_curve.c:172
-#, fuzzy
 msgid "Outer radius of the annulus (px):"
-msgstr "rayon externe de l'anneau de fond de ciel"
+msgstr "Rayon externe de l'anneau de fond de ciel (px) :"
 
 #: src/gui/nina_light_curve.c:221 src/gui/sequence_list.c:152
 #: src/gui/starnetgui.c:224 src/io/path_parse.c:74
