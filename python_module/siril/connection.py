@@ -868,7 +868,9 @@ class SirilInterface:
             bool: True if the command was successfully executed, False otherwise
 
         Example:
-            siril.cmd("ght", "-D=0.5", "-b=2.0")
+            .. code-block:: python
+
+                siril.cmd("ght", "-D=0.5", "-b=2.0")
         """
 
         try:
