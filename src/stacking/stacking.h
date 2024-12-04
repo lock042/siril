@@ -43,7 +43,7 @@ typedef enum {
 	WFWHM_WEIGHT,
 	NOISE_WEIGHT,
 	NBSTACK_WEIGHT
-} weighingType;
+} weightingType;
 
 typedef struct {
 	double *offset;
@@ -90,10 +90,7 @@ struct stacking_args {
 	gboolean merge_lowhigh_rejmaps;	/* create only one map */
 	fits *rejmap_low, *rejmap_high;	/* rejection maps */
 
-	gboolean apply_noise_weights;	/* enable weights */
-	gboolean apply_nbstack_weights;	/* enable weights */
-	gboolean apply_wfwhm_weights;	/* enable weights */
-	gboolean apply_nbstars_weights;	/* enable weights */
+	weightingType weighting_type;	/* enable weights */
 	double *weights; 		/* computed weights for each (layer, image)*/
 
 	float (*sd_calculator)(const WORD *, const int); // internal, for ushort
@@ -123,10 +120,7 @@ struct stacking_configuration {
 	normalization norm;
 	int number_of_loaded_sequences;
 	struct seq_filter_config filters;
-	gboolean apply_noise_weights;
-	gboolean apply_nbstack_weights;
-	gboolean apply_wfwhm_weights;
-	gboolean apply_nbstars_weights;
+	weightingType weighting_type;
 	gboolean maximize_framing;
 	gboolean upscale_at_stacking;
 };

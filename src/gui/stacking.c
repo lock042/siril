@@ -140,10 +140,14 @@ static void start_stacking() {
 	stackparam.coeff.scale = NULL;
 	stackparam.method =	stacking_methods[gtk_combo_box_get_active(method_combo)];
 	gboolean weighing_is_enabled = gtk_widget_get_visible(GTK_WIDGET(weighing_combo));
-	stackparam.apply_noise_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == NOISE_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
-	stackparam.apply_nbstars_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == NBSTARS_WEIGHT);
-	stackparam.apply_wfwhm_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == WFWHM_WEIGHT);
-	stackparam.apply_nbstack_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == NBSTACK_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	if (weighing_is_enabled) {
+		int weight_type = gtk_combo_box_get_active(weighing_combo);
+		if (gtk_combo_box_get_active(norm_combo) != NO_NORM && (weight_type == NOISE_WEIGHT || weight_type == NBSTACK_WEIGHT))
+			stackparam.weighting_type = weight_type;
+		else 
+			stackparam.weighting_type = weight_type;
+
+	}
 	stackparam.equalizeRGB = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.lite_norm = gtk_toggle_button_get_active(fast_norm);
 	stackparam.feather_dist = (int)gtk_spin_button_get_value(feather_dist) * gtk_widget_get_visible(blend_frame);
@@ -369,6 +373,10 @@ void on_rejmaps_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_widget_set_sensitive(merge, gtk_toggle_button_get_active(button));
 }
 
+void on_check_maximize_framing_toggled(GtkToggleButton *button, gpointer user_data) {
+	update_stack_interface(TRUE);
+}
+
 void on_stacksel_changed(GtkComboBox *widget, gpointer user_data) {
 	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE (widget));
 	if (g_str_has_prefix(caller, "filter_type")) {
@@ -591,7 +599,7 @@ static void update_filter_label() {
 void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkWidget *go_stack = NULL, *widgetnormalize = NULL, *force_norm =
 			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL, *max_framing = NULL,
-			*upscale_at_stacking = NULL, *blend_frame = NULL;
+			*upscale_at_stacking = NULL, *blend_frame = NULL, *overlap_norm = NULL;
 	static GtkComboBox *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
 	static GtkExpander *stack_expander_method = NULL, *stack_expander_output = NULL;
@@ -610,6 +618,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		max_framing = lookup_widget("check_maximize_framing");
 		upscale_at_stacking = lookup_widget("check_upscale_at_stacking");
 		blend_frame = lookup_widget("stack_blend_frame");
+		overlap_norm = lookup_widget("check_norm_overlap");
 		stack_expander_method = GTK_EXPANDER(lookup_widget("stack_expander_method"));
 		stack_expander_output = GTK_EXPANDER(lookup_widget("stack_expander_output"));
 	}
@@ -646,7 +655,8 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_visible(max_framing, can_reframe); // only shown if applicable
 		if (can_reframe) {
 			gtk_widget_set_sensitive(max_framing, !must_reframe);
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(max_framing), must_reframe);
+			if (must_reframe)
+				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(max_framing), TRUE);
 		}
 		gtk_widget_set_visible(upscale_at_stacking, can_upscale); // only shown if applicable
 		break;
@@ -663,10 +673,16 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_visible(upscale_at_stacking, can_upscale && stack_method != STACK_MEDIAN); // only shown if applicable and not for median
 		if (can_reframe && stack_method != STACK_MEDIAN) {
 			gtk_widget_set_sensitive(max_framing, !must_reframe);
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(max_framing), must_reframe);
+			if (must_reframe)
+				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(max_framing), TRUE);
 		}
 	}
 	gtk_widget_set_visible(blend_frame, stack_method == STACK_MEAN);
+	if (gtk_widget_get_visible(blend_frame)) {
+		gtk_widget_set_sensitive(overlap_norm, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(max_framing)));
+		if (!gtk_widget_get_sensitive(overlap_norm))
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(overlap_norm), FALSE);
+	}
 
 	if (com.seq.reference_image == -1)
 		com.seq.reference_image = sequence_find_refimage(&com.seq);

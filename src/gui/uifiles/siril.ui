@@ -9194,6 +9194,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             </property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_check_maximize_framing_toggled" swapped="no"/>
                                                           </object>
                                                           <packing>
                                                             <property name="left-attach">1</property>

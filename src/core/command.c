@@ -8239,47 +8239,29 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			} else {
 				arg->output_norm = TRUE;
 			}
-		} else if (!strcmp(current, "-overlap_norm")) {  // TODO: need other checks
-			if (!med_options_allowed) {
+		} else if (!strcmp(current, "-overlap_norm")) {
+			if (!rej_options_allowed) {
 				siril_log_message(_("Overlap normalization is allowed only with mean stacking, ignoring.\n"));
 			} else {
 				arg->overlap_norm = TRUE;
 			}
-		} else if (!strcmp(current, "-weight_from_noise")) {
+		} else if (g_str_has_prefix(current, "-weight=")) {
 			if (!rej_options_allowed) {
-				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
-			} else if (arg->norm == NO_NORM) {
-				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
-			} else if (arg->apply_nbstack_weights || arg->apply_wfwhm_weights || arg->apply_nbstars_weights) {
-				siril_log_message(_("Only one weighting method can be used\n"));
+				siril_log_message(_("Weighting is allowed only with mean stacking, ignoring.\n"));
 			} else {
-				arg->apply_noise_weights = TRUE;
-			}
-		} else if (!strcmp(current, "-weight_from_wfwhm")) {
-			if (!rej_options_allowed) {
-				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
-			} else if (arg->apply_nbstack_weights || arg->apply_noise_weights || arg->apply_nbstars_weights) {
-				siril_log_message(_("Only one weighting method can be used\n"));
-			} else {
-				arg->apply_wfwhm_weights = TRUE;
-			}
-		} else if (!strcmp(current, "-weight_from_nbstars")) {
-			if (!rej_options_allowed) {
-				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
-			} else if (arg->apply_nbstack_weights || arg->apply_noise_weights || arg->apply_wfwhm_weights) {
-				siril_log_message(_("Only one weighting method can be used\n"));
-			} else {
-				arg->apply_nbstars_weights = TRUE;
-			}
-		} else if (!strcmp(current, "-weight_from_nbstack")) {
-			if (!rej_options_allowed) {
-				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
-			} else if (arg->norm == NO_NORM) {
-				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
-			} else if (arg->apply_noise_weights || arg->apply_wfwhm_weights || arg->apply_nbstars_weights) {
-				siril_log_message(_("Only one weighting method can be used\n"));
-			} else {
-				arg->apply_nbstack_weights = TRUE;
+				value = current + 8;
+				if (!strcmp(value, "noise"))
+					arg->weighting_type = NOISE_WEIGHT;
+				else if (!strcmp(value, "nbstars"))
+					arg->weighting_type = NBSTARS_WEIGHT;
+				else if (!strcmp(value, "nbstack"))
+					arg->weighting_type = NBSTACK_WEIGHT;
+				else if (!strcmp(value, "wfwhm"))
+					arg->weighting_type = WFWHM_WEIGHT;
+				else {
+					siril_log_message(_("Unknown argument to %s, aborting.\n"), current);
+					return CMD_ARG_ERROR;
+				}
 			}
 		} else if (!strcmp(current, "-fastnorm")) {
 			if (!med_options_allowed) {
@@ -8304,7 +8286,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 					arg->norm = MULTIPLICATIVE_SCALING;
 			}
 		} else if (g_str_has_prefix(current, "-feather=")) {
-			if (!med_options_allowed) {
+			if (!rej_options_allowed) {
 				siril_log_message(_("Blending option is not allowed in this context, ignoring.\n"));
 			} else {
 				gchar *end;
@@ -8399,10 +8381,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.equalizeRGB = arg->equalizeRGB;
 	args.lite_norm = arg->lite_norm;
 	args.reglayer = get_registration_layer(args.seq);
-	args.apply_noise_weights = arg->apply_noise_weights;
-	args.apply_nbstack_weights = arg->apply_nbstack_weights;
-	args.apply_wfwhm_weights = arg->apply_wfwhm_weights;
-	args.apply_nbstars_weights = arg->apply_nbstars_weights;
 	args.feather_dist = arg->feather_dist;
 	args.overlap_norm = arg->overlap_norm;
 
@@ -8436,9 +8414,17 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.upscale_at_stacking = FALSE;
 	}
 	if ((args.upscale_at_stacking || args.maximize_framing) && arg->method == stack_median) {
-		siril_log_color_message(_("Cannot upscale or maximize framong with median stacking. Disabling\n"), "red");
+		siril_log_color_message(_("Cannot upscale or maximize framing with median stacking. Disabling\n"), "red");
 		args.maximize_framing = FALSE;
 		args.upscale_at_stacking = FALSE;
+	}
+	if (!args.maximize_framing && args.overlap_norm) {
+		siril_log_color_message(_("Cannot compute overlap statistics if -maximize is not enabled. Disabling\n"), "red");
+		args.overlap_norm = FALSE;
+	}
+	if (args.normalize == NO_NORM && (args.weighting_type == NOISE_WEIGHT || args.weighting_type == NBSTACK_WEIGHT)) {
+		siril_log_color_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"), "red");
+		args.weighting_type = NO_WEIGHT;
 	}
 
 	// manage filters

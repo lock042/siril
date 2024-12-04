@@ -80,7 +80,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 	set_progress_bar_data(_("Opening images for stacking"), PROGRESS_NONE);
 
 	if (args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) {
-		if (args->apply_nbstack_weights) {
+		if (args->weighting_type == NBSTACK_WEIGHT) {
 			int nb_layers = args->seq->nb_layers;
 			args->weights = malloc(nb_layers * nb_frames * sizeof(double));
 		}
@@ -136,7 +136,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			if (image_index == args->ref_image)
 				import_metadata_from_fitsfile(fptr, fit);
 
-			if (args->apply_nbstack_weights) {
+			if (args->weighting_type == NBSTACK_WEIGHT) {
 				int nb_layers = args->seq->nb_layers;
 				double weight = (double)stack_count;
 				siril_debug_print("weight for image %d: %d\n", i, stack_count);
@@ -903,7 +903,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		int stack_size, data_type itype, int rej[2]) {
 	double mean;
 	gboolean masking = (args->feather_dist > 0);
-	gboolean weighting = args->apply_noise_weights || args->apply_nbstack_weights || args->apply_wfwhm_weights || args->apply_nbstars_weights;
+	gboolean weighting = args->weighting_type > NO_WEIGHT;
 	int layer = data->layer;
 	if (itype == DATA_USHORT) {
 		int kept_pixels = apply_rejection_ushort(data, stack_size, args, rej);
@@ -1397,33 +1397,30 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		args->sd_calculator = nb_frames < 65536 ? siril_stats_ushort_sd_32 : siril_stats_ushort_sd_64;
 		args->mad_calculator = siril_stats_ushort_mad;
 	}
-
-	if (args->apply_noise_weights) {
-		siril_log_message(_("Computing weights based on noise...\n"));
-		retval = compute_noise_weights(args);
-		if (retval) {
-			retval = ST_GENERIC_ERROR;
-			goto free_and_close;
-		}
+	switch (args->weighting_type) {
+		default:
+		case NO_WEIGHT:
+			retval = ST_OK;
+			break;
+		case NOISE_WEIGHT:
+			siril_log_message(_("Computing weights based on noise...\n"));
+			retval = compute_noise_weights(args);
+			break;
+		case WFWHM_WEIGHT:
+			siril_log_message(_("Computing weights based on wFWHM...\n"));
+			retval = compute_wfwhm_weights(args);
+			break;
+		case NBSTARS_WEIGHT:
+			siril_log_message(_("Computing weights based on number of stars...\n"));
+			retval = compute_nbstars_weights(args);
+			break;
+		case NBSTACK_WEIGHT:
+			siril_log_message(_("Computing weights based on number of stacked images...\n"));
+			break;
 	}
-	if (args->apply_wfwhm_weights) {
-		siril_log_message(_("Computing weights based on wFWHM...\n"));
-		retval = compute_wfwhm_weights(args);
-		if (retval) {
-			retval = ST_GENERIC_ERROR;
-			goto free_and_close;
-		}
-	}
-	if (args->apply_nbstars_weights) {
-		siril_log_message(_("Computing weights based on number of stars...\n"));
-		retval = compute_nbstars_weights(args);
-		if (retval) {
-			retval = ST_GENERIC_ERROR;
-			goto free_and_close;
-		}
-	}
-	if (args->apply_nbstack_weights) {
-		siril_log_message(_("Computing weights based on number of stacked images...\n"));
+	if (retval) {
+		retval = ST_GENERIC_ERROR;
+		goto free_and_close;
 	}
 
 	siril_log_message(_("Starting stacking...\n"));

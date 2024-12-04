@@ -231,13 +231,13 @@ void _show_summary(struct stacking_args *args) {
 		}
 	}
 
-	if (args->apply_noise_weights)
+	if (args->weighting_type == NOISE_WEIGHT)
 		siril_log_message(_("Image weighting ........... from noise\n"));
-	else if (args->apply_nbstack_weights)
+	else if (args->weighting_type == NBSTACK_WEIGHT)
 		siril_log_message(_("Image weighting ........... from image count\n"));
-	else if (args->apply_wfwhm_weights)
+	else if (args->weighting_type == WFWHM_WEIGHT)
 		siril_log_message(_("Image weighting ........... from weighted FWHM\n"));
-	else if (args->apply_nbstars_weights)
+	else if (args->weighting_type == NBSTARS_WEIGHT)
 		siril_log_message(_("Image weighting ........... from star count\n"));
 	else siril_log_message(_("Image weighting ........... disabled\n"));
 
@@ -354,13 +354,13 @@ void describe_stack_for_history(struct stacking_args *args, GSList **hist, gbool
 		g_string_append(str, ", normalized output");
 	else g_string_append(str, ", unnormalized output");
 
-	if (args->apply_noise_weights)
+	if (args->weighting_type == NOISE_WEIGHT)
 		g_string_append(str, ", image weighting from noise");
-	else if (args->apply_nbstack_weights)
+	else if (args->weighting_type == NBSTACK_WEIGHT)
 		g_string_append(str, ", image weighting from image count");
-	else if (args->apply_wfwhm_weights)
+	else if (args->weighting_type == WFWHM_WEIGHT)
 		g_string_append(str, ", image weighting from weighted FWHM");
-	else if (args->apply_nbstars_weights)
+	else if (args->weighting_type == NBSTARS_WEIGHT)
 		g_string_append(str, ", image weighting from star count");
 	else g_string_append(str, ", no image weighting");
 
@@ -637,10 +637,7 @@ void init_stacking_args(struct stacking_args *args) {
 	args->rejmap_low = NULL;
 	args->rejmap_high = NULL;
 
-	args->apply_noise_weights = FALSE;
-	args->apply_nbstack_weights = FALSE;
-	args->apply_wfwhm_weights = FALSE;
-	args->apply_nbstars_weights = FALSE;
+	args->weighting_type = NO_WEIGHT;
 	args->weights = NULL;
 
 	args->sd_calculator = NULL;
