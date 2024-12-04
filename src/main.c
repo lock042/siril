@@ -205,11 +205,7 @@ static void global_initialization() {
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
 	memset(&com.spcc_data, 0, sizeof(struct spcc_data_store));
-#ifdef _WIN32
-	com.childhandle = NULL;
-#else
 	com.childpid = 0;
-#endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	gui.selected_star = -1;

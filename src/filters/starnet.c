@@ -103,11 +103,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	}
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
 	com.child_is_running = EXT_STARNET;
-#ifdef _WIN32
-	com.childhandle = child_pid;		// For Windows, handle of a child process
-#else
-	com.childpid = child_pid;			// For other OSes, PID of a child process
-#endif
+	com.childpid = child_pid;
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32

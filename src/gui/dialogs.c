@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
+#include "gui/message_dialog.h"
 #include "gui/curves.h"
 #include "algos/background_extraction.h"
 #include "filters/asinh.h"

@@ -894,12 +894,11 @@ void kill_child_process(gboolean onexit) {
 	// abort starnet by killing the process
 	if (com.child_is_running == EXT_STARNET || com.child_is_running == EXT_GRAXPERT) {
 #ifdef _WIN32
-		TerminateProcess(com.childhandle, 1);
-		com.childhandle = NULL;
+		TerminateProcess((void *) com.childpid, 1);
 #else
-		kill(com.childpid, SIGINT);
-		com.childpid = 0;
+		kill((pid_t) com.childpid, SIGINT);
 #endif
+		com.childpid = 0;
 		com.child_is_running = EXT_NONE;
 		if (onexit)
 			printf("An external process (Starnet or GraXpert) has been stopped on exit\n");

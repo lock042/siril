@@ -888,11 +888,7 @@ struct cominf {
 	unsigned kernelchannels;	// Holds number of channels for the kernel
 	struct common_icc icc;		// Holds common ICC color profile data
 	version_number python_version; // Holds the python version number
-#ifdef _WIN32
-	void* childhandle;		// For Windows, handle of a child process
-#else
-	pid_t childpid;			// For other OSes, PID of a child process
-#endif
+	GPid childpid;			// PID of a child process
 };
 
 #ifndef MAIN

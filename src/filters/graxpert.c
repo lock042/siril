@@ -75,11 +75,7 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_spawn_close_pid(pid);
 	// GraXpert has exited, reset the stored pid
 	com.child_is_running = EXT_NONE;
-#ifdef _WIN32
-	com.childhandle = 0;		// For Windows, handle of a child process
-#else
 	com.childpid = 0;			// For other OSes, PID of a child process
-#endif
 }
 
 // This ensures GraXpert is always called with a wide enough environment variable
@@ -151,11 +147,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 	}
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
 	com.child_is_running = EXT_GRAXPERT;
-#ifdef _WIN32
-	com.childhandle = child_pid;		// For Windows, handle of a child process
-#else
 	com.childpid = child_pid;			// For other OSes, PID of a child process
-#endif
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -215,11 +207,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 		g_free(buffer);
 	}
 	// GraXpert has exited, reset the stored pid
-#ifdef _WIN32
-	com.childhandle = 0;		// For Windows, handle of a child process
-#else
 	com.childpid = 0;			// For other OSes, PID of a child process
-#endif
 	if (graxpert_no_exit_report && retval == -1) {
 		if (!is_sequence) siril_log_message(_("GraXpert GUI finished.\n"));
 		if (!is_sequence) set_progress_bar_data(_("Done."), 1.0);
