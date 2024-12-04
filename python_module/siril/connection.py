@@ -696,7 +696,7 @@ class SirilInterface:
         seen as an excuse for failing to call ``SirilInterface.release_thread()``
 
         Note that the thread should only be claimed when the script itself is
-        operating on the Siril image data. If the thread is calling a Siril command
+        operating on the Siril image data. If the script is calling a Siril command
         to alter the Siril image then the thread **must not** be claimed or the
         Siril command will be unable to acquire it, and will fail.
 
