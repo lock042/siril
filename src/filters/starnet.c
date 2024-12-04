@@ -77,6 +77,7 @@ static gboolean verbose = TRUE;
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("starnet is being closed\n");
 	g_spawn_close_pid(pid);
+	remove_child_from_children(pid);
 }
 
 static int exec_prog_starnet(char **argv, starnet_version version) {
@@ -102,8 +103,14 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 		return retval;
 	}
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
-	com.child_is_running = EXT_STARNET;
-	com.childpid = child_pid;
+
+	// Prepend this process to the list of child processes com.children
+	child_info *child = g_malloc(sizeof(child_info));
+	child->childpid = child_pid;
+	child->program = EXT_STARNET;
+	child->name = g_strdup("Starnet");
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32

@@ -61,6 +61,11 @@ static gchar **background_ai_models = NULL;
 static gchar **denoise_ai_models = NULL;
 static gchar **deconv_ai_models = NULL;
 static gboolean graxpert_aborted = FALSE;
+static GPid running_pid = -1;
+
+GPid get_running_graxpert_pid() {
+	return running_pid;
+}
 
 void set_graxpert_aborted(gboolean state) {
 	graxpert_aborted = state;
@@ -74,8 +79,8 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("GraXpert exited with status %d\n", status);
 	g_spawn_close_pid(pid);
 	// GraXpert has exited, reset the stored pid
-	com.child_is_running = EXT_NONE;
-	com.childpid = 0;			// For other OSes, PID of a child process
+	remove_child_from_children(pid);
+	running_pid = -1;
 }
 
 // This ensures GraXpert is always called with a wide enough environment variable
@@ -109,6 +114,9 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 		stderr_fd,      // stderr file descriptor
 		&error
 	);
+
+	// Set a static variable so we can recover the pid info from gui
+	running_pid = *child_pid;
 
 	g_strfreev(env);
 	g_free(columns_str);
@@ -146,8 +154,14 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 		return retval;
 	}
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
-	com.child_is_running = EXT_GRAXPERT;
-	com.childpid = child_pid;			// For other OSes, PID of a child process
+
+	// Prepend this process to the list of child processes com.children
+	child_info *child = g_malloc(sizeof(child_info));
+	child->childpid = child_pid;
+	child->program = EXT_GRAXPERT;
+	child->name = g_strdup("GraXpert");
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -207,7 +221,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 		g_free(buffer);
 	}
 	// GraXpert has exited, reset the stored pid
-	com.childpid = 0;			// For other OSes, PID of a child process
+	running_pid = -1;
 	if (graxpert_no_exit_report && retval == -1) {
 		if (!is_sequence) siril_log_message(_("GraXpert GUI finished.\n"));
 		if (!is_sequence) set_progress_bar_data(_("Done."), 1.0);

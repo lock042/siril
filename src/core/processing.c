@@ -35,6 +35,7 @@
 #include "core/OS_utils.h"
 #include "filters/graxpert.h" // for set_graxpert_aborted()
 #include "gui/utils.h"
+#include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -886,43 +887,123 @@ void wait_for_script_thread() {
 	}
 }
 
+static void free_child(child_info *child) {
+	g_free(child->name);
+	g_date_time_unref(child->datetime);
+	free(child);
+}
+
+// This must be called in the g_spawn on_exit callback to remove the defunct child from the list
+void remove_child_from_children(GPid pid) {
+	GSList *prev = NULL;
+	GSList *iter = com.children;
+
+	while (iter) {
+		child_info *child = (child_info*) iter->data;
+
+		if (child->childpid == pid) {
+			// Remove the node from the list
+			if (prev == NULL) {
+				// If it's the first node
+				com.children = iter->next;
+			} else {
+				// If it's a middle or last node
+				prev->next = iter->next;
+			}
+
+			// Free the node and the child
+			g_slist_free_1(iter);
+			free_child(child);
+			siril_debug_print("Removed GPid %d from com.children\n", pid);
+			return;
+		}
+
+		// Move to next node
+		prev = iter;
+		iter = iter->next;
+	}
+
+	// If we get here, no matching PID was found
+	siril_debug_print("Failed to find GPid %d in com.children\n", pid);
+}
+
 // kills external calls
 // if onexit is TRUE, also do some cleaning
-void kill_child_process(gboolean onexit) {
+void kill_child_process(GPid pid, gboolean onexit) {
 	if (onexit)
 		printf("Making sure no child is left behind...\n");
-	// abort starnet by killing the process
-	if (com.child_is_running == EXT_STARNET || com.child_is_running == EXT_GRAXPERT) {
+	// Find the correct child in com.children
+	GSList *prev = NULL;
+	GSList *iter = com.children;
+
+	while (iter) {
+		child_info *child = (child_info*) iter->data;
+		GSList *next = iter->next;
+		if (child->childpid == pid || onexit) {
+			if (child->program == EXT_STARNET || child->program == EXT_GRAXPERT || child->program == EXT_PYTHON) {
 #ifdef _WIN32
-		TerminateProcess((void *) com.childpid, 1);
+				TerminateProcess((void *) child->childpid, 1);
 #else
-		kill((pid_t) com.childpid, SIGINT);
+				kill((pid_t) child->childpid, SIGINT);
 #endif
-		com.childpid = 0;
-		com.child_is_running = EXT_NONE;
-		if (onexit)
-			printf("An external process (Starnet or GraXpert) has been stopped on exit\n");
-	}
-	// abort asnet by writing a file named stop in wd
-	if (com.child_is_running == EXT_ASNET) {
-		FILE* fp = fopen("stop", "w");
-		if (fp != NULL)
-			fclose(fp);
-		if (onexit) {
-			g_usleep(1000);
-			if (g_unlink("stop"))
-				siril_debug_print("g_unlink() failed\n");
-			printf("asnet has been stopped on exit\n");
+				// Free the child struct
+				free_child(child);
+				// Remove the node from the list
+				if (prev == NULL) {
+					// If it's the first node
+					com.children = iter->next;
+				} else {
+					// If it's a middle or last node
+					prev->next = iter->next;
+				}
+				// Free the node
+				g_slist_free_1(iter);
+			} else if (child->program == EXT_ASNET) {
+				FILE* fp = fopen("stop", "w");
+				if (fp != NULL)
+					fclose(fp);
+				if (onexit) {
+					g_usleep(1000);
+					if (g_unlink("stop"))
+						siril_debug_print("g_unlink() failed\n");
+					printf("asnet has been stopped on exit\n");
+				}
+				free_child(child);
+				// Remove the node from the list
+				if (prev == NULL) {
+					// If it's the first node
+					com.children = iter->next;
+				} else {
+					// If it's a middle or last node
+					prev->next = iter->next;
+				}
+				// Free the node
+				g_slist_free_1(iter);
+			}
+			if(!onexit)
+				break;
 		}
+		// Move to next node
+		prev = iter;
+		iter = next;
 	}
+	// If we get here, no matching PID was found
+	siril_log_message(_("Failed to find GPid %d, it may already have exited...\n"), pid);
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	if (com.thread != NULL)
 		siril_log_color_message(_("Process aborted by user\n"), "red");
-	if (com.child_is_running == EXT_GRAXPERT)
-		set_graxpert_aborted(TRUE);
-	kill_child_process(FALSE);
+	guint children = g_slist_length(com.children);
+	if (children == 1) {
+		child_info *child = (child_info*) com.children->data;
+		if (child->program == EXT_GRAXPERT)
+			set_graxpert_aborted(TRUE);
+		kill_child_process(child->childpid, FALSE);
+	} else if (children > 1) {
+		GPid pid = show_child_process_selection_dialog(com.children);
+		kill_child_process(pid, FALSE);
+	}
 	com.stop_script = TRUE;
 	stop_processing_thread();
 	wait_for_script_thread();

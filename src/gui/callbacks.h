@@ -70,6 +70,7 @@ gboolean update_spinCPU(gpointer user_data);
 
 gboolean save_main_window_state(gpointer user_data);
 gboolean load_main_window_state(gpointer user_data);
+GPid show_child_process_selection_dialog(GSList *children);
 void siril_quit();
 
 /* for image_display */

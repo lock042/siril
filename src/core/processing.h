@@ -218,7 +218,8 @@ struct generic_seq_metadata_args {
 
 gpointer generic_sequence_metadata_worker(gpointer args);
 
-void kill_child_process(gboolean on_exit);
+void kill_child_process(GPid pid, gboolean on_exit);
+void remove_child_from_children(GPid pid);
 
 #ifdef __cplusplus
 }

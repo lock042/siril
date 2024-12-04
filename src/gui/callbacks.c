@@ -1901,7 +1901,7 @@ void gtk_main_quit() {
 	writeinitfile();		// save settings (like window positions)
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
-	kill_child_process(TRUE); // kill running child processes if any
+	kill_child_process(-1, TRUE); // kill running child processes if any
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 	g_slist_free_full(com.pref.gui.script_path, g_free);
 	exit(EXIT_SUCCESS);
@@ -2222,4 +2222,103 @@ void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
 	}
 	g_free(filename);
 	g_object_unref(file);
+}
+
+GPid show_child_process_selection_dialog(GSList *children) {
+	// Create the dialog
+	GtkWidget *dialog = gtk_dialog_new_with_buttons(
+		"Select child process to stop",
+		NULL,  // No parent window
+		GTK_DIALOG_MODAL,
+		"_Cancel", GTK_RESPONSE_CANCEL,
+		"_Stop Process", GTK_RESPONSE_OK,
+		NULL
+	);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_OK);
+
+	// Create a scrolled window to hold the list
+	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(
+		GTK_SCROLLED_WINDOW(scrolled_window),
+		GTK_POLICY_AUTOMATIC,
+		GTK_POLICY_AUTOMATIC
+	);
+
+	// Create a list store and tree view
+	GtkListStore *list_store = gtk_list_store_new(
+		3,  // 3 columns
+		G_TYPE_POINTER,  // Pointer to child_info
+		G_TYPE_STRING,   // Process name
+		G_TYPE_STRING    // Formatted start time
+	);
+
+	GtkWidget *tree_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(list_store));
+	gtk_container_add(GTK_CONTAINER(scrolled_window), tree_view);
+
+	// Add columns to the tree view
+	GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
+	GtkTreeViewColumn *column;
+
+	// Process Name Column
+	column = gtk_tree_view_column_new_with_attributes(
+		"Process Name",
+		renderer,
+		"text", 1,
+		NULL
+	);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
+
+	// Start Time Column
+	column = gtk_tree_view_column_new_with_attributes(
+		"Start Time",
+		renderer,
+		"text", 2,
+		NULL
+	);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
+
+	// Populate the list store
+	GtkTreeIter iter;
+	for (GSList *l = children; l != NULL; l = l->next) {
+		child_info *child = (child_info *)l->data;
+
+		// Format time to 24-hour HH:MM
+		gchar *time_str = g_date_time_format(child->datetime, "%H:%M");
+
+		gtk_list_store_append(list_store, &iter);
+		gtk_list_store_set(list_store, &iter,
+			0, child,         // Pointer to child_info
+			1, child->name,   // Process name
+			2, time_str,      // Formatted start time
+			-1
+		);
+
+		// Free the formatted time string
+		g_free(time_str);
+	}
+
+	// Make the tree view single-selection
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
+
+	// Add scrolled window to dialog
+	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+	gtk_container_add(GTK_CONTAINER(content_area), scrolled_window);
+	gtk_widget_show_all(dialog);
+
+	// Run the dialog
+	GPid selected_pid = -1;
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) {
+		GtkTreeModel *model;
+		if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+			child_info *selected_child;
+			gtk_tree_model_get(model, &iter, 0, &selected_child, -1);
+			selected_pid = selected_child->childpid;
+		}
+	}
+
+	// Clean up
+	gtk_widget_destroy(dialog);
+
+	return selected_pid;
 }

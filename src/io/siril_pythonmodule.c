@@ -715,6 +715,7 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 
 	// Close the process handle
 	g_spawn_close_pid(pid);
+	remove_child_from_children(pid);
 
 	// Re-enable widgets
 	script_widgets_idle(NULL);
@@ -1791,6 +1792,14 @@ void execute_python_script_async(gchar* script_name, gboolean from_file, gchar**
 		// Free the GPtrArray (but not its contents - the caller must free argv_script)
 		g_ptr_array_free(python_argv, FALSE);
 		g_free(python_path);
+
+		// Prepend this process to the list of child processes com.children
+		child_info *child = g_malloc(sizeof(child_info));
+		child->childpid = child_pid;
+		child->program = EXT_PYTHON;
+		child->name = g_strdup("Python");
+		child->datetime = g_date_time_new_now_local();
+		com.children = g_slist_prepend(com.children, child);
 	}
 
 	g_strfreev(env);
@@ -1798,6 +1807,8 @@ void execute_python_script_async(gchar* script_name, gboolean from_file, gchar**
 	if (!success && error) {
 		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
 		g_error_free(error);
+	}
+	if (!success) {
 		g_free(working_dir);
 		return;
 	}

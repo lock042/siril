@@ -649,8 +649,8 @@ typedef struct cut_struct {
 typedef struct _child_info {
 	GPid childpid; // Platform-agnostic way to store the child PID
 	external_program program; // type of program, eg EXT_STARNET, EXT_ASNET etc
-	gchar *argv0; // argv[0], i.e. the executable name
-	gint64 time_start; // start time of program - distinguishes between multiple children with the same argv0
+	gchar *name; // argv[0], i.e. the executable name
+	GDateTime *datetime; // start time of program - distinguishes between multiple children with the same argv0
 } child_info;
 
 struct historic_struct {
@@ -898,7 +898,7 @@ struct cominf {
 	struct common_icc icc;		// Holds common ICC color profile data
 	version_number python_version; // Holds the python version number
 	GPid childpid;			// PID of a child process
-	GSList children;		// List of children; children->data is of type child_info
+	GSList *children;		// List of children; children->data is of type child_info
 };
 
 #ifndef MAIN
