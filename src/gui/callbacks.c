@@ -2227,7 +2227,7 @@ void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
 GPid show_child_process_selection_dialog(GSList *children) {
 	// Create the dialog
 	GtkWidget *dialog = gtk_dialog_new_with_buttons(
-		"Select child process to stop",
+		"Select task to stop",
 		NULL,  // No parent window
 		GTK_DIALOG_MODAL,
 		"_Cancel", GTK_RESPONSE_CANCEL,
@@ -2236,12 +2236,20 @@ GPid show_child_process_selection_dialog(GSList *children) {
 	);
 	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_OK);
 
+	// Set minimum dialog size
+	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 400);
+	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
+
 	// Create a scrolled window to hold the list
 	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(
 		GTK_SCROLLED_WINDOW(scrolled_window),
-		GTK_POLICY_AUTOMATIC,
-		GTK_POLICY_AUTOMATIC
+		GTK_POLICY_AUTOMATIC,  // Horizontal scrollbar as needed
+		GTK_POLICY_AUTOMATIC   // Vertical scrollbar as needed
+	);
+	gtk_scrolled_window_set_shadow_type(
+		GTK_SCROLLED_WINDOW(scrolled_window),
+		GTK_SHADOW_IN  // Add a border around the scrolled window
 	);
 
 	// Create a list store and tree view
@@ -2253,6 +2261,12 @@ GPid show_child_process_selection_dialog(GSList *children) {
 	);
 
 	GtkWidget *tree_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(list_store));
+
+	// Enable multiple selection
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
+
+	// Add tree view to the scrolled window
 	gtk_container_add(GTK_CONTAINER(scrolled_window), tree_view);
 
 	// Add columns to the tree view
@@ -2266,6 +2280,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 		"text", 1,
 		NULL
 	);
+	gtk_tree_view_column_set_expand(column, TRUE);  // Allow column to expand
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
 	// Start Time Column
@@ -2275,6 +2290,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 		"text", 2,
 		NULL
 	);
+	gtk_tree_view_column_set_expand(column, FALSE);  // Keep start time column compact
 	gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
 	// Populate the list store
@@ -2283,7 +2299,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 		child_info *child = (child_info *)l->data;
 
 		// Format time to 24-hour HH:MM
-		gchar *time_str = g_date_time_format(child->datetime, "%H:%M");
+		gchar *time_str = g_date_time_format(child->datetime, "%H:%M:%S");
 
 		gtk_list_store_append(list_store, &iter);
 		gtk_list_store_set(list_store, &iter,
@@ -2297,13 +2313,9 @@ GPid show_child_process_selection_dialog(GSList *children) {
 		g_free(time_str);
 	}
 
-	// Make the tree view single-selection
-	GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view));
-	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
-
 	// Add scrolled window to dialog
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-	gtk_container_add(GTK_CONTAINER(content_area), scrolled_window);
+	gtk_box_pack_start(GTK_BOX(content_area), scrolled_window, TRUE, TRUE, 0);
 	gtk_widget_show_all(dialog);
 
 	// Run the dialog

@@ -754,6 +754,17 @@ void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 	com.run_thread = TRUE;
 	com.thread = g_thread_new("processing", f, p);
 
+	// Add a fake "child" to com.children. This doesn't represent an external
+	// program but it allows selecting to stop the processing thread instead of
+	// an external program if one happens to be running
+	// Prepend this "child" to the list of child processes com.children
+	child_info *child = g_malloc(sizeof(child_info));
+	child->childpid = -2; // Magic number
+	child->program = INT_PROC_THREAD;
+	child->name = g_strdup("Siril processing thread");
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
+
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
 }
@@ -769,6 +780,14 @@ void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	com.run_thread = TRUE;
 	com.thread = g_thread_new("processing", f, p);
+
+	// Prepend this "child" to the list of child processes com.children
+	child_info *child = g_malloc(sizeof(child_info));
+	child->childpid = -2; // Magic number
+	child->program = INT_PROC_THREAD;
+	child->name = g_strdup("Siril processing thread");
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
 
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
@@ -819,7 +838,7 @@ void stop_processing_thread() {
 		siril_debug_print("The processing thread is not running.\n");
 		return;
 	}
-
+	remove_child_from_children(-2); // magic number indicating the processing thread
 	set_thread_run(FALSE);
 	if (!thread_being_waited)
 		waiting_for_thread();
@@ -935,7 +954,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 	// Find the correct child in com.children
 	GSList *prev = NULL;
 	GSList *iter = com.children;
-
+	gboolean success = FALSE;
 	while (iter) {
 		child_info *child = (child_info*) iter->data;
 		GSList *next = iter->next;
@@ -979,7 +998,10 @@ void kill_child_process(GPid pid, gboolean onexit) {
 				}
 				// Free the node
 				g_slist_free_1(iter);
+			} else if (child->program == INT_PROC_THREAD) {
+				stop_processing_thread();
 			}
+			success = TRUE;
 			if(!onexit)
 				break;
 		}
@@ -987,26 +1009,28 @@ void kill_child_process(GPid pid, gboolean onexit) {
 		prev = iter;
 		iter = next;
 	}
-	// If we get here, no matching PID was found
-	siril_log_message(_("Failed to find GPid %d, it may already have exited...\n"), pid);
+	// If we get here without success, no matching PID was found
+	if (!success && pid != -1)
+		siril_log_message(_("Failed to find GPid %d, it may already have exited...\n"), pid);
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	if (com.thread != NULL)
 		siril_log_color_message(_("Process aborted by user\n"), "red");
 	guint children = g_slist_length(com.children);
-	if (children == 1) {
+	if (children > 1) {
+		GPid pid = show_child_process_selection_dialog(com.children);
+		kill_child_process(pid, FALSE);
+	} else if (children == 1) {
 		child_info *child = (child_info*) com.children->data;
 		if (child->program == EXT_GRAXPERT)
 			set_graxpert_aborted(TRUE);
 		kill_child_process(child->childpid, FALSE);
-	} else if (children > 1) {
-		GPid pid = show_child_process_selection_dialog(com.children);
-		kill_child_process(pid, FALSE);
+	} else {
+		com.stop_script = TRUE;
+		stop_processing_thread();
+		wait_for_script_thread();
 	}
-	com.stop_script = TRUE;
-	stop_processing_thread();
-	wait_for_script_thread();
 	if (!com.headless)
 		script_widgets_enable(TRUE);
 }

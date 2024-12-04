@@ -1797,12 +1797,15 @@ void execute_python_script_async(gchar* script_name, gboolean from_file, gchar**
 		child_info *child = g_malloc(sizeof(child_info));
 		child->childpid = child_pid;
 		child->program = EXT_PYTHON;
-		child->name = g_strdup("Python");
+		gchar *script_basename = g_path_get_basename(script_name);
+		child->name = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
+		g_free(script_basename);
 		child->datetime = g_date_time_new_now_local();
 		com.children = g_slist_prepend(com.children, child);
 	}
 
 	g_strfreev(env);
+	g_free(script_name);
 
 	if (!success && error) {
 		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);

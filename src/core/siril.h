@@ -300,7 +300,8 @@ typedef enum {
 	EXT_STARNET,
 	EXT_ASNET,
 	EXT_GRAXPERT,
-	EXT_PYTHON
+	EXT_PYTHON,
+	INT_PROC_THREAD
 } external_program;
 
 typedef enum {
