@@ -299,7 +299,8 @@ typedef enum {
 	EXT_NONE,
 	EXT_STARNET,
 	EXT_ASNET,
-	EXT_GRAXPERT
+	EXT_GRAXPERT,
+	EXT_PYTHON
 } external_program;
 
 typedef enum {
@@ -644,6 +645,14 @@ typedef struct cut_struct {
 	int vport;
 } cut_struct;
 
+// Used in a GSList so we can choose what to stop if multiple children are running
+typedef struct _child_info {
+	GPid childpid; // Platform-agnostic way to store the child PID
+	external_program program; // type of program, eg EXT_STARNET, EXT_ASNET etc
+	gchar *argv0; // argv[0], i.e. the executable name
+	gint64 time_start; // start time of program - distinguishes between multiple children with the same argv0
+} child_info;
+
 struct historic_struct {
 	char *filename;
 	char history[FLEN_VALUE];
@@ -889,6 +898,7 @@ struct cominf {
 	struct common_icc icc;		// Holds common ICC color profile data
 	version_number python_version; // Holds the python version number
 	GPid childpid;			// PID of a child process
+	GSList children;		// List of children; children->data is of type child_info
 };
 
 #ifndef MAIN

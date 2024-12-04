@@ -679,12 +679,12 @@ class SirilInterface:
         """
         Claim the processing thread. This prevents other processes using the
         processing thread to operate on the current Siril image. This function
-        MUST always be called before starting any processing that will end with
+        **must** always be called before starting any processing that will end with
         ``SirilInterface.set_pixeldata()``. The sequence of operations should be:
 
         * Call ``SirilInterface.claim_thread()``
         * If the result is False, alert the user and await further input: the
-          thread is already in use.
+          thread is already in use, or an image processing dialog is open.
         * If the result is True, you have the thread claimed.
         * Now you can call ``SirilInterface.get_image()`` or ``get_pixeldata()``
         * Carry out your image processing
@@ -695,10 +695,17 @@ class SirilInterface:
         held at the point the script process terminates, but that should not be
         seen as an excuse for failing to call ``SirilInterface.release_thread()``
 
+        Note that the thread should only be claimed when the script itself is
+        operating on the Siril image data. If the thread is calling a Siril command
+        to alter the Siril image then the thread **must not** be claimed or the
+        Siril command will be unable to acquire it, and will fail.
+
         Returns:
-            True: if the processing thread is claimed successfully
-            False: if the thread is in use or if an error occured: in either case
-                   processing cannot continue.
+            bool: True if the processing thread is claimed successfully, or
+
+                  False if the thread is in use or if an error occured. In either case
+                  processing cannot continue, though the script can wait and allow the
+                  user to try again once the thread is free.
         """
         try:
             retval = self._execute_command(_Command.CLAIM_THREAD, None)
@@ -725,7 +732,7 @@ class SirilInterface:
 
         * Call ``SirilInterface.claim_thread()``
         * If the result is False, alert the user and await further input: the
-          thread is already in use.
+          thread is already in use, or an image processing dialog is open.
         * If the result is True, you have the thread claimed.
         * Now you can call ``SirilInterface.get_image()`` or ``get_pixeldata()``
         * Carry out your image processing
@@ -737,7 +744,7 @@ class SirilInterface:
         seen as an excuse for failing to call this method.
 
         Returns:
-            True: if the thread was successfully released
+            True if the thread was successfully released
 
         Raises:
             SirilException: if an error occurred in releasing the thread
@@ -1449,7 +1456,8 @@ class SirilInterface:
 
     def xy_plot(self, plot_data: PlotData):
         """
-        Serialize plot data and send via shared memory.
+        Serialize plot data and send via shared memory. See the siril.plot submodule
+        documentation for how to configure a PlotData object for use with SirilInterface.xy_plot()
 
         Args:
             plot_metadata: PlotMetadata object containing plot configuration
