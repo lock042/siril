@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-04 16:29+0100\n"
-"PO-Revision-Date: 2024-12-04 15:28+0000\n"
+"PO-Revision-Date: 2024-12-05 14:11+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -1641,7 +1641,7 @@ msgstr "Disque d'Airy"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:733 src/gui/uifiles/bdeconv_dialog.ui:1654
 msgid "Ratio"
-msgstr "Ratio"
+msgstr "Rapport"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:744
 msgid ""
@@ -8479,9 +8479,8 @@ msgid "Rotational Gradient..."
 msgstr "Gradient Rotationnel..."
 
 #: src/gui/uifiles/siril.ui:2084
-#, fuzzy
 msgid "Open the unpurple filter dialog"
-msgstr "Ouvrir la boîte de dialogue du filtre médian"
+msgstr "Ouvrir la boîte de dialogue du filtre unpurple"
 
 #: src/gui/uifiles/siril.ui:2086
 msgid "Unpurple Filter..."
@@ -10140,9 +10139,8 @@ msgstr ""
 "des gouttelettes."
 
 #: src/gui/uifiles/siril.ui:7212
-#, fuzzy
 msgid "Use drizzle"
-msgstr "Drizzle"
+msgstr "Utiliser le Drizzle"
 
 #: src/gui/uifiles/siril.ui:7232
 msgid "Prefix:"
@@ -10793,6 +10791,9 @@ msgid ""
 "the selected frames of the sequence.\n"
 "                                                            "
 msgstr ""
+"Si vous cochez ce bouton, la taille de l'image finale sera agrandie pour "
+"s'adapter à toutes les images sélectionnées de la séquence.\n"
+"                                                            "
 
 #: src/gui/uifiles/siril.ui:9096
 msgid "Interpolation upscaling x2"
@@ -10805,6 +10806,10 @@ msgid ""
 "registration but will not produced images as sharp.\n"
 "                                                            "
 msgstr ""
+"Si vous cochez ce bouton, la taille de l'image finale sera augmentée d'un "
+"facteur 2. Cela peut être plus rapide que les vraies images drizzle obtenues "
+"lors de l'alignement, mais ne produira pas des images aussi nettes.\n"
+"                                                            "
 
 #. Must be short
 #: src/gui/uifiles/siril.ui:9126
@@ -12671,14 +12676,16 @@ msgid "Solving again at updated center\n"
 msgstr "Nouvelle résolution à partir du centre mis à jour\n"
 
 #: src/algos/astrometry_solver.c:1570
-#, fuzzy, c-format
+#, c-format
 msgid "Running asnet version %s\n"
-msgstr "Exécution de la commande : %s\n"
+msgstr "Exécution de la version %s d'asnet\n"
 
 #: src/algos/astrometry_solver.c:1608
 #, c-format
 msgid "Astrometry.net path (%s) incorrectly set in preferences\n"
 msgstr ""
+"Le chemin d'accès à Astrometry.net (%s) n'est pas correctement défini dans "
+"les préférences\n"
 
 #: src/algos/astrometry_solver.c:1633
 msgid "solve-field was not found, set its path in the preferences\n"
@@ -12768,7 +12775,7 @@ msgstr "Image %d : aucune étoile trouvée\n"
 #: src/algos/astrometry_solver.c:2066 src/algos/astrometry_solver.c:2180
 #, c-format
 msgid "Could not copy WCS data, skipping image %d\n"
-msgstr "Impossible de copier les données WCS, étape sautée.\n"
+msgstr "Impossible de copier les données WCS, étape sautée %d\n"
 
 #: src/algos/astrometry_solver.c:2115
 #, c-format
@@ -14925,6 +14932,9 @@ msgid ""
 "Warning: d = 0.0 cannot be used to specify automatic diameter when using a "
 "guided filter. Setting d to default value of 5.\n"
 msgstr ""
+"Attention : d = 0.0 ne peut pas être utilisé pour spécifier le diamètre "
+"automatique lors de l'utilisation d'un filtre guidé. Régler d sur la valeur "
+"par défaut de 5.\n"
 
 #: src/core/command.c:1285
 msgid "Reference image is undefined, the following would be used:\n"
@@ -15070,11 +15080,11 @@ msgstr ""
 
 #: src/core/command.c:1841 src/core/command.c:1901
 msgid "The size of the key can't exceed 8 characters.\n"
-msgstr ""
+msgstr "La taille de la clé ne peut excéder 8 caractères.\n"
 
 #: src/core/command.c:1927
 msgid "Upating keywords...\n"
-msgstr ""
+msgstr "Mettre à jour les mots clés...\n"
 
 #: src/core/command.c:1999 src/core/command.c:5801
 msgid "There can be only one prefix argument"
@@ -15160,7 +15170,7 @@ msgstr "Mauvais paramètres.\n"
 #: src/core/command.c:2236 src/core/command.c:3205
 #, c-format
 msgid "Error, unknown clip mode %s specified\n"
-msgstr ""
+msgstr "Erreur, mode d'écrêtage %s spécifié inconnu\n"
 
 #: src/core/command.c:2307
 msgid "Error: BP must be specified between 0.0 and 1.0 using -BP=\n"
@@ -15237,9 +15247,9 @@ msgid "Stretch must be greater than or equal to 1\n"
 msgstr "L'étirement doit être supérieur ou égal à 1\n"
 
 #: src/core/command.c:2631
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid clip mode %s, aborting.\n"
-msgstr "Argument non valide %s, abandon.\n"
+msgstr "Mode d'écrêtage %s non valide, abandon.\n"
 
 #: src/core/command.c:2660
 msgid "Clip limit must be > 0.\n"
@@ -15434,9 +15444,8 @@ msgid "Factor must be a number greater than 0.\n"
 msgstr "Le facteur doit être un nombre supérieur à 0.\n"
 
 #: src/core/command.c:3380
-#, fuzzy
 msgid "Scale %lf not allowed. Should be between 0.2 and 5.0.\n"
-msgstr "Échelle %lf non autorisée. Doit être compris entre 0,0 et 5,0.\n"
+msgstr "Échelle %lf non autorisée. Doit être compris entre 0.2 et 5.0.\n"
 
 #: src/core/command.c:3384
 msgid "Scale is 1.0. Not doing anything.\n"
@@ -15524,23 +15533,22 @@ msgid "minimum value must be smaller than the maximum\n"
 msgstr "la valeur minimale doit être inférieure à la valeur maximale\n"
 
 #: src/core/command.c:3782
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local background annulus radius: %.1f to %.1f, %s: %.1f (%s), camera "
 "conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"
 msgstr ""
-"Rayon de l'anneau d'arrière-plan local : %.1f à %.1f, ouverture : %.1f (%s), "
-"gain de conversion de la caméra : %f e-/ADU, en utilisant des pixels avec "
-"des valeurs ]%f, %f[\n"
+"Rayon de l'anneau d'arrière-plan local : %.1f à %.1f, %s : %.1f (%s), gain "
+"de conversion de la caméra : %f e-/ADU, en utilisant des pixels avec des "
+"valeurs ]%f, %f[\n"
 
 #: src/core/command.c:3785
-#, fuzzy
 msgid "aperture"
-msgstr "Ouverture du flux"
+msgstr "ouverture"
 
 #: src/core/command.c:3785
 msgid "dynamic aperture"
-msgstr ""
+msgstr "ouverture dynamique"
 
 #: src/core/command.c:3787
 msgid "forced"
@@ -15548,7 +15556,7 @@ msgstr "forcé"
 
 #: src/core/command.c:3787
 msgid "times the half-FWHM"
-msgstr ""
+msgstr "fois la demi-FWHM"
 
 #: src/core/command.c:3807
 #, c-format
@@ -15700,13 +15708,12 @@ msgid "Reference magnitude unset for sequence\n"
 msgstr "Suppression de la magnitude de référence pour la séquence\n"
 
 #: src/core/command.c:4089
-#, fuzzy
 msgid ""
 "You need to add at least a loaded image or one image as variable. Use $ "
 "tokens to surround the file names .\n"
 msgstr ""
-"Vous devez ajouter au moins une image comme variable. Utilisez les jetons $ "
-"pour entourer les noms de fichiers.\n"
+"Vous devez ajouter au moins une image chargée ou une image en tant que "
+"variable. Utilisez des jetons $ pour entourer les noms de fichiers .\n"
 
 #: src/core/command.c:4092
 msgid "There is an unmatched $. Please check the expression.\n"
@@ -15822,36 +15829,29 @@ msgstr ""
 "faites l'astrométrie de l'image de référence ou l'image actuelle.\n"
 
 #: src/core/command.c:4775
-#, fuzzy
 msgid "Error: height cannot be less than 10, aborting.\n"
-msgstr ""
-"La largeur ou la hauteur ne peuvent être nulle. Aucun redimensionnement.\n"
+msgstr "Erreur : la hauteur ne peut être inférieure à 10, abandon.\n"
 
 #: src/core/command.c:4787
-#, fuzzy
 msgid "Error: width cannot be less than 10, aborting.\n"
-msgstr "Erreur pendant l'ouverture du fichier ser %s, abandon.\n"
+msgstr "Erreur : la largeur ne peut être inférieure à 10, abandon.\n"
 
 #: src/core/command.c:4798
-#, fuzzy
 msgid "Error: max dimension cannot be less than 10, aborting.\n"
-msgstr ""
-"La largeur ou la hauteur ne peuvent être nulle. Aucun redimensionnement.\n"
+msgstr "Erreur : la dimension maximale ne peut être inférieure à 10, abandon.\n"
 
 #: src/core/command.c:4813 src/core/command.c:4865
-#, fuzzy
 msgid "Error: scale cannot be less than 0.01, aborting.\n"
-msgstr "Erreur pendant l'ouverture du fichier ser %s, abandon.\n"
+msgstr "Erreur : l'échelle ne peut être inférieure à 0.01, abandon.\n"
 
 #: src/core/command.c:4820
-#, fuzzy, c-format
+#, c-format
 msgid "Error parsing argument to -scale= (%s), aborting.\n"
-msgstr "Erreur d'analyse des arguments, abandon.\n"
+msgstr "Erreur dans l'analyse de l'argument de -scale= (%s), abandon.\n"
 
 #: src/core/command.c:4873
-#, fuzzy
 msgid "Scale is 1.0, nothing to do.\n"
-msgstr "L'échelle est de 1.0. Ne fais rien.\n"
+msgstr "L'échelle est de 1.0. Rien à faire.\n"
 
 #: src/core/command.c:4896
 #, c-format
@@ -16273,24 +16273,22 @@ msgstr "Impossible de charger l'image de référence de la séquence, abandon.\n
 
 #. handling mono case
 #: src/core/command.c:7616 src/core/command.c:7991
-#, fuzzy
 msgid "This sequence is not mono / CFA, cannot drizzle.\n"
-msgstr "Cette séquence est monochrome, le nombre de canaux est ignoré.\n"
+msgstr "Cette séquence n'est pas monochrome / CFA, Drizzle impossible.\n"
 
 #: src/core/command.c:7662 src/core/command.c:8037
-#, fuzzy
 msgid "Error: flat image already set. Aborting.\n"
-msgstr "Erreur d'analyse des arguments, abandon.\n"
+msgstr "Erreur : l'image flat est déjà définie. Abandon\n"
 
 #: src/core/command.c:7666 src/core/command.c:8041
-#, fuzzy
 msgid "Error: flat image cannot work with variable sized sequence.\n"
-msgstr "Erreur : cette option ne peut pas être utilisée pour les séquences.\n"
+msgstr ""
+"Erreur : les images flats ne peuvent pas être utilisées avec des séquences "
+"de taille variable.\n"
 
 #: src/core/command.c:7674 src/core/command.c:8049 src/gui/registration.c:976
-#, fuzzy
 msgid "NOT USING FLAT: Could not load reference image\n"
-msgstr "Impossible de charger l'image de référence\n"
+msgstr "FLAT NON UTILISÉ : Impossible de charger l'image de référence\n"
 
 #: src/core/command.c:7681 src/core/command.c:8056 src/core/preprocess.c:876
 #: src/gui/registration.c:985
@@ -16298,9 +16296,9 @@ msgid "NOT USING FLAT: could not parse the expression"
 msgstr "FLAT NON UTILISÉ : l'expression n'a pas pu être analysée"
 
 #: src/core/command.c:7685 src/core/command.c:8060 src/gui/registration.c:990
-#, fuzzy
 msgid "Error: no master flat specified in the preprocessing tab.\n"
-msgstr "Erreur : aucun nom de fichier n'est spécifié, abandon.\n"
+msgstr ""
+"Erreur : aucun flat maître n'a été spécifié dans l'onglet de calibration.\n"
 
 #: src/core/command.c:7691 src/core/command.c:8066 src/core/preprocess.c:883
 #: src/gui/registration.c:998
@@ -16316,6 +16314,7 @@ msgstr "FLAT NON UTILISÉ : les dimensions des images sont différentes"
 #: src/core/command.c:7697 src/core/command.c:8072 src/gui/registration.c:1004
 msgid "Master flat read for use as initial pixel weight\n"
 msgstr ""
+"Lecture du flat maître pour utilisation de pondération initial du pixel\n"
 
 #: src/core/command.c:7700 src/core/command.c:8075 src/core/preprocess.c:892
 #: src/gui/registration.c:1006 src/livestacking/gui.c:286
@@ -16323,14 +16322,16 @@ msgid "NOT USING FLAT: cannot open the file"
 msgstr "FLAT NON UTILISÉ : impossible d'ouvrir le fichier"
 
 #: src/core/command.c:7714
-#, fuzzy
 msgid "Cannot drizzle sequences with images of different sizes, aborting.\n"
-msgstr "Impossible de charger l'image de référence de la séquence, abandon.\n"
+msgstr ""
+"Impossible de créer des séquences avec des images de tailles différentes, "
+"abandon.\n"
 
 #: src/core/command.c:7732 src/core/command.c:8192
-#, fuzzy
 msgid "Cannot use drizzle on non-bayer sensors, aborting.\n"
-msgstr "Division par zéro impossible, abandon."
+msgstr ""
+"Impossible d'utiliser le drizzle sur des capteurs qui ne sont pas de type "
+"Bayer.\n"
 
 #. we register 2-pass but we won't add it to the combo/tooltip
 #: src/core/command.c:7748 src/gui/registration.c:277
@@ -16349,6 +16350,8 @@ msgstr "Pas assez d'espace pour sauvegarder les images, abandon.\n"
 #: src/core/command.c:7769
 msgid "Scaling a sequence with -2pass has no effect, ignoring\n"
 msgstr ""
+"La mise à l'échelle d'une séquence avec -2pass n'a pas d'effet, opération "
+"ignorée\n"
 
 #: src/core/command.c:7776
 msgid ""
@@ -16369,13 +16372,12 @@ msgstr ""
 "compatible avec OpenCV en dessous de la version 4.4. Abandon.\n"
 
 #: src/core/command.c:7785 src/gui/registration.c:1153
-#, fuzzy
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "scaling can be applied. Aborting\n"
 msgstr ""
-"Lorsque l'interpolation est définie sur Aucune, les images doivent être de "
-"la même taille et aucune mise à l'échelle ne peut être appliquée. Abandon\n"
+"Lorsque l'interpolation est réglée sur Aucune, les images doivent être de "
+"même taille et aucune mise à l'échelle ne peut être appliquée. Abandon\n"
 
 #. don't load it for command line execution
 #: src/core/command.c:7793 src/gui/registration.c:1208
@@ -16522,34 +16524,41 @@ msgstr ""
 "l'empilement\n"
 
 #: src/core/command.c:8403
-#, fuzzy
 msgid ""
 "No registration data in the sequence. Maximize framing will be ignored\n"
 msgstr ""
-"Il n'existe pas de données d'alugnement pour cette séquence, ce qui entraîne "
-"l'abandon de l'opération.\n"
+"Pas de données d'alignement dans la séquence. Le cadrage maximisé sera "
+"ignoré\n"
 
 #: src/core/command.c:8407
 msgid ""
 "The sequence has different image sizes and registration data. Forcing to "
 "maximize framing\n"
 msgstr ""
+"La séquence comporte différentes tailles d'images et données d'alignement. "
+"Forçage pour maximiser le cadrage\n"
 
 #: src/core/command.c:8411
 msgid ""
 "The sequence has different image sizes but no registration data, cannot "
 "stack. Aborting\n"
 msgstr ""
+"La séquence comporte différentes tailles d'image, mais pas de données "
+"d'alignement, elle ne peut pas être empilée. Abandon\n"
 
 #: src/core/command.c:8416
 msgid ""
 "No registration data in the sequence or images with different sizes. Upscale "
 "at stacking will be ignored\n"
 msgstr ""
+"Pas de données d'alignement dans la séquence ou images de tailles "
+"différentes. La mise à l'échelle lors de l'empilement sera ignorée.\n"
 
 #: src/core/command.c:8420
 msgid "Cannot upscale or maximize framong with median stacking. Disabling\n"
 msgstr ""
+"Impossible d'augmenter ou de maximiser le cadrage avec l'empilement médian. "
+"Désactivation\n"
 
 #: src/core/command.c:8485
 #, c-format
@@ -16828,33 +16837,33 @@ msgstr[0] "processeur"
 msgstr[1] "processeurs"
 
 #: src/core/command.c:9351
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "A newer version (>= %lu.%lu.%lu-%s%lu) of Siril is required in order to run "
 "this script: please update your installation.\n"
 msgstr ""
-"Une version de Siril plus récente est requise, veuillez mettre à jour votre "
-"version.\n"
+"Une version plus récente (>= %lu.%lu.%lu-%s%lu) de Siril est nécessaire pour "
+"exécuter ce script : veuillez mettre à jour votre installation.\n"
 
 #: src/core/command.c:9351
-#, fuzzy
 msgid "beta"
-msgstr "beta (β)"
+msgstr "beta"
 
 #: src/core/command.c:9351
-#, fuzzy
 msgid "RC"
-msgstr "RCD"
+msgstr "RC"
 
 #: src/core/command.c:9354
 msgid ""
 "This script has been marked as obsolete for this version of Siril, please "
 "check for an update to the script.\n"
 msgstr ""
+"Ce script a été marqué comme obsolète pour cette version de Siril, veuillez "
+"vérifier si une mise à jour du script est disponible.\n"
 
 #: src/core/command.c:9357
 msgid "OK! This script is compatible with this version of Siril.\n"
-msgstr ""
+msgstr "OK ! Ce script est compatible avec cette version de Siril.\n"
 
 #: src/core/command.c:9365 src/core/command.c:9416
 #, c-format
@@ -17138,6 +17147,8 @@ msgstr ""
 #: src/core/command.c:10359
 msgid "Cannot use -compare argument with non-star catalogues, ignoring.\n"
 msgstr ""
+"Impossible d'utiliser l'argument -compare avec des catalogues non "
+"stellaires, ignorer.\n"
 
 #: src/core/command.c:10453 src/core/command.c:10497
 #, c-format
@@ -17205,79 +17216,68 @@ msgstr "Erreur : la séquence contient des images de taille variable.\n"
 
 #: src/core/command.c:10897
 msgid "Error: unknown GraXpert operation!\n"
-msgstr ""
+msgstr "Erreur : opération GraXpert inconnue !\n"
 
 #: src/core/command.c:10927
-#, fuzzy
 msgid "Error: unknown background extraction algorithm!\n"
-msgstr "Ouvrez le dialogue d'extraction de gradient"
+msgstr "Erreur : algorithme d'extraction du gradient inconnu !\n"
 
 #: src/core/command.c:10938
 msgid "Error: unknown correction mode!\n"
-msgstr ""
+msgstr "Erreur : mode de correction inconnu !\n"
 
 #: src/core/command.c:10953
 msgid "Error: unknown RBF kernel!\n"
-msgstr ""
+msgstr "Erreur : noyau RBF inconnu !\n"
 
 #: src/core/command.c:10961
-#, fuzzy
 msgid "Error: no AI batch size specified\n"
-msgstr "Erreur : aucun nom de fichier n'est spécifié, abandon.\n"
+msgstr "Erreur : aucune taille de lot de l'AI n'a été spécifiée\n"
 
 #: src/core/command.c:10969
-#, fuzzy
 msgid "Error: no pts_per_row specified\n"
-msgstr "Erreur : aucun nom de fichier n'est spécifié, abandon.\n"
+msgstr "Erreur : aucun pts_per_row n'est spécifié\n"
 
 #: src/core/command.c:10977
-#, fuzzy
 msgid "Error: no spline order specified\n"
-msgstr "Erreur : aucun nom de fichier n'est spécifié, abandon.\n"
+msgstr "Erreur : aucun ordre spline spécifié\n"
 
 #: src/core/command.c:10985
-#, fuzzy
 msgid "Error: no sample size specified\n"
-msgstr "Erreur : aucun nom de fichier n'est spécifié, abandon.\n"
+msgstr "Erreur : aucune taille d'échantillon n'a été spécifiée\n"
 
 #: src/core/command.c:10993
-#, fuzzy
 msgid "Error: no smoothing value specified\n"
-msgstr "Erreur : aucun nom de fichier n'est spécifié, abandon.\n"
+msgstr "Erreur : aucune valeur de lissage n'a été spécifiée\n"
 
 #: src/core/command.c:11002
-#, fuzzy
 msgid "Error: no background tolerance value specified\n"
-msgstr ""
-"Erreur : une image mono est chargée : les couches couleurs ne peuvent pas "
-"être spécifiées.\n"
+msgstr "Erreur : aucune valeur de tolérance d'arrière-plan n'a été spécifiée\n"
 
 #: src/core/command.c:11006 src/core/command.c:11020 src/core/command.c:11042
 #: src/core/command.c:11402
-#, fuzzy
 msgid "Error: unknown argument!\n"
-msgstr "Erreur : Impossible d'ouvrir la séquence\n"
+msgstr "Erreur : argument inconnu !\n"
 
 #: src/core/command.c:11016 src/core/command.c:11030
-#, fuzzy
 msgid "Error: no strength value specified\n"
-msgstr "Erreur : aucun nom de fichier n'est spécifié, abandon.\n"
+msgstr "Erreur : aucune valeur de force n'a été spécifiée\n"
 
 #: src/core/command.c:11038
-#, fuzzy
 msgid "Error: no psf size value specified\n"
-msgstr "Erreur : aucun nom de fichier n'est spécifié, abandon.\n"
+msgstr "Erreur : aucune valeur de taille psf n'a été spécifiée\n"
 
 #: src/core/command.c:11070
 msgid ""
 "Error: the requested AI model version is unavailable. Available versions "
 "are:\n"
 msgstr ""
+"Erreur : la version du modèle AI demandé n'est pas disponible. Les versions "
+"disponibles sont :\n"
 
 #: src/core/command.c:11127 src/core/command.c:11142 src/core/command.c:11157
-#, fuzzy
 msgid "Error: unable to load sequence\n"
-msgstr "Erreur : Impossible d'ouvrir la séquence\n"
+msgstr "Erreur : impossible de charger la séquence\n"
 
 #: src/core/command.c:11195
 msgid "Error opening target ICC profile.\n"
@@ -17357,20 +17357,20 @@ msgstr ""
 #: src/core/command.c:11380
 msgid "16-bit images cannot have out-of-range pixels: nothing to do.\n"
 msgstr ""
+"Les images 16 bits ne peuvent pas avoir de pixels hors plage :Rien à faire.\n"
 
 #: src/core/command.c:11390
 msgid "No pixels require clipping. Nothing to do...\n"
-msgstr ""
+msgstr "Aucun pixel ne nécessite d'écrêtage. Rien à faire...\n"
 
 #: src/core/command.c:11407
-#, fuzzy
 msgid "Pixel limits applied successfully.\n"
-msgstr "Toutes les images ont été rechargées avec succès.\n"
+msgstr "Les limites de pixels ont été appliquées avec succès.\n"
 
 #: src/core/command.c:11422
-#, fuzzy, c-format
+#, c-format
 msgid "Current working directory: '%s'\n"
-msgstr "répertoire de travail actuel"
+msgstr "Répertoire de travail actuel : '%s'\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -17384,7 +17384,6 @@ msgstr ""
 "<b>filename</b>"
 
 #: src/core/command_def.h:7
-#, fuzzy
 msgid ""
 "Stretches the image to show faint objects using an hyperbolic arcsin "
 "transformation. The mandatory argument <b>stretch</b>, typically between 1 "
@@ -17403,13 +17402,15 @@ msgstr ""
 "compris entre 1 et 1000, donnera la force de l'étirement. Le point noir peut "
 "être décalé en fournissant un argument facultatif <b>offset</b> dans la "
 "valeur de pixel normalisée de [0, 1]. Enfin, l'option <b>-human</b> permet "
-"d'utiliser les poids d'efficacité lumineuse de l'œil humain pour obtenir la "
-"luminance utilisée pour calculer la valeur d'étirement pour chaque pixel, au "
-"lieu de la simple moyenne des valeurs de pixel des canaux. Cette méthode "
-"d'étirement préserve la luminosité de l'espace colorimétrique L*a*b*"
+"d'utiliser les facteurs d'efficacité lumineuse de l'œil humain pour obtenir "
+"la luminance utilisée pour calculer la valeur d'étirement pour chaque pixel, "
+"au lieu de la simple moyenne des valeurs de pixel des canaux. Cette méthode "
+"d'étirement préserve la luminosité de l'espace colorimétrique L*a*b*. Le "
+"mode d'écrêtage peut être défini à l'aide de l'argument <b>-clipmode=</b> : "
+"valeurs <b>clip</b>, <b>rescale</b>, <b>rgbblend</b> ou <b >globalrescale</"
+"b> sont acceptés et la valeur par défaut est rgbblend"
 
 #: src/core/command_def.h:8
-#, fuzzy
 msgid ""
 "Application of the generalized hyperbolic stretch with a symmetry point SP "
 "defined as k.sigma from the median of each channel (the provided "
@@ -17427,12 +17428,15 @@ msgstr ""
 "Application de l'étirement hyperbolique généralisé avec un point de symétrie "
 "SP défini comme k.sigma à partir de la médiane de chaque canal (la valeur "
 "<b>shadowsclip</b> fournie est le k ici et peut être négative). Par défaut, "
-"SP et l'étirement sont calculés par canal ; SP peut être calculé comme une "
+"SP et l'étirement sont calculés par canal ; SP peut être calculé comme une "
 "moyenne des canaux d'image en passant <b>-linked</b>. Le montant d'étirement "
 "<b>D</b> est fourni dans le deuxième argument obligatoire.\n"
 "Des valeurs implicites de 13 pour <b>B</b>, ce qui le rend très concentré "
 "sur la plage de luminosité SP, 0,7 pour <b>HP</b>, 0 pour <b>LP</b> sont "
-"utilisées mais peuvent être changé avec les options du même nom"
+"utilisées, mais peuvent être changé avec les options du même nom. Le mode "
+"clip peut être défini à l'aide de l'argument <b>-clipmode=</b> : valeurs "
+"<b>clip</b>, <b>rescale</b>, <b>rgbblend</b> ou <b >globalrescale</b> sont "
+"acceptés et la valeur par défaut est rgbblend"
 
 #: src/core/command_def.h:9
 msgid ""
@@ -18106,6 +18110,33 @@ msgid ""
 "than 1.0 a proportion of the original image will be mixed with the result, "
 "and for mod = 0.0 no filtering will be applied"
 msgstr ""
+"Applique un filtre préservant les bords. Par défaut, un filtre bilatéral est "
+"appliqué ; un filtre guidé peut être spécifié en utilisant l'argument "
+"<b>-guided</b>. Le diamètre du filtre est par défaut de 3 et peut être "
+"défini en utilisant <b>-d=</b>. Soyez prudent avec les valeurs de d "
+"supérieures à 20 car l'algorithme peut être coûteux en calcul.\n"
+"\n"
+"La valeur sigma du filtrage d'intensité peut être définie à l'aide de "
+"<b>-si=</b> et la valeur sigma spatiale peut être définie à l'aide de "
+"<b>-ss=</b>. Les valeurs Sigma représentent la différence entre les valeurs "
+"de pixels sur lesquelles le filtre agit fortement : pour les images 32 bits, "
+"la valeur doit être comprise entre 0 et 1.0, tandis que pour les images 16 "
+"bits, elle doit être comprise entre 0 et 65 535. Les valeurs par défaut, si "
+"elles ne sont pas spécifiées, concernent les deux doivent être définis sur "
+"11. Si <b>-d=0</b> est défini, le diamètre du filtre sera défini "
+"automatiquement en fonction de la valeur de <b>-ss</b>. <i>Notez que lors de "
+"l'application d'un filtre guidé, seul <b>-sc</b> s'applique.</i>\n"
+"\n"
+"Lors de la spécification d'un filtre guidé, une image guide peut être "
+"définie à l'aide de <b>-guideimage=</b>. La valeur par défaut, si aucune "
+"image guide n’est spécifiée, consiste à effectuer un filtre auto-guidé. "
+"<i>Remarque : l'image guide doit avoir les mêmes dimensions que l'image à "
+"filtrer !</i>\n"
+"\n"
+"La force du filtre peut être modulée à l'aide de l'argument <b>-mod=</b>. Si "
+"mod = 1.0, le plein effet du filtre sera appliqué ; pour un mod inférieur à "
+"1.0, une proportion de l'image originale sera mélangée au résultat, et pour "
+"un mod = 0.0 aucun filtrage ne sera appliqué"
 
 #: src/core/command_def.h:41
 msgid "Quits the application"
@@ -18134,7 +18165,6 @@ msgstr ""
 "\"Green_\""
 
 #: src/core/command_def.h:44
-#, fuzzy
 msgid ""
 "Extracts H-Alpha signal from the loaded CFA image. It reads the Bayer matrix "
 "information from the image or the preferences and exports only the red "
@@ -18146,7 +18176,11 @@ msgstr ""
 "Extrait le signal H-Alpha de l'image CFA chargée. Il lit les informations de "
 "la matrice de Bayer à partir de l'image ou des préférences et exporte "
 "uniquement les données du filtre rouge dans un nouveau fichier FITS de "
-"taille réduite. Un nouveau fichier est créé, son nom est préfixé par \"Ha_\""
+"taille réduite. Si l'argument <b>-upscale</b> est fourni, la sortie sera "
+"mise à l'échelle x2 pour correspondre à la résolution complète du capteur, "
+"par exemple pour correspondre à d'autres images produites par la même "
+"famille de capteurs. Un nouveau fichier est créé, son nom est préfixé par "
+"\"Ha_\""
 
 #: src/core/command_def.h:45
 msgid ""
@@ -18421,7 +18455,6 @@ msgstr ""
 "argument. La première image a l'index 0"
 
 #: src/core/command_def.h:65
-#, fuzzy
 msgid ""
 "Generalised hyperbolic stretch based on the work of the ghsastro.co.uk "
 "team.\n"
@@ -18455,7 +18488,7 @@ msgstr ""
 "\n"
 "L'argument <b>D=</b> définit la force de l'étirement, entre 0 et 10. C'est "
 "le seul argument obligatoire. Les arguments facultatifs suivants permettent "
-"de mieux adapter l'étirement :\n"
+"de mieux adapter l'étirement :\n"
 "<b>B</b> définit l'intensité de l'étirement près du point focal, entre -5 et "
 "15\n"
 "<b>LP</b> définit une plage de préservation des ombres entre 0 et SP où "
@@ -18467,16 +18500,20 @@ msgstr ""
 "étoiles.\n"
 "S'ils sont omis, B, LP et SP ont une valeur par défaut de 0,0 et HP a une "
 "valeur par défaut de 1,0.\n"
-"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou <b>-independent</"
-"b>) peut être passé pour sélectionner soit la luminance pondérée humaine, "
-"soit la luminance pondérée paire ou canaux de couleur indépendants pour les "
-"étirements de couleur. L'argument est ignoré pour les images monochromes. "
-"Alternativement, l'argument <b>-sat</b> spécifie que l'étirement est "
-"effectué sur la saturation de l'image - l'image doit être en couleur et tous "
-"les canaux doivent être sélectionnés pour que cela fonctionne.\n"
+"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou "
+"<b>-independent</b>) peut être passé pour sélectionner soit la luminance "
+"pondérée humaine, soit la luminance pondérée paire ou canaux de couleur "
+"indépendants pour les étirements de couleur. L'argument est ignoré pour les "
+"images monochromes. Alternativement, l'argument <b>-sat</b> spécifie que "
+"l'étirement est effectué sur la saturation de l'image - l'image doit être en "
+"couleur et tous les canaux doivent être sélectionnés pour que cela "
+"fonctionne.\n"
 "Facultativement, le paramètre <b>[channels]</b> peut être utilisé pour "
 "spécifier les canaux auxquels appliquer l'étirement : cela peut être R, G, "
-"B, RG, RB ou GB. La valeur par défaut est tous les canaux"
+"B, RG, RB ou GB. La valeur par défaut est tous les canaux. Le mode "
+"d'écrêtage peut être défini à l'aide de l'argument <b>-clipmode=</b> : "
+"valeurs <b>clip</b>, <b>rescale</b>, <b>rgbblend</b> ou <b >globalrescale</"
+"b> sont acceptés et la valeur par défaut est rgbblend"
 
 #: src/core/command_def.h:66
 msgid ""
@@ -18512,6 +18549,41 @@ msgid ""
 "reasons even if running in CPU-only mode. If this argument is omitted, the "
 "latest available AI model version is used"
 msgstr ""
+"Exécute l'outil externe GraXpert en mode de suppression de gradient.\n"
+"\n"
+"Les arguments facultatifs suivants peuvent être fournis :\n"
+"\n"
+"<b>-algo=</b> définit l'algorithme de suppression de gradient et doit être "
+"l'un des éléments suivants : <b>ai</b>, <b>rbf</b>, <b>kriging</b> ou "
+"<b>spline</b> ;\n"
+"<b>-mode=</b> définit le mode de suppression de gradient et doit être l'un "
+"des éléments suivants : <b>sub</b> ou <b>div</b> ;\n"
+"<b>-kernel=</b> définit le noyau RBF et doit être l'un des éléments suivants "
+": <b>thinplate</b>, <b>quintic</b>, <b>cubic</b> ou <b>linear</b> ;\n"
+"<b>-pts_per_row=</b> définit le nombre de points par ligne sur la grille "
+"d'échantillonnage du gradient (par défaut : 15) ;\n"
+"<b>-samplesize=</b> définit la taille de la boîte d'échantillonnage pour "
+"chaque échantillon (par défaut : 25) ;\n"
+"<b>-splineorder=</b> définit l'ordre des splines à utiliser avec "
+"l'algorithme spline (par défaut = 3) ;\n"
+"<b>-bgtol=</b> définit la tolérance d'arrière-plan entre -2,0 et 6,0 (par "
+"défaut = 2,0) ;\n"
+"<b>-smoothing=</b> définit la quantité de lissage du gradient (par défaut = "
+"0,5) ;\n"
+"<b>-keep_bg</b> définit GraXpert pour enregistrer l'image du gradient ;\n"
+"<b>-cpu</b> définit GraXpert pour utiliser uniquement le processeur ;\n"
+"<b>-gpu</b> définit GraXpert pour utiliser un GPU s'il est disponible (et "
+"sinon revenir au processeur) ;\n"
+"<b>-ai_batch_size=</b> définit la taille du lot pour les opérations d'IA ("
+"débruitage et algorithme d'IA de suppression de gradient) (par défaut = 4 : "
+"des tailles de lot plus importantes peuvent améliorer les performances, en "
+"particulier sur le processeur, mais nécessitent plus de mémoire). L'argument "
+"optionnel <b>-ai_version=</b> force une version spécifique du modèle d'IA. "
+"Notez que la suppression de gradient de GraXpert AI est de toute façon "
+"relativement rapide, il n'est donc pas nécessaire de spécifier un modèle "
+"plus ancien pour des raisons de vitesse, même en cas d'exécution en mode CPU "
+"uniquement. Si cet argument est omis, la dernière version disponible du "
+"modèle AI est utilisée"
 
 #: src/core/command_def.h:67
 msgid ""
@@ -18531,6 +18603,22 @@ msgid ""
 "model. If this argument is omitted, the latest available AI model version is "
 "used"
 msgstr ""
+"Exécute l'outil externe GraXpert en mode déconvolution.\n"
+"\n"
+"Les arguments optionnels suivants peuvent être fournis :\n"
+"\n"
+"<b>-strength=</b> définit la force de déconvolution, entre 0.0 et 1.0 (par "
+"défaut = 0,5) et <b>-psfsize=</b> l'estimation de la largeur à mi-hauteur de "
+"l'image, comprise entre 0.0 et 14.0 pixels (par défaut = 5,0) ;\n"
+"<b>-gpu</b> définit GraXpert pour utiliser un GPU s'il est disponible (et "
+"sinon revenir au CPU) ;\n"
+"<b>-ai_batch_size=</b> définit la taille du lot pour les opérations d'IA ("
+"débruitage et algorithme d'IA de suppression de gradient) (par défaut = 4 : "
+"des tailles de lot plus importantes peuvent améliorer les performances, en "
+"particulier sur le CPU, mais nécessitent plus de mémoire). L'argument "
+"optionnel <b>-ai_version=</b> force une version spécifique du modèle d'IA. "
+"Si cet argument est omis, la dernière version disponible du modèle d'IA est "
+"utilisée"
 
 #: src/core/command_def.h:68
 msgid ""
@@ -18551,6 +18639,25 @@ msgid ""
 "balance between performance and runtime. If this argument is omitted, the "
 "latest available AI model version is used"
 msgstr ""
+"Exécute l'outil externe GraXpert en mode débruitage.\n"
+"\n"
+"Les arguments optionnels suivants peuvent être fournis :\n"
+"\n"
+"<b>-strength=</b> définit la force de déconvolution, entre 0.0 et 1.0 (par "
+"défaut = 0.8);\n"
+"<b>-gpu</b> définit GraXpert pour utiliser un GPU s'il est disponible (et "
+"sinon revenir au CPU) ;\n"
+"<b>-ai_batch_size=</b> définir la taille du lot pour les opérations d'IA ("
+"débruitage et algorithme d'IA de suppression de gradient) (par défaut = 4 : "
+"des tailles de lot plus importantes peuvent améliorer les performances, en "
+"particulier sur le CPU, mais nécessaire plus de mémoire). L'argument "
+"optionnel <b>-ai_version=</b> force une version spécifique du modèle d'IA. "
+"Pour une utilisation sur l'unité centrale uniquement, les modèles les plus "
+"récents peuvent fonctionner très lentement. Dans ce cas, une version plus "
+"ancienne du modèle, telle que 2.0.0, peut offrir un équilibre plus "
+"acceptable entre les performances et la durée d'exécution. Si cet argument "
+"est omis, la dernière version disponible du modèle AI est utilisée. Si cet "
+"argument est omis, la dernière version disponible du modèle d'IA est utilisée"
 
 #: src/core/command_def.h:69
 msgid ""
@@ -18719,7 +18826,6 @@ msgstr ""
 "négative, utilisez le mode 16 bits ou la commande THRESHLO"
 
 #: src/core/command_def.h:86
-#, fuzzy
 msgid ""
 "Analyses several stars with aperture photometry in a sequence of images and "
 "produces a light curve for one, calibrated by the others. The first "
@@ -18750,11 +18856,14 @@ msgstr ""
 "transmise au format de la liste d'étoiles du plugin exoplanète NINA, avec "
 "l'option <b>-ninastars=</b>. Siril vérifiera que toutes les étoiles de "
 "référence peuvent être utilisées avant de les utiliser réellement. Un "
-"fichier de données est créé dans le répertoire courant nommé light_curve."
-"dat, Siril trace le résultat dans une image PNG si disponible\n"
+"fichier de données est créé dans le répertoire courant nommé "
+"light_curve.dat, Siril trace le résultat dans une image PNG si disponible.\n"
 "Les rayons de l'anneau pour la photométrie d'ouverture peuvent être "
 "configurés dans les paramètres ou définis avec un facteur de la FWHM de "
 "l'image de référence si l'option <b>-autoring</b> est passée.\n"
+"\n"
+"Voir également la commande <b>setphot</b> pour définir de la même manière la "
+"taille du rayon d'ouverture.\n"
 "\n"
 "Voir aussi SEQPSF pour les opérations sur une seule étoile"
 
@@ -18781,6 +18890,29 @@ msgid ""
 "produce an unexpected result. This can be mitigated by applying cosmetic "
 "correction to the image first"
 msgstr ""
+"Limite les valeurs de pixels dans les images 32 bits à la plage de 0.0 à "
+"1.0. Cette commande ne s'applique pas aux images 16 bits car il ne peut pas "
+"y avoir de valeurs hors plage. La limitation de plage peut être effectuée de "
+"l'une des manières suivantes :\n"
+"\n"
+"<b>-clip</b> : cette option coupe simplement tous les pixels négatifs à 0.0 "
+"et tous les pixels avec une valeur &gt; 1.0 à 1.0.\n"
+"<b>-posrescale</b> : cette option met à l'échelle toutes les valeurs de "
+"pixels positives de sorte que la valeur maximale soit de 1.0, en coupant "
+"tous les pixels négatifs à 0.0. Pour les images à 3 canaux, le même facteur "
+"d'échelle est appliqué à tous les canaux. Si la valeur maximale des pixels "
+"est déjà &lt;= 1.0, les pixels négatifs seront toujours coupés, mais aucun "
+"facteur d'échelle ne sera appliqué aux pixels positifs.\n"
+"<b>-rescale</b> : en utilisant cette option, s'il y a des valeurs de pixels "
+"négatives, l'image aura une valeur constante ajoutée à toutes les valeurs de "
+"pixels de sorte que la valeur minimale soit de 0.0. Ensuite, si la valeur de "
+"pixel maximale est supérieure à 1.0, un facteur d'échelle est appliqué de "
+"sorte que la valeur de pixel maximale soit mise à l'échelle à 1.0.\n"
+"\n"
+"Notez que s'il y a une ou plusieurs valeurs aberrantes extrêmes (par exemple "
+"en raison de pixels défectueux), les options <b>-rescale</b> et "
+"<b>-fullrescale</b> peuvent produire un résultat inattendu. Cela peut être "
+"atténué en appliquant d'abord une correction esthétique à l'image"
 
 #: src/core/command_def.h:88
 msgid ""
@@ -18812,7 +18944,6 @@ msgstr ""
 "alphanumérique"
 
 #: src/core/command_def.h:90
-#, fuzzy
 msgid ""
 "Stretches the image linearly to a new black point BP.\n"
 "The argument <b>[channels]</b> may optionally be used to specify the "
@@ -18830,7 +18961,10 @@ msgstr ""
 "ou GB. La valeur par défaut est tous les canaux.\n"
 "Facultativement, le paramètre <b>-sat</b> peut être utilisé pour appliquer "
 "l'étirement linéaire au canal de saturation de l'image. Cet argument ne "
-"fonctionne que si tous les canaux sont sélectionnés"
+"fonctionne que si tous les canaux sont sélectionnés. Le mode écrêtage peut "
+"être défini à l'aide de l'argument <b>-clipmode=</b> : les valeurs <b>clip</"
+"b>, <b>rescale</b>, <b>rgbblend</b> ou <b>globalrescale</b> sont acceptées "
+"et la valeur par défaut est rgbblend"
 
 #: src/core/command_def.h:91
 msgid ""
@@ -19058,7 +19192,6 @@ msgid "Flips the image about the vertical axis"
 msgstr "Fait pivoter l'image autour d'un axe vertical"
 
 #: src/core/command_def.h:103
-#, fuzzy
 msgid ""
 "Modified arcsinh stretch based on the work of the ghsastro.co.uk team.\n"
 "\n"
@@ -19090,7 +19223,7 @@ msgstr ""
 "\n"
 "L'argument <b>D=</b> définit la force de l'étirement, entre 0 et 10. C'est "
 "le seul argument obligatoire. Les arguments facultatifs suivants permettent "
-"de mieux adapter l'étirement :\n"
+"de mieux adapter l'étirement :\n"
 "<b>LP</b> définit une plage de préservation des ombres entre 0 et SP où "
 "l'étirement sera linéaire, préservant les détails des ombres\n"
 "<b>SP</b> définit le point de symétrie de l'étirement, entre 0 et 1, qui est "
@@ -19100,16 +19233,20 @@ msgstr ""
 "étoiles.\n"
 "S'ils sont omis, LP et SP ont une valeur par défaut de 0,0 et HP a une "
 "valeur par défaut de 1,0.\n"
-"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou <b>-independent</"
-"b>) peut être passé pour sélectionner soit la luminance pondérée humaine, "
-"soit la luminance pondérée paire ou canaux de couleur indépendants pour les "
-"étirements de couleur. L'argument est ignoré pour les images monochromes. "
-"Alternativement, l'argument <b>-sat</b> spécifie que l'étirement est "
-"effectué sur la saturation de l'image - l'image doit être en couleur et tous "
-"les canaux doivent être sélectionnés pour que cela fonctionne.\n"
+"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou "
+"<b>-independent</b>) peut être passé pour sélectionner soit la luminance "
+"pondérée humaine, soit la luminance pondérée paire ou canaux de couleur "
+"indépendants pour les étirements de couleur. L'argument est ignoré pour les "
+"images monochromes. Alternativement, l'argument <b>-sat</b> spécifie que "
+"l'étirement est effectué sur la saturation de l'image - l'image doit être en "
+"couleur et tous les canaux doivent être sélectionnés pour que cela "
+"fonctionne.\n"
 "Facultativement, le paramètre <b>[channels]</b> peut être utilisé pour "
 "spécifier les canaux auxquels appliquer l'étirement : cela peut être R, G, "
-"B, RG, RB ou GB. La valeur par défaut est tous les canaux"
+"B, RG, RB ou GB. La valeur par défaut est tous les canaux. Le mode écrêtage "
+"peut être défini à l'aide de l'argument <b>-clipmode=</b> : les valeurs "
+"<b>clip</b>, <b>rescale</b>, <b>rgbblend</b> ou <b>globalrescale</b> sont "
+"acceptées et la valeur par défaut est rgbblend"
 
 #: src/core/command_def.h:104
 msgid ""
@@ -19174,6 +19311,9 @@ msgid ""
 "catalogue lookups, update of git repositories etc. are unavailable. Cached "
 "data is still accessible"
 msgstr ""
+"Met Siril en mode hors ligne. Dans ce mode, les fonctions réseau telles que "
+"la consultation de catalogues à distance, la mise à jour de dépôts git, etc. "
+"sont indisponibles. Les données mises en cache restent accessibles"
 
 #: src/core/command_def.h:111
 msgid ""
@@ -19194,6 +19334,9 @@ msgid ""
 "Sets Siril to online mode. In this mode networking functions such as remote "
 "catalogue lookups, update of git repositories etc. is allowed"
 msgstr ""
+"Met Siril en mode en ligne. Dans ce mode, les fonctions réseau telles que la "
+"consultation de catalogues à distance, la mise à jour de dépôts git, etc. "
+"sont autorisées"
 
 #: src/core/command_def.h:114
 msgid ""
@@ -19515,12 +19658,10 @@ msgstr ""
 "actifs dans la vue"
 
 #: src/core/command_def.h:120
-#, fuzzy
 msgid "Prints the current working directory"
-msgstr "Modifier le répertoire de travail"
+msgstr "Imprime le répertoire de travail actuel"
 
 #: src/core/command_def.h:122
-#, fuzzy
 msgid ""
 "Builds a Bayer masked color image from 4 separate images containing the data "
 "from Bayer subchannels CFA0, CFA1, CFA2 and CFA3. (The corresponding command "
@@ -19532,11 +19673,11 @@ msgid ""
 msgstr ""
 "Construit une image couleur à partir de 4 images distinctes contenant les "
 "données des canaux Bayer CFA0, CFA1, CFA2 et CFA3. (La commande "
-"correspondante pour diviser le modèle CFA en sous-canaux est <b>split_cfa</"
-"b>.) Cette fonction peut être utilisée dans le cadre d'un flux de travail "
-"appliquant un traitement aux sous-canaux Bayer individuels avant le "
-"dématriçage. Le cinquième paramètre <b><i>bayerpattern</i></b> spécifie le "
-"modèle de matrice Bayer à recréer : <i>bayerpattern</i> doit être l'un des "
+"correspondante pour diviser le modèle CFA en sous-canaux est "
+"<b>split_cfa</b>.) Cette fonction peut être utilisée dans le cadre d'un flux "
+"de travail appliquant un traitement aux sous-canaux Bayer individuels avant "
+"le dématriçage. Le cinquième paramètre <b>bayerpattern</b> spécifie le "
+"modèle de matrice Bayer à recréer : <b>bayerpattern</b> doit être l'un des "
 "'RGGB', 'BGGR', 'GRBG' ou 'GBRG'"
 
 #: src/core/command_def.h:123
@@ -19674,6 +19815,15 @@ msgid ""
 "1.2.x series and 1.3.x series, but will not run for any versions earlier "
 "than 1.2.0 or for version 1.4.0 or any later versions"
 msgstr ""
+"Renvoie une erreur si la version de Siril est plus ancienne que la version "
+"minimale requise passée dans le premier argument. Optionnellement, prend un "
+"deuxième argument pour la version de Siril pour laquelle le script est "
+"obsolète : renvoie une erreur si la version de Siril est <b>plus récente ou "
+"égale</b> à celle passée dans le deuxième argument.\n"
+"\n"
+"Exemple : <i>nécessite 1.2.0 1.4.0</i> permet au script de s'exécuter pour "
+"toutes les séries 1.2.x et 1.3.x, mais ne s'exécutera pas pour les versions "
+"antérieures à 1.2.0 ou pour la version 1.4.0 ou toute version ultérieure"
 
 #: src/core/command_def.h:126
 #, fuzzy
@@ -19885,7 +20035,6 @@ msgstr ""
 "à magenta, 5 pour magenta à rose, 6 pour tous (par défaut)"
 
 #: src/core/command_def.h:135
-#, fuzzy
 msgid ""
 "Saves current image to <b>filename</b>.fit (or .fits, depending on your "
 "preferences, see SETEXT) in the current working directory. The image remains "
@@ -19893,10 +20042,11 @@ msgid ""
 "exists. The <b>-chksum</b> option stores checksum keywords (CHECKSUM and "
 "DATASUM) in the FITS header"
 msgstr ""
-"Enregistre l'image actuelle dans <b>filename</b>.fit (ou .fits, selon vos "
-"préférences, voir SETEXT) dans le répertoire de travail actuel. L'image "
+"Enregistre l'image actuelle dans <b>nom de fichier</b>.fit (ou .fits, selon "
+"vos préférences, voir SETEXT) dans le répertoire de travail actuel. L'image "
 "reste chargée. <b>filename</b> peut contenir un chemin tant que le "
-"répertoire existe déjà"
+"répertoire existe déjà. L'option <b>-chksum</b> stocke les mots-clés de "
+"somme de contrôle (CHECKSUM et DATASUM) dans l'en-tête FITS"
 
 #: src/core/command_def.h:136
 msgid ""
@@ -20328,6 +20478,9 @@ msgid ""
 "extraction mode. The first argument must be the sequence name; the remaining "
 "arguments are the same as for the GRAXPERT_BG command"
 msgstr ""
+"Applique le programme GraXpert à une séquence, en mode d'extraction de "
+"gradient. Le premier argument doit être le nom de la séquence ; les autres "
+"arguments sont les mêmes que pour la commande GRAXPERT_BG"
 
 #: src/core/command_def.h:161
 msgid ""
@@ -20335,6 +20488,9 @@ msgid ""
 "The first argument must be the sequence name; the remaining arguments are "
 "the same as for the GRAXPERT_DECONV command"
 msgstr ""
+"Applique le programme GraXpert à une séquence, en mode déconvolution. Le "
+"premier argument doit être le nom de la séquence ; les autres arguments sont "
+"les mêmes que pour la commande GRAXPERT_DECONV"
 
 #: src/core/command_def.h:162
 msgid ""
@@ -20342,9 +20498,11 @@ msgid ""
 "first argument must be the sequence name; the remaining arguments are the "
 "same as for the GRAXPERT_DENOISE command"
 msgstr ""
+"Applique le programme GraXpert à une séquence, en mode débruitage. Le "
+"premier argument doit être le nom de la séquence ; les autres arguments sont "
+"les mêmes que pour la commande GRAXPERT_DENOISE"
 
 #: src/core/command_def.h:163
-#, fuzzy
 msgid ""
 "Prints the FITS header value corresponding to the given keys for all images "
 "in the sequence. You can write several keys in a row, separated by a space. "
@@ -20355,8 +20513,8 @@ msgstr ""
 "Imprime la valeur d'en-tête FITS correspondant aux clés données pour toutes "
 "les images de la séquence. Vous pouvez écrire plusieurs clés à la suite, "
 "séparées par un espace. L'option <b>-out=</b>, suivie d'un nom de fichier, "
-"vous permet d'imprimer la sortie dans un fichier csv. L'option <b>-sel</b> "
-"limite la sortie aux images sélectionnées dans la séquence."
+"permet d'imprimer la sortie dans un fichier csv. L'option <b>-sel</b> limite "
+"la sortie aux images sélectionnées dans la séquence"
 
 #: src/core/command_def.h:164
 msgid ""
@@ -20821,13 +20979,12 @@ msgstr ""
 "séquence. Voir SEQSETMAG"
 
 #: src/core/command_def.h:183
-#, fuzzy
 msgid ""
 "Same command as UPDATE_KEY but for the sequence <b>sequencename</b>. "
 "However, this command won't work on SER sequence"
 msgstr ""
-"Même commande que TILT mais pour la séquence <b>sequencename</b>. Elle donne "
-"généralement de meilleurs résultats"
+"Même commande que UPDATE_KEY mais pour la séquence <b>sequencename</b>. "
+"Cependant, cette commande ne marche pas avec une séquence SER"
 
 #: src/core/command_def.h:184
 msgid ""
@@ -21577,6 +21734,23 @@ msgid ""
 "value should be reasonably low. This mode is useful for starmasks or other "
 "images without nebula or galaxy"
 msgstr ""
+"Applique un filtre cosmétique pour réduire les effets de franges violettes "
+"sur les étoiles.\n"
+"\n"
+"Si le paramètre <b>-starmask</b> est donné, un masque d'étoiles sera utilisé "
+"pour identifier les zones de l'image à affecter. Si une PSF dynamique a déjà "
+"été exécutée, elle sera utilisée pour le masque d'étoiles, sinon il en sera "
+"créé automatiquement. Le paramètre <b>-mod=</b> doit avoir une valeur "
+"d'environ 0.14 pour réduire la quantité de violet. Le <b>-thresh=</b> "
+"spécifiera le modificateur de taille pour chaque étoile dans le masque "
+"d'étoiles et doit être suffisamment grand pour que les étoiles soient "
+"entièrement traitées sans qu'il reste de franges violettes. La valeur doit "
+"être comprise entre 0 et 1, généralement autour de 0.5.\n"
+"Si le paramètre <b>-starmask</b> n'est pas donné, la réduction violette sera "
+"appliquée sur toute l'image pour tous les pixels violets avec une valeur de "
+"luminance supérieure au <b>-thresh=</b> donné. Dans ce cas, la valeur "
+"<b>-thresh=</b> doit être raisonnablement basse. Ce mode est utile pour les "
+"masques d'étoiles ou autres images sans nébuleuse ni galaxie"
 
 #: src/core/command_def.h:219
 msgid ""
@@ -21615,6 +21789,14 @@ msgid ""
 "comment to the FITS header. Please note that any text containing spaces must "
 "be enclosed in double quotation marks"
 msgstr ""
+"Met à jour le mot-clé FITS. Veuillez noter que la validité de <b>value</b> "
+"n'est pas vérifiée. Cette vérification relève de la responsabilité de "
+"l'utilisateur. Il est également possible de supprimer une clé avec l'option "
+"<b>-delete</b> devant le nom de la clé à supprimer, ou de modifier la clé "
+"avec l'option <b>-modify</b>. Cette dernière doit être suivie de la clé à "
+"modifier et du nouveau nom de la clé. Enfin, l'option <b>-comment</b>, "
+"suivie d'un texte, ajoute un commentaire à l'en-tête FITS. Veuillez noter "
+"que tout texte contenant des espaces doit être placé entre guillemets doubles"
 
 #: src/core/command_def.h:224
 msgid ""
@@ -21625,7 +21807,6 @@ msgstr ""
 "haut, GUI uniquement"
 
 #: src/core/command_def.h:226
-#, fuzzy
 msgid ""
 "Computes the wavelet transform of the loaded image on (<b>nbr_layers</b>=1..."
 "nbr_layers) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) "
@@ -21635,11 +21816,11 @@ msgid ""
 "\n"
 "See also EXTRACT"
 msgstr ""
-"Calcule la transformée en ondelettes de l'image chargée sur (<b>nbr_layers</"
-"b>=1...6) calque(s) en utilisant linear (<b>type</b>=1) ou bspline (<b>type "
-"</b>=2) comme version de l'algorithme 'à trous'. Le résultat est stocké dans "
-"un fichier sous forme de structure contenant les calques, prêt pour la "
-"reconstruction pondérée avec WRECONS.\n"
+"Calcule la transformée en ondelettes de l'image chargée sur "
+"(<b>nbr_layers</b>=1...n) calque(s) en utilisant linear (<b>type</b>=1) ou "
+"bspline (<b>type </b>=2) comme version de l'algorithme 'à trous'. Le "
+"résultat est stocké dans un fichier sous forme de structure contenant les "
+"calques, prêt pour la reconstruction pondérée avec WRECONS.\n"
 "\n"
 "Voir aussi EXTRACT"
 
@@ -22879,7 +23060,7 @@ msgstr "ajouter CTYPE3='RGB' dans l'en-tête FITS"
 
 #: src/core/settings.c:348
 msgid "Verify file checksums if they exist"
-msgstr ""
+msgstr "Vérifier les sommes de contrôle si elles existent"
 
 #: src/core/settings.c:349
 msgid "user copyright to put in file header"
@@ -22894,9 +23075,8 @@ msgid "location of the StarNet-torch weights file"
 msgstr "emplacement du fichier des poids de StarNet-torch"
 
 #: src/core/settings.c:352
-#, fuzzy
 msgid "location of the GraXpert executable"
-msgstr "emplacement de l'exécutable StarNet"
+msgstr "emplacement de l'exécutable GraXpert"
 
 #: src/core/settings.c:354
 msgid "directory of the asnet_ansvr installation"
@@ -22920,7 +23100,7 @@ msgstr "FFTW multithreadée"
 
 #: src/core/settings.c:362
 msgid "Maximum slice size for automated slice processing"
-msgstr ""
+msgstr "Taille maximale des segments pour le traitement automatisé des découpes"
 
 #: src/core/settings.c:364
 msgid "focal length in mm for radius adjustment"
@@ -22984,7 +23164,7 @@ msgstr "fixer la valeur d'ouverture du flux"
 
 #: src/core/settings.c:381
 msgid "Radius/halfFWHM ratio"
-msgstr ""
+msgstr "Rapport rayon/demi-FWHM"
 
 #: src/core/settings.c:382
 msgid "forced aperture for flux computation"
@@ -23176,14 +23356,12 @@ msgid "use default master flat"
 msgstr "utiliser le master-flat par défaut"
 
 #: src/core/settings.c:440
-#, fuzzy
 msgid "default distortion master"
-msgstr "bias maître par défaut"
+msgstr "master-distorsion par défaut"
 
 #: src/core/settings.c:441
-#, fuzzy
 msgid "use default master distortion"
-msgstr "utiliser le dark maître par défaut"
+msgstr "utiliser le fichier distorsion maître par défaut"
 
 #: src/core/settings.c:442
 msgid "default stack name"
@@ -23451,10 +23629,14 @@ msgstr "attribue de manière rigoureuse des profils ICC linéaires"
 #: src/core/settings.c:512
 msgid "mouse actions config. Opaque data structure, edit this using the GUI"
 msgstr ""
+"configuration des actions de la souris. Structure de données opaque, à "
+"éditer à l'aide de l'interface graphique"
 
 #: src/core/settings.c:513
 msgid "scroll actions config. Opaque data structure, edit this using the GUI"
 msgstr ""
+"configuration des actions de défilement. Structure de données opaque, à "
+"éditer à l'aide de l'interface graphique"
 
 #: src/core/settings.c:514
 msgid "index of the compass position over grid"
@@ -23525,13 +23707,14 @@ msgstr ""
 "Une autre tâche est déjà en cours d'exécution, nouvelle requête ignorée.\n"
 
 #: src/core/siril_actions.c:74
-#, fuzzy
 msgid "Cannot process image"
-msgstr "Impossible de charger une nouvelle image"
+msgstr "Impossible de traiter l'image"
 
 #: src/core/siril_actions.c:74
 msgid "The image can't be processed while another processing dialog is opened."
 msgstr ""
+"L'image ne peut pas être traitée tant qu'une autre boîte de dialogue de "
+"traitement est ouverte."
 
 #: src/core/siril_actions.c:150
 msgid "Cannot check for updates with this version, missing dependency\n"
@@ -23577,17 +23760,21 @@ msgid ""
 "Opening the RGB Composition dialog will close the current image without "
 "saving. Are you sure?"
 msgstr ""
+"L'ouverture de la boîte de dialogue Composition RVB fermera l'image actuelle "
+"sans l'enregistrer. Êtes-vous sûr de vous ?"
 
 #: src/core/siril_actions.c:709 src/core/siril_actions.c:717
 #: src/gui/graxpert.c:288
 msgid "Yes"
-msgstr ""
+msgstr "Oui"
 
 #: src/core/siril_actions.c:717
 msgid ""
 "Opening the Star Recomposition dialog will close the current image without "
 "saving. Are you sure?"
 msgstr ""
+"L'ouverture de la boîte de dialogue Recomposition de l'étoile fermera "
+"l'image actuelle sans l'enregistrer. Êtes-vous sûr de vous ?"
 
 #: src/core/siril_actions.c:766
 msgid "RGB alignment (DFT)"
@@ -23630,11 +23817,15 @@ msgstr "Temps d'exécution"
 #: src/core/siril_networking.c:57
 msgid "Error initialising CURL handle, URL functionality unavailable.\n"
 msgstr ""
+"Erreur d'initialisation de la gestion CURL, la fonctionnalité URL n'est pas "
+"disponible.\n"
 
 #: src/core/siril_networking.c:78
 msgid ""
 "Error configuring CURL with CA bundle. https functionality unavailable.\n"
 msgstr ""
+"Erreur de configuration de CURL avec le CA embarqué. La fonctionnalité https "
+"n'est pas disponible.\n"
 
 #: src/core/siril_networking.c:111
 #, c-format
@@ -23642,32 +23833,30 @@ msgid ""
 "Server unreachable or unresponsive (HTTP code %ld - for details see https://"
 "developer.mozilla.org/en-US/docs/Web/HTTP/Status)\n"
 msgstr ""
+"Serveur inaccessible ou ne répondant pas (code HTTP %ld - pour plus de "
+"détails, voir https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)\n"
 
 #: src/core/siril_networking.c:119
-#, fuzzy
 msgid "Server unreachable or unresponsive"
-msgstr ""
-"Après %ld tentatives, le serveur est inaccessible ou ne répond pas. (%s)\n"
+msgstr "Serveur inaccessible ou ne répondant pas"
 
 #: src/core/siril_networking.c:123
 #, c-format
 msgid "URL retrieval failed. libcurl error: [%ld]\n"
-msgstr ""
+msgstr "La récupération de l'URL a échoué. erreur libcurl : [%ld]\n"
 
 #: src/core/siril_networking.c:182
-#, fuzzy, c-format
+#, c-format
 msgid "Error fetching URL: %s\n"
-msgstr "Erreur d'ouverture du fichier %s\n"
+msgstr "Erreur dans l'extraction de l'URL : %s\n"
 
 #: src/core/siril_networking.c:209
-#, fuzzy
 msgid "Siril is in online mode.\n"
-msgstr "Siril est à jour\n"
+msgstr "Siril est en mode en ligne.\n"
 
 #: src/core/siril_networking.c:209
-#, fuzzy
 msgid "Siril is in offline mode.\n"
-msgstr "Siril est à jour\n"
+msgstr "Siril est en mode hors ligne.\n"
 
 #: src/core/siril_update.c:352
 msgid "No update check: cannot fetch version file\n"
@@ -23702,29 +23891,38 @@ msgid "Software Update"
 msgstr "Mise À Jour Logiciel"
 
 #: src/core/siril_update.c:469
-#, fuzzy, c-format
+#, c-format
 msgid "Error parsing JSON from URL: %s\n"
-msgstr "Erreur de chargement du fichier SPCC JSON : %s\n"
+msgstr "Erreur d'analyse JSON de l'URL : %s\n"
 
 #: src/core/siril_update.c:477
 msgid "Error parsing JSON from URL: unable to get root node\n"
 msgstr ""
+"Erreur dans l'analyse JSON de l'URL : impossible d'obtenir le nœud racine\n"
 
 #: src/core/siril_update.c:498
 msgid "Error parsing JSON from URL: unable to find a valid JSON object\n"
 msgstr ""
+"Erreur dans l'analyse JSON de l'URL : impossible de trouver un objet JSON "
+"valide\n"
 
 #: src/core/siril_update.c:504
 msgid "Error parsing JSON from URL: unable to find any valid JSON objects\n"
 msgstr ""
+"Erreur d'analyse JSON à partir de l'URL : impossible de trouver des objets "
+"JSON valides\n"
 
 #: src/core/siril_update.c:520
 msgid "Error parsing JSON from URL: required JSON members not found\n"
 msgstr ""
+"Erreur dans l'analyse JSON de l'URL : les membres JSON requis n'ont pas été "
+"trouvés\n"
 
 #: src/core/siril_update.c:594
 msgid "Error fetching or parsing Siril notifications JSON file from URL\n"
 msgstr ""
+"Erreur dans l'extraction ou l'analyse du fichier JSON des notifications "
+"Siril à partir de l'URL\n"
 
 #: src/core/siril_update.c:602
 #, c-format
@@ -23732,19 +23930,22 @@ msgid ""
 "*** SIRIL NOTIFICATION ***\n"
 "%s\n"
 msgstr ""
+"*** NOTIFICATION SIRIL ***\n"
+"%s\n"
 
 #: src/core/siril_update.c:623
 msgid "Error: Siril is in offline mode, cannot check updates.\n"
 msgstr ""
+"Erreur : Siril est en mode hors ligne, il ne peut pas vérifier les mises à "
+"jour.\n"
 
 #: src/core/siril_update.c:632
 msgid "Looking for updates..."
 msgstr "Recherche des mises à jour..."
 
 #: src/core/siril_update.c:652
-#, fuzzy
 msgid "Looking for notifications..."
-msgstr "Recherche des mises à jour..."
+msgstr "Recherche des notifications..."
 
 #: src/core/undo.c:60
 #, c-format
@@ -23769,6 +23970,8 @@ msgid ""
 "Following undo / redo with a preview active you may need to toggle the "
 "preview off and on again to reactivate the preview effect\n"
 msgstr ""
+"Après avoir annulé ou refait une opération avec un aperçu actif, vous devrez "
+"peut-être désactiver et réactiver l'aperçu pour réactiver l'effet d'aperçu.\n"
 
 #: src/core/undo.c:387
 #, c-format
@@ -23857,23 +24060,21 @@ msgid "(invalid UTF-8 string)"
 msgstr "(chaîne UTF-8 non valide)"
 
 #: src/drizzle/cdrizzlebox.c:497
-#, fuzzy
 msgid "Out of memory"
-msgstr "Mémoire insuffisante\n"
+msgstr "Mémoire insuffisante"
 
 #: src/drizzle/cdrizzlebox.c:902
 msgid "Invalid kernel type"
-msgstr ""
+msgstr "Type de noyau non valide"
 
 #: src/drizzle/cdrizzleutil.c:123
-#, fuzzy
 msgid "Drizzling parameters:\n"
-msgstr "Mauvais paramètres.\n"
+msgstr "Paramètres Drizzle :\n"
 
 #: src/drizzle/cdrizzleutil.c:124
 #, c-format
 msgid "kernel:         %s\n"
-msgstr ""
+msgstr "noyau :         %s\n"
 
 #: src/drizzle/cdrizzleutil.c:125
 #, c-format
@@ -23974,56 +24175,53 @@ msgstr "Erreur : aucun canal sélectionné. Ne rien faire.\n"
 
 #. g_spawn handles wchar so not need to convert
 #: src/filters/graxpert.c:140
-#, fuzzy
 msgid "Starting GraXpert..."
-msgstr "Démarrage de StarNet"
+msgstr "Démarrage de GraXpert..."
 
 #: src/filters/graxpert.c:149
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed: %s\n"
-msgstr "Échec de l'utilisation de starnet : %s\n"
+msgstr "Échec de la mise en place de GraXpert : %s\n"
 
 #: src/filters/graxpert.c:185
-#, fuzzy
 msgid "Running GraXpert"
-msgstr "Exécution de StarNet"
+msgstr "Exécution de GraXpert"
 
 #: src/filters/graxpert.c:187
 msgid "GraXpert reported an error"
-msgstr ""
+msgstr "GraXpert a signalé une erreur"
 
 #: src/filters/graxpert.c:195 src/filters/graxpert.c:225
 msgid "Done."
-msgstr ""
+msgstr "Fait."
 
 #: src/filters/graxpert.c:199
-#, fuzzy, c-format
+#, c-format
 msgid "GraXpert caught buffer: %s : exit successful\n"
-msgstr "StarNet a capturé la mémoire tampon : %s : sortie réussie\n"
+msgstr "GraXpert a capturé la mémoire tampon : %s : sortie réussie\n"
 
 #: src/filters/graxpert.c:224
-#, fuzzy
 msgid "GraXpert GUI finished.\n"
-msgstr "Alignement fini.\n"
+msgstr "GraXpert GUI terminé\n"
 
 #: src/filters/graxpert.c:230
-#, fuzzy, c-format
+#, c-format
 msgid "GraXpert exit not caught, last buffer: %s\n"
-msgstr "Sortie Starnet non interceptée, dernier tampon : %s\n"
+msgstr "Sortie GraXpert non interceptée, dernier tampon : %s\n"
 
 #: src/filters/graxpert.c:310
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed during available AI model versions check: %s\n"
 msgstr ""
-"Échec de la création du processus lors de la vérification de la version : "
-"%s\n"
+"La mise en place de GraXpert a échoué lors de la vérification des versions "
+"de modèles d'IA disponibles : %s\n"
 
 #: src/filters/graxpert.c:411
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed during version check: %s\n"
 msgstr ""
-"Échec de la création du processus lors de la vérification de la version : "
-"%s\n"
+"La mise en place de GraXpert a échoué lors de la vérification de la version :"
+" %s\n"
 
 #: src/filters/graxpert.c:465
 #, c-format
@@ -24031,69 +24229,70 @@ msgid ""
 "Error: GraXpert version is too old. You have version %d.%d.%d; at least "
 "version 3.0.0 is required.\n"
 msgstr ""
+"Erreur : La version de GraXpert est trop ancienne. Vous avez la version "
+"%d.%d.%d ; il faut au moins la version 3.0.0.\n"
 
 #: src/filters/graxpert.c:500
-#, fuzzy
 msgid "None!\n"
-msgstr "Aucun"
+msgstr "Aucun\n"
 
 #: src/filters/graxpert.c:670 src/filters/graxpert.c:678
-#, fuzzy
 msgid "Reading result from the temporary working file...\n"
-msgstr "Erreur : impossible de supprimer le fichier de travail temporaire...\n"
+msgstr "Lecture du résultat du fichier de travail temporaire...\n"
 
 #: src/filters/graxpert.c:672 src/filters/graxpert.c:680
-#, fuzzy, c-format
+#, c-format
 msgid "Error opening GraXpert result. Check the file %s\n"
-msgstr "Erreur lors de l'ouverture du fichier %s\n"
+msgstr "Erreur d'ouverture du résultat GraXpert. Vérifier le fichier %s\n"
 
 #: src/filters/graxpert.c:688
 msgid ""
 "Error: the GraXpert image dimensions and bit depth do not match those of the "
 "original image. Please report this as a bug.\n"
 msgstr ""
+"Erreur : les dimensions et la profondeur de bits de l'image GraXpert ne "
+"correspondent pas à celles de l'image originale. Veuillez signaler ce "
+"problème en tant que bug.\n"
 
 #: src/filters/graxpert.c:717
-#, fuzzy
 msgid "Removing the temporary working file...\n"
-msgstr "Erreur : impossible de supprimer le fichier de travail temporaire...\n"
+msgstr "Suppression du fichier de travail temporaire...\n"
 
 #: src/filters/graxpert.c:746
 #, c-format
 msgid "GraXpert BG extraction, smoothness %.3f"
-msgstr ""
+msgstr "Extraction gradient GraXpert, lissage %.3f"
 
 #: src/filters/graxpert.c:749
 #, c-format
 msgid "GraXpert denoising, strength %.3f"
-msgstr ""
+msgstr "Débruitage GraXpert, force %.3f"
 
 #: src/filters/graxpert.c:752
 #, c-format
 msgid "GraXpert deconv, strength %.3f, psf size %.3f"
-msgstr ""
+msgstr "Déconv. GraXpert, force %.3f, taille psf %.3f"
 
 #: src/filters/graxpert.c:755
 msgid "GraXpert operations using GUI"
-msgstr ""
+msgstr "Opérations GraXpert à l'aide de l'interface graphique"
 
 #. Save current image as input filename
 #: src/filters/graxpert.c:794
-#, fuzzy
 msgid "Saving temporary working file...\n"
-msgstr "Erreur : impossible de supprimer le fichier de travail temporaire...\n"
+msgstr "Enregistrement d'un fichier de travail temporaire...\n"
 
 #: src/filters/graxpert.c:796
-#, fuzzy
 msgid "Error: failed to save temporary FITS\n"
-msgstr ""
-"Erreur : impossible de sauvegarder l'image sans étoile en tant que FITS...\n"
+msgstr "Erreur : échec de l'enregistrement d'un FITS temporaire\n"
 
 #: src/filters/graxpert.c:824
 msgid ""
 "Background samples must be computed for GraXpert RBF, Spline and Kriging "
 "methods\n"
 msgstr ""
+"Des échantillons de fond de ciel doivent être calculés pour les méthodes "
+"RBF, Spline et Krigeage de GraXpert.\n"
 
 #: src/filters/graxpert.c:868
 msgid ""
@@ -24102,25 +24301,27 @@ msgid ""
 "You will need to check and re-assign the ICC profile as GraXpert does not "
 "preserve ICC profiles embedded in FITS files.\n"
 msgstr ""
+"L'interface graphique de GraXpert s'ouvre avec l'image en cours. Lorsque "
+"vous avez terminé, enregistrez l'image et revenez à Siril.\n"
+"Vous devrez vérifier et réassigner le profil ICC car GraXpert ne préserve "
+"pas les profils ICC intégrés dans les fichiers FITS.\n"
 
 #: src/filters/graxpert.c:874
 msgid "Error: unknown GraXpert operation\n"
-msgstr ""
+msgstr "Erreur : opération GraXpert inconnue\n"
 
 #: src/filters/graxpert.c:945
-#, fuzzy, c-format
+#, c-format
 msgid "GraXpert: Processing image %d\n"
-msgstr "Starnet : Traitement de l'image %d\n"
+msgstr "GraXpert : Traitement de l'image %d\n"
 
 #: src/filters/graxpert.c:966
-#, fuzzy
 msgid "GraXpert"
-msgstr "Ouverture du flux"
+msgstr "GraXpert"
 
 #: src/filters/graxpert.c:982
-#, fuzzy
 msgid "GraXpert: Processing..."
-msgstr "StarNet : Traitement..."
+msgstr "GraXpert : Traitement..."
 
 #: src/filters/median.c:289 src/filters/median.c:513
 msgid "Median Filter: processing...\n"
@@ -24592,31 +24793,25 @@ msgid "Star Catalogue"
 msgstr "Catalogue d'étoiles"
 
 #: src/gui/annotations_pref.c:35
-#, fuzzy
 msgid "User Deep Sky Objects Catalogue"
-msgstr ""
-"Purger le Catalogue\n"
-"Ciel profond"
+msgstr "Catalogue utilisateur du ciel profond"
 
 #: src/gui/annotations_pref.c:36
-#, fuzzy
 msgid "User Solar System Objects Catalogue"
-msgstr "Objets du Système Solaire"
+msgstr "Catalogue utilisateur du Système Solaire"
 
 #: src/gui/annotate.c:173
-#, fuzzy
 msgid "csv files (*.csv)"
-msgstr "Fichiers SER (*.csv)"
+msgstr "Fichiers csv (*.csv)"
 
 #: src/gui/annotate.c:292
-#, fuzzy
 msgid "Could not parse coordinates or name, aborting\n"
-msgstr "Impossible de créer %s, abandon\n"
+msgstr ""
+"Impossible d'analyser les coordonnées ou le nom, abandon de la procédure\n"
 
 #: src/gui/annotate.c:381
-#, fuzzy
 msgid "Replace"
-msgstr "Remplacer le Fichier"
+msgstr "Remplacer"
 
 #: src/gui/astrometry_solver.c:434
 msgid ""
@@ -24672,9 +24867,8 @@ msgid "No metadata"
 msgstr "Aucune métadonnée"
 
 #: src/gui/astrometry_solver.c:751
-#, fuzzy
 msgid "wcs files (*.wcs)"
-msgstr "Fichiers SER (*.csv)"
+msgstr "Fichiers wcs (*.wcs)"
 
 #: src/gui/astrometry_solver.c:837
 msgid "Please enter object coordinates."
@@ -25399,6 +25593,8 @@ msgstr "Erreur : canal hors de porté.\n"
 #: src/gui/cut.c:257
 msgid "Error: background removal polynomial degree should be >= 1 and <= 6.\n"
 msgstr ""
+"Erreur : le degré du polynôme de suppression de l'arrière-plan doit être >= "
+"1 et <= 6.\n"
 
 #: src/gui/cut.c:287
 #, c-format
@@ -25441,17 +25637,16 @@ msgstr "Distance le long de la coupe / px"
 
 #: src/gui/cut.c:684
 msgid "Coefficients: y = "
-msgstr ""
+msgstr "Coefficients : y = "
 
 #: src/gui/cut.c:700
 #, c-format
 msgid "Subtracting dark strips: polynomial fit of degree %d:\n"
-msgstr ""
+msgstr "Soustraction des bandes sombres : ajustement polynomial de degré %d :\n"
 
 #: src/gui/cut.c:712 src/gui/cut.c:724
-#, fuzzy
 msgid "Intensity"
-msgstr "Profil d'intensité"
+msgstr "Intensité"
 
 #: src/gui/cut.c:714 src/pixelMath/pixel_math_runner.c:353
 msgid "R"
@@ -25459,17 +25654,17 @@ msgstr "R"
 
 #: src/gui/cut.c:724
 msgid "L"
-msgstr ""
+msgstr "L"
 
 #: src/gui/cut.c:727
-#, fuzzy, c-format
+#, c-format
 msgid "Fitted background"
-msgstr "fond du ciel"
+msgstr "Fond du ciel ajusté"
 
 #: src/gui/cut.c:728
-#, fuzzy, c-format
+#, c-format
 msgid "Measured background"
-msgstr "Préserver le fond du ciel"
+msgstr "Fond de ciel mesuré"
 
 #: src/gui/cut.c:804 src/gui/cut.c:810
 msgid "Error: failed to split FITS into CFA sub-patterns.\n"
@@ -25486,20 +25681,21 @@ msgstr ""
 "chargée."
 
 #: src/gui/cut.c:1036
-#, fuzzy
 msgid "Spectroscopic"
-msgstr "Spectrophotométrique"
+msgstr "Spectroscopique"
 
 #: src/gui/cut.c:1037
 msgid ""
 "Reduces a spectrum without background removal. This is suitable when the "
 "entire image represents a calibrated spectrum"
 msgstr ""
+"Réduit un spectre sans suppression de l'arrière-plan. Cette méthode convient "
+"lorsque l'ensemble de l'image représente un spectre calibré"
 
 #: src/gui/cut.c:1038
 #, fuzzy
 msgid "Spectro w/ bg removal"
-msgstr "Spectre"
+msgstr "Spectro avec suppression arrière-plan"
 
 #: src/gui/cut.c:1039
 msgid "Spectro bg offset (px)"
@@ -25511,26 +25707,26 @@ msgid ""
 "removal is required: the background is computed along parallel lines "
 "equidistant from the central spectral profile line"
 msgstr ""
+"Réduit un spectre en supprimant l'arrière-plan. Cette méthode convient "
+"lorsque la suppression de l'arrière-plan est nécessaire : l'arrière-plan est "
+"calculé le long de lignes parallèles équidistantes de la ligne centrale du "
+"profil spectral."
 
 #: src/gui/cut.c:1048
-#, fuzzy
 msgid "Tri-profile (mono)"
 msgstr "Tri-Profil (mono)"
 
 #: src/gui/cut.c:1049
-#, fuzzy
 msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile"
 msgstr ""
 "Génère 3 profils d'intensité parallèles séparés par un nombre donné de "
-"pixels. Les tri-profils tracent toujours la luminance le long de chaque "
-"profil et n'utilisent pas de données spectrométriques."
+"pixels. Ce mode trace toujours la luminance le long de chaque profil"
 
 #: src/gui/cut.c:1050
-#, fuzzy
 msgid "Tri-profile offset (px)"
-msgstr "Tri-Profil (mono)"
+msgstr "Tri-Profil décalage (px)"
 
 #: src/gui/cut.c:1180 src/gui/cut.c:1210
 msgid "No star detected"
@@ -25758,57 +25954,56 @@ msgstr "Le dépôt de la base de données SPCC est à jour."
 #: src/gui/graxpert.c:208
 #, c-format
 msgid "GraXpert available and supports %s."
-msgstr ""
+msgstr "GraXpert détecté et supporte %s"
 
 #: src/gui/graxpert.c:209
-#, fuzzy
 msgid "background extraction"
-msgstr "Extraction de gradient"
+msgstr "extraction de gradient"
 
 #: src/gui/graxpert.c:210
-#, fuzzy
 msgid "denoising"
-msgstr "Débruitage"
+msgstr "débruitage"
 
 #: src/gui/graxpert.c:211
-#, fuzzy
 msgid "deconvolution"
-msgstr "Déconvolution"
+msgstr "déconvolution"
 
 #: src/gui/graxpert.c:212
 msgid "GUI"
-msgstr ""
+msgstr "Interface graphique"
 
 #: src/gui/graxpert.c:216
 msgid ""
 "<span foreground=\"red\">No suitable version of GraXpert is available.\n"
 "Configure the executable in Preferences -> Miscellaneous.</span>"
 msgstr ""
+"<span foreground=\"red\">Aucune version appropriée de GraXpert n'est "
+"disponible.\n"
+"Configurez l'exécutable dans Préférences -> Divers.</span>"
 
 #: src/gui/graxpert.c:288
 msgid ""
 "GraXpert is running. Changing the GraXpert operation will cancel the current "
 "GraXpert process. Proceed?"
 msgstr ""
+"GraXpert est en cours. La modification de l'opération GraXpert annulera le "
+"processus GraXpert en cours. Poursuivre ?"
 
 #: src/gui/graxpert.c:291
-#, fuzzy
 msgid "GraXpert operation cancelled by user\n"
-msgstr "L'opération d'empilement a été annulée.\n"
+msgstr "Opération GraXpert annulée par l'utilisateur\n"
 
 #: src/gui/graxpert.c:314
-#, fuzzy
 msgid "Error: no sequence loaded.\n"
-msgstr "Aucune séquence chargée"
+msgstr "Erreur : Aucune séquence chargée.\n"
 
 #: src/gui/graxpert.c:337
 msgid "Stellar"
-msgstr ""
+msgstr "Stellaire"
 
 #: src/gui/graxpert.c:337
-#, fuzzy
 msgid "Objects"
-msgstr "Chercher Objet"
+msgstr "Objets"
 
 #: src/gui/histogram.c:153 src/gui/histogram.c:159 src/gui/histogram.c:1155
 #: src/gui/histogram.c:1161 src/gui/histogram.c:1813 src/gui/histogram.c:1830
@@ -26003,16 +26198,15 @@ msgstr "Attribution d'un profil de couleur"
 
 #: src/gui/icc_profile.c:324
 msgid "Color space has incorrect channels"
-msgstr ""
+msgstr "L'espace couleur comporte des canaux incorrects"
 
 #: src/gui/icc_profile.c:324
-#, fuzzy
 msgid ""
 "Mismatch in number of channels between the current image and the ICC "
 "profile. You cannot assign a RGB ICC profile to a mono image."
 msgstr ""
-"Le nombre de canaux de l'image ne correspond pas au nombre de canaux du "
-"profil couleur. Impossible d'attribuer ce profil à cette image."
+"Non-concordance du nombre de canaux entre l'image actuelle et le profil ICC. "
+"Vous ne pouvez pas attribuer un profil ICC RVB à une image mono."
 
 #: src/gui/icc_profile.c:334 src/gui/icc_profile.c:387
 msgid "Color space not supported"
@@ -26103,25 +26297,25 @@ msgstr ""
 "Le tracé de chromaticité ne fonctionne qu'avec les profils de couleur RVB"
 
 #: src/gui/keywords_tree.c:194 src/gui/keywords_tree.c:599
-#, fuzzy
 msgid "Operation on the sequence"
-msgstr "Sélectionner des images dans la séquence"
+msgstr "Opération sur la séquence"
 
 #: src/gui/keywords_tree.c:195
 msgid ""
 "These keywords will be deleted from each image of the entire sequence. Are "
 "you sure?”"
 msgstr ""
+"Ces mots-clés seront supprimés de chaque image sur la séquence entière. Êtes-"
+"vous sûr ?"
 
 #: src/gui/keywords_tree.c:266
 msgid "Keyname can contain a maximum of 8 characters.\n"
-msgstr ""
+msgstr "Le nom de la clé peut contenir un maximum de 8 caractères.\n"
 
 #. Create the dialog window with buttons
 #: src/gui/keywords_tree.c:507
-#, fuzzy
 msgid "Add New Keyword"
-msgstr "Mot clé"
+msgstr "Ajouter nouveau mot clé"
 
 #: src/gui/keywords_tree.c:508 src/io/image_formats_libraries.c:2309
 #: src/pixelMath/pixel_math_runner.c:1227
@@ -26137,6 +26331,8 @@ msgid ""
 "These keywords will be added / modified in each image of the entire "
 "sequence. Are you sure?"
 msgstr ""
+"Ces mots-clés seront ajoutés / modifiés dans chaque image sur la séquence "
+"entière. Êtes-vous sûr ?"
 
 #: src/gui/image_display.c:170
 msgid ""
@@ -26211,18 +26407,18 @@ msgstr "Ré-échantillonner (%g - %g)"
 
 #: src/gui/menu_gray_geometry.c:354
 msgid "Image backup is active"
-msgstr ""
+msgstr "La sauvegarde de l'image est active"
 
 #: src/gui/menu_gray_geometry.c:355
-#, fuzzy
 msgid ""
 "It is impossible to crop the image when the image backup is active. This "
 "occurs when a filter has a live preview active or when a filter with on-"
 "demand ROI preview is open. Please close the filter dialog before cropping."
 msgstr ""
-"Il est impossible de recadrer l'image lorsqu'un filtre avec session de "
-"prévisualisation est actif. Veuillez d'abord fermer la boîte de dialogue du "
-"filtre."
+"Il est impossible de recadrer l'image lorsque la sauvegarde de l'image est "
+"active. Cela se produit lorsqu'un filtre a une prévisualisation en direct "
+"active ou lorsqu'un filtre avec prévisualisation ROI est ouvert. Veuillez "
+"fermer la boîte de dialogue du filtre avant de procéder au recadrage."
 
 #: src/gui/menu_gray_geometry.c:385
 msgid ""
@@ -26238,95 +26434,103 @@ msgstr "N'est pas une séquence valide pour le recadrage.\n"
 #: src/gui/mouse_action_functions.c:309
 msgid "This action opens a new image if there is no image currently loaded"
 msgstr ""
+"Cette action ouvre une nouvelle image si aucune image n'est actuellement "
+"chargée"
 
 #: src/gui/mouse_action_functions.c:324
 msgid ""
 "This action starts a measurement from one point in the image to another. "
 "Releasing the button ends the measurement."
 msgstr ""
+"Cette action lance une mesure d'un point de l'image à un autre. Le fait de "
+"relâcher le bouton met fin à la mesure."
 
 #: src/gui/mouse_action_functions.c:338
 msgid ""
 "This action toggles the image zoom level as configured in Preferences / User "
 "Interface"
 msgstr ""
+"Cette action fait basculer le niveau de zoom de l'image tel qu'il a été "
+"configuré dans Préférences / Interface utilisateur"
 
 #: src/gui/mouse_action_functions.c:378
 msgid "This action drags the image around the viewport"
-msgstr ""
+msgstr "Cette action fait glisser l'image autour de la fenêtre de visualisation"
 
 #: src/gui/mouse_action_functions.c:393
 msgid ""
 "This is the main Siril mouse action used for making selections, selecting "
 "background samples and previews, doing quick photometry etc."
 msgstr ""
+"Il s'agit de la principale action de la souris Siril utilisée pour effectuer "
+"des sélections, sélectionner des échantillons d'arrière-plan et des aperçus, "
+"effectuer une photométrie rapide, etc."
 
 #: src/gui/mouse_action_functions.c:539
 msgid ""
 "Remove background samples or photometry boxes, or show the mouse context menu"
 msgstr ""
+"Supprimer les échantillons d'arrière-plan ou les boîtes de photométrie, ou "
+"afficher le menu contextuel de la souris"
 
 #: src/gui/mouse_action_functions.c:582
 msgid "This action sets the photometry box"
-msgstr ""
+msgstr "Cette action définit la boîte de photométrie"
 
 #: src/gui/mouse_action_functions.c:613
-#, fuzzy
 msgid "This action saves the current image"
-msgstr "Affiche la vue négative de l'image courrante"
+msgstr "Cette action enregistre l'image courante"
 
 #: src/gui/mouse_action_functions.c:625
-#, fuzzy
 msgid "This action saves the current image with a new name"
-msgstr "... ou enregistrez l'image FITS actuelle sous le même nom"
+msgstr "Cette action enregistre l'image courante avec un nouveau nom"
 
 #: src/gui/mouse_action_functions.c:633
-#, fuzzy
 msgid "This action saves a snapshot of the current image"
-msgstr "Affiche la vue négative de l'image courrante"
+msgstr "Cette action permet d'enregistrer un instantané de l'image actuelle"
 
 #: src/gui/mouse_action_functions.c:641
-#, fuzzy
 msgid "This action undoes the last operation"
-msgstr "Celui-ci pour la rétablir"
+msgstr "Cette action annule la dernière opération"
 
 #: src/gui/mouse_action_functions.c:651
-#, fuzzy
 msgid "This action redoes the last operation"
-msgstr "Celui-ci pour la rétablir"
+msgstr "Cette action restaure la dernière opération"
 
 #: src/gui/mouse_action_functions.c:661
-#, fuzzy
 msgid "This action finds stars in the current image"
-msgstr ""
-"Impossible de trouver des étoiles dans l'image de référence, abandon.\n"
+msgstr "Cette action permet de trouver des étoiles dans l'image actuelle"
 
 #: src/gui/mouse_action_functions.c:673
-#, fuzzy
 msgid "This action plate solves the current image"
-msgstr "Affiche la vue négative de l'image courrante"
+msgstr "Cette action exécute l'astrométrie sur l'image courante"
 
 #: src/gui/mouse_action_functions.c:681
-#, fuzzy
 msgid "This action opens the spectrophotometric color calibration dialog"
-msgstr "Ouvrir la fenêtre d'étalonnage des couleurs par spectrophotométrie"
+msgstr ""
+"Cette action ouvre la fenêtre d'étalonnage de couleurs par spectrophotométrie"
 
 #: src/gui/mouse_action_functions.c:699
 msgid "Scroll wheel zooms in / out"
-msgstr ""
+msgstr "Molette de défilement pour zoomer ou dézoomer"
 
 #: src/gui/mouse_action_functions.c:749
 msgid "Scroll wheel scrolls through the frames in the current sequence"
 msgstr ""
+"La molette de défilement permet de faire défiler les images de la séquence "
+"en cours"
 
 #: src/gui/mouse_action_functions.c:793
-#, fuzzy
 msgid "Error: image load failed, reloading reference image!\n"
-msgstr "Utilise l'image %d comme image de référence temporaire\n"
+msgstr ""
+"Erreur : le chargement de l'image a échoué, rechargement de l'image de "
+"référence !\n"
 
 #: src/gui/mouse_action_functions.c:800
 msgid "Scroll wheel scrolls through the Siril GUI tabs"
 msgstr ""
+"La molette de défilement permet de faire défiler les onglets de l'interface "
+"graphique Siril."
 
 #. CHECKLIST FOR ADDING NEW MOUSE FUNCTIONS OR SCROLL FUNCTIONS
 #. *
@@ -26345,54 +26549,49 @@ msgstr ""
 #.
 #. Function metadata
 #: src/gui/mouse_action_functions.h:23
-#, fuzzy
 msgid "Main multifunction action"
-msgstr "Fonction maximum."
+msgstr "Principale action multifonction"
 
 #: src/gui/mouse_action_functions.h:27
 msgid "Drag"
-msgstr ""
+msgstr "Glisser"
 
 #: src/gui/mouse_action_functions.h:35
 msgid "Open if nothing is loaded"
-msgstr ""
+msgstr "Ouvrir si rien n'est chargé"
 
 #: src/gui/mouse_action_functions.h:39
 msgid "Configurable zoom toggle"
-msgstr ""
+msgstr "Bascule de zoom configurable"
 
 #: src/gui/mouse_action_functions.h:43
-#, fuzzy
 msgid "Photometry box"
-msgstr "Photométrie"
+msgstr "Boite photométrique"
 
 #: src/gui/mouse_action_functions.h:47
 msgid "Mouse Menu / Remove"
-msgstr ""
+msgstr "Menu de la souris / Supprimer"
 
 #: src/gui/mouse_action_functions.h:59
-#, fuzzy
 msgid "Save As"
-msgstr "Enregistrer"
+msgstr "Enregistrer sous"
 
 #: src/gui/mouse_action_functions.h:63
 msgid "Snapshot"
-msgstr ""
+msgstr "Instantané"
 
 #: src/gui/mouse_action_functions.h:75
-#, fuzzy
 msgid "Find stars"
-msgstr "nb étoiles"
+msgstr "Trouver étoiles"
 
 #: src/gui/mouse_action_functions.h:79
-#, fuzzy
 msgid "Plate solve"
-msgstr "Résolution astrométrique"
+msgstr "Astrométrie"
 
 #. Scroll functions
 #: src/gui/mouse_action_functions.h:88
 msgid "Scroll to zoom"
-msgstr ""
+msgstr "Défilement pour zoomer"
 
 #: src/gui/mouse_action_functions.h:92
 #, fuzzy
@@ -26494,9 +26693,8 @@ msgid "Mouse scroll configuration updated successfully.\n"
 msgstr "Système FFT mis à jour avec succès…\n"
 
 #: src/gui/mouse_action_preferences.c:647
-#, fuzzy
 msgid "Reset Mouse Actions"
-msgstr "Rétablir le zoom à 1."
+msgstr "Réinitialiser les actions de la souris"
 
 #: src/gui/mouse_action_preferences.c:647
 msgid ""
@@ -26644,7 +26842,7 @@ msgstr "Sélectionner le fichier de la liste d'étoiles de comparaison"
 
 #: src/gui/nina_light_curve.c:63
 msgid "CSV file (*.csv)"
-msgstr "Fichiers SER (*.csv)"
+msgstr "Fichiers CSV (*.csv)"
 
 #. Definition of all the graphical items
 #. Top label
@@ -27360,9 +27558,8 @@ msgid "Loading registration method: %s\n"
 msgstr "Chargement de la méthode d'alignement : %s\n"
 
 #: src/gui/registration.c:403
-#, fuzzy
 msgid "WCS Files (*.wcs)"
-msgstr "Fichiers SER (*.csv)"
+msgstr "Fichiers WCS (*.wcs)"
 
 #. we check result is inside the selection box
 #: src/gui/registration.c:455
@@ -27484,9 +27681,9 @@ msgid " (assuming a scaling factor of %.2f)"
 msgstr ""
 
 #: src/gui/registration.c:1250
-#, fuzzy, c-format
+#, c-format
 msgid "Output image: %d x %d pixels%s\n"
-msgstr "Nouvelle taille de l'image : %dx%d pixels.\n"
+msgstr "Image en sortie : %d x %d pixels%s\n"
 
 #: src/gui/registration_preview.c:76
 #, c-format
@@ -28532,9 +28729,8 @@ msgid "FITS header of image %d updated\n"
 msgstr ""
 
 #: src/io/fits_keywords.c:1282
-#, fuzzy
 msgid "This command won't work for SER sequence.\n"
-msgstr "cette commande n'existe que pour une séquence"
+msgstr "Cette commande ne fonctionnera pas pour la séquence SER.\n"
 
 #: src/io/fits_sequence.c:98
 msgid ""
@@ -29289,9 +29485,9 @@ msgid "Contacting server\n"
 msgstr "Contacte le serveur\n"
 
 #: src/io/remote_catalogues.c:661
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot create catalogue file %s (generic error)\n"
-msgstr "Impossible de créer le fichier de catalogue %s (%s)\n"
+msgstr "Impossible de créer le fichier de catalogue %s (erreur générique)\n"
 
 #: src/io/remote_catalogues.c:706
 msgid "Offline, cannot retrieve URL.\n"
@@ -30205,9 +30401,11 @@ msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "Le dépôt de la base de données locale SPCC est à jour !\n"
 
 #: src/io/siril_git.c:814
-#, fuzzy, c-format
+#, c-format
 msgid "Error spawning thread to update scripts repository: %s\n"
-msgstr "Erreur : Impossible d'ouvrir le dépôt local de scripts.\n"
+msgstr ""
+"Erreur lors de la création d'un thread pour mettre à jour le dépôt de "
+"scripts : %s\n"
 
 #: src/io/siril_git.c:818
 msgid ""
@@ -30972,9 +31170,9 @@ msgid "No registration data exists for this layer\n"
 msgstr "Aucune donnée d'alignement stockée pour ce canal\n"
 
 #: src/registration/applyreg.c:142 src/registration/applyreg.c:260
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d has no overlap with the reference\n"
-msgstr "L'image n'a pas pu être alignée avec les étoiles de référence\n"
+msgstr "L'image %d n'a pas de recouvrement avec la référence\n"
 
 #: src/registration/applyreg.c:204
 msgid "The intersection of all images is null or negative\n"
@@ -31165,9 +31363,10 @@ msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
 msgstr ""
 
 #: src/registration/astrometric.c:180
-#, fuzzy, c-format
+#, c-format
 msgid "No image selected after computing transformations, aborting%s\n"
-msgstr "Aucune image sélectionnée pour traitement, annulation\n"
+msgstr ""
+"Aucune image sélectionnée après le calcul des transformations, abandon%s\n"
 
 #: src/registration/astrometric.c:262
 #, fuzzy
@@ -31180,9 +31379,9 @@ msgid "Image %d has not been plate-solved, unselecting\n"
 msgstr "L'image %d a déjà été traitée, sauter\n"
 
 #: src/registration/comet.c:193
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d has no registration data, removing\n"
-msgstr "L'image n'a pas pu être alignée avec les étoiles de référence\n"
+msgstr "L'image %d n'a pas de données d'alignement.\n"
 
 #: src/registration/comet.c:277
 msgid "Moving object registration"
@@ -31215,9 +31414,9 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:426
-#, fuzzy, c-format
+#, c-format
 msgid "Could not load image# %d, deselecting\n"
-msgstr "Impossible de charger l'image %d de la séquence %s\n"
+msgstr "Impossible de charger l'image # %d, désélectionner\n"
 
 #: src/registration/distorsion.c:435
 #, fuzzy
@@ -31235,9 +31434,8 @@ msgid "Could not copy WCS information for distortion, aborting\n"
 msgstr "Impossible de copier l'image, abandon\n"
 
 #: src/registration/distorsion.c:477
-#, fuzzy
 msgid "Selected file has no distortion information\n"
-msgstr "Sélectionner la source des informations affichées."
+msgstr "Le fichier sélectionné ne contient aucune information de distorsion\n"
 
 #: src/registration/distorsion.c:519
 #, fuzzy
@@ -31273,9 +31471,8 @@ msgid "Load a FITS/WCS file for distortion"
 msgstr ""
 
 #: src/registration/distorsion.c:549 src/registration/distorsion.c:551
-#, fuzzy
 msgid "Could not load FITS image for distortion"
-msgstr "Impossible de charger l'image, abandon.\n"
+msgstr "Impossible de charger l'image FITS pour la distorsion"
 
 #: src/registration/distorsion.c:556
 msgid ""
@@ -31284,9 +31481,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:558
-#, fuzzy
 msgid "Selected file has no WCS information"
-msgstr "Sélectionner la source des informations affichées."
+msgstr "Le fichier sélectionné ne contient pas d'informations WCS"
 
 #: src/registration/distorsion.c:563
 msgid ""
@@ -31295,19 +31491,17 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:565
-#, fuzzy
 msgid "Selected file has no distortion information"
-msgstr "Sélectionner la source des informations affichées."
+msgstr "Le fichier sélectionné ne contient aucune information de distorsion"
 
 #: src/registration/distorsion.c:572 src/registration/distorsion.c:574
-#, fuzzy
 msgid "Selected file has no dimensions information"
-msgstr "Sélectionner la source des informations affichées."
+msgstr ""
+"Le fichier sélectionné ne contient pas d'informations sur les dimensions"
 
 #: src/registration/distorsion.c:579 src/registration/distorsion.c:581
-#, fuzzy
 msgid "Selected file and current sequence do not have the same size"
-msgstr "Une image de la séquence n'a pas les mêmes dimensions\n"
+msgstr "Le fichier sélectionné et la séquence en cours n'ont pas la même taille"
 
 #: src/registration/distorsion.c:590 src/registration/distorsion.c:592
 msgid ""
@@ -31315,9 +31509,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:597 src/registration/distorsion.c:599
-#, fuzzy
 msgid "Distortion master could not be parsed"
-msgstr "Les symboles de paramètres n'ont pas pu être analysés."
+msgstr "Le master de distorsion n'a pas pu être analysé"
 
 #: src/registration/global.c:72
 msgid "shift-only (2 degrees)"
