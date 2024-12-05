@@ -614,8 +614,9 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		redraw(REDRAW_OVERLAY);
 	}
 
-	/* don't change cursor if thread is running */
-	if (get_thread_run()) return FALSE;
+	/* don't change cursor if thread is running or if Python
+	 claims the thread */
+	if (get_thread_run() || com.python_claims_thread) return FALSE;
 
 	if (inside) {
 		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
