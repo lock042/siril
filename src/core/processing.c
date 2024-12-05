@@ -18,9 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <sys/socket.h>
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <sys/socket.h>
 #endif
 
 #include <assert.h>
