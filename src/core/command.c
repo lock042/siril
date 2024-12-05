@@ -8239,6 +8239,8 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			} else {
 				arg->output_norm = TRUE;
 			}
+		} else if (!strcmp(current, "-32b")) {
+			arg->force32b = TRUE;
 		} else if (!strcmp(current, "-overlap_norm")) {
 			if (!rej_options_allowed) {
 				siril_log_message(_("Overlap normalization is allowed only with mean stacking, ignoring.\n"));
@@ -8435,7 +8437,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		return CMD_GENERIC_ERROR;
 	}
 	args.description = describe_filter(seq, args.filtering_criterion, args.filtering_parameter);
-	args.use_32bit_output = evaluate_stacking_should_output_32bits(args.method,
+	args.use_32bit_output = arg->force32b || evaluate_stacking_should_output_32bits(args.method,
 			args.seq, args.nb_images_to_stack, &error);
 	if (error) {
 		siril_log_color_message(error, "red");

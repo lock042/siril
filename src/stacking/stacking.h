@@ -123,6 +123,7 @@ struct stacking_configuration {
 	weightingType weighting_type;
 	gboolean maximize_framing;
 	gboolean upscale_at_stacking;
+	gboolean force32b;
 };
 
 typedef struct {

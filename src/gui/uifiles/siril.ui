@@ -9147,7 +9147,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                     <property name="orientation">vertical</property>
                                                     <property name="spacing">5</property>
                                                     <child>
-                                                      <!-- n-columns=2 n-rows=2 -->
+                                                      <!-- n-columns=3 n-rows=2 -->
                                                       <object class="GtkGrid">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
@@ -9158,7 +9158,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="label" translatable="yes">Output Normalisation</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or in [0, 65535] otherwise.
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or clipped in [0, 65535] otherwise. This will work best if you also check Force 32b output, as it will avoid clipping.
 
 WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="halign">start</property>
@@ -9213,6 +9213,24 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="left-attach">1</property>
                                                             <property name="top-attach">1</property>
                                                           </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkCheckButton" id="check_force32b">
+                                                            <property name="label" translatable="yes">Force 32b output</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image bitdepth will be forced to 32b even if the input images are in 16b.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            <property name="visible">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">1</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <placeholder/>
                                                         </child>
                                                       </object>
                                                       <packing>
