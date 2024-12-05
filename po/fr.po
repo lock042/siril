@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-05 15:12+0100\n"
-"PO-Revision-Date: 2024-12-05 21:22+0000\n"
+"PO-Revision-Date: 2024-12-05 21:50+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -25767,13 +25767,12 @@ msgstr ""
 "lorsque l'ensemble de l'image représente un spectre calibré"
 
 #: src/gui/cut.c:1038
-#, fuzzy
 msgid "Spectro w/ bg removal"
-msgstr "Spectro avec suppression arrière-plan"
+msgstr "Spectro avec suppression du fond"
 
 #: src/gui/cut.c:1039
 msgid "Spectro bg offset (px)"
-msgstr ""
+msgstr "Décalage du fond Spectro (px)"
 
 #: src/gui/cut.c:1040
 msgid ""
@@ -29565,7 +29564,7 @@ msgstr "Plus d'une correspondance pour : "
 
 #: src/io/path_parse.c:88
 msgid "All hits newer than: "
-msgstr ""
+msgstr "Tous les résultats plus récents que : "
 
 #: src/io/path_parse.c:91
 msgid "No match found for: "
