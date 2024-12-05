@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:37+0100\n"
-"PO-Revision-Date: 2024-11-28 14:16+0000\n"
+"PO-Revision-Date: 2024-12-05 21:22+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/fr/>\n"
@@ -1230,7 +1230,7 @@ msgstr "Disque d'Airy"
 
 #: src/gui/siril3.glade:6342 src/gui/siril3.glade:7263
 msgid "Ratio"
-msgstr "Ratio"
+msgstr "Rapport"
 
 #: src/gui/siril3.glade:6353
 msgid ""
@@ -19476,7 +19476,7 @@ msgstr "Sélectionnez le fichier de la liste d'étoiles NINA"
 
 #: src/gui/nina_light_curve.c:32
 msgid "CSV file (*.csv)"
-msgstr "Fichiers SER (*.csv)"
+msgstr "Fichiers CSV (*.csv)"
 
 #: src/gui/nina_light_curve.c:36
 msgid ""
