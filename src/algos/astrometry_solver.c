@@ -91,12 +91,12 @@ static void debug_print_catalog_files(TRANS *trans, s_star *star_list_A, s_star 
 	}
 	gchar bufferx[1024] = { 0 }, buffery[1024] = { 0 };
 	// x00, x10, x01, x20, x11, x02, x30, x21, x12, x03, x40, x31, x22, x13, x04, x50, x41, x32, x23, x14, x05
-	g_sprintf(bufferx, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
-	trans.x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02, 
+	g_sprintf(bufferx, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n",
+	trans.x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02,
 	trans->x30, trans->x21, trans->x12, trans->x03, trans->x40, trans->x31, trans->x22, trans->x13,
 	trans->x04, trans->x50, trans->x41, trans->x32, trans->x23, trans->x14, trans->x05);
-	g_sprintf(buffery, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
-	trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02, 
+	g_sprintf(buffery, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n",
+	trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02,
 	trans->y30, trans->y21, trans->y12, trans->y03, trans->y40, trans->y31, trans->y22, trans->y13,
 	trans->y04, trans->y50, trans->y41, trans->y32, trans->y23, trans->y14, trans->y05);
 	g_output_stream_write_all(output_stream, bufferx, strlen(bufferx), NULL, NULL,NULL);
@@ -1627,6 +1627,13 @@ gboolean asnet_is_available() {
 }
 #endif
 
+static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
+	siril_debug_print("asnet exited with status %d\n", status);
+	g_spawn_close_pid(pid);
+	// GraXpert has exited, reset the stored pid
+	remove_child_from_children(pid);
+}
+
 static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 	if (!args->asnet_checked) {
 		if (!asnet_is_available()) {
@@ -1764,10 +1771,35 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	/* call solve-field */
 	gint child_stdout;
 	g_autoptr(GError) error = NULL;
+	GPid child_pid;
+	child_info *child = g_malloc(sizeof(child_info));
+	siril_spawn_host_async_with_pipes(NULL,
+				sfargs,
+				NULL,
+				G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
+				NULL,
+				NULL,
+				&child_pid,
+				NULL,
+				&child_stdout,
+				NULL,
+				&error
+	);
+	// At this point, remove the processing thread from the list of children and replace it
+	// with the asnet process. This avoids tracking two children for the same task.
+	// Note: the pid isn't strictly needed here as it isn't used to kill the process
+	// should we need to, but it makes a handy index to search for in com.children, so
+	// we record it anyway.
+	remove_child_from_children(-2);
+	child->childpid = child_pid;
+	child->program = EXT_ASNET;
+	child->name = g_strdup(_("Astrometry.net local solver"));
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
 
-	siril_spawn_host_async_with_pipes(NULL, sfargs, NULL,
-			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
-			NULL, NULL, NULL, NULL, &child_stdout, NULL, &error);
+	// Required in order to remove the child from com.children on exit
+	g_child_watch_add(child_pid, child_watch_cb, NULL);
+
 	if (error != NULL) {
 		siril_log_color_message("Spawning solve-field failed: %s\n", "red", error->message);
 		if (!com.pref.astrometry.keep_xyls_files)
@@ -2138,7 +2170,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	}
 	if (aargs->solver == SOLVER_LOCALASNET)
 		aargs->filename = g_strdup(root);	// for localasnet
-	
+
 	if (i == arg->seq->reference_image) { // we want to save master distortion only once for ref image
 		aargs->distofilename = g_strdup(aargs_master->distofilename);
 	}

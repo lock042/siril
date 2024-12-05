@@ -95,6 +95,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	if (!get_thread_run()) {
 		return 1;
 	}
+	child_info *child = g_malloc(sizeof(child_info));
 	siril_spawn_host_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL | G_SPAWN_DO_NOT_REAP_CHILD,
@@ -109,8 +110,8 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 
 	// At this point, remove the processing thread from the list of children and replace it
 	// with the starnet process. This avoids tracking two children for the same task.
-	remove_child_from_children(-2);
-	child_info *child = g_malloc(sizeof(child_info));
+	if (get_thread_run())
+		remove_child_from_children(-2);
 	child->childpid = child_pid;
 	child->program = EXT_STARNET;
 	child->name = g_strdup("Starnet");
