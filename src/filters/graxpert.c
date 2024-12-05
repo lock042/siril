@@ -118,6 +118,16 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	// Set a static variable so we can recover the pid info from gui
 	running_pid = *child_pid;
 
+	g_child_watch_add(*child_pid, child_watch_cb, NULL);
+
+	// Prepend this process to the list of child processes com.children
+	child_info *child = g_malloc(sizeof(child_info));
+	child->childpid = *child_pid;
+	child->program = EXT_GRAXPERT;
+	child->name = g_strdup("GraXpert");
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
+
 	g_strfreev(env);
 	g_free(columns_str);
 
@@ -153,15 +163,6 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 		siril_log_color_message(_("Spawning GraXpert failed: %s\n"), "red", error->message);
 		return retval;
 	}
-	g_child_watch_add(child_pid, child_watch_cb, NULL);
-
-	// Prepend this process to the list of child processes com.children
-	child_info *child = g_malloc(sizeof(child_info));
-	child->childpid = child_pid;
-	child->program = EXT_GRAXPERT;
-	child->name = g_strdup("GraXpert");
-	child->datetime = g_date_time_new_now_local();
-	com.children = g_slist_prepend(com.children, child);
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
