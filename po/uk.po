@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-04 16:29+0100\n"
+"POT-Creation-Date: 2024-12-05 15:12+0100\n"
 "PO-Revision-Date: 2018-09-12 11:00+0300\n"
 "Last-Translator: Maksym Pyatnytskyy <mpyat2@gmail.com>\n"
 "Language-Team: Maksym Pyatnytskyy, Oleh Malyi. mpyat2@gmail.com\n"
@@ -14864,7 +14864,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:8420
-msgid "Cannot upscale or maximize framong with median stacking. Disabling\n"
+msgid "Cannot upscale or maximize framing with median stacking. Disabling\n"
 msgstr ""
 
 #: src/core/command.c:8485
@@ -18157,10 +18157,9 @@ msgstr ""
 #: src/core/command_def.h:226
 msgid ""
 "Computes the wavelet transform of the loaded image on (<b>nbr_layers</b>=1..."
-"nbr_layers) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) "
-"version of the 'à trous' algorithm. The result is stored in a file as a "
-"structure containing the layers, ready for weighted reconstruction with "
-"WRECONS.\n"
+"n) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version "
+"of the 'à trous' algorithm. The result is stored in a file as a structure "
+"containing the layers, ready for weighted reconstruction with WRECONS.\n"
 "\n"
 "See also EXTRACT"
 msgstr ""
@@ -22293,10 +22292,13 @@ msgid "Operation on the sequence"
 msgstr "всі зображення з послідовності"
 
 #: src/gui/keywords_tree.c:195
+#, fuzzy
 msgid ""
 "These keywords will be deleted from each image of the entire sequence. Are "
-"you sure?”"
+"you sure?"
 msgstr ""
+"Темновий майстер-кадр (дарк) буде віднятий від усіх зображень у "
+"послідовності."
 
 #: src/gui/keywords_tree.c:266
 msgid "Keyname can contain a maximum of 8 characters.\n"

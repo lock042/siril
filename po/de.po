@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-04 16:29+0100\n"
+"POT-Creation-Date: 2024-12-05 15:12+0100\n"
 "PO-Revision-Date: 2024-07-08 05:37+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
@@ -16456,7 +16456,8 @@ msgstr ""
 "Größen. Upscale beim Stapeln wird ignoriert\n"
 
 #: src/core/command.c:8420
-msgid "Cannot upscale or maximize framong with median stacking. Disabling\n"
+#, fuzzy
+msgid "Cannot upscale or maximize framing with median stacking. Disabling\n"
 msgstr ""
 "Rahmung kann mit Median Stacking nicht hochskaliert oder maximiert werden. "
 "Deaktivieren\n"
@@ -21597,10 +21598,9 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Computes the wavelet transform of the loaded image on (<b>nbr_layers</b>=1..."
-"nbr_layers) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) "
-"version of the 'à trous' algorithm. The result is stored in a file as a "
-"structure containing the layers, ready for weighted reconstruction with "
-"WRECONS.\n"
+"n) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version "
+"of the 'à trous' algorithm. The result is stored in a file as a structure "
+"containing the layers, ready for weighted reconstruction with WRECONS.\n"
 "\n"
 "See also EXTRACT"
 msgstr ""
@@ -26061,10 +26061,11 @@ msgid "Operation on the sequence"
 msgstr "Wählen Sie Bilder aus der Sequenz"
 
 #: src/gui/keywords_tree.c:195
+#, fuzzy
 msgid ""
 "These keywords will be deleted from each image of the entire sequence. Are "
-"you sure?”"
-msgstr ""
+"you sure?"
+msgstr "Das Master-Dark wird von allen Bildern der Sequenz subtrahiert."
 
 #: src/gui/keywords_tree.c:266
 msgid "Keyname can contain a maximum of 8 characters.\n"

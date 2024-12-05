@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-04 16:29+0100\n"
+"POT-Creation-Date: 2024-12-05 15:12+0100\n"
 "PO-Revision-Date: 2016-07-08 16:10+0800\n"
 "Last-Translator: Bamm Gabriana <bamm@distroastro.org>\n"
 "Language-Team: \n"
@@ -14167,7 +14167,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:8420
-msgid "Cannot upscale or maximize framong with median stacking. Disabling\n"
+msgid "Cannot upscale or maximize framing with median stacking. Disabling\n"
 msgstr ""
 
 #: src/core/command.c:8485
@@ -17442,10 +17442,9 @@ msgstr ""
 #: src/core/command_def.h:226
 msgid ""
 "Computes the wavelet transform of the loaded image on (<b>nbr_layers</b>=1..."
-"nbr_layers) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) "
-"version of the 'à trous' algorithm. The result is stored in a file as a "
-"structure containing the layers, ready for weighted reconstruction with "
-"WRECONS.\n"
+"n) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version "
+"of the 'à trous' algorithm. The result is stored in a file as a structure "
+"containing the layers, ready for weighted reconstruction with WRECONS.\n"
 "\n"
 "See also EXTRACT"
 msgstr ""
@@ -21505,7 +21504,7 @@ msgstr "Stacking ng mga piling larawan lamang sa sequence (%d)\n"
 #: src/gui/keywords_tree.c:195
 msgid ""
 "These keywords will be deleted from each image of the entire sequence. Are "
-"you sure?”"
+"you sure?"
 msgstr ""
 
 #: src/gui/keywords_tree.c:266

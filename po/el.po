@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-04 16:29+0100\n"
+"POT-Creation-Date: 2024-12-05 15:12+0100\n"
 "PO-Revision-Date: 2024-02-10 20:54+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Greek <https://weblate.pixls.us/projects/siril/siril-"
@@ -15705,7 +15705,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:8420
-msgid "Cannot upscale or maximize framong with median stacking. Disabling\n"
+msgid "Cannot upscale or maximize framing with median stacking. Disabling\n"
 msgstr ""
 
 #: src/core/command.c:8485
@@ -19567,10 +19567,9 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Computes the wavelet transform of the loaded image on (<b>nbr_layers</b>=1..."
-"nbr_layers) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) "
-"version of the 'à trous' algorithm. The result is stored in a file as a "
-"structure containing the layers, ready for weighted reconstruction with "
-"WRECONS.\n"
+"n) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version "
+"of the 'à trous' algorithm. The result is stored in a file as a structure "
+"containing the layers, ready for weighted reconstruction with WRECONS.\n"
 "\n"
 "See also EXTRACT"
 msgstr ""
@@ -23941,10 +23940,12 @@ msgid "Operation on the sequence"
 msgstr "Επιλέξτε εικόνες στην ακολουθία"
 
 #: src/gui/keywords_tree.c:195
+#, fuzzy
 msgid ""
 "These keywords will be deleted from each image of the entire sequence. Are "
-"you sure?”"
+"you sure?"
 msgstr ""
+"Η εικόνα του Κυρίως-dark θα αφαιρεθεί από όλες τις εικόνες της ακολουθίας."
 
 #: src/gui/keywords_tree.c:266
 msgid "Keyname can contain a maximum of 8 characters.\n"
