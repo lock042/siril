@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-05 15:12+0100\n"
-"PO-Revision-Date: 2024-12-05 14:11+0000\n"
+"PO-Revision-Date: 2024-12-05 21:22+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -16556,11 +16556,10 @@ msgstr ""
 "différentes. La mise à l'échelle lors de l'empilement sera ignorée.\n"
 
 #: src/core/command.c:8420
-#, fuzzy
 msgid "Cannot upscale or maximize framing with median stacking. Disabling\n"
 msgstr ""
-"Impossible d'augmenter ou de maximiser le cadrage avec l'empilement médian. "
-"Désactivation\n"
+"Impossible de mettre à l'échelle ou de maximiser le cadrage avec "
+"l'empilement médian. Désactivation\n"
 
 #: src/core/command.c:8485
 #, c-format
@@ -19405,7 +19404,6 @@ msgstr ""
 "défaut de -2,8 et +2,0"
 
 #: src/core/command_def.h:116
-#, fuzzy
 msgid ""
 "Plate solve the loaded image.\n"
 "If the image has already been plate solved nothing will be done, unless the "
@@ -19463,7 +19461,7 @@ msgstr ""
 "Si l'image a déjà été résolue par astrométrie, rien ne sera fait, à moins "
 "que l'argument <b>-force</b> ne soit passé pour forcer une nouvelle "
 "résolution. Si les données WCS ou d'autres métadonnées d'image sont erronées "
-"ou manquantes, des arguments doivent être transmis :\n"
+"ou manquantes, des arguments doivent être transmis :\n"
 "  les coordonnées approximatives du centre de l'image peuvent être fournies "
 "en degrés décimaux ou en degrés/heures minutes secondes (J2000 avec "
 "séparateurs deux-points), avec des valeurs d'ascension droite et de "
@@ -19474,12 +19472,6 @@ msgstr ""
 "valeurs de l'image et des paramètres. Voir aussi les options pour résoudre à "
 "l'aveugle avec astrometry.net local\n"
 "\n"
-"Les images peuvent être soit résolues par Siril à l'aide d'un catalogue "
-"d'étoiles et de l'algorithme d'alignement global, soit par la commande de "
-"résolution de champ d'astrometry.net local (activée avec <b>-localasnet</"
-"b>).\n"
-"\n"
-"Les options suivantes sont communes aux deux solveurs :\n"
 "Sauf si <b>-noflip</b> est spécifié, si l'image est détectée comme étant à "
 "l'envers, elle sera retournée.\n"
 "Pour une détection plus rapide des étoiles dans les grandes images, le sous-"
@@ -19490,29 +19482,36 @@ msgstr ""
 "l'option <b>-order=</b> donnant une valeur comprise entre 1 et 5.\n"
 "Lors de l'utilisation des catalogues locaux du solveur Siril ou avec "
 "Astrometry.net local, si la résolution initiale échoue, le solveur "
-"recherchera une solution dans un cône de rayon spécifié avec l'option <b>-"
-"radius=</b>. Si aucune valeur n'est passée, le rayon de recherche est issu "
-"des préférences d'astrométrie. La recherche par proximité de Siril peut être "
-"désactivée en passant une valeur de 0. (ne peut pas être désactivée pour "
-"Astrometry.net).\n"
+"recherchera une solution dans un cône de rayon spécifié avec l'option "
+"<b>-radius=</b>. Si aucune valeur n'est passée, le rayon de recherche est "
+"issu des préférences d'astrométrie. La recherche par proximité de Siril peut "
+"être désactivée en passant une valeur de 0. (ne peut pas être désactivée "
+"pour Astrometry.net).\n"
+"Vous pouvez enregistrer la solution actuelle en tant que fichier de "
+"distorsion avec l'option <b>-disto=</b>.\n"
 "\n"
-"Les options suivantes s'appliquent uniquement à la résolution par Siril :\n"
+"Les images peuvent être soit résolues par Siril à l'aide d'un catalogue "
+"d'étoiles et de l'algorithme d'alignement global, soit par la commande de "
+"résolution de champ d'astrometry.net local (activée avec <b>-localasnet</b>)."
+"\n"
+"\n"
+"<b>Options du solveur astrométrique de Siril :</b>\n"
 "La magnitude limite des étoiles utilisée pour la résolution astrométrique "
 "est automatiquement calculée à partir de la taille du champ de vision, mais "
 "peut être modifiée en passant une valeur +offset ou -offset à <b>-limitmag=</"
 "b>, ou simplement une valeur absolue. Valeur positive pour la grandeur "
 "limite.\n"
-"Le choix du catalogue d'étoiles est automatique sauf si l'option <b>-"
-"catalog=</b> est passée : si des catalogues locaux sont installés, ils sont "
-"utilisés, sinon le choix se fait en fonction du champ de vision et de la "
-"magnitude limite. Si l'option est passée, elle force l'utilisation du "
-"catalogue distant donné en argument, avec les valeurs possibles : tycho2, "
+"Le choix du catalogue d'étoiles est automatique sauf si l'option "
+"<b>-catalog=</b> est passée : si des catalogues locaux sont installés, ils "
+"sont utilisés, sinon le choix se fait en fonction du champ de vision et de "
+"la magnitude limite. Si l'option est passée, elle force l'utilisation du "
+"catalogue distant donné en argument, avec les valeurs possibles : tycho2, "
 "nomad, gaia, ppmxl, brightstars, apass.\n"
 "Si le champ de vision calculé est supérieur à 5 degrés, la détection des "
 "étoiles sera limitée à une zone recadrée autour du centre de l'image, à "
 "moins que l'option <b>-nocrop</b> ne soit passée.\n"
 "\n"
-"Les options suivantes s'appliquent uniquement au solveur Astrometry.net :\n"
+"<b>Options du solveur Astrometry.net :</b>\n"
 "Passer les options <b>-blindpos</b> et/ou <b>-blindres</b> permet de "
 "résoudre en aveugle la position et la résolution respectivement. Vous pouvez "
 "les utiliser pour résoudre une image avec un emplacement et un "
@@ -19545,7 +19544,6 @@ msgstr ""
 "tels que LIVETIME et STACKCNT"
 
 #: src/core/command_def.h:118
-#, fuzzy
 msgid ""
 "Generates an intensity profile plot between 2 points in the image, also "
 "known as a <i>cut</i>. The arguments may be provided in any order. The "
@@ -19618,26 +19616,30 @@ msgstr ""
 "si les métadonnées ne sont pas disponibles, la distance sera affichée en "
 "unités de pixels.\n"
 "\n"
-"L'argument <b>-savedat</b> provoquera la sauvegarde des fichiers de "
-"données : le nom du fichier sera écrit dans le journal. Alternativement, "
-"l'argument <b>-filename=</b> peut être utilisé pour spécifier un nom de "
-"fichier dans lequel écrire le fichier de données. (L'option <b>-filename=</"
-"b> implique <b>-savedat</b>.)\n"
+"L'argument <b>-savedat</b> provoquera la sauvegarde des fichiers de données :"
+" le nom du fichier sera écrit dans le journal. Alternativement, l'argument "
+"<b>-filename=</b> peut être utilisé pour spécifier un nom de fichier dans "
+"lequel écrire le fichier de données. (L'option <b>-filename=</b> implique "
+"<b>-savedat</b>.)\n"
 "\n"
 "<b>Options spectrométriques</b>\n"
 "\n"
 "Si des options spectrométriques sont fournies, tous les éléments suivants "
-"doivent être fournis : <b>-wavenumber1=</b> / <b>-wavelength1=</b> et <b>-"
-"wavenumber2=</b> / <b> -wavelength2=</b> spécifie 2 nombres d'ondes en "
-"cm<sup>-1</sup> / longueurs d'onde en nm, et <b>-wn1=x,y</b> et <b>-wn2=x,y "
-"</b> spécifiez les points dans l'image correspondant à ces nombres d'onde. "
-"Par commodité, <b>-wavelength1=</b> et <b>-wavelength2=</b> peuvent être "
+"doivent être fournis : <b>-wavenumber1=</b> / <b>-wavelength1=</b> et "
+"<b>-wavenumber2=</b> / <b>-wavelength2=</b> spécifie 2 nombres d'ondes en "
+"cm<sup>-1</sup> / longueurs d'onde en nm, et <b>-wn1=x,y</b> et <b>-wn2=x,y</"
+"b> spécifiez les points dans l'image correspondant à ces nombres d'onde. Par "
+"commodité, <b>-wavelength1=</b> et <b>-wavelength2=</b> peuvent être "
 "utilisés à la place pour fournir des longueurs d'onde en nm. Les arguments "
 "spectrométriques facultatifs suivants peuvent être fournis : <b>-width=</b>, "
-"qui spécifie le nombre de pixels dont la moyenne doit être moyenne "
-"perpendiculairement à la ligne de profil, et l'un des éléments suivants : "
-"<b>-xaxis=wavelength</b> ou <b>-xaxis=wavenumber</b>, qui définit les unités "
-"pour l'axe x (la valeur par défaut est la longueur d'onde).\n"
+"qui spécifie le nombre de pixels dont la moyenne doit être effectuée "
+"perpendiculairement à la ligne de profil, <b>-bgremove</b>, qui sélectionne "
+"le mode de suppression du fond (à spécifier avec <b>-spacing=</b> pour "
+"définir l'espacement des bandes de mesure de fond), <b>-bgpoly=</b>, qui "
+"définit le degré du polynôme à ajuster au fond (par défaut à 3), et l'un des "
+"éléments suivants : <b>-xaxis=wavelength</b> ou <b>-xaxis=wavenumber</b>, "
+"qui définit les unités pour l'axe x (la valeur par défaut est la longueur "
+"d'onde).\n"
 "\n"
 "L'argument <b>\"-title=<i>Mon Titre\"</i></b> définit un titre personnalisé "
 "\"Mon Titre\""
@@ -19682,7 +19684,6 @@ msgstr ""
 "'BGGR', 'GRBG' ou 'GBRG'"
 
 #: src/core/command_def.h:123
-#, fuzzy
 msgid ""
 "Finds and optionally performs geometric transforms on images of the sequence "
 "given in argument so that they may be superimposed on the reference image. "
@@ -19758,47 +19759,78 @@ msgstr ""
 "superposées à l'image de référence. Utilisant des étoiles pour l'alignement, "
 "cet algorithme ne fonctionne qu'avec des images du ciel profond. Les options "
 "de détection d'étoiles peuvent être modifiées à l'aide de <b>SETFINDSTAR</b> "
-"ou de la boîte de dialogue <i>PSF dynamique</i>. La détection se fait sur le "
-"canal vert pour les images en couleur, sauf si spécifié par l'option <b>-"
-"layer=</b> avec un argument allant de 0 à 2 pour le rouge au bleu.\n"
+"ou de la boîte de dialogue <i>PSF dynamique</i>.\n"
 "\n"
-"Les options <b>-2pass</b> et <b>-noout</b> ne calculeront que les "
-"transformations mais ne généreront pas les images transformées, <b>-2pass</"
-"b> ajoute une passe préliminaire à l'algorithme pour trouvez une bonne image "
-"de référence avant de calculer les transformations, en fonction de la "
-"qualité de l'image et du cadrage. Pour générer des images transformées après "
-"cette passe, utilisez SEQAPPLYREG. <b>-nostarlist</b> désactive "
-"l'enregistrement des listes d'étoiles sur le disque.\n"
+"Toutes les images de la séquence seront alignées, sauf si l'option "
+"<b>-selected</b> est passée, auquel cas les images exclues ne seront pas "
+"traitées.\n"
+"L'option <b>-2pass</b> ne calculera que les transformations sans générer les "
+"images transformées. <b>-2pass</b> ajoute une passe préliminaire à "
+"l'algorithme pour trouver une bonne image de référence avant de calculer les "
+"transformations, en fonction de la qualité de l'image et du cadrage. Pour "
+"générer les images transformées après cette passe, utilisez SEQAPPLYREG.\n"
+"Si une séquence de sortie est créée, son nom commencera par le préfixe \"r_\""
+" sauf indication contraire avec l'option <b>-prefix=</b>. Les images de "
+"sortie peuvent être redimensionnées en passant un argument <b>-scale=</b> "
+"avec une valeur flottante comprise entre 0.1 et 3.\n"
 "\n"
-"L'option <b>-transf=</b> spécifie l'utilisation soit de <b>shift</b> "
-"(translation), <b>similarity</b>, <b>affine</b> ou <b>homography</b> (par "
-"défaut) transformations respectivement.\n"
-"L'option <b>-drizzle</b> active l'empilement des sous-pixels en multipliant "
-"par 2 les images générées.\n"
-"L'option <b>-minpairs=</b> spécifiera le nombre minimum de paires d'étoiles "
-"qu'une trame doit avoir avec la trame de référence, sinon la trame sera "
-"supprimée et exclue de la séquence.\n"
-"L'option <b>-maxstars=</b> spécifiera le nombre maximum d'étoiles à trouver "
-"dans chaque cadre (doit être compris entre 100 et 2000). Avec plus "
-"d'étoiles, un enregistrement plus précis peut être calculé, mais prendra "
-"plus de temps à s'exécuter.\n"
+"<b>Options de transformation d'image :</b>\n"
 "\n"
+"La détection se fait sur la couche verte pour les images en couleur, sauf si "
+"spécifié par l'option <b>-layer=</b> avec un argument allant de 0 à 2 pour "
+"rouge à bleu.\n"
+"L'option <b>-transf=</b> spécifie l'utilisation des transformations "
+"<b>shift</b>, <b>similarity</b>, <b>affine</b> ou <b>homography</b> (par "
+"défaut).\n"
+"L'option <b>-minpairs=</b> spécifie le nombre minimum de paires d'étoiles "
+"qu'une image doit avoir avec l'image de référence, sinon elle sera exclue de "
+"la séquence.\n"
+"L'option <b>-maxstars=</b> spécifie le nombre maximum d'étoiles à trouver "
+"dans chaque image (doit être compris entre 100 et 2000). Plus il y a "
+"d'étoiles, plus l'alignement sera précis, mais cela prendra plus de temps.\n"
+"L'option <b>-nostarlist</b> désactive l'enregistrement des listes d'étoiles "
+"sur le disque.\n"
+"L'option <b>-disto=</b> utilise les termes de distorsion d'une solution de "
+"platesolve précédente (avec un ordre SIP > 1). Elle prend en paramètre "
+"<b>image</b> pour utiliser la solution contenue dans l'image actuellement "
+"chargée, <b>file</b> suivi du chemin vers l'image contenant la solution, ou "
+"<b>master</b> pour charger automatiquement le maître de distorsion "
+"correspondant à chaque image. Lors de l'utilisation de cette option, les "
+"polynômes sont utilisés à la fois pour corriger les positions des étoiles "
+"avant de calculer la transformation et pour déformer les images lors de "
+"l'exportation des images de sortie.\n"
+"\n"
+"<b>Options d'interpolation d'image :</b>\n"
+"\n"
+"Par défaut, les transformations sont appliquées pour aligner les images à "
+"l'aide d'une interpolation.\n"
 "La méthode d'interpolation des pixels peut être spécifiée avec l'argument "
-"<b>-interp=</b> suivi de l'une des méthodes de la liste <b>no</b>[ne], "
-"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</"
-"b>[ea] }. Si <b>aucun</b> est passé, la transformation est forcée en "
+"<b>-interp=</b> suivi d'une des méthodes de la liste <b>no</b>[ne], "
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], "
+"<b>ar</b>[ea]. Si <b>none</b> est passé, la transformation est forcée en "
 "translation et un décalage pixel par pixel est appliqué à chaque image sans "
 "aucune interpolation.\n"
-"Les méthodes d'interpolation bicubique et lanczos4 utilise un clamping par "
-"défaut, pour éviter les artefacts, mais il peut être désactivé avec "
+"Le clamping des méthodes d'interpolation bicubique et lanczos4 est activé "
+"par défaut pour éviter les artefacts, mais peut être désactivé avec "
 "l'argument <b>-noclamp</b>.\n"
 "\n"
-"Toutes les images de la séquence seront alignées sauf si l'option <b>-"
-"selected</b> est passée, dans ce cas les images exclues ne seront pas "
-"traitées\n"
+"<b>Options de drizzle d'image :</b>\n"
 "\n"
-"S'il est créé, le nom de la séquence de sortie commence par le préfixe "
-"\"r_\" sauf indication contraire avec l'option <b>-prefix=</b>"
+"Sinon, les images peuvent être exportées en utilisant l'algorithme drizzle "
+"du télescope Hubble (HST) en passant l'argument <b>-drizzle</b>, qui peut "
+"prendre des options supplémentaires :\n"
+"L'option <b>-pixfrac=</b> définit la fraction de pixel (valeur par défaut = 1"
+".0).\n"
+"L'argument <b>-kernel=</b> définit le noyau drizzle et doit être suivi de "
+"l'un des choix <b>point</b>, <b>turbo</b>, <b>square</b>, <b>gaussian</b>, "
+"<b>lanczos2</b> ou <b>lanczos3</b>. Le noyau par défaut est <b>square</b>.\n"
+"L'argument <b>-flat=</b> spécifie un flat master pour pondérer les pixels "
+"d'entrée lors du drizzle (par défaut, pas de flat).\n"
+"\n"
+"Note : lors de l'utilisation de l'option <b>-drizzle</b> sur des images "
+"prises avec une caméra couleur, les images d'entrée ne doivent pas être "
+"débayerisées. Dans ce cas, la détection des étoiles se fera toujours sur les "
+"pixels verts"
 
 #: src/core/command_def.h:124
 msgid "Rescans the scripts folders and updates the Scripts menu"
@@ -19827,7 +19859,6 @@ msgstr ""
 "antérieures à 1.2.0 ou pour la version 1.4.0 ou toute version ultérieure"
 
 #: src/core/command_def.h:126
-#, fuzzy
 msgid ""
 "Resamples the loaded image, either with a factor <b>factor</b> or for the "
 "target width or height provided by either of <b>-width=</b>, <b>-height=</b> "
@@ -19846,16 +19877,19 @@ msgid ""
 "to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
 msgstr ""
 "Rééchantillonne l'image chargée, soit avec un facteur <b>factor</b>, soit "
-"pour la largeur ou la hauteur cible fournie par <b>-width=</b> ou <b>-"
-"height=</b>. Ceci est généralement utilisé pour redimensionner les images, "
-"un facteur de 0,5 divise la taille par 2.\n"
+"pour la largeur ou la hauteur cible fournie par <b>-width=</b> ou "
+"<b>-height=</b>. Ceci est généralement utilisé pour redimensionner les "
+"images, un facteur de 0.5 divise la taille par 2. L'argument <b>-maxdim</b> "
+"peut être utilisé pour redimensionner la dimension la plus longue de l'image "
+"à une taille définie, ce qui peut être utile pour optimiser les images pour "
+"certains sites web, par exemple les sites de médias sociaux.\n"
 "Dans l'interface utilisateur graphique, on peut voir que plusieurs "
 "algorithmes d'interpolation sont proposés.\n"
 "\n"
 "La méthode d'interpolation des pixels peut être spécifiée avec l'argument "
 "<b>-interp=</b> suivi de l'une des méthodes de la liste <b>no</b>[ne], "
-"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</"
-"b>[ea] }. Si <b>aucun</b> est passé, la transformation est forcéeen "
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], "
+"<b>ar</b>[ea] }. Si <b>aucun</b> est passé, la transformation est forcéeen "
 "translation et un décalage pixel par pixel est appliqué à chaque image sans "
 "aucune interpolation.\n"
 "Les méthodes d'interpolation bicubique et lanczos4 utilise un clamping par "
@@ -20207,7 +20241,6 @@ msgstr ""
 "Voir aussi DÉSÉLECTIONNER"
 
 #: src/core/command_def.h:146
-#, fuzzy
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using registration "
@@ -20260,44 +20293,58 @@ msgid ""
 msgstr ""
 "Applique des transformations géométriques sur les images de la séquence "
 "donnée en argument afin qu'elles puissent être superposées à l'image de "
-"référence, en utilisant les données d'alignement précédemment calculées "
-"(voir REGISTER).\n"
-"\n"
+"référence, en utilisant les données d'alignement précédemment calculées ("
+"voir REGISTER).\n"
 "Le nom de la séquence de sortie commence par le préfixe <b>\"r_\"</b> sauf "
 "indication contraire avec l'option <b>-prefix=</b>.\n"
-"\n"
-"L'option <b>-drizzle</b> active la mise à l'échelle par 2 des images créées "
-"dans la séquence transformée.\n"
-"\n"
-"La méthode d'interpolation des pixels peut être spécifiée avec l'argument "
-"<b>-interp=</b> suivi de l'une des méthodes de la liste <b>no</b>[ne], "
-"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</"
-"b>[ea] }. Si <b>aucun</b> est passé, la transformation est forcée en "
-"translation et un décalage pixel par pixel est appliqué à chaque image sans "
-"aucune interpolation.\n"
-"Les méthodes d'interpolation bicubique et lanczos4 utilise un clamping par "
-"défaut, pour éviter les artefacts, mais il peut être désactivé avec "
-"l'argument <b>-noclamp</b>.\n"
-"\n"
-"L'enregistrement se fait sur le premier calque pour lequel des données "
-"existent pour les images RVB sauf si spécifié par l'option <b>-layer=</b> "
-"(0, 1 ou 2 pour R, G et B respectivement).\n"
+"L'alignement se fait sur le premier calque pour lequel des données existent "
+"pour les images RVB, à part si spécifié par l'option <b>-layer=</b> (0, 1 ou "
+"2 pour R, G et B respectivement).\n"
+"Les images de sortie peuvent être redimensionnées en passant un argument "
+"<b>-scale=</b> avec une valeur flottante comprise entre 0.1 et 3.\n"
 "\n"
 "Le cadrage automatique de la séquence de sortie peut être spécifié à l'aide "
-"du mot-clé <b>-framing=</b> suivi de l'une des méthodes de la liste "
-"{ current | min | max | cog } :\n"
-"<b>-framing=max</b> (zone de délimitation) ajoute une bordure noire autour "
-"de chaque image selon les besoins afin qu'aucune partie de l'image ne soit "
-"recadrée lors de l'alignement.\n"
-"<b>-framing=min</b> (zone commune) recadre chaque image sur la zone qu'elle "
+"du mot-clé <b>-framing=</b> suivi de l'une des méthodes de la liste { "
+"current | min | max | cog } :\n"
+"<b>-framing=max</b> (zone de délimitation) projette chaque image et calcule "
+"son décalage par rapport à l'image de référence. La séquence résultante peut "
+"ensuite être empilée en utilisant l'option <b>-maximize</b> de la commande "
+"STACK, qui créera une image complète englobant toutes les images de la "
+"séquence.\n"
+" <b>-framing=min</b> (zone commune) recadre chaque image sur la zone qu'elle "
 "a en commun avec toutes les images de la séquence.\n"
-"<b>-framing=cog</b> détermine la meilleure position de cadrage comme centre "
+" <b>-framing=cog</b> détermine la meilleure position de cadrage comme centre "
 "de gravité (cog) de toutes les images.\n"
 "\n"
-"Filtrer les images :\n"
+"<b>Options d'interpolation d'image :</b>\n"
+"Par défaut, les transformations sont appliquées pour aligner les images à "
+"l'aide d'une interpolation.\n"
+"La méthode d'interpolation des pixels peut être spécifiée avec l'argument "
+"<b>-interp=</b> suivi de l'une des méthodes de la liste <b>no</b>[ne], "
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], "
+"<b>ar</b>[ea]. Si <b>aucune</b> est passée, la transformation est forcée en "
+"translation et un décalage pixel par pixel est appliqué à chaque image sans "
+"aucune interpolation. \n"
+"Le clamping des méthodes d'interpolation bicubique et lanczos4 est activé "
+"par défaut pour éviter les artefacts, mais peut être désactivé avec "
+"l'argument <b>-noclamp</b>.\n"
+"\n"
+"<b>Options de drizzle d'image :\n"
+"</b> Sinon, les images peuvent être exportées en utilisant l'algorithme "
+"drizzle du télescope Hubble (HST) en passant l'argument <b>-drizzle</b>, qui "
+"peut prendre des options supplémentaires :\n"
+"L'option <b>-pixfrac=</b> définit la fraction de pixel (valeur par défaut = 1"
+".0).\n"
+"L'argument <b>-kernel=</b> définit le noyau drizzle et doit être suivi de "
+"l'un des choix <b>point</b>, <b>turbo</b>, <b>square</b>, <b>gaussian</b>, "
+"<b>lanczos2</b> ou <b>lanczos3</b>. Le noyau par défaut est <b>square</b>.\n"
+"L'argument <b>-flat=</b> spécifie un flat master pour pondérer les pixels "
+"d'entrée lors du drizzle (par défaut, pas de flat).\n"
+"\n"
+"<b>Filtrage des images :</b>\n"
 "Les images à aligner peuvent être sélectionnées en fonction de certains "
-"filtres, comme ceux sélectionnés ou avec le meilleur FWHM, avec certaines "
-"des options <b>-filter-*</b>.\n"
+"filtres, comme celles sélectionnées ou avec le meilleur FWHM, en utilisant "
+"certaines des options <b>-filter-*</b>.\n"
 "Voir la référence de commande pour la documentation complète sur cette "
 "commande"
 
@@ -20548,7 +20595,6 @@ msgstr ""
 "prefix=</b> peut être utilisé pour définir un préfixe personnalisé"
 
 #: src/core/command_def.h:167
-#, fuzzy
 msgid ""
 "Merges 4 sequences of images to recombine the Bayer pattern. The sequences "
 "are specified in the arguments <b>sequencename0</b>, <b>sequencename1</b>, "
@@ -20564,21 +20610,20 @@ msgid ""
 "The output sequence name starts with the prefix \"mCFA_\" and a number "
 "unless otherwise specified with <b>-prefixout=</b> option"
 msgstr ""
-"Même commande que MERGE_CFA mais pour la séquence <b>sequencename</b>.\n"
+"Fusionne 4 séquences d'images pour recombiner le motif de Bayer. Les "
+"séquences sont spécifiées dans les arguments <b>sequencename0</b>, "
+"<b>sequencename1</b>, <b>sequencename2</b> et <b>sequencename3</b>.\n"
 "\n"
 "Le motif de Bayer à reconstruire doit être fourni comme deuxième argument "
-"parmi RGGB, BGGR, GBRG ou GRBG.\n"
+"sous la forme RGGB, BGGR, GBRG ou GRBG (l'ordre des canaux Bayer doit "
+"correspondre à l'ordre des séquences spécifiées).\n"
 "\n"
-"Les noms de fichiers d'entrée contiennent le préfixe d'identification "
-"\"CFA_\" et un nombre sauf indication contraire avec l'option <b>-prefix=</"
-"b>.\n"
+"Remarque : les 4 séquences d'entrée <b>doivent</b> être présentes et avoir "
+"les mêmes dimensions, la même profondeur de bits et le même nombre d'images."
 "\n"
-"Remarque : les 4 ensembles de fichiers d'entrée <b>doivent</b> être présents "
-"et <b>doivent</b> être nommés de manière cohérente, la seule différence "
-"étant le numéro après le préfixe d'identification.\n"
 "\n"
-"Le nom de la séquence de sortie commence par le préfixe \"mCFA_\" et un "
-"nombre sauf indication contraire avec l'option <b>-prefix=</b>"
+"Le nom de la séquence de sortie commence par le préfixe « mCFA_ » et un "
+"numéro, sauf indication contraire avec l'option <b>-prefixout=</b>"
 
 #: src/core/command_def.h:168
 msgid ""
@@ -20603,7 +20648,6 @@ msgstr ""
 "indication contraire avec l'option <b>-prefix=</b>"
 
 #: src/core/command_def.h:170
-#, fuzzy
 msgid ""
 "Plate solve a sequence. A new sequence will be created with the prefix "
 "\"ps_\" if the input sequence is SER, otherwise, the images headers will be "
@@ -20667,74 +20711,76 @@ msgid ""
 "blindly for position and for resolution respectively. You can use these when "
 "solving an image with a completely unknown location and sampling"
 msgstr ""
-"Astrométrie d'une séquence. Une nouvelle séquence sera créée avec le préfixe "
-"\"ps_\" si la séquence d'entrée est un fichier SER, sinon, les en-têtes des "
-"images seront mis à jour. Dans le cas des fichier SER, la fourniture des "
-"métadonnées est obligatoire et la séquence de sortie sera au format cube "
-"FITS, car les fichiers SER ne peuvent pas stocker les données WCS.\n"
-"Si les données WCS ou d'autres métadonnées d'image sont erronées ou "
-"manquantes, des arguments doivent être transmis :\n"
-"  les coordonnées approximatives du centre de l'image peuvent être fournies "
-"en degrés décimaux ou en degrés/heures minutes secondes (J2000 avec "
-"séparateurs deux-points), avec des valeurs d'ascension droite et de "
-"déclinaison séparées par une virgule ou un espace (non obligatoire pour "
-"astrometry.net).\n"
-" la distance focale et la taille des pixels peuvent être transmises avec <b>-"
-"focal=</b> (en mm) et <b>-pixelsize=</b> (en microns), remplaçant les "
-"valeurs des images et des paramètres. Voir aussi les options pour résoudre à "
-"l'aveugle avec Astrometry.net local\n"
+"Résolution astrométrique d'une séquence. Une nouvelle séquence sera créée "
+"avec le préfixe \"ps_\" si la séquence d'entrée est au format SER, sinon, "
+"les en-têtes des images seront mis à jour. Dans le cas d'un format SER, "
+"fournir les métadonnées est obligatoire et la séquence de sortie sera au "
+"format cube FITS, car le format SER ne peut pas stocker de données WCS.\n"
+"Si les données WCS ou d'autres métadonnées de l'image sont erronées ou "
+"manquantes, des arguments doivent être fournis :\n"
+"  les coordonnées approximatives du centre de l'image peuvent être données "
+"en degrés décimaux ou en valeurs heures/minutes/secondes (J2000 avec des "
+"séparateurs de deux-points), avec l'ascension droite et la déclinaison "
+"séparées par une virgule ou un espace (non obligatoire pour astrometry.net)."
 "\n"
-"Les images peuvent être soit résolues par Siril à l'aide d'un catalogue "
-"d'étoiles et de l'algorithme d'alignement global, soit par la commande de "
-"résolution de champ d'astrometry.net local (activée avec <b>-localasnet</"
-"b>).\n"
+" La longueur focale et la taille des pixels peuvent être fournies avec "
+"<b>-focal=</b> (en mm) et <b>-pixelsize=</b> (en microns), remplaçant les "
+"valeurs issues des images et des paramètres. Voir aussi les options pour "
+"résoudre à l'aveugle avec Astrometry.net local.\n"
 "\n"
-"Les options suivantes sont communes aux deux solveurs :\n"
-"Pour une détection plus rapide des étoiles dans les grandes images, le sous-"
-"échantillonnage de l'image est possible avec <b>-downscale</b>.\n"
+"Pour une détection des étoiles plus rapide dans les grandes images, il est "
+"possible de réduire l'échelle de l'image avec <b>-downscale</b>.\n"
 "La résolution peut prendre en compte les distorsions en utilisant la "
 "convention SIP avec des polynômes jusqu'à l'ordre 5. La valeur par défaut "
-"est issue des préférences d'astrométrie. Ceci peut être modifié avec "
-"l'option <b>-order=</b> donnant une valeur comprise entre 1 et 5.\n"
-"Lors de l'utilisation des catalogues locaux du solveur Siril ou avec "
-"Astrometry.net local, si la résolution initiale échoue, le solveur "
-"recherchera une solution dans un cône de rayon spécifié avec l'option <b>-"
-"radius=</b>. Si aucune valeur n'est passée, le rayon de recherche est issu "
-"des préférences d'astrométrie. La recherche par proximité de Siril peut être "
-"désactivée en passant une valeur de 0. (ne peut pas être désactivée pour "
-"Astrometry.net).\n"
-"Les images déjà résolues seront ignorées par défaut. Ceci peut être "
+"est prise dans les préférences d'astrométrie. Cela peut être modifié avec "
+"l'option <b>-order=</b> en donnant une valeur entre 1 et 5.\n"
+"Lors de l'utilisation des catalogues locaux du solveur de Siril ou avec "
+"Astrometry.net local, si la première résolution échoue, le solveur "
+"recherchera une solution dans un cône de rayon spécifié avec l'option "
+"<b>-radius=</b>. Si aucune valeur n'est fournie, le rayon de recherche est "
+"pris dans les préférences d'astrométrie. La recherche proche de Siril peut "
+"être désactivée en passant une valeur de 0 (elle ne peut pas être désactivée "
+"pour Astrometry.net).\n"
+"Les images déjà résolues seront ignorées par défaut. Cela peut être "
 "désactivé en passant l'option <b>-force</b>.\n"
+"Utiliser cette commande mettra à jour les données d'alignement, sauf si "
+"l'option <b>-noreg</b> est spécifiée.\n"
+"Vous pouvez sauvegarder la solution actuelle en tant que fichier de "
+"distorsion avec l'option <b>-disto=</b>.\n"
 "\n"
-"Les options suivantes s'appliquent uniquement à la résolution astrométrique "
-"de Siril :\n"
-"La magnitude limite des étoiles utilisée pour la résolution astrométrique "
+"Les images peuvent être résolues astrométriquement soit par Siril en "
+"utilisant un catalogue d'étoiles et l'algorithme global d'alignement, soit "
+"par la commande solve-field d'Astrometry.net local (activée avec "
+"<b>-localasnet</b>).\n"
+"\n"
+"<b>Options du solveur Siril :</b>\n"
+"La magnitude limite des étoiles utilisées pour la résolution astrométrique "
 "est automatiquement calculée à partir de la taille du champ de vision, mais "
-"peut être modifiée en passant une valeur +offset ou -offset à <b>-limitmag=</"
-"b>, ou simplement une valeur absolue. Valeur positive pour la grandeur "
-"limite.\n"
-"Le choix du catalogue d'étoiles est automatique sauf si l'option <b>-"
-"catalog=</b> est passée : si des catalogues locaux sont installés, ils sont "
-"utilisés, sinon le choix se fait en fonction du champ de vision et de la "
-"magnitude limite. Si l'option est passée, elle force l'utilisation du "
-"catalogue distant donné en argument, avec les valeurs possibles : tycho2, "
+"peut être modifiée en passant une valeur d'offset positive ou négative à "
+"<b>-limitmag=</b>, ou simplement une valeur positive absolue pour la "
+"magnitude limite.\n"
+"Le choix du catalogue d'étoiles est automatique, sauf si l'option "
+"<b>-catalog=</b> est passée : si des catalogues locaux sont installés, ils "
+"sont utilisés, sinon le choix est basé sur le champ de vision et la "
+"magnitude limite. Si l'option est passée, cela force l'utilisation du "
+"catalogue distant donné en argument, avec des valeurs possibles : tycho2, "
 "nomad, gaia, ppmxl, brightstars, apass.\n"
-"Si le champ de vision calculé est supérieur à 5 degrés, la détection des "
-"étoiles sera limitée à une zone recadrée autour du centre de l'image, à "
-"moins que l'option <b>-nocrop</b> ne soit passée.\n"
+"Si le champ de vision calculé est supérieur à 5 degrés, la détection des "
+"étoiles sera limitée à une zone recadrée autour du centre de l'image, sauf "
+"si l'option <b>-nocrop</b> est passée.\n"
 "Lors de l'utilisation de catalogues en ligne, une seule extraction de "
-"catalogue sera effectuée pour l'ensemble de la séquence. S'il y a beaucoup "
-"de dérive ou un échantillonnage différent, cela risque de ne pas réussir "
-"pour toutes les images. Ceci peut être désactivé en passant l'argument <b>-"
-"nocache</b>, auquel cas les métadonnées de chaque image seront utilisées "
-"(sauf pour les valeurs forcées comme les coordonnées centrales, la taille "
-"des pixels et/ou la distance focale).\n"
+"catalogue sera effectuée pour l'ensemble de la séquence. Si un important "
+"décalage ou un échantillonnage différent est présent, cela peut ne pas "
+"réussir pour toutes les images. Cela peut être désactivé en passant "
+"l'argument <b>-nocache</b>, auquel cas les métadonnées de chaque image "
+"seront utilisées (sauf pour les valeurs forcées comme les coordonnées du "
+"centre, la taille des pixels et/ou la longueur focale).\n"
 "\n"
-"Les options suivantes s'appliquent uniquement au solveur Astrometry.net :\n"
+"<b>Options du solveur Astrometry.net :</b>\n"
 "Passer les options <b>-blindpos</b> et/ou <b>-blindres</b> permet de "
 "résoudre à l'aveugle la position et la résolution respectivement. Vous "
-"pouvez les utiliser pour résoudre une image avec un emplacement et un "
-"échantillonnage complètement inconnus"
+"pouvez les utiliser lorsque vous résolvez une image avec une localisation et "
+"un échantillonnage totalement inconnus"
 
 #: src/core/command_def.h:171
 msgid ""
@@ -20819,7 +20865,6 @@ msgstr ""
 "permettant de fournir les coordonnées équatoriales J2000"
 
 #: src/core/command_def.h:173
-#, fuzzy
 msgid ""
 "Scales the sequence given in argument <b>sequencename</b>. Only selected "
 "images in the sequence are processed.\n"
@@ -20836,13 +20881,19 @@ msgid ""
 "The output sequence name starts with the prefix \"scaled_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
 msgstr ""
-"Coupe la séquence donnée dans l'argument <b>sequencename</b>. Seules les "
-"images sélectionnées dans la séquence sont traitées.\n"
+"Met à l'échelle la séquence donnée dans l'argument <b>sequencename</b>. "
+"Seules les images sélectionnées dans la séquence sont traitées.\n"
 "\n"
-"La sélection de recadrage est spécifiée par la position du coin supérieur "
-"gauche <b>x</b> et <b>y</b> et la sélection <b>largeur</b> et <b>hauteur</"
-"b>, comme pour CROP.\n"
-"Le nom de la séquence de sortie commence par le préfixe \"cropped_\" sauf "
+"Le facteur d'échelle est spécifié soit par l'argument <b>-scale=</b>, soit "
+"en définissant la largeur, la hauteur ou la dimension maximale de sortie à "
+"l'aide des options <b>-width=</b>, <b>-height=</b> ou <b>-maxdim=</b>.\n"
+"\n"
+"Une méthode d'interpolation peut être spécifiée à l'aide de l'argument "
+"<b>-interp=</b> suivi de l'une des méthodes de la liste <b>ne</b>[arest], "
+"<b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</b>[ea]}. Un "
+"facteur de contrainte est appliqué pour l'interpolation cubique et lanczos.\n"
+"\n"
+"Le nom de la séquence de sortie commence par le préfixe \"scaled_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
 #: src/core/command_def.h:174
@@ -21181,7 +21232,6 @@ msgstr ""
 "définie dans les paramètres génériques, avec SET, au lieu d'un ratio"
 
 #: src/core/command_def.h:194
-#, fuzzy
 msgid ""
 "Gets or sets photometry settings, mostly used by SEQPSF. If arguments are "
 "provided, they will update the settings. None are mandatory, any can be "
@@ -21199,13 +21249,20 @@ msgid ""
 msgstr ""
 "Obtient ou définit les paramètres de photométrie, principalement utilisés "
 "par SEQPSF. Si des arguments sont fournis, ils mettront à jour les "
-"paramètres. Aucune n'est obligatoire, n'importe laquelle peut être fournie, "
-"les valeurs par défaut sont affichées dans la syntaxe de la commande. A la "
-"fin de la commande, la configuration active sera affichées. L'ouverture est "
-"dynamique à moins qu'elle ne soit forcée, la valeur <b>aperture</b> des "
-"paramètres n'est pas utilisée si elle est dynamique, FWHM est utilisée à la "
-"place. Le gain est utilisé uniquement s'il n'est pas disponible dans l'en-"
-"tête FITS"
+"paramètres. Aucun n'est obligatoire, n'importe lequel peut être fourni, les "
+"valeurs par défaut sont affichées dans la syntaxe de la commande. À la fin "
+"de la commande, la configuration active sera imprimée.\n"
+"\n"
+"La taille de l'ouverture est dynamique, sauf si elle est forcée. Si c'est le "
+"cas, la valeur <b>aperture</b> des paramètres est utilisée. Si elle est "
+"dynamique, le rayon de l'ouverture est défini par le rapport dynamique "
+"fourni (\"radius/half-FWHM\").\n"
+"Les valeurs autorisées pour l'argument <b>-dyn_ratio</b> sont dans la plage ["
+"1.0, 5.0]. Une valeur en dehors de cette plage définira automatiquement "
+"l'ouverture sur la valeur fixe <b>-aperture</b>.\n"
+"\n"
+"Le gain n'est utilisé que s'il n'est pas disponible à partir de l'en-tête "
+"FITS"
 
 #: src/core/command_def.h:195
 msgid ""
@@ -21243,7 +21300,6 @@ msgstr ""
 "Ceci n'est disponible qu'à partir de l'interface graphique de Siril"
 
 #: src/core/command_def.h:197
-#, fuzzy
 msgid ""
 "Run the Spectrophotometric Color Correction on the loaded platesolved "
 "image.\n"
@@ -21282,38 +21338,46 @@ msgid ""
 "slp=</b> specifies sea-level atmospheric pressure in hPa (default pressure "
 "is 1013.25 hPa at sea level)"
 msgstr ""
-"Exécutez la correction des couleurs par spectrophotométrie sur l’image "
-"résolue par astrométrie et chargée.\n"
+"Exécutez la Correction Colorimétrique Spectrophotométrique sur l'image "
+"alignée chargée.\n"
 "\n"
 "La magnitude limite des étoiles est automatiquement calculée à partir de la "
-"taille du champ de vision, mais peut être modifiée en passant une valeur "
-"+offset ou -offset à <b>-limitmag=</b>, ou simplement une valeur positive "
-"absolue pour la magnitude limite.\n"
+"taille du champ de vision, mais elle peut être modifiée en passant une "
+"valeur d'offset positive ou négative à <b>-limitmag=</b>, ou simplement une "
+"valeur positive absolue pour la magnitude limite.\n"
 "Le catalogue d'étoiles utilisé pour SPCC est toujours Gaia DR3.\n"
 "\n"
-"Les noms des capteurs et des filtres peuvent être spécifiés à l'aide des "
+"Les noms des capteurs et des filtres peuvent être spécifiés en utilisant les "
 "options suivantes : <b>-monosensor=</b>, <b>-rfilter=</b>, <b>-gfilter=</b>, "
-"<b> -bfilter=</b> ou <b>-oscsensor=</b>, <b>-oscfilter=</b>, <b>-osclpf=</"
-"b> ; le nom de la référence des blancs peut être spécifié à l'aide de "
-"l'option <b>-whiteref=</b>. Dans tous les cas, le nom doit être fourni "
-"exactement tel qu'il est dans les listes déroulantes de l'outil SPCC. Notez "
-"que les noms de capteurs, de filtres et de références des blancs peuvent "
-"contenir des espaces : dans ce cas, lorsque vous les utilisez comme "
-"arguments de la commande <b>spcc</b>, l'argument entier doit être placé "
-"entre guillemets, par exemple \"-whiteref=Average Spiral Galaxy\".\n"
+"<b>-bfilter=</b> ou <b>-oscsensor=</b>, <b>-oscfilter=</b>, <b>-osclpf=</b> ;"
+" le nom de la référence de blanc peut être spécifié avec l'option "
+"<b>-whiteref=</b>. Dans tous les cas, le nom doit être fourni exactement tel "
+"qu'il apparaît dans les boîtes de sélection de l'outil SPCC. Notez que les "
+"noms de capteurs, filtres et références de blanc peuvent contenir des "
+"espaces : dans ce cas, lorsqu'ils sont utilisés comme arguments de la "
+"commande <b>spcc</b>, l'argument entier doit être placé entre guillemets, "
+"par exemple \"-whiteref=Average Spiral Galaxy\".\n"
 "\n"
-"Le mode bande étroite peut être sélectionné à l'aide de l'argument <b>-"
-"narrowband</b>, auquel cas les arguments de filtre précédents sont ignorés "
-"et les longueurs d'onde et bandes passantes du filtre NB peuvent être "
-"fournies en utilisant <b>-rwl=</b>, <b >-rbw=</b>, <b>-gwl=</b>, <b>-gbw=</"
-"b>, <b>-bwl=</b> et <b>-bbw=</b>.\n"
+"Le mode étroit (Narrowband) peut être sélectionné en utilisant l'argument "
+"<b>-narrowband</b>, auquel cas les arguments de filtres précédents sont "
+"ignorés et les longueurs d'onde et largeurs de bande des filtres NB peuvent "
+"être fournies avec <b>-rwl=</b>, <b>-rbw=</b>, <b>-gwl=</b>, <b>-gbw=</b>, "
+"<b>-bwl=</b> et <b>-bbw=</b>.\n"
 "\n"
 "Si l'un des arguments de données spectrales est omis, la valeur précédemment "
 "utilisée sera utilisée.\n"
 "\n"
-"La tolérance aux valeurs aberrantes de référence d'arrière-plan peut être "
-"spécifiée en unités sigma en utilisant <b>-bgtol=lower,upper</b> : celles-ci "
-"sont par défaut de -2,8 et +2,0"
+"La tolérance des valeurs aberrantes de la référence de fond peut être "
+"spécifiée en unités de sigma en utilisant <b>-bgtol=lower,upper</b> : par "
+"défaut, ces valeurs sont -2.8 et +2.0.\n"
+"\n"
+"La correction atmosphérique peut être appliquée en passant <b>-atmos</b>. "
+"Dans ce cas, les arguments optionnels suivants s'appliquent : "
+"<b>-obsheight=</b> spécifie la hauteur de l'observateur au-dessus du niveau "
+"de la mer en mètres (par défaut 10), <b>-pressure=</b> spécifie la pression "
+"atmosphérique locale au site d'observation en hPa, ou <b>-slp=</b> spécifie "
+"la pression atmosphérique au niveau de la mer en hPa (par défaut, la "
+"pression est de 1013,25 hPa au niveau de la mer)"
 
 #: src/core/command_def.h:198
 msgid ""
@@ -21373,7 +21437,6 @@ msgstr ""
 "modifier la magnitude limite, par défaut à 20"
 
 #: src/core/command_def.h:202
-#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -21435,58 +21498,67 @@ msgid ""
 msgstr ""
 "Empile la séquence <b>sequencename</b>, en utilisant les options.\n"
 "\n"
-"Type de rejet :\n"
-"Les types autorisés sont : <b>sum</b>, <b>max</b>, <b>min</b>, <b>med</b> "
-"(ou <b>median</b> ) et <b>rej</b> (ou <b>mean</b>). Si aucun argument autre "
+"Type de rejet :\n"
+"Les types autorisés sont : <b>sum</b>, <b>max</b>, <b>min</b>, <b>med</b> ("
+"ou <b>median</b>) et <b>rej</b> (ou <b>mean</b>). Si aucun argument autre "
 "que le nom de la séquence n'est fourni, l'empilement par somme est supposé.\n"
 "\n"
-"Empilement avec rejet :\n"
+"Empilement avec rejet :\n"
 "Les types <b>rej</b> ou <b>mean</b> nécessitent l'utilisation d'arguments "
-"supplémentaires pour le type et les valeurs de rejet. Le type de rejet est "
-"l'un des <b>n[one], p[ercentile], s[igma], m[edian], w[insorized], l[inear], "
-"g[eneralized], [m]a[d ]</b> pour percentile, sigma, la médian, Winsorized, "
-"linéaire, le test de déviation de Student extrême généralisé ou k-MAD "
-"clipping. S'il est omis, le Winsorized est utilisé par défaut.\n"
-"Les paramètres de rejet <b>sigma low</b> et <b>sigma high</b> sont "
+"supplémentaires pour le type de rejet et les valeurs. Le type de rejet peut "
+"être l'un des suivants : <b>n[one], p[ercentile], s[igma], m[edian], "
+"w[insorized], l[inear], g[eneralized], [m]a[d]</b> pour Percentile, Sigma, "
+"Médiane, Winsorized, Ajustement Linéaire, Test d'Ecart Extrême Général ou k-"
+"MAD. Si omis, le rejet Winsorized est utilisé par défaut.\n"
+"Les paramètres <b>sigma low</b> et <b>sigma high</b> du rejet sont "
 "obligatoires sauf si <b>none</b> est sélectionné.\n"
-"En option, des cartes de rejet peuvent être créées, indiquant où les pixels "
-"ont été rejetés dans une (<b>-rejmap</b>) ou deux (<b>-rejmaps</b>, pour les "
-"rejets bas et hauts) images nouvellement créées.\n"
+"Optionnellement, des cartes de rejet peuvent être créées, montrant où les "
+"pixels ont été rejetés dans une (<b>-rejmap</b>) ou deux (<b>-rejmaps</b>, "
+"pour les rejets bas et haut) nouvelles images.\n"
 "\n"
-"Normalisation des images d'entrée :\n"
+"Normalisation des images d'entrée :\n"
 "Pour les types d'empilement <b>med</b> (ou <b>median</b>) et <b>rej</b> (ou "
-"<b>mean</b>), différents types de normalisation sont autorisés : <b>-"
-"norm=add</b> pour additif, <b>-norm=mul</b> pour multiplicatif. Les options "
-"<b>-norm=addscale</b> et <b>-norm=mulscale</b> appliquent la même "
+"<b>mean</b>), différents types de normalisation sont autorisés : "
+"<b>-norm=add</b> pour additif, <b>-norm=mul</b> pour multiplicatif. Les "
+"options <b>-norm=addscale</b> et <b>-norm=mulscale</b> appliquent la même "
 "normalisation mais avec des opérations d'échelle. <b>-nonorm</b> est "
-"l'option pour désactiver la normalisation. Sinon, l'additif avec mise à "
-"l'd'échelle est appliqué par défaut.\n"
-"L'option <b>-fastnorm</b> spécifie d'utiliser d'autres estimateurs plus "
-"rapides pour la position et l'échelle que l'IKSS par défaut.\n"
-"<b>-rgb_equal</b> utilisera la normalisation pour égaliser le fond de ciel "
-"des images en couleur, utile si PCC et AUTOSTRETCH non lié ne seront pas "
-"utilisés.\n"
+"l'option pour désactiver la normalisation. Sinon, la méthode additive avec "
+"échelle est appliquée par défaut.\n"
+"L'option <b>-fastnorm</b> spécifie d'utiliser des estimateurs plus rapides "
+"pour la localisation et l'échelle que l'IKSS par défaut.\n"
+"L'option <b>-rgb_equal</b> utilisera la normalisation pour égaliser les "
+"arrière-plans des images couleur, utile si PCC et AUTOSTRETCH non lié ne "
+"seront pas utilisés.\n"
 "\n"
-"Autres options pour l'empilement des rejets :\n"
-"<b>-weight_from_noise</b> est une option pour ajouter des poids plus "
-"importants aux images avec un bruit de fond plus faible.\n"
-"<b>-weight_from_nbstack</b> pondère les images d'entrée en fonction du "
-"nombre d'images utilisées pour les créer, utile pour le live stacking.\n"
-"<b>-weight_from_nbstars</b> ou <b>-weight_from_wfwhm</b> pondère les images "
-"d'entrée en fonction du nombre d'étoiles ou de wFWHM calculé lors de l'étape "
-"d'alignement.\n"
+"Autres options pour l'empilement avec rejet :\n"
+"L'option <b>-weight_from_noise</b> permet d'ajouter des poids plus "
+"importants aux images avec moins de bruit de fond.\n"
+"L'option <b>-weight_from_nbstack</b> pèse les images d'entrée en fonction du "
+"nombre d'images utilisées pour les créer, utile pour l'empilement en direct."
 "\n"
-"Les sorties :\n"
-"Le nom de l'image de résultat peut être défini avec l'option <b>-out=</b>. "
-"Sinon, il sera nommé <b>sequencename</b>_stacked.fit.\n"
-"<b>-output_norm</b> applique une normalisation pour redimensionner le "
-"résultat dans la plage [0, 1] (empilement médian et moyen uniquement).\n"
+"Les options <b>-weight_from_nbstars</b> ou <b>-weight_from_wfwhm</b> pèsent "
+"les images d'entrée en fonction du nombre d'étoiles ou du wFWHM calculé lors "
+"de l'étape d'alignement.\n"
 "\n"
-"Filtrer les images :\n"
+"Sorties :\n"
+"Le nom de l'image résultante peut être défini avec l'option <b>-out=</b>. "
+"Sinon, elle sera nommée <b>sequencename</b>_stacked.fit.\n"
+"L'option <b>-output_norm</b> applique une normalisation pour redimensionner "
+"le résultat dans la plage [0, 1] (uniquement pour les empilements médian et "
+"moyen).\n"
+"L'option <b>-maximize</b> utilisera les données d'alignement de la séquence "
+"pour créer une image empilée qui englobe toutes les images de la séquence ("
+"applicable à toutes les méthodes sauf l'empilement médian).\n"
+"L'option <b>-upscale</b> agrandira la séquence par un facteur 2 avant "
+"l'empilement en utilisant les données d'alignement (applicable à toutes les "
+"méthodes sauf l'empilement médian).\n"
+"\n"
+"\n"
+"Filtrage des images :\n"
 "Les images à empiler peuvent être sélectionnées en fonction de certains "
-"filtres, comme la sélection manuelle ou le meilleur FWHM, avec certaines des "
+"filtres, comme la sélection manuelle ou la meilleure FWHM, avec certaines "
 "options <b>-filter-*</b>.\n"
-"Voir la référence de commande pour la documentation complète sur cette "
+"Consultez la référence de commande pour la documentation complète sur cette "
 "commande"
 
 #: src/core/command_def.h:203
@@ -21808,7 +21880,6 @@ msgstr ""
 "haut, GUI uniquement"
 
 #: src/core/command_def.h:226
-#, fuzzy
 msgid ""
 "Computes the wavelet transform of the loaded image on (<b>nbr_layers</b>=1..."
 "n) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version "
@@ -21817,11 +21888,11 @@ msgid ""
 "\n"
 "See also EXTRACT"
 msgstr ""
-"Calcule la transformée en ondelettes de l'image chargée sur (<b>nbr_layers</"
-"b>=1...n) calque(s) en utilisant linear (<b>type</b>=1) ou bspline (<b>type "
-"</b>=2) comme version de l'algorithme 'à trous'. Le résultat est stocké dans "
-"un fichier sous forme de structure contenant les calques, prêt pour la "
-"reconstruction pondérée avec WRECONS.\n"
+"Calcule la transformée en ondelettes de l'image chargée sur "
+"(<b>nbr_layers</b>=1...n) calque(s) en utilisant linear (<b>type</b>=1) ou "
+"bspline (<b>type </b>=2) comme version de l'algorithme 'à trous'. Le "
+"résultat est stocké dans un fichier sous forme de structure contenant les "
+"calques, prêt pour la reconstruction pondérée avec WRECONS.\n"
 "\n"
 "Voir aussi EXTRACT"
 
@@ -24086,12 +24157,12 @@ msgstr "fraction du pixel : %f\n"
 #: src/drizzle/cdrizzleutil.c:126
 #, c-format
 msgid "weight_scale:   %f\n"
-msgstr ""
+msgstr "pondération :   %f\n"
 
 #: src/drizzle/cdrizzleutil.c:127
 #, c-format
 msgid "scale:          %f\n"
-msgstr ""
+msgstr "échelle :          %f\n"
 
 #: src/filters/asinh.c:79
 msgid "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"
@@ -25713,7 +25784,7 @@ msgstr ""
 "Réduit un spectre en supprimant l'arrière-plan. Cette méthode convient "
 "lorsque la suppression de l'arrière-plan est nécessaire : l'arrière-plan est "
 "calculé le long de lignes parallèles équidistantes de la ligne centrale du "
-"profil spectral."
+"profil spectral"
 
 #: src/gui/cut.c:1048
 msgid "Tri-profile (mono)"
@@ -25957,7 +26028,7 @@ msgstr "Le dépôt de la base de données SPCC est à jour."
 #: src/gui/graxpert.c:208
 #, c-format
 msgid "GraXpert available and supports %s."
-msgstr "GraXpert détecté et supporte %s"
+msgstr "GraXpert détecté et supporte %s."
 
 #: src/gui/graxpert.c:209
 msgid "background extraction"
@@ -26304,7 +26375,6 @@ msgid "Operation on the sequence"
 msgstr "Opération sur la séquence"
 
 #: src/gui/keywords_tree.c:195
-#, fuzzy
 msgid ""
 "These keywords will be deleted from each image of the entire sequence. Are "
 "you sure?"
@@ -26535,7 +26605,7 @@ msgstr ""
 msgid "Scroll wheel scrolls through the Siril GUI tabs"
 msgstr ""
 "La molette de défilement permet de faire défiler les onglets de l'interface "
-"graphique Siril."
+"graphique Siril"
 
 #. CHECKLIST FOR ADDING NEW MOUSE FUNCTIONS OR SCROLL FUNCTIONS
 #. *
@@ -26599,18 +26669,16 @@ msgid "Scroll to zoom"
 msgstr "Défilement pour zoomer"
 
 #: src/gui/mouse_action_functions.h:92
-#, fuzzy
 msgid "Scroll through sequence"
-msgstr "Résoudre la séquence entière"
+msgstr "Faire défiler la séquence"
 
 #: src/gui/mouse_action_functions.h:96
 msgid "Scroll through GUI tabs"
-msgstr ""
+msgstr "Faire défiler les onglets"
 
 #: src/gui/mouse_action_preferences.c:117
-#, fuzzy
 msgid "Mouse Configuration"
-msgstr "Configuration"
+msgstr "Configuration de la souris"
 
 #: src/gui/mouse_action_preferences.c:117
 msgid ""
@@ -26619,29 +26687,36 @@ msgid ""
 "changed, the dialog can also be used to view current mouse action "
 "assignments and also provides a button to reset them to default settings."
 msgstr ""
+"Avertissement : cette boîte de dialogue vous permet de reconfigurer le "
+"comportement de la souris de sorte qu'il ne corresponde plus à la "
+"documentation. Si vous oubliez les paramètres que vous avez modifiés, la "
+"boîte de dialogue peut également être utilisée pour afficher les "
+"affectations actuelles des actions de la souris et fournit également un "
+"bouton pour les réinitialiser aux paramètres par défaut."
 
 #. Make the spin button editable and set digits to 0
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:210
 msgid "Button"
-msgstr ""
+msgstr "Bouton"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:219
-#, fuzzy
 msgid "Action"
-msgstr "Fonction"
+msgstr "Action"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:231
 #: src/gui/mouse_action_preferences.c:499
 msgid "Modifier"
-msgstr ""
+msgstr "Modificateur"
 
 #: src/gui/mouse_action_preferences.c:272
 #, c-format
 msgid "Duplicate mouse_actions found with type: %d, state: %d, button: %d\n"
 msgstr ""
+"Doublon de mouse_actions trouvé avec le type : %d, l'état : %d, le bouton : %"
+"d\n"
 
 #: src/gui/mouse_action_preferences.c:278
 #, c-format
@@ -26649,16 +26724,21 @@ msgid ""
 "Double click action %s on button %u conflicts with single click action %s on "
 "the same button.\n"
 msgstr ""
+"L'action double-clic %s sur le bouton %u entre en conflit avec l'action "
+"simple-clic %s sur le même bouton.\n"
 
 #: src/gui/mouse_action_preferences.c:283
 msgid ""
 "Main mouse action is not configured. This is essential for using Siril and "
 "must be assigned to a mouse action.\n"
 msgstr ""
+"L'action principale de la souris n'est pas configurée. Cette action est "
+"essentielle pour l'utilisation de Siril et doit être affectée à une action "
+"de la souris.\n"
 
 #: src/gui/mouse_action_preferences.c:288
 msgid "Invalid mouse action configuration"
-msgstr ""
+msgstr "Configuration invalide de l'action de la souris"
 
 #: src/gui/mouse_action_preferences.c:288
 #: src/gui/mouse_action_preferences.c:541
@@ -26666,36 +26746,37 @@ msgid ""
 "There are conflicts between the actions you have configured. Please check "
 "the log for details and revise your action configuration."
 msgstr ""
+"Il y a des conflits entre les actions que vous avez configurées. Veuillez "
+"consulter la console pour plus de détails et réviser votre configuration "
+"d'action."
 
 #: src/gui/mouse_action_preferences.c:331
 #: src/gui/mouse_action_preferences.c:569
 msgid "Warning: ignoring unconfigured action (\""
-msgstr ""
+msgstr "Attention : ignorer une action non configurée (\""
 
 #: src/gui/mouse_action_preferences.c:357
-#, fuzzy
 msgid "Mouse configuration updated successfully.\n"
-msgstr "Système FFT mis à jour avec succès…\n"
+msgstr "La configuration de la souris a été mise à jour avec succès.\n"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:487
-#, fuzzy
 msgid "Direction"
-msgstr "Correction"
+msgstr "Direction"
 
 #: src/gui/mouse_action_preferences.c:535
 #, c-format
 msgid "Duplicate scroll_actions found with state: %d, direction: %d\n"
-msgstr ""
+msgstr "Doublon de scroll_actions trouvé avec l'état : %d, direction : %d\n"
 
 #: src/gui/mouse_action_preferences.c:541
 msgid "Invalid mouse scroll action configuration"
-msgstr ""
+msgstr "Configuration invalide de l'action de défilement de la souris"
 
 #: src/gui/mouse_action_preferences.c:608
-#, fuzzy
 msgid "Mouse scroll configuration updated successfully.\n"
-msgstr "Système FFT mis à jour avec succès…\n"
+msgstr ""
+"La configuration du défilement de la souris a été mise à jour avec succès.\n"
 
 #: src/gui/mouse_action_preferences.c:647
 msgid "Reset Mouse Actions"
@@ -26707,31 +26788,35 @@ msgid ""
 "It is not possible to undo this and you will need to reconfigure any "
 "changes. Are you sure?"
 msgstr ""
+"Cette opération rétablit les paramètres par défaut de tous les boutons de la "
+"souris et de toutes les actions de défilement. Il n'est pas possible "
+"d'annuler cette opération et vous devrez reconfigurer tous les changements. "
+"Êtes-vous sûr ?"
 
 #: src/gui/mouse_action_preferences.c:739
 #, c-format
 msgid "Scroll (vertical)"
-msgstr ""
+msgstr "Défilement (vertical)"
 
 #: src/gui/mouse_action_preferences.c:743
 #, c-format
 msgid "Scroll (horizontal)"
-msgstr ""
+msgstr "Défilement (horizontal)"
 
 #: src/gui/mouse_action_preferences.c:749
 #, c-format
 msgid "Smooth scroll (vertical)"
-msgstr ""
+msgstr "Défilement doux (vertical)"
 
 #: src/gui/mouse_action_preferences.c:751
 #, c-format
 msgid "Smooth scroll (horizontal)"
-msgstr ""
+msgstr "Défilement doux (horizontal)"
 
 #: src/gui/mouse_action_preferences.c:756
 #, c-format
 msgid "Button %u"
-msgstr ""
+msgstr "Bouton %u"
 
 #: src/gui/mouse_action_preferences.c:811
 #: src/gui/mouse_action_preferences.c:819
@@ -26741,6 +26826,9 @@ msgid ""
 "Warning: when parsing mouse action config, config string parsed to an "
 "unknown function: \"%s\". Skipping..."
 msgstr ""
+"Attention : lors de l'analyse de la configuration de l'action de la souris, "
+"la chaîne de configuration a été analysée par une fonction inconnue : \"%s\""
+". Sauter..."
 
 #. Handle error: input format is incorrect
 #: src/gui/mouse_action_preferences.c:827
@@ -26749,6 +26837,8 @@ msgid ""
 "Warning: when parsing mouse action config, config string has incorrect "
 "format: \"%s\". Skipping..."
 msgstr ""
+"Attention : lors de l'analyse de la configuration de l'action de la souris, "
+"la chaîne de configuration a un format incorrect : \"%s\". Sauter..."
 
 #: src/gui/mouse_action_preferences.c:890
 #, c-format
@@ -26756,6 +26846,8 @@ msgid ""
 "Warning: when parsing scroll action config, string parsed to an unknown "
 "function: \"%s\". Skipping...\n"
 msgstr ""
+"Attention : lors de l'analyse de la configuration de l'action de défilement, "
+"la chaîne a été analysée par une fonction inconnue : \"%s\". Sauter...\n"
 
 #. Handle error: input format is incorrect
 #: src/gui/mouse_action_preferences.c:898
@@ -26764,6 +26856,8 @@ msgid ""
 "Warning: when parsing mouse action config, string has incorrect format: "
 "\"%s\". Skipping...\n"
 msgstr ""
+"Attention : lors de l'analyse de la configuration de l'action de la souris, "
+"la chaîne a un format incorrect : \"%s\". Passer...\n"
 
 #: src/gui/newdeconv.c:270
 #, c-format
@@ -26852,14 +26946,14 @@ msgstr "Fichiers CSV (*.csv)"
 #. Definition of all the graphical items
 #. Top label
 #: src/gui/nina_light_curve.c:76
-#, fuzzy
 msgid ""
 "Process a sequence to get a light curve on a star using the list\n"
 "of reference stars created by Siril or the NINA exoplanet plugin"
 msgstr ""
 "Traiter une séquence pour obtenir une courbe de lumière sur une étoile en "
-"utilisant la liste d'étoiles de référence créée par Siril ou par le plugin "
-"exoplanète de NINA"
+"utilisant \n"
+"la liste des étoiles de référence créée par Siril ou le plugin exoplanète de "
+"NINA"
 
 #. Comp1 radio
 #: src/gui/nina_light_curve.c:85
@@ -26900,6 +26994,8 @@ msgid ""
 "The current aperture parameters are as follow:\n"
 "(they can be managed in the Preferences/Photometry tab)"
 msgstr ""
+"Les paramètres d'ouverture actuels sont les suivants :\n"
+"(ils peuvent être gérés dans l'onglet Préférences/Photométrie)"
 
 #. Fill the 2nd box
 #. The label
@@ -26958,9 +27054,8 @@ msgid "All supported files"
 msgstr "Tous fichiers supportés"
 
 #: src/gui/open_dialog.c:252
-#, fuzzy
 msgid "Master-distortion: file (*.wcs)"
-msgstr "Ficher de correction cosmétique (*.lst)"
+msgstr "Distorsion maître : fichier (*.wcs)"
 
 #: src/gui/open_dialog.c:289
 msgid "Cosmetic correction file (*.lst)"
@@ -26986,37 +27081,41 @@ msgid ""
 "will be unavailable. Further information may be available at https://www."
 "cosmos.esa.int/web/gaia/"
 msgstr ""
+"L'indicateur d'état des archives Gaia ne répond pas. Cela ne signifie pas "
+"nécessairement que les archives Gaia sont hors ligne, mais si c'est le cas, "
+"le SPCC sera indisponible. De plus amples informations sont disponibles à "
+"l'adresse suivante : https://www.cosmos.esa.int/web/gaia/"
 
 #: src/gui/photometric_cc.c:108
-#, fuzzy
 msgid "Gaia archive available"
-msgstr "Ratio de disponible"
+msgstr "Les archives de Gaia sont disponibles"
 
 #: src/gui/photometric_cc.c:113
 msgid "Gaia archive running but performing slightly slower\n"
-msgstr ""
+msgstr "L'archive Gaia fonctionne, mais est légèrement plus lente\n"
 
 #: src/gui/photometric_cc.c:118
 msgid "Gaia archive running but performing very slowly"
-msgstr ""
+msgstr "L'archive Gaia fonctionne, mais très lentement"
 
 #: src/gui/photometric_cc.c:124
-#, fuzzy
 msgid "Gaia archive unavailable"
-msgstr "Gnuplot n'est pas installé"
+msgstr "Les archives de Gaia ne sont pas disponibles"
 
 #: src/gui/photometric_cc.c:129
 msgid "Gaia archive unreachable"
-msgstr ""
+msgstr "Les archives de Gaia sont inaccessibles"
 
 #: src/gui/photometric_cc.c:134
 msgid "Unknown Gaia archive status"
-msgstr ""
+msgstr "Statut inconnu de l'archive Gaia"
 
 #: src/gui/photometric_cc.c:152
 msgid ""
 "Siril is offline or built without networking. Gaia archive is unavailable.\n"
 msgstr ""
+"Siril est hors ligne ou construit sans accès réseau. L'archive Gaia n'est "
+"pas disponible.\n"
 
 #: src/gui/photometric_cc.c:167
 msgid ""
@@ -27044,21 +27143,24 @@ msgstr "Étalonnage des couleurs par spectrophotométrie"
 
 #: src/gui/photometric_cc.c:367
 msgid "Airmass read from FITS header AIRMASS card"
-msgstr ""
+msgstr "Airmass lu à partir du mot clé AIRMASS de l'en-tête FITS"
 
 #: src/gui/photometric_cc.c:370
 msgid "Airmass computed from FITS header CENTALT card"
-msgstr ""
+msgstr "Airmass calculée à partir du mot clé CENTALT de l'en-tête FITS"
 
 #: src/gui/photometric_cc.c:373
 msgid ""
 "No airmass data available or computable. Estimating airmass based on average "
 "observation height of 48.1°"
 msgstr ""
+"Aucune donnée sur la masse d'air n'est disponible ou calculable. Estimation "
+"de la masse d'air sur la base d'une hauteur d'observation moyenne de 48.1°"
 
 #: src/gui/photometric_cc.c:377
 msgid "Observer height read from FITS header SITEELEV card"
 msgstr ""
+"Hauteur de l'observateur lue sur dans le mot clé SITEELEV de l'en-tête FITS"
 
 #: src/gui/photometric_cc.c:547
 msgid ""
@@ -27093,7 +27195,7 @@ msgstr "Efficacité quantique / Transmittance / Nombre relatif de photons"
 
 #: src/gui/photometric_cc.c:919
 msgid "Atmosphere model"
-msgstr ""
+msgstr "Modèle atmosphérique"
 
 #: src/gui/photometric_cc.c:941 src/gui/photometric_cc.c:956
 #, c-format
@@ -27115,7 +27217,7 @@ msgstr "Transmittance"
 #: src/gui/photometric_cc.c:1107
 #, c-format
 msgid "SPCC Data: Atmospheric model"
-msgstr ""
+msgstr "Données SPCC : Modèle atmosphérique"
 
 #: src/gui/photometric_cc.c:1118
 #, c-format
@@ -27124,10 +27226,13 @@ msgid ""
 "Height: %d m\n"
 "Pressure: %.2f hPa (%s)"
 msgstr ""
+"Modèle atmosphérique\n"
+"Hauteur : %d m\n"
+"Pression : %.2f hPa (%s)"
 
 #: src/gui/photometric_cc.c:1118
 msgid "local"
-msgstr ""
+msgstr "local"
 
 #: src/gui/plot.c:122 src/gui/plot.c:1627 src/gui/sequence_list.c:540
 msgid "Amplitude"
@@ -27251,6 +27356,8 @@ msgid ""
 "Error: invalid IAU observatory code read from preferences file. Code must be "
 "a 3-character code.\n"
 msgstr ""
+"Erreur : code d'observatoire UAI non valide lu dans le fichier des "
+"préférences. Le code doit être un code à 3 caractères.\n"
 
 #: src/gui/preferences.c:541
 #, c-format
@@ -27450,23 +27557,31 @@ msgid ""
 "When choosing 2pass, you will then need to export the sequence using  the "
 "Apply Existing Registration method"
 msgstr ""
+"<b>Alignement global des étoiles</b> : C'est l'algorithme de référence pour "
+"les images du ciel profond. L'alignement global est basé sur la méthode de "
+"similarité triangulaire pour identifier automatiquement les étoiles communes "
+"entre les images. Une nouvelle séquence est créée avec le préfixe de votre "
+"choix (r_ par défaut), sauf si vous cochez la case 2pass. Dans ce cas, les "
+"données d'alignement seront sauvegardées dans la séquence et la référence "
+"sera choisie sur la base des informations de détection des étoiles. Si vous "
+"choisissez 2pass, vous devrez alors exporter la séquence en utilisant la "
+"méthode Appliquer l'alignement existant"
 
 #: src/gui/registration.c:55
-#, fuzzy
 msgid ""
 "<b>1-2-3 Stars Registration</b>: This is the simplest method to register "
 "deep-sky images. Images are aligned using shifting, if you pick one star, or "
 "shifting + rotation if 2 or 3 stars are selected.\n"
 "Transformations are saved to the input sequence file."
 msgstr ""
-"<b>Alignement sur une étoile</b> : la méthode la plus simple pour aligner "
-"des images du ciel profond. Parce que seule une image est considérée dans le "
-"processus, les images sont alignées en translation seulement. Aucune "
-"rotation ou changement d'échelle n'est opéré. Les décalages, à la précision "
-"du pixel, sont enregistrés dans le fichier seq."
+"<b>Alignement 1-2-3 étoiles</b> : Il s'agit de la méthode la plus simple "
+"pour aligner des images du ciel profond. Les images sont alignées en "
+"utilisant la translation, si vous choisissez une seule étoile, ou "
+"translation + la rotation si 2 ou 3 étoiles sont sélectionnées.\n"
+"Les transformations sont enregistrées dans le fichier de la séquence "
+"d'entrée."
 
 #: src/gui/registration.c:59
-#, fuzzy
 msgid ""
 "<b>Image Pattern Alignment</b>: This is a simple registration by translation "
 "method using cross correlation in the spatial domain. This method is fast "
@@ -27474,26 +27589,25 @@ msgid ""
 "sky images registration. Shifts at pixel precision are saved to the input "
 "sequence file."
 msgstr ""
-"<b>Alignement par motif de l'image</b> : c'est un alignement simple, par "
-"translation qui utilise la corrélation croisée dans le domaine spatiale. "
-"Cette méthode est rapide et généralement utilisée pour traiter les films "
-"planétaires. Elle peut également être utilisée pour des images de ciel "
-"profond. Les décalages enregistrés dans le fichier seq sont à la précision "
-"du pixel."
+"<b>Alignement par motif de l'image</b> : Il s'agit d'une méthode simple "
+"d'alignement par translation utilisant la corrélation croisée dans le "
+"domaine spatial. Cette méthode est rapide et est utilisée pour aligner des "
+"films planétaires. Elle peut également être utilisée pour l'alignement de "
+"certaines images du ciel profond. Les décalages à la précision du pixel sont "
+"enregistrés dans le fichier de la séquence d'entrée."
 
 #: src/gui/registration.c:63
-#, fuzzy
 msgid ""
 "<b>KOMBAT</b>: This simple algorithm tries to locate a single pattern on "
 "images and to align them accordingly. Only translation is taken into "
 "account. Shifts at pixel precision are saved to the input sequence file."
 msgstr ""
-"<b>KOMBAT</b> : cet algorithme simple essaie de localiser un seul motif sur "
-"les images et de les aligner en conséquence. Seule la translation est prise "
-"en compte."
+"<b>KOMBAT</b> : Cet algorithme simple tente de localiser un motif unique sur "
+"des images et de les aligner en conséquence. Seule la translation est prise "
+"en compte. Les décalages à la précision du pixel sont enregistrés dans le "
+"fichier de la séquence d'entrée."
 
 #: src/gui/registration.c:66
-#, fuzzy
 msgid ""
 "<b>Comet/Asteroid Registration</b>: This algorithm is dedicated to the comet "
 "and asteroid registration. It is necessary to have timestamps stored in FITS "
@@ -27505,16 +27619,18 @@ msgid ""
 "prefix of your choice (comet_ by default), but the images are not "
 "duplicated, they are symlinked to the input images."
 msgstr ""
-"<b>Alignement de comète/astéroïde</b> : Cet algorithme est dédié à "
-"l'alignement des images de comètes et d'astéroïdes. Il est nécessaire de "
-"stocker les horodatages dans l'en-tête FITS et de charger une séquence "
-"d'images préalablement alignée sur les étoiles. Cette méthode permet de "
-"faire une translation d'un certain nombre de pixels en fonction de "
-"l'horodatage de chaque image et du décalage global de l'objet entre la "
-"première et la dernière image."
+"<b>Alignement de comète/astéroïde</b> : Cet algorithme est dédié à "
+"l'alignement des comètes et des astéroïdes. Il est nécessaire d'avoir des "
+"horodatages stockés dans l'en-tête FITS et de charger une séquence d'images "
+"alignées sur les étoiles. Cette méthode effectue une translation d'un "
+"certain nombre de pixels en fonction de l'horodatage de chaque image et du "
+"décalage global de l'objet entre la première et la dernière image. Si des "
+"données d'alignement existent déjà, les décalages sont composés avec les "
+"transformations existantes. Une nouvelle séquence est créée, avec le préfixe "
+"de votre choix (comet_ par défaut), mais les images ne sont pas dupliquées, "
+"elles sont liées par un lien symbolique aux images d'entrée."
 
 #: src/gui/registration.c:74
-#, fuzzy
 msgid ""
 "<b>Apply existing registration</b>: This is not an algorithm but rather a "
 "commodity to apply previously computed registration data stored in the "
@@ -27522,12 +27638,12 @@ msgid ""
 "Output Registration section and it can be applied on selected/filtered "
 "images only, to avoid saving unnecessary images."
 msgstr ""
-"<b>Appliquer l'alignement existant</b> : Il ne s'agit pas d'un algorithme "
-"mais plutôt d'une commodité pour appliquer des données d'alignement "
-"précédemment calculées et stockées dans le fichier de séquence. La méthode "
-"d'interpolation et le drizzle simplifié peuvent être sélectionnées dans la "
-"section Sortie d'Alignement et il peut être appliqué sur les images "
-"sélectionnées seulement, pour éviter d'aligner inutilement des images."
+"<b>Appliquer l'alignement existant</b> : Il ne s'agit pas d'un algorithme, "
+"mais plutôt d'une commodité permettant d'appliquer des données d'alignement "
+"calculées précédemment et stockées dans le fichier de séquence. La méthode "
+"d'interpolation ou le drizzle peuvent être sélectionnés dans la section "
+"Sortie d'alignement et peuvent être appliqués sur des images sélectionnées/"
+"filtrées uniquement, afin d'éviter d'aligner des images inutiles."
 
 #: src/gui/registration.c:98 src/stacking/stacking.c:73
 msgid ""
@@ -27570,6 +27686,8 @@ msgstr "Fichiers WCS (*.wcs)"
 #: src/gui/registration.c:455
 msgid "Comet PSF center is out of the box, will use selection center instead\n"
 msgstr ""
+"Le centre de la PSF de la comète n'est pas dans la boîte, nous utiliserons "
+"le centre de sélection à la place.\n"
 
 #: src/gui/registration.c:479
 msgid "There is no timestamp stored in the file"
@@ -27602,11 +27720,12 @@ msgstr "Alignement de %d images sur %d de la séquence"
 #: src/gui/registration.c:733
 msgid "Max framing not allowed with fitseq, change to regular FITS images"
 msgstr ""
+"Le cadrage maximal n'est pas autorisé avec fitseq, passer à des images FITS "
+"normales"
 
 #: src/gui/registration.c:744
-#, fuzzy
 msgid "Pick object in two images"
-msgstr "Pointer objet dans #1"
+msgstr "Pointer l'objet dans les deux images"
 
 #: src/gui/registration.c:832
 msgid "Failed to determine registration method...\n"
@@ -27630,26 +27749,28 @@ msgid "Select a layer with existing registration"
 msgstr "Sélectionnez un canal avec un alignement existant"
 
 #: src/gui/registration.c:951
-#, fuzzy
 msgid "Unsupported CFA pattern detected"
-msgstr "Paramètres incorrects détectés"
+msgstr "Motif CFA détecté non supporté"
 
 #: src/gui/registration.c:952
 msgid ""
 "This sequence cannot be registered with the CFA pattern intact. You must "
 "debayer it prior to registration"
 msgstr ""
+"Cette séquence ne peut pas être alignée avec le motif CFA intact. Vous devez "
+"la dématricer avant l'alignement"
 
 #: src/gui/registration.c:954
-#, fuzzy
 msgid "CFA pattern detected"
-msgstr "Paramètres incorrects détectés"
+msgstr "Motif CFA détecté"
 
 #: src/gui/registration.c:955
 msgid ""
 "This sequence cannot be registered with the CFA pattern intact. Select "
 "drizzle or debayer it prior to registration"
 msgstr ""
+"Cette séquence ne peut pas être alignée avec le motif CFA intact. "
+"Sélectionner le drizzle ou dématricer la séquence avant l'alignement"
 
 #: src/gui/registration.c:1076
 msgid "Cannot use area selection on a sequence with variable image sizes\n"
@@ -27666,24 +27787,22 @@ msgstr ""
 "être définie que sur Translation. Abandon\n"
 
 #: src/gui/registration.c:1161
-#, fuzzy
 msgid ""
 "When interpolation is set to None, distortions must be set to None as well. "
 "Aborting\n"
 msgstr ""
-"Lorsque l'interpolation est définie sur Aucune, la transformation ne peut "
-"être définie que sur Translation. Abandon\n"
+"Lorsque l'interpolation est réglée sur Aucune, les distorsions doivent "
+"également être réglées sur Aucune. Abandon\n"
 
 #: src/gui/registration.c:1193
-#, fuzzy
 msgid "Error: unable to read reference frame metadata\n"
-msgstr "Erreur : impossible de lire l'image sans étoile à partir de TIFF...\n"
+msgstr "Erreur : impossible de lire les métadonnées de l'image de référence\n"
 
 #. Estimate was pressed, we need to update the label
 #: src/gui/registration.c:1249
 #, c-format
 msgid " (assuming a scaling factor of %.2f)"
-msgstr ""
+msgstr " (en supposant un facteur d'échelle de %.2f)"
 
 #: src/gui/registration.c:1250
 #, c-format
@@ -27900,9 +28019,8 @@ msgid "Save Anyway"
 msgstr "Enregistrer quand même"
 
 #: src/gui/save_dialog.c:483
-#, fuzzy
 msgid "preview"
-msgstr "Aperçu"
+msgstr "aperçu"
 
 #: src/gui/save_dialog.c:754
 #, c-format
@@ -27919,7 +28037,6 @@ msgid "Cannot take snapshot: %s\n"
 msgstr "Impossible de prendre un instantané : %s\n"
 
 #: src/gui/script_menu.c:46
-#, fuzzy
 msgid ""
 "You are about to use scripts. Running automatic scripts is something that is "
 "easy and generally it provides a nice image. However you have to keep in "
@@ -27928,12 +28045,12 @@ msgid ""
 "available on the interface with a better parameter control."
 msgstr ""
 "Vous êtes sur le point d'utiliser des scripts. L'exécution de scripts "
-"automatiques est quelque chose de facile et, généralement, cela fournit une "
-"belle image. Cependant, vous devez garder à l'esprit que les scripts ne sont "
-"pas magiques ; des choix automatiques sont faits là où une décision humaine "
-"serait probablement meilleure. De plus, toutes les commandes utilisées dans "
-"un script sont disponibles sur l'interface graphique avec un meilleur "
-"contrôle des paramètres."
+"automatiques est quelque chose de facile qui donne généralement une belle "
+"image. Cependant, vous devez garder à l'esprit que les scripts ne sont pas "
+"magiques ; des choix automatiques sont faits là où une décision humaine "
+"serait probablement préférable. De plus, chaque commande utilisée dans un "
+"script est disponible sur l'interface avec un meilleur contrôle des "
+"paramètres."
 
 #: src/gui/script_menu.c:167
 msgid "Please read me before using scripts"
@@ -28228,6 +28345,7 @@ msgstr "Fichiers SVG (*.svg)"
 #: src/gui/siril_preview.c:107
 msgid "Warning: insufficient memory available to create a preview.\n"
 msgstr ""
+"Attention : la mémoire disponible est insuffisante pour créer un aperçu.\n"
 
 #: src/gui/statistics_list.c:47
 msgid "mean"
@@ -28401,39 +28519,48 @@ msgstr ""
 
 #: src/gui/utils.c:383
 msgid "Error: unknown CFA pattern\n"
-msgstr ""
+msgstr "Erreur : modèle CFA inconnu\n"
 
 #: src/gui/utils.c:517
 msgid ""
 "Rescale\n"
 "(values > 0 only)"
 msgstr ""
+"Mise à l'échelle\n"
+"(valeurs > 0 uniquement)"
 
 #: src/gui/utils.c:517
 msgid ""
 "Rescale\n"
 "(all values)"
 msgstr ""
+"Mise à l'échelle\n"
+"(toutes les valeurs)"
 
 #: src/gui/utils.c:520
 msgid "Cancel without making any changes"
-msgstr ""
+msgstr "Annuler sans effectuer de modifications"
 
 #: src/gui/utils.c:521
 msgid "Clip pixel values to the range 0.0 - 1.0"
-msgstr ""
+msgstr "Réduire les valeurs des pixels à l'intervalle 0.0 - 1.0"
 
 #: src/gui/utils.c:522
 msgid ""
 "Rescale pixel values to fit the range 0.0 - 1.0, clipping negative pixel "
 "values"
 msgstr ""
+"Rééchelonner les valeurs des pixels pour les faire correspondre à la plage "
+"0.0 - 1.0, en écrêtant les valeurs négatives des pixels"
 
 #: src/gui/utils.c:523
 msgid ""
 "Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to "
 "bring negatve pixel values into range"
 msgstr ""
+"Rééchelonner les valeurs des pixels pour les faire correspondre à la plage "
+"de 0.0 à 1.0, en appliquant un décalage pour ramener les valeurs négatives "
+"des pixels dans la plage"
 
 #: src/gui/utils.c:594
 #, c-format
@@ -28441,14 +28568,17 @@ msgid ""
 "This image contains pixel values outside the range 0.0 - 1.0 (min = %.3f, "
 "max = %.3f). This can cause unwanted behaviour. Choose how to handle this.\n"
 msgstr ""
+"Cette image contient des valeurs de pixels en dehors de la plage 0.0 - 1.0 ("
+"min = %.3f, max = %.3f). Cela peut entraîner un comportement indésirable. "
+"Choisissez comment traiter ce problème.\n"
 
 #: src/io/aavso_extended.c:157
 msgid "Warning: at least one AAVSO header element was truncated.\n"
-msgstr ""
+msgstr "Attention : au moins un élément de l'en-tête AAVSO a été tronqué.\n"
 
 #: src/io/aavso_extended.c:171
 msgid "Warning: at least one AAVSO data element was truncated.\n"
-msgstr ""
+msgstr "Attention : au moins un élément de données de l'AAVSO a été tronqué.\n"
 
 #: src/io/aavso_extended.c:216
 msgid "Number of images is not enough\n"
@@ -28731,7 +28861,7 @@ msgstr "Le fichier FITS chargé a un BSCALE différent de 1 (%f)\n"
 #: src/io/fits_keywords.c:1219
 #, c-format
 msgid "FITS header of image %d updated\n"
-msgstr ""
+msgstr "Mise à jour de l'en-tête FITS de l'image %d\n"
 
 #: src/io/fits_keywords.c:1282
 msgid "This command won't work for SER sequence.\n"
@@ -29230,11 +29360,15 @@ msgstr "Le fichier %s n'est pas un fichier FITS valide.\n"
 #, c-format
 msgid "Error: HDU checksum mismatch. Expected %s, got %s.\n"
 msgstr ""
+"Erreur : Non-concordance de la somme de contrôle HDU. Attendu %s, obtenu %s."
+"\n"
 
 #: src/io/image_format_fits.c:1241
 #, c-format
 msgid "Error: Data checksum mismatch. Expected %lu, got %s.\n"
 msgstr ""
+"Erreur : Non-concordance de la somme de contrôle des données. Attendu %lu, "
+"obtenu %s.\n"
 
 #: src/io/image_format_fits.c:1251
 #, c-format
@@ -29319,9 +29453,9 @@ msgstr ""
 "Erreur d'empilement : les images d'entrée ont une précision différente\n"
 
 #: src/io/image_format_fits.c:3401
-#, fuzzy, c-format
+#, c-format
 msgid "Saving WCS file %s\n"
-msgstr "Enregistrement de l'image %s\n"
+msgstr "Enregistrement du fichier WCS %s\n"
 
 #: src/io/local_catalogues.c:157 src/io/local_catalogues.c:190
 msgid "Could not open local NOMAD catalogue\n"
@@ -29422,9 +29556,8 @@ msgid "Wrongly formatted string: "
 msgstr "Chaîne de caractères mal formatée : "
 
 #: src/io/path_parse.c:82
-#, fuzzy
 msgid "Wrong wildcard usage: "
-msgstr "Mauvaise date : "
+msgstr "Mauvaise utilisation des caractères génériques : "
 
 #: src/io/path_parse.c:85
 msgid "More than one match for: "
@@ -29457,9 +29590,9 @@ msgid "Using most recent matching file: %s\n"
 msgstr "Utilisation du fichier correspondant le plus récent : %s\n"
 
 #: src/io/path_parse.c:290
-#, fuzzy, c-format
+#, c-format
 msgid "Using the closest matching file: %s\n"
-msgstr "Utilisation du fichier correspondant le plus récent : %s\n"
+msgstr "Utilisation du fichier le plus proche : %s\n"
 
 #: src/io/remote_catalogues.c:356
 #, c-format
@@ -29481,9 +29614,8 @@ msgid "Using already downloaded catalogue %s\n"
 msgstr "Utilisation du catalogue déjà téléchargé %s\n"
 
 #: src/io/remote_catalogues.c:600
-#, fuzzy
 msgid "Offline: cannot download catalog\n"
-msgstr "Utilisation du catalogue déjà téléchargé %s\n"
+msgstr "Hors ligne : impossible de télécharger le catalogue\n"
 
 #: src/io/remote_catalogues.c:617
 msgid "Contacting server\n"
@@ -29496,11 +29628,11 @@ msgstr "Impossible de créer le fichier de catalogue %s (erreur générique)\n"
 
 #: src/io/remote_catalogues.c:706
 msgid "Offline, cannot retrieve URL.\n"
-msgstr ""
+msgstr "Hors ligne, impossible de récupérer l'URL.\n"
 
 #: src/io/remote_catalogues.c:736
 msgid "Offline: cannot fetch catalog\n"
-msgstr ""
+msgstr "Hors ligne : impossible de récupérer le catalogue\n"
 
 #: src/io/remote_catalogues.c:802
 msgid ""
@@ -29564,6 +29696,9 @@ msgid ""
 "Seq file had info to upscale at stacking. This must now be passed as a "
 "stacking option\n"
 msgstr ""
+"Le fichier Seq contenait des informations sur la mise à l'échelle lors de "
+"l'empilement. Cette information doit maintenant être transmise en tant "
+"qu'option d'empilement.\n"
 
 #: src/io/seqfile.c:582
 #, c-format
@@ -29747,9 +29882,8 @@ msgstr ""
 "pour ce canal ?"
 
 #: src/io/sequence.c:1969 src/registration/3stars.c:256
-#, fuzzy
 msgid "Could not load metadata"
-msgstr "Impossible de charger le fichier"
+msgstr "Impossible de charger les métadonnées"
 
 #: src/io/sequence.c:1983 src/registration/3stars.c:275
 msgid ""
@@ -30235,7 +30369,7 @@ msgstr ""
 #: src/io/siril_catalogues.c:1057
 #, c-format
 msgid "Using default observatory code %s\n"
-msgstr ""
+msgstr "Utilisation du code d'observatoire par défaut %s\n"
 
 #: src/io/siril_catalogues.c:1061
 msgid ""
@@ -30269,13 +30403,13 @@ msgid "Failed to find commit with given OID.\n"
 msgstr "Échec de la recherche d'un commit avec l'OID donné.\n"
 
 #: src/io/siril_git.c:224
-#, fuzzy
 msgid ""
 "Error removing Git lock files. You may need to delete the local git "
 "repository and allow Siril to re-clone it.\n"
 msgstr ""
-"Erreur lors de la réinitialisation. Il se peut que vous deviez supprimer le "
-"dépôt git local et permettre à Siril de le re-cloner.\n"
+"Erreur lors de la suppression des fichiers verrouillés Git. Il se peut que "
+"vous deviez supprimer le dépôt git local et permettre à Siril de le re-"
+"cloner.\n"
 
 #: src/io/siril_git.c:241 src/io/siril_git.c:253 src/io/siril_git.c:265
 msgid ""
@@ -30318,16 +30452,13 @@ msgid "Commit message: %s\n"
 msgstr "Message de validation : %s\n"
 
 #: src/io/siril_git.c:532
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open repository: %s\n"
-msgstr "Erreur de clonage du dépôt : %s\n"
+msgstr "Impossible d'ouvrir le dépôt : %s\n"
 
 #: src/io/siril_git.c:534
-#, fuzzy
 msgid "Attempting to clone from remote source...\n"
-msgstr ""
-"Impossible d'ouvrir le dépôt : %s\n"
-"Tentative de clonage à partir d'une source distante...\n"
+msgstr "Tentative de clonage à partir d'une source distante...\n"
 
 #: src/io/siril_git.c:540 src/io/siril_git.c:691
 #, c-format
@@ -30342,6 +30473,7 @@ msgstr "Le dépôt a été cloné avec succès !\n"
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
 msgstr ""
+"Siril est en mode déconnecté. Il n'essaiera pas de cloner le dépôt distant.\n"
 
 #: src/io/siril_git.c:563 src/io/siril_git.c:707
 msgid "Failed to lookup remote.\n"
@@ -30421,18 +30553,19 @@ msgstr ""
 "mise à jour de siril-scripts...\n"
 
 #: src/io/siril_git.c:823
-#, fuzzy, c-format
+#, c-format
 msgid "Error spawning thread to update SPCC repository: %s\n"
-msgstr "Erreur de clonage du dépôt : %s\n"
+msgstr ""
+"Erreur lors de la création d'un thread pour mettre à jour le dépôt SPCC : %"
+"s\n"
 
 #: src/io/siril_git.c:827
-#, fuzzy
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "spcc...\n"
 msgstr ""
 "Le dépôt de scripts en ligne n'est pas activé. Pas de récupération ou de "
-"mise à jour de siril-scripts...\n"
+"mise à jour de siril-spcc...\n"
 
 #: src/io/siril_git.c:842
 msgid "Error: unable to open local scripts repository.\n"
@@ -31037,15 +31170,16 @@ msgid "Parameter symbols could not be parsed."
 msgstr "Les symboles de paramètres n'ont pas pu être analysés."
 
 #: src/pixelMath/pixel_math_runner.c:1110
-#, fuzzy
 msgid "Images have different size"
-msgstr "permettre aux FITS cubes d'avoir des tailles différentes"
+msgstr "Les images ont des tailles différentes"
 
 #: src/pixelMath/pixel_math_runner.c:1111
 msgid ""
 "The image currently displayed must be the same size as the other images "
 "loaded into PixelMath."
 msgstr ""
+"L'image actuellement affichée doit être de la même taille que les autres "
+"images chargées dans PixelMath."
 
 #: src/pixelMath/pixel_math_runner.c:1119
 msgid "No images loaded"
@@ -31072,9 +31206,8 @@ msgid "You've reached the maximum of loaded image file."
 msgstr "Vous avez atteint le maximum d'image chargée."
 
 #: src/pixelMath/pixel_math_runner.c:1378
-#, fuzzy
 msgid "Error evaluating pixelmath expression.\n"
-msgstr "Erreur dans l'expression mathématique du pixel '%s' au caractère %d\n"
+msgstr "Erreur d'évaluation de l'expression pixelmath.\n"
 
 #: src/registration/3stars.c:126 src/registration/3stars.c:208
 msgid "Make sure you load the first image"
@@ -31181,7 +31314,7 @@ msgstr "L'image %d n'a pas de recouvrement avec la référence\n"
 
 #: src/registration/applyreg.c:204
 msgid "The intersection of all images is null or negative\n"
-msgstr ""
+msgstr "L'intersection de toutes les images est nulle ou négative\n"
 
 #: src/registration/applyreg.c:237
 #, c-format
@@ -31195,18 +31328,16 @@ msgstr ""
 "mauvaise idée.\n"
 
 #: src/registration/applyreg.c:336
-#, fuzzy
 msgid ""
 "Distortion data was found in the sequence file, undistortion will be "
 "applied\n"
 msgstr ""
-"Il n'existe pas de données d'alugnement pour cette séquence, ce qui entraîne "
-"l'abandon de l'opération.\n"
+"Des données de distorsion ont été trouvées dans le fichier de séquence, une "
+"correction de la distorsion sera appliquée\n"
 
 #: src/registration/applyreg.c:342 src/registration/global.c:173
-#, fuzzy
 msgid "Could not init distortion mapping\n"
-msgstr "Calcul de la normalisation...\n"
+msgstr "Impossible d'initier le mappage des distorsions\n"
 
 #: src/registration/applyreg.c:370 src/registration/global.c:313
 #, c-format
@@ -31214,9 +31345,8 @@ msgid "Frame %d:\n"
 msgstr "Image %d :\n"
 
 #: src/registration/applyreg.c:449
-#, fuzzy
 msgid "Error generating mapping array.\n"
-msgstr "Image d'entrelacement des erreurs\n"
+msgstr "Erreur de génération du tableau de correspondance.\n"
 
 #: src/registration/applyreg.c:607 src/registration/comet.c:242
 msgid "Applying registration completed.\n"
@@ -31233,11 +31363,12 @@ msgstr "Transformation interrompue.\n"
 
 #: src/registration/applyreg.c:773
 msgid "Initializing drizzle data..."
-msgstr ""
+msgstr "Initialisation des données du drizzle..."
 
 #: src/registration/applyreg.c:804
 msgid "Unsupported SER CFA pattern detected. Treating as mono.\n"
 msgstr ""
+"Modèle SER CFA détecté non pris en charge. Traiter comme un fichier mono.\n"
 
 #: src/registration/applyreg.c:895
 msgid "Apply registration"
@@ -31245,20 +31376,25 @@ msgstr "Appliquer l'alignement"
 
 #: src/registration/applyreg.c:920 src/registration/global.c:634
 #: src/registration/global.c:850
-#, fuzzy
 msgid "Could not initialize distortion data, aborting\n"
-msgstr "Impossible de créer %s, abandon\n"
+msgstr ""
+"Impossible d'initialiser les données de distorsion, abandon de la procédure\n"
 
 #: src/registration/applyreg.c:933
 msgid ""
 "Distortion was found in reference image astrometry but you did not include "
 "distortion correction when registering the images\n"
 msgstr ""
+"Une distorsion a été constatée dans l'astrométrie de l'image de référence, "
+"mais vous n'avez pas inclus de correction de la distorsion lors de "
+"l'alignement des images.\n"
 
 #: src/registration/applyreg.c:1013
 msgid ""
 "Unselect the images generating the error or change framing method to max\n"
 msgstr ""
+"Désélectionner les images générant l'erreur ou changer la méthode de cadrage "
+"en max.\n"
 
 #: src/registration/applyreg.c:1021
 msgid ""
@@ -31273,9 +31409,8 @@ msgid "You should change framing method, aborting\n"
 msgstr "Vous devriez changer de méthode de cadrage, abandon\n"
 
 #: src/registration/applyreg.c:1042
-#, fuzzy
 msgid "Not enough space to save the output images\n"
-msgstr "Pas assez d'espace pour sauvegarder les images, abandon.\n"
+msgstr "Pas assez d'espace pour enregistrer les images de sortie\n"
 
 #: src/registration/applyreg.c:1053
 msgid ""
@@ -31297,14 +31432,13 @@ msgstr ""
 "l'opération.\n"
 
 #: src/registration/applyreg.c:1066
-#, fuzzy
 msgid ""
 "Applying registration with changes in output image size is not allowed when "
 "interpolation is set to none , aborting\n"
 msgstr ""
-"L'application de l'alignement avec des modifications de la taille de l'image "
+"L'application de l'alignement avec des changements dans la taille de l'image "
 "de sortie n'est pas autorisée lorsque l'interpolation est réglée sur aucun, "
-"ce qui entraîne l'abandon de l'opération.\n"
+"abandon.\n"
 
 #: src/registration/applyreg.c:1072
 msgid ""
@@ -31315,13 +31449,13 @@ msgstr ""
 "l'interpolation est définie comme nulle n'est pas autorisée, abandon.\n"
 
 #: src/registration/applyreg.c:1077
-#, fuzzy
 msgid ""
 "Applying registration on images with distortions when interpolation is set "
 "to none is not allowed, aborting\n"
 msgstr ""
-"L'application de l'alignement sur des images de tailles différentes lorsque "
-"l'interpolation est définie comme nulle n'est pas autorisée, abandon.\n"
+"L'application de l'alignement sur des images présentant des distorsions "
+"lorsque l'interpolation est définie sur aucune n'est pas autorisée, abandon."
+"\n"
 
 #: src/registration/applyreg.c:1083
 msgid ""
@@ -31355,17 +31489,19 @@ msgstr ""
 #: src/registration/astrometric.c:131
 #, c-format
 msgid "Sequence COG - RA:%7.3f - DEC:%+7.3f\n"
-msgstr ""
+msgstr "Sequence COG - AD :%7.3f - DEC :%+7.3f\n"
 
 #: src/registration/astrometric.c:162
-#, fuzzy, c-format
+#, c-format
 msgid "Could not compute camera parameters of image %d from sequence %s\n"
-msgstr "Impossible de charger l'image partielle %d de la séquence %s\n"
+msgstr ""
+"Impossible de calculer les paramètres de la caméra de l'image %d de la "
+"séquence %s\n"
 
 #: src/registration/astrometric.c:177
 #, c-format
 msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
-msgstr ""
+msgstr "Image #%5d - AD :%7.3f - DEC :%+7.3f - Rotation :%+6.1f\n"
 
 #: src/registration/astrometric.c:180
 #, c-format
@@ -31374,14 +31510,13 @@ msgstr ""
 "Aucune image sélectionnée après le calcul des transformations, abandon%s\n"
 
 #: src/registration/astrometric.c:262
-#, fuzzy
 msgid "Astrometric registration computed.\n"
-msgstr "L'alignement est terminé.\n"
+msgstr "Alignement astrométrique calculé.\n"
 
 #: src/registration/astrometric.c:284
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d has not been plate-solved, unselecting\n"
-msgstr "L'image %d a déjà été traitée, sauter\n"
+msgstr "L'image %d n'a pas été résolue par astrométrie, désélectionner\n"
 
 #: src/registration/comet.c:193
 #, c-format
@@ -31393,30 +31528,28 @@ msgid "Moving object registration"
 msgstr "Alignement des objets en mouvement"
 
 #: src/registration/distorsion.c:348
-#, fuzzy
 msgid "Could not parse the distortion master, aborting\n"
-msgstr "Impossible de créer %s, abandon\n"
+msgstr "Impossible d'analyser le fichier maitre distorsion, abandon\n"
 
 #: src/registration/distorsion.c:374
-#, fuzzy
 msgid "Could not save WCS file for distortion\n"
-msgstr "Impossible de d'ouvrir le fichier %s, abandon\n"
+msgstr "Impossible d'enregistrer le fichier WCS pour la distorsion\n"
 
 #: src/registration/distorsion.c:388
-#, fuzzy
 msgid "Could not load FITS file for distortion\n"
-msgstr "Impossible de charger l'image, abandon.\n"
+msgstr "Impossible de charger le fichier FITS pour la distorsion\n"
 
 #: src/registration/distorsion.c:394
-#, fuzzy
 msgid "Could not copy WCS information for distortion\n"
-msgstr "Impossible de copier l'image, abandon\n"
+msgstr "Impossible de copier les informations WCS en cas de distorsion\n"
 
 #: src/registration/distorsion.c:416
 msgid ""
 "Sequence file points to master distorsion file but its specification but it "
 "is empty in the preferences\n"
 msgstr ""
+"Le fichier de séquence pointe vers le fichier de distorsion maître, mais sa "
+"spécification est vide dans les préférences.\n"
 
 #: src/registration/distorsion.c:426
 #, c-format
@@ -31424,56 +31557,54 @@ msgid "Could not load image# %d, deselecting\n"
 msgstr "Impossible de charger l'image # %d, désélectionner\n"
 
 #: src/registration/distorsion.c:435
-#, fuzzy
 msgid "Could not parse master file name for distortion, aborting\n"
-msgstr "Impossible de créer %s, abandon\n"
+msgstr ""
+"Impossible d'analyser le nom du fichier maître pour la distorsion, abandon\n"
 
 #: src/registration/distorsion.c:441
-#, fuzzy
 msgid "Could not load master file for distortion, aborting\n"
-msgstr "Impossible de charger l'image, abandon.\n"
+msgstr "Impossible de charger le fichier maître pour la distorsion, abandon\n"
 
 #: src/registration/distorsion.c:449
-#, fuzzy
 msgid "Could not copy WCS information for distortion, aborting\n"
-msgstr "Impossible de copier l'image, abandon\n"
+msgstr "Impossible de copier les informations WCS pour la distorsion, abandon\n"
 
 #: src/registration/distorsion.c:477
 msgid "Selected file has no distortion information\n"
 msgstr "Le fichier sélectionné ne contient aucune information de distorsion\n"
 
 #: src/registration/distorsion.c:519
-#, fuzzy
 msgid "Distortion data is valid and will be used\n"
-msgstr ""
-"Il n'existe pas de données d'alugnement pour cette séquence, ce qui entraîne "
-"l'abandon de l'opération.\n"
+msgstr "Les données de distorsion sont valides et seront utilisées\n"
 
 #: src/registration/distorsion.c:528 src/registration/distorsion.c:534
 msgid ""
 "You have selected undistortion from current image but it is not platesolved, "
 "perform astrometry first or disable distortion"
 msgstr ""
+"Vous avez sélectionné l'annulation de la distorsion de l'image actuelle, "
+"mais elle n'est pas résolue en astrométrie, effectuez d'abord l'astrométrie "
+"ou désactivez la distorsion"
 
 #: src/registration/distorsion.c:530
-#, fuzzy
 msgid "Platesolve current image"
-msgstr "Affiche la vue négative de l'image courrante"
+msgstr "Astrométrie sur l'image courante"
 
 #: src/registration/distorsion.c:536
-#, fuzzy
 msgid "Platesolve current image with distortions"
-msgstr "Enregistre l'image courante sous un nom différent"
+msgstr "Astrométrie sur l'image courante avec distorsion"
 
 #: src/registration/distorsion.c:542
 msgid ""
 "You have selected undistortion from an existing file, you need to specify "
 "the filename"
 msgstr ""
+"Vous avez sélectionné la distorsion à partir d'un fichier existant, vous "
+"devez spécifier le nom du fichier"
 
 #: src/registration/distorsion.c:544
 msgid "Load a FITS/WCS file for distortion"
-msgstr ""
+msgstr "Charger un fichier FITS/WCS pour la distorsion"
 
 #: src/registration/distorsion.c:549 src/registration/distorsion.c:551
 msgid "Could not load FITS image for distortion"
@@ -31484,6 +31615,9 @@ msgid ""
 "You have selected undistortion from file but it is not platesolved, perform "
 "astrometry first or disable distortion"
 msgstr ""
+"Vous avez sélectionné la distorsion dans le fichier, mais elle n'est pas "
+"résolue en astrométrie, effectuez d'abord l'astrométrie ou désactivez la "
+"distorsion"
 
 #: src/registration/distorsion.c:558
 msgid "Selected file has no WCS information"
@@ -31494,6 +31628,9 @@ msgid ""
 "You have selected undistortion from file but it is has no distortion terms, "
 "perform astrometry with SIP enabled or disable distortion"
 msgstr ""
+"Vous avez sélectionné l'absence de distorsion dans le fichier, mais il n'y a "
+"pas de termes de distorsion, effectuez l'astrométrie avec le SIP activé ou "
+"désactivez la distorsion"
 
 #: src/registration/distorsion.c:565
 msgid "Selected file has no distortion information"
@@ -31513,6 +31650,8 @@ msgstr ""
 msgid ""
 "You need to set a distortion master template in Preferences/Preprocessing"
 msgstr ""
+"Vous devez définir un modèle maître de distorsion dans Préférences/"
+"Prétraitement"
 
 #: src/registration/distorsion.c:597 src/registration/distorsion.c:599
 msgid "Distortion master could not be parsed"
@@ -31553,6 +31692,7 @@ msgstr ""
 #: src/registration/global.c:918
 msgid "Could not correct the stars position with SIP coeffients\n"
 msgstr ""
+"Impossible de corriger la position des étoiles avec les coefficients SIP\n"
 
 #: src/registration/global.c:221
 #, c-format
