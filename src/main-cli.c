@@ -69,6 +69,7 @@
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
+#include "io/siril_pythonmodule.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
@@ -210,6 +211,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
 
 #if defined(HAVE_LIBCURL)

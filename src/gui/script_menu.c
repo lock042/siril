@@ -193,7 +193,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	if (g_str_has_suffix(script_file, PYSCRIPT_EXT)) {
 		// Run Python script
-		execute_python_script_async(script_file, TRUE, NULL);
+		execute_python_script(script_file, TRUE, FALSE, NULL);
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
 		// Run regular script
 		GFile *file = g_file_new_for_path(script_file);

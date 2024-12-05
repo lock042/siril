@@ -1090,7 +1090,7 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 	}
 	switch (active_language) {
 		case LANG_PYTHON:;
-			execute_python_script_async(text, FALSE, script_args);
+			execute_python_script(text, FALSE, FALSE, script_args);
 			g_strfreev(script_args);
 			break;
 		case LANG_SSF:;

@@ -11445,7 +11445,7 @@ int process_pyscript(int nb) {
 				argv_script[i-2] = g_strdup(word[i]);
 			}
 		}
-		execute_python_script_async(script_name, TRUE, argv_script);
+		execute_python_script(script_name, TRUE, TRUE, argv_script);
 		g_strfreev(argv_script);
 		return CMD_OK;
 	} else {

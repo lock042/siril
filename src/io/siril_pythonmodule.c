@@ -28,6 +28,7 @@
 #include <time.h>
 
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
@@ -718,7 +719,7 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 	remove_child_from_children(pid);
 
 	// Re-enable widgets
-	script_widgets_idle(NULL);
+	gui_function(script_widgets_idle, NULL);
 }
 
 // Function to get Python version from venv (could be called during venv activation)
@@ -1587,7 +1588,7 @@ cleanup:
 }
 
 gboolean python_venv_idle(gpointer user_data) {
-	g_thread_unref(com.python_init_thread);
+//	g_thread_unref(com.python_init_thread);
 	com.python_init_thread = NULL;
 	return FALSE;
 }
@@ -1662,11 +1663,12 @@ void shutdown_python_communication(CommunicationState *commstate) {
 	}
 }
 
-void execute_python_script_async(gchar* script_name, gboolean from_file, gchar** argv_script) {
+void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script) {
 	version_number none = { 0 };
 	if (compare_version(none, com.python_version) >= 0) {
 		if (com.python_init_thread) {
 			g_thread_join(com.python_init_thread); // wait for python initialization to start
+			com.python_init_thread = NULL;
 		} else {
 			siril_log_color_message(_("Error: python not ready yet.\n"), "red");
 			return;
@@ -1804,6 +1806,42 @@ void execute_python_script_async(gchar* script_name, gboolean from_file, gchar**
 		com.children = g_slist_prepend(com.children, child);
 	}
 
+	if (sync) {
+	    // Cross-platform process waiting
+#ifdef _WIN32
+		// Use Windows-specific waiting
+		HANDLE process_handle = OpenProcess(SYNCHRONIZE, FALSE, child_pid);
+		if (process_handle != NULL) {
+			WaitForSingleObject(process_handle, INFINITE);
+			CloseHandle(process_handle);
+		}
+#else
+		// Use POSIX waitpid
+		gint status;
+		waitpid(child_pid, &status, 0);
+#endif
+		// If we had the python thread lock and failed to release it, release it now
+		if (commstate.python_conn->thread_claimed) {
+			com.python_claims_thread = FALSE;
+		}
+
+		// Clean up shared memory resources
+		cleanup_shm_resources(commstate.python_conn);
+
+		// Clean up the Connection
+		free(commstate.python_conn);
+
+		// Close the process handle
+		g_spawn_close_pid(child_pid);
+		remove_child_from_children(child_pid);
+
+		// Re-enable widgets
+		gui_function(script_widgets_idle, NULL);
+	} else {
+		// Set up child process monitoring: the callback will clean up any overlooked shm resources
+		g_child_watch_add(child_pid, (GChildWatchFunc)cleanup_child_process, commstate.python_conn);
+	}
+
 	g_strfreev(env);
 	g_free(script_name);
 
@@ -1816,8 +1854,6 @@ void execute_python_script_async(gchar* script_name, gboolean from_file, gchar**
 		return;
 	}
 
-	// Set up child process monitoring: the callback will clean up any overlooked shm resources
-	g_child_watch_add(child_pid, (GChildWatchFunc)cleanup_child_process, commstate.python_conn);
 
 	// Create input streams with appropriate flags
 	GInputStream *stdout_stream = NULL;
