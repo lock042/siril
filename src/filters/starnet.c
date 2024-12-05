@@ -92,6 +92,11 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	}
 	fprintf(stdout, "\n");
 	// g_spawn handles wchar so not need to convert
+	if (!get_thread_run()) {
+		return 1;
+	}
+	remove_child_from_children(-2); // prevent the processing thread showing in the list of
+	// children, as we will track the Starnet chiild process instead
 	siril_spawn_host_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL | G_SPAWN_DO_NOT_REAP_CHILD,

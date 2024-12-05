@@ -100,6 +100,12 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	#ifdef G_OS_WIN32
 	env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
 	#endif
+	if (!get_thread_run()) {
+		// TODO: raise an error
+		return NULL;
+	}
+	remove_child_from_children(-2); // prevent the processing thread showing in the list of
+	// children, as we are alrady tracking the GraXpert chiild process
 
 	gboolean spawn_result = siril_spawn_host_async_with_pipes(
 		NULL,           // working directory
