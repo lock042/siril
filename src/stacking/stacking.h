@@ -6,6 +6,7 @@
 
 //#define STACK_DEBUG
 
+#define MAX_IMAGES_FOR_OVERLAP 30 // if normalizing on overlaps with more than MAX_IMAGES_FOR_OVERLAP selected, it will trigger a warning
 /* the stacking method */
 typedef int (*stack_method)(struct stacking_args *args);
 

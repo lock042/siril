@@ -8444,6 +8444,9 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
 	}
+	if (args.overlap_norm && args.nb_images_to_stack > MAX_IMAGES_FOR_OVERLAP) {
+		siril_log_color_message(_("Normalizing on overlaps for more than %d images can be slow\n"), "salmon", MAX_IMAGES_FOR_OVERLAP);
+	}
 
 	main_stack(&args);
 

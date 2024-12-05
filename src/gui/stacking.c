@@ -176,6 +176,17 @@ static void start_stacking() {
 		if (!confirm)
 			return;
 	}
+	gchar *onorm_msg = g_strdup_printf(_("You have chosen to compute normalization on overlaps with more than %d images.\n"
+			"This option should normally be used to stitch stacked mosaic tiles, not subs.\n"
+			"If you proceed, execution may be slow"), MAX_IMAGES_FOR_OVERLAP);
+	if (stackparam.overlap_norm && stackparam.nb_images_to_stack > 20) {
+		int confirm = siril_confirm_dialog(_("Large number of images"),
+			onorm_msg,
+			_("Stack anyway"));
+		g_free(onorm_msg);
+		if (!confirm)
+			return;
+	}
 
 	/* Do not display that cause it uses the generic function that already
 	 * displays this text
