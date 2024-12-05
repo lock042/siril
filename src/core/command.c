@@ -8406,7 +8406,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.upscale_at_stacking = FALSE;
 	}
 	if ((args.upscale_at_stacking || args.maximize_framing) && arg->method == stack_median) {
-		siril_log_color_message(_("Cannot upscale or maximize framong with median stacking. Disabling\n"), "red");
+		siril_log_color_message(_("Cannot upscale or maximize framing with median stacking. Disabling\n"), "red");
 		args.maximize_framing = FALSE;
 		args.upscale_at_stacking = FALSE;
 	}

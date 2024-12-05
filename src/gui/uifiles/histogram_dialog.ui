@@ -590,7 +590,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="hexpand">True</property>
                             <property name="has-frame">False</property>
                             <property name="width-chars">10</property>
-                            <property name="text" translatable="yes">0.0000000</property>
+                            <property name="text">0.0000000</property>
                             <property name="input-purpose">number</property>
                             <signal name="activate" handler="on_histoShadEntry_activate" swapped="no"/>
                             <signal name="focus-out-event" handler="on_histoShadEntry_focus_out_event" swapped="no"/>

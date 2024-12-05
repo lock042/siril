@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-11-28 14:34+0100\n"
+"POT-Creation-Date: 2024-12-05 15:12+0100\n"
 "PO-Revision-Date: 2024-02-10 20:54+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Greek <https://weblate.pixls.us/projects/siril/siril-"
@@ -223,7 +223,7 @@ msgstr ""
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
 
-#: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2519
+#: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2515
 #, fuzzy
 msgid "Aberration Inspector"
 msgstr "Η αφαίρεση ολοκληρώθηκε...\n"
@@ -240,7 +240,7 @@ msgstr "Σχόλια"
 #: src/gui/uifiles/settings_window.ui:1846
 #: src/gui/uifiles/settings_window.ui:4318
 #: src/gui/uifiles/settings_window.ui:4359
-#: src/gui/uifiles/settings_window.ui:5896 src/gui/uifiles/siril.ui:3758
+#: src/gui/uifiles/settings_window.ui:5896 src/gui/uifiles/siril.ui:3754
 msgid "Clear"
 msgstr "Καθαρισμός"
 
@@ -732,7 +732,7 @@ msgid "Resolver"
 msgstr "Αναστροφέας"
 
 #. Connect the edited signal
-#: src/gui/uifiles/astrometry_dialog.ui:492 src/gui/uifiles/siril.ui:3655
+#: src/gui/uifiles/astrometry_dialog.ui:492 src/gui/uifiles/siril.ui:3651
 #: src/gui/uifiles/spcc_details.ui:83 src/gui/uifiles/StatWindow.ui:148
 #: src/gui/mouse_action_preferences.c:203
 #: src/gui/mouse_action_preferences.c:478
@@ -1345,7 +1345,7 @@ msgstr ""
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:278
 #: src/gui/uifiles/ccm_dialog.ui:360 src/gui/uifiles/cosmetic_dialog.ui:347
 #: src/gui/uifiles/crop_dialog.ui:117 src/gui/uifiles/histogram_dialog.ui:705
-#: src/gui/uifiles/siril.ui:5295 src/gui/uifiles/split_cfa_dialog.ui:118
+#: src/gui/uifiles/siril.ui:5291 src/gui/uifiles/split_cfa_dialog.ui:118
 msgid "Output prefix:"
 msgstr "Πρόθεμα εξόδου:"
 
@@ -1492,7 +1492,7 @@ msgid ""
 "diffraction of your telescope."
 msgstr ""
 
-#: src/gui/uifiles/bdeconv_dialog.ui:676 src/gui/uifiles/siril.ui:7180
+#: src/gui/uifiles/bdeconv_dialog.ui:676 src/gui/uifiles/siril.ui:7176
 #: src/gui/uifiles/stars_list_window.ui:690 src/algos/star_finder.c:1408
 #: src/gui/newdeconv.c:532
 msgid "Gaussian"
@@ -1901,8 +1901,8 @@ msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1990 src/gui/uifiles/savepopup.ui:272
 #: src/gui/uifiles/settings_window.ui:849
-#: src/gui/uifiles/settings_window.ui:1312 src/gui/uifiles/siril.ui:5738
-#: src/gui/uifiles/siril.ui:7085 src/gui/uifiles/siril.ui:8374
+#: src/gui/uifiles/settings_window.ui:1312 src/gui/uifiles/siril.ui:5734
+#: src/gui/uifiles/siril.ui:7081 src/gui/uifiles/siril.ui:8370
 msgid "None"
 msgstr "Κανένα"
 
@@ -1943,7 +1943,7 @@ msgid ""
 "iterations."
 msgstr ""
 
-#: src/gui/uifiles/bdeconv_dialog.ui:2067 src/gui/uifiles/siril.ui:8131
+#: src/gui/uifiles/bdeconv_dialog.ui:2067 src/gui/uifiles/siril.ui:8127
 msgid "Multiplicative"
 msgstr "Πολλαπλασιαστική"
 
@@ -2246,18 +2246,18 @@ msgstr ""
 "Κάνοντας κλικ σε αυτή την επιλογή, θα χρησιμοποιήσετε τους δικούς σας "
 "παράγοντες βαθμονόμησης χρώματος. Αυτή η επιλογή είναι απενεργοποιημένη."
 
-#: src/gui/uifiles/color_calibration.ui:389 src/gui/uifiles/siril.ui:3026
+#: src/gui/uifiles/color_calibration.ui:389 src/gui/uifiles/siril.ui:3022
 #: src/gui/uifiles/StatWindow.ui:200 src/compositing/compositing.c:672
 #: src/gui/callbacks.c:884 src/gui/callbacks.c:1266
 msgid "Red"
 msgstr "Κόκκινο"
 
-#: src/gui/uifiles/color_calibration.ui:448 src/gui/uifiles/siril.ui:3194
+#: src/gui/uifiles/color_calibration.ui:448 src/gui/uifiles/siril.ui:3190
 #: src/gui/uifiles/StatWindow.ui:214 src/gui/callbacks.c:886
 msgid "Green"
 msgstr "Πράσινο"
 
-#: src/gui/uifiles/color_calibration.ui:507 src/gui/uifiles/siril.ui:3362
+#: src/gui/uifiles/color_calibration.ui:507 src/gui/uifiles/siril.ui:3358
 #: src/gui/uifiles/StatWindow.ui:228 src/gui/callbacks.c:888
 msgid "Blue"
 msgstr "Μπλέ"
@@ -2584,7 +2584,7 @@ msgstr "Κλείσιμο τρέχοντος παραθύρου"
 msgid "Apply Cosmetic Correction"
 msgstr "Εφαρμογή Αισθητικής Διόρθωσης"
 
-#: src/gui/uifiles/cosmetic_dialog.ui:121 src/gui/uifiles/siril.ui:5053
+#: src/gui/uifiles/cosmetic_dialog.ui:121 src/gui/uifiles/siril.ui:5049
 msgid "Cold Sigma:"
 msgstr "Ψυχρό Σίγμα:"
 
@@ -2606,7 +2606,7 @@ msgstr ""
 "Πόσες φορές (σε μονάδες απόκλισης μέσου όρου) η τιμή ενός pixel πρέπει να "
 "διαφέρει από την τιμή των γειτονικών ώστε να θεωρηθεί ψυχρό pixel."
 
-#: src/gui/uifiles/cosmetic_dialog.ui:187 src/gui/uifiles/siril.ui:5083
+#: src/gui/uifiles/cosmetic_dialog.ui:187 src/gui/uifiles/siril.ui:5079
 msgid "Hot Sigma:"
 msgstr "Θερμό Σίγμα:"
 
@@ -2640,7 +2640,7 @@ msgstr ""
 msgid "CFA"
 msgstr "CFA"
 
-#: src/gui/uifiles/cosmetic_dialog.ui:311 src/gui/uifiles/siril.ui:4991
+#: src/gui/uifiles/cosmetic_dialog.ui:311 src/gui/uifiles/siril.ui:4987
 msgid ""
 "Check if the target frames are CFA images.\n"
 "Uncheck if images come from a monochrome sensor."
@@ -2687,7 +2687,7 @@ msgid "Start"
 msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:183
-#: src/gui/uifiles/cut_spectroscopy_dialog.ui:270 src/gui/uifiles/siril.ui:4525
+#: src/gui/uifiles/cut_spectroscopy_dialog.ui:270 src/gui/uifiles/siril.ui:4521
 msgid "x"
 msgstr "x"
 
@@ -3555,7 +3555,7 @@ msgstr ""
 "Επιλέξτε τη χρωματική λειτουργία που αντιστοιχεί με τις τρεις εξαγόμενες "
 "εικόνες"
 
-#: src/gui/uifiles/extract_channel_dialog.ui:189 src/gui/uifiles/siril.ui:3565
+#: src/gui/uifiles/extract_channel_dialog.ui:189 src/gui/uifiles/siril.ui:3561
 #: src/core/command.c:6061 src/core/command.c:6065
 msgid "RGB"
 msgstr "RGB"
@@ -3600,7 +3600,7 @@ msgstr "Τύπος αλγόριθμου"
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:134
 #: src/gui/uifiles/settings_window.ui:3585
 #: src/gui/uifiles/settings_window.ui:3654 src/gui/uifiles/siril.ui:572
-#: src/gui/uifiles/siril.ui:9904 src/gui/uifiles/wavelets_dialog.ui:183
+#: src/gui/uifiles/siril.ui:9900 src/gui/uifiles/wavelets_dialog.ui:183
 msgid "Linear"
 msgstr "Γραμμικό"
 
@@ -3796,10 +3796,6 @@ msgstr "Ισσοροπία Ενδιάμεσων τόνων"
 msgid "Shadows clipping"
 msgstr "Αποκοπή Σκοτεινών τόνων"
 
-#: src/gui/uifiles/histogram_dialog.ui:593
-msgid "0.0000000"
-msgstr ""
-
 #: src/gui/uifiles/histogram_dialog.ui:620
 msgid "Clip (%)"
 msgstr "Αποκοπή (%)"
@@ -3963,7 +3959,7 @@ msgstr "Κεφαλίδα FITS..."
 msgid "Color Management"
 msgstr "Στόχος έγχρωμης εικόνας"
 
-#: src/gui/uifiles/icc_dialog.ui:65 src/gui/uifiles/siril.ui:7992
+#: src/gui/uifiles/icc_dialog.ui:65 src/gui/uifiles/siril.ui:7988
 #: src/gui/uifiles/spcc_details.ui:24 src/gui/uifiles/s_pcc_dialog.ui:906
 msgid "Plot"
 msgstr "Σχεδιασμός"
@@ -3985,7 +3981,7 @@ msgid ""
 "It will be saved with the filename {imagename}.icc"
 msgstr ""
 
-#: src/gui/uifiles/icc_dialog.ui:95 src/gui/uifiles/siril.ui:3742
+#: src/gui/uifiles/icc_dialog.ui:95 src/gui/uifiles/siril.ui:3738
 msgid "Remove"
 msgstr "Αφαίρεση"
 
@@ -4006,7 +4002,7 @@ msgid ""
 "profile."
 msgstr ""
 
-#: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3894
+#: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3890
 #: src/core/icc_profile.c:1243
 msgid "Convert"
 msgstr "Μετατροπή"
@@ -4227,7 +4223,7 @@ msgstr "Στατιστικά"
 msgid "waiting for input files"
 msgstr ""
 
-#: src/gui/uifiles/livestacking_player.ui:228 src/gui/uifiles/siril.ui:9232
+#: src/gui/uifiles/livestacking_player.ui:228 src/gui/uifiles/siril.ui:9228
 msgid "Stacking"
 msgstr "Σώρευση"
 
@@ -4463,7 +4459,7 @@ msgstr "Ταίριασμα αστεριών στην επιλογή"
 msgid "Remove a scroll action"
 msgstr "ομαλοποίηση"
 
-#: src/gui/uifiles/mouse_actions.ui:255 src/gui/uifiles/siril.ui:6352
+#: src/gui/uifiles/mouse_actions.ui:255 src/gui/uifiles/siril.ui:6348
 msgid " "
 msgstr ""
 
@@ -4585,7 +4581,7 @@ msgid ""
 "rescaling range."
 msgstr ""
 
-#: src/gui/uifiles/pixelmath.ui:724 src/gui/uifiles/siril.ui:7776
+#: src/gui/uifiles/pixelmath.ui:724 src/gui/uifiles/siril.ui:7772
 #, fuzzy
 msgid "Output"
 msgstr "Αρχεία καταγραφής εξόδου"
@@ -4640,30 +4636,30 @@ msgid "Type of algorithm used for resampling"
 msgstr "Τύπος αλγόριθμου που θα χρησιμοποιηθεί για αναδειγματοληψία"
 
 #: src/gui/uifiles/resample_dialog.ui:195
-#: src/gui/uifiles/rotation_dialog.ui:203 src/gui/uifiles/siril.ui:7080
+#: src/gui/uifiles/rotation_dialog.ui:203 src/gui/uifiles/siril.ui:7076
 msgid "Nearest Neighbor"
 msgstr "Κοντινότερο Γειτονικό"
 
 #: src/gui/uifiles/resample_dialog.ui:196
-#: src/gui/uifiles/rotation_dialog.ui:204 src/gui/uifiles/siril.ui:7081
+#: src/gui/uifiles/rotation_dialog.ui:204 src/gui/uifiles/siril.ui:7077
 #: src/algos/geometry.c:301 src/algos/geometry.c:397
 msgid "Bilinear"
 msgstr "Διγραμμική"
 
 #: src/gui/uifiles/resample_dialog.ui:197
-#: src/gui/uifiles/rotation_dialog.ui:205 src/gui/uifiles/siril.ui:7082
+#: src/gui/uifiles/rotation_dialog.ui:205 src/gui/uifiles/siril.ui:7078
 #: src/algos/geometry.c:305 src/algos/geometry.c:403
 msgid "Bicubic"
 msgstr "Δικυβική"
 
 #: src/gui/uifiles/resample_dialog.ui:198
-#: src/gui/uifiles/rotation_dialog.ui:206 src/gui/uifiles/siril.ui:7083
+#: src/gui/uifiles/rotation_dialog.ui:206 src/gui/uifiles/siril.ui:7079
 #: src/algos/geometry.c:303 src/algos/geometry.c:400
 msgid "Pixel Area Relation"
 msgstr "Σχέση Περιοχής Pixel"
 
 #: src/gui/uifiles/resample_dialog.ui:199
-#: src/gui/uifiles/rotation_dialog.ui:207 src/gui/uifiles/siril.ui:7084
+#: src/gui/uifiles/rotation_dialog.ui:207 src/gui/uifiles/siril.ui:7080
 msgid "Lanczos-4"
 msgstr "Lanczos-4"
 
@@ -4677,7 +4673,7 @@ msgid "pixels"
 msgstr "pixel"
 
 #: src/gui/uifiles/resample_dialog.ui:310
-#: src/gui/uifiles/rotation_dialog.ui:226 src/gui/uifiles/siril.ui:7096
+#: src/gui/uifiles/rotation_dialog.ui:226 src/gui/uifiles/siril.ui:7092
 #, fuzzy
 msgid "Interpolation clamping"
 msgstr "Παρεμβολή: "
@@ -4824,7 +4820,7 @@ msgstr ""
 "χαμηλότερη είναι η τιμή, τόσο ισχυρότερη είναι η επίδραση κορεσμού. Ενώ μια "
 "υψηλή τιμή θα διατηρήσει το υπόβαθρο."
 
-#: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10623
+#: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10619
 #: src/gui/mouse_action_functions.h:55 src/io/sequence.c:1896
 msgid "Save"
 msgstr "Αποθήκευση"
@@ -5078,8 +5074,8 @@ msgstr "Y"
 msgid "Sel"
 msgstr "Eπιλεγμένο"
 
-#: src/gui/uifiles/seqlist_dialog.ui:165 src/gui/uifiles/siril.ui:7845
-#: src/gui/uifiles/siril.ui:7880 src/gui/plot.c:138 src/gui/plot.c:1669
+#: src/gui/uifiles/seqlist_dialog.ui:165 src/gui/uifiles/siril.ui:7841
+#: src/gui/uifiles/siril.ui:7876 src/gui/plot.c:138 src/gui/plot.c:1669
 #: src/gui/plot.c:1697 src/gui/sequence_list.c:515
 msgid "Quality"
 msgstr "Ποιότητα"
@@ -5354,7 +5350,7 @@ msgstr ""
 msgid "X-Trans demosaicing quality"
 msgstr "Βασισμένο σε ποιότητα"
 
-#: src/gui/uifiles/settings_window.ui:579 src/gui/uifiles/siril.ui:3976
+#: src/gui/uifiles/settings_window.ui:579 src/gui/uifiles/siril.ui:3972
 #: src/gui/open_dialog.c:191
 msgid "Debayer"
 msgstr "Debayer"
@@ -5610,8 +5606,8 @@ msgid "FITS Options"
 msgstr "Επιλογές FITS"
 
 #: src/gui/uifiles/settings_window.ui:1118
-#: src/gui/uifiles/settings_window.ui:1898 src/gui/uifiles/siril.ui:2417
-#: src/gui/uifiles/siril.ui:2744
+#: src/gui/uifiles/settings_window.ui:1898 src/gui/uifiles/siril.ui:2413
+#: src/gui/uifiles/siril.ui:2740
 msgid "Astrometry"
 msgstr "Αστρομετρία"
 
@@ -6086,8 +6082,8 @@ msgid "Fix Xtrans files"
 msgstr "Διόρθωση αρχείων Xtrans"
 
 #: src/gui/uifiles/settings_window.ui:2611
-#: src/gui/uifiles/settings_window.ui:3129 src/gui/uifiles/siril.ui:2597
-#: src/gui/uifiles/siril.ui:2672 src/gui/uifiles/siril.ui:2758
+#: src/gui/uifiles/settings_window.ui:3129 src/gui/uifiles/siril.ui:2593
+#: src/gui/uifiles/siril.ui:2668 src/gui/uifiles/siril.ui:2754
 msgid "Photometry"
 msgstr "Φωτομετρία"
 
@@ -6843,7 +6839,7 @@ msgid "<b>Built-in Profiles</b>"
 msgstr "<b>Τύπος Εξαγωγής</b>"
 
 #: src/gui/uifiles/settings_window.ui:4867
-#: src/gui/uifiles/settings_window.ui:5190 src/gui/uifiles/siril.ui:10515
+#: src/gui/uifiles/settings_window.ui:5190 src/gui/uifiles/siril.ui:10511
 msgid "Scripts"
 msgstr "Δέσμες Ενεργειών"
 
@@ -7083,8 +7079,8 @@ msgid ""
 "the other strategies is not worth it for a single Fourier Transform."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5479 src/gui/uifiles/siril.ui:5069
-#: src/gui/uifiles/siril.ui:6938
+#: src/gui/uifiles/settings_window.ui:5479 src/gui/uifiles/siril.ui:5065
+#: src/gui/uifiles/siril.ui:6934
 msgid "Estimate"
 msgstr "Εκτίμηση"
 
@@ -7142,34 +7138,6 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:5562
 msgid "Unlimited"
 msgstr "Χωρίς όριο"
-
-#: src/gui/uifiles/settings_window.ui:5563
-msgid "512"
-msgstr ""
-
-#: src/gui/uifiles/settings_window.ui:5564
-msgid "1024"
-msgstr ""
-
-#: src/gui/uifiles/settings_window.ui:5565
-msgid "2048"
-msgstr ""
-
-#: src/gui/uifiles/settings_window.ui:5566
-msgid "4096"
-msgstr ""
-
-#: src/gui/uifiles/settings_window.ui:5567
-msgid "8192"
-msgstr ""
-
-#: src/gui/uifiles/settings_window.ui:5568
-msgid "16384"
-msgstr ""
-
-#: src/gui/uifiles/settings_window.ui:5569
-msgid "32768"
-msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5588
 #, fuzzy
@@ -7374,7 +7342,7 @@ msgstr "Εξαίρεση καρέ %d"
 msgid "Show frame %d"
 msgstr "Προβολή καρέ %d"
 
-#: src/gui/uifiles/siril.ui:697 src/gui/uifiles/siril.ui:7635
+#: src/gui/uifiles/siril.ui:697 src/gui/uifiles/siril.ui:7631
 #: src/gui/plot.c:936 src/gui/plot.c:937
 msgid "Registration"
 msgstr "Εγγραφή"
@@ -7417,7 +7385,7 @@ msgstr "Επιλέξτε ένα αστέρι"
 msgid "Free aspect ratio"
 msgstr "Ελεύθερη αναλογία διαστάσεων"
 
-#: src/gui/uifiles/siril.ui:817 src/gui/uifiles/siril.ui:4486
+#: src/gui/uifiles/siril.ui:817 src/gui/uifiles/siril.ui:4482
 msgid "Free ratio"
 msgstr "Ελεύθερη αναλογία"
 
@@ -7425,7 +7393,7 @@ msgstr "Ελεύθερη αναλογία"
 msgid "Preserve the original aspect ratio of the image"
 msgstr "Διατήρηση του αρχικού λόγου διαστάσεων της εικόνας"
 
-#: src/gui/uifiles/siril.ui:829 src/gui/uifiles/siril.ui:4485
+#: src/gui/uifiles/siril.ui:829 src/gui/uifiles/siril.ui:4481
 msgid "Preserve ratio"
 msgstr "Διατήρηση Λόγου"
 
@@ -7538,7 +7506,7 @@ msgstr "Εξαγωγή σε CSV"
 msgid "16 bits"
 msgstr "16 bit"
 
-#: src/gui/uifiles/siril.ui:1189 src/gui/uifiles/siril.ui:10587
+#: src/gui/uifiles/siril.ui:1189 src/gui/uifiles/siril.ui:10583
 #: src/gui/callbacks.c:1064
 msgid "32 bits"
 msgstr "32 bit"
@@ -7892,7 +7860,7 @@ msgstr "Φίλτρο Διαμέσου..."
 msgid "Rotate  image 90 degrees, clockwise"
 msgstr "Περιστροφή 90 μοιρών, δεξιόστροφα"
 
-#: src/gui/uifiles/siril.ui:2131 src/gui/uifiles/siril.ui:10164
+#: src/gui/uifiles/siril.ui:2131 src/gui/uifiles/siril.ui:10160
 msgid "Rotate 90 degrees, clockwise"
 msgstr "Περιστροφή 90 μοιρών, δεξιόστροφα"
 
@@ -7901,7 +7869,7 @@ msgstr "Περιστροφή 90 μοιρών, δεξιόστροφα"
 msgid "Rotate image 90 degrees, counter-clockwise"
 msgstr "Περιστροφή 90 μοιρών, αριστερόστροφα"
 
-#: src/gui/uifiles/siril.ui:2146 src/gui/uifiles/siril.ui:10147
+#: src/gui/uifiles/siril.ui:2146 src/gui/uifiles/siril.ui:10143
 msgid "Rotate 90 degrees, counter-clockwise"
 msgstr "Περιστροφή 90 μοιρών, αριστερόστροφα"
 
@@ -7961,157 +7929,157 @@ msgstr ""
 "τοποθετηθούν στο μαύρο για να φανεί σε ποιό σημείο της εικόνας γίνεται "
 "υπέρβαση του κατωφλίου."
 
-#: src/gui/uifiles/siril.ui:2377
+#: src/gui/uifiles/siril.ui:2373
 msgid "Save as unique file"
 msgstr "Αποθήκευση ως μοναδικού αρχείου"
 
-#: src/gui/uifiles/siril.ui:2386
+#: src/gui/uifiles/siril.ui:2382
 msgid "Copy to clipboard"
 msgstr "Αντιγραφή στο πρόχειρο"
 
-#: src/gui/uifiles/siril.ui:2434
+#: src/gui/uifiles/siril.ui:2430
 msgid "Image Plate Solver..."
 msgstr "Επίλυση Εικόνας..."
 
-#: src/gui/uifiles/siril.ui:2448
+#: src/gui/uifiles/siril.ui:2444
 #, fuzzy
 msgid "Annotate..."
 msgstr "Σχόλια"
 
-#: src/gui/uifiles/siril.ui:2474 src/gui/uifiles/siril.ui:2730
+#: src/gui/uifiles/siril.ui:2470 src/gui/uifiles/siril.ui:2726
 #, fuzzy
 msgid "Image Analysis"
 msgstr "Μικρογραφίες εικόνων"
 
-#: src/gui/uifiles/siril.ui:2491
+#: src/gui/uifiles/siril.ui:2487
 msgid "Statistics..."
 msgstr "Στατιστικά..."
 
-#: src/gui/uifiles/siril.ui:2505
+#: src/gui/uifiles/siril.ui:2501
 msgid "Noise Estimation"
 msgstr "Εκτίμηση Θορύβου"
 
-#: src/gui/uifiles/siril.ui:2533
+#: src/gui/uifiles/siril.ui:2529
 #, fuzzy
 msgid "Show Tilt"
 msgstr "Προβολή πλεγμάτων"
 
-#: src/gui/uifiles/siril.ui:2547
+#: src/gui/uifiles/siril.ui:2543
 #, fuzzy
 msgid "Show Distortions"
 msgstr "Επαναλήψεις"
 
-#: src/gui/uifiles/siril.ui:2572
+#: src/gui/uifiles/siril.ui:2568
 msgid "Dynamic PSF..."
 msgstr "Δυναμικό PSF..."
 
-#: src/gui/uifiles/siril.ui:2613
+#: src/gui/uifiles/siril.ui:2609
 msgid ""
 "Generate a list of comparison stars (APASS, NOMAD) contained in the FOV.\n"
 "Output is a csv file compatible with NINA Exoplanet"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:2616
+#: src/gui/uifiles/siril.ui:2612
 #, fuzzy
 msgid "Create Comparison Stars File ..."
 msgstr "Συντελεστής κλίμακας HCompress"
 
-#: src/gui/uifiles/siril.ui:2629
+#: src/gui/uifiles/siril.ui:2625
 msgid ""
 "Process a light curve using a list of stars in the format produced by Siril "
 "(Create Comparison Stars File) or by the NINA exoplanet plugin."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:2631
+#: src/gui/uifiles/siril.ui:2627
 msgid "Automated Light Curve..."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:2644
+#: src/gui/uifiles/siril.ui:2640
 msgid "This is the button for outputting photometric data."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:2645
+#: src/gui/uifiles/siril.ui:2641
 #, fuzzy
 msgid "Create Output"
 msgstr "Αρχεία καταγραφής εξόδου"
 
-#: src/gui/uifiles/siril.ui:2671 src/gui/uifiles/siril.ui:2688
-#: src/gui/uifiles/siril.ui:2703
+#: src/gui/uifiles/siril.ui:2667 src/gui/uifiles/siril.ui:2684
+#: src/gui/uifiles/siril.ui:2699
 #, fuzzy
 msgid "Save current plot to png file"
 msgstr "τρέχων μπλέ αρχείο"
 
-#: src/gui/uifiles/siril.ui:2689
+#: src/gui/uifiles/siril.ui:2685
 #, fuzzy
 msgid "Light Curve (ETD format)"
 msgstr "Καμπύλη Φωτός"
 
-#: src/gui/uifiles/siril.ui:2704
+#: src/gui/uifiles/siril.ui:2700
 #, fuzzy
 msgid "AAVSO file format"
 msgstr "Τύπος Δείγματος"
 
-#: src/gui/uifiles/siril.ui:2784
+#: src/gui/uifiles/siril.ui:2780
 #, fuzzy
 msgid "Color Management..."
 msgstr "Κορεσμός χρώματος..."
 
-#: src/gui/uifiles/siril.ui:2797
+#: src/gui/uifiles/siril.ui:2793
 #, fuzzy
 msgid "Open the CCM dialog"
 msgstr "Άνοιγμα διαλόγου επίλυσης εικόνας"
 
-#: src/gui/uifiles/siril.ui:2799
+#: src/gui/uifiles/siril.ui:2795
 #, fuzzy
 msgid "Color Conversion Matrix..."
 msgstr "Η εγγραφή ολοκληρώθηκε."
 
-#: src/gui/uifiles/siril.ui:2813
+#: src/gui/uifiles/siril.ui:2809
 msgid "FITS Header..."
 msgstr "Κεφαλίδα FITS..."
 
-#: src/gui/uifiles/siril.ui:2827
+#: src/gui/uifiles/siril.ui:2823
 #, fuzzy
 msgid "Image Information..."
 msgstr "Πληροφορίες Εικόνας"
 
-#: src/gui/uifiles/siril.ui:2879
+#: src/gui/uifiles/siril.ui:2875
 msgid "current red file"
 msgstr "τρέχων κόκκινο αρχείο"
 
-#: src/gui/uifiles/siril.ui:3043
+#: src/gui/uifiles/siril.ui:3039
 msgid "current green file"
 msgstr "τρέχων πράσινο αρχείο"
 
-#: src/gui/uifiles/siril.ui:3211
+#: src/gui/uifiles/siril.ui:3207
 msgid "current blue file"
 msgstr "τρέχων μπλέ αρχείο"
 
-#: src/gui/uifiles/siril.ui:3671
+#: src/gui/uifiles/siril.ui:3667
 msgid "Size"
 msgstr "Μέγεθος"
 
-#: src/gui/uifiles/siril.ui:3685
+#: src/gui/uifiles/siril.ui:3681
 msgid "Date"
 msgstr "Ημερομηνία"
 
-#: src/gui/uifiles/siril.ui:3724
+#: src/gui/uifiles/siril.ui:3720
 msgid "Add files to convert"
 msgstr "Προσθήκη αρχείων για μετατροπή"
 
-#: src/gui/uifiles/siril.ui:3726
+#: src/gui/uifiles/siril.ui:3722
 msgid "Add"
 msgstr "Προσθήκη"
 
-#: src/gui/uifiles/siril.ui:3740
+#: src/gui/uifiles/siril.ui:3736
 msgid "Remove selected files"
 msgstr "Αφαίρεση επιλεγμένων αρχείων"
 
-#: src/gui/uifiles/siril.ui:3756
+#: src/gui/uifiles/siril.ui:3752
 msgid "Remove all files from the list"
 msgstr "Αφαίρεση όλων των αρχείων από την λίστα"
 
-#: src/gui/uifiles/siril.ui:3811
+#: src/gui/uifiles/siril.ui:3807
 msgid ""
 "Supported types depend on compile-time libraries availability. See "
 "documentation.\n"
@@ -8129,15 +8097,15 @@ msgstr ""
 "Τα αρχεία SER μπορούν να χειριστούν απευθείας σαν μια ακολουθία, και δεν "
 "είναι ακόμα διαθέσιμα για μετατροπή."
 
-#: src/gui/uifiles/siril.ui:3828
+#: src/gui/uifiles/siril.ui:3824
 msgid "Supported file types:"
 msgstr "Τύποι αρχείων που υποστηρίζονται:"
 
-#: src/gui/uifiles/siril.ui:3847
+#: src/gui/uifiles/siril.ui:3843
 msgid "Source"
 msgstr "Πηγή"
 
-#: src/gui/uifiles/siril.ui:3877
+#: src/gui/uifiles/siril.ui:3873
 msgid ""
 "Indicates the start indice of your converted files. This value must be "
 "included in the [1, 65535] range."
@@ -8145,7 +8113,7 @@ msgstr ""
 "Υποδηλώνει την αρχή του δείκτη των αρχείων που έχουν μετατραπεί. Αυτή η τιμή "
 "πρέπει να είναι στην περιοχή [1,65535]."
 
-#: src/gui/uifiles/siril.ui:3899
+#: src/gui/uifiles/siril.ui:3895
 msgid ""
 "Start conversion of all source files into the configured output files, FITS "
 "or SER, with colour processing or not."
@@ -8153,7 +8121,7 @@ msgstr ""
 "Να ξεκινήσει η μετατροπή όλων των πηγαίων αρχείων στα προκαθορισμένα αρχεία "
 "εξόδου, FITS ή SER, με ή χωρίς έγχρωμη επεξεργασία."
 
-#: src/gui/uifiles/siril.ui:3916
+#: src/gui/uifiles/siril.ui:3912
 msgid ""
 "This sets the destination sequence type.\n"
 "FITS images: one FITS file per image.\n"
@@ -8173,24 +8141,24 @@ msgstr ""
 "Σημείωση: οι εικόνες FITS δεν θα επηρεαστούν όταν η αλληλουχία προ-"
 "επεξεργασίας είναι αρχείο αλληλουχίας SER ή FITS."
 
-#: src/gui/uifiles/siril.ui:3925 src/gui/uifiles/siril.ui:4293
-#: src/gui/uifiles/siril.ui:5364
+#: src/gui/uifiles/siril.ui:3921 src/gui/uifiles/siril.ui:4289
+#: src/gui/uifiles/siril.ui:5360
 msgid "FITS images"
 msgstr "Εικόνες FITS"
 
-#: src/gui/uifiles/siril.ui:3926 src/gui/uifiles/siril.ui:5365
+#: src/gui/uifiles/siril.ui:3922 src/gui/uifiles/siril.ui:5361
 msgid "SER sequence"
 msgstr "Ακολουθία SER"
 
-#: src/gui/uifiles/siril.ui:3927 src/gui/uifiles/siril.ui:5366
+#: src/gui/uifiles/siril.ui:3923 src/gui/uifiles/siril.ui:5362
 msgid "FITS sequence"
 msgstr "Aκολουθία FITS"
 
-#: src/gui/uifiles/siril.ui:3942
+#: src/gui/uifiles/siril.ui:3938
 msgid "Multiple sequences"
 msgstr "Πολλαπλές ακολουθίες"
 
-#: src/gui/uifiles/siril.ui:3945
+#: src/gui/uifiles/siril.ui:3941
 msgid ""
 "Tick this to create several sequence files instead of a single SER or FITS "
 "file for all input elements. Use this if input elements (sequence files such "
@@ -8202,11 +8170,11 @@ msgstr ""
 "επιλογή εάν τα στοιχεία εισόδου (αρχεία ακολουθίας, όπως ταινίες, κυβικά SER "
 "ή FITS) δεν έχουν το ίδιο μέγεθος εικόνας ή δεν πρέπει να επεξεργαστούν μαζί."
 
-#: src/gui/uifiles/siril.ui:3957
+#: src/gui/uifiles/siril.ui:3953
 msgid "Symbolic Link"
 msgstr "Συμβολική σύνδεση"
 
-#: src/gui/uifiles/siril.ui:3961
+#: src/gui/uifiles/siril.ui:3957
 #, fuzzy
 msgid ""
 "Create a symbolic link for FITS files instead of copying them. This is "
@@ -8223,7 +8191,7 @@ msgstr ""
 "<b>ΠΡΟΕΙΔΟΠΟΙΗΣΗ: Στα Windows, οι λειτουργίες συμβολικής σύνδεσης είναι "
 "δυνατές μόνο σε λειτουργία Ανάπτυξης.</b>"
 
-#: src/gui/uifiles/siril.ui:3980
+#: src/gui/uifiles/siril.ui:3976
 msgid ""
 "Debayer single-channel images (CFA format) using the Bayer matrix layout "
 "given in the settings. Also applies to image opening, not only conversion.\n"
@@ -8237,7 +8205,7 @@ msgstr ""
 "Ο στόχος της έγχρωμης εικόνας εφαρμόζεται επίσης και στο αποτέλεσμα debayer "
 "για μετατροπή."
 
-#: src/gui/uifiles/siril.ui:4004
+#: src/gui/uifiles/siril.ui:4000
 msgid ""
 "Enter the base name of the sequence, for example NGC_6822-L. It will create "
 "images in the form NGC_6822-L_00001.fit."
@@ -8245,15 +8213,15 @@ msgstr ""
 "Εισάγεται το βασικό όνομα της ακολουθίας, για παράδειγμα NGC_6822-L. Θα "
 "δημιουργήσει εικόνες με τη μορφή NGC_6822-L_00001.fit."
 
-#: src/gui/uifiles/siril.ui:4021
+#: src/gui/uifiles/siril.ui:4017
 msgid "Sequence name:"
 msgstr "Όνομα ακολουθίας:"
 
-#: src/gui/uifiles/siril.ui:4034
+#: src/gui/uifiles/siril.ui:4030
 msgid "Destination"
 msgstr "Προορισμός"
 
-#: src/gui/uifiles/siril.ui:4057
+#: src/gui/uifiles/siril.ui:4053
 msgid ""
 "This conversion tab is used to import files and convert them into a format "
 "with which Siril can work: FITS or SER."
@@ -8262,60 +8230,60 @@ msgstr ""
 "μετατροπής τους σε μορφή αρχείου με το οποίο το Siril μπορεί να δουλέψει: "
 "FITS ή SER."
 
-#: src/gui/uifiles/siril.ui:4060
+#: src/gui/uifiles/siril.ui:4056
 msgid "Conversion"
 msgstr "Μετατροπή"
 
-#: src/gui/uifiles/siril.ui:4120
+#: src/gui/uifiles/siril.ui:4116
 #, fuzzy
 msgid "Clean Sequence"
 msgstr "Περικοπή ακολουθίας"
 
-#: src/gui/uifiles/siril.ui:4124
+#: src/gui/uifiles/siril.ui:4120
 msgid ""
 "This button clears selection, registration and/or statistics data stored in "
 "the loaded sequence. You can specify to clear only registration, statistics "
 "and/or selection with the button on the right.\n"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4140
+#: src/gui/uifiles/siril.ui:4136
 msgid ""
 "You can specify to clear only registration, statistics and/or selection by "
 "checking the option you want."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4178
+#: src/gui/uifiles/siril.ui:4174
 msgid "Search sequences"
 msgstr "Αναζήτηση ακολουθιών"
 
-#: src/gui/uifiles/siril.ui:4182
+#: src/gui/uifiles/siril.ui:4178
 msgid ""
 "Search current directory for sequences of FITS images, SER or film videos."
 msgstr ""
 "Επιλέξτε τον τρέχων κατάλογο για ακολουθίες εικόνων FITS, SER ή ταινιών."
 
-#: src/gui/uifiles/siril.ui:4197
+#: src/gui/uifiles/siril.ui:4193
 msgid "Open Frame List"
 msgstr "Άνοιγμα Λίστας Καρέ"
 
-#: src/gui/uifiles/siril.ui:4201 src/gui/uifiles/siril.ui:10225
+#: src/gui/uifiles/siril.ui:4197 src/gui/uifiles/siril.ui:10221
 msgid "Show/Hide list of images in the sequence with registration data"
 msgstr ""
 "Εμφάνιση/Απόκρυψη της λίστας εικόνων στην ακολουθία με δεδομένα εγγραφής"
 
-#: src/gui/uifiles/siril.ui:4225
+#: src/gui/uifiles/siril.ui:4221
 msgid "Sequence selection"
 msgstr "Επιλογή ακολουθίας"
 
-#: src/gui/uifiles/siril.ui:4259
+#: src/gui/uifiles/siril.ui:4255
 msgid "Base name:"
 msgstr "Όνομα βάσης:"
 
-#: src/gui/uifiles/siril.ui:4272
+#: src/gui/uifiles/siril.ui:4268
 msgid "Base name for the exported sequence"
 msgstr "Όνομα βάσης για την εξαγόμενη ακολουθία"
 
-#: src/gui/uifiles/siril.ui:4287
+#: src/gui/uifiles/siril.ui:4283
 msgid ""
 "Export sequence format.\n"
 "MP4 and WEBM replace GIF for Web publication, AVI is uncompressed 8 bits. To "
@@ -8336,15 +8304,15 @@ msgstr ""
 "Για τις εικόνες SER και TIFF, εάν οι εικόνες εισόδου είναι 32 bit, "
 "μετατρέπονται σε 16, με απώλεια ακρίβειας."
 
-#: src/gui/uifiles/siril.ui:4294
+#: src/gui/uifiles/siril.ui:4290
 msgid "FITS cube"
 msgstr "Κύβικό FITS"
 
-#: src/gui/uifiles/siril.ui:4331
+#: src/gui/uifiles/siril.ui:4327
 msgid "Export sequence"
 msgstr "Εξαγωγή ακολουθίας"
 
-#: src/gui/uifiles/siril.ui:4335
+#: src/gui/uifiles/siril.ui:4331
 msgid ""
 "Export the loaded sequence in the selected format. It can be used to store a "
 "sequence in another format, make animated movies, or store a lighter version "
@@ -8358,11 +8326,11 @@ msgstr ""
 "να περικοπούν και να επιλεχθούν με τα ίδια κριτήρια όπως στην επιλογή "
 "σώρευσης εικόνας."
 
-#: src/gui/uifiles/siril.ui:4346
+#: src/gui/uifiles/siril.ui:4342
 msgid "Normalize images"
 msgstr "Κανονικοποίηση εικόνων"
 
-#: src/gui/uifiles/siril.ui:4350
+#: src/gui/uifiles/siril.ui:4346
 msgid ""
 "Activate image normalisation for the export. This will make all images the "
 "same brightness and is thus recommended for sequences with inconsistent "
@@ -8379,31 +8347,31 @@ msgstr ""
 "αλληλουχίας.\n"
 "\t\t\t"
 
-#: src/gui/uifiles/siril.ui:4367 src/io/sequence_export.c:731
+#: src/gui/uifiles/siril.ui:4363 src/io/sequence_export.c:731
 msgid "Select area to crop"
 msgstr "Επιλέξτε περιοχή για περικοπή"
 
-#: src/gui/uifiles/siril.ui:4396
+#: src/gui/uifiles/siril.ui:4392
 msgid "Image selection uses the same controls as for stacking:"
 msgstr "Η επιλογή εικόνας χρησιμοποιεί τον ίδιο έλεγχο όπως η σώρευση:"
 
-#: src/gui/uifiles/siril.ui:4406
+#: src/gui/uifiles/siril.ui:4402
 msgid "Go to the stacking tab"
 msgstr "Μετάβαση στη καρτέλα σώρευσης"
 
-#: src/gui/uifiles/siril.ui:4434
+#: src/gui/uifiles/siril.ui:4430
 msgid "Fps:"
 msgstr "Fps:"
 
-#: src/gui/uifiles/siril.ui:4446
+#: src/gui/uifiles/siril.ui:4442
 msgid "Frame rate"
 msgstr "Ρυθμός καρέ"
 
-#: src/gui/uifiles/siril.ui:4463
+#: src/gui/uifiles/siril.ui:4459
 msgid "Resize"
 msgstr "Αλλαγή διαστάσεων"
 
-#: src/gui/uifiles/siril.ui:4467
+#: src/gui/uifiles/siril.ui:4463
 msgid ""
 "Check this box if you want to resize exported sequence. Note that this will "
 "degrade image quality."
@@ -8411,27 +8379,27 @@ msgstr ""
 "Επιλέξτε αυτό το κουτί αν θέλετε να αλλάξετε τις διαστάσεις της εξαγόμενης "
 "ακολουθίας. Σημειώστε ότι αυτό θα μειώσει την ποιότητα της εικόνας."
 
-#: src/gui/uifiles/siril.ui:4487
+#: src/gui/uifiles/siril.ui:4483
 msgid "Full HD"
 msgstr "Full HD"
 
-#: src/gui/uifiles/siril.ui:4488
+#: src/gui/uifiles/siril.ui:4484
 msgid "4K"
 msgstr "4K"
 
-#: src/gui/uifiles/siril.ui:4489
+#: src/gui/uifiles/siril.ui:4485
 msgid "8K"
 msgstr "8K"
 
-#: src/gui/uifiles/siril.ui:4504
+#: src/gui/uifiles/siril.ui:4500
 msgid "Width of output video"
 msgstr "Πλάτος βίντεο εξόδου"
 
-#: src/gui/uifiles/siril.ui:4538
+#: src/gui/uifiles/siril.ui:4534
 msgid "Height of output video"
 msgstr "Ύψος βίντεο εξόδου"
 
-#: src/gui/uifiles/siril.ui:4565
+#: src/gui/uifiles/siril.ui:4561
 msgid ""
 "Film quality: lower value will use more compression and less bitrate, also "
 "resulting in smaller file size. Values above 2 could be useful for fast-"
@@ -8442,11 +8410,11 @@ msgstr ""
 "από 2 θα μπορούσαν να είναι χρήσιμες για ταχέως κινούμενες εικόνες, όπως "
 "φωτεινά time-lapse."
 
-#: src/gui/uifiles/siril.ui:4590
+#: src/gui/uifiles/siril.ui:4586
 msgid "Sequence export"
 msgstr "Εξαγωγή ακολουθίας"
 
-#: src/gui/uifiles/siril.ui:4616
+#: src/gui/uifiles/siril.ui:4612
 msgid ""
 "Images are manipulated in sequences. Siril can find sequences in CWD, and "
 "you can filter images out."
@@ -8454,16 +8422,16 @@ msgstr ""
 "Οι εικόνες χειρίζονται σαν ακολουθίες. Το Siril μπορεί να βρει αλληλουχίες "
 "σε CWD, και μπορείτε να φιλτράρετε τις εικόνες."
 
-#: src/gui/uifiles/siril.ui:4619 src/gui/callbacks.c:2180
+#: src/gui/uifiles/siril.ui:4615 src/gui/callbacks.c:2180
 msgid "Sequence"
 msgstr "Ακολουθία"
 
 #. Flat is the kind of the picture used here. In french I've decided to not translate the word.
-#: src/gui/uifiles/siril.ui:4659
+#: src/gui/uifiles/siril.ui:4655
 msgid "Use flat"
 msgstr "Χρήση flat"
 
-#: src/gui/uifiles/siril.ui:4663 src/gui/uifiles/siril.ui:4694
+#: src/gui/uifiles/siril.ui:4659 src/gui/uifiles/siril.ui:4690
 msgid ""
 "All images in the sequence will be divided by the master flat image (each "
 "pixel value)."
@@ -8471,7 +8439,7 @@ msgstr ""
 "Όλες οι εικόνες της ακολουθίας θα διαιρεθούν με την εικόνα του κυρίως flat "
 "(κάθε τιμή pixel)."
 
-#: src/gui/uifiles/siril.ui:4678
+#: src/gui/uifiles/siril.ui:4674
 msgid ""
 "Enter the master flat file name here, or use the browse button.\n"
 "All images in the sequence will be divided by the master flat image (each "
@@ -8483,16 +8451,16 @@ msgstr ""
 "(κάθε τιμή pixel)."
 
 #. Dark is the kind of the picture used here. In french I've decided to not translate the word.
-#: src/gui/uifiles/siril.ui:4713
+#: src/gui/uifiles/siril.ui:4709
 msgid "Use dark"
 msgstr "Χρήση dark"
 
-#: src/gui/uifiles/siril.ui:4717 src/gui/uifiles/siril.ui:4733
+#: src/gui/uifiles/siril.ui:4713 src/gui/uifiles/siril.ui:4729
 msgid "The dark master image will be removed from all images in the sequence."
 msgstr ""
 "Η εικόνα του Κυρίως-dark θα αφαιρεθεί από όλες τις εικόνες της ακολουθίας."
 
-#: src/gui/uifiles/siril.ui:4754
+#: src/gui/uifiles/siril.ui:4750
 msgid ""
 "Enter the master dark file name here, or use the browse button.\n"
 "The dark master image will be removed from all images in the sequence."
@@ -8502,20 +8470,20 @@ msgstr ""
 "Η εικόνα του Κυρίως-dark θα αφαιρεθεί από όλες τις εικόνες της ακολουθίας."
 
 #. Offset is the kind of the picture used here. In french I've decided to not translate the word.
-#: src/gui/uifiles/siril.ui:4767
+#: src/gui/uifiles/siril.ui:4763
 #, fuzzy
 msgid "Use bias"
 msgstr "κυρίως-bias"
 
-#: src/gui/uifiles/siril.ui:4771 src/gui/uifiles/siril.ui:4803
-#: src/gui/uifiles/siril.ui:5775
+#: src/gui/uifiles/siril.ui:4767 src/gui/uifiles/siril.ui:4799
+#: src/gui/uifiles/siril.ui:5771
 msgid ""
 "The bias/offset master image will be removed from all images in the sequence."
 msgstr ""
 "Η εικόνα του Κυρίως-bias/offset θα αφαιρεθεί από όλες τις εικόνες της "
 "ακολουθίας."
 
-#: src/gui/uifiles/siril.ui:4786
+#: src/gui/uifiles/siril.ui:4782
 msgid ""
 "Enter the master bias/offset file name here, or use the browse button.\n"
 "The bias/offset master image will be removed from all images in the "
@@ -8530,26 +8498,26 @@ msgstr ""
 "Αντί για μια εικόνα μπορείτε να ορίσετε ένα ενιαίο επίπεδο που θα αφαιρεθεί, "
 "ξεκινώντας με ένα \"=\" σύμβολο όπως =256 ή =64*$OFFSET"
 
-#: src/gui/uifiles/siril.ui:4790
+#: src/gui/uifiles/siril.ui:4786
 #, fuzzy
 msgid "master-bias.fit"
 msgstr "κυρίως-bias"
 
-#: src/gui/uifiles/siril.ui:4822
+#: src/gui/uifiles/siril.ui:4818
 msgid "Equalize CFA"
 msgstr "Εξίσωση CFA"
 
-#: src/gui/uifiles/siril.ui:4826
+#: src/gui/uifiles/siril.ui:4822
 msgid ""
 "This option equalizes the mean intensity of RGB layers in a CFA flat image."
 msgstr ""
 "Η επιλογή εξισώνει τη μέση ένταση των επιπέδων RGB σε μια επίπεδη εικόνα CFA"
 
-#: src/gui/uifiles/siril.ui:4838
+#: src/gui/uifiles/siril.ui:4834
 msgid "Auto evaluate normalisation value"
 msgstr "Αυτόματη αξιολόγηση της τιμής ομαλοποίησης"
 
-#: src/gui/uifiles/siril.ui:4842
+#: src/gui/uifiles/siril.ui:4838
 msgid ""
 "If this box is checked, Siril will auto-evaluate the normalisation value.\n"
 "This value is the mean of the master flat calibrated with the master offset."
@@ -8559,15 +8527,15 @@ msgstr ""
 "Αυτή η τιμή είναι ο μέσος όρος του Κυρίως-flat βαθμονομημένο με το Κυρίως-"
 "offset."
 
-#: src/gui/uifiles/siril.ui:4860
+#: src/gui/uifiles/siril.ui:4856
 msgid "Choose your own normalisation value."
 msgstr "Επιλέξτε την δική σας τιμή ομαλοποίησης."
 
-#: src/gui/uifiles/siril.ui:4877
+#: src/gui/uifiles/siril.ui:4873
 msgid "Fix X-Trans AF artifact"
 msgstr "Διόρθωση αντικειμένου Αυτόματης Εστίασης X-Trans"
 
-#: src/gui/uifiles/siril.ui:4881
+#: src/gui/uifiles/siril.ui:4877
 msgid ""
 "This option helps to fix the Fujifilm X-Trans Auto Focus pixels. Indeed, "
 "because of the phase detection auto focus system, the photosites used for "
@@ -8582,7 +8550,7 @@ msgstr ""
 "αυξάνει τις τιμές από αυτές τις συγκεκριμένες φωτοεστίες δίνοντας ένα ορατό "
 "τετράγωνο στη μέση των dark/bias καρέ."
 
-#: src/gui/uifiles/siril.ui:4896
+#: src/gui/uifiles/siril.ui:4892
 #, fuzzy
 msgid ""
 "Dark subtraction can be optimized. Siril offers two ways of doing this.\n"
@@ -8608,31 +8576,31 @@ msgstr ""
 "ΠΡΟΕΙΔΟΠΟΙΗΣΗ: Μην εφαρμόσετε βελτιστοποίηση dark στο Κυρίως-dark αν "
 "προηγουμένως δεν έχει αφαιρεθεί το Κυρίως-bias."
 
-#: src/gui/uifiles/siril.ui:4905
+#: src/gui/uifiles/siril.ui:4901
 #, fuzzy
 msgid "No dark optimization"
 msgstr "Βελτιστοποίηση"
 
-#: src/gui/uifiles/siril.ui:4906
+#: src/gui/uifiles/siril.ui:4902
 #, fuzzy
 msgid "Auto-evaluation"
 msgstr "Σχέση Περιοχής Pixel"
 
-#: src/gui/uifiles/siril.ui:4907
+#: src/gui/uifiles/siril.ui:4903
 #, fuzzy
 msgid "Use Exposure"
 msgstr "Χρήση offset"
 
-#: src/gui/uifiles/siril.ui:4927
+#: src/gui/uifiles/siril.ui:4923
 #, fuzzy
 msgid "Image calibration"
 msgstr "Εγγραφή εικόνας"
 
-#: src/gui/uifiles/siril.ui:4953
+#: src/gui/uifiles/siril.ui:4949
 msgid "Enable Cosmectic Correction"
 msgstr "Ενεργοποίηση Αισθητικής Διόρθωσης"
 
-#: src/gui/uifiles/siril.ui:4957
+#: src/gui/uifiles/siril.ui:4953
 msgid ""
 "Check if you want to apply a hot pixel removal.\n"
 "Hot pixels are located on the master-dark."
@@ -8640,12 +8608,12 @@ msgstr ""
 "Επιλέξτε αν θέλετε να εφαρμόσετε αφαίρεση θερμού pixel.\n"
 "Τα θερμά pixel εντοπίζονται στο Κυρίως-dark."
 
-#: src/gui/uifiles/siril.ui:4987
+#: src/gui/uifiles/siril.ui:4983
 msgid "CFA data"
 msgstr "Δεδομένα CFA"
 
-#: src/gui/uifiles/siril.ui:5033 src/gui/uifiles/siril.ui:5057
-#: src/gui/uifiles/siril.ui:5087 src/gui/uifiles/siril.ui:5101
+#: src/gui/uifiles/siril.ui:5029 src/gui/uifiles/siril.ui:5053
+#: src/gui/uifiles/siril.ui:5083 src/gui/uifiles/siril.ui:5097
 msgid ""
 "How many times the standard deviation, the pixel value must differ to be "
 "considered as defective."
@@ -8653,7 +8621,7 @@ msgstr ""
 "Πόσες φορές της τυπικής απόκλισης, η τιμή του pixel πρέπει να διαφέρει ώστε "
 "να θεωρηθεί ελαττωματικό."
 
-#: src/gui/uifiles/siril.ui:5073
+#: src/gui/uifiles/siril.ui:5069
 msgid ""
 "Click on this button to evaluate the number of deviant pixels. If values are "
 "higher than 1% of the total of pixels, you will be encouraged to change "
@@ -8663,19 +8631,19 @@ msgstr ""
 "pixel. Αν οι τιμές είναι πάνω από 1% των συνολικών pixel, τότε θα σας "
 "προταθεί να αλλάξετε τις τιμές σίγμα."
 
-#: src/gui/uifiles/siril.ui:5124 src/gui/uifiles/siril.ui:5136
+#: src/gui/uifiles/siril.ui:5120 src/gui/uifiles/siril.ui:5132
 msgid "0 px"
 msgstr "0 px"
 
-#: src/gui/uifiles/siril.ui:5157
+#: src/gui/uifiles/siril.ui:5153
 msgid "Master-dark"
 msgstr "Κυρίως-dark"
 
-#: src/gui/uifiles/siril.ui:5166
+#: src/gui/uifiles/siril.ui:5162
 msgid "Using Master-Dark"
 msgstr "Γίνεται χρήση Κυρίως-Dark"
 
-#: src/gui/uifiles/siril.ui:5192
+#: src/gui/uifiles/siril.ui:5188
 msgid ""
 "Enter the bad pixel map file name here, or use the browse button. This file "
 "is generally created by the command <i>find_hot</i> applied on a dark frame "
@@ -8689,37 +8657,37 @@ msgid ""
 "* The line <i>L y 0 type</i> will fix the bad line at coordinates <i>y</i>."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5211
+#: src/gui/uifiles/siril.ui:5207
 msgid ""
 "Load the bad pixel map file. This file must be ended by the <i>*.lst</i> "
 "extension."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5238
+#: src/gui/uifiles/siril.ui:5234
 #, fuzzy
 msgid "Bad Pixel Map"
 msgstr "Pixel Math"
 
-#: src/gui/uifiles/siril.ui:5247
+#: src/gui/uifiles/siril.ui:5243
 #, fuzzy
 msgid "Using Bad Pixel Map"
 msgstr "Pixel Math"
 
-#: src/gui/uifiles/siril.ui:5264
+#: src/gui/uifiles/siril.ui:5260
 #, fuzzy
 msgid "Cosmetic correction"
 msgstr "Αισθητική Διόρθωση"
 
-#: src/gui/uifiles/siril.ui:5307
+#: src/gui/uifiles/siril.ui:5303
 #, fuzzy
 msgid "Prefix of the image names resulting from the calibration."
 msgstr "Πρόθεμα του ονόματος των εικόνων που προκύπτουν από την εγγραφή."
 
-#: src/gui/uifiles/siril.ui:5319
+#: src/gui/uifiles/siril.ui:5315
 msgid "Start calibration"
 msgstr "Έναρξη Βαθμονόμησης"
 
-#: src/gui/uifiles/siril.ui:5324
+#: src/gui/uifiles/siril.ui:5320
 msgid ""
 "Pre-process sequence with the above master files, resulting sequence will be "
 "in pp_<seq.name> or another prefix given aside.\n"
@@ -8735,11 +8703,11 @@ msgstr ""
 "Η επόμενη ενέργεια για εικόνες από DSLR θα είναι να γίνει debayer των πρεο-"
 "επεξεργασμένων εικόνων, πηγαίνετε στην καρτέλα Μετατροπή."
 
-#: src/gui/uifiles/siril.ui:5340
+#: src/gui/uifiles/siril.ui:5336
 msgid "Debayer before saving"
 msgstr "Debayer πριν την αποθήκευση"
 
-#: src/gui/uifiles/siril.ui:5344
+#: src/gui/uifiles/siril.ui:5340
 #, fuzzy
 msgid ""
 "Check this option if you want to apply a demosaicing algorithm to your FITS "
@@ -8753,7 +8721,7 @@ msgstr ""
 "ΠΡΟΕΙΔΟΠΟΙΗΣΗ: αυτή η επιλογή είναι διαθέσιμη μόνο για εικόνες FITS καθώς "
 "στις ακολουθίες SER μπορεί να γίνει demosaic στη στιγμή."
 
-#: src/gui/uifiles/siril.ui:5357
+#: src/gui/uifiles/siril.ui:5353
 msgid ""
 "This sets the destination sequence type.\n"
 "FITS images: one FITS file per image.\n"
@@ -8767,36 +8735,36 @@ msgstr ""
 "bits ανά κανάλι).\n"
 "Αλληλουχία FITS: ένα αρχείο FITS για όλη την ακολουθία."
 
-#: src/gui/uifiles/siril.ui:5376
+#: src/gui/uifiles/siril.ui:5372
 msgid "Calibrate all frames"
 msgstr "Βαθμονόμηση όλων των καρέ"
 
-#: src/gui/uifiles/siril.ui:5380
+#: src/gui/uifiles/siril.ui:5376
 msgid "Force calibration of all frames even if marked as excluded."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5394
+#: src/gui/uifiles/siril.ui:5390
 msgid "Output sequence"
 msgstr "Εξαγωγή ακολουθίας"
 
-#: src/gui/uifiles/siril.ui:5420
+#: src/gui/uifiles/siril.ui:5416
 #, fuzzy
 msgid "Calibration is an optional step to apply to a sequence of images."
 msgstr ""
 "Η προ-επεξεργασία είναι ένα προαιρετικό βήμα εφαρμογής σε μια ακολουθία "
 "εικόνων."
 
-#: src/gui/uifiles/siril.ui:5422
+#: src/gui/uifiles/siril.ui:5418
 msgid "Calibration"
 msgstr "Βαθμονόμηση"
 
-#: src/gui/uifiles/siril.ui:5493
+#: src/gui/uifiles/siril.ui:5489
 msgid "Registration channel: "
 msgstr "Κανάλι εγγραφής: "
 
 #  It can only be done on one layer at a time, so on monochrome images
 # Do you mean:  It can only be done on one layer at a time, on monochrome images
-#: src/gui/uifiles/siril.ui:5505
+#: src/gui/uifiles/siril.ui:5501
 msgid ""
 "Layer on which the registration is done. It can only be done on one layer at "
 "a time, so on monochrome images.\n"
@@ -8813,11 +8781,11 @@ msgstr ""
 "προεπιλεγμένο επίπεδο αν είναι διαθέσιμα (για εικόνες RGB: το Πράσινο, "
 "εναλλακτικά το Μπλε μετά το Κόκκινο)."
 
-#: src/gui/uifiles/siril.ui:5549
+#: src/gui/uifiles/siril.ui:5545
 msgid "Match stars in selection"
 msgstr "Ταίριασμα αστεριών στην επιλογή"
 
-#: src/gui/uifiles/siril.ui:5553
+#: src/gui/uifiles/siril.ui:5549
 msgid ""
 "Check this box if you want to perform the Global Star Alignment algorithm "
 "within the selected area in the reference image. If no selection are done, "
@@ -8832,11 +8800,11 @@ msgstr ""
 "<b>ΠΡΟΕΙΔΟΠΟΙΗΣΗ<b>: Σιγουρευτείτε να σχεδιάσετε μια επιλογή με αρκετό "
 "αριθμό αστεριών."
 
-#: src/gui/uifiles/siril.ui:5569
+#: src/gui/uifiles/siril.ui:5565
 msgid "Minimum Star Pairs:"
 msgstr "Ελάχιστα Zευγάρια Αστεριών:"
 
-#: src/gui/uifiles/siril.ui:5580
+#: src/gui/uifiles/siril.ui:5576
 msgid ""
 "The minimum number of star pairs a given frame can have in relation with the "
 "reference frame. If a given light frame has less star pairs, it will not be "
@@ -8846,24 +8814,24 @@ msgstr ""
 "σχέση με το καρέ αναφοράς. Εάν ένα δεδομένο light καρέ έχει λιγότερα ζεύγη "
 "αστεριών, δεν θα καταχωρηθεί."
 
-#: src/gui/uifiles/siril.ui:5605
+#: src/gui/uifiles/siril.ui:5601
 #, fuzzy
 msgid "Maximum Stars Fitted:"
 msgstr "Ελάχιστα Zευγάρια Αστεριών:"
 
-#: src/gui/uifiles/siril.ui:5616
+#: src/gui/uifiles/siril.ui:5612
 msgid ""
 "The maximum number of stars to be searched for in each frame (default 2000). "
 "The larger this value, the more stars will potentially be detected, "
 "resulting in a longer detection but more accurate registration."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5621
+#: src/gui/uifiles/siril.ui:5617
 #, fuzzy
 msgid "500"
 msgstr "0"
 
-#: src/gui/uifiles/siril.ui:5635
+#: src/gui/uifiles/siril.ui:5631
 msgid ""
 "<b>Shift</b> is a 2 degree-of-freedom (x/y shifts) rigid mapping, well-"
 "suited for images with no distortion, no scaling and no field rotation. It "
@@ -8917,37 +8885,37 @@ msgstr ""
 "να είναι τουλάχιστον 3 για <b>μετατόπιση</b>, <b>ομοιότητα</b> και "
 "<b>συγγένεια</b> και 4 για <b>ομογραφία</b>."
 
-#: src/gui/uifiles/siril.ui:5646
+#: src/gui/uifiles/siril.ui:5642
 msgid "Shift"
 msgstr "Μετατόπιση"
 
-#: src/gui/uifiles/siril.ui:5647
+#: src/gui/uifiles/siril.ui:5643
 msgid "Similarity"
 msgstr "Ομοιότητα"
 
-#: src/gui/uifiles/siril.ui:5648
+#: src/gui/uifiles/siril.ui:5644
 msgid "Affine"
 msgstr "Συγγενείς"
 
-#: src/gui/uifiles/siril.ui:5649
+#: src/gui/uifiles/siril.ui:5645
 msgid "Homography"
 msgstr "Ομογραφία"
 
-#: src/gui/uifiles/siril.ui:5663
+#: src/gui/uifiles/siril.ui:5659
 #, fuzzy
 msgid "Transformation:"
 msgstr "Μετασχηματισμός Asinh"
 
-#: src/gui/uifiles/siril.ui:5675
+#: src/gui/uifiles/siril.ui:5671
 msgid "Hit this button for star detection settings"
 msgstr "Πατήστε αυτό το κουμπί για τις ρυθμίσεις εντοπισμού αστέρων"
 
-#: src/gui/uifiles/siril.ui:5693
+#: src/gui/uifiles/siril.ui:5689
 #, fuzzy
 msgid "2pass registration"
 msgstr "Χειροκίνητη εγγραφή"
 
-#: src/gui/uifiles/siril.ui:5697
+#: src/gui/uifiles/siril.ui:5693
 msgid ""
 "When this box is checked, the transformed images are not saved as a newly "
 "registered sequence. The transformation matrices are saved to the sequence "
@@ -8959,12 +8927,12 @@ msgid ""
 "and immediately applied using the output registration options selected below."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5721
+#: src/gui/uifiles/siril.ui:5717
 #, fuzzy
 msgid "Undistortion:"
 msgstr "άγνωστη εικόνα"
 
-#: src/gui/uifiles/siril.ui:5732
+#: src/gui/uifiles/siril.ui:5728
 msgid ""
 "To correct images for distortions, you can either select:\n"
 "- distortion solution from current platesolved image\n"
@@ -8972,42 +8940,42 @@ msgid ""
 "- distortion solution from distortions masters"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5739
+#: src/gui/uifiles/siril.ui:5735
 #, fuzzy
 msgid "From image"
 msgstr "Τύποι αρχείων που υποστηρίζονται:"
 
-#: src/gui/uifiles/siril.ui:5740
+#: src/gui/uifiles/siril.ui:5736
 #, fuzzy
 msgid "From FITS/WCS file"
 msgstr "Τύποι αρχείων που υποστηρίζονται:"
 
-#: src/gui/uifiles/siril.ui:5741
+#: src/gui/uifiles/siril.ui:5737
 #, fuzzy
 msgid "From distortion masters"
 msgstr "Γίνεται υπολογισμός ομαλοποίησης...\n"
 
-#: src/gui/uifiles/siril.ui:5758
+#: src/gui/uifiles/siril.ui:5754
 msgid ""
 "Select a file to read distortion information from:\n"
 "- a FITS file which has been platesolved with distortion.\n"
 "- a wcs file which was written by a previous registration with distortions."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5867 src/gui/uifiles/siril.ui:5881
-#: src/gui/uifiles/siril.ui:6015
+#: src/gui/uifiles/siril.ui:5863 src/gui/uifiles/siril.ui:5877
+#: src/gui/uifiles/siril.ui:6011
 msgid "Comet velocity in pixel per hour."
 msgstr "Ταχύτητα κομήτη σε pixel ανά ώρα."
 
-#: src/gui/uifiles/siril.ui:5869
+#: src/gui/uifiles/siril.ui:5865
 msgid "Velocity: "
 msgstr "Ταχύτητα: "
 
-#: src/gui/uifiles/siril.ui:5900
+#: src/gui/uifiles/siril.ui:5896
 msgid "Pick object in #1"
 msgstr "Επιλέξτε ένα αντικείμενο στο #1"
 
-#: src/gui/uifiles/siril.ui:5904
+#: src/gui/uifiles/siril.ui:5900
 msgid ""
 "Select an area around the asteroid or the comet core in the first selected "
 "image, then click on this button. The pixel coordinates of the object will "
@@ -9017,11 +8985,11 @@ msgstr ""
 "πρώτη επιλεγμένη εικόνα, στη συνέχεια, κάντε κλικ σε αυτό το κουμπί. Οι "
 "συντεταγμένες του pixel του αντικειμένου θα υπολογιστούν και θα εμφανιστούν."
 
-#: src/gui/uifiles/siril.ui:5914
+#: src/gui/uifiles/siril.ui:5910
 msgid "Pick object in #2"
 msgstr "Επιλέξτε ένα αντικείμενο στο #2"
 
-#: src/gui/uifiles/siril.ui:5918
+#: src/gui/uifiles/siril.ui:5914
 msgid ""
 "Select an area around the asteroid or the comet core in the last selected "
 "image, then click on this button. The pixel coordinates of the object will "
@@ -9031,63 +8999,63 @@ msgstr ""
 "τελευταία επιλεγμένη εικόνα, στη συνέχεια, κάντε κλικ σε αυτό το κουμπί. Οι "
 "συντεταγμένες του pixel του αντικειμένου θα υπολογιστούν και θα εμφανιστούν."
 
-#: src/gui/uifiles/siril.ui:5930
+#: src/gui/uifiles/siril.ui:5926
 msgid "Core X-coordinates of the first image."
 msgstr "Συντεταγμένες Χ του πυρήνα της πρώτης εικόνας."
 
-#: src/gui/uifiles/siril.ui:5946
+#: src/gui/uifiles/siril.ui:5942
 msgid "Core X-coordinates of the second image."
 msgstr "Συντεταγμένες Χ του πυρήνα της δεύτερης εικόνας."
 
-#: src/gui/uifiles/siril.ui:5962
+#: src/gui/uifiles/siril.ui:5958
 msgid "Core Y-coordinates of the first image."
 msgstr "Συντεταγμένες Υ του πυρήνα της πρώτης εικόνας."
 
-#: src/gui/uifiles/siril.ui:5977
+#: src/gui/uifiles/siril.ui:5973
 msgid "Core Y-coordinates of the second image."
 msgstr "Συντεταγμένες Υ του πυρήνα της δεύτερης εικόνας."
 
-#: src/gui/uifiles/siril.ui:6017
+#: src/gui/uifiles/siril.ui:6013
 #, fuzzy
 msgid "Prefix: "
 msgstr "Πρόθεμα:"
 
-#: src/gui/uifiles/siril.ui:6028
+#: src/gui/uifiles/siril.ui:6024
 #, fuzzy
 msgid ""
 "Prefix of the sequence resulting from the registration. Only the seq file is "
 "created, not new images."
 msgstr "Πρόθεμα του ονόματος των εικόνων που προκύπτουν από την εγγραφή."
 
-#: src/gui/uifiles/siril.ui:6084
+#: src/gui/uifiles/siril.ui:6080
 msgid "Pick 1st star"
 msgstr "Επιλέξτε 1ο αστέρι"
 
-#: src/gui/uifiles/siril.ui:6102
+#: src/gui/uifiles/siril.ui:6098
 msgid "Pick 2nd star"
 msgstr "Επιλέξτε 2ο αστέρι"
 
-#: src/gui/uifiles/siril.ui:6117
+#: src/gui/uifiles/siril.ui:6113
 msgid "Pick 3rd star"
 msgstr "Επιλέξτε 3ο αστέρι"
 
-#: src/gui/uifiles/siril.ui:6141
+#: src/gui/uifiles/siril.ui:6137
 msgid "Star #1:"
 msgstr "Αστέρι #1:"
 
-#: src/gui/uifiles/siril.ui:6152
+#: src/gui/uifiles/siril.ui:6148
 msgid "Star #2:"
 msgstr "Αστέρι #2:"
 
-#: src/gui/uifiles/siril.ui:6163
+#: src/gui/uifiles/siril.ui:6159
 msgid "Star #3:"
 msgstr "Αστέρι #3:"
 
-#: src/gui/uifiles/siril.ui:6234
+#: src/gui/uifiles/siril.ui:6230
 msgid "Follow star movement"
 msgstr "Ακολούθηση κίνησης αστεριού"
 
-#: src/gui/uifiles/siril.ui:6238
+#: src/gui/uifiles/siril.ui:6234
 #, fuzzy
 msgid ""
 "Use this option to use the position of the star(s) found in the previous "
@@ -9105,19 +9073,19 @@ msgstr ""
 "ΠΡΟΕΙΔΟΠΟΙΗΣΗ: ενεργοποιώντας αυτή την επιλογή απαιτείται η εγγραφή να μην "
 "είναι παράλληλη, θα τρέξει μόνο σε ένα πυρήνα του επεξεργαστή."
 
-#: src/gui/uifiles/siril.ui:6252
+#: src/gui/uifiles/siril.ui:6248
 #, fuzzy
 msgid "Shift only"
 msgstr "Μετατόπιση"
 
-#: src/gui/uifiles/siril.ui:6256
+#: src/gui/uifiles/siril.ui:6252
 msgid ""
 "Use this option to compute only shifts (so no rotation) even if more than "
 "one star is selected. When only one star is selected, this is activated by "
 "default."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6309
+#: src/gui/uifiles/siril.ui:6305
 msgid ""
 "Indicate relative distance (in percentage vs total image size) over which to "
 "look for the alignment pattern.\n"
@@ -9129,32 +9097,28 @@ msgid ""
 "faster computations."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6315
-msgid "25.00"
-msgstr ""
-
-#: src/gui/uifiles/siril.ui:6331
+#: src/gui/uifiles/siril.ui:6327
 msgid "Size of alignment region(%):"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6375
+#: src/gui/uifiles/siril.ui:6371
 msgid "Registration method:"
 msgstr "Mέθοδος εγγραφής:"
 
-#: src/gui/uifiles/siril.ui:6408
+#: src/gui/uifiles/siril.ui:6404
 msgid "Register all images from sequence"
 msgstr "Εγγραφή όλων των εικόνων από την ακολουθία"
 
-#: src/gui/uifiles/siril.ui:6409
+#: src/gui/uifiles/siril.ui:6405
 msgid "Register selected images only"
 msgstr "Εγγραφή μόνο των επιλεγμένων εικόνων"
 
-#: src/gui/uifiles/siril.ui:6430
+#: src/gui/uifiles/siril.ui:6426
 #, fuzzy
 msgid "Registering 0 images of the 0 of the sequence"
 msgstr "Γίνεται σώρευση 0 εικόνων από 0 της ακολουθίας"
 
-#: src/gui/uifiles/siril.ui:6448
+#: src/gui/uifiles/siril.ui:6444
 #, fuzzy
 msgid ""
 "Select the set of images to be registered:\n"
@@ -9202,83 +9166,83 @@ msgstr ""
 "\n"
 "<b>ποιότητα</b>: εικόνες με βέλτιστη ποιότητα (πλανητικές εγγραφές DFT ή ECC)"
 
-#: src/gui/uifiles/siril.ui:6467 src/gui/uifiles/siril.ui:6596
-#: src/gui/uifiles/siril.ui:6736 src/gui/uifiles/siril.ui:8623
-#: src/gui/uifiles/siril.ui:8752 src/gui/uifiles/siril.ui:8892
+#: src/gui/uifiles/siril.ui:6463 src/gui/uifiles/siril.ui:6592
+#: src/gui/uifiles/siril.ui:6732 src/gui/uifiles/siril.ui:8619
+#: src/gui/uifiles/siril.ui:8748 src/gui/uifiles/siril.ui:8888
 msgid "all"
 msgstr "όλα"
 
-#: src/gui/uifiles/siril.ui:6468 src/gui/uifiles/siril.ui:6597
-#: src/gui/uifiles/siril.ui:6737 src/gui/uifiles/siril.ui:8624
-#: src/gui/uifiles/siril.ui:8753 src/gui/uifiles/siril.ui:8893
+#: src/gui/uifiles/siril.ui:6464 src/gui/uifiles/siril.ui:6593
+#: src/gui/uifiles/siril.ui:6733 src/gui/uifiles/siril.ui:8620
+#: src/gui/uifiles/siril.ui:8749 src/gui/uifiles/siril.ui:8889
 msgid "selected"
 msgstr "επιλέχθηκαν"
 
-#: src/gui/uifiles/siril.ui:6469 src/gui/uifiles/siril.ui:6598
-#: src/gui/uifiles/siril.ui:6738 src/gui/uifiles/siril.ui:7838
-#: src/gui/uifiles/siril.ui:7875 src/gui/uifiles/siril.ui:8625
-#: src/gui/uifiles/siril.ui:8754 src/gui/uifiles/siril.ui:8894
+#: src/gui/uifiles/siril.ui:6465 src/gui/uifiles/siril.ui:6594
+#: src/gui/uifiles/siril.ui:6734 src/gui/uifiles/siril.ui:7834
+#: src/gui/uifiles/siril.ui:7871 src/gui/uifiles/siril.ui:8621
+#: src/gui/uifiles/siril.ui:8750 src/gui/uifiles/siril.ui:8890
 #: src/gui/plot.c:120 src/gui/plot.c:131 src/gui/sequence_list.c:506
 #: src/gui/sequence_list.c:527 src/gui/sequence_list.c:537
 #: src/gui/sequence_list.c:561
 msgid "FWHM"
 msgstr "FWHM"
 
-#: src/gui/uifiles/siril.ui:6470 src/gui/uifiles/siril.ui:6599
-#: src/gui/uifiles/siril.ui:6739 src/gui/uifiles/siril.ui:8626
-#: src/gui/uifiles/siril.ui:8755 src/gui/uifiles/siril.ui:8895
+#: src/gui/uifiles/siril.ui:6466 src/gui/uifiles/siril.ui:6595
+#: src/gui/uifiles/siril.ui:6735 src/gui/uifiles/siril.ui:8622
+#: src/gui/uifiles/siril.ui:8751 src/gui/uifiles/siril.ui:8891
 msgid "weighted FWHM"
 msgstr "σταθμισμένο FWHM"
 
-#: src/gui/uifiles/siril.ui:6471 src/gui/uifiles/siril.ui:6600
-#: src/gui/uifiles/siril.ui:6740 src/gui/uifiles/siril.ui:8627
-#: src/gui/uifiles/siril.ui:8756 src/gui/uifiles/siril.ui:8896
+#: src/gui/uifiles/siril.ui:6467 src/gui/uifiles/siril.ui:6596
+#: src/gui/uifiles/siril.ui:6736 src/gui/uifiles/siril.ui:8623
+#: src/gui/uifiles/siril.ui:8752 src/gui/uifiles/siril.ui:8892
 msgid "roundness"
 msgstr "στρογγυλότητα"
 
-#: src/gui/uifiles/siril.ui:6472 src/gui/uifiles/siril.ui:6601
-#: src/gui/uifiles/siril.ui:6741 src/gui/uifiles/siril.ui:8628
-#: src/gui/uifiles/siril.ui:8757 src/gui/uifiles/siril.ui:8897
+#: src/gui/uifiles/siril.ui:6468 src/gui/uifiles/siril.ui:6597
+#: src/gui/uifiles/siril.ui:6737 src/gui/uifiles/siril.ui:8624
+#: src/gui/uifiles/siril.ui:8753 src/gui/uifiles/siril.ui:8893
 #, fuzzy
 msgid "background"
 msgstr "Υπόβαθρο"
 
-#: src/gui/uifiles/siril.ui:6473 src/gui/uifiles/siril.ui:6602
-#: src/gui/uifiles/siril.ui:6742 src/gui/uifiles/siril.ui:8629
-#: src/gui/uifiles/siril.ui:8758 src/gui/uifiles/siril.ui:8898
+#: src/gui/uifiles/siril.ui:6469 src/gui/uifiles/siril.ui:6598
+#: src/gui/uifiles/siril.ui:6738 src/gui/uifiles/siril.ui:8625
+#: src/gui/uifiles/siril.ui:8754 src/gui/uifiles/siril.ui:8894
 #, fuzzy
 msgid "nb stars"
 msgstr "%d αστέρι"
 
-#: src/gui/uifiles/siril.ui:6474 src/gui/uifiles/siril.ui:6603
-#: src/gui/uifiles/siril.ui:6743 src/gui/uifiles/siril.ui:8630
-#: src/gui/uifiles/siril.ui:8759 src/gui/uifiles/siril.ui:8899
+#: src/gui/uifiles/siril.ui:6470 src/gui/uifiles/siril.ui:6599
+#: src/gui/uifiles/siril.ui:6739 src/gui/uifiles/siril.ui:8626
+#: src/gui/uifiles/siril.ui:8755 src/gui/uifiles/siril.ui:8895
 msgid "quality"
 msgstr "ποιότητα"
 
-#: src/gui/uifiles/siril.ui:6488 src/gui/uifiles/siril.ui:6616
-#: src/gui/uifiles/siril.ui:6756 src/gui/uifiles/siril.ui:8644
-#: src/gui/uifiles/siril.ui:8772 src/gui/uifiles/siril.ui:8912
+#: src/gui/uifiles/siril.ui:6484 src/gui/uifiles/siril.ui:6612
+#: src/gui/uifiles/siril.ui:6752 src/gui/uifiles/siril.ui:8640
+#: src/gui/uifiles/siril.ui:8768 src/gui/uifiles/siril.ui:8908
 #: src/gui/registration.c:97 src/stacking/stacking.c:72
 msgid "Percents of the images of the sequence."
 msgstr "Ποσόστοση των εικόνων της ακολουθίας."
 
-#: src/gui/uifiles/siril.ui:6516 src/gui/uifiles/siril.ui:6644
-#: src/gui/uifiles/siril.ui:6784 src/gui/uifiles/siril.ui:8672
-#: src/gui/uifiles/siril.ui:8800 src/gui/uifiles/siril.ui:8940
+#: src/gui/uifiles/siril.ui:6512 src/gui/uifiles/siril.ui:6640
+#: src/gui/uifiles/siril.ui:6780 src/gui/uifiles/siril.ui:8668
+#: src/gui/uifiles/siril.ui:8796 src/gui/uifiles/siril.ui:8936
 msgid ""
 "Choose between % and k-σ to keep given percentage of images or to compute "
 "the allowable threshold using k-σ clipping."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6547 src/gui/uifiles/siril.ui:6674
-#: src/gui/uifiles/siril.ui:8703 src/gui/uifiles/siril.ui:8830
+#: src/gui/uifiles/siril.ui:6543 src/gui/uifiles/siril.ui:6670
+#: src/gui/uifiles/siril.ui:8699 src/gui/uifiles/siril.ui:8826
 msgid "Add another filter"
 msgstr "Προσθήκη φίλτρου"
 
-#: src/gui/uifiles/siril.ui:6577 src/gui/uifiles/siril.ui:6717
-#: src/gui/uifiles/siril.ui:8604 src/gui/uifiles/siril.ui:8733
-#: src/gui/uifiles/siril.ui:8873
+#: src/gui/uifiles/siril.ui:6573 src/gui/uifiles/siril.ui:6713
+#: src/gui/uifiles/siril.ui:8600 src/gui/uifiles/siril.ui:8729
+#: src/gui/uifiles/siril.ui:8869
 #, fuzzy
 msgid ""
 "Select the set of images to be stacked:\n"
@@ -9326,17 +9290,17 @@ msgstr ""
 "\n"
 "<b>ποιότητα</b>: εικόνες με βέλτιστη ποιότητα (πλανητικές εγγραφές DFT ή ECC)"
 
-#: src/gui/uifiles/siril.ui:6690 src/gui/uifiles/siril.ui:6817
-#: src/gui/uifiles/siril.ui:8846 src/gui/uifiles/siril.ui:8973
+#: src/gui/uifiles/siril.ui:6686 src/gui/uifiles/siril.ui:6813
+#: src/gui/uifiles/siril.ui:8842 src/gui/uifiles/siril.ui:8969
 msgid "Remove this filter"
 msgstr "Αφαίρεση αυτού του φίλτρου"
 
-#: src/gui/uifiles/siril.ui:6849
+#: src/gui/uifiles/siril.ui:6845
 #, fuzzy
 msgid "Image selection:"
 msgstr "Δεν υπάρχει επιλογή"
 
-#: src/gui/uifiles/siril.ui:6902
+#: src/gui/uifiles/siril.ui:6898
 msgid ""
 "Specifies the framing method to be used:\n"
 "- \"current\" uses the current reference image\n"
@@ -9348,60 +9312,60 @@ msgid ""
 "of gravity (cog) of all the images"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6911
+#: src/gui/uifiles/siril.ui:6907
 #, fuzzy
 msgid "current"
 msgstr "τρέχων κόκκινο αρχείο"
 
-#: src/gui/uifiles/siril.ui:6912
+#: src/gui/uifiles/siril.ui:6908
 #, fuzzy
 msgid "maximum"
 msgstr "Μέγιστη Μάσκα"
 
-#: src/gui/uifiles/siril.ui:6913
+#: src/gui/uifiles/siril.ui:6909
 #, fuzzy
 msgid "minimum"
 msgstr "Μέγιστη Μάσκα"
 
-#: src/gui/uifiles/siril.ui:6914
+#: src/gui/uifiles/siril.ui:6910
 msgid "center of gravity"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6929
+#: src/gui/uifiles/siril.ui:6925
 #, fuzzy
 msgid "Framing method"
 msgstr "Mέθοδος εγγραφής:"
 
-#: src/gui/uifiles/siril.ui:6942
+#: src/gui/uifiles/siril.ui:6938
 msgid "Estimates the final size and space used by the stacked image."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6986
+#: src/gui/uifiles/siril.ui:6982
 msgid "Scaling:"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6999
+#: src/gui/uifiles/siril.ui:6995
 msgid ""
 "Scaling of the output images. Use Estimate button to determine the final "
 "image size."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7036
+#: src/gui/uifiles/siril.ui:7032
 msgid ""
 "Choose whether to use an interpolation algorithm or Drizzle to apply "
 "registration"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7064
+#: src/gui/uifiles/siril.ui:7060
 msgid "Algorithm: "
 msgstr "Αλγόριθμος: "
 
-#: src/gui/uifiles/siril.ui:7075
+#: src/gui/uifiles/siril.ui:7071
 #, fuzzy
 msgid "Set the interpolation algorithm"
 msgstr "Εκκίνηση του αλγόριθμου επίλυσης εικόνας."
 
-#: src/gui/uifiles/siril.ui:7100
+#: src/gui/uifiles/siril.ui:7096
 msgid ""
 "Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms\n"
 "\n"
@@ -9415,16 +9379,16 @@ msgid ""
 "prevents negative interpolated values and ringing artifacts for most images."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7119
+#: src/gui/uifiles/siril.ui:7115
 #, fuzzy
 msgid "Use interpolation"
 msgstr "Παρεμβολή Debayer: "
 
-#: src/gui/uifiles/siril.ui:7132
+#: src/gui/uifiles/siril.ui:7128
 msgid "Include master flat in initial pixel weighting"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7136
+#: src/gui/uifiles/siril.ui:7132
 msgid ""
 "Check this to include the master flat in the initial pixel weighting. This "
 "will result in pixels from less vignetted areas of input frames being "
@@ -9434,79 +9398,75 @@ msgid ""
 "The master flat must be set in the Calibration tab."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7152
+#: src/gui/uifiles/siril.ui:7148
 msgid "Droplet Model"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7164
+#: src/gui/uifiles/siril.ui:7160
 #, fuzzy
 msgid "Pixel Fraction"
 msgstr "Σχέση Περιοχής Pixel"
 
-#: src/gui/uifiles/siril.ui:7175
+#: src/gui/uifiles/siril.ui:7171
 msgid ""
 "Select the droplet model. See the documentation for details\n"
 "Note that the Gaussian and Lanczos models do not conserve flux and should "
 "not be used f you wish to use the output for accurate photometry."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7179
+#: src/gui/uifiles/siril.ui:7175
 #, fuzzy
 msgid "Square"
 msgstr "Τετράγωνο"
 
-#: src/gui/uifiles/siril.ui:7181
+#: src/gui/uifiles/siril.ui:7177
 #, fuzzy
 msgid "Point"
 msgstr "Μαύρο Σημείο"
 
-#: src/gui/uifiles/siril.ui:7182
+#: src/gui/uifiles/siril.ui:7178
 msgid "Turbo"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7183
+#: src/gui/uifiles/siril.ui:7179
 #, fuzzy
 msgid "Lanczos2"
 msgstr "Lanczos4"
 
-#: src/gui/uifiles/siril.ui:7184
+#: src/gui/uifiles/siril.ui:7180
 #, fuzzy
 msgid "Lanczos3"
 msgstr "Lanczos4"
 
-#: src/gui/uifiles/siril.ui:7196
+#: src/gui/uifiles/siril.ui:7192
 msgid ""
 "Sets the droplet size as a fraction of the input pixel size. Typically a "
 "good value for this is the reciprocal of the drizzle scale."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7197
-msgid "1.00"
-msgstr ""
-
-#: src/gui/uifiles/siril.ui:7216
+#: src/gui/uifiles/siril.ui:7212
 #, fuzzy
 msgid "Use drizzle"
 msgstr "Χρήση dark"
 
-#: src/gui/uifiles/siril.ui:7236
+#: src/gui/uifiles/siril.ui:7232
 msgid "Prefix:"
 msgstr "Πρόθεμα:"
 
-#: src/gui/uifiles/siril.ui:7250
+#: src/gui/uifiles/siril.ui:7246
 msgid "Prefix of the image names resulting from the registration."
 msgstr "Πρόθεμα του ονόματος των εικόνων που προκύπτουν από την εγγραφή."
 
-#: src/gui/uifiles/siril.ui:7280
+#: src/gui/uifiles/siril.ui:7276
 #, fuzzy
 msgid "Output registration:"
 msgstr "Χειροκίνητη εγγραφή"
 
-#: src/gui/uifiles/siril.ui:7295
+#: src/gui/uifiles/siril.ui:7291
 msgid "Go register"
 msgstr "Εκκίνηση εγγραφής"
 
-#: src/gui/uifiles/siril.ui:7300
+#: src/gui/uifiles/siril.ui:7296
 msgid ""
 "Start the registration process. It will register images in the loaded "
 "sequence using the selected method and reference layer (loaded in the 'Image "
@@ -9517,20 +9477,20 @@ msgstr ""
 "αναφοράς (φορτωμένο στην καρτέλα 'Αλληλουχίες Εικόνων', το τρέχων όνομα της "
 "αλληλουχίας είναι επίσης στο κάτω μέρος του παραθύρου)."
 
-#: src/gui/uifiles/siril.ui:7319
+#: src/gui/uifiles/siril.ui:7315
 msgid "Load a sequence first"
 msgstr "Φορτώστε πρώτα μια ακολουθία"
 
-#: src/gui/uifiles/siril.ui:7336
+#: src/gui/uifiles/siril.ui:7332
 #, fuzzy
 msgid "Automatic image registration"
 msgstr "Εγγραφή εικόνας"
 
-#: src/gui/uifiles/siril.ui:7371
+#: src/gui/uifiles/siril.ui:7367
 msgid "Display reference image"
 msgstr "Προβολή εικόνας αναφοράς"
 
-#: src/gui/uifiles/siril.ui:7376
+#: src/gui/uifiles/siril.ui:7372
 msgid ""
 "Display the reference image over the current image using a 50% "
 "transparency.\n"
@@ -9542,11 +9502,11 @@ msgstr ""
 "Για να ενεργοποιηθεί, η εικόνα αναφοράς πρέπει να έχει οριστεί και να φανεί "
 "μια φορά στο επιλεγμένο επίπεδο εγγραφής."
 
-#: src/gui/uifiles/siril.ui:7391
+#: src/gui/uifiles/siril.ui:7387
 msgid "Set reference image first"
 msgstr "Ορίστε πρώτα την εικόνα αναφοράς"
 
-#: src/gui/uifiles/siril.ui:7420
+#: src/gui/uifiles/siril.ui:7416
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the X axis."
@@ -9555,11 +9515,11 @@ msgstr ""
 "κάτω βέλος, για να ευθυγραμμίσετε την εικόνα με την εικόνα αναφοράς στον "
 "άξονα Χ."
 
-#: src/gui/uifiles/siril.ui:7421
+#: src/gui/uifiles/siril.ui:7417
 msgid "X translation:"
 msgstr "Χ μετατόπιση:"
 
-#: src/gui/uifiles/siril.ui:7456
+#: src/gui/uifiles/siril.ui:7452
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the Y axis."
@@ -9568,15 +9528,15 @@ msgstr ""
 "κάτω βέλος, για να ευθυγραμμίσετε την εικόνα με την εικόνα αναφοράς στον "
 "άξονα Υ."
 
-#: src/gui/uifiles/siril.ui:7457
+#: src/gui/uifiles/siril.ui:7453
 msgid "Y translation:"
 msgstr "Y μετατόπιση:"
 
-#: src/gui/uifiles/siril.ui:7516
+#: src/gui/uifiles/siril.ui:7512
 msgid "Set first preview"
 msgstr "Ορίστε την πρώτη προεπισκόπηση"
 
-#: src/gui/uifiles/siril.ui:7520 src/gui/uifiles/siril.ui:7562
+#: src/gui/uifiles/siril.ui:7516 src/gui/uifiles/siril.ui:7558
 msgid ""
 "Allows a preview area to be displayed just below. After clicking on this "
 "button, click on the image to position the preview area's centre"
@@ -9585,15 +9545,15 @@ msgstr ""
 "κλικ σε αυτό το κουμπί, κάντε κλικ στην εικόνα για να τοποθετήσετε το κέντρο "
 "της περιοχής προεπισκόπησης"
 
-#: src/gui/uifiles/siril.ui:7558
+#: src/gui/uifiles/siril.ui:7554
 msgid "Set second preview"
 msgstr "Ορίστε την δεύτερη προεπισκόπηση"
 
-#: src/gui/uifiles/siril.ui:7606 src/compositing/compositing.c:2013
+#: src/gui/uifiles/siril.ui:7602 src/compositing/compositing.c:2013
 msgid "Manual registration"
 msgstr "Χειροκίνητη εγγραφή"
 
-#: src/gui/uifiles/siril.ui:7632
+#: src/gui/uifiles/siril.ui:7628
 msgid ""
 "Registration is basically aligning the images from a sequence to be able to "
 "process them afterwards."
@@ -9601,16 +9561,16 @@ msgstr ""
 "Η εγγραφή βασικά είναι η ευθυγράμμιση των εικόνων από μια ακολουθία για την "
 "δυνατότητα επεξεργασίας τους μετά."
 
-#: src/gui/uifiles/siril.ui:7694
+#: src/gui/uifiles/siril.ui:7690
 msgid "Modify x-axis units, or y-axis units if available."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7706
+#: src/gui/uifiles/siril.ui:7702
 #, fuzzy
 msgid "Display"
 msgstr "Επεξεργασία Εικόνας"
 
-#: src/gui/uifiles/siril.ui:7741
+#: src/gui/uifiles/siril.ui:7737
 msgid ""
 "Purple curve: actual plot as configured with X and Y selectors.\n"
 "Green curve: sorted values by order of decreasing quality.\n"
@@ -9623,93 +9583,93 @@ msgstr ""
 "Κυκλικός δείκτης: η τιμή για το πλαίσιο αναφοράς.\n"
 "Δείκτης σταυρός: η τιμή για το τρέχον φορτωμένο καρέ."
 
-#: src/gui/uifiles/siril.ui:7745
+#: src/gui/uifiles/siril.ui:7741
 msgid "Hovering for the legend"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7764
+#: src/gui/uifiles/siril.ui:7760
 msgid ""
 "This button opens a CSV export of the data, or a screenshot of the plot."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7824
+#: src/gui/uifiles/siril.ui:7820
 msgid "X:"
 msgstr "X:"
 
-#: src/gui/uifiles/siril.ui:7839 src/gui/uifiles/siril.ui:7876
+#: src/gui/uifiles/siril.ui:7835 src/gui/uifiles/siril.ui:7872
 #: src/gui/plot.c:121 src/gui/plot.c:132 src/gui/sequence_list.c:512
 #: src/gui/sequence_list.c:534
 msgid "Roundness"
 msgstr "Στρογγυλότητα"
 
-#: src/gui/uifiles/siril.ui:7840 src/gui/uifiles/siril.ui:7877
+#: src/gui/uifiles/siril.ui:7836 src/gui/uifiles/siril.ui:7873
 #: src/gui/plot.c:133 src/gui/sequence_list.c:509
 msgid "wFWHM"
 msgstr "wFWHM"
 
-#: src/gui/uifiles/siril.ui:7841 src/gui/uifiles/siril.ui:7878
+#: src/gui/uifiles/siril.ui:7837 src/gui/uifiles/siril.ui:7874
 #: src/gui/plot.c:124 src/gui/plot.c:134 src/gui/sequence_list.c:518
 #: src/gui/sequence_list.c:546
 msgid "Background"
 msgstr "Υπόβαθρο"
 
-#: src/gui/uifiles/siril.ui:7842 src/gui/uifiles/siril.ui:7879
+#: src/gui/uifiles/siril.ui:7838 src/gui/uifiles/siril.ui:7875
 #: src/gui/plot.c:135
 msgid "# Stars"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7843 src/gui/uifiles/siril.ui:7881
+#: src/gui/uifiles/siril.ui:7839 src/gui/uifiles/siril.ui:7877
 #: src/gui/plot.c:125 src/gui/plot.c:136 src/gui/sequence_list.c:549
 msgid "X Position"
 msgstr "Θέση Χ"
 
-#: src/gui/uifiles/siril.ui:7844 src/gui/uifiles/siril.ui:7882
+#: src/gui/uifiles/siril.ui:7840 src/gui/uifiles/siril.ui:7878
 #: src/gui/plot.c:126 src/gui/plot.c:137 src/gui/sequence_list.c:552
 msgid "Y Position"
 msgstr "Θέση Y"
 
-#: src/gui/uifiles/siril.ui:7846 src/gui/plot.c:139
+#: src/gui/uifiles/siril.ui:7842 src/gui/plot.c:139
 msgid "Frame"
 msgstr "Καρέ"
 
-#: src/gui/uifiles/siril.ui:7860
+#: src/gui/uifiles/siril.ui:7856
 msgid "Y:"
 msgstr "Y:"
 
-#: src/gui/uifiles/siril.ui:7872
+#: src/gui/uifiles/siril.ui:7868
 msgid "Select which information to display from photometry data."
 msgstr "Επιλέξτε ποιές πληροφορίες θα εμφανιστούν από δεδομένα φωτομετρίας."
 
-#: src/gui/uifiles/siril.ui:7909
+#: src/gui/uifiles/siril.ui:7905
 msgid "Select the source of graph information."
 msgstr "Επιλέξτε την πηγή των πληροφοριών του γραφήματος."
 
-#: src/gui/uifiles/siril.ui:7912
+#: src/gui/uifiles/siril.ui:7908
 #, fuzzy
 msgid "Registration data"
 msgstr "Mέθοδος εγγραφής:"
 
-#: src/gui/uifiles/siril.ui:7913
+#: src/gui/uifiles/siril.ui:7909
 #, fuzzy
 msgid "Photometry data"
 msgstr "Φωτομετρία"
 
-#: src/gui/uifiles/siril.ui:7928
+#: src/gui/uifiles/siril.ui:7924
 msgid "Deletes photometric plots displayed in the graphics area."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7940
+#: src/gui/uifiles/siril.ui:7936
 #, fuzzy
 msgid "Clear plots"
 msgstr "Καθαρισμός του τελευταίου"
 
-#: src/gui/uifiles/siril.ui:7991
+#: src/gui/uifiles/siril.ui:7987
 msgid "Show all relevant graphs using registration and / or photometry data."
 msgstr ""
 "Εμφάνιση όλων των σχετικών γραφημάτων χρησιμοποιώντας δεδομένα εγγραφής ή/"
 "και φωτομετρίας."
 
-#: src/gui/uifiles/siril.ui:8045
+#: src/gui/uifiles/siril.ui:8041
 #, fuzzy
 msgid ""
 "<b>Sum</b>: This is the simplest method.\n"
@@ -9777,32 +9737,32 @@ msgstr ""
 "Τα pixel της εικόνας αντικαθίστανται από pixel στις ίδιες συντεταγμένες, εάν "
 "η ένταση είναι χαμηλότερη."
 
-#: src/gui/uifiles/siril.ui:8070 src/stacking/sum.c:266
+#: src/gui/uifiles/siril.ui:8066 src/stacking/sum.c:266
 msgid "Sum stacking"
 msgstr "Αθροιστική σώρευση"
 
-#: src/gui/uifiles/siril.ui:8071
+#: src/gui/uifiles/siril.ui:8067
 msgid "Average stacking with rejection"
 msgstr "Σώρευση μέσου όρου με απόρριψη"
 
-#: src/gui/uifiles/siril.ui:8072
+#: src/gui/uifiles/siril.ui:8068
 msgid "Median stacking"
 msgstr "Σώρευση διαμέσου"
 
-#: src/gui/uifiles/siril.ui:8073
+#: src/gui/uifiles/siril.ui:8069
 msgid "Pixel maximum stacking"
 msgstr "Σώρευση μέγιστου pixel"
 
-#: src/gui/uifiles/siril.ui:8074
+#: src/gui/uifiles/siril.ui:8070
 msgid "Pixel minimum stacking"
 msgstr "Σώρευση ελάχιστου pixel"
 
-#: src/gui/uifiles/siril.ui:8085
+#: src/gui/uifiles/siril.ui:8081
 #, fuzzy
 msgid "Method:"
 msgstr "Μέθοδος: "
 
-#: src/gui/uifiles/siril.ui:8120
+#: src/gui/uifiles/siril.ui:8116
 #, fuzzy
 msgid ""
 "If one of these items is selected, a normalisation process will be applied "
@@ -9843,27 +9803,27 @@ msgstr ""
 "Όμως, η πολλαπλασιαστική ομαλοποίηση θα πρέπει να χρησιμοποιηθεί με flat "
 "καρέ.<b>"
 
-#: src/gui/uifiles/siril.ui:8129
+#: src/gui/uifiles/siril.ui:8125
 msgid "No normalisation"
 msgstr "Χωρίς ομαλοποίηση"
 
-#: src/gui/uifiles/siril.ui:8130
+#: src/gui/uifiles/siril.ui:8126
 msgid "Additive"
 msgstr "Προσθετική"
 
-#: src/gui/uifiles/siril.ui:8132
+#: src/gui/uifiles/siril.ui:8128
 msgid "Additive with scaling"
 msgstr "Προσθετική με κλιμάκωση"
 
-#: src/gui/uifiles/siril.ui:8133
+#: src/gui/uifiles/siril.ui:8129
 msgid "Multiplicative with scaling"
 msgstr "Πολλαπλασιαστική με κλιμάκωση"
 
-#: src/gui/uifiles/siril.ui:8145
+#: src/gui/uifiles/siril.ui:8141
 msgid "Recompute"
 msgstr "Επανυπολογισμός"
 
-#: src/gui/uifiles/siril.ui:8149
+#: src/gui/uifiles/siril.ui:8145
 msgid ""
 "By default, Siril takes the normalisation coefficients from seq file if "
 "already computed. However you can force Siril to recompute it before "
@@ -9873,12 +9833,12 @@ msgstr ""
 "εφόσον έχουν υπολογιστεί. Όμως μπορείτε να εξαναγκάσετε το Siril να τις "
 "επαναϋπολογίσει πριν την σώρευση."
 
-#: src/gui/uifiles/siril.ui:8162
+#: src/gui/uifiles/siril.ui:8158
 #, fuzzy
 msgid "Faster normalisation"
 msgstr "Χωρίς ομαλοποίηση"
 
-#: src/gui/uifiles/siril.ui:8166
+#: src/gui/uifiles/siril.ui:8162
 msgid ""
 "By default, Siril uses IKSS estimators of location and scale to compute "
 "normalisation. For long sequences, computing these estimators can be quite "
@@ -9888,19 +9848,19 @@ msgid ""
 "normalization at all."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8185
+#: src/gui/uifiles/siril.ui:8181
 msgid "Normalisation:"
 msgstr "Ομαλοποίηση:"
 
-#: src/gui/uifiles/siril.ui:8276 src/stacking/stacking.c:844
+#: src/gui/uifiles/siril.ui:8272 src/stacking/stacking.c:844
 msgid "Sigma low: "
 msgstr "Κάτω Σίγμα: "
 
-#: src/gui/uifiles/siril.ui:8310 src/stacking/stacking.c:845
+#: src/gui/uifiles/siril.ui:8306 src/stacking/stacking.c:845
 msgid "Sigma high: "
 msgstr "Άνω Σίγμα: "
 
-#: src/gui/uifiles/siril.ui:8321
+#: src/gui/uifiles/siril.ui:8317
 msgid ""
 "Seven rejection algorithms are available:\n"
 "\n"
@@ -9979,39 +9939,39 @@ msgstr ""
 "[3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-"
 "Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 
-#: src/gui/uifiles/siril.ui:8342
+#: src/gui/uifiles/siril.ui:8338
 msgid "No rejection"
 msgstr "Χωρίς απόρριψη"
 
-#: src/gui/uifiles/siril.ui:8343
+#: src/gui/uifiles/siril.ui:8339
 msgid "Percentile Clipping"
 msgstr "Εκατοστιαία αποκοπή"
 
-#: src/gui/uifiles/siril.ui:8344
+#: src/gui/uifiles/siril.ui:8340
 msgid "Sigma Clipping"
 msgstr "Αποκοπή Σίγμα"
 
-#: src/gui/uifiles/siril.ui:8345 src/stacking/stacking.c:355
+#: src/gui/uifiles/siril.ui:8341 src/stacking/stacking.c:355
 msgid "MAD clipping"
 msgstr "Aποκοπή MAD"
 
-#: src/gui/uifiles/siril.ui:8346
+#: src/gui/uifiles/siril.ui:8342
 msgid "Median Sigma Clipping"
 msgstr "Αποκοπή Διαμέσου Σίγμα"
 
-#: src/gui/uifiles/siril.ui:8347
+#: src/gui/uifiles/siril.ui:8343
 msgid "Winsorized Sigma Clipping"
 msgstr "Αποκοπή Σίγμα Winsor"
 
-#: src/gui/uifiles/siril.ui:8348
+#: src/gui/uifiles/siril.ui:8344
 msgid "Linear Fit Clipping"
 msgstr "Αποκοπή Γραμμικού Fit"
 
-#: src/gui/uifiles/siril.ui:8349
+#: src/gui/uifiles/siril.ui:8345
 msgid "Generalized Extreme Studentized Deviate Test"
 msgstr "Generalized Extreme Studentized Deviate Test"
 
-#: src/gui/uifiles/siril.ui:8362
+#: src/gui/uifiles/siril.ui:8358
 msgid ""
 "Four methods of weighting are available:\n"
 "\n"
@@ -10027,78 +9987,78 @@ msgid ""
 "time."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8375 src/gui/plot.c:1675 src/gui/plot.c:1703
+#: src/gui/uifiles/siril.ui:8371 src/gui/plot.c:1675 src/gui/plot.c:1703
 #, fuzzy
 msgid "Number of stars"
 msgstr "Κανόνας των τρίτων"
 
-#: src/gui/uifiles/siril.ui:8376
+#: src/gui/uifiles/siril.ui:8372
 #, fuzzy
 msgid "Weighted FWHM"
 msgstr "σταθμισμένο FWHM"
 
-#: src/gui/uifiles/siril.ui:8377
+#: src/gui/uifiles/siril.ui:8373
 #, fuzzy
 msgid "Noise"
 msgstr "Μνήμη: N/A"
 
-#: src/gui/uifiles/siril.ui:8378
+#: src/gui/uifiles/siril.ui:8374
 #, fuzzy
 msgid "Number of images"
 msgstr "Κανόνας των τρίτων"
 
-#: src/gui/uifiles/siril.ui:8392
+#: src/gui/uifiles/siril.ui:8388
 #, fuzzy
 msgid "Weighting:"
 msgstr "Σταθμισμένο"
 
-#: src/gui/uifiles/siril.ui:8407
+#: src/gui/uifiles/siril.ui:8403
 #, fuzzy
 msgid "Create rejection maps"
 msgstr "Χωρίς απόρριψη"
 
-#: src/gui/uifiles/siril.ui:8411
+#: src/gui/uifiles/siril.ui:8407
 msgid ""
 "Compute and create rejection maps during stacking. These are images showing "
 "how many images were rejected for each pixel of the result image, divided by "
 "the number of stacked images."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8423
+#: src/gui/uifiles/siril.ui:8419
 msgid "Merge L+H"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8428
+#: src/gui/uifiles/siril.ui:8424
 msgid ""
 "Create only one rejection map that will be the sum of the low and high maps"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8459
+#: src/gui/uifiles/siril.ui:8455
 #, fuzzy
 msgid "Pixel rejection:"
 msgstr "Σχέση Περιοχής Pixel"
 
-#: src/gui/uifiles/siril.ui:8586
+#: src/gui/uifiles/siril.ui:8582
 msgid "Stacking 0 images of the 0 of the sequence"
 msgstr "Γίνεται σώρευση 0 εικόνων από 0 της ακολουθίας"
 
-#: src/gui/uifiles/siril.ui:9000
+#: src/gui/uifiles/siril.ui:8996
 #, fuzzy
 msgid "Image rejection:"
 msgstr "Χωρίς απόρριψη"
 
-#: src/gui/uifiles/siril.ui:9019
+#: src/gui/uifiles/siril.ui:9015
 msgid "Sequence stacking"
 msgstr "Ακολουθία σώρευσης"
 
-#: src/gui/uifiles/siril.ui:9053
+#: src/gui/uifiles/siril.ui:9049
 #, fuzzy
 msgid "Output Normalisation"
 msgstr ""
 "Ομαλοποίηση\n"
 "Εξόδου"
 
-#: src/gui/uifiles/siril.ui:9056
+#: src/gui/uifiles/siril.ui:9052
 msgid ""
 "If you check this button, the final image will be normalized in the [0, 1] "
 "range if you work in 32-bit format precision, or in [0, 65535] otherwise.\n"
@@ -10111,12 +10071,12 @@ msgstr ""
 "\n"
 "ΠΡΟΕΙΔΟΠΟΙΗΣΗ: Αυτή η επιλογή δεν πρέπει να επιλέγετε για κύρια σώρευση."
 
-#: src/gui/uifiles/siril.ui:9069
+#: src/gui/uifiles/siril.ui:9065
 #, fuzzy
 msgid "RGB equalization"
 msgstr "Ουδετεροποίηση Υποβάθρου"
 
-#: src/gui/uifiles/siril.ui:9072
+#: src/gui/uifiles/siril.ui:9068
 #, fuzzy
 msgid ""
 "If you check this button, the channels in the final image will be equalized "
@@ -10130,23 +10090,23 @@ msgstr ""
 "\n"
 "ΠΡΟΕΙΔΟΠΟΙΗΣΗ: Αυτή η επιλογή δεν πρέπει να επιλέγετε για κύρια σώρευση."
 
-#: src/gui/uifiles/siril.ui:9085
+#: src/gui/uifiles/siril.ui:9081
 msgid "Maximize framing"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9088
+#: src/gui/uifiles/siril.ui:9084
 msgid ""
 "If you check this button, the final image size will be enlarged to fit all "
 "the selected frames of the sequence.\n"
 "                                                            "
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9100
+#: src/gui/uifiles/siril.ui:9096
 #, fuzzy
 msgid "Interpolation upscaling x2"
 msgstr "Παρεμβολή: "
 
-#: src/gui/uifiles/siril.ui:9103
+#: src/gui/uifiles/siril.ui:9099
 msgid ""
 "If you check this button, the final image size will be upscaled by a factor "
 "of 2. This can be faster than real drizzle images obtained during "
@@ -10155,23 +10115,23 @@ msgid ""
 msgstr ""
 
 #. Must be short
-#: src/gui/uifiles/siril.ui:9130
+#: src/gui/uifiles/siril.ui:9126
 msgid "Save in:"
 msgstr "Αποθήκευση σε:"
 
-#: src/gui/uifiles/siril.ui:9154
+#: src/gui/uifiles/siril.ui:9150
 msgid "Overwrite"
 msgstr "Αντικατάσταση αρχείου"
 
-#: src/gui/uifiles/siril.ui:9158
+#: src/gui/uifiles/siril.ui:9154
 msgid "Overwrite file without notice if it already exists."
 msgstr "Να γίνει αντικατάσταση του αρχείου χωρίς προειδοποίηση αν υπάρχει ήδη."
 
-#: src/gui/uifiles/siril.ui:9178
+#: src/gui/uifiles/siril.ui:9174
 msgid "Start stacking"
 msgstr "Έναρξη σώρευσης"
 
-#: src/gui/uifiles/siril.ui:9183
+#: src/gui/uifiles/siril.ui:9179
 #, fuzzy
 msgid ""
 "Start stacking the current sequence of images, using the method and other "
@@ -10183,12 +10143,12 @@ msgstr ""
 "σώρευση, η οποία μετά αποθηκεύεται σε μια 16-bit εικόνα της οποίας το όνομα "
 "δίνεται παρακάτω."
 
-#: src/gui/uifiles/siril.ui:9203
+#: src/gui/uifiles/siril.ui:9199
 #, fuzzy
 msgid "Stacking result"
 msgstr "Σώρευση εικόνας"
 
-#: src/gui/uifiles/siril.ui:9229
+#: src/gui/uifiles/siril.ui:9225
 msgid ""
 "Stacking of images, either summing, median, mean with rejection or pixel "
 "minimum/maximum."
@@ -10196,7 +10156,7 @@ msgstr ""
 "Σώρευση εικόνων, είτε αθροιστικά, διαμέσου, μέσου όρου με απόρριψη ή μέγιστο/"
 "ελάχιστο pixel."
 
-#: src/gui/uifiles/siril.ui:9267
+#: src/gui/uifiles/siril.ui:9263
 msgid ""
 "Siril output window, displays messages about what has been done and in "
 "response to command inputs."
@@ -10204,23 +10164,23 @@ msgstr ""
 "Παράθυρο εξόδου Siril, εμφανίζει μηνύματα σχετικά με το τι έχει γίνει καθώς "
 "και σε ανταπόκριση εντολών εισόδου."
 
-#: src/gui/uifiles/siril.ui:9328
+#: src/gui/uifiles/siril.ui:9324
 msgid "Export the log"
 msgstr "Εξαγωγή του αρχείου καταγραφής"
 
-#: src/gui/uifiles/siril.ui:9342 src/gui/progress_and_log.c:286
+#: src/gui/uifiles/siril.ui:9338 src/gui/progress_and_log.c:286
 msgid "Clear the log"
 msgstr "Καθαρισμός του αρχείου καταγραφής"
 
-#: src/gui/uifiles/siril.ui:9379
+#: src/gui/uifiles/siril.ui:9375
 msgid "This tab shows the Siril logs."
 msgstr "Αυτή η καρτέλα εμφανίζει τα αρχεία καταγραφής του Siril."
 
-#: src/gui/uifiles/siril.ui:9382
+#: src/gui/uifiles/siril.ui:9378
 msgid "Console"
 msgstr "Κονσόλα"
 
-#: src/gui/uifiles/siril.ui:9419
+#: src/gui/uifiles/siril.ui:9415
 msgid ""
 "Input command. Typing \"help\" here will bring the list of supported "
 "commands."
@@ -10228,69 +10188,69 @@ msgstr ""
 "Εντολή εισόδου. Γράφοντας \"help\" εδώ θα εμφανιστεί μια λίστα με τις "
 "υποστηριζόμενες εντολές."
 
-#: src/gui/uifiles/siril.ui:9422
+#: src/gui/uifiles/siril.ui:9418
 msgid "Type \"help\" for the list of supported commands"
 msgstr "Γράψτε \"help\" για την λίστα των υποστηριζόμενων εντολών"
 
-#: src/gui/uifiles/siril.ui:9437
+#: src/gui/uifiles/siril.ui:9433
 msgid "Displays manual of the command written in the console."
 msgstr "Προβολή του εγχειριδίου της εντολής που γράφτηκε στην κονσόλα."
 
-#: src/gui/uifiles/siril.ui:9449
+#: src/gui/uifiles/siril.ui:9445
 msgid "Stop"
 msgstr "Διακοπή"
 
-#: src/gui/uifiles/siril.ui:9453
+#: src/gui/uifiles/siril.ui:9449
 msgid "Stop running processes"
 msgstr "Να σταματήσει η εκτέλση της διαδικασίας"
 
-#: src/gui/uifiles/siril.ui:9478
+#: src/gui/uifiles/siril.ui:9474
 msgid "Command line"
 msgstr "Γραμμή εντολών"
 
-#: src/gui/uifiles/siril.ui:9496 src/gui/progress_and_log.c:46
+#: src/gui/uifiles/siril.ui:9492 src/gui/progress_and_log.c:46
 msgid "Ready."
 msgstr "Έτοιμο."
 
-#: src/gui/uifiles/siril.ui:9529
+#: src/gui/uifiles/siril.ui:9525
 msgid "Hide the control panel to show only the image panel (toggle)."
 msgstr ""
 "Απόκρυψη του πίνακα ελέγχου για εμφάνιση μόνο του πίνακα εικόνας (toggle)."
 
-#: src/gui/uifiles/siril.ui:9574
+#: src/gui/uifiles/siril.ui:9570
 msgid "Click to Set the name of the item to clipboard (green-ed label)"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9575
+#: src/gui/uifiles/siril.ui:9571
 msgid "Sequence:"
 msgstr "Ακολουθία:"
 
-#: src/gui/uifiles/siril.ui:9629
+#: src/gui/uifiles/siril.ui:9625
 #, fuzzy
 msgid "Image validation tools"
 msgstr "Εγγραφή εικόνας"
 
-#: src/gui/uifiles/siril.ui:9703
+#: src/gui/uifiles/siril.ui:9699
 msgid "High value"
 msgstr "Υψηλή τιμή"
 
-#: src/gui/uifiles/siril.ui:9762
+#: src/gui/uifiles/siril.ui:9758
 msgid "Low value"
 msgstr "Χαμηλή τιμή"
 
-#: src/gui/uifiles/siril.ui:9812
+#: src/gui/uifiles/siril.ui:9808
 msgid "Min/Max"
 msgstr "Ελάχιστο/Μέγιστο"
 
-#: src/gui/uifiles/siril.ui:9829
+#: src/gui/uifiles/siril.ui:9825
 msgid "MIPS-LO/HI"
 msgstr "MIPS-LO/HI"
 
-#: src/gui/uifiles/siril.ui:9846
+#: src/gui/uifiles/siril.ui:9842
 msgid "User"
 msgstr "Χρήστης"
 
-#: src/gui/uifiles/siril.ui:9890
+#: src/gui/uifiles/siril.ui:9886
 #, fuzzy
 msgid ""
 "Display mode: this list presents all the visual modes available in Siril.\n"
@@ -10309,85 +10269,85 @@ msgstr ""
 "δεδομένα σας. Τεντώστε το ιστόγραμμα σας πριν να εργαστείτε σε ένα εξωτερικό "
 "εργαλείο.</b>"
 
-#: src/gui/uifiles/siril.ui:9940
+#: src/gui/uifiles/siril.ui:9936
 msgid "Chain/unchain channels in autostretch viewer mode.\n"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9966
+#: src/gui/uifiles/siril.ui:9962
 msgid "Switch to normal and negative view"
 msgstr "Μετάβαση σε κανονική και αρνητική προβολή"
 
-#: src/gui/uifiles/siril.ui:9983
+#: src/gui/uifiles/siril.ui:9979
 msgid "Switch to normal and rainbow colormap (false color rendering)"
 msgstr "Αλλαγή σε κανονική παλέτα χρωμάτων και παλέτα χρωμάτων ψευδοχρώματος"
 
-#: src/gui/uifiles/siril.ui:10009
+#: src/gui/uifiles/siril.ui:10005
 msgid "Show object names if WCS information is available"
 msgstr ""
 "Εμφάνιση ονομάτων αντικειμένων, εάν υπάρχουν διαθέσιμες πληροφορίες WCS"
 
-#: src/gui/uifiles/siril.ui:10023
+#: src/gui/uifiles/siril.ui:10019
 msgid "Show celestial grid if WCS information is available"
 msgstr "Εμφάνιση ουράνιου πλέγματος, εάν υπάρχουν διαθέσιμες πληροφορίες WCS"
 
-#: src/gui/uifiles/siril.ui:10037
+#: src/gui/uifiles/siril.ui:10033
 msgid ""
 "Switch to PSF/photometry mode. If a sequence is loaded, a right click on the "
 "displayed image applies the PSF/Photometry on the whole sequence."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10051
+#: src/gui/uifiles/siril.ui:10047
 msgid ""
 "Make an intensity profile cut, showing a graph of the pixel value along a "
 "line between two points"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10075
+#: src/gui/uifiles/siril.ui:10071
 msgid "Shrink the image"
 msgstr "Σμίκρυνση της εικόνας"
 
-#: src/gui/uifiles/siril.ui:10089
+#: src/gui/uifiles/siril.ui:10085
 msgid "Enlarge the image"
 msgstr "Μεγέθυνση της εικόνας"
 
-#: src/gui/uifiles/siril.ui:10103
+#: src/gui/uifiles/siril.ui:10099
 msgid "Fit the image to the window"
 msgstr "Προσαρμογή της εικόνας στο παράθυρο"
 
-#: src/gui/uifiles/siril.ui:10120
+#: src/gui/uifiles/siril.ui:10116
 msgid "Show the image at its normal size"
 msgstr "Εμφάνιση της εικόνας στο κανονικό της μέγεθος"
 
-#: src/gui/uifiles/siril.ui:10181
+#: src/gui/uifiles/siril.ui:10177
 msgid "Horizontal mirror"
 msgstr "Οριζόντια αναστροφή"
 
-#: src/gui/uifiles/siril.ui:10198
+#: src/gui/uifiles/siril.ui:10194
 msgid "Vertical mirror"
 msgstr "Κατακόρυφη αναστροφή"
 
-#: src/gui/uifiles/siril.ui:10267 src/gui/single_image.c:75
+#: src/gui/uifiles/siril.ui:10263 src/gui/single_image.c:75
 msgid "Open"
 msgstr "Άνοιγμα"
 
-#: src/gui/uifiles/siril.ui:10272
+#: src/gui/uifiles/siril.ui:10268
 msgid "Open an image or a SER/AVI sequence"
 msgstr "Άνοιγμα εικόνας ή ακολουθίας SER/AVI"
 
-#: src/gui/uifiles/siril.ui:10288
+#: src/gui/uifiles/siril.ui:10284
 msgid "Open recent images (only FITS and SER files)"
 msgstr "Άνοιγμα πρόσφατων εικόνων (μόνο αρχεία FITS και SER)"
 
-#: src/gui/uifiles/siril.ui:10312
+#: src/gui/uifiles/siril.ui:10308
 msgid "Change current working directory"
 msgstr "Αλλάζει τον τρέχων κατάλογο εργασίας"
 
-#: src/gui/uifiles/siril.ui:10336
+#: src/gui/uifiles/siril.ui:10332
 #, fuzzy
 msgid "Start livestacking session"
 msgstr "Έναρξη σώρευσης"
 
-#: src/gui/uifiles/siril.ui:10412
+#: src/gui/uifiles/siril.ui:10408
 msgid ""
 "Menu of the image processing tools. It contains all suitable functions for "
 "image enhancement."
@@ -10395,11 +10355,11 @@ msgstr ""
 "Μενού των εργαλείων επεξεργασίας εικόνας. Περιέχει όλες τις κατάλληλες "
 "λειτουργίες για τη βελτίωση της εικόνας."
 
-#: src/gui/uifiles/siril.ui:10423
+#: src/gui/uifiles/siril.ui:10419
 msgid "Image Processing"
 msgstr "Επεξεργασία Εικόνας"
 
-#: src/gui/uifiles/siril.ui:10459
+#: src/gui/uifiles/siril.ui:10455
 #, fuzzy
 msgid ""
 "Siril tools menu. It contains all the functions required for image analysis."
@@ -10407,12 +10367,12 @@ msgstr ""
 "Μενού των εργαλείων επεξεργασίας εικόνας. Περιέχει όλες τις κατάλληλες "
 "λειτουργίες για τη βελτίωση της εικόνας."
 
-#: src/gui/uifiles/siril.ui:10470
+#: src/gui/uifiles/siril.ui:10466
 #, fuzzy
 msgid "Tools"
 msgstr "Εργαλεία"
 
-#: src/gui/uifiles/siril.ui:10504
+#: src/gui/uifiles/siril.ui:10500
 msgid ""
 "Menu of the script files. This menu appears only when the script paths "
 "defined in the preferences are set to the existing script folders."
@@ -10421,23 +10381,23 @@ msgstr ""
 "διαδρομές δέσμης ενεργειών που ορίζονται στις προτιμήσεις έχουν οριστεί "
 "στους υπάρχοντες φακέλους δέσμης ενεργειών."
 
-#: src/gui/uifiles/siril.ui:10574
+#: src/gui/uifiles/siril.ui:10570
 msgid "Bit-depth select button"
 msgstr "Κουμπί επιλογής bit-depth"
 
-#: src/gui/uifiles/siril.ui:10628
+#: src/gui/uifiles/siril.ui:10624
 msgid "Save the current FITS image"
 msgstr "Αποθήκευση της τρέχουσας εικόνας FITS"
 
-#: src/gui/uifiles/siril.ui:10643
+#: src/gui/uifiles/siril.ui:10639
 msgid "Save the current image in a different name"
 msgstr "Αποθηκεύση της τρέχουσας εικόνας με διαφορετικό όνομα"
 
-#: src/gui/uifiles/siril.ui:10665
+#: src/gui/uifiles/siril.ui:10661
 msgid "Take a snapshot of your displayed image."
 msgstr "Τραβήξτε ένα στιγμιότυπο της εμφανιζόμενης εικόνας."
 
-#: src/gui/uifiles/siril.ui:10717
+#: src/gui/uifiles/siril.ui:10713
 msgid ""
 "Set number of threads manually.\n"
 "WARNING: Reducing the number of allowed processors too much will degrade "
@@ -10447,11 +10407,11 @@ msgstr ""
 "ΠΡΟΕΙΔΟΠΟΙΗΣΗ: Μειώνοντας τον αριθμό των επιτρεπόμενων επεξεργαστών πάρα "
 "πολύ θα μειωθούν οι επιδόσεις."
 
-#: src/gui/uifiles/siril.ui:10752
+#: src/gui/uifiles/siril.ui:10748
 msgid "Displays the amount of used RAM memory by Siril."
 msgstr "Δείχνει την ποσότητα της μνήμης RAM που χρησιμοποιεί το Siril."
 
-#: src/gui/uifiles/siril.ui:10773
+#: src/gui/uifiles/siril.ui:10769
 msgid ""
 "Displays the amount of disk space available on the file system containing "
 "the working directory."
@@ -10460,7 +10420,7 @@ msgstr ""
 "λειτουργίας."
 
 #. Must be short !!
-#: src/gui/uifiles/siril.ui:10775
+#: src/gui/uifiles/siril.ui:10771
 msgctxt "GUI"
 msgid "Disk Space: N/A"
 msgstr "Μέγεθος Δίσκου: Δεν είναι διαθέσιμο"
@@ -10737,10 +10697,6 @@ msgstr ""
 msgid "Observer's height (altitude) above sea level."
 msgstr ""
 
-#: src/gui/uifiles/s_pcc_dialog.ui:840
-msgid "10.0"
-msgstr ""
-
 #: src/gui/uifiles/s_pcc_dialog.ui:855
 msgid "Atmospheric pressure / hPa:"
 msgstr ""
@@ -10750,10 +10706,6 @@ msgid ""
 "Atmospheric pressure in hPa. If the \"sea level\" check box is checked this "
 "is taken to be sea level pressure, otherwise it is taken to be local "
 "pressure at the observer's height."
-msgstr ""
-
-#: src/gui/uifiles/s_pcc_dialog.ui:867
-msgid "1013.00"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1118
@@ -11730,378 +11682,383 @@ msgstr ""
 msgid "No sequence `%s' found.\n"
 msgstr "Δεν βρέθηκε η ακολουθία `%s' .\n"
 
-#: src/algos/astrometry_solver.c:335
+#: src/algos/astrometry_solver.c:336
 msgid ""
 "Could not invert the SIP distortion coefficients, try using a lower order or "
 "a linear solution\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:485
+#: src/algos/astrometry_solver.c:486
 #, c-format
 msgid ""
 "%s could not find distortion polynomials for the order specified (%d) and "
 "returned a linear solution, try with a lower order or increase magnitude\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:488
+#: src/algos/astrometry_solver.c:489
 msgid ""
 "Siril solver could not find a final solution at the updated center, solution "
 "may be inaccurate\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:491
+#: src/algos/astrometry_solver.c:492
 #, c-format
 msgid "%s solve succeeded.\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:494
+#: src/algos/astrometry_solver.c:495
 #, fuzzy
 msgid "The image could not be aligned with the reference stars\n"
 msgstr ""
 "Η επίλυση της εικόνας απέτυχε. Η εικόνα δεν μπορούσε να ευθυγραμμιστεί με τα "
 "αστέρια αναφοράς.\n"
 
-#: src/algos/astrometry_solver.c:496
+#: src/algos/astrometry_solver.c:497
 #, fuzzy
 msgid "Cancelled\n"
 msgstr "Άκυρο"
 
-#: src/algos/astrometry_solver.c:498
+#: src/algos/astrometry_solver.c:499
 #, fuzzy
 msgid "Not enough memory\n"
 msgstr "Δεν υπάρχουν αρκετά δείγματα."
 
-#: src/algos/astrometry_solver.c:500
+#: src/algos/astrometry_solver.c:501
 #, fuzzy, c-format
 msgid "There are not enough stars picked in the image. least %d are needed\n"
 msgstr ""
 "Δεν έχουν επιλεχθεί αρκετά αστέρια στην εικόνα. Απαιτούνται τουλάχιστον% d "
 "αστέρια."
 
-#: src/algos/astrometry_solver.c:503
+#: src/algos/astrometry_solver.c:504
 msgid "Transformation matrix is invalid, solve failed\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:505
+#: src/algos/astrometry_solver.c:506
 #, fuzzy
 msgid "Reprojecting catalog failed\n"
 msgstr "Η επεξεργασία της ακολουθίας απέτυχε.\n"
 
-#: src/algos/astrometry_solver.c:507
+#: src/algos/astrometry_solver.c:508
 #, fuzzy
 msgid "Updating trans failed\n"
 msgstr "Η ενημέρωση της ομογραφίας απέτυχε.\n"
 
-#: src/algos/astrometry_solver.c:509
+#: src/algos/astrometry_solver.c:510
 #, c-format
 msgid ""
 "Siril near solver could not find a solution over the search radius (%.1f "
 "deg)\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:511
+#: src/algos/astrometry_solver.c:512
 #, c-format
 msgid "Siril near solver time-out after %ds\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:513
+#: src/algos/astrometry_solver.c:514
 msgid "Siril near solver encountered a problem when allocating threads\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:515
+#: src/algos/astrometry_solver.c:516
 msgid ""
 "Local Astrometry.net encountered a problem while launching its process\n"
 msgstr ""
 
 #. center is less than 10" off from a pole
-#: src/algos/astrometry_solver.c:547
+#: src/algos/astrometry_solver.c:548
 msgid "Up position wrt. N is undetermined (too close to a Pole)\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:567
+#: src/algos/astrometry_solver.c:568
 msgid "Up is %+.2lf deg CounterclockWise wrt. N%s\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:567
+#: src/algos/astrometry_solver.c:568
 msgid " (flipped)"
 msgstr " (ανεστραμμένο)"
 
-#: src/algos/astrometry_solver.c:572
+#: src/algos/astrometry_solver.c:573
 msgid "Resolution:%*.3lf arcsec/px\n"
 msgstr "Ανάλυση:%*.3lf arcsec/px\n"
 
-#: src/algos/astrometry_solver.c:574
+#: src/algos/astrometry_solver.c:575
 #, fuzzy
 msgid "Focal length:%*.2lf mm\n"
 msgstr "Εστιακή: %*.2lf mm\n"
 
-#: src/algos/astrometry_solver.c:575
+#: src/algos/astrometry_solver.c:576
 msgid "Pixel size:%*.2lf µm\n"
 msgstr "Μέγεθος pixel:%*.2lf µm\n"
 
-#: src/algos/astrometry_solver.c:578
+#: src/algos/astrometry_solver.c:579
 #, c-format
 msgid "Field of view:    %s x %s\n"
 msgstr "Οπτικό πεδίο:    %s x %s\n"
 
-#: src/algos/astrometry_solver.c:579
+#: src/algos/astrometry_solver.c:580
 #, c-format
 msgid "Image center: alpha: %s, delta: %s\n"
 msgstr "Κέντρο εικόνας: άλφα: %s, δέλτα: %s\n"
 
-#: src/algos/astrometry_solver.c:583
+#: src/algos/astrometry_solver.c:584
 #, c-format
 msgid "Was %.2f arcmin from initial value\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:854
+#: src/algos/astrometry_solver.c:855
 #, fuzzy, c-format
 msgid "Fetched %d stars from %s catalogue\n"
 msgstr "Δεν είναι δυνατή η λήψη του καταλόγου αστεριών."
 
-#: src/algos/astrometry_solver.c:880
+#: src/algos/astrometry_solver.c:881
 #, c-format
 msgid ""
 "Plate solving image with astrometry.net for a field of view of %.2f degrees\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:882
+#: src/algos/astrometry_solver.c:883
 #, c-format
 msgid ""
 "Plate solving image from local catalogues for a field of view of %.2f "
 "degrees%s, using a limit magnitude of %.2f\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:885 src/algos/astrometry_solver.c:890
+#: src/algos/astrometry_solver.c:886 src/algos/astrometry_solver.c:891
 #, fuzzy
 msgid " (uncentered)"
 msgstr "Κεντραρισμένο"
 
-#: src/algos/astrometry_solver.c:887
+#: src/algos/astrometry_solver.c:888
 #, c-format
 msgid ""
 "Plate solving image from an online catalogue for a field of view of %.2f "
 "degrees%s, using a limit magnitude of %.2f\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:905
+#: src/algos/astrometry_solver.c:906
 #, c-format
 msgid "Down-sampling image for faster star detection by a factor %.2f\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:917
+#: src/algos/astrometry_solver.c:918
 #, fuzzy
 msgid "Failed to downsample image, aborting\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας εισόδου, γίνεται ματαίωση\n"
 
-#: src/algos/astrometry_solver.c:975
+#: src/algos/astrometry_solver.c:976
 #, fuzzy, c-format
 msgid "Using %d detected stars from image.\n"
 msgstr "Η φωτομετρική ανάλυση για την εικόνα %d απέτυχε\n"
 
-#: src/algos/astrometry_solver.c:998
+#: src/algos/astrometry_solver.c:999
 #, fuzzy
 msgid "Initial solve failed\n"
 msgstr "Το άνοιγμα της εικόνας %s απέτυχε.\n"
 
-#: src/algos/astrometry_solver.c:999
+#: src/algos/astrometry_solver.c:1000
 #, c-format
 msgid "Attempting a near solve with a radius of %3.1f degrees\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1011
+#: src/algos/astrometry_solver.c:1012
 msgid "Plate Solve"
 msgstr "Επίλυση Εικόνας"
 
-#: src/algos/astrometry_solver.c:1036 src/gui/callbacks.c:1810
+#: src/algos/astrometry_solver.c:1037 src/gui/callbacks.c:1810
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1047 src/algos/astrometry_solver.c:1050
-#: src/algos/astrometry_solver.c:1055
+#: src/algos/astrometry_solver.c:1048 src/algos/astrometry_solver.c:1051
+#: src/algos/astrometry_solver.c:1056
 #, fuzzy
 msgid "Could not save distortion master file, skipping\n"
 msgstr ""
 "Δεν ήταν δυνατό να φορτωθεί ή να δημιουργηθεί αρχείο ρυθμίσεων, γίνεται "
 "έξοδος.\n"
 
-#: src/algos/astrometry_solver.c:1054
+#: src/algos/astrometry_solver.c:1055
 #, fuzzy
 msgid "Solution has no distortion\n"
 msgstr "Γίνεται υπολογισμός ομαλοποίησης...\n"
 
-#: src/algos/astrometry_solver.c:1063
+#: src/algos/astrometry_solver.c:1064
 msgid "Flipping image and updating astrometry data.\n"
 msgstr "Αναστροφή εικόνας και ενημέρωση δεδομένων αστρομετρίας.\n"
 
-#: src/algos/astrometry_solver.c:1089
+#: src/algos/astrometry_solver.c:1090
 #, fuzzy, c-format
 msgid "Plate solving warning: %s"
 msgstr "Γίνεται αφαίρεση του αποτυχημένου αρχείου SER: %s\n"
 
-#: src/algos/astrometry_solver.c:1091
+#: src/algos/astrometry_solver.c:1092
 #, fuzzy, c-format
 msgid "Plate solving failed: %s"
 msgstr "Γίνεται αφαίρεση του αποτυχημένου αρχείου SER: %s\n"
 
-#: src/algos/astrometry_solver.c:1200
+#: src/algos/astrometry_solver.c:1201
 msgid "Near solver started"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1273
+#: src/algos/astrometry_solver.c:1274
 msgid "Near solver done"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1282
+#: src/algos/astrometry_solver.c:1283
 msgid "Solving again at updated center\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1548 src/algos/astrometry_solver.c:1572
+#: src/algos/astrometry_solver.c:1570
+#, fuzzy, c-format
+msgid "Running asnet version %s\n"
+msgstr "Γίνεται εκτέλεση της εντολής: %s\n"
+
+#: src/algos/astrometry_solver.c:1608
 #, c-format
-msgid "cygwin/bin was not found at %s - ignoring\n"
+msgid "Astrometry.net path (%s) incorrectly set in preferences\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1625
+#: src/algos/astrometry_solver.c:1633
 msgid "solve-field was not found, set its path in the preferences\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1643
+#: src/algos/astrometry_solver.c:1650
 #, fuzzy
 msgid "Failed to create the input data for solve-field\n"
 msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
 
-#: src/algos/astrometry_solver.c:1704
+#: src/algos/astrometry_solver.c:1713
 #, c-format
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius for scales [%s, %s]\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1708
+#: src/algos/astrometry_solver.c:1717
 #, c-format
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius, blindly for scale\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1712
+#: src/algos/astrometry_solver.c:1721
 #, c-format
 msgid "Astrometry.net solving blindly in position for scales [%s, %s]\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1715
+#: src/algos/astrometry_solver.c:1724
 #, fuzzy
 msgid "Astrometry.net solving blindly\n"
 msgstr "Άνοιγμα διαλόγου επίλυσης εικόνας"
 
-#: src/algos/astrometry_solver.c:1793
+#: src/algos/astrometry_solver.c:1802
 #, fuzzy
 msgid "No astrometric solution found\n"
 msgstr "Εντοπίστηκε αστρομετρική λύση"
 
-#: src/algos/astrometry_solver.c:1826
+#: src/algos/astrometry_solver.c:1835
 #, c-format
 msgid "Could not read the solution from solve-field (expected in file %s)\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1867
+#: src/algos/astrometry_solver.c:1876
 msgid "Warning: using the current selection to detect stars\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1912
+#: src/algos/astrometry_solver.c:1921
 msgid "Selection is not used in manual star selection mode\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1960
+#: src/algos/astrometry_solver.c:1969
 #, fuzzy
 msgid "Error: no reference stars available\n"
 msgstr "Δεν είναι διαθέσιμο"
 
-#: src/algos/astrometry_solver.c:1977 src/registration/registration.c:94
+#: src/algos/astrometry_solver.c:1986 src/registration/registration.c:94
 msgid "Recomputing already existing registration for this layer\n"
 msgstr ""
 "Γίνεται επαναϋπολογισμός της ήδη υπάρχουσας εγγραφής για αυτό το επίπεδο\n"
 
-#: src/algos/astrometry_solver.c:1990 src/io/fits_keywords.c:1188
+#: src/algos/astrometry_solver.c:1999 src/io/fits_keywords.c:1188
 #, fuzzy
 msgid "Error when closing fitseq\n"
 msgstr "Σφάλμα στο άνοιγμα του αρχείου"
 
-#: src/algos/astrometry_solver.c:1997 src/io/fits_keywords.c:1196
+#: src/algos/astrometry_solver.c:2006 src/io/fits_keywords.c:1196
 #, fuzzy
 msgid "Error when reopening fitseq\n"
 msgstr "Σφάλμα στο άνοιγμα του αρχείου"
 
-#: src/algos/astrometry_solver.c:2019 src/algos/astrometry_solver.c:2061
+#: src/algos/astrometry_solver.c:2028 src/algos/astrometry_solver.c:2070
 #, c-format
 msgid "Image %d already platesolved, skipping\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2048
+#: src/algos/astrometry_solver.c:2057
 #, fuzzy, c-format
 msgid "Image %d: no stars found\n"
 msgstr "Η εικόνα %d δεν βρέθηκε για εγγραφή\n"
 
-#: src/algos/astrometry_solver.c:2057 src/algos/astrometry_solver.c:2171
+#: src/algos/astrometry_solver.c:2066 src/algos/astrometry_solver.c:2180
 #, fuzzy, c-format
 msgid "Could not copy WCS data, skipping image %d\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας εισόδου, γίνεται ματαίωση\n"
 
-#: src/algos/astrometry_solver.c:2106
+#: src/algos/astrometry_solver.c:2115
 #, c-format
 msgid ""
 "Could not retrieve pixel size from image %s metadata or settings, skipping\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2120
+#: src/algos/astrometry_solver.c:2129
 #, c-format
 msgid ""
 "Could not retrieve focal length from image %s metadata or settings, "
 "skipping\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2141
+#: src/algos/astrometry_solver.c:2150
 #, c-format
 msgid "Image %s did not solve\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2154
+#: src/algos/astrometry_solver.c:2163
 #, fuzzy, c-format
 msgid "Image %s platesolved and updated\n"
 msgstr "Η εικόνα φορτώθηκε και αυξήθηκε η κλίμακα"
 
-#: src/algos/astrometry_solver.c:2156
+#: src/algos/astrometry_solver.c:2165
 #, c-format
 msgid "Image %s platesolved but could not be saved\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2164
+#: src/algos/astrometry_solver.c:2173
 #, fuzzy, c-format
 msgid "Image %d platesolved and updated\n"
 msgstr "Η εικόνα φορτώθηκε και αυξήθηκε η κλίμακα"
 
-#: src/algos/astrometry_solver.c:2183
+#: src/algos/astrometry_solver.c:2192
 #, c-format
 msgid "%d images successfully platesolved out of %d included\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2185
+#: src/algos/astrometry_solver.c:2194
 #, c-format
 msgid "(%d were already solved and skipped)\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2198 src/io/fits_keywords.c:1237
+#: src/algos/astrometry_solver.c:2207 src/io/fits_keywords.c:1237
 #, fuzzy, c-format
 msgid "File %s updated\n"
 msgstr "Το FWHM θα ενημερωθεί"
 
-#: src/algos/astrometry_solver.c:2203
+#: src/algos/astrometry_solver.c:2212
 #, fuzzy
 msgid "Computing astrometric registration...\n"
 msgstr "Εφαρμογή μετασχηματισμού ιστογράμματος"
 
-#: src/algos/astrometry_solver.c:2286
+#: src/algos/astrometry_solver.c:2295
 #, c-format
 msgid "Running sequence plate solving using the %s catalogue\n"
 msgstr ""
@@ -12115,7 +12072,7 @@ msgstr ""
 "υπόβαθρο που θα εξαχθεί.\n"
 
 #: src/algos/background_extraction.c:791 src/core/command.c:11096
-#: src/filters/graxpert.c:939 src/gui/graxpert.c:176
+#: src/filters/graxpert.c:940 src/gui/graxpert.c:176
 #, fuzzy, c-format
 msgid "Failed to generate background samples for image: %s\n"
 msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
@@ -14613,7 +14570,7 @@ msgstr "Το αρχείο TIFF %s δεν μπορούσε να ανοιχτεί\
 msgid "Invalid argument to %s, aborting.\n"
 msgstr "Λείπει το όρισμα σε %s, γίνεται ακύρωση.\n"
 
-#: src/core/command.c:3130 src/core/command.c:3304 src/filters/starnet.c:578
+#: src/core/command.c:3130 src/core/command.c:3304 src/filters/starnet.c:579
 #: src/gui/histogram.c:1291
 #, c-format
 msgid "Applying MTF with values %f, %f, %f\n"
@@ -15748,7 +15705,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:8420
-msgid "Cannot upscale or maximize framong with median stacking. Disabling\n"
+msgid "Cannot upscale or maximize framing with median stacking. Disabling\n"
 msgstr ""
 
 #: src/core/command.c:8485
@@ -19610,10 +19567,9 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Computes the wavelet transform of the loaded image on (<b>nbr_layers</b>=1..."
-"nbr_layers) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) "
-"version of the 'à trous' algorithm. The result is stored in a file as a "
-"structure containing the layers, ready for weighted reconstruction with "
-"WRECONS.\n"
+"n) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version "
+"of the 'à trous' algorithm. The result is stored in a file as a structure "
+"containing the layers, ready for weighted reconstruction with WRECONS.\n"
 "\n"
 "See also EXTRACT"
 msgstr ""
@@ -21948,124 +21904,124 @@ msgid "Error: no channels selected. Doing nothing.\n"
 msgstr ""
 
 #. g_spawn handles wchar so not need to convert
-#: src/filters/graxpert.c:139
+#: src/filters/graxpert.c:140
 #, fuzzy
 msgid "Starting GraXpert..."
 msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
 
-#: src/filters/graxpert.c:148
+#: src/filters/graxpert.c:149
 #, fuzzy, c-format
 msgid "Spawning GraXpert failed: %s\n"
 msgstr "Δεν είναι δυνατή η φόρτωση του initfile: %s\n"
 
-#: src/filters/graxpert.c:184
+#: src/filters/graxpert.c:185
 #, fuzzy
 msgid "Running GraXpert"
 msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
 
-#: src/filters/graxpert.c:186
+#: src/filters/graxpert.c:187
 msgid "GraXpert reported an error"
 msgstr ""
 
-#: src/filters/graxpert.c:194 src/filters/graxpert.c:224
+#: src/filters/graxpert.c:195 src/filters/graxpert.c:225
 msgid "Done."
 msgstr ""
 
-#: src/filters/graxpert.c:198
+#: src/filters/graxpert.c:199
 #, c-format
 msgid "GraXpert caught buffer: %s : exit successful\n"
 msgstr ""
 
-#: src/filters/graxpert.c:223
+#: src/filters/graxpert.c:224
 #, fuzzy
 msgid "GraXpert GUI finished.\n"
 msgstr "Η εγγραφή ολοκληρώθηκε.\n"
 
-#: src/filters/graxpert.c:229
+#: src/filters/graxpert.c:230
 #, c-format
 msgid "GraXpert exit not caught, last buffer: %s\n"
 msgstr ""
 
-#: src/filters/graxpert.c:309
+#: src/filters/graxpert.c:310
 #, fuzzy, c-format
 msgid "Spawning GraXpert failed during available AI model versions check: %s\n"
 msgstr "Δεν είναι δυνατή η φόρτωση του initfile: %s\n"
 
-#: src/filters/graxpert.c:410
+#: src/filters/graxpert.c:411
 #, fuzzy, c-format
 msgid "Spawning GraXpert failed during version check: %s\n"
 msgstr "Δεν είναι δυνατή η φόρτωση του initfile: %s\n"
 
-#: src/filters/graxpert.c:464
+#: src/filters/graxpert.c:465
 #, c-format
 msgid ""
 "Error: GraXpert version is too old. You have version %d.%d.%d; at least "
 "version 3.0.0 is required.\n"
 msgstr ""
 
-#: src/filters/graxpert.c:499
+#: src/filters/graxpert.c:500
 #, fuzzy
 msgid "None!\n"
 msgstr "Κανένα"
 
-#: src/filters/graxpert.c:669 src/filters/graxpert.c:677
+#: src/filters/graxpert.c:670 src/filters/graxpert.c:678
 #, fuzzy
 msgid "Reading result from the temporary working file...\n"
 msgstr "Γίνεται αναζήτηση για ακολουθίες στον τρέχων κατάλογο...\n"
 
-#: src/filters/graxpert.c:671 src/filters/graxpert.c:679
+#: src/filters/graxpert.c:672 src/filters/graxpert.c:680
 #, fuzzy, c-format
 msgid "Error opening GraXpert result. Check the file %s\n"
 msgstr "Σφάλμα στο άνοιγμα του αρχείου"
 
-#: src/filters/graxpert.c:687
+#: src/filters/graxpert.c:688
 msgid ""
 "Error: the GraXpert image dimensions and bit depth do not match those of the "
 "original image. Please report this as a bug.\n"
 msgstr ""
 
-#: src/filters/graxpert.c:716
+#: src/filters/graxpert.c:717
 #, fuzzy
 msgid "Removing the temporary working file...\n"
 msgstr "Γίνεται αναζήτηση για ακολουθίες στον τρέχων κατάλογο...\n"
 
-#: src/filters/graxpert.c:745
+#: src/filters/graxpert.c:746
 #, c-format
 msgid "GraXpert BG extraction, smoothness %.3f"
 msgstr ""
 
-#: src/filters/graxpert.c:748
+#: src/filters/graxpert.c:749
 #, c-format
 msgid "GraXpert denoising, strength %.3f"
 msgstr ""
 
-#: src/filters/graxpert.c:751
+#: src/filters/graxpert.c:752
 #, c-format
 msgid "GraXpert deconv, strength %.3f, psf size %.3f"
 msgstr ""
 
-#: src/filters/graxpert.c:754
+#: src/filters/graxpert.c:755
 msgid "GraXpert operations using GUI"
 msgstr ""
 
 #. Save current image as input filename
-#: src/filters/graxpert.c:793
+#: src/filters/graxpert.c:794
 #, fuzzy
 msgid "Saving temporary working file...\n"
 msgstr "Γίνεται αναζήτηση για ακολουθίες στον τρέχων κατάλογο...\n"
 
-#: src/filters/graxpert.c:795
+#: src/filters/graxpert.c:796
 #, fuzzy
 msgid "Error: failed to save temporary FITS\n"
 msgstr "Σφάλμα κατά την μετατροπή σε FITS (δεν υπάρχει χώρος;)\n"
 
-#: src/filters/graxpert.c:823
+#: src/filters/graxpert.c:824
 msgid ""
 "Background samples must be computed for GraXpert RBF, Spline and Kriging "
 "methods\n"
 msgstr ""
 
-#: src/filters/graxpert.c:867
+#: src/filters/graxpert.c:868
 msgid ""
 "GraXpert GUI will open with the current image. When you have finished, save "
 "the image and return to Siril.\n"
@@ -22073,21 +22029,21 @@ msgid ""
 "preserve ICC profiles embedded in FITS files.\n"
 msgstr ""
 
-#: src/filters/graxpert.c:873
+#: src/filters/graxpert.c:874
 msgid "Error: unknown GraXpert operation\n"
 msgstr ""
 
-#: src/filters/graxpert.c:944
+#: src/filters/graxpert.c:945
 #, fuzzy, c-format
 msgid "GraXpert: Processing image %d\n"
 msgstr "Γίνεται προ-επεξεργασία της εικόνας %s"
 
-#: src/filters/graxpert.c:965
+#: src/filters/graxpert.c:966
 #, fuzzy
 msgid "GraXpert"
 msgstr "Διάφραγμα ροής"
 
-#: src/filters/graxpert.c:981
+#: src/filters/graxpert.c:982
 #, fuzzy
 msgid "GraXpert: Processing..."
 msgstr "Έναρξη προ-επεξεργασίας"
@@ -22242,216 +22198,216 @@ msgstr "SCNR: γίνεται επεξεργασία...\n"
 msgid ", preserving lightness"
 msgstr "Διατήρηση φωτεινότητας"
 
-#: src/filters/starnet.c:100
+#: src/filters/starnet.c:101
 #, fuzzy, c-format
 msgid "Spawning starnet failed: %s\n"
 msgstr "Δεν είναι δυνατή η φόρτωση του initfile: %s\n"
 
-#: src/filters/starnet.c:143
+#: src/filters/starnet.c:144
 #, fuzzy
 msgid "Running StarNet"
 msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
 
-#: src/filters/starnet.c:149
+#: src/filters/starnet.c:150
 #, c-format
 msgid "StarNet caught buffer: %s : exit successful\n"
 msgstr ""
 
-#: src/filters/starnet.c:159
+#: src/filters/starnet.c:160
 #, c-format
 msgid "Starnet exit not caught, last buffer: %s\n"
 msgstr ""
 
-#: src/filters/starnet.c:224
+#: src/filters/starnet.c:225
 #, fuzzy, c-format
 msgid "Spawning starnet failed during version check: %s\n"
 msgstr "Δεν είναι δυνατή η φόρτωση του initfile: %s\n"
 
-#: src/filters/starnet.c:247
+#: src/filters/starnet.c:248
 #, fuzzy
 msgid "V2 detected\n"
 msgstr "επιλέχθηκαν"
 
-#: src/filters/starnet.c:253
+#: src/filters/starnet.c:254
 msgid "V2-torch detected\n"
 msgstr ""
 
-#: src/filters/starnet.c:271 src/filters/starnet.c:712
-#: src/filters/starnet.c:802
+#: src/filters/starnet.c:272 src/filters/starnet.c:713
+#: src/filters/starnet.c:803
 #, fuzzy
 msgid "Error: unable to change to Siril working directory...\n"
 msgstr "Γίνεται αναζήτηση για ακολουθίες στον τρέχων κατάλογο...\n"
 
-#: src/filters/starnet.c:358
+#: src/filters/starnet.c:359
 msgid ""
 "Warning: some versions of StarNet fail to process images with dimensions "
 "smaller than 512x512. This image may fail. Attempting to continue...\n"
 msgstr ""
 
-#: src/filters/starnet.c:364
+#: src/filters/starnet.c:365
 #, fuzzy
 msgid "No suitable StarNet executable found.\n"
 msgstr "Επιλέξτε κατάλογο αποθήκευσης αναίρεσης"
 
-#: src/filters/starnet.c:376
+#: src/filters/starnet.c:377
 #, fuzzy
 msgid "No suitable StarNet executable found for a mono image.\n"
 msgstr "Επιλέξτε κατάλογο αποθήκευσης αναίρεσης"
 
-#: src/filters/starnet.c:391
+#: src/filters/starnet.c:392
 #, fuzzy
 msgid "No suitable StarNet executable found for a RGB image.\n"
 msgstr "Επιλέξτε κατάλογο αποθήκευσης αναίρεσης"
 
-#: src/filters/starnet.c:423 src/filters/starnet.c:449
-#: src/filters/starnet.c:458 src/filters/starnet.c:464 src/gui/newdeconv.c:630
+#: src/filters/starnet.c:424 src/filters/starnet.c:450
+#: src/filters/starnet.c:459 src/filters/starnet.c:465 src/gui/newdeconv.c:630
 msgid "Error: file path too long!\n"
 msgstr ""
 
-#: src/filters/starnet.c:483
+#: src/filters/starnet.c:484
 #, fuzzy
 msgid "Starting StarNet"
 msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
 
-#: src/filters/starnet.c:489
+#: src/filters/starnet.c:490
 msgid "StarNet: running. Please wait...\n"
 msgstr ""
 
-#: src/filters/starnet.c:490
+#: src/filters/starnet.c:491
 #, fuzzy, c-format
 msgid "StarNet: stride = %s...\n"
 msgstr "Εκκίνηση δέσμης ενεργειών %s\n"
 
-#: src/filters/starnet.c:491
+#: src/filters/starnet.c:492
 msgid "StarNet: -nostarmask invoked, star mask will not be generated...\n"
 msgstr ""
 
-#: src/filters/starnet.c:496
+#: src/filters/starnet.c:497
 #, c-format
 msgid ""
 "Incorrect permissions on the StarNet executable: %s\n"
 "Ensure it is correctly set in Preferences / Miscellaneous.\n"
 msgstr ""
 
-#: src/filters/starnet.c:504
+#: src/filters/starnet.c:505
 #, c-format
 msgid ""
 "Incorrect permissions on the StarNet directory: %s\n"
 "Ensure it is correctly set in Preferences / Miscellaneous.\n"
 msgstr ""
 
-#: src/filters/starnet.c:515
+#: src/filters/starnet.c:516
 msgid ""
 "Error: unable to change to StarNet directory.\n"
 "Ensure it is set in Preferences / Miscellaneous...\n"
 msgstr ""
 
-#: src/filters/starnet.c:525 src/filters/starnet.c:551
-#: src/filters/starnet.c:756 src/filters/starnet.c:768
-#: src/filters/starnet.c:785 src/filters/starnet.c:791
+#: src/filters/starnet.c:526 src/filters/starnet.c:552
+#: src/filters/starnet.c:757 src/filters/starnet.c:769
+#: src/filters/starnet.c:786 src/filters/starnet.c:792
 #, fuzzy
 msgid "Error: image copy failed...\n"
 msgstr "Σφάλμα: ο υπολογισμός των στατιστικών απέτυχε.\n"
 
-#: src/filters/starnet.c:541
+#: src/filters/starnet.c:542
 msgid "StarNet: Pixel values exceed 1.0. Rescaling to avoid clipping peaks.\n"
 msgstr ""
 
-#: src/filters/starnet.c:571
+#: src/filters/starnet.c:572
 #, fuzzy
 msgid "Error: unable to find the MTF stretch factors...\n"
 msgstr "Γίνεται αναζήτηση για ακολουθίες στον τρέχων κατάλογο...\n"
 
-#: src/filters/starnet.c:576
+#: src/filters/starnet.c:577
 msgid ""
 "StarNet: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch "
 "to image.\n"
 msgstr ""
 
-#: src/filters/starnet.c:584
+#: src/filters/starnet.c:585
 msgid "StarNet: 2x upscaling selected. Upscaling image...\n"
 msgstr ""
 
-#: src/filters/starnet.c:587 src/filters/starnet.c:695
+#: src/filters/starnet.c:588 src/filters/starnet.c:696
 msgid "Error: image resize failed...\n"
 msgstr ""
 
-#: src/filters/starnet.c:595
+#: src/filters/starnet.c:596
 #, fuzzy
 msgid "Error: unable to save working StarNet input file...\n"
 msgstr "Γίνεται αναζήτηση για ακολουθίες στον τρέχων κατάλογο...\n"
 
-#: src/filters/starnet.c:627
+#: src/filters/starnet.c:628
 #, fuzzy
 msgid "Error: cannot read the neural net weights file.\n"
 msgstr "Δεν μπορεί να γίνει ανάγνωση των δεδομένων\n"
 
-#: src/filters/starnet.c:640
+#: src/filters/starnet.c:641
 msgid "Error: StarNet did not execute correctly...\n"
 msgstr ""
 
-#: src/filters/starnet.c:648
+#: src/filters/starnet.c:649
 #, fuzzy
 msgid "Error: unable to read StarNet output file...\n"
 msgstr "Γίνεται αναζήτηση για ακολουθίες στον τρέχων κατάλογο...\n"
 
-#: src/filters/starnet.c:661
+#: src/filters/starnet.c:662
 #, fuzzy
 msgid "Error: unable to remove temporary working file...\n"
 msgstr "Γίνεται αναζήτηση για ακολουθίες στον τρέχων κατάλογο...\n"
 
-#: src/filters/starnet.c:662
+#: src/filters/starnet.c:663
 msgid ""
 "Attempting to continue. You will need to clean up the working files "
 "manually.\n"
 msgstr ""
 
-#: src/filters/starnet.c:692
+#: src/filters/starnet.c:693
 msgid ""
 "StarNet: 2x upscaling selected. Re-scaling starless image to original "
 "size...\n"
 msgstr ""
 
-#: src/filters/starnet.c:704
+#: src/filters/starnet.c:705
 msgid "StarNet: linear mode. Applying inverse MTF stretch to starless image.\n"
 msgstr ""
 
-#: src/filters/starnet.c:721
+#: src/filters/starnet.c:722
 msgid "Error: unable to save starless image as FITS...\n"
 msgstr ""
 
-#: src/filters/starnet.c:730
+#: src/filters/starnet.c:731
 #, fuzzy
 msgid "Error: image subtraction failed...\n"
 msgstr "Σφάλμα: ο υπολογισμός των στατιστικών απέτυχε.\n"
 
-#: src/filters/starnet.c:748
+#: src/filters/starnet.c:749
 msgid "Error: unable to save starmask image as FITS...\n"
 msgstr ""
 
-#: src/filters/starnet.c:774
+#: src/filters/starnet.c:775
 #, fuzzy
 msgid "StarNet: job completed.\n"
 msgstr "Η σώρευση ολοκληρώθηκε."
 
-#: src/filters/starnet.c:878
+#: src/filters/starnet.c:879
 msgid ""
 "Note: the StarNet sequence memory limit calculation is based on system RAM "
 "only. If you are using GPU TensorFlow libraries and have insufficient GPU "
 "memory, StarNet may still fail.\n"
 msgstr ""
 
-#: src/filters/starnet.c:889
+#: src/filters/starnet.c:890
 #, fuzzy, c-format
 msgid "Starnet: Processing image %d\n"
 msgstr "Γίνεται προ-επεξεργασία της εικόνας %s"
 
-#: src/filters/starnet.c:923
+#: src/filters/starnet.c:924
 #, fuzzy
 msgid "StarNet"
 msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
 
-#: src/filters/starnet.c:939
+#: src/filters/starnet.c:940
 #, fuzzy
 msgid "StarNet: Processing..."
 msgstr "Έναρξη προ-επεξεργασίας"
@@ -23984,10 +23940,12 @@ msgid "Operation on the sequence"
 msgstr "Επιλέξτε εικόνες στην ακολουθία"
 
 #: src/gui/keywords_tree.c:195
+#, fuzzy
 msgid ""
 "These keywords will be deleted from each image of the entire sequence. Are "
-"you sure?”"
+"you sure?"
 msgstr ""
+"Η εικόνα του Κυρίως-dark θα αφαιρεθεί από όλες τις εικόνες της ακολουθίας."
 
 #: src/gui/keywords_tree.c:266
 msgid "Keyname can contain a maximum of 8 characters.\n"
@@ -26374,7 +26332,7 @@ msgstr ""
 "Οι εικόνες FITS με 64 bit ακέραιο με πρόσημο ανά pixel.κανάλι δεν "
 "υποστηρίζονται.\n"
 
-#: src/io/fits_sequence.c:227 src/stacking/median_and_mean.c:1184
+#: src/io/fits_sequence.c:227 src/stacking/median_and_mean.c:1183
 msgid "Your version of cfitsio does not support multi-threading\n"
 msgstr "Η έκδοση σας του cfitsio δεν υποστηρίζει πολυδιεργασίες\n"
 
@@ -29333,32 +29291,32 @@ msgstr ""
 "Βρέθηκε ένα σφάλμα. Είναι αδύνατο να χωριστεί η εικόνα στις σωστές περιοχές "
 "επεξεργασίας.\n"
 
-#: src/stacking/median_and_mean.c:450
+#: src/stacking/median_and_mean.c:449
 msgid "Error reading one of the image areas\n"
 msgstr "Σφάλμα στην ανάγνωση σε μια από τις περιοχές της εικόνας\n"
 
-#: src/stacking/median_and_mean.c:984 src/stacking/median_and_mean.c:1029
+#: src/stacking/median_and_mean.c:983 src/stacking/median_and_mean.c:1028
 #, c-format
 msgid ""
 "Sequence does not have registration info, cannot use weighing by %s, "
 "aborting\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1029
+#: src/stacking/median_and_mean.c:1028
 #, fuzzy
 msgid "number of stars"
 msgstr "Κανόνας των τρίτων"
 
-#: src/stacking/median_and_mean.c:1083
+#: src/stacking/median_and_mean.c:1082
 #, c-format
 msgid "Using %d MB memory maximum for stacking\n"
 msgstr "Χρησιμοποιούνται %d MB μέγιστης μνήμης για σώρευση\n"
 
-#: src/stacking/median_and_mean.c:1108
+#: src/stacking/median_and_mean.c:1107
 msgid "Select at least two frames for stacking. Aborting.\n"
 msgstr "Επιλέξτε τουλάχιστον δύο καρέ για σώρευση. Γίνεται ακύρωση.\n"
 
-#: src/stacking/median_and_mean.c:1111
+#: src/stacking/median_and_mean.c:1110
 msgid ""
 "The Generalized Extreme Studentized Deviate Test needs at least three frames "
 "for stacking. Aborting.\n"
@@ -29366,17 +29324,17 @@ msgstr ""
 "Το Generalized Extreme Studentized Deviate Test  χρειάζεται τουλάχιστον τρία "
 "πλαίσια για την σώρευση. Γίνεται ματαίωση.\n"
 
-#: src/stacking/median_and_mean.c:1117
+#: src/stacking/median_and_mean.c:1116
 msgid "No registration layer passed, ignoring registration data!\n"
 msgstr ""
 "Δεν πέρασε το επίπεδο εγγραφής, γίνεται αγνόηση των δεδομένων εγγραφής!\n"
 
 #. no image has been loaded
-#: src/stacking/median_and_mean.c:1131
+#: src/stacking/median_and_mean.c:1130
 msgid "Rejection stack error: uninitialized sequence\n"
 msgstr "Σφάλμα σώρευσης Απόρριψης: ανενεργή ακολουθία\n"
 
-#: src/stacking/median_and_mean.c:1136
+#: src/stacking/median_and_mean.c:1135
 #, c-format
 msgid ""
 "Rejection stack error: sequence has wrong image size (%dx%d for sequence, "
@@ -29385,11 +29343,11 @@ msgstr ""
 "Σφάλμα σώρευσης απόρριψης: η ακολουθία έχει λάθος μέγεθος εικόνας (%dx%d για "
 "ακολουθία, %ldx%ld για εικόνες)\n"
 
-#: src/stacking/median_and_mean.c:1141
+#: src/stacking/median_and_mean.c:1140
 msgid "Processing the sequence as RGB\n"
 msgstr "Γίνεται επεξεργασία της ακολουθίας σαν RGB\n"
 
-#: src/stacking/median_and_mean.c:1189
+#: src/stacking/median_and_mean.c:1188
 msgid ""
 "Stacking a film will work only on one core and will be slower than if you "
 "convert it to SER\n"
@@ -29397,77 +29355,77 @@ msgstr ""
 "Η σώρευση ταινίας θα λειτουργήσει μόνο σε έναν πυρήνα και θα είναι πιο αργή "
 "από ό, τι αν το μετατρέψετε σε SER\n"
 
-#: src/stacking/median_and_mean.c:1307
+#: src/stacking/median_and_mean.c:1306
 #, fuzzy
 msgid "Computing weights based on noise...\n"
 msgstr "Γίνεται υπολογισμός στάθμεων...\n"
 
-#: src/stacking/median_and_mean.c:1315
+#: src/stacking/median_and_mean.c:1314
 #, fuzzy
 msgid "Computing weights based on wFWHM...\n"
 msgstr "Γίνεται υπολογισμός στάθμεων...\n"
 
-#: src/stacking/median_and_mean.c:1323
+#: src/stacking/median_and_mean.c:1322
 #, fuzzy
 msgid "Computing weights based on number of stars...\n"
 msgstr "Γίνεται υπολογισμός στάθμεων...\n"
 
-#: src/stacking/median_and_mean.c:1331
+#: src/stacking/median_and_mean.c:1330
 #, fuzzy
 msgid "Computing weights based on number of stacked images...\n"
 msgstr "Γίνεται υπολογισμός στάθμεων...\n"
 
-#: src/stacking/median_and_mean.c:1334
+#: src/stacking/median_and_mean.c:1333
 msgid "Starting stacking...\n"
 msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
 
-#: src/stacking/median_and_mean.c:1336
+#: src/stacking/median_and_mean.c:1335
 msgid "Rejection stacking in progress..."
 msgstr "Σώρευση απόρριψης σε εξέλιξη..."
 
-#: src/stacking/median_and_mean.c:1337
+#: src/stacking/median_and_mean.c:1336
 msgid "Median stacking in progress..."
 msgstr "Σώρευση διαμέσου σε εξέλιξη..."
 
-#: src/stacking/median_and_mean.c:1548 src/stacking/stackminmax.c:235
+#: src/stacking/median_and_mean.c:1547 src/stacking/stackminmax.c:235
 msgid "Finalizing stacking..."
 msgstr "Οριστικοποίηση σώρευσης..."
 
-#: src/stacking/median_and_mean.c:1552
+#: src/stacking/median_and_mean.c:1551
 msgid "Pixel rejection in channel #%d: %.3lf%% - %.3lf%%\n"
 msgstr "Απόρριψη pixel στο κανάλι #%d: %.3lf%% - %.3lf%%\n"
 
-#: src/stacking/median_and_mean.c:1592
+#: src/stacking/median_and_mean.c:1591
 msgid "Rejection stacking failed. Check the log."
 msgstr "Η σώρευση απόρριψης απέτυχε. Δείτε το αρχείο καταγραφής."
 
-#: src/stacking/median_and_mean.c:1593
+#: src/stacking/median_and_mean.c:1592
 msgid "Median stacking failed. Check the log."
 msgstr "Αποτυχία σώρευσης Διαμέσου: Δείτε το αρχείο καταγραφής."
 
-#: src/stacking/median_and_mean.c:1595
+#: src/stacking/median_and_mean.c:1594
 #, fuzzy
 msgid "Stacking operation was cancelled.\n"
 msgstr "Η σώρευση απέτυχε.\n"
 
-#: src/stacking/median_and_mean.c:1596 src/stacking/stackminmax.c:290
+#: src/stacking/median_and_mean.c:1595 src/stacking/stackminmax.c:290
 msgid "Stacking failed.\n"
 msgstr "Η σώρευση απέτυχε.\n"
 
-#: src/stacking/median_and_mean.c:1599
+#: src/stacking/median_and_mean.c:1598
 msgid "Rejection stacking complete."
 msgstr "Η σώρευση απόρριψης ολοκληρώθηκε."
 
-#: src/stacking/median_and_mean.c:1600
+#: src/stacking/median_and_mean.c:1599
 #, c-format
 msgid "Rejection stacking complete. %d images have been stacked.\n"
 msgstr "H σώρευση Απόρριψης ολοκληρώθηκε. %d εικόνες έχουν σωρευτεί.\n"
 
-#: src/stacking/median_and_mean.c:1602
+#: src/stacking/median_and_mean.c:1601
 msgid "Median stacking complete."
 msgstr "H σώρευση Διαμέσου ολοκληρώθηκε."
 
-#: src/stacking/median_and_mean.c:1603
+#: src/stacking/median_and_mean.c:1602
 #, c-format
 msgid "Median stacking complete. %d images have been stacked.\n"
 msgstr "H σώρευση Διαμέσου ολοκληρώθηκε. %d εικόνες έχουν σωρευτεί.\n"

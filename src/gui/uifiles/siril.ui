@@ -6308,7 +6308,7 @@ By default, the pattern is only searched on 25% of the total image size around t
 
 Higher values give more tolerance in alignment and smaller numbers lead to faster computations.</property>
                                                             <property name="valign">center</property>
-                                                            <property name="text" translatable="yes">25.00</property>
+                                                            <property name="text">25.00</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adj_kombat_percent</property>
                                                             <property name="digits">2</property>
@@ -7190,7 +7190,7 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Sets the droplet size as a fraction of the input pixel size. Typically a good value for this is the reciprocal of the drizzle scale.</property>
-                                                            <property name="text" translatable="yes">1.00</property>
+                                                            <property name="text">1.00</property>
                                                             <property name="adjustment">adj_driz_dropsize</property>
                                                             <property name="digits">2</property>
                                                             <property name="value">1</property>

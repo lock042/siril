@@ -193,7 +193,7 @@ static void remove_selected_keys () {
 
 				if (siril_confirm_dialog(_("Operation on the sequence"),
 						_("These keywords will be deleted from each image of "
-						"the entire sequence. Are you sure?”"), _("Proceed"))) {
+						"the entire sequence. Are you sure?"), _("Proceed"))) {
 					gtk_list_store_remove(GTK_LIST_STORE(treeModel), &iter);
 
 					start_sequence_keywords(&com.seq, kargs);

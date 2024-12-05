@@ -5560,13 +5560,13 @@ This setting is used in Deconvolution, but is ignored by the Fourier Transform f
                                 <property name="active">0</property>
                                 <items>
                                   <item translatable="yes">Unlimited</item>
-                                  <item translatable="yes">512</item>
-                                  <item translatable="yes">1024</item>
-                                  <item translatable="yes">2048</item>
-                                  <item translatable="yes">4096</item>
-                                  <item translatable="yes">8192</item>
-                                  <item translatable="yes">16384</item>
-                                  <item translatable="yes">32768</item>
+                                  <item>512</item>
+                                  <item>1024</item>
+                                  <item>2048</item>
+                                  <item>4096</item>
+                                  <item>8192</item>
+                                  <item>16384</item>
+                                  <item>32768</item>
                                 </items>
                               </object>
                               <packing>
