@@ -100,12 +100,6 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	#ifdef G_OS_WIN32
 	env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
 	#endif
-	if (!get_thread_run()) {
-		// TODO: raise an error
-		return NULL;
-	}
-	remove_child_from_children(-2); // prevent the processing thread showing in the list of
-	// children, as we are alrady tracking the GraXpert chiild process
 
 	gboolean spawn_result = siril_spawn_host_async_with_pipes(
 		NULL,           // working directory
@@ -126,7 +120,9 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 
 	g_child_watch_add(*child_pid, child_watch_cb, NULL);
 
-	// Prepend this process to the list of child processes com.children
+	// At this point, remove the processing thread from the list of children and replace it
+	// with the GraXpert process. This avoids tracking two children for the same task.
+	remove_child_from_children(-2);
 	child_info *child = g_malloc(sizeof(child_info));
 	child->childpid = *child_pid;
 	child->program = EXT_GRAXPERT;
@@ -156,8 +152,13 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 		fprintf(stdout, "%s ", argv[index++]);
 	}
 	fprintf(stdout, "\n");
-	// g_spawn handles wchar so not need to convert
-	if (!is_sequence) set_progress_bar_data(_("Starting GraXpert..."), 0.0);
+
+	if (!get_thread_run()) {
+		return retval;
+	}
+
+	if (!is_sequence)
+		set_progress_bar_data(_("Starting GraXpert..."), 0.0);
 	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL,
 			&child_stderr);
 
@@ -313,6 +314,7 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		test_argv[nb++] = "--help";
 		// g_spawn handles wchar so not need to convert
 		GPid child_pid;
+
 		error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL, &child_stderr);
 
 		if (error != NULL) {
@@ -413,8 +415,7 @@ static gboolean graxpert_fetchversion(gchar* executable) {
 	test_argv[nb++] = versionarg;
 	// g_spawn handles wchar so not need to convert
 	GPid child_pid;
-	error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL,
-			&child_stderr);
+	error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL, &child_stderr);
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning GraXpert failed during version check: %s\n"), "red", error->message);
