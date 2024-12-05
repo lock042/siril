@@ -1790,7 +1790,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	// Note: the pid isn't strictly needed here as it isn't used to kill the process
 	// should we need to, but it makes a handy index to search for in com.children, so
 	// we record it anyway.
-	remove_child_from_children(-2);
+	remove_child_from_children((GPid)-2);
 	child->childpid = child_pid;
 	child->program = EXT_ASNET;
 	child->name = g_strdup(_("Astrometry.net local solver"));

@@ -116,7 +116,7 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	// At this point, remove the processing thread from the list of children and replace it
 	// with the GraXpert process. This avoids tracking two children for the same task.
 	if (get_thread_run())
-		remove_child_from_children(-2);
+		remove_child_from_children((GPid)-2);
 	child->childpid = *child_pid;
 	child->program = EXT_GRAXPERT;
 	child->name = g_strdup("GraXpert");

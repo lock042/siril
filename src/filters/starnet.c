@@ -77,7 +77,7 @@ static gboolean verbose = TRUE;
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("starnet is being closed\n");
 	g_spawn_close_pid(pid);
-	remove_child_from_children(pid);
+	remove_child_from_children((GPid)pid);
 }
 
 static int exec_prog_starnet(char **argv, starnet_version version) {
