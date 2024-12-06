@@ -61,7 +61,7 @@ static gchar **background_ai_models = NULL;
 static gchar **denoise_ai_models = NULL;
 static gchar **deconv_ai_models = NULL;
 static gboolean graxpert_aborted = FALSE;
-static GPid running_pid = -1;
+static GPid running_pid = (GPid) -1;
 
 GPid get_running_graxpert_pid() {
 	return running_pid;
@@ -227,7 +227,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 	}
 	// GraXpert has exited, remove from child list and reset the stored pid
 	remove_child_from_children(child_pid);
-	running_pid = -1;
+	running_pid = (GPid) -1;
 	if (graxpert_no_exit_report && retval == -1) {
 		if (!is_sequence) siril_log_message(_("GraXpert GUI finished.\n"));
 		if (!is_sequence) set_progress_bar_data(_("Done."), 1.0);
@@ -348,7 +348,7 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 			g_free(buffer);
 		}
 		remove_child_from_children(child_pid);
-		running_pid = -1;
+		running_pid = (GPid) -1;
 		g_object_unref(data_input);
 		g_object_unref(stream);
 		g_free(versionarg);
@@ -454,7 +454,7 @@ static gboolean graxpert_fetchversion(gchar* executable) {
 		g_free(buffer);
 	}
 	remove_child_from_children(child_pid);
-	running_pid = -1;
+	running_pid = (GPid) -1;
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	g_free(versionarg);

@@ -1011,7 +1011,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 		iter = next;
 	}
 	// If we get here without success, no matching PID was found
-	if (!success && (GPid) pid != -1)
+	if (!success && pid != (GPid) -1)
 		siril_log_message(_("Failed to find GPid %d, it may already have exited...\n"), pid);
 }
 
