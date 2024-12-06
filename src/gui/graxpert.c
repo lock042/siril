@@ -285,7 +285,7 @@ void on_graxpert_dialog_hide(GtkWidget *widget, gpointer user_data) {
 void on_notebook_graxpert_operation_switch_page(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer user_data) {
 	gboolean user_cancelled = FALSE;
 	GPid pid = get_running_graxpert_pid();
-	if (pid != -1 && (user_cancelled = siril_confirm_dialog(_("Warning!"), _("GraXpert is running. Changing the GraXpert "
+	if (pid != (GPid) -1 && (user_cancelled = siril_confirm_dialog(_("Warning!"), _("GraXpert is running. Changing the GraXpert "
 						"operation will cancel the current GraXpert process. Proceed?"), _("Yes")))) {
 		kill_child_process(pid, FALSE);
 		if (user_cancelled) {
