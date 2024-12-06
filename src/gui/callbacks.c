@@ -1901,7 +1901,7 @@ void gtk_main_quit() {
 	writeinitfile();		// save settings (like window positions)
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
-	kill_child_process(-1, TRUE); // kill running child processes if any
+	kill_child_process((GPid) -1, TRUE); // kill running child processes if any
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 	g_slist_free_full(com.pref.gui.script_path, g_free);
 	exit(EXIT_SUCCESS);
@@ -2319,7 +2319,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 	gtk_widget_show_all(dialog);
 
 	// Run the dialog
-	GPid selected_pid = -1;
+	GPid selected_pid = (GPid) -1;
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) {
 		GtkTreeModel *model;
 		if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
