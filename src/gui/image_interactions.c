@@ -669,7 +669,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		if (get_thread_run()) {
+		if (get_thread_run() || com.python_claims_thread) {
 			set_cursor_waiting(TRUE);
 		} else {
 			/* trick to get default cursor */
