@@ -1810,7 +1810,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	    // Cross-platform process waiting
 #ifdef _WIN32
 		// Use Windows-specific waiting
-		HANDLE process_handle = OpenProcess(SYNCHRONIZE, FALSE, child_pid);
+		HANDLE process_handle = (HANDLE) child_pid;
 		if (process_handle != NULL) {
 			WaitForSingleObject(process_handle, INFINITE);
 			CloseHandle(process_handle);
