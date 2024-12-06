@@ -77,7 +77,7 @@ static gboolean verbose = TRUE;
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("starnet is being closed\n");
 	g_spawn_close_pid(pid);
-	remove_child_from_children((GPid)pid);
+	remove_child_from_children(pid);
 }
 
 static int exec_prog_starnet(char **argv, starnet_version version) {
@@ -111,7 +111,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	// At this point, remove the processing thread from the list of children and replace it
 	// with the starnet process. This avoids tracking two children for the same task.
 	if (get_thread_run())
-		remove_child_from_children(-2);
+		remove_child_from_children((GPid) -2);
 	child->childpid = child_pid;
 	child->program = EXT_STARNET;
 	child->name = g_strdup("Starnet");

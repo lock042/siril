@@ -760,7 +760,7 @@ void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 	// an external program if one happens to be running
 	// Prepend this "child" to the list of child processes com.children
 	child_info *child = g_malloc(sizeof(child_info));
-	child->childpid = -2; // Magic number
+	child->childpid = (GPid) -2; // Magic number
 	child->program = INT_PROC_THREAD;
 	child->name = g_strdup("Siril processing thread");
 	child->datetime = g_date_time_new_now_local();
@@ -784,7 +784,7 @@ void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	// Prepend this "child" to the list of child processes com.children
 	child_info *child = g_malloc(sizeof(child_info));
-	child->childpid = -2; // Magic number
+	child->childpid = (GPid) -2; // Magic number
 	child->program = INT_PROC_THREAD;
 	child->name = g_strdup("Siril processing thread");
 	child->datetime = g_date_time_new_now_local();
@@ -839,7 +839,7 @@ void stop_processing_thread() {
 		siril_debug_print("The processing thread is not running.\n");
 		return;
 	}
-	remove_child_from_children(-2); // magic number indicating the processing thread
+	remove_child_from_children((GPid) -2); // magic number indicating the processing thread
 	set_thread_run(FALSE);
 	if (!thread_being_waited)
 		waiting_for_thread();
@@ -1011,7 +1011,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 		iter = next;
 	}
 	// If we get here without success, no matching PID was found
-	if (!success && pid != -1)
+	if (!success && (GPid) pid != -1)
 		siril_log_message(_("Failed to find GPid %d, it may already have exited...\n"), pid);
 }
 
