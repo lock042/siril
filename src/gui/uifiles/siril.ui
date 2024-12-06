@@ -2076,7 +2076,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="position">18</property>
           </packing>
         </child>
-	<child>
+        <child>
           <object class="GtkModelButton" id="proc_unpurple">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -2899,6 +2899,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                             <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                             <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                             <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                             <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                             <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                             <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
@@ -3063,6 +3064,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                             <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                             <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                             <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                             <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                             <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                             <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
@@ -3231,6 +3233,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                             <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                             <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                             <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                             <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                             <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                             <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
@@ -3402,6 +3405,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                 <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                 <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                                 <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                                <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                                 <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                                 <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                                 <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
