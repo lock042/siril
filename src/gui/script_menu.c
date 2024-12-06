@@ -183,10 +183,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	gchar *script_file = (gchar *)user_data;
-
-	/* Last thing before running the script, disable widgets except for Stop */
-	script_widgets_enable(FALSE);
+	gchar *script_file = g_strdup((gchar *)user_data);
 
 	/* Run the script */
 	siril_log_message(_("Starting script %s\n"), script_file);
@@ -195,6 +192,8 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 		// Run Python script
 		execute_python_script(script_file, TRUE, FALSE, NULL);
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
+		/* Last thing before running the script, disable widgets except for Stop */
+		script_widgets_enable(FALSE);
 		// Run regular script
 		GFile *file = g_file_new_for_path(script_file);
 		GError *error = NULL;
