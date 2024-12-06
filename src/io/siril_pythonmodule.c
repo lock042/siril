@@ -704,8 +704,10 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 #endif
 
 	// If we had the python thread lock and failed to release it, release it now
+	// and reset the busy cursor
 	if (conn->thread_claimed) {
 		com.python_claims_thread = FALSE;
+		set_cursor_waiting(FALSE);
 	}
 
 	// Clean up shared memory resources
