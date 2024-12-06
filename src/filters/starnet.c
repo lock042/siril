@@ -820,8 +820,6 @@ gpointer do_starnet(gpointer p) {
 	CLEANUP2:
 	clearfits(&workingfit);
 	CLEANUP3:
-	if (com.child_is_running == EXT_STARNET)
-		com.child_is_running = EXT_NONE;
 	if (verbose)
 		set_progress_bar_data("Ready.", PROGRESS_RESET);
 	g_free(currentdir);

@@ -979,9 +979,10 @@ gpointer plate_solver(gpointer p) {
 		No modifications done to args or args->fit
 		We can read from them but cannot write
 	*/
+	gboolean asnet_running = FALSE;
 	if (args->solver == SOLVER_LOCALASNET) {
 		if (!args->for_sequence) {
-			com.child_is_running = EXT_ASNET;
+			asnet_running = TRUE;
 			if (g_unlink("stop")) // make sure the flag file for cancel is not already in the folder
 				siril_debug_print("g_unlink() failed\n");
 		}
@@ -1097,9 +1098,8 @@ clearup:
 	int ret = args->ret;
 	gboolean is_verbose = args->verbose;
 	if (!args->for_sequence) {
-		if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
+		if (asnet_running && g_unlink("stop"))
 			siril_debug_print("g_unlink() failed\n");
-		com.child_is_running = EXT_NONE;
 		siril_add_idle(end_plate_solver, args);
 	}
 	else {
@@ -2042,7 +2042,6 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		g_free(filename);
 	}
 	if (args->solver == SOLVER_LOCALASNET) {
-		com.child_is_running = EXT_ASNET;
 		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 	}
 	if (!args->nocache)
@@ -2253,10 +2252,9 @@ finish:
 		siril_catalog_free(aargs->ref_stars);
 	if (aargs->distofilename)
 		g_free(aargs->distofilename);
-	free(aargs);
-	if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
+	if (aargs->solver == SOLVER_LOCALASNET && g_unlink("stop"))
 		siril_debug_print("g_unlink() failed\n");
-	com.child_is_running = EXT_NONE;
+	free(aargs);
 	return retval;
 }
 

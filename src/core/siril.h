@@ -891,14 +891,11 @@ struct cominf {
 
 	sensor_tilt *tilt;		// computed tilt information
 
-	external_program child_is_running;	// external_program id to check if there is a child process running
-
 	float* kernel;			// float* to hold kernel for new deconvolution process
 	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
 	unsigned kernelchannels;	// Holds number of channels for the kernel
 	struct common_icc icc;		// Holds common ICC color profile data
 	version_number python_version; // Holds the python version number
-	GPid childpid;			// PID of a child process
 	GSList *children;		// List of children; children->data is of type child_info
 };
 

@@ -200,12 +200,10 @@ static void global_initialization() {
 	com.stars = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
-	com.child_is_running = EXT_NONE;
 	com.kernel = NULL;
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
 	memset(&com.spcc_data, 0, sizeof(struct spcc_data_store));
-	com.childpid = 0;
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	gui.selected_star = -1;

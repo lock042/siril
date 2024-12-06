@@ -708,6 +708,7 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 	if (conn->thread_claimed) {
 		com.python_claims_thread = FALSE;
 		set_cursor_waiting(FALSE);
+		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	}
 
 	// Clean up shared memory resources
