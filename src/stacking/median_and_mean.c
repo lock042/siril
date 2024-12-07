@@ -943,10 +943,17 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 						}
 					}
 				}
-				if (norm <= 1.e-2) { // if norm is 0, sum is 0 too
-					// if the kept pixel has a weight of 0, bad luck, still take it,
-					// that will not look good, but it's better than a black pixel
-					mean = ((WORD*)data->stack)[0];
+				if (norm == 0) { // if norm is 0, sum is 0 too
+					//we replaced by the sum without weighting
+					// That will not look good, but it's better than a black pixel
+					sum = 0.;
+					for (int frame = 0; frame < stack_size; ++frame) {
+						WORD val = ((WORD*)data->o_stack)[frame];
+						if (val >= pmin && val <= pmax && val > 0) {
+							sum += (double)val;
+						}
+					}
+					mean = sum / (double)kept_pixels;
 				}
 				else mean = sum / norm;
 			} else {
@@ -987,9 +994,18 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 						}
 					}
 				}
-				if (norm == 0.0)
+				if (norm == 0) { // if norm is 0, sum is 0 too
+					//we replaced by the sum without weighting
+					// That will not look good, but it's better than a black pixel
+					sum = 0.;
+					for (int frame = 0; frame < stack_size; ++frame) {
+						float val = ((float*)data->o_stack)[frame];
+						if (val >= pmin && val <= pmax && val > 0) {
+							sum += (double)val;
+						}
+					}
 					mean = sum / (double)kept_pixels;
-				else mean = sum / norm;
+				} else mean = sum / norm;
 			} else {
 				double sum = 0.0;
 				for (int frame = 0; frame < kept_pixels; ++frame) {
