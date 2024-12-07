@@ -971,7 +971,7 @@ class SirilInterface:
         Request the shape of the image from Siril.
 
         Returns:
-            A tuple (height, width, channels) representing the shape of the image,
+            A tuple (channels, height, width) representing the shape of the image,
             or None if an error occurred.
         """
 
@@ -2520,8 +2520,8 @@ class SirilInterface:
                 img_history = []
 
             return FFit(
-                _naxes = (shape[2], shape[1], shape[0]),
-                naxis = 2 if shape[2] == 1 else 3,
+                _naxes = (shape[0], shape[1], shape[2]),
+                naxis = 2 if shape[0] == 1 else 3,
                 bitpix=values[0],
                 checksum=True if values[1] else False,
                 mini=values[2],
@@ -2534,8 +2534,8 @@ class SirilInterface:
                 _data = self.get_pixeldata() if with_pixels == True else None,
                 stats=[
                     self.get_image_stats(0),
-                    self.get_image_stats(1) if shape[2] > 1 else None,
-                    self.get_image_stats(2) if shape[2] > 1 else None,
+                    self.get_image_stats(1) if shape[0] > 1 else None,
+                    self.get_image_stats(2) if shape[0] > 1 else None,
                 ],
                 keywords = self.get_keywords(),
                 _icc_profile = self.get_icc_profile(),
