@@ -86,8 +86,7 @@ static gboolean compute_mask_read_hook(struct generic_seq_args *args, int i) {
 
 static int compute_mask_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_orig_image, MB_per_copies, MB_avail;
-	int limit = compute_nb_images_fit_memory(args->seq, 1., FALSE,
-			&MB_per_orig_image, NULL, &MB_avail);
+	int limit = compute_nb_images_fit_memory(args->seq, 1., FALSE, &MB_per_orig_image, NULL, &MB_avail);
 
 	/* The mask creation memory consumption is:
 		* the original image of size O(w*h*l), with w/h the dimensions and l the number of layers
