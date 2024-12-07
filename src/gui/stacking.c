@@ -144,11 +144,11 @@ static void start_stacking() {
 	gboolean weighing_is_enabled = gtk_widget_get_visible(GTK_WIDGET(weighing_combo));
 	if (weighing_is_enabled) {
 		int weight_type = gtk_combo_box_get_active(weighing_combo);
-		if (gtk_combo_box_get_active(norm_combo) != NO_NORM && (weight_type == NOISE_WEIGHT || weight_type == NBSTACK_WEIGHT))
+		if (weight_type == NOISE_WEIGHT || weight_type == NBSTACK_WEIGHT) {
+			stackparam.weighting_type = (gtk_combo_box_get_active(norm_combo) != NO_NORM) ? weight_type : NO_WEIGHT;
+		} else {
 			stackparam.weighting_type = weight_type;
-		else 
-			stackparam.weighting_type = weight_type;
-
+		}
 	}
 	stackparam.equalizeRGB = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.lite_norm = gtk_toggle_button_get_active(fast_norm);
@@ -176,10 +176,11 @@ static void start_stacking() {
 		if (!confirm)
 			return;
 	}
-	gchar *onorm_msg = g_strdup_printf(_("You have chosen to compute normalization on overlaps with more than %d images.\n"
+
+	if (stackparam.overlap_norm && stackparam.nb_images_to_stack > 20) {
+		gchar *onorm_msg = g_strdup_printf(_("You have chosen to compute normalization on overlaps with more than %d images.\n"
 			"This option should normally be used to stitch stacked mosaic tiles, not subs.\n"
 			"If you proceed, execution may be slow"), MAX_IMAGES_FOR_OVERLAP);
-	if (stackparam.overlap_norm && stackparam.nb_images_to_stack > 20) {
 		int confirm = siril_confirm_dialog(_("Large number of images"),
 			onorm_msg,
 			_("Stack anyway"));

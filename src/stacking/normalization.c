@@ -345,7 +345,7 @@ void free_ostats(overlap_stats_t **ostats, int nb_layers) {
 overlap_stats_t **alloc_ostats(int nb_layers, int nb_frames) {
 	g_assert(nb_layers > 0);
 	int Npairs = nb_frames * (nb_frames - 1) / 2;
-	overlap_stats_t **seq_ostats = calloc(nb_layers, sizeof(overlap_stats_t **));
+	overlap_stats_t **seq_ostats = calloc(nb_layers, sizeof(overlap_stats_t *));
 	if (!seq_ostats) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -355,13 +355,14 @@ overlap_stats_t **alloc_ostats(int nb_layers, int nb_frames) {
 		if (!seq_ostats[n]) {
 			PRINT_ALLOC_ERR;
 			free_ostats(seq_ostats, nb_layers);
+			seq_ostats = NULL;
 		}
 		for (int j = 0; j < Npairs; j++) {
 			seq_ostats[n][j].i = -1;
 			seq_ostats[n][j].j = -1;
 			seq_ostats[n][j].Nij = 0;
 			seq_ostats[n][j].locij = NULL_STATS;
-			seq_ostats[n][j].locji= NULL_STATS;
+			seq_ostats[n][j].locji = NULL_STATS;
 			seq_ostats[n][j].scaij = NULL_STATS;
 			seq_ostats[n][j].scaji = NULL_STATS;
 			seq_ostats[n][j].medij = NULL_STATS;
@@ -422,7 +423,7 @@ static size_t compute_overlap(struct stacking_args *args, int i, int j, rectangl
 			*areai = (rectangle) { x_tli, y_tli, x_bri - x_tli, y_bri - y_tli };
 		if (areaj)
 			*areaj = (rectangle) { x_tlj, y_tlj, x_brj - x_tlj, y_brj - y_tlj };
-		return areai->w * areai->h;
+		return (x_bri - x_tli) * (y_bri - y_tli);
 	}
 	return 0;
 }
@@ -685,7 +686,12 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	// the images of the sequence (without filtering)
 	if (!args->seq->ostats) {
 		args->seq->ostats = alloc_ostats(nb_layers, args->seq->number);
+		if (!args->seq->ostats) {
+			retval  = 1;
+			goto cleanup;
+		}
 		args->seq->needs_saving = TRUE;
+
 	}
 	
 	double ***Mij = malloc(nb_layers * sizeof(double **));
