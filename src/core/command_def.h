@@ -223,7 +223,7 @@
 
 #define STR_VISU N_("Displays the loaded image with <b>low</b> and <b>high</b> as the low and high threshold, GUI only")
 
-#define STR_WAVELET N_("Computes the wavelet transform of the loaded image on (<b>nbr_layers</b>=1...nbr_layers) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version of the 'à trous' algorithm. The result is stored in a file as a structure containing the layers, ready for weighted reconstruction with WRECONS.\n\nSee also EXTRACT")
+#define STR_WAVELET N_("Computes the wavelet transform of the loaded image on (<b>nbr_layers</b>=1...n) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version of the 'à trous' algorithm. The result is stored in a file as a structure containing the layers, ready for weighted reconstruction with WRECONS.\n\nSee also EXTRACT")
 #define STR_WIENER N_("Restores an image using the Wiener deconvolution method.\n\nOptionally, a PSF created by MAKEPSF may be loaded using the argument <b>-loadpsf=<i>filename</i></b>.\n\nThe parameter <b>-alpha=</b> provides the Gaussian noise modelled regularization factor")
 #define STR_WRECONS N_("Reconstructs to current image from the layers previously computed with wavelets and weighted with coefficients <b>c1</b>, <b>c2</b>, ..., <b>cn</b> according to the number of layers used for wavelet transform, after the use of WAVELET")
 
