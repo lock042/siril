@@ -190,8 +190,8 @@ static int optimize_max_framing(double *framingref, optim_params_t *params) {
 	if (status == GSL_SUCCESS) {
 		siril_debug_print("Converged\n");
 		double optimval = gsl_min_fminimizer_x_minimum(s);
-		int width = 0, height = 0;
 		// TODO: should we correct to make sure the image is always horizontal?
+		// int width = 0, height = 0;
 		// get_maxframing(optimval, params, &width, &height, NULL);
 		// if (width < height) // we try to have an image roughly horizontal
 		// 	optimval += 90.;
@@ -307,11 +307,11 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 		optim_params_t params = { ra0, dec0, seq, incl, &Kref, Ks, Rstmp};
 		int status = optimize_max_framing(&framingref, &params);
 		if (!status)
-			siril_log_message(_("Sequence optimal framing: %.3f\n"), framingref);
+			siril_log_message(_("Sequence optimal framing: %.1f\n"), framingref);
 		else
-			siril_log_message(_("Sequence framing: %.3f\n"), framingref);
+			siril_log_message(_("Sequence framing: %.1f\n"), framingref);
 	} else {
-		siril_log_message(_("Sequence framing: %.3f\n"), framingref);
+		siril_log_message(_("Sequence framing: %.1f\n"), framingref);
 	}
 
 	// computing relative rotations wrt to proj center + central image framing
