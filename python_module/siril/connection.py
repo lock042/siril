@@ -2470,10 +2470,12 @@ class SirilInterface:
             return None
 
         try:
-            shape = self.get_shape()
             # Build format string for struct unpacking
             # Network byte order for all values
             format_parts = [
+                'q',  # rx padded to 64bit
+                'q',  # ry padded to 64bit
+                'q',  # naxes[2] padded to 64bit
                 'q',  # bitpix padded to 64bit
                 'q',  # orig_bitpix padded to 64bit
                 'Q',  # gboolean checksum padded to 64bit
@@ -2520,8 +2522,8 @@ class SirilInterface:
                 img_history = []
 
             return FFit(
-                _naxes = (shape[0], shape[1], shape[2]),
-                naxis = 2 if shape[0] == 1 else 3,
+                _naxes = (values[0], values[1], values[2]),
+                naxis = 2 if values[2] == 1 else 3,
                 bitpix=values[0],
                 checksum=True if values[1] else False,
                 mini=values[2],
@@ -2534,8 +2536,8 @@ class SirilInterface:
                 _data = self.get_pixeldata() if with_pixels == True else None,
                 stats=[
                     self.get_image_stats(0),
-                    self.get_image_stats(1) if shape[0] > 1 else None,
-                    self.get_image_stats(2) if shape[0] > 1 else None,
+                    self.get_image_stats(1) if values[2] > 1 else None,
+                    self.get_image_stats(2) if values[2] > 1 else None,
                 ],
                 keywords = self.get_keywords(),
                 _icc_profile = self.get_icc_profile(),

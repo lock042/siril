@@ -162,6 +162,9 @@ static int fits_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	// Copy numeric values with proper byte order conversion. All
 	// types shorter than 64bit are converted to 64bit types before
 	// endianness conversion and transmission, to simplify the data
+	COPY_BE((int64_t) fit->rx, int64_t);
+	COPY_BE((int64_t) fit->ry, int64_t);
+	COPY_BE((int64_t) fit->naxes[2], int64_t);
 	COPY_BE((int64_t) fit->bitpix, int64_t);
 	COPY_BE((int64_t) fit->orig_bitpix, int64_t);
 	COPY_BE((uint64_t) fit->checksum, uint64_t);
@@ -1261,7 +1264,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for the response
-			size_t total_size = sizeof(uint64_t) * 11; // 11 vars packed to 64-bit
+			size_t total_size = sizeof(uint64_t) * 14; // 14 vars packed to 64-bit
 
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
@@ -1369,7 +1372,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for the response
-			size_t total_size = sizeof(uint64_t) * 11; // 11 vars packed to 64-bit
+			size_t total_size = sizeof(uint64_t) * 14; // 14 vars packed to 64-bit
 
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
@@ -1399,7 +1402,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			guint32 profile_size;
 			unsigned char* profile_data = get_icc_profile_data(gfit.icc_profile, &profile_size);
 
-			shared_memory_info_t *info = (conn, profile_data, profile_size);
+			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
 			send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 			free(info);
 			break;
