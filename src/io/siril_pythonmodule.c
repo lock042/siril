@@ -3,6 +3,7 @@
 // Reference site is https://siril.org
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "siril_pythonmodule.h"
 #include <glib.h>
 #include <gio/gio.h>
 #ifdef _WIN32
@@ -306,10 +307,11 @@ void cleanup_shm_resources(Connection *conn) {
 
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
-gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region) {
+shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region) {
 	if (!single_image_is_loaded()) {
 		const char* error_msg = _("Failed to retrieve pixel data - no image loaded");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return NULL;
 	}
 
 	// Calculate total size of pixel data
@@ -329,21 +331,24 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 	win_shm_handle_t win_handle;
 	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &win_handle)) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return NULL;
 	}
 #else
 	char *shm_name_ptr = shm_name;
 	int fd;
 	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, total_bytes, &fd)) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return NULL;
 	}
 #endif
 
 	// null check before memcpy
 	if (shm_ptr == NULL) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return NULL;
 	}
 
 	// Copy data from gfit to shared memory
@@ -376,24 +381,24 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 #endif
 
 	// Prepare shared memory info structure
-	shared_memory_info_t info = {
+	shared_memory_info_t *info = calloc(1, sizeof(shared_memory_info_t));
+	*info = (shared_memory_info_t) {
 		.size = total_bytes,
 		.data_type = (fit->type == DATA_FLOAT) ? 1 : 0,
 		.width = region.w,
 		.height = region.h,
 		.channels = fit->naxes[2]
 	};
-	memset(info.shm_name, 0, sizeof(info.shm_name));  // Clear the buffer first
-	memcpy(info.shm_name, shm_name, strlen(shm_name)); // Safe copy with implicit null termination
+	memcpy(info->shm_name, shm_name, strlen(shm_name)); // Safe copy with implicit null termination
 
-	// Send shared memory info to Python
-	return send_response(conn, STATUS_OK, (const char*)&info, sizeof(info));
+	return info;
 }
 
-gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes) {
+shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes) {
 	if (data == NULL || total_bytes == 0) {
 		const char* error_msg = _("Incorrect memory region specification");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return NULL;
 	}
 
 	// Generate unique name for shared memory and allocate it
@@ -403,20 +408,23 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 	win_shm_handle_t win_handle = { NULL, NULL };
 	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &win_handle)) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return NULL;
 	}
 #else
 	int fd;
 	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &fd)) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return NULL;
 	}
 #endif
 
 	// null check before memcpy
 	if (shm_ptr == NULL) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return NULL;
 	}
 
 	// Copy data to shared memory
@@ -430,18 +438,18 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 #endif
 
 	// Prepare shared memory info structure
-	shared_memory_info_t info = {
+	shared_memory_info_t *info = calloc(1, sizeof(shared_memory_info_t));
+	*info = (shared_memory_info_t) {
 		.size = total_bytes,
 		.data_type = 0,
 		.width = 0,
 		.height = 0,
 		.channels = 0
 	};
-	memset(info.shm_name, 0, sizeof(info.shm_name));
-	memcpy(info.shm_name, shm_name, strlen(shm_name));
+	memcpy(info->shm_name, shm_name, strlen(shm_name));
 
 	// Send shared memory info to Python
-	return send_response(conn, STATUS_OK, (const char*)&info, sizeof(info));
+	return info;
 }
 
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {

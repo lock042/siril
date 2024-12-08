@@ -153,12 +153,12 @@ typedef struct {
 //int release_python_channel();
 void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script);
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
-gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region);
+shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
 siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size);
 gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info);
 void cleanup_shm_allocation(Connection *conn, const char* shm_name);
-gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
+shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 void initialize_python_venv_in_thread();
 void shutdown_python_communication(CommunicationState *commstate);
 

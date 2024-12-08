@@ -674,7 +674,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_GET_PIXELDATA: {
 			rectangle region = {0, 0, gfit.rx, gfit.ry};
-			success = handle_pixeldata_request(conn, &gfit, region);
+			shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region);
+			// Send shared memory info to Python
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
 			break;
 		}
 
@@ -812,7 +815,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 									GUINT32_FROM_BE(region_BE.y),
 									GUINT32_FROM_BE(region_BE.w),
 									GUINT32_FROM_BE(region_BE.h)};
-				success = handle_pixeldata_request(conn, &gfit, region);
+				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region);
+				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+				free(info);
 			} else {
 				siril_debug_print(_("Unexpected payload length %u received for GET_PIXELDATA_REGION\n"), payload_length);
 			}
@@ -1224,7 +1229,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			rectangle region = {0, 0, fit->rx, fit->ry};
-			success = handle_pixeldata_request(conn, fit, region);
+			shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region);
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
 			clearfits(fit);
 			free(fit);
 			break;
@@ -1345,7 +1352,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			if (!error_occurred) {
-				success = handle_rawdata_request(conn, allstars, total_size);
+				shared_memory_info_t *info = handle_rawdata_request(conn, allstars, total_size);
+				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+				free(info);
 			}
 
 			g_free(allstars);
@@ -1390,7 +1399,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			guint32 profile_size;
 			unsigned char* profile_data = get_icc_profile_data(gfit.icc_profile, &profile_size);
 
-			success = handle_rawdata_request(conn, profile_data, profile_size);
+			shared_memory_info_t *info = (conn, profile_data, profile_size);
+			send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
 			break;
 		}
 
@@ -1408,7 +1419,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Prepare data
 			guint32 length = strlen(fit->header) + 1;
-			success = handle_rawdata_request(conn, fit->header, length);
+			shared_memory_info_t *info = handle_rawdata_request(conn, fit->header, length);
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
 			break;
 		}
 
@@ -1438,7 +1451,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				memcpy(ptr, str, len * sizeof(char));
 				ptr += len;
 			}
-			success = handle_rawdata_request(conn, buffer, total_length * sizeof(char));
+			shared_memory_info_t *info = handle_rawdata_request(conn, buffer, total_length * sizeof(char));
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
 			g_free(buffer);
 			break;
 		}
@@ -1458,7 +1473,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Prepare data
 			guint32 length = strlen(fit->unknown_keys) + 1;
 
-			success = handle_rawdata_request(conn, fit->unknown_keys, length * sizeof(char));
+			shared_memory_info_t *info = handle_rawdata_request(conn, fit->unknown_keys, length * sizeof(char));
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
 			break;
 		}
 
