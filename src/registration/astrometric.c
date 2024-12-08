@@ -114,7 +114,7 @@ typedef struct {
 	Homography *Rstmp;
 } optim_params_t;
 
-static double get_max_area(double framing, void *params) {
+static void get_maxframing(double framing, void *params, int *width,  int *height, double *area) {
 	optim_params_t *p = (optim_params_t *)params;
 	int n = p->seq->number;
 	// computing relative rotations wrt to proj center + central image framing
@@ -139,11 +139,22 @@ static double get_max_area(double framing, void *params) {
 		xmax = max(xmax, roi.x + roi.w);
 		ymax = max(ymax, roi.y + roi.h);
 	}
-	return (double)(xmax - xmin) * (ymax - ymin);
+	if (width)
+		*width = (xmax - xmin);
+	if (height)
+		*height = (ymax - ymin);
+	if (area)
+		*area = (double)(xmax - xmin) * (ymax - ymin);
 }
 
-// this function minimizes the area by changing ra0, dec0 and framingref
-static int optimize_max_framing(sequence *seq, gboolean *incl, Homography *Kref, Homography *Ks, Homography *Rstmp, Homography *Rs, double ra0, double dec0, double *framingref) {
+static double get_maxframing_area(double framing, void *params) {
+	double area = 0.;
+	get_maxframing(framing,params, NULL,  NULL, &area);
+	return area;
+}
+
+// this function minimizes the area by searching the optimal framing
+static int optimize_max_framing(double *framingref, optim_params_t *params) {
 	int status;
 	int iter = 0, max_iter = 100;
 	const gsl_min_fminimizer_type *T;
@@ -151,9 +162,9 @@ static int optimize_max_framing(sequence *seq, gboolean *incl, Homography *Kref,
 	double m = (*framingref < 0) ? *framingref + 180. : *framingref;
 	double a = 0.0, b = 180.;
 	gsl_function F;
-	optim_params_t params = { ra0, dec0, seq, incl, Kref, Ks, Rstmp};
-	F.function = &get_max_area;
-	F.params = &params;
+	// optim_params_t params = { ra0, dec0, seq, incl, Kref, Ks, Rstmp};
+	F.function = &get_maxframing_area;
+	F.params = params;
 	T = gsl_min_fminimizer_brent;
 	s = gsl_min_fminimizer_alloc(T);
 	gsl_min_fminimizer_set(s, &F, m, a, b);
@@ -162,7 +173,7 @@ static int optimize_max_framing(sequence *seq, gboolean *incl, Homography *Kref,
 		"iter", "lower", "upper", "min",
 		"err", "err(est)", "val");
 
-	do	{
+	do {
 		iter++;
 		status = gsl_min_fminimizer_iterate(s);
 		m = gsl_min_fminimizer_x_minimum(s);
@@ -170,7 +181,7 @@ static int optimize_max_framing(sequence *seq, gboolean *incl, Homography *Kref,
 		b = gsl_min_fminimizer_x_upper(s);
 		double v = GSL_FN_EVAL(&F, m);
 		status = gsl_min_test_interval(a, b, 0.001, 0.0);
-		printf("%5d [%.7f, %.7f] "
+		siril_debug_print("%5d [%.7f, %.7f] "
 				"%.7f %.7f %.0f\n",
 				iter, a, b,
 				m, b - a, v);
@@ -178,10 +189,16 @@ static int optimize_max_framing(sequence *seq, gboolean *incl, Homography *Kref,
 	
 	if (status == GSL_SUCCESS) {
 		siril_debug_print("Converged\n");
+		double optimval = gsl_min_fminimizer_x_minimum(s);
+		int width = 0, height = 0;
+		// TODO: should we correct to make sure the image is always horizontal?
+		// get_maxframing(optimval, params, &width, &height, NULL);
+		// if (width < height) // we try to have an image roughly horizontal
+		// 	optimval += 90.;
 		if (*framingref < 0)
-			*framingref = gsl_min_fminimizer_x_minimum(s) - 180.;
+			*framingref = optimval - 180.;
 		else
-			*framingref= gsl_min_fminimizer_x_minimum(s);
+			*framingref= optimval;
 	}
 	gsl_min_fminimizer_free(s);
 	return status;
@@ -286,8 +303,13 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 #ifdef DEBUG_ASTROREG
 	print_H(&Kref);
 #endif
-	if (framing == FRAMING_MAX && !optimize_max_framing(seq, incl, &Kref, Ks, Rstmp, Rs, ra0, dec0, &framingref)) {
-		siril_log_message(_("Sequence optimal framing: %.3f\n"), framingref);
+	if (framing == FRAMING_MAX) {
+		optim_params_t params = { ra0, dec0, seq, incl, &Kref, Ks, Rstmp};
+		int status = optimize_max_framing(&framingref, &params);
+		if (!status)
+			siril_log_message(_("Sequence optimal framing: %.3f\n"), framingref);
+		else
+			siril_log_message(_("Sequence framing: %.3f\n"), framingref);
 	} else {
 		siril_log_message(_("Sequence framing: %.3f\n"), framingref);
 	}
