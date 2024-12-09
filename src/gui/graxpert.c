@@ -42,12 +42,14 @@
 
 static GtkButton *button_graxpert_cancel = NULL, *button_graxpert_apply = NULL, *graxpert_clear_samples = NULL, *graxpert_generate_samples = NULL, *button_graxpert_roipreview = NULL;
 static GtkNotebook *notebook_graxpert_operation = NULL;
-static GtkComboBox *combo_graxpert_algorithm = NULL, *combo_graxpert_correction = NULL, *combo_graxpert_kernel = NULL, *combo_graxpert_ai_models_bg = NULL, *combo_graxpert_ai_models_denoise = NULL, *combo_graxpert_ai_models_deconv = NULL;
+static GtkComboBox *combo_graxpert_algorithm = NULL, *combo_graxpert_correction = NULL, *combo_graxpert_kernel = NULL, *combo_graxpert_ai_models_bg = NULL, *combo_graxpert_ai_models_denoise = NULL, *combo_graxpert_ai_models_deconv = NULL, *combo_graxpert_ai_models_deconv_stellar = NULL;
 static GtkDialog *graxpert_dialog = NULL;
 static GtkSpinButton *spin_graxpert_smoothing = NULL, *graxpert_spin_bgtol = NULL, *graxpert_spin_nb_samples = NULL, *spin_graxpert_strength = NULL, *spin_graxpert_deconv_strength = NULL, *spin_graxpert_deconv_blur_psf_size = NULL, *graxpert_spin_sample_size = NULL, *graxpert_spin_spline_order = NULL;
 static GtkToggleButton *toggle_graxpert_gpu = NULL, *graxpert_toggle_keep_background = NULL, *graxpert_toggle_apply_to_sequence = NULL;
 static GtkLabel *graxpert_available = NULL;
 static GtkWidget *graxpert_ai_settings = NULL, *graxpert_classical_settings = NULL, *graxpert_samples_controls = NULL, *graxpert_rbf_settings = NULL, *graxpert_spline_settings = NULL, *ai_model_settings_bg = NULL, *ai_model_settings_denoise = NULL;
+static GtkSwitch *graxpert_deconv_switch = NULL;
+static GtkWidget *ai_model_settings_deconv_stellar = NULL, *ai_model_settings_deconv = NULL;
 
 static gboolean is_bg = TRUE;
 
@@ -68,6 +70,7 @@ gboolean initialize_graxpert_widgets_if_needed(gpointer user_data) {
 		combo_graxpert_ai_models_bg = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_graxpert_ai_models_bg"));
 		combo_graxpert_ai_models_denoise = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_graxpert_ai_models_denoise"));
 		combo_graxpert_ai_models_deconv = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_graxpert_ai_models_deconv"));
+		combo_graxpert_ai_models_deconv_stellar = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_graxpert_ai_models_deconv_stellar"));
 		// GtkDialog
 		graxpert_dialog = GTK_DIALOG(gtk_builder_get_object(gui.builder, "graxpert_dialog"));
 		// GtkSpinButton
@@ -93,6 +96,10 @@ gboolean initialize_graxpert_widgets_if_needed(gpointer user_data) {
 		graxpert_spline_settings = GTK_WIDGET(gtk_builder_get_object(gui.builder, "graxpert_spline_settings"));
 		ai_model_settings_bg = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ai_model_settings_bg"));
 		ai_model_settings_denoise = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ai_model_settings_denoise"));
+		ai_model_settings_deconv = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ai_model_settings_deconv"));
+		ai_model_settings_deconv_stellar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ai_model_settings_deconv_stellar"));
+		// GtkSwitch
+		graxpert_deconv_switch = GTK_SWITCH(gtk_builder_get_object(gui.builder, "graxpert_deconv_switch"));
 	}
 	if (populate_ai_combos) {
 		populate_graxpert_ai_combos(NULL);
@@ -139,12 +146,25 @@ graxpert_data* fill_graxpert_data_from_gui(gboolean previewing) {
 			}
 		}
 	} else if (p->operation == GRAXPERT_DECONV) {
-		int n = gtk_combo_box_get_active(combo_graxpert_ai_models_deconv);
-		const gchar **ai_models = get_ai_models(GRAXPERT_DECONV);
-		if (ai_models) {
-			int num_models = g_strv_length((gchar**) ai_models);
-			if (n >= 0 && n < num_models) {
-				p->ai_version = g_strdup(ai_models[n]);
+		if (gtk_switch_get_active(graxpert_deconv_switch)) {
+			p->operation = GRAXPERT_DECONV_STELLAR;
+			int n = gtk_combo_box_get_active(combo_graxpert_ai_models_deconv_stellar);
+			const gchar **ai_models = get_ai_models(GRAXPERT_DECONV_STELLAR);
+			if (ai_models) {
+				int num_models = g_strv_length((gchar**) ai_models);
+				if (n >= 0 && n < num_models) {
+					p->ai_version = g_strdup(ai_models[n]);
+				}
+			}
+
+		} else {
+			int n = gtk_combo_box_get_active(combo_graxpert_ai_models_deconv);
+			const gchar **ai_models = get_ai_models(GRAXPERT_DECONV);
+			if (ai_models) {
+				int num_models = g_strv_length((gchar**) ai_models);
+				if (n >= 0 && n < num_models) {
+					p->ai_version = g_strdup(ai_models[n]);
+				}
 			}
 		}
 	}
@@ -209,6 +229,7 @@ static void confirm_availability(guint page_num) {
 				operation == GRAXPERT_BG ? _("background extraction") :
 				operation == GRAXPERT_DENOISE ? _("denoising") :
 				operation == GRAXPERT_DECONV ? _("deconvolution") :
+				operation == GRAXPERT_DECONV_STELLAR ? _("deconvolution") :
 		    _("GUI"));
 		gtk_label_set_text(graxpert_available, txt);
 		g_free(txt);
@@ -246,13 +267,17 @@ gboolean populate_graxpert_ai_combos(gpointer user_data) {
 	const gchar** ai_models_deconv = get_ai_models(GRAXPERT_DECONV);
 	if (combo_graxpert_ai_models_deconv && ai_models_deconv)
 		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_deconv), get_ai_models(GRAXPERT_DECONV));
+	const gchar** ai_models_deconv_stellar = get_ai_models(GRAXPERT_DECONV_STELLAR);
+	if (combo_graxpert_ai_models_deconv_stellar && ai_models_deconv_stellar)
+		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_deconv_stellar), get_ai_models(GRAXPERT_DECONV_STELLAR));
+
 	return FALSE;
 }
 
 static void set_widgets() {
 	graxpert_operation operation = (graxpert_operation) gtk_notebook_get_current_page(notebook_graxpert_operation);
 	graxpert_bg_algo algorithm = gtk_combo_box_get_active(combo_graxpert_algorithm);
-	gtk_widget_set_visible(graxpert_ai_settings, algorithm == GRAXPERT_BG_AI || operation == GRAXPERT_DENOISE || operation == GRAXPERT_DECONV);
+	gtk_widget_set_visible(graxpert_ai_settings, algorithm == GRAXPERT_BG_AI || operation == GRAXPERT_DENOISE || operation == GRAXPERT_DECONV || operation == GRAXPERT_DECONV_STELLAR);
 	gtk_widget_set_visible(graxpert_classical_settings, algorithm != GRAXPERT_BG_AI);
 	gtk_widget_set_visible(graxpert_samples_controls, algorithm != GRAXPERT_BG_AI);
 	gtk_widget_set_visible(graxpert_rbf_settings, algorithm == GRAXPERT_BG_RBF ||  algorithm == GRAXPERT_BG_KRIGING);
@@ -335,4 +360,7 @@ void on_graxpert_spin_sample_size_value_changed(GtkSpinButton *button, gpointer 
 
 void on_graxpert_deconv_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data) {
 	gtk_label_set_text((GtkLabel *) user_data, state ? _("Stellar") : _("Objects"));
+	gtk_widget_set_visible(ai_model_settings_deconv, !state);
+	gtk_widget_set_visible(ai_model_settings_deconv_stellar, state);
+	set_widgets();
 }

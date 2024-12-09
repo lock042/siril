@@ -60,6 +60,7 @@ static version_number graxpert_version = { 0 };
 static gchar **background_ai_models = NULL;
 static gchar **denoise_ai_models = NULL;
 static gchar **deconv_ai_models = NULL;
+static gchar **deconv_stellar_ai_models = NULL;
 static gboolean graxpert_aborted = FALSE;
 
 void set_graxpert_aborted(gboolean state) {
@@ -67,7 +68,9 @@ void set_graxpert_aborted(gboolean state) {
 }
 
 const gchar** get_ai_models(graxpert_operation operation) {
-    return (const gchar**) (operation == GRAXPERT_DENOISE ? denoise_ai_models : (operation == GRAXPERT_DECONV ? deconv_ai_models : background_ai_models));
+    return (const gchar**) (operation == GRAXPERT_DENOISE ? denoise_ai_models :
+    		(operation == GRAXPERT_DECONV ? deconv_ai_models :
+    		(operation == GRAXPERT_DECONV_STELLAR ? deconv_stellar_ai_models : background_ai_models)));
 }
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
@@ -299,7 +302,9 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		int nb = 0;
 		test_argv[nb++] = executable;
 		test_argv[nb++] = "-cmd";
-		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" : (operation == GRAXPERT_DECONV ? "deconv-obj" : "background-extraction"));
+		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" :
+				(operation == GRAXPERT_DECONV ? "deconv-obj" :
+				(operation == GRAXPERT_DECONV_STELLAR ? "deconv-stellar" : "background-extraction")));
 		test_argv[nb++] = versionarg;
 		test_argv[nb++] = "--help";
 		// g_spawn handles wchar so not need to convert
@@ -353,6 +358,7 @@ void fill_graxpert_version_arrays() {
 	background_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_BG);
 	denoise_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DENOISE);
 	deconv_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV);
+	deconv_stellar_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV_STELLAR);
 }
 
 gboolean check_graxpert_version(const gchar *version, graxpert_operation operation) {
@@ -370,6 +376,13 @@ gboolean check_graxpert_version(const gchar *version, graxpert_operation operati
 			return FALSE;
 		for (int i = 0 ; deconv_ai_models[i] != NULL ; i++) {
 			if (!strcmp(version, deconv_ai_models[i]))
+				return TRUE;
+		}
+	} else if (operation == GRAXPERT_DECONV_STELLAR) {
+		if (deconv_stellar_ai_models == NULL)
+			return FALSE;
+		for (int i = 0 ; deconv_stellar_ai_models[i] != NULL ; i++) {
+			if (!strcmp(version, deconv_stellar_ai_models[i]))
 				return TRUE;
 		}
 	} else {
@@ -466,7 +479,8 @@ gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operatio
 				graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
 		return FALSE;
 	} else {
-		if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 1, .micro_version = 0}) < 0 && operation == GRAXPERT_DECONV) {
+		if (compare_version(graxpert_version, (version_number ) {.major_version = 3, .minor_version = 1, .micro_version = 0 }) < 0
+				&& (operation == GRAXPERT_DECONV || operation == GRAXPERT_DECONV_STELLAR)) {
 			return FALSE;
 		}
 		return TRUE;
@@ -490,12 +504,16 @@ gpointer graxpert_setup_async(gpointer user_data) {
 		denoise_ai_models = NULL;
 		g_strfreev(deconv_ai_models);
 		deconv_ai_models = NULL;
+		g_strfreev(deconv_stellar_ai_models);
+		deconv_stellar_ai_models = NULL;
 	}
 	return GINT_TO_POINTER(0);
 }
 
 void ai_versions_to_log(graxpert_operation operation) {
-	gchar** array = operation == GRAXPERT_DENOISE ? denoise_ai_models : (operation == GRAXPERT_DECONV ? deconv_ai_models : background_ai_models);
+	gchar** array = operation == GRAXPERT_DENOISE ? denoise_ai_models :
+			(operation == GRAXPERT_DECONV ? deconv_ai_models :
+			(operation == GRAXPERT_DECONV_STELLAR ? deconv_stellar_ai_models : background_ai_models));
 	if (!array) {
 		siril_log_message(_("None!\n"));
 	} else {
@@ -749,6 +767,7 @@ gpointer do_graxpert (gpointer p) {
 				text = g_strdup_printf(_("GraXpert denoising, strength %.3f"), args->denoise_strength);
 				break;
 			case GRAXPERT_DECONV:
+			case GRAXPERT_DECONV_STELLAR:
 				text = g_strdup_printf(_("GraXpert deconv, strength %.3f, psf size %.3f"), args->deconv_strength, args->deconv_blur_psf_size);
 				break;
 			default:
@@ -848,10 +867,10 @@ gpointer do_graxpert (gpointer p) {
 			my_argv[nb++] = g_strdup("-ai_version");
 			my_argv[nb++] = g_strdup(args->ai_version);
 		}
-	} else if (args->operation == GRAXPERT_DECONV) {
+	} else if (args->operation == GRAXPERT_DECONV || args->operation == GRAXPERT_DECONV_STELLAR) {
 		my_argv[nb++] = g_strdup("-cli");
 		my_argv[nb++] = g_strdup("-cmd");
-		my_argv[nb++] = g_strdup("deconv-obj");
+		my_argv[nb++] = args->operation == GRAXPERT_DECONV ? g_strdup("deconv-obj") : g_strdup("deconv-setllar");
 		my_argv[nb++] = g_strdup_printf("-output");
 		my_argv[nb++] = g_strdup_printf("%s", outpath);
 		my_argv[nb++] = g_strdup("-gpu");
@@ -970,7 +989,7 @@ void apply_graxpert_to_sequence(graxpert_data *args) {
 		seqargs->new_seq_prefix = strdup("gxbg_");
 	else if (args->operation == GRAXPERT_DENOISE)
 		seqargs->new_seq_prefix = strdup("gxnr_");
-	else if (args->operation == GRAXPERT_DECONV)
+	else if (args->operation == GRAXPERT_DECONV || args->operation == GRAXPERT_DECONV_STELLAR)
 		seqargs->new_seq_prefix = strdup("gxdec_");
 	else  {
 		free_graxpert_data(args);
