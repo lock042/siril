@@ -3,7 +3,6 @@
 // Reference site is https://siril.org
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "siril_pythonmodule.h"
 #include <glib.h>
 #include <gio/gio.h>
 #ifdef _WIN32
