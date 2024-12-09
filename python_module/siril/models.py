@@ -470,8 +470,7 @@ class FFit:
     @property
     def data(self) -> Optional[np.ndarray]:
         """
-        Get the pixel data of the current image loaded in Siril
-        as a NumPy array
+        The pixel data of the current image loaded in Siril, stored as a NumPy array
         """
         return self._data
 
@@ -509,28 +508,30 @@ class FFit:
 
     @property
     def naxes(self) -> Tuple[int, int, int]:
-        """Get the naxes tuple"""
+        """
+        The naxes tuple holds the image dimensions as width x height x channels. Note that the axis ordering differs between Siril representation as held in naxes and numpy representation as held in _data.shape (which is channels x height x width)
+        """
         return self._naxes
 
     @property
     def width(self) -> int:
-        """Get image width"""
+        """Image width"""
         return self._naxes[0]
 
     @property
     def height(self) -> int:
-        """Get image height"""
+        """Image height"""
         return self._naxes[1]
 
     @property
     def channels(self) -> int:
-        """Get image channels"""
+        """Image channels"""
         return self._naxes[2]
 
     @property
     def icc_profile(self) -> Optional[bytes]:
         """
-        Get the ICC profile as raw bytes data. This may be converted
+        The ICC profile as raw bytes data. This may be converted
         for use by modules such as pillow which can handle ICC profiles.
         """
         return self._icc_profile
@@ -547,7 +548,7 @@ class FFit:
 
     @property
     def dtype(self) -> np.dtype:
-        """Get the NumPy dtype based on the current type"""
+        """The NumPy dtype based on the current type"""
         return np.uint16 if self.type == DataType.USHORT_IMG else np.float32
 
     def allocate_data(self):
