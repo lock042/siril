@@ -1657,7 +1657,10 @@ CLEANUP:
 					FROM_BE_INTO(x, x_BE, double);
 					FROM_BE_INTO(y, y_BE, double);
 					double ra, dec, ra_BE, dec_BE;
-					pix2wcs(&gfit, x, y, &ra, &dec);
+					double fx, fy;
+					display_to_siril(x, y, &fx, &fy, gfit.ry);
+					pix2wcs2(gfit.keywords.wcslib, fx, fy, &ra, &dec);
+					// ra and dec = -1 is the error code
 					TO_BE_INTO(ra_BE, ra, double);
 					TO_BE_INTO(dec_BE, dec, double);
 					unsigned char* payload = g_malloc0(2 * sizeof(double));
@@ -1692,8 +1695,9 @@ CLEANUP:
 					double ra, dec;
 					FROM_BE_INTO(ra, ra_BE, double);
 					FROM_BE_INTO(dec, dec_BE, double);
-					double x, y, x_BE, y_BE;
-					wcs2pix(&gfit, ra, dec, &x, &y);
+					double x, y, fx, fy, x_BE, y_BE;
+					wcs2pix(&gfit, ra, dec, &fx, &fy);
+					siril_to_display(fx, fy, &x, &y, gfit.ry);
 					TO_BE_INTO(x_BE, x, double);
 					TO_BE_INTO(y_BE, y, double);
 					unsigned char* payload = g_malloc0(2 * sizeof(double));
