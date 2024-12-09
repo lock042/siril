@@ -148,7 +148,7 @@ void _show_summary(struct stacking_args *args) {
 	}
 
 	/* Normalisation */
-	const char *norm_str, *fast_norm = "";
+	const char *norm_str, *fast_norm = "", *overlap = "";
 	if (args->method != &stack_mean_with_rejection &&
 			args->method != &stack_median ) {
 		norm_str = _("none");
@@ -173,8 +173,10 @@ void _show_summary(struct stacking_args *args) {
 		}
 		if (args->normalize != NO_NORM && args->lite_norm)
 			fast_norm = _(" (fast)");
+		if (args->normalize != NO_NORM && args->overlap_norm)
+			overlap = _(" (overlaps)");
 	}
-	siril_log_message(_("Input normalization ....... %s%s\n"), norm_str, fast_norm);
+	siril_log_message(_("Input normalization ....... %s%s%s\n"), norm_str, fast_norm, overlap);
 
 	if (args->output_norm)
 		siril_log_message(_("Output normalization ...... enabled\n"));
@@ -240,6 +242,9 @@ void _show_summary(struct stacking_args *args) {
 	else if (args->weighting_type == NBSTARS_WEIGHT)
 		siril_log_message(_("Image weighting ........... from star count\n"));
 	else siril_log_message(_("Image weighting ........... disabled\n"));
+
+	if (args->feather_dist > 0)
+		siril_log_message(_("Feathering ................ over %4d pixels\n"), args->feather_dist);
 
 	if (args->seq->nb_layers > 1) {
 		if (args->equalizeRGB)
@@ -348,6 +353,8 @@ void describe_stack_for_history(struct stacking_args *args, GSList **hist, gbool
 		}
 		if (args->normalize != NO_NORM && args->lite_norm)
 			g_string_append(str, " (fast)");
+		if (args->normalize != NO_NORM && args->overlap_norm)
+			g_string_append(str, " (overlaps)");
 	}
 
 	if (args->output_norm)
@@ -363,6 +370,9 @@ void describe_stack_for_history(struct stacking_args *args, GSList **hist, gbool
 	else if (args->weighting_type == NBSTARS_WEIGHT)
 		g_string_append(str, ", image weighting from star count");
 	else g_string_append(str, ", no image weighting");
+
+	if (args->feather_dist > 0)
+		g_string_append_printf(str, ", feather distance %d pixels", args->feather_dist);
 
 	if (args->seq->nb_layers > 1) {
 		if (args->equalizeRGB)
