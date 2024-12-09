@@ -994,10 +994,13 @@ class SirilInterface:
 
         """
         Retrieves a PSFStar star model from the current selection in Siril.
+        Only a single PSFStar is returned: if there are more than one in the
+        selection, the first one identified by Siril's internal star detection
+        algorithm is returned.
 
         Args:
             shape: Optional list of [x, y, w, h] specifying the selection to
-                   retrieve from.
+                   retrieve from. w x h must not exceed 300 px x 300 px.
                    If provided, looks for a star in the specified selection
                    If None, looks for a star in the selection already made in
                    Siril, if one is made.
