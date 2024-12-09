@@ -104,7 +104,7 @@ def match_theme_to_siril(themed_tk, s):
 
     # Get theme configuration from Siril
     try:
-        theme_value = s.get_config("gui", "theme")
+        theme_value = s.get_siril_config("gui", "theme")
     except Exception as e:
         raise AttributeError(f"Unable to retrieve theme configuration: {e}")
 
