@@ -98,7 +98,7 @@ class _Command(IntEnum):
 class _ConfigType(IntEnum):
     """
     Enumerates config variable types for use with the
-    ``get_config()`` method. Internal class: this is not intended
+    ``get_siril_config()`` method. Internal class: this is not intended
     for use in scripts.
     """
     BOOL = 0
@@ -681,15 +681,15 @@ class SirilInterface:
         Claim the processing thread. This prevents other processes using the
         processing thread to operate on the current Siril image. This function
         **must** always be called before starting any processing that will end with
-        ``SirilInterface.set_pixeldata()``. The sequence of operations should be:
+        ``SirilInterface.set_image_pixeldata()``. The sequence of operations should be:
 
         * Call ``SirilInterface.claim_thread()``
         * If the result is False, alert the user and await further input: the
           thread is already in use, or an image processing dialog is open.
         * If the result is True, you have the thread claimed.
-        * Now you can call ``SirilInterface.get_image()`` or ``get_pixeldata()``
+        * Now you can call ``SirilInterface.get_image()`` or ``get_image_pixeldata()``
         * Carry out your image processing
-        * Call ``SirilInterface.set_pixeldata()``
+        * Call ``SirilInterface.set_image_pixeldata()``
         * Call ``SirilInterface.release_thread()``
 
         As a precaution, the thread will be released automatically if it is still
@@ -735,9 +735,9 @@ class SirilInterface:
         * If the result is False, alert the user and await further input: the
           thread is already in use, or an image processing dialog is open.
         * If the result is True, you have the thread claimed.
-        * Now you can call ``SirilInterface.get_image()`` or ``get_pixeldata()``
+        * Now you can call ``SirilInterface.get_image()`` or ``get_image_pixeldata()``
         * Carry out your image processing
-        * Call ``SirilInterface.set_pixeldata()``
+        * Call ``SirilInterface.set_image_pixeldata()``
         * Call ``SirilInterface.release_thread()``
 
         As a precaution, the thread will be released automatically if it is still
@@ -895,7 +895,7 @@ class SirilInterface:
             print(f"Error sending command: {e}", file=sys.stderr)
             return False
 
-    def set_selection(self, x: int, y: int, w: int, h: int) -> bool:
+    def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
         """
         Set the image selection in Siril using the provided coordinates and dimensions.
 
@@ -916,7 +916,7 @@ class SirilInterface:
             print(f"Error setting selection: {e}", file=sys.stderr)
             return False
 
-    def get_selection(self) -> Optional[Tuple[int, int, int, int]]:
+    def get_siril_selection(self) -> Optional[Tuple[int, int, int, int]]:
 
         """
         Request the image selection from Siril.
@@ -939,7 +939,7 @@ class SirilInterface:
             print(f"Error unpacking image selection: {e}", file=sys.stderr)
             return None
 
-    def get_active_vport(self) -> Optional[int]:
+    def get_siril_active_vport(self) -> Optional[int]:
 
         """
         Request the active viewport from Siril.
@@ -966,7 +966,7 @@ class SirilInterface:
             print(f"Error unpacking data: {e}", file=sys.stderr)
             return None
 
-    def get_shape(self) -> Optional[Tuple[int, int, int]]:
+    def get_image_shape(self) -> Optional[Tuple[int, int, int]]:
 
         """
         Request the shape of the image from Siril.
@@ -989,7 +989,7 @@ class SirilInterface:
             print(f"Error unpacking image dimensions: {e}", file=sys.stderr)
             return None
 
-    def get_star_in_selection(self, shape: Optional[list[int]] = None, \
+    def get_siril_selection_star(self, shape: Optional[list[int]] = None, \
         channel: Optional[int] = None)-> Optional[PSFStar]:
 
         """
@@ -1088,7 +1088,7 @@ class SirilInterface:
         except Exception as e:
             raise RuntimeError(_("Error processing star data: {}").format(e))
 
-    def get_stats_for_selection(self, shape: Optional[list[int]] = None, \
+    def get_siril_selection_stats(self, shape: Optional[list[int]] = None, \
         channel: Optional[int] = None) -> Optional[PSFStar]:
 
         """
@@ -1327,7 +1327,7 @@ class SirilInterface:
         except Exception as e:
             raise RuntimeError(_("Failed to transfer stats data: error occurred"))
 
-    def get_pixeldata(self, shape: Optional[list[int]] = None) -> Optional[np.ndarray]:
+    def get_image_pixeldata(self, shape: Optional[list[int]] = None) -> Optional[np.ndarray]:
 
         """
         Retrieves the pixel data from the image currently loaded in Siril.
@@ -1646,7 +1646,7 @@ class SirilInterface:
                     pass
 
 
-    def set_pixeldata(self, image_data: np.ndarray) -> bool:
+    def set_image_pixeldata(self, image_data: np.ndarray) -> bool:
         """
         Send image data to Siril using shared memory.
 
@@ -1841,7 +1841,7 @@ class SirilInterface:
                 except:
                     pass
 
-    def get_icc_profile(self) -> Optional[bytes]:
+    def get_image_iccprofile(self) -> Optional[bytes]:
         """
         Retrieve the ICC profile of the current Siril image using shared memory.
 
@@ -1920,7 +1920,7 @@ class SirilInterface:
                 except BufferError:
                     pass
 
-    def get_fits_header(self) -> Optional[str]:
+    def get_image_fits_header(self) -> Optional[str]:
         """
         Retrieve the full FITS header of the current image loaded in Siril.
 
@@ -2000,7 +2000,7 @@ class SirilInterface:
                 except BufferError:
                     pass
 
-    def get_unknown_keys(self) -> Optional[str]:
+    def get_image_unknown_keys(self) -> Optional[str]:
         """
         Retrieve the unknown key in a FITS header of the current loaded Siril
         image using shared memory.
@@ -2083,7 +2083,7 @@ class SirilInterface:
                 except BufferError:
                     pass
 
-    def get_history(self) -> Optional[list[str]]:
+    def get_image_history(self) -> Optional[list[str]]:
         """
         Retrieve history entries in the FITS header of the current loaded
         Siril image using shared memory.
@@ -2168,7 +2168,7 @@ class SirilInterface:
                 except BufferError:
                     pass
 
-    def get_wd(self) -> Optional[str]:
+    def get_siril_wd(self) -> Optional[str]:
         """
         Request the current working directory from Siril.
 
@@ -2189,7 +2189,7 @@ class SirilInterface:
             print("Error decoding working directory: {e}", file=sys.stderr)
             return None
 
-    def get_configdir(self) -> Optional[str]:
+    def get_siril_configdir(self) -> Optional[str]:
         """
         Request the user config directory used by Siril.
 
@@ -2242,7 +2242,7 @@ class SirilInterface:
         sequence_loaded = struct.unpack('!i', response)[0] != 0
         return sequence_loaded
 
-    def get_filename(self) -> Optional[str]:
+    def get_image_filename(self) -> Optional[str]:
         """
         Request the filename of the loaded image from Siril.
 
@@ -2378,7 +2378,7 @@ class SirilInterface:
             print(f"Error unpacking frame registration data: {e}", file=sys.stderr)
             return None
 
-    def get_seq_imstats(self, frame: int, channel: int) -> Optional[ImageStats]:
+    def get_seq_stats(self, frame: int, channel: int) -> Optional[ImageStats]:
         """
         Request sequence frame statistics from Siril.
 
@@ -2493,7 +2493,7 @@ class SirilInterface:
                              for channel in range(nb_layers)]
                             for frame in range(number)]
 
-            stats_list = [[self.get_seq_imstats(frame, channel)
+            stats_list = [[self.get_seq_stats(frame, channel)
                            for channel in range(nb_layers)]
                           for frame in range(number)]
 
@@ -2523,7 +2523,7 @@ class SirilInterface:
             print(f"Error unpacking sequence data: {e}", file=sys.stderr)
             return None
 
-    def get_keywords(self) -> Optional[FKeywords]:
+    def get_image_keywords(self) -> Optional[FKeywords]:
         """
         Request FITS keywords data from Siril as a FKeywords object.
 
@@ -2735,17 +2735,17 @@ class SirilInterface:
 
             # Create FFit object
             try:
-                img_header = self.get_fits_header()
+                img_header = self.get_image_fits_header()
             except Exception as e:
                 img_header = ""
 
             try:
-                img_unknown_keys = self.get_unknown_keys()
+                img_unknown_keys = self.get_image_unknown_keys()
             except Exception as e:
                 img_unknown_keys = ""
 
             try:
-                img_history = self.get_history()
+                img_history = self.get_image_history()
             except Exception as e:
                 img_history = []
 
@@ -2762,14 +2762,14 @@ class SirilInterface:
                 focalkey=True if values[11] else False,
                 pixelkey=True if values[12] else False,
                 color_managed=True if values[13] else False,
-                _data = self.get_pixeldata() if with_pixels == True else None,
+                _data = self.get_image_pixeldata() if with_pixels == True else None,
                 stats=[
                     self.get_image_stats(0),
                     self.get_image_stats(1) if values[2] > 1 else None,
                     self.get_image_stats(2) if values[2] > 1 else None,
                 ],
-                keywords = self.get_keywords(),
-                _icc_profile = self.get_icc_profile(),
+                keywords = self.get_image_keywords(),
+                _icc_profile = self.get_image_iccprofile(),
                 header = img_header,
                 unknown_keys = img_unknown_keys,
                 history = img_history
@@ -3037,9 +3037,9 @@ class SirilInterface:
                 color_managed=True if values[13] else False,
                 _data = pixeldata,
                 stats=[
-                    self.get_seq_imstats(frame, 0),
-                    self.get_seq_imstats(frame, 1) if values[2] > 1 else None,
-                    self.get_seq_imstats(frame, 2) if values[2] > 1 else None,
+                    self.get_seq_stats(frame, 0),
+                    self.get_seq_stats(frame, 1) if values[2] > 1 else None,
+                    self.get_seq_stats(frame, 2) if values[2] > 1 else None,
                 ],
                 keywords = fits_keywords,
                 _icc_profile = None,
@@ -3063,7 +3063,7 @@ class SirilInterface:
                 except Exception as e:
                     print(f"Error closing shared memory: {e}", file=sys.stderr)
 
-    def get_stars(self) -> List[PSFStar]:
+    def get_image_stars(self) -> List[PSFStar]:
         """
         Request star model PSF data from Siril.
 
@@ -3180,7 +3180,7 @@ class SirilInterface:
                 except Exception as e:
                     print(f"Error closing shared memory: {e}", file=sys.stderr)
 
-    def get_config(self, group: str, key: str) -> Optional[Union[bool, int, float, str, List[str]]]:
+    def get_siril_config(self, group: str, key: str) -> Optional[Union[bool, int, float, str, List[str]]]:
         """
         Request a configuration value from Siril.
 

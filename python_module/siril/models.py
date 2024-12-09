@@ -434,33 +434,33 @@ class FFit:
     Python equivalent of Siril ffit (FITS) structure, holding image
     pixel data and metadata.
     """
-    bitpix: int = 0
-    orig_bitpix: int = 0
-    naxis: int = 0
-    _naxes: Tuple[int, int, int] = (0, 0, 0)
+    bitpix: int = 0 #: Bits per pixel
+    orig_bitpix: int = 0 #: Original bits per pixel (accounts for changes from original file).
+    naxis: int = 0 #: The number of axes (2 for a mono image, 3 for a RGB image). Corresponds to the FITS kwyword NAXIS.
+    _naxes: Tuple[int, int, int] = (0, 0, 0) #: A tuple holding the image dimensions.
 
-    keywords: FKeywords = field(default_factory=FKeywords)
-    checksum: bool = False
+    keywords: FKeywords = field(default_factory=FKeywords) #: A FKeywords object containing FITS header keywords.
+    checksum: bool = False #: Whether Siril will write FITS data checksums for this file.
 
-    header: Optional[str] = None
-    unknown_keys: Optional[str] = None
+    header: Optional[str] = None #: The FITS header as a string.
+    unknown_keys: Optional[str] = None #: All unknown FITS header keys as a string. This gives access to header cards that Siril does not use internally.
 
-    stats: List[Optional[ImageStats]] = field(default_factory=lambda: [ImageStats() for _ in range(3)])
-    mini: float = 0.0
-    maxi: float = 0.0
-    neg_ratio: np.float32 = 0.0
+    stats: List[Optional[ImageStats]] = field(default_factory=lambda: [ImageStats() for _ in range(3)]) #: A list of ImageStats objects, one for each channel.
+    mini: float = 0.0 #: The minimum value across all image channels.
+    maxi: float = 0.0 #: The maximum value across all image channels.
+    neg_ratio: np.float32 = 0.0 #: The ratio of negative pixels to the total pixels.
 
-    type: DataType = DataType.FLOAT_IMG
-    _data: Optional[np.ndarray] = None
+    type: DataType = DataType.FLOAT_IMG #: Specifies the image data type.
+    _data: Optional[np.ndarray] = None #: Holds the image data as a numpy array.
 
-    top_down: bool = False
+    top_down: bool = False #: Specifies the ROWORDER for this image. The FITS specification directs that FITS should be stored bottom-up, but many CMOS sensors are natively TOP_DOWN and capture software tends to save FITS images captured by these sensors as TOP_DOWN.
     focalkey: bool = False
     pixelkey: bool = False
 
-    history: list[str] = field(default_factory=list)
+    history: list[str] = field(default_factory=list) #: Contains a list of strings holding the HISTORY entries for this image.
 
-    color_managed: bool = False
-    _icc_profile: Optional[bytes] = None
+    color_managed: bool = False #: Specifies whether the image is color managed or not.
+    _icc_profile: Optional[bytes] = None #: Holds the ICC profile for the image as Bytes. This can be used by some modules including pillow.
 
     def __post_init__(self):
         """Initialize after creation"""
@@ -479,7 +479,7 @@ class FFit:
     def data(self, value: Optional[np.ndarray]):
         """
         Set the pixel data of the FFit to the provided NumPy array. Note: this
-        does not update the image loaded in Siril - ``SirilInterface.set_pixeldata()``
+        does not update the image loaded in Siril - ``SirilInterface.set_image_pixeldata()``
         must be used to achieve this.
 
         Args:
@@ -605,7 +605,7 @@ class FFit:
         """
         Get a specific channel of the pixel data. Note that this does
         not pull pixel data directly from the image loaded in Siril: that must
-        previously have been obtained using get_pixel_data() or get_image()
+        previously have been obtained using get_image_pixeldata() or get_image()
         """
         if self.data is None:
             raise ValueError(_("No data allocated"))
@@ -614,6 +614,61 @@ class FFit:
                 raise ValueError(_("Cannot get channel > 0 for 2D data"))
             return self.data
         return self.data[channel, ...]
+
+    def _estimate_noise(self, array: np.ndarray, nullcheck: Optional[bool] = True, nullvalue: Optional[float] = 0.0) -> float:
+        """
+        Estimate the background noise in the input image using the sigma of first-order differences.
+
+        noise = 1.0 / sqrt(2) * RMS of (flux[i] - flux[i-1])
+
+        Parameters:
+            array (np.ndarray): 2D array of image pixels (np.uint16 or np.float32).
+            nullcheck (bool): If True, check for null values.
+            nullvalue: The value of null pixels (only used if nullcheck is True).
+
+        Returns:
+            float: Estimated noise value.
+        """
+        farray = array.astype(np.float32)
+        if farray.ndim != 2:
+            raise ValueError("Input array must be a 2D array.")
+
+        ny, nx = farray.shape
+        if nx < 3:
+            return 0.0  # Not enough pixels in a row to compute differences
+
+        diffs = []
+        scale_factor = 1.0 / np.sqrt(2.0)
+
+        for row in farray:
+            # Handle null values if required
+            if nullcheck:
+                row = row[row != nullvalue]
+
+            # Skip row if it has less than 2 valid pixels
+            if len(row) < 2:
+                continue
+
+            # Compute first-order differences
+            differences = np.diff(row)
+
+            # Compute standard deviation with iterative sigma clipping
+            for _ in range(3):  # NITER = 3
+                mean = np.mean(differences)
+                stdev = np.std(differences)
+                if stdev == 0:
+                    break
+                differences = differences[np.abs(differences - mean) < 3 * stdev]  # SIGMA_CLIP = 3
+
+            if len(differences) > 0:
+                diffs.append(np.std(differences))
+
+        if not diffs:
+            return 0.0
+
+        # Compute median of standard deviations
+        median_stdev = np.median(diffs)
+        return scale_factor * median_stdev
 
     def update_stats(self):
         """
@@ -639,6 +694,7 @@ class FFit:
             stats.sigma = np.std(nonzero)
             stats.min = np.min(nonzero)
             stats.max = np.max(nonzero)
+            stats.bgnoise = self._estimate_noise(channel_data)
 
             # More complex statistics
             deviations = np.abs(nonzero - stats.median)
@@ -697,31 +753,31 @@ class PSFStar:
     )
     B: float = 0.0              #: average sky background value
     A: float = 0.0              #: amplitude
-    x0: float = 0.0            #: coordinates of the peak
-    y0: float = 0.0
-    sx: float = 0.0            #: Size of the fitted function on the x and y axis in PSF coordinates
-    sy: float = 0.0
-    fwhmx: float = 0.0         #: FWHM in x and y axis
-    fwhmy: float = 0.0
-    fwhmx_arcsec: float = 0.0  #: FWHM in x and y axis in arc second
-    fwhmy_arcsec: float = 0.0
-    angle: float = 0.0         #: angle of the axis x,y with respect to the image's
+    x0: float = 0.0            #: x coordinate of the peak
+    y0: float = 0.0            #: y coordinate of the peak
+    sx: float = 0.0            #: Size of the fitted function on the x axis in PSF coordinates
+    sy: float = 0.0            #: Size of the fitted function on the y axis in PSF coordinates
+    fwhmx: float = 0.0         #: FWHM in x axis in pixels
+    fwhmy: float = 0.0         #: FWHM in y axis in pixels
+    fwhmx_arcsec: float = 0.0  #: FWHM in x axis in arc seconds
+    fwhmy_arcsec: float = 0.0  #: FWHM in y axis in arc seconds
+    angle: float = 0.0         #: angle of the x and yaxes with respect to the image x and y axes
     rmse: float = 0.0          #: RMSE of the minimization
     sat: float = 0.0           #: Level above which pixels have satured
     R: int = 0                 #: Optimized box size to enclose sufficient pixels in the background
-    has_saturated: bool = False
+    has_saturated: bool = False #: Shows whether the star is saturated or not
 
     # Moffat parameters
     beta: float = 0.0          #: Moffat equation beta parameter
     profile: StarProfile = StarProfile.GAUSSIAN  # Whether profile is Gaussian or Moffat
 
-    xpos: float = 0.0          #: position of the star in the image
-    ypos: float = 0.0
+    xpos: float = 0.0          #: x position of the star in the image
+    ypos: float = 0.0          #: y position of the star in the image
 
     # photometry data
-    mag: float = 0.0           #: (V)magnitude, approximate or accurate
+    mag: float = 0.0           #: (V) magnitude, approximate or accurate
     Bmag: float = 0.0          #: B magnitude
-    s_mag: float = 999.99      #: error on the (V)magnitude
+    s_mag: float = 999.99      #: error on the (V) magnitude
     s_Bmag: float = 999.99     #: error on the B magnitude
     SNR: float = 0.0           #: SNR of the star
     BV: float = 0.0            #: only used to pass data in photometric color calibration
@@ -737,7 +793,7 @@ class PSFStar:
     beta_err: float = 0.0 #: error in beta
 
     layer: int = 0  #: image channel on which the star modelling was carried out
-    units: Optional[str] = None
+    units: Optional[str] = None #: Units
     ra: float = 0.0            #: Right Ascension
     dec: float = 0.0           #: Declination
 
@@ -745,12 +801,12 @@ class PSFStar:
 class RegData:
     """Python equivalent of Siril regdata structure"""
     fwhm: float = 0.0                    #: copy of fwhm->fwhmx, used as quality indicator
-    weighted_fwhm: np.float32 = 0.0           #: used to exclude spurious images
-    roundness: np.float32 = 0.0               #: fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
+    weighted_fwhm: np.float32 = 0.0      #: used to exclude spurious images
+    roundness: np.float32 = 0.0          #: fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
     quality: float = 0.0                 #: measure of image quality
-    background_lvl: np.float32 = 0.0          #: background level
+    background_lvl: np.float32 = 0.0     #: background level
     number_of_stars: int = 0             #: number of stars detected in the image
-    H: Homography = field(default_factory=Homography)
+    H: Homography = field(default_factory=Homography)   #: Stores a homography matrix describing the affine transform from this frame to the reference frame
 
 @dataclass
 class ImgData:
@@ -813,8 +869,8 @@ class Sequence:
     beg: int = 0                         #: imgparam[0]->filenum
     end: int = 0                         #: imgparam[number-1]->filenum
     exposure: float = 0.0                #: exposure of frames
-    fz: bool = False
-    type: SequenceType = None
+    fz: bool = False                     #: whether the file is compressed
+    type: SequenceType = None            #: the type of sequence
     cfa_opened_monochrome: bool = False  #: CFA SER opened in monochrome mode
     current: int = 0                     #: file number currently loaded
     # The following fields are not currently implemented:

@@ -1289,19 +1289,27 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			int index;
-			rectangle region = com.seq.is_variable ? (rectangle) {0, 0, 0, 0} : (rectangle) {0, 0, com.seq.rx, com.seq.ry}; // Default rectangle is sequence size (or a sentinel if seq is variable)
-			if (payload_length == 4) {
-				index = GUINT32_FROM_BE(*(int*) payload);
-			} else if (payload_length == 20) {
-				// Use the provided rectangle
+			if (payload_length != 20 && payload_length != 4) {
+				const char* error_msg = _("Incorrect payload");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			int index = GUINT32_FROM_BE(*(int*) payload);
+			rectangle region = com.seq.is_variable ?
+						(rectangle) {0, 0, com.seq.imgparam[index].rx, com.seq.imgparam[index].ry} :
+						(rectangle) {0, 0, com.seq.rx, com.seq.ry};
+			if (payload_length == 20) {
+				// Use the provided rectangle instead of the full image
 				const char *rectptr = payload + 4;
-				index = GUINT32_FROM_BE(*(int*) payload);
 				region = *(rectangle*) rectptr;
 				region.x = GUINT32_FROM_BE(region.x);
 				region.y = GUINT32_FROM_BE(region.y);
 				region.w = GUINT32_FROM_BE(region.w);
 				region.h = GUINT32_FROM_BE(region.h);
+			}
+			if(enforce_area_in_image(&region, &com.seq, index)) {
+				siril_log_message(_("Selection cropped to frame boundaries\n"));
 			}
 			if ((payload_length != 4 && payload_length != 20) || index < 0 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
