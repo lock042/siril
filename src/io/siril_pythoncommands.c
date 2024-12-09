@@ -1290,22 +1290,46 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			int index;
+			rectangle region = com.seq.is_variable ? (rectangle) {0, 0, 0, 0} : (rectangle) {0, 0, com.seq.rx, com.seq.ry}; // Default rectangle is sequence size (or a sentinel if seq is variable)
 			if (payload_length == 4) {
 				index = GUINT32_FROM_BE(*(int*) payload);
+			} else if (payload_length == 20) {
+				// Use the provided rectangle
+				const char *rectptr = payload + 4;
+				index = GUINT32_FROM_BE(*(int*) payload);
+				region = *(rectangle*) rectptr;
+				region.x = GUINT32_FROM_BE(region.x);
+				region.y = GUINT32_FROM_BE(region.y);
+				region.w = GUINT32_FROM_BE(region.w);
+				region.h = GUINT32_FROM_BE(region.h);
 			}
-			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
+			if ((payload_length != 4 && payload_length != 20) || index < 0 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			fits *fit = calloc(1, sizeof(fits));
-			if (seq_read_frame(&com.seq, index, fit, FALSE, MULTI_THREADED)) {
+			if (seq_read_frame(&com.seq, index, fit, FALSE, -1)) {
+				clearfits(fit);
 				free(fit);
 				const char* error_msg = _("Failed to read sequence frame");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			rectangle region = {0, 0, fit->rx, fit->ry};
+			rectangle nullrect = { 0 };
+			if (!memcmp(&nullrect, &region, sizeof(rectangle))) {
+				// If the sequence is variable, set the size to the size of this frame
+				region = (rectangle) {0, 0, fit->rx, fit->ry};
+			} else {
+				if (region.x < 0 || region.y < 0 || region.x + region.w > fit->rx ||
+									region.y + region.h > fit->ry) {
+					clearfits(fit);
+					free(fit);
+					const char* error_msg = _("Invalid dimensions");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
+			}
 			shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 			free(info);

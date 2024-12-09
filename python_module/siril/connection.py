@@ -1455,6 +1455,133 @@ class SirilInterface:
                 except Exception:
                     pass
 
+    def get_seq_frame_pixeldata(self, frame: int, shape: Optional[List[int]] = None) -> Optional[np.ndarray]:
+
+        """
+        Retrieves the pixel data from the image currently loaded in Siril.
+
+        Args:
+            frame: selects the frame to retrieve pixel data from
+
+        Returns:
+            numpy.ndarray: The image data as a numpy array
+
+        Raises:
+            NoImageError: If no image is currently loaded,
+            RuntimeError: For other errors during pixel data retrieval,
+            ValueError: If the received data format is invalid or shape is invalid
+        """
+
+        shm = None
+        # Convert channel number to network byte order bytes
+
+        try:
+            frame_payload = struct.pack('!I', frame)
+            # Validate shape if provided
+            if shape is not None:
+                if len(shape) != 4:
+                    raise ValueError(_("Shape must be a list of [x, y, w, h]"))
+                if any(not isinstance(v, int) for v in shape):
+                    raise ValueError(_("All shape values must be integers"))
+                if any(v < 0 for v in shape):
+                    raise ValueError(_("All shape values must be non-negative"))
+
+                # Pack shape data for the command
+                shape_data = struct.pack('!IIII', *shape)
+            else:
+                shape_data = None
+            payload = frame_payload + shape_data if shape_data else frame_payload
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_SEQ_PIXELDATA, payload)
+
+            # Handle error responses
+            if status == _Command.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("No image is currently loaded in Siril"))
+                    else:
+                        raise RuntimeError(_("Server error: {}").format(error_msg))
+                else:
+                    raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
+
+            if not response:
+                raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
+
+            try:
+                # Parse the shared memory information
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise ValueError(_("Invalid shared memory information received: {}").format(e))
+
+            # Validate dimensions
+            if any(dim <= 0 for dim in (shm_info.width, shm_info.height)):
+                raise ValueError(_("Invalid image dimensions: {}x{}").format(shm_info.width, shm_info.height))
+
+            if shm_info.channels <= 0 or shm_info.channels > 3:
+                raise ValueError(_("Invalid number of channels: {}").format(shm_info.channels))
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise RuntimeError(_("Failed to map shared memory: {}").format(e))
+
+            buffer = bytearray(shm.buf)[:shm_info.size]
+            # Create numpy array from shared memory
+            dtype = np.float32 if shm_info.data_type == 1 else np.uint16
+            try:
+                arr = np.frombuffer(buffer, dtype=dtype)
+            except (BufferError, ValueError, TypeError) as e:
+                raise RuntimeError(_("Failed to create array from shared memory: {}").format(e))
+
+            # Validate array size matches expected dimensions
+            expected_size = shm_info.width * shm_info.height * shm_info.channels
+            if arr.size < expected_size:
+                raise ValueError(
+                    f"Data size mismatch: got {arr.size} elements, "
+                    f"expected {expected_size} for dimensions "
+                    f"{shm_info.width}x{shm_info.height}x{shm_info.channels}"
+                )
+
+            # Reshape the array according to the image dimensions
+            try:
+                if shm_info.channels > 1:
+                    arr = arr.reshape((shm_info.channels, shm_info.height, shm_info.width))
+                else:
+                    arr = arr.reshape((shm_info.height, shm_info.width))
+            except ValueError as e:
+                raise ValueError(_("Failed to reshape array to image dimensions: {}").format(e))
+
+            # Make a copy of the data since we'll be releasing the shared memory
+            result = np.copy(arr)
+
+            return result
+
+        except NoImageError:
+            # Re-raise NoImageError without wrapping
+            raise
+        except Exception as e:
+            # Wrap all other exceptions with context
+            raise RuntimeError(_("Error retrieving pixel data: {}").format(e)) from e
+        finally:
+            # Clean up shared memory using the wrapper's methods
+            if shm is not None:
+                try:
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    finish_info = struct.pack('256s', shm_info.shm_name)
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                        raise RuntimeError(_("Failed to cleanup shared memory"))
+
+                    shm.close()  # First close the memory mapping
+                    shm.unlink()  # Then unlink/remove the shared memory segment
+
+                except Exception:
+                    pass
+
     def xy_plot(self, plot_data: PlotData):
         """
         Serialize plot data and send via shared memory. See the siril.plot submodule
