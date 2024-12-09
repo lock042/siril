@@ -669,6 +669,13 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	return 0;
 }
 
+// Used by the python interface to ensure seq_load_image is run in the GUI thread
+gboolean seq_load_image_in_thread(gpointer user_data) {
+	int index = *(int*) user_data;
+	seq_load_image(&com.seq, index, TRUE);
+	return FALSE;
+}
+
 /**
  * Computes size of an opened sequence in bytes for a passed number of frames.
  * For SER or films, it returns the size of the file.

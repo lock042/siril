@@ -967,6 +967,74 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
+		case CMD_SEQ_FRAME_SET_PIXELDATA: {
+			if (payload_length != 4 + sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			int32_t index = GUINT32_FROM_BE((int32_t) *payload);
+			if (index < 0 || index >= com.seq.number) {
+				const char* error_msg = _("Failed to load sequence frame");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			const char* info = payload + 4;
+
+			fits *fit = calloc(1, sizeof(fits));
+			if (seq_read_frame(&com.seq, index, fit, FALSE, -1)) {
+				const char* error_msg = _("Failed to load sequence frame");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				clearfits(fit);
+				free(fit);
+				break;
+			}
+
+			int out_index = -1;
+			// Compute out_index for SER / FITSEQ
+			if (com.seq.type == SEQ_SER || com.seq.type == SEQ_FITSEQ) {
+				for (int temp_index = 0 ; temp_index <= index; temp_index++) {
+					if (com.seq.imgparam[temp_index].incl) {
+						out_index++;
+					}
+				}
+				if (out_index == -1) {
+					const char* error_msg = _("Failed to compute output index");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					clearfits(fit);
+					free(fit);
+					break;
+				}
+			}
+
+			// Update the pixel data in the sequence frame fit
+			success = handle_set_pixeldata_request(conn, fit, info, payload_length - 4);
+			int writer_retval;
+			// Write the sequence frame
+			if (com.seq.type == SEQ_SER) {
+				writer_retval = ser_write_frame_from_fit(com.seq.ser_file, fit, out_index);
+			} else if (com.seq.type == SEQ_FITSEQ) {
+				writer_retval = fitseq_write_image(com.seq.fitseq_file, fit, out_index);
+			} else {
+				char *dest = fit_sequence_get_image_filename_prefixed(&com.seq,
+						"", index);
+				fit->bitpix = fit->orig_bitpix;
+				writer_retval = savefits(dest, fit);
+				free(dest);
+			}
+			clearfits(fit);
+			free(fit);
+			if (writer_retval) {
+				siril_log_color_message(_("Error writing sequence frame %i from Python\n"), "red", index);
+			}
+			if (com.seq.current == index) {
+
+				gui_function(seq_load_image_in_thread, &index);
+			}
+			break;
+		}
+
 		case CMD_PLOT: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
 				siril_debug_print("Invalid payload length for PLOT: %u\n", payload_length);
@@ -1158,6 +1226,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
+			if (!com.seq.stats) {
+				g_free(response_buffer);
+				const char* error_message = _("No stats for this sequence");
+				success = send_response(conn, STATUS_NONE, error_message, strlen(error_message));
+				break;
+			}
 			imstats *stats = com.seq.stats[chan][index];
 
 			if (!com.seq.stats[chan][index]) {

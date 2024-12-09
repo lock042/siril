@@ -92,6 +92,7 @@ class _Command(IntEnum):
     SIRIL_PLOT = 40,
     CLAIM_THREAD = 41,
     RELEASE_THREAD = 42,
+    SET_SEQ_FRAME_PIXELDATA = 43,
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -1613,6 +1614,106 @@ class SirilInterface:
                 except:
                     pass
 
+    def set_seq_frame_pixeldata(self, index: int, image_data: np.ndarray) -> bool:
+        """
+        Send image data to Siril using shared memory.
+
+        Args:
+            index: integer specifying which frame to set the pixeldata for.
+            image_data: numpy.ndarray containing the image data.
+                        Must be 2D (single channel) or 3D (multi-channel) array
+                        with dtype either np.float32 or np.uint16.
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+
+        shm = None
+        try:
+            # Validate input array
+            if not isinstance(image_data, np.ndarray):
+                raise ValueError(_("Image data must be a numpy array"))
+
+            if image_data.ndim not in (2, 3):
+                raise ValueError(_("Image must be 2D or 3D array"))
+
+            if image_data.dtype not in (np.float32, np.uint16):
+                raise ValueError(_("Image data must be float32 or uint16"))
+
+            # Get dimensions
+            if image_data.ndim == 2:
+                height, width = image_data.shape
+                channels = 1
+                image_data = image_data.reshape(height, width, 1)
+            else:
+                channels, height, width = image_data.shape
+
+            if channels > 3:
+                raise ValueError(_("Image cannot have more than 3 channels"))
+
+            if any(dim <= 0 for dim in (width, height)):
+                raise ValueError(_("Invalid image dimensions: {}x{}").format(width, height))
+
+            # Calculate total size
+            element_size = 4 if image_data.dtype == np.float32 else 2
+            total_bytes = width * height * channels * element_size
+
+            # Generate unique name for shared memory
+            timestamp = int(time.time() * 1000)  # Millisecond precision
+            shm_name = f"siril_shm_{os.getpid()}_{timestamp}"
+            if sys.platform == 'win32':
+                shm_name = shm_name[1:]  # Remove leading slash on Windows
+
+            # Create shared memory using our wrapper
+            try:
+                shm = SharedMemoryWrapper(shm_name, total_bytes)
+            except Exception as e:
+                raise RuntimeError(_("Failed to create shared memory: {}").format(e))
+
+            # Copy data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                shared_array = np.frombuffer(buffer, dtype=image_data.dtype).reshape(image_data.shape)
+                np.copyto(shared_array, image_data)
+                # Delete transient objects used to structure copy
+                del buffer
+                del shared_array
+            except Exception as e:
+                raise RuntimeError(_("Failed to copy data to shared memory: {}").format(e))
+
+            # Pack the image info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                width,
+                height,
+                channels,
+                1 if image_data.dtype == np.float32 else 0,
+                total_bytes,
+                shm_name.encode('utf-8').ljust(256, b'\x00')
+            )
+
+            # Create payload
+            index_bytes = struct.pack('!i', index)
+            payload = index_bytes + info
+
+            # Send command using the existing _execute_command method
+            if not self._execute_command(_Command.SET_SEQ_FRAME_PIXELDATA, payload):
+                raise RuntimeError(_("Failed to send set_seq_frame_pixeldata command"))
+
+            return True
+
+        except Exception as e:
+            print("Error sending pixel data: {e}", file=sys.stderr)
+            return False
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    shm.unlink()
+                except:
+                    pass
+
     def get_icc_profile(self) -> Optional[bytes]:
         """
         Retrieve the ICC profile of the current Siril image using shared memory.
@@ -2810,8 +2911,8 @@ class SirilInterface:
                 _data = pixeldata,
                 stats=[
                     self.get_seq_imstats(frame, 0),
-                    self.get_seq_image_stats(frame, 1) if values[2] > 1 else None,
-                    self.get_seq_image_stats(frame, 2) if values[2] > 1 else None,
+                    self.get_seq_imstats(frame, 1) if values[2] > 1 else None,
+                    self.get_seq_imstats(frame, 2) if values[2] > 1 else None,
                 ],
                 keywords = fits_keywords,
                 _icc_profile = None,

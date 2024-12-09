@@ -458,17 +458,20 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		const char* error_msg = _("Processing thread is not claimed: unable to update the current image. "
 								"This is a script error: claim_thread() has either not been called or has failed, or "
 								"the thread has been released too early.");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return FALSE;
 	}
 
-	if (!single_image_is_loaded()) {
-		const char* error_msg = _("No image loaded: set_pixel_data() can only be used to update a loaded image, not to create a new one");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	if (!single_image_is_loaded() && !sequence_is_loaded()) {
+		const char* error_msg = _("No image or sequence loaded: set_pixel_data() can only be used to update a loaded image, not to create a new one");
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return FALSE;
 	}
 
 	if (payload_length != sizeof(incoming_image_info_t)) {
 		const char* error_msg = _("Invalid image info size");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return FALSE;
 	}
 
 	incoming_image_info_t* info = (incoming_image_info_t*)payload;
@@ -481,15 +484,16 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
 		info->channels > 3 || info->size == 0) {
 		gchar* error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %" G_GUINT64_FORMAT), info->width, info->height, info->channels, info->size);
-		int retval = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 		g_free(error_msg);
-		return retval;
+		return FALSE;
 	}
 	// Compute and sanitize ncpixels
 	size_t ncpixels = info->width * info->height * info->channels;
 	if (ncpixels * (info->data_type == 0 ? sizeof(WORD) : sizeof(float)) > get_available_memory() / 2) {
 		const char* error_msg = _("Error: image dimensions exceed available memory");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return FALSE;
 	}
 
 	// Open shared memory
@@ -499,13 +503,15 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
 		if (mapping == NULL) {
 			const char* error_msg = "Failed to open shared memory mapping";
-			return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			return FALSE;
 		}
 		shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
 		if (shm_ptr == NULL) {
 			CloseHandle(mapping);
 			const char* error_msg = "Failed to map shared memory view";
-			return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			return FALSE;
 		}
 		win_handle.mapping = mapping;
 		win_handle.ptr = shm_ptr;
@@ -513,13 +519,15 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		int fd = shm_open(info->shm_name, O_RDONLY, 0);
 		if (fd == -1) {
 			const char* error_msg = _("Failed to open shared memory");
-			return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			return FALSE;
 		}
 		shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 		if (shm_ptr == MAP_FAILED) {
 			close(fd);
 			const char* error_msg = _("Failed to map shared memory");
-			return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			return FALSE;
 		}
 	#endif
 
@@ -558,7 +566,8 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			close(fd);
 		#endif
 		const char* error_msg = _("Failed to allocate image buffer");
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return FALSE;
 	}
 
 	// Copy data from shared memory to gfit
@@ -570,14 +579,15 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		memcpy(fit->fdata, (char*) shm_ptr, total_bytes);
 	}
 
-	// Update gfit metadata
-	fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
-	fit->rx = fit->naxes[0] = info->width;
-	fit->ry = fit->naxes[1] = info->height;
-	fit->naxes[2] = info->channels;
+	if (fit == &gfit) {
+		// Update gfit metadata
+		fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
+		fit->rx = fit->naxes[0] = info->width;
+		fit->ry = fit->naxes[1] = info->height;
+		fit->naxes[2] = info->channels;
 
-	notify_gfit_modified();
-
+		notify_gfit_modified();
+	}
 	// Cleanup shared memory
 	#ifdef _WIN32
 		UnmapViewOfFile(shm_ptr);

@@ -57,6 +57,7 @@ typedef enum {
 	CMD_PLOT = 40,
 	CMD_CLAIM_THREAD = 41,
 	CMD_RELEASE_THREAD = 42,
+	CMD_SEQ_FRAME_SET_PIXELDATA = 43,
 	CMD_ERROR = 0xFF
 } CommandType;
 
