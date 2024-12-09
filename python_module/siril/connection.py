@@ -989,7 +989,7 @@ class SirilInterface:
             print(f"Error unpacking image dimensions: {e}", file=sys.stderr)
             return None
 
-    def get_siril_selection_star(self, shape: Optional[list[int]] = None, \
+    def get_selection_star(self, shape: Optional[list[int]] = None, \
         channel: Optional[int] = None)-> Optional[PSFStar]:
 
         """
@@ -1088,7 +1088,7 @@ class SirilInterface:
         except Exception as e:
             raise RuntimeError(_("Error processing star data: {}").format(e))
 
-    def get_siril_selection_stats(self, shape: Optional[list[int]] = None, \
+    def get_selection_stats(self, shape: Optional[list[int]] = None, \
         channel: Optional[int] = None) -> Optional[PSFStar]:
 
         """
