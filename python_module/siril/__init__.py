@@ -24,7 +24,7 @@ if TYPE_CHECKING:
         ImgData,
         Sequence
     )
-    from .plot import PlotType, SeriesData, PlotData, PlotSerializer
+    from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
     from .shm import SharedMemoryWrapper
     from .exceptions import (
         SirilError,
@@ -50,7 +50,7 @@ from .models import (
     ImgData,
     Sequence
 )
-from .plot import PlotType, SeriesData, PlotData, PlotSerializer
+from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
 from .shm import SharedMemoryWrapper
 from .exceptions import (
     SirilError,
@@ -91,7 +91,7 @@ __all__ = [
     'PlotType',
     'SeriesData',
     'PlotData',
-    'PlotSerializer',
+    '_PlotSerializer',
     'SirilError',
     'ConnectionError',
     'CommandError',

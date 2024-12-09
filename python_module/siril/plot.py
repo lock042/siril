@@ -191,7 +191,7 @@ class PlotData:
         """
         self.series_data.append(series)
 
-class PlotSerializer:
+class _PlotSerializer:
     @staticmethod
     def _serialize_plot_data(Plot_data: PlotData) -> Tuple[bytes, int]:
         """

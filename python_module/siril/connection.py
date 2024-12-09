@@ -20,7 +20,7 @@ from .shm import SharedMemoryWrapper
 from packaging import version
 from packaging.specifiers import SpecifierSet
 from typing import Tuple, Optional, List, Union, Any
-from .plot import PlotType, SeriesData, PlotData, PlotSerializer
+from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
 from .exceptions import SirilError, ConnectionError, CommandError, NoImageError
 from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, RegData, ImgData, Sequence, SequenceType
 
@@ -1591,7 +1591,7 @@ class SirilInterface:
             plot_metadata: PlotMetadata object containing plot configuration
         """
         try:
-            serialized_data, total_bytes = PlotSerializer._serialize_plot_data(plot_data)
+            serialized_data, total_bytes = _PlotSerializer._serialize_plot_data(plot_data)
 
             # Generate unique shared memory name
             timestamp = int(time.time() * 1000)  # Millisecond precision
