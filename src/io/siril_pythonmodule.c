@@ -36,6 +36,7 @@
 #include "core/siril_update.h"
 #include "core/siril_app_dirs.h"
 #include "io/single_image.h"
+#include "io/sequence.h"
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
@@ -308,7 +309,7 @@ void cleanup_shm_resources(Connection *conn) {
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
 shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region) {
-	if (!single_image_is_loaded()) {
+	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		const char* error_msg = _("Failed to retrieve pixel data - no image loaded");
 		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 		return NULL;

@@ -2524,15 +2524,16 @@ class SirilInterface:
             return FFit(
                 _naxes = (values[0], values[1], values[2]),
                 naxis = 2 if values[2] == 1 else 3,
-                bitpix=values[0],
-                checksum=True if values[1] else False,
-                mini=values[2],
-                maxi=values[3],
-                neg_ratio=values[4],
-                top_down=True if values[6] else False,
-                focalkey=True if values[7] else False,
-                pixelkey=True if values[8] else False,
-                color_managed=True if values[9] else False,
+                bitpix=values[3],
+                orig_bitpix=values[4],
+                checksum=True if values[5] else False,
+                mini=values[6],
+                maxi=values[7],
+                neg_ratio=values[8],
+                top_down=True if values[10] else False,
+                focalkey=True if values[11] else False,
+                pixelkey=True if values[12] else False,
+                color_managed=True if values[13] else False,
                 _data = self.get_pixeldata() if with_pixels == True else None,
                 stats=[
                     self.get_image_stats(0),
@@ -2552,6 +2553,287 @@ class SirilInterface:
         except Exception as e:
             print(f"Error processing FITS metadata: {e}", file=sys.stderr)
             return None
+
+    def get_seq_frame(self, frame: int, with_pixels: Optional[bool] = True) -> Optional[FFit]:
+        """
+        Request sequence frame as a FFit from Siril.
+
+        Args:
+            frame: Integer specifying which frame in the sequence to retrieve data for
+            (between 0 and Sequence.number)
+            with_pixels: bool specifying whether or not to return the pixel data for the
+            frame (default is True).
+
+        Returns:
+            FFit object containing the frame data, or None if an error occurred
+        """
+
+        shm = None
+        data_payload = struct.pack('!I?', frame, with_pixels)
+        response = self._request_data(_Command.GET_SEQ_IMAGE, data_payload, timeout = None)
+        if response is None:
+            return None
+
+        try:
+            # Build format string for struct unpacking
+            # Network byte order for all values
+            FLEN_VALUE = 71  # Standard FITS keyword length
+            format_parts = [
+                # Core FFfit (start at index 0)
+                'q',  # rx padded to 64bit
+                'q',  # ry padded to 64bit
+                'q',  # naxes[2] padded to 64bit
+                'q',  # bitpix padded to 64bit
+                'q',  # orig_bitpix padded to 64bit
+                'Q',  # gboolean checksum padded to 64bit
+                'd',  # mini
+                'd',  # maxi
+                'd',  # neg_ratio padded to 64bit
+                'Q',  # data_type (padded to uint64_t)
+                'Q',  # gboolean top_down (padded to uint64_t)
+                'Q',  # gboolean focalkey (padded to uint64_t)
+                'Q',  # gboolean pixelkey (padded to uint64_t)
+                'Q',  # gboolean color_managed (padded to uint64_t)
+                # Keywords (start at index 14)
+                f'{FLEN_VALUE}s',  # program
+                f'{FLEN_VALUE}s',  # filename
+                f'{FLEN_VALUE}s',  # row_order
+                f'{FLEN_VALUE}s',  # filter
+                f'{FLEN_VALUE}s',  # image_type
+                f'{FLEN_VALUE}s',  # object
+                f'{FLEN_VALUE}s',  # instrume
+                f'{FLEN_VALUE}s',  # telescop
+                f'{FLEN_VALUE}s',  # observer
+                f'{FLEN_VALUE}s',  # sitelat_str
+                f'{FLEN_VALUE}s',  # sitelong_str
+                f'{FLEN_VALUE}s',  # bayer_pattern
+                f'{FLEN_VALUE}s',  # focname
+                'd',  # bscale
+                'd',  # bzero
+                'Q',  # lo padded to 64bit
+                'Q',  # hi padded to 64bit
+                'd',  # flo padded to 64bit
+                'd',  # fhi padded to 64bit
+                'd',  # data_max
+                'd',  # data_min
+                'd',  # pixel_size_x
+                'd',  # pixel_size_y
+                'Q',  # binning_x (padded to uint64_t)
+                'Q',  # binning_y (padded to uint64_t)
+                'd',  # expstart
+                'd',  # expend
+                'd',  # centalt
+                'd',  # centaz
+                'd',  # sitelat
+                'd',  # sitelong
+                'd',  # siteelev
+                'q',  # bayer_xoffset
+                'q',  # bayer_yoffset
+                'd',  # airmass
+                'd',  # focal_length
+                'd',  # flength
+                'd',  # iso_speed
+                'd',  # exposure
+                'd',  # aperture
+                'd',  # ccd_temp
+                'd',  # set_temp
+                'd',  # livetime
+                'Q',  # stackcnt
+                'd',  # cvf
+                'q',  # key_gain
+                'q',  # key_offset
+                'q',  # focuspos
+                'q',  # focussz
+                'd',  # foctemp
+                'q',  # date (int64 unix timestamp)
+                'q'  # date_obs (int64 unix timestamp)
+            ]
+            if with_pixels:
+                # Starts at index 65
+                format_parts.extend([
+                    'Q',  # size (size_t)
+                    'i',  # data_type
+                    'i',  # width
+                    'i',  # height
+                    'i',  # channels
+                    '256s'  # shm_name (char[256])
+                ])
+
+            format_string = '!' + ''.join(format_parts)
+
+            # Verify data size
+            expected_size = struct.calcsize(format_string)
+            if len(response) != expected_size:
+                print(f"Received image data size {len(response)} doesn't match expected size {expected_size}",
+                    file=sys.stderr)
+                return None
+
+            # Unpack the binary data
+            values = struct.unpack(format_string, response)
+
+            # Helper function to decode and strip null-terminated strings
+            def decode_string(s: bytes) -> str:
+                return s.decode('utf-8').rstrip('\x00')
+
+            # Helper function to convert timestamp to datetime
+            def timestamp_to_datetime(timestamp: int) -> Optional[datetime]:
+                return datetime.fromtimestamp(timestamp) if timestamp != 0 else None
+
+            # Create FFit object:
+            # Get pixeldata if requested
+            if with_pixels:
+                try:
+                    shm_info = _SharedMemoryInfo(
+                        size = values[66],
+                        data_type = values[67],
+                        width = values[68],
+                        height = values[69],
+                        channels = values[70],
+                        shm_name = values[71]
+                    )
+                    # Validate dimensions
+                    if any(dim <= 0 for dim in (shm_info.width, shm_info.height)):
+                        raise ValueError(_("Invalid image dimensions: {}x{}").format(shm_info.width, shm_info.height))
+
+                    if shm_info.channels <= 0 or shm_info.channels > 3:
+                        raise ValueError(_("Invalid number of channels: {}").format(shm_info.channels))
+
+                    # Map the shared memory
+                    try:
+                        shm = self._map_shared_memory(
+                            shm_info.shm_name.decode('utf-8'),
+                            shm_info.size
+                        )
+                    except (OSError, ValueError) as e:
+                        raise RuntimeError(_("Failed to map shared memory: {}").format(e))
+
+                    buffer = bytearray(shm.buf)[:shm_info.size]
+                    # Create numpy array from shared memory
+                    dtype = np.float32 if shm_info.data_type == 1 else np.uint16
+                    try:
+                        arr = np.frombuffer(buffer, dtype=dtype)
+                    except (BufferError, ValueError, TypeError) as e:
+                        raise RuntimeError(_("Failed to create array from shared memory: {}").format(e))
+
+                    # Validate array size matches expected dimensions
+                    expected_size = shm_info.width * shm_info.height * shm_info.channels
+                    if arr.size < expected_size:
+                        raise ValueError(
+                            f"Data size mismatch: got {arr.size} elements, "
+                            f"expected {expected_size} for dimensions "
+                            f"{shm_info.width}x{shm_info.height}x{shm_info.channels}"
+                        )
+
+                    # Reshape the array according to the image dimensions
+                    try:
+                        if shm_info.channels > 1:
+                            arr = arr.reshape((shm_info.channels, shm_info.height, shm_info.width))
+                        else:
+                            arr = arr.reshape((shm_info.height, shm_info.width))
+                    except ValueError as e:
+                        raise ValueError(_("Failed to reshape array to image dimensions: {}").format(e))
+
+                    # Make a copy of the data since we'll be releasing the shared memory
+                    pixeldata = np.copy(arr)
+
+                except Exception as e:
+                    print(f"Error obtaining pixeldata: {e}")
+                    pixeldata = None
+
+            fits_keywords = FKeywords(
+                _program=decode_string(values[14]),
+                _filename=decode_string(values[15]),
+                _row_order=decode_string(values[16]),
+                _filter=decode_string(values[17]),
+                _image_type=decode_string(values[18]),
+                _object=decode_string(values[19]),
+                _instrume=decode_string(values[20]),
+                _telescop=decode_string(values[21]),
+                _observer=decode_string(values[22]),
+                _sitelat_str=decode_string(values[23]),
+                _sitelong_str=decode_string(values[24]),
+                _bayer_pattern=decode_string(values[25]),
+                _focname=decode_string(values[26]),
+                bscale=values[27],
+                bzero=values[28],
+                lo=values[29],
+                hi=values[30],
+                flo=values[31],
+                fhi=values[32],
+                data_max=values[33],
+                data_min=values[34],
+                pixel_size_x=values[35],
+                pixel_size_y=values[36],
+                binning_x=values[37],
+                binning_y=values[38],
+                expstart=values[39],
+                expend=values[40],
+                _centalt=values[41],
+                _centaz=values[42],
+                _sitelat=values[43],
+                _sitelong=values[44],
+                siteelev=values[45],
+                bayer_xoffset=values[46],
+                bayer_yoffset=values[47],
+                _airmass=values[48],
+                focal_length=values[49],
+                flength=values[50],
+                iso_speed=values[51],
+                exposure=values[52],
+                aperture=values[53],
+                ccd_temp=values[54],
+                set_temp=values[55],
+                livetime=values[56],
+                stackcnt=values[57],
+                cvf=values[58],
+                key_gain=values[59],
+                key_offset=values[60],
+                focuspos=values[61],
+                focussz=values[62],
+                foctemp=values[63],
+                _date=timestamp_to_datetime(values[64]),
+                _date_obs=timestamp_to_datetime(values[65])
+            )
+            fit = FFit(
+                _naxes = (values[0], values[1], values[2]),
+                naxis = 2 if values[2] == 1 else 3,
+                bitpix=values[3],
+                orig_bitpix=values[4],
+                checksum=True if values[5] else False,
+                mini=values[6],
+                maxi=values[7],
+                neg_ratio=values[8],
+                top_down=True if values[10] else False,
+                focalkey=True if values[11] else False,
+                pixelkey=True if values[12] else False,
+                color_managed=True if values[13] else False,
+                _data = pixeldata,
+                stats=[
+                    self.get_seq_imstats(frame, 0),
+                    self.get_seq_image_stats(frame, 1) if values[2] > 1 else None,
+                    self.get_seq_image_stats(frame, 2) if values[2] > 1 else None,
+                ],
+                keywords = fits_keywords,
+                _icc_profile = None,
+                header = None,
+                unknown_keys = None,
+                history = None
+            )
+            return(fit)
+
+        except struct.error as e:
+            print(f"Error unpacking FITS metadata: {e}", file=sys.stderr)
+            return None
+        except Exception as e:
+            print(f"Error processing FITS metadata: {e}", file=sys.stderr)
+            return None
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    shm.unlink()
+                except Exception as e:
+                    print(f"Error closing shared memory: {e}", file=sys.stderr)
 
     def get_stars(self) -> List[PSFStar]:
         """

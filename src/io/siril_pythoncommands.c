@@ -1246,17 +1246,20 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+			gboolean with_pixels = TRUE;
 			int index;
-			if (payload_length == 4) {
+			if (payload_length == 5) {
 				index = GUINT32_FROM_BE(*(int*) payload);
+				const char* pixelbool = payload + 4;
+				with_pixels = BOOL_FROM_BYTE(pixelbool);
 			}
-			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
+			if (payload_length != 5 || index < 0 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			fits *fit = calloc(1, sizeof(fits));
-			if (seq_read_frame_metadata(&com.seq, index, fit)) {
+			if (seq_read_frame(&com.seq, index, fit, FALSE, -1)) {
 				free(fit);
 				const char* error_msg = _("Failed to read frame metadata");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -1264,21 +1267,58 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for the response
-			size_t total_size = sizeof(uint64_t) * 14; // 14 vars packed to 64-bit
+			size_t ffit_size = sizeof(uint64_t) * 14; // 14 vars packed to 64-bit
+			size_t strings_size = FLEN_VALUE * 13;  // 13 string fields of FLEN_VALUE
+			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
+			size_t total_size = ffit_size + strings_size + numeric_size;
+			if (with_pixels) {
+				size_t shminfo_size = sizeof(shared_memory_info_t);
+				total_size += shminfo_size;
+			}
 
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
-			int ret = fits_to_py(fit, ptr, total_size);
-			clearfits(fit);
-			free(fit);
+			int ret = fits_to_py(fit, ptr, ffit_size);
 			if (ret) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
-			} else {
-				success = send_response(conn, STATUS_OK, response_buffer, total_size);
+				goto CLEANUP;
 			}
+
+			ptr = response_buffer + ffit_size;
+			ret = keywords_to_py(fit, ptr, (strings_size + numeric_size));
+			if (ret) {
+				const char* error_message = _("Memory allocation error");
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+				goto CLEANUP;
+			}
+
+			if (with_pixels) {
+				ptr += strings_size + numeric_size;
+				rectangle region = (rectangle) {0, 0, fit->rx, fit->ry};
+				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region);
+				if (!info) {
+					const char* error_message = _("Memory allocation error");
+					success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+					free(info);
+					goto CLEANUP;
+				}
+				// Convert the values to BE
+				TO_BE_INTO(info->size, info->size, size_t);
+				info->data_type = GUINT32_TO_BE(info->data_type);
+				info->width = GUINT32_TO_BE(info->width);
+				info->height = GUINT32_TO_BE(info->height);
+				info->channels = GUINT32_TO_BE(info->channels);
+				memcpy(ptr, info, sizeof(shared_memory_info_t));
+				free(info);
+			}
+			success = send_response(conn, STATUS_OK, response_buffer, total_size);
+
+CLEANUP:
 			g_free(response_buffer);
+			clearfits(fit);
+			free(fit);
 			break;
 		}
 
