@@ -8,20 +8,20 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-05 15:12+0100\n"
-"PO-Revision-Date: 2024-07-08 05:37+0000\n"
+"PO-Revision-Date: 2024-12-10 11:05+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application/de/>\n"
+"Language-Team: German <https://weblate.siril.org/projects/siril/software/"
+"siril/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
-msgstr "Parameter AAVSO"
+msgstr "AAVSO Parameter"
 
 #: src/gui/uifiles/aavso_dialog.ui:22 src/gui/uifiles/annotate_dialog.ui:45
 #: src/gui/uifiles/astrometry_dialog.ui:113
@@ -290,9 +290,8 @@ msgid "Apply requested annotation."
 msgstr "Registrierung anwenden"
 
 #: src/gui/uifiles/annotate_dialog.ui:110
-#, fuzzy
 msgid "Catalogue: "
-msgstr "Katalog"
+msgstr "Katalog: "
 
 #: src/gui/uifiles/annotate_dialog.ui:121
 msgid ""
@@ -330,7 +329,6 @@ msgid "automatic"
 msgstr "Automatisch"
 
 #: src/gui/uifiles/annotate_dialog.ui:134
-#, fuzzy
 msgid "tycho2"
 msgstr "Tycho-2"
 
@@ -424,9 +422,8 @@ msgid "Log"
 msgstr "Protokoll"
 
 #: src/gui/uifiles/annotate_dialog.ui:207
-#, fuzzy
 msgid "Save to: "
-msgstr "Speichere Datei:"
+msgstr "Speichere Datei: "
 
 #: src/gui/uifiles/annotate_dialog.ui:239
 msgid ""
@@ -448,7 +445,7 @@ msgstr "1"
 
 #: src/gui/uifiles/annotate_dialog.ui:273
 msgid "Obs. code: "
-msgstr "Beobachtungscode "
+msgstr "Beobachtungscode: "
 
 #: src/gui/uifiles/annotate_dialog.ui:285
 #: src/gui/uifiles/settings_window.ui:1255
@@ -467,9 +464,8 @@ msgid "Conesearch"
 msgstr "Kegelförmige Suche"
 
 #: src/gui/uifiles/annotate_dialog.ui:369
-#, fuzzy
 msgid "File: "
-msgstr "Datei"
+msgstr "Datei: "
 
 #: src/gui/uifiles/annotate_dialog.ui:381
 msgid ""
