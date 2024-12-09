@@ -164,7 +164,6 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 		(unsigned long)GetCurrentProcessId(),
 		(unsigned long)time(NULL));
 	*win_handle = (win_shm_handle_t){ NULL, NULL };
-	size_t actual_bytes;
 	if (!create_shared_memory_win32(shm_name_ptr, total_bytes, win_handle)) {
 		return FALSE;
 	}
