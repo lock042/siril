@@ -64,7 +64,7 @@ gchar *get_mask_filename(sequence *seq, int index) {
 		return NULL;
 	}
 	const gchar *mask_filename = g_strdup_printf("%s.msk", root);
-	gchar *maskpath = g_build_path(G_DIR_SEPARATOR_S, com.wd, "masks", mask_filename, NULL);
+	gchar *maskpath = g_build_path(G_DIR_SEPARATOR_S, com.wd, "cache", mask_filename, NULL);
 	return maskpath;
 }
 
