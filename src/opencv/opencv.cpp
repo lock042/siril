@@ -591,8 +591,8 @@ void cvDownscaleBlendMask(int rx, int ry, int out_rx, int out_ry, uint8_t *maski
 	int morph_size = 3;
 	// first we dilate and erode to make sure we fill holes left by drizzling if any
 	Mat element = getStructuringElement(MORPH_RECT,
- 										Size(2 * morph_size + 1, 2 * morph_size + 1 ),
-										Point(morph_size, morph_size));
+			Size(2 * morph_size + 1, 2 * morph_size + 1),
+			Point(morph_size, morph_size));
   	dilate(_maskin, _maskin, element);
 	erode(_maskin, _maskin, element);
 	// we leave a border of one pixel black to make sure the distance transform
