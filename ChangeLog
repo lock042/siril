@@ -42,6 +42,7 @@ xx/xx/xx
 * Added Curves Transformation tool (!677)
 * Read and compares checksum (DATASUM and CHECKSUM) if present in the FITS header (!723)
 * Added a new cosmetic filter to remove purple fringing on bright stars (!726)
+* Added blending masks and normalization on overlaps for rejection stacking, to stitch mosaics (!764)
 
 **Improvements:**
 * Allowed object search with their common name, from the annotations catalogues (!381)
@@ -64,6 +65,7 @@ xx/xx/xx
 * Allowed the token $T to be used in PixelMath (!768)
 * Make PixelMath follows bit depth preferences (#1100)
 * Allow background removal from CFA images / sequences, for better integration into drizzle workflow (!777)
+* Added an option to save the stack result in 32b irrespective of the Preferences (#1165)
 
 **GUI improvements:**
 * Split up the monolithic glade UI file (!550)

@@ -6,11 +6,9 @@
 
 //#define STACK_DEBUG
 
+#define MAX_IMAGES_FOR_OVERLAP 30 // if normalizing on overlaps with more than MAX_IMAGES_FOR_OVERLAP selected, it will trigger a warning
 /* the stacking method */
-struct stacking_args;
 typedef int (*stack_method)(struct stacking_args *args);
-
-typedef struct normalization_coeff norm_coeff;
 
 enum {
 	ST_ALLOC_ERROR = -10,
@@ -46,16 +44,16 @@ typedef enum {
 	WFWHM_WEIGHT,
 	NOISE_WEIGHT,
 	NBSTACK_WEIGHT
-} weighingType;
+} weightingType;
 
-struct normalization_coeff {
+typedef struct {
 	double *offset;
 	double *mul;
 	double *scale;
 	double *poffset[3];
 	double *pmul[3];
 	double *pscale[3];
-};
+} norm_coeff;
 
 /* Warning: editing this will require changing the long initializer in stacking.c */
 struct stacking_args {
@@ -78,6 +76,8 @@ struct stacking_args {
 	gboolean force_norm;		/* TRUE = force normalization */
 	gboolean output_norm;		/* normalize final image to the [0, 1] range */
 	gboolean use_32bit_output;	/* output to 32 bit float */
+	int feather_dist;			/* blend pix. number of pixels up to which the mask is smoothened */
+	gboolean overlap_norm;		/* compute normalization on overlaps instead of whole images */
 	int reglayer;			/* layer used for registration data */
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
 	gboolean maximize_framing;	/* maximize the framing instead of conforming to ref image size*/
@@ -91,10 +91,7 @@ struct stacking_args {
 	gboolean merge_lowhigh_rejmaps;	/* create only one map */
 	fits *rejmap_low, *rejmap_high;	/* rejection maps */
 
-	gboolean apply_noise_weights;	/* enable weights */
-	gboolean apply_nbstack_weights;	/* enable weights */
-	gboolean apply_wfwhm_weights;	/* enable weights */
-	gboolean apply_nbstars_weights;	/* enable weights */
+	weightingType weighting_type;	/* enable weights */
 	double *weights; 		/* computed weights for each (layer, image)*/
 
 	float (*sd_calculator)(const WORD *, const int); // internal, for ushort
@@ -119,15 +116,15 @@ struct stacking_configuration {
 	gboolean output_norm;
 	gboolean equalizeRGB;
 	gboolean lite_norm;
+	gboolean overlap_norm;
+	int feather_dist;  // number of pixels feathered for blend mask
 	normalization norm;
 	int number_of_loaded_sequences;
 	struct seq_filter_config filters;
-	gboolean apply_noise_weights;
-	gboolean apply_nbstack_weights;
-	gboolean apply_wfwhm_weights;
-	gboolean apply_nbstars_weights;
+	weightingType weighting_type;
 	gboolean maximize_framing;
 	gboolean upscale_at_stacking;
+	gboolean force32b;
 };
 
 typedef struct {
@@ -135,58 +132,15 @@ typedef struct {
 	gdouble exposure;
 } DateEvent;
 
-
-/*
- * ESD test statistic data.
- */
-struct outliers {
-	float x;
-	int i;
-	int out;
-};
-
-
-void initialize_stacking_methods();
-gboolean evaluate_stacking_should_output_32bits(const stack_method method,
-		sequence *seq, int nb_img_to_stack, gchar **err);
-
-int stack_median(struct stacking_args *args);
-int stack_mean_with_rejection(struct stacking_args *args);
-int stack_addmax(struct stacking_args *args);
-int stack_addmin(struct stacking_args *args);
-gboolean stack_regdata_is_valid(struct stacking_args *args);
-void main_stack(struct stacking_args *args);
-void clean_end_stacking(struct stacking_args *args);
-
-void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
-		double *filtering_parameter);
-void update_stack_interface(gboolean dont_change_stack_type);
-
-void describe_stack_for_history(struct stacking_args *args, GSList **hist, gboolean for_rejmap, gboolean low_rejmap);
-
-	/* normalization functions, normalize.c */
-
-int do_normalization(struct stacking_args *args);
-int *compute_thread_distribution(int nb_workers, int max);
-
-
-	/* median and mean functions */
-
-int check_G_values(float Gs, float Gc);
-void confirm_outliers(struct outliers *out, int N, double median, int *rejected, int rej[2]);
-
-struct _image_block {
-	long channel, start_row, end_row, height; // long matches naxes type
-};
-
-int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
-		const long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks);
+/* median and mean structures */
 
 /* pool of memory blocks for parallel processing */
 struct _data_block {
 	void *tmp;	// the actual single buffer for all others below
 	void **pix;	// buffer for a block on all images
+	float **mask; // buffer for the mask on all images
 	void *stack;	// the reordered stack for one pixel in all images
+	float *mstack;	// the unordered mask data for one pixel in all images
 	int *rejected;	// 0 if pixel ok, 1 or -1 if rejected
 	void *o_stack;	// original unordered stack
 	void *w_stack;	// stack for the winsorized rejection
@@ -194,17 +148,38 @@ struct _data_block {
 	int layer;	// to identify layer for normalization
 };
 
+struct _image_block {
+	long channel, start_row, end_row, height; // long matches naxes type
+};
+
+struct ESD_outliers {
+	float x;
+	int i;
+	int out;
+};
+
+/* functions declarations */
+
+/* main stacking functions, stacking.c */
+
+gboolean evaluate_stacking_should_output_32bits(const stack_method method,
+		sequence *seq, int nb_img_to_stack, gchar **err);
+
+int stack_median(struct stacking_args *args);
+int stack_mean_with_rejection(struct stacking_args *args);
+int stack_addmax(struct stacking_args *args);
+int stack_addmin(struct stacking_args *args);
+void main_stack(struct stacking_args *args);
+void clean_end_stacking(struct stacking_args *args);
+gpointer stack_function_handler(gpointer p);
+
+void stacking_args_deep_copy(struct stacking_args *from, struct stacking_args *to);
+void stacking_args_deep_free(struct stacking_args *args);
+void init_stacking_args(struct stacking_args *args);
 int find_refimage_in_indices(const int *indices, int nb, int ref);
 
-	/* up-scaling functions */
-
-int upscale_sequence(struct stacking_args *args);
-void remove_tmp_drizzle_files(struct stacking_args *args);
-
-
-	/* rejection_float.c */
-
-int apply_rejection_float(struct _data_block *data, int nb_frames, struct stacking_args *args, int crej[2]);
+void _show_summary(struct stacking_args *args);
+void describe_stack_for_history(struct stacking_args *args, GSList **hist, gboolean for_rejmap, gboolean low_rejmap);
 
 	/* keeping metadata */
 void free_list_date(gpointer data);
@@ -213,5 +188,30 @@ void compute_date_time_keywords(GList *list_date, fits *fit);
 
 	/* compute max framing (used by sum, min and max) */
 void compute_max_framing(struct stacking_args *args, int output_size[2], int offset[2]);
+
+/* normalization functions, normalization.c */
+
+int do_normalization(struct stacking_args *args);
+int *compute_thread_distribution(int nb_workers, int max);
+void free_ostats(overlap_stats_t **ostats, int nb_layers);
+overlap_stats_t **alloc_ostats(int nb_layers, int nb_frames);
+int get_ijth_pair_index(int N, int i, int j);
+
+
+/* median and mean functions */
+
+int check_G_values(float Gs, float Gc);
+void confirm_outliers(struct ESD_outliers *out, int N, double median, int *rejected, int rej[2]);
+int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
+		const long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks);
+
+/* up-scaling functions */
+
+int upscale_sequence(struct stacking_args *args);
+void remove_tmp_upscaled_files(struct stacking_args *args);
+
+/* rejection_float.c */
+
+int apply_rejection_float(struct _data_block *data, int nb_frames, struct stacking_args *args, int crej[2]);
 
 #endif

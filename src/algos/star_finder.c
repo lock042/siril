@@ -1211,7 +1211,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		}
 		star_filename = g_strdup_printf("%s.lst", root);
 
-		if (seq->type == SEQ_INTERNAL || !check_starfile_date(seq, i, star_filename) ||
+		if (seq->type == SEQ_INTERNAL || !check_cachefile_date(seq, i, star_filename) ||
 				!check_star_list(star_filename, curr_findstar_args))
 				can_use_cache = FALSE;
 		if (findstar_args->save_to_file)
@@ -1241,7 +1241,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 static int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	const struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 	struct starfinder_data *curr_findstar_args = findstar_image_worker(findstar_args, o, i, fit, _, threads);
-	int retval = !curr_findstar_args;
+	gboolean retval = !curr_findstar_args;
 	free(curr_findstar_args);
 	return retval;
 }
