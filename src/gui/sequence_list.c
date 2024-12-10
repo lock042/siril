@@ -34,11 +34,11 @@
 #include "gui/registration_preview.h"
 #include "gui/plot.h"
 #include "gui/registration.h"	// for update_reg_interface
+#include "gui/stacking.h"	// for update_stack_interface
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/PSF.h"
 #include "registration/registration.h"
-#include "stacking/stacking.h"	// for update_stack_interface
 #include <dirent.h>
 
 #include "sequence_list.h"

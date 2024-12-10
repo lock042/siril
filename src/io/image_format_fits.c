@@ -832,7 +832,8 @@ int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *statu
 		g_free(dirname);
 		return *status;
 	}
-	g_dir_close(dir);
+	if (dir)
+		g_dir_close(dir);
 	g_free(dirname);
 	fits_create_diskfile(fptr, filename, status);
 	return *status;
@@ -1486,6 +1487,118 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	return 0;
 }
 
+/* Read a rectangular section of a FITS image in Siril's format, pointed by its
+ * exact filename. All layers are read
+ * Returned fit->data is upside-down. */
+int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle *area) {
+	int status;
+	size_t nbdata = 0;
+	int nblayer = 1;
+
+	status = 0;
+	if (siril_fits_open_diskfile_img(&(fit->fptr), filename, READONLY, &status)) {
+		report_fits_error(status);
+		return status;
+	}
+
+	status = 0;
+	fits_get_img_param(fit->fptr, 3, &(fit->bitpix), &(fit->naxis), fit->naxes,	&status);
+	if (status) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		return status;
+	}
+
+	if (fit->naxis == 2 && fit->naxes[2] == 0)
+		fit->naxes[2] = 1;	// see readfits for the explanation
+
+	if (fit->naxis == 3 && fit->naxes[2] != 3) {
+		siril_log_message(_("Unsupported FITS image format (%ld axes).\n"),
+				fit->naxes[2]);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		return -1;
+	}
+
+	nbdata = area->w * area->h;
+	nblayer = fit->naxes[2];
+	fit->type = get_data_type(fit->bitpix);
+	if (fit->type == DATA_UNSUPPORTED) {
+		siril_log_message(_("Unknown FITS data format in internal conversion\n"));
+		fits_close_file(fit->fptr, &status);
+		return -1;
+	}
+
+	if (fit->type == DATA_USHORT) {
+		/* realloc fit->data to the image size */
+		WORD *olddata = fit->data;
+		if ((fit->data = realloc(fit->data, nblayer * nbdata * sizeof(WORD))) == NULL) {
+			PRINT_ALLOC_ERR;
+			status = 0;
+			fits_close_file(fit->fptr, &status);
+			if (olddata)
+				free(olddata);
+			return -1;
+		}
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = fit->data + nbdata;
+		fit->pdata[BLAYER] = fit->data + nbdata * 2;
+
+		for (int layer = 0; layer < nblayer; layer++) {
+			status = internal_read_partial_fits(fit->fptr, fit->naxes[1],
+					fit->bitpix, fit->pdata[layer], layer, area);
+			if (status) {
+				report_fits_error(status);
+				status = 0;
+				fits_close_file(fit->fptr, &status);
+				if (olddata)
+					free(olddata);
+				return status;
+			}
+		}
+	} else {
+		/* realloc fit->fdata to the image size */
+		float *olddata = fit->fdata;
+		if ((fit->fdata = realloc(fit->fdata, nblayer * nbdata * sizeof(float))) == NULL) {
+			PRINT_ALLOC_ERR;
+			status = 0;
+			fits_close_file(fit->fptr, &status);
+			if (olddata)
+				free(olddata);
+			return -1;
+		}
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = fit->fdata + nbdata;
+		fit->fpdata[BLAYER] = fit->fdata + nbdata * 2;
+
+		for (int layer = 0; layer < nblayer; layer++) {
+			status = internal_read_partial_fits(fit->fptr, fit->naxes[1],
+				fit->bitpix, fit->fpdata[layer], layer, area);
+			if (status) {
+				report_fits_error(status);
+				status = 0;
+				fits_close_file(fit->fptr, &status);
+				if (olddata)
+					free(olddata);
+				return status;
+			}
+		}
+	}
+
+	fit->naxes[0] = area->w;
+	fit->naxes[1] = area->h;
+	fit->rx = fit->naxes[0];
+	fit->ry = fit->naxes[1];
+	fit->naxes[2] = nblayer;
+	fit->naxis = 3;
+
+	status = 0;
+	fits_close_file(fit->fptr, &status);
+	siril_debug_print("Loaded partial FITS file %s\n", filename);
+	return 0;
+}
+
 int read_fits_metadata(fits *fit) {
 	int status = 0;
 	fit->naxes[2] = 1;
@@ -1604,7 +1717,8 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 	if (area->x < 0 || area->y < 0 || area->x >= rx || area->y >= ry
 			|| area->w <= 0 || area->h <= 0 || area->x + area->w > rx
 			|| area->y + area->h > ry) {
-		fprintf(stderr, "partial read from FITS file has been requested outside image bounds or with invalid size\n");
+		fprintf(stderr, "partial read from FITS file has been requested outside image bounds or with invalid size (%d: %d %d %d %d)\n", index + 1,
+					area->x, area->y, area->w, area->h);
 		return 1;
 	}
 
@@ -3403,6 +3517,95 @@ int save_wcs_fits(fits *f, const gchar *name) {
 		report_fits_error(status);
 	}
 	f->fptr = NULL;
+	return status;
+}
+
+// writes an 32b bit distance mask to disk
+int save_mask_fits(int rx, int ry, float *buffer, const gchar *name) {
+	int status;
+	fitsfile *fptr;
+	long orig[2] = { 1L, 1L};
+	long naxes[2] = { rx, ry };
+
+	if (!name)
+		return 1;
+
+	if (g_unlink(name))
+		siril_debug_print("g_unlink() failed\n");
+
+	status = 0;
+	if (siril_fits_create_diskfile(&fptr, name, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+
+	if (fits_create_img(fptr, FLOAT_IMG, 2, naxes, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+
+	if (fits_write_pix(fptr, TFLOAT, orig, (size_t)(rx * ry), buffer, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+
+	fits_close_file(fptr, &status);
+	if (!status) {
+		siril_log_message(_("Saving mask file %s\n"), name);
+	} else {
+		report_fits_error(status);
+	}
+	return status;
+}
+
+// read an area form a 32b mask
+// we have this dedicated function to avoid the automatic rescaling
+// and dealing with all the types and headers
+int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask) {
+	int status = 0;
+	fitsfile *fptr;
+	int naxis = 2;
+	long fpixel[2], lpixel[2], inc[2] = { 1L, 1L };
+	long naxes[2] = { 1L, 1L};
+
+	fpixel[0] = area->x + 1;        // in siril, it starts with 0
+	fpixel[1] = ry - area->y - area->h + 1;
+	lpixel[0] = area->x + area->w;  // with w and h at least 1, we're ok
+	lpixel[1] = ry - area->y;
+
+	if (!name)
+		return 1;
+	fits_open_file(&fptr, name, READONLY, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_get_img_size(fptr, naxis, naxes, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	if (naxes[0] < area->w) {
+		siril_debug_print("area too wide\n");
+		fits_close_file(fptr, NULL);
+		return 1;
+	}
+	if (naxes[1] < area->h) {
+		siril_debug_print("area too high\n");
+		fits_close_file(fptr, NULL);
+		return 1;
+	}
+	fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, mask,	NULL, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_close_file(fptr, &status);
+	if (!status) {
+		siril_debug_print("Read mask file %s\n", name);
+	} else {
+		report_fits_error(status);
+	}
 	return status;
 }
 
