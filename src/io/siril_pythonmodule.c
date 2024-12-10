@@ -1811,56 +1811,66 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			&stderr_fd,
 			&error
 		);
-
 		// Free the GPtrArray (but not its contents - the caller must free argv_script)
 		g_ptr_array_free(python_argv, FALSE);
 		g_free(python_path);
 
-		// Prepend this process to the list of child processes com.children
-		child_info *child = g_malloc(sizeof(child_info));
-		child->childpid = child_pid;
-		child->program = EXT_PYTHON;
-		gchar *script_basename = g_path_get_basename(script_name);
-		child->name = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
-		g_free(script_basename);
-		child->datetime = g_date_time_new_now_local();
-		com.children = g_slist_prepend(com.children, child);
+		if (success) {
+			// Prepend this process to the list of child processes com.children
+			child_info *child = g_malloc(sizeof(child_info));
+			child->childpid = child_pid;
+			child->program = EXT_PYTHON;
+			gchar *script_basename = g_path_get_basename(script_name);
+			child->name = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
+			g_free(script_basename);
+			child->datetime = g_date_time_new_now_local();
+			com.children = g_slist_prepend(com.children, child);
+		}
 	}
 
-	if (sync) {
-	    // Cross-platform process waiting
+	if (success) {
+		if (sync) {
+			// Cross-platform process waiting
 #ifdef _WIN32
-		// Use Windows-specific waiting
-		HANDLE process_handle = (HANDLE) child_pid;
-		if (process_handle != NULL) {
-			WaitForSingleObject(process_handle, INFINITE);
-			CloseHandle(process_handle);
-		}
+			// Use Windows-specific waiting
+			HANDLE process_handle = (HANDLE) child_pid;
+			if (process_handle != NULL) {
+				WaitForSingleObject(process_handle, INFINITE);
+				CloseHandle(process_handle);
+			}
 #else
-		// Use POSIX waitpid
-		gint status;
-		waitpid(child_pid, &status, 0);
+			// Use POSIX waitpid
+			gint status;
+			waitpid(child_pid, &status, 0);
 #endif
-		// If we had the python thread lock and failed to release it, release it now
-		if (commstate.python_conn->thread_claimed) {
-			com.python_claims_thread = FALSE;
-		}
+			// If we had the python thread lock and failed to release it, release it now
+			if (commstate.python_conn->thread_claimed) {
+				com.python_claims_thread = FALSE;
+			}
 
+			// Clean up shared memory resources
+			cleanup_shm_resources(commstate.python_conn);
+
+			// Clean up the Connection
+			free(commstate.python_conn);
+
+			// Close the process handle
+			g_spawn_close_pid(child_pid);
+			remove_child_from_children(child_pid);
+
+			// Re-enable widgets
+			gui_function(script_widgets_idle, NULL);
+		} else {
+			// Set up child process monitoring: the callback will clean up any overlooked shm resources
+			g_child_watch_add(child_pid, (GChildWatchFunc)cleanup_child_process, commstate.python_conn);
+		}
+	} else {
 		// Clean up shared memory resources
 		cleanup_shm_resources(commstate.python_conn);
-
 		// Clean up the Connection
 		free(commstate.python_conn);
-
-		// Close the process handle
-		g_spawn_close_pid(child_pid);
-		remove_child_from_children(child_pid);
-
 		// Re-enable widgets
 		gui_function(script_widgets_idle, NULL);
-	} else {
-		// Set up child process monitoring: the callback will clean up any overlooked shm resources
-		g_child_watch_add(child_pid, (GChildWatchFunc)cleanup_child_process, commstate.python_conn);
 	}
 
 	g_strfreev(env);
