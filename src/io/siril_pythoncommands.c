@@ -1023,6 +1023,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				writer_retval = savefits(dest, fit);
 				free(dest);
 			}
+			if (fit->rx != com.seq.rx || fit->ry != com.seq.ry) {
+				// Mark the sequence as variable
+				com.seq.is_variable = TRUE;
+				// Update the imgparam rx and ry
+				com.seq.imgparam[index].rx = fit->rx;
+				com.seq.imgparam[index].ry = fit->ry;
+				// Clean the sequence registration data, stats and selection as they will no longer be valid
+				clean_sequence(&com.seq, TRUE, TRUE, TRUE);
+			}
 			clearfits(fit);
 			free(fit);
 			if (writer_retval) {
