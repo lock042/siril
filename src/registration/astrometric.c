@@ -24,6 +24,9 @@
 #endif
 
 #include <math.h>
+#include <gsl/gsl_min.h>
+#include <gsl/gsl_math.h>
+
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -43,6 +46,8 @@
 #include "registration/registration.h"
 #include "registration/matching/degtorad.h"
 
+
+// #define DEBUG_ASTROREG
 
 // computing center cog dealing with range jumps
 // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
@@ -99,6 +104,106 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 	return TRUE;
 }
 
+typedef struct {
+	double ra;
+	double dec;
+	sequence *seq;
+	gboolean *incl;
+	Homography *Kref;
+	Homography *Ks;
+	Homography *Rstmp;
+} optim_params_t;
+
+static void get_maxframing(double framing, void *params, int *width,  int *height, double *area) {
+	optim_params_t *p = (optim_params_t *)params;
+	int n = p->seq->number;
+	// computing relative rotations wrt to proj center + central image framing
+	Homography Rref = { 0 };
+	double angles[3] = { 90. - p->ra,  90. - p->dec, framing};
+	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
+	cvRotMat3(angles, rottypes, TRUE, &Rref);
+	int xmin = INT_MAX, xmax = -INT_MAX;
+	int ymin = INT_MAX, ymax = -INT_MAX;
+	for (int i = 0;  i < n; i++) {
+		if (!p->incl[i])
+			continue;
+		Homography H = { 0 }, R = { 0 };
+		cvRelRot(&Rref, p->Rstmp + i, &R);
+		cvcalcH_fromKKR(p->Kref, p->Ks + i, &R, &H);
+		framing_roi roi = { 0 };
+		int rx = ((p->seq->is_variable) ? p->seq->imgparam[i].rx : p->seq->rx);
+		int ry = ((p->seq->is_variable) ? p->seq->imgparam[i].ry : p->seq->ry);
+		compute_roi(&H, rx, ry, &roi);
+		xmin = min(xmin, roi.x);
+		ymin = min(ymin, roi.y);
+		xmax = max(xmax, roi.x + roi.w);
+		ymax = max(ymax, roi.y + roi.h);
+	}
+	if (width)
+		*width = (xmax - xmin);
+	if (height)
+		*height = (ymax - ymin);
+	if (area)
+		*area = (double)(xmax - xmin) * (ymax - ymin);
+}
+
+static double get_maxframing_area(double framing, void *params) {
+	double area = 0.;
+	get_maxframing(framing,params, NULL,  NULL, &area);
+	return area;
+}
+
+// this function minimizes the area by searching the optimal framing
+static int optimize_max_framing(double *framingref, optim_params_t *params) {
+	int status;
+	int iter = 0, max_iter = 100;
+	const gsl_min_fminimizer_type *T;
+	gsl_min_fminimizer *s;
+	double m = (*framingref < 0) ? *framingref + 180. : *framingref;
+	double a = 0.0, b = 180.;
+	gsl_function F;
+	// optim_params_t params = { ra0, dec0, seq, incl, Kref, Ks, Rstmp};
+	F.function = &get_maxframing_area;
+	F.params = params;
+	T = gsl_min_fminimizer_brent;
+	s = gsl_min_fminimizer_alloc(T);
+	gsl_min_fminimizer_set(s, &F, m, a, b);
+
+	siril_debug_print("%5s [%9s, %9s] %9s %10s %9s %10s\n",
+		"iter", "lower", "upper", "min",
+		"err", "err(est)", "val");
+
+	do {
+		iter++;
+		status = gsl_min_fminimizer_iterate(s);
+		m = gsl_min_fminimizer_x_minimum(s);
+		a = gsl_min_fminimizer_x_lower(s);
+		b = gsl_min_fminimizer_x_upper(s);
+		double v = GSL_FN_EVAL(&F, m);
+		status = gsl_min_test_interval(a, b, 0.001, 0.0);
+		siril_debug_print("%5d [%.7f, %.7f] "
+				"%.7f %.7f %.0f\n",
+				iter, a, b,
+				m, b - a, v);
+	} while (status == GSL_CONTINUE && iter < max_iter);
+	
+	if (status == GSL_SUCCESS) {
+		siril_debug_print("Converged\n");
+		double optimval = gsl_min_fminimizer_x_minimum(s);
+		// TODO: should we correct to make sure the image is always horizontal?
+		// int width = 0, height = 0;
+		// get_maxframing(optimval, params, &width, &height, NULL);
+		// if (width < height) // we try to have an image roughly horizontal
+		// 	optimval += 90.;
+		if (*framingref < 0)
+			*framingref = optimval - 180.;
+		else
+			*framingref= optimval;
+	}
+	gsl_min_fminimizer_free(s);
+	return status;
+}
+
 int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout, struct wcsprm **prmout) {
 	int retval = 0;
 	double ra0 = 0., dec0 = 0.;
@@ -106,8 +211,9 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	double *RA = calloc(n, sizeof(double)); // calloc to prevent possibility of uninit variable highlighted by coverity
 	double *DEC = calloc(n, sizeof(double)); // as above
 	double *dist = calloc(n, sizeof(double));
-	Homography *Rs = NULL, *Ks = NULL;
+	Homography *Rs = NULL, *Ks = NULL, *Rstmp = NULL;
 	Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
+	Rstmp = calloc(n, sizeof(Homography)); // camera tmp rotation matrices
 	Ks = calloc(n, sizeof(Homography)); // camera intrinsic matrices
 	gboolean *incl = calloc(n, sizeof(gboolean));
 	if (!RA || !DEC || !dist || !WCSDATA || !Rs || !Ks || !incl) {
@@ -148,6 +254,7 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
 	double framingref = 0.;
 	int anglecount = 0;
+
 	for (int i = 0; i < n; i++) {
 		if (!incl[i])
 			continue;
@@ -164,7 +271,7 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 			retval = 1;
 			goto free_all;
 		}
-		cvRotMat3(angles, rottypes, TRUE, Rs + i);
+		cvRotMat3(angles, rottypes, TRUE, Rstmp + i);
 		siril_debug_print("Image #%d - rot:%.3f\n", i + 1, angles[2]);
 		if (framing == FRAMING_CURRENT && i == refindex) {
 			framingref = angles[2];
@@ -181,7 +288,31 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 		goto free_all;
 	}
 	framingref /= anglecount;
-	siril_log_message("Sequence framing: %.3f\n", framingref);
+
+	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
+	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
+	// We add to the seq in order to display the alignment
+	float fscale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
+	Homography Kref = { 0 };
+	cvGetEye(&Kref);
+	Kref.h00 = fscale;
+	Kref.h11 = fscale;
+	Kref.h02 = Ks[refindex].h02;
+	Kref.h12 = Ks[refindex].h12;
+	siril_debug_print("Scale: %.3f\n", fscale);
+#ifdef DEBUG_ASTROREG
+	print_H(&Kref);
+#endif
+	if (framing == FRAMING_MAX) {
+		optim_params_t params = { ra0, dec0, seq, incl, &Kref, Ks, Rstmp};
+		int status = optimize_max_framing(&framingref, &params);
+		if (!status)
+			siril_log_message(_("Sequence optimal framing: %.1f\n"), framingref);
+		else
+			siril_log_message(_("Sequence framing: %.1f\n"), framingref);
+	} else {
+		siril_log_message(_("Sequence framing: %.1f\n"), framingref);
+	}
 
 	// computing relative rotations wrt to proj center + central image framing
 	Homography Rref = { 0 };
@@ -204,42 +335,38 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	for (int i = 0; i < n; i++) {
 		if (!incl[i])
 			continue;
-		cvRelRot(&Rref, Rs + i);
+		cvRelRot(&Rref, Rstmp + i, Rs + i);
 	}
-	regdata *current_regdata = seq->regparam[layer];
-
-	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
-	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
-	// We add to the seq in order to display the alignment
-	float fscale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
-	Homography Kref = { 0 };
-	cvGetEye(&Kref);
-	Kref.h00 = fscale;
-	Kref.h11 = fscale;
-	Kref.h02 = Ks[refindex].h02;
-	Kref.h12 = Ks[refindex].h12;
-	siril_debug_print("Scale: %.3f\n", fscale);
-	print_H(&Kref);
 
 	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
 	// We add to the seq in order to display a first alignment
+	regdata *current_regdata = seq->regparam[layer];
+	int xmin = INT_MAX, xmax = -INT_MAX;
+	int ymin = INT_MAX, ymax = -INT_MAX;
 	for (int i = 0;  i < n; i++) {
 		if (!incl[i])
 			continue;
 		Homography H = { 0 };
-		cvcalcH_fromKKR(Kref, Ks[i], Rs[i], &H);
+		cvcalcH_fromKKR(&Kref, Ks + i, Rs + i, &H);
 		framing_roi roi = { 0 };
 		int rx = ((seq->is_variable) ? seq->imgparam[i].rx : seq->rx);
 		int ry = ((seq->is_variable) ? seq->imgparam[i].ry : seq->ry);
 		compute_roi(&H, rx, ry, &roi);
 		current_regdata[i].H = H;
+#ifdef DEBUG_ASTROREG
 		siril_debug_print("Image %d\n", i + 1);
 		print_H(Ks + i);
 		print_H(Rs + i);
 		print_H(&H);
+#endif
 		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, roi.x, roi.y, roi.w, roi.h);
+		xmin = min(xmin, roi.x);
+		ymin = min(ymin, roi.y);
+		xmax = max(xmax, roi.x + roi.w);
+		ymax = max(ymax, roi.y + roi.h);
 	}
+	siril_debug_print("Framing: %d,%d,%d,%d\n", xmin, ymin, xmax - xmin, ymax - ymin);
 	seq->reference_image = refindex;
 
 	if (prmout) {

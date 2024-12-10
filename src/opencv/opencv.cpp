@@ -1168,26 +1168,26 @@ gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Hom
 }
 
 // Computes the relative rotation matrix between Rref and R
-// R is updated inplace
-void cvRelRot(Homography *Ref, Homography *R) {
+void cvRelRot(Homography *Ref, Homography *R, Homography *Rout) {
 	Mat _Ref = Mat(3, 3, CV_64FC1);
 	Mat _R = Mat(3, 3, CV_64FC1);
 	Mat _H = Mat(3, 3, CV_64FC1);
+	Mat _Rout = Mat(3, 3, CV_64FC1);
 	convert_H_to_MatH(Ref, _Ref);
 	convert_H_to_MatH(R, _R);
-	_R = _Ref.t() * _R;
-	convert_MatH_to_H(std::move(_R), R);
+	_Rout = _Ref.t() * _R;
+	convert_MatH_to_H(std::move(_Rout), Rout);
 }
 
 // Computes Homography from cameras R and K
-void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H) {
+void cvcalcH_fromKKR(Homography *Kref, Homography *K, Homography *R, Homography *H) {
 	Mat _Kref = Mat(3, 3, CV_64FC1);
 	Mat _K = Mat(3, 3, CV_64FC1);
 	Mat _R = Mat(3, 3, CV_64FC1);
 	Mat _H = Mat(3, 3, CV_64FC1);
-	convert_H_to_MatH(&Kref, _Kref);
-	convert_H_to_MatH(&K, _K);
-	convert_H_to_MatH(&R, _R);
+	convert_H_to_MatH(Kref, _Kref);
+	convert_H_to_MatH(K, _K);
+	convert_H_to_MatH(R, _R);
 
 	//Compute H and returning
 	_H = _Kref * _R * _K.inv();
