@@ -69,10 +69,11 @@ All these libraries and programs are available in most Linux distributions and
 free systems, maybe with the exception of ffms2 that is not as popular as the
 others and may need to be compiled.
 
-At runtime, you need a functional Python installation (>=3.9) including the venv
-and pip modules. If you are using a prebuilt Siril package these will be included,
-but if you are compiling from source you need to ensure these are available by
-installing the appropriate packages for your operating system.
+At runtime, you need a functional Python installation (>=3.9) including the
+python3-venv and python3-pip modules, as well as python3-tk to support scripts with
+GUIs. If you are using a prebuilt Siril package these will be included, but if you
+are compiling from source you need to ensure these are available by installing the
+appropriate packages for your operating system.
 
 ## Scripting
 
