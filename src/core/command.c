@@ -10907,6 +10907,8 @@ static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
 		data->operation = GRAXPERT_DENOISE;
 	} else if (operation == GRAXPERT_DECONV) {
 		data->operation = GRAXPERT_DECONV;
+	} else if (operation == GRAXPERT_DECONV_STELLAR) {
+		data->operation = GRAXPERT_DECONV_STELLAR;
 	} else {
 		siril_log_color_message(_("Error: unknown GraXpert operation!\n"), "red");
 		free_graxpert_data(data);
@@ -10948,8 +10950,7 @@ static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
 					} else if (!g_ascii_strncasecmp(arg, "div", 3)) {
 						data->bg_mode = GRAXPERT_DIVISION;
 					} else {
-						siril_log_color_message(
-								_("Error: unknown correction mode!\n"), "red");
+						siril_log_color_message(_("Error: unknown correction mode!\n"), "red");
 						goto GRAX_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(arg, "-kernel=")) {
@@ -10963,57 +10964,49 @@ static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
 					} else if (!g_ascii_strncasecmp(arg, "linear", 6)) {
 						data->kernel = GRAXPERT_LINEAR;
 					} else {
-						siril_log_color_message(
-								_("Error: unknown RBF kernel!\n"), "red");
+						siril_log_color_message(_("Error: unknown RBF kernel!\n"), "red");
 						goto GRAX_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(arg, "-ai_batch_size=")) {
 					arg += 15;
 					data->ai_batch_size = (int) g_ascii_strtod(arg, &end);
 					if (arg == end) {
-						siril_log_message(
-								_("Error: no AI batch size specified\n"));
+						siril_log_message(_("Error: no AI batch size specified\n"));
 						goto GRAX_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(arg, "-pts_per_row=")) {
 					arg += 13;
 					data->bg_pts_option = (int) g_ascii_strtod(arg, &end);
 					if (arg == end) {
-						siril_log_message(
-								_("Error: no pts_per_row specified\n"));
+						siril_log_message(_("Error: no pts_per_row specified\n"));
 						goto GRAX_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(arg, "-splineorder=")) {
 					arg += 13;
 					data->spline_order = (int) g_ascii_strtod(arg, &end);
 					if (arg == end) {
-						siril_log_message(
-								_("Error: no spline order specified\n"));
+						siril_log_message(_("Error: no spline order specified\n"));
 						goto GRAX_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(arg, "-samplesize=")) {
 					arg += 12;
 					data->sample_size = (int) g_ascii_strtod(arg, &end);
 					if (arg == end) {
-						siril_log_message(
-								_("Error: no sample size specified\n"));
+						siril_log_message(_("Error: no sample size specified\n"));
 						goto GRAX_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(arg, "-smoothing=")) {
 					arg += 11;
 					data->bg_smoothing = g_ascii_strtod(arg, &end);
 					if (arg == end) {
-						siril_log_message(
-								_("Error: no smoothing value specified\n"));
+						siril_log_message(_("Error: no smoothing value specified\n"));
 						goto GRAX_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(arg, "-bgtol=")) {
 					arg += 7;
 					data->bg_tol_option = g_ascii_strtod(arg, &end);
 					if (arg == end) {
-						siril_log_message(
-								_(
-										"Error: no background tolerance value specified\n"));
+						siril_log_message(_("Error: no background tolerance value specified\n"));
 						goto GRAX_ARG_ERROR;
 					}
 				} else {
@@ -11026,35 +11019,30 @@ static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
 					arg += 10;
 					data->denoise_strength = g_ascii_strtod(arg, &end);
 					if (arg == end) {
-						siril_log_message(
-								_("Error: no strength value specified\n"));
+						siril_log_message(_("Error: no strength value specified\n"));
 						goto GRAX_ARG_ERROR;
 					}
 				} else {
-					siril_log_color_message(_("Error: unknown argument!\n"),
-							"red");
+					siril_log_color_message(_("Error: unknown argument!\n"), "red");
 					goto GRAX_ARG_ERROR;
 				}
-			} else { // operation must be GRAXPERT_DECONV because of the earlier check
+			} else { // operation must be GRAXPERT_DECONV or GRAXPERT_DECONV_STELLAR because of the earlier check
 				if (g_str_has_prefix(arg, "-strength=")) {
 					arg += 10;
 					data->deconv_strength = g_ascii_strtod(arg, &end);
 					if (arg == end) {
-						siril_log_message(
-								_("Error: no strength value specified\n"));
+						siril_log_message(_("Error: no strength value specified\n"));
 						goto GRAX_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(arg, "-psfsize=")) {
 					arg += 9;
 					data->deconv_blur_psf_size = g_ascii_strtod(arg, &end);
 					if (arg == end) {
-						siril_log_message(
-								_("Error: no psf size value specified\n"));
+						siril_log_message(_("Error: no psf size value specified\n"));
 						goto GRAX_ARG_ERROR;
 					}
 				} else {
-					siril_log_color_message(_("Error: unknown argument!\n"),
-							"red");
+					siril_log_color_message(_("Error: unknown argument!\n"), "red");
 					goto GRAX_ARG_ERROR;
 				}
 			}
@@ -11079,7 +11067,7 @@ static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
 	else if (data->bg_tol_option > 6.0)
 		data->bg_tol_option = 6.0;
 	if (data->operation == GRAXPERT_DENOISE || data->operation == GRAXPERT_DECONV
-			|| data->bg_algo == GRAXPERT_BG_AI) {
+			|| data->operation == GRAXPERT_DECONV_STELLAR || data->bg_algo == GRAXPERT_BG_AI) {
 		if (!check_graxpert_version(data->ai_version, data->operation)) {
 			siril_log_color_message(_("Error: the requested AI model version is unavailable. Available versions are:\n"),"red");
 			ai_versions_to_log(operation);
@@ -11127,7 +11115,16 @@ int process_graxpert_denoise(int nb) {
 }
 
 int process_graxpert_deconv(int nb) {
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, NULL, GRAXPERT_DECONV);
+	graxpert_operation operation;
+
+	if (g_ascii_strcasecmp(word[1], "object") == 0) {
+		operation = GRAXPERT_DECONV;
+	} else if (g_ascii_strcasecmp(word[1], "stellar") == 0) {
+		operation = GRAXPERT_DECONV_STELLAR;
+	} else {
+		return CMD_ARG_ERROR;
+	}
+	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, NULL, operation);
 	if (!data)
 		return CMD_ARG_ERROR;
 
@@ -11171,7 +11168,17 @@ int process_seq_graxpert_deconv(int nb) {
 		siril_log_color_message(_("Error: unable to load sequence\n"), "red");
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq, GRAXPERT_DECONV);
+	graxpert_operation operation;
+
+	if (g_ascii_strcasecmp(word[2], "object") == 0) {
+		operation = GRAXPERT_DECONV;
+	} else if (g_ascii_strcasecmp(word[2], "stellar") == 0) {
+		operation = GRAXPERT_DECONV_STELLAR;
+	} else {
+		free_sequence(seq, TRUE);
+		return CMD_ARG_ERROR;
+	}
+	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq, operation);
 	if (!data) {
 		free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;

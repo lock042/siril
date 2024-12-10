@@ -69,8 +69,8 @@ void set_graxpert_aborted(gboolean state) {
 
 const gchar** get_ai_models(graxpert_operation operation) {
     return (const gchar**) (operation == GRAXPERT_DENOISE ? denoise_ai_models :
-    		(operation == GRAXPERT_DECONV ? deconv_ai_models :
-    		(operation == GRAXPERT_DECONV_STELLAR ? deconv_stellar_ai_models : background_ai_models)));
+    					   (operation == GRAXPERT_DECONV ? deconv_ai_models :
+    					   (operation == GRAXPERT_DECONV_STELLAR ? deconv_stellar_ai_models : background_ai_models)));
 }
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
@@ -328,15 +328,14 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		gsize length = 0;
 		GDataInputStream *data_input = g_data_input_stream_new(stream);
 		gboolean done = FALSE;
-		while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
-						NULL, NULL)) && !done) {
+		while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, NULL)) && !done) {
 #ifdef GRAXPERT_DEBUG
 			siril_debug_print("%s\n", buffer);
 #endif
 			// Find the start of the version substring
 			gchar *start = g_strstr_len(buffer, -1, key);
 			if (start) {
-				siril_debug_print("Version string found\n");
+				siril_debug_print("Version string found for %d\n", (int) operation);
 				result = parse_ai_versions(start);
 				g_free(buffer);
 				break;
