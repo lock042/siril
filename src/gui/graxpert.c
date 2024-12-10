@@ -204,12 +204,13 @@ void on_graxpert_generate_samples_clicked(GtkButton *button, gpointer user_data)
 void configure_graxpert_dialog_for_roi() {
 	if (!is_bg) {
 		roi_supported(TRUE);
-		graxpert_roi_callback();
 		add_roi_callback(graxpert_roi_callback);
 		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
-		free_background_sample_list(com.grad_samples);
-		com.grad_samples = NULL;
-		copy_gfit_to_backup();
+		if (com.grad_samples) {
+			free_background_sample_list(com.grad_samples);
+			com.grad_samples = NULL;
+		}
+		on_set_roi(); // this only configures the ROI if one is actually set now, so no slowdown
 	} else {
 		roi_supported(FALSE);
 		if (is_preview_active())
