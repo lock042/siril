@@ -758,7 +758,7 @@ static gpointer live_stacker(gpointer arg) {
 		stackparam.use_32bit_output = get_data_type(r_seq.bitpix) == DATA_FLOAT ||
 			(use_32bits && (prepro || use_demosaicing == BOOL_TRUE));
 		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
-		stackparam.apply_nbstack_weights = TRUE;
+		stackparam.weighting_type = NBSTACK_WEIGHT;
 
 		reserve_thread(); // hack: generic function fails otherwise
 		main_stack(&stackparam);

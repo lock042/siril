@@ -80,6 +80,7 @@
 #include "gui/newdeconv.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
+#include "gui/stacking.h"
 #include "gui/registration.h"
 #include "gui/registration_preview.h"
 #include "gui/script_menu.h"
@@ -8227,41 +8228,31 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			} else {
 				arg->output_norm = TRUE;
 			}
-		} else if (!strcmp(current, "-weight_from_noise")) {
+		} else if (!strcmp(current, "-32b")) {
+			arg->force32b = TRUE;
+		} else if (!strcmp(current, "-overlap_norm")) {
 			if (!rej_options_allowed) {
-				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
-			} else if (arg->norm == NO_NORM) {
-				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
-			} else if (arg->apply_nbstack_weights || arg->apply_wfwhm_weights || arg->apply_nbstars_weights) {
-				siril_log_message(_("Only one weighting method can be used\n"));
+				siril_log_message(_("Overlap normalization is allowed only with mean stacking, ignoring.\n"));
 			} else {
-				arg->apply_noise_weights = TRUE;
+				arg->overlap_norm = TRUE;
 			}
-		} else if (!strcmp(current, "-weight_from_wfwhm")) {
+		} else if (g_str_has_prefix(current, "-weight=")) {
 			if (!rej_options_allowed) {
-				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
-			} else if (arg->apply_nbstack_weights || arg->apply_noise_weights || arg->apply_nbstars_weights) {
-				siril_log_message(_("Only one weighting method can be used\n"));
+				siril_log_message(_("Weighting is allowed only with mean stacking, ignoring.\n"));
 			} else {
-				arg->apply_wfwhm_weights = TRUE;
-			}
-		} else if (!strcmp(current, "-weight_from_nbstars")) {
-			if (!rej_options_allowed) {
-				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
-			} else if (arg->apply_nbstack_weights || arg->apply_noise_weights || arg->apply_wfwhm_weights) {
-				siril_log_message(_("Only one weighting method can be used\n"));
-			} else {
-				arg->apply_nbstars_weights = TRUE;
-			}
-		} else if (!strcmp(current, "-weight_from_nbstack")) {
-			if (!rej_options_allowed) {
-				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
-			} else if (arg->norm == NO_NORM) {
-				siril_log_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"));
-			} else if (arg->apply_noise_weights || arg->apply_wfwhm_weights || arg->apply_nbstars_weights) {
-				siril_log_message(_("Only one weighting method can be used\n"));
-			} else {
-				arg->apply_nbstack_weights = TRUE;
+				value = current + 8;
+				if (!strcmp(value, "noise"))
+					arg->weighting_type = NOISE_WEIGHT;
+				else if (!strcmp(value, "nbstars"))
+					arg->weighting_type = NBSTARS_WEIGHT;
+				else if (!strcmp(value, "nbstack"))
+					arg->weighting_type = NBSTACK_WEIGHT;
+				else if (!strcmp(value, "wfwhm"))
+					arg->weighting_type = WFWHM_WEIGHT;
+				else {
+					siril_log_message(_("Unknown argument to %s, aborting.\n"), current);
+					return CMD_ARG_ERROR;
+				}
 			}
 		} else if (!strcmp(current, "-fastnorm")) {
 			if (!med_options_allowed) {
@@ -8284,6 +8275,23 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 					arg->norm = MULTIPLICATIVE;
 				else if (!strcmp(value, "mulscale"))
 					arg->norm = MULTIPLICATIVE_SCALING;
+			}
+		} else if (g_str_has_prefix(current, "-feather=")) {
+			if (!rej_options_allowed) {
+				siril_log_message(_("Blending option is not allowed in this context, ignoring.\n"));
+			} else {
+				gchar *end;
+				value = current + 9;
+				int dist = g_ascii_strtoull(value, &end, 10);
+				if (end == value || dist < 0) {
+					siril_log_message(_("Unknown argument to %s, aborting.\n"), current);
+					return CMD_ARG_ERROR;
+				}
+				if (dist > 2000) {
+					siril_log_message(_("Blending distance must be between 0 and 2000 pixels, got %d, forcing to 2000.\n"), value);
+					dist = 2000;
+				}
+				arg->feather_dist = dist;
 			}
 		} else if (!strcmp(current, "-rgb_equal")) {
 			if (!med_options_allowed) {
@@ -8345,6 +8353,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	siril_log_message(_("Stacking sequence %s\n"), seq->seqname);
 
 	struct stacking_args args = { 0 };
+	init_stacking_args(&args);
 	args.seq = seq;
 	args.ref_image = sequence_find_refimage(seq);
 	// the three below: used only if method is average w/ rejection
@@ -8358,23 +8367,17 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.type_of_rejection = NO_REJEC;
 		siril_log_message(_("Not using rejection for stacking\n"));
 	}
-	args.coeff.offset = NULL;
-	args.coeff.mul = NULL;
-	args.coeff.scale = NULL;
 	if (!arg->force_no_norm &&
 			(arg->method == stack_median || arg->method == stack_mean_with_rejection))
 		args.normalize = arg->norm;
 	else args.normalize = NO_NORM;
 	args.method = arg->method;
-	args.force_norm = FALSE;
 	args.output_norm = arg->output_norm;
 	args.equalizeRGB = arg->equalizeRGB;
 	args.lite_norm = arg->lite_norm;
 	args.reglayer = get_registration_layer(args.seq);
-	args.apply_noise_weights = arg->apply_noise_weights;
-	args.apply_nbstack_weights = arg->apply_nbstack_weights;
-	args.apply_wfwhm_weights = arg->apply_wfwhm_weights;
-	args.apply_nbstars_weights = arg->apply_nbstars_weights;
+	args.feather_dist = arg->feather_dist;
+	args.overlap_norm = arg->overlap_norm;
 
 	// manage registration data
 	if (!test_regdata_is_valid_and_shift(args.seq, args.reglayer)) {
@@ -8410,6 +8413,14 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.maximize_framing = FALSE;
 		args.upscale_at_stacking = FALSE;
 	}
+	if (!args.maximize_framing && args.overlap_norm) {
+		siril_log_color_message(_("Cannot compute overlap statistics if -maximize is not enabled. Disabling\n"), "red");
+		args.overlap_norm = FALSE;
+	}
+	if (args.normalize == NO_NORM && (args.weighting_type == NOISE_WEIGHT || args.weighting_type == NBSTACK_WEIGHT)) {
+		siril_log_color_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"), "red");
+		args.weighting_type = NO_WEIGHT;
+	}
 
 	// manage filters
 	if (convert_parsed_filter_to_filter(&arg->filters, seq,
@@ -8419,12 +8430,15 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		return CMD_GENERIC_ERROR;
 	}
 	args.description = describe_filter(seq, args.filtering_criterion, args.filtering_parameter);
-	args.use_32bit_output = evaluate_stacking_should_output_32bits(args.method,
+	args.use_32bit_output = arg->force32b || evaluate_stacking_should_output_32bits(args.method,
 			args.seq, args.nb_images_to_stack, &error);
 	if (error) {
 		siril_log_color_message(error, "red");
 		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
+	}
+	if (args.overlap_norm && args.nb_images_to_stack > MAX_IMAGES_FOR_OVERLAP) {
+		siril_log_color_message(_("Normalizing on overlaps for more than %d images can be slow\n"), "salmon", MAX_IMAGES_FOR_OVERLAP);
 	}
 
 	main_stack(&args);
@@ -8782,7 +8796,7 @@ failure:
 /* calibrate sequencename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt[=exp]] [-prefix=] [-fitseq]
  * calibrate_single filename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]
  */
-struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
+struct preprocessing_data *parse_calibrate_args(int nb, sequence *seq) {
 	int retvalue = 0;
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	fits reffit = { 0 };
@@ -9049,7 +9063,7 @@ int process_calibrate(int nb) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 
-	struct preprocessing_data *args = parse_preprocess_args(nb, seq);
+	struct preprocessing_data *args = parse_calibrate_args(nb, seq);
 	if (!args) {
 		free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
@@ -9069,7 +9083,7 @@ int process_calibrate_single(int nb) {
 	if (word[1][0] == '\0')
 		return CMD_ARG_ERROR;
 
-	struct preprocessing_data *args = parse_preprocess_args(nb, NULL);
+	struct preprocessing_data *args = parse_calibrate_args(nb, NULL);
 	if (!args)
 		return CMD_ARG_ERROR;
 

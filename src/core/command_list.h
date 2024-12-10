@@ -247,13 +247,13 @@ static command commands[] = {
 	{"split", 3, "split file1 file2 file3 [-hsl | -hsv | -lab]", process_split, STR_SPLIT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
 	{"stack", 1, "stack seqfilename\n"
-			"stack seqfilename { sum | min | max } [filtering] [-output_norm] [-out=filename] [-maximize] [-upscale]\n"
-			"stack seqfilename { med | median } [-nonorm, -norm=] [filtering] [-fastnorm] [-rgb_equal] [-output_norm] [-out=filename]\n"
-			"stack seqfilename { rej | mean } [rejection type] [sigma_low sigma_high]  [-rejmap[s]] [-nonorm, -norm=] [filtering] [-fastnorm] [ -weight_from_noise | -weight_from_nbstack | -weight_from_wfwhm | -weight_from_nbstars ] [-rgb_equal] [-output_norm] [-out=filename] [-maximize] [-upscale]", process_stackone, STR_STACK, TRUE, REQ_CMD_NONE},
+			"stack seqfilename { sum | min | max } [-output_norm] [-out=filename] [-maximize] [-upscale] [-32b]\n"
+			"stack seqfilename { med | median } [-nonorm, -norm=] [-fastnorm] [-rgb_equal] [-output_norm] [-out=filename] [-32b]\n"
+			"stack seqfilename { rej | mean } [rejection type] [sigma_low sigma_high]  [-rejmap[s]] [-nonorm, -norm=] [-fastnorm] [-overlap_norm] [-weight={noise|wfwhm|nbstars|nbstack}] [-feather=] [-rgb_equal] [-output_norm] [-out=filename] [-maximize] [-upscale] [-32b]", process_stackone, STR_STACK, TRUE, REQ_CMD_NONE},
 	{"stackall", 0, "stackall\n"
-			"stackall { sum | min | max } [filtering] [-maximize] [-upscale]\n"
-			"stackall { med | median } [-nonorm, norm=] [-filter-incl[uded]]\n"
-			"stackall { rej | mean } [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [filtering] [ -weight_from_noise | -weight_from_wfwhm | -weight_from_nbstars | -weight_from_nbstack ] [-rgb_equal] [-out=filename] [-maximize] [-upscale]", process_stackall, STR_STACKALL, TRUE, REQ_CMD_NONE},
+			"stackall { sum | min | max } [-maximize] [-upscale] [-32b]\n"
+			"stackall { med | median } [-nonorm, norm=] [-32b]\n"
+			"stackall { rej | mean } [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-overlap_norm] [-weight={noise|wfwhm|nbstars|nbstack}] [-feather=] [-rgb_equal] [-out=filename] [-maximize] [-upscale] [-32b]", process_stackall, STR_STACKALL, TRUE, REQ_CMD_NONE},
 #ifdef HAVE_LIBTIFF
 	{"starnet", 0, "starnet [-stretch] [-upscale] [-stride=value] [-nostarmask]", process_starnet, STR_STARNET, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif

@@ -168,6 +168,7 @@ src/gui/siril_intro.c
 src/gui/siril_plot.c
 src/gui/siril_preview.c
 src/gui/split_cfa.c
+src/gui/stacking.c
 src/gui/statistics_list.c
 src/gui/star_finder.c
 src/gui/starnetgui.c
@@ -210,6 +211,7 @@ src/registration/comet.c
 src/registration/distorsion.c
 src/registration/global.c
 src/registration/registration.c
+src/stacking/blending.c
 src/stacking/median_and_mean.c
 src/stacking/normalization.c
 src/stacking/stacking.c

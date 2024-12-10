@@ -340,6 +340,17 @@ typedef struct {
 	gint _nb_refs;	// reference counting for data management
 } imstats;
 
+/* this structure is used to characterize the statistics of the overalps in a sequence of images */
+typedef struct {
+	int i, j;
+	size_t Nij;
+	rectangle areai, areaj;
+	float medij, medji;
+	float madij, madji;
+	float locij, locji;
+	float scaij, scaji;
+} overlap_stats_t;
+
 typedef struct {
 	double h00, h01, h02;
 	double h10, h11, h12;
@@ -383,6 +394,7 @@ struct sequ {
 	imgdata *imgparam;	// a structure for each image of the sequence
 	regdata **regparam;	// *regparam[nb_layers], may be null if nb_layers is unknown
 	imstats ***stats;	// statistics of the images for each layer, may be null too
+	overlap_stats_t **ostats;	// statistics of the overlaps for each layer, may be null too
 	/* in the case of a CFA sequence, depending on the opening mode, we cannot store
 	 * and use everything that was in the seqfile, so we back them up here */
 	regdata **regparam_bkp;	// *regparam[3], null if nothing to back up

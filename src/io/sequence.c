@@ -67,6 +67,7 @@
 #include "gui/sequence_list.h"
 #include "gui/preferences.h"
 #include "gui/registration_preview.h"
+#include "gui/stacking.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/quality.h"
@@ -2096,10 +2097,33 @@ static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_l
 	return max_memory_MB / memory_per_scaled_image_MB;
 }
 
+size_t get_max_seq_dimension(sequence *seq, int *rx, int *ry) {
+	*rx = seq->rx;
+	*ry = seq->ry;
+	size_t maxdim = 0;
+	if (!seq->is_variable || !seq->imgparam)
+		return seq->rx * seq->ry;
+	for (int i = 0; i < seq->number; i++) {
+		if (!seq->imgparam[i].incl)
+			continue;
+		size_t dim = seq->imgparam[i].rx * seq->imgparam[i].ry;
+		if (dim > maxdim) {
+			maxdim = dim;
+			*rx = seq->imgparam[i].rx;
+			*ry = seq->imgparam[i].ry;
+		}
+	}
+	return maxdim;
+}
+
 /* returns the number of images of the sequence that can fit into memory based
- * on the configured memory ratio */
+ * on the configured memory ratio 
+ * If the sequence is of variable size, we use the size of the largest image
+*/
 int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
-	return compute_nb_images_fit_memory_from_dimensions(seq->rx, seq->ry, seq->nb_layers, get_data_type(seq->bitpix), factor, force_float, MB_per_orig_image, MB_per_scaled_image, max_mem_MB);
+	int rx = 0, ry = 0;
+	get_max_seq_dimension(seq, &rx, &ry);
+	return compute_nb_images_fit_memory_from_dimensions(rx, ry, seq->nb_layers, get_data_type(seq->bitpix), factor, force_float, MB_per_orig_image, MB_per_scaled_image, max_mem_MB);
 }
 
 /* returns the number of images of the sequence that can fit into memory based
@@ -2218,31 +2242,31 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 	writeseqfile(seq);
 }
 
-// returns TRUE if star_filename is more recent than image (for FITS) or
-// sequence (for FITSEQ or SER)
-gboolean check_starfile_date(sequence *seq, int index, gchar *star_filename) {
-	if (!g_file_test(star_filename, G_FILE_TEST_EXISTS))
+// returns TRUE if cache_filename is more recent than image (for FITS) or
+// sequence (for FITSEQ or SER). This is used for mask files (*.msk) and star files (*.lst)
+gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filename) {
+	if (!g_file_test(cache_filename, G_FILE_TEST_EXISTS))
 		return FALSE;
 
-	struct stat imgfileInfo, starfileInfo;
-	// if sequence is FITS, we check individual img file date vs starfile date
+	struct stat imgfileInfo, cachefileInfo;
+	// if sequence is FITS, we check individual img file date vs cachefile date
 	if (seq->type == SEQ_REGULAR) {
 		char img_filename[256];
 		if (!fit_sequence_get_image_filename(seq, index, img_filename, TRUE) ||
 				!g_file_test(img_filename, G_FILE_TEST_EXISTS) ||
 				stat(img_filename, &imgfileInfo) ||
-				stat(star_filename, &starfileInfo))
+				stat(cache_filename, &cachefileInfo))
 			return FALSE;
-		if (starfileInfo.st_ctime < imgfileInfo.st_ctime)
-			siril_debug_print("%s is older than %s, detecting again\n", star_filename, img_filename);
-		return (starfileInfo.st_ctime >= imgfileInfo.st_ctime);
+		if (cachefileInfo.st_mtime < imgfileInfo.st_mtime)
+			siril_debug_print("%s is older than %s\n", cache_filename, img_filename);
+		return (cachefileInfo.st_mtime >= imgfileInfo.st_mtime);
 	}
-	// else, we check the sequence date vs starfile date
+	// else, we check the sequence date vs cachefile date
 	gchar *seqname;
 	if (seq->type == SEQ_SER)
 		seqname = seq->ser_file->filename;
 	else seqname = seq->fitseq_file->filename;
-	if (stat(seqname, &imgfileInfo) || stat(star_filename, &starfileInfo))
+	if (stat(seqname, &imgfileInfo) || stat(cache_filename, &cachefileInfo))
 		return FALSE;
-	return (starfileInfo.st_ctime >= imgfileInfo.st_ctime);
+	return (cachefileInfo.st_mtime >= imgfileInfo.st_mtime);
 }

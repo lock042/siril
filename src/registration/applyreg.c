@@ -92,7 +92,7 @@ void compute_roi(Homography *H, int rx, int ry, framing_roi *roi) {
 		if (ymin > framing.pt[j].y) ymin = framing.pt[j].y;
 		if (xmax < framing.pt[j].x) xmax = framing.pt[j].x;
 		if (ymax < framing.pt[j].y) ymax = framing.pt[j].y;
-		siril_debug_print("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
+		// siril_debug_print("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
 	}
 	int x0 = (int)xmin;
 	int y0 = (int)ymin;

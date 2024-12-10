@@ -53,7 +53,7 @@ static float compute_mean(const float *f, int size) {
 	return sum / size;
 }
 
-/*static void print_outliers(struct outliers *rej, int N) {
+/*static void print_outliers(struct ESD_outliers *rej, int N) {
 	fprintf(stderr, "outliers are: ");
 	for (int i = 0; i < N; i++) {
 		if (rej[i].out) fprintf(stderr, "%f ", rej[i].x);
@@ -69,7 +69,7 @@ static float calculate_critical_value(int size, float alpha) {
 }
 
 static float ESD_test(float *stack, int size, float alpha, int max_outliers) {
-	struct outliers *out = malloc(max_outliers * sizeof(struct outliers));
+	struct ESD_outliers *out = malloc(max_outliers * sizeof(struct ESD_outliers));
 
 	quicksort_f(stack, size);
 	double median = gsl_stats_float_median_from_sorted_data(stack, 1, size);
