@@ -1,9 +1,9 @@
 ############################################
 #
-# Script for Siril 1.2
-# February 2023
+# Script for Siril 1.4
+# December 2024
 # (C) Cyril Richard
-# Mono_Preprocessing v1.3
+# Mono_Preprocessing v1.4
 #
 ########### PREPROCESSING SCRIPT ###########
 #
@@ -19,7 +19,7 @@
 #
 ############################################
 
-requires 1.2.0
+requires 1.3.4
 
 # Convert Bias Frames to .fit files
 cd biases
@@ -63,7 +63,7 @@ calibrate light -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -
 register pp_light
 
 # Stack calibrated lights to result.fit
-stack r_pp_light rej 3 3 -norm=addscale -output_norm -out=result
+stack r_pp_light rej 3 3 -norm=addscale -output_norm -32b -out=result
 
 # and flipping if required
 load result

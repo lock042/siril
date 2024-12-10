@@ -1,9 +1,9 @@
 ############################################
 #
 # Script for Siril 1.4
-# April 2024
+# December 2024
 # (C) Cyril Richard
-# OSC_Preprocessing_WBayerDrizzle v1.0
+# OSC_Preprocessing_WBayerDrizzle v1.1
 #
 ########### PREPROCESSING SCRIPT ###########
 #
@@ -20,7 +20,7 @@
 #
 ############################################
 
-requires 1.3.1
+requires 1.3.4
 
 # Convert Bias Frames to .fit files
 cd biases
@@ -64,7 +64,7 @@ calibrate light -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -
 register pp_light -drizzle -scale=1.0 -pixfrac=1.0 -kernel=square -flat=../masters/pp_flat_stacked
 
 # Stack calibrated lights to result.fit
-stack r_pp_light rej 3 3 -norm=addscale -output_norm -rgb_equal -out=result
+stack r_pp_light rej 3 3 -norm=addscale -output_norm -rgb_equal -32b -out=result
 
 # and flipping if required
 load result

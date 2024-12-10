@@ -36,7 +36,7 @@ void	close_sequence(int loading_another);
 gboolean check_seq_is_comseq(sequence *seq);
 gboolean check_seq_is_variable(sequence *seq);
 gboolean sequence_is_loaded();
-gboolean check_starfile_date(sequence *seq, int index, gchar *star_filename) ;
+gboolean check_cachefile_date(sequence *seq, int index, const gchar *star_filename) ;
 
 typedef enum {
 	ORIGINAL_FRAME,
@@ -80,6 +80,7 @@ void free_reference_image();
 /* in export.c now */
 void	update_export_crop_label();
 
+size_t get_max_seq_dimension(sequence *seq, int *rx, int *ry);
 int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB);
 
 int compute_nb_images_fit_memory_from_fit(fits *fit, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB);

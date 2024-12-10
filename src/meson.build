@@ -252,6 +252,7 @@ src_files = [
   'gui/siril_plot.c',
   'gui/siril-window.c',
   'gui/split_cfa.c',
+  'gui/stacking.c',
   'gui/star_finder.c',
   'gui/starnetgui.c',
   'gui/statistics_list.c',
@@ -274,6 +275,7 @@ src_files = [
   'registration/applyreg.c',
   'registration/shift_methods.c',
 
+  'stacking/blending.c',
   'stacking/median_and_mean.c',
   'stacking/normalization.c',
   'stacking/rejection_float.c',
