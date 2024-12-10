@@ -33,6 +33,9 @@ unsigned char *cvCalculH(s_star *star_array_img,
 
 int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, float scale, int interpolation, gboolean clamp, disto_data *disto);
 
+void cvDownscaleBlendMask(int rx, int ry, int out_rx, int out_ry, uint8_t *maskin, float *maskout);
+void cvUpscaleBlendMask(int rx, int ry, int out_rx, int out_ry, float *maskin, float *maskout);
+
 int cvUnsharpFilter(fits* image, double sigma, double amount);
 
 int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_spatial);
@@ -65,6 +68,7 @@ void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int 
 gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Homography *Hom);
 void cvRelRot(Homography *Ref, Homography *R, Homography *Rout);
 void cvcalcH_fromKKR(Homography *Kref, Homography *K, Homography *R, Homography *H);
+
 #ifdef __cplusplus
 }
 #endif

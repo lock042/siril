@@ -36,6 +36,7 @@
 #include "algos/siril_wcs.h"
 #include "stacking/stacking.h"
 #include "stacking/siril_fit_linear.h"
+#include "stacking/blending.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
 
@@ -79,7 +80,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 	set_progress_bar_data(_("Opening images for stacking"), PROGRESS_NONE);
 
 	if (args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) {
-		if (args->apply_nbstack_weights) {
+		if (args->weighting_type == NBSTACK_WEIGHT) {
 			int nb_layers = args->seq->nb_layers;
 			args->weights = malloc(nb_layers * nb_frames * sizeof(double));
 		}
@@ -135,7 +136,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			if (image_index == args->ref_image)
 				import_metadata_from_fitsfile(fptr, fit);
 
-			if (args->apply_nbstack_weights) {
+			if (args->weighting_type == NBSTACK_WEIGHT) {
 				int nb_layers = args->seq->nb_layers;
 				double weight = (double)stack_count;
 				siril_debug_print("weight for image %d: %d\n", i, stack_count);
@@ -343,7 +344,6 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 // is padded with zeros.
 // For instance, if img has a stride rx_img = 3 while block data has rx = 5 over
 // 2 lines (ry = 2), this will transform abcdef0000 to abc00def00
-
 static void rearrange_block_data(void *buffer, data_type itype, int rx, int ry, int rx_img) {
 	if (rx == rx_img) // nothing to rearrange
 		return;
@@ -370,6 +370,7 @@ static int stack_read_block_data(struct stacking_args *args,
 	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 	/* store the layer info to retrieve normalization coeffs*/
 	data->layer = (int)my_block->channel;
+	gboolean masking = (args->feather_dist > 0);
 	/* Read the block from all images, store them in pix[image] */
 	for (int frame = 0; frame < args->nb_images_to_stack; ++frame) {
 		gboolean clear = FALSE, readdata = TRUE;
@@ -433,6 +434,8 @@ static int stack_read_block_data(struct stacking_args *args,
 				/* we are reading outside an image, fill with
 				 * zeros and attempt to read lines that fit */
 				memset(data->pix[frame], 0, my_block->height * naxes[0] * ielem_size);
+				if (masking)
+					memset(data->mask[frame], 0, my_block->height * naxes[0] * sizeof(float));
 			}
 		}
 
@@ -446,11 +449,53 @@ static int stack_read_block_data(struct stacking_args *args,
 			int retval = seq_opened_read_region(args->seq, my_block->channel,
 					args->image_indices[frame], buffer, &area, thread_id);
 			if (retval) {
-					siril_log_color_message(_("Error reading one of the image areas\n"), "red");
+					siril_log_color_message(_("Error reading one of the image areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
+					area.x, area.y, area.w, area.h);
 				return ST_SEQUENCE_ERROR;
 			}
 			if (args->maximize_framing) {
 				rearrange_block_data(buffer, itype, naxes[0], area.h, rx);
+			}
+		}
+		
+		if (masking && (args->reglayer < 0 || readdata)) {
+			// we need to compute the correct mask area
+			// We load the corresponding downscaled portion of the mask file (distances to black are already included)
+			// Upcsale it to the mask buffer
+			// Re-arrange it if required (as for the image block) for maximize_framing
+			// Normalize it to 1. (all values > feather_dist -> 1., values < feather_dist -> val/feather_dist)
+			// And finally apply the ramping function which has been precomputed on  RAMP_PACE + 1 points
+			const gchar *maskfile = get_mask_filename(args->seq, args->image_indices[frame]);
+			float *mask_scaled;
+			int scaled_rx = 0, scaled_ry = 0;
+			double fx = 0., fy = 0.;
+			int rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
+			int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
+			compute_downscaled_mask_size(rx, ry, &scaled_rx, &scaled_ry, &fx, &fy);
+			rectangle maskscaled_area = { 0, (int)(fy * area.y), scaled_rx, (int)(fy * area.h)};
+			if (area.h == 0 || area.w == 0 || maskscaled_area.w == 0 || maskscaled_area.h == 0)
+				continue;
+			mask_scaled = malloc((size_t)(maskscaled_area.h * maskscaled_area.w * sizeof(float)));
+			if (read_mask_fits_area(maskfile, &maskscaled_area, scaled_ry, mask_scaled)) {
+				free(mask_scaled);
+				siril_log_color_message(_("Error reading one of the masks areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
+				maskscaled_area.x, maskscaled_area.y, maskscaled_area.w, maskscaled_area.h);
+				return ST_SEQUENCE_ERROR;
+			}
+			float *mbuffer = data->mask[frame] + offset;
+			cvUpscaleBlendMask(maskscaled_area.w, maskscaled_area.h, rx, area.h, mask_scaled, mbuffer);
+			free(mask_scaled);
+			if (args->maximize_framing) {
+				rearrange_block_data(mbuffer, DATA_FLOAT, naxes[0], area.h, rx);
+			}
+			float distf = (float)args->feather_dist;
+			float invdistf = 1.f / distf;
+			size_t block_nb_pix = my_block->height * naxes[0];
+			// we normalize and apply the ramping function for all values above 0.
+			for (size_t i = 0; i < block_nb_pix; i++) {
+				if (data->mask[frame][i]) {
+					data->mask[frame][i] = (data->mask[frame][i] > distf) ? 1.f : get_ramped_value(data->mask[frame][i] * invdistf);
+				}
 			}
 		}
 	}
@@ -595,7 +640,7 @@ int check_G_values(float Gs, float Gc) {
 	return (Gs > Gc);
 }
 
-void confirm_outliers(struct outliers *out, int N, double median, int *rejected, int rej[2]) {
+void confirm_outliers(struct ESD_outliers *out, int N, double median, int *rejected, int rej[2]) {
 	int i = N - 1;
 
 	while (i > 1 && !out[i].out) {
@@ -638,7 +683,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 	/* Preventing problems
 	   0: should not happen but just in case.
 	   1 or 2: no need to reject */
-	if (kept <= 2) {
+	if (kept <= 1) {
 		return kept;
 	}
 	removed = N - kept;
@@ -819,7 +864,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				return kept;
 			}
 			max_outliers -= removed;
-			struct outliers *out = malloc(max_outliers * sizeof(struct outliers));
+			struct ESD_outliers *out = malloc(max_outliers * sizeof(struct ESD_outliers));
 
 			memcpy(w_stack, stack, N * sizeof(WORD));
 			memset(rejected, 0, N * sizeof(int));
@@ -857,15 +902,18 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 static double mean_and_reject(struct stacking_args *args, struct _data_block *data,
 		int stack_size, data_type itype, int rej[2]) {
 	double mean;
-
+	gboolean masking = (args->feather_dist > 0);
+	gboolean weighting = args->weighting_type > NO_WEIGHT;
 	int layer = data->layer;
 	if (itype == DATA_USHORT) {
 		int kept_pixels = apply_rejection_ushort(data, stack_size, args, rej);
 		if (kept_pixels == 0)
 			mean = quickmedian(data->stack, stack_size);
 		else {
-			if (args->apply_noise_weights || args->apply_nbstack_weights || args->apply_wfwhm_weights || args->apply_nbstars_weights) {
-				double *pweights = args->weights + layer * stack_size;
+			if (weighting || masking) {
+				double *pweights =  NULL;
+				if (weighting)
+					pweights = args->weights + layer * stack_size;
 				/* min and max computed here instead of rejection step to avoid dealing
 				 * with too many particular cases. For rejection, the original stack
 				 * (o_stack) is used to keep the weight order, stack being sorted, we can
@@ -883,14 +931,29 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				for (int frame = 0; frame < stack_size; ++frame) {
 					WORD val = ((WORD*)data->o_stack)[frame];
 					if (val >= pmin && val <= pmax && val > 0) {
-						sum += (float)val * pweights[frame];
-						norm += pweights[frame];
+						if (masking && weighting) {
+							sum += (double)val * pweights[frame] * data->mstack[frame];
+							norm += pweights[frame] * data->mstack[frame];
+						} else if (weighting) {
+							sum += (double)val * pweights[frame];
+							norm += pweights[frame];
+						} else {
+							sum += (double)val * data->mstack[frame];
+							norm += data->mstack[frame];
+						}
 					}
 				}
-				if (norm <= 1.e-2) { // if norm is 0, sum is 0 too
-					// if the kept pixel has a weight of 0, bad luck, still take it,
-					// that will not look good, but it's better than a black pixel
-					mean = ((WORD*)data->stack)[0];
+				if (norm == 0) { // if norm is 0, sum is 0 too
+					//we replaced by the sum without weighting
+					// That will not look good, but it's better than a black pixel
+					sum = 0.;
+					for (int frame = 0; frame < stack_size; ++frame) {
+						WORD val = ((WORD*)data->o_stack)[frame];
+						if (val >= pmin && val <= pmax && val > 0) {
+							sum += (double)val;
+						}
+					}
+					mean = sum / (double)kept_pixels;
 				}
 				else mean = sum / norm;
 			} else {
@@ -906,9 +969,9 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		if (kept_pixels == 0)
 			mean = quickmedian_float(data->stack, stack_size);
 		else {
-			if (args->apply_noise_weights || args->apply_nbstack_weights || args->apply_wfwhm_weights || args->apply_nbstars_weights) {
+			if (weighting || masking) {
 				double *pweights = args->weights + layer * stack_size;
-				float pmin = 10000.0, pmax = -10000.0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
+				float pmin = FLT_MAX, pmax = -FLT_MAX; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
 					if (pmin > ((float*)data->stack)[frame]) pmin = ((float*)data->stack)[frame];
 					if (pmax < ((float*)data->stack)[frame]) pmax = ((float*)data->stack)[frame];
@@ -919,13 +982,30 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				for (int frame = 0; frame < stack_size; ++frame) {
 					float val = ((float*)data->o_stack)[frame];
 					if (val >= pmin && val <= pmax && val != 0.f) {
-						sum += val * pweights[frame];
-						norm += pweights[frame];
+						if (masking && weighting) {
+							sum += val * pweights[frame] * data->mstack[frame];
+							norm += pweights[frame] * data->mstack[frame];
+						} else if (weighting) {
+							sum += val * pweights[frame];
+							norm += pweights[frame];
+						} else {
+							sum += val * data->mstack[frame];
+							norm += data->mstack[frame];
+						}
 					}
 				}
-				if (norm == 0.0)
+				if (norm == 0) { // if norm is 0, sum is 0 too
+					//we replaced by the sum without weighting
+					// That will not look good, but it's better than a black pixel
+					sum = 0.;
+					for (int frame = 0; frame < stack_size; ++frame) {
+						float val = ((float*)data->o_stack)[frame];
+						if (val >= pmin && val <= pmax && val > 0) {
+							sum += (double)val;
+						}
+					}
 					mean = sum / (double)kept_pixels;
-				else mean = sum / norm;
+				} else mean = sum / norm;
 			} else {
 				double sum = 0.0;
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -1067,10 +1147,11 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 
 /* How many rows fit in memory, based on image size, number and available memory.
  * It returns at most the total number of rows of the image (naxes[1] * naxes[2]) */
-static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack, int nb_rejmaps) {
+static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack, int nb_rejmaps, gboolean masking) {
 	int max_memory = get_max_memory_in_MB();
 	long total_nb_rows = naxes[1] * naxes[2];
 	int elem_size = type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	int mask_elem_size = (masking) ? sizeof(float) : 0;
 
 	guint64 size_of_result = naxes[0] * naxes[1] * naxes[2] * elem_size;
 	guint64 size_of_rejmaps = naxes[0] * naxes[1] * naxes[2] * sizeof(WORD);
@@ -1080,8 +1161,10 @@ static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_i
 		max_memory = 0;
 
 	siril_log_message(_("Using %d MB memory maximum for stacking\n"), max_memory);
+	// for each datablock, we store the pixel values
+	// if masking, we also need to store all the masks in float + 1 mask in 32b to conpute the smoothing (this mask is freed for every frame)
 	guint64 number_of_rows = (guint64)max_memory * BYTES_IN_A_MB /
-		((guint64)naxes[0] * nb_images_to_stack * elem_size);
+		(nb_images_to_stack * naxes[0] * (elem_size + mask_elem_size) + (masking) * naxes[0] * sizeof(float));
 	// this is how many rows we can load in parallel from all images of the
 	// sequence and be under the limit defined in config in megabytes.
 	if (total_nb_rows < number_of_rows)
@@ -1099,6 +1182,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	// data for mean/rej only
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
+
+	gboolean masking = (args->feather_dist > 0);
+	if (masking)
+		init_ramp(); // we cache the values of the masks ramping function
 
 	int nb_frames = args->nb_images_to_stack; // number of frames actually used
 	naxes[0] = naxes[1] = 0; naxes[2] = 1;
@@ -1168,6 +1255,11 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		}
 	}
 
+	/* prepare the downscaled 8b masks if masking is allowed */
+	if (masking && (retval = compute_masks(args))) {
+		goto free_and_close;
+	}
+
 	/* manage threads */
 	int nb_threads;
 #ifdef _OPENMP
@@ -1203,7 +1295,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			nb_rejmaps = 1;
 		else nb_rejmaps = 2;
 	}
-	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack, nb_rejmaps);
+	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack, nb_rejmaps, masking);
 	/* Compute parallel processing data: the data blocks, later distributed to threads */
 	if ((retval = stack_compute_parallel_blocks(&blocks, max_number_of_rows, naxes, nb_threads,
 					&largest_block_height, &nb_blocks))) {
@@ -1221,11 +1313,16 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	size_t npixels_in_block = largest_block_height * naxes[0];
 	g_assert(npixels_in_block > 0);
 	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	int ielem_mask_size = (masking) ? sizeof(float) : 0;
 
 	fprintf(stdout, "allocating data for %d threads (each %lu MB)\n", pool_size,
 			(unsigned long)(nb_frames * npixels_in_block * ielem_size) / BYTES_IN_A_MB);
 	data_pool = calloc(pool_size, sizeof(struct _data_block));
 	size_t bufferSize = ielem_size * nb_frames * (npixels_in_block + 1ul) + 4ul; // buffer for tmp and stack, added 4 byte for alignment
+	// the +1ul pixel is for storing the current pixel stack
+	if (masking)
+		bufferSize += ielem_mask_size * nb_frames * (npixels_in_block + 1ul) + 4ul; // buffer for masks and mask stack, added 4 byte for alignment
+		// the +1ul pixel is for storing the current mask stack
 	if (is_mean) {
 		bufferSize += nb_frames * sizeof(int); // for rejected
 		bufferSize += ielem_size * nb_frames; // for o_stack
@@ -1240,8 +1337,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 	for (i = 0; i < pool_size; i++) {
 		data_pool[i].pix = malloc(nb_frames * sizeof(void *));
+		if (masking)
+			data_pool[i].mask = malloc(nb_frames * sizeof(float *));
 		data_pool[i].tmp = malloc(bufferSize);
-		if (!data_pool[i].pix || !data_pool[i].tmp) {
+		if (!data_pool[i].pix || !data_pool[i].tmp || (masking && !data_pool[i].mask)) {
 			PRINT_ALLOC_ERR;
 			gchar *available = g_format_size_full(get_available_memory(), G_FORMAT_SIZE_IEC_UNITS);
 			fprintf(stderr, "Cannot allocate %zu (free memory: %s)\n", bufferSize / BYTES_IN_A_MB, available);
@@ -1251,14 +1350,24 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			retval = ST_ALLOC_ERROR;
 			goto free_and_close;
 		}
-		data_pool[i].stack = (void*) ((char*) data_pool[i].tmp
+		data_pool[i].stack = (void *)((char *)data_pool[i].tmp
 				+ nb_frames * npixels_in_block * ielem_size);
-		if (is_mean) {
-			size_t offset = (size_t)ielem_size * nb_frames * (npixels_in_block + 1);
-			int temp = offset % sizeof(int);
+		size_t stack_offset = (size_t)ielem_size * nb_frames * (npixels_in_block + 1);
+		int temp = stack_offset % sizeof(int);
+		if (temp > 0) { // align buffer
+			stack_offset += sizeof(int) - temp;
+		}
+		size_t mask_offset = 0;
+		if (masking) {
+			data_pool[i].mstack = (float *)((char *)data_pool[i].tmp + stack_offset + ielem_mask_size * nb_frames * npixels_in_block); // mast stack is stored after the masks
+			mask_offset = (size_t)ielem_mask_size * nb_frames * (npixels_in_block + 1);
+			temp = mask_offset % sizeof(int);
 			if (temp > 0) { // align buffer
-				offset += sizeof(int) - temp;
+				mask_offset += sizeof(int) - temp;
 			}
+		}
+		if (is_mean) {
+			size_t offset = stack_offset + mask_offset;
 			data_pool[i].rejected = (int*)((char*)data_pool[i].tmp + offset);
 			data_pool[i].o_stack = (void*)((char*)data_pool[i].rejected + sizeof(int) * nb_frames);
 
@@ -1293,7 +1402,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		for (int j = 0; j < nb_frames; ++j) {
 			if (itype == DATA_FLOAT)
 				data_pool[i].pix[j] = ((float*)data_pool[i].tmp) + j * npixels_in_block;
-			else 	data_pool[i].pix[j] = ((WORD *)data_pool[i].tmp) + j * npixels_in_block;
+			else 
+				data_pool[i].pix[j] = ((WORD *)data_pool[i].tmp) + j * npixels_in_block;
+			if (masking)
+				data_pool[i].mask[j] = (float *)((char*)data_pool[i].tmp + stack_offset + j * npixels_in_block * ielem_mask_size);
 		}
 	}
 
@@ -1301,33 +1413,30 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		args->sd_calculator = nb_frames < 65536 ? siril_stats_ushort_sd_32 : siril_stats_ushort_sd_64;
 		args->mad_calculator = siril_stats_ushort_mad;
 	}
-
-	if (args->apply_noise_weights) {
-		siril_log_message(_("Computing weights based on noise...\n"));
-		retval = compute_noise_weights(args);
-		if (retval) {
-			retval = ST_GENERIC_ERROR;
-			goto free_and_close;
-		}
+	switch (args->weighting_type) {
+		default:
+		case NO_WEIGHT:
+			retval = ST_OK;
+			break;
+		case NOISE_WEIGHT:
+			siril_log_message(_("Computing weights based on noise...\n"));
+			retval = compute_noise_weights(args);
+			break;
+		case WFWHM_WEIGHT:
+			siril_log_message(_("Computing weights based on wFWHM...\n"));
+			retval = compute_wfwhm_weights(args);
+			break;
+		case NBSTARS_WEIGHT:
+			siril_log_message(_("Computing weights based on number of stars...\n"));
+			retval = compute_nbstars_weights(args);
+			break;
+		case NBSTACK_WEIGHT:
+			siril_log_message(_("Computing weights based on number of stacked images...\n"));
+			break;
 	}
-	if (args->apply_wfwhm_weights) {
-		siril_log_message(_("Computing weights based on wFWHM...\n"));
-		retval = compute_wfwhm_weights(args);
-		if (retval) {
-			retval = ST_GENERIC_ERROR;
-			goto free_and_close;
-		}
-	}
-	if (args->apply_nbstars_weights) {
-		siril_log_message(_("Computing weights based on number of stars...\n"));
-		retval = compute_nbstars_weights(args);
-		if (retval) {
-			retval = ST_GENERIC_ERROR;
-			goto free_and_close;
-		}
-	}
-	if (args->apply_nbstack_weights) {
-		siril_log_message(_("Computing weights based on number of stacked images...\n"));
+	if (retval) {
+		retval = ST_GENERIC_ERROR;
+		goto free_and_close;
 	}
 
 	siril_log_message(_("Starting stacking...\n"));
@@ -1342,7 +1451,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	for (i = 0; i < nb_blocks; i++)
 	{
 		/**** Step 1: get allocated memory for the current thread ****/
-		struct _image_block *my_block = blocks+i;
+		struct _image_block *my_block = blocks + i;
 		struct _data_block *data;
 		int data_idx = 0;
 		guint64 brej[2] = {0, 0}; // rejection counts for the block
@@ -1465,12 +1574,15 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 							// multiplicative + scale (offset[frame] = 0)
 							if (itype == DATA_FLOAT) {
 								tmp = fpixel * args->coeff.pscale[layer][frame];
-								((float*)data->stack)[frame] = (float)(tmp * args->coeff.pmul[layer][frame]);
+								((float *)data->stack)[frame] = (float)(tmp * args->coeff.pmul[layer][frame]);
 							} else {
 								tmp = (double)pixel * args->coeff.pscale[layer][frame];
 								((WORD *)data->stack)[frame] = round_to_WORD(tmp * args->coeff.pmul[layer][frame]);
 							}
 							break;
+					}
+					if (masking) {
+						data->mstack[frame] = data->mask[frame][pix_idx];
 					}
 				}
 

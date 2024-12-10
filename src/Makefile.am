@@ -344,6 +344,8 @@ siril_common_SOURCES = \
 	gui/siril-window.c \
 	gui/siril-window.h \
 	gui/split_cfa.c \
+	gui/stacking.c \
+	gui/stacking.h \
 	gui/star_finder.c \
 	gui/starnetgui.c \
 	gui/starnetgui.h \
@@ -422,6 +424,8 @@ siril_common_SOURCES = \
 	registration/registration.c \
 	registration/registration.h \
 	registration/shift_methods.c \
+	stacking/blending.c \
+	stacking/blending.h \
 	stacking/median_and_mean.c \
 	stacking/rejection_float.c \
 	stacking/normalization.c \

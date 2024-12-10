@@ -583,6 +583,37 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	return Mat_to_image(image, &in, &out, bgr, width, height);
 }
 
+void cvDownscaleBlendMask(int rx, int ry, int out_rx, int out_ry, uint8_t *maskin, float *maskout) {
+	Mat _maskin = Mat(ry, rx, CV_8U, maskin);
+	Mat _maskindown = Mat(out_ry + 2, out_rx + 2, CV_8U, Scalar(0));
+	Mat _maskoutdown32 = Mat(out_ry + 2, out_rx + 2, CV_32F, Scalar(0.));
+	Mat _maskout = Mat(out_ry, out_rx, CV_32F, maskout);
+	int morph_size = 3;
+	// first we dilate and erode to make sure we fill holes left by drizzling if any
+	Mat element = getStructuringElement(MORPH_RECT,
+			Size(2 * morph_size + 1, 2 * morph_size + 1),
+			Point(morph_size, morph_size));
+  	dilate(_maskin, _maskin, element);
+	erode(_maskin, _maskin, element);
+	// we leave a border of one pixel black to make sure the distance transform
+	// will later count distance from this border (if the initial mask was entirely white for instance)
+	// we get a handle to the inner part of the maskout (without the border)
+	Mat _maskindownroi = _maskindown(Rect(1, 1, out_rx, out_ry));
+	// we resize
+	resize(_maskin, _maskindownroi, _maskindownroi.size(), 0, 0, INTER_LINEAR);
+	// we compute the distances, it returns a 32b array
+	distanceTransform(_maskindown, _maskoutdown32, DIST_L2, 3, CV_32F);
+	Mat _maskoutdownroi = _maskoutdown32(Rect(1, 1, out_rx, out_ry));
+	_maskoutdownroi.copyTo(_maskout);
+}
+
+void cvUpscaleBlendMask(int rx, int ry, int out_rx, int out_ry, float *maskin, float *maskout) {
+	Mat _maskin = Mat(ry, rx, CV_32F, maskin);
+	Mat _maskout = Mat(out_ry, out_rx, CV_32F, maskout);
+	resize(_maskin, _maskout, _maskout.size(), 0, 0, INTER_LINEAR);
+	flip(_maskout, _maskout, 0);  // don't know why we need to flip but does not work without
+}
+
 
 
 int cvUnsharpFilter(fits* image, double sigma, double amount) {
@@ -1163,103 +1194,3 @@ void cvcalcH_fromKKR(Homography *Kref, Homography *K, Homography *R, Homography 
 	convert_MatH_to_H(std::move(_H), H);
 }
 
-// TODO: Code below should be moved to a dedicated cvastrometric.cpp file
-
-int cvWarp_fromKR(fits *image, framing_roi *roi_in, Homography K, Homography R, float scale, int interpolation, gboolean clamp, disto_data *disto, framing_roi *roi_out) {
-	Mat in, out;
-	void *bgr = NULL;
-
-	Mat _R = Mat(3, 3, CV_64FC1);
-	Mat _K = Mat(3, 3,CV_64FC1);
-	convert_H_to_MatH(&R, _R);
-	convert_H_to_MatH(&K, _K);
-
-	Point corners;
-	Size sizes;
-	// UMat masks;
-	Mat_<float> k, r;
-	_K.convertTo(k, CV_32F);
-	_R.convertTo(r, CV_32F);
-	Size szin;
-	if (!image)
-		szin = Size(roi_in->w, roi_in->h);
-	else
-		szin = Size(image->rx, image->ry);
-
-	Ptr<WarperCreator> warper_creator = makePtr<PlaneWarper>();
-
-	if (!warper_creator) {
-		std::cout << "Can't create the warper" << "'\n";
-		return 1;
-	}
-
-	Ptr<detail::RotationWarper> warper = warper_creator->create(static_cast<float>(scale));
-	Rect roi = warper->warpRoi(szin, k, r);
-	corners = roi.tl();
-	sizes = roi.size();
-	if (roi_out)
-		*roi_out = (framing_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
-
-	// in case we just want to assess final size, we skip warping the image
-	// we just pass a NULL image
-	if (image) {
-		int out_w = sizes.width;
-		int out_h = sizes.height;
-		if (roi_in) { // if we don't pass roi_in, we're in max mode, the output size is just the warped image
-			out_w = roi_in->w;
-			out_h = roi_in->h;
-		}
-		if (image_to_Mat(image, &in, &out, &bgr, out_w, out_h))
-			return 2;
-		Mat uxmap, uymap;
-		warper->buildMaps(szin, k, r, uxmap, uymap);
-		// if (disto && disto->dtype != DISTO_NONE) {
-		// 	if (disto->dtype == DISTO_MAP_D2S) {
-		// 		map_undistortion_map_2_D2S(disto, szin.width, szin.height, uxmap, uymap);
-		// 	} else {
-		// 		map_undistortion_D2S(disto, roi.width, roi.height, uxmap, uymap);
-		// 	}
-		// }
-		Mat aux;
-		if (roi_in) {
-			init_guide(image, sizes.width, sizes.height, &aux);
-			remap(in, aux, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
-		} else {
-			remap(in, out, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
-		}
-		if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
-			Mat guide, tmp1;
-			init_guide(image, sizes.width, sizes.height, &guide);
-			// Create guide image
-			remap(in, guide, uxmap, uymap, OPENCV_AREA, BORDER_TRANSPARENT);
-			Mat element = getStructuringElement(MORPH_ELLIPSE, Size(3, 3), Point(1,1));
-			if (roi_in) {
-				tmp1 = (aux < CLAMPING_FACTOR * guide);
-				dilate(tmp1, tmp1, element);
-				copyTo(guide, aux, tmp1); // Guide copied to the clamped pixels
-			} else {
-				tmp1 = (out < CLAMPING_FACTOR * guide);
-				dilate(tmp1, tmp1, element);
-				copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
-			}
-			guide.release();
-			tmp1.release();
-		}
-		if (roi_in) {
-			Rect inr = Rect(roi_in->x, roi_in->y, roi_in->w, roi_in->h);
-			Rect outr = inr & roi;
-			int xoffset = roi.tl().x - roi_in->x;
-			int yoffset = roi.tl().y - roi_in->y;
-			int xi = (xoffset < 0) ? -xoffset : 0;
-			int xo = (xoffset < 0) ? 0 : xoffset;
-			int yi = (yoffset < 0) ? -yoffset : 0;
-			int yo = (yoffset < 0) ? 0 : yoffset;
-			// std::cout << xi << " " << yi << "\n" << xo << " " << yo << "\n";
-			Mat roiin = aux(Rect(xi, yi, outr.size().width, outr.size().height));
-			Mat roiout = out(Rect(xo, yo, outr.size().width, outr.size().height));
-			roiin.copyTo(roiout);
-		}
-		return Mat_to_image(image, &in, &out, bgr, out_w, out_h);
-	}
-	return 0;
-}

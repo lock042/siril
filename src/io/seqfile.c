@@ -41,6 +41,7 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "registration/registration.h"
+#include "stacking/stacking.h"
 #ifdef HAVE_FFMS2
 #include "io/films.h"
 #endif
@@ -52,7 +53,11 @@
  * version 3 introduced new weighted fwhm criteria, 0.99.0
  * version 4 introduced variable size sequences, extended registration data (incl. H), 1.1.0
  * version 5:
- * 	- removed upscale at stacking (U card)
+ * 	- removed upscale at stacking (U card) 1.3.4
+ *  - added D* cards containing distortion and astrometry information 1.3.4  - see enum disto_source
+ *  - added overlap statistics in the O* cards:
+ *  	=> ON i j areai.x areai.y areaj.x areaj.y areai.w areai.h Nij medij medji madij madji locij locji scaij scji
+ * 		=> with N the layer number and i,j the ith and jth images of the sequence
  */
 #define CURRENT_SEQFILE_VERSION 5	// to increment on format change
 
@@ -576,6 +581,44 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 				break;
+			case 'O':
+				current_layer = line[1] - '0';
+				if (!seq->ostats) {
+					seq->ostats = alloc_ostats(seq->nb_layers, seq->number);
+					if (!seq->ostats) {
+						PRINT_ALLOC_ERR;
+						goto error;
+					}
+				}
+				overlap_stats_t ostat = { 0 };
+				nb_tokens = sscanf(line + 3,
+					"%d %d %d %d %d %d %d %d %zu %g %g %g %g %g %g %g %g",
+					&(ostat.i),
+					&(ostat.j),
+					&(ostat.areai.x),
+					&(ostat.areai.y),
+					&(ostat.areaj.x),
+					&(ostat.areaj.y),
+					&(ostat.areai.w),
+					&(ostat.areai.h),
+					&(ostat.Nij),
+					&(ostat.medij),
+					&(ostat.medji),
+					&(ostat.madij),
+					&(ostat.madji),
+					&(ostat.locij),
+					&(ostat.locji),
+					&(ostat.scaij),
+					&(ostat.scaji));
+				if (nb_tokens != 17) {
+					fprintf(stderr, "readseqfile: sequence file format error: %s\n",line);
+					goto error;
+				}
+				ostat.areaj.w = ostat.areai.w;
+				ostat.areaj.h = ostat.areai.h;
+				int ijth = get_ijth_pair_index(seq->number, ostat.i, ostat.j);
+				seq->ostats[current_layer][ijth] = ostat;
+				break;
 		}
 	}
 	if (!allocated) {
@@ -654,7 +697,7 @@ int writeseqfile(sequence *seq){
 
 	fprintf(seqfile, "L %d\n", seq->nb_layers);
 
-	for(i=0; i < seq->number; ++i){
+	for(i = 0; i < seq->number; ++i){
 		if (seq->is_variable) {
 			fprintf(seqfile,"I %d %d %d,%d\n",
 					seq->imgparam[i].filenum,
@@ -717,7 +760,7 @@ int writeseqfile(sequence *seq){
 			}
 		}
 		if (seq->stats && seq->stats[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			for (i = 0; i < seq->number; ++i) {
 				if (!seq->stats[layer][i]) continue;
 
 				fprintf(seqfile, "M%c-%d %ld %ld %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg\n",
@@ -742,7 +785,7 @@ int writeseqfile(sequence *seq){
 	}
 	for (layer = 0; layer < 3; layer++) {
 		if (seq->regparam_bkp && seq->regparam_bkp[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			for (i = 0; i < seq->number; ++i) {
 				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '0' + layer : '*',
 						seq->regparam_bkp[layer][i].fwhm,
@@ -764,7 +807,7 @@ int writeseqfile(sequence *seq){
 			}
 		}
 		if (seq->stats_bkp && seq->stats_bkp[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			for (i = 0; i < seq->number; ++i) {
 				if (!seq->stats_bkp[layer][i]) continue;
 
 				fprintf(seqfile, "M%c-%d %ld %ld %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg\n",
@@ -783,6 +826,34 @@ int writeseqfile(sequence *seq){
 						seq->stats_bkp[layer][i]->max,
 						seq->stats_bkp[layer][i]->normValue,
 						seq->stats_bkp[layer][i]->bgnoise);
+			}
+		}
+	}
+	if (seq->ostats) {
+		for (layer = 0; layer < seq->nb_layers; layer++) {
+			int Npairs = seq->number * (seq->number - 1) / 2;
+			for (i = 0; i < Npairs; i++) {
+				if (seq->ostats[layer][i].i == -1)
+					continue;
+				fprintf(seqfile, "O%d %d %d %d %d %d %d %d %d %zu %g %g %g %g %g %g %g %g\n",
+					layer,
+					seq->ostats[layer][i].i,
+					seq->ostats[layer][i].j,
+					seq->ostats[layer][i].areai.x,
+					seq->ostats[layer][i].areai.y,
+					seq->ostats[layer][i].areaj.x,
+					seq->ostats[layer][i].areaj.y,
+					seq->ostats[layer][i].areai.w,
+					seq->ostats[layer][i].areai.h,
+					seq->ostats[layer][i].Nij,
+					seq->ostats[layer][i].medij,
+					seq->ostats[layer][i].medji,
+					seq->ostats[layer][i].madij,
+					seq->ostats[layer][i].madji,
+					seq->ostats[layer][i].locij,
+					seq->ostats[layer][i].locji,
+					seq->ostats[layer][i].scaij,
+					seq->ostats[layer][i].scaji);
 			}
 		}
 	}

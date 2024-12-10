@@ -36,6 +36,7 @@
 #include "gui/PSF_list.h"
 #include "gui/registration.h"
 #include "gui/sequence_list.h"
+#include "gui/stacking.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
