@@ -275,15 +275,14 @@ gboolean populate_graxpert_ai_combos(gpointer user_data) {
 	return FALSE;
 }
 
-static void set_widgets() {
-	graxpert_operation operation = (graxpert_operation) gtk_notebook_get_current_page(notebook_graxpert_operation);
+static void set_widgets(gint page_num) {
+	graxpert_operation operation = (graxpert_operation) page_num;
 	graxpert_bg_algo algorithm = gtk_combo_box_get_active(combo_graxpert_algorithm);
 	gtk_widget_set_visible(graxpert_ai_settings, algorithm == GRAXPERT_BG_AI || operation == GRAXPERT_DENOISE || operation == GRAXPERT_DECONV || operation == GRAXPERT_DECONV_STELLAR);
 	gtk_widget_set_visible(graxpert_classical_settings, algorithm != GRAXPERT_BG_AI);
 	gtk_widget_set_visible(graxpert_samples_controls, algorithm != GRAXPERT_BG_AI);
 	gtk_widget_set_visible(graxpert_rbf_settings, algorithm == GRAXPERT_BG_RBF ||  algorithm == GRAXPERT_BG_KRIGING);
 	gtk_widget_set_visible(graxpert_spline_settings, algorithm == GRAXPERT_BG_SPLINE);
-	is_bg = (operation == GRAXPERT_BG);
 	gtk_widget_set_visible(GTK_WIDGET(button_graxpert_roipreview), (!is_bg && gui.roi.active));
 	configure_graxpert_dialog_for_roi();
 	redraw(REDRAW_OVERLAY);
@@ -292,7 +291,8 @@ static void set_widgets() {
 void on_graxpert_dialog_show(GtkWidget *widget, gpointer user_data) {
 	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
 	initialize_graxpert_widgets_if_needed(GINT_TO_POINTER(0));
-	set_widgets();
+	gint page_num = gtk_notebook_get_current_page(notebook_graxpert_operation);
+	set_widgets(page_num);
 	confirm_availability((guint) GRAXPERT_BG);
 	clear_backup();
 }
@@ -309,6 +309,7 @@ void on_graxpert_dialog_hide(GtkWidget *widget, gpointer user_data) {
 };
 
 void on_notebook_graxpert_operation_switch_page(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer user_data) {
+	is_bg = (page_num == GRAXPERT_BG);
 	gboolean user_cancelled = FALSE;
 	if ((com.child_is_running == EXT_NONE) || (com.child_is_running == EXT_GRAXPERT &&
 		(user_cancelled = siril_confirm_dialog(_("Warning!"), _("GraXpert is running. Changing the GraXpert operation will cancel the current GraXpert process. Proceed?"), _("Yes"))))) {
@@ -317,12 +318,13 @@ void on_notebook_graxpert_operation_switch_page(GtkNotebook *notebook, GtkWidget
 			siril_log_color_message(_("GraXpert operation cancelled by user\n"), "red");
 		}
 	}
-	set_widgets();
+	set_widgets(page_num);
 	confirm_availability(page_num);
 }
 
 void on_combo_graxpert_algorithm_changed(GtkComboBox *combo, gpointer user_data) {
-	set_widgets();
+	gint page_num = gtk_notebook_get_current_page(notebook_graxpert_operation);
+	set_widgets(page_num);
 }
 
 void on_button_graxpert_apply_clicked(GtkButton *button, gpointer user_data) {
@@ -363,5 +365,6 @@ void on_graxpert_deconv_switch_state_set(GtkSwitch *widget, gboolean state, gpoi
 	gtk_label_set_text((GtkLabel *) user_data, state ? _("Stellar") : _("Objects"));
 	gtk_widget_set_visible(ai_model_settings_deconv, !state);
 	gtk_widget_set_visible(ai_model_settings_deconv_stellar, state);
-	set_widgets();
+	gint page_num = gtk_notebook_get_current_page(notebook_graxpert_operation);
+	set_widgets(page_num);
 }
