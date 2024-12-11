@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-05 21:50+0000\n"
+"PO-Revision-Date: 2024-12-11 08:47+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -10737,33 +10737,32 @@ msgstr "Rejet des pixels :"
 
 #: src/gui/uifiles/siril.ui:8589
 msgid "Borders feathering [pix]:"
-msgstr ""
+msgstr "Chevauchement des contours [px] :"
 
 #: src/gui/uifiles/siril.ui:8600
 msgid ""
 "Select here the number of pixels that will be faded out on the borders of "
 "each image."
 msgstr ""
+"Sélectionnez ici le nombre de pixels qui seront estompés sur les bords de "
+"chaque image."
 
 #: src/gui/uifiles/siril.ui:8632
-#, fuzzy
 msgid "Normalization on overlaps"
-msgstr "Temps de calcul de la normalisation"
+msgstr "Normalisation des chevauchements"
 
 #: src/gui/uifiles/siril.ui:8636
-#, fuzzy
 msgid ""
 "By default, Siril computes the normalisation coefficients from each image. "
 "Ticking this box computes them on overlapping regions instead."
 msgstr ""
-"Par défaut, Siril prend les coefficients de normalisation à partir du "
-"fichier seq s'ils ont déjà été calculés. Cependant vous pouvez forcer Siril "
-"à les recalculer avant l'empilement."
+"Par défaut, Siril calcule les coefficients de normalisation sur chaque "
+"image. En cochant cette case, les coefficients de normalisation sont "
+"calculés sur les régions qui se chevauchent."
 
 #: src/gui/uifiles/siril.ui:8655
-#, fuzzy
 msgid "Stack stitching:"
-msgstr "Empiler les meilleures :"
+msgstr "Assemblage d'empilements :"
 
 #: src/gui/uifiles/siril.ui:8691
 msgid "Stacking 0 images of the 0 of the sequence"
@@ -10782,7 +10781,6 @@ msgid "Output Normalisation"
 msgstr "Normalisation en sortie"
 
 #: src/gui/uifiles/siril.ui:9161
-#, fuzzy
 msgid ""
 "If you check this button, the final image will be normalized in the [0, 1] "
 "range if you work in 32-bit format precision, or clipped in [0, 65535] "
@@ -10791,10 +10789,12 @@ msgid ""
 "\n"
 "WARNING: This option should not be checked for master stacking."
 msgstr ""
-"Si vous cochez ce bouton, l'image finale sera normalisée dans la plage [0, "
-"1] si vous travaillez en précision 32 bits, ou dans [0, 65535] sinon.\n"
+"Si vous cochez ce bouton, l'image finale sera normalisée dans la plage [0, 1]"
+" si vous travaillez au format 32 bits, ou écrêtée dans la plage [0, 65535] "
+"dans le cas contraire. Cela fonctionnera mieux si vous cochez également "
+"l'option Forcer la sortie 32b, car cela évitera l'écrêtage.\n"
 "\n"
-"ATTENTION : cette option ne doit pas être cochée pour l'empilement des "
+"AVERTISSEMENT : Cette option ne doit pas être cochée pour l'empilement de "
 "fichiers maîtres."
 
 #: src/gui/uifiles/siril.ui:9174
@@ -10819,21 +10819,18 @@ msgid "Maximize framing"
 msgstr "Maximiser le cadrage"
 
 #: src/gui/uifiles/siril.ui:9193
-#, fuzzy
 msgid ""
 "If you check this button, the final image size will be enlarged to fit all "
 "the selected frames of the sequence."
 msgstr ""
 "Si vous cochez ce bouton, la taille de l'image finale sera agrandie pour "
-"s'adapter à toutes les images sélectionnées de la séquence.\n"
-"                                                            "
+"s'adapter à toutes les images sélectionnées de la séquence."
 
 #: src/gui/uifiles/siril.ui:9205
 msgid "Interpolation upscaling x2"
 msgstr "Interpolation, mise à l'échelle x2"
 
 #: src/gui/uifiles/siril.ui:9208
-#, fuzzy
 msgid ""
 "If you check this button, the final image size will be upscaled by a factor "
 "of 2. This can be faster than real drizzle images obtained during "
@@ -10841,19 +10838,19 @@ msgid ""
 msgstr ""
 "Si vous cochez ce bouton, la taille de l'image finale sera augmentée d'un "
 "facteur 2. Cela peut être plus rapide que les vraies images drizzle obtenues "
-"lors de l'alignement, mais ne produira pas des images aussi nettes.\n"
-"                                                            "
+"lors de l'alignement, mais ne produira pas des images aussi nettes."
 
 #: src/gui/uifiles/siril.ui:9219
-#, fuzzy
 msgid "Force 32b output"
-msgstr "Sortie 8 bits"
+msgstr "Forcer la sortie en 32b"
 
 #: src/gui/uifiles/siril.ui:9222
 msgid ""
 "If you check this button, the final image bitdepth will be forced to 32b "
 "even if the input images are in 16b."
 msgstr ""
+"Si vous cochez ce bouton, la profondeur de bit de l'image finale sera forcée "
+"à 32b même si les images d'entrée sont en 16b."
 
 #. Must be short
 #: src/gui/uifiles/siril.ui:9252
@@ -16472,23 +16469,21 @@ msgstr ""
 "ou moyenne, ignoré.\n"
 
 #: src/core/command.c:8246
-#, fuzzy
 msgid "Overlap normalization is allowed only with mean stacking, ignoring.\n"
 msgstr ""
-"La normalisation rapide n'est autorisée qu'avec l'empilement moyen, option "
-"ignorée\n"
+"La normalisation des chevauchements n'est autorisée qu'avec l'empilement par "
+"moyenne, paramètre ignoré.\n"
 
 #: src/core/command.c:8252
-#, fuzzy
 msgid "Weighting is allowed only with mean stacking, ignoring.\n"
 msgstr ""
-"La pondération n'est autorisée qu'avec l'empilement par moyenne, option "
-"ignorée.\n"
+"La pondération n'est autorisée qu'en cas d'empilement par moyenne, paramètre "
+"ignoré.\n"
 
 #: src/core/command.c:8264 src/core/command.c:8298
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown argument to %s, aborting.\n"
-msgstr "Argument %s inconnu, abandon.\n"
+msgstr "Argument inconnu pour %s, abandon.\n"
 
 #: src/core/command.c:8270
 msgid "Fast normalization is allowed only with average stacking, ignoring.\n"
@@ -16511,19 +16506,18 @@ msgstr ""
 "sont ignorées.\n"
 
 #: src/core/command.c:8292
-#, fuzzy
 msgid "Blending option is not allowed in this context, ignoring.\n"
 msgstr ""
-"L'option de nom de fichier en sortie n'est pas autorisée dans ce contexte, "
-"elle est ignorée.\n"
+"L'option de mélange n'est pas autorisée dans ce contexte, paramètre ignoré.\n"
 
 #: src/core/command.c:8302
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Blending distance must be between 0 and 2000 pixels, got %d, forcing to "
 "2000.\n"
 msgstr ""
-"Erreur dans le paramètre dia : doit être compris entre 0 et 5000, abandon.\n"
+"La distance de mélange doit être comprise entre 0 et 2000 pixels, obtenu %d, "
+"forcé à 2000.\n"
 
 #: src/core/command.c:8309
 msgid "RGB equalization is allowed only with average stacking, ignoring.\n"
@@ -16624,6 +16618,8 @@ msgstr ""
 msgid ""
 "Cannot compute overlap statistics if -maximize is not enabled. Disabling\n"
 msgstr ""
+"Impossible de calculer les statistiques de chevauchement si l'option -"
+"maximize n'est pas activée. Désactivation\n"
 
 #: src/core/command.c:8432
 msgid ""
@@ -16636,6 +16632,8 @@ msgstr ""
 #, c-format
 msgid "Normalizing on overlaps for more than %d images can be slow\n"
 msgstr ""
+"La normalisation sur les chevauchements pour plus de %d images peut être "
+"lente\n"
 
 #: src/core/command.c:8499
 #, c-format
@@ -21513,7 +21511,6 @@ msgstr ""
 "modifier la magnitude limite, par défaut à 20"
 
 #: src/core/command_def.h:202
-#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -21584,8 +21581,8 @@ msgstr ""
 "Empile la séquence <b>sequencename</b>, en utilisant les options.\n"
 "\n"
 "Type de rejet :\n"
-"Les types autorisés sont : <b>sum</b>, <b>max</b>, <b>min</b>, <b>med</b> "
-"(ou <b>median</b>) et <b>rej</b> (ou <b>mean</b>). Si aucun argument autre "
+"Les types autorisés sont : <b>sum</b>, <b>max</b>, <b>min</b>, <b>med</b> ("
+"ou <b>median</b>) et <b>rej</b> (ou <b>mean</b>). Si aucun argument autre "
 "que le nom de la séquence n'est fourni, l'empilement par somme est supposé.\n"
 "\n"
 "Empilement avec rejet :\n"
@@ -21603,27 +21600,29 @@ msgstr ""
 "\n"
 "Normalisation des images d'entrée :\n"
 "Pour les types d'empilement <b>med</b> (ou <b>median</b>) et <b>rej</b> (ou "
-"<b>mean</b>), différents types de normalisation sont autorisés : <b>-"
-"norm=add</b> pour additif, <b>-norm=mul</b> pour multiplicatif. Les options "
-"<b>-norm=addscale</b> et <b>-norm=mulscale</b> appliquent la même "
-"normalisation mais avec des opérations d'échelle. <b>-nonorm</b> est "
+"<b>mean</b>), différents types de normalisation sont autorisés : "
+"<b>-norm=add</b> pour additif, <b>-norm=mul</b> pour multiplicatif. Les "
+"options <b>-norm=addscale</b> et <b>-norm=mulscale</b> appliquent la même "
+"normalisation, mais avec des opérations d'échelle. <b>-nonorm</b> est "
 "l'option pour désactiver la normalisation. Sinon, la méthode additive avec "
 "échelle est appliquée par défaut.\n"
 "L'option <b>-fastnorm</b> spécifie d'utiliser des estimateurs plus rapides "
 "pour la localisation et l'échelle que l'IKSS par défaut.\n"
-"L'option <b>-rgb_equal</b> utilisera la normalisation pour égaliser les "
-"arrière-plans des images couleur, utile si PCC et AUTOSTRETCH non lié ne "
-"seront pas utilisés.\n"
+"<b>-overlap_norm</b>, si passé, calculera les coefficients de normalisation "
+"sur les zones de chevauchement des images au lieu de le calculer sur "
+"l'ensemble des images (autorisé uniquement si <b>-maximize</b> est passé).\n"
 "\n"
 "Autres options pour l'empilement avec rejet :\n"
-"L'option <b>-weight_from_noise</b> permet d'ajouter des poids plus "
-"importants aux images avec moins de bruit de fond.\n"
-"L'option <b>-weight_from_nbstack</b> pèse les images d'entrée en fonction du "
-"nombre d'images utilisées pour les créer, utile pour l'empilement en "
-"direct.\n"
-"Les options <b>-weight_from_nbstars</b> ou <b>-weight_from_wfwhm</b> pèsent "
-"les images d'entrée en fonction du nombre d'étoiles ou du wFWHM calculé lors "
-"de l'étape d'alignement.\n"
+"Des pondérations peuvent être appliquées aux images de la séquence en "
+"utilisant l'option <b>-weight=</b> suivie de :\n"
+"<b>noise</b> pour ajouter des poids plus élevés aux images avec moins de "
+"bruit de fond.\n"
+"<b>nbstack</b> pour pondérer les images d'entrée en fonction du nombre "
+"d'images utilisées pour les créer, utile pour l'empilement en direct.\n"
+"<b>nbstars</b> ou <b>wfwhm</b> pour pondérer les images d'entrée en fonction "
+"du nombre d'étoiles ou du wFWHM calculé lors de l'étape d'alignement.\n"
+"L'option <b>-feather=</b> appliquera un masque de dégradé sur les bords de "
+"chaque image sur la distance (en pixels) donnée en argument.\n"
 "\n"
 "Sorties :\n"
 "Le nom de l'image résultante peut être défini avec l'option <b>-out=</b>. "
@@ -21632,11 +21631,16 @@ msgstr ""
 "le résultat dans la plage [0, 1] (uniquement pour les empilements médian et "
 "moyen).\n"
 "L'option <b>-maximize</b> utilisera les données d'alignement de la séquence "
-"pour créer une image empilée qui englobe toutes les images de la séquence "
-"(applicable à toutes les méthodes sauf l'empilement médian).\n"
+"pour créer une image empilée qui englobe toutes les images de la séquence ("
+"applicable à toutes les méthodes sauf l'empilement médian).\n"
 "L'option <b>-upscale</b> agrandira la séquence par un facteur 2 avant "
 "l'empilement en utilisant les données d'alignement (applicable à toutes les "
 "méthodes sauf l'empilement médian).\n"
+"<b>-rgb_equal</b> utilisera la normalisation pour égaliser les arrière-plans "
+"des images couleur, utile si PCC/SPCC ou AUTOSTRETCH non lié ne seront pas "
+"utilisés.\n"
+"<b>-32b</b> remplacera la profondeur de bits définie dans les Préférences et "
+"enregistrera l'image empilée en 32 bits.\n"
 "\n"
 "\n"
 "Filtrage des images :\n"
@@ -28457,11 +28461,15 @@ msgid ""
 "subs.\n"
 "If you proceed, execution may be slow"
 msgstr ""
+"Vous avez choisi de calculer la normalisation sur les chevauchements de plus "
+"de %d images.\n"
+"Cette option devrait normalement être utilisée pour assembler des mosaïques "
+"empilées, et non des images individuelles.\n"
+"Si vous continuez, l'exécution peut être lente"
 
 #: src/gui/stacking.c:184
-#, fuzzy
 msgid "Large number of images"
-msgstr "Nombre d'image"
+msgstr "Grand nombre d'images"
 
 #: src/gui/stacking.c:196
 msgid "Stacking: processing...\n"
@@ -29660,9 +29668,9 @@ msgid "Saving WCS file %s\n"
 msgstr "Enregistrement du fichier WCS %s\n"
 
 #: src/io/image_format_fits.c:3554
-#, fuzzy, c-format
+#, c-format
 msgid "Saving mask file %s\n"
-msgstr "Enregistrement du fichier WCS %s\n"
+msgstr "Enregistrement du fichier de masque %s\n"
 
 #: src/io/local_catalogues.c:157 src/io/local_catalogues.c:190
 msgid "Could not open local NOMAD catalogue\n"
@@ -31715,12 +31723,12 @@ msgstr ""
 #: src/registration/astrometric.c:310
 #, c-format
 msgid "Sequence optimal framing: %.1f\n"
-msgstr ""
+msgstr "Cadrage optimal de la séquence : %.1f\n"
 
 #: src/registration/astrometric.c:312 src/registration/astrometric.c:314
-#, fuzzy, c-format
+#, c-format
 msgid "Sequence framing: %.1f\n"
-msgstr "Séquence : %s\n"
+msgstr "Cadrage de la séquence : %.1f\n"
 
 #: src/registration/astrometric.c:389
 msgid "Astrometric registration computed.\n"
@@ -32110,18 +32118,18 @@ msgstr ""
 
 #. the mask exists and is more recent than the img, we don't need to read again
 #: src/stacking/blending.c:81
-#, fuzzy, c-format
+#, c-format
 msgid "Mask for image %d already exists, skipping\n"
-msgstr "L'image %d a déjà été traitée, sauter\n"
+msgstr "Le masque de l'image %d existe déjà, ignorer\n"
 
 #: src/stacking/blending.c:194
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to save mask for image %d\n"
-msgstr "Échec de l'ouverture de la première image"
+msgstr "Échec de l'enregistrement du masque pour l'image %d\n"
 
 #: src/stacking/blending.c:219
 msgid "Compute feathering masks"
-msgstr ""
+msgstr "Calculer les masques d'estompage"
 
 #: src/stacking/median_and_mean.c:80
 msgid "Opening images for stacking"
@@ -32167,14 +32175,14 @@ msgstr ""
 "nécessaire au traitement.\n"
 
 #: src/stacking/median_and_mean.c:452
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading one of the image areas (%d: %d %d %d %d)\n"
-msgstr "Erreur pendant la lecture d'une zone de l'image\n"
+msgstr "Erreur de lecture d'une des zones de l'image (%d : %d %d %d %d)\n"
 
 #: src/stacking/median_and_mean.c:481
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading one of the masks areas (%d: %d %d %d %d)\n"
-msgstr "Erreur pendant la lecture d'une zone de l'image\n"
+msgstr "Erreur de lecture d'une des zones de masques (%d : %d %d %d %d)\n"
 
 #: src/stacking/median_and_mean.c:1063 src/stacking/median_and_mean.c:1108
 #, c-format
@@ -32350,32 +32358,34 @@ msgid "%s Check image %d first.\n"
 msgstr "%s Vérifier l'image %d.\n"
 
 #: src/stacking/normalization.c:515
-#, fuzzy, c-format
+#, c-format
 msgid "Could not read overlap data between image %d and %d\n"
-msgstr "Impossible de charger l'image partielle %d de la séquence %s\n"
+msgstr ""
+"Impossible de lire les données de chevauchement entre les images %d et %d\n"
 
 #: src/stacking/normalization.c:628
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Your system does not have enough memory to normalize images overlaps for "
 "stacking operation (%d MB free for %d MB required)\n"
 msgstr ""
 "Votre système ne dispose pas de suffisamment de mémoire pour normaliser les "
-"images en vue de l’empilement (%d Mo disponibles pour %d Mo requis)\n"
+"chevauchements d'images pour l'opération d'empilement (%d MB libre pour %d "
+"MB requis).\n"
 
 #: src/stacking/normalization.c:635
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "With the current memory and thread (%d) limits, up to %d thread(s) can be "
 "used for sequence overlaps normalization\n"
 msgstr ""
-"Avec les limites actuelles de la mémoire et du thread (%d), vous pouvez "
-"utiliser jusqu'à %d thread(s) pour la normalisation de la séquence\n"
+"Avec les limites actuelles de mémoire et de fils (%d), jusqu'à %d fils "
+"peuvent être utilisés pour la normalisation des chevauchements de séquences."
+"\n"
 
 #: src/stacking/normalization.c:712
-#, fuzzy
 msgid "Computing normalization on overlaps...\n"
-msgstr "Calcul de la normalisation...\n"
+msgstr "Calcul de la normalisation sur les chevauchements...\n"
 
 #: src/stacking/stacking.c:64
 msgid ""
@@ -32459,12 +32469,12 @@ msgstr " (rapide)"
 
 #: src/stacking/stacking.c:177
 msgid " (overlaps)"
-msgstr ""
+msgstr " (recouvrements)"
 
 #: src/stacking/stacking.c:179
-#, fuzzy, c-format
+#, c-format
 msgid "Input normalization ....... %s%s%s\n"
-msgstr "Normalisation en entrée ... %s%s\n"
+msgstr "Normalisation en entrée ... %s%s%s\n"
 
 #: src/stacking/stacking.c:182
 msgid "Output normalization ...... enabled\n"
@@ -32552,7 +32562,7 @@ msgstr "Pondération ............... désactivée\n"
 #: src/stacking/stacking.c:247
 #, c-format
 msgid "Feathering ................ over %4d pixels\n"
-msgstr ""
+msgstr "Estompage ................ sur %4d pixels\n"
 
 #: src/stacking/stacking.c:251
 msgid "RGB equalization .......... enabled\n"
