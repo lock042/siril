@@ -590,6 +590,13 @@ orient_ccw(struct polygon *p) {
  *
  * @returns 0 - success, 1 - failure (input polygons have less than 3 vertices)
  */
+
+/*
+ * A Siril-specific change was made to this function in Nov 2024 (!1430) to catch
+ * an edge case that occurs when one vertex lies exactly ON the window edge and
+ * the other vertex lies on the opposite side, causing d = 0 even though
+ * v1_inside != v2_inside
+ * */
 int
 clip_polygon_to_window(struct polygon *p, struct polygon *wnd,
                       struct polygon *cp) {
