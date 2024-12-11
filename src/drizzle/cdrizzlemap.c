@@ -734,6 +734,7 @@ init_edge(struct edge *e, struct vertex v1, struct vertex v2, int position) {
     e->v2 = v2;
     e->p = position;  // -1 for left-side edge and +1 for right-side edge
 
+    // The following check was added specifically for Siril in Dec 2024 (see !780)
     // Check for horizontal edge (same y-coordinate)
     if (v1.y == v2.y) {
         e->m = 0.0;  // Horizontal line
