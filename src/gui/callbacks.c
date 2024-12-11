@@ -1891,6 +1891,7 @@ void gtk_main_quit() {
 	kill_child_process(TRUE); // kill running child processes if any
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 	g_slist_free_full(com.pref.gui.script_path, g_free);
+	cleanup_common_profiles(); // close lcms2 data structures
 	exit(EXIT_SUCCESS);
 }
 

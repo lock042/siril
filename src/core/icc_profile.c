@@ -498,6 +498,36 @@ void initialize_profiles_and_transforms() {
 	}
 }
 
+void cleanup_common_profiles() {
+	if (com.icc.mono_linear)
+		cmsCloseProfile(com.icc.mono_linear);
+	if (com.icc.working_standard)
+		cmsCloseProfile(com.icc.working_standard);
+	if (com.icc.mono_standard)
+		cmsCloseProfile(com.icc.mono_standard);
+	if (com.icc.srgb_profile)
+		cmsCloseProfile(com.icc.srgb_profile);
+	if (com.icc.srgb_out)
+		cmsCloseProfile(com.icc.srgb_out);
+	if (com.icc.working_out)
+		cmsCloseProfile(com.icc.working_out);
+	if (com.icc.mono_out)
+		cmsCloseProfile(com.icc.mono_out);
+	if (gui.icc.monitor)
+		cmsCloseProfile(gui.icc.monitor);
+	if (gui.icc.soft_proof)
+		cmsCloseProfile(gui.icc.soft_proof);
+	if (gui.icc.proofing_transform)
+		cmsDeleteTransform(gui.icc.proofing_transform);
+	memset(&gui.icc, 0, sizeof(struct gui_icc));
+	if (com.icc.context_single)
+		cmsDeleteContext(com.icc.context_single);
+	if (com.icc.context_threaded)
+		cmsDeleteContext(com.icc.context_threaded);
+	memset(&com.icc, 0, sizeof(struct common_icc));
+	siril_debug_print("ICC profiles cleaned up\n");
+}
+
 void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
 	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_monitor_profile_active");
