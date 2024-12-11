@@ -6,17 +6,17 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-07-05 07:37+0000\n"
+"PO-Revision-Date: 2024-12-11 07:43+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application/ru/>\n"
+"Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
+"siril/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
@@ -153,7 +153,6 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:275
-#, fuzzy
 msgid "Comparison star: "
 msgstr "Звезда сравнения: "
 
@@ -472,9 +471,8 @@ msgid "Click this button to save the entry to the user DSO catalogue."
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:564
-#, fuzzy
 msgid "Get coordinates from selection"
-msgstr "Ошибка выбора центральной координаты"
+msgstr "Получить координаты из выделения"
 
 #: src/gui/uifiles/annotate_dialog.ui:585
 #, fuzzy
@@ -1045,7 +1043,8 @@ msgstr "Показать/скрыть рамку регистрации"
 #, fuzzy
 msgid "Tick this box to use astrometric data to compute sequence registration."
 msgstr ""
-"Установите этот флажок, чтобы найти решение для всей последовательности."
+"Установите этот флажок, чтобы использовать данные астрометрии для вычисления "
+"регистрации всей последовательности."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1129
 msgid "Skip already solved images"
@@ -1071,9 +1070,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1175
-#, fuzzy
 msgid "Use coordinates from headers"
-msgstr "Используются координаты цели из заголовка изображения: %f, %f\n"
+msgstr "Используются координаты из заголовков"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1179
 msgid ""
@@ -15572,13 +15570,13 @@ msgid "Statistics computation failed for channel %d (all nil?).\n"
 msgstr "Не удалось вычислить статистику для канала %d (всё ноль?).\n"
 
 #: src/core/command.c:6735
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.6f\n"
 msgstr ""
-"Слой %s: среднее: %0.1f, медиана: %0.1f, σ: %0.1f, мин.: %0.1f, макс.: "
-"%0.1f, шум фона: %0.1f\n"
+"Слой %s: среднее: %0.6f, медиана: %0.1f, σ: %0.6f, мин.: %0.1f, макс.: "
+"%0.1f, шум фона: %0.6f\n"
 
 #: src/core/command.c:6740
 #, c-format
