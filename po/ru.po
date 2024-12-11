@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-11 07:43+0000\n"
+"PO-Revision-Date: 2024-12-11 08:47+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -12800,9 +12800,8 @@ msgid "Cannot perform debayering\n"
 msgstr "Не удалось выполнить дебайеризацию.\n"
 
 #: src/algos/demosaicing.c:1357
-#, fuzzy
 msgid "Could not load metadata\n"
-msgstr "Не удалось загрузить файл"
+msgstr "Не удалось загрузить метаданные\n"
 
 #: src/algos/demosaicing.c:1368
 #, c-format
@@ -13749,11 +13748,12 @@ msgstr ""
 "многопотоковости для каналов не поддерживается.\n"
 
 #: src/algos/statistics.c:1211
-#, fuzzy
 msgid ""
 "Error: statistics computation failed. Unable to check for out-of-range "
 "values.\n"
-msgstr "Ошибка: не удалось вычислить статистику.\n"
+msgstr ""
+"Ошибка: не удалось вычислить статистику. Невозможно проверить наличие "
+"значений, выходящих за пределы диапазона.\n"
 
 #: src/algos/statistics_float.c:240
 msgid "MAD is null. Statistics cannot be computed.\n"
@@ -14396,19 +14396,16 @@ msgid "Warning: d > approx. 25 may result in lengthy execution times.\n"
 msgstr ""
 
 #: src/core/command.c:1208
-#, fuzzy
 msgid "-si= value must be > 0.0 and <= 65535\n"
-msgstr "Ошибка: B должна быть >= 0.0 и <= 15.0.\n"
+msgstr "значение -si= должно быть >= 0.0 и <= 65535\n"
 
 #: src/core/command.c:1213
-#, fuzzy
 msgid "-d= value must be > 0.0 and <= 20.0\n"
-msgstr "Ошибка: D должна быть >= 0.0 и <= 10.0.\n"
+msgstr "значение -d= должно быть >= 0.0 и <= 20.0\n"
 
 #: src/core/command.c:1218
-#, fuzzy
 msgid "-ss= value must be > 0.0 and <= 32.0\n"
-msgstr "Ошибка: D должна быть >= 0.0 и <= 10.0.\n"
+msgstr "значение -ss= должно быть >= 0.0 и <= 32.0\n"
 
 #: src/core/command.c:1223
 msgid ""
@@ -14417,9 +14414,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:1226
-#, fuzzy
 msgid "-mod= value must be > 0.0 and <= 1.0\n"
-msgstr "Ошибка: D должна быть >= 0.0 и <= 10.0.\n"
+msgstr "значение -mod= должно быть >= 0.0 и <= 1.0\n"
 
 #: src/core/command.c:1236
 #, fuzzy
@@ -14439,7 +14435,8 @@ msgstr ""
 
 #: src/core/command.c:1286
 msgid "Reference image is undefined, the following would be used:\n"
-msgstr "Опорное изображение не определено, будет использовано следующее:\n"
+msgstr ""
+"Опорное изображение не определено, было бы лучше использовать следующее:\n"
 
 #: src/core/command.c:1294
 #, c-format
