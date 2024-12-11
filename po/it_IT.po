@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2023-08-11 20:37+0000\n"
-"Last-Translator: Fabio Sirna <fabio@fabiosirna.com>\n"
-"Language-Team: Italian <https://weblate.pixls.us/projects/siril/siril-"
-"application/it/>\n"
+"PO-Revision-Date: 2024-12-11 13:11+0000\n"
+"Last-Translator: Daniele Piretti <fenice319@gmail.com>\n"
+"Language-Team: Italian <https://weblate.siril.org/projects/siril/software/"
+"siril/it/>\n"
 "Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 #, fuzzy
@@ -4209,9 +4209,8 @@ msgstr "Header FITS..."
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4036
 #: src/gui/uifiles/settings_window.ui:4853 src/core/icc_profile.c:1241
 #: src/core/icc_profile.c:1243
-#, fuzzy
 msgid "Color Management"
-msgstr "Immagine target a colori"
+msgstr "Gestion del Colore"
 
 #: src/gui/uifiles/icc_dialog.ui:65 src/gui/uifiles/siril.ui:7993
 #: src/gui/uifiles/spcc_details.ui:24 src/gui/uifiles/s_pcc_dialog.ui:906
