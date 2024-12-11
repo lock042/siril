@@ -590,6 +590,13 @@ orient_ccw(struct polygon *p) {
  *
  * @returns 0 - success, 1 - failure (input polygons have less than 3 vertices)
  */
+
+/*
+ * A Siril-specific change was made to this function in Nov 2024 (!1430) to catch
+ * an edge case that occurs when one vertex lies exactly ON the window edge and
+ * the other vertex lies on the opposite side, causing d = 0 even though
+ * v1_inside != v2_inside
+ * */
 int
 clip_polygon_to_window(struct polygon *p, struct polygon *wnd,
                       struct polygon *cp) {
@@ -733,10 +740,19 @@ init_edge(struct edge *e, struct vertex v1, struct vertex v2, int position) {
     e->v1 = v1;
     e->v2 = v2;
     e->p = position;  // -1 for left-side edge and +1 for right-side edge
-    e->m = (v2.x - v1.x) / (v2.y - v1.y);
-    e->b = (v1.x * v2.y - v1.y * v2.x) / (v2.y - v1.y);
-    e->c = e->b - copysign(0.5 + 0.5 * fabs(e->m), (float)position);
-};
+
+    // The following check was added specifically for Siril in Dec 2024 (see !780)
+    // Check for horizontal edge (same y-coordinate)
+    if (v1.y == v2.y) {
+        e->m = 0.0;  // Horizontal line
+        e->b = v1.x; // x-coordinate remains constant
+        e->c = e->b - copysign(0.5, (float)position);
+    } else {
+        e->m = (v2.x - v1.x) / (v2.y - v1.y);
+        e->b = (v1.x * v2.y - v1.y * v2.x) / (v2.y - v1.y);
+        e->c = e->b - copysign(0.5 + 0.5 * fabs(e->m), (float)position);
+    }
+}
 
 /**
  * Set-up scanner structure for a polygon.
