@@ -385,5 +385,6 @@ int main(int argc, char *argv[]) {
 
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);
+	cleanup_common_profiles(); // close lcms2 data structures
 	return status;
 }
