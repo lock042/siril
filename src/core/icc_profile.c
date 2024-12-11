@@ -467,11 +467,12 @@ void initialize_profiles_and_transforms() {
 	// Working profiles
 	com.icc.mono_linear = gray_linear();
 	com.icc.srgb_profile = srgb_trc();
-	validate_custom_profiles();
 
 	// Target profiles for embedding in saved files
 	com.icc.srgb_out = srgb_trcv2();
 	com.icc.mono_out = gray_srgbtrcv2();
+
+	validate_custom_profiles();
 
 	// ICC availability
 	gboolean available = (com.icc.mono_linear && com.icc.working_standard && com.icc.mono_standard && com.icc.working_out && com.icc.mono_out);
