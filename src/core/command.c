@@ -11010,8 +11010,7 @@ static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
 						goto GRAX_ARG_ERROR;
 					}
 				} else {
-					siril_log_color_message(_("Error: unknown argument!\n"),
-							"red");
+					siril_log_color_message(_("Error: unknown argument!\n"), "red");
 					goto GRAX_ARG_ERROR;
 				}
 			} else if (operation == GRAXPERT_DENOISE) {
