@@ -225,6 +225,7 @@ static void confirm_availability(guint page_num) {
 
 	gboolean available = graxpert_executablecheck(com.pref.graxpert_path, operation);
 	gtk_widget_set_sensitive(GTK_WIDGET(button_graxpert_apply), available);
+	gtk_widget_set_sensitive(GTK_WIDGET(graxpert_deconv_switch), available);
 	if (available) {
 		gchar *txt = g_strdup_printf(_("GraXpert available and supports %s."),
 				operation == GRAXPERT_BG ? _("background extraction") :
@@ -235,6 +236,8 @@ static void confirm_availability(guint page_num) {
 		gtk_label_set_text(graxpert_available, txt);
 		g_free(txt);
 	} else {
+		if (operation == GRAXPERT_DECONV || operation == GRAXPERT_DECONV_STELLAR)
+			gtk_switch_set_active(graxpert_deconv_switch, FALSE);
 		gtk_label_set_markup(graxpert_available, _("<span foreground=\"red\">No suitable version of GraXpert is available.\n"
 				"Configure the executable in Preferences -> Miscellaneous.</span>"));
 	}
