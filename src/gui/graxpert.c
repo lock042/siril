@@ -262,17 +262,17 @@ static void populate_combo_box(GtkComboBoxText *combo, const gchar **models) {
 
 gboolean populate_graxpert_ai_combos(gpointer user_data) {
 	const gchar** ai_models_bg = get_ai_models(GRAXPERT_BG);
-	if (combo_graxpert_ai_models_bg && ai_models_bg)
+	if (combo_graxpert_ai_models_bg)
 		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_bg), ai_models_bg);
 	const gchar** ai_models_denoise = get_ai_models(GRAXPERT_DENOISE);
-	if (combo_graxpert_ai_models_denoise && ai_models_denoise)
-		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_denoise), get_ai_models(GRAXPERT_DENOISE));
+	if (combo_graxpert_ai_models_denoise)
+		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_denoise), ai_models_denoise);
 	const gchar** ai_models_deconv = get_ai_models(GRAXPERT_DECONV);
-	if (combo_graxpert_ai_models_deconv && ai_models_deconv)
-		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_deconv), get_ai_models(GRAXPERT_DECONV));
+	if (combo_graxpert_ai_models_deconv)
+		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_deconv), ai_models_deconv);
 	const gchar** ai_models_deconv_stellar = get_ai_models(GRAXPERT_DECONV_STELLAR);
 	if (combo_graxpert_ai_models_deconv_stellar)
-		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_deconv_stellar), get_ai_models(GRAXPERT_DECONV_STELLAR));
+		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_deconv_stellar), ai_models_deconv_stellar);
 	return FALSE;
 }
 
