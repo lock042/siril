@@ -11067,7 +11067,7 @@ static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
 		data->bg_tol_option = 6.0;
 	if (data->operation == GRAXPERT_DENOISE || data->operation == GRAXPERT_DECONV
 			|| data->operation == GRAXPERT_DECONV_STELLAR || data->bg_algo == GRAXPERT_BG_AI) {
-		if (!check_graxpert_version(data->ai_version, data->operation)) {
+		if (data->ai_version != NULL && !check_graxpert_version(data->ai_version, data->operation)) {
 			siril_log_color_message(_("Error: the requested AI model version is unavailable. Available versions are:\n"),"red");
 			ai_versions_to_log(operation);
 			goto GRAX_ARG_ERROR;

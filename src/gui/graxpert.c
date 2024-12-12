@@ -241,14 +241,16 @@ static void confirm_availability(guint page_num) {
 }
 
 static void populate_combo_box(GtkComboBoxText *combo, const gchar **models) {
-	int i;
+	int i = 0;
 
 	// Clear existing entries
 	gtk_combo_box_text_remove_all(combo);
 
 	// Add entries from the models array
-	for (i = 0; models[i] != NULL; ++i) {
-		gtk_combo_box_text_append_text(combo, models[i]);
+	if (models) {
+		for (i = 0; models[i] != NULL; ++i) {
+			gtk_combo_box_text_append_text(combo, models[i]);
+		}
 	}
 
 	// Add "latest" entry
@@ -269,9 +271,8 @@ gboolean populate_graxpert_ai_combos(gpointer user_data) {
 	if (combo_graxpert_ai_models_deconv && ai_models_deconv)
 		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_deconv), get_ai_models(GRAXPERT_DECONV));
 	const gchar** ai_models_deconv_stellar = get_ai_models(GRAXPERT_DECONV_STELLAR);
-	if (combo_graxpert_ai_models_deconv_stellar && ai_models_deconv_stellar)
+	if (combo_graxpert_ai_models_deconv_stellar)
 		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_deconv_stellar), get_ai_models(GRAXPERT_DECONV_STELLAR));
-
 	return FALSE;
 }
 
