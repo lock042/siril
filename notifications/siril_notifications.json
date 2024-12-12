@@ -1,10 +1,10 @@
 [
   {
-    "valid-from": "2024-04-18T17:30:00+02:00",
-    "valid-to": "2024-08-23T08:30:00+02:00",
-    "version-from": "1.2.0",
-    "version-to": "1.3.0",
-    "message": "Example",
+    "valid-from": "2024-12-12T16:30:00+00:00",
+    "valid-to": "2024-12-19T16:30:00+00:00",
+    "version-from": "1.3.0",
+    "version-to": "1.3.6",
+    "message": "Owing to a change in the Gaia archive datalink product format, SPCC is currently not working. We are aware of this issue and are working on a fix, which will be deployed to the git master branch as soon as possible.",
     "priority": 2
   }
 ]
