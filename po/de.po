@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-10 11:05+0000\n"
+"PO-Revision-Date: 2024-12-13 09:23+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -166,7 +166,6 @@ msgstr ""
 "verwenden, geben Sie sie bitte als CCD an."
 
 #: src/gui/uifiles/aavso_dialog.ui:275
-#, fuzzy
 msgid "Comparison star: "
 msgstr "Vergleichsstern: "
 
@@ -400,9 +399,8 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:174
 #: src/gui/uifiles/annotate_dialog.ui:426
-#, fuzzy
 msgid "Tag"
-msgstr "Mag"
+msgstr "Tag"
 
 #: src/gui/uifiles/annotate_dialog.ui:178
 #: src/gui/uifiles/annotate_dialog.ui:193
@@ -439,9 +437,8 @@ msgid "Limit magnitude used in the query."
 msgstr "In der Abfrage verwendete Grenzgröße."
 
 #: src/gui/uifiles/annotate_dialog.ui:253
-#, fuzzy
 msgid "13"
-msgstr "1"
+msgstr "13"
 
 #: src/gui/uifiles/annotate_dialog.ui:273
 msgid "Obs. code: "
@@ -558,9 +555,8 @@ msgid "Single Coordinates"
 msgstr "einzelne Koordinaten"
 
 #: src/gui/uifiles/annotate_dialog.ui:605
-#, fuzzy
 msgid "Show"
-msgstr "Zeige Verkippung"
+msgstr "Zeige"
 
 #: src/gui/uifiles/annotate_dialog.ui:625
 msgid ""
@@ -652,32 +648,27 @@ msgid "Preview"
 msgstr "Vorschau"
 
 #: src/gui/uifiles/asinh_dialog.ui:276
-#, fuzzy
 msgid "Clip mode"
-msgstr "Obere Grenze"
+msgstr "Clip-Modus"
 
 #: src/gui/uifiles/asinh_dialog.ui:290 src/gui/uifiles/dialog_star_remix.ui:163
 #: src/gui/uifiles/histogram_dialog.ui:784 src/gui/utils.c:517
-#, fuzzy
 msgid "Clip"
-msgstr "Clip (%)"
+msgstr "Clip"
 
 #: src/gui/uifiles/asinh_dialog.ui:291 src/gui/uifiles/dialog_star_remix.ui:164
 #: src/gui/uifiles/histogram_dialog.ui:785
-#, fuzzy
 msgid "Rescale"
-msgstr "Ergebnis neu skalieren"
+msgstr "Neu skalieren"
 
 #: src/gui/uifiles/asinh_dialog.ui:292 src/gui/uifiles/dialog_star_remix.ui:165
 #: src/gui/uifiles/histogram_dialog.ui:786
-#, fuzzy
 msgid "RGB Blend"
-msgstr "RGB-Ausrichtung"
+msgstr "RGB-Mischung"
 
 #: src/gui/uifiles/asinh_dialog.ui:293
-#, fuzzy
 msgid "Global Rescale"
-msgstr "Globale Ausschleusung"
+msgstr "Globale Skalierung"
 
 #: src/gui/uifiles/astrometry_dialog.ui:97
 msgid "Image Plate Solver"
@@ -970,9 +961,8 @@ msgstr ""
 "Astrometry.net-Solver zu ignorieren"
 
 #: src/gui/uifiles/astrometry_dialog.ui:770
-#, fuzzy
 msgid "Save distortion"
-msgstr "Registrierung"
+msgstr "Verzerrung speichern"
 
 #: src/gui/uifiles/astrometry_dialog.ui:774
 msgid ""
@@ -1200,9 +1190,8 @@ msgstr ""
 "diesem Dialog angegebenen"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1238
-#, fuzzy
 msgid "Sequence / Astrometric Registration"
-msgstr "Astrometrische Registrierung anwenden"
+msgstr "Sequenz / Astrometrische Registrierung"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:55
 #: src/algos/background_extraction.c:1331
@@ -1227,7 +1216,7 @@ msgstr "Wähle Interpolationsmethode."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:131
 msgid "RBF"
-msgstr ""
+msgstr "RBF"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:132
 msgid "Polynomial"
@@ -2244,7 +2233,7 @@ msgstr "1.0"
 #: src/gui/uifiles/ccm_dialog.ui:162 src/gui/uifiles/ccm_dialog.ui:190
 #: src/gui/uifiles/ccm_dialog.ui:204 src/gui/uifiles/ccm_dialog.ui:218
 msgid "0.0"
-msgstr ""
+msgstr "0.0"
 
 #: src/gui/uifiles/ccm_dialog.ui:281
 msgid "The power to which each result pixel will be raised."
@@ -2845,7 +2834,7 @@ msgstr "Koordinaten"
 #: src/gui/uifiles/cut_coords_dialog.ui:194
 #: src/gui/uifiles/cut_coords_dialog.ui:207
 msgid "-1"
-msgstr ""
+msgstr "-1"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:149
 msgid "End"
@@ -2854,7 +2843,7 @@ msgstr "Ende"
 #: src/gui/uifiles/cut_coords_dialog.ui:160
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:281
 msgid "y"
-msgstr ""
+msgstr "y"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:172
 msgid "Start"
@@ -2875,7 +2864,7 @@ msgstr ""
 #: src/gui/uifiles/cut_coords_dialog.ui:226
 #: src/gui/uifiles/cut_coords_dialog.ui:251
 msgid "*"
-msgstr ""
+msgstr "*"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:250
 msgid ""
@@ -3027,9 +3016,8 @@ msgstr ""
 "verwendet."
 
 #: src/gui/uifiles/cut_dialog.ui:303
-#, fuzzy
 msgid "Tri-Profile offset (px)"
-msgstr "Tri-Profil (mono)"
+msgstr "Tri-Profil Versatz (px)"
 
 #: src/gui/uifiles/cut_dialog.ui:333
 msgid ""
@@ -3143,9 +3131,8 @@ msgid "Spectroscopic Calibration Points"
 msgstr "Spektrophotometrische Farbkalibrierung"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:414
-#, fuzzy
 msgid "Polynomial degree"
-msgstr "Polynomisch"
+msgstr "Polynomgrad"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:425
 msgid ""
@@ -3161,9 +3148,8 @@ msgid "Plot measured and modelled background"
 msgstr "Hintergrund kann nicht geladen werden\n"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:465
-#, fuzzy
 msgid "Background Removal"
-msgstr "Hintergrund-Wert"
+msgstr "Entfernen des Hintergrunds"
 
 #: src/gui/uifiles/data_dialog.ui:50
 msgid "More details..."
@@ -3449,9 +3435,8 @@ msgid "Show advanced stretch options"
 msgstr "Zeige weitere Möglichkeiten zur Streckung"
 
 #: src/gui/uifiles/dialog_star_remix.ui:148
-#, fuzzy
 msgid "Clipping mode"
-msgstr "MAD Clipping"
+msgstr "Clipping Modus"
 
 #: src/gui/uifiles/dialog_star_remix.ui:160
 msgid "Select the clipping mode for partially clipped pixels."
@@ -3459,9 +3444,8 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:787
-#, fuzzy
 msgid "Global rescale"
-msgstr "Globale Ausschleusung"
+msgstr "Globale Skalierung"
 
 #: src/gui/uifiles/dialog_star_remix.ui:227
 #: src/gui/uifiles/dialog_star_remix.ui:862
@@ -4323,14 +4307,12 @@ msgstr ""
 "können."
 
 #: src/gui/uifiles/keywords_dialog.ui:272
-#, fuzzy
 msgid "Header Editor"
-msgstr "Header ist leer"
+msgstr "Header-Editor"
 
 #: src/gui/uifiles/keywords_dialog.ui:305
-#, fuzzy
 msgid "Saved Header"
-msgstr "FITS Header"
+msgstr "Gespeicherter Header"
 
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4036
 #: src/gui/uifiles/settings_window.ui:4853 src/core/icc_profile.c:1241
@@ -5357,14 +5339,12 @@ msgid "Quality: "
 msgstr "Qualität: "
 
 #: src/gui/uifiles/savepopup.ui:578
-#, fuzzy
 msgid "Estimate size"
-msgstr "Abschätzen"
+msgstr "Größe schätzen"
 
 #: src/gui/uifiles/savepopup.ui:582
-#, fuzzy
 msgid "Computes the size of the compressed file"
-msgstr "Berechnen die Umkehrung des Bildes"
+msgstr "Berechnen die Größe der komprimierten Datei"
 
 #: src/gui/uifiles/savepopup.ui:630
 msgid "JPEG"
@@ -5389,7 +5369,7 @@ msgstr "Speichere MIPS-HI und MIPS-LO Werte"
 
 #: src/gui/uifiles/savepopup.ui:777
 msgid "Save CHECKSUM and DATASUM keywords"
-msgstr ""
+msgstr "CHECKSUM und DATASUM Schlüsselwörter speichern"
 
 #: src/gui/uifiles/savepopup.ui:797
 msgid "Embedded Data"
@@ -5933,7 +5913,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:799
 msgid "Verify file checksums in FITS header (DATASUM and CHECKSUM)"
-msgstr ""
+msgstr "Überprüfung der Dateiprüfsummen im FITS-Header (DATASUM und CHECKSUM)"
 
 #: src/gui/uifiles/settings_window.ui:803
 msgid ""
@@ -5941,6 +5921,9 @@ msgid ""
 "file is read, which may significantly impact Siril's performance when using "
 "a sequence."
 msgstr ""
+"Überprüfen Sie Dateiprüfsummen, wenn sie existieren. Die Überprüfung erfolgt "
+"jedes Mal, wenn die Datei gelesen wird, was die Leistung von Siril bei "
+"Verwendung einer Sequenz erheblich beeinträchtigen kann)."
 
 #: src/gui/uifiles/settings_window.ui:821
 msgid "<b>FITS Header</b>"
@@ -8164,7 +8147,7 @@ msgstr "Hintergrund-Extraktion..."
 
 #: src/gui/uifiles/siril.ui:1400
 msgid "Open the GraXpert external tool interface"
-msgstr ""
+msgstr "Öffnen Sie die GraXpert Schnittstelle für externe Werkzeuge"
 
 #: src/gui/uifiles/siril.ui:1402
 #, fuzzy
@@ -10017,9 +10000,8 @@ msgstr ""
 "Ringartefakte bei den meisten Bildern verhindert werden."
 
 #: src/gui/uifiles/siril.ui:7120
-#, fuzzy
 msgid "Use interpolation"
-msgstr "Art der Interpolation"
+msgstr "Interpolation verwenden"
 
 #: src/gui/uifiles/siril.ui:7133
 msgid "Include master flat in initial pixel weighting"
@@ -10091,9 +10073,8 @@ msgstr ""
 "Wert hierfür ist normalerweise der Kehrwert des Drizzlefaktors."
 
 #: src/gui/uifiles/siril.ui:7217
-#, fuzzy
 msgid "Use drizzle"
-msgstr "Dark-Frame benutzen"
+msgstr "Drizzle benutzen"
 
 #: src/gui/uifiles/siril.ui:7237
 msgid "Prefix:"
@@ -11144,7 +11125,7 @@ msgstr "Anzahl der Proben"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:46 src/gui/photometric_cc.c:89
 msgid "Checking Gaia archive status..."
-msgstr ""
+msgstr "Prüfe Gaia Archiv Status..."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:122
 #, fuzzy
@@ -11153,7 +11134,7 @@ msgstr "Radius: "
 
 #: src/gui/uifiles/s_pcc_dialog.ui:126
 msgid "Click to update Gaia archive status check"
-msgstr ""
+msgstr "Klicken Sie hier, um den Status des Gaia-Archivs zu überprüfen"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:160
 msgid "Start the photometric color calibration algorithm."
@@ -11381,11 +11362,11 @@ msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:828
 msgid "Observer height / m:"
-msgstr ""
+msgstr "Höhe des Beobachters / m:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:839
 msgid "Observer's height (altitude) above sea level."
-msgstr ""
+msgstr "Höhe des Beobachters (Höhe) über dem Meeresspiegel."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:855
 msgid "Atmospheric pressure / hPa:"
@@ -12343,7 +12324,7 @@ msgstr ""
 
 #: src/main-cli.c:128 src/main.c:133
 msgid "start in offline mode"
-msgstr ""
+msgstr "Start im Offline-Modus"
 
 #: src/main-cli.c:129 src/main.c:134
 msgid "print the application’s version"
@@ -16815,14 +16796,12 @@ msgid ""
 msgstr "Eine neuere Version von SIRIL wird benötigt. Bitte aktualisieren.\n"
 
 #: src/core/command.c:9365
-#, fuzzy
 msgid "beta"
-msgstr "beta (β)"
+msgstr "beta"
 
 #: src/core/command.c:9365
-#, fuzzy
 msgid "RC"
-msgstr "RCD"
+msgstr "RC"
 
 #: src/core/command.c:9368
 msgid ""
@@ -17339,6 +17318,8 @@ msgstr ""
 #: src/core/command.c:11394
 msgid "16-bit images cannot have out-of-range pixels: nothing to do.\n"
 msgstr ""
+"16-Bit-Bilder können keine Pixel außerhalb des Bereichs haben: nichts zu "
+"machen.\n"
 
 #: src/core/command.c:11404
 msgid "No pixels require clipping. Nothing to do...\n"
@@ -23625,7 +23606,7 @@ msgstr ""
 #: src/core/siril_actions.c:709 src/core/siril_actions.c:717
 #: src/gui/graxpert.c:288
 msgid "Yes"
-msgstr ""
+msgstr "Ja"
 
 #: src/core/siril_actions.c:717
 msgid ""
@@ -23746,9 +23727,9 @@ msgid "Software Update"
 msgstr "Software Update"
 
 #: src/core/siril_update.c:469
-#, fuzzy, c-format
+#, c-format
 msgid "Error parsing JSON from URL: %s\n"
-msgstr "Fehler beim Laden der SPCC JSON-Datei: %s\n"
+msgstr "Fehler beim Parsen von JSON aus der URL: %s\n"
 
 #: src/core/siril_update.c:477
 msgid "Error parsing JSON from URL: unable to get root node\n"
@@ -23791,16 +23772,15 @@ msgstr ""
 
 #: src/core/siril_update.c:623
 msgid "Error: Siril is in offline mode, cannot check updates.\n"
-msgstr ""
+msgstr "Fehler: Siril ist im Offline-Modus, kann keine Updates prüfen.\n"
 
 #: src/core/siril_update.c:632
 msgid "Looking for updates..."
 msgstr "Suche Updates..."
 
 #: src/core/siril_update.c:652
-#, fuzzy
 msgid "Looking for notifications..."
-msgstr "Suche Updates..."
+msgstr "Suche nach Benachrichtigungen..."
 
 #: src/core/undo.c:60
 #, c-format
@@ -24040,7 +24020,7 @@ msgstr "StarNet läuft"
 
 #: src/filters/graxpert.c:187
 msgid "GraXpert reported an error"
-msgstr ""
+msgstr "GraXpert hat einen Fehler gemeldet"
 
 #: src/filters/graxpert.c:195 src/filters/graxpert.c:225
 #, fuzzy
@@ -24647,14 +24627,12 @@ msgid "User Solar System Objects Catalogue"
 msgstr "Objekte des Sonnensystems"
 
 #: src/gui/annotate.c:173
-#, fuzzy
 msgid "csv files (*.csv)"
-msgstr "CSV Datei (*.csv)"
+msgstr "CSV Dateien (*.csv)"
 
 #: src/gui/annotate.c:292
-#, fuzzy
 msgid "Could not parse coordinates or name, aborting\n"
-msgstr "Konnte %s nicht erstellen, Abbruch\n"
+msgstr "Konnte Koordinaten oder Namen nicht parsen, Abbruch\n"
 
 #: src/gui/annotate.c:381
 #, fuzzy
@@ -25479,9 +25457,8 @@ msgid "Subtracting dark strips: polynomial fit of degree %d:\n"
 msgstr "Subtraktion dunkler Streifen: Polynom-Anpassung vom Grad %d:\n"
 
 #: src/gui/cut.c:712 src/gui/cut.c:724
-#, fuzzy
 msgid "Intensity"
-msgstr "Intensitätsprofil"
+msgstr "Intensität"
 
 #: src/gui/cut.c:714 src/pixelMath/pixel_math_runner.c:353
 msgid "R"
@@ -25492,14 +25469,14 @@ msgid "L"
 msgstr ""
 
 #: src/gui/cut.c:727
-#, fuzzy, c-format
+#, c-format
 msgid "Fitted background"
-msgstr "Hintergrund"
+msgstr "Angepasster Hintergrund"
 
 #: src/gui/cut.c:728
-#, fuzzy, c-format
+#, c-format
 msgid "Measured background"
-msgstr "Hintergrund erhalten"
+msgstr "gemessener Hintergrund"
 
 #: src/gui/cut.c:804 src/gui/cut.c:810
 msgid "Error: failed to split FITS into CFA sub-patterns.\n"
@@ -25516,9 +25493,8 @@ msgstr ""
 "geladen."
 
 #: src/gui/cut.c:1036
-#, fuzzy
 msgid "Spectroscopic"
-msgstr "Spektrophotometrisch"
+msgstr "Spektroskopisch"
 
 #: src/gui/cut.c:1037
 msgid ""
@@ -25529,9 +25505,8 @@ msgstr ""
 "das gesamte Bild ein kalibriertes Spektrum darstellt"
 
 #: src/gui/cut.c:1038
-#, fuzzy
 msgid "Spectro w/ bg removal"
-msgstr "Spektrogramm"
+msgstr "Spektrum mit Hintergrundentfernung"
 
 #: src/gui/cut.c:1039
 msgid "Spectro bg offset (px)"
@@ -25549,7 +25524,6 @@ msgstr ""
 "Spektralprofillinie berechnet"
 
 #: src/gui/cut.c:1048
-#, fuzzy
 msgid "Tri-profile (mono)"
 msgstr "Tri-Profil (mono)"
 
@@ -25565,9 +25539,8 @@ msgstr ""
 "verwendet."
 
 #: src/gui/cut.c:1050
-#, fuzzy
 msgid "Tri-profile offset (px)"
-msgstr "Tri-Profil (mono)"
+msgstr "Tri-Profil Offset (px)"
 
 #: src/gui/cut.c:1180 src/gui/cut.c:1210
 msgid "No star detected"
@@ -25798,7 +25771,7 @@ msgstr "Das SPCC-Datenbank-Repository ist auf dem neuesten Stand."
 #: src/gui/graxpert.c:208
 #, c-format
 msgid "GraXpert available and supports %s."
-msgstr ""
+msgstr "GraXpert ist verfügbar und unterstützt %s."
 
 #: src/gui/graxpert.c:209
 #, fuzzy
@@ -25843,7 +25816,7 @@ msgstr "Keine Sequenz geladen"
 
 #: src/gui/graxpert.c:337
 msgid "Stellar"
-msgstr ""
+msgstr "Stellar"
 
 #: src/gui/graxpert.c:337
 #, fuzzy
@@ -26042,7 +26015,7 @@ msgstr "Farbprofilzuweisung"
 
 #: src/gui/icc_profile.c:324
 msgid "Color space has incorrect channels"
-msgstr ""
+msgstr "Farbraum hat falsche Kanäle"
 
 #: src/gui/icc_profile.c:324
 #, fuzzy
@@ -26247,7 +26220,7 @@ msgstr "Resample (%g - %g)"
 
 #: src/gui/menu_gray_geometry.c:354
 msgid "Image backup is active"
-msgstr ""
+msgstr "Image-Backup ist aktiv"
 
 #: src/gui/menu_gray_geometry.c:355
 #, fuzzy
@@ -26843,7 +26816,7 @@ msgstr ""
 
 #: src/gui/photometric_cc.c:118
 msgid "Gaia archive running but performing very slowly"
-msgstr ""
+msgstr "Gaia-Archiv läuft, ist aber sehr langsam"
 
 #: src/gui/photometric_cc.c:124
 #, fuzzy
@@ -26852,11 +26825,11 @@ msgstr "Gnuplot ist nicht verfügbar"
 
 #: src/gui/photometric_cc.c:129
 msgid "Gaia archive unreachable"
-msgstr ""
+msgstr "Gaia Archiv ist nicht erreichbar"
 
 #: src/gui/photometric_cc.c:134
 msgid "Unknown Gaia archive status"
-msgstr ""
+msgstr "Unbekannter Status des Gaia-Archivs"
 
 #: src/gui/photometric_cc.c:152
 msgid ""
@@ -26938,7 +26911,7 @@ msgstr "Quanteneffizienz / Durchlass / Relative Photonenzahl"
 
 #: src/gui/photometric_cc.c:919
 msgid "Atmosphere model"
-msgstr ""
+msgstr "Atmosphärenmodell"
 
 #: src/gui/photometric_cc.c:941 src/gui/photometric_cc.c:956
 #, c-format
@@ -26972,7 +26945,7 @@ msgstr ""
 
 #: src/gui/photometric_cc.c:1118
 msgid "local"
-msgstr ""
+msgstr "Lokal"
 
 #: src/gui/plot.c:122 src/gui/plot.c:1627 src/gui/sequence_list.c:540
 msgid "Amplitude"
@@ -29384,7 +29357,7 @@ msgstr "Mehr als ein Treffer für: "
 
 #: src/io/path_parse.c:88
 msgid "All hits newer than: "
-msgstr ""
+msgstr "Alle Treffer, die neuer sind als: "
 
 #: src/io/path_parse.c:91
 msgid "No match found for: "
@@ -29449,11 +29422,11 @@ msgstr "Die Katalogdatei %s (%s) kann nicht erstellt werden.\n"
 
 #: src/io/remote_catalogues.c:706
 msgid "Offline, cannot retrieve URL.\n"
-msgstr ""
+msgstr "Offline, URL kann nicht geladen werden.\n"
 
 #: src/io/remote_catalogues.c:736
 msgid "Offline: cannot fetch catalog\n"
-msgstr ""
+msgstr "Offline: Katalog kann nicht abgerufen werden\n"
 
 #: src/io/remote_catalogues.c:802
 msgid ""
@@ -30296,6 +30269,8 @@ msgstr "Repository erfolgreich geklont!\n"
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
 msgstr ""
+"Siril ist im Offline-Modus. Es wird nicht versucht, das entfernte Repository "
+"zu klonen\n"
 
 #: src/io/siril_git.c:563 src/io/siril_git.c:707
 msgid "Failed to lookup remote.\n"
