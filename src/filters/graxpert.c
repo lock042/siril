@@ -55,6 +55,11 @@
 // The following line keeps the config file
 // #define GRAXPERT_CONFIG_DEBUG
 
+// Define the minumum version numbers that support different operations
+static const version_number min_bg_ver = { 3, 0, 0, 0 , FALSE, FALSE};
+static const version_number min_denoise_ver = { 3, 0, 0, 0, FALSE, FALSE };
+static const version_number min_deconv_ver = { 3, 1, 0, 0, FALSE, FALSE };
+
 static gboolean verbose = TRUE;
 static version_number graxpert_version = { 0 };
 static gchar **background_ai_models = NULL;
@@ -354,9 +359,6 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 }
 
 void fill_graxpert_version_arrays() {
-	version_number min_bg_ver = { 3, 0, 0, 0 , FALSE, FALSE};
-	version_number min_denoise_ver = { 3, 0, 0, 0, FALSE, FALSE };
-	version_number min_deconv_ver = { 3, 1, 0, 0, TRUE, FALSE };
 	if (compare_version(min_bg_ver, graxpert_version) < 0)
 		background_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_BG);
 	if (compare_version(min_denoise_ver, graxpert_version) < 0)
