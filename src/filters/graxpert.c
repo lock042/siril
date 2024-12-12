@@ -354,13 +354,17 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 }
 
 void fill_graxpert_version_arrays() {
-	background_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_BG);
-	denoise_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DENOISE);
-	deconv_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV);
-	// For now the wrong stellar AI versions are being returned, so we
-	// don't check and just force latest. This can be uncommented when
-	// the issue is fixed, though we may need to blacklist bugged versions
-//	deconv_stellar_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV_STELLAR);
+	version_number min_bg_ver = { 3, 0, 0, 0 , FALSE, FALSE};
+	version_number min_denoise_ver = { 3, 0, 0, 0, FALSE, FALSE };
+	version_number min_deconv_ver = { 3, 1, 0, 0, TRUE, FALSE };
+	if (compare_version(min_bg_ver, graxpert_version) < 0)
+		background_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_BG);
+	if (compare_version(min_denoise_ver, graxpert_version) < 0)
+		denoise_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DENOISE);
+	if (compare_version(min_deconv_ver, graxpert_version) < 0) {
+		deconv_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV);
+		deconv_stellar_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV_STELLAR);
+	}
 }
 
 gboolean check_graxpert_version(const gchar *version, graxpert_operation operation) {
