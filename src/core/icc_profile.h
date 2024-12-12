@@ -102,5 +102,6 @@ const char* default_system_icc_path();
 cmsHTRANSFORM sirilCreateTransformTHR(cmsContext Context, cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
 void update_profiles_after_gamut_change();
 void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb);
+void cleanup_common_profiles();
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

@@ -976,18 +976,27 @@ int read_fits_keywords(fits *fit) {
 		// If the keyword is not found in the hash table, it is either an unknown or HISTORY keyword.
 		// we don't want to load checksum keywords neither
 		if (current_key == NULL) {
-			/* We remove the obsolete WCS keyword (CROTA) and the unmanaged keywords: TRi_j. */
 			GRegex *regex = g_regex_new("TR[0-9]+_[0-9]+|CROTA[0-9]", 0, 0, NULL);
-			if (strncmp(card, "HISTORY", 7) == 0) continue;
-			if (strncmp(card, "CHECKSUM", 8) == 0) continue;
-			if (strncmp(card, "DATASUM", 7) == 0) continue;
+
+			if (strncmp(card, "HISTORY", 7) == 0
+					|| strncmp(card, "CHECKSUM", 8) == 0
+					|| strncmp(card, "DATASUM", 7) == 0) {
+				continue;
+			}
+
 			GMatchInfo *match_info = NULL;
 			if (g_regex_match(regex, card, 0, &match_info)) {
 				g_match_info_free(match_info);
+				g_regex_unref(regex);
 				continue;
 			}
-			g_match_info_free(match_info);
-			// Handle unknown keys
+
+			if (match_info) {
+				g_match_info_free(match_info);
+			}
+
+			g_regex_unref(regex);
+
 			unknown_keys = g_string_append(unknown_keys, card);
 			unknown_keys = g_string_append(unknown_keys, "\n");
 			continue;

@@ -93,8 +93,8 @@ struct edge {
     struct vertex v1; /**< first vertex */
     struct vertex v2; /**< second vertex */
     float m; /**< edge's slope */
-    float b; /**< edge's interceipt */
-    float c; /**< modified interceipt */
+    float b; /**< edge's intercept */
+    float c; /**< modified intercept */
     int p;  /**< edge's position: -1 for left-side edge and +1 for right-side edge */
 };
 
