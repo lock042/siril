@@ -75,13 +75,15 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 		return NULL;
 	}
 	wcsdst->flag = -1;
-	int statuscpy = wcscopy(0, wcssrc, wcsdst);
+	int statuscpy = wcssub(0, wcssrc, &nsub, axes, wcsdst);
 	if (statuscpy) {
 		if (status)
 			*status = statuscpy;
 		wcsfree(wcsdst);
 		return NULL;
 	}
+	wcsdst->flag = 0;
+	wcsset(wcsdst);
 	if (status)
 		*status = 0;
 	return wcsdst;
