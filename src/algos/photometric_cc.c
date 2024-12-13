@@ -245,26 +245,32 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		if (!get_thread_run())
 			continue;
 		rectangle area = { 0 };
-
-		// Calculate image flux ratios
 		double flux[3] = { 0.0, 0.0, 0.0 };
+
+		// Update the progress bar
 		if (!(g_atomic_int_get(&progress) % 16))	// every 16 iterations
 			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
 		g_atomic_int_inc(&progress);
 
+		// Make a selection 'area' around the ith star in the list of pcc_stars passed to the function
 		if (make_selection_around_a_star(stars[i], &area, fit)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
 		}
 
+		// Do photometry on each channel of the ith star; we compute the flux
 		gboolean no_phot = FALSE;
 		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
+			// Photometry
 			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
-			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
+			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR) {
 				no_phot = TRUE;
-			else flux[chan] = pow(10., -0.4 * photometry->mag);
+			} else {
+				// Flux calculation
+				flux[chan] = pow(10., -0.4 * photometry->mag);
+			}
 			if (photometry)
 				free_psf(photometry);
 		}
@@ -273,21 +279,31 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
 			continue;
 		}
+
+		// Compute the image red/green rations from the ratios of r/b flux and b/g flux
 		irg[i] = flux[RLAYER]/flux[GLAYER];
 		ibg[i] = flux[BLAYER]/flux[GLAYER];
 
-		// Calculate catalogue flux ratios
+		// Get the Gaia DR3 xp_sampled spectrum from the downloaded datalink product
 		double ref_flux[3];
 		xpsampled star_spectrum = init_xpsampled();
 		get_xpsampled(&star_spectrum, args->datalink_path, stars[i].index);
 
+		// Convert flux to relative photon count normalized at 550nm
+		flux_to_relcount(&star_spectrum);
+
+		// Compute the expected response (product of catalogue flux and instrument response)
 		xpsampled flux_expected = init_xpsampled();
 		for (int chan = 0 ; chan < 3 ; chan++) {
 			multiply_xpsampled(&flux_expected, &response[chan], &star_spectrum);
 			ref_flux[chan] = integrate_xpsampled(&flux_expected, minwl[chan], maxwl[chan]);
 		}
+
+		// Compute the catalogue r/g and b/g ratios
 		crg[i] = ref_flux[RLAYER]/ref_flux[GLAYER];
 		cbg[i] = ref_flux[BLAYER]/ref_flux[GLAYER];
+
+		// Remove any results with NaNs
 		if (xisnanf(irg[i]) || xisnanf(ibg[i]) || xisnanf(crg[i]) || xisnanf(cbg[i])) {
 			siril_debug_print("flux ratio NAN for star %d\n", i);
 			irg[i] = DBL_MAX;

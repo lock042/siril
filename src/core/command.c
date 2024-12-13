@@ -9195,8 +9195,7 @@ int process_set_cpu(int nb){
 	g_free(str);
 
 	com.max_thread = proc_out;
-	int unlimited = 0;
-	gui_function(update_spinCPU, &unlimited);
+	gui_function(update_spinCPU, GINT_TO_POINTER(0));
 
 	return CMD_OK;
 }

@@ -994,15 +994,14 @@ long get_pathmax(void) {
 gchar *get_siril_bundle_path() {
 	gchar *sirilexepath = NULL;
 	// g_find_program_in_path doc:
-	/* This means first in the directory where the executing program was loaded from, 
-		then in the current directory, then in the Windows 32-bit system directory, 
+	/* This means first in the directory where the executing program was loaded from,
+		then in the current directory, then in the Windows 32-bit system directory,
 		then in the Windows directory, and finally in the directories in the PATH environment variable
 	*/
-	// so g_find_program_in_path should return the path to currently loaded siril
-	if(!com.headless)
-		sirilexepath = g_find_program_in_path("siril.exe");
-	else
-		sirilexepath = g_find_program_in_path("siril-cli.exe");
+	// so g_find_program_in_path should return the path to currently loaded siril. Note we don't
+	// care whether we are looking for siril.exe or siril-cli.exe as both will be installed in the
+	// same place: it is the directory path we care about.
+	sirilexepath = g_find_program_in_path("siril.exe");
 	if (!sirilexepath)  // should not happen
 		return NULL;
 	const gchar *bin_folder = g_path_get_dirname(sirilexepath);

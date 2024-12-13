@@ -35,13 +35,13 @@ When you are creating a bug report, please include as many details as possible. 
 
 ### Getting Your Code Changes Merged
 
-If you would like to fix any bug or add a new feature, you can refer to our [contributor guidelines](https://siril-contrib-doc.readthedocs.io/en/latest/).  
+If you would like to fix any bug or add a new feature, you can refer to our [contributor guidelines](https://siril-contrib-doc.readthedocs.io/en/latest/).
 In particular, you will need to have a look at the section about [submitting your work](https://siril-contrib-doc.readthedocs.io/en/latest/SubmitingWork.html).
 
 ### Translation
 
 If you're interested in contributing to the translation of the application and documentation, 
-we encourage you to use [Weblate](https://weblate.pixls.us/projects/siril/). Weblate is a 
+we encourage you to use [Weblate](https://weblate.siril.org/projects/siril/). Weblate is a 
 powerful web-based translation tool that allows for easy collaboration and efficient 
 translation workflow.
 

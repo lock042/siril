@@ -916,7 +916,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 
 		// Set the data structure and format. Siril will always consume the data as FITS,
 		// as we already use libcfitsio and it's easier than adding support for VOTables
-		g_string_append(datalink_url, "&DATA_STRUCTURE=COMBINED&FORMAT=FITS");
+		g_string_append(datalink_url, "&DATA_STRUCTURE=RAW&FORMAT=FITS");
 
 		// Append the source IDs (using the job number)
 		g_string_append(datalink_url, "&ID=job:");

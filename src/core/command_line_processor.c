@@ -275,8 +275,7 @@ static gboolean end_script(gpointer p) {
 	update_display_fwhm();
 	display_filename();
 	gui_function(new_selection_zone, NULL);
-	int cpu_arg = 0; // resets the num_CPUs spin to com.max_thread
-	update_spinCPU(&cpu_arg);
+	update_spinCPU(GINT_TO_POINTER(0));
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }

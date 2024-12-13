@@ -1290,7 +1290,7 @@ gboolean init_right_tab(gpointer user_data) {
 }
 
 gboolean update_spinCPU(gpointer user_data) {
-	int max = *(int*) user_data;
+	int max = GPOINTER_TO_INT(user_data);
 	static GtkSpinButton *spin_cpu = NULL;
 
 	if (spin_cpu == NULL) {
@@ -1612,7 +1612,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	set_initial_display_mode((display_mode) com.pref.gui.default_rendering_mode);
 	set_initial_histogram_display_mode(com.pref.gui.display_histogram_mode);
 
-	update_spinCPU(&com.max_thread);
+	update_spinCPU(GINT_TO_POINTER(com.max_thread));
 
 	fill_astrometry_catalogue(com.pref.gui.catalog);
 	init_GUI_from_settings();
@@ -1903,6 +1903,7 @@ void gtk_main_quit() {
 	kill_child_process((GPid) -1, TRUE); // kill running child processes if any
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 	g_slist_free_full(com.pref.gui.script_path, g_free);
+	cleanup_common_profiles(); // close lcms2 data structures
 	exit(EXIT_SUCCESS);
 }
 
