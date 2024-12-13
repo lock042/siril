@@ -3126,7 +3126,7 @@ void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1, ...) 
 int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 	// The dataset wavelength range is always the same for all xpsampled spectra
 	// The spacing is always 2nm iaw the dataset
-	int status = 0, num_hdus = 0, anynul = 0, wlcol = 0, fluxcol = 0;
+	int status = 0, num_hdus = 0, anynul = 0, fluxcol = 0;
 	long nrows;
 	// We open a separate fptr so that multiple threads can operate on the file
 	// simultaneously, reading data from different HDUs corresponding to different sources.
