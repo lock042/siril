@@ -16,6 +16,7 @@ void multiply_xpsampled(xpsampled *result, const xpsampled *a, const xpsampled *
 void multiply_xpsampled_scalar(xpsampled *a, const float b);
 double integrate_xpsampled(const xpsampled *xps, const double minimum, const double maximum);
 double xpsampled_wl_weighted_sum(xpsampled *a);
+void flux_to_relcount(xpsampled *xps);
 gpointer spectrophotometric_cc_standalone(gpointer p);
 cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const cmf_pref cmf, const double minwl, const double maxwl);
 void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectrum, int chan);

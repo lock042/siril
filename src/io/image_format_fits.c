@@ -3183,7 +3183,7 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 
 	// Allocate temp memory for the data (we have to do this as the data is
 	// float but we need it as double)
-	float *data = (float *)malloc(array_length * sizeof(float));
+	float *data = (float *)calloc(array_length, sizeof(float));
 	if (!data) {
 		fprintf(stderr, "Memory allocation failed!\n");
 		goto error;
@@ -3194,23 +3194,14 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
-
+	siril_debug_print("xpsampled: ");
 	// Transfer the data from our temp float buffer to the xps double buffer
 	for (int j = 0 ; j < array_length ; j++) {
+		siril_debug_print("%f ", data[j]);
 		xps->y[j] = data[j];
 	}
+	siril_debug_print("\n");
 	free(data);
-
-	// Convert from flux in W m^-2 nm^-1 to relative photon count normalised at 550nm
-	// for consistency with how we handle white references and camera photon counting
-	// behaviour.
-	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
-		xps->y[j] *= xps->x[j];
-	}
-	double norm = xps->y[82];
-	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
-		xps->y[j] /= norm;
-	}
 
 	if (fits_close_file(fptr, &status))
 		fits_report_error(stderr, status);

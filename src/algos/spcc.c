@@ -96,6 +96,19 @@ cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const cmf_pref cmf, const double minw
 	return xyY;
 }
 
+// Convert from flux in W m^-2 nm^-1 to relative photon count normalised at 550nm
+// for consistency with how we handle white references and camera photon counting
+// behaviour.
+void flux_to_relcount(xpsampled *xps) {
+	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
+		xps->y[j] *= xps->x[j];
+	}
+	double norm = xps->y[82];
+	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
+		xps->y[j] /= norm;
+	}
+}
+
 // Functions dealing with atmospheric correction
 // =============================================
 
