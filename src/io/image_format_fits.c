@@ -3126,7 +3126,7 @@ void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1, ...) 
 int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 	// The dataset wavelength range is always the same for all xpsampled spectra
 	// The spacing is always 2nm iaw the dataset
-	int status = 0, num_hdus = 0, anynul = 0, wlcol = 0, fluxcol = 0;
+	int status = 0, num_hdus = 0, anynul = 0, fluxcol = 0;
 	long nrows;
 	// We open a separate fptr so that multiple threads can operate on the file
 	// simultaneously, reading data from different HDUs corresponding to different sources.
@@ -3135,40 +3135,66 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 	// HDU 1 is the Primary HDU but is a dummy in xp_sampled FITS
 	// so the first useful HDU (corresponding to the source at
 	// position 0 in the catalog) is HDU 2.
-	int hdu = i + 2;
+	const int hdu = 2;
 	fits_get_num_hdus(fptr, &num_hdus, &status);
-	if (hdu < 2 || hdu > num_hdus) {
+	if (hdu > num_hdus) {
 		siril_debug_print("HDU out of range: hdu = %d, num_hdus = %d\n", hdu, num_hdus);
 		goto error;
 	}
+	// Go to the HDU containing the datalink product
 	if (fits_movabs_hdu(fptr, hdu, NULL, &status)) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
+	// Get the number of rows and check we are asking for a valid entry
 	fits_get_num_rows(fptr, &nrows, &status);
-	if (fits_get_colnum(fptr, CASEINSEN, "wavelength", &wlcol, &status)) {
-		fits_report_error(stderr, status);
+	if (nrows < i) {
+		siril_debug_print("Too few rows in datalink product FITS\n");
 		goto error;
 	}
+	// Get the column number containing flux
 	if (fits_get_colnum(fptr, CASEINSEN, "flux", &fluxcol, &status)) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
-	if (fits_read_col(fptr, TDOUBLE, fluxcol, 1, 1, 343, NULL, xps->y, &anynul, &status)) {
+
+	// Read the repeat and width of the column (to ensure it's a variable-length array)
+	long repeat, width;
+	if (fits_get_eqcoltype(fptr, fluxcol, NULL, &repeat, &width, &status)) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
 
-	// Convert from flux in W m^-2 nm^-1 to relative photon count normalised at 550nm
-	// for consistency with how we handle white references and camera photon counting
-	// behaviour.
-	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
-		xps->y[j] *= xps->x[j];
+	// Read the variable-length array pointer and its size
+	long array_length;
+	long offset;
+	if (fits_read_descript(fptr, fluxcol, i, &array_length, &offset, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
 	}
-	double norm = xps->y[82];
-	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
-		xps->y[j] /= norm;
+	if (array_length != 343) {
+		siril_debug_print("Invalid array length %ld (should be 343)\n", array_length);
+		goto error;
 	}
+
+	// Allocate temp memory for the data (we have to do this as the data is
+	// float but we need it as double)
+	float *data = (float *)calloc(array_length, sizeof(float));
+	if (!data) {
+		fprintf(stderr, "Memory allocation failed!\n");
+		goto error;
+	}
+
+	// Read the actual array data from the heap
+	if (fits_read_col(fptr, TFLOAT, fluxcol, i+1, 1, array_length, NULL, data, &anynul, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
+	}
+	// Transfer the data from our temp float buffer to the xps double buffer
+	for (int j = 0 ; j < array_length ; j++) {
+		xps->y[j] = data[j];
+	}
+	free(data);
 
 	if (fits_close_file(fptr, &status))
 		fits_report_error(stderr, status);
