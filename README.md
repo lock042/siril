@@ -164,7 +164,7 @@ The build process using [msys2](https://www.msys2.org) is documented
 ## Translation instructions for Siril
 
 If you're interested in contributing to the translation of the application and documentation,
-we encourage you to use [Weblate](https://weblate.pixls.us/projects/siril/). Weblate is a
+we encourage you to use [Weblate](https://weblate.siril.org/projects/siril/). Weblate is a
 powerful web-based translation tool that allows for easy collaboration and efficient
 translation workflow.
 
