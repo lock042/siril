@@ -3190,7 +3190,7 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 	}
 
 	// Read the actual array data from the heap
-	if (fits_read_col(fptr, TFLOAT, fluxcol, i, 1, array_length, NULL, data, &anynul, &status)) {
+	if (fits_read_col(fptr, TFLOAT, fluxcol, i+1, 1, array_length, NULL, data, &anynul, &status)) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
