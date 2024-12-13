@@ -254,7 +254,7 @@ void map_undistortion_S2D(disto_data *disto, int rx, int ry, float *xmap, float 
 
 // Computes the distortion map and stores it in the disto structure
 int init_disto_map(int rx, int ry, disto_data *disto) {
-	if (disto == NULL ||(disto->dtype != DISTO_MAP_D2S && disto->dtype != DISTO_MAP_S2D)) //nothing to do
+	if (disto == NULL ||(disto->dtype != DISTO_MAP_D2S && disto->dtype != DISTO_MAP_S2D && disto->dtype != DISTO_S2D)) //nothing to do
 		return 0;
 
 	if (!disto->xmap) {
@@ -331,7 +331,7 @@ void prepare_H_with_disto_4remap(double *H, int rx_in, int ry_in, int rx_out, in
 	}
 	if (disto->dtype == DISTO_D2S) {
 		map_undistortion_D2S(disto, rx_out, ry_out, xmap, ymap);
-	} else {
+	} else if (disto->dtype == DISTO_MAP_D2S){
 		map_undistortion_interp(disto, rx_in, ry_in, rx_out, ry_out, xmap, ymap);
 	}
 }

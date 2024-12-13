@@ -529,7 +529,7 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	cvPrepareH(H, scale, image->rx, image->ry, target_rx, target_ry);
 
 	// no distortion case
-	if (!disto) {
+	if (!disto || (disto->dtype != DISTO_MAP_D2S && disto->dtype != DISTO_D2S)) {
 		// OpenCV function
 		warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
 		if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
