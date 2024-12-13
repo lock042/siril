@@ -3157,7 +3157,6 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
-	siril_debug_print("Flux column number: %d\n", fluxcol);
 
 	// Read the repeat and width of the column (to ensure it's a variable-length array)
 	long repeat, width;
@@ -3165,7 +3164,6 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
-	siril_debug_print("Flux column has vector repeat count: %ld, element width: %ld bytes\n", repeat, width);
 
 	// Read the variable-length array pointer and its size
 	long array_length;
@@ -3177,8 +3175,6 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 	if (array_length != 343) {
 		siril_debug_print("Invalid array length %ld (should be 343)\n", array_length);
 		goto error;
-	} else {
-		siril_debug_print("Array length %ld\n", array_length);
 	}
 
 	// Allocate temp memory for the data (we have to do this as the data is
@@ -3194,13 +3190,10 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
-	siril_debug_print("xpsampled: ");
 	// Transfer the data from our temp float buffer to the xps double buffer
 	for (int j = 0 ; j < array_length ; j++) {
-		siril_debug_print("%f ", data[j]);
 		xps->y[j] = data[j];
 	}
-	siril_debug_print("\n");
 	free(data);
 
 	if (fits_close_file(fptr, &status))
