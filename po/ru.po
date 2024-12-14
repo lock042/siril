@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-11 08:47+0000\n"
+"PO-Revision-Date: 2024-12-14 10:16+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -14397,15 +14397,15 @@ msgstr ""
 
 #: src/core/command.c:1208
 msgid "-si= value must be > 0.0 and <= 65535\n"
-msgstr "значение -si= должно быть >= 0.0 и <= 65535\n"
+msgstr "значение -si= должно быть > 0.0 и <= 65535\n"
 
 #: src/core/command.c:1213
 msgid "-d= value must be > 0.0 and <= 20.0\n"
-msgstr "значение -d= должно быть >= 0.0 и <= 20.0\n"
+msgstr "значение -d= должно быть > 0.0 и <= 20.0\n"
 
 #: src/core/command.c:1218
 msgid "-ss= value must be > 0.0 and <= 32.0\n"
-msgstr "значение -ss= должно быть >= 0.0 и <= 32.0\n"
+msgstr "значение -ss= должно быть > 0.0 и <= 32.0\n"
 
 #: src/core/command.c:1223
 msgid ""
@@ -14415,7 +14415,7 @@ msgstr ""
 
 #: src/core/command.c:1226
 msgid "-mod= value must be > 0.0 and <= 1.0\n"
-msgstr "значение -mod= должно быть >= 0.0 и <= 1.0\n"
+msgstr "значение -mod= должно быть > 0.0 и <= 1.0\n"
 
 #: src/core/command.c:1236
 #, fuzzy
@@ -26288,7 +26288,6 @@ msgstr ""
 "экспортировать используя пункт \"Применить существующую регистрацию\"."
 
 #: src/gui/registration.c:60
-#, fuzzy
 msgid ""
 "<b>Image Pattern Alignment</b>: This is a simple registration by translation "
 "method using cross correlation in the spatial domain. This method is fast "
@@ -26298,9 +26297,9 @@ msgid ""
 msgstr ""
 "<b>По паттерну</b>: Простая регистрация методом переноса, используя кросс-"
 "корреляцию в пространственном домене. Это быстрый метод и используется для "
-"регистрации роликов с планетами. Он также может применяться для регистрации "
+"регистрации роликов с планетами. Он может применяться и для регистрации "
 "некоторых изображений глубокого космоса. Сдвиги с пиксельной точностью "
-"сохраняются в файле seq."
+"сохраняются во входящем файле последовательности."
 
 #: src/gui/registration.c:64
 #, fuzzy
