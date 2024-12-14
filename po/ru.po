@@ -6,8 +6,8 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:37+0100\n"
-"PO-Revision-Date: 2024-12-11 13:11+0000\n"
-"Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
+"PO-Revision-Date: 2024-12-18 23:30+0000\n"
+"Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/ru/>\n"
 "Language: ru\n"
@@ -9711,7 +9711,7 @@ msgstr ""
 #: src/algos/colors.c:701 src/algos/colors.c:785
 #, c-format
 msgid "%s channel extraction: processing...\n"
-msgstr "извлечение канала %s: выполнение...\n"
+msgstr "извлечение канала %s: выполняется...\n"
 
 #: src/algos/colors.c:781
 msgid "Siril cannot extract channels. Make sure your image is in RGB mode.\n"
@@ -10913,7 +10913,7 @@ msgstr "Запрошенный оператор непонятен\n"
 
 #: src/core/command.c:929
 msgid "Multiplying by a coefficient less than or equal to 0 is not possible.\n"
-msgstr "Невозможно умножить на коэффициент меньший или равный 0.\n"
+msgstr "Умножение на коэффициент меньший или равный 0 невозможно.\n"
 
 #: src/core/command.c:960
 #, c-format
@@ -16512,7 +16512,7 @@ msgstr ""
 
 #: src/core/OS_utils.c:761
 msgid "Limiting processing to 1900 MiB allocations (32-bit system)\n"
-msgstr "Ограничение обработки до 1900Мб (32 битная система)\n"
+msgstr "Ограничение обработки до 1900Мб (32-битная система)\n"
 
 #: src/core/pipe.c:100
 #, c-format
@@ -17415,7 +17415,7 @@ msgstr "Пожалуйста сообщите об этой ошибке: "
 
 #: src/core/siril.c:179
 msgid "Unsharp: processing...\n"
-msgstr "Нерезкая маска: обработка...\n"
+msgstr "Нерезкая маска: выполняется...\n"
 
 #: src/core/siril.c:280
 msgid "ddp level argument must be [0, 65535]\n"
@@ -18111,11 +18111,11 @@ msgstr "StarNet"
 
 #: src/filters/starnet.c:980
 msgid "StarNet: Processing..."
-msgstr "StarNet: Обработка…"
+msgstr "StarNet: Выполняется..."
 
 #: src/filters/synthstar.c:362
 msgid "Star synthesis (full star mask creation): processing...\n"
-msgstr "Синтез звёзд (создание полной маски звёзд): обработка...\n"
+msgstr "Синтез звёзд (создание полной маски звёзд): выполняется...\n"
 
 #: src/filters/synthstar.c:389
 msgid "No stars detected in the image.\n"
@@ -18129,7 +18129,7 @@ msgstr "Синтез %d звёзд...\n"
 #: src/filters/synthstar.c:654
 msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
 msgstr ""
-"Синтез звёзд (обесцвечивание обрезанных профилей звёзд): обработка...\n"
+"Синтез звёзд (обесцвечивание обрезанных профилей звёзд): выполняется...\n"
 
 #: src/filters/synthstar.c:710
 #, c-format
@@ -18687,7 +18687,7 @@ msgstr "Выделите область с образцом белого"
 
 #: src/gui/colors.c:232
 msgid "Color Calibration: processing...\n"
-msgstr "Калибровка цвета: обработка…\n"
+msgstr "Калибровка цвета: выполняется…\n"
 
 #. HSL
 #. HSV
@@ -19267,7 +19267,7 @@ msgstr "Выберете файл со списком звёзд сравнен�
 
 #: src/gui/nina_light_curve.c:90
 msgid "The current comparison stars file is not located in the CWD"
-msgstr ""
+msgstr "Текущий файл со списком звёзд сравнения вне рабочей директории"
 
 #: src/gui/nina_light_curve.c:99
 msgid "The currently loaded image must be plate solved"
@@ -23140,7 +23140,7 @@ msgstr "Всё равно уложить"
 
 #: src/stacking/stacking.c:269
 msgid "Stacking: processing...\n"
-msgstr "Укладка: обработка...\n"
+msgstr "Укладка: выполняется...\n"
 
 #: src/stacking/stacking.c:283
 #, c-format
