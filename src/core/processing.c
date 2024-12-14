@@ -875,7 +875,7 @@ void kill_child_process(gboolean onexit) {
 	}
 	// abort asnet by writing a file named stop in wd
 	if (com.child_is_running == EXT_ASNET) {
-		FILE* fp = fopen("stop", "w");
+		FILE* fp = g_fopen("stop", "w");
 		if (fp != NULL)
 			fclose(fp);
 		if (onexit) {

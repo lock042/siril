@@ -551,11 +551,11 @@ static int parseJsonNotificationsString(const gchar *jsonString, GSList **validN
 
 		// Check if current version matches version constraints
 		if (memcmp(&valid_from_version, &empty_version, sizeof(version_number))) {
-			if (compare_version(current_version, valid_from_version) >= 0)
+			if (compare_version(current_version, valid_from_version) <= 0)
 				valid = FALSE;
 		}
 		if (memcmp(&valid_to_version, &empty_version, sizeof(version_number))) {
-			if (compare_version(current_version, valid_to_version) < 0)
+			if (compare_version(current_version, valid_to_version) > 0)
 				valid = FALSE;
 		}
 
