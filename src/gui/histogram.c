@@ -857,7 +857,7 @@ static void reset_cursors_and_values(gboolean full_reset) {
 	gtk_toggle_tool_button_set_active(toggleOrig, BOOL_TRUE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkMTFSeq")), FALSE);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "stretch_");
-	on_histoZoom100_clicked(NULL, NULL);
+//	on_histoZoom100_clicked(NULL, NULL);
 	if (full_reset) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckLogButton")),
 									(com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE));

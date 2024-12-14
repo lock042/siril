@@ -305,6 +305,9 @@ static gboolean processJsonFile(const char *file_path) {
 							}
 						}
 					}
+					if (!added) {
+						spcc_object_free(data, TRUE); // Free if not added anywhere
+					}
 					break;
 				case OSC_FILTERS:
 					com.spcc_data.osc_filters = g_list_append(com.spcc_data.osc_filters, data);
@@ -367,6 +370,8 @@ void spcc_object_free(spcc_object *data, gboolean free_struct) {
 		return;
 	g_free(data->name);
 	data->name = NULL;
+	g_free(data->model);
+	data->model = NULL;
 	g_free(data->manufacturer);
 	data->manufacturer = NULL;
 	g_free(data->filepath);
