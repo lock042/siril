@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-14 10:16+0000\n"
+"PO-Revision-Date: 2024-12-14 11:19+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -14384,7 +14384,7 @@ msgstr "Запрошенный оператор непонятен\n"
 
 #: src/core/command.c:1053
 msgid "Multiplying by a coefficient less than or equal to 0 is not possible.\n"
-msgstr "Невозможно умножить на коэффициент меньший или равный 0.\n"
+msgstr "Умножение на коэффициент меньший или равный 0 невозможно.\n"
 
 #: src/core/command.c:1081
 #, c-format
