@@ -1247,15 +1247,7 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 
 void remove_prefixed_star_files(sequence *seq, const char *prefix) {
 	for (int i = 0; i < seq->number; i++) {
-		char root[256];
-		fit_sequence_get_image_filename(seq, i, root, FALSE);
-		gchar *star_filename = NULL;
-		if (prefix)
-			star_filename = g_strdup_printf("%s%s.lst", prefix, root);
-		else
-		// Despite the name this function does actually allow for
-		// the prefix to be NULL as this is of use with internal sequences
-			star_filename = g_strdup_printf("%s.lst", root);
+		gchar *star_filename = get_cache_filename(seq, i, "lst", NULL);
 		siril_debug_print("Removing %s\n", star_filename);
 		if (g_unlink(star_filename))
 			siril_debug_print("g_unlink() failed\n");
@@ -2256,4 +2248,20 @@ gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filen
 	if (stat(seqname, &imgfileInfo) || stat(cache_filename, &cachefileInfo))
 		return FALSE;
 	return (cachefileInfo.st_mtime >= imgfileInfo.st_mtime);
+}
+
+gchar *get_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix) {
+	char root[256];
+	if (!fit_sequence_get_image_filename(seq, index, root, FALSE)) {
+		return NULL;
+	}
+	gchar *cache_filename = NULL;
+	if (prefix)
+		cache_filename = g_strdup_printf("%s%s.%s", prefix, root, ext);
+	else
+		cache_filename = g_strdup_printf("%s.%s", root, ext);
+
+	gchar *cache_path = g_build_path(G_DIR_SEPARATOR_S, com.wd, "cache", cache_filename, NULL);
+	g_free(cache_filename);
+	return cache_path;
 }
