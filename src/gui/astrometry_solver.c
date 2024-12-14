@@ -167,14 +167,14 @@ void initialize_ips_dialog() {
 	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	// sequence related controls
 	gboolean isseq = sequence_is_loaded() && com.seq.current != RESULT_IMAGE;
-	gboolean hasreg = isseq && layer_has_usable_registration(&com.seq, (gfit.naxes[2] == 1) ? RLAYER : GLAYER);
 	gtk_widget_set_visible(GTK_WIDGET(flipbutton), !isseq);
 	gtk_expander_set_expanded(sequenceexp, isseq);
 	gtk_widget_set_visible(GTK_WIDGET(sequenceexp), isseq);
 	gtk_widget_set_visible(GTK_WIDGET(stardetectionexp), !isseq);
-	gtk_toggle_button_set_active(seqsolvebutton, isseq && !hasreg);
+	gtk_widget_set_visible(GTK_WIDGET(seqsolvebutton), isseq);
 	on_GtkCheckButton_solveseq_toggled(NULL, NULL);
 	if (isseq) {
+		gtk_toggle_button_set_active(seqsolvebutton, FALSE);
 		gtk_toggle_button_set_active(sequseheadercoords, has_coords);
 		gtk_toggle_button_set_active(sequseheaderpixel, has_pixel);
 		gtk_toggle_button_set_active(sequseheaderfocal, has_focal);
@@ -714,7 +714,7 @@ void on_GtkCheckButton_OnlineCat_toggled(GtkToggleButton *button, gpointer user)
 }
 
 void on_GtkCheckButton_solveseq_toggled(GtkToggleButton *button, gpointer user) {
-	gboolean solveseq = gtk_toggle_button_get_active(seqsolvebutton);
+	gboolean solveseq = gtk_widget_get_visible(GTK_WIDGET(seqsolvebutton)) && gtk_toggle_button_get_active(seqsolvebutton);
 	gboolean shownocache = FALSE;
 	if (!gtk_combo_box_get_active(solverbox)) { // SOLVER_SIRIL
 		gboolean uselocal = use_local_catalogue();
