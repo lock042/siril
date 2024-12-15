@@ -666,6 +666,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					}
 					memcpy(&com.selection, &selection, sizeof(rectangle));
 					gui_function(new_selection_zone, NULL);
+					success = send_response(conn, STATUS_OK, NULL, 0);
 				}
 			} else {
 				// Handle error retrieving dimensions
