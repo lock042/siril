@@ -787,9 +787,9 @@ class SirilInterface:
             # Convert string to bytes using UTF-8 encoding
             message_bytes = truncated_string.encode('utf-8')
             if modal:
-                return self._execute_command(_Command.ERROR_MESSAGEBOX, message_bytes)
-            else:
                 return self._execute_command(_Command.ERROR_MESSAGEBOX_MODAL, message_bytes, timeout = None)
+            else:
+                return self._execute_command(_Command.ERROR_MESSAGEBOX, message_bytes)
 
         except Exception as e:
             print(f"Error sending log message: {e}", file=sys.stderr)
