@@ -979,7 +979,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 				// Free the node
 				g_slist_free_1(iter);
 			} else if (child->program == EXT_ASNET) {
-				FILE* fp = fopen("stop", "w");
+				FILE* fp = g_fopen("stop", "w");
 				if (fp != NULL)
 					fclose(fp);
 				if (onexit) {

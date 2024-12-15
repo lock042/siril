@@ -3177,13 +3177,8 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 		goto error;
 	}
 
-	// Allocate temp memory for the data (we have to do this as the data is
-	// float but we need it as double)
-	float *data = (float *)calloc(array_length, sizeof(float));
-	if (!data) {
-		fprintf(stderr, "Memory allocation failed!\n");
-		goto error;
-	}
+	// Temporary memory for the data (we have to do this as the data is float but we need it as double)
+	float data[343];
 
 	// Read the actual array data from the heap
 	if (fits_read_col(fptr, TFLOAT, fluxcol, i+1, 1, array_length, NULL, data, &anynul, &status)) {
@@ -3194,7 +3189,6 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 	for (int j = 0 ; j < array_length ; j++) {
 		xps->y[j] = data[j];
 	}
-	free(data);
 
 	if (fits_close_file(fptr, &status))
 		fits_report_error(stderr, status);
