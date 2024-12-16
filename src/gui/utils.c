@@ -88,16 +88,16 @@ GtkAdjustment* lookup_adjustment(const gchar *adjustment_name) {
 }
 
 static gboolean switch_tab(gpointer user_data) {
-	main_tabs tab = *(main_tabs*) user_data;
+	main_tabs tab = (main_tabs) GPOINTER_TO_INT(user_data);
 	GtkNotebook* notebook = GTK_NOTEBOOK(lookup_widget("notebook_center_box"));
 	gtk_notebook_set_current_page(notebook, tab);
 	return FALSE;
 }
 
 void control_window_switch_to_tab(main_tabs tab) {
-	if (com.script || com.python_script || com.headless)
+	if (com.script || com.headless)
 		return;
-	gui_function(switch_tab, &tab);
+	gui_function(switch_tab, GINT_TO_POINTER(tab));
 }
 
 /**

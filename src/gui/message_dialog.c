@@ -178,7 +178,7 @@ static gboolean show_modal_dialog(gpointer p) {
 void siril_message_dialog(GtkMessageType type, char *title, char *text) {
 	/* headless has no GUI, so no dialog; script has a GUI but calls it from another thread
 	 * so it's not safe to use dialogs in the calling thread, we just ignore it for now. */
-	if (com.headless || com.script || com.python_script)
+	if (com.headless || com.script)
 		return;	// show_dialog usually follows a siril_log_message() call
 	struct siril_dialog_data *args = g_try_malloc(sizeof(struct siril_dialog_data));
 

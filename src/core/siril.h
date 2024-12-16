@@ -868,6 +868,7 @@ struct cominf {
 	gboolean headless;		// pure console, no GUI
 	gboolean script;		// script being executed, always TRUE when headless is
 	gboolean python_script;	// python script being executed
+	gboolean python_command;	// python is running a Siril command
 	GThread *python_init_thread; // python initialization thread, used to monitor startup completion
 	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread

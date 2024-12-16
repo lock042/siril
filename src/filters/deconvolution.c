@@ -606,7 +606,7 @@ gpointer deconvolve(gpointer p) {
 			siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
 	if (the_fit == &gfit || the_fit == &gui.roi.fit)
-		if (!(com.script || com.python_script) && !com.headless && !args.previewing)
+		if (!com.script && !com.headless && !args.previewing)
 			undo_save_state(&gfit, _("Deconvolution"));
 	args.ndata = the_fit->rx * the_fit->ry * the_fit->naxes[2];
 	args.fdata = malloc(args.ndata * sizeof(float));

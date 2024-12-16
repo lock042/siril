@@ -106,7 +106,7 @@ static gboolean cm_worker(gpointer user_data) {
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	struct cm_struct data = { fit, active };
-	if (fit == &gfit && !(com.script || com.python_script)) {
+	if (fit == &gfit && !com.script) {
 		cm_worker(&data);
 	}
 }

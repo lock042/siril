@@ -187,6 +187,7 @@ void unreserve_thread();
 // Functions to allow a python script to block other tasks from claiming the thread
 int claim_thread_for_python();
 void python_releases_thread();
+void check_python_flag();
 
 gboolean get_script_thread_run();
 void wait_for_script_thread();

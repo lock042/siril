@@ -986,7 +986,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 					g_usleep(1000);
 					if (g_unlink("stop"))
 						siril_debug_print("g_unlink() failed\n");
-					printf("asnet has been stopped on exit\n");
+					siril_debug_print("asnet has been stopped on exit\n");
 				}
 				free_child(child);
 				// Remove the node from the list
@@ -1002,6 +1002,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 			} else if (child->program == INT_PROC_THREAD) {
 				stop_processing_thread();
 			}
+			siril_log_color_message(_("Process aborted by user\n"), "red");
 			success = TRUE;
 			if(!onexit)
 				break;
@@ -1015,9 +1016,35 @@ void kill_child_process(GPid pid, gboolean onexit) {
 		siril_log_message(_("Failed to find GPid %d, it may already have exited...\n"), pid);
 }
 
+static void check_if_child_is_python(gpointer data, gpointer user_data) {
+	// Cast the input pointers to their correct types
+	child_info *child = (child_info *)data;
+	gboolean *is_ok = (gboolean *)user_data;
+
+	// Convert name to lowercase for case-insensitive comparison
+	gchar *lowercase_name = g_ascii_strdown(child->name, -1);
+
+	// Check if the lowercased name contains "python"
+	if (g_strstr_len(lowercase_name, -1, "python") != NULL) {
+		// If "python" is found in the name, set is_ok to FALSE
+		*is_ok = FALSE;
+	}
+
+	// Free the lowercase string
+	g_free(lowercase_name);
+}
+
+void check_python_flag() {
+	siril_debug_print("checking python flag\n");
+	gboolean is_ok = TRUE;
+	g_slist_foreach(com.children, check_if_child_is_python, &is_ok);
+	if (is_ok) {
+		com.python_script = FALSE;
+		siril_debug_print("com.python_script cleared\n");
+	}
+}
+
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
-	if (com.thread != NULL)
-		siril_log_color_message(_("Process aborted by user\n"), "red");
 	guint children = g_slist_length(com.children);
 	if (children > 1) {
 		GPid pid = show_child_process_selection_dialog(com.children);

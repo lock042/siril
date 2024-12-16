@@ -39,6 +39,7 @@
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
+#include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_plot.h"
 #include "gui/script_menu.h"
@@ -738,6 +739,9 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 	// Close the process handle
 	g_spawn_close_pid(pid);
 	remove_child_from_children(pid);
+
+	// Check if it's OK to clear com.python_script
+	check_python_flag();
 
 	// Re-enable widgets
 	gui_function(script_widgets_idle, NULL);
@@ -1772,6 +1776,9 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	if (!python_path) {
 		siril_log_color_message(_("Error finding venv python path, unable to spawn python.\n"), "red");
 	} else {
+		// Clear any ROI that is set
+		on_clear_roi();
+
 		// Basic argv to spawn python to run the script
 		GPtrArray* python_argv = g_ptr_array_new();
 		g_ptr_array_add(python_argv, python_path);
@@ -1816,6 +1823,9 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		g_free(python_path);
 
 		if (success) {
+			// Set the flag that a python script is running
+			com.python_script = TRUE;
+			siril_debug_print("***** com.python_script flag set\n");
 			// Prepend this process to the list of child processes com.children
 			child_info *child = g_malloc(sizeof(child_info));
 			child->childpid = child_pid;
@@ -1857,6 +1867,9 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			// Close the process handle
 			g_spawn_close_pid(child_pid);
 			remove_child_from_children(child_pid);
+
+			// Check if it's OK to clear com.python_script
+			check_python_flag();
 
 			// Re-enable widgets
 			gui_function(script_widgets_idle, NULL);

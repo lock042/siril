@@ -129,7 +129,7 @@ static gboolean free_image_data_gui(gpointer user_data) {
 	 * to deal with them */
 	if (com.script)
 		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
-	else if (com.python_script)
+	else if (!g_main_context_is_owner(g_main_context_default()))
 		siril_add_idle(free_image_data_idle, NULL);
 	else
 		free_image_data_idle(NULL);

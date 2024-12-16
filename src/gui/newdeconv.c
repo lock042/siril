@@ -877,6 +877,7 @@ gboolean on_PSFkernel_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 // caller
 gboolean DrawPSF(gpointer user_data) {
-	gtk_widget_queue_draw(GTK_WIDGET(bdeconv_drawingarea));
+	if (GTK_IS_WIDGET(bdeconv_drawingarea))
+		gtk_widget_queue_draw(GTK_WIDGET(bdeconv_drawingarea));
 	return FALSE;
 }

@@ -844,7 +844,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_SEND_COMMAND: {
 			// Ensure null-terminated string for command
 			char* cmd = g_strndup(payload, payload_length);
+			com.python_command = TRUE;
 			int retval = processcommand(cmd, TRUE);
+			com.python_command = FALSE;
 			g_free(cmd);
 
 			// Send response based on command execution

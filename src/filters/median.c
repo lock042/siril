@@ -795,7 +795,7 @@ gpointer median_filter(gpointer p) {
 	lock_roi_mutex();
 	struct median_filter_data *args = (struct median_filter_data *)p;
 	copy_backup_to_gfit();
-	if (!(com.script || com.python_script) && !args->previewing)
+	if (!com.script && !args->previewing)
 		undo_save_state(&gfit, _("Median Filter (filter=%dx%d px)"),
 			args->ksize, args->ksize);
 	gpointer retval = GINT_TO_POINTER(1);

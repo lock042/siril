@@ -889,7 +889,7 @@ class SirilInterface:
             # Convert to bytes for transmission
             command_bytes = command_string.encode('utf-8')
 
-            return self._execute_command(_Command.SEND_COMMAND, command_bytes)
+            return self._execute_command(_Command.SEND_COMMAND, command_bytes, timeout = None)
 
         except Exception as e:
             print(f"Error sending command: {e}", file=sys.stderr)

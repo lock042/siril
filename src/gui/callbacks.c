@@ -239,6 +239,8 @@ void on_combo_theme_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 int populate_roi() {
+	if (com.python_command)
+		return 1;
 	if (gui.roi.selection.w == 0 || gui.roi.selection.h == 0)
 		return 1;
 	int retval = 0;
@@ -288,6 +290,8 @@ int populate_roi() {
 }
 
 static void call_roi_callbacks() {
+	if (com.python_command)
+		return;
 	GList *current = roi_callbacks;
 	while (current != NULL) {
 		ROICallback func = (ROICallback)(current->data);
@@ -349,6 +353,11 @@ void unlock_roi_mutex() {
 
 gpointer on_set_roi() {
 	g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
+	if (com.python_command) {
+//		on_clear_roi();
+		g_mutex_unlock(&roi_mutex);
+		return GINT_TO_POINTER(0);
+	}
 	cancel_pending_update();
 	if (gui.roi.operation_supports_roi && com.pref.gui.enable_roi_warning)
 		roi_info_message_if_needed();

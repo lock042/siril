@@ -428,7 +428,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	if (msg3) free(msg3);
 
 	siril_log_message("%s\n", log_msg);
-	if (!args->previewing && !(com.script || com.python_script))
+	if (!args->previewing && !com.script)
 		undo_save_state(&gfit, "%s", log_msg);
 	if (args->suppress_artefacts)
 		siril_log_message(_("Colour artefact suppression active.\n"));
