@@ -366,7 +366,7 @@ gpointer on_set_roi() {
 }
 
 gpointer on_clear_roi() {
-	if (is_preview_active()) {
+	if (gui.roi.active) {
 		g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 		cancel_pending_update();
 		copy_backup_to_gfit();
