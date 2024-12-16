@@ -476,6 +476,7 @@ void interpolate_nongreen(fits *fit) {
 	} else {
 		interpolate_nongreen_ushort(fit);
 	}
+	invalidate_stats_from_fit(fit);
 	siril_debug_print("Interpolating non-green pixels\n");
 }
 

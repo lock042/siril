@@ -36,6 +36,7 @@
 #include "gui/image_interactions.h"
 #include "gui/PSF_list.h"
 #include "gui/photometric_cc.h"
+#include "gui/registration.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/siril_catalogues.h"
@@ -55,7 +56,7 @@ static GtkToggleButton *flipbutton = NULL, *automagbutton = NULL, *DEC_S = NULL,
 	*nonearbutton = NULL, *blindposbutton = NULL, *blindresbutton = NULL,
 	*seqsolvebutton = NULL, *seqnocache = NULL, *seqskipsolved = NULL,
 	*sequseheadercoords = NULL, *sequseheaderpixel = NULL, *sequseheaderfocal = NULL,
-	*checkbutton_IPS_useforreg = NULL, *masterbutton = NULL;
+	*sequseforreg = NULL, *masterbutton = NULL;
 static GtkButton *distomaster_save_button = NULL;
 static GtkSpinButton *magspin = NULL, *RA_h = NULL, *RA_m = NULL, *DEC_d = NULL, *DEC_m = NULL, *radiusspin = NULL;
 static GtkComboBox *catalogbox = NULL, *orderbox = NULL, *solverbox = NULL, *serverbox = NULL;
@@ -111,7 +112,7 @@ static void load_all_ips_statics() {
 		sequseheadercoords = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheadercoords"));
 		sequseheaderpixel = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheaderpixel"));
 		sequseheaderfocal = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheaderfocal"));
-		checkbutton_IPS_useforreg = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_useforreg"));
+		sequseforreg = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_useforreg"));
 		masterbutton = GTK_TOGGLE_BUTTON(lookup_widget("master_ips_button"));
 		distomaster_save_button = GTK_BUTTON(lookup_widget("distomaster_save_button"));
 		// combos
@@ -722,6 +723,7 @@ void on_GtkCheckButton_solveseq_toggled(GtkToggleButton *button, gpointer user) 
 	}
 	gtk_widget_set_visible(GTK_WIDGET(IPSbox_seq_info), solveseq);
 	gtk_widget_set_visible(GTK_WIDGET(seqnocache), solveseq && shownocache);
+	gtk_widget_set_visible(GTK_WIDGET(sequseforreg), solveseq && com.seq.type == SEQ_REGULAR);
 }
 
 void on_GtkCheckButton_nonear_toggled(GtkToggleButton *button, gpointer user) {
@@ -814,7 +816,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		args->numthreads = com.max_thread;
 	} else {
 		args->force = !gtk_toggle_button_get_active(seqskipsolved);
-		args->update_reg = gtk_toggle_button_get_active(checkbutton_IPS_useforreg);
+		args->update_reg = gtk_toggle_button_get_active(sequseforreg) && gtk_widget_get_visible(GTK_WIDGET(sequseforreg)); // not visible for FITSEQ and SER
 		args->sfargs = calloc(1, sizeof(struct starfinder_data));
 		args->sfargs->im.from_seq = &com.seq;
 		args->sfargs->layer = (gfit.naxes[2] == 1) ? RLAYER : GLAYER;
@@ -955,4 +957,22 @@ void on_comboastro_solver_changed(GtkComboBox *combo, gpointer user_data) {
 		on_GtkCheckButton_blindpos_toggled(NULL, NULL);
 	}
 	on_GtkCheckButton_solveseq_toggled(NULL, NULL);
+}
+
+gboolean end_platesolve_sequence(gpointer p) {
+	struct generic_seq_args *args = (struct generic_seq_args *) p;
+	if (args->has_output && args->load_new_sequence &&
+			args->new_seq_prefix && !args->retval) {
+		gchar *basename = g_path_get_basename(args->seq->seqname);
+		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
+		check_seq();
+		update_sequences_list(seqname);
+		g_free(seqname);
+		g_free(basename);
+	}
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	update_reg_interface(FALSE);
+	free(p);
+	return end_generic(NULL);
 }

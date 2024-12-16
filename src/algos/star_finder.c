@@ -1233,6 +1233,8 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			copyfits(fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 			interpolate_nongreen(green_fit);
 			curr_findstar_args->im.fit = green_fit;
+			// const gchar *green_filename = get_cache_filename(seq, i, "fit", "green_");
+			// savefits(green_filename, green_fit);
 		}
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 		clearfits(green_fit);
