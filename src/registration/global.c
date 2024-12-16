@@ -164,7 +164,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 				stars[i+1] = NULL;
 			}
 		}
-		update_star_list(stars, FALSE);
+		update_star_list(stars, FALSE, FALSE);
 	}
 
 	// We prepare the distortion structure maps if required

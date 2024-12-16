@@ -12,6 +12,7 @@ import ctypes
 import threading
 import subprocess
 import numpy as np
+from time import sleep
 from enum import IntEnum
 from .translations import _
 from datetime import datetime
