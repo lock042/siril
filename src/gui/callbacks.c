@@ -377,7 +377,7 @@ gpointer on_set_roi() {
 }
 
 gpointer on_clear_roi() {
-	if (is_preview_active()) {
+	if (gui.roi.active) {
 		g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 		cancel_pending_update();
 		copy_backup_to_gfit();
@@ -934,8 +934,8 @@ static void update_roi_from_selection() {
 		copy_roi_into_gfit();
 	}
 	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
-	gui.roi.active = (gui.roi.selection.w > 0 && gui.roi.selection.h > 0);
-	if (gui.roi.active)
+	gboolean active = (gui.roi.selection.w > 0 && gui.roi.selection.h > 0);
+	if (active)
 		on_set_roi();
 	else
 		on_clear_roi();
