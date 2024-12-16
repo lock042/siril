@@ -146,8 +146,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 	fprintf(stdout, "\n");
 	// g_spawn handles wchar so not need to convert
 	if (!is_sequence) set_progress_bar_data(_("Starting GraXpert..."), 0.0);
-	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL,
-			&child_stderr);
+	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL, &child_stderr);
 
 	int i = 0;
 	while (argv[i])
@@ -314,7 +313,7 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		test_argv[nb++] = "--help";
 		// g_spawn handles wchar so not need to convert
 		GPid child_pid;
-		error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL, &child_stderr);
+		error = spawn_graxpert(test_argv, 500, &child_pid, NULL, NULL, &child_stderr);
 
 		if (error != NULL) {
 			siril_log_color_message(_("Spawning GraXpert failed during available AI model versions check: %s\n"), "red", error->message);
@@ -359,11 +358,11 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 }
 
 void fill_graxpert_version_arrays() {
-	if (compare_version(min_bg_ver, graxpert_version) < 0)
+	if (compare_version(min_bg_ver, graxpert_version) <= 0)
 		background_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_BG);
-	if (compare_version(min_denoise_ver, graxpert_version) < 0)
+	if (compare_version(min_denoise_ver, graxpert_version) <= 0)
 		denoise_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DENOISE);
-	if (compare_version(min_deconv_ver, graxpert_version) < 0) {
+	if (compare_version(min_deconv_ver, graxpert_version) <= 0) {
 		deconv_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV);
 		deconv_stellar_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV_STELLAR);
 	}
