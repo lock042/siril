@@ -40,6 +40,7 @@
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
 #include "gui/callbacks.h"
+#include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_plot.h"
 #include "gui/script_menu.h"
@@ -584,8 +585,8 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		fit->rx = fit->naxes[0] = info->width;
 		fit->ry = fit->naxes[1] = info->height;
 		fit->naxes[2] = info->channels;
-
-		notify_gfit_modified();
+		siril_debug_print("set_*_pixeldata: updating gfit\n");
+		queue_redraw(REMAP_ALL);
 	}
 	// Cleanup shared memory
 	#ifdef _WIN32
