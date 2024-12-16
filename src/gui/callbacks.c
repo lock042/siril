@@ -922,8 +922,8 @@ static void update_roi_from_selection() {
 		copy_roi_into_gfit();
 	}
 	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
-	gui.roi.active = (gui.roi.selection.w > 0 && gui.roi.selection.h > 0);
-	if (gui.roi.active)
+	gboolean active = (gui.roi.selection.w > 0 && gui.roi.selection.h > 0);
+	if (active)
 		on_set_roi();
 	else
 		on_clear_roi();
