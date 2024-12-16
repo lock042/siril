@@ -222,30 +222,30 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_rx,
 		return 1;
 	p->ymap = p->xmap + (source_rx * source_ry);
 
-    if (disto) {
-        if (disto->dtype == DISTO_S2D) { // no mapping, we need to create the distortion map
-            disto->xmap = p->xmap;
-            disto->ymap = p->ymap;
-            init_disto_map(source_rx, source_ry, disto);
-        } else if (disto->dtype == DISTO_MAP_S2D) { // mapping exists, we just copy
-            size_t sz = source_rx * source_ry;
-            memcpy(p->xmap, disto->xmap, sz * sizeof(float));
-            memcpy(p->ymap, disto->ymap, sz * sizeof(float));
-        } else {
-            siril_debug_print("trying to pass an invalid disto type for drizzle, aborting\n");
-            return 1;
-        }
-        for (int y = 0; y < source_ry; y++) {
-            for (int x = 0; x < source_rx; x++) {
-                float x0 = p->xmap[index];
-                float y0 = p->ymap[index];
-                float z = 1. / (x0 * Harr[6] + y0 * Harr[7] + Harr[8]);
-                p->xmap[index] = (x0 * Harr[0] + y0 * Harr[1] + Harr[2]) * z;
-                p->ymap[index++] = (x0 * Harr[3] + y0 * Harr[4] + Harr[5]) * z;
-            }
-	    }
-	    return 0;
-    }
+	if (disto && (disto->dtype != DISTO_NONE)) {
+		if (disto->dtype == DISTO_S2D) { // no mapping, we need to create the distortion map
+			disto->xmap = p->xmap;
+			disto->ymap = p->ymap;
+			init_disto_map(source_rx, source_ry, disto);
+		} else if (disto->dtype == DISTO_MAP_S2D) { // mapping exists, we just copy
+			size_t sz = source_rx * source_ry;
+			memcpy(p->xmap, disto->xmap, sz * sizeof(float));
+			memcpy(p->ymap, disto->ymap, sz * sizeof(float));
+		} else {
+			siril_debug_print("trying to pass an invalid disto type for drizzle, aborting\n");
+			return 1;
+		}
+		for (int y = 0; y < source_ry; y++) {
+			for (int x = 0; x < source_rx; x++) {
+				float x0 = p->xmap[index];
+				float y0 = p->ymap[index];
+				float z = 1. / (x0 * Harr[6] + y0 * Harr[7] + Harr[8]);
+				p->xmap[index] = (x0 * Harr[0] + y0 * Harr[1] + Harr[2]) * z;
+				p->ymap[index++] = (x0 * Harr[3] + y0 * Harr[4] + Harr[5]) * z;
+			}
+		}
+		return 0;
+	}
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
 #endif
