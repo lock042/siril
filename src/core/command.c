@@ -200,6 +200,14 @@ int process_load(int nb){
 	return (retval == 0) ? CMD_OK : CMD_FILE_NOT_FOUND;
 }
 
+int process_load_seq(int nb) {
+	execute_idle_and_wait_for_it(set_seq, word[1]);
+	if (com.seq.seqname)
+		return CMD_OK;
+	else
+		return CMD_GENERIC_ERROR;
+}
+
 int process_dumpheader(int nb) {
 	if (!gfit.header || gfit.header[0] == '\0') {
 		siril_log_message(_("Currently loaded image has no FITS header\n"));

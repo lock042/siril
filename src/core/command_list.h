@@ -105,6 +105,7 @@ static command commands[] = {
 	{"linstretch", 1, "linstretch -BP= [-sat] [-clipmode=] [channels] [-clipmode=]", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"livestack", 1, "livestack filename", process_livestack, STR_LIVESTACK, TRUE, REQ_CMD_NONE},
 	{"load", 1, "load filename[.ext]", process_load, STR_LOAD, TRUE, REQ_CMD_NONE},
+	{"load_seq", 1, "load_seq sequencename[.ext]", process_load_seq, STR_LOAD_SEQ, FALSE, REQ_CMD_NONE},
 	{"log", 0, "log", process_log, STR_LOG, TRUE, REQ_CMD_SINGLE_IMAGE},
 #ifndef _WIN32
 	{"ls", 0, "ls", process_ls, STR_LS, FALSE, REQ_CMD_NONE},

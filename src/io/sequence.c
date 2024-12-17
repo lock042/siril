@@ -549,7 +549,7 @@ gboolean set_seq(gpointer user_data){
 	if (retval == 0) {
 		int image_to_load = sequence_find_refimage(seq);
 		if (seq_read_frame(seq, image_to_load, &gfit, FALSE, -1)) {
-			fprintf(stderr, "could not load first image from sequence\n");
+			siril_log_color_message(_("could not load reference image from sequence\n"), "red");
 			free_sequence(seq, TRUE);
 			return TRUE;
 		}
@@ -1477,7 +1477,7 @@ gboolean close_sequence_idle(gpointer data) {
 }
 
 static void close_sequence_gui(gboolean loading_sequence_from_combo) {
-	if (com.script)
+	if (com.script || com.python_script)
 		execute_idle_and_wait_for_it(close_sequence_idle,
 				GINT_TO_POINTER(loading_sequence_from_combo));
 	else close_sequence_idle(GINT_TO_POINTER(loading_sequence_from_combo));
