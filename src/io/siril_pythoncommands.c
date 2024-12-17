@@ -665,7 +665,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					}
 					memcpy(&com.selection, &selection, sizeof(rectangle));
-					gui_function(new_selection_zone, NULL);
+					execute_idle_and_wait_for_it(new_selection_zone, NULL);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				}
 			} else {
