@@ -151,9 +151,6 @@ void on_epf_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkSpinButton *spin_epf_sigma_col = GTK_SPIN_BUTTON(lookup_widget("spin_epf_sigma_col"));
 	GtkSpinButton *spin_epf_sigma_spatial = GTK_SPIN_BUTTON(lookup_widget("spin_epf_sigma_spatial"));
 
-//	if (gui.rendering_mode == LINEAR_DISPLAY)
-//		setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
-
 	epf_startup();
 	epf_d_value = 0.0f;
 	epf_sigma_col_value = 11.0f;
