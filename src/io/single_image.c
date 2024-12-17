@@ -127,7 +127,7 @@ static gboolean free_image_data_gui(gpointer user_data) {
 	/* this function frees resources used in the GUI, some of these resources
 	 * need to be handled in the GTK+ main thread, so we use an idle function
 	 * to deal with them */
-	if (com.script)
+	if (com.script || com.python_command)
 		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
 	else if (!g_main_context_is_owner(g_main_context_default()))
 		siril_add_idle(free_image_data_idle, NULL);

@@ -12,6 +12,7 @@ char *normalize_seqname(char *name, gboolean add_underscore);
 int	check_seq();
 int	seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit);
 gboolean set_seq(gpointer user_data);
+gboolean set_seq_sync(gpointer user_data);
 char *	seq_get_image_filename(sequence *seq, int index, char *name_buf);
 int	seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, int thread_id);
 int seq_read_frame_metadata(sequence *seq, int index, fits *dest);

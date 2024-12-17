@@ -258,8 +258,9 @@ struct idle_data {
 
 static gboolean wrapping_idle(gpointer arg) {
 	struct idle_data *data = (struct idle_data *)arg;
-	data->idle(data->user);
 
+	fprintf(stderr, "Entering wrapping_idle for function %p\n", data->idle);
+	data->idle(data->user);
 	siril_debug_print("idle %p signaling end\n", data->idle);
 	g_mutex_lock(&data->mutex);
 	data->idle_finished = TRUE;
@@ -270,6 +271,14 @@ static gboolean wrapping_idle(gpointer arg) {
 }
 
 void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
+	// Check if we're already in the main thread (because if we are,
+	// the mutex control below will fail and will cause a hang)
+	if (g_main_context_is_owner(g_main_context_default())) {
+		// If in main thread, just call the function directly
+		idle(arg);
+		return;
+	}
+
 	struct idle_data data = { .idle_finished = FALSE, .idle = idle, .user = arg };
 	g_mutex_init(&data.mutex);
 	g_cond_init(&data.cond);
