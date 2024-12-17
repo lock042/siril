@@ -610,16 +610,6 @@ gboolean set_seq(gpointer user_data){
 	return FALSE;
 }
 
-// This is a wrapper that allows set_seq to be called within an
-// execute_idle_and_wait_for_it(). It MUST always return FALSE in order
-// for the wait to complete and avoid a hang. This is used in
-// process_load_seq in order to load a sequence in the GTK thread but
-// synchronously.
-gboolean set_seq_sync(gpointer user_data) {
-	set_seq(user_data);
-	return FALSE;
-}
-
 /* Load image number index from the sequence and display it.
  * if load_it is true, dest is assumed to be gfit
  * TODO: cut that method in two, with an internal func taking a filename and a fits

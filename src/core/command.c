@@ -201,12 +201,10 @@ int process_load(int nb){
 }
 
 int process_load_seq(int nb) {
-	if (sequence_is_loaded()) {
-		close_sequence(FALSE);
-		free_image_data();
-	}
+	close_sequence(FALSE);
 	close_single_image();
 
+	// Load the sequence into com.seq
 	execute_idle_and_wait_for_it(set_seq, word[1]);
 	if (com.seq.seqname) {
 		siril_debug_print("Sequence loaded ok\n");

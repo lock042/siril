@@ -77,7 +77,6 @@ void close_single_image() {
 }
 
 static gboolean free_image_data_idle(gpointer p) {
-	siril_debug_print("free_image_data_gui_idle() called\n");
 	disable_iso12646_conditions(TRUE, FALSE, FALSE);
 	//reset_compositing_module();
 	delete_selected_area();
@@ -119,6 +118,7 @@ static gboolean free_image_data_idle(gpointer p) {
 	g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(binning, on_combobinning_changed, NULL);
+	siril_debug_print("free_image_data_idle() complete\n");
 
 	return FALSE;
 }
@@ -127,13 +127,13 @@ static gboolean free_image_data_gui(gpointer user_data) {
 	/* this function frees resources used in the GUI, some of these resources
 	 * need to be handled in the GTK+ main thread, so we use an idle function
 	 * to deal with them */
-	if (com.script || com.python_command)
+	if (com.script || com.python_command) {
 		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
-	else if (!g_main_context_is_owner(g_main_context_default()))
+	} else if (!g_main_context_is_owner(g_main_context_default())) {
 		siril_add_idle(free_image_data_idle, NULL);
-	else
+	} else {
 		free_image_data_idle(NULL);
-	siril_debug_print("free_image_data_gui() called\n");
+	}
 
 	/* free display image data */
 	for (int vport = 0; vport < MAXVPORT; vport++) {
@@ -158,6 +158,7 @@ static gboolean free_image_data_gui(gpointer user_data) {
 	}
 	clear_previews();
 	free_reference_image();
+	siril_debug_print("free_image_data_gui() complete\n");
 	return FALSE;
 }
 
@@ -182,9 +183,15 @@ void free_image_data() {
 		com.uniq = NULL;
 	}
 
-	gui_function(free_image_data_gui, NULL);
-
+	if (com.script || com.python_command) {
+		execute_idle_and_wait_for_it(free_image_data_gui, NULL);
+	} else if (!g_main_context_is_owner(g_main_context_default())) {
+		siril_add_idle(free_image_data_gui, NULL);
+	} else {
+		free_image_data_gui(NULL);
+	}
 	clearfits(&gfit);
+	siril_debug_print("free_image_data() complete\n");
 }
 
 static gboolean end_read_single_image(gpointer p) {

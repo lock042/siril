@@ -977,6 +977,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_SEQ_FRAME_SET_PIXELDATA: {
+			if (!com.seq.seqname) {
+				const char* error_msg = _("No sequence loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
 			if (payload_length != 4 + sizeof(incoming_image_info_t)) {
 				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
@@ -1048,7 +1053,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			if (com.seq.current == index) {
 
-				gui_function(seq_load_image_in_thread, &index);
+				execute_idle_and_wait_for_it(seq_load_image_in_thread, &index);
 			}
 			break;
 		}
