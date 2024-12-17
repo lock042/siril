@@ -36,6 +36,7 @@ gboolean end_epf(gpointer p) {
 	set_cursor_waiting(FALSE);
 	stop_processing_thread();
 	notify_gfit_modified();
+	populate_roi();
 	return FALSE;
 }
 

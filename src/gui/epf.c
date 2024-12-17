@@ -89,14 +89,14 @@ static void epf_startup() {
 static void epf_close(gboolean revert) {
 	set_cursor_waiting(TRUE);
 	if (revert) {
-		siril_preview_hide();
+		copy_backup_to_gfit();
+		notify_gfit_modified();
 	} else {
 		invalidate_stats_from_fit(&gfit);
 		undo_save_state(get_preview_gfit_backup(),
 				_("Bilateral filter: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"),
 				epf_d_value, epf_sigma_col_value, epf_sigma_spatial_value);
 	}
-	backup_roi();
 	roi_supported(FALSE);
 	remove_roi_callback(epf_change_between_roi_and_image);
 	clearfits(&loaded_fit);
@@ -131,8 +131,6 @@ static int epf_process_all() {
 								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE };
 	// We call epfhandler here as we need to take care of the ROI mutex lock
 	start_in_new_thread(epfhandler, args);
-	populate_roi();
-	notify_gfit_modified();
 	return 0;
 }
 

@@ -184,10 +184,12 @@ void scnr_roi_callback() {
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 	// Notify the overlay that this dialog supports ROI processing
-	copy_gfit_to_backup();
 	roi_supported(TRUE);
-	// Call this directly on dialog start to set the ROI preview visibility
-	scnr_roi_callback();
+	if (gui.roi.active) {
+		copy_gfit_to_backup();
+		// Call this directly on startup to set the ROI preview
+		scnr_roi_callback();
+	}
 	add_roi_callback(scnr_roi_callback);
 	// Set up the backup (this is used to go back to a fresh copy of the
 	// image after abandoning a ROI preview)
@@ -203,7 +205,8 @@ void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
 	// Notify the overlay that we are leaving a dialog that supports ROI
 	roi_supported(FALSE);
 	// Get rid of the gfit backup
-	siril_preview_hide();
+	if (is_preview_active())
+		siril_preview_hide();
 	// Remove the callback
 	remove_roi_callback(scnr_roi_callback);
 	siril_close_dialog("SCNR_dialog");
