@@ -185,6 +185,7 @@ void scnr_roi_callback() {
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 	// Notify the overlay that this dialog supports ROI processing
 	roi_supported(TRUE);
+	gtk_widget_set_visible(lookup_widget("SCNR_roi_preview"), gui.roi.active);
 	if (gui.roi.active) {
 		copy_gfit_to_backup();
 		// Call this directly on startup to set the ROI preview
