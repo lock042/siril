@@ -1378,7 +1378,7 @@ class SirilInterface:
                     if "no image loaded" in error_msg.lower():
                         raise NoImageError(_("No image is currently loaded in Siril"))
                     else:
-                        raise RuntimeError(_("Server error: {}").formt(error_msg))
+                        raise RuntimeError(_("Server error: {}").format(error_msg))
                 else:
                     raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
 
