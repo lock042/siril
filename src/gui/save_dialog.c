@@ -367,6 +367,35 @@ static void filter_changed(gpointer user_data) {
 	g_free(filename);
 }
 
+gchar* extract_extension_from_filter(const gchar *filter_name) {
+	// Regex pattern to match first extension inside parentheses
+	GRegex *regex;
+	GError *error = NULL;
+	gchar *extension = NULL;
+
+	// Compile regex to match first extension after *. inside parentheses
+	regex = g_regex_new("\\*\\.([a-zA-Z0-9]+)", G_REGEX_MULTILINE, 0, &error);
+
+	if (error != NULL) {
+		g_warning("Regex compilation error: %s", error->message);
+		g_error_free(error);
+		return NULL;
+	}
+
+	// Try to match the regex
+	GMatchInfo *match_info;
+	if (g_regex_match(regex, filter_name, 0, &match_info)) {
+		// Get the first captured group (extension)
+		extension = g_match_info_fetch(match_info, 1);
+	}
+
+	// Free resources
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
+
+	return extension;
+}
+
 static int save_dialog() {
 	init_dialog();
 
@@ -383,23 +412,51 @@ static int save_dialog() {
 	g_signal_connect(chooser, "notify::filter", G_CALLBACK(filter_changed), (gpointer) chooser);
 	g_free(fname);
 
-	gint res = siril_dialog_run(saveDialog);
-	if (res == GTK_RESPONSE_ACCEPT) {
+	while (TRUE) {
+		gint res = siril_dialog_run(saveDialog);
+
+		if (res != GTK_RESPONSE_ACCEPT) {
+			close_dialog();
+			siril_preview_free(preview);
+			return res;
+		}
+
 		gchar *filename = siril_file_chooser_get_filename(chooser);
-		type_of_image = get_type_from_filename(filename);
+		image_type file_type = get_type_from_filename(filename);
+
+		GtkFileFilter *current_filter = gtk_file_chooser_get_filter(chooser);
+		const gchar *filter_name = gtk_file_filter_get_name(current_filter);
+		gchar *filter_extension = extract_extension_from_filter(filter_name);
+
+		image_type filter_format = get_type_for_extension(filter_extension);
+
+		image_type selected_type = (filter_format != TYPEUNDEF) ? filter_format : file_type;
+
+		if (file_type != TYPEUNDEF && filter_format != TYPEUNDEF && file_type != filter_format) {
+			gboolean confirm = siril_confirm_dialog(_("Extension Mismatch"),
+							_("The given file extension does not match the chosen file type. Do you want to save the image using this name anyway?"),
+							_("Save Anyway"));
+
+			if (!confirm) {
+				g_free(filename);
+				g_free(filter_extension);
+				continue;
+			}
+
+			selected_type = file_type;
+		}
+
+		type_of_image = selected_type;
 
 		GtkEntry *savetext = GTK_ENTRY(lookup_widget("savetxt"));
 		gtk_entry_set_text(savetext, filename);
 
 		prepare_savepopup();
-
 		g_free(filename);
+		g_free(filter_extension);
+
 		return res;
 	}
-	close_dialog();
-	siril_preview_free(preview);
-
-	return res;
 }
 
 // idle function executed at the end of the Save Data processing
