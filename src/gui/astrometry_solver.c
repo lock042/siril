@@ -168,7 +168,8 @@ void initialize_ips_dialog() {
 	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	// sequence related controls
 	gboolean isseq = sequence_is_loaded() && com.seq.current != RESULT_IMAGE;
-	gtk_widget_set_visible(GTK_WIDGET(flipbutton), !isseq);
+	gboolean is_bayer = !isseq && gfit.keywords.bayer_pattern[0] != '\0';
+	gtk_widget_set_visible(GTK_WIDGET(flipbutton), !isseq && !is_bayer);
 	gtk_expander_set_expanded(sequenceexp, isseq);
 	gtk_widget_set_visible(GTK_WIDGET(sequenceexp), isseq);
 	gtk_widget_set_visible(GTK_WIDGET(stardetectionexp), !isseq);
@@ -296,7 +297,7 @@ static gboolean is_detection_manual() {
 }
 
 static gboolean flip_image_after_ps() {
-	return gtk_toggle_button_get_active(flipbutton);
+	return gtk_widget_get_visible(GTK_WIDGET(flipbutton)) && gtk_toggle_button_get_active(flipbutton);
 }
 
 static gboolean is_downsample_activated() {
