@@ -29,6 +29,7 @@
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
 #include "gui/callbacks.h"
+#include "gui/siril_preview.h"
 
 #include "filters/epf.h"
 
@@ -198,6 +199,11 @@ int edge_preserving_filter(struct epfargs *args) {
 	}
 	if (orig_type == DATA_USHORT) {
 		fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
+	}
+
+	if (fit == &gfit && args->applying && !com.script) {
+		populate_roi();
+		copy_gfit_to_backup();
 	}
 
 	if (verbose) {

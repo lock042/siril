@@ -112,7 +112,7 @@ static int epf_update_preview() {
 	struct epfargs *args = calloc(1, sizeof(struct epfargs));
 	*args = (struct epfargs) {.fit = fit, .guidefit = guide, .d = epf_d_value, .sigma_col = epf_sigma_col_value,
 								.sigma_space = epf_sigma_spatial_value, .mod = mod, .filter = filter_type,
-								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE };
+								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE, .applying = FALSE };
 	set_cursor_waiting(TRUE);
 	// We call epf_filter here as update_preview already handles the ROI mutex lock
 	start_in_new_thread(epf_filter, args);
@@ -129,7 +129,8 @@ void epf_change_between_roi_and_image() {
 }
 
 static void epf_startup() {
-	copy_gfit_to_backup();
+	if (gui.roi.active)
+		copy_gfit_to_backup();
 	add_roi_callback(epf_change_between_roi_and_image);
 	roi_supported(TRUE);
 }
@@ -176,7 +177,7 @@ static int epf_process_all() {
 	}
 	*args = (struct epfargs) {	.fit = fit, .guidefit = guide, .d = epf_d_value, .sigma_col = epf_sigma_col_value,
 								.sigma_space = epf_sigma_spatial_value, .mod = mod, .filter = filter_type,
-								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE };
+								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE, .applying = TRUE};
 	// We call epfhandler here as we need to take care of the ROI mutex lock
 	start_in_new_thread(epfhandler, args);
 	return 0;
@@ -216,13 +217,6 @@ void on_epf_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_spin_button_set_value(spin_epf_sigma_spatial, epf_sigma_spatial_value);
 	gtk_spin_button_set_value(spin_epf_sigma_col, epf_sigma_col_value);
 	set_notify_block(FALSE);
-
-	// Default parameters transform the image, so update the preview if toggle is active
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = epf_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(epf_preview);
-	notify_update((gpointer) param);
-
 }
 
 void on_epf_cancel_clicked(GtkButton *button, gpointer user_data) {
