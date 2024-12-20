@@ -926,13 +926,22 @@ gpointer plate_solver(gpointer p) {
 			args->scalefactor = (double)fit_backup.rx / (double)args->fit->rx;
 			detection_layer = 0;
 		}
-
-		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
+		fits *green_fit = NULL;
+		image im =  (image){ .fit = NULL, .from_seq = NULL, .index_in_seq = -1 };
+		if (args->fit->keywords.bayer_pattern[0] != '\0') {
+			green_fit = calloc(1, sizeof(fits));
+			copyfits(args->fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+			interpolate_nongreen(green_fit);
+			im.fit = green_fit;
+		} else {
+			im.fit = args->fit;
+		}
 
 		stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &nb_stars,
 				&(args->solvearea), FALSE, TRUE,
 				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, args->numthreads);
 
+		clearfits(green_fit);
 		if (args->downsample) {
 			clearfits(args->fit);
 			memcpy(args->fit, &fit_backup, sizeof(fits));
