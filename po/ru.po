@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-16 06:43+0000\n"
+"PO-Revision-Date: 2024-12-20 13:21+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -5710,7 +5710,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:782
 msgid "Embed ICC profiles in saved FITS files"
-msgstr "Встроить профили ICC в сохранённые файлы FITS"
+msgstr "Встроить ICC-профили в сохранённые файлы FITS"
 
 #: src/gui/uifiles/settings_window.ui:786
 msgid ""
