@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:37+0100\n"
-"PO-Revision-Date: 2024-12-13 09:23+0000\n"
-"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
+"PO-Revision-Date: 2024-12-22 15:30+0000\n"
+"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/de/>\n"
 "Language: de\n"
@@ -12040,6 +12040,8 @@ msgid ""
 "Statistics cannot be made on CFA images with a selection smaller than a 2x2 "
 "square, aborting\n"
 msgstr ""
+"Statistiken bei Farbbildern (CFA) können nicht mit einer Auswahl von weniger "
+"als 2x2 Pixel berechnet werden, breche ab\n"
 
 #: src/core/command.c:5927
 #, c-format
@@ -12048,13 +12050,13 @@ msgstr ""
 "Statistik-Berechnung für Kanal %d (alle gleich null?) fehlgeschlagen.\n"
 
 #: src/core/command.c:5948
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.6f\n"
 msgstr ""
-"%s Layer: Mittelwert: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: "
-"%0.1f, Hintergrundrauschen: %0.1f\n"
+"%s Layer: Mittel: %0.6f, Median: %0.1f, Sigma: %0.6f, Min: %0.1f, Max: "
+"%0.1f, Hintergrundrauschen: %0.6f\n"
 
 #: src/core/command.c:5953
 #, c-format
@@ -19439,11 +19441,12 @@ msgstr "Keine Sequenz geladen"
 
 #: src/gui/nina_light_curve.c:84
 msgid "Choose a comparison stars file"
-msgstr ""
+msgstr "Wählen Sie eine Datei mit Vergleichssternen aus"
 
 #: src/gui/nina_light_curve.c:90
 msgid "The current comparison stars file is not located in the CWD"
 msgstr ""
+"Die aktuelle Sternvergleichsdatei befindet sich nicht im Arbeitsverzeichnis"
 
 #: src/gui/nina_light_curve.c:99
 msgid "The currently loaded image must be plate solved"
