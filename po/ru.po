@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-21 06:54+0000\n"
+"PO-Revision-Date: 2024-12-21 07:33+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -219,6 +219,8 @@ msgstr ""
 #: src/gui/uifiles/aavso_dialog.ui:390
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
+"Комментарии или заметки о наблюдении. Если комментариев нет, используйте \"na"
+"\"."
 
 #: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2520
 msgid "Aberration Inspector"
@@ -241,7 +243,7 @@ msgstr "Очистить"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current annotations."
-msgstr ""
+msgstr "Очистить все текущие аннотации."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -328,11 +330,11 @@ msgstr "pgc"
 
 #: src/gui/uifiles/annotate_dialog.ui:146
 msgid "aavso_chart"
-msgstr ""
+msgstr "aavso_chart"
 
 #: src/gui/uifiles/annotate_dialog.ui:147
 msgid "solsys"
-msgstr ""
+msgstr "solsys"
 
 #: src/gui/uifiles/annotate_dialog.ui:159
 #: src/gui/uifiles/composition_dialog.ui:425
@@ -400,7 +402,7 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:317
 msgid "Conesearch"
-msgstr ""
+msgstr "Поиск"
 
 #: src/gui/uifiles/annotate_dialog.ui:369
 msgid "File: "
@@ -415,7 +417,7 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:397
 msgid "Click this button to select a csv file."
-msgstr ""
+msgstr "Нажмите на эту кнопку, чтобы выбрать файл csv."
 
 #: src/gui/uifiles/annotate_dialog.ui:430
 msgid ""
@@ -4234,6 +4236,9 @@ msgid ""
 "color space transform. This is useful if the image has an incorrect ICC "
 "profile."
 msgstr ""
+"Назначает текущему изображению выбранный ICC-профиль без преобразования "
+"цветового пространства. Это полезно если изображение имеет некорректный "
+"профиль ICC."
 
 #: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3895
 #: src/core/icc_profile.c:1243
@@ -4689,7 +4694,7 @@ msgstr "Настройка действий мыши"
 
 #: src/gui/uifiles/mouse_actions.ui:111
 msgid "Add an extra mouse action"
-msgstr ""
+msgstr "Добавить дополнительное действие мыши"
 
 #: src/gui/uifiles/mouse_actions.ui:126
 msgid "Remove the selected mouse action"
@@ -4719,7 +4724,7 @@ msgstr "Удалить действие при прокрутке"
 
 #: src/gui/uifiles/mouse_actions.ui:255 src/gui/uifiles/siril.ui:6353
 msgid " "
-msgstr ""
+msgstr " "
 
 #: src/gui/uifiles/mouse_actions.ui:271
 msgid "Scroll Actions"
@@ -4936,7 +4941,7 @@ msgstr "Ланцош-4"
 
 #: src/gui/uifiles/resample_dialog.ui:280
 msgid "%"
-msgstr ""
+msgstr "%"
 
 #: src/gui/uifiles/resample_dialog.ui:291
 #, fuzzy
@@ -5096,6 +5101,10 @@ msgid ""
 "entire profile. This means that when you re-open the file the ICC profile "
 "description may be different, although it will be functionally equivalent."
 msgstr ""
+"Замечание: при встраивании ICC-профилей, libjxl проверяет, распознаёт ли она "
+"профиль. Если нет, она установит опорное значение, вместо сохранения профиля "
+"целиком. Это означает, что при повторном открытии файла, описание ICC-"
+"профиля может отличаться, хотя функционально он будет эквивалентен."
 
 #: src/gui/uifiles/savepopup.ui:128
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
@@ -5206,7 +5215,7 @@ msgstr "Сохранить значения MIPS-HI и MIPS-LO"
 
 #: src/gui/uifiles/savepopup.ui:777
 msgid "Save CHECKSUM and DATASUM keywords"
-msgstr ""
+msgstr "Сохранить ключевые слова CHECKSUM и DATASUM"
 
 #: src/gui/uifiles/savepopup.ui:797
 msgid "Embedded Data"
@@ -5722,6 +5731,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:799
 msgid "Verify file checksums in FITS header (DATASUM and CHECKSUM)"
 msgstr ""
+"Проверять контрольные суммы файлов в заголовке FITS (DATASUM и CHECKSUM)"
 
 #: src/gui/uifiles/settings_window.ui:803
 msgid ""
@@ -5729,6 +5739,9 @@ msgid ""
 "file is read, which may significantly impact Siril's performance when using "
 "a sequence."
 msgstr ""
+"Проверять контрольные суммы, если они существуют. Проверка происходит каждый "
+"раз при чтении файла, что может существенно повлиять на производительность "
+"Siril при работе с последовательностями."
 
 #: src/gui/uifiles/settings_window.ui:821
 msgid "<b>FITS Header</b>"
@@ -19211,7 +19224,6 @@ msgstr ""
 "цвета (значение по умолчанию)"
 
 #: src/core/command_def.h:135
-#, fuzzy
 msgid ""
 "Saves current image to <b>filename</b>.fit (or .fits, depending on your "
 "preferences, see SETEXT) in the current working directory. The image remains "
@@ -19222,7 +19234,8 @@ msgstr ""
 "Сохраняет текущее изображение <b>filename</b>.fit (или .fits, в зависимости "
 "от ваших настроек, см. SETEXT) в текущей рабочей директории. Изображение "
 "остаётся загруженным. <b>filename</b> может содержать путь, если каталог уже "
-"существует"
+"существует. Опция <b>-chksum</b> сохраняет ключевые слова контрольной суммы ("
+"CHECKSUM и DATASUM) в заголовке FITS"
 
 #: src/core/command_def.h:136
 msgid ""
@@ -22029,7 +22042,7 @@ msgstr "добавить CTYPE3='RGB' в заголовок FITS"
 
 #: src/core/settings.c:348
 msgid "Verify file checksums if they exist"
-msgstr ""
+msgstr "Проверять контрольные суммы, если они существуют"
 
 #: src/core/settings.c:349
 msgid "user copyright to put in file header"
@@ -28095,11 +28108,14 @@ msgstr ""
 #, c-format
 msgid "Error: HDU checksum mismatch. Expected %s, got %s.\n"
 msgstr ""
+"Ошибка: несовпадение контрольной суммы HDU. Ожидаемая %s, полученная %s.\n"
 
 #: src/io/image_format_fits.c:1242
 #, c-format
 msgid "Error: Data checksum mismatch. Expected %lu, got %s.\n"
 msgstr ""
+"Ошибка: несовпадение контрольной суммы данных. Ожидаемая %lu, полученная %s."
+"\n"
 
 #: src/io/image_format_fits.c:1252
 #, c-format
