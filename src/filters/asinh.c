@@ -69,9 +69,8 @@ static void asinh_close(gboolean revert) {
 	set_cursor_waiting(TRUE);
 	if (revert) {
 		if (asinh_stretch_value != 0.0f || asinh_black_value != 0.0f) {
-			siril_preview_hide();
-		} else {
-			clear_backup();
+			copy_backup_to_gfit();
+			notify_gfit_modified();
 		}
 	} else {
 		invalidate_stats_from_fit(&gfit);
