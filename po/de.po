@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-21 11:02+0000\n"
-"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
+"PO-Revision-Date: 2024-12-21 16:18+0000\n"
+"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -284,9 +284,8 @@ msgid "Close the window."
 msgstr "Fenster schließen."
 
 #: src/gui/uifiles/annotate_dialog.ui:67
-#, fuzzy
 msgid "Apply requested annotation."
-msgstr "Registrierung anwenden"
+msgstr "Beschriftung anwenden."
 
 #: src/gui/uifiles/annotate_dialog.ui:110
 msgid "Catalogue: "
@@ -413,6 +412,15 @@ msgid ""
 "with the tag check button to display names alongside markers and log check "
 "button to list the objects in the console log."
 msgstr ""
+"Einige Kataloge (bsc, gcvs, pgc, exo, aavso_chart, varisum und solsys) "
+"zeigen standardmäßig auch die Namen neben den Markern in der Anzeige an und "
+"führen sie im Protokoll auf. Bei anderen Programmen mit einer größeren "
+"Anzahl von Objekten, namentlich vsx und simbad, können diese Informationen "
+"ebenfalls angezeigt werden, aber da sie die Anzeige überfrachten könnten, "
+"sind sie standardmäßig nicht aktiviert. Dieses Verhalten kann mit der "
+"Schaltfläche „Tag“ ein- und ausgeschaltet werden, um die Namen neben den "
+"Markierungen anzuzeigen, und mit der Schaltfläche „Log“, um die Objekte im "
+"Konsolenprotokoll aufzulisten."
 
 #: src/gui/uifiles/annotate_dialog.ui:189
 #: src/gui/uifiles/annotate_dialog.ui:442
@@ -527,9 +535,8 @@ msgstr ""
 "(z. B. 184.000785, 14.899070) eingeben."
 
 #: src/gui/uifiles/annotate_dialog.ui:520
-#, fuzzy
 msgid "Display Name:"
-msgstr "Anzeige"
+msgstr "Anzeigename:"
 
 #: src/gui/uifiles/annotate_dialog.ui:531
 msgid ""
@@ -546,9 +553,8 @@ msgstr ""
 "zu speichern."
 
 #: src/gui/uifiles/annotate_dialog.ui:564
-#, fuzzy
 msgid "Get coordinates from selection"
-msgstr "Fehler bei der Auswahl der Mittelpunktskoordinaten"
+msgstr "Koordinate aus Auswahl ermitteln"
 
 #: src/gui/uifiles/annotate_dialog.ui:585
 msgid "Single Coordinates"
@@ -971,11 +977,17 @@ msgid ""
 "When platesolving a sequence, the distortion file is saved from the "
 "reference image."
 msgstr ""
+"Speichert die Lösung als Verzerrungsdatei, um die Bilder bei der "
+"Registrierung zu entzerren.\n"
+"Diese Option ist nur aktiviert, wenn die Ordnung der Lösung größer als 1 ist."
+"\n"
+"Bei der astrometrischen Lösung einer Sequenz wird die Verzerrungsdatei aus "
+"dem Referenzbild gespeichert."
 
 #: src/gui/uifiles/astrometry_dialog.ui:789
 msgid ""
 "Path to the distortion file to be created (ending with a *.wcs extension)"
-msgstr ""
+msgstr "Pfad zu der zu erstellenden Verzerrungsdatei (mit der Endung *.wcs)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:874
 msgid "Image Parameters"
@@ -1111,14 +1123,14 @@ msgid "Tick this box to solve the whole sequence."
 msgstr "Markieren sie diese Kontrollbox um die gesamte Sequenz zu lösen."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1112
-#, fuzzy
 msgid "Use as registration information"
-msgstr "Registrierungsrahmen ein-/ausblenden"
+msgstr "Als Registrierungsinformation verwenden"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1116
-#, fuzzy
 msgid "Tick this box to use astrometric data to compute sequence registration."
-msgstr "Markieren sie diese Kontrollbox um die gesamte Sequenz zu lösen."
+msgstr ""
+"Markieren Sie dieses Kästchen, um astrometrische Daten zur Registrierung der "
+"gesamten Sequenz zu berechnen."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1129
 msgid "Skip already solved images"
@@ -1342,6 +1354,12 @@ msgid ""
 "placement: samples will automatically be created for each frame in the "
 "sequence."
 msgstr ""
+"Klicken Sie hier, um automatisch bestimmte Stichproben zu erzeugen.\n"
+"\n"
+"Bei der Verarbeitung einer Sequenz dienen die gezeigten Stichproben nur zur "
+"Veranschaulichung, wie sich die Einstellung von \"Stichproben pro Zeile\" "
+"und die Rastertoleranz auf die Platzierung der Stichproben auswirkt: Die "
+"Stichproben werden automatisch für jedes Bild in der Sequenz erstellt."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:476
 msgid "Click here to clear all the samples."
@@ -2919,15 +2937,13 @@ msgid "Tri-Profile (mono)"
 msgstr "Tri-Profil (mono)"
 
 #: src/gui/uifiles/cut_dialog.ui:179
-#, fuzzy
 msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile."
 msgstr ""
 "Erzeugt 3 parallele Intensitätsprofile, die durch eine bestimmte Anzahl von "
-"Pixeln getrennt sind. Bei Tr-Profilen wird die Leuchtdichte immer entlang "
-"jedes Profils aufgezeichnet und es werden keine spektrometrischen Daten "
-"verwendet."
+"Pixeln getrennt sind. Bei Tri-Profilen wird die Leuchtdichte immer entlang "
+"jedes Profils erzeugt."
 
 #: src/gui/uifiles/cut_dialog.ui:194
 msgid "Set offset step size for tri-profile"
@@ -3125,9 +3141,8 @@ msgid "Wavenumber"
 msgstr "Wellenzahl"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:382
-#, fuzzy
 msgid "Spectroscopic Calibration Points"
-msgstr "Spektrophotometrische Farbkalibrierung"
+msgstr "Spektroskopische Kalibrierungspunkte"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:414
 msgid "Polynomial degree"
@@ -3142,9 +3157,8 @@ msgstr ""
 "zwischen 1 (lineare Anpassung) und 6 (sextes Polynom)"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:436
-#, fuzzy
 msgid "Plot measured and modelled background"
-msgstr "Hintergrund kann nicht geladen werden\n"
+msgstr "Darstellung des gemessenen und modellierten Hintergrunds"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:465
 msgid "Background Removal"
@@ -3439,7 +3453,7 @@ msgstr "Clipping Modus"
 
 #: src/gui/uifiles/dialog_star_remix.ui:160
 msgid "Select the clipping mode for partially clipped pixels."
-msgstr ""
+msgstr "Auswahl des Beschneidungsmodus für teilweise beschnittene Pixel."
 
 #: src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:787
@@ -4151,9 +4165,8 @@ msgid "Toggle preview on / off"
 msgstr "Vorschau an / aus"
 
 #: src/gui/uifiles/histogram_dialog.ui:765
-#, fuzzy
 msgid "Clip mode:"
-msgstr "Obere Grenze"
+msgstr "Beschneidungsmodus:"
 
 #: src/gui/uifiles/histogram_dialog.ui:777
 msgid ""
@@ -4165,6 +4178,14 @@ msgid ""
 "Globa rescale: Same as Rescale, but rescales to the global maximum component "
 "value"
 msgstr ""
+"Mischmodus auswählen.\n"
+"Clip: Beschneidet Werte auf den Bereich 0,0 - 1,0\n"
+"Neu skalieren: skaliert RGB-Werte von abgeschnittenen Pixeln so, dass sie "
+"1,0 pro Pixel nicht überschreiten\n"
+"RGB-Mischung: wendet eine Mischfunktion für glatt rekonstruierte "
+"Hervorhebungsfarben an. <b>Standard</b>\n"
+"Global neu skalieren: Wie „Neu skalieren“, skaliert aber auf den globalen "
+"maximalen Komponentenwert"
 
 #: src/gui/uifiles/histogram_dialog.ui:854
 msgid ""
@@ -4287,14 +4308,12 @@ msgid "Protected"
 msgstr "Geschützt"
 
 #: src/gui/uifiles/keywords_dialog.ui:208
-#, fuzzy
 msgid "Add a new keyword in the FITS header."
-msgstr "Es sind keine Schlüsselbegriffe im FITS_Header gespeichert.\n"
+msgstr "Ein neues Schlüsselwort zum FITS-Header hinzufügen."
 
 #: src/gui/uifiles/keywords_dialog.ui:229
-#, fuzzy
 msgid "Delete keyword in the FITS header."
-msgstr "Es sind keine Schlüsselbegriffe im FITS_Header gespeichert.\n"
+msgstr "Ein Schlüsselwort aus dem FITS-Header löschen."
 
 #: src/gui/uifiles/keywords_dialog.ui:250
 msgid ""
@@ -4775,14 +4794,13 @@ msgstr ""
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:326
 msgid "CFA marker string"
-msgstr ""
+msgstr "CFA-Markierungszeichenfolge"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:337
 msgid "Sequence output prefix"
 msgstr "Präfix Ausgabesequenz"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:348
-#, fuzzy
 msgid ""
 "Identifier prefix used to denote CFA number in the separate CFA channel "
 "images. This should be set to whatever sequence prefix was used when the "
@@ -4798,7 +4816,6 @@ msgstr ""
 "Präfix der Bildnamen, die sich aus dem CFA Zusammenführungsprozess ergeben."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:407
-#, fuzzy
 msgid ""
 "You must have one of the CFA sequences selected in the main window sequence "
 "tab. Siril will autodetect which CFA channel it corresponds to from the CFA "
@@ -4815,26 +4832,22 @@ msgid ""
 "\n"
 "Note that CFA merge does not work for X-Trans files."
 msgstr ""
-"Sie müssen die CFA0-Sequenz im Tab \"Seqzenz\" des Hauptfensters ausgewählt "
-"haben.\n"
-"\n"
-"Die getrennten CFA-Untersequenzen müssen auf die exakt gleiche Weise "
-"verarbeitet worden sein.\n"
-"\n"
-"Die Dateien <b>müssen</b> im selben Verzeichnis liegen und dürfen sich nur "
-"durch den Namen des CFA-Kanals unterscheiden. Das heißt, wenn ein CFA0-Bild "
-"<i>r_pp_CFA_0_Light_0001.fit</i> heißt, müssen die entsprechenden Bilder für "
-"die anderen CFA-Kanäle <i>r_pp_CFA_1_Light_0001.fit</i>, "
-"<i>r_pp_CFA_2_Light_0001.fit</i> und <i>r_pp_CFA_3_Light_0001.fit</i> "
-"heißen.\n"
+"Sie müssen eine der CFA-Sequenzen im Sequenz-Tab des Hauptfensters "
+"ausgewählt haben. Siril erkennt automatisch anhand der CFA-"
+"Markierungszeichenfolge, welchem CFA-Kanal sie entspricht. Alle 4 Sequenzen "
+"müssen dasselbe Namensformat und dieselbe CFA-Markierungszeichenfolge haben "
+"und dürfen sich nur durch die Zahl unterscheiden, die der Zeichenfolge folgt "
+"(z. B. CFA0, CFA1, CFA2 und CFA3).\n"
 "\n"
 "Jedes Bild in der Sequenz wird nur verarbeitet, wenn die entsprechenden "
-"Bilder für die anderen 3 CFA-Kanäle gefunden werden können. Sowohl G1 als "
-"auch G2 sind erforderlich. Beachten Sie, dass, wenn Sie ein Bild mit einem "
-"CFA-Kanal eines Bildes zwischen split_cfa und merge_cfa verwerfen, merge_cfa "
-"die verbleibenden CFA-Kanäle für dieses Bild nicht mehr zusammenführen kann. "
-"Die gesamte Sequenzfilterund sollte entweder vor split_cfa oder nach "
-"merge_cfa erfolgen."
+"Bilder für die anderen 3 CFA-Kanäle gefunden werden können. Sowohl G1- als "
+"auch G2-Dateien sind erforderlich. Beachten Sie, dass dies bedeutet, dass "
+"merge_cfa die verbleibenden CFA-Kanäle für dieses Bild nicht zusammenführen "
+"kann, wenn Sie ein Bild verwerfen, das einen CFA-Kanal eines Bilds zwischen "
+"split_cfa und merge_cfa enthält. Alle Sequenzfilter sollten entweder vor "
+"split_cfa oder nach merge_cfa durchgeführt werden.\n"
+"\n"
+"Beachten Sie, dass CFA Merge bei X-Trans-Dateien nicht funktioniert."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:430
 msgid "Sequences"
@@ -5044,14 +5057,12 @@ msgid "Resample"
 msgstr "Resample"
 
 #: src/gui/uifiles/resample_dialog.ui:137
-#, fuzzy
 msgid "X scale"
-msgstr "X-Skalierung (%): "
+msgstr "X-Skalierung"
 
 #: src/gui/uifiles/resample_dialog.ui:149
-#, fuzzy
 msgid "Y scale"
-msgstr "Y-Skalierung (%): "
+msgstr "Y-Skalierung"
 
 #: src/gui/uifiles/resample_dialog.ui:158
 msgid "Preserve Aspect Ratio"
@@ -5094,7 +5105,6 @@ msgid "%"
 msgstr "%"
 
 #: src/gui/uifiles/resample_dialog.ui:291
-#, fuzzy
 msgid "pixels"
 msgstr "Pixel"
 
@@ -6454,30 +6464,26 @@ msgstr ""
 "kann, indem Sie auf die Schaltfläche \"Als Standard verwenden\" klicken."
 
 #: src/gui/uifiles/settings_window.ui:2128
-#, fuzzy
 msgid "Master-distortion:"
-msgstr "Master-Dark:"
+msgstr "Master-Verzerrung:"
 
 #: src/gui/uifiles/settings_window.ui:2152
-#, fuzzy
 msgid ""
 "Choose a master-distortion that can be used as generic master-distortion by "
 "clicking on the button \"Use it as default\"."
 msgstr ""
-"Wählen Sie ein Master-Dark, das als allgemeines Master-Dark verwendet werden "
-"kann, indem Sie auf die Schaltfläche \"Als Standard verwenden\" klicken."
+"Wählen Sie eine Master-Verzerrung aus, die als generische Master-Verzerrung "
+"verwendet werden kann, indem Sie auf die Schaltfläche „Als Standard "
+"verwenden“ klicken."
 
 #: src/gui/uifiles/settings_window.ui:2175
-#, fuzzy
 msgid "Use the chosen master as default file in the Astrometry dialog"
 msgstr ""
-"Verwenden Sie den gewählten Master als Standarddatei in der Registerkarte "
-"Kalibrierung"
+"Ausgewählte Masterdatei als Standarddatei im Astrometriedialog verwenden"
 
 #: src/gui/uifiles/settings_window.ui:2192
-#, fuzzy
 msgid "Dark/Bias/Flat/Distortion Libraries"
-msgstr "Dark/Bias/Flat Bibliotheken"
+msgstr "Dark/Bias/Flat/Verzerrungs-Bibliotheken"
 
 #: src/gui/uifiles/settings_window.ui:2222
 msgid "Default name:"
@@ -7696,7 +7702,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5548
 msgid "Maximum slice size for sliced image operations"
-msgstr ""
+msgstr "Maximale Abschnittgröße-Größe für Abschnitts-Bildoperationen"
 
 #: src/gui/uifiles/settings_window.ui:5559
 msgid ""
@@ -7705,6 +7711,11 @@ msgid ""
 "limited range of sizes in order to utilise a limited range of FFTW3 wisdom "
 "more effectively. It is always safe to leave this at the default setting."
 msgstr ""
+"Legt die maximale Abschnitts-Größe für Bildoperationen fest, die Abschnitts-"
+"Verarbeitung verwenden können. Der Hauptzweck besteht darin, typische Slices "
+"auf einen begrenzten Größenbereich zu beschränken, um einen begrenzten "
+"Bereich der FFTW3-Weisheit effektiver zu nutzen. Es ist immer sicher, dies "
+"auf der Standardeinstellung zu belassen."
 
 #: src/gui/uifiles/settings_window.ui:5562
 msgid "Unlimited"
@@ -7838,9 +7849,8 @@ msgstr ""
 "Nur für Torch-basierte StarNet-Versionen."
 
 #: src/gui/uifiles/settings_window.ui:5951
-#, fuzzy
 msgid "Must point to a valid GraXpert executable."
-msgstr "Muss auf eine gültiges ausführbare Starnet++-Datei verweisen."
+msgstr "Muss auf eine gültige ausführbare GraXpert-Programmdatei verweisen."
 
 #: src/gui/uifiles/settings_window.ui:5970
 msgid "Software Location"
@@ -8095,9 +8105,8 @@ msgid "32 bits"
 msgstr "32 Bit"
 
 #: src/gui/uifiles/siril.ui:1215
-#, fuzzy
 msgid "Stretches"
-msgstr "Auto-Stretch"
+msgstr "Streckungen"
 
 #: src/gui/uifiles/siril.ui:1254
 msgid "Open the color saturation dialog"
@@ -8124,9 +8133,8 @@ msgid "Negative Transformation"
 msgstr "Negative Transformation"
 
 #: src/gui/uifiles/siril.ui:1310
-#, fuzzy
 msgid "Filters"
-msgstr "Filter: "
+msgstr "Filter"
 
 #: src/gui/uifiles/siril.ui:1335 src/gui/uifiles/siril.ui:1798
 msgid "Star Processing"
@@ -8149,9 +8157,8 @@ msgid "Open the GraXpert external tool interface"
 msgstr "Öffnen Sie die GraXpert Schnittstelle für externe Werkzeuge"
 
 #: src/gui/uifiles/siril.ui:1402
-#, fuzzy
 msgid "GraXpert Interface..."
-msgstr "Benutzeroberfläche"
+msgstr "GraXpert Benutzeroberfläche..."
 
 #: src/gui/uifiles/siril.ui:1429
 msgid "Open the linear match dialog"
@@ -8162,9 +8169,8 @@ msgid "Linear Match..."
 msgstr "Lineare Übereinstimmung..."
 
 #: src/gui/uifiles/siril.ui:1455 src/gui/uifiles/siril.ui:1667
-#, fuzzy
 msgid "Composition"
-msgstr "Position"
+msgstr "Komposition"
 
 #: src/gui/uifiles/siril.ui:1469
 msgid "Open the pixel math dialog"
@@ -8182,9 +8188,8 @@ msgid "Go back to main menu"
 msgstr "Zurück zum Hauptmenü"
 
 #: src/gui/uifiles/siril.ui:1498
-#, fuzzy
 msgid "Stretches Processing"
-msgstr "Sternbearbeitung"
+msgstr "Stretchverarbeitung"
 
 #: src/gui/uifiles/siril.ui:1514
 msgid "Open the inverse hyperbolic sine dialog"
@@ -8195,9 +8200,8 @@ msgid "Asinh Transformation..."
 msgstr "Asinh Transformation..."
 
 #: src/gui/uifiles/siril.ui:1529
-#, fuzzy
 msgid "Open the curves transform dialog"
-msgstr "Dialog Fast-Fourier Transformation öffnen"
+msgstr "Öffnet den Dialog Gradationskurven"
 
 #: src/gui/uifiles/siril.ui:1544
 msgid "Open the hystogram transform dialog"
@@ -8337,9 +8341,8 @@ msgid "Open Dynamic PSF dialog."
 msgstr "Dialgo dynamisches PSF öffnen."
 
 #: src/gui/uifiles/siril.ui:1923
-#, fuzzy
 msgid "Filters Processing"
-msgstr "Sternbearbeitung"
+msgstr "Filterverarbeitung"
 
 # unschön, genaue Beschreibung erforderlich
 #: src/gui/uifiles/siril.ui:1939
@@ -8421,14 +8424,12 @@ msgid "Rotational Gradient..."
 msgstr "Larson-Sekanina-Filter..."
 
 #: src/gui/uifiles/siril.ui:2089
-#, fuzzy
 msgid "Open the unpurple filter dialog"
-msgstr "Dialog Medianfilter öffnen"
+msgstr "Öffnen Sie den Filterdialog Magentakorrektur"
 
 #: src/gui/uifiles/siril.ui:2091
-#, fuzzy
 msgid "Unpurple Filter..."
-msgstr "Median Filter..."
+msgstr "Magentakorrektur-Filter..."
 
 #: src/gui/uifiles/siril.ui:2134
 msgid "Rotate  image 90 degrees, clockwise"
@@ -8514,9 +8515,8 @@ msgid "Image Plate Solver..."
 msgstr "Astrometrische Lösung (Plate Solving)..."
 
 #: src/gui/uifiles/siril.ui:2449
-#, fuzzy
 msgid "Annotate..."
-msgstr "Beschriftungen"
+msgstr "Beschriftungen..."
 
 #: src/gui/uifiles/siril.ui:2475 src/gui/uifiles/siril.ui:2731
 msgid "Image Analysis"
@@ -8535,9 +8535,8 @@ msgid "Show Tilt"
 msgstr "Zeige Verkippung"
 
 #: src/gui/uifiles/siril.ui:2548
-#, fuzzy
 msgid "Show Distortions"
-msgstr "SOS Iterationen"
+msgstr "Verzerrungen anzeigen"
 
 #: src/gui/uifiles/siril.ui:2573
 msgid "Dynamic PSF..."
@@ -9481,12 +9480,10 @@ msgid "Hit this button for star detection settings"
 msgstr "Einstellungen für Sternsuche öffnen"
 
 #: src/gui/uifiles/siril.ui:5694
-#, fuzzy
 msgid "2pass registration"
-msgstr "Registrierung anwenden"
+msgstr "2-Schritt-Registrierung"
 
 #: src/gui/uifiles/siril.ui:5698
-#, fuzzy
 msgid ""
 "When this box is checked, the transformed images are not saved as a newly "
 "registered sequence. The transformation matrices are saved to the sequence "
@@ -9498,17 +9495,19 @@ msgid ""
 "and immediately applied using the output registration options selected below."
 msgstr ""
 "Wenn dieses Kontrollkästchen aktiviert ist, werden die transformierten "
-"Bilder nicht als neu registrierte Sequenz gespeichert.\n"
+"Bilder nicht als neu registrierte Sequenz gespeichert. Die "
+"Transformationsmatrizen werden in der Sequenzdatei gespeichert. Die "
+"Registrierungsdaten können dann überprüft und einige Bilder abgewählt "
+"werden, bevor die Transformationen mit der Methode „Vorhandene Registrierung "
+"anwenden“ angewendet werden.\n"
 "\n"
-"In beiden Fällen werden die Transformationsmatrizen in der Sequenzdatei "
-"gespeichert. Die Registrierungsdaten können dann inspiziert und einige "
-"Bilder abgewählt werden, bevor die Transformationen mit der Methode "
-"\"Vorhandene Registrierung anwenden\" angewendet werden."
+"Wenn dieses Kontrollkästchen deaktiviert ist, wird die globale "
+"Sternregistrierung berechnet und sofort mit den unten ausgewählten "
+"Ausgaberegistrierungsoptionen angewendet."
 
 #: src/gui/uifiles/siril.ui:5722
-#, fuzzy
 msgid "Undistortion:"
-msgstr "UnverzerrteBilder"
+msgstr "Entzerrung:"
 
 #: src/gui/uifiles/siril.ui:5733
 msgid ""
@@ -9517,21 +9516,22 @@ msgid ""
 "- distortion solution from an existing WCS file\n"
 "- distortion solution from distortions masters"
 msgstr ""
+"Um Verzerrungen in Bildern zu korrigieren, können Sie Folgendes auswählen:\n"
+"- Entzerrung aus aktuellem astrometrisch gelösten Bild\n"
+"- Entzerrung aus einer vorhandenen WCS-Datei\n"
+"- Entzerrung aus Verzerrungsmastern"
 
 #: src/gui/uifiles/siril.ui:5740
-#, fuzzy
 msgid "From image"
-msgstr "Aus Dateien"
+msgstr "Auf Bild"
 
 #: src/gui/uifiles/siril.ui:5741
-#, fuzzy
 msgid "From FITS/WCS file"
-msgstr "Aus Dateien"
+msgstr "Aus FITS/WCS-Datei"
 
 #: src/gui/uifiles/siril.ui:5742
-#, fuzzy
 msgid "From distortion masters"
-msgstr "Verzerrungsabbildung berechnen\n"
+msgstr "Aus Verzerrungsmaster"
 
 #: src/gui/uifiles/siril.ui:5759
 msgid ""
@@ -9539,6 +9539,11 @@ msgid ""
 "- a FITS file which has been platesolved with distortion.\n"
 "- a wcs file which was written by a previous registration with distortions."
 msgstr ""
+"Wählen Sie eine Datei aus, aus der Verzerrungsinformationen gelesen werden "
+"sollen:\n"
+"- eine FITS-Datei, die mit Verzerrungen astrometrisch gelöst wurde.\n"
+"- eine WCS-Datei, die von einer vorherigen Registrierung mit Verzerrungen "
+"geschrieben wurde."
 
 #: src/gui/uifiles/siril.ui:5868 src/gui/uifiles/siril.ui:5882
 #: src/gui/uifiles/siril.ui:6016
@@ -9594,16 +9599,16 @@ msgid "Core Y-coordinates of the second image."
 msgstr "Y-Koordinaten des Kernbereichs im zweiten Bild."
 
 #: src/gui/uifiles/siril.ui:6018
-#, fuzzy
 msgid "Prefix: "
-msgstr "Präfix:"
+msgstr "Präfix: "
 
 #: src/gui/uifiles/siril.ui:6029
-#, fuzzy
 msgid ""
 "Prefix of the sequence resulting from the registration. Only the seq file is "
 "created, not new images."
-msgstr "Präfix für die Ergebnisbilder aus der Registrierung."
+msgstr ""
+"Präfix der Sequenz, die sich aus der Registrierung ergibt. Es wird nur die "
+"Seq-Datei erstellt, keine neuen Bilder."
 
 #: src/gui/uifiles/siril.ui:6085
 msgid "Pick 1st star"
@@ -9967,12 +9972,10 @@ msgid "Algorithm: "
 msgstr "Algorithmus: "
 
 #: src/gui/uifiles/siril.ui:7076
-#, fuzzy
 msgid "Set the interpolation algorithm"
-msgstr "Starte Plate-Solving-Algorithmus."
+msgstr "Den Interpolationsalgorithmus setzen"
 
 #: src/gui/uifiles/siril.ui:7101
-#, fuzzy
 msgid ""
 "Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms\n"
 "\n"
@@ -9985,8 +9988,8 @@ msgid ""
 "In current Siril implementations, we have included a clamping mechanism that "
 "prevents negative interpolated values and ringing artifacts for most images."
 msgstr ""
-"Aktiviert die Begrenzung der Bikubischen- und Lacsoz4-"
-"Interpolationsverfahren.\n"
+"Aktiviert die Begrenzung der Bikubischen- und "
+"Lacsoz4-Interpolationsverfahren.\n"
 "\n"
 "Das Hauptproblem der Lanczos- und bikubischen Interpolationsverfahren ist "
 "die Erzeugung starker Ringartefakte (Ringing). Diese Artefakte werden durch "
@@ -10674,33 +10677,32 @@ msgstr "Pixelausschluss:"
 
 #: src/gui/uifiles/siril.ui:8589
 msgid "Borders feathering [pix]:"
-msgstr ""
+msgstr "Randüberblendung [pix]:"
 
 #: src/gui/uifiles/siril.ui:8600
 msgid ""
 "Select here the number of pixels that will be faded out on the borders of "
 "each image."
 msgstr ""
+"Wählen Sie hier die Anzahl der Pixel aus, die an den Rändern jedes Bildes "
+"überblendet werden sollen."
 
 #: src/gui/uifiles/siril.ui:8632
-#, fuzzy
 msgid "Normalization on overlaps"
-msgstr "Berechnungszeit für die Normalisierung"
+msgstr "Normalisierung an Überlappungen"
 
 #: src/gui/uifiles/siril.ui:8636
-#, fuzzy
 msgid ""
 "By default, Siril computes the normalisation coefficients from each image. "
 "Ticking this box computes them on overlapping regions instead."
 msgstr ""
-"Grundsätzlich verwendet SIRIL die Normalisierungs-Koeffizienten aus der seq-"
-"Datei, sofern diese schon berechnet wurde. Dennoch kann man SIRIL anweisen, "
-"eine erneute Berechnung durchzuführen."
+"Grundsätzlich berechnet SIRIL die Normalisierungs-Koeffizienten aus jedem "
+"Bild. Die Aktivierung dieser Box berechnet sie stattdessen aus den "
+"überlappenden Bildbereichen."
 
 #: src/gui/uifiles/siril.ui:8655
-#, fuzzy
 msgid "Stack stitching:"
-msgstr "Stacken der besten Bilder:"
+msgstr "Stapel-Zusammensetzung:"
 
 #: src/gui/uifiles/siril.ui:8691
 msgid "Stacking 0 images of the 0 of the sequence"
@@ -10719,7 +10721,6 @@ msgid "Output Normalisation"
 msgstr "Ausgabe Normalisierung"
 
 #: src/gui/uifiles/siril.ui:9161
-#, fuzzy
 msgid ""
 "If you check this button, the final image will be normalized in the [0, 1] "
 "range if you work in 32-bit format precision, or clipped in [0, 65535] "
@@ -10728,11 +10729,13 @@ msgid ""
 "\n"
 "WARNING: This option should not be checked for master stacking."
 msgstr ""
-"Wenn Sie dieen Butten drücken, wird das endgültige Bild auf Wert von [0,1] "
-"normalisiert wenn 32-Bit Genauigkeit benutzt wird, oder andernfalls im "
-"Wertebereich [0, 65535].\n"
+"Wenn Sie diese Schaltfläche aktivieren, wird das endgültige Bild im Bereich ["
+"0, 1] normalisiert, wenn Sie mit 32-Bit-Formatgenauigkeit arbeiten, oder "
+"andernfalls im Bereich [0, 65535] abgeschnitten. Dies funktioniert am "
+"besten, wenn Sie auch „32-Bit-Ausgabe erzwingen“ aktivieren, da dadurch ein "
+"Abschneiden vermieden wird.\n"
 "\n"
-"WARNUNG: Diese Option kann für Master-Stacking nicht gewählt werden."
+"WARNUNG: Diese Option sollte für Master-Stacking nicht aktiviert werden."
 
 #: src/gui/uifiles/siril.ui:9174
 msgid "RGB equalization"
@@ -10755,21 +10758,18 @@ msgid "Maximize framing"
 msgstr "Rahmung maximieren"
 
 #: src/gui/uifiles/siril.ui:9193
-#, fuzzy
 msgid ""
 "If you check this button, the final image size will be enlarged to fit all "
 "the selected frames of the sequence."
 msgstr ""
 "Wenn Sie diese Schaltfläche aktivieren, wird die endgültige Bildgröße "
-"vergrößert, damit alle ausgewählten Frames der Sequenz hineinpassen.\n"
-"                                                            "
+"vergrößert, damit alle ausgewählten Frames der Sequenz hineinpassen."
 
 #: src/gui/uifiles/siril.ui:9205
 msgid "Interpolation upscaling x2"
 msgstr "Interpolation Hochskalierung x2"
 
 #: src/gui/uifiles/siril.ui:9208
-#, fuzzy
 msgid ""
 "If you check this button, the final image size will be upscaled by a factor "
 "of 2. This can be faster than real drizzle images obtained during "
@@ -10777,19 +10777,19 @@ msgid ""
 msgstr ""
 "Wenn Sie diese Schaltfläche aktivieren, wird die endgültige Bildgröße um den "
 "Faktor 2 hochskaliert. Dies kann schneller sein als echtes Drizzeln, führt "
-"jedoch nicht zu so scharfen Bildern.\n"
-"                                                            "
+"jedoch nicht zu so scharfen Bildern."
 
 #: src/gui/uifiles/siril.ui:9219
-#, fuzzy
 msgid "Force 32b output"
-msgstr "8-Bit Ausgabe"
+msgstr "32-Bit Ausgabe erzwingen"
 
 #: src/gui/uifiles/siril.ui:9222
 msgid ""
 "If you check this button, the final image bitdepth will be forced to 32b "
 "even if the input images are in 16b."
 msgstr ""
+"Wenn Sie diese Schaltfläche aktivieren, wird die endgültige Bild-Bittiefe "
+"auf 32 B erzwungen, auch wenn die Eingabebilder 16 Bit tief sind."
 
 #. Must be short
 #: src/gui/uifiles/siril.ui:9252
@@ -11127,9 +11127,8 @@ msgid "Checking Gaia archive status..."
 msgstr "Prüfe Gaia Archiv Status..."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:122
-#, fuzzy
 msgid "Status: "
-msgstr "Radius: "
+msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:126
 msgid "Click to update Gaia archive status check"
@@ -11349,15 +11348,16 @@ msgstr ""
 "Schmalbandfilter etc. aufgenommen wurden."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:798
-#, fuzzy
 msgid "Atmospheric corrections"
-msgstr "Kosmetische Korrektur"
+msgstr "Atmosphärenkorrekturen"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:802
 msgid ""
 "Apply an atmosphere model to account for wavelength-dependent atmospheric "
 "extinction."
 msgstr ""
+"Wenden Sie ein Atmosphärenmodell an, um die wellenlängenabhängige "
+"atmosphärische Auslöschung zu berücksichtigen."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:828
 msgid "Observer height / m:"
@@ -11369,7 +11369,7 @@ msgstr "Höhe des Beobachters (Höhe) über dem Meeresspiegel."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:855
 msgid "Atmospheric pressure / hPa:"
-msgstr ""
+msgstr "Luftdruck / hPa:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:866
 msgid ""
@@ -11377,24 +11377,25 @@ msgid ""
 "is taken to be sea level pressure, otherwise it is taken to be local "
 "pressure at the observer's height."
 msgstr ""
+"Luftdruck in hPa. Wenn das Kontrollkästchen „Meereshöhe“ aktiviert ist, wird "
+"dies als Druck auf Meereshöhe angenommen, andernfalls als lokaler Druck auf "
+"der Höhe des Beobachters."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1118
-#, fuzzy
 msgid "sea level"
-msgstr "Zoom-Wert"
+msgstr "Meeresspiegel"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:897
 msgid "Airmass:"
-msgstr ""
+msgstr "Luftmasse:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:910
 msgid "Plot atmosphere model"
-msgstr ""
+msgstr "Atmosphärenmodell zeichnen"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:940
-#, fuzzy
 msgid "Atmospheric Parameters"
-msgstr "Streckungsparameter"
+msgstr "Atmosphärenpaarameter"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:960
 msgid "SPCC Parameters"
@@ -11674,19 +11675,16 @@ msgstr ""
 "Sequenzen und - falls ausgewählt - Sternmasken-Sequenzen erzeugt."
 
 #: src/gui/uifiles/starnet_dialog.ui:272
-#, fuzzy
 msgid "Sequence to open on completion"
-msgstr "Sequenz-Auswahl"
+msgstr "Sequenz die nach Fertigstellung geöffnet werden soll"
 
 #: src/gui/uifiles/starnet_dialog.ui:286
-#, fuzzy
 msgid "Starless"
-msgstr "#Sterne"
+msgstr "Sternlos"
 
 #: src/gui/uifiles/starnet_dialog.ui:287
-#, fuzzy
 msgid "Star mask"
-msgstr "#Sterne"
+msgstr "Sternmaske"
 
 #: src/gui/uifiles/starnet_dialog.ui:288
 msgid "Original"
@@ -12392,6 +12390,8 @@ msgid ""
 "Siril started in offline mode. Will not attempt to update siril-scripts or "
 "siril-spcc-database...\n"
 msgstr ""
+"Siril wurde im Offline-Modus gestartet. Es wird kein Versuch unternommen, "
+"Siril-Skripte oder Siril-SPCC-Datenbanken zu aktualisieren...\n"
 
 #: src/main.c:323
 msgid ""
@@ -12608,14 +12608,12 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:1048 src/algos/astrometry_solver.c:1051
 #: src/algos/astrometry_solver.c:1056
-#, fuzzy
 msgid "Could not save distortion master file, skipping\n"
-msgstr "Konnte Settings-Datei nicht laden oder erstellen.\n"
+msgstr "Konnte das Verzerrungsmaster nicht speichern, wird übersprungen\n"
 
 #: src/algos/astrometry_solver.c:1055
-#, fuzzy
 msgid "Solution has no distortion\n"
-msgstr "Verzerrungsabbildung berechnen\n"
+msgstr "Die Lösung hat keine Verzerrung\n"
 
 #: src/algos/astrometry_solver.c:1064
 msgid "Flipping image and updating astrometry data.\n"
@@ -16026,8 +16024,8 @@ msgid ""
 "Statistics cannot be made on CFA images with a selection smaller than a 2x2 "
 "square, aborting\n"
 msgstr ""
-"Statistiken können nicht für CFA-Bilder mit einer Auswahl kleiner als ein "
-"2x2-Quadrat erstellt werden, Abbruch\n"
+"Statistiken bei Farbbildern (CFA) können nicht mit einer Auswahl von weniger "
+"als 2x2 Pixel berechnet werden, breche ab\n"
 
 #: src/core/command.c:6714
 #, c-format
@@ -16036,13 +16034,13 @@ msgstr ""
 "Statistik-Berechnung für Kanal %d (alle gleich null?) fehlgeschlagen.\n"
 
 #: src/core/command.c:6735
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.6f\n"
 msgstr ""
-"%s Layer: Mittelwert: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: "
-"%0.1f, Hintergrundrauschen: %0.1f\n"
+"%s Layer: Mittel: %0.6f, Median: %0.1f, Sigma: %0.6f, Min: %0.1f, Max: "
+"%0.1f, Hintergrundrauschen: %0.6f\n"
 
 #: src/core/command.c:6740
 #, c-format
@@ -26738,11 +26736,12 @@ msgstr "Keine Sequenz geladen"
 
 #: src/gui/nina_light_curve.c:226
 msgid "Choose a comparison stars file"
-msgstr "Wählen Sie eine Vergleichssterndatei"
+msgstr "Wählen Sie eine Datei mit Vergleichssternen aus"
 
 #: src/gui/nina_light_curve.c:232
 msgid "The current comparison stars file is not located in the CWD"
 msgstr ""
+"Die aktuelle Sternvergleichsdatei befindet sich nicht im Arbeitsverzeichnis"
 
 #: src/gui/nina_light_curve.c:241
 msgid "The currently loaded image must be plate solved"
