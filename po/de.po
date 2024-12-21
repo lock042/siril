@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-13 09:23+0000\n"
+"PO-Revision-Date: 2024-12-21 11:02+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -580,9 +580,8 @@ msgstr ""
 "entfernen."
 
 #: src/gui/uifiles/annotate_dialog.ui:644
-#, fuzzy
 msgid "Name: "
-msgstr "Name"
+msgstr "Name: "
 
 #: src/gui/uifiles/annotate_dialog.ui:660
 msgid "Search Object"
