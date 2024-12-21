@@ -338,10 +338,10 @@ void prepare_H_with_disto_4remap(double *H, int rx_in, int ry_in, int rx_out, in
 
 // get the master disto name if set
 // otherwise, returns seqname.wcs
-gchar *get_wcs_filename(pathparse_mode mode, sequence *seq) {
+static gchar *get_wcs_filename(pathparse_mode mode, sequence *seq) {
 	gchar *wcsname = NULL;
 	gboolean found = FALSE;
-	if (com.pref.prepro.disto_lib) { //we have a distortion master
+	if (com.pref.prepro.disto_lib && com.pref.prepro.use_disto_lib) { //we have a distortion master and we should use it
 		int status = 0; 
 		wcsname = path_parse(&gfit, com.pref.prepro.disto_lib, mode, &status);
 		if (status) {
@@ -403,7 +403,14 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			clearfits(&fit);
 			break;
 		case DISTO_MASTER:
-			distoparam->filename = g_strdup(com.pref.prepro.disto_lib);
+			if (!distoparam->filename) {
+				if (!com.pref.prepro.disto_lib) {
+					siril_log_color_message(_("Sequence file points to master distorsion file but its specification is empty in the preferences\n"), "red");
+					return NULL;
+				} else {
+					distoparam->filename = g_strdup(com.pref.prepro.disto_lib);
+				}
+			} // otherwise, it was already set, we reuse the pattern saved in the seqfile
 			break;
 		case DISTO_FILES:
 			break;
@@ -412,10 +419,6 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 	}
 
 	if (distoparam->index == DISTO_MASTER) {
-		if (!com.pref.prepro.disto_lib) {
-			siril_log_color_message(_("Sequence file points to master distorsion file but its specification but it is empty in the preferences\n"), "red");
-			return NULL;
-		}
 		fits fit  = { 0 };
 		disto = calloc(seq->number, sizeof(disto_data));
 		gboolean found = FALSE;
@@ -429,7 +432,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 				free_disto_args(disto);
 			}
 			int statusread = 0;
-			gchar *wcsname = path_parse(&fit, com.pref.prepro.disto_lib, PATHPARSE_MODE_READ, &statusread);
+			gchar *wcsname = path_parse(&fit, distoparam->filename, PATHPARSE_MODE_READ, &statusread);
 			clearfits(&fit);
 			if (statusread) {
 				siril_log_color_message(_("Could not parse master file name for distortion, aborting\n"), "red");
