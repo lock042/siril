@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-21 07:33+0000\n"
+"PO-Revision-Date: 2024-12-21 11:02+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -390,7 +390,7 @@ msgstr "13"
 
 #: src/gui/uifiles/annotate_dialog.ui:273
 msgid "Obs. code: "
-msgstr ""
+msgstr "Код обс.: "
 
 #: src/gui/uifiles/annotate_dialog.ui:285
 #: src/gui/uifiles/settings_window.ui:1255
@@ -4178,6 +4178,8 @@ msgid ""
 "In <span foreground=\"salmon\">salmon</span>, these are protected keywords, "
 "which cannot be modified."
 msgstr ""
+"<span foreground=\"salmon\">Красным</span> выделены ключевые слова, которые "
+"нельзя изменить."
 
 #: src/gui/uifiles/keywords_dialog.ui:272
 #, fuzzy
@@ -6283,9 +6285,8 @@ msgid "Use the chosen master as default file in the Astrometry dialog"
 msgstr "Использовать выбранный мастер файл по умолчанию на вкладке Калибровка"
 
 #: src/gui/uifiles/settings_window.ui:2192
-#, fuzzy
 msgid "Dark/Bias/Flat/Distortion Libraries"
-msgstr "Библиотеки темновых кадров, кадров шума считывания и плоского поля"
+msgstr "Б-ки темновых кадров, кадров шума считывания, плоского поля и искажений"
 
 #: src/gui/uifiles/settings_window.ui:2222
 msgid "Default name:"
@@ -8240,9 +8241,8 @@ msgid "Show Tilt"
 msgstr "Показать наклон"
 
 #: src/gui/uifiles/siril.ui:2548
-#, fuzzy
 msgid "Show Distortions"
-msgstr "Кол-во повторов SOS"
+msgstr "Показать искажения"
 
 #: src/gui/uifiles/siril.ui:2573
 msgid "Dynamic PSF..."
@@ -9000,9 +9000,9 @@ msgid ""
 "images right after they were preprocessed. By doing this, you skip one "
 "manual step which can take some time."
 msgstr ""
-"Выберите, если хотите применить дебайеризацию к изображениям FITS сразу "
-"после их калибровки. Это позволит избежать одного ручного шага, который "
-"может занять некоторое время."
+"Установите флажок, если хотите применить дебайеризацию к изображениям FITS "
+"сразу после их калибровки. Это позволит избежать одного ручного шага, "
+"который может занять некоторое время."
 
 #: src/gui/uifiles/siril.ui:5358
 msgid ""
@@ -16729,9 +16729,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:11141 src/core/command.c:11156 src/core/command.c:11171
-#, fuzzy
 msgid "Error: unable to load sequence\n"
-msgstr "Ошибка: не удалось открыть последовательность\n"
+msgstr "Ошибка: не удалось загрузить последовательность\n"
 
 #: src/core/command.c:11209
 msgid "Error opening target ICC profile.\n"
@@ -16798,10 +16797,11 @@ msgid "Unknown SPCC list\n"
 msgstr ""
 
 #: src/core/command.c:11351 src/core/siril_actions.c:527
-#, fuzzy
 msgid ""
 "This command only works on plate solved images with distortions included\n"
-msgstr "Команда работает только на изображениях с астрономическим решением\n"
+msgstr ""
+"Команда работает только на изображениях, имеющих астрономическое решение, и "
+"с включёнными искажениями\n"
 
 #: src/core/command.c:11394
 msgid "16-bit images cannot have out-of-range pixels: nothing to do.\n"
@@ -16817,9 +16817,9 @@ msgid "Pixel limits applied successfully.\n"
 msgstr "Все изображения успешно перезагружены.\n"
 
 #: src/core/command.c:11436
-#, fuzzy, c-format
+#, c-format
 msgid "Current working directory: '%s'\n"
-msgstr "текущая рабочая директория"
+msgstr "Текущая рабочая директория: '%s'\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -25445,18 +25445,16 @@ msgid "Scroll to zoom"
 msgstr ""
 
 #: src/gui/mouse_action_functions.h:92
-#, fuzzy
 msgid "Scroll through sequence"
-msgstr "Решить всю последовательность"
+msgstr "Прокрутка через последовательность"
 
 #: src/gui/mouse_action_functions.h:96
 msgid "Scroll through GUI tabs"
 msgstr ""
 
 #: src/gui/mouse_action_preferences.c:117
-#, fuzzy
 msgid "Mouse Configuration"
-msgstr "Конфигурация"
+msgstr "Настройки мыши"
 
 #: src/gui/mouse_action_preferences.c:117
 msgid ""
@@ -25467,9 +25465,8 @@ msgid ""
 msgstr ""
 "Внимание: этот диалог позволяет перенастроить поведение мыши таким образом, "
 "что оно более не будет соответствовать документации. Если вы забыли какие "
-"настройки были изменены, здесь можно посмотреть текущую конфигурацию "
-"поведения мыши. Так же в диалоге есть кнопка для сброса к настройкам по "
-"умолчанию."
+"настройки были изменены, здесь можно посмотреть текущие настройки поведения "
+"мыши. Так же в диалоге есть кнопка для сброса к настройкам по умолчанию."
 
 #. Make the spin button editable and set digits to 0
 #. Connect the edited signal
@@ -25479,7 +25476,6 @@ msgstr "Кнопка"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:219
-#, fuzzy
 msgid "Action"
 msgstr "Действие"
 
@@ -25524,13 +25520,11 @@ msgid "Warning: ignoring unconfigured action (\""
 msgstr ""
 
 #: src/gui/mouse_action_preferences.c:357
-#, fuzzy
 msgid "Mouse configuration updated successfully.\n"
-msgstr "Siril успешно обновил информацию FFT...\n"
+msgstr "Настройки мыши успешно обновлены.\n"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:487
-#, fuzzy
 msgid "Direction"
 msgstr "Направление"
 
@@ -25544,14 +25538,12 @@ msgid "Invalid mouse scroll action configuration"
 msgstr ""
 
 #: src/gui/mouse_action_preferences.c:608
-#, fuzzy
 msgid "Mouse scroll configuration updated successfully.\n"
-msgstr "Siril успешно обновил информацию FFT...\n"
+msgstr "Настройки прокрутки мыши успешно обновлены.\n"
 
 #: src/gui/mouse_action_preferences.c:647
-#, fuzzy
 msgid "Reset Mouse Actions"
-msgstr "Сбросить масштаб к 1."
+msgstr "Сбросить действия мыши"
 
 #: src/gui/mouse_action_preferences.c:647
 msgid ""
@@ -25561,27 +25553,27 @@ msgid ""
 msgstr ""
 
 #: src/gui/mouse_action_preferences.c:739
-#, fuzzy, c-format
+#, c-format
 msgid "Scroll (vertical)"
 msgstr "Прокрутка (вертикальная)"
 
 #: src/gui/mouse_action_preferences.c:743
-#, fuzzy, c-format
+#, c-format
 msgid "Scroll (horizontal)"
 msgstr "Прокрутка (горизонтальная)"
 
 #: src/gui/mouse_action_preferences.c:749
-#, fuzzy, c-format
+#, c-format
 msgid "Smooth scroll (vertical)"
 msgstr "Плавная прокрутка (вертикальная)"
 
 #: src/gui/mouse_action_preferences.c:751
-#, fuzzy, c-format
+#, c-format
 msgid "Smooth scroll (horizontal)"
 msgstr "Плавная прокрутка (горизонтальная)"
 
 #: src/gui/mouse_action_preferences.c:756
-#, fuzzy, c-format
+#, c-format
 msgid "Button %u"
 msgstr "Кнопка %u"
 
@@ -25698,12 +25690,11 @@ msgstr "Файл CSV (*.csv)"
 #. Definition of all the graphical items
 #. Top label
 #: src/gui/nina_light_curve.c:76
-#, fuzzy
 msgid ""
 "Process a sequence to get a light curve on a star using the list\n"
 "of reference stars created by Siril or the NINA exoplanet plugin"
 msgstr ""
-"Обрабатывает последовательность для получения световой кривой звезды, "
+"Обрабатывает последовательность для получения световой кривой звезды,\n"
 "используя список опорных звёзд, созданных Siril или плагином экзопланет NINA"
 
 #. Comp1 radio
@@ -25803,9 +25794,8 @@ msgid "All supported files"
 msgstr "Все поддерживаемые файлы"
 
 #: src/gui/open_dialog.c:252
-#, fuzzy
 msgid "Master-distortion: file (*.wcs)"
-msgstr "Файл косметической коррекции (*.lst)"
+msgstr "Мастер-файл искажений: файл (*.wcs)"
 
 #: src/gui/open_dialog.c:289
 msgid "Cosmetic correction file (*.lst)"
@@ -25833,9 +25823,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/photometric_cc.c:108
-#, fuzzy
 msgid "Gaia archive available"
-msgstr "Доля доступной памяти"
+msgstr "Архив Gaia доступен"
 
 #: src/gui/photometric_cc.c:113
 msgid "Gaia archive running but performing slightly slower\n"
@@ -25846,9 +25835,8 @@ msgid "Gaia archive running but performing very slowly"
 msgstr ""
 
 #: src/gui/photometric_cc.c:124
-#, fuzzy
 msgid "Gaia archive unavailable"
-msgstr "Gnuplot недоступен"
+msgstr "Архив Gaia недоступен"
 
 #: src/gui/photometric_cc.c:129
 msgid "Gaia archive unreachable"
@@ -26145,7 +26133,7 @@ msgstr "Вернуть исходные параметры"
 
 #: src/gui/preferences.c:1054
 msgid "External ICC Profiles"
-msgstr "Внешние профили ICC"
+msgstr "Внешние ICC-профили"
 
 #: src/gui/preferences.c:1054
 msgid ""
@@ -26346,7 +26334,6 @@ msgstr ""
 "последним изображениями."
 
 #: src/gui/registration.c:75
-#, fuzzy
 msgid ""
 "<b>Apply existing registration</b>: This is not an algorithm but rather a "
 "commodity to apply previously computed registration data stored in the "
@@ -26356,9 +26343,10 @@ msgid ""
 msgstr ""
 "<b>Применить существующую регистрацию</b>: это не алгоритм, а, скорее, "
 "возможность применить выполненную ранее регистрацию, которая сохранена в "
-"файле seq. Метод интерполяции и режим сверхразрешения (drizzle) могут быть "
-"выбраны в разделе \"Результат регистрации\" и он может быть применён только "
-"к выбранным изображениям, чтобы избежать сохранения ненужных изображений."
+"файле последовательности. Метод интерполяции или режим сверхразрешения "
+"(drizzle) может быть указан в разделе \"Результат регистрации\" и применён "
+"только к выбранным или отфильтрованным изображениям, чтобы избежать "
+"сохранения ненужных изображений."
 
 #: src/gui/registration.c:99 src/gui/stacking.c:48
 msgid ""
@@ -26394,9 +26382,8 @@ msgid "Loading registration method: %s\n"
 msgstr "Загрузка способа регистрации: %s\n"
 
 #: src/gui/registration.c:404
-#, fuzzy
 msgid "WCS Files (*.wcs)"
-msgstr "Файл CSV (*.csv)"
+msgstr "Файлы WCS (*.wcs)"
 
 #. we check result is inside the selection box
 #: src/gui/registration.c:456
@@ -29859,9 +29846,8 @@ msgid "Parameter symbols could not be parsed."
 msgstr "Символы параметра не могут быть разобраны."
 
 #: src/pixelMath/pixel_math_runner.c:1110
-#, fuzzy
 msgid "Images have different size"
-msgstr "позволяет кубам FITS иметь разные размеры"
+msgstr "Изображения имеют разный размер"
 
 #: src/pixelMath/pixel_math_runner.c:1111
 msgid ""
