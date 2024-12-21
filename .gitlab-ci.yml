@@ -168,22 +168,19 @@ macos:
   rules:
     - if: $CI_PROJECT_NAMESPACE != "free-astro" && $CI_PROJECT_NAMESPACE != "dehesselle"
       when: never  # job requires custom runner, not suitable outside the project
-    - if: $ARCHITECTURE == "arm64"
-      variables:
-        SDKROOT: /opt/sdks/MacOSX11.3.sdk
     - if: $ARCHITECTURE == "x86_64"
       when: manual
       allow_failure: true
-      variables:
-        SDKROOT: /opt/sdks/MacOSX10.15.6.sdk
+    - when: on_success
   tags:
     - macos
     - ${ARCHITECTURE}
   variables:
     CCACHE_DIR: /Users/Shared/work/ccache
     REP_DIR: $CI_PROJECT_DIR
+    SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 87be2d6e8dd536849f7da0fa47e79bb1e2effa7f
+    SM_REPO_REF: a45bfb676567ee7a2dc6420113199d89b47796dd   # TODO: this is develop branch
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
     WRK_DIR: $CI_PROJECT_DIR
   script:
