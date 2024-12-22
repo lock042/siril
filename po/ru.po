@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:37+0100\n"
-"PO-Revision-Date: 2024-12-21 12:06+0000\n"
+"PO-Revision-Date: 2024-12-22 15:30+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/ru/>\n"
@@ -2745,7 +2745,7 @@ msgstr "X"
 
 #: src/gui/siril3.glade:11419
 msgid "Y"
-msgstr "Y"
+msgstr "Да"
 
 #: src/gui/siril3.glade:11432
 msgid "Sel"
@@ -4238,7 +4238,7 @@ msgid ""
 "Unchecking this option will give you an RGB image where each output channel "
 "is expressed by a formula."
 msgstr ""
-"Снятие этого флажка даст RGB изображение, в котором каждый исходящий канал "
+"Снятие этого флажка даст RGB изображение, в котором каждый итоговый канал "
 "выражается формулой."
 
 #: src/gui/siril3.glade:17049
@@ -16517,7 +16517,7 @@ msgstr "Ограничение обработки до 1900Мб (32-битная
 #: src/core/pipe.c:100
 #, c-format
 msgid "Output pipe creation failed with error %d\n"
-msgstr "Не удалось создать исходящий канал с ошибкой %d\n"
+msgstr "Не удалось создать итоговый канал с ошибкой %d\n"
 
 #: src/core/pipe.c:117
 #, c-format
@@ -22532,7 +22532,7 @@ msgstr "Совпадение пар после подгонки: %d\n"
 #: src/registration/global.c:678
 #, c-format
 msgid "Inliers:%*.3f\n"
-msgstr "Норма: %*.3f\n"
+msgstr "Доля совпавших: %*.3f\n"
 
 #: src/registration/global.c:684
 #, c-format
