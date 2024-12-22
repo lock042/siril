@@ -176,40 +176,40 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 #else
 
 gboolean siril_allocate_shm(void** shm_ptr_ptr,
-                            char* shm_name_ptr,
-                            size_t total_bytes,
-                            int *fd) {
+							char* shm_name_ptr,
+							size_t total_bytes,
+							int *fd) {
 
-    void *shm_ptr = NULL;
-    snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
-            getpid(), (unsigned long)time(NULL));
+	void *shm_ptr = NULL;
+	snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
+			getpid(), (unsigned long)time(NULL));
 
-    *fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR, 0600);
-    if (*fd == -1) {
-        siril_log_color_message(_("Failed to create shared memory: %s\n"), "red", strerror(errno));
-        return FALSE;
-    }
+	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR, 0600);
+	if (*fd == -1) {
+		siril_log_color_message(_("Failed to create shared memory: %s\n"), "red", strerror(errno));
+		return FALSE;
+	}
 
-    // First map to get actual allocation size
-    shm_ptr = mmap(NULL, total_bytes, PROT_READ | PROT_WRITE,
-                MAP_SHARED, *fd, 0);
-    if (shm_ptr == MAP_FAILED) {
-        siril_log_color_message(_("Failed to map shared memory: %s\n"), "red", strerror(errno));
-        close(*fd);
-        shm_unlink(shm_name_ptr);
-        return FALSE;
-    }
+	// Truncate to ensure exact size (the order matters: this must come before mmap() on MacOS)
+	if (ftruncate(*fd, total_bytes) == -1) {
+		siril_log_color_message(_("Failed to set shared memory size: %s\n"), "red", strerror(errno));
+		munmap(shm_ptr, total_bytes);
+		close(*fd);
+		shm_unlink(shm_name_ptr);
+		return FALSE;
+	}
+	// then map to get actual allocation size
+	shm_ptr = mmap(NULL, total_bytes, PROT_READ | PROT_WRITE,
+				MAP_SHARED, *fd, 0);
+	if (shm_ptr == MAP_FAILED) {
+		siril_log_color_message(_("Failed to map shared memory: %s\n"), "red", strerror(errno));
+		close(*fd);
+		shm_unlink(shm_name_ptr);
+		return FALSE;
+	}
 
-    // Truncate to ensure exact size
-    if (ftruncate(*fd, total_bytes) == -1) {
-        siril_log_color_message(_("Failed to set shared memory size: %s\n"), "red", strerror(errno));
-        munmap(shm_ptr, total_bytes);
-        close(*fd);
-        shm_unlink(shm_name_ptr);
-        return FALSE;
-    }
-    *shm_ptr_ptr = shm_ptr;
-    return TRUE;
+	*shm_ptr_ptr = shm_ptr;
+	return TRUE;
 }
 #endif
 
