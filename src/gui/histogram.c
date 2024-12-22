@@ -162,7 +162,6 @@ static void histo_startup() {
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_INDEP);
 		}
 	}
-	copy_gfit_to_backup();
 	// also get the backup histogram
 	compute_histo_for_gfit();
 	for (int i = 0; i < fit->naxes[2]; i++)

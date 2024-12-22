@@ -16,6 +16,7 @@ struct epfargs {
 	double mod;
 	ep_filter_t filter;
 	gboolean verbose;
+	gboolean applying;
 };
 
 gpointer epfhandler(gpointer args);

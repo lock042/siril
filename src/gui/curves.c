@@ -205,10 +205,7 @@ static void curves_startup() {
 
 	add_roi_callback(curves_histogram_change_between_roi_and_image);
 	roi_supported(TRUE);
-	copy_gfit_to_backup();
-
 	update_do_channel();
-
 	copy_gfit_to_backup();
 	// also get the display histogram
 	compute_histo_for_gfit();
