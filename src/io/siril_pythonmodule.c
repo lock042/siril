@@ -186,7 +186,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 
     *fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR, 0600);
     if (*fd == -1) {
-        siril_debug_print("Failed to create shared memory: %s\n", strerror(errno));
+        siril_log_color_message(_("Failed to create shared memory: %s\n"), "red", strerror(errno));
         return FALSE;
     }
 
@@ -194,7 +194,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
     shm_ptr = mmap(NULL, total_bytes, PROT_READ | PROT_WRITE,
                 MAP_SHARED, *fd, 0);
     if (shm_ptr == MAP_FAILED) {
-        siril_debug_print("Failed to map shared memory: %s\n", strerror(errno));
+        siril_log_color_message(_("Failed to map shared memory: %s\n"), "red", strerror(errno));
         close(*fd);
         shm_unlink(shm_name_ptr);
         return FALSE;
@@ -202,7 +202,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 
     // Truncate to ensure exact size
     if (ftruncate(*fd, total_bytes) == -1) {
-        siril_debug_print("Failed to set shared memory size: %s\n", strerror(errno));
+        siril_log_color_message(_("Failed to set shared memory size: %s\n"), "red", strerror(errno));
         munmap(shm_ptr, total_bytes);
         close(*fd);
         shm_unlink(shm_name_ptr);
