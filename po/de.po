@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-21 16:18+0000\n"
+"PO-Revision-Date: 2024-12-23 11:30+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -12642,14 +12642,16 @@ msgid "Solving again at updated center\n"
 msgstr "Wird mit aktualisierter Bildmitte erneut gelöst\n"
 
 #: src/algos/astrometry_solver.c:1570
-#, fuzzy, c-format
+#, c-format
 msgid "Running asnet version %s\n"
-msgstr "Befehlsausführung: %s\n"
+msgstr "Asnet version %s ausführen\n"
 
 #: src/algos/astrometry_solver.c:1608
 #, c-format
 msgid "Astrometry.net path (%s) incorrectly set in preferences\n"
 msgstr ""
+"Der Pfad zu Astrometry.net (%s) ist in den Einstellungen nicht korrekt "
+"gesetzt\n"
 
 #: src/algos/astrometry_solver.c:1633
 msgid "solve-field was not found, set its path in the preferences\n"
@@ -12711,23 +12713,20 @@ msgid "Selection is not used in manual star selection mode\n"
 msgstr "Die Auswahl wird im manuellen Sternwahlmodus nicht verwendet\n"
 
 #: src/algos/astrometry_solver.c:1969
-#, fuzzy
 msgid "Error: no reference stars available\n"
-msgstr "Nicht verfügbar"
+msgstr "Fehler: Keine Referenzsterne verfügbar\n"
 
 #: src/algos/astrometry_solver.c:1986 src/registration/registration.c:94
 msgid "Recomputing already existing registration for this layer\n"
 msgstr "Neuberechnung existierender Registrierung für diesen Layer\n"
 
 #: src/algos/astrometry_solver.c:1999 src/io/fits_keywords.c:1188
-#, fuzzy
 msgid "Error when closing fitseq\n"
-msgstr "Fehler beim Öffnen der Datei"
+msgstr "Fehler beim Schließen von fitseq\n"
 
 #: src/algos/astrometry_solver.c:2006 src/io/fits_keywords.c:1196
-#, fuzzy
 msgid "Error when reopening fitseq\n"
-msgstr "Fehler beim Öffnen der Datei"
+msgstr "Fehler beim erneuten Öffnen von fitseq\n"
 
 #: src/algos/astrometry_solver.c:2028 src/algos/astrometry_solver.c:2070
 #, c-format
@@ -12735,14 +12734,14 @@ msgid "Image %d already platesolved, skipping\n"
 msgstr "Das Bild hat bereits eine astrometrische Lösung. Wird übersprungen\n"
 
 #: src/algos/astrometry_solver.c:2057
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: no stars found\n"
-msgstr "Bilddatei %d nicht gefunden\n"
+msgstr "Bilddatei %d: Keine Sterne gefunden\n"
 
 #: src/algos/astrometry_solver.c:2066 src/algos/astrometry_solver.c:2180
-#, fuzzy, c-format
+#, c-format
 msgid "Could not copy WCS data, skipping image %d\n"
-msgstr "Konnte das Eingabebild nicht kopieren, Abbruch.\n"
+msgstr "WCS-Daten können nicht kopiert werden, Bild %d wird übersprungen\n"
 
 #: src/algos/astrometry_solver.c:2115
 #, c-format
@@ -12798,9 +12797,8 @@ msgid "File %s updated\n"
 msgstr "Datei %s aktualisiert\n"
 
 #: src/algos/astrometry_solver.c:2212
-#, fuzzy
 msgid "Computing astrometric registration...\n"
-msgstr "Astrometrische Registrierung anwenden"
+msgstr "Astrometrische Registrierung berechnen...\n"
 
 #: src/algos/astrometry_solver.c:2295
 #, c-format
@@ -12840,19 +12838,16 @@ msgid "Background with %s interpolation computed.\n"
 msgstr "Hintergrundmodel mit %s Durchgängen berechnet.\n"
 
 #: src/algos/background_extraction.c:930 src/algos/background_extraction.c:1141
-#, fuzzy
 msgid "Error: unsupported CFA pattern for this operation.\n"
-msgstr "Nicht unterstützte CFA-Muster erkannt"
+msgstr "Nicht unterstütztes CFA-Muster für diese Funktion\n"
 
 #: src/algos/background_extraction.c:952 src/algos/background_extraction.c:1160
-#, fuzzy
 msgid "Error splitting into CFA subcannels, aborting...\n"
-msgstr "Fehler beim interpretieren des Arguments -scale=(%s), breche ab\n"
+msgstr "Fehler beim Aufteilen in CFA-Unterkanälte, breche ab...\n"
 
 #: src/algos/background_extraction.c:967
-#, fuzzy
 msgid "Failed to adapt background samples for CFA image\n"
-msgstr "Hintergrundmuster für das Bild %s konnten nicht erzeugt werden\n"
+msgstr "Hintergrundproben für CFA-Bild konnten nicht angepasst werden\n"
 
 #: src/algos/background_extraction.c:974 src/algos/background_extraction.c:1051
 #: src/algos/background_extraction.c:1182
@@ -12860,9 +12855,9 @@ msgid "Out of memory - aborting"
 msgstr "Ungenügender Speicherplatz - Abbruch"
 
 #: src/algos/background_extraction.c:1028
-#, fuzzy, c-format
+#, c-format
 msgid "Background with %s interpolation computed for CFA image.\n"
-msgstr "Hintergrundmodel mit %s Durchgängen berechnet.\n"
+msgstr "Hintergrund wurde mit Interpolation %s für CFA-Bild berechnet\n"
 
 #: src/algos/background_extraction.c:1058
 #: src/algos/background_extraction.c:1189
@@ -12875,12 +12870,16 @@ msgid ""
 "Warning: RBF background removal is not recommended for CFA images. Only "
 "linear background removal is recommended.\n"
 msgstr ""
+"Warnung: RBF Hintergrundentfernung wird für CFA-Bilder nicht empfohlen. Nur "
+"lineare Hintergrundentfernung wird empfohlen.\n"
 
 #: src/algos/background_extraction.c:1126
 msgid ""
 "Warning: polynomial background removal order > 1 is not recommended for CFA "
 "images. Only linear background removal is recommended.\n"
 msgstr ""
+"Warnung: Polygon-Hintergrundentfernung mit der Ordnung >1 wird für CFA-"
+"Bilder nicht empfohlen. Nur lineare Hintergrundentfernung wird empfohlen.\n"
 
 #: src/algos/background_extraction.c:1282 src/algos/demosaicing.c:1300
 #: src/algos/extraction.c:1145 src/algos/star_finder.c:1133
@@ -12896,9 +12895,8 @@ msgstr ""
 "%s gilt als verfügbar)\n"
 
 #: src/algos/background_extraction.c:1317
-#, fuzzy
 msgid "Error reading reference metadata.\n"
-msgstr "Fehler: Kann keine Metadaten aus dem Referenzbild laden\n"
+msgstr "Fehler beim lesen der Referenz-Metadaten.\n"
 
 #: src/algos/ccd-inspector.c:184 src/algos/ccd-inspector.c:253
 #, c-format
@@ -13188,9 +13186,8 @@ msgid "Cannot perform debayering\n"
 msgstr "Kann De-Bayerung nicht durchführen\n"
 
 #: src/algos/demosaicing.c:1357
-#, fuzzy
 msgid "Could not load metadata\n"
-msgstr "Kann keine Metadaten laden"
+msgstr "Kann die Metadaten nicht laden\n"
 
 #: src/algos/demosaicing.c:1368
 #, c-format
@@ -14124,6 +14121,8 @@ msgid ""
 "Undebayered CFA image. Detection is done on green pixels only, using "
 "interpolation\n"
 msgstr ""
+"Nicht DeBayertes CFA-Bild. Die Erkennung wird nur mit den grünen Pixeln "
+"druchgeführt mit Interpolation\n"
 
 #: src/algos/star_finder.c:1407
 #, c-format
@@ -14172,11 +14171,12 @@ msgstr ""
 "Kanälen wird nicht unterstützt.\n"
 
 #: src/algos/statistics.c:1211
-#, fuzzy
 msgid ""
 "Error: statistics computation failed. Unable to check for out-of-range "
 "values.\n"
-msgstr "Fehler: Statistik-Berechnung fehlgeschlagen.\n"
+msgstr ""
+"Fehler: Statistik-Berechnung fehlgeschlagen. Werte außerhalb des "
+"Wertebereichs können nicht überprüft werden\n"
 
 #: src/algos/statistics_float.c:240
 msgid "MAD is null. Statistics cannot be computed.\n"
@@ -15019,11 +15019,11 @@ msgstr ""
 
 #: src/core/command.c:1842 src/core/command.c:1902
 msgid "The size of the key can't exceed 8 characters.\n"
-msgstr ""
+msgstr "Die Größe des Schlüssels kann nicht größer als 8 Zeichen sein.\n"
 
 #: src/core/command.c:1928
 msgid "Upating keywords...\n"
-msgstr ""
+msgstr "Schlüsselwörter werden aktualisiert...\n"
 
 #: src/core/command.c:2000 src/core/command.c:5802
 msgid "There can be only one prefix argument"
@@ -15103,7 +15103,7 @@ msgstr "Falsche Parameter.\n"
 #: src/core/command.c:2237 src/core/command.c:3206
 #, c-format
 msgid "Error, unknown clip mode %s specified\n"
-msgstr ""
+msgstr "Fehler, unbekannter Clip-Modus %s angegeben\n"
 
 #: src/core/command.c:2308
 msgid "Error: BP must be specified between 0.0 and 1.0 using -BP=\n"
@@ -15178,9 +15178,9 @@ msgid "Stretch must be greater than or equal to 1\n"
 msgstr "Streckung muß größer oder gleich 1 sein\n"
 
 #: src/core/command.c:2632
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid clip mode %s, aborting.\n"
-msgstr "Ungültiges Argument %s. Abbruch.\n"
+msgstr "Ungültiger Clip-Modus %s, breche ab\n"
 
 #: src/core/command.c:2661
 msgid "Clip limit must be > 0.\n"
@@ -15375,11 +15375,8 @@ msgid "Factor must be a number greater than 0.\n"
 msgstr "Faktor muss Größer 0 sein.\n"
 
 #: src/core/command.c:3381
-#, fuzzy
 msgid "Scale %lf not allowed. Should be between 0.2 and 5.0.\n"
-msgstr ""
-"Skala %lf nicht erlaubt. Sollte zwischen 0,0 und 5,0 liegen.\n"
-"\n"
+msgstr "Skalierung %lf nicht erlaubt. Sollte zwischen 0,2 und 5,0 liegen.\n"
 
 #: src/core/command.c:3385
 msgid "Scale is 1.0. Not doing anything.\n"
@@ -15634,13 +15631,12 @@ msgid "Reference magnitude unset for sequence\n"
 msgstr "Referenz Magnitude für Sequenz nicht gesetzt\n"
 
 #: src/core/command.c:4090
-#, fuzzy
 msgid ""
 "You need to add at least a loaded image or one image as variable. Use $ "
 "tokens to surround the file names .\n"
 msgstr ""
-"Sie müssen mindestens ein Bild als Variable hinzufügen. Verwenden Sie $-"
-"Tokens, um die Dateinamen zu umschließen.\n"
+"Sie müssen mindestens ein geladenes Bild oder eine Bilddatei als Variable "
+"hinzufügen. Verwenden Sie $-Tokens, um die Dateinamen zu umschließen.\n"
 
 #: src/core/command.c:4093
 msgid "There is an unmatched $. Please check the expression.\n"
@@ -15760,9 +15756,8 @@ msgid "Error: width cannot be less than 10, aborting.\n"
 msgstr "Fehler: Breite kann nicht kleiner als 10 sein, breche ab\n"
 
 #: src/core/command.c:4799
-#, fuzzy
 msgid "Error: max dimension cannot be less than 10, aborting.\n"
-msgstr "Fehler: Höhe kann nicht kleiner als 10 sein, breche ab\n"
+msgstr "Fehler: Maximale Abmessung kann nicht kleiner als 10 sein, breche ab\n"
 
 #: src/core/command.c:4814 src/core/command.c:4866
 msgid "Error: scale cannot be less than 0.01, aborting.\n"
@@ -15956,9 +15951,8 @@ msgstr ""
 "ignoriert.\n"
 
 #: src/core/command.c:5888
-#, fuzzy
 msgid "Error generating background samples\n"
-msgstr "Verwerfe Hintergrund-Stichproben."
+msgstr "Fehler beim Erzeugen der Hintergrundproben.\n"
 
 #: src/core/command.c:5917
 msgid "Sigma low must be positive.\n"
@@ -16013,6 +16007,8 @@ msgid ""
 "Error: sequences don't match (dimensions, bitdepth, number of images must "
 "all be the same)\n"
 msgstr ""
+"Fehler: Sequenzen passen nicht zusammen (Abmessungen, Bittiefe, Anzahl "
+"Bilder müssen identisch sein)\n"
 
 #: src/core/command.c:6502
 #, c-format
@@ -16182,9 +16178,9 @@ msgid "%d smaller than minimum allowable star pairs: %d, aborting.\n"
 msgstr "%d kleiner als minimal zulässige Sternpaare: %d, Abbruch.\n"
 
 #: src/core/command.c:7586
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown distortion type %s, aborting.\n"
-msgstr "Unbekannte Transformationsart type %s. Abbruch.\n"
+msgstr "Unbekannte Verzerrungsart %s. Abbruch.\n"
 
 #: src/core/command.c:7595 src/core/command.c:7725 src/core/command.c:8185
 #: src/core/command.c:8828 src/core/command.c:10039 src/core/command.c:10698
@@ -16208,9 +16204,8 @@ msgstr ""
 "arbeiten\n"
 
 #: src/core/command.c:7675 src/core/command.c:8050 src/gui/registration.c:977
-#, fuzzy
 msgid "NOT USING FLAT: Could not load reference image\n"
-msgstr "Konnte Referenzbild nicht laden\n"
+msgstr "FLATS WERDEN NICHT BENUTZT: Referenzbild kann nicht geladen werden\n"
 
 #: src/core/command.c:7682 src/core/command.c:8057 src/core/preprocess.c:876
 #: src/gui/registration.c:986
@@ -16242,14 +16237,15 @@ msgid "NOT USING FLAT: cannot open the file"
 msgstr "KEIN Flat-Frame definiert: kann Datei nicht öffnen"
 
 #: src/core/command.c:7715
-#, fuzzy
 msgid "Cannot drizzle sequences with images of different sizes, aborting.\n"
-msgstr "Das Referenzbild der Sequenz konnte nicht geladen werden, Abbruch.\n"
+msgstr ""
+"Sequenzen mit Bildern unterschiedlicher Größe können nicht gedrizzled "
+"werden, breche ab.\n"
 
 #: src/core/command.c:7733 src/core/command.c:8193
-#, fuzzy
 msgid "Cannot use drizzle on non-bayer sensors, aborting.\n"
-msgstr "Division durch Null, Abbruch."
+msgstr ""
+"Drizzle kann nicht mit Nicht-Bayer-Sensoren genutzt werden, breche ab.\n"
 
 #. we register 2-pass but we won't add it to the combo/tooltip
 #: src/core/command.c:7749 src/gui/registration.c:278
@@ -16266,11 +16262,8 @@ msgid "Not enough space to save the output images, aborting\n"
 msgstr "Nicht genug Speicherplatz um die Ausgabebilder zu speichern, Abbruch\n"
 
 #: src/core/command.c:7770
-#, fuzzy
 msgid "Scaling a sequence with -2pass has no effect, ignoring\n"
-msgstr ""
-"Das Hochskalieren einer Sequenz mit -noout oder -2pass hat keinen Effekt, "
-"wird ignoriert\n"
+msgstr "Skalieren einer Sequenz mit -2pass hat keinen Effekt, wird ignoriert\n"
 
 #: src/core/command.c:7777
 msgid ""
@@ -16291,14 +16284,12 @@ msgstr ""
 "nicht mit OpenCV unter 4.4 kompatibel. Abbruch\n"
 
 #: src/core/command.c:7786 src/gui/registration.c:1154
-#, fuzzy
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "scaling can be applied. Aborting\n"
 msgstr ""
-"Wenn die Interpolation auf \"Nicht\" gesetzt ist, müssen die Bilder die "
-"selbe Größe haben und es kann keine Hochskalierung angewendet werden. "
-"Abbruch\n"
+"Wenn die Interpolation auf \"Keine\" gesetzt ist, müssen die Bilder die "
+"selbe Größe haben und es kann keine Skalierung angewendet werden. Abbruch\n"
 
 #. don't load it for command line execution
 #: src/core/command.c:7794 src/gui/registration.c:1209
@@ -16346,23 +16337,19 @@ msgstr ""
 "zulässig und wird ignoriert.\n"
 
 #: src/core/command.c:8246
-#, fuzzy
 msgid "Overlap normalization is allowed only with mean stacking, ignoring.\n"
 msgstr ""
-"Schnelle Normalisierung ist nur bei durchschnittlichem Stacking erlaubt und "
-"wird ignoriert.\n"
-
-#: src/core/command.c:8252
-#, fuzzy
-msgid "Weighting is allowed only with mean stacking, ignoring.\n"
-msgstr ""
-"Die Gewichtung ist nur bei durchschnittlichem Stacking erlaubt und wird "
+"Überlappungs-Normalisierung ist nur bei Mean-Stacking erlaubt und wird "
 "ignoriert.\n"
 
+#: src/core/command.c:8252
+msgid "Weighting is allowed only with mean stacking, ignoring.\n"
+msgstr "Die Gewichtung ist nur bei Mean-Stacking erlaubt und wird ignoriert.\n"
+
 #: src/core/command.c:8264 src/core/command.c:8298
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown argument to %s, aborting.\n"
-msgstr "Unbekannter Parameter %s, Abbruch.\n"
+msgstr "Unbekanntes Argument für %s, Abbruch.\n"
 
 #: src/core/command.c:8270
 msgid "Fast normalization is allowed only with average stacking, ignoring.\n"
@@ -16385,20 +16372,18 @@ msgstr ""
 "ignoriert.\n"
 
 #: src/core/command.c:8292
-#, fuzzy
 msgid "Blending option is not allowed in this context, ignoring.\n"
 msgstr ""
-"Auswahl des Output-Dateinamens ist in diesem Kontext nicht erlaubt. Wird "
-"ignoriert.\n"
+"Überblendungsoption ist in diesem Kontext nicht erlaubt, wird ignoriert\n"
 
 #: src/core/command.c:8302
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Blending distance must be between 0 and 2000 pixels, got %d, forcing to "
 "2000.\n"
 msgstr ""
-"Fehler im Parameter dia (Durchmesser): muss zwischen 0 und 5000 liegen, "
-"Abbruch.\n"
+"Überblendungsabstand muss zwischen 0 und 2000 Pixeln liegen, %d gefunden, "
+"erzwinge 2000.\n"
 
 #: src/core/command.c:8309
 msgid "RGB equalization is allowed only with average stacking, ignoring.\n"
@@ -16490,16 +16475,17 @@ msgstr ""
 "Größen. Upscale beim Stapeln wird ignoriert\n"
 
 #: src/core/command.c:8423
-#, fuzzy
 msgid "Cannot upscale or maximize framing with median stacking. Disabling\n"
 msgstr ""
-"Rahmung kann mit Median Stacking nicht hochskaliert oder maximiert werden. "
-"Deaktivieren\n"
+"Hochskalierung oder Maximierung des Framings mit Median-Stacking nicht "
+"möglich. Deaktiviert.\n"
 
 #: src/core/command.c:8428
 msgid ""
 "Cannot compute overlap statistics if -maximize is not enabled. Disabling\n"
 msgstr ""
+"Überlappungsstatistik kann nicht berechnet werden wenn -maximize nicht "
+"aktiviert ist. Deaktiviert\n"
 
 #: src/core/command.c:8432
 msgid ""
@@ -16512,6 +16498,7 @@ msgstr ""
 #, c-format
 msgid "Normalizing on overlaps for more than %d images can be slow\n"
 msgstr ""
+"Normalisierung der Überlappungen für mehr als %d Bilder kann langsam sein\n"
 
 #: src/core/command.c:8499
 #, c-format
@@ -16786,11 +16773,13 @@ msgstr[0] "Prozessor"
 msgstr[1] "Vorverarbeitung"
 
 #: src/core/command.c:9365
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "A newer version (>= %lu.%lu.%lu-%s%lu) of Siril is required in order to run "
 "this script: please update your installation.\n"
-msgstr "Eine neuere Version von SIRIL wird benötigt. Bitte aktualisieren.\n"
+msgstr ""
+"Eine neuere Version (>= %lu.%lu.%lu-%s%lu) wird für die Ausführung dieses "
+"Skriptes benötigt: Bitte aktualisieren Sie ihre Installation.\n"
 
 #: src/core/command.c:9365
 msgid "beta"
@@ -17094,6 +17083,8 @@ msgstr ""
 #: src/core/command.c:10373
 msgid "Cannot use -compare argument with non-star catalogues, ignoring.\n"
 msgstr ""
+"Kann das Argument -compare nicht mit Nicht-Sternkatalogen verwenden, wird "
+"ignoriert.\n"
 
 #: src/core/command.c:10467 src/core/command.c:10511
 #, c-format
@@ -17159,83 +17150,69 @@ msgid "Error: sequence has variable sized images.\n"
 msgstr "Fehler: Die Sequenz enthält Bilder unterschiedlicher Größe.\n"
 
 #: src/core/command.c:10911
-#, fuzzy
 msgid "Error: unknown GraXpert operation!\n"
-msgstr "FEHLER: Unbekanntes CFA-Muster\n"
+msgstr "Fehler: Unbekannte GraXpert-Operation!\n"
 
 #: src/core/command.c:10941
-#, fuzzy
 msgid "Error: unknown background extraction algorithm!\n"
-msgstr "Dialog Hintergrundextraktion öffnen"
+msgstr "Fehler: Unbekannter Algorithmus für Hintergrundextraktion.\n"
 
 #: src/core/command.c:10952
-#, fuzzy
 msgid "Error: unknown correction mode!\n"
-msgstr "FEHLER: Unbekanntes CFA-Muster\n"
+msgstr "Fehler: Unbekannter Korrekturmodus!\n"
 
 #: src/core/command.c:10967
-#, fuzzy
 msgid "Error: unknown RBF kernel!\n"
-msgstr "FEHLER: Unbekanntes CFA-Muster\n"
+msgstr "Fehler: Unbekannter RBF-Kernel!\n"
 
 #: src/core/command.c:10975
-#, fuzzy
 msgid "Error: no AI batch size specified\n"
-msgstr "Fehler: kein Dateiname angegeben, Abbruch.\n"
+msgstr "Fehler: Keine Patchgröße für AI angegeben\n"
 
 #: src/core/command.c:10983
-#, fuzzy
 msgid "Error: no pts_per_row specified\n"
-msgstr "Fehler: kein Dateiname angegeben, Abbruch.\n"
+msgstr "Fehler: Keine pts_per_row angegeben.\n"
 
 #: src/core/command.c:10991
-#, fuzzy
 msgid "Error: no spline order specified\n"
-msgstr "Fehler: kein Dateiname angegeben, Abbruch.\n"
+msgstr "Fehler: Keine Ordnung für Splines angegeben\n"
 
 #: src/core/command.c:10999
-#, fuzzy
 msgid "Error: no sample size specified\n"
-msgstr "Fehler: kein Dateiname angegeben, Abbruch.\n"
+msgstr "Fehler: Keine Probengröße angegeben\n"
 
 #: src/core/command.c:11007
-#, fuzzy
 msgid "Error: no smoothing value specified\n"
-msgstr "Fehler: kein Dateiname angegeben, Abbruch.\n"
+msgstr "Fehler: Kein Glättungswert angegeben\n"
 
 #: src/core/command.c:11016
-#, fuzzy
 msgid "Error: no background tolerance value specified\n"
-msgstr ""
-"Fehler: Einfarbiges Bild wird geladen: Farbige Ebenen können nicht angegeben "
-"werden.\n"
+msgstr "Fehler: Kein Wert für die Hintergrundtoleranz angegeben\n"
 
 #: src/core/command.c:11020 src/core/command.c:11034 src/core/command.c:11056
 #: src/core/command.c:11416
-#, fuzzy
 msgid "Error: unknown argument!\n"
-msgstr "FEHLER: Unbekanntes CFA-Muster\n"
+msgstr "Fehelr: Unbekanntes Argument!\n"
 
 #: src/core/command.c:11030 src/core/command.c:11044
-#, fuzzy
 msgid "Error: no strength value specified\n"
-msgstr "Fehler: kein Dateiname angegeben, Abbruch.\n"
+msgstr "Fehler: Kein Stärkewert angegeben\n"
 
 #: src/core/command.c:11052
-#, fuzzy
 msgid "Error: no psf size value specified\n"
-msgstr "Fehler: kein Dateiname angegeben, Abbruch.\n"
+msgstr "Fehler: Kein PSF-Größenwert angegeben\n"
 
 #: src/core/command.c:11084
 msgid ""
 "Error: the requested AI model version is unavailable. Available versions "
 "are:\n"
 msgstr ""
+"Fehler: Die angeforderte Version des KI-Modells ist nicht verfügbar. "
+"Verfügbare Versionen sind:\n"
 
 #: src/core/command.c:11141 src/core/command.c:11156 src/core/command.c:11171
-#, fuzzy
 msgid "Error: unable to load sequence\n"
-msgstr "Kann Sequenz nicht laden\n"
+msgstr "Fehler: Kann Sequenz nicht laden\n"
 
 #: src/core/command.c:11209
 msgid "Error opening target ICC profile.\n"
@@ -17320,17 +17297,16 @@ msgstr ""
 
 #: src/core/command.c:11404
 msgid "No pixels require clipping. Nothing to do...\n"
-msgstr ""
+msgstr "Keine Pixel erfordern eine Beschneidung (Clipping). Nichts zu tun...\n"
 
 #: src/core/command.c:11421
-#, fuzzy
 msgid "Pixel limits applied successfully.\n"
-msgstr "Alle Bilder wurden erfolgreich neu geladen.\n"
+msgstr "Grenzwerte der Pixel erfolgreich angewendet.\n"
 
 #: src/core/command.c:11436
-#, fuzzy, c-format
+#, c-format
 msgid "Current working directory: '%s'\n"
-msgstr "Aktuelles Arbeitsverzeichnis"
+msgstr "Aktuelles Arbeitsverzeichnis: \"%s\"\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -17343,7 +17319,6 @@ msgstr ""
 "Wertes im aktuellen Bild und in <b>filename</b> bestimmt"
 
 #: src/core/command_def.h:7
-#, fuzzy
 msgid ""
 "Stretches the image to show faint objects using an hyperbolic arcsin "
 "transformation. The mandatory argument <b>stretch</b>, typically between 1 "
@@ -17364,12 +17339,13 @@ msgstr ""
 "<b>offset</b> im normalisierten Pixelwert von [0,1] versetzt werden. "
 "Schließlich ermöglicht die Option <b>-human</b> die Verwendung von "
 "Lichteffizienzgewichten des menschlichen Auges zur Berechnung der "
-"Leuchtdichte, die zur Berechnung des Streckungswertes für jedes Pixel "
-"verwendet wird, anstelle des einfachen Mittelwerts der Pixelwerte der "
-"Kanäle. Die Stretching-Methode erhält die Helligkeit aus dem L*a*b-Farbraum"
+"Leuchtdichte, statt die einfache Mittelwerte der Pixelwerte der Kanäle zu "
+"verwenden. Diese Stretchmethode erhält die Helligkeit aus dem L*a*b*-"
+"Farbraum. Der Clip-Modus kann mit dem Argument <b>-clipmode=</b> gesetzt "
+"werden: Die Werte <b>clip</b>, <b>rescale</b>, <b>rgbblend</b> oder "
+"<b>globalrescale</b> werden akzeptiert und der Standardwert ist rgbblend"
 
 #: src/core/command_def.h:8
-#, fuzzy
 msgid ""
 "Application of the generalized hyperbolic stretch with a symmetry point SP "
 "defined as k.sigma from the median of each channel (the provided "
@@ -17388,12 +17364,15 @@ msgstr ""
 "Symmetriepunkt SP, definiert als k.sigma (der angegebene <b>shadowsclip</b>-"
 "Wert ist hier das k und kann negativ sein) vom Mittelwert jedes Kanals, an. "
 "Standardmäßig werden SP und Streckung für jeden Kanal einzeln berechnet. SP "
-"kann auch als Mittelwert der Kanäle berechnet werden, indem <b>linked</b> "
+"kann auch als Mittelwert der Kanäle berechnet werden, indem <b>-linked</b> "
 "übergeben wird. Der Streckungswert <b>D</b> wird im zweiten obligatorischen "
 "Argument angegeben.\n"
 "Implizite Werte von 13 für <b>B</b>, wodurch die Streckung sehr auf die "
 "Helligkeit fixiert ist, 0.7 für <b>HP</b>, 0 für <b>LP</b> werden benutzt, "
-"können aber mittels Optionen des selben Namens verändert werden"
+"können aber mittels Optionen des selben Namens verändert werden. Der Clip-"
+"Modus kann mit dem Argument <b>-clipmode=</b> gesetzt werden: Die Werte "
+"<b>clip</b>, <b>rescale</b>, <b>rgbblend</b> oder <b>globalrescale</b> "
+"werden akzeptiert und der Standardwert ist rgbblend"
 
 #: src/core/command_def.h:9
 msgid ""
@@ -18410,7 +18389,6 @@ msgstr ""
 "aus. Das erste Bild hat den Index 0"
 
 #: src/core/command_def.h:65
-#, fuzzy
 msgid ""
 "Generalised hyperbolic stretch based on the work of the ghsastro.co.uk "
 "team.\n"
@@ -18439,33 +18417,37 @@ msgid ""
 "clipmode=</b>: values <b>clip</b>, <b>rescale</b>, <b>rgbblend</b> or "
 "<b>globalrescale</b> are accepted and the default is rgbblend"
 msgstr ""
-"Verallgemeinerte hyperbolische Streckung auf der Grundlage der Arbeit des "
-"Teams von ghsastro.co.uk.\n"
+"Generalisierte hyperbolische Streckung nach der Arbeit des Teams von ghsastro"
+".co.uk.\n"
 "\n"
 "Das Argument <b>-D=</b> definiert die Stärke der Streckung, zwischen 0 und "
-"10. Dies ist das einzige obligatorische Argument. Mit den folgenden "
-"optionalen Argumenten lässt sich die Dehnung weiter anpassen:\n"
-"<b>B</b> bestimmt die Intensität der Streckung in der Nähe des "
-"Symmetriepunktes, zwischen -5 und 15;\n"
-"<b>LP</b> definiert einen schattenerhaltenden Bereich zwischen 0 und SP, in "
-"dem die Dehnung linear erfolgt und die Schattendetails erhalten bleiben;\n"
-"<b>SP</b> definiert den Symmetriepunkt der Dehnung zwischen 0 und 1, also "
-"den Punkt, an dem die Dehnung am stärksten ist;\n"
-"<b>HP</b> definiert einen Bereich zwischen HP und 1, in dem die Streckung "
-"linear ist, wodurch die Details der Glanzlichter erhalten bleiben und eine "
-"Aufblähung der Sterne verhindert wird.\n"
-"Wenn B, LP und SP weggelassen werden, ist der Standardwert 0,0 und bei HP "
-"ist der Standardwert 1,0.\n"
-"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder <b>-"
-"independent</b>), kann übergeben werden, um entweder menschlich gewichtete "
-"oder geradzahlig gewichtete Luminanz oder unabhängige Farbkanäle für "
-"Farbstrecken auszuwählen. Das Argument wird bei monochromen Bildern "
-"ignoriert. Alternativ gibt das Argument <b>-sat</b> an, dass die Streckung "
-"anhand der Bildsättigung erfolgt - das Bild muss farbig sein und alle Kanäle "
-"müssen ausgewählt sein, damit dies funktioniert.\n"
-"Optional kann der Parameter <b>[channels]</b> verwendet werden, um die "
-"Kanäle anzugeben, auf die die Dehnung angewendet werden soll: dies können R, "
-"G, B, RG, RB oder GB sein. Die Voreinstellung ist alle Kanäle."
+"10. Nur dieses Argument ist erforderlich. Die folgenden Argumente "
+"ermöglichen es die Streckung maßzuschneidern:\n"
+"<b>B</b> definiert die Intensität der Streckung nahe dem Fokuspunkt, "
+"zwischen -5 und 15;\n"
+"<b>LP</b> definiert einen Bereich zum Tiefenschutz (dunkle Bildteile) "
+"zwischen 0 and SP in dem die Streckung linear ist und Details in den Tiefen "
+"bewahrt;\n"
+"<b>SP</b> definiert den Symmetriepunkt der Streckung, zwischen 0 und 1. Das "
+"ist der Punkt an dem die Streckung am stärksten ist;\n"
+"<b>HP</b> definiert einen Bereich zwischen HP and 1 in dem die Streckung "
+"linear ist um Details in den Lichtern zu bewahren und Sterne vor dem "
+"Ausbrennen zu schützen.\n"
+"Wenn nicht angegeben, haben B, LP und SP als Defaultwerte 0.0, HP als "
+"Defaultwert 1.0.\n"
+"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder "
+"<b>-independent</b>) kann angegeben werden um entweder eine menschliche "
+"Gewichtung, eine gleichverteilte Gewichtung oder eine unabhängige Gewichtung "
+"der Farbkanäle zu nutzen. Das Argument wird bei Monobildern ignoriert. "
+"Alternativ kann gibt das Argument <b>-sat</b> vor, dass die Streckung auf "
+"der Farbsättigung durchgeführt wird - dafür muss es sich um ein Farbbild "
+"handeln und alle Kanäle müssen ausgewählt sein um zu funktionieren.\n"
+"Optional kann der Parameter <b>[channels]</b> um die Streckung nur auf "
+"einzelne Farbkanäle anzuwenden: Dies können R, G, B, RG, RB oder GB sein. "
+"Der Defaultwert ist \"alle Kanäle\". Der Clip-Modus kann mit dem Argument "
+"<b>-clipmode=</b> gesetzt werden: Die Werte <b>clip</b>, <b>rescale</b>, "
+"<b>rgbblend</b> oder <b>globalrescale</b> werden akzeptiert und der "
+"Standardwert ist rgbblend"
 
 #: src/core/command_def.h:66
 msgid ""
@@ -18501,6 +18483,41 @@ msgid ""
 "reasons even if running in CPU-only mode. If this argument is omitted, the "
 "latest available AI model version is used"
 msgstr ""
+"Führt das externe Tool GraXpert im Modus Hintergrundextraktion aus.\n"
+"\n"
+"Die folgenden optionalen Argumente können angegeben werden:\n"
+"\n"
+"<b>-algo=</b> setzt den Algorithmus für die Hintergrundextration um muss "
+"einer der folgenden Werte sein: <b>ai</b>, <b>rbf</b>, <b>kriging</b> or "
+"<b>spline</b>;\n"
+"<b>-mode=</b> setzt den Modus für die Hintergrundextraktion undd muss einer "
+"der folgenden Werte sein: <b>sub</b> or <b>div</b>;\n"
+"<b>-kernel=</b> setzt den RBF-Kern und muss einer der folgenden Werte sein: "
+"<b>thinplate</b>, <b>quintic</b>, <b>cubic</b> or <b>linear</b>;\n"
+"<b>-pts_per_row=</b> setzt die Anzahl von Problem pro Zeile im Probengitter "
+"des Hintergrunds (Default = 15);\n"
+"<b>-samplesize=</b> setzt die Größe der Stichproblem für jede Probe (Default "
+"= 25);\n"
+"<b>-splineorder=</b> setzt die Ordnung der Splines für den Spline-"
+"Algorithmus (default = 3);\n"
+"<b>-bgtol=</b> setzt die Hintergrundtoleranz zwischen -2.0 und 6.0 (Default 2"
+".0);\n"
+"<b>-smoothing=</b> setzt die Stärke der Hintergrundglättung (Default = 0.5);"
+"\n"
+"<b>-keep_bg</b> weist GraXpert an das indikative Hintergrundbild zu "
+"speichern;\n"
+"<b>-cpu</b> weist GraXpert an nur die CPU zu benutzen;\n"
+"<b>-gpu</b> weist GraXpert die GPU zu benutzen falls verfügbar (und sonst "
+"die Berechnung mit der CPU als Fallback);\n"
+"<b>-ai_batch_size=</b> Setzt die Batchgröße für AI-Operationen (Entrauschen "
+"und KI-Hintergrundextraktion) (Default = 4: größere Batches können die "
+"Geschwindigkeit verbessern, speziell mit CPUs, erfordern aber mehr Speicher)"
+". Das optionale Argument <b>-ai_version=</b> erzwingt eine spezifische "
+"Version des KI-Modells. Beachten Sie, dass GraXpert KI Hintergrundextraktion "
+"ohnehin vergleichsweise schnell arbeitet, daher besteht wenig Nutzen darin "
+"ein älteres KI-Modell für die Hintergrundextraktion zu nutzen, welbst wenn "
+"die Berechnung nur auf der CPU erfolgt. Wenn dieses Argument fehlt, wird die "
+"aktuellste verfügbare Version des KI-Modells verwendet"
 
 #: src/core/command_def.h:67
 msgid ""
@@ -18520,6 +18537,21 @@ msgid ""
 "model. If this argument is omitted, the latest available AI model version is "
 "used"
 msgstr ""
+"Führt eine Dekonvolution (Schärfung) mit dem externe Tool GraXpert aus.\n"
+"\n"
+"Die folgenden optionalen Argumente können angegeben werden:\n"
+"\n"
+"<b>-strength=</b> setzt die Stärke der Schärfung zwischen 0.0 and 1.0 ("
+"Default = 0.5) und <b>-psfsize=</b> eine Schätzung des FWHM-Wertes im "
+"Bereich zwischen 0.0 und 14.0 Pixeln (Default = 5.0);\n"
+"<b>-gpu</b> weist GraXpert an eine GPU zu verwenden falls verfügbar (und "
+"sonst die Berechnung mit der CPU als Fallback);\n"
+"<b>-ai_batch_size=</b> Setzt die Batchgröße für AI-Operationen (Entrauschen "
+"und KI-Hintergrundextraktion) (Default = 4: größere Batches können die "
+"Geschwindigkeit verbessern, speziell mit CPUs, erfordern aber mehr Speicher)"
+". Das optionale Argument <b>-ai_version=</b> erzwingt eine spezifische "
+"Version des KI-Modells. Wenn dieses Argument fehlt, wird die aktuellste "
+"verfügbare Version des KI-Modells verwendet"
 
 #: src/core/command_def.h:68
 msgid ""
@@ -18540,6 +18572,21 @@ msgid ""
 "balance between performance and runtime. If this argument is omitted, the "
 "latest available AI model version is used"
 msgstr ""
+"Führt eine Entrauschung mit dem externen Tool GraXpert durch.\n"
+"\n"
+"Die folgenden optionalen Argumente können angegeben werden:\n"
+"\n"
+"<b>-strength=</b> setzt die Stärke der Entrauschung zwischen 0.0 und 1.0 ("
+"Default = 0.8);\n"
+"<b>-ai_batch_size=</b> Setzt die Batchgröße für AI-Operationen (Entrauschen "
+"und KI-Hintergrundextraktion) (Default = 4: größere Batches können die "
+"Geschwindigkeit verbessern, speziell mit CPUs, erfordern aber mehr Speicher)"
+". Das optionale Argument <b>-ai_version=</b> erzwingt eine spezifische "
+"Version des KI-Modells. Berechnungen nur mit der CPU laufen mit dem "
+"aktuellsten Modell sehr langsam. In diesem Fall kann ein älteres Modell, "
+"beispielsweise 2.0.0, angegeben werden um ein besseres Gleichgewicht "
+"zwischen Ausführungszeit und Qualität zu erreichen. Wenn dieses Argument "
+"fehlt, wird die aktuellste verfügbare Version des KI-Modells verwendet"
 
 #: src/core/command_def.h:69
 msgid ""
@@ -18777,6 +18824,29 @@ msgid ""
 "produce an unexpected result. This can be mitigated by applying cosmetic "
 "correction to the image first"
 msgstr ""
+"Begrenzt Pixelwerte in 32-Bit-Bildern auf den Bereich von 0,0 bis 1,0. "
+"Dieser Befehl gilt nicht für 16-Bit-Bilder, da keine Werte außerhalb des "
+"Bereichs auftreten können. Die Bereichsbegrenzung kann auf eine der "
+"folgenden Arten erfolgen:\n"
+"\n"
+"<b>-clip</b>: Diese Option schneidet einfach alle negativen Pixel auf 0,0 "
+"und alle Pixel mit einem Wert &gt; 1,0 auf 1,0 ab.\n"
+"<b>-posrescale</b>: Diese Option skaliert alle positiven Pixelwerte so, dass "
+"der Maximalwert 1,0 beträgt, und schneidet alle negativen Pixel auf 0,0 ab. "
+"Für 3-Kanal-Bilder wird der gleiche Skalierungsfaktor auf alle Kanäle "
+"angewendet. Wenn der maximale Pixelwert bereits <= 1,0 ist, werden negative "
+"Pixel weiterhin abgeschnitten, aber es wird kein Skalierungsfaktor auf "
+"positive Pixel angewendet.\n"
+"<b>-rescale</b>: Bei Verwendung dieser Option wird, falls negative "
+"Pixelwerte vorhanden sind, ein konstanter Wert zu allen Pixelwerten addiert, "
+"sodass der Minimalwert 0,0 beträgt. Wenn dann der maximale Pixelwert > 1,0 "
+"ist, wird ein Skalierungsfaktor angewendet, sodass der maximale Pixelwert "
+"auf 1,0 skaliert wird.\n"
+"\n"
+"Beachten Sie, dass bei Vorliegen eines oder mehrerer extremer Ausreißer (z. "
+"B. aufgrund fehlerhafter Pixel) die Optionen <b>-rescale</b> und "
+"<b>-fullrescale</b> zu unerwarteten Ergebnissen führen können. Dies kann "
+"durch vorherige kosmetische Korrektur des Bildes gemildert werden"
 
 #: src/core/command_def.h:88
 msgid ""
@@ -18808,7 +18878,6 @@ msgstr ""
 "sortieren"
 
 #: src/core/command_def.h:90
-#, fuzzy
 msgid ""
 "Stretches the image linearly to a new black point BP.\n"
 "The argument <b>[channels]</b> may optionally be used to specify the "
@@ -18823,10 +18892,13 @@ msgstr ""
 "Streckt das Bild linear auf einen neuen Schwarzpunkt BP.\n"
 "Das Argument <b>[channels]</b> kann optional verwendet werden, um die Kanäle "
 "anzugeben, auf die die Streckung angewendet werden soll: Dies kann R, G, B, "
-"RG, RB oder GB sein. Der Standardwert sind alle Kanäle.\n"
+"RG, RB oder GB sein. Der Standardwert ist \"alle Kanäle\".\n"
 "Optional kann der Parameter <b>-sat</b> verwendet werden, um die lineare "
 "Streckung auf den Bildsättigungskanal anzuwenden. Dieses Argument "
-"funktioniert nur, wenn alle Kanäle ausgewählt sind"
+"funktioniert nur, wenn alle Kanäle ausgewählt sind. Der Clip-Modus kann mit "
+"dem Argument <b>-clipmode=</b> gesetzt werden: Die Werte <b>clip</b>, "
+"<b>rescale</b>, <b>rgbblend</b> oder <b>globalrescale</b> werden akzeptiert "
+"und der Standardwert ist rgbblend"
 
 #: src/core/command_def.h:91
 msgid ""
@@ -19056,7 +19128,6 @@ msgid "Flips the image about the vertical axis"
 msgstr "Spiegelt das Bild um die vertikale Achse"
 
 #: src/core/command_def.h:103
-#, fuzzy
 msgid ""
 "Modified arcsinh stretch based on the work of the ghsastro.co.uk team.\n"
 "\n"
@@ -19083,8 +19154,7 @@ msgid ""
 "<b>globalrescale</b> are accepted and the default is rgbblend"
 msgstr ""
 "Modifizierte arcsinh-Streckung auf der Grundlage der Arbeit des ghsastro.co."
-"uk-Teams. Diese Funktion ähnelt der einfachen asinh-Streckung, bietet aber "
-"zusätzliche Parameter für die Feinabstimmung.\n"
+"uk-Teams.\n"
 "\n"
 "Der Parameter <b>D</b> definiert die Stärke der Streckung, die zwischen 0 "
 "und 10 liegt. Dies ist das einzige obligatorische Argument. Die folgenden "
@@ -19098,16 +19168,19 @@ msgstr ""
 "Aufblähung der Sterne verhindert wird.\n"
 "Wenn B, LP und SP weggelassen werden, ist der Standardwert 0,0 und HP ist "
 "der Standardwert 1,0.\n"
-"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder <b>-"
-"independent</b>), kann übergeben werden, um entweder menschlich gewichtete "
-"oder geradzahlig gewichtete Luminanz oder unabhängige Farbkanäle für "
-"Farbstreckungen auszuwählen. Das Argument wird bei Monobildern ignoriert. "
-"Alternativ gibt das Argument <b>-sat</b> an, dass die Streckung anhand der "
-"Bildsättigung erfolgt - das Bild muss farbig sein und alle Kanäle müssen "
-"ausgewählt sein, damit dies funktioniert.\n"
+"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder "
+"<b>-independent</b>), kann übergeben werden, um entweder menschlich "
+"gewichtete oder geradzahlig gewichtete Luminanz oder unabhängige Farbkanäle "
+"für Farbstreckungen auszuwählen. Das Argument wird bei Monobildern "
+"ignoriert. Alternativ gibt das Argument <b>-sat</b> an, dass die Streckung "
+"anhand der Bildsättigung erfolgt - das Bild muss farbig sein und alle Kanäle "
+"müssen ausgewählt sein, damit dies funktioniert.\n"
 "Optional kann der Parameter <b>[channels]</b> verwendet werden, um die "
 "Kanäle anzugeben, auf die die Dehnung angewendet werden soll: dies können R, "
-"G, B, RG, RB oder GB sein. Die Voreinstellung ist alle Kanäle"
+"G, B, RG, RB oder GB sein. Die Voreinstellung ist \"Alle Kanäle\". Der Clip-"
+"Modus kann mit dem Argument <b>-clipmode=</b> gesetzt werden: Die Werte "
+"<b>clip</b>, <b>rescale</b>, <b>rgbblend</b> oder <b>globalrescale</b> "
+"werden akzeptiert und der Standardwert ist rgbblend"
 
 #: src/core/command_def.h:104
 msgid ""
@@ -19171,6 +19244,9 @@ msgid ""
 "catalogue lookups, update of git repositories etc. are unavailable. Cached "
 "data is still accessible"
 msgstr ""
+"Stellt Siril auf Offline-Modus. In diesem Modus sind Netzwerkfunktionen wie "
+"Remote-Katalogabfragen, Aktualisierung von Git-Repositories usw. nicht "
+"verfügbar. Zwischengespeicherte Daten sind jedoch weiterhin zugänglich"
 
 #: src/core/command_def.h:111
 msgid ""
@@ -19191,6 +19267,8 @@ msgid ""
 "Sets Siril to online mode. In this mode networking functions such as remote "
 "catalogue lookups, update of git repositories etc. is allowed"
 msgstr ""
+"Stellt Siril auf Online-Modus. In diesem Modus sind Netzwerkfunktionen wie "
+"Remote-Katalogabfragen, Aktualisierung von Git-Repositories usw. erlaubt"
 
 #: src/core/command_def.h:114
 msgid ""
