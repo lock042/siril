@@ -184,7 +184,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 	snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
 			getpid(), (unsigned long)time(NULL));
 
-	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR, 0600);
+	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR | O_EXCL, 0600);
 	if (*fd == -1) {
 		siril_log_color_message(_("Failed to create shared memory: %s\n"), "red", strerror(errno));
 		return FALSE;
@@ -192,7 +192,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 
 	// Truncate to ensure exact size (the order matters: this must come before mmap() on MacOS)
 	if (ftruncate(*fd, total_bytes) == -1) {
-		siril_log_color_message(_("Failed to set shared memory size: %s\n"), "red", strerror(errno));
+		siril_log_color_message(_("Failed to set shared memory size (total_bytes: %lu): %s\n"), "red", total_bytes, strerror(errno));
 		munmap(shm_ptr, total_bytes);
 		close(*fd);
 		shm_unlink(shm_name_ptr);
