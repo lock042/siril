@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-23 11:30+0000\n"
+"PO-Revision-Date: 2024-12-23 13:28+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -9233,9 +9233,8 @@ msgid "From FITS/WCS file"
 msgstr "Из файла FITS/WCS"
 
 #: src/gui/uifiles/siril.ui:5742
-#, fuzzy
 msgid "From distortion masters"
-msgstr "Вычисление нормализации...\n"
+msgstr "Из мастер-файлов дисторсии"
 
 #: src/gui/uifiles/siril.ui:5759
 msgid ""
