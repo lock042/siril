@@ -92,6 +92,7 @@ xx/xx/xx
 * Fixed seqpsf for images which write ADU in float (#1322)
 * Fixed crash in catsearch when object is unknown (#1383)
 * Fixed local astrometry.net solver non-functional on flatpak (#1392)
+* Fixed Save As feature (#1452)
 
 **Misc:**
 * Removed glib-networking as a dependency (#1157)

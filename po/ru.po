@@ -6,8 +6,8 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-11 08:47+0000\n"
-"Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
+"PO-Revision-Date: 2024-12-16 06:43+0000\n"
+"Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
 "Language: ru\n"
@@ -311,9 +311,8 @@ msgid "vsx"
 msgstr "vsx"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
-#, fuzzy
 msgid "varisum"
-msgstr "vsx"
+msgstr "varisum"
 
 #: src/gui/uifiles/annotate_dialog.ui:143
 msgid "simbad"
@@ -12544,7 +12543,7 @@ msgstr ""
 #: src/algos/colors.c:795 src/algos/colors.c:933
 #, c-format
 msgid "%s channel extraction: processing...\n"
-msgstr "извлечение канала %s: выполнение...\n"
+msgstr "извлечение канала %s: выполняется...\n"
 
 #: src/algos/colors.c:821 src/algos/colors.c:959
 #, c-format
@@ -14384,7 +14383,7 @@ msgstr "Запрошенный оператор непонятен\n"
 
 #: src/core/command.c:1053
 msgid "Multiplying by a coefficient less than or equal to 0 is not possible.\n"
-msgstr "Невозможно умножить на коэффициент меньший или равный 0.\n"
+msgstr "Умножение на коэффициент меньший или равный 0 невозможно.\n"
 
 #: src/core/command.c:1081
 #, c-format
@@ -14397,15 +14396,15 @@ msgstr ""
 
 #: src/core/command.c:1208
 msgid "-si= value must be > 0.0 and <= 65535\n"
-msgstr "значение -si= должно быть >= 0.0 и <= 65535\n"
+msgstr "значение -si= должно быть > 0.0 и <= 65535\n"
 
 #: src/core/command.c:1213
 msgid "-d= value must be > 0.0 and <= 20.0\n"
-msgstr "значение -d= должно быть >= 0.0 и <= 20.0\n"
+msgstr "значение -d= должно быть > 0.0 и <= 20.0\n"
 
 #: src/core/command.c:1218
 msgid "-ss= value must be > 0.0 and <= 32.0\n"
-msgstr "значение -ss= должно быть >= 0.0 и <= 32.0\n"
+msgstr "значение -ss= должно быть > 0.0 и <= 32.0\n"
 
 #: src/core/command.c:1223
 msgid ""
@@ -14415,7 +14414,7 @@ msgstr ""
 
 #: src/core/command.c:1226
 msgid "-mod= value must be > 0.0 and <= 1.0\n"
-msgstr "значение -mod= должно быть >= 0.0 и <= 1.0\n"
+msgstr "значение -mod= должно быть > 0.0 и <= 1.0\n"
 
 #: src/core/command.c:1236
 #, fuzzy
@@ -21520,7 +21519,7 @@ msgstr ""
 
 #: src/core/OS_utils.c:762
 msgid "Limiting processing to 1900 MiB allocations (32-bit system)\n"
-msgstr "Ограничение обработки до 1900Мб (32 битная система)\n"
+msgstr "Ограничение обработки до 1900Мб (32-битная система)\n"
 
 #: src/core/pipe.c:100
 #, c-format
@@ -22660,7 +22659,7 @@ msgstr "Пожалуйста сообщите об этой ошибке: "
 
 #: src/core/siril.c:179
 msgid "Unsharp: processing...\n"
-msgstr "Нерезкая маска: обработка...\n"
+msgstr "Нерезкая маска: выполняется...\n"
 
 #: src/core/siril.c:280
 msgid "ddp level argument must be [0, 65535]\n"
@@ -23257,9 +23256,8 @@ msgid "GraXpert"
 msgstr "Световой поток"
 
 #: src/filters/graxpert.c:982
-#, fuzzy
 msgid "GraXpert: Processing..."
-msgstr "StarNet: Обработка…"
+msgstr "GraXpert: Выполняется..."
 
 #: src/filters/median.c:289 src/filters/median.c:513
 msgid "Median Filter: processing...\n"
@@ -23624,11 +23622,11 @@ msgstr "StarNet"
 
 #: src/filters/starnet.c:940
 msgid "StarNet: Processing..."
-msgstr "StarNet: Обработка…"
+msgstr "StarNet: Выполняется..."
 
 #: src/filters/synthstar.c:362
 msgid "Star synthesis (full star mask creation): processing...\n"
-msgstr "Синтез звёзд (создание полной маски звёзд): обработка...\n"
+msgstr "Синтез звёзд (создание полной маски звёзд): выполняется...\n"
 
 #: src/filters/synthstar.c:389
 msgid "No stars detected in the image.\n"
@@ -23642,7 +23640,7 @@ msgstr "Синтез %d звёзд...\n"
 #: src/filters/synthstar.c:654
 msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
 msgstr ""
-"Синтез звёзд (обесцвечивание обрезанных профилей звёзд): обработка...\n"
+"Синтез звёзд (обесцвечивание обрезанных профилей звёзд): выполняется...\n"
 
 #: src/filters/synthstar.c:710
 #, c-format
@@ -24677,7 +24675,7 @@ msgstr "Выделите область с образцом белого"
 
 #: src/gui/colors.c:232
 msgid "Color Calibration: processing...\n"
-msgstr "Калибровка цвета: обработка…\n"
+msgstr "Калибровка цвета: выполняется…\n"
 
 #. HSL
 #. HSV
@@ -25758,7 +25756,7 @@ msgstr "Выберете файл со списком звёзд сравнен�
 
 #: src/gui/nina_light_curve.c:232
 msgid "The current comparison stars file is not located in the CWD"
-msgstr ""
+msgstr "Текущий файл со списком звёзд сравнения вне рабочей директории"
 
 #: src/gui/nina_light_curve.c:241
 msgid "The currently loaded image must be plate solved"
@@ -26288,7 +26286,6 @@ msgstr ""
 "экспортировать используя пункт \"Применить существующую регистрацию\"."
 
 #: src/gui/registration.c:60
-#, fuzzy
 msgid ""
 "<b>Image Pattern Alignment</b>: This is a simple registration by translation "
 "method using cross correlation in the spatial domain. This method is fast "
@@ -26298,9 +26295,9 @@ msgid ""
 msgstr ""
 "<b>По паттерну</b>: Простая регистрация методом переноса, используя кросс-"
 "корреляцию в пространственном домене. Это быстрый метод и используется для "
-"регистрации роликов с планетами. Он также может применяться для регистрации "
+"регистрации роликов с планетами. Он может применяться и для регистрации "
 "некоторых изображений глубокого космоса. Сдвиги с пиксельной точностью "
-"сохраняются в файле seq."
+"сохраняются во входящем файле последовательности."
 
 #: src/gui/registration.c:64
 #, fuzzy
@@ -27053,7 +27050,7 @@ msgstr "Кол-во изображений"
 
 #: src/gui/stacking.c:196
 msgid "Stacking: processing...\n"
-msgstr "Укладка: обработка...\n"
+msgstr "Укладка: выполняется...\n"
 
 #: src/gui/stacking.c:316
 msgid "Low clipping factor for the percentile clipping rejection algorithm."
