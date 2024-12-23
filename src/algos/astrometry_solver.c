@@ -66,7 +66,8 @@
 
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-2 // convergence tolerance in arcsec from the projection center
-#define NB_GRID_POINTS 7 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
+#define TRANS_SANITY_CHECK 0.1 // TRANS sanity check to validate the first TRANS structure
+#define NB_GRID_POINTS 7 // the number of points in one direction to create the X,Y meshgrid for inverse polynomial fiiting
 
 #define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->ret = SOLVE_CANCELLED; goto clearup;}
 #define CHECK_FOR_CANCELLATION if (!get_thread_run()) { ret = SOLVE_CANCELLED; goto clearup; }
@@ -253,7 +254,7 @@ static gboolean check_affine_TRANS_sanity(TRANS *trans) {
 	var1 = fabs(trans->x10) - fabs(trans->y01);
 	var2 = fabs(trans->y10) - fabs(trans->x01);
 	siril_debug_print("abs(diff_cos)=%f et abs(diff_sin)=%f\n", var1, var2);
-	return (fabs(var1) < 0.01 && fabs(var2) < 0.01);
+	return (fabs(var1) < TRANS_SANITY_CHECK && fabs(var2) < TRANS_SANITY_CHECK);
 }
 
 static double get_det_from_trans(TRANS *trans) {
