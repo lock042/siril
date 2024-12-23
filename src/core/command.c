@@ -10079,6 +10079,7 @@ int process_platesolve(int nb) {
 		siril_world_cs_unref(target_coords);
 		target_coords = NULL;
 	}
+	gboolean iscfa = preffit->keywords.bayer_pattern[0] != '\0';
 
 	// we are now ready to fill the structure
 	args = calloc(1, sizeof(struct astrometry_data));
@@ -10172,7 +10173,7 @@ int process_platesolve(int nb) {
 		noflip = TRUE;
 		siril_debug_print("forced no flip for solving an image from a sequence\n");
 	}
-	if (!seqps && preffit->keywords.bayer_pattern[0] != '\0') { // prevent flipping for bayered images
+	if (iscfa) { // prevent flipping for bayered images
 		noflip = TRUE;
 		siril_debug_print("forced no flip for CFA image\n");
 	}
@@ -10190,6 +10191,9 @@ int process_platesolve(int nb) {
 		args->ref_stars->phot = FALSE;
 		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+	} else {
+		args->asnet_blind_pos = asnet_blind_pos;
+		args->asnet_blind_res = asnet_blind_res;
 	}
 
 	args->for_sequence = seqps;
