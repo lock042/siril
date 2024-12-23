@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-21 11:02+0000\n"
+"PO-Revision-Date: 2024-12-23 11:30+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -4763,7 +4763,7 @@ msgid ""
 "Unchecking this option will give you an RGB image where each output channel "
 "is expressed by a formula."
 msgstr ""
-"Снятие этого флажка даст RGB изображение, в котором каждый исходящий канал "
+"Снятие этого флажка даст RGB изображение, в котором каждый итоговый канал "
 "выражается формулой."
 
 #: src/gui/uifiles/pixelmath.ui:371
@@ -5334,7 +5334,7 @@ msgstr "X"
 
 #: src/gui/uifiles/seqlist_dialog.ui:137
 msgid "Y"
-msgstr "Y"
+msgstr "Да"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
 #: src/gui/uifiles/settings_window.ui:5149
@@ -6254,7 +6254,7 @@ msgid ""
 "Choose a master-dark that can be used as generic master-dark by clicking on "
 "the button \"Use it as default\"."
 msgstr ""
-"Темновой мастер-кадр, который будет использовать после нажатия кнопки «По "
+"Темновой мастер-кадр, который будет использован после нажатия кнопки «По "
 "умолчанию»."
 
 #: src/gui/uifiles/settings_window.ui:2082
@@ -6271,13 +6271,12 @@ msgid "Master-distortion:"
 msgstr "Темновой мастер-кадр:"
 
 #: src/gui/uifiles/settings_window.ui:2152
-#, fuzzy
 msgid ""
 "Choose a master-distortion that can be used as generic master-distortion by "
 "clicking on the button \"Use it as default\"."
 msgstr ""
-"Темновой мастер-кадр, который будет использовать после нажатия кнопки «По "
-"умолчанию»."
+"Выберите файл, который будет использован по умолчанию как мастер-кадр "
+"дисторсии после нажатия кнопки «По умолчанию»."
 
 #: src/gui/uifiles/settings_window.ui:2175
 #, fuzzy
@@ -7556,9 +7555,8 @@ msgstr ""
 "Только для версий StarNet, основанных на библиотеке Torch."
 
 #: src/gui/uifiles/settings_window.ui:5951
-#, fuzzy
 msgid "Must point to a valid GraXpert executable."
-msgstr "Должен указывать на верный исполняемый файл Starnet."
+msgstr "Должен указывать на верный исполняемый файл GraXpert."
 
 #: src/gui/uifiles/settings_window.ui:5970
 msgid "Software Location"
@@ -7809,9 +7807,8 @@ msgid "32 bits"
 msgstr "32 бита"
 
 #: src/gui/uifiles/siril.ui:1215
-#, fuzzy
 msgid "Stretches"
-msgstr "Авторастягивание"
+msgstr "Растягивание"
 
 #: src/gui/uifiles/siril.ui:1254
 msgid "Open the color saturation dialog"
@@ -7838,9 +7835,8 @@ msgid "Negative Transformation"
 msgstr "Инвертировать"
 
 #: src/gui/uifiles/siril.ui:1310
-#, fuzzy
 msgid "Filters"
-msgstr "Фильтр: "
+msgstr "Фильтры"
 
 #: src/gui/uifiles/siril.ui:1335 src/gui/uifiles/siril.ui:1798
 msgid "Star Processing"
@@ -7860,12 +7856,11 @@ msgstr "Извлечение фона…"
 
 #: src/gui/uifiles/siril.ui:1400
 msgid "Open the GraXpert external tool interface"
-msgstr ""
+msgstr "Открывает интерфейс внешнего инструмента GraXpert"
 
 #: src/gui/uifiles/siril.ui:1402
-#, fuzzy
 msgid "GraXpert Interface..."
-msgstr "Интерфейс"
+msgstr "Интерфейс GraXpert..."
 
 #: src/gui/uifiles/siril.ui:1429
 msgid "Open the linear match dialog"
@@ -8242,7 +8237,7 @@ msgstr "Показать наклон"
 
 #: src/gui/uifiles/siril.ui:2548
 msgid "Show Distortions"
-msgstr "Показать искажения"
+msgstr "Показать дисторсию"
 
 #: src/gui/uifiles/siril.ui:2573
 msgid "Dynamic PSF..."
@@ -9193,9 +9188,8 @@ msgid "Hit this button for star detection settings"
 msgstr "Настройки определения звёзд"
 
 #: src/gui/uifiles/siril.ui:5694
-#, fuzzy
 msgid "2pass registration"
-msgstr "Применить регистрацию"
+msgstr "Регистрация за 2 шага"
 
 #: src/gui/uifiles/siril.ui:5698
 #, fuzzy
@@ -9231,14 +9225,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:5740
-#, fuzzy
 msgid "From image"
-msgstr "Из файлов"
+msgstr "Из изображения"
 
 #: src/gui/uifiles/siril.ui:5741
-#, fuzzy
 msgid "From FITS/WCS file"
-msgstr "Из файлов"
+msgstr "Из файла FITS/WCS"
 
 #: src/gui/uifiles/siril.ui:5742
 #, fuzzy
@@ -12717,7 +12709,7 @@ msgstr "%d звёзд сравнения после сортировки.\n"
 
 #: src/algos/comparison_stars.c:381
 msgid "No csv output file to create\n"
-msgstr "Отсутствует исходящий файл csv для создания\n"
+msgstr "Отсутствует итоговый файл csv для создания\n"
 
 #. and retrieving its results
 #. returns the nb of stars
@@ -15728,9 +15720,9 @@ msgid "%d smaller than minimum allowable star pairs: %d, aborting.\n"
 msgstr "%d меньше чем минимально возможное число пар звёзд %d, прерывание.\n"
 
 #: src/core/command.c:7586
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown distortion type %s, aborting.\n"
-msgstr "Неизвестное преобразование %s, прерывание.\n"
+msgstr "Неизвестный тип дисторсии %s, прерывание.\n"
 
 #: src/core/command.c:7595 src/core/command.c:7725 src/core/command.c:8185
 #: src/core/command.c:8828 src/core/command.c:10039 src/core/command.c:10698
@@ -21539,7 +21531,7 @@ msgstr "Ограничение обработки до 1900Мб (32-битная
 #: src/core/pipe.c:100
 #, c-format
 msgid "Output pipe creation failed with error %d\n"
-msgstr "Не удалось создать исходящий канал с ошибкой %d\n"
+msgstr "Не удалось создать итоговый канал с ошибкой %d\n"
 
 #: src/core/pipe.c:117
 #, c-format
@@ -22342,7 +22334,7 @@ msgstr "использовать мастер-кадр плоского поля
 #: src/core/settings.c:440
 #, fuzzy
 msgid "default distortion master"
-msgstr "мастер-кадр шума считывания по умолчанию"
+msgstr "мастер-кадр дисторсии по умолчанию"
 
 #: src/core/settings.c:441
 #, fuzzy
@@ -26421,9 +26413,8 @@ msgid "Max framing not allowed with fitseq, change to regular FITS images"
 msgstr ""
 
 #: src/gui/registration.c:745
-#, fuzzy
 msgid "Pick object in two images"
-msgstr "Выбрать объект в №1"
+msgstr "Выбрать объект на двух изображениях"
 
 #: src/gui/registration.c:833
 msgid "Failed to determine registration method...\n"
@@ -26457,9 +26448,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/registration.c:955
-#, fuzzy
 msgid "CFA pattern detected"
-msgstr "Звёзды не найдены"
+msgstr "Обнаружен шаблон CFA"
 
 #: src/gui/registration.c:956
 msgid ""
@@ -26491,9 +26481,8 @@ msgstr ""
 "только в \"Сдвиг\". Прерывание\n"
 
 #: src/gui/registration.c:1194
-#, fuzzy
 msgid "Error: unable to read reference frame metadata\n"
-msgstr "Ошибка: не удалось прочитать выходной файл StarNet...\n"
+msgstr "Ошибка: не удалось прочитать метаданные опорного кадра\n"
 
 #. Estimate was pressed, we need to update the label
 #: src/gui/registration.c:1250
@@ -26502,9 +26491,9 @@ msgid " (assuming a scaling factor of %.2f)"
 msgstr ""
 
 #: src/gui/registration.c:1251
-#, fuzzy, c-format
+#, c-format
 msgid "Output image: %d x %d pixels%s\n"
-msgstr "Размер нового изображения: %d×%d пикселей.\n"
+msgstr "Итоговое изображение: %d × %d пикселей%s\n"
 
 #: src/gui/registration_preview.c:76
 #, c-format
@@ -30452,7 +30441,7 @@ msgstr "Совпадение пар после подгонки: %d\n"
 #: src/registration/global.c:693
 #, c-format
 msgid "Inliers:%*.3f\n"
-msgstr "Норма: %*.3f\n"
+msgstr "Доля совпавших: %*.3f\n"
 
 #: src/registration/global.c:699
 #, c-format
