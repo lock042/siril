@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-24 15:11+0000\n"
-"Last-Translator: Andrea Fabio Ferracin <ferrajeans@gmail.com>\n"
+"PO-Revision-Date: 2024-12-24 17:25+0000\n"
+"Last-Translator: Fabio Gervasi <fab.gervasi@gmail.com>\n"
 "Language-Team: Italian <https://weblate.siril.org/projects/siril/software/"
 "siril/it/>\n"
 "Language: it_IT\n"
@@ -22,7 +22,7 @@ msgstr ""
 #: src/gui/uifiles/aavso_dialog.ui:7
 #, fuzzy
 msgid "AAVSO parameters"
-msgstr "Nessuna stella selezionata"
+msgstr "Parametri AAVSO"
 
 #: src/gui/uifiles/aavso_dialog.ui:22 src/gui/uifiles/annotate_dialog.ui:45
 #: src/gui/uifiles/astrometry_dialog.ui:113
@@ -100,6 +100,8 @@ msgid ""
 "The official AAVSO Observer Code for the observer which was previously "
 "assigned by the AAVSO."
 msgstr ""
+"Il codice Osservatore ufficiale dell'AAVSO per l'osservatore che era "
+"previamente assegnato dall'AAVSO."
 
 #: src/gui/uifiles/aavso_dialog.ui:101
 msgid "Obscode: "
@@ -111,7 +113,7 @@ msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:124
 msgid "The filter used for the observation."
-msgstr "Il filtro utilizzato per la rotazione"
+msgstr "Il filtro utilizzato per l'osservazione."
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 msgid "Cname: "
@@ -154,9 +156,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:275
-#, fuzzy
 msgid "Comparison star: "
-msgstr "Fattore di compensazione"
+msgstr "Comparazione stella: "
 
 #: src/gui/uifiles/aavso_dialog.ui:286
 #, fuzzy
@@ -177,6 +178,13 @@ msgid ""
 "instrumental value of the comparison, and Cstd is the chart magnitude for "
 "the comparison."
 msgstr ""
+"La magnitudine standardizzata per la variabile è data da\n"
+"\n"
+"Vstd = (Vins - Cins) + Cstd\n"
+"\n"
+"dove Vins è la magnitudine strumentale della variabile, Cins è il valore "
+"strumentale della comparazione, e Cstd è il grafico della magnitudine della "
+"comparazione."
 
 #: src/gui/uifiles/aavso_dialog.ui:315 src/gui/uifiles/astrometry_dialog.ui:180
 #: src/gui/uifiles/astrometry_dialog.ui:202
