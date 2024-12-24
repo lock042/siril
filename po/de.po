@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:37+0100\n"
-"PO-Revision-Date: 2024-12-22 15:30+0000\n"
-"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
+"PO-Revision-Date: 2024-12-24 15:11+0000\n"
+"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/de/>\n"
 "Language: de\n"
@@ -3793,7 +3793,7 @@ msgstr "Redo"
 
 #: src/gui/siril3.glade:14734
 msgid "PSF"
-msgstr ""
+msgstr "PSF"
 
 #: src/gui/siril3.glade:14741
 msgid ""
@@ -6736,7 +6736,7 @@ msgstr ""
 "<b>Perzentil Clipping</b> ist ein einstufiger Ablehnungsalgorithmus, der "
 "sich ideal für kleine Datensätze (bis zu 6 Bilder) eignet.\n"
 "\n"
-"<b>Sigma Clipping<b> ist ein iterativer Algorithmus, der Pixel verworfen, "
+"<b>Sigma Clipping<b> ist ein iterativer Algorithmus, der Pixel verwirft, "
 "deren Abweichung vom Median-Wert größer ist als der der beiden vorgegebenen "
 "Werte.\n"
 "\n"
@@ -9277,7 +9277,7 @@ msgstr "Gaia EDR3"
 
 #: src/algos/astrometry_solver.c:102
 msgid "PPMXL"
-msgstr ""
+msgstr "PPMXL"
 
 #: src/algos/astrometry_solver.c:104
 msgid "bright stars"
@@ -23184,11 +23184,12 @@ msgid ""
 "for stacking. Aborting.\n"
 msgstr ""
 "Der Generalized Extreme Studentized Deviate Test benötigt mindestens 3 "
-"Bilder zum Stackn. Abbruch.\n"
+"Bilder zum Stacken. Abbruch.\n"
 
 #: src/stacking/median_and_mean.c:1023
 msgid "No registration layer passed, ignoring registration data!\n"
-msgstr "Keine Registrierungsebene übergeben, Registrierungsdaten ignorieren!\n"
+msgstr ""
+"Keine Registrierungsebene übergeben, Registrierungsdaten werden ignoriert!\n"
 
 #. no image has been loaded
 #: src/stacking/median_and_mean.c:1037
