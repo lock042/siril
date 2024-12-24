@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
 "PO-Revision-Date: 2024-12-24 15:11+0000\n"
-"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
+"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -15470,9 +15470,9 @@ msgid ""
 "Local background annulus radius: %.1f to %.1f, %s: %.1f (%s), camera "
 "conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"
 msgstr ""
-"Lokaler Hintergrund-Radius des Annulus: %.1f bis %.1f, Blende: %.1f (%s), "
-"Kamera-Konversionsverstärkung: %f e-/ADU, unter Verwendung von Pixeln mit "
-"Werten ]%f, %f[\n"
+"Lokaler Hintergrund-Radius des Annulus: %.1f bis %.1f, %s: %.1f (%s), Kamera-"
+"Konversionsverstärkung: %f e-/ADU, unter Verwendung von Pixeln mit Werten ]"
+"%f, %f[\n"
 
 #: src/core/command.c:3786
 msgid "aperture"
@@ -20799,7 +20799,6 @@ msgstr ""
 "Äquatorialkoordinaten ermöglicht."
 
 #: src/core/command_def.h:173
-#, fuzzy
 msgid ""
 "Scales the sequence given in argument <b>sequencename</b>. Only selected "
 "images in the sequence are processed.\n"
@@ -20820,13 +20819,13 @@ msgstr ""
 "nur ausgewählte Bilder bearbeitet.\n"
 "\n"
 "Der Skalierungsfaktor wird entweder durch das Argument <b>-scale=</b> oder "
-"durch Festlegen der Ausgabebreite oder -höhe mit den Optionen <b>-width=</b> "
-"oder <b>-height=</b> angegeben.\n"
+"durch Festlegen der Ausgabebreite oder -höhe mit den Optionen <b>-width=</"
+"b>, <b>-height=</b> oder <b>-maxdim=</b> angegeben.\n"
 "\n"
 "Eine Interpolationsmethode kann mit dem Argument <b>-interp=</b> angegeben "
-"werden, gefolgt von einer der Methoden in der Liste <b>ne</b>[arest], <b>cu</"
-"b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</b>[ea]}. Für kubische "
-"und Lanczos-Interpolation wird eine Klammerung angewendet.\n"
+"werden, gefolgt von einer der Methoden in der Liste <b>ne</b>[arest], "
+"<b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</b>[ea]}. Für "
+"kubische und Lanczos-Interpolation wird eine Begrenzung angewendet.\n"
 "\n"
 "Der Name der Ausgabesequenz beginnt mit dem Präfix „scaled_“, sofern nicht "
 "anders mit der Option <b>-prefix=</b> angegeben"
@@ -20967,13 +20966,12 @@ msgstr ""
 "SEQSETMAG"
 
 #: src/core/command_def.h:183
-#, fuzzy
 msgid ""
 "Same command as UPDATE_KEY but for the sequence <b>sequencename</b>. "
 "However, this command won't work on SER sequence"
 msgstr ""
-"Gleicher Befehl wie TILT aber für die geladene Sequenz oder die Sequenz "
-"<b>sequencename</b>. Ergibt grundsätzlich ein besseres Ergebnis"
+"Gleicher Befehl wie UPDATE_KEY aber für die geladene Sequenz "
+"<b>sequencename</b>. Dieser Befehl wirkt allerdings nicht auf SER-Sequenzen"
 
 #: src/core/command_def.h:184
 msgid ""
@@ -21242,7 +21240,6 @@ msgstr ""
 "Dies ist nur über die GUI von Siril verfügbar"
 
 #: src/core/command_def.h:197
-#, fuzzy
 msgid ""
 "Run the Spectrophotometric Color Correction on the loaded platesolved "
 "image.\n"
@@ -21292,27 +21289,34 @@ msgstr ""
 "\n"
 "Die Namen des Sensors und der Filter können mit den folgenden Optionen "
 "angegeben werden: <b>-monosensor=</b>, <b>-rfilter=</b>, <b>-gfilter=</b>, "
-"<b>-bfilter=</b> oder <b>-oscsensor=</b>, <b>-oscfilter=</b>, <b>-osclpf=</"
-"b>; Der Name der Weißreferenz kann mit der Option <b>-whiteref=</b> "
-"angegeben werden. In allen Fällen muss der angegebene Name exakt so "
-"geschrieben werden wie im Kombifeld des SPCC-Werkzeugs. Beachten Sie, dass "
-"die Namen von Sensor, Filter und Weißreferenz Leerzeichen enthalten können: "
-"In diesem Fall, wenn sie als Argumente des <b>spcc</b>-Befehls genutzt "
-"werden, muss das gesamte Argument in Anführungszeichen gesetzt werden, zum "
-"Beispiel: \"-whiteref=Average Spiral Galaxy\".\n"
+"<b>-bfilter=</b> oder <b>-oscsensor=</b>, <b>-oscfilter=</b>, "
+"<b>-osclpf=</b>; Der Name der Weißreferenz kann mit der Option "
+"<b>-whiteref=</b> angegeben werden. In allen Fällen muss der angegebene Name "
+"exakt so geschrieben werden wie im Kombifeld des SPCC-Werkzeugs. Beachten "
+"Sie, dass die Namen von Sensor, Filter und Weißreferenz Leerzeichen "
+"enthalten können: In diesem Fall, wenn sie als Argumente des <b>spcc</b>-"
+"Befehls genutzt werden, muss das gesamte Argument in Anführungszeichen "
+"gesetzt werden, zum Beispiel: \"-whiteref=Average Spiral Galaxy\".\n"
 "\n"
 "Der Schmalbandmodus kann durch das Argument <b>-narrowband</b> ausgewählt "
-"werden, wobei dann die verherigen Filterargumente ignoriert werden und die "
-"Wellenlänge und Durchlassbreite der Schmalbandfilter mit <b>-rwl=</b>, <b>-"
-"rwb</b>, <b>-gwl=</b>, <b>-gbw=</b>, <b>-bwl=</b> und <b>-bbw=</b> angegeben "
-"werden können.\n"
+"werden, wobei dann die vorherigen Filterargumente ignoriert werden und die "
+"Wellenlänge und Durchlassbreite der Schmalbandfilter mit <b>-rwl=</b>, "
+"<b>-rwb</b>, <b>-gwl=</b>, <b>-gbw=</b>, <b>-bwl=</b> und <b>-bbw=</b> "
+"angegeben werden können.\n"
 "\n"
 "Falls eines der Spektraldatenargumente weggelassen wird, wird der vorherige "
 "Wert benutzt.\n"
 "\n"
-"Ausreißer der Hintergrundreferenz-Toleranz können in Sigma-Einheiten als <b>-"
-"bgtol=lower,upper</b> angegeben werden; Standardmäßig werden -2,8 und +2,0 "
-"genutzt"
+"Ausreißer der Hintergrundreferenz-Toleranz können in Sigma-Einheiten als "
+"<b>-bgtol=lower,upper</b> angegeben werden; Standardmäßig werden -2,8 und +"
+"2,0 genutzt.\n"
+"\n"
+"Durch Angabe von <b>-atmos</b> kann eine atmosphärische Korrektur angewender "
+"werden. In diesem Fall spezifiziert das optionale Argument <b>-obsheight=</"
+"b> die Höhe des Beobachters über dem Meeresspiegel in Meter (Default 10), "
+"<b>-pressure=</b> gibt den lokalen atmosphärischen Druck am "
+"Beobachtungsplatz in hPa an oder <b>-slp=</b> gibt den atmosphärischen Druck "
+"auf Meereshöhe in hPa an (Defaulteinstellung ist 1013,25 hPa auf Meereshöhe)"
 
 #: src/core/command_def.h:198
 msgid ""
@@ -21374,7 +21378,6 @@ msgstr ""
 "ändern. Der Standardwert ist 20"
 
 #: src/core/command_def.h:202
-#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -21445,57 +21448,66 @@ msgstr ""
 "Stackt die <b>sequenzname</b>-Sequenz unter Verwendung von Optionen.\n"
 "\n"
 "Ausschluss-Typen:\n"
-"Die erlaubten Typen sind: \"sum\", \"max\", \"min\", \"med\" (oder "
-"\"median\") und \"rej\" (oder \"mean\"). Wird kein anderes Argument als der "
-"Name der Sequenz angegeben, wird der Summenstack angenommen.\n"
+"Die erlaubten Typen sind: \"sum\", \"max\", \"min\", \"med\" (oder \"median\""
+") und \"rej\" (oder \"mean\"). Wird kein anderes Argument als der Name der "
+"Sequenz angegeben, wird der Summenstack angenommen.\n"
 "\n"
 "Stacking mit Ausschluss (Rejection):\n"
 "Die Typen <b>rej</b> oder <b>mean</b> erfordern die Verwendung zusätzlicher "
-"Argumente für Ablehnungstyp und -werte. Der Ablehnungstyp ist einer von "
-"{ n[one] | p[ercentile] | s[igma] | m[edian] | w[insorized] | l[inear] | "
+"Argumente für Ablehnungstyp und -werte. Der Ablehnungstyp ist einer von { "
+"n[one] | p[ercentile] | s[igma] | m[edian] | w[insorized] | l[inear] | "
 "g[eneralized] | [m]a[d]} für Percentile, Sigma, Median, Winsorized, Linear-"
 "Fit, Generalized Extreme Studentized Deviate Test oder k-MAD Clipping. Wird "
 "dies nicht angegeben, wird die Standardeinstellung (Winsorized) verwendet.\n"
-"Die Ablehnungsparameter <b>sigma low</b> und <b>sigma high</b> der "
-"Zurückweisung sind obligatorisch solange nicht <b>none</b> ausgewählt wird.\n"
+"Die Parameter <b>sigma low</b> und <b>sigma high</b> des Ausschlusses sind "
+"verpflichtend, wenn nicht <b>none</b> ausgewählt ist.\n"
 "Optional können Ausschlusskarten erzeugt werden die zeigen wo Pixel in einer "
 "(<b>-rejmap</b>) oder zwei (<b>-rejmaps</b>) durch niedrige und hohe "
 "Grenzwerte ausgeschlossen werden.\n"
 "\n"
 "Normalisierung der Eingabebilder:\n"
 "Für die Stapeltypen<b>med</b> (oder <b>median</b>) und <b>rej</b> (oder "
-"<b>mean</b>) sind verschiedene Arten der Normalisierung zulässig: <b>-"
-"norm=add</b> für additiv, <b>-norm=mul</b> für multiplikativ. Die Optionen "
-"<b>-norm=addscale</b> und <b>-norm=mulscale</b> wenden die gleiche "
+"<b>mean</b>) sind verschiedene Arten der Normalisierung zulässig: "
+"<b>-norm=add</b> für additiv, <b>-norm=mul</b> für multiplikativ. Die "
+"Optionen <b>-norm=addscale</b> und <b>-norm=mulscale</b> wenden die gleiche "
 "Normalisierung an, aber mit Skalierungsoperationen. <b>-nonorm</b> ist die "
 "Option zum Ausschalten der Normalisierung. Ansonsten wird standardmäßig die "
 "additive Methode mit Skalierung angewendet.\n"
 "Die Option <b>-fastnorm</b> legt fest, dass schnellere Schätzungen für Ort "
-"und Maßstab als der Standard-IKSS verwendet werden sollen.\n"
-"Die Option <b>-rgb_equal</b> verwendet die Normalisierung, um farbige "
-"Bildhintergründe auszugleichen, was nützlich ist, wenn PCC und unverknüpftes "
-"Autostretch nicht verwendet werden.\n"
+"und Maßstab als der Standard-IKSS verwendet werden sollen..\n"
+"Wenn <b>-overlap_norm</b> übergeben wird, werden "
+"Normalisierungskoeefizienten in den Überlappungsbereichen der Bilder statt "
+"im ganzen Bild berechnet (nur zulässig, wenn <b>-maximize</b> angegeben wird."
+"\n"
 "\n"
 "Weitere Optionen für das Stacking mit Ausschluss:\n"
-"<b>-weighted_from_noise</b> ist eine Option, um Bildern mit geringerem "
-"Hintergrundrauschen eine höhere Gewichtung zu geben.\n"
-"<b>-weight_from_nbstack</b> gewichtet Bilder anhand der Anzahl der Bilder "
-"die zur Erstellung genutzt wurden, nützlich für Live Stacking.\n"
-"<b>-weight_from_nbstars</b> or <b>-weight_from_wfwhm</b> gewichtet Bilder "
-"basierend auf der Anzahl der erkannten Sterne oder dem berechneten wFWHM-"
-"Wert bei der Registrierung.\n"
+"Eine Gewichtung der Bilder kann angegeben werden indem die Option "
+"<b>-weight=</b> gefolgt von einem der folgenden Werte genutzt wird:\n"
+"<b>noise</b> höhere Gewichtung von Bildern mit geringerem Rauschen\n"
+"<b>nbstack</b> gewichtet Eingabebilder abhängig von der Anzahl der Bilder "
+"aus denen sie erstellt wurden. Hilfreich beim Live-Stacking.\n"
+"<b>nbstars</b> oder <b>wfwhm</b> gewichtet Bilder auf der Basis der Anzahl "
+"Sterne oder wFWHM-Werte die während der Registrierung berechnet wurden.\n"
+"<b>-feather=</b> wendet eine Überblendmaske an allen Bildrändern über die "
+"angegebene Distanz (in Pixeln) an.\n"
 "\n"
-"Ausgabe:\n"
-"Der Name des Ergebnisbildes kann mit der Option <b>-out=</b> festgelegt "
-"werden. Andernfalls wird es als <b>sequencename</b>_stacked.fit benannt.\n"
+"Outputs:\n"
+"Der Bildname kann mit der Option <b>-out=</b> eingestellt werden. "
+"Andernfalls, wird er als <b>sequencename</b>_stacked.fit benannt.\n"
 "<b>-output_norm</b> wendet eine Normalisierung am Ende des Stackings an, um "
 "das Ergebnis im Bereich [0, 1] neu zu skalieren.\n"
 "Die Option <b>-maximize</b> verwendet Registrierungsdaten aus der Sequenz, "
-"um ein gestacktes Bild zu erstellen, das alle Bilder der Sequenz umfasst "
-"(anwendbar auf alle Methoden außer Median-Stacking).\n"
+"um ein gestacktes Bild zu erstellen, das alle Bilder der Sequenz umfasst ("
+"anwendbar auf alle Methoden außer Median-Stacking).\n"
 "Die Option <b>-upscale</b> skaliert die Sequenz vor dem Stapeln mithilfe der "
 "Registrierungsdaten um den Faktor 2 hoch (anwendbar auf alle Methoden außer "
 "Median-Stacking).\n"
+"<b>-rgb_equal</b> nutzt eine Normalisierung um den Hintergrund von "
+"Farbbildern anzugleichen. Hilfreich wenn PCC/SPCC oder unverknüpfter "
+"AUTOSTRETCH nicht verwendet werden.\n"
+"<b>-32b</b> überschreibt die Bittiefe aus den Voreinstellungen und speichert "
+"das gestackte Bild mit 32 Bit.\n"
+"\n"
 "\n"
 "Filtern von Bildern:\n"
 "Bilder, die gestackt werden sollen, können auf der Grundlage einiger Filter, "
@@ -21752,6 +21764,24 @@ msgid ""
 "value should be reasonably low. This mode is useful for starmasks or other "
 "images without nebula or galaxy"
 msgstr ""
+"Wendet einen kosmetischen Filter an um die Auswirkungen von violetten "
+"Farbsäumen auf Sternen zu reduzieren.\n"
+"\n"
+"Wenn der Parameter <b>-starmask</b> angegeben wird, wird eine Sternmaske "
+"verwendet um Bereiche des Bildes zu identifizieren die berücksichtigt werden "
+"sollen. Wenn bereits eine dynamische PSF ausgeführt wurde, wird diese für "
+"die Sternmaske benutzt, andernfalls wird sie automatisch erzeugt. Dem "
+"Parameter <b>-mod=</b> sollte ein Wert von ungefähr 0,14 mitgegeben werden "
+"um die Stärke des Violetts zu reduzieren. <b>-thresh=</b> spezifiziert den "
+"Größenmodifizierer für jeden Stern in der Sternmaske und sollte groß genug "
+"gewählt werden um den Stern komplett zu bearbeiten ohne violette Ränder zu "
+"hinterlassen. Der Wert sollte zwischen 0 und 1, typisch um 0,5 liegen.\n"
+"Wenn der Parameter <b>-starmask</b> nicht angegeben wird, wird die Reduktion "
+"der violetten Farbsäume auf dem gesamten Bild für alle violetten Pixel mit "
+"einer Luminanz die höher als der mit dem Parameter <b>-thresh=</b> "
+"angegebene Wert ist. In diesem Fall sollte der Wert für <b>-thresh=</b> "
+"relativ niedrig sein. Dieser Modus ist hilfreich für Sternmaske oder andere "
+"Bilder ohne Nebel oder Galaxien"
 
 #: src/core/command_def.h:219
 msgid ""
@@ -21791,6 +21821,15 @@ msgid ""
 "comment to the FITS header. Please note that any text containing spaces must "
 "be enclosed in double quotation marks"
 msgstr ""
+"Aktualisiert ein FITS-Schlüsselwort. Bitte beachten Sie, dass die Gültigkeit "
+"von <b>value</b> nicht geprüft wird. Diese Prüfung liegt in der "
+"Verantwortung des Benutzers. Es ist auch möglich mit der Option <b>-delete</"
+"b> vor dem Namen des Schlüssels einen Schlüssel zu löschen oder mit der "
+"Option <b>-modify</b> zu verändern. Letzteres muss vom zu verändernden "
+"Schlüssel und dem neuen Schlüsselnamen gefolgt werden. Schließlich fügt die "
+"Option <b>-comment</b> gefolgt von einem Text einen Kommentar in den FITS-"
+"Header ein: Bitte beachten Sie, dass jeder Text der Leerzeichen beinhaltet "
+"in Anführungszeichen eingeschlossen werden muss"
 
 #: src/core/command_def.h:224
 msgid ""
@@ -21802,7 +21841,6 @@ msgstr ""
 
 # "a trous" alors la, j'ai besoin encore d'une explication
 #: src/core/command_def.h:226
-#, fuzzy
 msgid ""
 "Computes the wavelet transform of the loaded image on (<b>nbr_layers</b>=1..."
 "n) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version "
@@ -21812,10 +21850,10 @@ msgid ""
 "See also EXTRACT"
 msgstr ""
 "Berechnet die Wavelet Transformation des geladenen Bildes auf "
-"(<b>nbr_layers</b>=1...6) Ebenen unter Verwendung der linearen- (<b>type</"
-"b>=1) oder bspline- (<b>type</b>=2) Version des \"à trous\" Algorithmus. Das "
-"Ergebnis wird in einer Datei als Struktur gespeichert, die die Ebenen "
-"enthält, bereit für die gewichtete Rekonstruktion mit WRECONS.\n"
+"(<b>nbr_layers</b>=1...6) Ebenen unter Verwendung der linearen- "
+"(<b>type</b>=1) oder bspline- (<b>type</b>=2) Version des \"à trous\" "
+"Algorithmus. Das Ergebnis wird in einer Datei als Struktur gespeichert, die "
+"die Ebenen enthält, bereit für die gewichtete Rekonstruktion mit WRECONS.\n"
 "\n"
 "Siehe auch unter EXTRACT"
 
@@ -23067,9 +23105,8 @@ msgid "location of the StarNet-torch weights file"
 msgstr "Speicherort der StarNet-Torch Gewichtungsdatei"
 
 #: src/core/settings.c:352
-#, fuzzy
 msgid "location of the GraXpert executable"
-msgstr "Speicherort der ausführbaren StarNet-Datei"
+msgstr "Speicherort der ausführbaren GraXpert-Datei"
 
 #: src/core/settings.c:354
 msgid "directory of the asnet_ansvr installation"
@@ -23093,7 +23130,7 @@ msgstr "Parallele FFTW (multithreaded)"
 
 #: src/core/settings.c:362
 msgid "Maximum slice size for automated slice processing"
-msgstr ""
+msgstr "Maximale Abschnittsgröße für automatisierte Abschnittsverarbeitung"
 
 #: src/core/settings.c:364
 msgid "focal length in mm for radius adjustment"
@@ -23347,9 +23384,8 @@ msgid "use default master flat"
 msgstr "Nutze Standard Masterflat"
 
 #: src/core/settings.c:440
-#, fuzzy
 msgid "default distortion master"
-msgstr "Standard Master-Bias"
+msgstr "Standard Verzerrungsmuster"
 
 #: src/core/settings.c:441
 msgid "use default master distortion"
@@ -23693,9 +23729,8 @@ msgstr ""
 "Ein anderer Prozess ist noch in der Bearbeitung. Neue Anfrage ignoriert.\n"
 
 #: src/core/siril_actions.c:74
-#, fuzzy
 msgid "Cannot process image"
-msgstr "Neues Bild kann nicht geladen werden"
+msgstr "Bild kann nicht verarbeitet werden"
 
 #: src/core/siril_actions.c:74
 msgid "The image can't be processed while another processing dialog is opened."
@@ -23833,19 +23868,17 @@ msgid "URL retrieval failed. libcurl error: [%ld]\n"
 msgstr "URL-Abfrage fehlgeschlagen. libcurl-Fehler: [%ld]\n"
 
 #: src/core/siril_networking.c:182
-#, fuzzy, c-format
+#, c-format
 msgid "Error fetching URL: %s\n"
-msgstr "Fehler beim Öffnen der Datei %s\n"
+msgstr "Fehler beim Öffnen der URL: %s\n"
 
 #: src/core/siril_networking.c:209
-#, fuzzy
 msgid "Siril is in online mode.\n"
-msgstr "SIRIL ist aktuell\n"
+msgstr "SIRIL ist im Onlinemodus.\n"
 
 #: src/core/siril_networking.c:209
-#, fuzzy
 msgid "Siril is in offline mode.\n"
-msgstr "SIRIL ist aktuell\n"
+msgstr "Siril ist im Offlinemodus.\n"
 
 #: src/core/siril_update.c:352
 msgid "No update check: cannot fetch version file\n"
@@ -24050,14 +24083,13 @@ msgid "Invalid kernel type"
 msgstr "Ungültiger Kerneltyp"
 
 #: src/drizzle/cdrizzleutil.c:123
-#, fuzzy
 msgid "Drizzling parameters:\n"
-msgstr "Falsche Parameter.\n"
+msgstr "Drizzle-Parameter:\n"
 
 #: src/drizzle/cdrizzleutil.c:124
 #, c-format
 msgid "kernel:         %s\n"
-msgstr ""
+msgstr "Kern:         %s\n"
 
 #: src/drizzle/cdrizzleutil.c:125
 #, c-format
@@ -24160,14 +24192,13 @@ msgid "Starting GraXpert..."
 msgstr "Starte GraXpert..."
 
 #: src/filters/graxpert.c:149
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed: %s\n"
-msgstr "Start von StarNet gescheitert: %s\n"
+msgstr "Start von GraXpert gescheitert: %s\n"
 
 #: src/filters/graxpert.c:185
-#, fuzzy
 msgid "Running GraXpert"
-msgstr "StarNet läuft"
+msgstr "GraXpert läuft"
 
 #: src/filters/graxpert.c:187
 msgid "GraXpert reported an error"
@@ -24178,29 +24209,30 @@ msgid "Done."
 msgstr "Fertig."
 
 #: src/filters/graxpert.c:199
-#, fuzzy, c-format
+#, c-format
 msgid "GraXpert caught buffer: %s : exit successful\n"
-msgstr "StarNet Buffer abgefangen: %s : Erfolgreich abgeschlossen\n"
+msgstr "GraXpert Buffer abgefangen: %s : Erfolgreich abgeschlossen\n"
 
 #: src/filters/graxpert.c:224
-#, fuzzy
 msgid "GraXpert GUI finished.\n"
-msgstr "Registrierung abgeschlossen.\n"
+msgstr "GraXpert-Benutzeroberfläche beendet.\n"
 
 #: src/filters/graxpert.c:230
-#, fuzzy, c-format
+#, c-format
 msgid "GraXpert exit not caught, last buffer: %s\n"
-msgstr "StarNet Buffer nicht abgefangen, letzter Buffer: %s\n"
+msgstr "GraXpert Buffer nicht abgefangen, letzter Buffer: %s\n"
 
 #: src/filters/graxpert.c:310
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed during available AI model versions check: %s\n"
-msgstr "Start von StarNet fehlgeschlagen bei der Versionsprüfung: %s\n"
+msgstr ""
+"Start von GraXpert fehlgeschlagen bei der Prüfung der verfügbaren KI-Modelle:"
+" %s\n"
 
 #: src/filters/graxpert.c:411
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed during version check: %s\n"
-msgstr "Start von StarNet fehlgeschlagen bei der Versionsprüfung: %s\n"
+msgstr "Start von GraXpert fehlgeschlagen bei der Versionsprüfung: %s\n"
 
 #: src/filters/graxpert.c:465
 #, c-format
@@ -24216,14 +24248,14 @@ msgid "None!\n"
 msgstr "Keine!\n"
 
 #: src/filters/graxpert.c:670 src/filters/graxpert.c:678
-#, fuzzy
 msgid "Reading result from the temporary working file...\n"
-msgstr "Fehler: temporäre Arbeitsdatei kann nicht gelöscht werden...\n"
+msgstr "Fehler beim Lesen aus der temporäre Arbeitsdatei...\n"
 
 #: src/filters/graxpert.c:672 src/filters/graxpert.c:680
-#, fuzzy, c-format
+#, c-format
 msgid "Error opening GraXpert result. Check the file %s\n"
-msgstr "Fehler beim Öffnen der Datei %s\n"
+msgstr ""
+"Fehler beim Öffnen des Ergebnisses von GraXpert. Prüfen Sie die Datei %s\n"
 
 #: src/filters/graxpert.c:688
 msgid ""
@@ -24234,9 +24266,8 @@ msgstr ""
 "mit denen des Originalbildes überein. Bitte melden Sie dies als Fehler.\n"
 
 #: src/filters/graxpert.c:717
-#, fuzzy
 msgid "Removing the temporary working file...\n"
-msgstr "Fehler: temporäre Arbeitsdatei kann nicht gelöscht werden...\n"
+msgstr "Lösche temporäre Arbeitsdatei...\n"
 
 #: src/filters/graxpert.c:746
 #, c-format
@@ -24259,14 +24290,12 @@ msgstr "GraXpert-Operationen mit GUI"
 
 #. Save current image as input filename
 #: src/filters/graxpert.c:794
-#, fuzzy
 msgid "Saving temporary working file...\n"
-msgstr "Fehler: temporäre Arbeitsdatei kann nicht gelöscht werden...\n"
+msgstr "Speichere temporäre Arbeitsdatei...\n"
 
 #: src/filters/graxpert.c:796
-#, fuzzy
 msgid "Error: failed to save temporary FITS\n"
-msgstr "Fehler: Sternloses Bild kann nicht als FITS gespeichert werden...\n"
+msgstr "Fehler: Speichern der temporären FITS-Datei\n"
 
 #: src/filters/graxpert.c:824
 msgid ""
@@ -24289,24 +24318,21 @@ msgstr ""
 "Dateien eingebettete ICC-Profile nicht beibehält.\n"
 
 #: src/filters/graxpert.c:874
-#, fuzzy
 msgid "Error: unknown GraXpert operation\n"
-msgstr "FEHLER: Unbekanntes CFA-Muster\n"
+msgstr "FEHLER: Unbekannte GraXpert-Funktion\n"
 
 #: src/filters/graxpert.c:945
-#, fuzzy, c-format
+#, c-format
 msgid "GraXpert: Processing image %d\n"
-msgstr "StarNet++: Verarbeitung von Bild %d\n"
+msgstr "GraXpert: Verarbeitung von Bild %d\n"
 
 #: src/filters/graxpert.c:966
-#, fuzzy
 msgid "GraXpert"
-msgstr "Blende"
+msgstr "GraXpert"
 
 #: src/filters/graxpert.c:982
-#, fuzzy
 msgid "GraXpert: Processing..."
-msgstr "StarNet++: Verarbeitung..."
+msgstr "GraXpert: Verarbeitung..."
 
 #: src/filters/median.c:289 src/filters/median.c:513
 msgid "Median Filter: processing...\n"
@@ -24773,16 +24799,12 @@ msgid "Star Catalogue"
 msgstr "Stern-Katalog:"
 
 #: src/gui/annotations_pref.c:35
-#, fuzzy
 msgid "User Deep Sky Objects Catalogue"
-msgstr ""
-"Deep Sky\n"
-"Benutzerkatalog löschen"
+msgstr "Benutzerkatalog Deep-Sky-Objekte"
 
 #: src/gui/annotations_pref.c:36
-#, fuzzy
 msgid "User Solar System Objects Catalogue"
-msgstr "Objekte des Sonnensystems"
+msgstr "Benutzerkatalog Objekte des Sonnensystems"
 
 #: src/gui/annotate.c:173
 msgid "csv files (*.csv)"
@@ -24793,9 +24815,8 @@ msgid "Could not parse coordinates or name, aborting\n"
 msgstr "Konnte Koordinaten oder Namen nicht parsen, Abbruch\n"
 
 #: src/gui/annotate.c:381
-#, fuzzy
 msgid "Replace"
-msgstr "Datei ersetzen"
+msgstr "Ersetzen"
 
 #: src/gui/astrometry_solver.c:434
 msgid ""
@@ -24851,9 +24872,8 @@ msgid "No metadata"
 msgstr "Keine Metadaten"
 
 #: src/gui/astrometry_solver.c:751
-#, fuzzy
 msgid "wcs files (*.wcs)"
-msgstr "CSV Datei (*.csv)"
+msgstr "WCS-Datei (*.wcs)"
 
 #: src/gui/astrometry_solver.c:837
 msgid "Please enter object coordinates."
@@ -25930,17 +25950,14 @@ msgid "GraXpert available and supports %s."
 msgstr "GraXpert ist verfügbar und unterstützt %s."
 
 #: src/gui/graxpert.c:209
-#, fuzzy
 msgid "background extraction"
 msgstr "Hintergrund-Extraktion"
 
 #: src/gui/graxpert.c:210
-#, fuzzy
 msgid "denoising"
-msgstr "Bildentrauschung"
+msgstr "Entrauschung"
 
 #: src/gui/graxpert.c:211
-#, fuzzy
 msgid "deconvolution"
 msgstr "Dekonvolution"
 
@@ -25967,9 +25984,8 @@ msgstr ""
 "GraXpert-Prozess abgebrochen. Fortfahren?"
 
 #: src/gui/graxpert.c:291
-#, fuzzy
 msgid "GraXpert operation cancelled by user\n"
-msgstr "Stacking wurde gestopp.\n"
+msgstr "GraXpert-Operation wurde durch den Benutzer abgebrochen\n"
 
 #: src/gui/graxpert.c:314
 msgid "Error: no sequence loaded.\n"
@@ -25980,9 +25996,8 @@ msgid "Stellar"
 msgstr "Stellar"
 
 #: src/gui/graxpert.c:337
-#, fuzzy
 msgid "Objects"
-msgstr "Suche Objekt"
+msgstr "Objekte"
 
 #: src/gui/histogram.c:153 src/gui/histogram.c:159 src/gui/histogram.c:1155
 #: src/gui/histogram.c:1161 src/gui/histogram.c:1813 src/gui/histogram.c:1830
@@ -26179,13 +26194,13 @@ msgid "Color space has incorrect channels"
 msgstr "Farbraum hat falsche Kanäle"
 
 #: src/gui/icc_profile.c:324
-#, fuzzy
 msgid ""
 "Mismatch in number of channels between the current image and the ICC "
 "profile. You cannot assign a RGB ICC profile to a mono image."
 msgstr ""
 "Die Anzahl der Kanäle des Bildes stimmt nicht mit der Anzahl der Kanäle des "
-"Farbprofils überein. Dieses Profil kann diesem Bild nicht zugeordnet werden."
+"Farbprofils überein. Sie können ein RGB-ICC-Farbprofil keinem monochromen "
+"Bild zuordnen."
 
 #: src/gui/icc_profile.c:334 src/gui/icc_profile.c:387
 msgid "Color space not supported"
@@ -26272,9 +26287,8 @@ msgid "Chromaticity plot only works with RGB color profiles"
 msgstr "Chromatizitäts-Grafik funktioniert nur mit RGB-Farbprofilen"
 
 #: src/gui/keywords_tree.c:194 src/gui/keywords_tree.c:599
-#, fuzzy
 msgid "Operation on the sequence"
-msgstr "Wählen Sie Bilder aus der Sequenz"
+msgstr "Operation auf der Sequenz"
 
 #: src/gui/keywords_tree.c:195
 msgid ""
@@ -26290,9 +26304,8 @@ msgstr "Der Schlüsselname darf maximal 8 Zeichen enthalten.\n"
 
 #. Create the dialog window with buttons
 #: src/gui/keywords_tree.c:507
-#, fuzzy
 msgid "Add New Keyword"
-msgstr "Schlüsselwort"
+msgstr "Neues Schlüsselwort hinzufügen"
 
 #: src/gui/keywords_tree.c:508 src/io/image_formats_libraries.c:2309
 #: src/pixelMath/pixel_math_runner.c:1227
@@ -26387,14 +26400,15 @@ msgid "Image backup is active"
 msgstr "Image-Backup ist aktiv"
 
 #: src/gui/menu_gray_geometry.c:355
-#, fuzzy
 msgid ""
 "It is impossible to crop the image when the image backup is active. This "
 "occurs when a filter has a live preview active or when a filter with on-"
 "demand ROI preview is open. Please close the filter dialog before cropping."
 msgstr ""
-"Das Bild zu beschneiden/verkleinern ist nicht möglich wenn ein Filter mit "
-"Vorschau aktiv ist. Bitte erst den Filterdialog schließen."
+"Bei aktiver Bildsicherung (Backup) ist es nicht möglich, das Bild "
+"zuzuschneiden. Dies tritt auf, wenn ein Filter eine aktive Live-Vorschau hat "
+"oder wenn ein Filter mit On-Demand-ROI-Vorschau geöffnet ist. Bitte "
+"schließen Sie den Filterdialog vor dem Zuschneiden."
 
 #: src/gui/menu_gray_geometry.c:385
 msgid ""
@@ -26940,9 +26954,8 @@ msgid "All supported files"
 msgstr "Alle unterstützten Datei-Formate"
 
 #: src/gui/open_dialog.c:252
-#, fuzzy
 msgid "Master-distortion: file (*.wcs)"
-msgstr "Kosmetische Korrekturdatei (*.lst)"
+msgstr "Master-Verzerrungsdatei: Datei (*.wcs)"
 
 #: src/gui/open_dialog.c:289
 msgid "Cosmetic correction file (*.lst)"
@@ -26975,9 +26988,8 @@ msgstr ""
 
 # Ratio  not available ???
 #: src/gui/photometric_cc.c:108
-#, fuzzy
 msgid "Gaia archive available"
-msgstr "Anteil am verfügbaren RAM"
+msgstr "Gaia-Archiv verfügbar"
 
 #: src/gui/photometric_cc.c:113
 msgid "Gaia archive running but performing slightly slower\n"
@@ -26988,9 +27000,8 @@ msgid "Gaia archive running but performing very slowly"
 msgstr "Gaia-Archiv läuft, ist aber sehr langsam"
 
 #: src/gui/photometric_cc.c:124
-#, fuzzy
 msgid "Gaia archive unavailable"
-msgstr "Gnuplot ist nicht verfügbar"
+msgstr "Gaia-Archiv ist nicht verfügbar"
 
 #: src/gui/photometric_cc.c:129
 msgid "Gaia archive unreachable"
@@ -27444,24 +27455,30 @@ msgid ""
 "When choosing 2pass, you will then need to export the sequence using  the "
 "Apply Existing Registration method"
 msgstr ""
+"<b>Globale Sternausrichtung</b>: Dies ist ein GoTo-Algorithmus für Deep-Sky-"
+"Bilder. Die globale Zuordnung basiert auf der Dreiecks-Ähnlichkeitsmethode "
+"um automatisch gleiche Sterne zwischen den Bildern zu erkennen. Es wird eine "
+"neue Sequenz mit einem Präfix ihrer Wahl erzeugt (Default r_), außer wenn "
+"die 2-Durchgänge-Checkbox aktiviert ist. In diesem Fall werden die "
+"Registrierungsdaten in der Sequenz gespeichert und die Referenz wird "
+"basierend auf den Informationen zur Sternerkennung ausgewählt. Wenn Sie 2-"
+"Durchgänge auswählen, müssen Sie die Sequenz anschließend mit der Methode "
+"\"Vorhandene Registrierung anwenden\" exportieren."
 
 #: src/gui/registration.c:56
-#, fuzzy
 msgid ""
 "<b>1-2-3 Stars Registration</b>: This is the simplest method to register "
 "deep-sky images. Images are aligned using shifting, if you pick one star, or "
 "shifting + rotation if 2 or 3 stars are selected.\n"
 "Transformations are saved to the input sequence file."
 msgstr ""
-"<b>Einzel-Stern Registrierung</b>: dies ist die einfachste Form einer "
-"Registrierung von Deep-Sky-Bildern. Da nur ein einzelner Stern verwendet "
-"wird, wird das Ausrichten ausschließlich durch Verschiebung (auch im Sub-"
-"Pixel-Bereich) erreicht. Es erfolgt kein Drehlagenausgleich und keine "
-"Streckung. Verschiebungen werden mit Pixel-Genauigkeit in der seq-Datei "
-"gespeichert."
+"<b>1-2-3-Stern Registrierung</b>: Dies ist die einfachste Methode, um Deep-"
+"Sky-Bilder zu registrieren. Bilder werden durch Verschieben ausgerichtet, "
+"wenn Sie einen Stern auswählen, oder durch Verschieben + Drehen, wenn 2 oder "
+"3 Sterne ausgewählt sind.\n"
+"Transformationen werden in der Eingabesequenzdatei gespeichert."
 
 #: src/gui/registration.c:60
-#, fuzzy
 msgid ""
 "<b>Image Pattern Alignment</b>: This is a simple registration by translation "
 "method using cross correlation in the spatial domain. This method is fast "
@@ -27469,26 +27486,25 @@ msgid ""
 "sky images registration. Shifts at pixel precision are saved to the input "
 "sequence file."
 msgstr ""
-"<b>Bildmusterausrichtung</b>: dies ist eine einfache Registrierung mittels "
-"Verschiebungs-Methode, die Kreuzkorrelation innerhalb eines räumlichen "
-"Bereichs verwendet. Diese Methode ist schnell und wird verwendet, um "
-"Planetenvideos zu registrieren. Es kann auch für einige Deep-Sky-Bilder "
-"verwendet werden. Verschiebungen mit Pixelgenauigkeit werden in der seq-"
-"Datei gespeichert."
+"<b>Bildmusterausrichtung</b>: Dies ist eine einfache Registrierung durch "
+"Verschiebung unter Verwendung von Kreuzkorrelation im räumlichen Bereich. "
+"Diese Methode ist schnell und wird zur Registrierung von Planetenfilmen "
+"verwendet. Sie kann auch für die Registrierung einiger Deep-Sky-Bilder "
+"verwendet werden. Verschiebungen mit Pixelpräzision werden in der "
+"Eingabesequenzdatei gespeichert."
 
 #: src/gui/registration.c:64
-#, fuzzy
 msgid ""
 "<b>KOMBAT</b>: This simple algorithm tries to locate a single pattern on "
 "images and to align them accordingly. Only translation is taken into "
 "account. Shifts at pixel precision are saved to the input sequence file."
 msgstr ""
 "<b>KOMBAT</b>: Dieser einfache Algorithmus versucht, ein einzelnes Muster "
-"auf Bildern zu finden und sie entsprechend auszurichten. Bisher wird nur "
-"eine Verschiebung berücksichtigt."
+"auf Bildern zu finden und sie entsprechend auszurichten. Dabei wird nur die "
+"Verschiebung berücksichtigt. Verschiebungen werden pixelgenau in der "
+"Eingabesequenzdatei gespeichert."
 
 #: src/gui/registration.c:67
-#, fuzzy
 msgid ""
 "<b>Comet/Asteroid Registration</b>: This algorithm is dedicated to the comet "
 "and asteroid registration. It is necessary to have timestamps stored in FITS "
@@ -27500,16 +27516,18 @@ msgid ""
 "prefix of your choice (comet_ by default), but the images are not "
 "duplicated, they are symlinked to the input images."
 msgstr ""
-"<b>Kometen-/Asteroiden-Registrierung</b>: Ddieser Algorithmus ist der "
-"Kometen-und Asteroidenregistrierung gewidmet. Dazu ist es notwendig, "
-"Zeitstempel im FITS-Header zu speichern und eine Sequenz von auf Sterne "
-"registrierten Bildern zu laden. Diese Methode erstellt eine Verschiebung "
-"einer bestimmten Anzahl von Pixeln, abhängig vom Zeitstempel der einzelnen "
-"Bilder und der globalen Verschiebung des Objekts zwischen dem ersten und dem "
-"letzten Bild."
+"<b>Kometen-/Asteroidenregistrierung</b>: Dieser Algorithmus ist der Kometen- "
+"und Asteroidenregistrierung gewidmet. Es ist notwendig, Zeitstempel im FITS-"
+"Header zu speichern und eine Sequenz von sternenausgerichteten Bildern zu "
+"laden. Diese Methode führt eine Übersetzung einer bestimmten Anzahl von "
+"Pixeln durch, abhängig vom Zeitstempel jedes Bildes und der globalen "
+"Verschiebung des Objekts zwischen dem ersten und dem letzten Bild. Wenn "
+"bereits Registrierungsdaten vorhanden sind, werden die Verschiebungen mit "
+"den vorhandenen Transformationen zusammengefügt. Es wird eine neue Sequenz "
+"mit dem Präfix Ihrer Wahl (standardmäßig „comet_“) erstellt, aber die Bilder "
+"werden nicht dupliziert, sondern mit den Eingabebildern symbolisch verknüpft."
 
 #: src/gui/registration.c:75
-#, fuzzy
 msgid ""
 "<b>Apply existing registration</b>: This is not an algorithm but rather a "
 "commodity to apply previously computed registration data stored in the "
@@ -27517,12 +27535,12 @@ msgid ""
 "Output Registration section and it can be applied on selected/filtered "
 "images only, to avoid saving unnecessary images."
 msgstr ""
-"<b>Vorhandene Registrierung anwenden<</b>: Dabei handelt es sich nicht um "
-"einen Algorithmus, sondern vielmehr um ein Hilfsmittel zur Anwendung zuvor "
-"berechneter Registrierungsdaten, die in der Sequenzdatei gespeichert sind. "
-"Die Interpolationsmethode und der vereinfachte Drizzle können im Abschnitt "
-"Ausgaberegistrierung ausgewählt und nur auf ausgewählte Bilder angewendet "
-"werden, um das Speichern unnötiger Bilder zu vermeiden."
+"<b>Vorhandene Registrierung anwenden</b>: Dies ist kein Algorithmus, sondern "
+"ein Tool zum Anwenden zuvor berechneter Registrierungsdaten, die in der "
+"Sequenzdatei gespeichert sind. Die Interpolationsmethode oder das Drizzling "
+"kann im Abschnitt „Ausgaberegistrierung“ ausgewählt und nur auf ausgewählte/"
+"gefilterte Bilder angewendet werden, um das Speichern unnötiger Bilder zu "
+"vermeiden."
 
 #: src/gui/registration.c:99 src/gui/stacking.c:48
 msgid ""
@@ -27558,9 +27576,8 @@ msgid "Loading registration method: %s\n"
 msgstr "Lade Registrierungsmethode: %s\n"
 
 #: src/gui/registration.c:404
-#, fuzzy
 msgid "WCS Files (*.wcs)"
-msgstr "CSV Datei (*.csv)"
+msgstr "WCS Datei (*.wcs)"
 
 #. we check result is inside the selection box
 #: src/gui/registration.c:456
@@ -27603,9 +27620,8 @@ msgstr ""
 "Maximale Rahmung mit Fitseq nicht zulässig. Wechsel zu regulären FITS-Bildern"
 
 #: src/gui/registration.c:745
-#, fuzzy
 msgid "Pick object in two images"
-msgstr "Wähle ein Objekt in #1"
+msgstr "Wählen Sie ein Objekt in zwei Bildern"
 
 #: src/gui/registration.c:833
 msgid "Failed to determine registration method...\n"
@@ -27641,9 +27657,8 @@ msgstr ""
 "müssen sie vor der Registrierung entschichten."
 
 #: src/gui/registration.c:955
-#, fuzzy
 msgid "CFA pattern detected"
-msgstr "Nicht unterstützte CFA-Muster erkannt"
+msgstr "CFA-Muster erkannt"
 
 #: src/gui/registration.c:956
 msgid ""
@@ -27668,13 +27683,12 @@ msgstr ""
 "nur eine Verschiebung sein. Abbruch\n"
 
 #: src/gui/registration.c:1162
-#, fuzzy
 msgid ""
 "When interpolation is set to None, distortions must be set to None as well. "
 "Aborting\n"
 msgstr ""
-"Wenn die Interpolation auf \"Nicht\" gesetzt ist, kann die Transformation "
-"nur eine Verschiebung sein. Abbruch\n"
+"Wenn die Interpolation auf \"Keine\" eingestellt ist, müssen auch die "
+"Verzerrungen auf \"Keine\" eingestellt sein. Abbruch\n"
 
 #: src/gui/registration.c:1194
 msgid "Error: unable to read reference frame metadata\n"
@@ -27899,7 +27913,6 @@ msgid "Save Anyway"
 msgstr "Trotzdem Speichern"
 
 #: src/gui/save_dialog.c:483
-#, fuzzy
 msgid "preview"
 msgstr "Vorschau"
 
@@ -27918,7 +27931,6 @@ msgid "Cannot take snapshot: %s\n"
 msgstr "Kann den Snapshot nicht erstellen: %s\n"
 
 #: src/gui/script_menu.c:46
-#, fuzzy
 msgid ""
 "You are about to use scripts. Running automatic scripts is something that is "
 "easy and generally it provides a nice image. However you have to keep in "
@@ -27928,10 +27940,10 @@ msgid ""
 msgstr ""
 "Sie versuchen Skripte zu verwenden. Automatische Skripte zu verwenden ist "
 "einfach und ergibt im allgemeinen ein schönes Bild. Bitte beachten Sie, das "
-"Skripte nicht immer gut funktionieren. Manchmal sind menschliche "
-"Entscheidungen besser als Automatismen. Jedes Kommando das in Skripten "
-"verwendet werden kann, sind in der Bedieneroberfläche auswählbar und mit "
-"Parameter einzustellen."
+"Skripte keine Zauberei sind; es werden automatische Entscheidungen "
+"getroffen, wo menschliche Entscheidungen wahrscheinlich besser wären. "
+"Außerdem ist jeder in einem Skript verwendete Befehl auf der "
+"Benutzeroberfläche mit besserer Parametersteuerung verfügbar."
 
 #: src/gui/script_menu.c:167
 msgid "Please read me before using scripts"
@@ -28262,9 +28274,8 @@ msgstr ""
 "Wenn Sie fortfahren, kann die Ausführung langsam sein"
 
 #: src/gui/stacking.c:184
-#, fuzzy
 msgid "Large number of images"
-msgstr "Anzahl von Bildern"
+msgstr "Große Anzahl von Bildern"
 
 #: src/gui/stacking.c:196
 msgid "Stacking: processing...\n"
@@ -28560,6 +28571,8 @@ msgid ""
 "Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to "
 "bring negatve pixel values into range"
 msgstr ""
+"Skaliere die Pixelwerte so, dass sie in den Bereich von 0,0 bis 1,0 passen, "
+"und wende einen Offset an, um negative Pixelwerte in den Bereich zu bringen"
 
 #: src/gui/utils.c:594
 #, c-format
@@ -28567,6 +28580,9 @@ msgid ""
 "This image contains pixel values outside the range 0.0 - 1.0 (min = %.3f, "
 "max = %.3f). This can cause unwanted behaviour. Choose how to handle this.\n"
 msgstr ""
+"Dieses Bild enthält Pixelwerte außerhalb des Bereichs 0,0 - 1,0 (min = %.3f, "
+"max = %.3f). Dies kann zu unerwünschtem Verhalten führen. Wählen Sie, wie "
+"damit umgegangen werden soll.\n"
 
 #: src/io/aavso_extended.c:157
 msgid "Warning: at least one AAVSO header element was truncated.\n"
@@ -29340,12 +29356,13 @@ msgstr "Die Datei %s ist keine gültige FITS-Datei.\n"
 #: src/io/image_format_fits.c:1237
 #, c-format
 msgid "Error: HDU checksum mismatch. Expected %s, got %s.\n"
-msgstr ""
+msgstr "Fehler: HDU-Prüfsumme stimmt nicht überein. %s erwartet, %s erhalten.\n"
 
 #: src/io/image_format_fits.c:1242
 #, c-format
 msgid "Error: Data checksum mismatch. Expected %lu, got %s.\n"
 msgstr ""
+"Fehler: Datenprüfsumme stimmt nicht überein. %lu erwartet, %s erhalten.\n"
 
 #: src/io/image_format_fits.c:1252
 #, c-format
@@ -29426,14 +29443,14 @@ msgid "Stacking error: input images have different precision\n"
 msgstr "Stacking Fehler: Bilder haben unterschiedliche Auflösung\n"
 
 #: src/io/image_format_fits.c:3515
-#, fuzzy, c-format
+#, c-format
 msgid "Saving WCS file %s\n"
-msgstr "Speichere Bild %s\n"
+msgstr "Speichere WCS-Datei %s\n"
 
 #: src/io/image_format_fits.c:3554
-#, fuzzy, c-format
+#, c-format
 msgid "Saving mask file %s\n"
-msgstr "Speichere Bild %s\n"
+msgstr "Speichere Maskendatei %s\n"
 
 #: src/io/local_catalogues.c:157 src/io/local_catalogues.c:190
 msgid "Could not open local NOMAD catalogue\n"
@@ -29475,7 +29492,7 @@ msgstr "Fehlgeschlagen\n"
 #: src/io/local_catalogues.c:850
 #, c-format
 msgid "Found %d trixels:\n"
-msgstr "%s Trixel gefunden\n"
+msgstr "%d Trixel gefunden\n"
 
 #: src/io/mp4_output.c:453
 msgid ""
@@ -29535,9 +29552,8 @@ msgid "Wrongly formatted string: "
 msgstr "Falsch formatierte Zeichenkette: "
 
 #: src/io/path_parse.c:82
-#, fuzzy
 msgid "Wrong wildcard usage: "
-msgstr "Falsches Datum: "
+msgstr "Fehlerhafte Verwendung von Platzhaltern/Wildcards: "
 
 #: src/io/path_parse.c:85
 msgid "More than one match for: "
@@ -29571,9 +29587,9 @@ msgid "Using most recent matching file: %s\n"
 msgstr "Verwendung der letzten übereinstimmenden Datei: %s\n"
 
 #: src/io/path_parse.c:290
-#, fuzzy, c-format
+#, c-format
 msgid "Using the closest matching file: %s\n"
-msgstr "Verwendung der letzten übereinstimmenden Datei: %s\n"
+msgstr "Die am besten passende Datei wird verwendet: %s\n"
 
 #: src/io/remote_catalogues.c:356
 #, c-format
@@ -29595,9 +29611,8 @@ msgid "Using already downloaded catalogue %s\n"
 msgstr "Der bereits heruntergeladene Katalog %s wird verwendet\n"
 
 #: src/io/remote_catalogues.c:600
-#, fuzzy
 msgid "Offline: cannot download catalog\n"
-msgstr "Der bereits heruntergeladene Katalog %s wird verwendet\n"
+msgstr "Offline: Kann Katalog nicht herunterladen\n"
 
 #: src/io/remote_catalogues.c:617
 msgid "Contacting server\n"
@@ -30384,12 +30399,11 @@ msgid "Failed to find commit with given OID.\n"
 msgstr "Der Commit mit der angegebenen OID konnte nicht gefunden werden.\n"
 
 #: src/io/siril_git.c:224
-#, fuzzy
 msgid ""
 "Error removing Git lock files. You may need to delete the local git "
 "repository and allow Siril to re-clone it.\n"
 msgstr ""
-"Fehler bei der Durchführung eines Hard Reset. Sie müssen möglicherweise das "
+"Fehler beim Entfernen der Git-Sperrdateien. Möglicherweise müssen Sie das "
 "lokale Git-Repository löschen und Siril erlauben, es erneut zu klonen.\n"
 
 #: src/io/siril_git.c:241 src/io/siril_git.c:253 src/io/siril_git.c:265
@@ -30433,16 +30447,13 @@ msgid "Commit message: %s\n"
 msgstr "Commit-Meldung: %s\n"
 
 #: src/io/siril_git.c:532
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open repository: %s\n"
-msgstr "Fehler beim Klonen des Repositorys: %s\n"
+msgstr "Fehler beim Öffnen des Repositories: %s\n"
 
 #: src/io/siril_git.c:534
-#, fuzzy
 msgid "Attempting to clone from remote source...\n"
-msgstr ""
-"Repository kann nicht geöffnet werden: %s\n"
-"Versuch, von Remote-Quelle zu klonen...\n"
+msgstr "Es wird versucht, von einer Remote-Quelle zu klonen…\n"
 
 #: src/io/siril_git.c:540 src/io/siril_git.c:691
 #, c-format
@@ -30539,18 +30550,19 @@ msgstr ""
 "abgerufen oder aktualisiert...\n"
 
 #: src/io/siril_git.c:823
-#, fuzzy, c-format
+#, c-format
 msgid "Error spawning thread to update SPCC repository: %s\n"
-msgstr "Fehler beim Klonen des Repositorys: %s\n"
+msgstr ""
+"Fehler beim Erstellen des Threads zum Aktualisieren des SPCC-Repositories: %"
+"s\n"
 
 #: src/io/siril_git.c:827
-#, fuzzy
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "spcc...\n"
 msgstr ""
-"Online-Skript-Repository nicht aktiviert. Siril-Skripte werden nicht "
-"abgerufen oder aktualisiert...\n"
+"Online-Skript-Repository nicht aktiviert. Siril-SPCC wird nicht abgerufen "
+"oder aktualisiert...\n"
 
 #: src/io/siril_git.c:842
 msgid "Error: unable to open local scripts repository.\n"
@@ -31148,15 +31160,16 @@ msgid "Parameter symbols could not be parsed."
 msgstr "Parametersymbole konnten nicht analysiert werden."
 
 #: src/pixelMath/pixel_math_runner.c:1110
-#, fuzzy
 msgid "Images have different size"
-msgstr "erlaube FITS-Würfel unterschiedliche Größen"
+msgstr "Bilder haben unterschiedliche Größen"
 
 #: src/pixelMath/pixel_math_runner.c:1111
 msgid ""
 "The image currently displayed must be the same size as the other images "
 "loaded into PixelMath."
 msgstr ""
+"Die aktuell angezeigten Bilder müssen die selbe Größe haben wie andere in "
+"PixelMath geladene Bilder."
 
 #: src/pixelMath/pixel_math_runner.c:1119
 msgid "No images loaded"
@@ -31183,9 +31196,8 @@ msgid "You've reached the maximum of loaded image file."
 msgstr "Sie haben die maximale Anzahl der geladenen Bilddateien erreicht."
 
 #: src/pixelMath/pixel_math_runner.c:1378
-#, fuzzy
 msgid "Error evaluating pixelmath expression.\n"
-msgstr "Fehler im mathematischen Pixel-Ausdruck '%s' bei Zeichen %d\n"
+msgstr "Fehler bei der Auswertung eines PixelMath-Ausdruckes.\n"
 
 #: src/registration/3stars.c:126 src/registration/3stars.c:208
 msgid "Make sure you load the first image"
@@ -31304,18 +31316,16 @@ msgstr ""
 "Die Registrierung einer als CFA geöffneten Sequenz ist eine schlechte Idee.\n"
 
 #: src/registration/applyreg.c:336
-#, fuzzy
 msgid ""
 "Distortion data was found in the sequence file, undistortion will be "
 "applied\n"
 msgstr ""
-"Für diese Sequenz existieren keine Registrierungsdaten, Rahmungsmethode "
-"Maximum wird ignoriert\n"
+"Verzerrungsdaten wurden in der Sequenzdatei gefunden, Entzerrung wird "
+"angewendet\n"
 
 #: src/registration/applyreg.c:342 src/registration/global.c:173
-#, fuzzy
 msgid "Could not init distortion mapping\n"
-msgstr "Verzerrungsabbildung berechnen\n"
+msgstr "Verzerrungsabbildung kann nicht initialisiert werden\n"
 
 #: src/registration/applyreg.c:370 src/registration/global.c:313
 #, c-format
@@ -31353,15 +31363,17 @@ msgstr "Registrierung anwenden"
 
 #: src/registration/applyreg.c:920 src/registration/global.c:634
 #: src/registration/global.c:850
-#, fuzzy
 msgid "Could not initialize distortion data, aborting\n"
-msgstr "Konnte %s nicht erstellen, Abbruch\n"
+msgstr "Verzerrungsdaten können nicht initialisiert werden, breche ab\n"
 
 #: src/registration/applyreg.c:933
 msgid ""
 "Distortion was found in reference image astrometry but you did not include "
 "distortion correction when registering the images\n"
 msgstr ""
+"In der Astrometrie des Referenzbildes wurde eine Verzerrung gefunden, Sie "
+"haben jedoch bei der Registrierung der Bilder keine Verzerrungskorrektur "
+"vorgenommen.\n"
 
 #: src/registration/applyreg.c:1013
 msgid ""
@@ -31383,9 +31395,8 @@ msgid "You should change framing method, aborting\n"
 msgstr "Sie sollten die Rahmungsmethode ändern, Abbruch\n"
 
 #: src/registration/applyreg.c:1042
-#, fuzzy
 msgid "Not enough space to save the output images\n"
-msgstr "Nicht genug Speicherplatz um die Ausgabebilder zu speichern, Abbruch\n"
+msgstr "Nicht genug Speicherplatz um die Ausgabebilder zu speichern\n"
 
 #: src/registration/applyreg.c:1053
 msgid ""
@@ -31406,13 +31417,13 @@ msgstr ""
 "Interpolation auf \"none\" eingestellt ist. \n"
 
 #: src/registration/applyreg.c:1066
-#, fuzzy
 msgid ""
 "Applying registration with changes in output image size is not allowed when "
 "interpolation is set to none , aborting\n"
 msgstr ""
-"Die Anwendung der Registrierung bei Änderungen der Ausgabebildgröße ist "
-"nicht zulässig, wenn die Interpolation auf \"keine\" eingestellt ist.\n"
+"Das Anwenden einer Registrierung mit Änderungen in der Ausgabebildgröße ist "
+"nicht zulässig, wenn die Interpolation auf „keine“ eingestellt ist, breche "
+"ab\n"
 
 #: src/registration/applyreg.c:1072
 msgid ""
@@ -31424,14 +31435,12 @@ msgstr ""
 "führt zum Abbruch\n"
 
 #: src/registration/applyreg.c:1077
-#, fuzzy
 msgid ""
 "Applying registration on images with distortions when interpolation is set "
 "to none is not allowed, aborting\n"
 msgstr ""
-"Die Anwendung der Registrierung auf Bilder mit unterschiedlichen Größen, "
-"wenn die Interpolation auf \"keine\" eingestellt ist, ist nicht zulässig und "
-"führt zum Abbruch\n"
+"Die Registrierung von Bildern mit Verzerrungen ist nicht zulässig, wenn die "
+"Interpolation auf „keine“ eingestellt ist, breche ab\n"
 
 #: src/registration/applyreg.c:1083
 msgid ""
@@ -31485,7 +31494,7 @@ msgstr "Kein Bild nach Berechnung der Transformationen ausgewählt, Abbruch%s\n"
 #: src/registration/astrometric.c:310
 #, c-format
 msgid "Sequence optimal framing: %.1f\n"
-msgstr ""
+msgstr "Optimale Sequenz-Rahmung: %.1f\n"
 
 #: src/registration/astrometric.c:312 src/registration/astrometric.c:314
 #, c-format
@@ -31493,9 +31502,8 @@ msgid "Sequence framing: %.1f\n"
 msgstr "Rahmung der Sequenz: %.1f\n"
 
 #: src/registration/astrometric.c:389
-#, fuzzy
 msgid "Astrometric registration computed.\n"
-msgstr "Registrierung abgeschlossen.\n"
+msgstr "Astrometrische Registrierung berechnet.\n"
 
 #: src/registration/astrometric.c:411
 #, c-format
@@ -31503,39 +31511,37 @@ msgid "Image %d has not been plate-solved, unselecting\n"
 msgstr "Bild %d hat keine astrometrische Lösung. Wird abgewählt\n"
 
 #: src/registration/comet.c:193
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d has no registration data, removing\n"
-msgstr "Bild %d überlappt das Referenzbild nicht\n"
+msgstr "Bild %d hat keine Registrierungsdaten, wird entfernt\n"
 
 #: src/registration/comet.c:277
 msgid "Moving object registration"
 msgstr "Registrierung beweglicher Objekte"
 
 #: src/registration/distorsion.c:348
-#, fuzzy
 msgid "Could not parse the distortion master, aborting\n"
-msgstr "Konnte %s nicht erstellen, Abbruch\n"
+msgstr "Konnte das Verzerrungsmaster nicht auswerten, breche ab\n"
 
 #: src/registration/distorsion.c:374
-#, fuzzy
 msgid "Could not save WCS file for distortion\n"
-msgstr "Konnte Datei nicht öffnen %s, Abbruch.\n"
+msgstr "Konnte WCS-Datei für Verzerrungsn nicht speichern\n"
 
 #: src/registration/distorsion.c:388
-#, fuzzy
 msgid "Could not load FITS file for distortion\n"
-msgstr "Konnte das Bild nicht laden, Abbruch.\n"
+msgstr "Konnte FITS-Datei für Verzerrungen nicht laden\n"
 
 #: src/registration/distorsion.c:394
-#, fuzzy
 msgid "Could not copy WCS information for distortion\n"
-msgstr "Konnte Bild nicht kopieren, Abbruch\n"
+msgstr "Konnte WCS-Informationen für Verzerrungen nicht kopieren\n"
 
 #: src/registration/distorsion.c:416
 msgid ""
 "Sequence file points to master distorsion file but its specification but it "
 "is empty in the preferences\n"
 msgstr ""
+"Die Sequenzdatei verweist auf die Masterverzerrungs-Datei, aber ihre "
+"Spezifikation in den Einstellungen ist leer\n"
 
 #: src/registration/distorsion.c:426
 #, c-format
@@ -31543,56 +31549,53 @@ msgid "Could not load image# %d, deselecting\n"
 msgstr "Bild# %d konnte nicht geladen werden, Auswahl entfernt\n"
 
 #: src/registration/distorsion.c:435
-#, fuzzy
 msgid "Could not parse master file name for distortion, aborting\n"
-msgstr "Konnte %s nicht erstellen, Abbruch\n"
+msgstr "Kann Dateiname des Verzerrungsmasters nicht auswerten, breche ab\n"
 
 #: src/registration/distorsion.c:441
-#, fuzzy
 msgid "Could not load master file for distortion, aborting\n"
-msgstr "Konnte das Bild nicht laden, Abbruch.\n"
+msgstr "Konnte die Verzerrungsmaster-Datei nicht laden, Abbruch.\n"
 
 #: src/registration/distorsion.c:449
-#, fuzzy
 msgid "Could not copy WCS information for distortion, aborting\n"
-msgstr "Konnte Bild nicht kopieren, Abbruch\n"
+msgstr "Konnte WCS-Informationen für Verzerrungen nicht kopieren, breche ab\n"
 
 #: src/registration/distorsion.c:477
 msgid "Selected file has no distortion information\n"
 msgstr "Ausgewählte Datei hat keine Verzerrungsinformationen\n"
 
 #: src/registration/distorsion.c:519
-#, fuzzy
 msgid "Distortion data is valid and will be used\n"
-msgstr ""
-"Für diese Sequenz existieren keine Registrierungsdaten, Rahmungsmethode "
-"Maximum wird ignoriert\n"
+msgstr "Verzerrungsdaten sind valide und werden benutzt\n"
 
 #: src/registration/distorsion.c:528 src/registration/distorsion.c:534
 msgid ""
 "You have selected undistortion from current image but it is not platesolved, "
 "perform astrometry first or disable distortion"
 msgstr ""
+"Sie haben die Entzerrung des aktuellen Bildes ausgewählt, aber es ist nicht "
+"astrometrisch gelöst. Führen Sie zuerst eine Astrometrie durch oder "
+"deaktivieren Sie die Entzerrung"
 
 #: src/registration/distorsion.c:530
-#, fuzzy
 msgid "Platesolve current image"
-msgstr "Diese Aktion erstellt eine astrometrische Lösung des aktuellen Bildes"
+msgstr "Aktuelles Bild astrometrisch lösen"
 
 #: src/registration/distorsion.c:536
-#, fuzzy
 msgid "Platesolve current image with distortions"
-msgstr "Speichert das aktuelle Bild mit einem anderen Dateinamen"
+msgstr "Aktuelles Bild astrometrisch lösen mit Verzerrungen"
 
 #: src/registration/distorsion.c:542
 msgid ""
 "You have selected undistortion from an existing file, you need to specify "
 "the filename"
 msgstr ""
+"Sie haben die Entzerrung aus einer bestehenden Datei ausgewählt. Sie müssen "
+"den Dateinamen angeben"
 
 #: src/registration/distorsion.c:544
 msgid "Load a FITS/WCS file for distortion"
-msgstr ""
+msgstr "Laden einer FITS/WCS-Datei für Verzerrungen"
 
 #: src/registration/distorsion.c:549 src/registration/distorsion.c:551
 msgid "Could not load FITS image for distortion"
@@ -31603,6 +31606,9 @@ msgid ""
 "You have selected undistortion from file but it is not platesolved, perform "
 "astrometry first or disable distortion"
 msgstr ""
+"Sie haben die Entzerrung aus der Datei ausgewählt, aber sie ist nicht "
+"astrometrisch gelöst. Führen Sie zuerst eine Astrometrie durch oder "
+"deaktivieren Sie die Entzerrung"
 
 #: src/registration/distorsion.c:558
 msgid "Selected file has no WCS information"
@@ -31613,6 +31619,9 @@ msgid ""
 "You have selected undistortion from file but it is has no distortion terms, "
 "perform astrometry with SIP enabled or disable distortion"
 msgstr ""
+"Sie haben die Entzerrung aus der Datei ausgewählt, aber sie enthält keine "
+"Verzerrungsdaten. Führen Sie Astrometrie mit aktiviertem SIP durch oder "
+"deaktivieren Sie die Entzerrung"
 
 #: src/registration/distorsion.c:565
 msgid "Selected file has no distortion information"
@@ -31630,6 +31639,8 @@ msgstr "Ausgewählte Datei und aktuelle Sequenz haben nicht die gleiche Größe"
 msgid ""
 "You need to set a distortion master template in Preferences/Preprocessing"
 msgstr ""
+"Sie müssen eine Verzerrungs-Masterdatei in den Einstellungen/Vorverarbeitung "
+"festlegen"
 
 #: src/registration/distorsion.c:597 src/registration/distorsion.c:599
 msgid "Distortion master could not be parsed"
@@ -31668,6 +31679,8 @@ msgstr "Es gibt nicht genügend Sterne im Referenzbild für eine Ausrichtung\n"
 #: src/registration/global.c:918
 msgid "Could not correct the stars position with SIP coeffients\n"
 msgstr ""
+"Die Position der Sterne konnte nicht mit SIP-Koeffizienten korrigiert "
+"werden\n"
 
 #: src/registration/global.c:221
 #, c-format
@@ -31883,7 +31896,7 @@ msgstr "Konnte die Maske für %d nicht speichern\n"
 
 #: src/stacking/blending.c:219
 msgid "Compute feathering masks"
-msgstr ""
+msgstr "Berechne Überblendmasken"
 
 #: src/stacking/median_and_mean.c:80
 msgid "Opening images for stacking"
@@ -32118,13 +32131,13 @@ msgstr ""
 "Überlappungsdaten zwischen Bild %d und %d konnten nicht gelesen werden\n"
 
 #: src/stacking/normalization.c:628
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Your system does not have enough memory to normalize images overlaps for "
 "stacking operation (%d MB free for %d MB required)\n"
 msgstr ""
-"Ihr System verfügt nicht über genügend Speicher, um die Bilder fürs Stacking "
-"zu normalisieren (%d MB frei, %d MB benötigt)\n"
+"Ihr System verfügt nicht über genügend Speicher, um Bildüberlappungen fürs "
+"Stacking zu normalisieren (%d MB frei aber %d MB erforderlich)\n"
 
 #: src/stacking/normalization.c:635
 #, c-format
