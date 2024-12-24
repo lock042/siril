@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:37+0100\n"
-"PO-Revision-Date: 2023-06-02 12:27+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
-"Language-Team: Spanish <https://weblate.pixls.us/projects/siril/siril-"
-"application-1-2/es/>\n"
+"PO-Revision-Date: 2024-12-24 04:33+0000\n"
+"Last-Translator: Sergio A Luppi <sergiolmailbox-aprender@yahoo.com>\n"
+"Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
+"siril-1-2/es/>\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14\n"
+"X-Generator: Weblate 5.8.4\n"
 "X-Poedit-Bookmarks: -1,-1,459,-1,-1,-1,-1,-1,-1,-1\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7998
@@ -590,12 +590,13 @@ msgstr "Transformación Asinh"
 
 #: src/gui/siril3.glade:3251
 msgid "Stretch factor"
-msgstr "Factor de extensión"
+msgstr "Factor de estiramiento"
 
 #: src/gui/siril3.glade:3288
 msgid "The parameter stretch factor allows to adjust the non-linearity factor."
 msgstr ""
-"El parámetro factor de extensión permite ajustar el factor de no linealidad."
+"El parámetro factor de estiramiento permite ajustar el factor de no "
+"linealidad."
 
 #: src/gui/siril3.glade:3310
 msgid "Black Point"
@@ -607,13 +608,17 @@ msgstr "Valor constante que se resta a la imagen."
 
 #: src/gui/siril3.glade:3362
 msgid "Human-weighted luminance"
-msgstr ""
+msgstr "Luminancia ponderada por el ser humano"
 
 #: src/gui/siril3.glade:3366
+#, fuzzy
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
 msgstr ""
+"Para las imágenes en color, utilice los pesos de eficiencia luminosa del ojo "
+"humano para calcular la luminancia utilizada para calcular el estiramiento "
+"de cada píxel."
 
 #: src/gui/siril3.glade:3413 src/algos/background_extraction.c:1047
 msgid "Background Extraction"
@@ -742,7 +747,7 @@ msgstr "Pulse aquí para generar las muestras definidas automáticamente."
 #: src/gui/siril3.glade:8794 src/gui/siril3.glade:20100
 #: src/gui/siril3.glade:29155 src/gui/siril3.glade:31767
 msgid "Clear"
-msgstr "Limpiar"
+msgstr "Borrar"
 
 #: src/gui/siril3.glade:3816
 msgid "Click here to clear all the samples."
@@ -1881,6 +1886,8 @@ msgstr ""
 #: src/gui/siril3.glade:8579
 msgid "Non-square pixels can be entered but will not be used in most cases."
 msgstr ""
+"Se pueden ingresar píxeles no cuadrados, pero no se utilizarán en la mayoría "
+"de los casos."
 
 #: src/gui/siril3.glade:8581
 #, fuzzy
@@ -2629,13 +2636,12 @@ msgstr "Iniciar el algoritmo fotométrico de calibración del color."
 #: src/gui/siril3.glade:11743 src/gui/siril3.glade:11763
 #: src/gui/siril3.glade:11783 src/gui/siril3.glade:11803
 #: src/gui/siril3.glade:11823 src/gui/siril3.glade:11840
-#, fuzzy
 msgid ""
 "Initial equatorial coordinates. Input value must be inside the image, close "
 "to the centre."
 msgstr ""
 "Coordenadas ecuatoriales iniciales. El valor de entrada debe estar dentro de "
-"la imagen."
+"la imagen, cerca del centro."
 
 #: src/gui/siril3.glade:11748 src/gui/siril3.glade:11768
 #: src/gui/siril3.glade:11788 src/gui/siril3.glade:11808
@@ -2647,7 +2653,7 @@ msgstr "0"
 
 #: src/gui/siril3.glade:11857
 msgid "Right Ascension: "
-msgstr "Ascensión derecha: "
+msgstr "Ascensión Recta: "
 
 #: src/gui/siril3.glade:11868
 msgid "Declination: "
@@ -2669,6 +2675,12 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"Introduzca el identificador o el nombre de un objeto ubicado cerca del "
+"centro de la imagen. Esta función requiere una conexión a Internet (solicita "
+"SIMBAD de forma predeterminada o el servidor seleccionado a la derecha).\n"
+"Si las coordenadas ya están completadas al hacer clic en el botón Obtener "
+"Metadatos de la Imagen que aparece a continuación, probablemente no sea "
+"necesario."
 
 #: src/gui/siril3.glade:11910
 msgid "Find"
@@ -2682,6 +2694,12 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"Comenzando a buscar las coordenadas del objeto nombrado. Esta función "
+"requiere una conexión a Internet (solicita SIMBAD de forma predeterminada o "
+"el servidor seleccionado a la derecha).\n"
+"Si las coordenadas ya están completas al hacer clic en el botón Obtener "
+"metadatos de la imagen que aparece a continuación, es probable que esto no "
+"sea necesario."
 
 #: src/gui/siril3.glade:11929 src/gui/siril3.glade:11965
 msgid ""
@@ -2719,13 +2737,12 @@ msgid "Pixel size (µm):"
 msgstr "Tamaño de píxel (µm):"
 
 #: src/gui/siril3.glade:11989 src/gui/siril3.glade:12004
-#, fuzzy
 msgid ""
 "The resolution of the image that is automatically determined from the focal "
 "and pixel size value. Unit is arc second per pixel."
 msgstr ""
-"La resolución de la imagen se determina automáticamente con la focal y el "
-"tamaño de píxel."
+"La resolución de la imagen se determina automáticamente a partir del valor "
+"de tamaño de píxel y de enfoque. La unidad es segundo de arco por píxel."
 
 #: src/gui/siril3.glade:11992
 msgid "Resolution: "
@@ -2765,30 +2782,30 @@ msgstr ""
 
 #: src/gui/siril3.glade:12086
 msgid "Downsample image"
-msgstr "Reducir la imagen"
+msgstr "Reducir la resolución de la imagen"
 
 #: src/gui/siril3.glade:12090
-#, fuzzy
 msgid ""
 "Sometimes, for oversampled images (like with Drizzle), it is complicated to "
 "resolve astrometry data. In consequence, downsampling data generally helps "
 "and also makes star detection run faster."
 msgstr ""
-"A veces, para imágenes sobremuestreadas (como las que tienenn Drizzle), es "
-"difícil resolver los datos de astrometría. Por eso ayuda reducir el muestreo "
-"de datos para que el algoritmo sea más rápido."
+"A veces, en el caso de imágenes sobre-muestreadas (como con Drizzle), "
+"resulta complicado resolver los datos astrométricos. En consecuencia, la "
+"reducción del tamaño de los datos suele ser útil y también hace que la "
+"detección de estrellas se realice más rápido."
 
 #: src/gui/siril3.glade:12102
 msgid "Auto-crop (for wide field)"
 msgstr "Auto recorte (para campos amplios)"
 
 #: src/gui/siril3.glade:12106
-#, fuzzy
 msgid ""
 "Only use the center of the image (or selection) if the field is too wide, "
 "larger than 5 degrees."
 msgstr ""
-"Sólo usar el centro de la imagen (o selección) si el campo es muy amplio."
+"Utilice únicamente el centro de la imagen (o selección) si el campo es "
+"demasiado amplio, mayor a 5 grados."
 
 #: src/gui/siril3.glade:12119
 #, fuzzy
@@ -3448,7 +3465,7 @@ msgstr "Estimación de ruido"
 #: src/gui/siril3.glade:26804
 #, fuzzy
 msgid "Aberration Inspector"
-msgstr "Resta realizada ...\n"
+msgstr "Inspector de aberración"
 
 #: src/gui/siril3.glade:14481
 msgid "Information..."
@@ -4467,6 +4484,15 @@ msgid ""
 "will be added with a date in their name, with no duplicate check. Purge the "
 "User Catalogue to remove previous searches."
 msgstr ""
+"Introduzca el nombre del objeto que desea buscar en la base de datos en "
+"línea, SIMBAD o la base de datos Minor Planet Center.\n"
+"Se puede hacer referencia a los objetos del sistema solar por su número o "
+"nombre, pero con un prefijo según su tipo, por ejemplo, 'a:1' o 'a:Ceres', "
+"'p:marte' o 'c:C/2017 T2'.\n"
+"Si se encuentran, los objetos se agregarán al Catálogo de usuario. Los "
+"objetos del sistema solar se agregarán con una fecha en su nombre, sin "
+"verificación de duplicados. Purgue el Catálogo de usuario para eliminar "
+"búsquedas anteriores."
 
 #: src/gui/siril3.glade:18973
 msgid "Save as unique file"
