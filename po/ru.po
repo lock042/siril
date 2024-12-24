@@ -6,8 +6,8 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:37+0100\n"
-"PO-Revision-Date: 2024-12-24 04:33+0000\n"
-"Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
+"PO-Revision-Date: 2024-12-24 15:11+0000\n"
+"Last-Translator: Vladimir Vladimirov <cin_nev@mail.ru>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/ru/>\n"
 "Language: ru\n"
@@ -3626,7 +3626,7 @@ msgstr "Укладка со взвешенной средней"
 
 #: src/gui/siril3.glade:14204
 msgid "Configuration"
-msgstr "Конфигурация"
+msgstr "Настройка"
 
 #: src/gui/siril3.glade:14230 src/livestacking/gui.c:144
 msgid "Idle"
@@ -15173,7 +15173,7 @@ msgstr ""
 "номер после идентификационного префикса.\n"
 "\n"
 "Название итоговой последовательности будет начинаться с префикса \"mCFA_\", "
-"если не указан иной с помощью аргумента <b>-prefix=</b>"
+"если не указан иной с помощью аргумента <b>-prefixout=</b>"
 
 #: src/core/command_def.h:147
 msgid ""
