@@ -24,6 +24,7 @@ RUN apt-get update -qyy \
         libheif-dev \
         heif-thumbnailer \
         heif-gdk-pixbuf \
+        libhealpix-cxx-dev \
         libpng-dev \
         libavformat-dev \
         libavutil-dev \

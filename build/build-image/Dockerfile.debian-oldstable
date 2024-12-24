@@ -23,6 +23,7 @@ RUN sed -i 's/oldstable\/updates/oldstable-security\/updates/' /etc/apt/sources.
         libheif-dev \
         heif-thumbnailer \
         heif-gdk-pixbuf \
+        libhealpix-cxx-dev \
         libpng-dev \
         libavformat-dev \
         libavutil-dev \
