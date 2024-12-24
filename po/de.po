@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-23 23:40+0000\n"
-"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
+"PO-Revision-Date: 2024-12-24 15:11+0000\n"
+"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -6992,7 +6992,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4085
 msgid "Rec2020"
-msgstr ""
+msgstr "Rec2020"
 
 #: src/gui/uifiles/settings_window.ui:4086
 msgid "From files"
@@ -7953,7 +7953,7 @@ msgstr "Redo"
 
 #: src/gui/uifiles/siril.ui:780
 msgid "PSF"
-msgstr ""
+msgstr "PSF"
 
 #: src/gui/uifiles/siril.ui:787
 msgid ""
@@ -8046,7 +8046,7 @@ msgstr "Zuschnitt auf gesamte Sequenz anwenden..."
 
 #: src/gui/uifiles/siril.ui:1048
 msgid "ROI"
-msgstr ""
+msgstr "ROI"
 
 #: src/gui/uifiles/siril.ui:1059
 msgid "Set ROI to selection"
@@ -10054,15 +10054,15 @@ msgstr "Punkt"
 
 #: src/gui/uifiles/siril.ui:7183
 msgid "Turbo"
-msgstr ""
+msgstr "Turbo"
 
 #: src/gui/uifiles/siril.ui:7184
 msgid "Lanczos2"
-msgstr ""
+msgstr "Lanczos2"
 
 #: src/gui/uifiles/siril.ui:7185
 msgid "Lanczos3"
-msgstr ""
+msgstr "Lanczos3"
 
 #: src/gui/uifiles/siril.ui:7197
 msgid ""
@@ -10528,7 +10528,7 @@ msgstr ""
 "<b>Perzentil Clipping</b> ist ein einstufiger Ablehnungsalgorithmus, der "
 "sich ideal für kleine Datensätze (bis zu 6 Bilder) eignet.\n"
 "\n"
-"<b>Sigma Clipping<b> ist ein iterativer Algorithmus, der Pixel verworfen, "
+"<b>Sigma Clipping<b> ist ein iterativer Algorithmus, der Pixel verwirft, "
 "deren Abweichung vom Median-Wert größer ist als der der beiden vorgegebenen "
 "Werte.\n"
 "\n"
@@ -11126,7 +11126,7 @@ msgstr "Prüfe Gaia Archiv Status..."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:122
 msgid "Status: "
-msgstr ""
+msgstr "Status: "
 
 #: src/gui/uifiles/s_pcc_dialog.ui:126
 msgid "Click to update Gaia archive status check"
@@ -11686,7 +11686,7 @@ msgstr "Sternmaske"
 
 #: src/gui/uifiles/starnet_dialog.ui:288
 msgid "Original"
-msgstr ""
+msgstr "Original"
 
 #: src/gui/uifiles/stars_list_window.ui:84
 msgid "Export list of stars to a file"
@@ -12729,7 +12729,7 @@ msgstr "Fehler beim erneuten Öffnen von fitseq\n"
 #: src/algos/astrometry_solver.c:2028 src/algos/astrometry_solver.c:2070
 #, c-format
 msgid "Image %d already platesolved, skipping\n"
-msgstr "Das Bild hat bereits eine astrometrische Lösung. Wird übersprungen\n"
+msgstr "Bild %d bereits atrometrisch gelöst. Wird übersprungen\n"
 
 #: src/algos/astrometry_solver.c:2057
 #, c-format
@@ -13106,7 +13106,7 @@ msgstr "-> %i %s im Bild von %s gefunden\n"
 
 #: src/algos/comparison_stars.c:429
 msgid "variable"
-msgstr ""
+msgstr "variabel"
 
 #: src/algos/comparison_stars.c:429
 msgid "comparison"
@@ -13565,7 +13565,7 @@ msgstr "Lichtkurve eines Sterns"
 
 #: src/algos/photometry.c:534
 msgid "V-C"
-msgstr ""
+msgstr "V-C"
 
 #: src/algos/photometry.c:605
 msgid "Failed to analyse the variable star photometry\n"
@@ -13797,11 +13797,11 @@ msgstr ""
 
 #: src/algos/photometric_cc.c:877 src/gui/mouse_action_functions.h:83
 msgid "SPCC"
-msgstr ""
+msgstr "SPCC"
 
 #: src/algos/photometric_cc.c:877
 msgid "PCC"
-msgstr ""
+msgstr "PCC"
 
 #: src/algos/photometric_cc.c:878
 #, c-format
@@ -13978,8 +13978,8 @@ msgstr " bei den Koordinaten: %s, %s\n"
 #, c-format
 msgid "Object %s (exact match: %s) was found in the %s catalogue at: %s, %s\n"
 msgstr ""
-"Das Objekt %s (genaue Übereinstimmung: %s) wurde im Katalog %s unter der "
-"Adresse %s gefunden: %s, %s\n"
+"Das Objekt %s (genaue Übereinstimmung: %s) wurde im Katalog %s  bei %s, %s "
+"gefunden\n"
 
 #: src/algos/search_objects.c:273
 #, c-format
@@ -14483,7 +14483,7 @@ msgstr ""
 
 #: src/compositing/compositing.c:1788
 msgid "At least 2 images must be loaded to perform linear matching."
-msgstr "Zum Ausrichten müssen mindestens 2 Bilder geladen sein"
+msgstr "Zum Ausrichten müssen mindestens 2 Bilder geladen sein."
 
 #: src/compositing/compositing.c:1810
 #, c-format
@@ -22342,11 +22342,11 @@ msgstr ""
 
 #: src/core/icc_profile.c:1481
 msgid "CIE x"
-msgstr ""
+msgstr "CIE x"
 
 #: src/core/icc_profile.c:1485
 msgid "CIE y"
-msgstr ""
+msgstr "CIE y"
 
 #: src/core/icc_profile.c:1487
 msgid "Color profile"
@@ -22358,7 +22358,7 @@ msgstr "Weißpunkt des Farbprofils"
 
 #: src/core/icc_profile.c:1495
 msgid "CIE 1931"
-msgstr ""
+msgstr "CIE 1931"
 
 #: src/core/icc_profile.c:1500
 msgid "Could not load background\n"
@@ -23052,7 +23052,7 @@ msgstr "füge CTYPE3='RGB' in den FITS Header ein"
 
 #: src/core/settings.c:348
 msgid "Verify file checksums if they exist"
-msgstr ""
+msgstr "Prüfe Dateiprüfsumme wenn vorhanden"
 
 #: src/core/settings.c:349
 msgid "user copyright to put in file header"
@@ -23352,9 +23352,8 @@ msgid "default distortion master"
 msgstr "Standard Master-Bias"
 
 #: src/core/settings.c:441
-#, fuzzy
 msgid "use default master distortion"
-msgstr "Nutze Standard Masterdark"
+msgstr "Standard-Master-Verzerrung verwenden"
 
 #: src/core/settings.c:442
 msgid "default stack name"
@@ -23701,6 +23700,8 @@ msgstr "Neues Bild kann nicht geladen werden"
 #: src/core/siril_actions.c:74
 msgid "The image can't be processed while another processing dialog is opened."
 msgstr ""
+"Das Bild kann nicht bearbeitet werden, während ein anderer "
+"Bearbeitungsdialog geöffnet ist."
 
 #: src/core/siril_actions.c:150
 msgid "Cannot check for updates with this version, missing dependency\n"
@@ -23737,15 +23738,16 @@ msgid "Load another image"
 msgstr "Ein anderes Bild laden"
 
 #: src/core/siril_actions.c:709 src/core/siril_actions.c:717
-#, fuzzy
 msgid "Close current image?"
-msgstr "Schließe aktuelles Fenster"
+msgstr "aktuelles Bild schließen ?"
 
 #: src/core/siril_actions.c:709
 msgid ""
 "Opening the RGB Composition dialog will close the current image without "
 "saving. Are you sure?"
 msgstr ""
+"Wenn Sie das Dialogfeld RGB-Komposition öffnen, wird das aktuelle Bild ohne "
+"Speichern geschlossen. Sind Sie sicher?"
 
 #: src/core/siril_actions.c:709 src/core/siril_actions.c:717
 #: src/gui/graxpert.c:288
@@ -23757,6 +23759,8 @@ msgid ""
 "Opening the Star Recomposition dialog will close the current image without "
 "saving. Are you sure?"
 msgstr ""
+"Wenn Sie das Dialogfeld Sternneuzusammensetzung öffnen, wird das aktuelle "
+"Bild geschlossen, ohne es zu speichern. Sind Sie sicher?"
 
 #: src/core/siril_actions.c:766
 msgid "RGB alignment (DFT)"
@@ -23815,17 +23819,18 @@ msgid ""
 "Server unreachable or unresponsive (HTTP code %ld - for details see https://"
 "developer.mozilla.org/en-US/docs/Web/HTTP/Status)\n"
 msgstr ""
+"Der Server ist nicht erreichbar oder nicht ansprechbar (HTTP-Code %ld - für "
+"Einzelheiten siehe https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)"
+"\n"
 
 #: src/core/siril_networking.c:119
-#, fuzzy
 msgid "Server unreachable or unresponsive"
-msgstr ""
-"Nach %ld Versuchen ist der Server unerreichbar oder antwortet nicht (%s)\n"
+msgstr "Server ist nicht erreichbar oder antwortet nicht"
 
 #: src/core/siril_networking.c:123
 #, c-format
 msgid "URL retrieval failed. libcurl error: [%ld]\n"
-msgstr ""
+msgstr "URL-Abfrage fehlgeschlagen. libcurl-Fehler: [%ld]\n"
 
 #: src/core/siril_networking.c:182
 #, fuzzy, c-format
@@ -23946,6 +23951,9 @@ msgid ""
 "Following undo / redo with a preview active you may need to toggle the "
 "preview off and on again to reactivate the preview effect\n"
 msgstr ""
+"Nach dem Rückgängig machen/Wiederherstellen bei aktiver Vorschau müssen Sie "
+"die Vorschau möglicherweise aus- und wieder einschalten, um den "
+"Vorschaueffekt wieder zu aktivieren.\n"
 
 #: src/core/undo.c:387
 #, c-format
@@ -24052,19 +24060,19 @@ msgid "kernel:         %s\n"
 msgstr ""
 
 #: src/drizzle/cdrizzleutil.c:125
-#, fuzzy, c-format
+#, c-format
 msgid "pixel_fraction: %f\n"
-msgstr "Pixelanteil"
+msgstr "Pixelanteil: %f\n"
 
 #: src/drizzle/cdrizzleutil.c:126
 #, c-format
 msgid "weight_scale:   %f\n"
-msgstr ""
+msgstr "Gewichtungsskala:...%f#\n"
 
 #: src/drizzle/cdrizzleutil.c:127
 #, c-format
 msgid "scale:          %f\n"
-msgstr ""
+msgstr "Skala:          %f\n"
 
 #: src/filters/asinh.c:79
 msgid "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"
@@ -24148,9 +24156,8 @@ msgstr "Fehler: keine Kanäle ausgewählt. Es wird nichts berechnet.\n"
 
 #. g_spawn handles wchar so not need to convert
 #: src/filters/graxpert.c:140
-#, fuzzy
 msgid "Starting GraXpert..."
-msgstr "Starte StarNet++"
+msgstr "Starte GraXpert..."
 
 #: src/filters/graxpert.c:149
 #, fuzzy, c-format
@@ -24167,9 +24174,8 @@ msgid "GraXpert reported an error"
 msgstr "GraXpert hat einen Fehler gemeldet"
 
 #: src/filters/graxpert.c:195 src/filters/graxpert.c:225
-#, fuzzy
 msgid "Done."
-msgstr "Fertig\n"
+msgstr "Fertig."
 
 #: src/filters/graxpert.c:199
 #, fuzzy, c-format
@@ -24202,11 +24208,12 @@ msgid ""
 "Error: GraXpert version is too old. You have version %d.%d.%d; at least "
 "version 3.0.0 is required.\n"
 msgstr ""
+"Fehler: GraXpert Version ist zu alt. Sie haben Version %d.%d.%d; mindestens "
+"Version 3.0.0 ist erforderlich.\n"
 
 #: src/filters/graxpert.c:500
-#, fuzzy
 msgid "None!\n"
-msgstr "Keine"
+msgstr "Keine!\n"
 
 #: src/filters/graxpert.c:670 src/filters/graxpert.c:678
 #, fuzzy
@@ -24223,6 +24230,8 @@ msgid ""
 "Error: the GraXpert image dimensions and bit depth do not match those of the "
 "original image. Please report this as a bug.\n"
 msgstr ""
+"Fehler: Die Abmessungen und die Bittiefe des GraXpert-Bildes stimmen nicht "
+"mit denen des Originalbildes überein. Bitte melden Sie dies als Fehler.\n"
 
 #: src/filters/graxpert.c:717
 #, fuzzy
@@ -24232,21 +24241,21 @@ msgstr "Fehler: temporäre Arbeitsdatei kann nicht gelöscht werden...\n"
 #: src/filters/graxpert.c:746
 #, c-format
 msgid "GraXpert BG extraction, smoothness %.3f"
-msgstr ""
+msgstr "GraXpert Background-Extraktion, Glättung %.3f"
 
 #: src/filters/graxpert.c:749
 #, c-format
 msgid "GraXpert denoising, strength %.3f"
-msgstr ""
+msgstr "GraXpert-Entrauschung, Stärke %.3f"
 
 #: src/filters/graxpert.c:752
 #, c-format
 msgid "GraXpert deconv, strength %.3f, psf size %.3f"
-msgstr ""
+msgstr "GraXpert deconv, Stärke %.3f, psf Größe %.3f"
 
 #: src/filters/graxpert.c:755
 msgid "GraXpert operations using GUI"
-msgstr ""
+msgstr "GraXpert-Operationen mit GUI"
 
 #. Save current image as input filename
 #: src/filters/graxpert.c:794
@@ -24264,6 +24273,8 @@ msgid ""
 "Background samples must be computed for GraXpert RBF, Spline and Kriging "
 "methods\n"
 msgstr ""
+"Hintergrundmuster müssen für GraXpert RBF-, Spline- und Kriging-Methoden "
+"berechnet werden\n"
 
 #: src/filters/graxpert.c:868
 msgid ""
@@ -24272,6 +24283,10 @@ msgid ""
 "You will need to check and re-assign the ICC profile as GraXpert does not "
 "preserve ICC profiles embedded in FITS files.\n"
 msgstr ""
+"GraXpert GUI wird mit dem aktuellen Bild geöffnet. Wenn Sie fertig sind, "
+"speichern Sie das Bild und kehren Sie zu Siril zurück.\n"
+"Sie müssen das ICC-Profil überprüfen und neu zuweisen, da GraXpert in FITS-"
+"Dateien eingebettete ICC-Profile nicht beibehält.\n"
 
 #: src/filters/graxpert.c:874
 #, fuzzy
@@ -24754,9 +24769,8 @@ msgid "Sharpless Catalogue (Sh2)"
 msgstr "Sharpless Catalogue (Sh2)"
 
 #: src/gui/annotations_pref.c:34
-#, fuzzy
 msgid "Star Catalogue"
-msgstr "Stern-Katalog: "
+msgstr "Stern-Katalog:"
 
 #: src/gui/annotations_pref.c:35
 #, fuzzy
@@ -25222,7 +25236,7 @@ msgstr "Ändern Sie den Default-Dateinamen falls nötig"
 #. 3rd element, another label
 #: src/gui/compstars.c:96
 msgid ".csv"
-msgstr ""
+msgstr ".csv"
 
 #: src/gui/compstars.c:102
 msgid "Find comparison stars from catalogue requests"
@@ -25610,7 +25624,7 @@ msgstr "R"
 
 #: src/gui/cut.c:724
 msgid "L"
-msgstr ""
+msgstr "L"
 
 #: src/gui/cut.c:727
 #, c-format
@@ -25654,7 +25668,7 @@ msgstr "Spektrum mit Hintergrundentfernung"
 
 #: src/gui/cut.c:1039
 msgid "Spectro bg offset (px)"
-msgstr ""
+msgstr "Spektro-Bg-Versatz (px)"
 
 #: src/gui/cut.c:1040
 msgid ""
@@ -25672,15 +25686,13 @@ msgid "Tri-profile (mono)"
 msgstr "Tri-Profil (mono)"
 
 #: src/gui/cut.c:1049
-#, fuzzy
 msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile"
 msgstr ""
 "Erzeugt 3 parallele Intensitätsprofile, die durch eine bestimmte Anzahl von "
-"Pixeln getrennt sind. Bei Tr-Profilen wird die Leuchtdichte immer entlang "
-"jedes Profils aufgezeichnet und es werden keine spektrometrischen Daten "
-"verwendet."
+"Pixeln getrennt sind. Tri-Profile zeichnen immer die Leuchtdichte entlang "
+"jedes Profils"
 
 #: src/gui/cut.c:1050
 msgid "Tri-profile offset (px)"
@@ -25934,19 +25946,25 @@ msgstr "Dekonvolution"
 
 #: src/gui/graxpert.c:212
 msgid "GUI"
-msgstr ""
+msgstr "GUI"
 
 #: src/gui/graxpert.c:216
 msgid ""
 "<span foreground=\"red\">No suitable version of GraXpert is available.\n"
 "Configure the executable in Preferences -> Miscellaneous.</span>"
 msgstr ""
+"<span foreground=\"red\">Es ist keine geeignete Version von GraXpert "
+"verfügbar.\n"
+"Konfigurieren Sie die ausführbare Datei in Einstellungen -> "
+"Verschiedenes.</span>"
 
 #: src/gui/graxpert.c:288
 msgid ""
 "GraXpert is running. Changing the GraXpert operation will cancel the current "
 "GraXpert process. Proceed?"
 msgstr ""
+"GraXpert läuft. Wenn Sie den GraXpert-Vorgang ändern, wird der aktuelle "
+"GraXpert-Prozess abgebrochen. Fortfahren?"
 
 #: src/gui/graxpert.c:291
 #, fuzzy
@@ -25954,9 +25972,8 @@ msgid "GraXpert operation cancelled by user\n"
 msgstr "Stacking wurde gestopp.\n"
 
 #: src/gui/graxpert.c:314
-#, fuzzy
 msgid "Error: no sequence loaded.\n"
-msgstr "Keine Sequenz geladen"
+msgstr "Fehler: Keine Sequenz geladen.\n"
 
 #: src/gui/graxpert.c:337
 msgid "Stellar"
@@ -26260,15 +26277,16 @@ msgid "Operation on the sequence"
 msgstr "Wählen Sie Bilder aus der Sequenz"
 
 #: src/gui/keywords_tree.c:195
-#, fuzzy
 msgid ""
 "These keywords will be deleted from each image of the entire sequence. Are "
 "you sure?"
-msgstr "Das Master-Dark wird von allen Bildern der Sequenz subtrahiert."
+msgstr ""
+"Diese Schlüsselwörter werden aus jedem Bild der gesamten Sequenz gelöscht. "
+"Sind Sie sicher?"
 
 #: src/gui/keywords_tree.c:266
 msgid "Keyname can contain a maximum of 8 characters.\n"
-msgstr ""
+msgstr "Der Schlüsselname darf maximal 8 Zeichen enthalten.\n"
 
 #. Create the dialog window with buttons
 #: src/gui/keywords_tree.c:507
@@ -26290,6 +26308,8 @@ msgid ""
 "These keywords will be added / modified in each image of the entire "
 "sequence. Are you sure?"
 msgstr ""
+"Diese Schlüsselwörter werden in jedem Bild der gesamten Sequenz hinzugefügt/"
+"geändert. Sind Sie sicher?"
 
 #: src/gui/image_display.c:170
 msgid ""
@@ -26948,6 +26968,10 @@ msgid ""
 "will be unavailable. Further information may be available at https://www."
 "cosmos.esa.int/web/gaia/"
 msgstr ""
+"Die Statusanzeige des Gaia-Archivs antwortet nicht. Dies bedeutet nicht "
+"zwangsläufig, dass das Gaia-Archiv offline ist, aber wenn dies der Fall ist, "
+"wird SPCC nicht verfügbar sein. Weitere Informationen können unter "
+"https://www.cosmos.esa.int/web/gaia/ abgerufen werden."
 
 # Ratio  not available ???
 #: src/gui/photometric_cc.c:108
@@ -26957,7 +26981,7 @@ msgstr "Anteil am verfügbaren RAM"
 
 #: src/gui/photometric_cc.c:113
 msgid "Gaia archive running but performing slightly slower\n"
-msgstr ""
+msgstr "Gaia-Archiv läuft, ist aber etwas langsamer\n"
 
 #: src/gui/photometric_cc.c:118
 msgid "Gaia archive running but performing very slowly"
@@ -26980,6 +27004,8 @@ msgstr "Unbekannter Status des Gaia-Archivs"
 msgid ""
 "Siril is offline or built without networking. Gaia archive is unavailable.\n"
 msgstr ""
+"Siril ist offline oder ohne Netzwerkunterstützung erstellt. Das Gaia-Archiv "
+"ist nicht verfügbar.\n"
 
 #: src/gui/photometric_cc.c:167
 msgid ""
@@ -27007,21 +27033,23 @@ msgstr "Spektrophotometrische Farb-Kalibrierung"
 
 #: src/gui/photometric_cc.c:367
 msgid "Airmass read from FITS header AIRMASS card"
-msgstr ""
+msgstr "Airmass aus dem FITS-Header AIRMASS-Karte gelesen"
 
 #: src/gui/photometric_cc.c:370
 msgid "Airmass computed from FITS header CENTALT card"
-msgstr ""
+msgstr "Airmass berechnet aus FITS-Header CENTALT-Karte"
 
 #: src/gui/photometric_cc.c:373
 msgid ""
 "No airmass data available or computable. Estimating airmass based on average "
 "observation height of 48.1°"
 msgstr ""
+"Keine Luftmassendaten verfügbar oder berechenbar. Schätzung der Luftmasse "
+"auf der Grundlage der durchschnittlichen Beobachtungshöhe von 48,1°"
 
 #: src/gui/photometric_cc.c:377
 msgid "Observer height read from FITS header SITEELEV card"
-msgstr ""
+msgstr "Höhe des Beobachters aus dem FITS-Header SITEELEV-Karte gelesen"
 
 #: src/gui/photometric_cc.c:547
 msgid ""
@@ -27078,7 +27106,7 @@ msgstr "Durchlass"
 #: src/gui/photometric_cc.c:1107
 #, c-format
 msgid "SPCC Data: Atmospheric model"
-msgstr ""
+msgstr "SPCC-Daten: Atmosphärisches Modell"
 
 #: src/gui/photometric_cc.c:1118
 #, c-format
@@ -27087,6 +27115,9 @@ msgid ""
 "Height: %d m\n"
 "Pressure: %.2f hPa (%s)"
 msgstr ""
+"Atmosphärisches Modell\n"
+"Höhe: %d m\n"
+"Druck: %.2f hPa (%s)"
 
 #: src/gui/photometric_cc.c:1118
 msgid "local"
@@ -27535,6 +27566,8 @@ msgstr "CSV Datei (*.csv)"
 #: src/gui/registration.c:456
 msgid "Comet PSF center is out of the box, will use selection center instead\n"
 msgstr ""
+"Kometen-PSF-Zentrum ist nicht mehr im Kasten, stattdessen wird das "
+"Auswahlzentrum verwendet\n"
 
 #: src/gui/registration.c:480
 msgid "There is no timestamp stored in the file"
@@ -27567,8 +27600,7 @@ msgstr "Registriere %d Bildern aus %d aus der Sequenz"
 #: src/gui/registration.c:734
 msgid "Max framing not allowed with fitseq, change to regular FITS images"
 msgstr ""
-"Maximale Rahmung mit Fitseq nicht zulässig. Wechsel zu regulären FITS-"
-"Bildern."
+"Maximale Rahmung mit Fitseq nicht zulässig. Wechsel zu regulären FITS-Bildern"
 
 #: src/gui/registration.c:745
 #, fuzzy
@@ -27614,13 +27646,12 @@ msgid "CFA pattern detected"
 msgstr "Nicht unterstützte CFA-Muster erkannt"
 
 #: src/gui/registration.c:956
-#, fuzzy
 msgid ""
 "This sequence cannot be registered with the CFA pattern intact. Select "
 "drizzle or debayer it prior to registration"
 msgstr ""
-"Diese Sequenz kann nicht mit intaktem CFA-Muster registriert werden. Sie "
-"müssen sie vor der Registrierung entschichten."
+"Diese Sequenz kann nicht mit intaktem CFA-Muster registriert werden. Wählen "
+"Sie drizzle oder debayer vor der Registrierung"
 
 #: src/gui/registration.c:1077
 msgid "Cannot use area selection on a sequence with variable image sizes\n"
@@ -28072,7 +28103,7 @@ msgstr ""
 #: src/gui/siril_intro.c:40
 msgid "The documentation set is also available via the menu \"Siril Manual\""
 msgstr ""
-"Das Dokumentationspaket ist auch über das Menü \"Siril Handbuch\" verfügbar."
+"Das Dokumentationspaket ist auch über das Menü \"Siril Handbuch\" verfügbar"
 
 #: src/gui/siril_intro.c:41
 msgid ""
@@ -28194,6 +28225,8 @@ msgstr "SVG-Dateien (*.svg)"
 #: src/gui/siril_preview.c:107
 msgid "Warning: insufficient memory available to create a preview.\n"
 msgstr ""
+"Warnung: Nicht genügend Speicherplatz vorhanden, um eine Vorschau zu "
+"erstellen.\n"
 
 #: src/gui/stacking.c:172 src/io/sequence_export.c:643
 msgid "Registration data found"
@@ -28222,6 +28255,11 @@ msgid ""
 "subs.\n"
 "If you proceed, execution may be slow"
 msgstr ""
+"Sie haben sich für die Berechnung der Normalisierung bei Überlappungen mit "
+"mehr als %d Bildern entschieden.\n"
+"Diese Option sollte normalerweise verwendet werden, um gestapelte "
+"Mosaikkacheln zusammenzufügen, nicht für Teilbilder.\n"
+"Wenn Sie fortfahren, kann die Ausführung langsam sein"
 
 #: src/gui/stacking.c:184
 #, fuzzy
@@ -28490,26 +28528,32 @@ msgid ""
 "Rescale\n"
 "(values > 0 only)"
 msgstr ""
+"Neu skalieren\n"
+"(nur Werte > 0)"
 
 #: src/gui/utils.c:517
 msgid ""
 "Rescale\n"
 "(all values)"
 msgstr ""
+"Neu skalieren\n"
+"(alle Werte)"
 
 #: src/gui/utils.c:520
 msgid "Cancel without making any changes"
-msgstr ""
+msgstr "Abbrechen, ohne Änderungen vorzunehmen"
 
 #: src/gui/utils.c:521
 msgid "Clip pixel values to the range 0.0 - 1.0"
-msgstr ""
+msgstr "Pixelwerte auf den Bereich 0,0 - 1,0 beschränken"
 
 #: src/gui/utils.c:522
 msgid ""
 "Rescale pixel values to fit the range 0.0 - 1.0, clipping negative pixel "
 "values"
 msgstr ""
+"Skalierung der Pixelwerte in den Bereich 0,0 - 1,0, wobei negative "
+"Pixelwerte abgeschnitten werden"
 
 #: src/gui/utils.c:523
 msgid ""
@@ -28811,12 +28855,11 @@ msgstr "Die geladenen FITS-Datei verwendet ein BSCALE verschieden von 1 (%f)\n"
 #: src/io/fits_keywords.c:1219
 #, c-format
 msgid "FITS header of image %d updated\n"
-msgstr ""
+msgstr "FIT Header von Bild %d aktualisiert\n"
 
 #: src/io/fits_keywords.c:1282
-#, fuzzy
 msgid "This command won't work for SER sequence.\n"
-msgstr "Befehl kann nur mit einer Sequenz verwendet werden"
+msgstr "Dieser Befehl funktioniert nicht für die SER-Sequenz.\n"
 
 #: src/io/fits_sequence.c:98
 msgid ""
@@ -29561,9 +29604,9 @@ msgid "Contacting server\n"
 msgstr "Kontaktiere Server\n"
 
 #: src/io/remote_catalogues.c:661
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot create catalogue file %s (generic error)\n"
-msgstr "Die Katalogdatei %s (%s) kann nicht erstellt werden.\n"
+msgstr "Die Katalogdatei %s kann nicht erstellt werden\n"
 
 #: src/io/remote_catalogues.c:706
 msgid "Offline, cannot retrieve URL.\n"
@@ -30177,7 +30220,7 @@ msgstr "NOMAD"
 
 #: src/io/siril_catalogues.c:234
 msgid "Gaia DR3 (via Vizier)"
-msgstr ""
+msgstr "Gaia DR3 (via Vizier)"
 
 #: src/io/siril_catalogues.c:236
 msgid "Gaia DR3 (direct)"
@@ -30185,7 +30228,7 @@ msgstr "Gaia DR3 (direkt)"
 
 #: src/io/siril_catalogues.c:238
 msgid "PPMXL"
-msgstr ""
+msgstr "PPMXL"
 
 #: src/io/siril_catalogues.c:240
 msgid "bright stars"
@@ -30197,15 +30240,15 @@ msgstr "AAVSO Veränderliche Sterne"
 
 #: src/io/siril_catalogues.c:246
 msgid "GCVS"
-msgstr ""
+msgstr "GCVS"
 
 #: src/io/siril_catalogues.c:250
 msgid "Gaia DR3 Variability"
-msgstr ""
+msgstr "Gaia DR3 Variability"
 
 #: src/io/siril_catalogues.c:252
 msgid "PGC"
-msgstr ""
+msgstr "PGC"
 
 #: src/io/siril_catalogues.c:254
 msgid "Exoplanet archive"
@@ -30481,9 +30524,11 @@ msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "Lokales SPCC-Datenbank-Repository ist aktuell!\n"
 
 #: src/io/siril_git.c:814
-#, fuzzy, c-format
+#, c-format
 msgid "Error spawning thread to update scripts repository: %s\n"
-msgstr "Fehler: Lokales Skript-Repository kann nicht geöffnet werden.\n"
+msgstr ""
+"Fehler beim Erzeugen eines Threads zur Aktualisierung des Skript-Repositorys:"
+" %s\n"
 
 #: src/io/siril_git.c:818
 msgid ""
@@ -31418,7 +31463,7 @@ msgstr ""
 #: src/registration/astrometric.c:237
 #, c-format
 msgid "Sequence COG - RA:%7.3f - DEC:%+7.3f\n"
-msgstr ""
+msgstr "Sequenz COG - RA:%7.3f - DEC:%+7.3f\n"
 
 #: src/registration/astrometric.c:269
 #, c-format
@@ -31430,12 +31475,12 @@ msgstr ""
 #: src/registration/astrometric.c:284
 #, c-format
 msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
-msgstr ""
+msgstr "Bild #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
 
 #: src/registration/astrometric.c:287
-#, fuzzy, c-format
+#, c-format
 msgid "No image selected after computing transformations, aborting%s\n"
-msgstr "Kein Frame zur Bearbeitung ausgewählt. Abbruch.\n"
+msgstr "Kein Bild nach Berechnung der Transformationen ausgewählt, Abbruch%s\n"
 
 #: src/registration/astrometric.c:310
 #, c-format
@@ -31443,9 +31488,9 @@ msgid "Sequence optimal framing: %.1f\n"
 msgstr ""
 
 #: src/registration/astrometric.c:312 src/registration/astrometric.c:314
-#, fuzzy, c-format
+#, c-format
 msgid "Sequence framing: %.1f\n"
-msgstr "Sequenz: %s\n"
+msgstr "Rahmung der Sequenz: %.1f\n"
 
 #: src/registration/astrometric.c:389
 #, fuzzy
@@ -31493,9 +31538,9 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:426
-#, fuzzy, c-format
+#, c-format
 msgid "Could not load image# %d, deselecting\n"
-msgstr "Konnte Bild %d aus Sequenz %s nicht laden\n"
+msgstr "Bild# %d konnte nicht geladen werden, Auswahl entfernt\n"
 
 #: src/registration/distorsion.c:435
 #, fuzzy
@@ -31513,9 +31558,8 @@ msgid "Could not copy WCS information for distortion, aborting\n"
 msgstr "Konnte Bild nicht kopieren, Abbruch\n"
 
 #: src/registration/distorsion.c:477
-#, fuzzy
 msgid "Selected file has no distortion information\n"
-msgstr "Quelle für die Graph-Information wählen."
+msgstr "Ausgewählte Datei hat keine Verzerrungsinformationen\n"
 
 #: src/registration/distorsion.c:519
 #, fuzzy
@@ -31551,9 +31595,8 @@ msgid "Load a FITS/WCS file for distortion"
 msgstr ""
 
 #: src/registration/distorsion.c:549 src/registration/distorsion.c:551
-#, fuzzy
 msgid "Could not load FITS image for distortion"
-msgstr "Konnte das Bild nicht laden, Abbruch.\n"
+msgstr "Konnte FITS-Bild wegen Verzerrung nicht laden"
 
 #: src/registration/distorsion.c:556
 msgid ""
@@ -31562,9 +31605,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:558
-#, fuzzy
 msgid "Selected file has no WCS information"
-msgstr "Quelle für die Graph-Information wählen."
+msgstr "Ausgewählte Datei hat keine WCS Informationen"
 
 #: src/registration/distorsion.c:563
 msgid ""
@@ -31573,19 +31615,16 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:565
-#, fuzzy
 msgid "Selected file has no distortion information"
-msgstr "Quelle für die Graph-Information wählen."
+msgstr "Ausgewählte Datei hat keine Verzerrungsinformationen"
 
 #: src/registration/distorsion.c:572 src/registration/distorsion.c:574
-#, fuzzy
 msgid "Selected file has no dimensions information"
-msgstr "Quelle für die Graph-Information wählen."
+msgstr "Ausgewählte Datei enthält keine Informationen zu den Abmessungen"
 
 #: src/registration/distorsion.c:579 src/registration/distorsion.c:581
-#, fuzzy
 msgid "Selected file and current sequence do not have the same size"
-msgstr "Ein Bild der Sequenz hat nicht die gleichen Abmessungen\n"
+msgstr "Ausgewählte Datei und aktuelle Sequenz haben nicht die gleiche Größe"
 
 #: src/registration/distorsion.c:590 src/registration/distorsion.c:592
 msgid ""
@@ -31593,9 +31632,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:597 src/registration/distorsion.c:599
-#, fuzzy
 msgid "Distortion master could not be parsed"
-msgstr "Parametersymbole konnten nicht analysiert werden."
+msgstr "Verzerrungsmaster konnte nicht geparst werden"
 
 #: src/registration/global.c:72
 msgid "shift-only (2 degrees)"
@@ -31834,14 +31872,14 @@ msgstr ""
 
 #. the mask exists and is more recent than the img, we don't need to read again
 #: src/stacking/blending.c:81
-#, fuzzy, c-format
+#, c-format
 msgid "Mask for image %d already exists, skipping\n"
-msgstr "Das Bild hat bereits eine astrometrische Lösung. Wird übersprungen\n"
+msgstr "Maske für Bild %d existiert bereits, wird übersprungen\n"
 
 #: src/stacking/blending.c:194
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to save mask for image %d\n"
-msgstr "Konnte erstes Bild nicht öffnen"
+msgstr "Konnte die Maske für %d nicht speichern\n"
 
 #: src/stacking/blending.c:219
 msgid "Compute feathering masks"
@@ -31889,14 +31927,14 @@ msgstr ""
 "unterteilen.\n"
 
 #: src/stacking/median_and_mean.c:452
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading one of the image areas (%d: %d %d %d %d)\n"
-msgstr "Fehler beim Einlesen eines der Bildbereiche\n"
+msgstr "Fehler beim Einlesen eines der Bildbereiche (%d: %d %d %d %d)\n"
 
 #: src/stacking/median_and_mean.c:481
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading one of the masks areas (%d: %d %d %d %d)\n"
-msgstr "Fehler beim Einlesen eines der Bildbereiche\n"
+msgstr "Fehler beim Einlesen eines der Bildbereiche  (%d: %d %d %d %d)\n"
 
 #: src/stacking/median_and_mean.c:1063 src/stacking/median_and_mean.c:1108
 #, c-format
@@ -31926,11 +31964,12 @@ msgid ""
 "for stacking. Aborting.\n"
 msgstr ""
 "Der Generalized Extreme Studentized Deviate Test benötigt mindestens 3 "
-"Bilder zum Stackn. Abbruch.\n"
+"Bilder zum Stacken. Abbruch.\n"
 
 #: src/stacking/median_and_mean.c:1203
 msgid "No registration layer passed, ignoring registration data!\n"
-msgstr "Keine Registrierungsebene übergeben, Registrierungsdaten ignorieren!\n"
+msgstr ""
+"Keine Registrierungsebene übergeben, Registrierungsdaten werden ignoriert!\n"
 
 #. no image has been loaded
 #: src/stacking/median_and_mean.c:1217
@@ -32073,9 +32112,10 @@ msgid "%s Check image %d first.\n"
 msgstr "%s Prüfe zuerste Bild %d\n"
 
 #: src/stacking/normalization.c:515
-#, fuzzy, c-format
+#, c-format
 msgid "Could not read overlap data between image %d and %d\n"
-msgstr "Konnte Teilbild %d aus Sequenz %s nicht laden\n"
+msgstr ""
+"Überlappungsdaten zwischen Bild %d und %d konnten nicht gelesen werden\n"
 
 #: src/stacking/normalization.c:628
 #, fuzzy, c-format
