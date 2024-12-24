@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-24 00:08+0000\n"
+"PO-Revision-Date: 2024-12-24 04:33+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -12242,14 +12242,12 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:1048 src/algos/astrometry_solver.c:1051
 #: src/algos/astrometry_solver.c:1056
-#, fuzzy
 msgid "Could not save distortion master file, skipping\n"
-msgstr "Не удалось загрузить или создать файл с настройками, выход.\n"
+msgstr "Не удалось сохранить мастер-файл дисторсии, пропускаем\n"
 
 #: src/algos/astrometry_solver.c:1055
-#, fuzzy
 msgid "Solution has no distortion\n"
-msgstr "Вычисление нормализации...\n"
+msgstr "Решение не имеет дисторсии\n"
 
 #: src/algos/astrometry_solver.c:1064
 msgid "Flipping image and updating astrometry data.\n"
@@ -16789,7 +16787,7 @@ msgid ""
 "This command only works on plate solved images with distortions included\n"
 msgstr ""
 "Команда работает только на изображениях, имеющих астрономическое решение, и "
-"с включёнными искажениями\n"
+"с включённой дисторсией\n"
 
 #: src/core/command.c:11394
 msgid "16-bit images cannot have out-of-range pixels: nothing to do.\n"
@@ -22328,14 +22326,12 @@ msgid "use default master flat"
 msgstr "использовать мастер-кадр плоского поля по умолчанию"
 
 #: src/core/settings.c:440
-#, fuzzy
 msgid "default distortion master"
 msgstr "мастер-кадр дисторсии по умолчанию"
 
 #: src/core/settings.c:441
-#, fuzzy
 msgid "use default master distortion"
-msgstr "использовать темновой мастер-кадр по умолчанию"
+msgstr "использовать мастер-кадр дисторсии по умолчанию"
 
 #: src/core/settings.c:442
 msgid "default stack name"
@@ -25783,7 +25779,7 @@ msgstr "Все поддерживаемые файлы"
 
 #: src/gui/open_dialog.c:252
 msgid "Master-distortion: file (*.wcs)"
-msgstr "Мастер-файл искажений: файл (*.wcs)"
+msgstr "Мастер-файл дисторсии: файл (*.wcs)"
 
 #: src/gui/open_dialog.c:289
 msgid "Cosmetic correction file (*.lst)"
@@ -29986,11 +29982,12 @@ msgstr ""
 "идея.\n"
 
 #: src/registration/applyreg.c:336
-#, fuzzy
 msgid ""
 "Distortion data was found in the sequence file, undistortion will be "
 "applied\n"
-msgstr "Нет данных регистрации для этой последовательности, прерывание\n"
+msgstr ""
+"В файле последовательности найдены данные дисторсии. Будет применено "
+"исправление дисторсии.\n"
 
 #: src/registration/applyreg.c:342 src/registration/global.c:173
 #, fuzzy
@@ -30034,9 +30031,8 @@ msgstr "Применить регистрацию"
 
 #: src/registration/applyreg.c:920 src/registration/global.c:634
 #: src/registration/global.c:850
-#, fuzzy
 msgid "Could not initialize distortion data, aborting\n"
-msgstr "Не удалось создать %s, прерывание.\n"
+msgstr "Не удалось инициализировать данные дисторсии, прерывание.\n"
 
 #: src/registration/applyreg.c:933
 msgid ""
@@ -30103,13 +30099,12 @@ msgstr ""
 "интерполяция установлена в 'нет', прерывание\n"
 
 #: src/registration/applyreg.c:1077
-#, fuzzy
 msgid ""
 "Applying registration on images with distortions when interpolation is set "
 "to none is not allowed, aborting\n"
 msgstr ""
-"Применение регистрации к изображениям разного размера не допускается, если "
-"интерполяция установлена в 'нет', прерывание\n"
+"Применение регистрации к изображениям с дисторсией не допускается, если "
+"интерполяция установлена в «нет», прерывание\n"
 
 #: src/registration/applyreg.c:1083
 msgid ""
@@ -30189,19 +30184,16 @@ msgid "Moving object registration"
 msgstr "Регистрация движущегося объекта"
 
 #: src/registration/distorsion.c:348
-#, fuzzy
 msgid "Could not parse the distortion master, aborting\n"
-msgstr "Не удалось создать %s, прерывание.\n"
+msgstr "Не удалось разобрать мастер-файл дисторсии, прерывание.\n"
 
 #: src/registration/distorsion.c:374
-#, fuzzy
 msgid "Could not save WCS file for distortion\n"
-msgstr "Не удалось открыть файл %s, прерывание.\n"
+msgstr "Не удалось сохранить файл WCS для дисторсии\n"
 
 #: src/registration/distorsion.c:388
-#, fuzzy
 msgid "Could not load FITS file for distortion\n"
-msgstr "Не удалось загрузить изображение, прерывание.\n"
+msgstr "Не удалось загрузить файл FITS для дисторсии\n"
 
 #: src/registration/distorsion.c:394
 #, fuzzy
@@ -30220,14 +30212,12 @@ msgid "Could not load image# %d, deselecting\n"
 msgstr "Не удалось загрузить изображение %d из последовательности %s\n"
 
 #: src/registration/distorsion.c:435
-#, fuzzy
 msgid "Could not parse master file name for distortion, aborting\n"
-msgstr "Не удалось создать %s, прерывание.\n"
+msgstr "Не удалось разобрать название мастер-файла для дисторсии, прерывание.\n"
 
 #: src/registration/distorsion.c:441
-#, fuzzy
 msgid "Could not load master file for distortion, aborting\n"
-msgstr "Не удалось загрузить изображение, прерывание.\n"
+msgstr "Не удалось загрузить мастер-файл для дисторсии, прерывание.\n"
 
 #: src/registration/distorsion.c:449
 #, fuzzy
@@ -30235,14 +30225,12 @@ msgid "Could not copy WCS information for distortion, aborting\n"
 msgstr "Не удалось скопировать изображение, прекращаем\n"
 
 #: src/registration/distorsion.c:477
-#, fuzzy
 msgid "Selected file has no distortion information\n"
-msgstr "Источник информации для графика."
+msgstr "Выбранный файл не содержит информации о дисторсии\n"
 
 #: src/registration/distorsion.c:519
-#, fuzzy
 msgid "Distortion data is valid and will be used\n"
-msgstr "Нет данных регистрации для этой последовательности, прерывание\n"
+msgstr "Данные о дисторсии валидны и будут использованы\n"
 
 #: src/registration/distorsion.c:528 src/registration/distorsion.c:534
 msgid ""
@@ -30271,9 +30259,8 @@ msgid "Load a FITS/WCS file for distortion"
 msgstr ""
 
 #: src/registration/distorsion.c:549 src/registration/distorsion.c:551
-#, fuzzy
 msgid "Could not load FITS image for distortion"
-msgstr "Не удалось загрузить изображение, прерывание.\n"
+msgstr "Не удалось загрузить изображение FITS для дисторсии"
 
 #: src/registration/distorsion.c:556
 msgid ""
@@ -30293,9 +30280,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:565
-#, fuzzy
 msgid "Selected file has no distortion information"
-msgstr "Источник информации для графика."
+msgstr "Выбранный файл не содержит информации о дисторсии"
 
 #: src/registration/distorsion.c:572 src/registration/distorsion.c:574
 #, fuzzy
@@ -30410,8 +30396,8 @@ msgid ""
 "Less than %d%% star pairs kept by homography model, Image %d may show "
 "important distortion\n"
 msgstr ""
-"Менее %d%% пар звёзд сохранено моделью гомографии. Кадр %d может иметь "
-"сильные искажения\n"
+"Менее %d%% пар звёзд сохранено моделью гомографии. Кадр %d может показывать "
+"сильную дисторсию\n"
 
 #: src/registration/global.c:334
 #, c-format
