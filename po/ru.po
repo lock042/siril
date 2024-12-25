@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-25 05:09+0000\n"
+"PO-Revision-Date: 2024-12-26 04:44+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -12268,9 +12268,9 @@ msgid "Solving again at updated center\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:1570
-#, fuzzy, c-format
+#, c-format
 msgid "Running asnet version %s\n"
-msgstr "Выполняется команда: %s\n"
+msgstr "Выполняется asnet, версия %s\n"
 
 #: src/algos/astrometry_solver.c:1608
 #, c-format
@@ -22266,7 +22266,7 @@ msgstr "Метод сжатия FITS"
 
 #: src/core/settings.c:419
 msgid "quantization factor for 32-bit float"
-msgstr "коэффициент квантования для 32-битных значений с плавающей запятой"
+msgstr "коэффициент квантования для 32-битных значений с плавающей точкой"
 
 #: src/core/settings.c:420
 msgid "Hcompress scale factor"
