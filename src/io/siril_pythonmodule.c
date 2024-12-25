@@ -184,22 +184,38 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 	snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
 			getpid(), (unsigned long)time(NULL));
 
-	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR | O_EXCL, 0600);
+	shm_unlink(shm_name_ptr); // ensure any previous shm with this name (unlikely to exist	) is removed
+
+	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 	if (*fd == -1) {
-		siril_log_color_message(_("Failed to create shared memory: %s\n"), "red", strerror(errno));
+		siril_log_color_message(_("Invalid file descriptor after shm_open: %s\n"), "red", strerror(errno));
 		return FALSE;
 	}
 
-	// Truncate to ensure exact size (the order matters: this must come before mmap() on MacOS)
-	if (ftruncate(*fd, total_bytes) == -1) {
-		siril_log_color_message(_("Failed to set shared memory size (total_bytes: %lu): %s\n"), "red", total_bytes, strerror(errno));
-		munmap(shm_ptr, total_bytes);
+	if (*fd < 0) {
+		siril_log_color_message(_("Invalid file descriptor after shm_open\n"), "red");
+		shm_unlink(shm_name_ptr);
+		return FALSE;
+	}
+
+	// Round total_bytes up to page size
+	long page_size = sysconf(_SC_PAGESIZE);
+	off_t aligned_size = (total_bytes + page_size - 1) & ~(page_size - 1);
+	printf("SHM allocation: Original size: %zu, Aligned size: %zu, Page size: %ld\n",
+					  total_bytes, aligned_size, page_size);
+
+	siril_debug_print("Truncating shm file to %lu bytes\n", total_bytes);
+
+	// Truncate to ensure exact size
+	if (ftruncate(*fd, aligned_size) == -1) {
+		siril_log_color_message(_("Failed to set shared memory size (total_bytes: %ld): %s\n"), "red", aligned_size, strerror(errno));
 		close(*fd);
 		shm_unlink(shm_name_ptr);
 		return FALSE;
 	}
-	// then map to get actual allocation size
-	shm_ptr = mmap(NULL, total_bytes, PROT_READ | PROT_WRITE,
+
+	// then mmap
+	shm_ptr = mmap(NULL, (size_t) aligned_size, PROT_READ | PROT_WRITE,
 				MAP_SHARED, *fd, 0);
 	if (shm_ptr == MAP_FAILED) {
 		siril_log_color_message(_("Failed to map shared memory: %s\n"), "red", strerror(errno));
