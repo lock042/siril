@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-26 04:44+0000\n"
+"PO-Revision-Date: 2024-12-26 22:18+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -6847,15 +6847,15 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4258
 msgid "Output device proofing profile:"
-msgstr ""
+msgstr "Профиль цветопробы устройства вывода:"
 
 #: src/gui/uifiles/settings_window.ui:4271
 msgid "Rendering intent:"
-msgstr ""
+msgstr "Тип цветопередачи:"
 
 #: src/gui/uifiles/settings_window.ui:4282
 msgid "Select the display intent. The default is perceptual rendering."
-msgstr ""
+msgstr "Выберите тип цветопередачи. По умолчанию — воспринимаемая."
 
 #: src/gui/uifiles/settings_window.ui:4285
 #: src/gui/uifiles/settings_window.ui:4483
