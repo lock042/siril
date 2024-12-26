@@ -35,8 +35,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkAdjustment" id="adjustment_epf_sigma_col">
     <property name="upper">65535</property>
     <property name="value">11</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">1</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_epf_sigma_spatial">
     <property name="upper">20</property>
@@ -375,7 +375,8 @@ WARNING: using guide images that are not based on the original image is likely t
                   <object class="GtkSpinButton" id="spin_epf_sigma_col">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">This value affects the range of pixel value similarity the edge preserving filter aplies over.</property>
+                    <property name="tooltip-text" translatable="yes">This value affects the range of pixel value similarity the edge preserving filter aplies over.
+If your stars look huge and defocused, start by reducing this value. Depending on your data you may need to make substantial adjustments here, for example setting the value to below 1.0.</property>
                     <property name="text" translatable="yes">0.000</property>
                     <property name="progress-pulse-step">0</property>
                     <property name="adjustment">adjustment_epf_sigma_col</property>
@@ -471,8 +472,8 @@ If the parameters is 0, no filter is applied at all.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">Edge preserving filters can be slow on large images, so preview is not active by default. It is strongly recommended to select a Region of Interest (ROI) before activating the edge preserving filter preview.</property>
             <property name="halign">start</property>
-            <property name="active">True</property>
             <property name="draw-indicator">True</property>
             <signal name="toggled" handler="on_epf_preview_toggled" swapped="no"/>
           </object>

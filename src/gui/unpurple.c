@@ -178,7 +178,6 @@ static void unpurple_close(gboolean revert) {
 		invalidate_stats_from_fit(&gfit);
 		undo_save_state(get_preview_gfit_backup(), _("Unpurple filter: (thresh=%2.2lf, mod_b=%2.2lf)"), thresh, mod_b);
 	}
-	backup_roi();
 	roi_supported(FALSE);
 	remove_roi_callback(unpurple_change_between_roi_and_image);
 	clearfits(&starmask);
