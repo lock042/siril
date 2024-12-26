@@ -73,7 +73,7 @@
 #define CHECK_FOR_CANCELLATION if (!get_thread_run()) { ret = SOLVE_CANCELLED; goto clearup; }
 
 #undef DEBUG		/* get some of diagnostic output */
-#define ASTROMETRY_DEBUG 0
+#define ASTROMETRY_DEBUG 1
 
 static gchar *asnet_version = NULL;
 
@@ -93,7 +93,7 @@ static void debug_print_catalog_files(TRANS *trans, s_star *star_list_A, s_star 
 	gchar bufferx[1024] = { 0 }, buffery[1024] = { 0 };
 	// x00, x10, x01, x20, x11, x02, x30, x21, x12, x03, x40, x31, x22, x13, x04, x50, x41, x32, x23, x14, x05
 	g_sprintf(bufferx, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
-	trans.x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02, 
+	trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02, 
 	trans->x30, trans->x21, trans->x12, trans->x03, trans->x40, trans->x31, trans->x22, trans->x13,
 	trans->x04, trans->x50, trans->x41, trans->x32, trans->x23, trans->x14, trans->x05);
 	g_sprintf(buffery, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
@@ -201,7 +201,8 @@ double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov
 	double b = 0.88 - (fabs(ml) - 90) * 0.0065 * (fabs(ml) < 90.);
 	double s = a + b * sin(fabs(mb) * DEGTORAD);
 	// limit mag
-	return (m0 + s * (log10((double)Nstars / S) - 2.));
+	double limit = m0 + s * (log10((double)Nstars / S) - 2.);
+	return max(limit, 7.);
 }
 
 static void compute_limit_mag(struct astrometry_data *args) {
@@ -1222,7 +1223,14 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	siril_catalogue *siril_search_cat = calloc(1, sizeof(siril_catalogue));
 	siril_catalogue_copy(args->ref_stars, siril_search_cat, TRUE);
 	siril_search_cat->radius = args->searchradius * 60.;
-	siril_search_cat->limitmag = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS / 10);
+	if (args->mag_mode == LIMIT_MAG_ABSOLUTE) {
+		double mag1 = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS / 10);
+		double mag2 = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS);
+		siril_search_cat->limitmag = args->magnitude_arg + mag1 - mag2;
+		
+	} else {
+		siril_search_cat->limitmag = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS / 10);	
+	}
 	// we fetch all the stars within the search cone
 	get_catalog_stars(siril_search_cat);
 
