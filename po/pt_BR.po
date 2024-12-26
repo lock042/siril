@@ -8,15 +8,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2021-01-13 22:17+0100\n"
-"Last-Translator: \n"
-"Language-Team: \n"
-"Language: pt_PT\n"
+"PO-Revision-Date: 2024-12-26 22:18+0000\n"
+"Last-Translator: Jair Rillo Junior <jairrillo@gmail.com>\n"
+"Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
+"software/siril/pt_BR/>\n"
+"Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.4.1\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 #, fuzzy
@@ -543,9 +544,8 @@ msgstr "Reset"
 #: src/gui/uifiles/satu_dialog.ui:79 src/gui/uifiles/savepopup.ui:73
 #: src/gui/uifiles/settings_window.ui:253 src/gui/uifiles/starnet_dialog.ui:60
 #: src/gui/uifiles/wavelets_dialog.ui:111 src/gui/utils.c:517
-#, fuzzy
 msgid "Cancel"
-msgstr "_Cancelar"
+msgstr "Cancelar"
 
 #: src/gui/uifiles/asinh_dialog.ui:123
 #, fuzzy
@@ -578,7 +578,7 @@ msgstr ""
 #: src/gui/uifiles/histogram_dialog.ui:744 src/gui/uifiles/satu_dialog.ui:280
 #: src/gui/uifiles/wavelets_dialog.ui:751
 msgid "Preview"
-msgstr ""
+msgstr "Pré-Visualização"
 
 #: src/gui/uifiles/asinh_dialog.ui:276
 msgid "Clip mode"
@@ -1905,28 +1905,24 @@ msgid "Provides a custom prefix to use when deconvolving a sequence."
 msgstr ""
 
 #: src/gui/uifiles/binxy_dialog.ui:41
-#, fuzzy
 msgid "Binning"
-msgstr "Binning: "
+msgstr "Binning"
 
 #: src/gui/uifiles/binxy_dialog.ui:106
-#, fuzzy
 msgid "Binning factor:"
-msgstr "Binning: "
+msgstr "Binning"
 
 #: src/gui/uifiles/binxy_dialog.ui:138
-#, fuzzy
 msgid "Downsample mode:"
-msgstr "Normalizar imagens"
+msgstr "Modo de redução de amostragem:"
 
 #: src/gui/uifiles/binxy_dialog.ui:152
-#, fuzzy
 msgid "Average"
-msgstr "Média Neutral"
+msgstr "Média"
 
 #: src/gui/uifiles/binxy_dialog.ui:153
 msgid "Sum"
-msgstr ""
+msgstr "Soma"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:48 src/filters/banding.c:125
 msgid "Banding Reduction"
@@ -1935,15 +1931,13 @@ msgstr "Redução de bandas"
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:111
 #: src/gui/uifiles/cosmetic_dialog.ui:256 src/gui/uifiles/satu_dialog.ui:174
 #: src/gui/uifiles/SCNR_dialog.ui:171
-#, fuzzy
 msgid "Amount"
-msgstr "Quantidade:"
+msgstr "Quantidade"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:123
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:146
-#, fuzzy
 msgid "Defines the strength of the correction."
-msgstr "Seleção de sequência"
+msgstr "Define a intensidade da correção."
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:162
 msgid "Protect from Highlights"
@@ -2047,25 +2041,27 @@ msgstr "Definições..."
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1971
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr ""
+msgstr "Equalização de Histograma Adaptativa com Limitação de Contraste..."
 
 #: src/gui/uifiles/CLAHE_dialog.ui:128
 msgid "Tiles Grid Size"
-msgstr ""
+msgstr "Tamanho da Grade de Blocos"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:167
 msgid ""
 "Sets size of grid for histogram equalization. Input image will be divided "
 "into equally sized rectangular tiles. "
 msgstr ""
+"Define o tamanho da grade para a equalização do histograma. A imagem de "
+"entrada será dividida em blocos retangulares de tamanho igual. "
 
 #: src/gui/uifiles/CLAHE_dialog.ui:188
 msgid "Clip Limit"
-msgstr ""
+msgstr "Limite de Recorte"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:223
 msgid "Sets threshold for contrast limiting."
-msgstr ""
+msgstr "Define o limite para restrição de contraste."
 
 #. Try to have 3 lines here.
 #: src/gui/uifiles/CLAHE_dialog.ui:241
@@ -2074,6 +2070,9 @@ msgid ""
 "stacking residuals by cropping the image. If you don't,\n"
 "artifacts may appear."
 msgstr ""
+"Por favor, certifique-se de remover todas as bordas pretas ou outros \n"
+"resíduos de empilhamento cortando a imagem. Caso contrário, \n"
+"artefatos podem aparecer."
 
 #: src/gui/uifiles/color_calibration.ui:98 src/gui/uifiles/siril.ui:1240
 #: src/gui/uifiles/siril.ui:1588 src/gui/colors.c:275
@@ -2538,6 +2537,8 @@ msgid ""
 "0: No correction\n"
 "1 : 100% corrected"
 msgstr ""
+"0: Sem correção\n"
+"1 : 100% corrigido"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:307 src/gui/uifiles/cut_dialog.ui:284
 msgid "CFA"
@@ -3476,12 +3477,11 @@ msgid "Apply wavelet extraction."
 msgstr "Aplicar extração wavelet."
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:108
-#, fuzzy
 msgid ""
 "Number of wavelet layers. You can choose up to 9 layers for wavelets "
 "computing."
 msgstr ""
-"Número de camadas wavelet. Pode escolher até 6 camadas para o processamento "
+"Número de camadas wavelet. Pode escolher até 9 camadas para o processamento "
 "de wavelets."
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:129
@@ -3507,9 +3507,8 @@ msgstr "Núm. de Camadas:"
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:160
 #: src/gui/uifiles/resample_dialog.ui:178
 #: src/gui/uifiles/rotation_dialog.ui:185
-#, fuzzy
 msgid "Interpolation: "
-msgstr "Interpolação"
+msgstr "Interpolação: "
 
 #: src/gui/uifiles/file_information_dialog.ui:34
 #, fuzzy
