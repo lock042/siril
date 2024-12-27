@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-27 08:47+0000\n"
+"PO-Revision-Date: 2024-12-27 09:53+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -10762,9 +10762,8 @@ msgid "Data Source"
 msgstr "Источник данных"
 
 #: src/gui/uifiles/spcc_details.ui:167
-#, fuzzy
 msgid "Datafile version"
-msgstr "Конвертация цветового профиля"
+msgstr "Версия файла"
 
 #: src/gui/uifiles/spcc_details.ui:195
 msgid "Number of samples"
@@ -10772,16 +10771,15 @@ msgstr "Кол-во образцов"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:46 src/gui/photometric_cc.c:89
 msgid "Checking Gaia archive status..."
-msgstr ""
+msgstr "Проверка статуса архива Gaia..."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:122
-#, fuzzy
 msgid "Status: "
-msgstr "Радиус: "
+msgstr "Статус: "
 
 #: src/gui/uifiles/s_pcc_dialog.ui:126
 msgid "Click to update Gaia archive status check"
-msgstr ""
+msgstr "Нажмите для обновления проверки статуса архива Gaia"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:160
 msgid "Start the photometric color calibration algorithm."
@@ -10826,18 +10824,26 @@ msgstr "Выберите монохромный сенсор"
 #: src/gui/uifiles/s_pcc_dialog.ui:331
 msgid "Select an OSC filter (e.g. a broadband light pollution filter)"
 msgstr ""
+"Выберите цветной фильтр (например, широкополосный фильтр от светового "
+"загрязнения)"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:344
 msgid "Select a red filter used with composited mono images"
 msgstr ""
+"Выберите красный фильтр, использованный с совмещёнными монохромными "
+"изображениями"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:357
 msgid "Select a green filter used with composited mono images"
 msgstr ""
+"Выберите зелёный фильтр, использованный с совмещёнными монохромными "
+"изображениями"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:370
 msgid "Select a blue filter used with composited mono images"
 msgstr ""
+"Выберите синий фильтр, использованный с совмещёнными монохромными "
+"изображениями"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:381 src/gui/uifiles/s_pcc_dialog.ui:395
 #: src/gui/uifiles/s_pcc_dialog.ui:409 src/gui/uifiles/s_pcc_dialog.ui:423
@@ -10872,12 +10878,11 @@ msgstr "Подробности о выбранном синем фильтре"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:468
 msgid "DSLR Low Pass Filter:"
-msgstr ""
+msgstr "Низкочастотный фильтр DSLR:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:481
-#, fuzzy
 msgid "Show details of the selected LPF"
-msgstr "индекс выбранной темы"
+msgstr "Детали выбранного низкочастотного фильтра"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:493
 msgid ""
@@ -10886,16 +10891,20 @@ msgid ""
 "model). For modified DSLRs, select the replacement LPF (if there isn't an "
 "exact match the Baader BCF is probably close)."
 msgstr ""
+"Для немодифицированных цифровых зеркальных фотокамер укажите низкочастотный "
+"фильтр, наиболее подходящий к вашей модели (многие низкочастотные фильтры "
+"Canon практически идентичны, поэтому для вашей модели может не быть точного "
+"соответствия). Для модифицированных зеркальных фотокамер укажите модель "
+"сменного низкочастотного фильтра (если нет точного соответствия, возможно, "
+"подойдет Baader BCF)."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:506
-#, fuzzy
 msgid "Select white balance reference"
-msgstr "Вернуть исходные параметры"
+msgstr "Выберите ориентир для баланса белого"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:515
-#, fuzzy
 msgid "Plot all"
-msgstr "Заголовок графика"
+msgstr "Построить график"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:519
 msgid ""
@@ -23924,11 +23933,11 @@ msgstr ""
 #: src/gui/callbacks.c:485 src/gui/callbacks.c:511
 #, c-format
 msgid "The AutoStretch display mode will use a %d bit LUT\n"
-msgstr "Режим авторастягивания будет использовать %d-битную LUT\n"
+msgstr "В режиме авторастягивания будет использована %d-битная LUT\n"
 
 #: src/gui/callbacks.c:489 src/gui/callbacks.c:514
 msgid "The AutoStretch display mode will use a 16 bit LUT\n"
-msgstr "Режим авторастягивания будет использовать 16-битную LUT\n"
+msgstr "В режиме авторастягивания будет использована 16-битная LUT\n"
 
 #: src/gui/callbacks.c:525
 #, c-format
