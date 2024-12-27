@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-26 22:18+0000\n"
+"PO-Revision-Date: 2024-12-28 10:30+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -23554,7 +23554,7 @@ msgstr "ROI Warndialog aktivieren"
 
 #: src/core/settings.c:489
 msgid "Middle mouse button double click zoom action"
-msgstr "Zoom-Aktion bei Doppelklick der mittleren Maustaste"
+msgstr "Zoom-Funktion der mittleren Maustaste"
 
 #: src/core/settings.c:490
 msgid "configure background samples color"
@@ -23648,14 +23648,14 @@ msgstr "Lineare ICC-Farbprofile pedantisch zuweisen"
 #: src/core/settings.c:512
 msgid "mouse actions config. Opaque data structure, edit this using the GUI"
 msgstr ""
-"Mausaktionen-Konfiguration. Undurchsichtige Datenstruktur, bearbeiten Sie "
-"diese über die GUI"
+"Mausaktionen-Konfiguration. Unklare Datenstruktur, bearbeiten Sie diese über "
+"die GUI"
 
 #: src/core/settings.c:513
 msgid "scroll actions config. Opaque data structure, edit this using the GUI"
 msgstr ""
-"Scroll-Aktionen-Konfiguration. Undurchsichtige Datenstruktur, bearbeiten Sie "
-"diese über die GUI"
+"Scroll-Aktionen-Konfiguration. Unklare Datenstruktur, bearbeiten Sie diese "
+"über die GUI"
 
 #: src/core/settings.c:514
 msgid "index of the compass position over grid"
