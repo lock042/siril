@@ -45,6 +45,11 @@
 #include "gui/utils.h"
 #include "gui/siril_plot.h"
 
+// Define Epoch 2000.0 (used by Vizier) and Epoch 2016.0 (used by Gaia DR3)
+#define J2000 2451545.0
+#define J2016 2457388.5
+
+
 static void free_conesearch_params(conesearch_params *params);
 static void free_conesearch_args(conesearch_args *args);
 
@@ -882,8 +887,8 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
 		gdouble jd = date_time_to_Julian(dt);
 		g_date_time_unref(dt);
-		double J2000 = 2451545.0;
-		jyears = (jd - J2000) / 365.25;
+		// Gaia DR3 uses a different epoch to the other catalogues in use
+		jyears = siril_cat->cat_index == CAT_GAIADR3_DIRECT ? (jd - J2016) / 365.25 : (jd - J2000) / 365.25;
 	}
 	if (use_velocity) {
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
@@ -969,8 +974,7 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 			GDateTime *dt = g_date_time_ref(date_obs);
 			gdouble jd = date_time_to_Julian(dt);
 			g_date_time_unref(dt);
-			double J2000 = 2451545.0;
-			jyears = (jd - J2000) / 365.25;
+			jyears = siril_cat->cat_index == CAT_GAIADR3_DIRECT ? (jd - J2016) / 365.25 : (jd - J2000) / 365.25;
 		}
 	}
 	dec0 *= DEGTORAD;
