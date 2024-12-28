@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-28 23:17+0000\n"
+"PO-Revision-Date: 2024-12-29 03:56+0000\n"
 "Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -931,6 +931,8 @@ msgid ""
 "Choose Siril internal solver or local Astrometry.net (needs to be installed "
 "on your system)"
 msgstr ""
+"Elige el solucionador interno de Siril o el local de Astronomy.net (debe "
+"estar instalado en tu sistema)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:665
 #, fuzzy
@@ -954,23 +956,27 @@ msgstr "Radio exterior:"
 
 #: src/gui/uifiles/astrometry_dialog.ui:709
 msgid "disable near search"
-msgstr ""
+msgstr "desactiva la búsqueda cercana"
 
 #: src/gui/uifiles/astrometry_dialog.ui:713
 msgid ""
 "Tick this box to disable searching around target position with Siril "
 "internal solver."
 msgstr ""
+"Activa esta casilla para desactivar la búsqueda alrededor de la posición del "
+"destino con el solucionador interno de Siril."
 
 #: src/gui/uifiles/astrometry_dialog.ui:732
 msgid "Ignore position (blind solve)"
-msgstr ""
+msgstr "Ignorar la posición (solución ciega)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:736
 msgid ""
 "Tick this box to ignore target position when solving with local Astrometry."
 "net"
 msgstr ""
+"Marca esta casilla para ignorar la posición del destino al solucionar con "
+"Astronomy.net local"
 
 #: src/gui/uifiles/astrometry_dialog.ui:748
 msgid "Ignore sampling (blind solve)"
