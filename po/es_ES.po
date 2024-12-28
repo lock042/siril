@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-24 04:33+0000\n"
-"Last-Translator: Sergio A Luppi <sergiolmailbox-aprender@yahoo.com>\n"
+"PO-Revision-Date: 2024-12-28 23:17+0000\n"
+"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -890,6 +890,8 @@ msgstr ""
 msgid ""
 "Select the server that searches the coordinates of the entered object name."
 msgstr ""
+"Selecciona el servidor que busca las coordenadas del nombre del objeto "
+"introducido."
 
 #: src/gui/uifiles/astrometry_dialog.ui:595
 #, fuzzy
@@ -906,7 +908,7 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:611
 msgid "Server:"
-msgstr ""
+msgstr "Servidor:"
 
 #: src/gui/uifiles/astrometry_dialog.ui:622
 #: src/gui/uifiles/astrometry_dialog.ui:645
