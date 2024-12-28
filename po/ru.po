@@ -6,8 +6,8 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-16 06:43+0000\n"
-"Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
+"PO-Revision-Date: 2024-12-24 15:11+0000\n"
+"Last-Translator: Vladimir Vladimirov <cin_nev@mail.ru>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
 "Language: ru\n"
@@ -219,6 +219,8 @@ msgstr ""
 #: src/gui/uifiles/aavso_dialog.ui:390
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
+"Комментарии или заметки о наблюдении. Если комментариев нет, используйте \"na"
+"\"."
 
 #: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2520
 msgid "Aberration Inspector"
@@ -241,7 +243,7 @@ msgstr "Очистить"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current annotations."
-msgstr ""
+msgstr "Очистить все текущие аннотации."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -328,11 +330,11 @@ msgstr "pgc"
 
 #: src/gui/uifiles/annotate_dialog.ui:146
 msgid "aavso_chart"
-msgstr ""
+msgstr "aavso_chart"
 
 #: src/gui/uifiles/annotate_dialog.ui:147
 msgid "solsys"
-msgstr ""
+msgstr "solsys"
 
 #: src/gui/uifiles/annotate_dialog.ui:159
 #: src/gui/uifiles/composition_dialog.ui:425
@@ -388,7 +390,7 @@ msgstr "13"
 
 #: src/gui/uifiles/annotate_dialog.ui:273
 msgid "Obs. code: "
-msgstr ""
+msgstr "Код обс.: "
 
 #: src/gui/uifiles/annotate_dialog.ui:285
 #: src/gui/uifiles/settings_window.ui:1255
@@ -400,7 +402,7 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:317
 msgid "Conesearch"
-msgstr ""
+msgstr "Поиск"
 
 #: src/gui/uifiles/annotate_dialog.ui:369
 msgid "File: "
@@ -415,7 +417,7 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:397
 msgid "Click this button to select a csv file."
-msgstr ""
+msgstr "Нажмите на эту кнопку, чтобы выбрать файл csv."
 
 #: src/gui/uifiles/annotate_dialog.ui:430
 msgid ""
@@ -878,9 +880,8 @@ msgstr ""
 "локального Astrometry.net"
 
 #: src/gui/uifiles/astrometry_dialog.ui:770
-#, fuzzy
 msgid "Save distortion"
-msgstr "Регистрация"
+msgstr "Сохранить дисторсию"
 
 #: src/gui/uifiles/astrometry_dialog.ui:774
 msgid ""
@@ -4176,6 +4177,8 @@ msgid ""
 "In <span foreground=\"salmon\">salmon</span>, these are protected keywords, "
 "which cannot be modified."
 msgstr ""
+"<span foreground=\"salmon\">Красным</span> выделены ключевые слова, которые "
+"нельзя изменить."
 
 #: src/gui/uifiles/keywords_dialog.ui:272
 #, fuzzy
@@ -4234,6 +4237,9 @@ msgid ""
 "color space transform. This is useful if the image has an incorrect ICC "
 "profile."
 msgstr ""
+"Назначает текущему изображению выбранный ICC-профиль без преобразования "
+"цветового пространства. Это полезно если изображение имеет некорректный "
+"профиль ICC."
 
 #: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3895
 #: src/core/icc_profile.c:1243
@@ -4466,7 +4472,7 @@ msgstr "Укладка со взвешенной средней"
 
 #: src/gui/uifiles/livestacking_player.ui:370
 msgid "Configuration"
-msgstr "Конфигурация"
+msgstr "Настройка"
 
 #: src/gui/uifiles/livestacking_player.ui:396 src/livestacking/gui.c:144
 msgid "Idle"
@@ -4689,7 +4695,7 @@ msgstr "Настройка действий мыши"
 
 #: src/gui/uifiles/mouse_actions.ui:111
 msgid "Add an extra mouse action"
-msgstr ""
+msgstr "Добавить дополнительное действие мыши"
 
 #: src/gui/uifiles/mouse_actions.ui:126
 msgid "Remove the selected mouse action"
@@ -4719,7 +4725,7 @@ msgstr "Удалить действие при прокрутке"
 
 #: src/gui/uifiles/mouse_actions.ui:255 src/gui/uifiles/siril.ui:6353
 msgid " "
-msgstr ""
+msgstr " "
 
 #: src/gui/uifiles/mouse_actions.ui:271
 msgid "Scroll Actions"
@@ -4756,7 +4762,7 @@ msgid ""
 "Unchecking this option will give you an RGB image where each output channel "
 "is expressed by a formula."
 msgstr ""
-"Снятие этого флажка даст RGB изображение, в котором каждый исходящий канал "
+"Снятие этого флажка даст RGB изображение, в котором каждый итоговый канал "
 "выражается формулой."
 
 #: src/gui/uifiles/pixelmath.ui:371
@@ -4936,7 +4942,7 @@ msgstr "Ланцош-4"
 
 #: src/gui/uifiles/resample_dialog.ui:280
 msgid "%"
-msgstr ""
+msgstr "%"
 
 #: src/gui/uifiles/resample_dialog.ui:291
 #, fuzzy
@@ -5096,6 +5102,10 @@ msgid ""
 "entire profile. This means that when you re-open the file the ICC profile "
 "description may be different, although it will be functionally equivalent."
 msgstr ""
+"Замечание: при встраивании ICC-профилей, libjxl проверяет, распознаёт ли она "
+"профиль. Если нет, она установит опорное значение, вместо сохранения профиля "
+"целиком. Это означает, что при повторном открытии файла, описание ICC-"
+"профиля может отличаться, хотя функционально он будет эквивалентен."
 
 #: src/gui/uifiles/savepopup.ui:128
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
@@ -5206,7 +5216,7 @@ msgstr "Сохранить значения MIPS-HI и MIPS-LO"
 
 #: src/gui/uifiles/savepopup.ui:777
 msgid "Save CHECKSUM and DATASUM keywords"
-msgstr ""
+msgstr "Сохранить ключевые слова CHECKSUM и DATASUM"
 
 #: src/gui/uifiles/savepopup.ui:797
 msgid "Embedded Data"
@@ -5323,7 +5333,7 @@ msgstr "X"
 
 #: src/gui/uifiles/seqlist_dialog.ui:137
 msgid "Y"
-msgstr "Y"
+msgstr "Да"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
 #: src/gui/uifiles/settings_window.ui:5149
@@ -5710,7 +5720,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:782
 msgid "Embed ICC profiles in saved FITS files"
-msgstr "Встроить профили ICC в сохранённые файлы FITS"
+msgstr "Встроить ICC-профили в сохранённые файлы FITS"
 
 #: src/gui/uifiles/settings_window.ui:786
 msgid ""
@@ -5722,6 +5732,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:799
 msgid "Verify file checksums in FITS header (DATASUM and CHECKSUM)"
 msgstr ""
+"Проверять контрольные суммы файлов в заголовке FITS (DATASUM и CHECKSUM)"
 
 #: src/gui/uifiles/settings_window.ui:803
 msgid ""
@@ -5729,6 +5740,9 @@ msgid ""
 "file is read, which may significantly impact Siril's performance when using "
 "a sequence."
 msgstr ""
+"Проверять контрольные суммы, если они существуют. Проверка происходит каждый "
+"раз при чтении файла, что может существенно повлиять на производительность "
+"Siril при работе с последовательностями."
 
 #: src/gui/uifiles/settings_window.ui:821
 msgid "<b>FITS Header</b>"
@@ -6239,7 +6253,7 @@ msgid ""
 "Choose a master-dark that can be used as generic master-dark by clicking on "
 "the button \"Use it as default\"."
 msgstr ""
-"Темновой мастер-кадр, который будет использовать после нажатия кнопки «По "
+"Темновой мастер-кадр, который будет использован после нажатия кнопки «По "
 "умолчанию»."
 
 #: src/gui/uifiles/settings_window.ui:2082
@@ -6251,18 +6265,16 @@ msgstr ""
 "«По умолчанию»."
 
 #: src/gui/uifiles/settings_window.ui:2128
-#, fuzzy
 msgid "Master-distortion:"
-msgstr "Темновой мастер-кадр:"
+msgstr "Мастер-кадр дисторсии:"
 
 #: src/gui/uifiles/settings_window.ui:2152
-#, fuzzy
 msgid ""
 "Choose a master-distortion that can be used as generic master-distortion by "
 "clicking on the button \"Use it as default\"."
 msgstr ""
-"Темновой мастер-кадр, который будет использовать после нажатия кнопки «По "
-"умолчанию»."
+"Выберите файл, который будет использован по умолчанию как мастер-кадр "
+"дисторсии после нажатия кнопки «По умолчанию»."
 
 #: src/gui/uifiles/settings_window.ui:2175
 #, fuzzy
@@ -6270,9 +6282,8 @@ msgid "Use the chosen master as default file in the Astrometry dialog"
 msgstr "Использовать выбранный мастер файл по умолчанию на вкладке Калибровка"
 
 #: src/gui/uifiles/settings_window.ui:2192
-#, fuzzy
 msgid "Dark/Bias/Flat/Distortion Libraries"
-msgstr "Библиотеки темновых кадров, кадров шума считывания и плоского поля"
+msgstr "Б-ки темновых кадров, кадров шума считывания, плоского поля и дисторсии"
 
 #: src/gui/uifiles/settings_window.ui:2222
 msgid "Default name:"
@@ -7542,9 +7553,8 @@ msgstr ""
 "Только для версий StarNet, основанных на библиотеке Torch."
 
 #: src/gui/uifiles/settings_window.ui:5951
-#, fuzzy
 msgid "Must point to a valid GraXpert executable."
-msgstr "Должен указывать на верный исполняемый файл Starnet."
+msgstr "Должен указывать на верный исполняемый файл GraXpert."
 
 #: src/gui/uifiles/settings_window.ui:5970
 msgid "Software Location"
@@ -7795,9 +7805,8 @@ msgid "32 bits"
 msgstr "32 бита"
 
 #: src/gui/uifiles/siril.ui:1215
-#, fuzzy
 msgid "Stretches"
-msgstr "Авторастягивание"
+msgstr "Растягивание"
 
 #: src/gui/uifiles/siril.ui:1254
 msgid "Open the color saturation dialog"
@@ -7824,9 +7833,8 @@ msgid "Negative Transformation"
 msgstr "Инвертировать"
 
 #: src/gui/uifiles/siril.ui:1310
-#, fuzzy
 msgid "Filters"
-msgstr "Фильтр: "
+msgstr "Фильтры"
 
 #: src/gui/uifiles/siril.ui:1335 src/gui/uifiles/siril.ui:1798
 msgid "Star Processing"
@@ -7846,12 +7854,11 @@ msgstr "Извлечение фона…"
 
 #: src/gui/uifiles/siril.ui:1400
 msgid "Open the GraXpert external tool interface"
-msgstr ""
+msgstr "Открывает интерфейс внешнего инструмента GraXpert"
 
 #: src/gui/uifiles/siril.ui:1402
-#, fuzzy
 msgid "GraXpert Interface..."
-msgstr "Интерфейс"
+msgstr "Интерфейс GraXpert..."
 
 #: src/gui/uifiles/siril.ui:1429
 msgid "Open the linear match dialog"
@@ -8227,9 +8234,8 @@ msgid "Show Tilt"
 msgstr "Показать наклон"
 
 #: src/gui/uifiles/siril.ui:2548
-#, fuzzy
 msgid "Show Distortions"
-msgstr "Кол-во повторов SOS"
+msgstr "Показать дисторсию"
 
 #: src/gui/uifiles/siril.ui:2573
 msgid "Dynamic PSF..."
@@ -8987,9 +8993,9 @@ msgid ""
 "images right after they were preprocessed. By doing this, you skip one "
 "manual step which can take some time."
 msgstr ""
-"Выберите, если хотите применить дебайеризацию к изображениям FITS сразу "
-"после их калибровки. Это позволит избежать одного ручного шага, который "
-"может занять некоторое время."
+"Установите флажок, если хотите применить дебайеризацию к изображениям FITS "
+"сразу после их калибровки. Это позволит избежать одного ручного шага, "
+"который может занять некоторое время."
 
 #: src/gui/uifiles/siril.ui:5358
 msgid ""
@@ -9141,8 +9147,8 @@ msgstr ""
 "\n"
 "<b>Аффинное</b> это преобразование с 6-ю степенями свободы (два "
 "масштабирования, один скос, одно вращение и сдвиги по x/y), более жёсткое, "
-"чем гомография, хорошо подходящее для изображений без дисторсии. Для "
-"определения преобразования необходимо минимум 3 пары совпадающих звёзд.\n"
+"чем гомография, хорошо подходящее для изображений с небольшой дисторсией. "
+"Для определения преобразования необходимо минимум 3 пары совпадающих звёзд.\n"
 "\n"
 "<b>Гомография</b> это преобразование по умолчанию, которое использует 8 "
 "степеней свободы, чтобы наложить изображения на опорный кадр. Оно хорошо "
@@ -9180,9 +9186,8 @@ msgid "Hit this button for star detection settings"
 msgstr "Настройки определения звёзд"
 
 #: src/gui/uifiles/siril.ui:5694
-#, fuzzy
 msgid "2pass registration"
-msgstr "Применить регистрацию"
+msgstr "Регистрация за 2 шага"
 
 #: src/gui/uifiles/siril.ui:5698
 #, fuzzy
@@ -9205,9 +9210,8 @@ msgstr ""
 "«Применить существующую регистрацию»."
 
 #: src/gui/uifiles/siril.ui:5722
-#, fuzzy
 msgid "Undistortion:"
-msgstr "не на изображении"
+msgstr "Исправить дисторсию:"
 
 #: src/gui/uifiles/siril.ui:5733
 msgid ""
@@ -9218,19 +9222,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:5740
-#, fuzzy
 msgid "From image"
-msgstr "Из файлов"
+msgstr "Из изображения"
 
 #: src/gui/uifiles/siril.ui:5741
-#, fuzzy
 msgid "From FITS/WCS file"
-msgstr "Из файлов"
+msgstr "Из файла FITS/WCS"
 
 #: src/gui/uifiles/siril.ui:5742
-#, fuzzy
 msgid "From distortion masters"
-msgstr "Вычисление нормализации...\n"
+msgstr "Из мастер-файлов дисторсии"
 
 #: src/gui/uifiles/siril.ui:5759
 msgid ""
@@ -11582,8 +11583,8 @@ msgid ""
 "registration or astrometry, this will break them."
 msgstr ""
 "Включить верхнюю границу округлости.\n"
-"Используйте только для отображения оптических искажений или двойных звёзд, а "
-"не для регистрации или астрометрии, это нарушит их."
+"Используйте только для отображения оптических искажений (дисторсии) или "
+"двойных звёзд, а не для регистрации или астрометрии, это нарушит их."
 
 #: src/gui/uifiles/stars_list_window.ui:825
 msgid ""
@@ -11591,8 +11592,8 @@ msgid ""
 "not for registration or astrometry, this will break them."
 msgstr ""
 "Максимальная округлость, используйте только для отображения оптических "
-"искажений или двойных звёзд, а не для регистрации или астрометрии, это "
-"нарушит их."
+"искажений (дисторсии) или двойных звёзд, а не для регистрации или "
+"астрометрии, это нарушит их."
 
 #: src/gui/uifiles/stars_list_window.ui:944
 msgid "Export PSF parameters in an ASCII file"
@@ -12241,14 +12242,12 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:1048 src/algos/astrometry_solver.c:1051
 #: src/algos/astrometry_solver.c:1056
-#, fuzzy
 msgid "Could not save distortion master file, skipping\n"
-msgstr "Не удалось загрузить или создать файл с настройками, выход.\n"
+msgstr "Не удалось сохранить мастер-файл дисторсии, пропускаем\n"
 
 #: src/algos/astrometry_solver.c:1055
-#, fuzzy
 msgid "Solution has no distortion\n"
-msgstr "Вычисление нормализации...\n"
+msgstr "Решение не имеет дисторсии\n"
 
 #: src/algos/astrometry_solver.c:1064
 msgid "Flipping image and updating astrometry data.\n"
@@ -12704,7 +12703,7 @@ msgstr "%d звёзд сравнения после сортировки.\n"
 
 #: src/algos/comparison_stars.c:381
 msgid "No csv output file to create\n"
-msgstr "Отсутствует исходящий файл csv для создания\n"
+msgstr "Отсутствует итоговый файл csv для создания\n"
 
 #. and retrieving its results
 #. returns the nb of stars
@@ -15715,9 +15714,9 @@ msgid "%d smaller than minimum allowable star pairs: %d, aborting.\n"
 msgstr "%d меньше чем минимально возможное число пар звёзд %d, прерывание.\n"
 
 #: src/core/command.c:7586
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown distortion type %s, aborting.\n"
-msgstr "Неизвестное преобразование %s, прерывание.\n"
+msgstr "Неизвестный тип дисторсии %s, прерывание.\n"
 
 #: src/core/command.c:7595 src/core/command.c:7725 src/core/command.c:8185
 #: src/core/command.c:8828 src/core/command.c:10039 src/core/command.c:10698
@@ -16716,9 +16715,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:11141 src/core/command.c:11156 src/core/command.c:11171
-#, fuzzy
 msgid "Error: unable to load sequence\n"
-msgstr "Ошибка: не удалось открыть последовательность\n"
+msgstr "Ошибка: не удалось загрузить последовательность\n"
 
 #: src/core/command.c:11209
 msgid "Error opening target ICC profile.\n"
@@ -16785,10 +16783,11 @@ msgid "Unknown SPCC list\n"
 msgstr ""
 
 #: src/core/command.c:11351 src/core/siril_actions.c:527
-#, fuzzy
 msgid ""
 "This command only works on plate solved images with distortions included\n"
-msgstr "Команда работает только на изображениях с астрономическим решением\n"
+msgstr ""
+"Команда работает только на изображениях, имеющих астрономическое решение, и "
+"с включённой дисторсией\n"
 
 #: src/core/command.c:11394
 msgid "16-bit images cannot have out-of-range pixels: nothing to do.\n"
@@ -16804,9 +16803,9 @@ msgid "Pixel limits applied successfully.\n"
 msgstr "Все изображения успешно перезагружены.\n"
 
 #: src/core/command.c:11436
-#, fuzzy, c-format
+#, c-format
 msgid "Current working directory: '%s'\n"
-msgstr "текущая рабочая директория"
+msgstr "Текущая рабочая директория: '%s'\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -16936,7 +16935,6 @@ msgstr ""
 "выделенную область. Если аргумент не передан, выводится текущее выделение"
 
 #: src/core/command_def.h:16
-#, fuzzy
 msgid ""
 "Calibrates the sequence <b>sequencename</b> using bias, dark and flat given "
 "in argument.\n"
@@ -16979,33 +16977,35 @@ msgstr ""
 "считывания, темновые кадры и кадры плоского поля, указанные в аргументе.\n"
 "\n"
 "Вместо изображения, можно указать однородный уровень шума считывания, введя "
-"в кавычках выражение, начинающееся со знака =. Например, -bias=\"=256\" или -"
-"bias=\"=64*$OFFSET\".\n"
+"в кавычках выражение, начинающееся со знака =. Например, -bias=\"=256\" или "
+"-bias=\"=64*$OFFSET\".\n"
 "\n"
 "Косметическая коррекция по умолчанию отключена. Если вы хотите применить "
 "коррекцию, это необходимо указать с помощью опции <b>-cc=</b>.\n"
-"Вы можете использовать <b>-cc=dark</b> для определения горячих и холодных в "
-"темновом мастер-кадре, который должен быть указан с помощью опции <b>-dark=</"
-"b>. Опционально можно указать значения холодных и горячих пикселей с помощью "
-"<b>siglo</b> и <b>sighi</b>, соответственно. Значение 0 отключает коррекцию. "
-"Если значения σ не указаны, будут определены только горячие пиксели со "
-"значением σ 3.\n"
+"Вы можете использовать <b>-cc=dark</b> для определения горячих и холодных "
+"пикселей по темновому мастер-кадру, который должен быть указан с помощью "
+"опции <b>-dark=</b>. Опционально можно указать значения холодных и горячих "
+"пикселей с помощью <b>siglo</b> и <b>sighi</b>, соответственно. Значение 0 "
+"отключает коррекцию. Если значения σ не указаны, будет применено только "
+"определение горячих пикселей со значением σ 3.\n"
 "В качестве альтернативы, для указания пикселей, которые необходимо "
 "скорректировать, можно использовать опцию <b>-cc=bpm</b> за которой следует "
 "путь к вашей карте дефектных пикселей. Пример файла может быть получен с "
 "помощью команды <i>find_hot</i>, применённой к темновому мастер-кадру.\n"
 "\n"
 "К цветным изображениям в формате CFA применимы три опции: <b>-cfa</b> для "
-"целей косметической коррекции. При помощи опции <b>-debayer</b> можно "
-"выполнить дебайеризацию изображений перед их сохранением. Опция <b>-"
-"equalize_cfa</b> выравнивает среднюю интенсивность слоёв RGB в мастер-"
-"изображении CFA.\n"
+"целей косметической коррекции; <b>-debayer</b> для дебайеризации изображений "
+"перед их сохранением. Опция **-equalize_cfa** выравнивает среднюю "
+"интенсивность слоёв RGB в мастер-кадре плоского поля, чтобы избежать "
+"тонирования откалиброванного изображения.\n"
 "Опция <b>-fix_xtrans</b> используется при работе с файлами X-Trans, применяя "
 "коррекцию к темновым кадрам и кадрам шума считывания для удаления "
 "квадратного рисунка в зоне автофокуса.\n"
-"Также можно оптимизировать вычитание темнового мастер-кадра с помощью <b>-"
-"opt</b>, которая требует указания мастер-кадра шума считывания и темнового "
-"мастер-кадра.\n"
+"Так же можно оптимизировать вычитание темнового кадра с помощью <b>-opt</b>, "
+"которая требует указания мастер-кадра шума считывания и темнового мастер-"
+"кадра, и автоматически вычисляет коэффициент, применяемый к темновому кадру, "
+"либо вычисляет этот коэффициент благодаря ключевому слову exposure, "
+"переданному с помощью <b>-opt=exp</b>.\n"
 "По умолчанию, кадры, отмеченные как исключённые, не обрабатываются. С "
 "помощью аргумента <b>-all</b> можно принудительно обработать все кадры, даже "
 "отмеченные как исключённые.\n"
@@ -17015,7 +17015,6 @@ msgstr ""
 "последовательностью FITS (одиночный файл)"
 
 #: src/core/command_def.h:17
-#, fuzzy
 msgid ""
 "Calibrates the image <b>imagename</b> using bias, dark and flat given in "
 "argument.\n"
@@ -17053,33 +17052,35 @@ msgstr ""
 "темновые кадры и кадры плоского поля, указанные в аргументе.\n"
 "\n"
 "Вместо изображения, можно указать однородный уровень шума считывания, введя "
-"в кавычках выражение, начинающееся со знака =. Например, -bias=\"=256\" или -"
-"bias=\"=64*$OFFSET\".\n"
+"в кавычках выражение, начинающееся со знака =. Например, -bias=\"=256\" или "
+"-bias=\"=64*$OFFSET\".\n"
 "\n"
 "Косметическая коррекция по умолчанию отключена. Если вы хотите применить "
 "коррекцию, это необходимо указать с помощью опции <b>-cc=</b>.\n"
-"Вы можете использовать <b>-cc=dark</b> для определения горячих и холодных в "
-"темновом мастер-кадре, который должен быть указан с помощью опции <b>-dark=</"
-"b>. Опционально можно указать значения холодных и горячих пикселей с помощью "
-"<b>siglo</b> и <b>sighi</b>, соответственно. Значение 0 отключает коррекцию. "
-"Если значения σ не указаны, будут определены только горячие пиксели со "
-"значением σ 3.\n"
+"Вы можете использовать <b>-cc=dark</b> для определения горячих и холодных "
+"пикселей по темновому мастер-кадру, который должен быть указан с помощью "
+"опции <b>-dark=</b>. Опционально можно указать значения холодных и горячих "
+"пикселей с помощью <b>siglo</b> и <b>sighi</b>, соответственно. Значение 0 "
+"отключает коррекцию. Если значения σ не указаны, будет применено только "
+"определение горячих пикселей со значением σ 3.\n"
 "В качестве альтернативы, для указания пикселей, которые необходимо "
 "скорректировать, можно использовать опцию <b>-cc=bpm</b> за которой следует "
 "путь к вашей карте дефектных пикселей. Пример файла может быть получен с "
 "помощью команды <i>find_hot</i>, применённой к темновому мастер-кадру.\n"
 "\n"
 "К цветным изображениям в формате CFA применимы три опции: <b>-cfa</b> для "
-"целей косметической коррекции. При помощи опции <b>-debayer</b> можно "
-"выполнить дебайеризацию изображений перед их сохранением. Опция <b>-"
-"equalize_cfa</b> выравнивает среднюю интенсивность слоёв RGB в мастер-кадре "
-"плоского поля чтобы избежать тонирования откалиброванного изображения.\n"
+"целей косметической коррекции; <b>-debayer</b> для дебайеризации изображений "
+"перед их сохранением. Опция <b>-equalize_cfa</b> выравнивает среднюю "
+"интенсивность слоёв RGB в мастер-кадре плоского поля, чтобы избежать "
+"тонирования откалиброванного изображения.\n"
 "Опция <b>-fix_xtrans</b> используется при работе с файлами X-Trans, применяя "
 "коррекцию к темновым кадрам и кадрам шума считывания для удаления "
 "квадратного рисунка в зоне автофокуса.\n"
-"Также можно оптимизировать вычитание темнового мастер-кадра с помощью <b>-"
-"opt</b>, которая требует указания мастер-кадров шума считывания и темновых "
-"мастер-кадров.\n"
+"Так же можно оптимизировать вычитание темнового кадра с помощью <b>-opt</b>, "
+"которая требует указания мастер-кадра шума считывания и темнового мастер-"
+"кадра, и автоматически вычисляет коэффициент, применяемый к темновому кадру, "
+"либо вычисляет этот коэффициент благодаря ключевому слову exposure, "
+"переданному с помощью <b>-opt=exp</b>\n"
 "Название итогового файла будет начинаться с префикса \"pp_\", если не указан "
 "иной с помощью опции <b>-prefix=</b>"
 
@@ -19209,7 +19210,6 @@ msgstr ""
 "цвета (значение по умолчанию)"
 
 #: src/core/command_def.h:135
-#, fuzzy
 msgid ""
 "Saves current image to <b>filename</b>.fit (or .fits, depending on your "
 "preferences, see SETEXT) in the current working directory. The image remains "
@@ -19220,7 +19220,8 @@ msgstr ""
 "Сохраняет текущее изображение <b>filename</b>.fit (или .fits, в зависимости "
 "от ваших настроек, см. SETEXT) в текущей рабочей директории. Изображение "
 "остаётся загруженным. <b>filename</b> может содержать путь, если каталог уже "
-"существует"
+"существует. Опция <b>-chksum</b> сохраняет ключевые слова контрольной суммы ("
+"CHECKSUM и DATASUM) в заголовке FITS"
 
 #: src/core/command_def.h:136
 msgid ""
@@ -21524,7 +21525,7 @@ msgstr "Ограничение обработки до 1900Мб (32-битная
 #: src/core/pipe.c:100
 #, c-format
 msgid "Output pipe creation failed with error %d\n"
-msgstr "Не удалось создать исходящий канал с ошибкой %d\n"
+msgstr "Не удалось создать итоговый канал с ошибкой %d\n"
 
 #: src/core/pipe.c:117
 #, c-format
@@ -22027,7 +22028,7 @@ msgstr "добавить CTYPE3='RGB' в заголовок FITS"
 
 #: src/core/settings.c:348
 msgid "Verify file checksums if they exist"
-msgstr ""
+msgstr "Проверять контрольные суммы, если они существуют"
 
 #: src/core/settings.c:349
 msgid "user copyright to put in file header"
@@ -22325,14 +22326,12 @@ msgid "use default master flat"
 msgstr "использовать мастер-кадр плоского поля по умолчанию"
 
 #: src/core/settings.c:440
-#, fuzzy
 msgid "default distortion master"
-msgstr "мастер-кадр шума считывания по умолчанию"
+msgstr "мастер-кадр дисторсии по умолчанию"
 
 #: src/core/settings.c:441
-#, fuzzy
 msgid "use default master distortion"
-msgstr "использовать темновой мастер-кадр по умолчанию"
+msgstr "использовать мастер-кадр дисторсии по умолчанию"
 
 #: src/core/settings.c:442
 msgid "default stack name"
@@ -25430,18 +25429,16 @@ msgid "Scroll to zoom"
 msgstr ""
 
 #: src/gui/mouse_action_functions.h:92
-#, fuzzy
 msgid "Scroll through sequence"
-msgstr "Решить всю последовательность"
+msgstr "Прокрутка через последовательность"
 
 #: src/gui/mouse_action_functions.h:96
 msgid "Scroll through GUI tabs"
 msgstr ""
 
 #: src/gui/mouse_action_preferences.c:117
-#, fuzzy
 msgid "Mouse Configuration"
-msgstr "Конфигурация"
+msgstr "Настройки мыши"
 
 #: src/gui/mouse_action_preferences.c:117
 msgid ""
@@ -25452,9 +25449,8 @@ msgid ""
 msgstr ""
 "Внимание: этот диалог позволяет перенастроить поведение мыши таким образом, "
 "что оно более не будет соответствовать документации. Если вы забыли какие "
-"настройки были изменены, здесь можно посмотреть текущую конфигурацию "
-"поведения мыши. Так же в диалоге есть кнопка для сброса к настройкам по "
-"умолчанию."
+"настройки были изменены, здесь можно посмотреть текущие настройки поведения "
+"мыши. Так же в диалоге есть кнопка для сброса к настройкам по умолчанию."
 
 #. Make the spin button editable and set digits to 0
 #. Connect the edited signal
@@ -25464,7 +25460,6 @@ msgstr "Кнопка"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:219
-#, fuzzy
 msgid "Action"
 msgstr "Действие"
 
@@ -25509,13 +25504,11 @@ msgid "Warning: ignoring unconfigured action (\""
 msgstr ""
 
 #: src/gui/mouse_action_preferences.c:357
-#, fuzzy
 msgid "Mouse configuration updated successfully.\n"
-msgstr "Siril успешно обновил информацию FFT...\n"
+msgstr "Настройки мыши успешно обновлены.\n"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:487
-#, fuzzy
 msgid "Direction"
 msgstr "Направление"
 
@@ -25529,14 +25522,12 @@ msgid "Invalid mouse scroll action configuration"
 msgstr ""
 
 #: src/gui/mouse_action_preferences.c:608
-#, fuzzy
 msgid "Mouse scroll configuration updated successfully.\n"
-msgstr "Siril успешно обновил информацию FFT...\n"
+msgstr "Настройки прокрутки мыши успешно обновлены.\n"
 
 #: src/gui/mouse_action_preferences.c:647
-#, fuzzy
 msgid "Reset Mouse Actions"
-msgstr "Сбросить масштаб к 1."
+msgstr "Сбросить действия мыши"
 
 #: src/gui/mouse_action_preferences.c:647
 msgid ""
@@ -25546,27 +25537,27 @@ msgid ""
 msgstr ""
 
 #: src/gui/mouse_action_preferences.c:739
-#, fuzzy, c-format
+#, c-format
 msgid "Scroll (vertical)"
 msgstr "Прокрутка (вертикальная)"
 
 #: src/gui/mouse_action_preferences.c:743
-#, fuzzy, c-format
+#, c-format
 msgid "Scroll (horizontal)"
 msgstr "Прокрутка (горизонтальная)"
 
 #: src/gui/mouse_action_preferences.c:749
-#, fuzzy, c-format
+#, c-format
 msgid "Smooth scroll (vertical)"
 msgstr "Плавная прокрутка (вертикальная)"
 
 #: src/gui/mouse_action_preferences.c:751
-#, fuzzy, c-format
+#, c-format
 msgid "Smooth scroll (horizontal)"
 msgstr "Плавная прокрутка (горизонтальная)"
 
 #: src/gui/mouse_action_preferences.c:756
-#, fuzzy, c-format
+#, c-format
 msgid "Button %u"
 msgstr "Кнопка %u"
 
@@ -25683,12 +25674,11 @@ msgstr "Файл CSV (*.csv)"
 #. Definition of all the graphical items
 #. Top label
 #: src/gui/nina_light_curve.c:76
-#, fuzzy
 msgid ""
 "Process a sequence to get a light curve on a star using the list\n"
 "of reference stars created by Siril or the NINA exoplanet plugin"
 msgstr ""
-"Обрабатывает последовательность для получения световой кривой звезды, "
+"Обрабатывает последовательность для получения световой кривой звезды,\n"
 "используя список опорных звёзд, созданных Siril или плагином экзопланет NINA"
 
 #. Comp1 radio
@@ -25788,9 +25778,8 @@ msgid "All supported files"
 msgstr "Все поддерживаемые файлы"
 
 #: src/gui/open_dialog.c:252
-#, fuzzy
 msgid "Master-distortion: file (*.wcs)"
-msgstr "Файл косметической коррекции (*.lst)"
+msgstr "Мастер-файл дисторсии: файл (*.wcs)"
 
 #: src/gui/open_dialog.c:289
 msgid "Cosmetic correction file (*.lst)"
@@ -25818,9 +25807,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/photometric_cc.c:108
-#, fuzzy
 msgid "Gaia archive available"
-msgstr "Доля доступной памяти"
+msgstr "Архив Gaia доступен"
 
 #: src/gui/photometric_cc.c:113
 msgid "Gaia archive running but performing slightly slower\n"
@@ -25831,9 +25819,8 @@ msgid "Gaia archive running but performing very slowly"
 msgstr ""
 
 #: src/gui/photometric_cc.c:124
-#, fuzzy
 msgid "Gaia archive unavailable"
-msgstr "Gnuplot недоступен"
+msgstr "Архив Gaia недоступен"
 
 #: src/gui/photometric_cc.c:129
 msgid "Gaia archive unreachable"
@@ -26130,7 +26117,7 @@ msgstr "Вернуть исходные параметры"
 
 #: src/gui/preferences.c:1054
 msgid "External ICC Profiles"
-msgstr "Внешние профили ICC"
+msgstr "Внешние ICC-профили"
 
 #: src/gui/preferences.c:1054
 msgid ""
@@ -26331,7 +26318,6 @@ msgstr ""
 "последним изображениями."
 
 #: src/gui/registration.c:75
-#, fuzzy
 msgid ""
 "<b>Apply existing registration</b>: This is not an algorithm but rather a "
 "commodity to apply previously computed registration data stored in the "
@@ -26341,9 +26327,10 @@ msgid ""
 msgstr ""
 "<b>Применить существующую регистрацию</b>: это не алгоритм, а, скорее, "
 "возможность применить выполненную ранее регистрацию, которая сохранена в "
-"файле seq. Метод интерполяции и режим сверхразрешения (drizzle) могут быть "
-"выбраны в разделе \"Результат регистрации\" и он может быть применён только "
-"к выбранным изображениям, чтобы избежать сохранения ненужных изображений."
+"файле последовательности. Метод интерполяции или режим сверхразрешения "
+"(drizzle) может быть указан в разделе \"Результат регистрации\" и применён "
+"только к выбранным или отфильтрованным изображениям, чтобы избежать "
+"сохранения ненужных изображений."
 
 #: src/gui/registration.c:99 src/gui/stacking.c:48
 msgid ""
@@ -26379,9 +26366,8 @@ msgid "Loading registration method: %s\n"
 msgstr "Загрузка способа регистрации: %s\n"
 
 #: src/gui/registration.c:404
-#, fuzzy
 msgid "WCS Files (*.wcs)"
-msgstr "Файл CSV (*.csv)"
+msgstr "Файлы WCS (*.wcs)"
 
 #. we check result is inside the selection box
 #: src/gui/registration.c:456
@@ -26419,9 +26405,8 @@ msgid "Max framing not allowed with fitseq, change to regular FITS images"
 msgstr ""
 
 #: src/gui/registration.c:745
-#, fuzzy
 msgid "Pick object in two images"
-msgstr "Выбрать объект в №1"
+msgstr "Выбрать объект на двух изображениях"
 
 #: src/gui/registration.c:833
 msgid "Failed to determine registration method...\n"
@@ -26455,9 +26440,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/registration.c:955
-#, fuzzy
 msgid "CFA pattern detected"
-msgstr "Звёзды не найдены"
+msgstr "Обнаружен шаблон CFA"
 
 #: src/gui/registration.c:956
 msgid ""
@@ -26489,9 +26473,8 @@ msgstr ""
 "только в \"Сдвиг\". Прерывание\n"
 
 #: src/gui/registration.c:1194
-#, fuzzy
 msgid "Error: unable to read reference frame metadata\n"
-msgstr "Ошибка: не удалось прочитать выходной файл StarNet...\n"
+msgstr "Ошибка: не удалось прочитать метаданные опорного кадра\n"
 
 #. Estimate was pressed, we need to update the label
 #: src/gui/registration.c:1250
@@ -26500,9 +26483,9 @@ msgid " (assuming a scaling factor of %.2f)"
 msgstr ""
 
 #: src/gui/registration.c:1251
-#, fuzzy, c-format
+#, c-format
 msgid "Output image: %d x %d pixels%s\n"
-msgstr "Размер нового изображения: %d×%d пикселей.\n"
+msgstr "Итоговое изображение: %d × %d пикселей%s\n"
 
 #: src/gui/registration_preview.c:76
 #, c-format
@@ -28093,11 +28076,14 @@ msgstr ""
 #, c-format
 msgid "Error: HDU checksum mismatch. Expected %s, got %s.\n"
 msgstr ""
+"Ошибка: несовпадение контрольной суммы HDU. Ожидаемая %s, полученная %s.\n"
 
 #: src/io/image_format_fits.c:1242
 #, c-format
 msgid "Error: Data checksum mismatch. Expected %lu, got %s.\n"
 msgstr ""
+"Ошибка: несовпадение контрольной суммы данных. Ожидаемая %lu, полученная %s."
+"\n"
 
 #: src/io/image_format_fits.c:1252
 #, c-format
@@ -29841,9 +29827,8 @@ msgid "Parameter symbols could not be parsed."
 msgstr "Символы параметра не могут быть разобраны."
 
 #: src/pixelMath/pixel_math_runner.c:1110
-#, fuzzy
 msgid "Images have different size"
-msgstr "позволяет кубам FITS иметь разные размеры"
+msgstr "Изображения имеют разный размер"
 
 #: src/pixelMath/pixel_math_runner.c:1111
 msgid ""
@@ -29997,11 +29982,12 @@ msgstr ""
 "идея.\n"
 
 #: src/registration/applyreg.c:336
-#, fuzzy
 msgid ""
 "Distortion data was found in the sequence file, undistortion will be "
 "applied\n"
-msgstr "Нет данных регистрации для этой последовательности, прерывание\n"
+msgstr ""
+"В файле последовательности найдены данные дисторсии. Будет применено "
+"исправление дисторсии.\n"
 
 #: src/registration/applyreg.c:342 src/registration/global.c:173
 #, fuzzy
@@ -30045,9 +30031,8 @@ msgstr "Применить регистрацию"
 
 #: src/registration/applyreg.c:920 src/registration/global.c:634
 #: src/registration/global.c:850
-#, fuzzy
 msgid "Could not initialize distortion data, aborting\n"
-msgstr "Не удалось создать %s, прерывание.\n"
+msgstr "Не удалось инициализировать данные дисторсии, прерывание.\n"
 
 #: src/registration/applyreg.c:933
 msgid ""
@@ -30114,13 +30099,12 @@ msgstr ""
 "интерполяция установлена в 'нет', прерывание\n"
 
 #: src/registration/applyreg.c:1077
-#, fuzzy
 msgid ""
 "Applying registration on images with distortions when interpolation is set "
 "to none is not allowed, aborting\n"
 msgstr ""
-"Применение регистрации к изображениям разного размера не допускается, если "
-"интерполяция установлена в 'нет', прерывание\n"
+"Применение регистрации к изображениям с дисторсией не допускается, если "
+"интерполяция установлена в «нет», прерывание\n"
 
 #: src/registration/applyreg.c:1083
 msgid ""
@@ -30200,19 +30184,16 @@ msgid "Moving object registration"
 msgstr "Регистрация движущегося объекта"
 
 #: src/registration/distorsion.c:348
-#, fuzzy
 msgid "Could not parse the distortion master, aborting\n"
-msgstr "Не удалось создать %s, прерывание.\n"
+msgstr "Не удалось разобрать мастер-файл дисторсии, прерывание.\n"
 
 #: src/registration/distorsion.c:374
-#, fuzzy
 msgid "Could not save WCS file for distortion\n"
-msgstr "Не удалось открыть файл %s, прерывание.\n"
+msgstr "Не удалось сохранить файл WCS для дисторсии\n"
 
 #: src/registration/distorsion.c:388
-#, fuzzy
 msgid "Could not load FITS file for distortion\n"
-msgstr "Не удалось загрузить изображение, прерывание.\n"
+msgstr "Не удалось загрузить файл FITS для дисторсии\n"
 
 #: src/registration/distorsion.c:394
 #, fuzzy
@@ -30231,14 +30212,12 @@ msgid "Could not load image# %d, deselecting\n"
 msgstr "Не удалось загрузить изображение %d из последовательности %s\n"
 
 #: src/registration/distorsion.c:435
-#, fuzzy
 msgid "Could not parse master file name for distortion, aborting\n"
-msgstr "Не удалось создать %s, прерывание.\n"
+msgstr "Не удалось разобрать название мастер-файла для дисторсии, прерывание.\n"
 
 #: src/registration/distorsion.c:441
-#, fuzzy
 msgid "Could not load master file for distortion, aborting\n"
-msgstr "Не удалось загрузить изображение, прерывание.\n"
+msgstr "Не удалось загрузить мастер-файл для дисторсии, прерывание.\n"
 
 #: src/registration/distorsion.c:449
 #, fuzzy
@@ -30246,14 +30225,12 @@ msgid "Could not copy WCS information for distortion, aborting\n"
 msgstr "Не удалось скопировать изображение, прекращаем\n"
 
 #: src/registration/distorsion.c:477
-#, fuzzy
 msgid "Selected file has no distortion information\n"
-msgstr "Источник информации для графика."
+msgstr "Выбранный файл не содержит информации о дисторсии\n"
 
 #: src/registration/distorsion.c:519
-#, fuzzy
 msgid "Distortion data is valid and will be used\n"
-msgstr "Нет данных регистрации для этой последовательности, прерывание\n"
+msgstr "Данные о дисторсии валидны и будут использованы\n"
 
 #: src/registration/distorsion.c:528 src/registration/distorsion.c:534
 msgid ""
@@ -30282,9 +30259,8 @@ msgid "Load a FITS/WCS file for distortion"
 msgstr ""
 
 #: src/registration/distorsion.c:549 src/registration/distorsion.c:551
-#, fuzzy
 msgid "Could not load FITS image for distortion"
-msgstr "Не удалось загрузить изображение, прерывание.\n"
+msgstr "Не удалось загрузить изображение FITS для дисторсии"
 
 #: src/registration/distorsion.c:556
 msgid ""
@@ -30304,9 +30280,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:565
-#, fuzzy
 msgid "Selected file has no distortion information"
-msgstr "Источник информации для графика."
+msgstr "Выбранный файл не содержит информации о дисторсии"
 
 #: src/registration/distorsion.c:572 src/registration/distorsion.c:574
 #, fuzzy
@@ -30421,8 +30396,8 @@ msgid ""
 "Less than %d%% star pairs kept by homography model, Image %d may show "
 "important distortion\n"
 msgstr ""
-"Менее %d%% пар звёзд сохранено моделью гомографии. Кадр %d может иметь "
-"сильные искажения\n"
+"Менее %d%% пар звёзд сохранено моделью гомографии. Кадр %d может показывать "
+"сильную дисторсию\n"
 
 #: src/registration/global.c:334
 #, c-format
@@ -30448,7 +30423,7 @@ msgstr "Совпадение пар после подгонки: %d\n"
 #: src/registration/global.c:693
 #, c-format
 msgid "Inliers:%*.3f\n"
-msgstr "Норма: %*.3f\n"
+msgstr "Доля совпавших: %*.3f\n"
 
 #: src/registration/global.c:699
 #, c-format
