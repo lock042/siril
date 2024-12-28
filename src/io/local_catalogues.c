@@ -62,6 +62,8 @@
 #define UNNAMEDSTARS_DAT "~/.local/share/kstars/unnamedstars.dat"
 #define TYCHOSTARS_DAT "~/.local/share/kstars/deepstars.dat"
 #define NOMAD_DAT "~/.local/share/kstars/USNO-NOMAD-1e8.dat"
+#define GAIA_DAT "~/.local/share/siril/gaia.dat"
+
 const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT };
 
 #define DEBUG_LOCALCAT 0 // set to 1 to print out trixel star search verbose
@@ -668,7 +670,6 @@ static int get_raw_stars_from_local_catalogues_byID(int ID, float max_mag, gbool
 	free(catalogue_stars);
 	return retval;
 }
-
 
 void initialize_local_catalogues_paths() {
 	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);

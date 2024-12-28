@@ -26,7 +26,7 @@ struct SourceEntry {
 };
 #pragma pack(pop)
 
-// Structure to represent a range of source IDs
+// Structure to represent a range of consecutive source IDs
 struct SourceIdRange {
     uint64_t start_id;
     uint64_t end_id;
@@ -152,7 +152,7 @@ std::vector<SourceEntry> query_catalog(const std::string& filename, const std::v
     for (const auto& range : id_ranges) {
 //        std::cerr << "\nProcessing range: " << range.start_id << " to " << range.end_id << std::endl;
 
-        // Find approximate starting position
+        // Find starting position
         size_t current_pos = find_first_record(infile, range.start_id, file_size);
 
         if (current_pos * RECORD_SIZE >= file_size) {
