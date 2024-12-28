@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-27 09:53+0000\n"
+"PO-Revision-Date: 2024-12-28 10:30+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -597,9 +597,8 @@ msgid "RGB Blend"
 msgstr "Смешение RGB"
 
 #: src/gui/uifiles/asinh_dialog.ui:293
-#, fuzzy
 msgid "Global Rescale"
-msgstr "Все цвета"
+msgstr "Общее масштабирование"
 
 #: src/gui/uifiles/astrometry_dialog.ui:97
 msgid "Image Plate Solver"
@@ -685,7 +684,7 @@ msgid ""
 msgstr ""
 "Размер пикселя в микрометрах. Предполагается, что изображение сформировано "
 "квадратными пикселями. Значение уже умножено на биннинг камеры, если "
-"установлен флажок \"Реальный размер пикселя\" в диалогом окне Инструменты -> "
+"установлен флажок «Реальный размер пикселя» в диалогом окне Инструменты -> "
 "Данные об изображении..."
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
@@ -759,7 +758,7 @@ msgid ""
 "and also makes star detection run faster."
 msgstr ""
 "Иногда трудно найти астрономическое решение для изображений с избыточной "
-"дискретизацией (например с включенным сверхразрешением). Как следствие, в "
+"дискретизацией (например, с включенным сверхразрешением). Как следствие, в "
 "общем случае помогает уменьшение масштаба, которое, так же, ускоряет "
 "определение звёзд."
 
@@ -884,7 +883,7 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:770
 msgid "Save distortion"
-msgstr "Сохранить дисторсию"
+msgstr "Сохранить данные дисторсии"
 
 #: src/gui/uifiles/astrometry_dialog.ui:774
 msgid ""
@@ -898,7 +897,9 @@ msgstr ""
 #: src/gui/uifiles/astrometry_dialog.ui:789
 msgid ""
 "Path to the distortion file to be created (ending with a *.wcs extension)"
-msgstr "Путь к создаваемому файлу с дисторсией (оканчивается расширением *.wcs)"
+msgstr ""
+"Путь к создаваемому файлу с данными о дисторсии (оканчивается расширением *."
+"wcs)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:874
 msgid "Image Parameters"
@@ -1071,40 +1072,48 @@ msgid ""
 "box to fetch a new catalogue for each image. The information contained in "
 "the headers will be used to recompute the new position/resolution."
 msgstr ""
+"При использовании удалённых каталогов с решателем Siril, по умолчанию "
+"выбирается один каталог для всей последовательности. Если ваши изображения "
+"не из одного поля или имеют разное разрешение, скорее всего это приведет к "
+"сбою. Установите этот флажок, чтобы получить новый каталог для каждого "
+"изображения. Информация, содержащаяся в заголовках, будет использована для "
+"повторного вычисления нового положения/разрешения."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1175
 msgid "Use coordinates from headers"
-msgstr "Используются координаты из заголовков"
+msgstr "Использовать координаты из заголовков"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1179
 msgid ""
 "Use the coordinates contained in each image header instead of those given in "
 "this dialog"
 msgstr ""
-"Использовать координаты из заголовка каждого изображения вместо указанных в "
-"этом диалоге"
+"Установите этот флажок, чтобы использовать координаты из заголовка каждого "
+"изображения вместо указанных в этом диалоге"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1190
-#, fuzzy
 msgid "Use pixel size from headers"
-msgstr "Используется размер пикселя, полученный из заголовков"
+msgstr "Использовать размер пикселя из заголовков"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1194
 msgid ""
 "Use the pixel size contained in each image header instead of those given in "
 "this dialog"
 msgstr ""
+"Установите этот флажок, чтобы использовать размер в пикселях, указанный в "
+"заголовке каждого изображения, вместо указанного в этом диалоговом окне"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1205
-#, fuzzy
 msgid "Use focal length from headers"
-msgstr "Используется фокусное расстояние, полученное из изображения: %.2f\n"
+msgstr "Использовать фокусное расстояние из заголовков"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1209
 msgid ""
 "Use the focal length contained in each image header instead of those given "
 "in this dialog"
 msgstr ""
+"Установите этот флажок, чтобы использовать фокусное расстояние, указанное в "
+"заголовке каждого изображения, вместо указанного в этом диалоговом окне"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1238
 #, fuzzy
@@ -1849,9 +1858,9 @@ msgid ""
 "If checked, a PSF defined from stars will be circularly symmetric. If "
 "unchecked the PSF may be elongated and have a defined rotation angle."
 msgstr ""
-"Если флажок установлен, PSF, определённая по звёздам будет симметричной. "
-"Если флажок снят, PSF может быть вытянутой и иметь определённый угол "
-"поворота."
+"Если этот флажок установлен, PSF, определённая по звёздам будет "
+"симметричной. Если этот флажок снят, PSF может быть вытянутой и иметь "
+"определённый угол поворота."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1762
 msgid "PSF from Stars"
@@ -2104,7 +2113,7 @@ msgstr "Вертикальное полошение"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:242
 msgid "Check this box if banding is vertical."
-msgstr "Установите флажок, если полошение вертикальное."
+msgstr "Установите этот флажок, если полошение вертикальное."
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:290
 msgid "Prefix of the image names resulting from the unband process."
@@ -2714,8 +2723,8 @@ msgid ""
 "Check if the target frames are CFA images.\n"
 "Uncheck if images come from a monochrome sensor."
 msgstr ""
-"Установите флажок, если целевые кадры это изображения CFA. \n"
-"Снимите флажок, если изображения получены на монохромный сенсор."
+"Установите этот флажок, если целевые кадры это изображения CFA. \n"
+"Снимите этот флажок, если изображения получены на монохромный сенсор."
 
 #: src/gui/uifiles/crop_dialog.ui:35
 msgid "Crop sequence"
@@ -2856,8 +2865,8 @@ msgid ""
 msgstr ""
 "Применить к текущей последовательности. Если этот флажок установлен, в "
 "рабочей директории будут созданы графики в формате .png: окно с графиком не "
-"будет отображено. Этот режим автоматически включает опцию \"Сохранить график "
-"как .png\"."
+"будет отображено. Этот режим автоматически включает опцию «Сохранить график "
+"как .png»."
 
 #: src/gui/uifiles/cut_dialog.ui:237
 msgid "Save plot as .png"
@@ -3319,19 +3328,17 @@ msgid "Show advanced stretch options"
 msgstr "Показать больше настроек растягивания"
 
 #: src/gui/uifiles/dialog_star_remix.ui:148
-#, fuzzy
 msgid "Clipping mode"
-msgstr "Медианная"
+msgstr "Режим обрезки"
 
 #: src/gui/uifiles/dialog_star_remix.ui:160
 msgid "Select the clipping mode for partially clipped pixels."
-msgstr ""
+msgstr "Выберите режим обрезки для частично обрезанных пикселей."
 
 #: src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:787
-#, fuzzy
 msgid "Global rescale"
-msgstr "Все цвета"
+msgstr "Общее масштабирование"
 
 #: src/gui/uifiles/dialog_star_remix.ui:227
 #: src/gui/uifiles/dialog_star_remix.ui:862
@@ -3341,7 +3348,7 @@ msgid ""
 "reduction workflow, you can specify any two fits files with the same "
 "dimensions and bit depth for blending."
 msgstr ""
-"Выбрать изображение без звёзд для восстановления с маской звёзд.\n"
+"Выберите изображение без звёзд для восстановления с маской звёзд.\n"
 "Хотя этот инструмент предназначен для восстановления звёзд как часть "
 "рабочего процесса уменьшения звёзд, вы можете указать любые два файла FITS с "
 "одинаковыми размерами и разрядностью для смешивания."
@@ -3920,8 +3927,8 @@ msgstr ""
 "Установите этот флажок, если значение биннинга не учитывается при вычислении "
 "размера пикселя. В этом случае биннинг будет использован при вычислении "
 "разрешения.\n"
-"ПРЕДУПРЕЖДЕНИЕ: установка этого флажка сохраняет эту настройку, которая так "
-"же в разделе настроек FITS."
+"ПРЕДУПРЕЖДЕНИЕ: установка этого флажка сохраняет эту настройку, которая "
+"также доступна в разделе настроек FITS."
 
 #: src/gui/uifiles/file_information_dialog.ui:258
 msgid "Save as default values"
@@ -4051,6 +4058,14 @@ msgid ""
 "Globa rescale: Same as Rescale, but rescales to the global maximum component "
 "value"
 msgstr ""
+"Выберите режим смешения.\n"
+"Обрезка: обрезает значения до диапазона 0,0 - 1,0\n"
+"Масштабировать: масштабирует значения RGB обрезанных пикселей, чтобы они не "
+"превышали 1,0 на пиксель\n"
+"Смешение RGB: применяет функцию смешения для плавного восстановления "
+"пересвеченных цветов. <b>Значение по умолчанию</b>\n"
+"Общее масштабирование: аналогично масштабированию, но масштабируется до "
+"общего максимального значения компонента"
 
 #: src/gui/uifiles/histogram_dialog.ui:854
 msgid ""
@@ -4946,9 +4961,8 @@ msgid "%"
 msgstr "%"
 
 #: src/gui/uifiles/resample_dialog.ui:291
-#, fuzzy
 msgid "pixels"
-msgstr "пиксель"
+msgstr "пиксели"
 
 #: src/gui/uifiles/resample_dialog.ui:310
 #: src/gui/uifiles/rotation_dialog.ui:226 src/gui/uifiles/siril.ui:7097
@@ -5373,7 +5387,7 @@ msgid ""
 "registration data is drawn on each image to review image position wrt. "
 "reference."
 msgstr ""
-"Если флажок установлен, контур опорного изображения, преобразованный с "
+"Если этот флажок установлен, контур опорного изображения, преобразованный с "
 "данными регистрации, рисуется на каждом изображении для просмотра положения "
 "изображения по отношению к опорному."
 
@@ -5421,7 +5435,7 @@ msgid ""
 "will be forced as CFA with the configured pattern."
 msgstr ""
 "Если этот флажок установлен, Siril автоматически применит шаблон Байера, "
-"обнаруженный в заголовке файла вместе со смещением шаблона по X и Y. В том "
+"обнаруженный в заголовке файла, вместе со смещением шаблона по X и Y. В том "
 "случае, если результат выглядит неверным, снимите этот флажок и вручную "
 "укажите шаблон Байера в диалоге ниже.\n"
 "Если этот флажок снят, будет использован указанный шаблон Байера. "
@@ -6276,9 +6290,8 @@ msgstr ""
 "дисторсии после нажатия кнопки «По умолчанию»."
 
 #: src/gui/uifiles/settings_window.ui:2175
-#, fuzzy
 msgid "Use the chosen master as default file in the Astrometry dialog"
-msgstr "Использовать выбранный мастер файл по умолчанию на вкладке Калибровка"
+msgstr "Использовать выбранный мастер-файл по умолчанию в диалоге «Астрометрия»"
 
 #: src/gui/uifiles/settings_window.ui:2192
 msgid "Dark/Bias/Flat/Distortion Libraries"
@@ -6410,8 +6423,8 @@ msgid ""
 "fixed radius value in the box below."
 msgstr ""
 "Если этот флажок установлен, Siril будет автоматически рассчитывать радиус "
-"апертуры с указанным отношением радиус/половина FWHM. Когда флажок снят, "
-"фиксированное значение радиуса может быть указано в диалоге ниже."
+"апертуры с указанным отношением радиус/половина FWHM. Когда этот флажок "
+"снят, фиксированное значение радиуса может быть указано в диалоге ниже."
 
 #: src/gui/uifiles/settings_window.ui:2792
 msgid "Radius/half-FWHM ratio"
@@ -6993,7 +7006,7 @@ msgstr "Опции импорта / экспорта файлов"
 
 #: src/gui/uifiles/settings_window.ui:4586
 msgid "Auto assign working color space:"
-msgstr ""
+msgstr "Автоматически назначить рабочее цветовое пространство:"
 
 #: src/gui/uifiles/settings_window.ui:4599
 msgid "Convert other color profiles to the working profile?"
@@ -7036,7 +7049,7 @@ msgstr "Вывод совмещения в RGB / Математических о
 
 #: src/gui/uifiles/settings_window.ui:4696
 msgid "Pedantically assign linear ICC profiles"
-msgstr ""
+msgstr "Тщательно назначать линейные ICC-профили"
 
 #: src/gui/uifiles/settings_window.ui:4700
 msgid ""
@@ -7124,7 +7137,7 @@ msgid ""
 "<span foreground=\"red\"><b>WARNING: uncheck this option only if you know "
 "what you are doing!</b></span>"
 msgstr ""
-"Если флажок установлен, сценарии, не содержащие команду \"requires\" не "
+"Если этот флажок установлен, сценарии, не содержащие команду «requires» не "
 "будут выполняться. Это необходимо для обеспечения совместимости между "
 "сценариями и Siril.\n"
 "\n"
@@ -8782,7 +8795,8 @@ msgid ""
 "If this box is checked, Siril will auto-evaluate the normalisation value.\n"
 "This value is the mean of the master flat calibrated with the master offset."
 msgstr ""
-"Если флажок установлен, Siril автоматически оценит значение нормализации.\n"
+"Если этот флажок установлен, Siril автоматически оценит значение "
+"нормализации.\n"
 "Это среднее значение мастер-кадра плоского поля, откалиброванного мастер-"
 "кадром шума считывания."
 
@@ -8986,8 +9000,8 @@ msgid ""
 "images right after they were preprocessed. By doing this, you skip one "
 "manual step which can take some time."
 msgstr ""
-"Установите флажок, если хотите применить дебайеризацию к изображениям FITS "
-"сразу после их калибровки. Это позволит избежать одного ручного шага, "
+"Установите этот флажок, если хотите применить дебайеризацию к изображениям "
+"FITS сразу после их калибровки. Это позволит избежать одного ручного шага, "
 "который может занять некоторое время."
 
 #: src/gui/uifiles/siril.ui:5358
@@ -9183,7 +9197,6 @@ msgid "2pass registration"
 msgstr "Регистрация за 2 шага"
 
 #: src/gui/uifiles/siril.ui:5698
-#, fuzzy
 msgid ""
 "When this box is checked, the transformed images are not saved as a newly "
 "registered sequence. The transformation matrices are saved to the sequence "
@@ -9195,12 +9208,13 @@ msgid ""
 "and immediately applied using the output registration options selected below."
 msgstr ""
 "Когда этот флажок установлен, преобразованные изображения не сохраняются в "
-"новую, выравненную последовательность.\n"
+"новую, выравненную последовательность. Матрицы преобразования сохраняются в "
+"файле последовательности. После этого можно проверить данные регистрации и "
+"исключить некоторые изображения, прежде чем применять преобразования с "
+"помощью метода «Применить существующую регистрацию».\n"
 "\n"
-"В обоих случаях матрицы преобразования сохраняются в файле "
-"последовательности. После, можно проконтролировать данные регистрации и "
-"исключить некоторые изображения, прежде чем преобразовать с помощью метода "
-"«Применить существующую регистрацию»."
+"Когда этот флажок снят, регистрация всего звёздного неба вычисляется и "
+"немедленно применяется с использованием опций регистрации, выбранных ниже."
 
 #: src/gui/uifiles/siril.ui:5722
 msgid "Undistortion:"
@@ -9287,9 +9301,8 @@ msgid "Core Y-coordinates of the second image."
 msgstr "Координаты центра второго изображения по Y."
 
 #: src/gui/uifiles/siril.ui:6018
-#, fuzzy
 msgid "Prefix: "
-msgstr "Префикс:"
+msgstr "Префикс: "
 
 #: src/gui/uifiles/siril.ui:6029
 #, fuzzy
@@ -9569,11 +9582,11 @@ msgstr ""
 "обнаруженных звёзд по сравнению с опорным изображением (только регистрация "
 "на основе звёзд)\n"
 "\n"
-"<b>с лучшей округлостью</b>: изображения с наилучшей округлостью звёзд "
-"(только регистрация на основе звёзд)\n"
+"<b>с лучшей округлостью</b>: изображения с наилучшей округлостью звёзд ("
+"только регистрация на основе звёзд)\n"
 "\n"
-"<b>фона</b>: изображения с наименьшими значениями фона (только регистрация "
-"на основе звёзд)\n"
+"<b>фон</b>: изображения с наименьшими значениями фона (только регистрация на "
+"основе звёзд)\n"
 "\n"
 "<b>кол-во звёзд</b>: изображения с лучшим количеством звёзд (только "
 "регистрация на основе звёзд)\n"
@@ -9637,28 +9650,31 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:6987
 msgid "Scaling:"
-msgstr ""
+msgstr "Масштабирование:"
 
 #: src/gui/uifiles/siril.ui:7000
 msgid ""
 "Scaling of the output images. Use Estimate button to determine the final "
 "image size."
 msgstr ""
+"Масштабирование итоговых изображений. Используйте кнопку «Оценка», чтобы "
+"определить окончательный размер изображения."
 
 #: src/gui/uifiles/siril.ui:7037
 msgid ""
 "Choose whether to use an interpolation algorithm or Drizzle to apply "
 "registration"
 msgstr ""
+"Выберите, использовать ли алгоритм интерполяции или свехразрешения при "
+"регистрации"
 
 #: src/gui/uifiles/siril.ui:7065
 msgid "Algorithm: "
 msgstr "Алгоритм: "
 
 #: src/gui/uifiles/siril.ui:7076
-#, fuzzy
 msgid "Set the interpolation algorithm"
-msgstr "Запустить поиск астрономического решения."
+msgstr "Установить алгоритм интерполяции"
 
 #: src/gui/uifiles/siril.ui:7101
 msgid ""
@@ -9687,13 +9703,12 @@ msgstr ""
 "изображений."
 
 #: src/gui/uifiles/siril.ui:7120
-#, fuzzy
 msgid "Use interpolation"
-msgstr "тип интерполяции"
+msgstr "Интерполяция"
 
 #: src/gui/uifiles/siril.ui:7133
 msgid "Include master flat in initial pixel weighting"
-msgstr ""
+msgstr "Включить мастер-кадр плоского поля"
 
 #: src/gui/uifiles/siril.ui:7137
 msgid ""
@@ -9704,15 +9719,21 @@ msgid ""
 "\n"
 "The master flat must be set in the Calibration tab."
 msgstr ""
+"Установите этот флажок, чтобы включить мастер-кадр плоского поля в "
+"первоначальное присвоение веса пикселям. В результате, пиксели из менее "
+"виньетированных областей входящих кадров будут иметь бо́льший вес, чем "
+"пиксели из более виньетированных областей, если они попадают на один и тот "
+"же итоговый пиксель. В лучшем случае это незначительное улучшение.\n"
+"\n"
+"Мастер-кадр плоского поля должен быть установлен на вкладке «Калибровка»."
 
 #: src/gui/uifiles/siril.ui:7153
 msgid "Droplet Model"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:7165
-#, fuzzy
 msgid "Pixel Fraction"
-msgstr "Выбраковка пикселей:"
+msgstr "Доля пикселей"
 
 #: src/gui/uifiles/siril.ui:7176
 msgid ""
@@ -9732,7 +9753,7 @@ msgstr "Точка"
 
 #: src/gui/uifiles/siril.ui:7183
 msgid "Turbo"
-msgstr ""
+msgstr "Турбо"
 
 #: src/gui/uifiles/siril.ui:7184
 msgid "Lanczos2"
@@ -9886,6 +9907,7 @@ msgstr "Наведите для показа легенды"
 msgid ""
 "This button opens a CSV export of the data, or a screenshot of the plot."
 msgstr ""
+"Будет открыт диалог экспорта данных в CSV или сохранения изображения графика."
 
 #: src/gui/uifiles/siril.ui:7825
 msgid "X:"
@@ -10334,33 +10356,32 @@ msgstr "Выбраковка пикселей:"
 
 #: src/gui/uifiles/siril.ui:8589
 msgid "Borders feathering [pix]:"
-msgstr ""
+msgstr "Размывание границ [пикс.]:"
 
 #: src/gui/uifiles/siril.ui:8600
 msgid ""
 "Select here the number of pixels that will be faded out on the borders of "
 "each image."
 msgstr ""
+"Выберите число пикселей, которые будут размыты по границе каждого "
+"изображения."
 
 #: src/gui/uifiles/siril.ui:8632
-#, fuzzy
 msgid "Normalization on overlaps"
-msgstr "Время вычисления нормализации"
+msgstr "Нормализация при перекрытии"
 
 #: src/gui/uifiles/siril.ui:8636
-#, fuzzy
 msgid ""
 "By default, Siril computes the normalisation coefficients from each image. "
 "Ticking this box computes them on overlapping regions instead."
 msgstr ""
-"По умолчанию Siril использует коэффициенты нормализации из файла *.seq, если "
-"они уже рассчитаны. Однако они могут быть принудительно пересчитаны перед "
-"укладкой."
+"По умолчанию Siril вычисляет коэффициенты нормализации из каждого "
+"изображения. Установите этот флажок, чтобы они вычислялись по "
+"перекрывающимся областям."
 
 #: src/gui/uifiles/siril.ui:8655
-#, fuzzy
 msgid "Stack stitching:"
-msgstr "Укладка"
+msgstr "Сшивка:"
 
 #: src/gui/uifiles/siril.ui:8691
 msgid "Stacking 0 images of the 0 of the sequence"
@@ -10379,7 +10400,6 @@ msgid "Output Normalisation"
 msgstr "Нормализация вывода"
 
 #: src/gui/uifiles/siril.ui:9161
-#, fuzzy
 msgid ""
 "If you check this button, the final image will be normalized in the [0, 1] "
 "range if you work in 32-bit format precision, or clipped in [0, 65535] "
@@ -10388,9 +10408,11 @@ msgid ""
 "\n"
 "WARNING: This option should not be checked for master stacking."
 msgstr ""
-"Если флажок установлен, то окончательное изображение будет нормализовано в "
-"диапазоне [0, 1] при работе с точностью 32 бита, или [0, 65535] в противном "
-"случае.\n"
+"Если этот флажок установлен, то окончательное изображение будет "
+"нормализовано в диапазоне [0, 1] при работе с точностью 32 бита, или "
+"обрезано в диапазоне [0, 65535] в противном случае. Лучше всего это будет "
+"работать, если вы также установите флажок «32-битный вывод», так как это "
+"позволит избежать обрезки.\n"
 "\n"
 "ПРЕДУПРЕЖДЕНИЕ: При укладке мастер-кадров этот флажок должен быть снят."
 
@@ -10405,20 +10427,22 @@ msgid ""
 "\n"
 "WARNING: This option should not be checked for master stacking."
 msgstr ""
-"Если флажок установлен, то каналы в окончательном изображении буду выравнены "
-"(только для цветных изображений).\n"
+"Если этот флажок установлен, то каналы в окончательном изображении буду "
+"выравнены (только для цветных изображений).\n"
 "\n"
 "ПРЕДУПРЕЖДЕНИЕ: При укладке мастер-кадров этот флажок должен быть снят."
 
 #: src/gui/uifiles/siril.ui:9190
 msgid "Maximize framing"
-msgstr ""
+msgstr "Макс. кадрирование"
 
 #: src/gui/uifiles/siril.ui:9193
 msgid ""
 "If you check this button, the final image size will be enlarged to fit all "
 "the selected frames of the sequence."
 msgstr ""
+"Если этот флажок установлен, размер итогового изображения будет увеличен, "
+"чтобы соответствовать всем выбранным кадрам последовательности."
 
 #: src/gui/uifiles/siril.ui:9205
 #, fuzzy
@@ -10431,16 +10455,23 @@ msgid ""
 "of 2. This can be faster than real drizzle images obtained during "
 "registration but will not produced images as sharp."
 msgstr ""
+"Если этот флажок установлен, итоговый размер изображения будет увеличен "
+"вдвое посредством интерполяции. Это может быть быстрее, чем применение "
+"реального свехразрешения (drizzle) к изображениям, полученным в ходе "
+"регистрации, но итоговые изображения при этом будут не столь резкими."
 
 #: src/gui/uifiles/siril.ui:9219
 msgid "Force 32b output"
-msgstr "Принудительный 32-битный вывод"
+msgstr "32-битный вывод"
 
 #: src/gui/uifiles/siril.ui:9222
 msgid ""
 "If you check this button, the final image bitdepth will be forced to 32b "
 "even if the input images are in 16b."
 msgstr ""
+"Если этот флажок установлен, разрядность итогового изображения будет "
+"принудительно увеличена до 32-х бит, даже если входящие изображения будут "
+"иметь размер 16 бит."
 
 #. Must be short
 #: src/gui/uifiles/siril.ui:9252
@@ -10911,11 +10942,12 @@ msgid ""
 "Plot the selected sensor QE, filter responses and white reference relative "
 "photon count as a function of wavelength"
 msgstr ""
+"График квантовой эффективности выбранного сенсора, отклика фильтра и "
+"относительного кол-ва фотонов в точке белого в зависимости от длины волны"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:533
-#, fuzzy
 msgid "Show details of the selected white reference"
-msgstr "Подробности выбранной точки белого"
+msgstr "Детали выбранной точки белого"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:553
 msgid "Blue:"
@@ -10935,38 +10967,49 @@ msgid ""
 "Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - "
 "486.1 nm"
 msgstr ""
+"Номинальная длина волны в полосе пропускания в нм\n"
+"Обычные длины волн: S II — 672 нм; Ha — 656.46 нм; O III — 500 нм; Hb — "
+"486.1 нм"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:601
 msgid "Filter bandwidth in nm"
-msgstr ""
+msgstr "Полоса пропускания фильтра (нм)"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:602
 msgid "Bandwidth"
-msgstr ""
+msgstr "Полоса пропускания"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:613
 msgid "Enter the nominal wavelength of the red channel narrowband filter"
 msgstr ""
+"Введите номинальную длину волны узкополосного фильтра для красного канала"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:629
 msgid "Enter the nominal wavelength of the blue channel narrowband filter"
-msgstr ""
+msgstr "Введите номинальную длину волны узкополосного фильтра для синего канала"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:645
 msgid "Enter the nominal wavelength of the green channel narrowband filter"
 msgstr ""
+"Введите номинальную длину волны узкополосного фильтра для зелёного канала"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:661
 msgid "Enter the nominal bandwidth of the red channel narrowband filter"
 msgstr ""
+"Введите номинальную полосу пропускания узкополосного фильтра для красного "
+"канала"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:677
 msgid "Enter the nominal bandwidth of the green channel narrowband filter"
 msgstr ""
+"Введите номинальную полосу пропускания узкополосного фильтра для зелёного "
+"канала"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:693
 msgid "Enter the nominal bandwidth of the blue channel narrowband filter"
 msgstr ""
+"Введите номинальную полосу пропускания узкополосного фильтра для синего "
+"канала"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:717
 #, fuzzy
@@ -10994,17 +11037,21 @@ msgid ""
 "Set narrowband mode. This is suitable for composited narrowband images such "
 "as HOO as well as for OSC images taken with dual narrowband filters etc."
 msgstr ""
+"Устанавливает узкополосный режим. Этот режим подходит как для совмещения "
+"узкополосных изображений, например, HOO, так и для цветных изображений, "
+"полученных с помощью двухполосных (dual narrowband) фильтров и пр."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:798
-#, fuzzy
 msgid "Atmospheric corrections"
-msgstr "Косметическая коррекция"
+msgstr "Атмосферная коррекция"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:802
 msgid ""
 "Apply an atmosphere model to account for wavelength-dependent atmospheric "
 "extinction."
 msgstr ""
+"Применяет модель атмосферы для учёта поглощения в атмосфере, зависящего от "
+"длины волны."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:828
 msgid "Observer height / m:"
@@ -11012,11 +11059,11 @@ msgstr "Высота наблюдателя / м:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:839
 msgid "Observer's height (altitude) above sea level."
-msgstr ""
+msgstr "Высота наблюдателя над уровнем моря."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:855
 msgid "Atmospheric pressure / hPa:"
-msgstr ""
+msgstr "Атмосферное давление / гПа:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:866
 msgid ""
@@ -11024,23 +11071,25 @@ msgid ""
 "is taken to be sea level pressure, otherwise it is taken to be local "
 "pressure at the observer's height."
 msgstr ""
+"Атмосферное давление в гПа. Если установлен флажок «уровень моря», это "
+"значение будет принято за давление на уровне моря. В противном случае оно "
+"будет принято за давление на высоте наблюдателя."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1118
 msgid "sea level"
-msgstr ""
+msgstr "уровень моря"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:897
 msgid "Airmass:"
-msgstr ""
+msgstr "Воздушная масса:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:910
 msgid "Plot atmosphere model"
-msgstr ""
+msgstr "График атмосферной модели"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:940
-#, fuzzy
 msgid "Atmospheric Parameters"
-msgstr "Параметры растягивания"
+msgstr "Параметры атмосферы"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:960
 msgid "SPCC Parameters"
@@ -11108,11 +11157,11 @@ msgstr "Допуск / σ"
 #: src/gui/uifiles/s_pcc_dialog.ui:1136
 msgid ""
 "Include background samples this many σ above the median. Default is 2.00"
-msgstr ""
+msgstr "Включить образцы фона на столько σ выше медианы. По умолчанию — 2,00"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1154
 msgid "Include background samples this many σ below the median. Default is 2.8"
-msgstr ""
+msgstr "Включить образцы фона на столько σ ниже медианы. По умолчанию — 2,8"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1177
 msgid "Automatic detection"
@@ -11124,7 +11173,8 @@ msgid ""
 "yourself. It can be useful when nebulae cover a large portion of the image."
 msgstr ""
 "Отключите, если хотите указать ориентир фона самостоятельно. Это может быть "
-"полезным в случае, если туманность занимает значительную часть изображения."
+"полезным в случае, если туманность занимает значительную область на "
+"изображении."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1341
 msgid "Background Reference"
@@ -11222,10 +11272,10 @@ msgid ""
 "completion. This is necessary for using StarNet at the linear stage of "
 "processing."
 msgstr ""
-"Если флажок установлен, перед запуском StarNet к изображению применяется "
-"растягивание с помощью оптимизированной функции передачи полутонов (MTF), а "
-"по завершении — обратное растягивание. Это необходимо для использования "
-"StarNet на линейной стадии обработки."
+"Если этот флажок установлен, перед запуском StarNet к изображению "
+"применяется растягивание с помощью оптимизированной функции передачи "
+"полутонов (MTF), а по завершении — обратное растягивание. Это необходимо для "
+"использования StarNet на линейной стадии обработки."
 
 #: src/gui/uifiles/starnet_dialog.ui:129
 msgid "Generate star mask"
@@ -11237,9 +11287,10 @@ msgid ""
 "directory. The star mask is calculated as the difference between the "
 "original image and the starless image. The default is to produce a star mask."
 msgstr ""
-"Если флажок установлен, будет создана маска звёзд, которая будет сохранена в "
-"рабочей директории. Маска звёзд вычисляется как разница между исходным "
-"изображением и изображением без звёзд. По умолчанию создаётся маска звёзд."
+"Если этот флажок установлен, будет создана маска звёзд, которая будет "
+"сохранена в рабочей директории. Маска звёзд вычисляется как разница между "
+"исходным изображением и изображением без звёзд. По умолчанию маска звёзд "
+"создаётся."
 
 #: src/gui/uifiles/starnet_dialog.ui:149
 msgid "Use custom stride"
@@ -11251,7 +11302,7 @@ msgid ""
 "parameter. The default value is 256 and the StarNet developer recommends not "
 "to change this."
 msgstr ""
-"Если флажок установлен, для параметра шаг (stride) StarNet может быть "
+"Если этот флажок установлен, для параметра шаг (stride) StarNet может быть "
 "введено пользовательское значение. Значение по умолчанию: 256, и разработчик "
 "StarNet рекомендует не изменять это значение."
 
@@ -11283,8 +11334,8 @@ msgid ""
 "removal, is desired.\n"
 "This option has no effect if processing a sequence."
 msgstr ""
-"Если флажок установлен, по завершении процесса StarNet откроется окно "
-"инструмента \"Восстановить звёзды\", предоставляющего интерфейс для "
+"Если этот флажок установлен, по завершении процесса StarNet откроется окно "
+"инструмента «Восстановить звёзды», предоставляющего интерфейс для "
 "независимого растягивания и смешения фона и звёзд, если требуется уменьшение "
 "размера звёзд, а не их полное удаление.\n"
 "Этот параметр не имеет эффекта при обработке последовательности."
@@ -11300,9 +11351,9 @@ msgid ""
 "processing time and may impair performance on very large stars. The image is "
 "rescaled to the original size on completion."
 msgstr ""
-"Если флажок установлен, изображение будет увеличено в 2 раза перед запуском "
-"StarNet. Это повышает производительность на очень плотных звёздах, но "
-"увеличивает время обработки в четыре раза и может ухудшить "
+"Если этот флажок установлен, изображение будет увеличено в 2 раза перед "
+"запуском StarNet. Это повышает производительность на очень плотных звёздах, "
+"но увеличивает время обработки в четыре раза и может ухудшить "
 "производительность на очень больших звёздах. По завершении изображение будет "
 "уменьшено до исходного размера."
 
@@ -11416,9 +11467,9 @@ msgid ""
 "The current zoom level will not be altered. This does not apply to stars "
 "selected by clicking their PSF in the main display."
 msgstr ""
-"Если флажок установлен, звезда, выбранная из списка будет установлена по "
-"центру. Текущий уровень масштабирования не будет изменён. Это не относится к "
-"звёздам, выбранным нажатием на их PSF на основном экране."
+"Если этот флажок установлен, звезда, выбранная из списка, будет установлена "
+"по центру. Текущий уровень масштабирования не будет изменён. Это не "
+"относится к звёздам, выбранным нажатием на их PSF на основном экране."
 
 #: src/gui/uifiles/stars_list_window.ui:516
 #: src/gui/uifiles/stars_list_window.ui:568
@@ -12273,7 +12324,7 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:1283
 msgid "Solving again at updated center\n"
-msgstr ""
+msgstr "Решаем снова по обновлённому центру\n"
 
 #: src/algos/astrometry_solver.c:1570
 #, c-format
@@ -12283,7 +12334,7 @@ msgstr "Выполняется asnet, версия %s\n"
 #: src/algos/astrometry_solver.c:1608
 #, c-format
 msgid "Astrometry.net path (%s) incorrectly set in preferences\n"
-msgstr ""
+msgstr "Путь к Astrometry.net (%s) неверно указан в настройках\n"
 
 #: src/algos/astrometry_solver.c:1633
 msgid "solve-field was not found, set its path in the preferences\n"
@@ -12708,9 +12759,9 @@ msgstr "Отсутствует итоговый файл csv для создан
 #. and retrieving its results
 #. returns the nb of stars
 #: src/algos/comparison_stars.c:421
-#, fuzzy, c-format
+#, c-format
 msgid "No stars retrieved from the catalog %s\n"
-msgstr "В каталоге %s звёзды сравнения не найдены, прерывание\n"
+msgstr "Звёзды из каталога %s не были получены\n"
 
 #: src/algos/comparison_stars.c:428
 #, fuzzy, c-format
@@ -13304,9 +13355,8 @@ msgid ""
 msgstr ""
 
 #: src/algos/photometric_cc.c:527
-#, fuzzy
 msgid "Error: failed to set up colorspace transform.\n"
-msgstr "Не удалось создать преобразование цветового пространства."
+msgstr "Ошибка: не удалось настроить преобразование цветового пространства\n"
 
 #: src/algos/photometric_cc.c:612
 msgid "No valid stars found.\n"
@@ -14579,7 +14629,7 @@ msgstr ""
 
 #: src/core/command.c:1928
 msgid "Upating keywords...\n"
-msgstr ""
+msgstr "Обновление ключевых слов...\n"
 
 #: src/core/command.c:2000 src/core/command.c:5802
 msgid "There can be only one prefix argument"
@@ -14611,9 +14661,9 @@ msgid "Invalid matrix element (%d, %d) %s, aborting.\n"
 msgstr "Неверный элемент матрицы (%d, %d) %s, прерывание.\n"
 
 #: src/core/command.c:2032
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid power %s, must be between 0.0 and 10.0: aborting.\n"
-msgstr "Ошибка параметра α: должен быть между 0 и 1e5, прерывание.\n"
+msgstr "Неверная степень %s, должна быть между 0,0 и 10,0: прерывание.\n"
 
 #: src/core/command.c:2038
 #, c-format
@@ -14735,9 +14785,9 @@ msgid "Stretch must be greater than or equal to 1\n"
 msgstr "Растягивание должно быть больше или равно 1\n"
 
 #: src/core/command.c:2632
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid clip mode %s, aborting.\n"
-msgstr "Неверный аргумент %s, прерывание.\n"
+msgstr "Неверный режим обрезки %s, прерывание.\n"
 
 #: src/core/command.c:2661
 msgid "Clip limit must be > 0.\n"
@@ -14929,9 +14979,8 @@ msgid "Factor must be a number greater than 0.\n"
 msgstr "Коэффициентом должно быть число больше 0.\n"
 
 #: src/core/command.c:3381
-#, fuzzy
 msgid "Scale %lf not allowed. Should be between 0.2 and 5.0.\n"
-msgstr "Масштаб %lf не допускается; масштаб должен быть между 0.0 и 5.0.\n"
+msgstr "Масштаб %lf не допускается. Должен быть между 0,2 и 5,0.\n"
 
 #: src/core/command.c:3385
 msgid "Scale is 1.0. Not doing anything.\n"
@@ -15307,9 +15356,8 @@ msgid "Error: width cannot be less than 10, aborting.\n"
 msgstr "Ошибка: ширина не может быть менее 10, прерывание.\n"
 
 #: src/core/command.c:4799
-#, fuzzy
 msgid "Error: max dimension cannot be less than 10, aborting.\n"
-msgstr "Ошибка: высота не может быть менее 10, прерывание.\n"
+msgstr "Ошибка: максимальное измерение не может быть менее 10, прерывание.\n"
 
 #: src/core/command.c:4814 src/core/command.c:4866
 msgid "Error: scale cannot be less than 0.01, aborting.\n"
@@ -15542,7 +15590,6 @@ msgid "CieLAB"
 msgstr "CieLAB"
 
 #: src/core/command.c:6204
-#, fuzzy
 msgid "Upscaling x2\n"
 msgstr "Увел. вдвое\n"
 
@@ -15748,9 +15795,8 @@ msgstr ""
 "размера.\n"
 
 #: src/core/command.c:7675 src/core/command.c:8050 src/gui/registration.c:977
-#, fuzzy
 msgid "NOT USING FLAT: Could not load reference image\n"
-msgstr "Не удалось загрузить опорное изображение\n"
+msgstr "БЕЗ ПЛОСКОГО ПОЛЯ: Не удалось загрузить опорное изображение\n"
 
 #: src/core/command.c:7682 src/core/command.c:8057 src/core/preprocess.c:876
 #: src/gui/registration.c:986
@@ -15805,8 +15851,7 @@ msgstr "Всё звёздное небо (глубокий космос)"
 #: src/core/command.c:7766 src/core/processing.c:145
 #: src/gui/registration.c:1147
 msgid "Not enough space to save the output images, aborting\n"
-msgstr ""
-"Недостаточно места для сохранения результирующих изображений, прерывание\n"
+msgstr "Недостаточно места для сохранения итоговых изображений, прерывание\n"
 
 #: src/core/command.c:7770
 msgid "Scaling a sequence with -2pass has no effect, ignoring\n"
@@ -15817,8 +15862,8 @@ msgid ""
 "Forcing the registration transformation to shift, which is the only "
 "transformation compatible with no interpolation\n"
 msgstr ""
-"Принудительная установка преобразование регистрации в сдвиг, которое "
-"является единственным преобразованием, совместимым с \"Без интерполяции\"\n"
+"Принудительная установка преобразования регистрации в сдвиг, которое "
+"является единственным преобразованием, совместимым с «Без интерполяции»\n"
 
 #: src/core/command.c:7780
 msgid ""
@@ -15826,18 +15871,17 @@ msgid ""
 "transformation compatible with no interpolation, is not compatible with "
 "OpenCV below 4.4. Aborting\n"
 msgstr ""
-"Принудительная установка преобразование регистрации в сдвиг, которое "
-"является единственным преобразованием, совместимым с \"Без интерполяции\", "
+"Принудительная установка преобразования регистрации в сдвиг, которое "
+"является единственным преобразованием, совместимым с «Без интерполяции», "
 "несовместима с OpenCV ниже 4.4. Прерывание\n"
 
 #: src/core/command.c:7786 src/gui/registration.c:1154
-#, fuzzy
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "scaling can be applied. Aborting\n"
 msgstr ""
-"При установке интерполяции \"Нет\" изображения должны быть одного размера и "
-"их масштаб нельзя увеличить. Прерывание\n"
+"При установке интерполяции в «Нет», изображения должны быть одного размера и "
+"нельзя применить масштабирование. Прерывание\n"
 
 #. don't load it for command line execution
 #: src/core/command.c:7794 src/gui/registration.c:1209
@@ -15894,9 +15938,9 @@ msgid "Weighting is allowed only with mean stacking, ignoring.\n"
 msgstr "Присвоение веса возможно только при укладке по средней, игнорируем.\n"
 
 #: src/core/command.c:8264 src/core/command.c:8298
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown argument to %s, aborting.\n"
-msgstr "Неизвестный аргумент %s, прерывание.\n"
+msgstr "Неизвестный аргумент для %s, прерывание.\n"
 
 #: src/core/command.c:8270
 msgid "Fast normalization is allowed only with average stacking, ignoring.\n"
@@ -15916,10 +15960,8 @@ msgid "Normalization options are not allowed in this context, ignoring.\n"
 msgstr "В этом контексте недоступны параметры нормализации, игнорируем.\n"
 
 #: src/core/command.c:8292
-#, fuzzy
 msgid "Blending option is not allowed in this context, ignoring.\n"
-msgstr ""
-"В этом контексте название исходящего файла не разрешено, игнорирование.\n"
+msgstr "Опции смешения не разрешены в этом контексте, игнорирование.\n"
 
 #: src/core/command.c:8302
 #, c-format
@@ -16306,7 +16348,6 @@ msgstr ""
 "%lu-%s%lu). Пожалуйста, обновите вашу установку.\n"
 
 #: src/core/command.c:9365
-#, fuzzy
 msgid "beta"
 msgstr "бета (β)"
 
@@ -16322,7 +16363,7 @@ msgstr ""
 
 #: src/core/command.c:9371
 msgid "OK! This script is compatible with this version of Siril.\n"
-msgstr ""
+msgstr "ОК! Этот сценарий совместим этой версией Siril.\n"
 
 #: src/core/command.c:9379 src/core/command.c:9430
 #, c-format
@@ -16456,9 +16497,8 @@ msgid "Siril internal solver cannot be set blind in %s\n"
 msgstr ""
 
 #: src/core/command.c:10048 src/core/command.c:10076
-#, fuzzy
 msgid "position"
-msgstr "Позиция по X"
+msgstr "позиция"
 
 #: src/core/command.c:10052 src/core/command.c:10088 src/core/command.c:10113
 msgid "resolution"
@@ -16793,7 +16833,7 @@ msgid ""
 "This command only works on plate solved images with distortions included\n"
 msgstr ""
 "Команда работает только на изображениях, имеющих астрономическое решение, и "
-"с включённой дисторсией\n"
+"с включёнными данными о дисторсии\n"
 
 #: src/core/command.c:11394
 msgid "16-bit images cannot have out-of-range pixels: nothing to do.\n"
@@ -19364,7 +19404,6 @@ msgstr ""
 "См. также UNSELECT"
 
 #: src/core/command_def.h:146
-#, fuzzy
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using registration "
@@ -19417,44 +19456,59 @@ msgid ""
 msgstr ""
 "Используя ранее вычисленные данные регистрации (см. REGISTER), выполняет "
 "геометрическое преобразование изображений последовательности, указанной в "
-"аргументе таким образом, чтобы они могли быть наложены на опорное "
+"аргументе, таким образом, чтобы они могли быть наложены на опорное "
 "изображение.\n"
-"\n"
 "Название итоговой последовательности начинается с префикса <b>\"r_\"</b>, "
 "если с помощью опции <b>-prefix=</b> не указан иной.\n"
+"Для RGB-изображений регистрация выполняется на первом слое, для которого "
+"существуют данные, если не указан иной слой с помощью опции <b>-layer=</b> ("
+"0, 1 или 2 для R, G и B, соответственно).\n"
+"Итоговые изображения могут быть масштабированы с помощью аргумента "
+"<b>-scale=</b>, являющимся дробным значением в диапазоне от 0,1 до 3.\n"
 "\n"
-"Опция <b>-drizzle</b> включает двукратное увеличение масштаба изображений в "
-"преобразованной последовательности.\n"
+"Автоматическое кадрирование итоговой последовательности может быть выполнено "
+"с помощью опции <b>-framing=</b> и указанием метода кадрирования из списка { "
+"current | min | max | cog } :\n"
+"<b>-framing=max</b> (ограничивающая рамка) проецирует каждое изображение и "
+"вычисляет его сдвиг относительно опорного. Итоговая последовательность может "
+"быть уложена с помощью опции <b>-maximize</b> команды STACK, которая создаёт "
+"полное изображение, включающее все изображения последовательности.\n"
+"<b>-framing=min</b> (общая область) обрезает каждое изображение до области, "
+"общей с всеми остальными изображениями в последовательности.\n"
+"<b>-framing=cog</b> определяет лучшее кадрирование как центр тяжести (center "
+"of gravity — cog) всех изображений.\n"
 "\n"
-"Метод интерполяции может быть указан с помощью аргумента <b>-interp=</b>. "
-"Доступны следующие методы: <b>no</b>[ne] (нет), <b>ne</b>[arest] (ближайший "
-"сосед), <b>cu</b>[bic] (бикубическая), <b>la</b>[nczos4] (Ланцош-4), <b>li</"
-"b>[near] (линейная), <b>ar</b>[ea] (отношение площади пикселя). Если передан "
-"аргумент <b>none</b>, принудительно выполняется сдвиг и к каждому "
-"изображению применяется попиксельный сдвиг без интерполяции.\n"
+"<b>Интерполяция изображений:</b>\n"
+"По умолчанию преобразования применяются к изображениям с использованием "
+"интерполяции.\n"
+"Метод интерполяции пикселей может быть указан с помощью аргумента "
+"<b>-interp=</b>. Доступны следующие методы: <b>no</b>[ne] (нет), "
+"<b>ne</b>[arest] (ближайший сосед), <b>cu</b>[bic] (бикубическая), "
+"<b>la</b>[nczos4] (Ланцош-4), <b>li</b>[near] (линейная), <b>ar</b>[ea] ("
+"отношение площади пикселя). Если передан аргумент <b>none</b>, принудительно "
+"выполняется сдвиг и к каждому изображению применяется попиксельный сдвиг без "
+"интерполяции.\n"
 "При интерполяции методом Ланцош-4 или бикубической интерполяции для "
 "предотвращения артефактов по умолчанию используется фиксация (clamping), но "
 "она может быть отключена с помощью аргумента <b>-noclamp</b>\n"
 "\n"
-"Для RGB изображений регистрация выполняется на первом слое, для которого "
-"существуют данные, если не указан иной слой с помощью опции <b>-layer=</b> "
-"(0, 1 или 2 для R, G и B, соответственно).\n"
+"<b>Сверхразрешение:</b>\n"
+"В противном случае изображения можно экспортировать с помощью алгоритма "
+"сверхразрешения HST, передав аргумент <b>-drizzle</b>, который может "
+"принимать дополнительные параметры:\n"
+"<b>-pixfrac=</b> устанавливает долю пикселей (по умолчанию = 1,0).\n"
+"<b>-kernel=</b> устанавливает ядро и обязательно принимает одно из следующих "
+"значений <b>point</b> (точка), <b>turbo</b> (турбо), <b>square</b> (квадрат)"
+", <b>gaussian</b> (Гаусс), <b>lanczos2</b> (Ланцош-2) или <b>lanczos3</b> "
+"(Ланцош-3). Значение по умолчанию — <b>square</b>.\n"
+"<b>-flat=</b> указывает использовать ли мастер-кадр плоского поля для "
+"присвоения веса входящим пикселям при использовании сверхразрешения (по "
+"умолчанию — кадры плоского поля не используются).\n"
 "\n"
-"Автоматическое кадрирование итоговой последовательности может быть сделано с "
-"помощью опции <b>-framing=</b> и указанием метода кадрирования из списка "
-"{ current | min | max | cog } :\n"
-"<b>-framing=max</b> (ограничивающая рамка) добавляет чёрную границу вокруг "
-"каждого изображения таким образом, чтобы ни одна часть изображения не была "
-"обрезана при регистрации.\n"
-"<b>-framing=min</b> (общая область) обрезает каждое изображение до области, "
-"общей с всеми остальными изображениями в последовательности.\n"
-"<b>-framing=cog</b> определяет лучшее кадрирование как центр тяжести (center "
-"of gravity - cog) всех изображений.\n"
-"\n"
-"Фильтрация изображений:\n"
+"<b>Фильтрация изображений:</b>\n"
 "Изображения для регистрации могут быть отфильтрованы с помощью некоторых "
-"фильтров, например, выбранные или с лучшей FWHM, используя опции <b>-filter-"
-"*</b>.\n"
+"фильтров, например, выбранные или с лучшей FWHM, используя опции "
+"<b>-filter-*</b>.\n"
 "Полная документация по этой команде доступна в документации к командам"
 
 #: src/core/command_def.h:147
@@ -19912,23 +19966,23 @@ msgstr ""
 "использованы для фотометрического анализа, а не для выравнивания "
 "изображений, и координаты звезды могут быть указаны с помощью опций.\n"
 "Данная команда это то, что вызывается внутренним меню, которое появляется "
-"при щелчке правой кнопкой мыши на изображении, с PSF для ввода "
+"при щелчке правой кнопкой мыши на изображении с PSF для ввода "
 "последовательности. По умолчанию она будет выполняться с включённым "
 "распараллеливанием; если для последовательности существуют данные "
 "регистрации, они будут использованы для сдвига окна поиска на каждом "
 "изображении. Если данные регистрации отсутствуют и если между изображениями "
 "в последовательности имеется значительный сдвиг, настройки по умолчанию не "
 "позволят найти звёзды в исходном положении области поиска.\n"
-"Затем можно активировать опцию \"Следовать за звездой\", перейдя на вкладку "
-"\"Регистрация\", выбрав регистрацию по одной звезде и установив флажок "
-"\"Следовать за перемещением звезды\" (по умолчанию в автономном режиме если "
-"данные регистрации недоступны).\n"
+"Затем можно активировать опцию следовать за звездой, перейдя на вкладку "
+"«Регистрация», выбрав регистрацию по одной звезде и установив флажок «"
+"Следовать за движением звезды» (по умолчанию в автономном режиме если данные "
+"регистрации недоступны).\n"
 "\n"
-"Результаты будут отображены на вкладке \"График\", откуда их можно "
+"Результаты будут отображены на вкладке «График», откуда их можно "
 "экспортировать в файл CSV для внешнего анализа.\n"
 "\n"
 "При создании кривой блеска первая звезда, для которой была запущена seqpsf, "
-"отмеченная на дисплее буквой \"V\", будет рассматриваться как переменная "
+"отмеченная на дисплее буквой «V», будет рассматриваться как переменная "
 "звезда. Все остальные усредняются для создания эталонной световой кривой, "
 "вычитаемой из световой кривой переменной звезды.\n"
 "\n"
@@ -22162,14 +22216,12 @@ msgid "preferred SPCC red filter"
 msgstr ""
 
 #: src/core/settings.c:387
-#, fuzzy
 msgid "preferred SPCC green filter"
-msgstr "текущий зелёный файл"
+msgstr "предпочитаемый зелёный фильтр SPCC"
 
 #: src/core/settings.c:388
-#, fuzzy
 msgid "preferred SPCC blue filter"
-msgstr "текущий синий файл"
+msgstr "предпочитаемый синий фильтр SPCC"
 
 #: src/core/settings.c:389
 msgid "preferred SPCC DSLR LPF filter"
@@ -22258,9 +22310,8 @@ msgid "percent below and above the expected sampling to allow"
 msgstr "процент, определяющий допустимые нижнюю и верхнюю границы масштаба"
 
 #: src/core/settings.c:412
-#, fuzzy
 msgid "default IAU observatory code"
-msgstr "режим показа по умолчанию"
+msgstr "код обсерватории МАС по умолчанию"
 
 #: src/core/settings.c:414
 msgid "panel size of aberration inspector"
@@ -22601,7 +22652,7 @@ msgstr ""
 
 #: src/core/settings.c:511
 msgid "pedantically assign linear ICC profiles"
-msgstr ""
+msgstr "тщательно назначать линейные ICC-профили"
 
 #: src/core/settings.c:512
 msgid "mouse actions config. Opaque data structure, edit this using the GUI"
@@ -22678,9 +22729,8 @@ msgid "Another task is already in progress, ignoring new request.\n"
 msgstr "Выполняется другая задача, новый запрос игнорируется.\n"
 
 #: src/core/siril_actions.c:74
-#, fuzzy
 msgid "Cannot process image"
-msgstr "Не удалось загрузить новое изображение"
+msgstr "Не удалось обработать изображение"
 
 #: src/core/siril_actions.c:74
 msgid "The image can't be processed while another processing dialog is opened."
@@ -22720,9 +22770,8 @@ msgid "Load another image"
 msgstr "Загрузить другое изображение"
 
 #: src/core/siril_actions.c:709 src/core/siril_actions.c:717
-#, fuzzy
 msgid "Close current image?"
-msgstr "Закрыть текущее окно"
+msgstr "Закрыть текущее изображение?"
 
 #: src/core/siril_actions.c:709
 msgid ""
@@ -22733,7 +22782,7 @@ msgstr ""
 #: src/core/siril_actions.c:709 src/core/siril_actions.c:717
 #: src/gui/graxpert.c:288
 msgid "Yes"
-msgstr ""
+msgstr "Да"
 
 #: src/core/siril_actions.c:717
 msgid ""
@@ -22796,9 +22845,8 @@ msgid ""
 msgstr ""
 
 #: src/core/siril_networking.c:119
-#, fuzzy
 msgid "Server unreachable or unresponsive"
-msgstr "После %ld попыток сервер недоступен или не отвечает. (%s)\n"
+msgstr "Сервер недоступен или не отвечает"
 
 #: src/core/siril_networking.c:123
 #, c-format
@@ -23008,32 +23056,31 @@ msgstr "Недостаточно памяти"
 
 #: src/drizzle/cdrizzlebox.c:902
 msgid "Invalid kernel type"
-msgstr ""
+msgstr "Неверный тип ядра"
 
 #: src/drizzle/cdrizzleutil.c:123
-#, fuzzy
 msgid "Drizzling parameters:\n"
-msgstr "Неверные параметры.\n"
+msgstr "Параметры сверхразрешения:\n"
 
 #: src/drizzle/cdrizzleutil.c:124
 #, c-format
 msgid "kernel:         %s\n"
-msgstr ""
+msgstr "ядро:         %s\n"
 
 #: src/drizzle/cdrizzleutil.c:125
-#, fuzzy, c-format
+#, c-format
 msgid "pixel_fraction: %f\n"
-msgstr "Выбраковка пикселей:"
+msgstr "доля пикселей:%f\n"
 
 #: src/drizzle/cdrizzleutil.c:126
 #, c-format
 msgid "weight_scale:   %f\n"
-msgstr ""
+msgstr "weight_scale:   %f\n"
 
 #: src/drizzle/cdrizzleutil.c:127
 #, c-format
 msgid "scale:          %f\n"
-msgstr ""
+msgstr "масштаб:          %f\n"
 
 #: src/filters/asinh.c:79
 msgid "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"
@@ -23118,32 +23165,30 @@ msgstr "Ошибка: каналы не выбраны. Ничего не дел
 
 #. g_spawn handles wchar so not need to convert
 #: src/filters/graxpert.c:140
-#, fuzzy
 msgid "Starting GraXpert..."
-msgstr "Запускается StarNet"
+msgstr "Запускается GraXpert..."
 
 #: src/filters/graxpert.c:149
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed: %s\n"
-msgstr "Не удалось запустить дочерний процесс starnet: %s\n"
+msgstr "Не удалось запустить дочерний процесс GraXpert: %s\n"
 
 #: src/filters/graxpert.c:185
-#, fuzzy
 msgid "Running GraXpert"
-msgstr "Выполняется StarNet"
+msgstr "Выполняется GraXpert"
 
 #: src/filters/graxpert.c:187
 msgid "GraXpert reported an error"
-msgstr ""
+msgstr "GraXpert сообщил об ошибке"
 
 #: src/filters/graxpert.c:195 src/filters/graxpert.c:225
 msgid "Done."
-msgstr ""
+msgstr "Завершено."
 
 #: src/filters/graxpert.c:199
-#, fuzzy, c-format
+#, c-format
 msgid "GraXpert caught buffer: %s : exit successful\n"
-msgstr "StarNet захват буфера: %s : успешный выход\n"
+msgstr "GraXpert захватил буфер: %s : успешный выход\n"
 
 #: src/filters/graxpert.c:224
 #, fuzzy
@@ -23151,21 +23196,22 @@ msgid "GraXpert GUI finished.\n"
 msgstr "Регистрация завершена.\n"
 
 #: src/filters/graxpert.c:230
-#, fuzzy, c-format
+#, c-format
 msgid "GraXpert exit not caught, last buffer: %s\n"
-msgstr "Выход из StarNet не захвачен, последний буфер: %s\n"
+msgstr "Выход из GraXpert не захвачен, последний буфер: %s\n"
 
 #: src/filters/graxpert.c:310
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed during available AI model versions check: %s\n"
 msgstr ""
-"В ходе проверки версии не удалось запустить дочерний процесс starnet: %s\n"
+"В ходе проверки версии доступной модели ИИ не удалось запустить дочерний "
+"процесс GraXpert: %s\n"
 
 #: src/filters/graxpert.c:411
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed during version check: %s\n"
 msgstr ""
-"В ходе проверки версии не удалось запустить дочерний процесс starnet: %s\n"
+"В ходе проверки версии не удалось запустить дочерний процесс GraXpert: %s\n"
 
 #: src/filters/graxpert.c:465
 #, c-format
@@ -23173,11 +23219,12 @@ msgid ""
 "Error: GraXpert version is too old. You have version %d.%d.%d; at least "
 "version 3.0.0 is required.\n"
 msgstr ""
+"Ошибка: Слишком старая версия GraXpert. Ваша версия %d.%d.%d; необходима как "
+"минимум версия 3.0.0.\n"
 
 #: src/filters/graxpert.c:500
-#, fuzzy
 msgid "None!\n"
-msgstr "Нет"
+msgstr "Нет!\n"
 
 #: src/filters/graxpert.c:670 src/filters/graxpert.c:678
 #, fuzzy
@@ -23249,14 +23296,13 @@ msgid "Error: unknown GraXpert operation\n"
 msgstr ""
 
 #: src/filters/graxpert.c:945
-#, fuzzy, c-format
+#, c-format
 msgid "GraXpert: Processing image %d\n"
-msgstr "Starnet: обработка изображения %d\n"
+msgstr "GraXpert: обработка изображения %d\n"
 
 #: src/filters/graxpert.c:966
-#, fuzzy
 msgid "GraXpert"
-msgstr "Световой поток"
+msgstr "GraXpert"
 
 #: src/filters/graxpert.c:982
 msgid "GraXpert: Processing..."
@@ -23416,7 +23462,7 @@ msgstr "Выполняется StarNet"
 #: src/filters/starnet.c:150
 #, c-format
 msgid "StarNet caught buffer: %s : exit successful\n"
-msgstr "StarNet захват буфера: %s : успешный выход\n"
+msgstr "StarNet захватил буфер: %s : успешный выход\n"
 
 #: src/filters/starnet.c:160
 #, c-format
@@ -23716,9 +23762,8 @@ msgid "Sharpless Catalogue (Sh2)"
 msgstr "Каталог Шарплесса (Sh2)"
 
 #: src/gui/annotations_pref.c:34
-#, fuzzy
 msgid "Star Catalogue"
-msgstr "Каталог звёзд: "
+msgstr "Каталог звёзд"
 
 #: src/gui/annotations_pref.c:35
 #, fuzzy
@@ -24542,7 +24587,7 @@ msgstr "Расстояние вдоль разреза / пикс."
 
 #: src/gui/cut.c:684
 msgid "Coefficients: y = "
-msgstr ""
+msgstr "Коэффициенты: y = "
 
 #: src/gui/cut.c:700
 #, c-format
@@ -25098,6 +25143,7 @@ msgstr "Цветовой профиль не установлен"
 #: src/gui/icc_profile.c:380
 msgid "The current image has no color profile. You need to assign one first."
 msgstr ""
+"У текущего изображения нет цветового профиля. Сначала надо назначить профиль."
 
 #. Do the transform
 #. We save the undo state if dealing with gfit
@@ -25157,9 +25203,8 @@ msgstr ""
 
 #. Create the dialog window with buttons
 #: src/gui/keywords_tree.c:507
-#, fuzzy
 msgid "Add New Keyword"
-msgstr "Ключевое слово"
+msgstr "Добавить новое ключевое слово"
 
 #: src/gui/keywords_tree.c:508 src/io/image_formats_libraries.c:2309
 #: src/pixelMath/pixel_math_runner.c:1227
@@ -25394,7 +25439,7 @@ msgstr "Потянуть"
 
 #: src/gui/mouse_action_functions.h:35
 msgid "Open if nothing is loaded"
-msgstr ""
+msgstr "Открыть если ничего не загружено"
 
 #: src/gui/mouse_action_functions.h:39
 msgid "Configurable zoom toggle"
@@ -25418,9 +25463,8 @@ msgid "Snapshot"
 msgstr "Снимок"
 
 #: src/gui/mouse_action_functions.h:75
-#, fuzzy
 msgid "Find stars"
-msgstr "кол-во звёзд"
+msgstr "Найти звёзды"
 
 #: src/gui/mouse_action_functions.h:79
 #, fuzzy
@@ -25715,8 +25759,8 @@ msgstr "Показать световую кривую"
 #: src/gui/nina_light_curve.c:104
 msgid "if not checked, a PNG image of the graph will be generated instead"
 msgstr ""
-"если флажок не установлен, вместо этого будет создано изображение графика в "
-"формате PNG"
+"если этот флажок не установлен, вместо этого будет создано изображение "
+"графика в формате PNG"
 
 #. Aperture Label
 #: src/gui/nina_light_curve.c:118
@@ -25728,16 +25772,14 @@ msgstr ""
 #. Fill the 2nd box
 #. The label
 #: src/gui/nina_light_curve.c:155
-#, fuzzy
 msgid "Inner radius of the annulus (px):"
-msgstr "внутренний радиус кольца фона"
+msgstr "Внутренний радиус кольца фона (пикс.):"
 
 #. Fill the 3rd box
 #. The label
 #: src/gui/nina_light_curve.c:172
-#, fuzzy
 msgid "Outer radius of the annulus (px):"
-msgstr "внешний радиус кольца фона"
+msgstr "Внешний радиус кольца фона (пикс.):"
 
 #: src/gui/nina_light_curve.c:221 src/gui/sequence_list.c:152
 #: src/gui/starnetgui.c:224 src/io/path_parse.c:74
@@ -25783,7 +25825,7 @@ msgstr "Все поддерживаемые файлы"
 
 #: src/gui/open_dialog.c:252
 msgid "Master-distortion: file (*.wcs)"
-msgstr "Мастер-файл дисторсии: файл (*.wcs)"
+msgstr "Мастер-кадр дисторсии: файл (*.wcs)"
 
 #: src/gui/open_dialog.c:289
 msgid "Cosmetic correction file (*.lst)"
@@ -25903,9 +25945,8 @@ msgid "one-shot color (OSC)"
 msgstr "цветной (OSC)"
 
 #: src/gui/photometric_cc.c:819
-#, fuzzy
 msgid "No selection made: no details to show."
-msgstr "Слои не загружены: нет файлов для сохранения"
+msgstr "Выделение отсутствует: нет данных для отображения."
 
 #: src/gui/photometric_cc.c:857
 msgid "SPCC Data"
@@ -26267,9 +26308,17 @@ msgid ""
 "When choosing 2pass, you will then need to export the sequence using  the "
 "Apply Existing Registration method"
 msgstr ""
+"<b>Всё звёздное небо</b>: Это основной алгоритм для изображений глубокого "
+"неба. Глобальное сопоставление основано на методе подобия треугольников, "
+"который позволяет автоматически идентифицировать общие звёзды между "
+"изображениями. Создается новая последовательность с выбранным вами префиксом "
+"(по умолчанию r_), если не установлен флажок «Регистрация за 2 шага». В этом "
+"случае данные регистрации будут сохранены в последовательности, и опорное "
+"изображение будет выбрано на основе информации об обнаружении звёзд. При "
+"выборе регистрации за 2 шага вам нужно будет экспортировать "
+"последовательность, используя метод «Применить существующую регистрацию»"
 
 #: src/gui/registration.c:56
-#, fuzzy
 msgid ""
 "<b>1-2-3 Stars Registration</b>: This is the simplest method to register "
 "deep-sky images. Images are aligned using shifting, if you pick one star, or "
@@ -26278,12 +26327,8 @@ msgid ""
 msgstr ""
 "<b>1-2-3 звезды</b>: это простейший метод регистрации изображений глубокого "
 "космоса. Изображения выравниваются с использованием сдвига, если выбрана "
-"одна звезда и сдвиг + вращение, если выбраны 2 или 3 звезды.\n"
-"Если вычисляется только сдвиг, эти данные сохраняются в файл seq и "
-"выравненную последовательность не надо экспортировать. Изображения будут "
-"сдвинуты попиксельно в ходе укладки.\n"
-"Если вычисляется и вращение, то выравненные изображения необходимо "
-"экспортировать используя пункт \"Применить существующую регистрацию\"."
+"одна звезда или сдвиг + вращение, если выбраны 2 или 3 звезды.\n"
+"Преобразования сохраняются во входящем файле последовательности."
 
 #: src/gui/registration.c:60
 msgid ""
@@ -26300,7 +26345,6 @@ msgstr ""
 "сохраняются во входящем файле последовательности."
 
 #: src/gui/registration.c:64
-#, fuzzy
 msgid ""
 "<b>KOMBAT</b>: This simple algorithm tries to locate a single pattern on "
 "images and to align them accordingly. Only translation is taken into "
@@ -26308,10 +26352,10 @@ msgid ""
 msgstr ""
 "<b>KOMBAT</b>: Этот простой алгоритм пытается обнаружить один паттерн на "
 "изображениях и выровнять их соответствующим образом. Пока во внимание "
-"принимается только сдвиг."
+"принимается только сдвиг. Сдвиги с пиксельной точностью сохраняются во "
+"входящем файле последовательности."
 
 #: src/gui/registration.c:67
-#, fuzzy
 msgid ""
 "<b>Comet/Asteroid Registration</b>: This algorithm is dedicated to the comet "
 "and asteroid registration. It is necessary to have timestamps stored in FITS "
@@ -26328,7 +26372,11 @@ msgstr ""
 "загруженная последовательность с выравненными изображениями звёзд. Алгоритм "
 "осуществляет сдвиг каждого изображения на определённое количество пикселей, "
 "в зависимости от его отметки времени, и общий сдвиг объекта между первым и "
-"последним изображениями."
+"последним изображениями. Если уже существуют данные регистрации, эти сдвиги "
+"компонуются с существующими преобразованиями. Создаётся новая "
+"последовательность с указанным пользователем префиксом (по умолчанию — "
+"comet_), но изображения при этом не копируются. Вместо копирования на "
+"входящие изображения создаются символические ссылки."
 
 #: src/gui/registration.c:75
 msgid ""
@@ -26386,6 +26434,8 @@ msgstr "Файлы WCS (*.wcs)"
 #: src/gui/registration.c:456
 msgid "Comet PSF center is out of the box, will use selection center instead\n"
 msgstr ""
+"Центр PSF кометы за приделами выделения. Вместо него будет использован центр "
+"выделения\n"
 
 #: src/gui/registration.c:480
 msgid "There is no timestamp stored in the file"
@@ -26699,9 +26749,8 @@ msgid "Save Anyway"
 msgstr "Всё равно сохранить"
 
 #: src/gui/save_dialog.c:483
-#, fuzzy
 msgid "preview"
-msgstr "Предпросмотр"
+msgstr "предпросмотр"
 
 #: src/gui/save_dialog.c:754
 #, c-format
@@ -27295,7 +27344,7 @@ msgstr ""
 
 #: src/gui/utils.c:383
 msgid "Error: unknown CFA pattern\n"
-msgstr ""
+msgstr "Ошибка: неизвестный шаблон CFA\n"
 
 #: src/gui/utils.c:517
 msgid ""
@@ -27612,7 +27661,7 @@ msgstr "Загруженный файл FITS имеет BSCALE отличный 
 #: src/io/fits_keywords.c:1219
 #, c-format
 msgid "FITS header of image %d updated\n"
-msgstr ""
+msgstr "Обновлён заголовок FITS изображения %d\n"
 
 #: src/io/fits_keywords.c:1282
 #, fuzzy
@@ -28176,14 +28225,14 @@ msgid "Stacking error: input images have different precision\n"
 msgstr "Ошибка укладки: входящие изображения имеют разную точность\n"
 
 #: src/io/image_format_fits.c:3515
-#, fuzzy, c-format
+#, c-format
 msgid "Saving WCS file %s\n"
-msgstr "Сохранение изображения %s\n"
+msgstr "Сохранение файла WCS %s\n"
 
 #: src/io/image_format_fits.c:3554
-#, fuzzy, c-format
+#, c-format
 msgid "Saving mask file %s\n"
-msgstr "Сохранение изображения %s\n"
+msgstr "Сохранение файла маски %s\n"
 
 #: src/io/local_catalogues.c:157 src/io/local_catalogues.c:190
 msgid "Could not open local NOMAD catalogue\n"
@@ -28607,9 +28656,8 @@ msgstr ""
 "Хотите сохранить данные psf как данные регистрации для этого слоя?"
 
 #: src/io/sequence.c:1970 src/registration/3stars.c:256
-#, fuzzy
 msgid "Could not load metadata"
-msgstr "Не удалось загрузить файл"
+msgstr "Не удалось загрузить метаданные"
 
 #: src/io/sequence.c:1984 src/registration/3stars.c:275
 msgid ""
@@ -28960,12 +29008,11 @@ msgstr "NOMAD"
 
 #: src/io/siril_catalogues.c:234
 msgid "Gaia DR3 (via Vizier)"
-msgstr ""
+msgstr "Gaia DR3 (через Vizier)"
 
 #: src/io/siril_catalogues.c:236
-#, fuzzy
 msgid "Gaia DR3 (direct)"
-msgstr "Gaia DR3"
+msgstr "Gaia DR3 (напрямую)"
 
 #: src/io/siril_catalogues.c:238
 msgid "PPMXL"
@@ -29073,7 +29120,7 @@ msgstr ""
 #: src/io/siril_catalogues.c:1057
 #, c-format
 msgid "Using default observatory code %s\n"
-msgstr ""
+msgstr "Используется код обсерватории по умолчанию %s\n"
 
 #: src/io/siril_catalogues.c:1061
 msgid ""
@@ -29874,9 +29921,9 @@ msgid "You've reached the maximum of loaded image file."
 msgstr "Достигнут максимум загруженного изображения."
 
 #: src/pixelMath/pixel_math_runner.c:1378
-#, fuzzy
 msgid "Error evaluating pixelmath expression.\n"
-msgstr "Ошибка выражения '%s' в символе %d\n"
+msgstr ""
+"Ошибка при вычислении выражения математических операций над пикселями.\n"
 
 #: src/registration/3stars.c:126 src/registration/3stars.c:208
 msgid "Make sure you load the first image"
@@ -29999,7 +30046,7 @@ msgid ""
 "Distortion data was found in the sequence file, undistortion will be "
 "applied\n"
 msgstr ""
-"В файле последовательности найдены данные дисторсии. Будет применено "
+"В файле последовательности найдены данные о дисторсии. Будет применено "
 "исправление дисторсии.\n"
 
 #: src/registration/applyreg.c:342 src/registration/global.c:173
@@ -30045,7 +30092,7 @@ msgstr "Применить регистрацию"
 #: src/registration/applyreg.c:920 src/registration/global.c:634
 #: src/registration/global.c:850
 msgid "Could not initialize distortion data, aborting\n"
-msgstr "Не удалось инициализировать данные дисторсии, прерывание.\n"
+msgstr "Не удалось инициализировать данные о дисторсии, прерывание.\n"
 
 #: src/registration/applyreg.c:933
 msgid ""
@@ -30202,11 +30249,11 @@ msgstr "Не удалось разобрать мастер-файл дисто�
 
 #: src/registration/distorsion.c:374
 msgid "Could not save WCS file for distortion\n"
-msgstr "Не удалось сохранить файл WCS для дисторсии\n"
+msgstr "Не удалось сохранить файл WCS с данными о дисторсии\n"
 
 #: src/registration/distorsion.c:388
 msgid "Could not load FITS file for distortion\n"
-msgstr "Не удалось загрузить файл FITS для дисторсии\n"
+msgstr "Не удалось загрузить файл FITS с данными о дисторсии\n"
 
 #: src/registration/distorsion.c:394
 #, fuzzy
@@ -30226,11 +30273,11 @@ msgstr "Не удалось загрузить изображение %d из п
 
 #: src/registration/distorsion.c:435
 msgid "Could not parse master file name for distortion, aborting\n"
-msgstr "Не удалось разобрать название мастер-файла для дисторсии, прерывание.\n"
+msgstr "Не удалось разобрать название мастер-файла дисторсии, прерывание.\n"
 
 #: src/registration/distorsion.c:441
 msgid "Could not load master file for distortion, aborting\n"
-msgstr "Не удалось загрузить мастер-файл для дисторсии, прерывание.\n"
+msgstr "Не удалось загрузить мастер-файл дисторсии, прерывание.\n"
 
 #: src/registration/distorsion.c:449
 #, fuzzy
@@ -30273,7 +30320,7 @@ msgstr ""
 
 #: src/registration/distorsion.c:549 src/registration/distorsion.c:551
 msgid "Could not load FITS image for distortion"
-msgstr "Не удалось загрузить изображение FITS для дисторсии"
+msgstr "Не удалось загрузить изображение FITS с данными о дисторсии"
 
 #: src/registration/distorsion.c:556
 msgid ""
@@ -30803,13 +30850,14 @@ msgstr ""
 "Мб из %d необходимых)\n"
 
 #: src/stacking/normalization.c:635
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "With the current memory and thread (%d) limits, up to %d thread(s) can be "
 "used for sequence overlaps normalization\n"
 msgstr ""
 "С текущим ограничением памяти и количества потоков (%d), кол-во потоков, "
-"которое можно использовать для нормализации последовательности — %d\n"
+"которое можно использовать для нормализации перекрытия последовательности — %"
+"d\n"
 
 #: src/stacking/normalization.c:712
 #, fuzzy
@@ -30897,12 +30945,12 @@ msgstr " (быстро)"
 
 #: src/stacking/stacking.c:177
 msgid " (overlaps)"
-msgstr ""
+msgstr " (перекрывается)"
 
 #: src/stacking/stacking.c:179
-#, fuzzy, c-format
+#, c-format
 msgid "Input normalization ....... %s%s%s\n"
-msgstr "Нормализация ввода ....... %s%s\n"
+msgstr "Нормализация ввода ....... %s%s%s\n"
 
 #: src/stacking/stacking.c:182
 msgid "Output normalization ...... enabled\n"
@@ -30990,7 +31038,7 @@ msgstr "Присвоение веса изображениям ............. о�
 #: src/stacking/stacking.c:247
 #, c-format
 msgid "Feathering ................ over %4d pixels\n"
-msgstr ""
+msgstr "Размывание ................ более %4d пикс.\n"
 
 #: src/stacking/stacking.c:251
 msgid "RGB equalization .......... enabled\n"
