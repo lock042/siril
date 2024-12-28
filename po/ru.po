@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-28 10:30+0000\n"
+"PO-Revision-Date: 2024-12-28 23:17+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -817,6 +817,12 @@ msgid ""
 "When selecting an order with distortions, additional terms are added to the "
 "solution, using SIP convention"
 msgstr ""
+"Выберите степень решения:\n"
+"Линейная подразумевает отсутствие дисторсии на изображении\n"
+"Квадратичная, кубическая, квартичная и квинтовая будут включать "
+"полиномиальные искажения второго, третьего, четвертого или пятого порядка.\n"
+"При выборе степени искажений, в решение будут добавлены дополнительные "
+"переменные, использую соглашение SIP"
 
 #: src/gui/uifiles/astrometry_dialog.ui:651
 msgid "Solution order: "
@@ -883,7 +889,7 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:770
 msgid "Save distortion"
-msgstr "Сохранить данные дисторсии"
+msgstr "Сохранить данные о дисторсии"
 
 #: src/gui/uifiles/astrometry_dialog.ui:774
 msgid ""
@@ -893,6 +899,11 @@ msgid ""
 "When platesolving a sequence, the distortion file is saved from the "
 "reference image."
 msgstr ""
+"Сохраняет решение как файл с данными о дисторсии для последующего "
+"исправления дисторсии изображений во время регистрации.\n"
+"Эту опцию можно активировать только если степень решения более 1.\n"
+"При поиске астрономического решения последовательности, файл с данными о "
+"дисторсии сохраняется по опорному изображению."
 
 #: src/gui/uifiles/astrometry_dialog.ui:789
 msgid ""
@@ -3275,7 +3286,7 @@ msgstr "Порядок: "
 
 #: src/gui/uifiles/dialog_FFT.ui:141
 msgid "modulus"
-msgstr "амплитуда"
+msgstr "modulus"
 
 #: src/gui/uifiles/dialog_FFT.ui:155
 msgid "phase"
@@ -3474,7 +3485,7 @@ msgstr ""
 "Независимо управляет добавленным контрастом (наклоном растягивания) в точке "
 "симметрии, регулируя таким образом степень растягивания, применяемую к "
 "остальной части изображения. Увеличение D увеличивает интенсивность звёзд в "
-"результирующей композиции."
+"итоговой композиции."
 
 #: src/gui/uifiles/dialog_star_remix.ui:475
 #: src/gui/uifiles/dialog_star_remix.ui:1113
@@ -3512,7 +3523,7 @@ msgstr ""
 "Устанавливает точку симметрии, вокруг которой фокусируется растягивание. При "
 "восстановлении звезд увеличение точки симметрии уменьшает интенсивность "
 "звёзд с пиковой яркостью ниже точки симметрии и, следовательно, количество "
-"звёзд, которые видны на результирующем изображении."
+"звёзд, которые видны на итоговом изображении."
 
 #: src/gui/uifiles/dialog_star_remix.ui:576
 msgid ""
@@ -4272,6 +4283,9 @@ msgid ""
 "Converts the image to a different color space. This can be useful for "
 "exporting an image to sRGB for WWW use, for example."
 msgstr ""
+"Конвертирует изображение в другое цветовое пространство. Это может быть "
+"полезным, например, для экспорта изображения в sRGB для использования в "
+"интернете."
 
 #: src/gui/uifiles/icc_dialog.ui:178
 msgid "<b><i>Current ICC profile</i></b>"
@@ -4315,7 +4329,7 @@ msgstr "sRGB (линейная TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:376
 msgid "sRGB (standard sRGB TRC)"
-msgstr ""
+msgstr "sRGB (стандартная sRGB TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:377
 msgid "Rec2020 (linear TRC)"
@@ -5042,7 +5056,7 @@ msgstr "Кадрировать"
 
 #: src/gui/uifiles/rotation_dialog.ui:164
 msgid "Checking this box will crop the output image."
-msgstr "Выберите, чтобы кадрировать результирующее изображение."
+msgstr "Выберите, чтобы кадрировать итоговое изображение."
 
 #: src/gui/uifiles/rotation_dialog.ui:197
 msgid "Type of algorithm used for rotation"
@@ -10151,7 +10165,7 @@ msgid ""
 "each image, they can still give a satisfactory result when compared to no "
 "normalization at all."
 msgstr ""
-"По умолчанию SIril использует оценку положения и масштаба с помощью IKSS для "
+"По умолчанию Siril использует оценку положения и масштаба с помощью IKSS для "
 "вычисления нормализации. Для больших последовательностей расчёт этой оценки "
 "может быть достаточно интенсивным. В таких случаях есть опция использования "
 "быстрой оценки, основанной на медиане и медианном абсолютном отклонении. "
@@ -10338,7 +10352,7 @@ msgid ""
 msgstr ""
 "Рассчитать и создать карты выбраковки пикселей в ходе укладки. Это "
 "изображения, показывающие, сколько изображений было выбраковано для каждого "
-"пикселя в результирующем изображении, разделённые на количество уложенных "
+"пикселя в итоговом изображении, разделённые на количество уложенных "
 "изображений."
 
 #: src/gui/uifiles/siril.ui:8424
@@ -10445,9 +10459,8 @@ msgstr ""
 "чтобы соответствовать всем выбранным кадрам последовательности."
 
 #: src/gui/uifiles/siril.ui:9205
-#, fuzzy
 msgid "Interpolation upscaling x2"
-msgstr "Фиксация при интерполяции"
+msgstr "Увел. вдвое (интерполяция)"
 
 #: src/gui/uifiles/siril.ui:9208
 msgid ""
@@ -12218,7 +12231,7 @@ msgstr "Центр изображения: α: %s, δ: %s\n"
 #: src/algos/astrometry_solver.c:584
 #, c-format
 msgid "Was %.2f arcmin from initial value\n"
-msgstr ""
+msgstr "Был в %.2f угл. мин. от первоначального значения\n"
 
 #: src/algos/astrometry_solver.c:855
 #, c-format
@@ -12364,14 +12377,13 @@ msgstr ""
 "радиуса %s° для масштаба вслепую\n"
 
 #: src/algos/astrometry_solver.c:1721
-#, fuzzy, c-format
+#, c-format
 msgid "Astrometry.net solving blindly in position for scales [%s, %s]\n"
-msgstr "Решение вслепую с помощью astrometry.net для масштабов [%s, %s]\n"
+msgstr "Astrometry.net решает вслепую в позиции для масштабов [%s, %s]\n"
 
 #: src/algos/astrometry_solver.c:1724
-#, fuzzy
 msgid "Astrometry.net solving blindly\n"
-msgstr "Решатель Astrometry.net"
+msgstr "Astrometry.net решает вслепую\n"
 
 #: src/algos/astrometry_solver.c:1802
 msgid "No astrometric solution found\n"
@@ -12412,14 +12424,14 @@ msgid "Image %d already platesolved, skipping\n"
 msgstr "Изображение %d уже имеет астрономическое решение, пропускаем\n"
 
 #: src/algos/astrometry_solver.c:2057
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: no stars found\n"
-msgstr "Изображение %d для записи не найдено\n"
+msgstr "Изображение %d: звёзды не найдены\n"
 
 #: src/algos/astrometry_solver.c:2066 src/algos/astrometry_solver.c:2180
-#, fuzzy, c-format
+#, c-format
 msgid "Could not copy WCS data, skipping image %d\n"
-msgstr "Не удалось скопировать входящее изображение, прекращаем\n"
+msgstr "Не удалось скопировать данные WCS, пропускаем изображение %d\n"
 
 #: src/algos/astrometry_solver.c:2115
 #, c-format
@@ -12532,9 +12544,9 @@ msgid "Out of memory - aborting"
 msgstr "Закончилась память, отмена"
 
 #: src/algos/background_extraction.c:1028
-#, fuzzy, c-format
+#, c-format
 msgid "Background with %s interpolation computed for CFA image.\n"
-msgstr "Рассчитан фон с интерполяцией %s.\n"
+msgstr "Рассчитан фон с интерполяцией %s для изображения CFA.\n"
 
 #: src/algos/background_extraction.c:1058
 #: src/algos/background_extraction.c:1189
@@ -12662,9 +12674,10 @@ msgid "Color calibration factors:\n"
 msgstr "Коэффициенты для калибровки цвета:\n"
 
 #: src/algos/colors.c:1310 src/core/command.c:2053
-#, fuzzy
 msgid "Color Conversion Matrices can only be applied to 3-channel images.\n"
-msgstr "Эту операцию нельзя применить к 8-разрядным изображениям\n"
+msgstr ""
+"Матрицы преобразования цветов можно применять только к 3-канальным "
+"изображениям.\n"
 
 #: src/algos/colors.c:1332
 msgid "Color Conversion Matrices"
@@ -13894,7 +13907,7 @@ msgstr "Несохранённый результат сложения"
 
 #: src/compositing/compositing.c:572
 msgid "Compositing result image"
-msgstr "Сложение результирующего изображения"
+msgstr "Сложение итогового изображения"
 
 #: src/compositing/compositing.c:649 src/gui/remixer.c:1105
 #: src/gui/remixer.c:1194
@@ -15014,8 +15027,8 @@ msgid ""
 "Rotation will apply only to current selection, the resulting image will be "
 "cropped.\n"
 msgstr ""
-"Вращение будет применено только к текущему выделению, результирующее "
-"изображение будет кадрировано.\n"
+"Вращение будет применено только к текущему выделению, итоговое изображение "
+"будет кадрировано.\n"
 
 #: src/core/command.c:3492
 msgid "Angle %lf not allowed. Should be between 0.0 and 360.0.\n"
@@ -30118,10 +30131,8 @@ msgid "You should change framing method, aborting\n"
 msgstr "Измените метод кадрирования, прерывание\n"
 
 #: src/registration/applyreg.c:1042
-#, fuzzy
 msgid "Not enough space to save the output images\n"
-msgstr ""
-"Недостаточно места для сохранения результирующих изображений, прерывание\n"
+msgstr "Недостаточно места для сохранения итоговых изображений\n"
 
 #: src/registration/applyreg.c:1053
 msgid ""
@@ -30210,9 +30221,9 @@ msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
 msgstr ""
 
 #: src/registration/astrometric.c:287
-#, fuzzy, c-format
+#, c-format
 msgid "No image selected after computing transformations, aborting%s\n"
-msgstr "Изображения для обработки не выбраны, прерывание\n"
+msgstr "После вычисления преобразований изображения не выбраны, прерывание%s\n"
 
 #: src/registration/astrometric.c:310
 #, c-format
@@ -30220,24 +30231,25 @@ msgid "Sequence optimal framing: %.1f\n"
 msgstr ""
 
 #: src/registration/astrometric.c:312 src/registration/astrometric.c:314
-#, fuzzy, c-format
+#, c-format
 msgid "Sequence framing: %.1f\n"
-msgstr "Последовательность: %s\n"
+msgstr "Кадрирование последовательности: %.1f\n"
 
 #: src/registration/astrometric.c:389
 #, fuzzy
 msgid "Astrometric registration computed.\n"
-msgstr "Регистрация успешно применена.\n"
+msgstr "Астрометрическая регистрация вычислена.\n"
 
 #: src/registration/astrometric.c:411
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d has not been plate-solved, unselecting\n"
-msgstr "Изображение %d уже имеет астрономическое решение, пропускаем\n"
+msgstr ""
+"Изображение %d не имеет астрономического решения, убираем из выделения\n"
 
 #: src/registration/comet.c:193
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d has no registration data, removing\n"
-msgstr "Изображение не может быть выравнено по опорным звёздам.\n"
+msgstr "Изображение %d не содержит данных регистрации, удаляем\n"
 
 #: src/registration/comet.c:277
 msgid "Moving object registration"
@@ -30256,9 +30268,8 @@ msgid "Could not load FITS file for distortion\n"
 msgstr "Не удалось загрузить файл FITS с данными о дисторсии\n"
 
 #: src/registration/distorsion.c:394
-#, fuzzy
 msgid "Could not copy WCS information for distortion\n"
-msgstr "Не удалось скопировать изображение, прекращаем\n"
+msgstr "Не удалось скопировать информацию WCS для дисторсии\n"
 
 #: src/registration/distorsion.c:416
 msgid ""
@@ -30267,9 +30278,9 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:426
-#, fuzzy, c-format
+#, c-format
 msgid "Could not load image# %d, deselecting\n"
-msgstr "Не удалось загрузить изображение %d из последовательности %s\n"
+msgstr "Не удалось загрузить изображение %d, снимаем выделение\n"
 
 #: src/registration/distorsion.c:435
 msgid "Could not parse master file name for distortion, aborting\n"
@@ -30280,9 +30291,8 @@ msgid "Could not load master file for distortion, aborting\n"
 msgstr "Не удалось загрузить мастер-файл дисторсии, прерывание.\n"
 
 #: src/registration/distorsion.c:449
-#, fuzzy
 msgid "Could not copy WCS information for distortion, aborting\n"
-msgstr "Не удалось скопировать изображение, прекращаем\n"
+msgstr "Не удалось скопировать информацию WCS, прекращаем\n"
 
 #: src/registration/distorsion.c:477
 msgid "Selected file has no distortion information\n"
@@ -30329,9 +30339,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:558
-#, fuzzy
 msgid "Selected file has no WCS information"
-msgstr "Источник информации для графика."
+msgstr "Выбранный файл не содержит информации WCS"
 
 #: src/registration/distorsion.c:563
 msgid ""
@@ -30344,14 +30353,12 @@ msgid "Selected file has no distortion information"
 msgstr "Выбранный файл не содержит информации о дисторсии"
 
 #: src/registration/distorsion.c:572 src/registration/distorsion.c:574
-#, fuzzy
 msgid "Selected file has no dimensions information"
-msgstr "Источник информации для графика."
+msgstr "Выбранный файл не содержит информации о размерах"
 
 #: src/registration/distorsion.c:579 src/registration/distorsion.c:581
-#, fuzzy
 msgid "Selected file and current sequence do not have the same size"
-msgstr "Изображение из последовательности имеет другой размер\n"
+msgstr "Выбранный файл и текущая последовательность разного размера"
 
 #: src/registration/distorsion.c:590 src/registration/distorsion.c:592
 msgid ""
@@ -30359,9 +30366,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:597 src/registration/distorsion.c:599
-#, fuzzy
 msgid "Distortion master could not be parsed"
-msgstr "Символы параметра не могут быть разобраны."
+msgstr "Мастер-файл дисторсии не может быть разобран"
 
 #: src/registration/global.c:72
 msgid "shift-only (2 degrees)"
@@ -30598,14 +30604,14 @@ msgstr ""
 
 #. the mask exists and is more recent than the img, we don't need to read again
 #: src/stacking/blending.c:81
-#, fuzzy, c-format
+#, c-format
 msgid "Mask for image %d already exists, skipping\n"
-msgstr "Изображение %d уже имеет астрономическое решение, пропускаем\n"
+msgstr "Маска изображения %d уже существует, пропускаем\n"
 
 #: src/stacking/blending.c:194
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to save mask for image %d\n"
-msgstr "Не удалось открыть первое изображение"
+msgstr "Не удалось сохранить маску изображения %d\n"
 
 #: src/stacking/blending.c:219
 msgid "Compute feathering masks"
@@ -30653,14 +30659,14 @@ msgstr ""
 "для обработки.\n"
 
 #: src/stacking/median_and_mean.c:452
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading one of the image areas (%d: %d %d %d %d)\n"
-msgstr "Ошибка чтения одной из областей изображения\n"
+msgstr "Ошибка чтения одной из областей изображения (%d: %d %d %d %d)\n"
 
 #: src/stacking/median_and_mean.c:481
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading one of the masks areas (%d: %d %d %d %d)\n"
-msgstr "Ошибка чтения одной из областей изображения\n"
+msgstr "Ошибка чтения одной из областей маскирования (%d: %d %d %d %d)\n"
 
 #: src/stacking/median_and_mean.c:1063 src/stacking/median_and_mean.c:1108
 #, c-format
@@ -30835,19 +30841,18 @@ msgid "%s Check image %d first.\n"
 msgstr "%s Сначала проверьте изображение %d.\n"
 
 #: src/stacking/normalization.c:515
-#, fuzzy, c-format
+#, c-format
 msgid "Could not read overlap data between image %d and %d\n"
-msgstr ""
-"Не удалось частично загрузить изображение %d из последовательности %s\n"
+msgstr "Не удалось прочитать данные о перекрытиях между изображениями %d и %d\n"
 
 #: src/stacking/normalization.c:628
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Your system does not have enough memory to normalize images overlaps for "
 "stacking operation (%d MB free for %d MB required)\n"
 msgstr ""
-"Недостаточно памяти для нормализации изображений перед укладкой (свободно %d "
-"Мб из %d необходимых)\n"
+"Недостаточно памяти для нормализации перекрытия изображений перед укладкой ("
+"свободно %d Мб из %d необходимых)\n"
 
 #: src/stacking/normalization.c:635
 #, c-format
@@ -30860,9 +30865,8 @@ msgstr ""
 "d\n"
 
 #: src/stacking/normalization.c:712
-#, fuzzy
 msgid "Computing normalization on overlaps...\n"
-msgstr "Вычисление нормализации...\n"
+msgstr "Вычисление нормализации перекрытий\n"
 
 #: src/stacking/stacking.c:64
 msgid ""
