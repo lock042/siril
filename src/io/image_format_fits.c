@@ -1426,7 +1426,7 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 }
 
 int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *status) {
-	gchar *localefilename = get_locale_filename(filename);
+	gchar *localefilename = g_strdup(filename);
 	fits_create_diskfile(fptr, localefilename, status);
 	g_free(localefilename);
 	return *status;
@@ -1936,14 +1936,14 @@ close_readfits:
 }
 
 static int siril_fits_open_diskfile(fitsfile **fptr, const char *filename, int iomode, int *status) {
-	gchar *localefilename = get_locale_filename(filename);
+	gchar *localefilename = g_strdup(filename);
 	fits_open_diskfile(fptr, localefilename, iomode, status);
 	g_free(localefilename);
 	return *status;
 }
 
 int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomode, int *status) {
-	gchar *localefilename = get_locale_filename(filename);
+	gchar *localefilename = g_strdup(filename);
 	fits_open_diskfile(fptr, localefilename, iomode, status);
 	if (!(*status)) {
 		*status = siril_fits_move_first_image(*fptr);
@@ -1953,7 +1953,7 @@ int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomo
 }
 
 GDateTime* get_date_from_fits(const gchar *filename) {
-	gchar *localefilename = get_locale_filename(filename);
+	gchar *localefilename = g_strdup(filename);
 	fitsfile *fptr = NULL;
 	GDateTime *date = NULL;
 	int status = 0;
