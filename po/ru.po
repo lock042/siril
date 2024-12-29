@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-29 03:56+0000\n"
+"PO-Revision-Date: 2024-12-29 07:29+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -9314,11 +9314,12 @@ msgid "Prefix: "
 msgstr "Префикс: "
 
 #: src/gui/uifiles/siril.ui:6029
-#, fuzzy
 msgid ""
 "Prefix of the sequence resulting from the registration. Only the seq file is "
 "created, not new images."
-msgstr "Префикс имён файлов, полученных после регистрации."
+msgstr ""
+"Префикс последовательности, полученной после регистрации. Создаётся только "
+"файл seq, а не новые изображения."
 
 #: src/gui/uifiles/siril.ui:6085
 msgid "Pick 1st star"
@@ -12521,9 +12522,8 @@ msgid "Error: unsupported CFA pattern for this operation.\n"
 msgstr ""
 
 #: src/algos/background_extraction.c:952 src/algos/background_extraction.c:1160
-#, fuzzy
 msgid "Error splitting into CFA subcannels, aborting...\n"
-msgstr "Ошибка при разборе аргумента -scale= (%s), прерывание.\n"
+msgstr "Ошибка извлечения подканалов CFA, прерывание...\n"
 
 #: src/algos/background_extraction.c:967
 #, fuzzy
@@ -12572,9 +12572,8 @@ msgstr ""
 "%s)\n"
 
 #: src/algos/background_extraction.c:1317
-#, fuzzy
 msgid "Error reading reference metadata.\n"
-msgstr "Ошибка: не удалось прочитать выходной файл StarNet...\n"
+msgstr "Ошибка чтения опорных метаданных.\n"
 
 #: src/algos/ccd-inspector.c:184 src/algos/ccd-inspector.c:253
 #, c-format
@@ -12769,9 +12768,9 @@ msgid "No stars retrieved from the catalog %s\n"
 msgstr "Звёзды из каталога %s не были получены\n"
 
 #: src/algos/comparison_stars.c:428
-#, fuzzy, c-format
+#, c-format
 msgid "-> %i %s stars found within the image from %s\n"
-msgstr "На изображении не удалось найти звёзды сравнения, прерывание.\n"
+msgstr "-> %i %s звёзд найдено в изображении из %s\n"
 
 #: src/algos/comparison_stars.c:429
 msgid "variable"
@@ -15239,13 +15238,12 @@ msgid "Reference magnitude unset for sequence\n"
 msgstr "Значение блеска опорной последовательности очищено\n"
 
 #: src/core/command.c:4090
-#, fuzzy
 msgid ""
 "You need to add at least a loaded image or one image as variable. Use $ "
 "tokens to surround the file names .\n"
 msgstr ""
-"Необходимо добавить как минимум одно изображение как переменную. Используйте "
-"символы $, чтобы окружить имена файлов.\n"
+"Необходимо добавить как минимум загруженное изображение или одно изображение "
+"как переменную. Используйте символы $, чтобы окружить имена файлов.\n"
 
 #: src/core/command.c:4093
 msgid "There is an unmatched $. Please check the expression.\n"
@@ -15940,7 +15938,6 @@ msgstr ""
 "Быстрая нормализация возможна только при укладке по средней, игнорируем.\n"
 
 #: src/core/command.c:8252
-#, fuzzy
 msgid "Weighting is allowed only with mean stacking, ignoring.\n"
 msgstr "Присвоение веса возможно только при укладке по средней, игнорируем.\n"
 
@@ -16367,6 +16364,8 @@ msgid ""
 "This script has been marked as obsolete for this version of Siril, please "
 "check for an update to the script.\n"
 msgstr ""
+"Этот сценарий был отмечен как устаревший для этой версии Siril, пожалуйста, "
+"проверьте наличие обновлений сценария.\n"
 
 #: src/core/command.c:9371
 msgid "OK! This script is compatible with this version of Siril.\n"
@@ -22878,9 +22877,9 @@ msgid "URL retrieval failed. libcurl error: [%ld]\n"
 msgstr ""
 
 #: src/core/siril_networking.c:182
-#, fuzzy, c-format
+#, c-format
 msgid "Error fetching URL: %s\n"
-msgstr "Ошибка при открытии файла %s\n"
+msgstr "Ошибка при получении URL: %s\n"
 
 #: src/core/siril_networking.c:209
 #, fuzzy
@@ -26789,7 +26788,6 @@ msgid "Cannot take snapshot: %s\n"
 msgstr "Не удалось сделать снимок: %s\n"
 
 #: src/gui/script_menu.c:46
-#, fuzzy
 msgid ""
 "You are about to use scripts. Running automatic scripts is something that is "
 "easy and generally it provides a nice image. However you have to keep in "
@@ -26798,10 +26796,10 @@ msgid ""
 "available on the interface with a better parameter control."
 msgstr ""
 "Вы собираетесь использовать сценарии. Запуск автоматических сценариев это "
-"просто и обычно в результате получается красивое изображение. Однако "
-"необходимо помнить, что сценарии это не магия. Автоматический выбор делается "
-"там, где решение, принятое человеком могло бы быть лучше. Кроме того, каждая "
-"команда, используемая в сценариях доступна через интерфейс пользователя с "
+"просто и обычно в итоге получается красивое изображение. Однако необходимо "
+"помнить, что сценарии это не магия. Автоматический выбор делается там, где "
+"решение, принятое человеком, могло бы быть лучше. Кроме того, каждая "
+"команда, используемая в сценариях, доступна через интерфейс пользователя с "
 "лучшим контролем параметров."
 
 #: src/gui/script_menu.c:167
@@ -27111,9 +27109,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/stacking.c:184
-#, fuzzy
 msgid "Large number of images"
-msgstr "Кол-во изображений"
+msgstr "Большое кол-во изображений"
 
 #: src/gui/stacking.c:196
 msgid "Stacking: processing...\n"
@@ -27686,9 +27683,8 @@ msgid "FITS header of image %d updated\n"
 msgstr "Обновлён заголовок FITS изображения %d\n"
 
 #: src/io/fits_keywords.c:1282
-#, fuzzy
 msgid "This command won't work for SER sequence.\n"
-msgstr "команда только для последовательности"
+msgstr "Эта команда не работает с последовательностями SER.\n"
 
 #: src/io/fits_sequence.c:98
 msgid ""
@@ -28265,9 +28261,8 @@ msgid "Failed to read the local NOMAD catalogue\n"
 msgstr "Невозможно прочитать локальный каталог NOMAD\n"
 
 #: src/io/local_catalogues.c:185
-#, fuzzy
 msgid "Wrong trixel ID\n"
-msgstr "Неверная дата: "
+msgstr "Неверная ID трикселя\n"
 
 #: src/io/local_catalogues.c:292
 msgid "Error: number of trixels reported by file is out of limits.\n"
@@ -28354,9 +28349,8 @@ msgid "Wrongly formatted string: "
 msgstr "Неверный формат строки: "
 
 #: src/io/path_parse.c:82
-#, fuzzy
 msgid "Wrong wildcard usage: "
-msgstr "Неверная дата: "
+msgstr "Неверное использование символа подстановок: "
 
 #: src/io/path_parse.c:85
 msgid "More than one match for: "
@@ -28421,9 +28415,9 @@ msgid "Contacting server\n"
 msgstr "Соединение с сервером\n"
 
 #: src/io/remote_catalogues.c:661
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot create catalogue file %s (generic error)\n"
-msgstr "Невозможно создать файл каталога %s (%s)\n"
+msgstr "Невозможно создать файл каталога %s (общая ошибка)\n"
 
 #: src/io/remote_catalogues.c:706
 msgid "Offline, cannot retrieve URL.\n"
@@ -28444,9 +28438,8 @@ msgid "Error submitting conesearch request.\n"
 msgstr ""
 
 #: src/io/remote_catalogues.c:811
-#, fuzzy
 msgid "Job id not found in the response.\n"
-msgstr "Элементы на изображении не найдены\n"
+msgstr "В ответе отсутствует идентификатор задачи.\n"
 
 #. Avoid infinite loop
 #: src/io/remote_catalogues.c:823
@@ -29174,13 +29167,12 @@ msgid "Failed to find commit with given OID.\n"
 msgstr "Не удалось найти коммит с данным OID.\n"
 
 #: src/io/siril_git.c:224
-#, fuzzy
 msgid ""
 "Error removing Git lock files. You may need to delete the local git "
 "repository and allow Siril to re-clone it.\n"
 msgstr ""
-"Ошибка при выполнении жёсткого сброса (hard reset). Возможно необходимо "
-"удалить локальный репозиторий git и позволить Siril клонировать его заново.\n"
+"Ошибка при удалении файлов блокировки Git. Возможно необходимо удалить "
+"локальный репозиторий git и позволить Siril клонировать его заново.\n"
 
 #: src/io/siril_git.c:241 src/io/siril_git.c:253 src/io/siril_git.c:265
 msgid ""
@@ -29218,16 +29210,13 @@ msgid "Commit message: %s\n"
 msgstr "Сообщение коммита: %s\n"
 
 #: src/io/siril_git.c:532
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open repository: %s\n"
-msgstr "Ошибка клонирования репозитория: %s\n"
+msgstr "Не удалось открыть репозиторий: %s\n"
 
 #: src/io/siril_git.c:534
-#, fuzzy
 msgid "Attempting to clone from remote source...\n"
-msgstr ""
-"Не удалось открыть репозиторий: %s\n"
-"Попытка клонировать из удалённого источника...\n"
+msgstr "Попытка клонировать из удалённого источника...\n"
 
 #: src/io/siril_git.c:540 src/io/siril_git.c:691
 #, c-format
@@ -29297,31 +29286,32 @@ msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "Локальный репозиторий базы данных SPCC в актуальном состоянии!\n"
 
 #: src/io/siril_git.c:814
-#, fuzzy, c-format
+#, c-format
 msgid "Error spawning thread to update scripts repository: %s\n"
-msgstr "Ошибка: не удалось открыть локальный репозиторий сценариев.\n"
+msgstr ""
+"Ошибка создания дочернего процесса для обновления репозитория сценариев: %s\n"
 
 #: src/io/siril_git.c:818
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "scripts...\n"
 msgstr ""
-"Удалённый репозиторий сценариев выключен. Сценарии не будут получены или "
-"обновлены...\n"
+"Удалённый репозиторий сценариев выключен. Сценарии siril-scripts не будут "
+"получены или обновлены...\n"
 
 #: src/io/siril_git.c:823
-#, fuzzy, c-format
+#, c-format
 msgid "Error spawning thread to update SPCC repository: %s\n"
-msgstr "Ошибка клонирования репозитория: %s\n"
+msgstr ""
+"Ошибка создания дочернего процесса для обновления репозитория SPCC: %s\n"
 
 #: src/io/siril_git.c:827
-#, fuzzy
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "spcc...\n"
 msgstr ""
-"Удалённый репозиторий сценариев выключен. Сценарии не будут получены или "
-"обновлены...\n"
+"Удалённый репозиторий сценариев выключен. Сценарии siril-spcc не будут "
+"получены или обновлены...\n"
 
 #: src/io/siril_git.c:842
 msgid "Error: unable to open local scripts repository.\n"
@@ -30044,9 +30034,9 @@ msgid "No registration data exists for this layer\n"
 msgstr "Для этого слоя нет данных регистрации\n"
 
 #: src/registration/applyreg.c:142 src/registration/applyreg.c:260
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d has no overlap with the reference\n"
-msgstr "Изображение не может быть выравнено по опорным звёздам.\n"
+msgstr "Изображение %d не перекрывается с опорным\n"
 
 #: src/registration/applyreg.c:204
 msgid "The intersection of all images is null or negative\n"
@@ -30162,13 +30152,12 @@ msgstr ""
 "'нет', прерывание\n"
 
 #: src/registration/applyreg.c:1066
-#, fuzzy
 msgid ""
 "Applying registration with changes in output image size is not allowed when "
 "interpolation is set to none , aborting\n"
 msgstr ""
-"Применение регистрации с изменением размера исходящих изображений не "
-"допускается, если интерполяция установлена в 'нет', прерывание\n"
+"Применение регистрации с изменением размера итоговых изображений не "
+"допускается, если интерполяция установлена в «нет», прерывание\n"
 
 #: src/registration/applyreg.c:1072
 msgid ""
@@ -30219,10 +30208,11 @@ msgid "Sequence COG - RA:%7.3f - DEC:%+7.3f\n"
 msgstr ""
 
 #: src/registration/astrometric.c:269
-#, fuzzy, c-format
+#, c-format
 msgid "Could not compute camera parameters of image %d from sequence %s\n"
 msgstr ""
-"Не удалось частично загрузить изображение %d из последовательности %s\n"
+"Не удалось вычислить параметры камеры для изображения %d из "
+"последовательности %s\n"
 
 #: src/registration/astrometric.c:284
 #, c-format
@@ -30318,14 +30308,12 @@ msgid ""
 msgstr ""
 
 #: src/registration/distorsion.c:530
-#, fuzzy
 msgid "Platesolve current image"
-msgstr "Сохранить текущее изображение FITS"
+msgstr "Астрономическое решение для текущего изображения"
 
 #: src/registration/distorsion.c:536
-#, fuzzy
 msgid "Platesolve current image with distortions"
-msgstr "Сохранить текущее изображение под другим именем"
+msgstr "Астрономическое решение с дисторсией для текущего изображения"
 
 #: src/registration/distorsion.c:542
 msgid ""
