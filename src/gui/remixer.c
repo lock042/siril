@@ -745,6 +745,11 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			copy_fits_metadata(_fit_left, &fit_left);
 			clearfits(_fit_left);
 			free(_fit_left);
+			double maxval = 1.0, minval = 0.0;
+			int retval = quick_minmax(&fit_left, &minval, &maxval);
+			if (!retval &&(minval < 0.0 || maxval > 1.0)) {
+				apply_limits(&fit_left, minval, maxval, RESPONSE_RESCALE_CLIPNEG);
+			}
 			close_histograms(TRUE, TRUE);
 			remix_histo_startup_left();
 			copyfits(&fit_left, &fit_left_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
@@ -755,6 +760,10 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			permit_calculation = TRUE;
 			copyfits(_fit_right, &fit_right, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 			copy_fits_metadata(_fit_right, &fit_right);
+			retval = quick_minmax(&fit_right, &minval, &maxval);
+			if (!retval &&(minval < 0.0 || maxval > 1.0)) {
+				apply_limits(&fit_right, minval, maxval, RESPONSE_RESCALE_CLIPNEG);
+			}
 			remix_histo_startup_right();
 			clearfits(_fit_right);
 			free(_fit_right);
@@ -1108,6 +1117,11 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		right_loaded = FALSE;
 		return;
 	}
+	double maxval = 1.0, minval = 0.0;
+	int retval = quick_minmax(&fit_left, &minval, &maxval);
+	if (!retval &&(minval < 0.0 || maxval > 1.0)) {
+		apply_limits(&fit_left, minval, maxval, RESPONSE_RESCALE_CLIPNEG);
+	}
 	if (right_loaded) {
 		if(!check_images_match(&fit_left, &fit_right)) {
 			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: images do not match"),
@@ -1196,6 +1210,11 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		gtk_file_chooser_unselect_all(filechooser);
 		right_loaded = FALSE;
 		return;
+	}
+	double maxval = 1.0, minval = 0.0;
+	int retval = quick_minmax(&fit_right, &minval, &maxval);
+	if (!retval &&(minval < 0.0 || maxval > 1.0)) {
+		apply_limits(&fit_right, minval, maxval, RESPONSE_RESCALE_CLIPNEG);
 	}
 	if (left_loaded) {
 		if(!check_images_match(&fit_left, &fit_right)) {
