@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-10 15:24+0100\n"
-"PO-Revision-Date: 2024-12-28 10:30+0000\n"
-"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
+"PO-Revision-Date: 2024-12-29 07:29+0000\n"
+"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -593,7 +593,7 @@ msgstr "Suche Objekt"
 
 #: src/gui/uifiles/asinh_dialog.ui:45
 msgid "Asinh Transformation"
-msgstr ""
+msgstr "Asinh Transformation"
 
 #: src/gui/uifiles/asinh_dialog.ui:63 src/gui/uifiles/ccm_dialog.ui:43
 #: src/gui/uifiles/CLAHE_dialog.ui:68 src/gui/uifiles/dialog_star_remix.ui:1544
@@ -2159,7 +2159,7 @@ msgstr ""
 
 #: src/gui/uifiles/binxy_dialog.ui:41
 msgid "Binning"
-msgstr ""
+msgstr "Binning"
 
 #: src/gui/uifiles/binxy_dialog.ui:106
 msgid "Binning factor:"
@@ -2268,11 +2268,11 @@ msgstr "Benutzerdefiniert"
 
 #: src/gui/uifiles/ccm_dialog.ui:323
 msgid "Linear Rec.709_D65 to XYZ"
-msgstr ""
+msgstr "Linear Rec.709_D65 nach XYZ"
 
 #: src/gui/uifiles/ccm_dialog.ui:324
 msgid "XYZ to Linear Rec.709_D65"
-msgstr ""
+msgstr "XYZ zu Linear Rec.709_D65"
 
 #: src/gui/uifiles/ccm_dialog.ui:325
 msgid "Simplified sRGB (gamma = 2.2) to XYZ"
@@ -3048,7 +3048,7 @@ msgstr "Intensitätsprofil"
 
 #: src/gui/uifiles/cut_dialog.ui:343
 msgid "Plot Title"
-msgstr "Title der Grafik"
+msgstr "Titel der Grafik"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:73
 msgid "Spectrometry"
@@ -3301,7 +3301,7 @@ msgstr ""
 "üblicherweise zu einer guten Konvergenz. Die Konvergenz kann mit Hilfe der "
 "aktualisierten Schätzung des Bildrauschens untersucht werden die im Log-"
 "Fenster nach jeder Iteration angezeigt wird. (Diese Rauschwerte werden "
-"gemessen nachdem das Rauschen aus dem Originalbild wieder hinzugemischt "
+"gemessen nachdem das Rauschen aus dem Originalbild wieder zurück gemischt "
 "wurde, um die nächste Iteration vorzubereiten. Der endgültige Ergebnis-"
 "Rauschpegel ist wesentlich niedriger als die Zwischenwerte zwischen den "
 "Iterationen)."
@@ -3359,7 +3359,7 @@ msgstr ""
 
 #: src/gui/uifiles/denoise_dialog.ui:403 src/gui/uifiles/Median_dialog.ui:244
 msgid "Modulation"
-msgstr ""
+msgstr "Modulation"
 
 #: src/gui/uifiles/denoise_dialog.ui:418 src/gui/uifiles/denoise_dialog.ui:444
 msgid ""
@@ -3950,7 +3950,7 @@ msgstr "Linear"
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:135
 #: src/gui/uifiles/wavelets_dialog.ui:184
 msgid "BSpline"
-msgstr ""
+msgstr "BSpline"
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:148
 msgid "Nb. of Layers: "
@@ -4299,7 +4299,7 @@ msgstr "Kommentar"
 
 #: src/gui/uifiles/keywords_dialog.ui:163
 msgid "Dtype"
-msgstr ""
+msgstr "Dtype"
 
 #: src/gui/uifiles/keywords_dialog.ui:177
 msgid "Protected"
@@ -4443,7 +4443,7 @@ msgstr "sRGB (lineare TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:376
 msgid "sRGB (standard sRGB TRC)"
-msgstr ""
+msgstr "sRGB (standard sRGB TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:377
 msgid "Rec2020 (linear TRC)"
@@ -4451,7 +4451,7 @@ msgstr "Rec2020 (lineare TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:378
 msgid "Rec2020 (standard Rec709 TRC)"
-msgstr ""
+msgstr "Rec2020 (standard Rec709 TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:379
 msgid "Gray (linear TRC)"
@@ -4874,7 +4874,7 @@ msgid ""
 msgstr ""
 "Klicken Sie auf diesen Bereich, um die Nummerierung der Maustasten und die "
 "Scrollrichtung zu überprüfen und sicherzustellen, dass Sie die richtige "
-"Nummer für die Mausaktionen festlegen."
+"Nummer für die Mausaktionen festlegen"
 
 #: src/gui/uifiles/mouse_actions.ui:176
 msgid "Mouse Click Actions"
@@ -5332,7 +5332,7 @@ msgstr "ASTRO-TIFF"
 
 #: src/gui/uifiles/savepopup.ui:493
 msgid "Standard TIFF"
-msgstr ""
+msgstr "Standard TIFF"
 
 #: src/gui/uifiles/savepopup.ui:509
 msgid "TIFF"
@@ -6942,7 +6942,7 @@ msgstr "Standard Objektnamen:"
 
 #: src/gui/uifiles/settings_window.ui:3890
 msgid "Deep Sky Object (user) annotations:"
-msgstr "Objektnamen Deep Sky Objekte (Benutzer)"
+msgstr "Deep-Sky-Objekt-Anmerkungen (Benutzer):"
 
 #: src/gui/uifiles/settings_window.ui:3902
 msgid "Solar System Object (user) annotations:"
@@ -6992,7 +6992,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:4453
 #: src/gui/uifiles/settings_window.ui:4533 src/core/icc_profile.c:1502
 msgid "sRGB"
-msgstr ""
+msgstr "sRGB"
 
 #: src/gui/uifiles/settings_window.ui:4085
 msgid "Rec2020"
@@ -9096,7 +9096,7 @@ msgstr "Wählen Sie einen Wert für die Normalisierung."
 
 #: src/gui/uifiles/siril.ui:4878
 msgid "Fix X-Trans AF artifact"
-msgstr "X-Trans AF Artifakt beheben"
+msgstr "X-Trans AF Artefakt beheben"
 
 #: src/gui/uifiles/siril.ui:4882
 msgid ""
@@ -12031,27 +12031,27 @@ msgstr "Berechne Wavelet"
 
 #: src/gui/uifiles/wavelets_dialog.ui:320
 msgid "Layer 1"
-msgstr ""
+msgstr "Ebene 1"
 
 #: src/gui/uifiles/wavelets_dialog.ui:390
 msgid "Layer 2"
-msgstr ""
+msgstr "Ebene 2"
 
 #: src/gui/uifiles/wavelets_dialog.ui:460
 msgid "Layer 3"
-msgstr ""
+msgstr "Ebene 3"
 
 #: src/gui/uifiles/wavelets_dialog.ui:530
 msgid "Layer 4"
-msgstr ""
+msgstr "Ebene 4"
 
 #: src/gui/uifiles/wavelets_dialog.ui:600
 msgid "Layer 5"
-msgstr ""
+msgstr "Ebene 5"
 
 #: src/gui/uifiles/wavelets_dialog.ui:670
 msgid "Layer 6"
-msgstr ""
+msgstr "Ebene 6"
 
 #: src/gui/uifiles/wavelets_dialog.ui:736
 msgid "Adjust"
@@ -19607,7 +19607,6 @@ msgstr ""
 "<i>bayerpattern</i> sollte entweder 'RGGB', 'BGGR', 'GRBG' oder 'GBRG' sein"
 
 #: src/core/command_def.h:123
-#, fuzzy
 msgid ""
 "Finds and optionally performs geometric transforms on images of the sequence "
 "given in argument so that they may be superimposed on the reference image. "
@@ -19720,7 +19719,7 @@ msgstr ""
 "<b>-disto=</b> benutzt Verzerrungsterme einer vorherigen astrometrischen "
 "Lösung (mit einer SIP-Ordnung> 1). Es benötigt als Parameter entweder den "
 "Parameter <b>image</b> um die im aktuell geladenen Bild enthaltene Lösung zu "
-"benutzern oder einen Parameter <b>file</b> gefolgt vom Pfadnamen einer "
+"benutzen oder einen Parameter <b>file</b> gefolgt vom Pfadnamen einer "
 "Bilddatei die eine Lösung enthält oder <b>master</b> um automatisch das zu "
 "jedem Bild passende Master-Verzerrungsbild zu laden. Wenn diese Option "
 "verwendet wird, werden die Polynome sowohl zur Korrektur der Sternpositionen "
@@ -19740,7 +19739,7 @@ msgstr ""
 "Clamping of the bicubic and lanczos4 interpolation methods is the default, "
 "to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument.\n"
 "\n"
-"<b>Image drizzle options:</b>\n"
+"<b>Drizzle Optionen:</b>\n"
 "\n"
 "Otherwise, the images can be exported using HST drizzle algorithm by passing "
 "the argument <b>-drizzle</b> which can take the additional options:\n"
@@ -24792,7 +24791,7 @@ msgstr "Sharpless Catalogue (Sh2)"
 
 #: src/gui/annotations_pref.c:34
 msgid "Star Catalogue"
-msgstr "Stern-Katalog:"
+msgstr "Stern-Katalog"
 
 #: src/gui/annotations_pref.c:35
 msgid "User Deep Sky Objects Catalogue"
@@ -27650,7 +27649,7 @@ msgid ""
 "debayer it prior to registration"
 msgstr ""
 "Diese Sequenz kann nicht mit intaktem CFA-Muster registriert werden. Sie "
-"müssen sie vor der Registrierung entschichten."
+"müssen sie vor der Registrierung debayern."
 
 #: src/gui/registration.c:955
 msgid "CFA pattern detected"
