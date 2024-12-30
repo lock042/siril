@@ -763,9 +763,7 @@ gpointer write_trixels(gpointer p) {
 	double rav[NTRIXELS][3];
 	double decv[NTRIXELS][3];
 	for (int i = 0; i < NTRIXELS; i++) {
-		siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-		siril_cat->cat_index = CAT_LOCAL_TRIX;
-		siril_cat->columns = siril_catalog_columns(CAT_LOCAL_TRIX);
+		siril_catalogue *siril_cat = siril_catalog_new(CAT_LOCAL_TRIX);
 		siril_cat->trixel = i;
 		siril_cat->limitmag = 25;
 		if (!siril_catalog_conesearch(siril_cat)) {

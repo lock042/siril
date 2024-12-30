@@ -10189,9 +10189,7 @@ int process_platesolve(int nb) {
 	}
 	// catalog query parameters
 	if (solver == SOLVER_SIRIL) {
-		args->ref_stars = calloc(1, sizeof(siril_catalogue));
-		args->ref_stars->cat_index = cat;
-		args->ref_stars->columns =  siril_catalog_columns(cat);
+		args->ref_stars = siril_catalog_new(cat);
 		args->ref_stars->phot = FALSE;
 		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);

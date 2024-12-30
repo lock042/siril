@@ -184,9 +184,7 @@ gchar *get_annotation_catalog_filename(siril_cat_index cat_index, gboolean for_r
  */
 static annotations_catalogue_t *load_catalog(siril_cat_index cat_index, const gchar *filename) {
 	gboolean islocal = !filename;
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = cat_index;
-	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+	siril_catalogue *siril_cat = siril_catalog_new(cat_index);
 	if (islocal)
 		filename = get_annotation_catalog_filename(cat_index, TRUE);
 	if (!filename || siril_catalog_load_from_file(siril_cat, filename)) {// use the generic csv parser
@@ -518,9 +516,7 @@ void add_item_in_catalogue(cat_item *item, siril_cat_index cat_index, gboolean c
 	GSList *cur = find_catalogue_by_index(cat_index);
 	if (!cur || !cur->data) {// the catalog does not exist yet
 		annotations_catalogue_t *annot_cat = calloc(1, sizeof(annotations_catalogue_t));
-		siril_cat = calloc(1, sizeof(siril_catalogue));
-		siril_cat->cat_index = cat_index;
-		siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+		siril_cat = siril_catalog_new(cat_index);
 		annot_cat->cat = siril_cat;
 		annot_cat->show = TRUE;
 		siril_annot_catalogue_list = g_slist_append(siril_annot_catalogue_list, annot_cat);

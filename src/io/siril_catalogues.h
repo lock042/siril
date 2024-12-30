@@ -28,6 +28,10 @@
 #define MAX_CAT_COLUMNS 21
 #define CAT_AN_INDEX_OFFSET 60
 
+// Define Epoch 2000.0 (used by Vizier) and Epoch 2016.0 (used by Gaia DR3 directly)
+#define J2000 2451545.0
+#define J2016 2457388.5
+
 // all catalogues that can be used
 // < 60: online
 // < 40: TAP
@@ -140,6 +144,7 @@ typedef struct {
 	GDateTime *dateobs; // date-obs in JD
 	gchar *IAUcode; // observatory code
 	gboolean phot; // TRUE if can be used for photometry
+	double epoch; // epoch for proper motion
 	cat_item *cat_items;
 	int nbitems; // the number of items stored
 	int nbincluded; // the number of items included after projection
@@ -204,6 +209,7 @@ const gchar **get_cat_colums_names();
 
 void siril_catalog_free_item(cat_item *item);
 void siril_catalog_free_items(siril_catalogue *siril_cat);
+siril_catalogue *siril_catalog_new(siril_cat_index Catalog);
 void siril_catalog_free(siril_catalogue *siril_cat);
 void siril_catalog_reset_projection(siril_catalogue *siril_cat);
 gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item);

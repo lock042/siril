@@ -846,16 +846,12 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		if (uselocal && !gtk_toggle_button_get_active(nonearbutton)) {
 			args->searchradius = gtk_spin_button_get_value(radiusspin);
 		}
-		args->ref_stars = calloc(1, sizeof(siril_catalogue));
 		args->cat_center = catalog_center;
+		siril_cat_index cat_index = uselocal ? CAT_LOCAL : (autocat ? CAT_AUTO : cat);
+		args->ref_stars = siril_catalog_new(cat_index);
 		args->ref_stars->center_ra = siril_world_cs_get_alpha(catalog_center);
 		args->ref_stars->center_dec = siril_world_cs_get_delta(catalog_center);
-		if (uselocal)
-			args->ref_stars->cat_index = CAT_LOCAL;
-		else if (autocat)
-			args->ref_stars->cat_index = CAT_AUTO;
-		else
-			args->ref_stars->cat_index = cat;
+
 		if (args->for_sequence) {
 			// we solve each image individually if:
 			// - we use local catalogues

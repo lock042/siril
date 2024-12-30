@@ -285,9 +285,7 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 	// we fill a siril_catalogue struct to use the generic catalogue writer
 	// may be a bit slower than direct write to the output_stream but will ease maintenance
 	// anyway, those catalogs are usually small so little impact on performance is to be expected
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = CAT_IMCCE;
-	siril_cat->columns = siril_catalog_columns(CAT_IMCCE);
+	siril_catalogue *siril_cat = siril_catalog_new(CAT_IMCCE);
 	gchar **token = g_strsplit(buffer, "\n", -1);
 	int nb_lines = g_strv_length(token);
 	int nstars = nb_lines - 3;
@@ -361,9 +359,7 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	// we fill a siril_catalogue struct to use the generic catalogue writer
 	// may be a bit slower than direct write to the output_stream but will ease maintenance
 	// anyway, those catalogs are usually small so little impact on performance is to be expected
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = CAT_AAVSO_CHART;
-	siril_cat->columns = siril_catalog_columns(CAT_AAVSO_CHART);
+	siril_catalogue *siril_cat = siril_catalog_new(CAT_AAVSO_CHART);
 
 	// parsing the AAVSO chart id in the comments section
 	JsonReader *reader = json_reader_new(json_parser_get_root(parser));
