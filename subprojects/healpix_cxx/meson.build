@@ -9,7 +9,7 @@ project('healpix_cxx',
   ['cpp'],
   version : '8.3.0',
   meson_version: '>=0.53.0',
-  license : 'GPL-2.0-only'
+  license : 'GPL-2.0-only',
   default_options : [
     'c_std=gnu11',
     'cpp_std=c++11'
