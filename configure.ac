@@ -234,6 +234,27 @@ else
 fi
 AM_CONDITIONAL(HAVE_HTMESH, test "x$have_htmesh" = "xyes")
 
+if test "$cross_compiling" != "yes"; then
+	dnl check CMake used for healpix_cxx
+	AC_PATH_PROG(CMAKE, cmake, no)
+	if test "x$CMAKE" = xno; then
+		AC_MSG_ERROR([CMAKE not found (needed to built internal healpix_cxx)])
+	fi
+
+	CMAKE_GENERATOR=
+	if test "$platform_win32" = "yes"; then
+		CMAKE_GENERATOR="-G \"MSYS Makefiles\""
+	fi
+	AC_SUBST([CMAKE_GENERATOR])
+
+	AC_MSG_NOTICE([healpix_cxx will be built statically])
+else
+	# When cross-compiling, you should build healpix_cxx yourself and
+	# install it yourself.
+	AC_MSG_ERROR([healpix_cxx cannot be built])
+fi
+AM_CONDITIONAL(HAVE_HEALPIX_CXX, test "x$have_healpix_cxx" = "xyes")
+
 dnl ================ OPTIONAL DEPENDENCIES ================
 
 dnl check raw lib

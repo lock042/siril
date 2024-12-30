@@ -457,6 +457,9 @@ endif
 AM_CPPFLAGS += -I$(top_srcdir)/subprojects/htmesh
 libhtmeshlibs = $(top_builddir)/subprojects/htmesh/build/libhtmesh.a
 
+AM_CPPFLAGS += -I$(top_srcdir)/subprojects/healpix_cxx
+libhealpix_cxxlibs = $(top_builddir)/subprojects/healpix_cxx/build/libhealpix_cxx.a
+
 siril_common_LDADD = \
 	$(top_builddir)/subprojects/kplot/libkplot.a \
 	$(FFMPEG_LIBS) \
@@ -510,7 +513,8 @@ siril_common_SOURCES += \
 
 siril_common_LDADD += $(OPENCV_LIBS) \
 		      $(EXIV2_LIBS) \
-		      $(libhtmeshlibs)
+		      $(libhtmeshlibs) \
+			  $(libhealpix_cxxlibs) \
 
 siril_SOURCES = $(siril_common_SOURCES) siril_resource.c siril_resource.h main.c
 siril_cli_SOURCES = $(siril_common_SOURCES) main-cli.c
