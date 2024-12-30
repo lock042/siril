@@ -231,8 +231,6 @@ endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
-# healpix dependency to support Gaia catalogues
-healpix_dep = dependency('healpix_cxx', required: true)
 # lcms2 dependency for color management
 lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
 # wcslib mandatory - uses subproject fallback to build if not found
@@ -310,6 +308,8 @@ endif
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
+
+healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
 
 ## Optional dependencies
 
