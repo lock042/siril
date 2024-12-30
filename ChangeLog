@@ -1,6 +1,7 @@
 siril 1.2.6
 --/--/--
 * Fixed sign error in messier catalog
+* Fixed Save As feature (#1452)
 
 siril 1.2.5
 11/22/24
