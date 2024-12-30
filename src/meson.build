@@ -170,7 +170,7 @@ src_files = [
   'io/fits_keywords.c',
   'io/fits_sequence.c',
   'io/FITS_symlink.c',
-  'io/healpix.cpp',
+  'io/healpix/healpix.cpp',
   'io/image_format_fits.c',
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',

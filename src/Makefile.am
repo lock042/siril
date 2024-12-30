@@ -372,6 +372,7 @@ siril_common_SOURCES = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
+	io/healpix/healpix.cpp \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
