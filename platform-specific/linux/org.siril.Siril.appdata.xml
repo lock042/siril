@@ -99,6 +99,26 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.2.6" type="stable" date="2024-xx-xx">
+      <url type="details">https://siril.org/download/1.2.6</url>
+      <description>
+        <p>
+          Siril 1.2.6 is a bug fix release, containing only bug fixes.
+          The most important are:
+        </p>
+        <ul>
+          <li>
+          Fixed sign error in messier catalog
+          </li>
+          <li>
+          Fixed Save As feature
+          </li>
+          <li>
+          Fixed handling wide chars with updated cfitsio (Windows only)
+          </li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.5" type="stable" date="2024-11-22">
       <url type="details">https://siril.org/download/1.2.5</url>
       <description>

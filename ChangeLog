@@ -100,6 +100,11 @@ xx/xx/xx
 * Added a memory check for the preview image (#778)
 * Removed Windows cross-build CI and improved performance of native CI (!767)
 
+siril 1.2.6
+--/--/--
+* Fixed sign error in messier catalog (#1453)
+* Fixed Save As feature (#1452)
+
 siril 1.2.5
 11/22/24
 * Fixed crash in gaussVertical() on macOS (issue reported on pixls.us, !742)

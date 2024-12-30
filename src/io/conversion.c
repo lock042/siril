@@ -291,6 +291,7 @@ static int check_for_raw_extensions(const char *extension) {
 /* returns the image_type for the extension without the dot, only if it is supported by
  * the current instance of Siril. */
 image_type get_type_for_extension(const char *extension) {
+	if (!extension) return TYPEUNDEF;
 	if ((supported_filetypes & TYPEBMP) && !g_ascii_strcasecmp(extension, "bmp")) {
 		return TYPEBMP;
 	} else if ((supported_filetypes & TYPEJPG) &&

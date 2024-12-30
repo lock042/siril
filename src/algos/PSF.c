@@ -1042,7 +1042,7 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
 				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
 				"RMSE:\n\t\tRMSE=%.3e"),
-			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat", buffer2,
+			(result->profile == PSF_GAUSSIAN) ? _("Gaussian") : _("Moffat"), buffer2,
 			coordinates, fwhmx, unts, fwhmy, unts, fwhmy / fwhmx,
 			result->angle, result->B, result->A, str,
 			result->mag + com.magOffset, result->s_mag, result->SNR,
