@@ -13,6 +13,9 @@
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846  /* pi */
+#endif
 
 // Source data structure with packed attributes to match file format
 #pragma pack(push, 1)  // Ensure no padding between members

@@ -231,8 +231,6 @@ endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
-# healpix dependency to support Gaia catalogues
-healpix_dep = dependency('healpix_cxx', required: true)
 # lcms2 dependency for color management
 lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
 # wcslib mandatory - uses subproject fallback to build if not found
@@ -310,6 +308,22 @@ endif
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
+
+# healpix dependency to support Gaia catalogues
+# healpix_dep = dependency('healpix_cxx', required: false)
+# if not healpix_dep.found()
+#   opt_var = cmake.subproject_options()
+
+#   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
+#   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/healpix_cxx'})
+#   sub_proj = cmake.subproject('healpix_cxx', options: opt_var)
+
+#   healpix_dep = sub_proj.dependency('healpix_cxx')
+#   healpix_inc = sub_proj.include_directories('healpix_cxx')
+
+# endif
+
+healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true)
 
 ## Optional dependencies
 
