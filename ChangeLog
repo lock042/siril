@@ -91,7 +91,6 @@ xx/xx/xx
 * Fixed seqpsf for images which write ADU in float (#1322)
 * Fixed crash in catsearch when object is unknown (#1383)
 * Fixed local astrometry.net solver non-functional on flatpak (#1392)
-* Fixed Save As feature (#1452)
 
 **Misc:**
 * Removed glib-networking as a dependency (#1157)
@@ -103,7 +102,8 @@ xx/xx/xx
 
 siril 1.2.6
 --/--/--
-* Fixed sign error in messier catalog
+* Fixed sign error in messier catalog (#1453)
+* Fixed Save As feature (#1452)
 
 siril 1.2.5
 11/22/24
