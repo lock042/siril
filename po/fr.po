@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-30 15:51+0100\n"
-"PO-Revision-Date: 2024-12-11 08:47+0000\n"
+"PO-Revision-Date: 2024-12-30 23:47+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -6290,13 +6290,13 @@ msgstr ""
 "forme de binaire compact, jusqu'à la magnitude 18."
 
 #: src/gui/uifiles/settings_window.ui:1521
-#, fuzzy
 msgid ""
 "<b>Local Star Catalogues</b> (<a href=\"https://siril.readthedocs.io/en/"
 "stable/astrometry/platesolving.html#using-local-catalogues\">more info</a>)"
 msgstr ""
-"<b>Catalogues locaux d'étoiles</b> (<a href=\"https://free-astro.org/"
-"index.php?title=Siril:Star_Catalogues\">plus d'infos</a>)"
+"<b>Catalogues locaux d'étoiles</b> (<a href=\"https://siril.readthedocs.io/"
+"en/stable/astrometry/platesolving.html#using-local-catalogues\">plus "
+"d'infos</a>)"
 
 #: src/gui/uifiles/settings_window.ui:1548
 msgid "Update default focal length and pixel size from the result"
@@ -28087,15 +28087,16 @@ msgid "Saving FITS"
 msgstr "Enregistrer FITS"
 
 #: src/gui/save_dialog.c:436
-#, fuzzy
 msgid "Extension Mismatch"
-msgstr "Extension :"
+msgstr "Incompatibilité d'extension"
 
 #: src/gui/save_dialog.c:437
 msgid ""
 "The given file extension does not match the chosen file type. Do you want to "
 "save the image using this name anyway?"
 msgstr ""
+"L'extension de fichier donnée ne correspond pas au type de fichier choisi. "
+"Voulez-vous quand même enregistrer l'image sous ce nom ?"
 
 #: src/gui/save_dialog.c:438 src/gui/save_dialog.c:489
 msgid "Save Anyway"
@@ -30217,6 +30218,8 @@ msgid ""
 "Reference frame has an ICC profile. Will assign / convert other frames to to "
 "match.\n"
 msgstr ""
+"Le cadre de référence a un profil ICC. Les autres images seront assignées ou "
+"converties pour correspondre.\n"
 
 #: src/io/sequence_export.c:209
 #, c-format
@@ -30262,6 +30265,8 @@ msgid ""
 "Info: this frame has an ICC profile but the reference frame does not. "
 "Profile will be preserved...\n"
 msgstr ""
+"Info : cette image a un profil ICC mais l'image de référence n'en a pas. Le "
+"profil sera préservé...\n"
 
 #: src/io/sequence_export.c:583
 msgid "Sequence export failed. Check the log."
