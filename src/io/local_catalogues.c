@@ -39,6 +39,7 @@
 #include "registration/matching/degtorad.h"
 #include "registration/matching/misc.h"
 #include "local_catalogues.h"
+#include "io/healpix/healpix_cat.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -95,17 +96,6 @@ struct expansion_field {
 	uint8_t HTM_level;
 	uint16_t max_stars;
 };
-
-// the 16-byte struct
-// this is the struct we effectively use, units are the correct ones
-typedef struct {
-	int32_t RA;	// hours times 1000000
-	int32_t Dec;	// degrees times 100000
-	int16_t dRA;	// in mas per year
-	int16_t dDec;
-	int16_t B;	// mag times 1000
-	int16_t V;
-} deepStarData;
 
 // alternative 16-byte struct for plate solving, replaces proper motion by distance
 typedef struct {
@@ -709,6 +699,10 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	}
 	deepStarData *stars = NULL;
 	uint32_t nb_stars;
+
+	if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO && get_raw_stars_from_local_gaia_astro_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
+		return 0;
+
 	if (siril_cat->cat_index == CAT_LOCAL && get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
 				siril_cat->phot, &stars, &nb_stars))
 		return 0;
