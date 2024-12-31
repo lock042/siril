@@ -10,7 +10,6 @@ void fill_script_repo_list(gboolean as_idle);
 int reset_repository(const gchar *local_path);
 int preview_scripts_update(GString **git_pending_commit_buffer);
 int preview_spcc_update(GString **git_pending_commit_buffer);
-gboolean can_fastforward;
 #else
 void hide_git_widgets();
 #endif
