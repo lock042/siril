@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-31 08:11+0100\n"
+"POT-Creation-Date: 2024-12-30 15:51+0100\n"
 "PO-Revision-Date: 2024-12-29 19:42+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
@@ -13843,16 +13843,6 @@ msgstr "echt reduziert"
 msgid "relative"
 msgstr "relativ"
 
-#: src/algos/PSF.c:1031
-#, c-format
-msgid ", beta=%0.1f, %s channel"
-msgstr ""
-
-#: src/algos/PSF.c:1034
-#, fuzzy, c-format
-msgid ", %s channel"
-msgstr "%s (Kanal 0)"
-
 #: src/algos/PSF.c:1036
 #, c-format
 msgid ""
@@ -14453,8 +14443,8 @@ msgstr "Alle Bilder wurden erfolgreich neu geladen.\n"
 #: src/core/icc_profile.c:1203 src/filters/fft.c:600 src/filters/fft.c:606
 #: src/filters/fft.c:625 src/gui/compstars.c:225 src/gui/compstars.c:297
 #: src/gui/compstars.c:305 src/gui/compstars.c:312 src/gui/compstars.c:319
-#: src/gui/colors.c:437 src/gui/git_gui.c:173 src/gui/git_gui.c:191
-#: src/gui/git_gui.c:247 src/gui/icc_profile.c:307 src/gui/icc_profile.c:375
+#: src/gui/colors.c:437 src/gui/git_gui.c:173 src/gui/git_gui.c:192
+#: src/gui/git_gui.c:249 src/gui/icc_profile.c:307 src/gui/icc_profile.c:375
 #: src/gui/icc_profile.c:551 src/gui/nina_light_curve.c:221
 #: src/gui/nina_light_curve.c:226 src/gui/nina_light_curve.c:232
 #: src/gui/nina_light_curve.c:241 src/gui/nina_light_curve.c:279
@@ -25841,10 +25831,10 @@ msgstr "Kann nicht auf Link zugreifen"
 msgid "Please go to <a href=\""
 msgstr "Gehe zu <a href=\""
 
-#: src/gui/git_gui.c:59 src/gui/git_gui.c:70 src/gui/git_gui.c:221
-#: src/gui/git_gui.c:225 src/gui/git_gui.c:230 src/gui/git_gui.c:235
-#: src/gui/git_gui.c:276 src/gui/git_gui.c:280 src/gui/git_gui.c:283
-#: src/gui/git_gui.c:287
+#: src/gui/git_gui.c:59 src/gui/git_gui.c:70 src/gui/git_gui.c:222
+#: src/gui/git_gui.c:226 src/gui/git_gui.c:231 src/gui/git_gui.c:236
+#: src/gui/git_gui.c:278 src/gui/git_gui.c:282 src/gui/git_gui.c:285
+#: src/gui/git_gui.c:289
 msgid "Manual Update"
 msgstr "Manuelle Aktualisierung"
 
@@ -25858,15 +25848,15 @@ msgstr ""
 msgid "Error loading script contents: %s\n"
 msgstr "Fehler beim Laden des Skriptinhalts: %s\n"
 
-#: src/gui/git_gui.c:191 src/gui/git_gui.c:247
+#: src/gui/git_gui.c:192 src/gui/git_gui.c:249
 msgid "Error getting the list of unmerged changes"
 msgstr "Fehler beim Abrufen der Liste der nicht eingepflegten Änderungen"
 
-#: src/gui/git_gui.c:196 src/gui/git_gui.c:252 src/gui/graxpert.c:288
+#: src/gui/git_gui.c:197 src/gui/git_gui.c:254 src/gui/graxpert.c:288
 msgid "Warning!"
 msgstr "Warnung!"
 
-#: src/gui/git_gui.c:197
+#: src/gui/git_gui.c:198
 msgid ""
 "Merge analysis shows that the merge cannot be fast-forwarded. This indicates "
 "you have made changes to the local repository. Siril does not provide full "
@@ -25894,33 +25884,33 @@ msgstr ""
 "einen anderen Ort kopieren und diesen Ort zur Liste der zu durchsuchenden "
 "Skriptverzeichnisse hinzufügen."
 
-#: src/gui/git_gui.c:208 src/gui/git_gui.c:264 src/gui/icc_profile.c:110
+#: src/gui/git_gui.c:209 src/gui/git_gui.c:266 src/gui/icc_profile.c:110
 msgid "Accept"
 msgstr "Annehmen"
 
-#: src/gui/git_gui.c:222 src/gui/git_gui.c:277
+#: src/gui/git_gui.c:223 src/gui/git_gui.c:279
 msgid "Read and confirm the pending changes to be synced"
 msgstr ""
 "Lesen und bestätigen Sie die ausstehenden Änderungen, die synchronisiert "
 "werden sollen"
 
-#: src/gui/git_gui.c:223 src/gui/git_gui.c:278
+#: src/gui/git_gui.c:224 src/gui/git_gui.c:280
 msgid "Confirm"
 msgstr "Bestätigen"
 
-#: src/gui/git_gui.c:225
+#: src/gui/git_gui.c:226
 msgid "Error! Script database failed to update."
 msgstr "Fehler! Update der Skriptdatenbank fehlgeschlagen."
 
-#: src/gui/git_gui.c:231 src/gui/git_gui.c:283
+#: src/gui/git_gui.c:232 src/gui/git_gui.c:285
 msgid "Update cancelled. Updates have not been applied."
 msgstr "Update abgebrochen. Updates wurden nicht angewendet."
 
-#: src/gui/git_gui.c:235
+#: src/gui/git_gui.c:236
 msgid "The script repository is up to date."
 msgstr "Die Skriptdatenbank ist aktuell."
 
-#: src/gui/git_gui.c:253
+#: src/gui/git_gui.c:255
 msgid ""
 "Merge analysis shows that the merge cannot be fast-forwarded. This indicates "
 "you have made changes to the local scripts repository. Siril does not "
@@ -25948,11 +25938,11 @@ msgstr ""
 "einen anderen Ort kopieren und diesen Ort zur Liste der zu durchsuchenden "
 "Skriptverzeichnisse hinzufügen."
 
-#: src/gui/git_gui.c:280
+#: src/gui/git_gui.c:282
 msgid "Error! SPCC database failed to update."
 msgstr "Fehler! SPCC-Datenbank konnte nicht aktualisiert werden."
 
-#: src/gui/git_gui.c:287
+#: src/gui/git_gui.c:289
 msgid "The SPCC database repository is up to date."
 msgstr "Das SPCC-Datenbank-Repository ist auf dem neuesten Stand."
 
@@ -30477,47 +30467,47 @@ msgstr ""
 "libgit2: Das Repository konnte nicht ordnungsgemäß bereinigt werden. Kann "
 "nicht fortgesetzt werden.\n"
 
-#: src/io/siril_git.c:469 src/io/siril_git.c:473
+#: src/io/siril_git.c:472 src/io/siril_git.c:476
 #, c-format
 msgid "Commit message: %s\n"
 msgstr "Commit-Meldung: %s\n"
 
-#: src/io/siril_git.c:529
+#: src/io/siril_git.c:532
 #, c-format
 msgid "Cannot open repository: %s\n"
 msgstr "Fehler beim Öffnen des Repositories: %s\n"
 
-#: src/io/siril_git.c:531
+#: src/io/siril_git.c:534
 msgid "Attempting to clone from remote source...\n"
 msgstr "Es wird versucht, von einer Remote-Quelle zu klonen…\n"
 
-#: src/io/siril_git.c:537 src/io/siril_git.c:688
+#: src/io/siril_git.c:540 src/io/siril_git.c:691
 #, c-format
 msgid "Error cloning repository: %s\n"
 msgstr "Fehler beim Klonen des Repositorys: %s\n"
 
-#: src/io/siril_git.c:542 src/io/siril_git.c:693
+#: src/io/siril_git.c:545 src/io/siril_git.c:696
 msgid "Repository cloned successfully!\n"
 msgstr "Repository erfolgreich geklont!\n"
 
-#: src/io/siril_git.c:545
+#: src/io/siril_git.c:548
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
 msgstr ""
 "Siril ist im Offline-Modus. Es wird nicht versucht, das entfernte Repository "
 "zu klonen\n"
 
-#: src/io/siril_git.c:560 src/io/siril_git.c:704
+#: src/io/siril_git.c:563 src/io/siril_git.c:707
 msgid "Failed to lookup remote.\n"
 msgstr "Remote-Suche ist fehlgeschlagen.\n"
 
-#: src/io/siril_git.c:571 src/io/siril_git.c:715
+#: src/io/siril_git.c:574 src/io/siril_git.c:718
 msgid "Error: cannot identify local repository's configured remote.\n"
 msgstr ""
 "Fehler: Kann die lokal konfigurierten Repositories auf dem Server nicht "
 "identifizieren\n"
 
-#: src/io/siril_git.c:579
+#: src/io/siril_git.c:582
 #, c-format
 msgid ""
 "Error: local siril-scripts repository folder is not configured with %s as "
@@ -30528,12 +30518,12 @@ msgstr ""
 "Remote-Ordner konfiguriert. Sie sollten den Ordner %s entfernen und Siril "
 "neu starten, um das richtige Repository neu zu klonen.\n"
 
-#: src/io/siril_git.c:584 src/io/siril_git.c:728
+#: src/io/siril_git.c:587 src/io/siril_git.c:731
 msgid "Repository Error"
 msgstr "Repositoryfehler"
 
-#: src/io/siril_git.c:601 src/io/siril_git.c:615 src/io/siril_git.c:745
-#: src/io/siril_git.c:759
+#: src/io/siril_git.c:604 src/io/siril_git.c:618 src/io/siril_git.c:748
+#: src/io/siril_git.c:762
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
@@ -30542,11 +30532,11 @@ msgstr ""
 "möglicherweise das lokale Git-Repository löschen und Siril erlauben, es "
 "erneut zu klonen.\n"
 
-#: src/io/siril_git.c:623
+#: src/io/siril_git.c:626
 msgid "Local scripts repository is up-to-date!\n"
 msgstr "Lokales Skript-Repository ist aktuell!\n"
 
-#: src/io/siril_git.c:682
+#: src/io/siril_git.c:685
 #, c-format
 msgid ""
 "Cannot open repository: %s\n"
@@ -30555,7 +30545,7 @@ msgstr ""
 "Repository kann nicht geöffnet werden: %s\n"
 "Versuch, von Remote-Quelle zu klonen...\n"
 
-#: src/io/siril_git.c:723
+#: src/io/siril_git.c:726
 #, c-format
 msgid ""
 "Error: local siril-spcc-database repository folder is not configured with %s "
@@ -30566,18 +30556,18 @@ msgstr ""
 "als Remote-Ordner konfiguriert. Sie sollten den Ordner %s entfernen und "
 "Siril neu starten, um das richtige Repository neu zu klonen.\n"
 
-#: src/io/siril_git.c:767
+#: src/io/siril_git.c:770
 msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "Lokales SPCC-Datenbank-Repository ist aktuell!\n"
 
-#: src/io/siril_git.c:811
+#: src/io/siril_git.c:814
 #, c-format
 msgid "Error spawning thread to update scripts repository: %s\n"
 msgstr ""
 "Fehler beim Erzeugen eines Threads zur Aktualisierung des Skript-"
 "Repositorys: %s\n"
 
-#: src/io/siril_git.c:815
+#: src/io/siril_git.c:818
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "scripts...\n"
@@ -30585,14 +30575,14 @@ msgstr ""
 "Online-Skript-Repository nicht aktiviert. Siril-Skripte werden nicht "
 "abgerufen oder aktualisiert...\n"
 
-#: src/io/siril_git.c:820
+#: src/io/siril_git.c:823
 #, c-format
 msgid "Error spawning thread to update SPCC repository: %s\n"
 msgstr ""
 "Fehler beim Erstellen des Threads zum Aktualisieren des SPCC-Repositories: "
 "%s\n"
 
-#: src/io/siril_git.c:824
+#: src/io/siril_git.c:827
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "spcc...\n"
@@ -30600,11 +30590,11 @@ msgstr ""
 "Online-Skript-Repository nicht aktiviert. Siril-SPCC wird nicht abgerufen "
 "oder aktualisiert...\n"
 
-#: src/io/siril_git.c:839
+#: src/io/siril_git.c:842
 msgid "Error: unable to open local scripts repository.\n"
 msgstr "Fehler: Lokales Skript-Repository kann nicht geöffnet werden.\n"
 
-#: src/io/siril_git.c:864
+#: src/io/siril_git.c:867
 msgid "Error: unable to open local spcc-database repository.\n"
 msgstr ""
 "Fehler: Lokales SPCC-Datenbank-Repository kann nicht geöffnet werden.\n"
@@ -36279,6 +36269,9 @@ msgstr "Das Stacken erfolgt ohne Hochskalierung (ohne 'Drizzle')\n"
 
 #~ msgid "fwhm: no selection"
 #~ msgstr "FWHM: nichts ausgewählt"
+
+#~ msgid "%s (channel 0)"
+#~ msgstr "%s (Kanal 0)"
 
 #~ msgid "%s (channel 1)"
 #~ msgstr "%s (Kanal 1)"
