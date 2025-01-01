@@ -27,6 +27,15 @@ struct SourceEntryAstro {
 	int16_t dra_scaled;  // 2 bytes
 	int16_t ddec_scaled; // 2 bytes
 	int16_t mag_scaled;  // 2 bytes
+};
+
+struct SourceEntryPhoto {
+	uint64_t source_id;  // 8 bytes
+	int32_t ra_scaled;   // 4 bytes
+	int32_t dec_scaled;  // 4 bytes
+	int16_t dra_scaled;  // 2 bytes
+	int16_t ddec_scaled; // 2 bytes
+	int16_t mag_scaled;  // 2 bytes
 	// The remaining fields are only read for SPCC
 	uint8_t fexpo;       // 1 byte
 	int16_t flux[343];   // 686 bytes: xp_sampled flux values

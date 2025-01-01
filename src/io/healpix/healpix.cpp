@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdint>
+#include <cstring>
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
@@ -26,7 +27,8 @@ struct SourceIdRange {
 
 // This function creates a range of consecutive HEALpixels: we can scan these
 // continuously in the file, rather than doing a binary search for the start of
-// each HEALpixel in the range
+// each HEALpixel in the range. It is used for both astrometric and photometric
+// catalogues.
 
 std::vector<SourceIdRange> create_sourceid_ranges(const std::vector<int>& pixels) {
     std::vector<SourceIdRange> ranges;
@@ -59,21 +61,20 @@ std::vector<SourceIdRange> create_sourceid_ranges(const std::vector<int>& pixels
     return ranges;
 }
 
-// This function finds the first record that could be in the range
+// This function finds the first record that could be in the range.
 
+template<typename EntryType>
 size_t find_first_record(std::ifstream& infile, uint64_t target_id, size_t file_size) {
-    static constexpr size_t RECORD_SIZE = sizeof(SourceEntryAstro);
+    static constexpr size_t RECORD_SIZE = sizeof(EntryType);
     size_t record_count = file_size / RECORD_SIZE;
     size_t left = 0;
     size_t right = record_count;
 
     while (left < right) {
         size_t mid = left + (right - left) / 2;
-
-        SourceEntryAstro entry;
+        EntryType entry;
         infile.seekg(mid * RECORD_SIZE);
         infile.read(reinterpret_cast<char*>(&entry), RECORD_SIZE);
-
         if (entry.source_id < target_id) {
             left = mid + 1;
         } else {
@@ -81,76 +82,60 @@ size_t find_first_record(std::ifstream& infile, uint64_t target_id, size_t file_
         }
     }
 
-    // Verify the position we found
     if (left < record_count) {
-        SourceEntryAstro entry;
+        EntryType entry;
         infile.seekg(left * RECORD_SIZE);
         infile.read(reinterpret_cast<char*>(&entry), RECORD_SIZE);
     }
-
     return left;
 }
 
-// This function queries a catalogue of packed SourceEntry objects. The catalogue MUST
+// This function queries a catalogue of packed EntryType objects (the template allows
+// use of SourceEntryAstro or SourceEntryPhoto) for different uses. The catalogue MUST
 // be sorted by source_id otherwise the method will fail. Each entry that matches the
 // vector of source_id ranges is added to the result vector. Additional filtering (e.g.
-// on magnitude) would be easy to add, or could be dealt with by the caller, when
-// integrated into Siril.
+// on magnitude) can be done by the caller.
 
-std::vector<SourceEntryAstro> query_catalog_astro(const std::string& filename, const std::vector<SourceIdRange>& id_ranges) {
-    std::vector<SourceEntryAstro> results;
-    static constexpr size_t RECORD_SIZE = sizeof(SourceEntryAstro);
-
+template<typename EntryType>
+std::vector<EntryType> query_catalog(const std::string& filename, const std::vector<SourceIdRange>& id_ranges) {
+    std::vector<EntryType> results;
+    static constexpr size_t RECORD_SIZE = sizeof(EntryType);
     std::ifstream infile(filename, std::ios::binary);
     if (!infile) {
         throw std::runtime_error("Error opening file: " + filename);
     }
 
-    // Get file size
     infile.seekg(0, std::ios::end);
     size_t file_size = infile.tellg();
     infile.seekg(0, std::ios::beg);
 
-    // Buffer for reading records
     static constexpr size_t BUFFER_SIZE = 512;
-    std::vector<SourceEntryAstro> buffer(BUFFER_SIZE);
+    std::vector<EntryType> buffer(BUFFER_SIZE);
 
-    // Process each source_id range
     for (const auto& range : id_ranges) {
-
-        // Find starting position
-        size_t current_pos = find_first_record(infile, range.start_id, file_size);
-
+        size_t current_pos = find_first_record<EntryType>(infile, range.start_id, file_size);
         if (current_pos * RECORD_SIZE >= file_size) {
             continue;
         }
 
-        // Read and process records until we pass the end of the range
-
         while (current_pos * RECORD_SIZE < file_size) {
             size_t records_to_read = std::min(BUFFER_SIZE,
-                        (file_size - current_pos * RECORD_SIZE) / RECORD_SIZE);
-
+                                              (file_size - current_pos * RECORD_SIZE) / RECORD_SIZE);
             infile.seekg(current_pos * RECORD_SIZE);
             infile.read(reinterpret_cast<char*>(buffer.data()),
                         records_to_read * RECORD_SIZE);
 
             for (size_t i = 0; i < records_to_read; ++i) {
-                // If we've passed the end of the range, we're done
                 if (buffer[i].source_id > range.end_id) {
                     break;
                 }
-
-                // If we're in the range, add to results
                 if (buffer[i].source_id >= range.start_id) {
                     results.push_back(buffer[i]);
                 }
             }
             current_pos += records_to_read;
         }
-
     }
-
     std::cerr << "\nTotal results found: " << results.size() << std::endl;
     return results;
 }
@@ -181,13 +166,26 @@ extern "C" {
 
         // Convert char* to std::string for query_catalog
         std::string filename(catalogue_file);
-        std::vector<SourceEntryAstro> matches = query_catalog_astro(filename, id_ranges);
+        std::vector<SourceEntryAstro> matches = query_catalog<SourceEntryAstro>(filename, id_ranges);
 
+        // Filter by magnitude
+        double scaled_limitmag = limitmag * 1000.0;
+        matches.erase(
+            std::remove_if(matches.begin(), matches.end(),
+                [scaled_limitmag](const SourceEntryAstro& entry) {
+                    return entry.mag_scaled < scaled_limitmag;
+                }
+            ),
+            matches.end()
+        );
         *nb_stars = matches.size();
         uint32_t i = 0;
         *stars = (deepStarData*) malloc(*nb_stars * sizeof(deepStarData));
+        if (*stars == nullptr) {
+            return -1;  // Memory allocation failed
+        }
         for (const auto& entry : matches) {
-            *stars[i++] = (deepStarData) {
+            (*stars)[i++] = (deepStarData) {
                 .RA = entry.ra_scaled,
                 .Dec = entry.dec_scaled,
                 .dRA = entry.dra_scaled,
@@ -197,6 +195,46 @@ extern "C" {
                 .V = 0
             };
         }
+        return 0;
+    }
+
+    int get_raw_stars_from_local_gaia_photo_catalogue(double ra, double dec, double radius, double limitmag, SourceEntryPhoto **stars, uint32_t *nb_stars) {
+        const char* catalogue_file = "sourceid-data-m15.bin"; // TODO: add this catalogue to com.pref and UI elements to set it
+        const double DEG_TO_RAD = M_PI / 180.0;
+        double radius_rad = radius * DEG_TO_RAD;
+        T_Healpix_Base<int> healpix_base(4096, NEST, SET_NSIDE);
+
+        double ra_rad = ra * DEG_TO_RAD;
+        double dec_rad = dec * DEG_TO_RAD;
+        double theta = M_PI / 2.0 - dec_rad;
+        double phi = ra_rad;
+
+        pointing point(theta, phi);
+        std::vector<int> pixel_indices;
+        healpix_base.query_disc_inclusive(point, radius_rad, pixel_indices);
+
+        std::vector<SourceIdRange> id_ranges = create_sourceid_ranges(pixel_indices);
+
+        // Convert char* to std::string for query_catalog
+        std::string filename(catalogue_file);
+        std::vector<SourceEntryPhoto> matches = query_catalog<SourceEntryPhoto>(filename, id_ranges);
+
+        // Filter by magnitude
+        double scaled_limitmag = limitmag * 1000.0;
+        matches.erase(
+            std::remove_if(matches.begin(), matches.end(),
+                           [scaled_limitmag](const SourceEntryPhoto& entry) {
+                               return entry.mag_scaled < scaled_limitmag;
+                           }
+            ),
+            matches.end()
+        );
+        *nb_stars = matches.size();
+        *stars = (SourceEntryPhoto*)malloc(matches.size() * sizeof(SourceEntryPhoto));
+        if (*stars == nullptr) {
+            return -1;  // Memory allocation failed
+        }
+        std::memcpy(*stars, matches.data(), matches.size() * sizeof(SourceEntryPhoto));
         return 0;
     }
 }
