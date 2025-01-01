@@ -184,7 +184,6 @@ void on_script_text_close_clicked(GtkButton *button, gpointer user_data) {
 void on_manual_script_sync_button_clicked(GtkButton *button,
                                           gpointer user_data) {
 	GString *git_pending_commit_buffer = NULL;
-	can_fastforward = FALSE;
 	set_cursor_waiting(TRUE);
 
 	switch (preview_scripts_update(&git_pending_commit_buffer)) {
@@ -241,7 +240,6 @@ void on_manual_script_sync_button_clicked(GtkButton *button,
 
 void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
 	GString *git_pending_commit_buffer = NULL;
-	can_fastforward = FALSE;
 	set_cursor_waiting(TRUE);
 
 	switch (preview_spcc_update(&git_pending_commit_buffer)) {

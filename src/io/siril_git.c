@@ -553,19 +553,16 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 		siril_debug_print("Error carrying out merge analysis: %s\n", giterr_last()->message);
 		return -1;
 	}
-
+	gboolean can_fastforward = FALSE;
 	if ((analysis & GIT_MERGE_ANALYSIS_FASTFORWARD) || (analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE)) {
 		can_fastforward = TRUE;
-	} else {
-		can_fastforward = FALSE;
 	}
 
 	// If we already know we can't fast forward we can skip the rest of the
 	// function, we just return 2
 	if (!can_fastforward) {
 		siril_debug_print("Cannot be fast forwarded\n");
-		git_repository_free(repo);
-		git_libgit2_shutdown();
+		git_remote_free(remote);
 		return 2;
 	}
 

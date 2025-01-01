@@ -1194,7 +1194,8 @@ double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float 
 		return 0.0; // No elements in the range, return 0 as median
 	}
 
-	double retval = quickmedian(filtered_data, count);
+	// use histogram_median here instead of quickmedian for speed (see #1458)
+	double retval = histogram_median(filtered_data, count, MULTI_THREADED);
 
 	// Free the allocated memory for filtered_data
 	free(filtered_data);

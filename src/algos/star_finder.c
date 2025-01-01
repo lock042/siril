@@ -973,10 +973,10 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 		while (stars[i]) {
 			if (stars[i]->profile == PSF_GAUSSIAN) {
 				beta = -1;
-				starprof = gausstr;
+				starprof = N_(gausstr);
 			} else {
 				beta = stars[i]->beta;
-				starprof = moffstr;
+				starprof = N_(moffstr);
 			}
 			len = snprintf(buffer, 320,
 					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f\t%d\t%s\t%f\t%f%s",
