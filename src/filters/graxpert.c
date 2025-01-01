@@ -877,7 +877,7 @@ gpointer do_graxpert (gpointer p) {
 	} else if (args->operation == GRAXPERT_DECONV || args->operation == GRAXPERT_DECONV_STELLAR) {
 		my_argv[nb++] = g_strdup("-cli");
 		my_argv[nb++] = g_strdup("-cmd");
-		my_argv[nb++] = args->operation == GRAXPERT_DECONV ? g_strdup("deconv-obj") : g_strdup("deconv-setllar");
+		my_argv[nb++] = args->operation == GRAXPERT_DECONV ? g_strdup("deconv-obj") : g_strdup("deconv-stellar");
 		my_argv[nb++] = g_strdup_printf("-output");
 		my_argv[nb++] = g_strdup_printf("%s", outpath);
 		my_argv[nb++] = g_strdup("-gpu");
