@@ -91,7 +91,6 @@ xx/xx/xx
 * Fixed seqpsf for images which write ADU in float (#1322)
 * Fixed crash in catsearch when object is unknown (#1383)
 * Fixed local astrometry.net solver non-functional on flatpak (#1392)
-* Fixed remixer blending algorithm (this fix reverts an optimisation made during 1.3 that turned out to give worse results) (#1461)
 
 **Misc:**
 * Removed glib-networking as a dependency (#1157)
