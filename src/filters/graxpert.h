@@ -3,9 +3,10 @@
 
 typedef enum {
 	GRAXPERT_BG,
-	GRAXPERT_DENOISE,
 	GRAXPERT_DECONV,
-	GRAXPERT_GUI
+	GRAXPERT_DENOISE,
+	GRAXPERT_GUI,
+	GRAXPERT_DECONV_STELLAR
 } graxpert_operation;
 
 typedef enum {
