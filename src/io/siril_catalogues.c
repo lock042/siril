@@ -187,6 +187,8 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_AN_USER_TEMP:
 		case CAT_SHOW:
+		case CAT_LOCAL_GAIA_ASTRO:
+			return (1 << CAT_FIELD_GAIASOURCEID) | (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG);
 		default:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC);
 	}
@@ -194,10 +196,11 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 
 // This function returns the epoch of the catalog
 static double siril_catalog_epoch(siril_cat_index cat) {
-	if (cat == CAT_GAIADR3_DIRECT)
+	if ((cat == CAT_GAIADR3_DIRECT) || (cat == CAT_LOCAL_GAIA_ASTRO) || (cat == CAT_LOCAL_GAIA_XPSAMP))
 		return J2016;
 	return J2000;
 }
+
 // This function compares two cat_item objects and return their order by mag
 static int compare_items_by_mag(const void* item1, const void* item2) {
 	cat_item *i1 = (cat_item*) item1;
@@ -303,6 +306,7 @@ gboolean is_star_catalogue(siril_cat_index Catalog) {
 		case CAT_LOCAL:
 		case CAT_LOCAL_TRIX:
 		case CAT_AN_USER_SSO:
+		case CAT_LOCAL_GAIA_ASTRO:
 			return TRUE;
 	default:
 		return FALSE;

@@ -63,8 +63,10 @@
 #define UNNAMEDSTARS_DAT "~/.local/share/kstars/unnamedstars.dat"
 #define TYCHOSTARS_DAT "~/.local/share/kstars/deepstars.dat"
 #define NOMAD_DAT "~/.local/share/kstars/USNO-NOMAD-1e8.dat"
-#define GAIA_DAT "~/.local/share/siril/gaia.dat"
+#define GAIA_ASTRO_DAT "~/.local/share/siril/gaia_astro.dat"
 
+// All these are searched in the legacy local catalogue search, so we don't add GAIA_ASTRO_DAT to this
+// array as it is handled separately
 const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT };
 
 #define DEBUG_LOCALCAT 0 // set to 1 to print out trixel star search verbose

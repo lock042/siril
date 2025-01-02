@@ -20,26 +20,26 @@ typedef struct {
 
 // Gaia source data structure with packed attributes to match file format
 #pragma pack(push, 1)  // Ensure no padding between members
-struct SourceEntryAstro {
+typedef struct _SourceEntryAstro {
 	uint64_t source_id;  // 8 bytes
 	int32_t ra_scaled;   // 4 bytes
 	int32_t dec_scaled;  // 4 bytes
-	int16_t dra_scaled;  // 2 bytes
-	int16_t ddec_scaled; // 2 bytes
+	int16_t dra_scaled;  // 2 bytes, mas per year
+	int16_t ddec_scaled; // 2 bytes, mas per year
 	int16_t mag_scaled;  // 2 bytes
-};
+} SourceEntryAstro;
 
-struct SourceEntryPhoto {
+typedef struct _SourceEntryPhoto {
 	uint64_t source_id;  // 8 bytes
 	int32_t ra_scaled;   // 4 bytes
 	int32_t dec_scaled;  // 4 bytes
-	int16_t dra_scaled;  // 2 bytes
-	int16_t ddec_scaled; // 2 bytes
+	int16_t dra_scaled;  // 2 bytes, mas per year
+	int16_t ddec_scaled; // 2 bytes, mas per year
 	int16_t mag_scaled;  // 2 bytes
 	// The remaining fields are only read for SPCC
 	uint8_t fexpo;       // 1 byte
 	int16_t flux[343];   // 686 bytes: xp_sampled flux values
-};
+} SourceEntryPhoto;
 #pragma pack(pop)
 
 void initialize_local_catalogues_paths();
