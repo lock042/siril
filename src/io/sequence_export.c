@@ -429,12 +429,18 @@ static gpointer export_sequence(gpointer ptr) {
 			}
 		}
 
+		// Copy the ICC profile from fit if available
 		if (destfit->icc_profile) {
 			cmsCloseProfile(destfit->icc_profile);
+			destfit->icc_profile = copyICCProfile(fit.icc_profile);
+		} else {
+		// Otherwise see if the reference frame has an ICC profile, and if so copy that
+			if (ref_icc) {
+				destfit->icc_profile = copyICCProfile(ref_icc);
+			}
 		}
-		// Copy the ICC profile from fit if available
-		destfit->icc_profile = copyICCProfile(fit.icc_profile);
-		color_manage(destfit, fit.color_managed);
+		color_manage(destfit, destfit.icc_profile != NULL);
+
 
 		// we copy the header
 		copy_fits_metadata(&fit, destfit);
@@ -534,7 +540,7 @@ static gpointer export_sequence(gpointer ptr) {
 				break;
 			case EXPORT_AVI:
 				if (ref_icc) {
-					siril_colorspace_transform(destfit, ref_icc);
+					siril_colorspace_transform(destfit, srgb_trc());
 				}
 				data = fits_to_uint8(destfit);
 				retval = avi_file_write_frame(0, data);
@@ -545,7 +551,7 @@ static gpointer export_sequence(gpointer ptr) {
 			case EXPORT_WEBM_VP9:
 				// an equivalent to fits_to_uint8 is called in there (fill_rgb_image)...
 				if (ref_icc) {
-					siril_colorspace_transform(destfit, ref_icc);
+					siril_colorspace_transform(destfit, srgb_trc());
 				}
 				retval = mp4_add_frame(mp4_file, destfit);
 				break;
