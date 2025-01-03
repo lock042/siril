@@ -439,7 +439,7 @@ static gpointer export_sequence(gpointer ptr) {
 				destfit->icc_profile = copyICCProfile(ref_icc);
 			}
 		}
-		color_manage(destfit, destfit.icc_profile != NULL);
+		color_manage(destfit, destfit->icc_profile != NULL);
 
 
 		// we copy the header
