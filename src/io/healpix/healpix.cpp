@@ -196,9 +196,8 @@ extern "C" {
                 .Dec = entry.dec_scaled,
                 .dRA = entry.dra_scaled,
                 .dDec = entry.ddec_scaled,
-                .B = entry.mag_scaled,
-                // deepStarData.V is not used with the Gaia catalogue
-                .V = 0
+                .B = 0,
+                .V = entry.mag_scaled
             };
         }
         return 0;
