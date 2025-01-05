@@ -1299,8 +1299,8 @@ gpointer conesearch_worker(gpointer p) {
 		}
 		j++;
 	}
-	siril_log_message("%d objects found%s in the image (mag limit %.2f)\n", j,
-			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag);
+	siril_log_message(_("%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"), j,
+			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag, catalog_to_str(siril_cat->cat_index));
 	if (!j) {
 		retval = -1;
 		goto exit_conesearch;
