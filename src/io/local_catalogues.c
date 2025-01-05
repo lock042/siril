@@ -149,13 +149,13 @@ static int read_trixels_from_catalogue(const char *path, double ra, double dec, 
 	cat_debug_print("reading data from catalogue %s\n", path);
 	FILE *f = g_fopen(path, "rb");
 	if (!f) {
-		siril_log_message(_("Could not open local NOMAD catalogue\n"));
+		siril_log_message(_("Could not open local catalogue %s\n"), path);
 		return 1;
 	}
 
 	struct catalogue_file *cat = catalogue_read_header(f);
 	if (!cat) {
-		siril_log_message(_("Failed to read the local NOMAD catalogue\n"));
+		siril_log_message(_("Failed to read the local catalogue %s\n"), path);
 		fclose(f);
 		return 1;
 	}
@@ -182,13 +182,13 @@ static int read_trixelID_from_catalogue(const char *path, int ID, deepStarData *
 	}
 	FILE *f = g_fopen(path, "rb");
 	if (!f) {
-		siril_log_message(_("Could not open local NOMAD catalogue\n"));
+		siril_log_message(_("Could not open local catalogue%s\n"), path);
 		return 1;
 	}
 
 	struct catalogue_file *cat = catalogue_read_header(f);
 	if (!cat) {
-		siril_log_message(_("Failed to read the local NOMAD catalogue\n"));
+		siril_log_message(_("Failed to read the local catalogue %s\n"), path);
 		fclose(f);
 		return 1;
 	}
@@ -543,7 +543,7 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 */
 static int get_raw_stars_from_local_catalogues(double target_ra, double target_dec, double radius,
 		float max_mag, gboolean photometric, deepStarData **stars, uint32_t *nb_stars) {
-	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
+	int nb_catalogues = 4;
 	deepStarData **catalogue_stars = malloc(nb_catalogues * sizeof(deepStarData *));
 	uint32_t *catalogue_nb_stars = malloc(nb_catalogues * sizeof(uint32_t));
 	uint32_t total_nb_stars = 0;
