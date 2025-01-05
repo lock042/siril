@@ -682,27 +682,84 @@ class FFit:
             raise ValueError(_("No data allocated"))
 
         for i in range(self.naxes[2]):
-            channel_data = self.get_channel(i)
-            stats = self.stats[i] or ImageStats()
+            try:
+                channel_data = self.get_channel(i)
+                if not isinstance(channel_data, np.ndarray):
+                    raise TypeError(f"Channel data must be a NumPy array, got {type(channel_data)}")
 
-            # Update basic statistics
-            stats.total = channel_data.size
-            stats.ngoodpix = np.count_nonzero(channel_data)
-            # For the remaining stats we exclude pixels that are exactly 0
-            nonzero = channel_data[channel_data != 0]
-            stats.mean = np.mean(nonzero)
-            stats.median = np.median(nonzero)
-            stats.sigma = np.std(nonzero)
-            stats.min = np.min(nonzero)
-            stats.max = np.max(nonzero)
-            stats.bgnoise = self._estimate_noise(channel_data)
+                stats = self.stats[i] or ImageStats()
 
-            # More complex statistics
-            deviations = np.abs(nonzero - stats.median)
-            stats.mad = np.median(deviations)
-            stats.avgDev = np.mean(deviations)
+                # Handle case where channel_data is all NaN
+                if np.all(np.isnan(channel_data)):
+                    raise ValueError(f"Channel {i} contains only NaN values")
 
-            self.stats[i] = stats
+                # Update basic statistics - these should work even with all zeros
+                stats.total = channel_data.size
+                stats.ngoodpix = np.count_nonzero(~np.isnan(channel_data))
+
+                # Remove both zeros and NaN values for remaining calculations
+                nonzero = channel_data[~np.isnan(channel_data) & (channel_data != 0)]
+
+                # Check if we have any valid non-zero pixels
+                if nonzero.size > 0:
+                    # Check for infinite values
+                    if np.any(np.isinf(nonzero)):
+                        raise ValueError(f"Channel {i} contains infinite values")
+
+                    try:
+                        stats.mean = np.mean(nonzero)
+                        stats.median = np.median(nonzero)
+                        stats.sigma = np.std(nonzero)
+                        stats.min = np.min(nonzero)
+                        stats.max = np.max(nonzero)
+
+                        # Verify results are finite
+                        if not all(np.isfinite(x) for x in [stats.mean, stats.median, stats.sigma, stats.min, stats.max]):
+                            raise ValueError(f"Non-finite statistics computed for channel {i}")
+
+                        stats.bgnoise = self._estimate_noise(channel_data)
+
+                        # More complex statistics
+                        deviations = np.abs(nonzero - stats.median)
+                        stats.mad = np.median(deviations)
+                        stats.avgDev = np.mean(deviations)
+
+                        # Verify complex stats are finite
+                        if not all(np.isfinite(x) for x in [stats.bgnoise, stats.mad, stats.avgDev]):
+                            raise ValueError(f"Non-finite advanced statistics computed for channel {i}")
+
+                    except (RuntimeWarning, RuntimeError) as e:
+                        # Handle any numerical computation errors
+                        raise ValueError(f"Error computing statistics for channel {i}: {str(e)}")
+
+                else:
+                    # Set all statistics to zero when there are no valid non-zero pixels
+                    stats.mean = 0
+                    stats.median = 0
+                    stats.sigma = 0
+                    stats.min = 0
+                    stats.max = 0
+                    stats.bgnoise = 0
+                    stats.mad = 0
+                    stats.avgDev = 0
+
+                self.stats[i] = stats
+
+            except Exception as e:
+                # Log the error and set all statistics to zero for this channel
+                logging.error(f"Error processing channel {i}: {str(e)}")
+                stats = ImageStats()
+                stats.total = channel_data.size if 'channel_data' in locals() else 0
+                stats.ngoodpix = 0
+                stats.mean = 0
+                stats.median = 0
+                stats.sigma = 0
+                stats.min = 0
+                stats.max = 0
+                stats.bgnoise = 0
+                stats.mad = 0
+                stats.avgDev = 0
+                self.stats[i] = stats
 
 @dataclass
 class Homography:

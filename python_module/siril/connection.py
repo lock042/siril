@@ -1448,13 +1448,13 @@ class SirilInterface:
             # Clean up shared memory using the wrapper's methods
             if shm is not None:
                 try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError(_("Failed to cleanup shared memory"))
-
-                    shm.close()  # First close the memory mapping
-                    shm.unlink()  # Then unlink/remove the shared memory segment
 
                 except Exception:
                     pass
@@ -1575,13 +1575,13 @@ class SirilInterface:
             # Clean up shared memory using the wrapper's methods
             if shm is not None:
                 try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError(_("Failed to cleanup shared memory"))
-
-                    shm.close()  # First close the memory mapping
-                    shm.unlink()  # Then unlink/remove the shared memory segment
 
                 except Exception:
                     pass
@@ -1617,6 +1617,7 @@ class SirilInterface:
             try:
                 buffer = memoryview(shm.buf).cast('B')
                 buffer[:total_bytes] = serialized_data
+                del buffer
             except Exception as e:
                 print(f"Failed to copy data to shared memory: {e}", file=sys.stderr)
                 return False
@@ -1645,7 +1646,6 @@ class SirilInterface:
             if 'shm' in locals() and shm is not None:
                 try:
                     shm.close()
-                    shm.unlink()
                 except:
                     pass
 
@@ -1741,7 +1741,6 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()
-                    shm.unlink()
                 except:
                     pass
 
@@ -1841,7 +1840,6 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()
-                    shm.unlink()
                 except:
                     pass
 
@@ -1915,13 +1913,15 @@ class SirilInterface:
         finally:
             if shm is not None:
                 try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError(_("Failed to cleanup shared memory"))
-                    shm.close()
-                    shm.unlink()
-                except BufferError:
+
+                except Exception:
                     pass
 
     def get_image_fits_header(self) -> Optional[str]:
@@ -1978,7 +1978,7 @@ class SirilInterface:
                 raise RuntimeError(_("Failed to map shared memory: {}").format(e))
 
             try:
-                # Read entire buffer at once using memoryview
+                # Read entire buffer at once
                 buffer = bytearray(shm.buf)[:shm_info.size]
                 result = buffer.decode('utf-8', errors='ignore')
             except (BufferError, ValueError, TypeError) as e:
@@ -1995,13 +1995,15 @@ class SirilInterface:
         finally:
             if shm is not None:
                 try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError(_("Failed to cleanup shared memory"))
-                    shm.close()
-                    shm.unlink()
-                except BufferError:
+
+                except Exception:
                     pass
 
     def get_image_unknown_keys(self) -> Optional[str]:
@@ -2078,13 +2080,15 @@ class SirilInterface:
         finally:
             if shm is not None:
                 try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError(_("Failed to cleanup shared memory"))
-                    shm.close()
-                    shm.unlink()
-                except BufferError:
+
+                except Exception:
                     pass
 
     def get_image_history(self) -> Optional[list[str]]:
@@ -2163,13 +2167,15 @@ class SirilInterface:
         finally:
             if shm is not None:
                 try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError(_("Failed to cleanup shared memory"))
-                    shm.close()
-                    shm.unlink()
-                except BufferError:
+
+                except Exception:
                     pass
 
     def get_siril_wd(self) -> Optional[str]:
@@ -3062,10 +3068,16 @@ class SirilInterface:
         finally:
             if shm is not None:
                 try:
-                    shm.close()
-                    shm.unlink()
-                except Exception as e:
-                    print(f"Error closing shared memory: {e}", file=sys.stderr)
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    finish_info = struct.pack('256s', shm_info.shm_name)
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                        raise RuntimeError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass
 
     def get_image_stars(self) -> List[PSFStar]:
         """
@@ -3125,7 +3137,7 @@ class SirilInterface:
             fixed_size = struct.calcsize(format_string)
 
             # Read entire buffer at once using memoryview
-            buffer = memoryview(shm.buf).cast('B')
+            buffer = bytearray(shm.buf)[:shm_info.size]
 
             # Validate buffer size
             if shm_info.size % fixed_size != 0:
@@ -3149,7 +3161,7 @@ class SirilInterface:
 
                 try:
                     # Extract the bytes for this struct and unpack
-                    values = struct.unpack(format_string, buffer[start:end].tobytes())
+                    values = struct.unpack(format_string, buffer[start:end])
 
                     star = PSFStar(
                         B=values[0], A=values[1], x0=values[2], y0=values[3],
@@ -3179,10 +3191,16 @@ class SirilInterface:
         finally:
             if shm is not None:
                 try:
-                    shm.close()
-                    shm.unlink()
-                except Exception as e:
-                    print(f"Error closing shared memory: {e}", file=sys.stderr)
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    finish_info = struct.pack('256s', shm_info.shm_name)
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                        raise RuntimeError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass
 
     def get_siril_config(self, group: str, key: str) -> Optional[Union[bool, int, float, str, List[str]]]:
         """

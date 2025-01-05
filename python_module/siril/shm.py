@@ -3,13 +3,8 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-#from multiprocessing.shared_memory import SharedMemory
-#import os
-#import sys
-#import mmap
-from .translations import _
-
 from multiprocessing import shared_memory
+from multiprocessing.resource_tracker import unregister
 
 class SharedMemoryWrapper:
     """
@@ -23,9 +18,15 @@ class SharedMemoryWrapper:
 
         # Create or attach to the shared memory block
         try:
+            # If the shm allocation doesn't exist, create one
             self._shm = shared_memory.SharedMemory(name=self.name, create=True, size=self.size)
+            # All shm allocations are unlinked by Siril after use, we do not need to resource track them
+            unregister(self._shm._name, "shared_memory")
         except FileExistsError:
+            # Otherwise, open the existing one created by Siril
             self._shm = shared_memory.SharedMemory(name=self.name)
+            # All shm allocations are unlinked by Siril after use, we do not need to resource track them
+            unregister(self._shm._name, "shared_memory")
             if self._shm.size < self.size:
                 raise ValueError(f"Existing shared memory size {self._shm.size} does not match expected {self.size}")
 
