@@ -10259,6 +10259,8 @@ static conesearch_params* parse_conesearch_args(int nb) {
 				params->cat = CAT_NOMAD;
 			else if (!g_strcmp0(arg, "gaia"))
 				params->cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "gaialocal"))
+				params->cat = CAT_LOCAL_GAIA_ASTRO;
 			else if (!g_strcmp0(arg, "ppmxl"))
 				params->cat = CAT_PPMXL;
 			else if (!g_strcmp0(arg, "bsc"))

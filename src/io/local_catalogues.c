@@ -63,11 +63,12 @@
 #define UNNAMEDSTARS_DAT "~/.local/share/kstars/unnamedstars.dat"
 #define TYCHOSTARS_DAT "~/.local/share/kstars/deepstars.dat"
 #define NOMAD_DAT "~/.local/share/kstars/USNO-NOMAD-1e8.dat"
-#define GAIA_ASTRO_DAT "~/.local/share/siril/gaia_astro.dat"
+#define GAIA_ASTRO_DAT "~/.local/share/siril/gaia_astrometric.dat"
+#define GAIA_PHOTO_DAT "~/.local/share/siril/gaia_photometric.dat"
 
 // All these are searched in the legacy local catalogue search, so we don't add GAIA_ASTRO_DAT to this
 // array as it is handled separately
-const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT };
+const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT, GAIA_ASTRO_DAT, GAIA_PHOTO_DAT };
 
 #define DEBUG_LOCALCAT 0 // set to 1 to print out trixel star search verbose
 #define NTRIXELS 2
@@ -678,11 +679,17 @@ void initialize_local_catalogues_paths() {
 }
 
 gboolean local_catalogues_available() {
-	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
+	int nb_catalogues = 4;
 	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 		if (!is_readable_file(com.pref.catalogue_paths[catalogue]))
 			return FALSE;
 	}
+	return TRUE;
+}
+
+gboolean local_gaia_available() {
+	if (!is_readable_file(com.pref.catalogue_paths[4]))
+		return FALSE;
 	return TRUE;
 }
 
@@ -695,7 +702,7 @@ gboolean local_catalogues_available() {
 int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return 0;
-	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_TRIX) {
+	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO && siril_cat->cat_index != CAT_LOCAL_TRIX) {
 		siril_debug_print("Local cat query - Should not happen\n");
 		return 0;
 	}
@@ -737,6 +744,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	siril_cat->nbincluded = (int)nb_stars;
 	siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
 	for (int i = 0; i < siril_cat->nbitems; i++) {
+
 		siril_cat->cat_items[i].ra = (double)stars[i].RA * .000015;
 		siril_cat->cat_items[i].dec = (double)stars[i].Dec * .00001;
 		siril_cat->cat_items[i].pmra = (double)stars[i].dRA;
@@ -745,7 +753,6 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 		siril_cat->cat_items[i].bmag = (float)stars[i].B * .001;
 		siril_cat->cat_items[i].included = TRUE;
 	}
-	siril_debug_print("%d stars fetched from local catalogue\n", siril_cat->nbitems);
 	free(stars);
 	if (!siril_cat->nbitems)
 		return -1;

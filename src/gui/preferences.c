@@ -116,6 +116,16 @@ static void update_astrometry_preferences() {
 		g_free(com.pref.catalogue_paths[3]);
 		com.pref.catalogue_paths[3] = newpath;
 	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path5")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[4]);
+		com.pref.catalogue_paths[4] = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path6")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[5]);
+		com.pref.catalogue_paths[5] = newpath;
+	}
 
 	com.pref.astrometry.sip_correction_order = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")));
 	com.pref.astrometry.percent_scale_range = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_sampling_tolerance")));
@@ -694,6 +704,14 @@ void update_preferences_from_model() {
 	if (pref->catalogue_paths[3] && (g_file_test(pref->catalogue_paths[3], G_FILE_TEST_EXISTS))) {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path4"));
 		gtk_file_chooser_set_filename(button, pref->catalogue_paths[3]);
+	}
+	if (pref->catalogue_paths[4] && (g_file_test(pref->catalogue_paths[4], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path5"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[4]);
+	}
+	if (pref->catalogue_paths[5] && (g_file_test(pref->catalogue_paths[5], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path6"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[5]);
 	}
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")), pref->astrometry.sip_correction_order);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_sampling_tolerance")), pref->astrometry.percent_scale_range);

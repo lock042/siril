@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "io/local_catalogues.h"
 #ifndef M_PI
 #define M_PI 3.14159265358979323846  /* pi */
@@ -125,13 +127,18 @@ std::vector<EntryType> query_catalog(const std::string& filename, const std::vec
             infile.read(reinterpret_cast<char*>(buffer.data()),
                         records_to_read * RECORD_SIZE);
 
+            bool range_complete = false;
             for (size_t i = 0; i < records_to_read; ++i) {
                 if (buffer[i].source_id > range.end_id) {
+                    range_complete = true;
                     break;
                 }
                 if (buffer[i].source_id >= range.start_id) {
                     results.push_back(buffer[i]);
                 }
+            }
+            if (range_complete) {
+                break;
             }
             current_pos += records_to_read;
         }
@@ -148,7 +155,8 @@ std::vector<EntryType> query_catalog(const std::string& filename, const std::vec
 
 extern "C" {
     int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, deepStarData **stars, uint32_t *nb_stars) {
-        const char* catalogue_file = "sourceid-data-m15.bin"; // TODO: add this catalogue to com.pref and UI elements to set it
+        radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
+        siril_debug_print("Search radius: %f deg\n", radius);
         const double DEG_TO_RAD = M_PI / 180.0;
         double radius_rad = radius * DEG_TO_RAD;
         T_Healpix_Base<int> healpix_base(4096, NEST, SET_NSIDE);
@@ -160,20 +168,18 @@ extern "C" {
 
         pointing point(theta, phi);
         std::vector<int> pixel_indices;
+        siril_debug_print("query_disc_inclusive params: theta = %f, phi = %f, rad = %f\n", point.theta, point.phi, radius_rad);
         healpix_base.query_disc_inclusive(point, radius_rad, pixel_indices);
-
         std::vector<SourceIdRange> id_ranges = create_sourceid_ranges(pixel_indices);
-
         // Convert char* to std::string for query_catalog
-        std::string filename(catalogue_file);
+        std::string filename(com.pref.catalogue_paths[4]);
         std::vector<SourceEntryAstro> matches = query_catalog<SourceEntryAstro>(filename, id_ranges);
-
         // Filter by magnitude
         double scaled_limitmag = limitmag * 1000.0;
         matches.erase(
             std::remove_if(matches.begin(), matches.end(),
                 [scaled_limitmag](const SourceEntryAstro& entry) {
-                    return entry.mag_scaled < scaled_limitmag;
+                    return entry.mag_scaled > scaled_limitmag;
                 }
             ),
             matches.end()
@@ -199,7 +205,7 @@ extern "C" {
     }
 
     int get_raw_stars_from_local_gaia_photo_catalogue(double ra, double dec, double radius, double limitmag, SourceEntryPhoto **stars, uint32_t *nb_stars) {
-        const char* catalogue_file = "sourceid-data-m15.bin"; // TODO: add this catalogue to com.pref and UI elements to set it
+        radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
         const double DEG_TO_RAD = M_PI / 180.0;
         double radius_rad = radius * DEG_TO_RAD;
         T_Healpix_Base<int> healpix_base(4096, NEST, SET_NSIDE);
@@ -216,7 +222,7 @@ extern "C" {
         std::vector<SourceIdRange> id_ranges = create_sourceid_ranges(pixel_indices);
 
         // Convert char* to std::string for query_catalog
-        std::string filename(catalogue_file);
+        std::string filename(com.pref.catalogue_paths[5]);
         std::vector<SourceEntryPhoto> matches = query_catalog<SourceEntryPhoto>(filename, id_ranges);
 
         // Filter by magnitude
@@ -224,7 +230,7 @@ extern "C" {
         matches.erase(
             std::remove_if(matches.begin(), matches.end(),
                            [scaled_limitmag](const SourceEntryPhoto& entry) {
-                               return entry.mag_scaled < scaled_limitmag;
+                               return entry.mag_scaled > scaled_limitmag;
                            }
             ),
             matches.end()

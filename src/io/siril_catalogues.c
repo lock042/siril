@@ -268,6 +268,10 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return _("AAVSO VSP Chart");
 		case CAT_LOCAL:
 			return _("local Tycho-2+NOMAD");
+		case CAT_LOCAL_GAIA_ASTRO:
+			return _("local Gaia DR3 astrometry");
+		case CAT_LOCAL_GAIA_XPSAMP:
+			return _("local Gaia DR3 spectrophotometry");
 		case CAT_AN_MESSIER:
 			return "Messier";
 		case CAT_AN_NGC:
@@ -587,7 +591,7 @@ int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
 		return nbstars;
 #endif
-	} else if (siril_cat->cat_index == CAT_LOCAL || siril_cat->cat_index == CAT_LOCAL_TRIX) {
+	} else if (siril_cat->cat_index == CAT_LOCAL || siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO || siril_cat->cat_index == CAT_LOCAL_TRIX) {
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
 	} else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
 		nbstars = siril_cat->nbitems;
@@ -1186,7 +1190,7 @@ gpointer conesearch_worker(gpointer p) {
 	if (!check) {// conesearch has failed
 		goto exit_conesearch;
 	}
-	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_TRIX)
+	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO && siril_cat->cat_index != CAT_LOCAL_TRIX)
 		siril_log_message(_("The %s catalog has been successfully downloaded\n"), catalog_to_str(siril_cat->cat_index));
 	if (check == -1) { // conesearch was succesful but field was empty
 		retval = -1;

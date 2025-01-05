@@ -1391,7 +1391,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 <property name="label-xalign">0</property>
                                 <property name="shadow-type">none</property>
                                 <child>
-                                  <!-- n-columns=4 n-rows=2 -->
+                                  <!-- n-columns=4 n-rows=3 -->
                                   <object class="GtkGrid">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -1508,6 +1508,58 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <packing>
                                         <property name="left-attach">2</property>
                                         <property name="top-attach">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="double-buffered">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Gaia astrometric extract:</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="double-buffered">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Gaia photometric extract:</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">2</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="localcatalogue_path5">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Specify the location of the Siril astrometric extract of the Gaia DR3 catalogue, used for plate solving</property>
+                                        <property name="double-buffered">False</property>
+                                        <property name="title" translatable="yes">gaia_astrometric.dat</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="localcatalogue_path6">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Specify the location of the Siril photometric extract of the Gaia DR3 catalogue, used for spectrophotometric colour calibration</property>
+                                        <property name="double-buffered">False</property>
+                                        <property name="title" translatable="yes">gaia_photometric.dat</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">3</property>
+                                        <property name="top-attach">2</property>
                                       </packing>
                                     </child>
                                   </object>

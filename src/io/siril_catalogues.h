@@ -45,6 +45,9 @@
 // if 90 <= value <= 100: special use cases
 typedef enum {
 	CAT_UNDEF = -1,
+
+// ** REMOTE CATALOGUES **
+
 // TAP Queries from vizier
 	CAT_TYCHO2, //00
 	CAT_NOMAD, //01
@@ -64,6 +67,9 @@ typedef enum {
 	CAT_AAVSO_CHART = 40,
 // Non TAP Queries (others)
 	CAT_IMCCE = 50,
+
+// ** LOCAL CATALOGUES **
+
 // Local annotations - shift by -CAT_AN_INDEX_OFFSET to use in annotation_catalogues
 	CAT_AN_MESSIER = 60,
 	CAT_AN_NGC = 61,
