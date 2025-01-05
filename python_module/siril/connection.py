@@ -3128,7 +3128,7 @@ class SirilInterface:
             buffer = memoryview(shm.buf).cast('B')
 
             # Validate buffer size
-            if len(buffer) % fixed_size != 0:
+            if shm_info.size % fixed_size != 0:
                 raise ValueError(_("Buffer size {} is not a multiple "
                                    "of struct size {}").format(len(buffer), fixed_size))
 
