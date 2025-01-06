@@ -1680,7 +1680,6 @@ class SirilInterface:
             if image_data.ndim == 2:
                 height, width = image_data.shape
                 channels = 1
-                image_data = image_data.reshape(height, width, 1)
             else:
                 channels, height, width = image_data.shape
 
