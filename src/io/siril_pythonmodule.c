@@ -34,6 +34,7 @@
 #include "core/siril_log.h"
 #include "core/siril_update.h"
 #include "core/siril_app_dirs.h"
+#include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/siril_pythoncommands.h"
@@ -595,6 +596,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		memcpy(fit->fdata, (char*) shm_ptr, total_bytes);
 	}
 
+	invalidate_stats_from_fit(fit);
 	if (fit == &gfit) {
 		// Update gfit metadata
 		fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
