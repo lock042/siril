@@ -665,7 +665,6 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 #else
 	munmap(shm_ptr, info->size);
 	close(fd);
-	shm_unlink(info->shm_name);  // Remove shared memory object
 #endif
 
 	// Plot the data in a siril_plot_window
