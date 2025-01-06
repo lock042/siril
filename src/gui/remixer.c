@@ -537,27 +537,39 @@ int remixer() {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 					for (size_t i = 0 ; i < npixels ; i++) {
-						float inl[3] = { 0.f }, inr[3] = { 0.f }, yuvl[3], yuvr[3], yuvo[3], rgbo[3];
-						inl[0] = fit_left_calc.fpdata[0][i];
-						inl[1] = fit_left_calc.fpdata[1][i];
-						inl[2] = fit_left_calc.fpdata[2][i];
-						inr[0] = fit_right_calc.fpdata[0][i];
-						inr[1] = fit_right_calc.fpdata[1][i];
-						inr[2] = fit_right_calc.fpdata[2][i];
-
-						rgb_to_yuvf(inl[0], inl[1], inl[2], &yuvl[0], &yuvl[1], &yuvl[2]);
-						rgb_to_yuvf(inr[0], inr[1], inr[2], &yuvr[0], &yuvr[1], &yuvr[2]);
-
-						float divisor = (yuvl[0] + yuvr[0] == 0.f) ? 1.f : yuvl[0] + yuvr[0];
-						yuvo[0] = yuvl[0] + yuvr[0] - yuvl[0] * yuvr[0];
-						yuvo[1] = (yuvl[0] * yuvl[1] + yuvr[0] * yuvr[1]) / divisor;
-						yuvo[2] = (yuvl[0] * yuvl[2] + yuvr[0] * yuvr[2]) / divisor;
-
-						yuv_to_rgbf(yuvo[0], yuvo[1], yuvo[2], &rgbo[0], &rgbo[1], &rgbo[2]);
-
-						gfit.fpdata[0][i] = rgbo[0];
-						gfit.fpdata[1][i] = rgbo[1];
-						gfit.fpdata[2][i] = rgbo[2];
+						float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
+						float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
+						if (left_loaded) {
+							rinl = fit_left_calc.fpdata[0][i];
+							ginl = fit_left_calc.fpdata[1][i];
+							binl = fit_left_calc.fpdata[2][i];
+						} else {
+							rinl = 0.f;
+							ginl = 0.f;
+							binl = 0.f;
+						}
+						if (right_loaded) {
+							rinr = fit_right_calc.fpdata[0][i];
+							ginr = fit_right_calc.fpdata[1][i];
+							binr = fit_right_calc.fpdata[2][i];
+						} else {
+							rinr = 0.f;
+							ginr = 0.f;
+							binr = 0.f;
+						}
+						linrgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl, TRUE);
+						xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
+						linrgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr, TRUE);
+						xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
+						float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
+						float ao = (Ll * Al + Lr * Ar) / divisor;
+						float bo = (Ll * Bl + Lr * Br) / divisor;
+						float Lo = Ll + Lr - Ll * Lr * 0.01f;
+						LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
+						xyz_to_linrgbf(xo, yo, zo, &rout, &gout, &bout, TRUE);
+						gfit.fpdata[0][i] = rout;
+						gfit.fpdata[1][i] = gout;
+						gfit.fpdata[2][i] = bout;
 					}
 				}
 				break;
@@ -571,27 +583,39 @@ int remixer() {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 					for (size_t i = 0 ; i < npixels ; i++) {
-						float inl[3] = { 0.f }, inr[3] = { 0.f }, yuvl[3], yuvr[3], yuvo[3], rgbo[3];
-						inl[0] = fit_left_calc.pdata[0][i] * invnorm;
-						inl[1] = fit_left_calc.pdata[1][i] * invnorm;
-						inl[2] = fit_left_calc.pdata[2][i] * invnorm;
-						inr[0] = fit_right_calc.pdata[0][i] * invnorm;
-						inr[1] = fit_right_calc.pdata[1][i] * invnorm;
-						inr[2] = fit_right_calc.pdata[2][i] * invnorm;
-
-						rgb_to_yuvf(inl[0], inl[1], inl[2], &yuvl[0], &yuvl[1], &yuvl[2]);
-						rgb_to_yuvf(inr[0], inr[1], inr[2], &yuvr[0], &yuvr[1], &yuvr[2]);
-
-						float divisor = (yuvl[0] + yuvr[0] == 0.f) ? 1.f : yuvl[0] + yuvr[0];
-						yuvo[0] = yuvl[0] + yuvr[0] - yuvl[0] * yuvr[0];
-						yuvo[1] = (yuvl[0] * yuvl[1] + yuvr[0] * yuvr[1]) / divisor;
-						yuvo[2] = (yuvl[0] * yuvl[2] + yuvr[0] * yuvr[2]) / divisor;
-
-						yuv_to_rgbf(yuvo[0], yuvo[1], yuvo[2], &rgbo[0], &rgbo[1], &rgbo[2]);
-
-						gfit.pdata[0][i] = roundf_to_WORD(rgbo[0] * norm);
-						gfit.pdata[1][i] = roundf_to_WORD(rgbo[1] * norm);
-						gfit.pdata[2][i] = roundf_to_WORD(rgbo[2] * norm);
+						float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
+						float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
+						if (left_loaded) {
+							rinl = fit_left_calc.pdata[0][i] * invnorm;
+							ginl = fit_left_calc.pdata[1][i] * invnorm;
+							binl = fit_left_calc.pdata[2][i] * invnorm;
+						} else {
+							rinl = 0.f;
+							ginl = 0.f;
+							binl = 0.f;
+						}
+						if (right_loaded) {
+							rinr = fit_right_calc.pdata[0][i] * invnorm;
+							ginr = fit_right_calc.pdata[1][i] * invnorm;
+							binr = fit_right_calc.pdata[2][i] * invnorm;
+						} else {
+							rinr = 0.f;
+							ginr = 0.f;
+							binr = 0.f;
+						}
+						linrgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl, TRUE);
+						xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
+						linrgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr, TRUE);
+						xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
+						float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
+						float ao = (Ll * Al + Lr * Ar) / divisor;
+						float bo = (Ll * Bl + Lr * Br) / divisor;
+						float Lo = Ll + Lr - Ll * Lr * 0.01f;
+						LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
+						xyz_to_linrgbf(xo, yo, zo, &rout, &gout, &bout, TRUE);
+						gfit.pdata[0][i] = roundf_to_WORD(rout * norm);
+						gfit.pdata[1][i] = roundf_to_WORD(gout * norm);
+						gfit.pdata[2][i] = roundf_to_WORD(bout * norm);
 					}
 				}
 				break;
