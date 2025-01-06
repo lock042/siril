@@ -34,6 +34,7 @@
 #include "core/siril_log.h"
 #include "core/siril_update.h"
 #include "core/siril_app_dirs.h"
+#include "algos/siril_random.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -182,10 +183,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							int *fd) {
 
 	void *shm_ptr = NULL;
-	gchar *uuid = g_uuid_string_random();
-	snprintf(shm_name_ptr, 256, "/siril_shm_%s",
-			uuid);
-	g_free(uuid);
+	snprintf(shm_name_ptr, 31, "/%08x%08x", siril_random_int(), siril_random_int());
 
 	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 	if (*fd == -1) {
