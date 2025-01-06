@@ -17,6 +17,7 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "io/local_catalogues.h"
+#include "io/siril_catalogues.h"
 #ifndef M_PI
 #define M_PI 3.14159265358979323846  /* pi */
 #endif
@@ -165,6 +166,7 @@ extern "C" {
         double dec_rad = dec * DEG_TO_RAD;
         double theta = M_PI / 2.0 - dec_rad;
         double phi = ra_rad;
+        double radius_h = pow(sin(0.5 * radius_rad), 2);
 
         pointing point(theta, phi);
         std::vector<int> pixel_indices;
@@ -180,6 +182,14 @@ extern "C" {
             std::remove_if(matches.begin(), matches.end(),
                 [scaled_limitmag](const SourceEntryAstro& entry) {
                     return entry.mag_scaled > scaled_limitmag;
+                }
+            ),
+            matches.end()
+        );
+        matches.erase(
+            std::remove_if(matches.begin(), matches.end(),
+                [radius_h, ra, dec](const SourceEntryAstro& entry) {
+                    return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * 0.000001, (double)entry.dec_scaled * .00001) > radius_h;
                 }
             ),
             matches.end()

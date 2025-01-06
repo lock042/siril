@@ -210,6 +210,10 @@ typedef struct {
 	gboolean display_tag;
 } show_params;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 uint32_t siril_catalog_columns(siril_cat_index cat);
 void sort_cat_items_by_mag(siril_catalogue *siril_cat);
 const char *catalog_to_str(siril_cat_index cat);
@@ -249,5 +253,9 @@ conesearch_args *init_conesearch_args();
 conesearch_params *init_conesearch_params();
 int execute_conesearch(conesearch_params *params);
 int execute_show_command(show_params *params);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
