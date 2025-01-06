@@ -611,7 +611,6 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	#else
 		munmap(shm_ptr, info->size);
 		close(fd);
-		shm_unlink(info->shm_name);  // Remove shared memory object
 	#endif
 
 	// In all cases we have now finished with the shm and closed and unlinked it.

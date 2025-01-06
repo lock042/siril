@@ -20,8 +20,8 @@ class SharedMemoryWrapper:
         try:
             # If the shm allocation doesn't exist, create one
             self._shm = shared_memory.SharedMemory(name=self.name, create=True, size=self.size)
-            # All shm allocations are unlinked by Siril after use, we do not need to resource track them
-            unregister(self._shm._name, "shared_memory")
+            # If we create the shm (e.g. for set_image_pixeldata) we must clean it up, so no call
+            # to unregister() here
         except FileExistsError:
             # Otherwise, open the existing one created by Siril
             self._shm = shared_memory.SharedMemory(name=self.name)

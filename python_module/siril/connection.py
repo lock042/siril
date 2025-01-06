@@ -9,6 +9,7 @@ import time
 import struct
 import socket
 import ctypes
+import random
 import threading
 import subprocess
 import numpy as np
@@ -1598,8 +1599,7 @@ class SirilInterface:
             serialized_data, total_bytes = _PlotSerializer._serialize_plot_data(plot_data)
 
             # Generate unique shared memory name
-            timestamp = int(time.time() * 1000)  # Millisecond precision
-            shm_name = f"siril_plot_shm_{os.getpid()}_{timestamp}"
+            shm_name = f"/{''.join(random.choices('0123456789abcdef', k=28))}"
 
             # Adjust name for Windows if needed
             if sys.platform == 'win32':
@@ -1646,6 +1646,7 @@ class SirilInterface:
             if 'shm' in locals() and shm is not None:
                 try:
                     shm.close()
+                    shm.unlink()
                 except:
                     pass
 
@@ -1694,8 +1695,7 @@ class SirilInterface:
             total_bytes = width * height * channels * element_size
 
             # Generate unique name for shared memory
-            timestamp = int(time.time() * 1000)  # Millisecond precision
-            shm_name = f"siril_shm_{os.getpid()}_{timestamp}"
+            shm_name = f"/{''.join(random.choices('0123456789abcdef', k=28))}"
             if sys.platform == 'win32':
                 shm_name = shm_name[1:]  # Remove leading slash on Windows
 
@@ -1741,6 +1741,7 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()
+                    shm.unlink()
                 except:
                     pass
 
@@ -1789,8 +1790,7 @@ class SirilInterface:
             total_bytes = width * height * channels * element_size
 
             # Generate unique name for shared memory
-            timestamp = int(time.time() * 1000)  # Millisecond precision
-            shm_name = f"siril_shm_{os.getpid()}_{timestamp}"
+            shm_name = f"/{''.join(random.choices('0123456789abcdef', k=28))}"
             if sys.platform == 'win32':
                 shm_name = shm_name[1:]  # Remove leading slash on Windows
 
@@ -1840,6 +1840,7 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()
+                    shm.unlink()
                 except:
                     pass
 
