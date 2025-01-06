@@ -1734,7 +1734,7 @@ class SirilInterface:
             return True
 
         except Exception as e:
-            print("Error sending pixel data: {e}", file=sys.stderr)
+            print(f"Error sending pixel data: {e}", file=sys.stderr)
             return False
 
         finally:
