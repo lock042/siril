@@ -411,7 +411,7 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 }
 
 shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes) {
-	if (data == NULL || total_bytes == 0) {
+	if (total_bytes == 0) {
 		const char* error_msg = _("Incorrect memory region specification");
 		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 		return NULL;
@@ -444,7 +444,10 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	}
 
 	// Copy data to shared memory
-	memcpy(shm_ptr, data, total_bytes);
+	if (data)
+		memcpy(shm_ptr, data, total_bytes);
+	else // for where Siril just requests the shm, provide it zeroed
+		memset(shm_ptr, 0, total_bytes);
 
 	// Track this allocation
 #ifdef _WIN32
@@ -534,6 +537,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		int fd = shm_open(info->shm_name, O_RDONLY, 0);
 		if (fd == -1) {
 			const char* error_msg = _("Failed to open shared memory");
+			siril_debug_print("SHM ERROR: %s\n", error_msg);
 			send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			return FALSE;
 		}

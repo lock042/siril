@@ -1830,6 +1830,21 @@ CLEANUP:
 			break;
 		}
 
+		case CMD_REQUEST_SHM: {
+			uint64_t total_size;
+			if (payload_length == 8) {
+				total_size = GUINT64_FROM_BE(*(uint64_t*) payload);
+				shared_memory_info_t *info = handle_rawdata_request(conn, NULL, total_size);
+				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+				free(info);
+
+			} else {
+				const char* error_msg = _("Incorrect payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
 		default:
 			siril_debug_print("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");

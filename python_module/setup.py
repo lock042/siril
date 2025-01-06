@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="siril",
-    version="0.4.26",
+    version="0.4.37",
     packages=find_packages(),
     install_requires=[
         "numpy>=1.20.0",

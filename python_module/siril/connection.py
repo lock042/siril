@@ -95,6 +95,7 @@ class _Command(IntEnum):
     CLAIM_THREAD = 41,
     RELEASE_THREAD = 42,
     SET_SEQ_FRAME_PIXELDATA = 43,
+    REQUEST_SHM = 44,
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -610,6 +611,59 @@ class SirilInterface:
             return None
 
         return response
+
+    def _request_shm(self, size: int) -> Optional[_SharedMemoryInfo]:
+        """
+        Request Siril to create a shared memory allocation and return an
+        object containing the details (name, size).
+
+        Args:
+            size: int specifying the size of shm buffer to create.
+
+        Returns:
+            _SharedMemoryInfo: Details of the shared memory allocation, or None if allocation failed.
+
+        Raises:
+            RuntimeError: If an invalid response is received or no data is returned.
+            ValueError: If the shared memory information is invalid.
+        """
+        size_data = struct.pack('!Q', size)  # Pack the size as a uint64_t in network byte order.
+
+        try:
+            # Send the shared memory request command.
+            status, response = self._send_command(_Command.REQUEST_SHM, size_data)
+
+            # Check the status and handle accordingly.
+            if status == _Status.ERROR:
+                raise RuntimeError(_("Failed to initiate shared memory transfer: invalid response"))
+
+            if status == _Status.NONE:
+                # Return None if no shared memory was allocated.
+                return None
+
+            if not response:
+                raise RuntimeError(_("Failed to initiate shared memory transfer: no data received"))
+
+            try:
+                # Attempt to parse the shared memory info from the response buffer.
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+                return shm_info
+
+            except (AttributeError, BufferError, ValueError) as e:
+                # Catch parsing errors and raise a descriptive exception.
+                raise ValueError(_("Invalid shared memory information received: {}").format(e))
+
+        except RuntimeError as re:
+            # Let specific RuntimeErrors propagate with contextual information.
+            raise RuntimeError(
+                _("Runtime error during shared memory allocation request: {}").format(re)
+            ) from re
+
+        except Exception as e:
+            # Catch any unexpected errors to improve debuggability.
+            raise RuntimeError(
+                _("Unexpected error during shared memory allocation request: {}").format(e)
+            ) from e
 
     def _map_shared_memory(self, name: str, size: int) -> SharedMemoryWrapper:
         """
@@ -1650,7 +1704,6 @@ class SirilInterface:
                 except:
                     pass
 
-
     def set_image_pixeldata(self, image_data: np.ndarray) -> bool:
         """
         Send image data to Siril using shared memory.
@@ -1665,6 +1718,7 @@ class SirilInterface:
         """
 
         shm = None
+        shm_info = None
         try:
             # Validate input array
             if not isinstance(image_data, np.ndarray):
@@ -1693,14 +1747,20 @@ class SirilInterface:
             element_size = 4 if image_data.dtype == np.float32 else 2
             total_bytes = width * height * channels * element_size
 
-            # Generate unique name for shared memory
-            shm_name = f"/{''.join(random.choices('0123456789abcdef', k=28))}"
-            if sys.platform == 'win32':
-                shm_name = shm_name[1:]  # Remove leading slash on Windows
-
             # Create shared memory using our wrapper
             try:
-                shm = SharedMemoryWrapper(shm_name, total_bytes)
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise RuntimeError(_("Failed to map shared memory: {}").format(e))
+
             except Exception as e:
                 raise RuntimeError(_("Failed to create shared memory: {}").format(e))
 
@@ -1723,9 +1783,8 @@ class SirilInterface:
                 channels,
                 1 if image_data.dtype == np.float32 else 0,
                 total_bytes,
-                shm_name.encode('utf-8').ljust(256, b'\x00')
+                shm_info.shm_name
             )
-
             # Send command using the existing _execute_command method
             if not self._execute_command(_Command.SET_PIXELDATA, info):
                 raise RuntimeError(_("Failed to send pixel data command"))
@@ -1740,7 +1799,7 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()
-                    shm.unlink()
+                    self._execute_command(_Command.RELEASE_SHM, shm_info)
                 except:
                     pass
 
