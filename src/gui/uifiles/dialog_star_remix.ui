@@ -141,11 +141,12 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkBox" id="remixer_clip_mode_settings">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="spacing">5</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Clipping mode</property>
+                    <property name="label" translatable="yes">Clipping mode:</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -208,6 +209,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
+            <property name="spacing">5</property>
             <child>
               <!-- n-columns=2 n-rows=2 -->
               <object class="GtkGrid">
