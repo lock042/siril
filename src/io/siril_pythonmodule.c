@@ -183,7 +183,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							int *fd) {
 
 	void *shm_ptr = NULL;
-	snprintf(shm_name_ptr, 31, "/%08x%08x", siril_random_int(), siril_random_int());
+	snprintf(shm_name_ptr, 31, "/%08x%08x%08x%05x", siril_random_int(), siril_random_int(), siril_random_int(), siril_random_int());
 
 	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 	if (*fd == -1) {
