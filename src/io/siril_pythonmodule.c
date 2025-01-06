@@ -182,10 +182,10 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							int *fd) {
 
 	void *shm_ptr = NULL;
-	snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
-			getpid(), (unsigned long)time(NULL));
-
-	shm_unlink(shm_name_ptr); // ensure any previous shm with this name (unlikely to exist	) is removed
+	gchar *uuid = g_uuid_string_random();
+	snprintf(shm_name_ptr, 256, "/siril_shm_%s",
+			uuid);
+	g_free(uuid);
 
 	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 	if (*fd == -1) {
