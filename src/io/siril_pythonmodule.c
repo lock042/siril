@@ -165,8 +165,6 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							win_shm_handle_t *win_handle) {
 	void *shm_ptr = NULL;
 	snprintf(shm_name_ptr, 30, "%08x%08x%08x%04x", siril_random_int(), siril_random_int(), siril_random_int(), siril_random_int());
-	(unsigned long)GetCurrentProcessId(),
-		(unsigned long)time(NULL));
 	*win_handle = (win_shm_handle_t){ NULL, NULL };
 	if (!create_shared_memory_win32(shm_name_ptr, total_bytes, win_handle)) {
 		return FALSE;
