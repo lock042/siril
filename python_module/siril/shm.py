@@ -15,12 +15,14 @@ class SharedMemoryWrapper:
         self.size = size  # Store intended size separately
         self._shm = None
         try:
-            self._shm = shared_memory.SharedMemory(name=self.name, create=True, size=self.size)
-        except FileExistsError:
+            # First try to attach to existing shared memory
             self._shm = shared_memory.SharedMemory(name=self.name)
             unregister(self._shm._name, "shared_memory")
             if self._shm.size < self.size:
                 raise ValueError(f"Existing shared memory size {self._shm.size} does not match expected {self.size}")
+        except FileNotFoundError:
+            # If it doesn't exist, create new shared memory
+            self._shm = shared_memory.SharedMemory(name=self.name, create=True, size=self.size)
 
     @property
     def buf(self):

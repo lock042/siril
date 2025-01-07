@@ -175,6 +175,53 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 	*shm_ptr_ptr = shm_ptr;
 	return TRUE;
 }
+#elif defined __APPLE__
+gboolean siril_allocate_shm(void** shm_ptr_ptr,
+							char* shm_name_ptr,
+							size_t total_bytes,
+							int *fd) {
+	void *shm_ptr = NULL;
+
+	snprintf(shm_name_ptr, 30, "/tmp/%08x%08x%08x", siril_random_int(), siril_random_int(), siril_random_int());
+	siril_debug_print("shm name: %s\n", shm_name_ptr);
+	int fd = open(filename, O_CREAT | O_RDWR, 0600);
+	if (*fd == -1) {}
+		siril_log_color_message(_("Invalid file descriptor after shm_open: %s\n"), "red", strerror(errno));
+		return FALSE;
+	}
+
+	if (*fd < 0) {
+		siril_log_color_message(_("Invalid file descriptor after shm_open\n"), "red");
+		shm_unlink(shm_name_ptr);
+		return FALSE;
+	}
+
+	// Round total_bytes up to page size
+	long page_size = sysconf(_SC_PAGESIZE);
+	off_t aligned_size = (total_bytes + page_size - 1) & ~(page_size - 1);
+	printf("SHM allocation: Original size: %zu, Aligned size: %zu, Page size: %ld\n",
+					  total_bytes, aligned_size, page_size);
+
+	siril_debug_print("Truncating shm file to %lu bytes\n", total_bytes);
+
+	// Truncate to ensure exact size
+	if (ftruncate(*fd, aligned_size) == -1) {
+		siril_log_color_message(_("Failed to set shared memory size (total_bytes: %ld): %s\n"), "red", aligned_size, strerror(errno));
+		close(*fd);
+		shm_unlink(shm_name_ptr);
+		return FALSE;
+	}
+
+	// Then mmap
+	shm_ptr = mmap(0, (size_t) aligned_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	siril_log_color_message(_("Failed to map shared memory: %s\n"), "red", strerror(errno));
+	close(*fd);
+	shm_unlink(shm_name_ptr);
+	return FALSE;
+	}
+
+	*shm_ptr_ptr = shm_ptr;
+	return TRUE;}
 #else
 
 gboolean siril_allocate_shm(void** shm_ptr_ptr,
@@ -183,11 +230,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							int *fd) {
 
 	void *shm_ptr = NULL;
-#ifdef __APPLE__
-	snprintf(shm_name_ptr, 30, "/tmp/%08x%08x%08x", siril_random_int(), siril_random_int(), siril_random_int());
-#else
 	snprintf(shm_name_ptr, 30, "/%08x%08x%08x%04x", siril_random_int(), siril_random_int(), siril_random_int(), siril_random_int());
-#endif
 	siril_debug_print("shm name: %s\n", shm_name_ptr);
 	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 	if (*fd == -1) {
