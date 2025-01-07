@@ -70,11 +70,6 @@ try: # import from the packaging specification
 except Exception:
     pass
 
-import sys
-if sys.platform == 'darwin':  # macOS specific
-    import multiprocessing as mp
-    mp.resource_tracker.getfd = lambda: -1  # Disable tracker on macOS only
-
 __copyright__ = " (c) Team free-astro 2024" # not a standard metadata
 
 # Define public API
