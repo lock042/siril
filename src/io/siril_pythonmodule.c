@@ -705,7 +705,10 @@ static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
 	GError *error = NULL;
 
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, &error))) {
-		siril_log_color_message("%s\n", "red", buffer);
+#ifdef __APPLE__
+		if (!g_strrstr(buffer, "resource_tracker.py"))
+#endif
+			siril_log_color_message("%s\n", "red", buffer);
 		g_free(buffer);
 	}
 
