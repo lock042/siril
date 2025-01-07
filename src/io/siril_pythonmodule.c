@@ -164,8 +164,8 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							size_t total_bytes,
 							win_shm_handle_t *win_handle) {
 	void *shm_ptr = NULL;
-	snprintf(shm_name_ptr, sizeof(shm_name_ptr), "siril_shm_%lu_%lu",
-		(unsigned long)GetCurrentProcessId(),
+	snprintf(shm_name_ptr, 30, "%08x%08x%08x%04x", siril_random_int(), siril_random_int(), siril_random_int(), siril_random_int());
+	(unsigned long)GetCurrentProcessId(),
 		(unsigned long)time(NULL));
 	*win_handle = (win_shm_handle_t){ NULL, NULL };
 	if (!create_shared_memory_win32(shm_name_ptr, total_bytes, win_handle)) {
@@ -184,9 +184,9 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 
 	void *shm_ptr = NULL;
 #ifdef __APPLE__
-	snprintf(shm_name_ptr, 30, "/%08x%08x%08x%04x", siril_random_int(), siril_random_int(), siril_random_int(), siril_random_int());
-#else
 	snprintf(shm_name_ptr, 30, "/tmp/%08x%08x%08x", siril_random_int(), siril_random_int(), siril_random_int());
+#else
+	snprintf(shm_name_ptr, 30, "/%08x%08x%08x%04x", siril_random_int(), siril_random_int(), siril_random_int(), siril_random_int());
 #endif
 	siril_debug_print("shm name: %s\n", shm_name_ptr);
 	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
