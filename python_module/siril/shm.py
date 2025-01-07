@@ -22,6 +22,7 @@ class SharedMemoryWrapper:
                 raise ValueError(f"Existing shared memory size {self._shm.size} does not match expected {self.size}")
         except FileNotFoundError:
             # If it doesn't exist, create new shared memory
+            print("Existing SHM not found, creating a new one...")
             self._shm = shared_memory.SharedMemory(name=self.name, create=True, size=self.size)
 
     @property
