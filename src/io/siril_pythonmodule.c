@@ -183,7 +183,11 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							int *fd) {
 
 	void *shm_ptr = NULL;
+#ifdef __APPLE__
 	snprintf(shm_name_ptr, 30, "/%08x%08x%08x%04x", siril_random_int(), siril_random_int(), siril_random_int(), siril_random_int());
+#else
+	snprintf(shm_name_ptr, 30, "/tmp/%08x%08x%08x", siril_random_int(), siril_random_int(), siril_random_int());
+#endif
 	siril_debug_print("shm name: %s\n", shm_name_ptr);
 	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 	if (*fd == -1) {
@@ -706,7 +710,7 @@ static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
 
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, &error))) {
 #ifdef __APPLE__
-		if (!g_strrstr(buffer, "resource_tracker.py"))
+		if (!g_strrstr(buffer, "resource_tracker"))
 #endif
 			siril_log_color_message("%s\n", "red", buffer);
 		g_free(buffer);
