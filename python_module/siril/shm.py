@@ -14,6 +14,7 @@ class SharedMemoryWrapper:
         self.name = name
         self.size = size  # Store intended size separately
         self._shm = None
+        print(name)
         try:
             # First try to attach to existing shared memory
             self._shm = shared_memory.SharedMemory(name=self.name)
