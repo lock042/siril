@@ -647,6 +647,7 @@ class SirilInterface:
             try:
                 # Attempt to parse the shared memory info from the response buffer.
                 shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+                print(shm_info.shm_name)
                 return shm_info
 
             except (AttributeError, BufferError, ValueError) as e:
