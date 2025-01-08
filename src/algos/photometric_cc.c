@@ -580,10 +580,12 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 			continue;
 		}
 		// get r g b coefficient
-		// If the Gaia Teff field is populated (CAT_GAIADR3 and
+		// If the Gaia Teff field is populated (CAT_GAIADR3, CAT_LOCAL_GAIA_ASTRO and
 		// CAT_GAIADR3_DIRECT), use that as it should be more accurate.
 		// Otherwise, we convert from Johnson B-V
-		if (stars[i].teff == 0.f) {
+		// Note, with CAT_LOCAL_GAIA_ASTRO we have already excluded stars without Teff
+		// when building the pcc_star array.
+		if (stars[i].teff < 0.5f) {
 			bv = min(max(stars[i].BV, -0.4f), 2.f);
 			cmsFloat64Number TempK = BV_to_T(bv);
 			stars[i].teff = (float) TempK;
@@ -925,12 +927,17 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 	if (siril_cat->projected == CAT_PROJ_NONE) {
 		siril_debug_print("Catalog has not been projected\n");
 	}
-	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG) || !has_field(siril_cat, BMAG))
+	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG) || (!has_field(siril_cat, BMAG) && !has_field(siril_cat, TEFF)))
 		return NULL;
 	pcc_star *results = malloc(siril_cat->nbitems * sizeof(pcc_star));
 
-	int n = 0;
+	int n = 0, no_teff = 0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
+		// For the local Gaia catalogue, skip any items where the Teff field is not populated
+		if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO && siril_cat->cat_items[i].teff < 0.5f) {
+			no_teff++;
+			continue;
+		}
 		if (n > siril_cat->nbincluded) {
 			siril_debug_print("problem when converting siril_cat to pcc_stars, more than allocated\n");
 			break;
@@ -945,7 +952,9 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 			n++;
 		}
 	}
-	if (n != siril_cat->nbincluded) {
+	if (no_teff != 0)
+		siril_debug_print("Skipped %d stars witout T_eff field\n", no_teff);
+	if (n + no_teff != siril_cat->nbincluded) {
 		siril_debug_print("problem when converting siril_cat to pcc_stars, number differs from catalogue info");
 		free(results);
 		return NULL;

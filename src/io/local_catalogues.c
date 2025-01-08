@@ -750,7 +750,10 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 		siril_cat->cat_items[i].pmra = (double)stars[i].dRA;
 		siril_cat->cat_items[i].pmdec = (double)stars[i].dDec;
 		siril_cat->cat_items[i].mag = (float)stars[i].V * .001;
-		siril_cat->cat_items[i].bmag = (float)stars[i].B * .001;
+		if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO)
+			siril_cat->cat_items[i].teff = (float)(uint16_t)stars[i].B;
+		else
+			siril_cat->cat_items[i].bmag = (float)stars[i].B * .001;
 		siril_cat->cat_items[i].included = TRUE;
 	}
 	free(stars);
