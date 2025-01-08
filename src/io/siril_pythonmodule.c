@@ -200,7 +200,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 	long page_size = sysconf(_SC_PAGESIZE);
 	off_t aligned_size = (total_bytes + page_size - 1) & ~(page_size - 1);
 	printf("SHM allocation: Original size: %zu, Aligned size: %zu, Page size: %ld\n",
-					  total_bytes, aligned_size, page_size);
+		   total_bytes, aligned_size, page_size);
 
 	siril_debug_print("Truncating shm file to %lu bytes\n", total_bytes);
 
@@ -214,7 +214,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 
 	// then mmap
 	shm_ptr = mmap(NULL, (size_t) aligned_size, PROT_READ | PROT_WRITE,
-				MAP_SHARED, *fd, 0);
+				   MAP_SHARED, *fd, 0);
 	if (shm_ptr == MAP_FAILED) {
 		siril_log_color_message(_("Failed to map shared memory: %s\n"), "red", strerror(errno));
 		close(*fd);
@@ -223,6 +223,18 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 	}
 
 	*shm_ptr_ptr = shm_ptr;
+
+	// On MacOS, when handing a shm name from C to python it appears necessary to remove
+	// the leading / from the shm name. This doesn't appear to be documented clearly anywhere
+	// else and took quite a lot of angst to figure out (thanks René!) so I'm putting a
+	// comment here as a reminder.
+#ifdef __APPLE__
+	// Remove leading '/' from shm_name_ptr
+	if (shm_name_ptr[0] == '/') {
+		memmove(shm_name_ptr, shm_name_ptr + 1, strlen(shm_name_ptr)); // Shift the string left
+	}
+#endif
+
 	return TRUE;
 }
 #endif
