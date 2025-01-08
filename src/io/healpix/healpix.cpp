@@ -100,60 +100,65 @@ std::vector<HealPixelRange> create_healpixel_ranges(const std::vector<int>& pixe
 template<typename EntryType>
 std::vector<EntryType> query_catalog(const std::string& filename, const std::vector<HealPixelRange>& healpixel_ranges, uint8_t healpix_level) {
     constexpr size_t HEADER_SIZE = 128; // Fixed header size in bytes
-
-    // Open the catalog file in binary mode
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        throw std::runtime_error("Failed to open file: " + filename);
-    }
-
-    // Skip the header
-    file.seekg(HEADER_SIZE, std::ios::beg);
-
-    uint32_t nside = 1 << healpix_level; // Calculate NSIDE as 2^level
-    uint32_t n_healpixels = 12 * nside * nside; // Total number of Healpixels
-
-    // Calculate the size of the index section
-    size_t INDEX_SIZE = n_healpixels * sizeof(uint32_t);
-
-    // Read the index section into memory
-    std::vector<uint32_t> index_section(n_healpixels, 0);
-    file.seekg(HEADER_SIZE, std::ios::beg); // Move to the start of the index
-    file.read(reinterpret_cast<char*>(index_section.data()), INDEX_SIZE);
-    if (!file) {
-        throw std::runtime_error("Failed to read index section.");
-    }
-
     std::vector<EntryType> results;
 
-    // For each ID range, read the relevant entries
-    for (const auto& range : healpixel_ranges) {
-        uint32_t start_healpixel = range.start_id;
-        uint32_t end_healpixel = range.end_id;
-
-        if (start_healpixel >= n_healpixels || end_healpixel >= n_healpixels) {
-            throw std::runtime_error("ID range exceeds catalog bounds.");
+    try {
+        // Open the catalog file in binary mode
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open()) {
+            siril_log_message(_("Failed to open file: %s\n"), "red", filename.c_str());
+            return results;
         }
 
-        uint32_t start_offset = index_section[start_healpixel]; // Cumulative EntryType records before the start point
-        uint32_t end_offset = index_section[end_healpixel + 1]; // Exclusive end
+        uint32_t nside = 1 << healpix_level; // Calculate NSIDE as 2^level
+        uint32_t n_healpixels = 12 * nside * nside; // Total number of Healpixels
 
-        // Seek to the start of the data section
-        size_t data_start_pos = HEADER_SIZE + INDEX_SIZE + start_offset * sizeof(EntryType);
-        file.seekg(data_start_pos, std::ios::beg);
+        // Function to read a single index entry at a specific position
+        auto read_index_entry = [&file](uint32_t healpixel_id) -> uint32_t {
+            uint32_t index_value;
+            file.seekg(HEADER_SIZE + healpixel_id * sizeof(uint32_t), std::ios::beg);
+            file.read(reinterpret_cast<char*>(&index_value), sizeof(uint32_t));
+            if (!file) {
+                throw std::runtime_error("Failed to read catalog index entry.");
+            }
+            return index_value;
+        };
 
-        // Read records from start_offset to end_offset
-        size_t num_records = end_offset - start_offset;
-        std::vector<EntryType> buffer(num_records);
-        file.read(reinterpret_cast<char*>(buffer.data()), num_records * sizeof(EntryType));
-        if (!file) {
-            throw std::runtime_error("Failed to read data entries.");
+        // Process each range
+        for (const auto& range : healpixel_ranges) {
+            uint32_t start_healpixel = range.start_id;
+            uint32_t end_healpixel = range.end_id;
+
+            if (start_healpixel >= n_healpixels || end_healpixel >= n_healpixels) {
+                siril_log_message(_("ID range exceeds catalog bounds."));
+                return results;
+            }
+
+            // Read only the necessary index entries
+            uint32_t start_offset = read_index_entry(start_healpixel);
+            uint32_t end_offset = read_index_entry(end_healpixel + 1); // Read the next entry to get exclusive end
+
+            // Calculate position in the data section
+            size_t INDEX_SIZE = n_healpixels * sizeof(uint32_t);
+            size_t data_start_pos = HEADER_SIZE + INDEX_SIZE + start_offset * sizeof(EntryType);
+
+            // Read the required data entries
+            size_t num_records = end_offset - start_offset;
+            std::vector<EntryType> buffer(num_records);
+
+            file.seekg(data_start_pos, std::ios::beg);
+            file.read(reinterpret_cast<char*>(buffer.data()), num_records * sizeof(EntryType));
+            if (!file) {
+                throw std::runtime_error(_("Failed to read data entries."));
+            }
+
+            // Move entries to results vector
+            results.insert(results.end(), buffer.begin(), buffer.end());
         }
-
-        // Copy relevant records to the result vector
-        for (auto& entry : buffer) {
-            results.push_back(entry);
-        }
+    }
+    catch (const std::exception& e) {
+        siril_log_color_message(e.what(), "red");
+        results.clear();  // Ensure vector is empty in case of error
     }
 
     return results;
@@ -246,13 +251,20 @@ extern "C" {
         // Query the catalogue for matches
         std::vector<SourceEntryAstro> matches = query_catalog<SourceEntryAstro>(filename, healpixel_ranges, header.healpix_level);
 
+        // Check if no matches were found, return 1 in that case
+        if (matches.empty()) {
+            *nb_stars = 0;
+            *stars = nullptr;
+            return 1;
+        }
+
         // Filter by magnitude
         double scaled_limitmag = limitmag * 1000.0;
         matches.erase(
             std::remove_if(matches.begin(), matches.end(),
-                [scaled_limitmag](const SourceEntryAstro& entry) {
-                    return entry.mag_scaled > scaled_limitmag;
-                }
+                           [scaled_limitmag](const SourceEntryAstro& entry) {
+                               return entry.mag_scaled > scaled_limitmag;
+                           }
             ),
             matches.end()
         );
@@ -260,20 +272,28 @@ extern "C" {
         // Filter by distance from the center of the cone
         matches.erase(
             std::remove_if(matches.begin(), matches.end(),
-                [radius_h, ra, dec](const SourceEntryAstro& entry) {
-                    return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * 0.000001, (double)entry.dec_scaled * .00001) > radius_h;
-                }
+                           [radius_h, ra, dec](const SourceEntryAstro& entry) {
+                               return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * 0.000001, (double)entry.dec_scaled * .00001) > radius_h;
+                           }
             ),
             matches.end()
         );
 
+        // Check if no matches remain after filtering, again return 1 in that case
+        if (matches.empty()) {
+            *nb_stars = 0;
+            *stars = nullptr;
+            return 1;
+        }
+
         // Populate return data
         *nb_stars = matches.size();
-        uint32_t i = 0;
         *stars = (deepStarData*) malloc(*nb_stars * sizeof(deepStarData));
         if (*stars == nullptr) {
-            return -1;  // Memory allocation failed
+            return -1;  // Memory allocation failed, return -1
         }
+
+        uint32_t i = 0;
         for (const auto& entry : matches) {
             (*stars)[i++] = (deepStarData) {
                 .RA = entry.ra_scaled,
@@ -284,6 +304,7 @@ extern "C" {
                 .V = entry.mag_scaled
             };
         }
+
         return 0;
     }
 
@@ -308,8 +329,15 @@ extern "C" {
 
         std::vector<HealPixelRange> healpixel_ranges = create_healpixel_ranges(pixel_indices);
 
-        // Convert char* to std::string for query_catalog
+        // Query the catalog for matches
         std::vector<SourceEntryPhoto> matches = query_catalog<SourceEntryPhoto>(filename, healpixel_ranges, header.healpix_level);
+
+        // Check if no matches were found, return 1 in that case
+        if (matches.empty()) {
+            *nb_stars = 0;
+            *stars = nullptr;
+            return 1;
+        }
 
         // Filter by magnitude
         double scaled_limitmag = limitmag * 1000.0;
@@ -321,10 +349,18 @@ extern "C" {
             ),
             matches.end()
         );
+
+        // Check if no matches remain after filtering, again return 1 in that case
+        if (matches.empty()) {
+            *nb_stars = 0;
+            *stars = nullptr;
+            return 1;
+        }
+
         *nb_stars = matches.size();
         *stars = (SourceEntryPhoto*)malloc(matches.size() * sizeof(SourceEntryPhoto));
         if (*stars == nullptr) {
-            return -1;  // Memory allocation failed
+            return -1;  // Memory allocation failed, return -1
         }
         std::memcpy(*stars, matches.data(), matches.size() * sizeof(SourceEntryPhoto));
         return 0;
