@@ -95,9 +95,9 @@ static gboolean siril_update_get_highest(yyjson_doc *doc,
 			yyjson_val *build_id = yyjson_obj_get(build, "build-id");
 			const char *build_id_str = build_id ? yyjson_get_str(build_id) : NULL;
 
-			if (build_id_str && (strcmp(build_id_str, "org.siril.Siril") == 0 ||
+			if (build_id_str && ((strcmp(build_id_str, "org.siril.Siril") == 0 ||
 				strcmp(build_id_str, "org.free_astro.siril") == 0) ||
-				strcmp(platform, "source") == 0) {
+				strcmp(platform, "source") == 0)) {
 
 				// Get release date
 				const char *release_date = NULL;
