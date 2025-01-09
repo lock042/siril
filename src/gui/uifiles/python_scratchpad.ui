@@ -8,7 +8,7 @@
   <!-- interface-license-type gplv3 -->
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
-  <!-- interface-copyright The free-astro development team, 2023 -->
+  <!-- interface-copyright The free-astro development team, 2025 -->
   <object class="GtkOverlay" id="find_overlay">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
