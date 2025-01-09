@@ -445,27 +445,28 @@ static void siril_macos_setenv(const char *progname) {
 	gchar resolved_path[PATH_MAX];
 
 	if (realpath(progname, resolved_path)) {
-		gchar *path;
 		gchar tmp[PATH_MAX];
-		gchar *app_dir;
-		gchar lib_dir[PATH_MAX];
-		size_t path_len;
-		struct stat sb;
-		app_dir = g_path_get_dirname(resolved_path);
+		gchar *exe_dir;           /* executable directory */
+		gchar res_dir[PATH_MAX];  /* resources directory  */
 
-		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", app_dir);
-		if (realpath(tmp, lib_dir) && !stat(lib_dir, &sb) && S_ISDIR(sb.st_mode))
-			g_print("Siril is started as MacOS application\n");
+		/* get canonical path to Foo.app/Contents/Resources directory */
+		exe_dir = g_path_get_dirname(resolved_path);
+		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", exe_dir);
+		struct stat sb;
+		if (realpath(tmp, res_dir) && !stat(res_dir, &sb) && S_ISDIR(sb.st_mode))
+			g_print("Siril is started as macOS application\n");
 		else
 			return;
+		g_free(exe_dir);
 
-		/* we define the relocated resources path */
-		g_setenv("SIRIL_RELOCATED_RES_DIR", tmp, TRUE);
+		/* store canonical path to resources directory in environment variable. */
+		g_setenv("SIRIL_RELOCATED_RES_DIR", res_dir, TRUE);
 
-		g_snprintf(tmp, sizeof(tmp), "%s/../Resources/bin", app_dir);
-		path_len = strlen(g_getenv("PATH") ? g_getenv("PATH") : "")
+    /* prepend PATH with our Resources/bin directory */
+		g_snprintf(tmp, sizeof(tmp), "%s/bin", res_dir);
+		size_t path_len = strlen(g_getenv("PATH") ? g_getenv("PATH") : "")
 			+ strlen(tmp) + 2;
-		path = g_try_malloc(path_len);
+		gchar *path = g_try_malloc(path_len);
 		if (path == NULL) {
 			g_warning("Failed to allocate memory");
 			exit(EXIT_FAILURE);
@@ -474,31 +475,37 @@ static void siril_macos_setenv(const char *progname) {
 			g_snprintf(path, path_len, "%s:%s", tmp, g_getenv("PATH"));
 		else
 			g_snprintf(path, path_len, "%s", tmp);
-		/* the relocated path is storred in this env. variable in order to be reused if needed */
-		g_free(app_dir);
 		g_setenv("PATH", path, TRUE);
 		g_free(path);
-		g_snprintf(tmp, sizeof(tmp), "%s/share", lib_dir);
+
+		/* set XDG base directory specification variables */
+		g_snprintf(tmp, sizeof(tmp), "%s/share", res_dir);
 		g_setenv("XDG_DATA_DIRS", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/share/schemas", lib_dir);
-		g_setenv("GSETTINGS_SCHEMA_DIR", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/lib/gtk-3.0/3.0.0", lib_dir);
-		g_setenv("GTK_PATH", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache", lib_dir);
-		g_setenv("GDK_PIXBUF_MODULE_FILE", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/lib/gdk-pixbuf-2.0/2.10.0/loaders", lib_dir);
-		g_setenv("GDK_PIXBUF_MODULE_DIR", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/etc/fonts", lib_dir);
-		g_setenv("FONTCONFIG_PATH", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/etc/ca-certificates/cacert.pem", lib_dir);
-		g_setenv("CURL_CA_BUNDLE", tmp, TRUE);
 		if (g_getenv("HOME") != NULL) {
+			g_snprintf (tmp, sizeof(tmp), "%s/Library/Caches/org.siril.Siril", g_getenv("HOME"));
+			g_setenv ("XDG_CACHE_HOME", tmp, TRUE);
 			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support/org.siril.Siril", g_getenv("HOME"));
 			g_setenv("XDG_CONFIG_HOME", tmp, TRUE);
-			g_snprintf (tmp, sizeof(tmp), "%s/Library/Caches/org.siril.Siril",
-					g_getenv("HOME"));
-			g_setenv ("XDG_CACHE_HOME", tmp, TRUE);
+			g_setenv("XDG_DATA_HOME", tmp, TRUE);
 		}
+
+		/* set GTK related environment variables */
+		g_snprintf(tmp, sizeof(tmp), "%s/share/schemas", res_dir);
+		g_setenv("GTK_PATH", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache", res_dir);
+		g_setenv("GDK_PIXBUF_MODULE_FILE", tmp, TRUE);
+
+		/* set fontconfig related variables */
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/fonts", res_dir);
+		g_setenv("FONTCONFIG_PATH", tmp, TRUE);
+
+		/* set curl related variables */
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/ca-certificates/cacert.pem", res_dir);
+		g_setenv("CURL_CA_BUNDLE", tmp, TRUE);
+
+		/* astropy does not create its director itself */
+		g_snprintf(tmp, sizeof(tmp), "%s/astropy", g_getenv("XDG_CONFIG_HOME"));
+		g_mkdir_with_parents(tmp, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH); // perm 755
 	}
 }
 #endif
