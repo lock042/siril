@@ -234,7 +234,6 @@ m_dep = cc.find_library('m', required : false)
 lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
 # wcslib mandatory - uses subproject fallback to build if not found
 wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true, version: '>= 7.12')
-json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f
@@ -633,7 +632,6 @@ externals_dep = declare_dependency(
     wcslib_dep,
     fftw3f_dep,
     cfitsio_dep,
-    json_glib_dep,
     libraw_dep,
     libtiff_dep,
     libjpeg_dep,

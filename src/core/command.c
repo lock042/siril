@@ -39,7 +39,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include <json-glib/json-glib.h>
+#include "io/yyjson.h"
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -6836,13 +6836,11 @@ int process_seq_stat(int nb) {
 
 // Only for FITS images
 int process_jsonmetadata(int nb) {
-	/* we need both the file descriptor to read the header and the data to
-	 * compute stats, so we need the file name even in the case of a loaded
-	 * image, but we may use the loaded data if the option is provided, to
-	 * avoid reading it for nothing */
 	char *input_filename = word[1];
 	gchar *output_filename = NULL;
 	gboolean use_gfit = FALSE, compute_stats = TRUE;
+
+	// Process command arguments
 	for (int i = 2; i < nb; i++) {
 		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0') {
 			if (output_filename) g_free(output_filename);
@@ -6861,6 +6859,7 @@ int process_jsonmetadata(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
+
 	if (!output_filename)
 		output_filename = replace_ext(input_filename, ".json");
 
@@ -6896,79 +6895,88 @@ int process_jsonmetadata(int nb) {
 	}
 	fits_close_file(fptr, &status);
 
-	// https://gnome.pages.gitlab.gnome.org/json-glib/class.Builder.html
-	JsonBuilder *builder = json_builder_new();
-	json_builder_begin_object(builder);
-	json_builder_set_member_name(builder, "headers");
-	json_builder_begin_array(builder);
+	// Create the root object
+	yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+	yyjson_mut_val *root = yyjson_mut_obj(doc);
+	yyjson_mut_doc_set_root(doc, root);
+
+	// Add headers array
+	yyjson_mut_val *headers_arr = yyjson_mut_arr(doc);
+	yyjson_mut_obj_add_val(doc, root, "headers", headers_arr);
+
+	// Add header records
 	GSList *ptr = header;
 	while (ptr) {
-		json_builder_begin_object(builder);
 		header_record *r = ptr->data;
-		json_builder_set_member_name(builder, "key");
-		json_builder_add_string_value(builder, r->key);
-		json_builder_set_member_name(builder, "value");
-		json_builder_add_string_value(builder, r->value);
-		json_builder_end_object(builder);
+		yyjson_mut_val *header_obj = yyjson_mut_obj(doc);
+		yyjson_mut_val *key_str = yyjson_mut_str(doc, r->key);
+		yyjson_mut_val *value_str = yyjson_mut_str(doc, r->value);
+		yyjson_mut_obj_add_val(doc, header_obj, "key", key_str);
+		yyjson_mut_obj_add_val(doc, header_obj, "value", value_str);
+		yyjson_mut_arr_append(headers_arr, header_obj);
 		ptr = ptr->next;
 	}
-	json_builder_end_array(builder);
 
+	// Add statistics if computed
 	if (compute_stats) {
-		json_builder_set_member_name(builder, "statistics");
-		json_builder_begin_object(builder);
+		yyjson_mut_val *stats_obj = yyjson_mut_obj(doc);
+		yyjson_mut_obj_add_val(doc, root, "statistics", stats_obj);
+
 		for (int i = 0; i < nb_channels; ++i) {
 			if (stats[i]) {
 				char channame[20];
 				sprintf(channame, "channel%d", i);
-				json_builder_set_member_name(builder, channame);
-				json_builder_begin_object(builder);
-				json_builder_set_member_name(builder, "mean");
-				json_builder_add_double_value(builder, stats[i]->mean);
-				json_builder_set_member_name(builder, "median");
-				json_builder_add_double_value(builder, stats[i]->median);
-				json_builder_set_member_name(builder, "sigma");
-				json_builder_add_double_value(builder, stats[i]->sigma);
-				json_builder_set_member_name(builder, "noise");
-				json_builder_add_double_value(builder, stats[i]->bgnoise);
-				json_builder_set_member_name(builder, "min");
-				json_builder_add_double_value(builder, stats[i]->min);
-				json_builder_set_member_name(builder, "max");
-				json_builder_add_double_value(builder, stats[i]->max);
-				json_builder_set_member_name(builder, "total_pix_count");
-				json_builder_add_double_value(builder, stats[i]->total);
-				json_builder_set_member_name(builder, "good_pix_count");
-				json_builder_add_double_value(builder, stats[i]->ngoodpix);
-				json_builder_end_object(builder);
-				// BASIC: median, mean, sigma, noise, min, max
+
+				yyjson_mut_val *chan_obj = yyjson_mut_obj(doc);
+				yyjson_mut_obj_add_val(doc, stats_obj, channame, chan_obj);
+
+				yyjson_mut_val *mean_val = yyjson_mut_real(doc, stats[i]->mean);
+				yyjson_mut_val *median_val = yyjson_mut_real(doc, stats[i]->median);
+				yyjson_mut_val *sigma_val = yyjson_mut_real(doc, stats[i]->sigma);
+				yyjson_mut_val *noise_val = yyjson_mut_real(doc, stats[i]->bgnoise);
+				yyjson_mut_val *min_val = yyjson_mut_real(doc, stats[i]->min);
+				yyjson_mut_val *max_val = yyjson_mut_real(doc, stats[i]->max);
+				yyjson_mut_val *total_val = yyjson_mut_real(doc, stats[i]->total);
+				yyjson_mut_val *good_val = yyjson_mut_real(doc, stats[i]->ngoodpix);
+
+				yyjson_mut_obj_add_val(doc, chan_obj, "mean", mean_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "median", median_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "sigma", sigma_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "noise", noise_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "min", min_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "max", max_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "total_pix_count", total_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "good_pix_count", good_val);
+
 				free_stats(stats[i]);
 			}
 		}
-		json_builder_end_object(builder);
 	}
-	json_builder_end_object(builder);
 
-	JsonGenerator *gen = json_generator_new();
-	JsonNode *root = json_builder_get_root(builder);
-	json_generator_set_root(gen, root);
-	json_generator_set_pretty(gen, TRUE);
-	GError *err = NULL;
+	// Write the JSON to file with pretty formatting
+	yyjson_write_flag flg = YYJSON_WRITE_PRETTY;
+	yyjson_write_err err;
 	int retval = CMD_OK;
-	if (!json_generator_to_file(gen, output_filename, &err)) {
-		siril_log_message(_("Failed to save the JSON file %s: %s\n"), output_filename, err->message);
+
+	if (!yyjson_mut_write_file(output_filename, doc, flg, NULL, &err)) {
+		siril_log_message(_("Failed to save the JSON file %s: %s\n"),
+						  output_filename, err.msg);
 		retval = CMD_GENERIC_ERROR;
+	} else {
+		siril_log_message(_("Save metadata to the JSON file '%s'\n"), output_filename);
 	}
-	else siril_log_message(_("Save metadata to the JSON file '%s'\n"), output_filename);
+
+	#ifdef DEBUG_TEST
+	size_t len;
+	char *json_str = yyjson_mut_write(doc, flg, &len);
+	if (json_str) {
+		printf("JSON:\n%s\n", json_str);
+		free(json_str);
+	}
+	#endif
+
+	yyjson_mut_doc_free(doc);
 	g_free(output_filename);
-
-#ifdef DEBUG_TEST
-	gchar *str = json_generator_to_data(gen, NULL);
-	printf("JSON:\n%s\n", str);
-#endif
-
-	json_node_free(root);
-	g_object_unref(gen);
-	g_object_unref(builder);
 	return retval;
 }
 
