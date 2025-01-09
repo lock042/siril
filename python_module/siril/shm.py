@@ -3,6 +3,7 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 from multiprocessing import shared_memory
 from multiprocessing.resource_tracker import unregister
 
@@ -11,6 +12,9 @@ class SharedMemoryWrapper:
     Wrapper class to handle shared memory creation and cleanup across platforms.
     """
     def __init__(self, name: str, size: int):
+        if os.name != "nt":
+            name = name.lstrip('/') # Remove leading '/' on POSIX systems
+                                    # because SharedMemory.__init__ will add it back
         self.name = name
         self.size = size  # Store intended size separately
         self._shm = None

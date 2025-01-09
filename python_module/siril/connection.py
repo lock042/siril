@@ -1652,20 +1652,22 @@ class SirilInterface:
         try:
             serialized_data, total_bytes = _PlotSerializer._serialize_plot_data(plot_data)
 
-            # Generate unique shared memory name
-            shm_name = f"/{''.join(random.choices('0123456789abcdef', k=28))}"
-
-            # Adjust name for Windows if needed
-            if sys.platform == 'win32':
-                shm_name = shm_name[1:]  # Remove leading slash
-
-            # Create shared memory
-            shm = None
+            # Create shared memory using our wrapper
             try:
-                shm = SharedMemoryWrapper(shm_name, total_bytes)
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise RuntimeError(_("Failed to map shared memory: {}").format(e))
+
             except Exception as e:
-                print(f"Failed to create shared memory: {e}", file=sys.stderr)
-                return False
+                raise RuntimeError(_("Failed to create shared memory: {}").format(e))
 
             # Copy serialized data to shared memory
             try:
@@ -1684,7 +1686,7 @@ class SirilInterface:
                 0,  # reserved/unused
                 0,  # reserved/unused
                 total_bytes,
-                shm_name.encode('utf-8').ljust(256, b'\x00')
+                shm_info.shm_name
             )
 
             if not self._execute_command(_Command.SIRIL_PLOT, info):
@@ -1700,7 +1702,6 @@ class SirilInterface:
             if 'shm' in locals() and shm is not None:
                 try:
                     shm.close()
-                    shm.unlink()
                 except:
                     pass
 
@@ -1766,15 +1767,12 @@ class SirilInterface:
 
             # Copy data to shared memory
             try:
-#                if sys.platform == 'darwin':  # macOS specific
-                shm.buf[:] = image_data.tobytes()
-#                else:
-#                    buffer = memoryview(shm.buf).cast('B')
-#                    shared_array = np.frombuffer(buffer, dtype=image_data.dtype).reshape(image_data.shape)
-#                    np.copyto(shared_array, image_data)
-                    # Delete transient objects used to structure copy
-#                    del buffer
-#                    del shared_array
+                buffer = memoryview(shm.buf).cast('B')
+                shared_array = np.frombuffer(buffer, dtype=image_data.dtype).reshape(image_data.shape)
+                np.copyto(shared_array, image_data)
+                # Delete transient objects used to structure copy
+                del buffer
+                del shared_array
             except Exception as e:
                 raise RuntimeError(_("Failed to copy data to shared memory: {}").format(e))
 
@@ -1850,14 +1848,20 @@ class SirilInterface:
             element_size = 4 if image_data.dtype == np.float32 else 2
             total_bytes = width * height * channels * element_size
 
-            # Generate unique name for shared memory
-            shm_name = f"/{''.join(random.choices('0123456789abcdef', k=28))}"
-            if sys.platform == 'win32':
-                shm_name = shm_name[1:]  # Remove leading slash on Windows
-
             # Create shared memory using our wrapper
             try:
-                shm = SharedMemoryWrapper(shm_name, total_bytes)
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise RuntimeError(_("Failed to map shared memory: {}").format(e))
+
             except Exception as e:
                 raise RuntimeError(_("Failed to create shared memory: {}").format(e))
 
@@ -1880,7 +1884,7 @@ class SirilInterface:
                 channels,
                 1 if image_data.dtype == np.float32 else 0,
                 total_bytes,
-                shm_name.encode('utf-8').ljust(256, b'\x00')
+                shm_info.shm_name
             )
 
             # Create payload
@@ -1901,7 +1905,6 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()
-                    shm.unlink()
                 except:
                     pass
 
