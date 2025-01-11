@@ -1143,7 +1143,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                             </child>
                             <child>
                               <object class="GtkCheckButton" id="checkbutton_IPS_nocache">
-                                <property name="label" translatable="yes">Fetch stars for each image</property>
+                                <property name="label" translatable="yes">Fetch catalog for each image</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>

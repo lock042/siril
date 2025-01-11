@@ -58,19 +58,9 @@ void compute_downscaled_mask_size(int rx, int ry, int *rx_out, int *ry_out, doub
 		*fy = (double)(*ry_out) / (double)ry;
 }
 
-gchar *get_mask_filename(sequence *seq, int index) {
-	char root[256];
-	if (!fit_sequence_get_image_filename(seq, index, root, FALSE)) {
-		return NULL;
-	}
-	const gchar *mask_filename = g_strdup_printf("%s.msk", root);
-	gchar *maskpath = g_build_path(G_DIR_SEPARATOR_S, com.wd, "cache", mask_filename, NULL);
-	return maskpath;
-}
-
 // check if we need to create the mask or if it already exists
 static gboolean compute_mask_read_hook(struct generic_seq_args *args, int i) {
-	const gchar *mask_filename = get_mask_filename(args->seq, i);
+	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "msk", NULL);
 	if (!mask_filename) {
 		return TRUE;
 	}
@@ -183,7 +173,7 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 	cvDownscaleBlendMask(rx, ry, rx_out, ry_out, buffer8in, buffer32out);
 
 	//we save the mask
-	const gchar *mask_filename = get_mask_filename(args->seq, i);
+	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "msk", NULL);
 	if (!mask_filename) {
 		siril_debug_print("failed to create the mask filename");
 		free(buffer8in);
