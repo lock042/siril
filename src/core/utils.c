@@ -1045,24 +1045,6 @@ int siril_change_dir(const char *dir, gchar **err) {
 	return retval;
 }
 
-/**
- * If Windows OS, converts a filename from UTF-8 to the system codepage. Do nothing on other system
- * @param path to convert
- * @return converted filename
- */
-gchar *get_locale_filename(const gchar *path) {
-	gchar *str;
-#ifdef _WIN32
-	str = g_win32_locale_filename_from_utf8(path);
-	if (!str) {
-		siril_log_color_message(_("Conversion of the filename to system codepage failed. Please consider removing all wide chars.\n"), "red");
-		return g_strdup(path);
-	}
-#else // _WIN32
-	str = g_strdup(path);
-#endif // _WIN32
-	return str;
-}
 
 /**
  * Expands the ~ in filenames
