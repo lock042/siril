@@ -857,6 +857,19 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	if (!editor_window) {
 		python_scratchpad_init_statics();
 	}
+
+	// This is a normal window with normal decorations
+	gtk_window_set_type_hint(GTK_WINDOW(editor_window), GDK_WINDOW_TYPE_HINT_NORMAL);
+
+	// Decouple window behaviour from main window
+	gtk_window_set_transient_for(editor_window, NULL);
+	// (Note, if the editor window is minimized and there isn't an icon in the system tray
+	// it can be restored just by clicking on the script editor menu item again - no work
+	// will be lost...)
+
+	// Hide on delete
+	g_signal_connect(editor_window, "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+
 	setup_editor_actions(editor_window);
 
 	// If the window isn't visible, let's position it relative to the main window
@@ -1020,20 +1033,17 @@ void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user
 	gtk_widget_destroy(dialog);
 }
 
-// Handler for main window state changes
 gboolean on_main_window_state_changed(GtkWidget *widget, GdkEventWindowState *event, gpointer user_data) {
-	GtkWindow *editor_window = GTK_WINDOW(user_data);
-
 	if (event->changed_mask & GDK_WINDOW_STATE_ICONIFIED) {
-		if (event->new_window_state & GDK_WINDOW_STATE_ICONIFIED) {
-			// Main window was minimized, minimize editor too
-			gtk_window_iconify(editor_window);
-		} else {
-			// Main window was restored, restore editor too
-			gtk_window_deiconify(editor_window);
+		GtkWindow *editor_window = GTK_WINDOW(user_data);
+		if (gtk_widget_get_visible(GTK_WIDGET(editor_window))) {
+			if (event->new_window_state & GDK_WINDOW_STATE_ICONIFIED) {
+				gtk_window_iconify(editor_window);
+			} else {
+				gtk_window_present(editor_window);
+			}
 		}
 	}
-
 	return FALSE;
 }
 
