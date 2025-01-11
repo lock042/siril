@@ -226,6 +226,7 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
     Raises:
         subprocess.CalledProcessError: If pip installation fails.
     """
+    print(f"Installing {package_name}. This may take a few seconds...")
     # Construct installation target
     install_target = f"{package_name}{version_constraint}" if version_constraint else package_name
 

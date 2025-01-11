@@ -183,7 +183,6 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 
 	void *shm_ptr = NULL;
 	snprintf(shm_name_ptr, 30, "/%08x%08x%08x%04x", siril_random_int(), siril_random_int(), siril_random_int(), siril_random_int());
-	siril_log_message("shm name: %s\n", shm_name_ptr);
 	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
 	if (*fd == -1) {
 		siril_log_color_message(_("Invalid file descriptor after shm_open: %s\n"), "red", strerror(errno));
@@ -1342,7 +1341,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		GError* ver_error = NULL;
 		version_number user_version = get_installed_module_version(python_path, &ver_error);
 		if (ver_error) { // May just mean it's not installed: anyway we will try
-			siril_debug_print("Module version check error (harmless): %s\n", ver_error->message);
+			siril_debug_print("Module version check status (harmless): %s\n", ver_error->message);
 			g_clear_error(&ver_error);
 			needs_install = TRUE;
 			// user_version is {0} so the version check will require us to install it
@@ -1354,7 +1353,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		if (compare_version(module_version, user_version) > 0) {
 			needs_install = TRUE;
 		} else if (compare_version(module_version, user_version) < 0) {
-			// Downgrading: perhaps we havebeen trying a development branch of Siril
+			// Downgrading: perhaps we have been trying a development branch of Siril
 			// and are reverting to a stable branch or something. Attempt to uninstall
 			// then reinstall: if not, we get drastic and yeet the entire venv then
 			// rebuild it from scratch to force the downgrade
@@ -1398,7 +1397,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	g_free(module_setup_path);
 
 	if (needs_install) {
-		siril_log_message(_("Installing python module...\n"));
+		siril_log_message(_("Installing / updating python module in the background. This may take a few seconds...\n"));
 		// Create user-owned directory and copy module
 		if (!g_file_test(user_module_path, G_FILE_TEST_EXISTS)) {
 			if (g_mkdir_with_parents(user_module_path, 0755) != 0) {
@@ -1463,6 +1462,7 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 	info->venv_path = g_strdup(venv_path);
 	info->env_vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
+	siril_log_message(_("Preparing python virtual environment: %s.\n"), venv_path);
 	// Copy current environment
 	gchar **current_env = g_get_environ();
 	for (gchar **env = current_env; env && *env; env++) {
@@ -1514,7 +1514,7 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 				install_error ? install_error->message : "Unknown error");
 		g_error_free(install_error);
 	} else {
-		siril_log_message(_("Python module is up-to-date\n"));
+		siril_log_color_message(_("Python module is up-to-date\n"), "green");
 	}
 	g_free(module_path);
 
@@ -1649,7 +1649,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 
 	// Check/create venv
 	if (!check_or_create_venv(project_path, &error)) {
-		g_warning("Failed to initialize Python virtual environment: %s",
+		siril_log_color_message(_("Failed to initialize Python virtual environment: %s"), "red",
 				error ? error->message : "Unknown error");
 		g_clear_error(&error);
 		g_free(project_path);
@@ -1660,7 +1660,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
 	PythonVenvInfo *venv_info = prepare_venv_environment(venv_path);
 	if (!venv_info) {
-		g_warning("Failed to prepare virtual environment");
+		siril_log_color_message(_("Failed to prepare virtual environment"), "red");
 		g_free(venv_path);
 		g_free(project_path);
 		return GINT_TO_POINTER(1);
@@ -1716,7 +1716,9 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			g_thread_join(com.python_init_thread); // wait for python initialization to start
 			com.python_init_thread = NULL;
 		} else {
-			siril_log_color_message(_("Error: python not ready yet.\n"), "red");
+			siril_log_color_message(_("Error: python not ready yet. This may happen at first run "
+					"if the python venv and module setup has not yet completed. Please wait a short "
+					"time for a completion message in the log and try again.\n"), "red");
 			return;
 		}
 	}
