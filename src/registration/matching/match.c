@@ -630,7 +630,6 @@ int re_star_match(psf_star **s1, psf_star **s2, int n1, int n2,
 		fprintf(stderr,"atRecalcTrans fails on matched pairs only\n");
 #endif
 		/** */
-		atTransDel(trans);
 		free_stars(&matched_list_A);
 		free_stars(&matched_list_B);
 		free_stars(&star_list_A);
