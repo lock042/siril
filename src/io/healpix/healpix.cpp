@@ -11,6 +11,7 @@
 #include <fstream>
 #include <cstdint>
 #include <cstring>
+#include <iomanip>
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
@@ -41,6 +42,7 @@ enum class CatalogueType {
 };
 
 // Struct for the Healpix catalogue header
+#pragma pack(push, 1)  // Ensure no padding between members
 typedef struct HealpixCatHeader {
     std::string title;          // 48 bytes: Catalogue title
     GaiaVersion gaia_version;   // 1 byte: Gaia version designator
@@ -48,6 +50,7 @@ typedef struct HealpixCatHeader {
     CatalogueType cat_type;     // 1 byte: Catalogue type
     std::array<uint8_t, 77> spare; // 77 bytes reserved
 } HealpixCatHeader;
+#pragma pack(pop)
 
 // Structure to represent a range of consecutive source IDs
 struct HealPixelRange {
@@ -96,7 +99,13 @@ std::vector<HealPixelRange> create_healpixel_ranges(const std::vector<int>& pixe
 template<typename EntryType>
 std::vector<EntryType> query_catalog(const std::string& filename, const std::vector<HealPixelRange>& healpixel_ranges, uint8_t healpix_level) {
     constexpr size_t HEADER_SIZE = 128; // Fixed header size in bytes
+    siril_debug_print("sizeof header: %d\n", HEADER_SIZE);
     std::vector<EntryType> results;
+    uint32_t nside = 1 << healpix_level; // Calculate NSIDE as 2^level
+    uint32_t n_healpixels = 12 * nside * nside; // Total number of Healpixels
+    size_t INDEX_SIZE = (n_healpixels-1) * sizeof(uint32_t);
+
+    siril_debug_print("n_healpix: %u\n", n_healpixels);
     try {
         // Open the catalog file in binary mode
         std::ifstream file(filename, std::ios::binary);
@@ -104,16 +113,19 @@ std::vector<EntryType> query_catalog(const std::string& filename, const std::vec
             siril_log_message(_("Failed to open file: %s\n"), "red", filename.c_str());
             return results;
         }
-        uint32_t nside = 1 << healpix_level; // Calculate NSIDE as 2^level
-        uint32_t n_healpixels = 12 * nside * nside; // Total number of Healpixels
+
         // Function to read a single index entry at a specific position
         auto read_index_entry = [&file](uint32_t healpixel_id) -> uint32_t {
             uint32_t index_value;
-            file.seekg(HEADER_SIZE + healpixel_id * sizeof(uint32_t), std::ios::beg);
+            size_t pos = HEADER_SIZE + healpixel_id * sizeof(uint32_t);
+            siril_debug_print("Reading healpix %u at pos %lu: ", healpixel_id, pos);
+            file.seekg(pos, std::ios::beg);
+
             file.read(reinterpret_cast<char*>(&index_value), sizeof(uint32_t));
             if (!file) {
                 throw std::runtime_error("Failed to read catalog index entry.");
             }
+            siril_debug_print("%u\n", index_value);
             return index_value;
         };
         // Process each range
@@ -126,9 +138,8 @@ std::vector<EntryType> query_catalog(const std::string& filename, const std::vec
             }
             // Read the index entries, using previous healpixel's value for start
             uint32_t start_offset = (start_healpixel == 0) ? 0 : read_index_entry(start_healpixel - 1);
-            uint32_t end_offset = read_index_entry(end_healpixel); // No need for +1 anymore
+            uint32_t end_offset = read_index_entry(end_healpixel);
             // Calculate position in the data section
-            size_t INDEX_SIZE = n_healpixels * sizeof(uint32_t);
             size_t data_start_pos = HEADER_SIZE + INDEX_SIZE + start_offset * sizeof(EntryType);
             // Read the required data entries
             size_t num_records = end_offset - start_offset;
@@ -138,6 +149,7 @@ std::vector<EntryType> query_catalog(const std::string& filename, const std::vec
             if (!file) {
                 throw std::runtime_error(_("Failed to read data entries."));
             }
+
             // Move entries to results vector
             results.insert(results.end(), buffer.begin(), buffer.end());
         }
@@ -199,6 +211,49 @@ HealpixCatHeader read_healpix_cat_header(const std::string& filename) {
     return header;
 }
 
+// Function to show entries for a specific healpixel
+void show_healpixel_entries(uint32_t healpixel_id) {
+    try {
+        std::string filename(com.pref.catalogue_paths[4]);
+        // Create a single-element range for the requested healpixel
+        std::vector<HealPixelRange> range = {{healpixel_id, healpixel_id}};
+
+        // Read the header first to get the healpix level
+        HealpixCatHeader header = read_healpix_cat_header(filename);
+
+        // Query the catalog for this healpixel
+        auto entries = query_catalog<SourceEntryAstro>(filename, range, header.healpix_level);
+
+        // Print each entry with the same formatting as Python
+        for (const auto& entry : entries) {
+            double ra = entry.ra_scaled / 1000000.0;
+            double dec = entry.dec_scaled / 100000.0;
+            double mag = entry.mag_scaled / 1000.0;
+
+            std::cout << "Record for healpixid " << healpixel_id
+            << ": ra=" << std::fixed << std::setprecision(6) << ra
+            << ", dec=" << std::fixed << std::setprecision(5) << dec
+            << ", pmra=" << entry.dra_scaled
+            << ", pmdex=" << entry.ddec_scaled
+            << ", teff=" << entry.teff
+            << ", mag=" << std::fixed << std::setprecision(3) << mag
+            << std::endl;
+        }
+
+        std::cout << "Numrecords = " << entries.size() << std::endl;
+        // Print catalog information (matching Python output)
+        std::cout << "Catalogue Title: " << header.title << std::endl;
+        std::cout << "Gaia Version: " << static_cast<int>(header.gaia_version) << std::endl;
+        std::cout << "Healpix Level: " << static_cast<int>(header.healpix_level) << std::endl;
+        std::cout << "Catalogue Type: " << static_cast<int>(header.cat_type) << std::endl;
+
+
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error showing healpixel entries: " << e.what() << std::endl;
+    }
+}
+
 // This function is the main entry point and is declared extern "C" for ease of
 // calling from the Siril C code. For integration into the code it will need to
 // return an array of structs for use with SPCC, or possibly (maybe as a separate
@@ -207,6 +262,10 @@ HealpixCatHeader read_healpix_cat_header(const std::string& filename) {
 
 extern "C" {
     int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, deepStarData **stars, uint32_t *nb_stars) {
+
+        // Debug code
+        show_healpixel_entries(1);
+
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
         siril_debug_print("Search radius: %f deg\n", radius);
         const double DEG_TO_RAD = M_PI / 180.0;
