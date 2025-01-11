@@ -218,7 +218,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		if (args->partial_image) {
 			regdata *regparam = NULL;
 			if (args->regdata_for_partial)
-				regparam = args->seq->regparam[args->layer_for_partial];
+				regparam = args->seq->regparam;
 			if (regparam &&
 					guess_transform_from_H(regparam[input_idx].H) > NULL_TRANSFORMATION &&
 					guess_transform_from_H(regparam[args->seq->reference_image].H) > NULL_TRANSFORMATION) {

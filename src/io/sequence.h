@@ -61,10 +61,10 @@ struct seqpsf_data {
 };
 
 int	sequence_find_refimage(sequence *seq);
-void check_or_allocate_regparam(sequence *seq, int layer);
-void set_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty, gboolean data_is_top_down);
+void check_or_allocate_regparam(sequence *seq);
+void set_shifts(sequence *seq, int frame, double shiftx, double shifty, gboolean data_is_top_down);
 void cum_shifts(regdata *regparam, int frame, double shiftx, double shifty);
-gboolean test_regdata_is_valid_and_shift(sequence *seq, int reglayer);
+gboolean test_regdata_is_valid_and_shift(sequence *seq);
 sequence *create_internal_sequence(int size);
 void	internal_sequence_set(sequence *seq, int index, fits *fit);
 int	internal_sequence_find_index(sequence *seq, const fits *fit);
@@ -90,7 +90,7 @@ void fix_selnum(sequence *seq, gboolean warn);
 gboolean sequence_ref_has_wcs(sequence *seq);
 struct wcsprm *get_wcs_ref(sequence *seq);
 
-gboolean sequence_drifts(sequence *seq, int reglayer, int threshold);
+gboolean sequence_drifts(sequence *seq, int threshold);
 
 void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboolean cleansel);
 

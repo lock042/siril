@@ -1313,9 +1313,9 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 		else {
 			findstar_args->reference_image = refidx;
 			findstar_args->ref_wcs = ref.keywords.wcslib;
-			if (args->seq->regparam[findstar_args->layer] &&
-					guess_transform_from_H(args->seq->regparam[findstar_args->layer][refidx].H) != NULL_TRANSFORMATION) {
-				findstar_args->reference_H = args->seq->regparam[findstar_args->layer][refidx].H;
+			if (args->seq->regparam &&
+					guess_transform_from_H(args->seq->regparam[refidx].H) != NULL_TRANSFORMATION) {
+				findstar_args->reference_H = args->seq->regparam[refidx].H;
 			}
 		}
 		ref.keywords.wcslib = NULL;	// don't free it
@@ -1376,12 +1376,12 @@ gpointer findstar_worker(gpointer p) {
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;
 				}
-				else if (!seq->regparam[args->layer] ||
-						guess_transform_from_H(seq->regparam[args->layer][args->im.index_in_seq].H) == NULL_TRANSFORMATION) {
+				else if (!seq->regparam ||
+						guess_transform_from_H(seq->regparam[args->im.index_in_seq].H) == NULL_TRANSFORMATION) {
 					// image was not registered, ignore
 				}
 				else {
-					cvTransfPoint(&dx, &dy, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H, 1.);
+					cvTransfPoint(&dx, &dy, seq->regparam[args->im.index_in_seq].H, args->reference_H, 1.);
 					double ra = 0.0, dec = 0.0;
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;

@@ -54,11 +54,11 @@ static gboolean check_applyreg_output(struct registration_args *regargs);
 
 static regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 	regdata *current_regdata;
-	if (regargs->seq->regparam[regargs->layer]) {
+	if (seq_has_any_regdata(regargs->seq)) {
 		siril_log_message(
-				_("Applying existing registration from layer #%d to transform the images\n"), regargs->layer);
-		current_regdata = regargs->seq->regparam[regargs->layer];
-	} else {
+				_("Applying existing registration to transform the images\n"));
+		current_regdata = regargs->seq->regparam;
+	} else { // should not happen
 		siril_log_message(
 				_("No registration data exists for this layer\n"));
 		return NULL;
@@ -130,7 +130,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				update_framing(&current_framing, regargs->seq, i);
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[i].H, Href, 1.);
 					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 					xs[j] = current_framing.pt[j].x;
 					ys[j] = current_framing.pt[j].y;
@@ -156,7 +156,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				regframe current_framing = framing;
 				update_framing(&current_framing, regargs->seq, i);
 				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[i].H, Href, 1.);
 					if (xmin > current_framing.pt[j].x) xmin = current_framing.pt[j].x;
 					if (ymin > current_framing.pt[j].y) ymin = current_framing.pt[j].y;
 					if (xmax < current_framing.pt[j].x) xmax = current_framing.pt[j].x;
@@ -186,7 +186,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				update_framing(&current_framing, regargs->seq, i);
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[i].H, Href, 1.);
 					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 					xs[j] = current_framing.pt[j].x;
 					ys[j] = current_framing.pt[j].y;
@@ -222,7 +222,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				int ry2 = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
 				double currcogx = (double)rx2 * 0.5;
 				double currcogy = (double)ry2 * 0.5;
-				cvTransfPoint(&currcogx, &currcogy,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
+				cvTransfPoint(&currcogx, &currcogy,regargs->seq->regparam[i].H, Href, 1.);
 				cogx += currcogx;
 				cogy += currcogy;
 				n++;
@@ -248,7 +248,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				update_framing(&current_framing, regargs->seq, i);
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, newHref, 1.);
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[i].H, newHref, 1.);
 					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 					xs[j] = current_framing.pt[j].x;
 					ys[j] = current_framing.pt[j].y;
@@ -325,7 +325,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 
 	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
 		siril_log_color_message(_("Could not load reference image\n"), "red");
-		args->seq->regparam[regargs->layer] = NULL;
+		args->seq->regparam = NULL;
 		clearfits(&fit);
 		return 1;
 	}
@@ -340,7 +340,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
 		siril_log_color_message(
 				_("Could not init distortion mapping\n"), "red");
-		args->seq->regparam[regargs->layer] = NULL;
+		args->seq->regparam = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
@@ -371,7 +371,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	}
 
 	// Composing transformation wrt reference image
-	Himg = regargs->seq->regparam[regargs->layer][in_index].H;
+	Himg = regargs->seq->regparam[in_index].H;
 	if (guess_transform_from_H(Himg) == NULL_TRANSFORMATION)
 		return 1; // in case H is null and -selected was not passed
 
@@ -838,7 +838,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	// we need to collect the WCS structures and 
 	// recompute the homographies based on selected frames
 	// We will also unselected unsolved images before recomputing the filters
-	regargs->undistort = (layer_has_distortion(regargs->seq, regargs->layer)) ? regargs->seq->distoparam[regargs->layer].index : DISTO_UNDEF;
+	regargs->undistort = regargs->seq->distoparam.index;
 	if (regargs->undistort == DISTO_FILES) {
 		regargs->WCSDATA = calloc(regargs->seq->number, sizeof(struct wcsprm));
 		if (collect_sequence_astrometry(regargs)) {
@@ -846,13 +846,13 @@ int register_apply_reg(struct registration_args *regargs) {
 			return -1;
 		}
 		Homography Href = { 0 };
-		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer, &Href, &regargs->wcsref)) {
+		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, &Href, &regargs->wcsref)) {
 			free(args);
 			return -1;
 		}
 		regargs->framingd.Htransf = Href;
 	} else {
-		regargs->framingd.Htransf = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
+		regargs->framingd.Htransf = regargs->seq->regparam[regargs->reference_image].H;
 	}
 
 	// we need to update filtering before check_applyreg_output that will check required space
@@ -916,7 +916,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	disto_source index = DISTO_UNDEF;
 
 	if (regargs->undistort) {
-		regargs->distoparam = regargs->seq->distoparam[regargs->layer];
+		regargs->distoparam = regargs->seq->distoparam;
 		int status = 1;
 		index = regargs->distoparam.index; // to keep track if DISTO_FILES as if no distorsion is effectively present, it will be set to UNDEF
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
@@ -953,7 +953,7 @@ int register_apply_reg(struct registration_args *regargs) {
 			reframe_wcs(regargs->wcsref, &H);
 		}
 	}
-	if (regargs->seq->distoparam[regargs->layer].index == DISTO_FILE_COMET) {
+	if (regargs->seq->distoparam.index == DISTO_FILE_COMET) {
 		// we fetch the reference date to compute back comet shifts
 		fits ref = { 0 };
 		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
@@ -987,18 +987,18 @@ transformation_type guess_transform_from_H(Homography H) {
 	return AFFINE_TRANSFORMATION;
 }
 
-void guess_transform_from_seq(sequence *seq, int layer,
+void guess_transform_from_seq(sequence *seq, 
 		transformation_type *min, transformation_type *max, gboolean excludenull) {
 	*min = HOMOGRAPHY_TRANSFORMATION; // highest value
 	*max = UNDEFINED_TRANSFORMATION;  // lowest value
 	gboolean needs_sel_update = FALSE;
 
-	if (!layer_has_registration(seq, layer)) {
-		siril_debug_print("No registration data found in sequence or layer\n");
+	if (!seq_has_any_regdata(seq)) {
+		siril_debug_print("No registration data found in sequence\n");
 		return;
 	}
 	for (int i = 0; i < seq->number; i++){
-		transformation_type val = guess_transform_from_H(seq->regparam[layer][i].H);
+		transformation_type val = guess_transform_from_H(seq->regparam[i].H);
 		//siril_debug_print("Image #%d - transf = %d\n", i+1, val);
 		if (*max < val) *max = val;
 		if (*min > val) *min = val;
@@ -1054,14 +1054,14 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 gboolean check_before_applyreg(struct registration_args *regargs) {
 	struct driz_args_t *driz = regargs->driz;
 		// check the reference image matrix is not null
-	transformation_type checkH = guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
+	transformation_type checkH = guess_transform_from_H(regargs->seq->regparam[regargs->seq->reference_image].H);
 	if (checkH == NULL_TRANSFORMATION) {
 		siril_log_color_message(_("The reference image has a null matrix and was not previously aligned, choose another one, aborting\n"), "red");
 		return FALSE;
 	}
 	// check the number of dof if -interp=none
 	transformation_type min, max;
-	guess_transform_from_seq(regargs->seq, regargs->layer, &min, &max, TRUE);
+	guess_transform_from_seq(regargs->seq, &min, &max, TRUE);
 	if (!driz && max > SHIFT_TRANSFORMATION && regargs->interpolation == OPENCV_NONE) {
 		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", ((int)max + 1) * 2);
 		return FALSE;

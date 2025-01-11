@@ -167,14 +167,11 @@ gpointer register_thread_func(gpointer p);
 
 // getters - checkers
 int get_registration_layer(const sequence *seq);
-int seq_has_any_regdata(const sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
+gboolean seq_has_any_regdata(const sequence *seq);
 gboolean seq_has_any_distortion(const sequence *seq);
-void guess_transform_from_seq(sequence *seq, int layer,
-		transformation_type *min, transformation_type *max, gboolean excludenull);
+gboolean seq_has_usable_registration(sequence *seq);
+void guess_transform_from_seq(sequence *seq, transformation_type *min, transformation_type *max, gboolean excludenull);
 transformation_type guess_transform_from_H(Homography H);
-gboolean layer_has_registration(const sequence *seq, int layer);
-gboolean layer_has_usable_registration(sequence *seq, int layer);
-gboolean layer_has_distortion(const sequence *seq, int layer);
 int get_first_selected(sequence *seq);
 
 // preparation required by more than one reg method
@@ -199,7 +196,7 @@ void compute_roi(Homography *H, int rx, int ry, framing_roi *roi);
 
 //astrometry-related functions
 int collect_sequence_astrometry(struct registration_args *regargs);
-int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout, struct wcsprm **prmout);
+int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, Homography *Hout, struct wcsprm **prmout);
 
 //image shift
 int shift_fit_from_reg(fits *fit, Homography H);

@@ -78,7 +78,6 @@ struct stacking_args {
 	gboolean use_32bit_output;	/* output to 32 bit float */
 	int feather_dist;			/* blend pix. number of pixels up to which the mask is smoothened */
 	gboolean overlap_norm;		/* compute normalization on overlaps instead of whole images */
-	int reglayer;			/* layer used for registration data */
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
 	gboolean maximize_framing;	/* maximize the framing instead of conforming to ref image size*/
 	int offset[2];				/* offset used by max framing*/

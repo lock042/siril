@@ -62,6 +62,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	/* should be pre-computed to display it in the stacking tab */
 	nb_frames = args->nb_images_to_stack;
 	int reglayer = get_registration_layer(args->seq);
+	gboolean has_regdata = reglayer >= 0;
 
 	if (nb_frames <= 1) {
 		siril_log_message(_("No frame selected for stacking (select at least 2). Aborting.\n"));
@@ -76,8 +77,8 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		output_size[0] = args->seq->rx;
 		output_size[1] = args->seq->ry;
 		double dx = 0., dy = 0.;
-		if (reglayer >= 0) {
-			translation_from_H(args->seq->regparam[reglayer][args->ref_image].H, &dx, &dy);
+		if (has_regdata) {
+			translation_from_H(args->seq->regparam[args->ref_image].H, &dx, &dy);
 			update_wcs = TRUE;
 		}
 		offset[0] = (int)dx;
@@ -164,10 +165,10 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 
 		/* load registration data for current image */
 		int shiftx, shifty;
-		if (reglayer != -1 && args->seq->regparam[reglayer]) {
+		if (has_regdata) {
 			double dx, dy;
 			double scale = (args->upscale_at_stacking) ? 2. : 1.;
-			translation_from_H(args->seq->regparam[reglayer][j].H, &dx, &dy);
+			translation_from_H(args->seq->regparam[j].H, &dx, &dy);
 			dx *= scale;
 			dy *= scale;
 			dx -= offset[0];
@@ -268,7 +269,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		Homography Hs = { 0 };
 		cvGetEye(&Hs);
 		double dx, dy;
-		translation_from_H(args->seq->regparam[args->reglayer][args->ref_image].H, &dx, &dy);
+		translation_from_H(args->seq->regparam[args->ref_image].H, &dx, &dy);
 		siril_debug_print("ref shift: %d %d\n", (int)dx, (int)dy);
 		siril_debug_print("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
 		Hs.h02  = dx - offset[0];

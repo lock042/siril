@@ -136,8 +136,9 @@ static void compute_factors_from_estimators(struct stacking_args *args, int ref_
 	siril_debug_print("Normalization coeeficients\n");
 #endif
 	int reflayer;
+	int reglayer = (args->seq->reglayer >= 0) ? args->seq->reglayer : GLAYER;
 	for (int layer = 0; layer < nb_layers; ++layer) {
-		reflayer = (args->equalizeRGB) ? args->reglayer : layer;
+		reflayer = (args->equalizeRGB) ? reglayer : layer;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
 			switch (args->normalize) {
 				default:
@@ -402,8 +403,8 @@ static size_t compute_overlap(struct stacking_args *args, int i, int j, rectangl
 	sequence *seq = args->seq;
 	double dxi = 0., dyi = 0., dxj = 0., dyj = 0.;
 	int dx = 0, dy = 0;
-	translation_from_H(seq->regparam[args->reglayer][i].H, &dxi, &dyi);
-	translation_from_H(seq->regparam[args->reglayer][j].H, &dxj, &dyj);
+	translation_from_H(seq->regparam[i].H, &dxi, &dyi);
+	translation_from_H(seq->regparam[j].H, &dxj, &dyj);
 	dx = round_to_int(dxj - dxi);
 	dy = round_to_int(dyi - dyj);
 	int rxi = (seq->is_variable) ? seq->imgparam[i].rx : seq->rx;
@@ -441,12 +442,12 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	sequence *seq = args->seq;
 	size_t nbdata = 0;
 	gboolean was_cached = FALSE;
-
+	int reglayer = (args->seq->reglayer >= 0) ? args->seq->reglayer : GLAYER;
 	int ijth = get_ijth_pair_index(seq->number, i, j);
-	if (seq->ostats[args->reglayer][ijth].i == i && seq->ostats[args->reglayer][ijth].j == j) { // we have some overlap data for this pair
-		nbdata = seq->ostats[args->reglayer][ijth].areai.w * seq->ostats[args->reglayer][ijth].areai.h;
-		areai = seq->ostats[args->reglayer][ijth].areai;
-		areaj = seq->ostats[args->reglayer][ijth].areaj;
+	if (seq->ostats[reglayer][ijth].i == i && seq->ostats[reglayer][ijth].j == j) { // we have some overlap data for this pair
+		nbdata = seq->ostats[reglayer][ijth].areai.w * seq->ostats[reglayer][ijth].areai.h;
+		areai = seq->ostats[reglayer][ijth].areai;
+		areaj = seq->ostats[reglayer][ijth].areaj;
 		was_cached = TRUE;
 	} else {
 		args->seq->needs_saving = TRUE;
@@ -586,23 +587,20 @@ static int normalization_overlap_get_max_number_of_threads(struct stacking_args 
 		sequential and memory freed in between calls)
 	*/
 	size_t nbdatamax = 0;
+	int reglayer = (args->seq->reglayer >= 0) ? args->seq->reglayer : GLAYER;
 	for (int i = 0; i < nb_frames; ++i) {
 		int ii = args->image_indices[i];
 		for (int j = i + 1; j < nb_frames; ++j) {
 			int ij = args->image_indices[j];
 			int ijth = get_ijth_pair_index(seq->number, ii, ij);
 			size_t nbdata = 0;
-			if (seq->ostats[args->reglayer][ijth].i == ii && seq->ostats[args->reglayer][ijth].j == ij) { // we have some overlap data for this pair
-				nbdata = seq->ostats[args->reglayer][ijth].areai.w * seq->ostats[args->reglayer][ijth].areai.h;
+			if (seq->ostats[reglayer][ijth].i == ii && seq->ostats[reglayer][ijth].j == ij) { // we have some overlap data for this pair
+				nbdata = seq->ostats[reglayer][ijth].areai.w * seq->ostats[reglayer][ijth].areai.h;
 			} else {
 				args->seq->needs_saving = TRUE;
 				rectangle areai, areaj;
 				siril_debug_print("computing stats for overlap between image %d and image %d, lite: %d\n", ii + 1, ij + 1, args->lite_norm);
 				nbdata = compute_overlap(args, ii, ij, &areai, &areaj);
-				// we cache it for all layers
-				// Normally, we should have regdata for only one layer, but what if we have for more (can't see that happening but better be safe)
-				// In that case, we will assume that the differences in overlaps should be minimal (1 or 2 lines) and that
-				// the first ever cached overlap stats are valid irrespective of the regdata which created them
 				for (int n = 0; n < nb_layers; n++) {
 					seq->ostats[n][ijth].i = ii;
 					seq->ostats[n][ijth].j = ij;

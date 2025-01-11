@@ -43,12 +43,12 @@ static void normalizeQualityData(struct registration_args *args, double q_min, d
 	}
 
 	for (frame = 0; frame < args->seq->number; ++frame) {
-		args->seq->regparam[args->layer][frame].quality -= q_min;
-		args->seq->regparam[args->layer][frame].quality /= diff;
+		args->seq->regparam[frame].quality -= q_min;
+		args->seq->regparam[frame].quality /= diff;
 		/* if thread has been manually stopped, some values will be < 0 */
-		if ((args->seq->regparam[args->layer][frame].quality < 0)
-				|| isnan(args->seq->regparam[args->layer][frame].quality))
-			args->seq->regparam[args->layer][frame].quality = -1.0;
+		if ((args->seq->regparam[frame].quality < 0)
+				|| isnan(args->seq->regparam[frame].quality))
+			args->seq->regparam[frame].quality = -1.0;
 	}
 }
 
@@ -81,9 +81,9 @@ int register_shift_dft(struct registration_args *args) {
 	else
 		nb_frames = (float) args->seq->number;
 
-	if (args->seq->regparam[args->layer]) {
-		siril_log_message(_("Recomputing already existing registration for this layer\n"));
-		current_regdata = args->seq->regparam[args->layer];
+	if (seq_has_any_regdata(args->seq)) {
+		siril_log_message(_("Recomputing already existing registration\n"));
+		current_regdata = args->seq->regparam;
 		/* we reset all values as we may register different images */
 		memset(current_regdata, 0, args->seq->number * sizeof(regdata));
 	} else {
@@ -92,7 +92,7 @@ int register_shift_dft(struct registration_args *args) {
 			PRINT_ALLOC_ERR;
 			return -2;
 		}
-		args->seq->regparam[args->layer] = current_regdata;
+		args->seq->regparam = current_regdata;
 	}
 
 	/* loading reference frame */
@@ -109,7 +109,6 @@ int register_shift_dft(struct registration_args *args) {
 	if (ret || ((fit_ref.type == DATA_USHORT && !fit_ref.data) || (fit_ref.type == DATA_FLOAT && !fit_ref.fdata))) {
 		siril_log_message(
 				_("Register: could not load first image to register, aborting.\n"));
-		args->seq->regparam[args->layer] = NULL;
 		free(current_regdata);
 		clearfits(&fit_ref);
 		return ret;
@@ -204,7 +203,7 @@ int register_shift_dft(struct registration_args *args) {
 
 	fftwf_free(ref); // not needed anymore
 
-	set_shifts(args->seq, ref_image, args->layer, 0.0, 0.0, FALSE);
+	set_shifts(args->seq, ref_image, 0.0, 0.0, FALSE);
 
 	q_min = q_max = current_regdata[ref_image].quality;
 	int q_index = ref_image;
@@ -294,7 +293,7 @@ int register_shift_dft(struct registration_args *args) {
 				shiftx -= size;
 			}
 
-			set_shifts(args->seq, frame, args->layer, (float)shiftx, (float)shifty,
+			set_shifts(args->seq, frame, (float)shiftx, (float)shifty,
 					fit.top_down);
 
 			// We don't need fit anymore, we can destroy it.
@@ -317,8 +316,6 @@ int register_shift_dft(struct registration_args *args) {
 			fftwf_free(img);
 			fftwf_free(out2);
 		} else {
-			//report_fits_error(ret, error_buffer);
-			args->seq->regparam[args->layer] = NULL;
 			free(current_regdata);
 			abort = ret = 1;
 			continue;
@@ -334,8 +331,7 @@ int register_shift_dft(struct registration_args *args) {
 		siril_log_message(_("Registration finished.\n"));
 		siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index + 1);
 	} else {
-		free(args->seq->regparam[args->layer]);
-		args->seq->regparam[args->layer] = NULL;
+		free(args->seq->regparam);
 	}
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -380,19 +376,19 @@ int register_kombat(struct registration_args *args) {
 
 	reg_kombat ref_align;
 
-	if (args->seq->regparam[args->layer]) {
+	if (seq_has_any_regdata(args->seq)) {
 	    	siril_log_message(
-		    		_("Recomputing already existing registration for this layer\n"));
-		    current_regdata = args->seq->regparam[args->layer];
+		    		_("Recomputing already existing registration\n"));
+		    current_regdata = args->seq->regparam;
 		    /* we reset all values as we may register different images */
 		    memset(current_regdata, 0, args->seq->number * sizeof(regdata));
 	} else {
-		    current_regdata = (regdata*) calloc(args->seq->number, sizeof(regdata));
+		    current_regdata = calloc(args->seq->number, sizeof(regdata));
 		    if (current_regdata == NULL) {
     			PRINT_ALLOC_ERR;
 	    		return 1;
     		}
-	    	args->seq->regparam[args->layer] = current_regdata;
+	    	args->seq->regparam = current_regdata;
 	}
 
 
@@ -463,7 +459,6 @@ int register_kombat(struct registration_args *args) {
 	if (ret || ret2 || seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref, &full, FALSE, -1)) {
 		siril_log_message(
 				_("Register: could not load first image to register, aborting.\n"));
-		args->seq->regparam[args->layer] = NULL;
 		free(current_regdata);
 		clearfits(&fit_ref);
 		clearfits(&fit_templ);
@@ -472,7 +467,7 @@ int register_kombat(struct registration_args *args) {
 	interpolate_nongreen(&fit_templ);
 
 	gettimeofday(&t_start, NULL);
-	set_shifts(args->seq, ref_idx, args->layer, 0.0, 0.0, FALSE);
+	set_shifts(args->seq, ref_idx, 0.0, 0.0, FALSE);
 
 	/* we want pattern position on the reference image */
 	kombat_find_template(ref_idx, args, &fit_templ, &fit_ref, &ref_align, NULL, NULL);
@@ -540,7 +535,7 @@ int register_kombat(struct registration_args *args) {
 				/* we exclude this frame too */
 				_register_kombat_disable_frame(args, current_regdata, frame);
 			} else {
-				set_shifts(args->seq, frame, args->layer,
+				set_shifts(args->seq, frame,
 						ref_align.dx - cur_align.dx,
 						(ref_align.dy - cur_align.dy), cur_fit.top_down);
 			}
@@ -603,7 +598,7 @@ int register_shift_fwhm(struct registration_args *args) {
 		return 1;
 
 	// regparam is managed in seqpsf idle function already
-	current_regdata = args->seq->regparam[args->layer];
+	current_regdata = args->seq->regparam;
 
 	if (args->filters.filter_included)
 		nb_frames = (float)args->seq->selnum;
@@ -634,7 +629,7 @@ int register_shift_fwhm(struct registration_args *args) {
 			continue;
 		}
 		if (frame == ref_image || !current_regdata[frame].fwhm_data) {
-			set_shifts(args->seq, frame, args->layer, 0.0, 0.0, FALSE);
+			set_shifts(args->seq, frame, 0.0, 0.0, FALSE);
 			continue;
 		}
 		if (current_regdata[frame].fwhm < fwhm_min

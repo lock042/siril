@@ -102,10 +102,9 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	}
 	cairo_translate(cr, area_width / 2.0 - com.seq.previewX[current_preview],
 			area_height/2.0-com.seq.previewY[current_preview]);
-	int cvport = select_vport(gui.cvport);
-	if (com.seq.regparam && com.seq.regparam[cvport]) {
+	if (com.seq.regparam) {
 		double dx, dy;
-		translation_from_H(com.seq.regparam[cvport][com.seq.current].H, &dx, &dy);
+		translation_from_H(com.seq.regparam[com.seq.current].H, &dx, &dy);
 		shiftx = round_to_int(dx);
 		shifty = round_to_int(dy);
 	}
@@ -276,25 +275,19 @@ void on_checkbutton_displayref_toggled(GtkToggleButton *togglebutton, gpointer u
 /* display registration data (shift{x|y} for now) in the manual adjustments */
 void adjust_reginfo() {
 	GtkSpinButton *spin_shiftx, *spin_shifty;
-	GtkComboBoxText *seqcombo;
 	gboolean set_sensitive;
-	gint cvport;
 
 	spin_shiftx = GTK_SPIN_BUTTON(lookup_widget("spinbut_shiftx"));
 	spin_shifty = GTK_SPIN_BUTTON(lookup_widget("spinbut_shifty"));
-	seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("seqlist_dialog_combo"));
-	
-	cvport = gtk_combo_box_get_active(GTK_COMBO_BOX(seqcombo));
-	if (cvport < 0) return;
 
 	g_signal_handlers_block_by_func(spin_shiftx, on_spinbut_shift_value_change, NULL);
 	g_signal_handlers_block_by_func(spin_shifty, on_spinbut_shift_value_change, NULL);
-	if (com.seq.regparam == NULL || com.seq.regparam[cvport] == NULL) {
+	if (com.seq.regparam == NULL) {
 		gtk_spin_button_set_value(spin_shiftx, 0.);
 		gtk_spin_button_set_value(spin_shifty, 0.);
 	} else {
 		double dx, dy;
-		translation_from_H(com.seq.regparam[cvport][com.seq.current].H, &dx, &dy);
+		translation_from_H(com.seq.regparam[com.seq.current].H, &dx, &dy);
 		gtk_spin_button_set_value(spin_shiftx, round_to_int(dx));
 		gtk_spin_button_set_value(spin_shifty, round_to_int(dy));
 	}
@@ -323,10 +316,10 @@ void on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data
 	current_layer = gtk_combo_box_get_active(cbbt_layers);
 	activate_tab(current_layer);
 
-	if (com.seq.regparam[current_layer] == NULL) {
-		printf("Allocating registration data for this layer\n");
-		com.seq.regparam[current_layer] = calloc(com.seq.number, sizeof(regdata));
-		if (com.seq.regparam[current_layer] == NULL) {
+	if (com.seq.regparam == NULL) {
+		printf("Allocating registration data\n");
+		com.seq.regparam = calloc(com.seq.number, sizeof(regdata));
+		if (com.seq.regparam == NULL) {
 			PRINT_ALLOC_ERR;
 			return;
 		}
@@ -334,14 +327,14 @@ void on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data
 
 	new_value = gtk_spin_button_get_value_as_int(spinbutton);
 	double shiftx, shifty;
-	translation_from_H(com.seq.regparam[current_layer][com.seq.current].H, &shiftx, &shifty);
+	translation_from_H(com.seq.regparam[com.seq.current].H, &shiftx, &shifty);
 	if (spinbutton == spin_shiftx)
 		shiftx = new_value;
 	else shifty = new_value;
-	com.seq.regparam[current_layer][com.seq.current].H = H_from_translation(shiftx, shifty);
+	com.seq.regparam[com.seq.current].H = H_from_translation(shiftx, shifty);
 	writeseqfile(&com.seq);
-	update_seqlist(current_layer);
-	fill_sequence_list(&com.seq, current_layer, FALSE);	// update list with new regparam
+	update_seqlist();
+	fill_sequence_list(&com.seq, FALSE);	// update list with new regparam
 	redraw_previews();
 }
 

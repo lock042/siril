@@ -64,7 +64,7 @@
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
-		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL;
+		*comboX = NULL, *buttonSaveCSV = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
@@ -74,7 +74,6 @@ static enum photometry_source photometry_selected_source = FWHM;
 static enum registration_source registration_selected_source = r_FWHM;
 static enum registration_source X_selected_source = r_FRAME;
 static int julian0 = 0;
-static int reglayer = 0;
 static gboolean is_fwhm = TRUE;
 static gboolean is_arcsec = FALSE;
 static gboolean force_Julian = FALSE;
@@ -418,7 +417,7 @@ static void plot_draw_selection(cairo_t *cr){
 	cairo_stroke(cr);
 }
 
-static void build_registration_dataset(sequence *seq, int layer, int ref_image,
+static void build_registration_dataset(sequence *seq, int ref_image,
 		pldata *plot) {
 	int i, j;
 	double fwhm;
@@ -426,7 +425,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	double cx,cy;
 	cx = (seq->is_variable) ? (double)seq->imgparam[ref_image].rx * 0.5 : (double)seq->rx * 0.5;
 	cy = (seq->is_variable) ? (double)seq->imgparam[ref_image].ry * 0.5 : (double)seq->ry * 0.5;
-	Homography Href = seq->regparam[layer][ref_image].H;
+	Homography Href = seq->regparam[ref_image].H;
 	gboolean Href_is_invalid = (guess_transform_from_H(Href) == NULL_TRANSFORMATION);
 	pdd.datamin = (point){ DBL_MAX, DBL_MAX};
 	pdd.datamax = (point){ -DBL_MAX, -DBL_MAX};
@@ -436,14 +435,14 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 			continue;
 		switch (X_selected_source) {
 			case r_ROUNDNESS:
-				plot->data[j].x = seq->regparam[layer][i].roundness;
+				plot->data[j].x = seq->regparam[i].roundness;
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
 					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[i].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 				} else {
-					fwhm = seq->regparam[layer][i].fwhm;
+					fwhm = seq->regparam[i].fwhm;
 				}
 				plot->data[j].x = fwhm;
 				break;
@@ -452,30 +451,30 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				// compute the center of image i in the axes of the reference frame
 				dx = (seq->is_variable) ? (double)seq->imgparam[i].rx * 0.5 : (double)seq->rx * 0.5;
 				dy = (seq->is_variable) ? (double)seq->imgparam[i].ry * 0.5 : (double)seq->ry * 0.5;
-				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == NULL_TRANSFORMATION) {
+				if (Href_is_invalid || guess_transform_from_H(seq->regparam[i].H) == NULL_TRANSFORMATION) {
 					plot->data[j].x = 0;
 					break;
 				}
-				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Href, 1.);
+				cvTransfPoint(&dx, &dy, seq->regparam[i].H, Href, 1.);
 				plot->data[j].x = (X_selected_source == r_X_POSITION) ? dx - cx : dy - cy;
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
 					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[i].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 				} else {
-					fwhm = seq->regparam[layer][i].weighted_fwhm;
+					fwhm = seq->regparam[i].weighted_fwhm;
 				}
 				plot->data[j].x = fwhm;
 				break;
 			case r_QUALITY:
-				plot->data[j].x = seq->regparam[layer][i].quality;
+				plot->data[j].x = seq->regparam[i].quality;
 				break;
 			case r_BACKGROUND:
-				plot->data[j].x = seq->regparam[layer][i].background_lvl;
+				plot->data[j].x = seq->regparam[i].background_lvl;
 				break;
 			case r_NBSTARS:
-				plot->data[j].x = seq->regparam[layer][i].number_of_stars;
+				plot->data[j].x = seq->regparam[i].number_of_stars;
 				break;
 			case r_FRAME:
 				plot->data[j].x = (double) i + 1;
@@ -486,14 +485,14 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 		plot->data[j].x = (isnan(plot->data[j].x)) ? 0.0 : plot->data[j].x;
 		switch (registration_selected_source) {
 			case r_ROUNDNESS:
-				plot->data[j].y = seq->regparam[layer][i].roundness;
+				plot->data[j].y = seq->regparam[i].roundness;
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
 					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[i].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 				} else {
-					fwhm = seq->regparam[layer][i].fwhm;
+					fwhm = seq->regparam[i].fwhm;
 				}
 				plot->data[j].y = fwhm;
 				break;
@@ -502,30 +501,30 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				// compute the center of image i in the axes of the reference frame
 				dx = (seq->is_variable) ? (double)seq->imgparam[i].rx * 0.5 : (double)seq->rx * 0.5;
 				dy = (seq->is_variable) ? (double)seq->imgparam[i].ry * 0.5 : (double)seq->ry * 0.5;
-				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == NULL_TRANSFORMATION) {
+				if (Href_is_invalid || guess_transform_from_H(seq->regparam[i].H) == NULL_TRANSFORMATION) {
 					plot->data[j].y = 0;
 					break;
 				}
-				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Href, 1.);
+				cvTransfPoint(&dx, &dy, seq->regparam[i].H, Href, 1.);
 				plot->data[j].y = (registration_selected_source == r_X_POSITION) ? dx - cx : dy - cy;
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
 					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[i].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 				} else {
-					fwhm = seq->regparam[layer][i].weighted_fwhm;
+					fwhm = seq->regparam[i].weighted_fwhm;
 				}
 				plot->data[j].y = fwhm;
 				break;
 			case r_QUALITY:
-				plot->data[j].y = seq->regparam[layer][i].quality;
+				plot->data[j].y = seq->regparam[i].quality;
 				break;
 			case r_BACKGROUND:
-				plot->data[j].y = seq->regparam[layer][i].background_lvl;
+				plot->data[j].y = seq->regparam[i].background_lvl;
 				break;
 			case r_NBSTARS:
-				plot->data[j].y = seq->regparam[layer][i].number_of_stars;
+				plot->data[j].y = seq->regparam[i].number_of_stars;
 				break;
 			default:
 				break;
@@ -1033,18 +1032,12 @@ static void fill_plot_statics() {
 		photo_clear_button = lookup_widget("photo_clear_button");
 		buttonClearAll = lookup_widget("clearAllPhotometry");
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
-		layer_selector = lookup_widget("seqlist_dialog_combo");
 	}
 }
 
 static void validate_combos() {
 	fill_plot_statics();
 	use_photometry = gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo));
-	if (!use_photometry) {
-		reglayer = gtk_combo_box_get_active(GTK_COMBO_BOX(layer_selector));
-		if (!(com.seq.regparam) || !(com.seq.regparam[reglayer]))
-			reglayer = get_registration_layer(&com.seq);
-	}
 	gtk_widget_set_sensitive(photometry_output1, use_photometry);
 	gtk_widget_set_sensitive(photometry_output2, use_photometry);
 	gtk_widget_set_visible(buttonSaveCSV, !(plot_data == NULL));
@@ -1073,8 +1066,8 @@ static void validate_combos() {
 		}
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), X_selected_source);
-		gtk_widget_set_sensitive(comboX, layer_has_registration(&com.seq, reglayer));
-		gtk_widget_set_sensitive(combo, layer_has_registration(&com.seq, reglayer));
+		gtk_widget_set_sensitive(comboX, seq_has_any_regdata(&com.seq));
+		gtk_widget_set_sensitive(combo, seq_has_any_regdata(&com.seq));
 
 		if ((!is_fwhm) && registration_selected_source < r_X_POSITION) {
 			registration_selected_source = r_QUALITY;
@@ -1111,7 +1104,6 @@ void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
 void reset_plot() {
 	free_plot_data();
 	reset_plot_zoom();
-	int layer;
 	if (sourceCombo) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), registration_selected_source); //remove?
@@ -1123,8 +1115,7 @@ void reset_plot() {
 		gtk_widget_set_sensitive(buttonClearLatest, FALSE);
 		gtk_widget_set_sensitive(buttonClearAll, FALSE);
 		gtk_widget_set_sensitive(photo_clear_button, FALSE);
-		layer = get_registration_layer(&com.seq);
-		update_seqlist(layer);
+		update_seqlist();
 	}
 }
 
@@ -1226,24 +1217,24 @@ void drawPlot() {
 			sort_photometry_dataset(plot);
 		}
 		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
-			update_seqlist(reglayer);
+			update_seqlist();
 			requires_seqlist_update = FALSE;
 		}
 	} else {
 		// registration data display
-		if (!seq->regparam || reglayer < 0 || !seq->regparam[reglayer])
+		if (!seq->regparam)
 			return;
 
-		is_fwhm = (seq->regparam[reglayer][ref_image].fwhm > 0.0f);
+		is_fwhm = (seq->regparam[ref_image].fwhm > 0.0f);
 		gtk_widget_set_visible(arcsec, (current_selected_source == r_FWHM || current_selected_source == r_WFWHM || X_selected_source == r_FWHM || X_selected_source == r_WFWHM) && arcsec_is_ok);
 		gtk_widget_set_visible(label_display_plot, !gtk_widget_get_visible(julianw) && !gtk_widget_get_visible(arcsec));
 
 		update_ylabel();
 		/* building data array */
 		plot_data = alloc_plot_data(seq->number);
-		build_registration_dataset(seq, reglayer, ref_image, plot_data);
+		build_registration_dataset(seq, ref_image, plot_data);
 		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
-			update_seqlist(reglayer);
+			update_seqlist();
 			requires_seqlist_update = FALSE;
 		}
 	}
@@ -2186,7 +2177,7 @@ void on_menu_plot_item1_activate(GtkMenuItem *menuitem, gpointer user_data) {
 			index--;
 
 			exclude_include_single_frame(index);
-			update_seqlist(use_photometry ? 0 : reglayer);
+			update_seqlist();
 		}
 	} else { // Zoom to selection
 		double xmin, xmax, ymin, ymax;
@@ -2210,7 +2201,7 @@ void on_menu_plot_item2_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		index = extract_int_from_label(label);
 		if (index > 0) {
 			siril_open_dialog("seqlist_dialog");
-			update_seqlist(use_photometry ? 0 : reglayer);
+			update_seqlist();
 			sequence_list_select_row_from_index(index - 1, TRUE);
 		}
 	} else {

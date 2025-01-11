@@ -75,7 +75,6 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 	double ymax = -DBL_MAX;
 	if (args->maximize_framing)	{
 		g_assert(args->seq->regparam);
-		g_assert(args->seq->regparam[args->reglayer]);
 	}
 	set_progress_bar_data(_("Opening images for stacking"), PROGRESS_NONE);
 
@@ -148,7 +147,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			}
 			/*we compute the dest size if maximize_framing*/
 			if (args->maximize_framing) {
-				regdata *regdat = args->seq->regparam[args->reglayer];
+				regdata *regdat = args->seq->regparam;
 				int rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
 				int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
 				xmin = (xmin > regdat[image_index].H.h02 * scale) ? regdat[image_index].H.h02 * scale : xmin;
@@ -176,9 +175,9 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			args->offset[1] = -(int)ymin;
 			siril_debug_print("new size: %ld %ld\n", naxes[0], naxes[1]);
 			siril_debug_print("new origin: %d %d\n", args->offset[0], args->offset[1]);
-		} else if (layer_has_registration(args->seq, args->reglayer)) {
+		} else if (seq_has_any_regdata(args->seq)) {
 			double dx, dy;
-			translation_from_H(args->seq->regparam[args->reglayer][args->ref_image].H, &dx, &dy);
+			translation_from_H(args->seq->regparam[args->ref_image].H, &dx, &dy);
 			args->offset[0] = (int)dx;
 			args->offset[1] = (int)dy;
 		} else {
@@ -188,7 +187,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			Homography Hs = { 0 };
 			cvGetEye(&Hs);
 			double dx, dy;
-			translation_from_H(args->seq->regparam[args->reglayer][args->ref_image].H, &dx, &dy);
+			translation_from_H(args->seq->regparam[args->ref_image].H, &dx, &dy);
 			// siril_debug_print("ref shift: %d %d\n", (int)dx, (int)dy);
 			// siril_debug_print("crpix: %.1f %.1f\n", fit->keywords.wcslib->crpix[0], fit->keywords.wcslib->crpix[1]);
 			Hs.h02 = dx - args->offset[0];
@@ -371,6 +370,7 @@ static int stack_read_block_data(struct stacking_args *args,
 	/* store the layer info to retrieve normalization coeffs*/
 	data->layer = (int)my_block->channel;
 	gboolean masking = (args->feather_dist > 0);
+	gboolean has_regdata = seq_has_any_regdata(args->seq);
 	/* Read the block from all images, store them in pix[image] */
 	for (int frame = 0; frame < args->nb_images_to_stack; ++frame) {
 		gboolean clear = FALSE, readdata = TRUE;
@@ -388,12 +388,12 @@ static int stack_read_block_data(struct stacking_args *args,
 		if (!get_thread_run())
 			return ST_CANCEL;
 
-		if (args->reglayer >= 0) {
+		if (has_regdata) {
 			/* Load registration data for current image and modify area.
 			 * Here, only the y shift is managed. If possible, the remaining part
 			 * of the original area is read, the rest is filled with zeros. The x
 			 * shift is managed in the main loop after the read. */
-			regdata *layerparam = args->seq->regparam[args->reglayer];
+			regdata *layerparam = args->seq->regparam;
 			if (layerparam) {
 				double scale = (args->upscale_at_stacking) ? 2. : 1.;
 				double dx, dy;
@@ -439,7 +439,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			}
 		}
 
-		if (args->reglayer < 0 || readdata) {
+		if (has_regdata || readdata) {
 			// reading pixels from current frame
 			void *buffer;
 			if (itype == DATA_FLOAT)
@@ -458,7 +458,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			}
 		}
 		
-		if (masking && (args->reglayer < 0 || readdata)) {
+		if (masking && (has_regdata || readdata)) {
 			// we need to compute the correct mask area
 			// We load the corresponding downscaled portion of the mask file (distances to black are already included)
 			// Upcsale it to the mask buffer
@@ -1059,7 +1059,7 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 	double fwhmmax = -DBL_MAX;
 	double invdenom, invfwhmax2;
 
-	if (!layer_has_registration(args->seq, args->reglayer)) {
+	if (!seq_has_any_regdata(args->seq)) {
 		siril_log_color_message(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), "red", "wFWHM");
 		return ST_GENERIC_ERROR;
 	}
@@ -1069,8 +1069,8 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 
 	for (int i = 0; i < args->nb_images_to_stack; ++i) {
 		int idx = args->image_indices[i];
-		if (args->seq->regparam[args->reglayer][idx].weighted_fwhm < fwhmmin && args->seq->regparam[args->reglayer][idx].weighted_fwhm > 0) fwhmmin = args->seq->regparam[args->reglayer][idx].weighted_fwhm;
-		if (args->seq->regparam[args->reglayer][idx].weighted_fwhm > fwhmmax) fwhmmax = args->seq->regparam[args->reglayer][idx].weighted_fwhm;
+		if (args->seq->regparam[idx].weighted_fwhm < fwhmmin && args->seq->regparam[idx].weighted_fwhm > 0) fwhmmin = args->seq->regparam[idx].weighted_fwhm;
+		if (args->seq->regparam[idx].weighted_fwhm > fwhmmax) fwhmmax = args->seq->regparam[idx].weighted_fwhm;
 	}
 	invdenom = 1. / (1. / (fwhmmin * fwhmmin) - 1. / (fwhmmax * fwhmmax));
 	invfwhmax2 = 1. / (fwhmmax * fwhmmax);
@@ -1080,8 +1080,8 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 		pweights[layer] = args->weights + layer * nb_frames;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
 			int idx = args->image_indices[i];
-			if (args->seq->regparam[args->reglayer][idx].weighted_fwhm > 0) {
-				pweights[layer][i] = (1. / (args->seq->regparam[args->reglayer][idx].weighted_fwhm * args->seq->regparam[args->reglayer][idx].weighted_fwhm) - invfwhmax2) * invdenom;
+			if (args->seq->regparam[idx].weighted_fwhm > 0) {
+				pweights[layer][i] = (1. / (args->seq->regparam[idx].weighted_fwhm * args->seq->regparam[idx].weighted_fwhm) - invfwhmax2) * invdenom;
 				norm += pweights[layer][i];
 			} else {
 				pweights[layer][i] = 0.;
@@ -1091,7 +1091,7 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 
 		for (int i = 0; i < args->nb_images_to_stack; i++) {
 			pweights[layer][i] /= norm;
-			siril_debug_print("Image #%d - Layer %d - wFWHM: %3.2f - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->reglayer][args->image_indices[i]].weighted_fwhm, pweights[layer][i]);
+			siril_debug_print("Image #%d - Layer %d - wFWHM: %3.2f - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->image_indices[i]].weighted_fwhm, pweights[layer][i]);
 		}
 	}
 	return ST_OK;
@@ -1104,7 +1104,7 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 	int starmax = 0;
 	double invdenom;
 
-	if (!layer_has_registration(args->seq, args->reglayer)) {
+	if (!seq_has_any_regdata(args->seq)) {
 		siril_log_color_message(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), "red", _("number of stars"));
 		return ST_GENERIC_ERROR;
 	}
@@ -1114,8 +1114,8 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 
 	for (int i = 0; i < args->nb_images_to_stack; ++i) {
 		int idx = args->image_indices[i];
-		if (args->seq->regparam[args->reglayer][idx].number_of_stars < starmin) starmin = args->seq->regparam[args->reglayer][idx].number_of_stars;
-		if (args->seq->regparam[args->reglayer][idx].number_of_stars > starmax) starmax = args->seq->regparam[args->reglayer][idx].number_of_stars;
+		if (args->seq->regparam[idx].number_of_stars < starmin) starmin = args->seq->regparam[idx].number_of_stars;
+		if (args->seq->regparam[idx].number_of_stars > starmax) starmax = args->seq->regparam[idx].number_of_stars;
 	}
 	if (starmax == starmin)
 		invdenom = 1.0;
@@ -1129,8 +1129,8 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 				pweights[layer][i] = 1.;
 			else {
 				int idx = args->image_indices[i];
-				pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
-					(double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+				pweights[layer][i] = (double)(args->seq->regparam[idx].number_of_stars - starmin) *
+					(double)(args->seq->regparam[idx].number_of_stars - starmin) *
 					invdenom * invdenom;
 			}
 			norm += pweights[layer][i];
@@ -1139,7 +1139,7 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 
 		for (int i = 0; i < args->nb_images_to_stack; i++) {
 			pweights[layer][i] /= norm;
-			siril_debug_print("Image #%d - Layer %d - nbstars: %d - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->reglayer][args->image_indices[i]].number_of_stars, pweights[layer][i]);
+			siril_debug_print("Image #%d - Layer %d - nbstars: %d - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->image_indices[i]].number_of_stars, pweights[layer][i]);
 		}
 	}
 	return ST_OK;
@@ -1199,10 +1199,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 	g_assert(nb_frames <= args->seq->number);
 
-	if (args->reglayer < 0) {
-		siril_log_message(_("No registration layer passed, ignoring registration data!\n"));
-	}
-	else layerparam = args->seq->regparam[args->reglayer];
+	if (args->seq->regparam)
+		layerparam = args->seq->regparam;
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 

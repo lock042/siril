@@ -167,7 +167,7 @@ void initialize_ips_dialog() {
 	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	// sequence related controls
 	gboolean isseq = sequence_is_loaded() && com.seq.current != RESULT_IMAGE;
-	gboolean hasreg = isseq && layer_has_usable_registration(&com.seq, (gfit.naxes[2] == 1) ? RLAYER : GLAYER);
+	gboolean hasreg = isseq && seq_has_usable_registration(&com.seq);
 	gtk_widget_set_visible(GTK_WIDGET(flipbutton), !isseq);
 	gtk_expander_set_expanded(sequenceexp, isseq);
 	gtk_widget_set_visible(GTK_WIDGET(sequenceexp), isseq);

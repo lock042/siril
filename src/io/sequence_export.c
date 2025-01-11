@@ -124,9 +124,8 @@ static gpointer export_sequence(gpointer ptr) {
 	struct exportseq_args *args = (struct exportseq_args *)ptr;
 	norm_coeff coeff = { 0 };
 
-	int reglayer = get_registration_layer(args->seq);
-	if (reglayer >= 0)
-		siril_log_message(_("Using registration information from layer %d to export sequence\n"), reglayer);
+	if (seq_has_any_regdata(args->seq))
+		siril_log_message(_("Using registration information to export sequence\n"));
 	if (args->crop) {
 		in_width  = args->crop_area.w;
 		in_height = args->crop_area.h;
@@ -284,7 +283,6 @@ static gpointer export_sequence(gpointer ptr) {
 		stackargs.filtering_parameter = args->filtering_parameter;
 		stackargs.nb_images_to_stack = nb_frames;
 		stackargs.normalize = ADDITIVE_SCALING;
-		stackargs.reglayer = reglayer;
 		stackargs.use_32bit_output = (output_bitpix == FLOAT_IMG);
 		stackargs.ref_image = args->seq->reference_image;
 		stackargs.equalizeRGB = FALSE;
@@ -422,9 +420,9 @@ static gpointer export_sequence(gpointer ptr) {
 
 		int shiftx, shifty;
 		/* load registration data for current image */
-		if (reglayer != -1 && args->seq->regparam[reglayer]) {
+		if (seq_has_usable_registration(args->seq)) {
 			double dx, dy;
-			translation_from_H(args->seq->regparam[reglayer][i].H, &dx, &dy);
+			translation_from_H(args->seq->regparam[i].H, &dx, &dy);
 			shiftx = round_to_int(dx);
 			shifty = round_to_int(dy);
 		} else {
@@ -629,7 +627,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	if (selected == -1) return;
 
 	// checking regdata is absent, or if present, is only shift
-	if (!test_regdata_is_valid_and_shift(&com.seq, get_registration_layer(&com.seq))) {
+	if (!test_regdata_is_valid_and_shift(&com.seq)) {
 		int confirm = siril_confirm_dialog(_("Registration data found"),
 			_("Export has detected registration data with more than simple shifts.\n"
 			"Normally, you should apply existing registration before exporting."),

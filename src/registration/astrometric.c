@@ -204,7 +204,7 @@ static int optimize_max_framing(double *framingref, optim_params_t *params) {
 	return status;
 }
 
-int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout, struct wcsprm **prmout) {
+int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, Homography *Hout, struct wcsprm **prmout) {
 	int retval = 0;
 	double ra0 = 0., dec0 = 0.;
 	int n = seq->number;
@@ -341,7 +341,7 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
 	// We add to the seq in order to display a first alignment
-	regdata *current_regdata = seq->regparam[layer];
+	regdata *current_regdata = seq->regparam;
 	int xmin = INT_MAX, xmax = -INT_MAX;
 	int ymin = INT_MAX, ymax = -INT_MAX;
 	for (int i = 0;  i < n; i++) {

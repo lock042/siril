@@ -466,10 +466,10 @@ void on_button_comet_clicked(GtkButton *button, gpointer p) {
 			pos.x = 0.5 * (double)com.selection.w + com.selection.x;
 			pos.y = com.selection.y + com.selection.h - 0.5 * (double)com.selection.h;
 		}
-		if (layer_has_registration(&com.seq, layer) &&
-				guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
-				guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
-			cvTransfPoint(&pos.x, &pos.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H, 1.);
+		if (seq_has_any_regdata(&com.seq)&&
+				guess_transform_from_H(com.seq.regparam[com.seq.reference_image].H) > NULL_TRANSFORMATION &&
+				guess_transform_from_H(com.seq.regparam[com.seq.current].H) > NULL_TRANSFORMATION) {
+			cvTransfPoint(&pos.x, &pos.y, com.seq.regparam[com.seq.current].H, com.seq.regparam[com.seq.reference_image].H, 1.);
 		}
 		if (first) // comet1_clicked
 			pos_of_image1 = pos;
@@ -618,7 +618,7 @@ static void update_filter_label(seq_image_filter filtering_criterion, double fil
 
 static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		double *filtering_parameter, int update_adjustment) {
-	int filter, guifilter, channel = 0, type;
+	int filter, guifilter, type;
 	gboolean is_ksig = FALSE;
 	double percent = 0.0;
 
@@ -629,7 +629,6 @@ static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_crit
 
 		type = gtk_combo_box_get_active(filter_combo[guifilter]);
 		if (type != ALL_IMAGES && type != SELECTED_IMAGES) {
-			channel = get_registration_layer(&com.seq);
 			percent = gtk_adjustment_get_value(stackadj[guifilter]);
 			is_ksig =  gtk_combo_box_get_active(GTK_COMBO_BOX(ksig[guifilter]));
 		}
@@ -658,42 +657,42 @@ static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_crit
 			case BEST_PSF_IMAGES:
 				regfilters[filter].filter = seq_filter_fwhm;
 				regfilters[filter].param = compute_highest_accepted_fwhm(
-						&com.seq, channel, percent, is_ksig);
+						&com.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_WPSF_IMAGES:
 				regfilters[filter].filter = seq_filter_weighted_fwhm;
 				regfilters[filter].param = compute_highest_accepted_weighted_fwhm(
-						&com.seq, channel, percent, is_ksig);
+						&com.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_ROUND_IMAGES:
 				regfilters[filter].filter = seq_filter_roundness;
 				regfilters[filter].param = compute_lowest_accepted_roundness(
-						&com.seq, channel, percent, is_ksig);
+						&com.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_BKG_IMAGES:
 				regfilters[filter].filter = seq_filter_background;
 				regfilters[filter].param = compute_highest_accepted_background(
-						&com.seq, channel, percent, is_ksig);
+						&com.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_NBSTARS_IMAGES:
 				regfilters[filter].filter = seq_filter_nbstars;
 				regfilters[filter].param = compute_lowest_accepted_nbstars(
-						&com.seq, channel, percent, is_ksig);
+						&com.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_QUALITY_IMAGES:
 				regfilters[filter].filter = seq_filter_quality;
 				regfilters[filter].param = compute_lowest_accepted_quality(
-						&com.seq, channel, percent, is_ksig);
+						&com.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
@@ -839,8 +838,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	is_global = regindex == REG_GLOBAL;
 	is_star_align = is_global || regindex == REG_2PASS;
 
-	/* registration data exists for the selected layer */
-	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer)));
+	/* registration data exists for the selected sequence */
+	has_reg = seq_has_any_regdata(&com.seq);
 	/* registration will produce output */
 	has_output = isapplyreg || is_global;
 	/* drizzle is selected */
@@ -1121,8 +1120,8 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		}
 	}
 	if (isapplyreg && seq_has_any_distortion(regargs->seq)) {
-		regargs->undistort = regargs->seq->distoparam[regargs->layer].index;
-		regargs->distoparam = regargs->seq->distoparam[regargs->layer];
+		regargs->undistort = regargs->seq->distoparam.index;
+		regargs->distoparam = regargs->seq->distoparam;
 	}
 
 	//Checks
@@ -1168,13 +1167,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
 
 	return 0;
-}
-
-int get_registration_layer_from_GUI(const sequence *seq) {
-	int reglayer = gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer));
-	if (!seq || !seq->regparam || !seq->regparam[reglayer] || seq->nb_layers < 0 || seq->nb_layers <= reglayer)
-		return -1;
-	return reglayer;
 }
 
 /* callback for 'Go register' button, GTK thread */
@@ -1225,9 +1217,8 @@ gboolean end_register_idle(gpointer p) {
 
 	if (!args->retval) {
 		if (!args->load_new_sequence && sequence_is_loaded()) {
-			int chan = gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer));
-			update_seqlist(chan);
-			fill_sequence_list(args->seq, chan, FALSE);
+			update_seqlist();
+			fill_sequence_list(args->seq, FALSE);
 			set_layers_for_registration();	// update display of available reg data
 			seq_load_image(args->seq, args->seq->reference_image, TRUE);
 			redraw(REDRAW_OVERLAY); // plot registration frame

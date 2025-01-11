@@ -266,12 +266,12 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	spsfargs->framing = (regargs->follow_star) ? FOLLOW_STAR_FRAME : REGISTERED_FRAME;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	// making sure we can use registration data - maybe we could have done that beforehand...
-	if (spsfargs->framing == REGISTERED_FRAME && !layer_has_usable_registration(regargs->seq, regargs->layer)) {
+	if (spsfargs->framing == REGISTERED_FRAME && !seq_has_usable_registration(regargs->seq)) {
 		spsfargs->framing = ORIGINAL_FRAME;
 	}
 	if (spsfargs->framing == REGISTERED_FRAME) {
 		if (regargs->seq->reference_image < 0) regargs->seq->reference_image = sequence_find_refimage(regargs->seq);
-		if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H) == NULL_TRANSFORMATION) {
+		if (guess_transform_from_H(regargs->seq->regparam[regargs->seq->reference_image].H) == NULL_TRANSFORMATION) {
 			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
 			free(args);
 			free(spsfargs);
@@ -279,13 +279,13 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 		}
 		if (regargs->seq->current != regargs->seq->reference_image) {
 			// transform selection back from current to ref frame coordinates
-			if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->current].H) == NULL_TRANSFORMATION) {
+			if (guess_transform_from_H(regargs->seq->regparam[regargs->seq->current].H) == NULL_TRANSFORMATION) {
 				siril_log_color_message(_("The current image has a null matrix and was not previously registered. Please load another one to select the stars.\n"), "red");
 				free(args);
 				free(spsfargs);
 				return 1;
 			}
-			selection_H_transform(&args->area, regargs->seq->regparam[regargs->layer][regargs->seq->current].H, regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
+			selection_H_transform(&args->area, regargs->seq->regparam[regargs->seq->current].H, regargs->seq->regparam[regargs->seq->reference_image].H);
 			if (args->area.x < 0 || args-> area.x > regargs->seq->rx - args->area.w ||
 					args->area.y < 0 || args->area.y > regargs->seq->ry - args->area.h) {
 				siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");

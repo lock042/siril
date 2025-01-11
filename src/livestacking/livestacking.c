@@ -464,7 +464,7 @@ static int live_stacking_star_align_prepare(struct generic_seq_args *args) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
-	args->seq->regparam[regargs->layer] = regparam_bkp;
+	args->seq->regparam = regparam_bkp;
 	sadata->success[0] = 0;
 	sadata->success[1] = 0;
 	return 0;
@@ -530,8 +530,8 @@ static int start_global_registration(sequence *seq) {
 	// hack to not free the regparam, because it's referenced by
 	// sadata->current_regdata because of the first call to the prepare,
 	// and used for reference frame params in the registration
-	regparam_bkp = seq->regparam[regargs.layer];
-	seq->regparam[regargs.layer] = NULL;
+	regparam_bkp = seq->regparam;
+	seq->regparam = NULL;
 	free_sequence(seq, FALSE);
 
 	return retval || !sadata->success[1];
@@ -757,7 +757,6 @@ static gpointer live_stacker(gpointer arg) {
 		 * inputs to stack are 16 bits when no preprocessing or debayer occur */
 		stackparam.use_32bit_output = get_data_type(r_seq.bitpix) == DATA_FLOAT ||
 			(use_32bits && (prepro || use_demosaicing == BOOL_TRUE));
-		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
 		stackparam.weighting_type = NBSTACK_WEIGHT;
 
 		reserve_thread(); // hack: generic function fails otherwise

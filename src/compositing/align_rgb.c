@@ -93,7 +93,7 @@ static void align_and_compose() {
 				fits *fit = internal_sequence_get(seq, channel);
 				if (seq && seq->regparam) {
 					double dx, dy;
-					translation_from_H(seq->regparam[REGLAYER][channel].H, &dx, &dy);
+					translation_from_H(seq->regparam[channel].H, &dx, &dy);
 					int realX = x - round_to_int(dx);
 					int realY = y - round_to_int(dy);
 					if (fit->type == DATA_USHORT) {

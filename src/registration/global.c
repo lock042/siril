@@ -120,7 +120,6 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	/* first we're looking for stars in reference image */
 	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
 		siril_log_color_message(_("Could not load reference image\n"), "red");
-		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		return 1;
 	}
@@ -141,7 +140,6 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (!sadata->refstars || nb_stars < get_min_requires_stars(regargs->type)) {
 		siril_log_color_message(
 				_("There are not enough stars in reference image to perform alignment\n"), "red");
-		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
@@ -171,7 +169,6 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
 		siril_log_color_message(
 				_("Could not init distortion mapping\n"), "red");
-		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
@@ -188,7 +185,6 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (regargs->undistort && disto_correct_stars(sadata->refstars, regargs->disto)) {
 		siril_log_color_message(
 			_("Could not correct the stars position with SIP coeffients\n"), "red");
-		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
@@ -438,7 +434,9 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 			if (!sadata->success[i])
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
-		regargs->seq->distoparam[regargs->layer] = regargs->distoparam;
+		regargs->seq->distoparam = regargs->distoparam;
+		if (regargs->distoparam.filename)
+			regargs->seq->distoparam.filename = g_strdup(regargs->distoparam.filename);
 
 		if (!regargs->no_output) {
 			if (failed) {
@@ -458,8 +456,7 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 		}
 	} else {
 		regargs->new_total = 0;
-		free(args->seq->regparam[regargs->layer]);
-		args->seq->regparam[regargs->layer] = NULL;
+		free(args->seq->regparam);
 
 		// args->new_ser can be null if stars were not detected in the reference image
 		// same as seq_finalize_hook but with file deletion
@@ -758,7 +755,7 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 }
 
 static void compute_dist(struct registration_args *regargs, float *dist, const gboolean *included) {
-	Homography Href = regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H;
+	Homography Href = regargs->seq->regparam[regargs->seq->reference_image].H;
 	Homography Hshift = {0};
 	Homography Htransf = {0};
 	cvGetEye(&Hshift);
@@ -778,7 +775,7 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 		if (!included[i]) continue;
 		point currcenter;
 		memcpy(&currcenter, &center, sizeof(point));
-		cvTransfPoint(&currcenter.x, &currcenter.y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
+		cvTransfPoint(&currcenter.x, &currcenter.y,regargs->seq->regparam[i].H, Href, 1.);
 		cogx += currcenter.x;
 		cogy += currcenter.y;
 		n++;
@@ -796,7 +793,7 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 		point currcenter;
 		double dx, dy;
 		memcpy(&currcenter, &center, sizeof(point));
-		cvTransfPoint(&currcenter.x, &currcenter.y, regargs->seq->regparam[regargs->layer][i].H, Htransf, 1.);
+		cvTransfPoint(&currcenter.x, &currcenter.y, regargs->seq->regparam[i].H, Htransf, 1.);
 		dx = currcenter.x - center.x;
 		dy = currcenter.y - center.y;
 		dist[i] = (float)sqrt(dx * dx + dy * dy);
@@ -1075,7 +1072,9 @@ int register_multi_step_global(struct registration_args *regargs) {
 	for (int i = 0; i < regargs->seq->number; i++) {
 		regargs->seq->imgparam[i].incl = included[i];
 	}
-	regargs->seq->distoparam[regargs->layer] = regargs->distoparam;
+	regargs->seq->distoparam = regargs->distoparam;
+	if (regargs->distoparam.filename)
+		regargs->seq->distoparam.filename = g_strdup(regargs->distoparam.filename);
 
 	// images may have been excluded but selnum wasn't updated
 	fix_selnum(regargs->seq, FALSE);

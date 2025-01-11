@@ -177,7 +177,7 @@ static command commands[] = {
 #endif
 	{"sb", 0, "sb [-loadpsf=] [-alpha=] [-iters=]", process_sb, STR_SB, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"select", 3, "select sequencename from to", process_select, STR_SELECT, TRUE, REQ_CMD_NONE},
-	{"seqapplyreg", 1, "seqapplyreg sequencename [-prefix=] [-scale=] [-layer=] [-framing=]\n"
+	{"seqapplyreg", 1, "seqapplyreg sequencename [-prefix=] [-scale=] [-framing=]\n"
 						"seqapplyreg sequencename ... [-interp=] [-noclamp]\n"
 						"seqapplyreg sequencename ... [-drizzle [-pixfrac=] [-kernel=] [-flat=]]\n"
 						"seqapplyreg sequencename ... [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE, REQ_CMD_NO_THREAD},

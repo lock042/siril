@@ -4519,7 +4519,7 @@ int process_seq_psf(int nb) {
 	}
 
 	framing_mode framing = REGISTERED_FRAME;
-	if (framing == REGISTERED_FRAME && !seq->regparam[layer])
+	if (framing == REGISTERED_FRAME && !seq->regparam)
 		framing = ORIGINAL_FRAME;
 	if (framing == ORIGINAL_FRAME) {
 		if (com.headless)
@@ -4567,7 +4567,7 @@ int process_light_curve(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	if (sequence_drifts(seq, layer, seq->rx / 4))
+	if (sequence_drifts(seq, seq->rx / 4))
 		return CMD_GENERIC_ERROR;
 
 	int argidx = 3;
@@ -7969,12 +7969,7 @@ int process_seq_applyreg(int nb) {
 	// check that registration exists for one layer at least
 	int layer = -1;
 	if (seq->regparam) {
-		for (int i = 0; i < seq->nb_layers; i++) {
-			if (seq->regparam[i]) {
-				layer = i;
-				break;
-			}
-		}
+		layer = seq->reglayer;
 	}
 	if (layer == -1) {
 		siril_log_color_message(_("No registration data exists for this sequence, aborting\n"), "red");
@@ -8156,24 +8151,6 @@ int process_seq_applyreg(int nb) {
 			}
 			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
-		} else if (g_str_has_prefix(word[i], "-layer=")) {
-			if (regargs->seq->nb_layers == 1) {  // handling mono case
-				siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
-				continue;
-			}
-			char *current = word[i], *value;
-			value = current + 7;
-			gchar *end;
-			int layer2 = g_ascii_strtoull(value, &end, 10);
-			if (end == value) {
-				siril_log_message(_("Invalid argument to %s, aborting.\n"), value);
-				continue;
-			}
-			if (!(seq->regparam[layer2])) {
-				siril_log_color_message(_("Registration data does not exist for layer #%d, will use layer #%d instead.\n"), "red", layer2, layer);
-				continue;
-			}
-			regargs->layer = layer2;
 		} else if (parse_filter_args(word[i], &regargs->filters)) {
 			;
 		} else {
@@ -8394,18 +8371,17 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.output_norm = arg->output_norm;
 	args.equalizeRGB = arg->equalizeRGB;
 	args.lite_norm = arg->lite_norm;
-	args.reglayer = get_registration_layer(args.seq);
 	args.feather_dist = arg->feather_dist;
 	args.overlap_norm = arg->overlap_norm;
 
 	// manage registration data
-	if (!test_regdata_is_valid_and_shift(args.seq, args.reglayer)) {
-		siril_log_color_message(_("Stacking has detected registration data on layer %d with more than simple shifts. You should apply existing registration before stacking\n"), "red", args.reglayer);
+	if (!test_regdata_is_valid_and_shift(args.seq)) {
+		siril_log_color_message(_("Stacking has detected registration data with more than simple shifts. You should apply existing registration before stacking\n"), "red");
 		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
 	}
 	// manage reframing and upscale
-	gboolean can_reframe = layer_has_usable_registration(seq, args.reglayer);
+	gboolean can_reframe = seq_has_usable_registration(seq);
 	gboolean can_upscale = can_reframe && !seq->is_variable;
 	gboolean must_reframe = can_reframe && seq->is_variable;
 	args.maximize_framing = arg->maximize_framing;

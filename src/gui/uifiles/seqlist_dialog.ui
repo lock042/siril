@@ -210,14 +210,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
         <property name="title" translatable="yes">Frame List</property>
         <property name="show-close-button">True</property>
         <child>
-          <object class="GtkComboBoxText" id="seqlist_dialog_combo">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="tooltip-text" translatable="yes">Select the channel you want to display.</property>
-            <signal name="changed" handler="on_seqlist_dialog_combo_changed" swapped="no"/>
-          </object>
-        </child>
-        <child>
           <object class="GtkButtonBox" id="seqlist_buttonbar">
             <property name="visible">True</property>
             <property name="can-focus">False</property>

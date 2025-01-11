@@ -166,9 +166,8 @@ static void start_stacking() {
 	if (stackparam.method != stack_median && stackparam.method != stack_mean_with_rejection)
 		stackparam.normalize = NO_NORM;
 	stackparam.seq = &com.seq;
-	stackparam.reglayer = get_registration_layer(stackparam.seq);
 	// checking regdata is absent, or if present, is only shift
-	if (!test_regdata_is_valid_and_shift(stackparam.seq, stackparam.reglayer)) {
+	if (!test_regdata_is_valid_and_shift(stackparam.seq)) {
 		int confirm = siril_confirm_dialog(_("Registration data found"),
 			_("Stacking has detected registration data with more than simple shifts.\n"
 			"Normally, you should apply existing registration before stacking."),
@@ -443,7 +442,7 @@ void on_filter_rem3_clicked(GtkButton *button, gpointer user_data){
 
 void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		double *filtering_parameter) {
-	int filter, guifilter, channel = 0, type;
+	int filter, guifilter, type;
 	gboolean is_ksig = FALSE;
 	double percent = 0.0;
 	static GtkComboBox *filter_combo[] = {NULL, NULL, NULL};
@@ -471,7 +470,6 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 
 		type = gtk_combo_box_get_active(filter_combo[guifilter]);
 		if (type != ALL_IMAGES && type != SELECTED_IMAGES) {
-			channel = get_registration_layer(&com.seq);
 			percent = gtk_adjustment_get_value(stackadj[guifilter]);
 			is_ksig = gtk_combo_box_get_active(GTK_COMBO_BOX(ksig[guifilter]));
 		}
@@ -501,42 +499,42 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 			case BEST_PSF_IMAGES:
 				stackfilters[filter].filter = seq_filter_fwhm;
 				stackfilters[filter].param = compute_highest_accepted_fwhm(
-						stackparam.seq, channel, percent, is_ksig);
+						stackparam.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_WPSF_IMAGES:
 				stackfilters[filter].filter = seq_filter_weighted_fwhm;
 				stackfilters[filter].param = compute_highest_accepted_weighted_fwhm(
-						stackparam.seq, channel, percent, is_ksig);
+						stackparam.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_ROUND_IMAGES:
 				stackfilters[filter].filter = seq_filter_roundness;
 				stackfilters[filter].param = compute_lowest_accepted_roundness(
-						stackparam.seq, channel, percent, is_ksig);
+						stackparam.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_BKG_IMAGES:
 				stackfilters[filter].filter = seq_filter_background;
 				stackfilters[filter].param = compute_highest_accepted_background(
-						stackparam.seq, channel, percent, is_ksig);
+						stackparam.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_NBSTARS_IMAGES:
 				stackfilters[filter].filter = seq_filter_nbstars;
 				stackfilters[filter].param = compute_lowest_accepted_nbstars(
-						stackparam.seq, channel, percent, is_ksig);
+						stackparam.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_QUALITY_IMAGES:
 				stackfilters[filter].filter = seq_filter_quality;
 				stackfilters[filter].param = compute_lowest_accepted_quality(
-						stackparam.seq, channel, percent, is_ksig);
+						stackparam.seq, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
@@ -651,7 +649,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_combo_box_set_active(filter_combo, SELECTED_IMAGES);
 		g_signal_handlers_unblock_by_func(filter_combo, on_stacksel_changed, NULL);
 	}
-	gboolean can_reframe = layer_has_usable_registration(&com.seq, get_registration_layer(&com.seq));
+	gboolean can_reframe = seq_has_usable_registration(&com.seq);
 	gboolean can_upscale = can_reframe && !com.seq.is_variable;
 	gboolean must_reframe = can_reframe && com.seq.is_variable;
 

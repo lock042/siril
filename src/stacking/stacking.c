@@ -633,7 +633,6 @@ void init_stacking_args(struct stacking_args *args) {
 	args->use_32bit_output = FALSE;
 	args->feather_dist = 0;
 	args->overlap_norm = FALSE;
-	args->reglayer = -1;
 	args->equalizeRGB = FALSE;
 	args->maximize_framing = FALSE;
 	memset(args->offset, 0, 2 * sizeof(int));
@@ -685,7 +684,7 @@ void compute_max_framing(struct stacking_args *args, int output_size[2], int off
 	double scale = (args->upscale_at_stacking) ? 2. : 1.;
 	for (int i = 0; i < nb_frames; ++i) {
 		int image_index = args->image_indices[i]; // image index in sequence
-		regdata *regdat = args->seq->regparam[args->reglayer];
+		regdata *regdat = args->seq->regparam;
 		int rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
 		int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
 		xmin = (xmin > regdat[image_index].H.h02 * scale) ? regdat[image_index].H.h02 * scale : xmin;

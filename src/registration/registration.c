@@ -29,18 +29,9 @@
 #include "algos/siril_wcs.h"
 
 int get_registration_layer(const sequence *seq) {
-	if (!com.script && seq == &com.seq) {
-		return get_registration_layer_from_GUI(seq);
-	} else {
-		// find first available regdata
-		if (!seq || !seq->regparam || seq->nb_layers < 0)
-			return -1;
-		int i;
-		for (i = 0; i < seq->nb_layers; i++)
-			if (seq->regparam[i])
-				return i;
+	if (!seq_has_any_regdata(seq))
 		return -1;
-	}
+	return seq->reglayer;
 }
 
 int get_first_selected(sequence *seq) {
@@ -52,47 +43,32 @@ int get_first_selected(sequence *seq) {
 	return -1;
 }
 
-gboolean layer_has_registration(const sequence *seq, int layer) {
-	if (!seq || layer < 0 || !seq->regparam || seq->nb_layers < 0 || layer >= seq->nb_layers || !seq->regparam[layer] ) return FALSE;
-	return TRUE;
-}
 
-gboolean layer_has_usable_registration(sequence *seq, int layer) {
+gboolean seq_has_usable_registration(sequence *seq) {
 	transformation_type min, max;
-	guess_transform_from_seq(seq, layer, &min, &max, FALSE); // will check first that layer_has_registration
+	guess_transform_from_seq(seq, &min, &max, FALSE); // will check first that seq_has_any_regdata
 	if (max <= IDENTITY_TRANSFORMATION)
 		return FALSE; // max <= -1 means all H matrices are identity or null
 	return TRUE;
 }
 
-int seq_has_any_regdata(const sequence *seq) {
-	if (!seq || !seq->regparam || seq->nb_layers < 0)
-		return -1;
-	int i;
-	for (i = 0; i < seq->nb_layers; i++)
-		if (seq->regparam[i])
-			return i;
-	return -1;
-}
-
-gboolean layer_has_distortion(const sequence *seq, int layer) {
-	if (!seq || layer < 0 || !seq->distoparam || seq->nb_layers < 0 || layer >= seq->nb_layers || seq->distoparam[layer].index == DISTO_UNDEF) return FALSE;
+gboolean seq_has_any_regdata(const sequence *seq) {
+	if (!seq || !seq->regparam)
+		return FALSE;
 	return TRUE;
 }
 
 gboolean seq_has_any_distortion(const sequence *seq) {
-	for (int i = 0; i < seq->nb_layers; i++) {
-		if (layer_has_distortion(seq, i))
-			return TRUE;
-	}
-	return FALSE;
+	if (!seq || seq->distoparam.index == DISTO_UNDEF)
+		return FALSE;
+	return TRUE;
 }
 
 regdata *registration_get_current_regdata(struct registration_args *regargs) {
 	regdata *current_regdata;
-	if (regargs->seq->regparam[regargs->layer]) {
-		siril_log_message(_("Recomputing already existing registration for this layer\n"));
-		current_regdata = regargs->seq->regparam[regargs->layer];
+	if (regargs->seq->regparam) {
+		siril_log_message(_("Recomputing already existing registration\n"));
+		current_regdata = regargs->seq->regparam;
 		/* we reset all values as we may register different images */
 		memset(current_regdata, 0, regargs->seq->number * sizeof(regdata));
 	} else {
@@ -101,7 +77,7 @@ regdata *registration_get_current_regdata(struct registration_args *regargs) {
 			PRINT_ALLOC_ERR;
 			return NULL;
 		}
-		regargs->seq->regparam[regargs->layer] = current_regdata;
+		regargs->seq->regparam = current_regdata;
 	}
 	return current_regdata;
 }
@@ -123,8 +99,8 @@ void create_output_sequence_for_registration(struct registration_args *args, int
 	seq.fixed = args->seq->fixed;
 	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
 	seq.imgparam = args->imgparam;
-	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
-	seq.regparam[args->layer] = args->regparam;
+	seq.regparam = calloc(seq.number, sizeof(regdata));
+	seq.reglayer = args->layer;
 	seq.beg = seq.imgparam[0].filenum;
 	seq.end = seq.imgparam[seq.number-1].filenum;
 	seq.type = args->seq->type;

@@ -67,7 +67,7 @@
  * S sequence_name beg number selnum fixed reference_image [version]
  * L nb_layers
  * (for all images) I filenum incl [width,height] [stats+] <- stats added at some point, removed in 0.9.9
- * (for all layers (x)) Rx regparam+
+ * (for one layer (x)) Rx regparam+
  * TS | TA | TF (type for ser or film (avi) or fits)
  * U up-scale_ratio -> discarded in v5
  * (for all images (y) and layers (x)) Mx-y stats+
@@ -87,7 +87,7 @@ sequence * readseqfile(const char *name){
 	FILE *seqfile;
 	sequence *seq;
 	imstats *stats;
-	regdata *regparam;
+	regdata *regparam = NULL;
 
 	if (!name) return NULL;
 	fprintf(stdout, "Reading sequence file `%s'.\n", name);
@@ -166,10 +166,10 @@ sequence * readseqfile(const char *name){
 					// enabled, we keep 1 in the nb_layers, which will be set in
 					// the seq_check_basic_data() call later
 					if (seq->nb_layers >= 1) {
-						seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
+						seq->regparam = calloc(seq->number, sizeof(regdata));
 						if (ser_is_cfa(seq->ser_file))
-							seq->regparam_bkp = calloc(3, sizeof(regdata*));
-						seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
+							seq->regparam_bkp = calloc(seq->number, sizeof(regdata));
+						memset(&seq->distoparam, 0, sizeof(disto_params));
 					}
 				} else if (line[1] >= '0' && line[1] <= '9') {
 					/* in the future, wavelength and name of each layer will be added here */
@@ -243,28 +243,25 @@ sequence * readseqfile(const char *name){
 					fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
 					goto error;
 				}
-				if (!seq->distoparam)
-					seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
-				seq->distoparam[current_layer].index = index;
+				seq->distoparam.index = index;
 				if (index == DISTO_FILE || index == DISTO_MASTER) {
 					if (nb_tokens == 1) {
 						fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
 						goto error;
 					}
-					seq->distoparam[current_layer].filename = g_strdup(buf0);
+					seq->distoparam.filename = g_strdup(buf0);
 				}
 				if (index == DISTO_FILE_COMET) {
 					if (nb_tokens < 3) {
 						fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
 						goto error;
 					}
-					seq->distoparam[current_layer].velocity.x = (float)g_strtod(buf0, NULL);
-					seq->distoparam[current_layer].velocity.y = (float)g_strtod(buf1, NULL);
+					seq->distoparam.velocity.x = (float)g_strtod(buf0, NULL);
+					seq->distoparam.velocity.y = (float)g_strtod(buf1, NULL);
 					if (nb_tokens > 3) {
-						seq->distoparam[current_layer].filename = g_strdup(buf2);
+						seq->distoparam.filename = g_strdup(buf2);
 					}
 				}
-				++i;
 				break;
 			case 'R':
 				/* registration info */
@@ -300,34 +297,22 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 
-				if (to_backup) {
-					if (!seq->regparam_bkp) {
-						fprintf(stderr, "readseqfile: sequence type probably changed from CFA to MONO, invalid file\n");
-						goto error;
-					}
-					regparam = seq->regparam_bkp[current_layer];
-				} else {
-					if (!seq->regparam) {
-						fprintf(stderr, "readseqfile: file contains registration data but not the basic information\n");
-						goto error;
-					}
-					regparam = seq->regparam[current_layer];
-				}
-
 				if (!regparam) {
-					regparam = calloc(seq->number, sizeof(regdata));
-					if (!regparam) {
-						PRINT_ALLOC_ERR;
-						goto error;
-					}
+					regparam = (to_backup) ? seq->regparam_bkp : seq->regparam;
 					i = 0;	// one line per image, starting with 0
-					// reassign, because we didn't use a pointer
-					if (to_backup)
-						seq->regparam_bkp[current_layer] = regparam;
-					else seq->regparam[current_layer] = regparam;
+					seq->reglayer = current_layer;
+					if (to_backup) {
+						if (!seq->regparam_bkp) {
+							fprintf(stderr, "readseqfile: sequence type probably changed from CFA to MONO, invalid file\n");
+							goto error;
+						}
+					} else {
+						if (!seq->regparam) {
+							fprintf(stderr, "readseqfile: file contains registration data but not the basic information\n");
+							goto error;
+						}
+					}
 				}
-				if (!seq->distoparam)
-					seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 				if (i >= seq->number) {
 					fprintf(stderr, "\nreadseqfile: out of array bounds in reg info!\n\n");
 					goto error;
@@ -431,8 +416,6 @@ sequence * readseqfile(const char *name){
 							seq->cfa_opened_monochrome = TRUE;
 						}
 						seq->nb_layers = 3;
-						if (seq->regparam)
-							seq->regparam = realloc(seq->regparam, seq->nb_layers * sizeof(regdata *));
 						seq->needs_saving = TRUE;
 					}
 				}
@@ -633,15 +616,11 @@ sequence * readseqfile(const char *name){
 
 	// copy some regparam_bkp to regparam if it applies
 	if (ser_is_cfa(seq->ser_file) && com.pref.debayer.open_debayer &&
-			seq->regparam_bkp && seq->regparam_bkp[0] &&
-			seq->regparam && seq->nb_layers == 3 && !seq->regparam[1]) {
+			seq->regparam_bkp && seq->nb_layers == 3 && !seq->regparam) {
 		siril_log_color_message(_("%s: Copying registration data from non-demosaiced layer to green layer\n"), "salmon", seqfilename);
-		seq->regparam[1] = calloc(seq->number, sizeof(regdata));
-		for (image = 0; image < seq->number; image++) {
-			memcpy(&seq->regparam[1][image], &seq->regparam_bkp[0][image], sizeof(regdata));
-		}
+		seq->regparam = calloc(seq->number, sizeof(regdata));
+		memcpy(&seq->regparam, &seq->regparam_bkp, seq->number * sizeof(regdata));
 	}
-
 
 	free(seqfilename);
 	return seq;
@@ -712,50 +691,49 @@ int writeseqfile(sequence *seq){
 	}
 
 	for (layer = 0; layer < seq->nb_layers; layer++) {
-		if (seq->regparam && seq->regparam[layer]) {
-			if (layer_has_distortion(seq, layer)) {
-				if (seq->distoparam[layer].index == DISTO_FILE)
+		if (seq->regparam && layer == seq->reglayer) {
+			if (seq_has_any_distortion(seq)) {
+				if (seq->distoparam.index == DISTO_FILE) {
 					fprintf(seqfile, "D%c %d %s\n",
 					seq->cfa_opened_monochrome ? '*' : '0' + layer,
 					DISTO_FILE,
-					seq->distoparam[layer].filename);
-				else if (seq->distoparam[layer].index == DISTO_FILES)
+					seq->distoparam.filename);
+				} else if (seq->distoparam.index == DISTO_FILES) {
 					fprintf(seqfile, "D%c %d\n",
 					seq->cfa_opened_monochrome ? '*' : '0' + layer,
 					DISTO_FILES);
-				else if (seq->distoparam[layer].index == DISTO_MASTER) {
+				} else if (seq->distoparam.index == DISTO_MASTER) {
 					fprintf(seqfile, "D%c %d %s\n",
 					seq->cfa_opened_monochrome ? '*' : '0' + layer,
 					DISTO_MASTER,
-					seq->distoparam[layer].filename);
-				}
-				else if (seq->distoparam[layer].index == DISTO_FILE_COMET) {
+					seq->distoparam.filename);
+				} else if (seq->distoparam.index == DISTO_FILE_COMET) {
 					fprintf(seqfile, "D%c %d %.3f %.3f %s\n",
 					seq->cfa_opened_monochrome ? '*' : '0' + layer,
 					DISTO_FILE_COMET,
-					seq->distoparam[layer].velocity.x,
-					seq->distoparam[layer].velocity.y,
-					seq->distoparam[layer].filename ? seq->distoparam[layer].filename : "");
+					seq->distoparam.velocity.x,
+					seq->distoparam.velocity.y,
+					seq->distoparam.filename ? seq->distoparam.filename : "");
 				}
 			}
 			for (i = 0; i < seq->number; ++i) {
 				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '*' : '0' + layer,
-						seq->regparam[layer][i].fwhm,
-						seq->regparam[layer][i].weighted_fwhm,
-						seq->regparam[layer][i].roundness,
-						seq->regparam[layer][i].quality,
-						seq->regparam[layer][i].background_lvl,
-						seq->regparam[layer][i].number_of_stars,
-						seq->regparam[layer][i].H.h00,
-						seq->regparam[layer][i].H.h01,
-						seq->regparam[layer][i].H.h02,
-						seq->regparam[layer][i].H.h10,
-						seq->regparam[layer][i].H.h11,
-						seq->regparam[layer][i].H.h12,
-						seq->regparam[layer][i].H.h20,
-						seq->regparam[layer][i].H.h21,
-						seq->regparam[layer][i].H.h22
+						seq->regparam[i].fwhm,
+						seq->regparam[i].weighted_fwhm,
+						seq->regparam[i].roundness,
+						seq->regparam[i].quality,
+						seq->regparam[i].background_lvl,
+						seq->regparam[i].number_of_stars,
+						seq->regparam[i].H.h00,
+						seq->regparam[i].H.h01,
+						seq->regparam[i].H.h02,
+						seq->regparam[i].H.h10,
+						seq->regparam[i].H.h11,
+						seq->regparam[i].H.h12,
+						seq->regparam[i].H.h20,
+						seq->regparam[i].H.h21,
+						seq->regparam[i].H.h22
 					);
 			}
 		}
@@ -784,25 +762,25 @@ int writeseqfile(sequence *seq){
 		}
 	}
 	for (layer = 0; layer < 3; layer++) {
-		if (seq->regparam_bkp && seq->regparam_bkp[layer]) {
+		if (seq->regparam_bkp) {
 			for (i = 0; i < seq->number; ++i) {
 				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '0' + layer : '*',
-						seq->regparam_bkp[layer][i].fwhm,
-						seq->regparam_bkp[layer][i].weighted_fwhm,
-						seq->regparam_bkp[layer][i].roundness,
-						seq->regparam_bkp[layer][i].quality,
-						seq->regparam_bkp[layer][i].background_lvl,
-						seq->regparam_bkp[layer][i].number_of_stars,
-						seq->regparam_bkp[layer][i].H.h00,
-						seq->regparam_bkp[layer][i].H.h01,
-						seq->regparam_bkp[layer][i].H.h02,
-						seq->regparam_bkp[layer][i].H.h10,
-						seq->regparam_bkp[layer][i].H.h11,
-						seq->regparam_bkp[layer][i].H.h12,
-						seq->regparam_bkp[layer][i].H.h20,
-						seq->regparam_bkp[layer][i].H.h21,
-						seq->regparam_bkp[layer][i].H.h22
+						seq->regparam_bkp[i].fwhm,
+						seq->regparam_bkp[i].weighted_fwhm,
+						seq->regparam_bkp[i].roundness,
+						seq->regparam_bkp[i].quality,
+						seq->regparam_bkp[i].background_lvl,
+						seq->regparam_bkp[i].number_of_stars,
+						seq->regparam_bkp[i].H.h00,
+						seq->regparam_bkp[i].H.h01,
+						seq->regparam_bkp[i].H.h02,
+						seq->regparam_bkp[i].H.h10,
+						seq->regparam_bkp[i].H.h11,
+						seq->regparam_bkp[i].H.h12,
+						seq->regparam_bkp[i].H.h20,
+						seq->regparam_bkp[i].H.h21,
+						seq->regparam_bkp[i].H.h22
 					);
 			}
 		}

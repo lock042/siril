@@ -983,8 +983,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		for (int j=0; i<layers_count; i++) {
 			if (has_fit(i)) {
 				double dx, dy, rotation;
-				translation_from_H(seq->regparam[0][j].H, &dx, &dy);
-				rotation = atan2(seq->regparam[0][j].H.h01, seq->regparam[0][j].H.h00) * 180 / M_PI;
+				translation_from_H(seq->regparam[j].H, &dx, &dy);
+				rotation = atan2(seq->regparam[j].H.h01, seq->regparam[j].H.h00) * 180 / M_PI;
 				gtk_spin_button_set_value(layers[i]->spinbutton_x, dx);
 				gtk_spin_button_set_value(layers[i]->spinbutton_y, dy);
 				gtk_spin_button_set_value(layers[i]->spinbutton_r, rotation);
@@ -1027,7 +1027,7 @@ static float get_composition_pixel_value(int fits_index, int reg_layer, int x, i
 		double dx = 0.0, dy = 0.0;
 		// Not needed except for shift transformation
 		if (the_type == SHIFT_TRANSFORMATION)
-			translation_from_H(seq->regparam[0][reg_layer].H, &dx, &dy);
+			translation_from_H(seq->regparam[reg_layer].H, &dx, &dy);
 		// all images have one layer, hence the 0 below
 		realX = x - round_to_int(dx);
 		if (realX < 0 || realX >= layers[fits_index]->the_fit.rx) return 0.0f;
@@ -1862,7 +1862,7 @@ int manual_align_prepare_hook(struct generic_seq_args *args) {
 	   it isn't a CFA sequence */
 	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
 		siril_log_message(_("Could not load reference image\n"));
-		args->seq->regparam[regargs->layer] = NULL;
+		args->seq->regparam = NULL;
 		free(sadata->current_regdata);
 		return 1;
 	}
@@ -1918,7 +1918,7 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		if (dx == 0.0 && dy == 0.0 && dr == 0.0) {
 			regargs->reference_image = in_index;
 		}
-		regargs->seq->regparam[regargs->layer][in_index].H = H_from_translation_and_rotation(dx, dy, dr, *center);
+		regargs->seq->regparam[in_index].H = H_from_translation_and_rotation(dx, dy, dr, *center);
 	} else {
 		args->seq->imgparam[in_index].incl = FALSE;
 		return 1;
@@ -1963,8 +1963,8 @@ int manual_align_finalize_hook(struct generic_seq_args *args) {
 		}
 	} else {
 		regargs->new_total = 0;
-		free(args->seq->regparam[regargs->layer]);
-		args->seq->regparam[regargs->layer] = NULL;
+		free(args->seq->regparam);
+		args->seq->regparam = NULL;
 
 		if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
 			fitseq_close_and_delete_file(args->new_fitseq);

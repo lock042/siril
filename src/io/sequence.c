@@ -482,13 +482,12 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 		fprintf(stdout, "bitpix for the sequence is set as %d\n", seq->bitpix);
 		if (seq->nb_layers == -1 || seq->nb_layers != fit->naxes[2]) {
 			seq->nb_layers = fit->naxes[2];
-			seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
+			seq->regparam = calloc(seq->number, sizeof(regdata));
 			if (!seq->regparam) {
 				PRINT_ALLOC_ERR;
 				clearfits(fit);
 				return 1;
 			}
-			seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 		}
 		seq->needs_saving = TRUE;
 
@@ -566,9 +565,8 @@ int set_seq(const char *name){
 		init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
 		set_cutoff_sliders_max_values();// update min and max values for contrast sliders
 		set_cutoff_sliders_values();	// update values for contrast sliders for this image
-		int layer = set_layers_for_registration();	// set layers in the combo box for registration
-		update_seqlist(layer);
-		fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
+		update_seqlist();
+		fill_sequence_list(seq, FALSE);// display list of files in the sequence on active layer if regdata exists
 		set_output_filename_to_sequence_name();
 		sliders_mode_set_state(gui.sliders);
 		initialize_display_mode();
@@ -1078,25 +1076,16 @@ int seq_opened_read_region(sequence *seq, int layer, int index, void *buffer, co
  * images, and when switching to a new image, it should be set as the only item
  * in the star list, in order to be displayed.
  * A special care is required in PSF_list.c:clear_stars_list(), to not free this data. */
-static void set_fwhm_star_as_star_list_with_layer(sequence *seq, int layer) {
-	assert(seq->regparam);
-	/* we chose here the first layer that has been allocated, which doesn't
-	 * mean it contains data for all images. Handle with care. */
-	if (seq->regparam && layer >= 0 && layer < seq->nb_layers
-			&& seq->regparam[layer] && seq->current >= 0
-			&& seq->regparam[layer][seq->current].fwhm_data && !com.stars) {
+// cannot be called in the worker thread
+void set_fwhm_star_as_star_list(sequence *seq) {
+	if (seq_has_any_regdata(seq) && seq->current >= 0
+			&& seq->regparam[seq->current].fwhm_data && !com.stars) {
 		com.stars = new_fitted_stars(1);
-		com.stars[0] = seq->regparam[layer][seq->current].fwhm_data;
+		com.stars[0] = seq->regparam[seq->current].fwhm_data;
 		com.stars[1] = NULL;
 		// this is freed in PSF_list.c:clear_stars_list()
 		com.star_is_seqdata = TRUE;
 	}
-}
-
-// cannot be called in the worker thread
-void set_fwhm_star_as_star_list(sequence *seq) {
-	int layer = get_registration_layer(seq);
-	set_fwhm_star_as_star_list_with_layer(seq, layer);
 }
 
 /* Rebuilds the file name of an image in a sequence.
@@ -1289,22 +1278,17 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 	int layer, j;
 
 	// free regparam
-	if (seq->nb_layers > 0 && seq->regparam) {
-		for (layer = 0; layer < seq->nb_layers; layer++) {
-			if (seq->regparam[layer]) {
-				for (j = 0; j < seq->number; j++) {
-					if (seq->regparam[layer][j].fwhm_data &&
-							(!seq->photometry[0] ||
-							 seq->regparam[layer][j].fwhm_data != seq->photometry[0][j])) // avoid double free
-						free_psf(seq->regparam[layer][j].fwhm_data);
-				}
-				free(seq->regparam[layer]);
-			}
+	if (seq_has_any_regdata(seq)) {
+		for (j = 0; j < seq->number; j++) {
+			if (seq->regparam[j].fwhm_data &&
+					(!seq->photometry[0] ||
+					 seq->regparam[j].fwhm_data != seq->photometry[0][j])) // avoid double free
+				free_psf(seq->regparam[j].fwhm_data);
 		}
 		free(seq->regparam);
 	}
-	if (seq->distoparam) {
-		g_free(seq->distoparam->filename);
+	if (seq->distoparam.filename) {
+		g_free(seq->distoparam.filename);
 	}
 	// free stats
 	if (seq->nb_layers > 0 && seq->stats) {
@@ -1320,17 +1304,12 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 		free(seq->stats);
 	}
 	// free backup regparam
-	if (seq->nb_layers > 0 && seq->regparam_bkp) {
-		for (layer = 0; layer < seq->nb_layers; layer++) {
-			if (seq->regparam_bkp[layer]) {
-				for (j = 0; j < seq->number; j++) {
-					if (seq->regparam_bkp[layer][j].fwhm_data &&
-							(!seq->photometry[0] ||
-							 seq->regparam_bkp[layer][j].fwhm_data != seq->photometry[0][j])) // avoid double free
-						free(seq->regparam_bkp[layer][j].fwhm_data);
-				}
-				free(seq->regparam_bkp[layer]);
-			}
+	if (seq->regparam_bkp) {
+		for (j = 0; j < seq->number; j++) {
+			if (seq->regparam_bkp[j].fwhm_data &&
+					(!seq->photometry[0] ||
+					 seq->regparam_bkp[j].fwhm_data != seq->photometry[0][j])) // avoid double free
+				free(seq->regparam_bkp[j].fwhm_data);
 		}
 		free(seq->regparam_bkp);
 	}
@@ -1451,7 +1430,7 @@ gboolean close_sequence_idle(gpointer data) {
 	free_reference_image();
 	update_stack_interface(TRUE);
 	adjust_sellabel();
-	update_seqlist(-1);
+	update_seqlist();
 	free_cut_args(&gui.cut);
 	initialize_cut_struct(&gui.cut);
 	/* unselect the sequence in the sequence list if it's not the one
@@ -1496,34 +1475,33 @@ int sequence_find_refimage(sequence *seq) {
 		return seq->reference_image;
 	if (seq->type == SEQ_INTERNAL)
 		return 1; // green channel
-	int layer, image, best = -1;
-	for (layer = 0; layer < seq->nb_layers; layer++) {
-		if (seq->regparam && seq->regparam[layer]) {
-			gboolean use_fwhm;
-			double best_val;
-			if (seq->regparam[layer][0].fwhm > 0.0) {
-				use_fwhm = TRUE;
-				best_val = 1000000.0;
-			} else if (seq->regparam[layer][0].quality > 0.0) {
-				use_fwhm = FALSE;
-				best_val = 0.0;
-			}
-			else continue;
+	int image, best = -1;
 
-			for (image = 0; image < seq->number; image++) {
-				if (!seq->imgparam[image].incl)
-					continue;
-				if (use_fwhm && seq->regparam[layer][image].fwhm > 0 &&
-						seq->regparam[layer][image].fwhm < best_val) {
-					best_val = seq->regparam[layer][image].fwhm;
-					best = image;
-				} else if (seq->regparam[layer][image].quality > 0 &&
-						seq->regparam[layer][image].quality > best_val) {
-					best_val = seq->regparam[layer][image].quality;
-					best = image;
-				}
+	if (seq->regparam) {
+		gboolean use_fwhm;
+		double best_val;
+		if (seq->regparam[0].fwhm > 0.0) {
+			use_fwhm = TRUE;
+			best_val = 1000000.0;
+		} else if (seq->regparam[0].quality > 0.0) {
+			use_fwhm = FALSE;
+			best_val = 0.0;
+		}
+
+		for (image = 0; image < seq->number; image++) {
+			if (!seq->imgparam[image].incl)
+				continue;
+			if (use_fwhm && seq->regparam[image].fwhm > 0 &&
+					seq->regparam[image].fwhm < best_val) {
+				best_val = seq->regparam[image].fwhm;
+				best = image;
+			} else if (seq->regparam[image].quality > 0 &&
+					seq->regparam[image].quality > best_val) {
+				best_val = seq->regparam[image].quality;
+				best = image;
 			}
 		}
+
 	}
 
 	if (best == -1 && seq->selnum > 0) {
@@ -1541,24 +1519,21 @@ int sequence_find_refimage(sequence *seq) {
 }
 
 /* requires seq->nb_layers and seq->number to be already set */
-void check_or_allocate_regparam(sequence *seq, int layer) {
-	assert(layer < seq->nb_layers);
+void check_or_allocate_regparam(sequence *seq) {
 	if (!seq->regparam && seq->nb_layers > 0) {
-		seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
-		seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
+		seq->regparam = calloc(seq->number, sizeof(regdata));
 	}
-	if (seq->regparam && !seq->regparam[layer] && seq->number > 0) {
-		seq->regparam[layer] = calloc(seq->number, sizeof(regdata));
+	if (seq->number > 0) {
 		for (int i = 0; i < seq->number; i++) {
-			cvGetEye(&seq->regparam[layer][i].H);
+			cvGetEye(&seq->regparam[i].H);
 		}
 	}
 }
 
 /* assign shift values for registration data of a sequence, depending on its type and sign */
-void set_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty, gboolean data_is_top_down) {
-	if (seq->regparam[layer]) {
-		seq->regparam[layer][frame].H = H_from_translation(shiftx,
+void set_shifts(sequence *seq, int frame, double shiftx, double shifty, gboolean data_is_top_down) {
+	if (seq->regparam) {
+		seq->regparam[frame].H = H_from_translation(shiftx,
 				data_is_top_down ? -shifty : shifty);
 	}
 }
@@ -1576,15 +1551,15 @@ void cum_shifts(regdata *regparam, int frame, double shiftx, double shifty) {
 
 // Checks that the number of degrees of freedoms is not more than shift
 // returns FALSE if not
-gboolean test_regdata_is_valid_and_shift(sequence *seq, int reglayer) {
-	if (!layer_has_registration(seq, reglayer)) return TRUE;
+gboolean test_regdata_is_valid_and_shift(sequence *seq) {
+	if (!seq_has_any_regdata(seq)) return TRUE;
 	transformation_type regmin, regmax;
-	guess_transform_from_seq(seq, reglayer, &regmin, &regmax, FALSE);
+	guess_transform_from_seq(seq, &regmin, &regmax, FALSE);
 	if (regmax > SHIFT_TRANSFORMATION)
 		return FALSE;
 	else if (regmax == SHIFT_TRANSFORMATION) {
 		siril_log_color_message(_("This operation will use registration data of layer %d\n"),
-				"salmon", reglayer);
+				"salmon", seq->reglayer);
 	}
 	return TRUE;
 }
@@ -1610,7 +1585,7 @@ sequence *create_internal_sequence(int size) {
 		seq->imgparam[i].incl = 1;
 		seq->imgparam[i].date_obs = NULL;
 	}
-	check_or_allocate_regparam(seq, 0);
+	check_or_allocate_regparam(seq);
 	return seq;
 }
 
@@ -1779,20 +1754,20 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	return !data->psf;
 }
 
-static void write_regdata(sequence *seq, int layer, GSList *list, gboolean duplicate_for_regdata) {
-	check_or_allocate_regparam(seq, layer);
+static void write_regdata(sequence *seq, GSList *list, gboolean duplicate_for_regdata) {
+	check_or_allocate_regparam(seq);
 	GSList *iterator;
 	for (iterator = list; iterator; iterator = iterator->next) {
 		struct seqpsf_data *data = iterator->data;
-		seq->regparam[layer][data->image_index].fwhm_data =
+		seq->regparam[data->image_index].fwhm_data =
 			duplicate_for_regdata ? duplicate_psf(data->psf) : data->psf;
 		if (data->psf) {
-			seq->regparam[layer][data->image_index].fwhm = data->psf->fwhmx;
-			seq->regparam[layer][data->image_index].roundness =
+			seq->regparam[data->image_index].fwhm = data->psf->fwhmx;
+			seq->regparam[data->image_index].roundness =
 				data->psf->fwhmy / data->psf->fwhmx;
-			seq->regparam[layer][data->image_index].weighted_fwhm = data->psf->fwhmx;
-			seq->regparam[layer][data->image_index].background_lvl = data->psf->B;
-			seq->regparam[layer][data->image_index].number_of_stars = 1;
+			seq->regparam[data->image_index].weighted_fwhm = data->psf->fwhmx;
+			seq->regparam[data->image_index].background_lvl = data->psf->B;
+			seq->regparam[data->image_index].number_of_stars = 1;
 			//TODO need to update the H matrix with shifts computed from psf diff to refimage
 			//seq->regparam[layer][data->image_index].H = H_from_translation(shiftx, shifty);
 		}
@@ -1811,7 +1786,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 
 	if (!spsfargs->for_photometry) {
 		if (spsfargs->allow_use_as_regdata == BOOL_TRUE) {
-			write_regdata(seq, args->layer_for_partial, spsfargs->list, FALSE);
+			write_regdata(seq, spsfargs->list, FALSE);
 		}
 		return 0;
 	}
@@ -1871,7 +1846,6 @@ gboolean end_seqpsf(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *)p;
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 	sequence *seq = args->seq;
-	int layer = args->layer_for_partial;
 	gboolean write_to_regdata, duplicate_for_regdata;
 
 	if (args->retval)
@@ -1888,20 +1862,17 @@ gboolean end_seqpsf(gpointer p) {
 		else if (spsfargs->allow_use_as_regdata == BOOL_TRUE)
 			write_to_regdata = TRUE;
 		else {
-			gboolean has_any_regdata = FALSE;
-			for (int i = 0; i < seq->nb_layers; i++)
-				has_any_regdata = has_any_regdata || seq->regparam[i];
-			if (!seq->regparam[layer] && has_any_regdata) {
-				write_to_regdata = siril_confirm_dialog(_("No registration data stored for this layer"),
-						_("Some registration data was found for another layer.\n"
-							"Do you want to save the psf data as registration data for this layer?"), _("Save"));
+			gboolean has_any_regdata = seq_has_any_regdata(seq);
+			if (!has_any_regdata) {
+				write_to_regdata = siril_confirm_dialog(_("No registration data stored for this sequence"),
+							_("Do you want to save the psf data as registration data for this sequence?"), _("Save"));
 			}
-			else write_to_regdata = !seq->regparam[layer];
+			else write_to_regdata = FALSE;
 		}
 	}
 
 	if (write_to_regdata) {
-		write_regdata(seq, layer, spsfargs->list, duplicate_for_regdata);
+		write_regdata(seq, spsfargs->list, duplicate_for_regdata);
 	}
 
 	if (seq->needs_saving)
@@ -1909,15 +1880,15 @@ gboolean end_seqpsf(gpointer p) {
 
 	// GUI things
 	if (seq == &com.seq) {
-		set_fwhm_star_as_star_list_with_layer(seq, layer);
+		set_fwhm_star_as_star_list(seq);
 
 		/* do here all GUI-related items, because it runs in the main thread.
 		 * Most of these things are already done in end_register_idle
 		 * in case seqpsf is called for registration. */
 		if (seq->type != SEQ_INTERNAL) {
 			// update the list in the GUI
-			update_seqlist(layer);
-			fill_sequence_list(seq, layer, FALSE);
+			update_seqlist();
+			fill_sequence_list(seq, FALSE);
 		}
 		set_layers_for_registration();	// update display of available reg data
 		drawPlot();
@@ -1947,7 +1918,7 @@ proper_ending:
 int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 		framing_mode framing, gboolean run_in_thread, gboolean no_GUI) {
 
-	if (framing == REGISTERED_FRAME && !layer_has_usable_registration(seq, layer))
+	if (framing == REGISTERED_FRAME && !seq_has_usable_registration(seq))
 		framing = ORIGINAL_FRAME;
 
 	if (com.selection.w <= 0 || com.selection.h <= 0){
@@ -1980,7 +1951,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	if (framing == REGISTERED_FRAME) {
 		if (seq->reference_image < 0) seq->reference_image = sequence_find_refimage(seq);
-		if (guess_transform_from_H(seq->regparam[layer][seq->reference_image].H) == NULL_TRANSFORMATION) {
+		if (guess_transform_from_H(seq->regparam[seq->reference_image].H) == NULL_TRANSFORMATION) {
 			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
 			free(args);
 			free(spsfargs);
@@ -1988,13 +1959,13 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 		}
 		// transform selection back from current to ref frame coordinates
 		if (seq->current != seq->reference_image) {
-			if (guess_transform_from_H(seq->regparam[layer][seq->current].H) == NULL_TRANSFORMATION) {
+			if (guess_transform_from_H(seq->regparam[seq->current].H) == NULL_TRANSFORMATION) {
 				siril_log_color_message(_("The current image has a null matrix and was not previously registered. Please load another one to select the star.\n"), "red");
 				free(args);
 				free(spsfargs);
 				return 1;
 			}
-			selection_H_transform(&args->area, seq->regparam[layer][seq->current].H, seq->regparam[layer][seq->reference_image].H);
+			selection_H_transform(&args->area, seq->regparam[seq->current].H, seq->regparam[seq->reference_image].H);
 			if (args->area.x < 0 || args->area.x > seq->rx - args->area.w ||
 					args->area.y < 0 || args->area.y > seq->ry - args->area.h) {
 				siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
@@ -2164,9 +2135,9 @@ struct wcsprm *get_wcs_ref(sequence *seq) {
 	return wcsref;
 }
 
-gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
-	if (!seq->regparam || !seq->regparam[reglayer]) {
-		siril_log_message(_("Sequence drift could not be checked as sequence has no regdata on layer %d\n"), reglayer);
+gboolean sequence_drifts(sequence *seq, int threshold) {
+	if (!seq_has_any_regdata(seq)) {
+		siril_log_message(_("Sequence drift could not be checked as sequence has no registration data\n"));
 		return FALSE;
 	}
 	double orig_x = (double)(seq->rx / 2.);
@@ -2175,7 +2146,7 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 		if (!seq->imgparam[i].incl)
 			continue;
 		double x = orig_x, y = orig_y;
-		cvTransfPoint(&x, &y, seq->regparam[reglayer][i].H, seq->regparam[reglayer][seq->reference_image].H, 1.);
+		cvTransfPoint(&x, &y, seq->regparam[i].H, seq->regparam[seq->reference_image].H, 1.);
 		double dist = sqrt((x - orig_x) * (x - orig_x) + (y - orig_y) * (y - orig_y));
 		if (dist > threshold) {
 			siril_log_color_message(_("Warning: the sequence appears to have heavy drifted images (%d pixels for image %d), photometry will probably not be reliable. Check the sequence and exclude some images\n"), "salmon", (int)dist, i);
@@ -2188,23 +2159,16 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 
 void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboolean cleansel) {
 	if (cleanreg && seq->regparam) {
-		for (int i = 0; i < seq->nb_layers; i++) {
-			if (seq->regparam[i]) {
-				free(seq->regparam[i]);
-				seq->regparam[i] = NULL;
-				siril_log_message(_("Registration data cleared for layer %d\n"), i);
-			}
-		}
+		free(seq->regparam);
+		seq->regparam = NULL;
+		seq->reglayer = -1;
+		siril_log_message(_("Registration data cleared\n"));
 		// remove_prefixed_star_files(seq, "");
 	}
 	if (cleanreg && seq->regparam_bkp) {
-		for (int i = 0; i < seq->nb_layers; i++) {
-			if (seq->regparam_bkp[i]) {
-				free(seq->regparam_bkp[i]);
-				seq->regparam_bkp[i] = NULL;
-				siril_log_message(_("Registration (back-up) data cleared for layer %d\n"), i);
-			}
-		}
+		free(seq->regparam_bkp);
+		seq->regparam_bkp = NULL;
+		siril_log_message(_("Registration (back-up) data cleared\n"));
 	}
 	if (cleanstat && seq->stats) {
 		for (int i = 0; i < seq->nb_layers; i++) {

@@ -57,7 +57,6 @@ static gboolean use_photometry = FALSE;
 struct _seq_list {
 	GtkTreeView *tview;
 	sequence *seq;
-	int layer;
 };
 
 static GtkListStore *list_store = NULL;
@@ -94,53 +93,6 @@ static void fwhm_quality_cell_data_function(GtkTreeViewColumn *col,
 	g_object_set(renderer, "text", buf, NULL);
 }
 
-static void set_sensitive_layers(GtkCellLayout *cell_layout,
-		GtkCellRenderer *cell, GtkTreeModel *tree_model, GtkTreeIter *iter,
-		gpointer data) {
-	gboolean sensitive = TRUE;
-
-	if (sequence_is_loaded() && !use_photometry) {
-		GtkTreePath *path = gtk_tree_model_get_path(tree_model, iter);
-		if (!path) return;
-		const gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
-		if (!(com.seq.regparam))
-			return;
-		if (com.seq.regparam[*index] == NULL)
-			sensitive = FALSE;
-		gtk_tree_path_free(path);
-	}
-	g_object_set(cell, "sensitive", sensitive, NULL);
-}
-
-static void update_seqlist_dialog_combo(int layer) {
-	if (!sequence_is_loaded()) return;
-	int activelayer;
-
-	GtkComboBoxText *seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("seqlist_dialog_combo"));
-	g_signal_handlers_block_by_func(GTK_COMBO_BOX(seqcombo), on_seqlist_dialog_combo_changed, NULL);
-	gtk_combo_box_text_remove_all(seqcombo);
-
-	if (com.seq.nb_layers == 1) {
-		gtk_combo_box_text_append_text(seqcombo, _("B&W channel"));
-		activelayer = 0;
-		gtk_widget_set_sensitive(GTK_WIDGET(seqcombo), FALSE);
-	} else {
-		gtk_combo_box_text_append_text(seqcombo, _("Red channel"));
-		gtk_combo_box_text_append_text(seqcombo, _("Green channel"));
-		gtk_combo_box_text_append_text(seqcombo, _("Blue channel"));
-		activelayer = layer >= 0 ? layer : 0;
-		gtk_widget_set_sensitive(GTK_WIDGET(seqcombo), (use_photometry) ? FALSE : TRUE);
-	}
-	//setting sensitvity of the different layers in the layer combo
-	gtk_cell_layout_clear(GTK_CELL_LAYOUT(seqcombo));
-	GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
-	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(seqcombo), renderer, TRUE);
-	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(seqcombo), renderer, "text", 0, NULL);
-	gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(seqcombo), renderer, set_sensitive_layers, NULL, NULL);
-	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(seqcombo), on_seqlist_dialog_combo_changed, NULL);
-
-	gtk_combo_box_set_active(GTK_COMBO_BOX(seqcombo), activelayer);
-}
 
 static void initialize_title() {
 	GtkHeaderBar *bar = GTK_HEADER_BAR(lookup_widget("seqlistbar"));
@@ -154,7 +106,6 @@ static void initialize_title() {
 	gtk_header_bar_set_title(bar, _("Frame List"));
 	gtk_header_bar_set_subtitle(bar, seq_basename);
 	gtk_widget_set_sensitive(lookup_widget("seqlist_buttonbar"), sequence_is_loaded());
-	gtk_widget_set_sensitive(lookup_widget("seqlist_dialog_combo"), sequence_is_loaded());
 	gtk_widget_set_sensitive(lookup_widget("refframe2"), sequence_is_loaded());
 
 	g_free(seq_basename);
@@ -179,7 +130,7 @@ static void get_list_store() {
 }
 
 /* Add an image to the list. If seq is NULL, the list is cleared. */
-static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
+static void add_image_to_sequence_list(sequence *seq, int index) {
 	GtkTreeIter iter;
 	char imname[256];
 	char *basename;
@@ -189,39 +140,39 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 	double bin;
 
 	if (!use_photometry) { // reporting registration data
-		if (seq->regparam && seq->regparam[layer]) {
+		if (seq->regparam) {
 			double dx, dy;
-			translation_from_H(seq->regparam[layer][index].H, &dx, &dy);
+			translation_from_H(seq->regparam[index].H, &dx, &dy);
 			shiftx = round_to_int(dx);
 			shifty = round_to_int(dy);
 			switch (selected_source) {
 				case r_FWHM:
 					if (is_arcsec) {
 						bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[index].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 					} else {
-						fwhm = seq->regparam[layer][index].fwhm;
+						fwhm = seq->regparam[index].fwhm;
 					}
 					break;
 				case r_WFWHM:
 					if (is_arcsec) {
 						bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[index].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 					} else {
-						fwhm = seq->regparam[layer][index].weighted_fwhm;
+						fwhm = seq->regparam[index].weighted_fwhm;
 					}
 					break;
 				case r_ROUNDNESS:
-					fwhm = seq->regparam[layer][index].roundness;
+					fwhm = seq->regparam[index].roundness;
 					break;
 				case r_QUALITY:
-					fwhm = seq->regparam[layer][index].quality;
+					fwhm = seq->regparam[index].quality;
 					break;
 				case r_BACKGROUND:
-					fwhm = seq->regparam[layer][index].background_lvl;
+					fwhm = seq->regparam[index].background_lvl;
 					break;
 				case r_NBSTARS:
-					fwhm = seq->regparam[layer][index].number_of_stars;
+					fwhm = seq->regparam[index].number_of_stars;
 					break;
 				default:
 					break;
@@ -439,38 +390,27 @@ void on_treeview1_cursor_changed(GtkTreeView *tree_view, gpointer user_data) {
 	update_reg_interface(TRUE);
 }
 
-void on_seqlist_dialog_combo_changed(GtkComboBoxText *widget, gpointer user_data) {
-	int active = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
-	if (active >= 0) {
-		fill_sequence_list(&com.seq, active, FALSE);
-		g_signal_handlers_block_by_func(GTK_COMBO_BOX(widget), on_seqlist_dialog_combo_changed, NULL);
-		drawPlot();
-		g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(widget), on_seqlist_dialog_combo_changed, NULL);
-	}
-}
-
 void on_column_clicked(GtkComboBoxText *widget, gpointer user_data) {
 	int active = com.seq.current;
 	sequence_list_select_row_from_index(active, FALSE);
 }
 
-void update_seqlist(int layer) {
+void update_seqlist() {
 	initialize_title();
-	update_seqlist_dialog_combo(layer);
 	initialize_search_entry();
 	display_status();
-	if (sequence_is_loaded()) sequence_list_select_row_from_index(com.seq.current, FALSE);
+	if (sequence_is_loaded())
+		sequence_list_select_row_from_index(com.seq.current, FALSE);
 }
 
 /* called on sequence loading (set_seq), on layer tab change and on registration data update.
  * It is executed safely in the GTK thread if as_idle is true. */
-void fill_sequence_list(sequence *seq, int layer, gboolean as_idle) {
+void fill_sequence_list(sequence *seq, gboolean as_idle) {
 	struct _seq_list *args;
-	if (seq == NULL || layer >= seq->nb_layers) return;
+	if (seq == NULL) return;
 
 	args = malloc(sizeof(struct _seq_list));
 	args->seq = seq;
-	args->layer = layer;
 	args->tview = GTK_TREE_VIEW(lookup_widget("treeview1"));
 
 	g_signal_handlers_block_by_func(args->tview, on_treeview1_cursor_changed, NULL);
@@ -500,7 +440,7 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	if (list_store) gtk_list_store_clear(list_store);
 	get_list_store();
 	if (!use_photometry) { // reporting registration data
-		if (args->seq->regparam && args->seq->regparam[args->layer]) {
+		if (args->seq->regparam) {
 			switch (selected_source) {
 				case r_FWHM:
 					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
@@ -569,7 +509,7 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	gtk_tree_view_set_model(args->tview, NULL);
 	if (args->seq->number > 0) {
 		for (i = 0; i < args->seq->number; i++) {
-			add_image_to_sequence_list(args->seq, i, args->layer);
+			add_image_to_sequence_list(args->seq, i);
 		}
 	}
 	gtk_tree_view_set_model(args->tview, GTK_TREE_MODEL(list_store));

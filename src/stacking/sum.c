@@ -106,10 +106,10 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 		ssdata->list_date = g_list_prepend(ssdata->list_date, new_date_item(date, fit->keywords.exposure));
 	}
 
-	if (ssdata->reglayer != -1 && args->seq->regparam[ssdata->reglayer]) {
+	if (seq_has_any_regdata(args->seq)) {
 		double scale = (ssdata->upscale_at_stacking) ? 2. : 1.;
 		double dx, dy;
-		translation_from_H(args->seq->regparam[ssdata->reglayer][i].H, &dx, &dy);
+		translation_from_H(args->seq->regparam[i].H, &dx, &dy);
 		dx *= scale;
 		dy *= scale;
 		dx -= ssdata->offset[0];
@@ -267,7 +267,6 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	args->already_in_a_thread = TRUE;
 
 	struct sum_stacking_data *ssdata = calloc(1, sizeof(struct sum_stacking_data));
-	ssdata->reglayer = stackargs->reglayer;
 	ssdata->ref_image = stackargs->ref_image;
 	assert(ssdata->ref_image >= 0 && ssdata->ref_image < args->seq->number);
 	ssdata->input_32bits = get_data_type(args->seq->bitpix) == DATA_FLOAT;
@@ -283,8 +282,8 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 		ssdata->output_size[0] = args->seq->rx;
 		ssdata->output_size[1] = args->seq->ry;
 		double dx = 0., dy = 0.;
-		if (ssdata->reglayer >= 0) {
-			translation_from_H(args->seq->regparam[ssdata->reglayer][ssdata->ref_image].H, &dx, &dy);
+		if (seq_has_any_regdata(args->seq)) {
+			translation_from_H(args->seq->regparam[ssdata->ref_image].H, &dx, &dy);
 			update_wcs = TRUE;
 		}
 		ssdata->offset[0] = (int)dx;
@@ -300,7 +299,7 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 		Homography Hs = { 0 };
 		cvGetEye(&Hs);
 		double dx, dy;
-		translation_from_H(args->seq->regparam[stackargs->reglayer][stackargs->ref_image].H, &dx, &dy);
+		translation_from_H(args->seq->regparam[stackargs->ref_image].H, &dx, &dy);
 		siril_debug_print("ref shift: %d %d\n", (int)dx, (int)dy);
 		siril_debug_print("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
 		Hs.h02  = dx - ssdata->offset[0];

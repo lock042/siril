@@ -1758,18 +1758,16 @@ static void draw_regframe(const draw_data_t* dd) {
 	if (com.seq.current == RESULT_IMAGE) return;
 	if (!drawframe) {
 		drawframe = GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"));
-		seqcombo = GTK_COMBO_BOX(lookup_widget("seqlist_dialog_combo"));
 	}
 	if (!gtk_toggle_button_get_active(drawframe)) return;
-	int activelayer = gtk_combo_box_get_active(seqcombo);
-	if (!layer_has_registration(&com.seq, activelayer)) return;
+	if (!seq_has_any_regdata(&com.seq)) return;
 	if (com.seq.reg_invalidated) return;
 	transformation_type min, max;
-	guess_transform_from_seq(&com.seq, activelayer, &min, &max, FALSE);
+	guess_transform_from_seq(&com.seq, &min, &max, FALSE);
 	if (max <= IDENTITY_TRANSFORMATION) return;
 
-	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == NULL_TRANSFORMATION ||
-			guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H) == NULL_TRANSFORMATION)
+	if (guess_transform_from_H(com.seq.regparam[com.seq.reference_image].H) == NULL_TRANSFORMATION ||
+			guess_transform_from_H(com.seq.regparam[com.seq.current].H) == NULL_TRANSFORMATION)
 		return; // reference or current image H matrix is null matrix
 
 	regframe framing = { 0 };
@@ -1783,7 +1781,7 @@ static void draw_regframe(const draw_data_t* dd) {
 	framing.pt[3].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
 	double cogx = 0., cogy = 0., cx, cy;
 	for (int i = 0; i < 4; i++) {
-		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, com.seq.regparam[activelayer][com.seq.reference_image].H, com.seq.regparam[activelayer][com.seq.current].H, 1.);
+		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, com.seq.regparam[com.seq.reference_image].H, com.seq.regparam[com.seq.current].H, 1.);
 		cogx += framing.pt[i].x;
 		cogy += framing.pt[i].y;
 	}

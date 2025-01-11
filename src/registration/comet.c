@@ -66,7 +66,7 @@ int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *
 struct comet_align_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
-	disto_params *distoparam;
+	disto_params distoparam;
 	gboolean flipped;
 };
 
@@ -87,8 +87,8 @@ static void create_output_sequence_for_comet(struct registration_args *args, int
 	seq.fixed = args->seq->fixed;
 	seq.nb_layers = args->seq->nb_layers;
 	seq.imgparam = args->imgparam;
-	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
-	seq.regparam[args->layer] = args->regparam;
+	seq.regparam = calloc(seq.number, sizeof(regdata));
+	seq.regparam = args->regparam;
 	seq.beg = seq.imgparam[0].filenum;
 	seq.end = seq.imgparam[seq.number - 1].filenum;
 	seq.type = args->seq->type;
@@ -98,7 +98,7 @@ static void create_output_sequence_for_comet(struct registration_args *args, int
 	seq.reference_image = refindex;
 	seq.needs_saving = TRUE;
 	if (distoparam)
-		seq.distoparam = distoparam;
+		seq.distoparam = *distoparam;
 	fix_selnum(&seq, FALSE);
 	writeseqfile(&seq);
 	g_free(seqname);
@@ -123,9 +123,9 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 		regargs->imgparam[i].incl = !SEQUENCE_DEFAULT_INCLUDE; // this will be set by the image hook
 
 	// we copy regparam from the originating sequence if it exists
-	if (args->seq->regparam[regargs->layer]) {
-		memcpy(regargs->regparam, args->seq->regparam[regargs->layer], args->seq->number * sizeof(regdata));
-		cadata->current_regdata = args->seq->regparam[regargs->layer];
+	if (args->seq->regparam) {
+		memcpy(regargs->regparam, args->seq->regparam, args->seq->number * sizeof(regdata));
+		cadata->current_regdata = args->seq->regparam;
 	} else {
 		cadata->current_regdata = NULL;
 	}
@@ -139,20 +139,18 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 	fits ref = { 0 };
 	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
 		siril_log_message(_("Could not load reference image\n"));
-		args->seq->regparam[regargs->layer] = NULL;
 		free(cadata->current_regdata);
 		return 1;
 	}
 	regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
 
 	// we must copy the disto data from the originating sequence
-	if (layer_has_distortion(args->seq, regargs->layer)) {
-		disto_params *disto_orig = args->seq->distoparam;
-		cadata->distoparam = calloc(args->seq->nb_layers, sizeof(disto_params));
-		if (disto_orig[regargs->layer].index != DISTO_FILES) {
-			cadata->distoparam[regargs->layer].index = disto_orig[regargs->layer].index;
-			if (cadata->distoparam[regargs->layer].filename)
-				cadata->distoparam[regargs->layer].filename = g_strdup(disto_orig[regargs->layer].filename);
+	if (seq_has_any_distortion(args->seq)) {
+		disto_params disto_orig = args->seq->distoparam;
+		if (disto_orig.index != DISTO_FILES) {
+			cadata->distoparam.index = disto_orig.index;
+			if (cadata->distoparam.filename)
+				cadata->distoparam.filename = g_strdup(disto_orig.filename);
 		} else {
 		// if registration originates from astrometry, we can't keep it as is
 		// otherwise, registration will be recomputed from wcs at applyreg step (so without the shifts)
@@ -160,22 +158,20 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 			if (ref.keywords.wcslib && ref.keywords.wcslib->lin.dispre != NULL) {
 				char buffer[256];
 				fit_sequence_get_image_filename(args->seq, args->seq->reference_image, buffer, TRUE);
-				cadata->distoparam[regargs->layer].filename = g_strdup(buffer);
+				cadata->distoparam.filename = g_strdup(buffer);
 			}
 			if (image_is_flipped_from_wcs(ref.keywords.wcslib)) // and if astrometry is flipped
 				cadata->flipped = TRUE;
 		}
 	}
 	if (cadata->flipped)
-		regargs->velocity.y *= -1; // we correct the velocity due to the filp from astrometry which will not be applied during applyreg
+		regargs->velocity.y *= -1; // we correct the velocity due to the flip from astrometry which will not be applied during applyreg
 
-	if (layer_has_registration(args->seq, regargs->layer)) { // we must keep track to correctly recompute astrometry during applyreg
-		if (!cadata->distoparam) // there was no distorsion in any layer
-			cadata->distoparam = calloc(args->seq->nb_layers, sizeof(disto_params));
-		cadata->distoparam[regargs->layer].index = DISTO_FILE_COMET;
-		cadata->distoparam[regargs->layer].velocity = regargs->velocity;
+	if (seq_has_any_regdata(args->seq)) { // we must keep track to correctly recompute astrometry during applyreg
+		cadata->distoparam.index = DISTO_FILE_COMET;
+		cadata->distoparam.velocity = regargs->velocity;
 		if (cadata->flipped)
-			cadata->distoparam[regargs->layer].velocity.y *= -1;
+			cadata->distoparam.velocity.y *= -1;
 	}
 
 	clearfits(&ref);
@@ -241,7 +237,7 @@ static int comet_align_finalize_hook(struct generic_seq_args *args) {
 	if (!args->retval) {
 		siril_log_message(_("Applying registration completed.\n"));
 		// explicit sequence creation to copy imgparam and regparam
-		create_output_sequence_for_comet(regargs, new_ref_index, cadata->distoparam);
+		create_output_sequence_for_comet(regargs, new_ref_index, &cadata->distoparam);
 		// will be loaded in the idle function if (load_new_sequence)
 		regargs->load_new_sequence = TRUE;
 	}
