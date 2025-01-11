@@ -93,6 +93,6 @@ struct wcsprm *get_wcs_ref(sequence *seq);
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold);
 
 void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboolean cleansel);
-gchar *get_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix);
+gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix);
 
 #endif

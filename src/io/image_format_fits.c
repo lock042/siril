@@ -52,6 +52,8 @@
 #include "io/single_image.h"
 #include "image_format_fits.h"
 
+#define RECIPSQRT2 0.70710678f // 1/sqrt(2) as float
+
 const char *fit_extension[] = {
 		".fit",
 		".fits",
@@ -3738,8 +3740,6 @@ const char* get_cfa_from_pattern(sensor_pattern pattern) {
 	}
 	return cfa;
 }
-
-#define RECIPSQRT2 0.70710677f;
 
 // These interpolation routines will work for X-Trans as well as Bayer patterns
 

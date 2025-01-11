@@ -1247,7 +1247,7 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 
 void remove_prefixed_star_files(sequence *seq, const char *prefix) {
 	for (int i = 0; i < seq->number; i++) {
-		gchar *star_filename = get_cache_filename(seq, i, "lst", NULL);
+		gchar *star_filename = get_sequence_cache_filename(seq, i, "lst", NULL);
 		siril_debug_print("Removing %s\n", star_filename);
 		if (g_unlink(star_filename))
 			siril_debug_print("g_unlink() failed\n");
@@ -2250,7 +2250,7 @@ gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filen
 	return (cachefileInfo.st_mtime >= imgfileInfo.st_mtime);
 }
 
-gchar *get_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix) {
+gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix) {
 	char root[256];
 	if (!fit_sequence_get_image_filename(seq, index, root, FALSE)) {
 		return NULL;

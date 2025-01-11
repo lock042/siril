@@ -73,7 +73,7 @@
 #define CHECK_FOR_CANCELLATION if (!get_thread_run()) { ret = SOLVE_CANCELLED; goto clearup; }
 
 #undef DEBUG		/* get some of diagnostic output */
-#define ASTROMETRY_DEBUG 1
+#define ASTROMETRY_DEBUG 0
 
 static gchar *asnet_version = NULL;
 
@@ -201,7 +201,7 @@ double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov
 	double b = 0.88 - (fabs(ml) - 90) * 0.0065 * (fabs(ml) < 90.);
 	double s = a + b * sin(fabs(mb) * DEGTORAD);
 	// limit mag
-	double limit = m0 + s * (log10((double)Nstars / S) - 2.);
+	double limit = m0 + s * (log10f((float)Nstars / S) - 2.);
 	return max(limit, 7.);
 }
 
