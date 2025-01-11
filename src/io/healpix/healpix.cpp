@@ -25,12 +25,12 @@
 
 // Enum for Gaia version designator
 enum class GaiaVersion {
-    DR1 = 1,
-    DR2 = 2,
-    EDR3 = 3,
-    DR3 = 4,
-    DR4 = 5,
-    DR5 = 6
+    DR1 = 0,
+    DR2 = 1,
+    EDR3 = 2,
+    DR3 = 3,
+    DR4 = 4,
+    DR5 = 5
 };
 
 // Enum for Catalogue Type
@@ -66,28 +66,24 @@ std::vector<HealPixelRange> create_healpixel_ranges(const std::vector<int>& pixe
         return ranges;
     }
 
-    const uint64_t PIXEL_MULTIPLIER = 34359738368ULL; // 2^35
     HealPixelRange current_range{
-        static_cast<uint64_t>(pixels[0]) * PIXEL_MULTIPLIER,
-        (static_cast<uint64_t>(pixels[0]) + 1) * PIXEL_MULTIPLIER - 1
+        static_cast<uint64_t>(pixels[0]),
+        static_cast<uint64_t>(pixels[0])
     };
 
     for (size_t i = 1; i < pixels.size(); ++i) {
-        uint64_t next_start = static_cast<uint64_t>(pixels[i]) * PIXEL_MULTIPLIER;
-        uint64_t next_end = next_start + PIXEL_MULTIPLIER - 1;
-
-        if (next_start == current_range.end_id + 1) {
+        uint64_t next_pixel = static_cast<uint64_t>(pixels[i]);
+        if (next_pixel == current_range.end_id + 1) {
             // Extend current range
-            current_range.end_id = next_end;
+            current_range.end_id = next_pixel;
         } else {
             // Start new range
             ranges.push_back(current_range);
-            current_range = HealPixelRange{next_start, next_end};
+            current_range = HealPixelRange{next_pixel, next_pixel};
         }
     }
     // Add last range
     ranges.push_back(current_range);
-
     return ranges;
 }
 
@@ -101,7 +97,6 @@ template<typename EntryType>
 std::vector<EntryType> query_catalog(const std::string& filename, const std::vector<HealPixelRange>& healpixel_ranges, uint8_t healpix_level) {
     constexpr size_t HEADER_SIZE = 128; // Fixed header size in bytes
     std::vector<EntryType> results;
-
     try {
         // Open the catalog file in binary mode
         std::ifstream file(filename, std::ios::binary);
@@ -109,10 +104,8 @@ std::vector<EntryType> query_catalog(const std::string& filename, const std::vec
             siril_log_message(_("Failed to open file: %s\n"), "red", filename.c_str());
             return results;
         }
-
         uint32_t nside = 1 << healpix_level; // Calculate NSIDE as 2^level
         uint32_t n_healpixels = 12 * nside * nside; // Total number of Healpixels
-
         // Function to read a single index entry at a specific position
         auto read_index_entry = [&file](uint32_t healpixel_id) -> uint32_t {
             uint32_t index_value;
@@ -123,35 +116,28 @@ std::vector<EntryType> query_catalog(const std::string& filename, const std::vec
             }
             return index_value;
         };
-
         // Process each range
         for (const auto& range : healpixel_ranges) {
             uint32_t start_healpixel = range.start_id;
             uint32_t end_healpixel = range.end_id;
-
             if (start_healpixel >= n_healpixels || end_healpixel >= n_healpixels) {
                 siril_log_message(_("ID range exceeds catalog bounds."));
                 return results;
             }
-
-            // Read only the necessary index entries
-            uint32_t start_offset = read_index_entry(start_healpixel);
-            uint32_t end_offset = read_index_entry(end_healpixel + 1); // Read the next entry to get exclusive end
-
+            // Read the index entries, using previous healpixel's value for start
+            uint32_t start_offset = (start_healpixel == 0) ? 0 : read_index_entry(start_healpixel - 1);
+            uint32_t end_offset = read_index_entry(end_healpixel); // No need for +1 anymore
             // Calculate position in the data section
             size_t INDEX_SIZE = n_healpixels * sizeof(uint32_t);
             size_t data_start_pos = HEADER_SIZE + INDEX_SIZE + start_offset * sizeof(EntryType);
-
             // Read the required data entries
             size_t num_records = end_offset - start_offset;
             std::vector<EntryType> buffer(num_records);
-
             file.seekg(data_start_pos, std::ios::beg);
             file.read(reinterpret_cast<char*>(buffer.data()), num_records * sizeof(EntryType));
             if (!file) {
                 throw std::runtime_error(_("Failed to read data entries."));
             }
-
             // Move entries to results vector
             results.insert(results.end(), buffer.begin(), buffer.end());
         }
@@ -160,7 +146,6 @@ std::vector<EntryType> query_catalog(const std::string& filename, const std::vec
         siril_log_color_message(e.what(), "red");
         results.clear();  // Ensure vector is empty in case of error
     }
-
     return results;
 }
 
@@ -235,8 +220,7 @@ extern "C" {
         // Check the correct healpixel level and create our healpix_base
         std::string filename(com.pref.catalogue_paths[4]);
         HealpixCatHeader header = read_healpix_cat_header(filename);
-        unsigned int nsides = 1 << header.healpix_level;
-        T_Healpix_Base<int> healpix_base(nsides, NEST, SET_NSIDE);
+        T_Healpix_Base<int> healpix_base(header.healpix_level, NEST);
 
         pointing point(theta, phi);
         std::vector<int> pixel_indices;
@@ -268,6 +252,10 @@ extern "C" {
             ),
             matches.end()
         );
+
+        for (const auto& entry : matches) {
+            siril_debug_print("RA %f. Dec %f, Teff %f, mag %f\n", entry.ra_scaled / 1000000., entry.dec_scaled / 100000., (float)entry.teff, entry.mag_scaled / 1000.);
+        }
 
         // Filter by distance from the center of the cone
         matches.erase(
