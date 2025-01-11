@@ -373,7 +373,7 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 	GtkMessageType message_type = GTK_MESSAGE_ERROR;
 
 	// Parse JSON
-	yyjson_read_err err;
+	yyjson_read_err err = { 0 };
 	yyjson_doc *doc = yyjson_read(args->content, strlen(args->content), 0);
 	if (!doc) {
 		g_printerr("%s: parsing of %s failed: %s\n", G_STRFUNC,
