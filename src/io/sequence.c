@@ -136,11 +136,10 @@ void populate_seqcombo(const gchar *realname) {
  * takes a string and 
  * - removes the extension if known
  * - appends _ at the end if required and add_underscore is TRUE
- * also calls get_locale_filename() to solve Windows localized string problems
  * returns a newly allocated string to be freed with free
  */
 char *normalize_seqname(char *name, gboolean add_underscore) {
-	gchar *locname = get_locale_filename(name);
+	gchar *locname = g_strdup(name);
 	char *file_no_ext;
 	if (g_str_has_suffix(locname, ".seq") || g_str_has_suffix(locname, ".fit") || g_str_has_suffix(locname, ".fits") ||
 	g_str_has_suffix(locname, ".fts") || g_str_has_suffix(locname, ".ser")) {

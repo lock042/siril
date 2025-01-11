@@ -131,7 +131,6 @@ int stat_file(const char *filename2, image_type *type, char **realname);
 const char* get_filename_ext(const char *filename);
 
 int siril_change_dir(const char *dir, gchar **err);
-gchar* get_locale_filename(const gchar *path);
 int update_sequences_list(const char *sequence_name_to_select);
 void expand_home_in_filename(char *filename, int size);
 double get_normalized_value(fits*);
