@@ -350,7 +350,7 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 
 static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_stream) {
 	// Parse JSON data
-	yyjson_read_err err;
+	yyjson_read_err err = { 0 };
 	yyjson_doc *doc = yyjson_read(buffer, strlen(buffer), YYJSON_READ_NOFLAG);
 	if (!doc) {
 		siril_log_color_message(_("Could not parse AAVSO chart buffer: %s\n"), "red", err.msg);
