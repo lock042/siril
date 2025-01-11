@@ -152,6 +152,7 @@ gchar *platesolve_msg(struct astrometry_data *args);
 gboolean end_process_catsearch(gpointer p);
 void update_coords();
 gboolean end_plate_solver(gpointer p);
+gboolean end_platesolve_sequence(gpointer p);
 
 void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);
 

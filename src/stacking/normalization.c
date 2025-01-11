@@ -642,6 +642,9 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	int Npairs = nb_frames * (nb_frames - 1) / 2;
 	int N = nb_frames - 1;
 	double *coeffs = NULL;
+	double ***Mij = NULL, ***Sij = NULL;
+	size_t ***Nij = NULL;
+	int *index = NULL;
 	// imstats *refstats[3] = { NULL };
 
 	if (args->normalize == NO_NORM || !args->maximize_framing)	// should never happen here
@@ -692,9 +695,16 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 
 	}
 	
-	double ***Mij = malloc(nb_layers * sizeof(double **));
-	double ***Sij = malloc(nb_layers * sizeof(double **));
-	size_t ***Nij = malloc(nb_frames * sizeof(size_t **));
+	Mij = malloc(nb_layers * sizeof(double **));
+	Sij = malloc(nb_layers * sizeof(double **));
+	Nij = malloc(nb_frames * sizeof(size_t **));
+	index = malloc(nb_frames * sizeof(int));
+	coeffs = malloc(N * sizeof(double));
+	if (!Mij || !Sij || !Nij || !index || !coeffs) {
+		PRINT_ALLOC_ERR;
+		retval = 1;
+		goto cleanup;
+	}
 	for (int n = 0; n < nb_layers; n++) {
 		Mij[n] = malloc(nb_frames * sizeof(double *));
 		Sij[n] = malloc(nb_frames * sizeof(double *));
@@ -705,7 +715,6 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 			Nij[n][i] = calloc(nb_frames, sizeof(size_t));
 		}
 	}
-	int *index = malloc((nb_frames - 1) * sizeof(int));
 
 	char *tmpmsg = siril_log_message(_("Computing normalization on overlaps...\n"));
 	tmpmsg[strlen(tmpmsg) - 1] = '\0';
@@ -812,8 +821,6 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 		siril_debug_print("\n");
 	}
 #endif
-
-	coeffs = malloc(N * sizeof(double));
 
 	if (args->normalize == MULTIPLICATIVE_SCALING || args->normalize == ADDITIVE_SCALING) {
 		for (int n = 0; n < nb_layers; n++) {

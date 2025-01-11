@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -66,7 +66,8 @@
 
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-2 // convergence tolerance in arcsec from the projection center
-#define NB_GRID_POINTS 7 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
+#define TRANS_SANITY_CHECK 0.1 // TRANS sanity check to validate the first TRANS structure
+#define NB_GRID_POINTS 7 // the number of points in one direction to create the X,Y meshgrid for inverse polynomial fiiting
 
 #define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->ret = SOLVE_CANCELLED; goto clearup;}
 #define CHECK_FOR_CANCELLATION if (!get_thread_run()) { ret = SOLVE_CANCELLED; goto clearup; }
@@ -92,7 +93,7 @@ static void debug_print_catalog_files(TRANS *trans, s_star *star_list_A, s_star 
 	gchar bufferx[1024] = { 0 }, buffery[1024] = { 0 };
 	// x00, x10, x01, x20, x11, x02, x30, x21, x12, x03, x40, x31, x22, x13, x04, x50, x41, x32, x23, x14, x05
 	g_sprintf(bufferx, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
-	trans.x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02, 
+	trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02, 
 	trans->x30, trans->x21, trans->x12, trans->x03, trans->x40, trans->x31, trans->x22, trans->x13,
 	trans->x04, trans->x50, trans->x41, trans->x32, trans->x23, trans->x14, trans->x05);
 	g_sprintf(buffery, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
@@ -200,7 +201,8 @@ double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov
 	double b = 0.88 - (fabs(ml) - 90) * 0.0065 * (fabs(ml) < 90.);
 	double s = a + b * sin(fabs(mb) * DEGTORAD);
 	// limit mag
-	return (m0 + s * (log10((double)Nstars / S) - 2.));
+	double limit = m0 + s * (log10f((float)Nstars / S) - 2.);
+	return max(limit, 7.);
 }
 
 static void compute_limit_mag(struct astrometry_data *args) {
@@ -253,7 +255,7 @@ static gboolean check_affine_TRANS_sanity(TRANS *trans) {
 	var1 = fabs(trans->x10) - fabs(trans->y01);
 	var2 = fabs(trans->y10) - fabs(trans->x01);
 	siril_debug_print("abs(diff_cos)=%f et abs(diff_sin)=%f\n", var1, var2);
-	return (fabs(var1) < 0.01 && fabs(var2) < 0.01);
+	return (fabs(var1) < TRANS_SANITY_CHECK && fabs(var2) < TRANS_SANITY_CHECK);
 }
 
 static double get_det_from_trans(TRANS *trans) {
@@ -926,13 +928,22 @@ gpointer plate_solver(gpointer p) {
 			args->scalefactor = (double)fit_backup.rx / (double)args->fit->rx;
 			detection_layer = 0;
 		}
-
-		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
+		fits *green_fit = NULL;
+		image im =  (image){ .fit = NULL, .from_seq = NULL, .index_in_seq = -1 };
+		if (args->fit->keywords.bayer_pattern[0] != '\0') {
+			green_fit = calloc(1, sizeof(fits));
+			copyfits(args->fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+			interpolate_nongreen(green_fit);
+			im.fit = green_fit;
+		} else {
+			im.fit = args->fit;
+		}
 
 		stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &nb_stars,
 				&(args->solvearea), FALSE, TRUE,
 				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, args->numthreads);
 
+		clearfits(green_fit);
 		if (args->downsample) {
 			clearfits(args->fit);
 			memcpy(args->fit, &fit_backup, sizeof(fits));
@@ -1212,7 +1223,14 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	siril_catalogue *siril_search_cat = calloc(1, sizeof(siril_catalogue));
 	siril_catalogue_copy(args->ref_stars, siril_search_cat, TRUE);
 	siril_search_cat->radius = args->searchradius * 60.;
-	siril_search_cat->limitmag = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS / 10);
+	if (args->mag_mode == LIMIT_MAG_ABSOLUTE) {
+		double mag1 = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS / 10);
+		double mag2 = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS);
+		siril_search_cat->limitmag = args->magnitude_arg + mag1 - mag2;
+		
+	} else {
+		siril_search_cat->limitmag = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS / 10);	
+	}
 	// we fetch all the stars within the search cone
 	get_catalog_stars(siril_search_cat);
 
@@ -1993,23 +2011,6 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	}
 	if (arg->has_output)
 		seq_prepare_hook(arg);
-	else if (arg->seq->type == SEQ_FITSEQ) {
-		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
-		// it was opened in READONLY mode, we close it
-		if (fitseq_close_file(arg->seq->fitseq_file)) {
-			siril_log_color_message(_("Error when closing fitseq\n"), "red");
-			g_free(filename);
-			return 1;
-		}
-		arg->seq->fitseq_file->fptr = NULL;
-		// and we reopen in READWRITE mode to update it
-		if(fitseq_open(filename, arg->seq->fitseq_file, READWRITE)) {
-			siril_log_color_message(_("Error when reopening fitseq\n"), "red");
-			g_free(filename);
-			return 1;
-		}
-		g_free(filename);
-	}
 	if (args->solver == SOLVER_LOCALASNET) {
 		com.child_is_running = EXT_ASNET;
 		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
@@ -2152,26 +2153,20 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		arg->seq->imgparam[o].incl = FALSE;
 	}
 
-	if (!retval && !arg->has_output) {
-		if (arg->seq->type == SEQ_REGULAR) { // regular sequence, fit->fptr has been closed after loading the frame, we can reopen to update
-			fit_sequence_get_image_filename(arg->seq, i, root, TRUE);
-			int status = 0;
-			// we don't want to overwrite original files, so we test for symlinks
-			if (is_symlink_file(root))
-				siril_debug_print("Image %s was a symlink, creating a new file to keep original untouched\n", root);
-			status = savefits(root, fit);
-			if (!status) {
-				siril_log_color_message(_("Image %s platesolved and updated\n"), "salmon", root);
-			} else {
-				siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
-				free(aargs);
-				g_atomic_int_inc(&aargs_master->seqprogress);
-				return 1;
-			}
-		} else if (arg->seq->type == SEQ_FITSEQ) { // case SEQ_FITSEQ, fit already holds its fptr, we just update
-			remove_all_fits_keywords(fit);
-			save_fits_header(fit);
-			siril_log_color_message(_("Image %d platesolved and updated\n"), "salmon", i + 1);
+	if (!retval && !arg->has_output) { // SEQ_REGULAR
+		fit_sequence_get_image_filename(arg->seq, i, root, TRUE);
+		int status = 0;
+		// we don't want to overwrite original files, so we test for symlinks
+		if (is_symlink_file(root))
+			siril_debug_print("Image %s was a symlink, creating a new file to keep original untouched\n", root);
+		status = savefits(root, fit);
+		if (!status) {
+			siril_log_color_message(_("Image %s platesolved and updated\n"), "salmon", root);
+		} else {
+			siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
+			free(aargs);
+			g_atomic_int_inc(&aargs_master->seqprogress);
+			return 1;
 		}
 	}
 	if (!retval && aargs_master->update_reg) {
@@ -2195,27 +2190,12 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		siril_log_color_message(_("(%d were already solved and skipped)\n"), "green", aargs->seqskipped);
 	if (arg->has_output)
 		seq_finalize_hook(arg);
-	else if (arg->seq->type == SEQ_FITSEQ) {
-		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
-		// it was opened in READWRITE mode, we close it to save everything
-		if (fitseq_close_file(arg->seq->fitseq_file)) {
-			siril_debug_print("error when closing again fitseq\n");
-			g_free(filename);
-			retval = 1;
-			goto finish;
-		}
-		arg->seq->fitseq_file->fptr = NULL;
-		siril_log_color_message(_("File %s updated\n"), "salmon", filename);
-		arg->seq->fitseq_file->filename = filename; // we may need to reopen in the idle so we save it here
-		arg->seq->fitseq_file->hdu_index = NULL;
-	}
 	if (aargs->update_reg && !arg->retval) {
 		siril_log_color_message(_("Computing astrometric registration...\n"), "green");
 		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_CURRENT, NULL, NULL);
 	}
 	if (!arg->retval)
 		writeseqfile(arg->seq);
-finish:
 	if (aargs->cat_center)
 		siril_world_cs_unref(aargs->cat_center);
 	if (aargs->ref_stars)
@@ -2243,29 +2223,6 @@ void free_astrometry_data(struct astrometry_data *args) {
 	free(args);
 }
 
-gboolean end_platesolve_sequence(gpointer p) {
-	struct generic_seq_args *args = (struct generic_seq_args *) p;
-	if (args->has_output && args->load_new_sequence &&
-			args->new_seq_prefix && !args->retval) {
-		gchar *basename = g_path_get_basename(args->seq->seqname);
-		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
-		check_seq();
-		update_sequences_list(seqname);
-		g_free(seqname);
-		g_free(basename);
-	} else if (check_seq_is_comseq(args->seq)) {
-		if (args->seq->type == SEQ_FITSEQ) { // if FITSEQ, we need to repoen in READONLY mode
-			if (fitseq_open(args->seq->fitseq_file->filename, args->seq->fitseq_file, READONLY)) {
-				siril_debug_print("error when finally re-opening fitseq\n");
-			}
-		}
-		update_sequences_list(args->seq->seqname);
-	}
-	if (!check_seq_is_comseq(args->seq))
-		free_sequence(args->seq, TRUE);
-	free(p);
-	return end_generic(NULL);
-}
 
 void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	struct generic_seq_args *seqargs = create_default_seqargs(seq);
@@ -2282,10 +2239,10 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->image_hook = astrometry_image_hook;
 	seqargs->finalize_hook = astrometry_finalize_hook;
 	seqargs->idle_function = end_platesolve_sequence;
-	seqargs->has_output = (seq->type == SEQ_SER); // we don't save a new sequence for sequence of fits files or fitseq
+	seqargs->has_output = seq->type == SEQ_FITSEQ || seq->type == SEQ_SER; // we don't save a new sequence for sequence of fits files
 	seqargs->output_type = get_data_type(seq->bitpix);
 	seqargs->description = "plate solving";
-	if (seq->type == SEQ_SER) {
+	if (seqargs->has_output) {
 		seqargs->force_fitseq_output = TRUE;
 		seqargs->new_seq_prefix = strdup("ps_");
 		seqargs->load_new_sequence = TRUE;
