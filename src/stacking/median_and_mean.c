@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -465,7 +465,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			// Re-arrange it if required (as for the image block) for maximize_framing
 			// Normalize it to 1. (all values > feather_dist -> 1., values < feather_dist -> val/feather_dist)
 			// And finally apply the ramping function which has been precomputed on  RAMP_PACE + 1 points
-			const gchar *maskfile = get_mask_filename(args->seq, args->image_indices[frame]);
+			const gchar *maskfile = get_sequence_cache_filename(args->seq, args->image_indices[frame], "msk", NULL);
 			float *mask_scaled;
 			int scaled_rx = 0, scaled_ry = 0;
 			double fx = 0., fy = 0.;

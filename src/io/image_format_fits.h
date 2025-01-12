@@ -93,4 +93,7 @@ int save_wcs_fits(fits *f, const gchar *filename);
 int save_mask_fits(int rx, int ry, float *buffer, const gchar *name);
 int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask);
 
+void interpolate_nongreen(fits *fit);
+const char* get_cfa_from_pattern(sensor_pattern pattern);
+
 #endif
