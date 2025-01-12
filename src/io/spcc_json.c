@@ -473,14 +473,9 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 		return TRUE;
 
 	// Clear existing arrays
-	if (data->x) {
-		free(data->x);
-		data->x = NULL;
-	}
-	if (data->y) {
-		free(data->y);
-		data->y = NULL;
-	}
+	free(data->x);
+	free(data->y);
+	data->x = data->y = NULL;
 
 	// Read JSON file
 	yyjson_read_err err;
@@ -499,175 +494,145 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 		if (data->index >= num_objects) {
 			siril_log_color_message(_("Error: index %zu out of range (max: %zu).\n"), "red",
 									data->index, num_objects - 1);
-			yyjson_doc_free(doc);
-			return FALSE;
+			goto error_cleanup;
 		}
 		object = yyjson_arr_get(root, data->index);
 	} else if (yyjson_is_obj(root)) {
 		if (data->index != 0) {
 			siril_log_color_message(_("Error: index must be 0 for single object JSON.\n"), "red");
-			yyjson_doc_free(doc);
-			return FALSE;
+			goto error_cleanup;
 		}
 		object = root;
 	} else {
 		siril_log_color_message(_("Error: JSON root must be an array or object.\n"), "red");
-		yyjson_doc_free(doc);
-		return FALSE;
+		goto error_cleanup;
 	}
 
-	// Get wavelength data
+	// Get wavelength and values objects
 	yyjson_val *wavelengthObject = yyjson_obj_get(object, "wavelength");
-	if (!wavelengthObject || !yyjson_is_obj(wavelengthObject)) {
-		siril_log_color_message(_("Error: Missing or invalid wavelength object.\n"), "red");
-		yyjson_doc_free(doc);
-		return FALSE;
-	}
-
-	// Get values data
 	yyjson_val *valuesObject = yyjson_obj_get(object, "values");
-	if (!valuesObject || !yyjson_is_obj(valuesObject)) {
-		siril_log_color_message(_("Error: Missing or invalid values object.\n"), "red");
-		yyjson_doc_free(doc);
-		return FALSE;
+	if (!yyjson_is_obj(wavelengthObject) || !yyjson_is_obj(valuesObject)) {
+		siril_log_color_message(_("Error: Missing or invalid wavelength/values objects.\n"), "red");
+		goto error_cleanup;
 	}
 
 	// Get wavelength units and determine scale factor
 	yyjson_val *units = yyjson_obj_get(wavelengthObject, "units");
-	if (!units || !yyjson_is_str(units)) {
+	if (!yyjson_is_str(units)) {
 		siril_log_color_message(_("Error: Missing or invalid wavelength units.\n"), "red");
-		yyjson_doc_free(doc);
-		return FALSE;
+		goto error_cleanup;
 	}
 
-	const char *wavelengthUnit = yyjson_get_str(units);
 	double scalefactor;
-
-	if (strcmp(wavelengthUnit, "nm") == 0)
-		scalefactor = 1.0;
-	else if (strcmp(wavelengthUnit, "micrometer") == 0)
-		scalefactor = 1000.0;
-	else if (strcmp(wavelengthUnit, "angstrom") == 0)
-		scalefactor = 0.1;
-	else if (strcmp(wavelengthUnit, "m") == 0)
-		scalefactor = 1.0e9;
+	const char *wavelengthUnit = yyjson_get_str(units);
+	if (strcmp(wavelengthUnit, "nm") == 0)        scalefactor = 1.0;
+	else if (strcmp(wavelengthUnit, "micrometer") == 0) scalefactor = 1000.0;
+	else if (strcmp(wavelengthUnit, "angstrom") == 0)   scalefactor = 0.1;
+	else if (strcmp(wavelengthUnit, "m") == 0)          scalefactor = 1.0e9;
 	else {
 		siril_log_color_message(_("Warning: error in JSON file %s: unrecognised wavelength unit\n"),
 								"salmon", data->filepath);
-		yyjson_doc_free(doc);
-		return FALSE;
+		goto error_cleanup;
 	}
 
 	// Get value range for normalization
 	yyjson_val *valuerange_val = yyjson_obj_get(valuesObject, "range");
 	if (!valuerange_val || (!yyjson_is_num(valuerange_val) && !yyjson_is_int(valuerange_val))) {
 		siril_log_color_message(_("Error: Missing or invalid value range.\n"), "red");
-		yyjson_doc_free(doc);
-		return FALSE;
+		goto error_cleanup;
 	}
-	double valuerange = yyjson_is_int(valuerange_val) ?
-	(double)yyjson_get_int(valuerange_val) :
-	yyjson_get_real(valuerange_val);
+	double valuerange = yyjson_get_num(valuerange_val);  // handles both int and real
 
-	// Get arrays
+	// Get arrays and validate
 	yyjson_val *wavelengthArray = yyjson_obj_get(wavelengthObject, "value");
 	yyjson_val *valuesArray = yyjson_obj_get(valuesObject, "value");
-	if (!wavelengthArray || !yyjson_is_arr(wavelengthArray) ||
-		!valuesArray || !yyjson_is_arr(valuesArray)) {
+	if (!yyjson_is_arr(wavelengthArray) || !yyjson_is_arr(valuesArray)) {
 		siril_log_color_message(_("Error: Missing or invalid value arrays.\n"), "red");
-	yyjson_doc_free(doc);
-	return FALSE;
-		}
+		goto error_cleanup;
+	}
 
-		// Check array sizes
-		size_t wavelengthCount = yyjson_arr_size(wavelengthArray);
-		size_t valuesCount = yyjson_arr_size(valuesArray);
-		if (wavelengthCount != valuesCount || wavelengthCount < 5 || wavelengthCount > 2000) {
-			siril_log_color_message(_("Error: Invalid array sizes (wavelength: %zu, values: %zu).\n"),
-									"red", wavelengthCount, valuesCount);
-			yyjson_doc_free(doc);
-			return FALSE;
+	size_t wavelengthCount = yyjson_arr_size(wavelengthArray);
+	if (wavelengthCount != yyjson_arr_size(valuesArray) ||
+		wavelengthCount < 5 || wavelengthCount > 2000) {
+		siril_log_color_message(_("Error: Invalid array sizes (wavelength: %zu, values: %zu).\n"),
+								"red", wavelengthCount, yyjson_arr_size(valuesArray));
+		goto error_cleanup;
 		}
 
 		// Set number of points to process
 		data->n = (data->n == 0 || data->n > wavelengthCount) ? wavelengthCount : data->n;
 
-		// Allocate temporary storage
-		point *pairs = (point*)malloc(data->n * sizeof(point));
-		if (!pairs) {
-			siril_log_color_message(_("Error: Memory allocation failed.\n"), "red");
-			yyjson_doc_free(doc);
-			return FALSE;
-		}
+	// Allocate temporary storage
+	point *pairs = malloc(data->n * sizeof(point));
+	if (!pairs) {
+		siril_log_color_message(_("Error: Memory allocation failed.\n"), "red");
+		goto error_cleanup;
+	}
 
-		// Read data points and apply scaling
-		for (size_t i = 0; i < data->n; i++) {
-			yyjson_val *wavelength = yyjson_arr_get(wavelengthArray, i);
-			yyjson_val *value = yyjson_arr_get(valuesArray, i);
+	// Read data points using array iteration
+	size_t idx = 0;
+	yyjson_val *w_val, *v_val;
+	size_t w_idx, v_idx, max;
 
-			if (!wavelength || !value || (!yyjson_is_num(wavelength) && !yyjson_is_int(wavelength)) ||
-				(!yyjson_is_num(value) && !yyjson_is_int(value))) {
-				siril_log_color_message(_("Error: Invalid number at index %zu.\n"), "red", i);
-			free(pairs);
-			yyjson_doc_free(doc);
-			return FALSE;
-				}
+	yyjson_arr_foreach(wavelengthArray, w_idx, max, w_val) {
+		if (idx >= data->n) break;
 
-				pairs[i].x = (yyjson_is_int(wavelength) ?
-				(double)yyjson_get_int(wavelength) :
-				yyjson_get_real(wavelength)) * scalefactor;
-
-				pairs[i].y = (yyjson_is_int(value) ?
-				(double)yyjson_get_int(value) :
-				yyjson_get_real(value)) / valuerange;
-		}
-
-		// Process and store the data
-		qsort(pairs, data->n, sizeof(point), compare_pair_x);
-		data->n = remove_duplicate_x(pairs, data->n, data->filepath);
-		data->x = (double*)malloc(data->n * sizeof(double));
-		data->y = (double*)malloc(data->n * sizeof(double));
-
-		if (!data->x || !data->y) {
-			siril_log_color_message(_("Error: Memory allocation failed.\n"), "red");
-			free(pairs);
-			free(data->x);
-			free(data->y);
-			data->x = data->y = NULL;
-			yyjson_doc_free(doc);
-			return FALSE;
-		}
-
-		for (size_t i = 0; i < data->n; i++) {
-			data->x[i] = pairs[i].x;
-			data->y[i] = pairs[i].y;
-		}
-
-		// Handle WB_REFS type scaling
-		if (data->type == WB_REFS) {
-			size_t norm_ref = 0;
-			while (data->x[norm_ref] < 550) {
-				if (norm_ref == data->n - 1) {
-					norm_ref = 0;
-					break;
-				}
-				norm_ref++;
-			}
-
-			for (size_t i = 0; i < data->n; i++) {
-				data->y[i] *= data->x[i];
-			}
-
-			double norm = data->y[norm_ref];
-			for (size_t i = 0; i < data->n; i++) {
-				data->y[i] /= norm;
-			}
-		}
-
+		v_val = yyjson_arr_get(valuesArray, w_idx);
+		if (!v_val || (!yyjson_is_num(w_val) && !yyjson_is_int(w_val)) ||
+			(!yyjson_is_num(v_val) && !yyjson_is_int(v_val))) {
+			siril_log_color_message(_("Error: Invalid number at index %zu.\n"), "red", idx);
 		free(pairs);
-		yyjson_doc_free(doc);
-		data->arrays_loaded = TRUE;
-		return TRUE;
+		goto error_cleanup;
+			}
+
+			pairs[idx].x = yyjson_get_num(w_val) * scalefactor;
+			pairs[idx].y = yyjson_get_num(v_val) / valuerange;
+			idx++;
+	}
+
+	// Process and store the data
+	qsort(pairs, data->n, sizeof(point), compare_pair_x);
+	data->n = remove_duplicate_x(pairs, data->n, data->filepath);
+
+	// Allocate final arrays
+	data->x = malloc(data->n * sizeof(double));
+	data->y = malloc(data->n * sizeof(double));
+	if (!data->x || !data->y) {
+		siril_log_color_message(_("Error: Memory allocation failed.\n"), "red");
+		free(pairs);
+		free(data->x);
+		free(data->y);
+		data->x = data->y = NULL;
+		goto error_cleanup;
+	}
+
+	// Copy sorted data
+	for (size_t i = 0; i < data->n; i++) {
+		data->x[i] = pairs[i].x;
+		data->y[i] = pairs[i].y;
+	}
+
+	// Handle WB_REFS type scaling
+	if (data->type == WB_REFS) {
+		size_t norm_ref = 0;
+		while (norm_ref < data->n - 1 && data->x[norm_ref] < 550) {
+			norm_ref++;
+		}
+
+		double norm = data->y[norm_ref];
+		for (size_t i = 0; i < data->n; i++) {
+			data->y[i] = (data->y[i] * data->x[i]) / norm;
+		}
+	}
+
+	free(pairs);
+	yyjson_doc_free(doc);
+	data->arrays_loaded = TRUE;
+	return TRUE;
+
+	error_cleanup:
+	yyjson_doc_free(doc);
+	return FALSE;
 }
 
 // Call once to populate com.spcc_data with metadata for all known spcc_objects
