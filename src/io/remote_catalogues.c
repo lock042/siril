@@ -375,7 +375,6 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	size_t nstars = yyjson_arr_size(photometry);
 	int n = 0;
 	cat_item *cat_items = NULL;
-
 	if (nstars > 0) {
 		cat_items = calloc(nstars, sizeof(cat_item));
 	}
@@ -391,10 +390,8 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 		// Get basic star information
 		yyjson_val *auid = yyjson_obj_get(star, "auid");
 		if (auid) name = yyjson_get_str(auid);
-
 		yyjson_val *ra_val = yyjson_obj_get(star, "ra");
 		if (ra_val) ra = parse_hms(yyjson_get_str(ra_val));  // in hours
-
 		yyjson_val *dec_val = yyjson_obj_get(star, "dec");
 		if (dec_val) dec = parse_dms(yyjson_get_str(dec_val));
 
@@ -402,26 +399,37 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 		yyjson_val *bands = yyjson_obj_get(star, "bands");
 		if (bands) {
 			yyjson_val *band_obj;
-			yyjson_arr_foreach(bands, idx, max, band_obj) {
+			size_t bidx, bmax;  // Separate iteration variables for bands
+			yyjson_arr_foreach(bands, bidx, bmax, band_obj) {
 				yyjson_val *band_val = yyjson_obj_get(band_obj, "band");
 				const char *band = yyjson_get_str(band_val);
 
 				if (band && !strcmp(band, "V")) {
 					yyjson_val *mag_val = yyjson_obj_get(band_obj, "mag");
-					if (mag_val) mag = yyjson_is_int(mag_val) ? yyjson_get_int(mag_val) : yyjson_get_real(mag_val);
-
+					if (mag_val) {
+						mag = yyjson_is_int(mag_val) ?
+						(double)yyjson_get_int(mag_val) :
+						yyjson_get_real(mag_val);
+					}
 					yyjson_val *err_val = yyjson_obj_get(band_obj, "error");
 					if (err_val && !yyjson_is_null(err_val)) {
-						e_mag = yyjson_is_int(err_val) ? yyjson_get_int(err_val) : yyjson_get_real(err_val);
+						e_mag = yyjson_is_int(err_val) ?
+						(double)yyjson_get_int(err_val) :
+						yyjson_get_real(err_val);
 					}
 				}
 				else if (band && !strcmp(band, "B")) {
 					yyjson_val *mag_val = yyjson_obj_get(band_obj, "mag");
-					if (mag_val) bmag = yyjson_is_int(mag_val) ? yyjson_get_int(mag_val) : yyjson_get_real(mag_val);
-
+					if (mag_val) {
+						bmag = yyjson_is_int(mag_val) ?
+						(double)yyjson_get_int(mag_val) :
+						yyjson_get_real(mag_val);
+					}
 					yyjson_val *err_val = yyjson_obj_get(band_obj, "error");
 					if (err_val && !yyjson_is_null(err_val)) {
-						e_bmag = yyjson_is_int(err_val) ? yyjson_get_int(err_val) : yyjson_get_real(err_val);
+						e_bmag = yyjson_is_int(err_val) ?
+						(double)yyjson_get_int(err_val) :
+						yyjson_get_real(err_val);
 					}
 				}
 			}
@@ -464,7 +472,6 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	siril_cat->nbitems = n;
 	gboolean ret = siril_catalog_write_to_output_stream(siril_cat, output_stream);
 	siril_catalog_free(siril_cat);
-
 	return ret;
 }
 
