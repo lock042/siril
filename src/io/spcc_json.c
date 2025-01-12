@@ -537,7 +537,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 
 	// Get value range for normalization
 	yyjson_val *valuerange_val = yyjson_obj_get(valuesObject, "range");
-	if (!valuerange_val || (!yyjson_is_num(valuerange_val) && !yyjson_is_int(valuerange_val))) {
+	if (!valuerange_val || !yyjson_is_num(valuerange_val)) {
 		siril_log_color_message(_("Error: Missing or invalid value range.\n"), "red");
 		goto error_cleanup;
 	}
@@ -578,16 +578,15 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 		if (idx >= data->n) break;
 
 		v_val = yyjson_arr_get(valuesArray, w_idx);
-		if (!v_val || (!yyjson_is_num(w_val) && !yyjson_is_int(w_val)) ||
-			(!yyjson_is_num(v_val) && !yyjson_is_int(v_val))) {
+		if (!v_val || !yyjson_is_num(w_val) || !yyjson_is_num(v_val)) {
 			siril_log_color_message(_("Error: Invalid number at index %zu.\n"), "red", idx);
-		free(pairs);
-		goto error_cleanup;
-			}
+			free(pairs);
+			goto error_cleanup;
+		}
 
-			pairs[idx].x = yyjson_get_num(w_val) * scalefactor;
-			pairs[idx].y = yyjson_get_num(v_val) / valuerange;
-			idx++;
+		pairs[idx].x = yyjson_get_num(w_val) * scalefactor;
+		pairs[idx].y = yyjson_get_num(v_val) / valuerange;
+		idx++;
 	}
 
 	// Process and store the data
