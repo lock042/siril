@@ -238,6 +238,9 @@ int initialize_script_menu(gboolean verbose) {
 
 	GtkWidget *menu_item_ssf = gtk_menu_item_new_with_label(_("Siril Script Files"));
 	GtkWidget *menu_item_py = gtk_menu_item_new_with_label(_("Python Scripts"));
+	gtk_widget_set_tooltip_markup(menu_item_py,
+			"<b>EXPERIMENTAL</b>: python scripts are currently an experimental feature. "
+			"Please read the documentation for details...");
 	GtkWidget *sep = gtk_separator_menu_item_new();
 	GtkWidget *menu_item_pythonpad = gtk_menu_item_new_with_label(_("Script Editor..."));
 	g_signal_connect(G_OBJECT(menu_item_pythonpad), "activate", G_CALLBACK(on_open_pythonpad), NULL);
