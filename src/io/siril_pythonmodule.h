@@ -163,5 +163,6 @@ void cleanup_shm_allocation(Connection *conn, const char* shm_name);
 shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 void initialize_python_venv_in_thread();
 void shutdown_python_communication(CommunicationState *commstate);
+void rebuild_venv();
 
 #endif

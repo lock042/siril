@@ -1029,7 +1029,6 @@ static void check_if_child_is_python(gpointer data, gpointer user_data) {
 		// If "python" is found in the name, set is_ok to FALSE
 		*is_ok = FALSE;
 	}
-
 	// Free the lowercase string
 	g_free(lowercase_name);
 }
@@ -1042,6 +1041,25 @@ void check_python_flag() {
 		com.python_script = FALSE;
 		siril_debug_print("com.python_script cleared\n");
 	}
+}
+
+static void kill_if_child_is_python(gpointer data, gpointer user_data) {
+	// Cast the input pointers to their correct types
+	child_info *child = (child_info *)data;
+
+	// Convert name to lowercase for case-insensitive comparison
+	gchar *lowercase_name = g_ascii_strdown(child->name, -1);
+
+	// Check if the lowercased name contains "python"
+	if (g_strstr_len(lowercase_name, -1, "python") != NULL) {
+		kill_child_process(child->childpid, FALSE);
+	}
+	// Free the lowercase string
+	g_free(lowercase_name);
+}
+
+void kill_all_python_scripts() {
+	g_slist_foreach(com.children, kill_if_child_is_python, NULL);
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {

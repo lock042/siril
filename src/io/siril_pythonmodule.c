@@ -1531,6 +1531,22 @@ cleanup:
 	return NULL;
 }
 
+//***********************************************************************************
+// WARNING: the following function will IMMEDIATELY kill all running python scripts,
+// delete the siril venv directory and rebuild it. Any call to this MUST be
+// preceded by a siril_confirm_dialog(). On success a completely fresh venv will
+// exist containing the current siril python module, but any other modules that
+// have been installed by scripts will require reinstallation.
+//***********************************************************************************
+
+void rebuild_venv() {
+	gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
+	GError *error = NULL;
+	kill_all_python_scripts();
+	delete_directory(venv_path, &error);
+	initialize_python_venv_in_thread();
+}
+
 static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
 
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);

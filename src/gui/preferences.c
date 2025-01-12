@@ -29,6 +29,7 @@
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
 #include "io/annotation_catalogues.h"
+#include "io/siril_pythonmodule.h"
 #include "gui/annotations_pref.h"
 #include "gui/callbacks.h"
 #include "gui/icc_profile.h"
@@ -1078,6 +1079,17 @@ gchar *get_swap_dir() {
 		sw_dir = gtk_file_chooser_get_filename(swap_dir);
 	}
 	return sw_dir;
+}
+
+void on_button_python_reset_venv_clicked(gpointer user_data) {
+	if (siril_confirm_dialog(_("WARNING!"), _("This will kill all running python processes "
+			"and delete and reinstall the python venv directory. This is not normally "
+			"necessary for upgrades or similar as Siril will try to manage the venv "
+			"automatically. However the option is provided as a last resort bug mitigation "
+			"to reset the venv to a known good state. All modules installed by scripts "
+			"will be deleted and will require reinstallation."), _("Proceed"))) {
+		rebuild_venv();
+	}
 }
 
 /* these one are not on the preference dialog */
