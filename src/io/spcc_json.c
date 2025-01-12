@@ -572,7 +572,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	// Read data points using array iteration
 	size_t idx = 0;
 	yyjson_val *w_val, *v_val;
-	size_t w_idx, v_idx, max;
+	size_t w_idx, max;
 
 	yyjson_arr_foreach(wavelengthArray, w_idx, max, w_val) {
 		if (idx >= data->n) break;

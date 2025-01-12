@@ -407,29 +407,21 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 				if (band && !strcmp(band, "V")) {
 					yyjson_val *mag_val = yyjson_obj_get(band_obj, "mag");
 					if (mag_val) {
-						mag = yyjson_is_int(mag_val) ?
-						(double)yyjson_get_int(mag_val) :
-						yyjson_get_real(mag_val);
+						mag = (double) yyjson_get_num(mag_val);
 					}
 					yyjson_val *err_val = yyjson_obj_get(band_obj, "error");
 					if (err_val && !yyjson_is_null(err_val)) {
-						e_mag = yyjson_is_int(err_val) ?
-						(double)yyjson_get_int(err_val) :
-						yyjson_get_real(err_val);
+						e_mag = (double) yyjson_get_num(err_val);
 					}
 				}
 				else if (band && !strcmp(band, "B")) {
 					yyjson_val *mag_val = yyjson_obj_get(band_obj, "mag");
 					if (mag_val) {
-						bmag = yyjson_is_int(mag_val) ?
-						(double)yyjson_get_int(mag_val) :
-						yyjson_get_real(mag_val);
+						bmag = (double) yyjson_get_num(mag_val);
 					}
 					yyjson_val *err_val = yyjson_obj_get(band_obj, "error");
 					if (err_val && !yyjson_is_null(err_val)) {
-						e_bmag = yyjson_is_int(err_val) ?
-						(double)yyjson_get_int(err_val) :
-						yyjson_get_real(err_val);
+						e_bmag = (double) yyjson_get_num(err_val);
 					}
 				}
 			}
