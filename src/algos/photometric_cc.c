@@ -856,6 +856,9 @@ gpointer photometric_cc_standalone(gpointer p) {
 			case CAT_GAIADR3:
 				mag = min(mag, 18.0);
 				break;
+			case CAT_LOCAL_GAIA_ASTRO:
+				mag = min(mag, 18.0);	// not very important, this catalogue is density-populated rather than magnitude-limited
+				break;
 			case CAT_GAIADR3_DIRECT:
 				mag = min(mag, 17.6);	// most Gaia XP_SAMPLED spectra are for mag < 17.6
 				break;
@@ -927,6 +930,11 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 	if (siril_cat->projected == CAT_PROJ_NONE) {
 		siril_debug_print("Catalog has not been projected\n");
 	}
+	siril_debug_print("RA: %d, DEC: %d, MAG: %d, BMAG: %d, TEFF: %d\n", has_field(siril_cat, RA),
+																		has_field(siril_cat, DEC),
+																		has_field(siril_cat, MAG),
+																		has_field(siril_cat, BMAG),
+																		has_field(siril_cat, TEFF));
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG) || (!has_field(siril_cat, BMAG) && !has_field(siril_cat, TEFF)))
 		return NULL;
 	pcc_star *results = malloc(siril_cat->nbitems * sizeof(pcc_star));

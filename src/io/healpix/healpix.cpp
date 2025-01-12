@@ -298,7 +298,7 @@ void show_healpixel_entries(uint32_t healpixel_id) {
 // functions.
 
 extern "C" {
-    int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, deepStarData **stars, uint32_t *nb_stars) {
+    int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
         siril_debug_print("Search radius: %f deg\n", radius);
         const double DEG_TO_RAD = M_PI / 180.0;
@@ -360,6 +360,18 @@ extern "C" {
             ),
             matches.end()
         );
+
+        // If we are retrieving stars for PCC, remove any without a valid Teff entry
+        if (phot) {
+            matches.erase(
+                std::remove_if(matches.begin(), matches.end(),
+                               [](const SourceEntryAstro& entry) {
+                                   return entry.teff <= 0;
+                               }
+                ),
+                matches.end()
+            );
+        }
 
         // Check if no matches remain after filtering, again return 1 in that case
         if (matches.empty()) {
