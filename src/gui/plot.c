@@ -1218,6 +1218,7 @@ void drawPlot() {
 		}
 		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
 			update_seqlist();
+			fill_sequence_list(&com.seq, FALSE);
 			requires_seqlist_update = FALSE;
 		}
 	} else {
@@ -1235,6 +1236,7 @@ void drawPlot() {
 		build_registration_dataset(seq, ref_image, plot_data);
 		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
 			update_seqlist();
+			fill_sequence_list(&com.seq, FALSE);
 			requires_seqlist_update = FALSE;
 		}
 	}

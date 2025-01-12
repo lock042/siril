@@ -573,6 +573,7 @@ int set_seq(const char *name){
 		update_zoom_label();
 		reset_plot(); // reset all plots
 		reset_3stars();
+		set_layers_for_registration();
 
 		/* initialize image-related runtime data */
 		set_display_mode();		// display the display mode in the combo box
