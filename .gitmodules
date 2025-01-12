@@ -4,3 +4,7 @@
 [submodule "subprojects/librtprocess"]
 	path = subprojects/librtprocess
 	url = https://github.com/CarVac/librtprocess.git
+[submodule "subprojects/yyjson"]
+	path = subprojects/yyjson
+	url = https://github.com/ibireme/yyjson
+	branch = tags/0.10.0
