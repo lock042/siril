@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-31 08:29+0100\n"
-"PO-Revision-Date: 2024-12-30 23:47+0000\n"
+"PO-Revision-Date: 2024-12-31 22:24+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -13957,12 +13957,12 @@ msgstr "relative"
 #: src/algos/PSF.c:1031
 #, c-format
 msgid ", beta=%0.1f, %s channel"
-msgstr ""
+msgstr ", beta=%0.1f, canal %s"
 
 #: src/algos/PSF.c:1034
-#, fuzzy, c-format
+#, c-format
 msgid ", %s channel"
-msgstr "%s (canal 0)"
+msgstr ", canal %s"
 
 #: src/algos/PSF.c:1036
 #, c-format

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-31 08:29+0100\n"
-"PO-Revision-Date: 2024-12-29 19:42+0000\n"
+"PO-Revision-Date: 2025-01-11 22:56+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -269,7 +269,7 @@ msgstr "Beschriftungen"
 #: src/gui/uifiles/settings_window.ui:4359
 #: src/gui/uifiles/settings_window.ui:5896 src/gui/uifiles/siril.ui:3759
 msgid "Clear"
-msgstr "Zurücksetzen"
+msgstr "Löschen"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current annotations."
@@ -801,7 +801,7 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:481
 msgid "Resolver"
-msgstr "Resolver"
+msgstr "Löser"
 
 #. Connect the edited signal
 #: src/gui/uifiles/astrometry_dialog.ui:492 src/gui/uifiles/siril.ui:3656
@@ -4022,7 +4022,7 @@ msgstr "Berechnetes Sampling (arcsec/pixel):"
 
 #: src/gui/uifiles/file_information_dialog.ui:202
 msgid "Binning: "
-msgstr "Binning: "
+msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:213
 msgid ""
@@ -4120,7 +4120,7 @@ msgstr "Wende Auto-Stretch Algorithmus auf Bild an"
 
 #: src/gui/uifiles/histogram_dialog.ui:518
 msgid "Highlights: "
-msgstr "Highlights: "
+msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:529
 msgid "Highlights clipping"
@@ -4144,7 +4144,7 @@ msgstr "Schatten Übersteuerung"
 
 #: src/gui/uifiles/histogram_dialog.ui:620
 msgid "Clip (%)"
-msgstr "Clip (%)"
+msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:633
 msgid "Clipped pixels count (shadows)"
@@ -4222,15 +4222,15 @@ msgid ""
 "Note: human-weighted luminance is not allowed if less than 3 colour channels "
 "are selected as it doesn't make sense."
 msgstr ""
-"Legen Sie das Streckungsmodell für Farbstreckungen fest. Die Optionen sind: "
+"Legt das Streckungsmodell für Farbstreckungen fest. Die Optionen sind: "
 "gleichmäßig gewichtete Luminanz, die die Streckung auf der Grundlage eines "
 "Luminanzwertes berechnet, der die R-, G- und B-Kanäle gleich gewichtet; "
 "menschlich gewichtete Luminanz, die die Streckung auf der Grundlage eines "
 "Luminanzwertes berechnet, der die R-, G- und B-Kanäle entsprechend der "
 "relativen Empfindlichkeit des menschlichen Auges gewichtet; unabhängige "
-"Kanalwerte, die die Streckung unabhängig auf jeden Kanal des Pixels "
-"anwenden; und Sättigung, die die Streckung auf die S-Komponente im HSL-"
-"Farbraum anwendet.\n"
+"Kanalwerte, die die Streckung unabhängig auf jeden Kanal des Pixels anwenden;"
+" und Sättigung, die die Streckung auf die S-Komponente im HSL-Farbraum "
+"anwendet.\n"
 "Hinweis: Die menschengewichtete Luminanz ist nicht zulässig, wenn weniger "
 "als 3 Farbkanäle ausgewählt sind, da dies nicht sinnvoll ist."
 
@@ -4275,7 +4275,7 @@ msgstr ""
 
 #: src/gui/uifiles/keywords_dialog.ui:27
 msgid "FITS Header"
-msgstr "FITS Header"
+msgstr ""
 
 #: src/gui/uifiles/keywords_dialog.ui:42
 msgid "Copy Selection"
@@ -4629,7 +4629,7 @@ msgstr "Warte auf Dateien"
 
 #: src/gui/uifiles/livestacking_player.ui:228 src/gui/uifiles/siril.ui:9354
 msgid "Stacking"
-msgstr "Stacking"
+msgstr ""
 
 #: src/gui/uifiles/livestacking_player.ui:297
 msgid "Master-dark and cosmetic correction"
@@ -5080,7 +5080,7 @@ msgstr "Nächster Nachbar"
 #: src/gui/uifiles/rotation_dialog.ui:204 src/gui/uifiles/siril.ui:7082
 #: src/algos/geometry.c:301 src/algos/geometry.c:397
 msgid "Bilinear"
-msgstr "Bilinear"
+msgstr ""
 
 #: src/gui/uifiles/resample_dialog.ui:197
 #: src/gui/uifiles/rotation_dialog.ui:205 src/gui/uifiles/siril.ui:7083
@@ -5868,7 +5868,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:721
 msgid "<b>FITS Format</b>"
-msgstr "<b>FITS Format</b>"
+msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:748
 msgid "Enable Aladin compatibility (CTYPE3 = 'RGB ')"
@@ -6248,13 +6248,13 @@ msgstr ""
 "in kompakter Form bis zur Helligkeit 18 beschränkt."
 
 #: src/gui/uifiles/settings_window.ui:1521
-#, fuzzy
 msgid ""
 "<b>Local Star Catalogues</b> (<a href=\"https://siril.readthedocs.io/en/"
 "stable/astrometry/platesolving.html#using-local-catalogues\">more info</a>)"
 msgstr ""
-"<b>Lokale Sternkataloge</b> (<a href=\"https://free-astro.org/index.php?"
-"title=Siril:Star_Catalogues\">mehr Information</a>)"
+"<b>Lokale Sternkataloge</b> (<a href=\"https://siril.readthedocs.io/en/"
+"stable/astrometry/platesolving.html#using-local-catalogues\">Mehr "
+"Informationen</a>)"
 
 #: src/gui/uifiles/settings_window.ui:1548
 msgid "Update default focal length and pixel size from the result"
@@ -7950,11 +7950,11 @@ msgstr "Auswahl"
 
 #: src/gui/uifiles/siril.ui:756 src/gui/mouse_action_functions.h:67
 msgid "Undo"
-msgstr "Undo"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:765 src/gui/mouse_action_functions.h:71
 msgid "Redo"
-msgstr "Redo"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:780
 msgid "PSF"
@@ -8133,7 +8133,7 @@ msgstr "Berechnen die Umkehrung des Bildes"
 
 #: src/gui/uifiles/siril.ui:1286 src/gui/colors.c:313
 msgid "Negative Transformation"
-msgstr "Negative Transformation"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:1310
 msgid "Filters"
@@ -8200,7 +8200,7 @@ msgstr "Dialog asinh-Transformation öffnen"
 
 #: src/gui/uifiles/siril.ui:1516
 msgid "Asinh Transformation..."
-msgstr "Asinh Transformation..."
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:1529
 msgid "Open the curves transform dialog"
@@ -8468,7 +8468,7 @@ msgstr "Binning..."
 
 #: src/gui/uifiles/siril.ui:2244
 msgid "Resample..."
-msgstr "Resample..."
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:2269
 msgid "gamut"
@@ -8606,7 +8606,7 @@ msgstr "Farbkonvertierungsmatrix..."
 
 #: src/gui/uifiles/siril.ui:2814
 msgid "FITS Header..."
-msgstr "FITS Header..."
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:2828
 msgid "Image Information..."
@@ -8813,7 +8813,7 @@ msgid ""
 msgstr ""
 "Dieser Befehl löscht die Auswahl, Registrierungs- und/oder Statistikdaten, "
 "die in der geladenen Sequenz gespeichert sind. Sie können angeben, ob nur "
-"die Registrierung, die Statistiken und/oder Auswahlen mit mit dem rechten "
+"die Registrierungsdaten, die Statistiken und/oder Auswahlen mit dem rechten "
 "Button gelöscht werden sollen.\n"
 
 #: src/gui/uifiles/siril.ui:4141
@@ -8932,7 +8932,7 @@ msgstr "Gehe zum Stacking-Reiter"
 
 #: src/gui/uifiles/siril.ui:4435
 msgid "Fps:"
-msgstr "Fps:"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:4447
 msgid "Frame rate"
@@ -9205,7 +9205,7 @@ msgstr "Master-Dark"
 
 #: src/gui/uifiles/siril.ui:5167
 msgid "Using Master-Dark"
-msgstr "Nutze Master-Dark"
+msgstr "Masterdark verwenden"
 
 #: src/gui/uifiles/siril.ui:5193
 msgid ""
@@ -10574,7 +10574,7 @@ msgstr "MAD Clipping"
 
 #: src/gui/uifiles/siril.ui:8347
 msgid "Median Sigma Clipping"
-msgstr "Median Sigma Clipping"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:8348
 msgid "Winsorized Sigma Clipping"
@@ -11518,7 +11518,7 @@ msgstr "Grün extrahieren"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:177
 msgid "Ha/OIII Resampling"
-msgstr "Ha/OIII Resampling"
+msgstr ""
 
 #: src/gui/uifiles/split_cfa_dialog.ui:189
 msgid ""
@@ -13821,7 +13821,7 @@ msgstr "Gut"
 
 #: src/algos/PSF.c:967
 msgid "Fair"
-msgstr "Fair"
+msgstr ""
 
 #: src/algos/PSF.c:968
 msgid "Poor"
@@ -13846,12 +13846,12 @@ msgstr "relativ"
 #: src/algos/PSF.c:1031
 #, c-format
 msgid ", beta=%0.1f, %s channel"
-msgstr ""
+msgstr ", beta=%0.1f, Kanal %s"
 
 #: src/algos/PSF.c:1034
-#, fuzzy, c-format
+#, c-format
 msgid ", %s channel"
-msgstr "%s (Kanal 0)"
+msgstr ", %s Kanal"
 
 #: src/algos/PSF.c:1036
 #, c-format
@@ -14972,7 +14972,7 @@ msgstr "Gauss'sche PSF\n"
 
 #: src/core/command.c:1503
 msgid "Moffat PSF\n"
-msgstr "Moffat PSF\n"
+msgstr ""
 
 #: src/core/command.c:1507
 msgid "Disc PSF\n"
@@ -27903,15 +27903,16 @@ msgid "Saving FITS"
 msgstr "Speichere FITS"
 
 #: src/gui/save_dialog.c:436
-#, fuzzy
 msgid "Extension Mismatch"
-msgstr "Datei-Extension Typ:"
+msgstr "Abweichende Erweiterung"
 
 #: src/gui/save_dialog.c:437
 msgid ""
 "The given file extension does not match the chosen file type. Do you want to "
 "save the image using this name anyway?"
 msgstr ""
+"Die angegebene Dateiendung passt nicht zum gewählten Dateityp. Möchten Sie "
+"das Bild trotzdem unter diesem Namen speichern?"
 
 #: src/gui/save_dialog.c:438 src/gui/save_dialog.c:489
 msgid "Save Anyway"
@@ -30014,6 +30015,8 @@ msgid ""
 "Reference frame has an ICC profile. Will assign / convert other frames to to "
 "match.\n"
 msgstr ""
+"Das Referenzbild verfügt über ein ICC-Profil. Andere Bilder werden "
+"entsprechend zugewiesen bzw. konvertiert.\n"
 
 #: src/io/sequence_export.c:209
 #, c-format
@@ -30059,6 +30062,8 @@ msgid ""
 "Info: this frame has an ICC profile but the reference frame does not. "
 "Profile will be preserved...\n"
 msgstr ""
+"Info: Dieses Bild hat ein ICC-Profil, das Referenzbild jedoch nicht. Das "
+"Profil bleibt erhalten...\n"
 
 #: src/io/sequence_export.c:583
 msgid "Sequence export failed. Check the log."

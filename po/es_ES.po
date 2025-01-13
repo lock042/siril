@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-31 08:29+0100\n"
-"PO-Revision-Date: 2024-12-29 03:56+0000\n"
-"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
+"PO-Revision-Date: 2025-01-13 07:02+0000\n"
+"Last-Translator: Mateo García Jerez <xxxspookyzxxx@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -142,9 +142,8 @@ msgstr ""
 "presente, utilice \"nd\"(no disponible). Límite: 20 caracteres."
 
 #: src/gui/uifiles/aavso_dialog.ui:229
-#, fuzzy
 msgid "Starid: "
-msgstr "Estrella #1:"
+msgstr "Starid: "
 
 #: src/gui/uifiles/aavso_dialog.ui:240
 msgid ""
@@ -439,9 +438,8 @@ msgid "Log"
 msgstr "Registro"
 
 #: src/gui/uifiles/annotate_dialog.ui:207
-#, fuzzy
 msgid "Save to: "
-msgstr "Guardar en:"
+msgstr "Guardar en: "
 
 #: src/gui/uifiles/annotate_dialog.ui:239
 msgid ""
@@ -1219,20 +1217,22 @@ msgid ""
 "<b>Apply to sequence</b> button is checked, this will compute the model and "
 "apply it to the whole sequence."
 msgstr ""
+"Esto confirmará el modelo de fondo aplicado previamente con el botón de "
+"<b>Compute Background</b>. Sin embargo, en el caso de una secuencia, si el "
+"botón de <b>Apply to sequence</b>esta marcado, se calculará el modelo y se "
+"aplicará a toda la secuencia."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:127
-#, fuzzy
 msgid "Choose between interpolation methods."
-msgstr "Método de interpolación debayer: "
+msgstr "Elija entre los métodos de interpolación."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:131
-#, fuzzy
 msgid "RBF"
-msgstr "RGB"
+msgstr "RBF"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:132
 msgid "Polynomial"
-msgstr ""
+msgstr "Polinómico"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:162
 msgid "Smoothing"
@@ -2086,14 +2086,12 @@ msgid "Binning factor:"
 msgstr "Factor de agrupación:"
 
 #: src/gui/uifiles/binxy_dialog.ui:138
-#, fuzzy
 msgid "Downsample mode:"
-msgstr "Reducir la imagen"
+msgstr "Modo de submuestreo:"
 
 #: src/gui/uifiles/binxy_dialog.ui:152
-#, fuzzy
 msgid "Average"
-msgstr "Media neutral"
+msgstr "Media"
 
 #: src/gui/uifiles/binxy_dialog.ui:153
 msgid "Sum"
@@ -2111,9 +2109,8 @@ msgstr "Cantidad"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:123
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:146
-#, fuzzy
 msgid "Defines the strength of the correction."
-msgstr "Ajustar la imagen a la ventana"
+msgstr "Define la fuerza de la corrección."
 
 # It is mean preserve higlights or protect something of the effect of higligths?
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:162
@@ -2134,6 +2131,8 @@ msgid ""
 "Background for lines is computed using pixels in SigmaFactor * StdDev only. "
 "Higher value will give a better protection."
 msgstr ""
+"El fondo para las líneas es calculado utilizando píxeles en SigmaFactor * "
+"StdDev únicamente. Un valor más alto aportará mayor protección."
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:238
 msgid "Vertical banding"
@@ -2694,13 +2693,12 @@ msgstr ""
 
 #: src/gui/uifiles/cosmetic_dialog.ui:141
 #: src/gui/uifiles/cosmetic_dialog.ui:171
-#, fuzzy
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a cold pixel."
 msgstr ""
-"Cuántas veces (en unidades de desviación promedia) el valor de un píxel "
-"puede variar con respecto al de los que lo rodean para considerarlo un píxel "
+"Cuántas veces (en unidades de desviación media) debe diferir el valor de un "
+"píxel del valor de los vecinos circundantes para ser considerado un píxel "
 "frío."
 
 #: src/gui/uifiles/cosmetic_dialog.ui:187 src/gui/uifiles/siril.ui:5084
@@ -3680,12 +3678,11 @@ msgid "Apply wavelet extraction."
 msgstr "Aplicar extracción wavelet."
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:108
-#, fuzzy
 msgid ""
 "Number of wavelet layers. You can choose up to 9 layers for wavelets "
 "computing."
 msgstr ""
-"Número de capas wavelet. Puede elegir hasta 6 capas para el procesado "
+"Número de capas wavelet. Puede elegir hasta 9 capas para el procesado "
 "wavelets."
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:129
@@ -4049,9 +4046,8 @@ msgstr "Cabecera FITS..."
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4036
 #: src/gui/uifiles/settings_window.ui:4853 src/core/icc_profile.c:1272
 #: src/core/icc_profile.c:1274
-#, fuzzy
 msgid "Color Management"
-msgstr "Color de la imagen destino"
+msgstr "Gestión del color"
 
 #: src/gui/uifiles/icc_dialog.ui:65 src/gui/uifiles/siril.ui:7993
 #: src/gui/uifiles/spcc_details.ui:24 src/gui/uifiles/s_pcc_dialog.ui:906
@@ -5685,7 +5681,7 @@ msgstr "Opciones FITS"
 #: src/gui/uifiles/settings_window.ui:1898 src/gui/uifiles/siril.ui:2418
 #: src/gui/uifiles/siril.ui:2745
 msgid "Astrometry"
-msgstr "Atrometría"
+msgstr "Astrometría"
 
 #: src/gui/uifiles/settings_window.ui:1178
 #, fuzzy
@@ -10980,7 +10976,7 @@ msgstr "AplicarStarNet"
 
 #: src/gui/uifiles/starnet_dialog.ui:110
 msgid "Pre-stretch linear image"
-msgstr ""
+msgstr "Pre-estirar imagen lineal"
 
 #: src/gui/uifiles/starnet_dialog.ui:115
 msgid ""
@@ -10991,9 +10987,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/starnet_dialog.ui:129
-#, fuzzy
 msgid "Generate star mask"
-msgstr "Generar"
+msgstr "Generar máscara de estrellas"
 
 #: src/gui/uifiles/starnet_dialog.ui:134
 msgid ""
@@ -11001,6 +10996,9 @@ msgid ""
 "directory. The star mask is calculated as the difference between the "
 "original image and the starless image. The default is to produce a star mask."
 msgstr ""
+"Si se selecciona, se generará una star mask que se guardará en el directorio "
+"de trabajo. La star mask se calcula como la diferencia entre la imagen "
+"original y la imagen sin estrellas. Por defecto se genera una star mask."
 
 #: src/gui/uifiles/starnet_dialog.ui:149
 msgid "Use custom stride"
@@ -11012,10 +11010,13 @@ msgid ""
 "parameter. The default value is 256 and the StarNet developer recommends not "
 "to change this."
 msgstr ""
+"Si se selecciona esta opción, se puede introducir un valor personalizado "
+"para el parámetro \"stride\" de StarNet. El valor por defecto es 256 y el "
+"desarrollador de StarNet recomienda no cambiarlo."
 
 #: src/gui/uifiles/starnet_dialog.ui:174
 msgid "Stride"
-msgstr ""
+msgstr "Pasos"
 
 #: src/gui/uifiles/starnet_dialog.ui:186
 msgid ""
@@ -11024,11 +11025,15 @@ msgid ""
 "stride setting quadruples the processing time. If altered, stride must be an "
 "even integer between 2-256."
 msgstr ""
+"Establece el tamaño de los mosaicos que se pasan a la red neuronal StarNet "
+"para su procesamiento. Se recomienda encarecidamente dejar el valor por "
+"defecto. Si se reduce a la mitad, se cuadruplica el tiempo de procesamiento. "
+"Si se modifica, el \"stride\" debe ser un número entero par comprendido "
+"entre 2-256."
 
 #: src/gui/uifiles/starnet_dialog.ui:209
-#, fuzzy
 msgid "Recompose stars on completion"
-msgstr "Igualar las estrellas en la selección"
+msgstr "Recomponer estrellas al completar"
 
 #: src/gui/uifiles/starnet_dialog.ui:214
 msgid ""
@@ -11038,11 +11043,15 @@ msgid ""
 "removal, is desired.\n"
 "This option has no effect if processing a sequence."
 msgstr ""
+"Si se selecciona, al finalizar el proceso de StarNet se abrirá la "
+"herramienta de recomposición de estrellas, que proporciona una interfaz para "
+"estirar y mezclar independientemente el fondo y las estrellas si se desea "
+"una reducción de estrellas, en lugar de una eliminación total.\n"
+"Esta opción no tiene ningún efecto si se procesa una secuencia."
 
 #: src/gui/uifiles/starnet_dialog.ui:229
-#, fuzzy
 msgid "Upsample x2"
-msgstr "Remuestrear"
+msgstr "Sobremuestreo x2"
 
 #: src/gui/uifiles/starnet_dialog.ui:234
 msgid ""
@@ -11051,6 +11060,10 @@ msgid ""
 "processing time and may impair performance on very large stars. The image is "
 "rescaled to the original size on completion."
 msgstr ""
+"Si se selecciona esta opción, la imagen se amplía en un factor de 2 antes de "
+"ejecutar StarNet. Esto mejora el rendimiento en estrellas muy pequeñas, pero "
+"cuadruplica el tiempo de procesamiento y puede perjudicar el rendimiento en "
+"estrellas muy grandes. La imagen se reescala al tamaño original al finalizar."
 
 #: src/gui/uifiles/starnet_dialog.ui:251
 msgid ""
@@ -11367,7 +11380,7 @@ msgstr "Sin selección"
 
 #: src/gui/uifiles/wavelets_dialog.ui:77
 msgid "Wavelets control"
-msgstr "Control Wavelets"
+msgstr "Control de Wavelets"
 
 #: src/gui/uifiles/wavelets_dialog.ui:100
 msgid "Reset changes"
@@ -11386,9 +11399,8 @@ msgid "Type:"
 msgstr "Tipo:"
 
 #: src/gui/uifiles/wavelets_dialog.ui:209
-#, fuzzy
 msgid "Nb of layers:"
-msgstr "Núm. de capas: "
+msgstr "Núm. de capas:"
 
 #: src/gui/uifiles/wavelets_dialog.ui:220
 msgid "Number of wavelet layers that will be used"
@@ -11401,27 +11413,27 @@ msgstr "Procesar wavelets"
 
 #: src/gui/uifiles/wavelets_dialog.ui:320
 msgid "Layer 1"
-msgstr ""
+msgstr "Capa 1"
 
 #: src/gui/uifiles/wavelets_dialog.ui:390
 msgid "Layer 2"
-msgstr ""
+msgstr "Capa 2"
 
 #: src/gui/uifiles/wavelets_dialog.ui:460
 msgid "Layer 3"
-msgstr ""
+msgstr "Capa 3"
 
 #: src/gui/uifiles/wavelets_dialog.ui:530
 msgid "Layer 4"
-msgstr ""
+msgstr "Capa 4"
 
 #: src/gui/uifiles/wavelets_dialog.ui:600
 msgid "Layer 5"
-msgstr ""
+msgstr "Capa 5"
 
 #: src/gui/uifiles/wavelets_dialog.ui:670
 msgid "Layer 6"
-msgstr ""
+msgstr "Capa 6"
 
 #: src/gui/uifiles/wavelets_dialog.ui:736
 msgid "Adjust"
@@ -16660,14 +16672,12 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:11
-#, fuzzy
 msgid "Returns the background level of the loaded image"
-msgstr "Devuelve el nivel de fondo de la imagen cargada en memoria"
+msgstr "Devuelve el nivel del fondo de la imagen cargada"
 
 #: src/core/command_def.h:12
-#, fuzzy
 msgid "Returns the background noise level of the loaded image"
-msgstr "Devuelve el nivel de ruido de fondo de la imagen cargada en memoria"
+msgstr "Devuelve el nivel del ruido del fondo de la imagen cargada"
 
 #: src/core/command_def.h:13
 msgid ""
@@ -22593,7 +22603,7 @@ msgstr "Catálogo Messier (M)"
 
 #: src/gui/annotations_pref.c:30
 msgid "New General Catalogue (NGC)"
-msgstr "New General Catalogue - Catálogo Nuevo General (NGC)"
+msgstr "Nuevo Catálogo General (NGC)"
 
 #: src/gui/annotations_pref.c:31
 msgid "Index Catalogue (IC)"
