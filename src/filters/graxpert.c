@@ -29,7 +29,6 @@
 #include <sys/wait.h> // for waitpid(2)
 #include <gio/gunixinputstream.h>
 #endif
-#include "io/yyjson.h"
 #include "algos/background_extraction.h"
 #include "core/siril.h"
 #include "core/icc_profile.h"
@@ -48,6 +47,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "yyjson.h"
 #include "filters/graxpert.h"
 
 // Uncomment the following line for highly verbose debugging messages

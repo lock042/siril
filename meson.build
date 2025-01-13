@@ -307,6 +307,22 @@ else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
 
+yyjson_dep = dependency('libyyjson', required : false, version: '>= 0.10.0')
+if not yyjson_dep.found()
+  opt_var = cmake.subproject_options()
+  # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
+  opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/yyjson'})
+if platform_windows
+  opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
+endif
+  sub_proj = cmake.subproject('yyjson', options: opt_var)
+
+  yyjson_dep = sub_proj.dependency('yyjson')
+  yyjson_inc = sub_proj.include_directories('yyjson')
+else
+  siril_cpp_flag += '-DHAVE_YYJSON'
+endif
+
 ## Optional dependencies
 
 openmp_dep = []
@@ -643,6 +659,7 @@ externals_dep = declare_dependency(
     ffms2_dep,
     openmp_dep,
     kplot_dep,
+    yyjson_dep,
     ffmpeg
   ]
 )
