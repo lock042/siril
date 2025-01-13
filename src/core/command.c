@@ -39,7 +39,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include "io/yyjson.h"
+#include "yyjson.h"
 
 #include "core/siril.h"
 #include "core/proto.h"

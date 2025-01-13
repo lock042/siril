@@ -29,7 +29,7 @@
 #include <sys/wait.h> // for waitpid(2)
 #include <gio/gunixinputstream.h>
 #endif
-#include "io/yyjson.h"
+#include "yyjson.h"
 #include "algos/background_extraction.h"
 #include "core/siril.h"
 #include "core/icc_profile.h"

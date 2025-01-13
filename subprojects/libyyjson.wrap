@@ -1,0 +1,7 @@
+[wrap-git]
+directory=yyjson
+revision = tag=0.8.0      # Replace with your desired tag
+depth = 1
+
+[provide]
+libyyjson = yyjson_dep
