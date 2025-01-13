@@ -401,8 +401,6 @@ siril_common_SOURCES = \
 	io/siril_plot.c \
 	io/siril_plot.h \
 	io/spcc_json.c \
-	io/yyjson.c \
-	io/yyjson.h \
 	livestacking/livestacking.c \
 	livestacking/livestacking.h \
 	livestacking/gui.c \
@@ -445,6 +443,30 @@ siril_common_SOURCES = \
 
 if PLATFORM_WIN32
 libdbghelp = -ldbghelp
+endif
+if !HAVE_YYJSON
+YYJSON_BUILDDIR = $(abs_top_builddir)/subprojects/yyjson/build
+YYJSON_SRCDIR = $(abs_top_srcdir)/subprojects/yyjson
+
+$(YYJSON_BUILDDIR)/Makefile: $(YYJSON_SRCDIR)/CMakeLists.txt
+	$(MKDIR_P) $(YYJSON_BUILDDIR)
+	cd $(YYJSON_BUILDDIR) && $(CMAKE) $(CMAKE_GENERATOR) \
+		-DCMAKE_INSTALL_PREFIX:PATH=$(prefix) \
+		-DCMAKE_C_FLAGS="$(CFLAGS)" \
+		$(YYJSON_SRCDIR)
+
+yyjson: $(YYJSON_BUILDDIR)/Makefile
+	$(MAKE) -C $(YYJSON_BUILDDIR)
+
+BUILT_SOURCES = yyjson
+endif
+
+if !HAVE_YYJSON
+AM_CPPFLAGS += -I$(YYJSON_SRCDIR)/src
+YYJSON_LIBS = $(YYJSON_BUILDDIR)/libyyjson.a
+else
+AM_CPPFLAGS += $(LIBYYJSON_CFLAGS)
+YYJSON_LIBS = $(LIBYYJSON_LIBS)
 endif
 
 if HAVE_LIBRTPROCESS

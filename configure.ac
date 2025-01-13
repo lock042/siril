@@ -234,6 +234,31 @@ else
 fi
 AM_CONDITIONAL(HAVE_HTMESH, test "x$have_htmesh" = "xyes")
 
+PKG_CHECK_MODULES(LIBYYJSON, [yyjson >= 0.10.0], have_yyjson="yes", have_yyjson="no")
+if test "x$have_yyjson" = "xno"; then
+  AC_MSG_NOTICE([libyyjson not found])
+  if test "$cross_compiling" != "yes"; then
+    dnl check CMake used for librtprocess
+    AC_PATH_PROG(CMAKE, cmake, no)
+    if test "x$CMAKE" = xno; then
+      AC_MSG_ERROR([CMAKE not found (needed to built internal yyjson)])
+    fi
+
+    CMAKE_GENERATOR=
+    if test "$platform_win32" = "yes"; then
+      CMAKE_GENERATOR="-G \"MSYS Makefiles\""
+    fi
+    AC_SUBST([CMAKE_GENERATOR])
+
+    AC_MSG_NOTICE([yyjson will be built statically])
+  else
+    # When cross-compiling, you should build rtprocess yourself and
+    # install it yourself.
+    AC_MSG_ERROR([libyyjson not found])
+  fi
+fi
+AM_CONDITIONAL([HAVE_YYJSON], [test "x$have_yyjson" = "xyes"])
+
 dnl ================ OPTIONAL DEPENDENCIES ================
 
 dnl check raw lib
