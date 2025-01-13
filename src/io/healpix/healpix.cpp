@@ -50,7 +50,11 @@ typedef struct HealpixCatHeader {
     GaiaVersion gaia_version;   // 1 byte: Gaia version designator
     uint8_t healpix_level;      // 1 byte: Healpix indexing level N
     CatalogueType cat_type;     // 1 byte: Catalogue type
-    std::array<uint8_t, 77> spare; // 77 bytes reserved
+    uint8_t chunk_level;        // for chunked catalogues, the Healpix level it waas chunked at
+    uint32_t chunk_healpix;     // for chunked catalogues, the chunk-level healpixel covered by this file
+    uint32_t chunk_first_healpixel; // for chunked catalogues, the index-level healpixel number of the first healpixel in the catalogue
+    uint32_t chunk_last_healpixel; // for chunked catalogues, the index-level healpixel number of the last healpixel in the catalogue
+    std::array<uint8_t, 64> spare; // 64 bytes reserved for future use
 } HealpixCatHeader;
 #pragma pack(pop)
 
