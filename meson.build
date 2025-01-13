@@ -234,7 +234,6 @@ m_dep = cc.find_library('m', required : false)
 lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
 # wcslib mandatory - uses subproject fallback to build if not found
 wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true, version: '>= 7.12')
-json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f
@@ -306,6 +305,22 @@ endif
   htmesh_inc = sub_proj.include_directories('htmesh')
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
+endif
+
+yyjson_dep = dependency('libyyjson', required : false, version: '>= 0.10.0')
+if not yyjson_dep.found()
+  opt_var = cmake.subproject_options()
+  # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
+  opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/yyjson'})
+if platform_windows
+  opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
+endif
+  sub_proj = cmake.subproject('yyjson', options: opt_var)
+
+  yyjson_dep = sub_proj.dependency('yyjson')
+  yyjson_inc = sub_proj.include_directories('yyjson')
+else
+  siril_cpp_flag += '-DHAVE_YYJSON'
 endif
 
 ## Optional dependencies
@@ -633,7 +648,6 @@ externals_dep = declare_dependency(
     wcslib_dep,
     fftw3f_dep,
     cfitsio_dep,
-    json_glib_dep,
     libraw_dep,
     libtiff_dep,
     libjpeg_dep,
@@ -645,6 +659,7 @@ externals_dep = declare_dependency(
     ffms2_dep,
     openmp_dep,
     kplot_dep,
+    yyjson_dep,
     ffmpeg
   ]
 )

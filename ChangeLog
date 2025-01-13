@@ -66,6 +66,7 @@ xx/xx/xx
 * Make PixelMath follows bit depth preferences (#1100)
 * Allow background removal from CFA images / sequences, for better integration into drizzle workflow (!777)
 * Added an option to save the stack result in 32b irrespective of the Preferences (#1165)
+* Ported JSON parsing and generation code to use yyjson instead of glib-json for a 10x speedup (!796)
 
 **GUI improvements:**
 * Split up the monolithic glade UI file (!550)
