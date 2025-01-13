@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  *
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -929,6 +929,16 @@ static gboolean check_star_list(gchar *filename, struct starfinder_data *sfargs)
 int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, const star_finder_params *sf, int layer, gboolean verbose) {
 	int i = 0;
 	GError *error = NULL;
+	gchar *dirname = g_path_get_dirname(filename);
+	GDir *dir = g_dir_open(dirname, 0, NULL);
+	if (!dir && g_mkdir_with_parents(dirname, 0755) < 0) {
+		siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+		g_free(dirname);
+		return 1;
+	}
+	if (dir)
+		g_dir_close(dir);
+	g_free(dirname);
 
 	GFile *file = g_file_new_for_path(filename);
 	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
@@ -1160,13 +1170,9 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	}
 	curr_findstar_args->threading = SINGLE_THREADED;
 
-	// build the star list file name in all cases to try reading it
-	char root[256];
-	if (!fit_sequence_get_image_filename(args->seq, index, root, FALSE)) {
-		free(curr_findstar_args);
-		return TRUE; // we will let the processing function detect readout failure if required
-	}
-	gchar *star_filename = g_strdup_printf("%s.lst", root);
+	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "lst", NULL);
+	if (!star_filename)
+		return TRUE;
 
 	if (findstar_args->save_to_file)
 		curr_findstar_args->starfile = star_filename;
@@ -1199,17 +1205,17 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 	curr_findstar_args->threading = threads;
 	gboolean can_use_cache = !(com.selection.w != 0 && com.selection.h != 0); //TODO: not ideal, would be better to be passed as args to starfinder_data (to be used in findstar_worker)
 
-	char root[256];
 	int retval = 0;
 	gchar *star_filename = NULL;
 
 	if (can_use_cache) {// otherwise, we don't try to read the lst nor save it
 		// build the star list file name in all cases to try reading it
-		if (!fit_sequence_get_image_filename(seq, i, root, FALSE)) {
+		star_filename = get_sequence_cache_filename(seq, i, "lst", NULL);
+		if (!star_filename) {
 			free(curr_findstar_args);
-			return NULL;
+			curr_findstar_args = NULL;
+			return curr_findstar_args;
 		}
-		star_filename = g_strdup_printf("%s.lst", root);
 
 		if (seq->type == SEQ_INTERNAL || !check_cachefile_date(seq, i, star_filename) ||
 				!check_star_list(star_filename, curr_findstar_args))
@@ -1227,6 +1233,9 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			copyfits(fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 			interpolate_nongreen(green_fit);
 			curr_findstar_args->im.fit = green_fit;
+			// uncomment these lines to save the green fit for each image
+			// const gchar *green_filename = get_sequence_cache_filename(seq, i, "fit", "green_");
+			// savefits(green_filename, green_fit);
 		}
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 		clearfits(green_fit);

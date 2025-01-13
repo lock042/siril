@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -52,8 +52,6 @@ int select_vport(int vport);
 gboolean check_ok_if_cfa();
 point closest_point_on_line(point in, point p1, point p2);
 void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gchar *filter_display_name);
-const char* get_cfa_from_pattern(sensor_pattern pattern);
-void interpolate_nongreen(fits *fit);
 OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method);
 gboolean value_check(fits *fit); // checks for pixel values outside [0.0, 1.0]
 
