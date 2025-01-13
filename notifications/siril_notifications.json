@@ -8,11 +8,11 @@
     "priority": 2
   },
   {
-    "valid-from": "2024-12-12T00:00:00+00:00",
-    "valid-to": "2024-12-20T00:00:00+00:00",
-    "version-from": "1.3.0",
-    "version-to": "1.3.6",
-    "message": "Owing to a change in the Gaia archive datalink product format, Siril SPCC stopped working on 10 Dec 2024. To fix this required a code change which has now been implemented in master. Please ensure you update to the latest commit in order to restore SPCC capability.",
+    "valid-from": "2025-01-12T00:00:00+00:00",
+    "valid-to": "2025-01-14T00:00:00+00:00",
+    "version-from": "1.3.5",
+    "version-to": "1.3.5",
+    "message": "Test of yyjson merge request. Please ignore.",
     "priority": 2
   }
 ]
