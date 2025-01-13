@@ -465,7 +465,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			// Re-arrange it if required (as for the image block) for maximize_framing
 			// Normalize it to 1. (all values > feather_dist -> 1., values < feather_dist -> val/feather_dist)
 			// And finally apply the ramping function which has been precomputed on  RAMP_PACE + 1 points
-			const gchar *maskfile = get_mask_filename(args->seq, args->image_indices[frame]);
+			const gchar *maskfile = get_sequence_cache_filename(args->seq, args->image_indices[frame], "msk", NULL);
 			float *mask_scaled;
 			int scaled_rx = 0, scaled_ry = 0;
 			double fx = 0., fy = 0.;

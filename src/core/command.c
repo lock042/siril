@@ -10091,6 +10091,7 @@ int process_platesolve(int nb) {
 		siril_world_cs_unref(target_coords);
 		target_coords = NULL;
 	}
+	gboolean iscfa = preffit->keywords.bayer_pattern[0] != '\0';
 
 	// we are now ready to fill the structure
 	args = calloc(1, sizeof(struct astrometry_data));
@@ -10179,11 +10180,14 @@ int process_platesolve(int nb) {
 		args->distofilename = distofilename;
 	}
 	args->force = force;
-	args->update_reg = !noreg;
 	memcpy(&args->forced_metadata, forced_metadata, 3 * sizeof(gboolean));
 	if (seqps || sequence_is_loaded()) { // we are platesolving an image from a sequence or a sequence, we can't allow to flip (may be registered)
 		noflip = TRUE;
 		siril_debug_print("forced no flip for solving an image from a sequence\n");
+	}
+	if (iscfa) { // prevent flipping for bayered images
+		noflip = TRUE;
+		siril_debug_print("forced no flip for CFA image\n");
 	}
 	args->flip_image = !noflip;
 	args->manual = FALSE;
@@ -10199,6 +10203,9 @@ int process_platesolve(int nb) {
 		args->ref_stars->phot = FALSE;
 		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+	} else {
+		args->asnet_blind_pos = asnet_blind_pos;
+		args->asnet_blind_res = asnet_blind_res;
 	}
 
 	args->for_sequence = seqps;
@@ -10207,11 +10214,12 @@ int process_platesolve(int nb) {
 
 	// sequence
 	if (seqps) {
+		args->update_reg = !noreg && !(seq->type == SEQ_FITSEQ || seq->type == SEQ_SER);
 		args->sfargs = calloc(1, sizeof(struct starfinder_data));
 		args->sfargs->im.from_seq = seq;
 		args->sfargs->layer = -1;
 		args->sfargs->keep_stars = TRUE;
-		args->sfargs->save_to_file = TRUE; // TODO make this a pref
+		args->sfargs->save_to_file = TRUE;
 		args->sfargs->max_stars_fitted = BRIGHTEST_STARS;
 		start_sequence_astrometry(seq, args);
 		return CMD_OK;
