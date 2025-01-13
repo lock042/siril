@@ -401,6 +401,8 @@ siril_common_SOURCES = \
 	io/siril_plot.c \
 	io/siril_plot.h \
 	io/spcc_json.c \
+	io/yyjson.c \
+	io/yyjson.h \
 	livestacking/livestacking.c \
 	livestacking/livestacking.h \
 	livestacking/gui.c \

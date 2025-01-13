@@ -189,6 +189,7 @@ src_files = [
   'io/SirilXISFReader.cpp',
   'io/SirilJpegXLWrapper.cpp',
   'io/spcc_json.c',
+  'io/yyjson.c',
 
   'livestacking/gui.c',
   'livestacking/livestacking.c',

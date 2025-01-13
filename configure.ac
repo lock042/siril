@@ -162,24 +162,9 @@ PKG_CHECK_MODULES(GSL, [gsl < 2],
 dnl check cfitsio
 PKG_CHECK_MODULES(CFITSIO, [cfitsio])
 
-dnl Check for system libyyjson >= 0.10.0
-PKG_CHECK_MODULES([LIBYYJSON], [libyyjson >= 0.10.0], [
-    AC_DEFINE([HAVE_LIBYYJSON], [1], [Define if system libyyjson is available])
-    use_system_libyyjson=yes
-], [
-    AC_MSG_WARN([libyyjson >= 0.10.0 not found, falling back to subproject.])
-    use_system_libyyjson=no
-])
+dnl Check for json-glib
+PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6])
 
-AM_CONDITIONAL([USE_SYSTEM_LIBYYJSON], [test "$use_system_libyyjson" = "yes"])
-
-dnl Handle CMake-based fallback for libyyjson subproject
-if test "$use_system_libyyjson" = "no"; then
-    AC_PATH_PROG([CMAKE], [cmake], [no])
-    if test "$CMAKE" = "no"; then
-        AC_MSG_ERROR([CMake is required to build the bundled libyyjson subproject. Please install CMake or provide a system libyyjson >= 0.10.0.])
-    fi
-fi
 
 dnl check opencv
 AC_PROG_CXX

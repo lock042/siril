@@ -307,19 +307,6 @@ else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
 
-# Try to find an existing dynamic `libyyjson` installation on the system
-yyjson_dep = dependency(
-    'libyyjson',
-    version: '>= 0.10.0',
-    required: false
-)
-
-# If the system `libyyjson` is not found, use the fallback static library
-if not yyjson_dep.found()
-    submod_yyjson = subproject('libyyjson', default_options: ['default_library=static'])
-    yyjson_dep = submod_yyjson.get_variable('yyjson_dep')
-endif
-
 ## Optional dependencies
 
 openmp_dep = []
@@ -656,7 +643,6 @@ externals_dep = declare_dependency(
     ffms2_dep,
     openmp_dep,
     kplot_dep,
-    yyjson_dep,
     ffmpeg
   ]
 )

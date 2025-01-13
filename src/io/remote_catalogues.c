@@ -25,7 +25,7 @@
 /* useful if no libcurl */
 #include <stdlib.h>
 
-#include "yyjson.h"
+#include "io/yyjson.h"
 
 #include "core/siril.h"
 #include "core/proto.h"

@@ -29,7 +29,7 @@
 #include "core/siril_log.h"
 #include "algos/photometric_cc.h"
 #include "algos/spcc.h"
-#include "yyjson.h"
+#include "io/yyjson.h"
 
 // Uncomment the following line for verbose confirmation of loading each JSON object
 // #define DEBUG_JSON

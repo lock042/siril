@@ -22,7 +22,7 @@
 #include <config.h>
 #endif
 #if defined(HAVE_LIBCURL)
-#include "yyjson.h"
+#include "io/yyjson.h"
 
 #include <string.h>
 
