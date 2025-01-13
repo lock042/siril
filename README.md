@@ -39,7 +39,6 @@ Then, mandatory build dependencies:
 - **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
 - **A C++ compiler** for opencv code and avi exporter
 - **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is possible without some shift-only registration)
-- **json-glib-1.0**, (>= 1.2.6) for Siril update check, spectrophotometry color calibration and metadata output
 
 Siril works internally with FITS files, but other file formats can be used as
 input and converted using the conversion tab of the control window. Some file
