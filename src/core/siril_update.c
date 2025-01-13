@@ -45,8 +45,8 @@
 #define SIRIL_NOTIFICATIONS "notifications/siril_notifications.json"
 
 static gboolean siril_update_get_highest(yyjson_doc *doc,
-										 gchar **highest_version, gint64 *release_timestamp,
-										 gint *build_revision, gchar **build_comment) {
+		gchar **highest_version, gint64 *release_timestamp,
+		gint *build_revision, gchar **build_comment) {
 	g_return_val_if_fail(highest_version != NULL, FALSE);
 	g_return_val_if_fail(release_timestamp != NULL, FALSE);
 	g_return_val_if_fail(build_revision != NULL, FALSE);
@@ -73,15 +73,14 @@ static gboolean siril_update_get_highest(yyjson_doc *doc,
 
 	// Determine platform
 	const char *platform;
-	if (g_strcmp0(SIRIL_BUILD_PLATFORM_FAMILY, "windows") == 0
-		|| g_strcmp0(SIRIL_BUILD_PLATFORM_FAMILY, "macos") == 0) {
+	if (g_strcmp0(SIRIL_BUILD_PLATFORM_FAMILY, "windows") == 0 || g_strcmp0(SIRIL_BUILD_PLATFORM_FAMILY, "macos") == 0) {
 		platform = SIRIL_BUILD_PLATFORM_FAMILY;
-		} else {
-			platform = "source";
-		}
+	} else {
+		platform = "source";
+	}
 
-		// Iterate through releases array (versions are ordered newest first)
-		yyjson_val *version_obj;
+	// Iterate through releases array (versions are ordered newest first)
+	yyjson_val *version_obj;
 	size_t idx, max;
 	yyjson_arr_foreach(releases, idx, max, version_obj) {
 		if (!yyjson_is_obj(version_obj)) {
@@ -137,59 +136,59 @@ static gboolean siril_update_get_highest(yyjson_doc *doc,
 				strcmp(build_id_str, "org.siril.Siril") == 0 ||
 				strcmp(build_id_str, "org.free_astro.siril") == 0)) {
 				valid_build = TRUE;
-				}
+			}
 
-				if (!valid_build) {
-					continue;
-				}
+			if (!valid_build) {
+				continue;
+			}
 
-				// Get release date (from build or version)
-				const char *release_date = NULL;
-				yyjson_val *date = yyjson_obj_get(build, "date");
+			// Get release date (from build or version)
+			const char *release_date = NULL;
+			yyjson_val *date = yyjson_obj_get(build, "date");
+			if (date && yyjson_is_str(date)) {
+				release_date = yyjson_get_str(date);
+			} else {
+				date = yyjson_obj_get(version_obj, "date");
 				if (date && yyjson_is_str(date)) {
 					release_date = yyjson_get_str(date);
-				} else {
-					date = yyjson_obj_get(version_obj, "date");
-					if (date && yyjson_is_str(date)) {
-						release_date = yyjson_get_str(date);
-					}
 				}
+			}
 
-				if (!release_date) {
-					g_warning("No valid release date found");
-					continue;
-				}
+			if (!release_date) {
+				g_warning("No valid release date found");
+				continue;
+			}
 
-				// We found a valid build - get the additional data
-				*highest_version = g_strdup(yyjson_get_str(version));
+			// We found a valid build - get the additional data
+			*highest_version = g_strdup(yyjson_get_str(version));
 
-				// Get optional build data
-				yyjson_val *revision = yyjson_obj_get(build, "revision");
-				if (revision && yyjson_is_int(revision)) {
-					*build_revision = (gint)yyjson_get_int(revision);
-				}
+			// Get optional build data
+			yyjson_val *revision = yyjson_obj_get(build, "revision");
+			if (revision && yyjson_is_int(revision)) {
+				*build_revision = (gint) yyjson_get_int(revision);
+			}
 
-				yyjson_val *comment = yyjson_obj_get(build, "comment");
-				if (comment && yyjson_is_str(comment)) {
-					*build_comment = g_strdup(yyjson_get_str(comment));
-				}
+			yyjson_val *comment = yyjson_obj_get(build, "comment");
+			if (comment && yyjson_is_str(comment)) {
+				*build_comment = g_strdup(yyjson_get_str(comment));
+			}
 
-				// Parse release date
-				gchar *str = g_strdup_printf("%s 00:00:00Z", release_date);
-				GDateTime *datetime = g_date_time_new_from_iso8601(str, NULL);
-				g_free(str);
+			// Parse release date
+			gchar *str = g_strdup_printf("%s 00:00:00Z", release_date);
+			GDateTime *datetime = g_date_time_new_from_iso8601(str, NULL);
+			g_free(str);
 
-				if (datetime) {
-					*release_timestamp = g_date_time_to_unix(datetime);
-					g_date_time_unref(datetime);
-					return TRUE;
-				} else {
-					g_warning("Failed to parse release date: %s", release_date);
-					g_clear_pointer(highest_version, g_free);
-					g_clear_pointer(build_comment, g_free);
-					*build_revision = 0;
-					return FALSE;
-				}
+			if (datetime) {
+				*release_timestamp = g_date_time_to_unix(datetime);
+				g_date_time_unref(datetime);
+				return TRUE;
+			} else {
+				g_warning("Failed to parse release date: %s", release_date);
+				g_clear_pointer(highest_version, g_free);
+				g_clear_pointer(build_comment, g_free);
+				*build_revision = 0;
+				return FALSE;
+			}
 		}
 	}
 
