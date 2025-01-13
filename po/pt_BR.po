@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:37+0100\n"
-"PO-Revision-Date: 2023-06-02 12:30+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
-"Language-Team: Portuguese (Brazil) <https://weblate.pixls.us/projects/siril/"
-"siril-application-1-2/pt_BR/>\n"
+"PO-Revision-Date: 2024-12-27 01:30+0000\n"
+"Last-Translator: Jair Rillo Junior <jairrillo@gmail.com>\n"
+"Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
+"software/siril-1-2/pt_BR/>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 4.14\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7998
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -116,15 +116,16 @@ msgstr ""
 
 #: src/gui/siril3.glade:352 src/gui/siril3.glade:1215 src/gui/siril3.glade:5164
 #: src/gui/siril3.glade:5432
-#, fuzzy
 msgid "Amount"
-msgstr "Quantidade:"
+msgstr "Quantidade"
 
 #: src/gui/siril3.glade:387
 msgid ""
 "0: No correction\n"
 "1 : 100% corrected"
 msgstr ""
+"0: Sem correção\n"
+"1 : 100% corrigido"
 
 #: src/gui/siril3.glade:403
 msgid "CFA"
@@ -167,32 +168,28 @@ msgstr ""
 "Prefixo dos nomes das imagens resultantes do processo de correção cosmética."
 
 #: src/gui/siril3.glade:566
-#, fuzzy
 msgid "Binning"
-msgstr "Binning: "
+msgstr "Binning"
 
 #: src/gui/siril3.glade:631
-#, fuzzy
 msgid "Binning factor:"
-msgstr "Binning: "
+msgstr "Binning"
 
 #: src/gui/siril3.glade:663
-#, fuzzy
 msgid "Downsample mode:"
-msgstr "Normalizar imagens"
+msgstr "Modo de redução de amostragem:"
 
 #: src/gui/siril3.glade:677
-#, fuzzy
 msgid "Average"
-msgstr "Média Neutral"
+msgstr "Média"
 
 #: src/gui/siril3.glade:678
 msgid "Sum"
-msgstr ""
+msgstr "Soma"
 
 #: src/gui/siril3.glade:725 src/gui/siril3.glade:17763
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr ""
+msgstr "Equalização de Histograma Adaptativa com Limitação de Contraste..."
 
 #: src/gui/siril3.glade:744 src/gui/siril3.glade:2391 src/gui/siril3.glade:3191
 #: src/gui/siril3.glade:5055 src/gui/siril3.glade:10836
@@ -206,27 +203,28 @@ msgstr "Reset"
 #: src/gui/siril3.glade:3205 src/gui/siril3.glade:4222
 #: src/gui/siril3.glade:5069 src/gui/siril3.glade:7941
 #: src/gui/siril3.glade:15096 src/gui/siril3.glade:27698
-#, fuzzy
 msgid "Cancel"
-msgstr "_Cancelar"
+msgstr "Cancelar"
 
 #: src/gui/siril3.glade:804
 msgid "Tiles Grid Size"
-msgstr ""
+msgstr "Tamanho da Grade de Blocos"
 
 #: src/gui/siril3.glade:843
 msgid ""
 "Sets size of grid for histogram equalization. Input image will be divided "
 "into equally sized rectangular tiles. "
 msgstr ""
+"Define o tamanho da grade para a equalização do histograma. A imagem de "
+"entrada será dividida em blocos retangulares de tamanho igual. "
 
 #: src/gui/siril3.glade:864
 msgid "Clip Limit"
-msgstr ""
+msgstr "Limite de Recorte"
 
 #: src/gui/siril3.glade:899
 msgid "Sets threshold for contrast limiting."
-msgstr ""
+msgstr "Define o limite para restrição de contraste."
 
 #. Try to have 3 lines here.
 #: src/gui/siril3.glade:917
@@ -235,11 +233,14 @@ msgid ""
 "stacking residuals by cropping the image. If you don't,\n"
 "artifacts may appear."
 msgstr ""
+"Por favor, certifique-se de remover todas as bordas pretas ou outros \n"
+"resíduos de empilhamento cortando a imagem. Caso contrário, \n"
+"artefatos podem aparecer."
 
 #: src/gui/siril3.glade:930 src/gui/siril3.glade:3047 src/gui/siril3.glade:3380
 #: src/gui/siril3.glade:5270
 msgid "Preview"
-msgstr ""
+msgstr "Pré-Visualização"
 
 #: src/gui/siril3.glade:993
 msgid "Wavelets Layers Extraction"
@@ -250,12 +251,11 @@ msgid "Apply wavelet extraction."
 msgstr "Aplicar extração wavelet."
 
 #: src/gui/siril3.glade:1059
-#, fuzzy
 msgid ""
 "Number of wavelet layers. You can choose up to 9 layers for wavelets "
 "computing."
 msgstr ""
-"Número de camadas wavelet. Pode escolher até 6 camadas para o processamento "
+"Número de camadas wavelet. Pode escolher até 9 camadas para o processamento "
 "de wavelets."
 
 #: src/gui/siril3.glade:1080
@@ -278,18 +278,16 @@ msgstr "Núm. de Camadas:"
 
 #: src/gui/siril3.glade:1111 src/gui/siril3.glade:18614
 #: src/gui/siril3.glade:18885
-#, fuzzy
 msgid "Interpolation: "
-msgstr "Interpolação"
+msgstr "Interpolação: "
 
 #: src/gui/siril3.glade:1152 src/filters/banding.c:125
 msgid "Banding Reduction"
 msgstr "Redução de bandas"
 
 #: src/gui/siril3.glade:1227 src/gui/siril3.glade:1250
-#, fuzzy
 msgid "Defines the strength of the correction."
-msgstr "Seleção de sequência"
+msgstr "Define a intensidade da correção."
 
 #: src/gui/siril3.glade:1266
 msgid "Protect from Highlights"
