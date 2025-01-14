@@ -208,9 +208,7 @@ void load_ui_files() {
 	uint32_t i = 1;
 	while (*ui_files[i]) {
 
-		/* try to load each successive UI file, from the sources defined above */
-		// TODO: the following gtk_builder_add_from_file call is the source
-		// of libfontconfig memory leaks.
+		/* try to load each successive UI file from ui_files */
 		retval = gtk_builder_add_from_resource(gui.builder, ui_files[i], &err);
 		if (!retval) {
 			g_error(_("%s was not found or contains errors, "
@@ -223,9 +221,12 @@ void load_ui_files() {
 #endif
 		i++;
 	}
+	/* Now we load any UI files that use the primary accelerator.
+	   These get processed specially so that on MacOS GDK_CONTROL_MASK is replaced
+	   with GDK_META_MASK so that shortcuts work with Cmd as expected on that OS. */
 	i = 0;
-	while (*ui_files_with_accelerators[i]) {
-		retval = builder_add_from_resource_with_replace(gui.builder, ui_files_with_accelerators[i], &err);
+	while (*ui_files_with_primary_accelerator[i]) {
+		retval = builder_add_from_resource_with_replace(gui.builder, ui_files_with_primary_accelerator[i], &err);
 		retval = gtk_builder_add_from_resource(gui.builder, ui_files[i], &err);
 		if (!retval) {
 			g_error(_("%s was not found or contains errors, "

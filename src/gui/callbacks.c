@@ -1539,6 +1539,10 @@ void initialize_all_GUI(gchar *supported_files) {
 	memset(&gui.roi, 0, sizeof(roi_t)); // Clear the ROI
 	initialize_image_display();
 	init_mouse();
+
+	/* set a transient */
+	gtk_window_set_transient_for(GTK_WINDOW(lookup_widget("edge_dialog")), GTK_WINDOW(lookup_widget("control_window")));
+
 	/* populate language combo */
 	siril_language_fill_combo(com.pref.lang);
 
