@@ -23,7 +23,6 @@
 #endif
 #if defined(HAVE_LIBCURL)
 #include <curl/curl.h>
-#include <json-glib/json-glib.h>
 
 #include <string.h>
 
