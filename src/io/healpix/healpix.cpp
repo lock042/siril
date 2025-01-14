@@ -240,7 +240,7 @@ HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error
     header.cat_type = static_cast<CatalogueType>(cat_type_raw);
 
     // Read 77 spare bytes
-    file.read(reinterpret_cast<char*>(header.spare.data()), 77);
+    file.read(reinterpret_cast<char*>(header.spare.data()), 64);
     if (!file) {
         *error_status = HEALPIX_READ_SPARE_ERROR;
         file.close();
