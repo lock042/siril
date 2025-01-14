@@ -660,9 +660,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 										GUINT32_FROM_BE(region_BE.w),
 										GUINT32_FROM_BE(region_BE.h)};
 					if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
-						selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
-							const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
-							success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+								selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
+						const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
+						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+						if (!success)
+							siril_debug_print("Error in send_response\n");
 					}
 					memcpy(&com.selection, &selection, sizeof(rectangle));
 					execute_idle_and_wait_for_it(new_selection_zone, NULL);
@@ -1217,6 +1219,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (!com.seq.regparam[index]) {
 				const char* error_message = _("No regdata available");
 				success = send_response(conn, STATUS_NONE, error_message, strlen(error_message));
+				g_free(response_buffer);
 				break;
 			}
 
@@ -1577,7 +1580,7 @@ CLEANUP:
 			unsigned char* profile_data = get_icc_profile_data(gfit.icc_profile, &profile_size);
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
-			send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 			free(info);
 			break;
 		}

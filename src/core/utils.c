@@ -2080,15 +2080,14 @@ gchar *find_file_recursively(gchar *basename, const gchar *top_path) {
 				file_result = find_file_recursively(basename, full_path);
 
 				// If file found, free the full path and return
-				g_free(full_path);
 
 				if (file_result) {
+					g_free(full_path);
 					g_dir_close(dir);
 					return file_result;
 				}
 			}
 		}
-
 		g_free(full_path);
 	}
 

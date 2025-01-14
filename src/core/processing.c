@@ -910,7 +910,7 @@ void wait_for_script_thread() {
 static void free_child(child_info *child) {
 	g_free(child->name);
 	g_date_time_unref(child->datetime);
-	free(child);
+	g_free(child);
 }
 
 // This must be called in the g_spawn on_exit callback to remove the defunct child from the list
@@ -959,56 +959,52 @@ void kill_child_process(GPid pid, gboolean onexit) {
 	while (iter) {
 		child_info *child = (child_info*) iter->data;
 		GSList *next = iter->next;
+
 		if (child->childpid == pid || onexit) {
-			if (child->program == EXT_STARNET || child->program == EXT_GRAXPERT || child->program == EXT_PYTHON) {
-#ifdef _WIN32
-				TerminateProcess((void *) child->childpid, 1);
-#else
-				kill((pid_t) child->childpid, SIGINT);
-#endif
-				// Free the child struct
-				free_child(child);
-				// Remove the node from the list
-				if (prev == NULL) {
-					// If it's the first node
-					com.children = iter->next;
-				} else {
-					// If it's a middle or last node
-					prev->next = iter->next;
-				}
-				// Free the node
-				g_slist_free_1(iter);
-			} else if (child->program == EXT_ASNET) {
-				FILE* fp = g_fopen("stop", "w");
-				if (fp != NULL)
-					fclose(fp);
-				if (onexit) {
-					g_usleep(1000);
-					if (g_unlink("stop"))
-						siril_debug_print("g_unlink() failed\n");
-					siril_debug_print("asnet has been stopped on exit\n");
-				}
-				free_child(child);
-				// Remove the node from the list
-				if (prev == NULL) {
-					// If it's the first node
-					com.children = iter->next;
-				} else {
-					// If it's a middle or last node
-					prev->next = iter->next;
-				}
-				// Free the node
-				g_slist_free_1(iter);
-			} else if (child->program == INT_PROC_THREAD) {
+			if (child->program == INT_PROC_THREAD) {
 				stop_processing_thread();
+			} else {
+				if (child->program == EXT_STARNET || child->program == EXT_GRAXPERT || child->program == EXT_PYTHON) {
+#ifdef _WIN32
+					TerminateProcess((void *) child->childpid, 1);
+#else
+					kill((pid_t) child->childpid, SIGINT);
+#endif
+					// Free the child struct
+					free_child(child);
+				} else if (child->program == EXT_ASNET) {
+					FILE* fp = g_fopen("stop", "w");
+					if (fp != NULL)
+						fclose(fp);
+					if (onexit) {
+						g_usleep(1000);
+						if (g_unlink("stop"))
+							siril_debug_print("g_unlink() failed\n");
+						siril_debug_print("asnet has been stopped on exit\n");
+					}
+					free_child(child);
+				}
+
+				// Remove the node from the list
+				if (prev == NULL) {
+					// If it's the first node
+					com.children = next;
+				} else {
+					// If it's a middle or last node
+					prev->next = next;
+				}
+				// Free the node
+				g_slist_free_1(iter);
 			}
+
 			siril_log_color_message(_("Process aborted by user\n"), "red");
 			success = TRUE;
-			if(!onexit)
+			if (!onexit)
 				break;
+		} else {
+			// Only advance prev if we didn't remove the current node
+			prev = iter;
 		}
-		// Move to next node
-		prev = iter;
 		iter = next;
 	}
 	// If we get here without success, no matching PID was found

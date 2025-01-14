@@ -197,6 +197,11 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 
 	// Round total_bytes up to page size
 	long page_size = sysconf(_SC_PAGESIZE);
+	if (page_size <= 0) {
+		siril_log_color_message(_("Invalid page size reported\n"), "red");
+		shm_unlink(shm_name_ptr);
+		return FALSE;
+	}
 	off_t aligned_size = (total_bytes + page_size - 1) & ~(page_size - 1);
 	printf("SHM allocation: Original size: %zu, Aligned size: %zu, Page size: %ld\n",
 					  total_bytes, aligned_size, page_size);
@@ -324,7 +329,8 @@ void cleanup_shm_resources(Connection *conn) {
 shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region) {
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		const char* error_msg = _("Failed to retrieve pixel data - no image loaded");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
 
@@ -345,7 +351,8 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 	win_shm_handle_t win_handle;
 	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &win_handle)) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
 #else
@@ -353,7 +360,8 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 	int fd;
 	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, total_bytes, &fd)) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
 #endif
@@ -361,7 +369,8 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 	// null check before memcpy
 	if (shm_ptr == NULL) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
 
@@ -411,7 +420,8 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes) {
 	if (total_bytes == 0) {
 		const char* error_msg = _("Incorrect memory region specification");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
 
@@ -422,14 +432,16 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	win_shm_handle_t win_handle = { NULL, NULL };
 	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &win_handle)) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
 #else
 	int fd;
 	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &fd)) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
 #endif
@@ -437,7 +449,8 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	// null check before memcpy
 	if (shm_ptr == NULL) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
 
@@ -474,19 +487,22 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		const char* error_msg = _("Processing thread is not claimed: unable to update the current image. "
 								"This is a script error: claim_thread() has either not been called or has failed, or "
 								"the thread has been released too early.");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return FALSE;
 	}
 
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		const char* error_msg = _("No image or sequence loaded: set_pixel_data() can only be used to update a loaded image, not to create a new one");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return FALSE;
 	}
 
 	if (payload_length != sizeof(incoming_image_info_t)) {
 		const char* error_msg = _("Invalid image info size");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return FALSE;
 	}
 
@@ -495,12 +511,19 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	info->height = GUINT32_FROM_BE(info->height);
 	info->channels = GUINT32_FROM_BE(info->channels);
 	info->size = GUINT64_FROM_BE(info->size);
+	if (info->size > get_available_memory() / 2) {
+		const char* error_msg = _("Invalid image size: exceeds memory limit");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
+		return FALSE;
+	}
 	info->data_type = GUINT32_FROM_BE(info->data_type);
 	// Validate image dimensions and format
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
 		info->channels > 3 || info->size == 0) {
 		gchar* error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %" G_GUINT64_FORMAT), info->width, info->height, info->channels, info->size);
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		g_free(error_msg);
 		return FALSE;
 	}
@@ -508,7 +531,8 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	size_t ncpixels = info->width * info->height * info->channels;
 	if (ncpixels * (info->data_type == 0 ? sizeof(WORD) : sizeof(float)) > get_available_memory() / 2) {
 		const char* error_msg = _("Error: image dimensions exceed available memory");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return FALSE;
 	}
 
@@ -519,14 +543,16 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
 		if (mapping == NULL) {
 			const char* error_msg = "Failed to open shared memory mapping";
-			send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_message("Error in send_response\n");
 			return FALSE;
 		}
 		shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
 		if (shm_ptr == NULL) {
 			CloseHandle(mapping);
 			const char* error_msg = "Failed to map shared memory view";
-			send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_message("Error in send_response\n");
 			return FALSE;
 		}
 		win_handle.mapping = mapping;
@@ -536,14 +562,16 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		if (fd == -1) {
 			const char* error_msg = _("Failed to open shared memory");
 			siril_debug_print("SHM ERROR: %s\n", error_msg);
-			send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_message("Error in send_response\n");
 			return FALSE;
 		}
 		shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 		if (shm_ptr == MAP_FAILED) {
 			close(fd);
 			const char* error_msg = _("Failed to map shared memory");
-			send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_message("Error in send_response\n");
 			return FALSE;
 		}
 	#endif
@@ -583,7 +611,8 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			close(fd);
 		#endif
 		const char* error_msg = _("Failed to allocate image buffer");
-		send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
 		return FALSE;
 	}
 

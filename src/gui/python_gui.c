@@ -1086,20 +1086,21 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 	if (!accept_script_warning_dialog())
 		return;
 
+	gchar** script_args = NULL;
+
 	// Get the start and end iterators
 	GtkTextIter start, end;
 	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
 	// Get the text
 	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
 
-	// Add args if we need to
-	gchar** script_args = NULL;
-	if (gtk_check_menu_item_get_active(useargs)) {
-		const gchar *args_string = gtk_entry_get_text(args_entry);
-		script_args = g_strsplit(args_string, " ", -1);
-	}
 	switch (active_language) {
 		case LANG_PYTHON:;
+			// Add args if we need to
+			if (gtk_check_menu_item_get_active(useargs)) {
+				const gchar *args_string = gtk_entry_get_text(args_entry);
+				script_args = g_strsplit(args_string, " ", -1);
+			}
 			execute_python_script(text, FALSE, FALSE, script_args);
 			g_strfreev(script_args);
 			break;
@@ -1127,7 +1128,6 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 			siril_debug_print("Error: unknown script language\n");
 			break;
 	}
-	// TODO: Neither case properly cleans up text yet
 }
 
 static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data) {
