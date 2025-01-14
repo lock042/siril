@@ -150,6 +150,49 @@ static GActionEntry app_entries[] = {
 	{ "about", about_action_activate }
 };
 
+gboolean builder_add_from_resource_with_replace(GtkBuilder *builder, const gchar* resource_path, GError** error) {
+	// Load the resource data
+	GBytes* resource_data = g_resources_lookup_data(resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, error);
+	if (!resource_data) {
+		return FALSE;
+	}
+
+	// Get the data as a string
+	gsize data_size;
+	const gchar* data = g_bytes_get_data(resource_data, &data_size);
+
+	gchar *modified_data = NULL;
+#ifdef __APPLE__
+	// Create a mutable copy of the data
+	modified_data = g_malloc(data_size + 1);
+	memcpy(modified_data, data, data_size);
+	modified_data[data_size] = '\0';
+
+	// Perform the replacement
+	gchar *result = g_str_replace(modified_data,
+			"GDK_CONTROL_MASK",
+			"GDK_META_MASK");
+#else
+	const gchar *result = data;
+#endif
+	// Create and load the builder
+	gboolean success = gtk_builder_add_from_string(builder, result, -1, error);
+
+	// Clean up
+	g_free(modified_data);
+#ifdef __APPLE__
+	g_free(result);
+#endif
+	g_bytes_unref(resource_data);
+
+	if (!success) {
+		g_object_unref(builder);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 void load_ui_files() {
 	GError *err = NULL;
 	gboolean retval;
@@ -181,6 +224,21 @@ void load_ui_files() {
 #ifdef DEBUG_MAIN
 		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
 #endif
+		i++;
+	}
+	i = 0;
+	while (*ui_files_with_accelerators[i]) {
+		retval = builder_add_from_resource_with_replace(gui.builder, ui_files_with_accelerators[i], &err);
+		retval = gtk_builder_add_from_resource(gui.builder, ui_files[i], &err);
+		if (!retval) {
+			g_error(_("%s was not found or contains errors, "
+			"cannot render GUI:\n%s\n Exiting.\n"), ui_files[i], err->message);
+			g_clear_error(&err);
+			exit(EXIT_FAILURE);
+		}
+		#ifdef DEBUG_MAIN
+		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
+		#endif
 		i++;
 	}
 }

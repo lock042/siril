@@ -58,7 +58,6 @@ const char* ui_files[] = {
 	"/org/siril/ui/merge_cfa_dialog.ui",
 	"/org/siril/ui/mouse_actions.ui",
 	"/org/siril/ui/pixelmath.ui",
-	"/org/siril/ui/python_scratchpad.ui",
 	"/org/siril/ui/resample_dialog.ui",
 	"/org/siril/ui/rgradient_dialog.ui",
 	"/org/siril/ui/rotation_dialog.ui",
@@ -82,6 +81,14 @@ const char* ui_files[] = {
 	"/org/siril/ui/aberration_inspector.ui",
 	"/org/siril/ui/data_dialog.ui",
 // Must be terminated by a NULL string
+	""
+};
+
+// UI files in this array will be processed differently and on MacOS
+// GTK_CONTROL_MASK will be replaced with GDK_META_MASK prior to
+// adding to the builder, in order to obtain the expected Cmd- shortcuts
+const char* ui_files_with_accelerators[] = {
+	"/org/siril/ui/python_scratchpad.ui",
 	""
 };
 
