@@ -3,23 +3,25 @@
 // Reference site is https://siril.org
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <healpix_base.h>
-#include <pointing.h>
-#include <vector>
-#include <array>
-#include <iostream>
-#include <fstream>
-#include <cstdint>
-#include <cstring>
-#include <iomanip>
-#include <cmath>
-#include <algorithm>
-#include <stdexcept>
-#include <utility>
-#include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/siril.h"
 #include "io/local_catalogues.h"
 #include "io/siril_catalogues.h"
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <healpix_base.h>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <pointing.h>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 #ifndef M_PI
 #define M_PI 3.14159265358979323846  /* pi */
 #endif
@@ -98,7 +100,7 @@ std::vector<HealPixelRange> create_healpixel_ranges(const std::vector<int>& pixe
 }
 
 // This function queries a catalogue of packed EntryType objects (the template allows
-// use of SourceEntryAstro or SourceEntryPhoto) for different uses. The catalogue MUST
+// use of SourceEntryAstro or SourceEntryXPsamp) for different uses. The catalogue MUST
 // be sorted by source_id otherwise the method will fail. Each entry that matches the
 // vector of source_id ranges is added to the result vector. Additional filtering (e.g.
 // on magnitude) can be done by the caller.
@@ -112,7 +114,7 @@ std::vector<EntryType> query_catalog(const std::string& filename, std::vector<He
 
     if (header.chunked) {
         uint32_t nside_chunk = 1 << header.chunk_level;
-        n_healpixels /= (12  * nside_chunk * nside_chunk);
+        n_healpixels /= (nside_chunk * nside_chunk);
         for (auto& range : healpixel_ranges) {
             range.start_id -= header.chunk_first_healpixel;
             range.end_id -= header.chunk_first_healpixel;
@@ -317,9 +319,6 @@ static int convert_healpix_level(int pixel_index, int from_level, int to_level) 
     }
 }
 
-#include <vector>
-#include <map>
-
 // Assuming convert_healpix_level is defined as:
 
 static std::vector<std::vector<int>> group_pixels_by_chunk(
@@ -482,7 +481,7 @@ extern "C" {
         return 0;
     }
 
-    int get_raw_stars_from_local_gaia_xpsampled_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
+    int get_raw_stars_from_local_gaia_xpsampled_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, SourceEntryXPsamp **stars, uint32_t *nb_stars) {
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
         siril_debug_print("Search radius: %f deg\n", radius);
         const double DEG_TO_RAD = M_PI / 180.0;
@@ -519,9 +518,10 @@ extern "C" {
         std::vector<std::vector<int>> chunked_pixel_indices = group_pixels_by_chunk(chunk_indices, pixel_indices, header.chunk_level, header.healpix_level);
 
         // Initialize the vector of results vectors for each chunk
-        std::vector<std::vector<SourceEntryPhoto>> results_in_chunks(chunk_indices.size());
+        std::vector<std::vector<SourceEntryXPsamp>> results_in_chunks(chunk_indices.size());
 
         // Iterate over the chunk indices and their pixel lists
+        bool file_error = false;
         for (size_t i = 0; i < chunk_indices.size(); ++i) {
             const int chunk_id = chunk_indices[i];
             const std::vector<int>& chunk_pixels = chunked_pixel_indices[i];
@@ -530,13 +530,21 @@ extern "C" {
 
             gchar *file = g_strdup_printf("siril_cat_healpix_xpsamp_%d.dat", chunk_id);
             gchar *chunk_file = g_build_path(com.pref.catalogue_paths[5], "localspcc", file, NULL);
+            if (!std::filesystem::exists(chunk_file)) {
+                siril_log_color_message(_("Chunk file not found: %s\n"), "red", chunk_file);
+                file_error = true;
+                break;
+            }
             std::string filename(chunk_file);
             g_free(file);
             g_free(chunk_file);
             // Query the catalogue for matches
-            results_in_chunks[i] = query_catalog<SourceEntryPhoto>(filename, healpixel_ranges, header);
+            results_in_chunks[i] = query_catalog<SourceEntryXPsamp>(filename, healpixel_ranges, header);
         }
-        std::vector<SourceEntryPhoto> matches = flatten(results_in_chunks);
+        if (file_error)
+            return 1;
+
+        std::vector<SourceEntryXPsamp> matches = flatten(results_in_chunks);
 
 
         // Check if no matches were found, return 1 in that case
@@ -550,7 +558,7 @@ extern "C" {
         double scaled_limitmag = limitmag * 1000.0;
         matches.erase(
             std::remove_if(matches.begin(), matches.end(),
-                           [scaled_limitmag](const SourceEntryPhoto& entry) {
+                           [scaled_limitmag](const SourceEntryXPsamp& entry) {
                                return entry.mag_scaled > scaled_limitmag;
                            }
             ),
@@ -560,7 +568,7 @@ extern "C" {
         // Filter by distance from the center of the cone
         matches.erase(
             std::remove_if(matches.begin(), matches.end(),
-                           [radius_h, ra, dec](const SourceEntryPhoto& entry) {
+                           [radius_h, ra, dec](const SourceEntryXPsamp& entry) {
                                return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * 0.000001, (double)entry.dec_scaled * .00001) > radius_h;
                            }
             ),
@@ -576,23 +584,12 @@ extern "C" {
 
         // Populate return data
         *nb_stars = matches.size();
-        *stars = (deepStarData*) malloc(*nb_stars * sizeof(deepStarData));
+        *stars = (SourceEntryXPsamp*) malloc(*nb_stars * sizeof(SourceEntryXPsamp));
         if (*stars == nullptr) {
             return -1;  // Memory allocation failed, return -1
         }
+        std::copy(matches.begin(), matches.end(), *stars);
 
-/*        uint32_t i = 0;
-        for (const auto& entry : matches) {
-            (*stars)[i++] = (deepStarData) {
-                .RA = entry.ra_scaled,
-                .Dec = entry.dec_scaled,
-                .dRA = entry.dra_scaled,
-                .dDec = entry.ddec_scaled,
-                .B = static_cast<int16_t>(entry.teff), // this knowingly abuses the struct, .B must be cast back to uint16_t on retrieval
-                .V = entry.mag_scaled
-            };
-        }
-*/
         return 0;
     }
 }
