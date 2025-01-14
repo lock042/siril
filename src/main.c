@@ -160,28 +160,25 @@ gboolean builder_add_from_resource_with_replace(GtkBuilder *builder, const gchar
 	// Get the data as a string
 	gsize data_size;
 	const gchar* data = g_bytes_get_data(resource_data, &data_size);
-
-	gchar *modified_data = NULL;
 #ifdef __APPLE__
-	// Create a mutable copy of the data
-	modified_data = g_malloc(data_size + 1);
-	memcpy(modified_data, data, data_size);
-	modified_data[data_size] = '\0';
+	// Create a GString from the data
+	GString *str = g_string_new_len(data, data_size);
 
-	// Perform the replacement
-	gchar *result = g_str_replace(modified_data,
-			"GDK_CONTROL_MASK",
-			"GDK_META_MASK");
+	// Perform the replacement - no limit on number of replacements
+	g_string_replace(str, "GDK_CONTROL_MASK", "GDK_META_MASK", 0);
+
+	// Get the modified result
+	const gchar *result = str->str;
 #else
-	const gchar *result = data;
+	const gchar* result = data;
 #endif
+
 	// Create and load the builder
 	gboolean success = gtk_builder_add_from_string(builder, result, -1, error);
 
 	// Clean up
-	g_free(modified_data);
 #ifdef __APPLE__
-	g_free(result);
+	g_string_free(str, TRUE);  // TRUE to free the string data as well
 #endif
 	g_bytes_unref(resource_data);
 
