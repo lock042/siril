@@ -28,6 +28,8 @@
 
 #include "io/kstars/binfile.h"
 #include "io/kstars/htmesh_wrapper.h"
+#include "core/siril.h"
+#include "core/arithm.h" // for half_to_float()
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/proto.h"
@@ -726,8 +728,10 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
 			siril_cat->cat_items[i].pmdec = (double)stars[i].ddec_scaled;
 			siril_cat->cat_items[i].mag = (float)stars[i].mag_scaled * 0.001;
+			float powexp = pow(10.f, stars[i].fexpo);
 			for (int j = 0 ; j < 343 ; j++) {
-				siril_cat->cat_items[i].xp_sampled[j] = (float)stars[i].flux[j] * 1e-9; // TODO: exponentiate to stars[i].fexpo
+				float d = half_to_float(stars[i].flux[j]);
+				siril_cat->cat_items[i].xp_sampled[j] = d / powexp;
 			}
 			siril_cat->cat_items[i].included = TRUE;
 		}
