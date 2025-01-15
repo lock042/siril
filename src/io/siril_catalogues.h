@@ -137,10 +137,12 @@ typedef struct {
 	gchar *type; // type of the object, for solsys and compstars
 	float teff; // GAIA Teff term
 	uint64_t gaiasourceid; // Gaia source ID, for constructing Datalink queries
-	float xp_sampled[343]; // Gaia xp_sampled data
+	double *xp_sampled; // Gaia xp_sampled data used for SPCC
 
 	// computed
 	float x, y;	// image coordinates
+	uint64_t index; // index in the Gaia results table when using CAT_GAIADR3_DIRECT for SPCC
+	float BV; // B ,agnitude - V magnitude, used in PCC
 	gboolean included; // flag to remove items from the list without deleting them (to be used by platesolve/pcc)
 } cat_item;
 

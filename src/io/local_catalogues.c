@@ -702,12 +702,40 @@ gboolean local_gaia_available() {
 int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return 0;
-	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO && siril_cat->cat_index != CAT_LOCAL_TRIX) {
+	if (siril_cat->cat_index != CAT_LOCAL &&
+			siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO &&
+			siril_cat->cat_index != CAT_LOCAL_GAIA_XPSAMP &&
+			siril_cat->cat_index != CAT_LOCAL_TRIX) {
 		siril_debug_print("Local cat query - Should not happen\n");
 		return 0;
 	}
 	deepStarData *stars = NULL;
 	uint32_t nb_stars;
+
+	if (siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP) {
+		SourceEntryXPsamp *stars = NULL;
+		if (get_raw_stars_from_local_gaia_xpsampled_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
+			return 0;
+		siril_cat->nbitems = (int)nb_stars;
+		siril_cat->nbincluded = (int)nb_stars;
+		siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			siril_cat->cat_items[i].xp_sampled = malloc(343 * sizeof(double));
+			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * 0.000001;
+			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * 0.00001;
+			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
+			siril_cat->cat_items[i].pmdec = (double)stars[i].ddec_scaled;
+			siril_cat->cat_items[i].mag = (float)stars[i].mag_scaled * 0.001;
+			for (int j = 0 ; j < 343 ; j++) {
+				siril_cat->cat_items[i].xp_sampled[j] = (float)stars[i].flux[j] * 1e-9; // TODO: exponentiate to stars[i].fexpo
+			}
+			siril_cat->cat_items[i].included = TRUE;
+		}
+		free(stars);
+		if (!siril_cat->nbitems)
+			return -1;
+		return siril_cat->nbitems;
+	}
 
 	if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO && get_raw_stars_from_local_gaia_astro_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, siril_cat->phot, &stars, &nb_stars))
 		return 0;

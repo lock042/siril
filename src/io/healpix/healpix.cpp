@@ -481,7 +481,7 @@ extern "C" {
         return 0;
     }
 
-    int get_raw_stars_from_local_gaia_xpsampled_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, SourceEntryXPsamp **stars, uint32_t *nb_stars) {
+    int get_raw_stars_from_local_gaia_xpsampled_catalogue(double ra, double dec, double radius, double limitmag, SourceEntryXPsamp **stars, uint32_t *nb_stars) {
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
         siril_debug_print("Search radius: %f deg\n", radius);
         const double DEG_TO_RAD = M_PI / 180.0;

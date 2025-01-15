@@ -61,7 +61,7 @@ gpointer photometric_cc_standalone(gpointer p);
 pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars);
 int get_favourite_spccobject(GList *list, const gchar *favourite);
 int get_favourite_oscsensor(GList *list, const gchar *favourite);
-int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit);
+int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit);
 
 #endif /* SRC_GUI_PHOTOMETRIC_CC_H_ */
 

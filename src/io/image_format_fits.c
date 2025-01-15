@@ -3126,7 +3126,7 @@ void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1, ...) 
  *
  * **************************************************************/
 
-int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
+int get_xpsampled(double *xps, const gchar *filename, int i) {
 	// The dataset wavelength range is always the same for all xpsampled spectra
 	// The spacing is always 2nm iaw the dataset
 	int status = 0, num_hdus = 0, anynul = 0, fluxcol = 0;
@@ -3190,7 +3190,7 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 	}
 	// Transfer the data from our temp float buffer to the xps double buffer
 	for (int j = 0 ; j < array_length ; j++) {
-		xps->y[j] = data[j];
+		xps[j] = data[j];
 	}
 
 	if (fits_close_file(fptr, &status))
