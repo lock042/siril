@@ -30,7 +30,6 @@ struct photometric_cc_data {
 	double atmos_obs_height;	// observer height for atmosphere model
 	double atmos_pressure;		// atmospheric pressure
 	gboolean atmos_pressure_is_slp;	// is atmospheric pressure sea level pressure?
-	pcc_star *stars;		// the list of stars with BV index in the image
 	int nb_stars;			// the number of stars in the array
 	float fwhm;			// representative FWHM for stars
 	float t0; // lower background tolerance, in sigma units
@@ -58,7 +57,6 @@ int apply_photometric_color_correction(fits *fit, const float *kw, const float *
 int get_stats_coefficients(fits *fit, rectangle *area, float *bg, float t0, float t1);
 int photometric_cc(struct photometric_cc_data *args);
 gpointer photometric_cc_standalone(gpointer p);
-pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars);
 int get_favourite_spccobject(GList *list, const gchar *favourite);
 int get_favourite_oscsensor(GList *list, const gchar *favourite);
 int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit);

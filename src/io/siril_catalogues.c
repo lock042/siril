@@ -565,9 +565,7 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
  *   and stores that in an array of psf_star objects. The obtained stars can be
  *   used for registration, but do not correspond to image coordinates.
  *
- * - The PCC reads them and projects stars on a plate-solved image using WCS
- *   and stores them in condensed form (pcc_star struct containing only
- *   x,y,b,v), done in the function project_catalog_with_WCS
+ * - The PCC reads them and projects stars on a plate-solved image using WCS.
  *
  * - Comparison star list creation needs equatorial coordinates and B-V
  *   magnitudes, projection is also used but only to check if a star is inside

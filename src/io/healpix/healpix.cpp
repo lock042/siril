@@ -137,7 +137,7 @@ std::vector<EntryType> query_catalog(const std::string& filename, std::vector<He
         file.seekg(pos, std::ios::beg);
         file.read(reinterpret_cast<char*>(&index_value), sizeof(uint32_t));
         if (!file) {
-            siril_log_color_message(_("Failed to read catalog index entry."), "red");
+            siril_log_color_message(_("Failed to read catalog index entry.\n"), "red");
             results.clear();
             return 0;
         }
@@ -150,7 +150,7 @@ std::vector<EntryType> query_catalog(const std::string& filename, std::vector<He
         uint32_t end_healpixel = range.end_id;
 
         if (start_healpixel >= n_healpixels || end_healpixel >= n_healpixels) {
-            siril_log_color_message(_("ID range exceeds catalog bounds."), "red");
+            siril_log_color_message(_("ID range exceeds catalog bounds.\n"), "red");
             results.clear();
             return results;
         }
@@ -179,7 +179,7 @@ std::vector<EntryType> query_catalog(const std::string& filename, std::vector<He
         file.read(reinterpret_cast<char*>(buffer.data()), num_records * sizeof(EntryType));
 
         if (!file) {
-            siril_log_color_message(_("Failed to read data entries."), "red");
+            siril_log_color_message(_("Failed to read data entries.\n"), "red");
             results.clear();
             return results;
         }
@@ -204,7 +204,18 @@ enum HealpixHeaderReadError {
 
 // Function to read the Healpix catalogue header
 HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status) {
-    HealpixCatHeader header;
+    HealpixCatHeader header = {
+        "",                     // title: empty string
+        static_cast<GaiaVersion>(0),  // gaia_version: zero
+        0,                      // healpix_level
+        static_cast<CatalogueType>(0), // cat_type
+        0,                      // chunked
+        0,                      // chunk_level
+        0,                      // chunk_healpix
+        0,                      // chunk_first_healpixel
+        0,                      // chunk_last_healpixel
+        {}                      // spare: zero-initialized array
+    };
     *error_status = HEALPIX_SUCCESS;  // Initialize to success
 
     // Open file in binary mode
