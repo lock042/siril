@@ -7967,10 +7967,7 @@ int process_seq_applyreg(int nb) {
 	driz->pixel_fraction = 1.f;
 
 	// check that registration exists for one layer at least
-	int layer = -1;
-	if (seq->regparam) {
-		layer = seq->reglayer;
-	}
+	int layer = get_registration_layer(seq);
 	if (layer == -1) {
 		siril_log_color_message(_("No registration data exists for this sequence, aborting\n"), "red");
 		goto terminate_register_on_error;

@@ -470,6 +470,7 @@ void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 		}
 		if (confirm) {
 			update_seqlist();
+			fill_sequence_list(&com.seq, FALSE);
 			siril_open_dialog("seqlist_dialog");
 		}
 	}

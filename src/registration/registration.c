@@ -226,6 +226,7 @@ gpointer register_thread_func(gpointer p) {
 		args->seq->reference_image = sequence_find_refimage(args->seq);
 	}
 	if (!args->retval)
+		args->seq->reglayer = args->layer;
 		writeseqfile(args->seq);
 	retval = args->retval;
 	if (args->disto) {

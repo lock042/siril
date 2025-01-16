@@ -980,7 +980,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		if (!luminance_mode)
 			i = 1;
 
-		for (int j=0; i<layers_count; i++) {
+		for (int j = 0; i < layers_count; i++) {
 			if (has_fit(i)) {
 				double dx, dy, rotation;
 				translation_from_H(seq->regparam[j].H, &dx, &dy);
@@ -1862,7 +1862,6 @@ int manual_align_prepare_hook(struct generic_seq_args *args) {
 	   it isn't a CFA sequence */
 	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
 		siril_log_message(_("Could not load reference image\n"));
-		args->seq->regparam = NULL;
 		free(sadata->current_regdata);
 		return 1;
 	}
@@ -1964,7 +1963,6 @@ int manual_align_finalize_hook(struct generic_seq_args *args) {
 	} else {
 		regargs->new_total = 0;
 		free(args->seq->regparam);
-		args->seq->regparam = NULL;
 
 		if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
 			fitseq_close_and_delete_file(args->new_fitseq);

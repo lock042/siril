@@ -242,10 +242,7 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 		return;
 	}
 	purge_user_catalogue(CAT_AN_USER_TEMP);
-	int layer = -1;
-	if (com.seq.regparam) {
-		layer = com.seq.reglayer;
-	}
+	int layer = get_registration_layer(&com.seq);
 	if (layer == -1) {
 		siril_debug_print("unregistered sequence\n");
 		//siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The sequence must be registered"));

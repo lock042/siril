@@ -594,9 +594,7 @@ gpointer light_curve_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
 
-	framing_mode framing = REGISTERED_FRAME;
-	if (framing == REGISTERED_FRAME && !args->seq->regparam)
-		framing = FOLLOW_STAR_FRAME;
+	framing_mode framing = (!args->seq->regparam) ? FOLLOW_STAR_FRAME : REGISTERED_FRAME;
 	// someday we should move the area in the seqpsf args, not needed for now
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];

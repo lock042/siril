@@ -1494,7 +1494,6 @@ int sequence_find_refimage(sequence *seq) {
 				best = image;
 			}
 		}
-
 	}
 
 	if (best == -1 && seq->selnum > 0) {

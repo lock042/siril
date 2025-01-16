@@ -124,7 +124,7 @@ static gpointer export_sequence(gpointer ptr) {
 	struct exportseq_args *args = (struct exportseq_args *)ptr;
 	norm_coeff coeff = { 0 };
 
-	if (seq_has_any_regdata(args->seq))
+	if (seq_has_usable_registration(args->seq))
 		siril_log_message(_("Using registration information to export sequence\n"));
 	if (args->crop) {
 		in_width  = args->crop_area.w;

@@ -377,18 +377,18 @@ int register_kombat(struct registration_args *args) {
 	reg_kombat ref_align;
 
 	if (seq_has_any_regdata(args->seq)) {
-	    	siril_log_message(
-		    		_("Recomputing already existing registration\n"));
-		    current_regdata = args->seq->regparam;
-		    /* we reset all values as we may register different images */
-		    memset(current_regdata, 0, args->seq->number * sizeof(regdata));
+			siril_log_message(
+					_("Recomputing already existing registration\n"));
+			current_regdata = args->seq->regparam;
+			/* we reset all values as we may register different images */
+			memset(current_regdata, 0, args->seq->number * sizeof(regdata));
 	} else {
-		    current_regdata = calloc(args->seq->number, sizeof(regdata));
-		    if (current_regdata == NULL) {
-    			PRINT_ALLOC_ERR;
-	    		return 1;
-    		}
-	    	args->seq->regparam = current_regdata;
+			current_regdata = calloc(args->seq->number, sizeof(regdata));
+			if (current_regdata == NULL) {
+				PRINT_ALLOC_ERR;
+				return 1;
+			}
+			args->seq->regparam = current_regdata;
 	}
 
 

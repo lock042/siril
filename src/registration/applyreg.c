@@ -60,7 +60,7 @@ static regdata *apply_reg_get_current_regdata(struct registration_args *regargs)
 		current_regdata = regargs->seq->regparam;
 	} else { // should not happen
 		siril_log_message(
-				_("No registration data exists for this layer\n"));
+				_("No registration data exists for this sequence\n"));
 		return NULL;
 	}
 	return current_regdata;
@@ -325,7 +325,9 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 
 	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
 		siril_log_color_message(_("Could not load reference image\n"), "red");
+		free(sadata->current_regdata);
 		args->seq->regparam = NULL;
+		args->seq->reglayer = -1;
 		clearfits(&fit);
 		return 1;
 	}
@@ -340,8 +342,9 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
 		siril_log_color_message(
 				_("Could not init distortion mapping\n"), "red");
-		args->seq->regparam = NULL;
 		free(sadata->current_regdata);
+		args->seq->regparam = NULL;
+		args->seq->reglayer = -1;
 		clearfits(&fit);
 		return 1;
 	}

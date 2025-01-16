@@ -169,12 +169,11 @@ void initialize_ips_dialog() {
 	// sequence related controls
 	gboolean isseq = sequence_is_loaded() && com.seq.current != RESULT_IMAGE;
 	gboolean is_bayer = !isseq && gfit.keywords.bayer_pattern[0] != '\0';
-	gboolean hasreg = isseq && seq_has_usable_registration(&com.seq);
 	gtk_widget_set_visible(GTK_WIDGET(flipbutton), !isseq && !is_bayer);
 	gtk_expander_set_expanded(sequenceexp, isseq);
 	gtk_widget_set_visible(GTK_WIDGET(sequenceexp), isseq);
 	gtk_widget_set_visible(GTK_WIDGET(stardetectionexp), !isseq);
-	gtk_widget_set_visible(GTK_WIDGET(seqsolvebutton), isseq && !hasreg);
+	gtk_widget_set_visible(GTK_WIDGET(seqsolvebutton), isseq);
 	on_GtkCheckButton_solveseq_toggled(NULL, NULL);
 	if (isseq) {
 		gtk_toggle_button_set_active(seqsolvebutton, FALSE);

@@ -539,6 +539,7 @@ int register_3stars(struct registration_args *regargs) {
 	}
 	// cleaning
 	regargs->new_total = processed - failed;
+	regargs->seq->reglayer = regargs->layer;
 	free(included);
 	free(scores);
 	_3stars_free_results();

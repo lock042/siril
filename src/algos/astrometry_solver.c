@@ -2000,12 +2000,12 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 				return 1;
 			}
 			arg->seq->regparam = current_regdata;
-			arg->seq->reglayer = args->layer;
 		} else {
 			siril_log_message(_("Recomputing already existing registration\n"));
 			/* we reset all values as we may register different images */
 			memset(arg->seq->regparam, 0, arg->seq->number * sizeof(regdata));
 		}
+		arg->seq->reglayer = args->layer;
 		args->WCSDATA = calloc(arg->seq->number, sizeof(struct wcsprm));
 		arg->seq->distoparam.index = DISTO_FILES;
 	}
@@ -2195,6 +2195,7 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_CURRENT, NULL, NULL);
 	}
 	if (!arg->retval)
+		arg->seq->reglayer = aargs->layer;
 		writeseqfile(arg->seq);
 	if (aargs->cat_center)
 		siril_world_cs_unref(aargs->cat_center);

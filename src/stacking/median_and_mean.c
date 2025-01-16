@@ -394,40 +394,38 @@ static int stack_read_block_data(struct stacking_args *args,
 			 * of the original area is read, the rest is filled with zeros. The x
 			 * shift is managed in the main loop after the read. */
 			regdata *layerparam = args->seq->regparam;
-			if (layerparam) {
-				double scale = (args->upscale_at_stacking) ? 2. : 1.;
-				double dx, dy;
-				translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
-				dy -=args->offset[1];
-				int shifty = round_to_int(dy * scale);
+			double scale = (args->upscale_at_stacking) ? 2. : 1.;
+			double dx, dy;
+			translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
+			dy -=args->offset[1];
+			int shifty = round_to_int(dy * scale);
 #ifdef STACK_DEBUG
-				fprintf(stdout, "shifty for image %d: %d\n", args->image_indices[frame], shifty);
+			fprintf(stdout, "shifty for image %d: %d\n", args->image_indices[frame], shifty);
 #endif
-				if (area.y + area.h + shifty <= 0 || area.y + shifty >= ry) {
-					// entirely outside image below or above: all black pixels
-					clear = TRUE; readdata = FALSE;
-				} else if (area.y + shifty < 0) {
-					/* we read only the bottom part of the area here, which
-					* requires an offset in pix */
-					clear = TRUE;
-					area.h += area.y + shifty;	// cropping the height
-					area.h = min(area.h, ry);
-					offset = -naxes[0] * (area.y + shifty);	// positive
-					area.y = 0;
-				} else if (area.y + area.h + shifty >= ry) {
-					/* we read only the upper part of the area here */
-					clear = TRUE;
-					area.y += shifty;
-					area.h += ry - (area.y + area.h);
-				} else {
-					area.y += shifty;
-				}
-				if (area.h <= 0) { // as a last safety net
-					clear = TRUE; readdata = FALSE;
-				}
+			if (area.y + area.h + shifty <= 0 || area.y + shifty >= ry) {
+				// entirely outside image below or above: all black pixels
+				clear = TRUE; readdata = FALSE;
+			} else if (area.y + shifty < 0) {
+				/* we read only the bottom part of the area here, which
+				* requires an offset in pix */
+				clear = TRUE;
+				area.h += area.y + shifty;	// cropping the height
+				area.h = min(area.h, ry);
+				offset = -naxes[0] * (area.y + shifty);	// positive
+				area.y = 0;
+			} else if (area.y + area.h + shifty >= ry) {
+				/* we read only the upper part of the area here */
+				clear = TRUE;
+				area.y += shifty;
+				area.h += ry - (area.y + area.h);
+			} else {
+				area.y += shifty;
+			}
+			if (area.h <= 0) { // as a last safety net
+				clear = TRUE; readdata = FALSE;
 			}
 #ifdef STACK_DEBUG
-			else fprintf(stderr, "NO REGPARAM\n");
+		else fprintf(stderr, "NO REGPARAM\n");
 #endif
 
 			if (clear) {
@@ -439,7 +437,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			}
 		}
 
-		if (has_regdata || readdata) {
+		if (!has_regdata || readdata) {
 			// reading pixels from current frame
 			void *buffer;
 			if (itype == DATA_FLOAT)
@@ -458,7 +456,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			}
 		}
 		
-		if (masking && (has_regdata || readdata)) {
+		if (masking && (!has_regdata || readdata)) {
 			// we need to compute the correct mask area
 			// We load the corresponding downscaled portion of the mask file (distances to black are already included)
 			// Upcsale it to the mask buffer
