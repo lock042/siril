@@ -805,14 +805,14 @@ class SirilInterface:
             True if the thread was successfully released
 
         Raises:
-            SirilException: if an error occurred in releasing the thread
+            SirilError: if an error occurred in releasing the thread
         """
         try:
             retval = self._execute_command(_Command.RELEASE_THREAD, None)
             if retval == True:
                 return True
             else:
-                raise SirilException(_("Error trying to release the processing thread. "
+                raise SirilError(_("Error trying to release the processing thread. "
                     "It will be released when the script terminates."))
 
         except Exception as e:
@@ -2694,19 +2694,19 @@ class SirilInterface:
 
             # Create FKeywords object
             return FKeywords(
-                _program=decode_string(values[0]),
-                _filename=decode_string(values[1]),
-                _row_order=decode_string(values[2]),
-                _filter=decode_string(values[3]),
-                _image_type=decode_string(values[4]),
-                _object=decode_string(values[5]),
-                _instrume=decode_string(values[6]),
-                _telescop=decode_string(values[7]),
-                _observer=decode_string(values[8]),
-                _sitelat_str=decode_string(values[9]),
-                _sitelong_str=decode_string(values[10]),
-                _bayer_pattern=decode_string(values[11]),
-                _focname=decode_string(values[12]),
+                program=decode_string(values[0]),
+                filename=decode_string(values[1]),
+                row_order=decode_string(values[2]),
+                filter=decode_string(values[3]),
+                image_type=decode_string(values[4]),
+                object=decode_string(values[5]),
+                instrume=decode_string(values[6]),
+                telescop=decode_string(values[7]),
+                observer=decode_string(values[8]),
+                sitelat_str=decode_string(values[9]),
+                sitelong_str=decode_string(values[10]),
+                bayer_pattern=decode_string(values[11]),
+                focname=decode_string(values[12]),
                 bscale=values[13],
                 bzero=values[14],
                 lo=values[15],
@@ -2721,14 +2721,14 @@ class SirilInterface:
                 binning_y=values[24],
                 expstart=values[25],
                 expend=values[26],
-                _centalt=values[27],
-                _centaz=values[28],
-                _sitelat=values[29],
-                _sitelong=values[30],
+                centalt=values[27],
+                centaz=values[28],
+                sitelat=values[29],
+                sitelong=values[30],
                 siteelev=values[31],
                 bayer_xoffset=values[32],
                 bayer_yoffset=values[33],
-                _airmass=values[34],
+                airmass=values[34],
                 focal_length=values[35],
                 flength=values[36],
                 iso_speed=values[37],
@@ -2739,13 +2739,13 @@ class SirilInterface:
                 livetime=values[42],
                 stackcnt=values[43],
                 cvf=values[44],
-                key_gain=values[45],
-                key_offset=values[46],
+                gain=values[45],
+                offset=values[46],
                 focuspos=values[47],
                 focussz=values[48],
                 foctemp=values[49],
-                _date=timestamp_to_datetime(values[50]),
-                _date_obs=timestamp_to_datetime(values[51])
+                date=timestamp_to_datetime(values[50]),
+                date_obs=timestamp_to_datetime(values[51])
             )
 
         except struct.error as e:
@@ -3045,19 +3045,19 @@ class SirilInterface:
                     pixeldata = None
 
             fits_keywords = FKeywords(
-                _program=decode_string(values[14]),
-                _filename=decode_string(values[15]),
-                _row_order=decode_string(values[16]),
-                _filter=decode_string(values[17]),
-                _image_type=decode_string(values[18]),
-                _object=decode_string(values[19]),
-                _instrume=decode_string(values[20]),
-                _telescop=decode_string(values[21]),
-                _observer=decode_string(values[22]),
-                _sitelat_str=decode_string(values[23]),
-                _sitelong_str=decode_string(values[24]),
-                _bayer_pattern=decode_string(values[25]),
-                _focname=decode_string(values[26]),
+                program=decode_string(values[14]),
+                filename=decode_string(values[15]),
+                row_order=decode_string(values[16]),
+                filter=decode_string(values[17]),
+                image_type=decode_string(values[18]),
+                object=decode_string(values[19]),
+                instrume=decode_string(values[20]),
+                telescop=decode_string(values[21]),
+                observer=decode_string(values[22]),
+                sitelat_str=decode_string(values[23]),
+                sitelong_str=decode_string(values[24]),
+                bayer_pattern=decode_string(values[25]),
+                focname=decode_string(values[26]),
                 bscale=values[27],
                 bzero=values[28],
                 lo=values[29],
@@ -3072,14 +3072,14 @@ class SirilInterface:
                 binning_y=values[38],
                 expstart=values[39],
                 expend=values[40],
-                _centalt=values[41],
-                _centaz=values[42],
-                _sitelat=values[43],
-                _sitelong=values[44],
+                centalt=values[41],
+                centaz=values[42],
+                sitelat=values[43],
+                sitelong=values[44],
                 siteelev=values[45],
                 bayer_xoffset=values[46],
                 bayer_yoffset=values[47],
-                _airmass=values[48],
+                airmass=values[48],
                 focal_length=values[49],
                 flength=values[50],
                 iso_speed=values[51],
@@ -3090,13 +3090,13 @@ class SirilInterface:
                 livetime=values[56],
                 stackcnt=values[57],
                 cvf=values[58],
-                key_gain=values[59],
-                key_offset=values[60],
+                gain=values[59],
+                offset=values[60],
                 focuspos=values[61],
                 focussz=values[62],
                 foctemp=values[63],
-                _date=timestamp_to_datetime(values[64]),
-                _date_obs=timestamp_to_datetime(values[65])
+                date=timestamp_to_datetime(values[64]),
+                date_obs=timestamp_to_datetime(values[65])
             )
             fit = FFit(
                 _naxes = (values[0], values[1], values[2]),
