@@ -2746,6 +2746,7 @@ class SirilInterface:
                 bzero=values[14],
                 lo=values[15],
                 hi=values[16],
+                # if fhi is 0.0, set both fhi and flo to None
                 flo=values[17] if values[18] != 0.0 else None,
                 fhi=values[18] if values[18] != 0.0 else None,
                 data_max=values[19],
