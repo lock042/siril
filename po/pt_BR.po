@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-31 08:29+0100\n"
-"PO-Revision-Date: 2024-12-26 22:18+0000\n"
-"Last-Translator: Jair Rillo Junior <jairrillo@gmail.com>\n"
+"PO-Revision-Date: 2025-01-17 22:32+0000\n"
+"Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -20,9 +20,8 @@ msgstr ""
 "X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
-#, fuzzy
 msgid "AAVSO parameters"
-msgstr "Selecionar Fase"
+msgstr "Parâmetros AAVSO"
 
 #: src/gui/uifiles/aavso_dialog.ui:22 src/gui/uifiles/annotate_dialog.ui:45
 #: src/gui/uifiles/astrometry_dialog.ui:113
@@ -87,34 +86,36 @@ msgstr "Aplicar"
 #: src/gui/uifiles/file_information_dialog.ui:96
 msgid "Non-square pixels can be entered but will not be used in most cases."
 msgstr ""
+"Pixels não quadrados podem ser inseridos, mas não serão usados na maioria "
+"dos casos."
 
 #: src/gui/uifiles/aavso_dialog.ui:71
-#, fuzzy
 msgid "Obstype: "
-msgstr "Tipo:"
+msgstr "Tipo de Observação: "
 
 #: src/gui/uifiles/aavso_dialog.ui:82
 msgid ""
 "The official AAVSO Observer Code for the observer which was previously "
 "assigned by the AAVSO."
 msgstr ""
+"O Código de Observador oficial da AAVSO para o observador que foi "
+"previamente atribuído pela AAVSO."
 
 #: src/gui/uifiles/aavso_dialog.ui:101
 msgid "Obscode: "
-msgstr ""
+msgstr "Código de Observador: "
 
 #: src/gui/uifiles/aavso_dialog.ui:113
 msgid "Filter: "
-msgstr ""
+msgstr "Filtro: "
 
 #: src/gui/uifiles/aavso_dialog.ui:124
-#, fuzzy
 msgid "The filter used for the observation."
-msgstr "Tipo de algoritmo usado para rotação"
+msgstr "O filtro usado para a observação."
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 msgid "Cname: "
-msgstr ""
+msgstr "Cname: "
 
 #: src/gui/uifiles/aavso_dialog.ui:183
 msgid "Kname: "
@@ -126,17 +127,22 @@ msgid ""
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
 "characters."
 msgstr ""
+"Nome ou rótulo da estrela de comparação, como o AUID (muito preferido) ou o "
+"rótulo do gráfico para a estrela de comparação usada. Se não estiver "
+"presente, use \"na\". Limite: 20 caracteres."
 
 #: src/gui/uifiles/aavso_dialog.ui:211
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart "
 "label for the check star. If not present, use \"na\". Limit: 20 characters."
 msgstr ""
+"Verifique o nome ou rótulo da estrela, como o AUID (muito preferido) ou o "
+"rótulo do gráfico para a estrela de verificação. Se não estiver presente, "
+"use \"na\". Limite: 20 caracteres."
 
 #: src/gui/uifiles/aavso_dialog.ui:229
-#, fuzzy
 msgid "Starid: "
-msgstr "Procurar sequências"
+msgstr "ID da estrela: "
 
 #: src/gui/uifiles/aavso_dialog.ui:240
 msgid ""
@@ -144,6 +150,9 @@ msgid ""
 "the AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 "
 "characters."
 msgstr ""
+"O identificador da estrela. Pode ser a designação AAVSO, o nome AAVSO ou o "
+"identificador exclusivo AAVSO, mas NÃO mais de um desses. Limite: 30 "
+"caracteres."
 
 #: src/gui/uifiles/aavso_dialog.ui:258
 msgid ""
@@ -151,16 +160,17 @@ msgid ""
 "Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a "
 "CMOS camera please report it as CCD."
 msgstr ""
+"O tipo de observação no arquivo de dados. Pode ser CCD, DSLR, PEP (para "
+"fotometria fotoelétrica). Se ausente, presume-se que seja CCD.  Se você usa "
+"uma câmera CMOS, informe-a como CCD."
 
 #: src/gui/uifiles/aavso_dialog.ui:275
-#, fuzzy
 msgid "Comparison star: "
-msgstr "_Processamento de imagem"
+msgstr "Estrela de comparação: "
 
 #: src/gui/uifiles/aavso_dialog.ui:286
-#, fuzzy
 msgid "The number of the comparison star."
-msgstr "Fase da imagem:"
+msgstr "O número de estrelas de comparação."
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
@@ -176,6 +186,12 @@ msgid ""
 "instrumental value of the comparison, and Cstd is the chart magnitude for "
 "the comparison."
 msgstr ""
+"A magnitude padronizada para a variável é dada por\n"
+"\n"
+"Vstd = (Vins - Cins) + Cstd\n"
+"\n"
+"onde Vins é a magnitude instrumental da variável, Cins é o valor "
+"instrumental da comparação e Cstd é a magnitude do gráfico para a comparação."
 
 #: src/gui/uifiles/aavso_dialog.ui:315 src/gui/uifiles/astrometry_dialog.ui:180
 #: src/gui/uifiles/astrometry_dialog.ui:202
@@ -187,18 +203,16 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:531 src/gui/uifiles/s_pcc_dialog.ui:1219
 #: src/gui/uifiles/s_pcc_dialog.ui:1237 src/gui/uifiles/s_pcc_dialog.ui:1255
 #: src/gui/uifiles/s_pcc_dialog.ui:1273
-#, fuzzy
 msgid "0"
-msgstr "x0"
+msgstr "0"
 
 #: src/gui/uifiles/aavso_dialog.ui:328
 msgid "Check star: "
-msgstr ""
+msgstr "Estrela de controle: "
 
 #: src/gui/uifiles/aavso_dialog.ui:339
-#, fuzzy
 msgid "The number of the check star."
-msgstr "Fase da imagem:"
+msgstr "Número de estrelas de controle."
 
 #: src/gui/uifiles/aavso_dialog.ui:351
 msgid ""
@@ -211,28 +225,38 @@ msgid ""
 "chart) and give a proper chart name like \"APASS DR10\". Then add "
 "information on the comp stars in the notes. Limit: 20 characters."
 msgstr ""
+"Por favor, use o ID da sequência que você encontrará escrito em negrito "
+"próximo ao topo da tabela de fotometria em uma frase que diz \"Relate esta "
+"sequência como [ID] no campo do gráfico do seu relatório de observação\". Se "
+"você usou suas próprias estrelas de comparação (por exemplo, no caso de "
+"alertas sensíveis ao tempo quando a equipe de sequência não teve tempo de "
+"criar uma sequência), não forneça uma ID de gráfico, mesmo que você tenha "
+"plotado o gráfico usando o VSP. Use o código de comentário K (gráfico não "
+"AAVSO) e dê um nome de gráfico adequado como \"APASS DR10\". Em seguida, "
+"adicione informações sobre as estrelas de comparação nas notas. Limite: 20 "
+"caracteres."
 
 #: src/gui/uifiles/aavso_dialog.ui:367
 msgid "Chart: "
-msgstr ""
+msgstr "Gráfico: "
 
 #: src/gui/uifiles/aavso_dialog.ui:379
 msgid "Notes: "
-msgstr ""
+msgstr "Notas: "
 
 #: src/gui/uifiles/aavso_dialog.ui:390
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
+"Comentários ou notas sobre a observação. Se não houver comentários, use \"na"
+"\"."
 
 #: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2520
-#, fuzzy
 msgid "Aberration Inspector"
-msgstr "Subtração"
+msgstr "Inspetor de Aberrações"
 
 #: src/gui/uifiles/annotate_dialog.ui:14
-#, fuzzy
 msgid "Annotate"
-msgstr "Rotação"
+msgstr "Anotar"
 
 #: src/gui/uifiles/annotate_dialog.ui:30
 #: src/gui/uifiles/background_extraction_dialog.ui:472
@@ -242,13 +266,12 @@ msgstr "Rotação"
 #: src/gui/uifiles/settings_window.ui:4318
 #: src/gui/uifiles/settings_window.ui:4359
 #: src/gui/uifiles/settings_window.ui:5896 src/gui/uifiles/siril.ui:3759
-#, fuzzy
 msgid "Clear"
-msgstr "Fechar a janela"
+msgstr "Excluir"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current annotations."
-msgstr ""
+msgstr "Excluir todas as anotações atuais."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -258,14 +281,12 @@ msgid "Close the window."
 msgstr "Fechar a janela."
 
 #: src/gui/uifiles/annotate_dialog.ui:67
-#, fuzzy
 msgid "Apply requested annotation."
-msgstr "Prefixo de saída:"
+msgstr "Aplique a anotação solicitada."
 
 #: src/gui/uifiles/annotate_dialog.ui:110
-#, fuzzy
 msgid "Catalogue: "
-msgstr "Auto deteção"
+msgstr "Catálogo: "
 
 #: src/gui/uifiles/annotate_dialog.ui:121
 msgid ""
@@ -282,73 +303,85 @@ msgid ""
 "- for solar system objects: solsys (closest IAU observatory code can be "
 "passed in the dedicated text field."
 msgstr ""
+"Estes são os catálogos usados para a imagem carregada resolvida em \"plate "
+"solving\":\n"
+"\n"
+"- Automático: Usa catálogos locais, se disponíveis. Caso contrário, o padrão "
+"é NOMAD.\n"
+"\n"
+"Você também pode escolher um catálogo online alternativo:\n"
+"\n"
+"- Para estrelas: TYCHO2, NOMAD, Gaia, PPMXL, BSC, Apass, GCVS, VSX, Simbad, "
+"aavso_chart\n"
+"- para exoplanetas: EXO\n"
+"- Para céu profundo: PGC\n"
+"- para objetos do sistema solar: solsys (o código do observatório IAU mais "
+"próximo pode ser passado no campo de texto dedicado."
 
 #: src/gui/uifiles/annotate_dialog.ui:133
-#, fuzzy
 msgid "automatic"
-msgstr "Auto deteção"
+msgstr "Automático"
 
 #: src/gui/uifiles/annotate_dialog.ui:134
 msgid "tycho2"
-msgstr ""
+msgstr "Tycho2"
 
 #: src/gui/uifiles/annotate_dialog.ui:135
 msgid "nomad"
-msgstr ""
+msgstr "NOMAD"
 
 #: src/gui/uifiles/annotate_dialog.ui:136
 msgid "gaia"
-msgstr ""
+msgstr "GAIA"
 
 #: src/gui/uifiles/annotate_dialog.ui:137
 msgid "ppmxl"
-msgstr ""
+msgstr "PPMXL"
 
 #: src/gui/uifiles/annotate_dialog.ui:138
 msgid "bsc"
-msgstr ""
+msgstr "BSC"
 
 #: src/gui/uifiles/annotate_dialog.ui:139
 msgid "apass"
-msgstr ""
+msgstr "APASS"
 
 #: src/gui/uifiles/annotate_dialog.ui:140
 msgid "gcvs"
-msgstr ""
+msgstr "GCVS"
 
 #: src/gui/uifiles/annotate_dialog.ui:141
 msgid "vsx"
-msgstr ""
+msgstr "VSX"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
 msgid "varisum"
-msgstr ""
+msgstr "VARISUM"
 
 #: src/gui/uifiles/annotate_dialog.ui:143
 msgid "simbad"
-msgstr ""
+msgstr "SIMBAD"
 
 #: src/gui/uifiles/annotate_dialog.ui:144
 msgid "exo"
-msgstr ""
+msgstr "EXO"
 
 #: src/gui/uifiles/annotate_dialog.ui:145
 msgid "pgc"
-msgstr ""
+msgstr "PGC"
 
 #: src/gui/uifiles/annotate_dialog.ui:146
 msgid "aavso_chart"
-msgstr ""
+msgstr "Gráfico_AAVSO"
 
 #: src/gui/uifiles/annotate_dialog.ui:147
 msgid "solsys"
-msgstr ""
+msgstr "SOLSYS"
 
 #: src/gui/uifiles/annotate_dialog.ui:159
 #: src/gui/uifiles/composition_dialog.ui:425
-#, fuzzy
 msgid "Photometric"
-msgstr "Fotometria"
+msgstr "Fotométrico"
 
 #: src/gui/uifiles/annotate_dialog.ui:163
 msgid ""
@@ -379,9 +412,8 @@ msgid "Log"
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:207
-#, fuzzy
 msgid "Save to: "
-msgstr "Guardar Ficheiro"
+msgstr "Salvar em: "
 
 #: src/gui/uifiles/annotate_dialog.ui:239
 msgid ""
@@ -415,9 +447,8 @@ msgid "Conesearch"
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:369
-#, fuzzy
 msgid "File: "
-msgstr "_Ficheiro"
+msgstr "Arquivo: "
 
 #: src/gui/uifiles/annotate_dialog.ui:381
 msgid ""
@@ -471,9 +502,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:520
-#, fuzzy
 msgid "Display Name:"
-msgstr "_Processamento de imagem"
+msgstr "Nome de exibição:"
 
 #: src/gui/uifiles/annotate_dialog.ui:531
 msgid ""
@@ -487,9 +517,8 @@ msgid "Click this button to save the entry to the user DSO catalogue."
 msgstr "Clique neste botão para mostrar o fundo estimado."
 
 #: src/gui/uifiles/annotate_dialog.ui:564
-#, fuzzy
 msgid "Get coordinates from selection"
-msgstr "Distância focal (mm): "
+msgstr "Obter coordenadas da seleção"
 
 #: src/gui/uifiles/annotate_dialog.ui:585
 #, fuzzy
@@ -514,9 +543,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:644
-#, fuzzy
 msgid "Name: "
-msgstr "Nome"
+msgstr "Nome: "
 
 #: src/gui/uifiles/annotate_dialog.ui:660
 #, fuzzy
@@ -676,18 +704,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
-#, fuzzy
 msgid "Focal length (mm):"
-msgstr "Distância focal (mm): "
+msgstr "Distância focal (mm):"
 
 #: src/gui/uifiles/astrometry_dialog.ui:420
 msgid "Pixel size in microns. The image is assumed to have square pixels."
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:421
-#, fuzzy
 msgid "Pixel size (µm):"
-msgstr "Dimensão X pixel (micron): "
+msgstr "Tamanho de píxel (µm):"
 
 #: src/gui/uifiles/astrometry_dialog.ui:432
 #: src/gui/uifiles/astrometry_dialog.ui:447
@@ -854,9 +880,8 @@ msgid "Tick this box to ignore sampling when solving with local Astrometry.net"
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:770
-#, fuzzy
 msgid "Save distortion"
-msgstr "Prefixo de saída:"
+msgstr "Salvar distorção"
 
 #: src/gui/uifiles/astrometry_dialog.ui:774
 msgid ""
@@ -878,9 +903,8 @@ msgid "Image Parameters"
 msgstr "_Processamento de imagem"
 
 #: src/gui/uifiles/astrometry_dialog.ui:906 src/gui/uifiles/s_pcc_dialog.ui:993
-#, fuzzy
 msgid "Catalogue Limit Mag: "
-msgstr "Auto deteção"
+msgstr "Catálogo Limit Mag: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:918
 #: src/gui/uifiles/s_pcc_dialog.ui:1005
@@ -904,9 +928,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:951
-#, fuzzy
 msgid "Star Catalogue: "
-msgstr "Calibração de cor..."
+msgstr "Catálogo de estrelas: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:963
 msgid ""
@@ -979,9 +1002,8 @@ msgid "Tick this box to solve the whole sequence."
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1112
-#, fuzzy
 msgid "Use as registration information"
-msgstr "Transformação de histograma..."
+msgstr "Usar como informação de registro"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1116
 msgid "Tick this box to use astrometric data to compute sequence registration."
@@ -1012,9 +1034,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1175
-#, fuzzy
 msgid "Use coordinates from headers"
-msgstr "Distância focal (mm): "
+msgstr "Usar coordenadas dos cabeçalhos"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1179
 msgid ""
@@ -1023,9 +1044,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1190
-#, fuzzy
 msgid "Use pixel size from headers"
-msgstr "Distância focal (mm): "
+msgstr "Usar tamanho de píxel dos cabeçalhos"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1194
 msgid ""
@@ -1034,9 +1054,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1205
-#, fuzzy
 msgid "Use focal length from headers"
-msgstr "Distância focal (mm): "
+msgstr "Usar distância focal dos cabeçalhos"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1209
 msgid ""
@@ -1063,9 +1082,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/background_extraction_dialog.ui:127
-#, fuzzy
 msgid "Choose between interpolation methods."
-msgstr "Interpolação de *Debayer* "
+msgstr "Escolha entre métodos de interpolação."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:131
 #, fuzzy

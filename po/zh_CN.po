@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-31 08:29+0100\n"
-"PO-Revision-Date: 2024-07-01 08:37+0000\n"
-"Last-Translator: Shun-Chia Yang <a26413768@gmail.com>\n"
-"Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
-"siril-application/zh_Hans/>\n"
+"PO-Revision-Date: 2025-01-17 22:32+0000\n"
+"Last-Translator: GarthTB <g-art-h@outlook.com>\n"
+"Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
+"projects/siril/software/siril/zh_Hans/>\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
@@ -241,9 +241,8 @@ msgid "Aberration Inspector"
 msgstr "像差检查器"
 
 #: src/gui/uifiles/annotate_dialog.ui:14
-#, fuzzy
 msgid "Annotate"
-msgstr "标记"
+msgstr "标注"
 
 #: src/gui/uifiles/annotate_dialog.ui:30
 #: src/gui/uifiles/background_extraction_dialog.ui:472
@@ -258,7 +257,7 @@ msgstr "清除"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current annotations."
-msgstr ""
+msgstr "清除所有标注。"
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -268,14 +267,12 @@ msgid "Close the window."
 msgstr "关闭窗口。"
 
 #: src/gui/uifiles/annotate_dialog.ui:67
-#, fuzzy
 msgid "Apply requested annotation."
-msgstr "应用对齐"
+msgstr "应用指定的标注。"
 
 #: src/gui/uifiles/annotate_dialog.ui:110
-#, fuzzy
 msgid "Catalogue: "
-msgstr "星表"
+msgstr "星表： "
 
 #: src/gui/uifiles/annotate_dialog.ui:121
 msgid ""
@@ -292,6 +289,17 @@ msgid ""
 "- for solar system objects: solsys (closest IAU observatory code can be "
 "passed in the dedicated text field."
 msgstr ""
+"已解析的图像可使用以下星表：\n"
+"\n"
+"- 自动：使用本地星表，如果没有则使用nomad。\n"
+"\n"
+"也可以使用在线星表：\n"
+"\n"
+"- 恒星：tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, simbad, "
+"aavso_chart\n"
+"- 系外行星：exo\n"
+"- 深空天体：pgc\n"
+"- 太阳系天体：solsys （可以在对应的文本框里输入距离最近的IAU天文台编号。"
 
 #: src/gui/uifiles/annotate_dialog.ui:133
 #, fuzzy
@@ -305,19 +313,19 @@ msgstr "Tycho-2"
 
 #: src/gui/uifiles/annotate_dialog.ui:135
 msgid "nomad"
-msgstr ""
+msgstr "nomad星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:136
 msgid "gaia"
-msgstr ""
+msgstr "GAIA（盖亚）星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:137
 msgid "ppmxl"
-msgstr ""
+msgstr "ppmxl星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:138
 msgid "bsc"
-msgstr ""
+msgstr "bsc星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:139
 #, fuzzy
@@ -326,35 +334,35 @@ msgstr "罗盘"
 
 #: src/gui/uifiles/annotate_dialog.ui:140
 msgid "gcvs"
-msgstr ""
+msgstr "gcvs星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:141
 msgid "vsx"
-msgstr ""
+msgstr "vsx星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
 msgid "varisum"
-msgstr ""
+msgstr "varisum星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:143
 msgid "simbad"
-msgstr ""
+msgstr "simbad星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:144
 msgid "exo"
-msgstr ""
+msgstr "exo星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:145
 msgid "pgc"
-msgstr ""
+msgstr "pgc星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:146
 msgid "aavso_chart"
-msgstr ""
+msgstr "aavso_chart星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:147
 msgid "solsys"
-msgstr ""
+msgstr "solsys星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:159
 #: src/gui/uifiles/composition_dialog.ui:425
@@ -388,7 +396,7 @@ msgstr ""
 #: src/gui/uifiles/annotate_dialog.ui:189
 #: src/gui/uifiles/annotate_dialog.ui:442
 msgid "Log"
-msgstr ""
+msgstr "日志"
 
 #: src/gui/uifiles/annotate_dialog.ui:207
 #, fuzzy
@@ -1216,9 +1224,9 @@ msgid ""
 "quantization error, preventing large-scale patterns such as color banding in "
 "images."
 msgstr ""
-"当色彩混合在背景提取之后执行时，需点选此项。\n"
-"抖色是有意加入的噪声形式，可使量子化误差随机化，用于预防图像中出现像彩色条带"
-"这样的大范围模式化错误。"
+"如果背景提取后出现色彩断层，请勾选此项。\n"
+"抖色是一种故意加入的噪点，用于使量化误差随机化，以防图像中出现像色彩断层这样"
+"的大块纹路。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:450
 msgid "Generate"
@@ -1861,10 +1869,10 @@ msgid ""
 "more often used in regularizing denoising algorithms but can perform well "
 "when deconvolving a star mask produced by Siril's Starnet++ interface."
 msgstr ""
-"全变分正则化可以很好地保留图像中的锐利边缘。如有疑问，请坚持使用全变分。然"
-"而，它可能倾向于在大面积的均匀区域产生“阶梯效应”。\n"
+"全变分正则化可以很好地保留图像中的锐利边缘。如有疑问，请坚持使用全变分。然而"
+"，它可能倾向于在大面积的均匀区域产生“阶梯效应”。\n"
 "黑森的弗罗贝尼乌斯规范使用二阶正则项。它更常用于正则化降噪算法，但在对Siril的"
-"Starnet++接口产生的星点遮罩进行反卷积时可以表现良好。"
+"Starnet++接口产生的纯星图像进行反卷积时可以表现良好。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1988
 msgid "Total Variation"
@@ -3140,7 +3148,7 @@ msgstr "逆变换"
 
 #: src/gui/uifiles/dialog_star_remix.ui:97
 msgid "Star Recomposition"
-msgstr "星点重绘"
+msgstr "星点重混合"
 
 #: src/gui/uifiles/dialog_star_remix.ui:112
 msgid "Log histograms"
@@ -3179,9 +3187,9 @@ msgid ""
 "reduction workflow, you can specify any two fits files with the same "
 "dimensions and bit depth for blending."
 msgstr ""
-"选择无星图像以使用星点遮罩进行重绘。 \n"
-"虽然该工具的主要目的是将星点重绘作为缩星工作流程的一部分，但您可以指定任意两"
-"个具有相同尺寸和位深的fits文件进行混合。"
+"选择一张无星图像，来与纯星图像进行重混合。 \n"
+"星点重绘本应是缩星流程的一环，但此工具也可以用来混合任意两个具有相同尺寸和位"
+"深的fits文件。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:258
 msgid ""
@@ -3289,9 +3297,8 @@ msgid ""
 "Independently controls the contrast added (the slope of the stretch) at SP, "
 "thus adjusting the amount of stretch applied to the rest of the image. "
 "Increasing D increases the intensity of stars in the resulting composition."
-msgstr ""
-"独立控制在SP处加强的对比度（拉伸的斜率），从而调整应用于图像其余部分的拉伸"
-"量。增加D会提高结果中星点的亮度。"
+msgstr "在拐点处额外增加对比度（拉伸的斜率），从而带动其余部分的拉伸量。增加D会提高结"
+"果中星点的亮度。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:475
 #: src/gui/uifiles/dialog_star_remix.ui:1113
@@ -3307,14 +3314,14 @@ msgid ""
 "peak brightness above SP, but may bloat their PSF; it will reduce the "
 "intensity of stars below SP."
 msgstr ""
-"通过修改变换的算法，使拉伸力度集中在图像的特定区域。提高b值，会提高峰值高于SP"
-"的星点的亮度，但可能会使它们的PSF肥大，同时降低峰值低于SP的星点的亮度。"
+"通过修改拉伸的算法，使拉伸力度集中在图像的特定区域。提高b值，会提高峰值高于拐"
+"点的星点的亮度（但可能会使它们的PSF肥大），同时降低峰值低于拐点的星点的亮度。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:545
 #: src/gui/uifiles/dialog_star_remix.ui:1183
 #: src/gui/uifiles/histogram_dialog.ui:1106
 msgid "Symmetry point (SP)"
-msgstr "拐点 （SP）"
+msgstr "拐点"
 
 #: src/gui/uifiles/dialog_star_remix.ui:556
 #: src/gui/uifiles/dialog_star_remix.ui:602
@@ -3323,18 +3330,16 @@ msgid ""
 "recomposition, increasing SP reduces the intensity of stars with peak "
 "brightness below SP and therefore the amount of stars that show in the "
 "resulting composition."
-msgstr ""
-"设置拉伸强度最大的拐点。对于星点重构，增加SP会降低峰值亮度低于SP的星点的亮"
-"度，从而减少重构结果中的星点数量。"
+msgstr "设置拐点，即拉伸强度最大之处。对于星点重构，提高拐点会削弱峰值低于拐点的星点"
+"，从而减少重混合结果中的星点数量。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:576
 msgid ""
 "Allows setting SP from the current selection. This is best suited for use "
 "with the background image, where it can effectively pick out faint detail "
 "above the background. It is not generally useful with the star mask image."
-msgstr ""
-"允许从当前选区中设置 SP。这最适合与背景图像一起使用，它可以有效地挑选出背景上"
-"的微弱细节。它通常对星点遮罩图像没有用处。"
+msgstr "允许从当前选区中设置拐点。适用于无星图像，可以有效凸显出背景中的暗弱细节。通"
+"常对纯星图像没什么用。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:637
 #: src/gui/uifiles/dialog_star_remix.ui:1275
@@ -3356,10 +3361,10 @@ msgid ""
 "definition in the background. This parameter must be greater than or equal "
 "to 0 and not greater than SP."
 msgstr ""
-"设置一个值，低于该值将修改拉伸以保留阴影中的对比度。这是通过在 LP 下方执行线"
-"性拉伸来完成的，方法是保留图像其余部分的对比度。将LP移向SP会改变对比度保留的"
-"范围和数量，净效果是将整体拉伸推向更高的亮度水平，同时保持背景中的对比度和清"
-"晰度。此参数必须大于等于 0 且不大于 SP。"
+"设置一个值，低于该值将应用不同的拉伸，以保护阴影中的对比度。在阴影保护点以下"
+"的值将改用线性拉伸，其余部分不变。阴影保护点越靠近拐点，保护的范围就越大、效"
+"果就越强。最终效果是提高阴影部分的亮度，以保护反差和细节。此参数必须大于等于0"
+"且不大于拐点。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:708
 #: src/gui/uifiles/dialog_star_remix.ui:1346
@@ -3372,9 +3377,8 @@ msgid ""
 "Sets a value above which the stretch is modified to preserve contrast in the "
 "highlights / stars. The star mask HP can be set to quite a low value to "
 "prevent bloat of brighter stars."
-msgstr ""
-"设置一个值，超过该值将修改拉伸以保留高光/星点中的对比度。星点遮罩HP可以设置为"
-"相当低的值，以防止亮星肥大。"
+msgstr "设置一个值，超过该值将应用不同的拉伸，以保护高光/星点中的对比度。高光保护点可"
+"以设置为相当低的值，以防止亮星肥大。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:745
 msgid ""
@@ -3383,8 +3387,8 @@ msgid ""
 "recomposition mode to prevent bloat of brighter stars while boosting the "
 "brightness of fainter ones."
 msgstr ""
-"设置一个值，超过该值将修改拉伸以保留高光/星点中的对比度。在星点重绘模式下，这"
-"可以设置为相当低的值，以防止亮星肥大，同时提高暗星的亮度。"
+"设置一个值，超过该值将应用不同的拉伸，以保护高光/星点中的对比度。在星点重混合"
+"模式下，这可以设置为相当低的值，用来在防止亮星肥大的同时，提高暗星的亮度。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:780
 #: src/gui/uifiles/dialog_star_remix.ui:1418
@@ -3425,9 +3429,9 @@ msgid ""
 "brightness. When this is set to zero, the stretch will be the identity "
 "transform, but any ordered black point adjustment will still occur."
 msgstr ""
-"独立控制在SP处添加的对比度（拉伸的斜率），从而调整应用于图像其余部分的拉伸"
-"量。它不会改变拉伸的形态，只有量变，并且应与b一起使用以控制对比度和亮度的分"
-"布。当此值设置为零时，拉伸将是恒等变换，但仍会发生任何已设的黑点调节。"
+"在拐点处额外增加对比度（拉伸的斜率），从而带动其余部分的拉伸量。它不会改变拐"
+"点的位置，只是增加斜率，并且应与b一起使用以控制对比度和亮度的分布。当此值设置"
+"为零时，拉伸将是恒等变换，但黑点调节（如果请求了）仍会发生。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1124
 #: src/gui/uifiles/dialog_star_remix.ui:1148
@@ -3460,9 +3464,9 @@ msgid ""
 "pixel values away from SP. This parameter must be greater than or equal to "
 "LP and less than or equal to HP."
 msgstr ""
-"设置拉伸强度最大的拐点——对比度将围绕 SP （拐点）对称分布。拐点通常应放置在直"
-"方图峰值上，以便在该点上拉伸出最大的对比度，使峰值变得扁平。拉伸会使像素值远"
-"离 SP。此参数必须大于等于 LP 且小于等于 HP。"
+"设置拉伸强度最大的拐点——对比度将围绕拐点对称分布。拐点通常应放置在直方图峰值"
+"上，以便在该点上拉伸出最大的对比度，使峰值变得扁平。拉伸会使得像素值远离拐点"
+"。此参数必须大于等于阴影保护点且小于等于高光保护点。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1214
 #: src/gui/uifiles/histogram_dialog.ui:1138
@@ -3487,11 +3491,11 @@ msgid ""
 "of limited use for starless backgrounds but is very effective on the star "
 "mask for preventing star bloat."
 msgstr ""
-"设置一个值，超过该值将修改拉伸以保留高光/星点中的对比度。这是通过保留图像其余"
-"部分的对比度来对HP上方的数据执行线性拉伸来完成的。将HP移向SP可以同时调整对比"
-"度保留的范围和数量，净效果是将整体拉伸推向较低的亮度水平，同时保持高光部分的"
-"对比度和清晰度。此参数必须小于等于 1 且不小于 SP。此参数通常对无星背景的用途"
-"有限，但在星点遮罩上非常有效，可防止星点肥大。"
+"设置一个值，超过该值将应用不同的拉伸，以保护高光/星点中的对比度。在高光保护点"
+"以上的值将改用线性拉伸，其余部分不变。高光保护点越靠近拐点，保护的范围就越大"
+"、效果就越强。最终效果是削弱高光部分的拉伸强度，以保护高光部分的反差和细节。"
+"此参数必须小于等于1，且不小于拐点。此参数通常对无星图像没什么用，但在纯星图像"
+"上非常有效，可防止星点肥大。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1495
 msgid "Background Stretch Parameters"
@@ -3873,10 +3877,10 @@ msgid ""
 "keeping the contrast and definition in the highlights. This parameter must "
 "be less than or equal to 1 and not less than SP."
 msgstr ""
-"设置一个值，超过该值将修改拉伸以保留高光/星点中的对比度。这是通过保留图像其余"
-"部分的对比度来对HP上方的数据执行线性拉伸来完成的。将HP移向SP可以同时调整对比"
-"度保留的范围和数量，净效果是将整体拉伸推向较低的亮度水平，同时保持高光部分的"
-"对比度和清晰度。此参数必须小于等于 1 且不小于 SP。"
+"设置一个值，超过该值将应用不同的拉伸，以保护高光/星点中的对比度。在高光保护点"
+"以上的值将改用线性拉伸，其余部分不变。高光保护点越靠近拐点，保护的范围就越大"
+"、效果就越强。最终效果是削弱高光部分的拉伸强度，以保护高光部分的反差和细节。"
+"此参数必须小于等于1，且不小于拐点。"
 
 #: src/gui/uifiles/histogram_dialog.ui:1347
 msgid ""
@@ -5485,10 +5489,10 @@ msgstr ""
 "选择一种FITS压缩算法：\n"
 "\n"
 "* <b>Rice</b>: 一种简单而快速的算法。\n"
-"* <b>GZIP 1</b>: gzip算法用于压缩和解压像素值。Gzip是GNU工程的同名自由软件所"
-"使用的算法。\n"
-"* <b>GZIP 2</b>: 进行gzip算法之前对图像阵列中的像素值进行混洗以降低有效值的有"
-"序性。通常对浮点数阵列更加有效。"
+"* <b>GZIP 1</b>: "
+"gzip算法用于压缩和解压像素值。gzip是同名的免费GNU工具软件中使用的压缩算法。\n"
+"* <b>GZIP 2</b>: 进行gzip算法之前，按显著性降序对图像像素值重排。通常对于压缩"
+"一组浮点数据尤为有效。"
 
 #: src/gui/uifiles/settings_window.ui:919
 msgid "GZIP1"
@@ -5504,7 +5508,7 @@ msgstr "方法"
 
 #: src/gui/uifiles/settings_window.ui:948
 msgid "Quantization level"
-msgstr "量子化水平"
+msgstr "量化程度"
 
 #: src/gui/uifiles/settings_window.ui:961
 msgid "Tile dimensions"
@@ -5589,7 +5593,7 @@ msgstr "通过删除文件来清除深空用户星表。该操作无法撤销"
 
 #: src/gui/uifiles/settings_window.ui:1283
 msgid "Annotations"
-msgstr "标记"
+msgstr "标注"
 
 #: src/gui/uifiles/settings_window.ui:1307
 msgid ""
@@ -5779,7 +5783,7 @@ msgstr "目标半径（度）"
 msgid ""
 "Allowed search radius around the target coordinates for the solve (degrees). "
 "Unused for blind (no target passed) solves."
-msgstr "解析的目标坐标周围搜索半径（度）。盲解析（未传递目标坐标时）不可用。"
+msgstr "解析的目标坐标周围搜索半径（度）。盲解析（未输入目标坐标时）不可用。"
 
 #: src/gui/uifiles/settings_window.ui:1672
 msgid "10.00"
@@ -5814,9 +5818,7 @@ msgstr "不要删除 .xyls FITS 表"
 msgid ""
 "The list of stars is passed to solve-field as a FITS table, check this to "
 "keep the file in the working directory."
-msgstr ""
-"作为 FITS 表传递到 solve-field 的星点列表，勾选此选项以将文件保留在工作目录"
-"中。"
+msgstr "星点列表会作为 FITS 表输入到解析框中，勾选此选项以将文件保留在工作目录中。"
 
 #: src/gui/uifiles/settings_window.ui:1788
 msgid "Do not delete .wcs result files"
@@ -6226,7 +6228,7 @@ msgstr "亮色主题"
 
 #: src/gui/uifiles/settings_window.ui:3396
 msgid "Symbolic icons"
-msgstr "象征性的图标"
+msgstr "简约图标"
 
 #: src/gui/uifiles/settings_window.ui:3419
 msgid "Look and Feel (restart required)"
@@ -6371,7 +6373,7 @@ msgstr "背景提取的采样点："
 
 #: src/gui/uifiles/settings_window.ui:3878
 msgid "Standard annotations:"
-msgstr "标准标记："
+msgstr "标准标注："
 
 #: src/gui/uifiles/settings_window.ui:3890
 msgid "Deep Sky Object (user) annotations:"
@@ -7643,11 +7645,11 @@ msgstr "StarNet 星点移除..."
 #: src/gui/uifiles/siril.ui:1829
 msgid ""
 "Blends a starless image and star mask, each with separate stretches applied"
-msgstr "混合无星图像和星点遮罩，每个图像都应用单独的拉伸"
+msgstr "对无星图像和纯星图像分别应用单独的拉伸，然后混合"
 
 #: src/gui/uifiles/siril.ui:1831
 msgid "Star Recomposition..."
-msgstr "星点重绘..."
+msgstr "星点重混合..."
 
 #: src/gui/uifiles/siril.ui:1844
 msgid ""
@@ -7671,10 +7673,10 @@ msgid ""
 "Star synthesis should be applied <i>before</i> <b>stretching</b>.\n"
 "Star selection can be manually fine-tuned using the Dynamic PSF tool."
 msgstr ""
-"使用从原始数据中测量的参数，为Siril侦测到的每个星点创建形状完美的合成高斯/"
-"Moffat星点遮罩。星点遮罩可以与无星图像重新组合以修复像差。\n"
-"星点合成应该<i>先于</i><b>拉伸</b>应用。\n"
-"可以使用动态 PSF工具手动微调星点选择。"
+"使用从原始数据中测量的参数，为Siril侦测到的每个星点创建形状完美的合成星点（高"
+"斯或Moffat形）。合成星点可以与无星图像重新组合以修复像差。\n"
+"星点合成应该<i>先于</i><b>拉伸操作</b>。\n"
+"可以使用动态PSF工具手动精调星点的选取。"
 
 #: src/gui/uifiles/siril.ui:1867
 msgid "Full Resynthesis"
@@ -7858,9 +7860,8 @@ msgid "Image Plate Solver..."
 msgstr "图像解析…"
 
 #: src/gui/uifiles/siril.ui:2449
-#, fuzzy
 msgid "Annotate..."
-msgstr "标记"
+msgstr "标注..."
 
 #: src/gui/uifiles/siril.ui:2475 src/gui/uifiles/siril.ui:2731
 msgid "Image Analysis"
@@ -8615,10 +8616,10 @@ msgid ""
 "When processing images, registration data is taken from the default layer if "
 "available (for RGB images: Green, else fallback to Blue then Red)."
 msgstr ""
-"每次对齐操作只能在一个图层中完成，因此在单色图像上也是如此。\n"
-"名字中有(*)所标注的为对齐数据已经可用的图层。\n"
-"当图像被处理时，对齐数据是从可用的缺省图层所获取的（对于RBG图像：绿色，然后是"
-"蓝色和红色）。"
+"对齐使用的通道。每次只在图像的一个通道上进行对齐，在单色图像上也是如此。\n"
+"名字中有(*)标注的是已有对齐数据的通道。\n"
+"处理图像时，会从可用的缺省通道所获取对齐数据（对于RGB图像：绿通道，如果没有就"
+"从蓝通道，再到红通道）。"
 
 #: src/gui/uifiles/siril.ui:5550
 msgid "Match stars in selection"
@@ -10080,7 +10081,7 @@ msgstr "切换标准/负片视图"
 
 #: src/gui/uifiles/siril.ui:10105
 msgid "Switch to normal and rainbow colormap (false color rendering)"
-msgstr "切换标准色图和彩虹色图（伪彩色渲染）"
+msgstr "切换正常颜色和伪色渲染（彩色映射）"
 
 #: src/gui/uifiles/siril.ui:10131
 msgid "Show object names if WCS information is available"
@@ -10679,33 +10680,30 @@ msgstr ""
 
 #: src/gui/uifiles/starnet_dialog.ui:129
 msgid "Generate star mask"
-msgstr "生成星点遮罩"
+msgstr "生成纯星图像"
 
 #: src/gui/uifiles/starnet_dialog.ui:134
 msgid ""
 "If selected, a star mask will be generated and saved in the working "
 "directory. The star mask is calculated as the difference between the "
 "original image and the starless image. The default is to produce a star mask."
-msgstr ""
-"如果选中，将生成星点遮罩并将其保存在工作目录中。星点遮罩为原始图像和无星图像"
-"之间的差值。缺省设置是生成星点遮罩。"
+msgstr "如果选中，将生成纯星图像并将其保存在工作目录中。纯星图像为原始图像和无星图像"
+"之差。缺省设置是生成纯星图像。"
 
 #: src/gui/uifiles/starnet_dialog.ui:149
 msgid "Use custom stride"
-msgstr "使用自定义步幅"
+msgstr "使用自定义步长"
 
 #: src/gui/uifiles/starnet_dialog.ui:154
 msgid ""
 "If selected, a custom value may be entererd for the StarNet stride "
 "parameter. The default value is 256 and the StarNet developer recommends not "
 "to change this."
-msgstr ""
-"如果选中此选项，则可以自定义 StarNet 步幅。默认值为 256，StarNet 的开发者建议"
-"不要更改此值。"
+msgstr "选中以自定义 StarNet 步长。默认值为 256，StarNet 的开发者建议不要更改此值。"
 
 #: src/gui/uifiles/starnet_dialog.ui:174
 msgid "Stride"
-msgstr "步幅"
+msgstr "步长"
 
 #: src/gui/uifiles/starnet_dialog.ui:186
 msgid ""
@@ -10714,8 +10712,8 @@ msgid ""
 "stride setting quadruples the processing time. If altered, stride must be an "
 "even integer between 2-256."
 msgstr ""
-"设置传递给 StarNet 神经网络进行处理的图块的尺寸。强烈建议保持缺省值。步幅减"
-"半，处理时间变为四倍。如果更改，步幅必须是 2-256 之间的偶数。"
+"设置传递给 StarNet 神经网络进行处理的图块的尺寸。强烈建议保持缺省值。步长减半"
+"，处理时间会变为四倍。如果更改，步长必须是 2-256 之间的偶数。"
 
 #: src/gui/uifiles/starnet_dialog.ui:209
 msgid "Recompose stars on completion"
@@ -10729,8 +10727,8 @@ msgid ""
 "removal, is desired.\n"
 "This option has no effect if processing a sequence."
 msgstr ""
-"如果选中，在完成StarNet处理后，星点重绘工具将打开，用于分别拉伸背景和星点，并"
-"调配其比例，以减少星点，而不是完全移除星点。\n"
+"如果选中，在完成StarNet处理后，星点重混合工具将打开，用于分别拉伸背景和星点，"
+"并调配其比例。这样就可以削弱星点，而不是完全移除星点。\n"
 "如果处理序列，则该选项不起作用。"
 
 #: src/gui/uifiles/starnet_dialog.ui:229
@@ -10752,9 +10750,7 @@ msgstr ""
 msgid ""
 "Apply StarNet to all images in the current sequence. Starless and, if "
 "selected, star mask, sequences will be generated."
-msgstr ""
-"将 StarNet 应用于当前序列中的全部图像。将生成无星图像和星点遮罩（如果选择）序"
-"列。"
+msgstr "对当前序列中的全部图像应用StarNet。将生成无星图像和纯星图像（如果选择）序列。"
 
 #: src/gui/uifiles/starnet_dialog.ui:272
 #, fuzzy
@@ -10767,9 +10763,8 @@ msgid "Starless"
 msgstr "#星点"
 
 #: src/gui/uifiles/starnet_dialog.ui:287
-#, fuzzy
 msgid "Star mask"
-msgstr "#星点"
+msgstr "纯星图像"
 
 #: src/gui/uifiles/starnet_dialog.ui:288
 msgid "Original"
@@ -11255,10 +11250,9 @@ msgid "Open light curve dialog"
 msgstr "打开光度曲线对话框"
 
 #: src/gui/siril-shortcuts.ui:205
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Open dialog for annotations"
-msgstr "标准标记："
+msgstr "打开标注窗口"
 
 #: src/gui/siril-shortcuts.ui:212
 msgctxt "shortcut window"
@@ -11844,9 +11838,8 @@ msgid "Error: unsupported CFA pattern for this operation.\n"
 msgstr "检测到不支持的 CFA 模式"
 
 #: src/algos/background_extraction.c:952 src/algos/background_extraction.c:1160
-#, fuzzy
 msgid "Error splitting into CFA subcannels, aborting...\n"
-msgstr "将参数解析为 -scale= (%s) 时出错，异常中止。\n"
+msgstr "将参数解析为 -scale= (%s) 时出错，异常中止...\n"
 
 #: src/algos/background_extraction.c:967
 #, fuzzy
@@ -13424,7 +13417,7 @@ msgstr "对齐操作异常中止。\n"
 
 #: src/core/arithm.c:189
 msgid "Cannot divide by zero, aborting."
-msgstr "除数不能为零，异常终止。"
+msgstr "除数不能为零，异常中止。"
 
 #: src/core/arithm.c:209 src/core/arithm.c:325 src/core/arithm.c:412
 #: src/filters/fft.c:531 src/gui/remixer.c:414
@@ -13491,7 +13484,7 @@ msgstr "=当前载入图像的FITS文件头=\n"
 #: src/core/command.c:11374 src/core/command.c:11392
 #, c-format
 msgid "Unknown parameter %s, aborting.\n"
-msgstr "位置参数 %s，异常终止\n"
+msgstr "位置参数 %s，异常中止。\n"
 
 #: src/core/command.c:270 src/core/command.c:752 src/core/command.c:1035
 #: src/core/command.c:1089 src/core/command.c:1119 src/core/command.c:1127
@@ -13506,7 +13499,7 @@ msgstr "位置参数 %s，异常终止\n"
 #: src/core/command.c:10624
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
-msgstr "无效参数 %s，异常终止。\n"
+msgstr "无效参数 %s，异常中止。\n"
 
 #: src/core/command.c:277
 msgid "Background factor must be positive\n"
@@ -13576,7 +13569,7 @@ msgstr "错误：调制必须> 0.0 且 <= 1.0。\n"
 
 #: src/core/command.c:537
 msgid "Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"
-msgstr "rho 参数错误：必须严格> 0 和 < 1，异常终止。\n"
+msgstr "rho 参数错误：必须严格> 0 和 < 1，异常中止。\n"
 
 #: src/core/command.c:550
 msgid "Error: SOS iterations must be >= 1. Defaulting to 1.\n"
@@ -13619,12 +13612,12 @@ msgstr "错误： StarNet 可执行文件 （%s） 无效。\n"
 msgid ""
 "Error in stride parameter: must be a positive even integer, max 512, "
 "aborting.\n"
-msgstr "步幅参数错误：必须是正偶数，最大值为 512，异常终止。\n"
+msgstr "步长参数错误：必须是正偶数，最大值为 512，异常中止。\n"
 
 #: src/core/command.c:630 src/core/command.c:720 src/core/command.c:3720
 #: src/core/command.c:3787
 msgid "Error parsing arguments, aborting.\n"
-msgstr "解析参数错误，异常终止。\n"
+msgstr "解析参数错误，异常中止。\n"
 
 #: src/core/command.c:641 src/core/command.c:739
 msgid ""
@@ -13776,7 +13769,7 @@ msgstr "错误：文件名必须具有扩展名“.fit”、“.fits”、“.ft
 msgid ""
 "Error: image or sequence must be loaded to carry out %s PSF estimation, "
 "aborting...\n"
-msgstr "错误：必须载入图像或序列才能执行 %s PSF 估算，中止...\n"
+msgstr "错误：必须载入图像或序列才能执行 %s PSF 估算，异常中止...\n"
 
 #: src/core/command.c:1362
 msgid "Blind kernel estimation:\n"
@@ -13800,7 +13793,7 @@ msgstr "多尺度估算\n"
 #: src/core/command.c:1589 src/core/command.c:1599
 #, c-format
 msgid "Error in %s parameter: must be in %s, aborting.\n"
-msgstr "%s 参数中的错误：必须在 %s 中，异常终止。\n"
+msgstr "%s 参数中的错误：必须在 %s 中，异常中止。\n"
 
 #: src/core/command.c:1406 src/core/command.c:1458 src/core/command.c:1609
 msgid ""
@@ -13812,7 +13805,7 @@ msgstr ""
 
 #: src/core/command.c:1418 src/core/command.c:1470 src/core/command.c:1621
 msgid "Error: no filename specified, aborting.\n"
-msgstr "错误：未指定文件名，异常终止。\n"
+msgstr "错误：未指定文件名，异常中止。\n"
 
 #: src/core/command.c:1450
 msgid "symmetric kernel\n"
@@ -13852,15 +13845,15 @@ msgstr "alpha 参数中的错误：必须介于 0 和 1e5 之间，异常中止�
 
 #: src/core/command.c:1700
 msgid "Error in iterations parameter: must be between 1 and 1e5, aborting.\n"
-msgstr "iterations 参数错误：必须介于 1 和 1e5 之间，异常终止。\n"
+msgstr "iterations 参数错误：必须介于 1 和 1e5 之间，异常中止。\n"
 
 #: src/core/command.c:1712
 msgid "Error in stop parameter: must be between 0 and 1, aborting.\n"
-msgstr "stop 参数错误：必须介于 0 和 1 之间，异常终止。\n"
+msgstr "stop 参数错误：必须介于 0 和 1 之间，异常中止。\n"
 
 #: src/core/command.c:1725
 msgid "Error in step size parameter: must be between 0 and 1, aborting.\n"
-msgstr "步长参数错误：必须介于 0 和 1 之间，异常终止。\n"
+msgstr "步长参数错误：必须介于 0 和 1 之间，异常中止。\n"
 
 #: src/core/command.c:1850 src/core/command.c:1910
 msgid "The size of the key can't exceed 8 characters.\n"
@@ -13892,7 +13885,7 @@ msgstr "只能有一个前缀参数"
 #: src/core/command.c:8963 src/core/command.c:9003 src/core/command.c:10353
 #, c-format
 msgid "Missing argument to %s, aborting.\n"
-msgstr "缺少参数%s，中止处理。\n"
+msgstr "缺少参数%s，异常中止。\n"
 
 #: src/core/command.c:2030
 #, c-format
@@ -13902,7 +13895,7 @@ msgstr "无效的矩阵元素（%d，%d）%s，异常中止。\n"
 #: src/core/command.c:2040
 #, c-format
 msgid "Invalid power %s, must be between 0.0 and 10.0: aborting.\n"
-msgstr "无效幂 %s，必须介于 0.0 和 10.0 之间：异常终止。\n"
+msgstr "无效幂 %s，必须介于 0.0 和 10.0 之间：异常中止。\n"
 
 #: src/core/command.c:2046
 #, c-format
@@ -14013,9 +14006,9 @@ msgid "Stretch must be greater than or equal to 1\n"
 msgstr "拉伸必须大于等于1\n"
 
 #: src/core/command.c:2640
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid clip mode %s, aborting.\n"
-msgstr "无效参数 %s，异常终止。\n"
+msgstr "无效参数 %s，异常中止。\n"
 
 #: src/core/command.c:2669
 msgid "Clip limit must be > 0.\n"
@@ -14186,11 +14179,11 @@ msgstr "计算 %s 自动拉伸，使用值 %f 和 %f\n"
 
 #: src/core/command.c:3304
 msgid "linked"
-msgstr "连接的"
+msgstr "绑定"
 
 #: src/core/command.c:3304
 msgid "unlinked"
-msgstr "未链接"
+msgstr "不绑定"
 
 #: src/core/command.c:3334
 msgid "Factor must be a number greater than 0.\n"
@@ -14209,7 +14202,7 @@ msgstr "缩放比为 1.0。什么都不做。\n"
 #: src/core/command.c:7485 src/core/command.c:7572 src/core/command.c:8132
 #, c-format
 msgid "Unknown transformation type %s, aborting.\n"
-msgstr "未知的转化类型 %s，异常终止\n"
+msgstr "未知的转化类型 %s，异常中止。\n"
 
 #: src/core/command.c:3437
 #, c-format
@@ -14326,7 +14319,7 @@ msgstr "不可识别的FITS扩展名：%s\n"
 
 #: src/core/command.c:3910
 msgid "Wrong parameter values. Radius must be between 3 and 50, aborting.\n"
-msgstr "参数错误。半径必须在3到50之间，异常终止。\n"
+msgstr "参数错误。半径必须在3到50之间，异常中止。\n"
 
 #: src/core/command.c:3917
 msgid "Wrong parameter values. Sigma must be greater than 0.05, aborting\n"
@@ -14342,25 +14335,25 @@ msgstr "参数值错误。最小 beta 必须大于等于 0.0 且小于 %.0f，�
 #: src/core/command.c:3935
 msgid ""
 "Wrong parameter values. Roundness must be between 0 and 0.95, aborting.\n"
-msgstr "参数错误，圆度必须在0到0.95之间，异常终止。\n"
+msgstr "参数错误，圆度必须在0到0.95之间，异常中止。\n"
 
 #: src/core/command.c:3942
 msgid ""
 "Wrong parameter values. Focal length must be greater than 0, aborting.\n"
-msgstr "参数错误，焦距必须大于0，异常终止。\n"
+msgstr "参数错误，焦距必须大于0，异常中止。\n"
 
 #: src/core/command.c:3949
 msgid "Wrong parameter values. Pixel size must be greater than 0, aborting.\n"
-msgstr "参数错误，像素尺寸必须大于0，异常终止。\n"
+msgstr "参数错误，像素尺寸必须大于0，异常中止。\n"
 
 #: src/core/command.c:3957
 msgid "Wrong parameter values. Relax must be set to on or off, aborting.\n"
-msgstr "参数错误。Relax 必须设置为on或off，异常终止。\n"
+msgstr "参数错误。Relax 必须设置为on或off，异常中止。\n"
 
 #: src/core/command.c:3964
 msgid ""
 "Wrong parameter values. Convergence must be between 1 and 3, aborting.\n"
-msgstr "参数错误，收敛必须介于 1 和 3 之间，异常终止。\n"
+msgstr "参数错误，收敛必须介于 1 和 3 之间，异常中止。\n"
 
 #: src/core/command.c:3971 src/core/command.c:3978 src/core/command.c:3985
 #, c-format
@@ -14471,7 +14464,7 @@ msgstr "给定的坐标不在图像中，异常中止。\n"
 msgid ""
 "Selection was not completely inside the first image of the sequence, "
 "aborting.\n"
-msgstr "所选区域并不完全在第一帧之内，异常终止。\n"
+msgstr "所选区域并不完全在第一帧之内，异常中止。\n"
 
 #: src/core/command.c:4424
 msgid ""
@@ -14764,7 +14757,7 @@ msgstr "更新选择完成，序列中%d帧图像被选定\n"
 
 #: src/core/command.c:6049 src/gui/colors.c:393
 msgid "Could not copy the input image, aborting.\n"
-msgstr "无法拷贝输入图像，异常终止。\n"
+msgstr "无法拷贝输入图像，异常中止。\n"
 
 #: src/core/command.c:6067
 msgid "CieLAB"
@@ -14881,7 +14874,7 @@ msgstr "无法按日期排序，文件 %s 没有 DATE-OBS，无法排序\n"
 msgid ""
 "You should pass an extra argument -fitseq to convert your sequence to fitseq "
 "format.\n"
-msgstr "您应该传递一个额外的参数-fitseq，以将序列转换为fitseq格式。\n"
+msgstr "您应该输入一个额外的参数-fitseq，以将序列转换为fitseq格式。\n"
 
 #: src/core/command.c:7236
 #, c-format
@@ -14931,12 +14924,12 @@ msgstr "平移对齐仅适用于OpenCV 4.4版本\n"
 #: src/core/command.c:7520
 #, c-format
 msgid "%d smaller than minimum allowable star pairs: %d, aborting.\n"
-msgstr "%d 少于最小配对星点数：%d，异常终止。\n"
+msgstr "%d 少于最小配对星点数：%d，异常中止。\n"
 
 #: src/core/command.c:7594
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown distortion type %s, aborting.\n"
-msgstr "未知的转化类型 %s，异常终止\n"
+msgstr "未知的转化类型 %s，异常中止。\n"
 
 #: src/core/command.c:7603 src/core/command.c:7733 src/core/command.c:8193
 #: src/core/command.c:8836 src/core/command.c:10047 src/core/command.c:10706
@@ -14997,9 +14990,8 @@ msgid "Cannot drizzle sequences with images of different sizes, aborting.\n"
 msgstr "无法载入序列的参考帧，异常中止。\n"
 
 #: src/core/command.c:7741 src/core/command.c:8201
-#, fuzzy
 msgid "Cannot use drizzle on non-bayer sensors, aborting.\n"
-msgstr "除数不能为零，异常终止。"
+msgstr "无法在无拜耳阵列的传感器上执行drizzle，异常终止。\n"
 
 #. we register 2-pass but we won't add it to the combo/tooltip
 #: src/core/command.c:7757 src/gui/registration.c:278
@@ -15057,7 +15049,7 @@ msgstr "插值保持启用\n"
 #: src/core/command.c:7895 src/core/command.c:7914 src/core/command.c:7932
 #, c-format
 msgid "Could not parse argument `%s' to the filter `%s', aborting.\n"
-msgstr "无法将参数“%s”解析为滤镜“%s”，异常终止。\n"
+msgstr "无法将参数“%s”解析为滤镜“%s”，异常中止。\n"
 
 #: src/core/command.c:7980
 msgid "No registration data exists for this sequence, aborting\n"
@@ -15066,7 +15058,7 @@ msgstr "该序列中没有对齐数据，异常终止\n"
 #: src/core/command.c:8157
 #, c-format
 msgid "Unknown framing type %s, aborting.\n"
-msgstr "未知的取景范围类型 %s，异常终止。\n"
+msgstr "未知的取景范围类型 %s，异常中止。\n"
 
 #: src/core/command.c:8173
 #, c-format
@@ -15095,9 +15087,9 @@ msgid "Weighting is allowed only with mean stacking, ignoring.\n"
 msgstr "加权仅适用于平均数叠加，忽略。\n"
 
 #: src/core/command.c:8272 src/core/command.c:8306
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown argument to %s, aborting.\n"
-msgstr "未知参数%s, 异常中止。\n"
+msgstr "未知参数%s，异常中止。\n"
 
 #: src/core/command.c:8278
 msgid "Fast normalization is allowed only with average stacking, ignoring.\n"
@@ -15152,7 +15144,7 @@ msgstr "像素剔除图只能在激活像素剔除时创建，已忽略。\n"
 #: src/core/command.c:8353
 #, c-format
 msgid "Unexpected argument to stacking `%s', aborting.\n"
-msgstr "叠加中出现意外参数“%s”，异常终止。\n"
+msgstr "叠加中出现意外参数“%s”，异常中止。\n"
 
 #: src/core/command.c:8372
 #, c-format
@@ -15291,7 +15283,7 @@ msgstr "无法载入图像，异常中止。\n"
 #: src/core/command.c:8873
 #, c-format
 msgid "The offset value could not be parsed from expression: %s, aborting.\n"
-msgstr "偏移无法从表达式中计算：%s，已停止。\n"
+msgstr "无法从表达式中计算偏移值：%s，异常中止。\n"
 
 #: src/core/command.c:8879 src/core/preprocess.c:705
 #, c-format
@@ -15311,13 +15303,13 @@ msgstr "暗场优化：此过程不适用于8b图像\n"
 #: src/core/command.c:8979
 #, c-format
 msgid "Missing or wrong argument to %s, aborting.\n"
-msgstr "缺少或错误参数%s，中止处理。\n"
+msgstr "缺少或错误参数%s，异常中止。\n"
 
 #: src/core/command.c:9009
 msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
-msgstr "在激活此选项之前，必须使用 -dark= 指定主暗场帧，异常终止。\n"
+msgstr "在激活此选项之前，必须使用 -dark= 指定主暗场帧，异常中止。\n"
 
 #: src/core/command.c:9027
 msgid ""
@@ -15340,7 +15332,7 @@ msgstr "基于主暗场帧的坏点修正：对热像素停用。\n"
 #: src/core/command.c:9040
 #, c-format
 msgid "Could not open file %s, aborting.\n"
-msgstr "无法打开文件 %s，异常终止。\n"
+msgstr "无法打开文件 %s，异常中止。\n"
 
 #: src/core/command.c:9044
 #, c-format
@@ -15354,7 +15346,7 @@ msgstr "您必须使用-cc=bpm选项指定一个坏像素图，异常中止。\n
 #: src/core/command.c:9053
 #, c-format
 msgid "Unknown argument %s, aborting.\n"
-msgstr "未知参数%s, 异常中止。\n"
+msgstr "未知参数%s，异常中止。\n"
 
 #: src/core/command.c:9091 src/core/command.c:9109 src/core/preprocess.c:945
 msgid "Preprocessing...\n"
@@ -15629,7 +15621,7 @@ msgstr "分辨率"
 msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
-msgstr "无法解析，未传递目标坐标，图像文件头也不包含任何坐标\n"
+msgstr "无法解析，未输入目标坐标，图像文件头也不包含任何坐标\n"
 
 #: src/core/command.c:10075
 #, c-format
@@ -15721,11 +15713,11 @@ msgstr "Trixel 值必须介于 0 到 511 之间\n"
 
 #: src/core/command.c:10333
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
-msgstr "参数错误。Log必须设置为on或off，异常终止。\n"
+msgstr "参数错误。Log必须设置为on或off，异常中止。\n"
 
 #: src/core/command.c:10345
 msgid "Wrong parameter values. Tag must be set to on or off, aborting.\n"
-msgstr "参数错误。Tag必须设置为on或off，异常终止。\n"
+msgstr "参数错误。Tag必须设置为on或off，异常中止。\n"
 
 #: src/core/command.c:10381
 msgid "Cannot use -compare argument with non-star catalogues, ignoring.\n"
@@ -16018,12 +16010,13 @@ msgid ""
 "Do not use the unlinked version after color calibration, it will alter the "
 "white balance"
 msgstr ""
-"自动拉伸当前载入的图像，每个通道的参数不同（未链接），除非传递<b>-linked</"
-"b>。参数是可选的，<b>shadowclip</b>是阴影修剪点，用主直方图峰值来测量，单位为"
-"sigma（默认值为-2.8），<b>targetbg</b>为目标背景值，为图像提供最终亮度，范围"
-"为[0，1]，默认值为0.25。默认值即为GUI的自动拉伸使用的值。\n"
+"自动拉伸当前载入的图像，每个通道的参数不同（不绑定），除非输入<b>-linked</b>"
+"。参数是可选的，<b>shadowclip</b>是阴影修剪点，用主直方图峰值来测量，单位为si"
+"gma（默认值为-2."
+"8），<b>targetbg</b>为目标背景值，为图像提供最终亮度，范围为[0，1]，默认值为0"
+".25。默认值即为GUI的自动拉伸使用的值。\n"
 "\n"
-"色彩校准后不要使用未链接的自动拉伸，这会改变白平衡"
+"色彩校准后不要使用不绑定的自动拉伸，这会改变白平衡"
 
 #: src/core/command_def.h:11
 msgid "Returns the background level of the loaded image"
@@ -16194,12 +16187,12 @@ msgid ""
 "using the <a href=\"https://ssp.imcce.fr/webservices/miriade/howto/ephemcc/"
 "#howto-sso\">IMCCE Miriade service</a>"
 msgstr ""
-"按 <b>名称</b> 搜索天体，并将其添加到用户标记目录中。首先在用户标记目录中搜索"
+"按 <b>名称</b> 搜索天体，并将其添加到用户标注目录中。首先在用户标注目录中搜索"
 "该天体，若未找到，则向 SIMBAD 数据库发出请求。\n"
 "该天体如果是太阳系内的天体，则需要用前缀“a:”代表小行星，“p:”代表行星，“c:”代"
-"表彗星，“dp:”（代表矮行星）或“s:”（代表自然卫星）。使用 <a href=\"https://"
-"ssp.imcce.fr/webservices/miriade/howto/ephemcc/#howto-sso\">IMCCE Miriade 服"
-"务</a>搜索图像文件头中的日期、时间和观测位置"
+"表彗星，“dp:”（代表矮行星）或“s:”（代表自然卫星）。使用 <a href=\"https://ssp"
+".imcce.fr/webservices/miriade/howto/ephemcc/#howto-sso\">IMCCE Miriade "
+"服务</a>搜索图像文件头中的日期、时间和观测位置"
 
 #: src/core/command_def.h:20
 msgid ""
@@ -19469,23 +19462,23 @@ msgid ""
 "author of StarNet <i>strongly</i> recommends that the default stride of 256 "
 "be used"
 msgstr ""
-"访问<a href=\"https://www.starnetastro.com/\">StarNet</a>，为载入的图像去"
-"星。\n"
+"使用<a href=\"https://www.starnetastro.com/\">StarNet</a>，为载入的图像去星。"
+"\n"
 "\n"
 "<b>前提条件：</b>StarNet是一个外部程序，与Siril没有关联，必须在首次使用此命令"
 "之前正确安装，并在“偏好设置/杂项”中正确设置其CLI版本安装路径。\n"
 "\n"
-"完成时会载入无星图像，并且在工作目录中创建星点遮罩图像，除非提供可选参数<b>-"
-"nostarmask</b>。\n"
+"完成时会载入无星图像，并且在工作目录中创建纯星图像，除非提供可选参数<b>-nosta"
+"rmask</b>。\n"
 "\n"
 "可以将以下可选参数传递给命令：\n"
-"-选项<b>-stretch</b>用于线性图像，将在运行StarNet之前应用预拉伸，并对生成的无"
-"星图像和星点遮罩图像应用逆拉伸。\n"
-"-为了改进星点密集的图像上的去星效果，可以提供参数<b>-upscale</b>。这将在"
-"StarNet处理之前将图像放大2倍，然后将其重新缩小到原始尺寸，代价是花费更多的处"
-"理时间。\n"
-"-参数<b>-stride=value</b>用于指定步幅，但是StarNet的作者<i>强烈建议</i>使用默"
-"认步幅256"
+"- 选项<b>-stretch</b>用于线性图像，将在运行StarNet之前应用预拉伸，并对生成的"
+"无星图像和纯星图像应用逆拉伸。\n"
+"- 为了改进星点密集的图像上的去星效果，可以提供参数<b>-upscale</b>。这将在Star"
+"Net处理之前将图像放大2倍，然后将其重新缩小到原始尺寸，代价是花费更多的处理时"
+"间。\n"
+"- 参数<b>-stride=value</b>用于指定步长，但是StarNet的作者<i>强烈建议</i>使用"
+"默认步长256"
 
 #: src/core/command_def.h:205
 msgid ""
@@ -19561,17 +19554,17 @@ msgid ""
 "\n"
 "No parameters are required for this command"
 msgstr ""
-"修复载入的图像中不完美的星点。无论你的星点有多大的彗差、拖线或其他失真，如果"
-"Siril的星点侦测程序能够侦测到，星点合成都会修复它。要使用加强修复，你可能需要"
-"手动侦测所有想要修复的星点。这可以使用控制台命令findstar或动态PSF对话框来完"
-"成。如果您没有运行过星点侦测，它将使用默认设置自动运行。\n"
+"修复载入的图像中不完美的星点。无论你的星点有多大的彗差、拖线或其他失真，如果S"
+"iril的星点侦测程序能够侦测到，星点合成都会修复它。要使用加强修复，你可能需要"
+"手动侦测所有想要修复的星点。这可以使用控制台命令findstar或动态PSF对话框来完成"
+"。如果您没有运行过星点侦测，它将使用默认设置自动运行。\n"
 "\n"
 "为了获得最佳效果，星点合成应在拉伸前运行。\n"
 "\n"
-"星点合成的输出是一个完全校正后的合成星点遮罩，包括完美圆形的星点PSF（Moffat或"
-"高斯形，取决于星点的饱和度），通过计算以匹配输入图像中侦测到的每个星点的亮"
-"度、FWHM、色调和饱和度。之后可以将其与无星图像重新组合，生成具有完美星点的图"
-"像。\n"
+"星点合成的输出是一个完全校正后的合成纯星图像，包括完美圆形的星点PSF（Moffat或"
+"高斯形，取决于星点的饱和度），通过计算以匹配输入图像中侦测到的每个星点的亮度"
+"、FWHM、色调和饱和度。之后可以将其与无星图像重新组合，生成具有完美星点的图像"
+"。\n"
 "\n"
 "此命令不需要任何参数"
 
@@ -21083,7 +21076,7 @@ msgstr "FITS压缩方法"
 
 #: src/core/settings.c:419
 msgid "quantization factor for 32-bit float"
-msgstr "32 位浮点数的量子化因子"
+msgstr "用于32位浮点数的量化因子"
 
 #: src/core/settings.c:420
 msgid "Hcompress scale factor"
@@ -21317,7 +21310,7 @@ msgstr "配置背景提取采样点的颜色"
 
 #: src/core/settings.c:491
 msgid "configure standard annotation color"
-msgstr "配置标准标记的颜色"
+msgstr "配置标准标注的颜色"
 
 #: src/core/settings.c:492
 msgid "configure dso annotation color"
@@ -21325,11 +21318,11 @@ msgstr "配置深空天体标记的颜色"
 
 #: src/core/settings.c:493
 msgid "configure sso annotation color"
-msgstr "配置太阳系天体标记的颜色"
+msgstr "配置太阳系天体标注的颜色"
 
 #: src/core/settings.c:494
 msgid "configure tmp annotation color"
-msgstr "配置临时标记的颜色"
+msgstr "配置临时标注的颜色"
 
 #: src/core/settings.c:495
 msgid "path to custom monitor ICC profile"
@@ -21413,27 +21406,27 @@ msgstr "网格上罗盘位置的指标"
 
 #: src/core/settings.c:515
 msgid "show Messier objects in annotations"
-msgstr "标记梅西耶天体"
+msgstr "标注梅西耶天体"
 
 #: src/core/settings.c:516
 msgid "show NGC objects in annotations"
-msgstr "标记NGC天体"
+msgstr "标注NGC天体"
 
 #: src/core/settings.c:517
 msgid "show IC objects in annotations"
-msgstr "标记IC天体"
+msgstr "标注IC天体"
 
 #: src/core/settings.c:518
 msgid "show LDN objects in annotations"
-msgstr "标记LDN天体"
+msgstr "标注LDN天体"
 
 #: src/core/settings.c:519
 msgid "show SH2 objects in annotations"
-msgstr "标记SH2天体"
+msgstr "标注SH2天体"
 
 #: src/core/settings.c:520
 msgid "show stars in annotations"
-msgstr "标记恒星"
+msgstr "标注恒星"
 
 #: src/core/settings.c:521
 msgid "show user DSO objects in annotations"
@@ -21532,7 +21525,7 @@ msgstr ""
 msgid ""
 "Opening the Star Recomposition dialog will close the current image without "
 "saving. Are you sure?"
-msgstr ""
+msgstr "打开重混合对话框会直接关闭当前图像，而不保存。确定吗？"
 
 #: src/core/siril_actions.c:766
 msgid "RGB alignment (DFT)"
@@ -22260,11 +22253,11 @@ msgstr "StarNet：运行中。请稍候...\n"
 #: src/filters/starnet.c:491
 #, c-format
 msgid "StarNet: stride = %s...\n"
-msgstr "StarNet： 步幅 = %s...\n"
+msgstr "StarNet： 步长 = %s...\n"
 
 #: src/filters/starnet.c:492
 msgid "StarNet: -nostarmask invoked, star mask will not be generated...\n"
-msgstr "StarNet：-nostarmask 调用，星点遮罩不会生成...\n"
+msgstr "StarNet：-nostarmask 调用，不会生成纯星图像...\n"
 
 #: src/filters/starnet.c:497
 #, c-format
@@ -22366,7 +22359,7 @@ msgstr "错误：图像消减失败...\n"
 
 #: src/filters/starnet.c:749
 msgid "Error: unable to save starmask image as FITS...\n"
-msgstr "错误：无法将星点遮罩图像另存为 FITS...\n"
+msgstr "错误：无法将纯星图像另存为 FITS...\n"
 
 #: src/filters/starnet.c:775
 msgid "StarNet: job completed.\n"
@@ -22396,7 +22389,7 @@ msgstr "StarNet：执行中..."
 
 #: src/filters/synthstar.c:362
 msgid "Star synthesis (full star mask creation): processing...\n"
-msgstr "星点合成（完全星点遮罩创建）：执行中...\n"
+msgstr "星点合成（创建纯星图像）：执行中...\n"
 
 #: src/filters/synthstar.c:389
 msgid "No stars detected in the image.\n"
@@ -24493,6 +24486,8 @@ msgid ""
 "will be unavailable. Further information may be available at https://"
 "www.cosmos.esa.int/web/gaia/"
 msgstr ""
+"Gaia星表状态未响应。Gaia未必离线，但如果确实离线了，SPCC就不可用了。详情请访"
+"问https://www.cosmos.esa.int/web/gaia/"
 
 #: src/gui/photometric_cc.c:108
 #, fuzzy
@@ -24779,9 +24774,8 @@ msgstr "内半径必须小于外半径，请在测光标签中更改。"
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
-msgstr ""
-"将量子化设置为 0 仅对 GZIP 压缩有意义，GZIP 2 通常会对浮点图像产生更好的压"
-"缩。"
+msgstr "将量化设置为 0 仅在使用 GZIP 压缩时有效；对于压缩浮点图像，GZIP 2 "
+"通常效果更好。"
 
 #: src/gui/preferences.c:988
 msgid "Wrong value"
@@ -25168,11 +25162,11 @@ msgstr ""
 
 #: src/gui/remixer.c:381
 msgid "Unsaved star recomposition result"
-msgstr "未保存的星点重绘结果"
+msgstr "未保存的星点重混合结果"
 
 #: src/gui/remixer.c:382
 msgid "Star recomposition"
-msgstr "星点重绘"
+msgstr "星点重混合"
 
 #: src/gui/remixer.c:696 src/gui/remixer.c:1405
 msgid "Show advanced stretch options."
@@ -25239,13 +25233,13 @@ msgstr "未载入无星图像"
 msgid ""
 "Load an image using the left-hand file chooser before attempting to set SP "
 "using the eyedropper"
-msgstr "在尝试使用吸管设置 SP 之前，使用左侧文件选择器载入图像"
+msgstr "在使用吸管设置拐点之前，请先使用左侧文件选择器载入图像"
 
 #: src/gui/remixer.c:1342
 msgid ""
 "Load an image using the right-hand file chooser before attempting to set SP "
 "using the eyedropper"
-msgstr "在使用滴管设置SP之前，请先使用右侧的文件选择器载入图像"
+msgstr "在使用滴管设置拐点之前，请先使用右侧文件选择器载入图像"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
 #: src/gui/remixer.c:1388
@@ -25601,7 +25595,7 @@ msgstr "…或以同样的名称保存当前FITS图像"
 msgid ""
 "Take a snapshot of your image at any time, with false color, in negative "
 "view or with annotation"
-msgstr "在任何时候都可以将图像预览制作成快照，无论是伪彩色，负片还是标记模式"
+msgstr "随时将图像预览制作成快照，在伪色、负片和标注模式下也都可用"
 
 #: src/gui/siril_intro.c:52
 msgid ""
@@ -26154,12 +26148,12 @@ msgstr "不支持将 32 位图像（从 %s）转换为 16 位，忽略文件。\
 #: src/io/conversion.c:1151 src/io/conversion.c:1221
 #, c-format
 msgid "Creating the SER file `%s' failed, aborting.\n"
-msgstr "创建SER文件“%s”失败，异常终止。\n"
+msgstr "创建SER文件“%s”失败，异常中止。\n"
 
 #: src/io/conversion.c:1172 src/io/conversion.c:1235
 #, c-format
 msgid "Creating the FITS sequence file `%s' failed, aborting.\n"
-msgstr "创建FITS序列文件“%s”失败，异常终止。\n"
+msgstr "创建FITS序列文件“%s”失败，异常中止。\n"
 
 #: src/io/conversion.c:1268 src/io/conversion.c:1293 src/io/conversion.c:1314
 #, c-format
@@ -26169,12 +26163,12 @@ msgstr "读取 %s\n"
 #: src/io/conversion.c:1270
 #, c-format
 msgid "Error while opening film %s, aborting.\n"
-msgstr "打开影片 %s 失败， 异常终止。\n"
+msgstr "打开视频 %s 失败，异常中止。\n"
 
 #: src/io/conversion.c:1295
 #, c-format
 msgid "Error while opening ser file %s, aborting.\n"
-msgstr "打开SER文件 %s 失败，异常终止。\n"
+msgstr "打开SER文件 %s 失败，异常中止。\n"
 
 #: src/io/conversion.c:1316
 #, c-format
@@ -27975,7 +27969,7 @@ msgstr "等待第二帧图像"
 
 #: src/livestacking/livestacking.c:676
 msgid "Failed to read the sequence, aborting."
-msgstr "无法读取序列，异常终止。"
+msgstr "无法读取序列，异常中止。"
 
 #: src/livestacking/livestacking.c:683
 #, c-format
