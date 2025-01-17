@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+int local_gaia_xpsamp_available();
 int get_raw_stars_from_local_gaia_astro_catalogue(double ra,
 												  double dec,
 												  double radius,

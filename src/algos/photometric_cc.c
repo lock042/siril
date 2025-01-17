@@ -858,8 +858,8 @@ gpointer photometric_cc_standalone(gpointer p) {
 		mag += args->magnitude_arg;
 
 	int retval = 0;
-	if (args->catalog == CAT_LOCAL) {
-		siril_log_message(_("Getting stars from local catalogues for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), radius * 2.0,  mag);
+	if (args->catalog == CAT_LOCAL || args->catalog == CAT_LOCAL_GAIA_XPSAMP) {
+		siril_log_message(_("Getting stars from local catalogue %s for %s, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), args->spcc ? _("SPCC") : _("PCC"), radius * 2.0,  mag);
 	} else {
 		switch (args->catalog) {
 			case CAT_GAIADR3:
@@ -869,7 +869,6 @@ gpointer photometric_cc_standalone(gpointer p) {
 				mag = min(mag, 18.0);	// not very important, this catalogue is density-populated rather than magnitude-limited
 				break;
 			case CAT_GAIADR3_DIRECT: // fallthrough intentional
-			case CAT_LOCAL_GAIA_XPSAMP:
 				mag = min(mag, 17.6);	// most Gaia XP_SAMPLED spectra are for mag < 17.6
 				break;
 			case CAT_APASS:

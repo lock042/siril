@@ -267,11 +267,11 @@ const char *catalog_to_str(siril_cat_index cat) {
 		case CAT_AAVSO_CHART:
 			return _("AAVSO VSP Chart");
 		case CAT_LOCAL:
-			return _("local Tycho-2+NOMAD");
+			return _("Tycho-2+NOMAD");
 		case CAT_LOCAL_GAIA_ASTRO:
-			return _("local Gaia DR3 astrometry");
+			return _("Gaia DR3 astrometry");
 		case CAT_LOCAL_GAIA_XPSAMP:
-			return _("local Gaia DR3 spectrophotometry");
+			return _("Gaia DR3 xp_sampled");
 		case CAT_AN_MESSIER:
 			return "Messier";
 		case CAT_AN_NGC:

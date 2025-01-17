@@ -16,11 +16,11 @@
 #include <fstream>
 #include <healpix_base.h>
 #include <iomanip>
-#include <regex>
 #include <iostream>
 #include <map>
-#include <set>
 #include <pointing.h>
+#include <regex>
+#include <set>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -42,6 +42,7 @@ enum class GaiaVersion {
 
 // Enum for Catalogue Type
 enum class CatalogueType {
+    Cat_None = 0,
     Astrometric = 1,
     Photometric_XP_Sampled = 2,
     Photometric_XP_Continuous = 3
@@ -74,7 +75,7 @@ struct HealPixelRange {
 // each HEALpixel in the range. It is used for both astrometric and photometric
 // catalogues.
 
-std::vector<HealPixelRange> create_healpixel_ranges(const std::vector<int>& pixels) {
+static std::vector<HealPixelRange> create_healpixel_ranges(const std::vector<int>& pixels) {
     std::vector<HealPixelRange> ranges;
     if (pixels.empty()) {
         return ranges;
@@ -108,7 +109,7 @@ std::vector<HealPixelRange> create_healpixel_ranges(const std::vector<int>& pixe
 // on magnitude) can be done by the caller.
 
 template<typename EntryType>
-std::vector<EntryType> query_catalog(const std::string& filename, std::vector<HealPixelRange>& healpixel_ranges, const HealpixCatHeader& header) {
+static std::vector<EntryType> query_catalog(const std::string& filename, std::vector<HealPixelRange>& healpixel_ranges, const HealpixCatHeader& header) {
     constexpr size_t HEADER_SIZE = 128; // Fixed header size in bytes
     std::vector<EntryType> results;
     uint32_t nside = 1 << header.healpix_level; // Calculate NSIDE as 2^level
@@ -194,8 +195,15 @@ std::vector<EntryType> query_catalog(const std::string& filename, std::vector<He
     return results;
 }
 
+static bool header_compatible(HealpixCatHeader& a, HealpixCatHeader& b) {
+    bool same_version = a.gaia_version == b.gaia_version;
+    bool same_chunk_level = a.chunk_level == b.chunk_level;
+    bool same_index_level = a.healpix_level == b.healpix_level;
+    return same_version && same_chunk_level && same_index_level;
+}
+
 // Function to read the Healpix catalogue header
-HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status) {
+static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status) {
     HealpixCatHeader header = {
         "",                     // title: empty string
         static_cast<GaiaVersion>(0),  // gaia_version: zero
@@ -266,7 +274,7 @@ HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error
 
 #ifdef HEALPIX_DEBUG
 // Function to show entries for a specific healpixel
-void show_healpixel_entries(uint32_t healpixel_id) {
+static void show_healpixel_entries(uint32_t healpixel_id) {
     try {
         std::string filename(com.pref.catalogue_paths[4]);
         // Create a single-element range for the requested healpixel
@@ -407,6 +415,12 @@ static std::string find_matching_cat_file(std::string& path) {
 // functions.
 
 extern "C" {
+    int local_gaia_xpsamp_available() {
+        std::string chunkpath(com.pref.catalogue_paths[5]);
+        std::string first_chunk = find_matching_cat_file(chunkpath);
+        return (!first_chunk.empty());
+    }
+
     int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
         siril_debug_print("Search radius: %f deg\n", radius);
@@ -417,7 +431,6 @@ extern "C" {
         double theta = M_PI / 2.0 - dec_rad;
         double phi = ra_rad;
         double radius_h = pow(sin(0.5 * radius_rad), 2);
-
         // Check the correct healpixel level and create our healpix_base
         std::string filename(com.pref.catalogue_paths[4]);
         int status = 0;
@@ -586,7 +599,10 @@ extern "C" {
             // Read this specific header
             int status = 0;
             HealpixCatHeader this_header = read_healpix_cat_header(this_chunk_path, &status);
-
+            if (!header_compatible(header, this_header)) {
+                siril_log_color_message(_("Error: catalog header values for chunk %lu are incompatible with previous values. All chunk files must have the same chunk level and indexing level and must represent the same Gaia data release\n"), "red");
+                return 1;
+            }
             // Query the catalogue for matches
             results_in_chunks[i] = query_catalog<SourceEntryXPsamp>(this_chunk_path, healpixel_ranges, this_header);
         }
