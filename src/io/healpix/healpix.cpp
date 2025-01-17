@@ -115,8 +115,9 @@ std::vector<EntryType> query_catalog(const std::string& filename, std::vector<He
     uint32_t n_healpixels = 12 * nside * nside; // Total number of Healpixels
 
     if (header.chunked) {
-        uint32_t nside_chunk = 1 << header.chunk_level;
-        n_healpixels /= (nside_chunk * nside_chunk);
+        uint32_t nside_chunks = 1 << header.chunk_level;
+        uint32_t n_chunks = 12 * nside_chunks * nside_chunks;
+        n_healpixels /= n_chunks;
         for (auto& range : healpixel_ranges) {
             range.start_id -= header.chunk_first_healpixel;
             range.end_id -= header.chunk_first_healpixel;
