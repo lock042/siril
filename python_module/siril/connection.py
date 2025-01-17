@@ -98,6 +98,16 @@ class _Command(IntEnum):
     REQUEST_SHM = 44,
     ERROR = 0xFF
 
+class _Defaults:
+    """
+    Contains default values for different datatypes, matching Siril
+    """
+    DEFAULT_DOUBLE_VALUE = -999.0
+    DEFAULT_FLOAT_VALUE = -999.0
+    DEFAULT_INT_VALUE = -2147483647
+    DEFAULT_UINT_VALUE = 2147483647
+    VALUES = {DEFAULT_DOUBLE_VALUE, DEFAULT_FLOAT_VALUE, DEFAULT_INT_VALUE, DEFAULT_UINT_VALUE}
+
 class _ConfigType(IntEnum):
     """
     Enumerates config variable types for use with the
@@ -2684,6 +2694,31 @@ class SirilInterface:
             # Unpack the binary data
             values = struct.unpack(format_string, response)
 
+            # Replace default values and unphysical values
+            def decimal_to_dms(decimal, is_latitude=True):
+                """Convert decimal degrees to degrees, minutes, seconds string."""
+                # Get the absolute value and direction
+                absolute = abs(decimal)
+                if is_latitude:
+                    direction = 'N' if decimal >= 0 else 'S'
+                else:
+                    direction = 'E' if decimal >= 0 else 'W'
+
+                # Calculate degrees, minutes, seconds
+                degrees = int(absolute)
+                minutes_decimal = (absolute - degrees) * 60
+                minutes = int(minutes_decimal)
+                seconds = round((minutes_decimal - minutes) * 60, 2)
+
+                # Format as string
+                return f"{degrees}°{minutes}'{seconds}\"{direction}"
+
+            values = tuple(None if val in _Defaults.VALUES else val for val in values)
+            if values[9] == "": # sitelat_str
+                values[9] = decimal_to_dms(values[29] if values[29] else None)
+            if values[10] == "": # sitelong_str
+                values[10] = decimal_to_dms(values[30] if values[30] else None)
+
             # Helper function to decode and strip null-terminated strings
             def decode_string(s: bytes) -> str:
                 return s.decode('utf-8').rstrip('\x00')
@@ -2693,7 +2728,7 @@ class SirilInterface:
                 return datetime.fromtimestamp(timestamp) if timestamp != 0 else None
 
             # Create FKeywords object
-            return FKeywords(
+            kw = FKeywords(
                 program=decode_string(values[0]),
                 filename=decode_string(values[1]),
                 row_order=decode_string(values[2]),
@@ -2711,14 +2746,14 @@ class SirilInterface:
                 bzero=values[14],
                 lo=values[15],
                 hi=values[16],
-                flo=values[17],
-                fhi=values[18],
+                flo=values[17] if values[18] != 0.0 else None,
+                fhi=values[18] if values[18] != 0.0 else None,
                 data_max=values[19],
                 data_min=values[20],
-                pixel_size_x=values[21],
-                pixel_size_y=values[22],
-                binning_x=values[23],
-                binning_y=values[24],
+                pixel_size_x=values[21] if values[21] > 0.0 else None,
+                pixel_size_y=values[22] if values[22] > 0.0 else None,
+                binning_x=values[23] if values[23] > 1 else 1,
+                binning_y=values[24] if values[24] > 1 else 1,
                 expstart=values[25],
                 expend=values[26],
                 centalt=values[27],
@@ -2729,8 +2764,8 @@ class SirilInterface:
                 bayer_xoffset=values[32],
                 bayer_yoffset=values[33],
                 airmass=values[34],
-                focal_length=values[35],
-                flength=values[36],
+                focal_length=values[35] if values[35] > 0.0 else None,
+                flength=values[36] if values[36] > 0.0 else None,
                 iso_speed=values[37],
                 exposure=values[38],
                 aperture=values[39],
@@ -2747,6 +2782,12 @@ class SirilInterface:
                 date=timestamp_to_datetime(values[50]),
                 date_obs=timestamp_to_datetime(values[51])
             )
+            if kw.sitelat_str == "": # sitelat_str
+                kw.sitelat_str = decimal_to_dms(kw.sitelat if kw.sitelat else None)
+            if kw.sitelong_str == "": # sitelong_str
+                kw.sitelong_str = decimal_to_dms(kw.sitelong if kw.sitelong else None)
+
+            return kw
 
         except struct.error as e:
             print(f"Error unpacking FITS keywords data: {e}", file=sys.stderr)

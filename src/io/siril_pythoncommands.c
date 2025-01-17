@@ -111,8 +111,8 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	// Copy numeric values with proper byte order conversion. All
 	// types shorter than 64bit are converted to 64bit types before
 	// endianness conversion and transmission, to simplify the data
-	COPY_BE64(fit->keywords.bscale, double);
-	COPY_BE64(fit->keywords.bzero, double);
+	COPY_BE64(1.0, double); // aligned to the code in fits_keywords.c
+	COPY_BE64(0.0, double); // aligned to the code in fits_keywords.c
 	COPY_BE64((uint64_t) fit->keywords.lo, uint64_t);
 	COPY_BE64((uint64_t) fit->keywords.hi, uint64_t);
 	COPY_BE64((double) fit->keywords.flo, double);
