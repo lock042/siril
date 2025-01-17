@@ -30,7 +30,6 @@ typedef struct _SourceEntryAstro {
 } SourceEntryAstro;
 
 typedef struct _SourceEntryXPsamp {
-	uint64_t source_id;  // 8 bytes
 	int32_t ra_scaled;   // 4 bytes
 	int32_t dec_scaled;  // 4 bytes
 	int16_t dra_scaled;  // 2 bytes, mas per year

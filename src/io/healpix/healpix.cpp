@@ -16,8 +16,10 @@
 #include <fstream>
 #include <healpix_base.h>
 #include <iomanip>
+#include <regex>
 #include <iostream>
 #include <map>
+#include <set>
 #include <pointing.h>
 #include <stdexcept>
 #include <utility>
@@ -52,8 +54,8 @@ typedef struct HealpixCatHeader {
     GaiaVersion gaia_version;   // 1 byte: Gaia version designator
     uint8_t healpix_level;      // 1 byte: Healpix indexing level N
     CatalogueType cat_type;     // 1 byte: Catalogue type
-    uint8_t chunked;            // 1 byte to indicate whether the catalogue is chunked or not. Zero = monolithic, non-zero = chunked
     uint8_t chunk_level;        // for chunked catalogues, the Healpix level it waas chunked at
+    uint8_t chunked;            // 1 byte to indicate whether the catalogue is chunked or not. Zero = monolithic, non-zero = chunked
     uint32_t chunk_healpix;     // for chunked catalogues, the chunk-level healpixel covered by this file
     uint32_t chunk_first_healpixel; // for chunked catalogues, the index-level healpixel number of the first healpixel in the catalogue
     uint32_t chunk_last_healpixel; // for chunked catalogues, the index-level healpixel number of the last healpixel in the catalogue
@@ -191,17 +193,6 @@ std::vector<EntryType> query_catalog(const std::string& filename, std::vector<He
     return results;
 }
 
-// Error codes
-enum HealpixHeaderReadError {
-    HEALPIX_SUCCESS = 0,
-    HEALPIX_FILE_OPEN_ERROR = -1,
-    HEALPIX_READ_TITLE_ERROR = -2,
-    HEALPIX_READ_VERSION_ERROR = -3,
-    HEALPIX_READ_LEVEL_ERROR = -4,
-    HEALPIX_READ_TYPE_ERROR = -5,
-    HEALPIX_READ_SPARE_ERROR = -6
-};
-
 // Function to read the Healpix catalogue header
 HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status) {
     HealpixCatHeader header = {
@@ -216,64 +207,62 @@ HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error
         0,                      // chunk_last_healpixel
         {}                      // spare: zero-initialized array
     };
-    *error_status = HEALPIX_SUCCESS;  // Initialize to success
+
+    // Initialize error status
+    if (error_status) {
+        *error_status = 0;
+    }
 
     // Open file in binary mode
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {
-        *error_status = HEALPIX_FILE_OPEN_ERROR;
+        if (error_status) {
+            *error_status = -1; // File open error
+        }
         return header;
     }
 
-    // Read 48-byte title
-    char title_buffer[48] = {0};
-    file.read(title_buffer, 48);
-    if (!file) {
-        *error_status = HEALPIX_READ_TITLE_ERROR;
-        file.close();
-        return header;
-    }
-    header.title = std::string(title_buffer);
+    try {
+        // Read the fixed-size string (48 bytes)
+        char title_buffer[48] = {0};
+        file.read(title_buffer, 48);
+        if (file.fail()) {
+            if (error_status) {
+                *error_status = -2; // Read error
+            }
+            return header;
+        }
+        header.title = std::string(title_buffer, strnlen(title_buffer, 48));
 
-    // Read 1-byte Gaia version
-    uint8_t gaia_version_raw;
-    file.read(reinterpret_cast<char*>(&gaia_version_raw), 1);
-    if (!file) {
-        *error_status = HEALPIX_READ_VERSION_ERROR;
-        file.close();
-        return header;
-    }
-    header.gaia_version = static_cast<GaiaVersion>(gaia_version_raw);
+        // Read the remaining POD members
+        file.read(reinterpret_cast<char*>(&header.gaia_version), 1);
+        file.read(reinterpret_cast<char*>(&header.healpix_level), 1);
+        file.read(reinterpret_cast<char*>(&header.cat_type), 1);
+        file.read(reinterpret_cast<char*>(&header.chunk_level), 1);
+        file.read(reinterpret_cast<char*>(&header.chunked), 1);
+        file.read(reinterpret_cast<char*>(&header.chunk_healpix), sizeof(uint32_t));
+        file.read(reinterpret_cast<char*>(&header.chunk_first_healpixel), sizeof(uint32_t));
+        file.read(reinterpret_cast<char*>(&header.chunk_last_healpixel), sizeof(uint32_t));
+        file.read(reinterpret_cast<char*>(&header.spare), 63);
 
-    // Read 1-byte Healpix level
-    file.read(reinterpret_cast<char*>(&header.healpix_level), 1);
-    if (!file) {
-        *error_status = HEALPIX_READ_LEVEL_ERROR;
-        file.close();
-        return header;
+        if (file.fail()) {
+            if (error_status) {
+                *error_status = -2; // Read error
+            }
+            return header;
+        }
     }
-
-    // Read 1-byte catalogue type
-    uint8_t cat_type_raw;
-    file.read(reinterpret_cast<char*>(&cat_type_raw), 1);
-    if (!file) {
-        *error_status = HEALPIX_READ_TYPE_ERROR;
-        file.close();
-        return header;
-    }
-    header.cat_type = static_cast<CatalogueType>(cat_type_raw);
-
-    // Read 77 spare bytes
-    file.read(reinterpret_cast<char*>(header.spare.data()), 63);
-    if (!file) {
-        *error_status = HEALPIX_READ_SPARE_ERROR;
-        file.close();
+    catch (const std::exception&) {
+        if (error_status) {
+            *error_status = -3; // Exception during read
+        }
         return header;
     }
 
-    file.close();
     return header;
 }
+
+
 #ifdef HEALPIX_DEBUG
 // Function to show entries for a specific healpixel
 void show_healpixel_entries(uint32_t healpixel_id) {
@@ -379,6 +368,35 @@ static std::vector<T> flatten(const std::vector<std::vector<T>>& nested_vectors)
     }
 
     return flattened;
+}
+
+static std::string find_matching_cat_file(std::string& path) {
+    // Convert the pattern to a regex pattern
+    // Replace %u with regex pattern for unsigned integers
+    std::string pattern = "siril_cat(\\d+)_healpix(\\d+)_xpsamp_(\\d+)\\.dat";
+    std::regex file_regex(pattern);
+
+    try {
+        // Iterate through directory entries
+        for (const auto& entry : std::filesystem::directory_iterator(path)) {
+            if (!entry.is_regular_file()) {
+                continue;
+            }
+
+            std::string filename = entry.path().filename().string();
+            std::smatch matches;
+
+            // Check if filename matches our pattern
+            if (std::regex_match(filename, matches, file_regex)) {
+                return filename;
+            }
+        }
+    } catch (const std::filesystem::filesystem_error& e) {
+        g_warning("Error accessing directory: %s", e.what());
+        return "";
+    }
+
+    return "";
 }
 
 // This function is the main entry point and is declared extern "C" for ease of
@@ -503,27 +521,42 @@ extern "C" {
         double phi = ra_rad;
         double radius_h = pow(sin(0.5 * radius_rad), 2);
 
-        // Need to sort this properly
-        std::string filename("filename");
+        // Read the basic catalogue header from the first available chunk that matches
+        // the expected pattern
 
+        std::string chunkpath(com.pref.catalogue_paths[5]);
+        std::string first_chunk = find_matching_cat_file(chunkpath);
+
+        if (first_chunk.empty()) {
+            siril_log_color_message(_("Error: no chunks detected.\n"), "red");
+            *stars = nullptr;
+            *nb_stars = 0;
+            return 1;
+        }
         // Check the correct healpixel level and create our healpix_base
         int status = 0;
-        HealpixCatHeader header = read_healpix_cat_header(filename, &status);
+        std::string final_path = (std::filesystem::path(chunkpath) / first_chunk).string();
+        HealpixCatHeader header = read_healpix_cat_header(final_path, &status);
         if (status) {
             *stars = nullptr;
             *nb_stars = 0;
             return 1;
         }
-        T_Healpix_Base<int> healpix_chunk(header.chunk_level, NEST); // For getting the chunks we need to consult
+
         T_Healpix_Base<int> healpix_base(header.healpix_level, NEST); // For getting the pixel indices to look up
 
         pointing point(theta, phi);
 
-        // Perform the cone searches
-        std::vector<int> chunk_indices;
+        // Perform the cone search
         std::vector<int> pixel_indices;
-        healpix_chunk.query_disc_inclusive(point, radius_rad, chunk_indices);
         healpix_base.query_disc_inclusive(point, radius_rad, pixel_indices);
+
+        // Get the set of unique chunks
+        std::set<int> chunks;  // Use a set for automatic uniqueness
+        for (const int& healpix : pixel_indices) {
+            chunks.insert(convert_healpix_level(healpix, header.healpix_level, header.chunk_level));
+        }
+        std::vector<int> chunk_indices(chunks.begin(), chunks.end());
 
         // Split the pixel_indices into separate vectors for each chunk
         std::vector<std::vector<int>> chunked_pixel_indices = group_pixels_by_chunk(chunk_indices, pixel_indices, header.chunk_level, header.healpix_level);
@@ -539,18 +572,22 @@ extern "C" {
             // Reduce the pixels to a list of continuous ranges
             std::vector<HealPixelRange> healpixel_ranges = create_healpixel_ranges(chunk_pixels);
 
-            gchar *file = g_strdup_printf("siril_cat_healpix_xpsamp_%d.dat", chunk_id);
-            gchar *chunk_file = g_build_path(com.pref.catalogue_paths[5], "localspcc", file, NULL);
-            if (!std::filesystem::exists(chunk_file)) {
-                siril_log_color_message(_("Chunk file not found: %s\n"), "red", chunk_file);
+            gchar *filename = g_strdup_printf("siril_cat%u_healpix%u_xpsamp_%d.dat", header.chunk_level, header.healpix_level, chunk_id);
+            std::string chunkfile(filename);
+            std::string this_chunk_path = (std::filesystem::path(chunkpath) / chunkfile).string();
+
+            if (!std::filesystem::exists(this_chunk_path)) {
+                siril_log_color_message(_("Chunk file not found: %s\n"), "red", this_chunk_path.c_str());
                 file_error = true;
                 break;
             }
-            std::string filename(chunk_file);
-            g_free(file);
-            g_free(chunk_file);
+            g_free(filename);
+            // Read this specific header
+            int status = 0;
+            HealpixCatHeader this_header = read_healpix_cat_header(this_chunk_path, &status);
+
             // Query the catalogue for matches
-            results_in_chunks[i] = query_catalog<SourceEntryXPsamp>(filename, healpixel_ranges, header);
+            results_in_chunks[i] = query_catalog<SourceEntryXPsamp>(this_chunk_path, healpixel_ranges, this_header);
         }
         if (file_error)
             return 1;
