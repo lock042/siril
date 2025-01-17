@@ -54,8 +54,8 @@ typedef struct HealpixCatHeader {
     GaiaVersion gaia_version;   // 1 byte: Gaia version designator
     uint8_t healpix_level;      // 1 byte: Healpix indexing level N
     CatalogueType cat_type;     // 1 byte: Catalogue type
-    uint8_t chunk_level;        // for chunked catalogues, the Healpix level it waas chunked at
     uint8_t chunked;            // 1 byte to indicate whether the catalogue is chunked or not. Zero = monolithic, non-zero = chunked
+    uint8_t chunk_level;        // for chunked catalogues, the Healpix level it waas chunked at
     uint32_t chunk_healpix;     // for chunked catalogues, the chunk-level healpixel covered by this file
     uint32_t chunk_first_healpixel; // for chunked catalogues, the index-level healpixel number of the first healpixel in the catalogue
     uint32_t chunk_last_healpixel; // for chunked catalogues, the index-level healpixel number of the last healpixel in the catalogue
@@ -238,8 +238,8 @@ HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error
         file.read(reinterpret_cast<char*>(&header.gaia_version), 1);
         file.read(reinterpret_cast<char*>(&header.healpix_level), 1);
         file.read(reinterpret_cast<char*>(&header.cat_type), 1);
-        file.read(reinterpret_cast<char*>(&header.chunk_level), 1);
         file.read(reinterpret_cast<char*>(&header.chunked), 1);
+        file.read(reinterpret_cast<char*>(&header.chunk_level), 1);
         file.read(reinterpret_cast<char*>(&header.chunk_healpix), sizeof(uint32_t));
         file.read(reinterpret_cast<char*>(&header.chunk_first_healpixel), sizeof(uint32_t));
         file.read(reinterpret_cast<char*>(&header.chunk_last_healpixel), sizeof(uint32_t));
