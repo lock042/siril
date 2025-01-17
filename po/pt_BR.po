@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:37+0100\n"
-"PO-Revision-Date: 2024-12-27 01:30+0000\n"
-"Last-Translator: Jair Rillo Junior <jairrillo@gmail.com>\n"
+"PO-Revision-Date: 2025-01-17 22:32+0000\n"
+"Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril-1-2/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -629,9 +629,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:3485
-#, fuzzy
 msgid "Choose between interpolation methods."
-msgstr "Interpolação de *Debayer* "
+msgstr "Escolha entre métodos de interpolação."
 
 #: src/gui/siril3.glade:3489
 #, fuzzy
@@ -733,9 +732,8 @@ msgstr ""
 #: src/gui/siril3.glade:3812 src/gui/siril3.glade:8654
 #: src/gui/siril3.glade:8794 src/gui/siril3.glade:20100
 #: src/gui/siril3.glade:29155 src/gui/siril3.glade:31767
-#, fuzzy
 msgid "Clear"
-msgstr "Fechar a janela"
+msgstr "Excluir"
 
 #: src/gui/siril3.glade:3816
 msgid "Click here to clear all the samples."
@@ -1858,6 +1856,8 @@ msgstr ""
 #: src/gui/siril3.glade:8579
 msgid "Non-square pixels can be entered but will not be used in most cases."
 msgstr ""
+"Pixels não quadrados podem ser inseridos, mas não serão usados na maioria "
+"dos casos."
 
 #: src/gui/siril3.glade:8581
 #, fuzzy
@@ -2612,9 +2612,8 @@ msgstr ""
 #: src/gui/siril3.glade:12517 src/gui/siril3.glade:12535
 #: src/gui/siril3.glade:12553 src/gui/siril3.glade:12571
 #: src/gui/siril3.glade:27961 src/gui/siril3.glade:27976
-#, fuzzy
 msgid "0"
-msgstr "x0"
+msgstr "0"
 
 #: src/gui/siril3.glade:11857
 msgid "Right Ascension: "
@@ -2669,18 +2668,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:11966
-#, fuzzy
 msgid "Focal length (mm):"
-msgstr "Distância focal (mm): "
+msgstr "Distância focal (mm):"
 
 #: src/gui/siril3.glade:11977
 msgid "Pixel size in microns. The image is assumed to have square pixels."
 msgstr ""
 
 #: src/gui/siril3.glade:11978
-#, fuzzy
 msgid "Pixel size (µm):"
-msgstr "Dimensão X pixel (micron): "
+msgstr "Tamanho de píxel (µm):"
 
 #: src/gui/siril3.glade:11989 src/gui/siril3.glade:12004
 msgid ""
@@ -2798,9 +2795,8 @@ msgid "Image Parameters"
 msgstr "_Processamento de imagem"
 
 #: src/gui/siril3.glade:12255
-#, fuzzy
 msgid "Catalogue Limit Mag: "
-msgstr "Auto deteção"
+msgstr "Catálogo Limit Mag: "
 
 #: src/gui/siril3.glade:12267
 msgid ""
@@ -3355,9 +3351,8 @@ msgstr "Estimação de ruído"
 
 #: src/gui/siril3.glade:14456 src/gui/siril3.glade:14804
 #: src/gui/siril3.glade:26804
-#, fuzzy
 msgid "Aberration Inspector"
-msgstr "Subtração"
+msgstr "Inspetor de Aberrações"
 
 #: src/gui/siril3.glade:14481
 #, fuzzy

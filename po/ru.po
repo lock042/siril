@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:37+0100\n"
-"PO-Revision-Date: 2025-01-12 11:57+0000\n"
+"PO-Revision-Date: 2025-01-16 23:14+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/ru/>\n"
@@ -3629,7 +3629,7 @@ msgstr "Укладка со взвешенной средней"
 
 #: src/gui/siril3.glade:14204
 msgid "Configuration"
-msgstr "Настройка"
+msgstr "Конфигурация"
 
 #: src/gui/siril3.glade:14230 src/livestacking/gui.c:144
 msgid "Idle"
@@ -7833,7 +7833,7 @@ msgstr ""
 "Эти четыре каталога из KStars используются для решения изображений и "
 "астрометрии.\n"
 "\n"
-"<b>namedstars.dat</b>: ярчайшие звёзды, все имеющие имена."
+"<b>namedstars.dat</b>: ярчайшие звёзды, все имеющие названия."
 
 #: src/gui/siril3.glade:28804
 msgid ""
@@ -19543,7 +19543,7 @@ msgstr "Файлы журналов (*.log)"
 
 #: src/gui/progress_and_log.c:289
 msgid "Are you sure you want to clear the log? There is no possible undo."
-msgstr "Уверены, что хотите очистить журнал? Это действие нельзя отменить."
+msgstr "Вы уверены, что хотите очистить журнал? Это действие нельзя отменить."
 
 #: src/gui/progress_and_log.c:289
 msgid "Clear the Log"
@@ -19942,7 +19942,7 @@ msgstr "Изображение (или последовательность) у�
 
 #: src/gui/single_image.c:75
 msgid "Are you sure you want to close everything and open the new image?"
-msgstr "Уверены, что хотите закрыть всё и открыть новое изображение?"
+msgstr "Вы уверены, что хотите закрыть всё и открыть новое изображение?"
 
 #: src/gui/siril_css.c:48
 #, c-format
