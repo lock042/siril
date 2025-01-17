@@ -716,7 +716,9 @@ float half_to_float(const uint16_t val) {
 	uint32_t exp32 = 0;
 	if (exp16 == 0x1f) {
 		exp32 = 0xff; // Infinity or NaN
-	} else if (exp16 == 0) {
+	} else if (exp16 != 0) {
+		exp32 = exp16 + 112; // Normal numbers
+	} else {
 		if (frac16 == 0) {
 			// Zero
 			return *(float*)&sign;
@@ -736,9 +738,6 @@ float half_to_float(const uint16_t val) {
 		#endif
 		frac16 &= 0x3ff; // Mask off the implicit leading bit
 		exp32 = 113 - offset;
-	} else {
-		// Normal numbers
-		exp32 = exp16 + 112;
 	}
 
 	uint32_t frac32 = (uint32_t)frac16 << 13;
