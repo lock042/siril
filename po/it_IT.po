@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-11-28 14:37+0100\n"
+"POT-Creation-Date: 2025-01-17 23:34+0100\n"
 "PO-Revision-Date: 2024-12-24 15:11+0000\n"
 "Last-Translator: Andrea Fabio Ferracin <ferrajeans@gmail.com>\n"
 "Language-Team: Italian <https://weblate.siril.org/projects/siril/software/"
@@ -846,7 +846,7 @@ msgstr ""
 "Prefisso dei nomi di immagine risultanti dal processo estrazione dello "
 "sfondo."
 
-#: src/gui/siril3.glade:4236 src/gui/siril3.glade:26538 src/io/sequence.c:1840
+#: src/gui/siril3.glade:4236 src/gui/siril3.glade:26538 src/io/sequence.c:1839
 msgid "Save"
 msgstr "Salva"
 
@@ -1847,8 +1847,8 @@ msgstr "Iteratore Rafforza Opera Sottrai (SOS)"
 msgid ""
 "SOS iteration works by iterating the primary denoising algorithm multiple "
 "times, each time mixing back a fraction of the noisy image. This can improve "
-"denoising performance and reduce staircasing artefacts. Ref: https://arxiv."
-"org/abs/1502.06220"
+"denoising performance and reduce staircasing artefacts. Ref: https://"
+"arxiv.org/abs/1502.06220"
 msgstr ""
 "L'iterazione di SOS funziona iterando più volte l'algoritmo di denoising "
 "primario, ogni volta mescolando una frazione dell'immagine con rumore. Ciò "
@@ -4044,8 +4044,8 @@ msgid ""
 "The filenames <b>must</b> be in the same directory and <b>must</b> differ "
 "only by the name of the CFA channel. i.e. if a CFA0 image is "
 "<i>r_pp_CFA_0_Light_0001.fit</i>, the corresponding images for the other CFA "
-"channels must be <i>r_pp_CFA_1_Light_0001.fit</i>, <i>r_pp_CFA_2_Light_0001."
-"fit</i> and <i>r_pp_CFA_3_Light_0001.fit</i>.\n"
+"channels must be <i>r_pp_CFA_1_Light_0001.fit</i>, "
+"<i>r_pp_CFA_2_Light_0001.fit</i> and <i>r_pp_CFA_3_Light_0001.fit</i>.\n"
 "\n"
 "Each image in the sequence will only be processed if the corresponding "
 "images for the other 3 CFA channels can be found. Both G1 and G2 are "
@@ -4798,8 +4798,8 @@ msgid ""
 "Enter the object name you want to search in online database, SIMBAD or the "
 "Minor Planet Center database.\n"
 "Solar system objects can be referred to either by their number or name, but "
-"with a prefix depending on their type, for example 'a:1' or 'a:Ceres', 'p:"
-"mars' or 'c:C/2017 T2'.\n"
+"with a prefix depending on their type, for example 'a:1' or 'a:Ceres', "
+"'p:mars' or 'c:C/2017 T2'.\n"
 "If found, objects will be added to the User Catalogue. Solar system objects "
 "will be added with a date in their name, with no duplicate check. Purge the "
 "User Catalogue to remove previous searches."
@@ -4807,8 +4807,8 @@ msgstr ""
 "Immettere il nome dell'oggetto che si desidera cercare nel database online, "
 "SIMBAD o nel Minor Planet Center.\n"
 "Gli oggetti del sistema solare possono essere indicati con il loro numero o "
-"nome, ma con un prefisso che dipende dal loro tipo, ad esempio 'a:1' o 'a:"
-"Ceres', 'p:mars' o 'c:C/2017 T2 '.\n"
+"nome, ma con un prefisso che dipende dal loro tipo, ad esempio 'a:1' o "
+"'a:Ceres', 'p:mars' o 'c:C/2017 T2 '.\n"
 "Se trovati, gli oggetti verranno aggiunti al Catalogo utente. Gli oggetti "
 "del sistema solare verranno aggiunti con una data nel loro nome, senza "
 "controllo dei duplicati. Elimina il Catalogo utenti per rimuovere le "
@@ -10598,7 +10598,7 @@ msgstr "Il file %s è stato creato.\n"
 msgid "FindStar"
 msgstr "TrovaStelle"
 
-#: src/algos/star_finder.c:1205 src/io/sequence.c:2036
+#: src/algos/star_finder.c:1205 src/io/sequence.c:2035
 #: src/registration/applyreg.c:241 src/registration/comet.c:240
 #: src/registration/global.c:139
 msgid "Could not load reference image\n"
@@ -11059,11 +11059,11 @@ msgstr "Salva PSF al file:\n"
 #: src/core/command.c:1043 src/core/command.c:1120 src/core/command.c:1171
 #: src/core/command.c:1321
 msgid ""
-"Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \"."
-"tif\"\n"
+"Error: filename must have the extension \".fit\", \".fits\", \".fts\" or "
+"\".tif\"\n"
 msgstr ""
-"Errore: il nome del file deve avere l'estensione \".fit\", \".fits\", \"."
-"fts\" o \".tif\"\n"
+"Errore: il nome del file deve avere l'estensione \".fit\", \".fits\", "
+"\".fts\" o \".tif\"\n"
 
 #: src/core/command.c:1055 src/core/command.c:1137
 #, c-format
@@ -11541,7 +11541,7 @@ msgstr ""
 "ad una stella singola per determinare la PSF.\n"
 
 #: src/core/command.c:3153 src/core/command.c:3755 src/core/command.c:3936
-#: src/io/sequence.c:1897
+#: src/io/sequence.c:1896
 msgid "Select an area first\n"
 msgstr "Seleziona prima un'area\n"
 
@@ -11574,8 +11574,8 @@ msgid ""
 "conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"
 msgstr ""
 "Raggio dell’anello di sfondo locale: da %.1f a %.1f, apertura: %.1f (%s), "
-"gain di conversione della fotocamera: %f e-/ADU, utilizzo pixel con "
-"valori ]%f, %f[\n"
+"gain di conversione della fotocamera: %f e-/ADU, utilizzo pixel con valori ]"
+"%f, %f[\n"
 
 #: src/core/command.c:3310
 msgid "forced"
@@ -11756,8 +11756,8 @@ msgstr "Le immagini devono avere le stesse dimensioni.\n"
 
 #: src/core/command.c:3760
 msgid ""
-"Please display the channel on which you want to compute the PSF or use -"
-"channel argument\n"
+"Please display the channel on which you want to compute the PSF or use "
+"-channel argument\n"
 msgstr ""
 "Prego visualizzare il canale in cui vuoi elaborare la PSF o usare "
 "l’argomento -channel\n"
@@ -12556,8 +12556,8 @@ msgstr "Correzione cosmetica dalla mappa pixel difettosa: %s.\n"
 #: src/core/command.c:7819
 msgid "You must specify a bad pixel map file with -cc=bpm option, aborting.\n"
 msgstr ""
-"È necessario specificare un file di mappa pixel difettoso con l’opzione -"
-"cc=bpm, interruzione.\n"
+"È necessario specificare un file di mappa pixel difettoso con l’opzione "
+"-cc=bpm, interruzione.\n"
 
 #: src/core/command.c:7824
 #, c-format
@@ -12770,8 +12770,8 @@ msgstr "Il catalogo può essere solo NOMAD o APASS per l'utilizzo fotometrico\n"
 #: src/core/command.c:8486
 msgid "Specifying a catalog has no effect for astrometry.net solving\n"
 msgstr ""
-"Specificare un catalogo non ha alcun effetto nella risoluzione astrometry."
-"net\n"
+"Specificare un catalogo non ha alcun effetto nella risoluzione "
+"astrometry.net\n"
 
 #: src/core/command.c:8488
 msgid ""
@@ -13016,8 +13016,8 @@ msgid ""
 "in argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering "
-"a quoted expression starting with an = sign, such as -bias=\"=256\" or -"
-"bias=\"=64*$OFFSET\".\n"
+"a quoted expression starting with an = sign, such as -bias=\"=256\" or "
+"-bias=\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -13091,8 +13091,8 @@ msgid ""
 "argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering "
-"a quoted expression starting with an = sign, such as -bias=\"=256\" or -"
-"bias=\"=64*$OFFSET\".\n"
+"a quoted expression starting with an = sign, such as -bias=\"=256\" or "
+"-bias=\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -13715,8 +13715,8 @@ msgid ""
 "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 "default is all channels"
 msgstr ""
-"Stretch iperbolico generalizzato basato sul lavoro del team di ghsastro.co."
-"uk.\n"
+"Stretch iperbolico generalizzato basato sul lavoro del team di "
+"ghsastro.co.uk.\n"
 "\n"
 "L'argomento <b>D</b> definisce la forza dello stretch, tra 0 e 10. questo è "
 "il solo argomento obbligatorio. I seguenti argomenti opzionali "
@@ -14267,10 +14267,10 @@ msgid ""
 "wildcards, if any, are removed from the string to be parsed.\n"
 "\n"
 "If <b>str</b> starts with <i>$def</i> prefix, it will be recognized as a "
-"reserved keyword and looked for in the strings stored in gui_prepro."
-"dark_lib, gui_prepro.flat_lib, gui_prepro.bias_lib or gui_prepro."
-"stack_default for <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> or "
-"<i>$defstack</i> respectively.\n"
+"reserved keyword and looked for in the strings stored in "
+"gui_prepro.dark_lib, gui_prepro.flat_lib, gui_prepro.bias_lib or "
+"gui_prepro.stack_default for <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</"
+"i> or <i>$defstack</i> respectively.\n"
 "The keyword <i>$seqname$</i> can also be used when a sequence is loaded"
 msgstr ""
 "Analizza la stringa <b>str</b> utilizzando le informazioni contenute "
@@ -14285,10 +14285,10 @@ msgstr ""
 "stringa da analizzare.\n"
 "\n"
 "Se <b>str</b> inizia con il prefisso <i>$def</i>, verrà riconosciuta come "
-"parola chiave riservata e cercata nelle stringhe memorizzate in gui_prepro."
-"dark_lib, gui_prepro.flat_lib, gui_prepro.bias_lib o gui_prepro."
-"stack_default per <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> o "
-"<i>$defstack</i> rispettivamente.\n"
+"parola chiave riservata e cercata nelle stringhe memorizzate in "
+"gui_prepro.dark_lib, gui_prepro.flat_lib, gui_prepro.bias_lib o "
+"gui_prepro.stack_default per <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</"
+"i> o <i>$defstack</i> rispettivamente.\n"
 "La parola chiave <i>$seqname$</i> può essere utilizzata anche quando viene "
 "caricata una sequenza"
 
@@ -14616,8 +14616,8 @@ msgstr ""
 msgid ""
 "Creates an RGB composition using three independent images, or an LRGB "
 "composition using the optional luminance image and three monochrome images "
-"or a color image. Result image is called composed_rgb.fit or composed_lrgb."
-"fit unless another name is provided in the optional argument"
+"or a color image. Result image is called composed_rgb.fit or "
+"composed_lrgb.fit unless another name is provided in the optional argument"
 msgstr ""
 "Crea una composizione RGB utilizzando tre immagini indipendenti o una "
 "composizione LRGB utilizzando l’immagine di luminanza opzionale e tre "
@@ -15352,9 +15352,9 @@ msgid ""
 "\n"
 "Currently, in headless operation, the command prints some analysed data in "
 "the console, another command allows several stars to be analysed and plotted "
-"as a light curve: LIGHT_CURVE. Arguments are mandatory in headless, with -"
-"at= allowing coordinates in pixels to be provided for the target star and -"
-"wcs= allowing J2000 equatorial coordinates to be provided"
+"as a light curve: LIGHT_CURVE. Arguments are mandatory in headless, with "
+"-at= allowing coordinates in pixels to be provided for the target star and "
+"-wcs= allowing J2000 equatorial coordinates to be provided"
 msgstr ""
 
 #: src/core/command_def.h:151
@@ -15938,8 +15938,8 @@ msgstr ""
 "l’autore di Starnet <i>fortemente</i> raccomanda di utilizzare lo stride "
 "predefinito di 256.\n"
 "\n"
-"Altri suggerimenti e trucchi sono disponibili <a href=\"https://www."
-"starnetastro.com/tips-tricks/\">qui</a>"
+"Altri suggerimenti e trucchi sono disponibili <a href=\"https://"
+"www.starnetastro.com/tips-tricks/\">qui</a>"
 
 #: src/core/command_def.h:179
 #, fuzzy
@@ -16771,7 +16771,7 @@ msgstr "Mappatura dell'indice di output fallita (%d/%d).\n"
 msgid "%s: processing...\n"
 msgstr "%s: elaborazione...\n"
 
-#: src/core/processing.c:263 src/io/sequence.c:837
+#: src/core/processing.c:263 src/io/sequence.c:836
 #, c-format
 msgid ""
 "Image #%d: number of layers (%d) is not consistent with sequence (%d), "
@@ -17654,26 +17654,18 @@ msgstr "Impostazione CLC (Cartella di Lavoro Corrente) a '%s'\n"
 msgid "Could not change directory to '%s'.\n"
 msgstr "Non posso cambiare la cartella in '%s'.\n"
 
-#: src/core/utils.c:1058
-msgid ""
-"Conversion of the filename to system codepage failed. Please consider "
-"removing all wide chars.\n"
-msgstr ""
-"Conversione del nome file nella codepage di sistema non riuscita. Si prega "
-"di considerare la rimozione di tutti i caratteri larghi.\n"
-
-#: src/core/utils.c:1082
+#: src/core/utils.c:1064
 msgid "Filename is too long, not expanding it\n"
 msgstr "Il nome del file è troppo lungo, non viene espanso\n"
 
-#: src/core/utils.c:1189 src/io/image_format_fits.c:3268
+#: src/core/utils.c:1171 src/io/image_format_fits.c:3268
 #: src/io/image_format_fits.c:3273 src/io/ser.c:1383
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "pixel"
 msgstr[1] "pixels"
 
-#: src/core/utils.c:1190 src/io/image_format_fits.c:3269
+#: src/core/utils.c:1172 src/io/image_format_fits.c:3269
 #: src/io/image_format_fits.c:3274 src/io/ser.c:1384
 msgid "channel"
 msgid_plural "channels"
@@ -17760,7 +17752,7 @@ msgstr "FFT non funziona con le sequenze!\n"
 #: src/gui/nina_light_curve.c:136 src/gui/open_dialog.c:387 src/gui/plot.c:831
 #: src/gui/preferences.c:412 src/gui/preferences.c:431
 #: src/gui/preferences.c:469 src/gui/PSF_list.c:305 src/gui/PSF_list.c:310
-#: src/gui/PSF_list.c:315 src/gui/save_dialog.c:399
+#: src/gui/PSF_list.c:315 src/gui/save_dialog.c:456
 msgid "Error"
 msgstr "Errore"
 
@@ -19170,8 +19162,8 @@ msgstr "Trovate %d stelle sufficientemente luminose, non sature.\n"
 #, c-format
 msgid ""
 "Kernel size not large enough to fit PSF generated from detected stars. "
-"Increasing kernel size to %d. To override, specify kernel size using the -"
-"ks= option.\n"
+"Increasing kernel size to %d. To override, specify kernel size using the "
+"-ks= option.\n"
 msgstr ""
 "La dimensione del kernel non è abbastanza grande da adattarsi a PSF generata "
 "dalle stelle rilevate. Aumentare le dimensioni del kernel all'%d. Per "
@@ -19823,15 +19815,30 @@ msgstr "Salvataggio TIFF"
 msgid "Saving FITS"
 msgstr "Salvataggio FITS"
 
-#: src/gui/save_dialog.c:399
+#: src/gui/save_dialog.c:424
+#, fuzzy
+msgid "Extension Mismatch"
+msgstr "Tipo di estensione:"
+
+#: src/gui/save_dialog.c:425
+msgid ""
+"The given file extension does not match the chosen file type. Do you want to "
+"save the image using this name anyway?"
+msgstr ""
+
+#: src/gui/save_dialog.c:426 src/gui/save_dialog.c:477
+msgid "Save Anyway"
+msgstr "Salva Comunque"
+
+#: src/gui/save_dialog.c:456
 msgid "File saving failed. Check the logs for more info."
 msgstr "Salvataggio file non riuscito. Controlla i log per maggiori dettagli."
 
-#: src/gui/save_dialog.c:418
+#: src/gui/save_dialog.c:475
 msgid "Viewer mode is not linear"
 msgstr "La modalità visualizzatore non è lineare"
 
-#: src/gui/save_dialog.c:419
+#: src/gui/save_dialog.c:476
 msgid ""
 "You are saving an image that is displayed in a non linear mode. What you see "
 "is not what you will get. Switch the viewer mode to linear to save what you "
@@ -19841,20 +19848,16 @@ msgstr ""
 "che vedi non è quello che otterrai. Cambia la modalità di visualizzazione in "
 "lineare per salvare ciò che vedi."
 
-#: src/gui/save_dialog.c:420
-msgid "Save Anyway"
-msgstr "Salva Comunque"
-
-#: src/gui/save_dialog.c:622
+#: src/gui/save_dialog.c:679
 #, c-format
 msgid "Snapshot <b>%s</b> was saved into the working directory."
 msgstr "Istantanea <b>%s</b>è stata salvata nella cartella di lavoro."
 
-#: src/gui/save_dialog.c:624
+#: src/gui/save_dialog.c:681
 msgid "Snapshot was saved into the clipboard."
 msgstr "Lo snapshot è stato salvato nella clipboard."
 
-#: src/gui/save_dialog.c:640
+#: src/gui/save_dialog.c:697
 #, c-format
 msgid "Cannot take snapshot: %s\n"
 msgstr "Non riesco a prendere l’istantanea: %s\n"
@@ -20346,7 +20349,7 @@ msgstr "Immagini HEIF"
 msgid "Supported file types: %s\n"
 msgstr "Tipi di file supportati: %s\n"
 
-#: src/io/conversion.c:368
+#: src/io/conversion.c:369
 msgid ""
 "Requested converting a sequence file to single FITS image, should not "
 "happen\n"
@@ -20355,31 +20358,31 @@ msgstr ""
 "non dovrebbe accadere\n"
 
 #. when the ifdefs are not compiled, default happens!
-#: src/io/conversion.c:373
+#: src/io/conversion.c:374
 #, c-format
 msgid "Error opening %s: file type not supported.\n"
 msgstr "Errore durante l'apertura di %s: tipo di file non supportato.\n"
 
-#: src/io/conversion.c:593
+#: src/io/conversion.c:594
 msgid "disabling incompatible multiple output option in conversion\n"
 msgstr ""
 "disabilito l’opzione di output multiplo incompatibile nella conversione \n"
 
-#: src/io/conversion.c:599
+#: src/io/conversion.c:600
 msgid "Converting files"
 msgstr "Conversione dei file in corso"
 
-#: src/io/conversion.c:658
+#: src/io/conversion.c:659
 msgid "Failed to queue image conversion task, aborting"
 msgstr ""
 "Impossibile accodare il processo di conversione delle immagini, interruzione"
 
-#: src/io/conversion.c:693
+#: src/io/conversion.c:694
 #, c-format
 msgid "Conversion ended with error, %d/%d input files converted\n"
 msgstr "Conversione conclusa con errori, convertiti %d/%d file di input\n"
 
-#: src/io/conversion.c:696 src/io/conversion.c:706
+#: src/io/conversion.c:697 src/io/conversion.c:707
 #, c-format
 msgid ""
 "Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) "
@@ -20388,7 +20391,7 @@ msgstr ""
 "Conversione conclusa con successo, %d file creati per %d file di input (%d "
 "immagini convertite, %d fallite)\n"
 
-#: src/io/conversion.c:697
+#: src/io/conversion.c:698
 #, c-format
 msgid ""
 "Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) "
@@ -20397,43 +20400,43 @@ msgstr ""
 "Conversione interrotta, %d file creati per %d file di input (%d immagini "
 "convertite, %d fallite)\n"
 
-#: src/io/conversion.c:702
+#: src/io/conversion.c:703
 #, fuzzy, c-format
 msgid "Conversion ended with error, %d output files created\n"
 msgstr "Conversione conclusa con errori, convertiti %d/%d file di input\n"
 
-#: src/io/conversion.c:708
+#: src/io/conversion.c:709
 #, fuzzy, c-format
 msgid "Conversion succeeded, %d file(s) created for %d input file(s)\n"
 msgstr ""
 "Conversione conclusa con successo, %d file creati per %d file di input (%d "
 "immagini convertite, %d fallite)\n"
 
-#: src/io/conversion.c:710
+#: src/io/conversion.c:711
 #, fuzzy, c-format
 msgid "Conversion aborted, %d file(s) created for %d input file(s)\n"
 msgstr ""
 "Conversione interrotta, %d file creati per %d file di input (%d immagini "
 "convertite, %d fallite)\n"
 
-#: src/io/conversion.c:852
+#: src/io/conversion.c:853
 #, c-format
 msgid ""
 "Ignoring an image file '%s' in the inputs as multiple outputs is enabled\n"
 msgstr ""
 "Ignoro un file immagine ‘%s’ negli input perché sono abilitati più output\n"
 
-#: src/io/conversion.c:863
+#: src/io/conversion.c:864
 #, c-format
 msgid "Skipping input file %s (failed to be opened)\n"
 msgstr "Salto file di input %s (fallita apertura)\n"
 
-#: src/io/conversion.c:875
+#: src/io/conversion.c:876
 #, c-format
 msgid "File %s was not recognised as readable by Siril, skipping\n"
 msgstr "Il file %s non è stato riconosciuto come leggibile da Siril, saltato\n"
 
-#: src/io/conversion.c:895 src/io/conversion.c:1275
+#: src/io/conversion.c:896 src/io/conversion.c:1276
 #, c-format
 msgid ""
 "Converting 32 bits images (from %s) to 16 bits is not supported, ignoring "
@@ -20442,58 +20445,58 @@ msgstr ""
 "La conversione dell’ immagine a 32 bit (da %s) a 16 bit non è supportata, "
 "ignoro il file.\n"
 
-#: src/io/conversion.c:1101 src/io/conversion.c:1171
+#: src/io/conversion.c:1102 src/io/conversion.c:1172
 #, c-format
 msgid "Creating the SER file `%s' failed, aborting.\n"
 msgstr "Creazione del file SER ‘%s’ fallita, interruzione.\n"
 
-#: src/io/conversion.c:1122 src/io/conversion.c:1185
+#: src/io/conversion.c:1123 src/io/conversion.c:1186
 #, c-format
 msgid "Creating the FITS sequence file `%s' failed, aborting.\n"
 msgstr "Creazione del file sequenza FITS ‘%s’ fallita, interruzione.\n"
 
-#: src/io/conversion.c:1218 src/io/conversion.c:1243 src/io/conversion.c:1264
+#: src/io/conversion.c:1219 src/io/conversion.c:1244 src/io/conversion.c:1265
 #, c-format
 msgid "Reading %s\n"
 msgstr "Sto leggendo %s\n"
 
-#: src/io/conversion.c:1220
+#: src/io/conversion.c:1221
 #, c-format
 msgid "Error while opening film %s, aborting.\n"
 msgstr "Errore nell’aprire il video %s, interruzione.\n"
 
-#: src/io/conversion.c:1245
+#: src/io/conversion.c:1246
 #, c-format
 msgid "Error while opening ser file %s, aborting.\n"
 msgstr "Errore nell’apertura del file ser %s, interruzione.\n"
 
-#: src/io/conversion.c:1266
+#: src/io/conversion.c:1267
 #, c-format
 msgid "Error while opening ser file %s, ignoring file.\n"
 msgstr "Errore nell’apertura del file ser %s, ignoro il file.\n"
 
-#: src/io/conversion.c:1304
+#: src/io/conversion.c:1305
 msgid "output sequence type unknown, aborting\n"
 msgstr "tipo di sequenza di output sconosciuto, interruzione\n"
 
-#: src/io/conversion.c:1319
+#: src/io/conversion.c:1320
 msgid "Error while converting to SER (no space left?)\n"
 msgstr "Errore durante la conversione in SER (spazio esaurito?)\n"
 
-#: src/io/conversion.c:1326
+#: src/io/conversion.c:1327
 msgid "Error while converting to FITSEQ (no space left?)\n"
 msgstr "Errore durante la conversione in FITSEQ (spazio esaurito?)\n"
 
-#: src/io/conversion.c:1333
+#: src/io/conversion.c:1334
 #, fuzzy
 msgid "Error while converting to FITS\n"
 msgstr "Errore durante la conversione in FITS (spazio esaurito?)\n"
 
-#: src/io/conversion.c:1336
+#: src/io/conversion.c:1337
 msgid "No space left!\n"
 msgstr ""
 
-#: src/io/conversion.c:1349
+#: src/io/conversion.c:1350
 msgid "Error while converting, unknown output\n"
 msgstr "Errore durante la conversione, output sconosciuto\n"
 
@@ -21098,21 +21101,21 @@ msgstr ""
 "La sequenza %s non comincia al frame numero %d con lo specificato indice di "
 "dimensione fissato (%d). Non posso caricare.\n"
 
-#: src/io/sequence.c:229
+#: src/io/sequence.c:228
 #, c-format
 msgid "Checking sequences in the directory: %s.\n"
 msgstr "Errore durante la ricerca delle sequenze nella cartella: %s.\n"
 
-#: src/io/sequence.c:232 src/io/sequence.c:362
+#: src/io/sequence.c:231 src/io/sequence.c:361
 msgid "Current working directory is not set, aborting.\n"
 msgstr "La cartella di lavoro corrente non è impostata, interruzione.\n"
 
-#: src/io/sequence.c:343
+#: src/io/sequence.c:342
 #, c-format
 msgid "sequence %d, found: %d to %d\n"
 msgstr "sequenza %d, trovati: da %d a %d\n"
 
-#: src/io/sequence.c:354
+#: src/io/sequence.c:353
 #, c-format
 msgid ""
 "No sequence found, verify working directory or change FITS extension in "
@@ -21121,17 +21124,17 @@ msgstr ""
 "Nessuna sequenza rilevata, controllare la directory di lavoro o cambiare "
 "l'estensione FITS nei settings (attualmente è %s)\n"
 
-#: src/io/sequence.c:442
+#: src/io/sequence.c:441
 msgid ""
 "Cannot load SER sequence. Need at least 2 frames to be usable in Siril. "
 "Please convert the SER file into FITS file.\n"
 msgstr ""
 
-#: src/io/sequence.c:524
+#: src/io/sequence.c:523
 msgid "Deprecated sequence"
 msgstr "Sequenza obsoleta"
 
-#: src/io/sequence.c:525
+#: src/io/sequence.c:524
 msgid ""
 "Film sequences are now deprecated in Siril: some features are disabled and "
 "others may crash. We strongly encourage you to convert this sequence into a "
@@ -21144,72 +21147,72 @@ msgstr ""
 "formato per sequenze di immagini, simile ai formati non compressi dei "
 "filmati."
 
-#: src/io/sequence.c:527
+#: src/io/sequence.c:526
 msgid "Convert to SER"
 msgstr "Converto a SER"
 
-#: src/io/sequence.c:555
+#: src/io/sequence.c:554
 #, c-format
 msgid "Sequence loaded: %s (%d->%d)\n"
 msgstr "Sequenza caricata: %s (%d->%d)\n"
 
-#: src/io/sequence.c:785 src/io/sequence.c:918
+#: src/io/sequence.c:784 src/io/sequence.c:917
 #, c-format
 msgid "Could not load image %d from sequence %s\n"
 msgstr "Non posso caricare l'immagine %d dalla sequenza %s\n"
 
-#: src/io/sequence.c:793 src/io/sequence.c:873 src/io/sequence.c:926
+#: src/io/sequence.c:792 src/io/sequence.c:872 src/io/sequence.c:925
 #, c-format
 msgid "Could not load frame %d from SER sequence %s\n"
 msgstr "Non posso caricare il frame %d dalla sequenza SER %s\n"
 
-#: src/io/sequence.c:801 src/io/sequence.c:936
+#: src/io/sequence.c:800 src/io/sequence.c:935
 #, c-format
 msgid "Could not load frame %d from FITS sequence %s\n"
 msgstr "Non posso caricare il frame %d dalla sequenza FITS %s\n"
 
-#: src/io/sequence.c:811 src/io/sequence.c:892 src/io/sequence.c:947
+#: src/io/sequence.c:810 src/io/sequence.c:891 src/io/sequence.c:946
 #, c-format
 msgid "Could not load frame %d from AVI sequence %s\n"
 msgstr "Non posso caricare il frame %d dalla sequenza AVI %s\n"
 
-#: src/io/sequence.c:865 src/io/sequence.c:881
+#: src/io/sequence.c:864 src/io/sequence.c:880
 #, c-format
 msgid "Could not load partial image %d from sequence %s\n"
 msgstr "Non posso caricare l'immagine parziale %d dalla sequenza %s\n"
 
-#: src/io/sequence.c:1017
+#: src/io/sequence.c:1016
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
 msgstr ""
 "Questa operazione non è supportata sulle sequenze AVI (seq_open_image)\n"
 
-#: src/io/sequence.c:1021
+#: src/io/sequence.c:1020
 msgid ""
 "This operation is not supported on internal sequences (seq_open_image)\n"
 msgstr ""
 "Questa operazione non è supportata sulle sequenze interne (seq_open_image)\n"
 
-#: src/io/sequence.c:1445
+#: src/io/sequence.c:1444
 #, c-format
 msgid "Closing sequence %s\n"
 msgstr "Sto chiudendo la sequenza %s\n"
 
-#: src/io/sequence.c:1549
+#: src/io/sequence.c:1548
 #, fuzzy, c-format
 msgid "This operation will use registration data of layer %d\n"
 msgstr ""
 "Lo stacking utilizzerà i dati di registrazione del canale %d se presenti.\n"
 
-#: src/io/sequence.c:1569
+#: src/io/sequence.c:1568
 msgid "internal sequence"
 msgstr "sequenza interna"
 
-#: src/io/sequence.c:1682
+#: src/io/sequence.c:1681
 #, c-format
 msgid "Photometry analysis failed for image %d (%s)\n"
 msgstr "Analisi fotometrica fallita per l’immagine %d (%s)\n"
 
-#: src/io/sequence.c:1705
+#: src/io/sequence.c:1704
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use a larger "
@@ -21218,7 +21221,7 @@ msgstr ""
 "Nessuna stella trovata nell’area dell’immagine %d intorno a %d,%d: errore %s "
 "(usare un’area più grande?)\n"
 
-#: src/io/sequence.c:1709
+#: src/io/sequence.c:1708
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use 'follow star' "
@@ -21227,7 +21230,7 @@ msgstr ""
 "Nessuna stella trovata nell’area dell’immagine %d intorno a %d,%d: errore %s "
 "(usare l’opzione “segui stella”?)\n"
 
-#: src/io/sequence.c:1778
+#: src/io/sequence.c:1777
 msgid ""
 "Star analysis does not give consistent results when exposure changes across "
 "the sequence.\n"
@@ -21235,16 +21238,16 @@ msgstr ""
 "L'analisi delle stelle non dà risultati consistenti quando l'esposizione "
 "cambia lungo la sequenza.\n"
 
-#: src/io/sequence.c:1794
+#: src/io/sequence.c:1793
 #, c-format
 msgid "Photometry for star at %.1f, %.1f in image %d\n"
 msgstr "Fotometria per stella a %.1f, %.1f nell’immagine %d\n"
 
-#: src/io/sequence.c:1838
+#: src/io/sequence.c:1837
 msgid "No registration data stored for this layer"
 msgstr "Per questo livello non ci sono dati di registrazione salvati"
 
-#: src/io/sequence.c:1839
+#: src/io/sequence.c:1838
 msgid ""
 "Some registration data was found for another layer.\n"
 "Do you want to save the psf data as registration data for this layer?"
@@ -21252,7 +21255,7 @@ msgstr ""
 "Alcuni dati di registrazione sono stati trovati per un altro livello. \n"
 "Vuoi salvare i dati psf come dati di registrazione per questo livello?"
 
-#: src/io/sequence.c:1916 src/registration/3stars.c:267
+#: src/io/sequence.c:1915 src/registration/3stars.c:267
 msgid ""
 "The reference image has a null matrix and was not previously registered. "
 "Please select another one.\n"
@@ -21260,7 +21263,7 @@ msgstr ""
 "L’immagine di riferimento ha una matrice nulla e non è stata registrata in "
 "precedenza. Selezionane un altra.\n"
 
-#: src/io/sequence.c:1924
+#: src/io/sequence.c:1923
 msgid ""
 "The current image has a null matrix and was not previously registered. "
 "Please load another one to select the star.\n"
@@ -21268,7 +21271,7 @@ msgstr ""
 "L’immagine corrente ha una matrice nulla e non è stata registrata in "
 "precedenza. Caricane un’altra per selezionare la stella.\n"
 
-#: src/io/sequence.c:1932 src/registration/3stars.c:283
+#: src/io/sequence.c:1931 src/registration/3stars.c:283
 msgid ""
 "This area is outside of the reference image. Please select the reference "
 "image to select another star.\n"
@@ -21276,7 +21279,7 @@ msgstr ""
 "Questa area è fuori dall’immagine di riferimento. Prego selezionare "
 "l’immagine di riferimento per scegliere un’altra stella\n"
 
-#: src/io/sequence.c:1941
+#: src/io/sequence.c:1940
 msgid ""
 "The sequence analysis of the PSF will use a sliding selection area centred "
 "on the previous found star; this disables parallel processing.\n"
@@ -21285,7 +21288,7 @@ msgstr ""
 "centrata sulla stella precedentemente trovata; questo disabilita "
 "l'elaborazione parallela.\n"
 
-#: src/io/sequence.c:1943
+#: src/io/sequence.c:1942
 msgid ""
 "The sequence analysis of the PSF will use registration data to move the "
 "selection area for each image; this is compatible with parallel processing.\n"
@@ -21294,11 +21297,11 @@ msgstr ""
 "muovere l'area di selezione per ciascuna immagine; questo è compatibile con "
 "l'elaborazione parallela.\n"
 
-#: src/io/sequence.c:1955
+#: src/io/sequence.c:1954
 msgid "PSF on area"
 msgstr "PSF sull'area"
 
-#: src/io/sequence.c:2027
+#: src/io/sequence.c:2026
 #, c-format
 msgid ""
 "Fixing the selection number in the .seq file (%d) to the actual value (%d) "
@@ -21307,13 +21310,13 @@ msgstr ""
 "Sto fissando il numero della selezione nel file .seq (%d) al valore attuale "
 "(%d) (non salvato)\n"
 
-#: src/io/sequence.c:2046
+#: src/io/sequence.c:2045
 #, c-format
 msgid ""
 "Sequence drift could not be checked as sequence has no regdata on layer %d\n"
 msgstr ""
 
-#: src/io/sequence.c:2058
+#: src/io/sequence.c:2057
 #, c-format
 msgid ""
 "Warning: the sequence appears to have heavy drifted images (%d pixels for "
@@ -21321,22 +21324,22 @@ msgid ""
 "exclude some images\n"
 msgstr ""
 
-#: src/io/sequence.c:2072
+#: src/io/sequence.c:2071
 #, c-format
 msgid "Registration data cleared for layer %d\n"
 msgstr "Dati di registrazione cancellati per il livello %d\n"
 
-#: src/io/sequence.c:2082
+#: src/io/sequence.c:2081
 #, c-format
 msgid "Registration (back-up) data cleared for layer %d\n"
 msgstr "Dati di registrazione (backup) cancellati per il livello %d\n"
 
-#: src/io/sequence.c:2089
+#: src/io/sequence.c:2088
 #, c-format
 msgid "Statistics data cleared for layer %d\n"
 msgstr "Dati statistici cancellati per il livello %d\n"
 
-#: src/io/sequence.c:2095
+#: src/io/sequence.c:2094
 #, c-format
 msgid "Statistics data (back-up) cleared for layer %d\n"
 msgstr "Dati statistici (backup) cancellati per il livello %d\n"
@@ -23455,6 +23458,13 @@ msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 "Lo stacking verrà eseguito senza l'up-scaling ('drizzle' disabilitato)\n"
 
+#~ msgid ""
+#~ "Conversion of the filename to system codepage failed. Please consider "
+#~ "removing all wide chars.\n"
+#~ msgstr ""
+#~ "Conversione del nome file nella codepage di sistema non riuscita. Si "
+#~ "prega di considerare la rimozione di tutti i caratteri larghi.\n"
+
 #, c-format
 #~ msgid "RBF Extraction: processing channel %d...\n"
 #~ msgstr "Estrazione RBF: canale di elaborazione %d…\n"
@@ -23570,8 +23580,8 @@ msgstr ""
 #~ msgstr "Equalizza l'intensità media dei livelli RGB nelle immagini CFA"
 
 #~ msgid ""
-#~ "Inverse generalised hyperbolic stretch based on the work of the ghsastro."
-#~ "co.uk team.\n"
+#~ "Inverse generalised hyperbolic stretch based on the work of the "
+#~ "ghsastro.co.uk team.\n"
 #~ "\n"
 #~ "The argument <b>-D=</b> defines the strength of the stretch, between 0 "
 #~ "and 10. This is the only mandatory argument. The following optional "
@@ -23650,8 +23660,8 @@ msgstr ""
 #~ "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 #~ "default is all channels"
 #~ msgstr ""
-#~ "Stretch modificato arcsin inverso basato sul lavoro del team di ghsastro."
-#~ "co.uk.\n"
+#~ "Stretch modificato arcsin inverso basato sul lavoro del team di "
+#~ "ghsastro.co.uk.\n"
 #~ "\n"
 #~ "L'argomento <b>D</b> definisce la forza dello stretch, tra 0 e 10; Questo "
 #~ "è l'unico argomento obbligatorio. I seguenti argomenti opzionali "
@@ -23735,8 +23745,9 @@ msgstr ""
 #~ "solved image. Use <b>-mag=</b> to change the limit magnitude which "
 #~ "defaults to 20\n"
 #~ "\n"
-#~ "This research has made use of IMCCE's <a href=\"https://ui.adsabs.harvard."
-#~ "edu/abs/2006ASPC..351..367B/abstract\">SkyBoT VO tool</a>"
+#~ "This research has made use of IMCCE's <a href=\"https://"
+#~ "ui.adsabs.harvard.edu/abs/2006ASPC..351..367B/abstract\">SkyBoT VO tool</"
+#~ "a>"
 #~ msgstr ""
 #~ "Cerca e visualizza gli oggetti del sistema solare nell'immagine "
 #~ "attualmente caricata e platea-solved. Usa <b>-mag=</b> per modificare la "
@@ -24060,9 +24071,9 @@ msgstr ""
 #~ msgstr "HP deve trovarsi tra il punto focale di stretch e 1\n"
 
 #~ msgid ""
-#~ "Inverse generalised arcsinh stretch based on the work of the ghsastro.co."
-#~ "uk team. This is similar to the simple asinh stretch but offers "
-#~ "additional parameters for fine tuning.\n"
+#~ "Inverse generalised arcsinh stretch based on the work of the "
+#~ "ghsastro.co.uk team. This is similar to the simple asinh stretch but "
+#~ "offers additional parameters for fine tuning.\n"
 #~ "\n"
 #~ "An optional argument (either <b>-human</b>, <b>-even</b> or <b>-"
 #~ "independent</b>, can be passed to select either human-weighted or even-"
