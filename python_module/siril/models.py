@@ -54,31 +54,31 @@ class FKeywords:
     """
 
     # FITS file data
-    bscale: float = 1.0
-    bzero: float = 0.0
+    bscale: float = 1.0 #: Offset data range to that of unsigned short
+    bzero: float = 0.0 #: Default scaling factor
     lo: int = 0 #: MIPS-LO key in FITS file, "Lower visualization cutoff"
     hi: int = 0 #: MIPS-HI key in FITS file, "Upper visualization cutoff"
     flo: np.float32 = 0.0 #: MIPS-LO key in FITS file, "Lower visualization cutoff (float)"
     fhi: np.float32 = 0.0  #: MIPS-Hi key in FITS file, "Upper visualization cutoff (float)"
 
     # string attributes with corresponding properties
-    program: str = ""
-    filename: str = ""
-    row_order: str = ""
-    filter: str = ""
-    image_type: str = ""
-    object: str = ""
-    instrume: str = ""
-    telescop: str = ""
-    observer: str = ""
-    bayer_pattern: str = ""
-    sitelat_str: str = ""
-    sitelong_str: str = ""
-    focname: str = ""
+    program: str = "" #: Software that created this HDU
+    filename: str = "" #: Original Filename
+    row_order: str = "" #: Order of the rows in image array
+    filter: str = "" #: Active filter name
+    image_type: str = "" #: Type of image
+    object: str = "" #: Name of the object of interest
+    instrume: str = "" #: Instrument name
+    telescop: str = "" #: Telescope used to acquire this image
+    observer: str = "" #: Observer name
+    bayer_pattern: str = "" #: Bayer color pattern
+    sitelat_str: str = "" # [deg] Observation site latitude
+    sitelong_str: str = "" # [deg] Observation site longitude
+    focname: str = "" #: Focusing equipment name
 
     # Datetime attributes
-    date: Optional[datetime] = None
-    date_obs: Optional[datetime] = None
+    date: Optional[datetime] = None #: UTC date that FITS file was created
+    date_obs: Optional[datetime] = None #: YYYY-MM-DDThh:mm:ss observation start, UT
 
     # Remaining attributes
     data_max: float = 0.0 #: used to check if 32b float is in the [0, 1] range
@@ -94,9 +94,9 @@ class FKeywords:
     # Camera settings
     bayer_xoffset: int = 0 #: X offset of the Bayer pattern
     bayer_yoffset: int = 0 #: Y offset of the Bayer pattern
-    airmass: float = 1.0
-    focal_length: float = 0.0 #: focal length
-    flength: float = 0.0
+    airmass: float = 1.0 #: Airmass at frame center (Gueymard 1993)
+    focal_length: float = 0.0 #: [mm] Focal length
+    flength: float = 0.0 #: [mm] Focal length
     iso_speed: float = 0.0 #: ISO speed value as a float
     exposure: float = 0.0 #: Exposure time as a float (s)
     aperture: float = 0.0 #: Aperture value as a float
@@ -110,15 +110,15 @@ class FKeywords:
 
     # Focuser data
     focuspos: int = 0 #: Focuser position
-    focussz: int = 0
+    focussz: int = 0 #: [um] Focuser step size
     foctemp: float = 0.0 #: Focuser temperature
 
     # Position data
-    centalt: float = 0.0
-    centaz: float = 0.0
-    sitelat: float = 0.0
-    sitelong: float = 0.0
-    siteelev: float = 0.0
+    centalt: float = 0.0 #: [deg] Altitude of telescope
+    centaz: float = 0.0 #: [deg] Azimuth of telescope
+    sitelat: float = 0.0 # [deg] Observation site latitude
+    sitelong: float = 0.0 #: [deg] Observation site longitude
+    siteelev: float = 0.0 #: [m] Observation site elevation
 
 
 
@@ -148,8 +148,8 @@ class FFit:
     _data: Optional[np.ndarray] = None #: Holds the image data as a numpy array.
 
     top_down: bool = False #: Specifies the ROWORDER for this image. The FITS specification directs that FITS should be stored bottom-up, but many CMOS sensors are natively TOP_DOWN and capture software tends to save FITS images captured by these sensors as TOP_DOWN.
-    focalkey: bool = False
-    pixelkey: bool = False
+    _focalkey: bool = False 
+    _pixelkey: bool = False
 
     history: list[str] = field(default_factory=list) #: Contains a list of strings holding the HISTORY entries for this image.
 
@@ -462,17 +462,17 @@ class Homography:
     for the Homography matrix that maps a sequence frame onto the reference
     frame.
     """
-    h00: float = 0.0
-    h01: float = 0.0
-    h02: float = 0.0
-    h10: float = 0.0
-    h11: float = 0.0
-    h12: float = 0.0
-    h20: float = 0.0
-    h21: float = 0.0
-    h22: float = 0.0
-    pair_matched: int = 0
-    Inliers: int = 0
+    h00: float = 0.0 #: Homography matrix H00
+    h01: float = 0.0 #: Homography matrix H01
+    h02: float = 0.0 #: Homography matrix H02
+    h10: float = 0.0 #: Homography matrix H10
+    h11: float = 0.0 #: Homography matrix H11
+    h12: float = 0.0 #: Homography matrix H12
+    h20: float = 0.0 #: Homography matrix H20
+    h21: float = 0.0 #: Homography matrix H21
+    h22: float = 0.0 #: Homography matrix H22
+    pair_matched: int = 0 #: number of pairs matched
+    Inliers: int = 0 #: number of inliers kept after RANSAC step
 
 class StarProfile(IntEnum):
     """
@@ -565,42 +565,10 @@ class ImgData:
     """Python equivalent of Siril imgdata structure"""
     filenum: int = 0              #: real file index in the sequence
     incl: bool = False           #: selected in the sequence
-    _date_obs: Optional[datetime] = None  #: date of the observation
-    _airmass: float = 0.0         #: airmass of the image
+    date_obs: Optional[datetime] = None  #: date of the observation
+    airmass: float = 0.0         #: airmass of the image
     rx: int = 0                 #: width
     ry: int = 0                 #: height
-
-    @property
-    def airmass(self) -> float:
-        """Get the airmass value of the Siril imgdata structure"""
-        return self._airmass
-
-    @airmass.setter
-    def set_airmass(self, value: float) -> None:
-        """
-        Get the airmass value of the Siril imgdata structure
-        The value of airmass must be >= 1.0
-        """
-        if value >= 1:
-            self._airmass = value
-        else:
-            raise ValueError(_("airmass must be greater than or equal to 1"))
-
-    @property
-    def date_obs(self) -> Optional[datetime]:
-        """
-        Gets the FITS DATE-OBS keyword, which represents the date
-        on which the observation was made.
-        """
-        return self._date_obs
-
-    @date_obs.setter
-    def date_obs(self, value: Optional[datetime]) -> None:
-        """
-        Sets the FITS DATE-OBS keyword, which represents the date
-        on which the observation was made.
-        """
-        self._date_obs = value
 
 @dataclass
 class Sequence:
