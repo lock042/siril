@@ -1,6 +1,6 @@
 # List of Python files to install (outside of siril subdirectory)
 python_files = [
-  'setup.py',
+  'pyproject.toml',
 ]
 
 # List of markdown files to install
@@ -13,8 +13,8 @@ markdown_files = [
 install_data(python_files + markdown_files,
             install_dir: siril_datadir + '/python_module')
 
-# Install the entire 'siril' subdirectory (this will handle all .py files in siril/)
-install_subdir('siril',
+# Install the entire 'sirilpy' subdirectory (this will handle all .py files in sirilpy/)
+install_subdir('sirilpy',
   install_dir: siril_datadir + '/python_module'
 )
 

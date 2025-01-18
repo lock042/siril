@@ -63,7 +63,7 @@ from .exceptions import (
 
 try: # import from the packaging specification
     from importlib.metadata import metadata
-    meta = metadata("siril")
+    meta = metadata("sirilpy")
     __version__ = meta.get("version", "unknown")
     __author__ = meta.get("author", "unknown")
     __license__ = meta.get("license", "unknown")

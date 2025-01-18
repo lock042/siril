@@ -11,7 +11,7 @@ from typing import Callable, TypeVar
 
 T = TypeVar('T')
 
-def setup_translations(domain: str = 'siril', localedir: str = None) -> Callable:
+def setup_translations(domain: str = 'sirilpy', localedir: str = None) -> Callable:
     """
     Set up translations for the module based on the system locale.
     """

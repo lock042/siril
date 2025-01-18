@@ -1093,7 +1093,7 @@ static gchar* find_venv_python_exe(const gchar *venv_path, const gboolean verbos
 }
 
 static gchar* get_setup_path(const gchar* module_dir) {
-	return g_build_filename(module_dir, "setup.py", NULL);
+	return g_build_filename(module_dir, "pyproject.toml", NULL);
 }
 
 static version_number get_module_version(const gchar* filename, GError** error) {
@@ -1157,7 +1157,7 @@ static version_number get_installed_module_version(const gchar* python_path, GEr
 	gchar *stderr_data = NULL;
 	gint exit_status;
 
-	gchar *argv[] = { cmd, "-m", "pip", "show", "siril", NULL };
+	gchar *argv[] = { cmd, "-m", "pip", "show", "sirilpy", NULL };
 
 	// Execute pip show command
 	GError *spawn_error = NULL;
@@ -1394,7 +1394,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 				"pip",
 				"uninstall",
 				"-y",
-				"siril",
+				"sirilpy",
 				NULL  // Array must be NULL-terminated
 			};
 			if (!g_spawn_sync(
@@ -1530,7 +1530,7 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 	g_hash_table_remove(info->env_vars, "PYTHONPATH");
 	g_hash_table_remove(info->env_vars, "PYTHONHOME");
 
-	// Check the siril python module is the latest version and install or
+	// Check the sirilpy python module is the latest version and install or
 	// update it using the venv pip if not.
 	siril_log_message(_("Checking the python module is up-to-date...\n"));
 	gchar *module_path = g_build_filename(siril_get_system_data_dir(), MODULE_DIR, NULL);
@@ -1564,7 +1564,7 @@ cleanup:
 // WARNING: the following function will IMMEDIATELY kill all running python scripts,
 // delete the siril venv directory and rebuild it. Any call to this MUST be
 // preceded by a siril_confirm_dialog(). On success a completely fresh venv will
-// exist containing the current siril python module, but any other modules that
+// exist containing the current sirilpy python module, but any other modules that
 // have been installed by scripts will require reinstallation.
 //***********************************************************************************
 

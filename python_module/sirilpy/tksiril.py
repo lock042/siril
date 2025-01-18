@@ -70,7 +70,7 @@ def match_theme_to_siril(themed_tk, s):
     Match the Tkinter theme to the Siril configuration.
 
     Args:
-        s (SirilInterface): siril.SirilInterface class to provide the
+        s (SirilInterface): sirilpy.SirilInterface class to provide the
                             Siril theme (light or dark) to match
         themed_tk (ThemedTk): ThemedTk instance to apply the theme to
 
