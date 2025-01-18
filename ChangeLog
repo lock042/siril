@@ -102,7 +102,7 @@ xx/xx/xx
 * Removed Windows cross-build CI and improved performance of native CI (!767)
 
 siril 1.2.6
---/--/--
+01/22/25
 * Fixed sign error in messier catalog (#1453)
 * Fixed Save As feature (#1452)
 * Fixed handling widechar with an updated version of cfitsio (#1456)
