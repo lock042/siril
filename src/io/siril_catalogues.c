@@ -201,16 +201,14 @@ static double siril_catalog_epoch(siril_cat_index cat) {
 	return J2000;
 }
 
-static float siril_catalog_ra_multiplier(siril_cat_index cat) {
-	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
-		return 0.0000001f;
-	return 0.000001f;
+static double siril_catalog_ra_multiplier(siril_cat_index cat) {
+	return 0.000001;
 }
 
-static float siril_catalog_dec_multiplier(siril_cat_index cat) {
+static double siril_catalog_dec_multiplier(siril_cat_index cat) {
 	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
-		return 0.0000001f;
-	return 0.00001f;
+		return 0.000001;
+	return 0.00001;
 }
 
 // This function compares two cat_item objects and return their order by mag
