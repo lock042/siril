@@ -477,7 +477,7 @@ extern "C" {
         matches.erase(
             std::remove_if(matches.begin(), matches.end(),
                            [radius_h, ra, dec](const SourceEntryAstro& entry) {
-                               return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * 0.000001, (double)entry.dec_scaled * .00001) > radius_h;
+                               return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * 0.0000001, (double)entry.dec_scaled * .0000001) > radius_h;
                            }
             ),
             matches.end()
@@ -634,7 +634,7 @@ extern "C" {
         matches.erase(
             std::remove_if(matches.begin(), matches.end(),
                            [radius_h, ra, dec](const SourceEntryXPsamp& entry) {
-                               return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * 0.000001, (double)entry.dec_scaled * .00001) > radius_h;
+                               return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * 0.0000001, (double)entry.dec_scaled * .0000001) > radius_h;
                            }
             ),
             matches.end()

@@ -156,6 +156,8 @@ typedef struct {
 	gchar *IAUcode; // observatory code
 	gboolean phot; // TRUE if can be used for photometry
 	double epoch; // epoch for proper motion
+	float ra_multiplier; // multiplier for uint32_t RA representation
+	float dec_multiplier; // multiplier for uint32_t Dec representation
 	cat_item *cat_items;
 	int nbitems; // the number of items stored
 	int nbincluded; // the number of items included after projection

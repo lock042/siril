@@ -201,6 +201,18 @@ static double siril_catalog_epoch(siril_cat_index cat) {
 	return J2000;
 }
 
+static float siril_catalog_ra_multiplier(siril_cat_index cat) {
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+		return 0.0000001f;
+	return 0.000001f;
+}
+
+static float siril_catalog_dec_multiplier(siril_cat_index cat) {
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+		return 0.0000001f;
+	return 0.00001f;
+}
+
 // This function compares two cat_item objects and return their order by mag
 static int compare_items_by_mag(const void* item1, const void* item2) {
 	cat_item *i1 = (cat_item*) item1;
@@ -311,6 +323,7 @@ gboolean is_star_catalogue(siril_cat_index Catalog) {
 		case CAT_LOCAL_TRIX:
 		case CAT_AN_USER_SSO:
 		case CAT_LOCAL_GAIA_ASTRO:
+		case CAT_LOCAL_GAIA_XPSAMP:
 			return TRUE;
 	default:
 		return FALSE;
@@ -477,6 +490,8 @@ siril_catalogue *siril_catalog_new(siril_cat_index Catalog) {
 	siril_cat->cat_index = Catalog;
 	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
 	siril_cat->epoch = siril_catalog_epoch(siril_cat->cat_index);
+	siril_cat->ra_multiplier = siril_catalog_ra_multiplier(siril_cat->cat_index);
+	siril_cat->dec_multiplier = siril_catalog_dec_multiplier(siril_cat->cat_index);
 	return siril_cat;
 }
 

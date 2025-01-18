@@ -714,6 +714,9 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	deepStarData *stars = NULL;
 	uint32_t nb_stars;
 
+	float ra_mult = siril_cat->ra_multiplier;
+	float dec_mult = siril_cat->dec_multiplier;
+
 	if (siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP) {
 		SourceEntryXPsamp *stars = NULL;
 		if (get_raw_stars_from_local_gaia_xpsampled_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
@@ -723,8 +726,8 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 		siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
 		for (int i = 0; i < siril_cat->nbitems; i++) {
 			siril_cat->cat_items[i].xp_sampled = malloc(343 * sizeof(double));
-			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * 0.000001;
-			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * 0.00001;
+			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * ra_mult;
+			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * dec_mult;
 			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
 			siril_cat->cat_items[i].pmdec = (double)stars[i].ddec_scaled;
 			siril_cat->cat_items[i].mag = (float)stars[i].mag_scaled * 0.001;
@@ -775,10 +778,11 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	siril_cat->nbitems = (int)nb_stars;
 	siril_cat->nbincluded = (int)nb_stars;
 	siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
-	double CAT_RA_TO_DEG = siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO ? 0.000001 : 0.000015;
+	// Gaia catalogs present RA in deg, others present it in hours
+	double CAT_RA_TO_DEG = siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO ? ra_mult : ra_mult * 15.0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		siril_cat->cat_items[i].ra = (double)stars[i].RA * CAT_RA_TO_DEG;
-		siril_cat->cat_items[i].dec = (double)stars[i].Dec * .00001;
+		siril_cat->cat_items[i].dec = (double)stars[i].Dec * dec_mult;
 		siril_cat->cat_items[i].pmra = (double)stars[i].dRA;
 		siril_cat->cat_items[i].pmdec = (double)stars[i].dDec;
 		siril_cat->cat_items[i].mag = (float)stars[i].V * .001;
