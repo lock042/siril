@@ -28,7 +28,7 @@
 #define M_PI 3.14159265358979323846  /* pi */
 #endif
 
-//#define HEALPIX_DEBUG
+#define HEALPIX_DEBUG
 
 // Enum for Gaia version designator
 enum class GaiaVersion {
@@ -281,15 +281,16 @@ static void show_healpixel_entries(uint32_t healpixel_id) {
         std::vector<HealPixelRange> range = {{healpixel_id, healpixel_id}};
 
         // Read the header first to get the healpix level
-        HealpixCatHeader header = read_healpix_cat_header(filename);
+        int status = 0;
+        HealpixCatHeader header = read_healpix_cat_header(std::string(filename), &status);
 
         // Query the catalog for this healpixel
-        auto entries = query_catalog<SourceEntryAstro>(filename, range, header.healpix_level);
+        auto entries = query_catalog<SourceEntryAstro>(std::string(filename), range, header);
 
         // Print each entry with the same formatting as Python
         for (const auto& entry : entries) {
-            double ra = entry.ra_scaled / 1000000.0;
-            double dec = entry.dec_scaled / 100000.0;
+            double ra = entry.ra_scaled * 1.67638063509e-07;
+            double dec = entry.dec_scaled * 1.67638063509e-07;
             double mag = entry.mag_scaled / 1000.0;
 
             std::cout << "Record for healpixid " << healpixel_id
@@ -422,6 +423,9 @@ extern "C" {
     }
 
     int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
+
+        show_healpixel_entries(0);
+
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
         siril_debug_print("Search radius: %f deg\n", radius);
         const double DEG_TO_RAD = M_PI / 180.0;
@@ -474,10 +478,11 @@ extern "C" {
         );
 
         // Filter by distance from the center of the cone
+        double scale = 360.0 / (double) INT32_MAX;
         matches.erase(
             std::remove_if(matches.begin(), matches.end(),
-                           [radius_h, ra, dec](const SourceEntryAstro& entry) {
-                               return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * 0.0000001, (double)entry.dec_scaled * .0000001) > radius_h;
+                           [scale, radius_h, ra, dec](const SourceEntryAstro& entry) {
+                               return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * scale, (double)entry.dec_scaled * scale) > radius_h;
                            }
             ),
             matches.end()
@@ -631,10 +636,11 @@ extern "C" {
         );
 
         // Filter by distance from the center of the cone
+        double scale = 360.0 / (double) INT32_MAX;
         matches.erase(
             std::remove_if(matches.begin(), matches.end(),
-                           [radius_h, ra, dec](const SourceEntryXPsamp& entry) {
-                               return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * 0.000001, (double)entry.dec_scaled * .000001) > radius_h;
+                           [scale, radius_h, ra, dec](const SourceEntryXPsamp& entry) {
+                               return compute_coords_distance_h(ra, dec, (double)entry.ra_scaled * scale, (double)entry.dec_scaled * scale) > radius_h;
                            }
             ),
             matches.end()

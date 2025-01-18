@@ -202,12 +202,14 @@ static double siril_catalog_epoch(siril_cat_index cat) {
 }
 
 static double siril_catalog_ra_multiplier(siril_cat_index cat) {
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+		return 360.0 / (double) INT32_MAX;
 	return 0.000001;
 }
 
 static double siril_catalog_dec_multiplier(siril_cat_index cat) {
 	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
-		return 0.000001;
+		return 360.0 / (double) INT32_MAX;
 	return 0.00001;
 }
 
