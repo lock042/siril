@@ -1,4 +1,4 @@
-siril 1.2.6 --- --, 2025
+siril 1.2.6 January 22, 2025
 * Fixed sign error in messier catalog
 * Fixed Save As feature (#1452)
 * Fixed handling widechar with an updated version of cfitsio (#1456)
