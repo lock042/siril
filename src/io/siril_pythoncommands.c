@@ -1848,6 +1848,31 @@ CLEANUP:
 			break;
 		}
 
+		case CMD_SET_SEQ_FRAME_INCL: {
+			uint32_t index;
+			gboolean incl;
+			if (!sequence_is_loaded()) {
+				const char* error_msg = _("No sequence loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			if (payload_length == 5) {
+				index = GUINT32_FROM_BE(*(uint32_t*) payload);
+				incl = (gboolean) GUINT32_FROM_BE(*(uint32_t*) payload + 1);
+				if (incl < 0 || incl >= com.seq.number) {
+					const char* error_msg = _("Index is out of range");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
+				com.seq.imgparam[index].incl = incl;
+				success = send_response(conn, STATUS_OK, NULL, 0);
+			} else {
+				const char* error_msg = _("Incorrect payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
 		default:
 			siril_debug_print("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");

@@ -96,6 +96,7 @@ class _Command(IntEnum):
     RELEASE_THREAD = 42,
     SET_SEQ_FRAME_PIXELDATA = 43,
     REQUEST_SHM = 44,
+    SET_SEQ_FRAME_INCL = 45,
     ERROR = 0xFF
 
 class _Defaults:
@@ -3365,3 +3366,24 @@ class SirilInterface:
         except Exception as e:
             raise RuntimeError(_("Error getting config value: {}").format(e))
             return None
+
+    def set_seq_frame_incl(self, index: int, incl: bool) -> bool:
+        """
+        Set whether a given frame is included in the currently loaded sequence
+        in Siril. This method is intended for use in creating custom sequence
+        filters.
+
+        Args:
+            index: integer specifying which frame to set the pixeldata for.
+            incl: bool specifying whether the frame is included or not.
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Pack the index and incl into bytes using network byte order (!)
+            payload = struct.pack('!II', index, incl)
+            return self._execute_command(_Command.SET_SEQ_FRAME_INCL, payload)
+        except Exception as e:
+            print(f"Error setting selection: {e}", file=sys.stderr)
+            return False
