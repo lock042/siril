@@ -31,7 +31,8 @@ dependencies = [
   'packaging>=21.0',
   'pywin32>=300;platform_system=="Windows"'
 ]
-[tools.setuptools]
+
+[tool.setuptools]
 packages = ["sirilpy"]
 
 [project.urls]
