@@ -281,7 +281,7 @@ macos:
     CCACHE_DIR: /Users/Shared/work/ccache
     REP_DIR: $CI_PROJECT_DIR
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: e4574ea3069f6cd2c55d56111127526e04163a25
+    SM_REPO_REF: a4aeaf73c3bc68da6b30a20a2c8d964b348285c8
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
     WRK_DIR: $CI_PROJECT_DIR
   script:
