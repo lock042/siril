@@ -284,9 +284,9 @@ static void siril_macos_setenv(const char *progname) {
 		g_snprintf(tmp, sizeof(tmp), "%s/etc/ca-certificates/cacert.pem", lib_dir);
 		g_setenv("CURL_CA_BUNDLE", tmp, TRUE);
 		if (g_getenv("HOME") != NULL) {
-			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support/org.free-astro.Siril", g_getenv("HOME"));
+			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support/org.siril.Siril", g_getenv("HOME"));
 			g_setenv("XDG_CONFIG_HOME", tmp, TRUE);
-			g_snprintf (tmp, sizeof(tmp), "%s/Library/Caches/org.free-astro.Siril",
+			g_snprintf (tmp, sizeof(tmp), "%s/Library/Caches/org.siril.Siril",
 					g_getenv("HOME"));
 			g_setenv ("XDG_CACHE_HOME", tmp, TRUE);
 
