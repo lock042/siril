@@ -2537,8 +2537,8 @@ class SirilInterface:
             return ImgData (
                 filenum = values[0],
                 incl = values[1],
-                _date_obs = datetime.fromtimestamp(values[2]) if values[2] != 0 else None,
-                _airmass = values[3],
+                date_obs = datetime.fromtimestamp(values[2]) if values[2] != 0 else None,
+                airmass = values[3],
                 rx = values[4],
                 ry = values[5]
             )
@@ -2546,7 +2546,7 @@ class SirilInterface:
             print(f"Error unpacking frame image data: {e}", file=sys.stderr)
             return None
 
-    def get_seq(self) -> Optional[ImgData]:
+    def get_seq(self) -> Optional[Sequence]:
         """
         Request metadata for the current sequence loaded in Siril.
 

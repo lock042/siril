@@ -1216,7 +1216,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (!com.seq.regparam[index]) {
+			if (!com.seq.regparam[chan]) {
 				const char* error_message = _("No regdata available");
 				success = send_response(conn, STATUS_NONE, error_message, strlen(error_message));
 				g_free(response_buffer);
@@ -1224,7 +1224,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			unsigned char *ptr = response_buffer;
-			regdata *regparam = &com.seq.regparam[index][chan];
+			regdata *regparam = &com.seq.regparam[chan][index];
 			if (regdata_to_py(regparam, ptr, total_size)) {
 				const char* error_message = _("No regdata available");
 				success = send_response(conn, STATUS_NONE, error_message, strlen(error_message));
