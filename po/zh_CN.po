@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-01-17 22:32+0000\n"
+"PO-Revision-Date: 2025-01-19 15:02+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril-1-2/zh_Hans/>\n"
@@ -2564,7 +2564,7 @@ msgstr "将序列里的图像全部包含在批量处理之内"
 msgid ""
 "Includes/excludes selected images of the sequence from the processing "
 "schedule"
-msgstr "选择/排除序列中的图像以用于批量处理"
+msgstr "在处理清单中纳入/排除选中的图像"
 
 #: src/gui/siril3.glade:11578
 msgid ""
@@ -4017,7 +4017,7 @@ msgstr "添加一个图像作为变量"
 
 #: src/gui/siril3.glade:17544
 msgid "Remove selected image"
-msgstr "移除所选的图像"
+msgstr "移除选中的图像"
 
 #: src/gui/siril3.glade:17576 src/gui/callbacks.c:868
 msgid "16 bits"
@@ -5303,9 +5303,8 @@ msgid ""
 "Select an area around the asteroid or the comet core in the first selected "
 "image, then click on this button. The pixel coordinates of the object will "
 "be computed and displayed."
-msgstr ""
-"在第一幅图像中选取小行星/彗核周围的一个区域，然后点击此按钮。目标的像素坐标将"
-"会被自动计算并显示。"
+msgstr "在首图中选取小行星/彗核周围的一个区域，然后点击此按钮，自动计算并显示目标的像"
+"素坐标。"
 
 #: src/gui/siril3.glade:22150
 msgid "Pick object in #2"
@@ -5316,9 +5315,8 @@ msgid ""
 "Select an area around the asteroid or the comet core in the last selected "
 "image, then click on this button. The pixel coordinates of the object will "
 "be computed and displayed."
-msgstr ""
-"在第二幅幅图像中选取小行星/彗核周围的一个区域，然后点击此按钮。目标的像素坐标"
-"将会被自动计算并显示。"
+msgstr "在末图中选取小行星/彗核周围的一个区域，然后点击此按钮，自动计算并显示目标的像"
+"素坐标。"
 
 #: src/gui/siril3.glade:22166
 msgid "Core X-coordinates of the first image."
@@ -5437,7 +5435,7 @@ msgstr "对齐序列中的全部图像"
 
 #: src/gui/siril3.glade:22690
 msgid "Register selected images only"
-msgstr "仅对齐所选中的图像"
+msgstr "仅对齐选中的图像"
 
 #: src/gui/siril3.glade:22711
 msgid "Registering 0 images of the 0 of the sequence"
@@ -8727,7 +8725,7 @@ msgstr "以系数 %.2f 降采样图像以更快的侦测星点\n"
 
 #: src/algos/astrometry_solver.c:1446
 msgid "Failed to downsample image, aborting\n"
-msgstr "图像缩小失败，异常终止。\n"
+msgstr "图像缩小失败，异常中止\n"
 
 #: src/algos/astrometry_solver.c:1447
 msgid "Not enough memory"
@@ -9443,7 +9441,7 @@ msgstr "测光法色彩校正对单色图像无效\n"
 
 #: src/algos/photometric_cc.c:365
 msgid "failed to compute statistics on image, aborting\n"
-msgstr "无法计算图像的统计信息，异常终止。\n"
+msgstr "无法计算图像的统计信息，异常中止\n"
 
 #: src/algos/photometric_cc.c:369
 #, c-format
@@ -9666,7 +9664,7 @@ msgstr "拷贝图像失败\n"
 
 #: src/algos/star_finder.c:210
 msgid "Could not apply Gaussian filter, aborting\n"
-msgstr "无法应用高斯滤波，异常终止\n"
+msgstr "无法应用高斯滤波，异常中止\n"
 
 #: src/algos/star_finder.c:233
 msgid "Selection is larger than image\n"
@@ -10640,14 +10638,14 @@ msgstr "参数错误。半径必须在3到50之间，异常中止。\n"
 
 #: src/core/command.c:3431
 msgid "Wrong parameter values. Sigma must be greater than 0.05, aborting\n"
-msgstr "参数错误，Sigma必须大于0.05，异常终止。\n"
+msgstr "参数错误，Sigma必须大于0.05，异常中止\n"
 
 #: src/core/command.c:3438
 #, c-format
 msgid ""
 "Wrong parameter values. Minimum beta must be greater than or equal to 0.0 "
 "and less than %.0f, aborting\n"
-msgstr "参数值错误。最小 beta 必须大于等于 0.0 且小于 %.0f，异常终止。\n"
+msgstr "参数值错误。最小 beta 必须大于等于 0.0 且小于 %.0f，异常中止\n"
 
 #: src/core/command.c:3449
 msgid ""
@@ -11043,22 +11041,20 @@ msgid "Statistics computation failed for channel %d (all nil?).\n"
 msgstr "通道 %d 的统计信息计算失败（全部为零？）\n"
 
 #: src/core/command.c:5948
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.6f\n"
-msgstr ""
-"%s 层：平均值：%0.1f 中位数：%0.1f Sigma: %0.1f 最小值：%0.1f 最大值：%0.1f "
-"bgnoise：%0.1f\n"
+msgstr "%s 通道：平均值：%0.6f，中位数：%0.1f，Sigma: %0.6f，最小值：%0."
+"1f，最大值：%0.1f，背景噪声：%0.6f\n"
 
 #: src/core/command.c:5953
 #, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f\n"
-msgstr ""
-"%s 层：平均值：%0.1f 中位数：%0.1f Sigma: %0.1f 最小值：%0.1f 最大值：%0.1f "
-"bgnoise：%0.1f\n"
+msgstr "%s 通道：平均值：%0.1f，中位数：%0.1f，Sigma: %0.1f，最小值：%0."
+"1f，最大值：%0.1f，背景噪声：%0.1f\n"
 
 #: src/core/command.c:5965 src/core/command.c:5972
 #, c-format
@@ -11066,8 +11062,9 @@ msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 msgstr ""
-"%s 层：平均值：%0.1f 中位数：%0.1f Sigma: %0.1f 最小值：%0.1f 最大值：%0.1f "
-"bgnoise：%0.1f avgDev：%0.1f MAD：%0.1f sqrt(BWMV)：%0.1f\n"
+"%s 通道：平均值：%0.1f，中位数：%0.1f，Sigma: %0.1f，最小值：%0."
+"1f，最大值：%0.1f，背景噪声：%0.1f，avgDev：%0.1f，MAD：%0.1f，sqrt(BWMV)：%0"
+".1f\n"
 
 #: src/core/command.c:6058
 #, c-format
@@ -11200,7 +11197,7 @@ msgstr "-nostarlist选项只有在使用-2pass时才有效，已忽略\n"
 #: src/core/command.c:6740 src/core/processing.c:141
 #: src/registration/applyreg.c:653 src/registration/registration.c:1495
 msgid "Not enough space to save the output images, aborting\n"
-msgstr "没有足够的空间来保存输出图像，异常终止。\n"
+msgstr "没有足够的空间来保存输出图像，异常中止\n"
 
 #: src/core/command.c:6747
 msgid ""
@@ -11244,7 +11241,7 @@ msgstr "无法将参数“%s”解析为滤镜“%s”，异常中止。\n"
 
 #: src/core/command.c:6931
 msgid "No registration data exists for this sequence, aborting\n"
-msgstr "该序列中没有对齐数据，异常终止\n"
+msgstr "该序列中没有对齐数据，异常中止\n"
 
 #: src/core/command.c:7017
 #, c-format
@@ -15184,7 +15181,7 @@ msgstr "参数值可能过大。请酌情改变sigma值或者取消本选项。"
 
 #: src/core/processing.c:70
 msgid "No image selected for processing, aborting\n"
-msgstr "没有图像被选择，异常退出\n"
+msgstr "没有任何选中的待处理图像，异常中止\n"
 
 #: src/core/processing.c:94
 #, c-format
@@ -16554,7 +16551,7 @@ msgstr "将输出重新映射到浮点范围 0.0 到 1.0\n"
 
 #: src/filters/wavelets.c:178
 msgid "Could not copy image, aborting\n"
-msgstr "无法拷贝图像，异常终止\n"
+msgstr "无法拷贝图像，异常中止\n"
 
 #: src/filters/wavelets.c:183
 #, c-format
@@ -17025,7 +17022,7 @@ msgstr[0] "%d个文件载入"
 #, c-format
 msgid "%d file selected"
 msgid_plural "%d files selected"
-msgstr[0] "%d个文件已选择"
+msgstr[0] "已选中%d个文件"
 
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
 #: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1588
@@ -17178,7 +17175,7 @@ msgstr "广义双曲拉伸变换"
 
 #: src/gui/histogram.c:1294 src/gui/histogram.c:1657
 msgid "Clicking on the histogram sets SP"
-msgstr "点击直方图以设置 SP"
+msgstr "点击直方图以设置拐点"
 
 #. Prevent spamming the warning log message
 #: src/gui/histogram.c:1549
@@ -17188,7 +17185,7 @@ msgstr "阴影保护点不能设置为高于拉伸焦点\n"
 
 #: src/gui/histogram.c:1589 src/gui/remixer.c:1273 src/gui/remixer.c:1321
 msgid "Make a selection of the point or area to set SP"
-msgstr "选择用于设置 SP 的点或区域"
+msgstr "选择用于设置拐点的点或区域"
 
 #. Prevent spamming the warning log message
 #: src/gui/histogram.c:1628
@@ -17543,11 +17540,11 @@ msgstr ""
 
 #: src/gui/nina_light_curve.c:40
 msgid "Use comparative stars selected for their color"
-msgstr "使用根据颜色选择的比较星"
+msgstr "使用根据颜色选择的参考星"
 
 #: src/gui/nina_light_curve.c:41
 msgid "Use comparative stars selected by the AAVSO"
-msgstr "使用AAVSO选择的比较星"
+msgstr "使用AAVSO选择的参考星"
 
 #: src/gui/nina_light_curve.c:42
 msgid "Display the light curve"
@@ -17576,7 +17573,7 @@ msgstr "无序列载入"
 
 #: src/gui/nina_light_curve.c:84
 msgid "Choose a comparison stars file"
-msgstr ""
+msgstr "选择参考星文件"
 
 #: src/gui/nina_light_curve.c:90
 msgid "The current comparison stars file is not located in the CWD"
@@ -18078,9 +18075,8 @@ msgid "Saving FITS"
 msgstr "保存FITS"
 
 #: src/gui/save_dialog.c:424
-#, fuzzy
 msgid "Extension Mismatch"
-msgstr "扩展名类型:"
+msgstr "扩展名不匹配"
 
 #: src/gui/save_dialog.c:425
 msgid ""
@@ -18611,7 +18607,7 @@ msgstr "转化文件"
 
 #: src/io/conversion.c:659
 msgid "Failed to queue image conversion task, aborting"
-msgstr "无法为转化任务生成图像序列，异常终止"
+msgstr "无法将图像转化排入任务，异常中止"
 
 #: src/io/conversion.c:694
 #, c-format
@@ -18702,7 +18698,7 @@ msgstr "打开SER文件 %s 失败，忽略文件。\n"
 
 #: src/io/conversion.c:1305
 msgid "output sequence type unknown, aborting\n"
-msgstr "输出序列类型未知，异常终止\n"
+msgstr "输出序列类型未知，异常中止\n"
 
 #: src/io/conversion.c:1320
 msgid "Error while converting to SER (no space left?)\n"
@@ -19201,7 +19197,7 @@ msgstr "进行中"
 
 #: src/io/path_parse.c:34
 msgid "aborting"
-msgstr "异常中止。"
+msgstr "异常中止"
 
 #: src/io/path_parse.c:43
 msgid "Header is empty"
@@ -19547,7 +19543,7 @@ msgstr "处理图像 %s"
 
 #: src/io/sequence_export.c:335
 msgid "Export: could not read frame, aborting\n"
-msgstr "导出：无法读取帧，异常终止\n"
+msgstr "导出：无法读取帧，异常中止\n"
 
 #: src/io/sequence_export.c:555
 msgid "Sequence export failed. Check the log."
@@ -19920,7 +19916,7 @@ msgstr "叠加图像%d失败"
 #: src/livestacking/livestacking.c:778
 #, c-format
 msgid "Could not save the stacking result %s, aborting\n"
-msgstr "无法保存叠加结果 %s，异常终止\n"
+msgstr "无法保存叠加结果 %s，异常中止\n"
 
 #: src/livestacking/livestacking.c:802
 #, c-format
@@ -20282,7 +20278,7 @@ msgstr "请确保载入第一幅图像"
 
 #: src/registration/3stars.c:131
 msgid "Make sure you load the first selected image"
-msgstr "请确保载入第一幅所选的图像"
+msgstr "请确保载入选中图像的第一张"
 
 #: src/registration/3stars.c:136
 msgid "Make sure you load an image which is included"
@@ -21152,7 +21148,7 @@ msgstr "计算归一化...\n"
 msgid ""
 "The reference image is not in the selected set of images. Please choose "
 "another reference image.\n"
-msgstr "参考帧不在所选定的序列里。请重新选择参考帧。\n"
+msgstr "参考帧不在所选定的序列里。请另选参考帧。\n"
 
 #: src/stacking/normalization.c:200
 msgid "Normalization failed."

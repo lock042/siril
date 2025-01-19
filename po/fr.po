@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2024-12-05 21:22+0000\n"
+"PO-Revision-Date: 2025-01-18 05:48+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/fr/>\n"
@@ -20050,15 +20050,16 @@ msgid "Saving FITS"
 msgstr "Enregistrer FITS"
 
 #: src/gui/save_dialog.c:424
-#, fuzzy
 msgid "Extension Mismatch"
-msgstr "Extension :"
+msgstr "Incompatibilité d'extension"
 
 #: src/gui/save_dialog.c:425
 msgid ""
 "The given file extension does not match the chosen file type. Do you want to "
 "save the image using this name anyway?"
 msgstr ""
+"L'extension de fichier donnée ne correspond pas au type de fichier choisi. "
+"Voulez-vous quand même enregistrer l'image sous ce nom ?"
 
 #: src/gui/save_dialog.c:426 src/gui/save_dialog.c:477
 msgid "Save Anyway"
