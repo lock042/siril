@@ -184,7 +184,7 @@ void unregister_selection_update_callback(const selection_update_callback f) {
 }
 
 // send the events
-void new_selection_zone() {
+gboolean new_selection_zone(gpointer user_data) {
 	int i;
 	siril_debug_print("selection: %d,%d,\t%dx%d\n", com.selection.x,
 			com.selection.y, com.selection.w, com.selection.h);
@@ -193,12 +193,13 @@ void new_selection_zone() {
 			_registered_selection_callbacks[i]();
 	}
 	redraw(REDRAW_OVERLAY);
+	return FALSE;
 }
 
 void delete_selected_area() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	if (!com.script)
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 	if (gui.roi.active && com.pref.gui.roi_mode == ROI_AUTO)
 		on_clear_roi();
 }
@@ -411,7 +412,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 		button_release.function(&data);
 		clear_release_callback();
-		update_MenuItem();
+		gui_function(update_MenuItem, NULL);
 	}
 	return FALSE;
 }
@@ -613,8 +614,9 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		redraw(REDRAW_OVERLAY);
 	}
 
-	/* don't change cursor if thread is running */
-	if (get_thread_run()) return FALSE;
+	/* don't change cursor if thread is running or if Python
+	 claims the thread */
+	if (get_thread_run() || com.python_claims_thread) return FALSE;
 
 	if (inside) {
 		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
@@ -664,10 +666,22 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	return FALSE;
 }
 
+void on_drawingarea_enter_notify_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+	if (single_image_is_loaded() || sequence_is_loaded()) {
+		if (get_thread_run() || com.python_claims_thread) {
+			set_cursor_waiting(TRUE);
+		} else {
+			/* trick to get default cursor */
+			set_cursor_waiting(FALSE);
+		}
+	}
+}
+
 void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		if (get_thread_run()) {
+		if (get_thread_run() || com.python_claims_thread) {
 			set_cursor_waiting(TRUE);
 		} else {
 			/* trick to get default cursor */

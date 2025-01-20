@@ -41,7 +41,7 @@
 #include "io/sequence.h"
 #include "gui/image_display.h"
 
-void reset_cut_gui_filedependent() { // Separated out to avoid having to repeat too much after opening a new file
+gboolean reset_cut_gui_filedependent(gpointer user_data) { // Separated out to avoid having to repeat too much after opening a new file
 	GtkWidget *colorbutton = (GtkWidget*) lookup_widget("cut_radio_color");
 	GtkWidget *cfabutton = (GtkWidget*) lookup_widget("cut_cfa");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
@@ -50,9 +50,10 @@ void reset_cut_gui_filedependent() { // Separated out to avoid having to repeat 
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 	GtkToggleButton* as = (GtkToggleButton*) lookup_widget("cut_dist_pref_as");
 	gtk_toggle_button_set_active(as, gfit.keywords.wcsdata.pltsolvd);
+	return FALSE;
 }
 
-static void reset_cut_gui() {
+static gboolean reset_cut_gui(gpointer user_data) {
 	GtkToggleButton *radio_mono = (GtkToggleButton*) lookup_widget("cut_radio_mono");
 	gtk_toggle_button_set_active(radio_mono, TRUE);
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
@@ -87,7 +88,8 @@ static void reset_cut_gui() {
 	gtk_toggle_button_set_active(plot_spectro_bg, FALSE);
 	GtkEntry *title = (GtkEntry*) lookup_widget("cut_title");
 	gtk_entry_set_text(title, "Intensity Profile");
-	reset_cut_gui_filedependent();
+	reset_cut_gui_filedependent(NULL);
+	return FALSE;
 }
 
 void initialize_cut_struct(cut_struct *arg) {
@@ -124,8 +126,7 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->save_png_too = FALSE;
 	arg->pref_as = gfit.keywords.wcsdata.pltsolvd;
 	arg->vport = -1;
-	if (!com.script)
-		reset_cut_gui();
+	gui_function(reset_cut_gui, NULL);
 }
 
 void free_cut_args(cut_struct *arg) {

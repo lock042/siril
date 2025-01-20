@@ -138,9 +138,9 @@ void apply_banding_to_sequence(struct banding_data *banding_args) {
 gboolean end_BandingEngine(gpointer p) {
 	struct banding_data *args = (struct banding_data *) p;
 	stop_processing_thread();// can it be done here in case there is no thread?
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 
 	free(args);

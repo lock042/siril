@@ -359,11 +359,11 @@ void apply_to_img() {
 			com.seq.current = UNRELATED_IMAGE;
 			if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
 				com.uniq->comment = strdup(_("Bayer pattern merge"));
-			open_single_image_from_gfit();
+			gui_function(open_single_image_from_gfit, NULL);
 			initialize_display_mode();
 			update_zoom_label();
 			display_filename();
-			set_precision_switch();
+			gui_function(set_precision_switch, NULL);
 			sliders_mode_set_state(gui.sliders);
 			init_layers_hi_and_lo_values(MIPSLOHI);
 			set_cutoff_sliders_max_values();

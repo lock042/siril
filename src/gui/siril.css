@@ -132,3 +132,10 @@ entry.header_unset,
 spinbutton.header_unset {
   color: salmon;
 }
+
+entry.search_empty {
+ border-color: red;
+ box-shadow: none;
+ outline: none;
+ border-image: none;
+}

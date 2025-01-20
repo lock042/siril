@@ -168,22 +168,19 @@ macos:
   rules:
     - if: $CI_PROJECT_NAMESPACE != "free-astro" && $CI_PROJECT_NAMESPACE != "dehesselle"
       when: never  # job requires custom runner, not suitable outside the project
-    - if: $ARCHITECTURE == "arm64"
-      variables:
-        SDKROOT: /opt/sdks/MacOSX11.3.sdk
     - if: $ARCHITECTURE == "x86_64"
       when: manual
       allow_failure: true
-      variables:
-        SDKROOT: /opt/sdks/MacOSX10.15.6.sdk
+    - when: on_success
   tags:
     - macos
     - ${ARCHITECTURE}
   variables:
     CCACHE_DIR: /Users/Shared/work/ccache
     REP_DIR: $CI_PROJECT_DIR
+    SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 87be2d6e8dd536849f7da0fa47e79bb1e2effa7f
+    SM_REPO_REF: 327d90bf0466b2e1bddada5981bf8a46d4a55340   # TODO: this is develop branch
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
     WRK_DIR: $CI_PROJECT_DIR
   script:
@@ -238,10 +235,15 @@ win64-native:
     CHERE_INVOKING: "yes"
     MSYSTEM: "MINGW64"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
-    SDW_VERSION: 30
+    SDW_VERSION: 32
     SDW_NAME: siril$SDW_VERSION
     SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
+    # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python
+    SPW_VERSION: 19
+    SPW_NAME: siril-python$SPW_VERSION
+    SPW_RELEASE_URL: $CI_API_V4_URL/projects/64372315/packages/generic/windows-python/r$SPW_VERSION/$SPW_NAME.7z
     W64_OUT: "/c/$SDW_NAME/mingw64" #used in siril-package.sh
+    PY_OUT: "/c/siril-python" #used in siril-package.sh
   tags:
     - saas-windows-medium-amd64
   needs: []
@@ -252,6 +254,8 @@ win64-native:
     paths:
     - ${INSTALL_DIR}
   before_script:
+    - wget.exe --quiet --no-check-certificate $SPW_RELEASE_URL
+    - 7z x -oC:/ "$Env:SPW_NAME.7z"
     - wget.exe --quiet --no-check-certificate $SDW_RELEASE_URL
     - 7z x -oC:/ "$Env:SDW_NAME.7z"
   script:

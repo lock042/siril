@@ -982,7 +982,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		else {
 			set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 			invalidate_gfit_histogram();
-			open_single_image_from_gfit();
+			gui_function(open_single_image_from_gfit, NULL);
 		}
 		set_cursor_waiting(FALSE);
 	}

@@ -27,7 +27,7 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.3.5',
+  version : '1.3.6',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
   default_options : [
@@ -152,6 +152,7 @@ siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OF
 
 if platform_linux
   siril_link_arg += ['-rdynamic']
+  siril_link_arg += '-lrt' # for shm_open()
 elif platform_bsd
   siril_link_arg += '-Wl,--no-as-needed' # workaround for https://gitlab.com/free-astro/siril/-/issues/614 (Bug#251206)
   siril_link_arg += '-rdynamic'
@@ -307,6 +308,7 @@ endif
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
+gtksourceview_dep = dependency('gtksourceview-4')
 
 healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
 yyjson_dep = dependency('libyyjson', required : false, version: '>= 0.10.0')
@@ -662,8 +664,9 @@ externals_dep = declare_dependency(
     ffms2_dep,
     openmp_dep,
     kplot_dep,
-    yyjson_dep,
-    ffmpeg
+    ffmpeg,
+    gtksourceview_dep,
+    yyjson_dep
   ]
 )
 
@@ -676,6 +679,7 @@ subdir('src')
 subdir('pixmaps')
 subdir('data')
 subdir('po')
+subdir('python_module')
 subdir('scripts')
 subdir('3rdparty_licenses')
 
