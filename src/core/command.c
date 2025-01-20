@@ -9606,6 +9606,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	double pressure = 1013.25; // standard atmosphere
 	double obsheight = gfit.keywords.siteelev != DEFAULT_DOUBLE_VALUE ? gfit.keywords.siteelev : 10.0;
 	gboolean local_cat = local_catalogues_available();
+	gboolean local_gaia = local_gaia_available();
 	int next_arg = 1;
 
 	while (nb > next_arg && word[next_arg]) {
@@ -9640,6 +9641,12 @@ static int do_pcc(int nb, gboolean spectro) {
 				cat = CAT_NOMAD;
 			else if (!g_strcmp0(arg, "gaia"))
 				cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "localgaia")) {
+				cat = local_gaia ? CAT_LOCAL_GAIA_ASTRO : CAT_GAIADR3;
+				if (cat == CAT_GAIADR3) {
+					siril_log_color_message(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via Vizier\n"), "salmon");
+				}
+			}
 			else if (!g_strcmp0(arg, "apass"))
 				cat = CAT_APASS;
 			else {
@@ -9992,6 +9999,14 @@ int process_platesolve(int nb) {
 				cat = CAT_NOMAD;
 			else if (!g_strcmp0(arg, "gaia"))
 				cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "localgaia")) {
+				if (local_gaia_available())
+					cat = CAT_LOCAL_GAIA_ASTRO;
+				else {
+					cat = CAT_GAIADR3;
+					siril_log_color_message(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via Vizier\n"), "salmon");
+				}
+			}
 			else if (!g_strcmp0(arg, "ppmxl"))
 				cat = CAT_PPMXL;
 			else if (!g_strcmp0(arg, "bsc"))
@@ -10205,9 +10220,7 @@ int process_platesolve(int nb) {
 	}
 	// catalog query parameters
 	if (solver == SOLVER_SIRIL) {
-		args->ref_stars = calloc(1, sizeof(siril_catalogue));
-		args->ref_stars->cat_index = cat;
-		args->ref_stars->columns =  siril_catalog_columns(cat);
+		args->ref_stars = siril_catalog_new(cat);
 		args->ref_stars->phot = FALSE;
 		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
@@ -10281,6 +10294,8 @@ static conesearch_params* parse_conesearch_args(int nb) {
 				params->cat = CAT_NOMAD;
 			else if (!g_strcmp0(arg, "gaia"))
 				params->cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "localgaia"))
+				params->cat = CAT_LOCAL_GAIA_ASTRO;
 			else if (!g_strcmp0(arg, "ppmxl"))
 				params->cat = CAT_PPMXL;
 			else if (!g_strcmp0(arg, "bsc"))

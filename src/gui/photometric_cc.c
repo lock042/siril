@@ -281,7 +281,7 @@ void initialize_photometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
 
-	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(catalog_box_pcc), local_gaia_available() ? 2 : (local_catalogues_available() ? 0 : 2));
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 }
 
@@ -401,8 +401,12 @@ void initialize_spectrophotometric_cc_dialog() {
 
 int get_photometry_catalog_from_GUI() {
 	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxPCCCatalog"));
-	if (gtk_combo_box_get_active(box) == 2)
-		return CAT_GAIADR3;
+	if (gtk_combo_box_get_active(box) == 2) {
+		if (local_gaia_available())
+			return CAT_LOCAL_GAIA_ASTRO;
+		else
+			return CAT_GAIADR3;
+	}
 	else if (gtk_combo_box_get_active(box) == 1)
 		return CAT_APASS;
 	return CAT_NOMAD;
@@ -475,9 +479,19 @@ void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 		photocat_label = GTK_LABEL(lookup_widget("photometric_catalog_label"));
 		have_local_cat = local_catalogues_available();
 	}
-	if (gtk_combo_box_get_active(combo) > 0 || !have_local_cat) // 1 = APASS
-		gtk_label_set_text(photocat_label, _("(online catalogue)"));
-	else gtk_label_set_text(photocat_label, _("(local catalogue)"));
+	switch (gtk_combo_box_get_active(combo)) {
+		case 0: // NOMAD
+			gtk_label_set_text(photocat_label, have_local_cat ? _("local catalogue") : _("online catalogue"));
+			break;
+		case 1: // APASS
+			gtk_label_set_text(photocat_label, _("(online catalogue)"));
+			break;
+		case 2: // GAIA
+			gtk_label_set_text(photocat_label, local_gaia_available() ? ("(local catalogue)"): _("online catalogue"));
+			break;
+		default:
+			break;
+	}
 }
 
 static void set_bg_sigma(struct photometric_cc_data *args) {

@@ -232,6 +232,7 @@ endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
+# lcms2 dependency for color management
 lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
 # wcslib mandatory - uses subproject fallback to build if not found
 wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true, version: '>= 7.12')
@@ -309,6 +310,7 @@ else
 endif
 gtksourceview_dep = dependency('gtksourceview-4')
 
+healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
 yyjson_dep = dependency('libyyjson', required : false, version: '>= 0.10.0')
 if not yyjson_dep.found()
   opt_var = cmake.subproject_options()
@@ -646,6 +648,7 @@ externals_dep = declare_dependency(
     opencv4_dep,
     rtprocess_dep,
     htmesh_dep,
+    healpix_dep,
     exiv_dep,
     wcslib_dep,
     fftw3f_dep,

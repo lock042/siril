@@ -200,6 +200,7 @@ src/io/siril_plot.c
 src/io/siril_pythonmodule.c
 src/io/siril_pythoncommands.c
 src/io/spcc_json.c
+src/io/healpix/healpix.cpp
 src/livestacking/gui.c
 src/livestacking/livestacking.c
 src/opencv/opencv.cpp

@@ -68,9 +68,10 @@ static GtkTreeSelection *selection = NULL;
 static GtkTreeView *treeviewIPS = NULL;
 static GtkExpander *cataloguesexp = NULL, *stardetectionexp = NULL, *sequenceexp = NULL;
 static GtkWindow *astrometry_dialog = NULL;
-static gboolean have_local_cat = FALSE, radius_set = FALSE, order_set = FALSE, have_asnet = FALSE,
+static gboolean have_local_cat = FALSE, have_local_gaia = FALSE, radius_set = FALSE, order_set = FALSE, have_asnet = FALSE,
 				has_coords = FALSE, has_pixel = FALSE, has_focal = FALSE; // those bools tell if the metadata was present in the header of gfit
-
+static gboolean use_local_catalogue();
+static gboolean use_local_gaia();
 void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data);
 void on_comboastro_solver_changed(GtkComboBox *combo, gpointer user_data);
 void on_comboastro_order_changed(GtkComboBox *combo, gpointer user_data);
@@ -83,6 +84,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data
 
 void reset_astrometry_checks() {
 	have_local_cat = local_catalogues_available();
+	have_local_gaia = local_gaia_available();
 	have_asnet = asnet_is_available();
 	radius_set = FALSE;
 	order_set= FALSE;
@@ -236,6 +238,12 @@ static gboolean use_local_catalogue() {
 	int cat = gtk_combo_box_get_active(catalogbox);
 	gboolean autocat = gtk_toggle_button_get_active(autocatbutton);
 	return have_local_cat && (autocat || (cat != CAT_GAIADR3 && cat != CAT_PPMXL && cat != CAT_APASS));
+}
+
+static gboolean use_local_gaia() {
+	int cat = gtk_combo_box_get_active(catalogbox);
+	gboolean autocat = gtk_toggle_button_get_active(autocatbutton);
+	return have_local_gaia && (autocat || (cat == CAT_GAIADR3));
 }
 
 static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
@@ -711,6 +719,7 @@ void on_GtkCheckButton_Mag_Limit_toggled(GtkToggleButton *button, gpointer user)
 }
 
 void on_GtkCheckButton_OnlineCat_toggled(GtkToggleButton *button, gpointer user) {
+	gtk_combo_box_set_active(catalogbox, use_local_gaia() ? 2 : use_local_catalogue() ? 1 : 2);
 	gtk_widget_set_sensitive(GTK_WIDGET(catalogbox), !gtk_toggle_button_get_active(button));
 	on_comboastro_catalog_changed(NULL, NULL);
 }
@@ -849,21 +858,18 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		if (uselocal && !gtk_toggle_button_get_active(nonearbutton)) {
 			args->searchradius = gtk_spin_button_get_value(radiusspin);
 		}
-		args->ref_stars = calloc(1, sizeof(siril_catalogue));
 		args->cat_center = catalog_center;
+		gboolean uselocalgaia = use_local_gaia();
+		siril_cat_index cat_index = uselocalgaia ? CAT_LOCAL_GAIA_ASTRO : uselocal ? CAT_LOCAL : autocat ? CAT_AUTO : cat;
+		args->ref_stars = siril_catalog_new(cat_index);
 		args->ref_stars->center_ra = siril_world_cs_get_alpha(catalog_center);
 		args->ref_stars->center_dec = siril_world_cs_get_delta(catalog_center);
-		if (uselocal)
-			args->ref_stars->cat_index = CAT_LOCAL;
-		else if (autocat)
-			args->ref_stars->cat_index = CAT_AUTO;
-		else
-			args->ref_stars->cat_index = cat;
+
 		if (args->for_sequence) {
 			// we solve each image individually if:
 			// - we use local catalogues
 			// - or user has selected nocache and there's at least one of the 3 metadata present in gfit header
-			args->nocache = uselocal || (gtk_toggle_button_get_active(seqnocache) && (has_coords || has_focal || has_pixel));
+			args->nocache = uselocalgaia || uselocal || (gtk_toggle_button_get_active(seqnocache) && (has_coords || has_focal || has_pixel));
 			args->forced_metadata[FORCED_CENTER] = !gtk_toggle_button_get_active(sequseheadercoords);
 			args->forced_metadata[FORCED_PIXEL] = !gtk_toggle_button_get_active(sequseheaderpixel);
 			args->forced_metadata[FORCED_FOCAL] = !gtk_toggle_button_get_active(sequseheaderfocal);
@@ -920,13 +926,22 @@ gboolean confirm_delete_wcs_keywords(fits *fit) {
 void init_astrometry() {
 	load_all_ips_statics();
 	reset_astrometry_checks();
+	// Prefer Gaia to NOMAD and local to remote
+	gtk_combo_box_set_active(catalogbox, use_local_gaia() ? 2 : use_local_catalogue() ? 1 : 2);
 }
 
 void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data) {
-	if (!use_local_catalogue())
-		gtk_label_set_text(cataloglabel, _("(online catalogue)"));
-	else gtk_label_set_text(cataloglabel, _("(local catalogue)"));
-	on_comboastro_solver_changed(NULL, NULL);
+	int cat_index = gtk_combo_box_get_active(catalogbox);
+	if (cat_index == 2) { // Gaia DR3
+		if (!use_local_gaia())
+			gtk_label_set_text(cataloglabel, _("(online catalogue)"));
+		else gtk_label_set_text(cataloglabel, _("(local catalogue)"));
+	} else {
+		if (!use_local_catalogue())
+			gtk_label_set_text(cataloglabel, _("(online catalogue)"));
+		else gtk_label_set_text(cataloglabel, _("(local catalogue)"));
+		on_comboastro_solver_changed(NULL, NULL);
+	}
 }
 
 void on_comboastro_order_changed(GtkComboBox *combo, gpointer user_data) {
