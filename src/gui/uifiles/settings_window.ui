@@ -195,6 +195,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <column type="gchararray"/>
       <!-- column-name bgcolor -->
       <column type="gchararray"/>
+      <!-- column-name type -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkAdjustment" id="xbayeroff_adj">
@@ -1525,7 +1527,10 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     </child>
                                     <child>
                                       <object class="GtkLabel">
+<<<<<<< HEAD
                                         <property name="visible">True</property>
+=======
+>>>>>>> origin
                                         <property name="can-focus">False</property>
                                         <property name="double-buffered">False</property>
                                         <property name="halign">start</property>
@@ -1551,11 +1556,17 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     </child>
                                     <child>
                                       <object class="GtkFileChooserButton" id="localcatalogue_path6">
+<<<<<<< HEAD
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify the folder where the Gaia photometric catalogue is stored. Because of its size this catalogue is divided into chunks, so you need only select the folder.</property>
                                         <property name="double-buffered">False</property>
                                         <property name="action">select-folder</property>
+=======
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Specify the location of the Siril photometric extract of the Gaia DR3 catalogue, used for spectrophotometric colour calibration</property>
+                                        <property name="double-buffered">False</property>
+>>>>>>> origin
                                         <property name="title" translatable="yes">gaia_photometric.dat</property>
                                       </object>
                                       <packing>
@@ -5206,9 +5217,26 @@ Activating the repository will take place immediately, so that you can select sc
                                               </object>
                                             </child>
                                             <child>
+                                              <object class="GtkTreeViewColumn">
+                                                <property name="resizable">True</property>
+                                                <property name="title" translatable="yes">Type</property>
+                                                <property name="clickable">True</property>
+                                                <property name="sort-column-id">5</property>
+                                                <child>
+                                                  <object class="GtkCellRendererText" id="cellrenderertype"/>
+                                                  <attributes>
+                                                    <attribute name="background">4</attribute>
+                                                    <attribute name="text">5</attribute>
+                                                  </attributes>
+                                                </child>
+                                              </object>
+                                            </child>
+                                            <child>
                                               <object class="GtkTreeViewColumn" id="script_repo_treeview_sel">
                                                 <property name="resizable">True</property>
                                                 <property name="title" translatable="yes">Sel</property>
+                                                <property name="clickable">True</property>
+                                                <property name="sort-column-id">2</property>
                                                 <child>
                                                   <object class="GtkCellRendererToggle" id="cellrenderertoggle16">
                                                     <signal name="toggled" handler="on_script_list_active_toggled" swapped="no"/>
@@ -5272,7 +5300,7 @@ Activating the repository will take place immediately, so that you can select sc
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">True</property>
-                                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;WARNING!!&lt;/b&gt; &lt;i&gt;This will kill all running python scripts and reset the virtual environment "venv" directory to an as-new state.Any modules that have been installed by scripts will require re-installation.&lt;/i&gt;
+                                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;WARNING!!&lt;/b&gt; &lt;i&gt;This will kill all running python scripts and reset the virtual environment "venv" directory to an as-new state. Any modules that have been installed by scripts will require re-installation.&lt;/i&gt;
 
 This is normally not necessary but is provided as a last resort to restore the venv to a pristine state as an aid to troubleshooting.</property>
                                             <property name="double-buffered">False</property>

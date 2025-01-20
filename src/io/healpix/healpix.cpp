@@ -28,7 +28,7 @@
 #define M_PI 3.14159265358979323846  /* pi */
 #endif
 
-#define HEALPIX_DEBUG
+//#define HEALPIX_DEBUG
 
 // Enum for Gaia version designator
 enum class GaiaVersion {
@@ -424,7 +424,9 @@ extern "C" {
 
     int get_raw_stars_from_local_gaia_astro_catalogue(double ra, double dec, double radius, double limitmag, gboolean phot, deepStarData **stars, uint32_t *nb_stars) {
 
+#ifdef HEALPIX_DEBUG
         show_healpixel_entries(0);
+#endif
 
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
         siril_debug_print("Search radius: %f deg\n", radius);

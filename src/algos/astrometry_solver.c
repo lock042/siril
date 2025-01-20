@@ -881,14 +881,13 @@ gpointer plate_solver(gpointer p) {
 	if (args->verbose) {
 		if (args->solver == SOLVER_LOCALASNET) {
 			siril_log_message(_("Plate solving image with astrometry.net for a field of view of %.2f degrees\n"), args->used_fov / 60.0);
-		} else if (args->ref_stars->cat_index == CAT_LOCAL) {
-			siril_log_message(_("Plate solving image from local catalogues for a field of view of %.2f"
-						" degrees%s, using a limit magnitude of %.2f\n"),
-					args->used_fov / 60.0,
-					args->uncentered ? _(" (uncentered)") : "", args->ref_stars->limitmag);
 		} else {
-			siril_log_message(_("Plate solving image from an online catalogue for a field of view of %.2f"
+			const char *catstr = args->ref_stars->cat_index == CAT_LOCAL ? _("local catalogues") :
+				(args->ref_stars->cat_index == CAT_LOCAL_GAIA_ASTRO || args->ref_stars->cat_index == CAT_LOCAL_GAIA_XPSAMP) ? _("local Gaia catalogue") :
+					_("an online catalogue");
+			siril_log_message(_("Plate solving image from %s for a field of view of %.2f"
 						" degrees%s, using a limit magnitude of %.2f\n"),
+					catstr,
 					args->used_fov / 60.0,
 					args->uncentered ? _(" (uncentered)") : "", args->ref_stars->limitmag);
 		}

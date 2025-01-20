@@ -183,6 +183,14 @@ void add_code_view(GtkBuilder *builder) {
 		gtk_source_buffer_set_language(sourcebuffer, language);
 	}
 
+
+	// Force monospace
+	GtkCssProvider *css = gtk_css_provider_new();
+	gtk_css_provider_load_from_data(css, "* { font-family: monospace;}",-1,NULL);
+	GtkStyleContext *context = gtk_widget_get_style_context(GTK_WIDGET(code_view));
+	gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
+	g_object_unref(css);
+
 	// Enable syntax highlighting
 	gtk_source_buffer_set_highlight_syntax(sourcebuffer, TRUE);
 

@@ -868,7 +868,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 			case CAT_LOCAL_GAIA_ASTRO:
 				mag = min(mag, 18.0);	// not very important, this catalogue is density-populated rather than magnitude-limited
 				break;
-			case CAT_GAIADR3_DIRECT: // fallthrough intentional
+			case CAT_GAIADR3_DIRECT:
 				mag = min(mag, 17.6);	// most Gaia XP_SAMPLED spectra are for mag < 17.6
 				break;
 			case CAT_APASS:
