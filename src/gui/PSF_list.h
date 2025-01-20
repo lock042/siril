@@ -6,7 +6,7 @@
 
 void refresh_star_list();
 void clear_stars_list(gboolean refresh_GUI);
-void update_star_list(psf_star **new_stars, gboolean update_PSF_list);
+void update_star_list(psf_star **new_stars, gboolean update_PSF_list, gboolean wait_for_update);
 void pick_a_star();
 void set_iter_of_clicked_psf(double x, double y);
 

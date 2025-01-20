@@ -177,12 +177,12 @@ void test_and_allocate_reference_image(int vport) {
 	}
 }
 
-
-void redraw_previews() {
+gboolean redraw_previews(gpointer user_data) {
 	int i;
-	if (com.script) return;
+	if (com.script) return FALSE;
 	for (i = 0; i < PREVIEW_NB; i++)
 		gtk_widget_queue_draw(gui.preview_area[i]);
+	return FALSE;
 }
 
 void clear_previews() {
@@ -270,7 +270,7 @@ void on_toggle_preview_toggled(GtkToggleButton *toggle, gpointer user_data) {
 }
 
 void on_checkbutton_displayref_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 /* display registration data (shift{x|y} for now) in the manual adjustments */
@@ -283,7 +283,7 @@ void adjust_reginfo() {
 	spin_shiftx = GTK_SPIN_BUTTON(lookup_widget("spinbut_shiftx"));
 	spin_shifty = GTK_SPIN_BUTTON(lookup_widget("spinbut_shifty"));
 	seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("seqlist_dialog_combo"));
-	
+
 	cvport = gtk_combo_box_get_active(GTK_COMBO_BOX(seqcombo));
 	if (cvport < 0) return;
 
@@ -342,7 +342,7 @@ void on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data
 	writeseqfile(&com.seq);
 	update_seqlist(current_layer);
 	fill_sequence_list(&com.seq, current_layer, FALSE);	// update list with new regparam
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 /* enables or disables the "display reference" checkbox in registration preview */

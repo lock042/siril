@@ -17,7 +17,7 @@
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfs",
         "--filesystem=xdg-run/gvfsd",
-        "--share=network"
+        "--unset-env=LD_PRELOAD"
     ],
     "modules": [
         {
@@ -39,6 +39,24 @@
                     "disable-http-decompression": true,
                     "sha256": "eba53d1b3f6e345632bb09a7b752ec7ced3d63ec5153a848380f3880c5d61889"
                 }
+            ]
+        },
+        {
+            "name": "gtksourceview4",
+            "buildsystem": "meson",
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://deb.debian.org/debian/pool/main/g/gtksourceview4/gtksourceview4_4.8.4.orig.tar.xz",
+                    "sha256": "7ec9d18fb283d1f84a3a3eff3b7a72b09a10c9c006597b3fbabbb5958420a87d"
+                }
+            ],
+            "cleanup": [
+                "/include",
+                "*.la",
+                "*.a",
+                "/lib/pkgconfig",
+                "/share/gtk-doc"
             ]
         },
         {

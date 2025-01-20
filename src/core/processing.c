@@ -20,6 +20,8 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <sys/socket.h>
 #endif
 
 #include <assert.h>
@@ -34,6 +36,9 @@
 #include "core/OS_utils.h"
 #include "filters/graxpert.h" // for set_graxpert_aborted()
 #include "gui/utils.h"
+#include "gui/callbacks.h"
+#include "gui/dialogs.h"
+#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
 #include "io/sequence.h"
@@ -740,7 +745,7 @@ static gboolean thread_being_waited = FALSE;
 void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
 
-	if (com.run_thread || com.thread) {
+	if (com.run_thread || com.python_claims_thread || com.thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
 		free(p);
@@ -749,6 +754,17 @@ void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	com.run_thread = TRUE;
 	com.thread = g_thread_new("processing", f, p);
+
+	// Add a fake "child" to com.children. This doesn't represent an external
+	// program but it allows selecting to stop the processing thread instead of
+	// an external program if one happens to be running
+	// Prepend this "child" to the list of child processes com.children
+	child_info *child = g_malloc(sizeof(child_info));
+	child->childpid = (GPid) -2; // Magic number
+	child->program = INT_PROC_THREAD;
+	child->name = g_strdup("Siril processing thread");
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
 
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
@@ -756,7 +772,7 @@ void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 
 void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
-	if (com.thread) {
+	if (com.thread || com.python_claims_thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
 		free(p);
@@ -765,6 +781,14 @@ void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	com.run_thread = TRUE;
 	com.thread = g_thread_new("processing", f, p);
+
+	// Prepend this "child" to the list of child processes com.children
+	child_info *child = g_malloc(sizeof(child_info));
+	child->childpid = (GPid) -2; // Magic number
+	child->program = INT_PROC_THREAD;
+	child->name = g_strdup("Siril processing thread");
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
 
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
@@ -782,12 +806,40 @@ gpointer waiting_for_thread() {
 	return retval;
 }
 
+int claim_thread_for_python() {
+	g_mutex_lock(&com.mutex);
+	if (com.thread || com.run_thread || com.python_claims_thread) {
+		fprintf(stderr, "The processing thread is busy. It must stop before Python can claim "
+					"the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 1;
+	}
+	if (is_an_image_processing_dialog_opened()) {
+		fprintf(stderr, "A Siril image processing dialog is open. It must be closed before "
+					"Python can claim the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 2;
+	}
+	com.python_claims_thread = TRUE;
+	g_mutex_unlock(&com.mutex);
+	set_cursor_waiting(TRUE);
+	return 0;
+}
+
+void python_releases_thread() {
+	g_mutex_lock(&com.mutex);
+	com.python_claims_thread = FALSE;
+	g_mutex_unlock(&com.mutex);
+	set_cursor_waiting(FALSE);
+	return;
+}
+
 void stop_processing_thread() {
 	if (com.thread == NULL) {
 		siril_debug_print("The processing thread is not running.\n");
 		return;
 	}
-
+	remove_child_from_children((GPid) -2); // magic number indicating the processing thread
 	set_thread_run(FALSE);
 	if (!thread_being_waited)
 		waiting_for_thread();
@@ -855,47 +907,172 @@ void wait_for_script_thread() {
 	}
 }
 
+static void free_child(child_info *child) {
+	g_free(child->name);
+	g_date_time_unref(child->datetime);
+	g_free(child);
+}
+
+// This must be called in the g_spawn on_exit callback to remove the defunct child from the list
+void remove_child_from_children(GPid pid) {
+	GSList *prev = NULL;
+	GSList *iter = com.children;
+
+	while (iter) {
+		child_info *child = (child_info*) iter->data;
+
+		if (child->childpid == pid) {
+			// Remove the node from the list
+			if (prev == NULL) {
+				// If it's the first node
+				com.children = iter->next;
+			} else {
+				// If it's a middle or last node
+				prev->next = iter->next;
+			}
+
+			// Free the node and the child
+			g_slist_free_1(iter);
+			free_child(child);
+			siril_debug_print("Removed GPid %d from com.children\n", pid);
+			return;
+		}
+
+		// Move to next node
+		prev = iter;
+		iter = iter->next;
+	}
+
+	// If we get here, no matching PID was found
+	siril_debug_print("Failed to find GPid %d in com.children\n", pid);
+}
+
 // kills external calls
 // if onexit is TRUE, also do some cleaning
-void kill_child_process(gboolean onexit) {
+void kill_child_process(GPid pid, gboolean onexit) {
 	if (onexit)
 		printf("Making sure no child is left behind...\n");
-	// abort starnet by killing the process
-	if (com.child_is_running == EXT_STARNET || com.child_is_running == EXT_GRAXPERT) {
+	// Find the correct child in com.children
+	GSList *prev = NULL;
+	GSList *iter = com.children;
+	gboolean success = FALSE;
+	while (iter) {
+		child_info *child = (child_info*) iter->data;
+		GSList *next = iter->next;
+
+		if (child->childpid == pid || onexit) {
+			if (child->program == INT_PROC_THREAD) {
+				stop_processing_thread();
+			} else {
+				if (child->program == EXT_STARNET || child->program == EXT_GRAXPERT || child->program == EXT_PYTHON) {
 #ifdef _WIN32
-		TerminateProcess(com.childhandle, 1);
-		com.childhandle = NULL;
+					TerminateProcess((void *) child->childpid, 1);
 #else
-		kill(com.childpid, SIGINT);
-		com.childpid = 0;
+					kill((pid_t) child->childpid, SIGINT);
 #endif
-		com.child_is_running = EXT_NONE;
-		if (onexit)
-			printf("An external process (Starnet or GraXpert) has been stopped on exit\n");
-	}
-	// abort asnet by writing a file named stop in wd
-	if (com.child_is_running == EXT_ASNET) {
-		FILE* fp = g_fopen("stop", "w");
-		if (fp != NULL)
-			fclose(fp);
-		if (onexit) {
-			g_usleep(1000);
-			if (g_unlink("stop"))
-				siril_debug_print("g_unlink() failed\n");
-			printf("asnet has been stopped on exit\n");
+					// Free the child struct
+					free_child(child);
+				} else if (child->program == EXT_ASNET) {
+					FILE* fp = g_fopen("stop", "w");
+					if (fp != NULL)
+						fclose(fp);
+					if (onexit) {
+						g_usleep(1000);
+						if (g_unlink("stop"))
+							siril_debug_print("g_unlink() failed\n");
+						siril_debug_print("asnet has been stopped on exit\n");
+					}
+					free_child(child);
+				}
+
+				// Remove the node from the list
+				if (prev == NULL) {
+					// If it's the first node
+					com.children = next;
+				} else {
+					// If it's a middle or last node
+					prev->next = next;
+				}
+				// Free the node
+				g_slist_free_1(iter);
+			}
+
+			siril_log_color_message(_("Process aborted by user\n"), "red");
+			success = TRUE;
+			if (!onexit)
+				break;
+		} else {
+			// Only advance prev if we didn't remove the current node
+			prev = iter;
 		}
+		iter = next;
+	}
+	// If we get here without success, no matching PID was found
+	if (!success && pid != (GPid) -1)
+		siril_log_message(_("Failed to find GPid %d, it may already have exited...\n"), pid);
+}
+
+static void check_if_child_is_python(gpointer data, gpointer user_data) {
+	// Cast the input pointers to their correct types
+	child_info *child = (child_info *)data;
+	gboolean *is_ok = (gboolean *)user_data;
+
+	// Convert name to lowercase for case-insensitive comparison
+	gchar *lowercase_name = g_ascii_strdown(child->name, -1);
+
+	// Check if the lowercased name contains "python"
+	if (g_strstr_len(lowercase_name, -1, "python") != NULL) {
+		// If "python" is found in the name, set is_ok to FALSE
+		*is_ok = FALSE;
+	}
+	// Free the lowercase string
+	g_free(lowercase_name);
+}
+
+void check_python_flag() {
+	siril_debug_print("checking python flag\n");
+	gboolean is_ok = TRUE;
+	g_slist_foreach(com.children, check_if_child_is_python, &is_ok);
+	if (is_ok) {
+		com.python_script = FALSE;
+		siril_debug_print("com.python_script cleared\n");
 	}
 }
 
+static void kill_if_child_is_python(gpointer data, gpointer user_data) {
+	// Cast the input pointers to their correct types
+	child_info *child = (child_info *)data;
+
+	// Convert name to lowercase for case-insensitive comparison
+	gchar *lowercase_name = g_ascii_strdown(child->name, -1);
+
+	// Check if the lowercased name contains "python"
+	if (g_strstr_len(lowercase_name, -1, "python") != NULL) {
+		kill_child_process(child->childpid, FALSE);
+	}
+	// Free the lowercase string
+	g_free(lowercase_name);
+}
+
+void kill_all_python_scripts() {
+	g_slist_foreach(com.children, kill_if_child_is_python, NULL);
+}
+
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
-	if (com.thread != NULL)
-		siril_log_color_message(_("Process aborted by user\n"), "red");
-	if (com.child_is_running == EXT_GRAXPERT)
-		set_graxpert_aborted(TRUE);
-	kill_child_process(FALSE);
-	com.stop_script = TRUE;
-	stop_processing_thread();
-	wait_for_script_thread();
+	guint children = g_slist_length(com.children);
+	if (children > 1) {
+		GPid pid = show_child_process_selection_dialog(com.children);
+		kill_child_process(pid, FALSE);
+	} else if (children == 1) {
+		child_info *child = (child_info*) com.children->data;
+		if (child->program == EXT_GRAXPERT)
+			set_graxpert_aborted(TRUE);
+		kill_child_process(child->childpid, FALSE);
+	} else {
+		com.stop_script = TRUE;
+		stop_processing_thread();
+		wait_for_script_thread();
+	}
 	if (!com.headless)
 		script_widgets_enable(TRUE);
 }

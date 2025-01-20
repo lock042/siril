@@ -495,7 +495,7 @@ static gboolean end_stacking(gpointer p) {
 			}
 
 			display_filename();
-			set_precision_switch(); // set precision on screen
+			gui_function(set_precision_switch, NULL); // set precision on screen
 		}
 
 		initialize_display_mode();
@@ -503,15 +503,15 @@ static gboolean end_stacking(gpointer p) {
 		sliders_mode_set_state(gui.sliders);
 		set_cutoff_sliders_max_values();
 		set_sliders_value_to_gfit();
-		adjust_cutoff_from_updated_gfit();	// computes min and max
+		notify_gfit_modified();	// computes min and max
 
 		set_display_mode();
 
 		/* update menus */
-		update_MenuItem();
+		gui_function(update_MenuItem, NULL);
 
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 		sequence_list_change_current();
 		update_stack_interface(TRUE);
 		bgnoise_await();

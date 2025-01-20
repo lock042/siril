@@ -67,6 +67,11 @@ static gchar **denoise_ai_models = NULL;
 static gchar **deconv_ai_models = NULL;
 static gchar **deconv_stellar_ai_models = NULL;
 static gboolean graxpert_aborted = FALSE;
+static GPid running_pid = (GPid) -1;
+
+GPid get_running_graxpert_pid() {
+	return running_pid;
+}
 
 void set_graxpert_aborted(gboolean state) {
 	graxpert_aborted = state;
@@ -81,13 +86,6 @@ const gchar** get_ai_models(graxpert_operation operation) {
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("GraXpert exited with status %d\n", status);
 	g_spawn_close_pid(pid);
-	// GraXpert has exited, reset the stored pid
-	com.child_is_running = EXT_NONE;
-#ifdef _WIN32
-	com.childhandle = 0;		// For Windows, handle of a child process
-#else
-	com.childpid = 0;			// For other OSes, PID of a child process
-#endif
 }
 
 // This ensures GraXpert is always called with a wide enough environment variable
@@ -108,6 +106,7 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
 	#endif
 
+	child_info *child = g_malloc(sizeof(child_info));
 	gboolean spawn_result = siril_spawn_host_async_with_pipes(
 		NULL,           // working directory
 		argv,           // argument vector
@@ -121,6 +120,20 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 		stderr_fd,      // stderr file descriptor
 		&error
 	);
+
+	// At this point, remove the processing thread from the list of children and replace it
+	// with the GraXpert process. This avoids tracking two children for the same task.
+	if (get_thread_run())
+		remove_child_from_children((GPid)-2);
+	child->childpid = *child_pid;
+	child->program = EXT_GRAXPERT;
+	child->name = g_strdup("GraXpert");
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
+
+	// Set a static variable so we can recover the pid info from gui
+	running_pid = *child_pid;
+	g_child_watch_add(*child_pid, child_watch_cb, NULL);
 
 	g_strfreev(env);
 	g_free(columns_str);
@@ -144,6 +157,11 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 		fprintf(stdout, "%s ", argv[index++]);
 	}
 	fprintf(stdout, "\n");
+
+	if (!get_thread_run()) {
+		return retval;
+	}
+
 	// g_spawn handles wchar so not need to convert
 	if (!is_sequence) set_progress_bar_data(_("Starting GraXpert..."), 0.0);
 	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL, &child_stderr);
@@ -156,13 +174,6 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 		siril_log_color_message(_("Spawning GraXpert failed: %s\n"), "red", error->message);
 		return retval;
 	}
-	g_child_watch_add(child_pid, child_watch_cb, NULL);
-	com.child_is_running = EXT_GRAXPERT;
-#ifdef _WIN32
-	com.childhandle = child_pid;		// For Windows, handle of a child process
-#else
-	com.childpid = child_pid;			// For other OSes, PID of a child process
-#endif
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -221,12 +232,9 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 #endif
 		g_free(buffer);
 	}
-	// GraXpert has exited, reset the stored pid
-#ifdef _WIN32
-	com.childhandle = 0;		// For Windows, handle of a child process
-#else
-	com.childpid = 0;			// For other OSes, PID of a child process
-#endif
+	// GraXpert has exited, remove from child list and reset the stored pid
+	remove_child_from_children(child_pid);
+	running_pid = (GPid) -1;
 	if (graxpert_no_exit_report && retval == -1) {
 		if (!is_sequence) siril_log_message(_("GraXpert GUI finished.\n"));
 		if (!is_sequence) set_progress_bar_data(_("Done."), 1.0);
@@ -313,6 +321,7 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		test_argv[nb++] = "--help";
 		// g_spawn handles wchar so not need to convert
 		GPid child_pid;
+
 		error = spawn_graxpert(test_argv, 500, &child_pid, NULL, NULL, &child_stderr);
 
 		if (error != NULL) {
@@ -346,6 +355,8 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 			}
 			g_free(buffer);
 		}
+		remove_child_from_children(child_pid);
+		running_pid = (GPid) -1;
 		g_object_unref(data_input);
 		g_object_unref(stream);
 		g_free(versionarg);
@@ -424,8 +435,7 @@ static gboolean graxpert_fetchversion(gchar* executable) {
 	test_argv[nb++] = versionarg;
 	// g_spawn handles wchar so not need to convert
 	GPid child_pid;
-	error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL,
-			&child_stderr);
+	error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL, &child_stderr);
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning GraXpert failed during version check: %s\n"), "red", error->message);
@@ -463,6 +473,8 @@ static gboolean graxpert_fetchversion(gchar* executable) {
 		}
 		g_free(buffer);
 	}
+	remove_child_from_children(child_pid);
+	running_pid = (GPid) -1;
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	g_free(versionarg);
@@ -741,7 +753,7 @@ static gboolean end_graxpert(gpointer p) {
 	open_graxpert_result((graxpert_data *) p);
 	free_graxpert_data((graxpert_data *) p);
 	notify_gfit_modified();
-	launch_clipboard_survey();
+	gui_function(launch_clipboard_survey, NULL);
 	return end_generic(NULL);
 }
 

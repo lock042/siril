@@ -357,6 +357,157 @@ static gboolean script_version_check(const gchar *filename) {
 	return retval;
 }
 
+static gboolean version_meets_constraint(version_number *current, version_number *constraint, const gchar *op) {
+	if (strcmp(op, "==") == 0)
+		return compare_version(*current, *constraint);
+	if (strcmp(op, "!=") == 0)
+		return !compare_version(*current, *constraint);
+	if (strcmp(op, "<") == 0) {
+		if (current->major_version < constraint->major_version) return TRUE;
+		if (current->major_version > constraint->major_version) return FALSE;
+		if (current->minor_version < constraint->minor_version) return TRUE;
+		if (current->minor_version > constraint->minor_version) return FALSE;
+		if (current->micro_version < constraint->micro_version) return TRUE;
+		if (current->micro_version > constraint->micro_version) return FALSE;
+		if (current->patched_version < constraint->patched_version) return TRUE;
+		return FALSE;
+	}
+	if (strcmp(op, ">") == 0) {
+		if (current->major_version > constraint->major_version) return TRUE;
+		if (current->major_version < constraint->major_version) return FALSE;
+		if (current->minor_version > constraint->minor_version) return TRUE;
+		if (current->minor_version < constraint->minor_version) return FALSE;
+		if (current->micro_version > constraint->micro_version) return TRUE;
+		if (current->micro_version < constraint->micro_version) return FALSE;
+		if (current->patched_version > constraint->patched_version) return TRUE;
+		return FALSE;
+	}
+	if (strcmp(op, "<=") == 0) {
+		return version_meets_constraint(current, constraint, "<") ||
+			version_meets_constraint(current, constraint, "==");
+	}
+	if (strcmp(op, ">=") == 0) {
+		return version_meets_constraint(current, constraint, ">") ||
+			version_meets_constraint(current, constraint, "==");
+	}
+	return FALSE;
+}
+
+static gboolean parse_version_string(const gchar *version_str, version_number *ver) {
+	gchar **parts = g_strsplit(version_str, ".", 4);
+	memset(ver, 0, sizeof(version_number));
+
+	if (parts[0]) ver->major_version = atoi(parts[0]);
+	if (parts[1]) ver->minor_version = atoi(parts[1]);
+	if (parts[2]) ver->micro_version = atoi(parts[2]);
+	if (parts[3]) ver->patched_version = atoi(parts[3]);
+
+	g_strfreev(parts);
+	return TRUE;
+}
+
+gboolean check_module_version_constraint(const gchar *line, GMatchInfo *match_info) {
+	// Regular expression to match check_module_version pattern
+	gboolean result = TRUE;
+
+	gchar *version_spec = g_match_info_fetch(match_info, 1);
+
+	// If no version specified, return TRUE
+	if (!version_spec || strlen(version_spec) == 0) {
+		result = TRUE;
+		return result;
+	}
+
+	// Split the version specifier into constraint parts
+	gchar **constraints = g_strsplit_set(version_spec, ",", -1);
+	version_number minver = {0}, maxver = {0};
+	gboolean min_set = FALSE, max_set = FALSE;
+
+	for (int i = 0; constraints[i] != NULL; i++) {
+		gchar *constraint = g_strstrip(constraints[i]);
+
+		if (strncmp(constraint, "==", 2) == 0) {
+			parse_version_string(constraint + 2, &minver);
+			parse_version_string(constraint + 2, &maxver);
+			min_set = max_set = TRUE;
+		} else if (strncmp(constraint, "!=", 2) == 0) {
+			parse_version_string(constraint + 2, &minver);
+			result = !version_meets_constraint(&com.python_version, &minver, "==");
+		} else if (strncmp(constraint, ">=", 2) == 0) {
+			parse_version_string(constraint + 2, &minver);
+			result = version_meets_constraint(&com.python_version, &minver, ">=");
+			min_set = TRUE;
+		} else if (strncmp(constraint, "<=", 2) == 0) {
+			parse_version_string(constraint + 2, &maxver);
+			result = version_meets_constraint(&com.python_version, &maxver, "<=");
+			max_set = TRUE;
+		} else if (strncmp(constraint, ">", 1) == 0) {
+			parse_version_string(constraint + 1, &minver);
+			result = version_meets_constraint(&com.python_version, &minver, ">");
+			min_set = TRUE;
+		} else if (strncmp(constraint, "<", 1) == 0) {
+			parse_version_string(constraint + 1, &maxver);
+			result = version_meets_constraint(&com.python_version, &maxver, "<");
+			max_set = TRUE;
+		}
+	}
+
+	// If multiple constraints are specified
+	if (min_set && max_set) {
+		result = version_meets_constraint(&com.python_version, &minver, ">=") &&
+					version_meets_constraint(&com.python_version, &maxver, "<");
+	}
+
+	g_strfreev(constraints);
+	g_free(version_spec);
+
+	return result;
+}
+
+static gboolean pyscript_version_check(const gchar *filename) {
+	// Open the script and look for the required version number
+	GFile *file = NULL;
+	GInputStream *stream = NULL;
+	GDataInputStream *data_input = NULL;
+	GError *error = NULL;
+	gchar *buffer = NULL;
+	gsize length = 0;
+	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
+	gboolean retval = TRUE; // default to TRUE - if check_module_version() is not called there are no version requirements
+	#ifdef DEBUG_GITSCRIPTS
+	printf("checking python script version requirements: %s\n", scriptpath);
+	#endif
+	file = g_file_new_for_path(scriptpath);
+	stream = (GInputStream *)g_file_read(file, NULL, &error);
+	if (error)
+		goto ERROR_OR_COMPLETE;
+	data_input = g_data_input_stream_new(stream);
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, &error)) && !error) {
+		GRegex *regex;
+		GMatchInfo *match_info;
+		gboolean matched = FALSE;
+		// Regex to capture version checks with optional version specifier
+		regex = g_regex_new("check_module_version\\(\"([^\"]+)?\"\\)", 0, 0, NULL);
+		if (g_regex_match(regex, buffer, 0, &match_info)) {
+			retval = check_module_version_constraint(buffer, match_info);
+			matched = TRUE;
+		}
+		g_match_info_free(match_info);
+		g_regex_unref(regex);
+		g_free(buffer);
+		if (matched)
+			break;
+	}
+	ERROR_OR_COMPLETE:
+	g_input_stream_close(stream, NULL, &error);
+	if (error)
+		siril_debug_print("Error closing data input stream from file\n");
+	g_free(scriptpath);
+	g_object_unref(data_input);
+	g_object_unref(stream);
+	g_object_unref(file);
+	return retval;
+}
 static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 	git_remote *remote = NULL;
 
@@ -598,27 +749,27 @@ int auto_update_gitscripts(gboolean sync) {
 		git_object *target_commit = NULL;
 		error = git_revparse_single(&target_commit, repo, "FETCH_HEAD");
 		if (error != 0) {
-		siril_log_color_message(_("Error performing hard reset. If the problem "
-				"persists you may need to delete the local git repository and "
-				"allow Siril to re-clone it.\n"), "red");
-		gui.script_repo_available = FALSE;
-		git_remote_free(remote);
-		git_repository_free(repo);
-		git_libgit2_shutdown();
-		return -1;
+			siril_log_color_message(_("Error performing hard reset. If the problem "
+					"persists you may need to delete the local git repository and "
+					"allow Siril to re-clone it.\n"), "red");
+			gui.script_repo_available = FALSE;
+			git_remote_free(remote);
+			git_repository_free(repo);
+			git_libgit2_shutdown();
+			return -1;
 		}
 
 		// Perform the reset
 		error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
 		git_object_free(target_commit);
 		if (error != 0) {
-		siril_log_color_message(_("Error performing hard reset. If the problem persists "
-				"you may need to delete the local git repository and allow Siril to "
-				"re-clone it.\n"), "red");
-		git_remote_free(remote);
-		git_repository_free(repo);
-		git_libgit2_shutdown();
-		return -1;
+			siril_log_color_message(_("Error performing hard reset. If the problem persists "
+					"you may need to delete the local git repository and allow Siril to "
+					"re-clone it.\n"), "red");
+			git_remote_free(remote);
+			git_repository_free(repo);
+			git_libgit2_shutdown();
+			return -1;
 		}
 		siril_log_color_message(_("Local scripts repository is up-to-date!\n"), "green");
 	}
@@ -640,7 +791,8 @@ int auto_update_gitscripts(gboolean sync) {
 	}
 	for (i = 0; i < entry_count; i++) {
 		entry = git_index_get_byindex(index, i);
-		if (g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) {
+		if ((g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) ||
+			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && pyscript_version_check(entry->path))) {
 			gui.repo_scripts = g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", entry->path);

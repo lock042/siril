@@ -474,7 +474,7 @@ gboolean end_plate_solver(gpointer p) {
 	}
 	if (args->image_flipped)
 		clear_stars_list(TRUE);
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 	free(args);
 	return FALSE;
 }

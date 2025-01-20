@@ -46,6 +46,7 @@
 #include "core/icc_profile.h"
 #include "core/arithm.h"
 #include "core/initfile.h"
+#include "core/siril_app_dirs.h"
 #include "core/preprocess.h"
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
@@ -64,6 +65,7 @@
 #include "io/local_catalogues.h"
 #include "io/FITS_symlink.h"
 #include "io/fits_keywords.h"
+#include "io/siril_pythonmodule.h"
 #include "drizzle/cdrizzleutil.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
@@ -195,8 +197,22 @@ int process_load(int nb){
 	expand_home_in_filename(filename, maxpath);
 
 	int retval = open_single_image(filename);
-	launch_clipboard_survey();
-	return retval;
+	gui_function(launch_clipboard_survey, NULL);
+	return (retval == 0) ? CMD_OK : CMD_FILE_NOT_FOUND;
+}
+
+int process_load_seq(int nb) {
+	close_sequence(FALSE);
+	close_single_image();
+
+	// Load the sequence into com.seq
+	execute_idle_and_wait_for_it(set_seq, word[1]);
+	if (com.seq.seqname) {
+		siril_debug_print("Sequence loaded ok\n");
+		return CMD_OK;
+	} else {
+		return CMD_GENERIC_ERROR;
+	}
 }
 
 int process_dumpheader(int nb) {
@@ -324,7 +340,7 @@ int process_save(int nb){
 		retval = savefits(savename, &gfit);
 		set_cursor_waiting(FALSE);
 	}
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 
 	g_free(filename);
 	g_free(savename);
@@ -370,9 +386,9 @@ static gboolean end_denoise(gpointer p) {
 		copy_gfit_to_backup();
 		populate_roi();
 	}
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;
@@ -895,23 +911,7 @@ int process_savepnm(int nb){
 	return retval;
 }
 
-static gboolean merge_cfa_idle(gpointer arg) {
-	initialize_display_mode();
-	update_zoom_label();
-	display_filename();
-	set_precision_switch();
-	sliders_mode_set_state(gui.sliders);
-	init_layers_hi_and_lo_values(MIPSLOHI);
-	set_cutoff_sliders_max_values();
-	set_cutoff_sliders_values();
-	set_display_mode();
-	redraw(REMAP_ALL);
-	sequence_list_change_current();
-	return FALSE;
-}
-
-static char *normalize_rebayerfilename(char *filename_buffer, const char*input, long int maxpath)
-{
+static char* normalize_rebayerfilename(char *filename_buffer, const char *input, long int maxpath) {
 	strncpy(filename_buffer, input, maxpath);
 	filename_buffer[maxpath-1] = '\0';
 	expand_home_in_filename(filename_buffer, maxpath);
@@ -978,8 +978,7 @@ int process_rebayer(int nb){
 		com.uniq->comment = strdup(_("Bayer pattern merge"));
 
 	if (!com.script) {
-		open_single_image_from_gfit();
-		siril_add_idle(merge_cfa_idle, NULL);
+		gui_function(open_single_image_from_gfit, NULL);
 	}
 	set_cursor_waiting(FALSE);
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
@@ -1042,7 +1041,7 @@ int process_fdiv(int nb){
 	siril_fdiv(&gfit, &fit, norm, TRUE);
 
 	clearfits(&fit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -1062,7 +1061,7 @@ int process_fmul(int nb){
 		gfit.keywords.lo = (WORD)(gfit.mini * USHRT_MAX_SINGLE);
 		set_cutoff_sliders_max_values();
 	}
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -1306,7 +1305,7 @@ int process_getref(int nb) {
 
 	if (!seq->imgparam[ref_image].incl)
 		siril_log_message(_("Warning: this image is excluded from the sequence main processing list\n"));
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -1896,7 +1895,7 @@ int process_update_key(int nb) {
 
 		updateFITSKeyword(&gfit, key, NULL, valstring, comment, TRUE, FALSE);
 	}
-	if (!com.script) refresh_keywords_dialog();
+	gui_function(refresh_keywords_dialog, NULL);
 
 	g_free(key);
 	g_free(value);
@@ -2149,8 +2148,8 @@ int process_cd(int nb) {
 				g_free(com.pref.wd);
 			com.pref.wd = g_strdup(com.wd);
 			writeinitfile();
-			set_GUI_CWD();
 		}
+		gui_function(set_GUI_CWD, NULL);
 	}
 	else {   /* chdir failed */
 	/*
@@ -2195,7 +2194,7 @@ int process_wrecons(int nb) {
 		else return CMD_GENERIC_ERROR;
 		g_free(dir[i]);
 	}
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -2572,7 +2571,7 @@ int process_wavelet(int nb) {
 
 int process_log(int nb){
 	loglut(&gfit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -2600,7 +2599,7 @@ int process_linear_match(int nb) {
 		image_cfa_warning_check();
 		set_cursor_waiting(TRUE);
 		apply_linear_to_fits(&gfit, a, b);
-		adjust_cutoff_from_updated_gfit();
+		notify_gfit_modified();
 		retval |= CMD_NOTIFY_GFIT_MODIFIED;
 	}
 	clearfits(&ref);
@@ -3448,7 +3447,7 @@ int process_resample(int nb) {
 			", clamped" : "");
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
-	if (!com.script) update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -3556,7 +3555,7 @@ int process_rotate(int nb) {
 	// the new selection will match the current image
 	if (has_selection) {
 		com.selection = (rectangle){ 0, 0, gfit.rx, gfit.ry };
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 	}
 	update_zoom_label();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
@@ -4346,7 +4345,7 @@ int process_seq_tilt(int nb) {
 	// through GUI, in case the specified sequence is not the loaded sequence
 	// load it before running
 	if (!com.script && seq != &com.seq) {
-		set_seq(word[1]);
+		gui_function(set_seq, word[1]);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		draw_polygon = TRUE;
@@ -4488,7 +4487,7 @@ int process_seq_psf(int nb) {
 			return CMD_SEQUENCE_NOT_FOUND;
 		}
 		if (!com.script && seq != &com.seq) {
-			set_seq(word[1]);
+			gui_function(set_seq, word[1]);
 			free_sequence(seq, TRUE);
 			seq = &com.seq;
 		}
@@ -5115,7 +5114,7 @@ int process_new(int nb){
 
 	com.seq.current = UNRELATED_IMAGE;
 	create_uniq_from_gfit(strdup(_("new empty image")), FALSE);
-	open_single_image_from_gfit();
+	gui_function(open_single_image_from_gfit, NULL);
 	return CMD_OK;
 }
 
@@ -5231,7 +5230,7 @@ cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
 
 int process_findstar(int nb) {
 	int layer;
-	if (!com.script) {
+	if (!(com.script || (com.python_script && !com.headless))) {
 		layer = select_vport(gui.cvport);
 	} else {
 		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
@@ -5283,7 +5282,7 @@ int process_seq_findstar(int nb) {
 
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
 	int layer;
-	if (!com.script && check_seq_is_comseq(seq)) { // we use vport only if seq is com.seq
+	if (!(com.script || (com.python_script && !com.headless)) && check_seq_is_comseq(seq)) { // we use vport only if seq is com.seq
 		layer = select_vport(gui.cvport);
 	} else {
 		layer = (seq->nb_layers > 1) ? GLAYER : RLAYER;
@@ -5396,7 +5395,7 @@ int process_findhot(int nb){
 
 int process_fix_xtrans(int nb) {
 	fix_xtrans_ac(&gfit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -5429,7 +5428,7 @@ int process_cosme(int nb) {
 		siril_log_color_message(_("There were some errors, please check your input file.\n"), "salmon");
 
 	invalidate_stats_from_fit(&gfit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -5523,22 +5522,26 @@ int process_cdg(int nb) {
 	return CMD_GENERIC_ERROR;
 }
 
-int process_clear(int nb) {
-	if (com.script) return CMD_OK;
+static gboolean clear_log_buffer(gpointer user_data) {
 	GtkTextView *text = GTK_TEXT_VIEW(lookup_widget("output"));
 	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(text);
 	GtkTextIter start_iter, end_iter;
 	gtk_text_buffer_get_start_iter(tbuf, &start_iter);
 	gtk_text_buffer_get_end_iter(tbuf, &end_iter);
 	gtk_text_buffer_delete(tbuf, &start_iter, &end_iter);
+	return FALSE;
+}
+
+int process_clear(int nb) {
+	gui_function(clear_log_buffer, NULL);
 	return CMD_OK;
 }
 
 int process_clearstar(int nb){
 	clear_stars_list(TRUE);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REDRAW_OVERLAY);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return CMD_OK;
 }
 
@@ -5595,7 +5598,7 @@ int process_offset(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	off(&gfit, (float)level);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -9223,8 +9226,7 @@ int process_set_cpu(int nb){
 	g_free(str);
 
 	com.max_thread = proc_out;
-	if (!com.script)
-		update_spinCPU(0);
+	gui_function(update_spinCPU, GINT_TO_POINTER(0));
 
 	return CMD_OK;
 }
@@ -9335,6 +9337,8 @@ int process_capabilities(int nb) {
 }
 
 int process_exit(int nb) {
+	// This GTK function is OK to call regardless of thread, as it will quit the GTK main loop
+	// and hand control back to main.c and the application will terminate.
 	gtk_main_quit();
 	return CMD_OK;
 }
@@ -9446,7 +9450,7 @@ int process_boxselect(int nb){
 	com.selection.h = h;
 	siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"), x, y, w, h);
 	if (!com.script)
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 	return CMD_OK;
 }
 
@@ -11346,8 +11350,8 @@ int process_icc_convert_to(int nb) {
 	}
 	refresh_icc_transforms();
 	if (!com.headless) {
-		close_tab();
-		init_right_tab();
+		gui_function(close_tab, NULL);
+		gui_function(init_right_tab, NULL);
 	}
 	if (!com.headless)
 		notify_gfit_modified();
@@ -11496,4 +11500,43 @@ int process_offline(int nb) {
 int process_pwd(int nb) {
 	siril_log_message(_("Current working directory: '%s'\n"), com.wd);
 	return CMD_OK;
+}
+
+int process_pyscript(int nb) {
+	gchar *script_name = NULL;
+	GStatBuf statbuf;
+	if (g_stat(word[1], &statbuf) == 0) {
+		// full path provided (or at least we can find it directly)
+		script_name = g_strdup(word[1]);
+	} else {
+		// Search for the file in the user's set script directories and the scripts repository
+		GSList *path = com.pref.gui.script_path;
+		while (path) {
+			siril_debug_print("Searching script path: %s\n", (gchar*) path->data);
+			script_name = find_file_in_directory(word[1], (gchar*) path->data);
+			if (script_name) // found it!
+				break;
+			path = path->next;
+		}
+		if (!script_name) {
+			// If we still haven't found it, iterate over the siril-scripts local repository
+			script_name = find_file_recursively(word[1], siril_get_scripts_repo_path());
+		}
+	}
+
+	if (script_name) {
+		gchar** argv_script = NULL;
+		if (nb > 1) {
+			// Treat additional arguments as arguments to be passed to the script
+			argv_script = calloc(nb, sizeof(gchar*));
+			for (int i = 2 ; i <= nb ; i++) {
+				argv_script[i-2] = g_strdup(word[i]);
+			}
+		}
+		execute_python_script(script_name, TRUE, TRUE, argv_script);
+		g_strfreev(argv_script);
+		return CMD_OK;
+	} else {
+		return CMD_FILE_NOT_FOUND;
+	}
 }

@@ -405,8 +405,8 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit.color_managed);
 	set_source_information();
 	refresh_icc_transforms();
-	close_tab();
-	init_right_tab();
+	gui_function(close_tab, NULL);
+	gui_function(init_right_tab, NULL);
 	notify_gfit_modified();
 }
 

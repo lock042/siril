@@ -128,7 +128,7 @@ preferences pref_init = {
 		.font_scale = 100,
 		.icon_symbolic = FALSE,
 		.script_path = NULL,
-		.warn_script_run = TRUE,
+		.warn_scripts_run = TRUE,
 		.show_thumbnails = TRUE,
 		.thumbnail_size = 256,
 		.default_rendering_mode = LINEAR_DISPLAY,
@@ -160,6 +160,22 @@ preferences pref_init = {
 		.mouse_cfg = {
 			.mouse_actions_array = NULL,
 			.scroll_actions_array = NULL
+		},
+		.editor_cfg = {
+			.highlight_syntax = TRUE,
+			.highlight_bracketmatch = TRUE,
+			.rmargin = TRUE,
+			.rmargin_pos = 80,
+			.show_linenums = TRUE,
+			.show_linemarks = FALSE,
+			.highlight_currentline = TRUE,
+			.autoindent = TRUE,
+			.indentontab = TRUE,
+			.smartbs = TRUE,
+			.smarthomeend = TRUE,
+			.showspaces = FALSE,
+			.shownewlines = FALSE,
+			.minimap = FALSE
 		}
 	},
 	.debayer = {
@@ -481,7 +497,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "auto_update_scripts", STYPE_BOOL, N_("auto sync online scripts repository"), &com.pref.auto_script_update },
 	{ "gui", "auto_update_spcc", STYPE_BOOL, N_("auto sync spcc-database repository"), &com.pref.spcc.auto_spcc_update },
 	{ "gui", "selected_scripts", STYPE_STRLIST, N_("list of scripts selected from the repository"), &com.pref.selected_scripts },
-	{ "gui", "warn_script_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_script_run },
+	{ "gui", "warn_scripts_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_scripts_run },
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
@@ -527,6 +543,21 @@ struct settings_access all_settings[] = {
 
 	{ "gui_pixelmath", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.gui.pm_presets },
 
+	{ "script_editor", "highlight_syntax", STYPE_BOOL, N_("highlight syntax in the script editor"), &com.pref.gui.editor_cfg.highlight_syntax },
+	{ "script_editor", "highlight_bracketmatch", STYPE_BOOL, N_("highlight matching brackets in the script editor"), &com.pref.gui.editor_cfg.highlight_bracketmatch },
+	{ "script_editor", "rmargin", STYPE_BOOL, N_("show the right margin in the script editor"), &com.pref.gui.editor_cfg.rmargin },
+	{ "script_editor", "rmargin_pos", STYPE_INT, N_("position of the right margin in the script editor"), &com.pref.gui.editor_cfg.rmargin_pos },
+	{ "script_editor", "show_linenums", STYPE_BOOL, N_("show line numbers in the script editor"), &com.pref.gui.editor_cfg.show_linenums },
+	{ "script_editor", "show_linemarks", STYPE_BOOL, N_("show line marks in the script editor"), &com.pref.gui.editor_cfg.show_linemarks },
+	{ "script_editor", "highlight_currentline", STYPE_BOOL, N_("highlight the current line in the script editor"), &com.pref.gui.editor_cfg.highlight_currentline },
+	{ "script_editor", "autoindent", STYPE_BOOL, N_("automatically indent new lines"), &com.pref.gui.editor_cfg.autoindent },
+	{ "script_editor", "indentontab", STYPE_BOOL, N_("indent selected blocks of lines in the script editor using the tab key"), &com.pref.gui.editor_cfg.indentontab },
+	{ "script_editor", "smartbs", STYPE_BOOL, N_("Smart Backspace behaviour in the script editor"), &com.pref.gui.editor_cfg.smartbs },
+	{ "script_editor", "smarthomeend", STYPE_BOOL, N_("Smart Home / End behaviour in the script editor"), &com.pref.gui.editor_cfg.smarthomeend },
+	{ "script_editor", "showspaces", STYPE_BOOL, N_("Show visible space and tab characters in the script editor"), &com.pref.gui.editor_cfg.showspaces },
+	{ "script_editor", "shownewlines", STYPE_BOOL, N_("Show visible newline characters in the script editor"), &com.pref.gui.editor_cfg.shownewlines },
+	{ "script_editor", "minimap", STYPE_BOOL, N_("Show a minimap in the script editor"), &com.pref.gui.editor_cfg.minimap },
+
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };
 
@@ -562,11 +593,11 @@ static const char *settings_type_to_string(enum settings_type type) {
 	}
 }
 
-int print_settings_key(const char *group, const char *key, gboolean with_details) {
+gchar* get_settings_key(const char *group, const char *key, gboolean with_details) {
 	struct settings_access *desc = get_key_settings(group, key);
 	if (!desc) {
 		siril_log_message(_("Unknown settings variable %s.%s\n"), group, key);
-		return 1;
+		return NULL;
 	}
 	GString *str = g_string_sized_new(120);
 	g_string_printf(str, "%s.%s = ", desc->group, desc->key);
@@ -606,7 +637,15 @@ int print_settings_key(const char *group, const char *key, gboolean with_details
 		g_string_append_printf(str, ", %s", desc->desc);
 	}
 	gchar *s = g_string_free(str, FALSE);
-	siril_log_message("%s\n", s);
+	return s;
+}
+
+int print_settings_key(const char *group, const char *key, gboolean with_details) {
+	gchar *s = get_settings_key(group, key, with_details);
+	if (s) {
+		siril_log_message("%s\n", s);
+		g_free(s);
+	}
 	return 0;
 }
 

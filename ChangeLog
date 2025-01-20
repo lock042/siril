@@ -44,6 +44,7 @@ xx/xx/xx
 * Read and compares checksum (DATASUM and CHECKSUM) if present in the FITS header (!723)
 * Added a new cosmetic filter to remove purple fringing on bright stars (!726)
 * Added blending masks and normalization on overlaps for rejection stacking, to stitch mosaics (!764)
+* Added python scripting (!765)
 
 **Improvements:**
 * Allowed object search with their common name, from the annotations catalogues (!381)
@@ -103,9 +104,10 @@ xx/xx/xx
 * Removed Windows cross-build CI and improved performance of native CI (!767)
 
 siril 1.2.6
---/--/--
+01/22/25
 * Fixed sign error in messier catalog (#1453)
 * Fixed Save As feature (#1452)
+* Fixed handling widechar with an updated version of cfitsio (#1456)
 
 siril 1.2.5
 11/22/24

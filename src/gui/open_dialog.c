@@ -373,7 +373,7 @@ static void opendial(int whichdial) {
 					g_free(com.pref.wd);
 				com.pref.wd = g_strdup(com.wd);
 				writeinitfile();
-				set_GUI_CWD();
+				gui_function(set_GUI_CWD, NULL);
 			} else {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), err);
 			}
@@ -466,6 +466,7 @@ void on_open_recent_action_item_activated(GtkRecentChooser *chooser,
 		g_warning("Could not convert uri \"%s\" to a local path: %s", uri,
 				error->message);
 		g_clear_error(&error);
+		g_free(uri);
 		return;
 	}
 

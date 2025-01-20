@@ -52,3 +52,5 @@ git-version.h
 GTAGS
 GRTAGS
 GPATH
+*.pyc
+*.egg-info
