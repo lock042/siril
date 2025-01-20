@@ -2714,11 +2714,11 @@ class SirilInterface:
                 # Format as string
                 return f"{degrees}°{minutes}'{seconds}\"{direction}"
 
-            values = tuple(None if val in _Defaults.VALUES else val for val in values)
-            if values[9] == "": # sitelat_str
-                values[9] = decimal_to_dms(values[29] if values[29] else None)
-            if values[10] == "": # sitelong_str
-                values[10] = decimal_to_dms(values[30] if values[30] else None)
+            values = [None if val in _Defaults.VALUES else val for val in values]
+            if values[9] == "" and values[29]: # sitelat_str
+                values[9] = decimal_to_dms(values[29])
+            if values[10] == "" and values[30]: # sitelong_str
+                values[10] = decimal_to_dms(values[30])
 
             # Helper function to decode and strip null-terminated strings
             def decode_string(s: bytes) -> str:
@@ -2784,10 +2784,6 @@ class SirilInterface:
                 date=timestamp_to_datetime(values[50]),
                 date_obs=timestamp_to_datetime(values[51])
             )
-            if kw.sitelat_str == "": # sitelat_str
-                kw.sitelat_str = decimal_to_dms(kw.sitelat if kw.sitelat else None)
-            if kw.sitelong_str == "": # sitelong_str
-                kw.sitelong_str = decimal_to_dms(kw.sitelong if kw.sitelong else None)
 
             return kw
 
@@ -2878,8 +2874,8 @@ class SirilInterface:
                 maxi=values[7],
                 neg_ratio=values[8],
                 top_down=True if values[10] else False,
-                focalkey=True if values[11] else False,
-                pixelkey=True if values[12] else False,
+                _focalkey=True if values[11] else False,
+                _pixelkey=True if values[12] else False,
                 color_managed=True if values[13] else False,
                 _data = self.get_image_pixeldata() if with_pixels == True else None,
                 stats=[
@@ -3151,8 +3147,8 @@ class SirilInterface:
                 maxi=values[7],
                 neg_ratio=values[8],
                 top_down=True if values[10] else False,
-                focalkey=True if values[11] else False,
-                pixelkey=True if values[12] else False,
+                _focalkey=True if values[11] else False,
+                _pixelkey=True if values[12] else False,
                 color_managed=True if values[13] else False,
                 _data = pixeldata,
                 stats=[
