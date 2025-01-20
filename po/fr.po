@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2024-12-31 22:24+0000\n"
+"PO-Revision-Date: 2025-01-18 01:21+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -1151,9 +1151,8 @@ msgstr ""
 "déjà une solution."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1146
-#, fuzzy
 msgid "Fetch catalog for each image"
-msgstr "Rechercher les étoiles pour chaque image"
+msgstr "Récupérer le catalogue pour chaque image"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1150
 msgid ""
@@ -3472,9 +3471,8 @@ msgid "Show advanced stretch options"
 msgstr "Afficher les options d'étirement avancées"
 
 #: src/gui/uifiles/dialog_star_remix.ui:149
-#, fuzzy
 msgid "Clipping mode:"
-msgstr "Mode d'écrêtage"
+msgstr "Mode d'écrêtage :"
 
 #: src/gui/uifiles/dialog_star_remix.ui:161
 msgid "Select the clipping mode for partially clipped pixels."
@@ -24049,43 +24047,31 @@ msgid "Software Update"
 msgstr "Mise À Jour Logiciel"
 
 #: src/core/siril_update.c:473
-#, fuzzy
 msgid "Error parsing JSON from URL: Failed to parse JSON\n"
-msgstr ""
-"Erreur dans l'analyse JSON de l'URL : impossible d'obtenir le nœud racine\n"
+msgstr "Erreur d'analyse JSON de l'URL : Échec de l'analyse JSON\n"
 
 #: src/core/siril_update.c:479
-#, fuzzy
 msgid "Error parsing JSON from URL: JSON root is not an object or array\n"
 msgstr ""
-"Erreur dans l'analyse JSON de l'URL : les membres JSON requis n'ont pas été "
-"trouvés\n"
+"Erreur d'analyse JSON de l'URL : La racine JSON n'est pas un objet ou un "
+"tableau\n"
 
 #: src/core/siril_update.c:497
-#, fuzzy
 msgid "Error parsing JSON from URL: Invalid root JSON structure\n"
-msgstr ""
-"Erreur dans l'analyse JSON de l'URL : impossible d'obtenir le nœud racine\n"
+msgstr "Erreur d'analyse JSON de l'URL : Structure JSON racine invalide\n"
 
 #: src/core/siril_update.c:507
-#, fuzzy
 msgid "Error parsing JSON from URL: Message is not a valid object\n"
-msgstr ""
-"Erreur dans l'analyse JSON de l'URL : impossible de trouver un objet JSON "
-"valide\n"
+msgstr "Erreur d'analyse JSON de l'URL : Message n'est pas un objet valide\n"
 
 #: src/core/siril_update.c:518
-#, fuzzy
 msgid "Error parsing JSON from URL: Required fields missing or invalid\n"
 msgstr ""
-"Erreur dans l'analyse JSON de l'URL : les membres JSON requis n'ont pas été "
-"trouvés\n"
+"Erreur d'analyse JSON de l'URL : Champs obligatoires manquants ou invalides\n"
 
 #: src/core/siril_update.c:526
-#, fuzzy
 msgid "Error parsing JSON from URL: Invalid ISO8601 date format\n"
-msgstr ""
-"Erreur dans l'analyse JSON de l'URL : impossible d'obtenir le nœud racine\n"
+msgstr "Erreur d'analyse JSON de l'URL : Format de date ISO8601 non valide\n"
 
 #: src/core/siril_update.c:599
 msgid "Error fetching or parsing Siril notifications JSON file from URL\n"
@@ -30845,12 +30831,12 @@ msgid "Error: The JSON file should contain an array of objects.\n"
 msgstr "Erreur : Le fichier JSON devrait contenir un tableau d'objets.\n"
 
 #: src/io/spcc_json.c:180
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Error loading SPCC JSON file: arrays have not the same size (%zu != %zu)\n"
 msgstr ""
-"Erreur de chargement du fichier JSON de SPCC : les tableaux n'ont pas la "
-"même taille (%d != %d)\n"
+"Erreur de chargement du fichier JSON de SPCC : les tableaux n'ont pas la "
+"même taille (%zu != %zu)\n"
 
 #: src/io/spcc_json.c:346
 #, c-format
@@ -30865,26 +30851,25 @@ msgstr ""
 "%.1f\n"
 
 #: src/io/spcc_json.c:495
-#, fuzzy, c-format
+#, c-format
 msgid "Error: index %zu out of range (max: %zu).\n"
-msgstr "Erreur : canal hors de porté.\n"
+msgstr "Erreur : index %zu hors plage (max : %zu).\n"
 
 #: src/io/spcc_json.c:502
 msgid "Error: index must be 0 for single object JSON.\n"
-msgstr ""
+msgstr "Erreur : l'index doit être 0 pour un objet unique JSON.\n"
 
 #: src/io/spcc_json.c:507
-#, fuzzy
 msgid "Error: JSON root must be an array or object.\n"
-msgstr "Erreur : Le fichier JSON devrait contenir un tableau d'objets.\n"
+msgstr "Erreur : La racine JSON doit être un tableau ou un objet.\n"
 
 #: src/io/spcc_json.c:515
 msgid "Error: Missing or invalid wavelength/values objects.\n"
-msgstr ""
+msgstr "Erreur : Objets longueur d'onde/valeur manquantes ou non valides.\n"
 
 #: src/io/spcc_json.c:522
 msgid "Error: Missing or invalid wavelength units.\n"
-msgstr ""
+msgstr "Erreur : Unités de longueur d'onde manquantes ou non valides.\n"
 
 #: src/io/spcc_json.c:533
 #, c-format
@@ -30895,26 +30880,27 @@ msgstr ""
 
 #: src/io/spcc_json.c:541
 msgid "Error: Missing or invalid value range.\n"
-msgstr ""
+msgstr "Erreur : Plage de valeurs manquante ou non valide.\n"
 
 #: src/io/spcc_json.c:550
 msgid "Error: Missing or invalid value arrays.\n"
-msgstr ""
+msgstr "Erreur : Tableaux de valeurs manquants ou non valides.\n"
 
 #: src/io/spcc_json.c:557
 #, c-format
 msgid "Error: Invalid array sizes (wavelength: %zu, values: %zu).\n"
 msgstr ""
+"Erreur : Tailles de tableau non valides (longueur d'onde : %zu, valeurs : "
+"%zu).\n"
 
 #: src/io/spcc_json.c:568 src/io/spcc_json.c:600
-#, fuzzy
 msgid "Error: Memory allocation failed.\n"
-msgstr "Erreur : échec de l'allocation de mémoire.\n"
+msgstr "Erreur : L'allocation de mémoire a échoué.\n"
 
 #: src/io/spcc_json.c:582
 #, c-format
 msgid "Error: Invalid number at index %zu.\n"
-msgstr ""
+msgstr "Erreur : Numéro non valide à l'index %zu.\n"
 
 #: src/livestacking/gui.c:88
 #, c-format
@@ -31858,13 +31844,12 @@ msgid "Could not copy WCS information for distortion\n"
 msgstr "Impossible de copier les informations WCS en cas de distorsion\n"
 
 #: src/registration/distorsion.c:408
-#, fuzzy
 msgid ""
 "Sequence file points to master distorsion file but its specification is "
 "empty in the preferences\n"
 msgstr ""
-"Le fichier de séquence pointe vers le fichier de distorsion maître, mais sa "
-"spécification est vide dans les préférences.\n"
+"Le fichier de séquence pointe vers le fichier de distorsion principal mais "
+"sa spécification est vide dans les préférences.\n"
 
 #: src/registration/distorsion.c:429
 #, c-format
