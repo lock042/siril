@@ -336,10 +336,9 @@ int initialize_script_menu(gboolean verbose) {
 			if (included) {
 				GtkWidget *menu_item;
 				gchar *basename = g_path_get_basename(ss->data);
-				char *basename_no_ext = remove_ext_from_filename(basename);
 				const char *extension = get_filename_ext(basename);
 
-				menu_item = gtk_menu_item_new_with_label(basename_no_ext);
+				menu_item = gtk_menu_item_new_with_label(basename);
 				gchar *full_path = g_strdup(ss->data);
 
 				if (extension && g_strcmp0(extension, "ssf") == 0) {
@@ -350,12 +349,11 @@ int initialize_script_menu(gboolean verbose) {
 
 				g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), full_path);
 				if (verbose)
-					siril_log_message(_("Loading script from repository: %s\n"), basename_no_ext);
+					siril_log_message(_("Loading script from repository: %s\n"), basename);
 				gtk_widget_show(menu_item);
 				new_list = g_list_prepend(new_list, ss->data);
 
 				g_free(basename);
-				free(basename_no_ext);
 			} else {
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
 			}
