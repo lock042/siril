@@ -136,10 +136,13 @@ typedef struct {
 	gchar *alias; // aliases given in annotation catalogues, '/'-separated
 	gchar *type; // type of the object, for solsys and compstars
 	float teff; // GAIA Teff term
-	uint64_t gaiasourceid; // GAIA source ID, for constructing Datalink queries
+	uint64_t gaiasourceid; // Gaia source ID, for constructing Datalink queries
+	double *xp_sampled; // Gaia xp_sampled data used for SPCC
 
 	// computed
 	float x, y;	// image coordinates
+	uint64_t index; // index in the Gaia results table when using CAT_GAIADR3_DIRECT for SPCC
+	float BV; // B ,agnitude - V magnitude, used in PCC
 	gboolean included; // flag to remove items from the list without deleting them (to be used by platesolve/pcc)
 } cat_item;
 
@@ -153,6 +156,8 @@ typedef struct {
 	gchar *IAUcode; // observatory code
 	gboolean phot; // TRUE if can be used for photometry
 	double epoch; // epoch for proper motion
+	double ra_multiplier; // multiplier for uint32_t RA representation
+	double dec_multiplier; // multiplier for uint32_t Dec representation
 	cat_item *cat_items;
 	int nbitems; // the number of items stored
 	int nbincluded; // the number of items included after projection

@@ -201,6 +201,18 @@ static double siril_catalog_epoch(siril_cat_index cat) {
 	return J2000;
 }
 
+static double siril_catalog_ra_multiplier(siril_cat_index cat) {
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+		return 360.0 / (double) INT32_MAX;
+	return 0.000001;
+}
+
+static double siril_catalog_dec_multiplier(siril_cat_index cat) {
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+		return 360.0 / (double) INT32_MAX;
+	return 0.00001;
+}
+
 // This function compares two cat_item objects and return their order by mag
 static int compare_items_by_mag(const void* item1, const void* item2) {
 	cat_item *i1 = (cat_item*) item1;
@@ -267,11 +279,11 @@ const char *catalog_to_str(siril_cat_index cat) {
 		case CAT_AAVSO_CHART:
 			return _("AAVSO VSP Chart");
 		case CAT_LOCAL:
-			return _("local Tycho-2+NOMAD");
+			return _("Tycho-2+NOMAD");
 		case CAT_LOCAL_GAIA_ASTRO:
-			return _("local Gaia DR3 astrometry");
+			return _("Gaia DR3 astrometry");
 		case CAT_LOCAL_GAIA_XPSAMP:
-			return _("local Gaia DR3 spectrophotometry");
+			return _("Gaia DR3 xp_sampled");
 		case CAT_AN_MESSIER:
 			return "Messier";
 		case CAT_AN_NGC:
@@ -311,6 +323,7 @@ gboolean is_star_catalogue(siril_cat_index Catalog) {
 		case CAT_LOCAL_TRIX:
 		case CAT_AN_USER_SSO:
 		case CAT_LOCAL_GAIA_ASTRO:
+		case CAT_LOCAL_GAIA_XPSAMP:
 			return TRUE;
 	default:
 		return FALSE;
@@ -477,6 +490,8 @@ siril_catalogue *siril_catalog_new(siril_cat_index Catalog) {
 	siril_cat->cat_index = Catalog;
 	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
 	siril_cat->epoch = siril_catalog_epoch(siril_cat->cat_index);
+	siril_cat->ra_multiplier = siril_catalog_ra_multiplier(siril_cat->cat_index);
+	siril_cat->dec_multiplier = siril_catalog_dec_multiplier(siril_cat->cat_index);
 	return siril_cat;
 }
 
@@ -512,6 +527,7 @@ void siril_catalog_free_item(cat_item *item) {
 	g_free(item->name);
 	g_free(item->alias);
 	g_free(item->type);
+	free(item->xp_sampled);
 }
 
 void siril_catalog_reset_projection(siril_catalogue *siril_cat) {
@@ -564,9 +580,7 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
  *   and stores that in an array of psf_star objects. The obtained stars can be
  *   used for registration, but do not correspond to image coordinates.
  *
- * - The PCC reads them and projects stars on a plate-solved image using WCS
- *   and stores them in condensed form (pcc_star struct containing only
- *   x,y,b,v), done in the function project_catalog_with_WCS
+ * - The PCC reads them and projects stars on a plate-solved image using WCS.
  *
  * - Comparison star list creation needs equatorial coordinates and B-V
  *   magnitudes, projection is also used but only to check if a star is inside
@@ -591,7 +605,7 @@ int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
 		return nbstars;
 #endif
-	} else if (siril_cat->cat_index == CAT_LOCAL || siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO || siril_cat->cat_index == CAT_LOCAL_TRIX) {
+	} else if (siril_cat->cat_index == CAT_LOCAL || siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO || siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP || siril_cat->cat_index == CAT_LOCAL_TRIX) {
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
 	} else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
 		nbstars = siril_cat->nbitems;

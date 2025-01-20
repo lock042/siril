@@ -29,8 +29,7 @@ typedef struct _SourceEntryAstro {
 	int16_t mag_scaled;  // 2 bytes
 } SourceEntryAstro;
 
-typedef struct _SourceEntryPhoto {
-	uint64_t source_id;  // 8 bytes
+typedef struct _SourceEntryXPsamp {
 	int32_t ra_scaled;   // 4 bytes
 	int32_t dec_scaled;  // 4 bytes
 	int16_t dra_scaled;  // 2 bytes, mas per year
@@ -39,7 +38,7 @@ typedef struct _SourceEntryPhoto {
 	// The remaining fields are only read for SPCC
 	uint8_t fexpo;       // 1 byte
 	int16_t flux[343];   // 686 bytes: xp_sampled flux values
-} SourceEntryPhoto;
+} SourceEntryXPsamp;
 #pragma pack(pop)
 
 void initialize_local_catalogues_paths();
