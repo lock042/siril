@@ -155,6 +155,7 @@ src/gui/plot.c
 src/gui/preferences.c
 src/gui/progress_and_log.c
 src/gui/PSF_list.c
+src/gui/python_gui.c
 src/gui/registration.c
 src/gui/registration_preview.c
 src/gui/remixer.c
@@ -196,6 +197,8 @@ src/io/single_image.c
 src/io/siril_catalogues.c
 src/io/siril_git.c
 src/io/siril_plot.c
+src/io/siril_pythonmodule.c
+src/io/siril_pythoncommands.c
 src/io/spcc_json.c
 src/livestacking/gui.c
 src/livestacking/livestacking.c

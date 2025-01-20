@@ -14,6 +14,7 @@ mingw-w64-x86_64-ccache
 pacman -S --noconfirm  --needed \
 mingw-w64-x86_64-glib2 \
 mingw-w64-x86_64-gtk3 \
+mingw-w64-x86_64-gtksourceview4 \
 mingw-w64-x86_64-gsl \
 mingw-w64-x86_64-lcms2 \
 mingw-w64-x86_64-json-glib \

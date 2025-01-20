@@ -390,11 +390,11 @@ void initialise_image() {
 	update_prepro_interface(TRUE);
 	adjust_sellabel();
 	display_filename();	// display filename in gray window
-	set_precision_switch(); // set precision on screen
+	gui_function(set_precision_switch, NULL); // set precision on screen
 	/* update menus */
-	update_MenuItem();
-	close_tab();
-	init_right_tab();
+	gui_function(update_MenuItem, NULL);
+	gui_function(close_tab, NULL);
+	gui_function(init_right_tab, NULL);
 }
 
 static gboolean check_images_match(const fits *fit1, const fits *fit2) {

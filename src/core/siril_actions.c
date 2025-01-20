@@ -78,12 +78,12 @@
 
 void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	header_open_button_clicked();
-	launch_clipboard_survey();
+	gui_function(launch_clipboard_survey, NULL);
 }
 
 void cwd_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	cwd_btton_clicked();
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 }
 
 void livestacking_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -152,7 +152,7 @@ void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void doc_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_get_documentation();
+	siril_get_documentation(NULL);
 }
 
 static gboolean is_extended = FALSE;
@@ -296,7 +296,7 @@ void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_d
 	g_simple_action_set_state(action, state);
 	set_cursor_waiting(TRUE);
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -328,7 +328,7 @@ void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data)
 	g_simple_action_set_state(action, state);
 	set_cursor_waiting(TRUE);
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 

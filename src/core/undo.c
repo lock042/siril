@@ -273,14 +273,14 @@ static int undo_get_data(fits *fit, historic *hist) {
 		if (gfit.type != DATA_USHORT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
-			set_precision_switch();
+			gui_function(set_precision_switch, NULL);
 		}
 		return undo_get_data_ushort(fit, hist);
 	} else if (hist->type == DATA_FLOAT) {
 		if (gfit.type != DATA_FLOAT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
-			set_precision_switch();
+			gui_function(set_precision_switch, NULL);
 		}
 		return undo_get_data_float(fit, hist);
 	}
@@ -315,7 +315,7 @@ int undo_save_state(fits *fit, const char *message, ...) {
 		undo_add_item(fit, filename, histo);
 
 		/* update menus */
-		update_MenuItem();
+		gui_function(update_MenuItem, NULL);
 	}
 	va_end(args);
 	return 0;
@@ -348,15 +348,15 @@ int undo_display_data(int dir) {
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
-			update_MenuItem();
+			gui_function(update_MenuItem, NULL);
 			lock_display_transform();
 			if (gui.icc.proofing_transform)
 				cmsDeleteTransform(gui.icc.proofing_transform);
 			gui.icc.proofing_transform = NULL;
 			unlock_display_transform();
 			refresh_annotations(TRUE);
-			close_tab(); // These 2 lines account for possible change from mono to RGB
-			init_right_tab();
+			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
+			gui_function(init_right_tab,NULL);
 			redraw(REMAP_ALL);
 			if (preview_was_active) {
 				copy_gfit_to_backup();
@@ -390,15 +390,15 @@ int undo_display_data(int dir) {
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
-			update_MenuItem();
+			gui_function(update_MenuItem, NULL);
 			refresh_annotations(TRUE);
 			lock_display_transform();
 			if (gui.icc.proofing_transform)
 				cmsDeleteTransform(gui.icc.proofing_transform);
 			gui.icc.proofing_transform = NULL;
 			unlock_display_transform();
-			close_tab(); // These 2 lines account for possible change from mono to RGB
-			init_right_tab();
+			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
+			gui_function(init_right_tab, NULL);
 			redraw(REMAP_ALL);
 			if (preview_was_active)
 				copy_gfit_to_backup();

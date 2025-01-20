@@ -84,9 +84,9 @@ static gboolean end_clahe(gpointer p) {
 
 	free(args);
 
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return FALSE;
 }
 

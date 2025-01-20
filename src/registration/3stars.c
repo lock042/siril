@@ -352,7 +352,7 @@ int register_3stars(struct registration_args *regargs) {
 	for (int i = 0; i < selected_stars; i++) {
 		// delete_selected_area();
 		memcpy(&com.selection, &_3boxes[awaiting_star - 1], sizeof(rectangle));
-		// new_selection_zone();
+		// gui_function(new_selection_zone, NULL);
 		awaiting_star = i + 1;
 		siril_log_color_message(_("Processing star #%d\n"), "salmon", awaiting_star);
 		if (_3stars_seqpsf(regargs)) return 1;

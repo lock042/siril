@@ -63,38 +63,51 @@ static GMutex display_transform_mutex;
 static gboolean profile_check_verbose = TRUE;
 
 ////// Functions //////
+struct cm_struct {
+	fits *fit;
+	gboolean active;
+};
+
+static gboolean cm_worker(gpointer user_data) {
+	struct cm_struct *data = (struct cm_struct*) user_data;
+	fits *fit = data->fit;
+	gboolean active = data->active;
+	gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
+	gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
+	gchar *tooltip = NULL;
+	if (active) {
+		if (fit->icc_profile) {
+			buffer = siril_color_profile_get_description(fit->icc_profile);
+			monitor = siril_color_profile_get_description(gui.icc.monitor);
+		}
+		if (gui.icc.soft_proof)
+			proof = siril_color_profile_get_description(gui.icc.soft_proof);
+		else
+			proof = g_strdup(monitor);
+
+		tooltip = g_strdup_printf(_("Image is color managed\nImage profile: %s\nMonitor profile: %s\nSoft proofing profile: %s"), buffer, monitor, proof);
+		if (!tooltip)
+			tooltip = g_strdup(_("Image is color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
+	} else {
+		tooltip = g_strdup(_("Image is not color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
+	}
+	GtkWidget *image = lookup_widget("color_managed_icon");
+	GtkWidget *button = lookup_widget("icc_main_window_button");
+	gtk_image_set_from_resource((GtkImage*) image, name);
+	gtk_widget_set_tooltip_text(button, tooltip);
+	g_free(name);
+	g_free(buffer);
+	g_free(monitor);
+	g_free(proof);
+	g_free(tooltip);
+	return FALSE;
+}
 
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
+	struct cm_struct data = { fit, active };
 	if (fit == &gfit && !com.script) {
-		gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
-		gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
-		gchar *tooltip = NULL;
-		if (active) {
-			if (fit->icc_profile) {
-				buffer = siril_color_profile_get_description(fit->icc_profile);
-				monitor = siril_color_profile_get_description(gui.icc.monitor);
-			}
-			if (gui.icc.soft_proof)
-				proof = siril_color_profile_get_description(gui.icc.soft_proof);
-			else
-				proof = g_strdup(monitor);
-
-			tooltip = g_strdup_printf(_("Image is color managed\nImage profile: %s\nMonitor profile: %s\nSoft proofing profile: %s"), buffer, monitor, proof);
-			if (!tooltip)
-				tooltip = g_strdup(_("Image is color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
-		} else {
-			tooltip = g_strdup(_("Image is not color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
-		}
-		GtkWidget *image = lookup_widget("color_managed_icon");
-		GtkWidget *button = lookup_widget("icc_main_window_button");
-		gtk_image_set_from_resource((GtkImage*) image, name);
-		gtk_widget_set_tooltip_text(button, tooltip);
-		g_free(name);
-		g_free(buffer);
-		g_free(monitor);
-		g_free(proof);
-		g_free(tooltip);
+		cm_worker(&data);
 	}
 }
 
@@ -575,7 +588,7 @@ void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
 	refresh_icc_transforms();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {

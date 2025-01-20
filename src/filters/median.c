@@ -265,9 +265,9 @@ static gboolean end_median_filter(gpointer p) {
 		populate_roi();
 	}
 	stop_processing_thread();
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;
@@ -804,7 +804,7 @@ gpointer median_filter(gpointer p) {
 	if (args->fit->type == DATA_FLOAT)
 		retval = median_filter_float(p);
 	unlock_roi_mutex();
-	if (com.script && (args->fit == &gfit))
+	if (args->fit == &gfit)
 		notify_gfit_modified();
 	return GINT_TO_POINTER(retval);
 }
