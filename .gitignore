@@ -33,6 +33,7 @@ subprojects/kplot/libkplot.a
 subprojects/kplot/test-reallocarray
 subprojects/htmesh/config-htmesh.h
 subprojects/htmesh/build/
+subprojects/healpix_cxx/build/
 install-sh
 m4/intltool.m4
 m4/nls.m4

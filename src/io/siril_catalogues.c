@@ -45,10 +45,6 @@
 #include "gui/utils.h"
 #include "gui/siril_plot.h"
 
-// Define Epoch 2000.0 (used by Vizier) and Epoch 2016.0 (used by Gaia DR3)
-#define J2000 2451545.0
-#define J2016 2457388.5
-
 
 static void free_conesearch_params(conesearch_params *params);
 static void free_conesearch_args(conesearch_args *args);
@@ -191,9 +187,30 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_AN_USER_TEMP:
 		case CAT_SHOW:
+		case CAT_LOCAL_GAIA_ASTRO:
+			return (1 << CAT_FIELD_GAIASOURCEID) | (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_TEFF);
 		default:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC);
 	}
+}
+
+// This function returns the epoch of the catalog
+static double siril_catalog_epoch(siril_cat_index cat) {
+	if ((cat == CAT_GAIADR3_DIRECT) || (cat == CAT_LOCAL_GAIA_ASTRO) || (cat == CAT_LOCAL_GAIA_XPSAMP))
+		return J2016;
+	return J2000;
+}
+
+static double siril_catalog_ra_multiplier(siril_cat_index cat) {
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+		return 360.0 / (double) INT32_MAX;
+	return 0.000001;
+}
+
+static double siril_catalog_dec_multiplier(siril_cat_index cat) {
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+		return 360.0 / (double) INT32_MAX;
+	return 0.00001;
 }
 
 // This function compares two cat_item objects and return their order by mag
@@ -262,7 +279,11 @@ const char *catalog_to_str(siril_cat_index cat) {
 		case CAT_AAVSO_CHART:
 			return _("AAVSO VSP Chart");
 		case CAT_LOCAL:
-			return _("local Tycho-2+NOMAD");
+			return _("Tycho-2+NOMAD");
+		case CAT_LOCAL_GAIA_ASTRO:
+			return _("Gaia DR3 astrometry");
+		case CAT_LOCAL_GAIA_XPSAMP:
+			return _("Gaia DR3 xp_sampled");
 		case CAT_AN_MESSIER:
 			return "Messier";
 		case CAT_AN_NGC:
@@ -301,6 +322,8 @@ gboolean is_star_catalogue(siril_cat_index Catalog) {
 		case CAT_LOCAL:
 		case CAT_LOCAL_TRIX:
 		case CAT_AN_USER_SSO:
+		case CAT_LOCAL_GAIA_ASTRO:
+		case CAT_LOCAL_GAIA_XPSAMP:
 			return TRUE;
 	default:
 		return FALSE;
@@ -461,6 +484,17 @@ void siril_catalogue_copy_item(cat_item *from, cat_item *to) {
 		to->type = g_strdup(from->type);
 }
 
+// allocates a new siril_catalogue and initializes it
+siril_catalogue *siril_catalog_new(siril_cat_index Catalog) {
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->cat_index = Catalog;
+	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+	siril_cat->epoch = siril_catalog_epoch(siril_cat->cat_index);
+	siril_cat->ra_multiplier = siril_catalog_ra_multiplier(siril_cat->cat_index);
+	siril_cat->dec_multiplier = siril_catalog_dec_multiplier(siril_cat->cat_index);
+	return siril_cat;
+}
+
 // frees a siril_catalogue
 void siril_catalog_free(siril_catalogue *siril_cat) {
 	if (!siril_cat)
@@ -493,6 +527,7 @@ void siril_catalog_free_item(cat_item *item) {
 	g_free(item->name);
 	g_free(item->alias);
 	g_free(item->type);
+	free(item->xp_sampled);
 }
 
 void siril_catalog_reset_projection(siril_catalogue *siril_cat) {
@@ -516,15 +551,13 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 		siril_debug_print("This only works on plate solved images\n");
 		return NULL;
 	}
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_catalogue *siril_cat = siril_catalog_new(cat);
 	double ra, dec;
 	center2wcs(fit, &ra, &dec);
 	double resolution = get_wcs_image_resolution(fit) * 3600.;
 	if (limit_mag == -1)
 		limit_mag = siril_catalog_get_default_limit_mag(cat);
 	// Preparing the catalogue query
-	siril_cat->cat_index = cat;
-	siril_cat->columns = siril_catalog_columns(cat);
 	siril_cat->center_ra = ra;
 	siril_cat->center_dec = dec;
 	siril_cat->radius = get_radius_deg(resolution, fit->rx, fit->ry) * 60.;
@@ -547,9 +580,7 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
  *   and stores that in an array of psf_star objects. The obtained stars can be
  *   used for registration, but do not correspond to image coordinates.
  *
- * - The PCC reads them and projects stars on a plate-solved image using WCS
- *   and stores them in condensed form (pcc_star struct containing only
- *   x,y,b,v), done in the function project_catalog_with_WCS
+ * - The PCC reads them and projects stars on a plate-solved image using WCS.
  *
  * - Comparison star list creation needs equatorial coordinates and B-V
  *   magnitudes, projection is also used but only to check if a star is inside
@@ -574,7 +605,7 @@ int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
 		return nbstars;
 #endif
-	} else if (siril_cat->cat_index == CAT_LOCAL || siril_cat->cat_index == CAT_LOCAL_TRIX) {
+	} else if (siril_cat->cat_index == CAT_LOCAL || siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO || siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP || siril_cat->cat_index == CAT_LOCAL_TRIX) {
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
 	} else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
 		nbstars = siril_cat->nbitems;
@@ -887,8 +918,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
 		gdouble jd = date_time_to_Julian(dt);
 		g_date_time_unref(dt);
-		// Gaia DR3 uses a different epoch to the other catalogues in use
-		jyears = siril_cat->cat_index == CAT_GAIADR3_DIRECT ? (jd - J2016) / 365.25 : (jd - J2000) / 365.25;
+		jyears = (jd - siril_cat->epoch) / 365.25;
 	}
 	if (use_velocity) {
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
@@ -974,7 +1004,7 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 			GDateTime *dt = g_date_time_ref(date_obs);
 			gdouble jd = date_time_to_Julian(dt);
 			g_date_time_unref(dt);
-			jyears = siril_cat->cat_index == CAT_GAIADR3_DIRECT ? (jd - J2016) / 365.25 : (jd - J2000) / 365.25;
+			jyears = (jd - siril_cat->epoch) / 365.25;
 		}
 	}
 	dec0 *= DEGTORAD;
@@ -1101,9 +1131,7 @@ int execute_show_command(show_params *params) {
 		redraw(REDRAW_OVERLAY);
 	}
 
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = CAT_SHOW;
-	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+	siril_catalogue *siril_cat = siril_catalog_new(CAT_SHOW);	
 	conesearch_args *args = init_conesearch_args();
 	args->siril_cat = siril_cat;
 	args->has_GUI = TRUE;
@@ -1176,7 +1204,7 @@ gpointer conesearch_worker(gpointer p) {
 	if (!check) {// conesearch has failed
 		goto exit_conesearch;
 	}
-	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_TRIX)
+	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO && siril_cat->cat_index != CAT_LOCAL_TRIX)
 		siril_log_message(_("The %s catalog has been successfully downloaded\n"), catalog_to_str(siril_cat->cat_index));
 	if (check == -1) { // conesearch was succesful but field was empty
 		retval = -1;
@@ -1196,9 +1224,7 @@ gpointer conesearch_worker(gpointer p) {
 	int j = 0, k = 0;
 	// preparing the annotation temp catalog if has_GUI
 	if (args->has_GUI || args->outfilename) {
-		temp_cat = calloc(1, sizeof(siril_catalogue));
-		temp_cat->cat_index = CAT_AN_USER_TEMP;
-		temp_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+		temp_cat = siril_catalog_new(CAT_AN_USER_TEMP);
 		temp_cat->projected = CAT_PROJ_WCS;
 		if (is_star_catalogue(siril_cat->cat_index))
 			stardiam = 0.2; // in arcmin => 12"
@@ -1287,8 +1313,8 @@ gpointer conesearch_worker(gpointer p) {
 		}
 		j++;
 	}
-	siril_log_message("%d objects found%s in the image (mag limit %.2f)\n", j,
-			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag);
+	siril_log_message(_("%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"), j,
+			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag, catalog_to_str(siril_cat->cat_index));
 	if (!j) {
 		retval = -1;
 		goto exit_conesearch;

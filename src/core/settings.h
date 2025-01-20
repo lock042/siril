@@ -237,7 +237,7 @@ struct gui_config {
 	gint thumbnail_size;
 
 	int position_compass;	// compass position, can be moved
-	gboolean catalog[9];	// 6 system catalogs and 2 user catalogs for annotations and 1
+	gboolean catalog[11];	// 8 system catalogs and 2 user catalogs for annotations and 1
 				// short-lived catalogue for "who's in the field" annotations
 				// see also cat in annotation_catalogues.c
 
@@ -404,7 +404,7 @@ struct pref_struct {
 	gboolean binning_update;// update pixel size of binned images
 
 	int wcs_formalism;	// formalism used in FITS header
-	gchar *catalogue_paths[4]; // local star catalogues for plate solving and PCC
+	gchar *catalogue_paths[6]; // local star catalogues for plate solving and PCC
 
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gboolean use_checksum;  // Verify checksum in FITS header
