@@ -285,7 +285,7 @@ void initialize_photometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
 
-	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(catalog_box_pcc), local_gaia_available() ? 2 : (local_catalogues_available() ? 0 : 2));
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 }
 
