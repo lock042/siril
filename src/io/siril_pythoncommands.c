@@ -15,6 +15,7 @@
 #include "core/undo.h"
 #include "core/OS_utils.h"
 #include "gui/callbacks.h"
+#include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
@@ -1856,15 +1857,25 @@ CLEANUP:
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (payload_length == 5) {
-				index = GUINT32_FROM_BE(*(uint32_t*) payload);
-				incl = (gboolean) GUINT32_FROM_BE(*(uint32_t*) payload + 1);
-				if (incl < 0 || incl >= com.seq.number) {
+			if (payload_length == 8) {
+				// Extract the first 4 bytes as `index`
+				memcpy(&index, payload, sizeof(uint32_t));
+				index = GUINT32_FROM_BE(index);
+
+				// Extract the second 4 bytes as `incl`
+				uint32_t incl_encoded;
+				memcpy(&incl_encoded, payload + sizeof(uint32_t), sizeof(uint32_t));
+				incl_encoded = GUINT32_FROM_BE(incl_encoded);
+				incl = (gboolean) incl_encoded;
+
+				if (index < 0 || index >= com.seq.number) {
 					const char* error_msg = _("Index is out of range");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				}
 				com.seq.imgparam[index].incl = incl;
+				if (index == com.seq.current && !com.headless)
+					redraw(REDRAW_OVERLAY);
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
 				const char* error_msg = _("Incorrect payload length");
