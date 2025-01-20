@@ -5288,7 +5288,7 @@ Activating the repository will take place immediately, so that you can select sc
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">True</property>
-                                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;WARNING!!&lt;/b&gt; &lt;i&gt;This will kill all running python scripts and reset the virtual environment "venv" directory to an as-new state.Any modules that have been installed by scripts will require re-installation.&lt;/i&gt;
+                                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;WARNING!!&lt;/b&gt; &lt;i&gt;This will kill all running python scripts and reset the virtual environment "venv" directory to an as-new state. Any modules that have been installed by scripts will require re-installation.&lt;/i&gt;
 
 This is normally not necessary but is provided as a last resort to restore the venv to a pristine state as an aid to troubleshooting.</property>
                                             <property name="double-buffered">False</property>
