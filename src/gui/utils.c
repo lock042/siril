@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include <glib.h>
 
 #include "algos/demosaicing.h"
@@ -86,12 +87,17 @@ GtkAdjustment* lookup_adjustment(const gchar *adjustment_name) {
 	return GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, adjustment_name));
 }
 
-
-void control_window_switch_to_tab(main_tabs tab) {
-	if (com.script)
-		return;
+static gboolean switch_tab(gpointer user_data) {
+	main_tabs tab = (main_tabs) GPOINTER_TO_INT(user_data);
 	GtkNotebook* notebook = GTK_NOTEBOOK(lookup_widget("notebook_center_box"));
 	gtk_notebook_set_current_page(notebook, tab);
+	return FALSE;
+}
+
+void control_window_switch_to_tab(main_tabs tab) {
+	if (com.script || com.headless)
+		return;
+	gui_function(switch_tab, GINT_TO_POINTER(tab));
 }
 
 /**
@@ -252,8 +258,9 @@ struct idle_data {
 
 static gboolean wrapping_idle(gpointer arg) {
 	struct idle_data *data = (struct idle_data *)arg;
-	data->idle(data->user);
 
+	fprintf(stderr, "Entering wrapping_idle for function %p\n", data->idle);
+	data->idle(data->user);
 	siril_debug_print("idle %p signaling end\n", data->idle);
 	g_mutex_lock(&data->mutex);
 	data->idle_finished = TRUE;
@@ -264,6 +271,14 @@ static gboolean wrapping_idle(gpointer arg) {
 }
 
 void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
+	// Check if we're already in the main thread (because if we are,
+	// the mutex control below will fail and will cause a hang)
+	if (g_main_context_is_owner(g_main_context_default())) {
+		// If in main thread, just call the function directly
+		idle(arg);
+		return;
+	}
+
 	struct idle_data data = { .idle_finished = FALSE, .idle = idle, .user = arg };
 	g_mutex_init(&data.mutex);
 	g_cond_init(&data.cond);

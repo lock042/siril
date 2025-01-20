@@ -987,3 +987,56 @@ long get_pathmax(void) {
 	return MAX_PATH;
 #endif
 }
+
+
+#ifdef _WIN32
+
+gchar *get_siril_bundle_path() {
+	gchar *sirilexepath = NULL;
+	// g_find_program_in_path doc:
+	/* This means first in the directory where the executing program was loaded from,
+		then in the current directory, then in the Windows 32-bit system directory,
+		then in the Windows directory, and finally in the directories in the PATH environment variable
+	*/
+	// so g_find_program_in_path should return the path to currently loaded siril. Note we don't
+	// care whether we are looking for siril.exe or siril-cli.exe as both will be installed in the
+	// same place: it is the directory path we care about.
+	sirilexepath = g_find_program_in_path("siril.exe");
+	if (!sirilexepath)  // should not happen
+		return NULL;
+	const gchar *bin_folder = g_path_get_dirname(sirilexepath);
+	g_free(sirilexepath);
+	return g_path_get_dirname(bin_folder);
+}
+
+// will find an executable in PATH if path is set to NULL
+// will find an executable in passed path otherwise
+gchar *find_executable_in_path(const char *exe_name, const char *path) {
+	char full_path[MAX_PATH];
+	DWORD result;
+	const gchar *path_value;
+	if (!path)
+		path_value = g_getenv("PATH");
+	else
+		path_value = path;
+
+	// Use SearchPath to find the executable in PATH
+	result = SearchPath(
+		path_value,		// Search in PATH directories
+		exe_name,	// The executable name
+		".exe",		// Default extension (NULL if no default extension)
+		MAX_PATH,	// Buffer size
+		full_path,	// Buffer to store the full path
+		NULL		// Address of a pointer to the file part of the path (can be NULL)
+	);
+
+	if (result > 0 && result < MAX_PATH) {
+		// Found the executable, so return a copy of the path
+		return g_strdup(full_path);
+	} else {
+		// Executable not found
+		return NULL;
+	}
+}
+
+#endif

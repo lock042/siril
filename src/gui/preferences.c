@@ -29,6 +29,7 @@
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
 #include "io/annotation_catalogues.h"
+#include "io/siril_pythonmodule.h"
 #include "gui/annotations_pref.h"
 #include "gui/callbacks.h"
 #include "gui/icc_profile.h"
@@ -39,6 +40,7 @@
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"
 #include "gui/photometric_cc.h"
+#include "gui/python_gui.h"
 #include "gui/registration.h"
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
@@ -226,7 +228,7 @@ static void update_scripts_preferences() {
 	if (com.pref.gui.script_path)
 		g_slist_free_full(g_steal_pointer(&com.pref.gui.script_path), g_free);
 	com.pref.gui.script_path = get_list_from_preferences_dialog();
-	com.pref.gui.warn_script_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
+	com.pref.gui.warn_scripts_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
 	com.pref.script_check_requires = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
 #ifdef HAVE_LIBGIT2
 	com.pref.use_scripts_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")));
@@ -849,7 +851,7 @@ void update_preferences_from_model() {
 
 	/* tab Scripts */
 	pref->gui.script_path = set_list_to_preferences_dialog(pref->gui.script_path);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_script_run);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_scripts_run);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")), pref->use_scripts_repository);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")), pref->auto_script_update);
@@ -1002,7 +1004,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		refresh_star_list();		// To update star list with new preferences
 		if (com.found_object)
 			refresh_found_objects();
-		save_main_window_state();
+		save_main_window_state(NULL);
 		writeinitfile();
 		if (com.pref.graxpert_path && graxpert_changed) {
 			g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));
@@ -1021,6 +1023,10 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		siril_close_dialog("settings_window");
 		update_reg_interface(TRUE); // To update UI with new preferences
 	}
+	// Update the GtkSourceView theme, if the widget has been created, in case
+	// the Siril theme has been changed
+	if (code_view_exists())
+		set_code_view_theme();
 }
 
 void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
@@ -1073,6 +1079,17 @@ gchar *get_swap_dir() {
 		sw_dir = gtk_file_chooser_get_filename(swap_dir);
 	}
 	return sw_dir;
+}
+
+void on_button_python_reset_venv_clicked(gpointer user_data) {
+	if (siril_confirm_dialog(_("WARNING!"), _("This will kill all running python processes "
+			"and delete and reinstall the python venv directory. This is not normally "
+			"necessary for upgrades or similar as Siril will try to manage the venv "
+			"automatically. However the option is provided as a last resort bug mitigation "
+			"to reset the venv to a known good state. All modules installed by scripts "
+			"will be deleted and will require reinstallation."), _("Proceed"))) {
+		rebuild_venv();
+	}
 }
 
 /* these one are not on the preference dialog */

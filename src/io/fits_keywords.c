@@ -1266,7 +1266,7 @@ gboolean end_keywords_sequence(gpointer p) {
 			}
 		}
 		update_sequences_list(args->seq->seqname);
-		refresh_keywords_dialog();
+		gui_function(refresh_keywords_dialog, NULL);
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);

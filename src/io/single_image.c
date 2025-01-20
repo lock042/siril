@@ -77,7 +77,6 @@ void close_single_image() {
 }
 
 static gboolean free_image_data_idle(gpointer p) {
-	siril_debug_print("free_image_data_gui_idle() called\n");
 	disable_iso12646_conditions(TRUE, FALSE, FALSE);
 	//reset_compositing_module();
 	delete_selected_area();
@@ -88,9 +87,9 @@ static gboolean free_image_data_idle(gpointer p) {
 	update_zoom_label();
 	update_display_fwhm();
 	adjust_sellabel();
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 	reset_3stars();
-	close_tab();	// close Green and Blue tabs
+	gui_function(close_tab, NULL);	// close Green and Blue tabs
 	free_cut_args(&gui.cut);
 	initialize_cut_struct(&gui.cut);
 
@@ -119,18 +118,22 @@ static gboolean free_image_data_idle(gpointer p) {
 	g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(binning, on_combobinning_changed, NULL);
+	siril_debug_print("free_image_data_idle() complete\n");
 
 	return FALSE;
 }
 
-static void free_image_data_gui() {
+static gboolean free_image_data_gui(gpointer user_data) {
 	/* this function frees resources used in the GUI, some of these resources
 	 * need to be handled in the GTK+ main thread, so we use an idle function
 	 * to deal with them */
-	if (com.script)
+	if (com.script || com.python_command) {
 		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
-	else free_image_data_idle(NULL);
-	siril_debug_print("free_image_data_gui() called\n");
+	} else if (!g_main_context_is_owner(g_main_context_default())) {
+		siril_add_idle(free_image_data_idle, NULL);
+	} else {
+		free_image_data_idle(NULL);
+	}
 
 	/* free display image data */
 	for (int vport = 0; vport < MAXVPORT; vport++) {
@@ -155,6 +158,8 @@ static void free_image_data_gui() {
 	}
 	clear_previews();
 	free_reference_image();
+	siril_debug_print("free_image_data_gui() complete\n");
+	return FALSE;
 }
 
 /* frees resources when changing sequence or closing a single image */
@@ -178,10 +183,15 @@ void free_image_data() {
 		com.uniq = NULL;
 	}
 
-	if (!com.headless)
-		free_image_data_gui();
-
+	if (com.script || com.python_command) {
+		execute_idle_and_wait_for_it(free_image_data_gui, NULL);
+	} else if (!g_main_context_is_owner(g_main_context_default())) {
+		siril_add_idle(free_image_data_gui, NULL);
+	} else {
+		free_image_data_gui(NULL);
+	}
 	clearfits(&gfit);
+	siril_debug_print("free_image_data() complete\n");
 }
 
 static gboolean end_read_single_image(gpointer p) {
@@ -246,9 +256,9 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 	return retval;
 }
 
-static gboolean end_open_single_image(gpointer arg) {
+gboolean end_open_single_image(gpointer arg) {
 	com.icc.srgb_hint = FALSE;
-	open_single_image_from_gfit();
+	gui_function(open_single_image_from_gfit, NULL);
 	return FALSE;
 }
 
@@ -305,29 +315,18 @@ int open_single_image(const char* filename) {
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
-		if (!com.headless) {
-			/* we don't need to use siril_add_idle here, because this idle
-			 * function needs to be called for load to work properly and
-			 * display the GUI for the loaded image. The image being loaded in
-			 * gfit, not displaying it may cause some inconsistencies,
-			 * possibly reported as a crash (see #770)
-			 */
-			if (com.script)
-				execute_idle_and_wait_for_it(end_open_single_image, NULL);
-			else end_open_single_image(NULL);
-		}
+		end_open_single_image(NULL);
 	} else {
 		free(realname);
 	}
-	if (!com.script)
-		reset_cut_gui_filedependent();
+	gui_function(reset_cut_gui_filedependent, NULL);
 	check_gfit_profile_identical_to_monitor();
 	return retval;
 }
 
 /* updates the GUI to reflect the opening of a single image, found in gfit and com.uniq */
-void open_single_image_from_gfit() {
-	siril_debug_print("open_single_image_from_gfit()\n");
+gboolean open_single_image_from_gfit(gpointer user_data) {
+	siril_debug_print("gui_function(open_single_image_from_gfit, NULL)\n");
 	/* now initializing everything
 	 * code based on seq_load_image or set_seq (sequence.c) */
 
@@ -346,16 +345,17 @@ void open_single_image_from_gfit() {
 	adjust_sellabel();
 
 	display_filename();	// display filename in gray window
-	set_precision_switch(); // set precision on screen
+	gui_function(set_precision_switch, NULL); // set precision on screen
 
 	/* update menus */
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 
-	close_tab();
-	init_right_tab();
+	gui_function(close_tab, NULL);
+	gui_function(init_right_tab, NULL);
 
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
+	return FALSE;
 }
 
 /* searches the image for minimum and maximum pixel value, on each layer
@@ -414,18 +414,6 @@ int single_image_is_loaded() {
 
 /**************** updating the single image *******************/
 
-/* was level_adjust, to call when gfit changed and need min/max to be recomputed. */
-/* deprecated, use notify_gfit_modified() instead */
-void adjust_cutoff_from_updated_gfit() {
-	invalidate_stats_from_fit(&gfit);
-	invalidate_gfit_histogram();
-	if (!com.script) {
-		update_gfit_histogram_if_needed();
-		init_layers_hi_and_lo_values(gui.sliders);
-		set_cutoff_sliders_values();
-	}
-}
-
 /* generic idle function for end of operation on gfit */
 static gboolean end_gfit_operation() {
 	// this function should not contain anything required by the execution
@@ -437,7 +425,7 @@ static gboolean end_gfit_operation() {
 	update_gfit_histogram_if_needed();
 
 	/* update bit depth selector */
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 
 	/* update display of gfit name (useful if it changes) */
 	adjust_sellabel();
@@ -448,7 +436,7 @@ static gboolean end_gfit_operation() {
 	set_cutoff_sliders_values();
 
 	redraw(REMAP_ALL);	// queues a redraw if !com.script
-	redraw_previews();	// queues redraws if !com.script
+	gui_function(redraw_previews, NULL);	// queues redraws if !com.script
 
 	set_cursor_waiting(FALSE); // called from current thread if !com.script, idle else
 	return FALSE;
@@ -461,5 +449,5 @@ void notify_gfit_modified() {
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
 
-	siril_add_idle(end_gfit_operation, NULL);
+	gui_function(end_gfit_operation, NULL);
 }

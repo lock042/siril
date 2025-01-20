@@ -199,13 +199,7 @@ void siril_message_dialog(GtkMessageType type, char *title, char *text) {
 	show_modal_dialog(args);
 }
 
-struct message_data {
-	GtkMessageType type;
-	char *title;
-	char *text;
-};
-
-static gboolean siril_message_dialog_idle(gpointer p) {
+gboolean siril_message_dialog_idle(gpointer p) {
 	struct message_data *data = (struct message_data *) p;
 	siril_message_dialog(data->type, data->title, data->text);
 	free(data->title);
