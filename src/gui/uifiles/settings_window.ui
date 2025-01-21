@@ -1527,10 +1527,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     </child>
                                     <child>
                                       <object class="GtkLabel">
-<<<<<<< HEAD
                                         <property name="visible">True</property>
-=======
->>>>>>> origin
                                         <property name="can-focus">False</property>
                                         <property name="double-buffered">False</property>
                                         <property name="halign">start</property>
@@ -1556,17 +1553,10 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     </child>
                                     <child>
                                       <object class="GtkFileChooserButton" id="localcatalogue_path6">
-<<<<<<< HEAD
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify the folder where the Gaia photometric catalogue is stored. Because of its size this catalogue is divided into chunks, so you need only select the folder.</property>
-                                        <property name="double-buffered">False</property>
                                         <property name="action">select-folder</property>
-=======
-                                        <property name="can-focus">False</property>
-                                        <property name="tooltip-text" translatable="yes">Specify the location of the Siril photometric extract of the Gaia DR3 catalogue, used for spectrophotometric colour calibration</property>
-                                        <property name="double-buffered">False</property>
->>>>>>> origin
                                         <property name="title" translatable="yes">gaia_photometric.dat</property>
                                       </object>
                                       <packing>
