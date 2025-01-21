@@ -18,7 +18,7 @@ xx/xx/xx
 * Added Astrometric Registration for mosaic and little overlapping sequences (#1154::7 and !643)
 * Added image undistortion using WCS SIP data during registration (#1154::8,!643 and #1285)
 * Refactored wcs usage, by removing redundant info stored in the fit structure (!591 and #1154::1)
-* Added support for offline Gaia catalogue extracts with HEALpixel-based indexing (!795)
+* Added support for offline Gaia catalogue extracts with HEALpixel-based indexing (!795, !797)
 * Added master distortion files (!686)
 * Added ssl certificates in the appimage (#1259)
 * Added dark scaling to match exposure time (#1269)
