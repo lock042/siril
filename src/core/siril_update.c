@@ -502,7 +502,7 @@ static int parseJsonNotificationsString(const char *jsonString, GSList **validNo
 
 	// Iterate over messages
 	for (size_t i = 0; i < length; i++) {
-		yyjson_val *message = length == 1 ? root : yyjson_arr_get(messages, i);
+		yyjson_val *message = (!yyjson_is_arr(root)) ? root : yyjson_arr_get(messages, i);
 		if (!yyjson_is_obj(message)) {
 			siril_log_color_message(_("Error parsing JSON from URL: Message is not a valid object\n"), "red");
 			continue;
