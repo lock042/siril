@@ -51,6 +51,7 @@ static gboolean spcc_filters_initialized = FALSE;
 static int get_spcc_catalog_from_GUI();
 static rectangle get_bkg_selection();
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
+void on_ComboBoxSPCCCatalog_changed(GtkComboBox *combo, gpointer user_data);
 static void set_bg_sigma(struct photometric_cc_data *args);
 static int set_spcc_args(struct photometric_cc_data *args);
 gboolean populate_spcc_combos(gpointer user_data);
@@ -395,7 +396,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	g_free(txt);
 	g_free(tooltip);
 
-	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
+	on_ComboBoxSPCCCatalog_changed(GTK_COMBO_BOX(catalog_box_spcc), NULL);
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 	g_signal_handlers_block_by_func(G_OBJECT(monoselector), on_spcc_sensor_switch_state_set, NULL);
 	gtk_switch_set_active(monoselector, com.pref.spcc.is_mono);
