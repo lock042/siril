@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <math.h>
 #include <complex.h>
 #include <fftw3.h>
@@ -692,4 +693,60 @@ void shrink(float *out, float *in, int outw, int outh, int inw, int inh, float s
 		}
 	}
 	free(gaussian);
+}
+
+#ifdef __has_builtin
+#if __has_builtin(__builtin_clz)
+#define HAS_BUILTIN_CLZ 1
+#else
+#define HAS_BUILTIN_CLZ 0
+#endif
+#else
+#define HAS_BUILTIN_CLZ 0
+#endif
+
+float half_to_float(const uint16_t val) {
+	// Extract the sign from the bits
+	const uint32_t sign = (uint32_t)(val & 0x8000) << 16;
+	// Extract the exponent from the bits
+	const uint8_t exp16 = (val & 0x7c00) >> 10;
+	// Extract the fraction from the bits
+	uint16_t frac16 = val & 0x3ff;
+
+	uint32_t exp32 = 0;
+	if (exp16 == 0x1f) {
+		exp32 = 0xff; // Infinity or NaN
+	} else if (exp16 != 0) {
+		exp32 = exp16 + 112; // Normal numbers
+	} else {
+		if (frac16 == 0) {
+			// Zero
+			return *(float*)&sign;
+		}
+
+		// Denormal number: normalize it
+		uint8_t offset;
+		#if HAS_BUILTIN_CLZ
+		offset = __builtin_clz(frac16) - 21; // Offset correction for 32-bit __builtin_clz()
+		#else
+		// Portable alternative: Count leading zeros manually
+		offset = 0;
+		while ((frac16 & 0x400) == 0) {
+			frac16 <<= 1;
+			++offset;
+		}
+		#endif
+		frac16 &= 0x3ff; // Mask off the implicit leading bit
+		exp32 = 113 - offset;
+	}
+
+	uint32_t frac32 = (uint32_t)frac16 << 13;
+
+	// Compose the final FP32 binary representation
+	uint32_t bits = 0;
+	bits |= sign;
+	bits |= (exp32 << 23);
+	bits |= frac32;
+
+	return *(float *)&bits;
 }

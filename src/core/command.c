@@ -132,6 +132,7 @@
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "git-version.h"
+#include "io/healpix/healpix_cat.h"
 
 #include "command.h"
 #include "command_list.h"
@@ -9635,24 +9636,37 @@ static int do_pcc(int nb, gboolean spectro) {
 			if (arg[0] == '-' || arg[0] == '+')
 				mag_offset = value;
 			else target_mag = value;
-		} else if (!spectro && g_str_has_prefix(word[next_arg], "-catalog=")) {
-			char *arg = word[next_arg] + 9;
-			if (!g_strcmp0(arg, "nomad"))
-				cat = CAT_NOMAD;
-			else if (!g_strcmp0(arg, "gaia"))
-				cat = CAT_GAIADR3;
-			else if (!g_strcmp0(arg, "localgaia")) {
-				cat = local_gaia ? CAT_LOCAL_GAIA_ASTRO : CAT_GAIADR3;
-				if (cat == CAT_GAIADR3) {
-					siril_log_color_message(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via Vizier\n"), "salmon");
+		} else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
+			if (!spectro) {
+				char *arg = word[next_arg] + 9;
+				if (!g_strcmp0(arg, "nomad"))
+					cat = CAT_NOMAD;
+				else if (!g_strcmp0(arg, "gaia"))
+					cat = CAT_GAIADR3;
+				else if (!g_strcmp0(arg, "localgaia")) {
+					cat = local_gaia ? CAT_LOCAL_GAIA_ASTRO : CAT_GAIADR3;
+					if (cat == CAT_GAIADR3) {
+						siril_log_color_message(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via Vizier\n"), "salmon");
+					}
 				}
-			}
-			else if (!g_strcmp0(arg, "apass"))
-				cat = CAT_APASS;
-			else {
-				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				return CMD_ARG_ERROR;
+				else if (!g_strcmp0(arg, "apass"))
+					cat = CAT_APASS;
+				else {
+					siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+					return CMD_ARG_ERROR;
+				}
+			} else {
+				char *arg = word[next_arg] + 9;
+				if (!g_strcmp0(arg, "gaia"))
+					cat = CAT_GAIADR3_DIRECT;
+				else if (!g_strcmp0(arg, "localgaia"))
+					cat = CAT_LOCAL_GAIA_XPSAMP;
+				else {
+					siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+					return CMD_ARG_ERROR;
+				}
 			}
 		} else if (spectro && !g_strcmp0(word[next_arg], "-narrowband")) {
 			nb_mode = TRUE;
@@ -9757,8 +9771,10 @@ static int do_pcc(int nb, gboolean spectro) {
 		}
 	}
 
-	if (local_cat && cat == CAT_AUTO) {
+	if (!spectro && local_cat && cat == CAT_AUTO) {
 		cat = CAT_LOCAL;
+	} else if (spectro && cat == CAT_AUTO) {
+		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : CAT_GAIADR3_DIRECT;
 	}
 	if (!spectro && local_cat && cat != CAT_LOCAL) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
@@ -9836,7 +9852,7 @@ static int do_pcc(int nb, gboolean spectro) {
 		pcc_args->mag_mode = LIMIT_MAG_AUTO;
 	}
 
-	pcc_args->catalog = spectro ? CAT_GAIADR3_DIRECT : cat;
+	pcc_args->catalog = cat;
 	if (spectro)
 		load_spcc_metadata_if_needed();
 

@@ -1289,8 +1289,8 @@ gpointer conesearch_worker(gpointer p) {
 			double x = siril_cat->cat_items[i].x;
 			double y = siril_cat->cat_items[i].y;
 			rectangle area = { 0 };
-			pcc_star tmp = { .x = x, .y = y };
-			if (make_selection_around_a_star(tmp, &area, args->fit)) {
+			cat_item tmp = { .x = x, .y = y };
+			if (make_selection_around_a_star(&tmp, &area, args->fit)) {
 				siril_debug_print("star %d is outside image or too close to border\n", i);
 				continue;
 			}
