@@ -39,15 +39,6 @@
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkImage" id="gaia_status_widget">
-    <property name="visible">True</property>
-    <property name="sensitive">False</property>
-    <property name="can-focus">False</property>
-    <property name="tooltip-text" translatable="yes">Checking Gaia archive status...</property>
-    <property name="valign">center</property>
-    <property name="yalign">0.5</property>
-    <property name="resource">/org/siril/ui/pixmaps/status_grey.svg</property>
-  </object>
   <object class="GtkAdjustment" id="adjustment_spcc_height">
     <property name="upper">5700</property>
     <property name="value">10</property>
@@ -60,6 +51,15 @@
     <property name="value">1013.25</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
+  </object>
+  <object class="GtkImage" id="gaia_status_widget">
+    <property name="visible">True</property>
+    <property name="sensitive">False</property>
+    <property name="can-focus">False</property>
+    <property name="tooltip-text" translatable="yes">Checking Gaia archive status...</property>
+    <property name="valign">center</property>
+    <property name="yalign">0.5</property>
+    <property name="resource">/org/siril/ui/pixmaps/status_grey.svg</property>
   </object>
   <object class="GtkAdjustment" id="nb_b_bw">
     <property name="lower">1</property>
@@ -979,58 +979,12 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                 <property name="margin-bottom">5</property>
                 <property name="expanded">True</property>
                 <child>
-                  <!-- n-columns=3 n-rows=2 -->
+                  <!-- n-columns=4 n-rows=2 -->
                   <object class="GtkGrid" id="GtkGridIPS2">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="row-spacing">5</property>
                     <property name="column-spacing">5</property>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="label" translatable="yes">Catalogue Limit Mag: </property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="GtkSpinPCC_Mag_Limit">
-                        <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Maximum star magnitude used in the catalog queries. Wider is the field, lower is the value.</property>
-                        <property name="halign">start</property>
-                        <property name="text">12</property>
-                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                        <property name="adjustment">Adj_pcc_Mag_Limit</property>
-                        <property name="value">12</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="S_PCC_Mag_Limit">
-                        <property name="label" translatable="yes">Auto</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">The limit magnitude is automatically determined using the approximation of the Field Of View.</property>
-                        <property name="halign">start</property>
-                        <property name="active">True</property>
-                        <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_S_PCC_Mag_Limit_toggled" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
                     <child>
                       <object class="GtkComboBoxText" id="ComboBoxPCCCatalog">
                         <property name="visible">True</property>
@@ -1065,6 +1019,71 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Catalogue Limit Mag: </property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="GtkSpinPCC_Mag_Limit">
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Maximum star magnitude used in the catalog queries. Wider is the field, lower is the value.</property>
+                        <property name="text">12</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">Adj_pcc_Mag_Limit</property>
+                        <property name="value">12</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="ComboBoxSPCCCatalog">
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Choose the catalogue to use for spectrophotometric colour calibration.
+* Gaia DR3 archive is an online service providing direct access to the Gaia DR3 catalogue.
+* Local Gaia DR3 xp_sampled catalogue is an optimized local catalogue designed for SPCC.
+Gaia DR3 contains sampled spectra for c. 30 million stars down to magnitude 17.6.</property>
+                        <property name="active">0</property>
+                        <items>
+                          <item>Gaia DR3 via Gaia archive</item>
+                          <item translatable="yes">Local Gaia DR3 xp_sampled catalogue</item>
+                        </items>
+                        <signal name="changed" handler="on_ComboBoxSPCCCatalog_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="S_PCC_Mag_Limit">
+                        <property name="label" translatable="yes">Auto</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">The limit magnitude is automatically determined using the approximation of the Field Of View.</property>
+                        <property name="halign">start</property>
+                        <property name="active">True</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_S_PCC_Mag_Limit_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
                       <object class="GtkLabel" id="photometric_catalog_label">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -1073,7 +1092,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                         <property name="margin-start">4</property>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
+                        <property name="left-attach">3</property>
                         <property name="top-attach">0</property>
                       </packing>
                     </child>

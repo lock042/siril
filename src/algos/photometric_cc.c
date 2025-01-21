@@ -143,9 +143,9 @@ static void TempK2rgb(float *r, float *g, float *b, float TempK, cmsHTRANSFORM t
 	*b = rgb[2] / maxval;
 }
 
-int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
+int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit) {
 	/* make a selection around the star, coordinates are in display reference frame */
-	double fx = star.x, fy = star.y;
+	double fx = star->x, fy = star->y;
 	double dx, dy;
 	siril_to_display(fx, fy, &dx, &dy, fit->ry);
 
@@ -203,7 +203,7 @@ int filtermaskArrays(double *x, double *y, gboolean *mask, int n) {
 static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float* kw) {
 	int nb_stars = args->nb_stars;
 	fits *fit = args->fit;
-	pcc_star *stars = args->stars;
+	cat_item *stars = args->ref_stars->cat_items;
 	double *irg = malloc(sizeof(double) * nb_stars);
 	double *ibg = malloc(sizeof(double) * nb_stars);
 	double *crg = malloc(sizeof(double) * nb_stars);
@@ -252,8 +252,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
 		g_atomic_int_inc(&progress);
 
-		// Make a selection 'area' around the ith star in the list of pcc_stars passed to the function
-		if (make_selection_around_a_star(stars[i], &area, fit)) {
+		// Make a selection 'area' around the ith star in the list of cat_items passed to the function
+		if (make_selection_around_a_star(&stars[i], &area, fit)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
@@ -287,7 +287,17 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		// Get the Gaia DR3 xp_sampled spectrum from the downloaded datalink product
 		double ref_flux[3];
 		xpsampled star_spectrum = init_xpsampled();
-		get_xpsampled(&star_spectrum, args->datalink_path, stars[i].index);
+//		switch (args->catalog) {
+//			case CAT_GAIADR3_DIRECT:;
+//			// Get the xp_sampled data from the datalink path
+//				get_xpsampled(&star_spectrum, args->datalink_path, stars[i].index);
+//				break;
+//			case CAT_LOCAL_GAIA_XPSAMP:
+//			default:;
+//				memcpy(&star_spectrum.y, stars[i].flux, 343 * sizeof(double));
+		//				break;
+//		}
+		memcpy(&star_spectrum.y, stars[i].xp_sampled, 343 * sizeof(double));
 
 		// Convert flux to relative photon count normalized at 550nm
 		flux_to_relcount(&star_spectrum);
@@ -485,7 +495,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float *kw) {
 	int nb_stars = args->nb_stars;
 	fits *fit = args->fit;
-	pcc_star *stars = args->stars;
+	cat_item *stars = args->ref_stars->cat_items;
 	float *data[3];
 	data[RLAYER] = malloc(sizeof(float) * nb_stars);
 	data[GLAYER] = malloc(sizeof(float) * nb_stars);
@@ -558,7 +568,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
 		g_atomic_int_inc(&progress);
 
-		if (make_selection_around_a_star(stars[i], &area, fit)) {
+		if (make_selection_around_a_star(&stars[i], &area, fit)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
@@ -584,7 +594,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		// CAT_GAIADR3_DIRECT), use that as it should be more accurate.
 		// Otherwise, we convert from Johnson B-V
 		// Note, with CAT_LOCAL_GAIA_ASTRO we have already excluded stars without Teff
-		// when building the pcc_star array.
+		// in get_raw_stars_from_local_gaia_astro_catalogue()
 		if (stars[i].teff < 0.5f) {
 			bv = min(max(stars[i].BV, -0.4f), 2.f);
 			cmsFloat64Number TempK = BV_to_T(bv);
@@ -837,7 +847,6 @@ gpointer photometric_cc_standalone(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	pcc_star *stars = NULL;
 	int nb_stars = 0;
 	gboolean image_is_gfit = args->fit == &gfit;
 
@@ -849,8 +858,8 @@ gpointer photometric_cc_standalone(gpointer p) {
 		mag += args->magnitude_arg;
 
 	int retval = 0;
-	if (args->catalog == CAT_LOCAL) {
-		siril_log_message(_("Getting stars from local catalogues for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), radius * 2.0,  mag);
+	if (args->catalog == CAT_LOCAL || args->catalog == CAT_LOCAL_GAIA_XPSAMP) {
+		siril_log_message(_("Getting stars from local catalogue %s for %s, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), args->spcc ? _("SPCC") : _("PCC"), radius * 2.0,  mag);
 	} else {
 		switch (args->catalog) {
 			case CAT_GAIADR3:
@@ -881,31 +890,38 @@ gpointer photometric_cc_standalone(gpointer p) {
 	siril_cat->phot = !(siril_cat->cat_index == CAT_GAIADR3_DIRECT);
 
 	/* Fetching the catalog*/
-	if (args->spcc) {
+	if (args->spcc && siril_cat->cat_index == CAT_GAIADR3_DIRECT) {
 		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, 5000);
+		for (int i = 0 ; i < siril_cat->nbitems ; i++) {
+			// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
+			siril_cat->cat_items[i].xp_sampled = malloc(343 * sizeof(double));
+			get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
+		}
 	} else if (siril_catalog_conesearch(siril_cat) <= 0) {
 		retval = 1;
 	}
+	// At this point siril_cat contains an array of cat_items (with with xp_sampled populated if doing SPCC)
+	nb_stars = siril_cat->nbitems;
+
 	/* project using WCS */
 	siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, FALSE);
-	stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars);
 	retval |= nb_stars == 0;
 
-	siril_catalog_free(siril_cat);
 	gboolean spcc = args->spcc; // Needed for the success message after args has been freed in photometric_cc()
 	if (!retval) {
 		if (!com.script) {
 			const gchar *algo = args->spcc ? _("SPCC") : _("PCC");
 			undo_save_state(args->fit, _("Photometric CC (algorithm: %s)"), algo);
 		}
-		args->stars = stars;
+		args->ref_stars = siril_cat;
 		args->nb_stars = nb_stars;
 		retval = photometric_cc(args);	// args is freed from here
 	} else {
+		free(args);
 		siril_log_color_message(_("Catalog error, no stars identified!\n"), "red");
 	}
-	free(stars);
 	args = NULL;
+	siril_catalog_free(siril_cat);
 
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
@@ -918,55 +934,4 @@ gpointer photometric_cc_standalone(gpointer p) {
 	}
 	else siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
-}
-
-// TODO: remove pcc_star?
-// This interface enables for now to use new catalogues and pcc_star where required
-pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars) {
-	*nbstars = 0;
-
-	if (!siril_cat || !siril_cat->nbincluded)
-		return NULL;
-	if (siril_cat->projected == CAT_PROJ_NONE) {
-		siril_debug_print("Catalog has not been projected\n");
-	}
-	siril_debug_print("RA: %d, DEC: %d, MAG: %d, BMAG: %d, TEFF: %d\n", has_field(siril_cat, RA),
-																		has_field(siril_cat, DEC),
-																		has_field(siril_cat, MAG),
-																		has_field(siril_cat, BMAG),
-																		has_field(siril_cat, TEFF));
-	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG) || (!has_field(siril_cat, BMAG) && !has_field(siril_cat, TEFF)))
-		return NULL;
-	pcc_star *results = malloc(siril_cat->nbitems * sizeof(pcc_star));
-
-	int n = 0, no_teff = 0;
-	for (int i = 0; i < siril_cat->nbitems; i++) {
-		// For the local Gaia catalogue, skip any items where the Teff field is not populated
-		if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO && siril_cat->cat_items[i].teff < 0.5f) {
-			no_teff++;
-			continue;
-		}
-		if (n > siril_cat->nbincluded) {
-			siril_debug_print("problem when converting siril_cat to pcc_stars, more than allocated\n");
-			break;
-		}
-		if (siril_cat->cat_items[i].included) {
-			results[n].x = siril_cat->cat_items[i].x;
-			results[n].y = siril_cat->cat_items[i].y;
-			results[n].mag = siril_cat->cat_items[i].mag;
-			results[n].BV = siril_cat->cat_items[i].bmag - siril_cat->cat_items[i].mag; // check for valid values was done at catalog readout
-			results[n].teff = siril_cat->cat_items[i].teff; // Gaia Teff / K, computed from the sampled spectrum (better than from B-V)
-			results[n].index = i; // For matching the right HDU in the Datalink query, in case of excluded stars
-			n++;
-		}
-	}
-	if (no_teff != 0)
-		siril_debug_print("Skipped %d stars witout T_eff field\n", no_teff);
-	if (n + no_teff != siril_cat->nbincluded) {
-		siril_debug_print("problem when converting siril_cat to pcc_stars, number differs from catalogue info");
-		free(results);
-		return NULL;
-	}
-	*nbstars = n;
-	return results;
 }

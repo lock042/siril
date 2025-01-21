@@ -717,6 +717,33 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	double ra_mult = siril_cat->ra_multiplier;
 	double dec_mult = siril_cat->dec_multiplier;
 
+	if (siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP) {
+		SourceEntryXPsamp *stars = NULL;
+		if (get_raw_stars_from_local_gaia_xpsampled_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
+			return 0;
+		siril_cat->nbitems = (int)nb_stars;
+		siril_cat->nbincluded = (int)nb_stars;
+		siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			siril_cat->cat_items[i].xp_sampled = malloc(343 * sizeof(double));
+			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * ra_mult;
+			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * dec_mult;
+			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
+			siril_cat->cat_items[i].pmdec = (double)stars[i].ddec_scaled;
+			siril_cat->cat_items[i].mag = (float)stars[i].mag_scaled * 0.001;
+			float powexp = pow(10.f, stars[i].fexpo);
+			for (int j = 0 ; j < 343 ; j++) {
+				float d = half_to_float(stars[i].flux[j]);
+				siril_cat->cat_items[i].xp_sampled[j] = d / powexp;
+			}
+			siril_cat->cat_items[i].included = TRUE;
+		}
+		free(stars);
+		if (!siril_cat->nbitems)
+			return -1;
+		return siril_cat->nbitems;
+	}
+
 	if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO && get_raw_stars_from_local_gaia_astro_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, siril_cat->phot, &stars, &nb_stars))
 		return 0;
 
