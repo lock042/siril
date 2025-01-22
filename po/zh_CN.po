@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-20 13:45+0100\n"
-"PO-Revision-Date: 2025-01-20 06:46+0000\n"
-"Last-Translator: Li Yizhi <411585951@qq.com>\n"
+"PO-Revision-Date: 2025-01-22 10:27+0000\n"
+"Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -302,7 +302,6 @@ msgstr ""
 "- 太阳系天体：solsys （可以在对应的文本框里输入距离最近的IAU天文台编号。"
 
 #: src/gui/uifiles/annotate_dialog.ui:133
-#, fuzzy
 msgid "automatic"
 msgstr "自动"
 
@@ -451,9 +450,8 @@ msgstr ""
 "有列名，其会被用于图像的标签，并在控制台中列出。"
 
 #: src/gui/uifiles/annotate_dialog.ui:397
-#, fuzzy
 msgid "Click this button to select a csv file."
-msgstr "点击按钮显示估算出的背景。"
+msgstr "点击按钮选取CSV文件。"
 
 #: src/gui/uifiles/annotate_dialog.ui:430
 msgid ""
@@ -474,9 +472,8 @@ msgstr ""
 "关闭此功能。"
 
 #: src/gui/uifiles/annotate_dialog.ui:459
-#, fuzzy
 msgid "Import CSV"
-msgstr "导出为CSV"
+msgstr "导入CSV文件"
 
 #: src/gui/uifiles/annotate_dialog.ui:474
 #: src/gui/uifiles/astrometry_dialog.ui:299
@@ -510,14 +507,12 @@ msgid ""
 msgstr "显示名称将被用于天体标注，以及在控制台中列出。"
 
 #: src/gui/uifiles/annotate_dialog.ui:543
-#, fuzzy
 msgid "Click this button to save the entry to the user DSO catalogue."
-msgstr "点击按钮显示估算出的背景。"
+msgstr "点击按钮将此条目存入用户深空天体列表。"
 
 #: src/gui/uifiles/annotate_dialog.ui:564
-#, fuzzy
 msgid "Get coordinates from selection"
-msgstr "中心坐标选取错误"
+msgstr "从选区获取坐标"
 
 #: src/gui/uifiles/annotate_dialog.ui:585
 #, fuzzy
@@ -610,15 +605,13 @@ msgid "Preview"
 msgstr "预览"
 
 #: src/gui/uifiles/asinh_dialog.ui:276
-#, fuzzy
 msgid "Clip mode"
-msgstr "修剪上限"
+msgstr "修剪模式"
 
 #: src/gui/uifiles/asinh_dialog.ui:290 src/gui/uifiles/dialog_star_remix.ui:164
 #: src/gui/uifiles/histogram_dialog.ui:766 src/gui/utils.c:395
-#, fuzzy
 msgid "Clip"
-msgstr "修剪 (%)"
+msgstr "修剪"
 
 #: src/gui/uifiles/asinh_dialog.ui:291 src/gui/uifiles/dialog_star_remix.ui:165
 #: src/gui/uifiles/histogram_dialog.ui:767
@@ -895,9 +888,8 @@ msgid "Tick this box to ignore sampling when solving with local Astrometry.net"
 msgstr "勾选此框可在使用本地 Astrometry.net 解析时忽略采样"
 
 #: src/gui/uifiles/astrometry_dialog.ui:770
-#, fuzzy
 msgid "Save distortion"
-msgstr "对齐"
+msgstr "保存畸变"
 
 #: src/gui/uifiles/astrometry_dialog.ui:774
 msgid ""
@@ -1044,9 +1036,8 @@ msgid "Use as registration information"
 msgstr "开/关对齐取景范围选项"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1116
-#, fuzzy
 msgid "Tick this box to use astrometric data to compute sequence registration."
-msgstr "勾选此框可解析整个序列。"
+msgstr "勾选此框以将解析数据用于序列对齐。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1129
 msgid "Skip already solved images"
@@ -1249,6 +1240,10 @@ msgid ""
 "placement: samples will automatically be created for each frame in the "
 "sequence."
 msgstr ""
+"点击以自动生成背景样本。\n"
+"\n"
+"在处理序列时，显示的样本仅供预览不同设置（每行样本数和容差）的影响。序列中的"
+"每帧会按照相同的设置分别自动生成样本。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:476
 msgid "Click here to clear all the samples."
@@ -2116,7 +2111,7 @@ msgstr ""
 
 #: src/gui/uifiles/CLAHE_dialog.ui:188
 msgid "Clip Limit"
-msgstr "修剪上限"
+msgstr "修剪阈值"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:223
 msgid "Sets threshold for contrast limiting."
@@ -2894,14 +2889,12 @@ msgid "Wavenumber"
 msgstr "波数"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:382
-#, fuzzy
 msgid "Spectroscopic Calibration Points"
-msgstr "光谱法色彩校准"
+msgstr "光谱法校色点"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:414
-#, fuzzy
 msgid "Polynomial degree"
-msgstr "多项式"
+msgstr "多项式的次数"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:425
 msgid ""
@@ -3177,7 +3170,7 @@ msgstr "Clipping 模式："
 
 #: src/gui/uifiles/dialog_star_remix.ui:161
 msgid "Select the clipping mode for partially clipped pixels."
-msgstr ""
+msgstr "选择像素值修剪模式。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:167
 #: src/gui/uifiles/histogram_dialog.ui:769
@@ -3949,14 +3942,12 @@ msgstr ""
 "改。"
 
 #: src/gui/uifiles/keywords_dialog.ui:272
-#, fuzzy
 msgid "Header Editor"
-msgstr "文件头为空"
+msgstr "文件头编辑器"
 
 #: src/gui/uifiles/keywords_dialog.ui:305
-#, fuzzy
 msgid "Saved Header"
-msgstr "FITS 文件头"
+msgstr "已保存的文件头"
 
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4036
 #: src/gui/uifiles/settings_window.ui:4853 src/core/icc_profile.c:1285
@@ -4920,14 +4911,12 @@ msgid "Quality: "
 msgstr "品质: "
 
 #: src/gui/uifiles/savepopup.ui:578
-#, fuzzy
 msgid "Estimate size"
-msgstr "估算"
+msgstr "估算文件体积"
 
 #: src/gui/uifiles/savepopup.ui:582
-#, fuzzy
 msgid "Computes the size of the compressed file"
-msgstr "计算图像的反相"
+msgstr "计算压缩后的文件体积"
 
 #: src/gui/uifiles/savepopup.ui:630
 msgid "JPEG"
@@ -5450,7 +5439,8 @@ msgid ""
 "Verify file checksums if they exist. The verification occurs each time the "
 "file is read, which may significantly impact Siril's performance when using "
 "a sequence."
-msgstr ""
+msgstr "如果存在，验证文件的校验和。每次读取文件时都会进行验证，这在处理序列时可能会"
+"显著影响Siril的性能。"
 
 #: src/gui/uifiles/settings_window.ui:821
 msgid "<b>FITS Header</b>"
@@ -5735,13 +5725,12 @@ msgstr ""
 "自运动，以紧凑的二进制格式，低至18等。"
 
 #: src/gui/uifiles/settings_window.ui:1521
-#, fuzzy
 msgid ""
 "<b>Local Star Catalogues</b> (<a href=\"https://siril.readthedocs.io/en/"
 "stable/astrometry/platesolving.html#using-local-catalogues\">more info</a>)"
 msgstr ""
-"<b>本地星表</b>（<a href=\"https://free-astro.org/index.php?"
-"title=Siril:Star_Catalogues\">更多信息</a>）"
+"<b>本地星表</b> (<a href=\"https://siril.readthedocs.io/en/stable/astrometry/"
+"platesolving.html#using-local-catalogues\">更多信息</a>)"
 
 #: src/gui/uifiles/settings_window.ui:1548
 msgid "Update default focal length and pixel size from the result"
@@ -5932,9 +5921,8 @@ msgid ""
 msgstr "通过单击“用于缺省”按钮，选择一张主平场帧作为缺省主平场帧。"
 
 #: src/gui/uifiles/settings_window.ui:2128
-#, fuzzy
 msgid "Master-distortion:"
-msgstr "主暗场帧："
+msgstr "总和畸变："
 
 #: src/gui/uifiles/settings_window.ui:2152
 #, fuzzy
@@ -6376,7 +6364,7 @@ msgstr "鼠标行为"
 
 #: src/gui/uifiles/settings_window.ui:3866
 msgid "Background extraction samples:"
-msgstr "背景提取的采样点："
+msgstr "背景提取的样本："
 
 #: src/gui/uifiles/settings_window.ui:3878
 msgid "Standard annotations:"
@@ -6906,6 +6894,10 @@ msgid ""
 "This is normally not necessary but is provided as a last resort to restore "
 "the venv to a pristine state as an aid to troubleshooting."
 msgstr ""
+"<b>警告！！</b> <i>这将终止所有正在运行的Python脚本，并将虚拟环境目录\"venv"
+"\"重置为全新状态。由脚本安装的所有模块都将需要重新安装。</i>\n"
+"\n"
+"通常不必这么做。这是在故障排除时的最后手段，以将venv恢复到原始状态。"
 
 #: src/gui/uifiles/settings_window.ui:5253
 #, fuzzy
@@ -8791,6 +8783,10 @@ msgid ""
 "- distortion solution from an existing WCS file\n"
 "- distortion solution from distortions masters"
 msgstr ""
+"有以下校准畸变的方法可供选择：\n"
+"- 根据已解析的图像\n"
+"- 根据一个WCS文件\n"
+"- 根据总和畸变文件"
 
 #: src/gui/uifiles/siril.ui:5744
 msgid "From image"
@@ -9200,7 +9196,7 @@ msgstr "输出图像的缩放比例。使用“估算”按钮确定最终图像
 msgid ""
 "Choose whether to use an interpolation algorithm or Drizzle to apply "
 "registration"
-msgstr ""
+msgstr "选择使用插值算法还是Drizzle来进行对齐"
 
 #: src/gui/uifiles/siril.ui:7069
 msgid "Algorithm: "
@@ -9853,7 +9849,7 @@ msgstr "边界羽化（像素）："
 msgid ""
 "Select here the number of pixels that will be faded out on the borders of "
 "each image."
-msgstr ""
+msgstr "在此选择将在每张图像边缘淡出(被羽化)的像素数量。"
 
 #: src/gui/uifiles/siril.ui:8636
 #, fuzzy
@@ -11811,7 +11807,7 @@ msgstr "使用 %s 星表运行序列解析\n"
 msgid ""
 "There are not enough background samples. The background to be extracted "
 "cannot be computed.\n"
-msgstr "没有足够的背景采样点。无法进行背景提取。\n"
+msgstr "背景样本不足。无法进行背景提取。\n"
 
 #: src/algos/background_extraction.c:791 src/core/command.c:11125
 #: src/filters/graxpert.c:965 src/gui/graxpert.c:195
@@ -11870,13 +11866,13 @@ msgstr "无法为图像 %d 生成背景样本： %s\n"
 msgid ""
 "Warning: RBF background removal is not recommended for CFA images. Only "
 "linear background removal is recommended.\n"
-msgstr ""
+msgstr "警告：建议不要对CFA图像应用RBF背景移除，而是使用线性背景移除。\n"
 
 #: src/algos/background_extraction.c:1126
 msgid ""
 "Warning: polynomial background removal order > 1 is not recommended for CFA "
 "images. Only linear background removal is recommended.\n"
-msgstr ""
+msgstr "警告：建议不要对CFA图像应用次数>1的多项式背景移除，而是使用线性背景移除。\n"
 
 #: src/algos/background_extraction.c:1282 src/algos/demosaicing.c:1300
 #: src/algos/extraction.c:1145 src/algos/star_finder.c:1143
@@ -13037,7 +13033,7 @@ msgstr "无法载入参考帧\n"
 msgid ""
 "Undebayered CFA image. Detection is done on green pixels only, using "
 "interpolation\n"
-msgstr ""
+msgstr "CFA图像未解拜耳。仅在绿像素上插值并进行侦测。\n"
 
 #: src/algos/star_finder.c:1416
 #, c-format
@@ -15725,7 +15721,7 @@ msgstr "参数错误。Tag必须设置为on或off，异常中止。\n"
 
 #: src/core/command.c:10401
 msgid "Cannot use -compare argument with non-star catalogues, ignoring.\n"
-msgstr ""
+msgstr "使用非恒星的星表时不能使用-compare参数，已忽略。\n"
 
 #: src/core/command.c:10495 src/core/command.c:10539
 #, c-format
@@ -15925,11 +15921,11 @@ msgstr "此命令仅适用于包含失真的已解析的图像\n"
 
 #: src/core/command.c:11428
 msgid "16-bit images cannot have out-of-range pixels: nothing to do.\n"
-msgstr ""
+msgstr "16位图像不能有越界像素：什么都没做。\n"
 
 #: src/core/command.c:11438
 msgid "No pixels require clipping. Nothing to do...\n"
-msgstr ""
+msgstr "没有需要排异的像素。什么都没做...\n"
 
 #: src/core/command.c:11455
 #, fuzzy
@@ -18560,21 +18556,24 @@ msgid ""
 "Applies the external GraXpert program to a sequence, in background "
 "extraction mode. The first argument must be the sequence name; the remaining "
 "arguments are the same as for the GRAXPERT_BG command"
-msgstr ""
+msgstr "对一个序列应用外部程序GraXpert的背景提取模式。第一个参数必须是序列名称；剩下"
+"的参数和命令GRAXPERT_BG相同"
 
 #: src/core/command_def.h:163
 msgid ""
 "Applies the external GraXpert program to a sequence, in deconvolution mode. "
 "The first argument must be the sequence name; the remaining arguments are "
 "the same as for the GRAXPERT_DECONV command"
-msgstr ""
+msgstr "对一个序列应用外部程序 GraXpert 的反卷积模式。第一个参数必须是序列名称；"
+"剩余参数与命令 GRAXPERT_DECONV 相同"
 
 #: src/core/command_def.h:164
 msgid ""
 "Applies the external GraXpert program to a sequence, in denoising mode. The "
 "first argument must be the sequence name; the remaining arguments are the "
 "same as for the GRAXPERT_DENOISE command"
-msgstr ""
+msgstr "对一个序列应用外部程序 GraXpert 的降噪模式。第一个参数必须是序列名称；"
+"剩余参数和命令 GRAXPERT_DENOISE 相同"
 
 #: src/core/command_def.h:165
 msgid ""
@@ -19548,8 +19547,8 @@ msgid ""
 msgstr ""
 "使用次数为<b>degree</b>的多项式函数模型或RBF模型（如果提供<b>-RBF</b>）计算人"
 "工背景渐变，并将其从图像中减去。\n"
-"每行采样点的数量和采样点的容差可以使用可选参数调整。容差以MAD为单位：median "
-"+ tolerance * mad。\n"
+"每行样本数和容差（用于剔除过亮的样本）可以使用可选参数调整。容差以MAD为单位："
+"median + tolerance * mad。\n"
 "可以使用<b>-dither</b>来启用抖动，防止平缓的渐变出现断层。\n"
 "对于RBF，还可以使用额外的平滑参数"
 
@@ -20856,7 +20855,7 @@ msgstr "在 FITS 文件头中添加 CTYPE3='RGB'"
 
 #: src/core/settings.c:364
 msgid "Verify file checksums if they exist"
-msgstr ""
+msgstr "如果存在，验证文件的校验和"
 
 #: src/core/settings.c:365
 msgid "user copyright to put in file header"
@@ -21329,7 +21328,7 @@ msgstr "鼠标中键双击缩放操作"
 
 #: src/core/settings.c:506
 msgid "configure background samples color"
-msgstr "配置背景提取采样点的颜色"
+msgstr "配置背景提取样本框的颜色"
 
 #: src/core/settings.c:507
 msgid "configure standard annotation color"
@@ -21470,11 +21469,11 @@ msgstr "自动同步在线脚本存储库"
 
 #: src/core/settings.c:543
 msgid "highlight matching brackets in the script editor"
-msgstr ""
+msgstr "在脚本编辑器中高亮成对的括号"
 
 #: src/core/settings.c:544
 msgid "show the right margin in the script editor"
-msgstr ""
+msgstr "在脚本编辑器中显示右边界"
 
 #: src/core/settings.c:545
 #, fuzzy
@@ -21483,15 +21482,15 @@ msgstr "两侧分隔符的位置"
 
 #: src/core/settings.c:546
 msgid "show line numbers in the script editor"
-msgstr ""
+msgstr "在脚本编辑器中显示行号"
 
 #: src/core/settings.c:547
 msgid "show line marks in the script editor"
-msgstr ""
+msgstr "在脚本编辑器中显示行标记"
 
 #: src/core/settings.c:548
 msgid "highlight the current line in the script editor"
-msgstr ""
+msgstr "在脚本编辑器中高亮当前行"
 
 #: src/core/settings.c:549
 #, fuzzy
@@ -21500,23 +21499,23 @@ msgstr "自动侦测"
 
 #: src/core/settings.c:550
 msgid "indent selected blocks of lines in the script editor using the tab key"
-msgstr ""
+msgstr "在脚本编辑器中用tab键缩进选中的整段脚本"
 
 #: src/core/settings.c:551
 msgid "Smart Backspace behaviour in the script editor"
-msgstr ""
+msgstr "在脚本编辑器中启用智能退格"
 
 #: src/core/settings.c:552
 msgid "Smart Home / End behaviour in the script editor"
-msgstr ""
+msgstr "在脚本编辑器中启用智能Home / End键"
 
 #: src/core/settings.c:553
 msgid "Show visible space and tab characters in the script editor"
-msgstr ""
+msgstr "在脚本编辑器中显示空白字符标记"
 
 #: src/core/settings.c:554
 msgid "Show visible newline characters in the script editor"
-msgstr ""
+msgstr "在脚本编辑器中显示换行标记"
 
 #: src/core/settings.c:555
 #, fuzzy
@@ -21556,7 +21555,7 @@ msgstr "无法载入新文件"
 
 #: src/core/siril_actions.c:74
 msgid "The image can't be processed while another processing dialog is opened."
-msgstr ""
+msgstr "有其他打开的处理窗口，图像不能被处理。"
 
 #: src/core/siril_actions.c:150
 msgid "Cannot check for updates with this version, missing dependency\n"
@@ -21996,7 +21995,7 @@ msgstr "运行StarNet"
 
 #: src/filters/graxpert.c:205
 msgid "GraXpert reported an error"
-msgstr ""
+msgstr "GraXpert报错了"
 
 #: src/filters/graxpert.c:213 src/filters/graxpert.c:240
 msgid "Done."
@@ -22485,7 +22484,7 @@ msgstr "合成 %d 颗星点...\n"
 
 #: src/filters/synthstar.c:654
 msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
-msgstr "星点合成（去饱和度裁剪的星点形状）：执行中...\n"
+msgstr "星点合成（去饱和裁剪的星点形状）：执行中...\n"
 
 #: src/filters/synthstar.c:710
 #, c-format
@@ -23343,7 +23342,7 @@ msgstr "R"
 
 #: src/gui/cut.c:725
 msgid "L"
-msgstr ""
+msgstr "明度"
 
 #: src/gui/cut.c:728
 #, fuzzy, c-format
@@ -23966,7 +23965,7 @@ msgstr "_添加"
 msgid ""
 "These keywords will be added / modified in each image of the entire "
 "sequence. Are you sure?"
-msgstr ""
+msgstr "这些关键字的添加/修改将被应用于整个序列的每一张图像。确定吗？"
 
 #: src/gui/image_display.c:170
 msgid ""
@@ -26857,12 +26856,12 @@ msgstr "文件 %s 不是FITS格式，或者没有FITS扩展名。\n"
 #: src/io/image_format_fits.c:1240
 #, c-format
 msgid "Error: HDU checksum mismatch. Expected %s, got %s.\n"
-msgstr ""
+msgstr "错误：HDU校验和不匹配。应为%s，实为%s。\n"
 
 #: src/io/image_format_fits.c:1245
 #, c-format
 msgid "Error: Data checksum mismatch. Expected %lu, got %s.\n"
-msgstr ""
+msgstr "错误：数据校验和不匹配。应为%lu，实为%s。\n"
 
 #: src/io/image_format_fits.c:1255
 #, c-format

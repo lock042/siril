@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-20 13:45+0100\n"
-"PO-Revision-Date: 2025-01-19 11:38+0000\n"
+"PO-Revision-Date: 2025-01-22 10:27+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -30626,14 +30626,12 @@ msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %"
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:533
-#, fuzzy
 msgid "Error: image dimensions exceed available memory"
-msgstr "Ошибка: размеры обучающего изображения не совпадают\n"
+msgstr "Ошибка: размер изображения превысил доступную память"
 
 #: src/io/siril_pythonmodule.c:563 src/io/siril_pythonmodule.c:674
-#, fuzzy
 msgid "Failed to open shared memory"
-msgstr "Не удалось открыть первое изображение"
+msgstr "Не удалось открыть разделяемую память"
 
 #: src/io/siril_pythonmodule.c:572 src/io/siril_pythonmodule.c:680
 #, fuzzy
@@ -30646,29 +30644,28 @@ msgid "Failed to allocate image buffer"
 msgstr "Не удалось уменьшить масштаб изображения, прерывание.\n"
 
 #: src/io/siril_pythonmodule.c:685
-#, fuzzy
 msgid "Error: could not open shared memory"
-msgstr "Ошибка: изображение не может быть загружено"
+msgstr "Ошибка: не удалось открыть разделяемую память"
 
 #: src/io/siril_pythonmodule.c:719
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading stdout: %s\n"
-msgstr "Ошибка загрузки содержимого сценария: %s\n"
+msgstr "Ошибка чтения stdout: %s\n"
 
 #: src/io/siril_pythonmodule.c:743
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading stderr: %s\n"
-msgstr "Ошибка при открытии файла %s\n"
+msgstr "Ошибка чтения stderr: %s\n"
 
 #: src/io/siril_pythonmodule.c:758 src/io/siril_pythonmodule.c:766
 #, c-format
 msgid "Python process (PID: %d) exited with status %d\n"
-msgstr ""
+msgstr "Процесс Python (PID: %d) завершён со статусом выхода %d\n"
 
 #: src/io/siril_pythonmodule.c:769
 #, c-format
 msgid "Python process (PID: %d) terminated by signal %d\n"
-msgstr ""
+msgstr "Процесс Python (PID: %d) остановлен сигналом %d\n"
 
 #: src/io/siril_pythonmodule.c:1031
 msgid "Python communication worker finished...\n"
@@ -30683,7 +30680,7 @@ msgstr ""
 #: src/io/siril_pythonmodule.c:1494
 #, c-format
 msgid "Preparing python virtual environment: %s.\n"
-msgstr ""
+msgstr "Подготовка виртуальной среды python: %s.\n"
 
 #. Check the sirilpy python module is the latest version and install or
 #. update it using the venv pip if not.
@@ -30694,6 +30691,7 @@ msgstr ""
 #: src/io/siril_pythonmodule.c:1540
 msgid "Warning: unable to install or update the Siril python module.\n"
 msgstr ""
+"Предупреждение: Siril не удалось установить или обновить модуль python.\n"
 
 #: src/io/siril_pythonmodule.c:1546
 msgid "Python module is up-to-date\n"
@@ -30729,14 +30727,14 @@ msgid "No python installation found in the system or in the bundle, aborting\n"
 msgstr "На изображении не удалось найти звёзды сравнения, прерывание.\n"
 
 #: src/io/siril_pythonmodule.c:1657
-#, fuzzy, c-format
+#, c-format
 msgid "Error in venv creation command: %s\n"
-msgstr "Ошибка в разрешении имени: %s.\n"
+msgstr "Ошибка в команде создания venv: %s\n"
 
 #: src/io/siril_pythonmodule.c:1697
 #, c-format
 msgid "Failed to initialize Python virtual environment: %s"
-msgstr ""
+msgstr "Не удалось инициализировать виртуальную среду Python: %s"
 
 #: src/io/siril_pythonmodule.c:1708
 #, fuzzy
