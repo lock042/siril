@@ -97,6 +97,7 @@ class _Command(IntEnum):
     SET_SEQ_FRAME_PIXELDATA = 43,
     REQUEST_SHM = 44,
     SET_SEQ_FRAME_INCL = 45,
+    GET_USERDATADIR = 46,
     ERROR = 0xFF
 
 class _Defaults:
@@ -2295,6 +2296,27 @@ class SirilInterface:
             return wd
         except UnicodeDecodeError as e:
             print("Error decoding user config directory: {e}", file=sys.stderr)
+            return None
+
+    def get_siril_userdatadir(self) -> Optional[str]:
+        """
+        Request the user data directory used by Siril.
+
+        Returns:
+            The user data directory as a string, or None if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_USERDATADIR)
+
+        if response is None:
+            return None
+
+        try:
+            # Assuming the response is a null-terminated UTF-8 encoded string
+            wd = response.decode('utf-8').rstrip('\x00')
+            return wd
+        except UnicodeDecodeError as e:
+            print("Error decoding user data directory: {e}", file=sys.stderr)
             return None
 
     def is_image_loaded(self) -> Optional[bool]:
