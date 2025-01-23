@@ -32,6 +32,8 @@ static gchar *astro_catalogue[] = {
 		N_("Lynds Catalogue of Dark Nebulae (LdN)"),
 		N_("Sharpless Catalogue (Sh2)"),
 		N_("Star Catalogue"),
+		N_("IAU Constellations Catalogue"),
+		N_("IAU Constellations Names"),
 		N_("User Deep Sky Objects Catalogue"),
 		N_("User Solar System Objects Catalogue")
 };
