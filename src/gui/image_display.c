@@ -1603,6 +1603,8 @@ static void draw_annotates(const draw_data_t* dd) {
 		gdouble radius = get_catalogue_object_radius(object);
 		gdouble x = get_catalogue_object_x(object);
 		gdouble y = get_catalogue_object_y(object);
+		gdouble x1 = get_catalogue_object_x1(object);
+		gdouble y1 = get_catalogue_object_y1(object);
 		gchar *code = get_catalogue_object_code_pretty(object);
 		guint catalog = get_catalogue_object_cat(object);
 		gboolean revert = FALSE;
@@ -1640,7 +1642,11 @@ static void draw_annotates(const draw_data_t* dd) {
 		// radius now in pixels
 
 		point offset = {5., revert ? 5. : -5.};
-		if (radius < 0) {
+		if (catalog == CAT_AN_CONST) { // constellation line
+			cairo_move_to(cr, x, y);
+			cairo_line_to(cr, x1, y1);
+			cairo_stroke(cr);
+		} else if (radius < 0) {
 			// objects we don't have an accurate location (LdN, Sh2)
 		} else if (radius > 5) {
 			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);

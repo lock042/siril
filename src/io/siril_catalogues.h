@@ -25,7 +25,7 @@
 #include "core/siril_world_cs.h"
 
 // number of columns that can be defined in a catalogue
-#define MAX_CAT_COLUMNS 21
+#define MAX_CAT_COLUMNS 23
 #define CAT_AN_INDEX_OFFSET 60
 
 // Define Epoch 2000.0 (used by Vizier) and Epoch 2016.0 (used by Gaia DR3 directly)
@@ -77,9 +77,10 @@ typedef enum {
 	CAT_AN_LDN = 63,
 	CAT_AN_SH2 = 64,
 	CAT_AN_STARS = 65,
-	CAT_AN_USER_DSO = 66,
-	CAT_AN_USER_SSO = 67,
-	CAT_AN_USER_TEMP = 68,
+	CAT_AN_CONST = 66,
+	CAT_AN_USER_DSO = 67,
+	CAT_AN_USER_SSO = 68,
+	CAT_AN_USER_TEMP = 69,
 // Special
 	CAT_SHOW = 96, // for the show command
 	CAT_COMPSTARS = 97,
@@ -112,7 +113,9 @@ typedef enum {
 	CAT_FIELD_SITELON,
 	CAT_FIELD_SITEELEV,
 	CAT_FIELD_VRA,
-	CAT_FIELD_VDEC
+	CAT_FIELD_VDEC,
+	CAT_FIELD_RA1,
+	CAT_FIELD_DEC1
 } cat_fields;
 
 typedef enum {
@@ -124,6 +127,7 @@ typedef enum {
 typedef struct {
 	// filled from catalogue
 	double ra, dec;	// celestial coordinates
+	double ra1, dec1;	// celestial coordinates of the second point
 	double pmra, pmdec;	// proper motions
 	float mag;	// visible magnitude (V filter), for sorting and debug
 	float bmag;	// B magnitude
@@ -141,6 +145,7 @@ typedef struct {
 
 	// computed
 	float x, y;	// image coordinates
+	float x1, y1;	// second star image coordinates (for constellations)
 	uint64_t index; // index in the Gaia results table when using CAT_GAIADR3_DIRECT for SPCC
 	float BV; // B ,agnitude - V magnitude, used in PCC
 	gboolean included; // flag to remove items from the list without deleting them (to be used by platesolve/pcc)
