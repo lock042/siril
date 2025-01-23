@@ -6,5 +6,6 @@ catalogue_DATA = messier.csv \
 		ldn.csv \
 		sh2.csv \
 		stars.csv \
-		constellations.csv
+		constellations.csv \
+		constellationsnames.csv
 		

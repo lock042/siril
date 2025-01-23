@@ -1646,7 +1646,7 @@ static void draw_annotates(const draw_data_t* dd) {
 			cairo_move_to(cr, x, y);
 			cairo_line_to(cr, x1, y1);
 			cairo_stroke(cr);
-		} else if (radius < 0) {
+		} else if (radius < 0 || catalog == CAT_AN_CONST_NAME) {
 			// objects we don't have an accurate location (LdN, Sh2)
 		} else if (radius > 5) {
 			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);

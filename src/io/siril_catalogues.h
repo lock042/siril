@@ -78,9 +78,10 @@ typedef enum {
 	CAT_AN_SH2 = 64,
 	CAT_AN_STARS = 65,
 	CAT_AN_CONST = 66,
-	CAT_AN_USER_DSO = 67,
-	CAT_AN_USER_SSO = 68,
-	CAT_AN_USER_TEMP = 69,
+	CAT_AN_CONST_NAME = 67,
+	CAT_AN_USER_DSO = 68,
+	CAT_AN_USER_SSO = 69,
+	CAT_AN_USER_TEMP = 70,
 // Special
 	CAT_SHOW = 96, // for the show command
 	CAT_COMPSTARS = 97,
