@@ -435,7 +435,7 @@ static gboolean end_gfit_operation() {
 	init_layers_hi_and_lo_values(gui.sliders);
 	set_cutoff_sliders_values();
 
-	redraw(REMAP_ALL);	// queues a redraw if !com.script
+	queue_redraw(REMAP_ALL);	// queues a redraw if !com.script
 	gui_function(redraw_previews, NULL);	// queues redraws if !com.script
 
 	set_cursor_waiting(FALSE); // called from current thread if !com.script, idle else
