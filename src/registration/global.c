@@ -990,7 +990,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 	float allowable_dist = (float)regargs->seq->imgparam[regargs->reference_image].rx * MAX_SHIFT_RATIO;
 	int tmp_failed;
 
-	while (trials < MAX_TRIALS_2PASS) {
+	int max_trials = min(MAX_TRIALS_2PASS, regargs->seq->number);
+	while (trials < max_trials) {
 		tmp_failed = failed;
 		for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
 		nb_aligned[trials] = compute_transform(regargs, sfargs, tmp_included, &tmp_failed, fwhm, roundness, B, FALSE);
@@ -1005,7 +1006,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			regargs->seq->reference_image = best_index;
 			reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
 			trials++;
-			if (trials < MAX_TRIALS_2PASS) {
+			if (trials < max_trials) {
 				siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), trials + 1, reffilenum);
 				best_indexes[trials] = best_index;
 			}
@@ -1017,20 +1018,24 @@ int register_multi_step_global(struct registration_args *regargs) {
 		}
 	}
 
-	if (trials == MAX_TRIALS_2PASS) {
+	if (trials == max_trials) {
 	// We have tried many times over, we need to select the "best" frame
 	// even though it cannot align more than half of the good images
 		int best_try = -1;
 		int maxreg = 0;
-		siril_log_message(_("After %d trials, no reference image could align more than half of the frames, selecting best candidate\n"), MAX_TRIALS_2PASS);
-		for (int i = 0; i < MAX_TRIALS_2PASS; i++) {
+		siril_log_message(_("After %d trials, no reference image could align more than half of the frames, selecting best candidate\n"), max_trials);
+		for (int i = 0; i < max_trials; i++) {
 			siril_log_message(_("Trial #%d: Reference image: #%d - Frames aligned: %d\n"), i + 1, regargs->seq->imgparam[best_indexes[i]].filenum, nb_aligned[i]);
 			if (nb_aligned[i] > maxreg) {
 				best_try = i;
 				maxreg = nb_aligned[i];
 			}
 		}
-		if (maxreg <= 1) goto free_all;
+		if (maxreg <= 1) {
+			siril_log_color_message(_("Could not find an image that aligns more than itself, aborting\n"), "red");
+			retval = 1;
+			goto free_all;
+		}
 		best_index = best_indexes[best_try];
 		regargs->seq->reference_image = best_index;
 		reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes

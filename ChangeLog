@@ -94,6 +94,7 @@ xx/xx/xx
 * Fixed seqpsf for images which write ADU in float (#1322)
 * Fixed crash in catsearch when object is unknown (#1383)
 * Fixed local astrometry.net solver non-functional on flatpak (#1392)
+* Fixed crash in 2-pass registration when sequence had less than 5 images (#1473)
 
 **Misc:**
 * Removed glib-networking as a dependency (#1157)
