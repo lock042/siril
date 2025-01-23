@@ -46,6 +46,8 @@ gchar *get_catalogue_object_code_pretty(CatalogObjects *object);
 siril_cat_index get_catalogue_object_cat(const CatalogObjects *object);
 gdouble get_catalogue_object_x(const CatalogObjects *object);
 gdouble get_catalogue_object_y(const CatalogObjects *object);
+gdouble get_catalogue_object_x1(const CatalogObjects *object);
+gdouble get_catalogue_object_y1(const CatalogObjects *object);
 gdouble get_catalogue_object_radius(const CatalogObjects *object);
 
 void refresh_found_objects();
