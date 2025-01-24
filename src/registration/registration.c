@@ -225,9 +225,10 @@ gpointer register_thread_func(gpointer p) {
 		// also done in generated sequence in global.c
 		args->seq->reference_image = sequence_find_refimage(args->seq);
 	}
-	if (!args->retval)
+	if (!args->retval) {
 		args->seq->reglayer = args->layer;
 		writeseqfile(args->seq);
+	}
 	retval = args->retval;
 	if (args->disto) {
 		free_disto_args(args->disto);

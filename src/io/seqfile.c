@@ -229,7 +229,7 @@ sequence * readseqfile(const char *name){
 				int index;
 				char buf0[256], buf1[256], buf2[256];
 				nb_tokens = sscanf(line + 2, "%d %s %s %s\n",
-							&index,
+							index,
 							buf0, buf1, buf2);
 				if (nb_tokens < 1 || nb_tokens > 4) {
 					fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
