@@ -1484,16 +1484,12 @@ int sequence_find_refimage(sequence *seq) {
 	int image, best = -1;
 
 	if (seq->regparam) {
-		gboolean use_fwhm;
-		double best_val;
-		if (seq->regparam[0].fwhm > 0.0) {
-			use_fwhm = TRUE;
-			best_val = 1000000.0;
-		} else if (seq->regparam[0].quality > 0.0) {
+		gboolean use_fwhm = TRUE;
+		double best_val = 1000000.0;
+		if (seq->regparam[0].quality > 0.0) {
 			use_fwhm = FALSE;
 			best_val = 0.0;
 		}
-
 		for (image = 0; image < seq->number; image++) {
 			if (!seq->imgparam[image].incl)
 				continue;

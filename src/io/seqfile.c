@@ -225,8 +225,7 @@ sequence * readseqfile(const char *name){
 				}
 				++i;
 				break;
-			case 'D': // Distortion data - from version 5 onwards
-
+			case 'D':; // Distortion data - from version 5 onwards
 				int index;
 				char buf0[256], buf1[256], buf2[256];
 				nb_tokens = sscanf(line + 2, "%d %s %s %s\n",
