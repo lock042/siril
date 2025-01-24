@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-24 10:19+0100\n"
-"PO-Revision-Date: 2025-01-24 09:18+0000\n"
+"PO-Revision-Date: 2025-01-24 13:30+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -30414,9 +30414,8 @@ msgid "AAVSO VSP Chart"
 msgstr "Карта AAVSO VSP"
 
 #: src/io/siril_catalogues.c:292
-#, fuzzy
 msgid "Tycho-2+NOMAD"
-msgstr "локальный Tycho-2+NOMAD"
+msgstr "Tycho-2+NOMAD"
 
 #: src/io/siril_catalogues.c:294
 #, fuzzy
