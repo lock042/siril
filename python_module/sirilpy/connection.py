@@ -2435,21 +2435,19 @@ class SirilInterface:
             print(f"Error unpacking image statistics data: {e}", file=sys.stderr)
             return None
 
-    def get_seq_regdata(self, frame: int, channel: int) -> Optional[RegData]:
+    def get_seq_regdata(self, frame: int) -> Optional[RegData]:
         """
         Request sequence frame registration data from Siril.
 
         Args:
             frame: Integer specifying which frame in the sequence to get registration
                    data for (between 0 and Sequence.number),
-            channel: Integer specifying which channel to get registration data
-                     for (typically 0, 1, or 2)
 
         Returns:
             RegData object containing the registration data, or None if an error occurred
         """
 
-        data_payload = struct.pack('!II', frame, channel)  # '!I' for network byte order uint32_t
+        data_payload = struct.pack('!I', frame)  # '!I' for network byte order uint32_t
 
         # Request data with the channel number as payload
         response = self._request_data(_Command.GET_SEQ_REGDATA, payload=data_payload)
@@ -2584,7 +2582,7 @@ class SirilInterface:
             return None
 
         try:
-            format_string = '!4q3Q4qdQqQq'
+            format_string = '!4q3Q4qdQqQ2q'
             fixed_length = struct.calcsize(format_string)
 
             values = struct.unpack(format_string, response[:fixed_length])
@@ -2598,8 +2596,7 @@ class SirilInterface:
             imgparam_list = [self.get_seq_imgdata(frame)
                              for frame in range(number)]
 
-            regdata_list = [[self.get_seq_regdata(frame, channel)
-                             for channel in range(nb_layers)]
+            regdata_list = [self.get_seq_regdata(frame)
                             for frame in range(number)]
 
             stats_list = [[self.get_seq_stats(frame, channel)
@@ -2626,6 +2623,7 @@ class SirilInterface:
                 type = SequenceType(values[13]),
                 cfa_opened_monochrome = bool(values[14]),
                 current = values[15],
+                reglayer = values[16],
                 seqname = seqname_string
             )
         except struct.error as e:

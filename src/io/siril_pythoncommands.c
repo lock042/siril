@@ -302,6 +302,7 @@ static int seq_to_py(const sequence *seq, unsigned char* ptr, size_t maxlen) {
 	COPY_BE64((int64_t) seq->type, int64_t);
 	COPY_BE64((uint64_t) seq->cfa_opened_monochrome, uint64_t);
 	COPY_BE64((int64_t) seq->current, int64_t);
+	COPY_BE64((int64_t) seq->reglayer, int64_t);
 	COPY_STRING(seq->seqname);
 	// Registration preview coords are not passed to python
 	// The dirty and invalid reg flags are not passed to python
@@ -1213,12 +1214,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			int index, chan;
-			if (payload_length == 8) {
+			int index;
+			if (payload_length == 4) {
 				index = GUINT32_FROM_BE(*(int*) payload);
-				chan = GUINT32_FROM_BE(*((int*) payload + 1));
 			}
-			if (payload_length != 8 || index < 0 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
+			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command arguments");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1484,7 +1484,7 @@ CLEANUP:
 			}
 			// Calculate size needed for the response
 			size_t stringsize = strlen(com.seq.seqname) + 1;
-			size_t varsize = sizeof(uint64_t) * 16;
+			size_t varsize = sizeof(uint64_t) * 17;
 			size_t total_size = varsize + stringsize;
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;

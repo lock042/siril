@@ -584,7 +584,7 @@ class Sequence:
     bitpix: int = 0                      #: image pixel format, from fits
     reference_image: int = 0             #: reference image for registration
     imgparam: List[ImgData] = None       #: a structure for each image of the sequence
-    regparam: List[List[RegData]] = None #: registration parameters for each layer
+    regparam: List[RegData] = None       #: registration parameters for each image of the sequence
     stats: List[List[ImageStats]] = None #: statistics of the images for each layer
     beg: int = 0                         #: imgparam[0]->filenum
     end: int = 0                         #: imgparam[number-1]->filenum
@@ -593,6 +593,7 @@ class Sequence:
     type: SequenceType = None            #: the type of sequence
     cfa_opened_monochrome: bool = False  #: CFA SER opened in monochrome mode
     current: int = 0                     #: file number currently loaded
+    reglayer: int = -1                   #: layer used for registration
     # The following fields are not currently implemented:
     # photometry: List[List[PSFStar]] = None  # psf for multiple stars
     # reference_star: int = 0              # reference star for apparent magnitude
@@ -607,3 +608,19 @@ class Sequence:
             self.regparam = []
         if self.stats is None:
             self.stats = []
+    
+    def __str__(self):
+        """For pretty-printing sequence information"""
+        pretty = f'Sequence: {self.seqname}'
+        pretty += f'\nImages [selected/total]: {self.number} / {self.selnum}'
+        pretty += f'\nNumber of layers: {self.nb_layers}'
+        pretty += f'\nBitdepth: {self.bitpix}'
+        pretty += f'\nReference image: {self.reference_image + 1}'
+        if not self.is_variable:
+            pretty += f'\nImage size: {self.rx}x{self.ry}'
+        else:
+            pretty += f'\nImages have variable sizes'   
+        if self.regparam is not None:
+            pretty += f'\nSequence has registration data'
+            pretty += f' from layer {self.reglayer}' if self.nb_layers > 1 else ''
+        return pretty
