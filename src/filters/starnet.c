@@ -77,6 +77,7 @@ static gboolean verbose = TRUE;
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("starnet is being closed\n");
 	g_spawn_close_pid(pid);
+	remove_child_from_children(pid);
 }
 
 static int exec_prog_starnet(char **argv, starnet_version version) {
@@ -91,6 +92,10 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	}
 	fprintf(stdout, "\n");
 	// g_spawn handles wchar so not need to convert
+	if (!get_thread_run()) {
+		return 1;
+	}
+	child_info *child = g_malloc(sizeof(child_info));
 	siril_spawn_host_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL | G_SPAWN_DO_NOT_REAP_CHILD,
@@ -102,12 +107,16 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 		return retval;
 	}
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
-	com.child_is_running = EXT_STARNET;
-#ifdef _WIN32
-	com.childhandle = child_pid;		// For Windows, handle of a child process
-#else
-	com.childpid = child_pid;			// For other OSes, PID of a child process
-#endif
+
+	// At this point, remove the processing thread from the list of children and replace it
+	// with the starnet process. This avoids tracking two children for the same task.
+	if (get_thread_run())
+		remove_child_from_children((GPid) -2);
+	child->childpid = child_pid;
+	child->program = EXT_STARNET;
+	child->name = g_strdup("Starnet");
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -811,8 +820,6 @@ gpointer do_starnet(gpointer p) {
 	CLEANUP2:
 	clearfits(&workingfit);
 	CLEANUP3:
-	if (com.child_is_running == EXT_STARNET)
-		com.child_is_running = EXT_NONE;
 	if (verbose)
 		set_progress_bar_data("Ready.", PROGRESS_RESET);
 	g_free(currentdir);

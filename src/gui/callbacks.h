@@ -6,7 +6,7 @@
 
 void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data);
 void on_press_seq_field();
-void launch_clipboard_survey();
+gboolean launch_clipboard_survey(gpointer user_data);
 
 // Region of Interest processing
 typedef void (*ROICallback)();
@@ -32,9 +32,9 @@ void set_display_mode();
 void set_unlink_channels(gboolean unlinked);
 void adjust_exclude(int n, gboolean changed);
 void adjust_sellabel();
-void set_GUI_CWD();
+gboolean set_GUI_CWD(gpointer user_data);
 void set_icon_entry(GtkEntry *entry, gchar *string);
-void update_MenuItem();
+gboolean update_MenuItem(gpointer user_data);
 void sliders_mode_set_state(sliders_mode);
 display_mode get_display_mode_from_menu();
 int copy_rendering_settings();
@@ -46,7 +46,7 @@ int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb)
 void update_display_selection();
 void update_display_fwhm();
 void display_filename();
-void set_precision_switch();
+gboolean set_precision_switch(gpointer user_data);
 void set_layers_for_assign();
 int set_layers_for_registration();
 void show_dialog(const char *text, const char *title, const char *icon);
@@ -57,19 +57,20 @@ void initialize_FITS_name_entries();
 
 void adjust_vport_size_to_image();
 void set_output_filename_to_sequence_name();
-void close_tab();
+gboolean close_tab(gpointer user_data);
 void activate_tab(int vport);
-void init_right_tab();
+gboolean init_right_tab(gpointer user_data);
 
 void update_prepro_interface(gboolean allow_debayer);
 
 void on_treeview_selection_convert_changed(GtkTreeSelection *treeselection, gpointer user_data);
 void update_statusbar_convert();
 
-void update_spinCPU(int max);
+gboolean update_spinCPU(gpointer user_data);
 
-void save_main_window_state();
-void load_main_window_state();
+gboolean save_main_window_state(gpointer user_data);
+gboolean load_main_window_state(gpointer user_data);
+GPid show_child_process_selection_dialog(GSList *children);
 void siril_quit();
 
 /* for image_display */

@@ -39,13 +39,14 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include <json-glib/json-glib.h>
+#include "yyjson.h"
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/arithm.h"
 #include "core/initfile.h"
+#include "core/siril_app_dirs.h"
 #include "core/preprocess.h"
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
@@ -64,6 +65,7 @@
 #include "io/local_catalogues.h"
 #include "io/FITS_symlink.h"
 #include "io/fits_keywords.h"
+#include "io/siril_pythonmodule.h"
 #include "drizzle/cdrizzleutil.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
@@ -130,6 +132,7 @@
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "git-version.h"
+#include "io/healpix/healpix_cat.h"
 
 #include "command.h"
 #include "command_list.h"
@@ -194,8 +197,22 @@ int process_load(int nb){
 	expand_home_in_filename(filename, maxpath);
 
 	int retval = open_single_image(filename);
-	launch_clipboard_survey();
-	return retval;
+	gui_function(launch_clipboard_survey, NULL);
+	return (retval == 0) ? CMD_OK : CMD_FILE_NOT_FOUND;
+}
+
+int process_load_seq(int nb) {
+	close_sequence(FALSE);
+	close_single_image();
+
+	// Load the sequence into com.seq
+	execute_idle_and_wait_for_it(set_seq, word[1]);
+	if (com.seq.seqname) {
+		siril_debug_print("Sequence loaded ok\n");
+		return CMD_OK;
+	} else {
+		return CMD_GENERIC_ERROR;
+	}
 }
 
 int process_dumpheader(int nb) {
@@ -323,7 +340,7 @@ int process_save(int nb){
 		retval = savefits(savename, &gfit);
 		set_cursor_waiting(FALSE);
 	}
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 
 	g_free(filename);
 	g_free(savename);
@@ -369,9 +386,9 @@ static gboolean end_denoise(gpointer p) {
 		copy_gfit_to_backup();
 		populate_roi();
 	}
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;
@@ -894,23 +911,7 @@ int process_savepnm(int nb){
 	return retval;
 }
 
-static gboolean merge_cfa_idle(gpointer arg) {
-	initialize_display_mode();
-	update_zoom_label();
-	display_filename();
-	set_precision_switch();
-	sliders_mode_set_state(gui.sliders);
-	init_layers_hi_and_lo_values(MIPSLOHI);
-	set_cutoff_sliders_max_values();
-	set_cutoff_sliders_values();
-	set_display_mode();
-	redraw(REMAP_ALL);
-	sequence_list_change_current();
-	return FALSE;
-}
-
-static char *normalize_rebayerfilename(char *filename_buffer, const char*input, long int maxpath)
-{
+static char* normalize_rebayerfilename(char *filename_buffer, const char *input, long int maxpath) {
 	strncpy(filename_buffer, input, maxpath);
 	filename_buffer[maxpath-1] = '\0';
 	expand_home_in_filename(filename_buffer, maxpath);
@@ -977,8 +978,7 @@ int process_rebayer(int nb){
 		com.uniq->comment = strdup(_("Bayer pattern merge"));
 
 	if (!com.script) {
-		open_single_image_from_gfit();
-		siril_add_idle(merge_cfa_idle, NULL);
+		gui_function(open_single_image_from_gfit, NULL);
 	}
 	set_cursor_waiting(FALSE);
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
@@ -1041,7 +1041,7 @@ int process_fdiv(int nb){
 	siril_fdiv(&gfit, &fit, norm, TRUE);
 
 	clearfits(&fit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -1061,7 +1061,7 @@ int process_fmul(int nb){
 		gfit.keywords.lo = (WORD)(gfit.mini * USHRT_MAX_SINGLE);
 		set_cutoff_sliders_max_values();
 	}
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -1305,7 +1305,7 @@ int process_getref(int nb) {
 
 	if (!seq->imgparam[ref_image].incl)
 		siril_log_message(_("Warning: this image is excluded from the sequence main processing list\n"));
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -1895,7 +1895,7 @@ int process_update_key(int nb) {
 
 		updateFITSKeyword(&gfit, key, NULL, valstring, comment, TRUE, FALSE);
 	}
-	if (!com.script) refresh_keywords_dialog();
+	gui_function(refresh_keywords_dialog, NULL);
 
 	g_free(key);
 	g_free(value);
@@ -2148,8 +2148,8 @@ int process_cd(int nb) {
 				g_free(com.pref.wd);
 			com.pref.wd = g_strdup(com.wd);
 			writeinitfile();
-			set_GUI_CWD();
 		}
+		gui_function(set_GUI_CWD, NULL);
 	}
 	else {   /* chdir failed */
 	/*
@@ -2194,7 +2194,7 @@ int process_wrecons(int nb) {
 		else return CMD_GENERIC_ERROR;
 		g_free(dir[i]);
 	}
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -2571,7 +2571,7 @@ int process_wavelet(int nb) {
 
 int process_log(int nb){
 	loglut(&gfit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -2599,7 +2599,7 @@ int process_linear_match(int nb) {
 		image_cfa_warning_check();
 		set_cursor_waiting(TRUE);
 		apply_linear_to_fits(&gfit, a, b);
-		adjust_cutoff_from_updated_gfit();
+		notify_gfit_modified();
 		retval |= CMD_NOTIFY_GFIT_MODIFIED;
 	}
 	clearfits(&ref);
@@ -3447,7 +3447,7 @@ int process_resample(int nb) {
 			", clamped" : "");
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
-	if (!com.script) update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -3555,7 +3555,7 @@ int process_rotate(int nb) {
 	// the new selection will match the current image
 	if (has_selection) {
 		com.selection = (rectangle){ 0, 0, gfit.rx, gfit.ry };
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 	}
 	update_zoom_label();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
@@ -4345,7 +4345,7 @@ int process_seq_tilt(int nb) {
 	// through GUI, in case the specified sequence is not the loaded sequence
 	// load it before running
 	if (!com.script && seq != &com.seq) {
-		set_seq(word[1]);
+		gui_function(set_seq, word[1]);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		draw_polygon = TRUE;
@@ -4487,7 +4487,7 @@ int process_seq_psf(int nb) {
 			return CMD_SEQUENCE_NOT_FOUND;
 		}
 		if (!com.script && seq != &com.seq) {
-			set_seq(word[1]);
+			gui_function(set_seq, word[1]);
 			free_sequence(seq, TRUE);
 			seq = &com.seq;
 		}
@@ -5114,7 +5114,7 @@ int process_new(int nb){
 
 	com.seq.current = UNRELATED_IMAGE;
 	create_uniq_from_gfit(strdup(_("new empty image")), FALSE);
-	open_single_image_from_gfit();
+	gui_function(open_single_image_from_gfit, NULL);
 	return CMD_OK;
 }
 
@@ -5230,7 +5230,7 @@ cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
 
 int process_findstar(int nb) {
 	int layer;
-	if (!com.script) {
+	if (!(com.script || (com.python_script && !com.headless))) {
 		layer = select_vport(gui.cvport);
 	} else {
 		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
@@ -5282,7 +5282,7 @@ int process_seq_findstar(int nb) {
 
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
 	int layer;
-	if (!com.script && check_seq_is_comseq(seq)) { // we use vport only if seq is com.seq
+	if (!(com.script || (com.python_script && !com.headless)) && check_seq_is_comseq(seq)) { // we use vport only if seq is com.seq
 		layer = select_vport(gui.cvport);
 	} else {
 		layer = (seq->nb_layers > 1) ? GLAYER : RLAYER;
@@ -5395,7 +5395,7 @@ int process_findhot(int nb){
 
 int process_fix_xtrans(int nb) {
 	fix_xtrans_ac(&gfit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -5428,7 +5428,7 @@ int process_cosme(int nb) {
 		siril_log_color_message(_("There were some errors, please check your input file.\n"), "salmon");
 
 	invalidate_stats_from_fit(&gfit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -5522,22 +5522,26 @@ int process_cdg(int nb) {
 	return CMD_GENERIC_ERROR;
 }
 
-int process_clear(int nb) {
-	if (com.script) return CMD_OK;
+static gboolean clear_log_buffer(gpointer user_data) {
 	GtkTextView *text = GTK_TEXT_VIEW(lookup_widget("output"));
 	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(text);
 	GtkTextIter start_iter, end_iter;
 	gtk_text_buffer_get_start_iter(tbuf, &start_iter);
 	gtk_text_buffer_get_end_iter(tbuf, &end_iter);
 	gtk_text_buffer_delete(tbuf, &start_iter, &end_iter);
+	return FALSE;
+}
+
+int process_clear(int nb) {
+	gui_function(clear_log_buffer, NULL);
 	return CMD_OK;
 }
 
 int process_clearstar(int nb){
 	clear_stars_list(TRUE);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REDRAW_OVERLAY);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return CMD_OK;
 }
 
@@ -5594,7 +5598,7 @@ int process_offset(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	off(&gfit, (float)level);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -6836,13 +6840,11 @@ int process_seq_stat(int nb) {
 
 // Only for FITS images
 int process_jsonmetadata(int nb) {
-	/* we need both the file descriptor to read the header and the data to
-	 * compute stats, so we need the file name even in the case of a loaded
-	 * image, but we may use the loaded data if the option is provided, to
-	 * avoid reading it for nothing */
 	char *input_filename = word[1];
 	gchar *output_filename = NULL;
 	gboolean use_gfit = FALSE, compute_stats = TRUE;
+
+	// Process command arguments
 	for (int i = 2; i < nb; i++) {
 		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0') {
 			if (output_filename) g_free(output_filename);
@@ -6861,6 +6863,7 @@ int process_jsonmetadata(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
+
 	if (!output_filename)
 		output_filename = replace_ext(input_filename, ".json");
 
@@ -6896,79 +6899,88 @@ int process_jsonmetadata(int nb) {
 	}
 	fits_close_file(fptr, &status);
 
-	// https://gnome.pages.gitlab.gnome.org/json-glib/class.Builder.html
-	JsonBuilder *builder = json_builder_new();
-	json_builder_begin_object(builder);
-	json_builder_set_member_name(builder, "headers");
-	json_builder_begin_array(builder);
+	// Create the root object
+	yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+	yyjson_mut_val *root = yyjson_mut_obj(doc);
+	yyjson_mut_doc_set_root(doc, root);
+
+	// Add headers array
+	yyjson_mut_val *headers_arr = yyjson_mut_arr(doc);
+	yyjson_mut_obj_add_val(doc, root, "headers", headers_arr);
+
+	// Add header records
 	GSList *ptr = header;
 	while (ptr) {
-		json_builder_begin_object(builder);
 		header_record *r = ptr->data;
-		json_builder_set_member_name(builder, "key");
-		json_builder_add_string_value(builder, r->key);
-		json_builder_set_member_name(builder, "value");
-		json_builder_add_string_value(builder, r->value);
-		json_builder_end_object(builder);
+		yyjson_mut_val *header_obj = yyjson_mut_obj(doc);
+		yyjson_mut_val *key_str = yyjson_mut_str(doc, r->key);
+		yyjson_mut_val *value_str = yyjson_mut_str(doc, r->value);
+		yyjson_mut_obj_add_val(doc, header_obj, "key", key_str);
+		yyjson_mut_obj_add_val(doc, header_obj, "value", value_str);
+		yyjson_mut_arr_append(headers_arr, header_obj);
 		ptr = ptr->next;
 	}
-	json_builder_end_array(builder);
 
+	// Add statistics if computed
 	if (compute_stats) {
-		json_builder_set_member_name(builder, "statistics");
-		json_builder_begin_object(builder);
+		yyjson_mut_val *stats_obj = yyjson_mut_obj(doc);
+		yyjson_mut_obj_add_val(doc, root, "statistics", stats_obj);
+
 		for (int i = 0; i < nb_channels; ++i) {
 			if (stats[i]) {
 				char channame[20];
 				sprintf(channame, "channel%d", i);
-				json_builder_set_member_name(builder, channame);
-				json_builder_begin_object(builder);
-				json_builder_set_member_name(builder, "mean");
-				json_builder_add_double_value(builder, stats[i]->mean);
-				json_builder_set_member_name(builder, "median");
-				json_builder_add_double_value(builder, stats[i]->median);
-				json_builder_set_member_name(builder, "sigma");
-				json_builder_add_double_value(builder, stats[i]->sigma);
-				json_builder_set_member_name(builder, "noise");
-				json_builder_add_double_value(builder, stats[i]->bgnoise);
-				json_builder_set_member_name(builder, "min");
-				json_builder_add_double_value(builder, stats[i]->min);
-				json_builder_set_member_name(builder, "max");
-				json_builder_add_double_value(builder, stats[i]->max);
-				json_builder_set_member_name(builder, "total_pix_count");
-				json_builder_add_double_value(builder, stats[i]->total);
-				json_builder_set_member_name(builder, "good_pix_count");
-				json_builder_add_double_value(builder, stats[i]->ngoodpix);
-				json_builder_end_object(builder);
-				// BASIC: median, mean, sigma, noise, min, max
+
+				yyjson_mut_val *chan_obj = yyjson_mut_obj(doc);
+				yyjson_mut_obj_add_val(doc, stats_obj, channame, chan_obj);
+
+				yyjson_mut_val *mean_val = yyjson_mut_real(doc, stats[i]->mean);
+				yyjson_mut_val *median_val = yyjson_mut_real(doc, stats[i]->median);
+				yyjson_mut_val *sigma_val = yyjson_mut_real(doc, stats[i]->sigma);
+				yyjson_mut_val *noise_val = yyjson_mut_real(doc, stats[i]->bgnoise);
+				yyjson_mut_val *min_val = yyjson_mut_real(doc, stats[i]->min);
+				yyjson_mut_val *max_val = yyjson_mut_real(doc, stats[i]->max);
+				yyjson_mut_val *total_val = yyjson_mut_real(doc, stats[i]->total);
+				yyjson_mut_val *good_val = yyjson_mut_real(doc, stats[i]->ngoodpix);
+
+				yyjson_mut_obj_add_val(doc, chan_obj, "mean", mean_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "median", median_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "sigma", sigma_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "noise", noise_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "min", min_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "max", max_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "total_pix_count", total_val);
+				yyjson_mut_obj_add_val(doc, chan_obj, "good_pix_count", good_val);
+
 				free_stats(stats[i]);
 			}
 		}
-		json_builder_end_object(builder);
 	}
-	json_builder_end_object(builder);
 
-	JsonGenerator *gen = json_generator_new();
-	JsonNode *root = json_builder_get_root(builder);
-	json_generator_set_root(gen, root);
-	json_generator_set_pretty(gen, TRUE);
-	GError *err = NULL;
+	// Write the JSON to file with pretty formatting
+	yyjson_write_flag flg = YYJSON_WRITE_PRETTY;
+	yyjson_write_err err;
 	int retval = CMD_OK;
-	if (!json_generator_to_file(gen, output_filename, &err)) {
-		siril_log_message(_("Failed to save the JSON file %s: %s\n"), output_filename, err->message);
+
+	if (!yyjson_mut_write_file(output_filename, doc, flg, NULL, &err)) {
+		siril_log_message(_("Failed to save the JSON file %s: %s\n"),
+						  output_filename, err.msg);
 		retval = CMD_GENERIC_ERROR;
+	} else {
+		siril_log_message(_("Save metadata to the JSON file '%s'\n"), output_filename);
 	}
-	else siril_log_message(_("Save metadata to the JSON file '%s'\n"), output_filename);
+
+	#ifdef DEBUG_TEST
+	size_t len;
+	char *json_str = yyjson_mut_write(doc, flg, &len);
+	if (json_str) {
+		printf("JSON:\n%s\n", json_str);
+		free(json_str);
+	}
+	#endif
+
+	yyjson_mut_doc_free(doc);
 	g_free(output_filename);
-
-#ifdef DEBUG_TEST
-	gchar *str = json_generator_to_data(gen, NULL);
-	printf("JSON:\n%s\n", str);
-#endif
-
-	json_node_free(root);
-	g_object_unref(gen);
-	g_object_unref(builder);
 	return retval;
 }
 
@@ -9187,8 +9199,7 @@ int process_set_cpu(int nb){
 	g_free(str);
 
 	com.max_thread = proc_out;
-	if (!com.script)
-		update_spinCPU(0);
+	gui_function(update_spinCPU, GINT_TO_POINTER(0));
 
 	return CMD_OK;
 }
@@ -9299,6 +9310,8 @@ int process_capabilities(int nb) {
 }
 
 int process_exit(int nb) {
+	// This GTK function is OK to call regardless of thread, as it will quit the GTK main loop
+	// and hand control back to main.c and the application will terminate.
 	gtk_main_quit();
 	return CMD_OK;
 }
@@ -9410,7 +9423,7 @@ int process_boxselect(int nb){
 	com.selection.h = h;
 	siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"), x, y, w, h);
 	if (!com.script)
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 	return CMD_OK;
 }
 
@@ -9567,6 +9580,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	double pressure = 1013.25; // standard atmosphere
 	double obsheight = gfit.keywords.siteelev != DEFAULT_DOUBLE_VALUE ? gfit.keywords.siteelev : 10.0;
 	gboolean local_cat = local_catalogues_available();
+	gboolean local_gaia = local_gaia_available();
 	int next_arg = 1;
 
 	while (nb > next_arg && word[next_arg]) {
@@ -9595,18 +9609,37 @@ static int do_pcc(int nb, gboolean spectro) {
 			if (arg[0] == '-' || arg[0] == '+')
 				mag_offset = value;
 			else target_mag = value;
-		} else if (!spectro && g_str_has_prefix(word[next_arg], "-catalog=")) {
-			char *arg = word[next_arg] + 9;
-			if (!g_strcmp0(arg, "nomad"))
-				cat = CAT_NOMAD;
-			else if (!g_strcmp0(arg, "gaia"))
-				cat = CAT_GAIADR3;
-			else if (!g_strcmp0(arg, "apass"))
-				cat = CAT_APASS;
-			else {
-				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				return CMD_ARG_ERROR;
+		} else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
+			if (!spectro) {
+				char *arg = word[next_arg] + 9;
+				if (!g_strcmp0(arg, "nomad"))
+					cat = CAT_NOMAD;
+				else if (!g_strcmp0(arg, "gaia"))
+					cat = CAT_GAIADR3;
+				else if (!g_strcmp0(arg, "localgaia")) {
+					cat = local_gaia ? CAT_LOCAL_GAIA_ASTRO : CAT_GAIADR3;
+					if (cat == CAT_GAIADR3) {
+						siril_log_color_message(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via Vizier\n"), "salmon");
+					}
+				}
+				else if (!g_strcmp0(arg, "apass"))
+					cat = CAT_APASS;
+				else {
+					siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+					return CMD_ARG_ERROR;
+				}
+			} else {
+				char *arg = word[next_arg] + 9;
+				if (!g_strcmp0(arg, "gaia"))
+					cat = CAT_GAIADR3_DIRECT;
+				else if (!g_strcmp0(arg, "localgaia"))
+					cat = CAT_LOCAL_GAIA_XPSAMP;
+				else {
+					siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+					return CMD_ARG_ERROR;
+				}
 			}
 		} else if (spectro && !g_strcmp0(word[next_arg], "-narrowband")) {
 			nb_mode = TRUE;
@@ -9711,8 +9744,10 @@ static int do_pcc(int nb, gboolean spectro) {
 		}
 	}
 
-	if (local_cat && cat == CAT_AUTO) {
+	if (!spectro && local_cat && cat == CAT_AUTO) {
 		cat = CAT_LOCAL;
+	} else if (spectro && cat == CAT_AUTO) {
+		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : CAT_GAIADR3_DIRECT;
 	}
 	if (!spectro && local_cat && cat != CAT_LOCAL) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
@@ -9790,7 +9825,7 @@ static int do_pcc(int nb, gboolean spectro) {
 		pcc_args->mag_mode = LIMIT_MAG_AUTO;
 	}
 
-	pcc_args->catalog = spectro ? CAT_GAIADR3_DIRECT : cat;
+	pcc_args->catalog = cat;
 	if (spectro)
 		load_spcc_metadata_if_needed();
 
@@ -9953,6 +9988,14 @@ int process_platesolve(int nb) {
 				cat = CAT_NOMAD;
 			else if (!g_strcmp0(arg, "gaia"))
 				cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "localgaia")) {
+				if (local_gaia_available())
+					cat = CAT_LOCAL_GAIA_ASTRO;
+				else {
+					cat = CAT_GAIADR3;
+					siril_log_color_message(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via Vizier\n"), "salmon");
+				}
+			}
 			else if (!g_strcmp0(arg, "ppmxl"))
 				cat = CAT_PPMXL;
 			else if (!g_strcmp0(arg, "bsc"))
@@ -10166,9 +10209,7 @@ int process_platesolve(int nb) {
 	}
 	// catalog query parameters
 	if (solver == SOLVER_SIRIL) {
-		args->ref_stars = calloc(1, sizeof(siril_catalogue));
-		args->ref_stars->cat_index = cat;
-		args->ref_stars->columns =  siril_catalog_columns(cat);
+		args->ref_stars = siril_catalog_new(cat);
 		args->ref_stars->phot = FALSE;
 		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
@@ -10242,6 +10283,8 @@ static conesearch_params* parse_conesearch_args(int nb) {
 				params->cat = CAT_NOMAD;
 			else if (!g_strcmp0(arg, "gaia"))
 				params->cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "localgaia"))
+				params->cat = CAT_LOCAL_GAIA_ASTRO;
 			else if (!g_strcmp0(arg, "ppmxl"))
 				params->cat = CAT_PPMXL;
 			else if (!g_strcmp0(arg, "bsc"))
@@ -11280,8 +11323,8 @@ int process_icc_convert_to(int nb) {
 	}
 	refresh_icc_transforms();
 	if (!com.headless) {
-		close_tab();
-		init_right_tab();
+		gui_function(close_tab, NULL);
+		gui_function(init_right_tab, NULL);
 	}
 	if (!com.headless)
 		notify_gfit_modified();
@@ -11430,4 +11473,43 @@ int process_offline(int nb) {
 int process_pwd(int nb) {
 	siril_log_message(_("Current working directory: '%s'\n"), com.wd);
 	return CMD_OK;
+}
+
+int process_pyscript(int nb) {
+	gchar *script_name = NULL;
+	GStatBuf statbuf;
+	if (g_stat(word[1], &statbuf) == 0) {
+		// full path provided (or at least we can find it directly)
+		script_name = g_strdup(word[1]);
+	} else {
+		// Search for the file in the user's set script directories and the scripts repository
+		GSList *path = com.pref.gui.script_path;
+		while (path) {
+			siril_debug_print("Searching script path: %s\n", (gchar*) path->data);
+			script_name = find_file_in_directory(word[1], (gchar*) path->data);
+			if (script_name) // found it!
+				break;
+			path = path->next;
+		}
+		if (!script_name) {
+			// If we still haven't found it, iterate over the siril-scripts local repository
+			script_name = find_file_recursively(word[1], siril_get_scripts_repo_path());
+		}
+	}
+
+	if (script_name) {
+		gchar** argv_script = NULL;
+		if (nb > 1) {
+			// Treat additional arguments as arguments to be passed to the script
+			argv_script = calloc(nb, sizeof(gchar*));
+			for (int i = 2 ; i <= nb ; i++) {
+				argv_script[i-2] = g_strdup(word[i]);
+			}
+		}
+		execute_python_script(script_name, TRUE, TRUE, argv_script);
+		g_strfreev(argv_script);
+		return CMD_OK;
+	} else {
+		return CMD_FILE_NOT_FOUND;
+	}
 }

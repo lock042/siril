@@ -48,6 +48,7 @@ enum {
 	COLUMN_SELECTED,     // gboolean
 	COLUMN_SCRIPTPATH,   // full path to populate into the scripts menu
 	COLUMN_BGCOLOR,      // background color
+	COLUMN_TYPE,         // string, type of script
 	N_COLUMNS
 };
 
@@ -106,8 +107,9 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 								? "Preprocessing"
 								: "Processing";
 		gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
-		gchar *scriptpath =
-			g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
+		gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
+		gchar *scripttype = g_str_has_suffix(scriptname, ".ssf") ? _("Siril Script File") : g_str_has_suffix(scriptname, ".py")  ? _("Python script") : NULL;
+
 	#ifdef DEBUG_GITSCRIPTS
 		printf("%s\n", scriptpath);
 	#endif
@@ -122,7 +124,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 		}
 		gtk_list_store_append(list_store, &iter);
 		gtk_list_store_set(list_store, &iter, COLUMN_CATEGORY, category,
-							COLUMN_SCRIPTNAME, scriptname, COLUMN_SELECTED,
+							COLUMN_SCRIPTNAME, scriptname, COLUMN_TYPE, scripttype, COLUMN_SELECTED,
 							included, COLUMN_SCRIPTPATH, scriptpath,
 							COLUMN_BGCOLOR, bg_color[color], -1);
 		/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */

@@ -184,6 +184,13 @@ void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);
 gboolean reserve_thread();
 void unreserve_thread();
 
+// Functions to allow a python script to block other tasks from claiming the thread
+int claim_thread_for_python();
+void python_releases_thread();
+void check_python_flag();
+
+void kill_all_python_scripts(); // Used to prepare for resetting the venv
+
 gboolean get_script_thread_run();
 void wait_for_script_thread();
 
@@ -214,7 +221,8 @@ struct generic_seq_metadata_args {
 
 gpointer generic_sequence_metadata_worker(gpointer args);
 
-void kill_child_process(gboolean on_exit);
+void kill_child_process(GPid pid, gboolean on_exit);
+void remove_child_from_children(GPid pid);
 
 #ifdef __cplusplus
 }

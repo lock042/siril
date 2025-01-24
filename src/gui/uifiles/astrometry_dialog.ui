@@ -962,8 +962,8 @@ When platesolving a sequence, the distortion file is saved from the reference im
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Choose the online catalogue against one want to compare the image.
 * TYCHO-2 catalogue contains positions, proper motions, and two-color photometric data for 2,539,913 of the brightest stars in the Milky Way.
-* NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6, and USNO-B catalogs for astrometry and optical photometry, supplemented by 2MASS near-infrared. The almost 100 GB dataset contains astrometric and photometric data for about 1.1 billion stars.
-* Gaia Data Release 3 was released on 13 June 2022. The five-parameter astrometric solution, positions on the sky (α, δ), parallaxes, and proper motions, are given for around 1.46 billion sources, with a limiting magnitude of G = 21.
+* NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6, and USNO-B catalogs for astrometry and optical photometry, supplemented by 2MASS near-infrared. The almost 100 GB dataset contains astrometric and photometric data for about 1.1 billion stars. An offline extract is available that provides sufficient coverage to plate solve most star fields.
+* Gaia Data Release 3 was released on 13 June 2022. The five-parameter astrometric solution, positions on the sky (α, δ), parallaxes, and proper motions, are given for around 1.46 billion sources, with a limiting magnitude of G = 21. An offline extract is available that provides sufficient coverage to plate solve all except the deepest star fields. Gaia DR3 represents the current state of the art in astrometric and photometric catalogues.
 * PPMXL is a catalog of positions, proper motions, 2MASS- and optical photometry of 900 million stars and galaxies.
 * The Bright Star Catalogue is a star catalogue that lists all stars of stellar magnitude 6.5 or brighter, which is roughly every star visible to the naked eye from Earth. The catalog contains 9,110 objects.
 * APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky photometric survey. This survey is conducted in eight filters: Johnson B and V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th magnitude to about 17th magnitude for over 37 million stars.</property>
@@ -989,7 +989,7 @@ When platesolving a sequence, the distortion file is saved from the reference im
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">The catalogue is automatically determined using the approximation of the Field Of View and magnitude.</property>
+                        <property name="tooltip-text" translatable="yes">The catalogue is automatically determined using the approximation of the Field Of View and magnitude. Local catalogues are preferred over remote ones, and Gaia DR3 is preferred over Tycho + NOMAD.</property>
                         <property name="halign">start</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>

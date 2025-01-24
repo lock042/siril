@@ -40,6 +40,7 @@
 #include "gui/registration_preview.h"
 #include "io/remote_catalogues.h"
 #include "io/local_catalogues.h"
+#include "io/healpix/healpix_cat.h"
 #include "photometric_cc.h"
 #include "io/image_format_fits.h"
 
@@ -47,8 +48,10 @@
 #define MAX_PLOT 1020.0
 
 static gboolean spcc_filters_initialized = FALSE;
+static int get_spcc_catalog_from_GUI();
 static rectangle get_bkg_selection();
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
+void on_ComboBoxSPCCCatalog_changed(GtkComboBox *combo, gpointer user_data);
 static void set_bg_sigma(struct photometric_cc_data *args);
 static int set_spcc_args(struct photometric_cc_data *args);
 gboolean populate_spcc_combos(gpointer user_data);
@@ -171,7 +174,7 @@ static void start_photometric_cc(gboolean spcc) {
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
 	set_bg_sigma(pcc_args);
 	if (spcc) {
-		pcc_args->catalog = CAT_GAIADR3_DIRECT;
+		pcc_args->catalog = get_spcc_catalog_from_GUI();
 		siril_log_message(_("Using Gaia DR3 for SPCC\n"));
 		pcc_args->spcc = TRUE;
 		if (set_spcc_args(pcc_args)) {
@@ -230,7 +233,7 @@ static gboolean is_selection_ok() {
 
 void initialize_photometric_cc_dialog() {
 	GtkWidget *button_cc_ok, *button_spcc_ok, *catalog_label,
-			*pcc_catalog_label, *catalog_box_pcc, *frame_cc_bkg,
+			*pcc_catalog_label, *catalog_box_pcc, *catalog_box_spcc, *frame_cc_bkg,
 			*catalog_label_pcc, *spcc_options, *spcc_do_plot, *spcc_nb_controls,
 			*spcc_toggle_nb, *gaia_status_check;
 	GtkWindow *parent;
@@ -242,6 +245,7 @@ void initialize_photometric_cc_dialog() {
 	pcc_catalog_label = lookup_widget("photometric_catalog_label");
 	catalog_label_pcc = lookup_widget("GtkLabelCatalogPCC");
 	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
+	catalog_box_spcc = lookup_widget("ComboBoxSPCCCatalog");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
 	spcc_options = lookup_widget("spcc_options");
 	spcc_do_plot = lookup_widget("spcc_plot_fits");
@@ -262,6 +266,7 @@ void initialize_photometric_cc_dialog() {
 	gtk_widget_set_visible(pcc_catalog_label, TRUE);
 	gtk_widget_set_visible(catalog_label_pcc, TRUE);
 	gtk_widget_set_visible(catalog_box_pcc, TRUE);
+	gtk_widget_set_visible(catalog_box_spcc, FALSE);
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
 	gtk_widget_set_visible(spcc_options, FALSE);
 	gtk_widget_set_visible(spcc_do_plot, FALSE);
@@ -281,7 +286,7 @@ void initialize_photometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
 
-	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(catalog_box_pcc), local_gaia_available() ? 2 : (local_catalogues_available() ? 0 : 2));
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 }
 
@@ -303,7 +308,7 @@ void populate_nb_spinbuttons() {
 void initialize_spectrophotometric_cc_dialog() {
 	check_gaia_archive_status();
 	GtkWidget *button_cc_ok, *button_spcc_ok, *catalog_label,
-			*pcc_catalog_label, *catalog_box_pcc, *frame_cc_bkg,
+			*pcc_catalog_label, *catalog_box_pcc, *catalog_box_spcc, *frame_cc_bkg,
 			*catalog_label_pcc, *spcc_options, *spcc_do_plot, *spcc_nb_controls,
 			*spcc_toggle_nb, *gaia_status_check;
 	GtkSwitch *monoselector;
@@ -316,6 +321,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	pcc_catalog_label = lookup_widget("photometric_catalog_label");
 	catalog_label_pcc = lookup_widget("GtkLabelCatalogPCC");
 	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
+	catalog_box_spcc = lookup_widget("ComboBoxSPCCCatalog");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
 	spcc_options = lookup_widget("spcc_options");
 	spcc_do_plot = lookup_widget("spcc_plot_fits");
@@ -336,9 +342,10 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_widget_set_visible(button_cc_ok, FALSE);
 	gtk_widget_set_visible(button_spcc_ok, TRUE);
 	gtk_widget_set_visible(catalog_label, FALSE);
-	gtk_widget_set_visible(pcc_catalog_label, FALSE);
-	gtk_widget_set_visible(catalog_label_pcc, FALSE);
+	gtk_widget_set_visible(pcc_catalog_label, TRUE);
+	gtk_widget_set_visible(catalog_label_pcc, TRUE);
 	gtk_widget_set_visible(catalog_box_pcc, FALSE);
+	gtk_widget_set_visible(catalog_box_spcc, TRUE);
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
 	gtk_widget_set_visible(spcc_options, TRUE);
 	gtk_widget_set_visible(spcc_do_plot, TRUE);
@@ -359,6 +366,8 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[1], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
+
+	gtk_combo_box_set_active(GTK_COMBO_BOX(catalog_box_spcc), local_gaia_xpsamp_available() ? 1 : 0);
 
 	gchar *tooltip = NULL;
 	double airmass, centalt = gfit.keywords.centalt, height = gfit.keywords.siteelev;
@@ -387,7 +396,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	g_free(txt);
 	g_free(tooltip);
 
-	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
+	on_ComboBoxSPCCCatalog_changed(GTK_COMBO_BOX(catalog_box_spcc), NULL);
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 	g_signal_handlers_block_by_func(G_OBJECT(monoselector), on_spcc_sensor_switch_state_set, NULL);
 	gtk_switch_set_active(monoselector, com.pref.spcc.is_mono);
@@ -401,13 +410,25 @@ void initialize_spectrophotometric_cc_dialog() {
 
 int get_photometry_catalog_from_GUI() {
 	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxPCCCatalog"));
-	if (gtk_combo_box_get_active(box) == 2)
-		return CAT_GAIADR3;
+	if (gtk_combo_box_get_active(box) == 2) {
+		if (local_gaia_available())
+			return CAT_LOCAL_GAIA_ASTRO;
+		else
+			return CAT_GAIADR3;
+	}
 	else if (gtk_combo_box_get_active(box) == 1)
 		return CAT_APASS;
 	return CAT_NOMAD;
 }
 
+int get_spcc_catalog_from_GUI() {
+	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxSPCCCatalog"));
+	if (gtk_combo_box_get_active(box) == 1) {
+		return CAT_LOCAL_GAIA_XPSAMP;
+	} else {
+		return CAT_GAIADR3_DIRECT;
+	}
+}
 /*****
  * CALLBACKS FUNCTIONS
  */
@@ -475,9 +496,36 @@ void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 		photocat_label = GTK_LABEL(lookup_widget("photometric_catalog_label"));
 		have_local_cat = local_catalogues_available();
 	}
-	if (gtk_combo_box_get_active(combo) > 0 || !have_local_cat) // 1 = APASS
-		gtk_label_set_text(photocat_label, _("(online catalogue)"));
-	else gtk_label_set_text(photocat_label, _("(local catalogue)"));
+	switch (gtk_combo_box_get_active(combo)) {
+		case 0: // NOMAD
+			gtk_label_set_text(photocat_label, have_local_cat ? _("(local catalogue)") : _("(online catalogue)"));
+			break;
+		case 1: // APASS
+			gtk_label_set_text(photocat_label, _("(online catalogue)"));
+			break;
+		case 2: // GAIA
+			gtk_label_set_text(photocat_label, local_gaia_available() ? ("(local catalogue)"): _("(online catalogue)"));
+			break;
+		default:
+			break;
+	}
+}
+
+void on_ComboBoxSPCCCatalog_changed(GtkComboBox *combo, gpointer user_data) {
+	static GtkLabel *photocat_label = NULL;
+	if (!photocat_label) {
+		photocat_label = GTK_LABEL(lookup_widget("photometric_catalog_label"));
+	}
+	switch (gtk_combo_box_get_active(combo)) {
+		case 0: // Gaia archive
+			gtk_label_set_text(photocat_label, _("(online catalogue)"));
+			break;
+		case 1: // Local Gaia xp_sampled
+			gtk_label_set_text(photocat_label, _("(local catalogue)"));
+			break;
+		default:
+			break;
+	}
 }
 
 static void set_bg_sigma(struct photometric_cc_data *args) {

@@ -29,7 +29,6 @@
 #include <sys/wait.h> // for waitpid(2)
 #include <gio/gunixinputstream.h>
 #endif
-#include <json-glib/json-glib.h>
 #include "algos/background_extraction.h"
 #include "core/siril.h"
 #include "core/icc_profile.h"
@@ -48,6 +47,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "yyjson.h"
 #include "filters/graxpert.h"
 
 // Uncomment the following line for highly verbose debugging messages
@@ -67,6 +67,11 @@ static gchar **denoise_ai_models = NULL;
 static gchar **deconv_ai_models = NULL;
 static gchar **deconv_stellar_ai_models = NULL;
 static gboolean graxpert_aborted = FALSE;
+static GPid running_pid = (GPid) -1;
+
+GPid get_running_graxpert_pid() {
+	return running_pid;
+}
 
 void set_graxpert_aborted(gboolean state) {
 	graxpert_aborted = state;
@@ -81,13 +86,6 @@ const gchar** get_ai_models(graxpert_operation operation) {
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("GraXpert exited with status %d\n", status);
 	g_spawn_close_pid(pid);
-	// GraXpert has exited, reset the stored pid
-	com.child_is_running = EXT_NONE;
-#ifdef _WIN32
-	com.childhandle = 0;		// For Windows, handle of a child process
-#else
-	com.childpid = 0;			// For other OSes, PID of a child process
-#endif
 }
 
 // This ensures GraXpert is always called with a wide enough environment variable
@@ -108,6 +106,7 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
 	#endif
 
+	child_info *child = g_malloc(sizeof(child_info));
 	gboolean spawn_result = siril_spawn_host_async_with_pipes(
 		NULL,           // working directory
 		argv,           // argument vector
@@ -121,6 +120,20 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 		stderr_fd,      // stderr file descriptor
 		&error
 	);
+
+	// At this point, remove the processing thread from the list of children and replace it
+	// with the GraXpert process. This avoids tracking two children for the same task.
+	if (get_thread_run())
+		remove_child_from_children((GPid)-2);
+	child->childpid = *child_pid;
+	child->program = EXT_GRAXPERT;
+	child->name = g_strdup("GraXpert");
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
+
+	// Set a static variable so we can recover the pid info from gui
+	running_pid = *child_pid;
+	g_child_watch_add(*child_pid, child_watch_cb, NULL);
 
 	g_strfreev(env);
 	g_free(columns_str);
@@ -144,6 +157,11 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 		fprintf(stdout, "%s ", argv[index++]);
 	}
 	fprintf(stdout, "\n");
+
+	if (!get_thread_run()) {
+		return retval;
+	}
+
 	// g_spawn handles wchar so not need to convert
 	if (!is_sequence) set_progress_bar_data(_("Starting GraXpert..."), 0.0);
 	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL, &child_stderr);
@@ -156,13 +174,6 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 		siril_log_color_message(_("Spawning GraXpert failed: %s\n"), "red", error->message);
 		return retval;
 	}
-	g_child_watch_add(child_pid, child_watch_cb, NULL);
-	com.child_is_running = EXT_GRAXPERT;
-#ifdef _WIN32
-	com.childhandle = child_pid;		// For Windows, handle of a child process
-#else
-	com.childpid = child_pid;			// For other OSes, PID of a child process
-#endif
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -221,12 +232,9 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 #endif
 		g_free(buffer);
 	}
-	// GraXpert has exited, reset the stored pid
-#ifdef _WIN32
-	com.childhandle = 0;		// For Windows, handle of a child process
-#else
-	com.childpid = 0;			// For other OSes, PID of a child process
-#endif
+	// GraXpert has exited, remove from child list and reset the stored pid
+	remove_child_from_children(child_pid);
+	running_pid = (GPid) -1;
 	if (graxpert_no_exit_report && retval == -1) {
 		if (!is_sequence) siril_log_message(_("GraXpert GUI finished.\n"));
 		if (!is_sequence) set_progress_bar_data(_("Done."), 1.0);
@@ -313,6 +321,7 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		test_argv[nb++] = "--help";
 		// g_spawn handles wchar so not need to convert
 		GPid child_pid;
+
 		error = spawn_graxpert(test_argv, 500, &child_pid, NULL, NULL, &child_stderr);
 
 		if (error != NULL) {
@@ -346,6 +355,8 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 			}
 			g_free(buffer);
 		}
+		remove_child_from_children(child_pid);
+		running_pid = (GPid) -1;
 		g_object_unref(data_input);
 		g_object_unref(stream);
 		g_free(versionarg);
@@ -424,8 +435,7 @@ static gboolean graxpert_fetchversion(gchar* executable) {
 	test_argv[nb++] = versionarg;
 	// g_spawn handles wchar so not need to convert
 	GPid child_pid;
-	error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL,
-			&child_stderr);
+	error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL, &child_stderr);
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning GraXpert failed during version check: %s\n"), "red", error->message);
@@ -463,6 +473,8 @@ static gboolean graxpert_fetchversion(gchar* executable) {
 		}
 		g_free(buffer);
 	}
+	remove_child_from_children(child_pid);
+	running_pid = (GPid) -1;
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	g_free(versionarg);
@@ -532,117 +544,104 @@ void ai_versions_to_log(graxpert_operation operation) {
 
 gboolean save_graxpert_config(graxpert_data *args) {
 	const gchar *filename = args->configfile;
-	JsonBuilder *builder;
-	JsonGenerator *generator;
-	JsonNode *root;
-	gchar *json_data;
-	gsize json_length;
 	gboolean success = FALSE;
 
-	builder = json_builder_new();
-	json_builder_begin_object(builder);
+	// Create JSON document
+	yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+	yyjson_mut_val *root = yyjson_mut_obj(doc);
+	yyjson_mut_doc_set_root(doc, root);
 
 	// Add working directory
-	json_builder_set_member_name(builder, "working_dir");
-	json_builder_add_string_value(builder, com.wd);
+	yyjson_mut_obj_add_str(doc, root, "working_dir", com.wd);
 
 	// Add width and height
-	json_builder_set_member_name(builder, "width");
-	json_builder_add_int_value(builder, args->fit->rx);
-	json_builder_set_member_name(builder, "height");
-	json_builder_add_int_value(builder, args->fit->ry);
+	yyjson_mut_obj_add_int(doc, root, "width", args->fit->rx);
+	yyjson_mut_obj_add_int(doc, root, "height", args->fit->ry);
 
 	// Add background points
 	if (args->bg_samples) {
-		json_builder_set_member_name(builder, "background_points");
-		json_builder_begin_array(builder);
+		yyjson_mut_val *bg_points = yyjson_mut_arr(doc);
+		yyjson_mut_obj_add_val(doc, root, "background_points", bg_points);
+
 		for (GSList *l = args->bg_samples; l != NULL; l = l->next) {
 			background_sample *s = (background_sample *)l->data;
-			json_builder_begin_array(builder);
-			json_builder_add_int_value(builder, min(args->fit->rx - 1, round_to_int(s->position.x)));
-			json_builder_add_int_value(builder, min(args->fit->ry - 1, round_to_int(s->position.y)));
-			json_builder_add_int_value(builder, 1);
-			json_builder_end_array(builder);
+			yyjson_mut_val *point = yyjson_mut_arr(doc);
+
+			yyjson_mut_arr_add_int(doc, point, min(args->fit->rx - 1, round_to_int(s->position.x)));
+			yyjson_mut_arr_add_int(doc, point, min(args->fit->ry - 1, round_to_int(s->position.y)));
+			yyjson_mut_arr_add_int(doc, point, 1);
+
+			yyjson_mut_arr_append(bg_points, point);
 		}
-		json_builder_end_array(builder);
 	}
 
 	// Add other options
-	json_builder_set_member_name(builder, "bg_pts_option");
-	json_builder_add_int_value(builder, args->bg_pts_option);
+	yyjson_mut_obj_add_int(doc, root, "bg_pts_option", args->bg_pts_option);
 
-	json_builder_set_member_name(builder, "stretch_option");
-	json_builder_add_string_value(builder,
-		args->stretch_option == STRETCH_OPTION_10_BG_3_SIGMA ? "10% Bg, 3 sigma" :
-		args->stretch_option == STRETCH_OPTION_15_BG_3_SIGMA ? "15% Bg, 3 sigma":
-		args->stretch_option == STRETCH_OPTION_20_BG_3_SIGMA ? "20% Bg, 3 sigma":
-		args->stretch_option == STRETCH_OPTION_30_BG_2_SIGMA ? "30% Bg, 2 sigma":
-		"No Stretch");
+	// Add stretch option
+	const char *stretch_str;
+	switch (args->stretch_option) {
+		case STRETCH_OPTION_10_BG_3_SIGMA: stretch_str = "10% Bg, 3 sigma"; break;
+		case STRETCH_OPTION_15_BG_3_SIGMA: stretch_str = "15% Bg, 3 sigma"; break;
+		case STRETCH_OPTION_20_BG_3_SIGMA: stretch_str = "20% Bg, 3 sigma"; break;
+		case STRETCH_OPTION_30_BG_2_SIGMA: stretch_str = "30% Bg, 2 sigma"; break;
+		default: stretch_str = "No Stretch";
+	}
+	yyjson_mut_obj_add_str(doc, root, "stretch_option", stretch_str);
 
-	json_builder_set_member_name(builder, "bg_tol_option");
-	json_builder_add_double_value(builder,
-		args->bg_tol_option < -2.0 ? -2.0 : args->bg_tol_option > 10.0 ? 10.0 : args->bg_tol_option);
+	// Add bg tolerance option (with clamping)
+	double bg_tol = args->bg_tol_option;
+	bg_tol = fmin(fmax(bg_tol, -2.0), 10.0);
+	yyjson_mut_obj_add_real(doc, root, "bg_tol_option", bg_tol);
 
-	json_builder_set_member_name(builder, "interpol_type_option");
-	json_builder_add_string_value(builder, args->bg_algo == GRAXPERT_BG_KRIGING ? "Kriging" :
-		args->bg_algo == GRAXPERT_BG_RBF ? "RBF" :
-		args->bg_algo == GRAXPERT_BG_SPLINE ? "Splines" :
-		"AI");
+	// Add interpolation type
+	const char *interpol_str;
+	switch (args->bg_algo) {
+		case GRAXPERT_BG_KRIGING: interpol_str = "Kriging"; break;
+		case GRAXPERT_BG_RBF: interpol_str = "RBF"; break;
+		case GRAXPERT_BG_SPLINE: interpol_str = "Splines"; break;
+		default: interpol_str = "AI";
+	}
+	yyjson_mut_obj_add_str(doc, root, "interpol_type_option", interpol_str);
 
-	json_builder_set_member_name(builder, "smoothing_option");
-	json_builder_add_double_value(builder, args->bg_smoothing);
+	yyjson_mut_obj_add_real(doc, root, "smoothing_option", args->bg_smoothing);
 
 	if (args->ai_batch_size != -1) {
-		json_builder_set_member_name(builder, "ai_batch_size");
-		json_builder_add_int_value(builder, args->ai_batch_size);
+		yyjson_mut_obj_add_int(doc, root, "ai_batch_size", args->ai_batch_size);
 	}
 
 	if (args->sample_size != -1) {
-		json_builder_set_member_name(builder, "sample_size");
-		json_builder_add_int_value(builder, args->sample_size);
+		yyjson_mut_obj_add_int(doc, root, "sample_size", args->sample_size);
 	}
 
 	if (args->spline_order != -1) {
-		json_builder_set_member_name(builder, "spline_order");
-		json_builder_add_int_value(builder, args->spline_order);
+		yyjson_mut_obj_add_int(doc, root, "spline_order", args->spline_order);
 	}
 
-	json_builder_set_member_name(builder, "corr_type");
-	json_builder_add_string_value(builder, args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" : "Division");
+	yyjson_mut_obj_add_str(doc, root, "corr_type",
+						   args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" : "Division");
 
-	json_builder_set_member_name(builder, "RBF_kernel");
-	json_builder_add_string_value(builder, args->kernel == GRAXPERT_THIN_PLATE ? "thin_plate" : args->kernel == GRAXPERT_QUINTIC ? "quintic" :
-		args->kernel == GRAXPERT_CUBIC ? "cubic" : "linear");
-
-	json_builder_set_member_name(builder, "denoise_strength");
-	json_builder_add_double_value(builder, args->denoise_strength);
-
-	json_builder_set_member_name(builder, "deconvolution_strength");
-	json_builder_add_double_value(builder, args->deconv_strength);
-
-	json_builder_set_member_name(builder, "deconvolution_psfsize");
-	json_builder_add_double_value(builder, args->deconv_blur_psf_size);
-
-	json_builder_set_member_name(builder, "saveas_option");
-	json_builder_add_string_value(builder, args->fit->type == DATA_FLOAT ? "32 bit Fits" : "16 bit Fits");
-
-	json_builder_end_object(builder);
-
-	root = json_builder_get_root(builder);
-	generator = json_generator_new();
-	json_generator_set_root(generator, root);
-	json_generator_set_pretty(generator, TRUE);
-
-	json_data = json_generator_to_data(generator, &json_length);
-
-	if (g_file_set_contents(filename, json_data, json_length, NULL)) {
-		success = TRUE;
+	const char *kernel_str;
+	switch (args->kernel) {
+		case GRAXPERT_THIN_PLATE: kernel_str = "thin_plate"; break;
+		case GRAXPERT_QUINTIC: kernel_str = "quintic"; break;
+		case GRAXPERT_CUBIC: kernel_str = "cubic"; break;
+		default: kernel_str = "linear";
 	}
+	yyjson_mut_obj_add_str(doc, root, "RBF_kernel", kernel_str);
 
-	g_free(json_data);
-	json_node_free(root);
-	g_object_unref(generator);
-	g_object_unref(builder);
+	yyjson_mut_obj_add_real(doc, root, "denoise_strength", args->denoise_strength);
+	yyjson_mut_obj_add_real(doc, root, "deconvolution_strength", args->deconv_strength);
+	yyjson_mut_obj_add_real(doc, root, "deconvolution_psfsize", args->deconv_blur_psf_size);
+
+	yyjson_mut_obj_add_str(doc, root, "saveas_option",
+						   args->fit->type == DATA_FLOAT ? "32 bit Fits" : "16 bit Fits");
+
+	// Write to file
+	success = yyjson_mut_write_file(filename, doc, YYJSON_WRITE_PRETTY, NULL, NULL);
+
+	// Cleanup
+	yyjson_mut_doc_free(doc);
 
 	return success;
 }
@@ -754,7 +753,7 @@ static gboolean end_graxpert(gpointer p) {
 	open_graxpert_result((graxpert_data *) p);
 	free_graxpert_data((graxpert_data *) p);
 	notify_gfit_modified();
-	launch_clipboard_survey();
+	gui_function(launch_clipboard_survey, NULL);
 	return end_generic(NULL);
 }
 

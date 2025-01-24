@@ -352,9 +352,7 @@ void set_cursor_waiting(gboolean waiting) {
 	arg->change = waiting;
 	arg->cursor_name = "progress";
 
-	if (com.script)
-		gdk_threads_add_idle(idle_set_cursor, arg);
-	else idle_set_cursor(arg);
+	gui_function(idle_set_cursor, arg);
 }
 
 void set_cursor(const gchar* cursor_name) {
@@ -363,7 +361,5 @@ void set_cursor(const gchar* cursor_name) {
 	arg->change = TRUE;
 	arg->cursor_name = cursor_name;
 
-	if (com.script)
-		gdk_threads_add_idle(idle_set_cursor, arg);
-	else idle_set_cursor(arg);
+	gui_function(idle_set_cursor, arg);
 }

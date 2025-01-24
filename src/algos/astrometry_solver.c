@@ -96,8 +96,8 @@ static void debug_print_catalog_files(TRANS *trans, s_star *star_list_A, s_star 
 	trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02, 
 	trans->x30, trans->x21, trans->x12, trans->x03, trans->x40, trans->x31, trans->x22, trans->x13,
 	trans->x04, trans->x50, trans->x41, trans->x32, trans->x23, trans->x14, trans->x05);
-	g_sprintf(buffery, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
-	trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02, 
+	g_sprintf(buffery, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n",
+	trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02,
 	trans->y30, trans->y21, trans->y12, trans->y03, trans->y40, trans->y31, trans->y22, trans->y13,
 	trans->y04, trans->y50, trans->y41, trans->y32, trans->y23, trans->y14, trans->y05);
 	g_output_stream_write_all(output_stream, bufferx, strlen(bufferx), NULL, NULL,NULL);
@@ -881,14 +881,13 @@ gpointer plate_solver(gpointer p) {
 	if (args->verbose) {
 		if (args->solver == SOLVER_LOCALASNET) {
 			siril_log_message(_("Plate solving image with astrometry.net for a field of view of %.2f degrees\n"), args->used_fov / 60.0);
-		} else if (args->ref_stars->cat_index == CAT_LOCAL) {
-			siril_log_message(_("Plate solving image from local catalogues for a field of view of %.2f"
-						" degrees%s, using a limit magnitude of %.2f\n"),
-					args->used_fov / 60.0,
-					args->uncentered ? _(" (uncentered)") : "", args->ref_stars->limitmag);
 		} else {
-			siril_log_message(_("Plate solving image from an online catalogue for a field of view of %.2f"
+			const char *catstr = args->ref_stars->cat_index == CAT_LOCAL ? _("local catalogues") :
+				(args->ref_stars->cat_index == CAT_LOCAL_GAIA_ASTRO || args->ref_stars->cat_index == CAT_LOCAL_GAIA_XPSAMP) ? _("local Gaia catalogue") :
+					_("an online catalogue");
+			siril_log_message(_("Plate solving image from %s for a field of view of %.2f"
 						" degrees%s, using a limit magnitude of %.2f\n"),
+					catstr,
 					args->used_fov / 60.0,
 					args->uncentered ? _(" (uncentered)") : "", args->ref_stars->limitmag);
 		}
@@ -990,9 +989,10 @@ gpointer plate_solver(gpointer p) {
 		No modifications done to args or args->fit
 		We can read from them but cannot write
 	*/
+	gboolean asnet_running = FALSE;
 	if (args->solver == SOLVER_LOCALASNET) {
 		if (!args->for_sequence) {
-			com.child_is_running = EXT_ASNET;
+			asnet_running = TRUE;
 			if (g_unlink("stop")) // make sure the flag file for cancel is not already in the folder
 				siril_debug_print("g_unlink() failed\n");
 		}
@@ -1108,9 +1108,8 @@ clearup:
 	int ret = args->ret;
 	gboolean is_verbose = args->verbose;
 	if (!args->for_sequence) {
-		if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
+		if (asnet_running && g_unlink("stop"))
 			siril_debug_print("g_unlink() failed\n");
-		com.child_is_running = EXT_NONE;
 		siril_add_idle(end_plate_solver, args);
 	}
 	else {
@@ -1645,6 +1644,13 @@ gboolean asnet_is_available() {
 }
 #endif
 
+static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
+	siril_debug_print("asnet exited with status %d\n", status);
+	g_spawn_close_pid(pid);
+	// GraXpert has exited, reset the stored pid
+	remove_child_from_children(pid);
+}
+
 static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 	if (!args->asnet_checked) {
 		if (!asnet_is_available()) {
@@ -1782,10 +1788,35 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	/* call solve-field */
 	gint child_stdout;
 	g_autoptr(GError) error = NULL;
+	GPid child_pid;
+	child_info *child = g_malloc(sizeof(child_info));
+	siril_spawn_host_async_with_pipes(NULL,
+				sfargs,
+				NULL,
+				G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
+				NULL,
+				NULL,
+				&child_pid,
+				NULL,
+				&child_stdout,
+				NULL,
+				&error
+	);
+	// At this point, remove the processing thread from the list of children and replace it
+	// with the asnet process. This avoids tracking two children for the same task.
+	// Note: the pid isn't strictly needed here as it isn't used to kill the process
+	// should we need to, but it makes a handy index to search for in com.children, so
+	// we record it anyway.
+	remove_child_from_children((GPid)-2);
+	child->childpid = child_pid;
+	child->program = EXT_ASNET;
+	child->name = g_strdup(_("Astrometry.net local solver"));
+	child->datetime = g_date_time_new_now_local();
+	com.children = g_slist_prepend(com.children, child);
 
-	siril_spawn_host_async_with_pipes(NULL, sfargs, NULL,
-			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
-			NULL, NULL, NULL, NULL, &child_stdout, NULL, &error);
+	// Required in order to remove the child from com.children on exit
+	g_child_watch_add(child_pid, child_watch_cb, NULL);
+
 	if (error != NULL) {
 		siril_log_color_message("Spawning solve-field failed: %s\n", "red", error->message);
 		if (!com.pref.astrometry.keep_xyls_files)
@@ -2012,7 +2043,6 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	if (arg->has_output)
 		seq_prepare_hook(arg);
 	if (args->solver == SOLVER_LOCALASNET) {
-		com.child_is_running = EXT_ASNET;
 		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 	}
 	if (!args->nocache)
@@ -2140,7 +2170,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	}
 	if (aargs->solver == SOLVER_LOCALASNET)
 		aargs->filename = g_strdup(root);	// for localasnet
-	
+
 	if (i == arg->seq->reference_image) { // we want to save master distortion only once for ref image
 		aargs->distofilename = g_strdup(aargs_master->distofilename);
 	}
@@ -2203,10 +2233,9 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		siril_catalog_free(aargs->ref_stars);
 	if (aargs->distofilename)
 		g_free(aargs->distofilename);
-	free(aargs);
-	if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
+	if (aargs->solver == SOLVER_LOCALASNET && g_unlink("stop"))
 		siril_debug_print("g_unlink() failed\n");
-	com.child_is_running = EXT_NONE;
+	free(aargs);
 	return retval;
 }
 

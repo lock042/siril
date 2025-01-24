@@ -113,6 +113,7 @@ int	process_limit(int nb);
 int	process_link(int nb);
 int	process_linear_match(int nb);
 int	process_load(int nb);
+int	process_load_seq(int nb);
 int	process_log(int nb);
 int	process_ls(int nb);
 
@@ -145,6 +146,7 @@ int	process_pm(int nb);
 int	process_profile(int nb);
 int	process_psf(int nb);
 int	process_pwd(int nb);
+int	process_pyscript(int nb);
 
 int	process_rebayer(int nb);
 int	process_register(int nb);

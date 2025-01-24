@@ -74,11 +74,11 @@ static void rotate_gui(fits *fit) {
 	memcpy(&com.selection, &area, sizeof(rectangle));
 	gtk_spin_button_set_value(
 			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")), 0.);
-	new_selection_zone();
+	gui_function(new_selection_zone, NULL);
 
 	update_zoom_label();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 void siril_rotate90() {
@@ -87,7 +87,7 @@ void siril_rotate90() {
 	verbose_rotate_fast(&gfit, 90); // fast rotation, no interpolation, no crop
 	update_zoom_label();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -97,7 +97,7 @@ void siril_rotate270() {
 	verbose_rotate_fast(&gfit, -90); // fast rotation, no interpolation, no crop
 	update_zoom_label();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -121,7 +121,7 @@ void on_checkbutton_rotation_crop_toggled(GtkToggleButton *button, gpointer user
 	if (!gtk_toggle_button_get_active(button)) {
 		rectangle area = {0, 0, gfit.rx, gfit.ry};
 		memcpy(&com.selection, &area, sizeof(rectangle));
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 	}
 }
 
@@ -156,7 +156,7 @@ void mirrorx_gui(fits *fit) {
 	undo_save_state(fit, _("Mirror X"));
 	mirrorx(fit, TRUE);
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -165,7 +165,7 @@ void mirrory_gui(fits *fit) {
 	undo_save_state(fit, _("Mirror Y"));
 	mirrory(fit, TRUE);
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -187,7 +187,7 @@ void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 		undo_save_state(&gfit, _("Binning x%d (%s)"), factor, mean ? _("average") : _("sum"));
 		fits_binning(&gfit, factor, mean);
 
-		update_MenuItem(); // WCS not available anymore
+		gui_function(update_MenuItem, NULL); // WCS not available anymore
 		notify_gfit_modified();
 	}
 }
@@ -218,7 +218,7 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 		undo_save_state(&gfit, _("Resample (%g - %g)"), sample[0] / 100.0, sample[1] / 100.0);
 		verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
 
-		update_MenuItem(); // WCS not available anymore
+		gui_function(update_MenuItem, NULL); // WCS not available anymore
 		notify_gfit_modified();
 	}
 }
@@ -369,9 +369,9 @@ void siril_crop() {
 	delete_selected_area();
 	reset_display_offset();
 	update_zoom_label();
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {

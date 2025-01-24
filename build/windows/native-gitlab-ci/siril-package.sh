@@ -1,9 +1,12 @@
 # Package shared ressources
 mkdir -p ${INSTALL_PREFIX}/etc/ssl
+mkdir -p ${INSTALL_PREFIX}/python
 cp -fr ${W64_OUT}/etc/ssl ${INSTALL_PREFIX}/etc
 cp -fr ${W64_OUT}/share/glib-2.0/ ${INSTALL_PREFIX}/share
 cp -fr ${W64_OUT}/share/icons/ ${INSTALL_PREFIX}/share
 cp -fr ${W64_OUT}/share/locale/ ${INSTALL_PREFIX}/share
+cp -fr ${W64_OUT}/share/gtksourceview-4/ ${INSTALL_PREFIX}/share
+cp -fr ${PY_OUT}/* ${INSTALL_PREFIX}/python
 # Package executable
 cp -fr ${W64_OUT}/bin/gdbus.exe ${INSTALL_PREFIX}/bin/
 cp -fr ${W64_OUT}/bin/glib-compile-schemas.exe ${INSTALL_PREFIX}/bin/

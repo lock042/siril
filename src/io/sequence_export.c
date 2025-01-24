@@ -152,11 +152,12 @@ static gpointer export_sequence(gpointer ptr) {
 
 	/* possible output formats: FITS images, FITS cube, TIFF, SER, AVI, MP4, WEBM */
 	// create the sequence file for single-file sequence formats
+	fits ref = { 0 };
+	int refindex = 0;
 	switch (args->output) {
 		case EXPORT_FITS:
 			output_bitpix = args->seq->bitpix;
-			fits ref = { 0 };
-			int refindex = sequence_find_refimage(args->seq);
+			refindex = sequence_find_refimage(args->seq);
 			if (!seq_read_frame(args->seq, refindex, &ref, FALSE, -1) && ref.icc_profile) {
 				ref_icc = copyICCProfile(ref.icc_profile);
 				siril_log_message(_("Reference frame has an ICC profile. Will assign / convert other frames to to match.\n"));
@@ -199,6 +200,15 @@ static gpointer export_sequence(gpointer ptr) {
 			snprintf(dest, 256, "%s.avi", args->basename);
 			int32_t avi_format;
 
+			// Check if the sequence has an ICC profile. If so, we should convert to sRGB
+			// as that's really the only suitable option here
+			refindex = sequence_find_refimage(args->seq);
+			if (!seq_read_frame(args->seq, refindex, &ref, FALSE, -1) && ref.icc_profile) {
+				ref_icc = copyICCProfile(ref.icc_profile);
+				siril_log_message(_("Reference frame has an ICC profile. Exporting as sRGB.\n"));
+			}
+			clearfits(&ref);
+
 			if (args->seq->nb_layers == 1)
 				avi_format = AVI_WRITER_INPUT_FORMAT_MONOCHROME;
 			else avi_format = AVI_WRITER_INPUT_FORMAT_COLOUR;
@@ -221,6 +231,15 @@ static gpointer export_sequence(gpointer ptr) {
 			retval = -1;
 			goto free_and_reset_progress_bar;
 #else
+			// Check if the sequence has an ICC profile. If so, we should convert to sRGB
+			// as that's really the only suitable option here
+			refindex = sequence_find_refimage(args->seq);
+			if (!seq_read_frame(args->seq, refindex, &ref, FALSE, -1) && ref.icc_profile) {
+				ref_icc = copyICCProfile(ref.icc_profile);
+				siril_log_message(_("Reference frame has an ICC profile. Exporting as sRGB.\n"));
+			}
+			clearfits(&ref);
+
 			/* resampling is managed by libswscale */
 			snprintf(dest, 256, "%s.%s", args->basename,
 					args->output == EXPORT_WEBM_VP9 ? "webm" : "mp4");
@@ -312,7 +331,7 @@ static gpointer export_sequence(gpointer ptr) {
 	long naxes[3];
 	size_t nbpix = 0;
 	set_progress_bar_data(NULL, PROGRESS_RESET);
-
+	gboolean icc_msg_given = FALSE;
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!get_thread_run()) {
 			retval = -1;
@@ -408,12 +427,18 @@ static gpointer export_sequence(gpointer ptr) {
 			}
 		}
 
+		// Copy the ICC profile from fit if available
 		if (destfit->icc_profile) {
 			cmsCloseProfile(destfit->icc_profile);
+			destfit->icc_profile = copyICCProfile(fit.icc_profile);
+		} else {
+		// Otherwise see if the reference frame has an ICC profile, and if so copy that
+			if (ref_icc) {
+				destfit->icc_profile = copyICCProfile(ref_icc);
+			}
 		}
-		// Copy the ICC profile from fit if available
-		destfit->icc_profile = copyICCProfile(fit.icc_profile);
-		color_manage(destfit, fit.color_managed);
+		color_manage(destfit, destfit->icc_profile != NULL);
+
 
 		// we copy the header
 		copy_fits_metadata(&fit, destfit);
@@ -485,8 +510,9 @@ static gpointer export_sequence(gpointer ptr) {
 				if (ref_icc) {
 					siril_colorspace_transform(destfit, ref_icc);
 				} else {
-					if (destfit->icc_profile) {
+					if (destfit->icc_profile && !icc_msg_given) {
 						siril_log_message(_("Info: this frame has an ICC profile but the reference frame does not. Profile will be preserved...\n"));
+						icc_msg_given = TRUE;
 					}
 				}
 				snprintf(dest, 255, "%s%05d%s", args->basename, i + 1, com.pref.ext);
@@ -511,6 +537,9 @@ static gpointer export_sequence(gpointer ptr) {
 				retval = ser_write_frame_from_fit(ser_file, destfit, i - skipped);
 				break;
 			case EXPORT_AVI:
+				if (ref_icc) {
+					siril_colorspace_transform(destfit, srgb_trc());
+				}
 				data = fits_to_uint8(destfit);
 				retval = avi_file_write_frame(0, data);
 				break;
@@ -519,6 +548,9 @@ static gpointer export_sequence(gpointer ptr) {
 			case EXPORT_MP4_H265:
 			case EXPORT_WEBM_VP9:
 				// an equivalent to fits_to_uint8 is called in there (fill_rgb_image)...
+				if (ref_icc) {
+					siril_colorspace_transform(destfit, srgb_trc());
+				}
 				retval = mp4_add_frame(mp4_file, destfit);
 				break;
 #endif

@@ -93,7 +93,7 @@ void set_GUI_DiskSpace(gint64 space, const gchar *label) {
         fprintf(stderr, "ERROR: calling undefined function set_GUI_DiskSpace\n");
 }
 
-void set_GUI_CWD() {
+void gui_function(set_GUI_CWD, NULL) {
         fprintf(stderr, "ERROR: calling undefined function set_GUI_CWD\n");
 }
 

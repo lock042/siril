@@ -481,7 +481,7 @@ void open_compositing_window() {
 			i++;
 		} while (layers[i]);
 //		update_result(1);
-		update_MenuItem();
+		gui_function(update_MenuItem, NULL);
 	}
 	if (compositing_loaded == 1)
 		siril_open_dialog("composition_dialog");
@@ -575,14 +575,14 @@ static void check_gfit_is_ours() {
 	initialize_display_mode();
 	update_zoom_label();
 	display_filename();
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 	sliders_mode_set_state(gui.sliders);
 
 	init_layers_hi_and_lo_values(MIPSLOHI);
 	set_cutoff_sliders_max_values();
 	set_cutoff_sliders_values();
 	set_display_mode();
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 	redraw(REMAP_ALL);
 
 	sequence_list_change_current();
@@ -670,7 +670,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 			GtkNotebook* Color_Layers = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook1"));
 			GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, RED_VPORT);
 			gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(Color_Layers), page, _("Red"));
-			close_tab();
+			gui_function(close_tab, NULL);
 
 			if (number_of_images_loaded() == 1) { // set orig_rx and orig_ry, and check memory limits
 				orig_rx[layer] = layers[layer]->the_fit.rx;
@@ -763,7 +763,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	update_result(1);
 	update_metadata(TRUE);
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 }
 
 void create_the_internal_sequence() {
@@ -1093,7 +1093,7 @@ static void update_compositing_registration_interface() {
 		gtk_label_set_text(label, "");
 		gtk_widget_set_sensitive(lookup_widget("button_align"), TRUE);
 	}
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 }
 
 /* callback for changes of the selected reference layer */
@@ -1336,7 +1336,7 @@ static void update_result(int and_refresh) {
 		colors_align_and_compose();
 	}
 	if (and_refresh && number_of_images_loaded() > 0) {
-		adjust_cutoff_from_updated_gfit();
+		notify_gfit_modified();
 		redraw(REMAP_ALL);
 	}
 }

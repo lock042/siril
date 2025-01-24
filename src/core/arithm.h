@@ -58,6 +58,7 @@ void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB);
 void magnify(float *y, const float *x, int W, int H, int pd, int w, int h, float n);
 void shrink(float *y, float *x, int outw, int outh, int inw, int inh, float scale, float sigma);
 void gaussblur(float *y, float *x, int w, int h, float sigma);
+float half_to_float(const uint16_t val);
 
 #ifdef __cplusplus
 }

@@ -316,9 +316,10 @@ void on_graxpert_dialog_hide(GtkWidget *widget, gpointer user_data) {
 void on_notebook_graxpert_operation_switch_page(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer user_data) {
 	is_bg = (page_num == GRAXPERT_BG);
 	gboolean user_cancelled = FALSE;
-	if ((com.child_is_running == EXT_NONE) || (com.child_is_running == EXT_GRAXPERT &&
-		(user_cancelled = siril_confirm_dialog(_("Warning!"), _("GraXpert is running. Changing the GraXpert operation will cancel the current GraXpert process. Proceed?"), _("Yes"))))) {
-		kill_child_process(FALSE);
+	GPid pid = get_running_graxpert_pid();
+	if (pid != (GPid) -1 && (user_cancelled = siril_confirm_dialog(_("Warning!"), _("GraXpert is running. Changing the GraXpert "
+						"operation will cancel the current GraXpert process. Proceed?"), _("Yes")))) {
+		kill_child_process(pid, FALSE);
 		if (user_cancelled) {
 			siril_log_color_message(_("GraXpert operation cancelled by user\n"), "red");
 		}

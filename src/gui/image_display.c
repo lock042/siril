@@ -1903,7 +1903,7 @@ void adjust_vport_size_to_image() {
 
 void copy_roi_into_gfit() {
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
-	if (npixels_roi == 0 || com.script)
+	if (npixels_roi == 0 || com.script || com.python_command)
 		return;
 	size_t npixels_gfit = gfit.rx * gfit.ry;
 	if (gui.roi.fit.type != gfit.type) {
@@ -1961,7 +1961,7 @@ void copy_roi_into_gfit() {
 }
 
 void redraw(remap_type doremap) {
-	if (com.script) return;
+	if (com.script && !com.python_script) return;
 //	siril_debug_print("redraw %d\n", doremap);
 	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit.type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit.type == DATA_USHORT && gui.roi.fit.data)))
 		copy_roi_into_gfit();

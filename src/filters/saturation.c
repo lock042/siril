@@ -370,9 +370,9 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 	// Update preview only if required
 	if (prev_satu != 0.0) {
 		copy_backup_to_gfit();
-		adjust_cutoff_from_updated_gfit();
+		notify_gfit_modified();
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 		set_cursor_waiting(FALSE);
 	}
 }
