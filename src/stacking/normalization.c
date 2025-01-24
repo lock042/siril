@@ -454,8 +454,7 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 		siril_debug_print("computing stats for overlap between image %d and image %d, lite: %d\n", i + 1, j + 1, args->lite_norm);
 		nbdata = compute_overlap(args, i, j, &areai, &areaj);
 		// we cache it for all layers
-		// Normally, we should have regdata for only one layer, but what if we have for more (can't see that happening but better be safe)
-		// In that case, we will assume that the differences in overlaps should be minimal (1 or 2 lines) and that
+		// In that case, we will assume that the differences in overlaps should be independant of the layer used for registration and that
 		// the first ever cached overlap stats are valid irrespective of the regdata which created them
 		for (int n = 0; n < nb_layers; n++) {
 			seq->ostats[n][ijth].i = i;

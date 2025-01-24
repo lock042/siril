@@ -29,6 +29,7 @@
 #include "gui/message_dialog.h"
 #include "gui/dialogs.h"
 #include "gui/plot.h"
+#include "registration/registration.h"
 
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 static GtkWidget *file_chooser = NULL;

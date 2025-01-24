@@ -190,6 +190,7 @@ void initialize_ips_dialog() {
 	on_comboastro_order_changed(NULL, NULL);
 	// solver-related controls
 	on_comboastro_catalog_changed(NULL, NULL);
+	on_comboastro_solver_changed(NULL, NULL);
 }
 
 static void add_style_class(GtkWidget *widget, const char *class) {

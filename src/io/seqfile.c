@@ -54,7 +54,7 @@
  * version 4 introduced variable size sequences, extended registration data (incl. H), 1.1.0
  * version 5:
  * 	- removed upscale at stacking (U card) 1.3.4
- *  - added D* cards containing distortion and astrometry information 1.3.4  - see enum disto_source
+ *  - added D card containing distortion and astrometry information 1.3.4  - see enum disto_source
  *  - added overlap statistics in the O* cards:
  *  	=> ON i j areai.x areai.y areaj.x areaj.y areai.w areai.h Nij medij medji madij madji locij locji scaij scji
  * 		=> with N the layer number and i,j the ith and jth images of the sequence
@@ -166,9 +166,6 @@ sequence * readseqfile(const char *name){
 					// enabled, we keep 1 in the nb_layers, which will be set in
 					// the seq_check_basic_data() call later
 					if (seq->nb_layers >= 1) {
-						seq->regparam = calloc(seq->number, sizeof(regdata));
-						if (ser_is_cfa(seq->ser_file))
-							seq->regparam_bkp = calloc(seq->number, sizeof(regdata));
 						memset(&seq->distoparam, 0, sizeof(disto_params));
 					}
 				} else if (line[1] >= '0' && line[1] <= '9') {
@@ -229,14 +226,10 @@ sequence * readseqfile(const char *name){
 				++i;
 				break;
 			case 'D': // Distortion data - from version 5 onwards
-				current_layer = line[1] - '0';
-				if (current_layer < 0 || current_layer > seq->nb_layers) {
-					fprintf(stderr, "readseqfile: sequence file bad distortion layer: %s\n", line);
-					goto error;
-				}
+
 				int index;
 				char buf0[256], buf1[256], buf2[256];
-				nb_tokens = sscanf(line + 3, "%d %s %s %s\n",
+				nb_tokens = sscanf(line + 2, "%d %s %s %s\n",
 							&index,
 							buf0, buf1, buf2);
 				if (nb_tokens < 1 || nb_tokens > 4) {
@@ -296,22 +289,20 @@ sequence * readseqfile(const char *name){
 					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 					goto error;
 				}
-
+				regparam = (to_backup) ? seq->regparam_bkp : seq->regparam;
 				if (!regparam) {
-					regparam = (to_backup) ? seq->regparam_bkp : seq->regparam;
 					i = 0;	// one line per image, starting with 0
 					seq->reglayer = current_layer;
-					if (to_backup) {
-						if (!seq->regparam_bkp) {
-							fprintf(stderr, "readseqfile: sequence type probably changed from CFA to MONO, invalid file\n");
-							goto error;
-						}
-					} else {
-						if (!seq->regparam) {
-							fprintf(stderr, "readseqfile: file contains registration data but not the basic information\n");
-							goto error;
-						}
+					regparam = calloc(seq->number, sizeof(regdata));
+					if (!regparam) {
+						PRINT_ALLOC_ERR;
+						goto error;
 					}
+					i = 0;	// one line per image, starting with 0
+					// reassign, because we didn't use a pointer
+					if (to_backup)
+						seq->regparam_bkp = regparam;
+					else seq->regparam = regparam;
 				}
 				if (i >= seq->number) {
 					fprintf(stderr, "\nreadseqfile: out of array bounds in reg info!\n\n");
@@ -694,22 +685,18 @@ int writeseqfile(sequence *seq){
 		if (seq->regparam && layer == seq->reglayer) {
 			if (seq_has_any_distortion(seq)) {
 				if (seq->distoparam.index == DISTO_FILE) {
-					fprintf(seqfile, "D%c %d %s\n",
-					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					fprintf(seqfile, "D %d %s\n",
 					DISTO_FILE,
 					seq->distoparam.filename);
 				} else if (seq->distoparam.index == DISTO_FILES) {
-					fprintf(seqfile, "D%c %d\n",
-					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					fprintf(seqfile, "D %d\n",
 					DISTO_FILES);
 				} else if (seq->distoparam.index == DISTO_MASTER) {
-					fprintf(seqfile, "D%c %d %s\n",
-					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					fprintf(seqfile, "D %d %s\n",
 					DISTO_MASTER,
 					seq->distoparam.filename);
 				} else if (seq->distoparam.index == DISTO_FILE_COMET) {
-					fprintf(seqfile, "D%c %d %.3f %.3f %s\n",
-					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					fprintf(seqfile, "D %d %.3f %.3f %s\n",
 					DISTO_FILE_COMET,
 					seq->distoparam.velocity.x,
 					seq->distoparam.velocity.y,
