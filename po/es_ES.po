@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-01-13 07:02+0000\n"
-"Last-Translator: Mateo García Jerez <xxxspookyzxxx@gmail.com>\n"
+"PO-Revision-Date: 2025-01-25 21:11+0000\n"
+"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/es/>\n"
 "Language: es_ES\n"
@@ -672,7 +672,7 @@ msgstr "Polinómico"
 
 #: src/gui/siril3.glade:3520
 msgid "Smoothing"
-msgstr ""
+msgstr "Suavizado"
 
 #: src/gui/siril3.glade:3532 src/gui/siril3.glade:3669
 #: src/gui/siril3.glade:3696
@@ -689,7 +689,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:3577
 msgid "page 1"
-msgstr ""
+msgstr "página 1"
 
 #: src/gui/siril3.glade:3595
 msgid "Degree order: "
@@ -1091,6 +1091,7 @@ msgstr "Deconvolución"
 msgid ""
 "Generate the kernel and use it to deconvolve the current image or sequence"
 msgstr ""
+"Genera el núcleo y úsalo para deconvolucionar la imagen o secuenca actual"
 
 #: src/gui/siril3.glade:5978
 #, fuzzy
@@ -1240,6 +1241,7 @@ msgid ""
 "For elliptical PSFs, this gives the ratio of the shorter and longer "
 "dimensions."
 msgstr ""
+"Para PSFs elípticas, esto da el ratio entre las dimensión mayor y la menor."
 
 #: src/gui/siril3.glade:6369 src/gui/siril3.glade:7251
 #, fuzzy
@@ -1259,17 +1261,19 @@ msgstr "Ángulo (º)"
 
 #: src/gui/siril3.glade:6407
 msgid "For elliptical PSFs, the angle from the x axis in degrees."
-msgstr ""
+msgstr "Para las PSFs elípicas, el ángulo desde el eje x en grados."
 
 #: src/gui/siril3.glade:6422 src/gui/siril3.glade:7287
 msgid "beta (β)"
-msgstr ""
+msgstr "beta (β)"
 
 #: src/gui/siril3.glade:6434
 msgid ""
 "For Moffat profiles, this sets the value of beta. See the astrometry "
 "documentation for information on this parameter."
 msgstr ""
+"Para los perfiles Moffat, define el valor de beta. Mire la documentación de "
+"astrometría para obtener información sobre este parámetro."
 
 #: src/gui/siril3.glade:6465
 #, fuzzy
@@ -1278,7 +1282,7 @@ msgstr "Tamaño de píxel (µm):"
 
 #: src/gui/siril3.glade:6477
 msgid "Wavelength / nm"
-msgstr ""
+msgstr "Longitud de onda / nm"
 
 #: src/gui/siril3.glade:6489
 #, fuzzy
@@ -1287,11 +1291,11 @@ msgstr "Longitud focal (mm): "
 
 #: src/gui/siril3.glade:6501
 msgid "Diameter / mm"
-msgstr ""
+msgstr "Diámetro / nm"
 
 #: src/gui/siril3.glade:6512
 msgid "Sensor pixel size in microns"
-msgstr ""
+msgstr "Tamaño de pixel del sensor en micrones"
 
 #: src/gui/siril3.glade:6528
 msgid ""
@@ -1299,20 +1303,26 @@ msgid ""
 "exactly for narrowband filters, or for broadband / OSC / luminance filters "
 "just use a representative central wavelength."
 msgstr ""
+"Longitud de onda para la que se calcula el patrón de difracción. Se puede "
+"especificar exactamente para filtros de banda estrecha, o simplemente usar "
+"una longitud de onda central representativa para filtros de banda ancha / "
+"OSC / luminancia."
 
 #: src/gui/siril3.glade:6543
 msgid ""
 "Telescope focal length (this should account for any multiplication factor "
 "introduced by Barlows or field flatteners)"
 msgstr ""
+"Focal del telescopio (debe tener en cuenta cualquier factor multiplicador "
+"añadido por Barlows o aplanadores de campo)"
 
 #: src/gui/siril3.glade:6559
 msgid "Diameter of the telescope primary aperture"
-msgstr ""
+msgstr "Diámetro de la apertura principal del telescopio"
 
 #: src/gui/siril3.glade:6576
 msgid "Central Obstruction / %"
-msgstr ""
+msgstr "Obstrucción Central / %"
 
 #: src/gui/siril3.glade:6587
 msgid ""
@@ -1320,6 +1330,9 @@ msgid ""
 "This is zero for refractors, typically around 10-20% for fast Newtonians and "
 "may be as much as 40% for a Corrected Dall-Kirkham."
 msgstr ""
+"Establece la obstrucción central como porcentaje de la área de apertura "
+"total. Es 0 para los refractores, típicamente entre 10-20% para Newtonianos "
+"rápidos y quizás hasta 40% para un Dall-Kirkham corregido."
 
 #: src/gui/siril3.glade:6610
 #, fuzzy
@@ -1331,14 +1344,16 @@ msgid ""
 "Regularization parameter for PSF estimation. Try decreasing this value for "
 "noisy images."
 msgstr ""
+"Parámetro de regularización para la estimación PSF. Intente reducir este "
+"valor para imágenes ruidosas."
 
 #: src/gui/siril3.glade:6657
 msgid "Lambda (λ)"
-msgstr ""
+msgstr "Lambda (λ)"
 
 #: src/gui/siril3.glade:6670
 msgid "Blind Deconvolution PSF Estimation"
-msgstr ""
+msgstr "Estimación PSF de Deconvolución Ciega"
 
 #: src/gui/siril3.glade:6704
 #, fuzzy
@@ -1353,15 +1368,15 @@ msgstr ""
 
 #: src/gui/siril3.glade:6722
 msgid "These settings can be left alone in the vast majority of cases. "
-msgstr ""
+msgstr "Estas opciones se puede ignorar en la gran mayoría de los casos. "
 
 #: src/gui/siril3.glade:6736
 msgid "Gamma (γ)"
-msgstr ""
+msgstr "Gamma (γ)"
 
 #: src/gui/siril3.glade:6747
 msgid "PSF estimation regularisation parameter"
-msgstr ""
+msgstr "Parámetro de regularización de estimación PSF"
 
 #: src/gui/siril3.glade:6773
 msgid ""
@@ -1380,11 +1395,11 @@ msgstr ""
 
 #: src/gui/siril3.glade:6815
 msgid "Lambda min"
-msgstr ""
+msgstr "Lambda mín"
 
 #: src/gui/siril3.glade:6826
 msgid "Minimum value of lambda for multiscale PSF estimation"
-msgstr ""
+msgstr "Valor mínimo de lambda para estimación PSF multiescala"
 
 #: src/gui/siril3.glade:6842
 #, fuzzy
@@ -1393,7 +1408,7 @@ msgstr "Factor de extensión"
 
 #: src/gui/siril3.glade:6853
 msgid "Scale factor between successive scales of multiscale PSF estimation"
-msgstr ""
+msgstr "Factor de escala entre escalas sucesivas de estimación PSF multiescala"
 
 #: src/gui/siril3.glade:6868
 msgid "Amount of blur to use for upsampling during PSF estimation"
@@ -1442,11 +1457,11 @@ msgstr ""
 
 #: src/gui/siril3.glade:6987
 msgid "ℓ1 gradient parameter"
-msgstr ""
+msgstr "parámetro gradiente ℓ1"
 
 #: src/gui/siril3.glade:7004
 msgid "These settings should almost always be left at the default value."
-msgstr ""
+msgstr "Estas opciones casi siempre se deben dejar con el valor por defecto."
 
 #: src/gui/siril3.glade:7005 src/gui/siril3.glade:7187
 #, fuzzy
@@ -1455,7 +1470,7 @@ msgstr "Ajustes"
 
 #: src/gui/siril3.glade:7023
 msgid "ℓ0 Descent Method"
-msgstr ""
+msgstr "Método Descendente ℓ0"
 
 #: src/gui/siril3.glade:7059
 #, fuzzy
@@ -1495,6 +1510,8 @@ msgid ""
 "Outer loop iterations. This parameter should not generally require "
 "adjustment."
 msgstr ""
+"Iteraciones del bucle exterior. Este parámetro normalmente no necesita "
+"ajuste."
 
 #: src/gui/siril3.glade:7160
 #, fuzzy
@@ -1506,10 +1523,12 @@ msgid ""
 "This parameter sets the number of iterations in the algorithm inner loop. It "
 "should not usually require adjustment."
 msgstr ""
+"Este parámetro define el número de iteraciones del bucle interno del "
+"algoritmo. No suele necesitar ajuste."
 
 #: src/gui/siril3.glade:7203
 msgid "Spectral Irregularity Method"
-msgstr ""
+msgstr "Método de Irregularidad Espectral"
 
 #: src/gui/siril3.glade:7346
 #, fuzzy
@@ -1539,7 +1558,7 @@ msgstr "Previsualización"
 
 #: src/gui/siril3.glade:7443
 msgid "Shows a preview of the PSF, if one has been calculated."
-msgstr ""
+msgstr "Muestra una previsualización del PSF, si se ha calculado uno."
 
 #: src/gui/siril3.glade:7457
 #, fuzzy
@@ -1562,11 +1581,11 @@ msgstr ""
 
 #: src/gui/siril3.glade:7521
 msgid "Split Bregman method with TV regularization"
-msgstr ""
+msgstr "Método Split Bregman con regularización TV"
 
 #: src/gui/siril3.glade:7522
 msgid "Richardson-Lucy method with TV regularization"
-msgstr ""
+msgstr "Método Richardson-Lucy con regularización TV"
 
 #: src/gui/siril3.glade:7523
 #, fuzzy
@@ -1577,6 +1596,8 @@ msgstr "Añadir otro filtro"
 msgid ""
 "Number of iterations for final deconvolution if using an iterative method"
 msgstr ""
+"Numero de iteraciones para la deconvolución final, si se usa un método "
+"iterativo"
 
 #: src/gui/siril3.glade:7563
 msgid "Regularization parameter for the final non-blind stage deconvolution"
@@ -2741,12 +2762,10 @@ msgstr ""
 "cuadrados."
 
 #: src/gui/siril3.glade:11966
-#, fuzzy
 msgid "Focal length (mm):"
-msgstr "Longitud focal (mm): "
+msgstr "Longitud focal (mm):"
 
 #: src/gui/siril3.glade:11977
-#, fuzzy
 msgid "Pixel size in microns. The image is assumed to have square pixels."
 msgstr ""
 "Tamaño de píxel en micrómetros. Se asume que la imagen tiene píxeles "
@@ -2769,7 +2788,6 @@ msgid "Resolution: "
 msgstr "Resolución: "
 
 #: src/gui/siril3.glade:12029
-#, fuzzy
 msgid ""
 "Several resolvers can be found and displayed in this list. However, it just "
 "about getting the coordinates of the centre of the object. Choosing one item "
@@ -2777,9 +2795,9 @@ msgid ""
 "which is based on the selected catalogue."
 msgstr ""
 "En esta lista se pueden ver varios resolutores. Sin embargo, sólo es "
-"necesario tomar las coordenadas del centro del objeto. Elegir un item u otro "
-"no influye en la resolución de placa ni los datos fotométricos, los cuales "
-"se basan en el catálogo seleccionado."
+"necesario tomar las coordenadas del centro del objeto. Elegir un elemento u "
+"otro no debería influir en la resolución de placas ni en los datos "
+"fotométricos, los cuales se basan en el catálogo seleccionado."
 
 #: src/gui/siril3.glade:12038
 msgid "Resolver"
@@ -2843,13 +2861,12 @@ msgid "Get Metadata From Image"
 msgstr "Tomar metadatos de la imagen"
 
 #: src/gui/siril3.glade:12138
-#, fuzzy
 msgid ""
 "Click on this button to get focal length, pixel size and RA/Dec pointing "
 "coordinates from the header of the file if they exist."
 msgstr ""
-"Pulse este botón para tomar los valores de focal y tamaño de píxel de la "
-"cabecera del fichero, si existen."
+"Pulse este botón para tomar los valores de focal, tamaño de píxel y las "
+"coordenadas de AR/DEC de la cabecera del fichero, si existen."
 
 #: src/gui/siril3.glade:12166
 msgid ""
@@ -2865,11 +2882,11 @@ msgstr "RCD"
 
 #: src/gui/siril3.glade:12170
 msgid "VizieR"
-msgstr ""
+msgstr "VizierR"
 
 #: src/gui/siril3.glade:12171
 msgid "SIMBAD"
-msgstr ""
+msgstr "SIMBAD"
 
 #: src/gui/siril3.glade:12185
 msgid "Server:"
@@ -3009,6 +3026,8 @@ msgid ""
 "The TYCHO2, NOMAD and Bright Stars catalogues can be installed locally to "
 "not rely on an Internet connection for this operation."
 msgstr ""
+"Los catálogos TYCHO2, NOMAD y Bright Stars se pueden instalar localmente "
+"para evitar depender de una conexión a internet para esta operación."
 
 #: src/gui/siril3.glade:12419
 msgid "Catalogue Parameters"

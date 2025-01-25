@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-01-19 15:02+0000\n"
+"PO-Revision-Date: 2025-01-25 21:11+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril-1-2/zh_Hans/>\n"
@@ -212,7 +212,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:864
 msgid "Clip Limit"
-msgstr "修剪上限"
+msgstr "修剪阈值"
 
 #: src/gui/siril3.glade:899
 msgid "Sets threshold for contrast limiting."
@@ -7751,7 +7751,7 @@ msgstr "鼠标行为"
 
 #: src/gui/siril3.glade:30878
 msgid "Background extraction samples:"
-msgstr "背景提取的采样点："
+msgstr "背景提取的样本："
 
 #: src/gui/siril3.glade:30890
 msgid "Standard annotations:"
@@ -8892,7 +8892,7 @@ msgstr "使用 %s 星表运行序列解析\n"
 msgid ""
 "There are not enough background samples. The background to be extracted "
 "cannot be computed.\n"
-msgstr "没有足够的背景采样点。无法进行背景提取。\n"
+msgstr "背景样本不足。无法进行背景提取。\n"
 
 #: src/algos/background_extraction.c:811
 #, c-format
@@ -14487,8 +14487,8 @@ msgid ""
 msgstr ""
 "使用次数为<b>degree</b>的多项式函数模型或RBF模型（如果提供<b>-RBF</b>）计算人"
 "工背景渐变，并将其从图像中减去。\n"
-"每行采样点的数量和采样点的容差可以使用可选参数调整。容差以MAD为单位：median "
-"+ tolerance * mad。\n"
+"每行样本数和容差（用于剔除过亮的样本）可以使用可选参数调整。容差以MAD为单位："
+"median + tolerance * mad。\n"
 "可以使用<b>-dither</b>来启用抖动，防止平缓的渐变出现断层。\n"
 "对于RBF，还可以使用额外的平滑参数"
 
@@ -15805,7 +15805,7 @@ msgstr "鼠标中键双击缩放操作"
 
 #: src/core/settings.c:395
 msgid "configure background samples color"
-msgstr "配置背景提取采样点的颜色"
+msgstr "配置背景提取样本框的颜色"
 
 #: src/core/settings.c:396
 msgid "configure standard annotation color"
@@ -16533,7 +16533,7 @@ msgstr "合成 %d 颗星点...\n"
 
 #: src/filters/synthstar.c:654
 msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
-msgstr "星点合成（去饱和度裁剪的星点形状）：执行中...\n"
+msgstr "星点合成（去饱和裁剪的星点形状）：执行中...\n"
 
 #: src/filters/synthstar.c:710
 #, c-format
@@ -17577,7 +17577,7 @@ msgstr "选择参考星文件"
 
 #: src/gui/nina_light_curve.c:90
 msgid "The current comparison stars file is not located in the CWD"
-msgstr ""
+msgstr "未指定工作目录中的参考星文件"
 
 #: src/gui/nina_light_curve.c:99
 msgid "The currently loaded image must be plate solved"

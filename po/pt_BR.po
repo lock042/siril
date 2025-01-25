@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-01-17 22:32+0000\n"
+"PO-Revision-Date: 2025-01-25 21:11+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril-1-2/pt_BR/>\n"
@@ -581,36 +581,38 @@ msgid "Adjust"
 msgstr "Ajuste"
 
 #: src/gui/siril3.glade:3173
-#, fuzzy
 msgid "Asinh Transformation"
-msgstr "Executar transformação"
+msgstr "Transformação Asinh"
 
 #: src/gui/siril3.glade:3251
-#, fuzzy
 msgid "Stretch factor"
-msgstr "_Processamento de imagem"
+msgstr "Fator de estiramento"
 
 #: src/gui/siril3.glade:3288
 msgid "The parameter stretch factor allows to adjust the non-linearity factor."
 msgstr ""
+"O fator de estiramento do parâmetro permite ajustar o fator de não "
+"linearidade."
 
 #: src/gui/siril3.glade:3310
 msgid "Black Point"
-msgstr ""
+msgstr "Ponto preto"
 
 #: src/gui/siril3.glade:3346
 msgid "Constant value that is subtracted from the image."
-msgstr ""
+msgstr "Valor constante que é subtraído da imagem."
 
 #: src/gui/siril3.glade:3362
 msgid "Human-weighted luminance"
-msgstr ""
+msgstr "Luminância ponderada para o ser humano"
 
 #: src/gui/siril3.glade:3366
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
 msgstr ""
+"Para imagens coloridas, use pesos de eficiência luminosa do olho humano para "
+"calcular a luminância usada para calcular o alongamento de cada pixel."
 
 #: src/gui/siril3.glade:3413 src/algos/background_extraction.c:1047
 msgid "Background Extraction"
@@ -2584,15 +2586,15 @@ msgstr ""
 
 #: src/gui/siril3.glade:11648 src/gui/astrometry_solver.c:87
 msgid "Image Plate Solver"
-msgstr ""
+msgstr "Solucionador de imagem"
 
 #: src/gui/siril3.glade:11679 src/gui/siril3.glade:11697
 msgid "OK"
-msgstr ""
+msgstr "OK"
 
 #: src/gui/siril3.glade:11683
 msgid "Start the plate solving algorithm."
-msgstr ""
+msgstr "Inicie o algoritmo de resolução de imagens."
 
 #: src/gui/siril3.glade:11701
 #, fuzzy
@@ -2606,6 +2608,8 @@ msgid ""
 "Initial equatorial coordinates. Input value must be inside the image, close "
 "to the centre."
 msgstr ""
+"Coordenadas equatoriais iniciais. O valor de entrada deve estar dentro da "
+"imagem, próximo ao centro."
 
 #: src/gui/siril3.glade:11748 src/gui/siril3.glade:11768
 #: src/gui/siril3.glade:11788 src/gui/siril3.glade:11808
@@ -2617,20 +2621,19 @@ msgstr "0"
 
 #: src/gui/siril3.glade:11857
 msgid "Right Ascension: "
-msgstr ""
+msgstr "Ascensão Reta: "
 
 #: src/gui/siril3.glade:11868
-#, fuzzy
 msgid "Declination: "
-msgstr "Desvio: "
+msgstr "Declinação: "
 
 #: src/gui/siril3.glade:11877
 msgid "S"
-msgstr ""
+msgstr "S"
 
 #: src/gui/siril3.glade:11881
 msgid "This button is checked for negative declination (southern hemisphere)."
-msgstr ""
+msgstr "Este botão é marcado para declinação negativa (hemisfério sul)."
 
 #: src/gui/siril3.glade:11894
 msgid ""
@@ -2640,6 +2643,11 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"Digite o identificador ou o nome de um objeto localizado próximo ao centro "
+"da imagem. Este recurso requer uma conexão com a Internet (consulta SIMBAD "
+"por padrão ou o servidor selecionado à direita).\n"
+"Se as coordenadas já estiverem preenchidas ao clicar no botão Obter "
+"Metadados da imagem abaixo, isso provavelmente não será necessário."
 
 #: src/gui/siril3.glade:11910
 msgid "Find"
@@ -4391,9 +4399,8 @@ msgid "Type of algorithm used for rotation"
 msgstr "Tipo de algoritmo usado para rotação"
 
 #: src/gui/siril3.glade:18945
-#, fuzzy
 msgid "Search Object"
-msgstr "Procurar sequências"
+msgstr "Pesquisar objeto"
 
 #: src/gui/siril3.glade:18955
 msgid ""
@@ -4406,6 +4413,15 @@ msgid ""
 "will be added with a date in their name, with no duplicate check. Purge the "
 "User Catalogue to remove previous searches."
 msgstr ""
+"Introduza o nome do objeto que pretende pesquisar na base de dados online, "
+"SIMBAD ou na base de dados do Minor Planet Center.\n"
+"Os objetos do sistema solar podem ser referidos por seu número ou nome, mas "
+"com um prefixo dependendo de seu tipo, por exemplo, 'a:1' ou 'a:Ceres', 'p:"
+"Marte' ou 'c:C/2017 T2'.\n"
+"Se encontrados, os objetos serão adicionados ao Catálogo do Usuário. Os "
+"objetos do sistema solar serão adicionados com uma data em seu nome, sem "
+"verificação de duplicatas. Limpe o catálogo do usuário para remover "
+"pesquisas anteriores."
 
 #: src/gui/siril3.glade:18973
 msgid "Save as unique file"
