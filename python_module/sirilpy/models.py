@@ -655,7 +655,7 @@ class Sequence:
     def __str__(self):
         """For pretty-printing sequence information"""
         pretty = f'Sequence: {self.seqname}'
-        pretty += f'\nImages [selected/total]: {self.number} / {self.selnum}'
+        pretty += f'\nImages [selected/total]: {self.selnum} / {self.number}'
         pretty += f'\nNumber of layers: {self.nb_layers}'
         pretty += f'\nBitdepth: {self.bitpix}'
         pretty += f'\nReference image: {self.reference_image + 1}'
