@@ -24,7 +24,7 @@ from packaging.specifiers import SpecifierSet
 from typing import Tuple, Optional, List, Union, Any
 from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
 from .exceptions import SirilError, ConnectionError, CommandError, NoImageError
-from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, RegData, ImgData, Sequence, SequenceType
+from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, RegData, ImgData, DistoData, Sequence, SequenceType
 
 if os.name == 'nt':
     import win32pipe
@@ -99,6 +99,7 @@ class _Command(IntEnum):
     SET_SEQ_FRAME_INCL = 45,
     GET_USERDATADIR = 46,
     GET_SYSTEMDATADIR = 47,
+    GET_SEQ_DISTODATA = 48,
     ERROR = 0xFF
 
 class _Defaults:
@@ -2588,6 +2589,39 @@ class SirilInterface:
             print(f"Error unpacking frame image data: {e}", file=sys.stderr)
             return None
 
+    def get_seq_distodata(self) -> Optional[DistoData]:
+        """
+        Request sequence distortion data from Siril.
+
+        Returns:
+            DistoData object containing the sequence distortion parameters, or None if an error occurred
+        """
+
+        # Request data with the channel number as payload
+        response = self._request_data(_Command.GET_SEQ_DISTODATA)
+        if response is None:
+            return None
+        try:
+            format_string = '!q2d'
+
+            fixed_length = struct.calcsize(format_string)
+            values = struct.unpack(format_string, response[:fixed_length])
+            # Extract remaining bytes for the null-terminated string
+            if len(response) > fixed_length:
+                remaining_data = response[fixed_length:]
+                distofilename_string = remaining_data.decode('utf-8')
+            else:
+                distofilename_string = ''
+
+            return DistoData (
+                index = values[0],
+                velocity = (values[1], values[2]),
+                filename = distofilename_string
+            )
+        except struct.error as e:
+            print(f"Error unpacking distortion data: {e}", file=sys.stderr)
+            return None
+
     def get_seq(self) -> Optional[Sequence]:
         """
         Request metadata for the current sequence loaded in Siril.
@@ -2624,6 +2658,8 @@ class SirilInterface:
             stats_list = [[self.get_seq_stats(frame, channel)
                            for channel in range(nb_layers)]
                           for frame in range(number)]
+            
+            disto = self.get_seq_distodata()
 
             return Sequence (
                 number = values[0],
@@ -2638,6 +2674,7 @@ class SirilInterface:
                 imgparam = imgparam_list,
                 regparam = regdata_list,
                 stats = stats_list,
+                distoparam = disto,
                 beg = values[9],
                 end = values[10],
                 exposure = values[11],

@@ -22,6 +22,7 @@ if TYPE_CHECKING:
         PSFStar,
         RegData,
         ImgData,
+        DistoData,
         Sequence
     )
     from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
@@ -48,6 +49,7 @@ from .models import (
     PSFStar,
     RegData,
     ImgData,
+    DistoData,
     Sequence
 )
 from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
@@ -87,6 +89,7 @@ __all__ = [
     'PSFStar',
     'RegData',
     'ImgData',
+    'DistoData',
     'Sequence',
     'PlotType',
     'SeriesData',
