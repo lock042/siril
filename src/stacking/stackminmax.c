@@ -61,7 +61,6 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 
 	/* should be pre-computed to display it in the stacking tab */
 	nb_frames = args->nb_images_to_stack;
-	int reglayer = get_registration_layer(args->seq);
 	gboolean has_regdata = seq_has_any_regdata(args->seq);
 
 	if (nb_frames <= 1) {
