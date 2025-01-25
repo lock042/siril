@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-24 10:19+0100\n"
-"PO-Revision-Date: 2025-01-21 04:26+0000\n"
+"PO-Revision-Date: 2025-01-25 21:12+0000\n"
 "Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -1636,6 +1636,7 @@ msgid ""
 "For elliptical PSFs, this gives the ratio of the shorter and longer "
 "dimensions."
 msgstr ""
+"Para PSFs elípticas, esto da el ratio entre las dimensión mayor y la menor."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:760 src/gui/uifiles/bdeconv_dialog.ui:1642
 #, fuzzy
@@ -1655,17 +1656,19 @@ msgstr "Ángulo (º)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:798
 msgid "For elliptical PSFs, the angle from the x axis in degrees."
-msgstr ""
+msgstr "Para las PSFs elípicas, el ángulo desde el eje x en grados."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:813 src/gui/uifiles/bdeconv_dialog.ui:1678
 msgid "beta (β)"
-msgstr ""
+msgstr "beta (β)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:825
 msgid ""
 "For Moffat profiles, this sets the value of beta. See the astrometry "
 "documentation for information on this parameter."
 msgstr ""
+"Para los perfiles Moffat, define el valor de beta. Mire la documentación de "
+"astrometría para obtener información sobre este parámetro."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:856
 #, fuzzy
@@ -1677,7 +1680,7 @@ msgstr "Tamaño de píxel (µm):"
 #: src/gui/photometric_cc.c:1153
 #, c-format
 msgid "Wavelength / nm"
-msgstr ""
+msgstr "Longitud de onda / nm"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:880
 #, fuzzy
@@ -1686,11 +1689,11 @@ msgstr "Longitud focal (mm): "
 
 #: src/gui/uifiles/bdeconv_dialog.ui:892
 msgid "Diameter / mm"
-msgstr ""
+msgstr "Diámetro / nm"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:903
 msgid "Sensor pixel size in microns"
-msgstr ""
+msgstr "Tamaño de pixel del sensor en micrones"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:919
 msgid ""
@@ -1698,20 +1701,26 @@ msgid ""
 "exactly for narrowband filters, or for broadband / OSC / luminance filters "
 "just use a representative central wavelength."
 msgstr ""
+"Longitud de onda para la que se calcula el patrón de difracción. Se puede "
+"especificar exactamente para filtros de banda estrecha, o simplemente usar "
+"una longitud de onda central representativa para filtros de banda ancha / "
+"OSC / luminancia."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:934
 msgid ""
 "Telescope focal length (this should account for any multiplication factor "
 "introduced by Barlows or field flatteners)"
 msgstr ""
+"Focal del telescopio (debe tener en cuenta cualquier factor multiplicador "
+"añadido por Barlows o aplanadores de campo)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:950
 msgid "Diameter of the telescope primary aperture"
-msgstr ""
+msgstr "Diámetro de la apertura principal del telescopio"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:967
 msgid "Central Obstruction / %"
-msgstr ""
+msgstr "Obstrucción Central / %"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:978
 msgid ""
@@ -1719,6 +1728,9 @@ msgid ""
 "This is zero for refractors, typically around 10-20% for fast Newtonians and "
 "may be as much as 40% for a Corrected Dall-Kirkham."
 msgstr ""
+"Establece la obstrucción central como porcentaje de la área de apertura "
+"total. Es 0 para los refractores, típicamente entre 10-20% para Newtonianos "
+"rápidos y quizás hasta 40% para un Dall-Kirkham corregido."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1001
 #, fuzzy
@@ -1730,14 +1742,16 @@ msgid ""
 "Regularization parameter for PSF estimation. Try decreasing this value for "
 "noisy images."
 msgstr ""
+"Parámetro de regularización para la estimación PSF. Intente reducir este "
+"valor para imágenes ruidosas."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1048
 msgid "Lambda (λ)"
-msgstr ""
+msgstr "Lambda (λ)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1061
 msgid "Blind Deconvolution PSF Estimation"
-msgstr ""
+msgstr "Estimación PSF de Deconvolución Ciega"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1095
 #, fuzzy
@@ -1752,15 +1766,15 @@ msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1113
 msgid "These settings can be left alone in the vast majority of cases. "
-msgstr ""
+msgstr "Estas opciones se puede ignorar en la gran mayoría de los casos. "
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1127
 msgid "Gamma (γ)"
-msgstr ""
+msgstr "Gamma (γ)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1138
 msgid "PSF estimation regularisation parameter"
-msgstr ""
+msgstr "Parámetro de regularización de estimación PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1153
 #: src/gui/uifiles/bdeconv_dialog.ui:1929 src/gui/uifiles/Median_dialog.ui:186
@@ -1784,11 +1798,11 @@ msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1206
 msgid "Lambda min"
-msgstr ""
+msgstr "Lambda mín"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1217
 msgid "Minimum value of lambda for multiscale PSF estimation"
-msgstr ""
+msgstr "Valor mínimo de lambda para estimación PSF multiescala"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1233
 #, fuzzy
@@ -1797,7 +1811,7 @@ msgstr "Factor de extensión"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1244
 msgid "Scale factor between successive scales of multiscale PSF estimation"
-msgstr ""
+msgstr "Factor de escala entre escalas sucesivas de estimación PSF multiescala"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1259
 msgid "Amount of blur to use for upsampling during PSF estimation"
@@ -1846,11 +1860,11 @@ msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1378
 msgid "ℓ1 gradient parameter"
-msgstr ""
+msgstr "parámetro gradiente ℓ1"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1395
 msgid "These settings should almost always be left at the default value."
-msgstr ""
+msgstr "Estas opciones casi siempre se deben dejar con el valor por defecto."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1396
 #: src/gui/uifiles/bdeconv_dialog.ui:1578
@@ -1860,7 +1874,7 @@ msgstr "Ajustes"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1414
 msgid "ℓ0 Descent Method"
-msgstr ""
+msgstr "Método Descendente ℓ0"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1450
 #, fuzzy
@@ -1900,6 +1914,8 @@ msgid ""
 "Outer loop iterations. This parameter should not generally require "
 "adjustment."
 msgstr ""
+"Iteraciones del bucle exterior. Este parámetro normalmente no necesita "
+"ajuste."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1551
 #, fuzzy
@@ -1911,10 +1927,12 @@ msgid ""
 "This parameter sets the number of iterations in the algorithm inner loop. It "
 "should not usually require adjustment."
 msgstr ""
+"Este parámetro define el número de iteraciones del bucle interno del "
+"algoritmo. No suele necesitar ajuste."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1594
 msgid "Spectral Irregularity Method"
-msgstr ""
+msgstr "Método de Irregularidad Espectral"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1737
 #, fuzzy
@@ -1944,7 +1962,7 @@ msgstr "Previsualización"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1834
 msgid "Shows a preview of the PSF, if one has been calculated."
-msgstr ""
+msgstr "Muestra una previsualización del PSF, si se ha calculado uno."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1848
 #, fuzzy
@@ -1967,11 +1985,11 @@ msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1912
 msgid "Split Bregman method with TV regularization"
-msgstr ""
+msgstr "Método Split Bregman con regularización TV"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1913
 msgid "Richardson-Lucy method with TV regularization"
-msgstr ""
+msgstr "Método Richardson-Lucy con regularización TV"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1914
 #, fuzzy
@@ -1982,6 +2000,8 @@ msgstr "Añadir otro filtro"
 msgid ""
 "Number of iterations for final deconvolution if using an iterative method"
 msgstr ""
+"Numero de iteraciones para la deconvolución final, si se usa un método "
+"iterativo"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1954
 msgid "Regularization parameter for the final non-blind stage deconvolution"
