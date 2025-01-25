@@ -142,6 +142,8 @@ preferences pref_init = {
 		.catalog[6] = TRUE,
 		.catalog[7] = TRUE,
 		.catalog[8] = TRUE,
+		.catalog[9] = TRUE,
+		.catalog[10] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
 		.show_deciasec = FALSE,
@@ -538,8 +540,10 @@ struct settings_access all_settings[] = {
 	{ "gui_astrometry", "cat_ldn", STYPE_BOOL, N_("show LDN objects in annotations"), &com.pref.gui.catalog[3] },
 	{ "gui_astrometry", "cat_sh2", STYPE_BOOL, N_("show SH2 objects in annotations"), &com.pref.gui.catalog[4] },
 	{ "gui_astrometry", "cat_stars", STYPE_BOOL, N_("show stars in annotations"), &com.pref.gui.catalog[5] },
-	{ "gui_astrometry", "cat_user_dso", STYPE_BOOL, N_("show user DSO objects in annotations"), &com.pref.gui.catalog[6] },
-	{ "gui_astrometry", "cat_user_sso", STYPE_BOOL, N_("show user SSO objects in annotations"), &com.pref.gui.catalog[7] },
+	{ "gui_astrometry", "cat_const", STYPE_BOOL, N_("show constellations in annotations"), &com.pref.gui.catalog[6] },
+	{ "gui_astrometry", "cat_const_names", STYPE_BOOL, N_("show constellations names in annotations"), &com.pref.gui.catalog[7] },
+	{ "gui_astrometry", "cat_user_dso", STYPE_BOOL, N_("show user DSO objects in annotations"), &com.pref.gui.catalog[8] },
+	{ "gui_astrometry", "cat_user_sso", STYPE_BOOL, N_("show user SSO objects in annotations"), &com.pref.gui.catalog[9] },
 
 	{ "gui_pixelmath", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.gui.pm_presets },
 
