@@ -638,7 +638,7 @@ gchar* get_settings_key(const char *group, const char *key, gboolean with_detail
 			g_string_append_printf(str, " [%g, %g]",
 					desc->range_double.min, desc->range_double.max);
 		g_string_append_printf(str, " (%s)", settings_type_to_string(desc->type));
-		g_string_append_printf(str, ", %s", desc->desc);
+		g_string_append_printf(str, ", %s", _(desc->desc));
 	}
 	gchar *s = g_string_free(str, FALSE);
 	return s;
