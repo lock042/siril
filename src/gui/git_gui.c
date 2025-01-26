@@ -103,12 +103,14 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 		GList *iterator;
 		for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
 		// here we populate the GtkTreeView from GList gui.repo_scripts
-		gchar *category = g_strrstr((gchar *)iterator->data, "preprocessing")
-								? "Preprocessing"
-								: "Processing";
+		gchar *category = g_strrstr((gchar *)iterator->data, "preprocessing") ? _("Preprocessing")
+							:  g_strrstr((gchar *)iterator->data, "processing") ? _("Processing")
+							:  g_strrstr((gchar *)iterator->data, "core") ? _("Core")
+							: "Other";
 		gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
 		gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
-		gchar *scripttype = g_str_has_suffix(scriptname, ".ssf") ? _("Siril Script File") : g_str_has_suffix(scriptname, ".py")  ? _("Python script") : NULL;
+		gchar *scripttype = g_str_has_suffix(scriptname, ".ssf") ? _("Siril Script File") :
+					(g_str_has_suffix(scriptname, ".py") || g_str_has_suffix(scriptname, ".pyc")) ? _("Python script") : NULL;
 
 	#ifdef DEBUG_GITSCRIPTS
 		printf("%s\n", scriptpath);
