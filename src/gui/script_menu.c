@@ -320,7 +320,7 @@ int initialize_script_menu(gboolean verbose) {
 	g_free(previous_directory_ssf);
 	g_free(previous_directory_py);
 
-#ifdef HAVE_LIBGIT2
+	#ifdef HAVE_LIBGIT2
 	if (com.update_scripts_thread) {
 		g_thread_join(com.update_scripts_thread);
 		com.update_scripts_thread = NULL;
@@ -328,13 +328,20 @@ int initialize_script_menu(gboolean verbose) {
 	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
 		GList *new_list = NULL;
 		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
+			gchar *full_path = g_strdup(ss->data);
+			if (!g_file_test(full_path, G_FILE_TEST_EXISTS)) {
+				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
+				g_free(full_path);
+				continue;
+			}
+
 			nb_item++;
 			gboolean included = FALSE;
 			GList *iterator;
-			for (iterator = gui.repo_scripts; iterator;
-					iterator = iterator->next) {
+			for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
 				if (g_strrstr((gchar*) ss->data, (gchar*) iterator->data)) {
 					included = TRUE;
+					break;
 				}
 			}
 			if (included) {
@@ -343,7 +350,6 @@ int initialize_script_menu(gboolean verbose) {
 				const char *extension = get_filename_ext(basename);
 
 				menu_item = gtk_menu_item_new_with_label(basename);
-				gchar *full_path = g_strdup(ss->data);
 
 				if (extension && g_strcmp0(extension, "ssf") == 0) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
@@ -355,18 +361,19 @@ int initialize_script_menu(gboolean verbose) {
 				if (verbose)
 					siril_log_message(_("Loading script from repository: %s\n"), basename);
 				gtk_widget_show(menu_item);
-				new_list = g_list_prepend(new_list, ss->data);
+				new_list = g_list_prepend(new_list, g_strdup(ss->data));
 
 				g_free(basename);
 			} else {
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
+				g_free(full_path);
 			}
 		}
 		GList *tmp = com.pref.selected_scripts;
 		com.pref.selected_scripts = new_list;
-		g_list_free(g_steal_pointer(&tmp));
+		g_list_free_full(tmp, g_free);
 	}
-#endif
+	#endif
 	if (!nb_item) {
 		gtk_widget_hide(menuscript);
 		return 0;
