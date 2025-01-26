@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-24 10:19+0100\n"
-"PO-Revision-Date: 2025-01-17 22:32+0000\n"
+"PO-Revision-Date: 2025-01-25 21:12+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -389,11 +389,13 @@ msgid ""
 "For stars catalogues containing photometric data, stars with no B-V "
 "information will be kept; they can be excluded by check this option."
 msgstr ""
+"Para catálogos de estrelas contendo dados fotométricos, estrelas sem "
+"informação B-V serão mantidas; eles podem ser excluídos marcando esta opção."
 
 #: src/gui/uifiles/annotate_dialog.ui:174
 #: src/gui/uifiles/annotate_dialog.ui:426
 msgid "Tag"
-msgstr ""
+msgstr "Etiqueta"
 
 #: src/gui/uifiles/annotate_dialog.ui:178
 #: src/gui/uifiles/annotate_dialog.ui:193
@@ -406,11 +408,19 @@ msgid ""
 "with the tag check button to display names alongside markers and log check "
 "button to list the objects in the console log."
 msgstr ""
+"Alguns catálogos (bsc, gcvs, pgc, exo, aavso_chart, varisum e solsys) também "
+"exibirão, por padrão, nomes ao lado de marcadores na exibição e os listarão "
+"no log. Para outros com maior número de objetos, nomeadamente vsx e simbad, "
+"a informação também pode ser mostrada mas, como pode sobrecarregar o "
+"display, não é ativada por padrão. Esse comportamento pode ser ativado/"
+"desativado com o botão de verificação de tags para exibir nomes ao lado de "
+"marcadores e o botão de verificação de log para listar os objetos no log do "
+"console."
 
 #: src/gui/uifiles/annotate_dialog.ui:189
 #: src/gui/uifiles/annotate_dialog.ui:442
 msgid "Log"
-msgstr ""
+msgstr "Registro"
 
 #: src/gui/uifiles/annotate_dialog.ui:207
 msgid "Save to: "
@@ -421,19 +431,20 @@ msgid ""
 "The list of elements present in the image can be saved in a csv file by "
 "filling in this text field or by clicking on the button to the right."
 msgstr ""
+"A lista de elementos presentes na imagem pode ser salva em um arquivo csv "
+"preenchendo este campo de texto ou clicando no botão à direita."
 
 #: src/gui/uifiles/annotate_dialog.ui:252
 msgid "Limit magnitude used in the query."
-msgstr ""
+msgstr "Limite de magnitude usado na consulta."
 
 #: src/gui/uifiles/annotate_dialog.ui:253
-#, fuzzy
 msgid "13"
-msgstr "x0"
+msgstr "13"
 
 #: src/gui/uifiles/annotate_dialog.ui:273
 msgid "Obs. code: "
-msgstr ""
+msgstr "Código Obs.: "
 
 #: src/gui/uifiles/annotate_dialog.ui:285
 #: src/gui/uifiles/settings_window.ui:1257
@@ -442,10 +453,14 @@ msgid ""
 "accuracy in solar system cone searches. A full list can be found at https://"
 "minorplanetcenter.net/iau/lists/ObsCodesF.html"
 msgstr ""
+"Digite o código do observatório IAU mais próximo para usar por padrão para "
+"melhorar a precisão nas pesquisas de cones do sistema solar. Uma lista "
+"completa pode ser encontrada em https://minorplanetcenter.net/iau/lists/"
+"ObsCodesF.html"
 
 #: src/gui/uifiles/annotate_dialog.ui:317
 msgid "Conesearch"
-msgstr ""
+msgstr "Busca de cone"
 
 #: src/gui/uifiles/annotate_dialog.ui:369
 msgid "File: "
@@ -457,11 +472,13 @@ msgid ""
 "columns. If the passed file also contains a column name, names will be used "
 "as tags in the image and listed in the Console."
 msgstr ""
+"Vários pontos são passados usando um arquivo CSV contendo pelo menos as "
+"colunas RA e DEC. Se o arquivo passado também contiver um nome de coluna, os "
+"nomes serão usados como tags na imagem e listados no console."
 
 #: src/gui/uifiles/annotate_dialog.ui:397
-#, fuzzy
 msgid "Click this button to select a csv file."
-msgstr "Clique neste botão para mostrar o fundo estimado."
+msgstr "Clique neste botão para selecionar um arquivo csv."
 
 #: src/gui/uifiles/annotate_dialog.ui:430
 msgid ""
@@ -469,6 +486,9 @@ msgid ""
 "in the image and listed in the Console, unless toggled off with these "
 "checkbuttons."
 msgstr ""
+" Se o arquivo passado também contiver um nome de coluna, os nomes serão "
+"usados como tags na imagem e listados no console, a menos que sejam "
+"desativados com esses botões de seleção."
 
 #: src/gui/uifiles/annotate_dialog.ui:446
 msgid ""
@@ -476,22 +496,23 @@ msgid ""
 "in the image and listed in the Console, unless toggled off with theses "
 "checkbuttons."
 msgstr ""
+" Se o arquivo passado também contiver um nome de coluna, os nomes serão "
+"usados como tags na imagem e listados no console, a menos que sejam "
+"desativados com esses botões de seleção."
 
 #: src/gui/uifiles/annotate_dialog.ui:459
-#, fuzzy
 msgid "Import CSV"
-msgstr "Exportar para CSV"
+msgstr "Importar CSV"
 
 #: src/gui/uifiles/annotate_dialog.ui:474
 #: src/gui/uifiles/astrometry_dialog.ui:299
 msgid "Right Ascension: "
-msgstr ""
+msgstr "Ascensão Reta: "
 
 #: src/gui/uifiles/annotate_dialog.ui:486
 #: src/gui/uifiles/astrometry_dialog.ui:310
-#, fuzzy
 msgid "Declination: "
-msgstr "Desvio: "
+msgstr "Declinação: "
 
 #: src/gui/uifiles/annotate_dialog.ui:497
 #: src/gui/uifiles/annotate_dialog.ui:508
@@ -501,6 +522,10 @@ msgid ""
 "(degrees, minutes, seconds) for declination, or as decimal degrees (e.g., "
 "184.000785, 14.899070)."
 msgstr ""
+"Esses campos aceitam ascensão reta e declinação. Você pode inseri-los no "
+"formato hms (horas, minutos, segundos) para ascensão reta e no formato dms ("
+"graus, minutos, segundos) para declinação, ou como graus decimais (por "
+"exemplo, 184.000785, 14.899070)."
 
 #: src/gui/uifiles/annotate_dialog.ui:520
 msgid "Display Name:"
@@ -511,25 +536,24 @@ msgid ""
 "The display name will be used as a tag for the image and listed in the "
 "console."
 msgstr ""
+"O nome de exibição será usado como uma tag para a imagem e listado no "
+"console."
 
 #: src/gui/uifiles/annotate_dialog.ui:543
-#, fuzzy
 msgid "Click this button to save the entry to the user DSO catalogue."
-msgstr "Clique neste botão para mostrar o fundo estimado."
+msgstr "Clique neste botão para salvar a entrada no catálogo DSO do usuário."
 
 #: src/gui/uifiles/annotate_dialog.ui:564
 msgid "Get coordinates from selection"
 msgstr "Obter coordenadas da seleção"
 
 #: src/gui/uifiles/annotate_dialog.ui:585
-#, fuzzy
 msgid "Single Coordinates"
-msgstr "_Processamento de imagem"
+msgstr "Coordenadas individuais"
 
 #: src/gui/uifiles/annotate_dialog.ui:605
-#, fuzzy
 msgid "Show"
-msgstr "Mostrar Imagem"
+msgstr "Mostrar"
 
 #: src/gui/uifiles/annotate_dialog.ui:625
 msgid ""
@@ -542,20 +566,27 @@ msgid ""
 "will be added with a date in their name, with no duplicate check. Purge the "
 "User Catalogue to remove previous searches."
 msgstr ""
+"Introduza o nome do objeto que pretende pesquisar na base de dados online, "
+"SIMBAD ou na base de dados do Minor Planet Center.\n"
+"Os objetos do sistema solar podem ser referidos por seu número ou nome, mas "
+"com um prefixo dependendo de seu tipo, por exemplo, 'a:1' ou 'a:Ceres', 'p:"
+"Marte' ou 'c:C/2017 T2'.\n"
+"Se encontrados, os objetos serão adicionados ao Catálogo do Usuário. Os "
+"objetos do sistema solar serão adicionados com uma data em seu nome, sem "
+"verificação de duplicatas. Limpe o catálogo do usuário para remover "
+"pesquisas anteriores."
 
 #: src/gui/uifiles/annotate_dialog.ui:644
 msgid "Name: "
 msgstr "Nome: "
 
 #: src/gui/uifiles/annotate_dialog.ui:660
-#, fuzzy
 msgid "Search Object"
-msgstr "Procurar sequências"
+msgstr "Pesquisar objeto"
 
 #: src/gui/uifiles/asinh_dialog.ui:45
-#, fuzzy
 msgid "Asinh Transformation"
-msgstr "Executar transformação"
+msgstr "Transformação Asinh"
 
 #: src/gui/uifiles/asinh_dialog.ui:63 src/gui/uifiles/ccm_dialog.ui:43
 #: src/gui/uifiles/CLAHE_dialog.ui:68 src/gui/uifiles/dialog_star_remix.ui:1546
@@ -577,31 +608,34 @@ msgid "Cancel"
 msgstr "Cancelar"
 
 #: src/gui/uifiles/asinh_dialog.ui:123
-#, fuzzy
 msgid "Stretch factor"
-msgstr "_Processamento de imagem"
+msgstr "Fator de estiramento"
 
 #: src/gui/uifiles/asinh_dialog.ui:160
 msgid "The parameter stretch factor allows to adjust the non-linearity factor."
 msgstr ""
+"O fator de estiramento do parâmetro permite ajustar o fator de não "
+"linearidade."
 
 #: src/gui/uifiles/asinh_dialog.ui:182
 msgid "Black Point"
-msgstr ""
+msgstr "Ponto preto"
 
 #: src/gui/uifiles/asinh_dialog.ui:218
 msgid "Constant value that is subtracted from the image."
-msgstr ""
+msgstr "Valor constante que é subtraído da imagem."
 
 #: src/gui/uifiles/asinh_dialog.ui:234
 msgid "Human-weighted luminance"
-msgstr ""
+msgstr "Luminância ponderada para o ser humano"
 
 #: src/gui/uifiles/asinh_dialog.ui:238
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
 msgstr ""
+"Para imagens coloridas, use pesos de eficiência luminosa do olho humano para "
+"calcular a luminância usada para calcular o alongamento de cada pixel."
 
 #: src/gui/uifiles/asinh_dialog.ui:252 src/gui/uifiles/CLAHE_dialog.ui:254
 #: src/gui/uifiles/histogram_dialog.ui:788 src/gui/uifiles/satu_dialog.ui:280
@@ -611,42 +645,39 @@ msgstr "Pré-Visualização"
 
 #: src/gui/uifiles/asinh_dialog.ui:276
 msgid "Clip mode"
-msgstr ""
+msgstr "Modo de recorte"
 
 #: src/gui/uifiles/asinh_dialog.ui:290 src/gui/uifiles/dialog_star_remix.ui:164
 #: src/gui/uifiles/histogram_dialog.ui:766 src/gui/utils.c:395
-#, fuzzy
 msgid "Clip"
-msgstr "Corte (%)"
+msgstr "Recorte"
 
 #: src/gui/uifiles/asinh_dialog.ui:291 src/gui/uifiles/dialog_star_remix.ui:165
 #: src/gui/uifiles/histogram_dialog.ui:767
 msgid "Rescale"
-msgstr ""
+msgstr "Reescalar"
 
 #: src/gui/uifiles/asinh_dialog.ui:292 src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:768
-#, fuzzy
 msgid "RGB Blend"
-msgstr "Alinhar RGB"
+msgstr "Mistura RGB"
 
 #: src/gui/uifiles/asinh_dialog.ui:293
-#, fuzzy
 msgid "Global Rescale"
-msgstr "Rejeição global"
+msgstr "Reescala global"
 
 #: src/gui/uifiles/astrometry_dialog.ui:97
 msgid "Image Plate Solver"
-msgstr ""
+msgstr "Solucionador de imagem"
 
 #: src/gui/uifiles/astrometry_dialog.ui:128 src/gui/uifiles/s_pcc_dialog.ui:156
 #: src/gui/uifiles/s_pcc_dialog.ui:175
 msgid "OK"
-msgstr ""
+msgstr "OK"
 
 #: src/gui/uifiles/astrometry_dialog.ui:133
 msgid "Start the plate solving algorithm."
-msgstr ""
+msgstr "Inicie o algoritmo de resolução de imagens."
 
 #: src/gui/uifiles/astrometry_dialog.ui:175
 #: src/gui/uifiles/astrometry_dialog.ui:197
@@ -658,14 +689,16 @@ msgid ""
 "Initial equatorial coordinates. Input value must be inside the image, close "
 "to the centre."
 msgstr ""
+"Coordenadas equatoriais iniciais. O valor de entrada deve estar dentro da "
+"imagem, próximo ao centro."
 
 #: src/gui/uifiles/astrometry_dialog.ui:319
 msgid "S"
-msgstr ""
+msgstr "S"
 
 #: src/gui/uifiles/astrometry_dialog.ui:323
 msgid "This button is checked for negative declination (southern hemisphere)."
-msgstr ""
+msgstr "Este botão é marcado para declinação negativa (hemisfério sul)."
 
 #: src/gui/uifiles/astrometry_dialog.ui:337
 msgid ""
@@ -675,6 +708,11 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"Digite o identificador ou o nome de um objeto localizado próximo ao centro "
+"da imagem. Este recurso requer uma conexão com a Internet (consulta SIMBAD "
+"por padrão ou o servidor selecionado à direita).\n"
+"Se as coordenadas já estiverem preenchidas ao clicar no botão Obter "
+"Metadados da imagem abaixo, isso provavelmente não será necessário."
 
 #: src/gui/uifiles/astrometry_dialog.ui:353
 msgid "Find"

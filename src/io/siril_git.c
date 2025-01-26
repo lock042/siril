@@ -945,20 +945,13 @@ static gpointer thread_func(gpointer user_data) {
 	return GINT_TO_POINTER(result);
 }
 
-// Wrapper function that runs the specified function in a thread
-static void run_update_in_thread(int (*update_func)(gboolean), gboolean sync, GError **error) {
-	ThreadData *data = g_new(ThreadData, 1);
-	data->func = update_func;
-	data->sync = sync;
-
-	GThread *thread = g_thread_try_new("update_thread", thread_func, data, error);
-	g_thread_unref(thread);
-}
-
 void async_update_git_repositories() {
 	GError *error = NULL;
 	if (com.pref.use_scripts_repository) {
-		run_update_in_thread(auto_update_gitscripts, com.pref.auto_script_update, &error);
+		ThreadData *data = g_new(ThreadData, 1);
+		data->func = auto_update_gitscripts;
+		data->sync = com.pref.auto_script_update;
+		com.update_scripts_thread = g_thread_try_new("update_thread", thread_func, data, &error);
 		if (error) {
 			siril_log_color_message(_("Error spawning thread to update scripts repository: %s\n"), "red", error->message);
 			g_error_free(error);
@@ -967,7 +960,12 @@ void async_update_git_repositories() {
 		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
 	}
 	if (com.pref.spcc.use_spcc_repository) {
-		run_update_in_thread(auto_update_gitspcc, com.pref.spcc.auto_spcc_update, &error);
+		ThreadData *data = g_new(ThreadData, 1);
+		data->func = auto_update_gitspcc;
+		data->sync = com.pref.spcc.auto_spcc_update;
+
+		GThread *thread = g_thread_try_new("update_thread", thread_func, data, &error);
+		g_thread_unref(thread);
 		if (error) {
 			siril_log_color_message(_("Error spawning thread to update SPCC repository: %s\n"), "red", error->message);
 			g_error_free(error);

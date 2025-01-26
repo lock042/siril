@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-24 10:19+0100\n"
-"PO-Revision-Date: 2025-01-22 10:27+0000\n"
-"Last-Translator: GarthTB <g-art-h@outlook.com>\n"
+"PO-Revision-Date: 2025-01-25 21:12+0000\n"
+"Last-Translator: Li Yizhi <411585951@qq.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -2796,9 +2796,8 @@ msgstr ""
 "光谱数据。"
 
 #: src/gui/uifiles/cut_dialog.ui:303
-#, fuzzy
 msgid "Tri-Profile offset (px)"
-msgstr "三轮廓（单色）"
+msgstr "三轮廓偏移量（单色）"
 
 #: src/gui/uifiles/cut_dialog.ui:333
 msgid ""
@@ -5735,14 +5734,12 @@ msgstr ""
 "自运动，以紧凑的二进制格式，低至18等。"
 
 #: src/gui/uifiles/settings_window.ui:1521
-#, fuzzy
 msgid "Gaia astrometric extract:"
-msgstr "计算天体测量对齐...\n"
+msgstr "Gaia解析提取结果："
 
 #: src/gui/uifiles/settings_window.ui:1534
-#, fuzzy
 msgid "Gaia photometric extract:"
-msgstr "在线星表（测光用）: "
+msgstr "Gaia测光提取得到："
 
 #: src/gui/uifiles/settings_window.ui:1545
 #, fuzzy
@@ -6921,9 +6918,8 @@ msgid "Script"
 msgstr "脚本"
 
 #: src/gui/uifiles/settings_window.ui:5212
-#, fuzzy
 msgid "Type"
-msgstr "类型:"
+msgstr "类型"
 
 #: src/gui/uifiles/settings_window.ui:5256
 msgid "<b>Siril Scripts Repository</b>"
@@ -8858,7 +8854,7 @@ msgid ""
 "- a wcs file which was written by a previous registration with distortions."
 msgstr ""
 "选择一个文件来读取畸变信息：\n"
-"- 一个已经解析了畸变的FITS文件。\n"
+"- 一个已经解析过畸变的FITS文件。\n"
 "- 一个由先前的包含畸变的对齐写入的wcs文件。"
 
 #: src/gui/uifiles/siril.ui:5872 src/gui/uifiles/siril.ui:5886
@@ -16029,7 +16025,6 @@ msgstr ""
 "<b>filename</b>中对应像素的最大值"
 
 #: src/core/command_def.h:7
-#, fuzzy
 msgid ""
 "Stretches the image to show faint objects using an hyperbolic arcsin "
 "transformation. The mandatory argument <b>stretch</b>, typically between 1 "
@@ -16043,10 +16038,13 @@ msgid ""
 "<b>clip</b>, <b>rescale</b>, <b>rgbblend</b> or <b>globalrescale</b> are "
 "accepted and the default is rgbblend"
 msgstr ""
-"使用双曲正弦变换拉伸图像，以凸显暗淡对象。必需参数<b>stretch</b>（通常在1到"
-"1000之间）将给出拉伸的强度。可以通过提供一个在[0, 1]范围内的<b>offset</b>参数"
-"来偏移黑点。最后，选项<b>-human</b>允许使用人眼的感光效率来加权计算每个像素的"
-"的明度，而不只是各通道像素值的平均值。这种拉伸方法保持了L*a*b*色彩空间的亮度"
+"通过反双曲正弦变换拉伸图像以增强暗弱天体。必需参数<b>stretch</b>（通常取值1-1"
+"000）用于控制拉伸强度。可选参数<b>offset</b>可在归一化的[0,1]范围内设置黑点。"
+"若启用<b>-human</b>选项，则采用人眼明度权重计算各像素亮度值作为拉伸依据，而非"
+"各通道均值。此拉伸算法保留L*a*b*色彩空间中的明度特征。修剪模式通过<b>-clipmod"
+"e=</b>参数设定，可选值包括<b>clip</b>（修剪）、<b>rescale</b>（重缩放）、<b>r"
+"gbblend</b>（RGB混合）和<b>globalrescale</b>（全局重缩放），默认采用rgbblend"
+"模式"
 
 #: src/core/command_def.h:8
 #, fuzzy
@@ -17351,6 +17349,9 @@ msgid ""
 "require the sequence name to be specified, it is necessary to load a "
 "sequence in order to read its metadata using Python scripting"
 msgstr ""
+"将当前工作目录中的序列<b>sequencename</b>加载为“当前载入的序列”。使用Siril的"
+"序列命令时，可以直接在命令中指定序列名称，但使用Python脚本时必须先将序列载入"
+"，以读取其元数据"
 
 #: src/core/command_def.h:94
 msgid ""
@@ -17921,6 +17922,12 @@ msgid ""
 "script as its argument vector. Note that the specific script must "
 "incorporate support for reading input from the argument vector"
 msgstr ""
+"执行Siril的Python脚本\n"
+"\n"
+"第一个参数必须是脚本名称。如果在当前工作目录中未找到该脚本"
+"，则会在首选项中指定的用户自定义脚本路径以及本地的siril-scripts仓库中搜索。所"
+"有后续参数都为脚本参数，并作为参数向量传递给脚本。注意，脚本必须能够读取这个"
+"传递的参数数组"
 
 #: src/core/command_def.h:124
 #, fuzzy
@@ -21990,7 +21997,7 @@ msgstr "参数错误。\n"
 #: src/drizzle/cdrizzleutil.c:124
 #, c-format
 msgid "kernel:         %s\n"
-msgstr ""
+msgstr "内核：         %s\n"
 
 #: src/drizzle/cdrizzleutil.c:125
 #, c-format
@@ -22148,9 +22155,8 @@ msgid "None!\n"
 msgstr "无！\n"
 
 #: src/filters/graxpert.c:694 src/filters/graxpert.c:702
-#, fuzzy
 msgid "Reading result from the temporary working file...\n"
-msgstr "错误：无法删除临时工作文件...\n"
+msgstr "正在从临时工作文件读取结果...\n"
 
 #: src/filters/graxpert.c:696 src/filters/graxpert.c:704
 #, fuzzy, c-format
@@ -22186,7 +22192,7 @@ msgstr "GraXpert 反卷积，强度 %.3f，psf 尺寸 %.3f"
 
 #: src/filters/graxpert.c:780
 msgid "GraXpert operations using GUI"
-msgstr ""
+msgstr "使用GUI的GraXpert操作"
 
 #. Save current image as input filename
 #: src/filters/graxpert.c:819
@@ -22676,7 +22682,7 @@ msgstr "用户星表"
 
 #: src/gui/annotations_pref.c:36
 msgid "IAU Constellations Names"
-msgstr ""
+msgstr "IAU 星座名称"
 
 #: src/gui/annotations_pref.c:37
 #, fuzzy
@@ -23450,7 +23456,7 @@ msgstr "沿剪切的距离/px"
 
 #: src/gui/cut.c:685
 msgid "Coefficients: y = "
-msgstr ""
+msgstr "系数：y = "
 
 #: src/gui/cut.c:701
 #, c-format
@@ -23509,7 +23515,7 @@ msgstr "光谱图"
 
 #: src/gui/cut.c:1040
 msgid "Spectro bg offset (px)"
-msgstr ""
+msgstr "光谱背景偏移量（像素）"
 
 #: src/gui/cut.c:1041
 msgid ""
@@ -23800,7 +23806,7 @@ msgstr "错误：没有载入的序列。\n"
 
 #: src/gui/graxpert.c:371
 msgid "Stellar"
-msgstr ""
+msgstr "星"
 
 #: src/gui/graxpert.c:371
 #, fuzzy
@@ -23981,7 +23987,7 @@ msgstr "彩色描述文件分配"
 
 #: src/gui/icc_profile.c:324
 msgid "Color space has incorrect channels"
-msgstr ""
+msgstr "色空间含有无效的通道"
 
 #: src/gui/icc_profile.c:324
 #, fuzzy
@@ -24078,7 +24084,7 @@ msgstr "整个序列的每个图像都会删除此关键字。确定吗？"
 
 #: src/gui/keywords_tree.c:266
 msgid "Keyname can contain a maximum of 8 characters.\n"
-msgstr ""
+msgstr "关键字的名称最长为8个字符。\n"
 
 #. Create the dialog window with buttons
 #: src/gui/keywords_tree.c:507
@@ -24173,7 +24179,7 @@ msgstr "重采样（缩放）（%g - %g）"
 
 #: src/gui/menu_gray_geometry.c:354
 msgid "Image backup is active"
-msgstr ""
+msgstr "已激活图像备份"
 
 #: src/gui/menu_gray_geometry.c:355
 #, fuzzy
@@ -24647,7 +24653,7 @@ msgstr "选择参考星文件"
 
 #: src/gui/nina_light_curve.c:232
 msgid "The current comparison stars file is not located in the CWD"
-msgstr ""
+msgstr "未指定工作目录中的参考星文件"
 
 #: src/gui/nina_light_curve.c:241
 msgid "The currently loaded image must be plate solved"
@@ -24713,11 +24719,11 @@ msgstr "可用比例"
 
 #: src/gui/photometric_cc.c:116
 msgid "Gaia archive running but performing slightly slower\n"
-msgstr ""
+msgstr "Gaia星表运行中，但性能略有下降\n"
 
 #: src/gui/photometric_cc.c:121
 msgid "Gaia archive running but performing very slowly"
-msgstr ""
+msgstr "Gaia星表运行中，但性能下降严重"
 
 #: src/gui/photometric_cc.c:127
 #, fuzzy
@@ -24726,16 +24732,16 @@ msgstr "Gnuplot 不可用"
 
 #: src/gui/photometric_cc.c:132
 msgid "Gaia archive unreachable"
-msgstr ""
+msgstr "Gaia星表无法连接"
 
 #: src/gui/photometric_cc.c:137
 msgid "Unknown Gaia archive status"
-msgstr ""
+msgstr "Gaia星表状态未知"
 
 #: src/gui/photometric_cc.c:155
 msgid ""
 "Siril is offline or built without networking. Gaia archive is unavailable.\n"
-msgstr ""
+msgstr "Siril处于离线模式。Gaia星表不可用。\n"
 
 #: src/gui/photometric_cc.c:170
 msgid ""
@@ -24760,21 +24766,21 @@ msgstr "光谱法色彩校准"
 
 #: src/gui/photometric_cc.c:376
 msgid "Airmass read from FITS header AIRMASS card"
-msgstr ""
+msgstr "大气光学质量由FITS文件头中的AIRMASS关键字获取"
 
 #: src/gui/photometric_cc.c:379
 msgid "Airmass computed from FITS header CENTALT card"
-msgstr ""
+msgstr "大气光学质量由FITS文件头中的CENTALT关键字计算"
 
 #: src/gui/photometric_cc.c:382
 msgid ""
 "No airmass data available or computable. Estimating airmass based on average "
 "observation height of 48.1°"
-msgstr ""
+msgstr "无法获取或计算大气光学质量。按48.1度的平均观测高度角估算大气光学质量"
 
 #: src/gui/photometric_cc.c:386
 msgid "Observer height read from FITS header SITEELEV card"
-msgstr ""
+msgstr "观测高度角由FITS文件头中的SITEELEV关键字获取"
 
 #: src/gui/photometric_cc.c:595
 msgid ""
@@ -24836,6 +24842,9 @@ msgid ""
 "Height: %d m\n"
 "Pressure: %.2f hPa (%s)"
 msgstr ""
+"大气模型\n"
+"高度：%d m\n"
+"气压：%.2f hPa (%s)"
 
 #: src/gui/photometric_cc.c:1166
 msgid "local"
@@ -25025,7 +25034,7 @@ msgstr ""
 
 #: src/gui/preferences.c:1103
 msgid "WARNING!"
-msgstr ""
+msgstr "警告！"
 
 #: src/gui/preferences.c:1103
 msgid ""
@@ -25163,13 +25172,13 @@ msgstr "确定要退出吗？"
 msgid ""
 "This will clear the entry buffer. You will not be able to recover any "
 "contents."
-msgstr ""
+msgstr "这将清空缓冲区。其中内容将一去不返。"
 
 #: src/gui/python_gui.c:730 src/gui/python_gui.c:801
 msgid ""
 "This will replace the entry buffer. You will not be able to recover any "
 "contents."
-msgstr ""
+msgstr "这将替换缓冲区。其中内容将一去不返。"
 
 #: src/gui/python_gui.c:734
 #, fuzzy
@@ -25332,7 +25341,7 @@ msgstr "CSV文件 (*.csv)"
 #. we check result is inside the selection box
 #: src/gui/registration.c:456
 msgid "Comet PSF center is out of the box, will use selection center instead\n"
-msgstr ""
+msgstr "彗星的点扩散函数中心出框了，将改为选区的中心\n"
 
 #: src/gui/registration.c:480
 msgid "There is no timestamp stored in the file"
@@ -25669,6 +25678,9 @@ msgid ""
 "scripts are considerably more powerful and execute code not written by the "
 "Siril team. Ensure you obtain scripts from a reputable source."
 msgstr ""
+"您即将使用脚本。注意，脚本将以您当前的用户权限执行代码。Siril脚本文件只能执行"
+"Siril命令和极少数特定的外部程序，而Python脚本则强大得多，可以执行非Siril团队"
+"编写的代码。请确保您从可信来源获取脚本。"
 
 #: src/gui/script_menu.c:160
 msgid "Please read me before using scripts"
@@ -25695,7 +25707,7 @@ msgstr "获取脚本"
 
 #: src/gui/script_menu.c:245
 msgid "Script Editor..."
-msgstr ""
+msgstr "脚本编辑器..."
 
 #: src/gui/script_menu.c:271
 #, c-format
@@ -26225,32 +26237,36 @@ msgid ""
 "Rescale\n"
 "(values > 0 only)"
 msgstr ""
+"重缩放\n"
+"（仅针对值>0的部分）"
 
 #: src/gui/utils.c:395
 msgid ""
 "Rescale\n"
 "(all values)"
 msgstr ""
+"重缩放\n"
+"（所有值）"
 
 #: src/gui/utils.c:398
 msgid "Cancel without making any changes"
-msgstr ""
+msgstr "取消而不做任何更改"
 
 #: src/gui/utils.c:399
 msgid "Clip pixel values to the range 0.0 - 1.0"
-msgstr ""
+msgstr "将值的范围修剪为 0.0 - 1.0"
 
 #: src/gui/utils.c:400
 msgid ""
 "Rescale pixel values to fit the range 0.0 - 1.0, clipping negative pixel "
 "values"
-msgstr ""
+msgstr "将值的范围重新缩放至 0.0 - 1.0，负值切除"
 
 #: src/gui/utils.c:401
 msgid ""
 "Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to "
 "bring negatve pixel values into range"
-msgstr ""
+msgstr "将值的范围重新缩放至 0.0 - 1.0，并应用一个偏移量以将负值抬高为非负"
 
 #: src/gui/utils.c:472
 #, c-format
@@ -27253,11 +27269,11 @@ msgstr "无法创建星表文件%s（%s）\n"
 
 #: src/io/remote_catalogues.c:695
 msgid "Offline, cannot retrieve URL.\n"
-msgstr ""
+msgstr "离线模式：不能检索URL。\n"
 
 #: src/io/remote_catalogues.c:725
 msgid "Offline: cannot fetch catalog\n"
-msgstr ""
+msgstr "离线模式：不能获取星表\n"
 
 #: src/io/remote_catalogues.c:791
 msgid ""
@@ -28182,20 +28198,21 @@ msgstr "无法创建色彩空间变换。"
 
 #: src/io/siril_pythonmodule.c:422
 msgid "Incorrect memory region specification"
-msgstr ""
+msgstr "内存区域指定错误"
 
 #: src/io/siril_pythonmodule.c:487
 msgid ""
 "Processing thread is not claimed: unable to update the current image. This "
 "is a script error: claim_thread() has either not been called or has failed, "
 "or the thread has been released too early."
-msgstr ""
+msgstr "处理线程未被声明：无法更新当前图像。这是一个脚本错误：claim_thread() "
+"函数未被调用或调用失败，或线程过早被释放。"
 
 #: src/io/siril_pythonmodule.c:496
 msgid ""
 "No image or sequence loaded: set_pixel_data() can only be used to update a "
 "loaded image, not to create a new one"
-msgstr ""
+msgstr "未加载图像或序列：set_pixel_data() 只能用于更新已加载的图像，而不能创建新图像"
 
 #: src/io/siril_pythonmodule.c:503
 #, fuzzy
@@ -28204,7 +28221,7 @@ msgstr "无效的图像选区"
 
 #: src/io/siril_pythonmodule.c:515
 msgid "Invalid image size: exceeds memory limit"
-msgstr ""
+msgstr "图像尺寸无效：超出内存限制"
 
 #: src/io/siril_pythonmodule.c:524
 msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %"
@@ -28248,12 +28265,12 @@ msgstr "打开文件 %s 时出错\n"
 #: src/io/siril_pythonmodule.c:758 src/io/siril_pythonmodule.c:766
 #, c-format
 msgid "Python process (PID: %d) exited with status %d\n"
-msgstr ""
+msgstr "Python进程（PID: %d）已退出，状态为%d\n"
 
 #: src/io/siril_pythonmodule.c:769
 #, c-format
 msgid "Python process (PID: %d) terminated by signal %d\n"
-msgstr ""
+msgstr "Python进程（PID: %d）被信号%d终止\n"
 
 #: src/io/siril_pythonmodule.c:1031
 msgid "Python communication worker finished...\n"
@@ -28282,7 +28299,7 @@ msgstr ""
 
 #: src/io/siril_pythonmodule.c:1546
 msgid "Python module is up-to-date\n"
-msgstr ""
+msgstr "Python模块已是最新\n"
 
 #: src/io/siril_pythonmodule.c:1594
 msgid ""
@@ -28300,13 +28317,13 @@ msgstr ""
 msgid ""
 "Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it "
 "from there.\n"
-msgstr ""
+msgstr "找到 siril.exe（通常位于 C:\\msys64\\mingw64\\bin）并从此处启动。\n"
 
 #: src/io/siril_pythonmodule.c:1597
 msgid ""
 "Next time you need to start siril, you can go back to starting it from msys2 "
 "terminal.\n"
-msgstr ""
+msgstr "下次需要启动siril时，你可以通过MSYS2终端来启动。\n"
 
 #: src/io/siril_pythonmodule.c:1630
 #, fuzzy
@@ -28321,7 +28338,7 @@ msgstr "名称解析错误：%s\n"
 #: src/io/siril_pythonmodule.c:1697
 #, c-format
 msgid "Failed to initialize Python virtual environment: %s"
-msgstr ""
+msgstr "无法初始化Python虚拟环境：%s"
 
 #: src/io/siril_pythonmodule.c:1708
 #, fuzzy
@@ -28361,7 +28378,7 @@ msgstr "未知图像"
 
 #: src/io/siril_pythoncommands.c:557
 msgid "Received incomplete command header\n"
-msgstr ""
+msgstr "收到的命令头不完整\n"
 
 #: src/io/siril_pythoncommands.c:566
 #, c-format
@@ -28381,7 +28398,7 @@ msgstr ""
 
 #: src/io/siril_pythoncommands.c:665
 msgid "Failed to set selection - selection exceeds image bounds"
-msgstr ""
+msgstr "无法设置选区——超出图像边界"
 
 #. Handle error retrieving dimensions
 #: src/io/siril_pythoncommands.c:676 src/io/siril_pythoncommands.c:1769
@@ -28391,9 +28408,8 @@ msgid "Failed to set selection - no image loaded"
 msgstr "保存图像 %d 的蒙版时出错\n"
 
 #: src/io/siril_pythoncommands.c:714 src/io/siril_pythoncommands.c:797
-#, fuzzy
 msgid "Invalid selection"
-msgstr "图像选择："
+msgstr "无效选区"
 
 #: src/io/siril_pythoncommands.c:719 src/io/siril_pythoncommands.c:789
 #: src/io/siril_pythoncommands.c:1127
@@ -28418,7 +28434,7 @@ msgstr "内存分配错误"
 
 #: src/io/siril_pythoncommands.c:768
 msgid "Invalid region: selection breaches image dimensions"
-msgstr ""
+msgstr "无效区域：选区与图像的维度不同"
 
 #: src/io/siril_pythoncommands.c:782 src/io/siril_pythoncommands.c:1120
 #: src/io/siril_pythoncommands.c:1201 src/io/siril_pythoncommands.c:1576
@@ -28494,9 +28510,9 @@ msgid "Failed to compute output index"
 msgstr "无法创建输出文件： %s\n"
 
 #: src/io/siril_pythoncommands.c:1084
-#, fuzzy, c-format
+#, c-format
 msgid "Error writing sequence frame %i from Python\n"
-msgstr "Error while reading frame %d from %s, aborting.\n"
+msgstr "利用Python写入序列的第%i帧时出错\n"
 
 #: src/io/siril_pythoncommands.c:1137
 #, fuzzy

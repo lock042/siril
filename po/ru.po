@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-24 10:19+0100\n"
-"PO-Revision-Date: 2025-01-24 13:30+0000\n"
+"PO-Revision-Date: 2025-01-25 21:12+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -1000,7 +1000,6 @@ msgid "Star Catalogue: "
 msgstr "Каталог звёзд: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:963
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image.\n"
 "* TYCHO-2 catalogue contains positions, proper motions, and two-color "
@@ -1039,7 +1038,11 @@ msgstr ""
 "* Третий выпуск данных телескопа Гея (Gaia Data Release 3) был представлен "
 "13 июня 2022 г. Он содержит пятипараметрическое астрономическое решение, "
 "данные о положении на небе (α, δ), параллаксе и собственном движении более "
-"чем 1,46 миллиарда источников, ограниченные звёздной величиной G = 21.\n"
+"чем 1,46 миллиарда источников, ограниченные звёздной величиной G = 21. "
+"Доступная автономная выборка, обеспечивающая достаточный охват для "
+"астрономического решения всех звёздных полей, исключая самые глубокие. Gaia "
+"DR3 представляет передовой уровень астрометрических и фотометрических "
+"каталогов.\n"
 "* Каталог PPMXL содержит положения, собственные движения, данные ближней "
 "инфракрасной (2MASS) и оптической фотометрии порядка 900 миллионов звёзд и "
 "галактик.\n"
@@ -1052,14 +1055,14 @@ msgstr ""
 "37 миллионов звёзд примерно от 7-й до 17-й звёздной величины."
 
 #: src/gui/uifiles/astrometry_dialog.ui:992
-#, fuzzy
 msgid ""
 "The catalogue is automatically determined using the approximation of the "
 "Field Of View and magnitude. Local catalogues are preferred over remote "
 "ones, and Gaia DR3 is preferred over Tycho + NOMAD."
 msgstr ""
 "Каталог определяется автоматически, исходя из оценки поля зрения и звёздной "
-"величины."
+"величины. Предпочтение отдаётся локальным каталогам. Каталог Gaia DR3 "
+"предпочтительнее Tycho + NOMAD."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1007
 msgid ""
@@ -4352,7 +4355,7 @@ msgid ""
 "Converts the image to a different color space. This can be useful for "
 "exporting an image to sRGB for WWW use, for example."
 msgstr ""
-"Конвертирует изображение в другое цветовое пространство. Это может быть "
+"Преобразует изображение в другое цветовое пространство. Это может быть "
 "полезным, например, для экспорта изображения в sRGB для использования в "
 "интернете."
 
@@ -6205,16 +6208,16 @@ msgid "Gaia photometric extract:"
 msgstr "Фотометрический каталог: "
 
 #: src/gui/uifiles/settings_window.ui:1545
-#, fuzzy
 msgid ""
 "Specify the location of the Siril astrometric extract of the Gaia DR3 "
 "catalogue, used for plate solving"
-msgstr "Расположение каталога звёзд namedstars.dat в вашей системе."
+msgstr ""
+"Укажите расположение выборки для астрометрии из каталога Gaia, используемой "
+"для поиска астрономического решения"
 
 #: src/gui/uifiles/settings_window.ui:1547
-#, fuzzy
 msgid "gaia_astrometric.dat"
-msgstr "Данные спектрометрии"
+msgstr "gaia_astrometric.dat"
 
 #: src/gui/uifiles/settings_window.ui:1558
 msgid ""
@@ -6222,11 +6225,13 @@ msgid ""
 "of its size this catalogue is divided into chunks, so you need only select "
 "the folder."
 msgstr ""
+"Укажите директорию, где хранится фотометрический каталог Gaia. Из-за своего "
+"размера этот каталог разделён на фрагменты, поэтому вам нужно только выбрать "
+"нужную директорию."
 
 #: src/gui/uifiles/settings_window.ui:1560
-#, fuzzy
 msgid "gaia_photometric.dat"
-msgstr "Фотометрическая"
+msgstr "gaia_photometric.dat"
 
 #: src/gui/uifiles/settings_window.ui:1575
 msgid ""
@@ -7453,9 +7458,8 @@ msgid "Script"
 msgstr "Сценарий"
 
 #: src/gui/uifiles/settings_window.ui:5212
-#, fuzzy
 msgid "Type"
-msgstr "Тип:"
+msgstr "Тип"
 
 #: src/gui/uifiles/settings_window.ui:5256
 msgid "<b>Siril Scripts Repository</b>"
@@ -7466,7 +7470,6 @@ msgid "Reset python venv"
 msgstr "Сбросить вирт. среду python"
 
 #: src/gui/uifiles/settings_window.ui:5293
-#, fuzzy
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -10318,7 +10321,7 @@ msgid ""
 "intensity is lower."
 msgstr ""
 "<b>Сумма</b>: Простейший метод.\n"
-"Значения пикселей добавляются к изображению, нормализованному до 32 бит.\n"
+"Значения пикселей добавляются к изображению, нормализованному до 32-х бит.\n"
 "Соотношение сигнал/шум (SNR) возрастает как квадратный корень из кол-ва "
 "кадров.\n"
 "\n"
@@ -10515,19 +10518,19 @@ msgstr ""
 "Доступны семь алгоритмов выбраковки:\n"
 "\n"
 "<b>Обрезка по процентилям</b>: одношаговый алгоритм выбраковки, идеальный "
-"для небольших наборов данных (до 6 изображений).\n"
+"для небольших наборов данных (до 6-ти изображений).\n"
 "\n"
 "<b>Обрезка по σ</b>: итеративный алгоритм, который отбрасывает пиксели, "
 "отстоящие от медианы более чем на два заданных значения, указанных в "
 "единицах σ.\n"
 "\n"
 "<b>Обрезка по MAD</b>: итеративный алгоритм, работающий аналогично обрезке "
-"по σ, но использующий в качестве оценки медианное абсолютное отклонение "
-"(MAD). Он обычно используется для обработки зашумленных инфракрасных "
-"изображений.\n"
+"по σ, но использующий в качестве оценки медианное абсолютное отклонение (MAD)"
+". Он обычно используется для обработки зашумлённых инфракрасных изображений."
+"\n"
 "\n"
 "<b>Медианная обрезка по σ</b>: тот же алгоритм, за исключением того, что "
-"отброшенный пиксели заменяются значением медианы.\n"
+"отброшенные пиксели заменяются значением медианы.\n"
 "\n"
 "<b>Винсоризованная обрезка по σ</b>: очень похож на метод обрезки по σ, но "
 "использующий алгоритм, основанный на работе Хубера [1] [2].\n"
@@ -11455,10 +11458,18 @@ msgid ""
 "Gaia DR3 contains sampled spectra for c. 30 million stars down to magnitude "
 "17.6."
 msgstr ""
+"Выберите каталог, который будет использован для спектрофотометрической "
+"калибровки цвета.\n"
+"* Архив Gaia DR3 — это удалённый сервис, предоставляющий прямой доступ к "
+"каталогу Gaia DR3.\n"
+"* Локальный каталог Gaia DR3 xp_sampled — это оптимизированный локальный "
+"каталог, разработанный для SPCC.\n"
+"Gaia DR3 содержит данные о спектрах для примерно 30 млн звёзд вплоть до 17.6 "
+"звёздной величины."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1060
 msgid "Local Gaia DR3 xp_sampled catalogue"
-msgstr ""
+msgstr "Локальный каталог Gaia DR3 xp_sampled"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1090
 msgid ""
@@ -12561,19 +12572,16 @@ msgstr ""
 "%.2f°\n"
 
 #: src/algos/astrometry_solver.c:885
-#, fuzzy
 msgid "local catalogues"
-msgstr "(локальный каталог)"
+msgstr "локальные каталоги"
 
 #: src/algos/astrometry_solver.c:886
-#, fuzzy
 msgid "local Gaia catalogue"
-msgstr "(локальный каталог)"
+msgstr "локальный каталог Gaia"
 
 #: src/algos/astrometry_solver.c:887
-#, fuzzy
 msgid "an online catalogue"
-msgstr "(удалённый каталог)"
+msgstr "удалённый каталог"
 
 #: src/algos/astrometry_solver.c:888
 #, fuzzy, c-format
@@ -16812,6 +16820,8 @@ msgid ""
 "Local Gaia catalog is unavailable, reverting to online Gaia catalog via "
 "Vizier\n"
 msgstr ""
+"Локальный каталог Gaia недоступен, переходим к удалённому каталогу Gaia "
+"через Vizier\n"
 
 #: src/core/command.c:9752
 msgid ""
@@ -22974,7 +22984,7 @@ msgstr "расширение файла FITS"
 
 #: src/core/settings.c:349
 msgid "don't use 32 bits for pixel depth"
-msgstr "не используются 32 бита для разрядности"
+msgstr "не использовать 32 бита для разрядности пикселей"
 
 #: src/core/settings.c:350
 msgid "embed ICC profiles in FITS when saving"
@@ -23045,14 +23055,12 @@ msgid "Path of the USNO-NOMAD-1e8.dat catalogue"
 msgstr "Путь к каталогу USNO-NOMAD-1e8.dat"
 
 #: src/core/settings.c:367
-#, fuzzy
 msgid "Path of the local Gaia astrometric catalogue"
-msgstr "Путь к каталогу namedstars.dat"
+msgstr "Путь к локальному астрометрическому каталогу Gaia"
 
 #: src/core/settings.c:368
-#, fuzzy
 msgid "Path of the local Gaia photometric catalogue"
-msgstr "Путь к каталогу namedstars.dat"
+msgstr "Путь к локальному фотометрическому каталогу Gaia"
 
 #: src/core/settings.c:369
 msgid "add CTYPE3='RGB' in the FITS header"
@@ -23365,7 +23373,7 @@ msgstr "использовать мастер-кадр дисторсии по �
 
 #: src/core/settings.c:464
 msgid "default stack name"
-msgstr "название стопки по умолчанию"
+msgstr "название стека по умолчанию"
 
 #: src/core/settings.c:465
 msgid "use preferred stack name"
@@ -23666,9 +23674,8 @@ msgid "show stars in annotations"
 msgstr "показать звёзды в аннотациях"
 
 #: src/core/settings.c:543
-#, fuzzy
 msgid "show constellations in annotations"
-msgstr "показать звёзды в аннотациях"
+msgstr "показать созвездия в аннотациях"
 
 #: src/core/settings.c:544
 #, fuzzy
@@ -23693,7 +23700,7 @@ msgstr "подсветка синтаксиса в редакторе сцена
 
 #: src/core/settings.c:551
 msgid "highlight matching brackets in the script editor"
-msgstr ""
+msgstr "подсвечивать парную скобку в редакторе сценариев"
 
 #: src/core/settings.c:552
 msgid "show the right margin in the script editor"
@@ -23722,22 +23729,24 @@ msgstr "автоматически добавлять отступы к новы
 #: src/core/settings.c:558
 msgid "indent selected blocks of lines in the script editor using the tab key"
 msgstr ""
+"добавлять отступы к выбранным строкам в редакторе сценариев с помощью "
+"клавиши tab"
 
 #: src/core/settings.c:559
 msgid "Smart Backspace behaviour in the script editor"
-msgstr ""
+msgstr "Поведение умной клавиши Backspace в редакторе сценариев"
 
 #: src/core/settings.c:560
 msgid "Smart Home / End behaviour in the script editor"
-msgstr ""
+msgstr "Поведение умных клавиш Home / End в редакторе сценариев"
 
 #: src/core/settings.c:561
 msgid "Show visible space and tab characters in the script editor"
-msgstr ""
+msgstr "Показывать символы пробела и табуляции в редакторе сценариев"
 
 #: src/core/settings.c:562
 msgid "Show visible newline characters in the script editor"
-msgstr ""
+msgstr "Показывать символ новой строки в редакторе сценариев"
 
 #: src/core/settings.c:563
 msgid "Show a minimap in the script editor"
@@ -24829,13 +24838,12 @@ msgid "Star Catalogue"
 msgstr "Каталог звёзд"
 
 #: src/gui/annotations_pref.c:35
-#, fuzzy
 msgid "IAU Constellations Catalogue"
-msgstr "Пользовательский каталог"
+msgstr "Каталог созвездий МАС"
 
 #: src/gui/annotations_pref.c:36
 msgid "IAU Constellations Names"
-msgstr ""
+msgstr "Названия созвездий МАС"
 
 #: src/gui/annotations_pref.c:37
 msgid "User Deep Sky Objects Catalogue"
@@ -24851,7 +24859,7 @@ msgstr "файлы CSV (*.csv)"
 
 #: src/gui/annotate.c:292
 msgid "Could not parse coordinates or name, aborting\n"
-msgstr "Не удалось координаты или название, прерывание.\n"
+msgstr "Не удалось разобрать координаты или название, прерывание.\n"
 
 #: src/gui/annotate.c:381
 msgid "Replace"
@@ -25881,9 +25889,8 @@ msgid "Siril Script File"
 msgstr "Сценарий Siril"
 
 #: src/gui/git_gui.c:111
-#, fuzzy
 msgid "Python script"
-msgstr "Сценарий Python"
+msgstr "Сценарий python"
 
 #: src/gui/git_gui.c:173
 #, c-format
@@ -30418,13 +30425,12 @@ msgid "Tycho-2+NOMAD"
 msgstr "Tycho-2+NOMAD"
 
 #: src/io/siril_catalogues.c:294
-#, fuzzy
 msgid "Gaia DR3 astrometry"
-msgstr "Gaia DR3 (напрямую)"
+msgstr "астрометрия Gaia DR3"
 
 #: src/io/siril_catalogues.c:296
 msgid "Gaia DR3 xp_sampled"
-msgstr ""
+msgstr "Gaia DR3 xp_sampled"
 
 #: src/io/siril_catalogues.c:389
 #, c-format
@@ -30743,7 +30749,7 @@ msgstr "Не удалось выделить разделяемую память
 
 #: src/io/siril_pythonmodule.c:422
 msgid "Incorrect memory region specification"
-msgstr ""
+msgstr "Неверная спецификация области памяти"
 
 #: src/io/siril_pythonmodule.c:487
 msgid ""
@@ -30769,6 +30775,7 @@ msgstr ""
 #: src/io/siril_pythonmodule.c:524
 msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %"
 msgstr ""
+"Неверные размеры или формат изображения: д = %u, ш = %u, c = %u, размер = %"
 
 #: src/io/siril_pythonmodule.c:533
 msgid "Error: image dimensions exceed available memory"
@@ -30848,12 +30855,16 @@ msgid ""
 "Error: msys2 environment detected. Siril Python support cannot be correctly "
 "initialized.\n"
 msgstr ""
+"Ошибка: обнаружена среда msys2. Поддержка Python в Siril не может быть "
+"корректно инициализирована.\n"
 
 #: src/io/siril_pythonmodule.c:1595
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
 msgstr ""
+"Для завершения процесса, убедитесь, что на вашем компьютере установлен "
+"Python (>=3.9).\n"
 
 #: src/io/siril_pythonmodule.c:1596
 msgid ""
@@ -30904,6 +30915,8 @@ msgstr "Ошибка: соединение с Python недоступно.\n"
 #: src/io/siril_pythonmodule.c:1845
 msgid "Error finding venv python path, unable to spawn python.\n"
 msgstr ""
+"Ошибка поиска пути к venv python, невозможно запустить дочерний процесс "
+"python.\n"
 
 #: src/io/siril_pythonmodule.c:1961
 #, c-format
@@ -31060,7 +31073,7 @@ msgstr "кол-во звёзд"
 
 #: src/io/siril_pythoncommands.c:1235 src/io/siril_pythoncommands.c:1280
 msgid "Incorrect command arguments"
-msgstr ""
+msgstr "Неверные аргументы команды"
 
 #: src/io/siril_pythoncommands.c:1245 src/io/siril_pythoncommands.c:1532
 #, fuzzy
@@ -31139,13 +31152,12 @@ msgstr ""
 
 #: src/io/siril_pythoncommands.c:1679
 msgid "Image has no unknown keys"
-msgstr ""
+msgstr "У изображения нет неизвестных ключей"
 
 #. Need at least two null-terminated strings
 #: src/io/siril_pythoncommands.c:1694
-#, fuzzy
 msgid "Group and key must be provided"
-msgstr "Кадрирование: x и y должны быть положительными.\n"
+msgstr "Должны быть указаны группа и ключ"
 
 #: src/io/siril_pythoncommands.c:1703
 msgid "Malformed group/key data"
@@ -31176,7 +31188,7 @@ msgstr ""
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:1837
 msgid "Thread is busy"
-msgstr ""
+msgstr "Поток занят"
 
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:1841
@@ -31201,9 +31213,8 @@ msgid "Index is out of range"
 msgstr "пикс. за приделами диапазона"
 
 #: src/io/siril_pythoncommands.c:1918
-#, fuzzy
 msgid "Unknown command"
-msgstr "неизвестное имя команды"
+msgstr "Неизвестная команда"
 
 #: src/io/spcc_json.c:53 src/io/spcc_json.c:257 src/io/spcc_json.c:484
 #, c-format
@@ -31283,9 +31294,9 @@ msgid "Error: Invalid number at index %zu.\n"
 msgstr "Ошибка: неверный номер с индексом %zu.\n"
 
 #: src/io/healpix/healpix.cpp:133
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to open file: %s\n"
-msgstr "Не удалось открыть файл %s в формате TIFF\n"
+msgstr "Не удалось открыть файл: %s\n"
 
 #: src/io/healpix/healpix.cpp:144
 #, fuzzy
@@ -31293,24 +31304,21 @@ msgid "Failed to read catalog index entry.\n"
 msgstr "Не удалось подготовить виртуальную среду"
 
 #: src/io/healpix/healpix.cpp:157
-#, fuzzy
 msgid "ID range exceeds catalog bounds.\n"
-msgstr "Надёжный каталог не найден.\n"
+msgstr "Диапазон ID выходит за границы каталога.\n"
 
 #: src/io/healpix/healpix.cpp:186
-#, fuzzy
 msgid "Failed to read data entries.\n"
-msgstr "Не удалось создать файл с данными разреза %s\n"
+msgstr "Не удалось прочитать записи данных.\n"
 
 #: src/io/healpix/healpix.cpp:552
-#, fuzzy
 msgid "Error: no chunks detected.\n"
-msgstr "Ошибка: нет загруженных последовательностей.\n"
+msgstr "Ошибка: фрагменты не найдены.\n"
 
 #: src/io/healpix/healpix.cpp:601
-#, fuzzy, c-format
+#, c-format
 msgid "Chunk file not found: %s\n"
-msgstr "файл не найден"
+msgstr "Файл с фрагментом не найден: %s\n"
 
 #: src/io/healpix/healpix.cpp:610
 #, c-format
@@ -32538,9 +32546,10 @@ msgid "Trial #%d: Reference image: #%d - Frames aligned: %d\n"
 msgstr "Попытка №%d: Опорное изображение: №%d — Выравнено кадров: %d\n"
 
 #: src/registration/global.c:1035
-#, fuzzy
 msgid "Could not find an image that aligns more than itself, aborting\n"
-msgstr "Не удалось найти звёзды на опорном изображении, прерывание.\n"
+msgstr ""
+"Не удалось найти изображение, которое выравнивается больше, чем само по "
+"себе, прерывание\n"
 
 #. for display purposes
 #: src/registration/global.c:1042 src/registration/global.c:1069
