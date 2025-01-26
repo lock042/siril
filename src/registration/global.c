@@ -437,6 +437,7 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 		regargs->seq->distoparam = regargs->distoparam;
 		if (regargs->distoparam.filename)
 			regargs->seq->distoparam.filename = g_strdup(regargs->distoparam.filename);
+		regargs->seq->reglayer = regargs->layer;	
 
 		if (!regargs->no_output) {
 			if (failed) {
@@ -457,6 +458,8 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 	} else {
 		regargs->new_total = 0;
 		free(args->seq->regparam);
+		args->seq->regparam = NULL;
+		args->seq->reglayer = -1;
 
 		// args->new_ser can be null if stars were not detected in the reference image
 		// same as seq_finalize_hook but with file deletion

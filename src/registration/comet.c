@@ -89,6 +89,7 @@ static void create_output_sequence_for_comet(struct registration_args *args, int
 	seq.imgparam = args->imgparam;
 	seq.regparam = calloc(seq.number, sizeof(regdata));
 	seq.regparam = args->regparam;
+	seq.reglayer = args->seq->reglayer;
 	seq.beg = seq.imgparam[0].filenum;
 	seq.end = seq.imgparam[seq.number - 1].filenum;
 	seq.type = args->seq->type;

@@ -323,6 +323,7 @@ void on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data
 			PRINT_ALLOC_ERR;
 			return;
 		}
+		com.seq.reglayer = current_layer;
 	}
 
 	new_value = gtk_spin_button_get_value_as_int(spinbutton);

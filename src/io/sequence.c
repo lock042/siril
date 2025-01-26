@@ -482,12 +482,6 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 		fprintf(stdout, "bitpix for the sequence is set as %d\n", seq->bitpix);
 		if (seq->nb_layers == -1 || seq->nb_layers != fit->naxes[2]) {
 			seq->nb_layers = fit->naxes[2];
-			seq->regparam = calloc(seq->number, sizeof(regdata));
-			if (!seq->regparam) {
-				PRINT_ALLOC_ERR;
-				clearfits(fit);
-				return 1;
-			}
 		}
 		seq->needs_saving = TRUE;
 
@@ -1521,10 +1515,9 @@ int sequence_find_refimage(sequence *seq) {
 
 /* requires seq->nb_layers and seq->number to be already set */
 void check_or_allocate_regparam(sequence *seq) {
-	if (!seq->regparam && seq->nb_layers > 0) {
+	if (!seq->regparam && seq->nb_layers > 0 && seq->number > 0) {
 		seq->regparam = calloc(seq->number, sizeof(regdata));
-	}
-	if (seq->number > 0) {
+
 		for (int i = 0; i < seq->number; i++) {
 			cvGetEye(&seq->regparam[i].H);
 		}

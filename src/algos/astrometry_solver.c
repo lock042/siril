@@ -2223,8 +2223,6 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	if (aargs->update_reg && !arg->retval) {
 		siril_log_color_message(_("Computing astrometric registration...\n"), "green");
 		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_CURRENT, NULL, NULL);
-	}
-	if (!arg->retval) {
 		arg->seq->reglayer = aargs->layer;
 		writeseqfile(arg->seq);
 	}
