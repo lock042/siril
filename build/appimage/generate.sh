@@ -42,6 +42,49 @@ apt_bundle() {
 apt update
 apt_bundle libc6
 
+# Bundle GTK and core dependencies
+apt_bundle \
+    libgtk-3-0 \
+    libglib2.0-0 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libcairo2 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libepoxy0 \
+    libxkbcommon0 \
+    libwayland-client0 \
+    libwayland-cursor0 \
+    libwayland-egl1 \
+    libx11-6 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxinerama1 \
+    libxrandr2 \
+    libgtk-3-common \
+    adwaita-icon-theme-full \
+    gvfs
+
+# Bundle GTK settings and themes
+mkdir -p usr/share/themes
+cp -r /usr/share/themes/Adwaita* usr/share/themes/
+
+# Copy GTK modules
+mkdir -p usr/lib/x86_64-linux-gnu/gtk-3.0/
+cp -r /usr/lib/x86_64-linux-gnu/gtk-3.0/modules usr/lib/x86_64-linux-gnu/gtk-3.0/
+cp -r /usr/lib/x86_64-linux-gnu/gtk-3.0/immodules usr/lib/x86_64-linux-gnu/gtk-3.0/
+
+# Copy GTK settings schemas
+mkdir -p usr/share/glib-2.0/schemas
+cp /usr/share/glib-2.0/schemas/org.gtk.Settings.* usr/share/glib-2.0/schemas/
+
+# Compile GTK immodules cache
+gtk-query-immodules-3.0 > usr/lib/x86_64-linux-gnu/gtk-3.0/3.0.0/immodules.cache
+sed -i -e 's|/usr/lib/x86_64-linux-gnu/||g' usr/lib/x86_64-linux-gnu/gtk-3.0/3.0.0/immodules.cache
+
+
 # Make absolutely sure it will not load stuff from /lib or /usr
 sed -i -e 's|/usr|/xxx|g' lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
 
