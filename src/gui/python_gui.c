@@ -1212,35 +1212,59 @@ void on_editor_smarthomeend_toggled(GtkCheckMenuItem *item, gpointer user_data) 
 }
 
 void on_editor_showspaces_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	// Define where spaces should be displayed (e.g., everywhere)
 	GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
-	GtkSourceSpaceTypeFlags spaces_and_tabs = GTK_SOURCE_SPACE_TYPE_SPACE | GTK_SOURCE_SPACE_TYPE_TAB;
-	GtkSourceSpaceLocationFlags space_types = gtk_source_space_drawer_get_types_for_locations(space_drawer, space_locations);
-	gboolean status = gtk_check_menu_item_get_active(item);
-	if (status)
-		space_types = space_types | spaces_and_tabs;
-	else
-		space_types = space_types & ~spaces_and_tabs;
 
-	gtk_source_space_drawer_set_types_for_locations(space_drawer,
-												space_locations,
-												space_types);
+	// Get the current space types for the specified locations
+	GtkSourceSpaceTypeFlags space_types = gtk_source_space_drawer_get_types_for_locations(space_drawer, space_locations);
+
+	// Determine the new status (enabled or disabled)
+	gboolean status = gtk_check_menu_item_get_active(item);
+
+	// Define the space types to toggle (spaces and tabs)
+	GtkSourceSpaceTypeFlags spaces_and_tabs = GTK_SOURCE_SPACE_TYPE_SPACE | GTK_SOURCE_SPACE_TYPE_TAB;
+
+	// Update the space types based on the status
+	if (status) {
+		space_types |= spaces_and_tabs; // Enable spaces and tabs
+	} else {
+		space_types &= ~spaces_and_tabs; // Disable spaces and tabs
+	}
+
+	// Apply the updated space types to the drawer
+	gtk_source_space_drawer_set_types_for_locations(space_drawer, space_locations, space_types);
+
+	// Redraw the editor window to reflect the changes
 	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+
+	// Update the configuration
 	com.pref.gui.editor_cfg.showspaces = status;
 }
 
 void on_editor_shownewlines_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	// Define where spaces should be displayed (e.g., everywhere)
 	GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
-	GtkSourceSpaceLocationFlags space_types = gtk_source_space_drawer_get_types_for_locations(space_drawer, space_locations);
-	gboolean status = gtk_check_menu_item_get_active(item);
-	if (status)
-		space_types = space_types | GTK_SOURCE_SPACE_TYPE_NEWLINE;
-	else
-		space_types = space_types & ~GTK_SOURCE_SPACE_TYPE_NEWLINE;
 
-	gtk_source_space_drawer_set_types_for_locations(space_drawer,
-												space_locations,
-												space_types);
+	// Get the current space types for the specified locations
+	GtkSourceSpaceTypeFlags space_types = gtk_source_space_drawer_get_types_for_locations(space_drawer, space_locations);
+
+	// Determine the new status (enabled or disabled)
+	gboolean status = gtk_check_menu_item_get_active(item);
+
+	// Update the space types based on the status
+	if (status) {
+		space_types |= GTK_SOURCE_SPACE_TYPE_NEWLINE; // Enable newlines
+	} else {
+		space_types &= ~GTK_SOURCE_SPACE_TYPE_NEWLINE; // Disable newlines
+	}
+
+	// Apply the updated space types to the drawer
+	gtk_source_space_drawer_set_types_for_locations(space_drawer, space_locations, space_types);
+
+	// Redraw the editor window to reflect the changes
 	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+
+	// Update the configuration
 	com.pref.gui.editor_cfg.shownewlines = status;
 }
 
