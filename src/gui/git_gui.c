@@ -102,44 +102,50 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 		int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 		GList *iterator;
 		for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
-		// here we populate the GtkTreeView from GList gui.repo_scripts
-		const gchar *category;
-		if (test_last_subdir((gchar *)iterator->data, "preprocessing"))
-			category = _("Preprocessing");
-			else if (test_last_subdir((gchar *)iterator->data, "processing"))
+			// here we populate the GtkTreeView from GList gui.repo_scripts
+			const gchar *category;
+			gboolean included = FALSE;
+			if (test_last_subdir((gchar *)iterator->data, "preprocessing")) {
+				category = _("Preprocessing");
+			} else if (test_last_subdir((gchar *)iterator->data, "processing")) {
 				category = _("Processing");
-			else if (test_last_subdir((gchar *)iterator->data, "core"))
+			} else if (test_last_subdir((gchar *)iterator->data, "core")) {
 				category = _("Core");
-			else
+				included = TRUE; // Core scripts are always included
+				// TODO: need to check this is definitely desired behaviour
+				// TODO: could we be smarter and disable the toggle for core scripts altogether?
+			} else {
 				category = _("Other");
-		gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
-		gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
-		const gchar *scripttype;
-		if (g_str_has_suffix(scriptname, SCRIPT_EXT))
-			scripttype = _("Siril Script File");
-		else if (g_str_has_suffix(scriptname, PYSCRIPT_EXT) || g_str_has_suffix(scriptname, PYCSCRIPT_EXT))
-			scripttype = _("Python script");
-		else scripttype = NULL;
+			}
+			gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
+			gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
+			const gchar *scripttype;
+			if (g_str_has_suffix(scriptname, SCRIPT_EXT))
+				scripttype = _("Siril Script File");
+			else if (g_str_has_suffix(scriptname, PYSCRIPT_EXT) || g_str_has_suffix(scriptname, PYCSCRIPT_EXT))
+				scripttype = _("Python script");
+			else scripttype = NULL;
 
 #ifdef DEBUG_GITSCRIPTS
-		printf("%s\n", scriptpath);
+			printf("%s\n", scriptpath);
 #endif
-		// Check whether the script appears in the list
-		GList *iterator2;
-		gboolean included = FALSE;
-		for (iterator2 = com.pref.selected_scripts; iterator2;
-			iterator2 = iterator2->next) {
-			if (g_strrstr((gchar *)iterator2->data, (gchar *)iterator->data)) {
-			included = TRUE;
+			// Check whether the script appears in the list
+			GList *iterator2 = NULL;
+			if (!included) {
+				for (iterator2 = com.pref.selected_scripts; iterator2;
+					iterator2 = iterator2->next) {
+					if (g_strrstr((gchar *)iterator2->data, (gchar *)iterator->data)) {
+					included = TRUE;
+					}
+				}
 			}
-		}
-		gtk_list_store_append(list_store, &iter);
-		gtk_list_store_set(list_store, &iter, COLUMN_CATEGORY, category,
-							COLUMN_SCRIPTNAME, scriptname, COLUMN_TYPE, scripttype, COLUMN_SELECTED,
-							included, COLUMN_SCRIPTPATH, scriptpath,
-							COLUMN_BGCOLOR, bg_color[color], -1);
-		/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */
-		g_free(scriptpath);
+			gtk_list_store_append(list_store, &iter);
+			gtk_list_store_set(list_store, &iter, COLUMN_CATEGORY, category,
+								COLUMN_SCRIPTNAME, scriptname, COLUMN_TYPE, scripttype, COLUMN_SELECTED,
+								included, COLUMN_SCRIPTPATH, scriptpath,
+								COLUMN_BGCOLOR, bg_color[color], -1);
+			/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */
+			g_free(scriptpath);
 		}
 	}
 	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
