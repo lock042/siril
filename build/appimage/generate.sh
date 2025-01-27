@@ -66,7 +66,7 @@ apt_bundle \
     libxinerama1 \
     libxrandr2 \
     libgtk-3-common \
-    gvfa-daemons \
+    gvfs-daemons \
     gvfs-common \
     gvfs-libs \
     gvfs
