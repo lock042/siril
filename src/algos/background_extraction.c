@@ -965,6 +965,11 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 
 		if (!samples) {
 			siril_log_color_message(_("Failed to adapt background samples for CFA image\n"), "red");
+			for (int i = 0 ; i < 4 ; i++) {
+				clearfits(cfachans[i]);
+				free(cfachans[i]);
+			}
+			free(cfachans);
 			return GINT_TO_POINTER(1);
 		}
 
@@ -972,6 +977,11 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 		if (!background) {
 			PRINT_ALLOC_ERR;
 			siril_log_message(_("Out of memory - aborting"));
+			for (int i = 0 ; i < 4 ; i++) {
+				clearfits(cfachans[i]);
+				free(cfachans[i]);
+			}
+			free(cfachans);
 			return GINT_TO_POINTER(1);
 		}
 
@@ -981,6 +991,11 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 			free(background);
 			free_background_sample_list(samples);
 			PRINT_ALLOC_ERR;
+			for (int i = 0 ; i < 4 ; i++) {
+				clearfits(cfachans[i]);
+				free(cfachans[i]);
+			}
+			free(cfachans);
 			return GINT_TO_POINTER(1);
 		}
 
@@ -1030,6 +1045,11 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	/* free memory */
+	for (int i = 0 ; i < 4 ; i++) {
+		clearfits(cfachans[i]);
+		free(cfachans[i]);
+	}
+	free(cfachans);
 	invalidate_stats_from_fit(&gfit);
 	if (!args->from_ui) {
 		free_background_sample_list(com.grad_samples);
@@ -1127,7 +1147,10 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	}
 	// Obtain CFA pattern as a sensor_pattern
 	fits metadata = { 0 };
-	seq_read_frame_metadata(args->seq, i, &metadata);
+	if (seq_read_frame_metadata(args->seq, i, &metadata)) {
+		siril_log_color_message(_("Error reading metadata.\n"), "red");
+		return 1;
+	}
 	sensor_pattern pattern;
 	if (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4)) {
 		pattern = BAYER_FILTER_RGGB;
@@ -1180,6 +1203,11 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 		if (!background) {
 			PRINT_ALLOC_ERR;
 			siril_log_message(_("Out of memory - aborting"));
+			for (int i = 0 ; i < 4 ; i++) {
+				clearfits(cfachans[i]);
+				free(cfachans[i]);
+			}
+			free(cfachans);
 			return 1;
 		}
 
@@ -1188,6 +1216,11 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 		if (!samples) {
 			siril_log_color_message(_("Failed to generate background samples for image %d: %s\n"), "red", i, _(err));
 			free(background);
+			for (int i = 0 ; i < 4 ; i++) {
+				clearfits(cfachans[i]);
+				free(cfachans[i]);
+			}
+			free(cfachans);
 			return 1;
 		}
 
@@ -1197,6 +1230,11 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 			free(background);
 			free_background_sample_list(samples);
 			PRINT_ALLOC_ERR;
+			for (int i = 0 ; i < 4 ; i++) {
+				clearfits(cfachans[i]);
+				free(cfachans[i]);
+			}
+			free(cfachans);
 			return 1;
 		}
 
@@ -1217,6 +1255,11 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 			free(image);
 			free(background);
 			free_background_sample_list(samples);
+			for (int i = 0 ; i < 4 ; i++) {
+				clearfits(cfachans[i]);
+				free(cfachans[i]);
+			}
+			free(cfachans);
 			return 1;
 		}
 		/* remove background */
@@ -1315,6 +1358,7 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 	struct generic_seq_args *args = create_default_seqargs(background_args->seq);
 	if (seq_read_frame_metadata(background_args->seq, sequence_find_refimage(background_args->seq), &metadata)) {
 		siril_log_color_message(_("Error reading reference metadata.\n"), "red");
+		free(args);
 		return;
 	}
 	background_args->is_cfa = background_args->seq->nb_layers == 1 && (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4) ||
