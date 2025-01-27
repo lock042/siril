@@ -436,13 +436,7 @@ int initialize_script_menu(gboolean verbose) {
 	}
 
 	#endif
-	if (!nb_item) {
-		gtk_widget_hide(menuscript);
-		return 0;
-	}
 	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
-	if (!gtk_widget_get_visible(menuscript))
-		gtk_widget_show(menuscript);
 	return 0;
 }
 
