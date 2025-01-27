@@ -78,8 +78,8 @@ mkdir -p usr/share/glib-2.0/schemas
 cp /usr/share/glib-2.0/schemas/org.gtk.Settings.* usr/share/glib-2.0/schemas/
 
 # Compile GTK immodules cache
-gtk-query-immodules-3.0 > usr/lib/x86_64-linux-gnu/gtk-3.0/3.0.0/immodules.cache
-sed -i -e 's|/usr/lib/x86_64-linux-gnu/||g' usr/lib/x86_64-linux-gnu/gtk-3.0/3.0.0/immodules.cache
+#gtk-query-immodules-3.0 > usr/lib/x86_64-linux-gnu/gtk-3.0/3.0.0/immodules.cache
+#sed -i -e 's|/usr/lib/x86_64-linux-gnu/||g' usr/lib/x86_64-linux-gnu/gtk-3.0/3.0.0/immodules.cache
 
 ###############################################################################
 
