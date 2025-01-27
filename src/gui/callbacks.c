@@ -2357,7 +2357,7 @@ gboolean set_seq_browser_active(gpointer user_data) {
 			siril_close_dialog("seqlist_dialog");
 		}
 	}
-		GtkWidget *widget = lookup_widget("seqlist_button");
+	GtkWidget *widget = lookup_widget("seqlist_button");
 	gtk_widget_set_sensitive(widget, state);
 	return FALSE;
 }
