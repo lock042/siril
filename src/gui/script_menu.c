@@ -400,7 +400,6 @@ int initialize_script_menu(gboolean verbose) {
 					break;
 				}
 			}
-
 			if (!already_added) {
 				gchar *basename = g_path_get_basename(script_path);
 				const char *extension = get_filename_ext(basename);
@@ -408,7 +407,6 @@ int initialize_script_menu(gboolean verbose) {
 					g_free(basename);
 					continue;
 				}
-
 				GtkWidget *menu_item = gtk_menu_item_new_with_label(basename);
 				if (extension && g_strcmp0(extension, SCRIPT_EXT) == 0) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
@@ -419,11 +417,9 @@ int initialize_script_menu(gboolean verbose) {
 					g_free(basename);
 					continue;
 				}
-
 				gchar *full_path = g_strdup(script_path);
 				g_signal_connect(G_OBJECT(menu_item), "activate",
 								 G_CALLBACK(on_script_execution), full_path);
-
 				if (verbose)
 					siril_log_message(_("Adding core script to menu: %s\n"), basename);
 				g_free(basename);
