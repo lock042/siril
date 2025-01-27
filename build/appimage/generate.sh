@@ -71,15 +71,6 @@ apt_bundle \
     gvfs-daemons \
     gvfs
 
-# Copy gvfs libs
-mkdir -p appdir/usr/lib/x86_64-linux-gnu/
-cp /usr/lib/x86_64-linux-gnu/libgvfscommon.so* appdir/usr/lib/x86_64-linux-gnu/
-
-# Copy GTK modules
-#mkdir -p usr/lib/x86_64-linux-gnu/gtk-3.0/
-#cp -r /usr/lib/x86_64-linux-gnu/gtk-3.0/modules usr/lib/x86_64-linux-gnu/gtk-3.0/
-#cp -r /usr/lib/x86_64-linux-gnu/gtk-3.0/immodules usr/lib/x86_64-linux-gnu/gtk-3.0/
-
 # Copy GTK settings schemas
 mkdir -p usr/share/glib-2.0/schemas
 cp /usr/share/glib-2.0/schemas/org.gtk.Settings.* usr/share/glib-2.0/schemas/
