@@ -105,15 +105,16 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 			// here we populate the GtkTreeView from GList gui.repo_scripts
 			const gchar *category;
 			gboolean included = FALSE;
+			gboolean core = FALSE;
 			if (test_last_subdir((gchar *)iterator->data, "preprocessing")) {
 				category = _("Preprocessing");
 			} else if (test_last_subdir((gchar *)iterator->data, "processing")) {
 				category = _("Processing");
+			} else if (test_last_subdir((gchar *)iterator->data, "utility")) {
+				category = _("Utility");
 			} else if (test_last_subdir((gchar *)iterator->data, "core")) {
 				category = _("Core");
-				included = TRUE; // Core scripts are always included
-				// TODO: need to check this is definitely desired behaviour
-				// TODO: could we be smarter and disable the toggle for core scripts altogether?
+				core = TRUE;
 			} else {
 				category = _("Other");
 			}
@@ -131,7 +132,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 #endif
 			// Check whether the script appears in the list
 			GList *iterator2 = NULL;
-			if (!included) {
+			if (!included && !core) {
 				for (iterator2 = com.pref.selected_scripts; iterator2;
 					iterator2 = iterator2->next) {
 					if (g_strrstr((gchar *)iterator2->data, (gchar *)iterator->data)) {
@@ -139,11 +140,13 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 					}
 				}
 			}
-			gtk_list_store_append(list_store, &iter);
-			gtk_list_store_set(list_store, &iter, COLUMN_CATEGORY, category,
+			if (!core) {
+				gtk_list_store_append(list_store, &iter);
+				gtk_list_store_set(list_store, &iter, COLUMN_CATEGORY, category,
 								COLUMN_SCRIPTNAME, scriptname, COLUMN_TYPE, scripttype, COLUMN_SELECTED,
 								included, COLUMN_SCRIPTPATH, scriptpath,
 								COLUMN_BGCOLOR, bg_color[color], -1);
+			}
 			/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */
 			g_free(scriptpath);
 		}
