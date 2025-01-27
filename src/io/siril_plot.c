@@ -307,8 +307,8 @@ gboolean siril_plot_set_background(siril_plot_data *spl_data, const gchar *bkgfi
 	spl_data->bkg->bkgfilepath = g_build_filename("/org/siril/ui/pixmaps/plot_background", bkgfilename, NULL);
 	spl_data->bkg->img = gdk_pixbuf_new_from_resource(spl_data->bkg->bkgfilepath, &error);
 	if (error) {
-		free_bkg(spl_data->bkg);
 		siril_debug_print("can't load background image %s (Error: %s)", spl_data->bkg->bkgfilepath, error->message);
+		free_bkg(spl_data->bkg);
 		g_error_free(error);
 		return FALSE;
 	}
