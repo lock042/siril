@@ -64,7 +64,6 @@ apt_bundle \
     libxinerama1 \
     libxrandr2 \
     libgtk-3-common \
-    adwaita-icon-theme-full \
     gvfs
 
 # Bundle GTK settings and themes
