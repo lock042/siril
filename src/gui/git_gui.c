@@ -103,16 +103,27 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 		GList *iterator;
 		for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
 		// here we populate the GtkTreeView from GList gui.repo_scripts
-		gchar *category = g_strrstr((gchar *)iterator->data, "preprocessing")
-								? "Preprocessing"
-								: "Processing";
+		const gchar *category;
+		if (g_strrstr((gchar *)iterator->data, "preprocessing"))
+			category = _("Preprocessing");
+			else if (g_strrstr((gchar *)iterator->data, "processing"))
+				category = _("Processing");
+			else if (g_strrstr((gchar *)iterator->data, "core"))
+				category = _("Core");
+			else
+				category = _("Other");
 		gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
 		gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
-		gchar *scripttype = g_str_has_suffix(scriptname, ".ssf") ? _("Siril Script File") : g_str_has_suffix(scriptname, ".py")  ? _("Python script") : NULL;
+		const gchar *scripttype;
+		if (g_str_has_suffix(scriptname, SCRIPT_EXT))
+			scripttype = _("Siril Script File");
+		else if (g_str_has_suffix(scriptname, PYSCRIPT_EXT) || g_str_has_suffix(scriptname, PYCSCRIPT_EXT))
+			scripttype = _("Python script");
+		else scripttype = NULL;
 
-	#ifdef DEBUG_GITSCRIPTS
+#ifdef DEBUG_GITSCRIPTS
 		printf("%s\n", scriptpath);
-	#endif
+#endif
 		// Check whether the script appears in the list
 		GList *iterator2;
 		gboolean included = FALSE;
@@ -318,9 +329,9 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 
 	if (!val) {
 		if (!(g_list_find(com.pref.selected_scripts, script_path))) {
-	#ifdef DEBUG_GITSCRIPTS
+#ifdef DEBUG_GITSCRIPTS
 		printf("%s\n", script_path);
-	#endif
+#endif
 		com.pref.selected_scripts =
 			g_list_prepend(com.pref.selected_scripts, script_path);
 		}

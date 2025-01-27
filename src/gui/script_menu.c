@@ -144,7 +144,7 @@ static GSList *search_script(const char *path) {
 		return NULL;
 	}
 	while ((file = g_dir_read_name(dir)) != NULL) {
-		if (g_str_has_suffix(file, SCRIPT_EXT) || g_str_has_suffix(file, PYSCRIPT_EXT)) {
+		if (g_str_has_suffix(file, SCRIPT_EXT) || g_str_has_suffix(file, PYSCRIPT_EXT) || g_str_has_suffix(file, PYCSCRIPT_EXT)) {
 			list = g_slist_prepend(list, g_strdup(file));  // Keep the full filename with extension
 		}
 	}
@@ -188,7 +188,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	/* Run the script */
 	siril_log_message(_("Starting script %s\n"), script_file);
 
-	if (g_str_has_suffix(script_file, PYSCRIPT_EXT)) {
+	if (g_str_has_suffix(script_file, PYSCRIPT_EXT) || g_str_has_suffix(script_file, PYCSCRIPT_EXT)) {
 		// Run Python script
 		execute_python_script(script_file, TRUE, FALSE, NULL);
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
@@ -275,10 +275,10 @@ int initialize_script_menu(gboolean verbose) {
 				GtkWidget *menu_item;
 
 				gchar *display_name = g_strdup(l->data);
-				gchar *extension = strrchr(display_name, '.');
+				const gchar *extension = get_filename_ext(display_name);
 				gchar *current_directory = g_path_get_dirname(s->data);
 
-				if (extension && g_strcmp0(extension, ".ssf") == 0) {
+				if (extension && g_strcmp0(extension, SCRIPT_EXT) == 0) {
 					if (!first_item_ssf && (!previous_directory_ssf || g_strcmp0(current_directory, previous_directory_ssf) != 0)) {
 						GtkWidget *separator = gtk_separator_menu_item_new();
 						gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), separator);
@@ -287,7 +287,7 @@ int initialize_script_menu(gboolean verbose) {
 					first_item_ssf = FALSE;
 					g_free(previous_directory_ssf);
 					previous_directory_ssf = g_strdup(current_directory);
-				} else if (extension && g_strcmp0(extension, ".py") == 0) {
+				} else if (extension && ((g_strcmp0(extension, PYSCRIPT_EXT) == 0) || (g_strcmp0(extension, PYCSCRIPT_EXT) == 0)) == 0) {
 					if (!first_item_py && (!previous_directory_py || g_strcmp0(current_directory, previous_directory_py) != 0)) {
 						GtkWidget *separator = gtk_separator_menu_item_new();
 						gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), separator);
@@ -302,9 +302,9 @@ int initialize_script_menu(gboolean verbose) {
 				menu_item = gtk_menu_item_new_with_label(display_name);
 				gchar *full_path = g_build_filename(s->data, l->data, NULL);
 
-				if (extension && g_strcmp0(extension, ".ssf") == 0) {
+				if (extension && g_strcmp0(extension, SCRIPT_EXT) == 0) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
-				} else if (extension && g_strcmp0(extension, ".py") == 0) {
+				} else if (extension && ((g_strcmp0(extension, PYSCRIPT_EXT) == 0) || (g_strcmp0(extension, PYCSCRIPT_EXT) == 0)) == 0) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), menu_item);
 				}
 				g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), full_path);
@@ -351,9 +351,9 @@ int initialize_script_menu(gboolean verbose) {
 
 				menu_item = gtk_menu_item_new_with_label(basename);
 
-				if (extension && g_strcmp0(extension, "ssf") == 0) {
+				if (extension && g_strcmp0(extension, SCRIPT_EXT) == 0) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
-				} else if (extension && g_strcmp0(extension, "py") == 0) {
+				} else if (extension && ((g_strcmp0(extension, PYSCRIPT_EXT) == 0) || (g_strcmp0(extension, PYCSCRIPT_EXT) == 0))) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), menu_item);
 				}
 

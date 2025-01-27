@@ -1,8 +1,9 @@
 #ifndef SRC_GUI_SCRIPT_MENU_H_
 #define SRC_GUI_SCRIPT_MENU_H_
 
-#define SCRIPT_EXT ".ssf"
-#define PYSCRIPT_EXT ".py"
+#define SCRIPT_EXT "ssf"
+#define PYSCRIPT_EXT "py"
+#define PYCSCRIPT_EXT "pyc"
 
 GSList *get_list_from_preferences_dialog();
 GSList *set_list_to_preferences_dialog(GSList *list);
