@@ -402,16 +402,22 @@ int initialize_script_menu(gboolean verbose) {
 			}
 
 			if (!already_added) {
-				GtkWidget *menu_item;
 				gchar *basename = g_path_get_basename(script_path);
 				const char *extension = get_filename_ext(basename);
+				if (!extension) {
+					g_free(basename);
+					continue;
+				}
 
-				menu_item = gtk_menu_item_new_with_label(basename);
+				GtkWidget *menu_item = gtk_menu_item_new_with_label(basename);
 				if (extension && g_strcmp0(extension, SCRIPT_EXT) == 0) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
 				} else if (extension && ((g_strcmp0(extension, PYSCRIPT_EXT) == 0) ||
 								(g_strcmp0(extension, PYCSCRIPT_EXT) == 0))) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), menu_item);
+				} else {
+					g_free(basename);
+					continue;
 				}
 
 				gchar *full_path = g_strdup(script_path);
@@ -420,10 +426,11 @@ int initialize_script_menu(gboolean verbose) {
 
 				if (verbose)
 					siril_log_message(_("Adding core script to menu: %s\n"), basename);
-
+				g_free(basename);
+				if(!menu_item)
+					continue;
 				gtk_widget_show(menu_item);
 
-				g_free(basename);
 			}
 		}
 	}
