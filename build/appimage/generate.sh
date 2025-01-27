@@ -66,6 +66,9 @@ apt_bundle \
     libxinerama1 \
     libxrandr2 \
     libgtk-3-common \
+    gvfa-daemons \
+    gvfs-common \
+    gvfs-libs \
     gvfs
 
 # Copy GTK modules
