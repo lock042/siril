@@ -81,20 +81,6 @@ static void get_list_store() {
 	}
 }
 
-static gboolean test_last_subdir(const gchar *path, const gchar *expected_subdir) {
-	g_return_val_if_fail(path != NULL, FALSE);
-	g_return_val_if_fail(expected_subdir != NULL, FALSE);
-
-	gchar *dir = g_path_get_dirname(path);
-	gchar *last_dir_component = g_path_get_basename(dir);
-	gboolean result = (g_strcmp0(last_dir_component, expected_subdir) == 0);
-
-	g_free(last_dir_component);
-	g_free(dir);
-
-	return result;
-}
-
 static gboolean fill_script_repo_list_idle(gpointer p) {
 	GtkTreeView *tview = (GtkTreeView *)p;
 	GtkTreeIter iter;

@@ -220,6 +220,20 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	}
 }
 
+gboolean test_last_subdir(const gchar *path, const gchar *expected_subdir) {
+	g_return_val_if_fail(path != NULL, FALSE);
+	g_return_val_if_fail(expected_subdir != NULL, FALSE);
+
+	gchar *dir = g_path_get_dirname(path);
+	gchar *last_dir_component = g_path_get_basename(dir);
+	gboolean result = (g_strcmp0(last_dir_component, expected_subdir) == 0);
+
+	g_free(last_dir_component);
+	g_free(dir);
+
+	return result;
+}
+
 int initialize_script_menu(gboolean verbose) {
 	GSList *list, *script_paths, *s;
 #ifdef HAVE_LIBGIT2
@@ -373,6 +387,47 @@ int initialize_script_menu(gboolean verbose) {
 		com.pref.selected_scripts = new_list;
 		g_list_free_full(tmp, g_free);
 	}
+
+	// Add core scripts if they're not already in the menu
+	for (GList *core_iter = gui.repo_scripts; core_iter; core_iter = core_iter->next) {
+		const gchar *script_path = (gchar*)core_iter->data;
+		if (test_last_subdir(script_path, "core")) {
+			// Check if this core script is already in selected_scripts
+			gboolean already_added = FALSE;
+			for (GList *selected = com.pref.selected_scripts; selected; selected = selected->next) {
+				if (g_strrstr((gchar*)selected->data, script_path)) {
+					already_added = TRUE;
+					break;
+				}
+			}
+
+			if (!already_added) {
+				GtkWidget *menu_item;
+				gchar *basename = g_path_get_basename(script_path);
+				const char *extension = get_filename_ext(basename);
+
+				menu_item = gtk_menu_item_new_with_label(basename);
+				if (extension && g_strcmp0(extension, SCRIPT_EXT) == 0) {
+					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
+				} else if (extension && ((g_strcmp0(extension, PYSCRIPT_EXT) == 0) ||
+								(g_strcmp0(extension, PYCSCRIPT_EXT) == 0))) {
+					gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), menu_item);
+				}
+
+				gchar *full_path = g_strdup(script_path);
+				g_signal_connect(G_OBJECT(menu_item), "activate",
+								 G_CALLBACK(on_script_execution), full_path);
+
+				if (verbose)
+					siril_log_message(_("Adding core script to menu: %s\n"), basename);
+
+				gtk_widget_show(menu_item);
+
+				g_free(basename);
+			}
+		}
+	}
+
 	#endif
 	if (!nb_item) {
 		gtk_widget_hide(menuscript);
