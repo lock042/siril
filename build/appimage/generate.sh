@@ -66,10 +66,14 @@ apt_bundle \
     libxinerama1 \
     libxrandr2 \
     libgtk-3-common \
-    gvfs-daemons \
     gvfs-common \
     gvfs-libs \
+    gvfs-daemons \
     gvfs
+
+# Copy gvfs libs
+mkdir -p appdir/usr/lib/x86_64-linux-gnu/
+cp /usr/lib/x86_64-linux-gnu/libgvfscommon.so* appdir/usr/lib/x86_64-linux-gnu/
 
 # Copy GTK modules
 #mkdir -p usr/lib/x86_64-linux-gnu/gtk-3.0/
