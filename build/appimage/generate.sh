@@ -65,11 +65,11 @@ apt_bundle \
     libxfixes3 \
     libxinerama1 \
     libxrandr2 \
-    libgtk-3-common \
-    gvfs-common \
-    gvfs-libs \
-    gvfs-daemons \
-    gvfs
+    libgtk-3-common #\
+#    gvfs-common \
+#    gvfs-libs \
+#    gvfs-daemons \
+#    gvfs
 
 # Copy GTK settings schemas
 mkdir -p usr/share/glib-2.0/schemas
