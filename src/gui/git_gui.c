@@ -148,7 +148,8 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 								COLUMN_BGCOLOR, bg_color[color], -1);
 			}
 			/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */
-			g_free(scriptpath);
+			g_free(scriptname);
+			g_free(scriptpath); // it's ok to free this as the list_store keeps a copy internally
 		}
 	}
 	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
