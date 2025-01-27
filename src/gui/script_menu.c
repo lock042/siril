@@ -388,7 +388,7 @@ int initialize_script_menu(gboolean verbose) {
 		g_list_free_full(tmp, g_free);
 	}
 
-	// Add core scripts if they're not already in the menu
+/*	// Add core scripts if they're not already in the menu
 	for (GList *core_iter = gui.repo_scripts; core_iter; core_iter = core_iter->next) {
 		const gchar *script_path = (gchar*)core_iter->data;
 		if (test_last_subdir(script_path, "core")) {
@@ -429,7 +429,7 @@ int initialize_script_menu(gboolean verbose) {
 
 			}
 		}
-	}
+	}*/
 
 	#endif
 	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
