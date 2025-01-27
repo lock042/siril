@@ -2352,7 +2352,12 @@ GPid show_child_process_selection_dialog(GSList *children) {
 
 gboolean set_seq_browser_active(gpointer user_data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(user_data);
-	GtkWidget *widget = lookup_widget("seqlist_button");
+	if (!state) { // Deactivating: check if the dialog is already open, if so close it
+		if (gtk_widget_is_visible(lookup_widget("seqlist_dialog"))) {
+			siril_close_dialog("seqlist_dialog");
+		}
+	}
+		GtkWidget *widget = lookup_widget("seqlist_button");
 	gtk_widget_set_sensitive(widget, state);
 	return FALSE;
 }
