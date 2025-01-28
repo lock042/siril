@@ -426,8 +426,8 @@ static gboolean end_fourier_transform(gpointer p) {
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	free(args->type);
-	g_free(args->modulus);
-	g_free(args->phase);
+	free(args->modulus);
+	free(args->phase);
 	free(args);
 	set_cursor_waiting(FALSE);
 
