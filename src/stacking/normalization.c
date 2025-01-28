@@ -355,7 +355,7 @@ overlap_stats_t **alloc_ostats(int nb_layers, int nb_frames) {
 		if (!seq_ostats[n]) {
 			PRINT_ALLOC_ERR;
 			free_ostats(seq_ostats, nb_layers);
-			seq_ostats = NULL;
+			return NULL;
 		}
 		for (int j = 0; j < Npairs; j++) {
 			seq_ostats[n][j].i = -1;
@@ -697,15 +697,15 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 
 	}
 	
-	Mij = malloc(nb_layers * sizeof(double **));
-	Sij = malloc(nb_layers * sizeof(double **));
-	Nij = malloc(nb_frames * sizeof(size_t **));
-	index = malloc(nb_frames * sizeof(int));
-	coeffs = malloc(N * sizeof(double));
+	Mij = calloc(nb_layers, sizeof(double **));
+	Sij = calloc(nb_layers, sizeof(double **));
+	Nij = calloc(nb_frames, sizeof(size_t **));
+	index = calloc(nb_frames, sizeof(int));
+	coeffs = calloc(N, sizeof(double));
 	if (!Mij || !Sij || !Nij || !index || !coeffs) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
-		goto cleanup;
+		goto cleanup2;
 	}
 	for (int n = 0; n < nb_layers; n++) {
 		Mij[n] = malloc(nb_frames * sizeof(double *));
@@ -868,6 +868,7 @@ cleanup:
 		free(Sij[n]);
 		free(Nij[n]);
 	}
+cleanup2:
 	free(Mij);
 	free(Sij);
 	free(Nij);

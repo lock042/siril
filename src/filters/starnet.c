@@ -104,6 +104,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
+		g_free(child);
 		return retval;
 	}
 	g_child_watch_add(child_pid, child_watch_cb, NULL);

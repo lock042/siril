@@ -6644,6 +6644,7 @@ int process_seq_extractGreen(int nb) {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					if (!check_seq_is_comseq(seq))
 						free_sequence(seq, TRUE);
+					free(args->seqEntry);
 					free(args);
 					return CMD_ARG_ERROR;
 				}
