@@ -321,6 +321,10 @@ int initialize_script_menu(gboolean verbose) {
 	g_free(previous_directory_py);
 
 #ifdef HAVE_LIBGIT2
+	if (com.update_scripts_thread) {
+		g_thread_join(com.update_scripts_thread);
+		com.update_scripts_thread = NULL;
+	}
 	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
 		GList *new_list = NULL;
 		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {

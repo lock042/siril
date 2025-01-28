@@ -53,6 +53,8 @@ static void free_conesearch_args(conesearch_args *args);
 const gchar *cat_columns[] = {
 	[CAT_FIELD_RA] = "ra",
 	[CAT_FIELD_DEC] = "dec",
+	[CAT_FIELD_RA1] = "ra1",
+	[CAT_FIELD_DEC1] = "dec1",
 	[CAT_FIELD_PMRA] = "pmra",
 	[CAT_FIELD_PMDEC] = "pmdec",
 	[CAT_FIELD_MAG] = "mag",
@@ -93,6 +95,10 @@ static gchar *get_field_to_str(cat_item *item, cat_fields field) {
 			return (item->ra) ? g_strdup_printf("%.6f", item->ra) : "";
 		case CAT_FIELD_DEC:
 			return (item->dec) ? g_strdup_printf("%.6f", item->dec) : "";
+		case CAT_FIELD_RA1:
+			return (item->ra1) ? g_strdup_printf("%.6f", item->ra1) : "";
+		case CAT_FIELD_DEC1:
+			return (item->dec1) ? g_strdup_printf("%.6f", item->dec1) : "";
 		case CAT_FIELD_PMRA:
 			return (item->pmra) ? g_strdup_printf("%g", item->pmra) : "";
 		case CAT_FIELD_PMDEC:
@@ -176,6 +182,10 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS);
 		case CAT_AN_STARS:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_ALIAS);
+		case CAT_AN_CONST:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_RA1) | (1 << CAT_FIELD_DEC1);
+		case CAT_AN_CONST_NAME:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS);
 		case CAT_AN_USER_DSO:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_ALIAS);
 		case CAT_AN_USER_SSO:
@@ -296,6 +306,10 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return "Sh2";
 		case CAT_AN_STARS:
 			return "stars";
+		case CAT_AN_CONST:
+			return "IAU constellations";
+		case CAT_AN_CONST_NAME:
+			return "IAU constellations names";
 		case CAT_AN_USER_DSO:
 			return "user-DSO";
 		case CAT_AN_USER_SSO:
@@ -383,6 +397,12 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 			break;
 		case CAT_FIELD_DEC:
 			item->dec = g_ascii_strtod(input, NULL);
+			break;
+		case CAT_FIELD_RA1:
+			item->ra1 = g_ascii_strtod(input, NULL);
+			break;
+		case CAT_FIELD_DEC1:
+			item->dec1 = g_ascii_strtod(input, NULL);
 			break;
 		case CAT_FIELD_PMRA:
 			item->pmra = g_ascii_strtod(input, NULL);
@@ -914,6 +934,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	gboolean use_tcat = FALSE;
 	use_proper_motion = use_proper_motion && can_use_proper_motion(fit, siril_cat);
 	use_velocity = use_velocity && can_use_velocity(fit, siril_cat);
+	gboolean has_second_star = siril_cat->cat_index == CAT_AN_CONST;
 	if (use_proper_motion) {
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
 		gdouble jd = date_time_to_Julian(dt);
@@ -937,9 +958,12 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 			}
 		}
 	}
-	world = malloc(2 * siril_cat->nbitems * sizeof(double));
-	x = malloc(siril_cat->nbitems * sizeof(double));
-	y = malloc(siril_cat->nbitems * sizeof(double));
+	int nbinit = siril_cat->nbitems;
+	if (has_second_star)
+		nbinit *= 2;
+	world = malloc(2 * nbinit * sizeof(double));
+	x = malloc(nbinit * sizeof(double));
+	y = malloc(nbinit * sizeof(double));
 	if (!world || !x || !y) {
 		PRINT_ALLOC_ERR;
 		goto clean_and_exit;
@@ -961,18 +985,39 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 		}
 		world[ind++] = ra;
 		world[ind++] = dec;
+		if (has_second_star) {
+			world[ind++] = siril_cat->cat_items[i].ra1;
+			world[ind++] = siril_cat->cat_items[i].dec1;
+		}
 	}
-	status = wcs2pix_array(fit, siril_cat->nbitems, world, x, y);
+	status = wcs2pix_array(fit, nbinit, world, x, y);
 	if (!status)
 		goto clean_and_exit;
-	for (int i = 0; i < siril_cat->nbitems; i++) {
-		if (!status[i]) {
-			siril_cat->cat_items[i].x = x[i];
-			siril_cat->cat_items[i].y = y[i];
-			siril_cat->cat_items[i].included = TRUE;
-			nbincluded++;
-		} else {
-			siril_cat->cat_items[i].included = FALSE;
+	if (!has_second_star) {
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			if (!status[i]) {
+				siril_cat->cat_items[i].x = x[i];
+				siril_cat->cat_items[i].y = y[i];
+				siril_cat->cat_items[i].included = TRUE;
+				nbincluded++;
+			} else {
+				siril_cat->cat_items[i].included = FALSE;
+			}
+		}
+	} else {
+		int j = 0;
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			if (!status[j] || !status[j + 1]) {
+				siril_cat->cat_items[i].x = x[j];
+				siril_cat->cat_items[i].y = y[j];
+				siril_cat->cat_items[i].x1 = x[j + 1];
+				siril_cat->cat_items[i].y1 = y[j + 1];
+				siril_cat->cat_items[i].included = TRUE;
+				nbincluded++;
+			} else {
+				siril_cat->cat_items[i].included = FALSE;
+			}
+			j += 2;
 		}
 	}
 clean_and_exit:

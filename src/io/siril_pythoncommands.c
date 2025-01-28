@@ -942,7 +942,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_USERCONFIG_DIR: {
-				const char *configdir = siril_get_config_dir();
+			gchar *configdir = g_build_path(G_DIR_SEPARATOR_S, siril_get_config_dir(), "siril", NULL);
 			// Ensure the config directory is available
 			if (configdir && strlen(configdir) > 0) {
 				// Send success response with the working directory string
@@ -950,6 +950,35 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			} else {
 				// Handle error retrieving the working directory
 				const char* error_msg = _("Error: user config directory not set");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			g_free(configdir);
+			break;
+		}
+
+		case CMD_GET_USERDATA_DIR: {
+			const gchar *uddir = siril_get_user_data_dir();
+			// Ensure the config directory is available
+			if (uddir && strlen(uddir) > 0) {
+				// Send success response with the working directory string
+				success = send_response(conn, STATUS_OK, uddir, strlen(uddir));
+			} else {
+				// Handle error retrieving the working directory
+				const char* error_msg = _("Error: user data directory not set");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_GET_SYSTEMDATA_DIR: {
+			const gchar *sddir = siril_get_system_data_dir();
+			// Ensure the config directory is available
+			if (sddir && strlen(sddir) > 0) {
+				// Send success response with the working directory string
+				success = send_response(conn, STATUS_OK, sddir, strlen(sddir));
+			} else {
+				// Handle error retrieving the working directory
+				const char* error_msg = _("Error: system data directory not set");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;

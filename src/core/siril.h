@@ -878,6 +878,7 @@ struct cominf {
 	gboolean stop_script;		// abort script execution, not just a command
 	GThread *script_thread;		// reads a script and executes its commands
 	gboolean script_thread_exited;	// boolean set by the script thread when it exits
+	GThread *update_scripts_thread;	// thread used to update the scripts repository, so the GUI can wait it
 
 	int max_images;			// max number of image threads used for parallel execution
 	int max_thread;			// max total number of threads used for parallel execution
