@@ -20,6 +20,9 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "io/annotation_catalogues.h"
+#include "algos/siril_wcs.h"
+#include "gui/image_display.h"
 
 #include "annotations_pref.h"
 
@@ -39,14 +42,14 @@ static gchar *astro_catalogue[] = {
 };
 // update the size of gui_config.catalog if changed
 
-static void get_statlist_store() {
+static void get_astrolist_store() {
 	if (list_store_catalogue == NULL)
 		list_store_catalogue = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststore_astrometry"));
 }
 
 void fill_astrometry_catalogue(gboolean *catalog) {
 	GtkTreeIter iter;
-	get_statlist_store();
+	get_astrolist_store();
 	gtk_list_store_clear(list_store_catalogue);
 
 	for(int i = 0; i < G_N_ELEMENTS(astro_catalogue); i++) {
@@ -56,6 +59,19 @@ void fill_astrometry_catalogue(gboolean *catalog) {
 				1, _(astro_catalogue[i]),
 				-1);
 	}
+}
+
+gboolean on_annotate_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+	if (event->button == GDK_BUTTON_SECONDARY) {
+#if GTK_CHECK_VERSION(3, 22, 0)
+		gtk_popover_popup(GTK_POPOVER(gtk_builder_get_object(gui.builder, "popover_catalogs")));
+#else
+		gtk_widget_show(gtk_builder_get_object(gui.builder, "popover_catalogs"));
+#endif
+	}
+
+
+	return FALSE;
 }
 
 void get_astrometry_catalogue_values() {
@@ -81,3 +97,29 @@ void on_cellrendeur_catalog_use_toggled(GtkCellRendererToggle *cell_renderer,
 	gtk_tree_model_get(GTK_TREE_MODEL(list_store_catalogue), &iter, 0, &value, -1);
 	gtk_list_store_set(list_store_catalogue, &iter, 0, !value, -1);
 }
+
+void on_cellrendeur2_catalog_use_toggled(GtkCellRendererToggle *cell_renderer,
+		gchar *path, gpointer user_data) {
+    GtkTreeIter iter;
+    gboolean value;
+    GtkTreePath *tree_path;
+    gint *indices;
+
+    gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(list_store_catalogue), &iter, path);
+    gtk_tree_model_get(GTK_TREE_MODEL(list_store_catalogue), &iter, 0, &value, -1);
+    gtk_list_store_set(list_store_catalogue, &iter, 0, !value, -1);
+
+    tree_path = gtk_tree_model_get_path(GTK_TREE_MODEL(list_store_catalogue), &iter);
+    indices = gtk_tree_path_get_indices(tree_path);
+    if (indices) {
+        com.pref.gui.catalog[indices[0]] = !value;
+		if (has_wcs(&gfit) && gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "annotate_button")))) {
+			refresh_annotation_visibility();
+			refresh_found_objects();
+			redraw(REDRAW_OVERLAY);
+		}
+    }
+
+    gtk_tree_path_free(tree_path);
+}
+
