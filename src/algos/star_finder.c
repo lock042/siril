@@ -1171,8 +1171,10 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	curr_findstar_args->threading = SINGLE_THREADED;
 
 	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "lst", NULL);
-	if (!star_filename)
+	if (!star_filename) {
+		free(findstar_args);
 		return TRUE;
+	}
 
 	if (findstar_args->save_to_file)
 		curr_findstar_args->starfile = star_filename;
@@ -1212,6 +1214,8 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		// build the star list file name in all cases to try reading it
 		star_filename = get_sequence_cache_filename(seq, i, "lst", NULL);
 		if (!star_filename) {
+			free(curr_findstar_args->nb_stars);
+			free(curr_findstar_args->stars);
 			free(curr_findstar_args);
 			curr_findstar_args = NULL;
 			return curr_findstar_args;
@@ -1240,6 +1244,8 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 		clearfits(green_fit);
 		if (retval) {
+			free(curr_findstar_args->nb_stars);
+			free(curr_findstar_args->stars);
 			free(curr_findstar_args);
 			curr_findstar_args = NULL;
 		}
