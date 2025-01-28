@@ -97,6 +97,7 @@ xx/xx/xx
 * Fixed crash in catsearch when object is unknown (#1383)
 * Fixed local astrometry.net solver non-functional on flatpak (#1392)
 * Fixed crash in 2-pass registration when sequence had less than 5 images (#1473)
+* Prevented crash when using the sequence browser during an AVI sequence operation (#143)
 
 **Misc:**
 * Removed glib-networking as a dependency (#1157)
