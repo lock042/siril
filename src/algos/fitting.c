@@ -167,12 +167,22 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 			}
 		}
 		j--;
-		gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11, &sumsq);
-		siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
-		free(x);
-		free(y);
-		a[channel] = c1;
-		b[channel] = c0;
+		if (j > 1) {
+			gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11, &sumsq);
+			siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
+			free(x);
+			free(y);
+			a[channel] = c1;
+			b[channel] = c0;
+		} else {
+			gchar *err = siril_log_color_message(_("Error! Need at least 2 points...\n"), "red");
+			if (error) {
+				*error = err;
+			}
+			free(x);
+			free(y);
+			return -1;
+		}
 	}
 	return 0;
 }
@@ -207,12 +217,22 @@ static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double
 			}
 		}
 		j--;
-		gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11,	&sumsq);
-		siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
-		free(x);
-		free(y);
-		a[channel] = c1;
-		b[channel] = c0;
+		if (j > 1) {
+			gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11,	&sumsq);
+			siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
+			free(x);
+			free(y);
+			a[channel] = c1;
+			b[channel] = c0;
+		} else {
+			gchar *err = siril_log_color_message(_("Error! Need at least 2 points...\n"), "red");
+			if (error) {
+				*error = err;
+			}
+			free(x);
+			free(y);
+			return -1;
+		}
 	}
 	return 0;
 }

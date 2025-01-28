@@ -131,7 +131,8 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	int scaling_factor = 4;
 	int width_scaled = round_to_int(width / scaling_factor);
 	int height_scaled = round_to_int(height / scaling_factor);
-
+	if (width_scaled < 0 || height_scaled | 0)
+		return FALSE;
 	double *background_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double *kernel_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double x_scaling = (double)height_scaled / (double)height;
