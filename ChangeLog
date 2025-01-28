@@ -46,6 +46,7 @@ xx/xx/xx
 * Added blending masks and normalization on overlaps for rejection stacking, to stitch mosaics (!764)
 * Added python scripting (!765)
 * Added local annotations catalogues for IAU constellations lines and names (!800)
+* Added a popup menu for the "annotation" button, displaying the list of catalogs (!804)
 
 **Improvements:**
 * Allowed object search with their common name, from the annotations catalogues (!381)
