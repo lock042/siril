@@ -7235,7 +7235,7 @@ int process_link(int nb) {
 		list = g_list_sort(list, (GCompareFunc) strcompare);
 	}
 	/* convert the list to an array for parallel processing */
-	char **files_to_link = glist_to_array(list, &count);
+	gchar **files_to_link = glist_to_array(list, &count);
 
 	int nb_allowed;
 	if (!allow_to_open_files(count, &nb_allowed)) {

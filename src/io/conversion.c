@@ -729,9 +729,7 @@ gpointer convert_thread_worker(gpointer p) {
 	g_cond_clear(&args->pool_cond);
 
 	/* clean-up and reporting */
-	for (int i = 0; i < args->total; i++)
-		g_free(args->list[i]);
-	free(args->list);
+	g_strfreev(args->list);
 	args->nb_converted_files = convert.converted_files;
 	if (args->output_type == SEQ_REGULAR) {
 		if (convert.fatal_error)

@@ -209,7 +209,7 @@ static void initialize_convert() {
 	 * list with g_list_reverse() when all elements have been added. */
 	list = g_list_reverse(list);
 	/* convert the list to an array for parallel processing */
-	char **files_to_convert = glist_to_array(list, &count);
+	gchar **files_to_convert = glist_to_array(list, &count);
 
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	if (!args) {
