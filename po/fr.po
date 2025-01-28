@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-01-18 05:48+0000\n"
+"PO-Revision-Date: 2025-01-28 08:46+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/fr/>\n"
@@ -17167,7 +17167,7 @@ msgstr "répertoire de travail actuel"
 
 #: src/core/settings.c:264
 msgid "FITS file extension"
-msgstr "Extension du fichier FITS"
+msgstr "extension du fichier FITS"
 
 #: src/core/settings.c:265
 msgid "don't use 32 bits for pixel depth"

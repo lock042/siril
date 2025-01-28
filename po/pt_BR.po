@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-01-25 21:11+0000\n"
+"PO-Revision-Date: 2025-01-28 08:46+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril-1-2/pt_BR/>\n"
@@ -2651,7 +2651,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:11910
 msgid "Find"
-msgstr ""
+msgstr "Buscar"
 
 #: src/gui/siril3.glade:11914
 msgid ""
@@ -2661,6 +2661,11 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"Comece a pesquisar as coordenadas do objeto nomeado. Este recurso requer uma "
+"conexão com a Internet (utiliza SIMBAD por padrão ou o servidor selecionado "
+"à direita).\n"
+"Se as coordenadas já estiverem preenchidas ao clicar no botão Obter "
+"metadados da imagem abaixo, isso provavelmente não será necessário."
 
 #: src/gui/siril3.glade:11929 src/gui/siril3.glade:11965
 msgid ""
@@ -2668,6 +2673,9 @@ msgid ""
 "input value has not to be very accurate, try to give a value with an error "
 "not exceeding 20%."
 msgstr ""
+"Distância focal efetiva do sistema óptico em milímetros. Mesmo que o valor "
+"de entrada não seja muito preciso, tente fornecer um valor com um erro não "
+"superior a 20%."
 
 #: src/gui/siril3.glade:11947
 msgid ""
@@ -2682,6 +2690,7 @@ msgstr "Distância focal (mm):"
 #: src/gui/siril3.glade:11977
 msgid "Pixel size in microns. The image is assumed to have square pixels."
 msgstr ""
+"Tamanho do pixel em mícron. Supõe-se que a imagem tenha pixels quadrados."
 
 #: src/gui/siril3.glade:11978
 msgid "Pixel size (µm):"
@@ -2692,11 +2701,12 @@ msgid ""
 "The resolution of the image that is automatically determined from the focal "
 "and pixel size value. Unit is arc second per pixel."
 msgstr ""
+"A resolução da imagem que é determinada automaticamente a partir do valor de "
+"distância focal e do tamanho do pixel. A unidade é segundo de arco por pixel."
 
 #: src/gui/siril3.glade:11992
-#, fuzzy
 msgid "Resolution: "
-msgstr "Desvio: "
+msgstr "Resolução: "
 
 #: src/gui/siril3.glade:12029
 msgid ""
@@ -2705,10 +2715,14 @@ msgid ""
 "or the others should not influence the plate-solving or the photometry data, "
 "which is based on the selected catalogue."
 msgstr ""
+"Nesta lista encontram-se diversos resolvedores. No entanto, trata-se apenas "
+"de obter as coordenadas do centro do objeto. A escolha de um item ou de "
+"outros não deve influenciar a resolução da imagem ou os dados de fotometria, "
+"que são baseados no catálogo selecionado."
 
 #: src/gui/siril3.glade:12038
 msgid "Resolver"
-msgstr ""
+msgstr "Resolvedor"
 
 #: src/gui/siril3.glade:12049 src/gui/siril3.glade:12781
 #: src/gui/siril3.glade:19997
@@ -2716,18 +2730,16 @@ msgid "Name"
 msgstr "Nome"
 
 #: src/gui/siril3.glade:12069
-#, fuzzy
 msgid "Flip image if needed"
-msgstr "não carregada"
+msgstr "Inverter imagem, se necessário"
 
 #: src/gui/siril3.glade:12073
 msgid "Flip image at the end of the platesolving if image is mirrored."
-msgstr ""
+msgstr "Vire a imagem no final do plate solving se a imagem for espelhada."
 
 #: src/gui/siril3.glade:12086
-#, fuzzy
 msgid "Downsample image"
-msgstr "Normalizar imagens"
+msgstr "Reduzir a resolução da imagem"
 
 #: src/gui/siril3.glade:12090
 msgid ""
@@ -2735,16 +2747,21 @@ msgid ""
 "resolve astrometry data. In consequence, downsampling data generally helps "
 "and also makes star detection run faster."
 msgstr ""
+"Às vezes, para imagens com sobreamostragem (como com Drizzle), é complicado "
+"resolver dados de astrometria. Em consequência, a redução da amostragem dos "
+"dados geralmente ajuda e também torna a detecção de estrelas mais rápida."
 
 #: src/gui/siril3.glade:12102
 msgid "Auto-crop (for wide field)"
-msgstr ""
+msgstr "Corte automático (para campo amplo)"
 
 #: src/gui/siril3.glade:12106
 msgid ""
 "Only use the center of the image (or selection) if the field is too wide, "
 "larger than 5 degrees."
 msgstr ""
+"Use o centro da imagem (ou seleção) apenas se o campo for muito amplo, maior "
+"que 5 graus."
 
 #: src/gui/siril3.glade:12119
 msgid "Force plate solving"
@@ -2758,34 +2775,37 @@ msgstr ""
 
 #: src/gui/siril3.glade:12134
 msgid "Get Metadata From Image"
-msgstr ""
+msgstr "Obter Metadados da imagem"
 
 #: src/gui/siril3.glade:12138
 msgid ""
 "Click on this button to get focal length, pixel size and RA/Dec pointing "
 "coordinates from the header of the file if they exist."
 msgstr ""
+"Clique neste botão para obter a distância focal, o tamanho do pixel e as "
+"coordenadas de AR/Dec do cabeçalho do arquivo, se existirem."
 
 #: src/gui/siril3.glade:12166
 msgid ""
 "Select the server that searches the coordinates of the entered object name."
 msgstr ""
+"Selecione o servidor que pesquisa as coordenadas do nome do objeto inserido."
 
 #: src/gui/siril3.glade:12169
 msgid "CDS"
-msgstr ""
+msgstr "CDS"
 
 #: src/gui/siril3.glade:12170
 msgid "VizieR"
-msgstr ""
+msgstr "VizieR"
 
 #: src/gui/siril3.glade:12171
 msgid "SIMBAD"
-msgstr ""
+msgstr "SIMBAD"
 
 #: src/gui/siril3.glade:12185
 msgid "Server:"
-msgstr ""
+msgstr "Servidor:"
 
 #: src/gui/siril3.glade:12194
 msgid "Use local astrometry.net solver"
@@ -2798,9 +2818,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:12223
-#, fuzzy
 msgid "Image Parameters"
-msgstr "_Processamento de imagem"
+msgstr "Parâmetros da imagem"
 
 #: src/gui/siril3.glade:12255
 msgid "Catalogue Limit Mag: "
@@ -2811,9 +2830,10 @@ msgid ""
 "Maximum star magnitude used in the catalog queries. Wider is the field, "
 "lower is the value."
 msgstr ""
+"Magnitude máxima de estrelas usada nas consultas de catálogo. Quanto mais "
+"amplo for o campo, menor será o valor."
 
 #: src/gui/siril3.glade:12281 src/gui/siril3.glade:12336
-#, fuzzy
 msgid "Auto"
 msgstr "Automático"
 
@@ -2822,6 +2842,8 @@ msgid ""
 "The limit magnitude is automatically determined using the approximation of "
 "the Field Of View."
 msgstr ""
+"A magnitude limite é determinada automaticamente usando a aproximação do "
+"campo de visão."
 
 #: src/gui/siril3.glade:12301
 msgid "Online Star Catalogue: "
@@ -2887,16 +2909,16 @@ msgid ""
 "The TYCHO2, NOMAD and Bright Stars catalogues can be installed locally to "
 "not rely on an Internet connection for this operation."
 msgstr ""
+"Os catálogos TYCHO2, NOMAD e Bright Stars podem ser instalados localmente "
+"para não depender de uma conexão com a Internet para esta operação."
 
 #: src/gui/siril3.glade:12419
-#, fuzzy
 msgid "Catalogue Parameters"
-msgstr "_Processamento de imagem"
+msgstr "Parâmetros do catálogo"
 
 #: src/gui/siril3.glade:12440
-#, fuzzy
 msgid "Manual detection"
-msgstr "Auto deteção"
+msgstr "Detecção manual"
 
 #: src/gui/siril3.glade:12444
 msgid ""
@@ -2906,6 +2928,11 @@ msgid ""
 "Use the Dynamic PSF tool, or the findstar command, adjusting the settings to "
 "your image."
 msgstr ""
+"Marque esta opção se quiser escolher cada estrela manualmente. Pode ser útil "
+"em alguns casos em que Siril não consegue encontrar estrelas suficientes. "
+"Por favor, tente escolher as estrelas mais brilhantes da imagem.\n"
+"Use a ferramenta PSF dinâmico ou o comando findstar, ajustando as "
+"configurações à sua imagem."
 
 #: src/gui/siril3.glade:12454 src/gui/siril3.glade:13687
 msgid "Star Detection"

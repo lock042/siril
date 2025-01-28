@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-01-25 21:11+0000\n"
+"PO-Revision-Date: 2025-01-28 08:46+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril-1-2/zh_Hans/>\n"
@@ -182,7 +182,7 @@ msgstr "求和"
 
 #: src/gui/siril3.glade:725 src/gui/siril3.glade:17763
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr "有限对比度自适应均衡拉伸（CLAHE）…"
+msgstr "限制对比度自适应直方图均衡…"
 
 #: src/gui/siril3.glade:744 src/gui/siril3.glade:2391 src/gui/siril3.glade:3191
 #: src/gui/siril3.glade:5055 src/gui/siril3.glade:10836
@@ -201,14 +201,13 @@ msgstr "取消"
 
 #: src/gui/siril3.glade:804
 msgid "Tiles Grid Size"
-msgstr "矩阵格子尺寸"
+msgstr "分块尺寸"
 
 #: src/gui/siril3.glade:843
 msgid ""
 "Sets size of grid for histogram equalization. Input image will be divided "
 "into equally sized rectangular tiles. "
-msgstr ""
-"设置格子的尺寸用于直方图均衡化。图像将被分割成相等尺寸的矩形格子进行处理。 "
+msgstr "设置直方图均衡化时的分块尺寸。图像将被分割成相等尺寸的矩形格子进行处理。 "
 
 #: src/gui/siril3.glade:864
 msgid "Clip Limit"
@@ -1107,8 +1106,7 @@ msgstr "选区的PSF"
 msgid ""
 "Takes a PSF directly from the image fitted to the current dimension. The PSF "
 "size will be the minimum of the selection width and height."
-msgstr ""
-"直接从拟合到当前尺寸的图像中获取PSF。PSF尺寸将是选区宽度和高度的最小值。"
+msgstr "直接从适配当前尺寸的图像中获取PSF。PSF的尺寸将取选区宽度和高度的最小值。"
 
 #: src/gui/siril3.glade:6158
 msgid "PSF Source"
@@ -1328,7 +1326,7 @@ msgstr "多尺度PSF估算的连续尺度之间的比例因子"
 
 #: src/gui/siril3.glade:6868
 msgid "Amount of blur to use for upsampling during PSF estimation"
-msgstr "PSF 估算期间用于升采样的模糊值"
+msgstr "PSF 估算期间用于升采样的模糊量"
 
 #: src/gui/siril3.glade:6883
 msgid "Upsample blur"
@@ -1352,7 +1350,7 @@ msgstr "内核 ℓ1"
 
 #: src/gui/siril3.glade:6943
 msgid "Amount of blur to use for downsampling during PSF estimation"
-msgstr "PSF 估算期间用于降采样的模糊值"
+msgstr "PSF 估算期间用于降采样的模糊量"
 
 #: src/gui/siril3.glade:6958
 msgid ""
@@ -1572,8 +1570,7 @@ msgid ""
 "step size that can help to avoid ringing artefacts around stars. For "
 "stretched images Mulitiplicative may give good results and require fewer "
 "iterations."
-msgstr ""
-"如有疑问，请使用梯度下降。它更平滑，步长可控，有助于避免星点周围的环状伪影。"
+msgstr "如有疑问，请使用梯度下降。它更平滑，步长可控，有助于避免星点周围的振铃伪影。"
 "对于已拉伸图像，乘法可以产生良好的结果，并且需要较少的迭代。"
 
 #: src/gui/siril3.glade:7676 src/gui/siril3.glade:24187
@@ -1632,9 +1629,7 @@ msgid ""
 "This option applies cosmetic correction to remove salt and pepper noise "
 "before the primary denoising algorithm. This is generally a good thing and "
 "the setting defaults to active."
-msgstr ""
-"此选项在主降噪算法之前应用坏点修正以消除椒盐噪声。这通常是一件好事，默认设置"
-"为启用。"
+msgstr "此选项在主降噪算法之前应用坏点修正以消除椒盐噪声。通常有益无害，默认启用。"
 
 #: src/gui/siril3.glade:8019
 msgid "Independent Channels"
@@ -2136,8 +2131,8 @@ msgid ""
 "dimensions and bit depth for blending."
 msgstr ""
 "选择一张无星图像，来与纯星图像进行重混合。 \n"
-"星点重绘本应是缩星流程的一环，但此工具也可以用来混合任意两个具有相同尺寸和位"
-"深的fits文件。"
+"星点重混合本应是缩星流程的一环，但此工具也可以用来混合任意两个具有相同尺寸和"
+"位深的fits文件。"
 
 #: src/gui/siril3.glade:9549
 msgid ""
@@ -2262,9 +2257,8 @@ msgid ""
 "recomposition, increasing SP reduces the intensity of stars with peak "
 "brightness below SP and therefore the amount of stars that show in the "
 "resulting composition."
-msgstr ""
-"设置拐点，即拉伸强度最大之处。对于星点重构，提高拐点会削弱峰值低于拐点的星"
-"点，从而减少重混合结果中的星点数量。"
+msgstr "设置拐点，即拉伸强度最大之处。对于星点重混合，提高拐点会削弱峰值低于拐点的星"
+"点，从而减少结果中的星点数量。"
 
 #: src/gui/siril3.glade:9867
 msgid ""
@@ -2389,9 +2383,9 @@ msgid ""
 "pixel values away from SP. This parameter must be greater than or equal to "
 "LP and less than or equal to HP."
 msgstr ""
-"设置拉伸强度最大的拐点——对比度将围绕拐点对称分布。拐点通常应放置在直方图峰值"
-"上，以便在该点上拉伸出最大的对比度，使峰值变得扁平。拉伸会使得像素值远离拐"
-"点。此参数必须大于等于阴影保护点且小于等于高光保护点。"
+"设置拉伸强度最大的拐点 - 对比度将围绕拐点对称分布。拐点通常应放置在直方图峰值"
+"上，以便在该点上拉伸出最大的对比度，使峰值变得扁平。拉伸会使得像素值远离拐点"
+"。此参数必须大于等于阴影保护点且小于等于高光保护点。"
 
 #: src/gui/siril3.glade:10506 src/gui/siril3.glade:16444
 msgid ""
@@ -3179,7 +3173,7 @@ msgid ""
 "value may signicantly impact star finding computation time."
 msgstr ""
 "PSF拟合的收敛判据。 \n"
-"默认值 1 应该适用于大多数情况。但是，对于具有强烈慧差的图像，可能需要增加此值"
+"默认值 1 应该适用于大多数情况。但是，对于具有强烈彗差的图像，可能需要增加此值"
 "以允许更多的迭代步骤。\n"
 "通常，此功能只应用于叠加后的图像。增加此值可能会显著影响星点侦测计算时间。"
 
@@ -3451,7 +3445,7 @@ msgstr "恢复"
 
 #: src/gui/siril3.glade:14734
 msgid "PSF"
-msgstr "PSF"
+msgstr "点扩散函数（PSF）"
 
 #: src/gui/siril3.glade:14741
 msgid ""
@@ -4366,13 +4360,13 @@ msgstr "Lanczos-4"
 #: src/gui/siril3.glade:18696 src/gui/siril3.glade:18926
 #: src/gui/siril3.glade:23301
 msgid "Interpolation clamping"
-msgstr "插值保持"
+msgstr "插值钳位"
 
 #: src/gui/siril3.glade:18700 src/gui/siril3.glade:18930
 msgid ""
 "Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to "
 "prevent ringing artefacts"
-msgstr "对双三次和 Lanczos-4 插值应用保持系数，以防止环状伪影"
+msgstr "对双三次和 Lanczos-4 插值应用钳位，以防止振铃伪影"
 
 #: src/gui/siril3.glade:18804
 msgid "Angle (°)"
@@ -6975,9 +6969,9 @@ msgid ""
 "with a BITPIX=8 will be automatically detected as RGB FITS."
 msgstr ""
 "如果FITS文件头中含有关键字CTYPE3 = 'RGB '，Aladin把一个3D立方体FITS看作为一个"
-"RGB图像（红绿蓝合成）。此时任何BITPIX可被支持。如果FITES文件头中没有关键字"
-"CTYPE3 = 'RGB '，只有立方体FITS中的3个帧拥有相同的维度并且BITPIX=8时才会被自"
-"动检测为RGB文件。"
+"RGB图像（红绿蓝合成）。此时任何BITPIX可被支持。"
+"如果FITES文件头中没有关键字CTYPE3 = 'RGB '，只有立方体FITS中的3个帧拥有相同的"
+"尺寸并且BITPIX=8时才会被自动检测为RGB文件。"
 
 #: src/gui/siril3.glade:28209
 msgid "Update pixel size of binned image"
@@ -7901,9 +7895,8 @@ msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
-msgstr ""
-"如果选中，FFTW将使用多个线程。这通常是对大图像的加速，但在FFTW首次对给定尺寸"
-"的图像进行操作时会增加初始规划时间。"
+msgstr "如果选中，FFTW将使用多个线程。这通常可以加速大图像的处理，但在FFTW首次对给定"
+"尺寸的图像进行操作时会增加初始规划时间。"
 
 #: src/gui/siril3.glade:31382 src/core/settings.c:294
 msgid "FFTW planning strategy"
@@ -9615,7 +9608,7 @@ msgstr ""
 msgid ""
 "Error: dimensions reported by wavelets file are negative, zero or "
 "excessive.\n"
-msgstr "错误：小波文件报告的维度为负数、零或过多。\n"
+msgstr "错误：小波文件报告的尺寸为负数、零或过多。\n"
 
 #: src/algos/reconstr.c:162 src/algos/reconstr.c:189
 msgid "Error: number of plans reported by wavelets file is out of bounds.\n"
@@ -10186,19 +10179,19 @@ msgstr "手动生成 PSF：\n"
 
 #: src/core/command.c:1195
 msgid "Gaussian PSF\n"
-msgstr "高斯PSF\n"
+msgstr "高斯点扩散函数（PSF）\n"
 
 #: src/core/command.c:1199
 msgid "Moffat PSF\n"
-msgstr "Moffat PSF\n"
+msgstr "Moffat点扩散函数（PSF）\n"
 
 #: src/core/command.c:1203
 msgid "Disc PSF\n"
-msgstr "圆盘形PSF\n"
+msgstr "圆盘形点扩散函数（PSF）\n"
 
 #: src/core/command.c:1207
 msgid "Airy disc PSF\n"
-msgstr "艾里斑PSF\n"
+msgstr "艾里斑点扩散函数（PSF）\n"
 
 #: src/core/command.c:1335
 msgid "Load PSF from file:\n"
@@ -10758,7 +10751,7 @@ msgstr "重新缩放只能在 [0, 1] 区间\n"
 
 #: src/core/command.c:3674
 msgid "Image must have same dimension\n"
-msgstr "图像必须具有相同的维度\n"
+msgstr "图像必须具有相同的尺寸\n"
 
 #: src/core/command.c:3760
 msgid ""
@@ -11231,7 +11224,7 @@ msgstr "对齐：处理中，使用方法：%s\n"
 #: src/core/command.c:6775 src/core/command.c:7053
 #: src/registration/registration.c:1545
 msgid "Interpolation clamping active\n"
-msgstr "插值保持启用\n"
+msgstr "启用插值钳位\n"
 
 #: src/core/command.c:6798 src/core/command.c:6816 src/core/command.c:6835
 #: src/core/command.c:6854 src/core/command.c:6873 src/core/command.c:6891
@@ -13395,8 +13388,7 @@ msgstr ""
 msgid ""
 "Rotates the loaded image of an angle of 180° around its center. This is "
 "equivalent to the command \"ROTATE 180\" or \"ROTATE -180\""
-msgstr ""
-"将加载的图像绕其中心旋转180°。这与命令\"ROTATE 180\"或\"ROTATE -180\"相同"
+msgstr "将载入的图像绕其中心旋转180°。这与命令\"ROTATE 180\"或\"ROTATE -180\"相同"
 
 #: src/core/command_def.h:118
 msgid ""
@@ -15680,7 +15672,7 @@ msgstr "所选插值方法的指标"
 
 #: src/core/settings.c:359
 msgid "use clamping method with Lanczos and Cubic interpolation"
-msgstr "对 Lanczos 和 Cubic 插值使用保持机制"
+msgstr "对 Lanczos 和 Cubic 插值使用钳位"
 
 #: src/core/settings.c:361
 msgid "index of the selected method"
@@ -16090,7 +16082,7 @@ msgstr "除去佳能条纹（amount=%.2lf, Protect=TRUE, invsigma=%.2lf）"
 #: src/filters/clahe.c:59
 #, c-format
 msgid "CLAHE (size=%d, clip=%.2f)"
-msgstr "CLAHE (size=%d, clip=%.2f)"
+msgstr "限制对比度自适应直方图均衡 (size=%d, clip=%.2f)"
 
 #: src/filters/cosmetic_correction.c:366
 #, c-format
@@ -17118,22 +17110,22 @@ msgstr "直方图变换 (mid=%.3f, lo=%.3f, hi=%.3f)"
 #: src/gui/histogram.c:1167
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
+msgstr "GHS 拐点: %.3f, 量: %.2f, 局部: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1170
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
+msgstr "GHS INV 拐点: %.3f, 量: %.2f, 局部: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1173
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
+msgstr "GHS ASINH 拐点: %.3f, 量: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1176
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
+msgstr "GHS ASINH INV 拐点: %.3f, 量: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1179
 #, c-format
@@ -17143,22 +17135,22 @@ msgstr "GHS LINEAR BP: %.2f"
 #: src/gui/histogram.c:1185
 #, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
+msgstr "GHS SAT 拐点: %.3f, 量: %.2f, 局部: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1188
 #, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
+msgstr "GHS INV SAT 拐点: %.3f, 量: %.2f, 局部: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1191
 #, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
+msgstr "GHS ASINH SAT 拐点: %.3f, 量: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1194
 #, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
+msgstr "GHS ASINH INV SAT 拐点: %.3f, 量: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1197
 #, c-format
@@ -17242,7 +17234,7 @@ msgstr "裁切确认"
 
 #: src/gui/menu_gray_geometry.c:65
 msgid "Rotation (%.1lfdeg, cropped=%s, clamped=%s)"
-msgstr "旋转（%.1lf度，裁切=%s，保持=%s）"
+msgstr "旋转（%.1lf度，裁切=%s，钳位=%s）"
 
 #: src/gui/menu_gray_geometry.c:84
 msgid "Rotation (90 deg)"
@@ -19072,7 +19064,7 @@ msgstr "无法移动到 FITS 文件中的第一幅图像\n"
 
 #: src/io/image_format_fits.c:1193
 msgid "Cannot get dimension of FITS file\n"
-msgstr "无法获取 FITS 文件的维度\n"
+msgstr "无法获取 FITS 文件的尺寸\n"
 
 #: src/io/image_format_fits.c:1203
 msgid "Cannot move to next image in FITS file\n"
@@ -19179,9 +19171,8 @@ msgstr "叠加错误：图像拥有不同的精度\n"
 msgid ""
 "Parameters for mp4 file creation were incorrect. Image dimension has to be a "
 "multiple of 2, fps and file name non nul, quality between 1 and 5."
-msgstr ""
-"用于创建 mp4 文件的参数不正确。图像维度必须是 2 的倍数，fps 和文件名非空，品"
-"质介于 1 和 5 之间。"
+msgstr "用于创建 mp4 文件的参数不正确。图像尺寸必须是 2 的倍数，fps 和文件名非空，"
+"品质介于 1 和 5 之间。"
 
 #: src/io/path_parse.c:33
 msgid "Warning code:"
@@ -20262,7 +20253,7 @@ msgstr "打开"
 
 #: src/pixelMath/pixel_math_runner.c:1106
 msgid "Image must have same dimension"
-msgstr "图像必须具有相同的维度"
+msgstr "图像必须具有相同的尺寸"
 
 #: src/pixelMath/pixel_math_runner.c:1175
 msgid "Cannot load new image"
