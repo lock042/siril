@@ -10277,7 +10277,7 @@ int process_platesolve(int nb) {
 	start_in_new_thread(plate_solver, args);
 	return CMD_OK;
 clean_and_exit_platesolve:
-	if (check_seq_is_comseq(seq))
+	if (seq && check_seq_is_comseq(seq))
 		free_sequence(seq, TRUE);
 	if (target_coords)
 		siril_world_cs_unref(target_coords);
