@@ -6156,10 +6156,8 @@ int process_split(int nb){
 	args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 
 	if (!start_in_new_thread(extract_channels, args)) {
-		if (args->fit) {
-			clearfits(args->fit);
-			free(args->fit);
-		}
+		clearfits(args->fit);
+		free(args->fit);
 		free(args->channel[0]);
 		free(args->channel[1]);
 		free(args->channel[2]);

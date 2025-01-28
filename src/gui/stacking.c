@@ -203,7 +203,9 @@ static void start_stacking() {
 	/* Stacking. Result is in gfit if success */
 	struct stacking_args *params = malloc(sizeof(struct stacking_args));
 	stacking_args_deep_copy(&stackparam, params);
-	start_in_new_thread(stack_function_handler, params);
+	if (!start_in_new_thread(stack_function_handler, params)) {
+		stacking_args_deep_free(params);
+	}
 }
 
 void on_seqstack_button_clicked (GtkButton *button, gpointer user_data){
