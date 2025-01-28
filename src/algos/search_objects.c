@@ -288,7 +288,9 @@ void search_object(GtkEntry *entry) {
 	sky_object_query_args *args = init_sky_object_query();
 	args->name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
 	args->fit = &gfit;
-	start_in_new_thread(catsearch_worker, args);
+	if (!start_in_new_thread(catsearch_worker, args)) {
+		free_sky_object_query(args);
+	}
 }
 
 void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {

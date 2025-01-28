@@ -788,9 +788,14 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	args->load_new_sequence = TRUE;
 	args->user = crop_sequence_data;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(crop_sequence_data->prefix);
+		free(crop_sequence_data);
+		free_generic_seq_args(args);
+		return GINT_TO_POINTER(1);
+	}
 
-	return 0;
+	return GINT_TO_POINTER(0);
 }
 
 gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data) {
@@ -810,7 +815,12 @@ gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data) {
 	args->load_new_sequence = TRUE;
 	args->user = scale_sequence_data;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(scale_sequence_data->prefix);
+		free(scale_sequence_data);
+		free_generic_seq_args(args);
+		return GINT_TO_POINTER(1);
+	}
 
-	return 0;
+	return GINT_TO_POINTER(0);
 }

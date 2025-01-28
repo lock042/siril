@@ -1161,7 +1161,10 @@ int execute_conesearch(conesearch_params *params) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	start_in_new_thread(conesearch_worker, args);
+	if (!start_in_new_thread(conesearch_worker, args)) {
+		free_conesearch_args(args);
+		return CMD_GENERIC_ERROR;
+	}
 	return CMD_OK;
 }
 
@@ -1200,8 +1203,11 @@ int execute_show_command(show_params *params) {
 				(params->display_tag == BOOL_NOT_SET) ?
 						(gboolean) has_field(siril_cat, NAME) :
 						(gboolean) params->display_tag;
-		start_in_new_thread(conesearch_worker, args);
-		return CMD_OK;
+		if (!start_in_new_thread(conesearch_worker, args)) {
+			free_conesearch_args(args);
+			return CMD_GENERIC_ERROR;
+		}
+	return CMD_OK;
 	}
 
 	if (params->coords) {
@@ -1217,7 +1223,10 @@ int execute_show_command(show_params *params) {
 		siril_catalog_append_item(siril_cat, item);
 		siril_catalog_free_item(item);
 		free(item);
-		start_in_new_thread(conesearch_worker, args);
+		if (!start_in_new_thread(conesearch_worker, args)) {
+			free_conesearch_args(args);
+			return CMD_GENERIC_ERROR;
+		}
 		return CMD_OK;
 	}
 

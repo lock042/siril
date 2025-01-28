@@ -2280,6 +2280,9 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	if (args->solver == SOLVER_SIRIL)
 		siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
 				catalog_to_str(args->ref_stars->cat_index));
-	start_in_new_thread(generic_sequence_worker, seqargs);
+	if(!start_in_new_thread(generic_sequence_worker, seqargs)) {
+		free_astrometry_data(args);
+		free_generic_seq_args(seqargs);
+	}
 }
 

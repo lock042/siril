@@ -243,7 +243,9 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	args->threading = MULTI_THREADED;
 	args->update_GUI = TRUE;
 
-	start_in_new_thread(findstar_worker, args);
+	if (!start_in_new_thread(findstar_worker, args)) {
+		free(args);
+	}
 }
 
 /* Function to add star one by one, from the selection rectangle, the

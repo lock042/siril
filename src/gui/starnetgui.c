@@ -197,7 +197,9 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	starnet_args->follow_on = sgui_follow_on;
 	if (gtk_toggle_button_get_active(toggle_starnet_sequence) == FALSE) {
 		if (single_image_is_loaded()) {
-			start_in_new_thread(do_starnet, starnet_args);
+			if (!start_in_new_thread(do_starnet, starnet_args)) {
+				free_starnet_args(starnet_args);
+			}
 			siril_close_dialog("starnet_dialog");
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not in single image mode"), _("Unable to apply StarNet to a single image as no single image is loaded. Did you mean to apply to sequence?"));

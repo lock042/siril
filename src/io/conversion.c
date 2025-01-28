@@ -444,7 +444,12 @@ int convert_single_film_to_ser(sequence *seq) {
 	args->multiple_output = FALSE;
 	args->make_link = FALSE;
 	gettimeofday(&(args->t_start), NULL);
-	start_in_new_thread(convert_thread_worker, args);
+	if (!start_in_new_thread(convert_thread_worker, args)) {
+		g_strfreev(args->list);
+		g_free(args->destroot);
+		free(args);
+		return 1;
+	}
 	return 0;
 }
 #endif

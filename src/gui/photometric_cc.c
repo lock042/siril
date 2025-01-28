@@ -202,7 +202,10 @@ static void start_photometric_cc(gboolean spcc) {
 
 	get_mag_settings_from_GUI(&pcc_args->mag_mode, &pcc_args->magnitude_arg);
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	start_in_new_thread(photometric_cc_standalone, pcc_args);
+	if (!start_in_new_thread(photometric_cc_standalone, pcc_args)) {
+		g_free(pcc_args->datalink_path);
+		free(pcc_args);
+	}
 }
 
 static rectangle get_bkg_selection() {

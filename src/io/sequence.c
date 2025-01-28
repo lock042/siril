@@ -2031,7 +2031,11 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	args->parallel = framing != FOLLOW_STAR_FRAME;
 
 	if (run_in_thread) {
-		start_in_new_thread(generic_sequence_worker, args);
+		if (!start_in_new_thread(generic_sequence_worker, args)) {
+			free(spsfargs);
+			free_generic_seq_args(args);
+			return 1;
+		}
 		return 0;
 	} else {
 		int retval = GPOINTER_TO_INT(generic_sequence_worker(args));

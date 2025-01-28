@@ -1986,7 +1986,10 @@ void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 
 	mtf_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(mtf_args);
+		free_generic_seq_args(args);
+	}
 }
 
 int ght_finalize_hook(struct generic_seq_args *args) {
@@ -2016,7 +2019,10 @@ void apply_ght_to_sequence(struct ght_data *ght_args) {
 
 	ght_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if(!start_in_new_thread(generic_sequence_worker, args)) {
+		free(ght_args);
+		free_generic_seq_args(args);
+	}
 }
 
 void on_histo_preview_toggled(GtkToggleButton *button, gpointer user_data) {

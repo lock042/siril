@@ -1438,7 +1438,10 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	args->force_ser_output = FALSE;
 	args->user = merge_cfa_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		// TODO: check we are freeing all the sequences in merge_cfa_args!
+		free_generic_seq_args(args);
+	}
 }
 
 //

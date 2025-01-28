@@ -779,7 +779,10 @@ void on_header_save_as_button_clicked() {
 				set_cursor_waiting(TRUE);
 				initialize_data(args);
 				if (test_for_viewer_mode(args)) {
-					start_in_new_thread(mini_save_dialog, args);
+					if (!start_in_new_thread(mini_save_dialog, args)) {
+						g_free(args->description);
+						free(args);
+					}
 				} else {
 					g_free(args->copyright);
 					g_free(args->description);

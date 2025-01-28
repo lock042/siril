@@ -119,7 +119,9 @@ void evaluate_noise_in_image() {
 	args->display_results = TRUE;
 	args->display_start_end = TRUE;
 	memset(args->bgnoise, 0.0, sizeof(double[3]));
-	start_in_new_thread(noise_worker, args);
+	if (!start_in_new_thread(noise_worker, args)) {
+		free(args);
+	}
 }
 
 // called in general from another function like stacking,
