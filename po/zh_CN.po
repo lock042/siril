@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-24 10:19+0100\n"
-"PO-Revision-Date: 2025-01-25 21:12+0000\n"
-"Last-Translator: Li Yizhi <411585951@qq.com>\n"
+"PO-Revision-Date: 2025-01-27 19:48+0000\n"
+"Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -167,7 +167,7 @@ msgstr "参考星的数量。"
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
-msgstr "Cstd: "
+msgstr "参考星的图表星等： "
 
 #: src/gui/uifiles/aavso_dialog.ui:310
 msgid ""
@@ -183,8 +183,8 @@ msgstr ""
 "\n"
 "Vstd = (Vins - Cins) + Cstd\n"
 "\n"
-"其中 Vins 是变星的仪器星等，Cins 是用于比较的仪器值，Cstd 是用于比较的图表星"
-"等。"
+"其中 Vins 是变星的仪器星等，Cins 是参考星的仪器星等，Cstd "
+"是参考星的图表星等。"
 
 #: src/gui/uifiles/aavso_dialog.ui:315 src/gui/uifiles/astrometry_dialog.ui:180
 #: src/gui/uifiles/astrometry_dialog.ui:202
@@ -1449,8 +1449,7 @@ msgstr "选区的PSF"
 msgid ""
 "Takes a PSF directly from the image fitted to the current dimension. The PSF "
 "size will be the minimum of the selection width and height."
-msgstr ""
-"直接从拟合到当前尺寸的图像中获取PSF。PSF尺寸将是选区宽度和高度的最小值。"
+msgstr "直接从适配当前尺寸的图像中获取PSF。PSF的尺寸将取选区宽度和高度的最小值。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:549
 msgid "PSF Source"
@@ -1681,7 +1680,7 @@ msgstr "多尺度PSF估算的连续尺度之间的比例因子"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1259
 msgid "Amount of blur to use for upsampling during PSF estimation"
-msgstr "PSF 估算期间用于升采样的模糊值"
+msgstr "PSF 估算期间用于升采样的模糊量"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1274
 msgid "Upsample blur"
@@ -1705,7 +1704,7 @@ msgstr "内核 ℓ1"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1334
 msgid "Amount of blur to use for downsampling during PSF estimation"
-msgstr "PSF 估算期间用于降采样的模糊值"
+msgstr "PSF 估算期间用于降采样的模糊量"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1349
 msgid ""
@@ -1933,8 +1932,7 @@ msgid ""
 "step size that can help to avoid ringing artefacts around stars. For "
 "stretched images Mulitiplicative may give good results and require fewer "
 "iterations."
-msgstr ""
-"如有疑问，请使用梯度下降。它更平滑，步长可控，有助于避免星点周围的环状伪影。"
+msgstr "如有疑问，请使用梯度下降。它更平滑，步长可控，有助于避免星点周围的振铃伪影。"
 "对于已拉伸图像，乘法可以产生良好的结果，并且需要较少的迭代。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2067 src/gui/uifiles/siril.ui:8136
@@ -2105,18 +2103,17 @@ msgstr "设置"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1971
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr "有限对比度自适应均衡拉伸（CLAHE）…"
+msgstr "限制对比度自适应直方图均衡…"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:128
 msgid "Tiles Grid Size"
-msgstr "矩阵格子尺寸"
+msgstr "分块尺寸"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:167
 msgid ""
 "Sets size of grid for histogram equalization. Input image will be divided "
 "into equally sized rectangular tiles. "
-msgstr ""
-"设置格子的尺寸用于直方图均衡化。图像将被分割成相等尺寸的矩形格子进行处理。 "
+msgstr "设置直方图均衡化时的分块尺寸。图像将被分割成相等尺寸的矩形格子进行处理。 "
 
 #: src/gui/uifiles/CLAHE_dialog.ui:188
 msgid "Clip Limit"
@@ -2707,20 +2704,18 @@ msgstr "输入与光谱分析相关的数据"
 
 #: src/gui/uifiles/cut_dialog.ui:175
 msgid "Tri-Profile (mono)"
-msgstr "三轮廓（单色）"
+msgstr "三重分布曲线（单色）"
 
 #: src/gui/uifiles/cut_dialog.ui:179
-#, fuzzy
 msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile."
-msgstr ""
-"生成 3 个由给定像素数分隔的平行强度轮廓。三轮廓始终沿每个轮廓绘制明度，不使用"
-"光谱数据。"
+msgstr "生成三条平行的强度分布曲线，按指定的像素间隔分隔。三重分布曲线始终沿每条分布"
+"曲线绘制亮度值。"
 
 #: src/gui/uifiles/cut_dialog.ui:194
 msgid "Set offset step size for tri-profile"
-msgstr "设置三轮廓的偏移步长"
+msgstr "设置三重分布曲线的偏移步长"
 
 #: src/gui/uifiles/cut_dialog.ui:195 src/gui/uifiles/savepopup.ui:921
 #: src/gui/uifiles/settings_window.ui:563
@@ -2791,13 +2786,12 @@ msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile and do not use "
 "spectrometric data."
-msgstr ""
-"生成 3 个由给定像素数分隔的平行强度轮廓。三轮廓始终沿每个轮廓绘制明度，不使用"
-"光谱数据。"
+msgstr "生成三条平行的强度分布曲线，按指定的像素间隔分隔。三重分布曲线始终沿每条分布"
+"曲线绘制亮度值，且不使用光谱数据。"
 
 #: src/gui/uifiles/cut_dialog.ui:303
 msgid "Tri-Profile offset (px)"
-msgstr "三轮廓偏移量（单色）"
+msgstr "三重分布曲线的偏移量（像素）"
 
 #: src/gui/uifiles/cut_dialog.ui:333
 msgid ""
@@ -2936,9 +2930,7 @@ msgid ""
 "This option applies cosmetic correction to remove salt and pepper noise "
 "before the primary denoising algorithm. This is generally a good thing and "
 "the setting defaults to active."
-msgstr ""
-"此选项在主降噪算法之前应用坏点修正以消除椒盐噪声。这通常是一件好事，默认设置"
-"为启用。"
+msgstr "此选项在主降噪算法之前应用坏点修正以消除椒盐噪声。通常有益无害，默认启用。"
 
 #: src/gui/uifiles/denoise_dialog.ui:169
 msgid "Independent Channels"
@@ -3195,8 +3187,8 @@ msgid ""
 "dimensions and bit depth for blending."
 msgstr ""
 "选择一张无星图像，来与纯星图像进行重混合。 \n"
-"星点重绘本应是缩星流程的一环，但此工具也可以用来混合任意两个具有相同尺寸和位"
-"深的fits文件。"
+"星点重混合本应是缩星流程的一环，但此工具也可以用来混合任意两个具有相同尺寸和"
+"位深的fits文件。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:260
 msgid ""
@@ -3338,9 +3330,8 @@ msgid ""
 "recomposition, increasing SP reduces the intensity of stars with peak "
 "brightness below SP and therefore the amount of stars that show in the "
 "resulting composition."
-msgstr ""
-"设置拐点，即拉伸强度最大之处。对于星点重构，提高拐点会削弱峰值低于拐点的星"
-"点，从而减少重混合结果中的星点数量。"
+msgstr "设置拐点，即拉伸强度最大之处。对于星点重混合，提高拐点会削弱峰值低于拐点的星"
+"点，从而减少结果中的星点数量。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:578
 msgid ""
@@ -3475,9 +3466,9 @@ msgid ""
 "pixel values away from SP. This parameter must be greater than or equal to "
 "LP and less than or equal to HP."
 msgstr ""
-"设置拉伸强度最大的拐点——对比度将围绕拐点对称分布。拐点通常应放置在直方图峰值"
-"上，以便在该点上拉伸出最大的对比度，使峰值变得扁平。拉伸会使得像素值远离拐"
-"点。此参数必须大于等于阴影保护点且小于等于高光保护点。"
+"设置拉伸强度最大的拐点 - 对比度将围绕拐点对称分布。拐点通常应放置在直方图峰值"
+"上，以便在该点上拉伸出最大的对比度，使峰值变得扁平。拉伸会使得像素值远离拐点"
+"。此参数必须大于等于阴影保护点且小于等于高光保护点。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1216
 #: src/gui/uifiles/histogram_dialog.ui:1138
@@ -4696,14 +4687,14 @@ msgstr "像素"
 #: src/gui/uifiles/resample_dialog.ui:310
 #: src/gui/uifiles/rotation_dialog.ui:226 src/gui/uifiles/siril.ui:7101
 msgid "Interpolation clamping"
-msgstr "插值保持"
+msgstr "插值钳位"
 
 #: src/gui/uifiles/resample_dialog.ui:314
 #: src/gui/uifiles/rotation_dialog.ui:230
 msgid ""
 "Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to "
 "prevent ringing artefacts"
-msgstr "对双三次和 Lanczos-4 插值应用保持系数，以防止环状伪影"
+msgstr "对双三次和 Lanczos-4 插值应用钳位，以防止振铃伪影"
 
 #: src/gui/uifiles/rgradient_dialog.ui:45
 msgid "Rotational Gradient"
@@ -5406,9 +5397,9 @@ msgid ""
 "with a BITPIX=8 will be automatically detected as RGB FITS."
 msgstr ""
 "如果FITS文件头中含有关键字CTYPE3 = 'RGB '，Aladin把一个3D立方体FITS看作为一个"
-"RGB图像（红绿蓝合成）。此时任何BITPIX可被支持。如果FITES文件头中没有关键字"
-"CTYPE3 = 'RGB '，只有立方体FITS中的3个帧拥有相同的维度并且BITPIX=8时才会被自"
-"动检测为RGB文件。"
+"RGB图像（红绿蓝合成）。此时任何BITPIX可被支持。"
+"如果FITES文件头中没有关键字CTYPE3 = 'RGB '，只有立方体FITS中的3个帧拥有相同的"
+"尺寸并且BITPIX=8时才会被自动检测为RGB文件。"
 
 #: src/gui/uifiles/settings_window.ui:766
 msgid "Update pixel size of binned image"
@@ -5742,11 +5733,10 @@ msgid "Gaia photometric extract:"
 msgstr "Gaia测光提取得到："
 
 #: src/gui/uifiles/settings_window.ui:1545
-#, fuzzy
 msgid ""
 "Specify the location of the Siril astrometric extract of the Gaia DR3 "
 "catalogue, used for plate solving"
-msgstr "给出 namedstars.dat 星表在您系统中的位置。"
+msgstr "指定基于Gaia DR3星表的Siril天体测量结果的位置，以用于解析"
 
 #: src/gui/uifiles/settings_window.ui:1547
 #, fuzzy
@@ -6590,9 +6580,8 @@ msgstr "黑点补偿"
 msgid ""
 "Enable BPC for rendering. This is not normally required but may be useful if "
 "an image has a malformed source profile."
-msgstr ""
-"启用黑点补偿进行渲染。这通常不是必需的，但如果图像具有格式错误的源描述文件，"
-"这可能会很有用。"
+msgstr "启用黑点补偿进行渲染。通常不必这么做，但如果图像具有格式错误的源描述文件，这"
+"可能会很有用。"
 
 #: src/gui/uifiles/settings_window.ui:4376
 msgid "Clear the profile and revert to the default"
@@ -7046,9 +7035,8 @@ msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
-msgstr ""
-"如果选中，FFTW将使用多个线程。这通常是对大图像的加速，但在FFTW首次对给定尺寸"
-"的图像进行操作时会增加初始规划时间。"
+msgstr "如果选中，FFTW将使用多个线程。这通常可以加速大图像的处理，但在FFTW首次对给定"
+"尺寸的图像进行操作时会增加初始规划时间。"
 
 #: src/gui/uifiles/settings_window.ui:5617 src/core/settings.c:382
 msgid "FFTW planning strategy"
@@ -7371,7 +7359,7 @@ msgstr "恢复"
 
 #: src/gui/uifiles/siril.ui:780
 msgid "PSF"
-msgstr "PSF"
+msgstr "点扩散函数（PSF）"
 
 #: src/gui/uifiles/siril.ui:787
 msgid ""
@@ -9253,7 +9241,6 @@ msgid "Set the interpolation algorithm"
 msgstr "设置插值算法"
 
 #: src/gui/uifiles/siril.ui:7105
-#, fuzzy
 msgid ""
 "Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms\n"
 "\n"
@@ -9266,14 +9253,14 @@ msgid ""
 "In current Siril implementations, we have included a clamping mechanism that "
 "prevents negative interpolated values and ringing artifacts for most images."
 msgstr ""
-"激活双三次和 Lancsoz4 插值算法的保持机制 \n"
+"启用双三次和Lanczos4插值算法的钳位功能\n"
 "\n"
-"Lanczos和双三次插值算法的主要问题是产生强烈的底射伪影（环状伪影）。这些伪影是"
-"由插值函数的负瓣落在高对比度边缘和孤立的明亮像素（如星点）引起的。这通常只发"
-"生在线性数据中。\n"
+"Lanczos和双三次插值算法的主要问题在于会产生强烈的下冲伪影（振铃效应）。这些伪"
+"影是由于插值函数的负瓣落在高对比度边缘和孤立亮像素（如星点）上所致。此现象通"
+"常仅发生于线性数据中。\n"
 "\n"
-"在当前的 Siril 实现中，我们包含一个保持机制，可以防止大多数图像出现负插值和环"
-"状伪影。"
+"在当前Siril的实现中，我们引入了钳位机制，该机制能有效防止大多数图像出现负值和"
+"振铃伪影。"
 
 #: src/gui/uifiles/siril.ui:7124
 #, fuzzy
@@ -11016,7 +11003,7 @@ msgid ""
 "value may signicantly impact star finding computation time."
 msgstr ""
 "PSF拟合的收敛判据。 \n"
-"默认值 1 应该适用于大多数情况。但是，对于具有强烈慧差的图像，可能需要增加此值"
+"默认值 1 应该适用于大多数情况。但是，对于具有强烈彗差的图像，可能需要增加此值"
 "以允许更多的迭代步骤。\n"
 "通常，此功能只应用于叠加后的图像。增加此值可能会显著影响星点侦测计算时间。"
 
@@ -12922,7 +12909,7 @@ msgstr ""
 msgid ""
 "Error: dimensions reported by wavelets file are negative, zero or "
 "excessive.\n"
-msgstr "错误：小波文件报告的维度为负数、零或过多。\n"
+msgstr "错误：小波文件报告的尺寸为负数、零或过多。\n"
 
 #: src/algos/reconstr.c:162 src/algos/reconstr.c:189
 msgid "Error: number of plans reported by wavelets file is out of bounds.\n"
@@ -13771,15 +13758,15 @@ msgstr "警告：d > 大约 25 可能会导致执行时间过长。\n"
 
 #: src/core/command.c:1208
 msgid "-si= value must be > 0.0 and <= 65535\n"
-msgstr "-si= value must be > 0.0 and <= 65535\n"
+msgstr "-si= 的值必须 > 0.0 且 <= 65535\n"
 
 #: src/core/command.c:1213
 msgid "-d= value must be > 0.0 and <= 20.0\n"
-msgstr "-d= value must be > 0.0 and <= 20.0\n"
+msgstr "-d= 的值必须 > 0.0 且 <= 20.0\n"
 
 #: src/core/command.c:1218
 msgid "-ss= value must be > 0.0 and <= 32.0\n"
-msgstr "-ss= value must be > 0.0 and <= 32.0\n"
+msgstr "-ss= 的值必须 > 0.0 且 <= 32.0\n"
 
 #: src/core/command.c:1223
 msgid ""
@@ -13789,7 +13776,7 @@ msgstr "警告：spatial sigma>约为 20 可能会导致执行时间过长。\n"
 
 #: src/core/command.c:1226
 msgid "-mod= value must be > 0.0 and <= 1.0\n"
-msgstr "-mod= value must be > 0.0 and <= 1.0\n"
+msgstr "-mod= 的值必须 > 0.0 且 <= 1.0\n"
 
 #: src/core/command.c:1236
 msgid "Error: guide image could not be loaded\n"
@@ -13897,19 +13884,19 @@ msgstr "手动生成 PSF：\n"
 
 #: src/core/command.c:1499
 msgid "Gaussian PSF\n"
-msgstr "高斯PSF\n"
+msgstr "高斯点扩散函数（PSF）\n"
 
 #: src/core/command.c:1503
 msgid "Moffat PSF\n"
-msgstr "Moffat PSF\n"
+msgstr "Moffat点扩散函数（PSF）\n"
 
 #: src/core/command.c:1507
 msgid "Disc PSF\n"
-msgstr "圆盘形PSF\n"
+msgstr "圆盘形点扩散函数（PSF）\n"
 
 #: src/core/command.c:1511
 msgid "Airy disc PSF\n"
-msgstr "艾里斑PSF\n"
+msgstr "艾里斑点扩散函数（PSF）\n"
 
 #: src/core/command.c:1639
 msgid "Load PSF from file:\n"
@@ -14525,7 +14512,7 @@ msgstr "重新缩放只能在 [0, 1] 区间\n"
 
 #: src/core/command.c:4196 src/core/command.c:4210
 msgid "Image must have same dimension\n"
-msgstr "图像必须具有相同的维度\n"
+msgstr "图像必须具有相同的尺寸\n"
 
 #: src/core/command.c:4304
 msgid ""
@@ -15115,7 +15102,7 @@ msgstr "对齐：处理中，使用方法：%s\n"
 
 #: src/core/command.c:7825 src/core/command.c:8232 src/gui/registration.c:1214
 msgid "Interpolation clamping active\n"
-msgstr "插值保持启用\n"
+msgstr "启用插值钳位\n"
 
 #: src/core/command.c:7851 src/core/command.c:7869 src/core/command.c:7888
 #: src/core/command.c:7907 src/core/command.c:7926 src/core/command.c:7944
@@ -15898,9 +15885,8 @@ msgid "Error: no smoothing value specified\n"
 msgstr "错误：未指定平滑值\n"
 
 #: src/core/command.c:11068
-#, fuzzy
 msgid "Error: no background tolerance value specified\n"
-msgstr "错误：加载了单色图像：无法指定彩色图层。\n"
+msgstr "错误：未指定背景容差\n"
 
 #: src/core/command.c:11072 src/core/command.c:11084 src/core/command.c:11103
 #: src/core/command.c:11481
@@ -16006,9 +15992,8 @@ msgid "No pixels require clipping. Nothing to do...\n"
 msgstr "没有需要排异的像素。什么都没做...\n"
 
 #: src/core/command.c:11486
-#, fuzzy
 msgid "Pixel limits applied successfully.\n"
-msgstr "已成功重新加载所有图像。\n"
+msgstr "成功应用像素极限值。\n"
 
 #: src/core/command.c:11501
 #, c-format
@@ -18223,8 +18208,7 @@ msgstr ""
 msgid ""
 "Rotates the loaded image of an angle of 180° around its center. This is "
 "equivalent to the command \"ROTATE 180\" or \"ROTATE -180\""
-msgstr ""
-"将加载的图像绕其中心旋转180°。这与命令\"ROTATE 180\"或\"ROTATE -180\"相同"
+msgstr "将载入的图像绕其中心旋转180°。这与命令\"ROTATE 180\"或\"ROTATE -180\"相同"
 
 #: src/core/command_def.h:136
 msgid ""
@@ -20951,9 +20935,8 @@ msgid "Path of the local Gaia astrometric catalogue"
 msgstr "namedstars.dat星表路径"
 
 #: src/core/settings.c:368
-#, fuzzy
 msgid "Path of the local Gaia photometric catalogue"
-msgstr "namedstars.dat星表路径"
+msgstr "本地Gaia测光星表的路径"
 
 #: src/core/settings.c:369
 msgid "add CTYPE3='RGB' in the FITS header"
@@ -21281,7 +21264,7 @@ msgstr "所选插值方法的指标"
 
 #: src/core/settings.c:469
 msgid "use clamping method with Lanczos and Cubic interpolation"
-msgstr "对 Lanczos 和 Cubic 插值使用保持机制"
+msgstr "对 Lanczos 和 Cubic 插值使用钳位"
 
 #: src/core/settings.c:471
 msgid "index of the selected method"
@@ -22033,7 +22016,7 @@ msgstr "除去佳能条纹（amount=%.2lf, Protect=TRUE, invsigma=%.2lf）"
 #: src/filters/clahe.c:59
 #, c-format
 msgid "CLAHE (size=%d, clip=%.2f)"
-msgstr "CLAHE (size=%d, clip=%.2f)"
+msgstr "限制对比度自适应直方图均衡 (size=%d, clip=%.2f)"
 
 #: src/filters/cosmetic_correction.c:366
 #, c-format
@@ -23105,7 +23088,7 @@ msgstr "切换手动模式或自动模式以比较恒星列表"
 
 #: src/gui/compstars.c:73
 msgid "Use the stars selected in the currently loaded image"
-msgstr "使用当前加载图像中所选择的星点"
+msgstr "使用当前载入图像中所选择的星点"
 
 #: src/gui/compstars.c:81
 msgid "Enter your own target name"
@@ -23345,11 +23328,11 @@ msgstr "光谱图"
 
 #: src/gui/cut.c:183
 msgid "Error: CFA mode and tri-profile are mutually exclusive.\n"
-msgstr "错误：CFA 模式和三轮廓是互斥的。\n"
+msgstr "错误：CFA 模式和三重分布曲线是互斥的。\n"
 
 #: src/gui/cut.c:187
 msgid "Error: color plot and tri-profile are mutually exclusive.\n"
-msgstr "错误：彩色图表和三轮廓是互斥的。\n"
+msgstr "错误：色表和三重分布曲线是互斥的。\n"
 
 #: src/gui/cut.c:191
 msgid "Error: mono image is loaded: color mode is unavailable.\n"
@@ -23405,7 +23388,7 @@ msgstr "错误：在图像尺寸之外的轮廓线端点。\n"
 
 #: src/gui/cut.c:249
 msgid "Error: spacing is set but tri-profile mode is not selected.\n"
-msgstr "错误：设置了间距，但未选择三轮廓模式。\n"
+msgstr "错误：设置了间距，但未选择三重分布曲线模式。\n"
 
 #: src/gui/cut.c:253
 msgid "Error: layer out of range.\n"
@@ -23525,23 +23508,19 @@ msgid ""
 msgstr ""
 
 #: src/gui/cut.c:1049
-#, fuzzy
 msgid "Tri-profile (mono)"
-msgstr "三轮廓（单色）"
+msgstr "三重分布曲线（单色）"
 
 #: src/gui/cut.c:1050
-#, fuzzy
 msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile"
-msgstr ""
-"生成 3 个由给定像素数分隔的平行强度轮廓。三轮廓始终沿每个轮廓绘制明度，不使用"
-"光谱数据。"
+msgstr "生成三条平行的强度分布曲线，按指定的像素间隔分隔。三重分布曲线始终沿每条分布"
+"曲线绘制亮度值"
 
 #: src/gui/cut.c:1051
-#, fuzzy
 msgid "Tri-profile offset (px)"
-msgstr "三轮廓（单色）"
+msgstr "三重分布曲线的偏移量（像素）"
 
 #: src/gui/cut.c:1181 src/gui/cut.c:1211
 msgid "No star detected"
@@ -23848,22 +23827,22 @@ msgstr "直方图变换 (mid=%.3f, lo=%.3f, hi=%.3f)"
 #: src/gui/histogram.c:1302
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
+msgstr "GHS 拐点: %.3f, 量: %.2f, 局部: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1305
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
+msgstr "GHS INV 拐点: %.3f, 量: %.2f, 局部: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1308
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
+msgstr "GHS ASINH 拐点: %.3f, 量: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1311
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
+msgstr "GHS ASINH INV 拐点: %.3f, 量: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1314
 #, c-format
@@ -23873,22 +23852,22 @@ msgstr "GHS LINEAR BP: %.2f"
 #: src/gui/histogram.c:1320
 #, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
+msgstr "GHS SAT 拐点: %.3f, 量: %.2f, 局部: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1323
 #, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
+msgstr "GHS INV SAT 拐点: %.3f, 量: %.2f, 局部: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1326
 #, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
+msgstr "GHS ASINH SAT 拐点: %.3f, 量: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1329
 #, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
+msgstr "GHS ASINH INV SAT 拐点: %.3f, 量: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1332
 #, c-format
@@ -24141,7 +24120,7 @@ msgstr "裁切确认"
 
 #: src/gui/menu_gray_geometry.c:67
 msgid "Rotation (%.1lfdeg, cropped=%s, clamped=%s)"
-msgstr "旋转（%.1lf度，裁切=%s，保持=%s）"
+msgstr "旋转（%.1lf度，裁切=%s，钳位=%s）"
 
 #: src/gui/menu_gray_geometry.c:86
 msgid "Rotation (90 deg)"
@@ -25696,9 +25675,8 @@ msgid "Unknown script type: %s\n"
 msgstr "提供了未知的选项：%s\n"
 
 #: src/gui/script_menu.c:239
-#, fuzzy
 msgid "Siril Script Files"
-msgstr "脚本文件名"
+msgstr "Siril脚本文件"
 
 #: src/gui/script_menu.c:240
 #, fuzzy
@@ -26968,7 +26946,7 @@ msgstr "无法移动到 FITS 文件中的第一幅图像\n"
 
 #: src/io/image_format_fits.c:585
 msgid "Cannot get dimension of FITS file\n"
-msgstr "无法获取 FITS 文件的维度\n"
+msgstr "无法获取 FITS 文件的尺寸\n"
 
 #: src/io/image_format_fits.c:595
 msgid "Cannot move to next image in FITS file\n"
@@ -27145,9 +27123,8 @@ msgstr "找到 %d trixels:\n"
 msgid ""
 "Parameters for mp4 file creation were incorrect. Image dimension has to be a "
 "multiple of 2, fps and file name non nul, quality between 1 and 5."
-msgstr ""
-"用于创建 mp4 文件的参数不正确。图像维度必须是 2 的倍数，fps 和文件名非空，品"
-"质介于 1 和 5 之间。"
+msgstr "用于创建 mp4 文件的参数不正确。图像尺寸必须是 2 的倍数，fps 和文件名非空，"
+"品质介于 1 和 5 之间。"
 
 #: src/io/path_parse.c:36
 msgid "Warning code:"
@@ -27403,16 +27380,15 @@ msgid "Convert to SER"
 msgstr "转换为SER"
 
 #: src/io/sequence.c:533
-#, fuzzy
 msgid ""
 "Warning: deprecated sequence. Film sequences are now deprecated in Siril: "
 "some features are disabled and others may crash. Continuing, but we strongly "
 "encourage you to convert this sequence into a SER file.SER file format is a "
 "simple image sequence format, similar to uncompressed films.\n"
 msgstr ""
-"电影序列现在在 Siril 中已弃用：某些功能被禁用，其他功能可能会崩溃。我们强烈建"
-"议您将此序列转换为 SER 文件。SER文件格式是一种简单的图像序列格式，类似于未压"
-"缩的电影。"
+"警告：序列已弃用。Siril中现已弃用胶片序列（film sequences）：部分功能已被禁用"
+"或可能导致程序崩溃。虽然仍可继续，但强烈建议将该序列转换为SER文件。SER是一种"
+"简单的图像序列格式，类似于未压缩的视频。\n"
 
 #: src/io/sequence.c:552
 #, fuzzy
@@ -27870,7 +27846,7 @@ msgstr "GCVS"
 
 #: src/io/siril_catalogues.c:282
 msgid "Gaia DR3 Variability"
-msgstr "Gaia DR3 Variability"
+msgstr "Gaia DR3 光变数据集"
 
 #: src/io/siril_catalogues.c:284
 msgid "PGC"
@@ -28180,21 +28156,19 @@ msgid "Failed to set shared memory size (total_bytes: %ld): %s\n"
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:223
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to map shared memory: %s\n"
-msgstr "无法加载 CSS 表：%s。\n"
+msgstr "无法映射共享内存：%s\n"
 
 #: src/io/siril_pythonmodule.c:331
-#, fuzzy
 msgid "Failed to retrieve pixel data - no image loaded"
-msgstr "无法为 solve-field 创建输入数据\n"
+msgstr "无法获取像素数据 - 未加载图像"
 
 #: src/io/siril_pythonmodule.c:353 src/io/siril_pythonmodule.c:362
 #: src/io/siril_pythonmodule.c:371 src/io/siril_pythonmodule.c:434
 #: src/io/siril_pythonmodule.c:442 src/io/siril_pythonmodule.c:451
-#, fuzzy
 msgid "Failed to allocate shared memory"
-msgstr "无法创建色彩空间变换。"
+msgstr "无法分配共享内存"
 
 #: src/io/siril_pythonmodule.c:422
 msgid "Incorrect memory region specification"
@@ -28228,9 +28202,8 @@ msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %"
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:533
-#, fuzzy
 msgid "Error: image dimensions exceed available memory"
-msgstr "错误：导星图像尺寸不匹配\n"
+msgstr "错误：图像尺寸超出可用内存"
 
 #: src/io/siril_pythonmodule.c:563 src/io/siril_pythonmodule.c:674
 #, fuzzy
@@ -28238,14 +28211,12 @@ msgid "Failed to open shared memory"
 msgstr "无法打开第一帧图像"
 
 #: src/io/siril_pythonmodule.c:572 src/io/siril_pythonmodule.c:680
-#, fuzzy
 msgid "Failed to map shared memory"
-msgstr "无法查找远程。\n"
+msgstr "无法映射共享内存"
 
 #: src/io/siril_pythonmodule.c:613
-#, fuzzy
 msgid "Failed to allocate image buffer"
-msgstr "图像缩小失败，异常中止\n"
+msgstr "无法分配图像缓冲区"
 
 #: src/io/siril_pythonmodule.c:685
 #, fuzzy
@@ -28253,9 +28224,9 @@ msgid "Error: could not open shared memory"
 msgstr "错误：无法载入图像"
 
 #: src/io/siril_pythonmodule.c:719
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading stdout: %s\n"
-msgstr "加载脚本内容时出错：%s\n"
+msgstr "读取stdout时出错：%s\n"
 
 #: src/io/siril_pythonmodule.c:743
 #, fuzzy, c-format
@@ -28387,9 +28358,8 @@ msgstr ""
 
 #. Handle error retrieving dimensions
 #: src/io/siril_pythoncommands.c:596 src/io/siril_pythoncommands.c:625
-#, fuzzy
 msgid "Failed to retrieve image dimensions - no image loaded"
-msgstr "保存图像 %d 的蒙版时出错\n"
+msgstr "无法获取图像尺寸 - 未加载图像"
 
 #. Handle error retrieving dimensions
 #: src/io/siril_pythoncommands.c:648
@@ -28398,14 +28368,13 @@ msgstr ""
 
 #: src/io/siril_pythoncommands.c:665
 msgid "Failed to set selection - selection exceeds image bounds"
-msgstr "无法设置选区——超出图像边界"
+msgstr "无法设置选区 - 超出图像边界"
 
 #. Handle error retrieving dimensions
 #: src/io/siril_pythoncommands.c:676 src/io/siril_pythoncommands.c:1769
 #: src/io/siril_pythoncommands.c:1806
-#, fuzzy
 msgid "Failed to set selection - no image loaded"
-msgstr "保存图像 %d 的蒙版时出错\n"
+msgstr "无法设置选区 - 未载入图像"
 
 #: src/io/siril_pythoncommands.c:714 src/io/siril_pythoncommands.c:797
 msgid "Invalid selection"
@@ -28471,27 +28440,23 @@ msgstr "图像载入"
 
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:938
-#, fuzzy
 msgid "Working directory not set"
-msgstr "链接：工作目录未设置。\n"
+msgstr "链接：工作目录未设置"
 
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:952
-#, fuzzy
 msgid "Error: user config directory not set"
-msgstr "转化：工作目录未设置。\n"
+msgstr "错误：用户配置目录未设置"
 
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:967
-#, fuzzy
 msgid "Error: user data directory not set"
-msgstr "转化：工作目录未设置。\n"
+msgstr "错误：用户数据目录未设置"
 
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:981
-#, fuzzy
 msgid "Error: system data directory not set"
-msgstr "转化：工作目录未设置。\n"
+msgstr "错误：系统数据目录未设置"
 
 #: src/io/siril_pythoncommands.c:1003 src/io/siril_pythoncommands.c:1019
 #: src/io/siril_pythoncommands.c:1096 src/io/siril_pythoncommands.c:1109
@@ -28500,14 +28465,12 @@ msgid "Invalid payload length"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:1025 src/io/siril_pythoncommands.c:1033
-#, fuzzy
 msgid "Failed to load sequence frame"
-msgstr "无法读取序列，异常中止。"
+msgstr "无法载入序列帧"
 
 #: src/io/siril_pythoncommands.c:1049
-#, fuzzy
 msgid "Failed to compute output index"
-msgstr "无法创建输出文件： %s\n"
+msgstr "无法计算输出索引"
 
 #: src/io/siril_pythoncommands.c:1084
 #, c-format
@@ -28524,9 +28487,8 @@ msgid "Incorrect command arguments"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:1245 src/io/siril_pythoncommands.c:1532
-#, fuzzy
 msgid "Memory allocation failed"
-msgstr "错误：内存分配失败。\n"
+msgstr "内存分配失败"
 
 #: src/io/siril_pythoncommands.c:1250 src/io/siril_pythoncommands.c:1259
 #, fuzzy
@@ -28534,9 +28496,8 @@ msgid "No regdata available"
 msgstr "不可用"
 
 #: src/io/siril_pythoncommands.c:1292
-#, fuzzy
 msgid "No stats for this sequence"
-msgstr "序列的PSF"
+msgstr "此序列没有统计数据"
 
 #: src/io/siril_pythoncommands.c:1300
 msgid "No stats for this channel for this frame"
@@ -28557,19 +28518,16 @@ msgid "Selection cropped to frame boundaries\n"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:1384
-#, fuzzy
 msgid "Failed to read sequence frame"
-msgstr "无法读取序列，异常中止。"
+msgstr "无法读取序列帧"
 
 #: src/io/siril_pythoncommands.c:1397
-#, fuzzy
 msgid "Invalid dimensions"
-msgstr "格子尺寸"
+msgstr "无效尺寸"
 
 #: src/io/siril_pythoncommands.c:1431
-#, fuzzy
 msgid "Failed to read frame metadata"
-msgstr "错误：无法读取参考帧元数据\n"
+msgstr "无法读取帧的元数据"
 
 #: src/io/siril_pythoncommands.c:1517
 #, fuzzy
@@ -28590,9 +28548,8 @@ msgid "Image has no ICC profile"
 msgstr "图像当前的 ICC 描述文件"
 
 #: src/io/siril_pythoncommands.c:1626
-#, fuzzy
 msgid "Image has no FITS header"
-msgstr "当前载入的图像没有FITS文件头\n"
+msgstr "图像没有FITS文件头"
 
 #: src/io/siril_pythoncommands.c:1646
 msgid "Image has no history entries"
@@ -28604,9 +28561,8 @@ msgstr ""
 
 #. Need at least two null-terminated strings
 #: src/io/siril_pythoncommands.c:1694
-#, fuzzy
 msgid "Group and key must be provided"
-msgstr "裁切：x 和 y 必须为正值。\n"
+msgstr "必须提供组和键"
 
 #: src/io/siril_pythoncommands.c:1703
 msgid "Malformed group/key data"
@@ -28625,9 +28581,8 @@ msgstr "当前载入的图像必须是已解析的"
 
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:1822
-#, fuzzy
 msgid "Failed to retrieve bundle path"
-msgstr "无法读取序列，异常中止。"
+msgstr "无法获取捆绑包路径"
 
 #. Handle error: OS is not Windows
 #: src/io/siril_pythoncommands.c:1827
@@ -28647,9 +28602,8 @@ msgstr "图像处理"
 
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:1849
-#, fuzzy
 msgid "Unknown error"
-msgstr "未知错误\n"
+msgstr "未知错误"
 
 #: src/io/siril_pythoncommands.c:1875 src/io/siril_pythoncommands.c:1910
 #, fuzzy
@@ -28747,9 +28701,8 @@ msgid "Failed to open file: %s\n"
 msgstr "无法打开文件: %s\n"
 
 #: src/io/healpix/healpix.cpp:144
-#, fuzzy
 msgid "Failed to read catalog index entry.\n"
-msgstr "无法打开第一帧图像"
+msgstr "无法读取目录索引条目。\n"
 
 #: src/io/healpix/healpix.cpp:157
 #, fuzzy
@@ -28767,9 +28720,9 @@ msgid "Error: no chunks detected.\n"
 msgstr "错误：没有载入的序列。\n"
 
 #: src/io/healpix/healpix.cpp:601
-#, fuzzy, c-format
+#, c-format
 msgid "Chunk file not found: %s\n"
-msgstr "文件未找到"
+msgstr "无法找到chunk文件：%s\n"
 
 #: src/io/healpix/healpix.cpp:610
 #, c-format
@@ -29335,7 +29288,7 @@ msgstr "请先载入图像。"
 
 #: src/pixelMath/pixel_math_runner.c:1261
 msgid "Image must have same dimension"
-msgstr "图像必须具有相同的维度"
+msgstr "图像必须具有相同的尺寸"
 
 #: src/pixelMath/pixel_math_runner.c:1330
 msgid "Cannot load new image"

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-24 10:19+0100\n"
-"PO-Revision-Date: 2025-01-25 21:12+0000\n"
+"PO-Revision-Date: 2025-01-26 02:16+0000\n"
 "Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -1794,7 +1794,7 @@ msgstr "Raíz cuadrada"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1190
 msgid "Ratio of lambda at successive scales for multiscale PSF estimation."
-msgstr ""
+msgstr "Ratio de lambda en sucesivas escalas para estimación multiescala PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1206
 msgid "Lambda min"

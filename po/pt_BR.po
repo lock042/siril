@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-24 10:19+0100\n"
-"PO-Revision-Date: 2025-01-25 21:12+0000\n"
+"PO-Revision-Date: 2025-01-27 19:48+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -120,7 +120,7 @@ msgstr "Cname: "
 
 #: src/gui/uifiles/aavso_dialog.ui:183
 msgid "Kname: "
-msgstr ""
+msgstr "Cname: "
 
 #: src/gui/uifiles/aavso_dialog.ui:194
 msgid ""
@@ -175,7 +175,7 @@ msgstr "O número de estrelas de comparação."
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
-msgstr ""
+msgstr "Cstd: "
 
 #: src/gui/uifiles/aavso_dialog.ui:310
 msgid ""
@@ -321,7 +321,7 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:133
 msgid "automatic"
-msgstr "Automático"
+msgstr "automático"
 
 #: src/gui/uifiles/annotate_dialog.ui:134
 msgid "tycho2"
@@ -716,7 +716,7 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:353
 msgid "Find"
-msgstr ""
+msgstr "Buscar"
 
 #: src/gui/uifiles/astrometry_dialog.ui:357
 msgid ""
@@ -726,6 +726,11 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"Comece a pesquisar as coordenadas do objeto nomeado. Este recurso requer uma "
+"conexão com a Internet (utiliza SIMBAD por padrão ou o servidor selecionado "
+"à direita).\n"
+"Se as coordenadas já estiverem preenchidas ao clicar no botão Obter "
+"metadados da imagem abaixo, isso provavelmente não será necessário."
 
 #: src/gui/uifiles/astrometry_dialog.ui:372
 #: src/gui/uifiles/astrometry_dialog.ui:408
@@ -734,6 +739,9 @@ msgid ""
 "input value has not to be very accurate, try to give a value with an error "
 "not exceeding 20%."
 msgstr ""
+"Distância focal efetiva do sistema óptico em milímetros. Mesmo que o valor "
+"de entrada não seja muito preciso, tente fornecer um valor com um erro não "
+"superior a 20%."
 
 #: src/gui/uifiles/astrometry_dialog.ui:390
 msgid ""
@@ -741,6 +749,10 @@ msgid ""
 "already multiplied by the camera binning if the \"Real pixel size\" box is "
 "checked in the Tool->Image Information dialog box."
 msgstr ""
+"Tamanho do pixel em mícron. Supõe-se que a imagem tenha pixels quadrados. O "
+"valor já é multiplicado pelo agrupamento de pixel da câmera se a caixa "
+"\"Tamanho real do pixel\" estiver marcada na caixa de diálogo Ferramenta-"
+">Informação da imagem."
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
 msgid "Focal length (mm):"
@@ -749,6 +761,7 @@ msgstr "Distância focal (mm):"
 #: src/gui/uifiles/astrometry_dialog.ui:420
 msgid "Pixel size in microns. The image is assumed to have square pixels."
 msgstr ""
+"Tamanho do pixel em mícron. Supõe-se que a imagem tenha pixels quadrados."
 
 #: src/gui/uifiles/astrometry_dialog.ui:421
 msgid "Pixel size (µm):"
@@ -760,11 +773,12 @@ msgid ""
 "The resolution of the image that is automatically determined from the focal "
 "and pixel size value. Unit is arc second per pixel."
 msgstr ""
+"A resolução da imagem que é determinada automaticamente a partir do valor de "
+"distância focal e do tamanho do pixel. A unidade é segundo de arco por pixel."
 
 #: src/gui/uifiles/astrometry_dialog.ui:435
-#, fuzzy
 msgid "Resolution: "
-msgstr "Desvio: "
+msgstr "Resolução: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:472
 msgid ""
@@ -773,10 +787,14 @@ msgid ""
 "or the others should not influence the plate-solving or the photometry data, "
 "which is based on the selected catalogue."
 msgstr ""
+"Nesta lista encontram-se diversos resolvedores. No entanto, trata-se apenas "
+"de obter as coordenadas do centro do objeto. A escolha de um item ou de "
+"outros não deve influenciar a resolução da imagem ou os dados de fotometria, "
+"que são baseados no catálogo selecionado."
 
 #: src/gui/uifiles/astrometry_dialog.ui:481
 msgid "Resolver"
-msgstr ""
+msgstr "Resolvedor"
 
 #. Connect the edited signal
 #: src/gui/uifiles/astrometry_dialog.ui:492 src/gui/uifiles/siril.ui:3660
@@ -787,18 +805,16 @@ msgid "Name"
 msgstr "Nome"
 
 #: src/gui/uifiles/astrometry_dialog.ui:512
-#, fuzzy
 msgid "Flip image if needed"
-msgstr "não carregada"
+msgstr "Inverter imagem, se necessário"
 
 #: src/gui/uifiles/astrometry_dialog.ui:516
 msgid "Flip image at the end of the platesolving if image is mirrored."
-msgstr ""
+msgstr "Vire a imagem no final do plate solving se a imagem for espelhada."
 
 #: src/gui/uifiles/astrometry_dialog.ui:528
-#, fuzzy
 msgid "Downsample image"
-msgstr "Normalizar imagens"
+msgstr "Reduzir a resolução da imagem"
 
 #: src/gui/uifiles/astrometry_dialog.ui:532
 msgid ""
@@ -806,47 +822,55 @@ msgid ""
 "resolve astrometry data. In consequence, downsampling data generally helps "
 "and also makes star detection run faster."
 msgstr ""
+"Às vezes, para imagens com sobreamostragem (como com Drizzle), é complicado "
+"resolver dados de astrometria. Em consequência, a redução da amostragem dos "
+"dados geralmente ajuda e também torna a detecção de estrelas mais rápida."
 
 #: src/gui/uifiles/astrometry_dialog.ui:543
 msgid "Auto-crop (for wide field)"
-msgstr ""
+msgstr "Corte automático (para campo amplo)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:547
 msgid ""
 "Only use the center of the image (or selection) if the field is too wide, "
 "larger than 5 degrees."
 msgstr ""
+"Use o centro da imagem (ou seleção) apenas se o campo for muito amplo, maior "
+"que 5 graus."
 
 #: src/gui/uifiles/astrometry_dialog.ui:560
 msgid "Get Metadata From Image"
-msgstr ""
+msgstr "Obter Metadados da imagem"
 
 #: src/gui/uifiles/astrometry_dialog.ui:564
 msgid ""
 "Click on this button to get focal length, pixel size and RA/Dec pointing "
 "coordinates from the header of the file if they exist."
 msgstr ""
+"Clique neste botão para obter a distância focal, o tamanho do pixel e as "
+"coordenadas de AR/Dec do cabeçalho do arquivo, se existirem."
 
 #: src/gui/uifiles/astrometry_dialog.ui:592
 msgid ""
 "Select the server that searches the coordinates of the entered object name."
 msgstr ""
+"Selecione o servidor que pesquisa as coordenadas do nome do objeto inserido."
 
 #: src/gui/uifiles/astrometry_dialog.ui:595
 msgid "CDS"
-msgstr ""
+msgstr "CDS"
 
 #: src/gui/uifiles/astrometry_dialog.ui:596
 msgid "VizieR"
-msgstr ""
+msgstr "VizieR"
 
 #: src/gui/uifiles/astrometry_dialog.ui:597 src/io/siril_catalogues.c:280
 msgid "SIMBAD"
-msgstr ""
+msgstr "SIMBAD"
 
 #: src/gui/uifiles/astrometry_dialog.ui:611
 msgid "Server:"
-msgstr ""
+msgstr "Servidor:"
 
 #: src/gui/uifiles/astrometry_dialog.ui:622
 #: src/gui/uifiles/astrometry_dialog.ui:645
@@ -858,65 +882,75 @@ msgid ""
 "When selecting an order with distortions, additional terms are added to the "
 "solution, using SIP convention"
 msgstr ""
+"Selecione a ordem da solução:\n"
+"Linear assume que nenhuma distorção está presente na imagem\n"
+"Quadrático, Cúbico, Quártico e Quíntico incluirão distorções polinomiais de "
+"segunda, terceira, quarta ou quinta ordem.\n"
+"Ao selecionar um pedido com distorções, termos adicionais são adicionados à "
+"solução, usando a convenção SIP"
 
 #: src/gui/uifiles/astrometry_dialog.ui:651
-#, fuzzy
 msgid "Solution order: "
-msgstr "Desvio: "
+msgstr "Ordem de solução: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:662
 msgid ""
 "Choose Siril internal solver or local Astrometry.net (needs to be installed "
 "on your system)"
 msgstr ""
+"Escolha o solucionador interno de Siril ou Astrometry.net local (precisa ser "
+"instalado em seu sistema)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:665
-#, fuzzy
 msgid "Siril solver"
-msgstr "Mensagem do Siril"
+msgstr "Resolvedor de Siril (astrometria)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:666
-#, fuzzy
 msgid "Astrometry.net (local)"
-msgstr "Fotometria"
+msgstr "Astrometry.net (local)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:679
 #: src/gui/uifiles/astrometry_dialog.ui:697
 msgid "Radius used by the solver to search around the target."
-msgstr ""
+msgstr "Raio usado pelo solucionador para pesquisar ao redor do objetivo."
 
 #: src/gui/uifiles/astrometry_dialog.ui:700
-#, fuzzy
 msgid "Search radius:"
-msgstr "Raio exterior:"
+msgstr "Raio de busca:"
 
 #: src/gui/uifiles/astrometry_dialog.ui:709
 msgid "disable near search"
-msgstr ""
+msgstr "desativa busca próxima"
 
 #: src/gui/uifiles/astrometry_dialog.ui:713
 msgid ""
 "Tick this box to disable searching around target position with Siril "
 "internal solver."
 msgstr ""
+"Marque esta caixa para desativar a pesquisa em torno da posição de destino "
+"com o solucionador interno de Siril."
 
 #: src/gui/uifiles/astrometry_dialog.ui:732
 msgid "Ignore position (blind solve)"
-msgstr ""
+msgstr "Ignorar a posição (solução cega)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:736
 msgid ""
 "Tick this box to ignore target position when solving with local "
 "Astrometry.net"
 msgstr ""
+"Marque esta caixa para ignorar a posição do alvo ao resolver com "
+"Astrometry.net local"
 
 #: src/gui/uifiles/astrometry_dialog.ui:748
 msgid "Ignore sampling (blind solve)"
-msgstr ""
+msgstr "Ignorar amostragem (resolução cega)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:752
 msgid "Tick this box to ignore sampling when solving with local Astrometry.net"
 msgstr ""
+"Marque esta caixa para ignorar a amostragem ao resolver com Astrometry.net "
+"local"
 
 #: src/gui/uifiles/astrometry_dialog.ui:770
 msgid "Save distortion"
@@ -930,16 +964,22 @@ msgid ""
 "When platesolving a sequence, the distortion file is saved from the "
 "reference image."
 msgstr ""
+"Salva a solução como um arquivo de distorção, para ser usado para "
+"desdistorcer imagens durante o registro.\n"
+"Essa opção será habilitada somente se a ordem da solução for maior que 1.\n"
+"Ao resolver uma sequência, o arquivo de distorção salvo é o da imagem de "
+"referência."
 
 #: src/gui/uifiles/astrometry_dialog.ui:789
 msgid ""
 "Path to the distortion file to be created (ending with a *.wcs extension)"
 msgstr ""
+"Caminho para o arquivo de distorção a ser criado (terminando com uma "
+"extensão *.wcs)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:874
-#, fuzzy
 msgid "Image Parameters"
-msgstr "_Processamento de imagem"
+msgstr "Parâmetros da imagem"
 
 #: src/gui/uifiles/astrometry_dialog.ui:906
 #: src/gui/uifiles/s_pcc_dialog.ui:1026
@@ -952,11 +992,12 @@ msgid ""
 "Maximum star magnitude used in the catalog queries. Wider is the field, "
 "lower is the value."
 msgstr ""
+"Magnitude máxima de estrelas usada nas consultas de catálogo. Quanto mais "
+"amplo for o campo, menor será o valor."
 
 #: src/gui/uifiles/astrometry_dialog.ui:931
 #: src/gui/uifiles/astrometry_dialog.ui:988
 #: src/gui/uifiles/s_pcc_dialog.ui:1071
-#, fuzzy
 msgid "Auto"
 msgstr "Automático"
 
@@ -966,6 +1007,8 @@ msgid ""
 "The limit magnitude is automatically determined using the approximation of "
 "the Field Of View."
 msgstr ""
+"A magnitude limite é determinada automaticamente usando a aproximação do "
+"campo de visão."
 
 #: src/gui/uifiles/astrometry_dialog.ui:951
 msgid "Star Catalogue: "
@@ -999,6 +1042,33 @@ msgid ""
 "V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th "
 "magnitude to about 17th magnitude for over 37 million stars."
 msgstr ""
+"Escolha o catálogo online contra um que deseja comparar a imagem.\n"
+"* O catálogo TYCHO-2 contém posições, movimentos próprios e dados "
+"fotométricos de duas cores para 2.539.913 das estrelas mais brilhantes da "
+"Via Láctea.\n"
+"* NOMAD é uma simples fusão de dados dos catálogos Hipparcos, Tycho-2, "
+"UCAC2, Yellow-Blue 6 e USNO-B para astrometria e fotometria óptica, "
+"complementada pelo infravermelho próximo 2MASS. O conjunto de dados de quase "
+"100 GB contém dados astrométricos e fotométricos de cerca de 1,1 bilhão de "
+"estrelas. Um extrato off-line está disponível que fornece cobertura "
+"suficiente para resolver a maioria dos campos estelares.\n"
+"* Gaia Data Release 3 foi lançado em 13 de junho de 2022. A solução "
+"astrométrica de cinco parâmetros, posições no céu (α, δ), paralaxes e "
+"movimentos próprios, são fornecidos para cerca de 1,46 bilhão de fontes, com "
+"uma magnitude limite de G = 21. Um extrato off-line está disponível que "
+"fornece cobertura suficiente para resolver tudo, exceto os campos estelares "
+"mais profundos. Gaia DR3 representa o estado da arte atual em catálogos "
+"astrométricos e fotométricos.\n"
+"* PPMXL é um catálogo de posições, movimentos próprios, 2MASS- e fotometria "
+"óptica de 900 milhões de estrelas e galáxias.\n"
+"* O Catálogo de Estrelas Brilhantes é um catálogo de estrelas que lista "
+"todas as estrelas de magnitude estelar 6,5 ou mais brilhantes, que são "
+"aproximadamente todas as estrelas visíveis a olho nu da Terra. O catálogo "
+"contém 9.110 objetos.\n"
+"* APASS, o AAVSO Photometric All Sky Survey, está realizando um levantamento "
+"fotométrico de todo o céu. Esta pesquisa é realizada em oito filtros: "
+"Johnson B e V, mais Sloan u', g', r', i', z_s e Z. É válido de cerca de 7ª "
+"magnitude a cerca de 17ª magnitude para mais de 37 milhões de estrelas."
 
 #: src/gui/uifiles/astrometry_dialog.ui:992
 msgid ""
@@ -1006,23 +1076,26 @@ msgid ""
 "Field Of View and magnitude. Local catalogues are preferred over remote "
 "ones, and Gaia DR3 is preferred over Tycho + NOMAD."
 msgstr ""
+"O catálogo é determinado automaticamente usando a aproximação do campo de "
+"visão e magnitude. Os catálogos locais são preferidos aos remotos, e o Gaia "
+"DR3 é preferido ao Tycho + NOMAD."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1007
 msgid ""
 "The TYCHO2, NOMAD and Bright Stars catalogues can be installed locally to "
 "not rely on an Internet connection for this operation."
 msgstr ""
+"Os catálogos TYCHO2, NOMAD e Bright Stars podem ser instalados localmente "
+"para não depender de uma conexão com a Internet para esta operação."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1025
 #: src/gui/uifiles/s_pcc_dialog.ui:1106
-#, fuzzy
 msgid "Catalogue Parameters"
-msgstr "_Processamento de imagem"
+msgstr "Parâmetros do catálogo"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1046
-#, fuzzy
 msgid "Manual detection"
-msgstr "Auto deteção"
+msgstr "Detecção manual"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1050
 msgid ""
@@ -1032,6 +1105,11 @@ msgid ""
 "Use the Dynamic PSF tool, or the findstar command, adjusting the settings to "
 "your image."
 msgstr ""
+"Marque esta opção se quiser escolher cada estrela manualmente. Pode ser útil "
+"em alguns casos em que Siril não consegue encontrar estrelas suficientes. "
+"Por favor, tente escolher as estrelas mais brilhantes da imagem.\n"
+"Use a ferramenta PSF dinâmico ou o comando findstar, ajustando as "
+"configurações à sua imagem."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1060
 #: src/gui/uifiles/stars_list_window.ui:865
@@ -1039,13 +1117,12 @@ msgid "Star Detection"
 msgstr "Deteção de estrelas"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1086
-#, fuzzy
 msgid "Solve whole sequence"
-msgstr "Procurar sequências"
+msgstr "Resolver a sequencia completa"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1090
 msgid "Tick this box to solve the whole sequence."
-msgstr ""
+msgstr "Marque esta caixa para resolver a sequência completa."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1112
 msgid "Use as registration information"

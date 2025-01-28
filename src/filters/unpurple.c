@@ -76,7 +76,7 @@ gpointer unpurple(gpointer p) {
 	gboolean withstarmask = args->withstarmask;
 	gboolean verbose = args->verbose;
 
-	struct timeval t_start, t_end;
+	struct timeval t_start = { 0 }, t_end = { 0 };
 
 	if (mod_b < 1) {
 		for (size_t j = 0; j < fit->ry; j++) {
