@@ -6635,7 +6635,10 @@ int process_seq_extractGreen(int nb) {
 							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
 					}
-					args->seqEntry = strdup(value);
+					if (args->seqEntry) {
+						free(args->seqEntry);
+						args->seqEntry = strdup(value);
+					}
 				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
