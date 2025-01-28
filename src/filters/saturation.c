@@ -139,7 +139,8 @@ static int satu_process_all() {
 	args->for_preview = TRUE;
 	args->for_final = TRUE;
 
-	start_in_new_thread(enhance_saturation, args);
+	if (!start_in_new_thread(enhance_saturation, args))
+		free(args);
 
 	return 0;
 }
@@ -165,7 +166,8 @@ static int satu_update_preview() {
 	args->for_preview = TRUE;
 	args->for_final = FALSE;
 
-	start_in_new_thread(enhance_saturation, args);
+	if (!start_in_new_thread(enhance_saturation, args))
+		free(args);
 
 	return 0;
 }

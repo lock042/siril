@@ -440,7 +440,11 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 
 	cosme_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(cosme_args->seqEntry);
+		free(cosme_args);
+		free_generic_seq_args(args);
+	}
 }
 
 // idle function executed at the end of the Cosmetic Correction processing
@@ -611,7 +615,11 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 
 	cosme_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(cosme_args->prefix);
+		free(cosme_args);
+		free_generic_seq_args(args);
+	}
 }
 
 /* this is an autodetect algorithm. Cold and hot pixels
@@ -803,7 +811,8 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		args->threading = MULTI_THREADED;
 		undo_save_state(&gfit, _("Cosmetic Correction"));
-		start_in_new_thread(autoDetectThreaded, args);
+		if (!start_in_new_thread(autoDetectThreaded, args))
+			free(args);
 	}
 }
 

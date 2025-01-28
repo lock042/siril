@@ -251,7 +251,8 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 	undo_save_state(&gfit, _("RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"),
 			args->dR, args->da, args->xc, args->yc);
 
-	start_in_new_thread(rgradient_filter, args);
+	if (!start_in_new_thread(rgradient_filter, args))
+		free(args);
 	}
 }
 

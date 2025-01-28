@@ -73,7 +73,8 @@ static int clahe_update_preview() {
 	args->clip = clahe_limit_value;
 	args->tileSize = clahe_tile_size;
 
-	start_in_new_thread(clahe, args);
+	if (!start_in_new_thread(clahe, args))
+		free(args);
 	return 0;
 }
 

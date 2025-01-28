@@ -975,13 +975,16 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		memcpy(p, &gui.cut, sizeof(cut_struct));
 		if (p->tri) {
 			siril_debug_print("Tri-profile\n");
-			start_in_new_thread(tri_cut, p);
+			if (!start_in_new_thread(tri_cut, p))
+				free(p);
 		} else if (p->cfa) {
 			siril_debug_print("CFA profiling\n");
-			start_in_new_thread(cfa_cut, p);
+			if (!start_in_new_thread(cfa_cut, p))
+				free(p);
 		} else {
 			siril_debug_print("Single profile\n");
-			start_in_new_thread(cut_profile, p);
+			if (!start_in_new_thread(cut_profile, p))
+				free(p);
 		}
 	}
 }
@@ -1380,5 +1383,8 @@ void apply_cut_to_sequence(cut_struct* cut_args) {
 	args->stop_on_error = FALSE;
 	args->user = cut_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(args->user);
+		free_generic_seq_args(args);
+	}
 }

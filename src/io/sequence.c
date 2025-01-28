@@ -1427,13 +1427,13 @@ gboolean sequence_is_loaded() {
 	return (com.seq.seqname != NULL && com.seq.imgparam != NULL);
 }
 
-gboolean check_seq_is_comseq(sequence *seq) {
+gboolean check_seq_is_comseq(const sequence *seq) {
 	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname))
 		return TRUE;
 	return FALSE;
 }
 
-gboolean check_seq_is_variable(sequence *seq) {
+gboolean check_seq_is_variable(const sequence *seq) {
 	if(!seq || !seq->imgparam)
 		return FALSE;
 	int rx = seq->imgparam[0].rx;

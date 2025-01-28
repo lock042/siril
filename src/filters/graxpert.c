@@ -999,11 +999,14 @@ void apply_graxpert_to_sequence(graxpert_data *args) {
 		seqargs->new_seq_prefix = strdup("gxdec_");
 	else  {
 		free_graxpert_data(args);
-		free(seqargs);
+		free_generic_seq_args(seqargs);
 		return;
 	}
 	seqargs->load_new_sequence = TRUE;
 	seqargs->user = args;
 	set_progress_bar_data(_("GraXpert: Processing..."), 0.);
-	start_in_new_thread(generic_sequence_worker, seqargs);
+	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
+		free_graxpert_data(args);
+		free_generic_seq_args(seqargs);
+	}
 }

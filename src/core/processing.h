@@ -145,16 +145,17 @@ struct generic_seq_args {
 
 /* The following structs are for multi-output sequences */
 struct multi_output_data {
-	sequence *seq;
+	sequence *seq; // don't free, this is a reference and should be freed in the generic_seq_args
 	int n;
-	char *seqEntry;
+	char *seqEntry; // don't free, this is a reference and should be freed in the generic_seq_args
 	int new_seq_index; // if a new sequence is to be loaded on completion,
 					   // which one? Defaults to 0 if the struct is made with calloc()
-	gchar **prefixes;
-	struct ser_struct **new_ser;
-	fitseq **new_fitseq;
+	gchar **prefixes; // this is freed in free_multi_args()
+	struct ser_struct **new_ser; // this is freed in
+	fitseq **new_fitseq; // this is freed in
 	GList *processed_images;
 	gpointer user_data; // generic pointer to store operation-specific data
+						// this must be freed by the function-specific caller
 };
 
 struct _multi_split {
@@ -171,16 +172,18 @@ int seq_prepare_hook(struct generic_seq_args *args);
 int seq_prepare_writer(struct generic_seq_args *args);
 int seq_finalize_hook(struct generic_seq_args *args);
 int generic_save(struct generic_seq_args *, int, int, fits *);
+void free_multi_args(struct multi_output_data *multi_args);
+void free_generic_seq_args(struct generic_seq_args *args);
 int multi_prepare(struct generic_seq_args *args);
 int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit);
 int multi_finalize(struct generic_seq_args *args);
 
-void start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
+gboolean start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
 gpointer waiting_for_thread();
 void stop_processing_thread();
 gboolean get_thread_run();
 
-void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);
+gboolean start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);
 gboolean reserve_thread();
 void unreserve_thread();
 

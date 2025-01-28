@@ -871,7 +871,11 @@ void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata) {
 	seqargs->load_new_sequence = TRUE;
 	seqargs->user = seqdata;
 
-	start_in_new_thread(generic_sequence_worker, seqargs);
+	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
+		free(seqdata->seqEntry);
+		free(seqdata);
+		free_generic_seq_args(seqargs);
+	}
 }
 
 gpointer deconvolve_sequence_command(gpointer p, sequence* seqname) {
