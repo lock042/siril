@@ -6447,7 +6447,7 @@ int process_seq_split_cfa(int nb) {
 	struct multi_output_data *args = calloc(1, sizeof(struct multi_output_data));
 
 	args->seq = seq;
-	args->seqEntry = strdup("CFA"); // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->seqEntry = ("CFA"); // propose to default to "CFA" for consistency of output names with single image split_cfa
 	args->n = 4;
 	args->prefixes = calloc(5, sizeof(const char*));
 

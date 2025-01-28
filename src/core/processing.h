@@ -147,7 +147,7 @@ struct generic_seq_args {
 struct multi_output_data {
 	sequence *seq; // don't free, this is a reference and should be freed in the generic_seq_args
 	int n;
-	char *seqEntry; // don't free, this is a reference and should be freed in the generic_seq_args
+	char *seqEntry; // don't free, this is a reference and should be freed in the operation-specific args
 	int new_seq_index; // if a new sequence is to be loaded on completion,
 					   // which one? Defaults to 0 if the struct is made with calloc()
 	gchar **prefixes; // this is freed in free_multi_args()
