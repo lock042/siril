@@ -9221,12 +9221,12 @@ WARNING: This option should not be checked for master stacking.</property>
                                                         <child>
                                                           <object class="GtkCheckButton" id="check_force32b">
                                                             <property name="label" translatable="yes">Force 32b output</property>
+                                                            <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">If you check this button, the final image bitdepth will be forced to 32b even if the input images are in 16b.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
-                                                            <property name="visible">True</property>
                                                           </object>
                                                           <packing>
                                                             <property name="left-attach">2</property>
@@ -10625,6 +10625,7 @@ WARNING: This option should not be checked for master stacking.</property>
         </child>
         <child>
           <object class="GtkMenuButton" id="header_scripts_button">
+            <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Menu of the script files. This menu appears only when the script paths defined in the preferences are set to the existing script folders.</property>
