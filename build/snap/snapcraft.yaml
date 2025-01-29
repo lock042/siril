@@ -49,7 +49,7 @@ parts:
       - libraw-dev
       - libexiv2-dev
       - libopencv-dev
-      - libheif-dev
+#      - libheif-dev
       - libgit2-dev
       - libssl-dev
       - libjxl-dev
