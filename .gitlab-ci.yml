@@ -309,6 +309,7 @@ snap:
     expire_in: 1 week
     paths:
       - build/snap/*.snap
+  needs: []
   allow_failure: true
 
 ################################################################################
