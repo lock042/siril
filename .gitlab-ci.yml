@@ -295,16 +295,20 @@ flatpak:
   needs: []
   allow_failure: true
 
-
 snap:
   stage: packaging
   image: ubuntu:22.04
   before_script:
     - apt-get update
-    - apt-get install -y snapcraft libterm-readline-perl-perl
+    - apt-get install -y software-properties-common
+    - add-apt-repository -y ppa:snappy-dev/tools
+    - apt-get update
+    - apt-get install -y snapcraft build-essential
+    - apt-get install -y libterm-readline-perl-perl
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
+    SNAPCRAFT_BUILD_ENVIRONMENT: host
   script:
     - snapcraft -v
   artifacts:
