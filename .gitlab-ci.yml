@@ -298,7 +298,7 @@ flatpak:
 
 snap:
   stage: packaging
-  image: snapcore/snapcraft:stable
+  image: snapcore/snapcraft:edge
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
