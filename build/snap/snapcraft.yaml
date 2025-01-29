@@ -54,7 +54,7 @@ parts:
       - libgit2-dev
       - libssl-dev
       - libjxl-dev
-      - libwcs-dev
+      - wcslib-dev
       - intltool
       - gettext
     stage-packages:
