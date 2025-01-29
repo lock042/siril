@@ -1,6 +1,6 @@
 name: siril
 base: core22
-version: '1.2.0'
+version: '1.3.6'
 summary: Astronomical image processing software
 description: |
   Siril is an astronomical image processing tool, able to convert, pre-process 
@@ -18,7 +18,7 @@ architectures:
 apps:
   siril:
     command: usr/bin/siril
-    extensions: [gnome]
+    common-id: org.gimp.SIRIL
     plugs:
       - home
       - removable-media
@@ -72,29 +72,6 @@ parts:
       - libjxl0.7
       - wcslib7
       
-  cfitsio:
-    plugin: autotools
-    source: https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.2.0.tar.gz
-    source-type: tar
-    autotools-configure-parameters:
-      - --enable-reentrant
-      - --prefix=/usr
-    build-packages:
-      - build-essential
-      
-  wcslib:
-    plugin: autotools
-    source: https://www.atnf.csiro.au/people/mcalabre/WCS/wcslib-8.3.tar.bz2
-    source-type: tar
-    autotools-configure-parameters:
-      - --without-pgplot
-      - --without-cfitsio
-      - --disable-fortran
-      - --prefix=/usr
-    build-packages:
-      - build-essential
-      - libcurl4-openssl-dev
-
   libxisf:
     plugin: cmake
     source-type: git
