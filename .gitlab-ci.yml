@@ -300,17 +300,25 @@ snap:
   image: ubuntu:22.04
   before_script:
     - apt-get update
-    - apt-get install -y software-properties-common
-    - add-apt-repository -y ppa:snappy-dev/tools
-    - apt-get update
-    - apt-get install -y snapcraft build-essential
-    - apt-get install -y libterm-readline-perl-perl
+    - apt-get install -y snap snapd
+    - systemctl enable snapd
+    - systemctl start snapd
+    - mkdir -p /etc/systemd/system/snapd.service.d/
+    - |
+      echo '[Service]
+      Environment=http_proxy=$http_proxy
+      Environment=https_proxy=$https_proxy' > /etc/systemd/system/snapd.service.d/proxy.conf
+    - systemctl daemon-reload
+    - systemctl restart snapd
+    - snap wait system seed.loaded
+    - snap install core
+    - snap install snapcraft --classic
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
-    SNAPCRAFT_BUILD_ENVIRONMENT: host
+    TERM: dumb
   script:
-    - snapcraft -v
+    - /snap/bin/snapcraft -v
   artifacts:
     expire_in: 1 week
     paths:
