@@ -50,7 +50,6 @@ parts:
       - libexiv2-dev
       - libopencv-dev
       - libheif-dev
-      - libxisf-dev
       - libgit2-dev
       - libssl-dev
       - libjxl-dev
