@@ -87,6 +87,40 @@ parts:
       - wcslib-dev
       - intltool
       - gettext
+      
+  # https://github.com/strukturag/libheif/releases
+  libheif:
+    source: https://github.com/strukturag/libheif/releases/download/v1.12.0/libheif-1.12.0.tar.gz
+    plugin: autotools
+    build-environment:
+    - to armhf:
+      # LTO fails on armhf
+      - CFLAGS: -Ofast -g -pipe -mfpu=neon
+      - CXXFLAGS: -Ofast -g -pipe -mfpu=neon
+      - LDFLAGS: -mfpu=neon
+    - else:
+      - CFLAGS: -Ofast -g -pipe -flto
+      - CXXFLAGS: -Ofast -g -pipe -flto
+      - LDFLAGS: -flto
+    autotools-configure-parameters:
+    - --prefix=/usr
+    - --disable-go
+    - --disable-examples
+    build-packages:
+    - libde265-dev
+    - libgdk-pixbuf2.0-dev
+    - libjpeg-dev
+    - libpng-dev
+    - libx265-dev
+    stage-packages:
+    - libde265-0
+    - libgdk-pixbuf2.0-0
+    - libjpeg-turbo8
+    - libpng16-16
+    - libx265-179
+    override-build: |
+      snapcraftctl build
+      $SNAPCRAFT_STAGE/fix-pkgconfig-files.sh
      
   libxisf:
     plugin: cmake
