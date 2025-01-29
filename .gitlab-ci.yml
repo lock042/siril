@@ -297,28 +297,12 @@ flatpak:
 
 snap:
   stage: packaging
-  image: ubuntu:22.04
-  before_script:
-    - apt-get update
-    - apt-get install -y snap snapd
-    - systemctl enable snapd
-    - systemctl start snapd
-    - mkdir -p /etc/systemd/system/snapd.service.d/
-    - |
-      echo '[Service]
-      Environment=http_proxy=$http_proxy
-      Environment=https_proxy=$https_proxy' > /etc/systemd/system/snapd.service.d/proxy.conf
-    - systemctl daemon-reload
-    - systemctl restart snapd
-    - snap wait system seed.loaded
-    - snap install core
-    - snap install snapcraft --classic
+  image: registry.snapcraft.io/snapcraft:stable
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
-    TERM: dumb
   script:
-    - /snap/bin/snapcraft -v
+    - snapcraft -v
   artifacts:
     expire_in: 1 week
     paths:
