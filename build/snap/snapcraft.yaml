@@ -6,10 +6,6 @@ confinement: strict
 base: core24
 compression: lzo
 
-platforms:
-  amd64:
-  arm64:
-  
 apps:
   siril:
     command: usr/bin/siril
