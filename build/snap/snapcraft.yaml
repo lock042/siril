@@ -52,7 +52,7 @@ parts:
 #      - libheif-dev
       - libgit2-dev
       - libssl-dev
-      - libjxl-dev
+#      - libjxl-dev
       - wcslib-dev
       - intltool
       - gettext
