@@ -279,7 +279,7 @@ int process_seq_clean(int nb) {
 }
 
 int process_satu(int nb){
-	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
+	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
 	args->background_factor = 1.0;
 	gchar *end;
 	args->coeff = g_ascii_strtod(word[1], &end);
@@ -1321,7 +1321,7 @@ int process_grey_flat(int nb) {
 
 int process_makepsf(int nb) {
 	gboolean error = FALSE;
-	estk_data* data = malloc(sizeof(estk_data));
+	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	cmd_errors status = CMD_OK;
 
@@ -2677,7 +2677,7 @@ int process_clahe(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	struct CLAHE_data *args = malloc(sizeof(struct CLAHE_data));
+	struct CLAHE_data *args = calloc(1, sizeof(struct CLAHE_data));
 
 	args->fit = &gfit;
 	args->clip = clip_limit;
@@ -3459,7 +3459,7 @@ int process_rgradient(int nb) {
 
 	gchar *endxc, *endyc, *enddR, *endda;
 
-	struct rgradient_filter_data *args = malloc(sizeof(struct rgradient_filter_data));
+	struct rgradient_filter_data *args = calloc(1, sizeof(struct rgradient_filter_data));
 	args->xc = g_ascii_strtod(word[1], &endxc);
 	args->yc = g_ascii_strtod(word[2], &endyc);
 	args->dR = g_ascii_strtod(word[3], &enddR);
@@ -4132,7 +4132,7 @@ int process_pm(int nb) {
 		}
 	}
 
-	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
+	struct pixel_math_data *args = calloc(1, sizeof(struct pixel_math_data));
 	args->nb_rows = count / 2; // this is the number of variable
 	args->varname = calloc(args->nb_rows, sizeof(gchar *));
 
@@ -5486,7 +5486,7 @@ int process_seq_cosme(int nb) {
 }
 
 int process_fmedian(int nb){
-	struct median_filter_data *args = malloc(sizeof(struct median_filter_data));
+	struct median_filter_data *args = calloc(1, sizeof(struct median_filter_data));
 	gchar *end1, *end2;
 	args->ksize = g_ascii_strtoull(word[1], &end1, 10);
 	args->amount = g_ascii_strtod(word[2], &end2);
@@ -5603,7 +5603,7 @@ int process_offset(int nb) {
 }
 
 int process_scnr(int nb){
-	struct scnr_data *args = malloc(sizeof(struct scnr_data));
+	struct scnr_data *args = calloc(1, sizeof(struct scnr_data));
 	args->type = SCNR_AVERAGE_NEUTRAL;
 	args->amount = 0.0;
 	args->fit = &gfit;
@@ -5650,7 +5650,7 @@ int process_scnr(int nb){
 }
 
 int process_fft(int nb){
-	struct fft_data *args = malloc(sizeof(struct fft_data));
+	struct fft_data *args = calloc(1, sizeof(struct fft_data));
 
 	args->fit = &gfit;
 	args->type = strdup(word[0]);
@@ -5664,7 +5664,7 @@ int process_fft(int nb){
 }
 
 int process_fixbanding(int nb) {
-	struct banding_data *args = malloc(sizeof(struct banding_data));
+	struct banding_data *args = calloc(1, sizeof(struct banding_data));
 	args->seq = NULL;
 	gchar *end1, *end2;
 
@@ -6038,7 +6038,7 @@ int process_unselect(int nb){
 }
 
 int process_split(int nb){
-	struct extract_channels_data *args = malloc(sizeof(struct extract_channels_data));
+	struct extract_channels_data *args = calloc(1, sizeof(struct extract_channels_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
@@ -6286,7 +6286,7 @@ int process_seq_mtf(int nb) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 
-	struct mtf_data *args = malloc(sizeof(struct mtf_data));
+	struct mtf_data *args = calloc(1, sizeof(struct mtf_data));
 
 	args->seq = seq;
 	args->fit = &gfit;
@@ -7224,7 +7224,7 @@ int process_link(int nb) {
 				failed = TRUE;
 				break;
 			}
-			struct file_time *ft = malloc(sizeof(struct file_time));
+			struct file_time *ft = calloc(1, sizeof(struct file_time));
 			ft->file = filename;
 			ft->time = date;
 			timed = g_list_append(timed, ft);
@@ -7261,7 +7261,7 @@ int process_link(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	struct _convert_data *args = malloc(sizeof(struct _convert_data));
+	struct _convert_data *args = calloc(1, sizeof(struct _convert_data));
 	args->start = idx;
 	args->list = files_to_link;
 	args->total = count;
@@ -7402,7 +7402,7 @@ int process_convert(int nb) {
 	gchar *str = ngettext("Convert: processing %d file...\n", "Convert: processing %d files...\n", count);
 	siril_log_color_message(str, "green", count);
 
-	struct _convert_data *args = malloc(sizeof(struct _convert_data));
+	struct _convert_data *args = calloc(1, sizeof(struct _convert_data));
 	args->start = idx;
 	args->list = files_to_convert;
 	args->total = count;
@@ -7768,7 +7768,7 @@ int process_register(int nb) {
 	}
 
 	/* getting the selected registration method */
-	method = malloc(sizeof(struct registration_method));
+	method = calloc(1, sizeof(struct registration_method));
 	if (regargs->two_pass) {
 		method->name = _("Two-Pass Global Star Alignment (deep-sky)");
 		method->method_ptr = &register_multi_step_global;
@@ -9362,7 +9362,7 @@ int process_extract(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	struct wavelets_filter_data *args = malloc(sizeof(struct wavelets_filter_data));
+	struct wavelets_filter_data *args = calloc(1, sizeof(struct wavelets_filter_data));
 
 	args->Type = TO_PAVE_BSPLINE;
 	args->Nbr_Plan = Nbr_Plan;
