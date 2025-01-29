@@ -1,0 +1,114 @@
+name: siril
+base: core22
+version: '1.2.0'
+summary: Astronomical image processing software
+description: |
+  Siril is an astronomical image processing tool, able to convert, pre-process 
+  and process deep-sky images, stacked sequences of images and SER files.
+  It features registration tools, stacking methods, many filters and file 
+  formats support.
+
+grade: stable
+confinement: strict
+
+architectures:
+  - build-on: amd64
+  - build-on: arm64
+
+apps:
+  siril:
+    command: usr/bin/siril
+    extensions: [gnome]
+    plugs:
+      - home
+      - removable-media
+      - network
+      - opengl
+      - wayland
+      - x11
+      - desktop
+      - desktop-legacy
+
+parts:
+  siril:
+    plugin: meson
+    source-type: git
+    source: https://gitlab.com/free-astro/siril.git
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=release
+    build-packages:
+      - build-essential
+      - pkg-config
+      - cmake
+      - ninja-build
+      - libgtk-3-dev
+      - libcfitsio-dev
+      - libfftw3-dev
+      - libgsl-dev
+      - libraw-dev
+      - libexiv2-dev
+      - libopencv-dev
+      - libheif-dev
+      - libxisf-dev
+      - libgit2-dev
+      - libssl-dev
+      - libjxl-dev
+      - libwcs-dev
+      - intltool
+      - gettext
+    stage-packages:
+      - libgtk-3-0
+      - libcfitsio9
+      - libfftw3-3
+      - libgsl27
+      - libraw20
+      - libexiv2-27
+      - libopencv-core4.5
+      - libopencv-imgproc4.5
+      - libheif1
+      - libxisf0
+      - libgit2-1.1
+      - libjxl0.7
+      - wcslib7
+      
+  cfitsio:
+    plugin: autotools
+    source: https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.2.0.tar.gz
+    source-type: tar
+    autotools-configure-parameters:
+      - --enable-reentrant
+      - --prefix=/usr
+    build-packages:
+      - build-essential
+      
+  wcslib:
+    plugin: autotools
+    source: https://www.atnf.csiro.au/people/mcalabre/WCS/wcslib-8.3.tar.bz2
+    source-type: tar
+    autotools-configure-parameters:
+      - --without-pgplot
+      - --without-cfitsio
+      - --disable-fortran
+      - --prefix=/usr
+    build-packages:
+      - build-essential
+      - libcurl4-openssl-dev
+
+  libxisf:
+    plugin: cmake
+    source-type: git
+    source: https://gitea.nouspiro.space/nou/libXISF.git
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DUSE_BUNDLED_ZLIB=OFF
+    build-packages:
+      - build-essential
+      - libpugixml-dev
+      - libzstd-dev
+
+layout:
+  /usr/share/siril:
+    bind: $SNAP/usr/share/siril
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/siril:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/siril

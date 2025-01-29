@@ -296,23 +296,27 @@ flatpak:
   allow_failure: true
 
 
-appimage:
+snap:
   stage: packaging
-  image: $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-oldstable
+  image: ubuntu:22.04
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   cache:
     paths:
       - apt-cache
   before_script:
-    - apt-get install -y wget
+    - apt-get update
+    - apt-get install -y snapcraft
   script:
-    - bash -ex build/appimage/generate.sh
+    - mkdir -p build/snap
+    - cp snap/snapcraft.yaml build/snap/
+    - cd build/snap
+    - snapcraft --use-lxd
   artifacts:
     expire_in: 1 week
     paths:
-      - build/appimage/Siril*.AppImage*
-  needs: ["build-image-oldstable"]
+      - build/snap/*.snap
+  needs: ["build-image"]
   allow_failure: true
 
 ################################################################################
