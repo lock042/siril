@@ -298,13 +298,15 @@ flatpak:
 
 snap:
   stage: packaging
-  image: ubuntu:22.04
+  image: ubuntu:22.04  # Au lieu de snapcore/snapcraft:edge
+  before_script:
+    - apt-get update
+    - apt-get install -y snapcraft
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
   script:
-    - cd build/snap
-    - snapcraft
+    - snapcraft -v
   artifacts:
     expire_in: 1 week
     paths:
