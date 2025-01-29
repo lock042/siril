@@ -298,19 +298,36 @@ flatpak:
 
 snap:
   stage: packaging
-  image: ubuntu:22.04
+  image: $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-latest
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
+    SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
   cache:
     paths:
       - apt-cache
   before_script:
     - apt-get update
-    - apt-get install -y snapcraft
+    - apt-get install -y curl squashfs-tools
+    # Installation de snapd sur Debian
+    - apt-get install -y snapd
+    - systemctl start snapd || true
+    - systemctl enable snapd || true
+    # Installation de core
+    - snap wait system seed.loaded
+    - snap install core
+    # Installation de snapcraft via snap
+    - snap install snapcraft --classic
+    # Ajout de snapcraft au PATH
+    - export PATH=/snap/bin:$PATH
+    # Installation des dépendances perl manquantes
+    - apt-get install -y libterm-readline-perl-perl
   script:
     - mkdir -p build/snap
     - cp snap/snapcraft.yaml build/snap/
     - cd build/snap
+    # Construction avec LXD
+    - snap install lxd
+    - lxd init --auto
     - snapcraft --use-lxd
   artifacts:
     expire_in: 1 week
