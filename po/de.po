@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-24 10:19+0100\n"
-"PO-Revision-Date: 2025-01-11 22:56+0000\n"
-"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
+"PO-Revision-Date: 2025-01-27 19:48+0000\n"
+"Last-Translator: Jens Fischer <jensfz@gmail.com>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -116,11 +116,11 @@ msgstr "Das Filter welches für die Beobachtung genutzt wurde."
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 msgid "Cname: "
-msgstr ""
+msgstr "Cname: "
 
 #: src/gui/uifiles/aavso_dialog.ui:183
 msgid "Kname: "
-msgstr ""
+msgstr "Kname: "
 
 #: src/gui/uifiles/aavso_dialog.ui:194
 msgid ""
@@ -176,7 +176,7 @@ msgstr "Die Nummer des Vergleichssterns."
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
-msgstr ""
+msgstr "Cstd: "
 
 #: src/gui/uifiles/aavso_dialog.ui:310
 msgid ""
@@ -1153,9 +1153,8 @@ msgstr ""
 "überspringen die bereits eine astrometrische Lösung besitzen."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1146
-#, fuzzy
 msgid "Fetch catalog for each image"
-msgstr "Sterne für jedes Bild ermitteln"
+msgstr "Katalog für jedes Bild laden"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1150
 msgid ""
@@ -3457,9 +3456,8 @@ msgid "Show advanced stretch options"
 msgstr "Zeige weitere Möglichkeiten zur Streckung"
 
 #: src/gui/uifiles/dialog_star_remix.ui:149
-#, fuzzy
 msgid "Clipping mode:"
-msgstr "Clipping Modus"
+msgstr "Clipping Modus:"
 
 #: src/gui/uifiles/dialog_star_remix.ui:161
 msgid "Select the clipping mode for partially clipped pixels."
@@ -6278,9 +6276,8 @@ msgid ""
 msgstr "Pfad des Katalogs namedstars.dat für diesen Computer angeben."
 
 #: src/gui/uifiles/settings_window.ui:1547
-#, fuzzy
 msgid "gaia_astrometric.dat"
-msgstr "Spektrometrische Daten"
+msgstr "gaia_astrometric.dat"
 
 #: src/gui/uifiles/settings_window.ui:1558
 msgid ""
@@ -6290,9 +6287,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1560
-#, fuzzy
 msgid "gaia_photometric.dat"
-msgstr "Photometrisch"
+msgstr "gaia_photometric.dat"
 
 #: src/gui/uifiles/settings_window.ui:1575
 msgid ""
@@ -7535,9 +7531,8 @@ msgid "Script"
 msgstr "Skript"
 
 #: src/gui/uifiles/settings_window.ui:5212
-#, fuzzy
 msgid "Type"
-msgstr "Typ:"
+msgstr "Typ"
 
 #: src/gui/uifiles/settings_window.ui:5256
 msgid "<b>Siril Scripts Repository</b>"
