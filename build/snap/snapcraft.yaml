@@ -1,5 +1,43 @@
 name: siril
-base: core22
+adopt-info: siril
+
+grade: stable
+confinement: strict
+base: core24
+compression: lzo
+
+platforms:
+  amd64:
+  arm64:
+  
+apps:
+  siril:
+    command: usr/bin/siril
+    extensions: [gnome]
+    environment:
+      GTK_USE_PORTAL: 0
+      DISABLE_WAYLAND: 1
+    plugs:
+      - home
+      - removable-media
+      - password-manager-service
+      - network
+      - network-bind
+      - network-status
+  cli:
+    command: usr/bin/siril-cli
+    extensions: [gnome]
+    environment:
+      GTK_USE_PORTAL: 0
+      DISABLE_WAYLAND: 1
+    plugs:
+      - home
+      - removable-media
+      - password-manager-service
+      - network
+      - network-bind
+      - network-status
+
 version: '1.3.6'
 summary: Astronomical image processing software
 description: |
@@ -8,26 +46,9 @@ description: |
   It features registration tools, stacking methods, many filters and file 
   formats support.
 
-grade: stable
-confinement: strict
-
 architectures:
   - build-on: amd64
   - build-on: arm64
-
-apps:
-  siril:
-    command: usr/bin/siril
-    common-id: org.gimp.SIRIL
-    plugs:
-      - home
-      - removable-media
-      - network
-      - opengl
-      - wayland
-      - x11
-      - desktop
-      - desktop-legacy
 
 parts:
   siril:
@@ -37,25 +58,6 @@ parts:
     meson-parameters:
       - --prefix=/usr
       - --buildtype=release
-    build-packages:
-      - build-essential
-      - pkg-config
-      - cmake
-      - ninja-build
-      - libgtk-3-dev
-      - libcfitsio-dev
-      - libfftw3-dev
-      - libgsl-dev
-      - libraw-dev
-      - libexiv2-dev
-      - libopencv-dev
-#      - libheif-dev
-      - libgit2-dev
-      - libssl-dev
-#      - libjxl-dev
-      - wcslib-dev
-      - intltool
-      - gettext
     stage-packages:
       - libgtk-3-0
       - libcfitsio9
@@ -70,7 +72,26 @@ parts:
       - libgit2-1.1
       - libjxl0.7
       - wcslib7
-      
+    build-packages:
+      - build-essential
+      - pkg-config
+      - cmake
+      - ninja-build
+      - libgtk-3-dev
+      - libcfitsio-dev
+      - libfftw3-dev
+      - libgsl-dev
+      - libraw-dev
+      - libexiv2-dev
+      - libopencv-dev
+      - libheif-dev
+      - libgit2-dev
+      - libssl-dev
+#      - libjxl-dev
+      - wcslib-dev
+      - intltool
+      - gettext
+     
   libxisf:
     plugin: cmake
     source-type: git
