@@ -3,13 +3,12 @@ adopt-info: siril
 
 grade: stable
 confinement: strict
-base: core20
+base: core22
 compression: lzo
 
 apps:
   siril:
     command: usr/bin/siril
-    extensions: [gnome-3-38]
     environment:
       GTK_USE_PORTAL: 0
       DISABLE_WAYLAND: 1
@@ -22,7 +21,6 @@ apps:
       - network-status
   cli:
     command: usr/bin/siril-cli
-    extensions: [gnome-3-38]
     environment:
       GTK_USE_PORTAL: 0
       DISABLE_WAYLAND: 1
@@ -83,43 +81,10 @@ parts:
       - libgit2-dev
       - libssl-dev
 #      - libjxl-dev
+      - libheif-dev
       - wcslib-dev
       - intltool
       - gettext
-      
-  # https://github.com/strukturag/libheif/releases
-  libheif:
-    source: https://github.com/strukturag/libheif/releases/download/v1.12.0/libheif-1.12.0.tar.gz
-    plugin: autotools
-    build-environment:
-    - to armhf:
-      # LTO fails on armhf
-      - CFLAGS: -Ofast -g -pipe -mfpu=neon
-      - CXXFLAGS: -Ofast -g -pipe -mfpu=neon
-      - LDFLAGS: -mfpu=neon
-    - else:
-      - CFLAGS: -Ofast -g -pipe -flto
-      - CXXFLAGS: -Ofast -g -pipe -flto
-      - LDFLAGS: -flto
-    autotools-configure-parameters:
-    - --prefix=/usr
-    - --disable-go
-    - --disable-examples
-    build-packages:
-    - libde265-dev
-    - libgdk-pixbuf2.0-dev
-    - libjpeg-dev
-    - libpng-dev
-    - libx265-dev
-    stage-packages:
-    - libde265-0
-    - libgdk-pixbuf2.0-0
-    - libjpeg-turbo8
-    - libpng16-16
-    - libx265-179
-    override-build: |
-      snapcraftctl build
-      $SNAPCRAFT_STAGE/fix-pkgconfig-files.sh
      
   libxisf:
     plugin: cmake
