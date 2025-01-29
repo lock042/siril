@@ -10626,6 +10626,7 @@ WARNING: This option should not be checked for master stacking.</property>
         </child>
         <child>
           <object class="GtkMenuButton" id="header_scripts_button">
+            <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Menu of the script files. This menu appears only when the script paths defined in the preferences are set to the existing script folders.</property>
