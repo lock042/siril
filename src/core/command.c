@@ -5907,7 +5907,7 @@ int process_subsky(int nb) {
 				retval = 0;
 			}
 		} else {
-			retval = generate_background_samples(samples, tolerance));
+			retval = generate_background_samples(samples, tolerance);
 		}
 		if (!retval) {
 			start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
