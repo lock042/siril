@@ -726,6 +726,31 @@ void free_background_sample_list(GSList *list) {
 	g_slist_free_full(list, free);
 }
 
+// This behaves as per add_background_sample but add a whole list of sample points
+// at once, for use with the python interface to add points defined in python
+// without incurring the cost of convert_fits_to_luminance for each one
+
+GSList *add_background_samples(GSList *orig, fits *fit, GSList *pts) {
+	GSList *list;
+	int nx = fit->rx;
+	int ny = fit->ry;
+	float *image;
+	image = convert_fits_to_luminance(fit, MULTI_THREADED);
+	list = orig;
+	for (GSList *iter = pts ; iter ; iter = iter->next) {
+		point *pt = (point*) iter->data;
+		background_sample *sample = get_sample(image, pt->x, pt->y, nx, ny);
+		if (sample)
+			list = g_slist_append(list, sample);
+	}
+	if (fit->naxes[2] > 1) {
+		list = update_median_samples(list, fit);
+	}
+	free(image);
+
+	return list;
+}
+
 GSList *add_background_sample(GSList *orig, fits *fit, point pt) {
 	GSList *list;
 	int nx = fit->rx;
