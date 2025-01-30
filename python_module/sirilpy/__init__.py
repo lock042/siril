@@ -20,6 +20,7 @@ if TYPE_CHECKING:
         StarProfile,
         SequenceType,
         PSFStar,
+        BGSample,
         RegData,
         ImgData,
         Sequence
@@ -46,6 +47,7 @@ from .models import (
     StarProfile,
     SequenceType,
     PSFStar,
+    BGSample,
     RegData,
     ImgData,
     Sequence
@@ -85,6 +87,7 @@ __all__ = [
     'StarProfile',
     'SequenceType',
     'PSFStar',
+    'BGSample',
     'RegData',
     'ImgData',
     'Sequence',
