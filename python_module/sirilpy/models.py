@@ -477,6 +477,10 @@ class Homography:
 @dataclass
 class BGSample:
     """
+    Python equivalent of the Siril background_sample struct. Used to hold
+    background sample data obtained from Siril.
+    Note that when *sending* background samples to Siril, a simpler
+    List[Tuple[float, float]] is used, as only the coordinates are needed.
     """
     median: Tuple[float, float, float] = (0.0, 0.0, 0.0)
     mean: float = 0.0
