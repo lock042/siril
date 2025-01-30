@@ -1694,7 +1694,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 
 	// Check/create venv
 	if (!check_or_create_venv(project_path, &error)) {
-		siril_log_color_message(_("Failed to initialize Python virtual environment: %s"), "red",
+		siril_log_color_message(_("Failed to initialize Python virtual environment: %s\n"), "red",
 				error ? error->message : "Unknown error");
 		g_clear_error(&error);
 		g_free(project_path);
@@ -1705,7 +1705,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
 	PythonVenvInfo *venv_info = prepare_venv_environment(venv_path);
 	if (!venv_info) {
-		siril_log_color_message(_("Failed to prepare virtual environment"), "red");
+		siril_log_color_message(_("Failed to prepare virtual environment\n"), "red");
 		g_free(venv_path);
 		g_free(project_path);
 		return GINT_TO_POINTER(1);

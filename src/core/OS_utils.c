@@ -1015,9 +1015,23 @@ gchar *find_executable_in_path(const char *exe_name, const char *path) {
 	char full_path[MAX_PATH];
 	DWORD result;
 	const gchar *path_value;
-	if (!path)
-		path_value = g_getenv("PATH");
-	else
+	if (!path) { // we need to remove mingw64 tokens from PATH
+		const gchar *tmp_path_value = g_getenv("PATH");
+		siril_debug_print("Unfiltered: %s\n", tmp_path_value);
+		gchar **tokens = g_strsplit(tmp_path_value, ";", -1);
+		GPtrArray *filtered_tokens = g_ptr_array_new_with_free_func(g_free);
+		for (guint i = 0; tokens[i] != NULL; i++) {
+			if (!g_strstr_len(tokens[i], -1, "mingw64")) {
+				g_ptr_array_add(filtered_tokens, g_strdup(tokens[i]));
+			}
+		}
+		g_ptr_array_add(filtered_tokens, NULL);
+		path_value = g_strjoinv(";", (gchar **)filtered_tokens->pdata);
+		siril_debug_print("Filtered: %s\n", path_value);
+		// Free memory
+		g_strfreev(tokens);
+		g_ptr_array_free(filtered_tokens, TRUE);
+	} else
 		path_value = path;
 
 	// Use SearchPath to find the executable in PATH
