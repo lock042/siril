@@ -50,6 +50,7 @@ int get_background_sample_radius();
 void free_background_sample_list(GSList *list);
 GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, const char **error, threading_type threads);
 GSList* add_background_sample(GSList *list, fits *fit, point pt);
+GSList *add_background_samples(GSList *orig, fits *fit, GSList *pts);
 GSList* remove_background_sample(GSList *orig, fits *fit, point pt);
 int generate_background_samples(int nb_of_samples, double tolerance);
 gpointer remove_gradient_from_image(gpointer p);
