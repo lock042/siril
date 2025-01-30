@@ -474,6 +474,18 @@ class Homography:
     pair_matched: int = 0 #: number of pairs matched
     Inliers: int = 0 #: number of inliers kept after RANSAC step
 
+@dataclass
+class BGSample:
+    """
+    """
+    median: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    mean: float = 0.0
+    min: float = 0.0
+    max: float = 0.0
+    size: int = 0
+    position: Tuple[float, float] = (0.0, 0.0)
+    valid: bool = False
+
 class StarProfile(IntEnum):
     """
     Python equivalent of the Siril starprofile enum. Used to identify the type
