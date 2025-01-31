@@ -67,6 +67,14 @@ typedef enum {
 	CMD_ERROR = 0xFF
 } CommandType;
 
+typedef enum {
+	LOG_WHITE = 0,
+	LOG_RED = 1,
+	LOG_SALMON = 2,
+	LOG_GREEN = 3,
+	LOG_BLUE = 4
+} LogColor;
+
 // Config types matching python side
 typedef enum {
 	CONFIG_TYPE_BOOL = 0,

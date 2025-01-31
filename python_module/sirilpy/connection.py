@@ -103,6 +103,21 @@ class _Command(IntEnum):
     SET_BGSAMPLES = 49,
     ERROR = 0xFF
 
+class LogColor (IntEnum):
+    """
+    Defines colors available for use with SirilInterface.log()
+    For consistency, LogColor.White should be used for normal messages,
+    LogColor.Red should be used for error messages, LogColor.Salmon
+    should be used for warning messages, LogColor.Green should  be used
+    for completion notifications and LogColor.Blue should be used for
+    technical messages such as equations, coefficients etc.
+    """
+    White = 0,
+    Red = 1,
+    Salmon = 2,
+    Green = 3,
+    Blue = 4
+
 class _Defaults:
     """
     Contains default values for different datatypes, matching Siril
@@ -725,13 +740,16 @@ class SirilInterface:
         # Let the rstrip operation pass through any string operation errors
         return response.decode('utf-8').rstrip('\x00')
 
-    def log(self, my_string: str) -> bool:
+    def log(self, my_string: str, color:LogColor=LogColor.White) -> bool:
         """
         Send a log message to Siril. The maximum message length is
         1022 bytes: longer messages will be truncated.
 
         Args:
             my_string: The message to log
+            color: Defines the text color, defaults to white. See the documentation
+            for LogColor for an explanation of which colors should be used for which
+            purposes.
 
         Returns:
             bool: True if the message was successfully logged, False otherwise
@@ -742,7 +760,9 @@ class SirilInterface:
             truncated_string = my_string[:1021] + '\n'
             # Convert string to bytes using UTF-8 encoding
             message_bytes = truncated_string.encode('utf-8')
-            return self._execute_command(_Command.LOG_MESSAGE, message_bytes)
+            # Prepend the color byte
+            packed_message = bytes([color.value]) + message_bytes
+            return self._execute_command(_Command.LOG_MESSAGE, packed_message)
 
         except Exception as e:
             print(f"Error sending log message: {e}", file=sys.stderr)

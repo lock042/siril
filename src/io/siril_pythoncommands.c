@@ -350,6 +350,21 @@ static int imstats_to_py(const imstats *stats, unsigned char* ptr, size_t maxlen
 	return 0;
 }
 
+static const char* log_color_to_str(LogColor color) {
+	switch (color) {
+		case LOG_RED:
+			return "red";
+		case LOG_SALMON:
+			return "salmon";
+		case LOG_GREEN:
+			return "green";
+		case LOG_BLUE:
+			return "blue";
+		default:
+			return "white";
+	}
+}
+
 static gboolean get_config_value(const char* group, const char* key, config_type_t* type, void** value, size_t* value_size) {
 	if (!group || !key || !type || !value || !value_size)
 		return FALSE;
@@ -894,16 +909,23 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_LOG_MESSAGE: {
-			// Ensure null-terminated string for log message
-			char* log_msg = g_strndup(payload, payload_length);
-			siril_log_message(log_msg);
+			if (payload_length < 3) { // Color byte plus at least one char plus null termination
+				success = send_response(conn, STATUS_ERROR, "Empty log message", 0);
+				break;
+			}
+
+			// Extract the color from the first byte
+			LogColor color = (LogColor) payload[0];
+
+			// Create null-terminated string from remaining payload
+			char* log_msg = g_strndup(payload + 1, payload_length - 1);
+			siril_log_color_message(log_msg, log_color_to_str(color));  // Assuming function name updated to handle color
 			g_free(log_msg);
 
 			// Send success response
 			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
-
 		case CMD_ERROR_MESSAGEBOX: // fallthrough intentional
 		case CMD_ERROR_MESSAGEBOX_MODAL: {
 			// Ensure null-terminated string for log message
