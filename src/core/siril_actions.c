@@ -140,7 +140,6 @@ void close_action_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("settings_window");
 	gtk_stack_set_visible_child((GtkStack*) lookup_widget("stack_pref"), lookup_widget("scripts_page"));
-//	siril_get_on_script_pages();
 }
 
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

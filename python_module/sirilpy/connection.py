@@ -24,7 +24,7 @@ from packaging.specifiers import SpecifierSet
 from typing import Tuple, Optional, List, Union, Any
 from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
 from .exceptions import SirilError, ConnectionError, CommandError, NoImageError
-from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, RegData, ImgData, Sequence, SequenceType
+from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, BGSample, RegData, ImgData, Sequence, SequenceType
 
 if os.name == 'nt':
     import win32pipe
@@ -99,7 +99,24 @@ class _Command(IntEnum):
     SET_SEQ_FRAME_INCL = 45,
     GET_USERDATADIR = 46,
     GET_SYSTEMDATADIR = 47,
+    GET_BGSAMPLES = 48,
+    SET_BGSAMPLES = 49,
     ERROR = 0xFF
+
+class LogColor (IntEnum):
+    """
+    Defines colors available for use with ``SirilInterface.log()``
+    For consistency ``LogColor.White`` should be used for normal messages,
+    ``LogColor.Red`` should be used for error messages, ``LogColor.Salmon``
+    should be used for warning messages, LogColor.Green should  be used
+    for completion notifications, and ``LogColor.Blue`` should be used for
+    technical messages such as equations, coefficients etc.
+    """
+    White = 0,
+    Red = 1,
+    Salmon = 2,
+    Green = 3,
+    Blue = 4
 
 class _Defaults:
     """
@@ -723,13 +740,16 @@ class SirilInterface:
         # Let the rstrip operation pass through any string operation errors
         return response.decode('utf-8').rstrip('\x00')
 
-    def log(self, my_string: str) -> bool:
+    def log(self, my_string: str, color:LogColor=LogColor.White) -> bool:
         """
         Send a log message to Siril. The maximum message length is
         1022 bytes: longer messages will be truncated.
 
         Args:
             my_string: The message to log
+            color: Defines the text color, defaults to white. See the documentation
+            for LogColor for an explanation of which colors should be used for which
+            purposes.
 
         Returns:
             bool: True if the message was successfully logged, False otherwise
@@ -740,7 +760,9 @@ class SirilInterface:
             truncated_string = my_string[:1021] + '\n'
             # Convert string to bytes using UTF-8 encoding
             message_bytes = truncated_string.encode('utf-8')
-            return self._execute_command(_Command.LOG_MESSAGE, message_bytes)
+            # Prepend the color byte
+            packed_message = bytes([color.value]) + message_bytes
+            return self._execute_command(_Command.LOG_MESSAGE, packed_message)
 
         except Exception as e:
             print(f"Error sending log message: {e}", file=sys.stderr)
@@ -1710,6 +1732,83 @@ class SirilInterface:
 
         except Exception as e:
             print(f"Error sending plot data: {e}", file=sys.stderr)
+            return False
+        finally:
+            # Ensure shared memory is closed and unlinked
+            if 'shm' in locals() and shm is not None:
+                try:
+                    shm.close()
+                except:
+                    pass
+
+    def set_image_bgsamples(self, points: List[Tuple[float, float]], show_samples: bool = False):
+        """
+        Serialize a set of background sample points and send via shared memory.
+        The sample points are provided as a List of Tuples with each Tuple
+        comprising (x, y) where x and y are floats. Note that only locations
+        are sent to Siril rather than the full BGSample object that can be
+        retrieved, because Siril will automatically update the sample statistics
+        and validity on receipt.
+
+        Args:
+            points: List of sample point locations
+            show_samples: Whether to show the sample points in Siril
+        """
+        try:
+            format_string = 'd' * (2 * len(points))  # multiply by 2 since each pair has 2 values
+
+            # Flatten the list of tuples into a single sequence of values
+            flat_values = [coord for pair in points for coord in pair]
+
+            # Pack all the values
+            serialized_data = struct.pack(format_string, *flat_values)
+            total_bytes = len(serialized_data)
+
+            # Create shared memory using our wrapper
+            try:
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise RuntimeError(_("Failed to map shared memory: {}").format(e))
+
+            except Exception as e:
+                raise RuntimeError(_("Failed to create shared memory: {}").format(e))
+
+            # Copy serialized data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                buffer[:total_bytes] = serialized_data
+                del buffer
+            except Exception as e:
+                print(f"Failed to copy data to shared memory: {e}", file=sys.stderr)
+                return False
+
+            # Pack the plot info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                0,  # width (not used for plots)
+                0,  # height (not used for plots)
+                0,  # reserved/unused
+                1 if show_samples else 0,  # data_type use to indicate
+                                          # whether to show the samples
+                total_bytes,
+                shm_info.shm_name
+            )
+
+            if not self._execute_command(_Command.SET_BGSAMPLES, info):
+                raise RuntimeError(_("Failed to send BG sample command"))
+
+            return True
+
+        except Exception as e:
+            print(f"Error sending background samples: {e}", file=sys.stderr)
             return False
         finally:
             # Ensure shared memory is closed and unlinked
@@ -3427,3 +3526,122 @@ class SirilInterface:
         except Exception as e:
             print(f"Error setting selection: {e}", file=sys.stderr)
             return False
+
+    def get_image_bgsamples(self) -> Optional[List[BGSample]]:
+        """
+        Request background samples data from Siril.
+
+        Returns:
+            List of BGSamples background samples, with each set of coordinates
+            expressed as a tuple[float, float], or None if no background
+            samples have been set.
+
+        Raises:
+            NoImageError: If no image is currently loaded,
+            RuntimeError: For other errors during  data retrieval,
+            ValueError: If the received data format is invalid
+        """
+
+        samples = []
+        shm = None
+
+        try:
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_BGSAMPLES)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("No image is currently loaded in Siril"))
+                    else:
+                        raise RuntimeError(_("Server error: {}").format(error_msg))
+                else:
+                    raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
+
+            if status == _Status.NONE:
+                return None
+
+            if not response:
+                raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
+
+            try:
+                # Parse the shared memory information
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise ValueError(_("Invalid shared memory information received: {}").format(e))
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise RuntimeError(_("Failed to map shared memory: {}").format(e))
+
+            format_string = '!6dQ2dQ' # Define the format string based on background_sample structure
+            fixed_size = struct.calcsize(format_string)
+
+            # Read entire buffer at once using memoryview
+            buffer = bytearray(shm.buf)[:shm_info.size]
+
+            # Validate buffer size
+            if shm_info.size % fixed_size != 0:
+                raise ValueError(_("Buffer size {} is not a multiple "
+                                   "of struct size {}").format(len(buffer), fixed_size))
+
+            num_samples = len(buffer) // fixed_size
+
+            # Sanity check for number of stars
+            if num_samples < 1:
+                raise ValueError(_("Invalid number of samples: {}").format(num_samples))
+
+            if num_samples > 10000:   # to match the max samples per line settable in the UI
+                                    # and assuming equal dimensions. More than enough!
+                num_samples = 10000
+                self.log(_("Limiting stars to max 200000"))
+
+            for i in range(num_samples):
+                # Calculate start and end positions for each struct
+                start = i * fixed_size
+                end = start + fixed_size
+
+                try:
+                    # Extract the bytes for this struct and unpack
+                    values = struct.unpack(format_string, buffer[start:end])
+
+                    sample = BGSample(
+                        median = (values[0], values[1], values[2]),
+                        mean = values[3],
+                        min = values[4],
+                        max = values[5],
+                        size = values[6],
+                        position = (values[7], values[8]),
+                        valid = True if values[9] else False
+                    )
+                    samples.append(sample)
+
+                except struct.error as e:
+                    print(f"Error unpacking sample data for index {i}: {e}", file=sys.stderr)
+                    break
+
+            return samples
+
+        except Exception as e:
+            raise RuntimeError(_("Error processing sample data: {}").format(e))
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    finish_info = struct.pack('256s', shm_info.shm_name)
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                        raise RuntimeError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass

@@ -10,7 +10,7 @@ from .translations import _
 
 # TYPE_CHECKING is False at runtime but True during type checking.
 if TYPE_CHECKING:
-    from .connection import SirilInterface, ensure_installed, check_module_version
+    from .connection import SirilInterface, ensure_installed, check_module_version, LogColor
     from .models import (
         DataType,
         ImageStats,
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
         StarProfile,
         SequenceType,
         PSFStar,
+        BGSample,
         RegData,
         ImgData,
         Sequence
@@ -36,7 +37,7 @@ if TYPE_CHECKING:
     )
 
 # Runtime imports
-from .connection import SirilInterface, ensure_installed, check_module_version
+from .connection import SirilInterface, ensure_installed, check_module_version, LogColor
 from .models import (
     DataType,
     ImageStats,
@@ -46,6 +47,7 @@ from .models import (
     StarProfile,
     SequenceType,
     PSFStar,
+    BGSample,
     RegData,
     ImgData,
     Sequence
@@ -77,6 +79,7 @@ __all__ = [
     'ensure_installed',
     'check_module_version',
     'SirilInterface',
+    'LogColor',
     'DataType',
     'ImageStats',
     'FKeywords',
@@ -85,6 +88,7 @@ __all__ = [
     'StarProfile',
     'SequenceType',
     'PSFStar',
+    'BGSample',
     'RegData',
     'ImgData',
     'Sequence',

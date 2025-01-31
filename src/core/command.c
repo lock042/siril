@@ -5843,6 +5843,7 @@ int process_subsky(int nb) {
 	gboolean dithering;
 	background_interpolation interp;
 	char *prefix = NULL;
+	gboolean use_existing = FALSE;
 
 	int arg_index = 1;
 	gboolean is_sequence = (word[0][2] == 'q');
@@ -5923,6 +5924,9 @@ int process_subsky(int nb) {
 		else if (!is_sequence && !g_strcmp0(arg, "-dither")) {
 			dithering = TRUE;
 		}
+		else if (!is_sequence && !g_strcmp0(arg, "-existing")) {
+			use_existing = TRUE;
+		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
 			free(prefix);
@@ -5958,12 +5962,21 @@ int process_subsky(int nb) {
 						  !strncmp(gfit.keywords.bayer_pattern, "GBRG", 4) ||
 						  !strncmp(gfit.keywords.bayer_pattern, "GRBG", 4));
 
-		if (!generate_background_samples(samples, tolerance)) {
-			if (!start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
-								remove_gradient_from_image, args)) {
-				free(args->seqEntry);
+		int retval = 1;
+		if (use_existing) {
+			if (!com.grad_samples) {
+				siril_log_color_message(_("Error, no existing samples available\n"), "red");
 				free(args);
+				return CMD_GENERIC_ERROR;
+			} else {
+				retval = 0;
 			}
+		} else {
+			retval = generate_background_samples(samples, tolerance);
+		}
+		if (!retval) {
+			start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
+								remove_gradient_from_image, args);
 		} else {
 			siril_log_color_message(_("Error generating background samples\n"), "red");
 			free(args);
