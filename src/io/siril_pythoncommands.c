@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "core/siril.h"
+#include "algos/background_extraction.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/statistics.h"
@@ -200,6 +201,24 @@ static int homography_to_py(const Homography* H, unsigned char *ptr, size_t maxl
 	return 0;
 }
 
+static int sample_to_py(const background_sample *sample, unsigned char *ptr, size_t maxlen) {
+	if (!sample || !ptr)
+		return 1;
+	unsigned char *start_ptr = ptr;
+
+	COPY_BE64(sample->median[0], double);
+	COPY_BE64(sample->median[1], double);
+	COPY_BE64(sample->median[2], double);
+	COPY_BE64(sample->mean, double);
+	COPY_BE64(sample->min, double);
+	COPY_BE64(sample->max, double);
+	COPY_BE64((uint64_t) sample->size, uint64_t);
+	COPY_BE64(sample->position.x, double);
+	COPY_BE64(sample->position.y, double);
+	COPY_BE64((uint64_t) sample->valid, uint64_t);
+	return 0;
+}
+
 static int regdata_to_py(const regdata *regparam, unsigned char *ptr, size_t maxlen) {
 	if (!regparam || !ptr)
 		return 1;
@@ -329,6 +348,21 @@ static int imstats_to_py(const imstats *stats, unsigned char* ptr, size_t maxlen
 	COPY_BE64(stats->normValue, double);
 	COPY_BE64(stats->bgnoise, double);
 	return 0;
+}
+
+static const char* log_color_to_str(LogColor color) {
+	switch (color) {
+		case LOG_RED:
+			return "red";
+		case LOG_SALMON:
+			return "salmon";
+		case LOG_GREEN:
+			return "green";
+		case LOG_BLUE:
+			return "blue";
+		default:
+			return "white";
+	}
 }
 
 static gboolean get_config_value(const char* group, const char* key, config_type_t* type, void** value, size_t* value_size) {
@@ -875,16 +909,23 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_LOG_MESSAGE: {
-			// Ensure null-terminated string for log message
-			char* log_msg = g_strndup(payload, payload_length);
-			siril_log_message(log_msg);
+			if (payload_length < 3) { // Color byte plus at least one char plus null termination
+				success = send_response(conn, STATUS_ERROR, "Empty log message", 0);
+				break;
+			}
+
+			// Extract the color from the first byte
+			LogColor color = (LogColor) payload[0];
+
+			// Create null-terminated string from remaining payload
+			char* log_msg = g_strndup(payload + 1, payload_length - 1);
+			siril_log_color_message(log_msg, log_color_to_str(color));  // Assuming function name updated to handle color
 			g_free(log_msg);
 
 			// Send success response
 			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
-
 		case CMD_ERROR_MESSAGEBOX: // fallthrough intentional
 		case CMD_ERROR_MESSAGEBOX_MODAL: {
 			// Ensure null-terminated string for log message
@@ -1099,6 +1140,21 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->size = GUINT64_FROM_BE(info->size);
 				success = handle_plot_request(conn, info);
+			}
+			break;
+		}
+
+		case CMD_SET_BGSAMPLES: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for SET_BGSAMPLES: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				info->data_type = GUINT32_FROM_BE(info->data_type);
+				gboolean show_samples = (gboolean) info->data_type;
+				success = handle_set_bgsamples_request(conn, info, show_samples);
 			}
 			break;
 		}
@@ -1568,6 +1624,67 @@ CLEANUP:
 			}
 
 			g_free(allstars);
+			break;
+		}
+
+		case CMD_GET_BGSAMPLES: {
+			int nb_samples = 0;
+			if (com.grad_samples) {
+				// Count the number of stars in com.grad_samples
+				nb_samples = g_slist_length(com.grad_samples);
+			}
+			if (!nb_samples) {
+				const char* error_msg = _("No background samples list available");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+
+			const size_t sample_size = 8 * sizeof(double) + 2 * sizeof(uint64_t);
+			const size_t total_size = nb_samples * sample_size;
+
+			unsigned char* allsamples = g_try_malloc0(total_size);
+			if (!allsamples) {
+				const char* error_msg = _("Memory allocation failed");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			gboolean error_occurred = FALSE;
+			int i = 0;
+			for (GSList *iter = com.grad_samples; iter ; iter = iter->next) {
+				if (i >= nb_samples) {
+					const char* error_msg = _("Mismatch in samples count");
+					error_occurred = TRUE;
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
+				background_sample *sample = (background_sample*) iter->data;
+				if (!sample) {
+					error_occurred = TRUE;
+					const char* error_msg = _("Unexpected null background sample");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
+
+				// Calculate the correct offset for this star's data
+				unsigned char* ptr = allsamples + (i * sample_size);
+
+				if (sample_to_py(sample, ptr, sample_size)) {
+					error_occurred = TRUE;
+					const char* error_msg = _("Memory allocation error");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
+				i++;
+			}
+
+			if (!error_occurred) {
+				shared_memory_info_t *info = handle_rawdata_request(conn, allsamples, total_size);
+				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+				free(info);
+			}
+
+			g_free(allsamples);
 			break;
 		}
 

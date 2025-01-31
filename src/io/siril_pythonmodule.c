@@ -35,6 +35,7 @@
 #include "core/siril_update.h"
 #include "core/siril_app_dirs.h"
 #include "algos/siril_random.h"
+#include "algos/background_extraction.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -700,6 +701,73 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 
 	// Plot the data in a siril_plot_window
 	siril_add_idle(create_new_siril_plot_window, plot_data);
+	return send_response(conn, STATUS_OK, NULL, 0);
+}
+
+gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples) {
+	// Open shared memory
+	void* shm_ptr = NULL;
+#ifdef _WIN32
+	win_shm_handle_t win_handle = {NULL, NULL};
+	HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
+	if (mapping == NULL) {
+		const char* error_msg = "Failed to open shared memory mapping";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
+	if (shm_ptr == NULL) {
+		CloseHandle(mapping);
+		const char* error_msg = "Failed to map shared memory view";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	win_handle.mapping = mapping;
+	win_handle.ptr = shm_ptr;
+#else
+	int fd = shm_open(info->shm_name, O_RDONLY, 0);
+	if (fd == -1) {
+		const char* error_msg = _("Failed to open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
+	if (shm_ptr == MAP_FAILED) {
+		close(fd);
+		const char* error_msg = _("Failed to map shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+#endif
+	if (!shm_ptr) {
+		const char* error_msg = _("Error: could not open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Unpack the plot data
+	size_t total_bytes = info->size;
+	size_t nb_samples = total_bytes / sizeof(point);
+	point* points = (point*) shm_ptr;
+	// Build a list of the coords
+	GSList *pts = NULL;
+	for (int i = 0 ; i < nb_samples ; i++) {
+		pts = g_slist_append(pts, &points[i]);
+	}
+	// Add to the list in com.
+	free_background_sample_list(com.grad_samples);
+	com.grad_samples = NULL;
+	com.grad_samples = add_background_samples(com.grad_samples, &gfit, pts);
+	// Free the list but not the list data
+	g_slist_free(pts);
+	if (show_samples && !com.headless) {
+		queue_redraw(REDRAW_OVERLAY);
+	}
+
+	// Cleanup shared memory
+	#ifdef _WIN32
+	UnmapViewOfFile(shm_ptr);
+	CloseHandle(win_handle.mapping);
+	#else
+	munmap(shm_ptr, info->size);
+	close(fd);
+	#endif
+
 	return send_response(conn, STATUS_OK, NULL, 0);
 }
 
@@ -1694,7 +1762,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 
 	// Check/create venv
 	if (!check_or_create_venv(project_path, &error)) {
-		siril_log_color_message(_("Failed to initialize Python virtual environment: %s"), "red",
+		siril_log_color_message(_("Failed to initialize Python virtual environment: %s\n"), "red",
 				error ? error->message : "Unknown error");
 		g_clear_error(&error);
 		g_free(project_path);
@@ -1705,7 +1773,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
 	PythonVenvInfo *venv_info = prepare_venv_environment(venv_path);
 	if (!venv_info) {
-		siril_log_color_message(_("Failed to prepare virtual environment"), "red");
+		siril_log_color_message(_("Failed to prepare virtual environment\n"), "red");
 		g_free(venv_path);
 		g_free(project_path);
 		return GINT_TO_POINTER(1);
