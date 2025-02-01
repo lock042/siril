@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-24 10:19+0100\n"
-"PO-Revision-Date: 2025-01-27 19:48+0000\n"
+"PO-Revision-Date: 2025-02-01 11:50+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -11645,11 +11645,11 @@ msgid "an online catalogue"
 msgstr "（在线星表）"
 
 #: src/algos/astrometry_solver.c:888
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Plate solving image from %s for a field of view of %.2f degrees%s, using a "
 "limit magnitude of %.2f\n"
-msgstr "基于本地星表的图像解析，视场为 %.2f 度%s，极限星等为 %.2f\n"
+msgstr "解析来自%s的图像，视场为%.2f度%s，极限星等为%.2f\n"
 
 #: src/algos/astrometry_solver.c:892
 msgid " (uncentered)"
@@ -27078,18 +27078,18 @@ msgid "Could not open local catalogue %s\n"
 msgstr "无法打开本地NOMAD星表\n"
 
 #: src/io/local_catalogues.c:160 src/io/local_catalogues.c:193
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to read the local catalogue %s\n"
-msgstr "无法读取本地 NOMAD 星表\n"
+msgstr "无法读取本地星表%s\n"
 
 #: src/io/local_catalogues.c:182
 msgid "Wrong trixel ID\n"
 msgstr "错误的trixel ID\n"
 
 #: src/io/local_catalogues.c:187
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open local catalogue%s\n"
-msgstr "无法打开本地NOMAD星表\n"
+msgstr "无法打开本地星表%s\n"
 
 #: src/io/local_catalogues.c:289
 msgid "Error: number of trixels reported by file is out of limits.\n"
@@ -27240,9 +27240,9 @@ msgid "Contacting server\n"
 msgstr "联系服务器\n"
 
 #: src/io/remote_catalogues.c:650
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot create catalogue file %s (generic error)\n"
-msgstr "无法创建星表文件%s（%s）\n"
+msgstr "无法创建星表文件%s（普通错误）\n"
 
 #: src/io/remote_catalogues.c:695
 msgid "Offline, cannot retrieve URL.\n"
@@ -29970,14 +29970,14 @@ msgid ""
 msgstr "发现一个Bug，无法将图像区域拆分成正确的待处理块。\n"
 
 #: src/stacking/median_and_mean.c:452
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading one of the image areas (%d: %d %d %d %d)\n"
-msgstr "图像区域读取错误\n"
+msgstr "某个图像区域读取错误（%d: %d %d %d %d）\n"
 
 #: src/stacking/median_and_mean.c:481
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading one of the masks areas (%d: %d %d %d %d)\n"
-msgstr "图像区域读取错误\n"
+msgstr "某个蒙版区域读取错误（%d: %d %d %d %d）\n"
 
 #: src/stacking/median_and_mean.c:1063 src/stacking/median_and_mean.c:1108
 #, c-format

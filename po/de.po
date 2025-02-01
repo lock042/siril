@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-24 10:19+0100\n"
-"PO-Revision-Date: 2025-01-27 19:48+0000\n"
-"Last-Translator: Jens Fischer <jensfz@gmail.com>\n"
+"PO-Revision-Date: 2025-02-01 11:50+0000\n"
+"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -1024,7 +1024,6 @@ msgid "Star Catalogue: "
 msgstr "Stern-Katalog: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:963
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image.\n"
 "* TYCHO-2 catalogue contains positions, proper motions, and two-color "
@@ -1059,31 +1058,36 @@ msgstr ""
 "* NOMAD ist eine Vereinigung der Kataloge Hipparcos, Tycho-2, UCAC-2, Yellow-"
 "Blue 6, und USNO-B Kataloge für Astrometrie und optische Photometrie, "
 "ergänzt durch 2MASS Nahinfrarot. Der fast 100 GB große Datensatz enthält "
-"astrometrische und photometrische Daten für etwa 1,1 Milliarden Sterne.\n"
+"astrometrische und photometrische Daten für etwa 1,1 Milliarden Sterne. Es "
+"ist ein Offline-Extrakt verfügbar, der eine ausreichende Abdeckung bietet, "
+"um die meisten Sternfelder zu berechnen.\n"
 "* Gaia Data Release 3 wurde am 13. Juni 2022 veröffentlicht. Die "
 "astrometrische Lösung mit fünf Parametern, Positionen am Himmel (α, δ), "
 "Parallaxen und Eigenbewegungen, wird für etwa 1,46 Milliarden Quellen mit "
-"einer Grenzgröße von G = 21 angegeben.\n"
+"einer Grenzgröße von G = 21 angegeben. Es ist ein Offline-Extrakt verfügbar, "
+"der eine ausreichende Abdeckung bietet, um alle außer den tiefsten "
+"Sternfeldern zu lösen. Gaia DR3 stellt den aktuellen Stand der Technik in "
+"astrometrischen und photometrischen Katalogen dar.\n"
 "* PPMXL ist ein Katalog über Positionen, Eigenbewegungsdaten, 2MASS- und "
 "optische Photometrie mit über 900 Millionen Sternen und Galaxien.\n"
 "* Der Bright Star Catalogue enthält 9.110 helle Sterne bis Mag 6,5 und "
 "entspricht damit etwa dem mit freiem Auge sichtbaren Sternenhimmel von der "
-"Erde aus.\n"
+"Erde aus. Der Katalog enthält 9.110 Objekte.\n"
 "* APASS, der \"AAVSO Photometric All Sky Survey\", führt eine photometrische "
 "Durchmusterung des gesamten Himmels durch. Diese Durchmusterung wird mit "
 "acht Filtern durchgeführt: Johnson B und V sowie Sloan u', g′, r′, i′, z_s "
-"und Z. Er gilt für über 37 Millionen Sterne von der siebten bis zur "
-"siebzehnten Größe."
+"und Z. Sie ist von etwa der 7. bis zur 17. Größenordnung für über 37 "
+"Millionen Sterne gültig."
 
 #: src/gui/uifiles/astrometry_dialog.ui:992
-#, fuzzy
 msgid ""
 "The catalogue is automatically determined using the approximation of the "
 "Field Of View and magnitude. Local catalogues are preferred over remote "
 "ones, and Gaia DR3 is preferred over Tycho + NOMAD."
 msgstr ""
 "Der Online-Katalog wird automatisch bestimmt mittels Annäherung an den "
-"Bildwinkel und die Magnitude."
+"Bildwinkel und die Magnitude. Lokale Kataloge werden gegenüber Online-"
+"Katalogen bevorzugt und Gaia DR3 wird gegenüber Tycho + NOMAD bevorzugt."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1007
 msgid ""
@@ -6259,21 +6263,20 @@ msgstr ""
 "in kompakter Form bis zur Helligkeit 18 beschränkt."
 
 #: src/gui/uifiles/settings_window.ui:1521
-#, fuzzy
 msgid "Gaia astrometric extract:"
-msgstr "Astrometrische Registrierung berechnen...\n"
+msgstr "Gaia: astrometrischer Auszug:"
 
 #: src/gui/uifiles/settings_window.ui:1534
-#, fuzzy
 msgid "Gaia photometric extract:"
-msgstr "Photometrischer Sternkatalog "
+msgstr "Gaia: Photometrischer Auszug:"
 
 #: src/gui/uifiles/settings_window.ui:1545
-#, fuzzy
 msgid ""
 "Specify the location of the Siril astrometric extract of the Gaia DR3 "
 "catalogue, used for plate solving"
-msgstr "Pfad des Katalogs namedstars.dat für diesen Computer angeben."
+msgstr ""
+"Angabe des Speicherortes von Sirils astrometrischem Auszug des Gaia DR3-"
+"Katalogs, der für die astrometrischen Lösungen benutzt wird"
 
 #: src/gui/uifiles/settings_window.ui:1547
 msgid "gaia_astrometric.dat"
@@ -6285,6 +6288,9 @@ msgid ""
 "of its size this catalogue is divided into chunks, so you need only select "
 "the folder."
 msgstr ""
+"Geben Sie das Verzeichnis an wo der photometrische Gaia-Katalog gespeichert "
+"ist. Auf Grund seiner Größe kann der Katalog in Abschnitte geteilt werde, so "
+"dass man nur den Ordner angeben muss."
 
 #: src/gui/uifiles/settings_window.ui:1560
 msgid "gaia_photometric.dat"
@@ -7539,9 +7545,8 @@ msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Siril Skript-Repository</b>"
 
 #: src/gui/uifiles/settings_window.ui:5289
-#, fuzzy
 msgid "Reset python venv"
-msgstr "Änderungen zurücksetzen"
+msgstr "Python venv zurücksetzen"
 
 #: src/gui/uifiles/settings_window.ui:5293
 msgid ""
@@ -7552,11 +7557,18 @@ msgid ""
 "This is normally not necessary but is provided as a last resort to restore "
 "the venv to a pristine state as an aid to troubleshooting."
 msgstr ""
+"<b>WARNUNG!!</b> <i>Dadurch werden alle laufenden Python-Skripte beendet und "
+"das Verzeichnis „venv“ der virtuellen Umgebung in seinen Ursprungszustand "
+"zurückgesetzt. Alle Module, die durch Skripte installiert wurden, müssen neu "
+"installiert werden.</i>\n"
+"\n"
+"Dies ist normalerweise nicht notwendig, wird aber als letztes Mittel "
+"angeboten, um venv in seinen ursprünglichen Zustand zurückzusetzen und so "
+"die Fehlerbehebung zu erleichtern."
 
 #: src/gui/uifiles/settings_window.ui:5324
-#, fuzzy
 msgid "Python Interface"
-msgstr "Benutzeroberfläche"
+msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5358
 #: src/gui/uifiles/settings_window.ui:5756
@@ -11517,10 +11529,18 @@ msgid ""
 "Gaia DR3 contains sampled spectra for c. 30 million stars down to magnitude "
 "17.6."
 msgstr ""
+"Wählen Sie den Katalog aus, der für die spektrophotometrische "
+"Farbkalibrierung verwendet werden soll.\n"
+"* Das Gaia DR3-Archiv ist ein Onlinedienst, der direkten Zugriff auf den "
+"Gaia DR3-Katalog bietet.\n"
+"* Der lokale Gaia DR3 xp_sampled-Katalog ist ein optimierter lokaler "
+"Katalog, der für SPCC entwickelt wurde.\n"
+"Gaia DR3 enthält abgetastete Spektren für ca. 30 Millionen Sterne bis zu "
+"einer Magnitude von 17,6."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1060
 msgid "Local Gaia DR3 xp_sampled catalogue"
-msgstr ""
+msgstr "Lokaler Gaia DR3 xp_sampled Katalog"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1090
 msgid ""
@@ -12624,28 +12644,25 @@ msgstr ""
 "Astrometrische Lösung mit astrometry.net für ein Gesichtsfeld von %.2f Grad\n"
 
 #: src/algos/astrometry_solver.c:885
-#, fuzzy
 msgid "local catalogues"
-msgstr "(Lokaler Katalog)"
+msgstr "lokale Kataloge"
 
 #: src/algos/astrometry_solver.c:886
-#, fuzzy
 msgid "local Gaia catalogue"
-msgstr "(Lokaler Katalog)"
+msgstr "Lokaler Gaia-Katalog"
 
 #: src/algos/astrometry_solver.c:887
-#, fuzzy
 msgid "an online catalogue"
-msgstr "(Online-Katalog)"
+msgstr "ein Online-Katalog"
 
 #: src/algos/astrometry_solver.c:888
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Plate solving image from %s for a field of view of %.2f degrees%s, using a "
 "limit magnitude of %.2f\n"
 msgstr ""
-"Plattenlösungsbild aus einem lokalen Sternkatalog für ein Sichtfeld von %.2f "
-"Grad%s, unter Verwendung einer Grenzgröße von %.2f\n"
+"Berechne die astrometrische Lösung des Bildes aus %s für ein Bildfeld von  "
+"%.2f Grad%s, mit einer Grenzgröße von %.2f\n"
 
 #: src/algos/astrometry_solver.c:892
 msgid " (uncentered)"
@@ -12773,9 +12790,8 @@ msgid "Astrometry.net solving blindly\n"
 msgstr "Astrometry.net blinde astrometrische Lösung\n"
 
 #: src/algos/astrometry_solver.c:1813
-#, fuzzy
 msgid "Astrometry.net local solver"
-msgstr "Astrometry.net (lokal)"
+msgstr "Astrometry.net (lokaler Löser)"
 
 #: src/algos/astrometry_solver.c:1851
 msgid "No astrometric solution found\n"
@@ -13840,13 +13856,13 @@ msgstr ""
 "Photometrieeinstellungen\n"
 
 #: src/algos/photometric_cc.c:862
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Getting stars from local catalogue %s for %s, with a radius of %.2f degrees "
 "and limit magnitude %.2f\n"
 msgstr ""
-"Ermittle Sterne aus lokalen Katalogen für die PCC, mit einem Radius von %.2f "
-"Grad und einer Grenzgröße von %.2f\n"
+"Ermittele Sterne aus dem lokalen Katalog %s für %s, mit einem Radius von "
+"%.2f Grad und einer Grenzgröße von %.2f\n"
 
 #: src/algos/photometric_cc.c:862 src/algos/photometric_cc.c:913
 #: src/gui/mouse_action_functions.h:83
@@ -16923,6 +16939,8 @@ msgid ""
 "Local Gaia catalog is unavailable, reverting to online Gaia catalog via "
 "Vizier\n"
 msgstr ""
+"Der lokale Gaia-Katalog ist nicht verfügbar, es wird auf den Online-Gaia-"
+"Katalog über Vizier zurückgegriffen\n"
 
 #: src/core/command.c:9752
 msgid ""
@@ -17786,7 +17804,6 @@ msgstr ""
 "Geordnetes Schließen des Bildes und der Sequenz, sofern eine vorhanden ist"
 
 #: src/core/command_def.h:27
-#, fuzzy
 msgid ""
 "Displays stars from the local catalog by default for the loaded plate solved "
 "image, down to the provided <b>limit_magnitude</b> (13 by default for most "
@@ -17825,30 +17842,30 @@ msgstr ""
 "14.5 für aavso_chart, 20 für solsys und ohne Angabe für pgc).\n"
 "Ein alternativer Online-Katalog kann mit <b>-cat=</b> angegeben werden, "
 "wobei die Werte \n"
-"- für Sterne: tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, simbad, "
-"aavso_chart \n"
+"- für Sterne: tycho2, nomad, gaia, localgaia, ppmxl, bsc, apass, gcvs, vsx, "
+"simbad, aavso_chart\n"
 "- für Exoplaneten: exo\n"
 "- für Deep-Sky: pgc\n"
-"- für Objekte des Sonnensystems: solsys (nächster <a href=\"https://"
-"vo.imcce.fr/webservices/data/displayIAUObsCodes.php\">IAU Sternwartencode</"
-"a> kann mit dem Argument <b>-obscode=</b> für eine bessere Genauigkeit "
-"übergeben werden)\n"
+"- für Objekte des Sonnensystems: solsys (nächster <a href=\"https://vo.imcce."
+"fr/webservices/data/displayIAUObsCodes.php\">IAU Sternwartencode</a> kann "
+"mit dem Argument <b>-obscode=</b> für eine bessere Genauigkeit übergeben "
+"werden)\n"
 "\n"
-"Bei Sternkatalogen, die photometrische Daten enthalten, werden Sterne ohne B-"
-"V-Informationen beibehalten; sie können durch die Angabe von <b>-phot</b> "
+"Bei Sternkatalogen, die photometrische Daten enthalten, werden Sterne ohne "
+"B-V-Informationen beibehalten; sie können durch die Angabe von <b>-phot</b> "
 "ausgeschlossen werden.\n"
-"Das Agrument <b>-trix=</b> kan statt eines Katalogs angegeben werden, "
+"Das Argument <b>-trix=</b> kan statt eines Katalogs angegeben werden, "
 "gefolgt von einer Zahl zwischen 0 und 511 um Sterne anzuzeigen die in "
 "lokalen Katalogen (Trixel der Ebene 3) vorhanden sind (vorwiegend für "
 "Entwicklungszwecke)\n"
 "\n"
-"Einige Kataloge (bsc, gcvs, pgc, exo, aavso_chart and solsys) zeigen "
-"standardmäßig auch Namen neben den Markierungen im Display (nur GUI) und "
-"drucken sie im Log. Bei anderen Katalogen mit einer größeren Anzahl von "
+"Einige Kataloge (bsc, gcvs, pgc, exo, aavso_chart, varisum und solsys) "
+"zeigen standardmäßig auch Namen neben den Markierungen im Display (nur GUI) "
+"und drucken sie im Log. Bei anderen Katalogen mit einer größeren Anzahl von "
 "Objekten, nämlich vsx und simbad, können die Informationen ebenfalls "
 "angezeigt werden, aber da sie die Anzeige überladen könnten, sind sie "
-"standardmäßig nicht aktiviert. Dieses Verhalten kann mit den Optionen <b>-"
-"tag=on|off</b> ein-/ausgeschaltet werden, um Namen neben Markierungen "
+"standardmäßig nicht aktiviert. Dieses Verhalten kann mit den Optionen "
+"<b>-tag=on|off</b> ein-/ausgeschaltet werden, um Namen neben Markierungen "
 "anzuzeigen, und <b>-log=on|off</b>, um die Objekte im Konsolenprotokoll "
 "anzuzeigen\n"
 "\n"
@@ -18892,7 +18909,6 @@ msgstr ""
 "Siehe auch SEQPSF für Operationen an einzelnen Sternen"
 
 #: src/core/command_def.h:87
-#, fuzzy
 msgid ""
 "Limits pixel values in 32-bit images to the range 0.0 to 1.0. This command "
 "does not apply to 16-bit images as there cannot be out-of-range values. "
@@ -18935,9 +18951,9 @@ msgstr ""
 "Pixelwert auf 1,0 skaliert wird.\n"
 "\n"
 "Beachten Sie, dass bei Vorliegen eines oder mehrerer extremer Ausreißer (z. "
-"B. aufgrund fehlerhafter Pixel) die Optionen <b>-rescale</b> und <b>-"
-"fullrescale</b> zu unerwarteten Ergebnissen führen können. Dies kann durch "
-"vorherige kosmetische Korrektur des Bildes gemildert werden"
+"B. aufgrund fehlerhafter Pixel) die Optionen <b>-rescale</b> und "
+"<b>-fullrescale</b> zu unerwarteten Ergebnissen führen können. Dies kann "
+"durch vorherige kosmetische Korrektur des Bildes gemildert werden"
 
 #: src/core/command_def.h:88
 msgid ""
@@ -19030,6 +19046,10 @@ msgid ""
 "require the sequence name to be specified, it is necessary to load a "
 "sequence in order to read its metadata using Python scripting"
 msgstr ""
+"Lädt die Sequenz <b>sequencename</b> aus dem aktuellen Arbeitsverzeichnis, "
+"die zur „aktuell geladenen Sequenz“ wird. Während Siril-Sequenzbefehle die "
+"Angabe des Sequenznamens erfordern, ist es notwendig, eine Sequenz zu laden, "
+"um ihre Metadaten mit Python-Skripten zu lesen"
 
 #: src/core/command_def.h:94
 msgid ""
@@ -19406,7 +19426,6 @@ msgstr ""
 "Sequenz geladen ist"
 
 #: src/core/command_def.h:116
-#, fuzzy
 msgid ""
 "Run the Photometric Color Correction on the loaded plate-solved image.\n"
 "\n"
@@ -19429,15 +19448,15 @@ msgstr ""
 "Argument <b>limitmag=</b> oder einfach durch Angabe eines absoluten, "
 "positiven Wertes für die Grenzgröße verändert werden.\n"
 "Als Sternkatalog wird standardmäßig NOMAD verwendet. Durch Angabe des "
-"Arguments <b>-catalog=apass</b> oder <b>-catalog=gaia</b> kann das geändert "
-"werden. Falls der lokale NOMAD (komplette Version) installiert ist, kann die "
-"Nutzung des Remote-Katalogs durch <b>-catalog=nomad</b> erzwungen werden.\n"
+"Arguments <b>-catalog=apass</b>, <b>catalog=localgaia</b> oder "
+"<b>-catalog=gaia</b> kann das geändert werden. Falls der lokale NOMAD ("
+"komplette Version) installiert ist, kann die Nutzung des Remote-Katalogs "
+"durch <b>-catalog=nomad</b> erzwungen werden.\n"
 "Die Ausreißertoleranz der Hintergrundreferenz kann in Sigma-Einheiten durch "
 "Angabe von <b>-bgtol=lower,upper</b> verändert werden (Standardwerte -2,8 "
 "und +2,0)"
 
 #: src/core/command_def.h:117
-#, fuzzy
 msgid ""
 "Plate solve the loaded image.\n"
 "If the image has already been plate solved nothing will be done, unless the "
@@ -19501,15 +19520,15 @@ msgstr ""
 "angegeben werden, wobei die Werte für Rektaszension und Deklination durch "
 "ein Komma oder ein Leerzeichen getrennt werden (nicht erforderlich für "
 "astrometry.net).\n"
-"  Brennweite und Pixelgröße können mit <b>-focal=</b> (in mm) und <b>-"
-"pixelsize</b> (in μm), die Werte aus dem Bild oder den Einstellungen werden "
-"überschrieben. Beachten Sie auch die Optionen für blinde astrometrische "
-"Lösungen mit Astrometry.net\n"
+"  Brennweite und Pixelgröße können mit <b>-focal=</b> (in mm) und "
+"<b>-pixelsize</b> (in μm) angegeben, die Werte aus dem Bild oder den "
+"Einstellungen werden überschrieben. Beachten Sie auch die Optionen für "
+"blinde astrometrische Lösungen mit Astrometry.net\n"
 "\n"
 "Wenn <b>-noflip</b> nicht angegeben ist und das Bild als auf dem Kopf "
-"stehend erkannt wird, wird das Bild gespiegelt.\n"
+"stehend erkannt wird, wird das Bild vertikal gespiegelt.\n"
 "Zur schnelleren Erkennung von Sternen in großen Bildern kann das Bild mit "
-"<b>downscale</b> verkleinert werden.\n"
+"<b>-downscale</b> verkleinert werden.\n"
 "Die Lösung kann Verzerrungen über die SIP-Konvention berücksichtigen mit "
 "Polynomen bis zur 5. Ordnung. Der Defaultwert wird aus den Voreinstellungen "
 "zur Astrometrie übernommen. Dies kann durch Angabe der Option <b>-order=</b> "
@@ -19519,27 +19538,27 @@ msgstr ""
 "wird der Algorithmus einen Kegel mit einem durch die Option <b>radius=</b> "
 "angegebenen Radius absuchen. Wenn kein Wert angegeben ist, wird der "
 "Suchradius aus den Astrometrie-Einstellungen genommen. Sirils "
-"Nahbereichssuche kann durch Angabe eines Wertes von 0 abgeschaltet werden "
-"(Bei Astrometry.net ist eine Abschaltung nicht möglich).\n"
+"Nahbereichssuche kann durch Angabe eines Wertes von 0 abgeschaltet werden ("
+"Bei Astrometry.net ist eine Abschaltung nicht möglich).\n"
 "Sie können die aktuelle Lösung mit der Option <b>disto=</b> als "
 "Verzerrungsdatei speichern.\n"
 "\n"
 "Bilder können mit Siril entweder mit Hilfe eines Sternkatalogs und des "
-"globalen Registrierungsalgorithmus oder mit dem lokalen solve-field Befehl "
-"von astrometry.net (aktiviert mit <b>-localasnet</b>) gelöst werden.\n"
+"globalen Registrierungsalgorithmus oder mit dem lokalen \"solve-field\" "
+"Befehl von astrometry.net (aktiviert mit <b>-localasnet</b>) gelöst werden.\n"
 "\n"
 "<b>Optionen für die astrometrische Lösung mit Siril:</b>\n"
 "Die Grenzgröße der Sterne, die für die astrometrische Lösung und PCC "
 "verwendet werden, wird automatisch aus der Größe des Gesichtsfeldes "
-"berechnet, kann aber durch die Übergabe eines Wertes von +offset- oder "
-"-offset zu <b>-limitmag=</b> oder einfach durch einen absoluten positiven "
+"berechnet, kann aber durch die Übergabe eines Wertes von +offset- oder -"
+"offset zu <b>-limitmag=</b> oder einfach durch einen absoluten positiven "
 "Wert für die Grenzgröße geändert werden.\n"
-"Die Wahl des Sternkatalogs erfolgt automatisch, es sei denn, die Option <b>-"
-"catalog=</b> wird übergeben: Wenn lokale Kataloge installiert sind, werden "
-"sie verwendet, andernfalls basiert die Wahl auf dem Sichtfeld und der "
+"Die Wahl des Sternkatalogs erfolgt automatisch, es sei denn, die Option "
+"<b>-catalog=</b> wird übergeben: Wenn lokale Kataloge installiert sind, "
+"werden sie verwendet, andernfalls basiert die Wahl auf dem Sichtfeld und der "
 "Grenzgröße. Wenn die Option übergeben wird, erzwingt sie die Verwendung des "
-"im Argument angegebenen Remote-Katalogs, mit den möglichen Werten: tycho2, "
-"nomad, gaia, ppmxl, brightstars, apass.\n"
+"im Argument angegebenen Remote-Katalogs, mit den möglichen Werten:tycho2, "
+"nomad, localgaia, gaia, ppmxl, brightstars, apass.\n"
 "Wenn das berechnete Sichtfeld größer als 5 Grad ist, ist die Sternerkennung "
 "auf einen zugeschnittenen Bereich um die Bildmitte beschränkt, es sei denn, "
 "die Option <b>-nocrop</b> wird übergeben.\n"
@@ -19707,6 +19726,15 @@ msgid ""
 "script as its argument vector. Note that the specific script must "
 "incorporate support for reading input from the argument vector"
 msgstr ""
+"Führt ein Siril-Python-Skript aus\n"
+"\n"
+"Der Skriptname muss als erstes Argument angegeben werden. Wenn es nicht im "
+"aktuellen Arbeitsverzeichnis gefunden wird, werden die benutzerdefinierten "
+"Skriptpfade durchsucht, die in den Einstellungen und im lokalen Siril-Skript-"
+"Repository angegeben sind. Alle nachfolgenden Argumente werden als "
+"Skriptargumente behandelt und als Argumentvektor an das Skript übergeben. "
+"Beachten Sie, dass das jeweilige Skript Unterstützung für das Lesen von "
+"Eingaben aus dem Argumentvektor enthalten muss"
 
 #: src/core/command_def.h:124
 msgid ""
@@ -21356,7 +21384,6 @@ msgstr ""
 "Dies ist nur über die GUI von Siril verfügbar"
 
 #: src/core/command_def.h:199
-#, fuzzy
 msgid ""
 "Run the Spectrophotometric Color Correction on the loaded platesolved "
 "image.\n"
@@ -21404,38 +21431,40 @@ msgstr ""
 "kann aber durch Angabe eines Wertes von \"+offset\" oder \"-offset\" beim "
 "Argument <b>limitmag=</b> oder einfach durch Angabe eines absoluten, "
 "positiven Wertes für die Grenzgröße verändert werden.\n"
-"Als Sternkatalog fpr die SPCC wird immer Gaia DR3 verwendet.\n"
+"Der für SPCC verwendete Sternkatalog ist immer Gaia DR3: Standardmäßig wird "
+"der lokale Gaia DR3 xp_sampled-Katalog verwendet, falls verfügbar, aber dies "
+"kann mit <b>-catalog={gaia | localgaia}</b> überschrieben werden.\n"
 "\n"
 "Die Namen des Sensors und der Filter können mit den folgenden Optionen "
 "angegeben werden: <b>-monosensor=</b>, <b>-rfilter=</b>, <b>-gfilter=</b>, "
-"<b>-bfilter=</b> oder <b>-oscsensor=</b>, <b>-oscfilter=</b>, <b>-osclpf=</"
-"b>; Der Name der Weißreferenz kann mit der Option <b>-whiteref=</b> "
-"angegeben werden. In allen Fällen muss der angegebene Name exakt so "
-"geschrieben werden wie im Kombifeld des SPCC-Werkzeugs. Beachten Sie, dass "
-"die Namen von Sensor, Filter und Weißreferenz Leerzeichen enthalten können: "
-"In diesem Fall, wenn sie als Argumente des <b>spcc</b>-Befehls genutzt "
-"werden, muss das gesamte Argument in Anführungszeichen gesetzt werden, zum "
-"Beispiel: \"-whiteref=Average Spiral Galaxy\".\n"
+"<b>-bfilter=</b> oder <b>-oscsensor=</b>, <b>-oscfilter=</b>, "
+"<b>-osclpf=</b>; Der Name der Weißreferenz kann mit der Option "
+"<b>-whiteref=</b> angegeben werden. In allen Fällen muss der angegebene Name "
+"exakt so geschrieben werden wie im Kombifeld des SPCC-Werkzeugs. Beachten "
+"Sie, dass die Namen von Sensor, Filter und Weißreferenz Leerzeichen "
+"enthalten können: In diesem Fall, wenn sie als Argumente des <b>spcc</b>-"
+"Befehls genutzt werden, muss das gesamte Argument in Anführungszeichen "
+"gesetzt werden, zum Beispiel: \"-whiteref=Average Spiral Galaxy\".\n"
 "\n"
 "Der Schmalbandmodus kann durch das Argument <b>-narrowband</b> ausgewählt "
 "werden, wobei dann die vorherigen Filterargumente ignoriert werden und die "
-"Wellenlänge und Durchlassbreite der Schmalbandfilter mit <b>-rwl=</b>, <b>-"
-"rwb</b>, <b>-gwl=</b>, <b>-gbw=</b>, <b>-bwl=</b> und <b>-bbw=</b> angegeben "
-"werden können.\n"
+"Wellenlänge und Durchlassbreite der Schmalbandfilter mit <b>-rwl=</b>, "
+"<b>-rwb</b>, <b>-gwl=</b>, <b>-gbw=</b>, <b>-bwl=</b> und <b>-bbw=</b> "
+"angegeben werden können.\n"
 "\n"
 "Falls eines der Spektraldatenargumente weggelassen wird, wird der vorherige "
 "Wert benutzt.\n"
 "\n"
-"Ausreißer der Hintergrundreferenz-Toleranz können in Sigma-Einheiten als <b>-"
-"bgtol=lower,upper</b> angegeben werden; Standardmäßig werden -2,8 und +2,0 "
-"genutzt.\n"
+"Ausreißer der Hintergrundreferenz-Toleranz können in Sigma-Einheiten als "
+"<b>-bgtol=lower,upper</b> angegeben werden; Standardmäßig werden -2,8 und +"
+"2,0 genutzt.\n"
 "\n"
 "Durch Angabe von <b>-atmos</b> kann eine atmosphärische Korrektur angewender "
-"werden. In diesem Fall spezifiziert das optionale Argument <b>-obsheight=</"
-"b> die Höhe des Beobachters über dem Meeresspiegel in Meter (Default 10), "
-"<b>-pressure=</b> gibt den lokalen atmosphärischen Druck am "
-"Beobachtungsplatz in hPa an oder <b>-slp=</b> gibt den atmosphärischen Druck "
-"auf Meereshöhe in hPa an (Defaulteinstellung ist 1013,25 hPa auf Meereshöhe)"
+"werden. In diesem Fall gelten die folgenden optionalen Argumente: "
+"<b>-obsheight=</b> gibt die Höhe des Beobachters über dem Meeresspiegel in "
+"Metern an (Standard 10), <b>-pressure=</b> gibt den lokalen Luftdruck am "
+"Beobachtungsort in hPa an oder <b>-slp=</b> gibt den Luftdruck auf "
+"Meereshöhe in hPa an (der Standarddruck beträgt 1013,25 hPa auf Meereshöhe)"
 
 #: src/core/command_def.h:200
 msgid ""
@@ -22989,6 +23018,8 @@ msgstr "Bearbeitung durch Benutzer abgebrochen\n"
 #, c-format
 msgid "Failed to find GPid %d, it may already have exited...\n"
 msgstr ""
+"GPid %d konnte nicht gefunden werden, möglicherweise wurde sie bereits "
+"beendet ...\n"
 
 #: src/core/sequence_filtering.c:229
 msgid "Sequence filter: values can only be either literal or percent\n"
@@ -23214,14 +23245,12 @@ msgid "Path of the USNO-NOMAD-1e8.dat catalogue"
 msgstr "Pfad des Katalogs USNO-NOMAD-1e8.dat"
 
 #: src/core/settings.c:367
-#, fuzzy
 msgid "Path of the local Gaia astrometric catalogue"
-msgstr "Pfad des Katalogs namedstars.dat"
+msgstr "Pfad des lokalen Gaia-Astrometriekatalogs"
 
 #: src/core/settings.c:368
-#, fuzzy
 msgid "Path of the local Gaia photometric catalogue"
-msgstr "Pfad des Katalogs namedstars.dat"
+msgstr "Pfad des lokalen Gaia-Photometriekatalogs"
 
 #: src/core/settings.c:369
 msgid "add CTYPE3='RGB' in the FITS header"
@@ -23829,14 +23858,12 @@ msgid "show stars in annotations"
 msgstr "Zeige Sterne in Anmerkungen"
 
 #: src/core/settings.c:543
-#, fuzzy
 msgid "show constellations in annotations"
-msgstr "Zeige Sterne in Anmerkungen"
+msgstr "Zeige Sternbilder in Beschriftungen"
 
 #: src/core/settings.c:544
-#, fuzzy
 msgid "show constellations names in annotations"
-msgstr "Zeige Sterne in Anmerkungen"
+msgstr "Zeige Sternbildnamen in Beschriftungen"
 
 #: src/core/settings.c:545
 msgid "show user DSO objects in annotations"
@@ -23851,64 +23878,61 @@ msgid "list of pixel math presets"
 msgstr "Liste von Pixel Math Voreinstellungen"
 
 #: src/core/settings.c:550
-#, fuzzy
 msgid "highlight syntax in the script editor"
-msgstr "Automatische Synchronisierung des Online Skript-Repositories"
+msgstr "Hervorheben der Syntax im Skripteditor"
 
 #: src/core/settings.c:551
 msgid "highlight matching brackets in the script editor"
-msgstr ""
+msgstr "Markieren der passende Klammern im Skripteditor"
 
 #: src/core/settings.c:552
 msgid "show the right margin in the script editor"
-msgstr ""
+msgstr "Rechten Rand im Skripteditor anzeigen"
 
 #: src/core/settings.c:553
-#, fuzzy
 msgid "position of the right margin in the script editor"
-msgstr "Position der beiden Seitentrenner"
+msgstr "Position des rechten Rands im Skripteditor"
 
 #: src/core/settings.c:554
 msgid "show line numbers in the script editor"
-msgstr ""
+msgstr "Zeilennummern im Skripteditor anzeigen"
 
 #: src/core/settings.c:555
 msgid "show line marks in the script editor"
-msgstr ""
+msgstr "Zeilenmarkierungen im Skripteditor anzeigen"
 
 #: src/core/settings.c:556
 msgid "highlight the current line in the script editor"
-msgstr ""
+msgstr "Die aktuelle Zeile im Skripteditor hervorheben"
 
 #: src/core/settings.c:557
-#, fuzzy
 msgid "automatically indent new lines"
-msgstr "Auto-Detektion"
+msgstr "Zeilen automatisch einrücken"
 
 #: src/core/settings.c:558
 msgid "indent selected blocks of lines in the script editor using the tab key"
 msgstr ""
+"Ausgewählte Blöcke von Zeilen im Scripteditor mit der Tab-Taste einrücken"
 
 #: src/core/settings.c:559
 msgid "Smart Backspace behaviour in the script editor"
-msgstr ""
+msgstr "Smart-Backspace-Verhalten im Scripteditor"
 
 #: src/core/settings.c:560
 msgid "Smart Home / End behaviour in the script editor"
-msgstr ""
+msgstr "Smartes Home / Ende-Verhalten im Scripteditor"
 
 #: src/core/settings.c:561
 msgid "Show visible space and tab characters in the script editor"
-msgstr ""
+msgstr "Sichtbare Leerzeichen und Tabulatorzeichen im Scripteditor anzeigen"
 
 #: src/core/settings.c:562
 msgid "Show visible newline characters in the script editor"
-msgstr ""
+msgstr "Sichtbare Zeilenumbruchzeichen im Scripteditor anzeigen"
 
 #: src/core/settings.c:563
-#, fuzzy
 msgid "Show a minimap in the script editor"
-msgstr "Vor Skriptausführung eine Warnung anzeigen"
+msgstr "Eine Mini-Karte im Scripteditor anzeigen"
 
 #: src/core/settings.c:603
 #, c-format
@@ -24118,46 +24142,33 @@ msgid "Software Update"
 msgstr "Software Update"
 
 #: src/core/siril_update.c:473
-#, fuzzy
 msgid "Error parsing JSON from URL: Failed to parse JSON\n"
 msgstr ""
-"Fehler beim Parsen von JSON aus URL: Root-Eintrag kann nicht abgerufen "
-"werden\n"
+"Fehler beim Parsen von JSON aus URL: JSON konnte nicht analysiert werden\n"
 
 #: src/core/siril_update.c:479
-#, fuzzy
 msgid "Error parsing JSON from URL: JSON root is not an object or array\n"
 msgstr ""
-"Fehler beim Parsen von JSON aus URL: erforderliche JSON-Elemente nicht "
-"gefunden\n"
+"Fehler beim Parsen von JSON aus URL: JSON-Stamm ist kein Objekt oder Array\n"
 
 #: src/core/siril_update.c:497
-#, fuzzy
 msgid "Error parsing JSON from URL: Invalid root JSON structure\n"
-msgstr ""
-"Fehler beim Parsen von JSON aus URL: Root-Eintrag kann nicht abgerufen "
-"werden\n"
+msgstr "Fehler beim Parsen von JSON aus URL: Ungültige JSON-Struktur\n"
 
 #: src/core/siril_update.c:507
-#, fuzzy
 msgid "Error parsing JSON from URL: Message is not a valid object\n"
 msgstr ""
-"Fehler beim Parsen von JSON aus der URL: Es konnte kein gültiges JSON-Objekt "
-"gefunden werden\n"
+"Fehler beim Parsen von JSON aus URL: Nachricht ist kein gültiges Objekt\n"
 
 #: src/core/siril_update.c:518
-#, fuzzy
 msgid "Error parsing JSON from URL: Required fields missing or invalid\n"
 msgstr ""
-"Fehler beim Parsen von JSON aus URL: erforderliche JSON-Elemente nicht "
-"gefunden\n"
+"Fehler beim Parsen von JSON aus URL: Erforderliche Felder fehlen oder sind "
+"ungültig.\n"
 
 #: src/core/siril_update.c:526
-#, fuzzy
 msgid "Error parsing JSON from URL: Invalid ISO8601 date format\n"
-msgstr ""
-"Fehler beim Parsen von JSON aus URL: Root-Eintrag kann nicht abgerufen "
-"werden\n"
+msgstr "Fehler beim Parsen von JSON aus URL: Ungültiges ISO8601-Datumsformat\n"
 
 #: src/core/siril_update.c:599
 msgid "Error fetching or parsing Siril notifications JSON file from URL\n"
@@ -25021,13 +25032,12 @@ msgid "Star Catalogue"
 msgstr "Stern-Katalog"
 
 #: src/gui/annotations_pref.c:35
-#, fuzzy
 msgid "IAU Constellations Catalogue"
-msgstr "Benutzerkatalog"
+msgstr "IAU-Sternbildkatalog"
 
 #: src/gui/annotations_pref.c:36
 msgid "IAU Constellations Names"
-msgstr ""
+msgstr "IAU Sternbildnamen"
 
 #: src/gui/annotations_pref.c:37
 msgid "User Deep Sky Objects Catalogue"
@@ -26080,14 +26090,12 @@ msgstr ""
 "Erfolg! Das lokale Repository ist mit den Remote-Repository synchronisiert."
 
 #: src/gui/git_gui.c:111 src/gui/python_gui.c:895 src/gui/python_gui.c:1064
-#, fuzzy
 msgid "Siril Script File"
-msgstr "Skript-Dateiname"
+msgstr "Skript-Skriptdatei"
 
 #: src/gui/git_gui.c:111
-#, fuzzy
 msgid "Python script"
-msgstr "Skript ausführen"
+msgstr "Pythonskript"
 
 #: src/gui/git_gui.c:173
 #, c-format
@@ -27578,7 +27586,7 @@ msgstr ""
 
 #: src/gui/preferences.c:1103
 msgid "WARNING!"
-msgstr ""
+msgstr "WARNUNG!"
 
 #: src/gui/preferences.c:1103
 msgid ""
@@ -27589,6 +27597,13 @@ msgid ""
 "known good state. All modules installed by scripts will be deleted and will "
 "require reinstallation."
 msgstr ""
+"Dadurch werden alle laufenden Python-Prozesse beendet und das Python-venv-"
+"Verzeichnis gelöscht und neu installiert. Dies ist normalerweise für "
+"Upgrades oder Ähnliches nicht erforderlich, da Siril versucht, das venv "
+"automatisch zu verwalten. Die Option wird jedoch als letzte Möglichkeit zur "
+"Fehlerbehebung bereitgestellt, um das Verzeichnis venv auf einen bekannten "
+"und guten Zustand zurückzusetzen. Alle durch Skripte installierten Module "
+"werden gelöscht und müssen neu installiert werden."
 
 #: src/gui/progress_and_log.c:225
 #, c-format
@@ -27713,66 +27728,62 @@ msgstr "Es sind keine Sterne in der Liste."
 
 #: src/gui/python_gui.c:684 src/gui/python_gui.c:704 src/gui/python_gui.c:730
 #: src/gui/python_gui.c:801
-#, fuzzy
 msgid "Are you sure?"
-msgstr "Wirklich beenden?"
+msgstr "Sind Sie sicher?"
 
 #: src/gui/python_gui.c:684 src/gui/python_gui.c:704
 msgid ""
 "This will clear the entry buffer. You will not be able to recover any "
 "contents."
 msgstr ""
+"Dadurch wird der Eingabepuffer geleert. Sie können keine Inhalte "
+"wiederherstellen."
 
 #: src/gui/python_gui.c:730 src/gui/python_gui.c:801
 msgid ""
 "This will replace the entry buffer. You will not be able to recover any "
 "contents."
 msgstr ""
+"Dadurch wird der Eingabepuffer ersetzt. Sie können keine Inhalte "
+"wiederherstellen."
 
 #: src/gui/python_gui.c:734
-#, fuzzy
 msgid "Open Script"
-msgstr "Skript ausführen"
+msgstr "Skript öffnen"
 
 #: src/gui/python_gui.c:738 src/pixelMath/pixel_math_runner.c:1227
 msgid "_Open"
 msgstr "Öffnen"
 
 #: src/gui/python_gui.c:744 src/gui/python_gui.c:825
-#, fuzzy
 msgid "Script Files (*.py, *.ssf)"
-msgstr "JPEG-Dateien (*.jpg, *.jpeg)"
+msgstr "Skriptdateien (*.py, *.ssf)"
 
 #: src/gui/python_gui.c:811
-#, fuzzy
 msgid "Save Script As"
-msgstr "Skripte laden"
+msgstr "Skript speichern unter"
 
 #: src/gui/python_gui.c:815
 msgid "_Save"
 msgstr "_Speichern"
 
 #: src/gui/python_gui.c:895 src/gui/python_gui.c:1061
-#, fuzzy
 msgid "Python Script"
-msgstr "Skript ausführen"
+msgstr "Pythonscript"
 
 #: src/gui/python_gui.c:985
-#, fuzzy
 msgid "Right Margin Position"
-msgstr "Hochauflösung"
+msgstr "Rechte Randposition"
 
 #. Create and add the label
 #: src/gui/python_gui.c:1011
-#, fuzzy
 msgid "Right _margin position"
-msgstr "Position Hauptfenster"
+msgstr "Rechte _Randposition"
 
 #. Run the script
 #: src/gui/python_gui.c:1132
-#, fuzzy
 msgid "Starting script\n"
-msgstr "Starte Script %s\n"
+msgstr "Starte Script\n"
 
 #: src/gui/registration.c:49
 msgid ""
@@ -28280,6 +28291,13 @@ msgid ""
 "scripts are considerably more powerful and execute code not written by the "
 "Siril team. Ensure you obtain scripts from a reputable source."
 msgstr ""
+"Sie sind dabei, Skripte zu verwenden. Beachten Sie, dass Skripte Code mit "
+"Ihren aktuellen Benutzerberechtigungen ausführen. Während Siril-"
+"Skriptdateien nur Siril-Befehle und eine sehr kleine Anzahl spezifischer "
+"externer Programme ausführen können, sind Python-Skripte wesentlich "
+"leistungsfähiger und führen Code aus, der nicht vom Siril-Team geschrieben "
+"wurde. Stellen Sie sicher, dass Sie Skripte aus einer seriösen Quelle "
+"beziehen."
 
 #: src/gui/script_menu.c:160
 msgid "Please read me before using scripts"
@@ -28290,23 +28308,21 @@ msgid "Run Script"
 msgstr "Skript ausführen"
 
 #: src/gui/script_menu.c:218
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown script type: %s\n"
-msgstr "Unbekannte Option verwendet: %s\n"
+msgstr "Unbekannter Skripttyp: %s\n"
 
 #: src/gui/script_menu.c:239
-#, fuzzy
 msgid "Siril Script Files"
-msgstr "Skript-Dateiname"
+msgstr "Skript-Skriptdateien"
 
 #: src/gui/script_menu.c:240
-#, fuzzy
 msgid "Python Scripts"
-msgstr "Skripte laden"
+msgstr "Pythonskripte"
 
 #: src/gui/script_menu.c:245
 msgid "Script Editor..."
-msgstr ""
+msgstr "Scripteditor..."
 
 #: src/gui/script_menu.c:271
 #, c-format
@@ -28319,9 +28335,9 @@ msgid "Loading script: %s\n"
 msgstr "Lade Script: %s\n"
 
 #: src/gui/script_menu.c:352
-#, fuzzy, c-format
+#, c-format
 msgid "Loading script from repository: %s\n"
-msgstr "Lade Script: %s\n"
+msgstr "Lade Script aus dem Repository: %s\n"
 
 #: src/gui/script_menu.c:358
 #, c-format
@@ -29826,23 +29842,23 @@ msgid "Error: unknown CFA pattern\n"
 msgstr "FEHLER: Unbekanntes CFA-Muster\n"
 
 #: src/io/local_catalogues.c:154
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open local catalogue %s\n"
-msgstr "Konnte den lokalen NOMAD Sternkatalog nicht laden\n"
+msgstr "Konnte den lokalen Katalog %s nicht öffnen\n"
 
 #: src/io/local_catalogues.c:160 src/io/local_catalogues.c:193
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to read the local catalogue %s\n"
-msgstr "Lesen des lokalen NOMAD Katalogs ist fehlgeschlagen\n"
+msgstr "Lesen des lokalen Katalogs %s fehlgeschlagen\n"
 
 #: src/io/local_catalogues.c:182
 msgid "Wrong trixel ID\n"
 msgstr "Falsche Trixel-ID\n"
 
 #: src/io/local_catalogues.c:187
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open local catalogue%s\n"
-msgstr "Konnte den lokalen NOMAD Sternkatalog nicht laden\n"
+msgstr "Der lokale Katalog %s konnte nicht geöffnet werden\n"
 
 #: src/io/local_catalogues.c:289
 msgid "Error: number of trixels reported by file is out of limits.\n"
@@ -30156,22 +30172,21 @@ msgid "Convert to SER"
 msgstr "In SER konvertieren"
 
 #: src/io/sequence.c:533
-#, fuzzy
 msgid ""
 "Warning: deprecated sequence. Film sequences are now deprecated in Siril: "
 "some features are disabled and others may crash. Continuing, but we strongly "
 "encourage you to convert this sequence into a SER file.SER file format is a "
 "simple image sequence format, similar to uncompressed films.\n"
 msgstr ""
-"Filmsequenzen sind jetzt in Siril veraltet: einige Funktionen sind "
-"deaktiviert und andere können abstürzen. Wir empfehlen Ihnen dringend, diese "
+"Achtung: veraltete Sequenz. Filmsequenzen werden in Siril nicht mehr "
+"unterstützt: Einige Funktionen sind deaktiviert und andere können abstürzen. "
+"Die Verarbeitung wird fortgesetzt, empfehlen Ihnen jedoch dringend, diese "
 "Sequenz in eine SER-Datei zu konvertieren. Das SER-Dateiformat ist ein "
-"einfaches Bildsequenzformat, ähnlich wie bei unkomprimierten Filmen."
+"einfaches Bildsequenzformat, ähnlich wie bei unkomprimierten Filmen.\n"
 
 #: src/io/sequence.c:552
-#, fuzzy
 msgid "could not load reference image from sequence\n"
-msgstr "Konnte Bild %d aus Sequenz %s nicht laden\n"
+msgstr "Referenzbild konnte nicht aus Sequenz geladen werden\n"
 
 #: src/io/sequence.c:562
 #, c-format
@@ -30392,11 +30407,8 @@ msgstr ""
 "entsprechend zugewiesen bzw. konvertiert.\n"
 
 #: src/io/sequence_export.c:209 src/io/sequence_export.c:240
-#, fuzzy
 msgid "Reference frame has an ICC profile. Exporting as sRGB.\n"
-msgstr ""
-"Das Referenzbild verfügt über ein ICC-Profil. Andere Bilder werden "
-"entsprechend zugewiesen bzw. konvertiert.\n"
+msgstr "Referenzrahmen hat ein ICC-Profil. Export als sRGB.\n"
 
 #: src/io/sequence_export.c:219
 #, c-format
@@ -30699,14 +30711,12 @@ msgid "AAVSO VSP Chart"
 msgstr "AAVSO VSP Diagramm"
 
 #: src/io/siril_catalogues.c:292
-#, fuzzy
 msgid "Tycho-2+NOMAD"
-msgstr "lokal Tycho-2+NOMAD"
+msgstr ""
 
 #: src/io/siril_catalogues.c:294
-#, fuzzy
 msgid "Gaia DR3 astrometry"
-msgstr "Gaia DR3 (direkt)"
+msgstr ""
 
 #: src/io/siril_catalogues.c:296
 msgid "Gaia DR3 xp_sampled"
@@ -30820,6 +30830,8 @@ msgstr "Keine Objekte im Bild gefunden.\n"
 #, c-format
 msgid "%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"
 msgstr ""
+"Im Bild wurden %d Objekte gefunden%s (Grenzgröße %.2f) unter Verwendung des "
+"%s-Katalogs\n"
 
 #: src/io/siril_catalogues.c:1393
 #, c-format
@@ -31012,42 +31024,41 @@ msgstr ""
 #: src/io/siril_pythonmodule.c:188
 #, c-format
 msgid "Invalid file descriptor after shm_open: %s\n"
-msgstr ""
+msgstr "Ungültiger Dateideskriptor nach shm_open: %s\n"
 
 #: src/io/siril_pythonmodule.c:193
 msgid "Invalid file descriptor after shm_open\n"
-msgstr ""
+msgstr "Ungültiger Dateideskriptor nach shm_open\n"
 
 #: src/io/siril_pythonmodule.c:201
-#, fuzzy
 msgid "Invalid page size reported\n"
-msgstr "Ungültiges Argument %s. Abbruch.\n"
+msgstr "Ungültige Seitengröße gemeldet\n"
 
 #: src/io/siril_pythonmodule.c:213
 #, c-format
 msgid "Failed to set shared memory size (total_bytes: %ld): %s\n"
 msgstr ""
+"Größe des gemeinsam genutzten Speichers konnte nicht festgelegt werden "
+"(total_bytes: %ld): %s\n"
 
 #: src/io/siril_pythonmodule.c:223
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to map shared memory: %s\n"
-msgstr "CSS-Tabelle konnte nicht geladen werden: %s.\n"
+msgstr "Fehler beim Zuordnen des gemeinsamen Speichers: %s\n"
 
 #: src/io/siril_pythonmodule.c:331
-#, fuzzy
 msgid "Failed to retrieve pixel data - no image loaded"
-msgstr "Erstellung der Eingangsdaten für solve-field fehlgeschlagen\n"
+msgstr "Pixeldaten konnten nicht abgerufen werden - kein Bild geladen"
 
 #: src/io/siril_pythonmodule.c:353 src/io/siril_pythonmodule.c:362
 #: src/io/siril_pythonmodule.c:371 src/io/siril_pythonmodule.c:434
 #: src/io/siril_pythonmodule.c:442 src/io/siril_pythonmodule.c:451
-#, fuzzy
 msgid "Failed to allocate shared memory"
-msgstr "Die Farbraumtransformation konnte nicht erstellt werden."
+msgstr "Fehler beim Zuweisen des gemeinsam genutzten Speichers"
 
 #: src/io/siril_pythonmodule.c:422
 msgid "Incorrect memory region specification"
-msgstr ""
+msgstr "Falsche Speicherbereichsspezifikation"
 
 #: src/io/siril_pythonmodule.c:487
 msgid ""
@@ -31055,60 +31066,61 @@ msgid ""
 "is a script error: claim_thread() has either not been called or has failed, "
 "or the thread has been released too early."
 msgstr ""
+"Der Verarbeitungsthread wird nicht beansprucht: Das aktuelle Bild kann nicht "
+"aktualisiert werden. Dies ist ein Skriptfehler: claim_thread() wurde "
+"entweder nicht aufgerufen oder ist fehlgeschlagen, oder der Thread wurde zu "
+"früh freigegeben."
 
 #: src/io/siril_pythonmodule.c:496
 msgid ""
 "No image or sequence loaded: set_pixel_data() can only be used to update a "
 "loaded image, not to create a new one"
 msgstr ""
+"Kein Bild oder keine Sequenz geladen: set_pixel_data() kann nur verwendet "
+"werden, um ein geladenes Bild zu aktualisieren, nicht um ein neues zu "
+"erstellen"
 
 #: src/io/siril_pythonmodule.c:503
-#, fuzzy
 msgid "Invalid image info size"
-msgstr "Ungültige Bildauswahl"
+msgstr "Ungültige Bildgrößeninformation"
 
 #: src/io/siril_pythonmodule.c:515
 msgid "Invalid image size: exceeds memory limit"
-msgstr ""
+msgstr "Ungültige Bildgröße: Überschreitet das Speicherlimit"
 
 #: src/io/siril_pythonmodule.c:524
 msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %"
-msgstr ""
+msgstr "Ungültige Bildabmessungen oder Format: w = %u, h = %u, c = %u, size = %"
 
 #: src/io/siril_pythonmodule.c:533
-#, fuzzy
 msgid "Error: image dimensions exceed available memory"
-msgstr "Fehler: Abmessungen des Leitbildes stimmen nicht überein\n"
+msgstr "Fehler: Bildabmessungen überschreiten den verfügbaren Speicher"
 
 #: src/io/siril_pythonmodule.c:563 src/io/siril_pythonmodule.c:674
-#, fuzzy
 msgid "Failed to open shared memory"
-msgstr "Konnte erstes Bild nicht öffnen"
+msgstr "Der gemeinsame Speicher konnte nicht geöffnet werden."
 
 #: src/io/siril_pythonmodule.c:572 src/io/siril_pythonmodule.c:680
-#, fuzzy
 msgid "Failed to map shared memory"
-msgstr "Remote-Suche ist fehlgeschlagen.\n"
+msgstr "Fehler beim Zuordnen des gemeinsamen Speichers"
 
 #: src/io/siril_pythonmodule.c:613
-#, fuzzy
 msgid "Failed to allocate image buffer"
-msgstr "Herunterrechnen des Bildes fehlgeschlagen, Abbruch\n"
+msgstr "Bildpuffer konnte nicht zugewiesen werden"
 
 #: src/io/siril_pythonmodule.c:685
-#, fuzzy
 msgid "Error: could not open shared memory"
-msgstr "Fehler: Bild konnte nicht geladen werden"
+msgstr "Fehler: Gemeinsamer Speicher konnte nicht geöffnet werden"
 
 #: src/io/siril_pythonmodule.c:719
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading stdout: %s\n"
-msgstr "Fehler beim Laden des Skriptinhalts: %s\n"
+msgstr "Fehler beim Lesen von stdout: %s\n"
 
 #: src/io/siril_pythonmodule.c:743
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading stderr: %s\n"
-msgstr "Fehler beim Öffnen der Datei %s\n"
+msgstr "Fehler beim Lesen von stderr: %s\n"
 
 #: src/io/siril_pythonmodule.c:758 src/io/siril_pythonmodule.c:766
 #, c-format
