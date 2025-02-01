@@ -283,6 +283,9 @@ static void histo_recompute() {
 				memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
 			}
 		}
+		// WARNING: the following section is *ONLY* applicable to autostretch. It should
+		// not be copied into any other code as it will mess things up if the image
+		// ICC profile is not the same as the monitor ICC profile.
 		cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = copyICCProfile(gui.icc.monitor);
@@ -290,6 +293,7 @@ static void histo_recompute() {
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = copyICCProfile(temp);
 		cmsCloseProfile(temp);
+		////////////////////////////////////////////////////////////////////////////////
 		if (depth == 1) {
 			size_t npixels = fit->rx * fit->ry;
 			if (fit->type == DATA_FLOAT) {
