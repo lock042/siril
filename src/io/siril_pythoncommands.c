@@ -403,14 +403,20 @@ static gboolean get_config_value(const char* group, const char* key, config_type
 	}
 	else if (desc->type == STYPE_STR || desc->type == STYPE_STRDIR) {
 		*type = CONFIG_TYPE_STR;
-		*value = g_strdup(*(gchar**) desc->data);
-		*value_size = strlen((gchar*) *value) + 1;
+		const gchar* const_val = *(gchar**) desc->data;
+		if (const_val && const_val[0] != '\0') {
+			*value = g_strdup(const_val);
+			*value_size = strlen((gchar*) *value) + 1;
+		} else {
+			*value = g_strdup("(not set)");
+			*value_size = strlen(*value);
+		}
 	}
 	else if (desc->type == STYPE_STRLIST) {
 		GSList *list = *((GSList**)desc->data);
 		GSList *iter = list;
 		size_t total_size = 0;
-		while (iter) {
+		while (iter && iter->data && ((gchar*)iter->data)[0] != '\0') {
 			g_strstrip((gchar*) iter->data); // Remove whitespace
 			total_size += strlen((gchar*) iter->data) + 1;
 			iter = iter->next;
@@ -420,7 +426,7 @@ static gboolean get_config_value(const char* group, const char* key, config_type
 		char* list_val = g_malloc(total_size);
 		char* ptr = list_val;
 		iter = list;
-		while (iter) {
+		while (iter && iter->data && ((gchar*)iter->data)[0] != '\0') {
 			size_t len = strlen((gchar*) iter->data) + 1;
 			memcpy(ptr, (gchar*) iter->data, len);
 			ptr += len;

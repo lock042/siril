@@ -300,13 +300,6 @@ static void curves_recompute() {
 		}
 	}
 
-	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
-	cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(gui.icc.monitor);
-	siril_colorspace_transform(fit, temp);
-	cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(temp);
-	cmsCloseProfile(temp);
 	if (depth == 1) {
 		size_t npixels = fit->rx * fit->ry;
 		float factor = 1 / 3.f;
