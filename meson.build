@@ -311,7 +311,7 @@ endif
 gtksourceview_dep = dependency('gtksourceview-4')
 
 healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
-yyjson_dep = dependency('libyyjson', required : false, version: '>= 0.10.0')
+yyjson_dep = dependency('yyjson', required : false, version: '>= 0.10.0')
 if not yyjson_dep.found()
   opt_var = cmake.subproject_options()
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"

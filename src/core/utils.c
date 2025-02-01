@@ -877,6 +877,36 @@ gchar* replace_wide_char(const gchar *str) {
 	return g_string_free(ascii_str, FALSE);
 }
 
+static image_type determine_image_type_from_magic(const uint8_t *magic, size_t bytes_read) {
+	if (bytes_read < 2) return TYPEUNDEF;
+
+	if (magic[0] == 'B' && magic[1] == 'M')
+		return TYPEBMP;
+	if (bytes_read >= 9 && memcmp(magic, "SIMPLE  =", 9) == 0)
+		return TYPEFITS;
+	if (bytes_read >= 3 && magic[0] == 0xFF && magic[1] == 0xD8 && magic[2] == 0xFF)
+		return TYPEJPG;
+	if (bytes_read >= 8 && memcmp(magic, "\x89PNG\r\n\x1A\n", 8) == 0)
+		return TYPEPNG;
+	if (bytes_read >= 4 && ((memcmp(magic, "II*\0", 4) == 0) || (memcmp(magic, "MM\0*", 4) == 0)))
+		return TYPETIFF;
+	if (bytes_read >= 3 && (memcmp(magic, "P5\n", 3) == 0 || memcmp(magic, "P6\n", 3) == 0))
+		return TYPEPNM;
+	if (bytes_read >= 14 && memcmp(magic, "LUCAM-RECORDER", 14) == 0)
+		return TYPESER;
+	if (bytes_read >= 4 && memcmp(magic, "XISF", 4) == 0)
+		return TYPEXISF;
+	if (bytes_read >= 12 && ((memcmp(magic + 4, "ftypheic", 8) == 0) || (memcmp(magic + 4, "ftypmif1", 8) == 0)))
+		return TYPEHEIF;
+	if (bytes_read >= 12 && memcmp(magic + 4, "ftypavif", 8) == 0)
+		return TYPEAVIF;
+	if (bytes_read >= 12 && ((memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "JXL ", 4) == 0) ||
+		(magic[0] == 0xFF && magic[1] == 0x0A)))
+		return TYPEJXL;
+	return TYPEUNDEF;
+}
+
+
 /** Tests if filename is the canonical name of a known file type
  *  If filename contains an extension, only this file name is tested, else all
  *  extensions are tested for the file name until one is found.
@@ -886,53 +916,92 @@ gchar* replace_wide_char(const gchar *str) {
  *  must be freed with when no longer needed.
  * @return 0 if success, 1 if error
  */
+
 int stat_file(const char *filename, image_type *type, char **realname) {
-	int k;
-	const char *extension;
-	*type = TYPEUNDEF;	// default value
+	if (!filename || !type) return 1;
+	*type = TYPEUNDEF;
+	if (filename[0] == '\0') return 1;
 
-	/* check for an extension in filename and isolate it, including the . */
-	if (filename[0] == '\0')
-		return 1;
+	const char *extension = get_filename_ext(filename);
 
-	extension = get_filename_ext(filename);
-	/* if filename has an extension, we only test for it */
+	// Case 1: File has an extension
 	if (extension) {
-		if (is_readable_file(filename)) {
-			if (realname)
-				*realname = strdup(filename);
-			*type = get_type_for_extension(extension);
+		if (!is_readable_file(filename)) return 1;
+
+		*type = get_type_for_extension(extension);
+		if (*type != TYPEJPG) {
+			// Fast path: Non-JPEG files validated via extension + lstat only
+			if (realname) *realname = strdup(filename);
+			return 0;
+		}
+
+		// JPEGs require magic number verification
+		FILE *file = g_fopen(filename, "rb");
+		if (!file) return 1;
+
+		uint8_t magic[16];
+		size_t bytes_read = fread(magic, 1, sizeof(magic), file);
+		fclose(file);
+
+		*type = determine_image_type_from_magic(magic, bytes_read);
+		if (*type != TYPEUNDEF) {
+			if (realname) *realname = strdup(filename);
 			return 0;
 		}
 		return 1;
 	}
 
-	/* else, we can test various file extensions */
-	/* first we test lowercase, then uppercase */
-	for (k = 0; k < 2; k++) {
-		int i = 0;
-		while (supported_extensions[i]) {
+	// Case 2: No extension - test candidates
+	for (int k = 0; k < 2; k++) {
+		for (int i = 0; supported_extensions[i]; i++) {
 			GString *testName = g_string_new(filename);
-			if (k == 0) {
-				testName = g_string_append(testName, supported_extensions[i]);
-			} else {
-				gchar *tmp = g_ascii_strup(supported_extensions[i],
-						strlen(supported_extensions[i]));
-				testName = g_string_append(testName, tmp);
-				g_free(tmp);
-			}
-			gchar *name = g_string_free(testName, FALSE);
+			const char *ext = supported_extensions[i];
 
-			if (is_readable_file(name)) {
-				*type = get_type_for_extension(supported_extensions[i] + 1);
-				assert(*type != TYPEUNDEF);
-				if (realname)
-					*realname = strdup(name);
-				g_free(name);
+			// Case 2a: Generate uppercase/lowercase variants
+			if (k == 1) {
+				gchar *upper_ext = g_ascii_strup(ext, -1);
+				g_string_append(testName, upper_ext);
+				g_free(upper_ext);
+			} else {
+				g_string_append(testName, ext);
+			}
+
+			gchar *candidate = g_string_free(testName, FALSE);
+
+			// Fast check first
+			if (!is_readable_file(candidate)) {
+				g_free(candidate);
+				continue;
+			}
+
+			image_type candidate_type = get_type_for_extension(ext + 1);
+			if (candidate_type != TYPEJPG) {
+				// Non-JPEG: trust extension + lstat
+				*type = candidate_type;
+				if (realname) *realname = strdup(candidate);
+				g_free(candidate);
 				return 0;
 			}
-			i++;
-			g_free(name);
+
+			// JPEG candidate: verify with magic
+			FILE *file = g_fopen(candidate, "rb");
+			if (!file) {
+				g_free(candidate);
+				continue;
+			}
+
+			uint8_t magic[16];
+			size_t bytes_read = fread(magic, 1, sizeof(magic), file);
+			fclose(file);
+
+			image_type magic_type = determine_image_type_from_magic(magic, bytes_read);
+			if (magic_type != TYPEUNDEF) {
+				*type = magic_type;
+				if (realname) *realname = strdup(candidate);
+				g_free(candidate);
+				return 0;
+			}
+			g_free(candidate);
 		}
 	}
 	return 1;
