@@ -918,84 +918,93 @@ static image_type determine_image_type_from_magic(const uint8_t *magic, size_t b
  */
 
 int stat_file(const char *filename, image_type *type, char **realname) {
-	if (!filename || !type)
-		return 1;
+	if (!filename || !type) return 1;
 	*type = TYPEUNDEF;
-	if (filename[0] == '\0')
-		return 1;
+	if (filename[0] == '\0') return 1;
 
 	const char *extension = get_filename_ext(filename);
 
+	// Case 1: File has an extension
 	if (extension) {
-		FILE *file = g_fopen(filename, "rb");
-		if (!file)
-			return 1;
-
-		uint8_t magic[16] = {0};
-		size_t bytes_read = fread(magic, 1, sizeof(magic), file);
-		fclose(file);
+		if (!is_readable_file(filename)) return 1;
 
 		*type = get_type_for_extension(extension);
 		if (*type != TYPEJPG) {
-			if (realname)
-				*realname = strdup(filename);
+			// Fast path: Non-JPEG files validated via extension + lstat only
+			if (realname) *realname = strdup(filename);
 			return 0;
 		}
 
-		image_type magic_type = determine_image_type_from_magic(magic, bytes_read);
-		if (magic_type != TYPEUNDEF)
-			*type = magic_type;
+		// JPEGs require magic number verification
+		FILE *file = g_fopen(filename, "rb");
+		if (!file) return 1;
 
-		if (realname)
-			*realname = strdup(filename);
-		return (*type != TYPEUNDEF) ? 0 : 1;
-	} else {
-		for (int k = 0; k < 2; k++) {
-			for (int i = 0; supported_extensions[i]; i++) {
-				GString *testName = g_string_new(filename);
-				const char *ext = supported_extensions[i];
-				if (k == 1) {
-					gchar *upper_ext = g_ascii_strup(ext, strlen(ext));
-					g_string_append(testName, upper_ext);
-					g_free(upper_ext);
-				} else {
-					g_string_append(testName, ext);
-				}
-				gchar *candidate_name = g_string_free(testName, FALSE);
+		uint8_t magic[16];
+		size_t bytes_read = fread(magic, 1, sizeof(magic), file);
+		fclose(file);
 
-				FILE *file = g_fopen(candidate_name, "rb");
-				if (!file) {
-					g_free(candidate_name);
-					continue;
-				}
-
-				image_type candidate_type = get_type_for_extension(ext + 1);
-				if (candidate_type != TYPEJPG) {
-					fclose(file);
-					*type = candidate_type;
-					if (realname)
-						*realname = strdup(candidate_name);
-					g_free(candidate_name);
-					return 0;
-				} else {
-					uint8_t magic[16] = {0};
-					size_t bytes_read = fread(magic, 1, sizeof(magic), file);
-					fclose(file);
-
-					image_type magic_type = determine_image_type_from_magic(magic, bytes_read);
-					if (magic_type != TYPEUNDEF) {
-						*type = magic_type;
-						if (realname)
-							*realname = strdup(candidate_name);
-						g_free(candidate_name);
-						return 0;
-					}
-				}
-				g_free(candidate_name);
-			}
+		*type = determine_image_type_from_magic(magic, bytes_read);
+		if (*type != TYPEUNDEF) {
+			if (realname) *realname = strdup(filename);
+			return 0;
 		}
 		return 1;
 	}
+
+	// Case 2: No extension - test candidates
+	for (int k = 0; k < 2; k++) {
+		for (int i = 0; supported_extensions[i]; i++) {
+			GString *testName = g_string_new(filename);
+			const char *ext = supported_extensions[i];
+
+			// Case 2a: Generate uppercase/lowercase variants
+			if (k == 1) {
+				gchar *upper_ext = g_ascii_strup(ext, -1);
+				g_string_append(testName, upper_ext);
+				g_free(upper_ext);
+			} else {
+				g_string_append(testName, ext);
+			}
+
+			gchar *candidate = g_string_free(testName, FALSE);
+
+			// Fast check first
+			if (!is_readable_file(candidate)) {
+				g_free(candidate);
+				continue;
+			}
+
+			image_type candidate_type = get_type_for_extension(ext + 1);
+			if (candidate_type != TYPEJPG) {
+				// Non-JPEG: trust extension + lstat
+				*type = candidate_type;
+				if (realname) *realname = strdup(candidate);
+				g_free(candidate);
+				return 0;
+			}
+
+			// JPEG candidate: verify with magic
+			FILE *file = g_fopen(candidate, "rb");
+			if (!file) {
+				g_free(candidate);
+				continue;
+			}
+
+			uint8_t magic[16];
+			size_t bytes_read = fread(magic, 1, sizeof(magic), file);
+			fclose(file);
+
+			image_type magic_type = determine_image_type_from_magic(magic, bytes_read);
+			if (magic_type != TYPEUNDEF) {
+				*type = magic_type;
+				if (realname) *realname = strdup(candidate);
+				g_free(candidate);
+				return 0;
+			}
+			g_free(candidate);
+		}
+	}
+	return 1;
 }
 
 static gchar* siril_canonicalize_filename(const gchar *filename,
