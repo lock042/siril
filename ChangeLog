@@ -98,6 +98,7 @@ xx/xx/xx
 * Fixed local astrometry.net solver non-functional on flatpak (#1392)
 * Fixed crash in 2-pass registration when sequence had less than 5 images (#1473)
 * Prevented crash when using the sequence browser during an AVI sequence operation (#143)
+* Prevented crash when opening a HEIF image with a jpeg extension (#1478)
 
 **Misc:**
 * Removed glib-networking as a dependency (#1157)
