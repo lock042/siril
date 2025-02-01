@@ -416,7 +416,7 @@ static gboolean get_config_value(const char* group, const char* key, config_type
 		GSList *list = *((GSList**)desc->data);
 		GSList *iter = list;
 		size_t total_size = 0;
-		while (iter && iter->data && iter->data[0] != '\0') {
+		while (iter && iter->data && ((gchar*)iter->data)[0] != '\0') {
 			g_strstrip((gchar*) iter->data); // Remove whitespace
 			total_size += strlen((gchar*) iter->data) + 1;
 			iter = iter->next;
@@ -426,7 +426,7 @@ static gboolean get_config_value(const char* group, const char* key, config_type
 		char* list_val = g_malloc(total_size);
 		char* ptr = list_val;
 		iter = list;
-		while (iter && iter->data && iter->data[0] != '\0') {
+		while (iter && iter->data && ((gchar*)iter->data)[0] != '\0') {
 			size_t len = strlen((gchar*) iter->data) + 1;
 			memcpy(ptr, (gchar*) iter->data, len);
 			ptr += len;
