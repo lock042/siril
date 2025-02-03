@@ -31,6 +31,7 @@ struct starfinder_data {
 	gboolean process_all_images;	// for sequence operation
 	gboolean already_in_thread;
 	gboolean keep_stars; // TRUE to avoid freeing stars in findstar_worker
+	gboolean onepass;	// identifies if we need to free stars and nb_stars
 };
 
 struct star_candidate_struct {

@@ -146,7 +146,7 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	double smoothing = get_smoothing_parameter();
 	background_interpolation interpolation_method = get_interpolation_method();
 
-	struct background_data *args = malloc(sizeof(struct background_data));
+	struct background_data *args = calloc(1, sizeof(struct background_data));
 	args->threads = com.max_thread;
 	args->from_ui = TRUE;
 	args->correction = correction;

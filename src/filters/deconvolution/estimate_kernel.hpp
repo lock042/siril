@@ -29,12 +29,13 @@ SOFTWARE.
 #include "utils.hpp"
 #include "edgetaper.hpp"
 #include "core/processing.h"
+#include "core/siril_log.h"
 
 // downsample an image with Gaussian filtering
 void gaussian_downsample(img_t<float>& out, const img_t<float>& _in, float factor, float sigma=1.6f) {
     img_t<float> in = _in; // copy input
     if (factor == 1) {
-        out = in;
+        out = std::move(in);
         return;
     }
 
@@ -580,6 +581,11 @@ void preprocess_image(img_t<T>& out, const img_t<T>& _v, struct estimate_kernel_
     for (int i = 0; i < v.size; i++)
         v[i] -= min;
     float max = v.max();
+    if (!max) {
+        siril_log_color_message(_("Error: zero input maximum\n"), "red");
+        out = std::move(v);
+        return;
+    }
     for (int i = 0; i < v.size; i++)
         v[i] /= max;
 

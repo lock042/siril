@@ -1088,6 +1088,8 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 			}
 		}
 		norm /= (double) nb_frames;
+		if (!norm)
+			return ST_GENERIC_ERROR;
 
 		for (int i = 0; i < args->nb_images_to_stack; i++) {
 			pweights[layer][i] /= norm;

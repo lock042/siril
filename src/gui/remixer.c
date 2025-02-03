@@ -203,6 +203,8 @@ void display_remix_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width
 			graph_height = bin_val;
 		current_bin++;
 	} while (i < nb_orig_bins && current_bin < nb_bins_allocated);
+	if (!graph_height)
+		return;
 	for (i = 0; i < nb_bins_allocated; i++) {
 		float bin_height = height - height * displayed_values[i] / graph_height;
 		cairo_line_to(cr, i, bin_height);

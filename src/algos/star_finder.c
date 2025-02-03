@@ -1200,9 +1200,11 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 	if (findstar_args->stars && findstar_args->nb_stars) { // used by 2pass reg which needs to store all star lists
 		curr_findstar_args->stars = findstar_args->stars + i;
 		curr_findstar_args->nb_stars = findstar_args->nb_stars + i;
+		curr_findstar_args->onepass = FALSE;
 	} else if (findstar_args->keep_stars) { // used by global reg which needs to store the current star list
 		curr_findstar_args->stars = calloc(1, sizeof(psf_star **));
 		curr_findstar_args->nb_stars = calloc(1, sizeof(int));
+		curr_findstar_args->onepass = TRUE;
 	}
 	curr_findstar_args->threading = threads;
 	gboolean can_use_cache = !(com.selection.w != 0 && com.selection.h != 0); //TODO: not ideal, would be better to be passed as args to starfinder_data (to be used in findstar_worker)
@@ -1214,8 +1216,10 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		// build the star list file name in all cases to try reading it
 		star_filename = get_sequence_cache_filename(seq, i, "lst", NULL);
 		if (!star_filename) {
-			free(curr_findstar_args->nb_stars);
-			free(curr_findstar_args->stars);
+			if (curr_findstar_args->onepass == TRUE) {
+				free(curr_findstar_args->nb_stars);
+				free(curr_findstar_args->stars);
+			}
 			free(curr_findstar_args);
 			curr_findstar_args = NULL;
 			return curr_findstar_args;
@@ -1244,8 +1248,10 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 		clearfits(green_fit);
 		if (retval) {
-			free(curr_findstar_args->nb_stars);
-			free(curr_findstar_args->stars);
+			if (curr_findstar_args->onepass == TRUE) {
+				free(curr_findstar_args->nb_stars);
+				free(curr_findstar_args->stars);
+			}
 			free(curr_findstar_args);
 			curr_findstar_args = NULL;
 		}
@@ -1275,6 +1281,10 @@ gboolean end_findstar_sequence(gpointer p) {
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
+	if (findstar_args->onepass) {
+		free(findstar_args->stars);
+		free(findstar_args->nb_stars);
+	}
 	free(findstar_args);
 	free(p);
 	return end_generic(NULL);

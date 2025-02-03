@@ -128,6 +128,8 @@ namespace utils {
         T dx = 0.f;
         T dy = 0.f;
         T sum = kernel.sum();
+        if (!sum)
+            return;
     #ifdef _OPENMP
         int available_threads = com.max_thread - omp_get_num_threads();
         #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
@@ -281,6 +283,7 @@ namespace utils {
     template <typename T>
     void remove_isolated_cc(img_t<T>& k) {
         T sum = k.sum();
+        if (!sum) return; // avoid div/0
         img_t<int> lab;
         std::vector<T> sums;
 #ifdef _OPENMP
