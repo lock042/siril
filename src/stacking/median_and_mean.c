@@ -1197,7 +1197,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 	g_assert(nb_frames <= args->seq->number);
 
-	if (args->seq->regparam)
+	if (seq_has_usable_regdata(args->seq))
 		layerparam = args->seq->regparam;
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);

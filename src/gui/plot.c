@@ -1223,7 +1223,7 @@ void drawPlot() {
 		}
 	} else {
 		// registration data display
-		if (!seq->regparam)
+		if (!seq_has_any_regdata(seq))
 			return;
 
 		is_fwhm = (seq->regparam[ref_image].fwhm > 0.0f);

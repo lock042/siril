@@ -106,7 +106,7 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 		ssdata->list_date = g_list_prepend(ssdata->list_date, new_date_item(date, fit->keywords.exposure));
 	}
 
-	if (seq_has_any_regdata(args->seq)) {
+	if (seq_has_usable_registration(args->seq)) {
 		double scale = (ssdata->upscale_at_stacking) ? 2. : 1.;
 		double dx, dy;
 		translation_from_H(args->seq->regparam[i].H, &dx, &dy);
@@ -282,7 +282,7 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 		ssdata->output_size[0] = args->seq->rx;
 		ssdata->output_size[1] = args->seq->ry;
 		double dx = 0., dy = 0.;
-		if (seq_has_any_regdata(args->seq)) {
+		if (seq_has_usable_registration(args->seq)) {
 			translation_from_H(args->seq->regparam[ssdata->ref_image].H, &dx, &dy);
 			update_wcs = TRUE;
 		}

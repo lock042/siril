@@ -99,7 +99,7 @@ void create_output_sequence_for_registration(struct registration_args *args, int
 	seq.fixed = args->seq->fixed;
 	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
 	seq.imgparam = args->imgparam;
-	seq.regparam = calloc(seq.number, sizeof(regdata));
+	seq.regparam = args->regparam;
 	seq.reglayer = args->layer;
 	seq.beg = seq.imgparam[0].filenum;
 	seq.end = seq.imgparam[seq.number-1].filenum;

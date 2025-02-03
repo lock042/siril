@@ -666,6 +666,7 @@ int writeseqfile(sequence *seq){
 
 	fprintf(seqfile, "L %d\n", seq->nb_layers);
 
+	// imgparam
 	for(i = 0; i < seq->number; ++i){
 		if (seq->is_variable) {
 			fprintf(seqfile,"I %d %d %d,%d\n",
@@ -679,50 +680,74 @@ int writeseqfile(sequence *seq){
 					seq->imgparam[i].incl);
 		}
 	}
-
-	for (layer = 0; layer < seq->nb_layers; layer++) {
-		if (seq->regparam && layer == seq->reglayer) {
-			if (seq_has_any_distortion(seq)) {
-				if (seq->distoparam.index == DISTO_FILE) {
-					fprintf(seqfile, "D %d %s\n",
-					DISTO_FILE,
-					seq->distoparam.filename);
-				} else if (seq->distoparam.index == DISTO_FILES) {
-					fprintf(seqfile, "D %d\n",
-					DISTO_FILES);
-				} else if (seq->distoparam.index == DISTO_MASTER) {
-					fprintf(seqfile, "D %d %s\n",
-					DISTO_MASTER,
-					seq->distoparam.filename);
-				} else if (seq->distoparam.index == DISTO_FILE_COMET) {
-					fprintf(seqfile, "D %d %.3f %.3f %s\n",
-					DISTO_FILE_COMET,
-					seq->distoparam.velocity.x,
-					seq->distoparam.velocity.y,
-					seq->distoparam.filename ? seq->distoparam.filename : "");
-				}
-			}
-			for (i = 0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
-						seq->cfa_opened_monochrome ? '*' : '0' + layer,
-						seq->regparam[i].fwhm,
-						seq->regparam[i].weighted_fwhm,
-						seq->regparam[i].roundness,
-						seq->regparam[i].quality,
-						seq->regparam[i].background_lvl,
-						seq->regparam[i].number_of_stars,
-						seq->regparam[i].H.h00,
-						seq->regparam[i].H.h01,
-						seq->regparam[i].H.h02,
-						seq->regparam[i].H.h10,
-						seq->regparam[i].H.h11,
-						seq->regparam[i].H.h12,
-						seq->regparam[i].H.h20,
-						seq->regparam[i].H.h21,
-						seq->regparam[i].H.h22
-					);
+	// regparam and distoparam
+	if (seq->regparam && seq->reglayer > -1) {
+		if (seq_has_any_distortion(seq)) {
+			if (seq->distoparam.index == DISTO_FILE) {
+				fprintf(seqfile, "D %d %s\n",
+				DISTO_FILE,
+				seq->distoparam.filename);
+			} else if (seq->distoparam.index == DISTO_FILES) {
+				fprintf(seqfile, "D %d\n",
+				DISTO_FILES);
+			} else if (seq->distoparam.index == DISTO_MASTER) {
+				fprintf(seqfile, "D %d %s\n",
+				DISTO_MASTER,
+				seq->distoparam.filename);
+			} else if (seq->distoparam.index == DISTO_FILE_COMET) {
+				fprintf(seqfile, "D %d %.3f %.3f %s\n",
+				DISTO_FILE_COMET,
+				seq->distoparam.velocity.x,
+				seq->distoparam.velocity.y,
+				seq->distoparam.filename ? seq->distoparam.filename : "");
 			}
 		}
+		for (i = 0; i < seq->number; ++i) {
+			fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					seq->regparam[i].fwhm,
+					seq->regparam[i].weighted_fwhm,
+					seq->regparam[i].roundness,
+					seq->regparam[i].quality,
+					seq->regparam[i].background_lvl,
+					seq->regparam[i].number_of_stars,
+					seq->regparam[i].H.h00,
+					seq->regparam[i].H.h01,
+					seq->regparam[i].H.h02,
+					seq->regparam[i].H.h10,
+					seq->regparam[i].H.h11,
+					seq->regparam[i].H.h12,
+					seq->regparam[i].H.h20,
+					seq->regparam[i].H.h21,
+					seq->regparam[i].H.h22
+				);
+		}
+	}
+	// regparam bkp
+	if (seq->regparam_bkp) {
+		for (i = 0; i < seq->number; ++i) {
+			fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
+					seq->cfa_opened_monochrome ? '0' + layer : '*',
+					seq->regparam_bkp[i].fwhm,
+					seq->regparam_bkp[i].weighted_fwhm,
+					seq->regparam_bkp[i].roundness,
+					seq->regparam_bkp[i].quality,
+					seq->regparam_bkp[i].background_lvl,
+					seq->regparam_bkp[i].number_of_stars,
+					seq->regparam_bkp[i].H.h00,
+					seq->regparam_bkp[i].H.h01,
+					seq->regparam_bkp[i].H.h02,
+					seq->regparam_bkp[i].H.h10,
+					seq->regparam_bkp[i].H.h11,
+					seq->regparam_bkp[i].H.h12,
+					seq->regparam_bkp[i].H.h20,
+					seq->regparam_bkp[i].H.h21,
+					seq->regparam_bkp[i].H.h22
+				);
+		}
+	}
+	// stats
+	for (layer = 0; layer < seq->nb_layers; layer++) {
 		if (seq->stats && seq->stats[layer]) {
 			for (i = 0; i < seq->number; ++i) {
 				if (!seq->stats[layer][i]) continue;
@@ -748,28 +773,6 @@ int writeseqfile(sequence *seq){
 		}
 	}
 	for (layer = 0; layer < 3; layer++) {
-		if (seq->regparam_bkp) {
-			for (i = 0; i < seq->number; ++i) {
-				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
-						seq->cfa_opened_monochrome ? '0' + layer : '*',
-						seq->regparam_bkp[i].fwhm,
-						seq->regparam_bkp[i].weighted_fwhm,
-						seq->regparam_bkp[i].roundness,
-						seq->regparam_bkp[i].quality,
-						seq->regparam_bkp[i].background_lvl,
-						seq->regparam_bkp[i].number_of_stars,
-						seq->regparam_bkp[i].H.h00,
-						seq->regparam_bkp[i].H.h01,
-						seq->regparam_bkp[i].H.h02,
-						seq->regparam_bkp[i].H.h10,
-						seq->regparam_bkp[i].H.h11,
-						seq->regparam_bkp[i].H.h12,
-						seq->regparam_bkp[i].H.h20,
-						seq->regparam_bkp[i].H.h21,
-						seq->regparam_bkp[i].H.h22
-					);
-			}
-		}
 		if (seq->stats_bkp && seq->stats_bkp[layer]) {
 			for (i = 0; i < seq->number; ++i) {
 				if (!seq->stats_bkp[layer][i]) continue;

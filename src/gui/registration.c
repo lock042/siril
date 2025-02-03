@@ -466,7 +466,7 @@ void on_button_comet_clicked(GtkButton *button, gpointer p) {
 			pos.x = 0.5 * (double)com.selection.w + com.selection.x;
 			pos.y = com.selection.y + com.selection.h - 0.5 * (double)com.selection.h;
 		}
-		if (seq_has_any_regdata(&com.seq)&&
+		if (seq_has_any_regdata(&com.seq) &&
 				guess_transform_from_H(com.seq.regparam[com.seq.reference_image].H) > NULL_TRANSFORMATION &&
 				guess_transform_from_H(com.seq.regparam[com.seq.current].H) > NULL_TRANSFORMATION) {
 			cvTransfPoint(&pos.x, &pos.y, com.seq.regparam[com.seq.current].H, com.seq.regparam[com.seq.reference_image].H, 1.);
