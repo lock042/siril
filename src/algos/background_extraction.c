@@ -1385,12 +1385,9 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 	struct generic_seq_args *args = create_default_seqargs(background_args->seq);
 	if (seq_read_frame_metadata(background_args->seq, sequence_find_refimage(background_args->seq), &metadata)) {
 		siril_log_color_message(_("Error reading reference metadata.\n"), "red");
-<<<<<<< HEAD
-		free(args);
-=======
 		free(background_args->seqEntry);
 		free(background_args);
->>>>>>> threadleaks
+		free_generic_seq_args(args);
 		return;
 	}
 	background_args->is_cfa = background_args->seq->nb_layers == 1 && (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4) ||
