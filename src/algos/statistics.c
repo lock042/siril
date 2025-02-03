@@ -163,8 +163,7 @@ static double siril_stats_ushort_bwmv(const WORD* data, const size_t n,
 			up += ai * SQR((double ) data[i] - median) * SQR(SQR (1 - yi2));
 			down += (ai * (1 - yi2) * (1 - 5 * yi2));
 		}
-
-		bwmv = n * (up / (down * down));
+		bwmv = down ? n * (up / (down * down)) : 0.0;
 	}
 
 	return bwmv;

@@ -35,11 +35,15 @@ static void fancy_conjugate_gradient(T *x,
 		A(Ap, p, n, e);
 		T   App    = scalar_product(Ap, p, n);
 		T   rr_old = scalar_product(r, r, n);
+		if (!App)
+			break;
 		T   alpha  = rr_old / App;
 		FOR(i,n) x[i]   = x[i] + alpha * p[i];
 		FOR(i,n) r[i]   = r[i] - alpha * Ap[i];
 		T   rr_new = scalar_product(r, r, n);
 		if (sqrt(rr_new) < min_residual)
+			break;
+		if (!rr_old)
 			break;
 		T   beta   = rr_new / rr_old;
 		FOR(i,n) p[i]   = r[i] + beta * p[i];
