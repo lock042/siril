@@ -4909,7 +4909,7 @@ assign a linear ICC profile. This is technically correct but generally unnecessa
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkScrolledWindow" id="scripts_page">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="shadow-type">in</property>
@@ -4918,7 +4918,7 @@ assign a linear ICC profile. This is technically correct but generally unnecessa
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <child>
-                          <object class="GtkBox" id="scripts_page">
+                          <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="orientation">vertical</property>

@@ -102,33 +102,54 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 		int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 		GList *iterator;
 		for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
-		// here we populate the GtkTreeView from GList gui.repo_scripts
-		gchar *category = g_strrstr((gchar *)iterator->data, "preprocessing")
-								? "Preprocessing"
-								: "Processing";
-		gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
-		gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
-		gchar *scripttype = g_str_has_suffix(scriptname, ".ssf") ? _("Siril Script File") : g_str_has_suffix(scriptname, ".py")  ? _("Python script") : NULL;
-
-	#ifdef DEBUG_GITSCRIPTS
-		printf("%s\n", scriptpath);
-	#endif
-		// Check whether the script appears in the list
-		GList *iterator2;
-		gboolean included = FALSE;
-		for (iterator2 = com.pref.selected_scripts; iterator2;
-			iterator2 = iterator2->next) {
-			if (g_strrstr((gchar *)iterator2->data, (gchar *)iterator->data)) {
-			included = TRUE;
+			// here we populate the GtkTreeView from GList gui.repo_scripts
+			const gchar *category;
+			gboolean included = FALSE;
+			gboolean core = FALSE;
+			if (test_last_subdir((gchar *)iterator->data, "preprocessing")) {
+				category = _("Preprocessing");
+			} else if (test_last_subdir((gchar *)iterator->data, "processing")) {
+				category = _("Processing");
+			} else if (test_last_subdir((gchar *)iterator->data, "utility")) {
+				category = _("Utility");
+			} else if (test_last_subdir((gchar *)iterator->data, "core")) {
+				category = _("Core");
+				core = TRUE;
+			} else {
+				category = _("Other");
 			}
-		}
-		gtk_list_store_append(list_store, &iter);
-		gtk_list_store_set(list_store, &iter, COLUMN_CATEGORY, category,
-							COLUMN_SCRIPTNAME, scriptname, COLUMN_TYPE, scripttype, COLUMN_SELECTED,
-							included, COLUMN_SCRIPTPATH, scriptpath,
-							COLUMN_BGCOLOR, bg_color[color], -1);
-		/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */
-		g_free(scriptpath);
+			gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
+			gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
+			const gchar *scripttype;
+			if (g_str_has_suffix(scriptname, SCRIPT_EXT))
+				scripttype = _("Siril Script File");
+			else if (g_str_has_suffix(scriptname, PYSCRIPT_EXT) || g_str_has_suffix(scriptname, PYCSCRIPT_EXT))
+				scripttype = _("Python script");
+			else scripttype = NULL;
+
+#ifdef DEBUG_GITSCRIPTS
+			printf("%s\n", scriptpath);
+#endif
+			// Check whether the script appears in the list
+			GList *iterator2 = NULL;
+			if (!included && !core) {
+				for (iterator2 = com.pref.selected_scripts; iterator2;
+					iterator2 = iterator2->next) {
+					if (g_strrstr((gchar *)iterator2->data, (gchar *)iterator->data)) {
+					included = TRUE;
+					}
+				}
+			}
+			if (!core) {
+				gtk_list_store_append(list_store, &iter);
+				gtk_list_store_set(list_store, &iter, COLUMN_CATEGORY, category,
+								COLUMN_SCRIPTNAME, scriptname, COLUMN_TYPE, scripttype, COLUMN_SELECTED,
+								included, COLUMN_SCRIPTPATH, scriptpath,
+								COLUMN_BGCOLOR, bg_color[color], -1);
+			}
+			/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */
+			g_free(scriptname);
+			g_free(scriptpath); // it's ok to free this as the list_store keeps a copy internally
 		}
 	}
 	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
@@ -318,9 +339,9 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 
 	if (!val) {
 		if (!(g_list_find(com.pref.selected_scripts, script_path))) {
-	#ifdef DEBUG_GITSCRIPTS
+#ifdef DEBUG_GITSCRIPTS
 		printf("%s\n", script_path);
-	#endif
+#endif
 		com.pref.selected_scripts =
 			g_list_prepend(com.pref.selected_scripts, script_path);
 		}

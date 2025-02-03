@@ -9221,12 +9221,12 @@ WARNING: This option should not be checked for master stacking.</property>
                                                         <child>
                                                           <object class="GtkCheckButton" id="check_force32b">
                                                             <property name="label" translatable="yes">Force 32b output</property>
+                                                            <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">If you check this button, the final image bitdepth will be forced to 32b even if the input images are in 16b.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
-                                                            <property name="visible">True</property>
                                                           </object>
                                                           <packing>
                                                             <property name="left-attach">2</property>
@@ -10132,10 +10132,11 @@ WARNING: This option should not be checked for master stacking.</property>
                   <object class="GtkToggleToolButton" id="annotate_button">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">Show object names if WCS information is available</property>
+                    <property name="tooltip-text" translatable="yes">Left-click to show object names if WCS information is available. Right-click to display a list of astro catalogs to choose from.</property>
                     <property name="action-name">win.annotate-object</property>
                     <property name="use-underline">True</property>
                     <property name="icon-widget">astrometry</property>
+                    <signal name="button-press-event" handler="on_annotate_press_event" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -10625,6 +10626,7 @@ WARNING: This option should not be checked for master stacking.</property>
         </child>
         <child>
           <object class="GtkMenuButton" id="header_scripts_button">
+            <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Menu of the script files. This menu appears only when the script paths defined in the preferences are set to the existing script folders.</property>
@@ -10918,6 +10920,52 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
             <property name="pack-type">end</property>
             <property name="position">11</property>
           </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkPopover" id="popover_catalogs">
+    <property name="can-focus">False</property>
+    <property name="relative-to">annotate_button</property>
+    <child>
+      <object class="GtkTreeView" id="pref_astro_tree_view">
+        <property name="visible">True</property>
+        <property name="can-focus">True</property>
+        <property name="has-tooltip">True</property>
+        <property name="vexpand">True</property>
+        <property name="model">liststore_astrometry</property>
+        <property name="headers-clickable">False</property>
+        <property name="reorderable">True</property>
+        <property name="search-column">0</property>
+        <property name="enable-grid-lines">both</property>
+        <child internal-child="selection">
+          <object class="GtkTreeSelection"/>
+        </child>
+        <child>
+          <object class="GtkTreeViewColumn">
+            <child>
+              <object class="GtkCellRendererToggle" id="cellrendeur2_catalog_use">
+                <signal name="toggled" handler="on_cellrendeur2_catalog_use_toggled" swapped="no"/>
+              </object>
+              <attributes>
+                <attribute name="active">0</attribute>
+              </attributes>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkTreeViewColumn" id="treeviewcolumn282">
+            <property name="title" translatable="yes">Catalogue</property>
+            <property name="clickable">True</property>
+            <property name="sort-indicator">True</property>
+            <property name="sort-column-id">0</property>
+            <child>
+              <object class="GtkCellRendererText" id="cellrenderer2_catalog"/>
+              <attributes>
+                <attribute name="text">1</attribute>
+              </attributes>
+            </child>
+          </object>
         </child>
       </object>
     </child>
