@@ -161,8 +161,11 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 					  !strncmp(gfit.keywords.bayer_pattern, "BGGR", 4) ||
 					  !strncmp(gfit.keywords.bayer_pattern, "GBRG", 4) ||
 					  !strncmp(gfit.keywords.bayer_pattern, "GRBG", 4));
-	start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
-						remove_gradient_from_image, args);
+	if (!start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
+						remove_gradient_from_image, args)) {
+		free(args->seqEntry);
+		free(args);
+	}
 }
 
 void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {

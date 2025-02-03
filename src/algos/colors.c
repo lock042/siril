@@ -1315,7 +1315,6 @@ static int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 static int ccm_finalize_hook(struct generic_seq_args *args) {
 	struct ccm_data *c_args = (struct ccm_data*) args->user;
 	int retval = seq_finalize_hook(args);
-
 	free(c_args);
 	return retval;
 }
@@ -1338,5 +1337,8 @@ void apply_ccm_to_sequence(struct ccm_data *ccm_args) {
 
 	ccm_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(ccm_args);
+		free_generic_seq_args(args);
+	}
 }

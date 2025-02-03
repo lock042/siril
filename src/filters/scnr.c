@@ -240,7 +240,8 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->amount = amount;
 	args->preserve = preserve;
 	set_cursor_waiting(TRUE);
-	start_in_new_thread(scnr, args);
+	if (!start_in_new_thread(scnr, args))
+		free(args);
 }
 
 void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {

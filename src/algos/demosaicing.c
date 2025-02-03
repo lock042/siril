@@ -1438,7 +1438,15 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	args->force_ser_output = FALSE;
 	args->user = merge_cfa_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		if (!check_seq_is_comseq(merge_cfa_args->seq0))
+			free_sequence(merge_cfa_args->seq0, TRUE);
+		free_sequence(merge_cfa_args->seq0, TRUE);
+		free_sequence(merge_cfa_args->seq1, TRUE);
+		free_sequence(merge_cfa_args->seq2, TRUE);
+		free(merge_cfa_args);
+		free_generic_seq_args(args);
+	}
 }
 
 //

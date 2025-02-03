@@ -1214,7 +1214,10 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_message(_("Interpolation clamping active\n"));
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
-	start_in_reserved_thread(register_thread_func, regargs);
+	if (!start_in_reserved_thread(register_thread_func, regargs)) {
+		free(regargs);
+		unreserve_thread();
+	}
 }
 
 // end of registration, GTK thread. Executed when started from the GUI and in

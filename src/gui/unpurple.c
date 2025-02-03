@@ -150,7 +150,9 @@ static int unpurple_update_preview() {
 	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = FALSE};
 	set_cursor_waiting(TRUE);
 	// we call the unpurple_filter directly here because update_preview already handles the ROI mutex lock
-	start_in_new_thread(unpurple_filter, args);
+	if (!start_in_new_thread(unpurple_filter, args)) {
+		free(args);
+	}
 	return 0;
 }
 
@@ -204,7 +206,9 @@ static int unpurple_process_all() {
 	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = TRUE};
 
 	// We call the unpurple handler here because we don't have update_preview to handle the ROI mutex for us
-	start_in_new_thread(unpurple_handler, args);
+	if (!start_in_new_thread(unpurple_handler, args)) {
+		free(args);
+	}
 
 	return 0;
 }

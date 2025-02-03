@@ -626,7 +626,12 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 		args->phase = phase;
 		args->type_order = type_order;
 		set_cursor_waiting(TRUE);
-		start_in_new_thread(fourier_transform, args);
+		if (!start_in_new_thread(fourier_transform, args)) {
+			free(args->type);
+			g_free(args->modulus);
+			g_free(args->phase);
+			free(args);
+		}
 	} else {
 		free(type);
 		g_free(mag);

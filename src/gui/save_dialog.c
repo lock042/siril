@@ -702,7 +702,11 @@ void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data
 
 	if (!get_thread_run() && gtk_toggle_button_get_active(button)) {
 		if (!get_thread_run()) {
-			start_in_new_thread(calculate_jpeg_size_thread, args);
+			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
+				g_free(args->copyright);
+				g_free(args->description);
+				free(args);
+			}
 			return;
 		}
 	}
@@ -723,7 +727,11 @@ void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_da
 		}
 		initialize_data(args);
 		if (!get_thread_run()) {
-			start_in_new_thread(calculate_jpeg_size_thread, args);
+			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
+				g_free(args->copyright);
+				g_free(args->description);
+				free(args);
+			}
 		} else {
 			g_free(args->description);
 			g_free(args->copyright);
@@ -738,8 +746,12 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
-	if (test_for_viewer_mode()) {
-		start_in_new_thread(mini_save_dialog, args);
+	if (test_for_viewer_mode(args)) {
+		if (!start_in_new_thread(mini_save_dialog, args)) {
+			g_free(args->copyright);
+			g_free(args->description);
+			free(args);
+		}
 	} else {
 		g_free(args->copyright);
 		g_free(args->description);
@@ -753,8 +765,12 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
-	if (test_for_viewer_mode()) {
-		start_in_new_thread(mini_save_dialog, args);
+	if (test_for_viewer_mode(args)) {
+		if (!start_in_new_thread(mini_save_dialog, args)) {
+			g_free(args->copyright);
+			g_free(args->description);
+			free(args);
+		}
 	} else {
 		g_free(args->copyright);
 		g_free(args->description);
@@ -778,8 +794,12 @@ void on_header_save_as_button_clicked() {
 
 				set_cursor_waiting(TRUE);
 				initialize_data(args);
-				if (test_for_viewer_mode()) {
-					start_in_new_thread(mini_save_dialog, args);
+				if (test_for_viewer_mode(args)) {
+					if (!start_in_new_thread(mini_save_dialog, args)) {
+						g_free(args->description);
+						g_free(args->copyright);
+						free(args);
+					}
 				} else {
 					g_free(args->copyright);
 					g_free(args->description);

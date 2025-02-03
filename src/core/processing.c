@@ -399,6 +399,13 @@ the_end:
 	return GINT_TO_POINTER(retval);
 }
 
+void free_generic_seq_args(struct generic_seq_args *args) {
+	free(args->new_seq_prefix);
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free(args);
+}
+
 // default idle function (in GTK main thread) to run at the end of the generic sequence processing
 gboolean end_generic_sequence(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *) p;
@@ -416,10 +423,7 @@ gboolean end_generic_sequence(gpointer p) {
 	// string in function-specific structs) *must* always be allocated using
 	// a freeable function, i.e. char* seqEntry = strdup("prefix_"); rather
 	// than char* seqEntry = "prefix_";
-	free(args->new_seq_prefix);
-	if (!check_seq_is_comseq(args->seq))
-		free_sequence(args->seq, TRUE);
-	free(p);
+	free_generic_seq_args(args);
 	return end_generic(NULL);
 }
 
@@ -717,6 +721,13 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 	free(multi_data);
 	return retval;
 }
+void free_multi_args(struct multi_output_data *multi_args) {
+	for (int i = 0 ; i < multi_args->n ; i++) {
+		g_free(multi_args->prefixes[i]);
+	}
+	free(multi_args->prefixes);
+	free(multi_args);
+}
 
 int multi_finalize(struct generic_seq_args *args) {
 	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
@@ -748,14 +759,15 @@ static gboolean thread_being_waited = FALSE;
 
 // This function is reentrant. The pointer will be freed in the idle function,
 // so it must be a proper pointer to an allocated memory chunk.
-void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
+gboolean start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
 
 	if (com.run_thread || com.python_claims_thread || com.thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
-		free(p);
-		return;
+		// We can't free p here as it may have unknown members. We must
+		// indicate failure and allow the caller to clean up
+		return FALSE;
 	}
 
 	com.run_thread = TRUE;
@@ -774,15 +786,15 @@ void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
+	return TRUE; // indicate success
 }
 
-void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
+gboolean start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
 	if (com.thread || com.python_claims_thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
-		free(p);
-		return;
+		return FALSE;
 	}
 
 	com.run_thread = TRUE;
@@ -798,6 +810,7 @@ void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
+	return TRUE;
 }
 
 gpointer waiting_for_thread() {

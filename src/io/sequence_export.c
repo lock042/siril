@@ -670,7 +670,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 			return;
 	}
 
-	struct exportseq_args *args = malloc(sizeof(struct exportseq_args));
+	struct exportseq_args *args = calloc(1, sizeof(struct exportseq_args));
 	args->seq = &com.seq;
 	get_sequence_filtering_from_gui(&args->filtering_criterion, &args->filtering_parameter);
 	args->basename = g_str_to_ascii(bname, NULL);
@@ -724,7 +724,10 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	set_cursor_waiting(TRUE);
-	start_in_new_thread(export_sequence, args);
+	if (!start_in_new_thread(export_sequence, args)) {
+		g_free(args->basename);
+		free(args);
+	}
 }
 
 void on_comboExport_changed(GtkComboBox *box, gpointer user_data) {

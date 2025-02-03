@@ -131,7 +131,10 @@ void apply_banding_to_sequence(struct banding_data *banding_args) {
 
 	banding_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (start_in_new_thread(generic_sequence_worker, args)) {
+		free(args->user);
+		free_generic_seq_args(args);
+	}
 }
 
 // idle function executed at the end of the BandingEngine processing
@@ -427,7 +430,8 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		args->seq = &com.seq;
 		apply_banding_to_sequence(args);
 	} else {
-		start_in_new_thread(BandingEngineThreaded, args);
+		if (!start_in_new_thread(BandingEngineThreaded, args))
+			free(args);
 	}
 }
 
