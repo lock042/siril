@@ -29,12 +29,13 @@ SOFTWARE.
 #include "utils.hpp"
 #include "edgetaper.hpp"
 #include "core/processing.h"
+#include "core/siril_log.h"
 
 // downsample an image with Gaussian filtering
 void gaussian_downsample(img_t<float>& out, const img_t<float>& _in, float factor, float sigma=1.6f) {
     img_t<float> in = _in; // copy input
     if (factor == 1) {
-        out = in;
+        out = std::move(in);
         return;
     }
 
