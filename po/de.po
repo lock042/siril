@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-02-01 12:51+0100\n"
-"PO-Revision-Date: 2025-02-01 11:50+0000\n"
-"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
+"PO-Revision-Date: 2025-02-03 19:14+0000\n"
+"Last-Translator: Jens Fischer <jensfz@gmail.com>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -4036,7 +4036,7 @@ msgstr "Berechnetes Sampling (arcsec/pixel):"
 
 #: src/gui/uifiles/file_information_dialog.ui:202
 msgid "Binning: "
-msgstr ""
+msgstr "Binning: "
 
 #: src/gui/uifiles/file_information_dialog.ui:213
 msgid ""
@@ -4134,7 +4134,7 @@ msgstr "Wende Auto-Stretch Algorithmus auf Bild an"
 
 #: src/gui/uifiles/histogram_dialog.ui:518
 msgid "Highlights: "
-msgstr ""
+msgstr "Highlights: "
 
 #: src/gui/uifiles/histogram_dialog.ui:529
 msgid "Highlights clipping"
@@ -4157,8 +4157,9 @@ msgid "Shadows clipping"
 msgstr "Schatten Übersteuerung"
 
 #: src/gui/uifiles/histogram_dialog.ui:620
+#, fuzzy
 msgid "Clip (%)"
-msgstr ""
+msgstr "Zuschnitt (%)"
 
 #: src/gui/uifiles/histogram_dialog.ui:633
 msgid "Clipped pixels count (shadows)"
@@ -4289,7 +4290,7 @@ msgstr ""
 
 #: src/gui/uifiles/keywords_dialog.ui:27
 msgid "FITS Header"
-msgstr ""
+msgstr "FITS Header"
 
 #: src/gui/uifiles/keywords_dialog.ui:42
 msgid "Copy Selection"
@@ -4431,7 +4432,7 @@ msgstr "Copyright"
 
 #: src/gui/uifiles/icc_dialog.ui:332
 msgid "\n"
-msgstr ""
+msgstr "\n"
 
 #: src/gui/uifiles/icc_dialog.ui:360
 msgid "Built-in profile"
@@ -4643,7 +4644,7 @@ msgstr "Warte auf Dateien"
 
 #: src/gui/uifiles/livestacking_player.ui:228 src/gui/uifiles/siril.ui:9358
 msgid "Stacking"
-msgstr ""
+msgstr "Stacken"
 
 #: src/gui/uifiles/livestacking_player.ui:297
 msgid "Master-dark and cosmetic correction"
@@ -4905,7 +4906,7 @@ msgstr "Scrollaction entfernen"
 #: src/gui/uifiles/mouse_actions.ui:255 src/gui/uifiles/settings_window.ui:5308
 #: src/gui/uifiles/siril.ui:6357
 msgid " "
-msgstr ""
+msgstr " "
 
 #: src/gui/uifiles/mouse_actions.ui:271
 msgid "Scroll Actions"
@@ -5095,7 +5096,7 @@ msgstr "Nächster Nachbar"
 #: src/gui/uifiles/rotation_dialog.ui:204 src/gui/uifiles/siril.ui:7086
 #: src/algos/geometry.c:301 src/algos/geometry.c:397
 msgid "Bilinear"
-msgstr ""
+msgstr "Bilinear"
 
 #: src/gui/uifiles/resample_dialog.ui:197
 #: src/gui/uifiles/rotation_dialog.ui:205 src/gui/uifiles/siril.ui:7087
@@ -5883,7 +5884,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:723
 msgid "<b>FITS Format</b>"
-msgstr ""
+msgstr "<b>FITS Format</b>"
 
 #: src/gui/uifiles/settings_window.ui:750
 msgid "Enable Aladin compatibility (CTYPE3 = 'RGB ')"
@@ -6345,7 +6346,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1683
 msgid "3"
-msgstr ""
+msgstr "3"
 
 #: src/gui/uifiles/settings_window.ui:1711
 msgid "Target radius (degrees)"
@@ -6361,7 +6362,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1726
 msgid "10.00"
-msgstr ""
+msgstr "10.00"
 
 #: src/gui/uifiles/settings_window.ui:1756
 msgid "Maximum seconds to try solving. 0 to disable it"
@@ -6379,7 +6380,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1771
 msgid "30"
-msgstr ""
+msgstr "30"
 
 #: src/gui/uifiles/settings_window.ui:1797
 msgid "General Platesolving"
@@ -7568,7 +7569,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5324
 msgid "Python Interface"
-msgstr ""
+msgstr "Python Interface"
 
 #: src/gui/uifiles/settings_window.ui:5358
 #: src/gui/uifiles/settings_window.ui:5756
@@ -8029,11 +8030,11 @@ msgstr "Auswahl"
 
 #: src/gui/uifiles/siril.ui:756 src/gui/mouse_action_functions.h:67
 msgid "Undo"
-msgstr ""
+msgstr "Wiederherstellen"
 
 #: src/gui/uifiles/siril.ui:765 src/gui/mouse_action_functions.h:71
 msgid "Redo"
-msgstr ""
+msgstr "Wiederholen"
 
 #: src/gui/uifiles/siril.ui:780
 msgid "PSF"
@@ -8212,7 +8213,7 @@ msgstr "Berechnen die Umkehrung des Bildes"
 
 #: src/gui/uifiles/siril.ui:1286 src/gui/colors.c:313
 msgid "Negative Transformation"
-msgstr ""
+msgstr "Negative Transformation"
 
 #: src/gui/uifiles/siril.ui:1310
 msgid "Filters"
@@ -8279,7 +8280,7 @@ msgstr "Dialog asinh-Transformation öffnen"
 
 #: src/gui/uifiles/siril.ui:1516
 msgid "Asinh Transformation..."
-msgstr ""
+msgstr "Asinh Transformation..."
 
 #: src/gui/uifiles/siril.ui:1529
 msgid "Open the curves transform dialog"
@@ -11029,6 +11030,9 @@ msgid ""
 "Left-click to show object names if WCS information is available. Right-click "
 "to display a list of astro catalogs to choose from."
 msgstr ""
+"Linksklick um die Objektnamen anzuzeigen, wenn WCS Informationen verfügbar "
+"sind. Rechtsklick um eine liste des Astrokatalogs anzuzeigen, aus der Sie "
+"wählen können."
 
 #: src/gui/uifiles/siril.ui:10150
 msgid "Show celestial grid if WCS information is available"
@@ -31168,60 +31172,72 @@ msgstr ""
 #: src/io/siril_pythonmodule.c:837
 #, c-format
 msgid "Python process (PID: %d) terminated by signal %d\n"
-msgstr ""
+msgstr "Python Prozess (PID: %d) durch Signal %d terminiert\n"
 
 #: src/io/siril_pythonmodule.c:1099
 msgid "Python communication worker finished...\n"
-msgstr ""
+msgstr "Python Kommunikation worker beendet...\n"
 
 #: src/io/siril_pythonmodule.c:1497
 msgid ""
 "Installing / updating python module in the background. This may take a few "
 "seconds...\n"
 msgstr ""
+"Installation/Aktualisierung von Python-Modulen im Hintergrund. Dies kann ein "
+"paar Sekunden dauern...\n"
 
 #: src/io/siril_pythonmodule.c:1562
 #, c-format
 msgid "Preparing python virtual environment: %s.\n"
-msgstr ""
+msgstr "Vorbereiten der virtuellen Python-Umgebung: %s.\n"
 
 #. Check the sirilpy python module is the latest version and install or
 #. update it using the venv pip if not.
 #: src/io/siril_pythonmodule.c:1603
 msgid "Checking the python module is up-to-date...\n"
-msgstr ""
+msgstr "Prüfen, ob das Python-Modul aktuell ist...\n"
 
 #: src/io/siril_pythonmodule.c:1608
 msgid "Warning: unable to install or update the Siril python module.\n"
 msgstr ""
+"Warnung: Das Siril-Python-Modul kann nicht installiert oder aktualisiert "
+"werden.\n"
 
 #: src/io/siril_pythonmodule.c:1614
 msgid "Python module is up-to-date\n"
-msgstr ""
+msgstr "Python-Modul ist aktuell\n"
 
 #: src/io/siril_pythonmodule.c:1662
 msgid ""
 "Error: msys2 environment detected. Siril Python support cannot be correctly "
 "initialized.\n"
 msgstr ""
+"Fehler: msys2-Umgebung erkannt. Die Siril-Python-Unterstützung kann nicht "
+"korrekt initialisiert werden.\n"
 
 #: src/io/siril_pythonmodule.c:1663
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
 msgstr ""
+"Um den Prozess abzuschließen, stellen Sie zunächst sicher, dass Sie eine "
+"Python-Installation (>=3.9) auf Ihrem Computer haben.\n"
 
 #: src/io/siril_pythonmodule.c:1664
 msgid ""
 "Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it "
 "from there.\n"
 msgstr ""
+"Suchen Sie siril.exe (normalerweise unter C:\\msys64\\mingw64\\bin) und "
+"starten Sie es von dort.\n"
 
 #: src/io/siril_pythonmodule.c:1665
 msgid ""
 "Next time you need to start siril, you can go back to starting it from msys2 "
 "terminal.\n"
 msgstr ""
+"Wenn Sie siril das nächste Mal starten müssen, können Sie es wieder vom "
+"msys2-Terminal aus starten.\n"
 
 #: src/io/siril_pythonmodule.c:1698
 #, fuzzy
@@ -31249,6 +31265,10 @@ msgid ""
 "and module setup has not yet completed. Please wait a short time for a "
 "completion message in the log and try again.\n"
 msgstr ""
+"Fehler: python ist noch nicht bereit. Dies kann beim ersten Start passieren, "
+"wenn die Einrichtung von Python-Venv und -Modulen noch nicht abgeschlossen "
+"ist. Bitte warten Sie kurz auf eine Fertigstellungsmeldung im Protokoll und "
+"versuchen Sie es erneut.\n"
 
 #: src/io/siril_pythonmodule.c:1852
 #, fuzzy
@@ -31264,6 +31284,8 @@ msgstr "Fehler: Befehl %s ist nicht verfügbar\n"
 #: src/io/siril_pythonmodule.c:1913
 msgid "Error finding venv python path, unable to spawn python.\n"
 msgstr ""
+"Fehler beim Auffinden des venv-Python-Pfads, Python kann nicht gestartet "
+"werden.\n"
 
 #: src/io/siril_pythonmodule.c:2029
 #, fuzzy, c-format
@@ -31277,12 +31299,12 @@ msgstr "Unbekanntes Bild"
 
 #: src/io/siril_pythoncommands.c:591
 msgid "Received incomplete command header\n"
-msgstr ""
+msgstr "Unvollständig empfangener Befehls Header\n"
 
 #: src/io/siril_pythoncommands.c:600
 #, c-format
 msgid "Received incomplete command payload: length = %u, expected %u\n"
-msgstr ""
+msgstr "Empfangene unvollständige Befehls-Nutzdaten: Länge = %u, erwartet %u\n"
 
 #. Handle error retrieving dimensions
 #: src/io/siril_pythoncommands.c:630 src/io/siril_pythoncommands.c:659
@@ -31549,7 +31571,7 @@ msgstr "Konnte die Sequenz nicht lesen, Abbruch."
 #. Handle error: OS is not Windows
 #: src/io/siril_pythoncommands.c:1944
 msgid "_get_bundle_path() only applicable on Windows"
-msgstr ""
+msgstr "_get_bundle_path() nur unter Windows anwendbar"
 
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:1954
