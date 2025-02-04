@@ -811,8 +811,10 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		args->threading = MULTI_THREADED;
 		undo_save_state(&gfit, _("Cosmetic Correction"));
-		if (!start_in_new_thread(autoDetectThreaded, args))
+		if (!start_in_new_thread(autoDetectThreaded, args)) {
+			free(args->seqEntry);
 			free(args);
+		}
 	}
 }
 

@@ -566,6 +566,7 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		args->seq = &com.seq;
 		// If entry text is empty, set the sequence prefix to default 'curve_'
 		if (args->seq_entry && args->seq_entry[0] == '\0') {
+			free(args->seq_entry);
 			args->seq_entry = strdup("stretch_");
 		}
 

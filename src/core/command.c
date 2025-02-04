@@ -7626,6 +7626,8 @@ int process_register(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
+			if (regargs->prefix)
+				free(regargs->prefix);
 			regargs->prefix = strdup(value);
 		} else if (g_str_has_prefix(word[i], "-minpairs=")) {
 			char *current = word[i], *value;
