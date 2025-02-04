@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-02-01 11:52+0000\n"
-"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
+"PO-Revision-Date: 2025-02-03 19:14+0000\n"
+"Last-Translator: Jens Fischer <jensfz@gmail.com>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/de/>\n"
 "Language: de\n"
@@ -2076,7 +2076,7 @@ msgstr "Berechnetes Sampling (arcsec/pixel):"
 
 #: src/gui/siril3.glade:8685
 msgid "Binning: "
-msgstr ""
+msgstr "Binning: "
 
 #: src/gui/siril3.glade:8696
 msgid ""
@@ -3658,7 +3658,7 @@ msgstr "Warte auf Dateien"
 
 #: src/gui/siril3.glade:14062 src/gui/siril3.glade:25246
 msgid "Stacking"
-msgstr ""
+msgstr "Stacken"
 
 #: src/gui/siril3.glade:14131
 msgid "Master-dark and cosmetic correction"
@@ -3785,11 +3785,11 @@ msgstr "Auswahl"
 
 #: src/gui/siril3.glade:14710
 msgid "Undo"
-msgstr ""
+msgstr "Wiederherstellen"
 
 #: src/gui/siril3.glade:14719
 msgid "Redo"
-msgstr ""
+msgstr "Wiederholen"
 
 #: src/gui/siril3.glade:14734
 msgid "PSF"
@@ -4132,7 +4132,7 @@ msgstr "Wende Auto-Stretch Algorithmus auf Bild an"
 
 #: src/gui/siril3.glade:15892
 msgid "Highlights: "
-msgstr ""
+msgstr "Highlights: "
 
 #: src/gui/siril3.glade:15904
 msgid "Midtones: "
@@ -4155,8 +4155,9 @@ msgid "Highlights clipping"
 msgstr "Highlights Übersteuerung"
 
 #: src/gui/siril3.glade:15994
+#, fuzzy
 msgid "Clip (%)"
-msgstr ""
+msgstr "Zuschnitt (%)"
 
 #: src/gui/siril3.glade:16007
 msgid "Clipped pixels count (shadows)"
@@ -4415,7 +4416,7 @@ msgstr "Dialog asinh-Transformation öffnen"
 
 #: src/gui/siril3.glade:17607
 msgid "Asinh Transformation..."
-msgstr ""
+msgstr "Asinh Transformation..."
 
 #: src/gui/siril3.glade:17620
 msgid "Open the generalized hyperbolic transform dialog"
@@ -4461,7 +4462,7 @@ msgstr "Berechnen die Umkehrung des Bildes"
 
 #: src/gui/siril3.glade:17707 src/gui/colors.c:312
 msgid "Negative Transformation"
-msgstr ""
+msgstr "Negative Transformation"
 
 # unschön, genaue Beschreibung erforderlich
 #: src/gui/siril3.glade:17731
@@ -4739,7 +4740,7 @@ msgstr "Nächster Nachbar"
 #: src/gui/siril3.glade:18632 src/gui/siril3.glade:18904
 #: src/gui/siril3.glade:23274 src/algos/geometry.c:298 src/algos/geometry.c:394
 msgid "Bilinear"
-msgstr ""
+msgstr "Bilinear"
 
 #: src/gui/siril3.glade:18633 src/gui/siril3.glade:18905
 #: src/gui/siril3.glade:23275 src/algos/geometry.c:302 src/algos/geometry.c:400
@@ -7603,7 +7604,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:28166
 msgid "<b>FITS Format</b>"
-msgstr ""
+msgstr "<b>FITS Format</b>"
 
 #: src/gui/siril3.glade:28192
 msgid "Enable Aladin compatibility (CTYPE3 = 'RGB ')"

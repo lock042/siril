@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-02-01 11:52+0000\n"
+"PO-Revision-Date: 2025-02-03 19:14+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/ru/>\n"
@@ -301,8 +301,8 @@ msgid ""
 "Background for lines is computed using pixels in SigmaFactor * StdDev only. "
 "Higher value will give a better protection."
 msgstr ""
-"Фон строк вычисляется используя только пиксели в приделах \"коэффициент "
-"сигма * стандартное отклонение\". Бо́льшие значения дают лучшую защиту."
+"Фон строк вычисляется используя только пиксели в приделах «коэффициент сигма "
+"* стандартное отклонение». Бо́льшие значения дают лучшую защиту."
 
 #: src/gui/siril3.glade:1342
 msgid "Vertical banding"
@@ -732,7 +732,7 @@ msgid ""
 "Tolerance of global sample rejection, in sigma units. By decreasing this "
 "value, Siril will be more restrictive to select background samples."
 msgstr ""
-"Допуск общей выбраковки образца, в единицах стандартного отклонения. При "
+"Допуск общей выбраковки образцов, в единицах стандартного отклонения. При "
 "уменьшении этого значения, выбор образцов фона будет более ограниченным."
 
 #: src/gui/siril3.glade:3771
@@ -822,7 +822,7 @@ msgid ""
 "memory allowing the user to work iteratively."
 msgstr ""
 "Будет рассчитан синтетический фон и применён выбранный тип коррекции. Модель "
-"всегда рассчитывается для загруженного в память изображения, позволяет "
+"всегда рассчитывается для загруженного в память изображения, позволяя "
 "пользователю работать итеративно."
 
 #: src/gui/siril3.glade:3925
@@ -831,13 +831,12 @@ msgstr "Показать оригинальное изображение"
 
 #: src/gui/siril3.glade:3930
 msgid "Keep pressing this button to see the original image."
-msgstr ""
-"Удерживайте нажатой эту кнопку, чтобы увидеть оригинальное изображение."
+msgstr "Удерживайте эту кнопку нажатой, чтобы увидеть оригинальное изображение."
 
 #: src/gui/siril3.glade:3977
 msgid ""
 "Prefix of the image names resulting from the background extraction process."
-msgstr "Префикс имён файлов, полученных в результате извлечения фона."
+msgstr "Префикс названий файлов, полученных в результате извлечения фона."
 
 #: src/gui/siril3.glade:4236 src/gui/siril3.glade:26538 src/io/sequence.c:1839
 msgid "Save"
@@ -846,11 +845,12 @@ msgstr "Сохранить"
 #: src/gui/siril3.glade:4281
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
 msgstr ""
-"шаблон имени для конвертированных изображений (&apos;dest&apos; в dest1.fit)"
+"шаблон названия для конвертированных изображений (&apos;dest&apos; в dest1."
+"fit)"
 
 #: src/gui/siril3.glade:4282
 msgid "root name of the converted images (the 'dest' in dest1.fit)"
-msgstr "шаблон имени для конвертированных изображений ( 'dest' в dest1.fit)"
+msgstr "шаблон названия для конвертированных изображений ( 'dest' в dest1.fit)"
 
 #: src/gui/siril3.glade:4297
 msgid "<b>Filename</b>"

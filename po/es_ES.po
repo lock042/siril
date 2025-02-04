@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-01-28 08:46+0000\n"
-"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
+"PO-Revision-Date: 2025-02-03 19:14+0000\n"
+"Last-Translator: \"Víctor R. Ruiz\" <rvr@infoastro.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/es/>\n"
 "Language: es_ES\n"
@@ -629,7 +629,6 @@ msgid "Human-weighted luminance"
 msgstr "Luminancia ponderada por el ser humano"
 
 #: src/gui/siril3.glade:3366
-#, fuzzy
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
@@ -3038,7 +3037,6 @@ msgid "Manual detection"
 msgstr "Detección manual"
 
 #: src/gui/siril3.glade:12444
-#, fuzzy
 msgid ""
 "Check this option if you want to pick each stars manually. It could be "
 "useful in some cases where Siril can't find enough stars. Please, try to "
@@ -3048,7 +3046,9 @@ msgid ""
 msgstr ""
 "Marque esta opción si quiere seleccionar las estrellas manualmente. Puede "
 "ser útil en los casos donde Siril no puede encontrar suficientes estrellas. "
-"Por favor intente elegir las estrellas más brillantes en la imagen."
+"Por favor intente elegir las estrellas más brillantes de la imagen.\n"
+"Use la herramienta de PSF dinámico o el comando de findstar, ajustando las "
+"preferencias de la imagen."
 
 #: src/gui/siril3.glade:12454 src/gui/siril3.glade:13687
 msgid "Star Detection"
@@ -3504,7 +3504,6 @@ msgstr "Estimación de ruido"
 
 #: src/gui/siril3.glade:14456 src/gui/siril3.glade:14804
 #: src/gui/siril3.glade:26804
-#, fuzzy
 msgid "Aberration Inspector"
 msgstr "Inspector de aberración"
 
