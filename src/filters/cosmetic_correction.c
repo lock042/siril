@@ -802,8 +802,10 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
-		if (args->seqEntry && args->seqEntry[0] == '\0')
+		if (args->seqEntry && args->seqEntry[0] == '\0') {
+			free(args->seqEntry);
 			args->seqEntry = strdup("cc_");
+		}
 		args->seq = &com.seq;
 		args->threading = SINGLE_THREADED;
 		gtk_toggle_button_set_active(seq, FALSE);

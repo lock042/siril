@@ -4703,6 +4703,7 @@ int process_light_curve(int nb) {
 	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
 
 	if (!start_in_new_thread(light_curve_worker, args)) {
+		g_free(args->target_descr);
 		free(args->areas);
 		free(args);
 		return CMD_GENERIC_ERROR;
@@ -6617,6 +6618,7 @@ int process_seq_merge_cfa(int nb) {
 						free_sequence(seq1, TRUE);
 						free_sequence(seq2, TRUE);
 						free_sequence(seq3, TRUE);
+						free(args->seqEntryOut);
 						free(args);
 						return CMD_ARG_ERROR;
 					}
@@ -6632,6 +6634,7 @@ int process_seq_merge_cfa(int nb) {
 				free_sequence(seq1, TRUE);
 				free_sequence(seq2, TRUE);
 				free_sequence(seq3, TRUE);
+				free(args->seqEntryOut);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -6674,6 +6677,7 @@ int process_seq_extractHa(int nb) {
 							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
 					}
+					free(args->seqEntry);
 					args->seqEntry = strdup(value);
 				}
 				else if (g_str_has_prefix(word[i], "-upscale")) {
@@ -6774,6 +6778,7 @@ int process_seq_extractHaOIII(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[2]);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
+				free(args->seqEntry);
 				free(args);
 				return CMD_ARG_ERROR;
 			} else if (!strcmp(value, "ha")) {

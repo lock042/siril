@@ -1267,8 +1267,10 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->params_ght = params;
 			const gchar* temp = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
 			args->seqEntry = strdup(temp);
-			if (args->seqEntry && args->seqEntry[0] == '\0')
+			if (args->seqEntry && args->seqEntry[0] == '\0') {
+				free(args->seqEntry);
 				args->seqEntry = strdup("stretch_");
+			}
 			args->seq = &com.seq;
 		/* here it is a bit tricky.
 		 * It is better to first close the window as it is a liveview tool

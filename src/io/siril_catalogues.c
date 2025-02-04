@@ -1340,7 +1340,6 @@ gpointer conesearch_worker(gpointer p) {
 				temp_cat->cat_items[j].name = NULL;
 			} else {
 				if (siril_cat->cat_index == CAT_PGC) {
-					/* For PGC, add prefix as needed */
 					g_free(temp_cat->cat_items[j].name);
 					temp_cat->cat_items[j].name = g_strdup_printf("PGC %s",
 																  siril_cat->cat_items[i].name);
@@ -1380,7 +1379,9 @@ gpointer conesearch_worker(gpointer p) {
 				g_free(printout);
 			}
 			g_free(ra);
+			ra = NULL;
 			g_free(dec);
+			dec = NULL;
 		}
 		if (args->compare) {
 			double scale = 1800.0 * (fabs(args->fit->keywords.wcslib->cdelt[0]) +
@@ -1394,7 +1395,6 @@ gpointer conesearch_worker(gpointer p) {
 				continue;
 			}
 			psf_error error = PSF_NO_ERR;
-			// psf_get_minimisation flips y, so area is given in display coordinates
 			int layer = (args->fit->naxes[2] == 3) ? GLAYER : RLAYER;
 			psf_star *star = psf_get_minimisation(args->fit, layer, &area, FALSE, NULL,
 												  FALSE, com.pref.starfinder_conf.profile, &error);
@@ -1405,6 +1405,7 @@ gpointer conesearch_worker(gpointer p) {
 				dx[k] = scale * (dx[k] - x);
 				dy[k] = scale * (dy[k] - y);
 				free_psf(star);
+				star = NULL;
 				k++;
 			}
 		}
@@ -1440,8 +1441,9 @@ gpointer conesearch_worker(gpointer p) {
 		if (!tmp_dxf) {
 			PRINT_ALLOC_ERR;
 			free(dx);
+			dx = NULL;
 			free(dy);
-			dx = dy = NULL;
+			dy = NULL;
 			retval = 1;
 			goto exit_conesearch;
 		}
@@ -1450,8 +1452,9 @@ gpointer conesearch_worker(gpointer p) {
 		if (!tmp_dyf) {
 			PRINT_ALLOC_ERR;
 			free(dxf);
+			dxf = NULL;
 			free(dy);
-			dxf = dyf = NULL;
+			dy = NULL;
 			retval = 1;
 			goto exit_conesearch;
 		}
@@ -1459,8 +1462,9 @@ gpointer conesearch_worker(gpointer p) {
 	} else {
 		args->compare = FALSE;
 		free(dx);
+		dx = NULL;
 		free(dy);
-		dx = dy = NULL;
+		dy = NULL;
 	}
 
 	// Write catalogue if required
@@ -1487,26 +1491,24 @@ gpointer conesearch_worker(gpointer p) {
 		siril_plot_set_savename(spl_data, "diffpos");
 		siril_plot_set_nth_plot_type(spl_data, 1, KPLOT_POINTS);
 		free(dxf);
+		dxf = NULL;
 		free(dyf);
-		dxf = dyf = NULL;
+		dyf = NULL;
 	}
 
 	retval = 0;
 
 	exit_conesearch:
 	{
-		// Cleanup: If an error occurred or if GUI is not active, free temp_cat
 		gboolean go_idle = args->has_GUI;
 		if ((retval || !args->has_GUI) && temp_cat) {
 			siril_catalog_free(temp_cat);
 			temp_cat = NULL;
 		}
 		free_conesearch_args(args);
+		args = NULL;
+
 		if (go_idle) {
-			/* If in GUI mode, schedule idle callbacks.
-			 * Note: temp_cat might be NULL here if we already freed it on error,
-			 * but end_conesearch can cope with that situation.
-			 */
 			siril_add_idle(create_new_siril_plot_window, spl_data);
 			siril_add_idle(end_conesearch, temp_cat);
 		} else {
@@ -1514,7 +1516,10 @@ gpointer conesearch_worker(gpointer p) {
 		}
 		if (retval == -1)  // success but empty field
 			retval = 0;
+
+		free(dy); // may still be NULL if the if (!j) conditional bails out
 	}
+
 	return GINT_TO_POINTER(retval);
 }
 
