@@ -61,7 +61,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 
 	/* should be pre-computed to display it in the stacking tab */
 	nb_frames = args->nb_images_to_stack;
-	gboolean has_regdata = seq_has_usable_regdata(args->seq);
+	gboolean has_regdata = seq_has_usable_registration(args->seq);
 
 	if (nb_frames <= 1) {
 		siril_log_message(_("No frame selected for stacking (select at least 2). Aborting.\n"));
