@@ -4705,6 +4705,7 @@ int process_light_curve(int nb) {
 	if (!start_in_new_thread(light_curve_worker, args)) {
 		g_free(args->target_descr);
 		free(args->areas);
+		free(args->target_descr);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
