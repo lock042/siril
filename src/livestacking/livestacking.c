@@ -656,6 +656,7 @@ static gpointer live_stacker(gpointer arg) {
 				index++;
 				livestacking_display(_("Waiting for second image"), FALSE);
 				livestacking_update_number_of_images(1, gfit.keywords.exposure, -1.0, NULL);
+				free(seq.seqname);
 				continue;
 			}
 			first_loop = FALSE;

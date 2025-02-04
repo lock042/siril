@@ -254,7 +254,6 @@ gpointer register_thread_func(gpointer p) {
 	retval = args->retval;
 	if (args->disto) {
 		free_disto_args(args->disto);
-		free(args->disto);
 	}
 	if (args->driz) {
 		free(args->driz);

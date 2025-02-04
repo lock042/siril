@@ -475,7 +475,7 @@ gboolean end_plate_solver(gpointer p) {
 	if (args->image_flipped)
 		clear_stars_list(TRUE);
 	gui_function(update_MenuItem, NULL);
-	free(args);
+	free_astrometry_data(args);
 	return FALSE;
 }
 

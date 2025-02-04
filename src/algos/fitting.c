@@ -152,7 +152,7 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 
 	siril_log_color_message(_("Linear fit functions:\n"), "green");
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
-		size_t j = 0;
+		ssize_t j = 0;
 		double *x = malloc(ref_size * sizeof(double));
 		double *y = malloc(ref_size * sizeof(double));
 		for (size_t i = 0; i < ref_size; i++) {
@@ -202,7 +202,7 @@ static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double
 
 	siril_log_color_message(_("Linear fit functions:\n"), "green");
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
-		size_t j = 0;
+		ssize_t j = 0;
 		double *x = malloc(ref_size * sizeof(double));
 		double *y = malloc(ref_size * sizeof(double));
 		for (size_t i = 0; i < ref_size; i++) {

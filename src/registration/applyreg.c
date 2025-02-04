@@ -924,6 +924,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		if (status) {
 			free(args);
 			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
+			free(sadata);
 			return -1;
 		}
 		if (!regargs->disto) {
@@ -958,6 +959,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		fits ref = { 0 };
 		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
 			siril_log_message(_("Could not load reference image\n"));
+			free(sadata);
 			return 1;
 		}
 		regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
@@ -967,6 +969,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	generic_sequence_worker(args);
 
 	regargs->retval = args->retval;
+	free(sadata);
 	free(args);
 	return regargs->retval;
 }

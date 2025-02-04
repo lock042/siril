@@ -784,8 +784,10 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		seqargs->seq = &com.seq;
 		seqargs->from_command = FALSE;
 		seqargs->seqEntry = strdup(gtk_entry_get_text(bdeconv_seq_prefix));
-		if (seqargs->seqEntry && seqargs->seqEntry[0] == '\0')
+		if (seqargs->seqEntry && seqargs->seqEntry[0] == '\0') {
+			free(seqargs->seqEntry);
 			seqargs->seqEntry = strdup("dec_");
+		}
 		apply_deconvolve_to_sequence(seqargs);
 	} else {
 		copy_backup_to_gfit();
