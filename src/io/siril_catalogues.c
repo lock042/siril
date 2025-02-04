@@ -1242,8 +1242,10 @@ gpointer conesearch_worker(gpointer p) {
 	double *dx = NULL, *dy = NULL, *dxf = NULL, *dyf = NULL;
 	siril_plot_data *spl_data = NULL;
 	int retval = 1;
-	double stardiam = 0.;
+	double stardiam = 0.0;
 	gboolean hide_display_tag = FALSE;
+
+	// Check initial args
 	if (!siril_cat) {
 		siril_debug_print("no query passed");
 		goto exit_conesearch;
@@ -1253,22 +1255,26 @@ gpointer conesearch_worker(gpointer p) {
 		siril_debug_print("Compare available only with GUI\n");
 	}
 
-	// launching the query
+	// Launch the query
 	int check = siril_catalog_conesearch(siril_cat);
-	if (!check) {// conesearch has failed
+	if (!check) {  // conesearch failed
 		goto exit_conesearch;
 	}
-	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO && siril_cat->cat_index != CAT_LOCAL_TRIX)
-		siril_log_message(_("The %s catalog has been successfully downloaded\n"), catalog_to_str(siril_cat->cat_index));
-	if (check == -1) { // conesearch was succesful but field was empty
+	if (siril_cat->cat_index != CAT_LOCAL &&
+		siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO &&
+		siril_cat->cat_index != CAT_LOCAL_TRIX)
+	{
+		siril_log_message(_("The %s catalog has been successfully downloaded\n"),
+						  catalog_to_str(siril_cat->cat_index));
+	}
+	if (check == -1) {  // conesearch succeeded but the field was empty
 		retval = -1;
 		goto exit_conesearch;
 	}
 
-	/* project using WCS */
-	// we need to project now to identify (and count) objects in the image
+	// Project using WCS
 	if (siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, TRUE)) {
-		if (siril_cat->projected == CAT_PROJ_WCS) // the projection was successful but no item was found in the frame
+		if (siril_cat->projected == CAT_PROJ_WCS)
 			siril_log_color_message(_("No item found in the image\n"), "salmon");
 		goto exit_conesearch;
 	}
@@ -1276,60 +1282,99 @@ gpointer conesearch_worker(gpointer p) {
 	if (siril_cat->cat_index != CAT_SHOW)
 		sort_cat_items_by_mag(siril_cat);
 	int j = 0, k = 0;
-	// preparing the annotation temp catalog if has_GUI
+
+	// Prepare the temporary annotation catalogue if GUI or output file is requested
 	if (args->has_GUI || args->outfilename) {
 		temp_cat = siril_catalog_new(CAT_AN_USER_TEMP);
+		if (!temp_cat) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+			goto exit_conesearch;
+		}
 		temp_cat->projected = CAT_PROJ_WCS;
 		if (is_star_catalogue(siril_cat->cat_index))
-			stardiam = 0.2; // in arcmin => 12"
-		if (!args->display_tag && has_field(siril_cat, NAME))
-			hide_display_tag = TRUE;
+			stardiam = 0.2;  // in arcmin => 12"
+			if (!args->display_tag && has_field(siril_cat, NAME))
+				hide_display_tag = TRUE;
 		temp_cat->cat_items = calloc(siril_cat->nbincluded, sizeof(cat_item));
+		if (!temp_cat->cat_items) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+			goto exit_conesearch;
+		}
 	}
+
+	// Allocate memory for compare mode if needed
 	if (args->compare) {
 		dx = calloc(nb_stars, sizeof(double));
+		if (!dx) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+			goto exit_conesearch;
+		}
 		dy = calloc(nb_stars, sizeof(double));
+		if (!dy) {
+			PRINT_ALLOC_ERR;
+			free(dx);
+			dx = NULL;
+			retval = 1;
+			goto exit_conesearch;
+		}
 	}
+
+	// Iterate over cat_items
 	for (int i = 0; i < nb_stars; i++) {
-		if (!siril_cat->cat_items[i].included || (siril_cat->limitmag && siril_cat->cat_items[i].mag > siril_cat->limitmag))
+		if (!siril_cat->cat_items[i].included ||
+			(siril_cat->limitmag && siril_cat->cat_items[i].mag > siril_cat->limitmag))
+		{
 			continue;
+		}
+		// If GUI is active, copy the item into the temporary catalogue
 		if (args->has_GUI) {
-			siril_catalogue_copy_item(&siril_cat->cat_items[i], &temp_cat->cat_items[j]);
+			siril_catalogue_copy_item(&siril_cat->cat_items[i],
+									  &temp_cat->cat_items[j]);
 			if (stardiam)
 				temp_cat->cat_items[j].diameter = stardiam;
 			if (hide_display_tag) {
 				g_free(temp_cat->cat_items[j].name);
 				temp_cat->cat_items[j].name = NULL;
 			} else {
-				if (siril_cat->cat_index == CAT_PGC) { // can't add PGC prefix through TAP query as can't concatenate a str and an int in ADQL...
+				if (siril_cat->cat_index == CAT_PGC) {
+					/* For PGC, add prefix as needed */
 					g_free(temp_cat->cat_items[j].name);
-					temp_cat->cat_items[j].name = g_strdup_printf("PGC %s", siril_cat->cat_items[i].name);
+					temp_cat->cat_items[j].name = g_strdup_printf("PGC %s",
+																  siril_cat->cat_items[i].name);
 				}
 			}
 		}
-		if (args->display_log) { // when we reach this point, it has been previously checked that catalog holds a name field
-			gchar *ra = siril_world_cs_alpha_format_from_double(siril_cat->cat_items[i].ra, "%02d %02d %04.1lf");
-			gchar *dec = siril_world_cs_delta_format_from_double(siril_cat->cat_items[i].dec, "%c%02d %02d %04.1lf");
-			if (siril_cat->cat_index == CAT_AAVSO_CHART) // https://www.aavso.org/api-vsp
+		if (args->display_log) {
+			gchar *ra = siril_world_cs_alpha_format_from_double(siril_cat->cat_items[i].ra,
+																"%02d %02d %04.1lf");
+			gchar *dec = siril_world_cs_delta_format_from_double(siril_cat->cat_items[i].dec,
+																 "%c%02d %02d %04.1lf");
+			if (siril_cat->cat_index == CAT_AAVSO_CHART) {
 				siril_log_message("AUID:%s - V:%3.1f [%5.3f] - B:%3.1f [%5.3f] - RA: %s, DEC: %s\n",
-				siril_cat->cat_items[i].name,
-				siril_cat->cat_items[i].mag,
-				siril_cat->cat_items[i].e_mag,
-				siril_cat->cat_items[i].bmag,
-				siril_cat->cat_items[i].e_bmag,
-				ra,
-				dec);
-			else {
+								  siril_cat->cat_items[i].name,
+					  siril_cat->cat_items[i].mag,
+					  siril_cat->cat_items[i].e_mag,
+					  siril_cat->cat_items[i].bmag,
+					  siril_cat->cat_items[i].e_bmag,
+					  ra,
+					  dec);
+			} else {
 				GString *msg = g_string_new("");
-				g_string_append_printf(msg, "%s%s", (siril_cat->cat_index == CAT_PGC) ? "PGC " : "", siril_cat->cat_items[i].name);
-				if (has_field(siril_cat, TYPE)) // for IMCCE, classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
-					g_string_append_printf(msg, " (%s)", siril_cat->cat_items[i].type);
-				g_string_append_printf(msg, ", ");
-				// RA/DEC are the minimal fields to any catalog
+				g_string_append_printf(msg, "%s%s",
+									   (siril_cat->cat_index == CAT_PGC) ? "PGC " : "",
+									   siril_cat->cat_items[i].name);
+				if (has_field(siril_cat, TYPE))
+					g_string_append_printf(msg, " (%s)",
+										   siril_cat->cat_items[i].type);
+					g_string_append_printf(msg, ", ");
 				g_string_append_printf(msg, "RA: %s, DEC: %s", ra, dec);
 				if (has_field(siril_cat, MAG))
-					g_string_append_printf(msg, " , mag:%3.1f", siril_cat->cat_items[i].mag);
-				g_string_append_printf(msg, "\n");
+					g_string_append_printf(msg, " , mag:%3.1f",
+										   siril_cat->cat_items[i].mag);
+					g_string_append_printf(msg, "\n");
 				gchar *printout = g_string_free(msg, FALSE);
 				siril_log_message(printout);
 				g_free(printout);
@@ -1338,8 +1383,8 @@ gpointer conesearch_worker(gpointer p) {
 			g_free(dec);
 		}
 		if (args->compare) {
-			double scale = 1800. * (fabs(args->fit->keywords.wcslib->cdelt[0]) + fabs(args->fit->keywords.wcslib->cdelt[1]));
-			// we copy the projected pos
+			double scale = 1800.0 * (fabs(args->fit->keywords.wcslib->cdelt[0]) +
+			fabs(args->fit->keywords.wcslib->cdelt[1]));
 			double x = siril_cat->cat_items[i].x;
 			double y = siril_cat->cat_items[i].y;
 			rectangle area = { 0 };
@@ -1348,17 +1393,15 @@ gpointer conesearch_worker(gpointer p) {
 				siril_debug_print("star %d is outside image or too close to border\n", i);
 				continue;
 			}
-			// assuming monochrome
 			psf_error error = PSF_NO_ERR;
-			// psf_get_minimisation flips y, so area has to be in display coordinates
+			// psf_get_minimisation flips y, so area is given in display coordinates
 			int layer = (args->fit->naxes[2] == 3) ? GLAYER : RLAYER;
-			psf_star *star = psf_get_minimisation(args->fit, layer, &area, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
+			psf_star *star = psf_get_minimisation(args->fit, layer, &area, FALSE, NULL,
+												  FALSE, com.pref.starfinder_conf.profile, &error);
 			if (star && !error) {
-				// area is in display coordinates, star is in local top-down coordinates from this
 				dx[k] = area.x + star->x0;
 				dy[k] = area.y + area.h - star->y0;
 				display_to_siril(dx[k], dy[k], &dx[k], &dy[k], args->fit->ry);
-				// printf("dx: %.3f, dy:%3f\n", dx[k] - x, dy[k] - y);
 				dx[k] = scale * (dx[k] - x);
 				dy[k] = scale * (dy[k] - y);
 				free_psf(star);
@@ -1367,14 +1410,20 @@ gpointer conesearch_worker(gpointer p) {
 		}
 		j++;
 	}
-	siril_log_message(_("%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"), j,
-			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag, catalog_to_str(siril_cat->cat_index));
+
+	// Summary log message
+	siril_log_message(_("%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"),
+					  j,
+				   siril_cat->phot ? " with valid photometry data" : "",
+				   siril_cat->limitmag,
+				   catalog_to_str(siril_cat->cat_index));
 	if (!j) {
 		retval = -1;
 		goto exit_conesearch;
 	}
+
+	// Resize temp catalogue to the actual number of items
 	if (args->has_GUI || args->outfilename) {
-		//re-allocating to the correct size as some may have been discarded by mag
 		cat_item *final_items = realloc(temp_cat->cat_items, j * sizeof(cat_item));
 		if (!final_items) {
 			PRINT_ALLOC_ERR;
@@ -1384,25 +1433,52 @@ gpointer conesearch_worker(gpointer p) {
 		temp_cat->cat_items = final_items;
 		temp_cat->nbitems = j;
 	}
+
+	// Memory reallocation to fit actual number of objects
 	if (args->compare && k > 0) {
-		dxf = realloc(dx, k * sizeof(double));
-		dyf = realloc(dy, k * sizeof(double));
-		if (!dxf || !dyf) {
+		double *tmp_dxf = realloc(dx, k * sizeof(double));
+		if (!tmp_dxf) {
 			PRINT_ALLOC_ERR;
+			free(dx);
+			free(dy);
+			dx = dy = NULL;
 			retval = 1;
 			goto exit_conesearch;
 		}
+		dxf = tmp_dxf;
+		double *tmp_dyf = realloc(dy, k * sizeof(double));
+		if (!tmp_dyf) {
+			PRINT_ALLOC_ERR;
+			free(dxf);
+			free(dy);
+			dxf = dyf = NULL;
+			retval = 1;
+			goto exit_conesearch;
+		}
+		dyf = tmp_dyf;
 	} else {
 		args->compare = FALSE;
 		free(dx);
 		free(dy);
+		dx = dy = NULL;
 	}
+
+	// Write catalogue if required
 	if (args->outfilename) {
-		if (siril_catalog_write_to_file(temp_cat, args->outfilename))
+		if (siril_catalog_write_to_file(temp_cat, args->outfilename)) {
 			siril_log_message(_("List saved to %s\n"), args->outfilename);
+		} else {
+			siril_log_message(_("Failed to save list to %s\n"), args->outfilename);
+		}
 	}
+
 	if (args->has_GUI && args->compare) {
 		spl_data = malloc(sizeof(siril_plot_data));
+		if (!spl_data) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+			goto exit_conesearch;
+		}
 		init_siril_plot_data(spl_data);
 		siril_plot_set_title(spl_data, "Detected vs astrometric position");
 		siril_plot_set_xlabel(spl_data, "dx [\"]");
@@ -1412,23 +1488,33 @@ gpointer conesearch_worker(gpointer p) {
 		siril_plot_set_nth_plot_type(spl_data, 1, KPLOT_POINTS);
 		free(dxf);
 		free(dyf);
+		dxf = dyf = NULL;
 	}
+
 	retval = 0;
-exit_conesearch:;
-	gboolean go_idle = args->has_GUI;
-	if ((retval || !args->has_GUI) && temp_cat) {
-		siril_catalog_free(temp_cat);
-		temp_cat = NULL;
+
+	exit_conesearch:
+	{
+		// Cleanup: If an error occurred or if GUI is not active, free temp_cat
+		gboolean go_idle = args->has_GUI;
+		if ((retval || !args->has_GUI) && temp_cat) {
+			siril_catalog_free(temp_cat);
+			temp_cat = NULL;
+		}
+		free_conesearch_args(args);
+		if (go_idle) {
+			/* If in GUI mode, schedule idle callbacks.
+			 * Note: temp_cat might be NULL here if we already freed it on error,
+			 * but end_conesearch can cope with that situation.
+			 */
+			siril_add_idle(create_new_siril_plot_window, spl_data);
+			siril_add_idle(end_conesearch, temp_cat);
+		} else {
+			end_generic(NULL);
+		}
+		if (retval == -1)  // success but empty field
+			retval = 0;
 	}
-	free_conesearch_args(args);
-	if (go_idle) {
-		siril_add_idle(create_new_siril_plot_window, spl_data);
-		siril_add_idle(end_conesearch, temp_cat);
-	} else {
-		end_generic(NULL);
-	}
-	if (retval == -1) // success but empty field
-		retval = 0;
 	return GINT_TO_POINTER(retval);
 }
 

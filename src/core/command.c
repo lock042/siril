@@ -469,28 +469,22 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 			if (args->fit->type == DATA_FLOAT) {
 				for (size_t i = 0; i < 3; i++) {
 					float *loop_fdata = (float*) calloc(npixels, sizeof(float));
+					free(loop->fdata);
 					loop->fdata = loop_fdata;
-					for (size_t j = 0 ; j < npixels ; j++) {
-						loop_fdata[j] = args->fit->fpdata[i][j];
-					}
+					memcpy(loop_fdata, args->fit->fpdata[i], npixels * sizeof(float));
 					retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
-					for (size_t j = 0 ;j < npixels ; j++) {
-						args->fit->fpdata[i][j] = loop->fdata[j];
-					}
+					memcpy(args->fit->pdata[i], loop->data, npixels * sizeof(float));
 				}
 				free(loop->fdata);
 				loop->fdata = NULL;
 			} else {
 				for (size_t i = 0; i < 3; i++) {
 					WORD *loop_data = (WORD*) calloc(npixels, sizeof(WORD));
+					free(loop->data);
 					loop->data = loop_data;
-					for (size_t j = 0 ; j < npixels ; j++) {
-						loop_data[j] = args->fit->pdata[i][j];
-					}
+					memcpy(loop_data, args->fit->pdata[i], npixels * sizeof(WORD));
 					retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
-					for (size_t j = 0 ;j < npixels ; j++) {
-						args->fit->pdata[i][j] = loop->data[j];
-					}
+					memcpy(args->fit->pdata[i], loop->data, npixels * sizeof(WORD));
 				}
 				free(loop->data);
 				loop->data = NULL;
@@ -6495,8 +6489,10 @@ int process_seq_split_cfa(int nb) {
 			}
 		}
 	}
-	if (args->seqEntry && args->seqEntry[0] == '\0')
+	if (args->seqEntry && args->seqEntry[0] == '\0') {
+		free(args->seqEntry);
 		args->seqEntry = strdup("CFA");
+	}
 	for (int i = 0 ; i < 4 ; i++) {
 		args->prefixes[i] = g_strdup_printf("%s%d_", args->seqEntry, i);
 	}
@@ -6624,6 +6620,8 @@ int process_seq_merge_cfa(int nb) {
 						free(args);
 						return CMD_ARG_ERROR;
 					}
+					if (args->seqEntryOut)
+						free(args->seqEntryOut);
 					args->seqEntryOut = strdup(value);
 				}
 			}
@@ -6685,6 +6683,7 @@ int process_seq_extractHa(int nb) {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
+					free(args->seqEntry);
 					free(args);
 					return CMD_ARG_ERROR;
 				}
@@ -6767,8 +6766,6 @@ int process_seq_extractHaOIII(int nb) {
 	args->seq = seq;
 	args->seqEntry = strdup("CFA"); // propose to default to "CFA" for consistency of output names with single image split_cfa
 	args->n = 2;
-	args->prefixes = calloc(3, sizeof(const char*));
-
 	if (word[2]) {
 		if (g_str_has_prefix(word[2], "-resample=")) {
 			char *current = word[2], *value;
@@ -6786,6 +6783,7 @@ int process_seq_extractHaOIII(int nb) {
 			}
 		}
 	}
+	args->prefixes = calloc(3, sizeof(char*));
 	args->prefixes[0] = g_strdup("Ha_");
 	args->prefixes[1] = g_strdup("OIII_");
 

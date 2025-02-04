@@ -258,6 +258,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	for (int i = 0; i < cat->nfields; ++i) {
 		if (!fread(&(cat->de[i]), sizeof(dataElement), 1, f)) {
 			siril_debug_print("error reading field descriptor %d\n", i);
+			free(cat->de);
 			free(cat);
 			return NULL;
 		}
@@ -269,6 +270,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	/* reading the trixel index table */
 	if (!fread(&cat->ntrixels, 4, 1, f)) {
 		siril_debug_print("error reading number of trixels\n");
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -287,6 +289,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	// of headroom)
 	if (cat->ntrixels < 1 || cat->ntrixels > MAX_NUM_TRIXELS) {
 		siril_log_color_message(_("Error: number of trixels reported by file is out of limits.\n"), "red");
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -296,6 +299,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	cat->indices = malloc(cat->ntrixels * sizeof(struct catalogue_index));
 	if (!cat->indices) {
 		PRINT_ALLOC_ERR;
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -303,6 +307,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	if (fread(cat->indices, sizeof(struct catalogue_index), cat->ntrixels, f) < cat->ntrixels) {
 		siril_debug_print("unexpected read failure in index table\n");
 		free(cat->indices);
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -317,6 +322,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 			siril_debug_print("expected trixel ID of %d, got %u\n", i, current->trixelID);
 			// if this is not right, we won't be able to use the indexing of the index
 			free(cat->indices);
+			free(cat->de);
 			free(cat);
 			return NULL;
 		}
@@ -324,6 +330,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 			siril_debug_print("catalogue claims excessive number (%d) of stars in trixel ID %u. Potential data error or corruption\n", current->nrecs, current->trixelID);
 			// memory safety as this value is used for memory allocation
 			free(cat->indices);
+			free(cat->de);
 			free(cat);
 			return NULL;
 		}
