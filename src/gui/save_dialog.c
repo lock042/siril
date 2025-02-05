@@ -746,12 +746,17 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
+<<<<<<< HEAD
 	if (test_for_viewer_mode(args)) {
 		if (!start_in_new_thread(mini_save_dialog, args)) {
 			g_free(args->copyright);
 			g_free(args->description);
 			free(args);
 		}
+=======
+	if (test_for_viewer_mode()) {
+		start_in_new_thread(mini_save_dialog, args);
+>>>>>>> origin
 	} else {
 		g_free(args->copyright);
 		g_free(args->description);
@@ -765,12 +770,17 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
+<<<<<<< HEAD
 	if (test_for_viewer_mode(args)) {
 		if (!start_in_new_thread(mini_save_dialog, args)) {
 			g_free(args->copyright);
 			g_free(args->description);
 			free(args);
 		}
+=======
+	if (test_for_viewer_mode()) {
+		start_in_new_thread(mini_save_dialog, args);
+>>>>>>> origin
 	} else {
 		g_free(args->copyright);
 		g_free(args->description);
@@ -794,7 +804,7 @@ void on_header_save_as_button_clicked() {
 
 				set_cursor_waiting(TRUE);
 				initialize_data(args);
-				if (test_for_viewer_mode(args)) {
+				if (test_for_viewer_mode()) {
 					if (!start_in_new_thread(mini_save_dialog, args)) {
 						g_free(args->description);
 						g_free(args->copyright);

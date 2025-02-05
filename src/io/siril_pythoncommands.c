@@ -1327,6 +1327,40 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
+		case CMD_GET_SEQ_FRAME_FILENAME: {
+			if (!sequence_is_loaded()) {
+				const char* error_msg = _("No sequence loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			int index;
+			if (payload_length == 4) {
+				index = GUINT32_FROM_BE(*(int*) payload);
+			}
+			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
+				const char* error_msg = _("Incorrect command arguments");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			char frame_filename[256];
+			char *result = NULL;
+			gchar *absolute_path = NULL;
+			result = seq_get_image_filename(&com.seq, index, frame_filename);
+			if (com.wd && result) {
+				if (com.seq.type == SEQ_REGULAR) {
+					absolute_path = g_build_filename(com.wd, frame_filename, NULL);
+				} else {
+					absolute_path = g_strdup(frame_filename);
+				}
+				success = send_response(conn, STATUS_OK, absolute_path, strlen(absolute_path));
+			} else {
+				const char* error_msg = _("Error building frame filename");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			g_free(absolute_path);
+			break;
+		}
+
 		case CMD_GET_SEQ_STATS: {
 			if (!sequence_is_loaded()) {
 				const char* error_msg = _("No sequence loaded");
