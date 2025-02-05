@@ -28,5 +28,6 @@ typedef struct remixargs {
 starnet_version starnet_executablecheck(gchar* executable);
 gpointer do_starnet(gpointer p);
 void apply_starnet_to_sequence(struct multi_output_data *multi_args);
+void free_starnet_args(starnet_data *args);
 
 #endif /* SRC_FILTERS_STARNET_H_ */
