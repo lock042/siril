@@ -84,58 +84,87 @@
  * @param name the path of the directory to be tested
  * @return the disk space remaining in bytes, or a negative value if error
  */
-#if OS_OSX
+#ifdef OS_OSX
 static gint64 find_space(const gchar *name) {
 	gint64 result = -1;
-	@autoreleasepool
-	{
+	@autoreleasepool {
+		// Check input parameter
+		if (!name) {
+			NSLog(@"Error: null path provided");
+			return result;
+		}
+
 		NSString *path = [NSString stringWithUTF8String:name];
 		if (!path) {
+			NSLog(@"Error: invalid path string encoding");
+			return result;
+		}
+
+		// Check if path exists
+		BOOL isDirectory;
+		if (![[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDirectory]) {
+			NSLog(@"Error: path does not exist: %@", path);
 			return result;
 		}
 
 		NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:path];
+		if (!fileURL) {
+			NSLog(@"Error: could not create NSURL from path");
+			return result;
+		}
+
 		NSError *error = nil;
 
-		// First get filesystem type
-		NSDictionary *fsInfo = [fileURL resourceValuesForKeys:@[NSURLVolumeLocalizedFormatDescriptionKey]
-		error:&error];
+		// Check if volume is accessible
+		NSDictionary *fsInfo = [fileURL resourceValuesForKeys:@[NSURLVolumeLocalizedFormatDescriptionKey] error:&error];
 		if (!fsInfo) {
 			NSLog(@"Error getting filesystem info: %@", error);
+			#if !__has_feature(objc_arc)
+			[fileURL release];
+			#endif
 			return result;
 		}
 
 		NSString *fsType = fsInfo[NSURLVolumeLocalizedFormatDescriptionKey];
+		if (!fsType) {
+			NSLog(@"Error: could not determine filesystem type");
+			#if !__has_feature(objc_arc)
+			[fileURL release];
+			#endif
+			return result;
+		}
 
-		// For APFS or HFS+, we can use the important usage key
+		// For APFS or HFS+, use important usage key
 		if ([fsType containsString:@"APFS"] || [fsType containsString:@"HFS"]) {
-			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey]
-			error:&error];
+			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
 			if (!results) {
 				NSLog(@"Error getting space info: %@", error);
-			} else if (results) {
+			} else {
 				NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
 				if (freeSpace) {
 					result = (gint64)[freeSpace longLongValue];
+				} else {
+					NSLog(@"Error: no free space information available");
 				}
 			}
 		} else {
-			// For other filesystems (FAT32, etc.), fall back to basic capacity
-			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey]
-			error:&error];
+			// For other filesystems (FAT32, etc.), use basic capacity
+			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey] error:&error];
 			if (!results) {
 				NSLog(@"Error getting space info: %@", error);
-			} else if (results) {
+			} else {
 				NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityKey];
 				if (freeSpace) {
-				result = (gint64)[freeSpace longLongValue];
+					result = (gint64)[freeSpace longLongValue];
+				} else {
+					NSLog(@"Error: no free space information available");
+				}
 			}
 		}
-	}
 
-	#if !__has_feature(objc_arc)
-	[fileURL release];
-	#endif
+		#if !__has_feature(objc_arc)
+		[fileURL release];
+		#endif
 	}
 
 	return result;
