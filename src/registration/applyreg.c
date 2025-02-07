@@ -958,6 +958,8 @@ int register_apply_reg(struct registration_args *regargs) {
 		fits ref = { 0 };
 		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
 			siril_log_message(_("Could not load reference image\n"));
+			free(sadata);
+			free_generic_seq_args(args);
 			return 1;
 		}
 		regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
