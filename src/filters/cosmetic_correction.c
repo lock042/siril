@@ -587,9 +587,8 @@ int cosme_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 static int cosme_finalize_hook(struct generic_seq_args *args) {
 	int retval = seq_finalize_hook(args);
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
-
-	g_object_unref(c_args->file);
-
+	free(c_args->prefix);
+	g_clear_object(&c_args->file);
 	free(args->user);
 	return retval;
 }
@@ -611,7 +610,12 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 
 	cosme_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		g_clear_object(&cosme_args->file);
+		free(cosme_args->prefix);
+		free(cosme_args);
+		free_generic_seq_args(args);
+	}
 }
 
 /* this is an autodetect algorithm. Cold and hot pixels
