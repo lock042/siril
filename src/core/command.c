@@ -5519,7 +5519,7 @@ int process_seq_cosme(int nb) {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 			return CMD_ARG_ERROR;
 		}
-		g_free(args->prefix);
+		free(args->prefix);
 		args->prefix = strdup(value);
 	}
 

@@ -22,7 +22,7 @@ struct cosme_data {
 	sequence *seq;
 	int is_cfa;
 	GFile *file;
-	const char *prefix;
+	char *prefix;
 };
 
 typedef enum {
