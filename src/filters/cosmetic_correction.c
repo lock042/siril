@@ -610,12 +610,13 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 
 	cosme_args->fit = NULL;	// not used here
 
-	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		g_clear_object(&cosme_args->file);
-		free(cosme_args->prefix);
-		free(cosme_args);
-		free_generic_seq_args(args);
-	}
+	start_in_new_thread(generic_sequence_worker, args);
+//	if (!start_in_new_thread(generic_sequence_worker, args)) {
+//		g_clear_object(&cosme_args->file);
+//		free(cosme_args->prefix);
+//		free(cosme_args);
+//		free_generic_seq_args(args);
+//	}
 }
 
 /* this is an autodetect algorithm. Cold and hot pixels

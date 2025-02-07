@@ -44,7 +44,7 @@ static double mod_b = 1.0, thresh = 0.0, old_thresh = 0.0;
 static fits starmask = {0};
 static gboolean is_roi = FALSE;
 
-int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
+int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	gboolean stars_needs_freeing = FALSE;
 	psf_star **stars = NULL;
 	int channel = 1;
@@ -76,7 +76,7 @@ int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
 	}
 
 	siril_log_message(_("Creating binary star mask for %d stars...\n"), nb_stars);
-	if (new_fit_image(&starmask, dimx, dimy, 1, DATA_USHORT)) {
+	if (new_fit_image(star_mask, dimx, dimy, 1, DATA_USHORT)) {
 		return -1;
 	}
 
@@ -84,7 +84,7 @@ int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
 #pragma omp parallel for schedule(static) num_threads(com.max_thread) if (com.max_thread > 1)
 #endif
 	for (int i = 0; i < dimx * dimy; i++) {
-		starmask->pdata[0][i] = 0;
+		(*star_mask)->pdata[0][i] = 0;
 	}
 
 #ifdef _OPENMP
@@ -115,7 +115,7 @@ int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
 						double dy = y - (size / 2.0);
 						double distance = sqrt(dx * dx + dy * dy);
 						int is_star = (distance <= (size / 2.0)) ? 1 : 0;
-						starmask->pdata[0][idx] = is_star ? USHRT_MAX : starmask->pdata[0][idx];
+						(*star_mask)->pdata[0][idx] = is_star ? USHRT_MAX : (*star_mask)->pdata[0][idx];
 					}
 				}
 			}
@@ -144,7 +144,8 @@ static int unpurple_update_preview() {
 		if (starmask.naxis == 0 || gui.roi.active != is_roi || old_thresh != thresh) {
 			is_roi = gui.roi.active;
 			old_thresh = thresh;
-			generate_binary_starmask(fit, &starmask, thresh);
+			fits *starmask_ptr = &starmask;
+			generate_binary_starmask(fit, &starmask_ptr, thresh);
 		}
 	}
 
@@ -199,7 +200,8 @@ static int unpurple_process_all() {
 
 	//TODO: Optimization: Can we reuse the starmask we already have?
 	if (withstarmask) {
-		generate_binary_starmask(fit, &starmask, thresh);
+		fits *starmask_ptr = &starmask;
+		generate_binary_starmask(fit, &starmask_ptr, thresh);
 	}
 
 	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
