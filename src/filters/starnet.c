@@ -488,6 +488,10 @@ gpointer do_starnet(gpointer p) {
 	 * be the same color space as the imput but will have no ICC profile embedded
 	 * so we have to replace the original */
 	cmsHPROFILE original_profile = copyICCProfile(current_fit->icc_profile);
+	gboolean original_colormanaged = current_fit->color_managed;
+
+	// Disable color management so that savetif doesn't mess about with the image
+	current_fit->color_managed = FALSE;
 
 	// ok, let's start
 	if (verbose)
@@ -663,6 +667,7 @@ gpointer do_starnet(gpointer p) {
 	if (workingfit.icc_profile) {
 		cmsCloseProfile(workingfit.icc_profile);
 		workingfit.icc_profile = copyICCProfile(original_profile);
+		workingfit.color_managed = original_colormanaged;
 	}
 	// Remove working TIFF files, they are no longer required
 	retval = g_remove(starlesstif);
@@ -744,12 +749,13 @@ gpointer do_starnet(gpointer p) {
 		update_filter_information(&fit, "StarMask", TRUE);
 
 		// Replace ICC profile here too
-		if (fit.icc_profile) {
-			cmsCloseProfile(fit.icc_profile);
+		if (original_profile) {
+			if (fit.icc_profile)
+				cmsCloseProfile(fit.icc_profile);
 			fit.icc_profile = copyICCProfile(original_profile);
-		}
-		if (original_profile)
+			fit.color_managed = original_colormanaged;
 			cmsCloseProfile(original_profile);
+		}
 
 		// Save fit as starmask fits
 		if (get_thread_run()) {

@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-02-01 12:51+0100\n"
-"PO-Revision-Date: 2025-02-01 11:50+0000\n"
+"PO-Revision-Date: 2025-02-02 10:28+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -139,7 +139,7 @@ msgid ""
 msgstr ""
 "Название проверочной (check) звезды или её метка, например, идентификатор "
 "AUID (предпочтительнее), или метка карты для проверочной звезды. Если её "
-"нет, используйте \"na\". Ограничение: 20 символов."
+"нет, используйте «na». Ограничение: 20 символов."
 
 #: src/gui/uifiles/aavso_dialog.ui:229
 msgid "Starid: "
@@ -233,7 +233,7 @@ msgstr "Заметки: "
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
 "Комментарии или заметки о наблюдении. Если комментариев нет, используйте "
-"\"na\"."
+"«na»."
 
 #: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2520
 msgid "Aberration Inspector"
@@ -292,9 +292,9 @@ msgstr ""
 "астрономическое решение:\n"
 "\n"
 "- Автоматически: если доступны, то используются локальные каталоги, в "
-"противном случае — nomad.\n"
+"противном случае по умолчанию используется nomad.\n"
 "\n"
-"Вы можете выбрать один из альтернативных удалённых каталогов:\n"
+"Вы можете выбрать один из следующих удалённых каталогов:\n"
 "\n"
 "- для звёзд: tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, simbad, "
 "aavso_chart\n"
@@ -1309,7 +1309,7 @@ msgid ""
 "Tolerance of global sample rejection, in sigma units. By decreasing this "
 "value, Siril will be more restrictive to select background samples."
 msgstr ""
-"Допуск общей выбраковки образца, в единицах стандартного отклонения. При "
+"Допуск общей выбраковки образцов, в единицах стандартного отклонения. При "
 "уменьшении этого значения, выбор образцов фона будет более ограниченным."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:429
@@ -1405,7 +1405,7 @@ msgid ""
 "memory allowing the user to work iteratively."
 msgstr ""
 "Будет рассчитан синтетический фон и применён выбранный тип коррекции. Модель "
-"всегда рассчитывается для загруженного в память изображения, позволяет "
+"всегда рассчитывается для загруженного в память изображения, позволяя "
 "пользователю работать итеративно."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:585
@@ -1414,8 +1414,7 @@ msgstr "Показать оригинальное изображение"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:590
 msgid "Keep pressing this button to see the original image."
-msgstr ""
-"Удерживайте нажатой эту кнопку, чтобы увидеть оригинальное изображение."
+msgstr "Удерживайте эту кнопку нажатой, чтобы увидеть оригинальное изображение."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:608
 #: src/gui/uifiles/bdeconv_dialog.ui:2126
@@ -1452,7 +1451,7 @@ msgstr "Префикс вывода:"
 #: src/gui/uifiles/background_extraction_dialog.ui:638
 msgid ""
 "Prefix of the image names resulting from the background extraction process."
-msgstr "Префикс имён файлов, полученных в результате извлечения фона."
+msgstr "Префикс названий файлов, полученных в результате извлечения фона."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:249
 msgid "Deconvolution"
@@ -2183,8 +2182,8 @@ msgid ""
 "Background for lines is computed using pixels in SigmaFactor * StdDev only. "
 "Higher value will give a better protection."
 msgstr ""
-"Фон строк вычисляется используя только пиксели в приделах \"коэффициент "
-"сигма * стандартное отклонение\". Бо́льшие значения дают лучшую защиту."
+"Фон строк вычисляется используя только пиксели в приделах «коэффициент сигма "
+"* стандартное отклонение». Бо́льшие значения дают лучшую защиту."
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:238
 msgid "Vertical banding"
@@ -5233,11 +5232,12 @@ msgstr ""
 #: src/gui/uifiles/savepopup.ui:128
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
 msgstr ""
-"шаблон имени для конвертированных изображений (&apos;dest&apos; в dest1.fit)"
+"шаблон названия для конвертированных изображений (&apos;dest&apos; в dest1."
+"fit)"
 
 #: src/gui/uifiles/savepopup.ui:129
 msgid "root name of the converted images (the 'dest' in dest1.fit)"
-msgstr "шаблон имени для конвертированных изображений ( 'dest' в dest1.fit)"
+msgstr "шаблон названия для конвертированных изображений ( 'dest' в dest1.fit)"
 
 #: src/gui/uifiles/savepopup.ui:143
 msgid "<b>Filename</b>"
@@ -28126,7 +28126,7 @@ msgid "Script Editor..."
 msgstr "Редактор сценариев..."
 
 #: src/gui/script_menu.c:285
-#, fuzzy, c-format
+#, c-format
 msgid "Searching for scripts in: \"%s\"...\n"
 msgstr "Поиск сценариев в: \"%s\"...\n"
 
@@ -30954,14 +30954,13 @@ msgid "Error in venv creation command: %s\n"
 msgstr "Ошибка в команде создания venv: %s\n"
 
 #: src/io/siril_pythonmodule.c:1765
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
-msgstr "Не удалось инициализировать виртуальное окружения Python: %s"
+msgstr "Не удалось инициализировать виртуальное окружения Python: %s\n"
 
 #: src/io/siril_pythonmodule.c:1776
-#, fuzzy
 msgid "Failed to prepare virtual environment\n"
-msgstr "Не удалось подготовить виртуальное окружение"
+msgstr "Не удалось подготовить виртуальное окружение\n"
 
 #: src/io/siril_pythonmodule.c:1832
 msgid ""
@@ -31188,19 +31187,16 @@ msgid "Unexpected null star entry"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:1637
-#, fuzzy
 msgid "No background samples list available"
-msgstr "Список звёзд недоступен"
+msgstr "Отсутствует доступный список образцов фона"
 
 #: src/io/siril_pythoncommands.c:1656
-#, fuzzy
 msgid "Mismatch in samples count"
-msgstr "Только в выделении"
+msgstr "Несоответствие в числе образцов"
 
 #: src/io/siril_pythoncommands.c:1664
-#, fuzzy
 msgid "Unexpected null background sample"
-msgstr "Ошибка создания образцов фона\n"
+msgstr "Неожиданный пустой образец фона"
 
 #: src/io/siril_pythoncommands.c:1721
 msgid "Image has no ICC profile"

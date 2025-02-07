@@ -101,6 +101,7 @@ class _Command(IntEnum):
     GET_SYSTEMDATADIR = 47,
     GET_BGSAMPLES = 48,
     SET_BGSAMPLES = 49,
+    GET_SEQ_FRAME_FILENAME = 50,
     ERROR = 0xFF
 
 class LogColor (IntEnum):
@@ -2489,6 +2490,30 @@ class SirilInterface:
             # Assuming the response is a null-terminated UTF-8 encoded string
             wd = response.decode('utf-8').rstrip('\x00')
             return wd
+        except UnicodeDecodeError as e:
+            print(f"Error decoding loaded image filename: {e}", file=sys.stderr)
+            return None
+
+    def get_seq_frame_filename(self, frame: int) -> Optional[str]:
+        """
+        Request the filename of the specified frame of the loaded sequence from Siril.
+
+        Returns:
+            The filename as a string, or None if an error occurred.
+        """
+
+        # Convert frame number to network byte order bytes
+        frame_payload = struct.pack('!I', frame)  # '!I' for network byte order uint32_t
+
+        response = self._request_data(_Command.GET_SEQ_FRAME_FILENAME, payload=frame_payload)
+
+        if response is None:
+            return None
+
+        try:
+            # Assuming the response is a null-terminated UTF-8 encoded string
+            filename = response.decode('utf-8').rstrip('\x00')
+            return filename
         except UnicodeDecodeError as e:
             print(f"Error decoding loaded image filename: {e}", file=sys.stderr)
             return None
