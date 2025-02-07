@@ -989,6 +989,9 @@ gboolean end_platesolve_sequence(gpointer p) {
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
+	else if (!args->retval) { // reloads the current filename in case the symlink was destroyed 
+		display_filename();
+	}
 	update_reg_interface(FALSE);
 	free(p);
 	return end_generic(NULL);

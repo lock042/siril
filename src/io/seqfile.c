@@ -704,7 +704,7 @@ int writeseqfile(sequence *seq){
 		}
 		for (i = 0; i < seq->number; ++i) {
 			fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
-					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					seq->cfa_opened_monochrome ? '*' : '0' + seq->reglayer,
 					seq->regparam[i].fwhm,
 					seq->regparam[i].weighted_fwhm,
 					seq->regparam[i].roundness,
@@ -727,7 +727,7 @@ int writeseqfile(sequence *seq){
 	if (seq->regparam_bkp) {
 		for (i = 0; i < seq->number; ++i) {
 			fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
-					seq->cfa_opened_monochrome ? '0' + layer : '*',
+					seq->cfa_opened_monochrome ? '0' + seq->reglayer : '*',
 					seq->regparam_bkp[i].fwhm,
 					seq->regparam_bkp[i].weighted_fwhm,
 					seq->regparam_bkp[i].roundness,
