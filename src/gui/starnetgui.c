@@ -203,7 +203,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 			siril_close_dialog("starnet_dialog");
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not in single image mode"), _("Unable to apply StarNet to a single image as no single image is loaded. Did you mean to apply to sequence?"));
-			free(starnet_args);
+			free_starnet_args(starnet_args);
 		}
 		set_cursor_waiting(FALSE);
 	} else {
@@ -224,7 +224,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 			siril_close_dialog("starnet_dialog");
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("No sequence loaded"), _("Unable to apply StarNet to a sequence as no sequence is loaded. Did you mean to uncheck the apply to sequence option?"));
-			free(starnet_args);
+			free_starnet_args(starnet_args);
 		}
 		set_cursor_waiting(FALSE);
 	}
