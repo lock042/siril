@@ -522,7 +522,10 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	// Validate image dimensions and format
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
 		info->channels > 3 || info->size == 0) {
-		gchar* error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %" G_GUINT64_FORMAT), info->width, info->height, info->channels, info->size);
+		gchar size_str[32];
+		g_snprintf(size_str, sizeof(size_str), "%" G_GUINT64_FORMAT, info->size);
+		gchar *error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"), info->width, info->height, info->channels, size_str);
+
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_log_message("Error in send_response\n");
 		g_free(error_msg);

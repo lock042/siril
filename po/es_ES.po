@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-02-01 12:51+0100\n"
-"PO-Revision-Date: 2025-01-26 02:16+0000\n"
-"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
+"PO-Revision-Date: 2025-02-03 09:05+0000\n"
+"Last-Translator: \"Víctor R. Ruiz\" <rvr@infoastro.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -171,9 +171,8 @@ msgid "Comparison star: "
 msgstr "Estrella de comparación: "
 
 #: src/gui/uifiles/aavso_dialog.ui:286
-#, fuzzy
 msgid "The number of the comparison star."
-msgstr "Introduzca el número de imagen que quiere alcanzar."
+msgstr "El número de la estrella de comparación."
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
@@ -215,12 +214,10 @@ msgid "Check star: "
 msgstr "Estrella de comprobación: "
 
 #: src/gui/uifiles/aavso_dialog.ui:339
-#, fuzzy
 msgid "The number of the check star."
-msgstr "Introduzca el número de imagen que quiere alcanzar."
+msgstr "Introduzca el número de la estrella de comprobación."
 
 #: src/gui/uifiles/aavso_dialog.ui:351
-#, fuzzy
 msgid ""
 "Please use the sequence ID you will find written in Bold print near the top "
 "of the photometry table in a sentence that reads \"Report this sequence as "
@@ -238,9 +235,9 @@ msgstr ""
 "en el caso de alertas sensibles al tiempo cuando el equipo de secuencia no "
 "tuvo tiempo de crear una secuencia), no proporcione un ID de gráfico, "
 "incluso si trazó el gráfico utilizando VSP. Utilice el código de comentario "
-"K (gráfico no AAVSO) y proporcione un nombre de gráfico adecuado como "
-"\"APASS DR10\". Luego, agregue información sobre las estrellas de "
-"comparación en las notas. Límite: 20 caracteres."
+"K (gráfico no AAVSO) y proporcione un nombre de carta adecuado como \"APASS "
+"DR10\". Luego, agregue información sobre las estrellas de comparación en las "
+"notas. Límite: 20 caracteres."
 
 #: src/gui/uifiles/aavso_dialog.ui:367
 msgid "Chart: "
@@ -257,7 +254,6 @@ msgstr ""
 "\"nd\" (no disponible)."
 
 #: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2520
-#, fuzzy
 msgid "Aberration Inspector"
 msgstr "Inspector de aberración"
 
@@ -391,13 +387,12 @@ msgid "Photometric"
 msgstr "Fotométrica"
 
 #: src/gui/uifiles/annotate_dialog.ui:163
-#, fuzzy
 msgid ""
 "For stars catalogues containing photometric data, stars with no B-V "
 "information will be kept; they can be excluded by check this option."
 msgstr ""
 "Para los catálogos de estrellas que contienen datos fotométricos, se "
-"conservarán las estrellas sin información B-V; se pueden excluir marcando "
+"conservarán las estrellas sin información de B-V; se pueden excluir marcando "
 "esta opción."
 
 #: src/gui/uifiles/annotate_dialog.ui:174
@@ -642,7 +637,6 @@ msgid "Human-weighted luminance"
 msgstr "Luminancia ponderada por el ser humano"
 
 #: src/gui/uifiles/asinh_dialog.ui:238
-#, fuzzy
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
@@ -906,9 +900,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:651
-#, fuzzy
 msgid "Solution order: "
-msgstr "Resolución: "
+msgstr "Orden de solución: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:662
 msgid ""
@@ -919,14 +912,12 @@ msgstr ""
 "estar instalado en tu sistema)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:665
-#, fuzzy
 msgid "Siril solver"
-msgstr "Mensaje de siril"
+msgstr "Solucionador de Siril"
 
 #: src/gui/uifiles/astrometry_dialog.ui:666
-#, fuzzy
 msgid "Astrometry.net (local)"
-msgstr "Abrir diálogo  resolución de placas"
+msgstr "Astrometry.net (local)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:679
 #: src/gui/uifiles/astrometry_dialog.ui:697
@@ -934,9 +925,8 @@ msgid "Radius used by the solver to search around the target."
 msgstr "Radio de búsqueda del resolutor alrededor del objetivo."
 
 #: src/gui/uifiles/astrometry_dialog.ui:700
-#, fuzzy
 msgid "Search radius:"
-msgstr "Radio exterior:"
+msgstr "Radio de búsqueda:"
 
 #: src/gui/uifiles/astrometry_dialog.ui:709
 msgid "disable near search"
@@ -973,9 +963,8 @@ msgstr ""
 "Astronomy.net"
 
 #: src/gui/uifiles/astrometry_dialog.ui:770
-#, fuzzy
 msgid "Save distortion"
-msgstr "Registro"
+msgstr "Guardar distorsión"
 
 #: src/gui/uifiles/astrometry_dialog.ui:774
 msgid ""
@@ -1032,12 +1021,10 @@ msgstr ""
 "Campo de Visión."
 
 #: src/gui/uifiles/astrometry_dialog.ui:951
-#, fuzzy
 msgid "Star Catalogue: "
-msgstr "Catálogo online de Estrellas: "
+msgstr "Catálogo de estrellas: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:963
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image.\n"
 "* TYCHO-2 catalogue contains positions, proper motions, and two-color "
@@ -1065,7 +1052,7 @@ msgid ""
 "V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th "
 "magnitude to about 17th magnitude for over 37 million stars."
 msgstr ""
-"Escoja el catálogo online contra el que quiere comparar la imagen.\n"
+"Escoja el catálogo en línea con el que quiere comparar la imagen.\n"
 "* TYCHO-2 contiene las posiciones, movimientos y datos fotométricos en dos "
 "colores de las 2,539,913 más brillantes en la Vía Láctea.\n"
 "* NOMAD es una mezcla simple de los catálogos de astrometría y fotometría "
@@ -1073,26 +1060,33 @@ msgstr ""
 "con el catálogo 2MASS del infrarrojo cercano. Sus casi 100GB de datos "
 "contienen datos astrométricos y fotométricos de unos 1.1 billones de "
 "estrellas.\n"
-"* El Gaia Data Release 2 se lanzó el 25 de Abril de 2018. Contiene la "
+"* El Gaia Data Release 3 se lanzó el 13 de junio de 2022. Contiene la "
 "solución astrométrica de cinco parámetros, posiciones en el cielo (α, δ), "
-"paralajes, y movimientos de más de 1.3 billones de fuentes con una magnitud "
-"límite de G = 21.\n"
+"paralajes, y movimientos propios de más de 1.46 mil millones de fuentes con "
+"una magnitud límite de G = 21. Hay disponible un extracto fuera de línea que "
+"provee suficiente cobertura para resolver la coordenadas d e casi todos los "
+"campos, salvo aquellos más profundos. Gaia DR3 representa el estado del arte "
+"de los catálogos astrométricos y fotométricos.\n"
 "* PPMXL es un catálogo de posiciones, movimientos, 2MASS, y fotometría "
 "óptica de 900 millones de estrellas y galaxias.\n"
 "* El catálogo Bright Star es un catálogo de estrellas que lista todas las "
 "estrellas con una magnitud estelas de 6.5 o más brillantes, que es "
 "aproximadamente cada estrella visible a simple vista desde la Tierra. Este "
-"catálogo contiene 9.110 objetos."
+"catálogo contiene 9.110 objetos.\n"
+"* APASS, el Cartografiado Fotométrico de Todo el Cielo de la AAVSO, está "
+"realizado un catálogo celeste con ocho filtros: Johnson B y V, más los Sloan "
+"u’, g’, r’, i’, z_s y Z. Es válido desde la magnitud 7 a la 17 para 37 "
+"millones de estrellas."
 
 #: src/gui/uifiles/astrometry_dialog.ui:992
-#, fuzzy
 msgid ""
 "The catalogue is automatically determined using the approximation of the "
 "Field Of View and magnitude. Local catalogues are preferred over remote "
 "ones, and Gaia DR3 is preferred over Tycho + NOMAD."
 msgstr ""
-"Se determinará el catálogo online usando la aproximación de la magnitud del "
-"Campo de Visión."
+"El catálogo se selecciona automáticamente usando la aproximación del campo "
+"de visión y la magnitud. Se da prioridad a los catálogos locales sobre los "
+"remotos y Gaia DR3 tiene preferencia sobre Tycho + NOMAD."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1007
 msgid ""
@@ -1112,7 +1106,6 @@ msgid "Manual detection"
 msgstr "Detección manual"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1050
-#, fuzzy
 msgid ""
 "Check this option if you want to pick each stars manually. It could be "
 "useful in some cases where Siril can't find enough stars. Please, try to "
@@ -1122,7 +1115,9 @@ msgid ""
 msgstr ""
 "Marque esta opción si quiere seleccionar las estrellas manualmente. Puede "
 "ser útil en los casos donde Siril no puede encontrar suficientes estrellas. "
-"Por favor intente elegir las estrellas más brillantes en la imagen."
+"Por favor intente elegir las estrellas más brillantes de la imagen.\n"
+"Use la herramienta de PSF dinámico o el comando de findstar, ajustando las "
+"preferencias de la imagen."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1060
 #: src/gui/uifiles/stars_list_window.ui:865
@@ -1130,18 +1125,16 @@ msgid "Star Detection"
 msgstr "Detección de estrellas"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1086
-#, fuzzy
 msgid "Solve whole sequence"
-msgstr "Buscar secuencias"
+msgstr "Resolver toda la secuencia"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1090
 msgid "Tick this box to solve the whole sequence."
 msgstr "Marca esta casilla para resolver la secuencia completa."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1112
-#, fuzzy
 msgid "Use as registration information"
-msgstr "Añadido un método de registro: %s\n"
+msgstr "Usar como información de registro"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1116
 msgid "Tick this box to use astrometric data to compute sequence registration."
@@ -1162,9 +1155,8 @@ msgstr ""
 "secuencia que ya tienen una solución."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1146
-#, fuzzy
 msgid "Fetch catalog for each image"
-msgstr "No se puede descargar el catálogo online de estrellas."
+msgstr "Obtener un catálogo para cada imagen"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1150
 msgid ""
@@ -1176,9 +1168,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1175
-#, fuzzy
 msgid "Use coordinates from headers"
-msgstr "Fallo en el análisis de la fotometría de la imagen %d\n"
+msgstr "Utilizar las coordenadas de la cabecera"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1179
 msgid ""
@@ -1189,9 +1180,8 @@ msgstr ""
 "este diálogo"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1190
-#, fuzzy
 msgid "Use pixel size from headers"
-msgstr "Fallo en el análisis de la fotometría de la imagen %d\n"
+msgstr "Utilizar el tamaño de píxel de la cabecera"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1194
 msgid ""
@@ -1202,9 +1192,8 @@ msgstr ""
 "de este diálogo"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1205
-#, fuzzy
 msgid "Use focal length from headers"
-msgstr "Fallo en el análisis de la fotometría de la imagen %d\n"
+msgstr "Utilizar la longitud focal de la cabecera"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1209
 msgid ""
@@ -1215,9 +1204,8 @@ msgstr ""
 "incluida en este diálogo"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1238
-#, fuzzy
 msgid "Sequence / Astrometric Registration"
-msgstr "Aplicar la transformación del histograma"
+msgstr "Secuencia / Registro astrométrico"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:55
 #: src/algos/background_extraction.c:1356
