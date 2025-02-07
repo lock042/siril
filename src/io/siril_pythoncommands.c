@@ -1068,7 +1068,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			int32_t index = GUINT32_FROM_BE((int32_t) *payload);
-			if (index < 0 || index >= com.seq.number) {
+			if (index >= com.seq.number) {
 				const char* error_msg = _("Failed to load sequence frame");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1293,7 +1293,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 				chan = GUINT32_FROM_BE(*((int*) payload + 1));
 			}
-			if (payload_length != 8 || index < 0 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
+			if (payload_length != 8 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
 				const char* error_msg = _("Incorrect command arguments");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1338,7 +1338,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 				chan = GUINT32_FROM_BE(*((int*) payload + 1));
 			}
-			if (payload_length != 8 || index < 0 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
+			if (payload_length != 8 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
 				const char* error_msg = _("Incorrect command arguments");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1384,7 +1384,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 4) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 			}
-			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
+			if (payload_length != 4 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1434,7 +1434,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if(enforce_area_in_image(&region, &com.seq, index)) {
 				siril_log_message(_("Selection cropped to frame boundaries\n"));
 			}
-			if ((payload_length != 4 && payload_length != 20) || index < 0 || index >= com.seq.number) {
+			if ((payload_length != 4 && payload_length != 20) || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1482,7 +1482,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* pixelbool = payload + 4;
 				with_pixels = BOOL_FROM_BYTE(pixelbool);
 			}
-			if (payload_length != 5 || index < 0 || index >= com.seq.number) {
+			if (payload_length != 5 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -2020,7 +2020,7 @@ CLEANUP:
 				incl_encoded = GUINT32_FROM_BE(incl_encoded);
 				incl = (gboolean) incl_encoded;
 
-				if (index < 0 || index >= com.seq.number) {
+				if (index >= com.seq.number) {
 					const char* error_msg = _("Index is out of range");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;

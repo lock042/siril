@@ -414,8 +414,8 @@ gboolean end_generic_sequence(gpointer p) {
 	}
 	// frees new_seq_prefix. This means that new_seq_prefix (or the seqEntry
 	// string in function-specific structs) *must* always be allocated using
-	// a freeable function, i.e. char* seqEntry = strdup("prefix_"); rather
-	// than char* seqEntry = "prefix_";
+	// a stdlib freeable function, i.e. char* seqEntry = strdup("prefix_");
+	// rather than char* seqEntry = "prefix_";
 	free(args->new_seq_prefix);
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
@@ -621,15 +621,17 @@ int multi_prepare(struct generic_seq_args *args) {
 	multi_args->new_fitseq = calloc(n, sizeof(char*));
 	// we call the generic prepare n times with different prefixes
 	for (int i = 0 ; i < n ; i++) {
-		args->new_seq_prefix = multi_args->prefixes[i];
+		args->new_seq_prefix = strdup(multi_args->prefixes[i]);
 		if (seq_prepare_hook(args))
 			return 1;
 		// but we copy the result between each call
 		multi_args->new_ser[i] = args->new_ser;
 		multi_args->new_fitseq[i] = args->new_fitseq;
+		free(args->new_seq_prefix);
+		args->new_seq_prefix = NULL;
 	}
 
-	args->new_seq_prefix = multi_args->prefixes[multi_args->new_seq_index];
+	args->new_seq_prefix = strdup(multi_args->prefixes[multi_args->new_seq_index]);
 	args->new_ser = NULL;
 	args->new_fitseq = NULL;
 

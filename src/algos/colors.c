@@ -1332,7 +1332,7 @@ void apply_ccm_to_sequence(struct ccm_data *ccm_args) {
 	args->description = _("Color Conversion Matrices");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = ccm_args->seqEntry;
+	args->new_seq_prefix = strdup(ccm_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = ccm_args;
 

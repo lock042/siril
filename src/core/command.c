@@ -5466,6 +5466,7 @@ int process_seq_cosme(int nb) {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 			return CMD_ARG_ERROR;
 		}
+		g_free(args->prefix);
 		args->prefix = strdup(value);
 	}
 
@@ -6701,6 +6702,7 @@ int process_seq_extractHaOIII(int nb) {
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
 				free(args->seqEntry);
+				free(args->user_data);
 				free(args);
 				return CMD_ARG_ERROR;
 			} else if (!strcmp(value, "ha")) {

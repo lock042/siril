@@ -138,7 +138,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->upscale_ratio = upargs->factor;
-	args->new_seq_prefix = TMP_UPSCALED_PREFIX;
+	args->new_seq_prefix = strdup(TMP_UPSCALED_PREFIX);
 	args->user = upargs;
 	args->already_in_a_thread = TRUE;
 

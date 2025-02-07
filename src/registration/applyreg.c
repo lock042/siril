@@ -901,7 +901,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->description = _("Apply registration");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = regargs->prefix;
+	args->new_seq_prefix = strdup(regargs->prefix);
 	args->load_new_sequence = TRUE;
 	args->already_in_a_thread = TRUE;
 
@@ -960,6 +960,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
 			siril_log_message(_("Could not load reference image\n"));
 			free(sadata);
+//			free_generic_seq_args(args);
 			return 1;
 		}
 		regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);

@@ -943,6 +943,7 @@ gpointer plate_solver(gpointer p) {
 				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, args->numthreads);
 
 		clearfits(green_fit);
+		free(green_fit);
 		if (args->downsample) {
 			clearfits(args->fit);
 			memcpy(args->fit, &fit_backup, sizeof(fits));
@@ -2039,8 +2040,8 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		args->WCSDATA = calloc(arg->seq->number, sizeof(struct wcsprm));
 		arg->seq->distoparam[args->layer].index = DISTO_FILES;
 	}
-	if (arg->has_output)
-		seq_prepare_hook(arg);
+	if (arg->has_output && seq_prepare_hook(arg))
+		return 1; // bail if seq_prepare_hook fails
 	if (args->solver == SOLVER_LOCALASNET) {
 		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 	}
@@ -2244,6 +2245,8 @@ void free_astrometry_data(struct astrometry_data *args) {
 		siril_world_cs_unref(args->cat_center);
 	if (args->stars)
 		free_fitted_stars(args->stars);
+	if (args->ref_stars)
+		siril_catalog_free(args->ref_stars);
 	if (args->filename)
 		g_free(args->filename);
 	if (args->distofilename)

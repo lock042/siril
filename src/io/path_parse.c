@@ -300,6 +300,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 	g_free(basename);
 	g_free(currfile);
 	g_free(tmpdirname);
+	g_free(tmpbasename);
 	g_list_free_full(fds, (GDestroyNotify)file_date_free);
 	return out;
 }

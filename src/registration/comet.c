@@ -272,7 +272,7 @@ int register_comet(struct registration_args *regargs) {
 	if (args->seq->type == SEQ_REGULAR) {
 		args->save_hook = comet_save_hook; // saves a symlink to original images
 		args->has_output = TRUE;
-		args->new_seq_prefix = g_strdup(regargs->prefix);
+		args->new_seq_prefix = strdup(regargs->prefix);
 	}
 	args->description = _("Moving object registration");
 	args->already_in_a_thread = TRUE;

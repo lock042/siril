@@ -1401,7 +1401,7 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 	args->description = _("Background Extraction");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = background_args->seqEntry;
+	args->new_seq_prefix = strdup(background_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = background_args;
 
