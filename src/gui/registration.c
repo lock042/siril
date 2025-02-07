@@ -1028,12 +1028,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		return 1;
 	}
 
-	if (!com.seq.regparam) {
-		fprintf(stderr, "regparam should have been created before\n");
-		// means that a call to seq_check_basic_data() or
-		// check_or_allocate_regparam() is missing somewhere else
-		return 1;
-	}
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	regmethod_index regindex = REG_UNDEF;
