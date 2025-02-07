@@ -931,8 +931,8 @@ ERROR_OR_FINISHED:
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	if (!retval && text) {
 		undo_save_state(&gfit, text);
-		g_free(text);
 	}
+	g_free(text);
 	if (!args->seq && !com.script)
 		siril_add_idle(end_graxpert, args); // this loads the result
 	else

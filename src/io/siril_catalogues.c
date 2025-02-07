@@ -1294,8 +1294,8 @@ gpointer conesearch_worker(gpointer p) {
 		temp_cat->projected = CAT_PROJ_WCS;
 		if (is_star_catalogue(siril_cat->cat_index))
 			stardiam = 0.2;  // in arcmin => 12"
-			if (!args->display_tag && has_field(siril_cat, NAME))
-				hide_display_tag = TRUE;
+		if (!args->display_tag && has_field(siril_cat, NAME))
+			hide_display_tag = TRUE;
 		temp_cat->cat_items = calloc(siril_cat->nbincluded, sizeof(cat_item));
 		if (!temp_cat->cat_items) {
 			PRINT_ALLOC_ERR;
@@ -1368,12 +1368,12 @@ gpointer conesearch_worker(gpointer p) {
 				if (has_field(siril_cat, TYPE))
 					g_string_append_printf(msg, " (%s)",
 										   siril_cat->cat_items[i].type);
-					g_string_append_printf(msg, ", ");
+				g_string_append_printf(msg, ", ");
 				g_string_append_printf(msg, "RA: %s, DEC: %s", ra, dec);
 				if (has_field(siril_cat, MAG))
 					g_string_append_printf(msg, " , mag:%3.1f",
 										   siril_cat->cat_items[i].mag);
-					g_string_append_printf(msg, "\n");
+				g_string_append_printf(msg, "\n");
 				gchar *printout = g_string_free(msg, FALSE);
 				siril_log_message(printout);
 				g_free(printout);
@@ -1516,7 +1516,7 @@ gpointer conesearch_worker(gpointer p) {
 		}
 		if (retval == -1)  // success but empty field
 			retval = 0;
-
+		free(dx); // may still be NULL if the if (!j) conditional bails out
 		free(dy); // may still be NULL if the if (!j) conditional bails out
 	}
 

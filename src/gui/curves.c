@@ -619,7 +619,7 @@ void apply_curve_to_sequence(struct curve_data *curve_args) {
 	args->stop_on_error = FALSE;
 	args->description = _("Curves Transform");
 	args->has_output = TRUE;
-	args->new_seq_prefix = curve_args->seq_entry;
+	args->new_seq_prefix = strdup(curve_args->seq_entry);
 	args->load_new_sequence = TRUE;
 	args->user = curve_args;
 	curve_args->fit = NULL;

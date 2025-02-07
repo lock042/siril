@@ -45,19 +45,19 @@ static fits starmask = {0};
 static gboolean is_roi = FALSE;
 
 int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
-        gboolean stars_needs_freeing = FALSE;
-        psf_star **stars = NULL;
-        int channel = 1;
+	gboolean stars_needs_freeing = FALSE;
+	psf_star **stars = NULL;
+	int channel = 1;
 
-        int nb_stars = starcount(com.stars);
-        int dimx = fit->naxes[0];
-        int dimy = fit->naxes[1];
-        int count = dimx * dimy;
+	int nb_stars = starcount(com.stars);
+	int dimx = fit->naxes[0];
+	int dimy = fit->naxes[1];
+	int count = dimx * dimy;
 
-        // Do we have stars from Dynamic PSF or not?
-        if (nb_stars < 1) {
-                image *input_image = NULL;
-                input_image = calloc(1, sizeof(image));
+	// Do we have stars from Dynamic PSF or not?
+	if (nb_stars < 1) {
+		image *input_image = NULL;
+		input_image = calloc(1, sizeof(image));
 		input_image->fit = fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
@@ -76,7 +76,9 @@ int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
 	}
 
 	siril_log_message(_("Creating binary star mask for %d stars...\n"), nb_stars);
-	new_fit_image(&starmask, dimx, dimy, 1, DATA_USHORT);
+	if (new_fit_image(&starmask, dimx, dimy, 1, DATA_USHORT)) {
+		return -1;
+	}
 
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) num_threads(com.max_thread) if (com.max_thread > 1)
@@ -112,7 +114,7 @@ int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
 						double dx = x - (size / 2.0);
 						double dy = y - (size / 2.0);
 						double distance = sqrt(dx * dx + dy * dy);
-						int is_star = (distance <= (size / 2)) ? 1 : 0;
+						int is_star = (distance <= (size / 2.0)) ? 1 : 0;
 						starmask->pdata[0][idx] = is_star ? USHRT_MAX : starmask->pdata[0][idx];
 					}
 				}

@@ -572,8 +572,10 @@ static long calculate_jpeg_size(struct savedial_data *args) {
 	} else {
 		g_warning("Unable to get file size for '%s': %s", tmp_filename, g_strerror(errno));
 	}
-	g_unlink(tmp_filename);
-	g_free(tmp_filename);
+	if (g_unlink(tmp_filename)) {
+		siril_debug_print("g_unlink() failed\n");
+		g_free(tmp_filename);
+	}
 	return (long) file_size;
 }
 

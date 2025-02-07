@@ -223,7 +223,7 @@ void apply_extractGreen_to_sequence(struct simple_extract_data *extract_args) {
 	args->image_hook = extractGreen_image_hook;
 	args->description = _("Extract Green");
 	args->has_output = TRUE;
-	args->new_seq_prefix = extract_args->seqEntry;
+	args->new_seq_prefix = strdup(extract_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;
 	args->user = extract_args;
@@ -377,7 +377,7 @@ void apply_extractHa_to_sequence(struct simple_extract_data *extract_args) {
 	args->image_hook = extractHa_image_hook;
 	args->description = _("Extract Ha");
 	args->has_output = TRUE;
-	args->new_seq_prefix = extract_args->seqEntry;
+	args->new_seq_prefix = strdup(extract_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;
 	args->user = extract_args;

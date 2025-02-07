@@ -125,7 +125,7 @@ void apply_banding_to_sequence(struct banding_data *banding_args) {
 	args->description = _("Banding Reduction");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = banding_args->seqEntry;
+	args->new_seq_prefix = strdup(banding_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = banding_args;
 
@@ -424,8 +424,10 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
-		if (args->seqEntry && args->seqEntry[0] == '\0')
+		if (args->seqEntry && args->seqEntry[0] == '\0') {
+			free(args->seqEntry);
 			args->seqEntry = strdup("unband_");
+		}
 		gtk_toggle_button_set_active(seq, FALSE);
 		args->seq = &com.seq;
 		apply_banding_to_sequence(args);

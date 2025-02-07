@@ -1433,7 +1433,7 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	args->finalize_hook = mergecfa_finalize_hook;
 	args->description = _("Merge CFA");
 	args->has_output = TRUE;
-	args->new_seq_prefix = merge_cfa_args->seqEntryOut;
+	args->new_seq_prefix = strdup(merge_cfa_args->seqEntryOut);
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;
 	args->user = merge_cfa_args;

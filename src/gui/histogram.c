@@ -1990,7 +1990,7 @@ void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 	args->stop_on_error = FALSE;
 	args->description = _("Midtone Transfer Function");
 	args->has_output = TRUE;
-	args->new_seq_prefix = mtf_args->seqEntry;
+	args->new_seq_prefix = strdup(mtf_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = mtf_args;
 
@@ -2023,7 +2023,7 @@ void apply_ght_to_sequence(struct ght_data *ght_args) {
 	args->stop_on_error = FALSE;
 	args->description = _("Generalised Hyperbolic Transfer Function");
 	args->has_output = TRUE;
-	args->new_seq_prefix = ght_args->seqEntry;
+	args->new_seq_prefix = strdup(ght_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = ght_args;
 

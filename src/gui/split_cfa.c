@@ -94,6 +94,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 					break;
 				default:
 					siril_debug_print("unhandled case!\n");
+					free(args->seqEntry);
 					free(args);
 			}
 		}

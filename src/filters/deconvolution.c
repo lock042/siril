@@ -867,7 +867,7 @@ void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata) {
 	seqargs->description = _("Deconvolution");
 	seqargs->has_output = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
-	seqargs->new_seq_prefix = seqdata->seqEntry;
+	seqargs->new_seq_prefix = strdup(seqdata->seqEntry);
 	seqargs->load_new_sequence = TRUE;
 	seqargs->user = seqdata;
 

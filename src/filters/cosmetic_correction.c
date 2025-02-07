@@ -434,7 +434,7 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	args->description = _("Cosmetic Correction");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = cosme_args->seqEntry;
+	args->new_seq_prefix = strdup(cosme_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = cosme_args;
 
