@@ -394,7 +394,8 @@ static void display_status() {
 	g_free(text);
 }
 
-static gboolean attempt_scroll(GtkTreeView *treeview) {
+static gboolean attempt_scroll(gpointer user_data) {
+	GtkTreeView *treeview = (GtkTreeView*) user_data;
 	GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
 	GList *selected_rows = gtk_tree_selection_get_selected_rows(selection, NULL);
 
@@ -408,12 +409,17 @@ static gboolean attempt_scroll(GtkTreeView *treeview) {
 	}
 }
 
+static gboolean idle_attempt_scroll(gpointer user_data) {
+	// Double queue the idle to ensure that the widget is fully drawn before
+	// we try scrolling to the selected cell.
+	g_idle_add(attempt_scroll, user_data);
+	return FALSE;
+}
+
 static gboolean idle_scroll_to_selected_star(GtkTreeView *treeview) {
 	gtk_widget_queue_draw(GTK_WIDGET(treeview));
-	while (gtk_events_pending())
-		gtk_main_iteration();
-
-	return attempt_scroll(treeview);
+	g_idle_add(idle_attempt_scroll, treeview);
+	return FALSE;
 }
 
 void set_iter_of_clicked_psf(double x, double y) {
