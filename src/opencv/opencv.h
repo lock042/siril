@@ -11,6 +11,7 @@ extern "C" {
 
 #include <stdint.h>
 #include "registration/registration.h"
+#include "registration/distorsion.h"
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "gui/progress_and_log.h"
@@ -30,7 +31,10 @@ unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *H, transformation_type type, float offset);
 
 
-int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation, gboolean clamp);
+int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, float scale, int interpolation, gboolean clamp, disto_data *disto);
+
+void cvDownscaleBlendMask(int rx, int ry, int out_rx, int out_ry, uint8_t *maskin, float *maskout);
+void cvUpscaleBlendMask(int rx, int ry, int out_rx, int out_ry, float *maskin, float *maskout);
 
 int cvUnsharpFilter(fits* image, double sigma, double amount);
 
@@ -46,7 +50,7 @@ void cvGetEye(Homography *H);
 
 void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg, double scale);
 
-void cvTransfH(Homography Href, Homography Himg, Homography *Hres);
+void cvTransfH(Homography *Href, Homography *Himg, Homography *Hres);
 
 double cvCalculRigidTransform(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *Hom);
@@ -54,7 +58,7 @@ double cvCalculRigidTransform(s_star *star_array_img,
 void cvMultH(Homography H1, Homography H2, Homography *Hout);
 void cvInvertH(Homography *Hom);
 void cvApplyFlips(Homography *Hom, int source_ry, int target_ry);
-void cvPrepareDrizzleH(Homography *Hom, double scale, int source_ry, int target_ry);
+void cvPrepareDrizzleH(Homography *Hom, double scale, int source_rx, int source_ry, int target_rx, int target_ry);
 void cvdisplay2ocv(Homography *Hom);
 
 void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homography *Hom);
@@ -62,10 +66,9 @@ void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int 
 
 // TODO: create and move to cvMosaic.h
 gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Homography *Hom);
-void cvRelRot(Homography *Ref, Homography *R);
-void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H);
-int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out);
-int init_disto_map(int rx, int ry, disto_data *disto);
+void cvRelRot(Homography *Ref, Homography *R, Homography *Rout);
+void cvcalcH_fromKKR(Homography *Kref, Homography *K, Homography *R, Homography *H);
+
 #ifdef __cplusplus
 }
 #endif

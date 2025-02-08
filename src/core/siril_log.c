@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -98,9 +98,13 @@ const char *format_time_diff(struct timeval t_start, struct timeval t_end) {
 			sprintf(str, _("%d min %02d s"), min, sec);
 		} else if (diff < 1.0) {
 			double ms = diff * 1.0E3;
-			sprintf(str, _("%.2lf ms"), ms);
+			char ms_str[32];
+			g_snprintf(ms_str, sizeof(ms_str), "%.2lf", ms);
+			sprintf(str, _("%s ms"), ms_str);
 		} else {
-			sprintf(str, _("%.2lf s"), diff);
+			char diff_str[32];
+			g_snprintf(diff_str, sizeof(diff_str), "%.2lf", diff);
+			sprintf(str, _("%s s"), diff_str);
 		}
 	}
 	return str;

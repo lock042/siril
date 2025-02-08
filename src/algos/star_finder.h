@@ -30,6 +30,7 @@ struct starfinder_data {
 	gboolean update_GUI;	// FALSE for sequence operation
 	gboolean process_all_images;	// for sequence operation
 	gboolean already_in_thread;
+	gboolean keep_stars; // TRUE to avoid freeing stars in findstar_worker
 };
 
 struct star_candidate_struct {
@@ -67,7 +68,6 @@ int remove_star(int index);
 void sort_stars_by_mag(psf_star **stars, int total);
 psf_star **new_fitted_stars(size_t n);
 void free_fitted_stars(psf_star **stars);
-int count_stars(psf_star **stars);
 void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy, char **units, float *B, float *Acut, double Acutp) ;
 psf_star **filter_stars_by_amplitude(psf_star **stars, float threshold, int *nbfilteredstars);
 float filtered_FWHM_average(psf_star **stars, int nb);
@@ -76,5 +76,6 @@ gpointer findstar_worker(gpointer p);
 int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, const star_finder_params *sf, int layer, gboolean verbose);
 int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars, int rx, int ry);
 float measure_image_FWHM(fits *fit, int channel);
+struct starfinder_data *findstar_image_worker(const struct starfinder_data *findstar_args, int o, int i, fits *fit, rectangle *_, int threads);
 
 #endif

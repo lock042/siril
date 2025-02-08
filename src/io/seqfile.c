@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -41,6 +41,7 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "registration/registration.h"
+#include "stacking/stacking.h"
 #ifdef HAVE_FFMS2
 #include "io/films.h"
 #endif
@@ -52,7 +53,11 @@
  * version 3 introduced new weighted fwhm criteria, 0.99.0
  * version 4 introduced variable size sequences, extended registration data (incl. H), 1.1.0
  * version 5:
- * 	- removed upscale at stacking (U card)
+ * 	- removed upscale at stacking (U card) 1.3.4
+ *  - added D* cards containing distortion and astrometry information 1.3.4  - see enum disto_source
+ *  - added overlap statistics in the O* cards:
+ *  	=> ON i j areai.x areai.y areaj.x areaj.y areai.w areai.h Nij medij medji madij madji locij locji scaij scji
+ * 		=> with N the layer number and i,j the ith and jth images of the sequence
  */
 #define CURRENT_SEQFILE_VERSION 5	// to increment on format change
 
@@ -164,6 +169,7 @@ sequence * readseqfile(const char *name){
 						seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
 						if (ser_is_cfa(seq->ser_file))
 							seq->regparam_bkp = calloc(3, sizeof(regdata*));
+						seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 					}
 				} else if (line[1] >= '0' && line[1] <= '9') {
 					/* in the future, wavelength and name of each layer will be added here */
@@ -222,7 +228,44 @@ sequence * readseqfile(const char *name){
 				}
 				++i;
 				break;
-
+			case 'D': // Distortion data - from version 5 onwards
+				current_layer = line[1] - '0';
+				if (current_layer < 0 || current_layer > seq->nb_layers) {
+					fprintf(stderr, "readseqfile: sequence file bad distortion layer: %s\n", line);
+					goto error;
+				}
+				int index;
+				char buf0[256], buf1[256], buf2[256];
+				nb_tokens = sscanf(line + 3, "%d %s %s %s\n",
+							&index,
+							buf0, buf1, buf2);
+				if (nb_tokens < 1 || nb_tokens > 4) {
+					fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
+					goto error;
+				}
+				if (!seq->distoparam)
+					seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
+				seq->distoparam[current_layer].index = index;
+				if (index == DISTO_FILE || index == DISTO_MASTER) {
+					if (nb_tokens == 1) {
+						fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
+						goto error;
+					}
+					seq->distoparam[current_layer].filename = g_strdup(buf0);
+				}
+				if (index == DISTO_FILE_COMET) {
+					if (nb_tokens < 3) {
+						fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
+						goto error;
+					}
+					seq->distoparam[current_layer].velocity.x = (float)g_strtod(buf0, NULL);
+					seq->distoparam[current_layer].velocity.y = (float)g_strtod(buf1, NULL);
+					if (nb_tokens > 3) {
+						seq->distoparam[current_layer].filename = g_strdup(buf2);
+					}
+				}
+				++i;
+				break;
 			case 'R':
 				/* registration info */
 				if (line[1] == '*') {
@@ -283,6 +326,8 @@ sequence * readseqfile(const char *name){
 						seq->regparam_bkp[current_layer] = regparam;
 					else seq->regparam[current_layer] = regparam;
 				}
+				if (!seq->distoparam)
+					seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 				if (i >= seq->number) {
 					fprintf(stderr, "\nreadseqfile: out of array bounds in reg info!\n\n");
 					goto error;
@@ -536,6 +581,44 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 				break;
+			case 'O':
+				current_layer = line[1] - '0';
+				if (!seq->ostats) {
+					seq->ostats = alloc_ostats(seq->nb_layers, seq->number);
+					if (!seq->ostats) {
+						PRINT_ALLOC_ERR;
+						goto error;
+					}
+				}
+				overlap_stats_t ostat = { 0 };
+				nb_tokens = sscanf(line + 3,
+					"%d %d %d %d %d %d %d %d %zu %g %g %g %g %g %g %g %g",
+					&(ostat.i),
+					&(ostat.j),
+					&(ostat.areai.x),
+					&(ostat.areai.y),
+					&(ostat.areaj.x),
+					&(ostat.areaj.y),
+					&(ostat.areai.w),
+					&(ostat.areai.h),
+					&(ostat.Nij),
+					&(ostat.medij),
+					&(ostat.medji),
+					&(ostat.madij),
+					&(ostat.madji),
+					&(ostat.locij),
+					&(ostat.locji),
+					&(ostat.scaij),
+					&(ostat.scaji));
+				if (nb_tokens != 17) {
+					fprintf(stderr, "readseqfile: sequence file format error: %s\n",line);
+					goto error;
+				}
+				ostat.areaj.w = ostat.areai.w;
+				ostat.areaj.h = ostat.areai.h;
+				int ijth = get_ijth_pair_index(seq->number, ostat.i, ostat.j);
+				seq->ostats[current_layer][ijth] = ostat;
+				break;
 		}
 	}
 	if (!allocated) {
@@ -614,7 +697,7 @@ int writeseqfile(sequence *seq){
 
 	fprintf(seqfile, "L %d\n", seq->nb_layers);
 
-	for(i=0; i < seq->number; ++i){
+	for(i = 0; i < seq->number; ++i){
 		if (seq->is_variable) {
 			fprintf(seqfile,"I %d %d %d,%d\n",
 					seq->imgparam[i].filenum,
@@ -630,7 +713,32 @@ int writeseqfile(sequence *seq){
 
 	for (layer = 0; layer < seq->nb_layers; layer++) {
 		if (seq->regparam && seq->regparam[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			if (layer_has_distortion(seq, layer)) {
+				if (seq->distoparam[layer].index == DISTO_FILE)
+					fprintf(seqfile, "D%c %d %s\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					DISTO_FILE,
+					seq->distoparam[layer].filename);
+				else if (seq->distoparam[layer].index == DISTO_FILES)
+					fprintf(seqfile, "D%c %d\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					DISTO_FILES);
+				else if (seq->distoparam[layer].index == DISTO_MASTER) {
+					fprintf(seqfile, "D%c %d %s\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					DISTO_MASTER,
+					seq->distoparam[layer].filename);
+				}
+				else if (seq->distoparam[layer].index == DISTO_FILE_COMET) {
+					fprintf(seqfile, "D%c %d %.3f %.3f %s\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					DISTO_FILE_COMET,
+					seq->distoparam[layer].velocity.x,
+					seq->distoparam[layer].velocity.y,
+					seq->distoparam[layer].filename ? seq->distoparam[layer].filename : "");
+				}
+			}
+			for (i = 0; i < seq->number; ++i) {
 				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '*' : '0' + layer,
 						seq->regparam[layer][i].fwhm,
@@ -652,7 +760,7 @@ int writeseqfile(sequence *seq){
 			}
 		}
 		if (seq->stats && seq->stats[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			for (i = 0; i < seq->number; ++i) {
 				if (!seq->stats[layer][i]) continue;
 
 				fprintf(seqfile, "M%c-%d %ld %ld %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg\n",
@@ -677,7 +785,7 @@ int writeseqfile(sequence *seq){
 	}
 	for (layer = 0; layer < 3; layer++) {
 		if (seq->regparam_bkp && seq->regparam_bkp[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			for (i = 0; i < seq->number; ++i) {
 				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '0' + layer : '*',
 						seq->regparam_bkp[layer][i].fwhm,
@@ -699,7 +807,7 @@ int writeseqfile(sequence *seq){
 			}
 		}
 		if (seq->stats_bkp && seq->stats_bkp[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			for (i = 0; i < seq->number; ++i) {
 				if (!seq->stats_bkp[layer][i]) continue;
 
 				fprintf(seqfile, "M%c-%d %ld %ld %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg\n",
@@ -718,6 +826,34 @@ int writeseqfile(sequence *seq){
 						seq->stats_bkp[layer][i]->max,
 						seq->stats_bkp[layer][i]->normValue,
 						seq->stats_bkp[layer][i]->bgnoise);
+			}
+		}
+	}
+	if (seq->ostats) {
+		for (layer = 0; layer < seq->nb_layers; layer++) {
+			int Npairs = seq->number * (seq->number - 1) / 2;
+			for (i = 0; i < Npairs; i++) {
+				if (seq->ostats[layer][i].i == -1)
+					continue;
+				fprintf(seqfile, "O%d %d %d %d %d %d %d %d %d %zu %g %g %g %g %g %g %g %g\n",
+					layer,
+					seq->ostats[layer][i].i,
+					seq->ostats[layer][i].j,
+					seq->ostats[layer][i].areai.x,
+					seq->ostats[layer][i].areai.y,
+					seq->ostats[layer][i].areaj.x,
+					seq->ostats[layer][i].areaj.y,
+					seq->ostats[layer][i].areai.w,
+					seq->ostats[layer][i].areai.h,
+					seq->ostats[layer][i].Nij,
+					seq->ostats[layer][i].medij,
+					seq->ostats[layer][i].medji,
+					seq->ostats[layer][i].madij,
+					seq->ostats[layer][i].madji,
+					seq->ostats[layer][i].locij,
+					seq->ostats[layer][i].locji,
+					seq->ostats[layer][i].scaij,
+					seq->ostats[layer][i].scaji);
 			}
 		}
 	}

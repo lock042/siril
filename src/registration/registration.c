@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,18 +21,16 @@
 
 
 #include "core/proto.h"
-#include "gui/utils.h"
+#include "core/siril_log.h"
 #include "gui/image_display.h"
 #include "gui/registration.h"
 #include "opencv/opencv.h"
+#include "drizzle/cdrizzleutil.h"
+#include "algos/siril_wcs.h"
 
 int get_registration_layer(const sequence *seq) {
 	if (!com.script && seq == &com.seq) {
-		GtkComboBox *registbox = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
-		int reglayer = gtk_combo_box_get_active(registbox);
-		if (!seq || !seq->regparam || !seq->regparam[reglayer] || seq->nb_layers < 0 || seq->nb_layers <= reglayer)
-			return -1;
-		return reglayer;
+		return get_registration_layer_from_GUI(seq);
 	} else {
 		// find first available regdata
 		if (!seq || !seq->regparam || seq->nb_layers < 0)
@@ -75,6 +73,77 @@ int seq_has_any_regdata(const sequence *seq) {
 		if (seq->regparam[i])
 			return i;
 	return -1;
+}
+
+gboolean layer_has_distortion(const sequence *seq, int layer) {
+	if (!seq || layer < 0 || !seq->distoparam || seq->nb_layers < 0 || layer >= seq->nb_layers || seq->distoparam[layer].index == DISTO_UNDEF) return FALSE;
+	return TRUE;
+}
+
+gboolean seq_has_any_distortion(const sequence *seq) {
+	for (int i = 0; i < seq->nb_layers; i++) {
+		if (layer_has_distortion(seq, i))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+regdata *registration_get_current_regdata(struct registration_args *regargs) {
+	regdata *current_regdata;
+	if (regargs->seq->regparam[regargs->layer]) {
+		siril_log_message(_("Recomputing already existing registration for this layer\n"));
+		current_regdata = regargs->seq->regparam[regargs->layer];
+		/* we reset all values as we may register different images */
+		memset(current_regdata, 0, regargs->seq->number * sizeof(regdata));
+	} else {
+		current_regdata = calloc(regargs->seq->number, sizeof(regdata));
+		if (current_regdata == NULL) {
+			PRINT_ALLOC_ERR;
+			return NULL;
+		}
+		regargs->seq->regparam[regargs->layer] = current_regdata;
+	}
+	return current_regdata;
+}
+
+void create_output_sequence_for_registration(struct registration_args *args, int refindex) {
+	sequence seq = { 0 };
+	initialize_sequence(&seq, TRUE);
+
+	/* we are not interested in the whole path */
+	gchar *seqname = g_path_get_basename(args->seq->seqname);
+	char *rseqname = malloc(strlen(args->prefix) + strlen(seqname) + 5);
+	sprintf(rseqname, "%s%s.seq", args->prefix, seqname);
+	g_unlink(rseqname);	// remove previous to overwrite
+	args->new_seq_name = remove_ext_from_filename(rseqname);
+	free(rseqname);
+	seq.seqname = strdup(args->new_seq_name);
+	seq.number = args->new_total;
+	seq.selnum = args->new_total;
+	seq.fixed = args->seq->fixed;
+	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
+	seq.imgparam = args->imgparam;
+	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
+	seq.regparam[args->layer] = args->regparam;
+	seq.beg = seq.imgparam[0].filenum;
+	seq.end = seq.imgparam[seq.number-1].filenum;
+	seq.type = args->seq->type;
+	seq.current = -1;
+	seq.is_variable = check_seq_is_variable(&seq);
+	if (!seq.is_variable) {
+		seq.rx = args->seq->rx;
+		seq.ry = args->seq->ry;
+	}
+	seq.fz = com.pref.comp.fits_enabled;
+	// don't copy from old sequence, it may not be the same image
+	if (refindex == -1)
+		seq.reference_image = sequence_find_refimage(&seq); //global
+	else
+		seq.reference_image = refindex; //applyreg
+	seq.needs_saving = TRUE;
+	writeseqfile(&seq);
+	g_free(seqname);
+	free_sequence(&seq, FALSE);
 }
 
 /* try to maximize the area within the image size (based on gfit)
@@ -135,13 +204,13 @@ void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int pres
 	return compute_fitting_selection(area, hsteps, vsteps, preserve_square);
 }
 
-void get_the_registration_area(struct registration_args *reg_args, const struct registration_method *method) {
+void get_the_registration_area(struct registration_args *regargs, const struct registration_method *method) {
 	int max;
 	switch (method->sel) {
 		/* even in the case of REQUIRES_NO_SELECTION selection is needed for MatchSelection of starAlignment */
 		case REQUIRES_NO_SELECTION:
 		case REQUIRES_ANY_SELECTION:
-			memcpy(&reg_args->selection, &com.selection, sizeof(rectangle));
+			memcpy(&regargs->selection, &com.selection, sizeof(rectangle));
 			break;
 		case REQUIRES_SQUARED_SELECTION:
 			/* Passed arguments are X,Y of the center of the square and the size of
@@ -151,17 +220,17 @@ void get_the_registration_area(struct registration_args *reg_args, const struct 
 			else
 				max = com.selection.h;
 
-			reg_args->selection.x = com.selection.x + com.selection.w / 2 - max / 2;
-			reg_args->selection.w = max;
-			reg_args->selection.y = com.selection.y + com.selection.h / 2 - max / 2;
-			reg_args->selection.h = max;
-			compute_fitting_selection(&reg_args->selection, 2, 2, 1);
+			regargs->selection.x = com.selection.x + com.selection.w / 2 - max / 2;
+			regargs->selection.w = max;
+			regargs->selection.y = com.selection.y + com.selection.h / 2 - max / 2;
+			regargs->selection.h = max;
+			compute_fitting_selection(&regargs->selection, 2, 2, 1);
 
 			/* save it back to com.selection do display it properly */
-			memcpy(&com.selection, &reg_args->selection, sizeof(rectangle));
-			fprintf(stdout, "final area: %d,%d,\t%dx%d\n", reg_args->selection.x,
-					reg_args->selection.y, reg_args->selection.w,
-					reg_args->selection.h);
+			memcpy(&com.selection, &regargs->selection, sizeof(rectangle));
+			fprintf(stdout, "final area: %d,%d,\t%dx%d\n", regargs->selection.x,
+					regargs->selection.y, regargs->selection.w,
+					regargs->selection.h);
 			redraw(REDRAW_OVERLAY);
 			break;
 	}
@@ -180,8 +249,20 @@ gpointer register_thread_func(gpointer p) {
 		// also done in generated sequence in global.c
 		args->seq->reference_image = sequence_find_refimage(args->seq);
 	}
-	if (!args->retval) writeseqfile(args->seq);
+	if (!args->retval)
+		writeseqfile(args->seq);
 	retval = args->retval;
+	if (args->disto) {
+		free_disto_args(args->disto);
+		free(args->disto);
+	}
+	if (args->driz) {
+		free(args->driz);
+	}
+	if (args->reference_date)
+		g_date_time_unref(args->reference_date);
+	if (args->wcsref)
+		wcsfree(args->wcsref);
 	if (!siril_add_idle(end_register_idle, args)) {
 		free_sequence(args->seq, TRUE);
 		free(args);

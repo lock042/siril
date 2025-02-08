@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -205,10 +205,7 @@ static void curves_startup() {
 
 	add_roi_callback(curves_histogram_change_between_roi_and_image);
 	roi_supported(TRUE);
-	copy_gfit_to_backup();
-
 	update_do_channel();
-
 	copy_gfit_to_backup();
 	// also get the display histogram
 	compute_histo_for_gfit();
@@ -303,13 +300,6 @@ static void curves_recompute() {
 		}
 	}
 
-	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
-	cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(gui.icc.monitor);
-	siril_colorspace_transform(fit, temp);
-	cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(temp);
-	cmsCloseProfile(temp);
 	if (depth == 1) {
 		size_t npixels = fit->rx * fit->ry;
 		float factor = 1 / 3.f;
@@ -388,15 +378,15 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 
 	if (algorithm == LINEAR) {
 		GList *iter;
-		point *p;
+		point *p = NULL;
 		for (iter = curve_points; iter != NULL; iter = iter->next) {
 			p = (point *) iter->data;
 			if (iter == curve_points) {
-				cairo_move_to(cr, p->x * width, height - (p->y * height));
-			} else {
-				cairo_line_to(cr, p->x * width, height - (p->y * height));
+				cairo_move_to(cr, 0, height - (p->y * height));
 			}
+			cairo_line_to(cr, p->x * width, height - (p->y * height));
 		}
+		if (p) cairo_line_to(cr, width, height - (p->y * height));
 	} else if (algorithm == CUBIC_SPLINE) {
 		cubic_spline_data cspline_data;
 		cubic_spline_fit(curve_points, &cspline_data);
@@ -441,23 +431,22 @@ void erase_curves_histogram_display(cairo_t *cr, int width, int height) {
 	update_do_channel();
 	if (gtk_toggle_tool_button_get_active(curves_grid_toggle))
 		draw_grid(cr, width, height);
-
-	draw_curve(cr, width, height);
-	draw_curve_points(cr, width, height);
 }
 
-static void reset_cursors_and_values() {
+static void reset_cursors_and_values(gboolean full_reset) {
 	_initialize_clip_text();
 	gtk_adjustment_set_value(curves_adj_zoom, 1.0);
 	gtk_entry_set_text(curves_seq_entry, "curve_");
-	gtk_combo_box_set_active(GTK_COMBO_BOX(curves_interpolation_combo), CUBIC_SPLINE);
 	gtk_toggle_button_set_active(curves_preview_check, TRUE);
 	gtk_toggle_button_set_active(curves_sequence_check, FALSE);
-	gtk_toggle_tool_button_set_active(curves_red_toggle, TRUE);
-	gtk_toggle_tool_button_set_active(curves_green_toggle, TRUE);
-	gtk_toggle_tool_button_set_active(curves_blue_toggle, TRUE);
 	gtk_toggle_tool_button_set_active(curves_grid_toggle, TRUE);
-	gtk_toggle_button_set_active(curves_log_check, com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
+	if (full_reset) {
+		gtk_toggle_tool_button_set_active(curves_red_toggle, TRUE);
+		gtk_toggle_tool_button_set_active(curves_green_toggle, TRUE);
+		gtk_toggle_tool_button_set_active(curves_blue_toggle, TRUE);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(curves_interpolation_combo), CUBIC_SPLINE);
+		gtk_toggle_button_set_active(curves_log_check, com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
+	}
 	reset_curve_points();
 	_update_entry_text();
 	update_gfit_curves_histogram_if_needed();
@@ -520,6 +509,8 @@ gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	for (i = 0; i < MAXVPORT; i++)
 		display_histo(display_histogram[i], cr, i, width, height, zoom, 1.0, FALSE, is_curves_log_scale());
 
+	draw_curve(cr, width, height);
+	draw_curve_points(cr, width, height);
 	return FALSE;
 }
 
@@ -533,14 +524,13 @@ void on_curves_window_show(GtkWidget *object, gpointer user_data) {
 	closing = FALSE;
 	curves_startup();
 	_initialize_clip_text();
-	reset_cursors_and_values();
+	reset_cursors_and_values(TRUE);
 	compute_histo_for_gfit();
 }
 
 void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
 	closing = TRUE;
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values();
 	curves_close(TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("curves_dialog");
@@ -548,7 +538,7 @@ void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_curves_reset_button_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values();
+	reset_cursors_and_values(FALSE);
 	curves_close(TRUE);
 	curves_startup();
 	gtk_widget_queue_draw(curves_drawingarea);
@@ -599,7 +589,7 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		clear_display_histogram();
 		// reinit
 		curves_startup();
-		reset_cursors_and_values();
+		reset_cursors_and_values(FALSE);
 		set_cursor("default");
 	}
 }
@@ -638,7 +628,6 @@ void apply_curve_to_sequence(struct curve_data *curve_args) {
 
 void apply_curves_cancel() {
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values();
 	curves_close(TRUE);
 	set_cursor_waiting(FALSE);
 }
@@ -678,11 +667,11 @@ void toggle_curves_window_visibility() {
 
 	if (gtk_widget_get_visible(curves_dialog)) {
 		set_cursor_waiting(TRUE);
-		reset_cursors_and_values();
 		curves_close(TRUE);
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("curves_dialog");
 	} else {
+		reset_cursors_and_values(TRUE);
 		copy_gfit_to_backup();
 		setup_curve_dialog();
 
@@ -700,14 +689,9 @@ gboolean on_curves_drawingarea_motion_notify_event(GtkWidget *widget, GdkEventMo
 	// y position is inverted
 	gdouble ypos = 1 - ((GdkEventMotion *) event)->y / (gdouble) gtk_widget_get_allocated_height(curves_drawingarea);
 
-	// The first and last points can only be moved vertically and their y is between 0 and 1
-	if (selected_point == g_list_first(curve_points)->data || selected_point == g_list_last(curve_points)->data) {
-		// clamp the y value to 0 and 1
-		selected_point->y = (ypos < 0) ? 0 : (ypos > 1) ? 1 : ypos;
-		_update_entry_text();
-		gtk_widget_queue_draw(widget);
-		return FALSE;
-	}
+	// clamp the coordinates to 0 and 1
+	xpos = (xpos < 0) ? 0 : (xpos > 1) ? 1 : xpos;
+	selected_point->y = (ypos < 0) ? 0 : (ypos > 1) ? 1 : ypos;
 
 	// Find the closest points to the selected point based on x position
 	// Limit the range of movement to the closest points
@@ -732,8 +716,6 @@ gboolean on_curves_drawingarea_motion_notify_event(GtkWidget *widget, GdkEventMo
 	else
 		selected_point->x = xpos;
 
-	// clamp the y value to 0 and 1
-	selected_point->y = (ypos < 0) ? 0 : (ypos > 1) ? 1 : ypos;
 	_update_entry_text();
 	gtk_widget_queue_draw(widget);
 
@@ -791,17 +773,22 @@ gboolean on_curves_drawingarea_button_press_event(GtkWidget *widget, GdkEventBut
 		gtk_widget_queue_draw(widget);
 		_update_entry_text();
 	} else if (event->button == GDK_BUTTON_SECONDARY && !is_drawingarea_pressed) {
-		// If a point is right-clicked, remove it and select the previous point. You can't remove the first and last points
+		// If a point is right-clicked, remove it and select the previous point. You can't remove a point if there are only two points
 		GList *iter;
 		point *p;
 		for (iter = curve_points; iter != NULL; iter = iter->next) {
 			p = (point *) iter->data;
 			if (fabs(p->x - xpos) < click_precision && fabs(p->y - ypos) < click_precision) {
-				if (iter != curve_points && iter != g_list_last(curve_points)) {
-					GList *prev_iter = iter->prev;
+				if (g_list_length(curve_points) > 2) {
+					GList *new_selected_point;
+					if	(p == g_list_nth_data(curve_points, 0))
+						new_selected_point = iter->next;
+					else
+						new_selected_point = iter->prev;
+
 					curve_points = g_list_remove(curve_points, p);
 					g_free(p);
-					selected_point = (point *) prev_iter->data;
+					selected_point = (point *) new_selected_point->data;
 					gtk_widget_queue_draw(widget);
 					_update_entry_text();
 				}
@@ -874,30 +861,24 @@ gboolean on_curves_id_entry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 void on_curves_x_entry_activate(GtkEntry *entry, gpointer user_data) {
 	float curve_x = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 
-	int selected_point_index = g_list_index(curve_points, selected_point);
-	if (selected_point_index == 0)
-		curve_x = 0;
-	else if (selected_point_index == g_list_length(curve_points) - 1)
-		curve_x = 1;
-	else {
-		GList *iter;
-		point *p;
-		for (iter = curve_points; iter != NULL; iter = iter->next) {
-			p = (point *) iter->data;
-			if (p != selected_point && p->x == curve_x) {
-				// Reset the entry text to the previous value and show a popover
-				gchar *str = g_strdup_printf("%8.7f", selected_point->x);
-				gtk_entry_set_text(entry, str);
-				GtkWidget *popover = popover_new(curves_drawingarea, "A point already exists at this x position");
-				gtk_widget_show_all(popover);
-				return;
-			}
-		}
-		if (curve_x < 0 || curve_x > 1) {
+	GList *iter;
+	point *p;
+	for (iter = curve_points; iter != NULL; iter = iter->next) {
+		p = (point *) iter->data;
+		if (p != selected_point && p->x == curve_x) {
+			// Reset the entry text to the previous value and show a popover
 			gchar *str = g_strdup_printf("%8.7f", selected_point->x);
 			gtk_entry_set_text(entry, str);
+			GtkWidget *popover = popover_new(curves_drawingarea, "A point already exists at this x position");
+			gtk_widget_show_all(popover);
 			return;
 		}
+	}
+
+	if (curve_x < 0 || curve_x > 1) {
+		gchar *str = g_strdup_printf("%8.7f", selected_point->x);
+		gtk_entry_set_text(entry, str);
+		return;
 	}
 
 	selected_point->x = curve_x;

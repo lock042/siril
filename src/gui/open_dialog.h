@@ -13,6 +13,7 @@
 #define OD_FLATLIB  8
 #define OD_DARKLIB  9
 #define OD_OFFSETLIB  10
+#define OD_DISTOLIB  11
 
 #define FITS_EXTENSIONS "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.fits.fz;*.fts.fz"
 

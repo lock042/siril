@@ -359,7 +359,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">Rho sets the amount of the original noisy image mixed back in between each SOS iteration. Up to a point, larger values will result in greater effectiveness but beyond a certain point the algorithm will fail to converge. The default of 0.2 is often a good starting point.</property>
                     <property name="halign">end</property>
-                    <property name="text">0,50</property>
+                    <property name="text">0.50</property>
                     <property name="adjustment">denoise-rho-adjustment</property>
                     <property name="digits">2</property>
                     <property name="value">0.20</property>

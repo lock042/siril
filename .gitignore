@@ -16,6 +16,7 @@ INSTALL
 *Makefile.in.in
 *.deps
 *.dirstamp
+.pydevproject
 aclocal.m4
 autom4te.cache/
 compile
@@ -33,6 +34,7 @@ subprojects/kplot/libkplot.a
 subprojects/kplot/test-reallocarray
 subprojects/htmesh/config-htmesh.h
 subprojects/htmesh/build/
+subprojects/healpix_cxx/build/
 install-sh
 m4/intltool.m4
 m4/nls.m4
@@ -51,3 +53,5 @@ git-version.h
 GTAGS
 GRTAGS
 GPATH
+*.pyc
+*.egg-info

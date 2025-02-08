@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -18,27 +18,25 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "io/FITS_symlink.h" // needs to be included before siril.h to avoid type redefinition 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
-#include "algos/PSF.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "algos/siril_wcs.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
-#include "opencv/opencv.h"
 #include "registration.h"
+#include "opencv/opencv.h"
+#include "drizzle/cdrizzleutil.h"
 
-static pointf velocity = { 0.f, 0.f };
-static GDateTime *t_of_image_1 = NULL;
-static GDateTime *t_of_image_2 = NULL;
-static point pos_of_image1 = { 0 };
-static point pos_of_image2 = { 0 };
+static int new_ref_index = -1;
 
-static pointf compute_velocity(GDateTime *t1, GDateTime *t2, point d1, point d2) {
+pointf compute_velocity(GDateTime *t1, GDateTime *t2, point d1, point d2) {
 	pointf delta_d, px_per_hour = { 0.f, 0.f };
 
 	if (t1 && t2) {
@@ -53,7 +51,7 @@ static pointf compute_velocity(GDateTime *t1, GDateTime *t2, point d1, point d2)
 	return px_per_hour;
 }
 
-static int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *reg) {
+int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *reg) {
 	if (img && ref) {
 		float delta_t = (float) g_date_time_difference(img, ref);
 		delta_t /= 3600000000.f;
@@ -63,205 +61,164 @@ static int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, p
 	return 0;
 }
 
-static void update_velocity() {
-	GtkLabel *label = GTK_LABEL(lookup_widget("label1_comet"));
-
-	velocity = compute_velocity(t_of_image_1, t_of_image_2, pos_of_image1, pos_of_image2);
-
-	gchar *v_txt = g_strdup_printf("Δx: %.2lf, Δy: %.2lf", velocity.x, -velocity.y);
-	gtk_label_set_text(label, v_txt);
-
-	g_free(v_txt);
-}
-
-static void update_entry1(point pt) {
-	GtkEntry *entry_x = GTK_ENTRY(lookup_widget("entry1_x_comet"));
-	GtkEntry *entry_y = GTK_ENTRY(lookup_widget("entry1_y_comet"));
-	gchar *txt_x, *txt_y;
-
-	txt_x = g_strdup_printf("%7.2f", pt.x);
-	txt_y = g_strdup_printf("%7.2f", pt.y);
-
-	gtk_entry_set_text(entry_x, txt_x);
-	gtk_entry_set_text(entry_y, txt_y);
-
-	g_free(txt_x);
-	g_free(txt_y);
-}
-
-static void update_entry2(point pt) {
-	GtkEntry *entry_x = GTK_ENTRY(lookup_widget("entry2_x_comet"));
-	GtkEntry *entry_y = GTK_ENTRY(lookup_widget("entry2_y_comet"));
-	gchar *txt_x, *txt_y;
-
-	txt_x = g_strdup_printf("%7.2f", pt.x);
-	txt_y = g_strdup_printf("%7.2f", pt.y);
-
-	gtk_entry_set_text(entry_x, txt_x);
-	gtk_entry_set_text(entry_y, txt_y);
-
-	g_free(txt_x);
-	g_free(txt_y);
-}
-
-static int get_reglayer() {
-	GtkComboBox *cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
-
-	return gtk_combo_box_get_active(cbbt_layers);
-}
-
-void on_button1_comet_clicked(GtkButton *button, gpointer p) {
-	psf_star *result = NULL;
-	int layer = get_reglayer();
-
-	if (com.selection.h && com.selection.w) {
-		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
-		if (result) {
-			pos_of_image1.x = result->x0 + com.selection.x;
-			pos_of_image1.y = com.selection.y + com.selection.h - result->y0;
-			if (layer_has_registration(&com.seq, layer) &&
-					guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
-					guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
-				cvTransfPoint(&pos_of_image1.x, &pos_of_image1.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H, 1.);
-			}
-			free_psf(result);
-			if (!gfit.keywords.date_obs) {
-				siril_message_dialog(GTK_MESSAGE_ERROR,
-						_("There is no timestamp stored in the file"),
-						_("Siril cannot perform the registration without date information in the file."));
-			} else {
-				if (t_of_image_1) {
-					g_date_time_unref(t_of_image_1);
-				}
-				t_of_image_1 = g_date_time_ref(gfit.keywords.date_obs);
-				if (!t_of_image_1) {
-					siril_message_dialog(GTK_MESSAGE_ERROR,
-							_("Unable to convert DATE-OBS to a valid date"),
-							_("Siril cannot convert the DATE-OBS keyword into a valid date needed in the alignment."));
-				}
-				update_entry1(pos_of_image1);
-			}
-		}
-		set_cursor_waiting(FALSE);
-	}
-}
-
-void on_button2_comet_clicked(GtkButton *button, gpointer p) {
-	psf_star *result = NULL;
-	int layer = get_reglayer();
-
-	if (com.selection.h && com.selection.w) {
-		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
-		if (result) {
-			pos_of_image2.x = result->x0 + com.selection.x;
-			pos_of_image2.y = com.selection.y + com.selection.h - result->y0;
-			if (layer_has_registration(&com.seq, layer) &&
-					guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
-					guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
-				cvTransfPoint(&pos_of_image2.x, &pos_of_image2.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H, 1.);
-			}
-			free_psf(result);
-			if (!gfit.keywords.date_obs) {
-				siril_message_dialog(GTK_MESSAGE_ERROR,
-						_("There is no timestamp stored in the file"),
-						_("Siril cannot perform the registration without date information in the file."));
-			} else {
-				if (t_of_image_2) {
-					g_date_time_unref(t_of_image_2);
-				}
-				t_of_image_2 = g_date_time_ref(gfit.keywords.date_obs);
-				if (!t_of_image_2) {
-					siril_message_dialog(GTK_MESSAGE_ERROR,
-							_("Unable to convert DATE-OBS to a valid date"),
-							_("Siril cannot convert the DATE-OBS keyword into a valid date needed in the alignment."));
-				}
-				if (g_date_time_difference(t_of_image_2, t_of_image_1) == 0) {
-					siril_message_dialog(GTK_MESSAGE_ERROR,
-							_("Dates of the two images are identical"),
-							_("Siril cannot compute the velocity needed for the alignment."));
-				}
-				update_entry2(pos_of_image2);
-			}
-		}
-		set_cursor_waiting(FALSE);
-	}
-}
-
-void on_entry_comet_changed(GtkEditable *editable, gpointer user_data) {
-	GtkEntry *entry1_x = GTK_ENTRY(lookup_widget("entry1_x_comet"));
-	GtkEntry *entry1_y = GTK_ENTRY(lookup_widget("entry1_y_comet"));
-	GtkEntry *entry2_x = GTK_ENTRY(lookup_widget("entry2_x_comet"));
-	GtkEntry *entry2_y = GTK_ENTRY(lookup_widget("entry2_y_comet"));
-
-	pos_of_image1.x = g_ascii_strtod(gtk_entry_get_text(entry1_x), NULL);
-	pos_of_image1.y = g_ascii_strtod(gtk_entry_get_text(entry1_y), NULL);
-	pos_of_image2.x = g_ascii_strtod(gtk_entry_get_text(entry2_x), NULL);
-	pos_of_image2.y = g_ascii_strtod(gtk_entry_get_text(entry2_y), NULL);
-
-	update_velocity();
-}
-
-pointf get_velocity() {
-	return velocity;
-}
-
 /***** generic moving object registration *****/
 
 struct comet_align_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
-	GDateTime *reference_date;
+	disto_params *distoparam;
+	gboolean flipped;
 };
+
+static void create_output_sequence_for_comet(struct registration_args *args, int refindex, disto_params *distoparam) {
+	sequence seq = { 0 };
+	initialize_sequence(&seq, TRUE);
+
+	/* we are not interested in the whole path */
+	gchar *seqname = g_path_get_basename(args->seq->seqname);
+	char *rseqname = malloc(strlen(args->prefix) + strlen(seqname) + 5);
+	sprintf(rseqname, "%s%s.seq", args->prefix, seqname);
+	g_unlink(rseqname);	// remove previous to overwrite
+	args->new_seq_name = remove_ext_from_filename(rseqname);
+	free(rseqname);
+	seq.seqname = strdup(args->new_seq_name);
+	seq.number = args->seq->number;
+	seq.selnum = args->new_total;
+	seq.fixed = args->seq->fixed;
+	seq.nb_layers = args->seq->nb_layers;
+	seq.imgparam = args->imgparam;
+	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
+	seq.regparam[args->layer] = args->regparam;
+	seq.beg = seq.imgparam[0].filenum;
+	seq.end = seq.imgparam[seq.number - 1].filenum;
+	seq.type = args->seq->type;
+	seq.current = -1;
+	seq.is_variable = FALSE;
+	seq.fz = args->seq->fz;
+	seq.reference_image = refindex;
+	seq.needs_saving = TRUE;
+	if (distoparam)
+		seq.distoparam = distoparam;
+	fix_selnum(&seq, FALSE);
+	writeseqfile(&seq);
+	g_free(seqname);
+	free_sequence(&seq, FALSE);
+}
+
 
 static int comet_align_prepare_hook(struct generic_seq_args *args) {
 	struct comet_align_data *cadata = args->user;
 	struct registration_args *regargs = cadata->regargs;
-	int ref_image;
-	fits ref = { 0 };
 
+	// allocate destination sequence data
+	regargs->imgparam = malloc(args->seq->number * sizeof(imgdata));
+	regargs->regparam = calloc(args->seq->number, sizeof(regdata));
+	if (!regargs->imgparam  || !regargs->regparam) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	// we copy imgparam from the originating sequence and reset incl flags
+	memcpy(regargs->imgparam, args->seq->imgparam, args->seq->number * sizeof(imgdata));
+	for (int i = 0; i < args->seq->number; i++)
+		regargs->imgparam[i].incl = !SEQUENCE_DEFAULT_INCLUDE; // this will be set by the image hook
+
+	// we copy regparam from the originating sequence if it exists
 	if (args->seq->regparam[regargs->layer]) {
+		memcpy(regargs->regparam, args->seq->regparam[regargs->layer], args->seq->number * sizeof(regdata));
 		cadata->current_regdata = args->seq->regparam[regargs->layer];
 	} else {
-		cadata->current_regdata = calloc(args->seq->number, sizeof(regdata));
-		if (cadata->current_regdata == NULL) {
-			PRINT_ALLOC_ERR;
-			return -2;
-		}
-		args->seq->regparam[regargs->layer] = cadata->current_regdata;
+		cadata->current_regdata = NULL;
 	}
 
-	/* loading reference frame */
-	ref_image = sequence_find_refimage(args->seq);
+	// if FITS, we will symlink to originating images
+	// if FITSEQ or SER, we will symlink directly to the orginal file in the finalize hook
+	if (args->seq->type == SEQ_REGULAR && seq_prepare_hook(args))
+		return 1;
 
-	// TODO: reading only the date can be made in a less resource-consuming way
-	if (seq_read_frame(args->seq, ref_image, &ref, FALSE, -1)) {
+	// we fetch the reference date
+	fits ref = { 0 };
+	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		free(cadata->current_regdata);
 		return 1;
 	}
-	cadata->reference_date = g_date_time_ref(ref.keywords.date_obs);
-	clearfits(&ref);
+	regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
 
+	// we must copy the disto data from the originating sequence
+	if (layer_has_distortion(args->seq, regargs->layer)) {
+		disto_params *disto_orig = args->seq->distoparam;
+		cadata->distoparam = calloc(args->seq->nb_layers, sizeof(disto_params));
+		if (disto_orig[regargs->layer].index != DISTO_FILES) {
+			cadata->distoparam[regargs->layer].index = disto_orig[regargs->layer].index;
+			if (cadata->distoparam[regargs->layer].filename)
+				cadata->distoparam[regargs->layer].filename = g_strdup(disto_orig[regargs->layer].filename);
+		} else {
+		// if registration originates from astrometry, we can't keep it as is
+		// otherwise, registration will be recomputed from wcs at applyreg step (so without the shifts)
+		// instead, we change to DISTO_FILE_COMET and use the refimage as distortion master (if it has distortion)
+			if (ref.keywords.wcslib && ref.keywords.wcslib->lin.dispre != NULL) {
+				char buffer[256];
+				fit_sequence_get_image_filename(args->seq, args->seq->reference_image, buffer, TRUE);
+				cadata->distoparam[regargs->layer].filename = g_strdup(buffer);
+			}
+			if (image_is_flipped_from_wcs(ref.keywords.wcslib)) // and if astrometry is flipped
+				cadata->flipped = TRUE;
+		}
+	}
+	if (cadata->flipped)
+		regargs->velocity.y *= -1; // we correct the velocity due to the filp from astrometry which will not be applied during applyreg
+
+	if (layer_has_registration(args->seq, regargs->layer)) { // we must keep track to correctly recompute astrometry during applyreg
+		if (!cadata->distoparam) // there was no distorsion in any layer
+			cadata->distoparam = calloc(args->seq->nb_layers, sizeof(disto_params));
+		cadata->distoparam[regargs->layer].index = DISTO_FILE_COMET;
+		cadata->distoparam[regargs->layer].velocity = regargs->velocity;
+		if (cadata->flipped)
+			cadata->distoparam[regargs->layer].velocity.y *= -1;
+	}
+
+	clearfits(&ref);
 	return 0;
 }
 
 static int comet_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct comet_align_data *cadata = args->user;
 	struct registration_args *regargs = cadata->regargs;
+
 	pointf reg = { 0.f, 0.f };
-
-	if (!regargs->cumul) {
-		/* data initialization */
-		set_shifts(args->seq, in_index, regargs->layer, 0., 0., FALSE);
+	get_comet_shift(regargs->reference_date, fit->keywords.date_obs, regargs->velocity, &reg);
+	if (cadata->current_regdata) {
+		if (guess_transform_from_H(cadata->current_regdata[in_index].H) == NULL_TRANSFORMATION) {
+			siril_log_color_message(_("Image %d has no registration data, removing\n"), "red", in_index + 1);
+			regargs->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+			return 1;
+		}
+		regargs->regparam[in_index].H = cadata->current_regdata[in_index].H; // previous reg exists, we set H with the initial H matrix
+	} else {
+		cvGetEye(&regargs->regparam[in_index].H); // previous reg does not exist, we set H with identity
 	}
+	cum_shifts(regargs->regparam, in_index, -reg.x, -reg.y); // we left-compose with the additional shift
 
-	get_comet_shift(cadata->reference_date, fit->keywords.date_obs, velocity, &reg);
+	regargs->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+	
+	if (in_index == regargs->reference_image)
+		new_ref_index = in_index; // keeping track of the new ref index in output sequence
 
-	/* get_comet_shift does not care about orientation of image */
-	cum_shifts(args->seq, in_index, regargs->layer, -reg.x, reg.y, FALSE);
+	return 0;
+}
+
+static int comet_save_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
+	struct comet_align_data *cadata = args->user;
+	struct registration_args *regargs = cadata->regargs;
+	if (args->seq->type == SEQ_REGULAR) {
+		char src[PATH_MAX];
+		seq_get_image_filename(args->seq, in_index, src);
+		gchar *dest = fit_sequence_get_image_filename_prefixed(args->seq, regargs->prefix, in_index);
+		int res = symlink_uniq_file(src, dest, TRUE);
+		g_free(dest);
+		return res;
+	}
 	return 0;
 }
 
@@ -269,16 +226,29 @@ static int comet_align_finalize_hook(struct generic_seq_args *args) {
 	struct comet_align_data *cadata = args->user;
 	struct registration_args *regargs = cadata->regargs;
 
-	if (args->retval) {
-		free(args->seq->regparam[regargs->layer]);
-		args->seq->regparam[regargs->layer] = NULL;
+	regargs->new_total = args->nb_filtered_images;
+
+ 	// for fitseq or ser, we copy a symlink to the whole file (or hard-copy if symlink not possible)
+	if (!args->retval && (args->seq->type == SEQ_FITSEQ || args->seq->type == SEQ_SER)) {
+		gchar *basename = (args->seq->type == SEQ_FITSEQ) ? args->seq->fitseq_file->filename : args->seq->ser_file->filename;
+		GString *prefixedname = g_string_new(basename);
+		prefixedname = g_string_prepend(prefixedname, regargs->prefix);
+		gchar *outname = g_string_free(prefixedname, FALSE);
+		args->retval = symlink_uniq_file(basename, outname, TRUE);
+		g_free(outname);
 	}
 
-	if (cadata->reference_date)
-		g_date_time_unref(cadata->reference_date);
+	if (!args->retval) {
+		siril_log_message(_("Applying registration completed.\n"));
+		// explicit sequence creation to copy imgparam and regparam
+		create_output_sequence_for_comet(regargs, new_ref_index, cadata->distoparam);
+		// will be loaded in the idle function if (load_new_sequence)
+		regargs->load_new_sequence = TRUE;
+	}
 
 	free(cadata);
 	args->user = NULL;
+	new_ref_index = -1;
 	return 0;
 }
 
@@ -299,8 +269,14 @@ int register_comet(struct registration_args *regargs) {
 	args->prepare_hook = comet_align_prepare_hook;
 	args->image_hook = comet_align_image_hook;
 	args->finalize_hook = comet_align_finalize_hook;
+	if (args->seq->type == SEQ_REGULAR) {
+		args->save_hook = comet_save_hook; // saves a symlink to original images
+		args->has_output = TRUE;
+		args->new_seq_prefix = g_strdup(regargs->prefix);
+	}
 	args->description = _("Moving object registration");
 	args->already_in_a_thread = TRUE;
+	args->stop_on_error = FALSE;
 
 	struct comet_align_data *cadata = calloc(1, sizeof(struct comet_align_data));
 	if (!cadata) {

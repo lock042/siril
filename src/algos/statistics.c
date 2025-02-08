@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -890,7 +890,7 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 
 static int stat_compute_mem_limit(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_image, MB_avail, required;
-	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	int limit = compute_nb_images_fit_memory(args->seq, 0.0, FALSE, &MB_per_image, NULL, &MB_avail); // no output - output_scale is set to 0.
 
 	int is_color = args->seq->nb_layers == 3;
 	required = is_color ? MB_per_image * 4 / 3 : MB_per_image * 2;
@@ -1194,10 +1194,33 @@ double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float 
 		return 0.0; // No elements in the range, return 0 as median
 	}
 
-	double retval = quickmedian(filtered_data, count);
+	// use histogram_median here instead of quickmedian for speed (see #1458)
+	double retval = histogram_median(filtered_data, count, MULTI_THREADED);
 
 	// Free the allocated memory for filtered_data
 	free(filtered_data);
 
 	return retval;
+}
+
+// Function to quickly compute min and max values
+int quick_minmax(fits *fit, double *minval, double *maxval) {
+    imstats *stats[3] = { NULL };
+    int retval = compute_all_channels_statistics_single_image(fit, STATS_MINMAX, MULTI_THREADED, stats);
+
+    if (retval) {
+        siril_log_color_message(_("Error: statistics computation failed. Unable to check for out-of-range values.\n"), "red");
+    } else {
+        if (fit->naxes[2] == 1) {
+            *maxval = stats[0]->max;
+            *minval = stats[0]->min;
+        } else {
+            *maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
+            *minval = min(min(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
+        }
+        for (int i = 0; i < fit->naxes[2]; i++) {
+            free_stats(stats[i]);
+        }
+    }
+    return retval;
 }

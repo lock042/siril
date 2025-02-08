@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -92,6 +92,11 @@ void linear_fit(GList *points, double *slopes) {
 }
 
 float linear_interpolate(float x, GList *points, double *slopes) {
+	if (x > ((point *) g_list_last(points)->data)->x)
+		return ((point *) g_list_last(points)->data)->y;
+	else if (x < ((point *) points->data)->x)
+		return ((point *) points->data)->y;
+
 	x = fmax(0, fmin(1, x));
 
 	// Find the point that is closest to x with its x value < x
@@ -162,6 +167,12 @@ void cubic_spline_fit(GList *points, cubic_spline_data *cspline_data) {
 }
 
 float cubic_spline_interpolate(float x, cubic_spline_data *cspline_data) {
+	if (x > cspline_data->x_values[cspline_data->n - 1])
+		return cspline_data->y_values[cspline_data->n - 1];
+	else if (x < cspline_data->x_values[0])
+		return cspline_data->y_values[0];
+
+
 	x = fmax(0, fmin(1, x));
 	int i = 0;
 	while (i < cspline_data->n - 1 && x > cspline_data->x_values[i + 1])

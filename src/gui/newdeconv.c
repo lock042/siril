@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -168,7 +168,7 @@ void bdeconv_dialog_init_statics() {
 //set below flag to zero to avoid kernel printout to stdout
 #define DEBUG_PSF 0
 
-void reset_conv_controls() {
+gboolean reset_conv_controls(gpointer user_data) {
 	gtk_combo_box_set_active(bdeconv_profile, args.profile);
 	gtk_combo_box_set_active(bdeconv_blindtype, args.blindtype);
 	gtk_combo_box_set_active(bdeconv_nonblindtype, args.nonblindtype);
@@ -202,6 +202,7 @@ void reset_conv_controls() {
 	gtk_spin_button_set_value(bdeconv_stopcriterion, args.stopcriterion);
 	gtk_spin_button_set_value(bdeconv_stepsize, args.stepsize);
 	gtk_spin_button_set_value(bdeconv_ncomp, args.compensationfactor);
+	return FALSE;
 }
 
 void on_bdeconv_psfblind_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -226,7 +227,7 @@ void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
 		gtk_spin_button_set_value(button, args.ks);
 	}
 	reset_conv_kernel();
-	DrawPSF();
+	DrawPSF(NULL);
 }
 
 void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
@@ -638,12 +639,12 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	g_free(temp5);
 	g_free(temp6);
 	g_free(filename);
-
 	return;
 }
 
-void set_kernel_size_in_gui() {
+gboolean set_kernel_size_in_gui(gpointer user_data) {
 	gtk_spin_button_set_value(bdeconv_ks, com.kernelsize);
+	return FALSE;
 }
 
 void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_data) {
@@ -712,7 +713,7 @@ gboolean estimate_idle(gpointer arg) {
 	stop_processing_thread();
 	free(args.fdata);
 	args.fdata = NULL;
-	DrawPSF();
+	DrawPSF(NULL);
 	return FALSE;
 }
 
@@ -875,6 +876,8 @@ gboolean on_PSFkernel_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 // caller
-void DrawPSF() {
-	gtk_widget_queue_draw(GTK_WIDGET(bdeconv_drawingarea));
+gboolean DrawPSF(gpointer user_data) {
+	if (GTK_IS_WIDGET(bdeconv_drawingarea))
+		gtk_widget_queue_draw(GTK_WIDGET(bdeconv_drawingarea));
+	return FALSE;
 }

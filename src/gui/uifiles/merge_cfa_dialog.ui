@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -323,7 +323,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="halign">start</property>
-                    <property name="label" translatable="yes">Sequence input marker</property>
+                    <property name="label" translatable="yes">CFA marker string</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
@@ -345,12 +345,12 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkEntry" id="entryMergeCFAin">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">Identifier prefix used to denote CFA number in the separate CFA channel images. This should be set to whatever sequence prefix was used when the split_cfa process was run (default: CFA_).</property>
+                    <property name="tooltip-text" translatable="yes">Identifier prefix used to denote CFA number in the separate CFA channel images. This should be set to whatever sequence prefix was used when the split_cfa process was run (default: CFA).</property>
                     <property name="hexpand">True</property>
                     <property name="max-length">10</property>
                     <property name="width-chars">10</property>
                     <property name="max-width-chars">10</property>
-                    <property name="text">CFA_</property>
+                    <property name="text">CFA</property>
                     <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                   </object>
                   <packing>
@@ -404,13 +404,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="margin-end">8</property>
-                            <property name="label" translatable="yes">You must have the CFA0 sequence selected in the main window sequence tab.
+                            <property name="label" translatable="yes">You must have one of the CFA sequences selected in the main window sequence tab. Siril will autodetect which CFA channel it corresponds to from the CFA marker string. All 4 sequences must have the same name format and CFA marker string, differing only by the number following the string (e.g. CFA0, CFA1, CFA2 and CFA3).
 
-Your separate sub-CFA sequences must have been processed in exactly the same way.
+Each image in the sequence will only be processed if the corresponding images for the other 3 CFA channels can be found. Both G1 and G2 files are required. Note this means that if you discard an image containing one CFA channel of an image between split_cfa and merge_cfa, merge_cfa will be unable to merge the remaining CFA channels for that image. All sequence filtering should be done either before split_cfa or after merge_cfa.
 
-The filenames &lt;b&gt;must&lt;/b&gt; be in the same directory and &lt;b&gt;must&lt;/b&gt; differ only by the name of the CFA channel. i.e. if a CFA0 image is &lt;i&gt;r_pp_CFA_0_Light_0001.fit&lt;/i&gt;, the corresponding images for the other CFA channels must be &lt;i&gt;r_pp_CFA_1_Light_0001.fit&lt;/i&gt;, &lt;i&gt;r_pp_CFA_2_Light_0001.fit&lt;/i&gt; and &lt;i&gt;r_pp_CFA_3_Light_0001.fit&lt;/i&gt;.
-
-Each image in the sequence will only be processed if the corresponding images for the other 3 CFA channels can be found. Both G1 and G2 are required. Note this means that if you discard an image containing one CFA channel of an image between split_cfa and merge_cfa, merge_cfa will be unable to merge the remaining CFA channels for that image. All sequence filtering should be done either before split_cfa or after merge_cfa.</property>
+Note that CFA merge does not work for X-Trans files.</property>
                             <property name="use-markup">True</property>
                             <property name="wrap">True</property>
                             <property name="max-width-chars">80</property>
@@ -452,5 +450,4 @@ Each image in the sequence will only be processed if the corresponding images fo
       </object>
     </child>
   </object>
-
 </interface>

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -48,6 +48,11 @@ static void signal_handled(int s) {
 		g_printf("Error, signal %d:\n", s);
 		const gchar *visit = _("Please report this bug to: " PACKAGE_BUGREPORT);
 		switch (s) {
+#ifndef _WIN32
+		case SIGINT: // useful for devs who often use CTRL+C
+			gtk_main_quit();
+			break;
+#endif
 		case SIGSEGV:
 		case SIGFPE:
 		case SIGABRT:

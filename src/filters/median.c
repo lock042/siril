@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -265,9 +265,9 @@ static gboolean end_median_filter(gpointer p) {
 		populate_roi();
 	}
 	stop_processing_thread();
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;
@@ -798,13 +798,13 @@ gpointer median_filter(gpointer p) {
 	if (!com.script && !args->previewing)
 		undo_save_state(&gfit, _("Median Filter (filter=%dx%d px)"),
 			args->ksize, args->ksize);
+	gpointer retval = GINT_TO_POINTER(1);
 	if (args->fit->type == DATA_USHORT)
-		return median_filter_ushort(p);
+		retval = median_filter_ushort(p);
 	if (args->fit->type == DATA_FLOAT)
-		return median_filter_float(p);
+		retval = median_filter_float(p);
 	unlock_roi_mutex();
-	siril_add_idle(end_median_filter, args);
-	if (com.script && (args->fit == &gfit))
+	if (args->fit == &gfit)
 		notify_gfit_modified();
-	return GINT_TO_POINTER(1);
+	return GINT_TO_POINTER(retval);
 }

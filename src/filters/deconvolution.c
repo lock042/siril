@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -159,8 +159,7 @@ void reset_conv_kernel() {
 void reset_conv_controls_and_args() {
 	if (!get_thread_run() || (the_fit == NULL))
 		reset_conv_args(&args);
-	if (!(com.headless))
-		reset_conv_controls();
+	gui_function(reset_conv_controls, NULL);
 }
 
 void check_orientation() {
@@ -197,8 +196,8 @@ int load_kernel(gchar* filename) {
 	if (load_fit.rx != load_fit.ry){
 		retval = 1;
 		char *msg = siril_log_color_message(_("Error: PSF file does not contain a square PSF. Cannot load this file.\n"), "red");
-		if (!com.script )
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
+		// no need to check com.script as it is built into the siril_message_dialog function
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
 		bad_load = TRUE;
 		goto ENDSAVE;
 	}
@@ -215,8 +214,7 @@ int load_kernel(gchar* filename) {
 	}
 	com.kernelchannels = load_fit.naxes[2];
 	args.kchans = com.kernelchannels;
-	if (!com.headless && !com.script)
-		set_kernel_size_in_gui();
+	gui_function(set_kernel_size_in_gui, NULL);
 
 	int npixels = com.kernelsize * com.kernelsize;
 	int orig_pixels = orig_size * orig_size;
@@ -273,8 +271,7 @@ int load_kernel(gchar* filename) {
 	com.pref.debayer.open_debayer = original_debayer_setting;
 	clearfits(&load_fit);
 	ENDSAVE:
-	if (!com.script && !com.headless)
-		DrawPSF();
+	gui_function(DrawPSF, NULL);
 	return retval;
 }
 
@@ -437,8 +434,7 @@ int get_kernel() {
 	com.kernelsize = (!com.kernel) ? 0 : args.ks;
 	com.kernelchannels = (!com.kernel) ? 0 : args.kchans;
 	if (args.psftype != PSF_PREVIOUS) {
-		if (!com.script && !com.headless)
-			DrawPSF();
+		gui_function(DrawPSF, NULL);
 	}
 END:
 	return retval;
@@ -561,8 +557,7 @@ gpointer deconvolve(gpointer p) {
 	gboolean stars_need_clearing = FALSE;
 	check_orientation();
 	if (sequence_is_running == 0)
-		if (!com.script && !com.headless)
-			DrawPSF();
+		gui_function(DrawPSF, NULL);
 	args.nchans = the_fit->naxes[2];
 	args.rx = the_fit->rx;
 	args.ry = the_fit->ry;

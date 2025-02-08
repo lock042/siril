@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,6 +28,13 @@ typedef enum {
 	REG_PAGE_MISC
 } reg_notebook_page;
 
+// 3 stars GUI
+void reset_3stars();
+int _3stars_get_number_selected_stars();
+gboolean _3stars_check_selection();
+
+// General GUI
+int get_registration_layer_from_GUI(const sequence *seq);
 void update_reg_interface(gboolean dont_change_reg_radio);
 gboolean end_register_idle(gpointer p);
 void initialize_registration_methods();

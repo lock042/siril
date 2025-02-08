@@ -119,7 +119,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="invisible-char">●</property>
                 <property name="width-chars">6</property>
                 <property name="max-width-chars">7</property>
-                <property name="text">0,00</property>
+                <property name="text">0.00</property>
                 <property name="input-purpose">number</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                 <property name="adjustment">rotation_angle</property>

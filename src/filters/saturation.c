@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -370,9 +370,9 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 	// Update preview only if required
 	if (prev_satu != 0.0) {
 		copy_backup_to_gfit();
-		adjust_cutoff_from_updated_gfit();
+		notify_gfit_modified();
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 		set_cursor_waiting(FALSE);
 	}
 }

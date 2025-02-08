@@ -494,9 +494,9 @@ void free_stars(struct s_star **list) {
 
 void print_H(Homography *H) {
 	printf("Transformation Matrix:\n");
-	printf("%+*.5f %+*.5f %+*.5f\n", 11, H->h00, 11, H->h01, 11, H->h02);
-	printf("%+*.5f %+*.5f %+*.5f\n", 11, H->h10, 11, H->h11, 11, H->h12);
-	printf("%+*.5f %+*.5f %+*.5f\n", 11, H->h20, 11, H->h21, 11, H->h22);
+	printf("%+*.5f;%+*.5f;%+*.5f\n", 11, H->h00, 11, H->h01, 11, H->h02);
+	printf("%+*.5f;%+*.5f;%+*.5f\n", 11, H->h10, 11, H->h11, 11, H->h12);
+	printf("%+*.5f;%+*.5f;%+*.5f\n", 11, H->h20, 11, H->h21, 11, H->h22);
 }
 
 /************************************************************************

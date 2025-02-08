@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -352,9 +352,7 @@ void set_cursor_waiting(gboolean waiting) {
 	arg->change = waiting;
 	arg->cursor_name = "progress";
 
-	if (com.script)
-		gdk_threads_add_idle(idle_set_cursor, arg);
-	else idle_set_cursor(arg);
+	gui_function(idle_set_cursor, arg);
 }
 
 void set_cursor(const gchar* cursor_name) {
@@ -363,7 +361,5 @@ void set_cursor(const gchar* cursor_name) {
 	arg->change = TRUE;
 	arg->cursor_name = cursor_name;
 
-	if (com.script)
-		gdk_threads_add_idle(idle_set_cursor, arg);
-	else idle_set_cursor(arg);
+	gui_function(idle_set_cursor, arg);
 }

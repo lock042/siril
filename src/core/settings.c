@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -57,6 +57,8 @@ preferences pref_init = {
 	.catalogue_paths[1] = NULL,
 	.catalogue_paths[2] = NULL,
 	.catalogue_paths[3] = NULL,
+	.catalogue_paths[4] = NULL,
+	.catalogue_paths[5] = NULL,
 	.rgb_aladin = FALSE,
 	.use_checksum = FALSE,
 	.copyright = NULL,
@@ -103,6 +105,8 @@ preferences pref_init = {
 		.use_dark_lib = FALSE,
 		.flat_lib = NULL,
 		.use_flat_lib = FALSE,
+		.disto_lib = NULL,
+		.use_disto_lib = FALSE,
 		.stack_default = NULL,
 		.use_stack_default = TRUE,
 	},
@@ -124,7 +128,7 @@ preferences pref_init = {
 		.font_scale = 100,
 		.icon_symbolic = FALSE,
 		.script_path = NULL,
-		.warn_script_run = TRUE,
+		.warn_scripts_run = TRUE,
 		.show_thumbnails = TRUE,
 		.thumbnail_size = 256,
 		.default_rendering_mode = LINEAR_DISPLAY,
@@ -138,6 +142,8 @@ preferences pref_init = {
 		.catalog[6] = TRUE,
 		.catalog[7] = TRUE,
 		.catalog[8] = TRUE,
+		.catalog[9] = TRUE,
+		.catalog[10] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
 		.show_deciasec = FALSE,
@@ -156,6 +162,22 @@ preferences pref_init = {
 		.mouse_cfg = {
 			.mouse_actions_array = NULL,
 			.scroll_actions_array = NULL
+		},
+		.editor_cfg = {
+			.highlight_syntax = TRUE,
+			.highlight_bracketmatch = TRUE,
+			.rmargin = TRUE,
+			.rmargin_pos = 80,
+			.show_linenums = TRUE,
+			.show_linemarks = FALSE,
+			.highlight_currentline = TRUE,
+			.autoindent = TRUE,
+			.indentontab = TRUE,
+			.smartbs = TRUE,
+			.smarthomeend = TRUE,
+			.showspaces = FALSE,
+			.shownewlines = FALSE,
+			.minimap = FALSE
 		}
 	},
 	.debayer = {
@@ -218,6 +240,7 @@ preferences pref_init = {
 		.wisdom_file = NULL,
 		.fft_cutoff = 15,
 	},
+	.max_slice_size = 32769,
 	.fits_save_icc = TRUE,
 	.icc = {
 		.rendering_intent = INTENT_RELATIVE_COLORIMETRIC,
@@ -341,6 +364,8 @@ struct settings_access all_settings[] = {
 	{ "core", "catalogue_unnamedstars", STYPE_STR, N_("Path of the unnamedstars.dat catalogue"), &com.pref.catalogue_paths[1] },
 	{ "core", "catalogue_tycho2", STYPE_STR, N_("Path of the deepstars.dat catalogue"), &com.pref.catalogue_paths[2] },
 	{ "core", "catalogue_nomad", STYPE_STR, N_("Path of the USNO-NOMAD-1e8.dat catalogue"), &com.pref.catalogue_paths[3] },
+	{ "core", "catalogue_gaia_astro", STYPE_STR, N_("Path of the local Gaia astrometric catalogue"), &com.pref.catalogue_paths[4] },
+	{ "core", "catalogue_gaia_photo", STYPE_STR, N_("Path of the local Gaia photometric catalogue"), &com.pref.catalogue_paths[5] },
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "use_checksum", STYPE_BOOL, N_("Verify file checksums if they exist"), &com.pref.use_checksum },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
@@ -356,6 +381,7 @@ struct settings_access all_settings[] = {
 	{ "core", "fftw_conv_fft_cutoff", STYPE_INT, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
 	{ "core", "fftwf_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },
 	{ "core", "fftw_multithreaded", STYPE_BOOL, N_("multithreaded FFTW"), &com.pref.fftw_conf.multithreaded },
+	{ "core", "max_slice_size", STYPE_INT, N_("Maximum slice size for automated slice processing"), &com.pref.max_slice_size, { .range_int = { 512, 32769 } } },
 
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
 	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
@@ -433,6 +459,8 @@ struct settings_access all_settings[] = {
 	{ "gui_prepro", "use_dark_lib", STYPE_BOOL, N_("use default master dark"), &com.pref.prepro.use_dark_lib },
 	{ "gui_prepro", "flat_lib", STYPE_STR, N_("default master flat"), &com.pref.prepro.flat_lib },
 	{ "gui_prepro", "use_flat_lib", STYPE_BOOL, N_("use default master flat"), &com.pref.prepro.use_flat_lib },
+	{ "gui_prepro", "disto_lib", STYPE_STR, N_("default distortion master"), &com.pref.prepro.disto_lib },
+	{ "gui_prepro", "use_disto_lib", STYPE_BOOL, N_("use default master distortion"), &com.pref.prepro.use_disto_lib },
 	{ "gui_prepro", "stack_default", STYPE_STR, N_("default stack name"), &com.pref.prepro.stack_default },
 	{ "gui_prepro", "use_stack_default", STYPE_BOOL, N_("use preferred stack name"), &com.pref.prepro.use_stack_default },
 
@@ -471,7 +499,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "auto_update_scripts", STYPE_BOOL, N_("auto sync online scripts repository"), &com.pref.auto_script_update },
 	{ "gui", "auto_update_spcc", STYPE_BOOL, N_("auto sync spcc-database repository"), &com.pref.spcc.auto_spcc_update },
 	{ "gui", "selected_scripts", STYPE_STRLIST, N_("list of scripts selected from the repository"), &com.pref.selected_scripts },
-	{ "gui", "warn_script_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_script_run },
+	{ "gui", "warn_scripts_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_scripts_run },
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
@@ -512,10 +540,27 @@ struct settings_access all_settings[] = {
 	{ "gui_astrometry", "cat_ldn", STYPE_BOOL, N_("show LDN objects in annotations"), &com.pref.gui.catalog[3] },
 	{ "gui_astrometry", "cat_sh2", STYPE_BOOL, N_("show SH2 objects in annotations"), &com.pref.gui.catalog[4] },
 	{ "gui_astrometry", "cat_stars", STYPE_BOOL, N_("show stars in annotations"), &com.pref.gui.catalog[5] },
-	{ "gui_astrometry", "cat_user_dso", STYPE_BOOL, N_("show user DSO objects in annotations"), &com.pref.gui.catalog[6] },
-	{ "gui_astrometry", "cat_user_sso", STYPE_BOOL, N_("show user SSO objects in annotations"), &com.pref.gui.catalog[7] },
+	{ "gui_astrometry", "cat_const", STYPE_BOOL, N_("show constellations in annotations"), &com.pref.gui.catalog[6] },
+	{ "gui_astrometry", "cat_const_names", STYPE_BOOL, N_("show constellations names in annotations"), &com.pref.gui.catalog[7] },
+	{ "gui_astrometry", "cat_user_dso", STYPE_BOOL, N_("show user DSO objects in annotations"), &com.pref.gui.catalog[8] },
+	{ "gui_astrometry", "cat_user_sso", STYPE_BOOL, N_("show user SSO objects in annotations"), &com.pref.gui.catalog[9] },
 
 	{ "gui_pixelmath", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.gui.pm_presets },
+
+	{ "script_editor", "highlight_syntax", STYPE_BOOL, N_("highlight syntax in the script editor"), &com.pref.gui.editor_cfg.highlight_syntax },
+	{ "script_editor", "highlight_bracketmatch", STYPE_BOOL, N_("highlight matching brackets in the script editor"), &com.pref.gui.editor_cfg.highlight_bracketmatch },
+	{ "script_editor", "rmargin", STYPE_BOOL, N_("show the right margin in the script editor"), &com.pref.gui.editor_cfg.rmargin },
+	{ "script_editor", "rmargin_pos", STYPE_INT, N_("position of the right margin in the script editor"), &com.pref.gui.editor_cfg.rmargin_pos },
+	{ "script_editor", "show_linenums", STYPE_BOOL, N_("show line numbers in the script editor"), &com.pref.gui.editor_cfg.show_linenums },
+	{ "script_editor", "show_linemarks", STYPE_BOOL, N_("show line marks in the script editor"), &com.pref.gui.editor_cfg.show_linemarks },
+	{ "script_editor", "highlight_currentline", STYPE_BOOL, N_("highlight the current line in the script editor"), &com.pref.gui.editor_cfg.highlight_currentline },
+	{ "script_editor", "autoindent", STYPE_BOOL, N_("automatically indent new lines"), &com.pref.gui.editor_cfg.autoindent },
+	{ "script_editor", "indentontab", STYPE_BOOL, N_("indent selected blocks of lines in the script editor using the tab key"), &com.pref.gui.editor_cfg.indentontab },
+	{ "script_editor", "smartbs", STYPE_BOOL, N_("Smart Backspace behaviour in the script editor"), &com.pref.gui.editor_cfg.smartbs },
+	{ "script_editor", "smarthomeend", STYPE_BOOL, N_("Smart Home / End behaviour in the script editor"), &com.pref.gui.editor_cfg.smarthomeend },
+	{ "script_editor", "showspaces", STYPE_BOOL, N_("Show visible space and tab characters in the script editor"), &com.pref.gui.editor_cfg.showspaces },
+	{ "script_editor", "shownewlines", STYPE_BOOL, N_("Show visible newline characters in the script editor"), &com.pref.gui.editor_cfg.shownewlines },
+	{ "script_editor", "minimap", STYPE_BOOL, N_("Show a minimap in the script editor"), &com.pref.gui.editor_cfg.minimap },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };
@@ -552,11 +597,11 @@ static const char *settings_type_to_string(enum settings_type type) {
 	}
 }
 
-int print_settings_key(const char *group, const char *key, gboolean with_details) {
+gchar* get_settings_key(const char *group, const char *key, gboolean with_details) {
 	struct settings_access *desc = get_key_settings(group, key);
 	if (!desc) {
 		siril_log_message(_("Unknown settings variable %s.%s\n"), group, key);
-		return 1;
+		return NULL;
 	}
 	GString *str = g_string_sized_new(120);
 	g_string_printf(str, "%s.%s = ", desc->group, desc->key);
@@ -593,10 +638,18 @@ int print_settings_key(const char *group, const char *key, gboolean with_details
 			g_string_append_printf(str, " [%g, %g]",
 					desc->range_double.min, desc->range_double.max);
 		g_string_append_printf(str, " (%s)", settings_type_to_string(desc->type));
-		g_string_append_printf(str, ", %s", desc->desc);
+		g_string_append_printf(str, ", %s", _(desc->desc));
 	}
 	gchar *s = g_string_free(str, FALSE);
-	siril_log_message("%s\n", s);
+	return s;
+}
+
+int print_settings_key(const char *group, const char *key, gboolean with_details) {
+	gchar *s = get_settings_key(group, key, with_details);
+	if (s) {
+		siril_log_message("%s\n", s);
+		g_free(s);
+	}
 	return 0;
 }
 

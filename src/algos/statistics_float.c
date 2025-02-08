@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -795,7 +795,8 @@ double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float 
 		return 0.0; // No elements in the range, return 0 as median
 	}
 	// Sort the filtered data
-	double retval = quickmedian_float(filtered_data, count);
+	// use histogram_median_float here instead of quickmedian for speed (see #1458)
+	double retval = histogram_median_float(filtered_data, count, MULTI_THREADED);
 
 	// Free the allocated memory for filtered_data
 	free(filtered_data);

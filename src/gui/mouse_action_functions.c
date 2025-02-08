@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -189,7 +189,7 @@ static gboolean select_reg_area_release(mouse_data *data) {
 
 		/* we have a new rectangular selection zone,
 			* or an unselection (empty zone) */
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 
 		// Terminate any specific selection modification mode
 		gui.freezeX = gui.freezeY = FALSE;
@@ -315,7 +315,7 @@ gboolean open_if_nothing_loaded(mouse_data *data) {
 	 */
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		header_open_button_clicked();
-		launch_clipboard_survey();
+		gui_function(launch_clipboard_survey, NULL);
 	}
 	return TRUE;
 }
@@ -462,7 +462,7 @@ gboolean main_action_click(mouse_data *data) {
 					com.grad_samples = add_background_sample(com.grad_samples, &gfit, pt);
 
 					redraw(REDRAW_OVERLAY);
-					redraw_previews();
+					gui_function(redraw_previews, NULL);
 				}
 				break;
 			case MOUSE_ACTION_SELECT_PREVIEW1:
@@ -557,7 +557,7 @@ gboolean second_action_click(mouse_data *data) {
 				com.grad_samples = remove_background_sample(com.grad_samples, &gfit, pt);
 
 				redraw(REDRAW_OVERLAY);
-				redraw_previews();
+				gui_function(redraw_previews, NULL);
 			}
 		} else if (*data->mouse_status == MOUSE_ACTION_PHOTOMETRY) {
 			if (sequence_is_loaded()) {
@@ -598,7 +598,7 @@ gboolean photometry_box_set(mouse_data *data) {
 			com.selection.w = w;
 			com.selection.h = h;
 
-			new_selection_zone();
+			gui_function(new_selection_zone, NULL);
 		}
 	}
 	return TRUE;

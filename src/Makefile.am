@@ -162,6 +162,8 @@ siril_common_SOURCES = \
 	core/siril_log.h \
 	core/siril_networking.c \
 	core/siril_networking.h \
+	core/siril_spawn.c \
+	core/siril_spawn.h \
 	core/siril_update.c \
 	core/siril_update.h \
 	core/siril_world_cs.c \
@@ -211,6 +213,8 @@ siril_common_SOURCES = \
 	filters/starnet.h \
 	filters/synthstar.c \
 	filters/synthstar.h \
+	filters/unpurple.c \
+	filters/unpurple.h \
 	filters/wavelets.c \
 	filters/wavelets.h \
 	filters/da3d/DA3D.cpp \
@@ -280,6 +284,7 @@ siril_common_SOURCES = \
 	gui/fix_xtrans_af.h \
 	gui/graxpert.c \
 	gui/graxpert.h \
+	gui/git_gui.c \
 	gui/histogram.c \
 	gui/histogram.h \
 	gui/keywords_tree.c \
@@ -339,10 +344,14 @@ siril_common_SOURCES = \
 	gui/siril-window.c \
 	gui/siril-window.h \
 	gui/split_cfa.c \
+	gui/stacking.c \
+	gui/stacking.h \
 	gui/star_finder.c \
 	gui/starnetgui.c \
 	gui/starnetgui.h \
 	gui/statistics_list.c \
+	gui/unpurple.c \
+	gui/unpurple.h \
 	gui/utils.c \
 	gui/utils.h \
 	io/annotation_catalogues.c \
@@ -363,6 +372,8 @@ siril_common_SOURCES = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
+	io/healpix/healpix.cpp \
+	io/healpix/healpix_cat.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
@@ -410,9 +421,13 @@ siril_common_SOURCES = \
 	registration/matching/degtorad.h \
 	registration/matching/apply_match.c \
 	registration/astrometric.c \
+	registration/distorsion.c \
+	registration/distorsion.h \
 	registration/registration.c \
 	registration/registration.h \
 	registration/shift_methods.c \
+	stacking/blending.c \
+	stacking/blending.h \
 	stacking/median_and_mean.c \
 	stacking/rejection_float.c \
 	stacking/normalization.c \
@@ -431,6 +446,30 @@ siril_common_SOURCES = \
 if PLATFORM_WIN32
 libdbghelp = -ldbghelp
 endif
+if !HAVE_YYJSON
+YYJSON_BUILDDIR = $(abs_top_builddir)/subprojects/yyjson/build
+YYJSON_SRCDIR = $(abs_top_srcdir)/subprojects/yyjson
+
+$(YYJSON_BUILDDIR)/Makefile: $(YYJSON_SRCDIR)/CMakeLists.txt
+	$(MKDIR_P) $(YYJSON_BUILDDIR)
+	cd $(YYJSON_BUILDDIR) && $(CMAKE) $(CMAKE_GENERATOR) \
+		-DCMAKE_INSTALL_PREFIX:PATH=$(prefix) \
+		-DCMAKE_C_FLAGS="$(CFLAGS)" \
+		$(YYJSON_SRCDIR)
+
+yyjson: $(YYJSON_BUILDDIR)/Makefile
+	$(MAKE) -C $(YYJSON_BUILDDIR)
+
+BUILT_SOURCES = yyjson
+endif
+
+if !HAVE_YYJSON
+AM_CPPFLAGS += -I$(YYJSON_SRCDIR)/src
+YYJSON_LIBS = $(YYJSON_BUILDDIR)/libyyjson.a
+else
+AM_CPPFLAGS += $(LIBYYJSON_CFLAGS)
+YYJSON_LIBS = $(LIBYYJSON_LIBS)
+endif
 
 if HAVE_LIBRTPROCESS
 AM_CPPFLAGS += -DHAVE_LIBRTPROCESS \
@@ -443,6 +482,9 @@ endif
 
 AM_CPPFLAGS += -I$(top_srcdir)/subprojects/htmesh
 libhtmeshlibs = $(top_builddir)/subprojects/htmesh/build/libhtmesh.a
+
+AM_CPPFLAGS += -I$(top_srcdir)/subprojects/healpix_cxx
+libhealpix_cxxlibs = $(top_builddir)/subprojects/healpix_cxx/build/libhealpix_cxx.a
 
 siril_common_LDADD = \
 	$(top_builddir)/subprojects/kplot/libkplot.a \
@@ -497,7 +539,8 @@ siril_common_SOURCES += \
 
 siril_common_LDADD += $(OPENCV_LIBS) \
 		      $(EXIV2_LIBS) \
-		      $(libhtmeshlibs)
+		      $(libhtmeshlibs) \
+			  $(libhealpix_cxxlibs) \
 
 siril_SOURCES = $(siril_common_SOURCES) siril_resource.c siril_resource.h main.c
 siril_cli_SOURCES = $(siril_common_SOURCES) main-cli.c

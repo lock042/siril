@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -33,10 +33,13 @@
 #include "core/siril_language.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "filters/graxpert.h"
 #include "gui/cut.h"
+#include "gui/graxpert.h"
 #include "gui/keywords_tree.h"
 #include "gui/registration.h"
 #include "gui/photometric_cc.h"
+#include "gui/stacking.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "io/annotation_catalogues.h"
@@ -45,9 +48,8 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "io/siril_pythonmodule.h"
 #include "annotations_pref.h"
-#include "registration/registration.h"
-#include "stacking/stacking.h"
 #include "compositing/align_rgb.h"
 #include "preferences.h"
 #include "image_display.h"
@@ -152,9 +154,9 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 
 }
 
-void launch_clipboard_survey() {
+gboolean launch_clipboard_survey(gpointer user_data) {
 	if (com.script)
-		return;
+		return FALSE;
 	GtkClipboard *clipboard = NULL;
 
 	/* Get the clipboard object */
@@ -162,6 +164,7 @@ void launch_clipboard_survey() {
 
 	/* To launch the Handle*/
 	g_signal_connect(clipboard, "owner-change", G_CALLBACK(handle_owner_change), NULL);
+	return FALSE;
 }
 
 void on_press_seq_field() {
@@ -236,6 +239,8 @@ void on_combo_theme_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 int populate_roi() {
+	if (com.python_command)
+		return 1;
 	if (gui.roi.selection.w == 0 || gui.roi.selection.h == 0)
 		return 1;
 	int retval = 0;
@@ -285,6 +290,8 @@ int populate_roi() {
 }
 
 static void call_roi_callbacks() {
+	if (com.python_command)
+		return;
 	GList *current = roi_callbacks;
 	while (current != NULL) {
 		ROICallback func = (ROICallback)(current->data);
@@ -345,7 +352,14 @@ void unlock_roi_mutex() {
 }
 
 gpointer on_set_roi() {
+	if (gui.roi.selection.w == 0 && gui.roi.selection.h == 0)
+		return GINT_TO_POINTER(0);
 	g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
+	if (com.python_command) {
+//		on_clear_roi();
+		g_mutex_unlock(&roi_mutex);
+		return GINT_TO_POINTER(0);
+	}
 	cancel_pending_update();
 	if (gui.roi.operation_supports_roi && com.pref.gui.enable_roi_warning)
 		roi_info_message_if_needed();
@@ -371,9 +385,9 @@ gpointer on_clear_roi() {
 		copy_backup_to_gfit();
 		clearfits(&gui.roi.fit);
 		memset(&gui.roi, 0, sizeof(roi_t));
+		redraw(REDRAW_OVERLAY);
 		// Call any callbacks that need calling
 		call_roi_callbacks();
-		queue_redraw(REDRAW_OVERLAY);
 		g_mutex_unlock(&roi_mutex);
 	}
 	return GINT_TO_POINTER(0);
@@ -497,7 +511,7 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 	}
 }
 
@@ -513,7 +527,7 @@ void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 			siril_log_message(_("The AutoStretch display mode will use a 16 bit LUT\n"));
 		}
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 	}
 }
 
@@ -529,7 +543,7 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT) {
 			allocate_hd_remap_indices();
 			redraw(REMAP_ALL);
-			redraw_previews();
+			gui_function(redraw_previews, NULL);
 		}
 //		set_cursor_waiting(FALSE);
 	}
@@ -583,7 +597,7 @@ void set_unlink_channels(gboolean unlinked) {
 	siril_debug_print("channels unlinked: %d\n", unlinked);
 	gui.unlink_channels = unlinked;
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 /* fill the label indicating how many images are selected in the gray and
@@ -638,7 +652,7 @@ void set_icon_entry(GtkEntry *entry, gchar *string) {
 	}
 }
 
-void update_MenuItem() {
+gboolean update_MenuItem(gpointer user_data) {
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	gboolean is_a_single_image_loaded;	/* An image is loaded. Not a sequence or only the result of stacking process */
 	gboolean is_a_singleRGB_image_loaded;	/* A RGB image is loaded. Not a sequence or only the result of stacking process */
@@ -651,15 +665,16 @@ void update_MenuItem() {
 	/* some toolbar buttons */
 	gtk_widget_set_sensitive(lookup_widget("toolbarbox"), any_image_is_loaded);
 
-	gboolean enable_button = any_image_is_loaded && has_wcs(&gfit);
+	gboolean wcs_ok = any_image_is_loaded && has_wcs(&gfit);
 	GAction *action_annotate = g_action_map_lookup_action(G_ACTION_MAP(app_win), "annotate-object");
 	GAction *action_grid = g_action_map_lookup_action(G_ACTION_MAP(app_win), "wcs-grid");
 
 	/* any image with wcs information is needed */
-	siril_window_enable_wcs_proc_actions(app_win, enable_button);
+	siril_window_enable_wcs_proc_actions(app_win, wcs_ok);
+	siril_window_enable_wcs_disto_proc_actions(app_win, wcs_ok && gfit.keywords.wcslib->lin.dispre);
 
 	/* untoggle if disabled */
-	if (!enable_button) {
+	if (!wcs_ok) {
 		GVariant *state = g_action_get_state(action_annotate);
 		if (g_variant_get_boolean(g_action_get_state(action_annotate))) {
 			g_action_change_state(action_annotate, g_variant_new_boolean(FALSE));
@@ -729,7 +744,8 @@ void update_MenuItem() {
 
 	/* keywords list */
 	if (gtk_widget_is_visible(lookup_widget("keywords_dialog")))
-		refresh_keywords_dialog();
+		refresh_keywords_dialog(NULL);
+	return FALSE;
 }
 
 void sliders_mode_set_state(sliders_mode sliders) {
@@ -920,8 +936,8 @@ static void update_roi_from_selection() {
 		copy_roi_into_gfit();
 	}
 	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
-	gui.roi.active = (gui.roi.selection.w > 0 && gui.roi.selection.h > 0);
-	if (gui.roi.active)
+	gboolean active = (gui.roi.selection.w > 0 && gui.roi.selection.h > 0);
+	if (active)
 		on_set_roi();
 	else
 		on_clear_roi();
@@ -1049,10 +1065,10 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 			redraw(REMAP_ALL);
 		}
 	}
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 }
 
-void set_precision_switch() {
+gboolean set_precision_switch(gpointer user_data) {
 	if (!com.script) {
 		GtkLabel *label = GTK_LABEL(lookup_widget("precision_button_name"));
 		GtkCheckMenuItem *float_button = GTK_CHECK_MENU_ITEM(lookup_widget("32bits_item"));
@@ -1064,6 +1080,7 @@ void set_precision_switch() {
 		gtk_check_menu_item_set_active(ushort_button, gfit.type == DATA_USHORT);
 		g_signal_handlers_unblock_by_func(float_button,	on_precision_item_toggled, NULL);
 	}
+	return FALSE;
 }
 
 /* updates the combo box of registration layers to reflect data availability */
@@ -1245,7 +1262,7 @@ void set_output_filename_to_sequence_name() {
 	g_free(msg);
 }
 
-void close_tab() {
+gboolean close_tab(gpointer user_data) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget* page;
 
@@ -1268,6 +1285,7 @@ void close_tab() {
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_show(page);
 	}
+	return FALSE;
 }
 
 void activate_tab(int vport) {
@@ -1276,11 +1294,14 @@ void activate_tab(int vport) {
 		gtk_notebook_set_current_page(notebook, vport);
 	// com.cvport is set in the event handler for changed page
 }
-void init_right_tab() {
+
+gboolean init_right_tab(gpointer user_data) {
 	activate_tab(isrgb(&gfit) ? RGB_VPORT : RED_VPORT);
+	return FALSE;
 }
 
-void update_spinCPU(int max) {
+gboolean update_spinCPU(gpointer user_data) {
+	int max = GPOINTER_TO_INT(user_data);
 	static GtkSpinButton *spin_cpu = NULL;
 
 	if (spin_cpu == NULL) {
@@ -1290,6 +1311,7 @@ void update_spinCPU(int max) {
 		gtk_spin_button_set_range (spin_cpu, 1, (gdouble) max);
 	}
 	gtk_spin_button_set_value (spin_cpu, (gdouble) com.max_thread);
+	return FALSE;
 }
 
 /*****************************************************************************
@@ -1367,9 +1389,9 @@ static void init_GUI_from_settings() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton")), com.pref.debayer.open_debayer);
 }
 
-void set_GUI_CWD() {
+gboolean set_GUI_CWD(gpointer user_data) {
 	if (!com.wd)
-		return;
+		return FALSE;
 	GtkHeaderBar *bar = GTK_HEADER_BAR(lookup_widget("headerbar"));
 
 	gchar *str = g_strdup_printf("Siril-%s", VERSION);
@@ -1380,6 +1402,7 @@ void set_GUI_CWD() {
 
 	g_free(str);
 	g_free(truncated_wd);
+	return FALSE;
 }
 
 static void initialize_preprocessing() {
@@ -1463,13 +1486,13 @@ static GtkTargetEntry drop_types[] = {
 
 static gboolean on_control_window_configure_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	save_main_window_state();
+	gui_function(save_main_window_state, NULL);
 	return FALSE;
 }
 
 static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	save_main_window_state();
+	gui_function(save_main_window_state, NULL);
 	return FALSE;
 }
 
@@ -1504,8 +1527,6 @@ gboolean on_main_panel_button_release_event(GtkWidget *widget,
 }
 
 void initialize_all_GUI(gchar *supported_files) {
-	/* populate SPCC combos in a thread */
-	g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
 	/* pre-check the Gaia archive status */
 	check_gaia_archive_status();
 	/* initializing internal structures with widgets (drawing areas) */
@@ -1513,11 +1534,15 @@ void initialize_all_GUI(gchar *supported_files) {
 	gui.view[GREEN_VPORT].drawarea= lookup_widget("drawingareag");
 	gui.view[BLUE_VPORT].drawarea = lookup_widget("drawingareab");
 	gui.view[RGB_VPORT].drawarea  = lookup_widget("drawingareargb");
-	gui.preview_area[0] = lookup_widget("drawingarea_preview1");
-	gui.preview_area[1] = lookup_widget("drawingarea_preview2");
+	gui.preview_area[0] = lookup_widget("drawingarea_reg_manual_preview1");
+	gui.preview_area[1] = lookup_widget("drawingarea_reg_manual_preview2");
 	memset(&gui.roi, 0, sizeof(roi_t)); // Clear the ROI
 	initialize_image_display();
 	init_mouse();
+
+	/* set a transient */
+	gtk_window_set_transient_for(GTK_WINDOW(lookup_widget("edge_dialog")), GTK_WINDOW(lookup_widget("control_window")));
+
 	/* populate language combo */
 	siril_language_fill_combo(com.pref.lang);
 
@@ -1543,7 +1568,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("seqlist_dialog")));
 
 	/* initialize menu gui */
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 	initialize_script_menu(TRUE);
 
 	/* initialize command processor */
@@ -1596,13 +1621,13 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	siril_drag_single_image_set_dest();
 
-	set_GUI_CWD();
+	gui_function(set_GUI_CWD, NULL);
 	siril_log_message(_("Default FITS extension is set to %s\n"), com.pref.ext);
 
 	set_initial_display_mode((display_mode) com.pref.gui.default_rendering_mode);
 	set_initial_histogram_display_mode(com.pref.gui.display_histogram_mode);
 
-	update_spinCPU(com.max_thread);
+	update_spinCPU(GINT_TO_POINTER(com.max_thread));
 
 	fill_astrometry_catalogue(com.pref.gui.catalog);
 	init_GUI_from_settings();
@@ -1649,6 +1674,10 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("control_window"), "configure-event", G_CALLBACK(on_control_window_configure_event), NULL);
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
+	/* populate SPCC combos in a thread */
+	g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
+	/* GraXpert checks, if required */
+	g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));
 }
 
 /*****************************************************************************
@@ -1698,7 +1727,7 @@ gboolean on_minscale_release(GtkWidget *widget, GdkEvent *event,
 		sliders_mode_set_state(gui.sliders);
 	}
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return FALSE;
 }
 
@@ -1709,7 +1738,7 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 		sliders_mode_set_state(gui.sliders);
 	}
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return FALSE;
 }
 
@@ -1717,7 +1746,7 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	gui.cut_over = gtk_toggle_button_get_active(togglebutton);
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 /* gamut check was toggled. */
 void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -1729,7 +1758,7 @@ void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 		unlock_display_transform();
 	}
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 void on_cosmEnabledCheck_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -1830,7 +1859,7 @@ static rectangle get_window_position(GtkWindow *window) {
 	return rec;
 }
 
-void save_main_window_state() {
+gboolean save_main_window_state(gpointer user_data) {
 	if (!com.script && com.pref.gui.remember_windows) {
 		static GtkWindow *main_w = NULL;
 
@@ -1839,9 +1868,10 @@ void save_main_window_state() {
 		com.pref.gui.main_w_pos = get_window_position(main_w);
 		com.pref.gui.is_maximized = gtk_window_is_maximized(main_w);
 	}
+	return FALSE;
 }
 
-void load_main_window_state() {
+gboolean load_main_window_state(gpointer user_data) {
 	if (!com.script && com.pref.gui.remember_windows) {
 		GtkWidget *win = lookup_widget("control_window");
 		GdkRectangle workarea = { 0 };
@@ -1878,15 +1908,17 @@ void load_main_window_state() {
 			gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
 		}
 	}
+	return FALSE;
 }
 
 void gtk_main_quit() {
 	writeinitfile();		// save settings (like window positions)
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
-	kill_child_process(TRUE); // kill running child processes if any
+	kill_child_process((GPid) -1, TRUE); // kill running child processes if any
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 	g_slist_free_full(com.pref.gui.script_path, g_free);
+	cleanup_common_profiles(); // close lcms2 data structures
 	exit(EXIT_SUCCESS);
 }
 
@@ -1915,7 +1947,7 @@ void on_radiobutton_minmax_toggled(GtkToggleButton *togglebutton,
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
 			redraw(REMAP_ALL);
-			redraw_previews();
+			gui_function(redraw_previews, NULL);
 		}
 	}
 }
@@ -1929,7 +1961,7 @@ void on_radiobutton_hilo_toggled(GtkToggleButton *togglebutton,
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
 			redraw(REMAP_ALL);
-			redraw_previews();
+			gui_function(redraw_previews, NULL);
 		}
 	}
 }
@@ -1965,7 +1997,7 @@ void setup_stretch_sliders() {
 	if (changed) {
 		set_cutoff_sliders_values();
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 	}
 }
 
@@ -1984,7 +2016,7 @@ void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 		set_cutoff_sliders_values();
 
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 	}
 }
 
@@ -2033,7 +2065,7 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 		set_cutoff_sliders_values();
 
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 	}
 }
 
@@ -2063,7 +2095,7 @@ void on_seqproc_entry_changed(GtkComboBox *widget, gpointer user_data) {
 		g_free(msg);
 	}
 	g_free(name);
-	launch_clipboard_survey();
+	gui_function(launch_clipboard_survey, NULL);
 }
 
 /* signal handler for the gray window layer change */
@@ -2205,4 +2237,127 @@ void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
 	}
 	g_free(filename);
 	g_object_unref(file);
+}
+
+GPid show_child_process_selection_dialog(GSList *children) {
+	// Create the dialog
+	GtkWidget *dialog = gtk_dialog_new_with_buttons(
+		"Select task to stop",
+		NULL,  // No parent window
+		GTK_DIALOG_MODAL,
+		"_Cancel", GTK_RESPONSE_CANCEL,
+		"_Stop Process", GTK_RESPONSE_OK,
+		NULL
+	);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_OK);
+
+	// Set minimum dialog size
+	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 400);
+	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
+
+	// Create a scrolled window to hold the list
+	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(
+		GTK_SCROLLED_WINDOW(scrolled_window),
+		GTK_POLICY_AUTOMATIC,  // Horizontal scrollbar as needed
+		GTK_POLICY_AUTOMATIC   // Vertical scrollbar as needed
+	);
+	gtk_scrolled_window_set_shadow_type(
+		GTK_SCROLLED_WINDOW(scrolled_window),
+		GTK_SHADOW_IN  // Add a border around the scrolled window
+	);
+
+	// Create a list store and tree view
+	GtkListStore *list_store = gtk_list_store_new(
+		3,  // 3 columns
+		G_TYPE_POINTER,  // Pointer to child_info
+		G_TYPE_STRING,   // Process name
+		G_TYPE_STRING    // Formatted start time
+	);
+
+	GtkWidget *tree_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(list_store));
+
+	// Enable multiple selection
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
+
+	// Add tree view to the scrolled window
+	gtk_container_add(GTK_CONTAINER(scrolled_window), tree_view);
+
+	// Add columns to the tree view
+	GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
+	GtkTreeViewColumn *column;
+
+	// Process Name Column
+	column = gtk_tree_view_column_new_with_attributes(
+		"Process Name",
+		renderer,
+		"text", 1,
+		NULL
+	);
+	gtk_tree_view_column_set_expand(column, TRUE);  // Allow column to expand
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
+
+	// Start Time Column
+	column = gtk_tree_view_column_new_with_attributes(
+		"Start Time",
+		renderer,
+		"text", 2,
+		NULL
+	);
+	gtk_tree_view_column_set_expand(column, FALSE);  // Keep start time column compact
+	gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
+
+	// Populate the list store
+	GtkTreeIter iter;
+	for (GSList *l = children; l != NULL; l = l->next) {
+		child_info *child = (child_info *)l->data;
+
+		// Format time to 24-hour HH:MM
+		gchar *time_str = g_date_time_format(child->datetime, "%H:%M:%S");
+
+		gtk_list_store_append(list_store, &iter);
+		gtk_list_store_set(list_store, &iter,
+			0, child,         // Pointer to child_info
+			1, child->name,   // Process name
+			2, time_str,      // Formatted start time
+			-1
+		);
+
+		// Free the formatted time string
+		g_free(time_str);
+	}
+
+	// Add scrolled window to dialog
+	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+	gtk_box_pack_start(GTK_BOX(content_area), scrolled_window, TRUE, TRUE, 0);
+	gtk_widget_show_all(dialog);
+
+	// Run the dialog
+	GPid selected_pid = (GPid) -1;
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) {
+		GtkTreeModel *model;
+		if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+			child_info *selected_child;
+			gtk_tree_model_get(model, &iter, 0, &selected_child, -1);
+			selected_pid = selected_child->childpid;
+		}
+	}
+
+	// Clean up
+	gtk_widget_destroy(dialog);
+
+	return selected_pid;
+}
+
+gboolean set_seq_browser_active(gpointer user_data) {
+	gboolean state = (gboolean) GPOINTER_TO_INT(user_data);
+	if (!state) { // Deactivating: check if the dialog is already open, if so close it
+		if (gtk_widget_is_visible(lookup_widget("seqlist_dialog"))) {
+			siril_close_dialog("seqlist_dialog");
+		}
+	}
+	GtkWidget *widget = lookup_widget("seqlist_button");
+	gtk_widget_set_sensitive(widget, state);
+	return FALSE;
 }

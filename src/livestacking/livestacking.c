@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -441,7 +441,7 @@ int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_wat
 			return 1;
 		}
 
-		if (cvTransformImage(fit, H, FALSE, REGISTRATION_INTERPOLATION, TRUE)) {
+		if (cvTransformImage(fit, H, FALSE, REGISTRATION_INTERPOLATION, TRUE, NULL)) {
 			return 1;
 		}
 
@@ -472,27 +472,37 @@ static int live_stacking_star_align_prepare(struct generic_seq_args *args) {
 
 static int start_global_registration(sequence *seq) {
 	/* Register the sequence */
-	struct registration_args reg_args = { 0 };
-	reg_args.func = &register_star_alignment;
-	reg_args.seq = seq;
-	reg_args.reference_image = 0;
-	reg_args.layer = (seq->nb_layers == 3) ? 1 : 0;
-	reg_args.run_in_thread = FALSE;
-	reg_args.follow_star = FALSE;
-	reg_args.matchSelection = FALSE;
-	//memcpy(&reg_args.selection, &com.selection, sizeof(rectangle));
-	reg_args.x2upscale = FALSE;
-	reg_args.cumul = FALSE;
-	reg_args.min_pairs = 10;
-	reg_args.no_output = !reg_rotates;
-	reg_args.prefix = "r_";
-	reg_args.load_new_sequence = FALSE;
-	reg_args.interpolation = REGISTRATION_INTERPOLATION;
-	reg_args.type = reg_type;
-	reg_args.max_stars_candidates = 200;
+	struct registration_args regargs = { 0 };
+	regargs.func = &register_star_alignment;
+	regargs.seq = seq;
+	regargs.reference_image = 0;
+	regargs.layer = (seq->nb_layers == 3) ? 1 : 0;
+	regargs.run_in_thread = FALSE;
+	regargs.follow_star = FALSE;
+	regargs.matchSelection = FALSE;
+	//memcpy(&regargs.selection, &com.selection, sizeof(rectangle));
+	regargs.output_scale = 1.f;
+	regargs.min_pairs = 10;
+	regargs.no_output = !reg_rotates;
+	regargs.prefix = "r_";
+	regargs.load_new_sequence = FALSE;
+	regargs.interpolation = REGISTRATION_INTERPOLATION;
+	regargs.type = reg_type;
+	regargs.max_stars_candidates = 200;
+	cvGetEye(&regargs.framingd.Htransf);
+	cvGetEye(&regargs.framingd.Hshift);
+	regargs.framingd.roi_out = (framing_roi){ 0, 0, seq->rx, seq->ry};
+
+	// preparing detection params
+	regargs.sfargs = calloc(1, sizeof(struct starfinder_data));
+	regargs.sfargs->im.from_seq = regargs.seq;
+	regargs.sfargs->layer = regargs.layer;
+	regargs.sfargs->keep_stars = TRUE;
+	regargs.sfargs->save_to_file = FALSE;
+	regargs.sfargs->max_stars_fitted = regargs.max_stars_candidates;
 
 	struct generic_seq_args *args = create_default_seqargs(seq);
-	if (reg_args.filters.filter_included) {
+	if (regargs.filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = seq->selnum;
 	}
@@ -504,12 +514,12 @@ static int start_global_registration(sequence *seq) {
 	args->has_output = reg_rotates;
 	args->output_type = get_data_type(seq->bitpix);
 	args->upscale_ratio = 1.0;
-	args->new_seq_prefix = reg_args.prefix;
+	args->new_seq_prefix = regargs.prefix;
 	args->load_new_sequence = FALSE;
 	args->already_in_a_thread = TRUE;
 	if (!sadata) {
 		sadata = calloc(1, sizeof(struct star_align_data));
-		sadata->regargs = &reg_args;
+		sadata->regargs = &regargs;
 	}
 	args->user = sadata;
 	/* registration will work in 16 bits if input data is 16 bits */
@@ -520,8 +530,8 @@ static int start_global_registration(sequence *seq) {
 	// hack to not free the regparam, because it's referenced by
 	// sadata->current_regdata because of the first call to the prepare,
 	// and used for reference frame params in the registration
-	regparam_bkp = seq->regparam[reg_args.layer];
-	seq->regparam[reg_args.layer] = NULL;
+	regparam_bkp = seq->regparam[regargs.layer];
+	seq->regparam[regargs.layer] = NULL;
 	free_sequence(seq, FALSE);
 
 	return retval || !sadata->success[1];
@@ -748,7 +758,7 @@ static gpointer live_stacker(gpointer arg) {
 		stackparam.use_32bit_output = get_data_type(r_seq.bitpix) == DATA_FLOAT ||
 			(use_32bits && (prepro || use_demosaicing == BOOL_TRUE));
 		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
-		stackparam.apply_nbstack_weights = TRUE;
+		stackparam.weighting_type = NBSTACK_WEIGHT;
 
 		reserve_thread(); // hack: generic function fails otherwise
 		main_stack(&stackparam);

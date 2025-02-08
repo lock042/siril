@@ -18,6 +18,10 @@ also very fast when run on more powerful computers.
 Contributors are welcome. Programming language is C, with parts in C++.
 Main development is done with most recent versions of libraries.
 
+If you use Siril in your work, please cite this software using the following information:
+C. Richard et al., Journal of Open Source Software, 2024, 9(102), 7242. DOI:
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.07242/status.svg)](https://doi.org/10.21105/joss.07242).
+
 ## Requirements
 
 For compilation, these tools are needed in addition to the base development packages:
@@ -28,14 +32,18 @@ For compilation, these tools are needed in addition to the base development pack
 Then, mandatory build dependencies:
 - **glib-2.0** (>= 2.56.0) Glib Convenience Library
 - **GTK+ 3**, (>= 3.20) as GUI toolkit
+- **gtksourceview4** to provide context highlighting in the script editor
 - **lcms2** for color space management
 - **cfitsio** for FITS image read and write
 - **wcslib** (>=7.12) to handle astrometric data
 - **fftw3** for Fourier transforms
-- **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
+- **GSL** (The GNU Scientific Library) for PSF implementation, histograms and
+background extraction
 - **A C++ compiler** for opencv code and avi exporter
-- **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is possible without some shift-only registration)
-- **json-glib-1.0**, (>= 1.2.6) for Siril update check, spectrophotometry color calibration and metadata output
+- **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is
+possible without some shift-only registration)
+- **yyjson**, (>= 0.10.0) for Siril update check, spectrophotometry
+color calibration and metadata output
 
 Siril works internally with FITS files, but other file formats can be used as
 input and converted using the conversion tab of the control window. Some file
@@ -60,6 +68,12 @@ their support won't be included.
 All these libraries and programs are available in most Linux distributions and
 free systems, maybe with the exception of ffms2 that is not as popular as the
 others and may need to be compiled.
+
+At runtime, you need a functional Python installation (>=3.9) including the
+python3-venv and python3-pip modules, as well as python3-tk to support scripts with
+GUIs. If you are using a prebuilt Siril package these will be included, but if you
+are compiling from source you need to ensure these are available by installing the
+appropriate packages for your operating system.
 
 ## Scripting
 
@@ -150,7 +164,7 @@ The build process using [msys2](https://www.msys2.org) is documented
 ## Translation instructions for Siril
 
 If you're interested in contributing to the translation of the application and documentation,
-we encourage you to use [Weblate](https://weblate.pixls.us/projects/siril/). Weblate is a
+we encourage you to use [Weblate](https://weblate.siril.org/projects/siril/). Weblate is a
 powerful web-based translation tool that allows for easy collaboration and efficient
 translation workflow.
 

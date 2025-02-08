@@ -22,6 +22,18 @@
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_graxpert_deconv_psf">
+    <property name="upper">14</property>
+    <property name="value">5</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_graxpert_deconv_strength">
+    <property name="upper">1</property>
+    <property name="value">0.5</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_graxpert_denoise_strength">
     <property name="upper">1</property>
     <property name="value">0.80</property>
@@ -51,7 +63,7 @@
   </object>
   <object class="GtkDialog" id="graxpert_dialog">
     <property name="can-focus">False</property>
-    <property name="title" translatable="yes">Siril GraXpert interface</property>
+    <property name="title" translatable="yes">Siril GraXpert Interface</property>
     <property name="resizable">False</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="siril_widget_hide_on_delete" swapped="no"/>
@@ -127,56 +139,18 @@
             <property name="margin-end">6</property>
             <property name="orientation">vertical</property>
             <child>
-              <object class="GtkFrame">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label-xalign">0</property>
-                <property name="shadow-type">none</property>
-                <child>
-                  <object class="GtkComboBoxText" id="combo_graxpert_operation">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">Select whether to use GraXpert for background removal or denoising.</property>
-                    <property name="margin-start">12</property>
-                    <property name="margin-top">5</property>
-                    <property name="active">0</property>
-                    <items>
-                      <item translatable="yes">Background Extraction</item>
-                      <item translatable="yes">Denoising</item>
-                    </items>
-                    <signal name="changed" handler="on_combo_graxpert_operation_changed" swapped="no"/>
-                  </object>
-                </child>
-                <child type="label">
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">GraXpert Operation</property>
-                    <attributes>
-                      <attribute name="weight" value="bold"/>
-                    </attributes>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkExpander" id="graxpert_bg_settings">
+              <object class="GtkNotebook" id="notebook_graxpert_operation">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="expanded">True</property>
+                <signal name="switch-page" handler="on_notebook_graxpert_operation_switch_page" swapped="no"/>
                 <child>
-                  <!-- n-columns=4 n-rows=5 -->
-                  <object class="GtkGrid" id="graxpert_bg_rbf_options">
+                  <!-- n-columns=4 n-rows=8 -->
+                  <object class="GtkGrid" id="graxpert_bg_options">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-top">6</property>
                     <property name="row-spacing">6</property>
                     <property name="column-spacing">6</property>
-                    <property name="column-homogeneous">True</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
@@ -209,13 +183,12 @@
                       </packing>
                     </child>
                     <child>
-                      <!-- n-columns=4 n-rows=4 -->
+                      <!-- n-columns=4 n-rows=3 -->
                       <object class="GtkGrid" id="graxpert_classical_settings">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="row-spacing">6</property>
                         <property name="column-spacing">6</property>
-                        <property name="column-homogeneous">True</property>
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
@@ -224,7 +197,7 @@
                             <property name="label" translatable="yes">Correction</property>
                           </object>
                           <packing>
-                            <property name="left-attach">0</property>
+                            <property name="left-attach">2</property>
                             <property name="top-attach">0</property>
                           </packing>
                         </child>
@@ -240,35 +213,8 @@
                             </items>
                           </object>
                           <packing>
-                            <property name="left-attach">1</property>
+                            <property name="left-attach">3</property>
                             <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Smoothing</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="spin_graxpert_smoothing">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0</property>
-                            <property name="text" translatable="yes">0,50</property>
-                            <property name="adjustment">adj_graxpert_bgextract_smoothing</property>
-                            <property name="digits">2</property>
-                            <property name="value">0.5</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">1</property>
                           </packing>
                         </child>
                         <child>
@@ -279,36 +225,23 @@
                             <property name="label" translatable="yes">Background Tolerance</property>
                           </object>
                           <packing>
-                            <property name="left-attach">2</property>
-                            <property name="top-attach">1</property>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">0</property>
                           </packing>
                         </child>
                         <child>
                           <object class="GtkSpinButton" id="graxpert_spin_bgtol">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the background tolerance: the allowed range is -2.0 to +6.0. Higer values are more tolerant of strong background gradients; lower values are better at rejecting background samples in areas representing real neblosity</property>
+                            <property name="tooltip-text" translatable="yes">Set the background tolerance: the allowed range is -2.0 to +6.0. Higer values are more tolerant of strong background gradients; lower values are better at rejecting background samples in areas representing real neblosity.</property>
                             <property name="text" translatable="yes">2,00</property>
                             <property name="adjustment">adj_graxpert_bg_tol</property>
                             <property name="digits">2</property>
                             <property name="value">2</property>
                           </object>
                           <packing>
-                            <property name="left-attach">3</property>
-                            <property name="top-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkScale">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="adjustment">adj_graxpert_bgextract_smoothing</property>
-                            <property name="draw-value">False</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">2</property>
-                            <property name="width">2</property>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">0</property>
                           </packing>
                         </child>
                         <child>
@@ -319,9 +252,9 @@
                             <property name="draw-value">False</property>
                           </object>
                           <packing>
-                            <property name="left-attach">2</property>
-                            <property name="top-attach">2</property>
-                            <property name="width">2</property>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">1</property>
+                            <property name="width">4</property>
                           </packing>
                         </child>
                         <child>
@@ -333,21 +266,21 @@
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
-                            <property name="top-attach">3</property>
+                            <property name="top-attach">2</property>
                           </packing>
                         </child>
                         <child>
                           <object class="GtkSpinButton" id="graxpert_spin_nb_samples">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the number of samples per row in the sampling grid</property>
+                            <property name="tooltip-text" translatable="yes">Set the number of samples per row in the sampling grid.</property>
                             <property name="text" translatable="yes">15</property>
                             <property name="adjustment">adj_graxpert_nb_samples</property>
                             <property name="value">15</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
-                            <property name="top-attach">3</property>
+                            <property name="top-attach">2</property>
                           </packing>
                         </child>
                         <child>
@@ -359,7 +292,7 @@
                           </object>
                           <packing>
                             <property name="left-attach">2</property>
-                            <property name="top-attach">3</property>
+                            <property name="top-attach">2</property>
                           </packing>
                         </child>
                         <child>
@@ -374,118 +307,29 @@
                           </object>
                           <packing>
                             <property name="left-attach">3</property>
-                            <property name="top-attach">3</property>
+                            <property name="top-attach">2</property>
                           </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
-                        <property name="width">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <!-- n-columns=4 n-rows=1 -->
-                      <object class="GtkGrid" id="graxpert_rbf_settings">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="row-spacing">6</property>
-                        <property name="column-spacing">6</property>
-                        <property name="column-homogeneous">True</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">RBF Kernel</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkComboBoxText" id="combo_graxpert_kernel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Set the RBF kernel type</property>
-                            <property name="active">0</property>
-                            <items>
-                              <item translatable="yes">Thin plate</item>
-                              <item translatable="yes">Quintic</item>
-                              <item translatable="yes">Cubic</item>
-                              <item translatable="yes">Linear</item>
-                            </items>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">2</property>
-                        <property name="width">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <!-- n-columns=4 n-rows=1 -->
-                      <object class="GtkGrid" id="graxpert_spline_settings">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="row-spacing">6</property>
-                        <property name="column-spacing">6</property>
-                        <property name="column-homogeneous">True</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Spline Order</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="graxpert_spin_spline_order">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the spline order used for the spline background removal algorithm</property>
-                            <property name="text" translatable="yes">3</property>
-                            <property name="adjustment">adj_graxpert_spline_order</property>
-                            <property name="value">3</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
                         </child>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
                         <property name="top-attach">3</property>
                         <property name="width">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="graxpert_toggle_keep_background">
+                        <property name="label" translatable="yes">Keep background</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">The generated background model will be saved with the affix "_background"</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -529,84 +373,499 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">4</property>
+                        <property name="top-attach">7</property>
                         <property name="width">4</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="graxpert_toggle_keep_background">
-                        <property name="label" translatable="yes">Keep background</property>
+                      <object class="GtkBox" id="ai_model_settings_bg">
                         <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">The generated background model will be saved with the affix "_background"</property>
-                        <property name="draw-indicator">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="spacing">6</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">BG AI model version:</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="combo_graxpert_ai_models_bg">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Set the AI model version for use with GraXpert background extraction. Defaults to latest.</property>
+                            <property name="hexpand">True</property>
+                            <items>
+                              <item translatable="yes">latest</item>
+                            </items>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">0</property>
-                        <property name="width">2</property>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">6</property>
+                        <property name="width">4</property>
                       </packing>
                     </child>
-                  </object>
-                </child>
-                <child type="label">
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Background Extraction</property>
-                    <attributes>
-                      <attribute name="weight" value="bold"/>
-                    </attributes>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="padding">6</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkExpander" id="graxpert_denoise_settings">
-                <property name="name">graxpert-denoising-settings</property>
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can-focus">True</property>
-                <child>
-                  <!-- n-columns=2 n-rows=2 -->
-                  <object class="GtkGrid">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="row-spacing">6</property>
-                    <property name="column-spacing">6</property>
-                    <property name="column-homogeneous">True</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">Strength</property>
+                        <property name="label" translatable="yes">Smoothing</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">0</property>
+                        <property name="top-attach">1</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkSpinButton" id="spin_graxpert_strength">
+                      <object class="GtkSpinButton" id="spin_graxpert_smoothing">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Configure GraXpert denoising strength</property>
-                        <property name="text" translatable="yes">0.50</property>
-                        <property name="adjustment">adj_graxpert_denoise_strength</property>
+                        <property name="tooltip-text" translatable="yes">Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0.</property>
+                        <property name="text" translatable="yes">0,50</property>
+                        <property name="adjustment">adj_graxpert_bgextract_smoothing</property>
                         <property name="digits">2</property>
-                        <property name="value">0.80</property>
+                        <property name="value">0.5</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">0</property>
+                        <property name="top-attach">1</property>
+                        <property name="width">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScale">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="adjustment">adj_graxpert_bgextract_smoothing</property>
+                        <property name="draw-value">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                        <property name="width">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="graxpert_rbf_settings">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="spacing">5</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">RBF Kernel</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="combo_graxpert_kernel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Set the RBF kernel type</property>
+                            <property name="active">0</property>
+                            <items>
+                              <item translatable="yes">Thin plate</item>
+                              <item translatable="yes">Quintic</item>
+                              <item translatable="yes">Cubic</item>
+                              <item translatable="yes">Linear</item>
+                            </items>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                        <property name="width">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="graxpert_spline_settings">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="spacing">5</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Spline Order</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="graxpert_spin_spline_order">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Set the spline order used for the spline background removal algorithm.</property>
+                            <property name="text" translatable="yes">3</property>
+                            <property name="adjustment">adj_graxpert_spline_order</property>
+                            <property name="value">3</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">5</property>
+                        <property name="width">4</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+                <child type="tab">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Background Extraction</property>
+                  </object>
+                  <packing>
+                    <property name="tab-fill">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">6</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="spacing">5</property>
+                            <child>
+                              <object class="GtkSwitch" id="graxpert_deconv_switch">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Toggles between stellar and object deconvolution modes. If this item is unsensitive out, your version of GraXpert is not compatible.</property>
+                                <property name="halign">start</property>
+                                <property name="valign">start</property>
+                                <signal name="state-set" handler="on_graxpert_deconv_switch_state_set" object="graxpert_deconv_label_switch" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="graxpert_deconv_label_switch">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label" translatable="yes">Objects</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="homogeneous">True</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Strength</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_deconv_graxpert_strength">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Configure GraXpert deconvolution strength.</property>
+                                <property name="text" translatable="yes">0,50</property>
+                                <property name="adjustment">adj_graxpert_deconv_strength</property>
+                                <property name="digits">2</property>
+                                <property name="value">0.5</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="adjustment">adj_graxpert_deconv_strength</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="homogeneous">True</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Image FWHM (in pixels)</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_deconv_graxpert_psf">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Configure GraXpert deconvolution Image FWHM (in pixels).</property>
+                                <property name="text" translatable="yes">5,00</property>
+                                <property name="adjustment">adj_graxpert_deconv_psf</property>
+                                <property name="digits">2</property>
+                                <property name="value">5</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScale">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="adjustment">adj_graxpert_deconv_psf</property>
+                            <property name="draw-value">False</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">4</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ai_model_settings_deconv_stellar">
+                        <property name="can-focus">False</property>
+                        <property name="spacing">6</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Deconvolution AI model version:</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="combo_graxpert_ai_models_deconv_stellar">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Set the AI model version for use with GraXpert deconvolution. Defaults to latest.</property>
+                            <items>
+                              <item translatable="yes">latest</item>
+                            </items>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ai_model_settings_deconv">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="spacing">6</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Deconvolution AI model version:</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="combo_graxpert_ai_models_deconv">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Set the AI model version for use with GraXpert deconvolution. Defaults to latest.</property>
+                            <items>
+                              <item translatable="yes">latest</item>
+                            </items>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child type="tab">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Deconvolution</property>
+                  </object>
+                  <packing>
+                    <property name="position">1</property>
+                    <property name="tab-fill">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">6</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Strength</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spin_graxpert_strength">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Configure GraXpert denoising strength.</property>
+                            <property name="text" translatable="yes">0,80</property>
+                            <property name="adjustment">adj_graxpert_denoise_strength</property>
+                            <property name="digits">2</property>
+                            <property name="value">0.80</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
                       </packing>
                     </child>
                     <child>
@@ -614,33 +873,76 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="adjustment">adj_graxpert_denoise_strength</property>
-                        <property name="round-digits">1</property>
                         <property name="draw-value">False</property>
                       </object>
                       <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
-                        <property name="width">2</property>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ai_model_settings_denoise">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="spacing">6</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Denoising AI model version:</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="combo_graxpert_ai_models_denoise">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Set the AI model version for use with GraXpert denoising. Defaults to latest.</property>
+                            <items>
+                              <item translatable="yes">latest</item>
+                            </items>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                   </object>
+                  <packing>
+                    <property name="position">2</property>
+                  </packing>
                 </child>
-                <child type="label">
+                <child type="tab">
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Denoising</property>
-                    <attributes>
-                      <attribute name="weight" value="bold"/>
-                    </attributes>
                   </object>
+                  <packing>
+                    <property name="position">2</property>
+                    <property name="tab-fill">False</property>
+                  </packing>
                 </child>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="padding">6</property>
-                <property name="position">2</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
@@ -666,7 +968,6 @@
                             <property name="can-focus">False</property>
                             <property name="row-spacing">6</property>
                             <property name="column-spacing">6</property>
-                            <property name="column-homogeneous">True</property>
                             <child>
                               <object class="GtkCheckButton" id="toggle_graxpert_gpu">
                                 <property name="label" translatable="yes">Use GPU</property>
@@ -698,7 +999,7 @@
                               <object class="GtkSpinButton">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Set the number of image tiles which GraXpert will denoise in parallel. Be careful: increasing this value might result in out-of-memory errors. Valid Range: 1 - 32, default: "4"</property>
+                                <property name="tooltip-text" translatable="yes">Set the number of image tiles which GraXpert will denoise in parallel. Be careful: increasing this value might result in out-of-memory errors. Valid Range: 1 - 32, default: "4".</property>
                                 <property name="text" translatable="yes">4</property>
                                 <property name="adjustment">adj_graxpert_ai_batch</property>
                                 <property name="value">4</property>
@@ -738,6 +1039,8 @@
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
                             <property name="label" translatable="yes"> </property>
+                            <property name="use-markup">True</property>
+                            <property name="wrap">True</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -754,6 +1057,7 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-bottom">6</property>
                     <property name="label" translatable="yes">General Settings</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -765,7 +1069,7 @@
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="padding">6</property>
-                <property name="position">4</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>

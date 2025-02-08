@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -30,6 +30,7 @@
 #include "gui/dialogs.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
+#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "io/local_catalogues.h"
 #include "io/siril_catalogues.h"
@@ -195,7 +196,7 @@ void on_annotate_save_as_button_clicked(GtkButton *button, gpointer user_data) {
 	dialog = GTK_FILE_CHOOSER(widgetdialog);
 	gtk_file_chooser_set_current_folder(dialog, com.wd);
 	gtk_file_chooser_set_select_multiple(dialog, FALSE);
-	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
+	gtk_file_chooser_set_do_overwrite_confirmation(dialog, FALSE); // the overwrite is checked when applied!
 	gtk_file_chooser_set_current_name(dialog, filename);
 	gtk_file_chooser_set_local_only(dialog, FALSE);
 	set_filter(dialog);
@@ -216,7 +217,6 @@ void on_show_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkFileChooser *dialog = NULL;
 	gint res;
 
-
 	widgetdialog = siril_file_chooser_open(annotate_dialog, GTK_FILE_CHOOSER_ACTION_OPEN);
 	dialog = GTK_FILE_CHOOSER(widgetdialog);
 	gtk_file_chooser_set_current_folder(dialog, com.wd);
@@ -232,6 +232,37 @@ void on_show_button_clicked(GtkButton *button, gpointer user_data) {
 		g_free(file);
 	}
 	siril_widget_destroy(widgetdialog);
+}
+
+void on_show_button_get_coords_clicked(GtkButton *button, gpointer user_data) {
+	if (has_wcs(&gfit) && (com.selection.h && com.selection.w)) {
+		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
+		if (result) {
+			double world_x, world_y;
+			gchar *ra, *dec;
+
+			result->xpos = result->x0 + com.selection.x;
+			if (gfit.top_down)
+				result->ypos = result->y0 + com.selection.y;
+			else
+				result->ypos = com.selection.y + com.selection.h - result->y0;
+
+			pix2wcs(&gfit, result->xpos, (double) gfit.ry - result->ypos - 1.0, &world_x, &world_y);
+			if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
+				SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+				if (world_cs) {
+					ra = siril_world_cs_alpha_format(world_cs, "%02d %02d %.3lf");
+					dec = siril_world_cs_delta_format(world_cs, "%c%02d %02d %.3lf");
+
+					gtk_entry_set_text(GTK_ENTRY(lookup_widget("show_ra_entry")), ra);
+					gtk_entry_set_text(GTK_ENTRY(lookup_widget("show_dec_entry")), dec);
+
+					g_free(ra), g_free(dec);
+					siril_world_cs_unref(world_cs);
+				}
+			}
+		}
+	}
 }
 
 static int collect_single_coords_and_name(double *ra, double *dec, gchar **name) {
@@ -339,6 +370,23 @@ void on_annotate_apply_clicked(GtkButton *button, gpointer user_data) {
 			set_cursor_waiting(FALSE);
 			return;
 		}
+		if (params_cone->outfilename && g_file_test(params_cone->outfilename, G_FILE_TEST_EXISTS)) {
+			gchar *basename = g_path_get_basename(params_cone->outfilename);
+			gchar *dir_path = g_path_get_dirname(params_cone->outfilename);
+			gchar *last_dir = g_path_get_basename(dir_path);
+
+			gchar *title = g_strdup_printf("A file named \"%s\" already exists. Do you want to replace it?", basename);
+			gchar *txt = g_strdup_printf("The file already exists in \"%s\". Replacing it will overwrite its contents.", last_dir);
+
+			if (!siril_confirm_dialog(N_(title), N_(txt), _("Replace"))) {
+				set_cursor_waiting(FALSE);
+				g_free(basename); g_free(dir_path); g_free(last_dir); g_free(title); g_free(txt);
+				return;
+			}
+			g_free(basename); g_free(dir_path); g_free(last_dir); g_free(title); g_free(txt);
+
+		}
+
 		execute_conesearch(params_cone);
 		break;
 	case SHOW_PAGE:

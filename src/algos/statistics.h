@@ -70,4 +70,5 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 
 double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float upper);
 double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float upper);
+int quick_minmax(fits *fit, double *minval, double *maxval);
 #endif

@@ -24,12 +24,14 @@ sensor_pattern get_bayer_pattern(fits *fit);
 void clear_Bayer_information(fits *fit);
 
 struct merge_cfa_data {
-	sequence *seq;
-	const char *seqEntryIn;
+	sequence *seq0;
+	sequence *seq1;
+	sequence *seq2;
+	sequence *seq3;
 	char *seqEntryOut;
 	sensor_pattern pattern;
 };
-
+void update_bayer_pattern_information(fits *fit, sensor_pattern pattern);
 void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args);
 
 void get_debayer_area(const rectangle *area, rectangle *debayer_area,

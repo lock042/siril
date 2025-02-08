@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <math.h>
 #include <complex.h>
 #include <fftw3.h>
@@ -455,7 +456,22 @@ void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB) {
 	}
 }
 
-// Scaling functions
+void clip(fits *fit) {
+	if (fit->type == DATA_USHORT) return; // USHORT cannot be out of range
+	size_t ndata = fit->rx * fit->ry * fit->naxes[2];
+	for (size_t i = 0 ; i < ndata ; i++) {
+		fit->fdata[i] = fit->fdata[i] < 0.f ? 0.f : fit->fdata[i] > 1.f ? 1.f : fit->fdata[i];
+	}
+}
+
+void clipneg(fits *fit) {
+	if (fit->type == DATA_USHORT) return; // USHORT cannot be out of range
+	size_t ndata = fit->rx * fit->ry * fit->naxes[2];
+	for (size_t i = 0 ; i < ndata ; i++) {
+		fit->fdata[i] = fit->fdata[i] < 0.f ? 0.f : fit->fdata[i];
+	}
+}
+	// Scaling functions
 
 inline static float sample(const float *buf, int w, int h, int d, int i, int j, int c) {
 	i = min(max(i, 0), w - 1);
@@ -677,4 +693,60 @@ void shrink(float *out, float *in, int outw, int outh, int inw, int inh, float s
 		}
 	}
 	free(gaussian);
+}
+
+#ifdef __has_builtin
+#if __has_builtin(__builtin_clz)
+#define HAS_BUILTIN_CLZ 1
+#else
+#define HAS_BUILTIN_CLZ 0
+#endif
+#else
+#define HAS_BUILTIN_CLZ 0
+#endif
+
+float half_to_float(const uint16_t val) {
+	// Extract the sign from the bits
+	const uint32_t sign = (uint32_t)(val & 0x8000) << 16;
+	// Extract the exponent from the bits
+	const uint8_t exp16 = (val & 0x7c00) >> 10;
+	// Extract the fraction from the bits
+	uint16_t frac16 = val & 0x3ff;
+
+	uint32_t exp32 = 0;
+	if (exp16 == 0x1f) {
+		exp32 = 0xff; // Infinity or NaN
+	} else if (exp16 != 0) {
+		exp32 = exp16 + 112; // Normal numbers
+	} else {
+		if (frac16 == 0) {
+			// Zero
+			return *(float*)&sign;
+		}
+
+		// Denormal number: normalize it
+		uint8_t offset;
+		#if HAS_BUILTIN_CLZ
+		offset = __builtin_clz(frac16) - 21; // Offset correction for 32-bit __builtin_clz()
+		#else
+		// Portable alternative: Count leading zeros manually
+		offset = 0;
+		while ((frac16 & 0x400) == 0) {
+			frac16 <<= 1;
+			++offset;
+		}
+		#endif
+		frac16 &= 0x3ff; // Mask off the implicit leading bit
+		exp32 = 113 - offset;
+	}
+
+	uint32_t frac32 = (uint32_t)frac16 << 13;
+
+	// Compose the final FP32 binary representation
+	uint32_t bits = 0;
+	bits |= sign;
+	bits |= (exp32 << 23);
+	bits |= frac32;
+
+	return *(float *)&bits;
 }

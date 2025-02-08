@@ -83,7 +83,7 @@ private:
 private:
     std::vector<cv::Mat> Ichannels;
     int r;
-    double eps;
+    double eps; // clang warning about this not being used is incorrect, ignore it
     cv::Mat mean_I_r, mean_I_g, mean_I_b;
     cv::Mat invrr, invrg, invrb, invgg, invgb, invbb;
 };

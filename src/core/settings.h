@@ -180,6 +180,23 @@ struct comp_config {
 	double fits_hcompress_scale;	// scale factor for Hcompress compression
 };
 
+struct editor_config {
+	gboolean highlight_syntax;
+	gboolean highlight_bracketmatch;
+	gboolean rmargin;
+	int rmargin_pos;
+	gboolean show_linenums;
+	gboolean show_linemarks;
+	gboolean highlight_currentline;
+	gboolean autoindent;
+	gboolean indentontab;
+	gboolean smartbs;
+	gboolean smarthomeend;
+	gboolean showspaces;
+	gboolean shownewlines;
+	gboolean minimap;
+};
+
 typedef enum {
 	ROI_MANUAL,
 	ROI_AUTO
@@ -213,13 +230,14 @@ struct gui_config {
 	gboolean icon_symbolic;	// icon style
 
 	GSList *script_path;	// script path directories
-	gboolean warn_script_run; // show the notice when starting a script
+	gboolean warn_scripts_run; // show the notice when starting a script
+							// updated with new warning wording to force redisplay
 
 	gboolean show_thumbnails; // show thumbnails in open dialog box
 	gint thumbnail_size;
 
 	int position_compass;	// compass position, can be moved
-	gboolean catalog[9];	// 6 system catalogs and 2 user catalogs for annotations and 1
+	gboolean catalog[11];	// 8 system catalogs and 2 user catalogs for annotations and 1
 				// short-lived catalogue for "who's in the field" annotations
 				// see also cat in annotation_catalogues.c
 
@@ -240,6 +258,7 @@ struct gui_config {
 	configurable_colors config_colors; // This used to configure some colors in Siril
 	mmb_action_t mmb_action; // Defines middle mouse button double click behaviour
 	struct mouse_config mouse_cfg; // String representation of mouse & scroll actions
+	struct editor_config editor_cfg; // Configuration for the script editor
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
@@ -255,6 +274,8 @@ struct prepro_config {
 	gboolean use_dark_lib;
 	gchar *flat_lib;
 	gboolean use_flat_lib;
+	gchar *disto_lib;
+	gboolean use_disto_lib;
 	gchar *stack_default;
 	gboolean use_stack_default;
 };
@@ -383,7 +404,7 @@ struct pref_struct {
 	gboolean binning_update;// update pixel size of binned images
 
 	int wcs_formalism;	// formalism used in FITS header
-	gchar *catalogue_paths[4]; // local star catalogues for plate solving and PCC
+	gchar *catalogue_paths[6]; // local star catalogues for plate solving and PCC
 
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gboolean use_checksum;  // Verify checksum in FITS header
@@ -405,6 +426,7 @@ struct pref_struct {
 	struct comp_config comp;
 	struct spcc_favourites spcc;
 	fftw_params fftw_conf;
+	int max_slice_size; // Used when processing img_t in slices to limit the wisdom required
 	icc_params icc;
 	GList *selected_scripts;
 	gboolean use_scripts_repository;
@@ -449,6 +471,7 @@ struct settings_access {
 struct settings_access *get_all_settings();
 struct settings_access *get_key_settings(const char *group, const char *key);
 
+gchar* get_settings_key(const char *group, const char *key, gboolean with_details);
 int print_settings_key(const char *group, const char *key, gboolean with_details);
 int print_all_settings(gboolean with_details);
 

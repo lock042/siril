@@ -57,14 +57,24 @@ free-astro 2022-2023.
 #include <omp.h>
 #endif
 
+static const std::vector<int> good_sizes = {256, 320, 384, 400, 512, 640, 768, 800, 1024, 1280, 1536, 1600, 1920, 2048, 2560, 3072, 3200, 3840, 4096, 5120, 6144, 6400, 7680, 8192};
+
 extern int sequence_is_running;
 
 template <typename T>
 class img_t {
+private:
+        enum class SliceSizeStrategy {
+        SmallestNumber,
+        OptimumFFTW,
+        BestCompromise
+    };
+
 public:
     // Data
     typedef T value_type;
     int size, w, h, d;
+    gint total_slices = 1, slices_complete = 0;
     std::vector<T, fftw_alloc<T>> data;
     fftwf_plan forwardplanf = nullptr;
     fftwf_plan backwardplanf = nullptr;
@@ -274,6 +284,219 @@ public:
         for (int i = 0; i < n; i++)
             data[i] = o[i];
     }
+
+// ***********************************************************************
+// Methods relating to automated processing an img_t in overlapping chunks
+// ***********************************************************************
+
+    struct SliceSize {
+        int width;
+        int height;
+    };
+
+    // Updated helper method to calculate memory required for a slice
+    size_t calculate_slice_memory(int width, int height, int K, int N) const {
+        int padded_width = width + 2 * K;
+        int padded_height = height + 2 * K;
+        return N * padded_width * padded_height * d * sizeof(T);
+    }
+
+    // Smallest number of slices
+    SliceSize smallest_number_of_slices(size_t M, int K, int N) const {
+        int width = w;
+        int height = h;
+
+        // Reduce the slice size until it fits in memory
+        while (calculate_slice_memory(width, height, K, N) > M) {
+            if (width > height) {
+                width = (width + 1) / 2;
+            } else {
+                height = (height + 1) / 2;
+            }
+        }
+
+        return {width, height};
+    }
+
+    // Optimum for FFTW3 speed
+    SliceSize optimum_fftw3_speed(size_t M, int K, int N) const {
+        SliceSize best = {0, 0};
+        size_t best_area = 0;
+
+        for (int w : good_sizes) {
+            for (int h : good_sizes) {
+                if (calculate_slice_memory(w, h, K, N) <= M) {
+                    size_t area = static_cast<size_t>(w) * h;
+                    if (area > best_area) {
+                        best = {w, h};
+                        best_area = area;
+                    }
+                }
+            }
+        }
+
+        // If no good size fits, fall back to smallest_number_of_slices
+        if (best.width == 0) {
+            return smallest_number_of_slices(M, K, N);
+        }
+
+        return best;
+    }
+
+    static int next_good_size(int size) {
+        auto it = std::lower_bound(good_sizes.begin(), good_sizes.end(), size);
+        return (it != good_sizes.end()) ? *it : good_sizes.back();
+    }
+
+    // Best compromise
+    SliceSize best_compromise(size_t M, int K, int N) const {
+        SliceSize smallest = smallest_number_of_slices(M, K, N);
+        SliceSize fastest = optimum_fftw3_speed(M, K, N);
+        SliceSize best;
+        if (static_cast<double>(fastest.width * fastest.height) < 0.8 * smallest.width * smallest.height) {
+            // Find a compromise
+            best = smallest;
+            double best_score = 0;
+
+            for (int w : good_sizes) {
+                for (int h : good_sizes) {
+                    if (calculate_slice_memory(w, h, K, N) <= M) {
+                        double size_score = static_cast<double>(w * h) / (smallest.width * smallest.height);
+                        double speed_score = 1.0; // TODO: assumes all sizes in good_sizes are equally fast.
+                                                  // Some (pure powers of 2) will be better than others.
+                        double score = std::min(size_score, 1.0) * speed_score;
+
+                        if (score > best_score) {
+                            best = {w, h};
+                            best_score = score;
+                        }
+                    }
+                }
+            }
+        } else {
+            // If the fastest size is at least 80% of the largest possible size, use it
+            best = fastest;
+        }
+        // If we are constrained by the max slice size preference, adjust the size.
+        // The permitted range of the preference is 512-32768: smaller than 512 should be completely unnecessary for
+        // any system and results in inefficiency owing to the overlaps and 32768 is a currently reasonable maximum
+        // based on the number of copies of a 32768 x 32768 image required for deconvolution taking up nearly half a
+        // TB of RAM, which almost no users will have.
+        if (com.pref.max_slice_size > 511 && com.pref.max_slice_size < 32769 && best.width > com.pref.max_slice_size)
+            best.width = com.pref.max_slice_size;
+        if (com.pref.max_slice_size > 511 && com.pref.max_slice_size < 32769 && best.height > com.pref.max_slice_size)
+            best.height = com.pref.max_slice_size;
+
+        if (best.width <= w && best.height <= h) {
+            return best;
+        } else {
+            SliceSize imgsize = {w, h};
+            // Find next-up optimized size, call it nextsize;
+            SliceSize nextsize = {next_good_size(w), next_good_size(h)};
+            best.width = (static_cast<float>(nextsize.width) / imgsize.width < 1.1f) ? nextsize.width : imgsize.width;
+            best.height = (static_cast<float>(nextsize.height) / imgsize.height < 1.1f) ? nextsize.height : imgsize.height;
+            return best;
+        }
+    }
+
+    template<typename F>
+    void process_in_slices(size_t M, int N_copies, img_t<T>& output, int overlap, const F& process_func, SliceSizeStrategy strategy = SliceSizeStrategy::BestCompromise) {
+        SliceSize slice_size;
+        switch (strategy) {
+            case SliceSizeStrategy::SmallestNumber:
+                slice_size = smallest_number_of_slices(M, overlap, N_copies);
+                break;
+            case SliceSizeStrategy::OptimumFFTW:
+                slice_size = optimum_fftw3_speed(M, overlap, N_copies);
+                break;
+            case SliceSizeStrategy::BestCompromise:
+            default:
+                slice_size = best_compromise(M, overlap, N_copies);
+                break;
+        }
+        int adjustment = overlap << 1;
+        siril_debug_print("Processing in slices (%d x %d)\n", slice_size.width, slice_size.height);
+        process_in_slices(output, slice_size.width - adjustment, slice_size.height - adjustment, overlap, process_func);
+    }
+
+    template<typename F>
+    void process_in_slices(img_t<T>& output, int slice_width, int slice_height, int overlap, const F& process_func) {
+        // Ensure the output image has the same dimensions as the input
+        if (output.w != w || output.h != h || output.d != d)
+            output.resize(w, h, d);
+
+        // Calculate the number of slices in each dimension
+        int num_slices_x = (w + slice_width - 1) / slice_width;
+        int num_slices_y = (h + slice_height - 1) / slice_height;
+
+        // Temporary image for padded slice
+        img_t<T> padded_slice;
+        g_atomic_int_set(&padded_slice.total_slices, num_slices_x * num_slices_y);
+
+        for (int sy = 0; sy < num_slices_y; ++sy) {
+            for (int sx = 0; sx < num_slices_x; ++sx) {
+                // Calculate slice boundaries
+                int start_x = sx * slice_width;
+                int start_y = sy * slice_height;
+                int end_x = std::min(start_x + slice_width, w);
+                int end_y = std::min(start_y + slice_height, h);
+                int actual_width = end_x - start_x;
+                int actual_height = end_y - start_y;
+
+                // Calculate padding
+                int pad_left = std::min(overlap, start_x);
+                int pad_right = std::min(overlap, w - end_x);
+                int pad_top = std::min(overlap, start_y);
+                int pad_bottom = std::min(overlap, h - end_y);
+
+                // Create padded slice
+                padded_slice.resize(actual_width + pad_left + pad_right,
+                                    actual_height + pad_top + pad_bottom, d);
+
+                // Copy data to padded slice
+#ifdef _OPENMP
+                int available_threads = com.max_thread - omp_get_num_threads();
+#pragma omp parallel for simd schedule(static) num_threads(available_threads) if (available_threads > 1) collapse(2)
+#endif
+                for (int y = -pad_top; y < actual_height + pad_bottom; ++y) {
+                    for (int x = -pad_left; x < actual_width + pad_right; ++x) {
+                        int src_x = start_x + x;
+                        int src_y = start_y + y;
+
+                        // Handle padding at image borders
+                        if (src_x < 0) src_x = -src_x;
+                        else if (src_x >= w) src_x = 2*w - src_x - 2;
+                        if (src_y < 0) src_y = -src_y;
+                        else if (src_y >= h) src_y = 2*h - src_y - 2;
+
+                        for (int z = 0; z < d; ++z) {
+                            padded_slice(x + pad_left, y + pad_top, z) = (*this)(src_x, src_y, z);
+                        }
+                    }
+                }
+
+                // Process the padded slice
+                process_func(padded_slice);
+
+                // Copy processed data to the output image (only the non-overlapping part)
+#ifdef _OPENMP
+#pragma omp parallel for simd schedule(static) num_threads(available_threads) if (available_threads > 1) collapse(3)
+#endif
+                for (int y = 0; y < actual_height; ++y) {
+                    for (int x = 0; x < actual_width; ++x) {
+                        for (int z = 0; z < d; ++z) {
+                            output(start_x + x, start_y + y, z) = padded_slice(x + pad_left, y + pad_top, z);
+                        }
+                    }
+                }
+                g_atomic_int_add(&padded_slice.slices_complete, 1);
+            }
+        }
+    }
+
+// ********************************************************
+// Methods relating to other image processing functionality
+// ********************************************************
 
     // naive convolution
     template <typename T2, typename T3>
@@ -506,6 +729,21 @@ public:
 #endif
         for (int i = 0; i < size; i++) {
             (*this)[i] = f(o[i]);
+        }
+    }
+
+    void flip() {
+#ifdef _OPENMP
+        int available_threads = com.max_thread - omp_get_num_threads();
+#pragma omp parallel for schedule(static) collapse(3) num_threads(available_threads) if (available_threads > 1)
+#endif
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w / 2; x++) {  // Only loop over half the width
+                for (int dd = 0; dd < d; dd++) {
+                    // Swap elements in place between (x, y) and (w-x-1, h-y-1)
+                    std::swap((*this)(x, y, dd), (*this)(w - x - 1, h - y - 1, dd));
+                }
+            }
         }
     }
 
@@ -840,6 +1078,7 @@ public:
         }
 #endif
     }
+
     void fft(const img_t<std::complex<float> >& o) {
         static_assert(std::is_same<T, std::complex<float>>::value, "T must be complex float");
         assert(w == o.w);

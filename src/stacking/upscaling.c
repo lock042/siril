@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -38,7 +38,7 @@
 
 #define TMP_UPSCALED_PREFIX "tmp_upscaled_"
 
-void remove_tmp_drizzle_files(struct stacking_args *args) {
+void remove_tmp_upscaled_files(struct stacking_args *args) {
 	int i;
 	if (!args->upscale_at_stacking)
 		return;
@@ -152,7 +152,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	}
 	args->max_parallel_images = nb_threads;
 
-	remove_tmp_drizzle_files(stackargs);
+	remove_tmp_upscaled_files(stackargs);
 
 	generic_sequence_worker(args);
 

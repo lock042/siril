@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -60,6 +60,7 @@ static GActionEntry image_entries[] = {
 	{ "evaluate-noise", noise_activate },
 	{ "ccd-inspector", ccd_inspector_activate },
 	{ "show-tilt", show_tilt_activate, NULL, "false", show_tilt_state },
+	{ "show-disto", show_disto_activate, NULL, "false", show_disto_state },
 	{ "astrometry", astrometry_activate },
 	{ "photometry", photometry_activate, NULL, "false", photometry_state },
 	{ "cut", cut_activate },
@@ -97,7 +98,8 @@ static GActionEntry rgb_processing_entries[] = {
 	{ "align-global", align_global_activate },
 	{ "align-kombat", align_kombat_activate },
 	{ "split-channel-processing", split_channel_activate },
-	{ "ccm-processing", ccm_activate }
+	{ "ccm-processing", ccm_activate },
+	{ "unpurple-processing", unpurple_activate }
 };
 
 static GActionEntry any_processing_entries[] = {
@@ -197,6 +199,14 @@ void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean
 	_siril_window_enable_action_group(G_ACTION_MAP(window), wcs_processing_actions, enable);
 }
 
+void siril_window_enable_wcs_disto_proc_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *wcs_disto_processing_actions[] = {
+		"show-disto",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), wcs_disto_processing_actions, enable);
+}
+
 void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean enable) {
 	static const gchar *image_actions[] = {
 		"chain-chan",
@@ -212,6 +222,7 @@ void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean
 		"color-calib-processing",
 		"split-channel-processing",
 		"align-global",
+		"unpurple-processing",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), rgb_processing_actions, enable);

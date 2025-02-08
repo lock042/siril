@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,24 +24,20 @@
  * image. Given its use of the third dimension, it's sometimes called FITS cube.
  */
 
+#include "algos/spcc.h"
+#include "core/siril.h"
+#include "core/siril_app_dirs.h"
+#include "core/siril_log.h"
+#include "core/siril_networking.h"
+#include "core/siril_update.h" // for the version_number struct
+#include "gui/message_dialog.h"
+#include "gui/photometric_cc.h"
+#include "gui/script_menu.h" // for SCRIPT_EXT TODO: after python3 is merged, move this out of src/gui
+#include "io/siril_git.h"
 #include <assert.h>
 #include <inttypes.h>
-#include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/siril_app_dirs.h"
-#include "core/siril_networking.h"
-#include "gui/callbacks.h"
-#include "gui/dialogs.h"
-#include "gui/message_dialog.h"
-#include "gui/preferences.h"
-#include "gui/progress_and_log.h"
-#include "gui/photometric_cc.h" // for reset_spcc_filters() (this is not a GTK function)
-#include "gui/utils.h"
-#include "gui/script_menu.h"
-#include "core/siril_update.h" // for the version_number struct
-#include "algos/spcc.h"
 
-//#define DEBUG_GITSCRIPTS
+// #define DEBUG_GITSCRIPTS
 
 #ifdef HAVE_LIBGIT2
 #include <git2.h>
@@ -49,23 +45,19 @@
 const gchar *SCRIPT_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
 const gchar *SPCC_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-spcc-database";
 
-static GtkListStore *list_store = NULL;
-static gboolean can_fastforward;
-
-static void *xrealloc(void *oldp, size_t newsz)
-{
+static void *xrealloc(void *oldp, size_t newsz) {
 	void *p = realloc(oldp, newsz);
 	if (p == NULL) {
 		PRINT_ALLOC_ERR;
-		//exit(1);
+		// exit(1);
 	}
 	return p;
 }
 
 enum {
-	FORMAT_DEFAULT   = 0,
-	FORMAT_LONG      = 1,
-	FORMAT_SHORT     = 2,
+	FORMAT_DEFAULT = 0,
+	FORMAT_LONG = 1,
+	FORMAT_SHORT = 2,
 	FORMAT_PORCELAIN = 3
 };
 
@@ -77,8 +69,7 @@ struct merge_options {
 	size_t annotated_count;
 };
 
-static void merge_options_init(struct merge_options *opts)
-{
+static void merge_options_init(struct merge_options *opts) {
 	memset(opts, 0, sizeof(*opts));
 
 	opts->heads = NULL;
@@ -87,19 +78,17 @@ static void merge_options_init(struct merge_options *opts)
 	opts->annotated_count = 0;
 }
 
-static void opts_add_refish(struct merge_options *opts, const char *refish)
-{
+static void opts_add_refish(struct merge_options *opts, const char *refish) {
 	size_t sz;
-
 	assert(opts != NULL);
 
 	sz = ++opts->heads_count * sizeof(opts->heads[0]);
-	opts->heads = xrealloc((void *) opts->heads, sz);
+	opts->heads = xrealloc((void *)opts->heads, sz);
 	opts->heads[opts->heads_count - 1] = refish;
 }
 
-static int resolve_refish(git_annotated_commit **commit, git_repository *repo, const char *refish)
-{
+static int resolve_refish(git_annotated_commit **commit, git_repository *repo,
+                          const char *refish) {
 	git_reference *ref;
 	git_object *obj;
 	int err = 0;
@@ -122,17 +111,18 @@ static int resolve_refish(git_annotated_commit **commit, git_repository *repo, c
 	return err;
 }
 
-static int resolve_heads(git_repository *repo, struct merge_options *opts)
-{
-	git_annotated_commit **annotated = calloc(opts->heads_count, sizeof(git_annotated_commit *));
+static int resolve_heads(git_repository *repo, struct merge_options *opts) {
+	git_annotated_commit **annotated =
+		calloc(opts->heads_count, sizeof(git_annotated_commit *));
 	size_t annotated_count = 0, i;
 
 	for (i = 0; i < opts->heads_count; i++) {
-		int err = resolve_refish(&annotated[annotated_count++], repo, opts->heads[i]);
+		int err =
+			resolve_refish(&annotated[annotated_count++], repo, opts->heads[i]);
 		if (err != 0) {
-			siril_debug_print("libgit2: failed to resolve refish %s: %s\n", opts->heads[i], git_error_last()->message);
-			annotated_count--;
-			continue;
+		siril_debug_print("libgit2: failed to resolve refish %s: %s\n", opts->heads[i], git_error_last()->message);
+		annotated_count--;
+		continue;
 		}
 	}
 
@@ -147,7 +137,7 @@ static int resolve_heads(git_repository *repo, struct merge_options *opts)
 	return 0;
 }
 
-static char *get_commit_from_oid(git_repository *repo, git_oid* oid_to_find) {
+static char *get_commit_from_oid(git_repository *repo, git_oid *oid_to_find) {
 	char *retval = NULL;
 	// Convert the OID to a commit
 	git_commit *commit = NULL;
@@ -175,26 +165,81 @@ static char *get_commit_from_oid(git_repository *repo, git_oid* oid_to_find) {
 	return retval;
 }
 
-static int fetchhead_cb(const char *ref_name, const char *remote_url, const git_oid *oid, unsigned int is_merge, void *payload)
-{
-    if (is_merge)
-    {
-        siril_debug_print("reference: '%s' is the reference we should merge\n", ref_name);
-        git_oid_cpy((git_oid *)payload, oid);
-    }
-    return 0;
+static int fetchhead_cb(const char *ref_name, const char *remote_url,
+                        const git_oid *oid, unsigned int is_merge,
+                        void *payload) {
+	if (is_merge) {
+		siril_debug_print("reference: '%s' is the reference we should merge\n", ref_name);
+		git_oid_cpy((git_oid *)payload, oid);
+	}
+	return 0;
 }
 
-static int reset_repository(const gchar *local_path) {
+static int remove_git_locks(const git_repository *repo) {
+	const char *git_dir = git_repository_path(repo);
+	GError *error = NULL;
+	gint ret = 0;
 
+	// Remove index.lock
+	gchar *index_lock_path = g_build_filename(git_dir, "index.lock", NULL);
+	if (g_unlink(index_lock_path) != 0 && errno != ENOENT) {
+		g_warning("Error removing index.lock: %s", g_strerror(errno));
+		ret = errno;
+	}
+	g_free(index_lock_path);
+
+	// Remove branch lock files
+	GDir *dir = g_dir_open(git_dir, 0, &error);
+	if (dir) {
+		const gchar *entry;
+		while ((entry = g_dir_read_name(dir)) != NULL) {
+			if (g_str_has_suffix(entry, ".lock")) {
+				gchar *lock_path = g_build_filename(git_dir, entry, NULL);
+				if (g_unlink(lock_path) != 0 && errno != ENOENT) {
+					g_warning("Error removing lock file '%s': %s", entry, g_strerror(errno));
+					ret = errno;
+				}
+				g_free(lock_path);
+			}
+		}
+		g_dir_close(dir);
+	} else {
+		g_warning("Error opening Git directory '%s': %s", git_dir, error->message);
+		ret = error->code;
+		g_clear_error(&error);
+	}
+
+	return ret;
+}
+
+static int siril_repository_open(git_repository **out, const gchar *path) {
+	int retval = git_repository_open(out, path);
+	if (!retval) {
+		// Remove any existing lock files
+		// We don't care about the state of the repo because we're about to hard
+		// reset it
+		int error = remove_git_locks(*out);
+		if (error != 0) {
+			siril_log_color_message(
+				_("Error removing Git lock files. You may need to delete the local "
+					"git repository and allow Siril to re-clone it.\n"), "red");
+			return -1;
+		}
+	}
+	return retval;
+}
+
+int reset_repository(const gchar *local_path) {
 	// Initialisation
 	git_libgit2_init();
 
 	// Open the repository
 	git_repository *repo = NULL;
-	int error = git_repository_open(&repo, local_path);
+	int error = siril_repository_open(&repo, local_path);
 	if (error != 0) {
-		siril_log_color_message(_("Error performing hard reset. You may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+		siril_log_color_message(
+			_("Error performing hard reset. You may need to delete the local git "
+			"repository and allow Siril to re-clone it.\n"), "red");
 		git_repository_free(repo);
 		git_libgit2_shutdown();
 		return -1;
@@ -202,10 +247,12 @@ static int reset_repository(const gchar *local_path) {
 
 	// Get the FETCH_HEAD reference
 	git_object *target_commit = NULL;
-	error = 0;
 	error = git_revparse_single(&target_commit, repo, "FETCH_HEAD");
 	if (error != 0) {
-		siril_log_color_message(_("Error performing hard reset. You may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+		siril_log_color_message(
+			_("Error performing hard reset. You may need to delete the local git "
+			"repository and allow Siril to re-clone it.\n"),
+			"red");
 		git_repository_free(repo);
 		git_libgit2_shutdown();
 		return -1;
@@ -214,34 +261,21 @@ static int reset_repository(const gchar *local_path) {
 	// Perform the reset
 	error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
 	if (error != 0) {
-		siril_log_color_message(_("Error performing hard reset. You may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+		siril_log_color_message(
+			_("Error performing hard reset. You may need to delete the local git "
+			"repository and allow Siril to re-clone it.\n"), "red");
 		git_object_free(target_commit);
 		git_repository_free(repo);
 		git_libgit2_shutdown();
 		return -1;
 	}
 
-	siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("Success! The local repository is up-to-date with the remote."));
-
 	git_repository_free(repo);
 	git_libgit2_shutdown();
 	return 0;
 }
 
-static int reset_scripts_repository() {
-	// Local directory where the repository will be cloned
-	const gchar *local_path = siril_get_scripts_repo_path();
-	return reset_repository(local_path);
-}
-
-static int reset_spcc_repository() {
-	// Local directory where the repository will be cloned
-	const gchar *local_path = siril_get_spcc_repo_path();
-	return reset_repository(local_path);
-}
-
-static int lg2_fetch(git_repository *repo)
-{
+static int lg2_fetch(git_repository *repo) {
 	git_remote *remote = NULL;
 	git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
 
@@ -253,26 +287,26 @@ static int lg2_fetch(git_repository *repo)
 
 	if (git_remote_lookup(&remote, repo, remote_name)) {
 		if (git_remote_create_anonymous(&remote, repo, remote_name)) {
-			siril_log_message(_("Unable to create anonymous remote for the repository. Check your connectivity and try again.\n"));
-			goto on_error;
+		siril_log_message(_("Unable to create anonymous remote for the repository. Check your connectivity and try again.\n"));
+		goto on_error;
 		}
 	}
 
 	if (git_remote_fetch(remote, NULL, &fetch_opts, "fetch") < 0)
 		siril_log_message(_("Error fetching remote. This may be a temporary error, check your connectivity and try again.\n"));
 
-on_error:
+	on_error:
 	git_remote_free(remote);
 	return -1;
 }
 
-static char* find_str_before_comment(const char* str1, const char* str2, const char* str3) {
-	char* strpos = strstr(str1, str2);
-	const char* chrpos = strstr(str1, str3);
+static char *find_str_before_comment(const char *str1, const char *str2, const char *str3) {
+	char *strpos = strstr(str1, str2);
+	const char *chrpos = strstr(str1, str3);
 	return !strpos ? NULL : (chrpos && chrpos < strpos) ? NULL : strpos;
 }
 
-static gboolean script_version_check(const gchar* filename) {
+static gboolean script_version_check(const gchar *filename) {
 	version_number current_version = get_current_version_number();
 	// Open the script and look for the required version number
 	GFile *file = NULL;
@@ -281,23 +315,23 @@ static gboolean script_version_check(const gchar* filename) {
 	GError *error = NULL;
 	gchar *buffer = NULL;
 	gsize length = 0;
-	gchar* scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
+	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
 	gboolean retval = FALSE;
-#ifdef DEBUG_GITSCRIPTS
+	#ifdef DEBUG_GITSCRIPTS
 	printf("checking script version requirements: %s\n", scriptpath);
-#endif
+	#endif
 	file = g_file_new_for_path(scriptpath);
-	stream = (GInputStream*) g_file_read(file, NULL, &error);
+	stream = (GInputStream *)g_file_read(file, NULL, &error);
 	if (error)
 		goto ERROR_OR_COMPLETE;
 	data_input = g_data_input_stream_new(stream);
-	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
-					NULL, &error)) && !error) {
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, &error)) && !error) {
 		gchar *ver = find_str_before_comment(buffer, "requires", "#");
 		if (ver) {
 			gchar **versions = g_strsplit(ver, " ", 2);
-			version_number required_version = get_version_number_from_string(versions[1]);
-			version_number expired_version = { 0 };
+			version_number required_version =
+				get_version_number_from_string(versions[1]);
+			version_number expired_version = {0};
 			int new_enough = compare_version(current_version, required_version);
 			int too_new = -1;
 			if (versions[2]) {
@@ -312,7 +346,7 @@ static gboolean script_version_check(const gchar* filename) {
 		}
 		g_free(buffer);
 	}
-ERROR_OR_COMPLETE:
+	ERROR_OR_COMPLETE:
 	g_input_stream_close(stream, NULL, &error);
 	if (error)
 		siril_debug_print("Error closing data input stream from file\n");
@@ -323,7 +357,158 @@ ERROR_OR_COMPLETE:
 	return retval;
 }
 
-static int analyse(git_repository *repo, GString** git_pending_commit_buffer) {
+static gboolean version_meets_constraint(version_number *current, version_number *constraint, const gchar *op) {
+	if (strcmp(op, "==") == 0)
+		return compare_version(*current, *constraint);
+	if (strcmp(op, "!=") == 0)
+		return !compare_version(*current, *constraint);
+	if (strcmp(op, "<") == 0) {
+		if (current->major_version < constraint->major_version) return TRUE;
+		if (current->major_version > constraint->major_version) return FALSE;
+		if (current->minor_version < constraint->minor_version) return TRUE;
+		if (current->minor_version > constraint->minor_version) return FALSE;
+		if (current->micro_version < constraint->micro_version) return TRUE;
+		if (current->micro_version > constraint->micro_version) return FALSE;
+		if (current->patched_version < constraint->patched_version) return TRUE;
+		return FALSE;
+	}
+	if (strcmp(op, ">") == 0) {
+		if (current->major_version > constraint->major_version) return TRUE;
+		if (current->major_version < constraint->major_version) return FALSE;
+		if (current->minor_version > constraint->minor_version) return TRUE;
+		if (current->minor_version < constraint->minor_version) return FALSE;
+		if (current->micro_version > constraint->micro_version) return TRUE;
+		if (current->micro_version < constraint->micro_version) return FALSE;
+		if (current->patched_version > constraint->patched_version) return TRUE;
+		return FALSE;
+	}
+	if (strcmp(op, "<=") == 0) {
+		return version_meets_constraint(current, constraint, "<") ||
+			version_meets_constraint(current, constraint, "==");
+	}
+	if (strcmp(op, ">=") == 0) {
+		return version_meets_constraint(current, constraint, ">") ||
+			version_meets_constraint(current, constraint, "==");
+	}
+	return FALSE;
+}
+
+static gboolean parse_version_string(const gchar *version_str, version_number *ver) {
+	gchar **parts = g_strsplit(version_str, ".", 4);
+	memset(ver, 0, sizeof(version_number));
+
+	if (parts[0]) ver->major_version = atoi(parts[0]);
+	if (parts[1]) ver->minor_version = atoi(parts[1]);
+	if (parts[2]) ver->micro_version = atoi(parts[2]);
+	if (parts[3]) ver->patched_version = atoi(parts[3]);
+
+	g_strfreev(parts);
+	return TRUE;
+}
+
+gboolean check_module_version_constraint(const gchar *line, GMatchInfo *match_info) {
+	// Regular expression to match check_module_version pattern
+	gboolean result = TRUE;
+
+	gchar *version_spec = g_match_info_fetch(match_info, 1);
+
+	// If no version specified, return TRUE
+	if (!version_spec || strlen(version_spec) == 0) {
+		result = TRUE;
+		return result;
+	}
+
+	// Split the version specifier into constraint parts
+	gchar **constraints = g_strsplit_set(version_spec, ",", -1);
+	version_number minver = {0}, maxver = {0};
+	gboolean min_set = FALSE, max_set = FALSE;
+
+	for (int i = 0; constraints[i] != NULL; i++) {
+		gchar *constraint = g_strstrip(constraints[i]);
+
+		if (strncmp(constraint, "==", 2) == 0) {
+			parse_version_string(constraint + 2, &minver);
+			parse_version_string(constraint + 2, &maxver);
+			min_set = max_set = TRUE;
+		} else if (strncmp(constraint, "!=", 2) == 0) {
+			parse_version_string(constraint + 2, &minver);
+			result = !version_meets_constraint(&com.python_version, &minver, "==");
+		} else if (strncmp(constraint, ">=", 2) == 0) {
+			parse_version_string(constraint + 2, &minver);
+			result = version_meets_constraint(&com.python_version, &minver, ">=");
+			min_set = TRUE;
+		} else if (strncmp(constraint, "<=", 2) == 0) {
+			parse_version_string(constraint + 2, &maxver);
+			result = version_meets_constraint(&com.python_version, &maxver, "<=");
+			max_set = TRUE;
+		} else if (strncmp(constraint, ">", 1) == 0) {
+			parse_version_string(constraint + 1, &minver);
+			result = version_meets_constraint(&com.python_version, &minver, ">");
+			min_set = TRUE;
+		} else if (strncmp(constraint, "<", 1) == 0) {
+			parse_version_string(constraint + 1, &maxver);
+			result = version_meets_constraint(&com.python_version, &maxver, "<");
+			max_set = TRUE;
+		}
+	}
+
+	// If multiple constraints are specified
+	if (min_set && max_set) {
+		result = version_meets_constraint(&com.python_version, &minver, ">=") &&
+					version_meets_constraint(&com.python_version, &maxver, "<");
+	}
+
+	g_strfreev(constraints);
+	g_free(version_spec);
+
+	return result;
+}
+
+static gboolean pyscript_version_check(const gchar *filename) {
+	// Open the script and look for the required version number
+	GFile *file = NULL;
+	GInputStream *stream = NULL;
+	GDataInputStream *data_input = NULL;
+	GError *error = NULL;
+	gchar *buffer = NULL;
+	gsize length = 0;
+	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
+	gboolean retval = TRUE; // default to TRUE - if check_module_version() is not called there are no version requirements
+	#ifdef DEBUG_GITSCRIPTS
+	printf("checking python script version requirements: %s\n", scriptpath);
+	#endif
+	file = g_file_new_for_path(scriptpath);
+	stream = (GInputStream *)g_file_read(file, NULL, &error);
+	if (error)
+		goto ERROR_OR_COMPLETE;
+	data_input = g_data_input_stream_new(stream);
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, &error)) && !error) {
+		GRegex *regex;
+		GMatchInfo *match_info;
+		gboolean matched = FALSE;
+		// Regex to capture version checks with optional version specifier
+		regex = g_regex_new("check_module_version\\(\"([^\"]+)?\"\\)", 0, 0, NULL);
+		if (g_regex_match(regex, buffer, 0, &match_info)) {
+			retval = check_module_version_constraint(buffer, match_info);
+			matched = TRUE;
+		}
+		g_match_info_free(match_info);
+		g_regex_unref(regex);
+		g_free(buffer);
+		if (matched)
+			break;
+	}
+	ERROR_OR_COMPLETE:
+	g_input_stream_close(stream, NULL, &error);
+	if (error)
+		siril_debug_print("Error closing data input stream from file\n");
+	g_free(scriptpath);
+	g_object_unref(data_input);
+	g_object_unref(stream);
+	g_object_unref(file);
+	return retval;
+}
+static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 	git_remote *remote = NULL;
 
 	// Carry out merge analysis
@@ -360,33 +545,28 @@ static int analyse(git_repository *repo, GString** git_pending_commit_buffer) {
 		return 1;
 	}
 
-	error = git_merge_analysis(&analysis, &preference,
-	                         repo,
-	                         (const git_annotated_commit **)opts.annotated,
-	                         opts.annotated_count);
+	error = git_merge_analysis(&analysis, &preference, repo, (const git_annotated_commit **)opts.annotated, opts.annotated_count);
 
-	// If the merge cannot be fast-forwarded, warn the user that local changes will
-	// be lost if they proceed.
+	// If the merge cannot be fast-forwarded, warn the user that local changes
+	// will be lost if they proceed.
 	if (error < 0) {
-		siril_debug_print("Error carrying out merge analysis: %s\n",giterr_last()->message);
+		siril_debug_print("Error carrying out merge analysis: %s\n", giterr_last()->message);
 		return -1;
 	}
-
+	gboolean can_fastforward = FALSE;
 	if ((analysis & GIT_MERGE_ANALYSIS_FASTFORWARD) || (analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE)) {
 		can_fastforward = TRUE;
-	} else {
-		can_fastforward = FALSE;
 	}
 
-	// If we already know we can't fast forward we can skip the rest of the function, we just return 2
+	// If we already know we can't fast forward we can skip the rest of the
+	// function, we just return 2
 	if (!can_fastforward) {
 		siril_debug_print("Cannot be fast forwarded\n");
-		git_repository_free(repo);
-		git_libgit2_shutdown();
+		git_remote_free(remote);
 		return 2;
 	}
 
-	//Prepare for looping through unmerged commit messages
+	// Prepare for looping through unmerged commit messages
 
 	// Get the HEAD reference
 	git_reference *head_ref = NULL;
@@ -427,8 +607,8 @@ static int analyse(git_repository *repo, GString** git_pending_commit_buffer) {
 	gboolean found_head_ancestor = FALSE;
 
 	while (1) {
-		// Check if the current commit is the HEAD. If not, we print the commit message.
-		// If so, we break and don't show any further messages.
+		// Check if the current commit is the HEAD. If not, we print the commit
+		// message. If so, we break and don't show any further messages.
 		if (git_oid_equal(git_commit_id(head_commit), git_commit_id(commit))) {
 			found_head_ancestor = TRUE;
 			break;
@@ -437,17 +617,17 @@ static int analyse(git_repository *repo, GString** git_pending_commit_buffer) {
 		// We have not yet reached the HEAD so we print the commit message.
 		commit_msg = git_commit_message(commit);
 		if (!*git_pending_commit_buffer) {
-			gchar* buf = g_strdup_printf(_("Commit message: %s\n"), commit_msg);
+			gchar *buf = g_strdup_printf(_("Commit message: %s\n"), commit_msg);
 			*git_pending_commit_buffer = g_string_new(buf);
 			g_free(buf);
 		} else {
-			g_string_append_printf(*git_pending_commit_buffer, _("Commit message: %s\n"), commit_msg);
+		g_string_append_printf(*git_pending_commit_buffer, _("Commit message: %s\n"), commit_msg);
 		}
 
 		if (git_commit_parentcount(commit) > 0) {
 			parent_oid = *git_commit_parent_id(commit, 0);
 			if (git_commit_lookup(&parent_commit, repo, &parent_oid) != 0) {
-			break;
+				break;
 			}
 		} else {
 			break;
@@ -459,7 +639,8 @@ static int analyse(git_repository *repo, GString** git_pending_commit_buffer) {
 	}
 	git_commit_free(commit);
 
-	// If there is no ancestor commit found it indicates the merge cannot be fast-forwarded
+	// If there is no ancestor commit found it indicates the merge cannot be
+	// fast-forwarded
 	if (!found_head_ancestor) {
 		can_fastforward = FALSE;
 		git_remote_free(remote);
@@ -470,7 +651,7 @@ static int analyse(git_repository *repo, GString** git_pending_commit_buffer) {
 
 	return 0;
 
- on_error:
+	on_error:
 	git_remote_free(remote);
 	return -1;
 }
@@ -480,7 +661,7 @@ int auto_update_gitscripts(gboolean sync) {
 	// Initialize libgit2
 	git_libgit2_init();
 
-    // URL of the remote repository
+	// URL of the remote repository
 	siril_debug_print("Repository URL: %s\n", SCRIPT_REPOSITORY_URL);
 
 	// Local directory where the repository will be cloned
@@ -492,7 +673,7 @@ int auto_update_gitscripts(gboolean sync) {
 	git_repository *repo = NULL;
 
 	// See if the repository already exists
-	int error = git_repository_open(&repo, local_path);
+	int error = siril_repository_open(&repo, local_path);
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
@@ -537,21 +718,24 @@ int auto_update_gitscripts(gboolean sync) {
 	if (remote_url != NULL) {
 		siril_debug_print("Remote URL: %s\n", remote_url);
 	} else {
-		siril_log_color_message(_("Error: cannot identify local repository's configured remote.\n"), "red");
+		siril_log_color_message(
+			_("Error: cannot identify local repository's configured remote.\n"), "red");
 		git_remote_free(remote);
 		git_repository_free(repo);
 		git_libgit2_shutdown();
 		return 1;
 	}
 	if (strcmp(remote_url, SCRIPT_REPOSITORY_URL)) {
-		gchar *msg = g_strdup_printf(_("Error: local siril-scripts repository folder is not "
-				"configured with %s as its remote. You should remove the folder %s "
-				"and restart Siril to re-clone the correct repository.\n"),
-				SCRIPT_REPOSITORY_URL, local_path);
+		gchar *msg = g_strdup_printf(
+			_("Error: local siril-scripts repository folder is not "
+			"configured with %s as its remote. You should remove the folder %s "
+			"and restart Siril to re-clone the correct repository.\n"),
+			SCRIPT_REPOSITORY_URL, local_path);
 		siril_log_color_message(msg, "red");
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Repository Error"), msg);
 		g_free(msg);
-		// Make scripts unavailable, as the contents of a random git repository could be complete rubbish
+		// Make scripts unavailable, as the contents of a random git repository
+		// could be complete rubbish
 		gui.script_repo_available = FALSE;
 		goto cleanup;
 	}
@@ -565,7 +749,9 @@ int auto_update_gitscripts(gboolean sync) {
 		git_object *target_commit = NULL;
 		error = git_revparse_single(&target_commit, repo, "FETCH_HEAD");
 		if (error != 0) {
-			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+			siril_log_color_message(_("Error performing hard reset. If the problem "
+					"persists you may need to delete the local git repository and "
+					"allow Siril to re-clone it.\n"), "red");
 			gui.script_repo_available = FALSE;
 			git_remote_free(remote);
 			git_repository_free(repo);
@@ -577,7 +763,9 @@ int auto_update_gitscripts(gboolean sync) {
 		error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
 		git_object_free(target_commit);
 		if (error != 0) {
-			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+			siril_log_color_message(_("Error performing hard reset. If the problem persists "
+					"you may need to delete the local git repository and allow Siril to "
+					"re-clone it.\n"), "red");
 			git_remote_free(remote);
 			git_repository_free(repo);
 			git_libgit2_shutdown();
@@ -595,7 +783,7 @@ int auto_update_gitscripts(gboolean sync) {
 		retval = 1;
 
 	/* populate gui.repo_scripts with all the scripts in the index.
-		* We ignore anything not ending in SCRIPT_EXT */
+	* We ignore anything not ending in SCRIPT_EXT */
 	size_t entry_count = git_index_entrycount(index);
 	if (gui.repo_scripts) {
 		g_list_free_full(gui.repo_scripts, g_free);
@@ -603,7 +791,8 @@ int auto_update_gitscripts(gboolean sync) {
 	}
 	for (i = 0; i < entry_count; i++) {
 		entry = git_index_get_byindex(index, i);
-		if (g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) {
+		if ((g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) ||
+			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && pyscript_version_check(entry->path))) {
 			gui.repo_scripts = g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", entry->path);
@@ -611,13 +800,13 @@ int auto_update_gitscripts(gboolean sync) {
 		}
 	}
 
-    // Cleanup
-cleanup:
+	// Cleanup
+	cleanup:
 	git_remote_free(remote);
 	git_repository_free(repo);
-    git_libgit2_shutdown();
+	git_libgit2_shutdown();
 
-    return retval;
+	return retval;
 }
 
 int auto_update_gitspcc(gboolean sync) {
@@ -625,7 +814,7 @@ int auto_update_gitspcc(gboolean sync) {
 	// Initialize libgit2
 	git_libgit2_init();
 
-    // URL of the remote repository
+	// URL of the remote repository
 	siril_debug_print("Repository URL: %s\n", SPCC_REPOSITORY_URL);
 
 	// Local directory where the repository will be cloned
@@ -638,7 +827,7 @@ int auto_update_gitspcc(gboolean sync) {
 	git_remote *remote = NULL;
 
 	// See if the repository already exists
-	int error = git_repository_open(&repo, local_path);
+	int error = siril_repository_open(&repo, local_path);
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
@@ -647,7 +836,7 @@ int auto_update_gitspcc(gboolean sync) {
 		error = git_clone(&repo, SPCC_REPOSITORY_URL, local_path, &clone_opts);
 
 		if (error != 0) {
-			e = giterr_last();
+		e = giterr_last();
 			siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
 			gui.spcc_repo_available = FALSE;
 			git_libgit2_shutdown();
@@ -674,21 +863,24 @@ int auto_update_gitspcc(gboolean sync) {
 	if (remote_url != NULL) {
 		siril_debug_print("Remote URL: %s\n", remote_url);
 	} else {
-		siril_log_color_message(_("Error: cannot identify local repository's configured remote.\n"), "red");
+		siril_log_color_message(
+			_("Error: cannot identify local repository's configured remote.\n"), "red");
 		git_remote_free(remote);
 		git_repository_free(repo);
 		git_libgit2_shutdown();
 		return 1;
 	}
 	if (strcmp(remote_url, SPCC_REPOSITORY_URL)) {
-		gchar *msg = g_strdup_printf(_("Error: local siril-spcc-database repository folder is not "
-				"configured with %s as its remote. You should remove the folder %s "
-				"and restart Siril to re-clone the correct repository.\n"),
-				SPCC_REPOSITORY_URL, local_path);
+		gchar *msg = g_strdup_printf(
+			_("Error: local siril-spcc-database repository folder is not "
+			"configured with %s as its remote. You should remove the folder %s "
+			"and restart Siril to re-clone the correct repository.\n"),
+			SPCC_REPOSITORY_URL, local_path);
 		siril_log_color_message(msg, "red");
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Repository Error"), msg);
 		g_free(msg);
-		// Make scripts unavailable, as the contents of a random git repository could be complete rubbish
+		// Make scripts unavailable, as the contents of a random git repository
+		// could be complete rubbish
 		gui.spcc_repo_available = FALSE;
 		goto cleanup;
 	}
@@ -702,7 +894,9 @@ int auto_update_gitspcc(gboolean sync) {
 		git_object *target_commit = NULL;
 		error = git_revparse_single(&target_commit, repo, "FETCH_HEAD");
 		if (error != 0) {
-			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+			siril_log_color_message(_("Error performing hard reset. If the problem "
+					"persists you may need to delete the local git repository and "
+					"allow Siril to re-clone it.\n"), "red");
 			gui.spcc_repo_available = FALSE;
 			git_remote_free(remote);
 			git_repository_free(repo);
@@ -714,7 +908,9 @@ int auto_update_gitspcc(gboolean sync) {
 		error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
 		git_object_free(target_commit);
 		if (error != 0) {
-			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+			siril_log_color_message(_("Error performing hard reset. If the problem "
+					"persists you may need to delete the local git repository and "
+					"allow Siril to re-clone it.\n"), "red");
 			git_remote_free(remote);
 			git_repository_free(repo);
 			git_libgit2_shutdown();
@@ -723,16 +919,60 @@ int auto_update_gitspcc(gboolean sync) {
 		siril_log_color_message(_("Local SPCC database repository is up-to-date!\n"), "green");
 	}
 
-	// We don't do anything else post-sync as the repository is not actually used until
-	// a user initiates SPCC
+	// In case this has run very slowly in the async startup update, repopulate the SPCC combos
+	// to ensure they are up to date with any changes
+	populate_spcc_combos_async(NULL);
 
-    // Cleanup
-cleanup:
+	// Cleanup
+	cleanup:
 	git_remote_free(remote);
 	git_repository_free(repo);
 	git_libgit2_shutdown();
 
 	return retval;
+}
+
+typedef struct {
+	int (*func)(gboolean);  // Function pointer to the update function
+	gboolean sync;          // Sync parameter to pass to the function
+} ThreadData;
+
+// Thread function that will be executed
+static gpointer thread_func(gpointer user_data) {
+	ThreadData *data = (ThreadData *)user_data;
+	int result = data->func(data->sync);
+	g_free(data);
+	return GINT_TO_POINTER(result);
+}
+
+void async_update_git_repositories() {
+	GError *error = NULL;
+	if (com.pref.use_scripts_repository) {
+		ThreadData *data = g_new(ThreadData, 1);
+		data->func = auto_update_gitscripts;
+		data->sync = com.pref.auto_script_update;
+		com.update_scripts_thread = g_thread_try_new("update_thread", thread_func, data, &error);
+		if (error) {
+			siril_log_color_message(_("Error spawning thread to update scripts repository: %s\n"), "red", error->message);
+			g_error_free(error);
+		}
+	} else {
+		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
+	}
+	if (com.pref.spcc.use_spcc_repository) {
+		ThreadData *data = g_new(ThreadData, 1);
+		data->func = auto_update_gitspcc;
+		data->sync = com.pref.spcc.auto_spcc_update;
+
+		GThread *thread = g_thread_try_new("update_thread", thread_func, data, &error);
+		g_thread_unref(thread);
+		if (error) {
+			siril_log_color_message(_("Error spawning thread to update SPCC repository: %s\n"), "red", error->message);
+			g_error_free(error);
+		}
+	} else {
+		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-spcc...\n"));
+	}
 }
 
 int preview_scripts_update(GString** git_pending_commit_buffer) {
@@ -743,9 +983,9 @@ int preview_scripts_update(GString** git_pending_commit_buffer) {
 	const gchar *local_path = siril_get_scripts_repo_path();
 
 	git_repository *repo = NULL;
-	int error = git_repository_open(&repo, local_path);
+	int error = siril_repository_open(&repo, local_path);
 	if (error < 0) {
-		siril_debug_print("Error opening repository: %s\n",giterr_last()->message);
+		siril_debug_print("Error opening repository: %s\n", giterr_last()->message);
 		siril_log_color_message(_("Error: unable to open local scripts repository.\n"), "red");
 		gui.script_repo_available = FALSE;
 		return 1;
@@ -754,10 +994,13 @@ int preview_scripts_update(GString** git_pending_commit_buffer) {
 	// Fetch changes
 	lg2_fetch(repo);
 	// Analyse the repository against the remote
-	return analyse(repo, git_pending_commit_buffer);
+	int retval = analyse(repo, git_pending_commit_buffer);
+	git_repository_free(repo);
+	git_libgit2_shutdown();
+	return retval;
 }
 
-int preview_spcc_update(GString** git_pending_commit_buffer) {
+int preview_spcc_update(GString **git_pending_commit_buffer) {
 	// Initialize libgit2
 	git_libgit2_init();
 
@@ -765,9 +1008,9 @@ int preview_spcc_update(GString** git_pending_commit_buffer) {
 	const gchar *local_path = siril_get_spcc_repo_path();
 
 	git_repository *repo = NULL;
-	int error = git_repository_open(&repo, local_path);
+	int error = siril_repository_open(&repo, local_path);
 	if (error < 0) {
-		siril_debug_print("Error opening repository: %s\n",giterr_last()->message);
+		siril_debug_print("Error opening repository: %s\n", giterr_last()->message);
 		siril_log_color_message(_("Error: unable to open local spcc-database repository.\n"), "red");
 		gui.spcc_repo_available = FALSE;
 		return 1;
@@ -776,329 +1019,10 @@ int preview_spcc_update(GString** git_pending_commit_buffer) {
 	// Fetch changes
 	lg2_fetch(repo);
 	// Analyse the repository against the remote
-	return analyse(repo, git_pending_commit_buffer);
+	int retval = analyse(repo, git_pending_commit_buffer);
+	git_repository_free(repo);
+	git_libgit2_shutdown();
+	return retval;
 }
 
-/************* GUI code for the Preferences->Scripts TreeView ****************/
-
-static const char *bg_color[] = { "WhiteSmoke", "#1B1B1B" };
-
-enum {
-	COLUMN_CATEGORY = 0,		// string
-	COLUMN_SCRIPTNAME,		// string
-	COLUMN_SELECTED,	// gboolean
-	COLUMN_SCRIPTPATH,	// full path to populate into the scripts menu
-	COLUMN_BGCOLOR,		// background color
-	N_COLUMNS
-};
-
-static void get_list_store() {
-	if (list_store == NULL) {
-		list_store = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststore_script_repo"));
-	}
-}
-
-static gboolean fill_script_repo_list_idle(gpointer p) {
-	GtkTreeView* tview = (GtkTreeView*) p;
-	GtkTreeIter iter;
-	if (!tview)
-		return FALSE;
-	if (list_store) gtk_list_store_clear(list_store);
-	get_list_store();
-	gint sort_column_id;
-	GtkSortType order;
-	// store sorted state of list_store, disable sorting, disconnect from the view, fill, reconnect and re-apply sort
-	gtk_tree_sortable_get_sort_column_id(GTK_TREE_SORTABLE(list_store), &sort_column_id, &order);
-	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, GTK_SORT_ASCENDING);
-	gtk_tree_view_set_model(tview, NULL);
-	if (gui.repo_scripts) {
-		int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
-		GList *iterator;
-		for (iterator = gui.repo_scripts ; iterator ; iterator = iterator->next) {
-			// here we populate the GtkTreeView from GList gui.repo_scripts
-			gchar* category = g_strrstr((gchar*)iterator->data, "preprocessing") ? "Preprocessing" : "Processing";
-			gchar* scriptname = g_path_get_basename((gchar*)iterator->data);
-			gchar* scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
-#ifdef DEBUG_GITSCRIPTS
-			printf("%s\n", scriptpath);
-#endif
-			// Check whether the script appears in the list
-			GList* iterator2;
-			gboolean included = FALSE;
-			for (iterator2 = com.pref.selected_scripts ; iterator2 ; iterator2 = iterator2->next) {
-				if (g_strrstr((gchar*) iterator2->data, (gchar*)iterator->data)) {
-					included = TRUE;
-				}
-			}
-			gtk_list_store_append (list_store, &iter);
-			gtk_list_store_set (list_store, &iter,
-					COLUMN_CATEGORY, category,
-					COLUMN_SCRIPTNAME, scriptname,
-					COLUMN_SELECTED, included,
-					COLUMN_SCRIPTPATH, scriptpath,
-					COLUMN_BGCOLOR, bg_color[color],
-					-1);
-			/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */
-			g_free(scriptpath);
-		}
-	}
-	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
-	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
-	return FALSE;
-}
-
-/* called on preference window loading.
- * It is executed safely in the GTK thread if as_idle is true. */
-void fill_script_repo_list(gboolean as_idle) {
-
-	GtkTreeView* tview = GTK_TREE_VIEW(lookup_widget("treeview2"));
-	if (as_idle)
-		gdk_threads_add_idle(fill_script_repo_list_idle, tview);
-	else fill_script_repo_list_idle(tview);
-}
-
-void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
-                    GtkTreeViewColumn *column, gpointer user_data) {
-	gchar *scriptname = NULL, *scriptpath = NULL;
-	gchar* contents = NULL;
-	gsize length;
-	GError* error = NULL;
-	GtkTreeIter iter;
-	GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW(lookup_widget("treeview2")));
-
-	if (gtk_tree_model_get_iter(model, &iter, path)) {
-		gtk_tree_model_get (model, &iter, 1, &scriptname, 3, &scriptpath, -1);
-		if (g_file_get_contents(scriptpath, &contents, &length, &error) && length > 0) {
-			GtkTextBuffer *script_textbuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget("script_contents")));;
-			GtkLabel* script_label = (GtkLabel*) lookup_widget("script_label");
-			gtk_label_set_text(script_label, scriptname);
-			gtk_text_buffer_set_text(script_textbuffer, contents, (gint) length);
-			g_free(contents);
-			g_error_free(error);
-			siril_open_dialog("script_contents_dialog");
-		} else {
-			gchar* msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
-			siril_log_color_message(msg, "red");
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
-			g_free(msg);
-			g_error_free(error);
-		}
-	}
-}
-
-void on_script_text_close_clicked(GtkButton* button, gpointer user_data) {
-	siril_close_dialog("script_contents_dialog");
-}
-
-void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data) {
-	GString *git_pending_commit_buffer = NULL;
-	can_fastforward = FALSE;
-	set_cursor_waiting(TRUE);
-
-	switch (preview_scripts_update(&git_pending_commit_buffer)) {
-		case 1:
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
-			return;
-		case 2:
-			// Merge cannot be fast forwarded
-			if (!siril_confirm_dialog(_("Warning!"), _("Merge analysis shows that "
-					"the merge cannot be fast-forwarded. This indicates you have "
-					"made changes to the local repository. Siril does not "
-					"provide full git functionality and cannot be used to merge "
-					"upstream updates into an altered local repository.\n\nIf you "
-					"accept the update, the local repository will be hard reset "
-					"to match the remote repository and any local changes will "
-					"be lost.\n\nIf you have made local changes that you wish to "
-					"keep, you should cancel this update and copy your modified "
-					"scripts to another location, and add this location to the "
-					"list of script directories to be searched."),
-					_("Accept"))) {
-				g_string_free(git_pending_commit_buffer, TRUE);
-				return;
-			} else {
-				reset_scripts_repository();
-				g_string_free(git_pending_commit_buffer, TRUE);
-				return;
-			}
-		default:
-			break;
-	}
-	if (git_pending_commit_buffer != NULL) {
-		if (siril_confirm_data_dialog(GTK_MESSAGE_QUESTION, _("Manual Update"), _("Read and confirm the pending changes to be synced"), _("Confirm"), git_pending_commit_buffer->str)) {
-			if (reset_scripts_repository()) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! Script database failed to update."));
-			}
-			fill_script_repo_list(FALSE);
-		} else {
-			siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("Update cancelled. Updates have not been applied."));
-		}
-		g_string_free(git_pending_commit_buffer, TRUE);
-	} else {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The script repository is up to date."));
-	}
-	fill_script_repo_list(TRUE);
-	set_cursor_waiting(FALSE);
-}
-
-void on_manual_spcc_sync_button_clicked(GtkButton* button, gpointer user_data) {
-	GString *git_pending_commit_buffer = NULL;
-	can_fastforward = FALSE;
-	set_cursor_waiting(TRUE);
-
-	switch (preview_spcc_update(&git_pending_commit_buffer)) {
-		case 1:
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
-			return;
-		case 2:
-			// Merge cannot be fast forwarded
-			if (!siril_confirm_dialog(_("Warning!"), _("Merge analysis shows that "
-					"the merge cannot be fast-forwarded. This indicates you have "
-					"made changes to the local scripts repository. Siril does not "
-					"provide full git functionality and cannot be used to merge "
-					"upstream updates into an altered local repository.\n\nIf you "
-					"accept the update, the local repository will be hard reset "
-					"to match the remote repository and any local changes will "
-					"be lost.\n\nIf you have made local changes that you wish to "
-					"keep, you should cancel this update and copy your modified "
-					"scripts to another location, and add this location to the "
-					"list of script directories to be searched."),
-					_("Accept"))) {
-				g_string_free(git_pending_commit_buffer, TRUE);
-				return;
-			} else {
-				reset_spcc_repository();
-				g_string_free(git_pending_commit_buffer, TRUE);
-				return;
-			}
-		default:
-			break;
-	}
-	if (git_pending_commit_buffer != NULL) {
-		if (siril_confirm_data_dialog(GTK_MESSAGE_QUESTION, _("Manual Update"), _("Read and confirm the pending changes to be synced"), _("Confirm"), git_pending_commit_buffer->str)) {
-			if (reset_spcc_repository()) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! SPCC database failed to update."));
-			}
-		} else {
-			siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("Update cancelled. Updates have not been applied."));
-		}
-		g_string_free(git_pending_commit_buffer, TRUE);
-	} else {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The SPCC database repository is up to date."));
-	}
-	if (!com.headless) {
-		reset_spcc_filters();
-		// Check if the SPCC window is open, if so refresh the combo boxes
-		GtkWidget *spcc_dialog = lookup_widget("s_pcc_dialog");
-		if (gtk_widget_get_visible(spcc_dialog)) {
-			siril_debug_print("Reloading SPCC comboboxes\n");
-			/* populate SPCC combos in a thread */
-			g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
-		}
-	}
-	set_cursor_waiting(FALSE);
-}
-
-void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
-		gchar *char_path, gpointer user_data) {
-   gboolean val;
-   GtkTreeIter iter;
-   GtkTreePath *path;
-   GtkTreeModel *model;
-   gchar* script_path = NULL;
-   path = gtk_tree_path_new_from_string(char_path);
-   model = gtk_tree_view_get_model (GTK_TREE_VIEW(lookup_widget("treeview2")));
-   if (gtk_tree_model_get_iter (model, &iter, path) == FALSE) return;
-   gtk_tree_model_get(model, &iter, 3, &script_path, -1);
-   gtk_tree_model_get(model, &iter, 2, &val, -1);
-   gtk_list_store_set(GTK_LIST_STORE(model), &iter, 2, !val, -1);
-
-	if (!val) {
-		if (!(g_list_find(com.pref.selected_scripts, script_path))) {
-#ifdef DEBUG_GITSCRIPTS
-			printf("%s\n", script_path);
-#endif
-			com.pref.selected_scripts = g_list_prepend(com.pref.selected_scripts, script_path);
-		}
-	} else {
-			GList* iterator = com.pref.selected_scripts;
-			while (iterator) {
-				if (g_strrstr((gchar*) iterator->data, script_path)) {
-					iterator = g_list_remove_all(iterator, iterator->data);
-					break;
-				}
-				iterator = iterator->next;
-			}
-			com.pref.selected_scripts = g_list_first(iterator);
-	}
-	notify_script_update();
-}
-
-void on_disable_gitscripts() {
-	GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW(lookup_widget("treeview2")));
-	GtkListStore *liststore = GTK_LIST_STORE(model);
-	com.pref.use_scripts_repository = FALSE;
-	gtk_list_store_clear(liststore);
-	liststore = NULL;
-	g_list_free_full(gui.repo_scripts, g_free);
-	gui.repo_scripts = NULL;
-	if (com.pref.selected_scripts)
-		g_list_free_full(com.pref.selected_scripts, g_free);
-	com.pref.selected_scripts = NULL;
-	refresh_script_menu(TRUE);
-}
-
-void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(button)) {
-		com.pref.use_scripts_repository = TRUE;
-		auto_update_gitscripts(FALSE);
-		fill_script_repo_list(FALSE);
-	}
-	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.use_scripts_repository);
-	gtk_widget_set_sensitive(lookup_widget("manual_script_sync_button"), (com.pref.use_scripts_repository && gui.script_repo_available));
-	gtk_widget_set_sensitive(lookup_widget("treeview2"), (com.pref.use_scripts_repository && gui.script_repo_available));
-}
-
-void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(button)) {
-		com.pref.spcc.use_spcc_repository = TRUE;
-		auto_update_gitspcc(FALSE);
-	}
-	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.spcc.use_spcc_repository);
-	gtk_widget_set_sensitive(lookup_widget("spcc_repo_manual_sync"), (com.pref.spcc.use_spcc_repository && gui.spcc_repo_available));
-}
-#else
-
-void hide_git_widgets() {
-	gtk_widget_set_visible(lookup_widget("frame_gitscripts"), FALSE);
-}
-
-// We still need to provide placeholder callbacks to prevent GTK critical warnings,
-// even though the widgets are hidden with libgit2 disabled
-
-void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data) {
-	return;
-}
-
-void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
-	return;
-}
-
-void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
-                    GtkTreeViewColumn *column, gpointer user_data) {
-	return;
-}
-
-void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
-		gchar *char_path, gpointer user_data) {
-	return;
-}
-
-void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data) {
-	return;
-}
-
-void on_script_text_close_clicked(GtkButton* button, gpointer user_data) {
-	return;
-}
-
-#endif
+#endif // HAVE_LIBGIT2

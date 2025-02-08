@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -242,14 +242,11 @@ static void manual_photometry_data (sequence *seq) {
 
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	siril_catalogue *comp_sta = calloc(1, sizeof(siril_catalogue));
-	comp_sta->cat_index = CAT_COMPSTARS;
+	siril_catalogue *comp_sta = siril_catalog_new(CAT_COMPSTARS);
 
 	// Header for the console display
 	siril_log_message(_("-> %i comparison stars selected\n"), nb_ref_stars - 1);
 	siril_log_message("Star type        RA      DEC\n");
-	// Preparing the output catalog
-	comp_sta->columns = siril_catalog_columns(CAT_COMPSTARS);
 	// Allocating final sorted list to the required size
 	cat_item *result = calloc(nb_ref_stars, sizeof(cat_item));
 	// Write the target star

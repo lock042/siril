@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@
 
 void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable);
+void siril_window_enable_wcs_disto_proc_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_any_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable);

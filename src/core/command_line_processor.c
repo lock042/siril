@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -266,16 +266,16 @@ static void clear_status_bar() {
 static gboolean end_script(gpointer p) {
 	/* GTK+ code is ignored during scripts, this is a good place to redraw everything */
 	clear_status_bar();
-	set_GUI_CWD();
-	update_MenuItem();
-	adjust_cutoff_from_updated_gfit();
+	gui_function(set_GUI_CWD, NULL);
+	gui_function(update_MenuItem, NULL);
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	update_zoom_label();
 	update_display_fwhm();
 	display_filename();
-	new_selection_zone();
-	update_spinCPU(0);
+	gui_function(new_selection_zone, NULL);
+	update_spinCPU(GINT_TO_POINTER(0));
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
@@ -389,7 +389,7 @@ gpointer execute_script(gpointer p) {
 
 	if (!com.headless) {
 		com.script = FALSE;
-		siril_add_idle(end_script, NULL);
+		gui_function(end_script, NULL);
 	}
 
 	/* Now we want to restore the saved cwd */
@@ -415,7 +415,8 @@ gpointer execute_script(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
-static void show_command_help_popup(GtkEntry *entry) {
+static gboolean show_command_help_popup(gpointer user_data) {
+	GtkEntry *entry = (GtkEntry*) user_data;
 	gchar *helper = NULL;
 
 	const gchar *text = gtk_entry_get_text(entry);
@@ -478,6 +479,7 @@ static void show_command_help_popup(GtkEntry *entry) {
 	gtk_widget_show(popover);
 #endif
 	g_free(helper);
+	return FALSE;
 }
 
 /* handler for the single-line console */
@@ -554,7 +556,7 @@ static gboolean on_command_key_press_event(GtkWidget *widget, GdkEventKey *event
 	return (handled == 1);
 }
 
-int processcommand(const char *line) {
+int processcommand(const char *line, gboolean wait_for_completion) {
 	int wordnb = 0;
 	GError *error = NULL;
 
@@ -599,18 +601,35 @@ int processcommand(const char *line) {
 		int len = strlen(line);
 		if (len > 0)
 			g_print("input command:%s\n", myline);
+
 		parse_line(myline, len, &wordnb);
 		int ret = execute_command(wordnb);
+
 		if (ret) {
 			siril_log_color_message(_("Command execution failed: %s.\n"), "red", cmd_err_to_str(ret));
-			if (!com.script && !com.headless && (ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
-				show_command_help_popup(GTK_ENTRY(lookup_widget("command")));
+			if (!(com.script || com.python_script) && !com.headless &&
+				(ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
+				gui_function(show_command_help_popup, GTK_ENTRY(lookup_widget("command")));
 			}
 			free(myline);
 			return 1;
 		}
+
+		if (wait_for_completion && ret != CMD_NO_WAIT) {
+			while (get_thread_run()) {
+				if (waiting_for_thread()) {
+					ret = 1;  // Command failed during execution
+					break;
+				}
+				g_usleep(100000);  // Sleep for 100ms to avoid busy waiting
+			}
+		}
+
 		free(myline);
+		if (ret)
+			return 1;
 	}
+
 	return 0;
 }
 
@@ -796,9 +815,9 @@ static void history_add_line(char *line) {
 void on_command_activate(GtkEntry *entry, gpointer user_data) {
 	const gchar *text = gtk_entry_get_text(entry);
 	history_add_line(strdup(text));
-	if (!(processcommand(text))) {
+	if (!(processcommand(text, FALSE))) {
 		gtk_entry_set_text(entry, "");
-		set_precision_switch();
+		gui_function(set_precision_switch, NULL);
 	}
 }
 

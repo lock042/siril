@@ -13,9 +13,10 @@ void register_selection_update_callback(selection_update_callback f);
 void unregister_selection_update_callback(const selection_update_callback f);
 
 void set_mouse_event_mask();
-void new_selection_zone();
+gboolean new_selection_zone(gpointer user_data);
 void delete_selected_area();
 void reset_display_offset();
+void reset_menu_toggle_button();
 void reset_zoom_default();
 void update_zoom_label();
 void enforce_ratio_and_clamp();

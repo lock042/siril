@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@
 #include "gui/keywords_tree.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
+#include "io/path_parse.h"
 
 #include "fits_keywords.h"
 
@@ -670,9 +671,9 @@ int save_wcs_keywords(fits *fit) {
 	}
 	if (fit->keywords.wcsdata.ra > 0) {
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "RA", &(fit->keywords.wcsdata.ra), "[deg] Image center Right Ascension", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "RA", &(fit->keywords.wcsdata.ra), "[deg] Image center Right Ascension", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "DEC", &(fit->keywords.wcsdata.dec), "[deg] Image center Declination", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "DEC", &(fit->keywords.wcsdata.dec), "[deg] Image center Declination", &status);
 	}
 	status = 0;
 
@@ -899,6 +900,14 @@ void set_all_keywords_default(fits *fit) {
 
 	set_to_default_not_used(fit, keys_hash);
 
+	/* Special cases */
+	if (fit->keywords.stackcnt == DEFAULT_UINT_VALUE) {
+		// DEFAULT_UINT_VALUE doesn't make any sense for a default stack count.
+		// Change it to 1.
+		fit->keywords.stackcnt = 1;
+	}
+	// Add any other special cases here...
+
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);
 	free(keys);
@@ -967,10 +976,27 @@ int read_fits_keywords(fits *fit) {
 		// If the keyword is not found in the hash table, it is either an unknown or HISTORY keyword.
 		// we don't want to load checksum keywords neither
 		if (current_key == NULL) {
-			if (strncmp(card, "HISTORY", 7) == 0) continue;
-			if (strncmp(card, "CHECKSUM", 8) == 0) continue;
-			if (strncmp(card, "DATASUM", 7) == 0) continue;
-			// Handle unknown keys
+			GRegex *regex = g_regex_new("TR[0-9]+_[0-9]+|CROTA[0-9]", 0, 0, NULL);
+
+			if (strncmp(card, "HISTORY", 7) == 0
+					|| strncmp(card, "CHECKSUM", 8) == 0
+					|| strncmp(card, "DATASUM", 7) == 0) {
+				continue;
+			}
+
+			GMatchInfo *match_info = NULL;
+			if (g_regex_match(regex, card, 0, &match_info)) {
+				g_match_info_free(match_info);
+				g_regex_unref(regex);
+				continue;
+			}
+
+			if (match_info) {
+				g_match_info_free(match_info);
+			}
+
+			g_regex_unref(regex);
+
 			unknown_keys = g_string_append(unknown_keys, card);
 			unknown_keys = g_string_append(unknown_keys, "\n");
 			continue;
@@ -1089,13 +1115,6 @@ int read_fits_keywords(fits *fit) {
 		}
 	}
 
-	if (fit->unknown_keys != NULL) {
-		g_free(fit->unknown_keys);
-	}
-	fit->unknown_keys = g_string_free(unknown_keys, FALSE);
-
-	set_to_default_not_used(fit, keys_hash);
-
 	gboolean not_from_siril = (strstr(fit->keywords.program, "Siril") == NULL);
 	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
 		float mini, maxi;
@@ -1105,11 +1124,19 @@ int read_fits_keywords(fits *fit) {
 		fit->keywords.data_min = (double) mini;
 	}
 
+	if (fit->unknown_keys != NULL) {
+		g_free(fit->unknown_keys);
+	}
+	fit->unknown_keys = g_string_free(unknown_keys, FALSE);
+
+	set_to_default_not_used(fit, keys_hash);
+
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);
 	free(keys);
 	return 0;
 }
+
 
 static void remove_keyword(const gchar *keyword, fits *fit, GHashTable *keys_hash) {
 	GHashTableIter iter;
@@ -1239,7 +1266,7 @@ gboolean end_keywords_sequence(gpointer p) {
 			}
 		}
 		update_sequences_list(args->seq->seqname);
-		refresh_keywords_dialog();
+		gui_function(refresh_keywords_dialog, NULL);
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
@@ -1270,3 +1297,23 @@ void start_sequence_keywords(sequence *seq, struct keywords_data *args) {
 }
 
 
+int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry) {
+	*rx = 0;
+	*ry = 0;
+	if (!fit)
+		return 1;
+	if (strlen(fit->unknown_keys) > 0) {
+		gchar **headerkeys = g_strsplit(fit->unknown_keys, "\n", 0);
+		double drx = 0., dry = 0.;
+		int status_w = read_key_from_header_text(headerkeys, "IMAGEW", &drx, NULL);
+		int status_h = read_key_from_header_text(headerkeys, "IMAGEH", &dry, NULL);
+		g_strfreev(headerkeys);
+		if (status_w || status_h)
+			return 1;
+		*rx = (int)drx;
+		*ry = (int)dry;
+		siril_debug_print("IMAGEW: %d, IMAGEH: %d\n", *rx, *ry);
+		return 0;
+	}
+	return 1;
+}

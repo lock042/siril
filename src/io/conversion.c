@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -291,6 +291,7 @@ static int check_for_raw_extensions(const char *extension) {
 /* returns the image_type for the extension without the dot, only if it is supported by
  * the current instance of Siril. */
 image_type get_type_for_extension(const char *extension) {
+	if (!extension) return TYPEUNDEF;
 	if ((supported_filetypes & TYPEBMP) && !g_ascii_strcasecmp(extension, "bmp")) {
 		return TYPEBMP;
 	} else if ((supported_filetypes & TYPEJPG) &&

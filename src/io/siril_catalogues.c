@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -33,6 +33,7 @@
 #include "algos/PSF.h"
 #include "algos/search_objects.h"
 #include "algos/siril_wcs.h"
+#include "algos/photometric_cc.h"
 #include "io/annotation_catalogues.h"
 #include "algos/astrometry_solver.h"
 #include "algos/comparison_stars.h"
@@ -42,6 +43,8 @@
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
 #include "gui/utils.h"
+#include "gui/siril_plot.h"
+
 
 static void free_conesearch_params(conesearch_params *params);
 static void free_conesearch_args(conesearch_args *args);
@@ -50,6 +53,8 @@ static void free_conesearch_args(conesearch_args *args);
 const gchar *cat_columns[] = {
 	[CAT_FIELD_RA] = "ra",
 	[CAT_FIELD_DEC] = "dec",
+	[CAT_FIELD_RA1] = "ra1",
+	[CAT_FIELD_DEC1] = "dec1",
 	[CAT_FIELD_PMRA] = "pmra",
 	[CAT_FIELD_PMDEC] = "pmdec",
 	[CAT_FIELD_MAG] = "mag",
@@ -90,6 +95,10 @@ static gchar *get_field_to_str(cat_item *item, cat_fields field) {
 			return (item->ra) ? g_strdup_printf("%.6f", item->ra) : "";
 		case CAT_FIELD_DEC:
 			return (item->dec) ? g_strdup_printf("%.6f", item->dec) : "";
+		case CAT_FIELD_RA1:
+			return (item->ra1) ? g_strdup_printf("%.6f", item->ra1) : "";
+		case CAT_FIELD_DEC1:
+			return (item->dec1) ? g_strdup_printf("%.6f", item->dec1) : "";
 		case CAT_FIELD_PMRA:
 			return (item->pmra) ? g_strdup_printf("%g", item->pmra) : "";
 		case CAT_FIELD_PMDEC:
@@ -173,6 +182,10 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS);
 		case CAT_AN_STARS:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_ALIAS);
+		case CAT_AN_CONST:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_RA1) | (1 << CAT_FIELD_DEC1);
+		case CAT_AN_CONST_NAME:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS);
 		case CAT_AN_USER_DSO:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_ALIAS);
 		case CAT_AN_USER_SSO:
@@ -184,9 +197,30 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_AN_USER_TEMP:
 		case CAT_SHOW:
+		case CAT_LOCAL_GAIA_ASTRO:
+			return (1 << CAT_FIELD_GAIASOURCEID) | (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_TEFF);
 		default:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC);
 	}
+}
+
+// This function returns the epoch of the catalog
+static double siril_catalog_epoch(siril_cat_index cat) {
+	if ((cat == CAT_GAIADR3_DIRECT) || (cat == CAT_LOCAL_GAIA_ASTRO) || (cat == CAT_LOCAL_GAIA_XPSAMP))
+		return J2016;
+	return J2000;
+}
+
+static double siril_catalog_ra_multiplier(siril_cat_index cat) {
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+		return 360.0 / (double) INT32_MAX;
+	return 0.000001;
+}
+
+static double siril_catalog_dec_multiplier(siril_cat_index cat) {
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+		return 360.0 / (double) INT32_MAX;
+	return 0.00001;
 }
 
 // This function compares two cat_item objects and return their order by mag
@@ -255,7 +289,11 @@ const char *catalog_to_str(siril_cat_index cat) {
 		case CAT_AAVSO_CHART:
 			return _("AAVSO VSP Chart");
 		case CAT_LOCAL:
-			return _("local Tycho-2+NOMAD");
+			return _("Tycho-2+NOMAD");
+		case CAT_LOCAL_GAIA_ASTRO:
+			return _("Gaia DR3 astrometry");
+		case CAT_LOCAL_GAIA_XPSAMP:
+			return _("Gaia DR3 xp_sampled");
 		case CAT_AN_MESSIER:
 			return "Messier";
 		case CAT_AN_NGC:
@@ -268,6 +306,10 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return "Sh2";
 		case CAT_AN_STARS:
 			return "stars";
+		case CAT_AN_CONST:
+			return "IAU constellations";
+		case CAT_AN_CONST_NAME:
+			return "IAU constellations names";
 		case CAT_AN_USER_DSO:
 			return "user-DSO";
 		case CAT_AN_USER_SSO:
@@ -294,6 +336,8 @@ gboolean is_star_catalogue(siril_cat_index Catalog) {
 		case CAT_LOCAL:
 		case CAT_LOCAL_TRIX:
 		case CAT_AN_USER_SSO:
+		case CAT_LOCAL_GAIA_ASTRO:
+		case CAT_LOCAL_GAIA_XPSAMP:
 			return TRUE;
 	default:
 		return FALSE;
@@ -353,6 +397,12 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 			break;
 		case CAT_FIELD_DEC:
 			item->dec = g_ascii_strtod(input, NULL);
+			break;
+		case CAT_FIELD_RA1:
+			item->ra1 = g_ascii_strtod(input, NULL);
+			break;
+		case CAT_FIELD_DEC1:
+			item->dec1 = g_ascii_strtod(input, NULL);
 			break;
 		case CAT_FIELD_PMRA:
 			item->pmra = g_ascii_strtod(input, NULL);
@@ -454,6 +504,17 @@ void siril_catalogue_copy_item(cat_item *from, cat_item *to) {
 		to->type = g_strdup(from->type);
 }
 
+// allocates a new siril_catalogue and initializes it
+siril_catalogue *siril_catalog_new(siril_cat_index Catalog) {
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->cat_index = Catalog;
+	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+	siril_cat->epoch = siril_catalog_epoch(siril_cat->cat_index);
+	siril_cat->ra_multiplier = siril_catalog_ra_multiplier(siril_cat->cat_index);
+	siril_cat->dec_multiplier = siril_catalog_dec_multiplier(siril_cat->cat_index);
+	return siril_cat;
+}
+
 // frees a siril_catalogue
 void siril_catalog_free(siril_catalogue *siril_cat) {
 	if (!siril_cat)
@@ -486,6 +547,7 @@ void siril_catalog_free_item(cat_item *item) {
 	g_free(item->name);
 	g_free(item->alias);
 	g_free(item->type);
+	free(item->xp_sampled);
 }
 
 void siril_catalog_reset_projection(siril_catalogue *siril_cat) {
@@ -509,15 +571,13 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 		siril_debug_print("This only works on plate solved images\n");
 		return NULL;
 	}
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_catalogue *siril_cat = siril_catalog_new(cat);
 	double ra, dec;
 	center2wcs(fit, &ra, &dec);
 	double resolution = get_wcs_image_resolution(fit) * 3600.;
 	if (limit_mag == -1)
 		limit_mag = siril_catalog_get_default_limit_mag(cat);
 	// Preparing the catalogue query
-	siril_cat->cat_index = cat;
-	siril_cat->columns = siril_catalog_columns(cat);
 	siril_cat->center_ra = ra;
 	siril_cat->center_dec = dec;
 	siril_cat->radius = get_radius_deg(resolution, fit->rx, fit->ry) * 60.;
@@ -540,9 +600,7 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
  *   and stores that in an array of psf_star objects. The obtained stars can be
  *   used for registration, but do not correspond to image coordinates.
  *
- * - The PCC reads them and projects stars on a plate-solved image using WCS
- *   and stores them in condensed form (pcc_star struct containing only
- *   x,y,b,v), done in the function project_catalog_with_WCS
+ * - The PCC reads them and projects stars on a plate-solved image using WCS.
  *
  * - Comparison star list creation needs equatorial coordinates and B-V
  *   magnitudes, projection is also used but only to check if a star is inside
@@ -567,7 +625,7 @@ int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
 		return nbstars;
 #endif
-	} else if (siril_cat->cat_index == CAT_LOCAL || siril_cat->cat_index == CAT_LOCAL_TRIX) {
+	} else if (siril_cat->cat_index == CAT_LOCAL || siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO || siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP || siril_cat->cat_index == CAT_LOCAL_TRIX) {
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
 	} else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
 		nbstars = siril_cat->nbitems;
@@ -876,12 +934,12 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	gboolean use_tcat = FALSE;
 	use_proper_motion = use_proper_motion && can_use_proper_motion(fit, siril_cat);
 	use_velocity = use_velocity && can_use_velocity(fit, siril_cat);
+	gboolean has_second_star = siril_cat->cat_index == CAT_AN_CONST;
 	if (use_proper_motion) {
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
 		gdouble jd = date_time_to_Julian(dt);
 		g_date_time_unref(dt);
-		double J2000 = 2451545.0;
-		jyears = (jd - J2000) / 365.25;
+		jyears = (jd - siril_cat->epoch) / 365.25;
 	}
 	if (use_velocity) {
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
@@ -900,9 +958,12 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 			}
 		}
 	}
-	world = malloc(2 * siril_cat->nbitems * sizeof(double));
-	x = malloc(siril_cat->nbitems * sizeof(double));
-	y = malloc(siril_cat->nbitems * sizeof(double));
+	int nbinit = siril_cat->nbitems;
+	if (has_second_star)
+		nbinit *= 2;
+	world = malloc(2 * nbinit * sizeof(double));
+	x = malloc(nbinit * sizeof(double));
+	y = malloc(nbinit * sizeof(double));
 	if (!world || !x || !y) {
 		PRINT_ALLOC_ERR;
 		goto clean_and_exit;
@@ -924,18 +985,39 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 		}
 		world[ind++] = ra;
 		world[ind++] = dec;
+		if (has_second_star) {
+			world[ind++] = siril_cat->cat_items[i].ra1;
+			world[ind++] = siril_cat->cat_items[i].dec1;
+		}
 	}
-	status = wcs2pix_array(fit, siril_cat->nbitems, world, x, y);
+	status = wcs2pix_array(fit, nbinit, world, x, y);
 	if (!status)
 		goto clean_and_exit;
-	for (int i = 0; i < siril_cat->nbitems; i++) {
-		if (!status[i]) {
-			siril_cat->cat_items[i].x = x[i];
-			siril_cat->cat_items[i].y = y[i];
-			siril_cat->cat_items[i].included = TRUE;
-			nbincluded++;
-		} else {
-			siril_cat->cat_items[i].included = FALSE;
+	if (!has_second_star) {
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			if (!status[i]) {
+				siril_cat->cat_items[i].x = x[i];
+				siril_cat->cat_items[i].y = y[i];
+				siril_cat->cat_items[i].included = TRUE;
+				nbincluded++;
+			} else {
+				siril_cat->cat_items[i].included = FALSE;
+			}
+		}
+	} else {
+		int j = 0;
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			if (!status[j] || !status[j + 1]) {
+				siril_cat->cat_items[i].x = x[j];
+				siril_cat->cat_items[i].y = y[j];
+				siril_cat->cat_items[i].x1 = x[j + 1];
+				siril_cat->cat_items[i].y1 = y[j + 1];
+				siril_cat->cat_items[i].included = TRUE;
+				nbincluded++;
+			} else {
+				siril_cat->cat_items[i].included = FALSE;
+			}
+			j += 2;
 		}
 	}
 clean_and_exit:
@@ -967,8 +1049,7 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 			GDateTime *dt = g_date_time_ref(date_obs);
 			gdouble jd = date_time_to_Julian(dt);
 			g_date_time_unref(dt);
-			double J2000 = 2451545.0;
-			jyears = (jd - J2000) / 365.25;
+			jyears = (jd - siril_cat->epoch) / 365.25;
 		}
 	}
 	dec0 *= DEGTORAD;
@@ -1073,6 +1154,7 @@ int execute_conesearch(conesearch_params *params) {
 	args->display_log = (params->display_log == BOOL_NOT_SET) ? display_names_for_catalogue(params->cat) : (gboolean) params->display_log;
 	args->display_tag = (params->display_tag == BOOL_NOT_SET) ? display_names_for_catalogue(params->cat) : (gboolean) params->display_tag;
 	args->outfilename = g_strdup(params->outfilename);
+	args->compare = params->compare;
 	free_conesearch_params(params);
 	if (check_conesearch_args(args)) { // can't fail for now
 		free_conesearch_args(args);
@@ -1094,9 +1176,7 @@ int execute_show_command(show_params *params) {
 		redraw(REDRAW_OVERLAY);
 	}
 
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = CAT_SHOW;
-	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+	siril_catalogue *siril_cat = siril_catalog_new(CAT_SHOW);	
 	conesearch_args *args = init_conesearch_args();
 	args->siril_cat = siril_cat;
 	args->has_GUI = TRUE;
@@ -1150,6 +1230,8 @@ gpointer conesearch_worker(gpointer p) {
 	conesearch_args *args = (conesearch_args *)p;
 	siril_catalogue *siril_cat = args->siril_cat;
 	siril_catalogue *temp_cat = NULL;
+	double *dx = NULL, *dy = NULL, *dxf = NULL, *dyf = NULL;
+	siril_plot_data *spl_data = NULL;
 	int retval = 1;
 	double stardiam = 0.;
 	gboolean hide_display_tag = FALSE;
@@ -1157,13 +1239,17 @@ gpointer conesearch_worker(gpointer p) {
 		siril_debug_print("no query passed");
 		goto exit_conesearch;
 	}
+	if (args->compare && !args->has_GUI) {
+		args->compare = FALSE;
+		siril_debug_print("Compare available only with GUI\n");
+	}
 
 	// launching the query
 	int check = siril_catalog_conesearch(siril_cat);
 	if (!check) {// conesearch has failed
 		goto exit_conesearch;
 	}
-	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_TRIX)
+	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO && siril_cat->cat_index != CAT_LOCAL_TRIX)
 		siril_log_message(_("The %s catalog has been successfully downloaded\n"), catalog_to_str(siril_cat->cat_index));
 	if (check == -1) { // conesearch was succesful but field was empty
 		retval = -1;
@@ -1180,18 +1266,20 @@ gpointer conesearch_worker(gpointer p) {
 	int nb_stars = siril_cat->nbitems;
 	if (siril_cat->cat_index != CAT_SHOW)
 		sort_cat_items_by_mag(siril_cat);
-	int j = 0;
+	int j = 0, k = 0;
 	// preparing the annotation temp catalog if has_GUI
 	if (args->has_GUI || args->outfilename) {
-		temp_cat = calloc(1, sizeof(siril_catalogue));
-		temp_cat->cat_index = CAT_AN_USER_TEMP;
-		temp_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+		temp_cat = siril_catalog_new(CAT_AN_USER_TEMP);
 		temp_cat->projected = CAT_PROJ_WCS;
 		if (is_star_catalogue(siril_cat->cat_index))
 			stardiam = 0.2; // in arcmin => 12"
 		if (!args->display_tag && has_field(siril_cat, NAME))
 			hide_display_tag = TRUE;
 		temp_cat->cat_items = calloc(siril_cat->nbincluded, sizeof(cat_item));
+	}
+	if (args->compare) {
+		dx = calloc(nb_stars, sizeof(double));
+		dy = calloc(nb_stars, sizeof(double));
 	}
 	for (int i = 0; i < nb_stars; i++) {
 		if (!siril_cat->cat_items[i].included || (siril_cat->limitmag && siril_cat->cat_items[i].mag > siril_cat->limitmag))
@@ -1240,15 +1328,43 @@ gpointer conesearch_worker(gpointer p) {
 			g_free(ra);
 			g_free(dec);
 		}
+		if (args->compare) {
+			double scale = 1800. * (fabs(args->fit->keywords.wcslib->cdelt[0]) + fabs(args->fit->keywords.wcslib->cdelt[1]));
+			// we copy the projected pos
+			double x = siril_cat->cat_items[i].x;
+			double y = siril_cat->cat_items[i].y;
+			rectangle area = { 0 };
+			cat_item tmp = { .x = x, .y = y };
+			if (make_selection_around_a_star(&tmp, &area, args->fit)) {
+				siril_debug_print("star %d is outside image or too close to border\n", i);
+				continue;
+			}
+			// assuming monochrome
+			psf_error error = PSF_NO_ERR;
+			// psf_get_minimisation flips y, so area has to be in display coordinates
+			int layer = (args->fit->naxes[2] == 3) ? GLAYER : RLAYER;
+			psf_star *star = psf_get_minimisation(args->fit, layer, &area, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
+			if (star && !error) {
+				// area is in display coordinates, star is in local top-down coordinates from this
+				dx[k] = area.x + star->x0;
+				dy[k] = area.y + area.h - star->y0;
+				display_to_siril(dx[k], dy[k], &dx[k], &dy[k], args->fit->ry);
+				// printf("dx: %.3f, dy:%3f\n", dx[k] - x, dy[k] - y);
+				dx[k] = scale * (dx[k] - x);
+				dy[k] = scale * (dy[k] - y);
+				free_psf(star);
+				k++;
+			}
+		}
 		j++;
 	}
-	siril_log_message("%d objects found%s in the image (mag limit %.2f)\n", j,
-			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag);
+	siril_log_message(_("%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"), j,
+			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag, catalog_to_str(siril_cat->cat_index));
 	if (!j) {
 		retval = -1;
 		goto exit_conesearch;
 	}
-	if (args->has_GUI)  { // only for GUI
+	if (args->has_GUI || args->outfilename) {
 		//re-allocating to the correct size as some may have been discarded by mag
 		cat_item *final_items = realloc(temp_cat->cat_items, j * sizeof(cat_item));
 		if (!final_items) {
@@ -1259,9 +1375,34 @@ gpointer conesearch_worker(gpointer p) {
 		temp_cat->cat_items = final_items;
 		temp_cat->nbitems = j;
 	}
+	if (args->compare && k > 0) {
+		dxf = realloc(dx, k * sizeof(double));
+		dyf = realloc(dy, k * sizeof(double));
+		if (!dxf || !dyf) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+			goto exit_conesearch;
+		}
+	} else {
+		args->compare = FALSE;
+		free(dx);
+		free(dy);
+	}
 	if (args->outfilename) {
 		if (siril_catalog_write_to_file(temp_cat, args->outfilename))
 			siril_log_message(_("List saved to %s\n"), args->outfilename);
+	}
+	if (args->has_GUI && args->compare) {
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
+		siril_plot_set_title(spl_data, "Detected vs astrometric position");
+		siril_plot_set_xlabel(spl_data, "dx [\"]");
+		siril_plot_set_ylabel(spl_data, "dy [\"]");
+		siril_plot_add_xydata(spl_data, NULL, k, dxf, dyf, NULL, NULL);
+		siril_plot_set_savename(spl_data, "diffpos");
+		siril_plot_set_nth_plot_type(spl_data, 1, KPLOT_POINTS);
+		free(dxf);
+		free(dyf);
 	}
 	retval = 0;
 exit_conesearch:;
@@ -1272,6 +1413,7 @@ exit_conesearch:;
 	}
 	free_conesearch_args(args);
 	if (go_idle) {
+		siril_add_idle(create_new_siril_plot_window, spl_data);
 		siril_add_idle(end_conesearch, temp_cat);
 	} else {
 		end_generic(NULL);

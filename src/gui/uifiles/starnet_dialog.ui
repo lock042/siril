@@ -97,13 +97,14 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=4 -->
+          <!-- n-columns=2 n-rows=5 -->
           <object class="GtkGrid" id="grid2">
             <property name="name">label_starnet_stride</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="row-spacing">10</property>
             <property name="column-spacing">6</property>
+            <property name="column-homogeneous">True</property>
             <child>
               <object class="GtkCheckButton" id="toggle_starnet_stretch">
                 <property name="label" translatable="yes">Pre-stretch linear image</property>
@@ -250,14 +251,56 @@ This option has no effect if processing a sequence.</property>
                 <property name="tooltip-text" translatable="yes">Apply StarNet to all images in the current sequence. Starless and, if selected, star mask, sequences will be generated.</property>
                 <property name="halign">start</property>
                 <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_starnet_sequence_toggle_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">0</property>
                 <property name="top-attach">3</property>
+                <property name="width">2</property>
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkBox" id="starnet_next_sequence_controls">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="spacing">6</property>
+                <property name="homogeneous">True</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Sequence to open on completion</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="combo_starnet_next_sequence">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="active">0</property>
+                    <items>
+                      <item translatable="yes">Starless</item>
+                      <item translatable="yes">Star mask</item>
+                      <item translatable="yes">Original</item>
+                    </items>
+                    <signal name="changed" handler="on_combo_starnet_next_sequence_changed" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">4</property>
+                <property name="width">2</property>
+              </packing>
             </child>
           </object>
           <packing>

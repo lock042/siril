@@ -41,7 +41,7 @@ int check_requires(gboolean *checked_requires, gboolean is_required);
 void log_several_lines(char *text);
 
 gpointer execute_script(gpointer p);
-int processcommand(const char *line);
+int processcommand(const char *line, gboolean wait_for_completion);
 void init_command();
 sequence *load_sequence(const char *name, char **get_filename);
 
