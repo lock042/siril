@@ -43,6 +43,7 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
+#include "io/fits_keywords.h"
 #include "registration/registration.h"
 #include "algos/demosaicing.h"
 
