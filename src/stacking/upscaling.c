@@ -124,7 +124,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		return 0;
 
 	struct generic_seq_args *args = create_default_seqargs(stackargs->seq);
-	struct upscale_args *upargs = malloc(sizeof(struct upscale_args));
+	struct upscale_args *upargs = calloc(1, sizeof(struct upscale_args));
 
 	upargs->factor = 2.;
 

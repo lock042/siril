@@ -83,13 +83,17 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			switch (method) {
 				case 1:
-					if (args->seqEntry && args->seqEntry[0] == '\0')
+					if (args->seqEntry && args->seqEntry[0] == '\0') {
+						free(args->seqEntry);
 						args->seqEntry = strdup("Ha_");
+					}
 					apply_extractHa_to_sequence(args);
 					break;
 				case 3:
-					if (args->seqEntry && args->seqEntry[0] == '\0')
+					if (args->seqEntry && args->seqEntry[0] == '\0') {
+						free(args->seqEntry);
 						args->seqEntry = strdup("Green_");
+					}
 					apply_extractGreen_to_sequence(args);
 					break;
 				default:

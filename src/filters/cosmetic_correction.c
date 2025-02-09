@@ -593,7 +593,6 @@ static int cosme_finalize_hook(struct generic_seq_args *args) {
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
 	free(c_args->prefix);
 	g_clear_object(&c_args->file);
-
 	free(args->user);
 	return retval;
 }

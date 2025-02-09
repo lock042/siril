@@ -230,6 +230,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 		g_free(dirname);
 		g_free(basename);
 		g_free(tmpdirname);
+		g_free(tmpbasename);
 		return out;
 	}
 
