@@ -858,15 +858,15 @@ class SirilInterface:
         except Exception as e:
             print(f"Error releasing the processing thread: {e}", file=sys.stderr)
 
-    def _messagebox(self, my_string: str, modal: Optional[bool] = False, cmd_type: int) -> bool:
+    def _messagebox(self, my_string: str, cmd_type: int, modal: Optional[bool] = False) -> bool:
         """
         Send a message to Siril for display in a messagebox.
         Helper method for error_messagebox, warning_messagebox, info_messagebox.
 
         Args:
             my_string: The message to display in the message box
-            modal: Whether or not the message box is modal
             type: Sets whether to show an error, warning or info messagebox
+            modal: Whether or not the message box is modal
 
         Returns:
             bool: True if the error was successfully displayed, False otherwise
