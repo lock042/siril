@@ -108,6 +108,7 @@ xx/xx/xx
 * Refactored processing of sequence operations that generate multiple output sequences (!739)
 * Added a memory check for the preview image (#778)
 * Removed Windows cross-build CI and improved performance of native CI (!767)
+* Move executables from 'Contents/Resources/bin' to 'Contents/MacOS' (!812)
 
 siril 1.2.6
 01/22/25
