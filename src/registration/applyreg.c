@@ -830,7 +830,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	if (!check_before_applyreg(regargs)) { // checks for input arguments wrong combinations
-		free(args);
+		free_generic_seq_args(args);
 		return -1;
 	}
 
@@ -842,12 +842,12 @@ int register_apply_reg(struct registration_args *regargs) {
 	if (regargs->undistort == DISTO_FILES) {
 		regargs->WCSDATA = calloc(regargs->seq->number, sizeof(struct wcsprm));
 		if (collect_sequence_astrometry(regargs)) {
-			free(args);
+			free_generic_seq_args(args);
 			return -1;
 		}
 		Homography Href = { 0 };
 		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer, &Href, &regargs->wcsref)) {
-			free(args);
+			free_generic_seq_args(args);
 			return -1;
 		}
 		regargs->framingd.Htransf = Href;
@@ -860,7 +860,7 @@ int register_apply_reg(struct registration_args *regargs) {
 			convert_parsed_filter_to_filter(&regargs->filters,
 				regargs->seq, &regargs->filtering_criterion,
 				&regargs->filtering_parameter)) {
-		free(args);
+		free_generic_seq_args(args);
 		return -1;
 	}
 
@@ -875,17 +875,17 @@ int register_apply_reg(struct registration_args *regargs) {
 
 	// We can now compute the framing and check the output size
 	if (!check_applyreg_output(regargs)) {
-		free(args);
+		free_generic_seq_args(args);
 		return -1;
 	}
 
 	if (regargs->no_output) {
-		free(args);
+		free_generic_seq_args(args);
 		return 0;
 	}
 
 	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
-		free(args);
+		free_generic_seq_args(args);
 		return -1;
 	}
 
@@ -901,13 +901,13 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->description = _("Apply registration");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = regargs->prefix;
+	args->new_seq_prefix = strdup(regargs->prefix);
 	args->load_new_sequence = TRUE;
 	args->already_in_a_thread = TRUE;
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
-		free(args);
+		free_generic_seq_args(args);
 		return -1;
 	}
 	sadata->regargs = regargs;
@@ -922,7 +922,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
 		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array
 		if (status) {
-			free(args);
+			free_generic_seq_args(args);
 			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
 			return -1;
 		}
@@ -969,7 +969,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	generic_sequence_worker(args);
 
 	regargs->retval = args->retval;
-	free(args);
+	free_generic_seq_args(args);
 	return regargs->retval;
 }
 
