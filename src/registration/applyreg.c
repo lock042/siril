@@ -517,6 +517,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			*/
 			full_stats_invalidation_from_fit(fit);
 			fit->keywords.lo = 0;
+			memset(fit->keywords.bayer_pattern, 0, FLEN_VALUE); // we also reset the bayerpattern
 		}
 
 		free(p->pixmap->xmap);
