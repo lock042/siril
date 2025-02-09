@@ -5515,6 +5515,7 @@ int process_seq_cosme(int nb) {
 			g_object_unref(file);
 			if (!check_seq_is_comseq(seq))
 				free_sequence(seq, TRUE);
+			free(args->prefix);
 			free(args);
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 			return CMD_ARG_ERROR;

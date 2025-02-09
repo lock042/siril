@@ -874,6 +874,7 @@ gpointer plate_solver(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	psf_star **stars = NULL;	// image stars
 	int nb_stars = 0;	// number of image and catalogue stars
+	gboolean asnet_running = FALSE; // must be declared before first goto cleanup;
 
 	args->ret = SOLVE_OK;
 	solve_results solution = { 0 }; // used in the clean-up, init at the beginning
@@ -990,7 +991,6 @@ gpointer plate_solver(gpointer p) {
 		No modifications done to args or args->fit
 		We can read from them but cannot write
 	*/
-	gboolean asnet_running = FALSE;
 	if (args->solver == SOLVER_LOCALASNET) {
 		if (!args->for_sequence) {
 			asnet_running = TRUE;

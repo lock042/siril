@@ -660,7 +660,7 @@ int register_star_alignment(struct registration_args *regargs) {
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
-		free(args);
+		free_generic_seq_args(args);
 		return -1;
 	}
 	sadata->regargs = regargs;

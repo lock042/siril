@@ -280,7 +280,7 @@ int register_comet(struct registration_args *regargs) {
 
 	struct comet_align_data *cadata = calloc(1, sizeof(struct comet_align_data));
 	if (!cadata) {
-		free(args);
+		free_generic_seq_args(args);
 		return -1;
 	}
 	cadata->regargs = regargs;
