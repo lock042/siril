@@ -208,7 +208,7 @@ gboolean siril_message_dialog_idle(gpointer p) {
 	return FALSE;
 }
 
-static void queue_message_dialog(GtkMessageType type, const char *title, const char *text) {
+void queue_message_dialog(GtkMessageType type, const char *title, const char *text) {
 	if (com.headless || com.script)
 		return;	// show_dialog usually follows a siril_log_message() call
 	struct message_data *data = malloc(sizeof(struct message_data));

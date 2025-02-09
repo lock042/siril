@@ -948,15 +948,43 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 		case CMD_ERROR_MESSAGEBOX: // fallthrough intentional
-		case CMD_ERROR_MESSAGEBOX_MODAL: {
+		case CMD_ERROR_MESSAGEBOX_MODAL:
+		case CMD_WARNING_MESSAGEBOX:
+		case CMD_WARNING_MESSAGEBOX_MODAL:
+		case CMD_INFO_MESSAGEBOX:
+		case CMD_INFO_MESSAGEBOX_MODAL: {
+			// Set the title and type
+			GtkMessageType type;
+			const gchar *title;
+			gboolean modal = TRUE;
+			switch (header->command) {
+				case CMD_ERROR_MESSAGEBOX:
+					modal = FALSE;
+				case CMD_ERROR_MESSAGEBOX_MODAL:
+					type = GTK_MESSAGE_ERROR;
+					title = _("Error");
+					break;
+				case CMD_WARNING_MESSAGEBOX:
+					modal = FALSE;
+				case CMD_WARNING_MESSAGEBOX_MODAL:
+					type = GTK_MESSAGE_WARNING;
+					title = _("Warning");
+					break;
+				case CMD_INFO_MESSAGEBOX:
+					modal = FALSE;
+				case CMD_INFO_MESSAGEBOX_MODAL:
+					type = GTK_MESSAGE_INFO;
+					title = _("Information");
+					break;
+			}
 			// Ensure null-terminated string for log message
 			char* log_msg = g_strndup(payload, payload_length);
-			if (header->command == CMD_ERROR_MESSAGEBOX) {
-				queue_error_message_dialog(_("Error"), log_msg);
+			if (modal) {
+				queue_message_dialog(type, title, log_msg);
 			} else {
 				struct message_data *data = malloc(sizeof(struct message_data));
-				data->type = GTK_MESSAGE_ERROR;
-				data->title = strdup(_("Error"));
+				data->type = type;
+				data->title = strdup(title);
 				data->text = strdup(log_msg);
 				siril_debug_print("Executing modal dialog\n");
 				execute_idle_and_wait_for_it(siril_message_dialog_idle, data);
