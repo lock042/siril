@@ -2030,6 +2030,7 @@ void apply_ght_to_sequence(struct ght_data *ght_args) {
 	ght_args->fit = NULL;	// not used here
 
 	if(!start_in_new_thread(generic_sequence_worker, args)) {
+		free(ght_args->seqEntry);
 		free(ght_args);
 		free_generic_seq_args(args);
 	}
