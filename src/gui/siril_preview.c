@@ -111,6 +111,7 @@ void copy_gfit_to_backup() {
 		siril_debug_print("Image copy error in previews\n");
 		return;
 	}
+	copy_fits_metadata(&gfit, &preview_gfit_backup);
 	if (!com.script)
 		copy_gfit_icc_to_backup();
 	if (gui.roi.active && backup_roi()) {
@@ -131,6 +132,7 @@ int copy_backup_to_gfit() {
 		} else if (!com.script) {
 			copy_backup_icc_to_gfit();
 		}
+		if (retval == 0) copy_fits_metadata(&preview_gfit_backup, &gfit);
 		if (gui.roi.active && restore_roi()) {
 			siril_debug_print("Image copy error in ROI\n");
 			retval = 1;

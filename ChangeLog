@@ -99,6 +99,8 @@ xx/xx/xx
 * Fixed crash in 2-pass registration when sequence had less than 5 images (#1473)
 * Prevented crash when using the sequence browser during an AVI sequence operation (#143)
 * Prevented crash when opening a HEIF image with a jpeg extension (#1478)
+* Fixed crash at startup on macOS when no ~/Pictures folder is found (#1486)
+* Fixed loss of metadata when Siril uses preview (#1491)
 
 **Misc:**
 * Removed glib-networking as a dependency (#1157)
@@ -107,6 +109,7 @@ xx/xx/xx
 * Refactored processing of sequence operations that generate multiple output sequences (!739)
 * Added a memory check for the preview image (#778)
 * Removed Windows cross-build CI and improved performance of native CI (!767)
+* Move executables from 'Contents/Resources/bin' to 'Contents/MacOS' (!812)
 
 siril 1.2.6
 01/22/25
