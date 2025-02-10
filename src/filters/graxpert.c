@@ -290,15 +290,51 @@ static gchar** parse_ai_versions(const char* version_line) {
 
 static GMutex ai_version_check_mutex = { 0 };
 
+static GError *spawn_graxpert_sync(gchar **argv, gint columns,
+								   GPid *child_pid, gint *exit_status,
+								   gchar **output) {
+	GError *error = NULL;
+	gchar **env = g_get_environ();
+	gchar *columns_str = g_strdup_printf("%d", columns);
+
+	env = g_environ_setenv(env, "COLUMNS", columns_str, TRUE);
+
+	#ifdef G_OS_WIN32
+	env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
+	#endif
+
+	gint stdout_fd;
+	gboolean spawn_result = g_spawn_sync(
+		NULL,           // working directory
+		argv,           // argument vector
+		env,            // environment
+		G_SPAWN_SEARCH_PATH,
+		NULL,           // child setup function
+		NULL,           // user data for child setup
+		output,         // standard output
+		NULL,           // standard error
+		exit_status,    // exit status
+		&error
+	);
+
+	g_strfreev(env);
+	g_free(columns_str);
+
+	if (!spawn_result) {
+		return error;
+	}
+
+	return NULL;
+}
+
 gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 	siril_debug_print("AI version check\n");
 	g_mutex_lock(&ai_version_check_mutex);
 	const gchar *key = "available remotely: [";
-	char *test_argv[5] = { NULL };
 	gchar **result = NULL;
-	gint child_stderr;
 	g_autoptr(GError) error = NULL;
 	version_number null_version = { 0 };
+
 	if (memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
 		if (!executable || executable[0] == '\0') {
 			siril_debug_print("No executable defined\n");
@@ -308,61 +344,44 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		if (!g_file_test(executable, G_FILE_TEST_IS_EXECUTABLE)) {
 			siril_debug_print("Executable indicates it is not executable\n");
 			g_mutex_unlock(&ai_version_check_mutex);
-			return FALSE; // It's not executable so return a zero version number
+			return FALSE;
 		}
 
+		gchar **test_argv = g_malloc_n(5, sizeof(gchar *));
 		int nb = 0;
 		test_argv[nb++] = executable;
 		test_argv[nb++] = "-cmd";
 		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" :
-				(operation == GRAXPERT_DECONV ? "deconv-obj" :
-				(operation == GRAXPERT_DECONV_STELLAR ? "deconv-stellar" : "background-extraction")));
+		(operation == GRAXPERT_DECONV ? "deconv-obj" :
+		(operation == GRAXPERT_DECONV_STELLAR ? "deconv-stellar" : "background-extraction")));
 		test_argv[nb++] = versionarg;
 		test_argv[nb++] = "--help";
-		// g_spawn handles wchar so not need to convert
-		GPid child_pid;
+		test_argv[nb] = NULL;
 
-		error = spawn_graxpert(test_argv, 500, &child_pid, NULL, NULL, &child_stderr);
+		gint exit_status;
+		gchar *output = NULL;
+		error = spawn_graxpert_sync(test_argv, 500, NULL, &exit_status, &output);
 
 		if (error != NULL) {
 			siril_log_color_message(_("Spawning GraXpert failed during available AI model versions check: %s\n"), "red", error->message);
 			g_free(versionarg);
+			g_free(test_argv);
 			g_mutex_unlock(&ai_version_check_mutex);
 			return FALSE;
 		}
 
-		GInputStream *stream = NULL;
-#ifdef _WIN32
-		stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(child_stderr), FALSE);
-#else
-		stream = g_unix_input_stream_new(child_stderr, FALSE);
-#endif
-		gchar *buffer;
-		gsize length = 0;
-		GDataInputStream *data_input = g_data_input_stream_new(stream);
-		gboolean done = FALSE;
-		while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, NULL)) && !done) {
-#ifdef GRAXPERT_DEBUG
-			siril_debug_print("%s\n", buffer);
-#endif
+		if (output) {
 			// Find the start of the version substring
-			gchar *start = g_strstr_len(buffer, -1, key);
+			gchar *start = g_strstr_len(output, -1, key);
 			if (start) {
 				siril_debug_print("Version string found for %d\n", (int) operation);
 				result = parse_ai_versions(start);
-				g_free(buffer);
-				break;
 			}
-			g_free(buffer);
+			g_free(output);
 		}
-		remove_child_from_children(child_pid);
-		running_pid = (GPid) -1;
-		g_object_unref(data_input);
-		g_object_unref(stream);
+
 		g_free(versionarg);
-		if (!g_close(child_stderr, &error)) {
-			siril_debug_print("%s\n", error->message);
-		}
+		g_free(test_argv);
 	}
 	g_mutex_unlock(&ai_version_check_mutex);
 	return result;
