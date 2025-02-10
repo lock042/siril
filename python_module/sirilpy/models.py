@@ -481,13 +481,14 @@ from typing import Tuple, Optional
 class BGSample:
     """
     Python equivalent of the Siril background_sample struct. Used to hold
-    background sample data obtained from Siril.
+    background sample data obtained from Siril, or to generate or modify
+    background sample data to set in Siril.
     A BGSample can be constructed as:
         s1 = BGSample(x=1.0, y=2.0)
         s2 = BGSample(position=(1.0, 2.0))
-        s3 = BGSample(x=1.0, y=2.0, mean=0.5, size=31)  # Valid (odd size)
+        s3 = BGSample(x=1.0, y=2.0, mean=0.5, size=31)
     """
-    median: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    median: Tuple[float, float, float] = (0.0, 0.0, 0.0) #: Median values for R, G and B channels. For mono images only median[0] is used.
     mean: float = 0.0
     min: float = 0.0
     max: float = 0.0
@@ -513,6 +514,8 @@ class BGSample:
         # Validate and assign size
         if size % 2 == 0:
             raise ValueError("Size must be an odd number")
+        if size < 0:
+            raies ValueError("Size must be positive")
         self.size = size
 
         # Manually initialize other dataclass fields from kwargs

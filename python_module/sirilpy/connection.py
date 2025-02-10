@@ -1804,14 +1804,21 @@ class SirilInterface:
         """
         Serialize a set of background sample points and send via shared memory.
         Points can be provided either as:
-        - List of (x,y) Tuples: BGSamples are created with these positions and default values
-        - List of BGSample objects: The complete sample data is sent to Siril
-        By default Siril will recalculate statistics for the sample points on receipt,
-        but this can be overridden with the argument recalculate=False
+        - List of (x,y) Tuples: BGSamples are created with these positions and Siril
+        will automatically compute the statistics.
+        - List of BGSample objects: The complete sample data is sent to Siril.
+          By default Siril will recalculate statistics for the sample points
+          on receipt, but this can be overridden with the argument recalculate=False
 
         Args:
             points: List of sample points, either as (x,y) tuples or BGSample objects
             show_samples: Whether to show the sample points in Siril
+            recalculate: Whether to recalculate the sample points once set. This
+                         is always True if the sample points are provided as a List of
+                         (x,y) Tuples, and defaults to True if the sample points are
+                         provided as a List of BGSamples. Setting recalculate=False
+                         allows for overriding the sample statistics used in
+                         the background removal agorithm.
         """
         try:
             # Convert tuples to BGSamples if needed
