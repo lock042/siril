@@ -394,7 +394,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct banding_data *args = malloc(sizeof(struct banding_data));
+	struct banding_data *args = calloc(1, sizeof(struct banding_data));
 
 	if (range_amount == NULL) {
 		range_amount = GTK_RANGE(lookup_widget("scale_fixbanding_amount"));
@@ -431,8 +431,10 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		args->seq = &com.seq;
 		apply_banding_to_sequence(args);
 	} else {
-		if (!start_in_new_thread(BandingEngineThreaded, args))
+		if (!start_in_new_thread(BandingEngineThreaded, args)) {
+			free(args->seqEntry);
 			free(args);
+		}
 	}
 }
 
