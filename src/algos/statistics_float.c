@@ -295,7 +295,7 @@ static void siril_stats_float_minmax(float *min_out, float *max_out,
 /* this function tries to get the requested stats from the passed stats,
  * computes them and stores them in it if they have not already been */
 imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, int option, imstats *stats, int bitpix, threading_type threads) {
-	int nx, ny;
+	int nx = 0, ny = 0;
 	float *data = NULL;
 	int stat_is_local = 0, free_data = 0;
 	imstats* stat = stats;

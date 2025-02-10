@@ -976,6 +976,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					type = GTK_MESSAGE_INFO;
 					title = _("Information");
 					break;
+				default:
+					type = GTK_MESSAGE_OTHER;
+					title = _("Unknown dialog type");
 			}
 			// Ensure null-terminated string for log message
 			char* log_msg = g_strndup(payload, payload_length);

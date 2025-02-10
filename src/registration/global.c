@@ -988,7 +988,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	int nb_aligned[MAX_TRIALS_2PASS];
 	best_indexes[trials] = best_index;
 	float allowable_dist = (float)regargs->seq->imgparam[regargs->reference_image].rx * MAX_SHIFT_RATIO;
-	int tmp_failed;
+	int tmp_failed = 0;
 
 	int max_trials = min(MAX_TRIALS_2PASS, regargs->seq->number);
 	while (trials < max_trials) {
