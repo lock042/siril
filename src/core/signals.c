@@ -48,6 +48,11 @@ static void signal_handled(int s) {
 		g_printf("Error, signal %d:\n", s);
 		const gchar *visit = _("Please report this bug to: " PACKAGE_BUGREPORT);
 		switch (s) {
+#ifndef _WIN32
+		case SIGINT: // useful for devs who often use CTRL+C
+			gtk_main_quit();
+			break;
+#endif
 		case SIGSEGV:
 		case SIGFPE:
 		case SIGABRT:

@@ -91,16 +91,21 @@ class _Command(IntEnum):
     GET_BUNDLE_PATH = 37
     ERROR_MESSAGEBOX = 38
     ERROR_MESSAGEBOX_MODAL = 39
-    SIRIL_PLOT = 40,
-    CLAIM_THREAD = 41,
-    RELEASE_THREAD = 42,
-    SET_SEQ_FRAME_PIXELDATA = 43,
-    REQUEST_SHM = 44,
-    SET_SEQ_FRAME_INCL = 45,
-    GET_USERDATADIR = 46,
-    GET_SYSTEMDATADIR = 47,
-    GET_BGSAMPLES = 48,
-    SET_BGSAMPLES = 49,
+    SIRIL_PLOT = 40
+    CLAIM_THREAD = 41
+    RELEASE_THREAD = 42
+    SET_SEQ_FRAME_PIXELDATA = 43
+    REQUEST_SHM = 44
+    SET_SEQ_FRAME_INCL = 45
+    GET_USERDATADIR = 46
+    GET_SYSTEMDATADIR = 47
+    GET_BGSAMPLES = 48
+    SET_BGSAMPLES = 49
+    GET_SEQ_FRAME_FILENAME = 50
+    INFO_MESSAGEBOX = 51
+    INFO_MESSAGEBOX_MODAL = 52
+    WARNING_MESSAGEBOX = 53
+    WARNING_MESSAGEBOX_MODAL = 54
     ERROR = 0xFF
 
 class LogColor (IntEnum):
@@ -853,6 +858,33 @@ class SirilInterface:
         except Exception as e:
             print(f"Error releasing the processing thread: {e}", file=sys.stderr)
 
+    def _messagebox(self, my_string: str, cmd_type: int, modal: Optional[bool] = False) -> bool:
+        """
+        Send a message to Siril for display in a messagebox.
+        Helper method for error_messagebox, warning_messagebox, info_messagebox.
+
+        Args:
+            my_string: The message to display in the message box
+            type: Sets whether to show an error, warning or info messagebox
+            modal: Whether or not the message box is modal
+
+        Returns:
+            bool: True if the error was successfully displayed, False otherwise
+        """
+
+        try:
+            # Append a newline character to the string
+            truncated_string = my_string[:1021] + '\n'
+            # Convert string to bytes using UTF-8 encoding
+            message_bytes = truncated_string.encode('utf-8')
+            if modal:
+                return self._execute_command(cmd_type, message_bytes, timeout = None)
+            else:
+                return self._execute_command(cmd_type, message_bytes)
+
+        except Exception as e:
+            print(f"Error sending log message: {e}", file=sys.stderr)
+            return False
 
     def error_messagebox(self, my_string: str, modal: Optional[bool] = False) -> bool:
         """
@@ -872,20 +904,47 @@ class SirilInterface:
         Returns:
             bool: True if the error was successfully displayed, False otherwise
         """
+        cmd_type = _Command.ERROR_MESSAGEBOX_MODAL if modal else _Command.ERROR_MESSAGEBOX
+        return self._messagebox(my_string, cmd_type, modal)
 
-        try:
-            # Append a newline character to the string
-            truncated_string = my_string[:1021] + '\n'
-            # Convert string to bytes using UTF-8 encoding
-            message_bytes = truncated_string.encode('utf-8')
-            if modal:
-                return self._execute_command(_Command.ERROR_MESSAGEBOX_MODAL, message_bytes, timeout = None)
-            else:
-                return self._execute_command(_Command.ERROR_MESSAGEBOX, message_bytes)
+    def info_messagebox(self, my_string: str, modal: Optional[bool] = False) -> bool:
+        """
+        Send an information message to Siril. The maximum message length is
+        1022 bytes: longer messages will be truncated. This is intended for
+        displaying informational messages more prominently than using the Siril log.
 
-        except Exception as e:
-            print(f"Error sending log message: {e}", file=sys.stderr)
-            return False
+        Args:
+            my_string: The message to display in the info message box
+            modal: Sets whether or not the message box should be modal and
+                   wait for completion or non-modal and allow the script to
+                   continue execution.
+
+        Returns:
+            bool: True if the info was successfully displayed, False otherwise
+        """
+
+        cmd_type = _Command.INFO_MESSAGEBOX_MODAL if modal else _Command.INFO_MESSAGEBOX
+        return self._messagebox(my_string, cmd_type, modal)
+
+    def warning_messagebox(self, my_string: str, modal: Optional[bool] = False) -> bool:
+        """
+        Send a warning message to Siril. The maximum message length is
+        1022 bytes: longer messages will be truncated. This is intended for
+        displaying warning messages more prominently than using the Siril log.
+
+        Args:
+            my_string: The message to display in the warning message box
+            modal: Sets whether or not the message box should be modal and
+                   wait for completion or non-modal and allow the script to
+                   continue execution.
+
+        Returns:
+            bool: True if the warning was successfully displayed, False otherwise
+        """
+
+        cmd_type = _Command.WARNING_MESSAGEBOX_MODAL if modal else _Command.WARNING_MESSAGEBOX
+        return self._messagebox(my_string, cmd_type, modal)
+
 
     def undo_save_state(self, my_string: str) -> bool:
         """
@@ -2489,6 +2548,30 @@ class SirilInterface:
             # Assuming the response is a null-terminated UTF-8 encoded string
             wd = response.decode('utf-8').rstrip('\x00')
             return wd
+        except UnicodeDecodeError as e:
+            print(f"Error decoding loaded image filename: {e}", file=sys.stderr)
+            return None
+
+    def get_seq_frame_filename(self, frame: int) -> Optional[str]:
+        """
+        Request the filename of the specified frame of the loaded sequence from Siril.
+
+        Returns:
+            The filename as a string, or None if an error occurred.
+        """
+
+        # Convert frame number to network byte order bytes
+        frame_payload = struct.pack('!I', frame)  # '!I' for network byte order uint32_t
+
+        response = self._request_data(_Command.GET_SEQ_FRAME_FILENAME, payload=frame_payload)
+
+        if response is None:
+            return None
+
+        try:
+            # Assuming the response is a null-terminated UTF-8 encoded string
+            filename = response.decode('utf-8').rstrip('\x00')
+            return filename
         except UnicodeDecodeError as e:
             print(f"Error decoding loaded image filename: {e}", file=sys.stderr)
             return None

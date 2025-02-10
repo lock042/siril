@@ -263,34 +263,35 @@ static void siril_macos_setenv(const char *progname) {
 		gchar *exe_dir;           /* executable directory */
 		gchar res_dir[PATH_MAX];  /* resources directory  */
 
-		/* get canonical path to Foo.app/Contents/Resources directory */
 		exe_dir = g_path_get_dirname(resolved_path);
+
+		/* get canonical path to Foo.app/Contents/Resources directory */
 		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", exe_dir);
 		struct stat sb;
-		if (realpath(tmp, res_dir) && !stat(res_dir, &sb) && S_ISDIR(sb.st_mode))
+		if (realpath(tmp, res_dir) && !stat(res_dir, &sb) && S_ISDIR(sb.st_mode)) {
 			g_print("Siril is started as macOS application\n");
-		else
+		}
+		else {
+			g_free(exe_dir);
 			return;
-		g_free(exe_dir);
+		}
 
 		/* store canonical path to resources directory in environment variable. */
 		g_setenv("SIRIL_RELOCATED_RES_DIR", res_dir, TRUE);
 
-    /* prepend PATH with our Resources/bin directory */
-		g_snprintf(tmp, sizeof(tmp), "%s/bin", res_dir);
-		size_t path_len = strlen(g_getenv("PATH") ? g_getenv("PATH") : "")
-			+ strlen(tmp) + 2;
-		gchar *path = g_try_malloc(path_len);
+    /* prepend PATH with our Contents/MacOS directory */
+		gchar *path = g_try_malloc(PATH_MAX);
 		if (path == NULL) {
 			g_warning("Failed to allocate memory");
 			exit(EXIT_FAILURE);
 		}
 		if (g_getenv("PATH"))
-			g_snprintf(path, path_len, "%s:%s", tmp, g_getenv("PATH"));
+			g_snprintf(path, PATH_MAX, "%s:%s", exe_dir, g_getenv("PATH"));
 		else
-			g_snprintf(path, path_len, "%s", tmp);
-		g_setenv("PATH", path, TRUE);
+			g_snprintf(path, PATH_MAX, "%s", exe_dir);
+  	g_setenv("PATH", path, TRUE);
 		g_free(path);
+		g_free(exe_dir);
 
 		/* set XDG base directory specification variables */
 		g_snprintf(tmp, sizeof(tmp), "%s/share", res_dir);

@@ -42,7 +42,7 @@ background extraction
 - **A C++ compiler** for opencv code and avi exporter
 - **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is
 possible without some shift-only registration)
-- **json-glib-1.0**, (>= 1.2.6) for Siril update check, spectrophotometry
+- **yyjson**, (>= 0.10.0) for Siril update check, spectrophotometry
 color calibration and metadata output
 
 Siril works internally with FITS files, but other file formats can be used as
