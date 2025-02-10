@@ -291,8 +291,7 @@ static gchar** parse_ai_versions(const char* version_line) {
 static GMutex ai_version_check_mutex = { 0 };
 
 static GError *spawn_graxpert_sync(gchar **argv, gint columns,
-								   GPid *child_pid, gint *exit_status,
-								   gchar **output) {
+				GPid *child_pid, gint *exit_status, gchar **output) {
 	GError *error = NULL;
 	gchar **env = g_get_environ();
 	gchar *columns_str = g_strdup_printf("%d", columns);
