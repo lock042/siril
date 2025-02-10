@@ -303,16 +303,15 @@ static GError *spawn_graxpert_sync(gchar **argv, gint columns,
 	env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
 	#endif
 
-	gint stdout_fd;
-	gboolean spawn_result = g_spawn_sync(
+	gboolean spawn_result = siril_spawn_host_sync(
 		NULL,           // working directory
 		argv,           // argument vector
 		env,            // environment
-		G_SPAWN_SEARCH_PATH,
+		G_SPAWN_SEARCH_PATH, // g_spawn flags
 		NULL,           // child setup function
 		NULL,           // user data for child setup
-		output,         // standard output
-		NULL,           // standard error
+		NULL,           // standard output
+		output,         // standard error
 		exit_status,    // exit status
 		&error
 	);
@@ -387,15 +386,78 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 	return result;
 }
 
-void fill_graxpert_version_arrays() {
-	if (compare_version(min_bg_ver, graxpert_version) <= 0)
-		background_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_BG);
-	if (compare_version(min_denoise_ver, graxpert_version) <= 0)
-		denoise_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DENOISE);
-	if (compare_version(min_deconv_ver, graxpert_version) <= 0) {
-		deconv_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV);
-		deconv_stellar_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV_STELLAR);
+typedef struct {
+	graxpert_operation operation;
+	version_number min_version;
+	gchar **result;
+} AIVersionCheckArgs;
+
+static gpointer run_ai_version_check(gpointer data) {
+	AIVersionCheckArgs *args = (AIVersionCheckArgs *)data;
+
+	if (compare_version(args->min_version, graxpert_version) <= 0) {
+		args->result = ai_version_check(com.pref.graxpert_path, args->operation);
 	}
+
+	return NULL;
+}
+
+void fill_graxpert_version_arrays() {
+	GThread *bg_thread, *denoise_thread, *deconv_thread, *deconv_stellar_thread;
+
+	AIVersionCheckArgs bg_args = {
+		.operation = GRAXPERT_BG,
+		.min_version = min_bg_ver,
+		.result = NULL
+	};
+
+	AIVersionCheckArgs denoise_args = {
+		.operation = GRAXPERT_DENOISE,
+		.min_version = min_denoise_ver,
+		.result = NULL
+	};
+
+	AIVersionCheckArgs deconv_args = {
+		.operation = GRAXPERT_DECONV,
+		.min_version = min_deconv_ver,
+		.result = NULL
+	};
+
+	AIVersionCheckArgs deconv_stellar_args = {
+		.operation = GRAXPERT_DECONV_STELLAR,
+		.min_version = min_deconv_ver,
+		.result = NULL
+	};
+
+	GError *error[4] = { NULL };
+	bg_thread = g_thread_try_new("bg_check", run_ai_version_check, &bg_args, &error[0]);
+	denoise_thread = g_thread_try_new("denoise_check", run_ai_version_check, &denoise_args, &error[1]);
+	deconv_thread = g_thread_try_new("deconv_check", run_ai_version_check, &deconv_args, &error[2]);
+	deconv_stellar_thread = g_thread_try_new("deconv_stellar_check", run_ai_version_check, &deconv_stellar_args, &error[3]);
+
+	int errors = 0;
+	for (int i = 0 ; i < 4 ; i++) {
+		if (error[i]) {
+			siril_log_color_message(_("Thread creation failed: %s\n"), "red", error[i]->message);
+			errors++;
+		}
+	}
+	if (errors) {
+		return; // FALSE
+	}
+
+	g_thread_join(bg_thread);
+	g_thread_join(denoise_thread);
+	g_thread_join(deconv_thread);
+	g_thread_join(deconv_stellar_thread);
+
+	// Assign results to global variables
+	background_ai_models = bg_args.result;
+	denoise_ai_models = denoise_args.result;
+	deconv_ai_models = deconv_args.result;
+	deconv_stellar_ai_models = deconv_stellar_args.result;
+
+	return; // TRUE
 }
 
 gboolean check_graxpert_version(const gchar *version, graxpert_operation operation) {
@@ -436,70 +498,55 @@ gboolean check_graxpert_version(const gchar *version, graxpert_operation operati
 static GMutex graxpert_version_mutex = { 0 };
 
 static gboolean graxpert_fetchversion(gchar* executable) {
-	char *test_argv[3] = { NULL };
 	const gchar *version_key = "version: ";
-	gint child_stderr;
 	g_autoptr(GError) error = NULL;
 
 	if (!executable || executable[0] == '\0') {
 		return FALSE;
 	}
 	if (!g_file_test(executable, G_FILE_TEST_IS_EXECUTABLE)) {
-		return FALSE; // It's not executable so return a zero version number
+		return FALSE;
 	}
+
 	g_mutex_lock(&graxpert_version_mutex);
+
+	gchar **test_argv = g_malloc_n(3, sizeof(gchar *));
 	int nb = 0;
 	test_argv[nb++] = executable;
 	gchar *versionarg = g_strdup("-v");
 	test_argv[nb++] = versionarg;
-	// g_spawn handles wchar so not need to convert
-	GPid child_pid;
-	error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL, &child_stderr);
+	test_argv[nb] = NULL;
+
+	gint exit_status;
+	gchar *output = NULL;
+	error = spawn_graxpert_sync(test_argv, 200, NULL, &exit_status, &output);
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning GraXpert failed during version check: %s\n"), "red", error->message);
 		g_free(versionarg);
+		g_free(test_argv);
 		g_mutex_unlock(&graxpert_version_mutex);
 		return FALSE;
 	}
 
-	GInputStream *stream = NULL;
-#ifdef _WIN32
-	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(child_stderr), FALSE);
-#else
-	stream = g_unix_input_stream_new(child_stderr, FALSE);
-#endif
-	gchar *buffer;
-	gsize length = 0;
-	GDataInputStream *data_input = g_data_input_stream_new(stream);
-	gboolean done = FALSE;
-	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
-					NULL, NULL)) && !done) {
+	if (output) {
 		// Find the start of the version substring
-		gchar *version_start = g_strstr_len(buffer, -1, version_key);
+		gchar *version_start = g_strstr_len(output, -1, version_key);
 		if (version_start) {
 			version_start += strlen(version_key); // Move past "version: "
-
 			// Find the end of the version substring
 			gchar *version_end = g_strstr_len(version_start, -1, " ");
-			*version_end = '\0';
-
-			// Extract the version substring
-			graxpert_version = get_version_number_from_string(version_start);
-
-			g_free(buffer);
-			break;
+			if (version_end) {
+				*version_end = '\0';
+				// Extract the version substring
+				graxpert_version = get_version_number_from_string(version_start);
+			}
 		}
-		g_free(buffer);
+		g_free(output);
 	}
-	remove_child_from_children(child_pid);
-	running_pid = (GPid) -1;
-	g_object_unref(data_input);
-	g_object_unref(stream);
+
 	g_free(versionarg);
-	if (!g_close(child_stderr, &error)) {
-		siril_debug_print("%s\n", error->message);
-	}
+	g_free(test_argv);
 	g_mutex_unlock(&graxpert_version_mutex);
 	return TRUE;
 }
