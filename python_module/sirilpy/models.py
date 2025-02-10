@@ -474,27 +474,31 @@ class Homography:
     pair_matched: int = 0 #: number of pairs matched
     Inliers: int = 0 #: number of inliers kept after RANSAC step
 
+from dataclasses import dataclass, field
+from typing import Tuple, Optional
+
 @dataclass
 class BGSample:
     """
     Python equivalent of the Siril background_sample struct. Used to hold
     background sample data obtained from Siril.
-    A BGSample can be constructed as (for example):
+    A BGSample can be constructed as:
         s1 = BGSample(x=1.0, y=2.0)
         s2 = BGSample(position=(1.0, 2.0))
-        s3 = BGSample(x=1.0, y=2.0, mean=0.5, size=30)
+        s3 = BGSample(x=1.0, y=2.0, mean=0.5, size=31)  # Valid (odd size)
     """
     median: Tuple[float, float, float] = (0.0, 0.0, 0.0)
     mean: float = 0.0
     min: float = 0.0
     max: float = 0.0
-    size: int = 25  #: The default size matches the size of Siril bg samples.
+    size: int = field(default=25, init=False)  #: The default size matches the size of Siril bg samples.
     valid: bool = True  #: Samples default to being valid
     position: Optional[Tuple[float, float]] = field(default=None, init=False)  #: Position in (x, y) image coordinates
 
-    def __init__(self, *args, x=None, y=None, position=None, **kwargs):
+    def __init__(self, *args, x=None, y=None, position=None, size=25, **kwargs):
         """
         Custom constructor to handle both (x, y) and position arguments while allowing other attributes.
+        Ensures `size`, if specified, is an odd number.
         """
         if (x is not None or y is not None) and position is not None:
             raise ValueError("Cannot provide both position tuple and x,y coordinates")
@@ -506,12 +510,15 @@ class BGSample:
         # Assign position
         self.position = position if position is not None else (float(x), float(y))
 
+        # Validate and assign size
+        if size % 2 == 0:
+            raise ValueError("Size must be an odd number")
+        self.size = size
+
         # Manually initialize other dataclass fields from kwargs
         for field_name in self.__dataclass_fields__:
-            if field_name != "position":  # Already set manually
+            if field_name not in {"position", "size"}:  # Already set manually
                 setattr(self, field_name, kwargs.get(field_name, getattr(self.__class__, field_name)))
-
-
 
 class StarProfile(IntEnum):
     """
