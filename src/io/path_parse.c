@@ -213,6 +213,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 		display_path_parse_error(*status, tmpdirname);
 		g_free(tmpexp);
 		g_free(tmpdirname);
+		g_free(tmpbasename);
 		return NULL;
 	}
 	GString *newdir = g_string_new(tmpdirname);
