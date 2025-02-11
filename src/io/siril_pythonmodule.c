@@ -1711,14 +1711,13 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 		sys_python_exe = g_find_program_in_path(PYTHON_EXE);
 #endif
 
-		gchar **argv = g_new0(gchar*, 6);
+		gchar **argv = g_new0(gchar*, 5);
 		argv[0] = sys_python_exe;
 		argv[1] = g_strdup("-m");
 		argv[2] = g_strdup("venv");
-		argv[3] = g_strdup("--system-site-packages");
-		argv[4] = g_strdup(venv_path);
-		argv[5] = NULL;
-		siril_debug_print("Trying venv creation command: %s %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
+		argv[3] = g_strdup(venv_path);
+		argv[4] = NULL;
+		siril_debug_print("Trying venv creation command: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
 		gint exit_status;
 		if (!g_spawn_sync(NULL, argv, NULL,
 						G_SPAWN_SEARCH_PATH,
