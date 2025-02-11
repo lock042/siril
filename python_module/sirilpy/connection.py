@@ -906,7 +906,7 @@ class SirilInterface:
             bool: True if the error was successfully displayed, False otherwise
         """
         cmd_type = _Command.ERROR_MESSAGEBOX_MODAL if modal else _Command.ERROR_MESSAGEBOX
-        return self._messagebox(my_string, modal, cmd_type)
+        return self._messagebox(my_string, cmd_type, modal)
 
     def info_messagebox(self, my_string: str, modal: Optional[bool] = False) -> bool:
         """
@@ -925,7 +925,7 @@ class SirilInterface:
         """
 
         cmd_type = _Command.INFO_MESSAGEBOX_MODAL if modal else _Command.INFO_MESSAGEBOX
-        return self._messagebox(my_string, modal, cmd_type)
+        return self._messagebox(my_string, cmd_type, modal)
 
     def warning_messagebox(self, my_string: str, modal: Optional[bool] = False) -> bool:
         """
@@ -944,7 +944,7 @@ class SirilInterface:
         """
 
         cmd_type = _Command.WARNING_MESSAGEBOX_MODAL if modal else _Command.WARNING_MESSAGEBOX
-        return self._messagebox(my_string, modal, cmd_type)
+        return self._messagebox(my_string, cmd_type, modal)
 
 
     def undo_save_state(self, my_string: str) -> bool:
