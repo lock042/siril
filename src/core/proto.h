@@ -187,13 +187,13 @@ gchar *find_file_in_directory(gchar *basename, const gchar *path);
 gchar *find_file_recursively(gchar *basename, const gchar *top_path);
 
 /****************** quantize.h ***************/
-int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
-		WORD nullvalue, long *ngoodpix, WORD *minvalue, WORD *maxvalue,
+int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, 
+		long *ngoodpix, WORD *minvalue, WORD *maxvalue,
 		double *mean, double *sigma, double *noise1, double *noise2,
 		double *noise3, double *noise5, threading_type threads, int *status);
 
-int siril_fits_img_stats_float(float *array, long nx, long ny, int nullcheck,
-		float nullvalue, long *ngoodpix, float *minvalue, float *maxvalue,
+int siril_fits_img_stats_float(float *array, long nx, long ny, 
+		long *ngoodpix, float *minvalue, float *maxvalue,
 		double *mean, double *sigma, double *noise1, double *noise2,
 		double *noise3, double *noise5, threading_type threads, int *status);
 
