@@ -280,7 +280,7 @@ int *status) /* error status */
 	value = array;
 
 	for (ii = 0; ii < npix; ii++, value++) {
-		if (*value != 0. && !isnan(*value)) {
+		if (*value != 0.f && !isnan(*value)) {
 			ngood++;
 			xtemp = (double) *value;
 			sum += xtemp;
@@ -806,7 +806,7 @@ int *status) /* error status */
 	if (nx < 9) {
 
 		for (ii = 0; ii < nx; ii++) {
-			if (array[ii] == 0. || isnan(array[ii]))
+			if (array[ii] == 0.f || isnan(array[ii]))
 				continue;
 			else {
 				if (array[ii] < xminval)
@@ -893,7 +893,7 @@ int *status) /* error status */
 		/***** find the first valid pixel in row */
 		ii = 0;
 
-		while (ii < nx && (rowpix[ii] == 0. || isnan(rowpix[ii])))
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
 			ii++;
 
 		if (ii == nx)
@@ -910,7 +910,7 @@ int *status) /* error status */
 
 		/***** find the 2nd valid pixel in row (which we will skip over) */
 		ii++;
-		while (ii < nx && (rowpix[ii] == 0. || isnan(rowpix[ii])))
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
 			ii++;
 
 		if (ii == nx)
@@ -927,7 +927,7 @@ int *status) /* error status */
 
 		/***** find the 3rd valid pixel in row */
 		ii++;
-		while (ii < nx && (rowpix[ii] == 0. || isnan(rowpix[ii])))
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
 			ii++;
 
 		if (ii == nx)
@@ -944,7 +944,7 @@ int *status) /* error status */
 
 		/* find the 4nd valid pixel in row (to be skipped) */
 		ii++;
-		while (ii < nx && (rowpix[ii] == 0. || isnan(rowpix[ii])))
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
 			ii++;
 
 		if (ii == nx)
@@ -961,7 +961,7 @@ int *status) /* error status */
 
 		/* find the 5th valid pixel in row (to be skipped) */
 		ii++;
-		while (ii < nx && (rowpix[ii] == 0. || isnan(rowpix[ii])))
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
 			ii++;
 
 		if (ii == nx)
@@ -978,7 +978,7 @@ int *status) /* error status */
 
 		/* find the 6th valid pixel in row (to be skipped) */
 		ii++;
-		while (ii < nx && (rowpix[ii] == 0. || isnan(rowpix[ii])))
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
 			ii++;
 
 		if (ii == nx)
@@ -995,7 +995,7 @@ int *status) /* error status */
 
 		/* find the 7th valid pixel in row (to be skipped) */
 		ii++;
-		while (ii < nx && (rowpix[ii] == 0. || isnan(rowpix[ii])))
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
 			ii++;
 
 		if (ii == nx)
@@ -1012,7 +1012,7 @@ int *status) /* error status */
 
 		/* find the 8th valid pixel in row (to be skipped) */
 		ii++;
-		while (ii < nx && (rowpix[ii] == 0. || isnan(rowpix[ii])))
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
 			ii++;
 
 		if (ii == nx)
@@ -1033,7 +1033,7 @@ int *status) /* error status */
 		for (ii++; ii < nx; ii++) {
 
 			/* find the next valid pixel in row */
-			while (ii < nx && (rowpix[ii] == 0. || isnan(rowpix[ii])))
+			while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
 				ii++;
 
 			if (ii == nx)
@@ -1356,7 +1356,7 @@ row of the image.
 			/***** find the first valid pixel in row */
 			ii = 0;
 
-			while (ii < nx && (rowpix[ii] == 0. || isnan(rowpix[ii])))
+			while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
 				ii++;
 
 			if (ii == nx)
@@ -1369,7 +1369,7 @@ row of the image.
 			for (ii++; ii < nx; ii++) {
 
 				/* find the next valid pixel in row */
-				while (ii < nx && (rowpix[ii] == 0. || isnan(rowpix[ii])))
+				while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
 					ii++;
 
 				if (ii == nx)
