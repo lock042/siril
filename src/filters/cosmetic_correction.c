@@ -777,7 +777,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	cosmeticSeqEntry = GTK_ENTRY(lookup_widget("entryCosmeticSeq"));
 	adjCosmeAmount = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjCosmeAmount"));
 
-	struct cosmetic_data *args = malloc(sizeof(struct cosmetic_data));
+	struct cosmetic_data *args = calloc(1, sizeof(struct cosmetic_data));
 
 	if (gtk_toggle_button_get_active(
 				GTK_TOGGLE_BUTTON(lookup_widget("checkSigColdBox"))))

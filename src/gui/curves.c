@@ -559,7 +559,7 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		struct curve_params params = {.points = curve_points, .algorithm = algoritm, .do_channel = {do_channel[0],
 																									do_channel[1],
 																									do_channel[2]}};
-		struct curve_data *args = malloc(sizeof(struct mtf_data));
+		struct curve_data *args = calloc(1, sizeof(struct mtf_data));
 
 		args->params = params;
 		args->seq_entry = strdup(gtk_entry_get_text(curves_seq_entry));

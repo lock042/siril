@@ -6688,7 +6688,7 @@ int process_seq_extractHaOIII(int nb) {
 	}
 
 	struct multi_output_data *args = calloc(1, sizeof(struct multi_output_data));
-	args->user_data = malloc(sizeof(extraction_scaling));
+	args->user_data = calloc(1, sizeof(extraction_scaling));
 	*(extraction_scaling *) args->user_data = (extraction_scaling) SCALING_NONE;
 	args->seq = seq;
 	args->seqEntry = strdup("CFA"); // propose to default to "CFA" for consistency of output names with single image split_cfa

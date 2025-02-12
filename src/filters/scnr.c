@@ -227,7 +227,7 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct scnr_data *args = malloc(sizeof(struct scnr_data));
+	struct scnr_data *args = calloc(1, sizeof(struct scnr_data));
 	// Tell the threaded function if this is a preview or for real
 	args->previewing = ((GtkWidget*) button == lookup_widget("SCNR_roi_preview"));
 	// undo_save_state(...) // We don't do this here, it has to be done

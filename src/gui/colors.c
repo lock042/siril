@@ -360,7 +360,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 		return;
 	}
 
-	struct extract_channels_data *args = malloc(sizeof(struct extract_channels_data));
+	struct extract_channels_data *args = calloc(1, sizeof(struct extract_channels_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		return;
@@ -411,7 +411,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 
 
 void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
-	struct ccm_data *args = malloc(sizeof(struct ccm_data));
+	struct ccm_data *args = calloc(1, sizeof(struct ccm_data));
 
 	args->matrix[0][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m00"))), NULL);
 	args->matrix[0][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m01"))), NULL);

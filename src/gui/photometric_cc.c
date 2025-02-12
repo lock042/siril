@@ -898,7 +898,7 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 	GList *filter_list_osc = com.spcc_data.osc_filters;
 	GList *whiteref_list = com.spcc_data.wb_ref;
 	siril_plot_data *spl_data = NULL;
-	spl_data = malloc(sizeof(siril_plot_data));
+	spl_data = calloc(1, sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
 	siril_plot_set_savename(spl_data, "SPCC_data");
@@ -980,7 +980,7 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 	siril_plot_data *spl_data = NULL;
 	gboolean is_osc_sensor = (cbdata->type == OSC_SENSORS);
-	spl_data = malloc(sizeof(siril_plot_data));
+	spl_data = calloc(1, sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
 	siril_plot_set_savename(spl_data, "SPCC_data");
@@ -1148,7 +1148,7 @@ void on_spcc_atmos_corr_toggled(GtkToggleButton *button, gpointer user_data) {
 
 void on_spcc_plot_atmos_clicked(GtkButton* button, gpointer user_data) {
 	siril_plot_data *spl_data = NULL;
-	spl_data = malloc(sizeof(siril_plot_data));
+	spl_data = calloc(1, sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
 	siril_plot_set_savename(spl_data, "SPCC_data");

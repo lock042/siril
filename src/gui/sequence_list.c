@@ -468,7 +468,7 @@ void fill_sequence_list(sequence *seq, int layer, gboolean as_idle) {
 	struct _seq_list *args;
 	if (seq == NULL || layer >= seq->nb_layers) return;
 
-	args = malloc(sizeof(struct _seq_list));
+	args = calloc(1, sizeof(struct _seq_list));
 	args->seq = seq;
 	args->layer = layer;
 	args->tview = GTK_TREE_VIEW(lookup_widget("treeview1"));

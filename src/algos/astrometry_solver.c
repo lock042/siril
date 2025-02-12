@@ -118,7 +118,7 @@ static void debug_print_catalog_files(TRANS *trans, s_star *star_list_A, s_star 
 }
 
 static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args) {
-	struct astrometry_data *ret = malloc(sizeof(struct astrometry_data));
+	struct astrometry_data *ret = calloc(1, sizeof(struct astrometry_data));
 	if (!ret) {
 		PRINT_ALLOC_ERR;
 		return NULL;

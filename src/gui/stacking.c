@@ -201,7 +201,7 @@ static void start_stacking() {
 	stackparam.output_filename = gtk_entry_get_text(output_file);
 
 	/* Stacking. Result is in gfit if success */
-	struct stacking_args *params = malloc(sizeof(struct stacking_args));
+	struct stacking_args *params = calloc(1, sizeof(struct stacking_args));
 	stacking_args_deep_copy(&stackparam, params);
 	start_in_new_thread(stack_function_handler, params);
 }

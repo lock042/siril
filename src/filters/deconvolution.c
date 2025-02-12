@@ -825,7 +825,7 @@ int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
 			dest = g_strdup_printf("%s%s.ser", seqargs->new_seq_prefix, ptr + 1);
 		else dest = g_strdup_printf("%s%s.ser", seqargs->new_seq_prefix, seqargs->seq->seqname);
 
-		seqargs->new_ser = malloc(sizeof(struct ser_struct));
+		seqargs->new_ser = calloc(1, sizeof(struct ser_struct));
 		if (ser_create_file(dest, seqargs->new_ser, TRUE, seqargs->seq->ser_file)) {
 			free(seqargs->new_ser);
 			seqargs->new_ser = NULL;
@@ -840,7 +840,7 @@ int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
 			dest = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, ptr + 1, com.pref.ext);
 		else dest = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, seqargs->seq->seqname, com.pref.ext);
 
-		seqargs->new_fitseq = malloc(sizeof(fitseq));
+		seqargs->new_fitseq = calloc(1, sizeof(fitseq));
 		if (fitseq_create_file(dest, seqargs->new_fitseq, seqargs->nb_filtered_images)) {
 			free(seqargs->new_fitseq);
 			seqargs->new_fitseq = NULL;

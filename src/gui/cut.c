@@ -536,7 +536,7 @@ gpointer cut_profile(gpointer p) {
 		}
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
+	spl_data = calloc(1, sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
@@ -743,7 +743,7 @@ gpointer tri_cut(gpointer p) {
 		xlabel = g_strdup_printf(_("Distance along cut / px"));
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
+	spl_data = calloc(1, sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
@@ -864,7 +864,7 @@ gpointer cfa_cut(gpointer p) {
 		xlabel = g_strdup_printf(_("Distance along cut / px"));
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
+	spl_data = calloc(1, sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);

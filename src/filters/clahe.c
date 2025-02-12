@@ -65,7 +65,7 @@ static void clahe_close(gboolean revert) {
 static int clahe_update_preview() {
 	copy_backup_to_gfit();
 
-	struct CLAHE_data *args = malloc(sizeof(struct CLAHE_data));
+	struct CLAHE_data *args = calloc(1, sizeof(struct CLAHE_data));
 
 	set_cursor_waiting(TRUE);
 

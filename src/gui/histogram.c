@@ -1230,7 +1230,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		/* Apply to the whole sequence */
 		sequence_working = TRUE;
 		if (invocation == HISTO_STRETCH) {
-			struct mtf_data *args = malloc(sizeof(struct mtf_data));
+			struct mtf_data *args = calloc(1, sizeof(struct mtf_data));
 			struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 			fprintf(stdout, "%d %d %d\n", params.do_red, params.do_green, params.do_blue);
 			args->params = params;
@@ -1251,7 +1251,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			gtk_toggle_button_set_active(seq_button, FALSE);
 			apply_mtf_to_sequence(args);
 		} else if (invocation == GHT_STRETCH) {
-			struct ght_data *args = malloc(sizeof(struct ght_data));
+			struct ght_data *args = calloc(1, sizeof(struct ght_data));
 			struct ght_params *params = malloc(sizeof(struct ght_params));
 			params->B = _B;
 			params->D = _D;

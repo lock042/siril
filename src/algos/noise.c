@@ -113,7 +113,7 @@ void evaluate_noise_in_image() {
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	struct noise_data *args = malloc(sizeof(struct noise_data));
+	struct noise_data *args = calloc(1, sizeof(struct noise_data));
 	args->fit = &gfit;
 	args->use_idle = TRUE;
 	args->display_results = TRUE;
@@ -129,7 +129,7 @@ void bgnoise_async(fits *fit, gboolean display_values) {
 		siril_debug_print("bgnoise request ignored, still running\n");
 		return;
 	}
-	struct noise_data *args = malloc(sizeof(struct noise_data));
+	struct noise_data *args = calloc(1, sizeof(struct noise_data));
 	args->fit = fit;
 	args->use_idle = FALSE;
 	args->display_start_end = FALSE;

@@ -1142,7 +1142,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 	if (!args->multiple_output) {
 		if (args->output_type == SEQ_SER) {
 			if (!conv->output_ser) {
-				conv->output_ser = malloc(sizeof(struct ser_struct));
+				conv->output_ser = calloc(1, sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
 				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? g_strdup(args->destroot) : g_strdup_printf("%s.ser", args->destroot);
 				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
@@ -1163,7 +1163,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		}
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (!conv->output_fitseq) {
-				conv->output_fitseq = malloc(sizeof(struct fits_sequence));
+				conv->output_fitseq = calloc(1, sizeof(struct fits_sequence));
 				char *dest = g_str_has_suffix(args->destroot, com.pref.ext) ? args->destroot : g_strdup_printf("%s%s", args->destroot, com.pref.ext);
 				if (fitseq_create_file(dest, conv->output_fitseq,
 							args->input_has_a_seq ? -1 : args->total)) {
@@ -1213,7 +1213,7 @@ static seqwrite_status open_next_output_seq(const struct _convert_data *args, co
 		if (args->output_type == SEQ_SER) {
 			if (conv->next_file != conv->args->total) {
 				gchar *dest_filename = create_sequence_filename(SEQ_SER, args->destroot, conv->output_file_number++);
-				conv->output_ser = malloc(sizeof(struct ser_struct));
+				conv->output_ser = calloc(1, sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
 				if (ser_create_file(dest_filename, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), dest_filename);
@@ -1228,7 +1228,7 @@ static seqwrite_status open_next_output_seq(const struct _convert_data *args, co
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (conv->next_file != conv->args->total) {
 				gchar *dest_filename = create_sequence_filename(SEQ_FITSEQ, args->destroot, conv->output_file_number++);
-				conv->output_fitseq = malloc(sizeof(struct fits_sequence));
+				conv->output_fitseq = calloc(1, sizeof(struct fits_sequence));
 				if (fitseq_create_file(dest_filename, conv->output_fitseq, -1)) {
 					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), dest_filename);
 					g_free(dest_filename);
@@ -1286,7 +1286,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			g_free(name);
 			return OPEN_ERROR;
 		}
-		convert->current_ser = malloc(sizeof(struct ser_struct));
+		convert->current_ser = malloc(sizeof(struct ser_struct)); // no need for calloc as init follows
 		ser_init_struct(convert->current_ser);
 		siril_log_message(_("Reading %s\n"), src_filename);
 		if (ser_open_file(src_filename, convert->current_ser)) {
@@ -1307,7 +1307,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			g_free(name);
 			return OPEN_ERROR;
 		}
-		convert->current_fitseq = malloc(sizeof(fitseq));
+		convert->current_fitseq = malloc(sizeof(fitseq)); // no need for calloc as init follows
 		fitseq_init_struct(convert->current_fitseq);
 		siril_log_message(_("Reading %s\n"), src_filename);
 		if (fitseq_open(name, convert->current_fitseq, READONLY)) {

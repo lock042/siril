@@ -166,7 +166,7 @@ static gpointer export_sequence(gpointer ptr) {
 			clearfits(&ref);
 			break;
 		case EXPORT_FITSEQ:
-			fitseq_file = malloc(sizeof(fitseq));
+			fitseq_file = calloc(1, sizeof(fitseq));
 			snprintf(dest, 256, "%s%s", args->basename, com.pref.ext);
 			if (fitseq_create_file(dest, fitseq_file, -1)) {
 				free(fitseq_file);
@@ -184,7 +184,7 @@ static gpointer export_sequence(gpointer ptr) {
 			break;
 
 		case EXPORT_SER:
-			ser_file = malloc(sizeof(struct ser_struct));
+			ser_file = calloc(1, sizeof(struct ser_struct));
 			snprintf(dest, 256, "%s.ser", args->basename);
 			if (ser_create_file(dest, ser_file, TRUE, args->seq->ser_file)) {
 				free(ser_file);

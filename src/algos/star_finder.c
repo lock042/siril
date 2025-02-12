@@ -1160,7 +1160,7 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 static gboolean findstar_image_read_hook(struct generic_seq_args *args, int index) {
 	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 
-	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
+	struct starfinder_data *curr_findstar_args = calloc(1, sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = index;
 	curr_findstar_args->im.fit = NULL;
@@ -1192,7 +1192,7 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 // - wrapped by findstar_image_hook
 // - called by registration
 struct starfinder_data *findstar_image_worker(const struct starfinder_data *findstar_args, int o, int i, fits *fit, rectangle *_, int threads) {
-	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
+	struct starfinder_data *curr_findstar_args = calloc(1, sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = i;
 	curr_findstar_args->im.fit = fit;
