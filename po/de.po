@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-02-01 12:51+0100\n"
-"PO-Revision-Date: 2025-02-03 19:14+0000\n"
-"Last-Translator: Jens Fischer <jensfz@gmail.com>\n"
+"PO-Revision-Date: 2025-02-08 15:43+0000\n"
+"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -10654,7 +10654,7 @@ msgstr "MAD Clipping"
 
 #: src/gui/uifiles/siril.ui:8351
 msgid "Median Sigma Clipping"
-msgstr ""
+msgstr "Median Sigma Ausschnitt"
 
 #: src/gui/uifiles/siril.ui:8352
 msgid "Winsorized Sigma Clipping"
@@ -14042,7 +14042,7 @@ msgstr "Antwort des SIMBAD Servers:\n"
 #: src/algos/search_objects.c:63 src/algos/search_objects.c:139
 #, c-format
 msgid "%s\n"
-msgstr ""
+msgstr "%s\n"
 
 #: src/algos/search_objects.c:136 src/io/remote_catalogues.c:275
 msgid "IMCCE server returned:\n"
@@ -14066,7 +14066,7 @@ msgstr "%s gefunden"
 #: src/algos/search_objects.c:222
 #, c-format
 msgid " (aka %s)"
-msgstr ""
+msgstr " (aka %s)"
 
 #: src/algos/search_objects.c:223
 #, c-format
@@ -26107,21 +26107,20 @@ msgstr ""
 "Erfolg! Das lokale Repository ist mit den Remote-Repository synchronisiert."
 
 #: src/gui/git_gui.c:112
-#, fuzzy
 msgid "Processing"
-msgstr "In Bearbeitung..."
+msgstr "In Bearbeitung"
 
 #: src/gui/git_gui.c:114
 msgid "Utility"
-msgstr ""
+msgstr "Werkzeug"
 
 #: src/gui/git_gui.c:116
 msgid "Core"
-msgstr ""
+msgstr "Kern"
 
 #: src/gui/git_gui.c:119
 msgid "Other"
-msgstr ""
+msgstr "Andere"
 
 #: src/gui/git_gui.c:125 src/gui/python_gui.c:895 src/gui/python_gui.c:1064
 msgid "Siril Script File"
@@ -28382,9 +28381,9 @@ msgid "Loading script from repository: %s\n"
 msgstr "Lade Script aus dem Repository: %s\n"
 
 #: src/gui/script_menu.c:437
-#, fuzzy, c-format
+#, c-format
 msgid "Adding core script to menu: %s\n"
-msgstr "Lade Script: %s\n"
+msgstr "Kernskript zum Menü hinzufügen: %s\n"
 
 #: src/gui/script_menu.c:465
 msgid "Cannot refresh the scripts if the list is empty.\n"
@@ -30755,7 +30754,7 @@ msgstr ""
 
 #: src/io/siril_catalogues.c:294
 msgid "Gaia DR3 astrometry"
-msgstr ""
+msgstr "Gaia DR3 Astrometrie"
 
 #: src/io/siril_catalogues.c:296
 msgid "Gaia DR3 xp_sampled"
@@ -31167,7 +31166,7 @@ msgstr "Fehler beim Lesen von stderr: %s\n"
 #: src/io/siril_pythonmodule.c:826 src/io/siril_pythonmodule.c:834
 #, c-format
 msgid "Python process (PID: %d) exited with status %d\n"
-msgstr ""
+msgstr "Python Prozess (PID: %d) mit Status %d beendet\n"
 
 #: src/io/siril_pythonmodule.c:837
 #, c-format
@@ -31240,24 +31239,22 @@ msgstr ""
 "msys2-Terminal aus starten.\n"
 
 #: src/io/siril_pythonmodule.c:1698
-#, fuzzy
 msgid "No python installation found in the system or in the bundle, aborting\n"
-msgstr "Keine Vergleichssterne im Bild gefunden, Abbruch\n"
+msgstr "Keine Python-Installation im System oder im Bundle gefunden, Abbruch\n"
 
 #: src/io/siril_pythonmodule.c:1725
-#, fuzzy, c-format
+#, c-format
 msgid "Error in venv creation command: %s\n"
-msgstr "Fehler bei der Namensauflösung: %s\n"
+msgstr "Fehler beim Befehl zur Erstellung von venv: %s\n"
 
 #: src/io/siril_pythonmodule.c:1765
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
-msgstr "Konnte erstes Bild nicht öffnen"
+msgstr "Die virtuelle Python-Umgebung konnte nicht initialisiert werden: %s\n"
 
 #: src/io/siril_pythonmodule.c:1776
-#, fuzzy
 msgid "Failed to prepare virtual environment\n"
-msgstr "Konnte erstes Bild nicht öffnen"
+msgstr "Vorbereitung der virtuellen Umgebung fehlgeschlagen\n"
 
 #: src/io/siril_pythonmodule.c:1832
 msgid ""
@@ -31271,15 +31268,12 @@ msgstr ""
 "versuchen Sie es erneut.\n"
 
 #: src/io/siril_pythonmodule.c:1852
-#, fuzzy
 msgid "Error: failed to create Python connection.\n"
-msgstr ""
-"Fehler: Ausgabe kann nicht in den Benutzerkatalog geschrieben werden.\n"
+msgstr "Fehler: Python-Verbindung kann nicht erstellt werden.\n"
 
 #: src/io/siril_pythonmodule.c:1864
-#, fuzzy
 msgid "Error: Python connection not available.\n"
-msgstr "Fehler: Befehl %s ist nicht verfügbar\n"
+msgstr "Fehler: Python Verbindung ist nicht verfügbar\n"
 
 #: src/io/siril_pythonmodule.c:1913
 msgid "Error finding venv python path, unable to spawn python.\n"
@@ -31288,14 +31282,13 @@ msgstr ""
 "werden.\n"
 
 #: src/io/siril_pythonmodule.c:2029
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to execute Python script: %s\n"
-msgstr "Konfigurationsverzeichnis %s konnte nicht erstellt werden\n"
+msgstr "Python-Skript konnte nicht ausgeführt werden: %s\n"
 
 #: src/io/siril_pythoncommands.c:438
-#, fuzzy
 msgid "Unknown config type"
-msgstr "Unbekanntes Bild"
+msgstr "Unbekannter Konfigurationstyp"
 
 #: src/io/siril_pythoncommands.c:591
 msgid "Received incomplete command header\n"
@@ -31308,41 +31301,36 @@ msgstr "Empfangene unvollständige Befehls-Nutzdaten: Länge = %u, erwartet %u\n
 
 #. Handle error retrieving dimensions
 #: src/io/siril_pythoncommands.c:630 src/io/siril_pythoncommands.c:659
-#, fuzzy
 msgid "Failed to retrieve image dimensions - no image loaded"
-msgstr "Konnte die Maske für %d nicht speichern\n"
+msgstr "Bildabmessungen konnten nicht abgerufen werden - kein Bild geladen"
 
 #. Handle error retrieving dimensions
 #: src/io/siril_pythoncommands.c:682
 msgid "Failed to retrieve current vport - no image loaded"
-msgstr ""
+msgstr "Abruf des aktuellen vport fehlgeschlagen - kein Bild geladen"
 
 #: src/io/siril_pythoncommands.c:699
 msgid "Failed to set selection - selection exceeds image bounds"
-msgstr ""
+msgstr "Auswahl konnte nicht gesetzt werden - Auswahl überschreitet Bildgrenzen"
 
 #. Handle error retrieving dimensions
 #: src/io/siril_pythoncommands.c:710 src/io/siril_pythoncommands.c:1886
 #: src/io/siril_pythoncommands.c:1923
-#, fuzzy
 msgid "Failed to set selection - no image loaded"
-msgstr "Konnte die Maske für %d nicht speichern\n"
+msgstr "Auswahl kann nicht gesetzt werden - kein Bild geladen"
 
 #: src/io/siril_pythoncommands.c:748 src/io/siril_pythoncommands.c:831
-#, fuzzy
 msgid "Invalid selection"
-msgstr "Bildauswahl:"
+msgstr "ungültige Auswahl"
 
 #: src/io/siril_pythoncommands.c:753 src/io/siril_pythoncommands.c:823
 #: src/io/siril_pythoncommands.c:1183
-#, fuzzy
 msgid "Invalid channel"
-msgstr "Ungültiges Zeichen"
+msgstr "Ungültiger Kanal"
 
 #: src/io/siril_pythoncommands.c:761
-#, fuzzy
 msgid "Failed to find a star"
-msgstr "Konnte erstes Bild nicht öffnen"
+msgstr "Keinen Stern gefunden"
 
 #: src/io/siril_pythoncommands.c:780 src/io/siril_pythoncommands.c:842
 #: src/io/siril_pythoncommands.c:1206 src/io/siril_pythoncommands.c:1270
@@ -31351,222 +31339,194 @@ msgstr "Konnte erstes Bild nicht öffnen"
 #: src/io/siril_pythoncommands.c:1525 src/io/siril_pythoncommands.c:1562
 #: src/io/siril_pythoncommands.c:1614 src/io/siril_pythoncommands.c:1674
 #: src/io/siril_pythoncommands.c:1705
-#, fuzzy
 msgid "Memory allocation error"
 msgstr "Speicherzuweisungsfehler"
 
 #: src/io/siril_pythoncommands.c:802
 msgid "Invalid region: selection breaches image dimensions"
-msgstr ""
+msgstr "Ungültiger Bereich: Auswahl überschreitet die Bildmaße"
 
 #: src/io/siril_pythoncommands.c:816 src/io/siril_pythoncommands.c:1176
 #: src/io/siril_pythoncommands.c:1257 src/io/siril_pythoncommands.c:1693
 #: src/io/siril_pythoncommands.c:1716 src/io/siril_pythoncommands.c:1737
 #: src/io/siril_pythoncommands.c:1757 src/io/siril_pythoncommands.c:1790
-#, fuzzy
 msgid "No image loaded"
-msgstr "Keine Bilder geladen"
+msgstr "Kein Bild geladen"
 
 #: src/io/siril_pythoncommands.c:863
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA_REGION\n"
-msgstr ""
+msgstr "Unerwartete Dtenlänge %u für GET_PIXELDATA_REGION empfangen\n"
 
 #: src/io/siril_pythoncommands.c:875
 msgid "Invalid FINISHED_WITH_SHM payload"
-msgstr ""
+msgstr "Ungültige FINISHED_WITH_SHM Nutzlast"
 
 #: src/io/siril_pythoncommands.c:893
-#, fuzzy
 msgid "Siril command error"
-msgstr "SIRIL Kontrollzentrum"
+msgstr "Fehler beim SIRIL-Befehl"
 
 #: src/io/siril_pythoncommands.c:953
 msgid "Undo not supported in headless mode"
-msgstr ""
+msgstr "Rückgängig machen wird im Headless-Modus nicht unterstützt"
 
 #. Handle error
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:966 src/io/siril_pythoncommands.c:1035
-#, fuzzy
 msgid "Image not loaded"
-msgstr "Bild geladen"
+msgstr "Bild nicht geladen"
 
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:979
-#, fuzzy
 msgid "Working directory not set"
-msgstr "Verknüpfung: kein Arbeitsverzeichnis festgelegt.\n"
+msgstr "kein Arbeitsverzeichnis festgelegt"
 
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:993
-#, fuzzy
 msgid "Error: user config directory not set"
-msgstr "Konvertierung: kein Arbeitsverzeichnis festgelegt.\n"
+msgstr "Fehler: Benutzer-Konfigurationsverzeichnis nicht gesetzt"
 
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:1008
-#, fuzzy
 msgid "Error: user data directory not set"
-msgstr "Konvertierung: kein Arbeitsverzeichnis festgelegt.\n"
+msgstr "Fehler: Benutzerdatenverzeichnis nicht gesetzt"
 
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:1022
-#, fuzzy
 msgid "Error: system data directory not set"
-msgstr "Konvertierung: kein Arbeitsverzeichnis festgelegt.\n"
+msgstr "Fehler: Systemdatenverzeichnis nicht gesetzt"
 
 #: src/io/siril_pythoncommands.c:1044 src/io/siril_pythoncommands.c:1060
 #: src/io/siril_pythoncommands.c:1137 src/io/siril_pythoncommands.c:1150
 #: src/io/siril_pythoncommands.c:1165 src/io/siril_pythoncommands.c:1218
 msgid "Invalid payload length"
-msgstr ""
+msgstr "Ungültige Datenlänge"
 
 #: src/io/siril_pythoncommands.c:1066 src/io/siril_pythoncommands.c:1074
-#, fuzzy
 msgid "Failed to load sequence frame"
-msgstr "Konnte die Sequenz nicht lesen, Abbruch."
+msgstr "Bild einer Sequenz konnte nicht geladen werden"
 
 #: src/io/siril_pythoncommands.c:1090
-#, fuzzy
 msgid "Failed to compute output index"
-msgstr "Erstellung der Ausgabedatei %s fehlgeschlagen\n"
+msgstr "Ausgabe-Index konnte nicht berechnet werden"
 
 #: src/io/siril_pythoncommands.c:1125
-#, fuzzy, c-format
+#, c-format
 msgid "Error writing sequence frame %i from Python\n"
-msgstr "Fehler beim Einlesen von Frame %d aus %s. Abbruch.\n"
+msgstr "Fehler beim Schreiben von Sequenzrahmen %i aus Python\n"
 
 #: src/io/siril_pythoncommands.c:1193
-#, fuzzy
 msgid "No stats"
-msgstr "nb Sterne"
+msgstr "keine Statistik"
 
 #: src/io/siril_pythoncommands.c:1291 src/io/siril_pythoncommands.c:1336
 msgid "Incorrect command arguments"
-msgstr ""
+msgstr "Falsche Befehlsargumente"
 
 #: src/io/siril_pythoncommands.c:1301 src/io/siril_pythoncommands.c:1588
 #: src/io/siril_pythoncommands.c:1647
-#, fuzzy
 msgid "Memory allocation failed"
-msgstr "Fehler: Fehler bei der Speicherzuweisung.\n"
+msgstr "Fehler bei der Speicherzuweisung"
 
 #: src/io/siril_pythoncommands.c:1306 src/io/siril_pythoncommands.c:1315
-#, fuzzy
 msgid "No regdata available"
-msgstr "Nicht verfügbar"
+msgstr "Keine regdata verfügbar"
 
 #: src/io/siril_pythoncommands.c:1348
-#, fuzzy
 msgid "No stats for this sequence"
-msgstr "PSF für die Sequenz"
+msgstr "Keine Statistik für diese Sequenz"
 
 #: src/io/siril_pythoncommands.c:1356
 msgid "No stats for this channel for this frame"
-msgstr ""
+msgstr "Keine Statistik für diesen Kanal für dieses Bild"
 
 #: src/io/siril_pythoncommands.c:1382 src/io/siril_pythoncommands.c:1432
 #: src/io/siril_pythoncommands.c:1480
-#, fuzzy
 msgid "Incorrect command argument"
-msgstr "unbekannter Befehlsname"
+msgstr "unbekannte Befehlsparameter"
 
 #: src/io/siril_pythoncommands.c:1410
 msgid "Incorrect payload"
-msgstr ""
+msgstr "Ungültige Daten"
 
 #: src/io/siril_pythoncommands.c:1429
 msgid "Selection cropped to frame boundaries\n"
-msgstr ""
+msgstr "Auf die Rahmengrenzen zugeschnittene Auswahl\n"
 
 #: src/io/siril_pythoncommands.c:1440
-#, fuzzy
 msgid "Failed to read sequence frame"
-msgstr "Konnte die Sequenz nicht lesen, Abbruch."
+msgstr "Konnte die Sequenz nicht lesen"
 
 #: src/io/siril_pythoncommands.c:1453
-#, fuzzy
 msgid "Invalid dimensions"
-msgstr "Abmessungen der Kacheln"
+msgstr "Ungültige Dimensionen"
 
 #: src/io/siril_pythoncommands.c:1487
-#, fuzzy
 msgid "Failed to read frame metadata"
-msgstr "Fehler: Kann keine Metadaten aus dem Referenzbild laden\n"
+msgstr "Konnte keine Metadaten aus dem Bild  laden"
 
 #: src/io/siril_pythoncommands.c:1573
-#, fuzzy
 msgid "No stars list available"
-msgstr "Nicht verfügbar"
+msgstr "keine Sternliste verfügbar"
 
 #: src/io/siril_pythoncommands.c:1596
 msgid "Stars array was cleared mid-process"
-msgstr ""
+msgstr "Das Sternenfeld wurde mitten im Prozess gelöscht"
 
 #: src/io/siril_pythoncommands.c:1604
 msgid "Unexpected null star entry"
-msgstr ""
+msgstr "Unerwarteter Null-Stern-Eintrag"
 
 #: src/io/siril_pythoncommands.c:1637
-#, fuzzy
 msgid "No background samples list available"
-msgstr "Nicht verfügbar"
+msgstr "Keine Liste mit Hintergrundbeispielen verfügbar"
 
 #: src/io/siril_pythoncommands.c:1656
-#, fuzzy
 msgid "Mismatch in samples count"
-msgstr "Bringe ausgewählte Sterne zur Deckung"
+msgstr "Unstimmigkeiten bei der Anzahl der Proben"
 
 #: src/io/siril_pythoncommands.c:1664
-#, fuzzy
 msgid "Unexpected null background sample"
-msgstr "Fehler beim Erzeugen der Hintergrundproben.\n"
+msgstr "Unerwartete Null-Hintergrundprobe"
 
 #: src/io/siril_pythoncommands.c:1721
-#, fuzzy
 msgid "Image has no ICC profile"
-msgstr "Aktuelles ICC-Profil des Bildes"
+msgstr "Bild hat kein ICC-Profil"
 
 #: src/io/siril_pythoncommands.c:1743
-#, fuzzy
 msgid "Image has no FITS header"
-msgstr "Aktuell geladenes Bild hat keinen FITS-Header\n"
+msgstr "Bild hat keinen FITS-Header"
 
 #: src/io/siril_pythoncommands.c:1763
 msgid "Image has no history entries"
-msgstr ""
+msgstr "Bild hat keine historischen Einträge"
 
 #: src/io/siril_pythoncommands.c:1796
 msgid "Image has no unknown keys"
-msgstr ""
+msgstr "Bild hat keine unbekannten Schlüsselfelder"
 
 #. Need at least two null-terminated strings
 #: src/io/siril_pythoncommands.c:1811
-#, fuzzy
 msgid "Group and key must be provided"
-msgstr "Zuschnitt: X und Y müssen positiv sein.\n"
+msgstr "Gruppe und Schlüssel müssen angegeben werden"
 
 #: src/io/siril_pythoncommands.c:1820
 msgid "Malformed group/key data"
-msgstr ""
+msgstr "fehlerhaft Gruppen-/Schlüsseldaten"
 
 #: src/io/siril_pythoncommands.c:1831
-#, fuzzy
 msgid "Configuration key not found"
-msgstr "Verzeichnis nicht gefunden"
+msgstr "Konfigurationsschlüssel nicht gefunden"
 
 #. Handle no WCS error
 #: src/io/siril_pythoncommands.c:1858 src/io/siril_pythoncommands.c:1897
-#, fuzzy
 msgid "Siril image is not plate solved"
-msgstr "Aktuell geladenes Bild muss astrometrisch gelöst sein"
+msgstr "SIRIL Bild ist nicht astrometrisch gelöst"
 
 #. Handle error retrieving the working directory
 #: src/io/siril_pythoncommands.c:1939
-#, fuzzy
 msgid "Failed to retrieve bundle path"
-msgstr "Konnte die Sequenz nicht lesen, Abbruch."
+msgstr "Bundlepfad konnte nicht abgerufen werden"
 
 #. Handle error: OS is not Windows
 #: src/io/siril_pythoncommands.c:1944
@@ -31576,29 +31536,25 @@ msgstr "_get_bundle_path() nur unter Windows anwendbar"
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:1954
 msgid "Thread is busy"
-msgstr ""
+msgstr "Prozesszweig ist beschäftigt"
 
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:1958
-#, fuzzy
 msgid "Image processing dialog is open"
-msgstr "Bildbearbeitung"
+msgstr "Dialog Bildbearbeitung ist geöffnet"
 
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:1966
-#, fuzzy
 msgid "Unknown error"
-msgstr "Unbekannter Fehler\n"
+msgstr "Unbekannter Fehler"
 
 #: src/io/siril_pythoncommands.c:1992 src/io/siril_pythoncommands.c:2027
-#, fuzzy
 msgid "Incorrect payload length"
-msgstr "Brennweite"
+msgstr "Fehlerhafte Länge der Daten"
 
 #: src/io/siril_pythoncommands.c:2018
-#, fuzzy
 msgid "Index is out of range"
-msgstr "Pixelwert außerhalb des Bereichs"
+msgstr "Index ist außerhalb des Bereichs"
 
 #: src/io/siril_pythoncommands.c:2035
 #, fuzzy
@@ -31615,12 +31571,12 @@ msgid "Error: The JSON file should contain an array of objects.\n"
 msgstr "Fehler: Die JSON-Datei sollte ein Feld von Objekten enthalten.\n"
 
 #: src/io/spcc_json.c:180
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Error loading SPCC JSON file: arrays have not the same size (%zu != %zu)\n"
 msgstr ""
-"Fehler beim Laden der SPCC JSON-Datei: Felder haben nicht die selbe Größe "
-"(%d != %d)\n"
+"Fehler beim Laden der SPCC JSON-Datei: Felder haben nicht die selbe Größe ("
+"%zu != %zu)\n"
 
 #: src/io/spcc_json.c:346
 #, c-format
@@ -31633,26 +31589,25 @@ msgid "Warning: Duplicate x value detected in JSON file %s: %.1f\n"
 msgstr "Warnung: Doppelte X-Werte in JSON-Datei %s erkannt: %.1f\n"
 
 #: src/io/spcc_json.c:495
-#, fuzzy, c-format
+#, c-format
 msgid "Error: index %zu out of range (max: %zu).\n"
-msgstr "Fehler: Layer außerhalb des Bereichs.\n"
+msgstr "Fehler: Index %zu außerhalb des Bereichs (max: %zu).\n"
 
 #: src/io/spcc_json.c:502
 msgid "Error: index must be 0 for single object JSON.\n"
-msgstr ""
+msgstr "Fehler: Index muss 0 für ein einzelnes Objekt JSON sein.\n"
 
 #: src/io/spcc_json.c:507
-#, fuzzy
 msgid "Error: JSON root must be an array or object.\n"
-msgstr "Fehler: Die JSON-Datei sollte ein Feld von Objekten enthalten.\n"
+msgstr "Fehler: JSON root muss ein Array oder Objekt sein.\n"
 
 #: src/io/spcc_json.c:515
 msgid "Error: Missing or invalid wavelength/values objects.\n"
-msgstr ""
+msgstr "Fehler: Fehlende oder ungültige Wellenlängen/Werte-Objekte\n"
 
 #: src/io/spcc_json.c:522
 msgid "Error: Missing or invalid wavelength units.\n"
-msgstr ""
+msgstr "Fehler: Fehlende oder ungültige Wellenlängeneinheiten.\n"
 
 #: src/io/spcc_json.c:533
 #, c-format
@@ -31661,56 +31616,51 @@ msgstr "Warnung: Fehler in JSON-Datei %s: Unerkannte Einheit der Wellenlänge\n"
 
 #: src/io/spcc_json.c:541
 msgid "Error: Missing or invalid value range.\n"
-msgstr ""
+msgstr "Fehler: Fehlende oder ungültige Wertebereich.\n"
 
 #: src/io/spcc_json.c:550
 msgid "Error: Missing or invalid value arrays.\n"
-msgstr ""
+msgstr "Fehler: Fehlende oder ungültige Werte-Arrays.\n"
 
 #: src/io/spcc_json.c:557
 #, c-format
 msgid "Error: Invalid array sizes (wavelength: %zu, values: %zu).\n"
-msgstr ""
+msgstr "Fehler: Ungültige Array-Größen (Wellenlänge: %zu, Werte: %zu).\n"
 
 #: src/io/spcc_json.c:568 src/io/spcc_json.c:600
-#, fuzzy
 msgid "Error: Memory allocation failed.\n"
-msgstr "Fehler: Fehler bei der Speicherzuweisung.\n"
+msgstr "Fehler: Speicherzuweisung fehlgeschlagen.\n"
 
 #: src/io/spcc_json.c:582
 #, c-format
 msgid "Error: Invalid number at index %zu.\n"
-msgstr ""
+msgstr "Fehler: Ungültige Nummer bei Index %zu.\n"
 
 #: src/io/healpix/healpix.cpp:133
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to open file: %s\n"
 msgstr "Konnte Datei %s nicht öffnen\n"
 
 #: src/io/healpix/healpix.cpp:144
-#, fuzzy
 msgid "Failed to read catalog index entry.\n"
-msgstr "Konnte erstes Bild nicht öffnen"
+msgstr "Der Katalogindexeintrag konnte nicht gelesen werden.\n"
 
 #: src/io/healpix/healpix.cpp:157
-#, fuzzy
 msgid "ID range exceeds catalog bounds.\n"
-msgstr "Keine gültiger Katalog gefunden.\n"
+msgstr "Der ID-Bereich überschreitet die Grenzen des Katalogs.\n"
 
 #: src/io/healpix/healpix.cpp:186
-#, fuzzy
 msgid "Failed to read data entries.\n"
-msgstr "Erstellung der Lichtkurvendatendatei %s fehlgeschlagen\n"
+msgstr "Dateneinträge konnten nicht gelesen werden.\n"
 
 #: src/io/healpix/healpix.cpp:552
-#, fuzzy
 msgid "Error: no chunks detected.\n"
-msgstr "Fehler: Keine Sequenz geladen.\n"
+msgstr "Fehler: keine Stücke gefunden.\n"
 
 #: src/io/healpix/healpix.cpp:601
-#, fuzzy, c-format
+#, c-format
 msgid "Chunk file not found: %s\n"
-msgstr "Datei nicht gefunden"
+msgstr "Teile einer Datei nicht gefunden: %s\n"
 
 #: src/io/healpix/healpix.cpp:610
 #, c-format
@@ -31719,6 +31669,10 @@ msgid ""
 "values. All chunk files must have the same chunk level and indexing level "
 "and must represent the same Gaia data release\n"
 msgstr ""
+"Fehler: Katalog-Header-Werte für Chunk %lu sind nicht kompatibel mit "
+"früheren Werten. Alle Chunk-Dateien müssen die gleiche Chunk-Ebene und "
+"Indizierungsebene haben und müssen die gleiche Gaia-Datenversion "
+"repräsentieren\n"
 
 #: src/livestacking/gui.c:88
 #, c-format
@@ -32647,13 +32601,12 @@ msgid "Could not copy WCS information for distortion\n"
 msgstr "Konnte WCS-Informationen für Verzerrungen nicht kopieren\n"
 
 #: src/registration/distorsion.c:408
-#, fuzzy
 msgid ""
 "Sequence file points to master distorsion file but its specification is "
 "empty in the preferences\n"
 msgstr ""
-"Die Sequenzdatei verweist auf die Masterverzerrungs-Datei, aber ihre "
-"Spezifikation in den Einstellungen ist leer\n"
+"Die Sequenzdatei verweist auf die Hauptdistributionsdatei, aber ihre Angabe "
+"ist in den Einstellungen leer\n"
 
 #: src/registration/distorsion.c:429
 #, c-format
@@ -32952,9 +32905,8 @@ msgid "Trial #%d: Reference image: #%d - Frames aligned: %d\n"
 msgstr "Versuch #%d: Referenzbild: #%d - Ausgerichtete Frames: %d\n"
 
 #: src/registration/global.c:1035
-#, fuzzy
 msgid "Could not find an image that aligns more than itself, aborting\n"
-msgstr "Konnte im Referenzbild keine Sterne finden und breche ab.\n"
+msgstr "Konnte kein Bild finden, das mehr als sich selbst ausrichtet, Abbruch\n"
 
 #. for display purposes
 #: src/registration/global.c:1042 src/registration/global.c:1069

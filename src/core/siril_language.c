@@ -57,6 +57,7 @@ parsed_code locale_str[] = {
 	{"tl_PH", "Tagalog"},
 	{"uk", "Українська"},
 	{"zh_CN", "汉语"},
+	{"zh_TW", "正體中文"},
 	{NULL, NULL}
 };
 
