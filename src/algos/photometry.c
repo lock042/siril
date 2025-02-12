@@ -521,7 +521,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
 	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
 
-	spl_data = malloc(sizeof(siril_plot_data));
+	spl_data = calloc(1, sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, titledat);
 	siril_plot_set_xlabel(spl_data, xlabel);

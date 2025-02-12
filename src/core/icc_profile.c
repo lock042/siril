@@ -1520,7 +1520,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 					"%s"
 					"</span>"), description);
 	free(description);
-	spl_data = malloc(sizeof(siril_plot_data));
+	spl_data = calloc(1, sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_xlabel(spl_data, _("CIE x"));
 	siril_plot_set_savename(spl_data, "color_profile");

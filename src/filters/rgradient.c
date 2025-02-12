@@ -234,7 +234,7 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct rgradient_filter_data *args = malloc(sizeof(struct rgradient_filter_data));
+	struct rgradient_filter_data *args = calloc(1, sizeof(struct rgradient_filter_data));
 	args->xc = get_xc();
 	args->yc = get_yc();
 	args->dR = get_dR();

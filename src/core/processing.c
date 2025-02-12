@@ -488,7 +488,7 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 			dest = g_strdup_printf("%s%s.ser", args->new_seq_prefix, ptr + 1);
 		else dest = g_strdup_printf("%s%s.ser", args->new_seq_prefix, args->seq->seqname);
 
-		args->new_ser = malloc(sizeof(struct ser_struct));
+		args->new_ser = calloc(1, sizeof(struct ser_struct));
 		if (ser_create_file(dest, args->new_ser, TRUE, args->seq->ser_file)) {
 			free(args->new_ser);
 			args->new_ser = NULL;
@@ -503,7 +503,7 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 			dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, ptr + 1, com.pref.ext);
 		else dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, args->seq->seqname, com.pref.ext);
 
-		args->new_fitseq = malloc(sizeof(fitseq));
+		args->new_fitseq = calloc(1, sizeof(fitseq));
 		if (fitseq_create_file(dest, args->new_fitseq, args->nb_filtered_images)) {
 			free(args->new_fitseq);
 			args->new_fitseq = NULL;

@@ -354,7 +354,7 @@ int shift_fit_from_reg(fits *fit, Homography H) {
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t) {
-	struct registration_method *reg = malloc(sizeof(struct registration_method));
+	struct registration_method *reg = calloc(1, sizeof(struct registration_method));
 	reg->name = strdup(name);
 	reg->method_ptr = f;
 	reg->sel = s;

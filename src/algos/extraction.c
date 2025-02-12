@@ -864,7 +864,7 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	sensor_pattern pattern = get_bayer_pattern(fit);
 	extraction_scaling scaling = *(extraction_scaling*) multi_args->user_data;
 	/* Demosaic and store images for write */
-	struct _multi_split *multi_data = malloc(sizeof(struct _multi_split));
+	struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));
 	multi_data->index = o;
 	multi_data->images = calloc(3, sizeof(fits*));
 	for (int i = 0 ; i < 3 ; i++) {

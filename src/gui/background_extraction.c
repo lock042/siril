@@ -172,7 +172,7 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(
 			lookup_widget("checkBkgSeq"));
 	if (gtk_toggle_button_get_active(seq_button) && sequence_is_loaded()) {
-		struct background_data *args = malloc(sizeof(struct background_data));
+		struct background_data *args = calloc(1, sizeof(struct background_data));
 		args->nb_of_samples = get_nb_samples_per_line();
 		args->tolerance = get_tolerance_value();
 		args->correction = get_correction_type();

@@ -298,7 +298,7 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer p) {
 
 	gtk_file_chooser_set_preview_widget_active(file_chooser, TRUE);
 
-	struct _updta_preview_data *data = malloc(sizeof(struct _updta_preview_data));
+	struct _updta_preview_data *data = calloc(1, sizeof(struct _updta_preview_data));
 	data->filename = g_file_get_path(file);
 	data->file_info = file_info;
 	data->file_chooser = file_chooser;

@@ -619,7 +619,7 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if ((mag != NULL) && (phase != NULL)) {
 		set_cursor_waiting(TRUE);
-		struct fft_data *args = malloc(sizeof(struct fft_data));
+		struct fft_data *args = calloc(1, sizeof(struct fft_data));
 		args->fit = &gfit;
 		args->type = type;
 		args->modulus = mag;

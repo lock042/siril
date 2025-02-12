@@ -906,7 +906,7 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	int retval = GPOINTER_TO_INT(do_starnet(seqdata));
 	if (!retval) {
 		// Store results in a struct _multi_split
-		struct _multi_split *multi_data = malloc(sizeof(struct _multi_split));
+		struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));
 		multi_data->index = o;
 		int nb_out = ((int) seqdata->starmask) + 1;
 		multi_data->images = calloc(nb_out, sizeof(fits*));

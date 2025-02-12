@@ -425,7 +425,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		spcc_object *object = (spcc_object*) selected_white->data;
 
 		gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, ngoodrg, ngood - ngoodrg, kw);
-		spl_datarg = malloc(sizeof(siril_plot_data));
+		spl_datarg = calloc(1, sizeof(siril_plot_data));
 		init_siril_plot_data(spl_datarg);
 		siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
 		siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
@@ -444,7 +444,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		double best_fit_bgx[2] = {stat_min, stat_max};
 		double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
 		siril_plot_data *spl_databg = NULL;
-		spl_databg = malloc(sizeof(siril_plot_data));
+		spl_databg = calloc(1, sizeof(siril_plot_data));
 		init_siril_plot_data(spl_databg);
 		siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
 		siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
