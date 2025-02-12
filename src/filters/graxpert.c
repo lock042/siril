@@ -434,15 +434,10 @@ void fill_graxpert_version_arrays() {
 	deconv_thread = g_thread_try_new("deconv_check", run_ai_version_check, &deconv_args, &error[2]);
 	deconv_stellar_thread = g_thread_try_new("deconv_stellar_check", run_ai_version_check, &deconv_stellar_args, &error[3]);
 
-	int errors = 0;
 	for (int i = 0 ; i < 4 ; i++) {
 		if (error[i]) {
 			siril_log_color_message(_("Thread creation failed: %s\n"), "red", error[i]->message);
-			errors++;
 		}
-	}
-	if (errors) {
-		return; // FALSE
 	}
 
 	g_thread_join(bg_thread);
@@ -456,7 +451,7 @@ void fill_graxpert_version_arrays() {
 	deconv_ai_models = deconv_args.result;
 	deconv_stellar_ai_models = deconv_stellar_args.result;
 
-	return; // TRUE
+	return;
 }
 
 gboolean check_graxpert_version(const gchar *version, graxpert_operation operation) {
