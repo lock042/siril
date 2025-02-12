@@ -352,7 +352,7 @@ void unlock_roi_mutex() {
 }
 
 gpointer on_set_roi() {
-	if (gui.roi.selection.w == 0 && gui.roi.selection.h == 0)
+	if (com.selection.w == 0 && com.selection.h == 0)
 		return GINT_TO_POINTER(0);
 	g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 	if (com.python_command) {
