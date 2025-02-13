@@ -1997,6 +1997,7 @@ void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 	mtf_args->fit = NULL;	// not used here
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(mtf_args->seqEntry);
 		free(mtf_args);
 		free_generic_seq_args(args);
 	}
