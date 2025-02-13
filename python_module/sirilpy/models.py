@@ -474,9 +474,6 @@ class Homography:
     pair_matched: int = 0 #: number of pairs matched
     Inliers: int = 0 #: number of inliers kept after RANSAC step
 
-from dataclasses import dataclass, field
-from typing import Tuple, Optional
-
 @dataclass
 class BGSample:
     """
