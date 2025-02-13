@@ -1813,12 +1813,14 @@ class SirilInterface:
         Args:
             points: List of sample points, either as (x,y) tuples or BGSample objects
             show_samples: Whether to show the sample points in Siril
-            recalculate: Whether to recalculate the sample points once set. This
-                         is always True if the sample points are provided as a List of
-                         (x,y) Tuples, and defaults to True if the sample points are
-                         provided as a List of BGSamples. Setting recalculate=False
-                         allows for overriding the sample statistics used in
-                         the background removal agorithm.
+            recalculate: Whether to recalculate the sample points once set. This only
+                         applies if the sample points are provided as a List of
+                         BGSamples, in which case it defaults to True. If the sample
+                         points are provided as a List of (x,y) Tuples then the
+                         parameter has no effect. Setting recalculate=False is usually
+                         a bad idea but the option is provided to support potential
+                         advanced uses where the values are adjusted in python code to
+                         manipulate the background fit.
         """
         try:
             # Convert tuples to BGSamples if needed
