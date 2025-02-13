@@ -478,17 +478,47 @@ class Homography:
 class BGSample:
     """
     Python equivalent of the Siril background_sample struct. Used to hold
-    background sample data obtained from Siril.
-    Note that when *sending* background samples to Siril, a simpler
-    List[Tuple[float, float]] is used, as only the coordinates are needed.
+    background sample data obtained from Siril, or to generate or modify
+    background sample data to set in Siril.
+    A BGSample can be constructed as:
+        s1 = BGSample(x=1.0, y=2.0)
+        s2 = BGSample(position=(1.0, 2.0))
+        s3 = BGSample(x=1.0, y=2.0, mean=0.5, size=31)
     """
-    median: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    median: Tuple[float, float, float] = (0.0, 0.0, 0.0) #: Median values for R, G and B channels. For mono images only median[0] is used.
     mean: float = 0.0
     min: float = 0.0
     max: float = 0.0
-    size: int = 0
-    position: Tuple[float, float] = (0.0, 0.0)
-    valid: bool = False
+    size: int = field(default=25, init=False)  #: The default size matches the size of Siril bg samples.
+    valid: bool = True  #: Samples default to being valid
+    position: Optional[Tuple[float, float]] = field(default=None, init=False)  #: Position in (x, y) image coordinates
+
+    def __init__(self, *args, x=None, y=None, position=None, size=25, **kwargs):
+        """
+        Custom constructor to handle both (x, y) and position arguments while allowing other attributes.
+        Ensures `size`, if specified, is an odd number.
+        """
+        if (x is not None or y is not None) and position is not None:
+            raise ValueError("Cannot provide both position tuple and x,y coordinates")
+        if (x is not None) ^ (y is not None):  # XOR check
+            raise ValueError("Must provide both x and y coordinates")
+        if position is None and x is None and y is None:
+            raise ValueError("Must provide either both x and y coordinates or a position tuple")
+
+        # Assign position
+        self.position = position if position is not None else (float(x), float(y))
+
+        # Validate and assign size
+        if size % 2 == 0:
+            raise ValueError("Size must be an odd number")
+        if size < 0:
+            raise ValueError("Size must be positive")
+        self.size = size
+
+        # Manually initialize other dataclass fields from kwargs
+        for field_name in self.__dataclass_fields__:
+            if field_name not in {"position", "size"}:  # Already set manually
+                setattr(self, field_name, kwargs.get(field_name, getattr(self.__class__, field_name)))
 
 class StarProfile(IntEnum):
     """

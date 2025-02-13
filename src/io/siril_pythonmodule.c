@@ -707,7 +707,7 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 	return send_response(conn, STATUS_OK, NULL, 0);
 }
 
-gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples) {
+gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples, gboolean recalculate) {
 	// Open shared memory
 	void* shm_ptr = NULL;
 #ifdef _WIN32
@@ -745,22 +745,45 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 
 	// Unpack the plot data
 	size_t total_bytes = info->size;
-	size_t nb_samples = total_bytes / sizeof(point);
-	point* points = (point*) shm_ptr;
+	size_t nb_samples = total_bytes / sizeof(background_sample);
+	background_sample* samples = (background_sample*) shm_ptr;
+
 	// Build a list of the coords
 	GSList *pts = NULL;
-	for (int i = 0 ; i < nb_samples ; i++) {
-		pts = g_slist_append(pts, &points[i]);
-	}
-	// Add to the list in com.
+
+	// Reset the list in com.
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
-	com.grad_samples = add_background_samples(com.grad_samples, &gfit, pts);
-	// Free the list but not the list data
-	g_slist_free(pts);
+
+	// If we need to recalculate, build samples from the positions and call
+	// add_background_samples
+	if (recalculate) {
+		for (int i = 0 ; i < nb_samples ; i++) {
+			point* p = malloc(sizeof(point));
+			memcpy(p, &samples[i].position, sizeof(point));
+			pts = g_slist_append(pts, p);
+		}
+		com.grad_samples = add_background_samples(com.grad_samples, &gfit, pts);
+	}
+	// Otherwise, create copies of each individual sample and add them directly
+	// to com.grad_samples
+	else {
+		for (int i = 0 ; i < nb_samples ; i++) {
+			background_sample *s = malloc(sizeof(background_sample));
+			memcpy(s, (background_sample*) (samples + i), sizeof(background_sample));
+			// protect against zero sample size
+			s->size = s->size ? s->size : SAMPLE_SIZE;
+			com.grad_samples = g_slist_append(com.grad_samples, s);
+		}
+	}
+
+	// Redraw if necessary
 	if (show_samples && !com.headless) {
 		queue_redraw(REDRAW_OVERLAY);
 	}
+
+	// Free the positions list
+	g_slist_free_full(pts, free);
 
 	// Cleanup shared memory
 	#ifdef _WIN32
