@@ -512,7 +512,7 @@ class BGSample:
         if size % 2 == 0:
             raise ValueError("Size must be an odd number")
         if size < 0:
-            raies ValueError("Size must be positive")
+            raise ValueError("Size must be positive")
         self.size = size
 
         # Manually initialize other dataclass fields from kwargs
