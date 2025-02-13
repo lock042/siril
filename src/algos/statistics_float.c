@@ -51,8 +51,6 @@
 #include "demosaicing.h"
 #include "gui/progress_and_log.h"
 
-#define ACTIVATE_NULLCHECK_FLOAT 1
-
 // uncomment to debug statistics
 #undef siril_debug_print
 #define siril_debug_print(fmt, ...) { }
@@ -255,7 +253,7 @@ static float* reassign_to_non_null_data_float(float *data, size_t inputlen, size
 	}
 
 	for (i = 0; i < inputlen; i++) {
-		if (data[i] != 0.f) {
+		if (data[i] != 0.f && !isnan(data[i])) {
 			if (j >= outputlen) {
 				fprintf(stderr, "\n- stats MISMATCH in sizes (in: %zu, out: %zu), THIS IS A BUG: seqfile is wrong *********\n\n", inputlen, outputlen);
 				break;
@@ -282,8 +280,10 @@ static void siril_stats_float_minmax(float *min_out, float *max_out,
 #endif
 		for (size_t i = 0; i < n; i++) {
 			const float xi = data[i];
-			min = min(min, xi);
-			max = max(max, xi);
+			if (!isnan(xi)) {
+				min = min(min, xi);
+				max = max(max, xi);
+			}
 		}
 
 		*min_out = min;
@@ -401,7 +401,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
-		siril_fits_img_stats_float(data, nx, ny, ACTIVATE_NULLCHECK_FLOAT, 0.0f, &stat->ngoodpix,
+		siril_fits_img_stats_float(data, nx, ny, &stat->ngoodpix,
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
 				NULL, NULL, NULL, threads, &status);
 		if (status) {
@@ -421,9 +421,9 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	}
 
 
-	/* we exclude 0 if some computations remain to be done or copy data if
+	/* we exclude 0 and nans if some computations remain to be done or copy data if
 	 * median has to be computed */
-	if (ACTIVATE_NULLCHECK_FLOAT && fit && compute_median && stat->total != stat->ngoodpix) {
+	if (fit && compute_median && stat->total != stat->ngoodpix) {
 		data = reassign_to_non_null_data_float(data, stat->total, stat->ngoodpix, free_data);
 		if (!data) {
 			if (stat_is_local) free(stat);
