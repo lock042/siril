@@ -1698,6 +1698,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 	gboolean success = FALSE;
 	GError *local_error = NULL;
 	gchar *sys_python_exe = NULL;
+	gchar **argv = NULL;
 
 	// Check if venv exists
 	if (!python_exe) {
@@ -1734,7 +1735,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 		sys_python_exe = g_find_program_in_path(PYTHON_EXE);
 #endif
 
-		gchar **argv = g_new0(gchar*, 6);
+		argv = g_new0(gchar*, 6);
 		argv[0] = sys_python_exe;
 		argv[1] = g_strdup("-m");
 		argv[2] = g_strdup("venv");
