@@ -606,6 +606,10 @@ class RegData:
     number_of_stars: int = 0             #: number of stars detected in the image
     H: Homography = field(default_factory=Homography)   #: Stores a homography matrix describing the affine transform from this frame to the reference frame
 
+    def __repr__(self):
+        attrs = [f"    {k}={getattr(self, k)}" for k in self.__dataclass_fields__]
+        return f"{self.__class__.__name__}(\n" + ",\n".join(attrs) + "\n)"
+
 @dataclass
 class ImgData:
     """Python equivalent of Siril imgdata structure"""
@@ -615,6 +619,52 @@ class ImgData:
     airmass: float = 0.0         #: airmass of the image
     rx: int = 0                 #: width
     ry: int = 0                 #: height
+
+    def __repr__(self):
+        attrs = [f"    {k}={getattr(self, k)}" for k in self.__dataclass_fields__]
+        return f"{self.__class__.__name__}(\n" + ",\n".join(attrs) + "\n)"
+
+class DistoType(IntEnum):
+    """Python equivalent of the Siril disto_source enum"""
+    DISTO_UNDEF = 0      #: No distortion
+    DISTO_IMAGE = 1      #: Distortion from current image
+    DISTO_FILE = 2       #: Distortion from given file
+    DISTO_MASTER = 3     #: Distortion from master files
+    DISTO_FILES = 4      #: Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
+    DISTO_FILE_COMET = 5 #: special for cometary alignement, to be detected by apply reg
+
+    def __str__(self):
+        if self == DistoType.DISTO_UNDEF:
+            return "No distortion"
+        elif self == DistoType.DISTO_IMAGE:
+            return "Distortion from current image"
+        elif self == DistoType.DISTO_FILE: 
+            return "Distortion from given file"
+        elif self == DistoType.DISTO_MASTER:
+            return "Distortion from master files"
+        elif self == DistoType.DISTO_FILES:
+            return "Distortion stored in each file"
+        elif self == DistoType.DISTO_FILE_COMET:
+            return "Cometary alignement"
+        else:
+            return "Unknown distortion type"
+
+
+@dataclass
+class DistoData:
+    """Python equivalent of Siril disto_params structure"""
+    index: DistoType = DistoType.DISTO_UNDEF #: Specifies the distrosion type
+    filename: str = ""                     #: filename if DISTO_FILE or DISTO_MASTER (and optional for DISTO_FILE_COMET)
+    velocity: Tuple[float, float] = (0, 0) #: shift velocity if DISTO_FILE_COMET
+
+    def __str__(self):
+        """For pretty-printing distortion information"""
+        pretty = f'{DistoType(self.index)}'
+        if len(self.filename) > 0:
+            pretty += f'\nDistorsion file: {self.filename}'
+        if self.index == DistoType.DISTO_FILE_COMET:
+            pretty += f'\nVelocity X/Y: {self.velocity[0]:.2f} {self.velocity[1]:.2f}'
+        return pretty
 
 @dataclass
 class Sequence:
@@ -629,9 +679,10 @@ class Sequence:
     is_variable: bool = False            #: sequence has images of different sizes
     bitpix: int = 0                      #: image pixel format, from fits
     reference_image: int = 0             #: reference image for registration
-    imgparam: List[ImgData] = None       #: a structure for each image of the sequence
-    regparam: List[List[RegData]] = None #: registration parameters for each layer
-    stats: List[List[ImageStats]] = None #: statistics of the images for each layer
+    imgparam: List[ImgData] = None       #: a structure for each image of the sequence [number]
+    regparam: List[List[RegData]] = None #: registration parameters for each layer [nb_layers][number]
+    stats: List[List[ImageStats]] = None #: statistics of the images for each layer [nb_layers][number]
+    distoparam: List[DistoData] = None   #: distortion data for the sequence [nb_layers]
     beg: int = 0                         #: imgparam[0]->filenum
     end: int = 0                         #: imgparam[number-1]->filenum
     exposure: float = 0.0                #: exposure of frames
@@ -653,3 +704,24 @@ class Sequence:
             self.regparam = []
         if self.stats is None:
             self.stats = []
+        if self.distoparam is None:
+            self.distoparam = []
+    
+    def __str__(self):
+        """For pretty-printing sequence information"""
+        pretty = f'Sequence: {self.seqname}'
+        pretty += f'\nImages [selected/total]: {self.selnum} / {self.number}'
+        pretty += f'\nNumber of layers: {self.nb_layers}'
+        pretty += f'\nBitdepth: {self.bitpix}'
+        pretty += f'\nReference image: {self.reference_image + 1}'
+        if not self.is_variable:
+            pretty += f'\nImage size: {self.rx}x{self.ry}'
+        else:
+            pretty += f'\nImages have variable sizes'
+        for i, r in enumerate(self.regparam):
+            if any(rr is not None for rr in r):
+                pretty += f'\nSequence has registration data'
+                pretty += f' from layer {i}' if self.nb_layers > 1 else ''
+                if self.distoparam is not None and self.distoparam[i] is not None and self.distoparam[i].index != DistoType.DISTO_UNDEF:
+                    pretty += f'\nDistortion found in this layer: {self.distoparam[i]}'
+        return pretty

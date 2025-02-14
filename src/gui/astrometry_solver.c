@@ -988,6 +988,9 @@ gboolean end_platesolve_sequence(gpointer p) {
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
+	else if (!args->retval) {
+		display_filename(); // refresh the display name for gfit in case it's not a symlink anymore
+	}
 	update_reg_interface(FALSE);
 	free(p);
 	return end_generic(NULL);
