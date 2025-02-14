@@ -5648,9 +5648,9 @@ int process_fft(int nb){
 	struct fft_data *args = calloc(1, sizeof(struct fft_data));
 
 	args->fit = &gfit;
-	args->type = strdup(word[0]);
-	args->modulus = strdup(word[1]);
-	args->phase = strdup(word[2]);
+	args->type = g_strdup(word[0]);
+	args->modulus = g_strdup(word[1]);
+	args->phase = g_strdup(word[2]);
 	args->type_order = 0;
 	image_cfa_warning_check();
 	start_in_new_thread(fourier_transform, args);
