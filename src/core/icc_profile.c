@@ -1488,10 +1488,12 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 
 	if (!(siril_color_profile_is_rgb (profile))) {
 		siril_log_message(_("This ICC profile is not RGB. Unable to plot the colorspace.\n"));
+		free_siril_plot_data(spl_data);
 		return;
 	}
 	if (! siril_color_profile_get_rgb_matrix_colorants (profile, &XYZtriple, &whitepoint)) {
 		siril_log_message(_("Error reading chromaticities\n"));
+		free_siril_plot_data(spl_data);
 		return;
 	}
 

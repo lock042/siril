@@ -596,13 +596,13 @@ gpointer tri_cut(gpointer p) {
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
 	double *x = NULL, *r[3] = { 0 };
+	gchar *spllabels[3] = { NULL };
 	siril_plot_data *spl_data = init_siril_plot_data();
 	if (!spl_data) {
 		retval = 1;
 		goto END;
 	}
 
-	gchar *spllabels[3] = { NULL };
 	build_profile_filenames(arg, &filename, &imagefilename);
 
 	point delta;
@@ -611,6 +611,8 @@ gpointer tri_cut(gpointer p) {
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.) {
 		retval = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL;
 		goto END;
 	}
 	int nbr_points = (int) length;
@@ -811,12 +813,16 @@ gpointer cfa_cut(gpointer p) {
 		if ((ret = split_cfa_ushort(arg->fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
 			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
 			retval = 1;
+			free_siril_plot_data(spl_data);
+			spl_data = NULL;
 			goto END;
 		}
 	} else {
 		if ((ret = split_cfa_float(arg->fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
 			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
 			retval = 1;
+			free_siril_plot_data(spl_data);
+			spl_data = NULL;
 			goto END;
 		}
 	}
@@ -830,6 +836,8 @@ gpointer cfa_cut(gpointer p) {
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.) {
 		retval = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL;
 		goto END;
 	}
 	int nbr_points = (int) length;
@@ -838,8 +846,7 @@ gpointer cfa_cut(gpointer p) {
 	double conversionfactor = get_conversion_factor(arg->fit);
 	if (arg->pref_as) {
 		if (conversionfactor != -DBL_MAX) {
-			point_spacing *= conversionfactor; // TODO: check - should this be *= 2.0 to account for the spacing between
-												// pixels in the same CFA channel?
+			point_spacing *= conversionfactor;
 		}
 	}
 	double point_spacing_x = (double) delta.x / nbr_points;

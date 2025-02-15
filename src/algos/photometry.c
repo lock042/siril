@@ -548,6 +548,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	if (!siril_plot_save_ETD_light_curve(spl_data, filename, TRUE)) {
 		ret = 1;
 		free_siril_plot_data(spl_data);
+		spl_data = NULL;
 	} else {
 		// now saving the plot if required
 		siril_plot_set_title(spl_data, titleimg);
@@ -555,6 +556,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 			gchar *image_name = replace_ext(filename, ".png");
 			siril_plot_save_png(spl_data, image_name, 0, 0);
 			free_siril_plot_data(spl_data);
+			spl_data = NULL;
 			g_free(image_name);
 		}
 	}
