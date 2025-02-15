@@ -1091,11 +1091,16 @@ clearup:
 			free_psf(stars[i]);
 		free(stars);
 	}
-	if (args->cat_center)
+	if (args->cat_center) {
 		siril_world_cs_unref(args->cat_center);
-	if (args->ref_stars)
+		args->cat_center = NULL;
+	}
+	if (args->ref_stars) {
 		siril_catalog_free(args->ref_stars);
+		args->ref_stars = NULL;
+	}
 	g_free(args->filename);
+	args->filename = NULL;
 	if (args->verbose && com.script) {
 		gchar *msg = platesolve_msg(args);
 		if (args->ret < 0)
