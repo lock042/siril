@@ -27,8 +27,9 @@ from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
 from .exceptions import SirilError, ConnectionError, CommandError, NoImageError
 from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType
 
+DEFAULT_TIMEOUT = 5.
+
 if os.name == 'nt':
-    import win32pipe
     import win32file
     import win32event
     import pywintypes
@@ -367,8 +368,9 @@ class SirilInterface:
             self.command_lock = win32event.CreateMutex(None, False, None)
         else:
             self.command_lock = threading.Lock()
+        self.timeout = DEFAULT_TIMEOUT
 
-    def connect(self):
+    def connect(self, debug: Optional[bool] = False) -> Optional[bool]:
         """
         Establish a connection to Siril based on the pipe or socket path.
 
@@ -378,6 +380,9 @@ class SirilInterface:
         Raises:
             ConnectionError: if a connection error occurred
         """
+
+        if debug:
+            self.timeout = None
 
         try:
             if os.name == 'nt':
@@ -397,6 +402,14 @@ class SirilInterface:
                     self.overlap_read.hEvent = win32event.CreateEvent(None, True, False, None)
                     self.overlap_write = pywintypes.OVERLAPPED()
                     self.overlap_write.hEvent = win32event.CreateEvent(None, True, False, None)
+                    if debug:
+                        current_pid = os.getpid()
+                        print(f'Current processId is {current_pid}')
+                        import tkinter as tk
+                        from tkinter import messagebox
+                        root = tk.Tk()
+                        root.withdraw()  # Hide the main window
+                        messagebox.showinfo(title = 'debugging', message = f'Current processId is {current_pid}')
                     return True
                 except pywintypes.error as e:
                     if e.winerror == winerror.ERROR_PIPE_BUSY:
@@ -405,6 +418,14 @@ class SirilInterface:
             else:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.connect(self.socket_path)
+                if debug:
+                    current_pid = os.getpid()
+                    print(f'Current processId is {current_pid}')
+                    import tkinter as tk
+                    from tkinter import messagebox
+                    root = tk.Tk()
+                    root.withdraw()  # Hide the main window
+                    messagebox.showinfo(title = 'debugging', message = f'Current processId is {current_pid}')
                 return True
 
         except Exception as e:
@@ -441,7 +462,7 @@ class SirilInterface:
             else:
                 raise SirilError(_("No socket connection to close"))
 
-    def _recv_exact(self, n: int, timeout: Optional[float] = 5.0) -> Optional[bytes]:
+    def _recv_exact(self, n: int, timeout: Optional[float] = DEFAULT_TIMEOUT) -> Optional[bytes]:
         """
         Helper method to receive exactly n bytes from the socket or pipe.
         Internal method, not for direct use in scripts.
@@ -452,6 +473,9 @@ class SirilInterface:
         """
         if n < 0:
             raise ValueError(_("Cannot receive negative number of bytes"))
+
+        if self.timeout is None:
+            timeout = None
 
         if os.name == 'nt':
             # Pipe implementation
@@ -516,7 +540,7 @@ class SirilInterface:
             finally:
                 self.sock.settimeout(original_timeout)
 
-    def _send_command(self, command: _Command, data: Optional[bytes] = None, timeout: Optional[float] = 5.0) -> Tuple[Optional[int], Optional[bytes]]:
+    def _send_command(self, command: _Command, data: Optional[bytes] = None, timeout: Optional[float] = DEFAULT_TIMEOUT) -> Tuple[Optional[int], Optional[bytes]]:
         """
         Send a command and receive response with optional timeout.
 
@@ -525,6 +549,10 @@ class SirilInterface:
             data: Optional data payload
             timeout: Timeout for receive operations. None for indefinite timeout.
         """
+
+        if self.timeout is None:
+            timeout = None
+
         try:
             data_length = len(data) if data else 0
             if data_length > 65529:
@@ -616,7 +644,7 @@ class SirilInterface:
         except Exception as e:
             raise CommandError(_("Error sending command: {}").format(e))
 
-    def _execute_command(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = 5.0) -> bool:
+    def _execute_command(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = DEFAULT_TIMEOUT) -> bool:
         """
         High-level method to execute a command and handle the response.
         Internal method, not for end-user use.
@@ -629,6 +657,9 @@ class SirilInterface:
         Returns:
             True if command was successful, False otherwise
         """
+        if self.timeout is None:
+            timeout = None
+
         status, response = self._send_command(command, payload, timeout)
 
         if status is None:
@@ -645,7 +676,7 @@ class SirilInterface:
 
         return True
 
-    def _request_data(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = 5.0) -> Optional[bytes]:
+    def _request_data(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = DEFAULT_TIMEOUT) -> Optional[bytes]:
         """
         High-level method to request small-volume data from Siril. The
         payload limit is 63336 bytes. For commands expected to return
@@ -660,6 +691,9 @@ class SirilInterface:
         Returns:
             Requested data or None if error
         """
+        if self.timeout is None:
+            timeout = None
+
         status, response = self._send_command(command, payload, timeout)
 
         if status is None:
