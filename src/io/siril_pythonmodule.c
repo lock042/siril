@@ -1735,7 +1735,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 		sys_python_exe = g_find_program_in_path(PYTHON_EXE);
 #endif
 
-		gchar **argv = g_new0(gchar*, 5);
+		argv = g_new0(gchar*, 5);
 		argv[0] = sys_python_exe;
 		argv[1] = g_strdup("-m");
 		argv[2] = g_strdup("venv");
