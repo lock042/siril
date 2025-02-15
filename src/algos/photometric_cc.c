@@ -421,52 +421,51 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		gsl_stats_minmax(&stat_min, &stat_max, crg, 1, ngoodrg);
 		double best_fit_rgx[2] = {stat_min, stat_max};
 		double best_fit_rgy[2] = {arg + brg * best_fit_rgx[0], arg + brg * best_fit_rgx[1]};
-		siril_plot_data *spl_datarg = NULL;
 		spcc_object *object = (spcc_object*) selected_white->data;
 
-		gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, ngoodrg, ngood - ngoodrg, kw);
-		spl_datarg = calloc(1, sizeof(siril_plot_data));
-		init_siril_plot_data(spl_datarg);
-		siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
-		siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
-		siril_plot_set_title(spl_datarg, title1);
-		siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
-		siril_plot_add_xydata(spl_datarg, _("R/G"), ngoodrg, crg, irg, NULL, NULL);
-		siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
-		siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
-		siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
-		siril_plot_set_yfmt(spl_datarg, "%.1lf");
-		g_free(title1);
+		siril_plot_data *spl_datarg = init_siril_plot_data();
+		if (spl_datarg) {
+			siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
+			siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
+			gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, ngoodrg, ngood - ngoodrg, kw);
+			siril_plot_set_title(spl_datarg, title1);
+			g_free(title1);
+			siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
+			siril_plot_add_xydata(spl_datarg, _("R/G"), ngoodrg, crg, irg, NULL, NULL);
+			siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
+			siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
+			siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
+			siril_plot_set_yfmt(spl_datarg, "%.1lf");
+			spl_datarg->cfgdata.point.radius = 1;
+			spl_datarg->cfgdata.point.sz = 2;
+			spl_datarg->cfgdata.line.sz = 2;
+			siril_add_idle(create_new_siril_plot_window, spl_datarg);
+		}
 
 		int ngoodbg = filtermaskArrays(cbg, ibg, maskbg, ngood);
 		gsl_stats_minmax(&stat_min, &stat_max, cbg, 1, ngoodbg);
-		gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, ngoodbg, ngood - ngoodbg, kw);
 		double best_fit_bgx[2] = {stat_min, stat_max};
 		double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
-		siril_plot_data *spl_databg = NULL;
-		spl_databg = calloc(1, sizeof(siril_plot_data));
-		init_siril_plot_data(spl_databg);
-		siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
-		siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
-		siril_plot_set_title(spl_databg, title2);
-		siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
-		gchar *spl_legendbg = _("B/G");
-		siril_plot_add_xydata(spl_databg, spl_legendbg, ngoodbg, cbg, ibg, NULL, NULL);
-		siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
-		siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
-		siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
-		siril_plot_set_yfmt(spl_databg, "%.1lf");
-		g_free(title2);
+		siril_plot_data *spl_databg = init_siril_plot_data();
+		if (spl_databg) {
+			siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
+			siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
+			gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, ngoodbg, ngood - ngoodbg, kw);
+			siril_plot_set_title(spl_databg, title2);
+			g_free(title2);
+			siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
+			gchar *spl_legendbg = _("B/G");
+			siril_plot_add_xydata(spl_databg, spl_legendbg, ngoodbg, cbg, ibg, NULL, NULL);
+			siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
+			siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
+			siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
+			siril_plot_set_yfmt(spl_databg, "%.1lf");
+			spl_databg->cfgdata.point.radius = 1;
+			spl_databg->cfgdata.point.sz = 2;
+			spl_databg->cfgdata.line.sz = 2;
+			siril_add_idle(create_new_siril_plot_window, spl_databg);
+		}
 
-		spl_datarg->cfgdata.point.radius = 1;
-		spl_datarg->cfgdata.point.sz = 2;
-		spl_databg->cfgdata.point.radius = 1;
-		spl_databg->cfgdata.point.sz = 2;
-		spl_datarg->cfgdata.line.sz = 2;
-		spl_databg->cfgdata.line.sz = 2;
-
-		siril_add_idle(create_new_siril_plot_window, spl_datarg);
-		siril_add_idle(create_new_siril_plot_window, spl_databg);
 		siril_add_idle(end_generic, NULL);
 	}
 	free(irg);

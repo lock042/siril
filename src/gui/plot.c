@@ -844,8 +844,10 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	siril_plot_data *spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data)
+		return;
+
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_ylabel(spl_data, ylabel);
 

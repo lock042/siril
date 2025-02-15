@@ -92,7 +92,7 @@ typedef struct siril_plot_data_struct {
 	int height; // height of the display area (if 0, uses SIRIL_PLOT_DISPLAY_HEIGHT)
 } siril_plot_data;
 
-void init_siril_plot_data(siril_plot_data *spl_data);
+siril_plot_data* init_siril_plot_data();
 void free_siril_plot_data(siril_plot_data *spl_data);
 void siril_plot_sort_x(siril_plot_data *spl_data);
 
