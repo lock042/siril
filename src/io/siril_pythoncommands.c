@@ -1189,8 +1189,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->size = GUINT64_FROM_BE(info->size);
 				info->data_type = GUINT32_FROM_BE(info->data_type);
+				info->channels = GUINT32_FROM_BE(info->channels);
 				gboolean show_samples = (gboolean) info->data_type;
-				success = handle_set_bgsamples_request(conn, info, show_samples);
+				gboolean recalculate = (gboolean) info->channels;
+				success = handle_set_bgsamples_request(conn, info, show_samples, recalculate);
 			}
 			break;
 		}
