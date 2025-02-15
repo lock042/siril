@@ -125,13 +125,17 @@ void apply_banding_to_sequence(struct banding_data *banding_args) {
 	args->description = _("Banding Reduction");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = banding_args->seqEntry;
+	args->new_seq_prefix = strdup(banding_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = banding_args;
 
 	banding_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (start_in_new_thread(generic_sequence_worker, args)) {
+		free(banding_args->seqEntry);
+		free(banding_args);
+		free_generic_seq_args(args);
+	}
 }
 
 // idle function executed at the end of the BandingEngine processing
@@ -390,7 +394,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct banding_data *args = malloc(sizeof(struct banding_data));
+	struct banding_data *args = calloc(1, sizeof(struct banding_data));
 
 	if (range_amount == NULL) {
 		range_amount = GTK_RANGE(lookup_widget("scale_fixbanding_amount"));
@@ -421,13 +425,18 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
-		if (args->seqEntry && args->seqEntry[0] == '\0')
+		if (args->seqEntry && args->seqEntry[0] == '\0') {
+			free(args->seqEntry);
 			args->seqEntry = strdup("unband_");
+		}
 		gtk_toggle_button_set_active(seq, FALSE);
 		args->seq = &com.seq;
 		apply_banding_to_sequence(args);
 	} else {
-		start_in_new_thread(BandingEngineThreaded, args);
+		if (!start_in_new_thread(BandingEngineThreaded, args)) {
+			free(args->seqEntry);
+			free(args);
+		}
 	}
 }
 

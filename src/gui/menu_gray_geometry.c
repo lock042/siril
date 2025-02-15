@@ -391,7 +391,7 @@ void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_message(_("Not a valid sequence for cropping.\n"));
 	}
 
-	struct crop_sequence_data *args = malloc(sizeof(struct crop_sequence_data));
+	struct crop_sequence_data *args = calloc(1, sizeof(struct crop_sequence_data));
 
 	GtkEntry *cropped_entry = GTK_ENTRY(lookup_widget("cropped_entry"));
 

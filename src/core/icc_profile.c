@@ -1472,6 +1472,10 @@ void update_profiles_after_gamut_change() {
 // It is recommended in conjunction with the excellent Equilux GTK theme.
 
 void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		return;
+	}
 	cmsCIEXYZTRIPLE XYZtriple = { 0 };
 	cmsCIEXYZ whitepoint = { 0 };
 	cmsCIExyY redxyY, greenxyY, bluexyY, whitexyY;
@@ -1513,15 +1517,12 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	double colorspace_y[4] = {redxyY.y, greenxyY.y, bluexyY.y, redxyY.y};
 	double srgb_x[4] = {0.639998686, 0.300003784, 0.150002046, 0.639998686};
 	double srgb_y[4] = {0.330010138, 0.600003357, 0.059997204, 0.330010138};
-	siril_plot_data *spl_data = NULL;
 
 	gchar *title1 = g_strdup_printf(_("Source Color Profile Chromaticity Diagram\n"
 					"<span size=\"small\">"
 					"%s"
 					"</span>"), description);
 	free(description);
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_xlabel(spl_data, _("CIE x"));
 	siril_plot_set_savename(spl_data, "color_profile");
 	siril_plot_set_title(spl_data, title1);

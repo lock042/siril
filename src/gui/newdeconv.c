@@ -780,12 +780,14 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	set_cursor_waiting(TRUE);
 	if (gtk_toggle_button_get_active(bdeconv_seqapply) && sequence_is_loaded()) {
-		seqargs = malloc(sizeof(deconvolution_sequence_data));
+		seqargs = calloc(1, sizeof(deconvolution_sequence_data));
 		seqargs->seq = &com.seq;
 		seqargs->from_command = FALSE;
 		seqargs->seqEntry = strdup(gtk_entry_get_text(bdeconv_seq_prefix));
-		if (seqargs->seqEntry && seqargs->seqEntry[0] == '\0')
+		if (seqargs->seqEntry && seqargs->seqEntry[0] == '\0') {
+			free(seqargs->seqEntry);
 			seqargs->seqEntry = strdup("dec_");
+		}
 		apply_deconvolve_to_sequence(seqargs);
 	} else {
 		copy_backup_to_gfit();

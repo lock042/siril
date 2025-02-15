@@ -104,6 +104,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
+		g_free(child);
 		return retval;
 	}
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
@@ -905,7 +906,7 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	int retval = GPOINTER_TO_INT(do_starnet(seqdata));
 	if (!retval) {
 		// Store results in a struct _multi_split
-		struct _multi_split *multi_data = malloc(sizeof(struct _multi_split));
+		struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));
 		multi_data->index = o;
 		int nb_out = ((int) seqdata->starmask) + 1;
 		multi_data->images = calloc(nb_out, sizeof(fits*));
@@ -946,12 +947,16 @@ void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
 	seqargs->has_output = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
 	seqargs->save_hook = multi_save;
-	seqargs->new_seq_prefix = multi_args->seqEntry;
+	seqargs->new_seq_prefix = strdup(multi_args->seqEntry);
 	seqargs->finalize_hook = multi_finalize;
 	seqargs->load_new_sequence = (multi_args->new_seq_index < 2);
 	seqargs->user = multi_args;
 	set_progress_bar_data(_("StarNet: Processing..."), 0.);
-	start_in_new_thread(generic_sequence_worker, seqargs);
+	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
+		free_starnet_args((starnet_data*)multi_args->user_data);
+		free_multi_args(multi_args);
+		free_generic_seq_args(seqargs);
+	}
 }
 
 #endif

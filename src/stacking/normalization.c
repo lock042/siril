@@ -355,7 +355,7 @@ overlap_stats_t **alloc_ostats(int nb_layers, int nb_frames) {
 		if (!seq_ostats[n]) {
 			PRINT_ALLOC_ERR;
 			free_ostats(seq_ostats, nb_layers);
-			seq_ostats = NULL;
+			return NULL;
 		}
 		for (int j = 0; j < Npairs; j++) {
 			seq_ostats[n][j].i = -1;
@@ -649,7 +649,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	int *index = NULL;
 	// imstats *refstats[3] = { NULL };
 
-	if (args->normalize == NO_NORM || !args->maximize_framing)	// should never happen here
+	if (args->normalize == NO_NORM || !args->maximize_framing)  // should never happen here
 		return 0;
 
 	if (args->force_norm) { /* We empty the cache if needed (force to recompute) */
@@ -661,31 +661,31 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	// first, find the index of the ref image in the filtered image list
 	// and compute its statistics
 	index_ref = find_refimage_in_indices(args->image_indices,
-			args->nb_images_to_stack, args->ref_image);
+										 args->nb_images_to_stack, args->ref_image);
 	if (index_ref == -1) {
 		siril_log_color_message(_("The reference image is not in the selected set of images. "
-				"Please choose another reference image.\n"), "red");
+		"Please choose another reference image.\n"), "red");
 		return ST_GENERIC_ERROR;
 	}
 
-//TODO: check if we can still equalize RGB
+	//TODO: check if we can still equalize RGB
 
-// 	if (compute_all_channels_statistics_seqimage(args->seq, index_ref, NULL, (args->lite_norm) ? STATS_LITENORM : STATS_NORM, SINGLE_THREADED, -1, refstats)) {
-// #ifdef DEBUG_NORM
-// 		for (int n = 0; n < nb_layers; n++) {
-// 			if (args->lite_norm)
-// 				siril_debug_print("Reference %.6f %.6f\n", refstats[n]->median, refstats[n]->mad);
-// 			else
-// 				siril_debug_print("Reference %.6f %.6f\n", refstats[n]->location, refstats[n]->scale);
-// 		}
-// #endif
-// 		siril_log_color_message(_("Could not compute statistics of reference image"), "red");
-// 		retval = 1;
-// 		return ST_GENERIC_ERROR;
-// 	}
+	//  if (compute_all_channels_statistics_seqimage(args->seq, index_ref, NULL, (args->lite_norm) ? STATS_LITENORM : STATS_NORM, SINGLE_THREADED, -1, refstats)) {
+	// #ifdef DEBUG_NORM
+	//      for (int n = 0; n < nb_layers; n++) {
+	//          if (args->lite_norm)
+	//              siril_debug_print("Reference %.6f %.6f\n", refstats[n]->median, refstats[n]->mad);
+	//          else
+	//              siril_debug_print("Reference %.6f %.6f\n", refstats[n]->location, refstats[n]->scale);
+	//      }
+	// #endif
+	//      siril_log_color_message(_("Could not compute statistics of reference image"), "red");
+	//      retval = 1;
+	//      return ST_GENERIC_ERROR;
+	//  }
 
 	init_coeffs(args);
-	// if the overlap stats have never been cached or have been cleared, we allocate there for all 
+	// if the overlap stats have never been cached or have been cleared, we allocate there for all
 	// the images of the sequence (without filtering)
 	if (!args->seq->ostats) {
 		args->seq->ostats = alloc_ostats(nb_layers, args->seq->number);
@@ -694,27 +694,36 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 			goto cleanup;
 		}
 		args->seq->needs_saving = TRUE;
-
 	}
-	
-	Mij = malloc(nb_layers * sizeof(double **));
-	Sij = malloc(nb_layers * sizeof(double **));
-	Nij = malloc(nb_frames * sizeof(size_t **));
-	index = malloc(nb_frames * sizeof(int));
-	coeffs = malloc(N * sizeof(double));
+
+	Mij = calloc(nb_layers, sizeof(double **));
+	Sij = calloc(nb_layers, sizeof(double **));
+	Nij = calloc(nb_layers, sizeof(size_t **));
+	index = calloc(nb_frames, sizeof(int));
+	coeffs = calloc(N, sizeof(double));
 	if (!Mij || !Sij || !Nij || !index || !coeffs) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
-		goto cleanup;
+		goto cleanup2;
 	}
 	for (int n = 0; n < nb_layers; n++) {
 		Mij[n] = malloc(nb_frames * sizeof(double *));
 		Sij[n] = malloc(nb_frames * sizeof(double *));
 		Nij[n] = malloc(nb_frames * sizeof(size_t *));
+		if (!Mij[n] || !Sij[n] || !Nij[n]) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+			goto cleanup2;
+		}
 		for (int i = 0; i < nb_frames; i++) {
 			Mij[n][i] = calloc(nb_frames, sizeof(double));
 			Sij[n][i] = calloc(nb_frames, sizeof(double));
 			Nij[n][i] = calloc(nb_frames, sizeof(size_t));
+			if (!Mij[n][i] || !Sij[n][i] || !Nij[n][i]) {
+				PRINT_ALLOC_ERR;
+				retval = 1;
+				goto cleanup2;
+			}
 		}
 	}
 
@@ -727,19 +736,23 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	int nb_threads = normalization_overlap_get_max_number_of_threads(args);
 	if (nb_threads <= 0) {
 		set_progress_bar_data(error_msg, PROGRESS_NONE);
-		return ST_GENERIC_ERROR;
+		retval = ST_GENERIC_ERROR;
+		goto cleanup;
 	}
 	if (nb_threads > args->nb_images_to_stack)
 		nb_threads = args->nb_images_to_stack;
 
 	set_progress_bar_data(NULL, 0.);
 
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(nb_threads) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
-#endif
 	for (int i = 0; i < nb_frames; ++i) {
 		if (i != index_ref)
 			index[c++] = i; // getting the filtered indexes of nonref images
+	}
+
+	#ifdef _OPENMP
+	#pragma omp parallel for num_threads(nb_threads) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
+	#endif
+	for (int i = 0; i < nb_frames; ++i) {
 		int ii = args->image_indices[i];
 		for (int j = i + 1; j < nb_frames; ++j) {
 			if (!retval) {
@@ -751,9 +764,14 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 				int ijth = get_ijth_pair_index(args->seq->number, ii, ij);
 				if (_compute_estimators_for_images(args, ii, ij)) {
 					siril_log_color_message(_("%s Check image %d first.\n"), "red",
-							error_msg, args->image_indices[i] + 1);
+											error_msg, args->image_indices[i] + 1);
 					set_progress_bar_data(error_msg, PROGRESS_NONE);
-					retval = 1;
+					#ifdef _OPENMP
+					#pragma omp critical
+					#endif
+					{
+						retval = 1;
+					}
 					continue;
 				}
 				for (int n = 0; n < nb_layers; n++) {
@@ -774,7 +792,10 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 					Nij[n][i][j] = args->seq->ostats[n][ijth].Nij;
 					Nij[n][j][i] = args->seq->ostats[n][ijth].Nij;
 				}
-				g_atomic_int_inc(&cur_nb);	// only used for progress bar
+				#ifdef _OPENMP
+				#pragma omp atomic
+				#endif
+				cur_nb++;  // only used for progress bar
 				set_progress_bar_data(NULL, cur_nb / (double)Npairs);
 			}
 		}
@@ -782,7 +803,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	if (retval)
 		goto cleanup;
 
-#ifdef DEBUG_NORM
+	#ifdef DEBUG_NORM
 	for (int n = 0; n < nb_layers; n++) {
 		for (int i = 0; i < nb_frames; i ++) {
 			for (int j = i + 1; j < nb_frames; ++j) {
@@ -822,7 +843,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 		}
 		siril_debug_print("\n");
 	}
-#endif
+	#endif
 
 	if (args->normalize == MULTIPLICATIVE_SCALING || args->normalize == ADDITIVE_SCALING) {
 		for (int n = 0; n < nb_layers; n++) {
@@ -840,7 +861,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	}
 
 	if (args->normalize == ADDITIVE || args->normalize == ADDITIVE_SCALING) {
-		for (int n = 0; n < nb_layers; n++) { 
+		for (int n = 0; n < nb_layers; n++) {
 			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Mij[n], TRUE, coeffs);
 			for (int i = 0; i < N; i ++) { // we set the coeffs for nb_frames - 1, the ref has already been init
 				coeff->poffset[n][index[i]] = -coeffs[i];
@@ -857,17 +878,28 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 		}
 	}
 
-cleanup:
+	cleanup:
 	for (int n = 0; n < nb_layers; n++) {
-		for (int i = 0; i < nb_frames; i++) {
-			free(Mij[n][i]);
-			free(Sij[n][i]);
-			free(Nij[n][i]);
+		if (Mij && Mij[n]) {
+			for (int i = 0; i < nb_frames; i++) {
+				free(Mij[n][i]);
+			}
+			free(Mij[n]);
 		}
-		free(Mij[n]);
-		free(Sij[n]);
-		free(Nij[n]);
+		if (Sij && Sij[n]) {
+			for (int i = 0; i < nb_frames; i++) {
+				free(Sij[n][i]);
+			}
+			free(Sij[n]);
+		}
+		if (Nij && Nij[n]) {
+			for (int i = 0; i < nb_frames; i++) {
+				free(Nij[n][i]);
+			}
+			free(Nij[n]);
+		}
 	}
+	cleanup2:
 	free(Mij);
 	free(Sij);
 	free(Nij);
@@ -877,4 +909,3 @@ cleanup:
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	return retval;
 }
-

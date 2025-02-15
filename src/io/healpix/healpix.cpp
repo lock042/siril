@@ -595,6 +595,7 @@ extern "C" {
 
             gchar *filename = g_strdup_printf("siril_cat%u_healpix%u_xpsamp_%d.dat", header.chunk_level, header.healpix_level, chunk_id);
             std::string chunkfile(filename);
+            g_free(filename);
             std::string this_chunk_path = (std::filesystem::path(chunkpath) / chunkfile).string();
 
             if (!std::filesystem::exists(this_chunk_path)) {
@@ -602,7 +603,6 @@ extern "C" {
                 file_error = true;
                 break;
             }
-            g_free(filename);
             // Read this specific header
             int status = 0;
             HealpixCatHeader this_header = read_healpix_cat_header(this_chunk_path, &status);

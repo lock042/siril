@@ -82,7 +82,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct median_filter_data *args = malloc(sizeof(struct median_filter_data));
+	struct median_filter_data *args = calloc(1, sizeof(struct median_filter_data));
 
 	args->previewing = ((GtkWidget*) button == lookup_widget("Median_roi_preview"));
 
@@ -115,7 +115,8 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->amount = amount;
 	args->iterations = iterations;
 	set_cursor_waiting(TRUE);
-	start_in_new_thread(median_filter, args);
+	if (!start_in_new_thread(median_filter, args))
+		free(args);
 
 }
 

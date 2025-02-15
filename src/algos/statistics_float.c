@@ -135,8 +135,7 @@ static double siril_stats_float_bwmv(const float* data, const size_t n,
 			up += SQR(i_med * SQR (1 - yi2));
 			down += (1 - yi2) * (1 - 5 * yi2);
 		}
-
-		bwmv = n * (up / (down * down));
+		bwmv = down ? n * (up / (down * down)) : 0.0;
 	}
 
 	return bwmv;

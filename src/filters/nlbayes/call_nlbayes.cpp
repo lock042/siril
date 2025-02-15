@@ -138,7 +138,7 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
       if (fSigma > lastfSigma * 1.01f) {
         // Note we only check this on the first iteration: if the first iteration converges then subsequent iterations appear to converge reliably, however the noise level on successive iterations does not necessarily decrease monotonically.
         siril_log_color_message(_("Error: SOS is not converging. Try a smaller value of rho.\n"),"red");
-        bgr_vout = bgr_v_orig;
+        bgr_vout = std::move(bgr_v_orig);
         break;
       }
       if (iter == 0)

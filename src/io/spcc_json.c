@@ -492,8 +492,13 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	if (yyjson_is_arr(root)) {
 		size_t num_objects = yyjson_arr_size(root);
 		if (data->index >= num_objects) {
-			siril_log_color_message(_("Error: index %zu out of range (max: %zu).\n"), "red",
-									data->index, num_objects - 1);
+			if (num_objects == 0) {
+				siril_log_color_message(_("Error: index % " G_GSIZE_FORMAT " out of range (no objects).\n"),
+										"red", data->index);
+			} else {
+				siril_log_color_message(_("Error: index % " G_GSIZE_FORMAT " out of range (max: % " G_GSIZE_FORMAT ").\n"),
+										"red", data->index, num_objects - 1);
+			}
 			goto error_cleanup;
 		}
 		object = yyjson_arr_get(root, data->index);

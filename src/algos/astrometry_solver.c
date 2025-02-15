@@ -118,7 +118,7 @@ static void debug_print_catalog_files(TRANS *trans, s_star *star_list_A, s_star 
 }
 
 static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args) {
-	struct astrometry_data *ret = malloc(sizeof(struct astrometry_data));
+	struct astrometry_data *ret = calloc(1, sizeof(struct astrometry_data));
 	if (!ret) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -944,6 +944,7 @@ gpointer plate_solver(gpointer p) {
 				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, args->numthreads);
 
 		clearfits(green_fit);
+		free(green_fit);
 		if (args->downsample) {
 			clearfits(args->fit);
 			memcpy(args->fit, &fit_backup, sizeof(fits));
@@ -2039,8 +2040,8 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		args->WCSDATA = calloc(arg->seq->number, sizeof(struct wcsprm));
 		arg->seq->distoparam[args->layer].index = DISTO_FILES;
 	}
-	if (arg->has_output)
-		seq_prepare_hook(arg);
+	if (arg->has_output && seq_prepare_hook(arg))
+		return 1; // bail if seq_prepare_hook fails
 	if (args->solver == SOLVER_LOCALASNET) {
 		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 	}
@@ -2244,6 +2245,8 @@ void free_astrometry_data(struct astrometry_data *args) {
 		siril_world_cs_unref(args->cat_center);
 	if (args->stars)
 		free_fitted_stars(args->stars);
+	if (args->ref_stars)
+		siril_catalog_free(args->ref_stars);
 	if (args->filename)
 		g_free(args->filename);
 	if (args->distofilename)
@@ -2280,6 +2283,9 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	if (args->solver == SOLVER_SIRIL)
 		siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
 				catalog_to_str(args->ref_stars->cat_index));
-	start_in_new_thread(generic_sequence_worker, seqargs);
+	if(!start_in_new_thread(generic_sequence_worker, seqargs)) {
+		free_astrometry_data(args);
+		free_generic_seq_args(seqargs);
+	}
 }
 

@@ -3277,7 +3277,8 @@ void process_keyword_string_value(const char *input, char *output, gboolean cond
 	if (condition) {
 		ffs2c(input, output, &status);
 	} else {
-		strcpy(output, input);
+		strncpy(output, input, 70);
+		output[70] = '\0';
 	}
 }
 

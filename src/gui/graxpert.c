@@ -348,7 +348,9 @@ void on_button_graxpert_apply_clicked(GtkButton *button, gpointer user_data) {
 			siril_log_color_message(_("Error: no sequence loaded.\n"), "red");
 		}
 	} else {
-		start_in_new_thread(do_graxpert, data);
+		if (!start_in_new_thread(do_graxpert, data)) {
+			free_graxpert_data(data);
+		}
 	}
 }
 

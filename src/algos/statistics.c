@@ -154,8 +154,7 @@ static double siril_stats_ushort_bwmv(const WORD* data, const size_t n,
 			up += ai * SQR((double ) data[i] - median) * SQR(SQR (1 - yi2));
 			down += (ai * (1 - yi2) * (1 - 5 * yi2));
 		}
-
-		bwmv = n * (up / (down * down));
+		bwmv = down ? n * (up / (down * down)) : 0.0;
 	}
 
 	return bwmv;
@@ -933,7 +932,13 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 
 	stat_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		int nb_data_layers = stat_args->cfa ? 3 : stat_args->seq->nb_layers;
+		int size = nb_data_layers * args->nb_filtered_images;
+		free_stat_list(stat_args->list, size);
+		free (stat_args);
+		free_generic_seq_args(args);
+	}
 }
 
 /**** callbacks ****/

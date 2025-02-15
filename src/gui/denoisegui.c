@@ -176,5 +176,7 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (sos == 1)
 		args->sos = sos_iters;
 	args->fit = (gui.roi.active && args->previewing) ? &gui.roi.fit : &gfit;
-	start_in_new_thread(run_nlbayes_on_fit, args);
+	if (!start_in_new_thread(run_nlbayes_on_fit, args)) {
+		free(args);
+	}
 }

@@ -654,13 +654,13 @@ int register_star_alignment(struct registration_args *regargs) {
 	args->description = _("Global star registration");
 	args->has_output = !regargs->no_output;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = regargs->prefix;
+	args->new_seq_prefix = strdup(regargs->prefix);
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
-		free(args);
+		free_generic_seq_args(args);
 		return -1;
 	}
 	sadata->regargs = regargs;

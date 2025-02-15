@@ -2139,11 +2139,13 @@ void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 	set_progress_bar_data(_("Searching for sequences in "
 				"the current working directory..."), PROGRESS_NONE);
 
-	struct checkSeq_filter_data *args = malloc(sizeof(struct checkSeq_filter_data));
+	struct checkSeq_filter_data *args = calloc(1, sizeof(struct checkSeq_filter_data));
 
 	args->retvalue = 0;
 	set_cursor_waiting(TRUE);
-	start_in_new_thread(checkSeq, args);
+	if (!start_in_new_thread(checkSeq, args)) {
+		free(args);
+	}
 }
 
 void on_button_data_ok_clicked(GtkButton *button, gpointer user_data) {

@@ -35,8 +35,8 @@ void	initialize_sequence(sequence *seq, gboolean is_zeroed);
 void	free_sequence(sequence *seq, gboolean free_seq_too);
 void	free_photometry_set(sequence *seq, int set);
 void	close_sequence(int loading_another);
-gboolean check_seq_is_comseq(sequence *seq);
-gboolean check_seq_is_variable(sequence *seq);
+gboolean check_seq_is_comseq(const sequence *seq);
+gboolean check_seq_is_variable(const sequence *seq);
 gboolean sequence_is_loaded();
 gboolean check_cachefile_date(sequence *seq, int index, const gchar *star_filename) ;
 
