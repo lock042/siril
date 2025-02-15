@@ -365,6 +365,21 @@ static const char* log_color_to_str(LogColor color) {
 	}
 }
 
+static int distodata_to_py(const disto_params *disto, unsigned char* ptr, size_t maxlen) {
+	if (!disto || !ptr)
+		return 1;
+
+	unsigned char *start_ptr = ptr;
+
+	COPY_BE64((int64_t) disto->index, int64_t);
+	COPY_BE64((double) disto->velocity.x, double);
+	COPY_BE64((double) disto->velocity.y, double);
+	if (disto->filename)
+		COPY_STRING(disto->filename);
+	return 0;
+}
+
+
 static gboolean get_config_value(const char* group, const char* key, config_type_t* type, void** value, size_t* value_size) {
 	if (!group || !key || !type || !value || !value_size)
 		return FALSE;
@@ -963,6 +978,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					type = GTK_MESSAGE_INFO;
 					title = _("Information");
 					break;
+				default:
+					type = GTK_MESSAGE_OTHER;
+					title = _("Unknown dialog type");
 			}
 			// Ensure null-terminated string for log message
 			char* log_msg = g_strndup(payload, payload_length);
@@ -2099,6 +2117,45 @@ CLEANUP:
 				const char* error_msg = _("Incorrect payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
+			break;
+		}
+
+		case CMD_GET_SEQ_DISTODATA: {
+			if (!sequence_is_loaded()) {
+				const char* error_msg = _("No sequence loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			int chan;
+			if (payload_length == 4) {
+				chan = GUINT32_FROM_BE(*(int*) payload);
+			}
+			if (payload_length != 4 || chan < 0 || chan > com.seq.nb_layers) {
+				const char* error_msg = _("Incorrect command arguments");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			if (com.seq.distoparam[chan].index == DISTO_UNDEF) {
+				const char* error_message = _("No distodata available");
+				success = send_response(conn, STATUS_NONE, error_message, strlen(error_message));
+				break;
+			}
+			// Calculate size needed for the response
+			size_t stringsize = 0;
+			if (com.seq.distoparam[chan].filename)
+				stringsize = strlen(com.seq.distoparam[chan].filename) + 1;
+			size_t varsize = sizeof(int64_t) + 2 * sizeof(double);
+			size_t total_size = varsize + stringsize;
+			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *ptr = response_buffer;
+
+			if (distodata_to_py(&com.seq.distoparam[chan], ptr, total_size)) {
+				const char* error_message = _("Memory allocation error");
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+			} else {
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
+			}
+			g_free(response_buffer);
 			break;
 		}
 

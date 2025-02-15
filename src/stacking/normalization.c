@@ -135,9 +135,9 @@ static void compute_factors_from_estimators(struct stacking_args *args, int ref_
 #ifdef DEBUG_NORM
 	siril_debug_print("Normalization coeeficients\n");
 #endif
-	int reflayer;
+	int reglayer = (args->reglayer > -1) ? args->reglayer : 1;
 	for (int layer = 0; layer < nb_layers; ++layer) {
-		reflayer = (args->equalizeRGB) ? args->reglayer : layer;
+		int reflayer = (args->equalizeRGB) ? reglayer : layer;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
 			switch (args->normalize) {
 				default:
@@ -698,7 +698,6 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 
 	Mij = calloc(nb_layers, sizeof(double **));
 	Sij = calloc(nb_layers, sizeof(double **));
-	/* FIX: Nij must have nb_layers elements (not nb_frames) */
 	Nij = calloc(nb_layers, sizeof(size_t **));
 	index = calloc(nb_frames, sizeof(int));
 	coeffs = calloc(N, sizeof(double));
@@ -745,17 +744,15 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 
 	set_progress_bar_data(NULL, 0.);
 
+	for (int i = 0; i < nb_frames; ++i) {
+		if (i != index_ref)
+			index[c++] = i; // getting the filtered indexes of nonref images
+	}
+
 	#ifdef _OPENMP
 	#pragma omp parallel for num_threads(nb_threads) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
 	#endif
 	for (int i = 0; i < nb_frames; ++i) {
-		#ifdef _OPENMP
-		#pragma omp critical
-		#endif
-		{
-			if (i != index_ref)
-				index[c++] = i; // getting the filtered indexes of nonref images
-		}
 		int ii = args->image_indices[i];
 		for (int j = i + 1; j < nb_frames; ++j) {
 			if (!retval) {

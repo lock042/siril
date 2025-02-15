@@ -30,6 +30,7 @@
 #include "core/siril_log.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/fits_keywords.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
 
@@ -1087,9 +1088,6 @@ void get_debayer_area(const rectangle *area, rectangle *debayer_area,
 	assert(debayer_area->w > 2);
 }
 
-void clear_Bayer_information(fits *fit) {
-	memset(fit->keywords.bayer_pattern, 0, FLEN_VALUE);
-}
 
 static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_pattern pattern) {
 	size_t npixels = fit->naxes[0] * fit->naxes[1];
