@@ -1506,8 +1506,9 @@ gpointer conesearch_worker(gpointer p) {
 		free_conesearch_args(args);
 		args = NULL;
 
-		if (go_idle && spl_data) {
-			siril_add_idle(create_new_siril_plot_window, spl_data);
+		if (go_idle) {
+			if (spl_data)
+				siril_add_idle(create_new_siril_plot_window, spl_data);
 			siril_add_idle(end_conesearch, temp_cat);
 		} else {
 			end_generic(NULL);
