@@ -213,7 +213,7 @@ static void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
  * computes them and stores them in it if they have not already been */
 static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *selection,
 		int option, imstats *stats, int bitpix, threading_type threads) {
-	int nx, ny;
+	int nx = 0, ny = 0;
 	WORD *data = NULL;
 	int stat_is_local = 0, free_data = 0;
 	imstats* stat = stats;

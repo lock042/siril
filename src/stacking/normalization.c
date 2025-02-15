@@ -135,9 +135,9 @@ static void compute_factors_from_estimators(struct stacking_args *args, int ref_
 #ifdef DEBUG_NORM
 	siril_debug_print("Normalization coeeficients\n");
 #endif
-	int reflayer;
+	int reglayer = (args->reglayer > -1) ? args->reglayer : 1;
 	for (int layer = 0; layer < nb_layers; ++layer) {
-		reflayer = (args->equalizeRGB) ? args->reglayer : layer;
+		int reflayer = (args->equalizeRGB) ? reglayer : layer;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
 			switch (args->normalize) {
 				default:

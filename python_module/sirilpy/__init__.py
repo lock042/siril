@@ -23,6 +23,7 @@ if TYPE_CHECKING:
         BGSample,
         RegData,
         ImgData,
+        DistoData,
         Sequence
     )
     from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
@@ -50,6 +51,7 @@ from .models import (
     BGSample,
     RegData,
     ImgData,
+    DistoData,
     Sequence
 )
 from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
@@ -91,6 +93,7 @@ __all__ = [
     'BGSample',
     'RegData',
     'ImgData',
+    'DistoData',
     'Sequence',
     'PlotType',
     'SeriesData',

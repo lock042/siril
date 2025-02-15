@@ -929,13 +929,13 @@ int stat_file(const char *filename, image_type *type, char **realname) {
 		if (!is_readable_file(filename)) return 1;
 
 		*type = get_type_for_extension(extension);
-		if (*type != TYPEJPG) {
-			// Fast path: Non-JPEG files validated via extension + lstat only
+		if (*type == TYPEFITS) {
+			// Fast path: FITS files validated via extension + lstat only
 			if (realname) *realname = strdup(filename);
 			return 0;
 		}
 
-		// JPEGs require magic number verification
+		// files that require magic number verification
 		FILE *file = g_fopen(filename, "rb");
 		if (!file) return 1;
 

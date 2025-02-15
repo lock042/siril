@@ -478,17 +478,47 @@ class Homography:
 class BGSample:
     """
     Python equivalent of the Siril background_sample struct. Used to hold
-    background sample data obtained from Siril.
-    Note that when *sending* background samples to Siril, a simpler
-    List[Tuple[float, float]] is used, as only the coordinates are needed.
+    background sample data obtained from Siril, or to generate or modify
+    background sample data to set in Siril.
+    A BGSample can be constructed as:
+        s1 = BGSample(x=1.0, y=2.0)
+        s2 = BGSample(position=(1.0, 2.0))
+        s3 = BGSample(x=1.0, y=2.0, mean=0.5, size=31)
     """
-    median: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    median: Tuple[float, float, float] = (0.0, 0.0, 0.0) #: Median values for R, G and B channels. For mono images only median[0] is used.
     mean: float = 0.0
     min: float = 0.0
     max: float = 0.0
-    size: int = 0
-    position: Tuple[float, float] = (0.0, 0.0)
-    valid: bool = False
+    size: int = field(default=25, init=False)  #: The default size matches the size of Siril bg samples.
+    valid: bool = True  #: Samples default to being valid
+    position: Optional[Tuple[float, float]] = field(default=None, init=False)  #: Position in (x, y) image coordinates
+
+    def __init__(self, *args, x=None, y=None, position=None, size=25, **kwargs):
+        """
+        Custom constructor to handle both (x, y) and position arguments while allowing other attributes.
+        Ensures `size`, if specified, is an odd number.
+        """
+        if (x is not None or y is not None) and position is not None:
+            raise ValueError("Cannot provide both position tuple and x,y coordinates")
+        if (x is not None) ^ (y is not None):  # XOR check
+            raise ValueError("Must provide both x and y coordinates")
+        if position is None and x is None and y is None:
+            raise ValueError("Must provide either both x and y coordinates or a position tuple")
+
+        # Assign position
+        self.position = position if position is not None else (float(x), float(y))
+
+        # Validate and assign size
+        if size % 2 == 0:
+            raise ValueError("Size must be an odd number")
+        if size < 0:
+            raise ValueError("Size must be positive")
+        self.size = size
+
+        # Manually initialize other dataclass fields from kwargs
+        for field_name in self.__dataclass_fields__:
+            if field_name not in {"position", "size"}:  # Already set manually
+                setattr(self, field_name, kwargs.get(field_name, getattr(self.__class__, field_name)))
 
 class StarProfile(IntEnum):
     """
@@ -576,6 +606,10 @@ class RegData:
     number_of_stars: int = 0             #: number of stars detected in the image
     H: Homography = field(default_factory=Homography)   #: Stores a homography matrix describing the affine transform from this frame to the reference frame
 
+    def __repr__(self):
+        attrs = [f"    {k}={getattr(self, k)}" for k in self.__dataclass_fields__]
+        return f"{self.__class__.__name__}(\n" + ",\n".join(attrs) + "\n)"
+
 @dataclass
 class ImgData:
     """Python equivalent of Siril imgdata structure"""
@@ -585,6 +619,52 @@ class ImgData:
     airmass: float = 0.0         #: airmass of the image
     rx: int = 0                 #: width
     ry: int = 0                 #: height
+
+    def __repr__(self):
+        attrs = [f"    {k}={getattr(self, k)}" for k in self.__dataclass_fields__]
+        return f"{self.__class__.__name__}(\n" + ",\n".join(attrs) + "\n)"
+
+class DistoType(IntEnum):
+    """Python equivalent of the Siril disto_source enum"""
+    DISTO_UNDEF = 0      #: No distortion
+    DISTO_IMAGE = 1      #: Distortion from current image
+    DISTO_FILE = 2       #: Distortion from given file
+    DISTO_MASTER = 3     #: Distortion from master files
+    DISTO_FILES = 4      #: Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
+    DISTO_FILE_COMET = 5 #: special for cometary alignement, to be detected by apply reg
+
+    def __str__(self):
+        if self == DistoType.DISTO_UNDEF:
+            return "No distortion"
+        elif self == DistoType.DISTO_IMAGE:
+            return "Distortion from current image"
+        elif self == DistoType.DISTO_FILE: 
+            return "Distortion from given file"
+        elif self == DistoType.DISTO_MASTER:
+            return "Distortion from master files"
+        elif self == DistoType.DISTO_FILES:
+            return "Distortion stored in each file"
+        elif self == DistoType.DISTO_FILE_COMET:
+            return "Cometary alignement"
+        else:
+            return "Unknown distortion type"
+
+
+@dataclass
+class DistoData:
+    """Python equivalent of Siril disto_params structure"""
+    index: DistoType = DistoType.DISTO_UNDEF #: Specifies the distrosion type
+    filename: str = ""                     #: filename if DISTO_FILE or DISTO_MASTER (and optional for DISTO_FILE_COMET)
+    velocity: Tuple[float, float] = (0, 0) #: shift velocity if DISTO_FILE_COMET
+
+    def __str__(self):
+        """For pretty-printing distortion information"""
+        pretty = f'{DistoType(self.index)}'
+        if len(self.filename) > 0:
+            pretty += f'\nDistorsion file: {self.filename}'
+        if self.index == DistoType.DISTO_FILE_COMET:
+            pretty += f'\nVelocity X/Y: {self.velocity[0]:.2f} {self.velocity[1]:.2f}'
+        return pretty
 
 @dataclass
 class Sequence:
@@ -599,9 +679,10 @@ class Sequence:
     is_variable: bool = False            #: sequence has images of different sizes
     bitpix: int = 0                      #: image pixel format, from fits
     reference_image: int = 0             #: reference image for registration
-    imgparam: List[ImgData] = None       #: a structure for each image of the sequence
-    regparam: List[List[RegData]] = None #: registration parameters for each layer
-    stats: List[List[ImageStats]] = None #: statistics of the images for each layer
+    imgparam: List[ImgData] = None       #: a structure for each image of the sequence [number]
+    regparam: List[List[RegData]] = None #: registration parameters for each layer [nb_layers][number]
+    stats: List[List[ImageStats]] = None #: statistics of the images for each layer [nb_layers][number]
+    distoparam: List[DistoData] = None   #: distortion data for the sequence [nb_layers]
     beg: int = 0                         #: imgparam[0]->filenum
     end: int = 0                         #: imgparam[number-1]->filenum
     exposure: float = 0.0                #: exposure of frames
@@ -623,3 +704,24 @@ class Sequence:
             self.regparam = []
         if self.stats is None:
             self.stats = []
+        if self.distoparam is None:
+            self.distoparam = []
+    
+    def __str__(self):
+        """For pretty-printing sequence information"""
+        pretty = f'Sequence: {self.seqname}'
+        pretty += f'\nImages [selected/total]: {self.selnum} / {self.number}'
+        pretty += f'\nNumber of layers: {self.nb_layers}'
+        pretty += f'\nBitdepth: {self.bitpix}'
+        pretty += f'\nReference image: {self.reference_image + 1}'
+        if not self.is_variable:
+            pretty += f'\nImage size: {self.rx}x{self.ry}'
+        else:
+            pretty += f'\nImages have variable sizes'
+        for i, r in enumerate(self.regparam):
+            if any(rr is not None for rr in r):
+                pretty += f'\nSequence has registration data'
+                pretty += f' from layer {i}' if self.nb_layers > 1 else ''
+                if self.distoparam is not None and self.distoparam[i] is not None and self.distoparam[i].index != DistoType.DISTO_UNDEF:
+                    pretty += f'\nDistortion found in this layer: {self.distoparam[i]}'
+        return pretty

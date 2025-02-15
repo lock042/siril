@@ -67,6 +67,7 @@ int save_wcs_keywords(fits *fit);
 void read_fits_date_obs_header(fits *fit);
 int read_fits_keywords(fits *fit);
 int remove_all_fits_keywords(fits *fit);
+void clear_Bayer_information(fits *fit);
 
 void set_all_keywords_default(fits *fit);
 void remove_keyword_in_fit_keywords(const gchar *keyword, fits *fit);

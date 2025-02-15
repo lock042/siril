@@ -691,8 +691,10 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(max_framing), TRUE);
 		}
 	}
-	gtk_widget_set_visible(blend_frame, stack_method == STACK_MEAN);
-	if (gtk_widget_get_visible(blend_frame)) {
+
+	gboolean can_feather = can_reframe && stack_method == STACK_MEAN;
+	gtk_widget_set_visible(blend_frame, can_feather);
+	if (can_feather) {
 		gtk_widget_set_sensitive(overlap_norm, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(max_framing)));
 		if (!gtk_widget_get_sensitive(overlap_norm))
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(overlap_norm), FALSE);
