@@ -703,7 +703,8 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 #endif
 
 	// Plot the data in a siril_plot_window
-	siril_add_idle(create_new_siril_plot_window, plot_data);
+	if (plot_data)
+		siril_add_idle(create_new_siril_plot_window, plot_data);
 	return send_response(conn, STATUS_OK, NULL, 0);
 }
 

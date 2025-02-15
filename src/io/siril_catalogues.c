@@ -1477,19 +1477,17 @@ gpointer conesearch_worker(gpointer p) {
 	}
 
 	if (args->has_GUI && args->compare) {
-		spl_data = malloc(sizeof(siril_plot_data));
+		spl_data = init_siril_plot_data();
 		if (!spl_data) {
-			PRINT_ALLOC_ERR;
 			retval = 1;
-			goto exit_conesearch;
+		} else {
+			siril_plot_set_title(spl_data, "Detected vs astrometric position");
+			siril_plot_set_xlabel(spl_data, "dx [\"]");
+			siril_plot_set_ylabel(spl_data, "dy [\"]");
+			siril_plot_add_xydata(spl_data, NULL, k, dxf, dyf, NULL, NULL);
+			siril_plot_set_savename(spl_data, "diffpos");
+			siril_plot_set_nth_plot_type(spl_data, 1, KPLOT_POINTS);
 		}
-		init_siril_plot_data(spl_data);
-		siril_plot_set_title(spl_data, "Detected vs astrometric position");
-		siril_plot_set_xlabel(spl_data, "dx [\"]");
-		siril_plot_set_ylabel(spl_data, "dy [\"]");
-		siril_plot_add_xydata(spl_data, NULL, k, dxf, dyf, NULL, NULL);
-		siril_plot_set_savename(spl_data, "diffpos");
-		siril_plot_set_nth_plot_type(spl_data, 1, KPLOT_POINTS);
 		free(dxf);
 		dxf = NULL;
 		free(dyf);
@@ -1508,7 +1506,7 @@ gpointer conesearch_worker(gpointer p) {
 		free_conesearch_args(args);
 		args = NULL;
 
-		if (go_idle) {
+		if (go_idle && spl_data) {
 			siril_add_idle(create_new_siril_plot_window, spl_data);
 			siril_add_idle(end_conesearch, temp_cat);
 		} else {

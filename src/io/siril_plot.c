@@ -157,7 +157,12 @@ static int comparex(const void *a, const void *b) {
 
 // init/free spl_data
 
-void init_siril_plot_data(siril_plot_data *spl_data) {
+siril_plot_data* init_siril_plot_data() {
+	siril_plot_data *spl_data = malloc(sizeof(siril_plot_data));
+	if (!spl_data) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	spl_data->plot = NULL;
 	spl_data->plots = NULL;
 	spl_data->title = NULL;
@@ -208,6 +213,7 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 
 	// initializing the plot_draw_data
 	memset(&spl_data->pdd, 0, sizeof(plot_draw_data_t));
+	return spl_data;
 }
 
 void free_siril_plot_data(siril_plot_data *spl_data) {

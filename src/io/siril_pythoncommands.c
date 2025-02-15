@@ -452,8 +452,10 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	size_t offset = 0;
 
 	// Allocate the main plot data structure
-	siril_plot_data* plot_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(plot_data);
+	siril_plot_data* plot_data = init_siril_plot_data();
+	if (!plot_data)
+		return NULL;
+
 	// We don't need to use the siril_plot_set_X functions here as we
 	// know the plot_data is newly allocated and initialized
 
