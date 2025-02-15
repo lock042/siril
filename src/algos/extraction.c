@@ -28,6 +28,7 @@
 #include "algos/geometry.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
+#include "io/fits_keywords.h"
 #include "extraction.h"
 
 /******************************************************************************

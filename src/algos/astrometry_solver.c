@@ -874,7 +874,7 @@ gpointer plate_solver(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	psf_star **stars = NULL;	// image stars
 	int nb_stars = 0;	// number of image and catalogue stars
-	gboolean asnet_running = FALSE; // must be declared before first goto cleanup;
+	gboolean asnet_running = FALSE;
 
 	args->ret = SOLVE_OK;
 	solve_results solution = { 0 }; // used in the clean-up, init at the beginning

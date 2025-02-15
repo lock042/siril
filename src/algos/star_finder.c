@@ -1294,10 +1294,6 @@ int findstar_finalize_hook(struct generic_seq_args *args) {
 		if (!wcsfree(data->ref_wcs))
 			free(data->ref_wcs);
 	}
-	if (data->onepass) {
-		free(data->stars);
-		free(data->nb_stars);
-	}
 	if (data->startable)
 		g_free(data->startable);
 	if (data->starfile)

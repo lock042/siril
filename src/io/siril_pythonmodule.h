@@ -69,6 +69,7 @@ typedef enum {
 	CMD_INFO_MESSAGEBOX_MODAL = 52,
 	CMD_WARNING_MESSAGEBOX = 53,
 	CMD_WARNING_MESSAGEBOX_MODAL = 54,
+	CMD_GET_SEQ_DISTODATA = 55,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -177,7 +178,7 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
 siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size);
 gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info);
-gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples);
+gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples, gboolean recalculate);
 void cleanup_shm_allocation(Connection *conn, const char* shm_name);
 shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 void initialize_python_venv_in_thread();

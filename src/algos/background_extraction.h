@@ -37,6 +37,8 @@ struct background_data {
 	gboolean is_cfa;
 };
 
+#define SAMPLE_SIZE 25		// must be odd to compute a radius
+
 typedef struct sample {
 	double median[3]; // median of each channel of the sample (if color)
 	double mean; // mean of the 3 channel of the sample (if color)

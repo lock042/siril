@@ -1319,3 +1319,7 @@ int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry) {
 	}
 	return 1;
 }
+
+void clear_Bayer_information(fits *fit) {
+	memset(fit->keywords.bayer_pattern, 0, FLEN_VALUE);
+}

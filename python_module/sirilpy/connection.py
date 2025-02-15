@@ -24,7 +24,7 @@ from packaging.specifiers import SpecifierSet
 from typing import Tuple, Optional, List, Union, Any
 from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
 from .exceptions import SirilError, ConnectionError, CommandError, NoImageError
-from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, BGSample, RegData, ImgData, Sequence, SequenceType
+from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType
 
 if os.name == 'nt':
     import win32pipe
@@ -106,6 +106,7 @@ class _Command(IntEnum):
     INFO_MESSAGEBOX_MODAL = 52
     WARNING_MESSAGEBOX = 53
     WARNING_MESSAGEBOX_MODAL = 54
+    GET_SEQ_DISTODATA = 55,
     ERROR = 0xFF
 
 class LogColor (IntEnum):
@@ -1800,24 +1801,60 @@ class SirilInterface:
                 except:
                     pass
 
-    def set_image_bgsamples(self, points: List[Tuple[float, float]], show_samples: bool = False):
+    def set_image_bgsamples(self, points: Union[List[Tuple[float, float]], List[BGSample]], show_samples: bool = False, recalculate = True):
         """
         Serialize a set of background sample points and send via shared memory.
-        The sample points are provided as a List of Tuples with each Tuple
-        comprising (x, y) where x and y are floats. Note that only locations
-        are sent to Siril rather than the full BGSample object that can be
-        retrieved, because Siril will automatically update the sample statistics
-        and validity on receipt.
+        Points can be provided either as:
+        - List of (x,y) Tuples: BGSamples are created with these positions and Siril
+        will automatically compute the statistics.
+        - List of BGSample objects: The complete sample data is sent to Siril.
+          By default Siril will recalculate statistics for the sample points
+          on receipt, but this can be overridden with the argument recalculate=False
 
         Args:
-            points: List of sample point locations
+            points: List of sample points, either as (x,y) tuples or BGSample objects
             show_samples: Whether to show the sample points in Siril
+            recalculate: Whether to recalculate the sample points once set. This only
+                         applies if the sample points are provided as a List of
+                         BGSamples, in which case it defaults to True. If the sample
+                         points are provided as a List of (x,y) Tuples then the
+                         parameter has no effect. Setting recalculate=False is usually
+                         a bad idea but the option is provided to support potential
+                         advanced uses where the values are adjusted in python code to
+                         manipulate the background fit.
         """
         try:
-            format_string = 'd' * (2 * len(points))  # multiply by 2 since each pair has 2 values
+            # Convert tuples to BGSamples if needed
+            recalc = True
+            if points and not isinstance(points[0], BGSample):
+                samples = [BGSample(position=pos) for pos in points]
+            else:
+                samples = points
+                recalc = True if recalculate else False
 
-            # Flatten the list of tuples into a single sequence of values
-            flat_values = [coord for pair in points for coord in pair]
+            # Format string to match C struct layout:
+            # 3 doubles for median array
+            # 1 double for mean
+            # 2 doubles for min,max
+            # 1 unsigned long long for size_t
+            # 2 doubles for position
+            # 1 unsigned int for gboolean
+            format_string = '3d d 2d Q 2d I' * len(samples)
+
+            # Flatten all BGSample data
+            flat_values = []
+            for sample in samples:
+                if sample.position is None:
+                    raise ValueError("All BGSamples must have valid position values")
+                flat_values.extend([
+                    *sample.median,      # 3 doubles
+                    sample.mean,         # 1 double
+                    sample.min,          # 1 double
+                    sample.max,          # 1 double
+                    sample.size,         # unsigned long long
+                    *sample.position,    # 2 doubles
+                    1 if sample.valid else 0  # unsigned int (gboolean)
+                ])
 
             # Pack all the values
             serialized_data = struct.pack(format_string, *flat_values)
@@ -1827,7 +1864,6 @@ class SirilInterface:
             try:
                 # Request Siril to provide a big enough shared memory allocation
                 shm_info = self._request_shm(total_bytes)
-
                 # Map the shared memory
                 try:
                     shm = self._map_shared_memory(
@@ -1836,7 +1872,6 @@ class SirilInterface:
                     )
                 except (OSError, ValueError) as e:
                     raise RuntimeError(_("Failed to map shared memory: {}").format(e))
-
             except Exception as e:
                 raise RuntimeError(_("Failed to create shared memory: {}").format(e))
 
@@ -1854,16 +1889,14 @@ class SirilInterface:
                 '!IIIIQ256s',
                 0,  # width (not used for plots)
                 0,  # height (not used for plots)
-                0,  # reserved/unused
-                1 if show_samples else 0,  # data_type use to indicate
-                                          # whether to show the samples
+                1 if recalc else 0,  # recalculate flag
+                1 if show_samples else 0,  # show_samples flag
                 total_bytes,
                 shm_info.shm_name
             )
 
             if not self._execute_command(_Command.SET_BGSAMPLES, info):
                 raise RuntimeError(_("Failed to send BG sample command"))
-
             return True
 
         except Exception as e:
@@ -2772,6 +2805,43 @@ class SirilInterface:
             print(f"Error unpacking frame image data: {e}", file=sys.stderr)
             return None
 
+    def get_seq_distodata(self, channel: int) -> Optional[DistoData]:
+        """
+        Request sequence distortion data from Siril
+
+        channel: Integer specifying which channel to get registration data
+        for (typically 0, 1, or 2)
+
+        Returns:
+            DistoData object containing the channel distortion parameters, or None if an error occurred
+        """
+
+        # Request data with the channel number as payload
+        data_payload = struct.pack('!I', channel)
+        response = self._request_data(_Command.GET_SEQ_DISTODATA, payload=data_payload)
+        if response is None:
+            return None
+        try:
+            format_string = '!q2d'
+
+            fixed_length = struct.calcsize(format_string)
+            values = struct.unpack(format_string, response[:fixed_length])
+            # Extract remaining bytes for the null-terminated string
+            if len(response) > fixed_length:
+                remaining_data = response[fixed_length:]
+                distofilename_string = remaining_data.decode('utf-8')
+            else:
+                distofilename_string = ''
+
+            return DistoData (
+                index = values[0],
+                velocity = (values[1], values[2]),
+                filename = distofilename_string
+            )
+        except struct.error as e:
+            print(f"Error unpacking distortion data: {e}", file=sys.stderr)
+            return None
+
     def get_seq(self) -> Optional[Sequence]:
         """
         Request metadata for the current sequence loaded in Siril.
@@ -2803,12 +2873,15 @@ class SirilInterface:
                              for frame in range(number)]
 
             regdata_list = [[self.get_seq_regdata(frame, channel)
-                             for channel in range(nb_layers)]
                             for frame in range(number)]
+                            for channel in range(nb_layers)]
 
             stats_list = [[self.get_seq_stats(frame, channel)
-                           for channel in range(nb_layers)]
                           for frame in range(number)]
+                          for channel in range(nb_layers)]
+            
+            disto_list = [self.get_seq_distodata(channel)
+                             for channel in range(nb_layers)]
 
             return Sequence (
                 number = values[0],
@@ -2823,6 +2896,7 @@ class SirilInterface:
                 imgparam = imgparam_list,
                 regparam = regdata_list,
                 stats = stats_list,
+                distoparam = disto_list,
                 beg = values[9],
                 end = values[10],
                 exposure = values[11],

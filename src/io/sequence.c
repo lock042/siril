@@ -1786,6 +1786,8 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 
 static void write_regdata(sequence *seq, int layer, GSList *list, gboolean duplicate_for_regdata) {
 	check_or_allocate_regparam(seq, layer);
+	double xref = 0., yref = 0.;
+	gboolean ref_set = FALSE;
 	GSList *iterator;
 	for (iterator = list; iterator; iterator = iterator->next) {
 		struct seqpsf_data *data = iterator->data;
@@ -1798,8 +1800,16 @@ static void write_regdata(sequence *seq, int layer, GSList *list, gboolean dupli
 			seq->regparam[layer][data->image_index].weighted_fwhm = data->psf->fwhmx;
 			seq->regparam[layer][data->image_index].background_lvl = data->psf->B;
 			seq->regparam[layer][data->image_index].number_of_stars = 1;
-			//TODO need to update the H matrix with shifts computed from psf diff to refimage
-			//seq->regparam[layer][data->image_index].H = H_from_translation(shiftx, shifty);
+			// we compute shift wrt to the first image which has data (even if not the ref)
+			// the shifts will then be correctly computed as the Homography matrices are recomposed
+			if (!ref_set) {
+				xref = data->psf->xpos;
+				yref = data->psf->ypos;
+				ref_set = TRUE;
+			}
+			double shiftx = data->psf->xpos - xref;
+			double shifty = data->psf->ypos - yref;
+			seq->regparam[layer][data->image_index].H = H_from_translation(-shiftx, shifty);
 		}
 	}
 	seq->needs_saving = TRUE;

@@ -38,10 +38,12 @@
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
+#include "gui/message_dialog.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
+#include "io/fits_keywords.h"
 #include "registration/registration.h"
 #include "algos/demosaicing.h"
 
@@ -516,6 +518,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			*/
 			full_stats_invalidation_from_fit(fit);
 			fit->keywords.lo = 0;
+			clear_Bayer_information(fit); // we also reset the bayerpattern
 		}
 
 		free(p->pixmap->xmap);
@@ -1015,6 +1018,21 @@ void guess_transform_from_seq(sequence *seq, int layer,
 		fix_selnum(seq, FALSE);
 }
 
+static int confirm_exceed_cairomaxdim(gpointer user_data) {
+	struct registration_args *regargs = (struct registration_args*)user_data;
+	gchar *msg = g_strdup(_("Images will be larger than what Siril can display for now. "
+		"Tune scale ratio to get max dimension smaller than 32767 pixels "
+		"or proceed and post process your images with an external program."));
+	if (regargs->no_output) { // Estimate button was pressed, we just warn
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Output too large"), msg); 
+	} else if (!siril_confirm_dialog(_("Output too large"),  // Register button was pressed, we ask for confirmation
+				msg, _("Proceed"))) {
+		regargs->retval = 1;
+	}
+	g_free(msg);
+	return 0;
+}
+
 static gboolean check_applyreg_output(struct registration_args *regargs) {
 	/* compute_framing uses the filtered list of images, so we compute the filter here */
 
@@ -1022,6 +1040,20 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 	if (!compute_framing(regargs)) {
 		siril_log_color_message(_("Unselect the images generating the error or change framing method to max\n"), "red");
 		return FALSE;
+	}
+
+	// TODO: temp check for final image size
+	// if larger than cairo image buffer, pop a warning that image will not display at all 
+	int max_dim = max(regargs->framingd.roi_out.w, regargs->framingd.roi_out.h);
+	if (max_dim > 32767) {
+		if (!(com.script || com.python_script)) { // trhough GUI, we warn with GTK objects
+			execute_idle_and_wait_for_it(confirm_exceed_cairomaxdim, regargs);
+			if (regargs->retval)
+				return FALSE;
+		} else {
+			siril_log_color_message(_("Images will be larger than what Siril can display for now."), "salmon");
+			siril_log_color_message(_("Tune scale ratio to get max dimension smaller than 32767 pixels"), "salmon");
+		}
 	}
 
 	// make sure we apply registration only if the output sequence has a meaningful size
