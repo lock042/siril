@@ -281,50 +281,50 @@ void apply_to_seq() {
 
 	// Verify sequence compatibility
 	if ((seq0->rx != seq1->rx || seq0->rx != seq2->rx || seq0->rx != seq3->rx) ||
-		(seq0->ry != seq1->ry || seq0->ry != seq2->ry || seq0->ry != seq3->ry) ||
-		(seq0->nb_layers != seq1->nb_layers || seq0->nb_layers != seq2->nb_layers ||
-		seq0->nb_layers != seq3->nb_layers) ||
-		(seq0->bitpix != seq1->bitpix || seq0->bitpix != seq2->bitpix ||
-		seq0->bitpix != seq3->bitpix) ||
-		(seq0->number != seq1->number || seq0->number != seq2->number ||
-		seq0->number != seq3->number)) {
+				(seq0->ry != seq1->ry || seq0->ry != seq2->ry || seq0->ry != seq3->ry) ||
+				(seq0->nb_layers != seq1->nb_layers || seq0->nb_layers != seq2->nb_layers ||
+				seq0->nb_layers != seq3->nb_layers) ||
+				(seq0->bitpix != seq1->bitpix || seq0->bitpix != seq2->bitpix ||
+				seq0->bitpix != seq3->bitpix) ||
+				(seq0->number != seq1->number || seq0->number != seq2->number ||
+				seq0->number != seq3->number)) {
 		siril_log_color_message(_("Error: sequences don't match (dimensions, bitdepth, "
 		"number of images must all be the same)\n"), "red");
 	goto cleanup;
-		}
+	}
 
-		// Set sequences in args
-		args->seq0 = seq0;
-		args->seq1 = seq1;
-		args->seq2 = seq2;
-		args->seq3 = seq3;
+	// Set sequences in args
+	args->seq0 = seq0;
+	args->seq1 = seq1;
+	args->seq2 = seq2;
+	args->seq3 = seq3;
 
-		// Apply merge and cleanup
-		apply_mergecfa_to_sequence(args);
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		siril_close_dialog("merge_cfa_dialog");
+	// Apply merge and cleanup
+	apply_mergecfa_to_sequence(args);
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	siril_close_dialog("merge_cfa_dialog");
 
-		// Normal exit - don't free the sequences as they're now owned by apply_mergecfa_to_sequence
-		g_free(seqname0);
-		g_free(seqname1);
-		g_free(seqname2);
-		g_free(seqname3);
-		return;
+	// Normal exit - don't free the sequences as they're now owned by apply_mergecfa_to_sequence
+	g_free(seqname0);
+	g_free(seqname1);
+	g_free(seqname2);
+	g_free(seqname3);
+	return;
 
-		cleanup:
-		// Free all allocated resources
-		g_free(seqname0);
-		g_free(seqname1);
-		g_free(seqname2);
-		g_free(seqname3);
+	cleanup:
+	// Free all allocated resources
+	g_free(seqname0);
+	g_free(seqname1);
+	g_free(seqname2);
+	g_free(seqname3);
 
-		if (args) {
-			free(args->seqEntryOut);
-			free(args);
-		}
+	if (args) {
+		free(args->seqEntryOut);
+		free(args);
+	}
 
-		if (seq0 && !check_seq_is_comseq(seq0))
-			free_sequence(seq0, TRUE);
+	if (seq0 && !check_seq_is_comseq(seq0))
+		free_sequence(seq0, TRUE);
 	if (seq1 && !check_seq_is_comseq(seq1))
 		free_sequence(seq1, TRUE);
 	if (seq2 && !check_seq_is_comseq(seq2))

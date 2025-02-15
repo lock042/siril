@@ -83,7 +83,7 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) num_threads(com.max_thread) if (com.max_thread > 1)
 #endif
-	for (int i = 0; i < dimx * dimy; i++) {
+	for (size_t i = 0; i < dimx * dimy; i++) {
 		(*star_mask)->pdata[0][i] = 0;
 	}
 

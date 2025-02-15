@@ -96,6 +96,14 @@ static double siril_gsl_vector_sum(const gsl_vector *v) {
 	return sum;
 }
 
+static void cfachans_cleanup(fits **cfachans) {
+	for (int i = 0 ; i < 4 ; i++) {
+		clearfits(cfachans[i]);
+		free(cfachans[i]);
+	}
+	free(cfachans);
+}
+
 static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, double smoothing, gchar **err, int threads) {
 	/* Implementation of RBF interpolation with a thin-plate Kernel k(r) = r^2 * log(r)
 
@@ -976,11 +984,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 	}
 	if (ret) {
 		siril_log_color_message(_("Error splitting into CFA subcannels, aborting...\n"), "red");
-		for (int i = 0 ; i < 4 ; i++) {
-			clearfits(cfachans[i]);
-			free(cfachans[i]);
-		}
-		free(cfachans);
+		cfachans_cleanup(cfachans);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -991,11 +995,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 
 		if (!samples) {
 			siril_log_color_message(_("Failed to adapt background samples for CFA image\n"), "red");
-			for (int i = 0 ; i < 4 ; i++) {
-				clearfits(cfachans[i]);
-				free(cfachans[i]);
-			}
-			free(cfachans);
+			cfachans_cleanup(cfachans);
 			return GINT_TO_POINTER(1);
 		}
 
@@ -1003,11 +1003,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 		if (!background) {
 			PRINT_ALLOC_ERR;
 			siril_log_message(_("Out of memory - aborting"));
-			for (int i = 0 ; i < 4 ; i++) {
-				clearfits(cfachans[i]);
-				free(cfachans[i]);
-			}
-			free(cfachans);
+			cfachans_cleanup(cfachans);
 			return GINT_TO_POINTER(1);
 		}
 
@@ -1017,11 +1013,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 			free(background);
 			free_background_sample_list(samples);
 			PRINT_ALLOC_ERR;
-			for (int i = 0 ; i < 4 ; i++) {
-				clearfits(cfachans[i]);
-				free(cfachans[i]);
-			}
-			free(cfachans);
+			cfachans_cleanup(cfachans);
 			return GINT_TO_POINTER(1);
 		}
 
@@ -1044,11 +1036,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 				free_background_sample_list(com.grad_samples);
 				com.grad_samples = NULL;
 			}
-			for (int i = 0 ; i < 4 ; i++) {
-				clearfits(cfachans[i]);
-				free(cfachans[i]);
-			}
-			free(cfachans);
+			cfachans_cleanup(cfachans);
 			free(args);
 			siril_add_idle(end_background, NULL);
 			return GINT_TO_POINTER(1);
@@ -1071,11 +1059,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	/* free memory */
-	for (int i = 0 ; i < 4 ; i++) {
-		clearfits(cfachans[i]);
-		free(cfachans[i]);
-	}
-	free(cfachans);
+	cfachans_cleanup(cfachans);
 	invalidate_stats_from_fit(&gfit);
 	if (!args->from_ui) {
 		free_background_sample_list(com.grad_samples);
@@ -1207,11 +1191,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	}
 	if (ret) {
 		siril_log_color_message(_("Error splitting into CFA subcannels, aborting...\n"), "red");
-		for (int i = 0 ; i < 4 ; i++) {
-			clearfits(cfachans[i]);
-			free(cfachans[i]);
-		}
-		free(cfachans);
+		cfachans_cleanup(cfachans);
 		return 1;
 	}
 
@@ -1229,11 +1209,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 		if (!background) {
 			PRINT_ALLOC_ERR;
 			siril_log_message(_("Out of memory - aborting"));
-			for (int i = 0 ; i < 4 ; i++) {
-				clearfits(cfachans[i]);
-				free(cfachans[i]);
-			}
-			free(cfachans);
+			cfachans_cleanup(cfachans);
 			return 1;
 		}
 
@@ -1242,11 +1218,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 		if (!samples) {
 			siril_log_color_message(_("Failed to generate background samples for image %d: %s\n"), "red", i, _(err));
 			free(background);
-			for (int i = 0 ; i < 4 ; i++) {
-				clearfits(cfachans[i]);
-				free(cfachans[i]);
-			}
-			free(cfachans);
+			cfachans_cleanup(cfachans);
 			return 1;
 		}
 
@@ -1256,11 +1228,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 			free(background);
 			free_background_sample_list(samples);
 			PRINT_ALLOC_ERR;
-			for (int i = 0 ; i < 4 ; i++) {
-				clearfits(cfachans[i]);
-				free(cfachans[i]);
-			}
-			free(cfachans);
+			cfachans_cleanup(cfachans);
 			return 1;
 		}
 
@@ -1281,11 +1249,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 			free(image);
 			free(background);
 			free_background_sample_list(samples);
-			for (int i = 0 ; i < 4 ; i++) {
-				clearfits(cfachans[i]);
-				free(cfachans[i]);
-			}
-			free(cfachans);
+			cfachans_cleanup(cfachans);
 			return 1;
 		}
 		/* remove background */
@@ -1301,6 +1265,11 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	fits_swap_image_data(out, fit); // Efficiently move the merged pixeldata from out to fit
 	clearfits(out);
 	free(out);
+	for (int i = 0 ; i < 4 ; i++) {
+		free(cfachans[i]); // no need to use cfachans_cleanup here as the FITS have already
+				// been cleared in merge_cfa()
+	}
+	free(cfachans);
 	return 0;
 }
 

@@ -1160,7 +1160,7 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 static gboolean findstar_image_read_hook(struct generic_seq_args *args, int index) {
 	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 
-	struct starfinder_data *curr_findstar_args = calloc(1, sizeof(struct starfinder_data));
+	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = index;
 	curr_findstar_args->im.fit = NULL;
@@ -1172,7 +1172,7 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 
 	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "lst", NULL);
 	if (!star_filename) {
-		free(findstar_args);
+		free(curr_findstar_args);
 		return TRUE;
 	}
 
@@ -1247,6 +1247,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		}
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 		clearfits(green_fit);
+		free(green_fit);
 		if (retval) {
 			if (curr_findstar_args->onepass == TRUE) {
 				free(curr_findstar_args->nb_stars);
@@ -1281,10 +1282,7 @@ gboolean end_findstar_sequence(gpointer p) {
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
-	if (findstar_args->onepass) {
-		free(findstar_args->stars);
-		free(findstar_args->nb_stars);
-	}
+
 	free(findstar_args);
 	free(p);
 	return end_generic(NULL);
@@ -1295,6 +1293,10 @@ int findstar_finalize_hook(struct generic_seq_args *args) {
 	if (data->ref_wcs) {
 		if (!wcsfree(data->ref_wcs))
 			free(data->ref_wcs);
+	}
+	if (data->onepass) {
+		free(data->stars);
+		free(data->nb_stars);
 	}
 	if (data->startable)
 		g_free(data->startable);
@@ -1377,8 +1379,10 @@ gpointer findstar_worker(gpointer p) {
 	}
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
 			selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
-	if (green_fit)
+	if (green_fit) {
 		clearfits(green_fit);
+		free(green_fit);
+	}
 
 	double fwhm = 0.0;
 	if (stars) {
