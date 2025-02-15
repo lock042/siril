@@ -3,6 +3,7 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import io
 import os
 import sys
 import time
@@ -202,7 +203,7 @@ def ensure_installed(*packages: Union[str, List[str]],
         try:
             # Check if package is installed and meets version constraint
             if _check_package_installed(package, constraint):
-                print(f"{package} {'is' if constraint is None else f'meets version {constraint}'}")
+                print(f"{package} {'is installed' if constraint is None else f'meets version {constraint}'}")
                 continue
 
             # Attempt installation
@@ -251,9 +252,16 @@ def _check_package_installed(package_name: str, version_constraint: Optional[str
     except metadata.PackageNotFoundError:
         return False
 
+def _stream_output(process):
+    """
+    Helper function to stream subprocess output to stdout
+    """
+    for line in io.TextIOWrapper(process.stdout, encoding='utf-8', errors='replace'):
+        print(line.rstrip())
+
 def _install_package(package_name: str, version_constraint: Optional[str] = None):
     """
-    Install a package with optional version constraint.
+    Install a package with optional version constraint, streaming pip output to stdout.
 
     Args:
         package_name (str): Name of the package to install.
@@ -263,14 +271,33 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
         subprocess.CalledProcessError: If pip installation fails.
     """
     print(f"Installing {package_name}. This may take a few seconds...")
+
     # Construct installation target
     install_target = f"{package_name}{version_constraint}" if version_constraint else package_name
 
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", install_target],
-                               stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL)
-        print(f"Successfully installed {install_target}")
+        # Start pip install process with pipe for stdout
+        process = subprocess.Popen(
+            [sys.executable, "-m", "pip", "install", install_target],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            bufsize=-1,
+            universal_newlines=False
+        )
+
+        # Create and start output streaming thread
+        output_thread = threading.Thread(target=_stream_output, args=(process,))
+        output_thread.start()
+
+        # Wait for process to complete
+        return_code = process.wait()
+        output_thread.join()
+
+        if return_code == 0:
+            print(f"Successfully installed {install_target}")
+        else:
+            raise subprocess.CalledProcessError(return_code, process.args)
+
     except subprocess.CalledProcessError as e:
         print(f"Failed to install {install_target}")
         raise
