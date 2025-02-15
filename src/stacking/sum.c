@@ -175,6 +175,8 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 			if (ssdata->fsum[0][i] > fmax)
 				fmax = ssdata->fsum[0][i];
 		}
+		if (!fmax)
+			return ST_GENERIC_ERROR;
 	} else {
 #ifdef _OPENMP
 #pragma omp parallel for reduction(max:max)
@@ -182,6 +184,8 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 		for (i = 0; i < nbdata; ++i)
 			if (ssdata->sum[0][i] > max)
 				max = ssdata->sum[0][i];
+		if (!max)
+			return ST_GENERIC_ERROR;
 	}
 
 	fits *fit = &ssdata->result;

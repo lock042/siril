@@ -386,6 +386,7 @@ free_all:
 	free(incl);
 	free(Ks);
 	free(Rs);
+	free(Rstmp);
 	siril_log_message(_("Astrometric registration computed.\n"));
 	if (Hout) {
 		cvGetEye(Hout);

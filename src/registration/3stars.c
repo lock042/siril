@@ -248,7 +248,7 @@ static void _3stars_free_results() {
 }
 
 static int _3stars_seqpsf(struct registration_args *regargs) {
-	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
+	struct seqpsf_args *spsfargs = calloc(1, sizeof(struct seqpsf_args));
 	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
 	spsfargs->for_photometry = FALSE;
 	fits fit = { 0 };

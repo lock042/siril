@@ -332,12 +332,13 @@ void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct wavelets_filter_data *args = malloc(sizeof(struct wavelets_filter_data));
+	struct wavelets_filter_data *args = calloc(1, sizeof(struct wavelets_filter_data));
 
 	args->Type = Type;
 	args->Nbr_Plan = Nbr_Plan;
 	args->fit = &gfit;
-	start_in_new_thread(extract_plans, args);
+	if (!start_in_new_thread(extract_plans, args))
+		free(args);
 }
 
 void on_button_extract_w_close_clicked(GtkButton *button, gpointer user_data) {

@@ -559,13 +559,14 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		struct curve_params params = {.points = curve_points, .algorithm = algoritm, .do_channel = {do_channel[0],
 																									do_channel[1],
 																									do_channel[2]}};
-		struct curve_data *args = malloc(sizeof(struct mtf_data));
+		struct curve_data *args = calloc(1, sizeof(struct mtf_data));
 
 		args->params = params;
 		args->seq_entry = strdup(gtk_entry_get_text(curves_seq_entry));
 		args->seq = &com.seq;
 		// If entry text is empty, set the sequence prefix to default 'curve_'
 		if (args->seq_entry && args->seq_entry[0] == '\0') {
+			free(args->seq_entry);
 			args->seq_entry = strdup("stretch_");
 		}
 
@@ -618,12 +619,16 @@ void apply_curve_to_sequence(struct curve_data *curve_args) {
 	args->stop_on_error = FALSE;
 	args->description = _("Curves Transform");
 	args->has_output = TRUE;
-	args->new_seq_prefix = curve_args->seq_entry;
+	args->new_seq_prefix = strdup(curve_args->seq_entry);
 	args->load_new_sequence = TRUE;
 	args->user = curve_args;
 	curve_args->fit = NULL;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(curve_args->seq_entry);
+		free(curve_args);
+		free_generic_seq_args(args);
+	}
 }
 
 void apply_curves_cancel() {

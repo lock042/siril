@@ -381,6 +381,7 @@ void on_annotate_apply_clicked(GtkButton *button, gpointer user_data) {
 			if (!siril_confirm_dialog(N_(title), N_(txt), _("Replace"))) {
 				set_cursor_waiting(FALSE);
 				g_free(basename); g_free(dir_path); g_free(last_dir); g_free(title); g_free(txt);
+				g_free(params_cone);
 				return;
 			}
 			g_free(basename); g_free(dir_path); g_free(last_dir); g_free(title); g_free(txt);

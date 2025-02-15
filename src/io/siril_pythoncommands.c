@@ -467,8 +467,10 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	size_t offset = 0;
 
 	// Allocate the main plot data structure
-	siril_plot_data* plot_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(plot_data);
+	siril_plot_data* plot_data = init_siril_plot_data();
+	if (!plot_data)
+		return NULL;
+
 	// We don't need to use the siril_plot_set_X functions here as we
 	// know the plot_data is newly allocated and initialized
 
@@ -794,7 +796,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// ra and dec = -1 is the error code
 			}
 			const size_t psf_star_size = 36 * sizeof(double);
-			unsigned char* star = g_malloc0(psf_star_size);
+			unsigned char* star = g_try_malloc0(psf_star_size);
 			unsigned char* ptr = star;
 			if (psfstar_to_py(psf, ptr, psf_star_size)) {
 				error_occurred = TRUE;
@@ -857,7 +859,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			imstats *stats = statistics(NULL, -1, &gfit, layer, &selection, STATS_MAIN, MULTI_THREADED);
 
 			const size_t total_size = 14 * sizeof(double);
-			unsigned char* response_buffer = g_malloc0(total_size);
+			unsigned char* response_buffer = g_try_malloc0(total_size);
 			unsigned char* ptr = response_buffer;
 			if (imstats_to_py(stats, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
@@ -1114,7 +1116,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			int32_t index = GUINT32_FROM_BE((int32_t) *payload);
-			if (index < 0 || index >= com.seq.number) {
+			if (index >= com.seq.number) {
 				const char* error_msg = _("Failed to load sequence frame");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1252,7 +1254,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Prepare response buffer with correct byte order
 			// Size is 2 longs (16 bytes) + 12 doubles (96 bytes) = 112 bytes
 			size_t total_size = 14 * sizeof(double);
-			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
 			imstats *stats = fit->stats[channel];
@@ -1318,7 +1320,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
 
 			size_t total_size = strings_size + numeric_size;
-			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 			if (keywords_to_py(&gfit, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
@@ -1341,7 +1343,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 				chan = GUINT32_FROM_BE(*((int*) payload + 1));
 			}
-			if (payload_length != 8 || index < 0 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
+			if (payload_length != 8 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
 				const char* error_msg = _("Incorrect command arguments");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1420,7 +1422,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 				chan = GUINT32_FROM_BE(*((int*) payload + 1));
 			}
-			if (payload_length != 8 || index < 0 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
+			if (payload_length != 8 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
 				const char* error_msg = _("Incorrect command arguments");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1428,7 +1430,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Calculate size needed for response
 			size_t total_size = 14 * sizeof(double);
-			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
 			if (!com.seq.stats) {
@@ -1466,7 +1468,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 4) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 			}
-			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
+			if (payload_length != 4 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1474,7 +1476,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Calculate size needed for response
 			size_t total_size = 6 * sizeof(double);
-			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
 			imgdata *imgparam = &com.seq.imgparam[index];
@@ -1516,7 +1518,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if(enforce_area_in_image(&region, &com.seq, index)) {
 				siril_log_message(_("Selection cropped to frame boundaries\n"));
 			}
-			if ((payload_length != 4 && payload_length != 20) || index < 0 || index >= com.seq.number) {
+			if ((payload_length != 4 && payload_length != 20) || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1564,7 +1566,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* pixelbool = payload + 4;
 				with_pixels = BOOL_FROM_BYTE(pixelbool);
 			}
-			if (payload_length != 5 || index < 0 || index >= com.seq.number) {
+			if (payload_length != 5 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1587,7 +1589,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				total_size += shminfo_size;
 			}
 
-			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
 			int ret = fits_to_py(fit, ptr, ffit_size);
@@ -1643,7 +1645,7 @@ CLEANUP:
 			size_t stringsize = strlen(com.seq.seqname) + 1;
 			size_t varsize = sizeof(uint64_t) * 16;
 			size_t total_size = varsize + stringsize;
-			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
 			if (seq_to_py(&com.seq, ptr, total_size)) {
@@ -1671,7 +1673,7 @@ CLEANUP:
 			const size_t psf_star_size = 36 * sizeof(double);
 			const size_t total_size = nb_in_com_stars * psf_star_size;
 
-			unsigned char* allstars = g_malloc0(total_size);
+			unsigned char* allstars = g_try_malloc0(total_size);
 			if (!allstars) {
 				const char* error_msg = _("Memory allocation failed");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -1786,7 +1788,7 @@ CLEANUP:
 			// Calculate size needed for the response
 			size_t total_size = sizeof(uint64_t) * 14; // 14 vars packed to 64-bit
 
-			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
 			if (fits_to_py(&gfit, ptr, total_size)) {
@@ -1923,7 +1925,7 @@ CLEANUP:
 
 			// Allocate response buffer: 1 byte for type + value size
 			size_t total_size = 1 + value_size;
-			unsigned char* response_buffer = g_malloc(total_size);
+			unsigned char* response_buffer = g_try_malloc0(total_size);
 
 			// Write type and value
 			response_buffer[0] = (unsigned char)type;
@@ -1961,7 +1963,7 @@ CLEANUP:
 					// ra and dec = -1 is the error code
 					TO_BE64_INTO(ra_BE, ra, double);
 					TO_BE64_INTO(dec_BE, dec, double);
-					unsigned char* payload = g_malloc0(2 * sizeof(double));
+					unsigned char* payload = g_try_malloc0(2 * sizeof(double));
 					DblPtrBE = (double*) payload;
 					DblPtrBE[0] = ra_BE;
 					DblPtrBE[1] = dec_BE;
@@ -1998,7 +2000,7 @@ CLEANUP:
 					siril_to_display(fx, fy, &x, &y, gfit.ry);
 					TO_BE64_INTO(x_BE, x, double);
 					TO_BE64_INTO(y_BE, y, double);
-					unsigned char* payload = g_malloc0(2 * sizeof(double));
+					unsigned char* payload = g_try_malloc0(2 * sizeof(double));
 					DblPtrBE = (double*) payload;
 					DblPtrBE[0] = x_BE;
 					DblPtrBE[1] = y_BE;
@@ -2102,7 +2104,7 @@ CLEANUP:
 				incl_encoded = GUINT32_FROM_BE(incl_encoded);
 				incl = (gboolean) incl_encoded;
 
-				if (index < 0 || index >= com.seq.number) {
+				if (index >= com.seq.number) {
 					const char* error_msg = _("Index is out of range");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;

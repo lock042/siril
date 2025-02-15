@@ -433,14 +433,18 @@ gpointer cut_profile(gpointer p) {
 	gchar *filename = NULL, *imagefilename = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
-	siril_plot_data *spl_data = NULL;
+	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		retval = 1;
+		goto END;
+	}
 
 	build_profile_filenames(arg, &filename, &imagefilename);
 
 	point delta;
 	delta.x = arg->cut_end.x - arg->cut_start.x;
 	delta.y = endy - starty;
-	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.) {
 		retval = 1;
@@ -536,8 +540,6 @@ gpointer cut_profile(gpointer p) {
 		}
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_add_xydata(spl_data, spl_legend, nbr_points, x, r, NULL, NULL);
@@ -593,15 +595,19 @@ gpointer tri_cut(gpointer p) {
 	char *filename = NULL, *imagefilename = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
-	siril_plot_data *spl_data = NULL;
-	gchar *spllabels[3] = { NULL };
+	double *x = NULL, *r[3] = { 0 };
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		retval = 1;
+		goto END;
+	}
 
+	gchar *spllabels[3] = { NULL };
 	build_profile_filenames(arg, &filename, &imagefilename);
 
 	point delta;
 	delta.x = arg->cut_end.x - arg->cut_start.x;
 	delta.y = endy - starty;
-	double *x = NULL, *r[3] = { 0 };
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.) {
 		retval = 1;
@@ -743,8 +749,6 @@ gpointer tri_cut(gpointer p) {
 		xlabel = g_strdup_printf(_("Distance along cut / px"));
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
@@ -795,8 +799,11 @@ gpointer cfa_cut(gpointer p) {
 	char *filename = NULL,*imagefilename = NULL;
 	fits cfa[4];
 	memset(cfa, 0, 4 * sizeof(fits));
-	siril_plot_data *spl_data = NULL;
-
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		retval = 1;
+		goto END;
+	}
 	build_profile_filenames(arg, &filename, &imagefilename);
 
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
@@ -864,8 +871,6 @@ gpointer cfa_cut(gpointer p) {
 		xlabel = g_strdup_printf(_("Distance along cut / px"));
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
@@ -975,13 +980,16 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		memcpy(p, &gui.cut, sizeof(cut_struct));
 		if (p->tri) {
 			siril_debug_print("Tri-profile\n");
-			start_in_new_thread(tri_cut, p);
+			if (!start_in_new_thread(tri_cut, p))
+				free(p);
 		} else if (p->cfa) {
 			siril_debug_print("CFA profiling\n");
-			start_in_new_thread(cfa_cut, p);
+			if (!start_in_new_thread(cfa_cut, p))
+				free(p);
 		} else {
 			siril_debug_print("Single profile\n");
-			start_in_new_thread(cut_profile, p);
+			if (!start_in_new_thread(cut_profile, p))
+				free(p);
 		}
 	}
 }
@@ -1380,5 +1388,8 @@ void apply_cut_to_sequence(cut_struct* cut_args) {
 	args->stop_on_error = FALSE;
 	args->user = cut_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(args->user);
+		free_generic_seq_args(args);
+	}
 }

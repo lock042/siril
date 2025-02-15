@@ -1064,7 +1064,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	channel = single_rgb ? channel : 3;
 
-	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
+	struct pixel_math_data *args = calloc(1, sizeof(struct pixel_math_data));
 
 	if (parse_parameters(&expression1, &expression2, &expression3)) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"),
@@ -1074,10 +1074,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	}
 
 	args->expression1 = g_strdup(expression1);
-	if (single_rgb) {
-		args->expression2 = NULL;
-		args->expression3 = NULL;
-	} else {
+	if (!single_rgb) {
 		args->expression2 = g_strdup(expression2);
 		args->expression3 = g_strdup(expression3);
 	}
@@ -1128,7 +1125,12 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	args->fit = fit;
 
-	start_in_new_thread(apply_pixel_math_operation, args);
+	if (!start_in_new_thread(apply_pixel_math_operation, args)) {
+		g_free(args->expression1);
+		g_free(args->expression2);
+		g_free(args->expression3);
+		free(args);
+	}
 
 free_expressions:
 	g_free(expression1);

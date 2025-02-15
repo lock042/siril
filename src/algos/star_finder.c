@@ -1160,7 +1160,7 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 static gboolean findstar_image_read_hook(struct generic_seq_args *args, int index) {
 	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 
-	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
+	struct starfinder_data *curr_findstar_args = calloc(1, sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = index;
 	curr_findstar_args->im.fit = NULL;
@@ -1171,8 +1171,10 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	curr_findstar_args->threading = SINGLE_THREADED;
 
 	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "lst", NULL);
-	if (!star_filename)
+	if (!star_filename) {
+		free(curr_findstar_args);
 		return TRUE;
+	}
 
 	if (findstar_args->save_to_file)
 		curr_findstar_args->starfile = star_filename;
@@ -1190,7 +1192,7 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 // - wrapped by findstar_image_hook
 // - called by registration
 struct starfinder_data *findstar_image_worker(const struct starfinder_data *findstar_args, int o, int i, fits *fit, rectangle *_, int threads) {
-	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
+	struct starfinder_data *curr_findstar_args = calloc(1, sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = i;
 	curr_findstar_args->im.fit = fit;
@@ -1198,9 +1200,11 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 	if (findstar_args->stars && findstar_args->nb_stars) { // used by 2pass reg which needs to store all star lists
 		curr_findstar_args->stars = findstar_args->stars + i;
 		curr_findstar_args->nb_stars = findstar_args->nb_stars + i;
+		curr_findstar_args->onepass = FALSE;
 	} else if (findstar_args->keep_stars) { // used by global reg which needs to store the current star list
 		curr_findstar_args->stars = calloc(1, sizeof(psf_star **));
 		curr_findstar_args->nb_stars = calloc(1, sizeof(int));
+		curr_findstar_args->onepass = TRUE;
 	}
 	curr_findstar_args->threading = threads;
 	gboolean can_use_cache = !(com.selection.w != 0 && com.selection.h != 0); //TODO: not ideal, would be better to be passed as args to starfinder_data (to be used in findstar_worker)
@@ -1212,6 +1216,10 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		// build the star list file name in all cases to try reading it
 		star_filename = get_sequence_cache_filename(seq, i, "lst", NULL);
 		if (!star_filename) {
+			if (curr_findstar_args->onepass == TRUE) {
+				free(curr_findstar_args->nb_stars);
+				free(curr_findstar_args->stars);
+			}
 			free(curr_findstar_args);
 			curr_findstar_args = NULL;
 			return curr_findstar_args;
@@ -1239,7 +1247,12 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		}
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 		clearfits(green_fit);
+		free(green_fit);
 		if (retval) {
+			if (curr_findstar_args->onepass == TRUE) {
+				free(curr_findstar_args->nb_stars);
+				free(curr_findstar_args->stars);
+			}
 			free(curr_findstar_args);
 			curr_findstar_args = NULL;
 		}
@@ -1269,6 +1282,7 @@ gboolean end_findstar_sequence(gpointer p) {
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
+
 	free(findstar_args);
 	free(p);
 	return end_generic(NULL);
@@ -1335,7 +1349,10 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 		free(args);
 		return retval;
 	}
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(args->user);
+		free_generic_seq_args(args);
+	}
 	return 0;
 }
 
@@ -1361,8 +1378,10 @@ gpointer findstar_worker(gpointer p) {
 	}
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
 			selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
-	if (green_fit)
+	if (green_fit) {
 		clearfits(green_fit);
+		free(green_fit);
+	}
 
 	double fwhm = 0.0;
 	if (stars) {

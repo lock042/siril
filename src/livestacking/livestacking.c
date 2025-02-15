@@ -514,7 +514,7 @@ static int start_global_registration(sequence *seq) {
 	args->has_output = reg_rotates;
 	args->output_type = get_data_type(seq->bitpix);
 	args->upscale_ratio = 1.0;
-	args->new_seq_prefix = regargs.prefix;
+	args->new_seq_prefix = strdup(regargs.prefix);
 	args->load_new_sequence = FALSE;
 	args->already_in_a_thread = TRUE;
 	if (!sadata) {
@@ -533,7 +533,7 @@ static int start_global_registration(sequence *seq) {
 	regparam_bkp = seq->regparam[regargs.layer];
 	seq->regparam[regargs.layer] = NULL;
 	free_sequence(seq, FALSE);
-
+	free(regargs.sfargs);
 	return retval || !sadata->success[1];
 }
 
@@ -656,6 +656,7 @@ static gpointer live_stacker(gpointer arg) {
 				index++;
 				livestacking_display(_("Waiting for second image"), FALSE);
 				livestacking_update_number_of_images(1, gfit.keywords.exposure, -1.0, NULL);
+				free(seq.seqname);
 				continue;
 			}
 			first_loop = FALSE;

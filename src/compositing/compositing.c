@@ -2014,13 +2014,13 @@ int register_manual(struct registration_args *regargs) {
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->upscale_ratio = 1.0;
-	args->new_seq_prefix = regargs->prefix;
+	args->new_seq_prefix = strdup(regargs->prefix);
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
-		free(args);
+		free_generic_seq_args(args);
 		return -1;
 	}
 	sadata->regargs = regargs;
@@ -2029,7 +2029,7 @@ int register_manual(struct registration_args *regargs) {
 	generic_sequence_worker(args);
 
 	regargs->retval = args->retval;
-	free(args);
+	free_generic_seq_args(args);
 	return regargs->retval;
 }
 

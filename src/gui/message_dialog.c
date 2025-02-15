@@ -104,7 +104,7 @@ static gboolean siril_confirm_data_dialog_internal(gpointer p, gchar *button_acc
 gboolean siril_confirm_data_dialog(GtkMessageType type, char *title, char *text, gchar *button_accept, gchar *data) {
 	if (com.headless || com.script)
 		return FALSE;	// should never happen
-	struct siril_dialog_data *args = malloc(sizeof(struct siril_dialog_data));
+	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
 	if (!GTK_IS_WINDOW(args->parent)) {
@@ -180,7 +180,7 @@ void siril_message_dialog(GtkMessageType type, char *title, char *text) {
 	 * so it's not safe to use dialogs in the calling thread, we just ignore it for now. */
 	if (com.headless || com.script)
 		return;	// show_dialog usually follows a siril_log_message() call
-	struct siril_dialog_data *args = g_try_malloc(sizeof(struct siril_dialog_data));
+	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
 	if (!GTK_IS_WINDOW(args->parent)) {
@@ -211,7 +211,7 @@ gboolean siril_message_dialog_idle(gpointer p) {
 void queue_message_dialog(GtkMessageType type, const char *title, const char *text) {
 	if (com.headless || com.script)
 		return;	// show_dialog usually follows a siril_log_message() call
-	struct message_data *data = malloc(sizeof(struct message_data));
+	struct message_data *data = calloc(1, sizeof(struct message_data));
 	data->type = type;
 	data->title = strdup(title);
 	data->text = strdup(text);
@@ -230,7 +230,7 @@ void queue_warning_message_dialog(const char *title, const char *text) {
 void siril_data_dialog(GtkMessageType type, char *title, char *text, gchar *data) {
 	if (com.headless || com.script)
 		return;	// show_dialog usually follows a siril_log_message() call
-	struct siril_dialog_data *args = malloc(sizeof(struct siril_dialog_data));
+	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
 	if (!GTK_IS_WINDOW(args->parent)) {

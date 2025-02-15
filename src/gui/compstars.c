@@ -333,7 +333,10 @@ static void auto_photometry_data () {
 	args->max_emag = emag;
 	args->nina_file = g_strdup("auto");
 
-	start_in_new_thread(compstars_worker, args);
+	if(!start_in_new_thread(compstars_worker, args)) {
+		g_free(args->target_name);
+		free(args);
+	}
 }
 
 // the public getter

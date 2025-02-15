@@ -402,26 +402,24 @@ static gpointer run_ai_version_check(gpointer data) {
 }
 
 void fill_graxpert_version_arrays() {
-	GThread *bg_thread, *denoise_thread, *deconv_thread, *deconv_stellar_thread;
+	GThread *bg_thread = NULL, *denoise_thread = NULL;
+	GThread *deconv_thread = NULL, *deconv_stellar_thread = NULL;
 
 	AIVersionCheckArgs bg_args = {
 		.operation = GRAXPERT_BG,
 		.min_version = min_bg_ver,
 		.result = NULL
 	};
-
 	AIVersionCheckArgs denoise_args = {
 		.operation = GRAXPERT_DENOISE,
 		.min_version = min_denoise_ver,
 		.result = NULL
 	};
-
 	AIVersionCheckArgs deconv_args = {
 		.operation = GRAXPERT_DECONV,
 		.min_version = min_deconv_ver,
 		.result = NULL
 	};
-
 	AIVersionCheckArgs deconv_stellar_args = {
 		.operation = GRAXPERT_DECONV_STELLAR,
 		.min_version = min_deconv_ver,
@@ -429,34 +427,40 @@ void fill_graxpert_version_arrays() {
 	};
 
 	GError *error[4] = { NULL };
+
 	bg_thread = g_thread_try_new("bg_check", run_ai_version_check, &bg_args, &error[0]);
 	denoise_thread = g_thread_try_new("denoise_check", run_ai_version_check, &denoise_args, &error[1]);
 	deconv_thread = g_thread_try_new("deconv_check", run_ai_version_check, &deconv_args, &error[2]);
 	deconv_stellar_thread = g_thread_try_new("deconv_stellar_check", run_ai_version_check, &deconv_stellar_args, &error[3]);
 
-	int errors = 0;
-	for (int i = 0 ; i < 4 ; i++) {
+	// Handle any thread creation errors
+	for (int i = 0; i < 4; i++) {
 		if (error[i]) {
 			siril_log_color_message(_("Thread creation failed: %s\n"), "red", error[i]->message);
-			errors++;
+			g_error_free(error[i]);
 		}
 	}
-	if (errors) {
-		return; // FALSE
+
+	// Only join threads that were successfully created
+	if (bg_thread) {
+		g_thread_join(bg_thread);
+	}
+	if (denoise_thread) {
+		g_thread_join(denoise_thread);
+	}
+	if (deconv_thread) {
+		g_thread_join(deconv_thread);
+	}
+	if (deconv_stellar_thread) {
+		g_thread_join(deconv_stellar_thread);
 	}
 
-	g_thread_join(bg_thread);
-	g_thread_join(denoise_thread);
-	g_thread_join(deconv_thread);
-	g_thread_join(deconv_stellar_thread);
-
 	// Assign results to global variables
+	// Note: results might be NULL if thread creation failed
 	background_ai_models = bg_args.result;
 	denoise_ai_models = denoise_args.result;
 	deconv_ai_models = deconv_args.result;
 	deconv_stellar_ai_models = deconv_stellar_args.result;
-
-	return; // TRUE
 }
 
 gboolean check_graxpert_version(const gchar *version, graxpert_operation operation) {
@@ -996,8 +1000,8 @@ ERROR_OR_FINISHED:
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	if (!retval && text) {
 		undo_save_state(&gfit, text);
-		g_free(text);
 	}
+	g_free(text);
 	if (!args->seq && !com.script)
 		siril_add_idle(end_graxpert, args); // this loads the result
 	else
@@ -1064,11 +1068,14 @@ void apply_graxpert_to_sequence(graxpert_data *args) {
 		seqargs->new_seq_prefix = strdup("gxdec_");
 	else  {
 		free_graxpert_data(args);
-		free(seqargs);
+		free_generic_seq_args(seqargs);
 		return;
 	}
 	seqargs->load_new_sequence = TRUE;
 	seqargs->user = args;
 	set_progress_bar_data(_("GraXpert: Processing..."), 0.);
-	start_in_new_thread(generic_sequence_worker, seqargs);
+	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
+		free_graxpert_data(args);
+		free_generic_seq_args(seqargs);
+	}
 }

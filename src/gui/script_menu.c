@@ -239,7 +239,6 @@ int initialize_script_menu(gboolean verbose) {
 #ifdef HAVE_LIBGIT2
 	GList *ss;
 #endif
-	gint nb_item = 0;
 
 	if (!menuscript)
 		menuscript = lookup_widget("header_scripts_button");
@@ -285,7 +284,6 @@ int initialize_script_menu(gboolean verbose) {
 				siril_log_color_message(_("Searching for scripts in: \"%s\"...\n"), "green", s->data);
 
 			for (GSList *l = list; l; l = l->next) {
-				nb_item++;
 				GtkWidget *menu_item;
 
 				gchar *display_name = g_strdup(l->data);
@@ -359,7 +357,6 @@ int initialize_script_menu(gboolean verbose) {
 				continue;
 			}
 
-			nb_item++;
 			gboolean included = FALSE;
 			GList *iterator;
 			for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
