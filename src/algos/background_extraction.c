@@ -47,8 +47,6 @@
 #define NPARAM_POLY2 6		// Number of parameters used with 2nd order
 #define NPARAM_POLY1 3		// Number of parameters used with 1nd order
 
-#define SAMPLE_SIZE 25		// must be odd to compute a radius
-
 //C contains background function
 #define C(i) (gsl_vector_get(c,(i)))
 
@@ -402,6 +400,12 @@ static gboolean computeBackground_Polynom(GSList *list, double *background, int 
 	return TRUE;
 }
 
+
+
+
+
+
+
 static background_sample *get_sample(float *buf, const int xx,
 		const int yy, const int w, const int h) {
 	size_t size = SAMPLE_SIZE * SAMPLE_SIZE;
@@ -738,6 +742,19 @@ void free_background_sample_list(GSList *list) {
 // This behaves as per add_background_sample but add a whole list of sample points
 // at once, for use with the python interface to add points defined in python
 // without incurring the cost of convert_fits_to_luminance for each one
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 GSList *add_background_samples(GSList *orig, fits *fit, GSList *pts) {
 	GSList *list;
