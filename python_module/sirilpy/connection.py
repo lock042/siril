@@ -113,13 +113,13 @@ class _Command(IntEnum):
 class LogColor (IntEnum):
     """
     Defines colors available for use with ``SirilInterface.log()``
-    For consistency ``LogColor.White`` should be used for normal messages,
+    For consistency ``LogColor.Default`` should be used for normal messages,
     ``LogColor.Red`` should be used for error messages, ``LogColor.Salmon``
     should be used for warning messages, LogColor.Green should  be used
     for completion notifications, and ``LogColor.Blue`` should be used for
     technical messages such as equations, coefficients etc.
     """
-    White = 0,
+    Default = 0,
     Red = 1,
     Salmon = 2,
     Green = 3,
