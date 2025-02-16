@@ -773,7 +773,7 @@ class SirilInterface:
         # Let the rstrip operation pass through any string operation errors
         return response.decode('utf-8').rstrip('\x00')
 
-    def log(self, my_string: str, color:LogColor=LogColor.White) -> bool:
+    def log(self, my_string: str, color:LogColor=LogColor.Default) -> bool:
         """
         Send a log message to Siril. The maximum message length is
         1022 bytes: longer messages will be truncated.
