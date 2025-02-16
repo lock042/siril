@@ -5159,7 +5159,7 @@ Activating the repository will take place immediately, so that you can select sc
                                         <property name="min-content-height">200</property>
                                         <property name="max-content-height">350</property>
                                         <child>
-                                          <object class="GtkTreeView" id="treeview2">
+                                          <object class="GtkTreeView" id="treeview_scripts">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to view the script description and code.</property>
@@ -5170,7 +5170,7 @@ Activating the repository will take place immediately, so that you can select sc
                                             <property name="search-column">1</property>
                                             <property name="show-expanders">False</property>
                                             <property name="enable-grid-lines">horizontal</property>
-                                            <signal name="row-activated" handler="on_treeview2_row_activated" swapped="no"/>
+                                            <signal name="row-activated" handler="on_treeview_scripts_row_activated" swapped="no"/>
                                             <child internal-child="selection">
                                               <object class="GtkTreeSelection"/>
                                             </child>
