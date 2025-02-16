@@ -973,7 +973,6 @@ int register_apply_reg(struct registration_args *regargs) {
 	generic_sequence_worker(args);
 
 	regargs->retval = args->retval;
-	free(sadata);
 	free_generic_seq_args(args);
 	return regargs->retval;
 }
