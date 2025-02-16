@@ -35,6 +35,7 @@ const SirilTipIntro intro_tips[] = {
 		{"header_processing_button", N_("The Processing menu has been reorganized by theme to streamline its structure and reduce its size."), 8, SIRIL_INTRO_GTK_POPOVER},
 		{"header_tools_button", N_("A new menu, Tools, has been created to centralize Siril's tools, which were previously scattered throughout the interface. It now includes statistics, astrometry and photometry tools, as well as image analysis features."), 12, SIRIL_INTRO_GTK_POPOVER},
 		{"header_scripts_button", N_("The Script menu has also evolved, now featuring both Python scripts and a script editor."), 7, SIRIL_INTRO_GTK_POPOVER},
+		{"python_window", N_("The new script editor can be used to write both Siril and Python scripts. It offers syntax highlighting and many other useful features. Additionally, you can execute the script directly from the editor's interface."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
 		{"icc_main_window_button", N_("This version of Siril includes a color management tool. A left-click on this button allows you to manage ICC profiles, while a right-click displays the image in soft proofing mode."), 9, SIRIL_INTRO_GTK_POPOVER},
 		{"scripts_page", N_("Script management has been entirely revamped. You can now download new scripts directly from the preferences interface. These scripts are hosted by the Siril team, but can also be contributed by the community."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
 		{"drawingarear", N_("Enjoy using the new Siril"), 6, SIRIL_INTRO_GTK_POPOVER}
