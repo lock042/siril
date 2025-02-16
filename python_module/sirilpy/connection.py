@@ -352,8 +352,6 @@ class SirilInterface:
         correct pipe or socket path based on the environment variable and
         operating system. Internal method.
         """
-        #TODO:remove, just for testing
-        os.environ['SIRIL_SCRIPT_DEBUG'] = '1'
         if os.name == 'nt':
             self.pipe_path = os.getenv('MY_PIPE')
             if not self.pipe_path:
@@ -371,7 +369,7 @@ class SirilInterface:
         else:
             self.command_lock = threading.Lock()
 
-        self.debug = False if os.getenv('SIRIL_SCRIPT_DEBUG') is None else True
+        self.debug = False if os.getenv('SIRIL_PYTHON_DEBUG') is None else True
 
     def connect(self) -> Optional[bool]:
         """

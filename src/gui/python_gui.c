@@ -1283,3 +1283,12 @@ void on_editor_args_clear_clicked(GtkButton *button, gpointer user_data) {
 	gtk_entry_buffer_set_text(buffer, "", 0);
 	gtk_widget_grab_focus(GTK_WIDGET(args_entry));
 }
+
+void on_pythondebug_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+    gboolean state = gtk_check_menu_item_get_active(item);
+    if (state) {
+		g_setenv("SIRIL_PYTHON_DEBUG", "1", TRUE);  // TRUE to overwrite if it exists
+	} else {
+		g_unsetenv("SIRIL_PYTHON_DEBUG");
+	}
+}
