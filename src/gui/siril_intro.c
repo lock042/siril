@@ -32,6 +32,10 @@ static gboolean go_next;
 
 const SirilTipIntro intro_tips[] = {
 		{"headerbar", N_("Welcome to the newest version of Siril, "PACKAGE_STRING". Please take a moment to read some tips about this release"), 8, SIRIL_INTRO_GTK_POPOVER},
+		{"header_processing_button", N_("The Processing menu has been reorganized by theme to streamline its structure and reduce its size."), 8, SIRIL_INTRO_GTK_POPOVER},
+		{"header_tools_button", N_("A new menu, Tools, has been created to centralize Siril's tools, which were previously scattered throughout the interface. It now includes statistics, astrometry and photometry tools, as well as image analysis features."), 12, SIRIL_INTRO_GTK_POPOVER},
+		{"header_scripts_button", N_("The Script menu has also evolved, now featuring both Python scripts and a script editor."), 7, SIRIL_INTRO_GTK_POPOVER},
+		{"icc_main_window_button", N_("This version of Siril includes a color management tool. A left-click on this button allows you to manage ICC profiles, while a right-click displays the image in soft proofing mode."), 9, SIRIL_INTRO_GTK_POPOVER},
 		{"scripts_page", N_("Script management has been entirely revamped. You can now download new scripts directly from the preferences interface. These scripts are hosted by the Siril team, but can also be contributed by the community."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
 		{"drawingarear", N_("Enjoy using the new Siril"), 6, SIRIL_INTRO_GTK_POPOVER}
 };
@@ -77,19 +81,37 @@ static void ensure_widget_and_parents_visible(GtkWidget *widget) {
 	g_slist_free(parents_to_show);
 }
 
-static void hide_all_except(GtkWindow *keep_visible) {
-	GList *toplevels = gtk_window_list_toplevels();
+//static void open_menu_if_needed(GtkWidget *widget) {
+//	if (!widget)
+//		return;
+//
+//	GtkWidget *parent = widget;
+//
+//	while (parent != NULL) {
+//		if (GTK_IS_MENU_BUTTON(parent)) {
+//			GtkPopover *popover = gtk_menu_button_get_popover(GTK_MENU_BUTTON(parent));
+//			if (popover && !gtk_widget_is_visible(GTK_WIDGET(popover))) {
+//				gtk_widget_show(GTK_WIDGET(popover));
+//			}
+//		}
+//
+//		parent = gtk_widget_get_parent(parent);
+//	}
+//}
 
-	for (GList *l = toplevels; l != NULL; l = l->next) {
-		GtkWindow *window = GTK_WINDOW(l->data);
-
-		if (window != keep_visible) {
-			gtk_widget_hide(GTK_WIDGET(window));
-		}
-	}
-
-	g_list_free(toplevels);
-}
+//static void hide_all_except(GtkWindow *keep_visible) {
+//	GList *toplevels = gtk_window_list_toplevels();
+//
+//	for (GList *l = toplevels; l != NULL; l = l->next) {
+//		GtkWindow *window = GTK_WINDOW(l->data);
+//
+//		if (window != keep_visible) {
+//			gtk_widget_hide(GTK_WIDGET(window));
+//		}
+//	}
+//
+//	g_list_free(toplevels);
+//}
 
 
 static GtkWidget *intro_popover(GtkWidget *widget, const gchar *text) {
@@ -157,6 +179,7 @@ static gboolean intro_popover_update(gpointer user_data) {
 		SirilUIIntro *ui = g_new(SirilUIIntro, 1);
 		ui->widget = lookup_widget(intro_tips[tip_index].widget);
 		ensure_widget_and_parents_visible(ui->widget);
+//		open_menu_if_needed(ui->widget);
 #ifndef OS_OSX // very slow on macOS
 		gtk_style_context_add_class(gtk_widget_get_style_context(ui->widget), "siril-intro-highlight");
 #endif

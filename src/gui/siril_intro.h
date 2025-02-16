@@ -24,7 +24,7 @@
 
 typedef enum {
 	SIRIL_INTRO_GTK_POPOVER,
-	SIRIL_INTRO_WORKAROUND_POPOVER
+	SIRIL_INTRO_WORKAROUND_POPOVER // this workaround is used when popover must be displayed on a child. popover is cropped, here we use a GtkDialog.
 } type_of_popover;
 
 
