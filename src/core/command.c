@@ -10013,7 +10013,7 @@ int process_pcc(int nb) {
 
 int process_spcc(int nb) {
 #ifndef HAVE_LIBCURL
-	siril_log_color_message(_("Siril has been compiled without libcurl support for network operations; SPCC is therefore not available. Recompile with libcurl support to enable SPCC.\n"));
+	siril_log_color_message(_("Siril has been compiled without libcurl support for network operations; SPCC is therefore not available. Recompile with libcurl support to enable SPCC.\n"), "red");
 	return CMD_GENERIC_ERROR;
 #else
 	return do_pcc(nb, TRUE);
