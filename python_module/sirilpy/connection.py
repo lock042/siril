@@ -114,13 +114,13 @@ class _Command(IntEnum):
 class LogColor (IntEnum):
     """
     Defines colors available for use with ``SirilInterface.log()``
-    For consistency ``LogColor.White`` should be used for normal messages,
+    For consistency ``LogColor.Default`` should be used for normal messages,
     ``LogColor.Red`` should be used for error messages, ``LogColor.Salmon``
     should be used for warning messages, LogColor.Green should  be used
     for completion notifications, and ``LogColor.Blue`` should be used for
     technical messages such as equations, coefficients etc.
     """
-    White = 0,
+    Default = 0,
     Red = 1,
     Salmon = 2,
     Green = 3,
@@ -797,7 +797,7 @@ class SirilInterface:
         # Let the rstrip operation pass through any string operation errors
         return response.decode('utf-8').rstrip('\x00')
 
-    def log(self, my_string: str, color:LogColor=LogColor.White) -> bool:
+    def log(self, my_string: str, color:LogColor=LogColor.Default) -> bool:
         """
         Send a log message to Siril. The maximum message length is
         1022 bytes: longer messages will be truncated.

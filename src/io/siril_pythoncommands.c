@@ -361,7 +361,7 @@ static const char* log_color_to_str(LogColor color) {
 		case LOG_BLUE:
 			return "blue";
 		default:
-			return "white";
+			return NULL;
 	}
 }
 
@@ -949,6 +949,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
+
 		case CMD_ERROR_MESSAGEBOX: // fallthrough intentional
 		case CMD_ERROR_MESSAGEBOX_MODAL:
 		case CMD_WARNING_MESSAGEBOX:
