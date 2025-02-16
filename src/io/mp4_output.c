@@ -441,107 +441,124 @@ static void close_stream(struct mp4_struct *ost)
 /**************************************************************/
 /* media file output */
 
-struct mp4_struct *mp4_create(const char *filename, int dst_w, int dst_h, int fps, int nb_layers, int quality, int src_w, int src_h, export_format type)
-{
+static void cleanup_video_st(struct mp4_struct *video_st) {
+	if (!video_st)
+		return;
+
+	if (video_st->oc)
+		avformat_free_context(video_st->oc);
+	if (video_st->enc)
+		avcodec_free_context(&video_st->enc);
+	if (video_st->frame)
+		av_frame_free(&video_st->frame);
+	if (video_st->tmp_frame)
+		av_frame_free(&video_st->tmp_frame);
+
+	free(video_st);
+}
+
+struct mp4_struct* mp4_create(const char *filename, int dst_w, int dst_h, int fps, int nb_layers, int quality, int src_w, int src_h, export_format type) {
 	struct mp4_struct *video_st;
 	const AVCodec *video_codec;
 	int ret;
 	AVDictionary *opt = NULL;
 
-	if (filename == NULL || filename[0] == '\0' || dst_w%2 || dst_h%2 || fps <= 0 ||
-			quality < 1 || quality > 5) {
+	if (filename == NULL || filename[0] == '\0' || dst_w % 2 || dst_h % 2
+			|| fps <= 0 || quality < 1 || quality > 5) {
 		siril_log_message(_("Parameters for mp4 file creation were incorrect. Image dimension has to be a multiple of 2, fps and file name non nul, quality between 1 and 5."));
 		return NULL;
 	}
 
-	/* Initialize libavcodec, and register all codecs and formats. */
-//	av_register_all();
 	video_st = calloc(1, sizeof(struct mp4_struct));
+	if (!video_st) {
+		siril_log_message("Memory allocation failed");
+		return NULL;
+	}
 
-	/* allocate the output media context */
-	avformat_alloc_output_context2(&video_st->oc, NULL, NULL, filename);
+	ret = avformat_alloc_output_context2(&video_st->oc, NULL, NULL, filename);
 	if (!video_st->oc) {
-		siril_log_message("Could not deduce output format from file extension: using mp4.\n");
-		avformat_alloc_output_context2(&video_st->oc, NULL, "mp4", filename);
+		siril_log_message(_("Could not deduce output format from file extension: using mp4.\n"));
+		ret = avformat_alloc_output_context2(&video_st->oc, NULL, "mp4", filename);
 		if (!video_st->oc) {
-			free(video_st);
-			siril_log_message("FFMPEG does not seem to support mp4 format, aborting.\n");
+			cleanup_video_st(video_st);
+			siril_log_message(_("FFMPEG does not seem to support mp4 format, aborting.\n"));
 			return NULL;
 		}
 	}
 
-	video_st->fmt = (AVOutputFormat *)video_st->oc->oformat;
+	video_st->fmt = (AVOutputFormat*) video_st->oc->oformat;
 	video_st->quality = quality;
-	/* disable unwanted features, is this the correct way? */
-	// video_st->fmt->audio_codec = AV_CODEC_ID_NONE;
+
 	enum AVCodecID codecid;
-	switch(type) {
+	switch (type) {
 	case EXPORT_WEBM_VP9:
 		codecid = AV_CODEC_ID_VP9;
 		break;
 	case EXPORT_MP4:
 		codecid = AV_CODEC_ID_H264;
+		av_dict_set(&opt, "preset", "medium", 0);
+		av_dict_set(&opt, "crf", "23", 0);
 		break;
 	case EXPORT_MP4_H265:
 		codecid = AV_CODEC_ID_H265;
+		av_dict_set(&opt, "preset", "medium", 0);
+		char crf_value[8];
+		snprintf(crf_value, sizeof(crf_value), "%d", 18 + (quality * 5));
+		av_dict_set(&opt, "x265-params", crf_value, 0);
 		break;
 	default:
-		free(video_st);
+		cleanup_video_st(video_st);
 		fprintf(stderr, "mp4_create: unknown type, should not happen\n");
 		return NULL;
 	}
+
 	video_st->src_w = src_w;
 	video_st->src_h = src_h;
 
-	/* Add the video stream and initialize the codecs. */
-	if (video_st->fmt->video_codec != AV_CODEC_ID_NONE) {
-		if (add_stream(video_st, &video_codec, codecid, dst_w, dst_h, fps)) {
-			avformat_free_context(video_st->oc);
-			free(video_st);
-			siril_log_message("Could not add the video stream in the output film, aborting\n");
-			return NULL;
-		}
-	} else {
-		avformat_free_context(video_st->oc);
-		free(video_st);
-		siril_log_message("Error setting video codec for output file.");
+	if (video_st->fmt->video_codec == AV_CODEC_ID_NONE) {
+		cleanup_video_st(video_st);
+		siril_log_message(_("Error: format does not support video codec.\n"));
 		return NULL;
 	}
 
-	/* Now that all the parameters are set, we can open the video codec
-	 * and allocate the necessary encode buffers. */
+	if (add_stream(video_st, &video_codec, codecid, dst_w, dst_h, fps)) {
+		cleanup_video_st(video_st);
+		siril_log_message(_("Could not add the video stream in the output film, aborting\n"));
+		return NULL;
+	}
+
+	if (!video_codec) {
+		cleanup_video_st(video_st);
+		siril_log_message(_("Selected codec is not available\n"));
+		return NULL;
+	}
+
 	if (open_video(video_codec, video_st, opt, nb_layers)) {
-		avformat_free_context(video_st->oc);
-		avcodec_free_context(&video_st->enc);
-		free(video_st);
+		cleanup_video_st(video_st);
 		return NULL;
 	}
 
 	av_dump_format(video_st->oc, 0, filename, 1);
 
-	/* open the output file, if needed */
 	if (!(video_st->fmt->flags & AVFMT_NOFILE)) {
-		if ((ret = avio_open(&video_st->oc->pb, filename, AVIO_FLAG_WRITE)) < 0) {
-			siril_log_message("Could not open '%s': %s\n", filename, av_err2str(ret));
-			avformat_free_context(video_st->oc);
-			avcodec_free_context(&video_st->enc);
-			av_frame_free(&video_st->frame);
-			if (video_st->tmp_frame) av_frame_free(&video_st->tmp_frame);
-			free(video_st);
+		ret = avio_open(&video_st->oc->pb, filename, AVIO_FLAG_WRITE);
+		if (ret < 0) {
+			siril_log_message(_("Could not open '%s': %s\n"), filename, av_err2str(ret));
+			cleanup_video_st(video_st);
 			return NULL;
 		}
 	}
 
-	/* Write the stream header, if any. */
-	if ((ret = avformat_write_header(video_st->oc, &opt)) < 0) {
-		siril_log_message("Error occurred when opening output file: %s\n", av_err2str(ret));
-		avformat_free_context(video_st->oc);
-		avcodec_free_context(&video_st->enc);
-		av_frame_free(&video_st->frame);
-		if (video_st->tmp_frame) av_frame_free(&video_st->tmp_frame);
-		free(video_st);
+	ret = avformat_write_header(video_st->oc, &opt);
+	if (ret < 0) {
+		siril_log_message(_("Error occurred when opening output file: %s\n"), av_err2str(ret));
+		if (!(video_st->fmt->flags & AVFMT_NOFILE))
+			avio_closep(&video_st->oc->pb);
+		cleanup_video_st(video_st);
 		return NULL;
 	}
+
+	av_dict_free(&opt);
 
 	return video_st;
 }
