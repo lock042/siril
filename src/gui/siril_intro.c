@@ -38,7 +38,9 @@ const SirilTipIntro intro_tips[] = {
 		{"python_window", N_("The new script editor can be used to write both Siril and Python scripts. It offers syntax highlighting and many other useful features. Additionally, you can execute the script directly from the editor's interface."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
 		{"hamburger-menu", N_("The hamburger menu has been streamlined and now includes quick access to the documentation, preferences, keyboard shortcuts help, and the script tab in the preferences, making it easy to add new scripts."), 11, SIRIL_INTRO_GTK_POPOVER},
 		{"scripts_page", N_("Script management has been entirely revamped. You can now download new scripts directly from the preferences interface. These scripts are hosted by the Siril team, but can also be contributed by the community."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
-		{"icc_main_window_button", N_("This version of Siril includes a color management tool. A left-click on this button allows you to manage ICC profiles, while a right-click displays the image in soft proofing mode."), 9, SIRIL_INTRO_GTK_POPOVER},
+		{"icc_main_window_button", N_("This version of Siril includes a color management tool. A left-click on this button allows you to manage ICC profiles, while a right-click displays the image in soft proofing mode."), 10, SIRIL_INTRO_GTK_POPOVER},
+		{"cm_page", N_("All color management options are now centralized in the preferences. This allows for professional-level work with any ICC profile."), 8, SIRIL_INTRO_WORKAROUND_POPOVER},
+		{"user_page", N_("For more precise control, such as customizing annotation colors or configuring mouse interactions, visit the User Interface tab in the preferences. Don't hesitate to use your mouse scroll to view all the available options."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
 		{"drawingarear", N_("Enjoy using the new Siril. You can restart this introduction at any moment in the Miscellaneous tab of the preferences"), 8, SIRIL_INTRO_GTK_POPOVER}
 };
 
