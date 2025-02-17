@@ -338,6 +338,50 @@ def check_module_version(requires=None):
     except (version.InvalidVersion, ValueError):
         raise ValueError(f"Invalid version specifier: {requires}")
 
+class SuppressStdout:
+    """
+    This class allows suppression of the script's stdout, which can
+    be useful to avoid flooding the log with stdout messages from
+    an excessively verbose module used in the script.
+
+    Example:
+        .. code-block:: python
+
+            siril = sirilpy.SirilInterface()
+            print("This message will appear in the Siril log")
+            with siril.SuppressStdout():
+                print("This message will not appear")
+            print("This message will appear again")
+
+    """
+
+    def __enter__(self):
+        self.original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        sys.stdout.close()
+        sys.stdout = self.original_stdout
+
+class SuppressStderr:
+    """
+    This class allows suppression of the script's stderr, which can
+    be useful if you are using module functions that are known to
+    produce warnings that you want to avoid distracting the user with,
+    such as FutureWarnings of features that have become deprecated but
+    are in a dependency rather than your own code. The class should
+    be used sparingly and should **not** be used to hide evidence of
+    bad code.
+    """
+
+    def __enter__(self):
+        self.original_stderr = sys.stderr
+        sys.stderr = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        sys.stderr.close()
+        sys.stderr = self.original_stderr
+
 class SirilInterface:
     """
     SirilInterface is the main class providing an interface to a running
