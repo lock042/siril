@@ -608,7 +608,8 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		}
 	}
 
-	if (sadata->success) free(sadata->success);
+	if (sadata->success)
+		free(sadata->success);
 	free(sadata);
 	args->user = NULL;
 
@@ -928,6 +929,7 @@ int register_apply_reg(struct registration_args *regargs) {
 			free_generic_seq_args(args);
 			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
 			free(sadata);
+			args->user = NULL;
 			return -1;
 		}
 		if (!regargs->disto) {
@@ -963,6 +965,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
 			siril_log_message(_("Could not load reference image\n"));
 			free(sadata);
+			args->user = NULL;
 			free_generic_seq_args(args);
 			return 1;
 		}
