@@ -36,8 +36,9 @@ const SirilTipIntro intro_tips[] = {
 		{"header_tools_button", N_("A new menu, Tools, has been created to centralize Siril's tools, which were previously scattered throughout the interface. It now includes statistics, astrometry and photometry tools, as well as image analysis features."), 12, SIRIL_INTRO_GTK_POPOVER},
 		{"header_scripts_button", N_("The Script menu has also evolved, now featuring both Python scripts and a script editor."), 7, SIRIL_INTRO_GTK_POPOVER},
 		{"python_window", N_("The new script editor can be used to write both Siril and Python scripts. It offers syntax highlighting and many other useful features. Additionally, you can execute the script directly from the editor's interface."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
-		{"icc_main_window_button", N_("This version of Siril includes a color management tool. A left-click on this button allows you to manage ICC profiles, while a right-click displays the image in soft proofing mode."), 9, SIRIL_INTRO_GTK_POPOVER},
+		{"hamburger-menu", N_("The hamburger menu has been streamlined and now includes quick access to the documentation, preferences, keyboard shortcuts help, and the script tab in the preferences, making it easy to add new scripts."), 11, SIRIL_INTRO_GTK_POPOVER},
 		{"scripts_page", N_("Script management has been entirely revamped. You can now download new scripts directly from the preferences interface. These scripts are hosted by the Siril team, but can also be contributed by the community."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
+		{"icc_main_window_button", N_("This version of Siril includes a color management tool. A left-click on this button allows you to manage ICC profiles, while a right-click displays the image in soft proofing mode."), 9, SIRIL_INTRO_GTK_POPOVER},
 		{"drawingarear", N_("Enjoy using the new Siril. You can restart this introduction at any moment in the Miscellaneous tab of the preferences"), 8, SIRIL_INTRO_GTK_POPOVER}
 };
 
@@ -100,19 +101,19 @@ static void ensure_widget_and_parents_visible(GtkWidget *widget) {
 //	}
 //}
 
-//static void hide_all_except(GtkWindow *keep_visible) {
-//	GList *toplevels = gtk_window_list_toplevels();
-//
-//	for (GList *l = toplevels; l != NULL; l = l->next) {
-//		GtkWindow *window = GTK_WINDOW(l->data);
-//
-//		if (window != keep_visible) {
-//			gtk_widget_hide(GTK_WIDGET(window));
-//		}
-//	}
-//
-//	g_list_free(toplevels);
-//}
+static void hide_all_except(GtkWindow *keep_visible) {
+	GList *toplevels = gtk_window_list_toplevels();
+
+	for (GList *l = toplevels; l != NULL; l = l->next) {
+		GtkWindow *window = GTK_WINDOW(l->data);
+
+		if (window != keep_visible) {
+			gtk_widget_hide(GTK_WIDGET(window));
+		}
+	}
+
+	g_list_free(toplevels);
+}
 
 
 static GtkWidget *intro_popover(GtkWidget *widget, const gchar *text) {
@@ -130,9 +131,10 @@ static GtkWidget *intro_popover(GtkWidget *widget, const gchar *text) {
 static GtkWidget* floating_window_new(GtkWidget *widget, const gchar *text) {
 	GtkWidget *window, *box, *image, *label;
 	gchar *markup_txt = g_strdup_printf("<big><b>%s</b></big>", text);
+	GtkWindow *parent_window = GTK_WINDOW(gtk_widget_get_toplevel(widget));
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(gtk_widget_get_toplevel(widget)));
+	gtk_window_set_transient_for(GTK_WINDOW(window), parent_window);
 	gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
 	gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_DIALOG);
 
@@ -157,10 +159,37 @@ static GtkWidget* floating_window_new(GtkWidget *widget, const gchar *text) {
 	gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
 
 	gtk_widget_show_all(window);
+
+	gint parent_x, parent_y, parent_width, parent_height;
+	gtk_window_get_position(parent_window, &parent_x, &parent_y);
+	gtk_window_get_size(parent_window, &parent_width, &parent_height);
+
+	gint window_width, window_height;
+	gtk_window_get_size(GTK_WINDOW(window), &window_width, &window_height);
+
+	GdkDisplay *display = gdk_display_get_default();
+	GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
+	GdkRectangle workarea;
+	gdk_monitor_get_workarea(monitor, &workarea);
+
+	gint x = parent_x + (parent_width - window_width) / 2;
+	gint y;
+
+	x = CLAMP(x, workarea.x, workarea.x + workarea.width - window_width);
+
+	if (parent_y - window_height - 10 >= workarea.y) {
+		y = parent_y - window_height - 10;
+	} else if (parent_y + parent_height + window_height + 10 <= workarea.y + workarea.height) {
+		y = parent_y + parent_height + 10;
+	} else {
+		y = parent_y + (parent_height - window_height) / 2;
+	}
+
+	gtk_window_move(GTK_WINDOW(window), x, y);
+
 	g_free(markup_txt);
 	return window;
 }
-
 
 static gboolean intro_popover_close(gpointer user_data) {
 	SirilUIIntro *ui = (SirilUIIntro *) user_data;
@@ -170,7 +199,7 @@ static gboolean intro_popover_close(gpointer user_data) {
 	gtk_style_context_remove_class(gtk_widget_get_style_context(ui->widget), "siril-intro-highlight");
 #endif
 	g_free(ui);
-//	hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
+	hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
 	go_next = TRUE;
 	return FALSE;
 }
