@@ -328,8 +328,8 @@
                             <property name="action-name">editor.execute</property>
                             <property name="label" translatable="yes">Run</property>
                             <property name="use-underline">True</property>
-                            <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                             <accelerator key="F5" signal="activate"/>
+                            <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                           </object>
                         </child>
                         <child>
@@ -361,6 +361,15 @@
                             <property name="tooltip-text" translatable="yes">When active, any arguments entered in the args entry will be passed to the script when it is run.</property>
                             <property name="label" translatable="yes">Enable test arguments</property>
                             <signal name="toggled" handler="on_editor_useargs_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_toggledebug">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">When active, the python interpreter will display a modal dialog showing the python process as soon as the SirilInterface is initialized, to allow for connecting a python debugger to the process before continuing.</property>
+                            <property name="label" translatable="yes">Enable python debug mode</property>
+                            <signal name="toggled" handler="on_pythondebug_toggled" swapped="no"/>
                           </object>
                         </child>
                       </object>
