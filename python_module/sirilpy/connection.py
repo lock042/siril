@@ -338,7 +338,7 @@ def check_module_version(requires=None):
     except (version.InvalidVersion, ValueError):
         raise ValueError(f"Invalid version specifier: {requires}")
 
-class SuppressStdout:
+class SuppressedStdout:
     """
     This class allows suppression of the script's stdout, which can
     be useful to avoid flooding the log with stdout messages from
@@ -363,7 +363,7 @@ class SuppressStdout:
         sys.stdout.close()
         sys.stdout = self.original_stdout
 
-class SuppressStderr:
+class SuppressedStderr:
     """
     This class allows suppression of the script's stderr, which can
     be useful if you are using module functions that are known to
