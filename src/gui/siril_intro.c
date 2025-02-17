@@ -29,6 +29,10 @@
 
 static guint tip_index;
 static gboolean go_next;
+static GtkWidget *main_window = NULL;
+static gulong click_handler_id = 0;
+static SirilUIIntro *current_ui = NULL;
+static guint current_timeout_id = 0;
 
 const SirilTipIntro intro_tips[] = {
 		{"headerbar", N_("Welcome to the newest version of Siril, "PACKAGE_STRING". Please take a moment to read some tips about this release"), 8, SIRIL_INTRO_GTK_POPOVER},
@@ -43,6 +47,39 @@ const SirilTipIntro intro_tips[] = {
 		{"user_page", N_("For more precise control, such as customizing annotation colors or configuring mouse interactions, visit the User Interface tab in the preferences. Don't hesitate to use your mouse scroll to view all the available options."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
 		{"drawingarear", N_("Enjoy using the new Siril. You can restart this introduction at any moment in the Miscellaneous tab of the preferences"), 8, SIRIL_INTRO_GTK_POPOVER}
 };
+
+static void hide_all_except(GtkWindow *keep_visible) {
+	GList *toplevels = gtk_window_list_toplevels();
+
+	for (GList *l = toplevels; l != NULL; l = l->next) {
+		GtkWindow *window = GTK_WINDOW(l->data);
+
+		if (window != keep_visible) {
+			gtk_widget_hide(GTK_WIDGET(window));
+		}
+	}
+
+	g_list_free(toplevels);
+}
+
+static gboolean on_window_clicked(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+	if (!go_next && current_ui) {
+		if (current_timeout_id > 0) {
+			g_source_remove(current_timeout_id);
+			current_timeout_id = 0;
+		}
+
+		gtk_widget_hide(current_ui->popover);
+#ifndef OS_OSX
+		gtk_style_context_remove_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
+#endif
+		g_free(current_ui);
+		current_ui = NULL;
+		hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
+		go_next = TRUE;
+	}
+	return TRUE;
+}
 
 static void ensure_widget_and_parents_visible(GtkWidget *widget) {
 	if (!widget)
@@ -84,39 +121,6 @@ static void ensure_widget_and_parents_visible(GtkWidget *widget) {
 
 	g_slist_free(parents_to_show);
 }
-
-//static void open_menu_if_needed(GtkWidget *widget) {
-//	if (!widget)
-//		return;
-//
-//	GtkWidget *parent = widget;
-//
-//	while (parent != NULL) {
-//		if (GTK_IS_MENU_BUTTON(parent)) {
-//			GtkPopover *popover = gtk_menu_button_get_popover(GTK_MENU_BUTTON(parent));
-//			if (popover && !gtk_widget_is_visible(GTK_WIDGET(popover))) {
-//				gtk_widget_show(GTK_WIDGET(popover));
-//			}
-//		}
-//
-//		parent = gtk_widget_get_parent(parent);
-//	}
-//}
-
-static void hide_all_except(GtkWindow *keep_visible) {
-	GList *toplevels = gtk_window_list_toplevels();
-
-	for (GList *l = toplevels; l != NULL; l = l->next) {
-		GtkWindow *window = GTK_WINDOW(l->data);
-
-		if (window != keep_visible) {
-			gtk_widget_hide(GTK_WIDGET(window));
-		}
-	}
-
-	g_list_free(toplevels);
-}
-
 
 static GtkWidget *intro_popover(GtkWidget *widget, const gchar *text) {
 	gchar *markup_txt = g_strdup_printf("<big><b>%s</b></big>", text);
@@ -194,37 +198,48 @@ static GtkWidget* floating_window_new(GtkWidget *widget, const gchar *text) {
 }
 
 static gboolean intro_popover_close(gpointer user_data) {
-	SirilUIIntro *ui = (SirilUIIntro *) user_data;
+	SirilUIIntro *ui = (SirilUIIntro*) user_data;
 
-	gtk_widget_hide(ui->popover);
-#ifndef OS_OSX // very slow on macOS
-	gtk_style_context_remove_class(gtk_widget_get_style_context(ui->widget), "siril-intro-highlight");
+	if (ui == current_ui) {
+		gtk_widget_hide(ui->popover);
+#ifndef OS_OSX
+		gtk_style_context_remove_class(gtk_widget_get_style_context(ui->widget), "siril-intro-highlight");
 #endif
-	g_free(ui);
-	hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
-	go_next = TRUE;
+		g_free(ui);
+		current_ui = NULL;
+		hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
+		go_next = TRUE;
+	}
+
+	current_timeout_id = 0;
 	return FALSE;
 }
 
 static gboolean intro_popover_update(gpointer user_data) {
 	if (go_next) {
-		SirilUIIntro *ui = g_new(SirilUIIntro, 1);
-		ui->widget = lookup_widget(intro_tips[tip_index].widget);
-		ensure_widget_and_parents_visible(ui->widget);
-//		open_menu_if_needed(ui->widget);
-#ifndef OS_OSX // very slow on macOS
-		gtk_style_context_add_class(gtk_widget_get_style_context(ui->widget), "siril-intro-highlight");
+		current_ui = g_new(SirilUIIntro, 1);
+		current_ui->widget = lookup_widget(intro_tips[tip_index].widget);
+		ensure_widget_and_parents_visible(current_ui->widget);
+#ifndef OS_OSX
+		gtk_style_context_add_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
 #endif
 		if (intro_tips[tip_index].type == SIRIL_INTRO_GTK_POPOVER) {
-			ui->popover = intro_popover(ui->widget, _(intro_tips[tip_index].tip));
+			current_ui->popover = intro_popover(current_ui->widget, _(intro_tips[tip_index].tip));
 		} else {
-			ui->popover = floating_window_new(ui->widget, _(intro_tips[tip_index].tip));
+			current_ui->popover = floating_window_new(current_ui->widget, _(intro_tips[tip_index].tip));
 		}
-		g_timeout_add(INTRO_DELAY * intro_tips[tip_index].delay, (GSourceFunc) intro_popover_close, (gpointer) ui);
+		current_timeout_id = g_timeout_add(INTRO_DELAY * intro_tips[tip_index].delay, (GSourceFunc) intro_popover_close, (gpointer) current_ui);
 		go_next = FALSE;
 		tip_index++;
 	}
-	return tip_index < G_N_ELEMENTS(intro_tips);
+
+	if (tip_index >= G_N_ELEMENTS(intro_tips) && click_handler_id > 0) {
+		g_signal_handler_disconnect(main_window, click_handler_id);
+		click_handler_id = 0;
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 static void intro_notify_update(gpointer user_data) {
@@ -234,5 +249,13 @@ static void intro_notify_update(gpointer user_data) {
 void start_intro_script() {
 	tip_index = 0;
 	go_next = TRUE;
+	current_ui = NULL;
+	current_timeout_id = 0;
+
+	main_window = lookup_widget("control_window");
+	if (main_window) {
+		click_handler_id = g_signal_connect(main_window, "button-press-event", G_CALLBACK(on_window_clicked), NULL);
+	}
+
 	intro_notify_update(NULL);
 }
