@@ -349,7 +349,7 @@ class SuppressedStdout:
 
             siril = sirilpy.SirilInterface()
             print("This message will appear in the Siril log")
-            with siril.SuppressStdout():
+            with siril.SuppressedStdout():
                 print("This message will not appear")
             print("This message will appear again")
 
