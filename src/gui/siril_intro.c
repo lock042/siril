@@ -29,13 +29,18 @@
 
 static guint tip_index;
 static gboolean go_next;
-static GtkWidget *main_window = NULL;
-static gulong click_handler_id = 0;
+static GSList *key_handler_windows = NULL;
 static SirilUIIntro *current_ui = NULL;
 static guint current_timeout_id = 0;
 
+/* Structure to keep track of windows and their key handlers */
+typedef struct {
+	GtkWindow *window;
+	gulong handler_id;
+} WindowKeyHandler;
+
 const SirilTipIntro intro_tips[] = {
-		{"headerbar", N_("Welcome to the newest version of Siril, "PACKAGE_STRING". Please take a moment to read some tips about this release"), 8, SIRIL_INTRO_GTK_POPOVER},
+		{"headerbar", N_("Welcome to the newest version of Siril, "PACKAGE_STRING". Please take a moment to read some tips about this release. If the rate is too slow, skip to the next tip using the right arrow."), 10, SIRIL_INTRO_GTK_POPOVER},
 		{"header_processing_button", N_("The Processing menu has been reorganized by theme to streamline its structure and reduce its size. Many new processing tools have been developed and integrated in this menu."), 10, SIRIL_INTRO_GTK_POPOVER},
 		{"header_tools_button", N_("A new menu, Tools, has been created to centralize Siril's tools, which were previously scattered throughout the interface. It now includes statistics, FITS header, astrometry and photometry tools, as well as image analysis features."), 12, SIRIL_INTRO_GTK_POPOVER},
 		{"header_scripts_button", N_("The Script menu has also evolved, now featuring both Python scripts and a script editor."), 7, SIRIL_INTRO_GTK_POPOVER},
@@ -46,7 +51,7 @@ const SirilTipIntro intro_tips[] = {
 		{"icc_main_window_button", N_("This version of Siril includes a color management tool. A left-click on this button allows you to manage ICC profiles, while a right-click displays the image in soft proofing mode."), 10, SIRIL_INTRO_GTK_POPOVER},
 		{"cm_page", N_("All color management options are now centralized in the preferences. This allows for professional-level work with any ICC profile."), 8, SIRIL_INTRO_WORKAROUND_POPOVER},
 		{"user_page", N_("For more precise control, such as customizing annotation colors or configuring mouse interactions, visit the User Interface tab in the preferences. Don't hesitate to use your mouse scroll to view all the available options."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
-		{"drawingarear", N_("Enjoy using the new Siril. You can restart this introduction at any moment in the Miscellaneous tab of the preferences"), 8, SIRIL_INTRO_GTK_POPOVER}
+		{"drawingarear", N_("Enjoy using the new Siril. You can restart this introduction at any moment in the Miscellaneous tab of the preferences."), 8, SIRIL_INTRO_GTK_POPOVER}
 };
 
 static void hide_all_except(GtkWindow *keep_visible) {
@@ -63,8 +68,9 @@ static void hide_all_except(GtkWindow *keep_visible) {
 	g_list_free(toplevels);
 }
 
-static gboolean on_window_clicked(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
-	if (!go_next && current_ui) {
+/* Global key handler for any window */
+static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+	if (event->keyval == GDK_KEY_Right && !go_next && current_ui) {
 		if (current_timeout_id > 0) {
 			g_source_remove(current_timeout_id);
 			current_timeout_id = 0;
@@ -80,6 +86,32 @@ static gboolean on_window_clicked(GtkWidget *widget, GdkEventButton *event, gpoi
 		go_next = TRUE;
 	}
 	return TRUE;
+}
+
+/* Function to disconnect key handlers from all windows */
+static void disconnect_key_handlers() {
+	GSList *l;
+	for (l = key_handler_windows; l != NULL; l = l->next) {
+		WindowKeyHandler *handler = l->data;
+		/* Check if the window still exists and is a valid GtkWindow */
+		if (handler->window && GTK_IS_WINDOW(handler->window) && handler->handler_id > 0) {
+			g_signal_handler_disconnect(handler->window, handler->handler_id);
+		}
+		g_free(handler);
+	}
+	g_slist_free(key_handler_windows);
+	key_handler_windows = NULL;
+}
+
+/* Function to add key handler to a window */
+static void add_key_handler_to_window(GtkWindow *window) {
+	if (!window)
+		return;
+
+	WindowKeyHandler *handler = g_new(WindowKeyHandler, 1);
+	handler->window = window;
+	handler->handler_id = g_signal_connect(window, "key-press-event", G_CALLBACK(on_key_press), NULL);
+	key_handler_windows = g_slist_prepend(key_handler_windows, handler);
 }
 
 static void ensure_widget_and_parents_visible(GtkWidget *widget) {
@@ -228,15 +260,16 @@ static gboolean intro_popover_update(gpointer user_data) {
 			current_ui->popover = intro_popover(current_ui->widget, _(intro_tips[tip_index].tip));
 		} else {
 			current_ui->popover = floating_window_new(current_ui->widget, _(intro_tips[tip_index].tip));
+			/* Add key handler to new floating window */
+			add_key_handler_to_window(GTK_WINDOW(current_ui->popover));
 		}
 		current_timeout_id = g_timeout_add(INTRO_DELAY * intro_tips[tip_index].delay, (GSourceFunc) intro_popover_close, (gpointer) current_ui);
 		go_next = FALSE;
 		tip_index++;
 	}
 
-	if (tip_index >= G_N_ELEMENTS(intro_tips) && click_handler_id > 0) {
-		g_signal_handler_disconnect(main_window, click_handler_id);
-		click_handler_id = 0;
+	if (tip_index >= G_N_ELEMENTS(intro_tips)) {
+		disconnect_key_handlers();
 		return FALSE;
 	}
 
@@ -252,11 +285,14 @@ void start_intro_script() {
 	go_next = TRUE;
 	current_ui = NULL;
 	current_timeout_id = 0;
+	key_handler_windows = NULL;
 
-	main_window = lookup_widget("control_window");
-	if (main_window) {
-		click_handler_id = g_signal_connect(main_window, "button-press-event", G_CALLBACK(on_window_clicked), NULL);
+	/* Add key handler to main window and all toplevel windows */
+	GList *toplevels = gtk_window_list_toplevels();
+	for (GList *l = toplevels; l != NULL; l = l->next) {
+		add_key_handler_to_window(GTK_WINDOW(l->data));
 	}
+	g_list_free(toplevels);
 
 	intro_notify_update(NULL);
 }
