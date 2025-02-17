@@ -32,8 +32,8 @@ static gboolean go_next;
 
 const SirilTipIntro intro_tips[] = {
 		{"headerbar", N_("Welcome to the newest version of Siril, "PACKAGE_STRING". Please take a moment to read some tips about this release"), 8, SIRIL_INTRO_GTK_POPOVER},
-		{"header_processing_button", N_("The Processing menu has been reorganized by theme to streamline its structure and reduce its size. Many new processing tools have been developed and integrated in this menu."), 9, SIRIL_INTRO_GTK_POPOVER},
-		{"header_tools_button", N_("A new menu, Tools, has been created to centralize Siril's tools, which were previously scattered throughout the interface. It now includes statistics, astrometry and photometry tools, as well as image analysis features."), 12, SIRIL_INTRO_GTK_POPOVER},
+		{"header_processing_button", N_("The Processing menu has been reorganized by theme to streamline its structure and reduce its size. Many new processing tools have been developed and integrated in this menu."), 10, SIRIL_INTRO_GTK_POPOVER},
+		{"header_tools_button", N_("A new menu, Tools, has been created to centralize Siril's tools, which were previously scattered throughout the interface. It now includes statistics, FITS header, astrometry and photometry tools, as well as image analysis features."), 12, SIRIL_INTRO_GTK_POPOVER},
 		{"header_scripts_button", N_("The Script menu has also evolved, now featuring both Python scripts and a script editor."), 7, SIRIL_INTRO_GTK_POPOVER},
 		{"python_window", N_("The new script editor can be used to write both Siril and Python scripts. It offers syntax highlighting and many other useful features. Additionally, you can execute the script directly from the editor's interface."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
 		{"hamburger-menu", N_("The hamburger menu has been streamlined and now includes quick access to the documentation, preferences, keyboard shortcuts help, and the script tab in the preferences, making it easy to add new scripts."), 11, SIRIL_INTRO_GTK_POPOVER},
