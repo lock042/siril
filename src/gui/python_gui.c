@@ -1283,3 +1283,26 @@ void on_editor_args_clear_clicked(GtkButton *button, gpointer user_data) {
 	gtk_entry_buffer_set_text(buffer, "", 0);
 	gtk_widget_grab_focus(GTK_WIDGET(args_entry));
 }
+
+void on_pythondebug_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+    gboolean state = gtk_check_menu_item_get_active(item);
+	GtkCheckMenuItem *editorwidget = (GTK_CHECK_MENU_ITEM(lookup_widget("editor_toggledebug")));
+	// This is created programatically and added to the builder, but we know it has been
+	// done by now as the script menu must exist in order to be able to access either the script
+	// menu item or the script editor menu item.
+	GtkCheckMenuItem *scriptmenuwidget = (GTK_CHECK_MENU_ITEM(lookup_widget("pythondebugtoggle")));
+
+	// Synchronize the two checkbuttons
+	g_signal_handlers_block_by_func(editorwidget, on_pythondebug_toggled, NULL);
+	g_signal_handlers_block_by_func(scriptmenuwidget, on_pythondebug_toggled, NULL);
+	gtk_check_menu_item_set_active(editorwidget, state);
+	gtk_check_menu_item_set_active(scriptmenuwidget, state);
+	g_signal_handlers_unblock_by_func(editorwidget, on_pythondebug_toggled, NULL);
+	g_signal_handlers_unblock_by_func(scriptmenuwidget, on_pythondebug_toggled, NULL);
+
+	if (state) {
+		g_setenv("SIRIL_PYTHON_DEBUG", "1", TRUE);  // TRUE to overwrite if it exists
+	} else {
+		g_unsetenv("SIRIL_PYTHON_DEBUG");
+	}
+}

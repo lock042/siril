@@ -27,8 +27,9 @@ from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
 from .exceptions import SirilError, ConnectionError, CommandError, NoImageError
 from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType
 
+DEFAULT_TIMEOUT = 5.
+
 if os.name == 'nt':
-    import win32pipe
     import win32file
     import win32event
     import pywintypes
@@ -113,13 +114,13 @@ class _Command(IntEnum):
 class LogColor (IntEnum):
     """
     Defines colors available for use with ``SirilInterface.log()``
-    For consistency ``LogColor.White`` should be used for normal messages,
+    For consistency ``LogColor.Default`` should be used for normal messages,
     ``LogColor.Red`` should be used for error messages, ``LogColor.Salmon``
     should be used for warning messages, LogColor.Green should  be used
     for completion notifications, and ``LogColor.Blue`` should be used for
     technical messages such as equations, coefficients etc.
     """
-    White = 0,
+    Default = 0,
     Red = 1,
     Salmon = 2,
     Green = 3,
@@ -338,6 +339,50 @@ def check_module_version(requires=None):
     except (version.InvalidVersion, ValueError):
         raise ValueError(f"Invalid version specifier: {requires}")
 
+class SuppressedStdout:
+    """
+    This class allows suppression of the script's stdout, which can
+    be useful to avoid flooding the log with stdout messages from
+    an excessively verbose module used in the script.
+
+    Example:
+        .. code-block:: python
+
+            siril = sirilpy.SirilInterface()
+            print("This message will appear in the Siril log")
+            with siril.SuppressedStdout():
+                print("This message will not appear")
+            print("This message will appear again")
+
+    """
+
+    def __enter__(self):
+        self.original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        sys.stdout.close()
+        sys.stdout = self.original_stdout
+
+class SuppressedStderr:
+    """
+    This class allows suppression of the script's stderr, which can
+    be useful if you are using module functions that are known to
+    produce warnings that you want to avoid distracting the user with,
+    such as FutureWarnings of features that have become deprecated but
+    are in a dependency rather than your own code. The class should
+    be used sparingly and should **not** be used to hide evidence of
+    bad code.
+    """
+
+    def __enter__(self):
+        self.original_stderr = sys.stderr
+        sys.stderr = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        sys.stderr.close()
+        sys.stderr = self.original_stderr
+
 class SirilInterface:
     """
     SirilInterface is the main class providing an interface to a running
@@ -368,7 +413,9 @@ class SirilInterface:
         else:
             self.command_lock = threading.Lock()
 
-    def connect(self):
+        self.debug = False if os.getenv('SIRIL_PYTHON_DEBUG') is None else True
+
+    def connect(self) -> Optional[bool]:
         """
         Establish a connection to Siril based on the pipe or socket path.
 
@@ -397,6 +444,10 @@ class SirilInterface:
                     self.overlap_read.hEvent = win32event.CreateEvent(None, True, False, None)
                     self.overlap_write = pywintypes.OVERLAPPED()
                     self.overlap_write.hEvent = win32event.CreateEvent(None, True, False, None)
+                    if self.debug:
+                        current_pid = os.getpid()
+                        print(f'Current ProcessID is {current_pid}')
+                        self.info_messagebox(f'Current ProcessID is {current_pid}', False)
                     return True
                 except pywintypes.error as e:
                     if e.winerror == winerror.ERROR_PIPE_BUSY:
@@ -405,6 +456,10 @@ class SirilInterface:
             else:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.connect(self.socket_path)
+                if self.debug:
+                    current_pid = os.getpid()
+                    print(f'Current ProcessID is {current_pid}')
+                    self.info_messagebox(f'Current ProcessID is {current_pid}', False)
                 return True
 
         except Exception as e:
@@ -441,7 +496,7 @@ class SirilInterface:
             else:
                 raise SirilError(_("No socket connection to close"))
 
-    def _recv_exact(self, n: int, timeout: Optional[float] = 5.0) -> Optional[bytes]:
+    def _recv_exact(self, n: int, timeout: Optional[float] = DEFAULT_TIMEOUT) -> Optional[bytes]:
         """
         Helper method to receive exactly n bytes from the socket or pipe.
         Internal method, not for direct use in scripts.
@@ -452,6 +507,9 @@ class SirilInterface:
         """
         if n < 0:
             raise ValueError(_("Cannot receive negative number of bytes"))
+
+        if self.debug:
+            timeout = None
 
         if os.name == 'nt':
             # Pipe implementation
@@ -516,7 +574,7 @@ class SirilInterface:
             finally:
                 self.sock.settimeout(original_timeout)
 
-    def _send_command(self, command: _Command, data: Optional[bytes] = None, timeout: Optional[float] = 5.0) -> Tuple[Optional[int], Optional[bytes]]:
+    def _send_command(self, command: _Command, data: Optional[bytes] = None, timeout: Optional[float] = DEFAULT_TIMEOUT) -> Tuple[Optional[int], Optional[bytes]]:
         """
         Send a command and receive response with optional timeout.
 
@@ -525,6 +583,10 @@ class SirilInterface:
             data: Optional data payload
             timeout: Timeout for receive operations. None for indefinite timeout.
         """
+
+        if self.debug:
+            timeout = None
+
         try:
             data_length = len(data) if data else 0
             if data_length > 65529:
@@ -616,7 +678,7 @@ class SirilInterface:
         except Exception as e:
             raise CommandError(_("Error sending command: {}").format(e))
 
-    def _execute_command(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = 5.0) -> bool:
+    def _execute_command(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = DEFAULT_TIMEOUT) -> bool:
         """
         High-level method to execute a command and handle the response.
         Internal method, not for end-user use.
@@ -629,6 +691,9 @@ class SirilInterface:
         Returns:
             True if command was successful, False otherwise
         """
+        if self.debug:
+            timeout = None
+
         status, response = self._send_command(command, payload, timeout)
 
         if status is None:
@@ -645,7 +710,7 @@ class SirilInterface:
 
         return True
 
-    def _request_data(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = 5.0) -> Optional[bytes]:
+    def _request_data(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = DEFAULT_TIMEOUT) -> Optional[bytes]:
         """
         High-level method to request small-volume data from Siril. The
         payload limit is 63336 bytes. For commands expected to return
@@ -660,6 +725,9 @@ class SirilInterface:
         Returns:
             Requested data or None if error
         """
+        if self.debug:
+            timeout = None
+
         status, response = self._send_command(command, payload, timeout)
 
         if status is None:
@@ -773,7 +841,7 @@ class SirilInterface:
         # Let the rstrip operation pass through any string operation errors
         return response.decode('utf-8').rstrip('\x00')
 
-    def log(self, my_string: str, color:LogColor=LogColor.White) -> bool:
+    def log(self, my_string: str, color:LogColor=LogColor.Default) -> bool:
         """
         Send a log message to Siril. The maximum message length is
         1022 bytes: longer messages will be truncated.
