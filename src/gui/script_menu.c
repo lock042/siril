@@ -464,7 +464,7 @@ int refresh_script_menu(gboolean verbose) {
 
 int refresh_scripts(gboolean update_list, gchar **error) {
 	gchar *err = NULL;
-	int retval;
+	int retval = 0;
 	GSList *list = get_list_from_preferences_dialog();
 	if (list == NULL) {
 		err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
@@ -472,12 +472,19 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	} else {
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-		retval = initialize_script_menu(TRUE);
+		GThread *thread = g_thread_new("refresh_scripts", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+		g_thread_unref(thread);
 	}
 	if (error) {
 		*error = err;
 	}
 	return retval;
+}
+
+gpointer refresh_scripts_menu_in_thread(gpointer data) {
+	gboolean verbose = (gboolean) GPOINTER_TO_INT(data);
+	refresh_script_menu(verbose);
+	return GINT_TO_POINTER(0);
 }
 
 gpointer initialize_script_menu_in_thread(gpointer data) {
