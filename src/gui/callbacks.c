@@ -1569,7 +1569,9 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);
-	initialize_script_menu(TRUE);
+	GThread *thread = g_thread_new("initialize_script_menu",
+					initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+	g_thread_unref(thread);
 
 	/* initialize command processor */
 	init_command();
