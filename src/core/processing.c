@@ -84,10 +84,12 @@ gpointer generic_sequence_worker(gpointer p) {
 	float nb_framesf = (float)nb_frames + 0.3f;	// leave margin for rounding errors and post processing
 	args->retval = 0;
 
+#ifdef HAVE_FFMS2
 	// If the sequence is of type SEQ_AVI, lock out the sequence browser as it can cause a crash
 	if (args->seq->type == SEQ_AVI && !com.headless) {
 		gui_function(set_seq_browser_active, GINT_TO_POINTER(0));
 	}
+#endif
 #ifdef _OPENMP
 	// max_parallel_images can be computed by another function too, hence the check
 	if (args->max_parallel_images < 1) {
@@ -379,8 +381,10 @@ the_end:
 		args->retval = 1;
 	}
 	int retval = args->retval;	// so we can free args if needed in the idle
+#ifdef HAVE_FFMS2
 	if (args->seq->type == SEQ_AVI && !com.headless)
 		gui_function(set_seq_browser_active, GINT_TO_POINTER(1)); // re-enable the sequence browser if necessary
+#endif
 
 	if (!args->already_in_a_thread) {
 		gboolean run_idle;
