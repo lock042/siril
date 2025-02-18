@@ -909,7 +909,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->description = _("Apply registration");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = regargs->prefix ? strdup(regargs->prefix) : NULL;
+	args->new_seq_prefix = strdupnullok(regargs->prefix);
 	args->load_new_sequence = TRUE;
 	args->already_in_a_thread = TRUE;
 
