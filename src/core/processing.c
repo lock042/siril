@@ -399,9 +399,9 @@ the_end:
 	return GINT_TO_POINTER(retval);
 }
 
-void free_generic_seq_args(struct generic_seq_args *args) {
+void free_generic_seq_args(struct generic_seq_args *args, gboolean free_seq) {
 	free(args->new_seq_prefix);
-	if (!check_seq_is_comseq(args->seq))
+	if (free_seq && !check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
 	free(args);
 }
@@ -423,7 +423,7 @@ gboolean end_generic_sequence(gpointer p) {
 	// string in function-specific structs) *must* always be allocated using
 	// a stdlib freeable function, i.e. char* seqEntry = strdup("prefix_");
 	// rather than char* seqEntry = "prefix_";
-	free_generic_seq_args(args);
+	free_generic_seq_args(args, TRUE);
 	return end_generic(NULL);
 }
 

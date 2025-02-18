@@ -920,7 +920,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	msg[strlen(msg)-1] = '\0';
 	set_cursor_waiting(TRUE);
 	set_progress_bar_data(msg, PROGRESS_RESET);
-	int ret1 = (method->method_ptr(&regargs));
+	int ret1 = method->method_ptr(&regargs);
 	free(regargs.imgparam);
 	regargs.imgparam = NULL;
 	free(regargs.regparam);
@@ -1293,12 +1293,6 @@ void on_compositing_cancel_clicked(GtkButton *button, gpointer user_data){
 	gui.comp_layer_centering = NULL;
 	reset_compositing_module();
 	siril_close_dialog("composition_dialog");
-}
-
-void on_composition_dialog_hide(GtkWidget *widget, gpointer   user_data) {
-	if (gtk_widget_get_visible(lookup_widget("color_calibration"))) {
-		siril_close_dialog("color_calibration");
-	}
 }
 
 /* When summing all layers to get the RGB values for one pixel, it may overflow.
@@ -1698,30 +1692,6 @@ static void coeff_clear() {
 	}
 }
 
-void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
-	int photometric = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("rgbcomp_cc_method")));
-	GtkWidget *win = NULL;
-	switch (photometric) {
-		case 0:
-			win = lookup_widget("color_calibration");
-			initialize_calibration_interface();
-		break;
-		case 1:
-			win = lookup_widget("s_pcc_dialog");
-			initialize_photometric_cc_dialog();
-		break;
-		case 2:
-			win = lookup_widget("s_pcc_dialog");
-			initialize_spectrophotometric_cc_dialog();
-	}
-	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));
-	/* Here this is wanted that we do not use siril_open_dialog */
-	gtk_widget_show(win);
-
-	if(photometric)
-		on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
-}
-
 void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
 	if (number_of_images_loaded() < 1)
 		return;
@@ -2014,13 +1984,13 @@ int register_manual(struct registration_args *regargs) {
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->upscale_ratio = 1.0;
-	args->new_seq_prefix = strdup(regargs->prefix);
+	args->new_seq_prefix = regargs->prefix ? strdup(regargs->prefix) : NULL;
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, FALSE);
 		return -1;
 	}
 	sadata->regargs = regargs;
@@ -2029,7 +1999,7 @@ int register_manual(struct registration_args *regargs) {
 	generic_sequence_worker(args);
 
 	regargs->retval = args->retval;
-	free_generic_seq_args(args);
+	free_generic_seq_args(args, FALSE);
 	return regargs->retval;
 }
 

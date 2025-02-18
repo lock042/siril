@@ -443,7 +443,7 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(cosme_args->seqEntry);
 		free(cosme_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 
@@ -618,7 +618,7 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 		g_clear_object(&cosme_args->file);
 		free(cosme_args->prefix);
 		free(cosme_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 

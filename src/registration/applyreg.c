@@ -415,7 +415,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 				Hshift.h02 *= -1.;
 				// we use (int)(dst_ry / scale) to find the projected area origin size unscaled
 				// we also need to recast fit->ry bec. it's a uint
-				Hshift.h12 += (double)(int)(dst_ry / scale) - (double)fit->ry; 
+				Hshift.h12 += (double)(int)(dst_ry / scale) - (double)fit->ry;
 				reframe_wcs(fit->keywords.wcslib, &Hshift);
 			}
 			if (scale != 1.f) {
@@ -672,9 +672,9 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 		* If clamping is enabled, one scaled image (the guide) and a 8b copy (the mask)
 
 		*** Others not to be accounted for:
-		- if Drizzle and master flat is specified, because drizzle init loads it 
+		- if Drizzle and master flat is specified, because drizzle init loads it
 			before we compute available memory
-		- If Interpolation and undistorion with pre-computed maps (DISTO_MAP_D2S or DISTO_MAP_S2D), 
+		- If Interpolation and undistorion with pre-computed maps (DISTO_MAP_D2S or DISTO_MAP_S2D),
 			those two maps are init before this hook
 
 		TODO: there are a few approximations:
@@ -704,7 +704,7 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 		required += 2 * MB_per_mono_float_orig_image; // maps
 	else if (regargs->undistort)
 		required += 2 * MB_per_mono_float_scaled_image; // maps if undistortion, otherwise we directly use openCV warpPerspective() which computes maps iteratively on 32x32 chunks
-	
+
 	// drizzle specifics
 	if (regargs->driz)
 		required += MB_per_scaled_image;
@@ -832,27 +832,27 @@ int register_apply_reg(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
 	args->force_float = !com.pref.force_16bit && regargs->seq->type != SEQ_SER;
 	control_window_switch_to_tab(OUTPUT_LOGS);
-
+	int retval = 0;
 	if (!check_before_applyreg(regargs)) { // checks for input arguments wrong combinations
-		free_generic_seq_args(args);
-		return -1;
+		retval = -1;
+		goto END;
 	}
 
 	// If this is an astrometric aligned sequence,
-	// we need to collect the WCS structures and 
+	// we need to collect the WCS structures and
 	// recompute the homographies based on selected frames
 	// We will also unselected unsolved images before recomputing the filters
 	regargs->undistort = (layer_has_distortion(regargs->seq, regargs->layer)) ? regargs->seq->distoparam[regargs->layer].index : DISTO_UNDEF;
 	if (regargs->undistort == DISTO_FILES) {
 		regargs->WCSDATA = calloc(regargs->seq->number, sizeof(struct wcsprm));
 		if (collect_sequence_astrometry(regargs)) {
-			free_generic_seq_args(args);
-			return -1;
+			retval = -1;
+			goto END;
 		}
 		Homography Href = { 0 };
 		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer, &Href, &regargs->wcsref)) {
-			free_generic_seq_args(args);
-			return -1;
+			retval = -1;
+			goto END;
 		}
 		regargs->framingd.Htransf = Href;
 	} else {
@@ -861,11 +861,12 @@ int register_apply_reg(struct registration_args *regargs) {
 
 	// we need to update filtering before check_applyreg_output that will check required space
 	if (!regargs->filtering_criterion &&
-			convert_parsed_filter_to_filter(&regargs->filters,
+				convert_parsed_filter_to_filter(&regargs->filters,
 				regargs->seq, &regargs->filtering_criterion,
 				&regargs->filtering_parameter)) {
-		free_generic_seq_args(args);
-		return -1;
+		retval = -1;
+		goto END;
+
 	}
 
 	// Prepare sequence filtering
@@ -879,18 +880,21 @@ int register_apply_reg(struct registration_args *regargs) {
 
 	// We can now compute the framing and check the output size
 	if (!check_applyreg_output(regargs)) {
-		free_generic_seq_args(args);
-		return -1;
+		retval = -1;
+		goto END;
+
 	}
 
 	if (regargs->no_output) {
-		free_generic_seq_args(args);
-		return 0;
+		retval = 0;
+		goto END;
+
 	}
 
 	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
-		free_generic_seq_args(args);
-		return -1;
+		retval = -1;
+		goto END;
+
 	}
 
 	args->upscale_ratio = regargs->output_scale;
@@ -905,14 +909,15 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->description = _("Apply registration");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = strdup(regargs->prefix);
+	args->new_seq_prefix = regargs->prefix ? strdup(regargs->prefix) : NULL;
 	args->load_new_sequence = TRUE;
 	args->already_in_a_thread = TRUE;
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
-		free_generic_seq_args(args);
-		return -1;
+		retval = -1;
+		goto END;
+
 	}
 	sadata->regargs = regargs;
 	args->user = sadata;
@@ -926,11 +931,12 @@ int register_apply_reg(struct registration_args *regargs) {
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
 		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array
 		if (status) {
-			free_generic_seq_args(args);
+			free_generic_seq_args(args, FALSE);
 			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
 			free(sadata);
 			args->user = NULL;
-			return -1;
+			retval = 1;
+			goto END;
 		}
 		if (!regargs->disto) {
 			regargs->undistort = DISTO_UNDEF;
@@ -966,18 +972,21 @@ int register_apply_reg(struct registration_args *regargs) {
 			siril_log_message(_("Could not load reference image\n"));
 			free(sadata);
 			args->user = NULL;
-			free_generic_seq_args(args);
-			return 1;
+			retval = -1;
+			goto END;
 		}
 		regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
 		clearfits(&ref);
 	}
 
 	generic_sequence_worker(args);
-
 	regargs->retval = args->retval;
-	free_generic_seq_args(args);
-	return regargs->retval;
+	retval = regargs->retval;
+
+END:
+	free_generic_seq_args(args, args->seq->type != SEQ_INTERNAL);
+
+	return retval;
 }
 
 transformation_type guess_transform_from_H(Homography H) {
@@ -1026,7 +1035,7 @@ static int confirm_exceed_cairomaxdim(gpointer user_data) {
 		"Tune scale ratio to get max dimension smaller than 32767 pixels "
 		"or proceed and post process your images with an external program."));
 	if (regargs->no_output) { // Estimate button was pressed, we just warn
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("Output too large"), msg); 
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Output too large"), msg);
 	} else if (!siril_confirm_dialog(_("Output too large"),  // Register button was pressed, we ask for confirmation
 				msg, _("Proceed"))) {
 		regargs->retval = 1;
@@ -1045,7 +1054,7 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 	}
 
 	// TODO: temp check for final image size
-	// if larger than cairo image buffer, pop a warning that image will not display at all 
+	// if larger than cairo image buffer, pop a warning that image will not display at all
 	int max_dim = max(regargs->framingd.roi_out.w, regargs->framingd.roi_out.h);
 	if (max_dim > 32767) {
 		if (!(com.script || com.python_script)) { // trhough GUI, we warn with GTK objects
@@ -1066,7 +1075,7 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 		siril_log_color_message(_("You should change framing method, aborting\n"), "red");
 		return FALSE;
 	}
-	
+
 	int nb_frames = regargs->seq->selnum;
 	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
 	int64_t size = (int64_t) regargs->framingd.roi_out.w * regargs->framingd.roi_out.h * regargs->seq->nb_layers;

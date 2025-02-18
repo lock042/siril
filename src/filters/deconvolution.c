@@ -874,7 +874,7 @@ void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata) {
 	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
 		free(seqdata->seqEntry);
 		free(seqdata);
-		free_generic_seq_args(seqargs);
+		free_generic_seq_args(seqargs, TRUE);
 	}
 }
 
