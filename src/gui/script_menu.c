@@ -480,6 +480,12 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	return retval;
 }
 
+gpointer initialize_script_menu_in_thread(gpointer data) {
+	gboolean state = (gboolean) GPOINTER_TO_INT(data);
+	initialize_script_menu(state);
+	return GINT_TO_POINTER(0);
+}
+
 GSList *get_list_from_preferences_dialog() {
 	GSList *list = NULL;
 	static GtkTextBuffer *tbuf = NULL;
