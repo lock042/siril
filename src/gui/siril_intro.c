@@ -80,9 +80,7 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
 		}
 
 		gtk_widget_hide(current_ui->popover);
-#ifndef OS_OSX
 		gtk_style_context_remove_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
-#endif
 		g_free(current_ui);
 		current_ui = NULL;
 		hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
@@ -240,9 +238,7 @@ static gboolean intro_popover_close(gpointer user_data) {
 
 	if (ui == current_ui) {
 		gtk_widget_hide(ui->popover);
-#ifndef OS_OSX
 		gtk_style_context_remove_class(gtk_widget_get_style_context(ui->widget), "siril-intro-highlight");
-#endif
 		g_free(ui);
 		current_ui = NULL;
 		hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
@@ -258,9 +254,7 @@ static gboolean intro_popover_update(gpointer user_data) {
 		current_ui = g_new(SirilUIIntro, 1);
 		current_ui->widget = lookup_widget(intro_tips[tip_index].widget);
 		ensure_widget_and_parents_visible(current_ui->widget);
-#ifndef OS_OSX
 		gtk_style_context_add_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
-#endif
 		if (intro_tips[tip_index].type == SIRIL_INTRO_GTK_POPOVER) {
 			current_ui->popover = intro_popover(current_ui->widget, _(intro_tips[tip_index].tip));
 		} else {
