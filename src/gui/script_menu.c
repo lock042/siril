@@ -257,6 +257,11 @@ int initialize_script_menu(gboolean verbose) {
 	GtkWidget *sep = gtk_separator_menu_item_new();
 	GtkWidget *menu_item_pythonpad = gtk_menu_item_new_with_label(_("Script Editor..."));
 	g_signal_connect(G_OBJECT(menu_item_pythonpad), "activate", G_CALLBACK(on_open_pythonpad), NULL);
+	GtkWidget *menu_item_pythondebug = gtk_check_menu_item_new_with_label(_("Enable Python debug mode"));
+	gtk_builder_expose_object(gui.builder, "pythondebugtoggle", G_OBJECT(menu_item_pythondebug));
+
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_item_pythondebug), FALSE);
+	g_signal_connect(G_OBJECT(menu_item_pythondebug), "toggled", G_CALLBACK(on_pythondebug_toggled), NULL);
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_ssf);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item_ssf), menu_ssf);
@@ -271,6 +276,9 @@ int initialize_script_menu(gboolean verbose) {
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythonpad);
 	gtk_widget_show(menu_item_pythonpad);
+
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythondebug);
+	gtk_widget_show(menu_item_pythondebug);
 
 	gchar *previous_directory_ssf = NULL;
 	gchar *previous_directory_py = NULL;

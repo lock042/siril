@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-02-01 12:51+0100\n"
-"PO-Revision-Date: 2025-02-04 12:05+0000\n"
-"Last-Translator: GarthTB <g-art-h@outlook.com>\n"
+"PO-Revision-Date: 2025-02-09 13:37+0000\n"
+"Last-Translator: Li Yizhi <411585951@qq.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -21731,7 +21731,7 @@ msgstr "执行时间"
 
 #: src/core/siril_networking.c:56
 msgid "Error initialising CURL handle, URL functionality unavailable.\n"
-msgstr ""
+msgstr "初始化 CURL 句柄时出错，URL 功能不可用。\n"
 
 #: src/core/siril_networking.c:77
 msgid ""
@@ -21744,6 +21744,8 @@ msgid ""
 "Server unreachable or unresponsive (HTTP code %ld - for details see https://"
 "developer.mozilla.org/en-US/docs/Web/HTTP/Status)\n"
 msgstr ""
+"服务器无法访问或无响应（HTTP 代码 %ld - 有关详细信息，请参阅 "
+"https://developer.mozilla.org/en-US/docs/Web/HTTP/Status）\n"
 
 #: src/core/siril_networking.c:118
 msgid "Server unreachable or unresponsive"
@@ -21752,7 +21754,7 @@ msgstr "服务器无法连接或未响应"
 #: src/core/siril_networking.c:122
 #, c-format
 msgid "URL retrieval failed. libcurl error: [%ld]\n"
-msgstr ""
+msgstr "URL 检索失败。libcurl 错误：[ %ld ]\n"
 
 #: src/core/siril_networking.c:181
 #, c-format
@@ -22184,6 +22186,9 @@ msgid ""
 "You will need to check and re-assign the ICC profile as GraXpert does not "
 "preserve ICC profiles embedded in FITS files.\n"
 msgstr ""
+"GraXpert GUI 将打开当前图像。完成后，保存图像并返回 Siril。\n"
+"您需要检查并重新分配 ICC 配置文件，因为 GraXpert 不保留 FITS 文件中嵌入的 "
+"ICC 配置文件。\n"
 
 #: src/filters/graxpert.c:899
 #, fuzzy
@@ -23765,6 +23770,8 @@ msgid ""
 "<span foreground=\"red\">No suitable version of GraXpert is available.\n"
 "Configure the executable in Preferences -> Miscellaneous.</span>"
 msgstr ""
+"<span foreground=\"red\">没有合适的 GraXpert 版本可用。\n"
+"在“偏好设置”->“杂项”中配置可执行文件。</span>"
 
 #: src/gui/graxpert.c:320
 msgid ""
@@ -25022,6 +25029,10 @@ msgid ""
 "known good state. All modules installed by scripts will be deleted and will "
 "require reinstallation."
 msgstr ""
+"这将终止所有正在运行的 python 进程并删除并重新安装 python venv "
+"目录。对于升级或类似操作，这通常不是必需的，因为 Siril 会尝试自动管理 "
+"venv。但是，此选项是作为最后的错误缓解手段提供的，用于将 venv "
+"重置为已知的良好状态。由脚本安装的所有模块都将被删除并需要重新安装。"
 
 #: src/gui/progress_and_log.c:225
 #, c-format
@@ -25604,7 +25615,7 @@ msgstr "扩展名不匹配"
 msgid ""
 "The given file extension does not match the chosen file type. Do you want to "
 "save the image using this name anyway?"
-msgstr ""
+msgstr "给定的文件扩展名与所选的文件类型不匹配。是否仍要使用此名称保存图像？"
 
 #: src/gui/save_dialog.c:438 src/gui/save_dialog.c:489
 msgid "Save Anyway"
@@ -25944,7 +25955,7 @@ msgstr "SVG文件 (*.svg)"
 
 #: src/gui/siril_preview.c:107
 msgid "Warning: insufficient memory available to create a preview.\n"
-msgstr ""
+msgstr "警告：可用内存不足以创建预览。\n"
 
 #: src/gui/stacking.c:172 src/io/sequence_export.c:665
 msgid "Registration data found"
@@ -25971,6 +25982,9 @@ msgid ""
 "subs.\n"
 "If you proceed, execution may be slow"
 msgstr ""
+"您选择了对超过 %d 张图像计算重叠部分的均一化。\n"
+"该选项通常应该被用于拼接堆叠好的马赛克图块，而非单张。\n"
+"如果继续，执行可能会很慢"
 
 #: src/gui/stacking.c:184
 #, fuzzy
@@ -26252,7 +26266,8 @@ msgstr "将值的范围重新缩放至 0.0 - 1.0，并应用一个偏移量以�
 msgid ""
 "This image contains pixel values outside the range 0.0 - 1.0 (min = %.3f, "
 "max = %.3f). This can cause unwanted behaviour. Choose how to handle this.\n"
-msgstr ""
+msgstr "此图像包含超出范围 0.0 - 1.0（最小值 = %.3f，最大值 = %."
+"3f）的像素值。这可能会导致非预期行为。选择如何处理此问题。\n"
 
 #: src/io/aavso_extended.c:157
 msgid "Warning: at least one AAVSO header element was truncated.\n"
@@ -27587,7 +27602,7 @@ msgstr "使用图层 %d 中的对齐信息导出序列\n"
 msgid ""
 "Reference frame has an ICC profile. Will assign / convert other frames to to "
 "match.\n"
-msgstr ""
+msgstr "参考帧具有 ICC 配置文件。将分配/转换其他帧以进行匹配。\n"
 
 #: src/io/sequence_export.c:209 src/io/sequence_export.c:240
 #, fuzzy
@@ -27633,7 +27648,7 @@ msgstr "序列中的图像尺寸不一致\n"
 msgid ""
 "Info: this frame has an ICC profile but the reference frame does not. "
 "Profile will be preserved...\n"
-msgstr ""
+msgstr "信息：此帧具有 ICC 配置文件，但参考帧没有。配置文件将被保留...\n"
 
 #: src/io/sequence_export.c:615
 msgid "Sequence export failed. Check the log."
@@ -28198,7 +28213,7 @@ msgstr "图像尺寸无效：超出内存限制"
 
 #: src/io/siril_pythonmodule.c:525
 msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %"
-msgstr ""
+msgstr "图像尺寸或格式无效：w = %u， h = %u， c = %u， size = %"
 
 #: src/io/siril_pythonmodule.c:534
 msgid "Error: image dimensions exceed available memory"
@@ -28252,7 +28267,7 @@ msgstr "Python通信工作程序已完成...\n"
 msgid ""
 "Installing / updating python module in the background. This may take a few "
 "seconds...\n"
-msgstr ""
+msgstr "在后台安装/更新 Python 模块。这可能需要几秒钟...\n"
 
 #: src/io/siril_pythonmodule.c:1562
 #, c-format
@@ -28263,11 +28278,11 @@ msgstr "正在准备python虚拟环境：%s。\n"
 #. update it using the venv pip if not.
 #: src/io/siril_pythonmodule.c:1603
 msgid "Checking the python module is up-to-date...\n"
-msgstr ""
+msgstr "正在检查 python 模块是否是最新的......\n"
 
 #: src/io/siril_pythonmodule.c:1608
 msgid "Warning: unable to install or update the Siril python module.\n"
-msgstr ""
+msgstr "警告：无法安装或更新 Siril python 模块。\n"
 
 #: src/io/siril_pythonmodule.c:1614
 msgid "Python module is up-to-date\n"
@@ -28277,13 +28292,13 @@ msgstr "Python模块已是最新\n"
 msgid ""
 "Error: msys2 environment detected. Siril Python support cannot be correctly "
 "initialized.\n"
-msgstr ""
+msgstr "错误：检测到 msys2 环境。无法正确初始化 Siril Python 支持。\n"
 
 #: src/io/siril_pythonmodule.c:1663
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
-msgstr ""
+msgstr "要完成该过程，首先确保您的计算机上已安装 Python（>=3.9）。\n"
 
 #: src/io/siril_pythonmodule.c:1664
 msgid ""
@@ -29289,7 +29304,7 @@ msgstr "允许 FITS 矩阵具有不同的尺寸"
 msgid ""
 "The image currently displayed must be the same size as the other images "
 "loaded into PixelMath."
-msgstr ""
+msgstr "当前显示的图像必须与加载到 PixelMath 的其他图像尺寸相同。"
 
 #: src/pixelMath/pixel_math_runner.c:1119
 msgid "No images loaded"
@@ -29553,7 +29568,7 @@ msgstr "取景范围\"cog\"要求全部图像尺寸相同，异常中止\n"
 #: src/registration/astrometric.c:237
 #, c-format
 msgid "Sequence COG - RA:%7.3f - DEC:%+7.3f\n"
-msgstr ""
+msgstr "序列重心 - 赤经: %7.3f - 赤纬: %+7.3f\n"
 
 #: src/registration/astrometric.c:269
 #, c-format
@@ -29563,7 +29578,7 @@ msgstr "无法计算图像 %d 的相机参数，序列 %s\n"
 #: src/registration/astrometric.c:284
 #, c-format
 msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
-msgstr ""
+msgstr "图像 # %5d - 赤经：%7.3f - 赤纬：%+7.3f - 旋转：%+6.1f\n"
 
 #: src/registration/astrometric.c:287
 #, c-format

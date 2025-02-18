@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-02-01 12:51+0100\n"
-"PO-Revision-Date: 2025-01-26 02:16+0000\n"
+"PO-Revision-Date: 2025-02-18 13:07+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -7833,7 +7833,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5702
 msgid "Maximum slice size for sliced image operations"
-msgstr "Taille maximale des sections pour les opérations de découpage d'images"
+msgstr "Taille max de tranche image"
 
 #: src/gui/uifiles/settings_window.ui:5713
 msgid ""
@@ -11094,6 +11094,9 @@ msgid ""
 "Left-click to show object names if WCS information is available. Right-click "
 "to display a list of astro catalogs to choose from."
 msgstr ""
+"Cliquez avec le bouton gauche de la souris pour afficher les noms des objets "
+"si les informations WCS sont disponibles. Cliquez avec le bouton droit de la "
+"souris pour afficher une liste de catalogues astro parmi lesquels choisir."
 
 #: src/gui/uifiles/siril.ui:10150
 msgid "Show celestial grid if WCS information is available"
@@ -16183,9 +16186,8 @@ msgstr ""
 "ignoré.\n"
 
 #: src/core/command.c:5903
-#, fuzzy
 msgid "Error, no existing samples available\n"
-msgstr "Erreur : aucune étoile de référence disponible\n"
+msgstr "Erreur : aucun échantillon disponible\n"
 
 #: src/core/command.c:5916
 msgid "Error generating background samples\n"
@@ -21224,7 +21226,6 @@ msgstr ""
 "faites sur les extractions par filtre"
 
 #: src/core/command_def.h:182
-#, fuzzy
 msgid ""
 "Same command as SUBSKY but for the sequence <b>sequencename</b>.\n"
 "Dithering, required for low dynamic gradients, can be disabled with <b>-"
@@ -21238,7 +21239,9 @@ msgid ""
 msgstr ""
 "Même commande que SUBSKY mais pour la séquence <b>sequencename</b>.\n"
 "Le dithering, requis pour les gradients dynamiques faibles, peut être "
-"désactivé avec <b>-nodither</b>.\n"
+"désactivé avec <b>-nodither</b>. Notez que l'option <b>-existing</b> n'est "
+"pas disponible pour l'extraction du gradient d'une séquence, car les images "
+"d'une séquence ne sont pas nécessairement toujours alignées.\n"
 "\n"
 "Le nom de la séquence de sortie commence par le préfixe \"bkg_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>. Seules les images "
@@ -21916,7 +21919,6 @@ msgid "Stops the live stacking session. Only possible after START_LS"
 msgstr "Arrête la session de livestacking. Uniquement possible après START_LS"
 
 #: src/core/command_def.h:210
-#, fuzzy
 msgid ""
 "Computes a synthetic background gradient using either the polynomial "
 "function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
@@ -21935,10 +21937,13 @@ msgstr ""
 "fourni à la place) et le soustrait de l'image.\n"
 "Le nombre d'échantillons par ligne horizontale et la tolérance pour exclure "
 "les zones plus lumineuses peuvent être ajustés avec les arguments "
-"facultatifs. La tolérance est en unités MAD : médiane + tolérance * mad.\n"
+"facultatifs. La tolérance est en unités MAD : médiane + tolérance * mad.\n"
 "Le dither, requis pour les gradients dynamiques faibles, peut être activé "
 "avec <b>-dither</b>.\n"
-"Pour RBF, le paramètre de lissage supplémentaire est également disponible"
+"Pour RBF, le paramètre de lissage supplémentaire est également disponible. "
+"Pour utiliser des échantillons d'arrière-plan préexistants (par exemple, si "
+"vous avez défini des échantillons d'arrière-plan à l'aide d'un script Python)"
+", l'argument <b>-existing</b> doit être utilisé"
 
 #: src/core/command_def.h:211
 msgid ""
@@ -26274,21 +26279,20 @@ msgid "Success! The local repository is up-to-date with the remote."
 msgstr "Succès ! Le dépôt local est à jour par rapport au dépôt distant."
 
 #: src/gui/git_gui.c:112
-#, fuzzy
 msgid "Processing"
-msgstr "En cours..."
+msgstr "Traitement"
 
 #: src/gui/git_gui.c:114
 msgid "Utility"
-msgstr ""
+msgstr "Utilitaire"
 
 #: src/gui/git_gui.c:116
 msgid "Core"
-msgstr ""
+msgstr "Essentiel"
 
 #: src/gui/git_gui.c:119
 msgid "Other"
-msgstr ""
+msgstr "Autre"
 
 #: src/gui/git_gui.c:125 src/gui/python_gui.c:895 src/gui/python_gui.c:1064
 msgid "Siril Script File"
@@ -28550,9 +28554,9 @@ msgid "Script Editor..."
 msgstr "Éditeur de script..."
 
 #: src/gui/script_menu.c:285
-#, fuzzy, c-format
+#, c-format
 msgid "Searching for scripts in: \"%s\"...\n"
-msgstr "Recherche de scripts dans : \"%s\" ...\n"
+msgstr "Recherche de scripts dans : \"%s\"...\n"
 
 #: src/gui/script_menu.c:332
 #, c-format
