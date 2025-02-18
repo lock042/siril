@@ -1351,7 +1351,7 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	}
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(args->user);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 	return 0;
 }
