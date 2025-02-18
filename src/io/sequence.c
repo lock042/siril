@@ -2043,7 +2043,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	if (run_in_thread) {
 		if (!start_in_new_thread(generic_sequence_worker, args)) {
 			free(spsfargs);
-			free_generic_seq_args(args);
+			free_generic_seq_args(args, TRUE);
 			return 1;
 		}
 		return 0;

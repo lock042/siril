@@ -1294,7 +1294,7 @@ void start_sequence_keywords(sequence *seq, struct keywords_data *args) {
 	}
 	seqargs->user = args;
 	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
-		free_generic_seq_args(seqargs);
+		free_generic_seq_args(seqargs, TRUE);
 	}
 }
 

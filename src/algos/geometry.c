@@ -791,7 +791,7 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(crop_sequence_data->prefix);
 		free(crop_sequence_data);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -818,7 +818,7 @@ gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data) {
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(scale_sequence_data->prefix);
 		free(scale_sequence_data);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 		return GINT_TO_POINTER(1);
 	}
 

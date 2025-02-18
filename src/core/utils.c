@@ -2166,3 +2166,7 @@ gchar *find_file_recursively(gchar *basename, const gchar *top_path) {
 	// File not found in this directory tree
 	return NULL;
 }
+
+char *strdupnullok(char *data) {
+	return (data) ? strdup(data) : NULL;
+}

@@ -232,7 +232,7 @@ void apply_extractGreen_to_sequence(struct simple_extract_data *extract_args) {
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(extract_args->seqEntry);
 		free(extract_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 
@@ -386,7 +386,7 @@ void apply_extractHa_to_sequence(struct simple_extract_data *extract_args) {
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(extract_args->seqEntry);
 		free(extract_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 
@@ -917,7 +917,7 @@ void apply_extractHaOIII_to_sequence(struct multi_output_data *multi_args) {
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(multi_args->user_data);
 		free_multi_args(multi_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 
@@ -1198,7 +1198,7 @@ void apply_split_cfa_to_sequence(struct multi_output_data *multi_args) {
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		// multi_args->user_data not used in this operation, no need to free
 		free_multi_args(multi_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 

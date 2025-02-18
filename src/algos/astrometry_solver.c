@@ -2290,7 +2290,7 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 				catalog_to_str(args->ref_stars->cat_index));
 	if(!start_in_new_thread(generic_sequence_worker, seqargs)) {
 		free_astrometry_data(args);
-		free_generic_seq_args(seqargs);
+		free_generic_seq_args(seqargs, TRUE);
 	}
 }
 

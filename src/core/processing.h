@@ -173,7 +173,7 @@ int seq_prepare_writer(struct generic_seq_args *args);
 int seq_finalize_hook(struct generic_seq_args *args);
 int generic_save(struct generic_seq_args *, int, int, fits *);
 void free_multi_args(struct multi_output_data *multi_args);
-void free_generic_seq_args(struct generic_seq_args *args);
+void free_generic_seq_args(struct generic_seq_args *args, gboolean free_seq);
 int multi_prepare(struct generic_seq_args *args);
 int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit);
 int multi_finalize(struct generic_seq_args *args);

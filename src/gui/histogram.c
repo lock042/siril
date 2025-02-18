@@ -1999,7 +1999,7 @@ void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(mtf_args->seqEntry);
 		free(mtf_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 
@@ -2033,7 +2033,7 @@ void apply_ght_to_sequence(struct ght_data *ght_args) {
 	if(!start_in_new_thread(generic_sequence_worker, args)) {
 		free(ght_args->seqEntry);
 		free(ght_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 
