@@ -32,6 +32,7 @@ static gboolean go_next;
 static GSList *key_handler_windows = NULL;
 static SirilUIIntro *current_ui = NULL;
 static guint current_timeout_id = 0;
+static gboolean processing_key = FALSE;
 
 /* Structure to keep track of windows and their key handlers */
 typedef struct {
@@ -70,7 +71,9 @@ static void hide_all_except(GtkWindow *keep_visible) {
 
 /* Global key handler for any window */
 static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
-	if (event->keyval == GDK_KEY_Right && !go_next && current_ui) {
+	if (event->keyval == GDK_KEY_Right && !go_next && current_ui && !processing_key) {
+		processing_key = TRUE;  // Set lock
+
 		if (current_timeout_id > 0) {
 			g_source_remove(current_timeout_id);
 			current_timeout_id = 0;
@@ -84,6 +87,8 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
 		current_ui = NULL;
 		hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
 		go_next = TRUE;
+
+		processing_key = FALSE;  // Release lock
 	}
 	return TRUE;
 }
