@@ -1446,7 +1446,7 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 		if (!check_seq_is_comseq(merge_cfa_args->seq3))
 			free_sequence(merge_cfa_args->seq3, TRUE);
 		free(merge_cfa_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 

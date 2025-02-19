@@ -266,7 +266,8 @@ gpointer register_thread_func(gpointer p) {
 	if (args->wcsref)
 		wcsfree(args->wcsref);
 	if (!siril_add_idle(end_register_idle, args)) {
-		free_sequence(args->seq, TRUE);
+		if (args->seq->type != SEQ_INTERNAL) // RGB align needs the sequence preserved
+			free_sequence(args->seq, TRUE);
 		free(args);
 	}
 	return GINT_TO_POINTER(retval);

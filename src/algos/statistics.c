@@ -937,7 +937,7 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 		int size = nb_data_layers * args->nb_filtered_images;
 		free_stat_list(stat_args->list, size);
 		free (stat_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 

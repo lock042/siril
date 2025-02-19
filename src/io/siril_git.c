@@ -677,7 +677,7 @@ int auto_update_gitscripts(gboolean sync) {
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
-		siril_log_color_message(_("Cannot open repository: %s\n"), "salmon", e->message);
+		siril_debug_print("Cannot open repository: %s\n", e->message);
 		if (is_online()) {
 			siril_log_message(_("Attempting to clone from remote source...\n"));
 			// Perform the clone operation
@@ -831,7 +831,7 @@ int auto_update_gitspcc(gboolean sync) {
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
-		siril_log_color_message(_("Cannot open repository: %s\nAttempting to clone from remote source...\n"), "salmon", e->message);
+		siril_debug_print("Cannot open repository: %s\nAttempting to clone from remote source...\n", e->message);
 		// Perform the clone operation
 		error = git_clone(&repo, SPCC_REPOSITORY_URL, local_path, &clone_opts);
 

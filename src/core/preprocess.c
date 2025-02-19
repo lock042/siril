@@ -513,7 +513,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(prepro->ppprefix);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 

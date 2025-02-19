@@ -955,7 +955,7 @@ void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
 	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
 		free_starnet_args((starnet_data*)multi_args->user_data);
 		free_multi_args(multi_args);
-		free_generic_seq_args(seqargs);
+		free_generic_seq_args(seqargs, TRUE);
 	}
 }
 

@@ -627,7 +627,7 @@ void apply_curve_to_sequence(struct curve_data *curve_args) {
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(curve_args->seq_entry);
 		free(curve_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 
