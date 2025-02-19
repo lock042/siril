@@ -110,6 +110,13 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 	ost->enc = c;
 
 	c->thread_count = com.max_thread;
+	if (codec_id == AV_CODEC_ID_H265) {
+		int max_threads = 16; // Maximum recommended for x265
+		if (c->thread_count > max_threads) {
+			c->thread_count = max_threads;
+		}
+		av_opt_set_int(c->priv_data, "frame-threads", MIN(c->thread_count, 8), 0);
+	}
 
 	c->codec_id = codec_id;
 	int retval;
@@ -502,9 +509,6 @@ struct mp4_struct* mp4_create(const char *filename, int dst_w, int dst_h, int fp
 	case EXPORT_MP4_H265:
 		codecid = AV_CODEC_ID_H265;
 		av_dict_set(&opt, "preset", "medium", 0);
-		char crf_value[8];
-		snprintf(crf_value, sizeof(crf_value), "%d", 18 + (quality * 5));
-		av_dict_set(&opt, "x265-params", crf_value, 0);
 		break;
 	default:
 		cleanup_video_st(video_st);
