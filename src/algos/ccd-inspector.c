@@ -285,7 +285,7 @@ void apply_tilt_to_sequence(struct tilt_data *tilt_args) {
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(tilt_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 

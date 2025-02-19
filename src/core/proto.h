@@ -185,14 +185,15 @@ int count_pattern_occurence(const gchar *string, const gchar *pattern);
 guint gui_function(GSourceFunc idle_function, gpointer data);
 gchar *find_file_in_directory(gchar *basename, const gchar *path);
 gchar *find_file_recursively(gchar *basename, const gchar *top_path);
+char *strdupnullok(char *data);
 
 /****************** quantize.h ***************/
-int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, 
+int siril_fits_img_stats_ushort(WORD *array, long nx, long ny,
 		long *ngoodpix, WORD *minvalue, WORD *maxvalue,
 		double *mean, double *sigma, double *noise1, double *noise2,
 		double *noise3, double *noise5, threading_type threads, int *status);
 
-int siril_fits_img_stats_float(float *array, long nx, long ny, 
+int siril_fits_img_stats_float(float *array, long nx, long ny,
 		long *ngoodpix, float *minvalue, float *maxvalue,
 		double *mean, double *sigma, double *noise1, double *noise2,
 		double *noise3, double *noise5, threading_type threads, int *status);

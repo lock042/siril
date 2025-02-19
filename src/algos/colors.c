@@ -1340,6 +1340,6 @@ void apply_ccm_to_sequence(struct ccm_data *ccm_args) {
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		free(ccm_args->seqEntry);
 		free(ccm_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }

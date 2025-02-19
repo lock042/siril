@@ -1373,7 +1373,7 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 		siril_log_color_message(_("Error reading reference metadata.\n"), "red");
 		free(background_args->seqEntry);
 		free(background_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 		return;
 	}
 	background_args->is_cfa = background_args->seq->nb_layers == 1 && (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4) ||
@@ -1399,7 +1399,7 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 	if(!start_in_new_thread(generic_sequence_worker, args)) {
 		free(background_args->seqEntry);
 		free(background_args);
-		free_generic_seq_args(args);
+		free_generic_seq_args(args, TRUE);
 	}
 }
 
