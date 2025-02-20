@@ -143,12 +143,16 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 			break;
 		case AV_CODEC_ID_H264:
 			if (strstr((*codec)->name, "videotoolbox") != NULL) {
-				// VideoToolbox uses 'quality' instead 'crf'
-				// quality goes from 0 (best) to 100 (worst)
-				int vt_quality = 100 - (ost->quality * 20); // 1->80, 2->60, 3->40, 4->20, 5->0
-				siril_debug_print("VideoToolbox H264 quality value: %d\n", vt_quality);
-				retval = av_opt_set_int(c->priv_data, "quality", vt_quality, 0);
-				CHECK_OPT_SET_RETVAL;
+				siril_debug_print("Using VideoToolbox encoder\n");
+
+				c->bit_rate = 0;
+
+				// quality 1 -> high quality (low value) -> 5 * FF_QP2LAMBDA
+				// quality 5 -> low quality (high value) -> 45 * FF_QP2LAMBDA
+				c->flags |= AV_CODEC_FLAG_QSCALE;
+				c->global_quality = ((ost->quality * 10) + 5) * FF_QP2LAMBDA;
+
+				siril_debug_print("VideoToolbox settings: global_quality=%d\n", c->global_quality);
 			} else {
 				crf = x264_quality_to_crf[ost->quality - 1];
 				siril_debug_print("x264 constant quality value: %d\n", crf);
@@ -172,7 +176,7 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 				c->flags |= AV_CODEC_FLAG_QSCALE;
 				c->global_quality = ((ost->quality * 10) + 5) * FF_QP2LAMBDA;
 
-				siril_log_message("VideoToolbox settings: global_quality=%d\n", c->global_quality);
+				siril_debug_print("VideoToolbox settings: global_quality=%d\n", c->global_quality);
 
 			} else {
 				crf = x265_quality_to_crf[ost->quality - 1];
