@@ -92,7 +92,7 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 		return 1;
 	}
 
-	siril_log_message("Selected encoder: %s\n", (*codec)->name);
+	siril_log_message(_("Selected encoder: %s\n"), (*codec)->name);
 
 	if ((*codec)->type != AVMEDIA_TYPE_VIDEO) {
 		siril_log_message("Codec '%s' is not a video codec\n", avcodec_get_name(codec_id));
@@ -142,28 +142,43 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 			CHECK_OPT_SET_RETVAL;
 			break;
 		case AV_CODEC_ID_H264:
-			/* The range of the CRF scale is 0–51, where 0 is lossless, 23 is the
-			 * default, and 51 is worst quality possible. A subjectively sane range
-			 * is 17–28. Consider 17 or 18 to be visually lossless or nearly so. */
-			crf = x264_quality_to_crf[ost->quality - 1];
-			siril_debug_print("x264 constant quality value: %d\n", crf);
-			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
-			CHECK_OPT_SET_RETVAL;
-			retval = av_opt_set(c->priv_data, "preset", "fast", 0);
-			CHECK_OPT_SET_RETVAL;
-			retval = av_opt_set(c->priv_data, "tune", "grain", 0);
-			CHECK_OPT_SET_RETVAL;
+			if (strstr((*codec)->name, "videotoolbox") != NULL) {
+				// VideoToolbox uses 'quality' instead 'crf'
+				// quality goes from 0 (best) to 100 (worst)
+				int vt_quality = 100 - (ost->quality * 20); // 1->80, 2->60, 3->40, 4->20, 5->0
+				siril_debug_print("VideoToolbox H264 quality value: %d\n", vt_quality);
+				retval = av_opt_set_int(c->priv_data, "quality", vt_quality, 0);
+				CHECK_OPT_SET_RETVAL;
+			} else {
+				crf = x264_quality_to_crf[ost->quality - 1];
+				siril_debug_print("x264 constant quality value: %d\n", crf);
+				retval = av_opt_set_int(c->priv_data, "crf", crf, 0);
+				CHECK_OPT_SET_RETVAL;
+				retval = av_opt_set(c->priv_data, "preset", "fast", 0);
+				CHECK_OPT_SET_RETVAL;
+				retval = av_opt_set(c->priv_data, "tune", "grain", 0);
+				CHECK_OPT_SET_RETVAL;
+			}
 			break;
+
 		case AV_CODEC_ID_H265:
-			// default is 28, it should visually correspond to libx264 video at CRF 23
-			crf = x265_quality_to_crf[ost->quality - 1];
-			siril_debug_print("x265 constant quality value: %d\n", crf);
-			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
-			CHECK_OPT_SET_RETVAL;
-			retval = av_opt_set(c->priv_data, "preset", "fast", 0);
-			CHECK_OPT_SET_RETVAL;
-			retval = av_opt_set(c->priv_data, "tune", "grain", 0);
-			CHECK_OPT_SET_RETVAL;
+			if (strstr((*codec)->name, "videotoolbox") != NULL) {
+				// VideoToolbox uses 'quality' instead 'crf'
+				// quality goes from 0 (best) to 100 (worst)
+				int vt_quality = 100 - (ost->quality * 20); // 1->80, 2->60, 3->40, 4->20, 5->0
+				siril_debug_print("VideoToolbox HEVC quality value: %d\n", vt_quality);
+				retval = av_opt_set_int(c->priv_data, "quality", vt_quality, 0);
+				CHECK_OPT_SET_RETVAL;
+			} else {
+				crf = x265_quality_to_crf[ost->quality - 1];
+				siril_debug_print("x265 constant quality value: %d\n", crf);
+				retval = av_opt_set_int(c->priv_data, "crf", crf, 0);
+				CHECK_OPT_SET_RETVAL;
+				retval = av_opt_set(c->priv_data, "preset", "fast", 0);
+				CHECK_OPT_SET_RETVAL;
+				retval = av_opt_set(c->priv_data, "tune", "grain", 0);
+				CHECK_OPT_SET_RETVAL;
+			}
 			break;
 		default:
 			break;
