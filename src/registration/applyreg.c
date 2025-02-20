@@ -984,7 +984,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	retval = regargs->retval;
 
 END:
-	free_generic_seq_args(args, args->seq->type != SEQ_INTERNAL);
+	free_generic_seq_args(args, FALSE);
 
 	return retval;
 }
