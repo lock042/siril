@@ -170,9 +170,9 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 				c->bit_rate = quality_bitrate;
 
 				c->flags |= AV_CODEC_FLAG_QSCALE;
-				c->global_quality = ost->quality * FF_QP2LAMBDA;
+//				c->global_quality = ost->quality * FF_QP2LAMBDA;
 
-				siril_debug_print("VideoToolbox settings: bitrate=%d, global_quality=%d\n", c->bit_rate, c->global_quality);
+				siril_log_message("VideoToolbox settings: bitrate=%d, global_quality=%d\n", c->bit_rate, c->global_quality);
 			} else {
 				crf = x265_quality_to_crf[ost->quality - 1];
 				siril_debug_print("x265 constant quality value: %d\n", crf);
