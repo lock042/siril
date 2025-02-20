@@ -147,8 +147,8 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 
 				c->bit_rate = 0;
 
-				// quality 1 -> high quality (low value) -> 5 * FF_QP2LAMBDA
-				// quality 5 -> low quality (high value) -> 45 * FF_QP2LAMBDA
+				// quality 1 -> high quality (low value) -> 15 * FF_QP2LAMBDA
+				// quality 5 -> low quality (high value) -> 55 * FF_QP2LAMBDA
 				c->flags |= AV_CODEC_FLAG_QSCALE;
 				c->global_quality = ((ost->quality * 10) + 5) * FF_QP2LAMBDA;
 
@@ -171,8 +171,8 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 
 				c->bit_rate = 0;
 
-				// quality 1 -> high quality (low value) -> 5 * FF_QP2LAMBDA
-				// quality 5 -> low quality (high value) -> 45 * FF_QP2LAMBDA
+				// quality 1 -> high quality (low value) -> 15 * FF_QP2LAMBDA
+				// quality 5 -> low quality (high value) -> 55 * FF_QP2LAMBDA
 				c->flags |= AV_CODEC_FLAG_QSCALE;
 				c->global_quality = ((ost->quality * 10) + 5) * FF_QP2LAMBDA;
 
