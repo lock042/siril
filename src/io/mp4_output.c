@@ -504,7 +504,6 @@ struct mp4_struct* mp4_create(const char *filename, int dst_w, int dst_h, int fp
 	case EXPORT_MP4:
 		codecid = AV_CODEC_ID_H264;
 		av_dict_set(&opt, "preset", "medium", 0);
-		av_dict_set(&opt, "crf", "23", 0);
 		break;
 	case EXPORT_MP4_H265:
 		codecid = AV_CODEC_ID_H265;
