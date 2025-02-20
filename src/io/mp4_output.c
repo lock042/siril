@@ -91,6 +91,9 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 		siril_log_message("Could not find encoder for '%s'\n", avcodec_get_name(codec_id));
 		return 1;
 	}
+
+	siril_log_message("Selected encoder: %s\n", (*codec)->name);
+
 	if ((*codec)->type != AVMEDIA_TYPE_VIDEO) {
 		siril_log_message("Codec '%s' is not a video codec\n", avcodec_get_name(codec_id));
 		return 1;
