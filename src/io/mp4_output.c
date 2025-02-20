@@ -163,12 +163,27 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 
 		case AV_CODEC_ID_H265:
 			if (strstr((*codec)->name, "videotoolbox") != NULL) {
-				// VideoToolbox uses 'quality' instead 'crf'
-				// quality goes from 0 (best) to 100 (worst)
-				int vt_quality = 100 - (ost->quality * 20); // 1->80, 2->60, 3->40, 4->20, 5->0
-				siril_debug_print("VideoToolbox HEVC quality value: %d\n", vt_quality);
-				retval = av_opt_set_int(c->priv_data, "quality", vt_quality, 0);
-				CHECK_OPT_SET_RETVAL;
+				siril_log_message("Using VideoToolbox encoder\n");
+
+				retval = av_opt_set_int(c->priv_data, "bit_rate", ost->quality * 5000000, 0);
+				if (retval == AVERROR_OPTION_NOT_FOUND) {
+					siril_log_message("bit_rate option not found\n");
+				}
+
+				retval = av_opt_set_int(c->priv_data, "q", ost->quality * 10, 0);
+				if (retval == AVERROR_OPTION_NOT_FOUND) {
+					siril_log_message("q option not found\n");
+				}
+
+				retval = av_opt_set_int(c->priv_data, "qscale", ost->quality * 10, 0);
+				if (retval == AVERROR_OPTION_NOT_FOUND) {
+					siril_log_message("qscale option not found\n");
+				}
+
+				retval = av_opt_set_int(c->priv_data, "allow_sw", 1, 0);
+				if (retval == AVERROR_OPTION_NOT_FOUND) {
+					siril_log_message("allow_sw option not found\n");
+				}
 			} else {
 				crf = x265_quality_to_crf[ost->quality - 1];
 				siril_debug_print("x265 constant quality value: %d\n", crf);
