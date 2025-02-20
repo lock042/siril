@@ -102,6 +102,7 @@ xx/xx/xx
 * Fixed crash at startup on macOS when no ~/Pictures folder is found (#1486)
 * Fixed loss of metadata when Siril uses preview (#1491)
 * Fixed handling NaNs in float statistics (#1487)
+* Fixed h264 and h265 export (!828)
 
 **Misc:**
 * Removed glib-networking as a dependency (#1157)
