@@ -165,14 +165,15 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 			if (strstr((*codec)->name, "videotoolbox") != NULL) {
 				siril_debug_print("Using VideoToolbox encoder\n");
 
-				int quality_bitrate_map[5] = {5000000, 10000000, 15000000, 20000000, 25000000};
-				int quality_bitrate = quality_bitrate_map[ost->quality - 1];
-				c->bit_rate = quality_bitrate;
+				c->bit_rate = 0;
 
+				// quality 1 -> high quality (low value) -> 5 * FF_QP2LAMBDA
+				// quality 5 -> low quality (high value) -> 45 * FF_QP2LAMBDA
 				c->flags |= AV_CODEC_FLAG_QSCALE;
-//				c->global_quality = ost->quality * FF_QP2LAMBDA;
+				c->global_quality = ((ost->quality * 10) + 5) * FF_QP2LAMBDA;
 
-				siril_log_message("VideoToolbox settings: bitrate=%d, global_quality=%d\n", c->bit_rate, c->global_quality);
+				siril_log_message("VideoToolbox settings: global_quality=%d\n", c->global_quality);
+
 			} else {
 				crf = x265_quality_to_crf[ost->quality - 1];
 				siril_debug_print("x265 constant quality value: %d\n", crf);
