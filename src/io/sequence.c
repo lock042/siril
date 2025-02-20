@@ -1989,7 +1989,10 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	} else {
 		memcpy(spsfargs->bayer_pattern, fit.keywords.bayer_pattern, FLEN_VALUE);
 	}
-	clearfits(&fit);
+	if (seq->type == SEQ_INTERNAL)
+		clearfits_header(&fit); // Mustn't free the pixeldata as we only reference it for internal sequences
+	else
+		clearfits(&fit);
 
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
@@ -2123,7 +2126,7 @@ size_t get_max_seq_dimension(sequence *seq, int *rx, int *ry) {
 }
 
 /* returns the number of images of the sequence that can fit into memory based
- * on the configured memory ratio 
+ * on the configured memory ratio
  * If the sequence is of variable size, we use the size of the largest image
 */
 int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
