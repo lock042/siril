@@ -50,6 +50,7 @@
 static double vp9_quality_to_crf[]  = { 44.0, 38.0, 32.0, 26.0, 20.0 };
 static double x264_quality_to_crf[] = { 29.0, 26.0, 23.0, 20.0, 17.0 };
 static double x265_quality_to_crf[] = { 34.0, 31.0, 28.0, 25.0, 22.0 };
+static int max_threads = 16; // Maximum recommended for x265
 
 #define CHECK_OPT_SET_RETVAL \
 	if (retval == AVERROR_OPTION_NOT_FOUND) { \
@@ -111,7 +112,6 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 
 	c->thread_count = com.max_thread;
 	if (codec_id == AV_CODEC_ID_H265) {
-		int max_threads = 16; // Maximum recommended for x265
 		if (c->thread_count > max_threads) {
 			c->thread_count = max_threads;
 		}
@@ -152,10 +152,23 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 			CHECK_OPT_SET_RETVAL;
 			break;
 		case AV_CODEC_ID_H265:
+#ifdef OS_X
+			const AVCodec *software_codec = avcodec_find_encoder_by_name("libx265");
+			if (software_codec) {
+				*codec = software_codec;
+				c->codec = software_codec;
+			}
+#endif
+
+			if (c->thread_count > max_threads) {
+				c->thread_count = max_threads;
+			}
+			av_opt_set_int(c->priv_data, "frame-threads", MIN(c->thread_count, 8), 0);
+
 			// default is 28, it should visually correspond to libx264 video at CRF 23
 			crf = x265_quality_to_crf[ost->quality - 1];
 			siril_debug_print("x265 constant quality value: %d\n", crf);
-			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
+			retval = av_opt_set_int(c->priv_data, "crf", crf, 0);
 			CHECK_OPT_SET_RETVAL;
 			retval = av_opt_set(c->priv_data, "preset", "fast", 0);
 			CHECK_OPT_SET_RETVAL;
