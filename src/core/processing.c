@@ -967,9 +967,6 @@ void remove_child_from_children(GPid pid) {
 		prev = iter;
 		iter = iter->next;
 	}
-
-	// If we get here, no matching PID was found
-	siril_debug_print("Failed to find GPid %d in com.children\n", pid);
 }
 
 // kills external calls

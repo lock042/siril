@@ -7911,7 +7911,6 @@ int process_register(int nb) {
 		siril_log_color_message(_("Scaling a sequence with -2pass has no effect, ignoring\n"), "salmon");
 	}
 
-
 	if (regargs->interpolation == OPENCV_NONE && !(regargs->type == SHIFT_TRANSFORMATION)) {
 #ifdef HAVE_CV44
 		regargs->type = SHIFT_TRANSFORMATION;
@@ -8735,7 +8734,11 @@ static gpointer stackall_worker(gpointer garg) {
 	g_dir_close(dir);
 	free(arg);
 	com.script = was_in_script;
-	siril_add_idle(end_generic, NULL);
+	if (!com.headless) {
+		siril_add_idle(end_generic, NULL);
+	} else {
+		remove_child_from_children((GPid) -2);
+	}
 	return NULL;
 }
 

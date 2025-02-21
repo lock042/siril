@@ -366,6 +366,9 @@ gpointer execute_script(gpointer p) {
 		};
 
 		retval = execute_command(wordnb);
+		remove_child_from_children(-2); // remove the processing thread child
+		// reference (speculative - not always necessary, but simplest to
+		// call it every time just in case the command ran in the thread.)
 
 		if (retval && retval != CMD_NO_WAIT) {
 			siril_log_message(_("Error in line %d ('%s'): %s.\n"), line, buffer, cmd_err_to_str(retval));
