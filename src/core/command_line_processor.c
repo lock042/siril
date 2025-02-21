@@ -366,7 +366,7 @@ gpointer execute_script(gpointer p) {
 		};
 
 		retval = execute_command(wordnb);
-		remove_child_from_children(-2); // remove the processing thread child
+		remove_child_from_children((GPid) -2); // remove the processing thread child
 		// reference (speculative - not always necessary, but simplest to
 		// call it every time just in case the command ran in the thread.)
 
