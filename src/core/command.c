@@ -8734,11 +8734,7 @@ static gpointer stackall_worker(gpointer garg) {
 	g_dir_close(dir);
 	free(arg);
 	com.script = was_in_script;
-	if (!com.headless) {
-		siril_add_idle(end_generic, NULL);
-	} else {
-		remove_child_from_children((GPid) -2);
-	}
+	siril_add_idle(end_generic, NULL);
 	return NULL;
 }
 
