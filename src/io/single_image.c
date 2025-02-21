@@ -79,7 +79,7 @@ void close_single_image() {
 static gboolean free_image_data_gui(gpointer p) {
 	disable_iso12646_conditions(TRUE, FALSE, FALSE);
 	//reset_compositing_module();
-	delete_selected_area();
+	delete_selected_area(); // this triggers a redraw
 	reset_plot(); // clear existing plot if any
 	siril_close_preview_dialogs();
 	/* It is better to close all other dialog. Indeed, some dialog are not compatible with all images */
