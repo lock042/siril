@@ -248,7 +248,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 gboolean end_open_single_image(gpointer arg) {
 	com.icc.srgb_hint = FALSE;
-	gui_function(open_single_image_from_gfit, NULL);
+	open_single_image_from_gfit(NULL);
 	return FALSE;
 }
 
@@ -305,7 +305,7 @@ int open_single_image(const char* filename) {
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
-		end_open_single_image(NULL);
+		execute_idle_and_wait_for_it(end_open_single_image, NULL);
 	} else {
 		free(realname);
 	}
