@@ -42,20 +42,20 @@ typedef struct {
 } WindowKeyHandler;
 
 const SirilTipIntro intro_tips[] = {
-		{"headerbar", N_("Welcome to the newest version of Siril, "PACKAGE_STRING". Please take a moment to read some tips about this release. If the rate is too slow, skip to the next tip using the right arrow of your keyboard."), 10, SIRIL_INTRO_GTK_POPOVER},
+		{"headerbar", N_("Welcome to the newest version of Siril, "PACKAGE_STRING". Please take a moment to read some tips about this release. If the rate is too slow, skip to the next tip using the right arrow of your keyboard. You can also go back to the previous tip using the left arrow."), 13, SIRIL_INTRO_GTK_POPOVER},
 		{"header_processing_button", N_("The Processing menu has been reorganized by theme to streamline its structure and reduce its size. Many new processing tools have been developed and integrated in this menu."), 10, SIRIL_INTRO_GTK_POPOVER},
 		{"header_tools_button", N_("A new menu, Tools, has been created to centralize Siril's tools, which were previously scattered throughout the interface. It now includes statistics, FITS header, astrometry and photometry tools, as well as image analysis features."), 12, SIRIL_INTRO_GTK_POPOVER},
 		{"header_scripts_button", N_("The Script menu has also evolved, now featuring both Python scripts and a script editor."), 7, SIRIL_INTRO_GTK_POPOVER},
-		{"python_window", N_("The new script editor can be used to write both Siril and Python scripts. It offers syntax highlighting and many other useful features. Additionally, you can execute the script directly from the editor's interface."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
+		{"python_window", N_("The new script editor can be used to write both Siril and Python scripts. It offers syntax highlighting and many other useful features. Additionally, you can execute the script directly from the editor's interface."), 11, SIRIL_INTRO_WORKAROUND_POPOVER},
 		{"hamburger-menu", N_("The hamburger menu has been streamlined and now includes quick access to the documentation, preferences, keyboard shortcuts help, and the script tab in the preferences, making it easy to add new scripts."), 11, SIRIL_INTRO_GTK_POPOVER},
-		{"scripts_page", N_("Script management has been entirely revamped. You can now download new scripts directly from the preferences interface. These scripts are hosted by the Siril team, but can also be contributed by the community."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
-		{"label28", N_("The Registration, Plot and Stacking tabs have been redesigned for improved clarity and better organization. This release adds true Drizzle registration and mosaic stacking."), 8, SIRIL_INTRO_GTK_POPOVER},
+		{"scripts_page", N_("Script management has been entirely revamped. You can now download new scripts directly from the preferences interface. These scripts are hosted by the Siril team, but can also be contributed by the community."), 11, SIRIL_INTRO_WORKAROUND_POPOVER},
+		{"label28", N_("The Registration, Plot and Stacking tabs have been redesigned for improved clarity and better organization. This release adds true Drizzle registration and mosaic stacking."), 9, SIRIL_INTRO_GTK_POPOVER},
 		{"icc_main_window_button", N_("This version of Siril includes a color management tool. A left-click on this button allows you to manage ICC profiles, while a right-click displays the image in soft proofing mode."), 10, SIRIL_INTRO_GTK_POPOVER},
-		{"annotate_button", N_("Right-clicking the annotations button now allows selection of the annotation catalogues to display, and support for IAU constellation names and outlines has been added."), 8, SIRIL_INTRO_GTK_POPOVER},
-		{"cut_button", N_("A new intensity profiling tool has been added. This allows creating mono or RGB profiles of pixel values along a line in the image, and also includes spectrographic options for producing spectrographs from images made using a diffraction grating."), 10, SIRIL_INTRO_GTK_POPOVER},
+		{"annotate_button", N_("Right-clicking the annotations button now allows selection of the annotation catalogues to display, and support for IAU constellation names and outlines has been added."), 9, SIRIL_INTRO_GTK_POPOVER},
+		{"cut_button", N_("A new intensity profiling tool has been added. This allows creating mono or RGB profiles of pixel values along a line in the image, and also includes spectrographic options for producing spectrographs from images made using a diffraction grating."), 12, SIRIL_INTRO_GTK_POPOVER},
 		{"cm_page", N_("All color management options are now centralized in the preferences. This allows for professional-level work with any mono or RGB ICC profile."), 8, SIRIL_INTRO_WORKAROUND_POPOVER},
-		{"user_page", N_("For more precise control, such as customizing annotation colors or configuring mouse interactions, visit the User Interface tab in the preferences. Don't hesitate to use your mouse scroll to view all the available options."), 12, SIRIL_INTRO_WORKAROUND_POPOVER},
-		{"drawingarear", N_("Enjoy using the new Siril. You can restart this introduction at any moment in the Miscellaneous tab of the preferences."), 8, SIRIL_INTRO_GTK_POPOVER}
+		{"user_page", N_("For more precise control, such as customizing annotation colors or configuring mouse interactions, visit the User Interface tab in the preferences. Don't hesitate to use your mouse scroll to view all the available options."), 11, SIRIL_INTRO_WORKAROUND_POPOVER},
+		{"drawingarear", N_("Enjoy using the new Siril. You can restart this introduction at any moment in the Miscellaneous tab of the preferences."), 7, SIRIL_INTRO_GTK_POPOVER}
 };
 
 static void hide_all_except(GtkWindow *keep_visible) {
