@@ -481,9 +481,9 @@ class BGSample:
     background sample data obtained from Siril, or to generate or modify
     background sample data to set in Siril.
     A BGSample can be constructed as:
-        s1 = BGSample(x=1.0, y=2.0)
-        s2 = BGSample(position=(1.0, 2.0))
-        s3 = BGSample(x=1.0, y=2.0, mean=0.5, size=31)
+    - s1 = BGSample(x=1.0, y=2.0)
+    - s2 = BGSample(position=(1.0, 2.0))
+    - s3 = BGSample(x=1.0, y=2.0, mean=0.5, size=31)
     """
     median: Tuple[float, float, float] = (0.0, 0.0, 0.0) #: Median values for R, G and B channels. For mono images only median[0] is used.
     mean: float = 0.0

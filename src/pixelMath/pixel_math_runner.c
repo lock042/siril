@@ -1054,7 +1054,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		}
 
 		if (channel == 3 && !single_rgb) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Incompatible parameters"),
+			queue_message_dialog(GTK_MESSAGE_ERROR, _("Incompatible parameters"),
 					_("3 channel images are incompatible with the \"Use single RGB/K expression\" unchecked."));
 			retval = 1;
 			goto free_expressions;
@@ -1067,7 +1067,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	struct pixel_math_data *args = calloc(1, sizeof(struct pixel_math_data));
 
 	if (parse_parameters(&expression1, &expression2, &expression3)) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"),
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"),
 				_("Parameter symbols could not be parsed."));
 		retval = 1;
 		goto free_expressions;
@@ -1104,7 +1104,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		if (nb_rows > 0) {
 			if ((width != var_fit[0].naxes[0] ||
 				height != var_fit[0].naxes[1])) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Images have different size"),
+					queue_message_dialog(GTK_MESSAGE_ERROR, _("Images have different size"),
 						_("The image currently displayed must be the same size as the other images loaded into PixelMath."));
 				retval = 1;
 				goto free_expressions;
@@ -1113,7 +1113,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	}
 
 	if (!nb_rows && !args->has_gfit) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No images loaded"), _("You must load images first."));
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("No images loaded"), _("You must load images first."));
 		retval = 1;
 		goto free_expressions;
 	}

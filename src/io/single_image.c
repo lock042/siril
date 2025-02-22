@@ -76,10 +76,10 @@ void close_single_image() {
 	free_image_data();
 }
 
-static gboolean free_image_data_idle(gpointer p) {
+static gboolean free_image_data_gui(gpointer p) {
 	disable_iso12646_conditions(TRUE, FALSE, FALSE);
 	//reset_compositing_module();
-	delete_selected_area();
+	delete_selected_area(); // this triggers a redraw
 	reset_plot(); // clear existing plot if any
 	siril_close_preview_dialogs();
 	/* It is better to close all other dialog. Indeed, some dialog are not compatible with all images */
@@ -119,21 +119,6 @@ static gboolean free_image_data_idle(gpointer p) {
 	g_signal_handlers_unblock_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(binning, on_combobinning_changed, NULL);
 	siril_debug_print("free_image_data_idle() complete\n");
-
-	return FALSE;
-}
-
-static gboolean free_image_data_gui(gpointer user_data) {
-	/* this function frees resources used in the GUI, some of these resources
-	 * need to be handled in the GTK+ main thread, so we use an idle function
-	 * to deal with them */
-	if (com.script || com.python_command) {
-		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
-	} else if (!g_main_context_is_owner(g_main_context_default())) {
-		siril_add_idle(free_image_data_idle, NULL);
-	} else {
-		free_image_data_idle(NULL);
-	}
 
 	/* free display image data */
 	for (int vport = 0; vport < MAXVPORT; vport++) {
@@ -182,6 +167,9 @@ void free_image_data() {
 		free(com.uniq);
 		com.uniq = NULL;
 	}
+	/* this function frees resources used in the GUI, some of these resources
+	 * need to be handled in the GTK+ main thread, so we use an idle function
+	 * to deal with them */
 
 	if (!com.headless) {
 		if (com.script || com.python_command) {
@@ -260,7 +248,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 gboolean end_open_single_image(gpointer arg) {
 	com.icc.srgb_hint = FALSE;
-	gui_function(open_single_image_from_gfit, NULL);
+	open_single_image_from_gfit(NULL);
 	return FALSE;
 }
 
@@ -304,7 +292,7 @@ int open_single_image(const char* filename) {
 		retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
 	}
 	if (retval) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
 						"See the log for more information."));
 		free(realname);
@@ -317,7 +305,7 @@ int open_single_image(const char* filename) {
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
-		end_open_single_image(NULL);
+		execute_idle_and_wait_for_it(end_open_single_image, NULL);
 	} else {
 		free(realname);
 	}

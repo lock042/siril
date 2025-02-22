@@ -7911,7 +7911,6 @@ int process_register(int nb) {
 		siril_log_color_message(_("Scaling a sequence with -2pass has no effect, ignoring\n"), "salmon");
 	}
 
-
 	if (regargs->interpolation == OPENCV_NONE && !(regargs->type == SHIFT_TRANSFORMATION)) {
 #ifdef HAVE_CV44
 		regargs->type = SHIFT_TRANSFORMATION;

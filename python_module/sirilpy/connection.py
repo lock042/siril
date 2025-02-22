@@ -1903,8 +1903,8 @@ class SirilInterface:
         - List of (x,y) Tuples: BGSamples are created with these positions and Siril
         will automatically compute the statistics.
         - List of BGSample objects: The complete sample data is sent to Siril.
-          By default Siril will recalculate statistics for the sample points
-          on receipt, but this can be overridden with the argument recalculate=False
+        By default Siril will recalculate statistics for the sample points
+        on receipt, but this can be overridden with the argument recalculate=False
 
         Args:
             points: List of sample points, either as (x,y) tuples or BGSample objects

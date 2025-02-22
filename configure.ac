@@ -162,9 +162,8 @@ PKG_CHECK_MODULES(GSL, [gsl < 2],
 dnl check cfitsio
 PKG_CHECK_MODULES(CFITSIO, [cfitsio])
 
-dnl Check for json-glib
-PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6])
-
+dnl Check for gtksourceview-4
+PKG_CHECK_MODULES(GTKSOURCEVIEW, [gtksourceview-4])
 
 dnl check opencv
 AC_PROG_CXX
@@ -259,7 +258,7 @@ PKG_CHECK_MODULES(LIBYYJSON, [yyjson >= 0.10.0], have_yyjson="yes", have_yyjson=
 if test "x$have_yyjson" = "xno"; then
   AC_MSG_NOTICE([libyyjson not found])
   if test "$cross_compiling" != "yes"; then
-    dnl check CMake used for librtprocess
+    dnl check CMake used for yyjson
     AC_PATH_PROG(CMAKE, cmake, no)
     if test "x$CMAKE" = xno; then
       AC_MSG_ERROR([CMAKE not found (needed to built internal yyjson)])
