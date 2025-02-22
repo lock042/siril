@@ -29,6 +29,7 @@
 
 static guint tip_index;
 static gboolean go_next;
+static gboolean go_prev;
 static GSList *key_handler_windows = NULL;
 static SirilUIIntro *current_ui = NULL;
 static guint current_timeout_id = 0;
@@ -71,9 +72,19 @@ static void hide_all_except(GtkWindow *keep_visible) {
 	g_list_free(toplevels);
 }
 
+static void on_window_destroy(GtkWidget *widget, gpointer user_data) {
+	WindowKeyHandler *handler = (WindowKeyHandler *)user_data;
+
+	if (handler) {
+		handler->window = NULL;  // invalidate window
+		handler->handler_id = 0;
+	}
+}
+
 /* Global key handler for any window */
-static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
-	if (event->keyval == GDK_KEY_Right && !go_next && current_ui && !processing_key) {
+static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event,
+		gpointer user_data) {
+	if (!processing_key && current_ui) {
 		processing_key = TRUE;  // Set lock
 
 		if (current_timeout_id > 0) {
@@ -81,12 +92,24 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
 			current_timeout_id = 0;
 		}
 
-		gtk_widget_hide(current_ui->popover);
-		gtk_style_context_remove_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
-		g_free(current_ui);
-		current_ui = NULL;
-		hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
-		go_next = TRUE;
+		if (event->keyval == GDK_KEY_Right && tip_index < G_N_ELEMENTS(intro_tips)) {
+			gtk_widget_hide(current_ui->popover);
+			gtk_style_context_remove_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
+			g_free(current_ui);
+			current_ui = NULL;
+			hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
+			go_next = TRUE;
+			go_prev = FALSE;
+		} else if (event->keyval == GDK_KEY_Left && tip_index > 1) {
+			gtk_widget_hide(current_ui->popover);
+			gtk_style_context_remove_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
+			g_free(current_ui);
+			current_ui = NULL;
+			hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
+			tip_index -= 2; // Go back two steps (one for the previous tip, one to counter the increment)
+			go_next = TRUE;
+			go_prev = TRUE;
+		}
 
 		processing_key = FALSE;  // Release lock
 	}
@@ -95,27 +118,40 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
 
 /* Function to disconnect key handlers from all windows */
 static void disconnect_key_handlers() {
-	GSList *l;
-	for (l = key_handler_windows; l != NULL; l = l->next) {
-		WindowKeyHandler *handler = l->data;
-		/* Check if the window still exists and is a valid GtkWindow */
-		if (handler->window && GTK_IS_WINDOW(handler->window) && handler->handler_id > 0) {
-			g_signal_handler_disconnect(handler->window, handler->handler_id);
+	GSList *current = key_handler_windows;
+	GSList *next;
+
+	while (current != NULL) {
+		WindowKeyHandler *handler = current->data;
+		next = current->next;
+
+		if (handler) {
+			if (handler->window && GTK_IS_WINDOW(handler->window)) {
+				g_signal_handlers_disconnect_by_func(handler->window, G_CALLBACK(on_window_destroy), handler);
+
+				if (handler->handler_id > 0) {
+					g_signal_handler_disconnect(handler->window, handler->handler_id);
+				}
+			}
+			g_free(handler);
 		}
-		g_free(handler);
+
+		key_handler_windows = g_slist_delete_link(key_handler_windows, current);
+		current = next;
 	}
-	g_slist_free(key_handler_windows);
-	key_handler_windows = NULL;
 }
 
 /* Function to add key handler to a window */
 static void add_key_handler_to_window(GtkWindow *window) {
-	if (!window)
+	if (!window || !GTK_IS_WINDOW(window))
 		return;
 
-	WindowKeyHandler *handler = g_new(WindowKeyHandler, 1);
+	WindowKeyHandler *handler = g_new0(WindowKeyHandler, 1);
 	handler->window = window;
 	handler->handler_id = g_signal_connect(window, "key-press-event", G_CALLBACK(on_key_press), NULL);
+
+	g_signal_connect(window, "destroy", G_CALLBACK(on_window_destroy), handler);
+
 	key_handler_windows = g_slist_prepend(key_handler_windows, handler);
 }
 
@@ -257,15 +293,18 @@ static gboolean intro_popover_update(gpointer user_data) {
 		current_ui->widget = lookup_widget(intro_tips[tip_index].widget);
 		ensure_widget_and_parents_visible(current_ui->widget);
 		gtk_style_context_add_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
+
 		if (intro_tips[tip_index].type == SIRIL_INTRO_GTK_POPOVER) {
 			current_ui->popover = intro_popover(current_ui->widget, _(intro_tips[tip_index].tip));
 		} else {
 			current_ui->popover = floating_window_new(current_ui->widget, _(intro_tips[tip_index].tip));
-			/* Add key handler to new floating window */
 			add_key_handler_to_window(GTK_WINDOW(current_ui->popover));
 		}
+
 		current_timeout_id = g_timeout_add(INTRO_DELAY * intro_tips[tip_index].delay, (GSourceFunc) intro_popover_close, (gpointer) current_ui);
+
 		go_next = FALSE;
+		go_prev = FALSE;
 		tip_index++;
 	}
 
@@ -284,6 +323,7 @@ static void intro_notify_update(gpointer user_data) {
 void start_intro_script() {
 	tip_index = 0;
 	go_next = TRUE;
+	go_prev = FALSE;
 	current_ui = NULL;
 	current_timeout_id = 0;
 	key_handler_windows = NULL;
