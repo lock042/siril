@@ -37,7 +37,7 @@ static gboolean processing_key = FALSE;
 
 /* Structure to keep track of windows and their key handlers */
 typedef struct {
-	GtkWindow *window;
+	GtkWidget *window;
 	gulong handler_id;
 } WindowKeyHandler;
 
@@ -82,8 +82,7 @@ static void on_window_destroy(GtkWidget *widget, gpointer user_data) {
 }
 
 /* Global key handler for any window */
-static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event,
-		gpointer user_data) {
+static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 	if (!processing_key && current_ui) {
 		processing_key = TRUE;  // Set lock
 
@@ -109,6 +108,13 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event,
 			tip_index -= 2; // Go back two steps (one for the previous tip, one to counter the increment)
 			go_next = TRUE;
 			go_prev = TRUE;
+		} else if (event->keyval == GDK_KEY_Escape) {
+			gtk_widget_hide(current_ui->popover);
+			gtk_style_context_remove_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
+			g_free(current_ui);
+			current_ui = NULL;
+			hide_all_except(GTK_WINDOW(lookup_widget("control_window")));
+			tip_index = G_N_ELEMENTS(intro_tips); // Go at the end, and close everything
 		}
 
 		processing_key = FALSE;  // Release lock
@@ -142,18 +148,19 @@ static void disconnect_key_handlers() {
 }
 
 /* Function to add key handler to a window */
-static void add_key_handler_to_window(GtkWindow *window) {
-	if (!window || !GTK_IS_WINDOW(window))
+static void add_key_handler_to_widget(GtkWidget *widget) {
+	if (!widget || !GTK_IS_WIDGET(widget))
 		return;
 
 	WindowKeyHandler *handler = g_new0(WindowKeyHandler, 1);
-	handler->window = window;
-	handler->handler_id = g_signal_connect(window, "key-press-event", G_CALLBACK(on_key_press), NULL);
+	handler->window = widget;
+	handler->handler_id = g_signal_connect(widget, "key-press-event", G_CALLBACK(on_key_press), NULL);
 
-	g_signal_connect(window, "destroy", G_CALLBACK(on_window_destroy), handler);
+	g_signal_connect(widget, "destroy", G_CALLBACK(on_window_destroy), handler);
 
 	key_handler_windows = g_slist_prepend(key_handler_windows, handler);
 }
+
 
 static void ensure_widget_and_parents_visible(GtkWidget *widget) {
 	if (!widget)
@@ -298,8 +305,8 @@ static gboolean intro_popover_update(gpointer user_data) {
 			current_ui->popover = intro_popover(current_ui->widget, _(intro_tips[tip_index].tip));
 		} else {
 			current_ui->popover = floating_window_new(current_ui->widget, _(intro_tips[tip_index].tip));
-			add_key_handler_to_window(GTK_WINDOW(current_ui->popover));
 		}
+		add_key_handler_to_widget(current_ui->popover);
 
 		current_timeout_id = g_timeout_add(INTRO_DELAY * intro_tips[tip_index].delay, (GSourceFunc) intro_popover_close, (gpointer) current_ui);
 
@@ -331,7 +338,7 @@ void start_intro_script() {
 	/* Add key handler to main window and all toplevel windows */
 	GList *toplevels = gtk_window_list_toplevels();
 	for (GList *l = toplevels; l != NULL; l = l->next) {
-		add_key_handler_to_window(GTK_WINDOW(l->data));
+		add_key_handler_to_widget(GTK_WIDGET(l->data));
 	}
 	g_list_free(toplevels);
 
