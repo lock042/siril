@@ -743,19 +743,6 @@ void free_background_sample_list(GSList *list) {
 // at once, for use with the python interface to add points defined in python
 // without incurring the cost of convert_fits_to_luminance for each one
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 GSList *add_background_samples(GSList *orig, fits *fit, GSList *pts) {
 	GSList *list;
 	int nx = fit->rx;
@@ -1003,6 +990,17 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 		siril_log_color_message(_("Error splitting into CFA subcannels, aborting...\n"), "red");
 		cfachans_cleanup(cfachans);
 		return GINT_TO_POINTER(1);
+	}
+
+	// Check subchannel medians are OK
+	for (int i = 0 ; i < 4 ; i++) {
+		size_t n = cfachans[i]->naxes[0] * cfachans[i]->naxes[1];
+		float median = (float)histogram_median_float(cfachans[i], n, MULTI_THREADED);
+		if (median <= 0.0f) {
+			siril_log_color_message(_("Subchannel with negative median detected: removing the gradient on negative images is not supported\n"), "red");
+			cfachans_cleanup(cfachans);
+			return GINT_TO_POINTER(1);
+		}
 	}
 
 	for (int i = 0; i < 4; i++) {
