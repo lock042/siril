@@ -762,7 +762,7 @@ void on_entryExportSeq_changed(GtkEditable *editable, gpointer user_data){
 	gchar *name = (gchar *)gtk_entry_get_text(GTK_ENTRY(editable));
 	if (*name != 0) {
 		if (check_if_seq_exist(name, !g_str_has_suffix(name, ".ser"))) {
-			set_icon_entry(GTK_ENTRY(editable), "gtk-dialog-warning");
+			set_icon_entry(GTK_ENTRY(editable), "dialog-warning");
 		} else {
 			set_icon_entry(GTK_ENTRY(editable), NULL);
 		}
