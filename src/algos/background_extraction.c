@@ -994,8 +994,14 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 
 	// Check subchannel medians are OK
 	for (int i = 0 ; i < 4 ; i++) {
-		size_t n = cfachans[i]->naxes[0] * cfachans[i]->naxes[1];
-		float median = (float)histogram_median_float(cfachans[i], n, MULTI_THREADED);
+		imstats* stat = statistics(NULL, -1, cfachans[i], 0, NULL, STATS_BASIC, MULTI_THREADED);
+		if (!stat) {
+			siril_log_message(_("Error: statistics computation failed.\n"));
+			return GINT_TO_POINTER(1);
+		}
+		float median = (float) stat->median;
+		free_stats(stat);
+
 		if (median <= 0.0f) {
 			siril_log_color_message(_("Subchannel with negative median detected: removing the gradient on negative images is not supported\n"), "red");
 			cfachans_cleanup(cfachans);
