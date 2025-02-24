@@ -569,7 +569,7 @@ void process_destroot(sequence_type output_type) {
 	}
 
 	if (seq_exists && !warning_is_displayed) {
-		set_icon_entry(convroot_entry, "gtk-dialog-warning");
+		set_icon_entry(convroot_entry, "dialog-warning");
 		warning_is_displayed = TRUE;
 	}
 	else if (!seq_exists && warning_is_displayed) {

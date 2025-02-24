@@ -180,7 +180,7 @@ macos:
     REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 5292b2ae671115a526bc104ef6818eab0fc0fea2
+    SM_REPO_REF: 844f90d42068e86470f88487349f17e7c5801163
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
     WRK_DIR: $CI_PROJECT_DIR
   script:
