@@ -995,7 +995,13 @@ class SirilInterface:
             my_string: The message to display in the error message box
             modal: Sets whether or not the message box should be modal and
                    wait for completion or non-modal and allow the script to
-                   continue execution.
+                   continue execution. Note that although a modal message box will
+                   block execution of the script, if a TKinter main loop is
+                   running events will continue to queue up, so if the message
+                   box is triggered by clicking a button then the user may
+                   click it while the message box is shown and trigger a second
+                   message box which will display immediately the first one is
+                   closed.
 
         Returns:
             bool: True if the error was successfully displayed, False otherwise
@@ -1013,7 +1019,13 @@ class SirilInterface:
             my_string: The message to display in the info message box
             modal: Sets whether or not the message box should be modal and
                    wait for completion or non-modal and allow the script to
-                   continue execution.
+                   continue execution. Note that although a modal message box will
+                   block execution of the script, if a TKinter main loop is
+                   running events will continue to queue up, so if the message
+                   box is triggered by clicking a button then the user may
+                   click it while the message box is shown and trigger a second
+                   message box which will display immediately the first one is
+                   closed.
 
         Returns:
             bool: True if the info was successfully displayed, False otherwise
@@ -1032,7 +1044,13 @@ class SirilInterface:
             my_string: The message to display in the warning message box
             modal: Sets whether or not the message box should be modal and
                    wait for completion or non-modal and allow the script to
-                   continue execution.
+                   continue execution. Note that although a modal message box will
+                   block execution of the script, if a TKinter main loop is
+                   running events will continue to queue up, so if the message
+                   box is triggered by clicking a button then the user may
+                   click it while the message box is shown and trigger a second
+                   message box which will display immediately the first one is
+                   closed.
 
         Returns:
             bool: True if the warning was successfully displayed, False otherwise
