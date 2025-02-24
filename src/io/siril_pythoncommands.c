@@ -985,7 +985,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Ensure null-terminated string for log message
 			char* log_msg = g_strndup(payload, payload_length);
-			if (modal) {
+			if (!modal) {
 				queue_message_dialog(type, title, log_msg);
 			} else {
 				struct message_data *data = malloc(sizeof(struct message_data));
