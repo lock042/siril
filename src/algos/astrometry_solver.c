@@ -1067,8 +1067,6 @@ gpointer plate_solver(gpointer p) {
 			siril_log_color_message(_("Solution has no distortion\n"), "salmon");
 			siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
 		}
-		g_free(args->distofilename);
-		args->distofilename = NULL;
 	}
 
 	/* 5. Flip image if needed */
@@ -1100,6 +1098,8 @@ clearup:
 		siril_catalog_free(args->ref_stars);
 		args->ref_stars = NULL;
 	}
+	g_free(args->distofilename);
+	args->distofilename = NULL;
 	g_free(args->filename);
 	args->filename = NULL;
 	if (args->verbose && com.script) {
