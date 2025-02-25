@@ -77,6 +77,7 @@ struct astrometry_data {
 	double searchradius; // radius of the cone if nearsearch in degrees
 	gboolean forced_metadata[3]; // flags using for seq, to indicate if center, pixel and focal where forced
 	gboolean force; // flag to force solving again already solved images from sequence
+	gchar *distofilename; // flag to save distortion file
 
 	/* program-processed input, by process_plate_solver_input() */
 	double scale;		// scale (resolution) in arcsec per pixel
@@ -94,8 +95,10 @@ struct astrometry_data {
 	gboolean image_flipped;	// image has been flipped
 	int seqprogress; // used to log number of solved images when processing a sequence
 	int seqskipped; // used to log number of skipped images (already solved) when processing a sequence
-	gboolean update_reg; // used to store seq regdata when processing a sequence
+	gboolean update_reg; // used to compute regdata when processing a sequence
 	int layer; // the layer which will contain the regdata
+	struct starfinder_data *sfargs;		// star finder configuration for peaker
+	struct wcsprm *WCSDATA;
 };
 
 typedef struct {
@@ -121,12 +124,15 @@ void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
 gpointer plate_solver(gpointer p);
 double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov_degrees, int Nstars);
 gboolean confirm_delete_wcs_keywords(fits *fit);
-void reframe_astrometry_data(fits *fit, Homography H);
+void reframe_wcs(struct wcsprm *wcs, Homography *H);
+void reframe_astrometry_data(fits *fit, Homography *H);
+void flip_bottom_up_astrometry_data(fits *fit);
+void update_wcsdata_from_wcs(fits *fit);
 
 void init_astrometry();
 void reset_astrometry_checks();
 void initialize_ips_dialog();
-
+void free_astrometry_data(struct astrometry_data *args);
 
 void start_sequence_astrometry(sequence *seq, struct astrometry_data *args);
 
@@ -146,6 +152,7 @@ gchar *platesolve_msg(struct astrometry_data *args);
 gboolean end_process_catsearch(gpointer p);
 void update_coords();
 gboolean end_plate_solver(gpointer p);
+gboolean end_platesolve_sequence(gpointer p);
 
 void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);
 

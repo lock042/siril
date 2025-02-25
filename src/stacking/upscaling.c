@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -38,7 +38,7 @@
 
 #define TMP_UPSCALED_PREFIX "tmp_upscaled_"
 
-void remove_tmp_drizzle_files(struct stacking_args *args) {
+void remove_tmp_upscaled_files(struct stacking_args *args) {
 	int i;
 	if (!args->upscale_at_stacking)
 		return;
@@ -124,7 +124,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		return 0;
 
 	struct generic_seq_args *args = create_default_seqargs(stackargs->seq);
-	struct upscale_args *upargs = malloc(sizeof(struct upscale_args));
+	struct upscale_args *upargs = calloc(1, sizeof(struct upscale_args));
 
 	upargs->factor = 2.;
 
@@ -138,7 +138,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->upscale_ratio = upargs->factor;
-	args->new_seq_prefix = TMP_UPSCALED_PREFIX;
+	args->new_seq_prefix = strdup(TMP_UPSCALED_PREFIX);
 	args->user = upargs;
 	args->already_in_a_thread = TRUE;
 
@@ -147,12 +147,13 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	if (nb_threads == 0) {
 		siril_log_color_message(_("Stacking will be done without up-scaling (disabling 'drizzle')\n"), "red");
 		stackargs->upscale_at_stacking = FALSE;
-		free(args);
+		free(upargs);
+		free_generic_seq_args(args, TRUE);
 		return 0;
 	}
 	args->max_parallel_images = nb_threads;
 
-	remove_tmp_drizzle_files(stackargs);
+	remove_tmp_upscaled_files(stackargs);
 
 	generic_sequence_worker(args);
 

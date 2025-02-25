@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -63,6 +63,7 @@ gpointer scnr(gpointer p) {
 	copy_backup_to_gfit();
 	struct scnr_data *args = (struct scnr_data *) p;
 	g_assert(args->fit->type == DATA_USHORT || args->fit->type == DATA_FLOAT);
+	size_t i, nbdata = args->fit->naxes[0] * args->fit->naxes[1];
 	gint nb_above_1 = 0;
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
@@ -71,146 +72,85 @@ gpointer scnr(gpointer p) {
 	// If we aren't being run from a command or ROI previewing, set undo state
 	if (!com.script && !args->previewing)
 		undo_save_state(&gfit, _("SCNR (type=%s, amount=%0.2lf, preserve=%s)"),
-			scnr_type_to_string(args->type), args->amount, args->preserve ? "true" : "false");
+				scnr_type_to_string(args->type), args->amount, args->preserve ? "true" : "false");
 
 	siril_log_color_message(_("SCNR: processing with %s algorithm%s...\n"),
 			"green", scnr_type_to_string(args->type),
 			args->preserve ? _(", preserving lightness") : "");
 
 	int error = 0;
-
-	// If the FITS is not color managed, use sRGB as the source profile
-	cmsHPROFILE profile = args->fit->icc_profile ? copyICCProfile(args->fit->icc_profile) : srgb_trc();
-	cmsHPROFILE cielab_profile = NULL;
-	cmsUInt32Number src_type, dest_type;
-	cielab_profile = cmsCreateLab4Profile(NULL);
-	src_type = TYPE_RGB_FLT_PLANAR;
-	dest_type = TYPE_Lab_FLT_PLANAR;
-	// Use the single threaded lcms2 context as the transform will be done a line at a time within the OMP outer loop
-	cmsHTRANSFORM transform = cmsCreateTransformTHR(com.icc.context_single, profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
-	cmsHTRANSFORM invtransform = cmsCreateTransformTHR(com.icc.context_single, cielab_profile, dest_type, profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
-	cmsCloseProfile(profile);
-	cmsCloseProfile(cielab_profile);
-
-	const size_t stride_size = args->fit->rx;
-	const size_t stridec = stride_size * 3;
-	const size_t stride_num = args->fit->ry;
-	const cmsUInt32Number bytesperline = (cmsUInt32Number) args->fit->rx * sizeof(float);
-	const cmsUInt32Number bytesperplane = (cmsUInt32Number) stride_size * sizeof(float);
-	int num_threads = com.max_thread;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(num_threads) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-	for (size_t stride = 0 ; stride < stride_num ; stride ++) {
-		if (error) continue;
-		size_t stride_index = stride * stride_size;
-		float *lab = malloc(stridec * sizeof(float));
-		if (!lab) {
-			PRINT_ALLOC_ERR;
-			error = 1;
-			continue;
+	for (i = 0; i < nbdata; i++) {
+		double red, green, blue;
+		switch (args->fit->type) {
+			case DATA_USHORT:
+				red = args->fit->pdata[RLAYER][i] * invnorm;
+				green = args->fit->pdata[GLAYER][i] * invnorm;
+				blue = args->fit->pdata[BLAYER][i] * invnorm;
+				break;
+			case DATA_FLOAT:
+				red = (double)args->fit->fpdata[RLAYER][i];
+				green = (double)args->fit->fpdata[GLAYER][i];
+				blue = (double)args->fit->fpdata[BLAYER][i];
+				break;
+			default: // Default needs to be included in the switch to avoid warning about omitting DATA_UNSUPPORTED
+				break;
 		}
-		float *l = malloc(stride_size * sizeof(float));
-		if (!l) {
-			PRINT_ALLOC_ERR;
-			error = 1;
-			if (lab) free (lab);
-			continue;
-		}		float* rgbfloat = malloc(stridec * sizeof(float));
-		if (!rgbfloat) {
-			PRINT_ALLOC_ERR;
-			error = 1;
-			if (lab) free (lab);
-			if (l) free (l);
-			continue;
+
+		double x, y, z, L, a, b, m;
+		if (args->preserve) {
+			linrgb_to_xyz(red, green, blue, &x, &y, &z, TRUE);
+			xyz_to_LAB(x, y, z, &L, &a, &b);
 		}
-		float* prgbfloat[3] = { rgbfloat, rgbfloat + stride_size, rgbfloat + 2 * stride_size };
-		if (args->fit->type == DATA_USHORT) {
-#ifdef _OPENMP
-#pragma omp simd collapse(2)
-#endif
-			for (uint32_t i = 0 ; i < 3 ; i++)
-				for (uint32_t j = 0 ; j < stride_size ; j++)
-					prgbfloat[i][j] = args->fit->pdata[i][j + stride_index] * invnorm;
-		} else {
-			for (uint32_t i = 0 ; i < 3 ; i++) {
-				memcpy(prgbfloat[i], args->fit->fpdata[i] + stride_index, stride_size * sizeof(float));
-			}
-		}
-		cmsDoTransformLineStride(transform, rgbfloat, lab, args->fit->rx, 1, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		memcpy(l, lab, stride_size * sizeof(float));
-		float m;
+
 		switch (args->type) {
 			case SCNR_AVERAGE_NEUTRAL:
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-				for (uint32_t i = 0 ; i < stride_size ; i++) {
-					m = 0.5f * (prgbfloat[RLAYER][i] + prgbfloat[BLAYER][i]);
-					prgbfloat[GLAYER][i] = min(prgbfloat[GLAYER][i], m);
-				}
+				m = 0.5 * (red + blue);
+				green = min(green, m);
 				break;
 			case SCNR_MAXIMUM_NEUTRAL:
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-				for (uint32_t i = 0 ; i < stride_size ; i++) {
-					m = max(prgbfloat[RLAYER][i], prgbfloat[BLAYER][i]);
-					prgbfloat[GLAYER][i] = min(prgbfloat[GLAYER][i], m);
-				}
+				m = max(red, blue);
+				green = min(green, m);
 				break;
 			case SCNR_MAXIMUM_MASK:
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-				for (uint32_t i = 0 ; i < stride_size ; i++) {
-					m = max(prgbfloat[RLAYER][i], prgbfloat[BLAYER][i]);
-					prgbfloat[GLAYER][i] = (prgbfloat[GLAYER][i] * (1.0f - args->amount) * (1.0f - m)) + (m * prgbfloat[GLAYER][i]);
-				}
+				m = max(red, blue);
+				green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
 				break;
 			case SCNR_ADDITIVE_MASK:
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-				for (uint32_t i = 0 ; i < stride_size ; i++) {
-					m = min(1.0f, prgbfloat[RLAYER][i] + prgbfloat[BLAYER][i]);
-					prgbfloat[GLAYER][i] = (prgbfloat[GLAYER][i] * (1.0f - args->amount) * (1.0f - m)) + (m * prgbfloat[GLAYER][i]);
-				}
+				m = min(1.0, red + blue);
+				green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
 		}
+
 		if (args->preserve) {
-			cmsDoTransformLineStride(transform, rgbfloat, lab, args->fit->rx, 1, bytesperline, bytesperline, bytesperplane, bytesperplane);
-			memcpy(lab, l, stride_size * sizeof(float));
-			cmsDoTransformLineStride(invtransform, lab, rgbfloat, args->fit->rx, 1, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		}
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-		for (uint32_t i = 0 ; i < stride_size ; i++) {
-			if (prgbfloat[RLAYER][i] > 1.000001f || prgbfloat[GLAYER][i] > 1.000001f || prgbfloat[BLAYER][i] > 1.000001f)
+			double tmp;
+			linrgb_to_xyz(red, green, blue, &x, &y, &z, TRUE);
+			xyz_to_LAB(x, y, z, &tmp, &a, &b);
+			LAB_to_xyz(L, a, b, &x, &y, &z);
+			xyz_to_linrgb(x, y, z, &red, &green, &blue, TRUE);
+			if (red > 1.000001 || green > 1.000001 || blue > 1.000001)
 				g_atomic_int_inc(&nb_above_1);
-			if (args->fit->type == DATA_USHORT) {
-				if (args->fit->orig_bitpix == BYTE_IMG) {
-					args->fit->pdata[RLAYER][i + stride_index] = round_to_BYTE(prgbfloat[RLAYER][i] * norm);
-					args->fit->pdata[GLAYER][i + stride_index] = round_to_BYTE(prgbfloat[GLAYER][i] * norm);
-					args->fit->pdata[BLAYER][i + stride_index] = round_to_BYTE(prgbfloat[BLAYER][i] * norm);
-				} else {
-					args->fit->pdata[RLAYER][i + stride_index] = round_to_WORD(prgbfloat[RLAYER][i] * norm);
-					args->fit->pdata[GLAYER][i + stride_index] = round_to_WORD(prgbfloat[GLAYER][i] * norm);
-					args->fit->pdata[BLAYER][i + stride_index] = round_to_WORD(prgbfloat[BLAYER][i] * norm);
-				}
-			}
-			else if (args->fit->type == DATA_FLOAT) {
-				args->fit->fpdata[RLAYER][i + stride_index] = set_float_in_interval(prgbfloat[RLAYER][i], 0.0f, 1.0f);
-				args->fit->fpdata[GLAYER][i + stride_index] = set_float_in_interval(prgbfloat[GLAYER][i], 0.0f, 1.0f);
-				args->fit->fpdata[BLAYER][i + stride_index] = set_float_in_interval(prgbfloat[BLAYER][i], 0.0f, 1.0f);
+		}
+
+		if (args->fit->type == DATA_USHORT) {
+			if (args->fit->orig_bitpix == BYTE_IMG) {
+				args->fit->pdata[RLAYER][i] = round_to_BYTE(red * norm);
+				args->fit->pdata[GLAYER][i] = round_to_BYTE(green * norm);
+				args->fit->pdata[BLAYER][i] = round_to_BYTE(blue * norm);
+			} else {
+				args->fit->pdata[RLAYER][i] = round_to_WORD(red * norm);
+				args->fit->pdata[GLAYER][i] = round_to_WORD(green * norm);
+				args->fit->pdata[BLAYER][i] = round_to_WORD(blue * norm);
 			}
 		}
-		free(lab);
-		free(l);
-		free(rgbfloat);
+		else if (args->fit->type == DATA_FLOAT) {
+			args->fit->fpdata[RLAYER][i] = set_float_in_interval(red, 0.0f, 1.0f);
+			args->fit->fpdata[GLAYER][i] = set_float_in_interval(green, 0.0f, 1.0f);
+			args->fit->fpdata[BLAYER][i] = set_float_in_interval(blue, 0.0f, 1.0f);
+		}
 	}
-	cmsDeleteTransform(transform);
-	cmsDeleteTransform(invtransform);
+
 	/* normalize in case of preserve, it can under/overshoot */
 	if (args->preserve && nb_above_1)
 		siril_log_message("%d pixels were truncated to a maximum value of 1\n", nb_above_1);
@@ -244,10 +184,13 @@ void scnr_roi_callback() {
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 	// Notify the overlay that this dialog supports ROI processing
-	copy_gfit_to_backup();
 	roi_supported(TRUE);
-	// Call this directly on dialog start to set the ROI preview visibility
-	scnr_roi_callback();
+	gtk_widget_set_visible(lookup_widget("SCNR_roi_preview"), gui.roi.active);
+	if (gui.roi.active) {
+		copy_gfit_to_backup();
+		// Call this directly on startup to set the ROI preview
+		scnr_roi_callback();
+	}
 	add_roi_callback(scnr_roi_callback);
 	// Set up the backup (this is used to go back to a fresh copy of the
 	// image after abandoning a ROI preview)
@@ -263,7 +206,8 @@ void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
 	// Notify the overlay that we are leaving a dialog that supports ROI
 	roi_supported(FALSE);
 	// Get rid of the gfit backup
-	siril_preview_hide();
+	if (is_preview_active())
+		siril_preview_hide();
 	// Remove the callback
 	remove_roi_callback(scnr_roi_callback);
 	siril_close_dialog("SCNR_dialog");
@@ -283,7 +227,7 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct scnr_data *args = malloc(sizeof(struct scnr_data));
+	struct scnr_data *args = calloc(1, sizeof(struct scnr_data));
 	// Tell the threaded function if this is a preview or for real
 	args->previewing = ((GtkWidget*) button == lookup_widget("SCNR_roi_preview"));
 	// undo_save_state(...) // We don't do this here, it has to be done
@@ -296,7 +240,8 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->amount = amount;
 	args->preserve = preserve;
 	set_cursor_waiting(TRUE);
-	start_in_new_thread(scnr, args);
+	if (!start_in_new_thread(scnr, args))
+		free(args);
 }
 
 void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {

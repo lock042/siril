@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -373,6 +373,33 @@ void rgb_to_hsv(double r, double g, double b, double *h, double *s, double *v) {
 
 	if (*h < 0.0)
 		*h += 1.0;
+}
+
+void rgb_to_hsvf(float r, float g, float b, float *h, float *s, float *v) {
+	float cmax, cmin, delta;
+
+	cmax = max(r, g);
+	cmax = max(cmax, b);
+	cmin = min(r, g);
+	cmin = min(cmin, b);
+	delta = cmax - cmin;
+	*v = cmax;
+	if (delta == 0.f) {
+		*s = 0.f;
+		*h = 0.f;
+		return;
+	}
+	*s = delta / cmax;
+
+	if (cmax == r)
+		*h = (((g - b) / delta)) / 6.f;
+	else if (cmax == g)
+		*h = (((b - r) / delta) + 2.f) / 6.f;
+	else
+		*h = (((r - g) / delta) + 4.f) / 6.f;
+
+	if (*h < 0.f)
+		*h += 1.f;
 }
 
 void hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b) {
@@ -876,6 +903,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 				}
 			}
 			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
+			args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 			save1fits16(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
 		}
@@ -1022,6 +1050,7 @@ static gpointer extract_channels_float(gpointer p) {
 				}
 			}
 			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
+			args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 			save1fits32(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
 		}
@@ -1286,7 +1315,6 @@ static int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 static int ccm_finalize_hook(struct generic_seq_args *args) {
 	struct ccm_data *c_args = (struct ccm_data*) args->user;
 	int retval = seq_finalize_hook(args);
-
 	free(c_args);
 	return retval;
 }
@@ -1303,11 +1331,15 @@ void apply_ccm_to_sequence(struct ccm_data *ccm_args) {
 	args->description = _("Color Conversion Matrices");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = ccm_args->seqEntry;
+	args->new_seq_prefix = strdup(ccm_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = ccm_args;
 
 	ccm_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(ccm_args->seqEntry);
+		free(ccm_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }

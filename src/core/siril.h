@@ -120,6 +120,13 @@ typedef GtkWidget SirilWidget;
 #endif
 
 typedef enum {
+	RESPONSE_CANCEL = 1,
+	RESPONSE_CLIP,
+	RESPONSE_RESCALE_CLIPNEG,
+	RESPONSE_RESCALE_ALL
+} OverrangeResponse;
+
+typedef enum {
 	TYPEUNDEF = (1 << 1),
 	TYPEFITS = (1 << 2),
 	TYPETIFF = (1 << 3),
@@ -188,6 +195,18 @@ typedef struct fwhm_struct psf_star;
 typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
 
+typedef struct {
+	double x, y;
+} point;
+
+typedef struct {
+	float x, y;
+} pointf;
+
+typedef struct {
+	int x, y;
+} pointi;
+
 /* global structures */
 
 typedef enum {
@@ -254,11 +273,13 @@ typedef enum {
 
 
 typedef enum {
-	SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
+	SEQ_REGULAR = 0,
+	SEQ_SER = 1,
+	SEQ_FITSEQ = 2,
 #ifdef HAVE_FFMS2
-	SEQ_AVI,
+	SEQ_AVI = 3,
 #endif
-	SEQ_INTERNAL
+	SEQ_INTERNAL = 4
 } sequence_type;
 
 typedef enum {
@@ -278,7 +299,9 @@ typedef enum {
 	EXT_NONE,
 	EXT_STARNET,
 	EXT_ASNET,
-	EXT_GRAXPERT
+	EXT_GRAXPERT,
+	EXT_PYTHON,
+	INT_PROC_THREAD
 } external_program;
 
 typedef enum {
@@ -286,6 +309,18 @@ typedef enum {
 	SCALING_HA_UP,
 	SCALING_OIII_DOWN
 } extraction_scaling;
+
+typedef enum {
+	DISTO_UNDEF, // No distortion
+	DISTO_IMAGE, // Distortion from current image
+	DISTO_FILE,  // Distortion from given file
+	DISTO_MASTER, // Distortion from master files
+	DISTO_FILES, // Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
+	DISTO_FILE_COMET // special for cometary alignement, to be detected by apply reg. Enables to
+} disto_source;
+
+// defined in src/io/pythonmodule.h
+typedef struct _Connection Connection;
 
 /* image data, exists once for each image */
 typedef struct {
@@ -305,6 +340,17 @@ typedef struct {
 	gint _nb_refs;	// reference counting for data management
 } imstats;
 
+/* this structure is used to characterize the statistics of the overalps in a sequence of images */
+typedef struct {
+	int i, j;
+	size_t Nij;
+	rectangle areai, areaj;
+	float medij, medji;
+	float madij, madji;
+	float locij, locji;
+	float scaij, scaji;
+} overlap_stats_t;
+
 typedef struct {
 	double h00, h01, h02;
 	double h10, h11, h12;
@@ -322,9 +368,15 @@ typedef struct {
 	double quality;
 	float background_lvl;
 	int number_of_stars;
-
 	Homography H;
 } regdata;
+
+// to be stored in the seq file
+typedef struct {
+	disto_source index; // disto_source enum
+	gchar *filename; // filename if DISTO_FILE
+	pointf velocity; // shift velocity if DISTO_FILE_COMET
+} disto_params;
 
 /* see explanation about sequence and single image management in io/sequence.c */
 
@@ -342,10 +394,12 @@ struct sequ {
 	imgdata *imgparam;	// a structure for each image of the sequence
 	regdata **regparam;	// *regparam[nb_layers], may be null if nb_layers is unknown
 	imstats ***stats;	// statistics of the images for each layer, may be null too
+	overlap_stats_t **ostats;	// statistics of the overlaps for each layer, may be null too
 	/* in the case of a CFA sequence, depending on the opening mode, we cannot store
 	 * and use everything that was in the seqfile, so we back them up here */
 	regdata **regparam_bkp;	// *regparam[3], null if nothing to back up
 	imstats ***stats_bkp;	// statistics of the images for 3 layers, may be null too
+	disto_params *distoparam;	// the distortion parameters used for the registration if any, one per layer
 
 	/* beg and end are used prior to imgparam allocation, hence their usefulness */
 	int beg;		// imgparam[0]->filenum
@@ -560,22 +614,19 @@ typedef struct _xpsampdata {
 	double y[XPSAMPLED_LEN];
 } xpsampled;
 
-typedef struct {
-	double x, y;
-} point;
-
-typedef struct {
-	float x, y;
-} pointf;
-
-typedef struct {
-	int x, y;
-} pointi;
-
 typedef enum {
 	CUT_MONO,
 	CUT_COLOR
 } cut_mode;
+
+typedef struct {
+	guint major_version;
+	guint minor_version;
+	guint micro_version;
+	guint patched_version;
+	gboolean beta_version;
+	gboolean rc_version;
+} version_number;
 
 typedef struct cut_struct {
 	point cut_start;			// point marking start of cut line
@@ -606,6 +657,14 @@ typedef struct cut_struct {
 	gboolean pref_as;
 	int vport;
 } cut_struct;
+
+// Used in a GSList so we can choose what to stop if multiple children are running
+typedef struct _child_info {
+	GPid childpid; // Platform-agnostic way to store the child PID
+	external_program program; // type of program, eg EXT_STARNET, EXT_ASNET etc
+	gchar *name; // argv[0], i.e. the executable name
+	GDateTime *datetime; // start time of program - distinguishes between multiple children with the same argv0
+} child_info;
 
 struct historic_struct {
 	char *filename;
@@ -808,12 +867,18 @@ struct cominf {
 
 	gboolean headless;		// pure console, no GUI
 	gboolean script;		// script being executed, always TRUE when headless is
+	gboolean python_script;	// python script being executed
+	gboolean python_command;	// python is running a Siril command
+	GThread *python_init_thread; // python initialization thread, used to monitor startup completion
 	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread
+	GThread *python_thread;	// the thread for the python interpreter
 	gboolean run_thread;		// the main thread loop condition
+	gboolean python_claims_thread;	// prevent other things acquiring the processing thread while a python script has it
 	gboolean stop_script;		// abort script execution, not just a command
 	GThread *script_thread;		// reads a script and executes its commands
 	gboolean script_thread_exited;	// boolean set by the script thread when it exits
+	GThread *update_scripts_thread;	// thread used to update the scripts repository, so the GUI can wait it
 
 	int max_images;			// max number of image threads used for parallel execution
 	int max_thread;			// max total number of threads used for parallel execution
@@ -840,17 +905,12 @@ struct cominf {
 
 	sensor_tilt *tilt;		// computed tilt information
 
-	external_program child_is_running;	// external_program id to check if there is a child process running
-
 	float* kernel;			// float* to hold kernel for new deconvolution process
 	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
 	unsigned kernelchannels;	// Holds number of channels for the kernel
 	struct common_icc icc;		// Holds common ICC color profile data
-#ifdef _WIN32
-	void* childhandle;		// For Windows, handle of a child process
-#else
-	pid_t childpid;			// For other OSes, PID of a child process
-#endif
+	version_number python_version; // Holds the python version number
+	GSList *children;		// List of children; children->data is of type child_info
 };
 
 #ifndef MAIN

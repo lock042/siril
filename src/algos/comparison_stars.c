@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -92,9 +92,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 	 * In the comments we put some metadata, like parameters that were used to select
 	 * the stars of the list. We can parse them to keep them within the light curve.
 	 */
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = CAT_COMPSTARS;
-	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+	siril_catalogue *siril_cat = siril_catalog_new(CAT_COMPSTARS);
 	if (siril_catalog_load_from_file(siril_cat, file_path)) {
 		siril_catalog_free(siril_cat);
 		return 1;
@@ -342,9 +340,8 @@ int sort_compstars(struct compstars_arg *args) {
 		qsort(sorter, nb_phot_stars, sizeof(compstar_dist), compare_items_by_dist);
 		siril_log_message(_("Stars sorted by increasing distance (in arcmin) wrt. image center\n"));
 		// preparing the output catalog
-		args->comp_stars = calloc(1, sizeof(siril_catalogue));
-		args->comp_stars->cat_index = CAT_COMPSTARS;
-		args->comp_stars->columns = siril_catalog_columns(CAT_COMPSTARS) | (1 << CAT_FIELD_MAG); // we add mag to write it in the output file (it is not a mandatory field at readout)
+		args->comp_stars = siril_catalog_new(CAT_COMPSTARS);
+		args->comp_stars->columns |= (1 << CAT_FIELD_MAG); // we add mag to write it in the output file (it is not a mandatory field at readout)
 		// allocating final sorted list to the required size
 		cat_item *result = calloc(nb_phot_stars + 1, sizeof(cat_item));
 		// write the target star

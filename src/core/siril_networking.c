@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@
 #endif
 #if defined(HAVE_LIBCURL)
 #include <curl/curl.h>
-#include <json-glib/json-glib.h>
 
 #include <string.h>
 
@@ -35,8 +34,6 @@
 #include "gui/progress_and_log.h"
 
 static gboolean online_status = TRUE;
-
-static const int DEFAULT_FETCH_RETRIES = 3;
 
 static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
@@ -83,52 +80,47 @@ static CURL* initialize_curl(const gchar *url, struct ucontent *content, HttpReq
 	return curl;
 }
 
-static char* handle_curl_response(CURL *curl, struct ucontent *content, const gchar *url, int *retries, long *code, gboolean verbose) {
+static char* handle_curl_response(CURL *curl, struct ucontent *content, const gchar *url, long *code, gboolean verbose) {
 	char *result = NULL;
-	unsigned int s;
-	int original_retries = min(1, *retries);
-	do {
-		content->data = calloc(1, 1);
-		if (content->data == NULL) {
-			PRINT_ALLOC_ERR;
-			return NULL;
-		}
-		CURLcode retval = curl_easy_perform(curl);
-		if (retval == CURLE_OK) {
-			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, code);
-			switch (*code) {
-				case 200:
-					result = content->data;
-					break;
-				default:
-					if (verbose)
-						g_fprintf(stderr, "Fetch failed with code %ld for URL %s\n", *code, url);
-					if (*retries) {
-						double progress = (original_retries - *retries) / (double)original_retries;
-						progress *= 0.4;
-						progress += 0.6;
-						s = 2 * (original_retries - *retries) + 2;
-						if (verbose) {
-							char *msg = siril_log_message(_("Error: %ld. Wait %us before retry\n"), *code, s);
-							msg[strlen(msg) - 1] = 0;  // remove '\n' at the end
-							set_progress_bar_data(msg, progress);
+	content->data = calloc(1, 1);
+	if (content->data == NULL) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	CURLcode retval = curl_easy_perform(curl);
+	if (retval == CURLE_OK) {
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, code);
+		switch (*code) {
+			case 200: // 200: OK.
+				result = content->data;
+				break;
+			// 201: only relevant to POST requests which don't use this function.
+			// 202: Accepted. Typically used with HTTP PUT, but not what we are looking for here.
+			// 203: indicates a transforming proxy has modified the message (typically used to notify of suspected malware sites). Not the result we are looking for.
+			// 204: no content. Technically success, but no data to report. May be used with HTTP DELETE
+			// 205: Indicates the browser should reset itself. Not an error, but not what we want here.
+			// 206: Partial content. Not an error, but not what we want here so we treat it as one.
+			// 207: Only relevant to WebDAV. Treat as an error here.
+			// 208: Only relevant to WebDAV in conjunction with 207. Treat as an error here.
+			default:
+			// No need to handle 3xx status codes as CURLOPT_FOLLOWLOCATION is set TRUE and these should be dealt with internally
+			// Codes >= 400 are error codes
+				if (verbose) {
+					siril_debug_print("Fetch failed with code %ld for URL %s\n", *code, url);
+					siril_log_color_message(_("Server unreachable or unresponsive (HTTP code %ld - for details see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)\n"), "red", *code);
+					if (content->data) {
+						gchar **lines = g_strsplit(content->data, "\n", 4);
+						for (int i = 0; i < 3 && lines[i] != NULL; i++) {
+							siril_log_message("%s\n", lines[i]);
 						}
-						g_usleep(s * 1E6);
-						free(content->data);
-						content->data = NULL; // Must be NULL to avoid problems in the caller
-						result = NULL;
-						(*retries)--;
-						if (!(*retries) && verbose) {
-							siril_log_color_message(_("After %ld tries, Server unreachable or unresponsive (%s).\n"), "salmon", DEFAULT_FETCH_RETRIES, url);
-						}
+						g_strfreev(lines);
 					}
-			}
-		} else {
-			siril_log_color_message(_("URL retrieval failed. libcurl error: [%ld]\n"), "red", retval);
-			*retries = 0;
+					set_progress_bar_data(_("Server unreachable or unresponsive"), 1.0);
+				}
 		}
-	} while (*retries && !result && get_thread_run());
-
+	} else {
+		siril_log_color_message(_("URL retrieval failed. libcurl error: [%ld]\n"), "red", retval);
+	}
 	return result;
 }
 
@@ -136,7 +128,6 @@ gpointer fetch_url_async(gpointer p) {
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	g_assert(args->idle_function != NULL);
 	struct ucontent content = {NULL, 0};
-	int retries = args->abort_on_fail ? 0 : DEFAULT_FETCH_RETRIES;
 	set_progress_bar_data(NULL, 0.1);
 	CURL *curl = initialize_curl(args->url, &content, HTTP_GET, NULL);
 	if (!curl) {
@@ -144,7 +135,7 @@ gpointer fetch_url_async(gpointer p) {
 		free(args);
 		return NULL;
 	}
-	char *result = handle_curl_response(curl, &content, args->url, &retries, &args->code, args->verbose);
+	char *result = handle_curl_response(curl, &content, args->url, &args->code, args->verbose);
 	curl_easy_cleanup(curl);
 	g_free(args->url);
 	args->url = NULL;
@@ -155,10 +146,9 @@ gpointer fetch_url_async(gpointer p) {
 	return NULL;
 }
 
-char* fetch_url(const gchar *url, gsize *length, int *error, gboolean abort_on_fail) {
+char* fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet) {
 	*error = 0;
 	struct ucontent content = {NULL, 0};
-	int retries = abort_on_fail ? 0 : DEFAULT_FETCH_RETRIES;
 	set_progress_bar_data(NULL, 0.1);
 	CURL *curl = initialize_curl(url, &content, HTTP_GET, NULL);
 	if (!curl) {
@@ -167,7 +157,7 @@ char* fetch_url(const gchar *url, gsize *length, int *error, gboolean abort_on_f
 		return NULL;
 	}
 	long code;
-	char *result = handle_curl_response(curl, &content, url, &retries, &code, (!abort_on_fail));
+	char *result = handle_curl_response(curl, &content, url, &code, (!quiet));
 	curl_easy_cleanup(curl);
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	*length = content.len;

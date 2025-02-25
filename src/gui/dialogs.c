@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
+#include "gui/message_dialog.h"
 #include "gui/curves.h"
 #include "algos/background_extraction.h"
 #include "filters/asinh.h"
@@ -29,6 +30,7 @@
 #include "filters/clahe.h"
 #include "filters/median.h"
 #include "filters/saturation.h"
+#include "filters/unpurple.h"
 #include "filters/wavelets.h"
 
 #include "gui/newdeconv.h"
@@ -39,6 +41,7 @@
 #include "compstars.h"
 
 static gboolean dialog_is_opened = FALSE;
+static gboolean processing_dialog_is_opened = FALSE;
 
 static const SirilDialogEntry entries[] =
 {
@@ -93,6 +96,7 @@ static const SirilDialogEntry entries[] =
 	{"starnet_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"stars_list_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"StatWindow", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"unpurple_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_unpurple_cancel},
 	{"wavelets_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_wavelets_cancel}
 };
 
@@ -137,6 +141,14 @@ void siril_open_dialog(gchar *id) {
 	SirilDialogEntry entry = get_entry_by_id(id);
 	GtkWindow *win = GTK_WINDOW(get_widget_by_id(id));
 
+	// We cannot open the dialog if a python script claims the thread, to prevent conflict over
+	// updating gfit
+	if (entry.type == IMAGE_PROCESSING_DIALOG && com.python_claims_thread) {
+		queue_error_message_dialog(_("Error"), _("Error: cannot open an image processing dialog while a Python script claims the processing thread. "
+									"Wait for the Python script to finish processing first."));
+		return;
+	}
+
 	if (entry.type != INFORMATION_DIALOG) {
 		for (int i = 0; i < G_N_ELEMENTS(entries); i++) {
 			GtkWidget *w = get_widget_by_index(i);
@@ -163,11 +175,16 @@ void siril_open_dialog(gchar *id) {
 	gtk_window_set_transient_for(win, GTK_WINDOW(lookup_widget("control_window")));
 	gtk_window_present_with_time(win, GDK_CURRENT_TIME);
 	dialog_is_opened = TRUE;
+	if (entry.type == IMAGE_PROCESSING_DIALOG)
+		processing_dialog_is_opened = TRUE;
 }
 
 void siril_close_dialog(gchar *id) {
 	gtk_widget_hide(get_widget_by_id(id));
 	dialog_is_opened = FALSE;
+	SirilDialogEntry entry = get_entry_by_id(id);
+	if (entry.type == IMAGE_PROCESSING_DIALOG)
+		processing_dialog_is_opened = FALSE;
 }
 
 void siril_close_preview_dialogs() {
@@ -190,7 +207,29 @@ gboolean is_a_dialog_opened() {
 	return dialog_is_opened;
 }
 
+gboolean is_an_image_processing_dialog_opened() {
+	return processing_dialog_is_opened;
+}
+
 /************ file chooser ************/
+
+void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
+		const gchar *pattern, gboolean set_default) {
+	gchar **patterns;
+	gint i;
+
+	GtkFileFilter *f = gtk_file_filter_new();
+	gtk_file_filter_set_name(f, title);
+	/* get the patterns */
+	patterns = g_strsplit(pattern, ";", -1);
+	for (i = 0; patterns[i] != NULL; i++)
+		gtk_file_filter_add_pattern(f, patterns[i]);
+	/* free the patterns */
+	g_strfreev(patterns);
+	gtk_file_chooser_add_filter(file_chooser, f);
+	if (set_default)
+		gtk_file_chooser_set_filter(file_chooser, f);
+}
 
 SirilWidget *siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action) {
 	gchar *title;

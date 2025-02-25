@@ -24,6 +24,7 @@
 #include "image.hpp"
 #include "vec2.hpp"
 #include "optimization.hpp"
+#include "deconvolution.h"
 #include "fft.hpp"
 #include "utils.hpp"
 #include "core/siril.h"
@@ -34,7 +35,7 @@
 namespace deconvolve {
     template <typename T>
     void wiener_deconvolve(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T sigma) {
-
+        double sliceprogress = (double) f.slices_complete / f.total_slices;
         // sigma is the noise modelling parameter. This assumes the noise is Gaussian i.e. its power spectrum is
         // constant. To extend this to other noise models, if needed, replace T sigma by const
         // img_t<std::complex<T>> sigma where the img_t contains the 2D noise power spectrum.
@@ -56,28 +57,29 @@ namespace deconvolve {
         // Generate |H^2| = H * complex conjugate of H
         denom.map((img::conj(H) * H) + sigma);
         denom.sanitize(); // Avoid NaNs and zeros in the denominator
-        set_progress_bar_data(_("Wiener deconvolution..."), 0.33);
+        set_progress_bar_data(_("Wiener deconvolution..."), std::min(1.0, (sliceprogress + 0.33 / f.total_slices)));
+        // The std::min() call is used because on completion rounding errors can take the value marginally above 1.0 and cause an assert fail in set_progress_bar_data()
+        // Similarly for other calls to this function
 
         // Take the FFT of the image f, call this G
         G.map(f);
         G.fft(G);
-        set_progress_bar_data(_("Wiener deconvolution..."), 0.66);
+        set_progress_bar_data(_("Wiener deconvolution..."), std::min(1.0, (sliceprogress + 0.67 / f.total_slices)));
 
         // Apply the Wiener filter
         G.map((G * img::conj(H)) / denom);
         G.ifft(G);
-        set_progress_bar_data(_("Wiener deconvolution..."), 1.0);
+        set_progress_bar_data(_("Wiener deconvolution..."), std::min(1.0, (sliceprogress + 1.0 / f.total_slices)));
 
         x.map(img::real(G));
     }
 
-        template <typename T>
-    void rl_deconvolve_fft(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion, int regtype, float stepsize, int stopcriterion_active) {
+    template <typename T>
+    void rl_deconvolve_fft(img_t<T>& x, const img_t<T>& f, img_t<T>& K, T lambda, int maxiter, T stopcriterion, regtype_t regtype, float stepsize, int stopcriterion_active) {
         assert(K.w % 2);
         assert(K.h % 2);
+        double sliceprogress = (double) f.slices_complete / f.total_slices;
         x = f;
-        optimization::operators::gradient<T> gradient(f);
-        img_t<T> w(f.w, f.h, f.d);
 
         // Generate OTF of kernel
         img_t<std::complex<T>> K_otf(f.w, f.h, f.d);
@@ -88,51 +90,42 @@ namespace deconvolve {
         // Flip K and generate OTF
         img_t<std::complex<T>> Kflip_otf(f.w, f.h, f.d);
         {
-            img_t<T> Kf(K.w, K.h, K.d);
-            Kf.flip(K);
-            Kflip_otf.padcirc(Kf);
-            Kflip_otf.map(Kflip_otf * std::complex<T>(Kf.d) / Kf.sum());
+            K.flip();
+            Kflip_otf.padcirc(K);
+            Kflip_otf.map(Kflip_otf * std::complex<T>(K.d) / K.sum());
             Kflip_otf.fft(Kflip_otf);
         }
         img_t<std::complex<T>> est(f.w, f.h, f.d);
         est.map(f);
-        img_t<std::complex<T>> ratio(f.w, f.h, f.d);
-        ratio.map(est);
         float reallambda = 1.f / lambda; // For consistency with other algorithms
-        img_t<T> gxx(f.w, f.h, f.d);
-        img_t<T> gxy(f.w, f.h, f.d);
-        img_t<T> gyy(f.w, f.h, f.d);
         for (int iter = 0 ; iter < maxiter ; iter++) {
             if (!get_thread_run())
                 continue;
+            img_t<T> w(f.w, f.h, f.d);
             w.map(img::real(est));
             if (regtype == 0 || regtype == 3) {
-                // Calculate TV regularization weighting
-                gxx.gradientx(w); // Use gxx, the name isn't quite appropriate but it
-                                 // saves having to make img_ts within the loop
-                gxx.sanitize(); // Avoid div/0
-                gyy.gradienty(w);
-                gyy.sanitize(); // Avoid div/0
-                w.map(img::hypot(gxx, gyy)); // |grad(w)|
-                gxx.map(gxx / w); // Together these 2 lines make gx, gy hold the
-                gyy.map(gyy / w); // components of grad(est)
-                w.divergence(gxx, gyy); // w now holds div(grad(est) / |grad(est)|)
+                // Calculate TV weighting
+                auto dx = to_img(gradientx(w));
+                auto dy = to_img(gradienty(w));
+                auto eps = std::numeric_limits<T>::epsilon();
+                auto mag = img::hypot(dx, dy) + eps;
+                w.map(divergence((dx / mag), (dy / mag))); // w now holds div(grad(est) / |grad(est)|)
             } else if (regtype == 1 || regtype == 4) {
                 // Calculate Frobenius-Hessian weighting
-                gxx.gradientxx(w);
-                gxx.sanitize(); // Avoid div/0
-                auto gxxsq = gxx * gxx;
-                gxy.gradientxy(w);
-                gxy.sanitize();
-                auto twogxysq = T(2) * (gxy * gxy);
-                gyy.gradientyy(w);
-                gyy.sanitize();
-                auto gyysq = gyy * gyy;
-                auto gsum = gxxsq + (twogxysq + gyysq);
-                w.map(img::pow(gsum, T(0.5)));
+                auto gxx = gradientxx(w);
+                auto gxy = gradientxy(w);
+                auto gyy = gradientyy(w);
+                auto xxsq = img::pow(gxx, T(2)); // Avoid div/0
+                auto yysq = img::pow(gyy, T(2));
+                auto sumsq = to_img(xxsq + yysq); // We have to evaluate here or the compiler can't cope
+                                                  // with the complex unevaluated img_expr_t
+                auto sumgrads = img::fma(T(2), img::pow(gxy, T(2)), sumsq);
+                auto weight = img::sqrt(sumgrads);
+                w.map(weight);
+                w.sanitize();
             }
-
             // Richardson-Lucy iteration
+            img_t<std::complex<T>> ratio(f.w, f.h, f.d);
             ratio.fft(est);
             ratio.map(ratio * K_otf); // convolve
             ratio.ifft(ratio); // denominator
@@ -141,34 +134,38 @@ namespace deconvolve {
             ratio.fft(ratio);
             ratio.map(ratio * Kflip_otf); // correlate (convolve with flip)
             ratio.ifft(ratio);
-            gxy.map(img::real(est)); // From here on, gxy is used for the stopping criterion
+            img_t<T> stopcrit;
+            if(stopcriterion_active == 1) {
+                stopcrit.resize(f.w, f.h, f.d);
+                stopcrit = to_img(img::real(est));
+            }
             T dt = T(stepsize);
             switch (regtype) {
-                case 5: // 5 and 4 are multiplicative RL with FH and TV reg
+                case REG_NONE_MULT:
                     est.map(ratio * est); // Basic multiplicative R-L: multiply old estimate by ratio and regularization factor to get new estimate
                     dt = T(1.);
                     break;
-                case 4:
-                case 3:
+                case REG_FH_MULT:
+                case REG_TV_MULT:
                     est.map(ratio * est * (T(1) / (T(1) - reallambda * w))); // Multiply old estimate by ratio and regularization factor to get new estimate
                     dt = T(1.);
                     break;
-                case 2:
+                case REG_NONE_GRAD:
                     est.map(est + dt * (T(-1) + ratio)); // Basic additive gradient-descent form, no regularization
                     break;
-                case 1: // FH, additive gradient descent
-                case 0:
-                    est.map(est + dt * (T(-1) + (reallambda * w) + ratio)); // TV, additive gradient-descent form
+                case REG_FH_GRAD:
+                case REG_TV_GRAD:
+                    est.map(est + dt * (T(-1) + (reallambda * w) + ratio));
                     break;
                 default:
                     break;
             }
             if (sequence_is_running == 0)
-                set_progress_bar_data(_("Richardson-Lucy deconvolution..."), (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+                set_progress_bar_data(_("Richardson-Lucy deconvolution..."), std::min(1.0, sliceprogress + ((static_cast<float>(iter + 1) / static_cast<float>(maxiter))/f.total_slices)));
             if (stopcriterion_active == 1) {
                 // Stopping criterion?
-                gxy.map((img::abs(img::real(est) - gxy)) / img::abs(gxy));
-                T stopping = gxy.sum() / gxy.size;
+                auto stopmeasure = (img::abs(img::real(est) - stopcrit) / img::abs(stopcrit));
+                T stopping = (to_img(stopmeasure)).sum() / stopmeasure.size;
                 if (stopping < stopcriterion) {
                     char msg[100];
                     sprintf(msg, "%s %d\n", _("Richardson-Lucy halted early by the stopping criterion after iteration"), iter+1);
@@ -181,9 +178,10 @@ namespace deconvolve {
     }
 
     template <typename T>
-    void rl_deconvolve_naive(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion, int regtype, float stepsize, int stopcriterion_active) {
+    void rl_deconvolve_naive(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion, regtype_t regtype, float stepsize, int stopcriterion_active) {
         assert(K.w % 2);
         assert(K.h % 2);
+        double sliceprogress = (double) f.slices_complete / f.total_slices;
         x = f;
         img_t<T> w(f.w, f.h, f.d);
         float reallambda = 1.f / lambda; // For consistency with other algorithms
@@ -230,25 +228,25 @@ namespace deconvolve {
             ratio.conv2(ratio, Kf); // convolve by flipped kernel
             T dt = T(stepsize);
             switch (regtype) {
-                case 5: // 5 and 4 are multiplicative RL with FH and TV reg
+                case REG_NONE_MULT: // 5 and 4 are multiplicative RL with FH and TV reg
                     x.map(ratio * x); // Basic multiplicative R-L: multiply old estimate by ratio and regularization factor to get new estimate
                     break;
-                case 4:
-                case 3:
+                case REG_FH_MULT:
+                case REG_TV_MULT:
                     x.map(ratio * x * (T(1) / (T(1) - reallambda * w))); // Multiply old estimate by ratio and regularization factor to get new estimate
                     break;
-                case 2:
+                case REG_NONE_GRAD:
                     x.map(x + dt * (T(-1) + ratio)); // Basic additive gradient-descent form, no regularization
                     break;
-                case 1: // FH, additive gradient descent
-                case 0:
+                case REG_FH_GRAD: // FH, additive gradient descent
+                case REG_TV_GRAD:
                     x.map(x + dt * (T(-1) + (reallambda * w) + ratio)); // TV, additive gradient-descent form
                     break;
                 default:
                     break;
             }
             if (sequence_is_running == 0)
-                set_progress_bar_data(_("Richardson-Lucy deconvolution..."), (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+                set_progress_bar_data(_("Richardson-Lucy deconvolution..."), std::min(1.0, sliceprogress + ((static_cast<float>(iter + 1) / static_cast<float>(maxiter))/f.total_slices)));
             if (stopcriterion_active == 1) {
                 gxy.map((img::abs(x - gxy)) / img::abs(gxy));
                 T stopping = gxy.sum() / gxy.size;
@@ -267,6 +265,7 @@ namespace deconvolve {
                             T lambda, T b_0, T b_factor, T max_beta, const int iters) {
         assert(K.w % 2);
         assert(K.h % 2);
+        double sliceprogress = (double) f.slices_complete / f.total_slices;
         optimization::operators::gradient<T> gradient(f);
         using gradtype = typename decltype(gradient)::out_type;
         img_t<gradtype> w(f.w, f.h, f.d);
@@ -316,8 +315,7 @@ namespace deconvolve {
         img_t<T> ksq(f.w, f.h, f.d);
         ksq.map(img::pow(img::abs(K_otf), T(2)));
 
-        img_t<T> dxdysq(f.w, f.h, f.d);
-        dxdysq.map(img::pow(img::abs(dx_otf), T(2)) + img::pow(img::abs(dy_otf), T(2)));
+        auto dxdysq = (img::pow(img::abs(dx_otf), T(2)) + img::pow(img::abs(dy_otf), T(2)));
 
         T beta = b_0;
         x = f;
@@ -326,8 +324,6 @@ namespace deconvolve {
         while (beta < max_beta) {
             if (!get_thread_run())
                 break;
-            if (sequence_is_running == 0)
-                set_progress_bar_data("Split Bregman deconvolution...", ((beta - b_0) / (max_beta - b_0)));
             T gamma = beta / lambda;
             auto denom = ksq + gamma * dxdysq;
 
@@ -345,7 +341,8 @@ namespace deconvolve {
                 x.map(img::real(x_ft));
             }
             beta *= b_factor;
+            if (sequence_is_running == 0)
+                set_progress_bar_data("Split Bregman deconvolution...", std::min(1.0, sliceprogress + ((beta - b_0) / (max_beta - b_0))/f.total_slices));
         }
     }
-
 }

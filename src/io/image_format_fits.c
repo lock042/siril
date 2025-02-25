@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -43,6 +43,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/siril_preview.h"
 #include "algos/statistics.h"
+#include "algos/demosaicing.h"
 #include "algos/astrometry_solver.h"
 #include "algos/spcc.h"
 #include "algos/siril_wcs.h"
@@ -50,6 +51,8 @@
 #include "io/fits_keywords.h"
 #include "io/single_image.h"
 #include "image_format_fits.h"
+
+#define RECIPSQRT2 0.70710678f // 1/sqrt(2) as float
 
 const char *fit_extension[] = {
 		".fit",
@@ -525,7 +528,7 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 	}
 }
 
-static void convert_floats(int bitpix, float *data, size_t nbdata) {
+static void convert_floats(int bitpix, float *data, size_t nbdata, gboolean verbose) {
 	size_t i;
 	switch (bitpix) {
 		case BYTE_IMG:
@@ -533,9 +536,10 @@ static void convert_floats(int bitpix, float *data, size_t nbdata) {
 				data[i] = data[i] * INV_UCHAR_MAX_SINGLE;
 			break;
 		case FLOAT_IMG:
-			siril_log_message(_("Normalizing input data to our float range [0, 1]\n")); // @suppress("No break at end of case")
-			// Fallthrough is deliberate, this handles FITS with floating point data
-			// where MAX is 65565 (e.g. JWST)
+			if (verbose)
+				siril_log_message(_("Normalizing input data to our float range [0, 1]\n")); // @suppress("No break at end of case")
+				// Fallthrough is deliberate, this handles FITS with floating point data
+				// where MAX is 65565 (e.g. JWST)
 		default:
 		case USHORT_IMG:	// siril 0.9 native
 			for (i = 0; i < nbdata; i++)
@@ -721,7 +725,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				// needed for some FLOAT_IMG. 10.0 is probably a good number to represent the limit at which we judge that these are not clip-on pixels.
 				|| fit->bitpix == BYTE_IMG) || fit->keywords.data_max > 10.0) {
-			convert_floats(fit->bitpix, fit->fdata, nbdata);
+			convert_floats(fit->bitpix, fit->fdata, nbdata, TRUE);
 		}
 		fit->bitpix = FLOAT_IMG;
 		fit->orig_bitpix = FLOAT_IMG; // force this, to avoid problems saving the FITS if needed
@@ -802,8 +806,15 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			if (status) break;
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
+			if (status2 == KEY_NO_EXIST && nbdata > 3) {
+				data_max = 0.;
+				for (size_t i = 0; i < nbdata; i += nbdata / 3) { // we check the 3 pixels in diagonal and hope for the best not all will be null...
+					data_max = max(data_max, ((float *)dest)[i]);
+				}
+				status2 = 0;
+			}
 			if (status2 == 0 && data_max > 10.0) { // needed for some FLOAT_IMG
-				convert_floats(bitpix, dest, nbdata);
+				convert_floats(bitpix, dest, nbdata, FALSE);
 			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
@@ -815,6 +826,18 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 }
 
 int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *status) {
+	*status = 0;
+	gchar *dirname = g_path_get_dirname(filename);
+	GDir *dir = g_dir_open(dirname, 0, NULL);
+	if (!dir && g_mkdir_with_parents(dirname, 0755) < 0) {
+		siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+		*status = 1;
+		g_free(dirname);
+		return *status;
+	}
+	if (dir)
+		g_dir_close(dir);
+	g_free(dirname);
 	fits_create_diskfile(fptr, filename, status);
 	return *status;
 }
@@ -1054,7 +1077,7 @@ int read_icc_profile_from_fits(fits *fit) {
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
 	int ihdu, nhdus, hdutype, orig_hdu = 1;
 	fits_get_hdu_num(fit->fptr, &orig_hdu);
-	siril_debug_print("Original HDU before looking for ICC profile: %d\n", orig_hdu);
+	// siril_debug_print("Original HDU before looking for ICC profile: %d\n", orig_hdu);
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	fit->icc_profile = NULL;
@@ -1467,6 +1490,118 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	return 0;
 }
 
+/* Read a rectangular section of a FITS image in Siril's format, pointed by its
+ * exact filename. All layers are read
+ * Returned fit->data is upside-down. */
+int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle *area) {
+	int status;
+	size_t nbdata = 0;
+	int nblayer = 1;
+
+	status = 0;
+	if (siril_fits_open_diskfile_img(&(fit->fptr), filename, READONLY, &status)) {
+		report_fits_error(status);
+		return status;
+	}
+
+	status = 0;
+	fits_get_img_param(fit->fptr, 3, &(fit->bitpix), &(fit->naxis), fit->naxes,	&status);
+	if (status) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		return status;
+	}
+
+	if (fit->naxis == 2 && fit->naxes[2] == 0)
+		fit->naxes[2] = 1;	// see readfits for the explanation
+
+	if (fit->naxis == 3 && fit->naxes[2] != 3) {
+		siril_log_message(_("Unsupported FITS image format (%ld axes).\n"),
+				fit->naxes[2]);
+		status = 0;
+		fits_close_file(fit->fptr, &status);
+		return -1;
+	}
+
+	nbdata = area->w * area->h;
+	nblayer = fit->naxes[2];
+	fit->type = get_data_type(fit->bitpix);
+	if (fit->type == DATA_UNSUPPORTED) {
+		siril_log_message(_("Unknown FITS data format in internal conversion\n"));
+		fits_close_file(fit->fptr, &status);
+		return -1;
+	}
+
+	if (fit->type == DATA_USHORT) {
+		/* realloc fit->data to the image size */
+		WORD *olddata = fit->data;
+		if ((fit->data = realloc(fit->data, nblayer * nbdata * sizeof(WORD))) == NULL) {
+			PRINT_ALLOC_ERR;
+			status = 0;
+			fits_close_file(fit->fptr, &status);
+			if (olddata)
+				free(olddata);
+			return -1;
+		}
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = fit->data + nbdata;
+		fit->pdata[BLAYER] = fit->data + nbdata * 2;
+
+		for (int layer = 0; layer < nblayer; layer++) {
+			status = internal_read_partial_fits(fit->fptr, fit->naxes[1],
+					fit->bitpix, fit->pdata[layer], layer, area);
+			if (status) {
+				report_fits_error(status);
+				status = 0;
+				fits_close_file(fit->fptr, &status);
+				if (olddata)
+					free(olddata);
+				return status;
+			}
+		}
+	} else {
+		/* realloc fit->fdata to the image size */
+		float *olddata = fit->fdata;
+		if ((fit->fdata = realloc(fit->fdata, nblayer * nbdata * sizeof(float))) == NULL) {
+			PRINT_ALLOC_ERR;
+			status = 0;
+			fits_close_file(fit->fptr, &status);
+			if (olddata)
+				free(olddata);
+			return -1;
+		}
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = fit->fdata + nbdata;
+		fit->fpdata[BLAYER] = fit->fdata + nbdata * 2;
+
+		for (int layer = 0; layer < nblayer; layer++) {
+			status = internal_read_partial_fits(fit->fptr, fit->naxes[1],
+				fit->bitpix, fit->fpdata[layer], layer, area);
+			if (status) {
+				report_fits_error(status);
+				status = 0;
+				fits_close_file(fit->fptr, &status);
+				if (olddata)
+					free(olddata);
+				return status;
+			}
+		}
+	}
+
+	fit->naxes[0] = area->w;
+	fit->naxes[1] = area->h;
+	fit->rx = fit->naxes[0];
+	fit->ry = fit->naxes[1];
+	fit->naxes[2] = nblayer;
+	fit->naxis = 3;
+
+	status = 0;
+	fits_close_file(fit->fptr, &status);
+	siril_debug_print("Loaded partial FITS file %s\n", filename);
+	return 0;
+}
+
 int read_fits_metadata(fits *fit) {
 	int status = 0;
 	fit->naxes[2] = 1;
@@ -1585,7 +1720,8 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 	if (area->x < 0 || area->y < 0 || area->x >= rx || area->y >= ry
 			|| area->w <= 0 || area->h <= 0 || area->x + area->w > rx
 			|| area->y + area->h > ry) {
-		fprintf(stderr, "partial read from FITS file has been requested outside image bounds or with invalid size\n");
+		fprintf(stderr, "partial read from FITS file has been requested outside image bounds or with invalid size (%d: %d %d %d %d)\n", index + 1,
+					area->x, area->y, area->w, area->h);
 		return 1;
 	}
 
@@ -2906,6 +3042,8 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 	double expend = f[0]->keywords.expend;
 	int image_count = 1;
 	double exposure = f[0]->keywords.exposure;
+	result->keywords.stackcnt = f[0]->keywords.stackcnt != DEFAULT_UINT_VALUE ? max(1, f[0]->keywords.stackcnt) : 1;
+	result->keywords.livetime = f[0]->keywords.livetime > 0 ? f[0]->keywords.livetime : exposure;
 
 	fits *current;
 	while ((current = f[image_count])) {
@@ -2937,8 +3075,8 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 
 		if (do_sum) {
 			// add the exposure times and number of stacked images
-			result->keywords.stackcnt += current->keywords.stackcnt;
-			result->keywords.livetime += current->keywords.livetime;
+			result->keywords.stackcnt += current->keywords.stackcnt != DEFAULT_UINT_VALUE ? max(1, current->keywords.stackcnt) : 1;
+			result->keywords.livetime += current->keywords.livetime > 0 ? current->keywords.livetime : current->keywords.exposure;
 
 			/* to add if one day we keep FITS comments: discrepancies in
 			 * various fields like exposure, instrument, observer,
@@ -2988,10 +3126,10 @@ void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1, ...) 
  *
  * **************************************************************/
 
-int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
+int get_xpsampled(double *xps, const gchar *filename, int i) {
 	// The dataset wavelength range is always the same for all xpsampled spectra
 	// The spacing is always 2nm iaw the dataset
-	int status = 0, num_hdus = 0, anynul = 0, wlcol = 0, fluxcol = 0;
+	int status = 0, num_hdus = 0, anynul = 0, fluxcol = 0;
 	long nrows;
 	// We open a separate fptr so that multiple threads can operate on the file
 	// simultaneously, reading data from different HDUs corresponding to different sources.
@@ -3000,39 +3138,59 @@ int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 	// HDU 1 is the Primary HDU but is a dummy in xp_sampled FITS
 	// so the first useful HDU (corresponding to the source at
 	// position 0 in the catalog) is HDU 2.
-	int hdu = i + 2;
+	const int hdu = 2;
 	fits_get_num_hdus(fptr, &num_hdus, &status);
-	if (hdu < 2 || hdu > num_hdus) {
+	if (hdu > num_hdus) {
 		siril_debug_print("HDU out of range: hdu = %d, num_hdus = %d\n", hdu, num_hdus);
 		goto error;
 	}
+	// Go to the HDU containing the datalink product
 	if (fits_movabs_hdu(fptr, hdu, NULL, &status)) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
+	// Get the number of rows and check we are asking for a valid entry
 	fits_get_num_rows(fptr, &nrows, &status);
-	if (fits_get_colnum(fptr, CASEINSEN, "wavelength", &wlcol, &status)) {
-		fits_report_error(stderr, status);
+	if (nrows < i) {
+		siril_debug_print("Too few rows in datalink product FITS\n");
 		goto error;
 	}
+	// Get the column number containing flux
 	if (fits_get_colnum(fptr, CASEINSEN, "flux", &fluxcol, &status)) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
-	if (fits_read_col(fptr, TDOUBLE, fluxcol, 1, 1, 343, NULL, xps->y, &anynul, &status)) {
+
+	// Read the repeat and width of the column (to ensure it's a variable-length array)
+	long repeat, width;
+	if (fits_get_eqcoltype(fptr, fluxcol, NULL, &repeat, &width, &status)) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
 
-	// Convert from flux in W m^-2 nm^-1 to relative photon count normalised at 550nm
-	// for consistency with how we handle white references and camera photon counting
-	// behaviour.
-	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
-		xps->y[j] *= xps->x[j];
+	// Read the variable-length array pointer and its size
+	long array_length;
+	long offset;
+	if (fits_read_descript(fptr, fluxcol, i, &array_length, &offset, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
 	}
-	double norm = xps->y[82];
-	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
-		xps->y[j] /= norm;
+	if (array_length != 343) {
+		siril_debug_print("Invalid array length %ld (should be 343)\n", array_length);
+		goto error;
+	}
+
+	// Temporary memory for the data (we have to do this as the data is float but we need it as double)
+	float data[343];
+
+	// Read the actual array data from the heap
+	if (fits_read_col(fptr, TFLOAT, fluxcol, i+1, 1, array_length, NULL, data, &anynul, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
+	}
+	// Transfer the data from our temp float buffer to the xps double buffer
+	for (int j = 0 ; j < array_length ; j++) {
+		xps[j] = data[j];
 	}
 
 	if (fits_close_file(fptr, &status))
@@ -3056,11 +3214,72 @@ gboolean keyword_is_protected(char *card) {
 	char keyname[9];
 	strncpy(keyname, card, 8);
 	keyname[8] = '\0';
-	if ((g_strcmp0(keyname, "PROGRAM ") == 0)
-			|| (g_strcmp0(keyname, "DATE    ") == 0)) {
+	if (g_strcmp0(keyname, "DATE    ") == 0) {
 		return TRUE;
 	}
 	return (fits_get_keyclass(card) == TYP_STRUC_KEY || fits_get_keyclass(card) == TYP_CMPRS_KEY || fits_get_keyclass(card) == TYP_SCAL_KEY);
+}
+
+static int ffs2c(const char *instr, /* I - null terminated input string  */
+char *outstr, /* O - null terminated quoted output string */
+const int *status) /* IO - error status */
+/*
+ convert an input string to a quoted string. Leading spaces
+ are significant.  FITS string keyword values must be at least
+ 8 chars long so pad out string with spaces if necessary.
+ Example:   km/s ==> 'km/s    '
+ Single quote characters in the input string will be replace by
+ two single quote characters. e.g., o'brian ==> 'o''brian'
+ */
+{
+	size_t len, ii, jj;
+
+	if (*status > 0) /* inherit input status value if > 0 */
+		return (*status);
+
+	if (!instr) /* a null input pointer?? */
+	{
+		strcpy(outstr, "''"); /* a null FITS string */
+		return (*status);
+	}
+
+	outstr[0] = '\''; /* start output string with a quote */
+
+	len = strlen(instr);
+	if (len > 68)
+		len = 68; /* limit input string to 68 chars */
+
+	for (ii = 0, jj = 1; ii < len && jj < 69; ii++, jj++) {
+		outstr[jj] = instr[ii]; /* copy each char from input to output */
+		if (instr[ii] == '\'') {
+			jj++;
+			outstr[jj] = '\''; /* duplicate any apostrophies in the input */
+		}
+	}
+
+	for (; jj < 9; jj++) /* pad string so it is at least 8 chars long */
+		outstr[jj] = ' ';
+
+	if (jj == 70) /* only occurs if the last char of string was a quote */
+		outstr[69] = '\0';
+	else {
+		outstr[jj] = '\''; /* append closing quote character */
+		outstr[jj + 1] = '\0'; /* terminate the string */
+	}
+
+	return (*status);
+}
+
+void process_keyword_string_value(const char *input, char *output, gboolean condition) {
+	int status = 0;
+	if (!input || !output) return;
+
+	if (condition) {
+		ffs2c(input, output, &status);
+	} else {
+		strncpy(output, input, 70);
+		output[70] = '\0';
+	}
 }
 
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose, gboolean isfitseq) {
@@ -3277,6 +3496,143 @@ int fits_parse_header_str(fits *fit, const char *header){
 	return status;
 }
 
+int save_wcs_fits(fits *f, const gchar *name) {
+	int status;
+
+	if (!name)
+		return 1;
+
+	if (g_unlink(name))
+		siril_debug_print("g_unlink() failed\n");
+	
+
+	status = 0;
+	if (siril_fits_create_diskfile(&(f->fptr), name, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+	// Prepare the minimal header
+	fits_write_key(f->fptr, TLOGICAL, "SIMPLE", &(int){1}, "conforms to FITS standard", &status);
+	fits_write_key(f->fptr, TINT, "BITPIX", &(int){8}, "ASCII or bytes array", &status);
+	fits_write_key(f->fptr, TINT, "NAXIS", &(int){0}, "Minimal header", &status);
+	fits_write_key(f->fptr, TLOGICAL, "EXTEND", &(int){1}, "There may be FITS ext", &status);
+	fits_write_key(f->fptr, TINT, "WCSAXES", &(int){2}, NULL, &status);
+	fits_write_key(f->fptr, TINT, "IMAGEW", &f->rx, "Image width in pixels", &status);
+	fits_write_key(f->fptr, TINT, "IMAGEH", &f->ry, "Image height in pixels", &status);
+	if (f->keywords.date_obs) {
+		gchar *formatted_date = date_time_to_FITS_date(f->keywords.date_obs);
+		fits_update_key(f->fptr, TSTRING, "DATE-OBS", formatted_date, "YYYY-MM-DDThh:mm:ss observation start, UT", &status);
+		g_free(formatted_date);
+	}
+
+	// Write the WCS data
+	if (save_wcs_keywords(f)) {
+		report_fits_error(status);
+		fits_close_file(f->fptr, &status);
+		f->fptr = NULL;
+		return 1;
+	}
+
+	status = 0;
+	fits_close_file(f->fptr, &status);
+	if (!status) {
+		siril_log_message(_("Saving WCS file %s\n"), name);
+	} else {
+		report_fits_error(status);
+	}
+	f->fptr = NULL;
+	return status;
+}
+
+// writes an 32b bit distance mask to disk
+int save_mask_fits(int rx, int ry, float *buffer, const gchar *name) {
+	int status;
+	fitsfile *fptr;
+	long orig[2] = { 1L, 1L};
+	long naxes[2] = { rx, ry };
+
+	if (!name)
+		return 1;
+
+	if (g_unlink(name))
+		siril_debug_print("g_unlink() failed\n");
+
+	status = 0;
+	if (siril_fits_create_diskfile(&fptr, name, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+
+	if (fits_create_img(fptr, FLOAT_IMG, 2, naxes, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+
+	if (fits_write_pix(fptr, TFLOAT, orig, (size_t)(rx * ry), buffer, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+
+	fits_close_file(fptr, &status);
+	if (!status) {
+		siril_log_message(_("Saving mask file %s\n"), name);
+	} else {
+		report_fits_error(status);
+	}
+	return status;
+}
+
+// read an area form a 32b mask
+// we have this dedicated function to avoid the automatic rescaling
+// and dealing with all the types and headers
+int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask) {
+	int status = 0;
+	fitsfile *fptr;
+	int naxis = 2;
+	long fpixel[2], lpixel[2], inc[2] = { 1L, 1L };
+	long naxes[2] = { 1L, 1L};
+
+	fpixel[0] = area->x + 1;        // in siril, it starts with 0
+	fpixel[1] = ry - area->y - area->h + 1;
+	lpixel[0] = area->x + area->w;  // with w and h at least 1, we're ok
+	lpixel[1] = ry - area->y;
+
+	if (!name)
+		return 1;
+	fits_open_file(&fptr, name, READONLY, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_get_img_size(fptr, naxis, naxes, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	if (naxes[0] < area->w) {
+		siril_debug_print("area too wide\n");
+		fits_close_file(fptr, NULL);
+		return 1;
+	}
+	if (naxes[1] < area->h) {
+		siril_debug_print("area too high\n");
+		fits_close_file(fptr, NULL);
+		return 1;
+	}
+	fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, mask,	NULL, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_close_file(fptr, &status);
+	if (!status) {
+		siril_debug_print("Read mask file %s\n", name);
+	} else {
+		report_fits_error(status);
+	}
+	return status;
+}
+
 // Swaps all image-data related elements of two FITS (the data pointers themselves,
 // also dimensions and statistics, but not the header, keywords or fptr).
 
@@ -3340,4 +3696,140 @@ int fits_swap_image_data(fits *a, fits *b) {
 	b->neg_ratio = tmpf;
 
 	return 0;
+}
+
+/** Calculate the bayer pattern color from the row and column **/
+
+static inline int FC(const size_t row, const size_t col, const size_t dim, const char *cfa) {
+	return !cfa ? 0 : cfa[(col % dim) + (row % dim) * dim] - '0';
+}
+
+const char* get_cfa_from_pattern(sensor_pattern pattern) {
+	const char* cfa;
+	switch (pattern) {
+		case BAYER_FILTER_BGGR:
+			cfa = "2110";
+			break;
+		case BAYER_FILTER_GRBG:
+			cfa = "1021";
+			break;
+		case BAYER_FILTER_RGGB:
+			cfa = "0112";
+			break;
+		case BAYER_FILTER_GBRG:
+			cfa = "1201";
+			break;
+		case XTRANS_FILTER_1:
+//				  "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"
+			cfa = "110112112110201021112110110112021201";
+			break;
+		case XTRANS_FILTER_2:
+//				  "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB";
+			cfa = "021201110112112110201021112110110112";
+			break;
+		case XTRANS_FILTER_3:
+//				  "GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG";
+			cfa = "101121212010101121121101010212121101";
+			break;
+		case XTRANS_FILTER_4:
+//				  "GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG";
+			cfa = "121101010212121101101121212010101121";
+			break;
+		default:
+			siril_log_color_message(_("Error: unknown CFA pattern\n"), "red");
+			return NULL;
+	}
+	return cfa;
+}
+
+// These interpolation routines will work for X-Trans as well as Bayer patterns
+
+static void interpolate_nongreen_float(fits *fit) {
+	sensor_pattern pattern = get_bayer_pattern(fit);
+	const char *cfa = get_cfa_from_pattern(pattern);
+	if (!cfa)
+		return;
+	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+	uint32_t width = fit->rx;
+	uint32_t height = fit->ry;
+	for (int row = 0; row < height - 1; row++) {
+		for (int col = 0; col < width - 1; col++) {
+			if (FC(row, col, cfadim, cfa) == 1)
+				continue;
+			uint32_t index = col + row * width;
+			float interp = 0.f;
+			float weight = 0.f;
+			for (int dy = -1; dy <= 1; dy++) {
+				for (int dx = -1; dx <= 1; dx++) {
+					if (dx != 0 || dy != 0) {
+						// Check if the neighboring pixel is within the image bounds and green
+						int nx = col + dx;
+						int ny = row + dy;
+						if (FC(nx, ny, cfadim, cfa) == 1 && nx >= 0 && nx < width && ny >= 0 && ny < height) {
+							// Calculate distance from the current pixel
+							float distance = dx + dy;
+							// Calculate weight for the neighboring pixel
+							float weight_contrib = (distance == 1) ? 1 : RECIPSQRT2;
+							// Accumulate weighted green values and total weight
+							interp += weight_contrib * fit->fdata[nx + ny * width];
+							weight += weight_contrib;
+						}
+					}
+				}
+			}
+			fit->fdata[index] = interp / weight;
+		}
+	}
+	fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
+}
+
+static void interpolate_nongreen_ushort(fits *fit) {
+	sensor_pattern pattern = get_bayer_pattern(fit);
+	const char *cfa = get_cfa_from_pattern(pattern);
+	if (!cfa)
+		return;
+	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+	uint32_t width = fit->rx;
+	uint32_t height = fit->ry;
+	for (int row = 0; row < height - 1; row++) {
+		for (int col = 0; col < width - 1; col++) {
+			if (FC(row, col, cfadim, cfa) == 1)
+				continue;
+			uint32_t index = col + row * width;
+			float interp = 0.f;
+			float weight = 0.f;
+			for (int dy = -1; dy <= 1; dy++) {
+				for (int dx = -1; dx <= 1; dx++) {
+					if (dx != 0 || dy != 0) {
+						// Check if the neighboring pixel is within the image bounds and green
+						int nx = col + dx;
+						int ny = row + dy;
+						if (nx >= 0 && nx < width && ny >= 0 && ny < height && FC(nx, ny, cfadim, cfa) == 1) {
+							// Calculate distance from the current pixel
+							float distance = dx + dy;
+							// Calculate weight for the neighboring pixel
+							float weight_contrib = (distance == 1) ? 1 : RECIPSQRT2;
+							// Accumulate weighted green values and total weight
+							interp += weight_contrib * (float) fit->data[nx + ny * width];
+							weight += weight_contrib;
+						}
+					}
+				}
+			}
+			fit->data[index] = roundf_to_WORD(interp / weight);
+		}
+	}
+	fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
+}
+
+#undef RECIPSQRT2
+
+void interpolate_nongreen(fits *fit) {
+	if (fit->type == DATA_FLOAT) {
+		interpolate_nongreen_float(fit);
+	} else {
+		interpolate_nongreen_ushort(fit);
+	}
+	invalidate_stats_from_fit(fit);
+	siril_debug_print("Interpolating non-green pixels\n");
 }

@@ -24,6 +24,9 @@
 #endif
 
 #include <math.h>
+#include <gsl/gsl_min.h>
+#include <gsl/gsl_math.h>
+
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -43,7 +46,8 @@
 #include "registration/registration.h"
 #include "registration/matching/degtorad.h"
 
-static int astrometric_alignment(struct registration_args *regargs, struct astrometric_args *astargs, regdata *current_regdata);
+
+// #define DEBUG_ASTROREG
 
 // computing center cog dealing with range jumps
 // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
@@ -76,6 +80,7 @@ static void compute_center_cog(double *ra, double *dec, int n, gboolean *incl, d
 	*DEC = atan2(z, sqrt(x * x + y * y)) * RADTODEG;
 }
 
+
 static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, double *framing) {
 	K->h00 = -1;
 	K->h11 = -1;
@@ -99,86 +104,138 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 	return TRUE;
 }
 
-int register_astrometric(struct registration_args *regargs) {
-	struct astrometric_args *astargs = NULL;
+typedef struct {
+	double ra;
+	double dec;
+	sequence *seq;
+	gboolean *incl;
+	Homography *Kref;
+	Homography *Ks;
+	Homography *Rstmp;
+} optim_params_t;
+
+static void get_maxframing(double framing, void *params, int *width,  int *height, double *area) {
+	optim_params_t *p = (optim_params_t *)params;
+	int n = p->seq->number;
+	// computing relative rotations wrt to proj center + central image framing
+	Homography Rref = { 0 };
+	double angles[3] = { 90. - p->ra,  90. - p->dec, framing};
+	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
+	cvRotMat3(angles, rottypes, TRUE, &Rref);
+	int xmin = INT_MAX, xmax = -INT_MAX;
+	int ymin = INT_MAX, ymax = -INT_MAX;
+	for (int i = 0;  i < n; i++) {
+		if (!p->incl[i])
+			continue;
+		Homography H = { 0 }, R = { 0 };
+		cvRelRot(&Rref, p->Rstmp + i, &R);
+		cvcalcH_fromKKR(p->Kref, p->Ks + i, &R, &H);
+		framing_roi roi = { 0 };
+		int rx = ((p->seq->is_variable) ? p->seq->imgparam[i].rx : p->seq->rx);
+		int ry = ((p->seq->is_variable) ? p->seq->imgparam[i].ry : p->seq->ry);
+		compute_roi(&H, rx, ry, &roi);
+		xmin = min(xmin, roi.x);
+		ymin = min(ymin, roi.y);
+		xmax = max(xmax, roi.x + roi.w);
+		ymax = max(ymax, roi.y + roi.h);
+	}
+	if (width)
+		*width = (xmax - xmin);
+	if (height)
+		*height = (ymax - ymin);
+	if (area)
+		*area = (double)(xmax - xmin) * (ymax - ymin);
+}
+
+static double get_maxframing_area(double framing, void *params) {
+	double area = 0.;
+	get_maxframing(framing,params, NULL,  NULL, &area);
+	return area;
+}
+
+// this function minimizes the area by searching the optimal framing
+static int optimize_max_framing(double *framingref, optim_params_t *params) {
+	int status;
+	int iter = 0, max_iter = 100;
+	const gsl_min_fminimizer_type *T;
+	gsl_min_fminimizer *s;
+	double m = (*framingref < 0) ? *framingref + 180. : *framingref;
+	double a = 0.0, b = 180.;
+	gsl_function F;
+	// optim_params_t params = { ra0, dec0, seq, incl, Kref, Ks, Rstmp};
+	F.function = &get_maxframing_area;
+	F.params = params;
+	T = gsl_min_fminimizer_brent;
+	s = gsl_min_fminimizer_alloc(T);
+	gsl_min_fminimizer_set(s, &F, m, a, b);
+
+	siril_debug_print("%5s [%9s, %9s] %9s %10s %9s %10s\n",
+		"iter", "lower", "upper", "min",
+		"err", "err(est)", "val");
+
+	do {
+		iter++;
+		status = gsl_min_fminimizer_iterate(s);
+		m = gsl_min_fminimizer_x_minimum(s);
+		a = gsl_min_fminimizer_x_lower(s);
+		b = gsl_min_fminimizer_x_upper(s);
+		double v = GSL_FN_EVAL(&F, m);
+		status = gsl_min_test_interval(a, b, 0.001, 0.0);
+		siril_debug_print("%5d [%.7f, %.7f] "
+				"%.7f %.7f %.0f\n",
+				iter, a, b,
+				m, b - a, v);
+	} while (status == GSL_CONTINUE && iter < max_iter);
+	
+	if (status == GSL_SUCCESS) {
+		siril_debug_print("Converged\n");
+		double optimval = gsl_min_fminimizer_x_minimum(s);
+		// TODO: should we correct to make sure the image is always horizontal?
+		// int width = 0, height = 0;
+		// get_maxframing(optimval, params, &width, &height, NULL);
+		// if (width < height) // we try to have an image roughly horizontal
+		// 	optimval += 90.;
+		if (*framingref < 0)
+			*framingref = optimval - 180.;
+		else
+			*framingref= optimval;
+	}
+	gsl_min_fminimizer_free(s);
+	return status;
+}
+
+int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout, struct wcsprm **prmout) {
 	int retval = 0;
-	struct timeval t_start, t_end;
-	if (!regargs->filtering_criterion &&
-			convert_parsed_filter_to_filter(&regargs->filters,
-				regargs->seq, &regargs->filtering_criterion,
-				&regargs->filtering_parameter))
-		return 1;
-	float scale = (regargs->driz) ? regargs->driz->scale : regargs->astrometric_scale;
-
-	regdata *current_regdata = apply_reg_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
-	if (!current_regdata)
-		return -2;
-	regargs->type = HOMOGRAPHY_TRANSFORMATION; // forcing homography calc for the input sequence
-
-	gettimeofday(&t_start, NULL);
-	fits fit = { 0 };
 	double ra0 = 0., dec0 = 0.;
-	int n = regargs->seq->number;
+	int n = seq->number;
 	double *RA = calloc(n, sizeof(double)); // calloc to prevent possibility of uninit variable highlighted by coverity
 	double *DEC = calloc(n, sizeof(double)); // as above
-	double *dist = malloc(n * sizeof(double));
-	struct wcsprm *WCSDATA = calloc(n, sizeof(struct wcsprm));
-	astrometric_roi *rois = malloc(n * sizeof(astrometric_roi));
-	int failed = 0, nb_aligned = 0;
-	Homography *Rs = NULL, *Ks = NULL;
+	double *dist = calloc(n, sizeof(double));
+	Homography *Rs = NULL, *Ks = NULL, *Rstmp = NULL;
 	Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
+	Rstmp = calloc(n, sizeof(Homography)); // camera tmp rotation matrices
 	Ks = calloc(n, sizeof(Homography)); // camera intrinsic matrices
 	gboolean *incl = calloc(n, sizeof(gboolean));
-
-	if (!RA || !DEC || !dist || !WCSDATA || !rois || !Rs || !Ks || !incl) {
+	if (!RA || !DEC || !dist || !WCSDATA || !Rs || !Ks || !incl) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto free_all;
 	}
-
+	// collect all the centers
 	for (int i = 0; i < n; i++) {
-		if (regargs->filtering_criterion && !regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+		if (!seq->imgparam[i].incl)
 			continue;
-		if (seq_read_frame_metadata(regargs->seq, i, &fit)) {
-			siril_log_message(_("Could not load image %d from sequence %s\n"),
-			i + 1, regargs->seq->seqname);
-			retval = 1;
-			goto free_all;
-		}
-		if (!has_wcs(&fit)) {
-			siril_log_message(_("Image %d has not been plate-solved, unselecting\n"), i + 1);
-			regargs->seq->imgparam[i].incl = FALSE;
-			regargs->filters.filter_included = TRUE;
-			convert_parsed_filter_to_filter(&regargs->filters,
-				regargs->seq, &regargs->filtering_criterion,
-				&regargs->filtering_parameter);
-			failed++;
-			continue;
-		}
-		center2wcs(&fit, RA + i, DEC + i);
-		WCSDATA[i].flag = -1;
-		wcssub(1, fit.keywords.wcslib, NULL, NULL, WCSDATA + i); // copying wcsprm structure for each fit to avoid reopening
-		clearfits(&fit);
-		siril_log_message("Image #%2d - RA:%.3f - DEC:%.3f\n", i + 1, RA[i], DEC[i]);
+		int width = (seq->is_variable) ? seq->imgparam[i].rx : seq->rx;
+		int height = (seq->is_variable) ? seq->imgparam[i].ry : seq->ry;
+		center2wcs2(WCSDATA + i, width, height, RA + i, DEC + i);
 		incl[i] = TRUE;
 	}
 
 	// find sequence cog and closest image to use as reference
 	compute_center_cog(RA, DEC, n, incl, &ra0, &dec0);
 	ra0 = (ra0 < 0) ? ra0 + 360. : ra0;
-	siril_log_message("Sequence COG - RA:%.3f - DEC:%.3f\n", ra0, dec0);
-	int refindex = -1;
-	double mindist = DBL_MAX;
-	for (int i = 0; i < n; i++) {
-		if (!incl[i])
-			continue;
-		dist[i] = compute_coords_distance(RA[i], DEC[i], ra0, dec0);
-		if (dist[i] < mindist) {
-			mindist = dist[i];
-			refindex = i;
-		}
-	}
-	siril_debug_print("Closest image  is #%d - RA:%.3f - DEC:%.3f\n", refindex + 1, RA[refindex], DEC[refindex]);
+	siril_log_message(_("Sequence COG - RA:%7.3f - DEC:%+7.3f\n"), ra0, dec0);
+	int refindex = seq->reference_image;
 
 	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
 	// ##################################################################
@@ -196,37 +253,75 @@ int register_astrometric(struct registration_args *regargs) {
 
 	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
 	double framingref = 0.;
-	int framingref_index = (regargs->framing == FRAMING_CURRENT) ? regargs->seq->reference_image : refindex;
+	int anglecount = 0;
+
 	for (int i = 0; i < n; i++) {
 		if (!incl[i])
 			continue;
 		double angles[3];
-		angles[0] = 90. - RA[i]; // TODO: need to understand why 90- instead of 90 + .... opencv vs wcs convention?
+		angles[0] = 90 - RA[i];
 		angles[1] = 90. - DEC[i];
 		// initializing K with center point (-0.5 is for opencv convention)
 		cvGetEye(Ks + i); // initializing to unity
-		Ks[i].h02 = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx) - 0.5;
-		Ks[i].h12 = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry) - 0.5;
+		Ks[i].h02 = 0.5 * ((seq->is_variable) ? seq->imgparam[i].rx : seq->rx) - 0.5;
+		Ks[i].h12 = 0.5 * ((seq->is_variable) ? seq->imgparam[i].ry : seq->ry) - 0.5;
 		if (!get_scales_and_framing(WCSDATA + i, Ks + i, angles + 2)) {
 			siril_log_message(_("Could not compute camera parameters of image %d from sequence %s\n"),
-			i + 1, regargs->seq->seqname);
+			i + 1, seq->seqname);
 			retval = 1;
 			goto free_all;
 		}
-		cvRotMat3(angles, rottypes, TRUE, Rs + i);
+		cvRotMat3(angles, rottypes, TRUE, Rstmp + i);
 		siril_debug_print("Image #%d - rot:%.3f\n", i + 1, angles[2]);
-		if (i == framingref_index)
+		if (framing == FRAMING_CURRENT && i == refindex) {
 			framingref = angles[2];
+			anglecount++;
+		}
+		if (framing != FRAMING_CURRENT) {
+			framingref += (angles[2] < -90.) ? angles[2] + 180. : (angles[2] > 90.) ? angles[2] - 180 : angles[2];
+			anglecount++;
+		}
+		siril_log_message(_("Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"), i + 1, RA[i], DEC[i], angles[2]);
+	}
+	if (!anglecount) {
+		siril_log_color_message(_("No image selected after computing transformations, aborting%s\n"), "red");
+		goto free_all;
+	}
+	framingref /= anglecount;
+
+	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
+	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
+	// We add to the seq in order to display the alignment
+	float fscale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
+	Homography Kref = { 0 };
+	cvGetEye(&Kref);
+	Kref.h00 = fscale;
+	Kref.h11 = fscale;
+	Kref.h02 = Ks[refindex].h02;
+	Kref.h12 = Ks[refindex].h12;
+	siril_debug_print("Scale: %.3f\n", fscale);
+#ifdef DEBUG_ASTROREG
+	print_H(&Kref);
+#endif
+	if (framing == FRAMING_MAX) {
+		optim_params_t params = { ra0, dec0, seq, incl, &Kref, Ks, Rstmp};
+		int status = optimize_max_framing(&framingref, &params);
+		if (!status)
+			siril_log_message(_("Sequence optimal framing: %.1f\n"), framingref);
+		else
+			siril_log_message(_("Sequence framing: %.1f\n"), framingref);
+	} else {
+		siril_log_message(_("Sequence framing: %.1f\n"), framingref);
 	}
 
 	// computing relative rotations wrt to proj center + central image framing
 	Homography Rref = { 0 };
-	double angles[3];
-	switch (regargs->framing) {
+	double angles[3] = { 0 };
+	switch (framing) {
 		case FRAMING_CURRENT:
 		default:
-			angles[0] = 90. - RA[regargs->seq->reference_image];
-			angles[1] = 90. - DEC[regargs->seq->reference_image];
+			angles[0] = 90. - RA[seq->reference_image];
+			angles[1] = 90. - DEC[seq->reference_image];
 			break;
 		case FRAMING_COG:
 		case FRAMING_MAX:
@@ -240,468 +335,92 @@ int register_astrometric(struct registration_args *regargs) {
 	for (int i = 0; i < n; i++) {
 		if (!incl[i])
 			continue;
-		cvRelRot(&Rref, Rs + i);
+		cvRelRot(&Rref, Rstmp + i, Rs + i);
 	}
 
 	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
-	// We add to the seq in order to display some kind of alignment, sufficient if small FOV
+	// We add to the seq in order to display a first alignment
+	regdata *current_regdata = seq->regparam[layer];
+	int xmin = INT_MAX, xmax = -INT_MAX;
+	int ymin = INT_MAX, ymax = -INT_MAX;
 	for (int i = 0;  i < n; i++) {
 		if (!incl[i])
 			continue;
 		Homography H = { 0 };
-		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
-		if (!regargs->no_output)
-			current_regdata[i].H = H;
-		nb_aligned++;
+		cvcalcH_fromKKR(&Kref, Ks + i, Rs + i, &H);
+		framing_roi roi = { 0 };
+		int rx = ((seq->is_variable) ? seq->imgparam[i].rx : seq->rx);
+		int ry = ((seq->is_variable) ? seq->imgparam[i].ry : seq->ry);
+		compute_roi(&H, rx, ry, &roi);
+		current_regdata[i].H = H;
+#ifdef DEBUG_ASTROREG
+		siril_debug_print("Image %d\n", i + 1);
+		print_H(Ks + i);
+		print_H(Rs + i);
+		print_H(&H);
+#endif
+		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, roi.x, roi.y, roi.w, roi.h);
+		xmin = min(xmin, roi.x);
+		ymin = min(ymin, roi.y);
+		xmax = max(xmax, roi.x + roi.w);
+		ymax = max(ymax, roi.y + roi.h);
 	}
-	regargs->seq->reference_image = refindex;
+	siril_debug_print("Framing: %d,%d,%d,%d\n", xmin, ymin, xmax - xmin, ymax - ymin);
+	seq->reference_image = refindex;
 
-	// Give the full output size
-	float fscale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11)) * scale;
-	pointi tl, br; // top left and bottom-right
-	if (regargs->framing == FRAMING_MIN) {
-		tl = (pointi){ INT_MIN, INT_MIN };
-		br = (pointi){ INT_MAX, INT_MAX };
-	} else {
-		tl = (pointi){ INT_MAX, INT_MAX };
-		br = (pointi){ INT_MIN, INT_MIN };
-	}
-	gboolean savewarped = !regargs->no_output;
-	// if we have some output sequence, prepare the astrometric_args
-	if (savewarped) {
-		astargs = malloc(sizeof(struct astrometric_args));
-		astargs->nb = n;
-		astargs->refindex = refindex;
-		astargs->Ks = Ks;
-		astargs->Rs = Rs;
-		astargs->scale = fscale;
-		astargs->disto = NULL;
-		gboolean found = FALSE;
-		if (regargs->undistort) {
-			if (regargs->seq->is_variable) {
-				// sequence has variable size, we need to use each image undistorsion coeffs
-				astargs->disto = calloc(n, sizeof(disto_data));
-				for (int i = 0;  i < n; i++) {
-					if (!incl[i])
-						continue;
-					if (WCSDATA[i].lin.dispre) {
-						found = TRUE;
-						astargs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, astargs->disto[i].A, astargs->disto[i].B, astargs->disto[i].AP, astargs->disto[i].BP);
-						astargs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
-						astargs->disto[i].yref = WCSDATA[i].crpix[1] - 1.;
-						astargs->disto[i].dtype = DISTO_D2S;
-					} else {
-						astargs->disto[i].dtype = DISTO_NONE;
-					}
-				}
-			} else {
-				// sequence has same size images, we search for the first image that has wcs data
-				astargs->disto = calloc(1, sizeof(disto_data));
-				for (int i = 0;  i < n; i++) {
-					if (!incl[i])
-						continue;
-					if (WCSDATA[i].lin.dispre) { // we find the first image that has disto data and break afterwards
-						astargs->disto[0].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, astargs->disto[i].A, astargs->disto[i].B, astargs->disto[i].AP, astargs->disto[i].BP);
-						astargs->disto[0].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
-						astargs->disto[0].yref = WCSDATA[i].crpix[1] - 1.;
-						astargs->disto[0].dtype = (regargs->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
-						found = TRUE;
-						break;
-					}
-				}
-				if (found) { // and we prepare the mapping that will be used for all images
-					siril_log_message(_("Computing distortion mapping\n"));
-					init_disto_map(regargs->seq->rx, regargs->seq->ry, astargs->disto);
-					siril_log_message(_("Done\n"));
-				}
-			}
-			if (!found) {
-				siril_debug_print("no distorsion terms found in any of the images, disabling undistort\n");
-				free(astargs->disto); // we don't need to call free_disto_args as maps have not been allocated
-				astargs->disto = NULL;
-				regargs->undistort = FALSE;
-			}
+	if (prmout) {
+		if (framing != FRAMING_CURRENT) {
+			*prmout = calloc(1, sizeof(wcsprm_t));
+			double scale = 0.5 * (fabs((WCSDATA + refindex)->cdelt[0])+fabs((WCSDATA + refindex)->cdelt[1]));
+			create_wcs(ra0, dec0, scale, framingref, (seq->is_variable) ? seq->imgparam[refindex].rx : seq->rx, (seq->is_variable) ? seq->imgparam[refindex].ry : seq->ry, *prmout);
+		} else {
+			*prmout = wcs_deepcopy(WCSDATA + refindex, NULL);
 		}
-	}
-
-	if (regargs->framing == FRAMING_COG || regargs->framing == FRAMING_CURRENT) {
-		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
-		Homography R = { 0 };
-		cvGetEye(&R); // initializing to unity
-		cvWarp_fromKR(NULL, &roi_in, Ks[refindex], R, fscale, OPENCV_NONE, FALSE, NULL, rois + refindex);
-		tl.x = rois[refindex].x;
-		tl.y = rois[refindex].y;
-		br.x = rois[refindex].x + rois[refindex].w;
-		br.y = rois[refindex].y + rois[refindex].h;
-		siril_debug_print("ref:%d,%d,%d,%d,%d\n", refindex + 1, rois[refindex].x, rois[refindex].y, rois[refindex].w, rois[refindex].h);
-	}
-
-	gboolean error = FALSE;
-
-	for (int i = 0;  i < n; i++) {
-		if (!incl[i])
-			continue;
-		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
-		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
-		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
-		cvWarp_fromKR(NULL, &roi_in, Ks[i], Rs[i], fscale, OPENCV_NONE, FALSE, NULL, rois + i);
-		// first determine the corners
-		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, rois[i].x, rois[i].y, rois[i].w, rois[i].h);
-		switch (regargs->framing) {
-			case FRAMING_MAX:
-				if (rois[i].x < tl.x) tl.x = rois[i].x;
-				if (rois[i].y < tl.y) tl.y = rois[i].y;
-				if (rois[i].x + rois[i].w > br.x) br.x = rois[i].x + rois[i].w;
-				if (rois[i].y + rois[i].h > br.y) br.y = rois[i].y + rois[i].h;
-				break;
-			case FRAMING_MIN:
-				if (rois[i].x > tl.x) tl.x = rois[i].x;
-				if (rois[i].y > tl.y) tl.y = rois[i].y;
-				if (rois[i].x + rois[i].w < br.x) br.x = rois[i].x + rois[i].w;
-				if (rois[i].y + rois[i].h < br.y) br.y = rois[i].y + rois[i].h;
-				break;
-			case FRAMING_COG:
-			case FRAMING_CURRENT:
-			default:
-				// we just perform checks to make sure there is some overlap
-				if (i != regargs->reference_image) {
-					if (rois[i].x > br.x || rois[i].x + rois[i].w < tl.x ||
-						rois[i].y > br.y || rois[i].y + rois[i].h < tl.y) {
-							error = TRUE;
-							siril_log_color_message(_("Image %d has no overlap with the reference\n"), "red", i + 1);
-						}
-
-				}
-				break;
-		}
-	}
-	// then compute the roi size and full image space requirement
-	int imagew = br.x - tl.x;
-	int imageh = br.y - tl.y;
-	if  (regargs->framing == FRAMING_MIN && (imageh <= 0 || imagew <= 0)) {
-		siril_log_color_message(_("The intersection of all images is null or negative\n"), "red");
-		error = TRUE;
-	}
-	if (error) {
-		siril_log_color_message(_("Unselect the images generating the error or change framing method to max\n"), "red");
-		retval = 1;
-		goto free_all;
-	}
-
-	gchar *downscale = (scale != 1.f) ? g_strdup_printf(_(" (assuming a scaling factor of %.2f)"), scale) : g_strdup("");
-	siril_log_color_message(_("Output image: %d x %d pixels%s\n"), "salmon", imagew, imageh, downscale);
-	g_free(downscale);
-	int64_t frame_size = (int64_t)imagew * imageh * regargs->seq->nb_layers;
-	frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
-	gchar *mem = g_format_size_full(frame_size, G_FORMAT_SIZE_IEC_UNITS);
-	siril_log_color_message(_("Space required for storage: %s\n"), "salmon", mem);
-	g_free(mem);
-	if (savewarped) {
-		astargs->roi = (astrometric_roi) {.x = tl.x, .y = tl.y, .w = imagew, .h = imageh};
 	}
 
 free_all:
 	free(RA);
 	free(DEC);
 	free(dist);
-	free(rois);
-	if (incl) {
-		for (int i = 0; i < n; i++) {
-			if (!incl[i])
-				continue;
-			wcsfree(WCSDATA + i);
-		}
-		free(incl);
-	}
-	free(WCSDATA);
-	if (!retval && !regargs->no_output) {
-		return astrometric_alignment(regargs, astargs, current_regdata);
-	}
+	free(incl);
 	free(Ks);
 	free(Rs);
-	free_astrometric_args(astargs);
-	fix_selnum(regargs->seq, FALSE);
-	siril_log_message(_("Registration finished.\n"));
-	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, nb_aligned);
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
+	free(Rstmp);
+	siril_log_message(_("Astrometric registration computed.\n"));
+	if (Hout) {
+		cvGetEye(Hout);
+	}
+	// we don't free WCSDATA as it will be further used to initialize distortion data
 	return retval;
 }
 
-/* image alignment hooks and main process */
-static int astrometric_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
-	g_assert(fit != NULL);
-	struct star_align_data *sadata = args->user;
-	struct registration_args *regargs = sadata->regargs;
-	struct astrometric_args *astargs = sadata->astargs;
-	struct driz_args_t *driz = regargs->driz;
-	float scale = 1.f;
-	struct driz_param_t *p = NULL;
-	int status = 0;
-	Homography *Rs = astargs->Rs;
-	Homography *Ks = astargs->Ks;
-	astrometric_roi roi = { 0 };
-	Homography H = { 0 };
-	disto_data *disto = NULL;
-	if (regargs->undistort && astargs->disto) {
-		if (astargs->disto[0].dtype == DISTO_MAP_D2S || astargs->disto[0].dtype == DISTO_MAP_S2D) {
-			disto = &astargs->disto[0];
-		} else {
-			disto = &astargs->disto[in_index];
+int collect_sequence_astrometry(struct registration_args *regargs) {
+	int n = regargs->seq->number;
+	int retval = 0;
+	fits fit = { 0 };
+	for (int i = 0; i < n; i++) {
+		if (regargs->filtering_criterion && !regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+			continue;
+		if (seq_read_frame_metadata(regargs->seq, i, &fit)) {
+			siril_log_message(_("Could not load image %d from sequence %s\n"),
+			i + 1, regargs->seq->seqname);
+			retval = 1;
+			break;
 		}
+		if (!has_wcs(&fit)) {
+			siril_log_message(_("Image %d has not been plate-solved, unselecting\n"), i + 1);
+			regargs->seq->imgparam[i].incl = FALSE;
+			regargs->filters.filter_included = TRUE;
+			convert_parsed_filter_to_filter(&regargs->filters,
+				regargs->seq, &regargs->filtering_criterion,
+				&regargs->filtering_parameter);
+			continue;
+		}
+		regargs->WCSDATA[i].flag = -1;
+		wcssub(1, fit.keywords.wcslib, NULL, NULL, regargs->WCSDATA + i); // copying wcsprm structure for each fit to avoid reopening
+		clearfits(&fit);
 	}
-	cvGetEye(&H);
-
-	sadata->success[out_index] = 0;
-	if (!regargs->driz) {
-		// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
-		fits_flip_top_to_bottom(fit);
-		astrometric_roi *roi_in = (regargs->framing != FRAMING_MAX) ?  &astargs->roi : NULL;
-		status = cvWarp_fromKR(fit, roi_in, Ks[in_index], Rs[in_index], astargs->scale, regargs->interpolation, regargs->clamp, disto, &roi);
-		if (!status) {
-			fits_flip_top_to_bottom(fit);
-			if (regargs->framing == FRAMING_MAX) {
-				H.h02 = roi.x - astargs->roi.x;
-				H.h12 = roi.y - astargs->roi.y;
-			}
-			free_wcs(fit); // we remove astrometric solution
-		}
-	} else {
-		scale = driz->scale;
-		p = calloc(1, sizeof(struct driz_param_t));
-		driz_param_init(p);
-		p->kernel = driz->kernel;
-		p->driz = driz;
-		p->error = malloc(sizeof(struct driz_error_t));
-		p->scale = driz->scale;
-		p->pixel_fraction = driz->pixel_fraction;
-		p->cfa = driz->cfa;
-		// Set bounds equal to whole image
-		p->xmin = p->ymin = 0;
-		p->xmax = fit->rx - 1;
-		p->ymax = fit->ry - 1;
-		p->pixmap = calloc(1, sizeof(imgmap_t));
-		p->pixmap->rx = fit->rx;
-		p->pixmap->ry = fit->ry;
-		p->threads = threads;
-		Homography Hs = { 0 }, Himg = { 0 }, Htransf = { 0 };
-		cvGetEye(&Htransf);
-		cvGetEye(&Hs);
-		cvcalcH_fromKKR(Ks[regargs->seq->reference_image], Ks[in_index], Rs[in_index], &Himg);
-		int dst_rx, dst_ry;
-		if (regargs->framing != FRAMING_MAX) {
-			cvTransfH(Himg, Htransf, &H);
-			dst_rx = astargs->roi.w;
-			dst_ry = astargs->roi.h;
-		} else {
-			compute_Hmax(&Himg, &Htransf, fit->rx, fit->ry, scale, &H, &Hs, &dst_rx, &dst_ry);
-		}
-		status = map_image_coordinates_h(fit, H, p->pixmap, dst_ry, driz->scale, disto, threads);
-		H = Hs;
-
-		if (status) {
-			// need to handle this, cannot go on
-			siril_log_color_message(_("Error generating mapping array.\n"), "red");
-			free(p->error);
-			free(p->pixmap);
-			free(p);
-			return 1;
-		}
-		p->data = fit;
-		// Convert fit to 32-bit float if required
-		float *newbuf = NULL;
-		if (fit->type == DATA_USHORT) {
-			siril_debug_print("Replacing ushort buffer for drizzling\n");
-			size_t ndata = fit->rx * fit->ry * fit->naxes[2];
-			newbuf = malloc(ndata * sizeof(float));
-			float invnorm = 1.f / USHRT_MAX_SINGLE;
-			for (size_t i = 0 ; i < ndata ; i++) {
-				newbuf[i] = fit->data[i] * invnorm;
-			}
-			fit_replace_buffer(fit, newbuf, DATA_FLOAT);
-		}
-		/* Set up output fits */
-		fits out = { 0 };
-		copyfits(fit, &out, CP_FORMAT, -1);
-		// copy the DATE_OBS
-		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
-		out.rx = out.naxes[0] = dst_rx;
-		out.ry = out.naxes[1] = dst_ry;
-		out.naxes[2] = driz->is_bayer ? 3 : 1;
-		size_t chansize = out.rx * out.ry * sizeof(float);
-		out.fdata = calloc(out.naxes[2] * chansize, 1);
-		out.fpdata[0] = out.fdata;
-		out.fpdata[1] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
-		out.fpdata[2] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
-		p->output_data = &out;
-
-		// Set up the output_counts fits to store pixel hit counts
-		fits *output_counts = calloc(1, sizeof(fits));
-		copyfits(&out, output_counts, CP_FORMAT, -1);
-		output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
-		p->output_counts = output_counts;
-
-		p->weights = driz->flat;
-
-		if ((status = dobox(p))) { // Do the drizzle
-			siril_log_color_message("s\n", p->error->last_message);
-			free(p->error);
-			free(p->pixmap->xmap);
-			free(p->pixmap);
-			free(p);
-			return 1;
-		}
-		clearfits(fit);
-		// copy the DATE_OBS
-		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
-		clearfits(&out);
-		if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
-			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, fit->rx * fit->ry * fit->naxes[2]), DATA_USHORT);
-		}
-		if (driz->is_bayer) {
-			/* we need to do something special here because it's a 1-channel sequence and
-			* image that will become 3-channel after this call, so stats caching will
-			* not be correct. Preprocessing does not compute new stats so we don't need
-			* to save them into cache now.
-			* Destroying the stats from the fit will also prevent saving them in the
-			* sequence, which may be done automatically by the caller.
-			*/
-			full_stats_invalidation_from_fit(fit);
-			fit->keywords.lo = 0;
-		}
-
-		free(p->pixmap->xmap);
-		free(p->pixmap);
-		free(p);
-
-		// Get rid of the output_counts image, no longer required
-		clearfits(output_counts);
-		free(output_counts);
-		output_counts = NULL;
-	}
-	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-	regargs->imgparam[out_index].incl = (int)(!status);
-	regargs->imgparam[out_index].rx = roi.w;
-	regargs->imgparam[out_index].ry = roi.h;
-	regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
-	regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
-	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
-	regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
-	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
-	regargs->regparam[out_index].H = H;
-	sadata->success[out_index] = (int)(!status);
-	if (astargs->scale != 1.f) {
-		fit->keywords.pixel_size_x /= regargs->astrometric_scale;
-		fit->keywords.pixel_size_y /= regargs->astrometric_scale;
-		regargs->regparam[out_index].fwhm *= regargs->astrometric_scale;
-		regargs->regparam[out_index].weighted_fwhm *= regargs->astrometric_scale;
-	}
-	return status;
+	return retval;
 }
 
-
-static int astrometric_alignment(struct registration_args *regargs, struct astrometric_args *astargs, regdata *current_regdata) {
-	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
-	args->filtering_criterion = regargs->filtering_criterion;
-	args->filtering_parameter = regargs->filtering_parameter;
-	args->nb_filtered_images = compute_nb_filtered_images(regargs->seq,
-			regargs->filtering_criterion, regargs->filtering_parameter);
-
-	// args->compute_mem_limits_hook =  astrometric_mem_hook; // TODO
-	args->prepare_hook = star_align_prepare_results; // from global registration
-	args->image_hook = astrometric_image_hook;
-	args->finalize_hook = star_align_finalize_hook;	// from global registration
-	args->stop_on_error = FALSE;
-	args->description = _("Creating the warped images sequence");
-	args->has_output = TRUE;
-	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = g_strdup(regargs->prefix);
-	args->load_new_sequence = TRUE;
-	args->already_in_a_thread = TRUE;
-
-	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
-	if (!sadata) {
-		free(args);
-		return -1;
-	}
-	sadata->regargs = regargs;
-	sadata->astargs = astargs;
-	sadata->current_regdata = current_regdata;
-	sadata->fitted_stars = 0;
-	sadata->refstars = NULL;
-	args->user = sadata;
-
-	generic_sequence_worker(args);
-	regargs->retval = args->retval;
-	free(args);
-	return regargs->retval;
-}
-
-static void free_disto_args(disto_data *disto) {
-	if (!disto)
-		return;
-	// we only need to free the maps for the 2 types which store them (disto has only one element in that case)
-	if (disto->dtype == DISTO_MAP_D2S || disto->dtype == DISTO_MAP_S2D) {
-		free(disto->xmap);
-		free(disto->ymap);
-	}
-}
-
-void free_astrometric_args(struct astrometric_args *astargs) {
-	if (!astargs)
-		return;
-	free(astargs->Ks);
-	free(astargs->Rs);
-	free_disto_args(astargs->disto);
-	free(astargs->disto);
-	free(astargs);
-}
-
-
-
-// FOR LATER
-
-	//Composing the mosaic
-
-	// seq_read_frame_metadata(regargs->seq, refindex, &fit);
-	// cvmosaiccompose(regargs->seq, Ks, Rs, n, scale, 0.2f, 1.f, &fit);
-	// savefits("mosaic.fit", &fit);
-	// clearfits(&fit);
-
-
-// just in case
-
-	// // now we store the relative Rs and cameras K
-	// // writing outputs to *.smf file, a.k.a Siril Mosaic File
-	// char *filename;
-	// FILE *mscfile;
-	// if (!regargs->seq->seqname || regargs->seq->seqname[0] == '\0') {
-	// 	retval = 1;
-	// 	goto free_all;
-	// }
-	// filename = malloc(strlen(regargs->seq->seqname)+5);
-	// sprintf(filename, "%s.smf", regargs->seq->seqname);
-	// mscfile = g_fopen(filename, "w+t"); // TODO deal with errors
-	// for (int i = 0; i < n; i++) {
-	// 	fprintf(mscfile, "%2d K %12.1f %12.1f %8.1f %8.1f R %g %g %g %g %g %g %g %g %g\n",
-	// 	i + 1,
-	// 	Ks[i].h00,
-	// 	Ks[i].h11,
-	// 	Ks[i].h02,
-	// 	Ks[i].h12,
-	// 	Rs[i].h00,
-	// 	Rs[i].h01,
-	// 	Rs[i].h02,
-	// 	Rs[i].h10,
-	// 	Rs[i].h11,
-	// 	Rs[i].h12,
-	// 	Rs[i].h20,
-	// 	Rs[i].h21,
-	// 	Rs[i].h22
-	// 	);
-	// }
-	// fclose(mscfile);

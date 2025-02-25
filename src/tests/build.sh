@@ -39,5 +39,9 @@ $LD -o date_test siril_date_test.o ../core/siril_date.o -Wl,--unresolved-symbols
 $CC $CFLAGS -DWITH_MAIN -c -o siril_world_cs_test.o siril_world_cs_test.c &&
 $LD -o siril_world_cs_test siril_world_cs_test.o ../core/siril_world_cs.o -Wl,--unresolved-symbols=ignore-all $LDFLAGS
 
+# compile the siril_spawn tests
+$CC $CFLAGS -DWITH_MAIN -c -o siril_spawn_test.o siril_spawn_test.c &&
+$LD -o siril_spawn_test siril_spawn_test.o ../core/siril_spawn.o `pkg-config --libs criterion` `pkg-config --libs glib-2.0` $LDFLAGS
+
 # in mpp, a libsiril.a was created to not require the endless dummy list of functions:
 # https://gitlab.com/free-astro/siril/-/blob/mpp/src/Makefile.am

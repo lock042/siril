@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -65,7 +65,7 @@ static void clahe_close(gboolean revert) {
 static int clahe_update_preview() {
 	copy_backup_to_gfit();
 
-	struct CLAHE_data *args = malloc(sizeof(struct CLAHE_data));
+	struct CLAHE_data *args = calloc(1, sizeof(struct CLAHE_data));
 
 	set_cursor_waiting(TRUE);
 
@@ -73,7 +73,8 @@ static int clahe_update_preview() {
 	args->clip = clahe_limit_value;
 	args->tileSize = clahe_tile_size;
 
-	start_in_new_thread(clahe, args);
+	if (!start_in_new_thread(clahe, args))
+		free(args);
 	return 0;
 }
 
@@ -84,9 +85,9 @@ static gboolean end_clahe(gpointer p) {
 
 	free(args);
 
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return FALSE;
 }
 

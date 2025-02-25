@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -623,7 +623,7 @@ static int make_index_for_current_display(int vport) {
 			index[i] = UCHAR_MAX;
 		}
 	}
-	if (gfit.color_managed && gui.icc.same_primaries && gui.rendering_mode != STF_DISPLAY)
+	if (gfit.color_managed && gui.icc.same_primaries && gui.icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
 		display_index_transform(index, vport);
 
 	last_pente = slope;
@@ -1603,6 +1603,8 @@ static void draw_annotates(const draw_data_t* dd) {
 		gdouble radius = get_catalogue_object_radius(object);
 		gdouble x = get_catalogue_object_x(object);
 		gdouble y = get_catalogue_object_y(object);
+		gdouble x1 = get_catalogue_object_x1(object);
+		gdouble y1 = get_catalogue_object_y1(object);
 		gchar *code = get_catalogue_object_code_pretty(object);
 		guint catalog = get_catalogue_object_cat(object);
 		gboolean revert = FALSE;
@@ -1640,7 +1642,11 @@ static void draw_annotates(const draw_data_t* dd) {
 		// radius now in pixels
 
 		point offset = {5., revert ? 5. : -5.};
-		if (radius < 0) {
+		if (catalog == CAT_AN_CONST) { // constellation line
+			cairo_move_to(cr, x, y);
+			cairo_line_to(cr, x1, y1);
+			cairo_stroke(cr);
+		} else if (radius < 0 || catalog == CAT_AN_CONST_NAME) {
 			// objects we don't have an accurate location (LdN, Sh2)
 		} else if (radius > 5) {
 			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
@@ -1795,10 +1801,15 @@ static void draw_regframe(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	double size = 10. / dd->zoom;
 	cairo_set_dash(cr, NULL, 0, 0);
+	gboolean has_disto = seq_has_any_distortion(&com.seq);
 	if (max <= SHIFT_TRANSFORMATION)
 		cairo_set_source_rgb(cr, 0.0, 0.5, 1.0);
-	else
-		cairo_set_source_rgb(cr, 1., 0., 0.);
+	else {
+		if (has_disto)
+			cairo_set_source_rgb(cr, 0., 1., 0.5);
+		else
+			cairo_set_source_rgb(cr, 1., 0., 0.);
+	}
 
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 	// reference origin
@@ -1900,7 +1911,7 @@ void adjust_vport_size_to_image() {
 
 void copy_roi_into_gfit() {
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
-	if (npixels_roi == 0 || com.script)
+	if (npixels_roi == 0 || com.script || com.python_command)
 		return;
 	size_t npixels_gfit = gfit.rx * gfit.ry;
 	if (gui.roi.fit.type != gfit.type) {
@@ -1958,7 +1969,7 @@ void copy_roi_into_gfit() {
 }
 
 void redraw(remap_type doremap) {
-	if (com.script) return;
+	if (com.script && !com.python_script) return;
 //	siril_debug_print("redraw %d\n", doremap);
 	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit.type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit.type == DATA_USHORT && gui.roi.fit.data)))
 		copy_roi_into_gfit();
@@ -2148,4 +2159,6 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 	draw_annotates(&dd);
 	/* analysis */
 	draw_analysis(&dd);
+	/* distortions */
+	draw_wcs_disto(&dd);
 }

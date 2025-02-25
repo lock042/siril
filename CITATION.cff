@@ -1,0 +1,49 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Richard
+  given-names: Cyril
+  orcid: "https://orcid.org/0000-0002-8882-8448"
+- family-names: Hourdin
+  given-names: Vincent
+  orcid: "https://orcid.org/0009-0005-3901-552X"
+- family-names: Melis
+  given-names: Cécile
+  orcid: "https://orcid.org/0009-0008-4722-3371"
+- family-names: Knagg-Baugh
+  given-names: Adrian
+  orcid: "https://orcid.org/0009-0000-7994-0350"
+contact:
+- family-names: Richard
+  given-names: Cyril
+  orcid: "https://orcid.org/0000-0002-8882-8448"
+doi: 10.5281/zenodo.13880498
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Richard
+    given-names: Cyril
+    orcid: "https://orcid.org/0000-0002-8882-8448"
+  - family-names: Hourdin
+    given-names: Vincent
+    orcid: "https://orcid.org/0009-0005-3901-552X"
+  - family-names: Melis
+    given-names: Cécile
+    orcid: "https://orcid.org/0009-0008-4722-3371"
+  - family-names: Knagg-Baugh
+    given-names: Adrian
+    orcid: "https://orcid.org/0009-0000-7994-0350"
+  date-published: 2024-10-15
+  doi: 10.21105/joss.07242
+  issn: 2475-9066
+  issue: 102
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 7242
+  title: "Siril: An Advanced Tool for Astronomical Image Processing"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.07242"
+  volume: 9
+title: "Siril: An Advanced Tool for Astronomical Image Processing"
+

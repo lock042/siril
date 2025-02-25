@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -92,7 +92,7 @@ typedef struct siril_plot_data_struct {
 	int height; // height of the display area (if 0, uses SIRIL_PLOT_DISPLAY_HEIGHT)
 } siril_plot_data;
 
-void init_siril_plot_data(siril_plot_data *spl_data);
+siril_plot_data* init_siril_plot_data();
 void free_siril_plot_data(siril_plot_data *spl_data);
 void siril_plot_sort_x(siril_plot_data *spl_data);
 

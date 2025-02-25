@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@
 #include "io/sequence.h"
 #include "gui/image_display.h"
 
-void reset_cut_gui_filedependent() { // Separated out to avoid having to repeat too much after opening a new file
+gboolean reset_cut_gui_filedependent(gpointer user_data) { // Separated out to avoid having to repeat too much after opening a new file
 	GtkWidget *colorbutton = (GtkWidget*) lookup_widget("cut_radio_color");
 	GtkWidget *cfabutton = (GtkWidget*) lookup_widget("cut_cfa");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
@@ -50,9 +50,10 @@ void reset_cut_gui_filedependent() { // Separated out to avoid having to repeat 
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 	GtkToggleButton* as = (GtkToggleButton*) lookup_widget("cut_dist_pref_as");
 	gtk_toggle_button_set_active(as, gfit.keywords.wcsdata.pltsolvd);
+	return FALSE;
 }
 
-static void reset_cut_gui() {
+static gboolean reset_cut_gui(gpointer user_data) {
 	GtkToggleButton *radio_mono = (GtkToggleButton*) lookup_widget("cut_radio_mono");
 	gtk_toggle_button_set_active(radio_mono, TRUE);
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
@@ -87,7 +88,8 @@ static void reset_cut_gui() {
 	gtk_toggle_button_set_active(plot_spectro_bg, FALSE);
 	GtkEntry *title = (GtkEntry*) lookup_widget("cut_title");
 	gtk_entry_set_text(title, "Intensity Profile");
-	reset_cut_gui_filedependent();
+	reset_cut_gui_filedependent(NULL);
+	return FALSE;
 }
 
 void initialize_cut_struct(cut_struct *arg) {
@@ -124,8 +126,7 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->save_png_too = FALSE;
 	arg->pref_as = gfit.keywords.wcsdata.pltsolvd;
 	arg->vport = -1;
-	if (!com.script)
-		reset_cut_gui();
+	gui_function(reset_cut_gui, NULL);
 }
 
 void free_cut_args(cut_struct *arg) {
@@ -432,14 +433,18 @@ gpointer cut_profile(gpointer p) {
 	gchar *filename = NULL, *imagefilename = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
-	siril_plot_data *spl_data = NULL;
+	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		retval = 1;
+		goto END;
+	}
 
 	build_profile_filenames(arg, &filename, &imagefilename);
 
 	point delta;
 	delta.x = arg->cut_end.x - arg->cut_start.x;
 	delta.y = endy - starty;
-	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.) {
 		retval = 1;
@@ -535,8 +540,6 @@ gpointer cut_profile(gpointer p) {
 		}
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_add_xydata(spl_data, spl_legend, nbr_points, x, r, NULL, NULL);
@@ -592,18 +595,24 @@ gpointer tri_cut(gpointer p) {
 	char *filename = NULL, *imagefilename = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
-	siril_plot_data *spl_data = NULL;
+	double *x = NULL, *r[3] = { 0 };
 	gchar *spllabels[3] = { NULL };
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		retval = 1;
+		goto END;
+	}
 
 	build_profile_filenames(arg, &filename, &imagefilename);
 
 	point delta;
 	delta.x = arg->cut_end.x - arg->cut_start.x;
 	delta.y = endy - starty;
-	double *x = NULL, *r[3] = { 0 };
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.) {
 		retval = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL;
 		goto END;
 	}
 	int nbr_points = (int) length;
@@ -742,8 +751,6 @@ gpointer tri_cut(gpointer p) {
 		xlabel = g_strdup_printf(_("Distance along cut / px"));
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
@@ -794,8 +801,11 @@ gpointer cfa_cut(gpointer p) {
 	char *filename = NULL,*imagefilename = NULL;
 	fits cfa[4];
 	memset(cfa, 0, 4 * sizeof(fits));
-	siril_plot_data *spl_data = NULL;
-
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		retval = 1;
+		goto END;
+	}
 	build_profile_filenames(arg, &filename, &imagefilename);
 
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
@@ -803,12 +813,16 @@ gpointer cfa_cut(gpointer p) {
 		if ((ret = split_cfa_ushort(arg->fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
 			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
 			retval = 1;
+			free_siril_plot_data(spl_data);
+			spl_data = NULL;
 			goto END;
 		}
 	} else {
 		if ((ret = split_cfa_float(arg->fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
 			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
 			retval = 1;
+			free_siril_plot_data(spl_data);
+			spl_data = NULL;
 			goto END;
 		}
 	}
@@ -822,6 +836,8 @@ gpointer cfa_cut(gpointer p) {
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.) {
 		retval = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL;
 		goto END;
 	}
 	int nbr_points = (int) length;
@@ -830,8 +846,7 @@ gpointer cfa_cut(gpointer p) {
 	double conversionfactor = get_conversion_factor(arg->fit);
 	if (arg->pref_as) {
 		if (conversionfactor != -DBL_MAX) {
-			point_spacing *= conversionfactor; // TODO: check - should this be *= 2.0 to account for the spacing between
-												// pixels in the same CFA channel?
+			point_spacing *= conversionfactor;
 		}
 	}
 	double point_spacing_x = (double) delta.x / nbr_points;
@@ -863,8 +878,6 @@ gpointer cfa_cut(gpointer p) {
 		xlabel = g_strdup_printf(_("Distance along cut / px"));
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
@@ -974,13 +987,16 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		memcpy(p, &gui.cut, sizeof(cut_struct));
 		if (p->tri) {
 			siril_debug_print("Tri-profile\n");
-			start_in_new_thread(tri_cut, p);
+			if (!start_in_new_thread(tri_cut, p))
+				free(p);
 		} else if (p->cfa) {
 			siril_debug_print("CFA profiling\n");
-			start_in_new_thread(cfa_cut, p);
+			if (!start_in_new_thread(cfa_cut, p))
+				free(p);
 		} else {
 			siril_debug_print("Single profile\n");
-			start_in_new_thread(cut_profile, p);
+			if (!start_in_new_thread(cut_profile, p))
+				free(p);
 		}
 	}
 }
@@ -1379,5 +1395,8 @@ void apply_cut_to_sequence(cut_struct* cut_args) {
 	args->stop_on_error = FALSE;
 	args->user = cut_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(args->user);
+		free_generic_seq_args(args, TRUE);
+	}
 }

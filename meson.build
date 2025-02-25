@@ -1,6 +1,6 @@
 # This file is part of Siril, an astronomy image processor.
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+# Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
 # Reference site is https://siril.org
 #
 # Siril is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.3.2-alpha-dev',
+  version : '1.3.6',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
   default_options : [
@@ -152,6 +152,7 @@ siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OF
 
 if platform_linux
   siril_link_arg += ['-rdynamic']
+  siril_link_arg += '-lrt' # for shm_open()
 elif platform_bsd
   siril_link_arg += '-Wl,--no-as-needed' # workaround for https://gitlab.com/free-astro/siril/-/issues/614 (Bug#251206)
   siril_link_arg += '-rdynamic'
@@ -231,10 +232,10 @@ endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
+# lcms2 dependency for color management
 lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
 # wcslib mandatory - uses subproject fallback to build if not found
 wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true, version: '>= 7.12')
-json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f
@@ -306,6 +307,24 @@ endif
   htmesh_inc = sub_proj.include_directories('htmesh')
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
+endif
+gtksourceview_dep = dependency('gtksourceview-4')
+
+healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
+yyjson_dep = dependency('yyjson', required : false, version: '>= 0.10.0')
+if not yyjson_dep.found()
+  opt_var = cmake.subproject_options()
+  # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
+  opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/yyjson'})
+if platform_windows
+  opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
+endif
+  sub_proj = cmake.subproject('yyjson', options: opt_var)
+
+  yyjson_dep = sub_proj.dependency('yyjson')
+  yyjson_inc = sub_proj.include_directories('yyjson')
+else
+  siril_cpp_flag += '-DHAVE_YYJSON'
 endif
 
 ## Optional dependencies
@@ -487,6 +506,10 @@ else
   conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'other')
 endif
 
+if get_option('flatpak-id') != ''
+  conf_data.set_quoted('FLATPAK_ID', get_option('flatpak-id'))
+endif
+
 # Check for available headers
 foreach header : [
     { 'm': 'HAVE_EXECINFO_H',     'v': 'execinfo.h' },
@@ -625,11 +648,11 @@ externals_dep = declare_dependency(
     opencv4_dep,
     rtprocess_dep,
     htmesh_dep,
+    healpix_dep,
     exiv_dep,
     wcslib_dep,
     fftw3f_dep,
     cfitsio_dep,
-    json_glib_dep,
     libraw_dep,
     libtiff_dep,
     libjpeg_dep,
@@ -641,7 +664,9 @@ externals_dep = declare_dependency(
     ffms2_dep,
     openmp_dep,
     kplot_dep,
-    ffmpeg
+    ffmpeg,
+    gtksourceview_dep,
+    yyjson_dep
   ]
 )
 
@@ -654,6 +679,7 @@ subdir('src')
 subdir('pixmaps')
 subdir('data')
 subdir('po')
+subdir('python_module')
 subdir('scripts')
 subdir('3rdparty_licenses')
 

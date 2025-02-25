@@ -2,7 +2,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -82,8 +82,7 @@ int register_shift_dft(struct registration_args *args) {
 		nb_frames = (float) args->seq->number;
 
 	if (args->seq->regparam[args->layer]) {
-		siril_log_message(
-				_("Recomputing already existing registration for this layer\n"));
+		siril_log_message(_("Recomputing already existing registration for this layer\n"));
 		current_regdata = args->seq->regparam[args->layer];
 		/* we reset all values as we may register different images */
 		memset(current_regdata, 0, args->seq->number * sizeof(regdata));

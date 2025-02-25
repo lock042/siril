@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -67,10 +67,13 @@ int save_wcs_keywords(fits *fit);
 void read_fits_date_obs_header(fits *fit);
 int read_fits_keywords(fits *fit);
 int remove_all_fits_keywords(fits *fit);
+void clear_Bayer_information(fits *fit);
 
 void set_all_keywords_default(fits *fit);
 void remove_keyword_in_fit_keywords(const gchar *keyword, fits *fit);
 
 void start_sequence_keywords(sequence *seq, struct keywords_data *args);
+
+int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry);
 
 #endif /* SRC_IO_FITS_KEYWORDS_H_ */

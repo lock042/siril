@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -685,7 +684,6 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright) {
 }
 
 /*** This function save the current image into a uncompressed 8- or 16-bit file *************/
-
 int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		const gchar *description, const gchar *copyright,
 		gboolean tiff_compression, gboolean embeded_icc, gboolean verbose) {
@@ -729,8 +727,6 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	if (copyright) {
 		TIFFSetField(tif, TIFFTAG_COPYRIGHT, copyright);
 	}
-	TIFFSetField(tif, TIFFTAG_MINSAMPLEVALUE, fit->mini);
-	TIFFSetField(tif, TIFFTAG_MAXSAMPLEVALUE, fit->maxi);
 	TIFFSetField(tif, TIFFTAG_SOFTWARE, PACKAGE " v" VERSION);
 
 	gboolean src_is_float = (fit->type == DATA_FLOAT);
@@ -856,7 +852,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 				}
 			}
 		}
-		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = width * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
 		if (save_transform) { // For "use image ICC profile" save_transform will be NULL, no need to transform the data
@@ -1318,11 +1314,11 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 			save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
 		}
 #endif
-		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = fit->rx * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
 		if (save_transform) { // save_transform will be NULL if saving in the current image colorspace
-			cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+			cmsDoTransformLineStride(save_transform, buf, dest, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(save_transform);
 		}
 		gbuf[0] = (WORD*) dest;
@@ -1844,9 +1840,9 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		// Apply ICC transform (only for color managed images)
 		if (fit->color_managed && fit->icc_profile) {
 			cmsUInt32Number datasize = sizeof(WORD);
-			cmsUInt32Number bytesperline = gfit.rx * datasize * fit->naxes[2];
-			cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
-			cmsDoTransformLineStride(save_transform, data, data, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+			cmsUInt32Number bytesperline = fit->rx * datasize * fit->naxes[2];
+			cmsUInt32Number bytesperplane = fit->rx * fit->ry * datasize;
+			cmsDoTransformLineStride(save_transform, data, data, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(save_transform);
 		}
 		for (unsigned i = 0, j = height - 1; i < height; i++)
@@ -1856,9 +1852,9 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		// Apply ICC transform
 		if (fit->color_managed && fit->icc_profile) {
 			cmsUInt32Number datasize = sizeof(BYTE);
-			cmsUInt32Number bytesperline = gfit.rx * datasize;
-			cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
-			cmsDoTransformLineStride(save_transform, data8, data8, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+			cmsUInt32Number bytesperline = fit->rx * datasize;
+			cmsUInt32Number bytesperplane = fit->rx * fit->ry * datasize;
+			cmsDoTransformLineStride(save_transform, data8, data8, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(save_transform);
 		}
 		for (unsigned i = 0, j = height - 1; i < height; i++)

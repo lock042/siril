@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -56,7 +56,7 @@ static gboolean end_rgradient_filter(gpointer p) {
 	struct rgradient_filter_data *args = (struct rgradient_filter_data *) p;
 	stop_processing_thread();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 
 	free(args);
@@ -234,7 +234,7 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct rgradient_filter_data *args = malloc(sizeof(struct rgradient_filter_data));
+	struct rgradient_filter_data *args = calloc(1, sizeof(struct rgradient_filter_data));
 	args->xc = get_xc();
 	args->yc = get_yc();
 	args->dR = get_dR();
@@ -251,7 +251,8 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 	undo_save_state(&gfit, _("RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"),
 			args->dR, args->da, args->xc, args->yc);
 
-	start_in_new_thread(rgradient_filter, args);
+	if (!start_in_new_thread(rgradient_filter, args))
+		free(args);
 	}
 }
 

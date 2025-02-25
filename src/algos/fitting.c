@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -152,7 +152,7 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 
 	siril_log_color_message(_("Linear fit functions:\n"), "green");
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
-		size_t j = 0;
+		ssize_t j = 0;
 		double *x = malloc(ref_size * sizeof(double));
 		double *y = malloc(ref_size * sizeof(double));
 		for (size_t i = 0; i < ref_size; i++) {
@@ -167,12 +167,22 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 			}
 		}
 		j--;
-		gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11, &sumsq);
-		siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
-		free(x);
-		free(y);
-		a[channel] = c1;
-		b[channel] = c0;
+		if (j > 1) {
+			gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11, &sumsq);
+			siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
+			free(x);
+			free(y);
+			a[channel] = c1;
+			b[channel] = c0;
+		} else {
+			gchar *err = siril_log_color_message(_("Error! Need at least 2 points...\n"), "red");
+			if (error) {
+				*error = err;
+			}
+			free(x);
+			free(y);
+			return -1;
+		}
 	}
 	return 0;
 }
@@ -192,7 +202,7 @@ static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double
 
 	siril_log_color_message(_("Linear fit functions:\n"), "green");
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
-		size_t j = 0;
+		ssize_t j = 0;
 		double *x = malloc(ref_size * sizeof(double));
 		double *y = malloc(ref_size * sizeof(double));
 		for (size_t i = 0; i < ref_size; i++) {
@@ -207,12 +217,22 @@ static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double
 			}
 		}
 		j--;
-		gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11,	&sumsq);
-		siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
-		free(x);
-		free(y);
-		a[channel] = c1;
-		b[channel] = c0;
+		if (j > 1) {
+			gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11,	&sumsq);
+			siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
+			free(x);
+			free(y);
+			a[channel] = c1;
+			b[channel] = c0;
+		} else {
+			gchar *err = siril_log_color_message(_("Error! Need at least 2 points...\n"), "red");
+			if (error) {
+				*error = err;
+			}
+			free(x);
+			free(y);
+			return -1;
+		}
 	}
 	return 0;
 }

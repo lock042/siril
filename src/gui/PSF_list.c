@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -764,7 +764,6 @@ void clear_stars_list(gboolean refresh_GUI) {
 		display_status();
 }
 
-
 struct star_update_s {
 	psf_star **stars;
 	gboolean update_GUI;
@@ -785,11 +784,14 @@ static gboolean update_stars_idle(gpointer p) {
  * assuming stars to not be shared with a sequence (star_is_seqdata false)
  * the PSF window's list will be cleared, only refilled if update_PSF_list is true
  */
-void update_star_list(psf_star **new_stars, gboolean update_PSF_list) {
-	struct star_update_s *args = malloc(sizeof(struct star_update_s));
+void update_star_list(psf_star **new_stars, gboolean update_PSF_list, gboolean wait_for_update) {
+	struct star_update_s *args = calloc(1, sizeof(struct star_update_s));
 	args->stars = new_stars;
 	args->update_GUI = update_PSF_list;
-	siril_add_idle(update_stars_idle, args);
+	if (wait_for_update)
+		execute_idle_and_wait_for_it(update_stars_idle, args);
+	else
+		siril_add_idle(update_stars_idle, args);
 }
 
 static int get_comstar_count() {

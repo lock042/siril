@@ -523,15 +523,21 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="label135">
+                          <object class="GtkEntry" id="histoHighEntry">
                             <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Midtones: </property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Highlights clipping</property>
+                            <property name="hexpand">True</property>
+                            <property name="has-frame">False</property>
+                            <property name="width-chars">10</property>
+                            <property name="text">1.0000000</property>
+                            <property name="input-purpose">number</property>
+                            <signal name="activate" handler="on_histoHighEntry_activate" swapped="no"/>
+                            <signal name="focus-out-event" handler="on_histoHighEntry_focus_out_event" swapped="no"/>
                           </object>
                           <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">2</property>
                           </packing>
                         </child>
                         <child>
@@ -540,6 +546,18 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Shadows: </property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label135">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Midtones: </property>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -561,7 +579,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
+                            <property name="top-attach">1</property>
                           </packing>
                         </child>
                         <child>
@@ -579,25 +597,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
-                            <property name="top-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkEntry" id="histoHighEntry">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Highlights clipping</property>
-                            <property name="hexpand">True</property>
-                            <property name="has-frame">False</property>
-                            <property name="width-chars">10</property>
-                            <property name="text">1.0000000</property>
-                            <property name="input-purpose">number</property>
-                            <signal name="activate" handler="on_histoHighEntry_activate" swapped="no"/>
-                            <signal name="focus-out-event" handler="on_histoHighEntry_focus_out_event" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">2</property>
+                            <property name="top-attach">0</property>
                           </packing>
                         </child>
                       </object>
@@ -740,24 +740,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="spacing">6</property>
                     <property name="homogeneous">True</property>
                     <child>
-                      <object class="GtkCheckButton" id="HistoCheckPreview">
-                        <property name="label" translatable="yes">Preview</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Toggle preview on / off</property>
-                        <property name="halign">start</property>
-                        <property name="active">True</property>
-                        <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_histo_preview_toggled" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -799,6 +781,24 @@ Globa rescale: Same as Rescale, but rescales to the global maximum component val
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">5</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="HistoCheckPreview">
+                    <property name="label" translatable="yes">Preview</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">Toggle preview on / off</property>
+                    <property name="halign">start</property>
+                    <property name="active">True</property>
+                    <property name="draw-indicator">True</property>
+                    <signal name="toggled" handler="on_histo_preview_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">6</property>
                   </packing>
                 </child>
               </object>
@@ -978,7 +978,7 @@ Note: human-weighted luminance is not allowed if less than 3 colour channels are
                             <property name="can-focus">True</property>
                             <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with b to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
                             <property name="width-chars">10</property>
-                            <property name="text">0,000</property>
+                            <property name="text">0.000</property>
                             <property name="progress-pulse-step">0.01</property>
                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                             <property name="adjustment">adjustment_payneD</property>
@@ -1047,7 +1047,7 @@ Note: human-weighted luminance is not allowed if less than 3 colour channels are
                             <property name="can-focus">True</property>
                             <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value of b will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjustment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of b will decrease as a stretch sequence nears completion, although larger values (with small D) can still be used for precise placement of additional contrast.</property>
                             <property name="width-chars">10</property>
-                            <property name="text">0,500</property>
+                            <property name="text">0.500</property>
                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                             <property name="adjustment">adjustment_payneb</property>
                             <property name="digits">3</property>
@@ -1117,7 +1117,7 @@ Note: human-weighted luminance is not allowed if less than 3 colour channels are
                             <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
                             <property name="valign">center</property>
                             <property name="width-chars">10</property>
-                            <property name="text">0,00000</property>
+                            <property name="text">0.00000</property>
                             <property name="progress-fraction">0.01</property>
                             <property name="progress-pulse-step">0.01</property>
                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
@@ -1207,7 +1207,7 @@ Note: human-weighted luminance is not allowed if less than 3 colour channels are
                             <property name="can-focus">True</property>
                             <property name="tooltip-text" translatable="yes">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
                             <property name="width-chars">10</property>
-                            <property name="text">0,00000</property>
+                            <property name="text">0.00000</property>
                             <property name="progress-pulse-step">0.01</property>
                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                             <property name="adjustment">adjustment_payneLP</property>
@@ -1276,7 +1276,7 @@ Note: human-weighted luminance is not allowed if less than 3 colour channels are
                             <property name="can-focus">True</property>
                             <property name="tooltip-text" translatable="yes">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This is done by performing a linear stretch of the data above HP by reserving contrast from the rest of the image. Moving HP towards SP inreases both the scope and the amount of this contrast reservation, the net effect is to push the overall stretch to lower brightness levels while keeping the contrast and definition in the highlights. This parameter must be less than or equal to 1 and not less than SP.</property>
                             <property name="width-chars">10</property>
-                            <property name="text">1,00000</property>
+                            <property name="text">1.00000</property>
                             <property name="progress-pulse-step">0.01</property>
                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                             <property name="adjustment">adjustment_payneHP</property>
@@ -1347,7 +1347,7 @@ Note: human-weighted luminance is not allowed if less than 3 colour channels are
                             <property name="tooltip-text" translatable="yes">Black point adjustment. This is a constant value that is subtracted from the image. NOTE: altering BP can clip pixels in which case this transformation is non-reversible.</property>
                             <property name="halign">end</property>
                             <property name="width-chars">10</property>
-                            <property name="text">0,00000</property>
+                            <property name="text">0.00000</property>
                             <property name="progress-pulse-step">0.01</property>
                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                             <property name="adjustment">adj_black_point_payne</property>

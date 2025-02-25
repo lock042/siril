@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -48,6 +48,8 @@ static const gchar *cat[] = {
 	"ldn.csv",
 	"sh2.csv",
 	"stars.csv",
+	"constellations.csv",
+	"constellationsnames.csv",
 	/* below this line, user catalogues are in the user directory, not the
 	 * siril install dir.  */
 	"user-DSO-catalogue.csv",
@@ -66,6 +68,8 @@ struct _CatalogObjects {
 	gchar *pretty_code;	// name with greek characters
 	double x;	// in fits_display coords
 	double y;	// in fits_display coords
+	double x1;	// in fits_display coords
+	double y1;	// in fits_display coords
 	gdouble radius;	// in degrees but in the files it's the diameter. 0 for point-like,
 			// negative for no accurate size
 	gchar *alias;
@@ -73,14 +77,17 @@ struct _CatalogObjects {
 };
 
 static CatalogObjects* new_catalog_object(const gchar *name, double x,
-		double y, double radius, const gchar *alias,
+		double y, double x1,
+		double y1, double radius, const gchar *alias,
 		siril_cat_index catalogue) {
 	CatalogObjects *object = g_new(CatalogObjects, 1);
 
 	object->code = (name) ? g_strdup(name) : NULL;
 	object->pretty_code = NULL;
-	object->x= x;
+	object->x = x;
 	object->y = y;
+	object->x1 = x1;
+	object->y1 = y1;
 	object->radius = radius;
 	object->alias = (alias) ? g_strdup(alias) : NULL;
 	object->catalogue = catalogue;
@@ -184,9 +191,7 @@ gchar *get_annotation_catalog_filename(siril_cat_index cat_index, gboolean for_r
  */
 static annotations_catalogue_t *load_catalog(siril_cat_index cat_index, const gchar *filename) {
 	gboolean islocal = !filename;
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = cat_index;
-	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+	siril_catalogue *siril_cat = siril_catalog_new(cat_index);
 	if (islocal)
 		filename = get_annotation_catalog_filename(cat_index, TRUE);
 	if (!filename || siril_catalog_load_from_file(siril_cat, filename)) {// use the generic csv parser
@@ -427,14 +432,24 @@ GSList *find_objects_in_field(fits *fit) {
 					fabs(siril_cat->cat_items[i].siteelev - fit->keywords.siteelev) > 1.)
 					continue;
 			}
+
 			if (siril_cat->cat_items[i].included) { //included means it is within the bounds of the image after projection
-				double x, y;
+				double x = 0., y = 0., x1 = 0., y1 = 0.;
 				// we write directly in display coordinates to avoid the flip at every redraw
 				siril_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &x, &y, fit->ry);
+				x = siril_cat->cat_items[i].x;
+				y = fit->ry - siril_cat->cat_items[i].y;
+				if (siril_cat->cat_index == CAT_AN_CONST) {
+					siril_to_display(siril_cat->cat_items[i].x1, siril_cat->cat_items[i].y1, &x1, &y1, fit->ry);
+					x1 = siril_cat->cat_items[i].x1;
+					y1 = fit->ry - siril_cat->cat_items[i].y1;
+				}
 				CatalogObjects *cur = new_catalog_object(
 					siril_cat->cat_items[i].name,
 					x,
 					y,
+					x1,
+					y1,
 					(is_star_cat) ? starradius : .5 * siril_cat->cat_items[i].diameter,
 					siril_cat->cat_items[i].alias,
 					siril_cat->cat_index
@@ -518,9 +533,7 @@ void add_item_in_catalogue(cat_item *item, siril_cat_index cat_index, gboolean c
 	GSList *cur = find_catalogue_by_index(cat_index);
 	if (!cur || !cur->data) {// the catalog does not exist yet
 		annotations_catalogue_t *annot_cat = calloc(1, sizeof(annotations_catalogue_t));
-		siril_cat = calloc(1, sizeof(siril_catalogue));
-		siril_cat->cat_index = cat_index;
-		siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+		siril_cat = siril_catalog_new(cat_index);
 		annot_cat->cat = siril_cat;
 		annot_cat->show = TRUE;
 		siril_annot_catalogue_list = g_slist_append(siril_annot_catalogue_list, annot_cat);
@@ -683,6 +696,14 @@ gdouble get_catalogue_object_x(const CatalogObjects *object) {
 
 gdouble get_catalogue_object_y(const CatalogObjects *object) {
 	return object->y;
+}
+
+gdouble get_catalogue_object_x1(const CatalogObjects *object) {
+	return object->x1;
+}
+
+gdouble get_catalogue_object_y1(const CatalogObjects *object) {
+	return object->y1;
 }
 
 gdouble get_catalogue_object_radius(const CatalogObjects *object) {

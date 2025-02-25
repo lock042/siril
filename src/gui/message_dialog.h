@@ -9,9 +9,18 @@ struct siril_dialog_data {
 	gchar *data;
 	const char *primary_text;
 	const char *secondary_text;
+	gpointer user_data;
 };
 
+struct message_data {
+	GtkMessageType type;
+	char *title;
+	char *text;
+};
+
+gboolean siril_message_dialog_idle(gpointer p);
 void siril_message_dialog(GtkMessageType type, char *title, char *text);
+void queue_message_dialog(GtkMessageType type, const char *title, const char *text);
 void queue_error_message_dialog(const char *title, const char *text);
 void queue_warning_message_dialog(const char *title, const char *text);
 void siril_data_dialog(GtkMessageType type, char *title, char *text, gchar *data);

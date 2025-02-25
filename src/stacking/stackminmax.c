@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,6 +26,8 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "registration/registration.h"
+#include "algos/siril_wcs.h"
+#include "opencv/opencv.h"
 
 #include "stacking/stacking.h"
 
@@ -66,13 +68,18 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		return ST_GENERIC_ERROR;
 	}
 	int output_size[2], offset[2];
+	gboolean update_wcs = FALSE;
 	if (args->maximize_framing) {
 		compute_max_framing(args, output_size, offset);
+		update_wcs = TRUE;
 	} else {
 		output_size[0] = args->seq->rx;
 		output_size[1] = args->seq->ry;
-		double dx, dy;
-		translation_from_H(args->seq->regparam[reglayer][args->ref_image].H, &dx, &dy);
+		double dx = 0., dy = 0.;
+		if (reglayer >= 0) {
+			translation_from_H(args->seq->regparam[reglayer][args->ref_image].H, &dx, &dy);
+			update_wcs = TRUE;
+		}
 		offset[0] = (int)dx;
 		offset[1] = (int)dy;
 	}
@@ -257,6 +264,22 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		result->keywords.livetime = result->keywords.exposure * args->nb_images_to_stack; // livetime is null for ser as fit has no exposure data
 	}
 	result->keywords.stackcnt = args->nb_images_to_stack;
+	if (update_wcs && has_wcs(result)) {
+		Homography Hs = { 0 };
+		cvGetEye(&Hs);
+		double dx, dy;
+		translation_from_H(args->seq->regparam[args->reglayer][args->ref_image].H, &dx, &dy);
+		siril_debug_print("ref shift: %d %d\n", (int)dx, (int)dy);
+		siril_debug_print("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
+		Hs.h02  = dx - offset[0];
+		Hs.h12 -= dy - offset[1];
+		int orig_rx = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].rx : args->seq->rx;
+		int orig_ry = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].ry : args->seq->ry;
+		siril_debug_print("size: %d %d\n", orig_rx, orig_ry);
+		cvApplyFlips(&Hs, orig_ry, 0);
+		reframe_wcs(result->keywords.wcslib, &Hs);
+		update_wcsdata_from_wcs(result);
+	}
 
 	compute_date_time_keywords(list_date, result);
 	g_list_free_full(list_date, (GDestroyNotify) free_list_date);

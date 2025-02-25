@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -877,6 +877,36 @@ gchar* replace_wide_char(const gchar *str) {
 	return g_string_free(ascii_str, FALSE);
 }
 
+static image_type determine_image_type_from_magic(const uint8_t *magic, size_t bytes_read) {
+	if (bytes_read < 2) return TYPEUNDEF;
+
+	if (magic[0] == 'B' && magic[1] == 'M')
+		return TYPEBMP;
+	if (bytes_read >= 9 && memcmp(magic, "SIMPLE  =", 9) == 0)
+		return TYPEFITS;
+	if (bytes_read >= 3 && magic[0] == 0xFF && magic[1] == 0xD8 && magic[2] == 0xFF)
+		return TYPEJPG;
+	if (bytes_read >= 8 && memcmp(magic, "\x89PNG\r\n\x1A\n", 8) == 0)
+		return TYPEPNG;
+	if (bytes_read >= 4 && ((memcmp(magic, "II*\0", 4) == 0) || (memcmp(magic, "MM\0*", 4) == 0)))
+		return TYPETIFF;
+	if (bytes_read >= 3 && (memcmp(magic, "P5\n", 3) == 0 || memcmp(magic, "P6\n", 3) == 0))
+		return TYPEPNM;
+	if (bytes_read >= 14 && memcmp(magic, "LUCAM-RECORDER", 14) == 0)
+		return TYPESER;
+	if (bytes_read >= 4 && memcmp(magic, "XISF", 4) == 0)
+		return TYPEXISF;
+	if (bytes_read >= 12 && ((memcmp(magic + 4, "ftypheic", 8) == 0) || (memcmp(magic + 4, "ftypmif1", 8) == 0)))
+		return TYPEHEIF;
+	if (bytes_read >= 12 && memcmp(magic + 4, "ftypavif", 8) == 0)
+		return TYPEAVIF;
+	if (bytes_read >= 12 && ((memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "JXL ", 4) == 0) ||
+		(magic[0] == 0xFF && magic[1] == 0x0A)))
+		return TYPEJXL;
+	return TYPEUNDEF;
+}
+
+
 /** Tests if filename is the canonical name of a known file type
  *  If filename contains an extension, only this file name is tested, else all
  *  extensions are tested for the file name until one is found.
@@ -886,53 +916,92 @@ gchar* replace_wide_char(const gchar *str) {
  *  must be freed with when no longer needed.
  * @return 0 if success, 1 if error
  */
+
 int stat_file(const char *filename, image_type *type, char **realname) {
-	int k;
-	const char *extension;
-	*type = TYPEUNDEF;	// default value
+	if (!filename || !type) return 1;
+	*type = TYPEUNDEF;
+	if (filename[0] == '\0') return 1;
 
-	/* check for an extension in filename and isolate it, including the . */
-	if (filename[0] == '\0')
-		return 1;
+	const char *extension = get_filename_ext(filename);
 
-	extension = get_filename_ext(filename);
-	/* if filename has an extension, we only test for it */
+	// Case 1: File has an extension
 	if (extension) {
-		if (is_readable_file(filename)) {
-			if (realname)
-				*realname = strdup(filename);
-			*type = get_type_for_extension(extension);
+		if (!is_readable_file(filename)) return 1;
+
+		*type = get_type_for_extension(extension);
+		if (*type == TYPEFITS) {
+			// Fast path: FITS files validated via extension + lstat only
+			if (realname) *realname = strdup(filename);
+			return 0;
+		}
+
+		// files that require magic number verification
+		FILE *file = g_fopen(filename, "rb");
+		if (!file) return 1;
+
+		uint8_t magic[16];
+		size_t bytes_read = fread(magic, 1, sizeof(magic), file);
+		fclose(file);
+
+		*type = determine_image_type_from_magic(magic, bytes_read);
+		if (*type != TYPEUNDEF) {
+			if (realname) *realname = strdup(filename);
 			return 0;
 		}
 		return 1;
 	}
 
-	/* else, we can test various file extensions */
-	/* first we test lowercase, then uppercase */
-	for (k = 0; k < 2; k++) {
-		int i = 0;
-		while (supported_extensions[i]) {
+	// Case 2: No extension - test candidates
+	for (int k = 0; k < 2; k++) {
+		for (int i = 0; supported_extensions[i]; i++) {
 			GString *testName = g_string_new(filename);
-			if (k == 0) {
-				testName = g_string_append(testName, supported_extensions[i]);
-			} else {
-				gchar *tmp = g_ascii_strup(supported_extensions[i],
-						strlen(supported_extensions[i]));
-				testName = g_string_append(testName, tmp);
-				g_free(tmp);
-			}
-			gchar *name = g_string_free(testName, FALSE);
+			const char *ext = supported_extensions[i];
 
-			if (is_readable_file(name)) {
-				*type = get_type_for_extension(supported_extensions[i] + 1);
-				assert(*type != TYPEUNDEF);
-				if (realname)
-					*realname = strdup(name);
-				g_free(name);
+			// Case 2a: Generate uppercase/lowercase variants
+			if (k == 1) {
+				gchar *upper_ext = g_ascii_strup(ext, -1);
+				g_string_append(testName, upper_ext);
+				g_free(upper_ext);
+			} else {
+				g_string_append(testName, ext);
+			}
+
+			gchar *candidate = g_string_free(testName, FALSE);
+
+			// Fast check first
+			if (!is_readable_file(candidate)) {
+				g_free(candidate);
+				continue;
+			}
+
+			image_type candidate_type = get_type_for_extension(ext + 1);
+			if (candidate_type != TYPEJPG) {
+				// Non-JPEG: trust extension + lstat
+				*type = candidate_type;
+				if (realname) *realname = strdup(candidate);
+				g_free(candidate);
 				return 0;
 			}
-			i++;
-			g_free(name);
+
+			// JPEG candidate: verify with magic
+			FILE *file = g_fopen(candidate, "rb");
+			if (!file) {
+				g_free(candidate);
+				continue;
+			}
+
+			uint8_t magic[16];
+			size_t bytes_read = fread(magic, 1, sizeof(magic), file);
+			fclose(file);
+
+			image_type magic_type = determine_image_type_from_magic(magic, bytes_read);
+			if (magic_type != TYPEUNDEF) {
+				*type = magic_type;
+				if (realname) *realname = strdup(candidate);
+				g_free(candidate);
+				return 0;
+			}
+			g_free(candidate);
 		}
 	}
 	return 1;
@@ -1294,7 +1363,7 @@ gchar *siril_truncate_str(gchar *str, gint size) {
  * @param arg_count
  * @return
  */
-char **glist_to_array(GList *list, int *arg_count) {
+gchar **glist_to_array(GList *list, int *arg_count) {
 	int count;
 	if (arg_count && *arg_count > 0)
 		count = *arg_count;
@@ -1303,7 +1372,7 @@ char **glist_to_array(GList *list, int *arg_count) {
 		if (arg_count)
 			*arg_count = count;
 	}
-	char **array = malloc((count + 1) * sizeof(char *));
+	char **array = g_malloc((count + 1) * sizeof(char *));
 	if (!array) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -1361,6 +1430,30 @@ void remove_spaces_from_str(gchar *s) {
 		}
 	} while((*s++ = *d++));
 }
+
+/**
+ * Checks if the given UTF-8 encoded string contains any whitespace characters.
+ * @param str The UTF-8 encoded string to check.
+ * @return TRUE if the string contains at least one whitespace character; FALSE otherwise.
+ */
+gboolean string_has_space(const gchar *str) {
+	if (str == NULL) {
+		return FALSE;
+	}
+
+	const gchar *p = str;
+
+	while (*p) {
+		gunichar c = g_utf8_get_char(p);
+		if (g_unichar_isspace(c)) {
+			return TRUE;
+		}
+		p = g_utf8_next_char(p);
+	}
+
+	return FALSE;
+}
+
 
 /**
  * Removing trailing carriage return and newline characters in-place
@@ -1532,6 +1625,16 @@ void replace_spaces_from_str(gchar *s, gchar c) {
 			--d;
 		}
 	} while((*s++ = *d++));
+}
+
+void replace_char_from_str(gchar *s, gchar in, gchar out) {
+	gchar *d = s;
+	while (*d) {
+		if (*d == in) {
+			*d = out;
+		}
+		d++;
+	}
 }
 
 /**
@@ -1957,13 +2060,113 @@ const gchar* find_first_nonnumeric(const gchar *string) {
     return NULL;
 }
 
-/* useful for debugging, checking when an image buffer changes or differs between runs */
-/*uint32_t djb33_hash(const char* s, size_t len) {
-    uint32_t h = 5381;
-    while (len--) {
-        // h = 33 * h ^ s[i];
-        h += (h << 5);
-        h ^= *s++;
-    }
-    return h;
-}*/
+int count_pattern_occurence(const gchar *string, const gchar *pattern) {
+	GRegex *regex;
+	GMatchInfo *match_info;
+	int count = 0;
+
+	regex = g_regex_new(pattern, G_REGEX_RAW, 0, NULL);
+	g_regex_match(regex, string, 0, &match_info);
+
+	// Loop through the matches
+	while (g_match_info_matches(match_info)) {
+		count++;
+		g_match_info_next(match_info, NULL);
+	}
+
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
+	return count;
+}
+
+static gboolean is_in_gtk_main_thread(void) {
+    return g_main_context_is_owner(g_main_context_default());
+}
+
+guint gui_function(GSourceFunc idle_function, gpointer data) {
+	if (com.headless) {
+		return 0;
+	} else if (is_in_gtk_main_thread()) {
+		// it is safe to call the function directly
+		idle_function(data);
+	} else {
+		// we aren't in the GTK main thread or a script, so we add an idle
+		siril_add_idle(idle_function, data);
+	}
+	return 0;
+}
+
+gchar *find_file_in_directory(gchar *basename, const gchar *path) {
+	gchar *full_path;
+	GStatBuf stat_buf;
+
+	// Validate input
+	if (!basename || !path) {
+		return NULL;
+	}
+
+	// Build the full path
+	full_path = g_build_filename(path, basename, NULL);
+
+	// Check if file exists and is a regular file
+	if (g_stat(full_path, &stat_buf) == 0 &&
+		S_ISREG(stat_buf.st_mode)) {
+		return full_path;
+	}
+
+	// Clean up and return NULL if file not found
+	g_free(full_path);
+	return NULL;
+}
+
+gchar *find_file_recursively(gchar *basename, const gchar *top_path) {
+	GDir *dir;
+	const gchar *filename;
+	gchar *full_path, *file_result = NULL;
+
+	// First, check the current directory
+	file_result = find_file_in_directory(basename, top_path);
+	if (file_result) {
+		return file_result;
+	}
+
+	// Open the directory
+	dir = g_dir_open(top_path, 0, NULL);
+	if (!dir) {
+		return NULL;
+	}
+
+	// Iterate through directory entries
+	while ((filename = g_dir_read_name(dir)) != NULL) {
+		// Construct full path
+		full_path = g_build_filename(top_path, filename, NULL);
+
+		// Check if it's a directory
+		if (g_file_test(full_path, G_FILE_TEST_IS_DIR)) {
+			// Ignore . and .. directories
+			if (g_strcmp0(filename, ".") != 0 && g_strcmp0(filename, "..") != 0) {
+				// Recursively search this subdirectory
+				file_result = find_file_recursively(basename, full_path);
+
+				// If file found, free the full path and return
+
+				if (file_result) {
+					g_free(full_path);
+					g_dir_close(dir);
+					return file_result;
+				}
+			}
+		}
+		g_free(full_path);
+	}
+
+	// Close the directory
+	g_dir_close(dir);
+
+	// File not found in this directory tree
+	return NULL;
+}
+
+char *strdupnullok(char *data) {
+	return (data) ? strdup(data) : NULL;
+}

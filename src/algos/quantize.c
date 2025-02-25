@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -38,30 +38,30 @@
 #define SIGMA_CLIP     5.
 #define NITER          3	/* number of sigma-clipping iterations */
 
-static int FnMeanSigma_ushort(WORD *array, long npix, int nullcheck,
-		WORD nullvalue, long *ngoodpix, double *mean, double *sigma,
+static int FnMeanSigma_ushort(WORD *array, long npix, 
+		long *ngoodpix, double *mean, double *sigma,
 		int *status);
-static int FnMeanSigma_float(float *array, long npix, int nullcheck,
-		float nullvalue, long *ngoodpix, double *mean, double *sigma,
+static int FnMeanSigma_float(float *array, long npix, 
+		long *ngoodpix, double *mean, double *sigma,
 		int *status);
 
-static int FnMeanSigma_int(int *array, long npix, int nullcheck, int nullvalue,
+static int FnMeanSigma_int(int *array, long npix,
 		long *ngoodpix, double *mean, double *sigma, int *status);
 
-static int FnNoise1_ushort(WORD *array, long nx, long ny, int nullcheck,
-		WORD nullvalue, double *noise, threading_type threads, int *status);
+static int FnNoise1_ushort(WORD *array, long nx, long ny, 
+		double *noise, threading_type threads, int *status);
 
-static int FnNoise1_float(float *array, long nx, long ny, int nullcheck,
-		float nullvalue, double *noise, threading_type threads, int *status);
+static int FnNoise1_float(float *array, long nx, long ny, 
+			double *noise, threading_type threads, int *status);
 
 
-static int FnNoise5_ushort(WORD *array, long nx, long ny, int nullcheck,
-		WORD nullvalue, long *ngood, WORD *minval, WORD *maxval, double *n2,
+static int FnNoise5_ushort(WORD *array, long nx, long ny, 
+		long *ngood, WORD *minval, WORD *maxval, double *n2,
 		double *n3, double *n5, int *status);
 
-static int FnNoise5_float(float *array, long nx, long ny, int nullcheck,
-   float nullvalue, long *ngood, float *minval, float *maxval,
-   double *n2, double *n3, double *n5, int *status);
+static int FnNoise5_float(float *array, long nx, long ny, 
+		long *ngood, float *minval, float *maxval,
+		double *n2, double *n3, double *n5, int *status);
 
 static int FnCompare_double(const void *, const void *);
 
@@ -71,8 +71,6 @@ long nx, /* number of pixels in each row of the image */
 long ny, /* number of rows in the image */
 /* (if this is a 3D image, then ny should be the */
 /* product of the no. of rows times the no. of planes) */
-int nullcheck, /* check for null values, if true */
-WORD nullvalue, /* value of null pixels, if nullcheck is true */
 
 /* returned parameters (if the pointer is not null)  */
 long *ngoodpix, /* number of non-null pixels in the image */
@@ -98,7 +96,7 @@ int *status) /* error status */
 
 	/* need to calculate mean and/or sigma and/or limits? */
 	if (mean || sigma) {
-		FnMeanSigma_ushort(array, nx * ny, nullcheck, nullvalue, &ngood, &xmean,
+		FnMeanSigma_ushort(array, nx * ny, &ngood, &xmean,
 				&xsigma, status);
 
 		if (ngoodpix)
@@ -110,14 +108,14 @@ int *status) /* error status */
 	}
 
 	if (noise1) {
-		FnNoise1_ushort(array, nx, ny, nullcheck, nullvalue, &xnoise, threads, status);
+		FnNoise1_ushort(array, nx, ny, &xnoise, threads, status);
 
 		*noise1 = xnoise;
 	}
 
 	/* this following code is not used for now */
 	if (minvalue || maxvalue || noise2 || noise3 || noise5) {
-		FnNoise5_ushort(array, nx, ny, nullcheck, nullvalue, &ngood, &minval,
+		FnNoise5_ushort(array, nx, ny, &ngood, &minval,
 				&maxval, &xnoise2, &xnoise3, &xnoise5, status);
 
 		if (ngoodpix)
@@ -141,8 +139,6 @@ long nx, /* number of pixels in each row of the image */
 long ny, /* number of rows in the image */
 /* (if this is a 3D image, then ny should be the */
 /* product of the no. of rows times the no. of planes) */
-int nullcheck, /* check for null values, if true */
-float nullvalue, /* value of null pixels, if nullcheck is true */
 
 /* returned parameters (if the pointer is not null)  */
 long *ngoodpix, /* number of non-null pixels in the image */
@@ -168,7 +164,7 @@ int *status) /* error status */
 
 	/* need to calculate mean and/or sigma and/or limits? */
 	if (mean || sigma) {
-		FnMeanSigma_float(array, nx * ny, nullcheck, nullvalue, &ngood, &xmean,
+		FnMeanSigma_float(array, nx * ny, &ngood, &xmean,
 				&xsigma, status);
 
 		if (ngoodpix)
@@ -180,13 +176,13 @@ int *status) /* error status */
 	}
 
 	if (noise1) {
-		FnNoise1_float(array, nx, ny, nullcheck, nullvalue, &xnoise, threads, status);
+		FnNoise1_float(array, nx, ny, &xnoise, threads, status);
 
 		*noise1 = xnoise;
 	}
 
 	if (minvalue || maxvalue || noise3) {
-		FnNoise5_float(array, nx, ny, nullcheck, nullvalue, &ngood, &minval,
+		FnNoise5_float(array, nx, ny, &ngood, &minval,
 				&maxval, &xnoise2, &xnoise3, &xnoise5, status);
 
 		if (ngoodpix)
@@ -208,8 +204,6 @@ int *status) /* error status */
 /*--------------------------------------------------------------------------*/
 static int FnMeanSigma_ushort(WORD *array, /*  2 dimensional array of image pixels */
 long npix, /* number of pixels in the image */
-int nullcheck, /* check for null values, if true */
-WORD nullvalue, /* value of null pixels, if nullcheck is true */
 
 /* returned parameters */
 
@@ -228,18 +222,10 @@ int *status) /* error status */
 
 	value = array;
 
-	if (nullcheck) {
-		for (ii = 0; ii < npix; ii++, value++) {
-			if (*value != nullvalue) {
-				ngood++;
-				xtemp = (double) *value;
-				sum += xtemp;
-				sum2 += (xtemp * xtemp);
-			}
-		}
-	} else {
-		ngood = npix;
-		for (ii = 0; ii < npix; ii++, value++) {
+
+	for (ii = 0; ii < npix; ii++, value++) {
+		if (*value != 0) {
+			ngood++;
 			xtemp = (double) *value;
 			sum += xtemp;
 			sum2 += (xtemp * xtemp);
@@ -275,8 +261,6 @@ int *status) /* error status */
 /*--------------------------------------------------------------------------*/
 static int FnMeanSigma_float(float *array, /*  2 dimensional array of image pixels */
 long npix, /* number of pixels in the image */
-int nullcheck, /* check for null values, if true */
-float nullvalue, /* value of null pixels, if nullcheck is true */
 
 /* returned parameters */
 
@@ -295,18 +279,9 @@ int *status) /* error status */
 
 	value = array;
 
-	if (nullcheck) {
-		for (ii = 0; ii < npix; ii++, value++) {
-			if (*value != nullvalue) {
-				ngood++;
-				xtemp = (double) *value;
-				sum += xtemp;
-				sum2 += (xtemp * xtemp);
-			}
-		}
-	} else {
-		ngood = npix;
-		for (ii = 0; ii < npix; ii++, value++) {
+	for (ii = 0; ii < npix; ii++, value++) {
+		if (*value != 0.f && !isnan(*value)) {
+			ngood++;
 			xtemp = (double) *value;
 			sum += xtemp;
 			sum2 += (xtemp * xtemp);
@@ -343,8 +318,6 @@ int *status) /* error status */
 /*--------------------------------------------------------------------------*/
 static int FnMeanSigma_int(int *array, /*  2 dimensional array of image pixels */
 long npix, /* number of pixels in the image */
-int nullcheck, /* check for null values, if true */
-int nullvalue, /* value of null pixels, if nullcheck is true */
 
 /* returned parameters */
 
@@ -363,18 +336,10 @@ int *status) /* error status */
 
 	value = array;
 
-	if (nullcheck) {
-		for (ii = 0; ii < npix; ii++, value++) {
-			if (*value != nullvalue) {
-				ngood++;
-				xtemp = (double) *value;
-				sum += xtemp;
-				sum2 += (xtemp * xtemp);
-			}
-		}
-	} else {
-		ngood = npix;
-		for (ii = 0; ii < npix; ii++, value++) {
+
+	for (ii = 0; ii < npix; ii++, value++) {
+		if (*value != 0) {
+			ngood++;
 			xtemp = (double) *value;
 			sum += xtemp;
 			sum2 += (xtemp * xtemp);
@@ -411,8 +376,6 @@ int *status) /* error status */
 static int FnNoise5_ushort(WORD *array, /*  2 dimensional array of image pixels */
 long nx, /* number of pixels in each row of the image */
 long ny, /* number of rows in the image */
-int nullcheck, /* check for null values, if true */
-WORD nullvalue, /* value of null pixels, if nullcheck is true */
 /* returned parameters */
 long *ngood, /* number of good, non-null pixels? */
 WORD *minval, /* minimum non-null value */
@@ -454,7 +417,7 @@ int *status) /* error status */
 	if (nx < 9) {
 
 		for (ii = 0; ii < nx; ii++) {
-			if (nullcheck && array[ii] == nullvalue)
+			if (array[ii] == 0)
 				continue;
 			else {
 				if (array[ii] < xminval)
@@ -540,9 +503,9 @@ int *status) /* error status */
 
 		/***** find the first valid pixel in row */
 		ii = 0;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+
+		while (ii < nx && rowpix[ii] == 0)
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -558,9 +521,9 @@ int *status) /* error status */
 
 		/***** find the 2nd valid pixel in row (which we will skip over) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+
+		while (ii < nx && rowpix[ii] == 0)
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -576,9 +539,8 @@ int *status) /* error status */
 
 		/***** find the 3rd valid pixel in row */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && rowpix[ii] == 0)
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -594,9 +556,8 @@ int *status) /* error status */
 
 		/* find the 4nd valid pixel in row (to be skipped) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && rowpix[ii] == 0)
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -612,9 +573,8 @@ int *status) /* error status */
 
 		/* find the 5th valid pixel in row (to be skipped) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && rowpix[ii] == 0)
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -630,9 +590,8 @@ int *status) /* error status */
 
 		/* find the 6th valid pixel in row (to be skipped) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && rowpix[ii] == 0)
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -648,9 +607,8 @@ int *status) /* error status */
 
 		/* find the 7th valid pixel in row (to be skipped) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && rowpix[ii] == 0)
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -666,9 +624,8 @@ int *status) /* error status */
 
 		/* find the 8th valid pixel in row (to be skipped) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && rowpix[ii] == 0)
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -688,9 +645,8 @@ int *status) /* error status */
 		for (ii++; ii < nx; ii++) {
 
 			/* find the next valid pixel in row */
-			if (nullcheck)
-				while (ii < nx && rowpix[ii] == nullvalue)
-					ii++;
+			while (ii < nx && rowpix[ii] == 0)
+				ii++;
 
 			if (ii == nx)
 				break; /* hit end of row */
@@ -809,8 +765,6 @@ int *status) /* error status */
 static int FnNoise5_float(float *array, /*  2 dimensional array of image pixels */
 long nx, /* number of pixels in each row of the image */
 long ny, /* number of rows in the image */
-int nullcheck, /* check for null values, if true */
-float nullvalue, /* value of null pixels, if nullcheck is true */
 /* returned parameters */
 long *ngood, /* number of good, non-null pixels? */
 float *minval, /* minimum non-null value */
@@ -852,7 +806,7 @@ int *status) /* error status */
 	if (nx < 9) {
 
 		for (ii = 0; ii < nx; ii++) {
-			if (nullcheck && array[ii] == nullvalue)
+			if (array[ii] == 0.f || isnan(array[ii]))
 				continue;
 			else {
 				if (array[ii] < xminval)
@@ -938,9 +892,9 @@ int *status) /* error status */
 
 		/***** find the first valid pixel in row */
 		ii = 0;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -956,9 +910,8 @@ int *status) /* error status */
 
 		/***** find the 2nd valid pixel in row (which we will skip over) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -974,9 +927,8 @@ int *status) /* error status */
 
 		/***** find the 3rd valid pixel in row */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -992,9 +944,8 @@ int *status) /* error status */
 
 		/* find the 4nd valid pixel in row (to be skipped) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -1010,9 +961,8 @@ int *status) /* error status */
 
 		/* find the 5th valid pixel in row (to be skipped) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -1028,9 +978,8 @@ int *status) /* error status */
 
 		/* find the 6th valid pixel in row (to be skipped) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -1046,9 +995,8 @@ int *status) /* error status */
 
 		/* find the 7th valid pixel in row (to be skipped) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -1064,9 +1012,8 @@ int *status) /* error status */
 
 		/* find the 8th valid pixel in row (to be skipped) */
 		ii++;
-		if (nullcheck)
-			while (ii < nx && rowpix[ii] == nullvalue)
-				ii++;
+		while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
+			ii++;
 
 		if (ii == nx)
 			continue; /* hit end of row */
@@ -1086,9 +1033,8 @@ int *status) /* error status */
 		for (ii++; ii < nx; ii++) {
 
 			/* find the next valid pixel in row */
-			if (nullcheck)
-				while (ii < nx && rowpix[ii] == nullvalue)
-					ii++;
+			while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
+				ii++;
 
 			if (ii == nx)
 				break; /* hit end of row */
@@ -1207,8 +1153,6 @@ int *status) /* error status */
 static int FnNoise1_ushort(WORD *array, /*  2 dimensional array of image pixels */
 long nx, /* number of pixels in each row of the image */
 long ny, /* number of rows in the image */
-int nullcheck, /* check for null values, if true */
-WORD nullvalue, /* value of null pixels, if nullcheck is true */
 /* returned parameters */
 double *noise, /* returned R.M.S. value of all non-null pixels */
 threading_type threads,
@@ -1264,9 +1208,9 @@ int *status) /* error status */
 
 				/***** find the first valid pixel in row */
 				ii = 0;
-				if (nullcheck)
-					while (ii < nx && rowpix[ii] == nullvalue)
-						ii++;
+
+				while (ii < nx && rowpix[ii] == 0)
+					ii++;
 
 				if (ii == nx)
 					continue; /* hit end of row */
@@ -1278,9 +1222,8 @@ int *status) /* error status */
 				for (ii++; ii < nx; ii++) {
 
 					/* find the next valid pixel in row */
-					if (nullcheck)
-						while (ii < nx && rowpix[ii] == nullvalue)
-							ii++;
+					while (ii < nx && rowpix[ii] == 0)
+						ii++;
 
 					if (ii == nx)
 						break; /* hit end of row */
@@ -1297,7 +1240,7 @@ int *status) /* error status */
 					continue;
 				else {
 
-					FnMeanSigma_int(differences, nvals, 0, 0, 0, &mean, &stdev,
+					FnMeanSigma_int(differences, nvals, NULL, &mean, &stdev,
 							status);
 
 					if (stdev > 0.) {
@@ -1315,7 +1258,7 @@ int *status) /* error status */
 								break;
 
 							nvals = kk;
-							FnMeanSigma_int(differences, nvals, 0, 0, 0, &mean,
+							FnMeanSigma_int(differences, nvals, NULL, &mean,
 									&stdev, status);
 						}
 					}
@@ -1351,8 +1294,6 @@ int *status) /* error status */
 static int FnNoise1_float(float *array, /*  2 dimensional array of image pixels */
 long nx, /* number of pixels in each row of the image */
 long ny, /* number of rows in the image */
-int nullcheck, /* check for null values, if true */
-float nullvalue, /* value of null pixels, if nullcheck is true */
 /* returned parameters */
 double *noise, /* returned R.M.S. value of all non-null pixels */
 threading_type threads,
@@ -1414,9 +1355,9 @@ row of the image.
 
 			/***** find the first valid pixel in row */
 			ii = 0;
-			if (nullcheck)
-				while (ii < nx && rowpix[ii] == nullvalue)
-					ii++;
+
+			while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
+				ii++;
 
 			if (ii == nx)
 				continue; /* hit end of row */
@@ -1428,9 +1369,8 @@ row of the image.
 			for (ii++; ii < nx; ii++) {
 
 				/* find the next valid pixel in row */
-				if (nullcheck)
-					while (ii < nx && rowpix[ii] == nullvalue)
-						ii++;
+				while (ii < nx && (rowpix[ii] == 0.f || isnan(rowpix[ii])))
+					ii++;
 
 				if (ii == nx)
 					break; /* hit end of row */
@@ -1447,7 +1387,7 @@ row of the image.
 				continue;
 			else {
 
-				FnMeanSigma_float(differences, nvals, 0, 0, 0, &mean, &stdev,
+				FnMeanSigma_float(differences, nvals, NULL, &mean, &stdev,
 						status);
 
 				if (stdev > 0.) {
@@ -1465,7 +1405,7 @@ row of the image.
 							break;
 
 						nvals = kk;
-						FnMeanSigma_float(differences, nvals, 0, 0, 0, &mean,
+						FnMeanSigma_float(differences, nvals, NULL, &mean,
 								&stdev, status);
 					}
 				}

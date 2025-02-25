@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -38,56 +38,6 @@ static GtkTextView *key_textview = NULL;
 static GtkNotebook *key_notebook = NULL;
 static GtkTreeSelection *key_selection = NULL;
 static GtkWidget *key_export_button = NULL;
-
-static int ffs2c(const char *instr, /* I - null terminated input string  */
-char *outstr, /* O - null terminated quoted output string */
-const int *status) /* IO - error status */
-/*
- convert an input string to a quoted string. Leading spaces
- are significant.  FITS string keyword values must be at least
- 8 chars long so pad out string with spaces if necessary.
- Example:   km/s ==> 'km/s    '
- Single quote characters in the input string will be replace by
- two single quote characters. e.g., o'brian ==> 'o''brian'
- */
-{
-	size_t len, ii, jj;
-
-	if (*status > 0) /* inherit input status value if > 0 */
-		return (*status);
-
-	if (!instr) /* a null input pointer?? */
-	{
-		strcpy(outstr, "''"); /* a null FITS string */
-		return (*status);
-	}
-
-	outstr[0] = '\''; /* start output string with a quote */
-
-	len = strlen(instr);
-	if (len > 68)
-		len = 68; /* limit input string to 68 chars */
-
-	for (ii = 0, jj = 1; ii < len && jj < 69; ii++, jj++) {
-		outstr[jj] = instr[ii]; /* copy each char from input to output */
-		if (instr[ii] == '\'') {
-			jj++;
-			outstr[jj] = '\''; /* duplicate any apostrophies in the input */
-		}
-	}
-
-	for (; jj < 9; jj++) /* pad string so it is at least 8 chars long */
-		outstr[jj] = ' ';
-
-	if (jj == 70) /* only occurs if the last char of string was a quote */
-		outstr[69] = '\0';
-	else {
-		outstr[jj] = '\''; /* append closing quote character */
-		outstr[jj + 1] = '\0'; /* terminate the string */
-	}
-
-	return (*status);
-}
 
 
 enum {
@@ -216,7 +166,7 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 }
 
 void on_keywords_dialog_show(GtkWidget *dialog, gpointer user_data) {
-	refresh_keywords_dialog();
+	gui_function(refresh_keywords_dialog, NULL);
 }
 
 static void remove_selected_keys () {
@@ -243,7 +193,7 @@ static void remove_selected_keys () {
 
 				if (siril_confirm_dialog(_("Operation on the sequence"),
 						_("These keywords will be deleted from each image of "
-						"the entire sequence. Are you sure?”"), _("Proceed"))) {
+						"the entire sequence. Are you sure?"), _("Proceed"))) {
 					gtk_list_store_remove(GTK_LIST_STORE(treeModel), &iter);
 
 					start_sequence_keywords(&com.seq, kargs);
@@ -337,13 +287,8 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 	gtk_tree_model_get(model, &iter, COLUMN_KEY, &FITS_key, COLUMN_VALUE, &original_val, COLUMN_COMMENT, &FITS_comment, COLUMN_DTYPE, &dtype, COLUMN_PROTECTED, &protected, -1);
 	if (!protected) {
 		char valstring[FLEN_VALUE];
-		int status = 0;
 		/* update FITS key */
-		if (dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val) - 1] != '\'')) {
-			ffs2c(new_val, valstring, &status);
-		} else {
-			strcpy(valstring, new_val);
-		}
+		process_keyword_string_value(new_val, valstring, dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val) - 1] != '\''));
 		if (g_strcmp0(original_val, valstring)) {
 			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, FITS_comment, TRUE, FALSE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_VALUE, valstring, -1);
@@ -499,6 +444,30 @@ static void insert_text_handler(GtkEntry *entry, const gchar *text, gint length,
 	g_free(result);
 }
 
+static void insert_text_handler_key(GtkEntry *entry, const gchar *text, gint length,
+		gint *position, gpointer data) {
+	GtkEditable *editable = GTK_EDITABLE(entry);
+
+	GString *filtered_text = g_string_new(NULL);
+	for (gint i = 0; i < length; i++) {
+		// Append only characters that are not spaces
+		if (!g_unichar_isspace(g_utf8_get_char(text + i))) {
+			g_string_append_c(filtered_text, text[i]);
+		}
+	}
+
+	gchar *result = replace_wide_char(filtered_text->str);
+
+	g_signal_handlers_block_by_func(G_OBJECT(editable), G_CALLBACK(insert_text_handler_key), data);
+	gtk_editable_insert_text(editable, result, strlen(result), position);
+	g_signal_handlers_unblock_by_func(G_OBJECT(editable), G_CALLBACK(insert_text_handler_key), data);
+
+	g_signal_stop_emission_by_name(G_OBJECT(editable), "insert_text");
+
+	g_free(result);
+	g_string_free(filtered_text, TRUE);
+}
+
 static void on_entry_activate(GtkEntry *entry, gpointer user_data) {
 	GtkWidget *add_button = GTK_WIDGET(user_data);
 	gtk_button_clicked(GTK_BUTTON(add_button));
@@ -598,44 +567,56 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	g_signal_connect(entry_comment, "activate", G_CALLBACK(on_entry_activate), add_button);
 
 	// Connect the insert-text signal of each entry
-	g_signal_connect(entry_name, "insert-text", G_CALLBACK(insert_text_handler), add_button);
+	g_signal_connect(entry_name, "insert-text", G_CALLBACK(insert_text_handler_key), add_button);
 	g_signal_connect(entry_value, "insert-text", G_CALLBACK(insert_text_handler), add_button);
 	g_signal_connect(entry_comment, "insert-text", G_CALLBACK(insert_text_handler), add_button);
 
 	gtk_widget_show_all(dialog);
 
-	gint result = gtk_dialog_run(GTK_DIALOG(dialog));
-	if (result == GTK_RESPONSE_OK) {
-		const gchar *key = gtk_entry_get_text(GTK_ENTRY(entry_name));
-		const gchar *value = gtk_entry_get_text(GTK_ENTRY(entry_value));
-		const gchar *comment = gtk_entry_get_text(GTK_ENTRY(entry_comment));
+	gint result;
+	do {
+		result = gtk_dialog_run(GTK_DIALOG(dialog));
+		if (result == GTK_RESPONSE_OK) {
+			const gchar *key = gtk_entry_get_text(GTK_ENTRY(entry_name));
+			const gchar *value = gtk_entry_get_text(GTK_ENTRY(entry_value));
+			const gchar *comment = gtk_entry_get_text(GTK_ENTRY(entry_comment));
 
-		if (g_strcmp0(key, "") == 0) key = NULL;
-		if (g_strcmp0(value, "") == 0) value = NULL;
-		if (g_strcmp0(comment, "") == 0) comment = NULL;
+			if (g_strcmp0(key, "") == 0) key = NULL;
+			if (g_strcmp0(value, "") == 0) value = NULL;
+			if (g_strcmp0(comment, "") == 0) comment = NULL;
 
-		if (comment || value || key) {
-			if (sequence_is_loaded()) {
-				struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
+			if (comment || (value && key)) {
+				char valstring[FLEN_VALUE] = { 0 };
+				process_keyword_string_value(value, valstring, string_has_space(value));
 
-				kargs->FITS_key = g_strdup(key);
-				kargs->value = g_strdup(value);
-				kargs->comment = g_strdup(comment);
+				if (sequence_is_loaded()) {
+					struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
 
-				if (siril_confirm_dialog(_("Operation on the sequence"),
-						_("These keywords will be added / modified in each image of "
-								"the entire sequence. Are you sure?”"), _("Proceed"))) {
-					start_sequence_keywords(&com.seq, kargs);
+					kargs->FITS_key = g_strdup(key);
+					kargs->value = valstring[0] == '\0' ? NULL : g_strdup(valstring);
+					kargs->comment = g_strdup(comment);
+
+					if (siril_confirm_dialog(_("Operation on the sequence"),
+							_("These keywords will be added / modified in each image of "
+							  "the entire sequence. Are you sure?"), _("Proceed"))) {
+						start_sequence_keywords(&com.seq, kargs);
+						break;
+					} else {
+						free(kargs);
+						continue;
+					}
 				} else {
-					free(kargs);
+					updateFITSKeyword(&gfit, key, NULL, valstring[0] == '\0' ? NULL : valstring, comment, TRUE, FALSE);
+					gui_function(refresh_keywords_dialog, NULL);
+					scroll_to_end();
+					break;
 				}
-			} else {
-				updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE, FALSE);
-				refresh_keywords_dialog();
-				scroll_to_end();
 			}
+		} else {
+			break;
 		}
-	}
+	} while (TRUE);
+
 	gtk_widget_destroy(dialog);
 }
 
@@ -681,7 +662,7 @@ void on_export_keywords_button_clicked(GtkButton *button, gpointer user_data) {
 	save_key_to_clipboard();
 }
 
-void refresh_keywords_dialog() {
+gboolean refresh_keywords_dialog(gpointer user_data) {
 	init_dialog();
 	gboolean is_a_single_image_loaded = single_image_is_loaded() &&
 			(!sequence_is_loaded() || (sequence_is_loaded() &&
@@ -689,6 +670,7 @@ void refresh_keywords_dialog() {
 	listFITSKeywords(&gfit, is_a_single_image_loaded);
 	if (gfit.header)
 		show_header_text(gfit.header);
+	return FALSE;
 }
 
 void on_notebook_keywords_switch_page (GtkNotebook* self, GtkWidget* page, guint page_num, gpointer user_data) {

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@
 #include "core/icc_profile.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
+#include "core/arithm.h"
 #include "algos/statistics.h"
 #include "algos/colors.h"
 #include "io/single_image.h"
@@ -79,6 +80,7 @@ static double histo_color_b[] = { 0.0, 0.0, 1.0, 0.0 };
 // static float graph_height = 0.f;	// the max value of all bins
 static guint64 clipped[] = { 0, 0 };
 
+// The 4th toggle pointer remains NULL, but it makes the logic easier in redraw_histo()
 static GtkToggleToolButton *toggles[MAXVPORT] = { NULL };
 static GtkToggleToolButton *toggleGrid = NULL, *toggleCurve = NULL, *toggleOrig = NULL;
 
@@ -129,7 +131,6 @@ static void init_toggles() {
 		do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
 		do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
 		do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
-		toggles[3] = NULL;
 		toggleGrid = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGrid"));
 		toggleCurve = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolCurve"));
 		toggleOrig = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolOrig"));
@@ -161,7 +162,6 @@ static void histo_startup() {
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_INDEP);
 		}
 	}
-	copy_gfit_to_backup();
 	// also get the backup histogram
 	compute_histo_for_gfit();
 	for (int i = 0; i < fit->naxes[2]; i++)
@@ -283,6 +283,9 @@ static void histo_recompute() {
 				memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
 			}
 		}
+		// WARNING: the following section is *ONLY* applicable to autostretch. It should
+		// not be copied into any other code as it will mess things up if the image
+		// ICC profile is not the same as the monitor ICC profile.
 		cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = copyICCProfile(gui.icc.monitor);
@@ -290,6 +293,7 @@ static void histo_recompute() {
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = copyICCProfile(temp);
 		cmsCloseProfile(temp);
+		////////////////////////////////////////////////////////////////////////////////
 		if (depth == 1) {
 			size_t npixels = fit->rx * fit->ry;
 			if (fit->type == DATA_FLOAT) {
@@ -390,8 +394,6 @@ static void set_histo_toggles_names() {
 		 * with gtk_widget_show and not gtk_widget_show_all */
 		gtk_widget_set_sensitive(GTK_WIDGET(toggles[1]), FALSE);
 		gtk_widget_set_sensitive(GTK_WIDGET(toggles[2]), FALSE);
-		if (toggles[3])
-			gtk_widget_set_visible(GTK_WIDGET(toggles[3]), FALSE);
 
 	} else {
 		gtk_widget_set_tooltip_text(GTK_WIDGET(toggles[0]), _("Red channel"));
@@ -402,10 +404,6 @@ static void set_histo_toggles_names() {
 		gtk_widget_set_sensitive(GTK_WIDGET(toggles[2]), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(toggles[1]), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(toggles[2]), TRUE);
-		if (toggles[3]) {
-			gtk_widget_set_visible(GTK_WIDGET(toggles[3]), TRUE);
-			gtk_toggle_tool_button_set_active(toggles[3], TRUE);
-		}
 	}
 }
 
@@ -752,6 +750,8 @@ void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 			graph_height = bin_val;
 		current_bin++;
 	} while (i < nb_orig_bins && current_bin < nb_bins_allocated);
+	if (!graph_height)
+		return;
 	for (i = 0; i < nb_bins_allocated; i++) {
 		double bin_height = height - height * displayed_values[i] / graph_height;
 		cairo_line_to(cr, i, bin_height);
@@ -856,17 +856,19 @@ void on_histoZoom100_clicked(GtkButton *button, gpointer user_data) {
 	gtk_adjustment_set_value(histoAdjZoomV, 1.0);
 }
 
-static void reset_cursors_and_values() {
+static void reset_cursors_and_values(gboolean full_reset) {
 	gtk_toggle_tool_button_set_active(toggleGrid, TRUE);
 	gtk_toggle_tool_button_set_active(toggleCurve, TRUE);
 	gtk_toggle_tool_button_set_active(toggleOrig, BOOL_TRUE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckLogButton")),
-                                 (com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkMTFSeq")), FALSE);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "stretch_");
-	on_histoZoom100_clicked(NULL, NULL);
-	for (int i = 0; i < 4; ++i)
-		gtk_toggle_tool_button_set_active(toggles[i], TRUE);
+//	on_histoZoom100_clicked(NULL, NULL);
+	if (full_reset) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckLogButton")),
+									(com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE));
+		for (int i = 0; i < 3; ++i)
+			gtk_toggle_tool_button_set_active(toggles[i], TRUE);
+	}
 
 	if (invocation == HISTO_STRETCH) {
 		_shadows = 0.f;
@@ -885,10 +887,12 @@ static void reset_cursors_and_values() {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP")), _LP);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP")), _HP);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtBP")), _BP);
-		gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 0);
-		gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payneTyp")), 0);
-		gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("histo_clip_mode")), 2);
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")), TRUE);
+		if (full_reset) {
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 0);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payneTyp")), 0);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("histo_clip_mode")), 2);
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")), TRUE);
+		}
 	}
 	_init_clipped_pixels();
 	_initialize_clip_text();
@@ -1169,7 +1173,7 @@ void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
-	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
 	notify_update((gpointer) param);
 }
 
@@ -1177,14 +1181,13 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 	closing = FALSE;
 	histo_startup();
 	_initialize_clip_text();
-	reset_cursors_and_values();
+	reset_cursors_and_values(TRUE);
 	compute_histo_for_gfit();
 }
 
 void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 	closing = TRUE;
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values();
 	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("histogram_dialog");
@@ -1192,7 +1195,7 @@ void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 
 void on_button_histo_reset_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values();
+	reset_cursors_and_values(FALSE);
 	histo_close(TRUE, TRUE);
 	histo_startup();
 	set_cursor_waiting(FALSE);
@@ -1200,9 +1203,11 @@ void on_button_histo_reset_clicked(GtkButton *button, gpointer user_data) {
 
 gboolean on_scale_key_release_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	set_cursor_waiting(TRUE);
 	update_histo_mtf();
-	set_cursor_waiting(FALSE);
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
+	notify_update((gpointer) param);
 	return FALSE;
 }
 
@@ -1225,13 +1230,15 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		/* Apply to the whole sequence */
 		sequence_working = TRUE;
 		if (invocation == HISTO_STRETCH) {
-			struct mtf_data *args = malloc(sizeof(struct mtf_data));
+			struct mtf_data *args = calloc(1, sizeof(struct mtf_data));
 			struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 			fprintf(stdout, "%d %d %d\n", params.do_red, params.do_green, params.do_blue);
 			args->params = params;
-			args->seqEntry = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq"))));
-			if (args->seqEntry && args->seqEntry[0] == '\0')
+			args->seqEntry = strdup(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq"))));
+			if (args->seqEntry && args->seqEntry[0] == '\0') {
+				free(args->seqEntry);
 				args->seqEntry = strdup("stretch_");
+			}
 			args->seq = &com.seq;
 		/* here it is a bit tricky.
 		 * It is better to first close the window as it is a liveview tool
@@ -1244,7 +1251,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			gtk_toggle_button_set_active(seq_button, FALSE);
 			apply_mtf_to_sequence(args);
 		} else if (invocation == GHT_STRETCH) {
-			struct ght_data *args = malloc(sizeof(struct ght_data));
+			struct ght_data *args = calloc(1, sizeof(struct ght_data));
 			struct ght_params *params = malloc(sizeof(struct ght_params));
 			params->B = _B;
 			params->D = _D;
@@ -1260,8 +1267,10 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->params_ght = params;
 			const gchar* temp = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
 			args->seqEntry = strdup(temp);
-			if (args->seqEntry && args->seqEntry[0] == '\0')
+			if (args->seqEntry && args->seqEntry[0] == '\0') {
+				free(args->seqEntry);
 				args->seqEntry = strdup("stretch_");
+			}
 			args->seq = &com.seq;
 		/* here it is a bit tricky.
 		 * It is better to first close the window as it is a liveview tool
@@ -1288,6 +1297,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		populate_roi();
 		// partial cleanup
 		if (invocation == HISTO_STRETCH) {
+			siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+				_shadows, _midtones, _highlights);
 			siril_debug_print("Applying histogram (mid=%.3f, lo=%.3f, hi=%.3f)\n",
 				_midtones, _shadows, _highlights);
 			undo_save_state(get_preview_gfit_backup(),
@@ -1337,7 +1348,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		clear_hist_backup();
 		// reinit
 		histo_startup();
-		reset_cursors_and_values();
+		reset_cursors_and_values(FALSE);
 
 		set_cursor("default");
 	}
@@ -1345,7 +1356,6 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 void apply_histo_cancel() {
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values();
 	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 }
@@ -1477,11 +1487,11 @@ void toggle_histogram_window_visibility(int _invocation) {
 
 	if (gtk_widget_get_visible(lookup_widget("histogram_dialog"))) {
 		set_cursor_waiting(TRUE);
-		reset_cursors_and_values();
 		histo_close(TRUE, TRUE);
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("histogram_dialog");
 	} else {
+		reset_cursors_and_values(TRUE);
 		copy_gfit_to_backup();
 		//Ensure the colour stretch model is initialised at startup
 		_payne_colourstretchmodel = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")));
@@ -1650,45 +1660,6 @@ gboolean on_drawingarea_histograms_button_release_event(GtkWidget *widget,
 	return FALSE;
 }
 
-void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
-	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-	if (mid <= _shadows) mid = _shadows;
-	if (mid >= _highlights) mid = _highlights;
-	_midtones = mid;
-	set_cursor_waiting(TRUE);
-	update_histo_mtf();
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = histo_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
-	notify_update((gpointer) param);
-	gchar *str = g_strdup_printf("%8.7f", mid);
-	gtk_entry_set_text(entry, str);
-	g_free(str);
-	set_cursor_waiting(FALSE);
-}
-
-gboolean on_histoMidEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
-		gpointer user_data) {
-
-	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoMidEntry"));
-	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-	if (mid <= _shadows) mid = _shadows;
-	if (mid >= _highlights) mid = _highlights;
-	_midtones = mid;
-	set_cursor_waiting(TRUE);
-	update_histo_mtf();
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = histo_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
-	notify_update((gpointer) param);
-	gchar *str = g_strdup_printf("%8.7f", mid);
-	gtk_entry_set_text(entry, str);
-	g_free(str);
-	set_cursor_waiting(FALSE);
-
-	return FALSE;
-}
-
 void on_spin_ghtD_value_changed(GtkSpinButton *button, gpointer user_data) {
 	_D = (float) expm1(gtk_spin_button_get_value(button));
 	update_histo_mtf();
@@ -1836,9 +1807,12 @@ void on_payneType_changed(GtkComboBox *combo, gpointer user_data) {
 		else
 			gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("drawingarea_histograms")), _("Clicking on the histogram sets SP"));
 	updateGHTcontrols();
-	set_cursor_waiting(TRUE);
-	histo_update_preview();
-	set_cursor_waiting(FALSE);
+	update_histo_mtf();
+	queue_window_redraw();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
+	notify_update((gpointer) param);
 }
 
 void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_data) {
@@ -1851,7 +1825,7 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 			_payne_colourstretchmodel = COL_INDEP;
 		} else {
 			set_cursor_waiting(TRUE);
-			reset_cursors_and_values();
+			reset_cursors_and_values(FALSE);
 			histo_close(TRUE, TRUE);
 			setup_hsl();
 			_payne_colourstretchmodel = tmp;
@@ -1870,7 +1844,7 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 		}
 		if (_payne_colourstretchmodel == COL_SAT) {
 			set_cursor_waiting(TRUE);
-			reset_cursors_and_values();
+			reset_cursors_and_values(FALSE);
 			histo_close(TRUE, TRUE);
 			clear_hsl();
 			_payne_colourstretchmodel = tmp;
@@ -1895,7 +1869,6 @@ gboolean on_histoShadEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoShadEntry"));
 	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (lo <= 0.f) lo = 0.f;
-	if (lo >= _highlights) lo = _highlights;
 	_shadows = lo;
 	set_cursor_waiting(TRUE);
 	update_histo_mtf();
@@ -1914,7 +1887,6 @@ gboolean on_histoShadEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (lo <= 0.f) lo = 0.f;
-	if (lo >= _highlights) lo = _highlights;
 	_shadows = lo;
 	set_cursor_waiting(TRUE);
 	update_histo_mtf();
@@ -1928,11 +1900,46 @@ void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 	set_cursor_waiting(FALSE);
 }
 
+void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
+	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+	_midtones = mid;
+	set_cursor_waiting(TRUE);
+	update_histo_mtf();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
+	notify_update((gpointer) param);
+	gchar *str = g_strdup_printf("%8.7f", mid);
+	gtk_entry_set_text(entry, str);
+	g_free(str);
+	set_cursor_waiting(FALSE);
+}
+
+gboolean on_histoMidEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+
+	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoMidEntry"));
+	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+	_midtones = mid;
+	set_cursor_waiting(TRUE);
+	update_histo_mtf();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
+	notify_update((gpointer) param);
+	gchar *str = g_strdup_printf("%8.7f", mid);
+	gtk_entry_set_text(entry, str);
+	g_free(str);
+	set_cursor_waiting(FALSE);
+
+	return FALSE;
+}
+
 gboolean on_histoHighEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoHighEntry"));
 	float hi = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-	if (hi <= _shadows) hi = _shadows;
+//	if (hi <= _shadows) hi = _shadows;
 	if (hi >= 1.f) hi = 1.f;
 	_highlights = hi;
 	set_cursor_waiting(TRUE);
@@ -1951,7 +1958,7 @@ gboolean on_histoHighEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 
 void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {
 	float hi = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-	if (hi <= _shadows) hi = _shadows;
+//	if (hi <= _shadows) hi = _shadows;
 	if (hi >= 1.f) hi = 1.f;
 	_highlights = hi;
 	set_cursor_waiting(TRUE);
@@ -1983,13 +1990,17 @@ void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 	args->stop_on_error = FALSE;
 	args->description = _("Midtone Transfer Function");
 	args->has_output = TRUE;
-	args->new_seq_prefix = mtf_args->seqEntry;
+	args->new_seq_prefix = strdup(mtf_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = mtf_args;
 
 	mtf_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(mtf_args->seqEntry);
+		free(mtf_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 int ght_finalize_hook(struct generic_seq_args *args) {
@@ -2013,13 +2024,17 @@ void apply_ght_to_sequence(struct ght_data *ght_args) {
 	args->stop_on_error = FALSE;
 	args->description = _("Generalised Hyperbolic Transfer Function");
 	args->has_output = TRUE;
-	args->new_seq_prefix = ght_args->seqEntry;
+	args->new_seq_prefix = strdup(ght_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = ght_args;
 
 	ght_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if(!start_in_new_thread(generic_sequence_worker, args)) {
+		free(ght_args->seqEntry);
+		free(ght_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 void on_histo_preview_toggled(GtkToggleButton *button, gpointer user_data) {

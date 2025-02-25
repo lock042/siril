@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -32,6 +32,7 @@
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/dialog_preview.h"
+#include "gui/dialogs.h"
 #include "gui/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -47,21 +48,6 @@
 
 static image_type type_of_image = TYPEUNDEF;
 static SirilWidget *saveDialog = NULL;
-
-static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
-		const gchar *pattern, gboolean set_default) {
-	GtkFileFilter *f = gtk_file_filter_new();
-	gtk_file_filter_set_name(f, title);
-	/* get the patterns */
-	gchar **patterns = g_strsplit(pattern, ";", -1);
-	for (gint i = 0; patterns[i] != NULL; i++)
-		gtk_file_filter_add_pattern(f, patterns[i]);
-	/* free the patterns */
-	g_strfreev(patterns);
-	gtk_file_chooser_add_filter(file_chooser, f);
-	if (set_default)
-		gtk_file_chooser_set_filter(file_chooser, f);
-}
 
 static void set_filters_save_dialog(GtkFileChooser *chooser) {
 	GString *all_filter = NULL;
@@ -381,6 +367,35 @@ static void filter_changed(gpointer user_data) {
 	g_free(filename);
 }
 
+gchar* extract_extension_from_filter(const gchar *filter_name) {
+	// Regex pattern to match first extension inside parentheses
+	GRegex *regex;
+	GError *error = NULL;
+	gchar *extension = NULL;
+
+	// Compile regex to match first extension after *. inside parentheses
+	regex = g_regex_new("\\*\\.([a-zA-Z0-9]+)", G_REGEX_MULTILINE, 0, &error);
+
+	if (error != NULL) {
+		g_warning("Regex compilation error: %s", error->message);
+		g_error_free(error);
+		return NULL;
+	}
+
+	// Try to match the regex
+	GMatchInfo *match_info;
+	if (g_regex_match(regex, filter_name, 0, &match_info)) {
+		// Get the first captured group (extension)
+		extension = g_match_info_fetch(match_info, 1);
+	}
+
+	// Free resources
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
+
+	return extension;
+}
+
 static int save_dialog() {
 	init_dialog();
 
@@ -397,23 +412,51 @@ static int save_dialog() {
 	g_signal_connect(chooser, "notify::filter", G_CALLBACK(filter_changed), (gpointer) chooser);
 	g_free(fname);
 
-	gint res = siril_dialog_run(saveDialog);
-	if (res == GTK_RESPONSE_ACCEPT) {
+	while (TRUE) {
+		gint res = siril_dialog_run(saveDialog);
+
+		if (res != GTK_RESPONSE_ACCEPT) {
+			close_dialog();
+			siril_preview_free(preview);
+			return res;
+		}
+
 		gchar *filename = siril_file_chooser_get_filename(chooser);
-		type_of_image = get_type_from_filename(filename);
+		image_type file_type = get_type_from_filename(filename);
+
+		GtkFileFilter *current_filter = gtk_file_chooser_get_filter(chooser);
+		const gchar *filter_name = gtk_file_filter_get_name(current_filter);
+		gchar *filter_extension = extract_extension_from_filter(filter_name);
+
+		image_type filter_format = get_type_for_extension(filter_extension);
+
+		image_type selected_type = (filter_format != TYPEUNDEF) ? filter_format : file_type;
+
+		if (file_type != TYPEUNDEF && filter_format != TYPEUNDEF && file_type != filter_format) {
+			gboolean confirm = siril_confirm_dialog(_("Extension Mismatch"),
+							_("The given file extension does not match the chosen file type. Do you want to save the image using this name anyway?"),
+							_("Save Anyway"));
+
+			if (!confirm) {
+				g_free(filename);
+				g_free(filter_extension);
+				continue;
+			}
+
+			selected_type = file_type;
+		}
+
+		type_of_image = selected_type;
 
 		GtkEntry *savetext = GTK_ENTRY(lookup_widget("savetxt"));
 		gtk_entry_set_text(savetext, filename);
 
 		prepare_savepopup();
-
 		g_free(filename);
+		g_free(filter_extension);
+
 		return res;
 	}
-	close_dialog();
-	siril_preview_free(preview);
-
-	return res;
 }
 
 // idle function executed at the end of the Save Data processing
@@ -427,10 +470,10 @@ static gboolean end_save(gpointer p) {
 	gtk_entry_set_text(args->entry, "");
 	gtk_widget_hide(lookup_widget("savepopup"));
 	display_filename(); // update filename display
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 	set_cursor_waiting(FALSE);
 	close_dialog();
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 
 	g_free(args->copyright);
 	g_free(args->description);
@@ -448,7 +491,7 @@ static gboolean test_for_viewer_mode() {
 	return confirm;
 }
 
-static gboolean initialize_data(gpointer p) {
+static void initialize_data(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
 
 	GtkToggleButton *fits_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit8"));
@@ -489,14 +532,11 @@ static gboolean initialize_data(gpointer p) {
 
 	args->update_hilo = gtk_toggle_button_get_active(update_hilo);
 	args->checksum = gtk_toggle_button_get_active(checksum);
-
-	return test_for_viewer_mode();
 }
-
-static gchar *tmp_filename = NULL;
 
 static long calculate_jpeg_size(struct savedial_data *args) {
 	char const *tmp_dir = g_get_tmp_dir();
+	gchar *tmp_filename;
 	gchar *tmp_filename_template = (com.uniq->filename != NULL) ? g_path_get_basename(com.uniq->filename) : g_strdup(_("preview"));
 /* Due to a Windows behavior and Mingw temp file name,
  * we escapes the special characters by inserting a '\' before them */
@@ -532,7 +572,10 @@ static long calculate_jpeg_size(struct savedial_data *args) {
 	} else {
 		g_warning("Unable to get file size for '%s': %s", tmp_filename, g_strerror(errno));
 	}
-	g_free(tmp_filename);
+	if (g_unlink(tmp_filename)) {
+		siril_debug_print("g_unlink() failed\n");
+		g_free(tmp_filename);
+	}
 	return (long) file_size;
 }
 
@@ -569,43 +612,7 @@ static gpointer mini_save_dialog(gpointer p) {
 			break;
 #ifdef HAVE_LIBJPEG
 		case TYPEJPG:;
-			gboolean success = FALSE;
-			if (tmp_filename && g_file_test(tmp_filename, G_FILE_TEST_EXISTS)) {
-				GError *error = NULL;
-				// Check filename has correct extension
-				char *filename = strdup(args->filename);
-				if (!g_str_has_suffix(filename, ".jpg") && (!g_str_has_suffix(filename, ".jpeg"))) {
-					filename = str_append(&filename, ".jpg");
-				}
-				if (g_file_test(filename, G_FILE_TEST_EXISTS) && g_unlink(filename)) {
-					siril_debug_print("Failed to remove existing file");
-				}
-				// Attempt to move the file
-				GFile *move_from = g_file_new_for_path(tmp_filename);
-				GFile *move_to = g_file_new_for_path(filename);
-				success = g_file_move(move_from,
-											move_to,
-											G_FILE_COPY_NONE,
-											NULL,
-											NULL,
-											NULL,
-											&error);
-				g_object_unref(move_from);
-				g_object_unref(move_to);
-				if (success) {
-					siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
-						filename, args->quality, gfit.naxes[2], gfit.rx, gfit.ry);
-				} else {
-					siril_debug_print("Error moving file: %s\n", error->message);
-				}
-				free(filename);
-				// Reset the static tmp filename to NULL
-				g_free(tmp_filename);
-				tmp_filename = NULL;
-			}
-			if (!success) { // if there was no tmp file or if moving it didn't work, save normally
-				args->retval = savejpg(args->filename, &gfit, args->quality, TRUE);
-			}
+			args->retval = savejpg(args->filename, &gfit, args->quality, TRUE);
 			break;
 #endif
 #ifdef HAVE_LIBJXL
@@ -687,32 +694,27 @@ void on_savetxt_changed(GtkEditable *editable, gpointer user_data) {
 	gtk_widget_set_sensitive(button, (*name != '\0'));
 }
 
-void on_savepopup_hide(GtkWidget *widget, gpointer user_data) {
-	if (tmp_filename && g_unlink(tmp_filename))
-		siril_debug_print("Error removing temporary file\n");
-	g_free(tmp_filename);
-	tmp_filename = NULL;
-}
-
 void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		return;
 	}
-	if (gtk_toggle_button_get_active(button)) {
-		if (initialize_data(args) && !get_thread_run()) {
-			start_in_new_thread(calculate_jpeg_size_thread, args);
+	initialize_data(args);
+
+	if (!get_thread_run() && gtk_toggle_button_get_active(button)) {
+		if (!get_thread_run()) {
+			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
+				g_free(args->copyright);
+				g_free(args->description);
+				free(args);
+			}
 			return;
 		}
 	}
 	// Clear preview size
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("size_estimate_entry")), "");
-	// Remove temporary file and free and reset tmp_filename to NULL
-	if (tmp_filename && g_unlink(tmp_filename))
-		siril_debug_print("Error removing temporary file\n");
-	g_free(tmp_filename);
-	tmp_filename = NULL;
+
 	g_free(args->description);
 	g_free(args->copyright);
 	free (args);
@@ -725,14 +727,13 @@ void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_da
 			PRINT_ALLOC_ERR;
 			return;
 		}
-		if (!initialize_data(args)) {
-			g_free(args->description);
-			g_free(args->copyright);
-			free (args);
-			return;
-		}
+		initialize_data(args);
 		if (!get_thread_run()) {
-			start_in_new_thread(calculate_jpeg_size_thread, args);
+			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
+				g_free(args->copyright);
+				g_free(args->description);
+				free(args);
+			}
 		} else {
 			g_free(args->description);
 			g_free(args->copyright);
@@ -746,8 +747,13 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
-	if (initialize_data(args)) {
-		start_in_new_thread(mini_save_dialog, args);
+	initialize_data(args);
+	if (test_for_viewer_mode()) {
+		if (!start_in_new_thread(mini_save_dialog, args)) {
+			g_free(args->copyright);
+			g_free(args->description);
+			free(args);
+		}
 	} else {
 		g_free(args->copyright);
 		g_free(args->description);
@@ -760,8 +766,13 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
-	if (initialize_data(args)) {
-		start_in_new_thread(mini_save_dialog, args);
+	initialize_data(args);
+	if (test_for_viewer_mode()) {
+		if (!start_in_new_thread(mini_save_dialog, args)) {
+			g_free(args->copyright);
+			g_free(args->description);
+			free(args);
+		}
 	} else {
 		g_free(args->copyright);
 		g_free(args->description);
@@ -784,8 +795,13 @@ void on_header_save_as_button_clicked() {
 				struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 				set_cursor_waiting(TRUE);
-				if (initialize_data(args)) {
-					start_in_new_thread(mini_save_dialog, args);
+				initialize_data(args);
+				if (test_for_viewer_mode()) {
+					if (!start_in_new_thread(mini_save_dialog, args)) {
+						g_free(args->description);
+						g_free(args->copyright);
+						free(args);
+					}
 				} else {
 					g_free(args->copyright);
 					g_free(args->description);

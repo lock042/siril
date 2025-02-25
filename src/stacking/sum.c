@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -31,6 +31,8 @@
 #include "stacking.h"
 #include "gui/progress_and_log.h"
 #include "registration/registration.h"
+#include "algos/siril_wcs.h"
+#include "opencv/opencv.h"
 
 struct sum_stacking_data {
 	guint64 *sum[3];	// the new image's channels
@@ -108,12 +110,6 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 		double scale = (ssdata->upscale_at_stacking) ? 2. : 1.;
 		double dx, dy;
 		translation_from_H(args->seq->regparam[ssdata->reglayer][i].H, &dx, &dy);
-		// dx -= ssdata->offset[0];
-		// dy -= ssdata->offset[1];
-		// shiftx = round_to_int(dx * scale);
-		// shifty = round_to_int(dy * scale);
-		// if (ssdata->maximize_framing)
-		// 	shifty -= fit->ry;
 		dx *= scale;
 		dy *= scale;
 		dx -= ssdata->offset[0];
@@ -179,6 +175,8 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 			if (ssdata->fsum[0][i] > fmax)
 				fmax = ssdata->fsum[0][i];
 		}
+		if (!fmax)
+			return ST_GENERIC_ERROR;
 	} else {
 #ifdef _OPENMP
 #pragma omp parallel for reduction(max:max)
@@ -186,6 +184,8 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 		for (i = 0; i < nbdata; ++i)
 			if (ssdata->sum[0][i] > max)
 				max = ssdata->sum[0][i];
+		if (!max)
+			return ST_GENERIC_ERROR;
 	}
 
 	fits *fit = &ssdata->result;
@@ -278,14 +278,19 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	ssdata->output_32bits = stackargs->use_32bit_output;
 	if (ssdata->input_32bits)
 		assert(ssdata->output_32bits);
+	gboolean update_wcs = FALSE;
 	if (stackargs->maximize_framing) {
 		compute_max_framing(stackargs, ssdata->output_size, ssdata->offset);
 		ssdata->maximize_framing = TRUE;
+		update_wcs = TRUE;
 	} else {
 		ssdata->output_size[0] = args->seq->rx;
 		ssdata->output_size[1] = args->seq->ry;
-		double dx, dy;
-		translation_from_H(args->seq->regparam[ssdata->reglayer][ssdata->ref_image].H, &dx, &dy);
+		double dx = 0., dy = 0.;
+		if (ssdata->reglayer >= 0) {
+			translation_from_H(args->seq->regparam[ssdata->reglayer][ssdata->ref_image].H, &dx, &dy);
+			update_wcs = TRUE;
+		}
 		ssdata->offset[0] = (int)dx;
 		ssdata->offset[1] = (int)dy;
 	}
@@ -294,6 +299,23 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 
 	generic_sequence_worker(args);
 	memcpy(&stackargs->result, &ssdata->result, sizeof(fits));
+	if (update_wcs && has_wcs(&ssdata->result)) {
+		fits *result = &ssdata->result;
+		Homography Hs = { 0 };
+		cvGetEye(&Hs);
+		double dx, dy;
+		translation_from_H(args->seq->regparam[stackargs->reglayer][stackargs->ref_image].H, &dx, &dy);
+		siril_debug_print("ref shift: %d %d\n", (int)dx, (int)dy);
+		siril_debug_print("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
+		Hs.h02  = dx - ssdata->offset[0];
+		Hs.h12 -= dy - ssdata->offset[1];
+		int orig_rx = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].rx : args->seq->rx;
+		int orig_ry = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].ry : args->seq->ry;
+		siril_debug_print("size: %d %d\n", orig_rx, orig_ry);
+		cvApplyFlips(&Hs, orig_ry, 0);
+		reframe_wcs(result->keywords.wcslib, &Hs);
+		update_wcsdata_from_wcs(result);
+	}
 	free(ssdata);
 	return args->retval;
 }

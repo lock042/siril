@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -86,6 +86,8 @@ void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void show_tilt_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data);
+void show_disto_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void show_disto_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void image_fits_header_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
@@ -103,6 +105,7 @@ void cosmetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void background_extr_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void epf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void unpurple_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);

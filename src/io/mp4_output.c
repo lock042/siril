@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -91,6 +91,9 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 		siril_log_message("Could not find encoder for '%s'\n", avcodec_get_name(codec_id));
 		return 1;
 	}
+
+	siril_log_message(_("Selected encoder: %s\n"), (*codec)->name);
+
 	if ((*codec)->type != AVMEDIA_TYPE_VIDEO) {
 		siril_log_message("Codec '%s' is not a video codec\n", avcodec_get_name(codec_id));
 		return 1;
@@ -110,6 +113,13 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 	ost->enc = c;
 
 	c->thread_count = com.max_thread;
+	if (codec_id == AV_CODEC_ID_H265) {
+		int max_threads = 16; // Maximum recommended for x265
+		if (c->thread_count > max_threads) {
+			c->thread_count = max_threads;
+		}
+		av_opt_set_int(c->priv_data, "frame-threads", MIN(c->thread_count, 8), 0);
+	}
 
 	c->codec_id = codec_id;
 	int retval;
@@ -132,28 +142,52 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 			CHECK_OPT_SET_RETVAL;
 			break;
 		case AV_CODEC_ID_H264:
-			/* The range of the CRF scale is 0–51, where 0 is lossless, 23 is the
-			 * default, and 51 is worst quality possible. A subjectively sane range
-			 * is 17–28. Consider 17 or 18 to be visually lossless or nearly so. */
-			crf = x264_quality_to_crf[ost->quality - 1];
-			siril_debug_print("x264 constant quality value: %d\n", crf);
-			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
-			CHECK_OPT_SET_RETVAL;
-			retval = av_opt_set(c->priv_data, "preset", "fast", 0);
-			CHECK_OPT_SET_RETVAL;
-			retval = av_opt_set(c->priv_data, "tune", "grain", 0);
-			CHECK_OPT_SET_RETVAL;
+			if (strstr((*codec)->name, "videotoolbox") != NULL) {
+				siril_debug_print("Using VideoToolbox encoder\n");
+
+				c->bit_rate = 0;
+
+				// quality 1 -> high quality (low value) -> 15 * FF_QP2LAMBDA
+				// quality 5 -> low quality (high value) -> 55 * FF_QP2LAMBDA
+				c->flags |= AV_CODEC_FLAG_QSCALE;
+				c->global_quality = ((ost->quality * 10) + 5) * FF_QP2LAMBDA;
+
+				siril_debug_print("VideoToolbox settings: global_quality=%d\n", c->global_quality);
+			} else {
+				crf = x264_quality_to_crf[ost->quality - 1];
+				siril_debug_print("x264 constant quality value: %d\n", crf);
+				retval = av_opt_set_int(c->priv_data, "crf", crf, 0);
+				CHECK_OPT_SET_RETVAL;
+				retval = av_opt_set(c->priv_data, "preset", "fast", 0);
+				CHECK_OPT_SET_RETVAL;
+				retval = av_opt_set(c->priv_data, "tune", "grain", 0);
+				CHECK_OPT_SET_RETVAL;
+			}
 			break;
+
 		case AV_CODEC_ID_H265:
-			// default is 28, it should visually correspond to libx264 video at CRF 23
-			crf = x265_quality_to_crf[ost->quality - 1];
-			siril_debug_print("x265 constant quality value: %d\n", crf);
-			retval = av_opt_set_int(c->priv_data, "crf", crf, 0); // For integer values
-			CHECK_OPT_SET_RETVAL;
-			retval = av_opt_set(c->priv_data, "preset", "fast", 0);
-			CHECK_OPT_SET_RETVAL;
-			retval = av_opt_set(c->priv_data, "tune", "grain", 0);
-			CHECK_OPT_SET_RETVAL;
+			if (strstr((*codec)->name, "videotoolbox") != NULL) {
+				siril_debug_print("Using VideoToolbox encoder\n");
+
+				c->bit_rate = 0;
+
+				// quality 1 -> high quality (low value) -> 15 * FF_QP2LAMBDA
+				// quality 5 -> low quality (high value) -> 55 * FF_QP2LAMBDA
+				c->flags |= AV_CODEC_FLAG_QSCALE;
+				c->global_quality = ((ost->quality * 10) + 5) * FF_QP2LAMBDA;
+
+				siril_debug_print("VideoToolbox settings: global_quality=%d\n", c->global_quality);
+
+			} else {
+				crf = x265_quality_to_crf[ost->quality - 1];
+				siril_debug_print("x265 constant quality value: %d\n", crf);
+				retval = av_opt_set_int(c->priv_data, "crf", crf, 0);
+				CHECK_OPT_SET_RETVAL;
+				retval = av_opt_set(c->priv_data, "preset", "fast", 0);
+				CHECK_OPT_SET_RETVAL;
+				retval = av_opt_set(c->priv_data, "tune", "grain", 0);
+				CHECK_OPT_SET_RETVAL;
+			}
 			break;
 		default:
 			break;
@@ -441,107 +475,120 @@ static void close_stream(struct mp4_struct *ost)
 /**************************************************************/
 /* media file output */
 
-struct mp4_struct *mp4_create(const char *filename, int dst_w, int dst_h, int fps, int nb_layers, int quality, int src_w, int src_h, export_format type)
-{
+static void cleanup_video_st(struct mp4_struct *video_st) {
+	if (!video_st)
+		return;
+
+	if (video_st->oc)
+		avformat_free_context(video_st->oc);
+	if (video_st->enc)
+		avcodec_free_context(&video_st->enc);
+	if (video_st->frame)
+		av_frame_free(&video_st->frame);
+	if (video_st->tmp_frame)
+		av_frame_free(&video_st->tmp_frame);
+
+	free(video_st);
+}
+
+struct mp4_struct* mp4_create(const char *filename, int dst_w, int dst_h, int fps, int nb_layers, int quality, int src_w, int src_h, export_format type) {
 	struct mp4_struct *video_st;
 	const AVCodec *video_codec;
 	int ret;
 	AVDictionary *opt = NULL;
 
-	if (filename == NULL || filename[0] == '\0' || dst_w%2 || dst_h%2 || fps <= 0 ||
-			quality < 1 || quality > 5) {
+	if (filename == NULL || filename[0] == '\0' || dst_w % 2 || dst_h % 2
+			|| fps <= 0 || quality < 1 || quality > 5) {
 		siril_log_message(_("Parameters for mp4 file creation were incorrect. Image dimension has to be a multiple of 2, fps and file name non nul, quality between 1 and 5."));
 		return NULL;
 	}
 
-	/* Initialize libavcodec, and register all codecs and formats. */
-//	av_register_all();
 	video_st = calloc(1, sizeof(struct mp4_struct));
+	if (!video_st) {
+		siril_log_message("Memory allocation failed");
+		return NULL;
+	}
 
-	/* allocate the output media context */
-	avformat_alloc_output_context2(&video_st->oc, NULL, NULL, filename);
+	ret = avformat_alloc_output_context2(&video_st->oc, NULL, NULL, filename);
 	if (!video_st->oc) {
-		siril_log_message("Could not deduce output format from file extension: using mp4.\n");
-		avformat_alloc_output_context2(&video_st->oc, NULL, "mp4", filename);
+		siril_log_message(_("Could not deduce output format from file extension: using mp4.\n"));
+		ret = avformat_alloc_output_context2(&video_st->oc, NULL, "mp4", filename);
 		if (!video_st->oc) {
-			free(video_st);
-			siril_log_message("FFMPEG does not seem to support mp4 format, aborting.\n");
+			cleanup_video_st(video_st);
+			siril_log_message(_("FFMPEG does not seem to support mp4 format, aborting.\n"));
 			return NULL;
 		}
 	}
 
-	video_st->fmt = (AVOutputFormat *)video_st->oc->oformat;
+	video_st->fmt = (AVOutputFormat*) video_st->oc->oformat;
 	video_st->quality = quality;
-	/* disable unwanted features, is this the correct way? */
-	// video_st->fmt->audio_codec = AV_CODEC_ID_NONE;
+
 	enum AVCodecID codecid;
-	switch(type) {
+	switch (type) {
 	case EXPORT_WEBM_VP9:
 		codecid = AV_CODEC_ID_VP9;
 		break;
 	case EXPORT_MP4:
 		codecid = AV_CODEC_ID_H264;
+		av_dict_set(&opt, "preset", "medium", 0);
 		break;
 	case EXPORT_MP4_H265:
 		codecid = AV_CODEC_ID_H265;
+		av_dict_set(&opt, "preset", "medium", 0);
 		break;
 	default:
-		free(video_st);
+		cleanup_video_st(video_st);
 		fprintf(stderr, "mp4_create: unknown type, should not happen\n");
 		return NULL;
 	}
+
 	video_st->src_w = src_w;
 	video_st->src_h = src_h;
 
-	/* Add the video stream and initialize the codecs. */
-	if (video_st->fmt->video_codec != AV_CODEC_ID_NONE) {
-		if (add_stream(video_st, &video_codec, codecid, dst_w, dst_h, fps)) {
-			avformat_free_context(video_st->oc);
-			free(video_st);
-			siril_log_message("Could not add the video stream in the output film, aborting\n");
-			return NULL;
-		}
-	} else {
-		avformat_free_context(video_st->oc);
-		free(video_st);
-		siril_log_message("Error setting video codec for output file.");
+	if (video_st->fmt->video_codec == AV_CODEC_ID_NONE) {
+		cleanup_video_st(video_st);
+		siril_log_message(_("Error: format does not support video codec.\n"));
 		return NULL;
 	}
 
-	/* Now that all the parameters are set, we can open the video codec
-	 * and allocate the necessary encode buffers. */
+	if (add_stream(video_st, &video_codec, codecid, dst_w, dst_h, fps)) {
+		cleanup_video_st(video_st);
+		siril_log_message(_("Could not add the video stream in the output film, aborting\n"));
+		return NULL;
+	}
+
+	if (!video_codec) {
+		cleanup_video_st(video_st);
+		siril_log_message(_("Selected codec is not available\n"));
+		return NULL;
+	}
+
 	if (open_video(video_codec, video_st, opt, nb_layers)) {
-		avformat_free_context(video_st->oc);
-		avcodec_free_context(&video_st->enc);
-		free(video_st);
+		cleanup_video_st(video_st);
 		return NULL;
 	}
 
 	av_dump_format(video_st->oc, 0, filename, 1);
 
-	/* open the output file, if needed */
 	if (!(video_st->fmt->flags & AVFMT_NOFILE)) {
-		if ((ret = avio_open(&video_st->oc->pb, filename, AVIO_FLAG_WRITE)) < 0) {
-			siril_log_message("Could not open '%s': %s\n", filename, av_err2str(ret));
-			avformat_free_context(video_st->oc);
-			avcodec_free_context(&video_st->enc);
-			av_frame_free(&video_st->frame);
-			if (video_st->tmp_frame) av_frame_free(&video_st->tmp_frame);
-			free(video_st);
+		ret = avio_open(&video_st->oc->pb, filename, AVIO_FLAG_WRITE);
+		if (ret < 0) {
+			siril_log_message(_("Could not open '%s': %s\n"), filename, av_err2str(ret));
+			cleanup_video_st(video_st);
 			return NULL;
 		}
 	}
 
-	/* Write the stream header, if any. */
-	if ((ret = avformat_write_header(video_st->oc, &opt)) < 0) {
-		siril_log_message("Error occurred when opening output file: %s\n", av_err2str(ret));
-		avformat_free_context(video_st->oc);
-		avcodec_free_context(&video_st->enc);
-		av_frame_free(&video_st->frame);
-		if (video_st->tmp_frame) av_frame_free(&video_st->tmp_frame);
-		free(video_st);
+	ret = avformat_write_header(video_st->oc, &opt);
+	if (ret < 0) {
+		siril_log_message(_("Error occurred when opening output file: %s\n"), av_err2str(ret));
+		if (!(video_st->fmt->flags & AVFMT_NOFILE))
+			avio_closep(&video_st->oc->pb);
+		cleanup_video_st(video_st);
 		return NULL;
 	}
+
+	av_dict_free(&opt);
 
 	return video_st;
 }

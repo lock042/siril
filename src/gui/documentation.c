@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@
 
 #define GET_DOCUMENTATION_URL "https://siril.readthedocs.io"
 
-void siril_get_documentation() {
+void siril_get_documentation(const gchar *page_path) {
 	gboolean ret;
 	const char *locale;
 	const char *supported_languages[] = { "de", "fr", "it", "ru", NULL };  // en is NULL: default language
@@ -60,7 +60,7 @@ void siril_get_documentation() {
 #else
 	version = "stable";
 #endif
-	gchar *url = g_build_path (G_DIR_SEPARATOR_S, GET_DOCUMENTATION_URL, lang, version, NULL);
+	gchar *url = g_build_path (G_DIR_SEPARATOR_S, GET_DOCUMENTATION_URL, lang, version, page_path, NULL);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	siril_log_message(_("Siril documentation URL: %s\n"), url);
 

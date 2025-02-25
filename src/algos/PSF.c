@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -1028,10 +1028,10 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 	get_fwhm_as_arcsec_if_possible(result, &fwhmx, &fwhmy, &unts);
 	const gchar *chan = isrgb(fit) ? channel_number_to_name(result->layer) : _("monochrome");
 	if (result->beta > 0.0) {
-		g_snprintf(buffer2, 50, ", beta=%0.1f, %s channel", result->beta, chan);
+		g_snprintf(buffer2, 50, _(", beta=%0.1f, %s channel"), result->beta, chan);
 	}
 	else {
-		g_snprintf(buffer2, 50, ", %s channel", chan);
+		g_snprintf(buffer2, 50, _(", %s channel"), chan);
 	}
 	msg = g_strdup_printf(_("PSF fit Result (%s%s):\n\n"
 				"Centroid Coordinates:\n\t\t%s\n\n"
@@ -1042,7 +1042,7 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
 				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
 				"RMSE:\n\t\tRMSE=%.3e"),
-			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat", buffer2,
+			(result->profile == PSF_GAUSSIAN) ? _("Gaussian") : _("Moffat"), buffer2,
 			coordinates, fwhmx, unts, fwhmy, unts, fwhmy / fwhmx,
 			result->angle, result->B, result->A, str,
 			result->mag + com.magOffset, result->s_mag, result->SNR,

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -159,8 +159,7 @@ void reset_conv_kernel() {
 void reset_conv_controls_and_args() {
 	if (!get_thread_run() || (the_fit == NULL))
 		reset_conv_args(&args);
-	if (!(com.headless))
-		reset_conv_controls();
+	gui_function(reset_conv_controls, NULL);
 }
 
 void check_orientation() {
@@ -197,8 +196,8 @@ int load_kernel(gchar* filename) {
 	if (load_fit.rx != load_fit.ry){
 		retval = 1;
 		char *msg = siril_log_color_message(_("Error: PSF file does not contain a square PSF. Cannot load this file.\n"), "red");
-		if (!com.script )
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
+		// no need to check com.script as it is built into the siril_message_dialog function
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
 		bad_load = TRUE;
 		goto ENDSAVE;
 	}
@@ -215,8 +214,7 @@ int load_kernel(gchar* filename) {
 	}
 	com.kernelchannels = load_fit.naxes[2];
 	args.kchans = com.kernelchannels;
-	if (!com.headless && !com.script)
-		set_kernel_size_in_gui();
+	gui_function(set_kernel_size_in_gui, NULL);
 
 	int npixels = com.kernelsize * com.kernelsize;
 	int orig_pixels = orig_size * orig_size;
@@ -273,8 +271,7 @@ int load_kernel(gchar* filename) {
 	com.pref.debayer.open_debayer = original_debayer_setting;
 	clearfits(&load_fit);
 	ENDSAVE:
-	if (!com.script && !com.headless)
-		DrawPSF();
+	gui_function(DrawPSF, NULL);
 	return retval;
 }
 
@@ -437,8 +434,7 @@ int get_kernel() {
 	com.kernelsize = (!com.kernel) ? 0 : args.ks;
 	com.kernelchannels = (!com.kernel) ? 0 : args.kchans;
 	if (args.psftype != PSF_PREVIOUS) {
-		if (!com.script && !com.headless)
-			DrawPSF();
+		gui_function(DrawPSF, NULL);
 	}
 END:
 	return retval;
@@ -561,8 +557,7 @@ gpointer deconvolve(gpointer p) {
 	gboolean stars_need_clearing = FALSE;
 	check_orientation();
 	if (sequence_is_running == 0)
-		if (!com.script && !com.headless)
-			DrawPSF();
+		gui_function(DrawPSF, NULL);
 	args.nchans = the_fit->naxes[2];
 	args.rx = the_fit->rx;
 	args.ry = the_fit->ry;
@@ -830,7 +825,7 @@ int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
 			dest = g_strdup_printf("%s%s.ser", seqargs->new_seq_prefix, ptr + 1);
 		else dest = g_strdup_printf("%s%s.ser", seqargs->new_seq_prefix, seqargs->seq->seqname);
 
-		seqargs->new_ser = malloc(sizeof(struct ser_struct));
+		seqargs->new_ser = calloc(1, sizeof(struct ser_struct));
 		if (ser_create_file(dest, seqargs->new_ser, TRUE, seqargs->seq->ser_file)) {
 			free(seqargs->new_ser);
 			seqargs->new_ser = NULL;
@@ -845,7 +840,7 @@ int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
 			dest = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, ptr + 1, com.pref.ext);
 		else dest = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, seqargs->seq->seqname, com.pref.ext);
 
-		seqargs->new_fitseq = malloc(sizeof(fitseq));
+		seqargs->new_fitseq = calloc(1, sizeof(fitseq));
 		if (fitseq_create_file(dest, seqargs->new_fitseq, seqargs->nb_filtered_images)) {
 			free(seqargs->new_fitseq);
 			seqargs->new_fitseq = NULL;
@@ -872,11 +867,15 @@ void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata) {
 	seqargs->description = _("Deconvolution");
 	seqargs->has_output = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
-	seqargs->new_seq_prefix = seqdata->seqEntry;
+	seqargs->new_seq_prefix = strdup(seqdata->seqEntry);
 	seqargs->load_new_sequence = TRUE;
 	seqargs->user = seqdata;
 
-	start_in_new_thread(generic_sequence_worker, seqargs);
+	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
+		free(seqdata->seqEntry);
+		free(seqdata);
+		free_generic_seq_args(seqargs, TRUE);
+	}
 }
 
 gpointer deconvolve_sequence_command(gpointer p, sequence* seqname) {

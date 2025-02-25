@@ -713,7 +713,7 @@ This should normally be the case only for stacked images. Increasing this value 
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Minimum value for Moffat beta parameter. This can be used to avoid galaxies being modelled as stars with excessively low beta.</property>
                         <property name="halign">start</property>
-                        <property name="text">1,50</property>
+                        <property name="text">1.50</property>
                         <property name="adjustment">adj_min_beta</property>
                         <property name="digits">2</property>
                         <property name="value">1.5</property>

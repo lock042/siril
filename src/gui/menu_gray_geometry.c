@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -74,11 +74,11 @@ static void rotate_gui(fits *fit) {
 	memcpy(&com.selection, &area, sizeof(rectangle));
 	gtk_spin_button_set_value(
 			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")), 0.);
-	new_selection_zone();
+	gui_function(new_selection_zone, NULL);
 
 	update_zoom_label();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 void siril_rotate90() {
@@ -87,7 +87,7 @@ void siril_rotate90() {
 	verbose_rotate_fast(&gfit, 90); // fast rotation, no interpolation, no crop
 	update_zoom_label();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -97,7 +97,7 @@ void siril_rotate270() {
 	verbose_rotate_fast(&gfit, -90); // fast rotation, no interpolation, no crop
 	update_zoom_label();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -121,7 +121,7 @@ void on_checkbutton_rotation_crop_toggled(GtkToggleButton *button, gpointer user
 	if (!gtk_toggle_button_get_active(button)) {
 		rectangle area = {0, 0, gfit.rx, gfit.ry};
 		memcpy(&com.selection, &area, sizeof(rectangle));
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 	}
 }
 
@@ -156,7 +156,7 @@ void mirrorx_gui(fits *fit) {
 	undo_save_state(fit, _("Mirror X"));
 	mirrorx(fit, TRUE);
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -165,7 +165,7 @@ void mirrory_gui(fits *fit) {
 	undo_save_state(fit, _("Mirror Y"));
 	mirrory(fit, TRUE);
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -187,7 +187,7 @@ void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 		undo_save_state(&gfit, _("Binning x%d (%s)"), factor, mean ? _("average") : _("sum"));
 		fits_binning(&gfit, factor, mean);
 
-		update_MenuItem(); // WCS not available anymore
+		gui_function(update_MenuItem, NULL); // WCS not available anymore
 		notify_gfit_modified();
 	}
 }
@@ -218,7 +218,7 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 		undo_save_state(&gfit, _("Resample (%g - %g)"), sample[0] / 100.0, sample[1] / 100.0);
 		verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
 
-		update_MenuItem(); // WCS not available anymore
+		gui_function(update_MenuItem, NULL); // WCS not available anymore
 		notify_gfit_modified();
 	}
 }
@@ -351,19 +351,27 @@ void siril_crop() {
 			com.selection.x, com.selection.y, com.selection.w,
 			com.selection.h);
 	if (is_preview_active()) {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("A live preview session is active"),
-				_("It is impossible to crop the image when a filter with preview session is active. "
-						"Please consider to close the filter dialog first."));
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Image backup is active"),
+				_("It is impossible to crop the image when the image backup is active. "
+				"This occurs when a filter has a live preview active or when a filter with "
+				"on-demand ROI preview is open. Please close the filter dialog before "
+				"cropping."));
 		return;
 	}
 	clear_stars_list(TRUE);
 	crop(&gfit, &com.selection);
+
+	char log[90];
+	sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"), com.selection.x,
+			com.selection.y, com.selection.w, com.selection.h);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+
 	delete_selected_area();
 	reset_display_offset();
 	update_zoom_label();
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {
@@ -383,7 +391,7 @@ void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_message(_("Not a valid sequence for cropping.\n"));
 	}
 
-	struct crop_sequence_data *args = malloc(sizeof(struct crop_sequence_data));
+	struct crop_sequence_data *args = calloc(1, sizeof(struct crop_sequence_data));
 
 	GtkEntry *cropped_entry = GTK_ENTRY(lookup_widget("cropped_entry"));
 

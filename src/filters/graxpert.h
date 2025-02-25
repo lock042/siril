@@ -3,8 +3,10 @@
 
 typedef enum {
 	GRAXPERT_BG,
+	GRAXPERT_DECONV,
 	GRAXPERT_DENOISE,
-	GRAXPERT_GUI
+	GRAXPERT_GUI,
+	GRAXPERT_DECONV_STELLAR
 } graxpert_operation;
 
 typedef enum {
@@ -49,19 +51,28 @@ typedef struct _graxpert_data {
 	double bg_tol_option; // BGE sample tolerance
 	gboolean keep_bg;
 	double denoise_strength;
+	double deconv_strength;
+	double deconv_blur_psf_size;
 	gboolean use_gpu;
 	int ai_batch_size;
 	int bg_pts_option; // points per row
 	gchar *path;
 	gchar *configfile;
+	gchar *ai_version;
 	cmsHPROFILE backup_icc;
 	gboolean previewing;
 } graxpert_data;
 
+GPid get_running_graxpert_pid();
+void set_graxpert_aborted(gboolean state);
+gpointer graxpert_setup_async(gpointer user_data);
+void ai_versions_to_log(graxpert_operation operation);
+gboolean check_graxpert_version(const gchar *version, graxpert_operation operation);
 gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operation);
 graxpert_data *new_graxpert_data();
 void free_graxpert_data(graxpert_data *p);
 gpointer do_graxpert (gpointer p);
 void apply_graxpert_to_sequence(graxpert_data *args);
+const gchar** get_ai_models(graxpert_operation operation);
 
 #endif

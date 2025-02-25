@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -184,7 +184,7 @@ void unregister_selection_update_callback(const selection_update_callback f) {
 }
 
 // send the events
-void new_selection_zone() {
+gboolean new_selection_zone(gpointer user_data) {
 	int i;
 	siril_debug_print("selection: %d,%d,\t%dx%d\n", com.selection.x,
 			com.selection.y, com.selection.w, com.selection.h);
@@ -193,12 +193,13 @@ void new_selection_zone() {
 			_registered_selection_callbacks[i]();
 	}
 	redraw(REDRAW_OVERLAY);
+	return FALSE;
 }
 
 void delete_selected_area() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	if (!com.script)
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 	if (gui.roi.active && com.pref.gui.roi_mode == ROI_AUTO)
 		on_clear_roi();
 }
@@ -207,6 +208,23 @@ void reset_display_offset() {
 	siril_debug_print("resetting display offset\n");
 	gui.display_offset.x = 0;
 	gui.display_offset.y = 0;
+}
+
+void reset_menu_toggle_button() {
+	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	GAction *action_tilt = g_action_map_lookup_action(G_ACTION_MAP(app_win), "show-tilt");
+	GAction *action_disto = g_action_map_lookup_action(G_ACTION_MAP(app_win), "show-disto");
+
+	GVariant *state = g_action_get_state(action_tilt);
+	if (g_variant_get_boolean(g_action_get_state(action_tilt))) {
+		g_action_change_state(action_tilt, g_variant_new_boolean(FALSE));
+	}
+	g_variant_unref(state);
+	state = g_action_get_state(action_disto);
+	if (g_variant_get_boolean(g_action_get_state(action_disto))) {
+		g_action_change_state(action_disto, g_variant_new_boolean(FALSE));
+	}
+	g_variant_unref(state);
 }
 
 void reset_zoom_default() {
@@ -394,7 +412,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 		button_release.function(&data);
 		clear_release_callback();
-		update_MenuItem();
+		gui_function(update_MenuItem, NULL);
 	}
 	return FALSE;
 }
@@ -596,8 +614,9 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		redraw(REDRAW_OVERLAY);
 	}
 
-	/* don't change cursor if thread is running */
-	if (get_thread_run()) return FALSE;
+	/* don't change cursor if thread is running or if Python
+	 claims the thread */
+	if (get_thread_run() || com.python_claims_thread) return FALSE;
 
 	if (inside) {
 		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
@@ -647,10 +666,22 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	return FALSE;
 }
 
+void on_drawingarea_enter_notify_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+	if (single_image_is_loaded() || sequence_is_loaded()) {
+		if (get_thread_run() || com.python_claims_thread) {
+			set_cursor_waiting(TRUE);
+		} else {
+			/* trick to get default cursor */
+			set_cursor_waiting(FALSE);
+		}
+	}
+}
+
 void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		if (get_thread_run()) {
+		if (get_thread_run() || com.python_claims_thread) {
 			set_cursor_waiting(TRUE);
 		} else {
 			/* trick to get default cursor */

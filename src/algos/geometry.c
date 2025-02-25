@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -372,7 +372,9 @@ int verbose_rotate_fast(fits *image, int angle) {
 	show_time(t_start, t_end);
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
-		reframe_astrometry_data(image, H);
+		reframe_astrometry_data(image, &H);
+		update_wcsdata_from_wcs(image);
+		update_fits_header(image);
 		refresh_annotations(FALSE);
 	}
 	return 0;
@@ -420,14 +422,16 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	// The original matrix will still be used to reframe astrometry data
 	Hocv = H;
 	cvdisplay2ocv(&Hocv);
-	if (cvTransformImage(image, target_rx, target_ry, Hocv, FALSE, interpolation, clamp)) return 1;
+	if (cvTransformImage(image, target_rx, target_ry, Hocv, 1.f, interpolation, clamp, NULL)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
-		reframe_astrometry_data(image, H);
+		reframe_astrometry_data(image, &H);
+		update_wcsdata_from_wcs(image);
+		update_fits_header(image);
 		refresh_annotations(FALSE);
 	}
 	return 0;
@@ -520,7 +524,9 @@ void mirrorx(fits *fit, gboolean verbose) {
 		cvGetEye(&H);
 		H.h11 = -1.;
 		H.h12 = (double)fit->ry;
-		reframe_astrometry_data(fit, H);
+		reframe_astrometry_data(fit, &H);
+		update_wcsdata_from_wcs(fit);
+		update_fits_header(fit);
 		refresh_annotations(FALSE);
 	}
 }
@@ -548,7 +554,9 @@ void mirrory(fits *fit, gboolean verbose) {
 		cvGetEye(&H);
 		H.h00 = -1.;
 		H.h02 = (double)fit->rx;
-		reframe_astrometry_data(fit, H);
+		reframe_astrometry_data(fit, &H);
+		update_wcsdata_from_wcs(fit);
+		update_fits_header(fit);
 		refresh_annotations(FALSE);
 	}
 }
@@ -641,7 +649,9 @@ int crop(fits *fit, rectangle *bounds) {
 	invalidate_stats_from_fit(fit);
 	if (wcs) {
 		cvApplyFlips(&H, orig_ry, target_ry);
-		reframe_astrometry_data(fit, H);
+		reframe_astrometry_data(fit, &H);
+		update_wcsdata_from_wcs(fit);
+		update_fits_header(fit);
 		refresh_annotations(FALSE);
 	}
 	return 0;
@@ -658,7 +668,15 @@ int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct crop_sequence_data *c_args = (struct crop_sequence_data*) args->user;
 
-	return crop(fit, &(c_args->area));
+	int ret = crop(fit, &(c_args->area));
+
+	if (!ret) {
+		char log[90];
+		sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
+				c_args->area.x, c_args->area.y, c_args->area.w, c_args->area.h);
+		fit->history = g_slist_append(fit->history, strdup(log));
+	}
+	return ret;
 }
 
 int crop_finalize_hook(struct generic_seq_args *args) {
@@ -766,13 +784,18 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	args->description = _("Crop Sequence");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = crop_sequence_data->prefix;
+	args->new_seq_prefix = strdup(crop_sequence_data->prefix);
 	args->load_new_sequence = TRUE;
 	args->user = crop_sequence_data;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(crop_sequence_data->prefix);
+		free(crop_sequence_data);
+		free_generic_seq_args(args, TRUE);
+		return GINT_TO_POINTER(1);
+	}
 
-	return 0;
+	return GINT_TO_POINTER(0);
 }
 
 gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data) {
@@ -788,11 +811,16 @@ gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data) {
 	args->description = _("Scale Sequence");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = scale_sequence_data->prefix;
+	args->new_seq_prefix = strdup(scale_sequence_data->prefix);
 	args->load_new_sequence = TRUE;
 	args->user = scale_sequence_data;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(scale_sequence_data->prefix);
+		free(scale_sequence_data);
+		free_generic_seq_args(args, TRUE);
+		return GINT_TO_POINTER(1);
+	}
 
-	return 0;
+	return GINT_TO_POINTER(0);
 }

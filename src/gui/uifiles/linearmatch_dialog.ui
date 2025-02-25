@@ -164,7 +164,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">The algorithm will ignore all reference pixels whose values are outside of the [low, high] range.</property>
                     <property name="width-chars">10</property>
-                    <property name="text">0,00</property>
+                    <property name="text">0.00</property>
                     <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                     <property name="adjustment">adj_linearmatch_low</property>
                     <property name="digits">4</property>

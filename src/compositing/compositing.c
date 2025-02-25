@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -214,13 +214,11 @@ layer *create_layer(int index) {
 	g_signal_connect(ret->color_w, "draw", G_CALLBACK(draw_layer_color), NULL);
 	g_object_ref(G_OBJECT(ret->color_w));	// don't destroy it on removal from grid
 
-	ret->chooser = GTK_FILE_CHOOSER_BUTTON(
-			gtk_file_chooser_button_new(
-				"Select source image", GTK_FILE_CHOOSER_ACTION_OPEN));
+	ret->chooser = GTK_FILE_CHOOSER_BUTTON(gtk_file_chooser_button_new("Select source image", GTK_FILE_CHOOSER_ACTION_OPEN));
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(ret->chooser), com.wd);
-	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(ret->chooser),
-			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, "filefilter1")));
-			gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
+	siril_set_file_filter(GTK_FILE_CHOOSER(ret->chooser), "filefilter_comp", "FITS and TIFF files");
+
+	gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(ret->chooser), FALSE);
 	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);
 	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
@@ -415,7 +413,7 @@ void open_compositing_window() {
 		register_selection_update_callback(update_compositing_registration_interface);
 
 		gtk_builder_connect_signals(gui.builder, NULL);
-		siril_set_file_filter("filechooser_lum", "filefilter1");
+		siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("filechooser_lum")), "filefilter_comp", "FITS and TIFF files");
 
 		/* parse the default palette */
 		for (i=0; i<sizeof(list_of_12_color_names)/sizeof(const char*); i++)
@@ -483,7 +481,7 @@ void open_compositing_window() {
 			i++;
 		} while (layers[i]);
 //		update_result(1);
-		update_MenuItem();
+		gui_function(update_MenuItem, NULL);
 	}
 	if (compositing_loaded == 1)
 		siril_open_dialog("composition_dialog");
@@ -577,14 +575,14 @@ static void check_gfit_is_ours() {
 	initialize_display_mode();
 	update_zoom_label();
 	display_filename();
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 	sliders_mode_set_state(gui.sliders);
 
 	init_layers_hi_and_lo_values(MIPSLOHI);
 	set_cutoff_sliders_max_values();
 	set_cutoff_sliders_values();
 	set_display_mode();
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 	redraw(REMAP_ALL);
 
 	sequence_list_change_current();
@@ -605,6 +603,7 @@ static void update_metadata(gboolean do_sum) {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f, do_sum);
+	update_fits_header(&gfit);
 	free(f);
 }
 
@@ -671,7 +670,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 			GtkNotebook* Color_Layers = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook1"));
 			GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, RED_VPORT);
 			gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(Color_Layers), page, _("Red"));
-			close_tab();
+			gui_function(close_tab, NULL);
 
 			if (number_of_images_loaded() == 1) { // set orig_rx and orig_ry, and check memory limits
 				orig_rx[layer] = layers[layer]->the_fit.rx;
@@ -764,7 +763,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	update_result(1);
 	update_metadata(TRUE);
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 }
 
 void create_the_internal_sequence() {
@@ -896,6 +895,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	regargs.run_in_thread = FALSE;
 	regargs.interpolation = OPENCV_LANCZOS4;
+	regargs.output_scale = 1.f;
 	regargs.clamp = TRUE;
 	regargs.framing = framing;
 	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
@@ -920,7 +920,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	msg[strlen(msg)-1] = '\0';
 	set_cursor_waiting(TRUE);
 	set_progress_bar_data(msg, PROGRESS_RESET);
-	int ret1 = (method->method_ptr(&regargs));
+	int ret1 = method->method_ptr(&regargs);
 	free(regargs.imgparam);
 	regargs.imgparam = NULL;
 	free(regargs.regparam);
@@ -1093,7 +1093,7 @@ static void update_compositing_registration_interface() {
 		gtk_label_set_text(label, "");
 		gtk_widget_set_sensitive(lookup_widget("button_align"), TRUE);
 	}
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 }
 
 /* callback for changes of the selected reference layer */
@@ -1295,12 +1295,6 @@ void on_compositing_cancel_clicked(GtkButton *button, gpointer user_data){
 	siril_close_dialog("composition_dialog");
 }
 
-void on_composition_dialog_hide(GtkWidget *widget, gpointer   user_data) {
-	if (gtk_widget_get_visible(lookup_widget("color_calibration"))) {
-		siril_close_dialog("color_calibration");
-	}
-}
-
 /* When summing all layers to get the RGB values for one pixel, it may overflow.
  * This procedure defines what happens in that case. */
 static void rgb_pixel_limiter(GdkRGBA *pixel) {
@@ -1336,7 +1330,7 @@ static void update_result(int and_refresh) {
 		colors_align_and_compose();
 	}
 	if (and_refresh && number_of_images_loaded() > 0) {
-		adjust_cutoff_from_updated_gfit();
+		notify_gfit_modified();
 		redraw(REMAP_ALL);
 	}
 }
@@ -1698,30 +1692,6 @@ static void coeff_clear() {
 	}
 }
 
-void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
-	int photometric = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("rgbcomp_cc_method")));
-	GtkWidget *win = NULL;
-	switch (photometric) {
-		case 0:
-			win = lookup_widget("color_calibration");
-			initialize_calibration_interface();
-		break;
-		case 1:
-			win = lookup_widget("s_pcc_dialog");
-			initialize_photometric_cc_dialog();
-		break;
-		case 2:
-			win = lookup_widget("s_pcc_dialog");
-			initialize_spectrophotometric_cc_dialog();
-	}
-	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));
-	/* Here this is wanted that we do not use siril_open_dialog */
-	gtk_widget_show(win);
-
-	if(photometric)
-		on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
-}
-
 void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
 	if (number_of_images_loaded() < 1)
 		return;
@@ -1923,22 +1893,12 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		args->seq->imgparam[in_index].incl = FALSE;
 		return 1;
 	}
-	if (!regargs->no_output) {
-		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->imgparam[out_index].rx = sadata->ref.x;
-		regargs->imgparam[out_index].ry = sadata->ref.y;
-		cvGetEye(&regargs->regparam[out_index].H);
+	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+	regargs->imgparam[out_index].rx = sadata->ref.x;
+	regargs->imgparam[out_index].ry = sadata->ref.y;
+	cvGetEye(&regargs->regparam[out_index].H);
 
-		if (regargs->x2upscale) {
-			fit->keywords.pixel_size_x /= 2;
-			fit->keywords.pixel_size_y /= 2;
-		}
-	} else {
-		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
-		// seems like not but this could backfire at some point
-		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	}
 	sadata->success[out_index] = 1;
 	return 0;
 }
@@ -2021,16 +1981,16 @@ int register_manual(struct registration_args *regargs) {
 	args->finalize_hook = manual_align_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Manual registration");
-	args->has_output = !regargs->no_output;
+	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
-	args->new_seq_prefix = regargs->prefix;
+	args->upscale_ratio = 1.0;
+	args->new_seq_prefix = strdupnullok(regargs->prefix);
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
-		free(args);
+		free_generic_seq_args(args, FALSE);
 		return -1;
 	}
 	sadata->regargs = regargs;
@@ -2039,7 +1999,7 @@ int register_manual(struct registration_args *regargs) {
 	generic_sequence_worker(args);
 
 	regargs->retval = args->retval;
-	free(args);
+	free_generic_seq_args(args, FALSE);
 	return regargs->retval;
 }
 

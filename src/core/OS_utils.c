@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -50,6 +50,7 @@
 #include <sys/param.h>		// define or not BSD macro
 #endif
 #ifdef OS_OSX
+#include <AppKit/AppKit.h>
 #include <mach/task.h>
 #include <mach/mach_init.h>
 #include <mach/mach_types.h>
@@ -83,7 +84,92 @@
  * @param name the path of the directory to be tested
  * @return the disk space remaining in bytes, or a negative value if error
  */
-#if HAVE_SYS_STATVFS_H
+#ifdef OS_OSX
+static gint64 find_space(const gchar *name) {
+	gint64 result = -1;
+	@autoreleasepool {
+		// Check input parameter
+		if (!name) {
+			NSLog(@"Error: null path provided");
+			return result;
+		}
+
+		NSString *path = [NSString stringWithUTF8String:name];
+		if (!path) {
+			NSLog(@"Error: invalid path string encoding");
+			return result;
+		}
+
+		// Check if path exists
+		BOOL isDirectory;
+		if (![[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDirectory]) {
+			NSLog(@"Error: path does not exist: %@", path);
+			return result;
+		}
+
+		NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:path];
+		if (!fileURL) {
+			NSLog(@"Error: could not create NSURL from path");
+			return result;
+		}
+
+		NSError *error = nil;
+
+		// Check if volume is accessible
+		NSDictionary *fsInfo = [fileURL resourceValuesForKeys:@[NSURLVolumeLocalizedFormatDescriptionKey] error:&error];
+		if (!fsInfo) {
+			NSLog(@"Error getting filesystem info: %@", error);
+			#if !__has_feature(objc_arc)
+			[fileURL release];
+			#endif
+			return result;
+		}
+
+		NSString *fsType = fsInfo[NSURLVolumeLocalizedFormatDescriptionKey];
+		if (!fsType) {
+			NSLog(@"Error: could not determine filesystem type");
+			#if !__has_feature(objc_arc)
+			[fileURL release];
+			#endif
+			return result;
+		}
+
+		// For APFS or HFS+, use important usage key
+		if ([fsType containsString:@"APFS"] || [fsType containsString:@"HFS"]) {
+			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
+			if (!results) {
+				NSLog(@"Error getting space info: %@", error);
+			} else {
+				NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
+				if (freeSpace) {
+					result = (gint64)[freeSpace longLongValue];
+				} else {
+					NSLog(@"Error: no free space information available");
+				}
+			}
+		} else {
+			// For other filesystems (FAT32, etc.), use basic capacity
+			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey] error:&error];
+			if (!results) {
+				NSLog(@"Error getting space info: %@", error);
+			} else {
+				NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityKey];
+				if (freeSpace) {
+					result = (gint64)[freeSpace longLongValue];
+				} else {
+					NSLog(@"Error: no free space information available");
+				}
+			}
+		}
+
+		#if !__has_feature(objc_arc)
+		[fileURL release];
+		#endif
+	}
+
+	return result;
+}
+#elif HAVE_SYS_STATVFS_H
 static gint64 find_space(const gchar *name) {
 	struct statvfs st;
 	gint64 available;
@@ -99,7 +185,7 @@ static gint64 find_space(const gchar *name) {
 	if (statfs (name, &st))
 		return (gint64) -1;
 	available = st.f_bavail;        // force 64 bits
-        return available * st.f_bsize;
+	return available * st.f_bsize;
 }
 #elif defined _WIN32
 static gint64 find_space(const gchar *name) {
@@ -930,3 +1016,70 @@ long get_pathmax(void) {
 	return MAX_PATH;
 #endif
 }
+
+
+#ifdef _WIN32
+
+gchar *get_siril_bundle_path() {
+	gchar *sirilexepath = NULL;
+	// g_find_program_in_path doc:
+	/* This means first in the directory where the executing program was loaded from,
+		then in the current directory, then in the Windows 32-bit system directory,
+		then in the Windows directory, and finally in the directories in the PATH environment variable
+	*/
+	// so g_find_program_in_path should return the path to currently loaded siril. Note we don't
+	// care whether we are looking for siril.exe or siril-cli.exe as both will be installed in the
+	// same place: it is the directory path we care about.
+	sirilexepath = g_find_program_in_path("siril.exe");
+	if (!sirilexepath)  // should not happen
+		return NULL;
+	const gchar *bin_folder = g_path_get_dirname(sirilexepath);
+	g_free(sirilexepath);
+	return g_path_get_dirname(bin_folder);
+}
+
+// will find an executable in PATH if path is set to NULL
+// will find an executable in passed path otherwise
+gchar *find_executable_in_path(const char *exe_name, const char *path) {
+	char full_path[MAX_PATH];
+	DWORD result;
+	const gchar *path_value;
+	if (!path) { // we need to remove mingw64 tokens from PATH
+		const gchar *tmp_path_value = g_getenv("PATH");
+		siril_debug_print("Unfiltered: %s\n", tmp_path_value);
+		gchar **tokens = g_strsplit(tmp_path_value, ";", -1);
+		GPtrArray *filtered_tokens = g_ptr_array_new_with_free_func(g_free);
+		for (guint i = 0; tokens[i] != NULL; i++) {
+			if (!g_strstr_len(tokens[i], -1, "mingw64")) {
+				g_ptr_array_add(filtered_tokens, g_strdup(tokens[i]));
+			}
+		}
+		g_ptr_array_add(filtered_tokens, NULL);
+		path_value = g_strjoinv(";", (gchar **)filtered_tokens->pdata);
+		siril_debug_print("Filtered: %s\n", path_value);
+		// Free memory
+		g_strfreev(tokens);
+		g_ptr_array_free(filtered_tokens, TRUE);
+	} else
+		path_value = path;
+
+	// Use SearchPath to find the executable in PATH
+	result = SearchPath(
+		path_value,		// Search in PATH directories
+		exe_name,	// The executable name
+		".exe",		// Default extension (NULL if no default extension)
+		MAX_PATH,	// Buffer size
+		full_path,	// Buffer to store the full path
+		NULL		// Address of a pointer to the file part of the path (can be NULL)
+	);
+
+	if (result > 0 && result < MAX_PATH) {
+		// Found the executable, so return a copy of the path
+		return g_strdup(full_path);
+	} else {
+		// Executable not found
+		return NULL;
+	}
+}
+
+#endif

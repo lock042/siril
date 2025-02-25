@@ -111,6 +111,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.01</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_stack_blending">
+    <property name="upper">2000</property>
+    <property name="step-increment">20</property>
+    <property name="page-increment">100</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment-finalstretch">
     <property name="upper">4</property>
     <property name="step-increment">0.05</property>
@@ -198,7 +203,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   </object>
   <object class="GtkAdjustment" id="adjustment_scaling">
     <property name="lower">0.10</property>
-    <property name="upper">2</property>
+    <property name="upper">3</property>
     <property name="value">1</property>
     <property name="step-increment">0.10</property>
     <property name="page-increment">0.20</property>
@@ -2002,6 +2007,21 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="proc_epf">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the edge preserving filters dialog</property>
+            <property name="action-name">win.epf-processing</property>
+            <property name="text" translatable="yes">Edge Preserving Filters...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">14</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="proc_fft">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -2013,7 +2033,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">14</property>
+            <property name="position">15</property>
           </packing>
         </child>
         <child>
@@ -2024,21 +2044,6 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="tooltip-text" translatable="yes">Open the median filter dialog</property>
             <property name="action-name">win.medianfilter-processing</property>
             <property name="text" translatable="yes">Median Filter...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">15</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="proc_epf">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the edge preserving filters dialog</property>
-            <property name="action-name">win.epf-processing</property>
-            <property name="text" translatable="yes">Edge Preserving Filters...</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -2069,6 +2074,21 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="tooltip-text" translatable="yes">Open the rotational gradient dialog</property>
             <property name="action-name">win.rgradient-processing</property>
             <property name="text" translatable="yes">Rotational Gradient...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">18</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_unpurple">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the unpurple filter dialog</property>
+            <property name="action-name">win.unpurple-processing</property>
+            <property name="text" translatable="yes">Unpurple Filter...</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -2286,10 +2306,6 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
     </child>
   </object>
   <object class="GtkRecentFilter" id="recentfilter">
-    <mime-types>
-      <mime-type>image/fits</mime-type>
-      <mime-type>video/ser</mime-type>
-    </mime-types>
     <patterns>
       <pattern>*.fit</pattern>
       <pattern>*.fts</pattern>
@@ -2524,6 +2540,20 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="info_menu_disto">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.show-disto</property>
+            <property name="text" translatable="yes">Show Distortions</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkSeparator">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -2531,7 +2561,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
         <child>
@@ -2545,7 +2575,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">6</property>
+            <property name="position">7</property>
           </packing>
         </child>
       </object>
@@ -2874,6 +2904,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                             <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                             <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                             <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                             <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                             <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                             <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
@@ -3038,6 +3069,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                             <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                             <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                             <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                             <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                             <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                             <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
@@ -3206,6 +3238,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                             <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                             <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                             <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                             <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                             <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                             <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
@@ -3377,6 +3410,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                 <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                 <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                                 <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                                <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                                 <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                                 <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                                 <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
@@ -5003,7 +5037,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">3,000</property>
+                                                            <property name="text">3.000</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adjCalSigCosmeCold</property>
@@ -5071,7 +5105,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
                                                             <property name="max-width-chars">6</property>
-                                                            <property name="text">3,000</property>
+                                                            <property name="text">3.000</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adjCalCosmeHot</property>
@@ -5434,15 +5468,10 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                         <property name="label-xalign">0</property>
                                                         <property name="shadow-type">none</property>
                                                         <child>
-                                                          <object class="GtkAlignment">
+                                                          <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="margin-top">5</property>
-                                                            <property name="left-padding">12</property>
-                                                            <child>
-                                                            <object class="GtkBox">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
+                                                            <property name="margin-top">6</property>
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
@@ -5462,7 +5491,7 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <child>
-                                                            <object class="GtkLabel" id="label14">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
@@ -5506,12 +5535,14 @@ When processing images, registration data is taken from the default layer if ava
                                                             <property name="valign">start</property>
                                                             <property name="margin-top">10</property>
                                                             <property name="show-tabs">False</property>
+                                                            <property name="show-border">False</property>
                                                             <child>
-                                                            <!-- n-columns=3 n-rows=6 -->
+                                                            <!-- n-columns=4 n-rows=4 -->
                                                             <object class="GtkGrid" id="global_page">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="valign">start</property>
+                                                            <property name="margin-left">6</property>
+                                                            <property name="margin-right">6</property>
                                                             <property name="margin-start">6</property>
                                                             <property name="margin-end">6</property>
                                                             <property name="margin-top">6</property>
@@ -5531,13 +5562,12 @@ When processing images, registration data is taken from the default layer if ava
                                                             <property name="draw-indicator">True</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">3</property>
-                                                            <property name="width">2</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkLabel" id="label_minpairs">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
@@ -5553,7 +5583,6 @@ When processing images, registration data is taken from the default layer if ava
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">The minimum number of star pairs a given frame can have in relation with the reference frame. If a given light frame has less star pairs, it will not be registered.</property>
-                                                            <property name="halign">start</property>
                                                             <property name="max-length">4</property>
                                                             <property name="width-chars">4</property>
                                                             <property name="max-width-chars">4</property>
@@ -5574,7 +5603,7 @@ When processing images, registration data is taken from the default layer if ava
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkLabel" id="label_maxstars">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
@@ -5649,7 +5678,7 @@ When processing images, registration data is taken from the default layer if ava
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">True</property>
                                                             <property name="tooltip-text" translatable="yes">Hit this button for star detection settings</property>
-                                                            <property name="halign">end</property>
+                                                            <property name="halign">start</property>
                                                             <property name="action-name">win.dyn-psf</property>
                                                             <child>
                                                             <object class="GtkImage">
@@ -5665,40 +5694,128 @@ When processing images, registration data is taken from the default layer if ava
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkCheckButton" id="regNoOutput">
-                                                            <property name="label" translatable="yes">Save transformation in seq file only</property>
+                                                            <object class="GtkCheckButton" id="reg_2pass">
+                                                            <property name="label" translatable="yes">2pass registration</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-markup" translatable="yes">When this box is checked, the transformed images are not saved as a newly registered sequence.
+                                                            <property name="tooltip-markup" translatable="yes">When this box is checked, the transformed images are not saved as a newly registered sequence. The transformation matrices are saved to the sequence file. The registration data can then be inspected and some images unselected, prior to applying the transformations using the Apply Existing Registration method.
 
-In both cases, the transformation matrices are saved to the sequence file. The registration data can then be inspected and some images unselected, prior to applying the transformations using the Apply Existing Registration method.</property>
-                                                            <property name="halign">start</property>
+When this box is unchecked, the global star registration will be calculated and immediately applied using the output registration options selected below.</property>
+                                                            <property name="halign">end</property>
                                                             <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_regNoOutput_toggled" swapped="no"/>
+                                                            <signal name="toggled" handler="on_reg_2pass_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">3</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <!-- n-columns=4 n-rows=2 -->
+                                                            <object class="GtkGrid" id="grid_reg_wcs">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Undistortion:</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">4</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="comboreg_undistort">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-markup" translatable="yes">To correct images for distortions, you can either select:
+- distortion solution from current platesolved image
+- distortion solution from an existing WCS file
+- distortion solution from distortions masters</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">None</item>
+                                                            <item translatable="yes">From image</item>
+                                                            <item translatable="yes">From FITS/WCS file</item>
+                                                            <item translatable="yes">From distortion masters</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_comboreg_undistort_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkBox" id="reg_wcsfilechooser_box">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <child>
+                                                            <object class="GtkEntry" id="reg_wcsfile_entry">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Select a file to read distortion information from:
+- a FITS file which has been platesolved with distortion.
+- a wcs file which was written by a previous registration with distortions.</property>
+                                                            <property name="hexpand">True</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">True</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkButton" id="reg_wcsfile_button">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">The bias/offset master image will be removed from all images in the sequence.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="use-underline">True</property>
+                                                            <signal name="clicked" handler="on_reg_wcsfile_button_clicked" swapped="no"/>
+                                                            <child>
+                                                            <object class="GtkImage">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="icon-name">document-open-symbolic</property>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">1</property>
                                                             <property name="width">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkCheckButton" id="upscaleCheckButton">
-                                                            <property name="label" translatable="yes">Interpolation upscaling x2</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Applies an interpolation-based x2 upscaling. This is quicker than most of the proper drizzle kernels but will not provide results that are as sharp. Only applicable to immediately-applied global star registration.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="valign">start</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_upscaleCheckButton_toggled" swapped="no"/>
+                                                            <placeholder/>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">5</property>
-                                                            <property name="width">3</property>
+                                                            <property name="top-attach">3</property>
+                                                            <property name="width">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -5713,7 +5830,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </object>
                                                             </child>
                                                             <child type="tab">
-                                                            <object class="GtkLabel" id="notebook_reg_page1">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">start</property>
@@ -5728,6 +5845,8 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">start</property>
+                                                            <property name="margin-left">6</property>
+                                                            <property name="margin-right">6</property>
                                                             <property name="margin-start">6</property>
                                                             <property name="margin-end">6</property>
                                                             <property name="margin-top">6</property>
@@ -5735,13 +5854,52 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
-                                                            <!-- n-columns=3 n-rows=3 -->
-                                                            <object class="GtkGrid" id="box_comet">
+                                                            <!-- n-columns=3 n-rows=4 -->
+                                                            <object class="GtkGrid">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="row-spacing">5</property>
                                                             <property name="column-spacing">5</property>
                                                             <property name="column-homogeneous">True</property>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
+                                                            <property name="halign">end</property>
+                                                            <property name="label" translatable="yes">Velocity: </property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">True</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel" id="label1_comet">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label">Δx: 0.00, Δy: 0.00</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">True</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">3</property>
+                                                            <property name="width">3</property>
+                                                            </packing>
+                                                            </child>
                                                             <child>
                                                             <object class="GtkButton" id="button1_comet">
                                                             <property name="label" translatable="yes">Pick object in #1</property>
@@ -5749,7 +5907,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">True</property>
                                                             <property name="tooltip-text" translatable="yes">Select an area around the asteroid or the comet core in the first selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
-                                                            <signal name="clicked" handler="on_button1_comet_clicked" swapped="no"/>
+                                                            <signal name="clicked" handler="on_button_comet_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
@@ -5757,13 +5915,13 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkButton" id="button1_comet2">
+                                                            <object class="GtkButton" id="button2_comet">
                                                             <property name="label" translatable="yes">Pick object in #2</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">True</property>
                                                             <property name="tooltip-text" translatable="yes">Select an area around the asteroid or the comet core in the last selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
-                                                            <signal name="clicked" handler="on_button2_comet_clicked" swapped="no"/>
+                                                            <signal name="clicked" handler="on_button_comet_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
@@ -5845,46 +6003,50 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkBox">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <child>
-                                                            <object class="GtkLabel" id="label2_comet">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
-                                                            <property name="halign">end</property>
-                                                            <property name="label" translatable="yes">Velocity: </property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
                                                             <property name="position">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkLabel" id="label1_comet">
+                                                            <!-- n-columns=2 n-rows=1 -->
+                                                            <object class="GtkGrid">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="label">Δx: 0.00, Δy: 0.00</property>
+                                                            <property name="halign">end</property>
+                                                            <property name="label" translatable="yes">Prefix: </property>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkEntry" id="cometseqname_entry">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Prefix of the sequence resulting from the registration. Only the seq file is created, not new images.</property>
+                                                            <property name="max-length">10</property>
+                                                            <property name="width-chars">10</property>
+                                                            <property name="text">comet_</property>
+                                                            <property name="caps-lock-warning">False</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">2</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -5894,7 +6056,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </packing>
                                                             </child>
                                                             <child type="tab">
-                                                            <object class="GtkLabel" id="notebook_reg_page2">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">start</property>
@@ -5910,6 +6072,8 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">start</property>
+                                                            <property name="margin-left">6</property>
+                                                            <property name="margin-right">6</property>
                                                             <property name="margin-start">6</property>
                                                             <property name="margin-end">6</property>
                                                             <property name="margin-top">6</property>
@@ -6073,6 +6237,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <child>
                                                             <object class="GtkCheckButton" id="followStarCheckButton">
                                                             <property name="label" translatable="yes">Follow star movement</property>
+                                                            <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">Use this option to use the position of the star(s) found in the previous image as new centre for the current image registration. This allows the selection area to be smaller, registration faster, and accounts for drift or images with a large number of stars.
@@ -6090,12 +6255,12 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <child>
                                                             <object class="GtkCheckButton" id="onlyshift_checkbutton">
                                                             <property name="label" translatable="yes">Shift only</property>
+                                                            <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">Use this option to compute only shifts (so no rotation) even if more than one star is selected. When only one star is selected, this is activated by default.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_shiftonly_toggled" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
@@ -6118,7 +6283,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             </packing>
                                                             </child>
                                                             <child type="tab">
-                                                            <object class="GtkLabel" id="notebook_reg_page3">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">start</property>
@@ -6135,6 +6300,8 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">start</property>
+                                                            <property name="margin-left">6</property>
+                                                            <property name="margin-right">6</property>
                                                             <property name="margin-start">6</property>
                                                             <property name="margin-end">6</property>
                                                             <property name="margin-top">6</property>
@@ -6150,9 +6317,11 @@ By default, the pattern is only searched on 25% of the total image size around t
 
 Higher values give more tolerance in alignment and smaller numbers lead to faster computations.</property>
                                                             <property name="valign">center</property>
+                                                            <property name="text">25.00</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adj_kombat_percent</property>
                                                             <property name="digits">2</property>
+                                                            <property name="value">25</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
@@ -6181,7 +6350,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkLabel" id="notebook_reg_page4">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">start</property>
@@ -6201,8 +6370,6 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="fill">True</property>
                                                             <property name="position">3</property>
                                                             </packing>
-                                                            </child>
-                                                            </object>
                                                             </child>
                                                           </object>
                                                         </child>
@@ -6224,21 +6391,18 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkFrame" id="reg_selection_frame">
+                                                      <object class="GtkFrame">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
                                                         <property name="label-xalign">0</property>
                                                         <property name="shadow-type">none</property>
                                                         <child>
-                                                          <object class="GtkAlignment" id="reg_incl_alignment">
+                                                          <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="left-padding">12</property>
-                                                            <child>
-                                                            <object class="GtkBox">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
+                                                            <property name="margin-top">6</property>
                                                             <property name="orientation">vertical</property>
+                                                            <property name="spacing">6</property>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="reg_sel_all_combobox">
                                                             <property name="visible">True</property>
@@ -6681,8 +6845,6 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="position">1</property>
                                                             </packing>
                                                             </child>
-                                                            </object>
-                                                            </child>
                                                           </object>
                                                         </child>
                                                         <child type="label">
@@ -6709,35 +6871,33 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                         <property name="label-xalign">0</property>
                                                         <property name="shadow-type">none</property>
                                                         <child>
-                                                          <object class="GtkAlignment">
+                                                          <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="left-padding">12</property>
-                                                            <child>
-                                                            <object class="GtkBox">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
+                                                            <property name="margin-top">6</property>
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">6</property>
                                                             <child>
-                                                            <!-- n-columns=4 n-rows=3 -->
-                                                            <object class="GtkGrid">
+                                                            <!-- n-columns=3 n-rows=2 -->
+                                                            <object class="GtkGrid" id="grid_reg_framing">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="row-spacing">6</property>
                                                             <property name="column-spacing">6</property>
                                                             <property name="row-homogeneous">True</property>
                                                             <child>
-                                                            <object class="GtkLabel" id="framing_lbl">
+                                                            <object class="GtkImage" id="framing-image">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="label" translatable="yes">Framing method</property>
+                                                            <property name="halign">end</property>
+                                                            <property name="hexpand">True</property>
+                                                            <property name="xpad">6</property>
+                                                            <property name="resource">/org/siril/ui/pixmaps/framing-default.svg</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">1</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">0</property>
+                                                            <property name="height">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6750,6 +6910,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
 - "minimum" (common area) crops each image to the area it has in common with all images of the sequence.
 - "center of gravity" determines the best framing position as the center of gravity (cog) of all the images</property>
                                                             <property name="valign">center</property>
+                                                            <property name="hexpand">True</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">current</item>
@@ -6761,31 +6922,20 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">1</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
                                                             <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="label" translatable="yes"> </property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="label" translatable="yes">Framing method</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">3</property>
-                                                            <property name="top-attach">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkImage" id="framing-image">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="xpad">6</property>
-                                                            <property name="resource">/org/siril/ui/pixmaps/framing-default.svg</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">2</property>
+                                                            <property name="left-attach">0</property>
                                                             <property name="top-attach">0</property>
-                                                            <property name="height">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6805,70 +6955,34 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">2</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
+                                                            <object class="GtkLabel" id="estimate_label">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">center</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
                                                             </child>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
+                                                            <property name="expand">True</property>
+                                                            <property name="fill">False</property>
                                                             <property name="position">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkCheckButton" id="check_button_comet">
-                                                            <property name="label" translatable="yes">Accumulate reg. data</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Check this button if you want the new registration data to be added to the previous one.
-This option is useful when sequence has previously been aligned using a method that does not build a new sequence, but it should be unchecked when the comet/asteroid algorithm is applied several times.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="active">True</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="reg_undistort">
-                                                            <property name="label" translatable="yes">Undistort images</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-markup" translatable="yes">When this box is checked, the transformed images are undistorted using the SIP data in the reference frame.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="active">True</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">3</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkBox" id="reg_scaling_box">
+                                                            <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
+                                                            <property name="spacing">6</property>
                                                             <child>
                                                             <object class="GtkLabel">
                                                             <property name="visible">True</property>
@@ -6900,7 +7014,6 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">1</property>
-                                                            <signal name="value-changed" handler="on_reg_scaling_spin_value_changed" swapped="no"/>
                                                             <style>
                                                             <class name="small-spinbutton"/>
                                                             </style>
@@ -6918,20 +7031,21 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkStackSwitcher">
+                                                            <object class="GtkStackSwitcher" id="interp_drizzle_stack_switcher">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Choose whether to use an interpolation algorithm or Drizzle to apply registration</property>
                                                             <property name="stack">interp_drizzle_stack</property>
+                                                            <signal name="button-release-event" handler="on_switcher_stack_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">5</property>
+                                                            <property name="position">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6948,7 +7062,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <property name="row-spacing">6</property>
                                                             <property name="column-spacing">6</property>
                                                             <child>
-                                                            <object class="GtkLabel" id="GtkLabelRegAlgo">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
@@ -7085,7 +7199,7 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Sets the droplet size as a fraction of the input pixel size. Typically a good value for this is the reciprocal of the drizzle scale.</property>
-                                                            <property name="text" translatable="yes">1.00</property>
+                                                            <property name="text">1.00</property>
                                                             <property name="adjustment">adj_driz_dropsize</property>
                                                             <property name="digits">2</property>
                                                             <property name="value">1</property>
@@ -7112,7 +7226,7 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">8</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7121,7 +7235,7 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             <property name="can-focus">False</property>
                                                             <property name="spacing">6</property>
                                                             <child>
-                                                            <object class="GtkLabel" id="preproseqname_label1">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="label" translatable="yes">Prefix:</property>
@@ -7159,10 +7273,8 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
                                                             <property name="padding">6</property>
-                                                            <property name="position">10</property>
+                                                            <property name="position">4</property>
                                                             </packing>
-                                                            </child>
-                                                            </object>
                                                             </child>
                                                           </object>
                                                         </child>
@@ -7307,7 +7419,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             <property name="halign">center</property>
                                                             <property name="spacing">10</property>
                                                             <child>
-                                                            <object class="GtkLabel" id="label38">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Change this value, using mouse wheel or up and down arrows, to align the image with the reference image on the X axis.</property>
@@ -7343,7 +7455,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkLabel" id="label39">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Change this value, using mouse wheel or up and down arrows, to align the image with the reference image on the Y axis.</property>
@@ -7393,7 +7505,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkBox" id="box16">
+                                                      <object class="GtkBox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
                                                         <property name="margin-top">5</property>
@@ -7405,7 +7517,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
-                                                            <object class="GtkToggleButton" id="togglebutton2">
+                                                            <object class="GtkToggleButton" id="toggle_reg_manual1">
                                                             <property name="label" translatable="yes">Set first preview</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
@@ -7421,7 +7533,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkDrawingArea" id="drawingarea_preview1">
+                                                            <object class="GtkDrawingArea" id="drawingarea_reg_manual_preview1">
                                                             <property name="height-request">200</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -7447,7 +7559,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
-                                                            <object class="GtkToggleButton" id="togglebutton3">
+                                                            <object class="GtkToggleButton" id="toggle_reg_manual2">
                                                             <property name="label" translatable="yes">Set second preview</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
@@ -7463,7 +7575,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkDrawingArea" id="drawingarea_preview2">
+                                                            <object class="GtkDrawingArea" id="drawingarea_reg_manual_preview2">
                                                             <property name="height-request">200</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -7907,7 +8019,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                             <property name="orientation">vertical</property>
                                             <property name="spacing">10</property>
                                             <child>
-                                              <object class="GtkExpander">
+                                              <object class="GtkExpander" id="stack_expander_method">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
@@ -8145,7 +8257,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                             <property name="can-focus">True</property>
                                                             <property name="width-chars">5</property>
                                                             <property name="max-width-chars">6</property>
-                                                            <property name="text">4,000</property>
+                                                            <property name="text">4.000</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">stack_siglow_adjustment</property>
                                                             <property name="climb-rate">0.05</property>
@@ -8179,7 +8291,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                             <property name="can-focus">True</property>
                                                             <property name="width-chars">5</property>
                                                             <property name="max-width-chars">6</property>
-                                                            <property name="text">3,000</property>
+                                                            <property name="text">3.000</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">stack_sighigh_adjustment</property>
                                                             <property name="climb-rate">0.05</property>
@@ -8451,6 +8563,110 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                         <property name="expand">False</property>
                                                         <property name="fill">True</property>
                                                         <property name="position">2</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkFrame" id="stack_blend_frame">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label-xalign">0</property>
+                                                        <property name="shadow-type">none</property>
+                                                        <child>
+                                                          <object class="GtkAlignment">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="top-padding">5</property>
+                                                            <property name="bottom-padding">5</property>
+                                                            <property name="left-padding">12</property>
+                                                            <child>
+                                                            <!-- n-columns=3 n-rows=2 -->
+                                                            <object class="GtkGrid">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="row-spacing">10</property>
+                                                            <property name="column-spacing">10</property>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Borders feathering [pix]:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_stack_feather_dist">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Select here the number of pixels that will be faded out on the borders of each image.</property>
+                                                            <property name="hexpand">False</property>
+                                                            <property name="width-chars">6</property>
+                                                            <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                                            <property name="adjustment">adj_stack_blending</property>
+                                                            <property name="snap-to-ticks">True</property>
+                                                            <property name="numeric">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkScale">
+                                                            <property name="width-request">100</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="hexpand">True</property>
+                                                            <property name="adjustment">adj_stack_blending</property>
+                                                            <property name="digits">0</property>
+                                                            <property name="draw-value">False</property>
+                                                            <property name="value-pos">right</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="check_norm_overlap">
+                                                            <property name="label" translatable="yes">Normalization on overlaps</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">By default, Siril computes the normalisation coefficients from each image. Ticking this box computes them on overlapping regions instead.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
+                                                            <property name="width">3</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                          </object>
+                                                        </child>
+                                                        <child type="label">
+                                                          <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Stack stitching:</property>
+                                                            <attributes>
+                                                            <attribute name="weight" value="bold"/>
+                                                            </attributes>
+                                                          </object>
+                                                        </child>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">3</property>
                                                       </packing>
                                                     </child>
                                                     <child>
@@ -8900,7 +9116,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                       <packing>
                                                         <property name="expand">False</property>
                                                         <property name="fill">True</property>
-                                                        <property name="position">3</property>
+                                                        <property name="position">4</property>
                                                       </packing>
                                                     </child>
                                                   </object>
@@ -8923,7 +9139,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkExpander">
+                                              <object class="GtkExpander" id="stack_expander_output">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
@@ -8935,7 +9151,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                     <property name="orientation">vertical</property>
                                                     <property name="spacing">5</property>
                                                     <child>
-                                                      <!-- n-columns=2 n-rows=2 -->
+                                                      <!-- n-columns=3 n-rows=2 -->
                                                       <object class="GtkGrid">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
@@ -8946,7 +9162,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="label" translatable="yes">Output Normalisation</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or in [0, 65535] otherwise.
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or clipped in [0, 65535] otherwise. This will work best if you also check Force 32b output, as it will avoid clipping.
 
 WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="halign">start</property>
@@ -8978,10 +9194,10 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="label" translatable="yes">Maximize framing</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be enlarged to fit all the selected frames of the sequence.
-                                                            </property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be enlarged to fit all the selected frames of the sequence.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_check_maximize_framing_toggled" swapped="no"/>
                                                           </object>
                                                           <packing>
                                                             <property name="left-attach">1</property>
@@ -8993,8 +9209,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="label" translatable="yes">Interpolation upscaling x2</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be upscaled by a factor of 2. This can be faster than real drizzle images obtained during registration but will not produced images as sharp.
-                                                            </property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be upscaled by a factor of 2. This can be faster than real drizzle images obtained during registration but will not produced images as sharp.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
                                                           </object>
@@ -9002,6 +9217,24 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="left-attach">1</property>
                                                             <property name="top-attach">1</property>
                                                           </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkCheckButton" id="check_force32b">
+                                                            <property name="label" translatable="yes">Force 32b output</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image bitdepth will be forced to 32b even if the input images are in 16b.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">1</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <placeholder/>
                                                         </child>
                                                       </object>
                                                       <packing>
@@ -9899,10 +10132,11 @@ WARNING: This option should not be checked for master stacking.</property>
                   <object class="GtkToggleToolButton" id="annotate_button">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">Show object names if WCS information is available</property>
+                    <property name="tooltip-text" translatable="yes">Left-click to show object names if WCS information is available. Right-click to display a list of astro catalogs to choose from.</property>
                     <property name="action-name">win.annotate-object</property>
                     <property name="use-underline">True</property>
                     <property name="icon-widget">astrometry</property>
+                    <signal name="button-press-event" handler="on_annotate_press_event" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -10392,6 +10626,7 @@ WARNING: This option should not be checked for master stacking.</property>
         </child>
         <child>
           <object class="GtkMenuButton" id="header_scripts_button">
+            <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Menu of the script files. This menu appears only when the script paths defined in the preferences are set to the existing script folders.</property>
@@ -10685,6 +10920,52 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
             <property name="pack-type">end</property>
             <property name="position">11</property>
           </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkPopover" id="popover_catalogs">
+    <property name="can-focus">False</property>
+    <property name="relative-to">annotate_button</property>
+    <child>
+      <object class="GtkTreeView" id="pref_astro_tree_view">
+        <property name="visible">True</property>
+        <property name="can-focus">True</property>
+        <property name="has-tooltip">True</property>
+        <property name="vexpand">True</property>
+        <property name="model">liststore_astrometry</property>
+        <property name="headers-clickable">False</property>
+        <property name="reorderable">True</property>
+        <property name="search-column">0</property>
+        <property name="enable-grid-lines">both</property>
+        <child internal-child="selection">
+          <object class="GtkTreeSelection"/>
+        </child>
+        <child>
+          <object class="GtkTreeViewColumn">
+            <child>
+              <object class="GtkCellRendererToggle" id="cellrendeur2_catalog_use">
+                <signal name="toggled" handler="on_cellrendeur2_catalog_use_toggled" swapped="no"/>
+              </object>
+              <attributes>
+                <attribute name="active">0</attribute>
+              </attributes>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkTreeViewColumn" id="treeviewcolumn282">
+            <property name="title" translatable="yes">Catalogue</property>
+            <property name="clickable">True</property>
+            <property name="sort-indicator">True</property>
+            <property name="sort-column-id">0</property>
+            <child>
+              <object class="GtkCellRendererText" id="cellrenderer2_catalog"/>
+              <attributes>
+                <attribute name="text">1</attribute>
+              </attributes>
+            </child>
+          </object>
         </child>
       </object>
     </child>

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -368,11 +368,15 @@ clean_and_exit:
  */
 int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	int i, j;
-	siril_plot_data *spl_data = NULL;
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data)
+		return -1;
+
 	sequence *seq = lcargs->seq;
 
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
+		free_siril_plot_data(spl_data);
 		return -1;
 	}
 
@@ -392,6 +396,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
 	if (nbImages < 1) {
 		siril_log_color_message(_("There are not enough valid stars to make a photometric analysis.\n"), "red");
+		free_siril_plot_data(spl_data);
 		return -1;
 	}
 
@@ -406,6 +411,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 
 	if (nb_ref_stars == 0) {
 		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
+		free_siril_plot_data(spl_data);
 		return -1;
 	}
 	if (nb_ref_stars == 1)
@@ -421,6 +427,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	if (!date || !vmag || !err || !snr_opt) {
 		PRINT_ALLOC_ERR;
 		free(date); free(vmag); free(err); free(snr_opt);
+		free_siril_plot_data(spl_data);
 		return -1;
 	}
 	double min_date = DBL_MAX;
@@ -521,8 +528,6 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
 	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, titledat);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	spl_data->revertY = TRUE;
@@ -543,7 +548,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	if (!siril_plot_save_ETD_light_curve(spl_data, filename, TRUE)) {
 		ret = 1;
 		free_siril_plot_data(spl_data);
-		spl_data = NULL; // just in case we try to use it later on
+		spl_data = NULL;
 	} else {
 		// now saving the plot if required
 		siril_plot_set_title(spl_data, titleimg);
@@ -551,7 +556,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 			gchar *image_name = replace_ext(filename, ".png");
 			siril_plot_save_png(spl_data, image_name, 0, 0);
 			free_siril_plot_data(spl_data);
-			spl_data = NULL; // just in case we try to use it later on
+			spl_data = NULL;
 			g_free(image_name);
 		}
 	}

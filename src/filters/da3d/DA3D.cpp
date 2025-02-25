@@ -201,6 +201,8 @@ void ModifyPatch(const Image &patch, const Image &k, DftPatch *modified,
                  float *average = nullptr) {
   // compute the total weight of the mask
   float weight = accumulate(k.begin(), k.end(), 0.f);
+  if (!weight)
+    return;
 
   for (int chan = 0; chan < patch.channels(); ++chan) {
     float avg = 0.f;
@@ -248,7 +250,8 @@ pair<Image, Image> DA3D_block(int &retval, const Image &noisy, const Image &guid
   DftPatch g_m(s, s, guide.channels());
   int pr, pc;  // coordinates of the central pixel
   vector<pair<float, float>> reg_plane(guide.channels());  // parameters of the regression plane
-  float yt[guide.channels()];  // weighted average of the patch
+  vector<float> ytv(guide.channels());
+  float* yt = ytv.data();  // weighted average of the patch
   WeightMap agg_weights(guide.rows() - s + 1, guide.columns() - s + 1);  // line 1
 
   Image output(guide.rows(), guide.columns(), guide.channels());

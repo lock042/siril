@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -273,14 +273,14 @@ static int undo_get_data(fits *fit, historic *hist) {
 		if (gfit.type != DATA_USHORT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
-			set_precision_switch();
+			gui_function(set_precision_switch, NULL);
 		}
 		return undo_get_data_ushort(fit, hist);
 	} else if (hist->type == DATA_FLOAT) {
 		if (gfit.type != DATA_FLOAT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
-			set_precision_switch();
+			gui_function(set_precision_switch, NULL);
 		}
 		return undo_get_data_float(fit, hist);
 	}
@@ -315,7 +315,7 @@ int undo_save_state(fits *fit, const char *message, ...) {
 		undo_add_item(fit, filename, histo);
 
 		/* update menus */
-		update_MenuItem();
+		gui_function(update_MenuItem, NULL);
 	}
 	va_end(args);
 	return 0;
@@ -328,8 +328,16 @@ int undo_display_data(int dir) {
 	switch (dir) {
 	case UNDO:
 		if (is_undo_available()) {
-			/* first we close all liveview dialog to avoid issue, especially with crop */
-			siril_close_preview_dialogs();
+			// Avoid any issues with ROI or preview
+			gboolean preview_was_active = is_preview_active();
+			// Can't reactivate the ROI if the size has changed
+			gboolean roi_was_active = (gui.roi.active && gfit.rx == com.history[com.hist_display - 1].rx
+					&& gfit.ry == com.history[com.hist_display - 1].ry
+					&& gfit.naxes[2] == com.history[com.hist_display - 1].nchans);
+			rectangle roi_rect;
+			memcpy(&roi_rect, &gui.roi.selection, sizeof(rectangle));
+			siril_preview_hide();
+			on_clear_roi();
 			if (com.hist_current == com.hist_display) {
 				undo_save_state(&gfit, NULL);
 				com.hist_display--;
@@ -337,49 +345,67 @@ int undo_display_data(int dir) {
 			com.hist_display--;
 			siril_log_message(_("Undo: %s\n"), com.history[com.hist_display].history);
 			undo_get_data(&gfit, &com.history[com.hist_display]);
-			populate_roi();
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
-			update_MenuItem();
+			gui_function(update_MenuItem, NULL);
 			lock_display_transform();
 			if (gui.icc.proofing_transform)
 				cmsDeleteTransform(gui.icc.proofing_transform);
 			gui.icc.proofing_transform = NULL;
 			unlock_display_transform();
 			refresh_annotations(TRUE);
-			if (is_preview_active())
-				copy_gfit_to_backup();
-			close_tab(); // These 2 lines account for possible change from mono to RGB
-			init_right_tab();
+			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
+			gui_function(init_right_tab,NULL);
 			redraw(REMAP_ALL);
+			if (preview_was_active) {
+				copy_gfit_to_backup();
+				siril_log_message(_("Following undo / redo with a preview active you may need "
+						"to toggle the preview off and on again to reactivate the preview effect\n"));
+				// TODO: To be perfect, we would need a register of preview functions
+				// look up the correct one for the open dialog and re-apply the preview
+			}
+			if (roi_was_active) {
+				memcpy(&com.selection, &roi_rect, sizeof(rectangle));
+				on_set_roi();
+			}
 			update_fits_header(&gfit);
 		}
 		break;
 	case REDO:
 		if (is_redo_available()) {
-			/* first we close all liveview dialog to avoid issue, especially with crop */
-			siril_close_preview_dialogs();
+			// Avoid any issues with ROI or preview
+			gboolean preview_was_active = is_preview_active();
+			// Can't reactivate the ROI if the size has changed
+			gboolean roi_was_active = (gui.roi.active && gfit.rx == com.history[com.hist_display + 1].rx
+					&& gfit.ry == com.history[com.hist_display + 1].ry
+					&& gfit.naxes[2] == com.history[com.hist_display + 1].nchans);
+			rectangle roi_rect;
+			memcpy(&roi_rect, &gui.roi.selection, sizeof(rectangle));
+			on_clear_roi();
+			siril_preview_hide();
 			siril_log_message(_("Redo: %s\n"), com.history[com.hist_display].history);
 			com.hist_display++;
 			undo_get_data(&gfit, &com.history[com.hist_display]);
-			populate_roi();
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
-			update_MenuItem();
+			gui_function(update_MenuItem, NULL);
 			refresh_annotations(TRUE);
-			gboolean tmp_roi_active = gui.roi.active;
-			gui.roi.active = FALSE;
 			lock_display_transform();
 			if (gui.icc.proofing_transform)
 				cmsDeleteTransform(gui.icc.proofing_transform);
 			gui.icc.proofing_transform = NULL;
 			unlock_display_transform();
-			close_tab(); // These 2 lines account for possible change from mono to RGB
-			init_right_tab();
+			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
+			gui_function(init_right_tab, NULL);
 			redraw(REMAP_ALL);
-			gui.roi.active = tmp_roi_active;
+			if (preview_was_active)
+				copy_gfit_to_backup();
+			if (roi_was_active) {
+				memcpy(&gui.roi.selection, &roi_rect, sizeof(rectangle));
+				on_set_roi();
+			}
 			update_fits_header(&gfit);
 		}
 		break;

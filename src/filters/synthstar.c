@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -89,7 +89,8 @@ void makeairy(float *psf, const int size, const float lum, const float xoff, con
 	return;
 }
 
-void makemoffat(float *psf, const int size, const float fwhm, const float lum, const float xoff, const float yoff, const float beta, const float ratio, const float angle) {
+void makemoffat(float *psf, const int size, const float fwhm, const float lum, const float xoff,
+				const float yoff, const float beta, const float ratio, const float angle) {
 	float anglerad = angle * M_PI / 180.f;
 	const float alpha = 0.6667f * fwhm;
 	const float alphax = alpha;
@@ -400,7 +401,7 @@ int generate_synthstars(fits *fit) {
 
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];
-	int count = dimx * dimy;
+	int npixels = dimx * dimy;
 	gboolean buf_needs_freeing = FALSE;
 	// Regardless of 16/32bit store the data in a buffer, converting if needed
 	float *buf[3];
@@ -410,11 +411,11 @@ int generate_synthstars(fits *fit) {
 			buf[GLAYER] = fit->fpdata[GLAYER];
 			buf[BLAYER] = fit->fpdata[BLAYER];
 		} else {
-			buf[RLAYER] = (float*) calloc(count, sizeof(float));
-			buf[GLAYER] = (float*) calloc(count, sizeof(float));
-			buf[BLAYER] = (float*) calloc(count, sizeof(float));
+			buf[RLAYER] = (float*) calloc(npixels, sizeof(float));
+			buf[GLAYER] = (float*) calloc(npixels, sizeof(float));
+			buf[BLAYER] = (float*) calloc(npixels, sizeof(float));
 			buf_needs_freeing = TRUE;
-			for (size_t i = 0; i < count; i++) {
+			for (size_t i = 0; i < npixels; i++) {
 				buf[RLAYER][i] = (float) fit->pdata[RLAYER][i] * invnorm;
 				buf[GLAYER][i] = (float) fit->pdata[GLAYER][i] * invnorm;
 				buf[BLAYER][i] = (float) fit->pdata[BLAYER][i] * invnorm;
@@ -424,9 +425,9 @@ int generate_synthstars(fits *fit) {
 		if (is_32bit)
 			buf[RLAYER] = fit->fdata;
 		else {
-			buf[RLAYER] = (float*) calloc(count, sizeof(float));
+			buf[RLAYER] = (float*) calloc(npixels, sizeof(float));
 			buf_needs_freeing = TRUE;
-			for (size_t i = 0; i < count; i++)
+			for (size_t i = 0; i < npixels; i++)
 				buf[RLAYER][i] = (float) fit->data[i] * invnorm;
 		}
 	}
@@ -434,23 +435,23 @@ int generate_synthstars(fits *fit) {
 	// Normalize the buffer to avoid issues with colorspace conversion
 	float bufmax = 1.f;
 	for (size_t chan = 0; chan < fit->naxes[2]; chan++)
-		for (size_t i = 0; i < count; i++)
+		for (size_t i = 0; i < npixels; i++)
 			if (buf[chan][i] > bufmax)
 				bufmax = buf[chan][i];
 	for (size_t chan = 0; chan < fit->naxes[2]; chan++)
-		for (size_t i = 0; i < count; i++)
+		for (size_t i = 0; i < npixels; i++)
 			buf[chan][i] /= bufmax;
 
 	float *H = NULL, *S = NULL, *Hsynth = NULL, *Ssynth = NULL, *Lsynth, junk;
-	Lsynth = (float*) calloc(count, sizeof(float));
+	Lsynth = (float*) calloc(npixels, sizeof(float));
 
 	// For RGB images, convert pixel colour data from fit into H and S arrays. L is irrelevant as we will synthesize L.
 	if (is_RGB) {
-		H = (float*) calloc(count, sizeof(float));
-		S = (float*) calloc(count, sizeof(float));
-		Hsynth = (float*) calloc(count, sizeof(float));
-		Ssynth = (float*) calloc(count, sizeof(float));
-		for (size_t i = 0; i < count; i++) {
+		H = (float*) calloc(npixels, sizeof(float));
+		S = (float*) calloc(npixels, sizeof(float));
+		Hsynth = (float*) calloc(npixels, sizeof(float));
+		Ssynth = (float*) calloc(npixels, sizeof(float));
+		for (size_t i = 0; i < npixels; i++) {
 			rgb_to_hsl_float_sat(buf[RLAYER][i], buf[GLAYER][i],
 					buf[BLAYER][i], 0.f, &H[i], &S[i], &junk);
 		}
@@ -489,13 +490,20 @@ int generate_synthstars(fits *fit) {
 			assert(lum >= 0.0f);
 			float xoff = (float) stars[n]->xpos - (int) stars[n]->xpos;
 			float yoff = (float) stars[n]->ypos - (int) stars[n]->ypos;
-			int size = (int) 20 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
+			int size = (int) 5 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
+			if (!gaussian)
+				size *= 10 / stars[n]->beta; // Increase the PSF size markedly for low beta stars
 			if (!(size % 2))
 				size++;
+			if (size > 1024) // protect against excessive memory allocations due to bad parameters;
+							 // 100px should be more than enough for the fwhm of even a very saturated star
+				continue;
 			float minfwhm = min(stars[n]->fwhmx, stars[n]->fwhmy);
 
 			// Synthesize the luminance profile and add to the star mask in HSL colourspace
 			float *psfL = (float*) calloc(size * size, sizeof(float));
+			if (!psfL) // May happen if size is excessively large because of a bad fwhm value
+				continue;
 			float beta = 8.f;
 			if (!gaussian) {
 				if (stars[n]->beta > 0.0) {
@@ -526,79 +534,59 @@ int generate_synthstars(fits *fit) {
 	if (!stopcalled) {
 		if (is_RGB) {
 			float *R, *G, *B;
-			R = (float*) calloc(count, sizeof(float));
-			G = (float*) calloc(count, sizeof(float));
-			B = (float*) calloc(count, sizeof(float));
+			R = (float*) calloc(npixels, sizeof(float));
+			G = (float*) calloc(npixels, sizeof(float));
+			B = (float*) calloc(npixels, sizeof(float));
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) if (com.max_thread > 1)
 {
-			omp_set_num_threads(com.max_thread);
 #endif
 			float bufmaxx = 1.f;
-#ifdef _OPENMP
-#pragma omp for simd schedule(static)
-#endif
-			for (size_t i = 0; i < count; i++)
+			for (size_t i = 0; i < npixels; i++)
 				if (Lsynth[i] > bufmaxx)
 					bufmaxx = Lsynth[i];
 #ifdef _OPENMP
 #pragma omp for simd schedule(static)
 #endif
-			for (size_t i = 0; i < count; i++)
+			for (size_t i = 0; i < npixels; i++)
 				Lsynth[i] /= bufmaxx;
 
 #ifdef _OPENMP
 #pragma omp for simd schedule(static)
 #endif
-				for (size_t n = 0; n < count; n++) {
-					hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n],
-							&G[n], &B[n]);
-					// Trap NaNs and infinities
-					if (isnan(R[n]))
-						R[n] = 0.f;
-					if (isinf(R[n]))
-						R[n] = 0.f;
-					if (R[n] < 0.f)
-						R[n] = 0.f;
-					if (isnan(G[n]))
-						G[n] = 0.f;
-					if (isinf(G[n]))
-						G[n] = 0.f;
-					if (G[n] < 0.f)
-						G[n] = 0.f;
-					if (isnan(B[n]))
-						B[n] = 0.f;
-					if (isinf(B[n]))
-						B[n] = 0.f;
-					if (B[n] < 0.f)
-						B[n] = 0.f;
-				}
+			for (size_t n = 0; n < npixels; n++) {
+				hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n],
+						&G[n], &B[n]);
+				// Trap NaNs and infinities
+				R[n] = (isnan(R[n]) || isinf(R[n]) || R[n] < 0.f) ? 0.f : R[n];
+				G[n] = (isnan(G[n]) || isinf(G[n]) || G[n] < 0.f) ? 0.f : G[n];
+				B[n] = (isnan(B[n]) || isinf(B[n]) || B[n] < 0.f) ? 0.f : B[n];
+			}
 //#ifdef _OPENMP
 //#pragma omp barrier
 //#endif
-				if (is_32bit) {
+			if (is_32bit) {
 #ifdef _OPENMP
 #pragma omp for simd schedule(static)
 #endif
-					for (size_t n = 0; n < count; n++) {
-						fit->fpdata[RLAYER][n] = R[n];
-						fit->fpdata[GLAYER][n] = G[n];
-						fit->fpdata[BLAYER][n] = B[n];
-					}
-				} else {
-#ifdef _OPENMP
-#pragma omp for simd schedule(static)
-#endif
-					for (size_t n = 0; n < count; n++) {
-						fit->pdata[RLAYER][n] = roundf_to_WORD(R[n] * norm);
-						fit->pdata[GLAYER][n] = roundf_to_WORD(G[n] * norm);
-						fit->pdata[BLAYER][n] = roundf_to_WORD(B[n] * norm);
-					}
+				for (size_t n = 0; n < npixels; n++) {
+					fit->fpdata[RLAYER][n] = R[n];
+					fit->fpdata[GLAYER][n] = G[n];
+					fit->fpdata[BLAYER][n] = B[n];
 				}
+			} else {
 #ifdef _OPENMP
-			}
+#pragma omp for simd schedule(static)
 #endif
-
+				for (size_t n = 0; n < npixels; n++) {
+					fit->pdata[RLAYER][n] = roundf_to_WORD(R[n] * norm);
+					fit->pdata[GLAYER][n] = roundf_to_WORD(G[n] * norm);
+					fit->pdata[BLAYER][n] = roundf_to_WORD(B[n] * norm);
+				}
+			}
+#ifdef _OPENMP
+}
+#endif
 			// Free memory
 			free(R);
 			free(G);
@@ -613,7 +601,7 @@ int generate_synthstars(fits *fit) {
 #ifdef _OPENMP
 #pragma omp for simd schedule(static,8)
 #endif
-					for (size_t n = 0; n < count; n++) {
+					for (size_t n = 0; n < npixels; n++) {
 						fit->fdata[n] = (float) Lsynth[n];
 					}
 					if (com.pref.force_16bit) {
@@ -624,7 +612,7 @@ int generate_synthstars(fits *fit) {
 #ifdef _OPENMP
 #pragma omp for simd schedule(static,8)
 #endif
-					for (size_t n = 0; n < count; n++) {
+					for (size_t n = 0; n < npixels; n++) {
 						fit->data[n] = roundf_to_WORD(Lsynth[n] * norm);
 					}
 				}
@@ -743,10 +731,14 @@ int reprofile_saturated_stars(fits *fit) {
 				int size = 5.f * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that it should cover the saturated parts of the star
 				if (!(size % 2))
 					size++;
+				if (size > 1024)
+					size = 1024; // Protection against bad star params
 				float ratio = stars[n]->fwhmx / stars[n]->fwhmy;
 				float angle = (float) stars[n]->angle;
 
 				float *psfL = (float*) calloc(size * size, sizeof(float));
+				if (!psfL)
+					continue;
 				makegaussian(psfL, size, stars[n]->fwhmx, (lum - bg), xoff, yoff, ratio, angle);
 
 				// Replace the part of the profile above the sat threshold

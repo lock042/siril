@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -63,38 +63,51 @@ static GMutex display_transform_mutex;
 static gboolean profile_check_verbose = TRUE;
 
 ////// Functions //////
+struct cm_struct {
+	fits *fit;
+	gboolean active;
+};
+
+static gboolean cm_worker(gpointer user_data) {
+	struct cm_struct *data = (struct cm_struct*) user_data;
+	fits *fit = data->fit;
+	gboolean active = data->active;
+	gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
+	gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
+	gchar *tooltip = NULL;
+	if (active) {
+		if (fit->icc_profile) {
+			buffer = siril_color_profile_get_description(fit->icc_profile);
+			monitor = siril_color_profile_get_description(gui.icc.monitor);
+		}
+		if (gui.icc.soft_proof)
+			proof = siril_color_profile_get_description(gui.icc.soft_proof);
+		else
+			proof = g_strdup(monitor);
+
+		tooltip = g_strdup_printf(_("Image is color managed\nImage profile: %s\nMonitor profile: %s\nSoft proofing profile: %s"), buffer, monitor, proof);
+		if (!tooltip)
+			tooltip = g_strdup(_("Image is color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
+	} else {
+		tooltip = g_strdup(_("Image is not color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
+	}
+	GtkWidget *image = lookup_widget("color_managed_icon");
+	GtkWidget *button = lookup_widget("icc_main_window_button");
+	gtk_image_set_from_resource((GtkImage*) image, name);
+	gtk_widget_set_tooltip_text(button, tooltip);
+	g_free(name);
+	g_free(buffer);
+	g_free(monitor);
+	g_free(proof);
+	g_free(tooltip);
+	return FALSE;
+}
 
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
+	struct cm_struct data = { fit, active };
 	if (fit == &gfit && !com.script) {
-		gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
-		gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
-		gchar *tooltip = NULL;
-		if (active) {
-			if (fit->icc_profile) {
-				buffer = siril_color_profile_get_description(fit->icc_profile);
-				monitor = siril_color_profile_get_description(gui.icc.monitor);
-			}
-			if (gui.icc.soft_proof)
-				proof = siril_color_profile_get_description(gui.icc.soft_proof);
-			else
-				proof = g_strdup(monitor);
-
-			tooltip = g_strdup_printf(_("Image is color managed\nImage profile: %s\nMonitor profile: %s\nSoft proofing profile: %s"), buffer, monitor, proof);
-			if (!tooltip)
-				tooltip = g_strdup(_("Image is color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
-		} else {
-			tooltip = g_strdup(_("Image is not color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
-		}
-		GtkWidget *image = lookup_widget("color_managed_icon");
-		GtkWidget *button = lookup_widget("icc_main_window_button");
-		gtk_image_set_from_resource((GtkImage*) image, name);
-		gtk_widget_set_tooltip_text(button, tooltip);
-		g_free(name);
-		g_free(buffer);
-		g_free(monitor);
-		g_free(proof);
-		g_free(tooltip);
+		cm_worker(&data);
 	}
 }
 
@@ -467,11 +480,12 @@ void initialize_profiles_and_transforms() {
 	// Working profiles
 	com.icc.mono_linear = gray_linear();
 	com.icc.srgb_profile = srgb_trc();
-	validate_custom_profiles();
 
 	// Target profiles for embedding in saved files
 	com.icc.srgb_out = srgb_trcv2();
 	com.icc.mono_out = gray_srgbtrcv2();
+
+	validate_custom_profiles();
 
 	// ICC availability
 	gboolean available = (com.icc.mono_linear && com.icc.working_standard && com.icc.mono_standard && com.icc.working_out && com.icc.mono_out);
@@ -495,6 +509,36 @@ void initialize_profiles_and_transforms() {
 		gui.icc.same_primaries = FALSE;
 		gui.icc.profile_changed = TRUE;
 	}
+}
+
+void cleanup_common_profiles() {
+	if (com.icc.mono_linear)
+		cmsCloseProfile(com.icc.mono_linear);
+	if (com.icc.working_standard)
+		cmsCloseProfile(com.icc.working_standard);
+	if (com.icc.mono_standard)
+		cmsCloseProfile(com.icc.mono_standard);
+	if (com.icc.srgb_profile)
+		cmsCloseProfile(com.icc.srgb_profile);
+	if (com.icc.srgb_out)
+		cmsCloseProfile(com.icc.srgb_out);
+	if (com.icc.working_out)
+		cmsCloseProfile(com.icc.working_out);
+	if (com.icc.mono_out)
+		cmsCloseProfile(com.icc.mono_out);
+	if (gui.icc.monitor)
+		cmsCloseProfile(gui.icc.monitor);
+	if (gui.icc.soft_proof)
+		cmsCloseProfile(gui.icc.soft_proof);
+	if (gui.icc.proofing_transform)
+		cmsDeleteTransform(gui.icc.proofing_transform);
+	memset(&gui.icc, 0, sizeof(struct gui_icc));
+	if (com.icc.context_single)
+		cmsDeleteContext(com.icc.context_single);
+	if (com.icc.context_threaded)
+		cmsDeleteContext(com.icc.context_threaded);
+	memset(&com.icc, 0, sizeof(struct common_icc));
+	siril_debug_print("ICC profiles cleaned up\n");
 }
 
 void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
@@ -544,7 +588,7 @@ void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
 	refresh_icc_transforms();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -719,6 +763,8 @@ void refresh_icc_transforms() {
 
 // Returns the full ICC profile data
 unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len) {
+	if (!profile)
+		return NULL;
 	unsigned char* block = NULL;
 	cmsUInt32Number length;
 	cmsBool ret = cmsSaveProfileToMem(profile, NULL, &length);
@@ -1426,6 +1472,10 @@ void update_profiles_after_gamut_change() {
 // It is recommended in conjunction with the excellent Equilux GTK theme.
 
 void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		return;
+	}
 	cmsCIEXYZTRIPLE XYZtriple = { 0 };
 	cmsCIEXYZ whitepoint = { 0 };
 	cmsCIExyY redxyY, greenxyY, bluexyY, whitexyY;
@@ -1438,10 +1488,12 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 
 	if (!(siril_color_profile_is_rgb (profile))) {
 		siril_log_message(_("This ICC profile is not RGB. Unable to plot the colorspace.\n"));
+		free_siril_plot_data(spl_data);
 		return;
 	}
 	if (! siril_color_profile_get_rgb_matrix_colorants (profile, &XYZtriple, &whitepoint)) {
 		siril_log_message(_("Error reading chromaticities\n"));
+		free_siril_plot_data(spl_data);
 		return;
 	}
 
@@ -1467,15 +1519,12 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	double colorspace_y[4] = {redxyY.y, greenxyY.y, bluexyY.y, redxyY.y};
 	double srgb_x[4] = {0.639998686, 0.300003784, 0.150002046, 0.639998686};
 	double srgb_y[4] = {0.330010138, 0.600003357, 0.059997204, 0.330010138};
-	siril_plot_data *spl_data = NULL;
 
 	gchar *title1 = g_strdup_printf(_("Source Color Profile Chromaticity Diagram\n"
 					"<span size=\"small\">"
 					"%s"
 					"</span>"), description);
 	free(description);
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_xlabel(spl_data, _("CIE x"));
 	siril_plot_set_savename(spl_data, "color_profile");
 	siril_plot_set_title(spl_data, title1);

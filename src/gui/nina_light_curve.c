@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -217,13 +217,27 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 		gtk_widget_hide(dialog);
 		return;
 	}
-	gchar *nina_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
-	if (!nina_file){
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Choose a comparison stars file"));
+	if (!sequence_is_loaded()) {	// Tests if a valid sequence is loaded
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence loaded"));
 		return;
 	}
-
-	if (!has_wcs(&gfit)) {
+	gchar *nina_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
+	if (!nina_file){	// Any file for processing?
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Choose a comparison stars file"));
+		g_free(nina_file);
+		return;
+	}
+	gchar *dirname = g_path_get_dirname(nina_file);
+	if (g_strcmp0(dirname, com.wd) != 0) {	// Tests if the file is in the CWD
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The current comparison stars file is not located in the CWD"));
+		gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(file_chooser), com.wd);
+		gtk_file_chooser_unselect_all (GTK_FILE_CHOOSER(file_chooser));
+		g_free(dirname);
+		g_free(nina_file);
+		return;
+	}
+	g_free(dirname);
+	if (!has_wcs(&gfit)) {	// Is the current image properly plate solved
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
 		return;
 	}
@@ -264,16 +278,20 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 		// fail
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
 		free(args);
+		g_free(nina_file);
 		return;
 	}
-
+	g_free(nina_file);
 	args->seq = &com.seq;
 	args->layer = layer;
 	args->display_graph = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(display_curve));
 	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
 
-	start_in_new_thread(light_curve_worker, args);
-
+	if (!start_in_new_thread(light_curve_worker, args)) {
+		free(args);
+		g_free(nina_file);
+		return;
+	}
 	// Update of the UI
 	radius_label = !com.pref.phot_set.force_radius ? "Radius/half-FWHM ratio:" : "Aperture radius (px):";
 	gtk_label_set_text(GTK_LABEL(apert), radius_label);

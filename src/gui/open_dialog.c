@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -45,24 +45,6 @@
 #include "gui/dialogs.h"
 
 #include "open_dialog.h"
-
-static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
-		const gchar *pattern, gboolean set_default) {
-	gchar **patterns;
-	gint i;
-
-	GtkFileFilter *f = gtk_file_filter_new();
-	gtk_file_filter_set_name(f, title);
-	/* get the patterns */
-	patterns = g_strsplit(pattern, ";", -1);
-	for (i = 0; patterns[i] != NULL; i++)
-		gtk_file_filter_add_pattern(f, patterns[i]);
-	/* free the patterns */
-	g_strfreev(patterns);
-	gtk_file_chooser_add_filter(file_chooser, f);
-	if (set_default)
-		gtk_file_chooser_set_filter(file_chooser, f);
-}
 
 static void set_single_filter_dialog(GtkFileChooser *chooser, const gchar *name, const gchar *filter) {
 	gtk_filter_add(chooser, name, filter, TRUE);
@@ -235,6 +217,7 @@ static void opendial(int whichdial) {
 	case OD_FLATLIB:
 	case OD_DARKLIB:
 	case OD_OFFSETLIB:
+	case OD_DISTOLIB:
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
@@ -257,9 +240,19 @@ static void opendial(int whichdial) {
 				gtk_file_chooser_set_current_folder(dialog, path);
 				g_free(path);
 			}
+		} else if (whichdial == OD_DISTOLIB) {
+			if (com.pref.prepro.disto_lib != NULL) {
+				gchar *path = g_path_get_dirname(com.pref.prepro.disto_lib);
+				gtk_file_chooser_set_current_folder(dialog, path);
+				g_free(path);
+			}
 		}
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
-		set_filters_dialog(dialog, whichdial);
+		if (whichdial == OD_DISTOLIB) {
+			set_single_filter_dialog(dialog, _("Master-distortion: file (*.wcs)"), "*.wcs;*.WCS");
+		} else {
+			set_filters_dialog(dialog, whichdial);
+		}
 		siril_file_chooser_add_preview(dialog, preview);
 		break;
 	case OD_CWD:
@@ -308,7 +301,7 @@ static void opendial(int whichdial) {
 		gboolean anything_loaded;
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
 		GtkEntry *flat_entry, *dark_entry, *bias_entry, *bad_pixel_entry;
-		GtkEntry *flatlib_entry, *darklib_entry, *biaslib_entry;
+		GtkEntry *flatlib_entry, *darklib_entry, *biaslib_entry, *distolib_entry;
 		GtkToggleButton *flat_button, *dark_button, *bias_button;
 		GtkWidget *pbutton;
 
@@ -330,6 +323,7 @@ static void opendial(int whichdial) {
 		flatlib_entry = GTK_ENTRY(lookup_widget("flatlib_entry"));
 		darklib_entry = GTK_ENTRY(lookup_widget("darklib_entry"));
 		biaslib_entry = GTK_ENTRY(lookup_widget("biaslib_entry"));
+		distolib_entry = GTK_ENTRY(lookup_widget("distolib_entry"));
 		bad_pixel_entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
 
 		flat_button = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
@@ -369,13 +363,17 @@ static void opendial(int whichdial) {
 			gtk_entry_set_text(biaslib_entry, filename);
 			break;
 
+		case OD_DISTOLIB:
+			gtk_entry_set_text(distolib_entry, filename);
+			break;
+
 		case OD_CWD:
 			if (!siril_change_dir(filename, &err)) {
 				if (com.pref.wd)
 					g_free(com.pref.wd);
 				com.pref.wd = g_strdup(com.wd);
 				writeinitfile();
-				set_GUI_CWD();
+				gui_function(set_GUI_CWD, NULL);
 			} else {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), err);
 			}
@@ -435,6 +433,10 @@ void on_flatlibfile_button_clicked(GtkButton *button, gpointer user_data) {
 	opendial(OD_FLATLIB);
 }
 
+void on_distolibfile_button_clicked(GtkButton *button, gpointer user_data) {
+	opendial(OD_DISTOLIB);
+}
+
 void header_open_button_clicked() {
 	opendial(OD_OPEN);
 }
@@ -464,6 +466,7 @@ void on_open_recent_action_item_activated(GtkRecentChooser *chooser,
 		g_warning("Could not convert uri \"%s\" to a local path: %s", uri,
 				error->message);
 		g_clear_error(&error);
+		g_free(uri);
 		return;
 	}
 

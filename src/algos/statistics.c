@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -56,15 +56,6 @@
 // comment to debug statistics
 #undef siril_debug_print
 #define siril_debug_print(fmt, ...) { }
-
-/* Activating nullcheck will treat pixels with 0 value as null and remove them
- * from stats computation. This can be useful when a large area is black, but
- * this shouldn't happen often. Maybe we could detect it instead of hardcoding
- * it...
- * Deactivating this will take less memory and make a faster statistics
- * computation. ngoodpix will be equal to total if deactivated.
- * Set to 0 to deactivate or 1 to activate. */
-#define ACTIVATE_NULLCHECK 1
 
 static void stats_set_default_values(imstats *stat);
 
@@ -163,8 +154,7 @@ static double siril_stats_ushort_bwmv(const WORD* data, const size_t n,
 			up += ai * SQR((double ) data[i] - median) * SQR(SQR (1 - yi2));
 			down += (ai * (1 - yi2) * (1 - 5 * yi2));
 		}
-
-		bwmv = n * (up / (down * down));
+		bwmv = down ? n * (up / (down * down)) : 0.0;
 	}
 
 	return bwmv;
@@ -222,7 +212,7 @@ static void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
  * computes them and stores them in it if they have not already been */
 static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *selection,
 		int option, imstats *stats, int bitpix, threading_type threads) {
-	int nx, ny;
+	int nx = 0, ny = 0;
 	WORD *data = NULL;
 	int stat_is_local = 0, free_data = 0;
 	imstats* stat = stats;
@@ -319,7 +309,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
-		siril_fits_img_stats_ushort(data, nx, ny, ACTIVATE_NULLCHECK, 0, &stat->ngoodpix,
+		siril_fits_img_stats_ushort(data, nx, ny, &stat->ngoodpix,
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
 				NULL, NULL, NULL, threads, &status);
 		if (status) {
@@ -890,7 +880,7 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 
 static int stat_compute_mem_limit(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_image, MB_avail, required;
-	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	int limit = compute_nb_images_fit_memory(args->seq, 0.0, FALSE, &MB_per_image, NULL, &MB_avail); // no output - output_scale is set to 0.
 
 	int is_color = args->seq->nb_layers == 3;
 	required = is_color ? MB_per_image * 4 / 3 : MB_per_image * 2;
@@ -942,7 +932,13 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 
 	stat_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		int nb_data_layers = stat_args->cfa ? 3 : stat_args->seq->nb_layers;
+		int size = nb_data_layers * args->nb_filtered_images;
+		free_stat_list(stat_args->list, size);
+		free (stat_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 /**** callbacks ****/
@@ -1143,7 +1139,7 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 	float *colarray[3];
 	double fSigma = 0.0;
 	if (nchans == 1) {
-		retval = siril_fits_img_stats_float(array, nx, ny, ACTIVATE_NULLCHECK, 0.0f, NULL, NULL, NULL,
+		retval = siril_fits_img_stats_float(array, nx, ny, NULL, NULL, NULL,
 		NULL, NULL, noise, NULL, NULL, NULL, MULTI_THREADED, &status);
 		return retval;
 	} else {
@@ -1151,7 +1147,7 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 		colarray[1] = array + (nx * ny);
 		colarray[2] = array + 2 * (nx * ny);
 		for (unsigned i = 0 ; i < nchans ; i++) {
-			retval += siril_fits_img_stats_float(colarray[i], nx, ny, ACTIVATE_NULLCHECK, 0.0f, NULL, NULL, NULL,
+			retval += siril_fits_img_stats_float(colarray[i], nx, ny, NULL, NULL, NULL,
 						NULL, NULL, noise, NULL, NULL, NULL, MULTI_THREADED, &status);
 			fSigma += *noise;
 		}
@@ -1194,10 +1190,33 @@ double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float 
 		return 0.0; // No elements in the range, return 0 as median
 	}
 
-	double retval = quickmedian(filtered_data, count);
+	// use histogram_median here instead of quickmedian for speed (see #1458)
+	double retval = histogram_median(filtered_data, count, MULTI_THREADED);
 
 	// Free the allocated memory for filtered_data
 	free(filtered_data);
 
 	return retval;
+}
+
+// Function to quickly compute min and max values
+int quick_minmax(fits *fit, double *minval, double *maxval) {
+    imstats *stats[3] = { NULL };
+    int retval = compute_all_channels_statistics_single_image(fit, STATS_MINMAX, MULTI_THREADED, stats);
+
+    if (retval) {
+        siril_log_color_message(_("Error: statistics computation failed. Unable to check for out-of-range values.\n"), "red");
+    } else {
+        if (fit->naxes[2] == 1) {
+            *maxval = stats[0]->max;
+            *minval = stats[0]->min;
+        } else {
+            *maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
+            *minval = min(min(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
+        }
+        for (int i = 0; i < fit->naxes[2]; i++) {
+            free_stats(stats[i]);
+        }
+    }
+    return retval;
 }

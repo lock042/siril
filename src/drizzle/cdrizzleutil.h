@@ -159,7 +159,6 @@ typedef struct _imgmap_t {
 
 struct driz_args_t {
   bool_t is_bayer; /* Is this a Bayer drizzle? */
-  regdata *ref_regdata; /* Reference reg data */
   /* Parameters to be copied into the driz_param_t for each frame */
   enum e_kernel_t kernel; /* Kernel shape and size */
   float scale;

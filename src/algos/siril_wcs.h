@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -44,6 +44,7 @@ void pix2wcs(fits *fit, double pixel_x, double pixel_y, double *world_x, double 
 int wcs2pix(fits *fit, double world_x, double world_y, double *pixel_x, double *pixel_y);
 int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y);
 void center2wcs(fits *fit, double *r, double *d);
+void center2wcs2(struct wcsprm *wcs, int width, int height, double *r, double *d);
 double get_wcs_image_resolution(fits *fit);
 
 void wcs_pc2mat(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
@@ -65,5 +66,8 @@ void update_SIP_keys(struct disprm *dis,
 		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]);
 void wcs_print(wcsprm_t *prm);
+
+void remove_dis_from_wcs(wcsprm_t *prm);
+void create_wcs(double ra0, double dec0, double scale, double framing_angle, int rx, int ry, struct wcsprm *prm);
 
 #endif /* SRC_ALGOS_SIRIL_WCS_H_ */

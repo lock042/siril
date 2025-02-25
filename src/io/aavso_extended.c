@@ -322,28 +322,30 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 
 	/*  data are computed, now plot the graph. */
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
+	spl_data = init_siril_plot_data();
+	int ret;
+	if (!spl_data) {
+		PRINT_ALLOC_ERR;
+		ret = -1;
+	} else {
+		spl_data->revertY = TRUE;
+		siril_plot_set_xlabel(spl_data, "Julian date");
+		siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, x, vmag, err, NULL);
 
-	spl_data->revertY = TRUE;
-	siril_plot_set_xlabel(spl_data, "Julian date");
-	siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, x, vmag, err, NULL);
+		siril_plot_add_xydata(spl_data, "cmag", nb_valid_images, x, cstar, NULL, NULL);
+		siril_plot_add_xydata(spl_data, "kmag", nb_valid_images, x, kstar, NULL, NULL);
+		siril_plot_add_xydata(spl_data, "airmass", nb_valid_images, x, airmass, NULL, NULL);
 
-	siril_plot_add_xydata(spl_data, "cmag", nb_valid_images, x, cstar, NULL, NULL);
-	siril_plot_add_xydata(spl_data, "kmag", nb_valid_images, x, kstar, NULL, NULL);
-	siril_plot_add_xydata(spl_data, "airmass", nb_valid_images, x, airmass, NULL, NULL);
+		// now we sort to have all dates ascending
+		siril_plot_sort_x(spl_data);
 
-	// now we sort to have all dates ascending
-	siril_plot_sort_x(spl_data);
+		ret = export_to_aavso_extended(spl_data, aavso_ptr, filename);
 
+//		siril_plot_set_title(spl_data, "AAVSO data");
+//		create_new_siril_plot_window(spl_data);
 
-	int ret = export_to_aavso_extended(spl_data, aavso_ptr, filename);
-
-//	siril_plot_set_title(spl_data, "AAVSO data");
-//	create_new_siril_plot_window(spl_data);
-
-	free_siril_plot_data(spl_data);
-
+		free_siril_plot_data(spl_data);
+	}
 
 	free(vmag);
 	free(err);

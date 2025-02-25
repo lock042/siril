@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 #ifndef SRC_GUI_CUT_H_
 #define SRC_GUI_CUT_H_
 
-void reset_cut_gui_filedependent();
+gboolean reset_cut_gui_filedependent(gpointer user_data);
 double get_conversion_factor(fits *fit);
 void measure_line(fits* fit, point start, point finish, gboolean pref_as);
 void initialize_cut_struct(cut_struct *arg);
