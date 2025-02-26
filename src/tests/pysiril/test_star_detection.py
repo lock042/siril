@@ -1,10 +1,14 @@
 from pysiril.siril import Siril
 from pysiril.wrapper import Wrapper
-import os
+import os, sys
 
-def test_star_detection():
+def test_star_detection(path_to_siril = None):
     """ test number of stars and use of detection parameters """
-    app=Siril(siril_exe = '../../siril-cli')
+    if path_to_siril is not None:
+        app = Siril(siril_exe = path_to_siril)
+    else:
+        app = Siril()
+
     app.Open()
     cmd=Wrapper(app)
 
@@ -38,4 +42,10 @@ def test_star_detection():
 
     app.Close()
     del app
+
+if __name__ == '__main__':
+    if len(sys.argv > 1):
+        test_star_detection(sys.argv[1])
+    else:
+        test_star_detection()
 
