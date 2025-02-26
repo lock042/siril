@@ -174,7 +174,7 @@ siril-deb-testing:
     - python3 -m venv _venv
     - . _venv/bin/activate 
     - python3 -m pip install --no-cache-dir "pysiril @ https://gitlab.com/free-astro/pysiril/-/archive/master/pysiril-master.tar.gz"
-    - cd ${CI_PROJECT_DIR}/tests/pysiril
+    - cd ${CI_PROJECT_DIR}/src/tests/pysiril
     - python3 -m test_star_detection.py ${INSTALL_PREFIX}/bin/siril-cli
   needs: ["siril-deb-meson"]
 
