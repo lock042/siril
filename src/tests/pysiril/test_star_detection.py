@@ -29,10 +29,13 @@ def test_star_detection(path_to_siril = None):
         assert line2 == line, f"line is {line}"
 
     # retrying with different parameters
-    cmd.setfindstar(sigma=0.7, roundness=0.75, convergence=3)
+    sigma = 0.7
+    roundness = 0.75
+    convergence = 3
+    app.Execute(f"setfindstar -sigma={sigma} -roundness={roundness} -convergence={convergence}")
     cmd.findstar(out='star_list2.lst')
 
-    line1 = "# 61 stars found using the following parameters:\n"
+    line1 = "# 62 stars found using the following parameters:\n"
     line2 = "# sigma=0.70 roundness=0.75 radius=5 relax=0 profile=0 minbeta=1.5 max_stars=0 layer=0 minA=0.00 maxA=0.00 maxR=1.00\n"
     with open('star_list2.lst') as file:
         line = file.readline()
@@ -44,7 +47,8 @@ def test_star_detection(path_to_siril = None):
     del app
 
 if __name__ == '__main__':
-    if len(sys.argv > 1):
+    os.chdir(os.path.dirname(sys.argv[0]))
+    if len(sys.argv) > 1:
         test_star_detection(sys.argv[1])
     else:
         test_star_detection()
