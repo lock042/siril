@@ -92,8 +92,8 @@ static void debug_print_catalog_files(TRANS *trans, s_star *star_list_A, s_star 
 	}
 	gchar bufferx[1024] = { 0 }, buffery[1024] = { 0 };
 	// x00, x10, x01, x20, x11, x02, x30, x21, x12, x03, x40, x31, x22, x13, x04, x50, x41, x32, x23, x14, x05
-	g_sprintf(bufferx, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
-	trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02, 
+	g_sprintf(bufferx, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n",
+	trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02,
 	trans->x30, trans->x21, trans->x12, trans->x03, trans->x40, trans->x31, trans->x22, trans->x13,
 	trans->x04, trans->x50, trans->x41, trans->x32, trans->x23, trans->x14, trans->x05);
 	g_sprintf(buffery, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n",
@@ -1067,7 +1067,6 @@ gpointer plate_solver(gpointer p) {
 			siril_log_color_message(_("Solution has no distortion\n"), "salmon");
 			siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
 		}
-		g_free(args->distofilename);
 	}
 
 	/* 5. Flip image if needed */
@@ -1099,6 +1098,8 @@ clearup:
 		siril_catalog_free(args->ref_stars);
 		args->ref_stars = NULL;
 	}
+	g_free(args->distofilename);
+	args->distofilename = NULL;
 	g_free(args->filename);
 	args->filename = NULL;
 	if (args->verbose && com.script) {
@@ -1232,9 +1233,9 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 		double mag1 = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS / 10);
 		double mag2 = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS);
 		siril_search_cat->limitmag = args->magnitude_arg + mag1 - mag2;
-		
+
 	} else {
-		siril_search_cat->limitmag = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS / 10);	
+		siril_search_cat->limitmag = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS / 10);
 	}
 	// we fetch all the stars within the search cone
 	get_catalog_stars(siril_search_cat);
@@ -2235,8 +2236,10 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		siril_world_cs_unref(aargs->cat_center);
 	if (aargs->ref_stars)
 		siril_catalog_free(aargs->ref_stars);
-	if (aargs->distofilename)
+	if (aargs->distofilename) {
 		g_free(aargs->distofilename);
+		aargs->distofilename = NULL;
+	}
 	if (aargs->solver == SOLVER_LOCALASNET && g_unlink("stop"))
 		siril_debug_print("g_unlink() failed\n");
 	free(aargs);

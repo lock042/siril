@@ -292,7 +292,7 @@ int open_single_image(const char* filename) {
 		retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
 	}
 	if (retval) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
 						"See the log for more information."));
 		free(realname);
