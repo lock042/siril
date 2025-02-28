@@ -11685,7 +11685,6 @@ gpointer execute_python_script_wrapper(gpointer user_data) {
 	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script);
 	g_strfreev(data->argv_script);
 	free(data);
-	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(0);
 }
 
