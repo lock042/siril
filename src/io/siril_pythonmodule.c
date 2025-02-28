@@ -955,9 +955,6 @@ static gboolean wait_for_client(Connection *conn) {
 
 	g_mutex_lock(&conn->mutex);
 	conn->is_connected = TRUE;
-	if (conn->client_connected_callback) {
-		conn->client_connected_callback(conn->user_data);
-	}
 	g_mutex_unlock(&conn->mutex);
 
 	return TRUE;
@@ -1016,9 +1013,6 @@ static gboolean wait_for_client(Connection *conn) {
 
 	g_mutex_lock(&conn->mutex);
 	conn->is_connected = TRUE;
-	if (conn->client_connected_callback) {
-		conn->client_connected_callback(conn->user_data);
-	}
 	g_mutex_unlock(&conn->mutex);
 
 	return TRUE;
@@ -1040,9 +1034,6 @@ static gboolean handle_client_communication(Connection *conn) {
 			bytes_read == 0) {
 			g_mutex_lock(&conn->mutex);
 			conn->is_connected = FALSE;
-			if (conn->client_disconnected_callback) {
-				conn->client_disconnected_callback(conn->user_data);
-			}
 			g_mutex_unlock(&conn->mutex);
 
 			DisconnectNamedPipe(conn->pipe_handle);
@@ -1066,9 +1057,6 @@ static gboolean handle_client_communication(Connection *conn) {
 
 			g_mutex_lock(&conn->mutex);
 			conn->is_connected = FALSE;
-			if (conn->client_disconnected_callback) {
-				conn->client_disconnected_callback(conn->user_data);
-			}
 			g_mutex_unlock(&conn->mutex);
 
 			close(conn->client_fd);

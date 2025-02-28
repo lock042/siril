@@ -154,8 +154,6 @@ typedef struct _Connection {
 	int client_fd;
 	gchar *socket_path;
 #endif
-	void (*client_connected_callback)(gpointer);
-	void (*client_disconnected_callback)(gpointer);
 	gpointer user_data;
 	GSList* g_shm_allocations;
 	GMutex g_shm_mutex;

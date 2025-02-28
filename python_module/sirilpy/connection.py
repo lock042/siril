@@ -355,14 +355,18 @@ class SuppressedStdout:
             print("This message will appear again")
 
     """
-
     def __enter__(self):
+        self.devnull = open(os.devnull, 'w')
+        self.original_stdout_fd = os.dup(1)  # Duplicate stdout (fd 1)
+        os.dup2(self.devnull.fileno(), 1)  # Redirect stdout to devnull
         self.original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
+        sys.stdout = self.devnull  # Also redirect Python stdout
 
     def __exit__(self, exc_type, exc_value, traceback):
-        sys.stdout.close()
-        sys.stdout = self.original_stdout
+        os.dup2(self.original_stdout_fd, 1)  # Restore stdout
+        os.close(self.original_stdout_fd)
+        sys.stdout = self.original_stdout  # Restore Python stdout
+        self.devnull.close()
 
 class SuppressedStderr:
     """
@@ -374,14 +378,18 @@ class SuppressedStderr:
     be used sparingly and should **not** be used to hide evidence of
     bad code.
     """
-
     def __enter__(self):
+        self.devnull = open(os.devnull, 'w')
+        self.original_stderr_fd = os.dup(2)  # Duplicate stderr (fd 2)
+        os.dup2(self.devnull.fileno(), 2)  # Redirect stderr to devnull
         self.original_stderr = sys.stderr
-        sys.stderr = open(os.devnull, 'w')
+        sys.stderr = self.devnull  # Also redirect Python stderr
 
     def __exit__(self, exc_type, exc_value, traceback):
-        sys.stderr.close()
-        sys.stderr = self.original_stderr
+        os.dup2(self.original_stderr_fd, 2)  # Restore stderr
+        os.close(self.original_stderr_fd)
+        sys.stderr = self.original_stderr  # Restore Python stderr
+        self.devnull.close()
 
 class SirilInterface:
     """

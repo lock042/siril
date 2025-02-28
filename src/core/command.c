@@ -11675,6 +11675,19 @@ int process_pwd(int nb) {
 	return CMD_OK;
 }
 
+typedef struct _pyscript_data {
+	gchar *script_name;
+	gchar **argv_script;
+} pyscript_data;
+
+gpointer execute_python_script_wrapper(gpointer user_data) {
+	pyscript_data *data = (pyscript_data*) user_data;
+	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script);
+	g_strfreev(data->argv_script);
+	free(data);
+	return GINT_TO_POINTER(0);
+}
+
 int process_pyscript(int nb) {
 	gchar *script_name = NULL;
 	GStatBuf statbuf;
@@ -11706,8 +11719,21 @@ int process_pyscript(int nb) {
 				argv_script[i-2] = g_strdup(word[i]);
 			}
 		}
-		execute_python_script(script_name, TRUE, TRUE, argv_script);
-		g_strfreev(argv_script);
+		pyscript_data *data = calloc(1, sizeof(pyscript_data));
+		data->script_name = script_name;
+		data->argv_script = argv_script;
+		// Cannot use start_in_new_thread here because of the possibility of the python script
+		// calling siril.cmd() and running commands that themselves require the processing thread
+		// so we use a generic GThread
+		GThread *thread = g_thread_new("pyscript_thread", execute_python_script_wrapper, data);
+		if (!thread) {
+			free(data);
+			g_free(script_name);
+			g_strfreev(argv_script);
+			return CMD_GENERIC_ERROR;
+		} else {
+			g_thread_unref(thread);
+		}
 		return CMD_OK;
 	} else {
 		return CMD_FILE_NOT_FOUND;
