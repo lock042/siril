@@ -206,7 +206,11 @@ int process_load_seq(int nb) {
 	close_single_image();
 
 	// Load the sequence into com.seq
-	execute_idle_and_wait_for_it(set_seq, word[1]);
+	if (com.headless) {
+		set_seq(word[1]);
+	} else {
+		execute_idle_and_wait_for_it(set_seq, word[1]);
+	}
 	if (com.seq.seqname) {
 		siril_debug_print("Sequence loaded ok\n");
 		return CMD_OK;
