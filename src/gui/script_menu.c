@@ -52,8 +52,7 @@ static GtkWidget *menuscript = NULL;
 static GSList *initialize_script_paths(){
 	GSList *list = NULL;
 #ifdef _WIN32
-	list = g_slist_prepend(list, g_build_filename(get_special_folder(CSIDL_APPDATA), "siril",
-					"scripts", NULL));
+	list = g_slist_prepend(list, g_build_filename(get_special_folder(CSIDL_APPDATA), "siril", "scripts", NULL));
 
 	gchar *execpath = g_win32_get_package_installation_directory_of_module(NULL);
 
@@ -62,7 +61,7 @@ static GSList *initialize_script_paths(){
 #else
 	list = g_slist_prepend(list, g_build_filename(siril_get_system_data_dir(), "scripts", NULL));
 	if (g_getenv("XDG_CONFIG_HOME") != NULL) {
-		list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), getenv("XDG_CONFIG_HOME"), "scripts", NULL));
+		list = g_slist_prepend(list, g_build_filename(getenv("XDG_CONFIG_HOME"), "scripts", NULL));
 	}
 	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), ".siril", "scripts", NULL));
 	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), "siril", "scripts", NULL));
