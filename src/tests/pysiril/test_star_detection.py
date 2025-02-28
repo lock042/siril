@@ -1,6 +1,8 @@
 from pysiril.siril import Siril
 from pysiril.wrapper import Wrapper
 import os, sys
+os.environ['LANG'] = 'en_US.UTF-8' # avoiding problems at pysiril startup
+
 
 def test_star_detection(path_to_siril = None):
     """ test number of stars and use of detection parameters """
