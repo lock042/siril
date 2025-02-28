@@ -289,7 +289,7 @@ static void siril_macos_setenv(const char *progname) {
 			g_snprintf(path, PATH_MAX, "%s:%s", exe_dir, g_getenv("PATH"));
 		else
 			g_snprintf(path, PATH_MAX, "%s", exe_dir);
-  	g_setenv("PATH", path, TRUE);
+		g_setenv("PATH", path, TRUE);
 		g_free(path);
 		g_free(exe_dir);
 

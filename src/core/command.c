@@ -5295,7 +5295,7 @@ int process_findstar(int nb) {
 	args->starfile = NULL;
 	args->max_stars_fitted = 0;
 	args->threading = MULTI_THREADED;
-	args->update_GUI = TRUE;
+	args->update_GUI = (!com.headless && !com.script);
 	siril_debug_print("findstar profiling %s stars\n", (com.pref.starfinder_conf.profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat");
 
 	cmd_errors argparsing = parse_findstar(args, 1, nb);
