@@ -248,7 +248,8 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 gboolean end_open_single_image(gpointer arg) {
 	com.icc.srgb_hint = FALSE;
-	open_single_image_from_gfit(NULL);
+	if (!com.headless)
+		open_single_image_from_gfit(NULL);
 	return FALSE;
 }
 
