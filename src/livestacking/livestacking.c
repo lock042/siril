@@ -595,14 +595,15 @@ static gpointer live_stacker(gpointer arg) {
 			/* we want to load the image while avoiding GTK+ calls
 			 * from this thread, setting com.script is a hack to
 			 * avoid this, but this doesn't display the loaded
-			 * image, so we still need the extra idle in
-			 * complete_image_loading
+			 * image, so we still need the extra idle called by
+			 * execute_idle_and_wait_for_it() (this immediately
+			 * returns if headless)
 			 */
 			gboolean script_bkp = com.script;
 			com.script = TRUE;
 			open_single_image(filename);
 			com.script = script_bkp;
-			complete_image_loading();
+			execute_idle_and_wait_for_it(end_image_loading, NULL);
 		}
 
 		siril_debug_print("Adding file to input sequence\n");

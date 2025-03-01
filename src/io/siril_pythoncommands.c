@@ -985,6 +985,20 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Ensure null-terminated string for log message
 			char* log_msg = g_strndup(payload, payload_length);
+
+			// If we are headess we can't use a siril_message_dialog, so we just print the message to the log
+			if (com.headless) {
+				if (type == GTK_MESSAGE_INFO)
+					siril_log_message(log_msg);
+				else if (type == GTK_MESSAGE_WARNING)
+					siril_log_color_message(log_msg, "salmon");
+				else if (type == GTK_MESSAGE_ERROR)
+					siril_log_color_message(log_msg, "red");
+				g_free(log_msg);
+				success = send_response(conn, STATUS_OK, NULL, 0);
+				break;
+			}
+
 			if (!modal) {
 				queue_message_dialog(type, title, log_msg);
 			} else {
@@ -1180,7 +1194,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				siril_log_color_message(_("Error writing sequence frame %i from Python\n"), "red", index);
 			}
 			if (com.seq.current == index) {
-
 				execute_idle_and_wait_for_it(seq_load_image_in_thread, &index);
 			}
 			break;

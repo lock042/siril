@@ -502,6 +502,47 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 	return 0;
 }
 
+static gboolean set_seq_gui(gpointer user_data) {
+	sequence *seq = (sequence *) user_data;
+	init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
+	set_cutoff_sliders_max_values();// update min and max values for contrast sliders
+	set_cutoff_sliders_values();	// update values for contrast sliders for this image
+	int layer = set_layers_for_registration();	// set layers in the combo box for registration
+	update_seqlist(layer);
+	fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
+	set_output_filename_to_sequence_name();
+	sliders_mode_set_state(gui.sliders);
+	initialize_display_mode();
+	update_zoom_label();
+	reset_plot(); // reset all plots
+	reset_3stars();
+
+	/* initialize image-related runtime data */
+	set_display_mode();		// display the display mode in the combo box
+	display_filename();		// display filename in gray window
+	gui_function(set_precision_switch, NULL); // set precision on screen
+	adjust_refimage(seq->current);	// check or uncheck reference image checkbox
+	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
+	update_reg_interface(FALSE);	// change the registration prereq message
+	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
+	adjust_reginfo();		// change registration displayed/editable values
+	update_gfit_histogram_if_needed();
+	adjust_sellabel();
+	fillSeqAviExport();	// fill GtkEntry of export box
+
+	/* update menus */
+	update_MenuItem(NULL);
+	/* update parameters in GUI */
+	set_GUI_CAMERA();
+
+	/* redraw and display image */
+	gui_function(close_tab, NULL);	//close Green and Blue Tab if a 1-layer sequence is loaded
+	gui_function(init_right_tab, NULL);
+
+	redraw(REMAP_ALL);
+	drawPlot();
+}
+
 static void free_cbbt_layers() {
 	GtkComboBoxText *cbbt_layers = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxreglayer"));
 	gtk_combo_box_text_remove_all(cbbt_layers);
@@ -568,44 +609,9 @@ gboolean set_seq(gpointer user_data){
 	update_gain_from_gfit();
 
 	if (!com.script) {
-		init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
-		set_cutoff_sliders_max_values();// update min and max values for contrast sliders
-		set_cutoff_sliders_values();	// update values for contrast sliders for this image
-		int layer = set_layers_for_registration();	// set layers in the combo box for registration
-		update_seqlist(layer);
-		fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
-		set_output_filename_to_sequence_name();
-		sliders_mode_set_state(gui.sliders);
-		initialize_display_mode();
-		update_zoom_label();
-		reset_plot(); // reset all plots
-		reset_3stars();
-
-		/* initialize image-related runtime data */
-		set_display_mode();		// display the display mode in the combo box
-		display_filename();		// display filename in gray window
-		gui_function(set_precision_switch, NULL); // set precision on screen
-		adjust_refimage(seq->current);	// check or uncheck reference image checkbox
-		update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
-		update_reg_interface(FALSE);	// change the registration prereq message
-		update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
-		adjust_reginfo();		// change registration displayed/editable values
-		update_gfit_histogram_if_needed();
-		adjust_sellabel();
-		fillSeqAviExport();	// fill GtkEntry of export box
-
-		/* update menus */
-		update_MenuItem(NULL);
-		/* update parameters in GUI */
-		set_GUI_CAMERA();
-
-		/* redraw and display image */
-		gui_function(close_tab, NULL);	//close Green and Blue Tab if a 1-layer sequence is loaded
-		gui_function(init_right_tab, NULL);
-
-		redraw(REMAP_ALL);
-		drawPlot();
+		execute_idle_and_wait_for_it(set_seq_gui, seq);
 	}
+
 	free(seq);
 	return FALSE;
 }
