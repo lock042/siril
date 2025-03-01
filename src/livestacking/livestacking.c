@@ -603,7 +603,8 @@ static gpointer live_stacker(gpointer arg) {
 			com.script = TRUE;
 			open_single_image(filename);
 			com.script = script_bkp;
-			execute_idle_and_wait_for_it(end_image_loading, NULL);
+			if (!com.headless)
+				execute_idle_and_wait_for_it(end_image_loading, NULL);
 		}
 
 		siril_debug_print("Adding file to input sequence\n");

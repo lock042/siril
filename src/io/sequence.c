@@ -608,7 +608,7 @@ gboolean set_seq(gpointer user_data){
 	memcpy(&com.seq, seq, sizeof(sequence));
 	update_gain_from_gfit();
 
-	if (!com.script) {
+	if (!com.script && !com.headless) {
 		execute_idle_and_wait_for_it(set_seq_gui, seq);
 	}
 

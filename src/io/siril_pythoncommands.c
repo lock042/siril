@@ -725,7 +725,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							siril_debug_print("Error in send_response\n");
 					}
 					memcpy(&com.selection, &selection, sizeof(rectangle));
-					execute_idle_and_wait_for_it(new_selection_zone, NULL);
+					if (!com.headless)
+						execute_idle_and_wait_for_it(new_selection_zone, NULL);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				}
 			} else {
@@ -1007,7 +1008,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				data->title = strdup(title);
 				data->text = strdup(log_msg);
 				siril_debug_print("Executing modal dialog\n");
-				execute_idle_and_wait_for_it(siril_message_dialog_idle, data);
+				if (!com.headless)
+					execute_idle_and_wait_for_it(siril_message_dialog_idle, data);
 			}
 			g_free(log_msg);
 
@@ -1193,7 +1195,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (writer_retval) {
 				siril_log_color_message(_("Error writing sequence frame %i from Python\n"), "red", index);
 			}
-			if (com.seq.current == index) {
+			if (!com.headless && com.seq.current == index) {
 				execute_idle_and_wait_for_it(seq_load_image_in_thread, &index);
 			}
 			break;
