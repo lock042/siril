@@ -541,6 +541,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 
 	redraw(REMAP_ALL);
 	drawPlot();
+	return FALSE;
 }
 
 static void free_cbbt_layers() {
