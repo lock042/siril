@@ -1694,21 +1694,21 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 
 #ifdef _WIN32
 		gchar *bundle_python_exe = NULL;
-		sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL); // we want to find system python not mingw64 python
+		const gchar *sirilrootpath = get_siril_bundle_path();
+		printf("Siril bundle path: %s\n", sirilrootpath);
+		bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
+		printf("Bundle python path: %s\n", bundle_python_exe);
+		if (g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE))
+			printf("Python found in bundle: %s\n", bundle_python_exe);
+		else {
+			g_free(bundle_python_exe);
+			bundle_python_exe = NULL;
+		}
+		if (!bundle_python_exe)
+			sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL); // we want to find system python not mingw64 python
+
 		if (sys_python_exe)
 			printf("Python found in system: %s\n", sys_python_exe);
-		if (!sys_python_exe) {
-			const gchar *sirilrootpath = get_siril_bundle_path();
-			printf("Siril bundle path: %s\n", sirilrootpath);
-			bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
-			printf("Bundle python path: %s\n", bundle_python_exe);
-			if (g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE))
-				printf("Python found in bundle: %s\n", bundle_python_exe);
-			else {
-				g_free(bundle_python_exe);
-				bundle_python_exe = NULL;
-			}
-		}
 
 		if (!sys_python_exe && !bundle_python_exe) {
 			siril_log_color_message(_("No python installation found in the system or in the bundle, aborting\n"), "red");
