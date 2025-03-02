@@ -1057,8 +1057,9 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 	// if larger than cairo image buffer, pop a warning that image will not display at all
 	int max_dim = max(regargs->framingd.roi_out.w, regargs->framingd.roi_out.h);
 	if (max_dim > 32767) {
-		if (!(com.script || com.python_script)) { // trhough GUI, we warn with GTK objects
-			execute_idle_and_wait_for_it(confirm_exceed_cairomaxdim, regargs);
+		if (!(com.script || com.python_script)) { // through GUI, we warn with GTK objects
+			if (!com.headless)
+				execute_idle_and_wait_for_it(confirm_exceed_cairomaxdim, regargs);
 			if (regargs->retval)
 				return FALSE;
 		} else {
