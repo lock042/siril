@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-02-01 12:51+0100\n"
-"PO-Revision-Date: 2025-02-14 15:37+0000\n"
+"PO-Revision-Date: 2025-02-23 11:16+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -2819,7 +2819,7 @@ msgid ""
 "Check if the target frames are CFA images.\n"
 "Uncheck if images come from a monochrome sensor."
 msgstr ""
-"Установите этот флажок, если целевые кадры это изображения CFA. \n"
+"Установите этот флажок, если целевые кадры это CFA-изображения. \n"
 "Снимите этот флажок, если изображения получены на монохромный сенсор."
 
 #: src/gui/uifiles/crop_dialog.ui:35
@@ -10046,7 +10046,7 @@ msgstr "Модель"
 
 #: src/gui/uifiles/siril.ui:7169
 msgid "Pixel Fraction"
-msgstr "Доля пикселей"
+msgstr "Доля пикселя"
 
 #: src/gui/uifiles/siril.ui:7180
 msgid ""
@@ -28561,7 +28561,7 @@ msgstr "Укладка %d изображений из %d в последоват
 
 #: src/gui/statistics_list.c:47
 msgid "mean"
-msgstr "среднее"
+msgstr "mean"
 
 #: src/gui/statistics_list.c:48
 msgid "median"
@@ -28585,11 +28585,11 @@ msgstr "√BWMV"
 
 #: src/gui/statistics_list.c:53
 msgid "min"
-msgstr "мин"
+msgstr "min"
 
 #: src/gui/statistics_list.c:54
 msgid "max"
-msgstr "макс."
+msgstr "max"
 
 #: src/gui/statistics_list.c:191
 #, c-format

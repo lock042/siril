@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-02-01 12:51+0100\n"
-"PO-Revision-Date: 2025-02-18 13:07+0000\n"
+"PO-Revision-Date: 2025-03-03 09:48+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -9647,7 +9647,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:5726
 msgid "Undistortion:"
-msgstr "Détordre :"
+msgstr "Correction de distorsion :"
 
 #: src/gui/uifiles/siril.ui:5737
 msgid ""
@@ -10800,7 +10800,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:8428
 msgid "Merge L+H"
-msgstr "Fusionner B+H"
+msgstr "Fusionner F+C"
 
 #: src/gui/uifiles/siril.ui:8433
 msgid ""
@@ -28576,9 +28576,9 @@ msgid "Loading script from repository: %s\n"
 msgstr "Chargement du script à partir du dépôt : %s\n"
 
 #: src/gui/script_menu.c:437
-#, fuzzy, c-format
+#, c-format
 msgid "Adding core script to menu: %s\n"
-msgstr "Chargement du script %s\n"
+msgstr "Ajout d'un script de base au menu : %s\n"
 
 #: src/gui/script_menu.c:465
 msgid "Cannot refresh the scripts if the list is empty.\n"
@@ -31463,14 +31463,13 @@ msgid "Error in venv creation command: %s\n"
 msgstr "Erreur dans la commande de création de venv : %s\n"
 
 #: src/io/siril_pythonmodule.c:1765
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
-msgstr "Échec de l'initialisation de l'environnement virtuel Python : %s"
+msgstr "Échec de l'initialisation de l'environnement virtuel Python : %s\n"
 
 #: src/io/siril_pythonmodule.c:1776
-#, fuzzy
 msgid "Failed to prepare virtual environment\n"
-msgstr "Échec de la préparation de l'environnement virtuel"
+msgstr "Échec de la préparation de l'environnement virtuel\n"
 
 #: src/io/siril_pythonmodule.c:1832
 msgid ""
@@ -31703,19 +31702,16 @@ msgid "Unexpected null star entry"
 msgstr "Entrée étoile nulle inattendue"
 
 #: src/io/siril_pythoncommands.c:1637
-#, fuzzy
 msgid "No background samples list available"
-msgstr "Pas de liste d'étoiles disponible"
+msgstr "Pas de liste d'échantillons de fond de ciel disponible"
 
 #: src/io/siril_pythoncommands.c:1656
-#, fuzzy
 msgid "Mismatch in samples count"
-msgstr "Aligner les étoiles dans la sélection"
+msgstr "Incohérence dans le nombre d'échantillons"
 
 #: src/io/siril_pythoncommands.c:1664
-#, fuzzy
 msgid "Unexpected null background sample"
-msgstr "Entrée étoile nulle inattendue"
+msgstr "Échantillon de fond nul inattendu"
 
 #: src/io/siril_pythoncommands.c:1721
 msgid "Image has no ICC profile"
@@ -32884,7 +32880,7 @@ msgid ""
 "You have selected undistortion from current image but it is not platesolved, "
 "perform astrometry first or disable distortion"
 msgstr ""
-"Vous avez sélectionné l'annulation de la distorsion de l'image actuelle, "
+"Vous avez sélectionné la correction de la distorsion de l'image actuelle, "
 "mais elle n'est pas résolue en astrométrie, effectuez d'abord l'astrométrie "
 "ou désactivez la distorsion"
 
@@ -32901,8 +32897,8 @@ msgid ""
 "You have selected undistortion from an existing file, you need to specify "
 "the filename"
 msgstr ""
-"Vous avez sélectionné la distorsion à partir d'un fichier existant, vous "
-"devez spécifier le nom du fichier"
+"Vous avez sélectionné la correction de distorsion à partir d'un fichier "
+"existant, vous devez spécifier le nom du fichier"
 
 #: src/registration/distorsion.c:547
 msgid "Load a FITS/WCS file for distortion"
@@ -32917,9 +32913,9 @@ msgid ""
 "You have selected undistortion from file but it is not platesolved, perform "
 "astrometry first or disable distortion"
 msgstr ""
-"Vous avez sélectionné la distorsion dans le fichier, mais elle n'est pas "
-"résolue en astrométrie, effectuez d'abord l'astrométrie ou désactivez la "
-"distorsion"
+"Vous avez sélectionné la correction de distorsion dans le fichier, mais elle "
+"n'est pas résolue en astrométrie, effectuez d'abord l'astrométrie ou "
+"désactivez la distorsion"
 
 #: src/registration/distorsion.c:561
 msgid "Selected file has no WCS information"
@@ -32930,9 +32926,9 @@ msgid ""
 "You have selected undistortion from file but it is has no distortion terms, "
 "perform astrometry with SIP enabled or disable distortion"
 msgstr ""
-"Vous avez sélectionné l'absence de distorsion dans le fichier, mais il n'y a "
-"pas de termes de distorsion, effectuez l'astrométrie avec le SIP activé ou "
-"désactivez la distorsion"
+"Vous avez sélectionné la correction de distorsion dans le fichier, mais il "
+"n'y a pas de termes de distorsion, effectuez l'astrométrie avec le SIP "
+"activé ou désactivez la distorsion"
 
 #: src/registration/distorsion.c:568
 msgid "Selected file has no distortion information"
