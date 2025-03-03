@@ -24,7 +24,7 @@
 #endif
 
 #include <gsl/gsl_errno.h>
-#include <gtk/gtk.h>
+//#include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
@@ -327,7 +327,7 @@ static void siril_macos_setenv(const char *progname) {
 
 
 int main(int argc, char *argv[]) {
-	GtkApplication *app;
+	GApplication *app;
 	const gchar *dir;
 	gint status;
 
@@ -363,9 +363,9 @@ int main(int argc, char *argv[]) {
 	textdomain(PACKAGE);
 
 #if GLIB_CHECK_VERSION(2,74,0)
-	app = gtk_application_new("org.siril.Siril", G_APPLICATION_DEFAULT_FLAGS | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+	app = g_application_new("org.siril.Siril", G_APPLICATION_DEFAULT_FLAGS | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
 #else
-	app = gtk_application_new("org.siril.Siril", G_APPLICATION_FLAGS_NONE | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+	app = g_application_new("org.siril.Siril", G_APPLICATION_FLAGS_NONE | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
 #endif
 
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);
