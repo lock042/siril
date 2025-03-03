@@ -14,7 +14,6 @@ void update_debayer_button_status(gboolean new_state);
 gboolean livestacking_first_result_idle(gpointer p);
 
 void enable_debayer(gboolean arg);
-
-void complete_image_loading();
+gboolean end_image_loading(gpointer arg);
 
 #endif
