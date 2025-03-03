@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-02-01 12:51+0100\n"
-"PO-Revision-Date: 2025-01-27 19:48+0000\n"
+"PO-Revision-Date: 2025-02-28 17:48+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -116,7 +116,7 @@ msgstr "O filtro usado para a observação."
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 msgid "Cname: "
-msgstr "Cname: "
+msgstr "Cnome: "
 
 #: src/gui/uifiles/aavso_dialog.ui:183
 msgid "Kname: "
@@ -175,7 +175,7 @@ msgstr "O número de estrelas de comparação."
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
-msgstr "Cstd: "
+msgstr "Cpadrão: "
 
 #: src/gui/uifiles/aavso_dialog.ui:310
 msgid ""
@@ -1131,21 +1131,24 @@ msgstr "Usar como informação de registro"
 #: src/gui/uifiles/astrometry_dialog.ui:1116
 msgid "Tick this box to use astrometric data to compute sequence registration."
 msgstr ""
+"Marque esta caixa para usar dados astrométricos para calcular o registro de "
+"sequência."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1129
 msgid "Skip already solved images"
-msgstr ""
+msgstr "Ignorar imagens já resolvidas"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1133
 msgid ""
 "Tick this box to skip solving the images of the sequence that already have a "
 "solution."
 msgstr ""
+"Marque esta caixa para ignorar a resolução das imagens da sequência que já "
+"têm uma solução."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1146
-#, fuzzy
 msgid "Fetch catalog for each image"
-msgstr "Restaurar para o valores Padrão"
+msgstr "Buscar catálogo para cada imagem"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1150
 msgid ""
@@ -1155,6 +1158,12 @@ msgid ""
 "box to fetch a new catalogue for each image. The information contained in "
 "the headers will be used to recompute the new position/resolution."
 msgstr ""
+"Ao usar catálogos online com o solucionador Siril, o padrão é buscar um "
+"catálogo para toda a sequência. Se suas imagens não forem do mesmo campo ou "
+"não tiverem a mesma resolução, é provável que isso falhe. Nesse caso, marque "
+"esta caixa para buscar um novo catálogo para cada imagem. As informações "
+"contidas nos cabeçalhos serão usadas para recalcular a nova posição/"
+"resolução."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1175
 msgid "Use coordinates from headers"
@@ -1165,6 +1174,8 @@ msgid ""
 "Use the coordinates contained in each image header instead of those given in "
 "this dialog"
 msgstr ""
+"Use as coordenadas contidas em cada cabeçalho de imagem em vez das "
+"fornecidas nesta caixa de diálogo"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1190
 msgid "Use pixel size from headers"
@@ -1175,6 +1186,8 @@ msgid ""
 "Use the pixel size contained in each image header instead of those given in "
 "this dialog"
 msgstr ""
+"Use o tamanho de pixel contido em cada cabeçalho de imagem em vez daqueles "
+"fornecidos nesta caixa de diálogo"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1205
 msgid "Use focal length from headers"
@@ -1185,11 +1198,12 @@ msgid ""
 "Use the focal length contained in each image header instead of those given "
 "in this dialog"
 msgstr ""
+"Use a distância focal contida em cada cabeçalho de imagem em vez daquelas "
+"fornecidas nesta caixa de diálogo"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1238
-#, fuzzy
 msgid "Sequence / Astrometric Registration"
-msgstr "Aplicar transformação de histograma"
+msgstr "Registro de Sequência / Astrométrico"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:55
 #: src/algos/background_extraction.c:1356
@@ -1203,30 +1217,32 @@ msgid ""
 "<b>Apply to sequence</b> button is checked, this will compute the model and "
 "apply it to the whole sequence."
 msgstr ""
+"Isso confirmará o modelo em segundo plano aplicado anteriormente com o botão "
+"<b>Calcular Plano de Fundo</b>. No entanto, no caso de uma sequência, se o "
+"botão <b>Aplicar à sequência</b> estiver marcado, isso calculará o modelo e "
+"o aplicará a toda a sequência."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:127
 msgid "Choose between interpolation methods."
 msgstr "Escolha entre métodos de interpolação."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:131
-#, fuzzy
 msgid "RBF"
-msgstr "RGB"
+msgstr "RBF"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:132
 msgid "Polynomial"
-msgstr ""
+msgstr "Polinomial"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:162
 msgid "Smoothing"
-msgstr ""
+msgstr "Suavizado"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:174
 #: src/gui/uifiles/background_extraction_dialog.ui:311
 #: src/gui/uifiles/background_extraction_dialog.ui:338
-#, fuzzy
 msgid "Number of sample per line that will be automatically placed."
-msgstr "Número de camadas wavelet a usar"
+msgstr "Número de amostras por linha que será colocada automaticamente."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:203
 msgid ""
@@ -1235,31 +1251,33 @@ msgid ""
 "points in the background, while a smoothing parameter that is too large may "
 "not be suitable for large deviations in gradient."
 msgstr ""
+"Ajuste o parâmetro de suavização para o método de interpolação. Um parâmetro "
+"de suavização muito pequeno pode resultar em overshoots e undershoots entre "
+"pontos em segundo plano, enquanto um parâmetro de suavização muito grande "
+"pode não ser adequado para grandes desvios no gradiente."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:219
 msgid "page 1"
-msgstr ""
+msgstr "página 1"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:237
-#, fuzzy
 msgid "Degree order: "
-msgstr "Grau: "
+msgstr "Ordem de grau: "
 
 #: src/gui/uifiles/background_extraction_dialog.ui:249
-#, fuzzy
 msgid ""
 "Choose the degree order of the polynomial function used in the fit.\n"
 "By default the value is of 4.\n"
 "The higher the degree order is, the more complex the gradient can be removed."
 msgstr ""
-"Escolhe o grau da função polinomial usada no ajuste\n"
-"O valor por omissão é 4.\n"
-"Para graus maiores, mais o gradiente pode ser eliminado."
+"Escolha a ordem de grau da função polinomial usada no ajuste.\n"
+"Por padrão, o valor é de 4.\n"
+"Quanto maior for a ordem dos grau, mais complexo o gradiente pode ser "
+"removido."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:299
-#, fuzzy
 msgid "Samples per line"
-msgstr "Amostras por linha: "
+msgstr "Amostras por linha:"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:357
 msgid ""
@@ -1267,11 +1285,13 @@ msgid ""
 "background gradient.\n"
 "This should be enabled for non-stretched images."
 msgstr ""
+"Evite gerar faixas adicionando algum ruído aleatório no gradiente de fundo "
+"dinâmico baixo.\n"
+"Isso deve ser ativado para imagens não esticadas."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:360
-#, fuzzy
 msgid "Grid tolerance"
-msgstr "Tolerância: "
+msgstr "Tolerância da grade"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:372
 msgid ""
@@ -1279,11 +1299,13 @@ msgid ""
 "mad). By decreasing this value, Siril will be more restrictive to select "
 "background samples."
 msgstr ""
+"Fator de tolerância de rejeição global da amostra, em unidades mad (mediana +"
+" este * mad). Ao diminuir esse valor, Siril será mais restritivo para "
+"selecionar amostras de fundo."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:389
-#, fuzzy
 msgid "Keep all samples"
-msgstr "Desenhar amostras"
+msgstr "Manter todas as amostras"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:393
 msgid ""
@@ -1291,16 +1313,21 @@ msgid ""
 "gradients if tolerance 6 is insufficient: you will need to remove samples "
 "from astronomical objects manually."
 msgstr ""
+"Sobrescreva a tolerância e mantenha todas as amostras. Pode ser útil em "
+"casos de gradientes extremos se a tolerância 6 for insuficiente: você "
+"precisará remover amostras de objetos astronômicos manualmente."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:414
 msgid ""
 "Tolerance of global sample rejection, in sigma units. By decreasing this "
 "value, Siril will be more restrictive to select background samples."
 msgstr ""
+"Tolerância de rejeição global de amostras, em unidades sigma. Ao diminuir "
+"esse valor, Siril será mais restritivo para selecionar amostras de fundo."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:429
 msgid "Add dither"
-msgstr ""
+msgstr "Adicionar dither"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:433
 msgid ""
@@ -1309,10 +1336,15 @@ msgid ""
 "quantization error, preventing large-scale patterns such as color banding in "
 "images."
 msgstr ""
+"Clique nesta opção quando surgirem faixas de cores após a extração do plano "
+"de fundo.\n"
+"O dither é uma forma de ruído aplicada intencionalmente usada para "
+"randomizar o erro de quantização, evitando padrões de grande escala, como "
+"faixas de cores nas imagens."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:450
 msgid "Generate"
-msgstr ""
+msgstr "Gerar"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:454
 msgid ""
@@ -1323,21 +1355,29 @@ msgid ""
 "placement: samples will automatically be created for each frame in the "
 "sequence."
 msgstr ""
+"Clique aqui para gerar as amostras definidas automaticamente.\n"
+"\n"
+"Ao processar uma sequência, as amostras mostradas são apenas para orientação "
+"para ver o efeito da configuração da tolerância de amostras por linha e "
+"grade no posicionamento da amostra: as amostras serão criadas "
+"automaticamente para cada quadro na sequência."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:476
 msgid "Click here to clear all the samples."
-msgstr ""
+msgstr "Clique aqui para limpar todas as amostras."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:499
 msgid ""
 "You also can set samples manually.\n"
 "Left click adds samples while right click removes them."
 msgstr ""
+"Você também pode definir amostras manualmente.\n"
+"Clique com o botão esquerdo adiciona amostras, enquanto o clique com botão "
+"direito as remove."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:514
-#, fuzzy
 msgid "Interpolation Method"
-msgstr "Interpolação"
+msgstr "Método de interpolação"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:536
 msgid ""
@@ -1364,32 +1404,30 @@ msgid "Division"
 msgstr "Divisão"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:552
-#, fuzzy
 msgid "Correction"
-msgstr "<b>Correção</b>"
+msgstr "Correção"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:567
-#, fuzzy
 msgid "Compute Background"
-msgstr "Fundo"
+msgstr "Calcula plano de fundo"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:571
-#, fuzzy
 msgid ""
 "This will compute the synthetic background and will apply the selected "
 "correction. The model is always computed from the original image kept in "
 "memory allowing the user to work iteratively."
-msgstr "Isto calculará o fundo sintético."
+msgstr ""
+"Isso calculará o plano de fundo sintético e aplicará a correção selecionada. "
+"O modelo é sempre calculado a partir da imagem original mantida na memória, "
+"permitindo que o usuário trabalhe iterativamente."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:585
-#, fuzzy
 msgid "Show original image"
-msgstr "não carregada"
+msgstr "Mostrar a imagem original"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:590
-#, fuzzy
 msgid "Keep pressing this button to see the original image."
-msgstr "Clique neste botão para mostrar a imagem."
+msgstr "Continue pressionando este botão para ver a imagem original."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:608
 #: src/gui/uifiles/bdeconv_dialog.ui:2126
@@ -1423,36 +1461,33 @@ msgid "Output prefix:"
 msgstr "Prefixo de saída:"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:638
-#, fuzzy
 msgid ""
 "Prefix of the image names resulting from the background extraction process."
 msgstr ""
-"Prefixo dos nomes das imagens resultantes do processo de correção cosmética."
+"Prefixo dos nomes das imagens resultantes do processo de extração em segundo "
+"plano."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:249
-#, fuzzy
 msgid "Deconvolution"
-msgstr "Desvio: "
+msgstr "Deconvolução"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:284 src/gui/uifiles/denoise_dialog.ui:84
 #: src/gui/uifiles/Median_dialog.ui:80 src/gui/uifiles/SCNR_dialog.ui:73
-#, fuzzy
 msgid "ROI Preview"
-msgstr "<b>Formato FITS</b>"
+msgstr "Visualização do ROI"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:288 src/gui/uifiles/bdeconv_dialog.ui:306
 msgid ""
 "Generate the kernel and use it to deconvolve the current image or sequence"
-msgstr ""
+msgstr "Gere o kernel e use-o para deconvolver a imagem ou sequência atual"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:369
-#, fuzzy
 msgid "Blind deconvolution"
-msgstr "Desvio: "
+msgstr "Deconvolução cega"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:373
 msgid "Estimates a PSF from the image"
-msgstr ""
+msgstr "Estima um PSF a partir da imagem"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:386
 msgid "PSF from stars"
@@ -2047,7 +2082,7 @@ msgstr ""
 
 #: src/gui/uifiles/binxy_dialog.ui:41
 msgid "Binning"
-msgstr "Binning"
+msgstr "Agrupamento"
 
 #: src/gui/uifiles/binxy_dialog.ui:106
 msgid "Binning factor:"
@@ -3639,7 +3674,7 @@ msgstr "Linear"
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:135
 #: src/gui/uifiles/wavelets_dialog.ui:184
 msgid "BSpline"
-msgstr "BSpline"
+msgstr "B-Spline"
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:148
 msgid "Nb. of Layers: "
@@ -3711,7 +3746,7 @@ msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:202
 msgid "Binning: "
-msgstr "Binning: "
+msgstr "Classificação: "
 
 #: src/gui/uifiles/file_information_dialog.ui:213
 msgid ""
@@ -4045,9 +4080,8 @@ msgid "<b><i>Current ICC profile</i></b>"
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:228
-#, fuzzy
 msgid "<b><i>Target ICC profile</i></b>"
-msgstr "<b>Tipo de Extração</b>"
+msgstr "<b><i>Perfil ICC de destino</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:254 src/gui/uifiles/icc_dialog.ui:308
 #: src/gui/uifiles/spcc_details.ui:96
@@ -4674,13 +4708,13 @@ msgstr "Vizinho mais próximo"
 #: src/gui/uifiles/rotation_dialog.ui:204 src/gui/uifiles/siril.ui:7086
 #: src/algos/geometry.c:301 src/algos/geometry.c:397
 msgid "Bilinear"
-msgstr "Bilinear"
+msgstr "Bi-linear"
 
 #: src/gui/uifiles/resample_dialog.ui:197
 #: src/gui/uifiles/rotation_dialog.ui:205 src/gui/uifiles/siril.ui:7087
 #: src/algos/geometry.c:305 src/algos/geometry.c:403
 msgid "Bicubic"
-msgstr "Bicubic"
+msgstr "Bicúbica"
 
 #: src/gui/uifiles/resample_dialog.ui:198
 #: src/gui/uifiles/rotation_dialog.ui:206 src/gui/uifiles/siril.ui:7088
@@ -4907,9 +4941,8 @@ msgid "<b>ICC Profile</b>"
 msgstr "<b>Tipo de Extração</b>"
 
 #: src/gui/uifiles/savepopup.ui:367
-#, fuzzy
 msgid "<b>Embedded Data</b>"
-msgstr "Dados Embutidos"
+msgstr "<b>Dados incorporados</b>"
 
 #: src/gui/uifiles/savepopup.ui:424
 msgid "<b>Image Description</b>"
@@ -5212,7 +5245,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:412
 #: src/gui/uifiles/settings_window.ui:425
 msgid "Select your camera's Bayer pattern."
-msgstr "Selecionar o padrão Bayer da sua  câmara."
+msgstr "Selecione o padrão Bayer da sua câmara."
 
 #: src/gui/uifiles/settings_window.ui:414
 msgid "Bayer/mosaic pattern: "
@@ -6162,9 +6195,8 @@ msgid "Defines the size of the window."
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3293
-#, fuzzy
 msgid "<b>Aberration Inspector</b>"
-msgstr "Subtração"
+msgstr "<b>Inspetor de Aberrações</b>"
 
 #: src/gui/uifiles/settings_window.ui:3322
 #: src/gui/uifiles/settings_window.ui:4066
@@ -7562,12 +7594,14 @@ msgid "Color Calibration..."
 msgstr "Calibração de cor..."
 
 #: src/gui/uifiles/siril.ui:1619
-#, fuzzy
 msgid ""
 "Open the photometric color calibration dialog.\n"
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
-msgstr "Calibração de cor..."
+msgstr ""
+"Abra a caixa de diálogo de calibração de cores fotométricas.\n"
+"\n"
+"<b>ATENÇÃO: a imagem deve ser resolvida antes.</b>"
 
 #: src/gui/uifiles/siril.ui:1623
 #, fuzzy
@@ -7575,12 +7609,14 @@ msgid "Photometric Color Calibration..."
 msgstr "Calibração de cor..."
 
 #: src/gui/uifiles/siril.ui:1636
-#, fuzzy
 msgid ""
 "Open the spectrophotometric color calibration dialog.\n"
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
-msgstr "Calibração de cor..."
+msgstr ""
+"Abra a caixa de diálogo de calibração de cores espectrofotométricas.\n"
+"\n"
+"<b>ATENÇÃO: a imagem deve ser resolvida antes.</b>"
 
 #: src/gui/uifiles/siril.ui:1640
 #, fuzzy
@@ -7676,7 +7712,7 @@ msgstr "À trous Wavelets Transform..."
 
 #: src/gui/uifiles/siril.ui:1941
 msgid "À trous Wavelets Transform..."
-msgstr "À trous Wavelets Transform..."
+msgstr "Transformada de Wavelets À trous..."
 
 #: src/gui/uifiles/siril.ui:1954
 #, fuzzy
@@ -7830,9 +7866,9 @@ msgid ""
 "put them in black to see in which part of the image the threshold is "
 "exceeded."
 msgstr ""
-"Em vez de manter os pixéis com valores acima do valor branco "
-"&quot;hi&quot;,  ponha-os a preto para ver em que parte da imagem é excedido "
-"o limiar."
+"Ao invés de manter os pixels com valores acima do valor &quot;hi&quot; em "
+"branco, coloque-os em preto para ver em qual parte da imagem o limite é "
+"excedido."
 
 #: src/gui/uifiles/siril.ui:2291
 msgid ""
@@ -8092,12 +8128,12 @@ msgid ""
 "Only for RAW and FITS input images and SER films.\n"
 "Colour image target also applies to the debayer result for conversion."
 msgstr ""
-"Remover  bayer às imagens de um só canal (formato CFA) usando o layout da "
-"matriz de Bayer definida nas definições. Também se aplica à abertura de "
-"imagens, não só à conversão.\n"
+"Faça o debayer de imagens de canal único (formato CFA) usando o layout de "
+"matriz Bayer fornecido nas configurações. Também se aplica à abertura de "
+"imagens, não apenas à conversão.\n"
 "Apenas para imagens de entrada RAW e FITS e filmes SER.\n"
-"Destino da imagem a cores também se aplica ao resultado da conversão da "
-"remoção Bayer."
+"O destino da imagem colorida também se aplica ao resultado do debayer para "
+"conversão."
 
 #: src/gui/uifiles/siril.ui:4009
 #, fuzzy
@@ -8242,11 +8278,11 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:4439
 msgid "Fps:"
-msgstr "Fps:"
+msgstr "QPS:"
 
 #: src/gui/uifiles/siril.ui:4451
 msgid "Frame rate"
-msgstr "Frame rate"
+msgstr "Taxa de quadros"
 
 #: src/gui/uifiles/siril.ui:4468
 msgid "Resize"
@@ -10879,9 +10915,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/stars_list_window.ui:944
-#, fuzzy
 msgid "Export PSF parameters in an ASCII file"
-msgstr "Exportar os parâmetros PSF  num arquivo ASCII"
+msgstr "Exportar os parâmetros PSF num arquivo ASCII"
 
 #: src/gui/uifiles/stars_list_window.ui:968
 #, fuzzy
@@ -11323,9 +11358,9 @@ msgstr ""
 
 #: src/main.c:469 src/core/command.c:8392 src/core/command_line_processor.c:652
 #: src/gui/single_image.c:82
-#, fuzzy, c-format
+#, c-format
 msgid "No sequence `%s' found.\n"
-msgstr "Nenhuma sequência selecionada"
+msgstr "Nenhuma sequência '%s' encontrada.\n"
 
 #: src/algos/astrometry_solver.c:338
 msgid ""
@@ -11479,9 +11514,8 @@ msgid ""
 msgstr ""
 
 #: src/algos/astrometry_solver.c:892
-#, fuzzy
 msgid " (uncentered)"
-msgstr "Centrado"
+msgstr " (não centralizado)"
 
 #: src/algos/astrometry_solver.c:907
 #, c-format
@@ -11494,9 +11528,9 @@ msgid "Failed to downsample image, aborting\n"
 msgstr "Criar três imagens"
 
 #: src/algos/astrometry_solver.c:986
-#, fuzzy, c-format
+#, c-format
 msgid "Using %d detected stars from image.\n"
-msgstr "Distância focal (mm): "
+msgstr "Usando %d estrelas detectadas da imagem.\n"
 
 #: src/algos/astrometry_solver.c:1010
 #, fuzzy
@@ -11532,14 +11566,14 @@ msgid "Flipping image and updating astrometry data.\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:1101
-#, fuzzy, c-format
+#, c-format
 msgid "Plate solving warning: %s"
-msgstr "Remover arquivos selecionados"
+msgstr "Avisos de plate solving: %s"
 
 #: src/algos/astrometry_solver.c:1103
-#, fuzzy, c-format
+#, c-format
 msgid "Plate solving failed: %s"
-msgstr "Remover arquivos selecionados"
+msgstr "Plate solving falhou: %s"
 
 #: src/algos/astrometry_solver.c:1211
 msgid "Near solver started"
@@ -11633,9 +11667,9 @@ msgid "Image %d already platesolved, skipping\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:2088
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: no stars found\n"
-msgstr "Mostrar Imagem"
+msgstr "Imagem %d: nenhuma estrela encontrada\n"
 
 #: src/algos/astrometry_solver.c:2097 src/algos/astrometry_solver.c:2205
 #, c-format
@@ -11711,9 +11745,9 @@ msgid "monochrome"
 msgstr ""
 
 #: src/algos/background_extraction.c:886
-#, fuzzy, c-format
+#, c-format
 msgid "Background extraction from %s channel.\n"
-msgstr "Extrair o fundo"
+msgstr "Extração em segundo plano do canal %s.\n"
 
 #: src/algos/background_extraction.c:892
 #, c-format
@@ -11815,9 +11849,9 @@ msgid "%s: extract HSV channel"
 msgstr ""
 
 #: src/algos/colors.c:858 src/algos/colors.c:994
-#, fuzzy, c-format
+#, c-format
 msgid "%s: extract LAB channel"
-msgstr "Canal vermelho"
+msgstr "%s: extrai o canal LAB"
 
 #: src/algos/colors.c:863 src/algos/colors.c:999
 msgid "Image is not color managed. Assuming sRGB.\n"
@@ -11875,9 +11909,9 @@ msgid "Color Conversion Matrices"
 msgstr "Método de Proteção: "
 
 #: src/algos/comparison_stars.c:135
-#, fuzzy, c-format
+#, c-format
 msgid "Target star identified: %s\n"
-msgstr "não carregada"
+msgstr "Estrela alvo identificada: %s\n"
 
 #: src/algos/comparison_stars.c:137
 msgid ""
@@ -11901,9 +11935,9 @@ msgid "Star %s could not be used because it's on the borders or outside\n"
 msgstr ""
 
 #: src/algos/comparison_stars.c:210
-#, fuzzy, c-format
+#, c-format
 msgid "Creating csv output file %s\n"
-msgstr "não carregada"
+msgstr "Criando o arquivo de saída csv %s\n"
 
 #: src/algos/comparison_stars.c:228
 msgid "Problem writing the comparison stars file\n"
@@ -11956,14 +11990,14 @@ msgstr ""
 #. and retrieving its results
 #. returns the nb of stars
 #: src/algos/comparison_stars.c:418
-#, fuzzy, c-format
+#, c-format
 msgid "No stars retrieved from the catalog %s\n"
-msgstr "Selecionar Fase"
+msgstr "Nenhuma estrela recuperada do catálogo %s\n"
 
 #: src/algos/comparison_stars.c:425
-#, fuzzy, c-format
+#, c-format
 msgid "-> %i %s stars found within the image from %s\n"
-msgstr "não carregada"
+msgstr "-> %i %s estrelas encontradas na imagem de %s\n"
 
 #: src/algos/comparison_stars.c:426
 #, fuzzy
@@ -12776,9 +12810,9 @@ msgid " (aka %s)"
 msgstr ""
 
 #: src/algos/search_objects.c:223
-#, fuzzy, c-format
+#, c-format
 msgid " at coordinates: %s, %s\n"
-msgstr "_Processamento de imagem"
+msgstr " nas coordenadas: %s, %s\n"
 
 #: src/algos/search_objects.c:250
 #, c-format
@@ -13553,9 +13587,8 @@ msgid "Error loading files!\n"
 msgstr "não carregada"
 
 #: src/core/command.c:977
-#, fuzzy
 msgid "Unsaved Bayer pattern merge"
-msgstr "Selecionar o padrão Bayer da sua  câmara."
+msgstr "Mesclagem de padrão Bayer não salva"
 
 #: src/core/command.c:978
 #, fuzzy
@@ -14800,11 +14833,11 @@ msgid "No files were found for conversion\n"
 msgstr "Adicionar arquivos para converter"
 
 #: src/core/command.c:7414
-#, fuzzy, c-format
+#, c-format
 msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
-msgstr[0] "_Processamento de imagem"
-msgstr[1] "_Processamento de imagem"
+msgstr[0] "Converter: processando %d arquivo...\n"
+msgstr[1] "Converter: processando %d arquivos...\n"
 
 #: src/core/command.c:7497 src/gui/registration.c:1132
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
@@ -19622,9 +19655,8 @@ msgid "use pattern from the file header"
 msgstr ""
 
 #: src/core/settings.c:390
-#, fuzzy
 msgid "index of the Bayer pattern"
-msgstr "Selecionar o padrão Bayer da sua  câmara."
+msgstr "índice do padrão Bayer"
 
 #: src/core/settings.c:391
 #, fuzzy
@@ -20332,9 +20364,8 @@ msgid "Load another image"
 msgstr "Fase da imagem:"
 
 #: src/core/siril_actions.c:708 src/core/siril_actions.c:716
-#, fuzzy
 msgid "Close current image?"
-msgstr "Fechar a janela atual"
+msgstr "Fechar a janela atual?"
 
 #: src/core/siril_actions.c:708
 msgid ""
@@ -20603,19 +20634,17 @@ msgstr ""
 
 #: src/core/utils.c:1261 src/io/image_format_fits.c:2847
 #: src/io/image_format_fits.c:2852 src/io/ser.c:1394
-#, fuzzy
 msgid "pixel"
 msgid_plural "pixels"
-msgstr[0] "Super Pixel"
-msgstr[1] "Super Pixel"
+msgstr[0] "Pixel"
+msgstr[1] "Pixels"
 
 #: src/core/utils.c:1262 src/io/image_format_fits.c:2848
 #: src/io/image_format_fits.c:2853 src/io/ser.c:1395
-#, fuzzy
 msgid "channel"
 msgid_plural "channels"
-msgstr[0] "Canal vermelho"
-msgstr[1] "Canal vermelho"
+msgstr[0] "canal"
+msgstr[1] "canais"
 
 #: src/core/utils.c:1654 src/core/utils.c:1657
 msgid "(invalid UTF-8 string)"
@@ -21657,30 +21686,32 @@ msgid "This erases the following data, and there's no possible undo:\n"
 msgstr ""
 
 #: src/gui/callbacks.c:2189
-#, fuzzy
 msgid ""
 "\n"
 "- Registration"
-msgstr "Prefixo de saída:"
+msgstr ""
+"\n"
+"- Registro"
 
 #: src/gui/callbacks.c:2190
-#, fuzzy
 msgid ""
 "\n"
 "- Statistics"
-msgstr "Estatística"
+msgstr ""
+"\n"
+"- Estatísticas"
 
 #: src/gui/callbacks.c:2191
-#, fuzzy
 msgid ""
 "\n"
 "- Selection"
-msgstr "Sem Seleção"
+msgstr ""
+"\n"
+"- Seleção"
 
 #: src/gui/callbacks.c:2195
-#, fuzzy
 msgid "Clear Sequence Data?"
-msgstr "Sequência de corte"
+msgstr "Limpar dados de sequência?"
 
 #: src/gui/callbacks.c:2195
 #, fuzzy
@@ -21965,11 +21996,11 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: src/gui/conversion.c:508
-#, fuzzy, c-format
+#, c-format
 msgid "%d file selected"
 msgid_plural "%d files selected"
-msgstr[0] "Nenhuma sequência selecionada"
-msgstr[1] "Nenhuma sequência selecionada"
+msgstr[0] "%d arquivo selecionado"
+msgstr[1] "%d arquivos selecionados"
 
 #: src/gui/cut.c:169
 #, fuzzy
@@ -22337,9 +22368,8 @@ msgid "Error getting the list of unmerged changes"
 msgstr ""
 
 #: src/gui/git_gui.c:219 src/gui/git_gui.c:275 src/gui/graxpert.c:320
-#, fuzzy
 msgid "Warning!"
-msgstr "Aviso"
+msgstr "Aviso!"
 
 #: src/gui/git_gui.c:220
 msgid ""
@@ -24397,9 +24427,8 @@ msgid "Image %d has been selected from sequence\n"
 msgstr ""
 
 #: src/gui/sequence_list.c:690
-#, fuzzy
 msgid "Exclude all images?"
-msgstr "excluir tudo"
+msgstr "Excluir todas as imagens?"
 
 #: src/gui/sequence_list.c:691 src/gui/sequence_list.c:699
 msgid "This erases previous image selection and there's no possible undo."
@@ -24411,9 +24440,8 @@ msgid "Exclude All"
 msgstr "excluir tudo"
 
 #: src/gui/sequence_list.c:698
-#, fuzzy
 msgid "Include all images?"
-msgstr "incluir tudo"
+msgstr "Incluir todas as imagens?"
 
 #: src/gui/sequence_list.c:700
 #, fuzzy
@@ -24421,11 +24449,10 @@ msgid "Include All"
 msgstr "incluir tudo"
 
 #: src/gui/sequence_list.c:996
-#, fuzzy
 msgid "sequence"
 msgid_plural "sequences"
-msgstr[0] "Sequência"
-msgstr[1] "Sequência"
+msgstr[0] "sequência"
+msgstr[1] "sequências"
 
 #: src/gui/single_image.c:74
 msgid "An image (or sequence) is already loaded"
@@ -26282,9 +26309,8 @@ msgid "Width or height cannot be null. Not resizing.\n"
 msgstr ""
 
 #: src/io/sequence_export.c:720
-#, fuzzy
 msgid "Export cropped sequence?"
-msgstr "Exportar sequência"
+msgstr "Exportar sequência cortada?"
 
 #: src/io/sequence_export.c:721
 msgid ""
@@ -26321,11 +26347,11 @@ msgid "Incomplete file creation: %d file(s) remained to be written\n"
 msgstr ""
 
 #: src/io/seqwriter.c:184
-#, fuzzy, c-format
+#, c-format
 msgid "Saved %d image in the sequence\n"
 msgid_plural "Saved %d images in the sequence\n"
-msgstr[0] "Seleção de imagem na sequência"
-msgstr[1] "Seleção de imagem na sequência"
+msgstr[0] "%dimagem salva na sequência\n"
+msgstr[1] "%dimagens salvas na sequência\n"
 
 #: src/io/seqwriter.c:267
 #, c-format

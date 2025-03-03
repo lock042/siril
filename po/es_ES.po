@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-02-01 12:51+0100\n"
-"PO-Revision-Date: 2025-02-03 09:05+0000\n"
-"Last-Translator: \"Víctor R. Ruiz\" <rvr@infoastro.com>\n"
+"PO-Revision-Date: 2025-02-27 00:22+0000\n"
+"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -1962,6 +1962,9 @@ msgid ""
 "Opens a page in the online Siril documentation with usage tips and examples "
 "of settings that can work for different types of image."
 msgstr ""
+"Abre una página de la documentación en línea de Siril con pistas de uso y "
+"ejemplos de configuraciones que pueden funcionar para distintos tipos de "
+"imagen."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1908
 msgid ""
@@ -2030,7 +2033,7 @@ msgstr "Ningungo"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2003
 msgid "Alpha (α)"
-msgstr ""
+msgstr "Alpha (α)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2012
 #, fuzzy
@@ -2042,6 +2045,8 @@ msgid ""
 "Sets a stopping criterion based on difference between successive estimates. "
 "To activate the criterion the checkbox must be selected."
 msgstr ""
+"Fija un criterio de parada basado en la diferencia entre estimaciones "
+"sucesivas. Para activar el criterio la casilla debe ser seleccionada."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2029
 #, fuzzy
@@ -2050,7 +2055,7 @@ msgstr "Neutralización del fondo"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2041
 msgid "Gradient descent step size"
-msgstr ""
+msgstr "Tamaño del paso de descenso del gradiente"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2053
 #, fuzzy
@@ -2071,7 +2076,7 @@ msgstr "Multiplicativa"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2068
 msgid "Gradient Descent"
-msgstr ""
+msgstr "Descenso del Gradiente"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2081
 msgid ""
@@ -2178,11 +2183,11 @@ msgstr "Registro completado."
 
 #: src/gui/uifiles/ccm_dialog.ui:27
 msgid "Restore ICC"
-msgstr ""
+msgstr "Restaurar ICC"
 
 #: src/gui/uifiles/ccm_dialog.ui:32
 msgid "Reactivate ICC profile previously disabled by applying a CCM"
-msgstr ""
+msgstr "Reactivar el perfil ICC previamente desactivado al aplicar un CCM"
 
 #: src/gui/uifiles/ccm_dialog.ui:120 src/gui/uifiles/ccm_dialog.ui:176
 #: src/gui/uifiles/ccm_dialog.ui:232
@@ -2199,11 +2204,11 @@ msgstr "0"
 
 #: src/gui/uifiles/ccm_dialog.ui:281
 msgid "The power to which each result pixel will be raised."
-msgstr ""
+msgstr "La potencia a la que el resultado de cada pixel será elevado."
 
 #: src/gui/uifiles/ccm_dialog.ui:297
 msgid "Power:"
-msgstr ""
+msgstr "Potencia:"
 
 #: src/gui/uifiles/ccm_dialog.ui:309
 #, fuzzy
@@ -2212,7 +2217,7 @@ msgstr "Reiniciar"
 
 #: src/gui/uifiles/ccm_dialog.ui:322
 msgid "Custom"
-msgstr ""
+msgstr "Personalizado"
 
 #: src/gui/uifiles/ccm_dialog.ui:323
 msgid "Linear Rec.709_D65 to XYZ"
@@ -2813,16 +2818,20 @@ msgstr "x"
 msgid ""
 "Find a star in the current selection and set the start point to its location"
 msgstr ""
+"Encontrar una estrella en la selección actual y fijar el punto de inicio a "
+"su posición"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:226
 #: src/gui/uifiles/cut_coords_dialog.ui:251
 msgid "*"
-msgstr ""
+msgstr "*"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:250
 msgid ""
 "Find a star in the current selection and set the end point to its location"
 msgstr ""
+"Encontrar una estrella en la selección actual y fijar el punto final a su "
+"posición"
 
 #: src/gui/uifiles/cut_dialog.ui:107
 #, fuzzy
@@ -2831,7 +2840,7 @@ msgstr "<b>Tipo de extracción</b>"
 
 #: src/gui/uifiles/cut_dialog.ui:117 src/gui/cut.c:717 src/gui/cut.c:1047
 msgid "Mono"
-msgstr ""
+msgstr "Mono"
 
 #: src/gui/uifiles/cut_dialog.ui:121 src/gui/cut.c:1048
 msgid "Generates a single luminance profile along the profile line"
@@ -2859,7 +2868,7 @@ msgstr ""
 
 #: src/gui/uifiles/cut_dialog.ui:161
 msgid "Spectrometric data"
-msgstr ""
+msgstr "Datos espectrométricos"
 
 #: src/gui/uifiles/cut_dialog.ui:165
 msgid "Enter data relating to profiling along a spectrum"

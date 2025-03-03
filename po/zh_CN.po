@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-02-01 12:51+0100\n"
-"PO-Revision-Date: 2025-02-09 13:37+0000\n"
-"Last-Translator: Li Yizhi <411585951@qq.com>\n"
+"PO-Revision-Date: 2025-03-03 09:48+0000\n"
+"Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -1187,9 +1187,8 @@ msgid ""
 "Tolerance factor of global sample rejection, in mad units (median + this * "
 "mad). By decreasing this value, Siril will be more restrictive to select "
 "background samples."
-msgstr ""
-"全局样本剔除容差，单位mad (median + this * mad)。降低该值会使Siril更加谨慎的"
-"选取背景样本。"
+msgstr "全局样本剔除容差，单位mad (median + this * "
+"mad)。降低该值会使Siril更加严格地选取背景样本。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:389
 msgid "Keep all samples"
@@ -1208,7 +1207,7 @@ msgstr ""
 msgid ""
 "Tolerance of global sample rejection, in sigma units. By decreasing this "
 "value, Siril will be more restrictive to select background samples."
-msgstr "全局样本剔除容差，单位sigma。降低该值会使Siril更加谨慎的选取背景样本。"
+msgstr "全局样本剔除容差，单位sigma。降低该值会使Siril更加严格地选取背景样本。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:429
 msgid "Add dither"
@@ -11911,8 +11910,8 @@ msgid ""
 "Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-"
 "axis aberration[FWHM]: %.2f\n"
 msgstr ""
-"星点: %d, 截断平均值[FWHM]: %.2f, 传感器倾斜[FWHM]: %.2f (%.0f%%), 离轴像差"
-"[FWHM]: %.2f\n"
+"星点: %d, 排异后的平均值[FWHM]: %.2f, 传感器倾斜[FWHM]: %.2f (%.0f%%), "
+"离轴像差[FWHM]: %.2f\n"
 
 #: src/algos/ccd-inspector.c:277
 msgid "Tilt evaluation"
@@ -15990,9 +15989,9 @@ msgstr ""
 "以通过<b>-linked</b>设置为图像各通道的平均值。拉伸量<b>D</b>在第二个必需参数"
 "中提供。\n"
 "不可更改的参数<b>B</b>为13，使拉伸集中于SP亮度范围；<b>HP</b>为0.7；<b>LP</b>"
-"使用0，但可以通过同名选项更改。修剪模式可使用参数<b>-clipmode=</b>设置：接受"
-"值<b>clip</b>、<b>rescale</b>、<b>rgbblend</b>或<b>globalrescale</b>，默认值"
-"为rgbblend"
+"使用0，但可以通过同名选项更改。高光切除模式可使用参数<b>-clipmode=</b>设置："
+"可选<b>clip</b>、<b>rescale</b>、<b>rgbblend</b>或<b>globalrescale</b>，默认"
+"值为rgbblend"
 
 #: src/core/command_def.h:9
 msgid ""
@@ -16007,10 +16006,11 @@ msgid ""
 "Do not use the unlinked version after color calibration, it will alter the "
 "white balance"
 msgstr ""
-"自动拉伸当前载入的图像，每个通道的参数不同（不绑定），除非输入<b>-linked</"
-"b>。参数是可选的，<b>shadowclip</b>是阴影修剪点，用主直方图峰值来测量，单位为"
-"sigma（默认值为-2.8），<b>targetbg</b>为目标背景值，为图像提供最终亮度，范围"
-"为[0，1]，默认值为0.25。默认值即为GUI的自动拉伸使用的值。\n"
+"自动拉伸当前载入的图像，每个通道的参数不同（不绑定），除非输入<b>-linked</b>"
+"。参数是可选的，<b>shadowclip</b>是阴影切除点，用主直方图峰值来测量，单位为si"
+"gma（默认值为-2."
+"8），<b>targetbg</b>为目标背景值，为图像提供最终亮度，范围为[0，1]，默认值为0"
+".25。默认值即为GUI的自动拉伸使用的值。\n"
 "\n"
 "色彩校准后不要使用不绑定的自动拉伸，这会改变白平衡"
 
@@ -17180,8 +17180,8 @@ msgid ""
 "or use the THRESHLO command"
 msgstr ""
 "将载入的图像减去图像<b>filename</b>。\n"
-"如果偏好设置中允许，结果将为每通道32位，因此能够存储负值。要修剪负值，请使用"
-"16位模式或使用THRESHLO命令"
+"如果偏好设置中允许，结果将为每通道32位，因此能够存储负值。要切除负值，请使用1"
+"6位模式或使用THRESHLO命令"
 
 #: src/core/command_def.h:86
 msgid ""
@@ -17593,7 +17593,7 @@ msgid ""
 msgstr ""
 "将当前图像加上常量<b>value</b>（以ADU为单位）。这个常数可以取负值。\n"
 "\n"
-"在16位模式中，位于[0, 65535]之外的像素值被修剪。在32位模式下，不会修剪"
+"在16位模式下，[0, 65535]之外的像素值被切除。在32位模式下，不会有切除"
 
 #: src/core/command_def.h:113
 msgid ""
@@ -17872,9 +17872,9 @@ msgid ""
 "channel on which the star will be analyzed. It can be omitted for monochrome "
 "images or when run from the GUI with one of the channels active in the view"
 msgstr ""
-"对选定的星点执行PSF（点扩散函数）并显示结果。对于没有文件头的操作，可以使用"
-"BOXSELECT以像素为单位进行选择。提供<b>channel</b>参数，将会在指定的通道上分析"
-"恒星。对于单色图像，或者在GUI运行时界面中已选中了某个通道，则此参数被忽略"
+"对选定的星点执行PSF（点扩散函数）并显示结果。对于无文件头的操作，可以使用BOXS"
+"ELECT以像素为单位进行选择。提供<b>channel</b>参数，将会在指定的通道上分析恒星"
+"。对于单色图像，或者在GUI运行时界面中已选中了某个通道，则此参数被忽略"
 
 #: src/core/command_def.h:121
 msgid "Prints the current working directory"
@@ -21864,7 +21864,8 @@ msgstr "撤销：%s\n"
 msgid ""
 "Following undo / redo with a preview active you may need to toggle the "
 "preview off and on again to reactivate the preview effect\n"
-msgstr ""
+msgstr "在预览处于活动状态时撤消/重做后，"
+"可能需要关闭并再次打开预览以重新激活预览效果\n"
 
 #: src/core/undo.c:387
 #, c-format
@@ -22461,7 +22462,7 @@ msgstr "错误：图像复制失败...\n"
 
 #: src/filters/starnet.c:551
 msgid "StarNet: Pixel values exceed 1.0. Rescaling to avoid clipping peaks.\n"
-msgstr "StatNet：像素值超过 1.0。重新缩放以避免修剪峰值。\n"
+msgstr "StatNet：像素值超过 1.0。重新缩放以避免切除峰值。\n"
 
 #: src/filters/starnet.c:581
 msgid "Error: unable to find the MTF stretch factors...\n"
@@ -23777,7 +23778,7 @@ msgstr ""
 msgid ""
 "GraXpert is running. Changing the GraXpert operation will cancel the current "
 "GraXpert process. Proceed?"
-msgstr ""
+msgstr "GraXpert正在运行。更改操作会打断正在进行的处理。确定吗？"
 
 #: src/gui/graxpert.c:324
 #, fuzzy
@@ -25997,11 +25998,11 @@ msgstr "叠加：处理中...\n"
 
 #: src/gui/stacking.c:316
 msgid "Low clipping factor for the percentile clipping rejection algorithm."
-msgstr "百分数修剪剔除算法的下限修剪因子。"
+msgstr "百分数排异算法的下限系数。"
 
 #: src/gui/stacking.c:317
 msgid "High clipping factor for the percentile clipping rejection algorithm."
-msgstr "百分数修剪剔除算法的上限修剪因子。"
+msgstr "百分数排异算法的上限系数。"
 
 #: src/gui/stacking.c:322
 msgid "Percentile low: "
@@ -26015,13 +26016,13 @@ msgstr "Percentile上限: "
 msgid ""
 "Tolerance for low pixel values of the linear fit clipping algorithm, in "
 "sigma units."
-msgstr "线性拟合修剪算法的像素值容差下限（sigma）。"
+msgstr "线性拟合排异算法的像素值下限容差（sigma）。"
 
 #: src/gui/stacking.c:333
 msgid ""
 "Tolerance for high pixel values of the linear fit clipping algorithm, in "
 "sigma units."
-msgstr "线性拟合修剪算法的像素值容差上限（sigma）。"
+msgstr "线性拟合排异算法的像素值上限容差（sigma）。"
 
 #: src/gui/stacking.c:338
 msgid "Linear low: "
@@ -26033,11 +26034,11 @@ msgstr "Linear上限: "
 
 #: src/gui/stacking.c:352
 msgid "Low clipping factor for the sigma clipping rejection algorithm."
-msgstr "Sigma修剪剔除算法的修剪系数下限。"
+msgstr "Sigma排异算法的下限系数。"
 
 #: src/gui/stacking.c:353
 msgid "High clipping factor for the sigma clipping rejection algorithm."
-msgstr "Sigma修剪剔除算法的修剪系数上限。"
+msgstr "Sigma排异算法的上限系数。"
 
 #: src/gui/stacking.c:368
 msgid ""
@@ -26247,13 +26248,13 @@ msgstr "取消而不做任何更改"
 
 #: src/gui/utils.c:399
 msgid "Clip pixel values to the range 0.0 - 1.0"
-msgstr "将值的范围修剪为 0.0 - 1.0"
+msgstr "将值的范围截断为 0.0 - 1.0"
 
 #: src/gui/utils.c:400
 msgid ""
 "Rescale pixel values to fit the range 0.0 - 1.0, clipping negative pixel "
 "values"
-msgstr "将值的范围重新缩放至 0.0 - 1.0，负值切除"
+msgstr "将值的范围重新缩放至 0.0 - 1.0，负值截断"
 
 #: src/gui/utils.c:401
 msgid ""
@@ -26271,11 +26272,11 @@ msgstr "此图像包含超出范围 0.0 - 1.0（最小值 = %.3f，最大值 = %
 
 #: src/io/aavso_extended.c:157
 msgid "Warning: at least one AAVSO header element was truncated.\n"
-msgstr ""
+msgstr "警告：至少一个AAVSO头元素被截断。\n"
 
 #: src/io/aavso_extended.c:171
 msgid "Warning: at least one AAVSO data element was truncated.\n"
-msgstr ""
+msgstr "警告：至少一个AAVSO数据项被截断。\n"
 
 #: src/io/aavso_extended.c:216
 msgid "Number of images is not enough\n"
@@ -28057,7 +28058,7 @@ msgstr "存储库克隆成功！\n"
 #: src/io/siril_git.c:696
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
-msgstr ""
+msgstr "Siril现为离线模式。不会克隆远程仓库。\n"
 
 #: src/io/siril_git.c:711 src/io/siril_git.c:856
 msgid "Failed to lookup remote.\n"
@@ -28444,7 +28445,7 @@ msgstr "Siril控制中心"
 
 #: src/io/siril_pythoncommands.c:953
 msgid "Undo not supported in headless mode"
-msgstr ""
+msgstr "无文件头模式下不支持撤销"
 
 #. Handle error
 #. Handle error retrieving the working directory
@@ -28517,7 +28518,7 @@ msgstr "此序列没有统计数据"
 
 #: src/io/siril_pythoncommands.c:1356
 msgid "No stats for this channel for this frame"
-msgstr ""
+msgstr "此帧的此通道无统计数据"
 
 #: src/io/siril_pythoncommands.c:1382 src/io/siril_pythoncommands.c:1432
 #: src/io/siril_pythoncommands.c:1480
@@ -28531,7 +28532,7 @@ msgstr "错误的载荷"
 
 #: src/io/siril_pythoncommands.c:1429
 msgid "Selection cropped to frame boundaries\n"
-msgstr ""
+msgstr "已将帧边界裁切至选区\n"
 
 #: src/io/siril_pythoncommands.c:1440
 msgid "Failed to read sequence frame"
@@ -28552,7 +28553,7 @@ msgstr "不可用"
 
 #: src/io/siril_pythoncommands.c:1596
 msgid "Stars array was cleared mid-process"
-msgstr ""
+msgstr "星点数组在处理中被清空"
 
 #: src/io/siril_pythoncommands.c:1604
 msgid "Unexpected null star entry"
@@ -28681,7 +28682,7 @@ msgstr "错误：索引%zu超出范围（最大：%zu）。\n"
 
 #: src/io/spcc_json.c:502
 msgid "Error: index must be 0 for single object JSON.\n"
-msgstr ""
+msgstr "错误：对于单对象JSON，索引必须为0。\n"
 
 #: src/io/spcc_json.c:507
 #, fuzzy
@@ -28690,11 +28691,11 @@ msgstr "错误：JSON 文件应包含对象数组。\n"
 
 #: src/io/spcc_json.c:515
 msgid "Error: Missing or invalid wavelength/values objects.\n"
-msgstr ""
+msgstr "错误：缺少或无效的波长/值对象。\n"
 
 #: src/io/spcc_json.c:522
 msgid "Error: Missing or invalid wavelength units.\n"
-msgstr ""
+msgstr "错误：缺少或无效的波长单位。\n"
 
 #: src/io/spcc_json.c:533
 #, c-format
@@ -28703,16 +28704,16 @@ msgstr "警告：JSON 文件 %s 中出现错误：无法识别的波长单位\n"
 
 #: src/io/spcc_json.c:541
 msgid "Error: Missing or invalid value range.\n"
-msgstr ""
+msgstr "错误：缺少或无效的取值范围。\n"
 
 #: src/io/spcc_json.c:550
 msgid "Error: Missing or invalid value arrays.\n"
-msgstr ""
+msgstr "错误：缺少或无效的值数组。\n"
 
 #: src/io/spcc_json.c:557
 #, c-format
 msgid "Error: Invalid array sizes (wavelength: %zu, values: %zu).\n"
-msgstr ""
+msgstr "错误：无效的数组大小（波长: %zu, 值: %zu）。\n"
 
 #: src/io/spcc_json.c:568 src/io/spcc_json.c:600
 #, fuzzy
@@ -28722,7 +28723,7 @@ msgstr "错误：内存分配失败。\n"
 #: src/io/spcc_json.c:582
 #, c-format
 msgid "Error: Invalid number at index %zu.\n"
-msgstr ""
+msgstr "错误：索引%zu处为无效值。\n"
 
 #: src/io/healpix/healpix.cpp:133
 #, fuzzy, c-format
@@ -29115,7 +29116,7 @@ msgstr "表达式x的双曲正切."
 
 #: src/pixelMath/pixel_math_runner.c:108
 msgid "Truncated integer part of x."
-msgstr "表达式x的整数部分（全舍）."
+msgstr "表达式x的整数部分（小数全舍）."
 
 #: src/pixelMath/pixel_math_runner.c:112
 msgid "Average absolute deviation of the image."
@@ -29488,7 +29489,7 @@ msgstr "无法初始化畸变数据，异常中止\n"
 msgid ""
 "Distortion was found in reference image astrometry but you did not include "
 "distortion correction when registering the images\n"
-msgstr ""
+msgstr "对参考帧天体测量时发现了畸变，但对齐图像时没有包括畸变校正\n"
 
 #: src/registration/applyreg.c:1019
 msgid ""
@@ -29635,7 +29636,7 @@ msgstr "无法拷贝WCS畸变文件\n"
 msgid ""
 "Sequence file points to master distorsion file but its specification is "
 "empty in the preferences\n"
-msgstr ""
+msgstr "序列文件指向了并未在首选项中设置的总和畸变文件\n"
 
 #: src/registration/distorsion.c:429
 #, c-format
@@ -29686,7 +29687,7 @@ msgstr ""
 
 #: src/registration/distorsion.c:547
 msgid "Load a FITS/WCS file for distortion"
-msgstr ""
+msgstr "载入用于畸变的FITS/WCS文件"
 
 #: src/registration/distorsion.c:552 src/registration/distorsion.c:554
 msgid "Could not load FITS image for distortion"
@@ -30291,27 +30292,27 @@ msgstr "像素剔除 ………… 无\n"
 
 #: src/stacking/stacking.c:196
 msgid "percentile clipping"
-msgstr "百分数修剪"
+msgstr "百分数排异"
 
 #: src/stacking/stacking.c:199
 msgid "sigma clipping"
-msgstr "sigma修剪"
+msgstr "sigma排异"
 
 #: src/stacking/stacking.c:205
 msgid "median sigma clipping"
-msgstr "中位数sigma修剪"
+msgstr "中位数sigma排异"
 
 #: src/stacking/stacking.c:208
 msgid "winsorized sigma clipping"
-msgstr "winsorized sigma修剪"
+msgstr "winsorized sigma排异"
 
 #: src/stacking/stacking.c:211
 msgid "linear fit clipping"
-msgstr "线性拟合修剪"
+msgstr "线性拟合排异"
 
 #: src/stacking/stacking.c:214
 msgid "GESDT clipping"
-msgstr "广义ESD检验修剪"
+msgstr "广义ESD检验排异"
 
 #: src/stacking/stacking.c:217
 #, c-format
