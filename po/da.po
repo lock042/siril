@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-04 14:51+0100\n"
+"POT-Creation-Date: 2025-03-04 15:24+0100\n"
 "PO-Revision-Date: 2023-06-06 08:18+0000\n"
 "Last-Translator: Victor Boesen Gandløse <victorboesen@hotmail.com>\n"
 "Language-Team: Danish <https://weblate.pixls.us/projects/siril/siril-"
@@ -3384,9 +3384,7 @@ msgid "Preview the current settings on a region of interest."
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:115
-msgid ""
-"Apply the selected operation. Note that the result is read from the external "
-"program as a new image, therefore Undo is not possible."
+msgid "Apply the selected operation."
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:159
@@ -3428,20 +3426,12 @@ msgid ""
 "better at rejecting background samples in areas representing real neblosity."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:237
-msgid "2,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:265
 msgid "# samples per row"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:276
 msgid "Set the number of samples per row in the sampling grid."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:277
-msgid "15"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:291
@@ -3453,10 +3443,6 @@ msgid ""
 "Set the GraXpert sample size of each background sample. Larger samples may "
 "give better statistical properties but have a bigger risk of including non-"
 "background pixels such as stars."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:303
-msgid "25"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:322
@@ -3506,10 +3492,6 @@ msgstr ""
 #: src/gui/uifiles/graxpert.ui:438
 msgid ""
 "Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:439 src/gui/uifiles/graxpert.ui:634
-msgid "0,50"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:474
@@ -3570,10 +3552,6 @@ msgstr ""
 msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:688
-msgid "5,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
 msgid "Deconvolution AI model version:"
 msgstr ""
@@ -3586,10 +3564,6 @@ msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:852
 msgid "Configure GraXpert denoising strength."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:853
-msgid "0,80"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:895
@@ -3622,10 +3596,6 @@ msgid ""
 "Set the number of image tiles which GraXpert will denoise in parallel. Be "
 "careful: increasing this value might result in out-of-memory errors. Valid "
 "Range: 1 - 32, default: \"4\"."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:1003
-msgid "4"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255

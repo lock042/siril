@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-04 14:51+0100\n"
+"POT-Creation-Date: 2025-03-04 15:24+0100\n"
 "PO-Revision-Date: 2025-02-08 15:43+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
@@ -4055,10 +4055,9 @@ msgid "Preview the current settings on a region of interest."
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:115
-msgid ""
-"Apply the selected operation. Note that the result is read from the external "
-"program as a new image, therefore Undo is not possible."
-msgstr ""
+#, fuzzy
+msgid "Apply the selected operation."
+msgstr "Wendet die ausgewählte Korrektur an."
 
 #: src/gui/uifiles/graxpert.ui:159
 #, fuzzy
@@ -4102,10 +4101,6 @@ msgid ""
 "better at rejecting background samples in areas representing real neblosity."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:237
-msgid "2,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:265
 #, fuzzy
 msgid "# samples per row"
@@ -4115,11 +4110,6 @@ msgstr "Stichproben pro Reihe"
 #, fuzzy
 msgid "Set the number of samples per row in the sampling grid."
 msgstr "Anzahl der Stichproben-Boxen in einer Reihe."
-
-#: src/gui/uifiles/graxpert.ui:277
-#, fuzzy
-msgid "15"
-msgstr "1"
 
 #: src/gui/uifiles/graxpert.ui:291
 #, fuzzy
@@ -4131,10 +4121,6 @@ msgid ""
 "Set the GraXpert sample size of each background sample. Larger samples may "
 "give better statistical properties but have a bigger risk of including non-"
 "background pixels such as stars."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:303
-msgid "25"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:322
@@ -4187,10 +4173,6 @@ msgstr "Letztes zurücksetzen"
 #: src/gui/uifiles/graxpert.ui:438
 msgid ""
 "Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:439 src/gui/uifiles/graxpert.ui:634
-msgid "0,50"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:474
@@ -4258,10 +4240,6 @@ msgstr "Abmessung in Pixeln"
 msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:688
-msgid "5,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
 #, fuzzy
 msgid "Deconvolution AI model version:"
@@ -4277,10 +4255,6 @@ msgstr ""
 #, fuzzy
 msgid "Configure GraXpert denoising strength."
 msgstr "GraXpert-Entrauschung, Stärke %.3f"
-
-#: src/gui/uifiles/graxpert.ui:853
-msgid "0,80"
-msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:895
 msgid "Denoising AI model version:"
@@ -4314,11 +4288,6 @@ msgid ""
 "careful: increasing this value might result in out-of-memory errors. Valid "
 "Range: 1 - 32, default: \"4\"."
 msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:1003
-#, fuzzy
-msgid "4"
-msgstr "4K"
 
 #: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255
 #: src/gui/uifiles/settings_window.ui:5308 src/gui/uifiles/siril.ui:6357
@@ -33795,6 +33764,14 @@ msgstr "Skaliere Sequenz für's Stacken"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "Das Stacken erfolgt ohne Hochskalierung (ohne 'Drizzle')\n"
 
+#, fuzzy
+#~ msgid "15"
+#~ msgstr "1"
+
+#, fuzzy
+#~ msgid "4"
+#~ msgstr "4K"
+
 #~ msgid "Color calibration"
 #~ msgstr "Farbkalibrierung"
 
@@ -38419,9 +38396,6 @@ msgstr "Das Stacken erfolgt ohne Hochskalierung (ohne 'Drizzle')\n"
 
 #~ msgid "Show Image"
 #~ msgstr "Zeige Bild"
-
-#~ msgid "This will apply the selected correction."
-#~ msgstr "Wendet die ausgewählte Korrektur an."
 
 #~ msgid "<b>Star detection</b>"
 #~ msgstr "<b>Stern-Erkennung</b>"

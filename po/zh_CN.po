@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-04 14:51+0100\n"
+"POT-Creation-Date: 2025-03-04 15:24+0100\n"
 "PO-Revision-Date: 2025-03-03 10:50+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -3685,10 +3685,9 @@ msgid "Preview the current settings on a region of interest."
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:115
-msgid ""
-"Apply the selected operation. Note that the result is read from the external "
-"program as a new image, therefore Undo is not possible."
-msgstr ""
+#, fuzzy
+msgid "Apply the selected operation."
+msgstr "应用所选的修正。"
 
 #: src/gui/uifiles/graxpert.ui:159
 #, fuzzy
@@ -3732,10 +3731,6 @@ msgid ""
 "better at rejecting background samples in areas representing real neblosity."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:237
-msgid "2,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:265
 #, fuzzy
 msgid "# samples per row"
@@ -3745,11 +3740,6 @@ msgstr "每行样本数"
 #, fuzzy
 msgid "Set the number of samples per row in the sampling grid."
 msgstr "每行中的样本格子数。"
-
-#: src/gui/uifiles/graxpert.ui:277
-#, fuzzy
-msgid "15"
-msgstr "1"
 
 #: src/gui/uifiles/graxpert.ui:291
 #, fuzzy
@@ -3762,11 +3752,6 @@ msgid ""
 "give better statistical properties but have a bigger risk of including non-"
 "background pixels such as stars."
 msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:303
-#, fuzzy
-msgid "25"
-msgstr "5"
 
 #: src/gui/uifiles/graxpert.ui:322
 #, fuzzy
@@ -3818,10 +3803,6 @@ msgstr "清除最后项"
 #: src/gui/uifiles/graxpert.ui:438
 msgid ""
 "Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:439 src/gui/uifiles/graxpert.ui:634
-msgid "0,50"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:474
@@ -3890,10 +3871,6 @@ msgstr "以像素为单位进行测量"
 msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:688
-msgid "5,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
 #, fuzzy
 msgid "Deconvolution AI model version:"
@@ -3909,10 +3886,6 @@ msgstr ""
 #, fuzzy
 msgid "Configure GraXpert denoising strength."
 msgstr "GraXpert 降噪，强度 %.3f"
-
-#: src/gui/uifiles/graxpert.ui:853
-msgid "0,80"
-msgstr "0,80"
 
 #: src/gui/uifiles/graxpert.ui:895
 msgid "Denoising AI model version:"
@@ -3946,11 +3919,6 @@ msgid ""
 "careful: increasing this value might result in out-of-memory errors. Valid "
 "Range: 1 - 32, default: \"4\"."
 msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:1003
-#, fuzzy
-msgid "4"
-msgstr "4K"
 
 #: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255
 #: src/gui/uifiles/settings_window.ui:5308 src/gui/uifiles/siril.ui:6357
@@ -30784,6 +30752,21 @@ msgstr "超采样叠加"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 
+#, fuzzy
+#~ msgid "15"
+#~ msgstr "1"
+
+#, fuzzy
+#~ msgid "25"
+#~ msgstr "5"
+
+#~ msgid "0,80"
+#~ msgstr "0,80"
+
+#, fuzzy
+#~ msgid "4"
+#~ msgstr "4K"
+
 #~ msgid "Color calibration"
 #~ msgstr "色彩校准"
 
@@ -34551,9 +34534,6 @@ msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 
 #~ msgid "Show Image"
 #~ msgstr "显示图像"
-
-#~ msgid "This will apply the selected correction."
-#~ msgstr "应用所选的修正。"
 
 #~ msgid ""
 #~ "Background cannot be extracted from itself. Please, click on Show Image\n"

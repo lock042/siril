@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-04 14:51+0100\n"
+"POT-Creation-Date: 2025-03-04 15:24+0100\n"
 "PO-Revision-Date: 2023-08-25 11:40+0000\n"
 "Last-Translator: Joan Vinyals Ylla Català "
 "<joan.vinyals.ylla.catala@gmail.com>\n"
@@ -3872,10 +3872,9 @@ msgid "Preview the current settings on a region of interest."
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:115
-msgid ""
-"Apply the selected operation. Note that the result is read from the external "
-"program as a new image, therefore Undo is not possible."
-msgstr ""
+#, fuzzy
+msgid "Apply the selected operation."
+msgstr "Aplicar l'extracció d'ondetes."
 
 #: src/gui/uifiles/graxpert.ui:159
 #, fuzzy
@@ -3918,10 +3917,6 @@ msgid ""
 "better at rejecting background samples in areas representing real neblosity."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:237
-msgid "2,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:265
 #, fuzzy
 msgid "# samples per row"
@@ -3930,11 +3925,6 @@ msgstr "Mostres per línia"
 #: src/gui/uifiles/graxpert.ui:276
 msgid "Set the number of samples per row in the sampling grid."
 msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:277
-#, fuzzy
-msgid "15"
-msgstr "1"
 
 #: src/gui/uifiles/graxpert.ui:291
 #, fuzzy
@@ -3946,10 +3936,6 @@ msgid ""
 "Set the GraXpert sample size of each background sample. Larger samples may "
 "give better statistical properties but have a bigger risk of including non-"
 "background pixels such as stars."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:303
-msgid "25"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:322
@@ -4002,10 +3988,6 @@ msgstr "Netejar"
 #: src/gui/uifiles/graxpert.ui:438
 msgid ""
 "Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:439 src/gui/uifiles/graxpert.ui:634
-msgid "0,50"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:474
@@ -4073,10 +4055,6 @@ msgstr ""
 msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:688
-msgid "5,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
 #, fuzzy
 msgid "Deconvolution AI model version:"
@@ -4090,10 +4068,6 @@ msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:852
 msgid "Configure GraXpert denoising strength."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:853
-msgid "0,80"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:895
@@ -4128,11 +4102,6 @@ msgid ""
 "careful: increasing this value might result in out-of-memory errors. Valid "
 "Range: 1 - 32, default: \"4\"."
 msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:1003
-#, fuzzy
-msgid "4"
-msgstr "4K"
 
 #: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255
 #: src/gui/uifiles/settings_window.ui:5308 src/gui/uifiles/siril.ui:6357
@@ -29498,6 +29467,14 @@ msgstr "Seqüència d'escalat per l'apilonament"
 #: src/stacking/upscaling.c:148
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
+
+#, fuzzy
+#~ msgid "15"
+#~ msgstr "1"
+
+#, fuzzy
+#~ msgid "4"
+#~ msgstr "4K"
 
 #, fuzzy
 #~ msgid "Color calibration"

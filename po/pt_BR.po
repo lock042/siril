@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-04 14:51+0100\n"
+"POT-Creation-Date: 2025-03-04 15:24+0100\n"
 "PO-Revision-Date: 2025-02-28 17:48+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
@@ -3761,10 +3761,9 @@ msgid "Preview the current settings on a region of interest."
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:115
-msgid ""
-"Apply the selected operation. Note that the result is read from the external "
-"program as a new image, therefore Undo is not possible."
-msgstr ""
+#, fuzzy
+msgid "Apply the selected operation."
+msgstr "Isto aplicará a correção selecionada."
 
 #: src/gui/uifiles/graxpert.ui:159
 #, fuzzy
@@ -3807,10 +3806,6 @@ msgid ""
 "better at rejecting background samples in areas representing real neblosity."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:237
-msgid "2,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:265
 #, fuzzy
 msgid "# samples per row"
@@ -3820,10 +3815,6 @@ msgstr "Amostras por linha:"
 #, fuzzy
 msgid "Set the number of samples per row in the sampling grid."
 msgstr "Este é o número de caixas de amostra numa linha."
-
-#: src/gui/uifiles/graxpert.ui:277
-msgid "15"
-msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:291
 #, fuzzy
@@ -3835,10 +3826,6 @@ msgid ""
 "Set the GraXpert sample size of each background sample. Larger samples may "
 "give better statistical properties but have a bigger risk of including non-"
 "background pixels such as stars."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:303
-msgid "25"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:322
@@ -3891,10 +3878,6 @@ msgstr "Fechar a janela"
 #: src/gui/uifiles/graxpert.ui:438
 msgid ""
 "Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:439 src/gui/uifiles/graxpert.ui:634
-msgid "0,50"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:474
@@ -3962,10 +3945,6 @@ msgstr ""
 msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:688
-msgid "5,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
 #, fuzzy
 msgid "Deconvolution AI model version:"
@@ -3979,10 +3958,6 @@ msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:852
 msgid "Configure GraXpert denoising strength."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:853
-msgid "0,80"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:895
@@ -4016,10 +3991,6 @@ msgid ""
 "Set the number of image tiles which GraXpert will denoise in parallel. Be "
 "careful: increasing this value might result in out-of-memory errors. Valid "
 "Range: 1 - 32, default: \"4\"."
-msgstr ""
-
-#: src/gui/uifiles/graxpert.ui:1003
-msgid "4"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255
@@ -30053,9 +30024,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Este é o fator multiplicado pelo parâmetro de desvio para incluir mais "
 #~ "pixéis escuros na avaliação do fundo"
-
-#~ msgid "This will apply the selected correction."
-#~ msgstr "Isto aplicará a correção selecionada."
 
 #~ msgid "use Luminance"
 #~ msgstr "usar Luminância"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-04 14:51+0100\n"
+"POT-Creation-Date: 2025-03-04 15:24+0100\n"
 "PO-Revision-Date: 2025-03-04 14:23+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
@@ -4079,10 +4079,9 @@ msgid "Preview the current settings on a region of interest."
 msgstr "Prévisualiser les paramètres actuels d'une région d'intérêt."
 
 #: src/gui/uifiles/graxpert.ui:115
-msgid ""
-"Apply the selected operation. Note that the result is read from the external "
-"program as a new image, therefore Undo is not possible."
-msgstr "Appliquer l'opération sélectionnée."
+#, fuzzy
+msgid "Apply the selected operation."
+msgstr "Applique la correction sélectionnée."
 
 #: src/gui/uifiles/graxpert.ui:159
 msgid "Algorithm"
@@ -4128,10 +4127,6 @@ msgstr ""
 "échantillons de fond de ciel dans les zones représentant une véritable "
 "nébulosité."
 
-#: src/gui/uifiles/graxpert.ui:237
-msgid "2,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:265
 msgid "# samples per row"
 msgstr "# échantillons par ligne"
@@ -4140,11 +4135,6 @@ msgstr "# échantillons par ligne"
 msgid "Set the number of samples per row in the sampling grid."
 msgstr ""
 "Définir le nombre d'échantillons par ligne dans la grille d'échantillonnage."
-
-#: src/gui/uifiles/graxpert.ui:277
-#, fuzzy
-msgid "15"
-msgstr "1"
 
 #: src/gui/uifiles/graxpert.ui:291
 msgid "Sample size / px"
@@ -4160,10 +4150,6 @@ msgstr ""
 "ciel. Des échantillons plus grands peuvent donner de meilleures propriétés "
 "statistiques, mais présentent un plus grand risque d'inclure des pixels qui "
 "n'appartiennent pas au fond de ciel, tels que des étoiles."
-
-#: src/gui/uifiles/graxpert.ui:303
-msgid "25"
-msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:322
 msgid "Keep background"
@@ -4219,10 +4205,6 @@ msgid ""
 "Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0."
 msgstr ""
 "Définit le niveau de lissage à appliquer par GraXpert, entre 0.0 et 1.0."
-
-#: src/gui/uifiles/graxpert.ui:439 src/gui/uifiles/graxpert.ui:634
-msgid "0,50"
-msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:474
 msgid "RBF Kernel"
@@ -4286,10 +4268,6 @@ msgstr "FWHM de l'image (en pixels)"
 msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
 msgstr "Configurer la déconvolution GraXpert Image FWHM (en pixels)."
 
-#: src/gui/uifiles/graxpert.ui:688
-msgid "5,00"
-msgstr ""
-
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
 msgid "Deconvolution AI model version:"
 msgstr "Déconvolution version du modèle IA"
@@ -4305,10 +4283,6 @@ msgstr ""
 #: src/gui/uifiles/graxpert.ui:852
 msgid "Configure GraXpert denoising strength."
 msgstr "Configurer la force du débruitage de GraXpert."
-
-#: src/gui/uifiles/graxpert.ui:853
-msgid "0,80"
-msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:895
 msgid "Denoising AI model version:"
@@ -4348,11 +4322,6 @@ msgstr ""
 "Définit le nombre de tuiles d'images que GraXpert va débruiter en parallèle. "
 "Attention : l'augmentation de cette valeur peut entraîner des erreurs de "
 "mémoire insuffisante. Plage de validité : 1 - 32, valeur par défaut : \"4\"."
-
-#: src/gui/uifiles/graxpert.ui:1003
-#, fuzzy
-msgid "4"
-msgstr "4K"
 
 #: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255
 #: src/gui/uifiles/settings_window.ui:5308 src/gui/uifiles/siril.ui:6357
@@ -30448,8 +30417,8 @@ msgstr ""
 #: src/io/mp4_output.c:514
 msgid "Could not deduce output format from file extension: using mp4.\n"
 msgstr ""
-"Impossible de déduire le format de sortie à partir de l'extension du fichier "
-": utilisation de mp4.\n"
+"Impossible de déduire le format de sortie à partir de l'extension du "
+"fichier : utilisation de mp4.\n"
 
 #: src/io/mp4_output.c:518
 msgid "FFMPEG does not seem to support mp4 format, aborting.\n"
@@ -34056,6 +34025,19 @@ msgstr "Mise à l'échelle de la séquence pour l’empilement"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 "L'empilement se fera sans mise à l'échelle (désactivation du 'drizzle')\n"
+
+#~ msgid ""
+#~ "Apply the selected operation. Note that the result is read from the "
+#~ "external program as a new image, therefore Undo is not possible."
+#~ msgstr "Appliquer l'opération sélectionnée."
+
+#, fuzzy
+#~ msgid "15"
+#~ msgstr "1"
+
+#, fuzzy
+#~ msgid "4"
+#~ msgstr "4K"
 
 #~ msgid "Color calibration"
 #~ msgstr "Étalonnage des couleurs"
@@ -38894,9 +38876,6 @@ msgstr ""
 
 #~ msgid "Show Image"
 #~ msgstr "Montrer l'image"
-
-#~ msgid "This will apply the selected correction."
-#~ msgstr "Applique la correction sélectionnée."
 
 #~ msgid ""
 #~ "Background cannot be extracted from itself. Please, click on Show Image\n"
