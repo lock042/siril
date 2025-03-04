@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-04 14:51+0100\n"
-"PO-Revision-Date: 2025-03-03 09:48+0000\n"
+"PO-Revision-Date: 2025-03-04 14:23+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -4071,54 +4071,50 @@ msgstr ""
 "ces métadonnées"
 
 #: src/gui/uifiles/graxpert.ui:66
-#, fuzzy
 msgid "Siril GraXpert Interface"
-msgstr "Interface de GraXpert..."
+msgstr "Interface de GraXpert"
 
 #: src/gui/uifiles/graxpert.ui:100
 msgid "Preview the current settings on a region of interest."
-msgstr ""
+msgstr "Prévisualiser les paramètres actuels d'une région d'intérêt."
 
 #: src/gui/uifiles/graxpert.ui:115
 msgid ""
 "Apply the selected operation. Note that the result is read from the external "
 "program as a new image, therefore Undo is not possible."
-msgstr ""
+msgstr "Appliquer l'opération sélectionnée."
 
 #: src/gui/uifiles/graxpert.ui:159
-#, fuzzy
 msgid "Algorithm"
-msgstr "Algorithme :"
+msgstr "Algorithme"
 
 #: src/gui/uifiles/graxpert.ui:170
 msgid "Configure which GraXpert algorithm to use"
-msgstr ""
+msgstr "Configurer l'algorithme GraXpert à utiliser"
 
 #: src/gui/uifiles/graxpert.ui:173
-#, fuzzy
 msgid "AI"
-msgstr "A"
+msgstr "IA"
 
 #: src/gui/uifiles/graxpert.ui:175
-#, fuzzy
 msgid "Kriging"
-msgstr "Original"
+msgstr "Kriging"
 
 #: src/gui/uifiles/graxpert.ui:176
-#, fuzzy
 msgid "Spline"
-msgstr "BSpline"
+msgstr "Spline"
 
 #: src/gui/uifiles/graxpert.ui:208
 msgid ""
 "Configure whether GraXpert applies background correction by subtraction or "
 "division"
 msgstr ""
+"Configurer si GraXpert applique une extraction de gradient par soustraction "
+"ou par division"
 
 #: src/gui/uifiles/graxpert.ui:225
-#, fuzzy
 msgid "Background Tolerance"
-msgstr "Référence de fond du ciel"
+msgstr "Tolérance du fond de ciel"
 
 #: src/gui/uifiles/graxpert.ui:236
 msgid ""
@@ -4126,20 +4122,24 @@ msgid ""
 "values are more tolerant of strong background gradients; lower values are "
 "better at rejecting background samples in areas representing real neblosity."
 msgstr ""
+"Définir la tolérance du fond de ciel : la plage autorisée est comprise entre "
+"-2,0 et +6,0. Les valeurs élevées sont plus tolérantes aux forts gradients "
+"de fond de ciel ; les valeurs plus faibles permettent de mieux rejeter les "
+"échantillons de fond de ciel dans les zones représentant une véritable "
+"nébulosité."
 
 #: src/gui/uifiles/graxpert.ui:237
 msgid "2,00"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:265
-#, fuzzy
 msgid "# samples per row"
-msgstr "Échantillons par ligne"
+msgstr "# échantillons par ligne"
 
 #: src/gui/uifiles/graxpert.ui:276
-#, fuzzy
 msgid "Set the number of samples per row in the sampling grid."
-msgstr "C'est le nombre d'échantillons dans une ligne."
+msgstr ""
+"Définir le nombre d'échantillons par ligne dans la grille d'échantillonnage."
 
 #: src/gui/uifiles/graxpert.ui:277
 #, fuzzy
@@ -4147,9 +4147,8 @@ msgid "15"
 msgstr "1"
 
 #: src/gui/uifiles/graxpert.ui:291
-#, fuzzy
 msgid "Sample size / px"
-msgstr "Taille du panneau (px) :"
+msgstr "Taille de l'échantillon / px :"
 
 #: src/gui/uifiles/graxpert.ui:302
 msgid ""
@@ -4157,98 +4156,103 @@ msgid ""
 "give better statistical properties but have a bigger risk of including non-"
 "background pixels such as stars."
 msgstr ""
+"Définissez la taille de l'échantillon pour chaque échantillon de fond de "
+"ciel. Des échantillons plus grands peuvent donner de meilleures propriétés "
+"statistiques, mais présentent un plus grand risque d'inclure des pixels qui "
+"n'appartiennent pas au fond de ciel, tels que des étoiles."
 
 #: src/gui/uifiles/graxpert.ui:303
 msgid "25"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:322
-#, fuzzy
 msgid "Keep background"
-msgstr "fond du ciel"
+msgstr "Garder le gradient"
 
 #: src/gui/uifiles/graxpert.ui:326
 msgid ""
 "The generated background model will be saved with the affix \"_background\""
 msgstr ""
+"Le modèle de fond de ciel généré sera sauvegardé avec le suffixe "
+"\"_background\""
 
 #: src/gui/uifiles/graxpert.ui:342
-#, fuzzy
 msgid "Clear samples"
-msgstr "Effacer les courbes"
+msgstr "Effacer les échantillons"
 
 #: src/gui/uifiles/graxpert.ui:346
-#, fuzzy
 msgid "Clear background samples"
-msgstr "Erreur dans la génération d'échantillons\n"
+msgstr "Effacer les échantillons de fond de ciel"
 
 #: src/gui/uifiles/graxpert.ui:357
-#, fuzzy
 msgid "Generate samples"
-msgstr "Générer masque d'étoiles"
+msgstr "Générer les échantillons"
 
 #: src/gui/uifiles/graxpert.ui:361
 msgid ""
 "Background samples must be generated in order to use the GraXpert RBF, "
 "Kriging or Spline algorithms. It is not necessary for the AI algorithm."
 msgstr ""
+"Les échantillons de fond doivent être générés afin d'utiliser les "
+"algorithmes GraXpert RBF, Krigeage ou Spline. Ce n'est pas nécessaire pour "
+"l'algorithme d'IA."
 
 #: src/gui/uifiles/graxpert.ui:391
 msgid "BG AI model version:"
-msgstr ""
+msgstr "BG version du modèle IA :"
 
 #: src/gui/uifiles/graxpert.ui:403
 msgid ""
 "Set the AI model version for use with GraXpert background extraction. "
 "Defaults to latest."
 msgstr ""
+"Définit la version du modèle d'IA à utiliser pour l'extraction du gradient "
+"de GraXpert. La valeur par défaut est la plus récente."
 
 #: src/gui/uifiles/graxpert.ui:406 src/gui/uifiles/graxpert.ui:750
 #: src/gui/uifiles/graxpert.ui:791 src/gui/uifiles/graxpert.ui:909
-#, fuzzy
 msgid "latest"
-msgstr "Effacer la dernière"
+msgstr "dernière"
 
 #: src/gui/uifiles/graxpert.ui:438
 msgid ""
 "Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0."
 msgstr ""
+"Définit le niveau de lissage à appliquer par GraXpert, entre 0.0 et 1.0."
 
 #: src/gui/uifiles/graxpert.ui:439 src/gui/uifiles/graxpert.ui:634
 msgid "0,50"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:474
-#, fuzzy
 msgid "RBF Kernel"
-msgstr "Meilleur noyau"
+msgstr "Noyau RBF"
 
 #: src/gui/uifiles/graxpert.ui:486
-#, fuzzy
 msgid "Set the RBF kernel type"
-msgstr "Meilleur noyau"
+msgstr "Définir le type de noyau RBF"
 
 #: src/gui/uifiles/graxpert.ui:489
 msgid "Thin plate"
-msgstr ""
+msgstr "Plaque mince"
 
 #: src/gui/uifiles/graxpert.ui:490
 msgid "Quintic"
-msgstr ""
+msgstr "Quintique"
 
 #: src/gui/uifiles/graxpert.ui:491
-#, fuzzy
 msgid "Cubic"
-msgstr "Bicubique"
+msgstr "Cubique"
 
 #: src/gui/uifiles/graxpert.ui:519
-#, fuzzy
 msgid "Spline Order"
-msgstr "Ordre de la solution : "
+msgstr "Ordre du spline"
 
 #: src/gui/uifiles/graxpert.ui:531
 msgid "Set the spline order used for the spline background removal algorithm."
 msgstr ""
+"Définir l'ordre des splines utilisé pour l'algorithme de suppression de "
+"gradient par splines."
 
 #: src/gui/uifiles/graxpert.ui:532 src/gui/uifiles/settings_window.ui:1683
 msgid "3"
@@ -4259,49 +4263,48 @@ msgid ""
 "Toggles between stellar and object deconvolution modes. If this item is "
 "unsensitive out, your version of GraXpert is not compatible."
 msgstr ""
+"Bascule entre les modes de déconvolution stellaire et objet. Si cet élément "
+"n'est pas sensible, votre version de GraXpert n'est pas compatible."
 
 #: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:373
 msgid "Objects"
 msgstr "Objets"
 
 #: src/gui/uifiles/graxpert.ui:621 src/gui/uifiles/graxpert.ui:840
-#, fuzzy
 msgid "Strength"
-msgstr "Transformation d'étirements"
+msgstr "Force"
 
 #: src/gui/uifiles/graxpert.ui:633
-#, fuzzy
 msgid "Configure GraXpert deconvolution strength."
-msgstr "Débruitage GraXpert, force %.3f"
+msgstr "Configurer la force de la déconvolution de GraXpert."
 
 #: src/gui/uifiles/graxpert.ui:675
-#, fuzzy
 msgid "Image FWHM (in pixels)"
-msgstr "Mesure en pixels"
+msgstr "FWHM de l'image (en pixels)"
 
 #: src/gui/uifiles/graxpert.ui:687
 msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
-msgstr ""
+msgstr "Configurer la déconvolution GraXpert Image FWHM (en pixels)."
 
 #: src/gui/uifiles/graxpert.ui:688
 msgid "5,00"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
-#, fuzzy
 msgid "Deconvolution AI model version:"
-msgstr "Noyau de déconvolution effacé.\n"
+msgstr "Déconvolution version du modèle IA"
 
 #: src/gui/uifiles/graxpert.ui:748 src/gui/uifiles/graxpert.ui:789
 msgid ""
 "Set the AI model version for use with GraXpert deconvolution. Defaults to "
 "latest."
 msgstr ""
+"Définit la version du modèle d'IA à utiliser avec la déconvolution de "
+"GraXpert. La valeur par défaut est la plus récente."
 
 #: src/gui/uifiles/graxpert.ui:852
-#, fuzzy
 msgid "Configure GraXpert denoising strength."
-msgstr "Débruitage GraXpert, force %.3f"
+msgstr "Configurer la force du débruitage de GraXpert."
 
 #: src/gui/uifiles/graxpert.ui:853
 msgid "0,80"
@@ -4309,29 +4312,32 @@ msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:895
 msgid "Denoising AI model version:"
-msgstr ""
+msgstr "Débruitage version du modèle d'IA :"
 
 #: src/gui/uifiles/graxpert.ui:907
 msgid ""
 "Set the AI model version for use with GraXpert denoising. Defaults to latest."
 msgstr ""
+"Définit la version du modèle d'IA à utiliser avec le débruitage GraXpert. La "
+"valeur par défaut est la plus récente."
 
 #: src/gui/uifiles/graxpert.ui:934
-#, fuzzy
 msgid "Denoising"
-msgstr "débruitage"
+msgstr "Débruitage"
 
 #: src/gui/uifiles/graxpert.ui:973
 msgid "Use GPU"
-msgstr ""
+msgstr "Utiliser GPU"
 
 #: src/gui/uifiles/graxpert.ui:977
 msgid "Configure GraXpert to use the GPU for AI inference, if available"
 msgstr ""
+"Configurer GraXpert pour qu'il utilise le GPU pour l'inférence IA, si "
+"disponible"
 
 #: src/gui/uifiles/graxpert.ui:991
 msgid "AI batch size "
-msgstr ""
+msgstr "Taille du lot IA "
 
 #: src/gui/uifiles/graxpert.ui:1002
 msgid ""
@@ -4339,6 +4345,9 @@ msgid ""
 "careful: increasing this value might result in out-of-memory errors. Valid "
 "Range: 1 - 32, default: \"4\"."
 msgstr ""
+"Définit le nombre de tuiles d'images que GraXpert va débruiter en parallèle. "
+"Attention : l'augmentation de cette valeur peut entraîner des erreurs de "
+"mémoire insuffisante. Plage de validité : 1 - 32, valeur par défaut : \"4\"."
 
 #: src/gui/uifiles/graxpert.ui:1003
 #, fuzzy
@@ -4351,9 +4360,8 @@ msgid " "
 msgstr " "
 
 #: src/gui/uifiles/graxpert.ui:1061
-#, fuzzy
 msgid "General Settings"
-msgstr "Paramètres experts"
+msgstr "Paramètres généraux"
 
 #: src/gui/uifiles/histogram_dialog.ui:138 src/gui/histogram.c:1391
 msgid "Histogram Transformation"
@@ -13245,7 +13253,7 @@ msgstr "Échantillons insuffisants."
 
 #: src/algos/background_extraction.c:884
 msgid "Insufficient samples"
-msgstr ""
+msgstr "Échantillons insuffisants"
 
 #: src/algos/background_extraction.c:898 src/algos/PSF.c:1029
 msgid "monochrome"
@@ -13287,6 +13295,8 @@ msgid ""
 "Subchannel with negative median detected: removing the gradient on negative "
 "images is not supported\n"
 msgstr ""
+"Sous-canal avec médiane négative détectée : la suppression du gradient sur "
+"les images négatives n'est pas prise en charge.\n"
 
 #: src/algos/background_extraction.c:1018
 msgid "Failed to adapt background samples for CFA image\n"
@@ -13328,9 +13338,8 @@ msgstr ""
 "Seule la suppression de gradient linéaire est recommandée.\n"
 
 #: src/algos/background_extraction.c:1182
-#, fuzzy
 msgid "Error reading metadata.\n"
-msgstr "Erreur de lecture des métadonnées de référence.\n"
+msgstr "Erreur de lecture des métadonnées.\n"
 
 #: src/algos/background_extraction.c:1341 src/algos/demosaicing.c:1298
 #: src/algos/extraction.c:1158 src/algos/star_finder.c:1143
@@ -24487,12 +24496,12 @@ msgstr "%d min %02d s"
 #: src/core/siril_log.c:103
 #, c-format
 msgid "%s ms"
-msgstr ""
+msgstr "%s ms"
 
 #: src/core/siril_log.c:107
 #, c-format
 msgid "%s s"
-msgstr ""
+msgstr "%s s"
 
 #: src/core/siril_log.c:118
 msgid "Execution time"
@@ -24900,9 +24909,9 @@ msgstr ""
 "de modèles d'IA disponibles : %s\n"
 
 #: src/filters/graxpert.c:439
-#, fuzzy, c-format
+#, c-format
 msgid "Thread creation failed: %s\n"
-msgstr "L'exécution de la commande a échoué : %s.\n"
+msgstr "La création d'un thread a échoué : %s\n"
 
 #: src/filters/graxpert.c:528
 #, c-format
@@ -28826,7 +28835,7 @@ msgstr "Éditeur de script..."
 
 #: src/gui/script_menu.c:259
 msgid "Enable Python debug mode"
-msgstr ""
+msgstr "Activer le mode de débogage de Python"
 
 #: src/gui/script_menu.c:293
 #, c-format
@@ -30423,9 +30432,9 @@ msgid "Found %d trixels:\n"
 msgstr "Trouvé %d trixels :\n"
 
 #: src/io/mp4_output.c:95
-#, fuzzy, c-format
+#, c-format
 msgid "Selected encoder: %s\n"
-msgstr "Séquence chargée : %s\n"
+msgstr "Encodeur sélectionné : %s\n"
 
 #: src/io/mp4_output.c:502
 msgid ""
@@ -30439,37 +30448,37 @@ msgstr ""
 #: src/io/mp4_output.c:514
 msgid "Could not deduce output format from file extension: using mp4.\n"
 msgstr ""
+"Impossible de déduire le format de sortie à partir de l'extension du fichier "
+": utilisation de mp4.\n"
 
 #: src/io/mp4_output.c:518
 msgid "FFMPEG does not seem to support mp4 format, aborting.\n"
-msgstr ""
+msgstr "FFMPEG ne semble pas prendre en charge le format mp4, abandon.\n"
 
 #: src/io/mp4_output.c:550
-#, fuzzy
 msgid "Error: format does not support video codec.\n"
-msgstr "Format non pris en charge."
+msgstr "Erreur : le format ne prend pas en charge le codec vidéo.\n"
 
 #: src/io/mp4_output.c:556
-#, fuzzy
 msgid "Could not add the video stream in the output film, aborting\n"
 msgstr ""
-"Impossible de sauvegarder le résultat de l'empilement %s, abandon de "
-"l'opération.\n"
+"Impossible d'ajouter le flux vidéo dans le film de sortie, abandon de la "
+"procédure.\n"
 
 #: src/io/mp4_output.c:562
-#, fuzzy
 msgid "Selected codec is not available\n"
-msgstr "Erreur : la commande %s n'est pas disponible\n"
+msgstr "Le codec sélectionné n'est pas disponible\n"
 
 #: src/io/mp4_output.c:576
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open '%s': %s\n"
-msgstr "Impossible d'ouvrir le fichier %s : %s\n"
+msgstr "Impossible d'ouvrir '%s' : %s\n"
 
 #: src/io/mp4_output.c:584
-#, fuzzy, c-format
+#, c-format
 msgid "Error occurred when opening output file: %s\n"
-msgstr "Erreur lors de l'ouverture du fichier %s\n"
+msgstr ""
+"Une erreur s'est produite lors de l'ouverture du fichier de sortie : %s\n"
 
 #: src/io/path_parse.c:36
 msgid "Warning code:"
@@ -31407,9 +31416,9 @@ msgid "List saved to %s\n"
 msgstr "Liste sauvegardée dans %s\n"
 
 #: src/io/siril_catalogues.c:1475
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to save list to %s\n"
-msgstr "Échec de l'enregistrement du masque pour l'image %d\n"
+msgstr "Échec de l'enregistrement de la liste dans %s\n"
 
 #: src/io/siril_git.c:130
 msgid "libgit2: unable to parse some refish\n"
@@ -31646,10 +31655,10 @@ msgid "Invalid image size: exceeds memory limit"
 msgstr "Taille d'image non valide : dépasse la limite de mémoire"
 
 #: src/io/siril_pythonmodule.c:527
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"
 msgstr ""
-"Dimensions ou format d'image non valables : w = %u, h = %u, c = %u, size = %"
+"Dimensions ou format d'image incorrects : w = %u, h = %u, c = %u, size = %s"
 
 #: src/io/siril_pythonmodule.c:537
 msgid "Error: image dimensions exceed available memory"
@@ -31897,9 +31906,8 @@ msgid "Siril command error"
 msgstr "Erreur de commande Siril"
 
 #: src/io/siril_pythoncommands.c:985
-#, fuzzy
 msgid "Unknown dialog type"
-msgstr "Type de configuration inconnu"
+msgstr "Type de dialogue inconnu"
 
 #: src/io/siril_pythoncommands.c:1024
 msgid "Undo not supported in headless mode"
@@ -31970,9 +31978,8 @@ msgid "No regdata available"
 msgstr "Aucune regdata disponible"
 
 #: src/io/siril_pythoncommands.c:1423
-#, fuzzy
 msgid "Error building frame filename"
-msgstr "Erreur lors du chargement du profil"
+msgstr "Erreur dans la construction du nom de fichier de l'image"
 
 #: src/io/siril_pythoncommands.c:1454
 msgid "No stats for this sequence"
@@ -32099,9 +32106,8 @@ msgid "Index is out of range"
 msgstr "L'indice est en dehors de la plage"
 
 #: src/io/siril_pythoncommands.c:2155
-#, fuzzy
 msgid "No distodata available"
-msgstr "Aucune regdata disponible"
+msgstr "Aucune distodata disponible"
 
 #: src/io/siril_pythoncommands.c:2180
 msgid "Unknown command"
@@ -32137,9 +32143,8 @@ msgstr ""
 "%.1f\n"
 
 #: src/io/spcc_json.c:496 src/io/spcc_json.c:499
-#, fuzzy
 msgid "Error: index % "
-msgstr "Code erreur :"
+msgstr "Erreur : index % "
 
 #: src/io/spcc_json.c:507
 msgid "Error: index must be 0 for single object JSON.\n"
@@ -33005,12 +33010,15 @@ msgid ""
 "to get max dimension smaller than 32767 pixels or proceed and post process "
 "your images with an external program."
 msgstr ""
+"Les images seront plus grandes que ce que Siril peut afficher pour "
+"l'instant. Ajustez le ratio d'échelle pour obtenir une dimension maximale "
+"inférieure à 32767 pixels ou procédez au post-traitement de vos images avec "
+"un programme externe."
 
 #. Estimate button was pressed, we just warn
 #: src/registration/applyreg.c:1038 src/registration/applyreg.c:1039
-#, fuzzy
 msgid "Output too large"
-msgstr "Préfixe de sortie :"
+msgstr "Sortie trop importante"
 
 #: src/registration/applyreg.c:1052
 msgid ""
@@ -33022,10 +33030,13 @@ msgstr ""
 #: src/registration/applyreg.c:1066
 msgid "Images will be larger than what Siril can display for now."
 msgstr ""
+"Les images seront plus grandes que ce que Siril peut afficher pour l'instant."
 
 #: src/registration/applyreg.c:1067
 msgid "Tune scale ratio to get max dimension smaller than 32767 pixels"
 msgstr ""
+"Ajuster le ratio d'échelle pour obtenir une dimension maximale inférieure à "
+"32767 pixels"
 
 #: src/registration/applyreg.c:1075
 msgid ""
