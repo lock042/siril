@@ -2186,7 +2186,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 	if (retval) {
 		siril_log_color_message(_("Image %s did not solve\n"), "red", root);
-		arg->seq->imgparam[o].incl = FALSE;
+		arg->seq->imgparam[i].incl = FALSE;
 	}
 
 	if (!retval && !arg->has_output) { // SEQ_REGULAR

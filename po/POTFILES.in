@@ -28,6 +28,7 @@ src/gui/uifiles/extract_channel_dialog.ui
 src/gui/uifiles/extract_wavelet_layers_dialog.ui
 src/gui/uifiles/filefilters.ui
 src/gui/uifiles/file_information_dialog.ui
+src/gui/uifiles/graxpert.ui
 src/gui/uifiles/histogram_dialog.ui
 src/gui/uifiles/keywords_dialog.ui
 src/gui/uifiles/icc_dialog.ui

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-03 11:51+0100\n"
+"POT-Creation-Date: 2025-03-04 15:24+0100\n"
 "PO-Revision-Date: 2023-06-06 08:18+0000\n"
 "Last-Translator: Victor Boesen Gandløse <victorboesen@hotmail.com>\n"
 "Language-Team: Danish <https://weblate.pixls.us/projects/siril/siril-"
@@ -38,7 +38,7 @@ msgstr ""
 #: src/gui/uifiles/extract_channel_dialog.ui:51
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:58
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:62
-#: src/gui/uifiles/file_information_dialog.ui:49
+#: src/gui/uifiles/file_information_dialog.ui:49 src/gui/uifiles/graxpert.ui:83
 #: src/gui/uifiles/histogram_dialog.ui:172
 #: src/gui/uifiles/histogram_dialog.ui:176
 #: src/gui/uifiles/keywords_dialog.ui:58 src/gui/uifiles/icc_dialog.ui:51
@@ -71,7 +71,7 @@ msgstr "Luk"
 #: src/gui/uifiles/dialog_star_remix.ui:1609
 #: src/gui/uifiles/extract_channel_dialog.ui:65
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:73
-#: src/gui/uifiles/histogram_dialog.ui:188
+#: src/gui/uifiles/graxpert.ui:111 src/gui/uifiles/histogram_dialog.ui:188
 #: src/gui/uifiles/linearmatch_dialog.ui:77 src/gui/uifiles/Median_dialog.ui:98
 #: src/gui/uifiles/merge_cfa_dialog.ui:77 src/gui/uifiles/mouse_actions.ui:54
 #: src/gui/uifiles/pixelmath.ui:819 src/gui/uifiles/resample_dialog.ui:96
@@ -1005,7 +1005,7 @@ msgid "Sequence / Astrometric Registration"
 msgstr "Anvend Kosmetisk Korrektion"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:55
-#: src/algos/background_extraction.c:1394
+#: src/gui/uifiles/graxpert.ui:555 src/algos/background_extraction.c:1394
 msgid "Background Extraction"
 msgstr ""
 
@@ -1022,6 +1022,7 @@ msgid "Choose between interpolation methods."
 msgstr "Vælg imellem interpoleringsmetoder."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:131
+#: src/gui/uifiles/graxpert.ui:174
 msgid "RBF"
 msgstr ""
 
@@ -1030,6 +1031,7 @@ msgid "Polynomial"
 msgstr "Polynomie"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:162
+#: src/gui/uifiles/graxpert.ui:427
 msgid "Smoothing"
 msgstr ""
 
@@ -1152,14 +1154,17 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/background_extraction_dialog.ui:543
+#: src/gui/uifiles/graxpert.ui:211
 msgid "Subtraction"
 msgstr ""
 
 #: src/gui/uifiles/background_extraction_dialog.ui:544
+#: src/gui/uifiles/graxpert.ui:212
 msgid "Division"
 msgstr ""
 
 #: src/gui/uifiles/background_extraction_dialog.ui:552
+#: src/gui/uifiles/graxpert.ui:197
 msgid "Correction"
 msgstr ""
 
@@ -1186,7 +1191,8 @@ msgstr ""
 #: src/gui/uifiles/bdeconv_dialog.ui:2126
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:259
 #: src/gui/uifiles/ccm_dialog.ui:342 src/gui/uifiles/cosmetic_dialog.ui:329
-#: src/gui/uifiles/cut_dialog.ui:222 src/gui/uifiles/histogram_dialog.ui:686
+#: src/gui/uifiles/cut_dialog.ui:222 src/gui/uifiles/graxpert.ui:1024
+#: src/gui/uifiles/histogram_dialog.ui:686
 #: src/gui/uifiles/merge_cfa_dialog.ui:290
 #: src/gui/uifiles/split_cfa_dialog.ui:127
 #: src/gui/uifiles/starnet_dialog.ui:247
@@ -1218,12 +1224,13 @@ msgid ""
 "Prefix of the image names resulting from the background extraction process."
 msgstr ""
 
-#: src/gui/uifiles/bdeconv_dialog.ui:249
+#: src/gui/uifiles/bdeconv_dialog.ui:249 src/gui/uifiles/graxpert.ui:816
 msgid "Deconvolution"
 msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:284 src/gui/uifiles/denoise_dialog.ui:84
-#: src/gui/uifiles/Median_dialog.ui:80 src/gui/uifiles/SCNR_dialog.ui:73
+#: src/gui/uifiles/graxpert.ui:97 src/gui/uifiles/Median_dialog.ui:80
+#: src/gui/uifiles/SCNR_dialog.ui:73
 #, fuzzy
 msgid "ROI Preview"
 msgstr "Forhåndsvisning"
@@ -3265,7 +3272,7 @@ msgid "Type of algorithm"
 msgstr "Type af algoritme"
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:134
-#: src/gui/uifiles/settings_window.ui:3639
+#: src/gui/uifiles/graxpert.ui:492 src/gui/uifiles/settings_window.ui:3639
 #: src/gui/uifiles/settings_window.ui:3708 src/gui/uifiles/siril.ui:577
 #: src/gui/uifiles/siril.ui:10030 src/gui/uifiles/wavelets_dialog.ui:183
 msgid "Linear"
@@ -3366,6 +3373,238 @@ msgstr ""
 msgid ""
 "Save focal length and pixel size as default values in the settings to be "
 "used for images that do not contain these metadata"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:66
+msgid "Siril GraXpert Interface"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:100
+msgid "Preview the current settings on a region of interest."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:115
+msgid "Apply the selected operation."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:159
+#, fuzzy
+msgid "Algorithm"
+msgstr "Type af algoritme"
+
+#: src/gui/uifiles/graxpert.ui:170
+msgid "Configure which GraXpert algorithm to use"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:173
+msgid "AI"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:175
+msgid "Kriging"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:176
+msgid "Spline"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:208
+msgid ""
+"Configure whether GraXpert applies background correction by subtraction or "
+"division"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:225
+#, fuzzy
+msgid "Background Tolerance"
+msgstr "Gitter tolerance"
+
+#: src/gui/uifiles/graxpert.ui:236
+msgid ""
+"Set the background tolerance: the allowed range is -2.0 to +6.0. Higer "
+"values are more tolerant of strong background gradients; lower values are "
+"better at rejecting background samples in areas representing real neblosity."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:265
+msgid "# samples per row"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:276
+msgid "Set the number of samples per row in the sampling grid."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:291
+msgid "Sample size / px"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:302
+msgid ""
+"Set the GraXpert sample size of each background sample. Larger samples may "
+"give better statistical properties but have a bigger risk of including non-"
+"background pixels such as stars."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:322
+msgid "Keep background"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:326
+msgid ""
+"The generated background model will be saved with the affix \"_background\""
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:342
+#, fuzzy
+msgid "Clear samples"
+msgstr "Antal lag:"
+
+#: src/gui/uifiles/graxpert.ui:346
+msgid "Clear background samples"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:357
+#, fuzzy
+msgid "Generate samples"
+msgstr "Antal lag:"
+
+#: src/gui/uifiles/graxpert.ui:361
+msgid ""
+"Background samples must be generated in order to use the GraXpert RBF, "
+"Kriging or Spline algorithms. It is not necessary for the AI algorithm."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:391
+msgid "BG AI model version:"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:403
+msgid ""
+"Set the AI model version for use with GraXpert background extraction. "
+"Defaults to latest."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:406 src/gui/uifiles/graxpert.ui:750
+#: src/gui/uifiles/graxpert.ui:791 src/gui/uifiles/graxpert.ui:909
+msgid "latest"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:438
+msgid ""
+"Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:474
+msgid "RBF Kernel"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:486
+msgid "Set the RBF kernel type"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:489
+msgid "Thin plate"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:490
+msgid "Quintic"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:491
+msgid "Cubic"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:519
+msgid "Spline Order"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:531
+msgid "Set the spline order used for the spline background removal algorithm."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:532 src/gui/uifiles/settings_window.ui:1683
+msgid "3"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:581
+msgid ""
+"Toggles between stellar and object deconvolution modes. If this item is "
+"unsensitive out, your version of GraXpert is not compatible."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:373
+msgid "Objects"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:621 src/gui/uifiles/graxpert.ui:840
+msgid "Strength"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:633
+msgid "Configure GraXpert deconvolution strength."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:675
+msgid "Image FWHM (in pixels)"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:687
+msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
+msgid "Deconvolution AI model version:"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:748 src/gui/uifiles/graxpert.ui:789
+msgid ""
+"Set the AI model version for use with GraXpert deconvolution. Defaults to "
+"latest."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:852
+msgid "Configure GraXpert denoising strength."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:895
+msgid "Denoising AI model version:"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:907
+msgid ""
+"Set the AI model version for use with GraXpert denoising. Defaults to latest."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:934
+msgid "Denoising"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:973
+msgid "Use GPU"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:977
+msgid "Configure GraXpert to use the GPU for AI inference, if available"
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:991
+msgid "AI batch size "
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:1002
+msgid ""
+"Set the number of image tiles which GraXpert will denoise in parallel. Be "
+"careful: increasing this value might result in out-of-memory errors. Valid "
+"Range: 1 - 32, default: \"4\"."
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255
+#: src/gui/uifiles/settings_window.ui:5308 src/gui/uifiles/siril.ui:6357
+msgid " "
+msgstr ""
+
+#: src/gui/uifiles/graxpert.ui:1061
+msgid "General Settings"
 msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:138 src/gui/histogram.c:1391
@@ -4060,11 +4299,6 @@ msgstr ""
 
 #: src/gui/uifiles/mouse_actions.ui:242
 msgid "Remove a scroll action"
-msgstr ""
-
-#: src/gui/uifiles/mouse_actions.ui:255 src/gui/uifiles/settings_window.ui:5308
-#: src/gui/uifiles/siril.ui:6357
-msgid " "
 msgstr ""
 
 #: src/gui/uifiles/mouse_actions.ui:271
@@ -5258,10 +5492,6 @@ msgid ""
 "Astrometry solvers can use a polynomial correction (SIP) to work with "
 "optical aberrations, this is the default order of the polynomial model. Set "
 "to 1 to disable it."
-msgstr ""
-
-#: src/gui/uifiles/settings_window.ui:1683
-msgid "3"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1711
@@ -21291,10 +21521,6 @@ msgstr ""
 msgid "Stellar"
 msgstr ""
 
-#: src/gui/graxpert.c:373
-msgid "Objects"
-msgstr ""
-
 #: src/gui/histogram.c:153 src/gui/histogram.c:159 src/gui/histogram.c:1160
 #: src/gui/histogram.c:1166 src/gui/histogram.c:1822 src/gui/histogram.c:1839
 msgid "Channels warning"
@@ -25606,93 +25832,93 @@ msgstr ""
 msgid "Python communication worker finished...\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1512
+#: src/io/siril_pythonmodule.c:1514
 msgid ""
 "Installing / updating python module in the background. This may take a few "
 "seconds...\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1577
+#: src/io/siril_pythonmodule.c:1579
 #, c-format
 msgid "Preparing python virtual environment: %s.\n"
 msgstr ""
 
 #. Check the sirilpy python module is the latest version and install or
 #. update it using the venv pip if not.
-#: src/io/siril_pythonmodule.c:1618
+#: src/io/siril_pythonmodule.c:1620
 msgid "Checking the python module is up-to-date...\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1623
+#: src/io/siril_pythonmodule.c:1625
 msgid "Warning: unable to install or update the Siril python module.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1629
+#: src/io/siril_pythonmodule.c:1631
 msgid "Python module is up-to-date\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1677
+#: src/io/siril_pythonmodule.c:1691
 msgid ""
 "Error: msys2 environment detected. Siril Python support cannot be correctly "
 "initialized.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1678
+#: src/io/siril_pythonmodule.c:1692
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1679
+#: src/io/siril_pythonmodule.c:1693
 msgid ""
 "Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it "
 "from there.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1680
+#: src/io/siril_pythonmodule.c:1694
 msgid ""
 "Next time you need to start siril, you can go back to starting it from msys2 "
 "terminal.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1714
+#: src/io/siril_pythonmodule.c:1728
 msgid "No python installation found in the system or in the bundle, aborting\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1740
+#: src/io/siril_pythonmodule.c:1754
 #, c-format
 msgid "Error in venv creation command: %s\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1780
+#: src/io/siril_pythonmodule.c:1794
 #, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1791
+#: src/io/siril_pythonmodule.c:1805
 msgid "Failed to prepare virtual environment\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1847
+#: src/io/siril_pythonmodule.c:1861
 msgid ""
 "Error: python not ready yet. This may happen at first run if the python venv "
 "and module setup has not yet completed. Please wait a short time for a "
 "completion message in the log and try again.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1867
+#: src/io/siril_pythonmodule.c:1881
 msgid "Error: failed to create Python connection.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1879
+#: src/io/siril_pythonmodule.c:1893
 msgid "Error: Python connection not available.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1928
+#: src/io/siril_pythonmodule.c:1942
 msgid "Error finding venv python path, unable to spawn python.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2044
+#: src/io/siril_pythonmodule.c:2058
 #, c-format
 msgid "Failed to execute Python script: %s\n"
 msgstr ""
