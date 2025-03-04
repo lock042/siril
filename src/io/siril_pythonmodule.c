@@ -1392,6 +1392,8 @@ gboolean delete_directory(const gchar *dir_path, GError **error) {
 		return FALSE;
 	}
 
+	siril_debug_print("Deleting %s...\n", dir_path);
+
 	while ((name = g_dir_read_name(dir))) {
 		full_path = g_build_filename(dir_path, name, NULL);
 
