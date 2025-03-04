@@ -112,7 +112,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Apply the selected operation. Note that the result is read from the external program as a new image, therefore Undo is not possible.</property>
+                <property name="tooltip-text" translatable="yes">Apply the selected operation.</property>
                 <signal name="clicked" handler="on_button_graxpert_apply_clicked" swapped="no"/>
                 <style>
                   <class name="suggested-action"/>
