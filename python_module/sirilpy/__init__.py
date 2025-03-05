@@ -10,7 +10,7 @@ from .translations import _
 
 # TYPE_CHECKING is False at runtime but True during type checking.
 if TYPE_CHECKING:
-    from .connection import SirilInterface, ensure_installed, check_module_version, LogColor, SuppressedStdout, SuppressedStderr
+    from .connection import LogColor, SirilInterface
     from .models import (
         DataType,
         ImageStats,
@@ -28,6 +28,14 @@ if TYPE_CHECKING:
     )
     from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
     from .shm import SharedMemoryWrapper
+    from .utility import (
+        human_readable_size,
+        download_with_progress,
+        ensure_installed,
+        check_module_version,
+        SuppressedStdout,
+        SuppressedStderr
+    )
     from .exceptions import (
         SirilError,
         ConnectionError,
@@ -38,7 +46,6 @@ if TYPE_CHECKING:
     )
 
 # Runtime imports
-from .connection import SirilInterface, ensure_installed, check_module_version, LogColor, SuppressedStdout, SuppressedStderr
 from .models import (
     DataType,
     ImageStats,
@@ -56,6 +63,14 @@ from .models import (
 )
 from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
 from .shm import SharedMemoryWrapper
+from .utility import (
+    human_readable_size,
+    download_with_progress,
+    ensure_installed,
+    check_module_version,
+    SuppressedStdout,
+    SuppressedStderr
+)
 from .exceptions import (
     SirilError,
     ConnectionError,
@@ -64,6 +79,7 @@ from .exceptions import (
     NoImageError,
     NoSequenceError
 )
+from .connection import LogColor, SirilInterface
 
 try: # import from the packaging specification
     from importlib.metadata import metadata
@@ -108,5 +124,7 @@ __all__ = [
     'SharedMemoryWrapper',
     'SuppressedStdout',
     'SuppressedStderr',
+    'human_readable_size',
+    'download_with_progress',
     '_'
 ]
