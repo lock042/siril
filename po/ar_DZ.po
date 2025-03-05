@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-04 15:24+0100\n"
+"POT-Creation-Date: 2025-03-05 16:27+0100\n"
 "PO-Revision-Date: 2016-11-20 10:20+0100\n"
 "Last-Translator: زنادي أمين <amine-zennadi@hotmail.com>\n"
 "Language-Team: \n"
@@ -32,7 +32,8 @@ msgstr "لم يتم تحديد تسلسل"
 #: src/gui/uifiles/ccm_dialog.ui:57 src/gui/uifiles/color_calibration.ui:114
 #: src/gui/uifiles/composition_dialog.ui:109
 #: src/gui/uifiles/cosmetic_dialog.ui:69 src/gui/uifiles/crop_dialog.ui:51
-#: src/gui/uifiles/cut_coords_dialog.ui:75 src/gui/uifiles/cut_dialog.ui:56
+#: src/gui/uifiles/curves_dialog.ui:96 src/gui/uifiles/cut_coords_dialog.ui:75
+#: src/gui/uifiles/cut_dialog.ui:56
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:88
 #: src/gui/uifiles/data_dialog.ui:63 src/gui/uifiles/denoise_dialog.ui:69
 #: src/gui/uifiles/dialog_FFT.ui:50 src/gui/uifiles/dialog_star_remix.ui:186
@@ -64,7 +65,8 @@ msgstr "إغلاق"
 #: src/gui/uifiles/ccm_dialog.ui:71 src/gui/uifiles/CLAHE_dialog.ui:96
 #: src/gui/uifiles/color_calibration.ui:128
 #: src/gui/uifiles/cosmetic_dialog.ui:84 src/gui/uifiles/crop_dialog.ui:65
-#: src/gui/uifiles/cut_coords_dialog.ui:89 src/gui/uifiles/cut_dialog.ui:70
+#: src/gui/uifiles/curves_dialog.ui:112 src/gui/uifiles/cut_coords_dialog.ui:89
+#: src/gui/uifiles/cut_dialog.ui:70
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:102
 #: src/gui/uifiles/denoise_dialog.ui:88 src/gui/uifiles/denoise_dialog.ui:102
 #: src/gui/uifiles/denoise_dialog.ui:106 src/gui/uifiles/dialog_FFT.ui:64
@@ -525,7 +527,8 @@ msgid "Asinh Transformation"
 msgstr "يؤدي التحول"
 
 #: src/gui/uifiles/asinh_dialog.ui:63 src/gui/uifiles/ccm_dialog.ui:43
-#: src/gui/uifiles/CLAHE_dialog.ui:68 src/gui/uifiles/dialog_star_remix.ui:1546
+#: src/gui/uifiles/CLAHE_dialog.ui:68 src/gui/uifiles/curves_dialog.ui:80
+#: src/gui/uifiles/dialog_star_remix.ui:1546
 #: src/gui/uifiles/dialog_star_remix.ui:1594
 #: src/gui/uifiles/histogram_dialog.ui:156
 #: src/gui/uifiles/histogram_dialog.ui:160
@@ -571,8 +574,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/asinh_dialog.ui:252 src/gui/uifiles/CLAHE_dialog.ui:254
-#: src/gui/uifiles/histogram_dialog.ui:788 src/gui/uifiles/satu_dialog.ui:280
-#: src/gui/uifiles/wavelets_dialog.ui:751
+#: src/gui/uifiles/curves_dialog.ui:704 src/gui/uifiles/histogram_dialog.ui:788
+#: src/gui/uifiles/satu_dialog.ui:280 src/gui/uifiles/wavelets_dialog.ui:751
 #, fuzzy
 msgid "Preview"
 msgstr "معاينة %d"
@@ -1256,8 +1259,8 @@ msgstr "اضغط على هذا الزر لإظهار الصورة."
 #: src/gui/uifiles/bdeconv_dialog.ui:2126
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:259
 #: src/gui/uifiles/ccm_dialog.ui:342 src/gui/uifiles/cosmetic_dialog.ui:329
-#: src/gui/uifiles/cut_dialog.ui:222 src/gui/uifiles/graxpert.ui:1024
-#: src/gui/uifiles/histogram_dialog.ui:686
+#: src/gui/uifiles/curves_dialog.ui:652 src/gui/uifiles/cut_dialog.ui:222
+#: src/gui/uifiles/graxpert.ui:1024 src/gui/uifiles/histogram_dialog.ui:686
 #: src/gui/uifiles/merge_cfa_dialog.ui:290
 #: src/gui/uifiles/split_cfa_dialog.ui:127
 #: src/gui/uifiles/starnet_dialog.ui:247
@@ -1267,7 +1270,7 @@ msgstr "تطبيق تسلسل"
 #: src/gui/uifiles/background_extraction_dialog.ui:612
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:263
 #: src/gui/uifiles/ccm_dialog.ui:346 src/gui/uifiles/cosmetic_dialog.ui:333
-#: src/gui/uifiles/histogram_dialog.ui:690
+#: src/gui/uifiles/curves_dialog.ui:656 src/gui/uifiles/histogram_dialog.ui:690
 #: src/gui/uifiles/split_cfa_dialog.ui:131
 msgid ""
 "If a sequence is loaded and this is activated, perform the processing on all "
@@ -1279,8 +1282,9 @@ msgstr ""
 #: src/gui/uifiles/background_extraction_dialog.ui:626
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:278
 #: src/gui/uifiles/ccm_dialog.ui:360 src/gui/uifiles/cosmetic_dialog.ui:347
-#: src/gui/uifiles/crop_dialog.ui:117 src/gui/uifiles/histogram_dialog.ui:705
-#: src/gui/uifiles/siril.ui:5300 src/gui/uifiles/split_cfa_dialog.ui:118
+#: src/gui/uifiles/crop_dialog.ui:117 src/gui/uifiles/curves_dialog.ui:671
+#: src/gui/uifiles/histogram_dialog.ui:705 src/gui/uifiles/siril.ui:5300
+#: src/gui/uifiles/split_cfa_dialog.ui:118
 msgid "Output prefix:"
 msgstr "بدائة الناتج :"
 
@@ -2515,6 +2519,116 @@ msgstr "تسلسل المحاصيل"
 #: src/gui/uifiles/crop_dialog.ui:100
 msgid "Prefix of the image names resulting from the cropping process."
 msgstr "بادئة أسماء الصورة الناتجة من عملية الزراعة."
+
+#: src/gui/uifiles/curves_dialog.ui:62
+#, fuzzy
+msgid "Curves Transformation"
+msgstr "يؤدي التحول"
+
+#: src/gui/uifiles/curves_dialog.ui:84
+#, fuzzy
+msgid "Reset curves transformation dialog window"
+msgstr "تطبيق تحول الرسم البياني"
+
+#: src/gui/uifiles/curves_dialog.ui:100
+#, fuzzy
+msgid "Close curves transformation dialog window"
+msgstr "تطبيق تحول الرسم البياني"
+
+#: src/gui/uifiles/curves_dialog.ui:116
+#, fuzzy
+msgid "Apply curves transformation"
+msgstr "تطبيق تحول الرسم البياني"
+
+#: src/gui/uifiles/curves_dialog.ui:168
+#, fuzzy
+msgid "Curves histogram display zoom"
+msgstr "رسوم بيانية"
+
+#: src/gui/uifiles/curves_dialog.ui:188
+#, fuzzy
+msgid "Reset zoom to 1"
+msgstr "إعادة تعيين التكبير إلى 1."
+
+#: src/gui/uifiles/curves_dialog.ui:207 src/gui/uifiles/histogram_dialog.ui:283
+msgid "Logarithmic scale"
+msgstr "مقياس لوغاريتمي"
+
+#: src/gui/uifiles/curves_dialog.ui:211
+msgid ""
+"Show the histogram with a logarithmic scale. Does not affect the transfer "
+"function display.\n"
+"                            "
+msgstr ""
+
+#: src/gui/uifiles/curves_dialog.ui:294
+msgid "Toggles whether to apply the curve to the red channel"
+msgstr ""
+
+#: src/gui/uifiles/curves_dialog.ui:312
+msgid "Toggles whether to apply the curve to the green channel"
+msgstr ""
+
+#: src/gui/uifiles/curves_dialog.ui:330
+msgid "Toggles whether to apply the curve to the blue channel"
+msgstr ""
+
+#: src/gui/uifiles/curves_dialog.ui:357
+msgid "Toggles whether the grid is shown on the histogram display"
+msgstr ""
+
+#: src/gui/uifiles/curves_dialog.ui:381
+msgid "Interpolation algorithm used to compute a curve from the placed points"
+msgstr ""
+
+#: src/gui/uifiles/curves_dialog.ui:421
+msgid "Curve point Y: "
+msgstr ""
+
+#: src/gui/uifiles/curves_dialog.ui:433
+msgid "Curve point ID: "
+msgstr ""
+
+#: src/gui/uifiles/curves_dialog.ui:445
+msgid "Curve point X: "
+msgstr ""
+
+#: src/gui/uifiles/curves_dialog.ui:487
+#, fuzzy
+msgid "The ID of the selected curve point"
+msgstr "المحاذاة التلقائية باستخدام طريقة التسجيل المحدد."
+
+#: src/gui/uifiles/curves_dialog.ui:537
+#, fuzzy
+msgid "X coordinate of the selected curve point"
+msgstr "س تنسيق من بداية اختيار خلفية"
+
+#: src/gui/uifiles/curves_dialog.ui:555
+#, fuzzy
+msgid "Y coordinate of the selected curve point"
+msgstr "س تنسيق من بداية اختيار خلفية"
+
+#: src/gui/uifiles/curves_dialog.ui:586 src/gui/uifiles/histogram_dialog.ui:620
+msgid "Clip (%)"
+msgstr "مقطع (%)"
+
+#: src/gui/uifiles/curves_dialog.ui:599 src/gui/uifiles/histogram_dialog.ui:633
+msgid "Clipped pixels count (shadows)"
+msgstr "قص بكسل العد (الظل)"
+
+#: src/gui/uifiles/curves_dialog.ui:617 src/gui/uifiles/histogram_dialog.ui:651
+msgid "Clipped pixels count (highlights)"
+msgstr "قص بكسل العد (الضوء)"
+
+#: src/gui/uifiles/curves_dialog.ui:683
+#, fuzzy
+msgid "Prefix of the image names resulting from the curve transformation"
+msgstr "بادئة أسماء الصورة الناتجة عن التسجيل."
+
+#: src/gui/uifiles/curves_dialog.ui:708
+#, fuzzy
+msgid "Toggles preview"
+msgstr "معاينة %d"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:60
 msgid "Coordinates"
@@ -3819,10 +3933,6 @@ msgstr "تكبير أفقي"
 msgid "Reset zooms to 1."
 msgstr "إعادة تعيين التكبير إلى 1."
 
-#: src/gui/uifiles/histogram_dialog.ui:283
-msgid "Logarithmic scale"
-msgstr "مقياس لوغاريتمي"
-
 #: src/gui/uifiles/histogram_dialog.ui:287
 msgid ""
 "Show the histogram with a logarithmic scale. Does not affect the transfer "
@@ -3881,18 +3991,6 @@ msgstr "توازن الدرجات اللونية النصفية"
 #: src/gui/uifiles/histogram_dialog.ui:589
 msgid "Shadows clipping"
 msgstr "الظلال لقطة"
-
-#: src/gui/uifiles/histogram_dialog.ui:620
-msgid "Clip (%)"
-msgstr "مقطع (%)"
-
-#: src/gui/uifiles/histogram_dialog.ui:633
-msgid "Clipped pixels count (shadows)"
-msgstr "قص بكسل العد (الظل)"
-
-#: src/gui/uifiles/histogram_dialog.ui:651
-msgid "Clipped pixels count (highlights)"
-msgstr "قص بكسل العد (الضوء)"
 
 #: src/gui/uifiles/histogram_dialog.ui:717
 #, fuzzy
