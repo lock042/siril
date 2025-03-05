@@ -17,6 +17,7 @@ src/gui/uifiles/colorchooserdialog.ui
 src/gui/uifiles/composition_dialog.ui
 src/gui/uifiles/cosmetic_dialog.ui
 src/gui/uifiles/crop_dialog.ui
+src/gui/uifiles/curves_dialog.ui
 src/gui/uifiles/cut_coords_dialog.ui
 src/gui/uifiles/cut_dialog.ui
 src/gui/uifiles/cut_spectroscopy_dialog.ui
@@ -28,6 +29,7 @@ src/gui/uifiles/extract_channel_dialog.ui
 src/gui/uifiles/extract_wavelet_layers_dialog.ui
 src/gui/uifiles/filefilters.ui
 src/gui/uifiles/file_information_dialog.ui
+src/gui/uifiles/graxpert.ui
 src/gui/uifiles/histogram_dialog.ui
 src/gui/uifiles/keywords_dialog.ui
 src/gui/uifiles/icc_dialog.ui
@@ -110,6 +112,7 @@ src/filters/asinh.c
 src/filters/banding.c
 src/filters/clahe.c
 src/filters/cosmetic_correction.c
+src/filters/curve_transform.c
 src/filters/fft.c
 src/filters/ght.c
 src/filters/graxpert.c

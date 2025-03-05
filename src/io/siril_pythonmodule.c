@@ -1392,6 +1392,8 @@ gboolean delete_directory(const gchar *dir_path, GError **error) {
 		return FALSE;
 	}
 
+	siril_debug_print("Deleting %s...\n", dir_path);
+
 	while ((name = g_dir_read_name(dir))) {
 		full_path = g_build_filename(dir_path, name, NULL);
 
@@ -1653,9 +1655,21 @@ cleanup:
 
 void rebuild_venv() {
 	gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
-	GError *error = NULL;
+	gchar *user_module_path = g_build_filename(g_get_user_data_dir(), "siril", ".python_module", NULL);
+	GError *error = NULL, *error2 = NULL;
 	kill_all_python_scripts();
 	delete_directory(venv_path, &error);
+	delete_directory(user_module_path, &error2);
+	g_free(venv_path);
+	g_free(user_module_path);
+	if (error) {
+		siril_log_color_message(error->message, "red");
+		g_error_free(error);
+	}
+	if (error2) {
+		siril_log_color_message(error2->message, "red");
+		g_error_free(error2);
+	}
 	initialize_python_venv_in_thread();
 }
 
