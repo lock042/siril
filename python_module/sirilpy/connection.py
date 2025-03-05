@@ -3285,6 +3285,25 @@ class SirilInterface:
             except Exception as e:
                 img_history = []
 
+            try:
+                img_icc_profile = self.get_image_iccprofile()
+            except Exception as e:
+                print(f"Failed to retrieve ICC profile: {e}")
+                img_icc_profile = None
+
+            try:
+                img_keywords = self.get_image_keywords()
+            except Exception as e:
+                print(f"Error: failed to retrieve FITS keywords: {e}")
+                img_keywords = None
+
+            img_pixeldata = None
+            if with_pixels:
+                try:
+                    img_pixeldata = self.get_image_pixeldata()
+                except Exception as e:
+                    print(f"Error: failed to retrieve pixel data: {e}")
+
             return FFit(
                 _naxes = (values[0], values[1], values[2]),
                 naxis = 2 if values[2] == 1 else 3,
@@ -3298,14 +3317,14 @@ class SirilInterface:
                 _focalkey=True if values[11] else False,
                 _pixelkey=True if values[12] else False,
                 color_managed=True if values[13] else False,
-                _data = self.get_image_pixeldata() if with_pixels == True else None,
+                _data = img_pixeldata,
                 stats=[
                     self.get_image_stats(0),
                     self.get_image_stats(1) if values[2] > 1 else None,
                     self.get_image_stats(2) if values[2] > 1 else None,
                 ],
-                keywords = self.get_image_keywords(),
-                _icc_profile = self.get_image_iccprofile(),
+                keywords = img_keywords,
+                _icc_profile = img_icc_profile,
                 header = img_header,
                 unknown_keys = img_unknown_keys,
                 history = img_history
