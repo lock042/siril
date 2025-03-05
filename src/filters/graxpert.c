@@ -53,7 +53,7 @@
 // Uncomment the following line for highly verbose debugging messages
 // #define GRAXPERT_DEBUG
 // The following line keeps the config file
-#define GRAXPERT_CONFIG_DEBUG
+// #define GRAXPERT_CONFIG_DEBUG
 
 // Define the minumum version numbers that support different operations
 static const version_number min_bg_ver = { 3, 0, 0, 0 , FALSE, FALSE};

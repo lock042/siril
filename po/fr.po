@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-04 15:24+0100\n"
-"PO-Revision-Date: 2025-03-04 14:23+0000\n"
+"PO-Revision-Date: 2025-03-05 13:40+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -657,7 +657,7 @@ msgstr "Mode d'écrêtage"
 #: src/gui/uifiles/asinh_dialog.ui:290 src/gui/uifiles/dialog_star_remix.ui:164
 #: src/gui/uifiles/histogram_dialog.ui:766 src/gui/utils.c:402
 msgid "Clip"
-msgstr "Perte"
+msgstr "Écrêter"
 
 #: src/gui/uifiles/asinh_dialog.ui:291 src/gui/uifiles/dialog_star_remix.ui:165
 #: src/gui/uifiles/histogram_dialog.ui:767
