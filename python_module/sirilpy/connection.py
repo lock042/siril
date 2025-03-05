@@ -2267,6 +2267,9 @@ class SirilInterface:
                 else:
                     raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
 
+            if status == Status.NONE:
+                return None
+
             if not response:
                 raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
 
@@ -2351,6 +2354,9 @@ class SirilInterface:
             if not response:
                 raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
 
+            if status == _Status.NONE:
+                return None
+
             if len(response) < 25: # No payload
                 return None
 
@@ -2430,6 +2436,9 @@ class SirilInterface:
                         raise RuntimeError(_("Server error: {}").format(error_msg))
                 else:
                     raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
+
+            if status == _Status.NONE:
+                return None
 
             if status == _Status.NONE:
                 return None
@@ -3663,6 +3672,9 @@ class SirilInterface:
 
             if not response:
                 raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
+
+            if status == _Status.NONE:
+                return None
 
             try:
                 # Parse the shared memory information
