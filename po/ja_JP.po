@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-05 16:27+0100\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
 "PO-Revision-Date: 2023-07-20 14:11+0000\n"
 "Last-Translator: yoshiharu yamashita <yamashita@tosslec.co.jp>\n"
 "Language-Team: Japanese <https://weblate.pixls.us/projects/siril/siril-"
@@ -5639,7 +5639,7 @@ msgstr "FITS 画像"
 msgid "Astrometry"
 msgstr "測光"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 #, fuzzy
 msgid "Catalogue"
 msgstr "画像整列"
@@ -7631,6 +7631,11 @@ msgstr "Arcsinh 変換..."
 #, fuzzy
 msgid "Open the curves transform dialog"
 msgstr "ヒストグラム変換を適用する"
+
+#: src/gui/uifiles/siril.ui:1531
+#, fuzzy
+msgid "Curves Transformation..."
+msgstr "カラー反転"
 
 #: src/gui/uifiles/siril.ui:1544
 #, fuzzy

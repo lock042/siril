@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-05 16:27+0100\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
 "PO-Revision-Date: 2025-02-08 15:43+0000\n"
 "Last-Translator: Marcin Greń <marcin.gren@hotmail.com>\n"
 "Language-Team: Polish <https://weblate.siril.org/projects/siril/software/"
@@ -5877,7 +5877,7 @@ msgstr "Pliki FITS"
 msgid "Astrometry"
 msgstr "Fotometria"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 #, fuzzy
 msgid "Catalogue"
 msgstr "Kalibracja kolorów..."
@@ -7922,6 +7922,11 @@ msgstr "Transformacja histogramu..."
 #, fuzzy
 msgid "Open the curves transform dialog"
 msgstr "Zastosuj transformację histogramu"
+
+#: src/gui/uifiles/siril.ui:1531
+#, fuzzy
+msgid "Curves Transformation..."
+msgstr "Transformacja histogramu..."
 
 #: src/gui/uifiles/siril.ui:1544
 #, fuzzy

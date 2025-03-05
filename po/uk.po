@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-05 16:27+0100\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
 "PO-Revision-Date: 2018-09-12 11:00+0300\n"
 "Last-Translator: Maksym Pyatnytskyy <mpyat2@gmail.com>\n"
 "Language-Team: Maksym Pyatnytskyy, Oleh Malyi. mpyat2@gmail.com\n"
@@ -5682,7 +5682,7 @@ msgstr "Файли FITS"
 msgid "Astrometry"
 msgstr "Фотометрія"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 msgid "Catalogue"
 msgstr ""
 
@@ -7666,6 +7666,11 @@ msgstr "Трансформація гістограми..."
 #, fuzzy
 msgid "Open the curves transform dialog"
 msgstr "Застосувати трансформацію гістограми"
+
+#: src/gui/uifiles/siril.ui:1531
+#, fuzzy
+msgid "Curves Transformation..."
+msgstr "Виконати трансформацію"
 
 #: src/gui/uifiles/siril.ui:1544
 #, fuzzy

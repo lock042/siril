@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-05 16:27+0100\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
 "PO-Revision-Date: 2025-02-23 11:16+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
@@ -6349,7 +6349,7 @@ msgstr "Параметры FITS"
 msgid "Astrometry"
 msgstr "Астрометрия"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 msgid "Catalogue"
 msgstr "Каталог"
 
@@ -8536,6 +8536,11 @@ msgstr "Преобразование по asinh…"
 #: src/gui/uifiles/siril.ui:1529
 msgid "Open the curves transform dialog"
 msgstr "Диалог преобразования кривых"
+
+#: src/gui/uifiles/siril.ui:1531
+#, fuzzy
+msgid "Curves Transformation..."
+msgstr "Вейвлетные преобразования"
 
 #: src/gui/uifiles/siril.ui:1544
 msgid "Open the hystogram transform dialog"

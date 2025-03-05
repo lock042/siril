@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-05 16:27+0100\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
 "PO-Revision-Date: 2024-04-03 05:37+0000\n"
 "Last-Translator: yurim choi <choi@stellaette.com>\n"
 "Language-Team: Korean <https://weblate.pixls.us/projects/siril/siril-"
@@ -5480,7 +5480,7 @@ msgstr ""
 msgid "Astrometry"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 msgid "Catalogue"
 msgstr ""
 
@@ -7355,6 +7355,11 @@ msgstr ""
 #, fuzzy
 msgid "Open the curves transform dialog"
 msgstr "비교성 대화상자 열기"
+
+#: src/gui/uifiles/siril.ui:1531
+#, fuzzy
+msgid "Curves Transformation..."
+msgstr "역사인 변환"
 
 #: src/gui/uifiles/siril.ui:1544
 msgid "Open the hystogram transform dialog"

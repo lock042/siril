@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-05 16:27+0100\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
 "PO-Revision-Date: 2018-01-18 00:22+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -5633,7 +5633,7 @@ msgstr ""
 msgid "Astrometry"
 msgstr "Fotometria"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 msgid "Catalogue"
 msgstr ""
 
@@ -7594,6 +7594,11 @@ msgstr "Transformação de histograma..."
 #, fuzzy
 msgid "Open the curves transform dialog"
 msgstr "Aplicar transformação de histograma"
+
+#: src/gui/uifiles/siril.ui:1531
+#, fuzzy
+msgid "Curves Transformation..."
+msgstr "Executar transformação"
 
 #: src/gui/uifiles/siril.ui:1544
 #, fuzzy
