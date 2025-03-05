@@ -2267,7 +2267,7 @@ class SirilInterface:
                 else:
                     raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
 
-            if status == Status.NONE:
+            if status == _Status.NONE:
                 return None
 
             if not response:
