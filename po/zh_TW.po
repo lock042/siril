@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-05 16:27+0100\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
 "PO-Revision-Date: 2024-07-09 12:15+0000\n"
 "Last-Translator: Yen-Hsing Lin <julius52700@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://weblate.pixls.us/projects/"
@@ -5498,7 +5498,7 @@ msgstr ""
 msgid "Astrometry"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 msgid "Catalogue"
 msgstr ""
 
@@ -7373,6 +7373,11 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:1529
 msgid "Open the curves transform dialog"
 msgstr ""
+
+#: src/gui/uifiles/siril.ui:1531
+#, fuzzy
+msgid "Curves Transformation..."
+msgstr "反雙曲線轉換（Asinh Transformation）"
 
 #: src/gui/uifiles/siril.ui:1544
 msgid "Open the hystogram transform dialog"

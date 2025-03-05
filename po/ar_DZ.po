@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-05 16:27+0100\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
 "PO-Revision-Date: 2016-11-20 10:20+0100\n"
 "Last-Translator: زنادي أمين <amine-zennadi@hotmail.com>\n"
 "Language-Team: \n"
@@ -5675,7 +5675,7 @@ msgstr "ملفات FITS"
 msgid "Astrometry"
 msgstr "قِيَاسٌ ضَوْئِيٌّ"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 msgid "Catalogue"
 msgstr ""
 
@@ -7648,6 +7648,11 @@ msgstr "الرسم البياني للتحول ..."
 #, fuzzy
 msgid "Open the curves transform dialog"
 msgstr "تطبيق تحول الرسم البياني"
+
+#: src/gui/uifiles/siril.ui:1531
+#, fuzzy
+msgid "Curves Transformation..."
+msgstr "يؤدي التحول"
 
 #: src/gui/uifiles/siril.ui:1544
 #, fuzzy

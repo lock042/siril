@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-05 16:27+0100\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
 "PO-Revision-Date: 2023-06-30 08:40+0000\n"
 "Last-Translator: Antoine Hoeffelman <swerves_pilafs.0v@icloud.com>\n"
 "Language-Team: Dutch (Belgium) <https://weblate.pixls.us/projects/siril/"
@@ -6244,7 +6244,7 @@ msgstr "FITS Opties"
 msgid "Astrometry"
 msgstr "Astrometrie"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 msgid "Catalogue"
 msgstr "Catalogus"
 
@@ -8384,6 +8384,11 @@ msgstr "Asinh Transformatie..."
 #, fuzzy
 msgid "Open the curves transform dialog"
 msgstr "Open het dialoogvenster fast Fourier-transformatie"
+
+#: src/gui/uifiles/siril.ui:1531
+#, fuzzy
+msgid "Curves Transformation..."
+msgstr "Wavelets-transformatie"
 
 #: src/gui/uifiles/siril.ui:1544
 msgid "Open the hystogram transform dialog"

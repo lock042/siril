@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-05 16:27+0100\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
 "PO-Revision-Date: 2025-03-03 10:50+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -5866,7 +5866,7 @@ msgstr "FITS选项"
 msgid "Astrometry"
 msgstr "天体测量"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 msgid "Catalogue"
 msgstr "星表"
 
@@ -7922,6 +7922,11 @@ msgstr "反双曲正弦变换…"
 #: src/gui/uifiles/siril.ui:1529
 msgid "Open the curves transform dialog"
 msgstr "打开曲线变换对话框"
+
+#: src/gui/uifiles/siril.ui:1531
+#, fuzzy
+msgid "Curves Transformation..."
+msgstr "小波变换"
 
 #: src/gui/uifiles/siril.ui:1544
 msgid "Open the hystogram transform dialog"

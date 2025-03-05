@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-05 16:27+0100\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
 "PO-Revision-Date: 2024-02-10 20:54+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Greek <https://weblate.pixls.us/projects/siril/siril-"
@@ -5935,7 +5935,7 @@ msgstr "Επιλογές FITS"
 msgid "Astrometry"
 msgstr "Αστρομετρία"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 #, fuzzy
 msgid "Catalogue"
 msgstr "Κατάλογος Αστεριών"
@@ -8006,6 +8006,11 @@ msgstr "Μετασχηματισμός Asinh..."
 #, fuzzy
 msgid "Open the curves transform dialog"
 msgstr "Άνοιγμα διαλόγου επίλυσης εικόνας"
+
+#: src/gui/uifiles/siril.ui:1531
+#, fuzzy
+msgid "Curves Transformation..."
+msgstr "Μετασχηματισμός Κυματιδίων"
 
 #: src/gui/uifiles/siril.ui:1544
 #, fuzzy
