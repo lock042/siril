@@ -2270,7 +2270,8 @@ class SirilInterface:
             if not response:
                 raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
 
-            if len(response) < 25: # No payload
+            if len(response) < 280: # Not a correct SharedMemoryInfo payload
+                print(payload)
                 return None
             try:
                 # Parse the shared memory information
