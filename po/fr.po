@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-03-05 15:47+0000\n"
+"PO-Revision-Date: 2025-03-05 15:57+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -8653,9 +8653,8 @@ msgid "Open the curves transform dialog"
 msgstr "Ouvrir la boîte de dialogue de la transformation des courbes"
 
 #: src/gui/uifiles/siril.ui:1531
-#, fuzzy
 msgid "Curves Transformation..."
-msgstr "Transformation par courbes"
+msgstr "Transformation par courbes..."
 
 #: src/gui/uifiles/siril.ui:1544
 msgid "Open the hystogram transform dialog"
