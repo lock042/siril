@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:27+0100\n"
-"PO-Revision-Date: 2025-03-05 13:40+0000\n"
+"PO-Revision-Date: 2025-03-05 15:47+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -2853,41 +2853,35 @@ msgid "Prefix of the image names resulting from the cropping process."
 msgstr "Préfixe du nom de l'image résultant du recadrage."
 
 #: src/gui/uifiles/curves_dialog.ui:62
-#, fuzzy
 msgid "Curves Transformation"
-msgstr "Transformation ondelettes"
+msgstr "Transformation par courbes"
 
 #: src/gui/uifiles/curves_dialog.ui:84
-#, fuzzy
 msgid "Reset curves transformation dialog window"
-msgstr "Ouvrir la boîte de dialogue de la transformation des courbes"
+msgstr ""
+"Réinitialisation de la fenêtre de dialogue de transformation par courbes"
 
 #: src/gui/uifiles/curves_dialog.ui:100
-#, fuzzy
 msgid "Close curves transformation dialog window"
-msgstr "Ouvrir la boîte de dialogue de la transformation des courbes"
+msgstr "Fermer la fenêtre de dialogue de transformation par courbes"
 
 #: src/gui/uifiles/curves_dialog.ui:116
-#, fuzzy
 msgid "Apply curves transformation"
-msgstr "Appliquer la transformation de l'histogramme"
+msgstr "Appliquer la transformation par courbes"
 
 #: src/gui/uifiles/curves_dialog.ui:168
-#, fuzzy
 msgid "Curves histogram display zoom"
-msgstr "mode d'affichage de l'histogramme par défaut"
+msgstr "Zoom de l'affichage de l'histogramme des courbes"
 
 #: src/gui/uifiles/curves_dialog.ui:188
-#, fuzzy
 msgid "Reset zoom to 1"
-msgstr "Rétablir le zoom à 1."
+msgstr "Rétablir le zoom à 1"
 
 #: src/gui/uifiles/curves_dialog.ui:207 src/gui/uifiles/histogram_dialog.ui:283
 msgid "Logarithmic scale"
 msgstr "Échelle logarithmique"
 
 #: src/gui/uifiles/curves_dialog.ui:211
-#, fuzzy
 msgid ""
 "Show the histogram with a logarithmic scale. Does not affect the transfer "
 "function display.\n"
@@ -2895,57 +2889,53 @@ msgid ""
 msgstr ""
 "Affiche l'histogramme avec une échelle logarithmique. N'affecte pas "
 "l'affichage de la fonction de transfert.\n"
+"                            "
 
 #: src/gui/uifiles/curves_dialog.ui:294
-#, fuzzy
 msgid "Toggles whether to apply the curve to the red channel"
-msgstr "Permet d'appliquer ou non l'étirement au canal monochrome"
+msgstr "Permet d'appliquer ou non la courbe au canal rouge"
 
 #: src/gui/uifiles/curves_dialog.ui:312
-#, fuzzy
 msgid "Toggles whether to apply the curve to the green channel"
-msgstr "Permet d'appliquer ou non l'étirement au canal monochrome"
+msgstr "Permet d'appliquer ou non la courbe au canal vert"
 
 #: src/gui/uifiles/curves_dialog.ui:330
-#, fuzzy
 msgid "Toggles whether to apply the curve to the blue channel"
-msgstr "Permet d'appliquer ou non l'étirement au canal monochrome"
+msgstr "Permet d'appliquer ou non la courbe au canal bleu"
 
 #: src/gui/uifiles/curves_dialog.ui:357
-#, fuzzy
 msgid "Toggles whether the grid is shown on the histogram display"
-msgstr "Permet d'indiquer si l'étirement s'applique au canal vert"
+msgstr "Permet d'afficher ou non la grille sur l'histogramme"
 
 #: src/gui/uifiles/curves_dialog.ui:381
 msgid "Interpolation algorithm used to compute a curve from the placed points"
 msgstr ""
+"Algorithme d'interpolation utilisé pour calculer une courbe à partir des "
+"points placés"
 
 #: src/gui/uifiles/curves_dialog.ui:421
 msgid "Curve point Y: "
-msgstr ""
+msgstr "Point Y de la courbe : "
 
 #: src/gui/uifiles/curves_dialog.ui:433
 msgid "Curve point ID: "
-msgstr ""
+msgstr "ID du point de la courbe : "
 
 #: src/gui/uifiles/curves_dialog.ui:445
 msgid "Curve point X: "
-msgstr ""
+msgstr "Point X de la courbe : "
 
 #: src/gui/uifiles/curves_dialog.ui:487
-#, fuzzy
 msgid "The ID of the selected curve point"
-msgstr "Afficher les détails du filtre rouge sélectionné"
+msgstr "L'ID du point sélectionné de la courbe"
 
 #: src/gui/uifiles/curves_dialog.ui:537
-#, fuzzy
 msgid "X coordinate of the selected curve point"
-msgstr "Coordonnée X du centre des coordonnées polaires."
+msgstr "Coordonnée X du point sélectionné de la courbe"
 
 #: src/gui/uifiles/curves_dialog.ui:555
-#, fuzzy
 msgid "Y coordinate of the selected curve point"
-msgstr "Coordonnée Y du centre des coordonnées polaires."
+msgstr "Coordonnée Y du point sélectionné de la courbe"
 
 #: src/gui/uifiles/curves_dialog.ui:586 src/gui/uifiles/histogram_dialog.ui:620
 msgid "Clip (%)"
@@ -2960,12 +2950,10 @@ msgid "Clipped pixels count (highlights)"
 msgstr "Compte des pixels perdus (hautes lumières)"
 
 #: src/gui/uifiles/curves_dialog.ui:683
-#, fuzzy
 msgid "Prefix of the image names resulting from the curve transformation"
-msgstr "Préfixe du nom des images résultantes de l'alignement."
+msgstr "Préfixe des noms d'images résultant de la transformation de la courbe"
 
 #: src/gui/uifiles/curves_dialog.ui:708
-#, fuzzy
 msgid "Toggles preview"
 msgstr "Activer / désactiver l'aperçu"
 
@@ -4200,9 +4188,8 @@ msgid "Preview the current settings on a region of interest."
 msgstr "Prévisualiser les paramètres actuels d'une région d'intérêt."
 
 #: src/gui/uifiles/graxpert.ui:115
-#, fuzzy
 msgid "Apply the selected operation."
-msgstr "Applique la correction sélectionnée."
+msgstr "Appliquer l'opération sélectionnée."
 
 #: src/gui/uifiles/graxpert.ui:159
 msgid "Algorithm"
@@ -4259,7 +4246,7 @@ msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:291
 msgid "Sample size / px"
-msgstr "Taille de l'échantillon / px :"
+msgstr "Taille de l'échantillon / px"
 
 #: src/gui/uifiles/graxpert.ui:302
 msgid ""
@@ -4391,7 +4378,7 @@ msgstr "Configurer la déconvolution GraXpert Image FWHM (en pixels)."
 
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
 msgid "Deconvolution AI model version:"
-msgstr "Déconvolution version du modèle IA"
+msgstr "Déconvolution version du modèle IA :"
 
 #: src/gui/uifiles/graxpert.ui:748 src/gui/uifiles/graxpert.ui:789
 msgid ""
