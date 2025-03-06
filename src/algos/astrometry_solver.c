@@ -2200,8 +2200,8 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			siril_log_color_message(_("Image %s platesolved and updated\n"), "salmon", root);
 		} else {
 			siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
+			arg->seq->imgparam[i].incl = FALSE;
 			free(aargs);
-			g_atomic_int_inc(&aargs_master->seqprogress);
 			return 1;
 		}
 	}
@@ -2210,11 +2210,13 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		struct wcsprm *wcs = wcs_deepcopy(fit->keywords.wcslib, &status);
 		if (status) {
 			siril_log_color_message(_("Could not copy WCS data, skipping image %d\n"), "salmon", i + 1);
+			arg->seq->imgparam[i].incl = FALSE;
 		} else {
 			memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
 		}
 	}
-	g_atomic_int_inc(&aargs_master->seqprogress);
+	if (!retval)
+		g_atomic_int_inc(&aargs_master->seqprogress);
 	return retval;
 }
 
