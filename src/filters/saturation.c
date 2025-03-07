@@ -172,9 +172,10 @@ static int satu_update_preview() {
 	return 0;
 }
 
-void on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
+gboolean on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
 	satu_close(TRUE);
 	siril_close_dialog("satu_dialog");
+	return FALSE;
 }
 
 void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {
