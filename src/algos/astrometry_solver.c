@@ -223,7 +223,8 @@ static void compute_limit_mag(struct astrometry_data *args) {
 }
 
 static gboolean solve_is_near(struct astrometry_data *args) {
-	return args->solver == SOLVER_LOCALASNET || (args->ref_stars && args->ref_stars->cat_index == CAT_LOCAL_KSTARS && args->searchradius > 0);
+	return args->solver == SOLVER_LOCALASNET || 
+			(args->ref_stars && (args->ref_stars->cat_index == CAT_LOCAL_KSTARS || args->ref_stars->cat_index == CAT_LOCAL_GAIA_ASTRO) && args->searchradius > 0);
 }
 
 SirilWorldCS *get_eqs_from_header(fits *fit) {
@@ -883,14 +884,15 @@ gpointer plate_solver(gpointer p) {
 		if (args->solver == SOLVER_LOCALASNET) {
 			siril_log_message(_("Plate solving image with astrometry.net for a field of view of %.2f degrees\n"), args->used_fov / 60.0);
 		} else {
-			const char *catstr = args->ref_stars->cat_index == CAT_LOCAL_KSTARS ? _("local catalogues") :
-				(args->ref_stars->cat_index == CAT_LOCAL_GAIA_ASTRO || args->ref_stars->cat_index == CAT_LOCAL_GAIA_XPSAMP) ? _("local Gaia catalogue") :
-					_("an online catalogue");
-			siril_log_message(_("Plate solving image from %s for a field of view of %.2f"
+			const char *catstr = (args->ref_stars->cat_index == CAT_LOCAL_KSTARS || args->ref_stars->cat_index == CAT_LOCAL_GAIA_ASTRO) ? _("local") :
+					_("online");
+			siril_log_message(_("Plate solving image from %s %s for a field of view of %.2f"
 						" degrees%s, using a limit magnitude of %.2f\n"),
 					catstr,
+					catalog_to_str(args->ref_stars->cat_index),
 					args->used_fov / 60.0,
-					args->uncentered ? _(" (uncentered)") : "", args->ref_stars->limitmag);
+					args->uncentered ? _(" (uncentered)") : "",
+					args->ref_stars->limitmag);
 		}
 	}
 

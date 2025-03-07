@@ -9747,7 +9747,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	gboolean atmos = FALSE, slp = TRUE;
 	double pressure = 1013.25; // standard atmosphere
 	double obsheight = gfit.keywords.siteelev != DEFAULT_DOUBLE_VALUE ? gfit.keywords.siteelev : 10.0;
-	gboolean local_cat = local_kstars_available();
+	gboolean local_kstars = local_kstars_available();
 	gboolean local_gaia = local_gaia_available();
 	int next_arg = 1;
 
@@ -9781,7 +9781,7 @@ static int do_pcc(int nb, gboolean spectro) {
 			if (!spectro) {
 				char *arg = word[next_arg] + 9;
 				if (!g_strcmp0(arg, "nomad"))
-					cat = CAT_NOMAD;
+					cat = local_kstars ? CAT_LOCAL_KSTARS : CAT_NOMAD;
 				else if (!g_strcmp0(arg, "gaia"))
 					cat = CAT_GAIADR3;
 				else if (!g_strcmp0(arg, "localgaia")) {
@@ -9801,9 +9801,14 @@ static int do_pcc(int nb, gboolean spectro) {
 				char *arg = word[next_arg] + 9;
 				if (!g_strcmp0(arg, "gaia"))
 					cat = CAT_GAIADR3_DIRECT;
-				else if (!g_strcmp0(arg, "localgaia"))
+				else if (!g_strcmp0(arg, "localgaia")) {
 					cat = CAT_LOCAL_GAIA_XPSAMP;
-				else {
+					if (!local_gaia_xpsamp_available()) {
+						siril_log_color_message(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"), "salmon");
+						cat = CAT_GAIADR3_DIRECT;
+				
+					}
+				} else {
 					siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 					return CMD_ARG_ERROR;
@@ -9912,15 +9917,15 @@ static int do_pcc(int nb, gboolean spectro) {
 		}
 	}
 
-	if (!spectro && local_cat && cat == CAT_AUTO) {
-		cat = CAT_LOCAL_KSTARS;
+	if (!spectro && cat == CAT_AUTO) {
+		cat = local_kstars ? CAT_LOCAL_KSTARS : CAT_NOMAD;
 	} else if (spectro && cat == CAT_AUTO) {
 		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : CAT_GAIADR3_DIRECT;
 	}
-	if (!spectro && local_cat && cat != CAT_LOCAL_KSTARS) {
+	if (!spectro && local_kstars && cat != CAT_LOCAL_KSTARS) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
 				"salmon", catalog_to_str(cat));
-		local_cat = FALSE;
+		local_kstars = FALSE;
 	}
 
 	struct photometric_cc_data *pcc_args = NULL;	// filled only if pcc_command
@@ -10036,7 +10041,6 @@ int process_platesolve(int nb) {
 	cmd_errors retval = CMD_OK;
 	struct astrometry_data *args = NULL;
 
-	gboolean local_cat = local_kstars_available();
 	int next_arg = 1;
 	if (seqps) {
 		if (!(seq = load_sequence(word[1], NULL)))
@@ -10206,18 +10210,19 @@ int process_platesolve(int nb) {
 		goto clean_and_exit_platesolve; // not an arror, retval is CMD_OK
 	}
 
-	if (local_cat && (cat == CAT_AUTO || (cat != CAT_GAIADR3 && cat != CAT_PPMXL && cat != CAT_APASS))) {
-		cat = CAT_LOCAL_KSTARS;
-		// autocrop = FALSE; // we don't crop fov when using local catalogues
-		siril_debug_print("forced no crop when using local catalogues\n");
+	if (cat == CAT_AUTO && local_catalogues_available()) {
+		cat = local_gaia_available() ? CAT_LOCAL_GAIA_ASTRO : CAT_LOCAL_KSTARS;
 		nocache = TRUE; // we solve each image individually when using local catalogues
 		siril_debug_print("forced no cache when using local catalogues\n");
 	}
 
-	if (local_cat && cat != CAT_LOCAL_KSTARS && solver == SOLVER_SIRIL) {
+	if (local_kstars_available() && (cat == CAT_TYCHO2 || CAT_NOMAD) && solver == SOLVER_SIRIL) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
 				"salmon", catalog_to_str(cat));
-		local_cat = FALSE;
+	}
+	if (local_gaia_available() && cat == CAT_GAIADR3 && solver == SOLVER_SIRIL) {
+		siril_log_color_message(_("Using remote instead of local GAIA catalogue\n"),
+				"salmon");
 	}
 
 	if (solver == SOLVER_LOCALASNET && !asnet_is_available()) {
@@ -10352,8 +10357,8 @@ int process_platesolve(int nb) {
 		clearfits(preffit);
 	args->solver = solver;
 	args->downsample = downsample;
-	args->autocrop = autocrop && solver == SOLVER_SIRIL; //&& cat != CAT_LOCAL_KSTARS; // we don't crop fov when using local catalogues or asnet
-	args->nocache = nocache || solver == SOLVER_LOCALASNET || cat == CAT_LOCAL_KSTARS;
+	args->autocrop = autocrop && solver == SOLVER_SIRIL; // we don't crop fov when using asnet
+	args->nocache = nocache || solver == SOLVER_LOCALASNET || cat == CAT_LOCAL_KSTARS || cat == CAT_LOCAL_GAIA_ASTRO;
 	if (!searchradius && solver == SOLVER_LOCALASNET && !asnet_blind_pos) {
 		args->searchradius = com.pref.astrometry.radius_degrees;
 		siril_log_color_message(_("Cannot force null radius for localasnet if not blind solving, using default instead\n"), "red");
@@ -10439,7 +10444,7 @@ clean_and_exit_platesolve:
 
 static conesearch_params* parse_conesearch_args(int nb) {
 	conesearch_params *params = init_conesearch_params();
-	gboolean local_cat = local_kstars_available();
+	gboolean local_kstars = local_kstars_available();
 
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -10507,7 +10512,7 @@ static conesearch_params* parse_conesearch_args(int nb) {
 			params->default_obscode_used = FALSE;
 			params->obscode = g_strdup(arg);
 		} else if (g_str_has_prefix(word[arg_idx], "-trix=")) {
-			if (!local_cat) {
+			if (!local_kstars) {
 				siril_log_color_message(_("No local catalogues found, ignoring -trix option\n"), "red");
 				continue;
 			}
@@ -10571,7 +10576,7 @@ static conesearch_params* parse_conesearch_args(int nb) {
 	}
 
 	if (params->cat == CAT_AUTO) {
-		params->cat = (local_cat) ? CAT_LOCAL_KSTARS : CAT_NOMAD;
+		params->cat = (local_kstars) ? CAT_LOCAL_KSTARS : CAT_NOMAD;
 		if (params->trixel >= 0 && params->cat == CAT_LOCAL_KSTARS)
 			params->cat = CAT_LOCAL_TRIX;
 	}
