@@ -1185,12 +1185,13 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 	compute_histo_for_gfit();
 }
 
-void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
+gboolean on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 	closing = TRUE;
 	set_cursor_waiting(TRUE);
 	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("histogram_dialog");
+	return FALSE;
 }
 
 void on_button_histo_reset_clicked(GtkButton *button, gpointer user_data) {
