@@ -193,7 +193,7 @@ class SirilInterface:
         else:
             self.command_lock = threading.Lock()
 
-        self.debug = not os.getenv('SIRIL_PYTHON_DEBUG')
+        self.debug = bool(os.getenv('SIRIL_PYTHON_DEBUG') is not None)
 
     def connect(self) -> Optional[bool]:
         """
