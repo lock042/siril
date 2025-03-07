@@ -37,7 +37,7 @@ typedef struct _SourceEntryXPsamp {
 	int16_t mag_scaled;  // 2 bytes
 	// The remaining fields are only read for SPCC
 	uint8_t fexpo;       // 1 byte
-	int16_t flux[343];   // 686 bytes: xp_sampled flux values
+	int16_t flux[XPSAMPLED_LEN];   // 686 bytes: xp_sampled flux values
 } SourceEntryXPsamp;
 #pragma pack(pop)
 

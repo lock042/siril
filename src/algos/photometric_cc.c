@@ -294,10 +294,10 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 //				break;
 //			case CAT_LOCAL_GAIA_XPSAMP:
 //			default:;
-//				memcpy(&star_spectrum.y, stars[i].flux, 343 * sizeof(double));
+//				memcpy(&star_spectrum.y, stars[i].flux, XPSAMPLED_LEN * sizeof(double));
 		//				break;
 //		}
-		memcpy(&star_spectrum.y, stars[i].xp_sampled, 343 * sizeof(double));
+		memcpy(&star_spectrum.y, stars[i].xp_sampled, XPSAMPLED_LEN * sizeof(double));
 
 		// Convert flux to relative photon count normalized at 550nm
 		flux_to_relcount(&star_spectrum);
@@ -893,7 +893,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, 5000);
 		for (int i = 0 ; i < siril_cat->nbitems ; i++) {
 			// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
-			siril_cat->cat_items[i].xp_sampled = malloc(343 * sizeof(double));
+			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
 			get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
 		}
 	} else if (siril_catalog_conesearch(siril_cat) <= 0) {
