@@ -1244,6 +1244,7 @@ gpointer conesearch_worker(gpointer p) {
 	int retval = 1;
 	double stardiam = 0.0;
 	gboolean hide_display_tag = FALSE;
+	gboolean free_dx = TRUE;
 
 	// Check initial args
 	if (!siril_cat) {
@@ -1466,6 +1467,7 @@ gpointer conesearch_worker(gpointer p) {
 		free(dy);
 		dy = NULL;
 	}
+	free_dx = FALSE;
 
 	// Write catalogue if required
 	if (args->outfilename) {
@@ -1515,8 +1517,10 @@ gpointer conesearch_worker(gpointer p) {
 		}
 		if (retval == -1)  // success but empty field
 			retval = 0;
-		free(dx); // may still be NULL if the if (!j) conditional bails out
-		free(dy); // may still be NULL if the if (!j) conditional bails out
+		if (free_dx) {
+			free(dx); // may still be NULL if the if (!j) conditional bails out
+			free(dy); // may still be NULL if the if (!j) conditional bails out
+		}
 	}
 
 	return GINT_TO_POINTER(retval);
