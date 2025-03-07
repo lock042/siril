@@ -192,7 +192,7 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS) | (1 << CAT_FIELD_DATEOBS) | (1 << CAT_FIELD_SITELAT) | (1 << CAT_FIELD_SITELON) | (1 << CAT_FIELD_SITEELEV) | (1 << CAT_FIELD_VRA) | (1 << CAT_FIELD_VDEC) | (1 << CAT_FIELD_TYPE);
 		case CAT_COMPSTARS:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_TYPE);
-		case CAT_LOCAL:
+		case CAT_LOCAL_KSTARS:
 		case CAT_LOCAL_TRIX:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_AN_USER_TEMP:
@@ -288,7 +288,7 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return _("IMCCE solar system");
 		case CAT_AAVSO_CHART:
 			return _("AAVSO VSP Chart");
-		case CAT_LOCAL:
+		case CAT_LOCAL_KSTARS:
 			return _("Tycho-2+NOMAD");
 		case CAT_LOCAL_GAIA_ASTRO:
 			return _("Gaia DR3 astrometry");
@@ -333,7 +333,7 @@ gboolean is_star_catalogue(siril_cat_index Catalog) {
 		case CAT_EXOPLANETARCHIVE:
 		case CAT_AAVSO_CHART:
 		case CAT_AN_STARS:
-		case CAT_LOCAL:
+		case CAT_LOCAL_KSTARS:
 		case CAT_LOCAL_TRIX:
 		case CAT_AN_USER_SSO:
 		case CAT_LOCAL_GAIA_ASTRO:
@@ -625,7 +625,7 @@ int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
 		return nbstars;
 #endif
-	} else if (siril_cat->cat_index == CAT_LOCAL || siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO || siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP || siril_cat->cat_index == CAT_LOCAL_TRIX) {
+	} else if (siril_cat->cat_index == CAT_LOCAL_KSTARS || siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO || siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP || siril_cat->cat_index == CAT_LOCAL_TRIX) {
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
 	} else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
 		nbstars = siril_cat->nbitems;
@@ -1261,7 +1261,7 @@ gpointer conesearch_worker(gpointer p) {
 	if (!check) {  // conesearch failed
 		goto exit_conesearch;
 	}
-	if (siril_cat->cat_index != CAT_LOCAL &&
+	if (siril_cat->cat_index != CAT_LOCAL_KSTARS &&
 		siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO &&
 		siril_cat->cat_index != CAT_LOCAL_TRIX)
 	{

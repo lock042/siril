@@ -184,13 +184,6 @@ static void start_photometric_cc(gboolean spcc) {
 	} else {
 		pcc_args->catalog = get_photometry_catalog_from_GUI();
 		pcc_args->spcc = FALSE;
-		if (local_catalogues_available()) {
-			if (pcc_args->catalog == CAT_NOMAD) {
-				pcc_args->catalog = CAT_LOCAL;
-				siril_debug_print("using local star catalogs\n");
-			}
-			else siril_log_message(_("Using remote APASS instead of local NOMAD catalog\n"));
-		}
 	}
 
 	pcc_args->fit = &gfit;
@@ -289,7 +282,7 @@ void initialize_photometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
 
-	gtk_combo_box_set_active(GTK_COMBO_BOX(catalog_box_pcc), local_gaia_available() ? 2 : (local_catalogues_available() ? 0 : 2));
+	gtk_combo_box_set_active(GTK_COMBO_BOX(catalog_box_pcc), local_gaia_available() ? 2 : (local_kstars_available() ? 0 : 2));
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 }
 
@@ -421,7 +414,10 @@ int get_photometry_catalog_from_GUI() {
 	}
 	else if (gtk_combo_box_get_active(box) == 1)
 		return CAT_APASS;
+	if (local_kstars_available())
+		return CAT_LOCAL_KSTARS;
 	return CAT_NOMAD;
+	
 }
 
 int get_spcc_catalog_from_GUI() {
@@ -493,15 +489,13 @@ void on_button_cc_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
-	static gboolean have_local_cat = FALSE;
 	static GtkLabel *photocat_label = NULL;
 	if (!photocat_label) {
 		photocat_label = GTK_LABEL(lookup_widget("photometric_catalog_label"));
-		have_local_cat = local_catalogues_available();
 	}
 	switch (gtk_combo_box_get_active(combo)) {
 		case 0: // NOMAD
-			gtk_label_set_text(photocat_label, have_local_cat ? _("(local catalogue)") : _("(online catalogue)"));
+			gtk_label_set_text(photocat_label, local_kstars_available() ? _("(local catalogue)") : _("(online catalogue)"));
 			break;
 		case 1: // APASS
 			gtk_label_set_text(photocat_label, _("(online catalogue)"));

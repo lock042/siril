@@ -688,6 +688,18 @@ void initialize_local_catalogues_paths() {
 }
 
 gboolean local_catalogues_available() {
+	return local_kstars_available() || local_gaia_available();
+}
+
+siril_cat_index get_local_catalogue_index() {
+	if (local_gaia_available())
+		return CAT_LOCAL_GAIA_ASTRO;
+	if (local_kstars_available())
+		return CAT_LOCAL_KSTARS;
+	return CAT_UNDEF;
+}
+
+gboolean local_kstars_available() {
 	int nb_catalogues = 4;
 	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 		if (!is_readable_file(com.pref.catalogue_paths[catalogue]))
@@ -711,7 +723,7 @@ gboolean local_gaia_available() {
 int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return 0;
-	if (siril_cat->cat_index != CAT_LOCAL &&
+	if (siril_cat->cat_index != CAT_LOCAL_KSTARS &&
 			siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO &&
 			siril_cat->cat_index != CAT_LOCAL_GAIA_XPSAMP &&
 			siril_cat->cat_index != CAT_LOCAL_TRIX) {
@@ -754,7 +766,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO && get_raw_stars_from_local_gaia_astro_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, siril_cat->phot, &stars, &nb_stars))
 		return 0;
 
-	if (siril_cat->cat_index == CAT_LOCAL && get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
+	if (siril_cat->cat_index == CAT_LOCAL_KSTARS && get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
 				siril_cat->phot, &stars, &nb_stars))
 		return 0;
 	if (siril_cat->cat_index == CAT_LOCAL_TRIX && get_raw_stars_from_local_catalogues_byID(siril_cat->trixel, siril_cat->limitmag, siril_cat->phot, &stars, &nb_stars))

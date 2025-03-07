@@ -42,8 +42,10 @@ typedef struct _SourceEntryXPsamp {
 #pragma pack(pop)
 
 void initialize_local_catalogues_paths();
-gboolean local_catalogues_available();
+gboolean local_kstars_available();
 gboolean local_gaia_available();
+gboolean local_catalogues_available();
+siril_cat_index get_local_catalogue_index();
 
 int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat);
 gpointer write_trixels(gpointer p);

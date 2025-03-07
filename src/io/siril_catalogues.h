@@ -86,10 +86,10 @@ typedef enum {
 	CAT_SHOW = 96, // for the show command
 	CAT_COMPSTARS = 97,
 	CAT_AUTO = 98,
-	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
-	CAT_LOCAL_TRIX = 100, // for trixel query
-	CAT_LOCAL_GAIA_ASTRO = 101, // siril local (with Gaia source_id)
-	CAT_LOCAL_GAIA_XPSAMP = 102 // siril local (with Gaia source_id and sampled SPCC data)
+	CAT_LOCAL_KSTARS = 99,		// siril local (KStars Tycho-2 and NOMAD)
+	CAT_LOCAL_GAIA_ASTRO = 100, // siril local (with Gaia source_id)
+	CAT_LOCAL_GAIA_XPSAMP = 101, // siril local (with Gaia source_id and sampled SPCC data)
+	CAT_LOCAL_TRIX = 102, // for trixel query
 } siril_cat_index;
 
 typedef enum {
