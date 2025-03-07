@@ -175,8 +175,8 @@ void initialize_ips_dialog() {
 	gtk_widget_set_visible(GTK_WIDGET(stardetectionexp), !isseq);
 	gtk_widget_set_visible(GTK_WIDGET(seqsolvebutton), isseq);
 	on_GtkCheckButton_solveseq_toggled(NULL, NULL);
+	gtk_toggle_button_set_active(seqsolvebutton, FALSE);
 	if (isseq) {
-		gtk_toggle_button_set_active(seqsolvebutton, FALSE);
 		gtk_toggle_button_set_active(sequseheadercoords, has_coords);
 		gtk_toggle_button_set_active(sequseheaderpixel, has_pixel);
 		gtk_toggle_button_set_active(sequseheaderfocal, has_focal);
@@ -813,7 +813,7 @@ void close_astrometry_dialog() {
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->solver = gtk_combo_box_get_active(solverbox);
 	gboolean is_siril = !args->solver;
-	args->for_sequence = gtk_toggle_button_get_active(seqsolvebutton);
+	args->for_sequence = gtk_toggle_button_get_active(seqsolvebutton) && sequence_is_loaded();
 	if (!args->for_sequence) {
 		args->fit = &gfit;
 		args->manual = is_detection_manual();
