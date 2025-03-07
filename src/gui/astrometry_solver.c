@@ -922,7 +922,7 @@ void init_astrometry() {
 	load_all_ips_statics();
 	reset_astrometry_checks();
 	// Prefer Gaia to NOMAD and local to remote
-	gtk_combo_box_set_active(catalogbox, use_local_gaia() ? 2 : use_local_catalogue() ? 1 : 2);
+	gtk_combo_box_set_active(catalogbox, local_gaia_available() ? 2 : have_local_cat ? 1 : 2);
 }
 
 void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data) {
