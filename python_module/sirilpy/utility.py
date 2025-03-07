@@ -329,7 +329,6 @@ def check_module_version(requires=None):
         # Use pkg_version from top-level import
         return pkg_version.parse(sirilpy.__version__) in specifiers
     except (pkg_version.InvalidVersion, ValueError) as exc:
-        # Proper re-raising with from
         raise ValueError(f"Invalid version specifier: {requires}") from exc
 
 class SuppressedStdout:

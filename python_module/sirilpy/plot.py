@@ -157,7 +157,7 @@ class PlotData:
                 raise TypeError("datamin must be a list of 2 numeric values (integers or floats)")
             if len(self.datamin) != 2:
                 raise ValueError("datamin must contain exactly 2 numeric values (integers or floats)")
-            if not all(isinstance(x, (int, float)) for x in self.datamin):  # Shortened this line
+            if not all(isinstance(x, (int, float)) for x in self.datamin):
                 raise TypeError("datamin must contain only numeric values (integers or floats)")
 
         if self.datamax is not None:
@@ -165,7 +165,7 @@ class PlotData:
                 raise TypeError("datamax must be a list of 2 numeric values (integers or floats)")
             if len(self.datamax) != 2:
                 raise ValueError("datamax must contain exactly 2 numeric values (integers or floats)")
-            if not all(isinstance(x, (int, float)) for x in self.datamax):  # Shortened this line
+            if not all(isinstance(x, (int, float)) for x in self.datamax):
                 raise TypeError("datamax must contain only numeric values (integers or floats)")
 
     def add_series(
