@@ -50,7 +50,8 @@ def download_with_progress(
     url: str,
     file_path: str,
     max_retries: int = 3,
-    retry_delay: int = 5
+    retry_delay: int = 5,
+    resume: bool = True
     ) -> bool:
     """
     Robust file download method with native Siril progress tracking
@@ -62,11 +63,16 @@ def download_with_progress(
         file_path (str): Local path to save the downloaded file
         max_retries (int): Number of download retry attempts
         retry_delay (int): Delay between retry attempts in seconds
+        resume (bool): Whether or not to resume a partially downloaded file or start again
 
     Returns:
         bool: True if download successful, False otherwise
     """
     temp_file_path = file_path + '.part'
+
+    # If resume is False and the temporary file exists, delete it
+    if not resume and os.path.exists(temp_file_path):
+        os.remove(temp_file_path)
 
     def get_file_size_and_resume_point() -> Tuple[int, int]:
         """Determine the current file size for resuming download."""
