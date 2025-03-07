@@ -572,8 +572,12 @@ static void siril_macos_setenv(const char *progname) {
 		g_setenv("FONTCONFIG_PATH", tmp, TRUE);
 
 		/* set curl related variables */
-		g_snprintf(tmp, sizeof(tmp), "%s/etc/ca-certificates/cacert.pem", res_dir);
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/python3.12/site-packages/certifi/cacert.pem", res_dir);
 		g_setenv("CURL_CA_BUNDLE", tmp, TRUE);
+
+		/* set PYTHONPAH to our bundled packages */
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/python3.12/site-packages", res_dir);
+		g_setenv("PYTHONPATH", tmp, TRUE);
 
 		/* astropy does not create its director itself */
 		g_snprintf(tmp, sizeof(tmp), "%s/astropy", g_getenv("XDG_CONFIG_HOME"));
