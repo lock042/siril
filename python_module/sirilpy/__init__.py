@@ -2,50 +2,18 @@
 # Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
+"""
+SirilPy - Python interface for Siril astronomical image processing software.
 
-from typing import TYPE_CHECKING
+This module provides bindings and utilities for interacting with Siril
+from Python, enabling advanced astronomical image processing workflows.
+"""
 
 # Import translation functions first
+# TODO: this is currently unused (there are no actual translations yet)
 from .translations import _
 
-# TYPE_CHECKING is False at runtime but True during type checking.
-if TYPE_CHECKING:
-    from .connection import LogColor, SirilInterface
-    from .models import (
-        DataType,
-        ImageStats,
-        FKeywords,
-        FFit,
-        Homography,
-        StarProfile,
-        SequenceType,
-        PSFStar,
-        BGSample,
-        RegData,
-        ImgData,
-        DistoData,
-        Sequence
-    )
-    from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
-    from .shm import SharedMemoryWrapper
-    from .utility import (
-        human_readable_size,
-        download_with_progress,
-        ensure_installed,
-        check_module_version,
-        SuppressedStdout,
-        SuppressedStderr
-    )
-    from .exceptions import (
-        SirilError,
-        ConnectionError,
-        CommandError,
-        DataError,
-        NoImageError,
-        NoSequenceError
-    )
-
-# Runtime imports
+# Regular imports - all modules needed at runtime
 from .models import (
     DataType,
     ImageStats,
@@ -73,7 +41,7 @@ from .utility import (
 )
 from .exceptions import (
     SirilError,
-    ConnectionError,
+    SirilConnectionError,
     CommandError,
     DataError,
     NoImageError,
@@ -81,16 +49,19 @@ from .exceptions import (
 )
 from .connection import LogColor, SirilInterface
 
-try: # import from the packaging specification
-    from importlib.metadata import metadata
+try:  # import from the packaging specification
+    from importlib.metadata import metadata, PackageNotFoundError
     meta = metadata("sirilpy")
     __version__ = meta.get("version", "unknown")
     __author__ = meta.get("author", "unknown")
     __license__ = meta.get("license", "unknown")
-except Exception:
-    pass
+except (ImportError, PackageNotFoundError):
+    # Specific exceptions rather than general Exception
+    __version__ = "unknown"
+    __author__ = "unknown"
+    __license__ = "unknown"
 
-__copyright__ = " (c) Team free-astro 2024-2025" # not a standard metadata
+__copyright__ = " (c) Team free-astro 2024-2025"  # not a standard metadata
 
 # Define public API
 __all__ = [
@@ -116,7 +87,7 @@ __all__ = [
     'PlotData',
     '_PlotSerializer',
     'SirilError',
-    'ConnectionError',
+    'SirilConnectionError',  # Changed from ConnectionError
     'CommandError',
     'DataError',
     'NoImageError',

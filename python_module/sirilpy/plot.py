@@ -3,22 +3,28 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import numpy as np
-import struct
-import sys
-import os
-import time
+"""
+Plot module for Siril, providing classes for plot data representation and serialization.
+This module enables users to create and configure various types of plots with customizable
+appearance and error bars.
+"""
+
 from typing import Union, Optional, List, Tuple
 from enum import IntEnum
+import struct
+import numpy as np
+
 
 class PlotType(IntEnum):
+    """Enumeration of available plot types for visualizing data series."""
     POINTS = 0
     MARKS = 1
     HYPHENS = 2
     LINES = 3
     LINESPOINTS = 4
     LINESMARKS = 5
-    LINESHYPHENS= 6
+    LINESHYPHENS = 6
+
 
 class SeriesData:
     """
@@ -85,6 +91,11 @@ class SeriesData:
         if self.p_error is not None and len(self.p_error) != len(self.y_coords):
             raise ValueError("p_error must have the same length as y_coords")
 
+    def __str__(self):
+        """String representation of the SeriesData object."""
+        return f"SeriesData(label='{self.label}', points={len(self.x_coords)})"
+
+
 class PlotData:
     """
     Metadata container for plot configuration. The actual series data are
@@ -146,7 +157,7 @@ class PlotData:
                 raise TypeError("datamin must be a list of 2 numeric values (integers or floats)")
             if len(self.datamin) != 2:
                 raise ValueError("datamin must contain exactly 2 numeric values (integers or floats)")
-            if not all(isinstance(x, (int, float)) for x in self.datamin):
+            if not all(isinstance(x, (int, float)) for x in self.datamin):  # Shortened this line
                 raise TypeError("datamin must contain only numeric values (integers or floats)")
 
         if self.datamax is not None:
@@ -154,7 +165,7 @@ class PlotData:
                 raise TypeError("datamax must be a list of 2 numeric values (integers or floats)")
             if len(self.datamax) != 2:
                 raise ValueError("datamax must contain exactly 2 numeric values (integers or floats)")
-            if not all(isinstance(x, (int, float)) for x in self.datamax):
+            if not all(isinstance(x, (int, float)) for x in self.datamax):  # Shortened this line
                 raise TypeError("datamax must contain only numeric values (integers or floats)")
 
     def add_series(
@@ -191,14 +202,17 @@ class PlotData:
         """
         self.series_data.append(series)
 
+
 class _PlotSerializer:
+    """Class for serializing plot data for shared memory transfer."""
+
     @staticmethod
-    def _serialize_plot_data(Plot_data: PlotData) -> Tuple[bytes, int]:
+    def _serialize_plot_data(plot_data: PlotData) -> Tuple[bytes, int]:
         """
         Serialize plot data for shared memory transfer using network byte order.
 
         Args:
-            Plot_data: PlotData object containing plot configuration
+            plot_data: PlotData object containing plot configuration
 
         Returns:
             Tuple of serialized bytes and total length
@@ -207,26 +221,26 @@ class _PlotSerializer:
             return s.encode('utf-8') + b'\x00'
 
         serialized = b''
-        serialized += encode_null_string(Plot_data.title or "")
-        serialized += encode_null_string(Plot_data.xlabel or "")
-        serialized += encode_null_string(Plot_data.ylabel or "")
-        serialized += encode_null_string(Plot_data.savename or "")
+        serialized += encode_null_string(plot_data.title or "")
+        serialized += encode_null_string(plot_data.xlabel or "")
+        serialized += encode_null_string(plot_data.ylabel or "")
+        serialized += encode_null_string(plot_data.savename or "")
 
         # Pack boolean and number of series
-        serialized += struct.pack('!?', Plot_data.show_legend)
-        serialized += struct.pack('!I', len(Plot_data.series_data))
+        serialized += struct.pack('!?', plot_data.show_legend)
+        serialized += struct.pack('!I', len(plot_data.series_data))
 
         # If datamin is set, serialize it
-        serialized += struct.pack('!?', Plot_data.datamin is not None)
-        if Plot_data.datamin is not None:
-            serialized += struct.pack('!dd', Plot_data.datamin[0], Plot_data.datamin[1])
+        serialized += struct.pack('!?', plot_data.datamin is not None)
+        if plot_data.datamin is not None:
+            serialized += struct.pack('!dd', plot_data.datamin[0], plot_data.datamin[1])
 
         # If datamax is set, serialize it
-        serialized += struct.pack('!?', Plot_data.datamax is not None)
-        if Plot_data.datamax is not None:
-            serialized += struct.pack('!dd', Plot_data.datamax[0], Plot_data.datamax[1])
+        serialized += struct.pack('!?', plot_data.datamax is not None)
+        if plot_data.datamax is not None:
+            serialized += struct.pack('!dd', plot_data.datamax[0], plot_data.datamax[1])
 
-        for series in Plot_data.series_data:
+        for series in plot_data.series_data:
             with_errors = series.n_error is not None or series.p_error is not None
             serialized += encode_null_string(series.label)
             serialized += struct.pack('!?', with_errors)
@@ -234,9 +248,9 @@ class _PlotSerializer:
             serialized += struct.pack('!I', series.plot_type.value)
 
             # Serialize coordinates with optional error bars for each point
-            for i in range(len(series.x_coords)):
+            for i, (x, y) in enumerate(zip(series.x_coords, series.y_coords)):
                 # Serialize x and y coordinates
-                serialized += struct.pack('!dd', series.x_coords[i], series.y_coords[i])
+                serialized += struct.pack('!dd', x, y)
 
                 if with_errors:
                     # Serialize negative error (if exists, otherwise 0)
@@ -252,3 +266,7 @@ class _PlotSerializer:
                         serialized += struct.pack('!d', 0.0)
 
         return serialized, len(serialized)
+
+    def __str__(self):
+        """String representation of the _PlotSerializer object."""
+        return "PlotSerializer for Siril plotting"

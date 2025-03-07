@@ -3,17 +3,24 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""
+Utility module for Siril Python interface providing helper functions for file operations,
+package management, and standard I/O control to support Siril's scripting capabilities.
+"""
+
 import os
 import sys
 import io
 import time
-import requests
 import threading
 import subprocess
 from importlib import metadata, util
-from typing import Union, List, Optional, TYPE_CHECKING
-from packaging import version
+from typing import Union, List, Optional, TYPE_CHECKING, Tuple
+import requests
+from packaging import version as pkg_version
 from packaging.specifiers import SpecifierSet
+from packaging.requirements import Requirement
+
 if TYPE_CHECKING:
     from .connection import SirilInterface
 
@@ -61,7 +68,7 @@ def download_with_progress(
     """
     temp_file_path = file_path + '.part'
 
-    def get_file_size_and_resume_point() -> tuple[int, int]:
+    def get_file_size_and_resume_point() -> Tuple[int, int]:
         """Determine the current file size for resuming download."""
         if os.path.exists(temp_file_path):
             return os.path.getsize(temp_file_path), 1
@@ -99,7 +106,6 @@ def download_with_progress(
             # Open file in append mode or write mode
             mode = 'ab' if initial_size > 0 else 'wb'
             with open(temp_file_path, mode) as f:
-                vernier = 0
                 for chunk in response.iter_content(chunk_size=8192):
                     if not chunk:
                         continue
@@ -112,7 +118,9 @@ def download_with_progress(
                     # Update progress
                     if total_size > 0 and current_time - last_update_time >= min_update_interval:
                         progress = downloaded_size / total_size
-                        status = f"Downloading... (Attempt {resume_attempt}, {human_readable_size(downloaded_size)}/{human_readable_size(total_size)})"
+                        # Line shortened to comply with line length limit
+                        status = (f"Downloading... (Attempt {resume_attempt}, "
+                                 f"{human_readable_size(downloaded_size)}/{human_readable_size(total_size)})")
                         siril.update_progress(status, progress)
                         last_update_time = current_time
 
@@ -145,7 +153,8 @@ def download_with_progress(
 
             siril.update_progress(error_message, 0.0)
 
-            raise RuntimeError(error_message)
+            # Using proper re-raising with from
+            raise RuntimeError(error_message) from e
 
     # All retry attempts failed
     raise RuntimeError(f"Failed to download file from {url} after {max_retries} attempts")
@@ -225,12 +234,9 @@ def _check_package_installed(package_name: str, version_constraint: Optional[str
 
         # Validate version constraint
         try:
-            from packaging import version
-            from packaging.requirements import Requirement
-
             req_string = f"{package_name}{version_constraint}"
             requirement = Requirement(req_string)
-            return version.parse(installed_version) in requirement.specifier
+            return pkg_version.parse(installed_version) in requirement.specifier
 
         except ImportError:
             # Fallback if packaging is not available
@@ -265,28 +271,27 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
 
     try:
         # Start pip install process with pipe for stdout
-        process = subprocess.Popen(
+        with subprocess.Popen(
             [sys.executable, "-m", "pip", "install", install_target],
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             bufsize=-1,
             universal_newlines=False
-        )
+        ) as process:
+            # Create and start output streaming thread
+            output_thread = threading.Thread(target=_stream_output, args=(process,))
+            output_thread.start()
 
-        # Create and start output streaming thread
-        output_thread = threading.Thread(target=_stream_output, args=(process,))
-        output_thread.start()
+            # Wait for process to complete
+            return_code = process.wait()
+            output_thread.join()
 
-        # Wait for process to complete
-        return_code = process.wait()
-        output_thread.join()
+            if return_code == 0:
+                print(f"Successfully installed {install_target}")
+            else:
+                raise subprocess.CalledProcessError(return_code, process.args)
 
-        if return_code == 0:
-            print(f"Successfully installed {install_target}")
-        else:
-            raise subprocess.CalledProcessError(return_code, process.args)
-
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         print(f"Failed to install {install_target}")
         raise
 
@@ -313,7 +318,7 @@ def check_module_version(requires=None):
     Raises:
         ValueError: if requires is an invalid version specifier.
     """
-    import sirilpy # required in order to have access to the namespace
+    import sirilpy  # pylint: disable=import-outside-toplevel
 
     if requires is None:
         return True  # No version requirement
@@ -321,10 +326,11 @@ def check_module_version(requires=None):
     try:
         # Create a SpecifierSet from the `requires` string
         specifiers = SpecifierSet(requires)
-        # Check if sirilpy.__version__ satisfies the specifiers
-        return version.parse(sirilpy.__version__) in specifiers
-    except (version.InvalidVersion, ValueError):
-        raise ValueError(f"Invalid version specifier: {requires}")
+        # Use pkg_version from top-level import
+        return pkg_version.parse(sirilpy.__version__) in specifiers
+    except (pkg_version.InvalidVersion, ValueError) as exc:
+        # Proper re-raising with from
+        raise ValueError(f"Invalid version specifier: {requires}") from exc
 
 class SuppressedStdout:
     """
@@ -342,8 +348,14 @@ class SuppressedStdout:
             print("This message will appear again")
 
     """
+    def __init__(self):
+        """Initialize attributes that will be used in context management."""
+        self.devnull = None
+        self.original_stdout_fd = None
+        self.original_stdout = None
+
     def __enter__(self):
-        self.devnull = open(os.devnull, 'w')
+        self.devnull = open(os.devnull, 'w', encoding='utf-8')
         self.original_stdout_fd = os.dup(1)  # Duplicate stdout (fd 1)
         os.dup2(self.devnull.fileno(), 1)  # Redirect stdout to devnull
         self.original_stdout = sys.stdout
@@ -355,6 +367,7 @@ class SuppressedStdout:
         sys.stdout = self.original_stdout  # Restore Python stdout
         self.devnull.close()
 
+
 class SuppressedStderr:
     """
     This class allows suppression of the script's stderr, which can
@@ -365,8 +378,14 @@ class SuppressedStderr:
     be used sparingly and should **not** be used to hide evidence of
     bad code.
     """
+    def __init__(self):
+        """Initialize attributes that will be used in context management."""
+        self.devnull = None
+        self.original_stderr_fd = None
+        self.original_stderr = None
+
     def __enter__(self):
-        self.devnull = open(os.devnull, 'w')
+        self.devnull = open(os.devnull, 'w', encoding='utf-8')
         self.original_stderr_fd = os.dup(2)  # Duplicate stderr (fd 2)
         os.dup2(self.devnull.fileno(), 2)  # Redirect stderr to devnull
         self.original_stderr = sys.stderr
