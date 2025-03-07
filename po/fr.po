@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-04 15:24+0100\n"
-"PO-Revision-Date: 2025-03-05 13:40+0000\n"
+"POT-Creation-Date: 2025-03-05 16:51+0100\n"
+"PO-Revision-Date: 2025-03-05 15:57+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -31,7 +31,8 @@ msgstr "Paramètres AAVSO"
 #: src/gui/uifiles/ccm_dialog.ui:57 src/gui/uifiles/color_calibration.ui:114
 #: src/gui/uifiles/composition_dialog.ui:109
 #: src/gui/uifiles/cosmetic_dialog.ui:69 src/gui/uifiles/crop_dialog.ui:51
-#: src/gui/uifiles/cut_coords_dialog.ui:75 src/gui/uifiles/cut_dialog.ui:56
+#: src/gui/uifiles/curves_dialog.ui:96 src/gui/uifiles/cut_coords_dialog.ui:75
+#: src/gui/uifiles/cut_dialog.ui:56
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:88
 #: src/gui/uifiles/data_dialog.ui:63 src/gui/uifiles/denoise_dialog.ui:69
 #: src/gui/uifiles/dialog_FFT.ui:50 src/gui/uifiles/dialog_star_remix.ui:186
@@ -63,7 +64,8 @@ msgstr "Fermer"
 #: src/gui/uifiles/ccm_dialog.ui:71 src/gui/uifiles/CLAHE_dialog.ui:96
 #: src/gui/uifiles/color_calibration.ui:128
 #: src/gui/uifiles/cosmetic_dialog.ui:84 src/gui/uifiles/crop_dialog.ui:65
-#: src/gui/uifiles/cut_coords_dialog.ui:89 src/gui/uifiles/cut_dialog.ui:70
+#: src/gui/uifiles/curves_dialog.ui:112 src/gui/uifiles/cut_coords_dialog.ui:89
+#: src/gui/uifiles/cut_dialog.ui:70
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:102
 #: src/gui/uifiles/denoise_dialog.ui:88 src/gui/uifiles/denoise_dialog.ui:102
 #: src/gui/uifiles/denoise_dialog.ui:106 src/gui/uifiles/dialog_FFT.ui:64
@@ -597,7 +599,8 @@ msgid "Asinh Transformation"
 msgstr "Transformation asinh"
 
 #: src/gui/uifiles/asinh_dialog.ui:63 src/gui/uifiles/ccm_dialog.ui:43
-#: src/gui/uifiles/CLAHE_dialog.ui:68 src/gui/uifiles/dialog_star_remix.ui:1546
+#: src/gui/uifiles/CLAHE_dialog.ui:68 src/gui/uifiles/curves_dialog.ui:80
+#: src/gui/uifiles/dialog_star_remix.ui:1546
 #: src/gui/uifiles/dialog_star_remix.ui:1594
 #: src/gui/uifiles/histogram_dialog.ui:156
 #: src/gui/uifiles/histogram_dialog.ui:160
@@ -645,8 +648,8 @@ msgstr ""
 "pixel."
 
 #: src/gui/uifiles/asinh_dialog.ui:252 src/gui/uifiles/CLAHE_dialog.ui:254
-#: src/gui/uifiles/histogram_dialog.ui:788 src/gui/uifiles/satu_dialog.ui:280
-#: src/gui/uifiles/wavelets_dialog.ui:751
+#: src/gui/uifiles/curves_dialog.ui:704 src/gui/uifiles/histogram_dialog.ui:788
+#: src/gui/uifiles/satu_dialog.ui:280 src/gui/uifiles/wavelets_dialog.ui:751
 msgid "Preview"
 msgstr "Aperçu"
 
@@ -1458,8 +1461,8 @@ msgstr "Garder appuyé sur ce bouton pour voir l'image originale."
 #: src/gui/uifiles/bdeconv_dialog.ui:2126
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:259
 #: src/gui/uifiles/ccm_dialog.ui:342 src/gui/uifiles/cosmetic_dialog.ui:329
-#: src/gui/uifiles/cut_dialog.ui:222 src/gui/uifiles/graxpert.ui:1024
-#: src/gui/uifiles/histogram_dialog.ui:686
+#: src/gui/uifiles/curves_dialog.ui:652 src/gui/uifiles/cut_dialog.ui:222
+#: src/gui/uifiles/graxpert.ui:1024 src/gui/uifiles/histogram_dialog.ui:686
 #: src/gui/uifiles/merge_cfa_dialog.ui:290
 #: src/gui/uifiles/split_cfa_dialog.ui:127
 #: src/gui/uifiles/starnet_dialog.ui:247
@@ -1469,7 +1472,7 @@ msgstr "Appliquer à la séquence"
 #: src/gui/uifiles/background_extraction_dialog.ui:612
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:263
 #: src/gui/uifiles/ccm_dialog.ui:346 src/gui/uifiles/cosmetic_dialog.ui:333
-#: src/gui/uifiles/histogram_dialog.ui:690
+#: src/gui/uifiles/curves_dialog.ui:656 src/gui/uifiles/histogram_dialog.ui:690
 #: src/gui/uifiles/split_cfa_dialog.ui:131
 msgid ""
 "If a sequence is loaded and this is activated, perform the processing on all "
@@ -1481,8 +1484,9 @@ msgstr ""
 #: src/gui/uifiles/background_extraction_dialog.ui:626
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:278
 #: src/gui/uifiles/ccm_dialog.ui:360 src/gui/uifiles/cosmetic_dialog.ui:347
-#: src/gui/uifiles/crop_dialog.ui:117 src/gui/uifiles/histogram_dialog.ui:705
-#: src/gui/uifiles/siril.ui:5300 src/gui/uifiles/split_cfa_dialog.ui:118
+#: src/gui/uifiles/crop_dialog.ui:117 src/gui/uifiles/curves_dialog.ui:671
+#: src/gui/uifiles/histogram_dialog.ui:705 src/gui/uifiles/siril.ui:5300
+#: src/gui/uifiles/split_cfa_dialog.ui:118
 msgid "Output prefix:"
 msgstr "Préfixe de sortie :"
 
@@ -2848,6 +2852,111 @@ msgstr "Recadrer séquence"
 msgid "Prefix of the image names resulting from the cropping process."
 msgstr "Préfixe du nom de l'image résultant du recadrage."
 
+#: src/gui/uifiles/curves_dialog.ui:62
+msgid "Curves Transformation"
+msgstr "Transformation par courbes"
+
+#: src/gui/uifiles/curves_dialog.ui:84
+msgid "Reset curves transformation dialog window"
+msgstr ""
+"Réinitialisation de la fenêtre de dialogue de transformation par courbes"
+
+#: src/gui/uifiles/curves_dialog.ui:100
+msgid "Close curves transformation dialog window"
+msgstr "Fermer la fenêtre de dialogue de transformation par courbes"
+
+#: src/gui/uifiles/curves_dialog.ui:116
+msgid "Apply curves transformation"
+msgstr "Appliquer la transformation par courbes"
+
+#: src/gui/uifiles/curves_dialog.ui:168
+msgid "Curves histogram display zoom"
+msgstr "Zoom de l'affichage de l'histogramme des courbes"
+
+#: src/gui/uifiles/curves_dialog.ui:188
+msgid "Reset zoom to 1"
+msgstr "Rétablir le zoom à 1"
+
+#: src/gui/uifiles/curves_dialog.ui:207 src/gui/uifiles/histogram_dialog.ui:283
+msgid "Logarithmic scale"
+msgstr "Échelle logarithmique"
+
+#: src/gui/uifiles/curves_dialog.ui:211
+msgid ""
+"Show the histogram with a logarithmic scale. Does not affect the transfer "
+"function display.\n"
+"                            "
+msgstr ""
+"Affiche l'histogramme avec une échelle logarithmique. N'affecte pas "
+"l'affichage de la fonction de transfert.\n"
+"                            "
+
+#: src/gui/uifiles/curves_dialog.ui:294
+msgid "Toggles whether to apply the curve to the red channel"
+msgstr "Permet d'appliquer ou non la courbe au canal rouge"
+
+#: src/gui/uifiles/curves_dialog.ui:312
+msgid "Toggles whether to apply the curve to the green channel"
+msgstr "Permet d'appliquer ou non la courbe au canal vert"
+
+#: src/gui/uifiles/curves_dialog.ui:330
+msgid "Toggles whether to apply the curve to the blue channel"
+msgstr "Permet d'appliquer ou non la courbe au canal bleu"
+
+#: src/gui/uifiles/curves_dialog.ui:357
+msgid "Toggles whether the grid is shown on the histogram display"
+msgstr "Permet d'afficher ou non la grille sur l'histogramme"
+
+#: src/gui/uifiles/curves_dialog.ui:381
+msgid "Interpolation algorithm used to compute a curve from the placed points"
+msgstr ""
+"Algorithme d'interpolation utilisé pour calculer une courbe à partir des "
+"points placés"
+
+#: src/gui/uifiles/curves_dialog.ui:421
+msgid "Curve point Y: "
+msgstr "Point Y de la courbe : "
+
+#: src/gui/uifiles/curves_dialog.ui:433
+msgid "Curve point ID: "
+msgstr "ID du point de la courbe : "
+
+#: src/gui/uifiles/curves_dialog.ui:445
+msgid "Curve point X: "
+msgstr "Point X de la courbe : "
+
+#: src/gui/uifiles/curves_dialog.ui:487
+msgid "The ID of the selected curve point"
+msgstr "L'ID du point sélectionné de la courbe"
+
+#: src/gui/uifiles/curves_dialog.ui:537
+msgid "X coordinate of the selected curve point"
+msgstr "Coordonnée X du point sélectionné de la courbe"
+
+#: src/gui/uifiles/curves_dialog.ui:555
+msgid "Y coordinate of the selected curve point"
+msgstr "Coordonnée Y du point sélectionné de la courbe"
+
+#: src/gui/uifiles/curves_dialog.ui:586 src/gui/uifiles/histogram_dialog.ui:620
+msgid "Clip (%)"
+msgstr "Perte (%)"
+
+#: src/gui/uifiles/curves_dialog.ui:599 src/gui/uifiles/histogram_dialog.ui:633
+msgid "Clipped pixels count (shadows)"
+msgstr "Compte des pixels perdus (basses lumières)"
+
+#: src/gui/uifiles/curves_dialog.ui:617 src/gui/uifiles/histogram_dialog.ui:651
+msgid "Clipped pixels count (highlights)"
+msgstr "Compte des pixels perdus (hautes lumières)"
+
+#: src/gui/uifiles/curves_dialog.ui:683
+msgid "Prefix of the image names resulting from the curve transformation"
+msgstr "Préfixe des noms d'images résultant de la transformation de la courbe"
+
+#: src/gui/uifiles/curves_dialog.ui:708
+msgid "Toggles preview"
+msgstr "Activer / désactiver l'aperçu"
+
 #: src/gui/uifiles/cut_coords_dialog.ui:60
 msgid "Coordinates"
 msgstr "Coordonnées"
@@ -4079,9 +4188,8 @@ msgid "Preview the current settings on a region of interest."
 msgstr "Prévisualiser les paramètres actuels d'une région d'intérêt."
 
 #: src/gui/uifiles/graxpert.ui:115
-#, fuzzy
 msgid "Apply the selected operation."
-msgstr "Applique la correction sélectionnée."
+msgstr "Appliquer l'opération sélectionnée."
 
 #: src/gui/uifiles/graxpert.ui:159
 msgid "Algorithm"
@@ -4138,7 +4246,7 @@ msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:291
 msgid "Sample size / px"
-msgstr "Taille de l'échantillon / px :"
+msgstr "Taille de l'échantillon / px"
 
 #: src/gui/uifiles/graxpert.ui:302
 msgid ""
@@ -4270,7 +4378,7 @@ msgstr "Configurer la déconvolution GraXpert Image FWHM (en pixels)."
 
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
 msgid "Deconvolution AI model version:"
-msgstr "Déconvolution version du modèle IA"
+msgstr "Déconvolution version du modèle IA :"
 
 #: src/gui/uifiles/graxpert.ui:748 src/gui/uifiles/graxpert.ui:789
 msgid ""
@@ -4348,10 +4456,6 @@ msgstr "Zoom Horizontal"
 msgid "Reset zooms to 1."
 msgstr "Rétablir le zoom à 1."
 
-#: src/gui/uifiles/histogram_dialog.ui:283
-msgid "Logarithmic scale"
-msgstr "Échelle logarithmique"
-
 #: src/gui/uifiles/histogram_dialog.ui:287
 msgid ""
 "Show the histogram with a logarithmic scale. Does not affect the transfer "
@@ -4411,18 +4515,6 @@ msgstr "Balance des tons moyens"
 #: src/gui/uifiles/histogram_dialog.ui:589
 msgid "Shadows clipping"
 msgstr "Basses lumières"
-
-#: src/gui/uifiles/histogram_dialog.ui:620
-msgid "Clip (%)"
-msgstr "Perte (%)"
-
-#: src/gui/uifiles/histogram_dialog.ui:633
-msgid "Clipped pixels count (shadows)"
-msgstr "Compte des pixels perdus (basses lumières)"
-
-#: src/gui/uifiles/histogram_dialog.ui:651
-msgid "Clipped pixels count (highlights)"
-msgstr "Compte des pixels perdus (hautes lumières)"
 
 #: src/gui/uifiles/histogram_dialog.ui:717
 msgid "Prefix of the image names resulting from the mtf process."
@@ -6330,7 +6422,7 @@ msgstr "Options FITS"
 msgid "Astrometry"
 msgstr "Astrométrie"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 msgid "Catalogue"
 msgstr "Catalogue"
 
@@ -8559,6 +8651,10 @@ msgstr "Transformation asinh..."
 #: src/gui/uifiles/siril.ui:1529
 msgid "Open the curves transform dialog"
 msgstr "Ouvrir la boîte de dialogue de la transformation des courbes"
+
+#: src/gui/uifiles/siril.ui:1531
+msgid "Curves Transformation..."
+msgstr "Transformation par courbes..."
 
 #: src/gui/uifiles/siril.ui:1544
 msgid "Open the hystogram transform dialog"
