@@ -262,13 +262,20 @@ static void siril_macos_setenv(const char *progname) {
 		gchar tmp[PATH_MAX];
 		gchar *exe_dir;           /* executable directory */
 		gchar res_dir[PATH_MAX];  /* resources directory  */
+		gchar fra_dir[PATH_MAX];  /* frameworks directory */
 
 		exe_dir = g_path_get_dirname(resolved_path);
 
 		/* get canonical path to Foo.app/Contents/Resources directory */
 		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", exe_dir);
+		realpath(tmp, res_dir);
+		/* get canonical path to Foo.app/Contents/Resources directory */
+		g_snprintf(tmp, sizeof(tmp), "%s/../Frameworks", exe_dir);
+		realpath(tmp, fra_dir);
+
+		/* check if running inside an application bundle */
 		struct stat sb;
-		if (realpath(tmp, res_dir) && !stat(res_dir, &sb) && S_ISDIR(sb.st_mode)) {
+		if (res_dir && !stat(res_dir, &sb) && S_ISDIR(sb.st_mode)) {
 			g_print("Siril is started as macOS application\n");
 		}
 		else {
@@ -279,7 +286,7 @@ static void siril_macos_setenv(const char *progname) {
 		/* store canonical path to resources directory in environment variable. */
 		g_setenv("SIRIL_RELOCATED_RES_DIR", res_dir, TRUE);
 
-    /* prepend PATH with our Contents/MacOS directory */
+    /* prepend PATH with our exe_dir (Foo.app/Contents/MacOS) */
 		gchar *path = g_try_malloc(PATH_MAX);
 		if (path == NULL) {
 			g_warning("Failed to allocate memory");
@@ -305,10 +312,18 @@ static void siril_macos_setenv(const char *progname) {
 		}
 
 		/* set GTK related environment variables */
-		g_snprintf(tmp, sizeof(tmp), "%s/share/schemas", res_dir);
-		g_setenv("GTK_PATH", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache", res_dir);
+		g_snprintf(tmp, sizeof(tmp), "%s", fra_dir);
+		g_setenv("GTK_EXE_PREFIX", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s", res_dir);
+		g_setenv("GTK_DATA_PREFIX", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/loaders.cache", res_dir);
 		g_setenv("GDK_PIXBUF_MODULE_FILE", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/immodules.cache", res_dir);
+		g_setenv("GTK_IM_MODULE_FILE", tmp, TRUE);
+
+		/* GObject introspection */
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/girepository-1.0", res_dir);
+		g_setenv("GI_TYPELIB_PATH", tmp, TRUE);
 
 		/* set fontconfig related variables */
 		g_snprintf(tmp, sizeof(tmp), "%s/etc/fonts", res_dir);
