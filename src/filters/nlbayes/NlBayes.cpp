@@ -27,11 +27,9 @@
 #include "LibMatrix.h"
 #include "LibImages.h"
 #include "Utilities.h"
-extern "C" {
 #include "algos/anscombe.h"
 #include "core/processing.h"
 #include "gui/progress_and_log.h"
-}
 
 #ifdef _OPENMP
 #include <omp.h>

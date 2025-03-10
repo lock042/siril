@@ -15,10 +15,10 @@
 #include "WeightMap.hpp"
 #include "Utils.hpp"
 #include "DftPatch.hpp"
-extern "C" {
+
 #include "core/processing.h"
 #include "gui/progress_and_log.h"
-}
+
 
 #ifdef _OPENMP
 #include <omp.h>
