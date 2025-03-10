@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-02-23 11:16+0000\n"
+"PO-Revision-Date: 2025-03-10 21:11+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -2809,36 +2809,30 @@ msgid "Curves Transformation"
 msgstr "Вейвлетные преобразования"
 
 #: src/gui/uifiles/curves_dialog.ui:84
-#, fuzzy
 msgid "Reset curves transformation dialog window"
-msgstr "Диалог преобразования кривых"
+msgstr "Сбросить диалог преобразования кривых"
 
 #: src/gui/uifiles/curves_dialog.ui:100
-#, fuzzy
 msgid "Close curves transformation dialog window"
-msgstr "Диалог преобразования кривых"
+msgstr "Закрыть диалог преобразования кривых"
 
 #: src/gui/uifiles/curves_dialog.ui:116
-#, fuzzy
 msgid "Apply curves transformation"
-msgstr "Применить трансформацию гистограммы"
+msgstr "Применить преобразование кривых"
 
 #: src/gui/uifiles/curves_dialog.ui:168
-#, fuzzy
 msgid "Curves histogram display zoom"
-msgstr "режим показа гистограммы по умолчанию"
+msgstr "Масштаб отображаемой гистограммы"
 
 #: src/gui/uifiles/curves_dialog.ui:188
-#, fuzzy
 msgid "Reset zoom to 1"
-msgstr "Сбросить масштаб к 1."
+msgstr "Сбросить масштаб к 1"
 
 #: src/gui/uifiles/curves_dialog.ui:207 src/gui/uifiles/histogram_dialog.ui:283
 msgid "Logarithmic scale"
 msgstr "Логарифмическая шкала"
 
 #: src/gui/uifiles/curves_dialog.ui:211
-#, fuzzy
 msgid ""
 "Show the histogram with a logarithmic scale. Does not affect the transfer "
 "function display.\n"
@@ -2846,57 +2840,53 @@ msgid ""
 msgstr ""
 "Показать гистограмму на логарифмической шкале. Не влияет на отображение "
 "передаточной функции.\n"
+"                            "
 
 #: src/gui/uifiles/curves_dialog.ui:294
-#, fuzzy
 msgid "Toggles whether to apply the curve to the red channel"
-msgstr "Применить растягивание к монохромному каналу"
+msgstr "Применять ли кривую к красному каналу"
 
 #: src/gui/uifiles/curves_dialog.ui:312
-#, fuzzy
 msgid "Toggles whether to apply the curve to the green channel"
-msgstr "Применить растягивание к монохромному каналу"
+msgstr "Применять ли кривую к зелёному каналу"
 
 #: src/gui/uifiles/curves_dialog.ui:330
-#, fuzzy
 msgid "Toggles whether to apply the curve to the blue channel"
-msgstr "Применить растягивание к монохромному каналу"
+msgstr "Применять ли кривую к синему каналу"
 
 #: src/gui/uifiles/curves_dialog.ui:357
-#, fuzzy
 msgid "Toggles whether the grid is shown on the histogram display"
-msgstr "Применить растягивание к зелёному каналу"
+msgstr "Показывать ли сетку на гистограмме"
 
 #: src/gui/uifiles/curves_dialog.ui:381
 msgid "Interpolation algorithm used to compute a curve from the placed points"
 msgstr ""
+"Алгоритм интерполяции, использованный для вычисления кривой по указанным "
+"точкам"
 
 #: src/gui/uifiles/curves_dialog.ui:421
 msgid "Curve point Y: "
-msgstr ""
+msgstr "Коорд. по Y: "
 
 #: src/gui/uifiles/curves_dialog.ui:433
 msgid "Curve point ID: "
-msgstr ""
+msgstr "ID точки: "
 
 #: src/gui/uifiles/curves_dialog.ui:445
 msgid "Curve point X: "
-msgstr ""
+msgstr "Коорд. по X: "
 
 #: src/gui/uifiles/curves_dialog.ui:487
-#, fuzzy
 msgid "The ID of the selected curve point"
-msgstr "Подробности о выбранном красном фильтре"
+msgstr "Идентификатор (ID) выбранной точки кривой"
 
 #: src/gui/uifiles/curves_dialog.ui:537
-#, fuzzy
 msgid "X coordinate of the selected curve point"
-msgstr "Центр полярных координат по X."
+msgstr "Координата выбранной точки кривой по оси X"
 
 #: src/gui/uifiles/curves_dialog.ui:555
-#, fuzzy
 msgid "Y coordinate of the selected curve point"
-msgstr "Центр полярных координат по Y."
+msgstr "Координата выбранной точки кривой по оси Y"
 
 #: src/gui/uifiles/curves_dialog.ui:586 src/gui/uifiles/histogram_dialog.ui:620
 msgid "Clip (%)"
@@ -2911,12 +2901,10 @@ msgid "Clipped pixels count (highlights)"
 msgstr "Кол-во обрезанных пикселей (света)"
 
 #: src/gui/uifiles/curves_dialog.ui:683
-#, fuzzy
 msgid "Prefix of the image names resulting from the curve transformation"
-msgstr "Префикс имён файлов, полученных после регистрации."
+msgstr "Префикс имён файлов, полученных после преобразования кривой"
 
 #: src/gui/uifiles/curves_dialog.ui:708
-#, fuzzy
 msgid "Toggles preview"
 msgstr "Вкл. / выкл. предпосмотр"
 
