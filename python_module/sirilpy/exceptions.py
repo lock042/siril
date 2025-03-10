@@ -16,7 +16,7 @@ class SirilError(Exception):
         self.message = message
         super().__init__(self.message)
 
-class ConnectionError(SirilError):
+class SirilConnectionError(SirilError):
     """Raised when there are problems connecting to or
     communicating with Siril.
     This includes cases like:
