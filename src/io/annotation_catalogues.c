@@ -771,5 +771,7 @@ void refresh_annotations(gboolean purge_temp) {
 	if (com.found_object) {
 		cleanup_annotation_catalogues(purge_temp);
 		refresh_found_objects();
+	} else {
+		cleanup_annotation_catalogues(purge_temp);
 	}
 }
