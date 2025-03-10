@@ -1516,7 +1516,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="double-buffered">False</property>
                                         <property name="halign">start</property>
                                         <property name="label" translatable="yes">Gaia astrometric extract:</property>
                                       </object>
@@ -1529,7 +1528,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="double-buffered">False</property>
                                         <property name="halign">start</property>
                                         <property name="label" translatable="yes">Gaia photometric extract:</property>
                                       </object>
@@ -1539,28 +1537,26 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkFileChooserButton" id="localcatalogue_path5">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="tooltip-text" translatable="yes">Specify the location of the Siril astrometric extract of the Gaia DR3 catalogue, used for plate solving</property>
-                                        <property name="double-buffered">False</property>
-                                        <property name="title" translatable="yes">gaia_astrometric.dat</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">1</property>
-                                        <property name="top-attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
                                       <object class="GtkFileChooserButton" id="localcatalogue_path6">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify the folder where the Gaia photometric catalogue is stored. Because of its size this catalogue is divided into chunks, so you need only select the folder.</property>
-                                        <property name="action">select-folder</property>
                                         <property name="title" translatable="yes">gaia_photometric.dat</property>
                                       </object>
                                       <packing>
                                         <property name="left-attach">3</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="localcatalogue_path5">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Specify the location of the Siril astrometric extract of the Gaia DR3 catalogue, used for plate solving</property>
+                                        <property name="title" translatable="yes">gaia_astrometric.dat</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
                                         <property name="top-attach">2</property>
                                       </packing>
                                     </child>
