@@ -905,7 +905,7 @@ class SirilInterface:
 
         return self.update_progress("", 0.0)
 
-    def cmd(self, *args: str) -> bool:
+    def cmd(self, *args: str):
         """
         Send a command to Siril to be executed. The range of available commands can
         be found by checking the online documentation. The command and its arguments
@@ -914,8 +914,8 @@ class SirilInterface:
         Args:
             *args: Variable number of string arguments to be combined into a command
 
-        Returns:
-            bool: True if the command was successfully executed, False otherwise
+        Raises:
+            RuntimeError: If the command failed.
 
         Example:
             .. code-block:: python
@@ -934,7 +934,7 @@ class SirilInterface:
 
         except Exception as e:
             print(f"Error sending command: {e}", file=sys.stderr)
-            return False
+            raise SirilException(_("Error executing command {}: {}").format(args[0], e)) from e
 
     def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
         """

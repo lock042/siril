@@ -34,6 +34,7 @@ typedef enum {
 	CMD_NOTIFY_GFIT_MODIFIED = 1 << 23
 } cmd_status;
 
+const char *cmd_err_to_str(cmd_errors err);
 void parse_line(char *myline, int len, int *nb);
 void remove_trailing_cr(char *str);
 int execute_command(int wordnb);
