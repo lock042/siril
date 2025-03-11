@@ -287,6 +287,10 @@ static void remap(int vport) {
 		guint dst_i = ((gfit.ry - 1 - y) * gfit.rx) * 4;
 		for (guint x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
 			BYTE dst_pixel_value = 0;
+			if (gfit.type == DATA_UNSUPPORTED) {
+				// Covers an apparent race where remap may be in progress while handle_set_pixeldata() runs.
+				continue;
+			}
 			if (gfit.type == DATA_USHORT) {
 				if (hd_mode) {
 					dst_pixel_value = index[src[src_i] * gui.hd_remap_max / USHRT_MAX]; // Works as long as hd_remap_max is power of 2
