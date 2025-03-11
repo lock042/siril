@@ -5,10 +5,6 @@
 #  include <config.h>
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include "registration/registration.h"
 #include "registration/distorsion.h"
@@ -17,6 +13,10 @@ extern "C" {
 #include "gui/progress_and_log.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 WORD *fits_to_bgrbgr_ushort(fits *image);
 float *fits_to_bgrbgr_float(fits *image);
