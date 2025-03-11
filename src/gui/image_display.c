@@ -287,10 +287,6 @@ static void remap(int vport) {
 		guint dst_i = ((gfit.ry - 1 - y) * gfit.rx) * 4;
 		for (guint x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
 			BYTE dst_pixel_value = 0;
-			if (gfit.type == DATA_UNSUPPORTED) {
-				// Covers an apparent race where remap may be in progress while handle_set_pixeldata() runs.
-				continue;
-			}
 			if (gfit.type == DATA_USHORT) {
 				if (hd_mode) {
 					dst_pixel_value = index[src[src_i] * gui.hd_remap_max / USHRT_MAX]; // Works as long as hd_remap_max is power of 2
@@ -420,12 +416,6 @@ static void remap_all_vports() {
 			WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit.rx) , (pixelbuf + 2 * gfit.rx) };
 			BYTE *pixelbuf_byte = malloc(gfit.rx * 3);
 			BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + gfit.rx) , (pixelbuf_byte + 2 * gfit.rx) };
-			if (gfit.type == DATA_UNSUPPORTED) {
-				// Covers an apparent race where remap may be in progress while handle_set_pixeldata() runs.
-				free(pixelbuf);
-				free(pixelbuf_byte);
-				continue;
-			}
 			if (gfit.type == DATA_FLOAT) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
@@ -1980,7 +1970,6 @@ void copy_roi_into_gfit() {
 
 void redraw(remap_type doremap) {
 	if (com.script && !com.python_script) return;
-//	siril_debug_print("redraw %d\n", doremap);
 	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit.type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit.type == DATA_USHORT && gui.roi.fit.data)))
 		copy_roi_into_gfit();
 	switch (doremap) {

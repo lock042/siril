@@ -5159,6 +5159,15 @@ int process_new(int nb){
 	com.seq.current = UNRELATED_IMAGE;
 	create_uniq_from_gfit(strdup(_("new empty image")), FALSE);
 	gui_function(open_single_image_from_gfit, NULL);
+	if (!com.headless) {
+		if (g_main_context_is_owner(g_main_context_default())) {
+			// it is safe to call the function directly
+			open_single_image_from_gfit(NULL);
+		} else {
+			// we aren't in the GTK main thread or a script, so we run the idle and wait for it
+			execute_idle_and_wait_for_it(open_single_image_from_gfit, NULL);
+		}
+	}
 	return CMD_OK;
 }
 
