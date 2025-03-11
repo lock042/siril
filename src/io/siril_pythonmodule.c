@@ -483,6 +483,15 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	return info;
 }
 
+static gboolean update_sliders_after_set_pixeldata(gpointer user_data) {
+	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
+
+	sliders_mode_set_state(gui.sliders);
+	set_cutoff_sliders_max_values();
+	set_cutoff_sliders_values();
+	return FALSE;
+}
+
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
 	if (!conn->thread_claimed) {
 		const char* error_msg = _("Processing thread is not claimed: unable to update the current image. "
@@ -630,12 +639,21 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 
 	invalidate_stats_from_fit(fit);
+	// Update gfit metadata
+	fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
+	fit->rx = fit->naxes[0] = info->width;
+	fit->ry = fit->naxes[1] = info->height;
+	fit->naxes[2] = info->channels;
 	if (fit == &gfit) {
-		// Update gfit metadata
-		fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
-		fit->rx = fit->naxes[0] = info->width;
-		fit->ry = fit->naxes[1] = info->height;
-		fit->naxes[2] = info->channels;
+		if (!com.headless) {
+			if (g_main_context_is_owner(g_main_context_default())) {
+				// it is safe to call the function directly
+				update_sliders_after_set_pixeldata(NULL);
+			} else {
+				// we aren't in the GTK main thread or a script, so we run the idle and wait for it
+				execute_idle_and_wait_for_it(update_sliders_after_set_pixeldata, NULL);
+			}
+		}
 		siril_debug_print("set_*_pixeldata: updating gfit\n");
 		queue_redraw(REMAP_ALL);
 	}

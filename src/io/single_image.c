@@ -337,13 +337,13 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 	adjust_sellabel();
 
 	display_filename();	// display filename in gray window
-	gui_function(set_precision_switch, NULL); // set precision on screen
+	set_precision_switch(NULL); // set precision on screen
 
 	/* update menus */
-	gui_function(update_MenuItem, NULL);
+	update_MenuItem(NULL);
 
-	gui_function(close_tab, NULL);
-	gui_function(init_right_tab, NULL);
+	close_tab(NULL);
+	init_right_tab(NULL);
 
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
