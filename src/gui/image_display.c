@@ -416,6 +416,12 @@ static void remap_all_vports() {
 			WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit.rx) , (pixelbuf + 2 * gfit.rx) };
 			BYTE *pixelbuf_byte = malloc(gfit.rx * 3);
 			BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + gfit.rx) , (pixelbuf_byte + 2 * gfit.rx) };
+			if (gfit.type == DATA_UNSUPPORTED) {
+				// Covers an apparent race where remap may be in progress while handle_set_pixeldata() runs.
+				free(pixelbuf);
+				free(pixelbuf_byte);
+				continue;
+			}
 			if (gfit.type == DATA_FLOAT) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
