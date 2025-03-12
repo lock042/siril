@@ -5135,6 +5135,7 @@ int process_ddp(int nb) {
 int process_new(int nb){
 	int width, height, layers;
 	gchar *end, *endw, *endh;
+	char *filename = NULL;
 
 	width = g_ascii_strtod(word[1], &endw);
 	height = g_ascii_strtod(word[2], &endh);
@@ -5148,6 +5149,13 @@ int process_new(int nb){
 		return CMD_ARG_ERROR;
 	}
 
+	/* If a filename has been set */
+	if (nb == 5 && (word[4][0] != '\0')) {
+		filename = strdup(word[4]);
+	} else {
+		filename = strdup(_("new empty image"));
+	}
+
 	close_single_image();
 	close_sequence(FALSE);
 
@@ -5157,7 +5165,7 @@ int process_new(int nb){
 	memset(gfit.fdata, 0, width * height * layers * sizeof(float));
 
 	com.seq.current = UNRELATED_IMAGE;
-	create_uniq_from_gfit(strdup(_("new empty image")), FALSE);
+	create_uniq_from_gfit(filename, FALSE);
 	gui_function(open_single_image_from_gfit, NULL);
 	if (!com.headless) {
 		if (g_main_context_is_owner(g_main_context_default())) {
