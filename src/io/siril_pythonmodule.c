@@ -856,11 +856,9 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 	// Unpack the FITS header string
 	char *header = (char*) shm_ptr;
 	fits_parse_header_str(&gfit, header);
-	// TODO: check that this re-updates the header with values like rx, ry that
-	// should be set based on the real image data not imported metadata
 	update_fits_header(&gfit);
 
-	// TODO: ensure the FITS header menu item gets marked as sensitive again
+	gui_function(update_MenuItem, NULL);
 
 	// Cleanup shared memory
 	#ifdef _WIN32

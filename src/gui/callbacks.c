@@ -356,7 +356,6 @@ gpointer on_set_roi() {
 		return GINT_TO_POINTER(0);
 	g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 	if (com.python_command) {
-//		on_clear_roi();
 		g_mutex_unlock(&roi_mutex);
 		return GINT_TO_POINTER(0);
 	}
