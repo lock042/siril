@@ -211,7 +211,8 @@ void configure_graxpert_dialog_for_roi() {
 			free_background_sample_list(com.grad_samples);
 			com.grad_samples = NULL;
 		}
-		on_set_roi(); // this only configures the ROI if one is actually set now, so no slowdown
+		if (gui.roi.active)
+			on_set_roi(); // this only configures the ROI if one is actually set now, so no slowdown
 	} else {
 		roi_supported(FALSE);
 		if (is_preview_active())

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-03-05 15:57+0000\n"
+"PO-Revision-Date: 2025-03-10 21:11+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -3763,7 +3763,7 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:1277
 #: src/gui/uifiles/histogram_dialog.ui:1197
 msgid "Shadow protection point (LP)"
-msgstr "Point de protection de l'ombre (LP)"
+msgstr "Point de protection des ombres (LP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:650
 #: src/gui/uifiles/dialog_star_remix.ui:675
