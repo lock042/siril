@@ -8,16 +8,17 @@ msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2018-09-12 11:00+0300\n"
-"Last-Translator: Maksym Pyatnytskyy <mpyat2@gmail.com>\n"
-"Language-Team: Maksym Pyatnytskyy, Oleh Malyi. mpyat2@gmail.com\n"
+"PO-Revision-Date: 2025-03-13 15:45+0000\n"
+"Last-Translator: Ruslan <rpazenko@ukr.net>\n"
+"Language-Team: Ukrainian <https://weblate.siril.org/projects/siril/software/"
+"siril/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.0.8\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 #, fuzzy
@@ -90,6 +91,8 @@ msgstr "Застосувати"
 #: src/gui/uifiles/file_information_dialog.ui:96
 msgid "Non-square pixels can be entered but will not be used in most cases."
 msgstr ""
+"Неквадратні пікселі можуть бути введені, але в більшості випадків вони не "
+"використовуватимуться."
 
 #: src/gui/uifiles/aavso_dialog.ui:71
 #, fuzzy
@@ -190,7 +193,7 @@ msgstr ""
 #: src/gui/uifiles/s_pcc_dialog.ui:1256 src/gui/uifiles/s_pcc_dialog.ui:1274
 #: src/gui/uifiles/s_pcc_dialog.ui:1292
 msgid "0"
-msgstr ""
+msgstr "0"
 
 #: src/gui/uifiles/aavso_dialog.ui:328
 msgid "Check star: "
@@ -451,13 +454,12 @@ msgstr "Експорт у CSV"
 #: src/gui/uifiles/annotate_dialog.ui:474
 #: src/gui/uifiles/astrometry_dialog.ui:299
 msgid "Right Ascension: "
-msgstr ""
+msgstr "Пряме сходження: "
 
 #: src/gui/uifiles/annotate_dialog.ui:486
 #: src/gui/uifiles/astrometry_dialog.ui:310
-#, fuzzy
 msgid "Declination: "
-msgstr "Відхиленя: "
+msgstr "Схилення: "
 
 #: src/gui/uifiles/annotate_dialog.ui:497
 #: src/gui/uifiles/annotate_dialog.ui:508
@@ -522,9 +524,8 @@ msgid "Search Object"
 msgstr "Пошук послідовностей"
 
 #: src/gui/uifiles/asinh_dialog.ui:45
-#, fuzzy
 msgid "Asinh Transformation"
-msgstr "Виконати трансформацію"
+msgstr "Asinh трансформація"
 
 #: src/gui/uifiles/asinh_dialog.ui:63 src/gui/uifiles/ccm_dialog.ui:43
 #: src/gui/uifiles/CLAHE_dialog.ui:68 src/gui/uifiles/curves_dialog.ui:80
@@ -543,42 +544,46 @@ msgstr "Скинути"
 #: src/gui/uifiles/satu_dialog.ui:79 src/gui/uifiles/savepopup.ui:73
 #: src/gui/uifiles/settings_window.ui:255 src/gui/uifiles/starnet_dialog.ui:60
 #: src/gui/uifiles/wavelets_dialog.ui:111 src/gui/utils.c:402
-#, fuzzy
 msgid "Cancel"
-msgstr "_Скасувати"
+msgstr "Скасувати"
 
 #: src/gui/uifiles/asinh_dialog.ui:123
 msgid "Stretch factor"
-msgstr ""
+msgstr "Коефіцієнт розтягування"
 
 #: src/gui/uifiles/asinh_dialog.ui:160
 msgid "The parameter stretch factor allows to adjust the non-linearity factor."
-msgstr ""
+msgstr "Коефіцієнт розтягування дозволяє регулювати коефіцієнт нелінійності."
 
 #: src/gui/uifiles/asinh_dialog.ui:182
 msgid "Black Point"
-msgstr ""
+msgstr "Точка чорного"
 
 #: src/gui/uifiles/asinh_dialog.ui:218
+#, fuzzy
 msgid "Constant value that is subtracted from the image."
-msgstr ""
+msgstr "Постійне значення, яке віднімається від зображення."
 
 #: src/gui/uifiles/asinh_dialog.ui:234
+#, fuzzy
 msgid "Human-weighted luminance"
-msgstr ""
+msgstr "Яскравість підігнана до чутливості людського ока"
 
 #: src/gui/uifiles/asinh_dialog.ui:238
+#, fuzzy
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
 msgstr ""
+"Для кольорових зображень використовується параметри чутливості людського "
+"ока, щоб обчислити яскравість, що застосується при розрахунку розтягування "
+"кожного пікселя."
 
 #: src/gui/uifiles/asinh_dialog.ui:252 src/gui/uifiles/CLAHE_dialog.ui:254
 #: src/gui/uifiles/curves_dialog.ui:704 src/gui/uifiles/histogram_dialog.ui:788
 #: src/gui/uifiles/satu_dialog.ui:280 src/gui/uifiles/wavelets_dialog.ui:751
-#, fuzzy
 msgid "Preview"
-msgstr "Прев'ю %d"
+msgstr "Попередній перегляд"
 
 #: src/gui/uifiles/asinh_dialog.ui:276
 msgid "Clip mode"
@@ -608,16 +613,16 @@ msgstr "Глобальне відкидання"
 
 #: src/gui/uifiles/astrometry_dialog.ui:97
 msgid "Image Plate Solver"
-msgstr ""
+msgstr "Астрономічне рішення (Image Plate Solver)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:128 src/gui/uifiles/s_pcc_dialog.ui:156
 #: src/gui/uifiles/s_pcc_dialog.ui:175
 msgid "OK"
-msgstr ""
+msgstr "ОК"
 
 #: src/gui/uifiles/astrometry_dialog.ui:133
 msgid "Start the plate solving algorithm."
-msgstr ""
+msgstr "Запуск алгоритму астрономічного рішення (plate solving)."
 
 #: src/gui/uifiles/astrometry_dialog.ui:175
 #: src/gui/uifiles/astrometry_dialog.ui:197
@@ -629,14 +634,16 @@ msgid ""
 "Initial equatorial coordinates. Input value must be inside the image, close "
 "to the centre."
 msgstr ""
+"Початкові екваторіальні координати. Вхідне значення має бути всередині "
+"зображення, близько до центру."
 
 #: src/gui/uifiles/astrometry_dialog.ui:319
 msgid "S"
-msgstr ""
+msgstr "Пд"
 
 #: src/gui/uifiles/astrometry_dialog.ui:323
 msgid "This button is checked for negative declination (southern hemisphere)."
-msgstr ""
+msgstr "Використовувати відʼємне схилення (для південної півкулі)."
 
 #: src/gui/uifiles/astrometry_dialog.ui:337
 msgid ""
@@ -1053,7 +1060,7 @@ msgstr "Застосувати трансформацію гістограми"
 #: src/gui/uifiles/background_extraction_dialog.ui:55
 #: src/gui/uifiles/graxpert.ui:555 src/algos/background_extraction.c:1394
 msgid "Background Extraction"
-msgstr ""
+msgstr "Видалення фону"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:93
 msgid ""
@@ -1062,67 +1069,75 @@ msgid ""
 "<b>Apply to sequence</b> button is checked, this will compute the model and "
 "apply it to the whole sequence."
 msgstr ""
+"Це підтвердить модель фону, яка раніше була застосована кнопкою <b>Обчислити "
+"фон</b>. У разі послідовності, якщо встановлено прапорець <b>Застосувати до "
+"послідовності</b>, буде обчислено модель та застосовано до всієї "
+"послідовності."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:127
 #, fuzzy
 msgid "Choose between interpolation methods."
-msgstr "Виберіть метод реєстрації:"
+msgstr "Вибір методу інтерполяції."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:131
 #: src/gui/uifiles/graxpert.ui:174
 #, fuzzy
 msgid "RBF"
-msgstr "RGB"
+msgstr "Радіально-базисна функція (RBF)"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:132
+#, fuzzy
 msgid "Polynomial"
-msgstr ""
+msgstr "Поліном (Polynomial)"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:162
 #: src/gui/uifiles/graxpert.ui:427
 msgid "Smoothing"
-msgstr ""
+msgstr "Згладжування"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:174
 #: src/gui/uifiles/background_extraction_dialog.ui:311
 #: src/gui/uifiles/background_extraction_dialog.ui:338
 #, fuzzy
 msgid "Number of sample per line that will be automatically placed."
-msgstr "Кількість вейвлетних площин, які будуть використані"
+msgstr "Кількість зразків в рядку, які будуть розміщені автоматично."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:203
+#, fuzzy
 msgid ""
 "Adjust the smoothing parameter for the interpolation method. A smoothing "
 "parameter that is too small may result in overshoots and undershoots between "
 "points in the background, while a smoothing parameter that is too large may "
 "not be suitable for large deviations in gradient."
 msgstr ""
+"Налаштування параметру згладжування для методу інтерполяції. Занадто малий "
+"параметр згладжування може призвести до появи занадто великих і занадто "
+"малих пікових значень між точками фону, а надто великий параметр "
+"згладжування може не підійти для великих відхилень у градієнті."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:219
 msgid "page 1"
-msgstr ""
+msgstr "сторінка 1"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:237
 #, fuzzy
 msgid "Degree order: "
-msgstr "Порядок поліному: "
+msgstr "Ступінь упорядкованості: "
 
 #: src/gui/uifiles/background_extraction_dialog.ui:249
-#, fuzzy
 msgid ""
 "Choose the degree order of the polynomial function used in the fit.\n"
 "By default the value is of 4.\n"
 "The higher the degree order is, the more complex the gradient can be removed."
 msgstr ""
-"Виберіть порядок (ступінь) поліноміальної функції, яка буде "
-"використовуватись для апроксимації.\n"
-"За замовчуванням порядок 4.\n"
-"Чим порядок більший, тим сильніший градієнт може бути видалений."
+"Виберіть значення поліноміальної функції, яка буде використовуватись для "
+"підгонки.\n"
+"За замовчуванням, значення 4.\n"
+"Чим значення більше, тим сильніший градієнт може бути видалений."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:299
-#, fuzzy
 msgid "Samples per line"
-msgstr "Зразків на рядок: "
+msgstr "Зразків на рядок:"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:357
 msgid ""
@@ -1130,18 +1145,24 @@ msgid ""
 "background gradient.\n"
 "This should be enabled for non-stretched images."
 msgstr ""
+"Дозволяє уникнути появі смуг, додаючи трохи випадкового шуму в низький "
+"динамічний фоновий градієнт.\n"
+"Це має бути увімкнуто для нерозтягнутих зображень."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:360
-#, fuzzy
 msgid "Grid tolerance"
-msgstr "Допуск: "
+msgstr "Допуск:"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:372
+#, fuzzy
 msgid ""
 "Tolerance factor of global sample rejection, in mad units (median + this * "
 "mad). By decreasing this value, Siril will be more restrictive to select "
 "background samples."
 msgstr ""
+"Коефіцієнт допуску загального вибракування зразка в mad одиницях (median + "
+"Коефіцієнт допуску * mad). Якщо зменшити це значення, вибір фонових зразків "
+"буде більш обмежений."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:389
 #, fuzzy
@@ -1160,10 +1181,13 @@ msgid ""
 "Tolerance of global sample rejection, in sigma units. By decreasing this "
 "value, Siril will be more restrictive to select background samples."
 msgstr ""
+"Допуск загального вибракування зразків, в одиницях стандартного відхилення. "
+"При зменшенні цього значення вибір зразків фону буде більш обмеженним."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:429
+#, fuzzy
 msgid "Add dither"
-msgstr ""
+msgstr "Додати шум (dither)"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:433
 msgid ""
@@ -1172,10 +1196,15 @@ msgid ""
 "quantization error, preventing large-scale patterns such as color banding in "
 "images."
 msgstr ""
+"Виберіть цей параметр, якщо після виділення фону утворюються кольорові смуги."
+"\n"
+"Дизер — це навмисно застосована форма шуму, яка використовується для "
+"рандомізації помилки квантування, запобігаючи великомасштабним шаблонам, "
+"таким як кольорові смуги на зображеннях."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:450
 msgid "Generate"
-msgstr ""
+msgstr "Створити"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:454
 msgid ""
@@ -1189,18 +1218,20 @@ msgstr ""
 
 #: src/gui/uifiles/background_extraction_dialog.ui:476
 msgid "Click here to clear all the samples."
-msgstr ""
+msgstr "Натисніть тут, щоб очистити всі зразки."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:499
+#, fuzzy
 msgid ""
 "You also can set samples manually.\n"
 "Left click adds samples while right click removes them."
 msgstr ""
+"Зразки можна створити вручну.\n"
+"Клік лівою кнопкою миші додає зразки, клік правою кнопкою миші видаляє їх."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:514
-#, fuzzy
 msgid "Interpolation Method"
-msgstr "Інтерполяція"
+msgstr "Метод інтерполяції"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:536
 msgid ""
@@ -1230,31 +1261,31 @@ msgstr "Ділення"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:552
 #: src/gui/uifiles/graxpert.ui:197
-#, fuzzy
 msgid "Correction"
-msgstr "<b>Корекція</b>"
+msgstr "Корекція"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:567
-#, fuzzy
 msgid "Compute Background"
-msgstr "Показати фон"
+msgstr "Обчислити фон"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:571
+#, fuzzy
 msgid ""
 "This will compute the synthetic background and will apply the selected "
 "correction. The model is always computed from the original image kept in "
 "memory allowing the user to work iteratively."
 msgstr ""
+"Буде обчислений синтетичний фон і застосований вибраний тип корекції. Модель "
+"завжди обчислюється з оригінального зображення, яке зберігається в пам’яті, "
+"що дозволяє користувачеві працювати ітеративно."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:585
-#, fuzzy
 msgid "Show original image"
-msgstr "Показати зображення"
+msgstr "Показати початкове зображення"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:590
-#, fuzzy
 msgid "Keep pressing this button to see the original image."
-msgstr "Натисніть цю кнопку, щоб показати зображення."
+msgstr "Натисніть цю кнопку, щоб показати початкове зображення."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:608
 #: src/gui/uifiles/bdeconv_dialog.ui:2126
@@ -1290,10 +1321,9 @@ msgid "Output prefix:"
 msgstr "Префікс результуючих файлів:"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:638
-#, fuzzy
 msgid ""
 "Prefix of the image names resulting from the background extraction process."
-msgstr "Префікс імен зображень після косметичної корекції."
+msgstr "Префікс назв зображень, які отримані в результаті видалення фону."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:249 src/gui/uifiles/graxpert.ui:816
 msgid "Deconvolution"
@@ -1307,22 +1337,26 @@ msgid "ROI Preview"
 msgstr "Прев'ю %d"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:288 src/gui/uifiles/bdeconv_dialog.ui:306
+#, fuzzy
 msgid ""
 "Generate the kernel and use it to deconvolve the current image or sequence"
 msgstr ""
+"Згенерувати ядро та використати його для деконволюції поточного зображення "
+"або послідовності"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:369
 #, fuzzy
 msgid "Blind deconvolution"
-msgstr "Деконволюція"
+msgstr "Деконволюція наосліп"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:373
 msgid "Estimates a PSF from the image"
-msgstr ""
+msgstr "Оцінка PSF по зображенню"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:386
+#, fuzzy
 msgid "PSF from stars"
-msgstr ""
+msgstr "Оцінка PSF по зірках"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:390
 msgid ""
@@ -1330,96 +1364,103 @@ msgid ""
 "no stars have been detected, an attempt will be made to detect stars in the "
 "image within a suitable range of peak brightness."
 msgstr ""
+"Моделює PSF на основі середніх параметрів PSF ідентифікованих зірок. Якщо "
+"зірки не виявлено, буде зроблено спробу виявити зірки на зображенні в межах "
+"відповідного діапазону максимальної яскравості."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:403
-#, fuzzy
 msgid "Manual PSF"
-msgstr "Вручну"
+msgstr "PSF вручну"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:407
 msgid "Use a manually defined PSF based on the parameters chosen."
-msgstr ""
+msgstr "Використати визначений вручну PSF на основі вибраних параметрів."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:422
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
 msgstr ""
+"Виберіть метод оцінки PSF всліпу . Спуск ℓ0 є типовим і зазвичай найкращим "
+"варіантом."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:425
 msgid "Spectral Irregularity"
-msgstr ""
+msgstr "Нерівномірність спектру"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:426
 msgid "ℓ0 Descent"
-msgstr ""
+msgstr "ℓ0 Спуск"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:437
 msgid "Previous PSF"
-msgstr ""
+msgstr "Попередній PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:441
 msgid "Reuse the previously calculated PSF."
-msgstr ""
+msgstr "Повторне використання попередньо розрахованого PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:456
 msgid ""
 "Select a PSF to load from file. The PSF must be square and should ideally "
 "have odd length / width."
 msgstr ""
+"Виберіть PSF для завантаження з файлу. PSF повинен бути квадратним і в "
+"ідеалі повинен мати непарне співвідношення довжина / ширина."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:471
 msgid "Load PSF from file"
-msgstr ""
+msgstr "Завантажити PSF з файлу"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:485
 msgid "Generate PSF"
-msgstr ""
+msgstr "Створити PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:489
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
-msgstr ""
+msgstr "Створитм і відобразити PSF, але не виконувати деконволюцію"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:511
-#, fuzzy
 msgid "Save PSF to a file"
-msgstr "Зберегти файл"
+msgstr "Зберегти PSF у файл"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:530
 #, fuzzy
 msgid "PSF from selection"
-msgstr "Область не виділена"
+msgstr "PSF з виділення"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:533
 msgid ""
 "Takes a PSF directly from the image fitted to the current dimension. The PSF "
 "size will be the minimum of the selection width and height."
 msgstr ""
+"Бере PSF безпосередньо із зображення, підігнаного до поточного розміру. "
+"Розмір PSF буде мінімум із ширини та висоти виділення."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:549
-#, fuzzy
 msgid "PSF Source"
-msgstr "Вхідні файли"
+msgstr "Джерело PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:577
 msgid "General PSF Parameters"
-msgstr ""
+msgstr "Загальні параметри PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:600
 msgid "PSF size"
-msgstr ""
+msgstr "Розмір PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:612
 msgid ""
 "Make sure the size is big enough not to crop off any significant parts of "
 "the PSF."
 msgstr ""
+"Переконайтеся, що розмір достатньо великий, щоб не обрізати будь-які значні "
+"частини PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:662 src/gui/uifiles/bdeconv_dialog.ui:1630
 #: src/gui/uifiles/cut_dialog.ui:39
-#, fuzzy
 msgid "Profile"
-msgstr "файл"
+msgstr "Профіль"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:673
 msgid ""
@@ -1427,90 +1468,99 @@ msgid ""
 "can be used to improve out-of-focus issues. Airy disc models the inherent "
 "diffraction of your telescope."
 msgstr ""
+"Профілі Гауса та Моффа є хорошими моделями для форм зірок. Профілі диска "
+"можна використовувати для вирішення проблем із розфокусуванням. Ейрі диск "
+"моделює дифракцію, яка властива для вашого телескопу."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:676 src/gui/uifiles/siril.ui:7185
 #: src/gui/uifiles/stars_list_window.ui:690 src/algos/PSF.c:1045
 #: src/algos/star_finder.c:1436 src/gui/newdeconv.c:533
 msgid "Gaussian"
-msgstr ""
+msgstr "Гаусса"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:677
 #: src/gui/uifiles/stars_list_window.ui:691 src/algos/PSF.c:1045
 #: src/algos/star_finder.c:1436 src/gui/newdeconv.c:535
 msgid "Moffat"
-msgstr ""
+msgstr "Моффата"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:678
 msgid "Disc"
-msgstr ""
+msgstr "Диск"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:679
 msgid "Airy Disc"
-msgstr ""
+msgstr "Диск Ейрі"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:733 src/gui/uifiles/bdeconv_dialog.ui:1654
 #, fuzzy
 msgid "Ratio"
-msgstr "Поворот"
+msgstr "Співвідношення (обертання)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:744
 msgid ""
 "For elliptical PSFs, this gives the ratio of the shorter and longer "
 "dimensions."
 msgstr ""
+"Для еліптичних PSF показує співвідношення коротшого та довшого розмірів."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:760 src/gui/uifiles/bdeconv_dialog.ui:1642
+#, fuzzy
 msgid "fwhm / \""
-msgstr ""
+msgstr "FWHM (Ширина на напіввисоті) / \""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:771
+#, fuzzy
 msgid ""
 "Full width at half maximum. For disc profiles this is just the diameter of "
 "the disc. For elliptical PSFs this is the longer PSF dimension."
 msgstr ""
+"Ширина на напіввисоті (FWHM). Для дискових профілів це діаметр диска. Для "
+"еліптичних PSF це довший розмір PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:787 src/gui/uifiles/bdeconv_dialog.ui:1666
-#, fuzzy
 msgid "Angle / º"
-msgstr "Кут"
+msgstr "Кут / º"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:798
 msgid "For elliptical PSFs, the angle from the x axis in degrees."
-msgstr ""
+msgstr "Для еліптичних PSF кут до осі X (º) ."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:813 src/gui/uifiles/bdeconv_dialog.ui:1678
 msgid "beta (β)"
-msgstr ""
+msgstr "бета (β)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:825
+#, fuzzy
 msgid ""
 "For Moffat profiles, this sets the value of beta. See the astrometry "
 "documentation for information on this parameter."
 msgstr ""
+"Встановлює значення бета для профілів Moffat. Інформацію про цей параметр "
+"див. у документації з астрометрії."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:856
 msgid "Pixel Size / μm"
-msgstr ""
+msgstr "Розмір пікселя / мкм"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:868 src/gui/cut.c:534 src/gui/cut.c:747
 #: src/gui/photometric_cc.c:906 src/gui/photometric_cc.c:988
 #: src/gui/photometric_cc.c:1157
 #, c-format
 msgid "Wavelength / nm"
-msgstr ""
+msgstr "Довжина хвилі / нм"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:880
-#, fuzzy
 msgid "Focal length / mm"
-msgstr "Фокусна відстань (мм): "
+msgstr "Фокусна відстань (мм):"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:892
 msgid "Diameter / mm"
-msgstr ""
+msgstr "Діаметр / мм"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:903
 msgid "Sensor pixel size in microns"
-msgstr ""
+msgstr "Розмір пікселя сенсору в мікронах"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:919
 msgid ""
@@ -1518,20 +1568,26 @@ msgid ""
 "exactly for narrowband filters, or for broadband / OSC / luminance filters "
 "just use a representative central wavelength."
 msgstr ""
+"Довжина хвилі для розрахунку дифракційної картини. Може бути точно вказано "
+"для вузькосмугових фільтрів. Для широкосмугових фільтрів, кольорових (OSC) "
+"фільтрів або фільтра яскравості (luminance) просто вказуйте типову "
+"центральну довжину хвилі."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:934
 msgid ""
 "Telescope focal length (this should account for any multiplication factor "
 "introduced by Barlows or field flatteners)"
 msgstr ""
+"Фокусна відстань телескопа (має враховуватися будь-який коефіцієнт множення, "
+"який вноситься лінзою Барлоу або вирівнювачем поля)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:950
 msgid "Diameter of the telescope primary aperture"
-msgstr ""
+msgstr "Діаметр головної апертури телескопа"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:967
 msgid "Central Obstruction / %"
-msgstr ""
+msgstr "Центральне екранування / %"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:978
 msgid ""
@@ -1539,47 +1595,56 @@ msgid ""
 "This is zero for refractors, typically around 10-20% for fast Newtonians and "
 "may be as much as 40% for a Corrected Dall-Kirkham."
 msgstr ""
+"Встановлює центральне екранування у відсотках від загальної площі апертури. "
+"Це дорівнює нулю для рефракторів, зазвичай близько 10-20% для \"швидких\" "
+"рефлекторів і може досягати 40% для модифікованих телескопів Долла-Кірхема."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1001
 msgid "Manual PSF Parameters"
-msgstr ""
+msgstr "Параметри PSF вручну"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1033
 msgid ""
 "Regularization parameter for PSF estimation. Try decreasing this value for "
 "noisy images."
 msgstr ""
+"Параметр регуляризації для оцінки PSF. Спробуйте зменшити це значення для "
+"зображень із великим шумом."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1048
 msgid "Lambda (λ)"
-msgstr ""
+msgstr "Лямбда (λ)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1061
 msgid "Blind Deconvolution PSF Estimation"
-msgstr ""
+msgstr "Оцінка PSF з деконволюцією всліпу"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1095
 #, fuzzy
 msgid "Multiscale"
-msgstr "Мультиплікативна"
+msgstr "Багатомасштабний (Багатоступеневий)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1099
 msgid ""
 "This improves ℓ0 PSF estimation for large PSFs. It is not required for small "
 "PSFs and takes longer to compute. Consider using it for PSF sizes above 20."
 msgstr ""
+"Це покращує оцінку ℓ0 PSF для великих PSF. Це не потрібно для малих PSF, бо "
+"займає більше часу для обчислення. Розгляньте можливість використання для "
+"PSF розміром понад 20."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1113
 msgid "These settings can be left alone in the vast majority of cases. "
 msgstr ""
+"У переважній більшості випадків ці налаштування можна залишити без змін. "
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1127
 msgid "Gamma (γ)"
-msgstr ""
+msgstr "Гамма (γ)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1138
 msgid "PSF estimation regularisation parameter"
-msgstr ""
+msgstr "Параметр регуляризації оцінки PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1153
 #: src/gui/uifiles/bdeconv_dialog.ui:1929 src/gui/uifiles/Median_dialog.ui:186
@@ -1592,97 +1657,109 @@ msgid ""
 "Number of iterations for PSF estimation. Do not reduce this below 2. There "
 "is negligible benefit in increasing it beyond 3."
 msgstr ""
+"Кількість ітерацій для оцінки PSF. Не зменшуйте значення нижче 2. "
+"Перевищення вище 3 принесе незначну користь."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1179
 msgid "Lambda ratio"
-msgstr ""
+msgstr "Співвідношення λ"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1190
 msgid "Ratio of lambda at successive scales for multiscale PSF estimation."
 msgstr ""
+"Співвідношення λ для послідовних шкал при багатоступінчастій оцінці PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1206
 msgid "Lambda min"
-msgstr ""
+msgstr "Лямбда (мінім)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1217
 msgid "Minimum value of lambda for multiscale PSF estimation"
-msgstr ""
+msgstr "Мінімальне значення лямбда для багатомасштабної оцінки PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1233
-#, fuzzy
 msgid "Scale factor"
-msgstr "Фактор 1/Sigma"
+msgstr "Коефіцієнт масштабу"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1244
 msgid "Scale factor between successive scales of multiscale PSF estimation"
 msgstr ""
+"Масштабний коефіцієнт між послідовними шкалами багатоступеневої оцінки PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1259
 msgid "Amount of blur to use for upsampling during PSF estimation"
-msgstr ""
+msgstr "Рівень розмиття для підвищення роздільної здатності під час оцінки PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1274
+#, fuzzy
 msgid "Upsample blur"
-msgstr ""
+msgstr "Збільшення розмиття"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1286
 msgid "Downsample blur"
-msgstr ""
+msgstr "Зменшення розмиття"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1298
-#, fuzzy
 msgid "Kernel threshold"
-msgstr "Поріг округлості:"
+msgstr "Поріг ядра"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1310
+#, fuzzy
 msgid "Better kernel"
-msgstr ""
+msgstr "Зразок ядра"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1322
+#, fuzzy
 msgid "Kernel ℓ1"
-msgstr ""
+msgstr "Розмір (ℓ1) ядра"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1334
+#, fuzzy
 msgid "Amount of blur to use for downsampling during PSF estimation"
 msgstr ""
+"Рівень розмиття, яка використана для зменшення роздільної здатності під час "
+"оцінки PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1349
 msgid ""
 "Sets a minimum pixel value for the PSF. PSF pixels with values less than "
 "this will be set to zero."
 msgstr ""
+"Встановлює мінімальне значення пікселів для PSF. Пікселі PSF зі значеннями, "
+"меншими за це, будуть встановлені на нуль."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1365
 msgid ""
 "Uses a refinement technique to improve subsequent iterations of the PSF "
 "estimator. This should essentially always be enabled."
 msgstr ""
+"Використовує техніку уточнення для покращення наступних ітерацій оцінювача "
+"PSF. По суті, це має бути завжди ввімкнено."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1378
 msgid "ℓ1 gradient parameter"
-msgstr ""
+msgstr "ℓ1 параметр градієнта"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1395
 msgid "These settings should almost always be left at the default value."
 msgstr ""
+"Для цих параметрів майже завжди слід залишати значення за замовчуванням."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1396
 #: src/gui/uifiles/bdeconv_dialog.ui:1578
-#, fuzzy
 msgid "Expert Settings"
-msgstr "Налаштування..."
+msgstr "Експертні налаштування"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1414
 msgid "ℓ0 Descent Method"
-msgstr ""
+msgstr "ℓ0 метод спуску"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1450
-#, fuzzy
 msgid "Compensation factor"
-msgstr "Коефіцієнти калібрування кольорів:\n"
+msgstr "Коефіцієнт компенсації"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1462
+#, fuzzy
 msgid ""
 "This parameter controls the sharpness of the estimated PSF. If the "
 "underlying image is sharp, this parameter should be set to a large value to "
@@ -1691,16 +1768,22 @@ msgid ""
 "oversampled) this parameter should be reduced to close to unity in order to "
 "obtain sufficient sharpness in the PSF."
 msgstr ""
+"Цей параметр визначає різкість розрахованої PSF. Якщо базове зображення "
+"різке, для цього параметра слід встановити велике значення, щоб уникнути "
+"спотворень у розрахованій PSF. З іншого боку, якщо базове зображення містить "
+"невелике внутрішнє розмиття (наприклад, як результат надмірної вибірки), цей "
+"параметр слід зменшити до значення, близького до одиниці, щоб отримати "
+"достатню різкість PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1499
 #, fuzzy
 msgid "Samples per outer loop"
-msgstr "Зразків на рядок: "
+msgstr "Зразків в зовнішньому циклі"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1511
 #, fuzzy
 msgid "Outer loop iterations"
-msgstr "Кількість ітерацій."
+msgstr "Кількість повторів у внутрішньому циклі"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1522
 msgid ""
@@ -1709,66 +1792,75 @@ msgid ""
 "fairly small number of samples will suffice. For noisy images, the value may "
 "require increasing to as much as around 250."
 msgstr ""
+"Цей параметр встановлює кількість зразків для кожного зовнішнього циклу. "
+"Необхідно вибрати достатню кількість зразків, щоб забезпечити схожість "
+"оцінок PSF: для зображень з низьким рівнем шуму достатньо невеликої "
+"кількості зразків. Для зашумлених зображень може знадобитися збільшити це "
+"значення приблизно до 250."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1536
 msgid ""
 "Outer loop iterations. This parameter should not generally require "
 "adjustment."
 msgstr ""
+"Кількість повторів зовнішнього циклу. Зазвичай цей параметр не потребує "
+"коригування."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1551
-#, fuzzy
 msgid "Inner loop iterations"
-msgstr "Кількість ітерацій."
+msgstr "Кількість повторів внутрішнього циклу"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1562
 msgid ""
 "This parameter sets the number of iterations in the algorithm inner loop. It "
 "should not usually require adjustment."
 msgstr ""
+"Цей параметр задає кількість повторів у внутрішньому циклі алгоритму. "
+"Зазвичай це не вимагає іншого налаштування."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1594
 msgid "Spectral Irregularity Method"
-msgstr ""
+msgstr "Метод нерівномірності спектру"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1737
-#, fuzzy
 msgid "Symmetrical PSF"
-msgstr "Динамічна PSF"
+msgstr "Симетричний PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1741
 msgid ""
 "If checked, a PSF defined from stars will be circularly symmetric. If "
 "unchecked the PSF may be elongated and have a defined rotation angle."
 msgstr ""
+"Якщо позначено, PSF, визначена по зірках, буде симетричною. Якщо не "
+"позначено, PSF може бути видовженою і мати певний кут повороту."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1762
 msgid "PSF from Stars"
-msgstr ""
+msgstr "PSF по зіркам"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1794
-#, fuzzy
 msgid "PSF Generation"
-msgstr "Генерація зразків"
+msgstr "Створення PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1817
-#, fuzzy
 msgid "PSF Preview"
-msgstr "Прев'ю %d"
+msgstr "Попередній перегляд PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1834
 msgid "Shows a preview of the PSF, if one has been calculated."
-msgstr ""
+msgstr "Показує попередній перегляд PSF, якщо вона була розрахована."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1848
 msgid "Usage tips"
-msgstr ""
+msgstr "Поради"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1852
 msgid ""
 "Opens a page in the online Siril documentation with usage tips and examples "
 "of settings that can work for different types of image."
 msgstr ""
+"Відкриває сторінку в онлайн-документації Siril з порадами щодо використання "
+"та прикладами параметрів, які можуть працювати для різних типів зображень."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1908
 msgid ""
@@ -1777,28 +1869,34 @@ msgid ""
 "Choose Richardson-Lucy for deep space images; choose either Split Bregman or "
 "Wiener filtering for lunar and planetary images."
 msgstr ""
+"Після того, як PSF оцінено або надано, зображення остаточно деконволюється "
+"(реконструюється) за допомогою вибраного алгоритму.\n"
+"Виберіть алгоритм Ричардсона-Люси для зображень далекого космосу; виберіть "
+"алгоритм Брегмана або фільтр Вінера для зображень Місяця та планет."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1912
 msgid "Split Bregman method with TV regularization"
-msgstr ""
+msgstr "Спліт-метод Брегмана з ТВ-регуляризацією"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1913
 msgid "Richardson-Lucy method with TV regularization"
-msgstr ""
+msgstr "Метод Річардсона-Люсі з ТВ регуляризацією"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1914
-#, fuzzy
 msgid "Wiener filter"
-msgstr "Медіанний фільтр"
+msgstr "Фільтр Вінера"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1940
 msgid ""
 "Number of iterations for final deconvolution if using an iterative method"
 msgstr ""
+"Кількість ітерацій для остаточної деконволюції, якщо використовується "
+"ітераційний метод"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1954
+#, fuzzy
 msgid "Regularization parameter for the final non-blind stage deconvolution"
-msgstr ""
+msgstr "Параметр регуляризації для кінцевого етапу деконволюції (не наосліп)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1969
 msgid ""
@@ -1806,6 +1904,9 @@ msgid ""
 "noise amplification. Deconvolution will stop early if the average pixel "
 "difference ratio between subsequent iterations is less than this value."
 msgstr ""
+"Встановлює критерій ранньої зупинки для алгоритму Річардсона-Люсі, щоб "
+"запобігти посиленню шуму. Деконволюція припиниться раніше, якщо середнє "
+"співвідношення пікселів між наступними ітераціями менше цього значення."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1984
 msgid ""
@@ -1816,50 +1917,57 @@ msgid ""
 "more often used in regularizing denoising algorithms but can perform well "
 "when deconvolving a star mask produced by Siril's Starnet++ interface."
 msgstr ""
+"Метод \"Повного зменшення шуму\" добре зберігає чіткі краї зображення. Якщо "
+"ви сумніваєтеся, вибирайте метод \"Повного зменшення шуму\". Однак це має "
+"тенденцію створювати ефект сходів на великих однорідних областях.\n"
+"Норма Гессе Фробеніуса використовує член регуляризації другого порядку. Вона "
+"найчастіше використовується в регуляризації алгоритмів шумозаглушення, але "
+"може добре працювати при реконструкції маски зірок, створюваної інтерфейсом "
+"Siril для Starnet++."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1988
 #, fuzzy
 msgid "Total Variation"
-msgstr "Насиченість кольору"
+msgstr "Метод \"Повного зменшення шуму\""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1989
 msgid "Frobenius norm of Hessian"
-msgstr ""
+msgstr "Фробеніусова норма Гессе"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1990 src/gui/uifiles/savepopup.ui:272
 #: src/gui/uifiles/settings_window.ui:851
 #: src/gui/uifiles/settings_window.ui:1314 src/gui/uifiles/siril.ui:5743
 #: src/gui/uifiles/siril.ui:7090 src/gui/uifiles/siril.ui:8379
 msgid "None"
-msgstr ""
+msgstr "Ні"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2003
 msgid "Alpha (α)"
-msgstr ""
+msgstr "Альфа (α)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2012
 msgid "Stopping criterion"
-msgstr ""
+msgstr "Критерій зупинки"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2016
 msgid ""
 "Sets a stopping criterion based on difference between successive estimates. "
 "To activate the criterion the checkbox must be selected."
 msgstr ""
+"Встановлює критерій зупинки на основі різниці між послідовними оцінками. Для "
+"активації критерію необхідно встановити прапорець."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2029
-#, fuzzy
 msgid "Regularization"
-msgstr "Реєстрація"
+msgstr "Регуляризація"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2041
 msgid "Gradient descent step size"
-msgstr ""
+msgstr "Розмір кроку градієнтного спуску"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2053
-#, fuzzy
 msgid "Algorithm method"
-msgstr "Алгоритм: "
+msgstr "Алгоритм"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2064
 msgid ""
@@ -1868,6 +1976,10 @@ msgid ""
 "stretched images Mulitiplicative may give good results and require fewer "
 "iterations."
 msgstr ""
+"Якщо сумніваєтеся, використовуйте Градієнтний Спуск. Він більш поступовий і "
+"має контрольований розмір кроку, що може допомогти уникнути артефактів "
+"навколо зірок. Для розтягнутих зображень мультипликативний метод може дати "
+"хороші результати та потребує менше ітерацій."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2067 src/gui/uifiles/siril.ui:8136
 msgid "Multiplicative"
@@ -1875,7 +1987,7 @@ msgstr "Мультиплікативна"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2068
 msgid "Gradient Descent"
-msgstr ""
+msgstr "Градієнтний спуск"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2081
 msgid ""
@@ -1883,36 +1995,42 @@ msgid ""
 "of each step. Large values will give quicker convergence but smaller values "
 "will offer better control over artefact formation."
 msgstr ""
+"Розмір кроку градієнтного спуску. Чим більший розмір кроку, тим більший "
+"ефект від кожного кроку. Великі значення Великі значення забезпечать більш "
+"швидку збіжність, але менші значення дадуть кращий контроль над появою "
+"артефактів."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2098
 #, fuzzy
 msgid "Non-Blind Deconvolution"
-msgstr "Деконволюція"
+msgstr "Деконволюція (Реконструкція) не наосліп"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2130
 msgid ""
 "Deconvolve the currently loaded sequence. If no sequence is loaded, the "
 "current image will be deconvolved."
 msgstr ""
+"Деконволюція поточної завантаженої послідовності. Якщо послідовність не "
+"завантажена, буде реконструйоване поточне зображення."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2145
-#, fuzzy
 msgid "Sequence prefix:"
-msgstr "Назва послідовності:"
+msgstr "Префікс послідовності:"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2157
 msgid "Provides a custom prefix to use when deconvolving a sequence."
 msgstr ""
+"Надає спеціальний префікс в назвах для створених під час деконволюції "
+"зображень."
 
 #: src/gui/uifiles/binxy_dialog.ui:41
-#, fuzzy
 msgid "Binning"
-msgstr "Біннінг: "
+msgstr "Біннінг:"
 
 #: src/gui/uifiles/binxy_dialog.ui:106
 #, fuzzy
 msgid "Binning factor:"
-msgstr "Біннінг: "
+msgstr "Коефіцієнт бінінга:"
 
 #: src/gui/uifiles/binxy_dialog.ui:138
 #, fuzzy
@@ -1926,7 +2044,7 @@ msgstr "Усереднений нейтральний"
 
 #: src/gui/uifiles/binxy_dialog.ui:153
 msgid "Sum"
-msgstr ""
+msgstr "Сума"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:48 src/filters/banding.c:125
 msgid "Banding Reduction"
@@ -1935,23 +2053,23 @@ msgstr "Зменшення смугастості"
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:111
 #: src/gui/uifiles/cosmetic_dialog.ui:256 src/gui/uifiles/satu_dialog.ui:174
 #: src/gui/uifiles/SCNR_dialog.ui:171
-#, fuzzy
 msgid "Amount"
-msgstr "Величина: "
+msgstr "Величина:"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:123
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:146
 #, fuzzy
 msgid "Defines the strength of the correction."
-msgstr "x-коордіната початкової точки вибору ділянки фону"
+msgstr "Визначення сили корекції"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:162
+#, fuzzy
 msgid "Protect from Highlights"
-msgstr ""
+msgstr "Захист від пересвічування"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:166
 msgid "Bright pixels are ignored."
-msgstr ""
+msgstr "Яскраві пікселі ігноруються."
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:186
 msgid "1/Sigma Factor"
@@ -1959,10 +2077,13 @@ msgstr "Фактор 1/Sigma"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:199
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:223
+#, fuzzy
 msgid ""
 "Background for lines is computed using pixels in SigmaFactor * StdDev only. "
 "Higher value will give a better protection."
 msgstr ""
+"Фон для ліній обчислюється лише за допомогою пікселів у SigmaFactor * "
+"StdDev. Більше значення забезпечить кращий захист."
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:238
 msgid "Vertical banding"
@@ -2045,25 +2166,30 @@ msgstr "Налаштування..."
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1971
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr ""
+msgstr "Адаптивне вирівнювання гістограми з обмеженим контрастом..."
 
 #: src/gui/uifiles/CLAHE_dialog.ui:128
+#, fuzzy
 msgid "Tiles Grid Size"
-msgstr ""
+msgstr "Розмір плитки"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:167
+#, fuzzy
 msgid ""
 "Sets size of grid for histogram equalization. Input image will be divided "
 "into equally sized rectangular tiles. "
 msgstr ""
+"Встановлює розмір сітки для вирівнювання гістограми. \n"
+"Вхідне зображення буде розділено на прямокутні плитки однакового розміру "
 
 #: src/gui/uifiles/CLAHE_dialog.ui:188
+#, fuzzy
 msgid "Clip Limit"
-msgstr ""
+msgstr "Межа обрізки"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:223
 msgid "Sets threshold for contrast limiting."
-msgstr ""
+msgstr "Встановлення порогу для обмеження контрастності."
 
 #. Try to have 3 lines here.
 #: src/gui/uifiles/CLAHE_dialog.ui:241
@@ -2072,6 +2198,9 @@ msgid ""
 "stacking residuals by cropping the image. If you don't,\n"
 "artifacts may appear."
 msgstr ""
+"Обов’язково видаліть усі чорні рамки чи інші\n"
+"залишки шляхом обрізання зображення.\n"
+"Якщо цього не зробити, можуть з’явитися артефакти"
 
 #: src/gui/uifiles/color_calibration.ui:98 src/gui/uifiles/siril.ui:1240
 #: src/gui/uifiles/siril.ui:1588 src/gui/colors.c:275
@@ -2237,13 +2366,19 @@ msgid ""
 "Enter a wavelength value in nanometers here, between 380 and 780, decimals "
 "are accepted."
 msgstr ""
+"Введіть тут значення довжини хвилі в нанометрах, від 380 до 780 (приймаються "
+"десяткові дроби)."
 
 #: src/gui/uifiles/colorchooserdialog.ui:81
+#, fuzzy
 msgid ""
 "Alternatively, for true colour rendering,\n"
 "select a filter from the list or\n"
 "enter a visible wavelength in nm"
 msgstr ""
+"Або, для передачі справжнього кольору\n"
+"виберіть фільтр зі списку\n"
+"або введіть довжину хвилі видимого діапазону в нм"
 
 #: src/gui/uifiles/composition_dialog.ui:51
 msgid "Image compositing"
@@ -2371,6 +2506,8 @@ msgid ""
 "Type of luminance-based colour composition. They represent the way of adding "
 "colour information to luminance data."
 msgstr ""
+"Тип кольорової композиції на основі яскравості. Вони представляють спосіб "
+"додавання інформації про колір до даних про яскравість."
 
 #: src/gui/uifiles/composition_dialog.ui:386
 msgid "HSL composition"
@@ -2434,7 +2571,7 @@ msgstr "Вирівнювання"
 
 #: src/gui/uifiles/composition_dialog.ui:509
 msgid "Automatic alignment using the selected registration method."
-msgstr ""
+msgstr "Автоматичне вирівнювання за допомогою обраного методу реєстрації."
 
 #: src/gui/uifiles/cosmetic_dialog.ui:53 src/gui/uifiles/denoise_dialog.ui:148
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:608
@@ -2501,10 +2638,13 @@ msgstr ""
 "вважався \"гарячим\"."
 
 #: src/gui/uifiles/cosmetic_dialog.ui:291
+#, fuzzy
 msgid ""
 "0: No correction\n"
 "1 : 100% corrected"
 msgstr ""
+"0: Без корекції\n"
+"1: 100% корекції"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:307 src/gui/uifiles/cut_dialog.ui:284
 msgid "CFA"
@@ -2664,7 +2804,7 @@ msgstr ""
 #: src/gui/uifiles/cut_coords_dialog.ui:183
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:270 src/gui/uifiles/siril.ui:4530
 msgid "x"
-msgstr ""
+msgstr "x"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:225
 msgid ""
@@ -2738,7 +2878,7 @@ msgstr ""
 #: src/gui/uifiles/cut_dialog.ui:195 src/gui/uifiles/savepopup.ui:921
 #: src/gui/uifiles/settings_window.ui:563
 msgid "1"
-msgstr ""
+msgstr "1"
 
 #: src/gui/uifiles/cut_dialog.ui:207
 #, fuzzy
@@ -2927,16 +3067,15 @@ msgstr "Фон"
 
 #: src/gui/uifiles/data_dialog.ui:49
 msgid "More details..."
-msgstr ""
+msgstr "Детальніше..."
 
 #: src/gui/uifiles/denoise_dialog.ui:52
-#, fuzzy
 msgid "Image Denoising"
-msgstr "_Обробка зображення"
+msgstr "Усунення шумів з зображення"
 
 #: src/gui/uifiles/denoise_dialog.ui:133
 msgid "Remove salt and pepper noise"
-msgstr ""
+msgstr "Видалити імпульсний шум (\"salt and pepper\")"
 
 #: src/gui/uifiles/denoise_dialog.ui:137
 msgid ""
@@ -2944,11 +3083,13 @@ msgid ""
 "before the primary denoising algorithm. This is generally a good thing and "
 "the setting defaults to active."
 msgstr ""
+"Ця опція застосовує косметичні виправлення для видалення імпульсного шуму "
+"перед основним алгоритмом усунення шумів. Загалом це добре, і за "
+"замовчуванням цей параметр активний."
 
 #: src/gui/uifiles/denoise_dialog.ui:169
-#, fuzzy
 msgid "Independent Channels"
-msgstr "Зберегти три канали"
+msgstr "Незалежні канали"
 
 #: src/gui/uifiles/denoise_dialog.ui:173
 msgid ""
@@ -2958,24 +3099,33 @@ msgid ""
 "default and should only be enabled in the rare event that you see artefacts "
 "when denoising a colour image."
 msgstr ""
+"Пригнічує блокові кольорові артефакти, які іноді можуть з’являтися на "
+"кольорових зображеннях. Ця опція обробляє кожен канал окремо та усуває "
+"артефакти ціною певної швидкості. У більшості випадків це не обов’язково, "
+"тому його вимкнено за замовчуванням і його слід увімкнути лише в тих "
+"випадках, коли ви бачите артефакти під час зменшення шуму кольорового "
+"зображення."
 
 #: src/gui/uifiles/denoise_dialog.ui:182
 msgid "Color Denoising"
-msgstr ""
+msgstr "Усунення шуму кольору"
 
 #: src/gui/uifiles/denoise_dialog.ui:210
+#, fuzzy
 msgid "No secondary denoising stage"
-msgstr ""
+msgstr "Без вторинної стадії шумозаглушення"
 
 #: src/gui/uifiles/denoise_dialog.ui:214
 msgid ""
 "No secondary denoising process will be used. The primary algorithm by itself "
 "usually performs well so this is the default."
 msgstr ""
+"Вторинний процес усунення шумів не використовуватиметься. Основний алгоритм "
+"сам по собі зазвичай добре працює, тому це типовий алгоритм."
 
 #: src/gui/uifiles/denoise_dialog.ui:228
 msgid "Anscombe VST with exact unbiased inverse"
-msgstr ""
+msgstr "Перетворення Anscombe"
 
 #: src/gui/uifiles/denoise_dialog.ui:232
 msgid ""
@@ -2984,12 +3134,17 @@ msgid ""
 "Gaussian mix. It cannot be used in conjunction with DA3D or SOS. Ref: "
 "https://ieeexplore.ieee.org/document/5278406"
 msgstr ""
+"Перетворення Anscombe корисно для придушення шуму на зображеннях, де шум має "
+"не Гауссову, а Пуассонову природу чи суміш Пуассоновского і Гауссова шумів. "
+"Дане перетворення не може бути використане разом із DA3D або SOS. Див: "
+"https://ieeexplore.ieee.org/document/5278406"
 
 #: src/gui/uifiles/denoise_dialog.ui:247
 msgid "Data Adaptive Dual Domain Denoising"
-msgstr ""
+msgstr "Адаптивне двохдоменне усунення шумів (DA3D)"
 
 #: src/gui/uifiles/denoise_dialog.ui:251
+#, fuzzy
 msgid ""
 "Use DA3D as a final denoising step. This algorithm uses the output of the "
 "primary denoising algorithm as a guide image to perform frequency domain "
@@ -2997,34 +3152,48 @@ msgid ""
 "than the primary algorithm and may improve detail retention and reduce "
 "staircasing artefacts. Ref: https://ieeexplore.ieee.org/document/7350835"
 msgstr ""
+"Використовуйте DA3D як заключний крок при шумоподавленні. Цей алгоритм "
+"використовує результат основного алгоритму подачі даних шуму як еталонне "
+"зображення для виконання стиснення у частотній області на ділянках, "
+"адаптованих до форми та даних. Цей алгоритм ніколи не дає гірших "
+"результатів, ніж основний алгоритм, і може покращити збереження деталей і "
+"зменшити артефакти ступінчатої структури. Див.: https://ieeexplore.ieee.org/"
+"document/7350835"
 
 #: src/gui/uifiles/denoise_dialog.ui:265
+#, fuzzy
 msgid "Strengthen Operate Subtract iterator"
-msgstr ""
+msgstr "Ітератор Посилення-Придушення-Віднімання (SOS)"
 
 #: src/gui/uifiles/denoise_dialog.ui:269
+#, fuzzy
 msgid ""
 "SOS iteration works by iterating the primary denoising algorithm multiple "
 "times, each time mixing back a fraction of the noisy image. This can improve "
 "denoising performance and reduce staircasing artefacts. Ref: https://"
 "arxiv.org/abs/1502.06220"
 msgstr ""
+"Ітератор Посилення-Придушення-Віднімання (SOS) працює, багаторазово "
+"повторюючи основний алгоритм усунення шумів, кожного разу змішуючи частину "
+"шумового зображення. Це може покращити ефективність усунення шумів і "
+"зменшити східчасті артефакти. Посилання: https://arxiv.org/abs/1502.06220"
 
 #: src/gui/uifiles/denoise_dialog.ui:287
 msgid "Secondary Denoising Algorithm"
-msgstr ""
+msgstr "Алгоритм вторинного усунення шумів"
 
 #: src/gui/uifiles/denoise_dialog.ui:318
 msgid ""
 "Sets the number of SOS iterations. 3-5 is usually a good starting point."
 msgstr ""
+"Встановлює кількість ітерацій SOS. 3-5 зазвичай є хорошою відправною точкою."
 
 #: src/gui/uifiles/denoise_dialog.ui:320
-#, fuzzy
 msgid "SOS iterations"
-msgstr "Ітерацій:"
+msgstr "кількість ітерацій SOS"
 
 #: src/gui/uifiles/denoise_dialog.ui:331
+#, fuzzy
 msgid ""
 "Sets the number of SOS iterations. 3-5 iterations usually provides good "
 "convergence. Convergence can be seen by examining the updated image noise "
@@ -3033,6 +3202,12 @@ msgid ""
 "the next iteration, so the final output noise level is substantially lower "
 "than the intermediate values shown between iterations.)"
 msgstr ""
+"Встановлює кількість ітерацій SOS. 3-5 ітерацій зазвичай забезпечують хорошу "
+"збіжність. Конвергенцію можна побачити, вивчивши оновлену оцінку шуму "
+"зображення, що відображається у вікні журналу після кожної ітерації. (Ці "
+"значення шуму вимірюються після того, як шум від вихідного зображення "
+"змішується назад для підготовки наступної ітерації, тому кінцевий вихідний "
+"рівень шуму є значно нижчим за проміжні значення, показані між ітераціями.)"
 
 #: src/gui/uifiles/denoise_dialog.ui:347
 msgid ""
@@ -3041,10 +3216,15 @@ msgid ""
 "kept. Values close to 0 or 1 may result in a need for more iterations to "
 "achieve convergence at the maximum improvement SOS can produce."
 msgstr ""
+"ρ визначає частку оригінального зашумленого зображення у кожному повторі. "
+"Велике значення ρ означає, що менша частка шуму підмішується і зберігається "
+"більша частина проміжного результату. Значення ρ, близькі до 0 або 1, можуть "
+"вимагати більше повторів для досягнення збіжності, даючи максимальне "
+"поліпшення, яке може забезпечити SOS."
 
 #: src/gui/uifiles/denoise_dialog.ui:349
 msgid "rho"
-msgstr ""
+msgstr "ρ (rho)"
 
 #: src/gui/uifiles/denoise_dialog.ui:360
 msgid ""
@@ -3053,10 +3233,14 @@ msgid ""
 "effectiveness but beyond a certain point the algorithm will fail to "
 "converge. The default of 0.2 is often a good starting point."
 msgstr ""
+"ρ визначає частку оригінального зашумленого зображення, що підмішується між "
+"повторами SOS. До певного моменту великі значення ρ призводять до більшої "
+"ефективності, але після проходження деякої точки алгоритм перестає "
+"сходитися. Значення за умовчанням (0.2) є гарною відправною точкою."
 
 #: src/gui/uifiles/denoise_dialog.ui:379
 msgid "SOS Advanced Options"
-msgstr ""
+msgstr "Розширені параметри SOS"
 
 #: src/gui/uifiles/denoise_dialog.ui:401
 msgid ""
@@ -3067,6 +3251,11 @@ msgid ""
 "end of the process, after primary and secondary denoising stages have both "
 "completed."
 msgstr ""
+"Модуляція дозволяє змішувати частину зашумленого зображення з результатом "
+"зменшення шуму. Це може бути корисним для додавання мікротекстури, якщо "
+"результат зняття шуму виглядає штучно гладким. Значення 1 означає, що вихід "
+"буде 100% приглушено, без шумового зображення. Модуляція виконується в кінці "
+"процесу, після завершення первинного та вторинного етапів усунення шумів."
 
 #: src/gui/uifiles/denoise_dialog.ui:403 src/gui/uifiles/Median_dialog.ui:244
 #, fuzzy
@@ -3081,6 +3270,11 @@ msgid ""
 "modulation can be useful to add back microtexture to flat regions of the "
 "image."
 msgstr ""
+"Встановлює модуляцію. Значення пікселя обчислюється як m * b + (1-m) * orig, "
+"де m — це модуляція, b — значення після знешумлення, а orig — вихідне "
+"значення пікселя. Модуляція знижує продуктивність шумозаглушення, але "
+"невелика модуляція може бути корисною для повернення мікротекстури до "
+"плоских областей зображення."
 
 #: src/gui/uifiles/dialog_FFT.ui:35
 msgid "Fourier Transform"
@@ -3096,15 +3290,15 @@ msgstr "Ім'я файлу фази: "
 
 #: src/gui/uifiles/dialog_FFT.ui:128
 msgid "Order: "
-msgstr ""
+msgstr "Порядок: "
 
 #: src/gui/uifiles/dialog_FFT.ui:141
 msgid "modulus"
-msgstr ""
+msgstr "модуль"
 
 #: src/gui/uifiles/dialog_FFT.ui:155
 msgid "phase"
-msgstr ""
+msgstr "фаза"
 
 #: src/gui/uifiles/dialog_FFT.ui:165
 msgid "Centered"
@@ -3137,22 +3331,21 @@ msgstr "Зворотнє перетворення"
 #: src/gui/uifiles/dialog_star_remix.ui:97
 #, fuzzy
 msgid "Star Recomposition"
-msgstr "Композиція HSL"
+msgstr "Рекомпозиція (відновлення) зірок"
 
 #: src/gui/uifiles/dialog_star_remix.ui:112
-#, fuzzy
 msgid "Log histograms"
-msgstr "Гістограми"
+msgstr "Логарифмічна гістограма"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 #: src/gui/uifiles/dialog_star_remix.ui:127 src/gui/remixer.c:721
 #: src/gui/remixer.c:1430
 msgid "Advanced"
-msgstr ""
+msgstr "Додатково"
 
 #: src/gui/uifiles/dialog_star_remix.ui:131
 msgid "Show advanced stretch options"
-msgstr ""
+msgstr "Показати розширені параметри розтягування"
 
 #: src/gui/uifiles/dialog_star_remix.ui:149
 msgid "Clipping mode:"
@@ -3170,30 +3363,35 @@ msgstr "Глобальне відкидання"
 
 #: src/gui/uifiles/dialog_star_remix.ui:229
 #: src/gui/uifiles/dialog_star_remix.ui:864
+#, fuzzy
 msgid ""
 "Select a starless image for recomposing with a star mask.\n"
 "While the primary aim of the tool is star recomposition as part of a star "
 "reduction workflow, you can specify any two fits files with the same "
 "dimensions and bit depth for blending."
 msgstr ""
+"Виберіть зображення без зірок, щоб відновити маску зірок.\n"
+"Хоча цей інструмент призначений для відновлення зірок як частина робочого "
+"процесу зменшення зірок, ви можете вказати будь-які два файли FITS з "
+"однаковими розмірами та розрядністю для змішування."
 
 #: src/gui/uifiles/dialog_star_remix.ui:260
 msgid ""
 "Expands to show a mini histogram and transfer function display for the star "
 "image"
 msgstr ""
+"Розгортається для відображення міні-гістограми та функції передачі для "
+"зображення зірки"
 
 #: src/gui/uifiles/dialog_star_remix.ui:263
-#, fuzzy
 msgid "Star Histogram"
-msgstr "Гістограма"
+msgstr "Гістограма зірок"
 
 #: src/gui/uifiles/dialog_star_remix.ui:301
 #: src/gui/uifiles/dialog_star_remix.ui:938
 #: src/gui/uifiles/histogram_dialog.ui:839
-#, fuzzy
 msgid "Type of stretch"
-msgstr "Тип алгоритму"
+msgstr "Тип розтягування"
 
 #: src/gui/uifiles/dialog_star_remix.ui:316
 #: src/gui/uifiles/dialog_star_remix.ui:953
@@ -3205,42 +3403,47 @@ msgid ""
 "point, lowlight and highlight preservation. The inverse hyperbolic and "
 "arcsinh stretches are also available."
 msgstr ""
+"Виберіть тип розтягування. Узагальнене гіперболічне розтягування виконує "
+"гіперболічне розтягування з параметрами сили розтягування, локальної "
+"інтенсивності, точки симетрії та ділянок збереження тіні та світла. "
+"Модифіковане розтягування arcsinh виконує розтягнення arcsinh із додатковими "
+"параметрами для збереження точки симетрії, недостатнього освітлення та "
+"яскравості. Також доступні зворотні гіперболічні та arcsinh розтягнення."
 
 #: src/gui/uifiles/dialog_star_remix.ui:320
 #: src/gui/uifiles/dialog_star_remix.ui:957
 #: src/gui/uifiles/histogram_dialog.ui:858
 msgid "Generalised hyperbolic transform"
-msgstr ""
+msgstr "Узагальнене гіперболічне перетворення"
 
 #: src/gui/uifiles/dialog_star_remix.ui:321
 #: src/gui/uifiles/dialog_star_remix.ui:958
 #: src/gui/uifiles/histogram_dialog.ui:859
 msgid "Inverse generalised hyperbolic transform"
-msgstr ""
+msgstr "Зворотне узагальнене гіперболічне перетворення"
 
 #: src/gui/uifiles/dialog_star_remix.ui:322
 #: src/gui/uifiles/dialog_star_remix.ui:959
 #: src/gui/uifiles/histogram_dialog.ui:860
-#, fuzzy
 msgid "Modified arcsinh transform"
-msgstr "Фур'є-перетворення"
+msgstr "Модифіковане arcsinh перетворення"
 
 #: src/gui/uifiles/dialog_star_remix.ui:323
 #: src/gui/uifiles/dialog_star_remix.ui:960
 #: src/gui/uifiles/histogram_dialog.ui:861
-#, fuzzy
 msgid "Inverse modified arcsinh transform"
-msgstr "Зворотнє перетворення"
+msgstr "Зворотне модифіковане arcsinh перетворення"
 
 #: src/gui/uifiles/dialog_star_remix.ui:351
 #: src/gui/uifiles/dialog_star_remix.ui:988
 #: src/gui/uifiles/histogram_dialog.ui:889
 #, fuzzy
 msgid "Colour stretch model"
-msgstr "Насиченість кольору"
+msgstr "Кольорове розтягнення (Насиченість кольору)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:366
 #: src/gui/uifiles/dialog_star_remix.ui:1003
+#, fuzzy
 msgid ""
 "Set the stretch model for colour stretches. The options are: evenly weighted "
 "luminance, which calculates the stretch based on a luminance value weighting "
@@ -3250,30 +3453,38 @@ msgid ""
 "which applies the stretch independently to each channel of the pixel.\n"
 "Note that luminance based models are not generally invertible."
 msgstr ""
+"Встановлює колірну модель розтягування. Можливі опції: 1) рівномірно зважена "
+"яскравість, коли розтягування ґрунтується на рівнозваженому значенні "
+"світності каналів R, G та B; 2) відносна чутливість ока, коли розтягування "
+"ґрунтується на значенні світності, застосовуючи зваження каналів R, G і B "
+"відповідно до відносної чутливості людського ока; 3) незалежні значення "
+"каналів, коли розтягування застосовується незалежно до кожного каналу "
+"пікселя.\n"
+"Зверніть увагу, що моделі на базі яскравісті, зазвичай не є оборотними."
 
 #: src/gui/uifiles/dialog_star_remix.ui:371
 #: src/gui/uifiles/dialog_star_remix.ui:1008
 #: src/gui/uifiles/histogram_dialog.ui:909
 msgid "Independent channel values"
-msgstr ""
+msgstr "Незалежні значення каналу"
 
 #: src/gui/uifiles/dialog_star_remix.ui:372
 #: src/gui/uifiles/dialog_star_remix.ui:1009
 #: src/gui/uifiles/histogram_dialog.ui:910
 msgid "Human weighted luminance"
-msgstr ""
+msgstr "Відносна чутливість ока"
 
 #: src/gui/uifiles/dialog_star_remix.ui:373
 #: src/gui/uifiles/dialog_star_remix.ui:1010
 #: src/gui/uifiles/histogram_dialog.ui:911
 msgid "Even weighted luminance"
-msgstr ""
+msgstr "Рівномірна зважена яскравість"
 
 #: src/gui/uifiles/dialog_star_remix.ui:407
 #: src/gui/uifiles/dialog_star_remix.ui:1044
 #: src/gui/uifiles/histogram_dialog.ui:968
 msgid "Stretch factor (ln(D+1))"
-msgstr ""
+msgstr "Коефіцієнт розтягування (ln(D+1))"
 
 #: src/gui/uifiles/dialog_star_remix.ui:418
 #: src/gui/uifiles/dialog_star_remix.ui:443
@@ -3282,27 +3493,36 @@ msgid ""
 "thus adjusting the amount of stretch applied to the rest of the image. "
 "Increasing D increases the intensity of stars in the resulting composition."
 msgstr ""
+"Незалежно керує доданим контрастом (нахилом розтягування) у точці симетрії, "
+"регулюючи таким чином ступінь розтягування, що застосовується до решти "
+"зображення. Збільшення D підвищує інтенсивність зірок у підсумковій "
+"композиції."
 
 #: src/gui/uifiles/dialog_star_remix.ui:477
 #: src/gui/uifiles/dialog_star_remix.ui:1115
 #: src/gui/uifiles/histogram_dialog.ui:1037
 msgid "Local stretch intensity (b)"
-msgstr ""
+msgstr "Інтенсивність локального розтягування (b)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:488
 #: src/gui/uifiles/dialog_star_remix.ui:512
+#, fuzzy
 msgid ""
 "Controls how tightly the stretch is focused by changing the form of the "
 "transform itself. Increasing b will increase the intensity of stars with "
 "peak brightness above SP, but may bloat their PSF; it will reduce the "
 "intensity of stars below SP."
 msgstr ""
+"Контролює, як точно сфокусоване розтягування, змінюючи форму самого "
+"перетворення. Збільшення b збільшить інтенсивність зірок з піковою "
+"яскравістю вище за точку симетрії, але може збільшити їх PSF; це зменшить "
+"інтенсивність зірок нижче точки симетрії."
 
 #: src/gui/uifiles/dialog_star_remix.ui:547
 #: src/gui/uifiles/dialog_star_remix.ui:1185
 #: src/gui/uifiles/histogram_dialog.ui:1106
 msgid "Symmetry point (SP)"
-msgstr ""
+msgstr "Точка симетрії (SP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:558
 #: src/gui/uifiles/dialog_star_remix.ui:604
@@ -3312,19 +3532,28 @@ msgid ""
 "brightness below SP and therefore the amount of stars that show in the "
 "resulting composition."
 msgstr ""
+"Встановлює точку симетрії, навколо якої фокусується розтяжка. Для "
+"рекомпозиції зірок збільшення SP зменшує інтенсивність зірок із максимальною "
+"яскравістю, нижчою за SP, а отже, і кількість зірок, які відображаються в "
+"отриманій композиції."
 
 #: src/gui/uifiles/dialog_star_remix.ui:578
+#, fuzzy
 msgid ""
 "Allows setting SP from the current selection. This is best suited for use "
 "with the background image, where it can effectively pick out faint detail "
 "above the background. It is not generally useful with the star mask image."
 msgstr ""
+"Дозволяє встановити точку симетрії із поточного виділення. Це найкраще "
+"підходить для використання із зображенням фону, де воно може ефективно "
+"виділяти слабкі деталі над фоном. В основному це не працює із зображенням "
+"маски зірок."
 
 #: src/gui/uifiles/dialog_star_remix.ui:639
 #: src/gui/uifiles/dialog_star_remix.ui:1277
 #: src/gui/uifiles/histogram_dialog.ui:1197
 msgid "Shadow protection point (LP)"
-msgstr ""
+msgstr "Точка збереження тіней (LP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:650
 #: src/gui/uifiles/dialog_star_remix.ui:675
@@ -3340,34 +3569,52 @@ msgid ""
 "definition in the background. This parameter must be greater than or equal "
 "to 0 and not greater than SP."
 msgstr ""
+"Встановлює значення, нижче за яке розтягування змінюється для збереження "
+"контрасту в тінях. Це робиться шляхом виконання лінійного розтягування нижче "
+"точки збереження тіней, зберігаючи контраст з іншою частиною зображення. "
+"Переміщення точки збереження тіней у бік точки симетрії змінює як масштаб, "
+"так і величину збереження розмаїття, кінцевий ефект полягає у підвищенні "
+"загального рівня яскравості при збереженні контрастності та чіткості фону. "
+"Цей параметр повинен бути більшим або дорівнює 0 і не перевищувати значення "
+"точки симетрії."
 
 #: src/gui/uifiles/dialog_star_remix.ui:710
 #: src/gui/uifiles/dialog_star_remix.ui:1348
 #: src/gui/uifiles/histogram_dialog.ui:1266
 #, fuzzy
 msgid "Highlight protection point (HP)"
-msgstr "Відсікання світлих ділянок"
+msgstr "Відсікання світлих ділянок (HP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:721
+#, fuzzy
 msgid ""
 "Sets a value above which the stretch is modified to preserve contrast in the "
 "highlights / stars. The star mask HP can be set to quite a low value to "
 "prevent bloat of brighter stars."
 msgstr ""
+"Встановлює значення, вище якого розтягування змінюється, щоб зберегти "
+"контраст у світлих ділянках/зірках. Відсікання світлих ділянок маски зірок "
+"можна встановити на досить низьке значення, щоб запобігти роздуванню "
+"яскравіших зірок."
 
 #: src/gui/uifiles/dialog_star_remix.ui:747
+#, fuzzy
 msgid ""
 "Sets a value above which the stretch is modified to preserve contrast in the "
 "highlights / stars. This can be set to quite a low value in star "
 "recomposition mode to prevent bloat of brighter stars while boosting the "
 "brightness of fainter ones."
 msgstr ""
+"Встановлює значення, при перевищенні якого розтягування змінюється для "
+"збереження котрасту в основних світлих частинах/зірках. Це значення може "
+"бути встановлене на досить низьке в режимі відновлення зірок, щоб запобігти "
+"набуханню яскравіших зірок при одночасному підвищенні яскравості слабших."
 
 #: src/gui/uifiles/dialog_star_remix.ui:782
 #: src/gui/uifiles/dialog_star_remix.ui:1420
 #: src/gui/uifiles/histogram_dialog.ui:1336
 msgid "Black Point (BP)"
-msgstr ""
+msgstr "Точка чорного (BP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:793
 #: src/gui/uifiles/dialog_star_remix.ui:819
@@ -3378,21 +3625,26 @@ msgid ""
 "image after the initial hyperbolic stretch. BP adjustment may result in "
 "clipping the shadows."
 msgstr ""
+"Регулювання чорної точки. Це постійне значення, яке віднімається із "
+"зображення після початкового гіперболічного розтягування. Регулювання чорної "
+"точки може призвести до обрізання тіней."
 
 #: src/gui/uifiles/dialog_star_remix.ui:897
 msgid ""
 "Expands to show a mini histogram and transfer function display for the "
 "background image."
 msgstr ""
+"Розгортається для відображення міні-гістограми та функції перенесення для "
+"фонового зображення."
 
 #: src/gui/uifiles/dialog_star_remix.ui:900
-#, fuzzy
 msgid "Background Histogram"
-msgstr "Фон"
+msgstr "Гістограма фону"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1055
 #: src/gui/uifiles/dialog_star_remix.ui:1080
 #: src/gui/uifiles/histogram_dialog.ui:979
+#, fuzzy
 msgid ""
 "Independently controls the contrast added (the slope of the stretch) at SP, "
 "thus adjusting the amount of stretch applied to the rest of the image. It "
@@ -3401,10 +3653,18 @@ msgid ""
 "brightness. When this is set to zero, the stretch will be the identity "
 "transform, but any ordered black point adjustment will still occur."
 msgstr ""
+"Незалежно керує доданим контрастом (нахилом розтягування) у точці симетрії, "
+"регулюючи таким чином ступінь розтягування, що застосовується до решти "
+"зображення. Форма розтягування не змінюється, змінюється, лише її величина. "
+"Повинен використовуватися в парі з b для керування розподілом контрасту та "
+"яскравості. Коли це значення дорівнює нулю, розтягування буде ідентичним "
+"перетворенням, але будь-яке впорядковане коригування чорної точки все одно "
+"буде виконуватися."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1126
 #: src/gui/uifiles/dialog_star_remix.ui:1150
 #: src/gui/uifiles/histogram_dialog.ui:1048
+#, fuzzy
 msgid ""
 "Controls how tightly the stretch is focused by changing the form of the "
 "transform itself. For concentrated stretches (e.g. initial stretch on linear "
@@ -3416,10 +3676,20 @@ msgid ""
 "(with small D) can still be used for precise placement of additional "
 "contrast."
 msgstr ""
+"Керує як точно сфокусоване розтягування, змінюючи форму самого перетворення. "
+"Для концентрованого розтягування (наприклад, початкове розтягування лінійних "
+"даних) велике позитивне значення b сфокусує ділянку в межах піку гістограми, "
+"одночасно розфокусуючи розтягування убік від піку (наприклад, яскравих зірок)"
+". При налаштуванні нелінійних зображень нижчі або відʼємні значення "
+"розподілятимуть контраст і яскравість більш рівномірно. Як правило, значення "
+"b буде зменшуватися з наближенням до завершення послідовності розтягування, "
+"хоча більші значення (з невеликим D) все ще можна використовувати для "
+"точного розміщення додаткового контрасту."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1196
 #: src/gui/uifiles/dialog_star_remix.ui:1242
 #: src/gui/uifiles/histogram_dialog.ui:1117
+#, fuzzy
 msgid ""
 "Sets the symmetry point around which the stretch is focused - contrast will "
 "be distributed symmetrically around SP. This should generally be placed "
@@ -3428,6 +3698,13 @@ msgid ""
 "pixel values away from SP. This parameter must be greater than or equal to "
 "LP and less than or equal to HP."
 msgstr ""
+"Встановлює точку симетрії, довкола якої фокусується розтягування – контраст "
+"розподіляється симетрично навколо точки симетрії. Як правило, її слід "
+"розміщувати всередині піку гістограми, щоб розтягування розширювало та "
+"знижувало пік, додаючи найбільший контраст при розтягуванні у цій точці. "
+"Розтягування призведе до видалення пікселів від точки симетрії. Цей параметр "
+"повинен бути більшим або рівним точці збереження тіней і меншим або рівним "
+"точці збереження світла."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1216
 #: src/gui/uifiles/histogram_dialog.ui:1138
@@ -3436,9 +3713,13 @@ msgid ""
 "on the average value of  the current selection. This helps in picking out "
 "faint detail above the dark background."
 msgstr ""
+"Ця піпетка дозволяє встановити точку симетрії розтягування фону на основі "
+"середнього значення поточного виділення. Це допомагає виділити слабкі деталі "
+"на темному тлі."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1359
 #: src/gui/uifiles/dialog_star_remix.ui:1385
+#, fuzzy
 msgid ""
 "Sets a value above which the stretch is modified to preserve contrast in the "
 "highlights / stars. This is done by performing a linear stretch of the data "
@@ -3450,37 +3731,48 @@ msgid ""
 "of limited use for starless backgrounds but is very effective on the star "
 "mask for preventing star bloat."
 msgstr ""
+"Встановлює значення, при перевищенні якого розтягування змінюється для "
+"збереження контрасту основних світлих частин/зірок. Це робиться шляхом "
+"виконання лінійного розтягування даних вище точки збереження світлих частин "
+"зі збереженням контрасту в порівнянні з іншою частиною зображення. Перехід "
+"від точки збереження світлих частинах до точки симетрії збільшує охоплення "
+"та величину цього збереження контрасту. Кінцевий ефект полягає у зсуві "
+"загального розтягування до низьких рівнів яскравості за збереження контрасту "
+"і чіткості у світлих частинах. Цей параметр повинен бути меншим або дорівнює "
+"1 і не менше точки симетрії. Для беззоряного фону цей параметр зазвичай має "
+"обмежене застосування, але дуже ефективний для запобігання роздмухування "
+"зірок на масці зірок."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1497
-#, fuzzy
 msgid "Background Stretch Parameters"
-msgstr "Опорний зразок фону"
+msgstr "Параметри розтягування фону"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1513
-#, fuzzy
 msgid "Star Stretch Parameters"
-msgstr "Відновити параметри за замовчуванням"
+msgstr "Параметри розтягування зірок"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1550
-#, fuzzy
 msgid "Resets stretch parameters for the star image"
-msgstr "Усереднення параметрів PSF для вибраних зврок"
+msgstr "Скинути параметри розтягування для зображення зірок"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1565
 msgid ""
 "Applies current stretch to the star image and resets the stretch parameters."
 msgstr ""
+"Застосовує поточне розтягування до зображення зірок та скидає параметри "
+"розтягування."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1598
-#, fuzzy
 msgid "Resets stretch parameters for the starless image"
-msgstr "Усереднення параметрів PSF для вибраних зврок"
+msgstr "Скидає параметри розтягування для зображення без зірок"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1613
 msgid ""
 "Applies current stretch to the starless image and resets the stretch "
 "parameters."
 msgstr ""
+"Застосовує поточне розтягування до зображення без зірок і скидає параметри "
+"розтягування."
 
 #: src/gui/uifiles/extract_channel_dialog.ui:35 src/gui/uifiles/siril.ui:1415
 #: src/gui/uifiles/siril.ui:1726
@@ -3501,19 +3793,16 @@ msgstr "Ім'я файлу FITS для зберігання третього к�
 
 #. RGB
 #: src/gui/uifiles/extract_channel_dialog.ui:149 src/gui/colors.c:333
-#, fuzzy
 msgid "Red: "
-msgstr "Червоний:"
+msgstr "Чкрвоний: "
 
 #: src/gui/uifiles/extract_channel_dialog.ui:161 src/gui/colors.c:334
-#, fuzzy
 msgid "Green: "
-msgstr "Зелений:"
+msgstr "Зелений: "
 
 #: src/gui/uifiles/extract_channel_dialog.ui:173 src/gui/colors.c:335
-#, fuzzy
 msgid "Blue: "
-msgstr "Синій:"
+msgstr "Синій: "
 
 #: src/gui/uifiles/extract_channel_dialog.ui:184
 msgid "Select the color space corresponding to the three extracted images"
@@ -3528,15 +3817,15 @@ msgstr "RGB"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:190 src/core/command.c:6149
 msgid "HSL"
-msgstr ""
+msgstr "HSL (колірна модель Hue, Saturation, Lightness)"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:191 src/core/command.c:6152
 msgid "HSV"
-msgstr ""
+msgstr "HSV (колірна модель Hue, Saturation, Value)"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:192
 msgid "CIE L*a*b*"
-msgstr ""
+msgstr "CIE L*a*b* (колірна модель CIELAB)"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:206
 msgid "Color Space:"
@@ -3551,12 +3840,11 @@ msgid "Apply wavelet extraction."
 msgstr "Застосувати виділення вейвлетів."
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:108
-#, fuzzy
 msgid ""
 "Number of wavelet layers. You can choose up to 9 layers for wavelets "
 "computing."
 msgstr ""
-"Число шарів вейвлетів. Ви можете вибрати до 6-и шарів для розрахунку "
+"Число шарів вейвлетів. Ви можете вибрати до 9-и шарів для розрахунку "
 "вейвлетів."
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:129
@@ -3597,11 +3885,13 @@ msgid ""
 "the preferences otherwise.\n"
 "Modified data can be saved in a FITS file."
 msgstr ""
+"Інформація, пов’язана із зображенням, витягнута з файлу, якщо він доступний, "
+"або з налаштувань в іншому випадку.\n"
+"Змінені дані можна зберегти у файлі FITS."
 
 #: src/gui/uifiles/file_information_dialog.ui:98
-#, fuzzy
 msgid "Pixel size (micron): "
-msgstr "X-розмір пікселя (мікрон): "
+msgstr "Розмір пікселя (мікрон): "
 
 #: src/gui/uifiles/file_information_dialog.ui:109
 msgid ""
@@ -3632,17 +3922,16 @@ msgstr ""
 "файла, ви можете вказати це значення вручну."
 
 #: src/gui/uifiles/file_information_dialog.ui:175
-#, fuzzy
 msgid ""
 "Clear all the fields. If you save your image after, the header will not "
 "contain any data about the focal length or sensor size."
 msgstr ""
 "Очистити всі поля. Якщо ви потім збережете ваше зображення, заголовок не "
-"буде містити даних про фокусну відстань та параметри сенсору."
+"буде містити даних про фокусну відстань та розміри сенсору."
 
 #: src/gui/uifiles/file_information_dialog.ui:189
 msgid "Computed sampling (arcsec/pixel):"
-msgstr ""
+msgstr "Масштаб (кутові секунди/піксель):"
 
 #: src/gui/uifiles/file_information_dialog.ui:202
 msgid "Binning: "
@@ -3658,9 +3947,10 @@ msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:231
 msgid "Real pixel size"
-msgstr ""
+msgstr "Реальний розмір пікселів"
 
 #: src/gui/uifiles/file_information_dialog.ui:235
+#, fuzzy
 msgid ""
 "Check this button if binning is not taken into account in the pixel size "
 "value. In this case, the binning value will be used to compute the "
@@ -3668,16 +3958,24 @@ msgid ""
 "WARNING: checking this stores it as a preference, also available in the FITS "
 "option preferences section."
 msgstr ""
+"Встановіть цей прапорця, якщо значення бінінгу не враховується при "
+"збільшенні розміру пікселя. У цьому випадку для обчислення вибірки буде "
+"використано значення бінінгу.\n"
+"ПОПЕРЕДЖЕННЯ: вибір цього прапорця зберігає дане налаштування, яке також "
+"доступне потім в розділі налаштувань FITS."
 
 #: src/gui/uifiles/file_information_dialog.ui:258
 msgid "Save as default values"
-msgstr ""
+msgstr "Зберегти як значення за замовчуванням"
 
 #: src/gui/uifiles/file_information_dialog.ui:262
 msgid ""
 "Save focal length and pixel size as default values in the settings to be "
 "used for images that do not contain these metadata"
 msgstr ""
+"Зберегти фокусну відстань і розмір пікселя як значення за замовчуванням у "
+"налаштуваннях, які використовуватимуться для зображень, які не містять цих "
+"метаданих"
 
 #: src/gui/uifiles/graxpert.ui:66
 msgid "Siril GraXpert Interface"
@@ -4170,7 +4468,7 @@ msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:95 src/gui/uifiles/siril.ui:3747
 msgid "Remove"
-msgstr ""
+msgstr "Видалити"
 
 #: src/gui/uifiles/icc_dialog.ui:99
 msgid "Remove the ICC profile from the image and stop color managing it"
@@ -4190,7 +4488,7 @@ msgstr ""
 #: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3899
 #: src/core/icc_profile.c:1287
 msgid "Convert"
-msgstr ""
+msgstr "Конвертувати"
 
 #: src/gui/uifiles/icc_dialog.ui:132
 msgid ""
@@ -4306,37 +4604,34 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/linearmatch_dialog.ui:46 src/gui/linear_match.c:79
-#, fuzzy
 msgid "Linear Match"
-msgstr "Лінійний"
+msgstr "Лінійний пошук відповідностей"
 
 #: src/gui/uifiles/linearmatch_dialog.ui:66
-#, fuzzy
 msgid "Close the dialog."
-msgstr "Закрити вікно."
+msgstr "Закрити цей діалог."
 
 #: src/gui/uifiles/linearmatch_dialog.ui:81
 msgid "Computes a linear function between a reference image and a target."
 msgstr ""
+"Обчислює лінійну функцію між еталонним зображенням і цільовим зображенням."
 
 #: src/gui/uifiles/linearmatch_dialog.ui:115
-#, fuzzy
 msgid "Reference: "
-msgstr "Опорне зображення"
+msgstr "Еталонне зображення: "
 
 #: src/gui/uifiles/linearmatch_dialog.ui:127
 msgid "Choose the reference image. This image must have same dimensions."
 msgstr ""
+"Виберіть еталонне зображення. Це зображення повинно мати однакові розміри."
 
 #: src/gui/uifiles/linearmatch_dialog.ui:129
-#, fuzzy
 msgid "Choose Reference Image"
-msgstr "Опорне зображення"
+msgstr "Виберіть еталонне зображення"
 
 #: src/gui/uifiles/linearmatch_dialog.ui:153
-#, fuzzy
 msgid "Reject low"
-msgstr "Відкидання:"
+msgstr "Нижня межа"
 
 #: src/gui/uifiles/linearmatch_dialog.ui:165
 #: src/gui/uifiles/linearmatch_dialog.ui:190
@@ -4346,11 +4641,12 @@ msgid ""
 "The algorithm will ignore all reference pixels whose values are outside of "
 "the [low, high] range."
 msgstr ""
+"Алгоритм ігноруватиме всі опорні пікселі, значення яких знаходяться за "
+"межами діапазону [нижня межа, верхня межа]."
 
 #: src/gui/uifiles/linearmatch_dialog.ui:212
-#, fuzzy
 msgid "Reject high"
-msgstr "Відкидання:"
+msgstr "Верхня межа"
 
 #: src/gui/uifiles/livestacking_player.ui:33
 #, fuzzy
@@ -4443,9 +4739,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/Median_dialog.ui:138
-#, fuzzy
 msgid "Kernel Size:"
-msgstr "Розмір ядра: "
+msgstr "Розмір ядра:"
 
 #: src/gui/uifiles/Median_dialog.ui:150
 msgid ""
@@ -4646,9 +4941,8 @@ msgid "Scroll Actions"
 msgstr "Область не виділена"
 
 #: src/gui/uifiles/pixelmath.ui:81 src/gui/uifiles/seqlist_dialog.ui:56
-#, fuzzy
 msgid "Sequence List"
-msgstr "Послідовність"
+msgstr "Список послідовностей"
 
 #: src/gui/uifiles/pixelmath.ui:123 src/gui/uifiles/pixelmath.ui:190
 #: src/gui/uifiles/pixelmath.ui:257
@@ -4868,19 +5162,21 @@ msgstr ""
 
 #: src/gui/uifiles/rgradient_dialog.ui:45
 msgid "Rotational Gradient"
-msgstr ""
+msgstr "Градієнт обертання"
 
 #: src/gui/uifiles/rgradient_dialog.ui:79
 msgid "The rotational gradient will be applied."
-msgstr ""
+msgstr "Буде застосовано градієнт обертання."
 
 #: src/gui/uifiles/rgradient_dialog.ui:108
+#, fuzzy
 msgid "Radial shift"
-msgstr ""
+msgstr "Радіальний зсув"
 
 #: src/gui/uifiles/rgradient_dialog.ui:142
 msgid "Radial shift used to compute rotational gradient."
 msgstr ""
+"Радіальний зсув, який використовується для обчислення градієнта обертання."
 
 #: src/gui/uifiles/rgradient_dialog.ui:165
 #, fuzzy
@@ -4888,30 +5184,34 @@ msgid "Rotational shift"
 msgstr "Поворот"
 
 #: src/gui/uifiles/rgradient_dialog.ui:199
+#, fuzzy
 msgid "Rotational shift used to compute rotational gradient."
 msgstr ""
+"Кут повороту, який використовується для обчислення обертального градієнта."
 
 #: src/gui/uifiles/rgradient_dialog.ui:219
+#, fuzzy
 msgid "You should specify a selection around the object you want to analyze."
-msgstr ""
+msgstr "Виділіть область навколо об’єкта, який ви хочете проаналізувати."
 
 #: src/gui/uifiles/rgradient_dialog.ui:240
+#, fuzzy
 msgid "X centre:"
-msgstr ""
+msgstr "Центр по X:"
 
 #: src/gui/uifiles/rgradient_dialog.ui:252
 #, fuzzy
 msgid "X coordinate of the center of polar coordinates."
-msgstr "x-коордіната початкової точки вибору ділянки фону"
+msgstr "Центр полярних координат по вісі X."
 
 #: src/gui/uifiles/rgradient_dialog.ui:271
 msgid "Y centre:"
-msgstr ""
+msgstr "Центр по Y:"
 
 #: src/gui/uifiles/rgradient_dialog.ui:283
 #, fuzzy
 msgid "Y coordinate of the center of polar coordinates."
-msgstr "x-коордіната початкової точки вибору ділянки фону"
+msgstr "Центр полярних координат по вісі Y."
 
 #: src/gui/uifiles/rotation_dialog.ui:41 src/gui/uifiles/siril.ui:2166
 #, fuzzy
@@ -4985,9 +5285,8 @@ msgstr ""
 "насиченість кольору, додатнє -- підвищує."
 
 #: src/gui/uifiles/satu_dialog.ui:231
-#, fuzzy
 msgid "Background factor"
-msgstr "Фон"
+msgstr "Коефіцієнт фону"
 
 #: src/gui/uifiles/satu_dialog.ui:267
 msgid ""
@@ -4995,12 +5294,13 @@ msgid ""
 "stronger is the saturation effect. While a high value will preserve the "
 "background."
 msgstr ""
+"Це коефіцієнт, помножений на фонове значення. Нижче значення, сильніший "
+"ефект насиченості. Тоді як високе значення збереже фон."
 
 #: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10751
 #: src/gui/mouse_action_functions.h:55 src/io/sequence.c:1919
-#, fuzzy
 msgid "Save"
-msgstr "_Зберегти"
+msgstr "Зберегти"
 
 #: src/gui/uifiles/savepopup.ui:96
 msgid ""
@@ -5013,10 +5313,11 @@ msgstr ""
 #: src/gui/uifiles/savepopup.ui:128
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
 msgstr ""
+"шаблон назв для конвертованих зображень (the &apos;dest&apos; in dest1.fit)"
 
 #: src/gui/uifiles/savepopup.ui:129
 msgid "root name of the converted images (the 'dest' in dest1.fit)"
-msgstr ""
+msgstr "шаблон назв для конвертованих зображень (the 'dest' in dest1.fit)"
 
 #: src/gui/uifiles/savepopup.ui:143
 msgid "<b>Filename</b>"
@@ -5034,7 +5335,7 @@ msgstr "16-бітове ціле без знака"
 #: src/gui/uifiles/savepopup.ui:225 src/gui/uifiles/savepopup.ui:709
 #: src/gui/uifiles/settings_window.ui:679
 msgid "32-bit floating point"
-msgstr ""
+msgstr "32-біт з плаваючою комою"
 
 #: src/gui/uifiles/savepopup.ui:245
 msgid "<b>Sample Format</b>"
@@ -5042,12 +5343,12 @@ msgstr "<b>Формат</b>"
 
 #: src/gui/uifiles/savepopup.ui:289 src/gui/uifiles/savepopup.ui:293
 msgid "Deflate compression"
-msgstr ""
+msgstr "Зменшення стиснення"
 
 #: src/gui/uifiles/savepopup.ui:310 src/gui/uifiles/savepopup.ui:609
 #: src/gui/uifiles/savepopup.ui:954
 msgid "<b>Compression</b>"
-msgstr ""
+msgstr "<b>Стиснення</b>"
 
 #: src/gui/uifiles/savepopup.ui:340
 #, fuzzy
@@ -5055,25 +5356,24 @@ msgid "<b>ICC Profile</b>"
 msgstr "<b>Спосіб виділення фону</b>"
 
 #: src/gui/uifiles/savepopup.ui:367
-#, fuzzy
 msgid "<b>Embedded Data</b>"
-msgstr "Вбудовані дані"
+msgstr "<b>Вбудовані дані</b>"
 
 #: src/gui/uifiles/savepopup.ui:424
 msgid "<b>Image Description</b>"
-msgstr ""
+msgstr "<b>Опис зображення</b>"
 
 #: src/gui/uifiles/savepopup.ui:468
 msgid "<b>Image Copyright</b>"
-msgstr ""
+msgstr "<b>Авторські права на зображення</b>"
 
 #: src/gui/uifiles/savepopup.ui:492
 msgid "ASTRO-TIFF"
-msgstr ""
+msgstr "ASTRO-TIFF"
 
 #: src/gui/uifiles/savepopup.ui:493
 msgid "Standard TIFF"
-msgstr ""
+msgstr "Стандартний TIFF"
 
 #: src/gui/uifiles/savepopup.ui:509
 msgid "TIFF"
@@ -5104,7 +5404,7 @@ msgstr "JPEG"
 #: src/gui/uifiles/savepopup.ui:663 src/gui/uifiles/savepopup.ui:696
 #: src/gui/uifiles/savepopup.ui:713
 msgid "Not available"
-msgstr ""
+msgstr "Недоступно"
 
 #: src/gui/uifiles/savepopup.ui:692
 msgid "16-bit signed integer"
@@ -5224,24 +5524,27 @@ msgid ""
 "gradient estimator for DFT registration, higher is better. X and Y columns "
 "are the translation relative to the reference image."
 msgstr ""
+"Список зображень у послідовності з інформацією про їхній стан і якість. "
+"Якість становить FWHM, коли використовується реєстрація PSF, тому що менше, "
+"то краще, а оцінка градієнта для реєстрації DFT, що вище, то краще. Стовпці "
+"X і Y це зміщення відносно контрольного зображення."
 
 #: src/gui/uifiles/seqlist_dialog.ui:109
-#, fuzzy
 msgid "File"
-msgstr "_Файл"
+msgstr "Файл"
 
 #: src/gui/uifiles/seqlist_dialog.ui:124
 msgid "X"
-msgstr ""
+msgstr "X"
 
 #: src/gui/uifiles/seqlist_dialog.ui:137
 msgid "Y"
-msgstr ""
+msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
 #: src/gui/uifiles/settings_window.ui:5227
 msgid "Sel"
-msgstr ""
+msgstr "Вибір"
 
 #: src/gui/uifiles/seqlist_dialog.ui:165 src/gui/uifiles/siril.ui:7850
 #: src/gui/uifiles/siril.ui:7885 src/gui/plot.c:138 src/gui/plot.c:1671
@@ -5250,30 +5553,26 @@ msgid "Quality"
 msgstr "Якість"
 
 #: src/gui/uifiles/seqlist_dialog.ui:210 src/gui/sequence_list.c:154
-#, fuzzy
 msgid "Frame List"
-msgstr "Кадри"
+msgstr "Список кадрів"
 
 #: src/gui/uifiles/seqlist_dialog.ui:216
 msgid "Select the channel you want to display."
-msgstr ""
+msgstr "Виберіть канал, який потрібно відобразити."
 
 #: src/gui/uifiles/seqlist_dialog.ui:231
-#, fuzzy
 msgid "Excludes all images of the sequence from the processing schedule"
 msgstr "Виключити всі зображення у послідовності з плану обробки"
 
 #: src/gui/uifiles/seqlist_dialog.ui:252
-#, fuzzy
 msgid "Includes all images of the sequence in the processing schedule"
-msgstr "включити всі зображення у послідовності в план обробки"
+msgstr "Включити всі зображення у послідовності в план обробки"
 
 #: src/gui/uifiles/seqlist_dialog.ui:273
-#, fuzzy
 msgid ""
 "Includes/excludes selected images of the sequence from the processing "
 "schedule"
-msgstr "Виключити всі зображення у послідовності з плану обробки"
+msgstr "Включає/виключає вибрані зображення послідовності з розкладу обробки"
 
 #: src/gui/uifiles/seqlist_dialog.ui:295
 msgid ""
@@ -5281,6 +5580,9 @@ msgid ""
 "registration data is drawn on each image to review image position wrt. "
 "reference."
 msgstr ""
+"Коли перемикається, контур еталонного зображення, трансформованого за "
+"допомогою реєстраційних даних, малюється на кожному зображенні, щоб "
+"переглянути положення зображення відносно еталонного."
 
 #: src/gui/uifiles/seqlist_dialog.ui:319
 msgid "Reference image"
@@ -5302,9 +5604,8 @@ msgstr ""
 "послідовності буде призначене опорним."
 
 #: src/gui/uifiles/seqlist_dialog.ui:339
-#, fuzzy
 msgid "Enter the number of the image you want to reach."
-msgstr "Введіть ім'я CSV-файлу для експорту."
+msgstr "Введіть номер зображення, до якого ви хочете перейти"
 
 #: src/gui/uifiles/settings_window.ui:223 src/gui/uifiles/siril.ui:474
 #, fuzzy
@@ -5312,17 +5613,14 @@ msgid "Preferences"
 msgstr "Опорний зразок білого"
 
 #: src/gui/uifiles/settings_window.ui:326
-#, fuzzy
 msgid "FITS/SER debayer"
-msgstr "Дебаєризація RAW-файлів цифрових камер"
+msgstr "Дебаєризація FITS/SER"
 
 #: src/gui/uifiles/settings_window.ui:356
-#, fuzzy
 msgid "Bayer information from file's header if available"
-msgstr "Баєрівська матриця з заголовку файлу (якщо є)"
+msgstr "Інформація про шаблон Баєра з заголовку файлу (якщо є)"
 
 #: src/gui/uifiles/settings_window.ui:360
-#, fuzzy
 msgid ""
 "If this box is checked, Siril will automatically apply the Bayer pattern "
 "found in the file's header as well as X and Y Bayer offsets. If the result "
@@ -5332,13 +5630,19 @@ msgid ""
 "to allow SER files converted from films to be demosaiced, monochrome SER "
 "will be forced as CFA with the configured pattern."
 msgstr ""
-"Якщо цей прапорець встановлений, Siril використає специфікацію баєрівської "
-"матриці з заголовку файлу. Якщо результат дебаєризації виглядає неправильно, "
-"скиньте цю опцію та виберіть баєрівський паттерн вручну з випадаючого списку."
+"Якщо цей прапорець встановлений, Siril автоматично застосує шаблон Байєра, "
+"виявлений у заголовку файлу, разом зі зміщенням шаблону X і Y. У разі, якщо "
+"результат виглядає неправильним, зніміть цей прапорець і вручну вкажіть "
+"шаблон Байера в діалозі нижче.\n"
+"Якщо цей прапорець знято, буде використано вказаний шаблон Баєра. "
+"Попередження: для дебайеризації файлів SER, що конвертуються з роликів, "
+"монохромні файли SER будуть примусово перетворені на CFA із зазначеним "
+"шаблоном."
 
 #: src/gui/uifiles/settings_window.ui:374
 msgid "Debayer FITS files in top-down if no explicit keywords found"
 msgstr ""
+"Дебаєризація файлів FITS зверху вниз, якщо не знайдені явні ключові слова"
 
 #: src/gui/uifiles/settings_window.ui:378
 msgid ""
@@ -5347,6 +5651,10 @@ msgid ""
 "orientation (as they usual do), you need to check this box in order to "
 "debayer the file in the right orientation."
 msgstr ""
+"Siril читає дані FITS в орієнтації знизу нагору, проте велика кількість "
+"програм захоплення зображень не відповідають цій специфікації. Якщо дані "
+"збережені в орієнтації зверху вниз (як це зазвичай має місце), необхідно "
+"встановити цей прапорець, щоб дебайєризувати файл правильної орієнтації."
 
 #: src/gui/uifiles/settings_window.ui:392
 msgid ""
@@ -5354,11 +5662,17 @@ msgid ""
 "used in the rejection stacking. Our tests also showed that there is no gain "
 "in quaity when many images are used, while processing time increases 20-fold."
 msgstr ""
+"Через обмеження алгоритму комплексніші алгоритми дебайєризації не можуть "
+"використовуватися при укладанні з вибракуванням. Наші тести також показали, "
+"що при використанні великої кількості зображень якість не покращується, тоді "
+"як час обробки збільшується у 20 разів."
 
 #: src/gui/uifiles/settings_window.ui:394
 msgid ""
 "Warning: For SER on-the-fly demosaicing, the RCD algorithm is always used."
 msgstr ""
+"Попередження: під час роботи з SER для дебайєризації на льоту завжди "
+"використовується алгоритм RCD."
 
 #: src/gui/uifiles/settings_window.ui:412
 #: src/gui/uifiles/settings_window.ui:425
@@ -5408,61 +5722,87 @@ msgid ""
 "For the XTRANS sensor, a special algorithm called <b>Markesteijn</b> is used "
 "regardless of the method selected in the preferences."
 msgstr ""
+"Виберіть метод інтерполяції для дебайеризації.\n"
+"\n"
+"* <b>Швидка дебайєризація</b> це найшвидший алгоритм, доступний у Siril. "
+"Однак інші алгоритми, наведені нижче, часто дають набагато кращий результат."
+"\n"
+"** <b>VNG4</b> (Threshold-Based Variable Number of Gradients), алгоритм "
+"працює в області 5×5 пікселів навколо кожного вихідного пікселя. Це дуже "
+"добрий алгоритм для рівних областей зображення (наприклад, фон неба), але "
+"створює артефакти у висококонтрастних областях (наприклад, зірки).\n"
+"* <b>AHD</b> (Adaptive Homogeneity-Directed), це інший добре відомий "
+"алгоритм дебайєризації. Однак зазвичай він демонструє артефакти фону та "
+"погані форми зірок.\n"
+"* <b>AMaZE</b> (Aliasing Minimization and Zipper Elimination), це алгоритм, "
+"який дає хороші результати, особливо при зйомці з низьким рівнем шуму.\n"
+"* <b>DCB</b> (Double Corrected Bilinear), більш сучасний алгоритм, що "
+"демонструє деякі артефакти фону, подібно до AHD.\n"
+"* <b>HPHD</b> (Heterogeneity-Projection Hard-Decision), старий алгоритм, що "
+"демонструє хороші результати, але досить повільний.\n"
+"* <b>IGV</b> та <b>LMMSE</b> дуже хороші при роботі з сильно зашумленими "
+"зображеннями. Однак IGV має тенденцію до втрати деякої колірної інформації, "
+"а LMMSE — один з алгоритмів дебайєризації, що потребують значної кількості "
+"обчислень і потребує великої кількості пам'яті.\n"
+"* <b>RCD</b> (Ratio Corrected Demosaicing) призначений для згладжування "
+"помилок у корекції кольору, які мають місце у багатьох методів інтерполяції. "
+"Цей алгоритм добре поводиться на круглих межах, наприклад, зірках, і тому є "
+"алгоритмом за замовчуванням у Siril.\n"
+"\n"
+"Для сенсорів X-Trans, незалежно від зазначеного в налаштуваннях, "
+"використовується спеціальний алгоритм <b>Markesteijn</b>."
 
 #: src/gui/uifiles/settings_window.ui:472
-#, fuzzy
 msgid "Fast Debayer"
-msgstr "Дебаєризація"
+msgstr "Швидка дебайєризація"
 
 #: src/gui/uifiles/settings_window.ui:473
 msgid "VNG4"
-msgstr ""
+msgstr "VNG4"
 
 #: src/gui/uifiles/settings_window.ui:474
 msgid "AHD"
-msgstr ""
+msgstr "AHD"
 
 #: src/gui/uifiles/settings_window.ui:475
 msgid "AMaZE"
-msgstr ""
+msgstr "AMaZE"
 
 #: src/gui/uifiles/settings_window.ui:476
 msgid "DCB"
-msgstr ""
+msgstr "DCB"
 
 #: src/gui/uifiles/settings_window.ui:477
 msgid "HPHD"
-msgstr ""
+msgstr "HPHD"
 
 #: src/gui/uifiles/settings_window.ui:478
 msgid "IGV"
-msgstr ""
+msgstr "IGV"
 
 #: src/gui/uifiles/settings_window.ui:479
 msgid "LMMSE"
-msgstr ""
+msgstr "LMMSE"
 
 #: src/gui/uifiles/settings_window.ui:480
 msgid "RCD"
-msgstr ""
+msgstr "RCD"
 
 #: src/gui/uifiles/settings_window.ui:493
-#, fuzzy
 msgid "X offset:"
-msgstr "Використати офсет"
+msgstr "Зміщення по X:"
 
 #: src/gui/uifiles/settings_window.ui:505
-#, fuzzy
 msgid "Y offset:"
-msgstr "Використати офсет"
+msgstr "Зміщення по Y:"
 
 #: src/gui/uifiles/settings_window.ui:516
 msgid "X offset of Bayer array."
-msgstr ""
+msgstr "Зміщення шаблону Баєра по X."
 
 #: src/gui/uifiles/settings_window.ui:531
 msgid "Y offset of Bayer array."
-msgstr ""
+msgstr "Зміщення шаблону Баєра по Y."
 
 #: src/gui/uifiles/settings_window.ui:546
 #: src/gui/uifiles/settings_window.ui:560
@@ -5471,11 +5811,13 @@ msgid ""
 "Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly "
 "better but slower."
 msgstr ""
+"Кількість проходів для сенсорів X-Trans.\n"
+"Алгоритм дебайєризації Markesteijn. Значення за замовчуванням - 1, трохи "
+"кращим, але повільнішим буде 3."
 
 #: src/gui/uifiles/settings_window.ui:549
-#, fuzzy
 msgid "X-Trans demosaicing quality"
-msgstr "На основі якості"
+msgstr "Якість дебайєризації X-Trans"
 
 #: src/gui/uifiles/settings_window.ui:581 src/gui/uifiles/siril.ui:3981
 #: src/gui/open_dialog.c:191
@@ -5483,35 +5825,34 @@ msgid "Debayer"
 msgstr "Дебаєризація"
 
 #: src/gui/uifiles/settings_window.ui:598
-#, fuzzy
 msgid "FITS/SER Debayer"
-msgstr "Дебаєризація"
+msgstr "Дебаєризація FITS/SER"
 
 #: src/gui/uifiles/settings_window.ui:611
-#, fuzzy
 msgid "FITS options"
-msgstr "Файли FITS"
+msgstr "Параметри FITS"
 
 #: src/gui/uifiles/settings_window.ui:642
 msgid "Choose the type of extension used by Siril. By default it is .fit."
 msgstr ""
+"Виберіть тип розширення, яке використовуватиме Siril. За замовчуванням це ."
+"fit."
 
 #: src/gui/uifiles/settings_window.ui:647
 msgid ".fit"
-msgstr ""
+msgstr ".fit"
 
 #: src/gui/uifiles/settings_window.ui:648
 msgid ".fits"
-msgstr ""
+msgstr ".fits"
 
 #: src/gui/uifiles/settings_window.ui:649
 msgid ".fts"
-msgstr ""
+msgstr ".fts"
 
 #: src/gui/uifiles/settings_window.ui:662
-#, fuzzy
 msgid "Extension:"
-msgstr "Розширення файлів: "
+msgstr "Розширення:"
 
 #: src/gui/uifiles/settings_window.ui:673
 msgid ""
@@ -5521,14 +5862,20 @@ msgid ""
 "chosen format except the RGB compositing tool that always will convert "
 "images in 32-bit."
 msgstr ""
+"Виберіть тип FITS, який буде використовуватись за замовчуванням. Найкращу "
+"точність забезпечує 32-бітний формат із плаваючою комою, але такі файли "
+"займаю вдвічі більше дискового простору, ніж 16-бітові цілочислові без "
+"знака. Всі інструменти обробки будуть використовувати вибраний формат, за "
+"винятком інструменту «Компонування в RGB», який завжди перетворює зображення "
+"до 32 біт."
 
 #: src/gui/uifiles/settings_window.ui:692
 msgid "Default Type:"
-msgstr ""
+msgstr "Тип за замовчуванням:"
 
 #: src/gui/uifiles/settings_window.ui:701
 msgid "Allow FITS cubes to have images of different sizes"
-msgstr ""
+msgstr "FITS-куби можуть містити зображення різного розміру"
 
 #: src/gui/uifiles/settings_window.ui:705
 msgid ""
@@ -5536,6 +5883,9 @@ msgid ""
 "Siril and that contain multiple images of different dimensions, which would "
 "otherwise considered as invalid Siril FITSEQ files."
 msgstr ""
+"Це може бути корисно при використанні наукових файлів FITS, які не створені "
+"Siril і містять множинні зображення різного розміру. А якщо ні, то такі "
+"файли розглядалися б як невірні файли Siril FITSEQ."
 
 #: src/gui/uifiles/settings_window.ui:723
 msgid "<b>FITS Format</b>"
@@ -5543,9 +5893,10 @@ msgstr "<b>Формат FITS</b>"
 
 #: src/gui/uifiles/settings_window.ui:750
 msgid "Enable Aladin compatibility (CTYPE3 = 'RGB ')"
-msgstr ""
+msgstr "Увімкнути сумісність з Aladin (CTYPE3 = 'RGB')"
 
 #: src/gui/uifiles/settings_window.ui:754
+#, fuzzy
 msgid ""
 "Aladin considers a 3D FITS cube as a RGB image (Red, Blue and Green "
 "components) if the FITS keyword CTYPE3 = 'RGB ' is specified in the header. "
@@ -5553,10 +5904,15 @@ msgid ""
 "= 'RGB ' set, only FITS cube with 3 frames sharing the same dimension and "
 "with a BITPIX=8 will be automatically detected as RGB FITS."
 msgstr ""
+"Aladin розглядає 3D-куб FITS як зображення RGB (Червоний, Синій та Зелений "
+"компоненти), якщо в заголовку вказано ключове слово FITS CTYPE 3 = 'RGB'. У "
+"цьому випадку підтримуються будь-які значення BITPIX. Без встановлення "
+"ключового слова FITS CTYPE3 = 'RGB' тільки куб FITS з 3 кадрами однакового "
+"розміру та з BITPIX=8 буде автоматично визначено як RGB FITS."
 
 #: src/gui/uifiles/settings_window.ui:766
 msgid "Update pixel size of binned image"
-msgstr ""
+msgstr "Оновити розмір у пікселях об’єднаного зображення (при бінінгу)"
 
 #: src/gui/uifiles/settings_window.ui:770
 msgid ""
@@ -5565,6 +5921,11 @@ msgid ""
 "binning (checked), the already multiplied pixel size is given (unchecked).\n"
 "It depends on the acquistion software used to create the FITS."
 msgstr ""
+"Розмір пікселя, який використовується при обчисленні роздільної здатності, "
+"може бути заданий двома способами: вказується реальний розмір пікселя, який "
+"множиться на коефіцієнт бінінга (прапорець встановлений) або вказується "
+"розмір пікселя вже з урахуванням коефіцієнта бінніга (прапорець знятий).\n"
+"Це залежить від програмного забезпечення, використаного для створення FITS."
 
 #: src/gui/uifiles/settings_window.ui:784
 msgid "Embed ICC profiles in saved FITS files"
@@ -5589,9 +5950,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:823
-#, fuzzy
 msgid "<b>FITS Header</b>"
-msgstr "<b>Формат FITS</b>"
+msgstr "<b>Заголовок FITS</b>"
 
 #: src/gui/uifiles/settings_window.ui:868
 #, fuzzy
@@ -5599,6 +5959,7 @@ msgid "Enabled"
 msgstr "увімкн."
 
 #: src/gui/uifiles/settings_window.ui:887
+#, fuzzy
 msgid ""
 "While floating-point format images may be losslessly compressed (using gzip, "
 "since Rice only compresses integer arrays), these images often do not "
@@ -5611,6 +5972,16 @@ msgid ""
 "however, it preserves too much of the noise (or even amplifies the noise) in "
 "the pixel values, resulting in poor compression."
 msgstr ""
+"У той час як зображення у форматі з плаваючою комою можуть бути стиснуті без "
+"втрат (використовуючи gzip, оскільки алгоритм Райса стискає тільки цілі "
+"масиви), ці зображення часто стискаються не дуже добре, тому що значення "
+"пікселів занадто зашумлені; менш значущі біти в мантисі значень пікселів "
+"ефективно містять незжаті випадкові бітові шаблони. Щоб досягти вищого "
+"стиснення, необхідно видалити частину цього шуму, але без втрати корисної "
+"інформації. Якщо він занадто великий, неправильний вибір пікселів призводить "
+"до втрати інформації в зображенні. Однак якщо він занадто малий, збережеться "
+"занадто багато шуму (або навіть шум збільшиться) у значеннях пікселів, що "
+"призводить до поганого стиснення."
 
 #: src/gui/uifiles/settings_window.ui:909
 msgid ""
@@ -6877,9 +7248,8 @@ msgstr "<b>Спосіб виділення фону</b>"
 
 #: src/gui/uifiles/settings_window.ui:4930
 #: src/gui/uifiles/settings_window.ui:5344 src/gui/uifiles/siril.ui:10643
-#, fuzzy
 msgid "Scripts"
-msgstr "_Скріпти"
+msgstr "Сценарії (Scripts)"
 
 #: src/gui/uifiles/settings_window.ui:4961
 #, fuzzy
@@ -7327,7 +7697,7 @@ msgstr "Очистити останню"
 
 #: src/gui/uifiles/siril.ui:330
 msgid "Julian Date"
-msgstr ""
+msgstr "Юліанська дата"
 
 #: src/gui/uifiles/siril.ui:352
 msgid "Nothing to change"
@@ -7335,7 +7705,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:362
 msgid "arcsec"
-msgstr ""
+msgstr "кутові секунди"
 
 #: src/gui/uifiles/siril.ui:499
 #, fuzzy
@@ -8045,9 +8415,8 @@ msgstr "Вихідні журнали"
 
 #: src/gui/uifiles/siril.ui:2672 src/gui/uifiles/siril.ui:2689
 #: src/gui/uifiles/siril.ui:2704
-#, fuzzy
 msgid "Save current plot to png file"
-msgstr "поточний \"синій\" файл"
+msgstr "Зберегти поточний графік у файл PNG"
 
 #: src/gui/uifiles/siril.ui:2690
 #, fuzzy
@@ -8097,7 +8466,7 @@ msgstr "поточний \"синій\" файл"
 
 #: src/gui/uifiles/siril.ui:3676
 msgid "Size"
-msgstr ""
+msgstr "Розмір"
 
 #: src/gui/uifiles/siril.ui:3690
 msgid "Date"
@@ -8109,7 +8478,7 @@ msgstr "Додати файли до списку для конвертації"
 
 #: src/gui/uifiles/siril.ui:3731
 msgid "Add"
-msgstr ""
+msgstr "Додати"
 
 #: src/gui/uifiles/siril.ui:3745
 msgid "Remove selected files"
@@ -8129,6 +8498,13 @@ msgid ""
 "SER files are directly handled as a sequence, and are not yet available for "
 "conversion."
 msgstr ""
+"Підтримувані типи залежать від наявності бібліотек під час компіляції. "
+"Дивіться документацію.\n"
+"Зображення RAW – це необроблені зображення з цифрових камер, як-от файли CR2 "
+"для Canon або NEF для Nikon.\n"
+"Плівки будь-якого типу можна конвертувати як FITS або SER.\n"
+"Файли SER безпосередньо обробляються як послідовність і ще не доступні для "
+"конвертування."
 
 #: src/gui/uifiles/siril.ui:3833
 msgid "Supported file types:"
@@ -8165,27 +8541,32 @@ msgid ""
 "Note: FITS images will have no effect when the pre-processed sequence is SER "
 "or FITS sequence file."
 msgstr ""
+"Встановлює тип послідовності .\n"
+"Зображення FITS: кожне зображення конвертується в файл FITS.\n"
+"Послідовність SER: один файл SER для всієї послідовності (обмежено 16 бітами "
+"на канал).\n"
+"Послідовність FITS: вся послідовність конвертується в файл FITS.\n"
+"\n"
+"Примітка: Вибір типу «Зображення FITS» не матиме значення, якщо обробляються "
+"послідовності FITS або SER."
 
 #: src/gui/uifiles/siril.ui:3930 src/gui/uifiles/siril.ui:4298
 #: src/gui/uifiles/siril.ui:5369
-#, fuzzy
 msgid "FITS images"
-msgstr "зображення FITS-CFA"
+msgstr "Зображення FITS"
 
 #: src/gui/uifiles/siril.ui:3931 src/gui/uifiles/siril.ui:5370
-#, fuzzy
 msgid "SER sequence"
-msgstr "послідовності SER"
+msgstr "Послідовність SER"
 
 #: src/gui/uifiles/siril.ui:3932 src/gui/uifiles/siril.ui:5371
-#, fuzzy
 msgid "FITS sequence"
-msgstr "послідовності SER"
+msgstr "Послідовність FITS"
 
 #: src/gui/uifiles/siril.ui:3947
 #, fuzzy
 msgid "Multiple sequences"
-msgstr "Вихідна послідовність"
+msgstr "Кілька послідовностей (множинна послідовність)"
 
 #: src/gui/uifiles/siril.ui:3950
 msgid ""
@@ -8194,10 +8575,14 @@ msgid ""
 "as films, SER or FITS cubes) don't share the same image size or must not be "
 "processed together."
 msgstr ""
+"Поставте прапорець, щоб створити кілька файлів послідовності замість одного "
+"файлу SER або FITS для всіх вхідних елементів. Використовуйте це, якщо "
+"вхідні елементи (файли послідовності, такі як фільми, куби SER або FITS) не "
+"мають однакового розміру зображення або не повинні оброблятися разом."
 
 #: src/gui/uifiles/siril.ui:3962
 msgid "Symbolic Link"
-msgstr ""
+msgstr "Символічне посилання"
 
 #: src/gui/uifiles/siril.ui:3966
 msgid ""
@@ -8208,6 +8593,12 @@ msgid ""
 "<b>WARNING: on Windows, the symbolic link operations are only possible in "
 "Development mode.</b>"
 msgstr ""
+"Створіть символічне посилання для файлів FITS замість їх копіювання. Це "
+"корисно для перейменування послідовності без дублювання файлів на диску. Цей "
+"параметр вимикає стиснення.\n"
+"\n"
+"<b>УВАГА: у Windows операції із символічними посиланнями можливі лише в "
+"режимі розробки.</b>"
 
 #: src/gui/uifiles/siril.ui:3985
 msgid ""
@@ -8226,14 +8617,12 @@ msgstr ""
 "вихідного кольрового зображення."
 
 #: src/gui/uifiles/siril.ui:4009
-#, fuzzy
 msgid ""
 "Enter the base name of the sequence, for example NGC_6822-L. It will create "
 "images in the form NGC_6822-L_00001.fit."
 msgstr ""
-"Вкажіть ім'я послідовності, наприклад, NGC_6822-L. Будуть створені файли "
-"зображень з іменами в формі  NGC_6822-L_00001.fit. Ім'я також може "
-"закінчуватись на  .ser, це призведе до того, що вихідний формат буде SER."
+"Введіть базову назву послідовності, наприклад NGC_6822-L. Він створить "
+"зображення у формі NGC_6822-L_00001.fit."
 
 #: src/gui/uifiles/siril.ui:4026
 msgid "Sequence name:"
@@ -8252,14 +8641,12 @@ msgstr ""
 "у формат, з яким може працювати Siril: FITS або SER."
 
 #: src/gui/uifiles/siril.ui:4065
-#, fuzzy
 msgid "Conversion"
-msgstr "Перетворення файлів"
+msgstr "Перетворення (конвертація)"
 
 #: src/gui/uifiles/siril.ui:4125
-#, fuzzy
 msgid "Clean Sequence"
-msgstr "Послідовність"
+msgstr "Очистити послідовність"
 
 #: src/gui/uifiles/siril.ui:4129
 msgid ""
@@ -8267,12 +8654,17 @@ msgid ""
 "the loaded sequence. You can specify to clear only registration, statistics "
 "and/or selection with the button on the right.\n"
 msgstr ""
+"Ця кнопка очищає дані вибору, реєстрації та/або статистику, збережені в "
+"завантаженій послідовності. Ви можете вказати, щоб очистити лише реєстрацію, "
+"статистику та/або вибір за допомогою кнопки праворуч.\n"
 
 #: src/gui/uifiles/siril.ui:4145
 msgid ""
 "You can specify to clear only registration, statistics and/or selection by "
 "checking the option you want."
 msgstr ""
+"Ви можете вказати видалення лише реєстрації, статистики та/або вибору, "
+"позначивши потрібний параметр."
 
 #: src/gui/uifiles/siril.ui:4183
 msgid "Search sequences"
@@ -8287,11 +8679,12 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:4202
 msgid "Open Frame List"
-msgstr ""
+msgstr "Відкрити список кадрів"
 
 #: src/gui/uifiles/siril.ui:4206 src/gui/uifiles/siril.ui:10352
 msgid "Show/Hide list of images in the sequence with registration data"
 msgstr ""
+"Показати/приховати список зображень у послідовності з реєстраційними даними"
 
 #: src/gui/uifiles/siril.ui:4230
 msgid "Sequence selection"
@@ -8316,11 +8709,19 @@ msgid ""
 "For SER and TIFF, if input images are 32 bits, they are converted to 16, "
 "with a loss of precision."
 msgstr ""
+"Формат експорту послідовності.\n"
+"MP4 та WEBM замінили GIF для публікації в мережі. AVI це стислий 8-бітний "
+"формат. Для створення 8-бітних зображень у цих форматах, лінійне "
+"масштабування здійснюється з використанням низького та високого значень "
+"відсікання.\n"
+"Зображення FITS це послідовність одиночних зображень FITS. FITS-куб – це "
+"послідовність зображень в одному файлі FITS.\n"
+"При збереженні у форматах SER та TIFF, якщо вхідні зображення 32-бітові, "
+"вони конвертуються в 16-бітові з втратою точності."
 
 #: src/gui/uifiles/siril.ui:4299
-#, fuzzy
 msgid "FITS cube"
-msgstr "Файли FITS"
+msgstr "FITS-куб"
 
 #: src/gui/uifiles/siril.ui:4336
 msgid "Export sequence"
@@ -8365,10 +8766,9 @@ msgid "Select area to crop"
 msgstr "Виберіть область для обрізки"
 
 #: src/gui/uifiles/siril.ui:4401
-#, fuzzy
 msgid "Image selection uses the same controls as for stacking:"
 msgstr ""
-"Вибір зображень використовує ті самі елементи керування, як і для стекінгу"
+"Вибір зображень використовує ті самі елементи керування, що і для стекінгу"
 
 #: src/gui/uifiles/siril.ui:4411
 msgid "Go to the stacking tab"
@@ -8376,7 +8776,7 @@ msgstr "Перейти до вкладки стекінгу"
 
 #: src/gui/uifiles/siril.ui:4439
 msgid "Fps:"
-msgstr ""
+msgstr "Кадрів в секунду (fps):"
 
 #: src/gui/uifiles/siril.ui:4451
 msgid "Frame rate"
@@ -8396,15 +8796,15 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:4492
 msgid "Full HD"
-msgstr ""
+msgstr "Full HD"
 
 #: src/gui/uifiles/siril.ui:4493
 msgid "4K"
-msgstr ""
+msgstr "4K"
 
 #: src/gui/uifiles/siril.ui:4494
 msgid "8K"
-msgstr ""
+msgstr "8K"
 
 #: src/gui/uifiles/siril.ui:4509
 msgid "Width of output video"
@@ -8415,14 +8815,15 @@ msgid "Height of output video"
 msgstr "Висота вихідного відео"
 
 #: src/gui/uifiles/siril.ui:4570
-#, fuzzy
 msgid ""
 "Film quality: lower value will use more compression and less bitrate, also "
 "resulting in smaller file size. Values above 2 could be useful for fast-"
 "moving images like bright time-lapses."
 msgstr ""
 "Якість відео: менші значення призведуть до сильнішої компресії та зменшеного "
-"бітрейту, розмір файлу буде також меншим."
+"бітрейту, розмір файлу буде також меншим. Значення понад 2 можуть бути "
+"корисними для зображень, що швидко рухаються, як-от яскраві кадри "
+"уповільненої зйомки."
 
 #: src/gui/uifiles/siril.ui:4595
 msgid "Sequence export"
@@ -8484,9 +8885,8 @@ msgstr ""
 
 #. Offset is the kind of the picture used here. In french I've decided to not translate the word.
 #: src/gui/uifiles/siril.ui:4772
-#, fuzzy
 msgid "Use bias"
-msgstr "Використати флет"
+msgstr "Використати bias"
 
 #: src/gui/uifiles/siril.ui:4776 src/gui/uifiles/siril.ui:4808
 #: src/gui/uifiles/siril.ui:5780
@@ -8495,7 +8895,6 @@ msgid ""
 msgstr "Майстер-кадр зсуву буде віднятий зі всіх зображень у послідовності."
 
 #: src/gui/uifiles/siril.ui:4791
-#, fuzzy
 msgid ""
 "Enter the master bias/offset file name here, or use the browse button.\n"
 "The bias/offset master image will be removed from all images in the "
@@ -8503,22 +8902,26 @@ msgid ""
 "Instead of an image, you can also specify a uniform level to be subtracted, "
 "starting with an \"=\" sign, such as =256 or =64*$OFFSET"
 msgstr ""
-"Введіть ім'я майстер-файлу зсуву (біас/офсет), або використайте кнопку "
-"\"перегляд\".\n"
-"Майстер-кадр зсуву буде віднятий зі всіх зображень у послідовності."
+"Введіть ім'я майстер-файлу bias/offset, або використайте кнопку \"перегляд\"."
+"\n"
+"Майстер-кадр bias/offset буде віднятий зі всіх зображень у послідовності.\n"
+"Замість зображення ви також можете вказати однорідний рівень, який потрібно "
+"відняти, починаючи зі знака \"=\", наприклад =256 або =64*$OFFSET"
 
 #: src/gui/uifiles/siril.ui:4795
 msgid "master-bias.fit"
-msgstr ""
+msgstr "master-bias.fit"
 
 #: src/gui/uifiles/siril.ui:4827
 msgid "Equalize CFA"
-msgstr ""
+msgstr "Вирівняти CFA"
 
 #: src/gui/uifiles/siril.ui:4831
 msgid ""
 "This option equalizes the mean intensity of RGB layers in a CFA flat image."
 msgstr ""
+"Цей параметр вирівнює середню інтенсивність шарів RGB у плоскому (flat) "
+"зображенні CFA."
 
 #: src/gui/uifiles/siril.ui:4843
 msgid "Auto evaluate normalisation value"
@@ -8540,7 +8943,7 @@ msgstr "Виберіть своє власне значення нормаліз
 
 #: src/gui/uifiles/siril.ui:4882
 msgid "Fix X-Trans AF artifact"
-msgstr ""
+msgstr "Виправлення артефактів автофокусу X-Trans"
 
 #: src/gui/uifiles/siril.ui:4886
 msgid ""
@@ -8550,6 +8953,12 @@ msgid ""
 "camera compensates for this and increases the values from these specific "
 "photosites giving a visible square in the middle of the dark/bias frames."
 msgstr ""
+"Ця опція допомагає виправити пікселі системи автофокусування Fujifilm X-"
+"Trans. Через особливості фазової системи автофокусування області, що "
+"використовуються для автофокусування, отримують трохи менше світла, ніж "
+"сусідні ділянки. Камера компенсує це та збільшує значення в областях для "
+"автофокусування, що призводить до виразного квадрата в центрі темнових "
+"кадрів (dark) та кадрів шуму зчитування (bias)."
 
 #: src/gui/uifiles/siril.ui:4901
 #, fuzzy
@@ -8590,9 +8999,8 @@ msgid "Use Exposure"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:4932
-#, fuzzy
 msgid "Image calibration"
-msgstr "Реєстрація зображень"
+msgstr "Калібрування зображень"
 
 #: src/gui/uifiles/siril.ui:4958
 msgid "Enable Cosmectic Correction"
@@ -8608,7 +9016,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:4992
 msgid "CFA data"
-msgstr ""
+msgstr "Дані CFA"
 
 #: src/gui/uifiles/siril.ui:5038 src/gui/uifiles/siril.ui:5062
 #: src/gui/uifiles/siril.ui:5092 src/gui/uifiles/siril.ui:5106
@@ -8630,18 +9038,16 @@ msgstr ""
 "відкорегувати значення сігм."
 
 #: src/gui/uifiles/siril.ui:5129 src/gui/uifiles/siril.ui:5141
-#, fuzzy
 msgid "0 px"
-msgstr "Гарячих: 0 px"
+msgstr "0 px"
 
 #: src/gui/uifiles/siril.ui:5162
-#, fuzzy
 msgid "Master-dark"
-msgstr "Використати дарк"
+msgstr "Темновий майстер-кадр (Master-dark)"
 
 #: src/gui/uifiles/siril.ui:5171
 msgid "Using Master-Dark"
-msgstr ""
+msgstr "Використати темновий майстер-кадр (Master-Dark)"
 
 #: src/gui/uifiles/siril.ui:5197
 msgid ""
@@ -8656,35 +9062,45 @@ msgid ""
 "i>.\n"
 "* The line <i>L y 0 type</i> will fix the bad line at coordinates <i>y</i>."
 msgstr ""
+"Введіть назву файлу з картою дефектних пікселів або клацніть праворуч для "
+"вибору файлу. Цей файл зазвичай створюється командою <i>find_hot</i>, "
+"застосованою до темнового кадру або темнового майстер-кадру. Файл має таку "
+"структуру:\n"
+"\n"
+"* Рядок <i>P x y тип</i> виправляє піксель з координатами (x, y). Тип - це "
+"необов'язковий символ (<i>C</i> або <i>H</i>), що вказує Siril, це холодний "
+"піксель чи гарячий.\n"
+"* Рядок <i>C x 0 тип</i> виправляє дефектну колонку з координатами <i>x</i>."
+"\n"
+"* Рядок <i>L y 0 тип</i> виправляє дефектний рядок з координатами <i>y</i>."
 
 #: src/gui/uifiles/siril.ui:5216
 msgid ""
 "Load the bad pixel map file. This file must be ended by the <i>*.lst</i> "
 "extension."
 msgstr ""
+"Завантажте файл з картою дефектних пікселів. Цей файл повинен мати "
+"розширення <i>*.lst</i>."
 
 #: src/gui/uifiles/siril.ui:5243
 msgid "Bad Pixel Map"
-msgstr ""
+msgstr "Карта дефектних пікселей"
 
 #: src/gui/uifiles/siril.ui:5252
 msgid "Using Bad Pixel Map"
-msgstr ""
+msgstr "Використати карту дефектних пікселей"
 
 #: src/gui/uifiles/siril.ui:5269
-#, fuzzy
 msgid "Cosmetic correction"
 msgstr "Косметична корекція"
 
 #: src/gui/uifiles/siril.ui:5312
-#, fuzzy
 msgid "Prefix of the image names resulting from the calibration."
-msgstr "Префікс імен зображень, які будуть отримані після реєстрації."
+msgstr "Префікс імен зображень, які будуть отримані після калібрування."
 
 #: src/gui/uifiles/siril.ui:5324
-#, fuzzy
 msgid "Start calibration"
-msgstr "Калібрування кольорів"
+msgstr "Почати калібрування"
 
 #: src/gui/uifiles/siril.ui:5329
 msgid ""
@@ -8704,24 +9120,18 @@ msgstr ""
 "для цього перейдіть на вкладку \"Перетворення файлів\"."
 
 #: src/gui/uifiles/siril.ui:5345
-#, fuzzy
 msgid "Debayer before saving"
-msgstr "Демозаїкувати FITS-зображення перед збереженням"
+msgstr "Дебаєризація перед збереженням"
 
 #: src/gui/uifiles/siril.ui:5349
-#, fuzzy
 msgid ""
 "Check this option if you want to apply a demosaicing algorithm to your FITS "
 "images right after they were preprocessed. By doing this, you skip one "
 "manual step which can take some time."
 msgstr ""
-"Встановіть цей прапорець, якщо ви бажаєте застосувати алгоритм "
-"демозаїкізації до ваших FITS-зображень одразу після попередньої обробки. "
-"Якщо ви зробите це, ви уникнете одного кроку, який інакше треба зробити "
-"вручну, що може забрати певний час.\n"
-"\n"
-"УВАГА: ця опція доступна лише для FITS-зображень, оскільки для SER-"
-"послідовностей демозаїкізація може бути застосована \"на льоту\""
+"Позначте цей параметр, якщо ви хочете застосувати алгоритм дебаєризації до "
+"зображень FITS відразу після їх попередньої обробки. Роблячи це, ви "
+"пропускаєте один ручний крок, який може зайняти деякий час."
 
 #: src/gui/uifiles/siril.ui:5362
 msgid ""
@@ -8731,33 +9141,38 @@ msgid ""
 "channel).\n"
 "FITS sequence: one FITS file for the whole sequence."
 msgstr ""
+"Тип послідовності.\n"
+"Зображення FITS: кожне зображення перетворюється на файл FITS.\n"
+"Послідовність SER: один файл SER для всієї послідовності (обмеження -16 біт "
+"на канал).\n"
+"Послідовність FITS: вся послідовність зберігається до одного файлу FITS."
 
 #: src/gui/uifiles/siril.ui:5381
 msgid "Calibrate all frames"
-msgstr ""
+msgstr "Калібрувати всі кадри"
 
 #: src/gui/uifiles/siril.ui:5385
 msgid "Force calibration of all frames even if marked as excluded."
 msgstr ""
+"Примусове калібрування всіх кадрів, навіть якщо вони позначені як виключені."
 
 #: src/gui/uifiles/siril.ui:5399
 msgid "Output sequence"
 msgstr "Вихідна послідовність"
 
 #: src/gui/uifiles/siril.ui:5425
-#, fuzzy
 msgid "Calibration is an optional step to apply to a sequence of images."
-msgstr "Попередня обробка послідовності зображень (є опціональним кроком)."
+msgstr ""
+"Калібрування - це необов’язковий крок, який застосовується до послідовності "
+"зображень."
 
 #: src/gui/uifiles/siril.ui:5427
-#, fuzzy
 msgid "Calibration"
-msgstr "Калібрування кольорів"
+msgstr "Калібрування"
 
 #: src/gui/uifiles/siril.ui:5498
-#, fuzzy
 msgid "Registration channel: "
-msgstr "Реєстрація"
+msgstr "Реєстрація в каналі: "
 
 #: src/gui/uifiles/siril.ui:5510
 msgid ""
@@ -8781,7 +9196,6 @@ msgid "Match stars in selection"
 msgstr "Співставити зірки у вибраній області"
 
 #: src/gui/uifiles/siril.ui:5558
-#, fuzzy
 msgid ""
 "Check this box if you want to perform the Global Star Alignment algorithm "
 "within the selected area in the reference image. If no selection are done, "
@@ -8797,7 +9211,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:5574
 msgid "Minimum Star Pairs:"
-msgstr ""
+msgstr "Мінімальна кількість пар зірок:"
 
 #: src/gui/uifiles/siril.ui:5585
 msgid ""
@@ -8805,11 +9219,13 @@ msgid ""
 "reference frame. If a given light frame has less star pairs, it will not be "
 "registered."
 msgstr ""
+"Мінімальна кількість пар зірок, яку даний кадр може мати по відношенню до "
+"опорного кадру. Якщо даний кадр має менше пар зірок, він не буде "
+"зареєстрований."
 
 #: src/gui/uifiles/siril.ui:5610
-#, fuzzy
 msgid "Maximum Stars Fitted:"
-msgstr "Максимальний з маскою"
+msgstr "Максимальна кількість зірок:"
 
 #: src/gui/uifiles/siril.ui:5621
 msgid ""
@@ -8817,10 +9233,13 @@ msgid ""
 "The larger this value, the more stars will potentially be detected, "
 "resulting in a longer detection but more accurate registration."
 msgstr ""
+"Максимальна кількість зірок для пошуку в кожному кадрі (за замовчуванням "
+"2000). Чим більше це значення, тим більше зірок потенційно буде виявлено, що "
+"призведе до більш тривалого пошуку, але точнішої реєстрації."
 
 #: src/gui/uifiles/siril.ui:5626
 msgid "500"
-msgstr ""
+msgstr "500"
 
 #: src/gui/uifiles/siril.ui:5640
 msgid ""
@@ -8849,31 +9268,54 @@ msgid ""
 "for <b>Shift</b>, <b>Similarity</b> and <b>Affine</b> and of 4 for "
 "<b>Homography</b>."
 msgstr ""
+"<b>Зміщення</b> це перетворення з 2-ма ступенями свободи (зсув по x/y), "
+"добре пристосоване для зображень без дисторсії, масштабування та обертання "
+"поля. Необхідна мінімум 1 пара зірок, що співпадають, для визначення "
+"перетворення.\n"
+"\n"
+"<b>Подібність</b> це перетворення з 4-ма ступенями свободи (одне "
+"масштабування, одне обертання і зрушення по x/y), більш жорстке, ніж "
+"гомографія, що добре підходить для зображень без дисторсії. Для визначення "
+"перетворення необхідно щонайменше 2 пари зірок, що співпадають.\n"
+"\n"
+"<b>Афінне</b> це перетворення з 6-ма ступенями свободи (два масштабування, "
+"один скіс, одне обертання та зміщення по x/y), більш жорстке, ніж "
+"гомографія, що добре підходить для зображень з невеликою дисторсією. Для "
+"визначення перетворення необхідно щонайменше 3 пари зірок, що співпадають.\n"
+"\n"
+"<b>Гомографія</b> це стандартне перетворення, яке використовує 8 ступенів "
+"свободи для накладання зображення на опорний кадр. Воно добре підходить для "
+"звичайних випадків і рекомендується для зображень з широким полем зору. Для "
+"визначення перетворення необхідно щонайменше 4 пари зірок, що співпадають.\n"
+"\n"
+"<b>ПОПЕРЕДЖЕННЯ</b>: Спочатку для зіставлення зірок використовується "
+"алгоритм подібності трикутників. Отже, для <b>Зміщення</b>, <b>Подібності</"
+"b> та <b>Афінного</b> перетворень необхідні мінімум 3 пари зірок, для "
+"<b>Гомографії</b> — 4."
 
 #: src/gui/uifiles/siril.ui:5651
 msgid "Shift"
-msgstr ""
+msgstr "Зміщення (зсув)"
 
 #: src/gui/uifiles/siril.ui:5652
 msgid "Similarity"
-msgstr ""
+msgstr "Подібність"
 
 #: src/gui/uifiles/siril.ui:5653
 msgid "Affine"
-msgstr ""
+msgstr "Афінне"
 
 #: src/gui/uifiles/siril.ui:5654
 msgid "Homography"
-msgstr ""
+msgstr "Гомографія"
 
 #: src/gui/uifiles/siril.ui:5668
-#, fuzzy
 msgid "Transformation:"
-msgstr "Інформація"
+msgstr "Трансформація:"
 
 #: src/gui/uifiles/siril.ui:5680
 msgid "Hit this button for star detection settings"
-msgstr ""
+msgstr "Натисніть цю кнопку, щоб налаштувати пошук зірок"
 
 #: src/gui/uifiles/siril.ui:5698
 #, fuzzy
@@ -8929,16 +9371,15 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:5872 src/gui/uifiles/siril.ui:5886
 #: src/gui/uifiles/siril.ui:6020
 msgid "Comet velocity in pixel per hour."
-msgstr ""
+msgstr "Швидкість комети в пікселях на годину."
 
 #: src/gui/uifiles/siril.ui:5874
-#, fuzzy
 msgid "Velocity: "
-msgstr "Якість: "
+msgstr "Швидкість: "
 
 #: src/gui/uifiles/siril.ui:5905
 msgid "Pick object in #1"
-msgstr ""
+msgstr "Виберіть об’єкт у №1"
 
 #: src/gui/uifiles/siril.ui:5909
 msgid ""
@@ -8946,10 +9387,13 @@ msgid ""
 "image, then click on this button. The pixel coordinates of the object will "
 "be computed and displayed."
 msgstr ""
+"Виберіть область навколо астероїда або ядра комети на першому вибраному "
+"зображенні, а потім натисніть цю кнопку. Буде обчислено та відображено "
+"піксельні координати об’єкта."
 
 #: src/gui/uifiles/siril.ui:5919
 msgid "Pick object in #2"
-msgstr ""
+msgstr "Виберіть об’єкт у №2"
 
 #: src/gui/uifiles/siril.ui:5923
 msgid ""
@@ -8957,22 +9401,25 @@ msgid ""
 "image, then click on this button. The pixel coordinates of the object will "
 "be computed and displayed."
 msgstr ""
+"Виберіть область навколо астероїда або ядра комети на останньому вибраному "
+"зображенні, а потім натисніть цю кнопку. Буде обчислено та відображено "
+"піксельні координати об’єкта."
 
 #: src/gui/uifiles/siril.ui:5935
 msgid "Core X-coordinates of the first image."
-msgstr ""
+msgstr "X-координати центра першого зображення."
 
 #: src/gui/uifiles/siril.ui:5951
 msgid "Core X-coordinates of the second image."
-msgstr ""
+msgstr "X-координати центра другого зображення."
 
 #: src/gui/uifiles/siril.ui:5967
 msgid "Core Y-coordinates of the first image."
-msgstr ""
+msgstr "Y-координати центра першого зображення."
 
 #: src/gui/uifiles/siril.ui:5982
 msgid "Core Y-coordinates of the second image."
-msgstr ""
+msgstr "Y-координати центра другого зображення."
 
 #: src/gui/uifiles/siril.ui:6022
 #, fuzzy
@@ -8987,38 +9434,34 @@ msgid ""
 msgstr "Префікс імен зображень, які будуть отримані після реєстрації."
 
 #: src/gui/uifiles/siril.ui:6089
-#, fuzzy
 msgid "Pick 1st star"
-msgstr "Вибрати зірку"
+msgstr "Виберіть 1-у зірку"
 
 #: src/gui/uifiles/siril.ui:6107
-#, fuzzy
 msgid "Pick 2nd star"
-msgstr "Вибрати зірку"
+msgstr "Виберіть 2-у зірку"
 
 #: src/gui/uifiles/siril.ui:6122
-#, fuzzy
 msgid "Pick 3rd star"
-msgstr "Вибрати зірку"
+msgstr "Виберіть 3-ю зірку"
 
 #: src/gui/uifiles/siril.ui:6146
 msgid "Star #1:"
-msgstr ""
+msgstr "Зірка №1:"
 
 #: src/gui/uifiles/siril.ui:6157
 msgid "Star #2:"
-msgstr ""
+msgstr "Зірка №2:"
 
 #: src/gui/uifiles/siril.ui:6168
 msgid "Star #3:"
-msgstr ""
+msgstr "Зірка №3:"
 
 #: src/gui/uifiles/siril.ui:6239
 msgid "Follow star movement"
 msgstr "Слідувати за рухом зірок"
 
 #: src/gui/uifiles/siril.ui:6243
-#, fuzzy
 msgid ""
 "Use this option to use the position of the star(s) found in the previous "
 "image as new centre for the current image registration. This allows the "
@@ -9027,16 +9470,16 @@ msgid ""
 "WARNING: enabling this option requires the registration to not be "
 "parallelized, it will run on one CPU core only."
 msgstr ""
-"Використовуйте цю опцію, щоб позиція зірки, знайдена на попередньому "
-"зображені, використовувалась як новий центр для реєстрації поточного "
-"зображення. Це дозволяє обирату меншу область, реєстрція буде більш швидкою "
-"і підходить до зображень з дрейфом або великою кількістю зірок.\n"
-"УВАГА: активація цієї опції вимагає, щоб реєстрація не йшла паралельно, тож "
-"вона буде виконуватись лише на одному процесорі."
+"Використовуйте цей параметр, щоб використовувати положення зірки, знайденої "
+"на попередньому зображенні, як новий центр для поточної реєстрації "
+"зображення. Це дозволяє зменшити область виділення, пришвидшити реєстрацію "
+"та врахувати дрейф або зображення з великою кількістю зірок.\n"
+"ПОПЕРЕДЖЕННЯ: увімкнення цієї опції не вимагає розпаралелювання реєстрації, "
+"вона працюватиме лише на одному ядрі ЦП."
 
 #: src/gui/uifiles/siril.ui:6257
 msgid "Shift only"
-msgstr ""
+msgstr "Лише зміщення"
 
 #: src/gui/uifiles/siril.ui:6261
 msgid ""
@@ -9044,6 +9487,9 @@ msgid ""
 "one star is selected. When only one star is selected, this is activated by "
 "default."
 msgstr ""
+"Використовуйте цей параметр, щоб обчислити лише зміщення (тобто без "
+"обертання), навіть якщо вибрано більше ніж одну зірку. Якщо вибрано лише "
+"одну зірку, це ввімкнено за замовчуванням."
 
 #: src/gui/uifiles/siril.ui:6314
 msgid ""
@@ -9056,15 +9502,22 @@ msgid ""
 "Higher values give more tolerance in alignment and smaller numbers lead to "
 "faster computations."
 msgstr ""
+"Укажіть відносну відстань (у відсотках відносно загального розміру "
+"зображення), на якій потрібно шукати шаблон вирівнювання.\n"
+"\n"
+"За замовчуванням паттерн шукається лише на 25% від загального розміру "
+"зображення навколо зони, де він був розташований на опорному кадрі.\n"
+"\n"
+"Вищі значення дають більший допуск у вирівнюванні, а менші числа призводять "
+"до швидших обчислень."
 
 #: src/gui/uifiles/siril.ui:6336
 msgid "Size of alignment region(%):"
-msgstr ""
+msgstr "Розмір області вирівнювання (%):"
 
 #: src/gui/uifiles/siril.ui:6380
-#, fuzzy
 msgid "Registration method:"
-msgstr "Виберіть метод реєстрації:"
+msgstr "Метод реєстрації:"
 
 #: src/gui/uifiles/siril.ui:6413
 msgid "Register all images from sequence"
@@ -9075,9 +9528,8 @@ msgid "Register selected images only"
 msgstr "Зареєструвати лише вибрані зображення"
 
 #: src/gui/uifiles/siril.ui:6435
-#, fuzzy
 msgid "Registering 0 images of the 0 of the sequence"
-msgstr "Зареєструвати всі зображення у послідовності"
+msgstr "Реєстрація 0 зображень з 0 в послідовності"
 
 #: src/gui/uifiles/siril.ui:6453
 msgid ""
@@ -9106,19 +9558,43 @@ msgid ""
 "<b>quality</b>: images with best quality (planetary DFT or Kombat "
 "registrations)"
 msgstr ""
+"Виберіть зображення для реєстрації:\n"
+"\n"
+"<b>все</b>: всі зображення з послідовності\n"
+"\n"
+"<b>вибрані</b>: використовувати тільки зображення, які не були виключені з "
+"послідовності\n"
+"\n"
+"<b>FWHM</b>: зображення з кращою розрахованою FWHM (тільки реєстрація на "
+"основі зірок)\n"
+"\n"
+"<b>Зважена FWHM</b>: покращений алгоритм на основі FWHM. Дозволяє виключити "
+"набагато більше хибних зображень, використовуючи кількість виявлених зв'язок "
+"порівняно з опорним зображенням (тільки реєстрація на основі зірок)\n"
+"\n"
+"<b>з кращою округлістю</b>: зображення з найбільшою округлістю (тільки "
+"реєстрація на основі зірок)\n"
+"\n"
+"<b>фона</b>: зображення з найменшими значеннями фону (тільки реєстрація на "
+"основі зірок)\n"
+"\n"
+"<b>к-сть зв'язків</b>: зображення з кращою кількістю зв'язків (тільки "
+"реєстрація на основі зірок)\n"
+"\n"
+"<b>з кращою якістю</b>: зображення з кращою якістю (реєстрація планет DFT "
+"або Kombat)"
 
 #: src/gui/uifiles/siril.ui:6472 src/gui/uifiles/siril.ui:6601
 #: src/gui/uifiles/siril.ui:6741 src/gui/uifiles/siril.ui:8732
 #: src/gui/uifiles/siril.ui:8861 src/gui/uifiles/siril.ui:9001
 msgid "all"
-msgstr ""
+msgstr "все"
 
 #: src/gui/uifiles/siril.ui:6473 src/gui/uifiles/siril.ui:6602
 #: src/gui/uifiles/siril.ui:6742 src/gui/uifiles/siril.ui:8733
 #: src/gui/uifiles/siril.ui:8862 src/gui/uifiles/siril.ui:9002
-#, fuzzy
 msgid "selected"
-msgstr "Вибрана область"
+msgstr "Вибране"
 
 #: src/gui/uifiles/siril.ui:6474 src/gui/uifiles/siril.ui:6603
 #: src/gui/uifiles/siril.ui:6743 src/gui/uifiles/siril.ui:7843
@@ -9134,14 +9610,13 @@ msgstr "FWHM"
 #: src/gui/uifiles/siril.ui:6744 src/gui/uifiles/siril.ui:8735
 #: src/gui/uifiles/siril.ui:8864 src/gui/uifiles/siril.ui:9004
 msgid "weighted FWHM"
-msgstr ""
+msgstr "зважена FWHM"
 
 #: src/gui/uifiles/siril.ui:6476 src/gui/uifiles/siril.ui:6605
 #: src/gui/uifiles/siril.ui:6745 src/gui/uifiles/siril.ui:8736
 #: src/gui/uifiles/siril.ui:8865 src/gui/uifiles/siril.ui:9005
-#, fuzzy
 msgid "roundness"
-msgstr "Круглість"
+msgstr "округлість"
 
 #: src/gui/uifiles/siril.ui:6477 src/gui/uifiles/siril.ui:6606
 #: src/gui/uifiles/siril.ui:6746 src/gui/uifiles/siril.ui:8737
@@ -9154,7 +9629,7 @@ msgstr "Фон"
 #: src/gui/uifiles/siril.ui:6747 src/gui/uifiles/siril.ui:8738
 #: src/gui/uifiles/siril.ui:8867 src/gui/uifiles/siril.ui:9007
 msgid "nb stars"
-msgstr ""
+msgstr "к-сть зірок"
 
 #: src/gui/uifiles/siril.ui:6479 src/gui/uifiles/siril.ui:6608
 #: src/gui/uifiles/siril.ui:6748 src/gui/uifiles/siril.ui:8739
@@ -9166,9 +9641,8 @@ msgstr "якість"
 #: src/gui/uifiles/siril.ui:6761 src/gui/uifiles/siril.ui:8753
 #: src/gui/uifiles/siril.ui:8881 src/gui/uifiles/siril.ui:9021
 #: src/gui/registration.c:98 src/gui/stacking.c:47
-#, fuzzy
 msgid "Percents of the images of the sequence."
-msgstr "всі зображення з послідовності"
+msgstr "Відсоток зображень в послідовності."
 
 #: src/gui/uifiles/siril.ui:6521 src/gui/uifiles/siril.ui:6649
 #: src/gui/uifiles/siril.ui:6789 src/gui/uifiles/siril.ui:8781
@@ -9177,11 +9651,13 @@ msgid ""
 "Choose between % and k-σ to keep given percentage of images or to compute "
 "the allowable threshold using k-σ clipping."
 msgstr ""
+"Виберіть між % і k-σ, щоб зберегти заданий відсоток зображень або обчислити "
+"допустимий поріг за допомогою відсікання k-σ."
 
 #: src/gui/uifiles/siril.ui:6552 src/gui/uifiles/siril.ui:6679
 #: src/gui/uifiles/siril.ui:8812 src/gui/uifiles/siril.ui:8939
 msgid "Add another filter"
-msgstr ""
+msgstr "Додати інший фільтр"
 
 #: src/gui/uifiles/siril.ui:6582 src/gui/uifiles/siril.ui:6722
 #: src/gui/uifiles/siril.ui:8713 src/gui/uifiles/siril.ui:8842
@@ -9212,17 +9688,40 @@ msgid ""
 "<b>quality</b>: images with best quality (planetary DFT or Kombat "
 "registrations)"
 msgstr ""
+"Виберіть набір зображень, які потрібно скласти:\n"
+"\n"
+"<b>усі</b>: усі зображення послідовності використовуються в стеку\n"
+"\n"
+"<b>вибрано</b>: використовуйте лише зображення, які не були виключені з "
+"послідовності\n"
+"\n"
+"<b>FWHM</b>: зображення з найкращим обчисленням FWHM (лише реєстрація на "
+"основі зірок)\n"
+"\n"
+"<b>зважена FWHM</b>: це покращення простої FWHM. Це дозволяє виключити "
+"значно більше помилкових зображень, використовуючи кількість виявлених зірок "
+"порівняно з еталонним зображенням (лише реєстрація на основі зірок)\n"
+"\n"
+"<b>округлість</b>: зображення з найкращою зірковою округлістю (лише "
+"реєстрація на основі зірок)\n"
+"\n"
+"<b>фон</b>: зображення з найменшими значеннями фону (лише реєстрація на "
+"основі зірок)\n"
+"\n"
+"<b>к-сть зірок</b>: зображення з найкращою кількістю виявлених зірок (лише "
+"реєстрація на основі зірок)\n"
+"\n"
+"<b>Якість</b>: зображення найкращої якості (планетарне DFT або реєстрації "
+"Kombat)"
 
 #: src/gui/uifiles/siril.ui:6695 src/gui/uifiles/siril.ui:6822
 #: src/gui/uifiles/siril.ui:8955 src/gui/uifiles/siril.ui:9082
-#, fuzzy
 msgid "Remove this filter"
-msgstr "Видалити вибрані файли зі списку"
+msgstr "Видалити фільтр"
 
 #: src/gui/uifiles/siril.ui:6854
-#, fuzzy
 msgid "Image selection:"
-msgstr "Область не виділена"
+msgstr "Вибір зображень:"
 
 #: src/gui/uifiles/siril.ui:6907
 msgid ""
@@ -9235,29 +9734,35 @@ msgid ""
 "- \"center of gravity\" determines the best framing position as the center "
 "of gravity (cog) of all the images"
 msgstr ""
+"Доступні методи кадрування:\n"
+"- \"поточний\" використовує поточне еталонне зображення\n"
+"- \"максимум\" (обмежувальна рамка) додає чорну рамку навколо кожного "
+"зображення, якщо потрібно, щоб жодна частина зображення не була обрізана під "
+"час реєстрації.\n"
+"- «мінімум» (загальна область) обрізає кожне зображення до області, яка є "
+"спільною з усіма зображеннями послідовності.\n"
+"- «центр ваги» визначає найкраще положення кадрування як центр ваги усіх "
+"зображень"
 
 #: src/gui/uifiles/siril.ui:6916
-#, fuzzy
 msgid "current"
-msgstr "поточний \"червоний\" файл"
+msgstr "поточний"
 
 #: src/gui/uifiles/siril.ui:6917
-#, fuzzy
 msgid "maximum"
-msgstr "Максимальний з маскою"
+msgstr "Максимальний"
 
 #: src/gui/uifiles/siril.ui:6918
 msgid "minimum"
-msgstr ""
+msgstr "Мінімальний"
 
 #: src/gui/uifiles/siril.ui:6919
 msgid "center of gravity"
-msgstr ""
+msgstr "центр ваги"
 
 #: src/gui/uifiles/siril.ui:6934
-#, fuzzy
 msgid "Framing method"
-msgstr "Метод стекінгу:"
+msgstr "Метод кадрування"
 
 #: src/gui/uifiles/siril.ui:6947
 msgid "Estimates the final size and space used by the stacked image."
@@ -9378,9 +9883,8 @@ msgid "Prefix of the image names resulting from the registration."
 msgstr "Префікс імен зображень, які будуть отримані після реєстрації."
 
 #: src/gui/uifiles/siril.ui:7285
-#, fuzzy
 msgid "Output registration:"
-msgstr "Реєстрація вручну"
+msgstr "Результат реєстрації:"
 
 #: src/gui/uifiles/siril.ui:7300
 msgid "Go register"
@@ -9398,14 +9902,12 @@ msgstr ""
 "послідовності також відображається внизу вікна програми)."
 
 #: src/gui/uifiles/siril.ui:7324
-#, fuzzy
 msgid "Load a sequence first"
 msgstr "Спочатку завантажте послідовність."
 
 #: src/gui/uifiles/siril.ui:7341
-#, fuzzy
 msgid "Automatic image registration"
-msgstr "Реєстрація зображень"
+msgstr "Автоматична реєстрація зображень"
 
 #: src/gui/uifiles/siril.ui:7376
 msgid "Display reference image"
@@ -9423,9 +9925,8 @@ msgstr ""
 "відображене на обраному реєстраційному шарі."
 
 #: src/gui/uifiles/siril.ui:7396
-#, fuzzy
 msgid "Set reference image first"
-msgstr "Спочатку встановіть опорне зображення."
+msgstr "Спочатку встановіть еталонне (опорне) зображення"
 
 #: src/gui/uifiles/siril.ui:7425
 msgid ""
@@ -9495,6 +9996,10 @@ msgid ""
 "Circle marker: the value for the reference frame.\n"
 "Cross marker: the value for the currently loaded frame."
 msgstr ""
+"Фіолетова крива: фактичний графік згідно з селекторами X і Y.\n"
+"Зелена крива: відсортовані значення зменшення якості.\n"
+"Круглий маркер: значення опорного кадру.\n"
+"Хрестовий маркер: значення завантаженого зображення."
 
 #: src/gui/uifiles/siril.ui:7750
 msgid "Hovering for the legend"
@@ -9507,7 +10012,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:7829
 msgid "X:"
-msgstr ""
+msgstr "X:"
 
 #: src/gui/uifiles/siril.ui:7844 src/gui/uifiles/siril.ui:7881
 #: src/gui/plot.c:121 src/gui/plot.c:132 src/gui/sequence_list.c:512
@@ -9517,9 +10022,8 @@ msgstr "Круглість"
 
 #: src/gui/uifiles/siril.ui:7845 src/gui/uifiles/siril.ui:7882
 #: src/gui/plot.c:133 src/gui/sequence_list.c:509
-#, fuzzy
 msgid "wFWHM"
-msgstr "FWHM"
+msgstr "wFWHM"
 
 #: src/gui/uifiles/siril.ui:7846 src/gui/uifiles/siril.ui:7883
 #: src/gui/plot.c:124 src/gui/plot.c:134 src/gui/sequence_list.c:518
@@ -9530,28 +10034,25 @@ msgstr "Фон"
 #: src/gui/uifiles/siril.ui:7847 src/gui/uifiles/siril.ui:7884
 #: src/gui/plot.c:135
 msgid "# Stars"
-msgstr ""
+msgstr "к-сть зірок"
 
 #: src/gui/uifiles/siril.ui:7848 src/gui/uifiles/siril.ui:7886
 #: src/gui/plot.c:125 src/gui/plot.c:136 src/gui/sequence_list.c:549
-#, fuzzy
 msgid "X Position"
-msgstr "Позиція X"
+msgstr "Позиція по X"
 
 #: src/gui/uifiles/siril.ui:7849 src/gui/uifiles/siril.ui:7887
 #: src/gui/plot.c:126 src/gui/plot.c:137 src/gui/sequence_list.c:552
-#, fuzzy
 msgid "Y Position"
-msgstr "Позиція Y"
+msgstr "Позиція по Y"
 
 #: src/gui/uifiles/siril.ui:7851 src/gui/plot.c:139
-#, fuzzy
 msgid "Frame"
-msgstr "Кадри"
+msgstr "Кадр"
 
 #: src/gui/uifiles/siril.ui:7865
 msgid "Y:"
-msgstr ""
+msgstr "Y:"
 
 #: src/gui/uifiles/siril.ui:7877
 msgid "Select which information to display from photometry data."
@@ -9583,9 +10084,10 @@ msgstr "Очистити останню"
 #: src/gui/uifiles/siril.ui:7996
 msgid "Show all relevant graphs using registration and / or photometry data."
 msgstr ""
+"Показати всі відповідні графіки з використанням даних реєстрації та/або "
+"фотометрії."
 
 #: src/gui/uifiles/siril.ui:8050
-#, fuzzy
 msgid ""
 "<b>Sum</b>: This is the simplest method.\n"
 "Pixel values are added in an image normalized to 32-bit values.\n"
@@ -9618,12 +10120,12 @@ msgid ""
 "intensity is lower."
 msgstr ""
 "Сума: найпростіший метод.\n"
-"Значення пікселів додаються, результат нормалізується до 16-бітних значень.\n"
+"Значення пікселів додаються, результат нормалізується до 32-бітних значень.\n"
 "Ця процедура призводить до підвищення співвідношення сигналу до шуму (SNR) у "
 "пропорційно квадратному кореню з числа зображень.\n"
 "\n"
-"Середне з відкиданням: в цьому методі ітеративно відкидаються девіантні "
-"пікселі.\n"
+"Середне з відкиданням: в цьому методі ітеративно відкидаються пікселі, які "
+"відхиляються.\n"
 "Реалізовано п'ять методів:\n"
 "- Персентильний кліпінг\n"
 "- Сігма-кліпінг\n"
@@ -9671,10 +10173,9 @@ msgstr "Стекінг з виділенням мінімальних  знач�
 
 #: src/gui/uifiles/siril.ui:8090
 msgid "Method:"
-msgstr ""
+msgstr "Метод:"
 
 #: src/gui/uifiles/siril.ui:8125
-#, fuzzy
 msgid ""
 "If one of these items is selected, a normalisation process will be applied "
 "to all input images before stacking.\n"
@@ -9693,29 +10194,24 @@ msgid ""
 "However, multiplicative normalisation must be used with flat-field frames.</"
 "b>"
 msgstr ""
-"Якщо один з цих пунктів відмічений, процес нормалізації буже застосовано до\n"
+"Якщо один з цих пунктів відмічений, процес нормалізації буде застосовано до "
 "всіх вхідних зображень перед стекінгом.\n"
-"- Нормалізація приводить у відповідність середнє значення фону всіх вхідних "
-"зображень,\n"
-"тобто нормалізація виконується множенням або додаванням. Майте на увазі, що "
-"обидва\n"
-"процеси у загальному випадку призводять до подібних результатів, однак "
-"мультиплікативна\n"
-"нормалізація є бажаною для зображень, які будуть використані у операціях "
-"множення або\n"
-"ділення, як ото плоскі поля (флети).\n"
-"- Масштабування ставить у відповідність дисперії, зважуючи всі вхідні "
-"зображення. Це загалом\n"
-"призводить до поліпшення співвідношення сигналу до шуму і, таким чином, ця "
-"опція використовується\n"
-"за замовчуванням разом з адитивною нормалізацією.\n"
 "\n"
-"Не використовуйте нормалізацію під час створення майстер-кадрів зміщення та "
-"темнових\n"
-"(майстер-офсетів та майстер-дарків).\n"
-"Однак, мультиплікативна нормалізація має використовуватись під час "
-"створення\n"
-"майстер-кадрів плоского поля (майстер-флетів)."
+"- Нормалізація приводить у відповідність середнє значення фону всіх вхідних "
+"зображень, тобто нормалізація виконується множенням або додаванням. Майте на "
+"увазі, що обидвапроцеси у загальному випадку призводять до подібних "
+"результатів, однак мультиплікативна нормалізація є бажаною для зображень, "
+"які будуть використані у операціях множення або ділення, як ото плоскі поля "
+"(флети).\n"
+"\n"
+"- Масштабування ставить у відповідність дисперії, зважуючи всі вхідні "
+"зображення. Це загалом призводить до поліпшення співвідношення сигналу до "
+"шуму і, таким чином, ця опція використовується за замовчуванням разом з "
+"адитивною нормалізацією.\n"
+"\n"
+"<b>Майстер-кадри шуму зчитування та темнові майстер-кадри повинні "
+"оброблятися без нормалізації. Однак під час роботи з кадрами плоского поля "
+"має використовуватися мультиплікативна нормалізація.</b>"
 
 #: src/gui/uifiles/siril.ui:8134
 msgid "No normalisation"
@@ -9734,9 +10230,8 @@ msgid "Multiplicative with scaling"
 msgstr "Мультиплікативна з масштабуванням"
 
 #: src/gui/uifiles/siril.ui:8150
-#, fuzzy
 msgid "Recompute"
-msgstr "Розрахувати"
+msgstr "Перерахувати"
 
 #: src/gui/uifiles/siril.ui:8154
 msgid ""
@@ -9749,9 +10244,8 @@ msgstr ""
 "наново перед стекінгом."
 
 #: src/gui/uifiles/siril.ui:8167
-#, fuzzy
 msgid "Faster normalisation"
-msgstr "Без нормалізації"
+msgstr "Швидша нормалізація"
 
 #: src/gui/uifiles/siril.ui:8171
 msgid ""
@@ -9762,6 +10256,13 @@ msgid ""
 "each image, they can still give a satisfactory result when compared to no "
 "normalization at all."
 msgstr ""
+"За умовчанням, Siril використовує оцінку положення та масштабу за допомогою "
+"IKSS для обчислення нормалізації. Для великих послідовностей розрахунок цієї "
+"оцінки може бути досить інтенсивним. Для таких випадків доступна опція "
+"використання швидкої оцінки, що базується на медіані та медіанному "
+"абсолютному відхиленні. Будучи менш стійкими до викидів на окремих "
+"зображеннях, ці способи оцінки все ж таки дають задовільний результат "
+"порівняно з відсутністю нормалізації."
 
 #: src/gui/uifiles/siril.ui:8190
 msgid "Normalisation:"
@@ -9769,14 +10270,13 @@ msgstr "Нормалізація:"
 
 #: src/gui/uifiles/siril.ui:8281 src/gui/stacking.c:360
 msgid "Sigma low: "
-msgstr ""
+msgstr "Нижній поріг σ: "
 
 #: src/gui/uifiles/siril.ui:8315 src/gui/stacking.c:361
 msgid "Sigma high: "
-msgstr ""
+msgstr "Верхній поріг σ: "
 
 #: src/gui/uifiles/siril.ui:8326
-#, fuzzy
 msgid ""
 "Seven rejection algorithms are available:\n"
 "\n"
@@ -9815,26 +10315,46 @@ msgid ""
 "[3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-"
 "Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 msgstr ""
-"Доступні п'ять алгоритмів відкидання (відбраковки пікселів).\n"
-"- Персентільний кліпінг -- однопрохідний алгоритм відкидання значень, який "
-"ідеально пасує до невеликих наборів даних (до 6 зображень).\n"
-"- Сігма-кліпінг -- ітеративний алгоритм, який відкидає пікселі, які "
-"відстоять від медіани більше, ніж на два заданих значення сігми.\n"
-"- Медіанний сігма-кліпінг -- майже такий самий, як простий сігма-кліпінг, "
-"відрізняється тим, що відкинуті значення замінюються медіанними значеннями.\n"
-"- Вінзорізований сігма-кліпінг дуже подібний до сігма-кліпінгу, однак "
-"використовує алгоритм, описаний в роботах Huber'а [1] [2].\n"
-"- Кліпінг з лінійною підгонкою (Linear Fit Clipping) -- алгоритм, "
-"розроблений Juan Conejero, основним розробником PixInsight [2].\n"
-"В ньому на пікселях зі стеку будується найліпша лінійна апроксимація "
-"(y=ax+b) і значення, які найбільш сильно відхиляються від\n"
-"лінійної апроксимації, відкидаються. Цей алгоритм працює дуже добре з "
-"великими стеками та зображеннями з великими\n"
-"градієнтами фону неба, які мають різний просторовий розподіл та орієнтацію.\n"
+"Доступні сім алгоритмів відкидання (відбраковки пікселів).\n"
+"Доступні сім алгоритмів вибракування:\n"
+"\n"
+"<b>Персентільний кліпінг</b>: однопрохідний алгоритм відкидання значень, "
+"ідеальний для невеликих наборів даних (до 6-ти зображень).\n"
+"\n"
+"<b>Обрізання по σ (Сігма-кліпінг)</b>: ітеративний алгоритм, який відкидає "
+"пікселі, віддалені від медіани більш ніж на два задані значення, зазначені в "
+"одиницях σ.\n"
+"\n"
+"<b>MAD-кліпінг</b>: ітеративний алгоритм, що працює аналогічно обрізці по σ, "
+"але використовує як оцінку медіанне абсолютне відхилення (MAD). Він зазвичай "
+"використовується для обробки зашумлених інфрачервоних зображень.\n"
+"\n"
+"<b>Медіанна обрізка по σ (Медіанний сігма-кліпінг)</b>: майже той самий "
+"алгоритм, як простий сігма-кліпінг, за винятком того, що відкинуті пікселі "
+"замінюються значенням медіани.\n"
+"\n"
+"<b>Вінсоризоване обрізування по σ (Вінзорізований сігма-кліпінг)</b>: дуже "
+"схоже на метод обрізки по σ, але використовує алгоритм, заснований на "
+"роботах Huber'а [1] [2].\n"
+"\n"
+"<b>Лінійне обрізування (Linear Fit Clipping)</b>: алгоритм, розроблений "
+"Хуаном Конехеро (Juan Conejero), основним розробником PixInsight [2]. "
+"Алгоритм підганяє найкращу пряму лінію (y=ax+b) стека пікселів та відкидає "
+"викиди. Цей алгоритм дуже добре працює з великими стеками і зображеннями, що "
+"містять градієнти неба з просторовим розподілом і орієнтацією, що "
+"розрізняються.\n"
+"\n"
+"<b>GESDT</b>: алгоритм [3], що є узагальненням критерію Граббса (Grubbs Test)"
+", який використовується для виявлення одного або декількох викидів в "
+"одновимірному наборі даних, що приблизно відповідає нормальному розподілу. "
+"Даний алгоритм демонструє чудову продуктивність на великих наборах даних, що "
+"мають понад 50 зображень.\n"
 "\n"
 "[1] Peter J. Huber and E. Ronchetti (2009), Robust Statistics, 2nd Ed., "
 "Wiley\n"
-"[2] Juan Conejero, ImageIntegration, Pixinsight Tutorial"
+"[2] Juan Conejero, ImageIntegration, Pixinsight Tutorial\n"
+"[3] Rosner, Bernard (May 1983), Percentage Points for Generalized ESD Many-"
+"Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 
 #: src/gui/uifiles/siril.ui:8347
 msgid "No rejection"
@@ -9849,9 +10369,8 @@ msgid "Sigma Clipping"
 msgstr "Сігма-кліпінг"
 
 #: src/gui/uifiles/siril.ui:8350 src/stacking/stacking.c:202
-#, fuzzy
 msgid "MAD clipping"
-msgstr "сігма-кліпінг"
+msgstr "MAD-кліпінг"
 
 #: src/gui/uifiles/siril.ui:8351
 msgid "Median Sigma Clipping"
@@ -9867,7 +10386,7 @@ msgstr "Кліпінг з лінійною підгонкою"
 
 #: src/gui/uifiles/siril.ui:8354
 msgid "Generalized Extreme Studentized Deviate Test"
-msgstr ""
+msgstr "GESDT"
 
 #: src/gui/uifiles/siril.ui:8367
 msgid ""
@@ -9884,33 +10403,40 @@ msgid ""
 "<b>Number of images</b> weights individual frames based on their integration "
 "time."
 msgstr ""
+"Доступні 4 методи присвоєння ваги окремим кадрам:\n"
+"\n"
+"<b>Кількість зірок</b> на основі кількох зірок, знайдених в ході реєстрації."
+"\n"
+"\n"
+"<b>З виваженою FWHM</b> на основі wFWHM, обчисленої під час реєстрації.\n"
+"\n"
+"<b>Шум</b> на основі значення шуму фону.\n"
+"\n"
+"<b>Кількість зображень</b> на основі часу накопичення кадрів."
 
 #: src/gui/uifiles/siril.ui:8380 src/gui/plot.c:1677 src/gui/plot.c:1705
-#, fuzzy
 msgid "Number of stars"
-msgstr "Кількість ітерацій."
+msgstr "Кількість зірок"
 
 #: src/gui/uifiles/siril.ui:8381
 msgid "Weighted FWHM"
-msgstr ""
+msgstr "Зважена FWHM (wFWHM)"
 
 #: src/gui/uifiles/siril.ui:8382
 msgid "Noise"
-msgstr ""
+msgstr "Шум"
 
 #: src/gui/uifiles/siril.ui:8383
-#, fuzzy
 msgid "Number of images"
-msgstr "Кількість ітерацій."
+msgstr "Кількість зображень"
 
 #: src/gui/uifiles/siril.ui:8397
 msgid "Weighting:"
-msgstr ""
+msgstr "Зважування:"
 
 #: src/gui/uifiles/siril.ui:8412
-#, fuzzy
 msgid "Create rejection maps"
-msgstr "Створити три зображення"
+msgstr "Створити карту відбраковки"
 
 #: src/gui/uifiles/siril.ui:8416
 msgid ""
@@ -9918,20 +10444,24 @@ msgid ""
 "how many images were rejected for each pixel of the result image, divided by "
 "the number of stacked images."
 msgstr ""
+"Розрахувати та створити карти вибракування пікселів під час укладання. Це "
+"зображення, що показують, скільки зображень було вибраковано для кожного "
+"пікселя у підсумковому зображенні, поділені на кількість складених зображень."
 
 #: src/gui/uifiles/siril.ui:8428
 msgid "Merge L+H"
-msgstr ""
+msgstr "Об’єднати L+H"
 
 #: src/gui/uifiles/siril.ui:8433
 msgid ""
 "Create only one rejection map that will be the sum of the low and high maps"
 msgstr ""
+"Створити лише одну карту відбраковки, яка буде сумою низьких і високих "
+"значень карт"
 
 #: src/gui/uifiles/siril.ui:8464
-#, fuzzy
 msgid "Pixel rejection:"
-msgstr "Без відкидання"
+msgstr "Вибраковування пікселів:"
 
 #: src/gui/uifiles/siril.ui:8593
 msgid "Borders feathering [pix]:"
@@ -9964,14 +10494,12 @@ msgid "Stack stitching:"
 msgstr "Стекінг найкращих:"
 
 #: src/gui/uifiles/siril.ui:8695
-#, fuzzy
 msgid "Stacking 0 images of the 0 of the sequence"
-msgstr "Стекінг всіх зображень у послідовності (%d)\n"
+msgstr "Стекінг 0 зображень з 0 у послідовності"
 
 #: src/gui/uifiles/siril.ui:9109
-#, fuzzy
 msgid "Image rejection:"
-msgstr "Без відкидання"
+msgstr "Вибраковування зображень:"
 
 #: src/gui/uifiles/siril.ui:9128
 msgid "Sequence stacking"
@@ -9980,7 +10508,7 @@ msgstr "Стекінг послідовності"
 #: src/gui/uifiles/siril.ui:9162
 #, fuzzy
 msgid "Output Normalisation"
-msgstr "Нормалізація:"
+msgstr "Нормалізація виводу"
 
 #: src/gui/uifiles/siril.ui:9165
 msgid ""
@@ -9993,9 +10521,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:9178
-#, fuzzy
 msgid "RGB equalization"
-msgstr "Нейтралізація фону"
+msgstr "Вирівнювання RGB"
 
 #: src/gui/uifiles/siril.ui:9181
 msgid ""
@@ -10004,6 +10531,11 @@ msgid ""
 "\n"
 "WARNING: This option should not be checked for master stacking."
 msgstr ""
+"Якщо цей прапорець встановлений, канали в остаточному зображенні будуть "
+"вирівняні (тільки для кольорових зображень).\n"
+"\n"
+"ПОПЕРЕДЖЕННЯ: Під час укладання майстер-кадрів цей прапорець повинен бути "
+"знятий."
 
 #: src/gui/uifiles/siril.ui:9194
 msgid "Maximize framing"
@@ -10039,9 +10571,8 @@ msgstr ""
 
 #. Must be short
 #: src/gui/uifiles/siril.ui:9256
-#, fuzzy
 msgid "Save in:"
-msgstr "Зберегти файл"
+msgstr "Зберегти в:"
 
 #: src/gui/uifiles/siril.ui:9280
 msgid "Overwrite"
@@ -10056,20 +10587,16 @@ msgid "Start stacking"
 msgstr "Запустити стекінг"
 
 #: src/gui/uifiles/siril.ui:9309
-#, fuzzy
 msgid ""
 "Start stacking the current sequence of images, using the method and other "
 "information provided above."
 msgstr ""
-"Запустити стекінг поточної послідовності зображень з використанням методів "
-"та іншої інформації, яка вказана вище.\n"
-"Siril використовує 32-бітне внутрішнє зображення в процесі стекінгу, яке "
-"потім зберігається у 16-бітне зображення з ім'ям, вказаним нижче."
+"Почніть складати поточну послідовність зображень, використовуючи метод та "
+"іншу інформацію, наведену вище."
 
 #: src/gui/uifiles/siril.ui:9329
-#, fuzzy
 msgid "Stacking result"
-msgstr "Стекінг"
+msgstr "Результат укладання (стекінгу)"
 
 #: src/gui/uifiles/siril.ui:9355
 msgid ""
@@ -10084,39 +10611,34 @@ msgid ""
 "Siril output window, displays messages about what has been done and in "
 "response to command inputs."
 msgstr ""
-"Відно для видачі інформації про те, що зроблено та відгуків на введені "
+"Вікно для видачі інформації про те, що зроблено та відгуків на введені "
 "команди."
 
 #: src/gui/uifiles/siril.ui:9454
-#, fuzzy
 msgid "Export the log"
-msgstr "Експорт у CSV"
+msgstr "Експорт журналу"
 
 #: src/gui/uifiles/siril.ui:9468 src/gui/progress_and_log.c:286
-#, fuzzy
 msgid "Clear the log"
-msgstr "Очистити останню"
+msgstr "Очистити журнал"
 
 #: src/gui/uifiles/siril.ui:9505
 msgid "This tab shows the Siril logs."
-msgstr ""
+msgstr "На цій вкладці показано журнал Siril."
 
 #: src/gui/uifiles/siril.ui:9508
-#, fuzzy
 msgid "Console"
-msgstr "<b>Консоль</b>"
+msgstr "Консоль"
 
 #: src/gui/uifiles/siril.ui:9545
-#, fuzzy
 msgid ""
 "Input command. Typing \"help\" here will bring the list of supported "
 "commands."
 msgstr ""
-"Введіть команду. Надрукуйте  'help', щоб отримати список команд, які "
+"Введіть команду. Надрукуйте 'help', щоб отримати список команд, які "
 "підтримуються."
 
 #: src/gui/uifiles/siril.ui:9548
-#, fuzzy
 msgid "Type \"help\" for the list of supported commands"
 msgstr "Надрукуйте 'help', щоб отримати список команд, які підтримуються"
 
@@ -10126,7 +10648,7 @@ msgstr "Показує керівництво з використання ком
 
 #: src/gui/uifiles/siril.ui:9575
 msgid "Stop"
-msgstr ""
+msgstr "Стоп"
 
 #: src/gui/uifiles/siril.ui:9579
 msgid "Stop running processes"
@@ -10134,7 +10656,7 @@ msgstr "Перервати процеси, які виконуються"
 
 #: src/gui/uifiles/siril.ui:9604
 msgid "Command line"
-msgstr ""
+msgstr "Командний рядок"
 
 #: src/gui/uifiles/siril.ui:9622 src/gui/progress_and_log.c:46
 msgid "Ready."
@@ -10142,11 +10664,11 @@ msgstr "Готово."
 
 #: src/gui/uifiles/siril.ui:9655
 msgid "Hide the control panel to show only the image panel (toggle)."
-msgstr ""
+msgstr "Приховати панель керування, щоб залишити лише зображення (перемикач)."
 
 #: src/gui/uifiles/siril.ui:9700
 msgid "Click to Set the name of the item to clipboard (green-ed label)"
-msgstr ""
+msgstr "Клацніть, щоб скопіювати назву елемента в буфер обміну (зелена мітка)"
 
 #: src/gui/uifiles/siril.ui:9701
 msgid "Sequence:"
@@ -10159,11 +10681,11 @@ msgstr "Реєстрація зображень"
 
 #: src/gui/uifiles/siril.ui:9829
 msgid "High value"
-msgstr ""
+msgstr "Верхнє значення"
 
 #: src/gui/uifiles/siril.ui:9888
 msgid "Low value"
-msgstr ""
+msgstr "Нижнє значення"
 
 #: src/gui/uifiles/siril.ui:9938
 msgid "Min/Max"
@@ -10171,7 +10693,7 @@ msgstr "Мінімум/Максимум"
 
 #: src/gui/uifiles/siril.ui:9955
 msgid "MIPS-LO/HI"
-msgstr ""
+msgstr "MIPS-LO/HI"
 
 #: src/gui/uifiles/siril.ui:9972
 msgid "User"
@@ -10186,18 +10708,26 @@ msgid ""
 "to display your data. Stretch your histogram before to work on an external "
 "tool.</b>"
 msgstr ""
+"Режим перегляду: список містить усі режими перегляду, доступні в Siril.\n"
+"\n"
+"<b>УВАГА: тільки Лінійний режим відображає реальні значення пікселів (коли "
+"повзунки знаходяться в мінімальному та максимальному положеннях). Решта "
+"режимів це лише зручний спосіб відобразити дані. Розтягніть гістограму, перш "
+"ніж працювати з зовнішніми інструментами.</b>"
 
 #: src/gui/uifiles/siril.ui:10066
 msgid "Chain/unchain channels in autostretch viewer mode.\n"
-msgstr ""
+msgstr "Заблокувати/розблокувати канали у режимі автоматичного розтягування.\n"
 
 #: src/gui/uifiles/siril.ui:10092
 msgid "Switch to normal and negative view"
-msgstr ""
+msgstr "Переключитися між звичайним виглядом і негативом"
 
 #: src/gui/uifiles/siril.ui:10109
 msgid "Switch to normal and rainbow colormap (false color rendering)"
 msgstr ""
+"Переключитися між звичайним переглядом та колірною картою (фальшивим "
+"кольором)"
 
 #: src/gui/uifiles/siril.ui:10135
 msgid ""
@@ -10208,12 +10738,15 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:10150
 msgid "Show celestial grid if WCS information is available"
 msgstr ""
+"Показувати небесну сітку, якщо доступна інформація світової системи координат"
 
 #: src/gui/uifiles/siril.ui:10164
 msgid ""
 "Switch to PSF/photometry mode. If a sequence is loaded, a right click on the "
 "displayed image applies the PSF/Photometry on the whole sequence."
 msgstr ""
+"Перейти в режим PSF/фотометрії. Якщо завантажена послідовність, правою "
+"кнопкою миші на зображенні до послідовності застосовується PSF/фотометрія."
 
 #: src/gui/uifiles/siril.ui:10178
 msgid ""
@@ -10222,23 +10755,20 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:10202
-#, fuzzy
 msgid "Shrink the image"
-msgstr "Створити три зображення"
+msgstr "Віддалити (зменшити) зображення"
 
 #: src/gui/uifiles/siril.ui:10216
-#, fuzzy
 msgid "Enlarge the image"
-msgstr "Створити три зображення"
+msgstr "Наблизити (збільшити) зображення"
 
 #: src/gui/uifiles/siril.ui:10230
-#, fuzzy
 msgid "Fit the image to the window"
-msgstr "всі зображення з послідовності"
+msgstr "Помістити зображення у вікні"
 
 #: src/gui/uifiles/siril.ui:10247
 msgid "Show the image at its normal size"
-msgstr ""
+msgstr "Показати зображення на повний розмір"
 
 #: src/gui/uifiles/siril.ui:10308
 msgid "Horizontal mirror"
@@ -10249,37 +10779,36 @@ msgid "Vertical mirror"
 msgstr "Відзеркалити по вертикалі"
 
 #: src/gui/uifiles/siril.ui:10394 src/gui/single_image.c:75
-#, fuzzy
 msgid "Open"
-msgstr "_Відкрити"
+msgstr "Відкрити"
 
 #: src/gui/uifiles/siril.ui:10399
 msgid "Open an image or a SER/AVI sequence"
-msgstr ""
+msgstr "Відкрити зображення або послідовність SER/AVI"
 
 #: src/gui/uifiles/siril.ui:10415
 msgid "Open recent images (only FITS and SER files)"
-msgstr ""
+msgstr "Відкрити останні зображення (лише файли FITS і SER)"
 
 #: src/gui/uifiles/siril.ui:10439
 msgid "Change current working directory"
 msgstr "Змінити поточний робочий каталог"
 
 #: src/gui/uifiles/siril.ui:10463
-#, fuzzy
 msgid "Start livestacking session"
-msgstr "Запустити стекінг"
+msgstr "Запустити стекінг (укладання)"
 
 #: src/gui/uifiles/siril.ui:10539
 msgid ""
 "Menu of the image processing tools. It contains all suitable functions for "
 "image enhancement."
 msgstr ""
+"Меню із інструментами обробки зображень. Тут зібрані всі функції поліпшення "
+"астрофотографій."
 
 #: src/gui/uifiles/siril.ui:10550
-#, fuzzy
 msgid "Image Processing"
-msgstr "_Обробка зображення"
+msgstr "Обробка"
 
 #: src/gui/uifiles/siril.ui:10586
 msgid ""
@@ -10295,22 +10824,24 @@ msgid ""
 "Menu of the script files. This menu appears only when the script paths "
 "defined in the preferences are set to the existing script folders."
 msgstr ""
+"Меню сценаріїв (scripts). З'являється лише якщо шляхи до сценаріїв правильно "
+"вказані в налаштуваннях."
 
 #: src/gui/uifiles/siril.ui:10702
 msgid "Bit-depth select button"
-msgstr ""
+msgstr "Вибрати розрядність обробки"
 
 #: src/gui/uifiles/siril.ui:10756
 msgid "Save the current FITS image"
-msgstr ""
+msgstr "Зберегти поточне зображення FITS"
 
 #: src/gui/uifiles/siril.ui:10771
 msgid "Save the current image in a different name"
-msgstr ""
+msgstr "Зберегти поточне зображення під іншим ім'ям"
 
 #: src/gui/uifiles/siril.ui:10793
 msgid "Take a snapshot of your displayed image."
-msgstr ""
+msgstr "Зробити знімок поточного зображення."
 
 #: src/gui/uifiles/siril.ui:10845
 msgid ""
@@ -10338,7 +10869,7 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:10903
 msgctxt "GUI"
 msgid "Disk Space: N/A"
-msgstr ""
+msgstr "на диску: N/A"
 
 #: src/gui/uifiles/spcc_details.ui:8 src/gui/uifiles/spcc_details.ui:254
 msgid "SPCC Details"
@@ -10379,7 +10910,7 @@ msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:160
 msgid "Start the photometric color calibration algorithm."
-msgstr ""
+msgstr "Запуск алгоритм фотометричного калібрування кольору."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:222
 #, fuzzy
@@ -10770,29 +11301,35 @@ msgid "Ha/OIII Resampling"
 msgstr ""
 
 #: src/gui/uifiles/split_cfa_dialog.ui:189
+#, fuzzy
 msgid ""
 "How to handle the output of Extract Ha/OIII. No resampling produces full "
 "resolution OIII image and a half resolution Ha image; upsample Ha upsamples "
 "the Ha image by a factor of 2 to match the OIII image; downsample OIII "
 "downsamples the OIII image by a factor of 2 to match the Ha image."
 msgstr ""
+"Яким чином працювати з результатами команди «Витягнути Ha/OIII». «Без "
+"масштабування» приводить до створення зображення OIII в повній роздільній "
+"здатності і зображення Ha в половинній роздільній здатності; «Збільшити Ha» "
+"приводить до двократного збільшення зображення Ha, щоб його розмір "
+"відповідав розміру зображення OIII; «Зменшити OIII» приводить до двократного "
+"зменшення зображення OIII, щоб його розмір відповідав розміру зображення Ha."
 
 #: src/gui/uifiles/split_cfa_dialog.ui:192
 msgid "No resampling"
-msgstr ""
+msgstr "Без масштабування"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:193
-#, fuzzy
 msgid "Upsample Ha"
-msgstr "Масштабувати"
+msgstr "Збільшити Ha"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:194
 msgid "Downsample OIII"
-msgstr ""
+msgstr "Зменшити OIII"
 
 #: src/gui/uifiles/starnet_dialog.ui:43
 msgid "StarNet Star Removal"
-msgstr ""
+msgstr "Видалення зірок StarNet"
 
 #: src/gui/uifiles/starnet_dialog.ui:75 src/gui/uifiles/StatWindow.ui:62
 #: src/gui/uifiles/wavelets_dialog.ui:241
@@ -10802,12 +11339,11 @@ msgstr "Час виконання"
 
 #: src/gui/uifiles/starnet_dialog.ui:79
 msgid "Apply StarNet"
-msgstr ""
+msgstr "Застосувати StarNet"
 
 #: src/gui/uifiles/starnet_dialog.ui:110
-#, fuzzy
 msgid "Pre-stretch linear image"
-msgstr "Створити три зображення"
+msgstr "Попереднє розтягування лінійного зображення"
 
 #: src/gui/uifiles/starnet_dialog.ui:115
 msgid ""
@@ -10819,7 +11355,7 @@ msgstr ""
 
 #: src/gui/uifiles/starnet_dialog.ui:129
 msgid "Generate star mask"
-msgstr ""
+msgstr "Створити маску зірок"
 
 #: src/gui/uifiles/starnet_dialog.ui:134
 msgid ""
@@ -10827,10 +11363,14 @@ msgid ""
 "directory. The star mask is calculated as the difference between the "
 "original image and the starless image. The default is to produce a star mask."
 msgstr ""
+"Якщо вибрано, маска зірок буде згенерована та збережена в робочому каталозі. "
+"Маска зірок обчислюється як різниця між вихідним зображенням і зображенням "
+"без зірок. За замовчуванням маска зірок створюється."
 
 #: src/gui/uifiles/starnet_dialog.ui:149
+#, fuzzy
 msgid "Use custom stride"
-msgstr ""
+msgstr "Використати індивідуальний крок"
 
 #: src/gui/uifiles/starnet_dialog.ui:154
 msgid ""
@@ -10838,10 +11378,13 @@ msgid ""
 "parameter. The default value is 256 and the StarNet developer recommends not "
 "to change this."
 msgstr ""
+"Якщо вибрано, то для параметра кроку StarNet можна ввести користовацьке "
+"значення. Стандартним значенням є 256, і розробник StarNet рекомендує не "
+"змінювати його."
 
 #: src/gui/uifiles/starnet_dialog.ui:174
 msgid "Stride"
-msgstr ""
+msgstr "Крок"
 
 #: src/gui/uifiles/starnet_dialog.ui:186
 msgid ""
@@ -10850,11 +11393,14 @@ msgid ""
 "stride setting quadruples the processing time. If altered, stride must be an "
 "even integer between 2-256."
 msgstr ""
+"Встановлює розмір фрагментів мозаїки, які передаються до нейронної мережі "
+"StarNet для обробки. Наполегливо рекомендуємо залишити це значення за "
+"замовчуванням. Зменшення налаштування кроку вдвічі збільшує час обробки. "
+"Якщо змінено, то крок має бути парним цілим числом від 2 до 256."
 
 #: src/gui/uifiles/starnet_dialog.ui:209
-#, fuzzy
 msgid "Recompose stars on completion"
-msgstr "Співставити зірки у вибраній області"
+msgstr "Відновити зірки після завершення"
 
 #: src/gui/uifiles/starnet_dialog.ui:214
 msgid ""
@@ -10864,25 +11410,37 @@ msgid ""
 "removal, is desired.\n"
 "This option has no effect if processing a sequence."
 msgstr ""
+"Якщо цей параметр вибрано, то після завершення процесу StarNet відкриється "
+"інструмент рекомпозиції зірок, який має інтерфейс для незалежного "
+"розтягування та змішування фону та зірок, якщо потрібно зменшити кількість "
+"зірок, а не повністю їх видалити.\n"
+"Цей параметр не діє під час обробки послідовності."
 
 #: src/gui/uifiles/starnet_dialog.ui:229
 #, fuzzy
 msgid "Upsample x2"
-msgstr "Масштабувати"
+msgstr "Подвоєння масштабу"
 
 #: src/gui/uifiles/starnet_dialog.ui:234
+#, fuzzy
 msgid ""
 "If selected, the image will be upsampled by a factor of 2 before running "
 "StarNet. This improves performance on very tight stars but quadruples "
 "processing time and may impair performance on very large stars. The image is "
 "rescaled to the original size on completion."
 msgstr ""
+"Якщо вибрано, перед запуском StarNet зображення буде збільшено у 2 рази. Це "
+"покращує продуктивність на дуже тісних зірках, але вчетверо збільшує час "
+"обробки та може погіршити продуктивність на великих зіркових полях. Після "
+"завершення зображення масштабується до початкового розміру."
 
 #: src/gui/uifiles/starnet_dialog.ui:251
 msgid ""
 "Apply StarNet to all images in the current sequence. Starless and, if "
 "selected, star mask, sequences will be generated."
 msgstr ""
+"Застосуйте StarNet до всіх зображень у поточній послідовності. Будуть "
+"створені послідовності без зірочок і, якщо вибрано, з маскою зірок."
 
 #: src/gui/uifiles/starnet_dialog.ui:272
 #, fuzzy
@@ -10904,9 +11462,8 @@ msgid "Original"
 msgstr ""
 
 #: src/gui/uifiles/stars_list_window.ui:84
-#, fuzzy
 msgid "Export list of stars to a file"
-msgstr "Експортувати відображений графік у файл CSV."
+msgstr "Експорт списку зірок у файл"
 
 #: src/gui/uifiles/stars_list_window.ui:90
 #: src/gui/uifiles/stars_list_window.ui:906
@@ -11182,7 +11739,7 @@ msgstr ""
 
 #: src/gui/uifiles/wavelets_dialog.ui:77
 msgid "Wavelets control"
-msgstr ""
+msgstr "Регулювання вейвлетів"
 
 #: src/gui/uifiles/wavelets_dialog.ui:100
 msgid "Reset changes"
@@ -11201,9 +11758,8 @@ msgid "Type:"
 msgstr "Тип:"
 
 #: src/gui/uifiles/wavelets_dialog.ui:209
-#, fuzzy
 msgid "Nb of layers:"
-msgstr "Число шарів: "
+msgstr "Число шарів:"
 
 #: src/gui/uifiles/wavelets_dialog.ui:220
 msgid "Number of wavelet layers that will be used"
@@ -11216,27 +11772,27 @@ msgstr "Обчислити вейвлети"
 
 #: src/gui/uifiles/wavelets_dialog.ui:320
 msgid "Layer 1"
-msgstr ""
+msgstr "Шар 1"
 
 #: src/gui/uifiles/wavelets_dialog.ui:390
 msgid "Layer 2"
-msgstr ""
+msgstr "Шар 2"
 
 #: src/gui/uifiles/wavelets_dialog.ui:460
 msgid "Layer 3"
-msgstr ""
+msgstr "Шар 3"
 
 #: src/gui/uifiles/wavelets_dialog.ui:530
 msgid "Layer 4"
-msgstr ""
+msgstr "Шар 4"
 
 #: src/gui/uifiles/wavelets_dialog.ui:600
 msgid "Layer 5"
-msgstr ""
+msgstr "Шар 5"
 
 #: src/gui/uifiles/wavelets_dialog.ui:670
 msgid "Layer 6"
-msgstr ""
+msgstr "Шар 6"
 
 #: src/gui/uifiles/wavelets_dialog.ui:736
 msgid "Adjust"
@@ -11671,7 +12227,7 @@ msgstr ""
 #. center is less than 10" off from a pole
 #: src/algos/astrometry_solver.c:550
 msgid "Up position wrt. N is undetermined (too close to a Pole)\n"
-msgstr ""
+msgstr "Положення верху щодо Пн невизначено (занадто близько до Полюсу)\n"
 
 #: src/algos/astrometry_solver.c:570
 msgid "Up is %+.2lf deg CounterclockWise wrt. N%s\n"
@@ -11679,30 +12235,29 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:570
 msgid " (flipped)"
-msgstr ""
+msgstr " (перевернуто)"
 
 #: src/algos/astrometry_solver.c:575
 msgid "Resolution:%*.3lf arcsec/px\n"
-msgstr ""
+msgstr "Роздільна здатність:%*.3lf кут.сек/px\n"
 
 #: src/algos/astrometry_solver.c:577
-#, fuzzy
 msgid "Focal length:%*.2lf mm\n"
-msgstr "Фокусна відстань (мм): "
+msgstr "Фокусна відстань:%*.2lf (мм)\n"
 
 #: src/algos/astrometry_solver.c:578
 msgid "Pixel size:%*.2lf µm\n"
-msgstr ""
+msgstr "Розмір пікселя: %*.2lf мкм\n"
 
 #: src/algos/astrometry_solver.c:581
 #, c-format
 msgid "Field of view:    %s x %s\n"
-msgstr ""
+msgstr "Поле зору:     %s x %s\n"
 
 #: src/algos/astrometry_solver.c:582
 #, c-format
 msgid "Image center: alpha: %s, delta: %s\n"
-msgstr ""
+msgstr "Центр зображення: α: %s, δ: %s\n"
 
 #: src/algos/astrometry_solver.c:586
 #, c-format
@@ -11742,23 +12297,22 @@ msgid ""
 msgstr ""
 
 #: src/algos/astrometry_solver.c:893
-#, fuzzy
 msgid " (uncentered)"
-msgstr "Центроване"
+msgstr " (не по центру)"
 
 #: src/algos/astrometry_solver.c:908
 #, c-format
 msgid "Down-sampling image for faster star detection by a factor %.2f\n"
-msgstr ""
+msgstr "Зменшення зображення на коеф-т %.2f для швидкого пошуку зірок\n"
 
 #: src/algos/astrometry_solver.c:920
 msgid "Failed to downsample image, aborting\n"
-msgstr ""
+msgstr "Не вдалося зменшити масштаб зображення, переривання.\n"
 
 #: src/algos/astrometry_solver.c:988
 #, c-format
 msgid "Using %d detected stars from image.\n"
-msgstr ""
+msgstr "Використовується %d виявлених зірок із зображення.\n"
 
 #: src/algos/astrometry_solver.c:1011
 #, fuzzy
@@ -11772,12 +12326,14 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:1024
 msgid "Plate Solve"
-msgstr ""
+msgstr "Астрономічне рішення"
 
 #: src/algos/astrometry_solver.c:1049 src/gui/callbacks.c:1836
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr ""
+"Збережено фокусну відстань %.2f і розмір пікселя %.2f як значення за "
+"замовчуванням\n"
 
 #: src/algos/astrometry_solver.c:1060 src/algos/astrometry_solver.c:1063
 #: src/algos/astrometry_solver.c:1068
@@ -11791,7 +12347,7 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:1075
 msgid "Flipping image and updating astrometry data.\n"
-msgstr ""
+msgstr "Перевертання зображення та оновлення астрометричних даних.\n"
 
 #: src/algos/astrometry_solver.c:1108
 #, c-format
@@ -11828,10 +12384,12 @@ msgstr ""
 #: src/algos/astrometry_solver.c:1664
 msgid "solve-field was not found, set its path in the preferences\n"
 msgstr ""
+"команда solve-field на знайдена, вкажіть шлях до програми в налаштуваннях\n"
 
 #: src/algos/astrometry_solver.c:1681
+#, fuzzy
 msgid "Failed to create the input data for solve-field\n"
-msgstr ""
+msgstr "Не вдалося створити вхідні дані для solve-field\n"
 
 #: src/algos/astrometry_solver.c:1744
 #, c-format
@@ -11839,6 +12397,8 @@ msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius for scales [%s, %s]\n"
 msgstr ""
+"Розв’язування Astrometry.net із полем пошуку в RA: %s, Dec: %s, у радіусі %s "
+"градусів для масштабів [%s, %s]\n"
 
 #: src/algos/astrometry_solver.c:1748
 #, c-format
@@ -11863,20 +12423,20 @@ msgstr "Фотометрія"
 
 #: src/algos/astrometry_solver.c:1858
 msgid "No astrometric solution found\n"
-msgstr ""
+msgstr "Астрометричне рішення не знайдено\n"
 
 #: src/algos/astrometry_solver.c:1891
 #, c-format
 msgid "Could not read the solution from solve-field (expected in file %s)\n"
-msgstr ""
+msgstr "Не вдалося прочитати рішення з solve-field (очікується у файлі %s)\n"
 
 #: src/algos/astrometry_solver.c:1932
 msgid "Warning: using the current selection to detect stars\n"
-msgstr ""
+msgstr "Попередження: Для пошуку зірок використовується поточне виділення\n"
 
 #: src/algos/astrometry_solver.c:1977
 msgid "Selection is not used in manual star selection mode\n"
-msgstr ""
+msgstr "Виділення не використовується при ручному виборі зірок\n"
 
 #: src/algos/astrometry_solver.c:2025
 #, fuzzy
@@ -11918,7 +12478,7 @@ msgstr ""
 #: src/algos/astrometry_solver.c:2188
 #, c-format
 msgid "Image %s did not solve\n"
-msgstr ""
+msgstr "Астрономічне рішення для зображення %s не отримано\n"
 
 #: src/algos/astrometry_solver.c:2200
 #, c-format
@@ -11949,22 +12509,24 @@ msgstr "Застосувати трансформацію гістограми"
 #, c-format
 msgid "Running sequence plate solving using the %s catalogue\n"
 msgstr ""
+"Виконується пошук астрономічного рішення для послідовності за допомогою "
+"каталогу %s\n"
 
 #: src/algos/background_extraction.c:300
 msgid ""
 "There are not enough background samples. The background to be extracted "
 "cannot be computed.\n"
-msgstr ""
+msgstr "Недостатньо зразків фону. Фон для вилучення не може бути обчислений.\n"
 
 #: src/algos/background_extraction.c:829 src/core/command.c:11320
 #: src/filters/graxpert.c:1034 src/gui/graxpert.c:195
 #, c-format
 msgid "Failed to generate background samples for image: %s\n"
-msgstr ""
+msgstr "Не вдалося створити зразки фону для зображення: %s\n"
 
 #: src/algos/background_extraction.c:884 src/algos/background_extraction.c:1055
 msgid "Not enough samples."
-msgstr ""
+msgstr "Недостатньо зразків."
 
 #: src/algos/background_extraction.c:884
 msgid "Insufficient samples"
@@ -11972,17 +12534,17 @@ msgstr ""
 
 #: src/algos/background_extraction.c:898 src/algos/PSF.c:1029
 msgid "monochrome"
-msgstr ""
+msgstr "монохромний"
 
 #: src/algos/background_extraction.c:899
-#, fuzzy, c-format
+#, c-format
 msgid "Background extraction from %s channel.\n"
-msgstr "Вирівнювання фону..."
+msgstr "Вилучення фону з каналу %s\n"
 
 #: src/algos/background_extraction.c:905
 #, c-format
 msgid "Background with %s interpolation computed.\n"
-msgstr ""
+msgstr "Розрахований фон з інтерполяцією %s.\n"
 
 #: src/algos/background_extraction.c:968 src/algos/background_extraction.c:1195
 msgid "Error: unsupported CFA pattern for this operation.\n"
@@ -12019,7 +12581,7 @@ msgstr ""
 #: src/algos/background_extraction.c:1102
 #: src/algos/background_extraction.c:1232
 msgid "Out of memory - aborting"
-msgstr ""
+msgstr "Закінчилась пам'ять, скасування"
 
 #: src/algos/background_extraction.c:1078
 #, c-format
@@ -12030,7 +12592,7 @@ msgstr ""
 #: src/algos/background_extraction.c:1240
 #, c-format
 msgid "Failed to generate background samples for image %d: %s\n"
-msgstr ""
+msgstr "Не вдалося створити зразки фону для зображення %d:%s\n"
 
 #: src/algos/background_extraction.c:1175
 msgid ""
@@ -12059,6 +12621,8 @@ msgid ""
 "%s: not enough memory to do this operation (%s required per image, %s "
 "considered available)\n"
 msgstr ""
+"%s: для операції недостатньо пам'яті (на зображення необхідно %s, доступно "
+"%s)\n"
 
 #: src/algos/background_extraction.c:1377
 #, fuzzy
@@ -12071,19 +12635,23 @@ msgid ""
 "Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-"
 "axis aberration[FWHM]: %.2f\n"
 msgstr ""
+"Зірок: %d, усічене середнє [FWHM]%.2f, нахил сенсора [FWHM]: %.2f (%.0f%%), "
+"позаосьова аберація [FWHM]: %.2f\n"
 
 #: src/algos/ccd-inspector.c:277
 msgid "Tilt evaluation"
-msgstr ""
+msgstr "Оцінка нахилу сенсора"
 
 #: src/algos/colors.c:791
 msgid "Siril cannot extract layers. Make sure your image is in RGB mode.\n"
 msgstr ""
+"Siril не може видобувати шари. Переконайтеся, що ваше зображення знаходиться "
+"в режимі RGB.\n"
 
 #: src/algos/colors.c:795 src/algos/colors.c:933
 #, c-format
 msgid "%s channel extraction: processing...\n"
-msgstr ""
+msgstr "Видобування каналу %s: виконується...\n"
 
 #: src/algos/colors.c:821 src/algos/colors.c:959
 #, c-format
@@ -12117,6 +12685,7 @@ msgstr ""
 #: src/algos/colors.c:929
 msgid "Siril cannot extract channels. Make sure your image is in RGB mode.\n"
 msgstr ""
+"Siril не вдалося витягти канали. Переконайтеся, що зображення в режимі RGB.\n"
 
 #: src/algos/colors.c:1025
 msgid ""
@@ -12151,13 +12720,15 @@ msgstr "Медіанний стекінг завершено."
 #: src/algos/comparison_stars.c:135
 #, c-format
 msgid "Target star identified: %s\n"
-msgstr ""
+msgstr "Цільову зірку визначено: %s\n"
 
 #: src/algos/comparison_stars.c:137
 msgid ""
 "There was a problem finding the target star in the image, cannot continue "
 "with the light curve\n"
 msgstr ""
+"Виникла проблема з пошуком цільової зірки на зображенні, неможливе "
+"продовження з кривою блиску\n"
 
 #: src/algos/comparison_stars.c:145
 #, c-format
@@ -12281,15 +12852,18 @@ msgid ""
 "FITS header does not contain a proper XTRANS pattern, demosaicing cannot be "
 "done\n"
 msgstr ""
+"Заголовок FITS не містить правильного шаблону XTRANS, не можна виконати "
+"дебайєризацію\n"
 
 #: src/algos/demosaicing.c:960
 #, c-format
 msgid "Invalid character in X-Trans filter pattern: %c\n"
-msgstr ""
+msgstr "Некоректний символ у шаблоні фільтра X-Trans: %c\n"
 
 #: src/algos/demosaicing.c:1240
 msgid "Cannot perform debayering on image with more than one channel\n"
 msgstr ""
+"Не можна виконати дебайеризацію зображення, що має більше одного каналу\n"
 
 #: src/algos/demosaicing.c:1254 src/algos/extraction.c:72 src/io/ser.c:852
 #: src/io/ser.c:1096
@@ -12308,16 +12882,16 @@ msgstr ""
 
 #: src/algos/demosaicing.c:1266
 msgid "XTRANS Sensor detected. Using special algorithm.\n"
-msgstr ""
+msgstr "Виявлено сенсор XTRANS. Використовується спеціалізований алгоритм.\n"
 
 #: src/algos/demosaicing.c:1270 src/algos/extraction.c:87
 #, c-format
 msgid "Filter Pattern: %s\n"
-msgstr ""
+msgstr "Шаблон фільтру: %s\n"
 
 #: src/algos/demosaicing.c:1276
 msgid "Cannot perform debayering\n"
-msgstr ""
+msgstr "Неможливо виконати дебаєризацію\n"
 
 #: src/algos/demosaicing.c:1355
 #, fuzzy
@@ -12327,56 +12901,60 @@ msgstr "Завантаження вхідного файлу: '%s'\n"
 #: src/algos/demosaicing.c:1366
 #, c-format
 msgid "Image %d: error opening CFA1 file\n"
-msgstr ""
+msgstr "Зображення %d: помилка відкриття файлу CFA1\n"
 
 #: src/algos/demosaicing.c:1371
 #, c-format
 msgid "Image %d: error opening CFA2 file\n"
-msgstr ""
+msgstr "Зображення %d: помилка відкриття файлу CFA2\n"
 
 #: src/algos/demosaicing.c:1376
 #, c-format
 msgid "Image %d: error opening CFA3 file\n"
-msgstr ""
+msgstr "Зображення %d: помилка відкриття файлу CFA3\n"
 
 #: src/algos/demosaicing.c:1432
+#, fuzzy
 msgid "Merge CFA"
-msgstr ""
+msgstr "Злиття CFA"
 
 #: src/algos/demosaicing.c:1472
 msgid ""
 "Input files are incompatible (all must be mono with the same size and bit "
 "depth). Aborting...\n"
 msgstr ""
+"Вхідні файли несумісні. Усі файли мають бути монохромними з однаковим "
+"розміром та розрядністю. Переривання...\n"
 
 #: src/algos/demosaicing.c:1474
 msgid "X dimensions incompatible\n"
-msgstr ""
+msgstr "Розміри по X несумісні\n"
 
 #: src/algos/demosaicing.c:1476
 msgid "Y dimensions incompatible\n"
-msgstr ""
+msgstr "Розміри по Y несумісні\n"
 
 #: src/algos/demosaicing.c:1478
-#, fuzzy
 msgid "Channels not all mono\n"
-msgstr "Виділення каналів"
+msgstr "Не всі канали монохромні\n"
 
 #: src/algos/demosaicing.c:1480
 msgid "Input files not all the same bit depth\n"
-msgstr ""
+msgstr "Вхідні файли мають різну розрядність\n"
 
 #: src/algos/demosaicing.c:1487
 msgid "Error creating output image\n"
-msgstr ""
+msgstr "Помилка створення кінцевого зображення\n"
 
 #: src/algos/extraction.c:82
 msgid "XTRANS pattern not supported for this feature.\n"
-msgstr ""
+msgstr "Ця функція не підтримує X-Trans матриці.\n"
 
 #: src/algos/extraction.c:110 src/algos/extraction.c:157
 msgid "Extract_Green does not work on non-Bayer filter camera images!\n"
 msgstr ""
+"Витягнення зеленого не працює на зображеннях, отриманих камерами без фільтра "
+"Байєра!\n"
 
 #: src/algos/extraction.c:148 src/algos/extraction.c:195
 #, fuzzy, c-format
@@ -12386,6 +12964,8 @@ msgstr "Зелений канал"
 #: src/algos/extraction.c:245 src/algos/extraction.c:301
 msgid "Extract_Ha does not work on non-Bayer filter camera images!\n"
 msgstr ""
+"Витягнення Ha не працює на зображеннях, отриманих камерами без фільтра Баєра!"
+"\n"
 
 #. Mark this as no longer having a Bayer pattern
 #: src/algos/extraction.c:292 src/algos/extraction.c:348
@@ -12395,11 +12975,13 @@ msgstr "Червоний канал"
 
 #: src/algos/extraction.c:409 src/algos/extraction.c:642
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
-msgstr ""
+msgstr "Зображення повинно мати непарні розміри. Обрізання на 1 піксель.\n"
 
 #: src/algos/extraction.c:417 src/algos/extraction.c:650
 msgid "Extract_HaOIII does not work on non-Bayer filter camera images!\n"
 msgstr ""
+"Витягнення HaOIII не працює на зображеннях, отриманих камерами без фільтра "
+"Баєра!\n"
 
 #. remve WCS data - even if not scaled, the centre will have moved by half a pixel
 #. Mark this as no longer having a Bayer pattern
@@ -12417,11 +12999,13 @@ msgstr "Червоний канал"
 
 #: src/algos/extraction.c:912
 msgid "Extract Ha and OIII"
-msgstr ""
+msgstr "Витягти Ha і OIII"
 
 #: src/algos/extraction.c:930 src/algos/extraction.c:1006
 msgid "Split CFA does not work on non-Bayer filter camera images!\n"
 msgstr ""
+"Розділення CFA не працює на зображеннях, отриманих камерами без фільтра "
+"Байєра!\n"
 
 #. Update history
 #: src/algos/extraction.c:994 src/algos/extraction.c:1070
@@ -12450,56 +13034,57 @@ msgid ""
 "Fix X-Trans: Unknown camera %s, trying to read information from "
 "preferences.\n"
 msgstr ""
+"Виправлення X-Trans: невідома камера %s, спроба прочитати інформацію з "
+"налаштувань.\n"
 
 #: src/algos/fix_xtrans_af.c:192
 msgid "Sample box cannot be bigger than the image.\n"
-msgstr ""
+msgstr "Рамка зразка не може бути більшою за зображення.\n"
 
 #: src/algos/fix_xtrans_af.c:196
 msgid "AF box cannot be bigger than the image.\n"
-msgstr ""
+msgstr "Розмір зони АФ не може бути більшим за зображення.\n"
 
 #: src/algos/fix_xtrans_af.c:209
 msgid "No information available in preferences.\n"
-msgstr ""
+msgstr "У налаштуваннях немає інформації.\n"
 
 #: src/algos/fix_xtrans_af.c:260
-#, fuzzy
 msgid "This CFA pattern cannot be handled by fix_xtrans_ac.\n"
-msgstr "Цей тип баєрівської матриці поки що не підтримується.\n"
+msgstr "Цей шаблон CFA не можна обробити fix_xtrans_ac.\n"
 
 #: src/algos/fix_xtrans_af.c:342
 #, c-format
 msgid "Failed to sample enough pixels for AF type %d.\n"
-msgstr ""
+msgstr "Не вдалося отримати достатньо пікселів для типу АФ %d.\n"
 
 #: src/algos/geometry.c:270
-#, fuzzy, c-format
+#, c-format
 msgid "Binning x%d: processing...\n"
-msgstr "Стекінг: обробка...\n"
+msgstr "Біннінг ×%d: виконується…\n"
 
 #: src/algos/geometry.c:290
 #, c-format
 msgid "New image size: %dx%d pixels.\n"
-msgstr ""
+msgstr "Розмір нового зображення: %d×%d пікселів.\n"
 
 #: src/algos/geometry.c:298 src/algos/geometry.c:393
 msgid "Nearest-Neighbor"
-msgstr ""
+msgstr "Найближчий сусід"
 
 #: src/algos/geometry.c:307 src/algos/geometry.c:406
 msgid "Lanczos4"
-msgstr ""
+msgstr "Lanczos4"
 
 #: src/algos/geometry.c:320
 #, c-format
 msgid "Resample (%s interpolation): processing...\n"
-msgstr ""
+msgstr "Масштабування (інтерполяція %s): виконується...\n"
 
 #: src/algos/geometry.c:360 src/algos/geometry.c:411
 #, c-format
 msgid "Rotation (%s interpolation, angle=%g): processing...\n"
-msgstr ""
+msgstr "Обертання (інтерполяція \"%s\", кут=%g): виконується…\n"
 
 #: src/algos/geometry.c:361 src/algos/geometry.c:390
 msgid "No"
@@ -12507,17 +13092,17 @@ msgstr "Ні"
 
 #: src/algos/geometry.c:446 src/algos/geometry.c:480
 msgid "Horizontal mirror: processing...\n"
-msgstr ""
+msgstr "Відображення по горизонталі: виконується…\n"
 
 #: src/algos/geometry.c:539
 msgid "Vertical mirror: processing...\n"
-msgstr ""
+msgstr "Відображення по вертикалі: виконується...\n"
 
 #: src/algos/geometry.c:675 src/core/command.c:2151
 #: src/gui/menu_gray_geometry.c:350 src/gui/menu_gray_geometry.c:365
 #, c-format
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
-msgstr ""
+msgstr "Кадрування (x=%d, y=%d, ш=%d, в=%d)"
 
 #: src/algos/geometry.c:727 src/registration/applyreg.c:756
 #: src/registration/global.c:590 src/stacking/blending.c:116
@@ -12528,7 +13113,6 @@ msgid ""
 msgstr ""
 
 #: src/algos/geometry.c:784
-#, fuzzy
 msgid "Crop Sequence"
 msgstr "Обрізка кадрів з послідовності"
 
@@ -12542,9 +13126,9 @@ msgid "Noise standard deviation: calculating...\n"
 msgstr "Стандартне відхилення шуму: обчислення...\n"
 
 #: src/algos/noise.c:73 src/algos/noise.c:77
-#, fuzzy, c-format
+#, c-format
 msgid "Background noise value (channel: #%d): %0.3f (%.3e)\n"
-msgstr "Рівень фонового шуму (канал: #%d): %0.3lf (%.3e)\n"
+msgstr "Рівень фонового шуму (канал: #%d): %0.3f (%.3e)\n"
 
 #. Translator note: radii is plural for radius
 #: src/algos/photometry.c:118
@@ -12553,74 +13137,72 @@ msgid ""
 "Inner and outer radii are too small (%d required for inner). Please update "
 "values in preferences or with setphot.\n"
 msgstr ""
+"Внутрішній та зовнішній радіуси занадто малі (для внутрішнього потрібно %d). "
+"Оновіть значення в налаштуваннях або натисніть setphot.\n"
 
 #: src/algos/photometry.c:140
 msgid "An error occurred in your selection. Please make another selection.\n"
-msgstr ""
+msgstr "У виділенні виявлено помилку. Будь ласка, зробіть інше виділення.\n"
 
 #: src/algos/photometry.c:189
 msgid ""
 "Warning: There aren't enough pixels in the sky annulus. You need to make a "
 "larger selection.\n"
 msgstr ""
+"Попередження: недостатньо пікселів у кільцевій зоні неба. Збільшіть розмір "
+"виділення.\n"
 
 #: src/algos/photometry.c:246
-#, fuzzy
 msgid "no error"
-msgstr "із помилками"
+msgstr "без помилок"
 
 #: src/algos/photometry.c:248
 msgid "memory allocation"
-msgstr ""
+msgstr "виділення пам'яті"
 
 #: src/algos/photometry.c:250
-#, fuzzy
 msgid "unsupported image type"
-msgstr "Типи файлів, що підтримуються:"
+msgstr "непідтримуваний тип зображення"
 
 #: src/algos/photometry.c:252
-#, fuzzy
 msgid "PSF fit failed"
-msgstr "Медіанний фільтр: невдало"
+msgstr "Не вдалося підігнати PSF"
 
 #: src/algos/photometry.c:254
 msgid "not in area"
-msgstr ""
+msgstr "поза областю"
 
 #: src/algos/photometry.c:256
-#, fuzzy
 msgid "inner radius too small"
-msgstr "Внутрішній радіус: "
+msgstr "внутрішній радіус занадто малий"
 
 #: src/algos/photometry.c:258
 msgid "aperture too small"
-msgstr ""
+msgstr "апертура надто мала"
 
 #: src/algos/photometry.c:260
-#, fuzzy
 msgid "not enough background"
-msgstr "Показати фон"
+msgstr "недостатньо фону"
 
 #: src/algos/photometry.c:262
-#, fuzzy
 msgid "statistics failed"
-msgstr "Статистика"
+msgstr "не вдалося вирахувати статистику"
 
 #: src/algos/photometry.c:264
 msgid "invalid measurement error"
-msgstr ""
+msgstr "недійсна похибка вимірювання"
 
 #: src/algos/photometry.c:266
 msgid "pixel out of range"
-msgstr ""
+msgstr "піксель поза діапазоном"
 
 #: src/algos/photometry.c:268
 msgid "area too small"
-msgstr ""
+msgstr "область занадто мала"
 
 #: src/algos/photometry.c:270
 msgid "image is invalid"
-msgstr ""
+msgstr "зображення недійсне"
 
 #: src/algos/photometry.c:272
 msgid "flux ratio failed"
@@ -12628,7 +13210,7 @@ msgstr ""
 
 #: src/algos/photometry.c:274
 msgid "unknown error"
-msgstr ""
+msgstr "невідома помилка"
 
 #: src/algos/photometry.c:345 src/io/aavso_extended.c:112
 #: src/io/siril_plot.c:872
@@ -12640,21 +13222,23 @@ msgstr "всі зображення з послідовності"
 #: src/io/siril_plot.c:723 src/io/siril_plot.c:752 src/io/siril_plot.c:884
 #, c-format
 msgid "%s has been saved.\n"
-msgstr ""
+msgstr "%s збережено.\n"
 
 #: src/algos/photometry.c:378 src/io/aavso_extended.c:187
 msgid "No photometry data found, error\n"
-msgstr ""
+msgstr "Дані фотометрії не знайдено, помилка\n"
 
 #: src/algos/photometry.c:398
 msgid "There are not enough valid stars to make a photometric analysis.\n"
-msgstr ""
+msgstr "Недостатньо надійних зірок для виконання фотометричного аналізу.\n"
 
 #: src/algos/photometry.c:413
 msgid ""
 "The reference stars are not good enough, probably out of the configured "
 "valid pixel range, cannot calibrate the light curve\n"
 msgstr ""
+"Опорні зірки недостатньо хороші, можливо за межами заданого допустимого "
+"діапазону пікселів. Не вдалося відкалібрувати криву блиску\n"
 
 #: src/algos/photometry.c:418
 msgid ""
@@ -12662,11 +13246,14 @@ msgid ""
 "light curve. Try to add more reference stars or check the configured valid "
 "pixel range\n"
 msgstr ""
+"Підтверджено лише одну опорну зірку, що не дасть точної кривої блиску. "
+"Спробуйте додати більше опорних зірок або перевірте допустимий діапазон "
+"пікселів\n"
 
 #: src/algos/photometry.c:419
 #, c-format
 msgid "Using %d stars to calibrate the light curve\n"
-msgstr ""
+msgstr "Використання %d зірок для калібрування кривої блиску\n"
 
 #: src/algos/photometry.c:503
 msgid ""
@@ -12684,6 +13271,8 @@ msgid ""
 "Calibrated data for %d points of the light curve, %d excluded because of "
 "invalid photometry\n"
 msgstr ""
+"Відкалібровані дані для %d точок кривої блиску, %d виключено через "
+"неправильну фотометрію\n"
 
 #: src/algos/photometry.c:523 src/algos/photometry.c:525
 #, fuzzy
@@ -12921,7 +13510,7 @@ msgstr "Калібрування кольорів"
 
 #: src/algos/photometric_cc.c:931
 msgid "Photometric Color Calibration succeeded.\n"
-msgstr ""
+msgstr "Фотометричне калібрування кольору виконано успішно.\n"
 
 #: src/algos/PSF.c:965
 msgid "Excellent"
@@ -13076,32 +13665,36 @@ msgstr ""
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr ""
+"Siril скомпільований без підтримки роботи з мережею, не вдалося виконати цю "
+"операцію\n"
 
 #: src/algos/search_objects.c:434
 #, c-format
 msgid "Searching %s in CDSESAME...\n"
-msgstr ""
+msgstr "Пошук %s у CDSESAME...\n"
 
 #: src/algos/search_objects.c:442
 #, c-format
 msgid "Searching %s in VIZIER...\n"
-msgstr ""
+msgstr "Пошук %s у VIZIER...\n"
 
 #: src/algos/search_objects.c:451
 #, c-format
 msgid "Searching %s in SIMBAD...\n"
-msgstr ""
+msgstr "Пошук %s у SIMBAD...\n"
 
 #. should have been caught before... just in case
 #: src/algos/search_objects.c:456 src/io/remote_catalogues.c:251
 msgid ""
 "This command only works on images that have observation date information\n"
 msgstr ""
+"Ця команда працює лише для зображень, які містять інформацію про дату "
+"спостереження\n"
 
 #: src/algos/search_objects.c:466
 #, c-format
 msgid "Searching for solar system object %s on observation date %s\n"
-msgstr ""
+msgstr "Пошук об’єкта сонячної системи %s на дату спостереження %s\n"
 
 #: src/algos/search_objects.c:469
 msgid ""
@@ -15773,6 +16366,8 @@ msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
 msgstr ""
+"Не вдалося виконати астрономічне рішення, оскільки не було передано "
+"координати цілі, а заголовок зображення не містить координат\n"
 
 #: src/core/command.c:10263
 #, c-format
@@ -15802,6 +16397,8 @@ msgstr ""
 #: src/core/command.c:10297
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
 msgstr ""
+"Розмір пікселів не знайдено на зображенні чи в налаштуваннях, неможливо "
+"продовжити\n"
 
 #: src/core/command.c:10303
 #, c-format
@@ -15826,6 +16423,8 @@ msgstr ""
 #: src/core/command.c:10322
 msgid "Focal length not found in image or in settings, cannot proceed\n"
 msgstr ""
+"Фокусну відстань не знайдено на зображенні чи в налаштуваннях, неможливо "
+"продовжити\n"
 
 #: src/core/command.c:10328
 #, c-format
@@ -19585,7 +20184,7 @@ msgstr ""
 #: src/core/processing.c:672
 #, c-format
 msgid "Image %d not found for writing\n"
-msgstr ""
+msgstr "Зображення %d для запису не знайдено\n"
 
 #: src/core/processing.c:1022
 msgid "Process aborted by user\n"
@@ -21799,7 +22398,7 @@ msgstr ""
 
 #: src/gui/callbacks.c:893
 msgid "Luminance"
-msgstr ""
+msgstr "Яскравість"
 
 #: src/gui/callbacks.c:925
 #, c-format
@@ -21847,7 +22446,7 @@ msgstr ""
 
 #: src/gui/callbacks.c:1434 src/io/siril_catalogues.c:324
 msgid "unknown"
-msgstr ""
+msgstr "невідомий"
 
 #: src/gui/callbacks.c:1474
 #, c-format
@@ -26739,11 +27338,11 @@ msgstr ""
 
 #: src/io/siril_catalogues.c:262
 msgid "Tycho-2"
-msgstr ""
+msgstr "Tycho-2"
 
 #: src/io/siril_catalogues.c:264
 msgid "NOMAD"
-msgstr ""
+msgstr "NOMAD"
 
 #: src/io/siril_catalogues.c:266
 msgid "Gaia DR3 (via Vizier)"
@@ -26755,12 +27354,11 @@ msgstr ""
 
 #: src/io/siril_catalogues.c:270
 msgid "PPMXL"
-msgstr ""
+msgstr "PPMXL"
 
 #: src/io/siril_catalogues.c:272
-#, fuzzy
 msgid "bright stars"
-msgstr "Яскравість"
+msgstr "яскраві зірки"
 
 #: src/io/siril_catalogues.c:276
 #, fuzzy
