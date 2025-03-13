@@ -194,6 +194,8 @@ class SirilInterface:
         else:
             self.command_lock = threading.Lock()
 
+        self.default_noexcept = False #: By default, ``cmd()`` will raise RuntimeError on failure
+
         self.debug = bool(os.getenv('SIRIL_PYTHON_DEBUG') is not None)
 
     def connect(self) -> Optional[bool]:
@@ -906,7 +908,7 @@ class SirilInterface:
 
         return self.update_progress("", 0.0)
 
-    def cmd(self, *args: str):
+    def cmd(self, *args: str, noexcept: bool = None) -> bool:
         """
         Send a command to Siril to be executed. The range of available commands can
         be found by checking the online documentation. The command and its arguments
@@ -914,15 +916,29 @@ class SirilInterface:
 
         Args:
             *args: Variable number of string arguments to be combined into a command
+            noexcept: If True, exceptions will not be raised even on failure. This
+                      is intended for users who wish to implement a custom handler
+                      based on checking the return value. It defaults to False (i.e.
+                      exceptions will be raised on a command failure and should be
+                      handled in an except block), but can be overridden by passing
+                      the argument noexcept=True after *args or by calling the method
+                      ``cmd_set_noexcept_default()`` which sets the default for all
+                      calls to cmd() made by the current SirilInterface class.
+
+        Returns:
+            True on success, else False
 
         Raises:
-            RuntimeError: If the command failed.
+            SirilError: If the command failed and noexcept is False, or if there
+                          was an error in preparing the command.
 
         Example:
             .. code-block:: python
 
                 siril.cmd("ght", "-D=0.5", "-b=2.0")
         """
+        if noexcept is None:
+            noexcept = self.default_noexcept
 
         try:
             # Join arguments with spaces between them
@@ -931,11 +947,33 @@ class SirilInterface:
             # Convert to bytes for transmission
             command_bytes = command_string.encode('utf-8')
 
-            return self._execute_command(_Command.SEND_COMMAND, command_bytes, timeout = None)
+            retval = self._execute_command(_Command.SEND_COMMAND, command_bytes, timeout = None)
+
+            if retval is False:
+                if noexcept is False:
+                    print(f"Error sending command {args[0]}", file=sys.stderr)
+                    raise SirilError(_("Command \'{}\' returned an error value").format(args[0]))
+                return False
+            return True
 
         except Exception as e:
-            print(f"Error sending command: {e}", file=sys.stderr)
-            raise SirilException(_("Error executing command {}: {}").format(args[0], e)) from e
+            print(f"Error preparing command: {e}", file=sys.stderr)
+            raise SirilError(_("Error executing command {}: {}").format(args[0], e)) from e
+
+    def cmd_set_noexcept_default(self, state: bool):
+        """
+        Sets the default exception handling behaviour for ``SirilInterface.cmd()`` for
+        this SirilInterface class. This is a convenience method if you wish to handle
+        command errors yourself by checking the return value, to save passing the
+        noexcept=True argument to ``cmd()`` every time.
+
+        Args:
+            state: If True, ``cmd()`` will default to not raising exceptions in the
+                   event of a command failure (in this case it will return False on
+                   failure). If False, ``cmd()`` will raise a RuntimeError on command
+                   failure. The default is False.
+        """
+        self.default_noexcept = state
 
     def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
         """
