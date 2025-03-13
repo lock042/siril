@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2024-12-24 17:25+0000\n"
-"Last-Translator: Fabio Gervasi <fab.gervasi@gmail.com>\n"
+"PO-Revision-Date: 2025-03-13 15:45+0000\n"
+"Last-Translator: Roberto Rodoero <roberto.rodoero@gmail.com>\n"
 "Language-Team: Italian <https://weblate.siril.org/projects/siril/software/"
 "siril/it/>\n"
 "Language: it_IT\n"
@@ -112,7 +112,7 @@ msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:113
 msgid "Filter: "
-msgstr ""
+msgstr "Filtro: "
 
 #: src/gui/uifiles/aavso_dialog.ui:124
 msgid "The filter used for the observation."
@@ -120,11 +120,11 @@ msgstr "Il filtro utilizzato per l'osservazione."
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 msgid "Cname: "
-msgstr ""
+msgstr "Cname: "
 
 #: src/gui/uifiles/aavso_dialog.ui:183
 msgid "Kname: "
-msgstr ""
+msgstr "Kname: "
 
 #: src/gui/uifiles/aavso_dialog.ui:194
 msgid ""
@@ -132,17 +132,21 @@ msgid ""
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
 "characters."
 msgstr ""
+"Nome della stella di comparazione secondo il AUID (preferito) o il suo nome "
+"sulla mappa. se non presente, usare \"na\". Limite: 20 caratteri."
 
 #: src/gui/uifiles/aavso_dialog.ui:211
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart "
 "label for the check star. If not present, use \"na\". Limit: 20 characters."
 msgstr ""
+"Nome della stella di riferimento o la sua nomenclatura secondo AUID "
+"(preferito) o il nome sulla mappa, se non presente, usare \"na\". limite: 20 "
+"caratteri."
 
 #: src/gui/uifiles/aavso_dialog.ui:229
-#, fuzzy
 msgid "Starid: "
-msgstr "Stella #1:"
+msgstr "Identificativo Stella: "
 
 #: src/gui/uifiles/aavso_dialog.ui:240
 msgid ""
@@ -150,6 +154,9 @@ msgid ""
 "the AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 "
 "characters."
 msgstr ""
+"Identificativo della stella. Può essere la designazione AAVSO, il nome "
+"AAVS0, o l'identificativo unico AAVSO, ma SOLO uno di questi. Limite: 30 "
+"caratteri"
 
 #: src/gui/uifiles/aavso_dialog.ui:258
 msgid ""
@@ -157,6 +164,9 @@ msgid ""
 "Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a "
 "CMOS camera please report it as CCD."
 msgstr ""
+"Tipo di osservazione nel file di dati. Può essere CCD, DSLR, PEP (per "
+"Fotometria Fotoelettrica). Se non specificato, viene assunto che sia CCD. Se "
+"si usa un sensore CMOS selezionare CCD."
 
 #: src/gui/uifiles/aavso_dialog.ui:275
 msgid "Comparison star: "
@@ -207,9 +217,8 @@ msgid "Check star: "
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:339
-#, fuzzy
 msgid "The number of the check star."
-msgstr "Inseririre il numero dell'immagine da raggiungere."
+msgstr "Il numero della stella di controllo."
 
 #: src/gui/uifiles/aavso_dialog.ui:351
 msgid ""
@@ -225,11 +234,11 @@ msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:367
 msgid "Chart: "
-msgstr ""
+msgstr "Mappa: "
 
 #: src/gui/uifiles/aavso_dialog.ui:379
 msgid "Notes: "
-msgstr ""
+msgstr "Note: "
 
 #: src/gui/uifiles/aavso_dialog.ui:390
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
@@ -291,6 +300,19 @@ msgid ""
 "- for solar system objects: solsys (closest IAU observatory code can be "
 "passed in the dedicated text field."
 msgstr ""
+"Questi sono i cataloghi usati per il plate solving dell'immagine caricata:\n"
+"\n"
+"-Automatico: se presente usa il catalogo locale, altrimenti passa "
+"automaticamente a Nomad.\n"
+"\n"
+"Si possono selezionare anche altri cataloghi online:\n"
+"\n"
+"- per le stelle: tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, simbad, "
+"aavso_chart\n"
+"- per esopianeti: exo\n"
+"- per cielo profondo: pgc\n"
+"- per oggetti del sitema solare: solsys (il codice dell'osservatorio IAU più "
+"vicino può essere inserito nella casella di testo dedicata)."
 
 #: src/gui/uifiles/annotate_dialog.ui:133
 #, fuzzy
@@ -304,56 +326,55 @@ msgstr "Tycho-2"
 
 #: src/gui/uifiles/annotate_dialog.ui:135
 msgid "nomad"
-msgstr ""
+msgstr "Nomad"
 
 #: src/gui/uifiles/annotate_dialog.ui:136
 msgid "gaia"
-msgstr ""
+msgstr "Gaia"
 
 #: src/gui/uifiles/annotate_dialog.ui:137
 msgid "ppmxl"
-msgstr ""
+msgstr "ppmxl"
 
 #: src/gui/uifiles/annotate_dialog.ui:138
 msgid "bsc"
-msgstr ""
+msgstr "bsc"
 
 #: src/gui/uifiles/annotate_dialog.ui:139
-#, fuzzy
 msgid "apass"
-msgstr "Bussola"
+msgstr "apass"
 
 #: src/gui/uifiles/annotate_dialog.ui:140
 msgid "gcvs"
-msgstr ""
+msgstr "gcvs"
 
 #: src/gui/uifiles/annotate_dialog.ui:141
 msgid "vsx"
-msgstr ""
+msgstr "vsx"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
 msgid "varisum"
-msgstr ""
+msgstr "varisum"
 
 #: src/gui/uifiles/annotate_dialog.ui:143
 msgid "simbad"
-msgstr ""
+msgstr "Simbad"
 
 #: src/gui/uifiles/annotate_dialog.ui:144
 msgid "exo"
-msgstr ""
+msgstr "exo"
 
 #: src/gui/uifiles/annotate_dialog.ui:145
 msgid "pgc"
-msgstr ""
+msgstr "pgc"
 
 #: src/gui/uifiles/annotate_dialog.ui:146
 msgid "aavso_chart"
-msgstr ""
+msgstr "aavso_chart"
 
 #: src/gui/uifiles/annotate_dialog.ui:147
 msgid "solsys"
-msgstr ""
+msgstr "solsys"
 
 #: src/gui/uifiles/annotate_dialog.ui:159
 #, fuzzy
@@ -402,16 +423,15 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:252
 msgid "Limit magnitude used in the query."
-msgstr ""
+msgstr "Limite di manitudine usato nella ricerca."
 
 #: src/gui/uifiles/annotate_dialog.ui:253
-#, fuzzy
 msgid "13"
-msgstr "1"
+msgstr "13"
 
 #: src/gui/uifiles/annotate_dialog.ui:273
 msgid "Obs. code: "
-msgstr ""
+msgstr "Codice Osservatorio "
 
 #: src/gui/uifiles/annotate_dialog.ui:285
 #: src/gui/uifiles/settings_window.ui:1257
@@ -420,15 +440,18 @@ msgid ""
 "accuracy in solar system cone searches. A full list can be found at https://"
 "minorplanetcenter.net/iau/lists/ObsCodesF.html"
 msgstr ""
+"Immettere il codice dell'osservatorio IAU più vicino che sarà usato come "
+"default per migliorare la precisione nella ricerca conica del sistema "
+"solare. Una lista completa può essere trovata all'indirizzo "
+"https://minorplanetcenter.net/iau/lists/ObsCodesF.html"
 
 #: src/gui/uifiles/annotate_dialog.ui:317
 msgid "Conesearch"
-msgstr ""
+msgstr "Ricerca conica"
 
 #: src/gui/uifiles/annotate_dialog.ui:369
-#, fuzzy
 msgid "File: "
-msgstr "File"
+msgstr "File: "
 
 #: src/gui/uifiles/annotate_dialog.ui:381
 msgid ""
@@ -436,11 +459,14 @@ msgid ""
 "columns. If the passed file also contains a column name, names will be used "
 "as tags in the image and listed in the Console."
 msgstr ""
+"Numerosi punti sono passati usando un file CSV contente almeno le colonne "
+"delle coordinate Ra e Dec. Se il file passato contiene una colonna con il "
+"nome, i nomi verranno usati come etichette nell'immagine e riportati nella "
+"Console."
 
 #: src/gui/uifiles/annotate_dialog.ui:397
-#, fuzzy
 msgid "Click this button to select a csv file."
-msgstr "Clicca su questo pulsante per visualizzare lo sfondo generato."
+msgstr "Clicca su questo pulsante per selezionare il file csv."
 
 #: src/gui/uifiles/annotate_dialog.ui:430
 msgid ""
@@ -448,6 +474,9 @@ msgid ""
 "in the image and listed in the Console, unless toggled off with these "
 "checkbuttons."
 msgstr ""
+" - Se il file contiene una colonna con il nome, i nomi verranno usati come "
+"etichette nell'immagine e mostrati nella console, se non sono deselezionati "
+"con le spunte."
 
 #: src/gui/uifiles/annotate_dialog.ui:446
 msgid ""
@@ -455,11 +484,13 @@ msgid ""
 "in the image and listed in the Console, unless toggled off with theses "
 "checkbuttons."
 msgstr ""
+" - Se il file contiene una colonna con il nome, i nomi verranno usati come "
+"etichette nell'immagine e mostrati nella console, se non sono deselezionati "
+"con le spunte."
 
 #: src/gui/uifiles/annotate_dialog.ui:459
-#, fuzzy
 msgid "Import CSV"
-msgstr "Esporta in CSV"
+msgstr "Importa CSV"
 
 #: src/gui/uifiles/annotate_dialog.ui:474
 #: src/gui/uifiles/astrometry_dialog.ui:299
@@ -479,23 +510,28 @@ msgid ""
 "(degrees, minutes, seconds) for declination, or as decimal degrees (e.g., "
 "184.000785, 14.899070)."
 msgstr ""
+"Questi campi accettano coordinate di ascensione retta e declinazione. Il "
+"loro formato è hms (ore, minuti, secondi) per l'ascensione retta e dms ("
+"gradi, minuti, secondi) per la declinazione, o come gradi decimali (es. "
+"184.000785, 14.899070),"
 
 #: src/gui/uifiles/annotate_dialog.ui:520
-#, fuzzy
 msgid "Display Name:"
-msgstr "Visualizza Immagine"
+msgstr "Mostra Nome:"
 
 #: src/gui/uifiles/annotate_dialog.ui:531
-#, fuzzy
 msgid ""
 "The display name will be used as a tag for the image and listed in the "
 "console."
-msgstr "Mostra il manuale del comando scritto nella console."
+msgstr ""
+"Il nome mostrato sarà utilizzato come etichetta per l'immagine e elencato "
+"nella console."
 
 #: src/gui/uifiles/annotate_dialog.ui:543
-#, fuzzy
 msgid "Click this button to save the entry to the user DSO catalogue."
-msgstr "Clicca su questo pulsante per visualizzare lo sfondo generato."
+msgstr ""
+"Clicca su questo pulsante per salvare il dato nel catalogo DSO "
+"personalizzato."
 
 #: src/gui/uifiles/annotate_dialog.ui:564
 #, fuzzy
@@ -503,14 +539,12 @@ msgid "Get coordinates from selection"
 msgstr "Errore di selezione delle coordinate centrali"
 
 #: src/gui/uifiles/annotate_dialog.ui:585
-#, fuzzy
 msgid "Single Coordinates"
-msgstr "Nessuna coordinata"
+msgstr "Coordinate singole"
 
 #: src/gui/uifiles/annotate_dialog.ui:605
-#, fuzzy
 msgid "Show"
-msgstr "Mostra griglie"
+msgstr "Mostra"
 
 #: src/gui/uifiles/annotate_dialog.ui:625
 msgid ""
@@ -534,9 +568,8 @@ msgstr ""
 "ricerche precedenti."
 
 #: src/gui/uifiles/annotate_dialog.ui:644
-#, fuzzy
 msgid "Name: "
-msgstr "Nome"
+msgstr "Nome: "
 
 #: src/gui/uifiles/annotate_dialog.ui:660
 msgid "Search Object"
@@ -711,14 +744,15 @@ msgstr ""
 "fornire un valore con un errore che non superi il 20%."
 
 #: src/gui/uifiles/astrometry_dialog.ui:390
-#, fuzzy
 msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
 "already multiplied by the camera binning if the \"Real pixel size\" box is "
 "checked in the Tool->Image Information dialog box."
 msgstr ""
 "Dimensione del pixel in micrometri. Si assume che l'immagine abbia pixel "
-"quadrati. Il valore è moltiplicato già dal binning in camera."
+"quadrati. Il valore è moltiplicato già dal binning della fotocamera se si "
+"seleziona \"Real pixel Size\" nella finestra di dialogo Strumenti-"
+">Informazioni Immagine ."
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
 msgid "Focal length (mm):"
