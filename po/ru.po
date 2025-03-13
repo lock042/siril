@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-03-10 21:11+0000\n"
+"PO-Revision-Date: 2025-03-13 15:45+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -4133,39 +4133,34 @@ msgid "Apply the selected operation."
 msgstr "Применить частотное извлечение."
 
 #: src/gui/uifiles/graxpert.ui:159
-#, fuzzy
 msgid "Algorithm"
-msgstr "Алгоритм: "
+msgstr "Алгоритм"
 
 #: src/gui/uifiles/graxpert.ui:170
 msgid "Configure which GraXpert algorithm to use"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:173
-#, fuzzy
 msgid "AI"
-msgstr "A"
+msgstr "ИИ"
 
 #: src/gui/uifiles/graxpert.ui:175
-#, fuzzy
 msgid "Kriging"
-msgstr "Исходная"
+msgstr "Кригинг"
 
 #: src/gui/uifiles/graxpert.ui:176
-#, fuzzy
 msgid "Spline"
-msgstr "В-сплайн"
+msgstr "Сплайн"
 
 #: src/gui/uifiles/graxpert.ui:208
 msgid ""
 "Configure whether GraXpert applies background correction by subtraction or "
 "division"
-msgstr ""
+msgstr "Должен ли GraXpert применять коррекцию фона вычитанием или делением"
 
 #: src/gui/uifiles/graxpert.ui:225
-#, fuzzy
 msgid "Background Tolerance"
-msgstr "Ориентир фона"
+msgstr "Допуск фона"
 
 #: src/gui/uifiles/graxpert.ui:236
 msgid ""
@@ -4173,20 +4168,21 @@ msgid ""
 "values are more tolerant of strong background gradients; lower values are "
 "better at rejecting background samples in areas representing real neblosity."
 msgstr ""
+"Устанавливает допуск фона в диапазоне от -2.0 до +6.0. Бо́льшие значения "
+"более терпимы к сильным градиентам фона. Меньшие значения лучше подходят для "
+"выбраковки образцов фона в областях, содержащих реальную туманность."
 
 #: src/gui/uifiles/graxpert.ui:265
-#, fuzzy
 msgid "# samples per row"
-msgstr "Плотность образцов"
+msgstr "Плотность обр."
 
 #: src/gui/uifiles/graxpert.ui:276
 msgid "Set the number of samples per row in the sampling grid."
-msgstr ""
+msgstr "Устанавливает количество образцов в строке."
 
 #: src/gui/uifiles/graxpert.ui:291
-#, fuzzy
 msgid "Sample size / px"
-msgstr "Размер панели (в пикселях):"
+msgstr "Размер обр. (пикс.)"
 
 #: src/gui/uifiles/graxpert.ui:302
 msgid ""
@@ -4194,37 +4190,38 @@ msgid ""
 "give better statistical properties but have a bigger risk of including non-"
 "background pixels such as stars."
 msgstr ""
+"Устанавливает размер каждого образца фона. Образцы бо́льшего размера могут "
+"иметь более хорошие статистические свойства, но, при этом, имеют бо́льший "
+"риск включения пикселей, не относящихся к фону, например, звёзд."
 
 #: src/gui/uifiles/graxpert.ui:322
-#, fuzzy
 msgid "Keep background"
-msgstr "фон"
+msgstr "Сохр. фон"
 
 #: src/gui/uifiles/graxpert.ui:326
 msgid ""
 "The generated background model will be saved with the affix \"_background\""
-msgstr ""
+msgstr "Созданная модель фона будет сохранена с аффиксом «_background»"
 
 #: src/gui/uifiles/graxpert.ui:342
-#, fuzzy
 msgid "Clear samples"
-msgstr "Очистить графики"
+msgstr "Удалить образцы"
 
 #: src/gui/uifiles/graxpert.ui:346
-#, fuzzy
 msgid "Clear background samples"
-msgstr "Ошибка создания образцов фона\n"
+msgstr "Удаляет образцы фона"
 
 #: src/gui/uifiles/graxpert.ui:357
-#, fuzzy
 msgid "Generate samples"
-msgstr "Создать маску звёзд"
+msgstr "Создать образцы"
 
 #: src/gui/uifiles/graxpert.ui:361
 msgid ""
 "Background samples must be generated in order to use the GraXpert RBF, "
 "Kriging or Spline algorithms. It is not necessary for the AI algorithm."
 msgstr ""
+"Для использования алгоритмов RBF, кригинг и сплайн необходимо создать "
+"образцы фона. Для алгоритма ИИ это необязательно."
 
 #: src/gui/uifiles/graxpert.ui:391
 msgid "BG AI model version:"
@@ -4238,9 +4235,8 @@ msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:406 src/gui/uifiles/graxpert.ui:750
 #: src/gui/uifiles/graxpert.ui:791 src/gui/uifiles/graxpert.ui:909
-#, fuzzy
 msgid "latest"
-msgstr "Очистить последнюю"
+msgstr "последняя"
 
 #: src/gui/uifiles/graxpert.ui:438
 msgid ""
@@ -4248,9 +4244,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:474
-#, fuzzy
 msgid "RBF Kernel"
-msgstr "Лучшее ядро"
+msgstr "Ядро RBF"
 
 #: src/gui/uifiles/graxpert.ui:486
 #, fuzzy
@@ -13165,7 +13160,7 @@ msgstr "Недостаточно образцов."
 
 #: src/algos/background_extraction.c:884
 msgid "Insufficient samples"
-msgstr ""
+msgstr "Неудовлетворительные образцы"
 
 #: src/algos/background_extraction.c:898 src/algos/PSF.c:1029
 msgid "monochrome"
@@ -13245,9 +13240,8 @@ msgstr ""
 "степенью полинома > 1. Рекомендуется только линейное удаление фона.\n"
 
 #: src/algos/background_extraction.c:1182
-#, fuzzy
 msgid "Error reading metadata.\n"
-msgstr "Ошибка чтения опорных метаданных.\n"
+msgstr "Ошибка чтения метаданных.\n"
 
 #: src/algos/background_extraction.c:1341 src/algos/demosaicing.c:1298
 #: src/algos/extraction.c:1158 src/algos/star_finder.c:1143
@@ -24244,12 +24238,12 @@ msgstr "%d мин %02d с"
 #: src/core/siril_log.c:103
 #, c-format
 msgid "%s ms"
-msgstr ""
+msgstr "%s мс"
 
 #: src/core/siril_log.c:107
 #, c-format
 msgid "%s s"
-msgstr ""
+msgstr "%s с"
 
 #: src/core/siril_log.c:118
 msgid "Execution time"
@@ -24648,9 +24642,9 @@ msgstr ""
 "процесс GraXpert: %s\n"
 
 #: src/filters/graxpert.c:439
-#, fuzzy, c-format
+#, c-format
 msgid "Thread creation failed: %s\n"
-msgstr "Не удалось выполнить команду: %s.\n"
+msgstr "Не удалось создать поток: %s.\n"
 
 #: src/filters/graxpert.c:528
 #, c-format
@@ -28499,7 +28493,7 @@ msgstr "Редактор сценариев..."
 
 #: src/gui/script_menu.c:259
 msgid "Enable Python debug mode"
-msgstr ""
+msgstr "Режим отладки Python"
 
 #: src/gui/script_menu.c:293
 #, c-format
@@ -30060,29 +30054,26 @@ msgid "FFMPEG does not seem to support mp4 format, aborting.\n"
 msgstr ""
 
 #: src/io/mp4_output.c:550
-#, fuzzy
 msgid "Error: format does not support video codec.\n"
-msgstr "Формат не поддерживается."
+msgstr "Ошибка: Формат не поддерживает видеокодек.\n"
 
 #: src/io/mp4_output.c:556
-#, fuzzy
 msgid "Could not add the video stream in the output film, aborting\n"
-msgstr "Не удалось сохранить результат укладки %s, прерывание\n"
+msgstr "Не удалось добавить видеопоток к итоговому ролику, прерывание\n"
 
 #: src/io/mp4_output.c:562
-#, fuzzy
 msgid "Selected codec is not available\n"
-msgstr "Ошибка: команда %s недоступна\n"
+msgstr "Выбранный кодек недоступен\n"
 
 #: src/io/mp4_output.c:576
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open '%s': %s\n"
-msgstr "Не удалось открыть файл %s: %s\n"
+msgstr "Не удалось открыть '%s': %s\n"
 
 #: src/io/mp4_output.c:584
-#, fuzzy, c-format
+#, c-format
 msgid "Error occurred when opening output file: %s\n"
-msgstr "Ошибка при открытии файла %s\n"
+msgstr "Ошибка при открытии итогового файла: %s\n"
 
 #: src/io/path_parse.c:36
 msgid "Warning code:"
@@ -31016,9 +31007,9 @@ msgid "List saved to %s\n"
 msgstr "Список сохранён в %s\n"
 
 #: src/io/siril_catalogues.c:1475
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to save list to %s\n"
-msgstr "Не удалось сохранить маску изображения %d\n"
+msgstr "Не удалось сохранить список в %s\n"
 
 #: src/io/siril_git.c:130
 msgid "libgit2: unable to parse some refish\n"
@@ -31253,10 +31244,10 @@ msgid "Invalid image size: exceeds memory limit"
 msgstr "Неверный размер изображения: превышено ограничение памяти"
 
 #: src/io/siril_pythonmodule.c:527
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"
 msgstr ""
-"Неверные размеры или формат изображения: д = %u, ш = %u, c = %u, размер = %"
+"Неверные размеры или формат изображения: д = %u, ш = %u, c = %u, размер = %s"
 
 #: src/io/siril_pythonmodule.c:537
 msgid "Error: image dimensions exceed available memory"
@@ -31497,9 +31488,8 @@ msgid "Siril command error"
 msgstr "Ошибка команды Siril"
 
 #: src/io/siril_pythoncommands.c:985
-#, fuzzy
 msgid "Unknown dialog type"
-msgstr "Неизвестный тип конфигурации"
+msgstr "Неизвестный тип диалога"
 
 #: src/io/siril_pythoncommands.c:1024
 msgid "Undo not supported in headless mode"
@@ -31698,9 +31688,8 @@ msgid "Index is out of range"
 msgstr "Индекс за приделами диапазона"
 
 #: src/io/siril_pythoncommands.c:2155
-#, fuzzy
 msgid "No distodata available"
-msgstr "Данные регистрации недоступны"
+msgstr "Данные о дисторсии недоступны"
 
 #: src/io/siril_pythoncommands.c:2180
 msgid "Unknown command"
@@ -31733,9 +31722,8 @@ msgid "Warning: Duplicate x value detected in JSON file %s: %.1f\n"
 msgstr "Предупреждение: Копия значения х обнаружена в файле JSON %s: %.1f\n"
 
 #: src/io/spcc_json.c:496 src/io/spcc_json.c:499
-#, fuzzy
 msgid "Error: index % "
-msgstr "Код ошибки:"
+msgstr "Ошибка: индекс % "
 
 #: src/io/spcc_json.c:507
 msgid "Error: index must be 0 for single object JSON.\n"
@@ -32594,9 +32582,8 @@ msgstr ""
 
 #. Estimate button was pressed, we just warn
 #: src/registration/applyreg.c:1038 src/registration/applyreg.c:1039
-#, fuzzy
 msgid "Output too large"
-msgstr "Префикс вывода:"
+msgstr "Вывод слишком велик"
 
 #: src/registration/applyreg.c:1052
 msgid ""

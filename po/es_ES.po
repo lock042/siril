@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-02-27 00:22+0000\n"
+"PO-Revision-Date: 2025-03-13 15:45+0000\n"
 "Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -892,6 +892,7 @@ msgstr "Servidor:"
 
 #: src/gui/uifiles/astrometry_dialog.ui:622
 #: src/gui/uifiles/astrometry_dialog.ui:645
+#, fuzzy
 msgid ""
 "Select the order of the solution:\n"
 "Linear assumes no distortion is present in the image\n"
@@ -900,6 +901,12 @@ msgid ""
 "When selecting an order with distortions, additional terms are added to the "
 "solution, using SIP convention"
 msgstr ""
+"Selecciona el orden de la solucion:\n"
+"\"Linear\" asume que no hay distorsión en la imagen actual\n"
+"Cuadratico, Cubico, Cuartico y Quintico incluirán distorsiones polinominales "
+"de segundo-, tercero-, cuarto- o quinto orden.\n"
+"Al seleccionar un orden con distorsiones, se agregarán terminos adicionales "
+"a la solución utilizando la convención SIP"
 
 #: src/gui/uifiles/astrometry_dialog.ui:651
 msgid "Solution order: "
@@ -1168,6 +1175,12 @@ msgid ""
 "box to fetch a new catalogue for each image. The information contained in "
 "the headers will be used to recompute the new position/resolution."
 msgstr ""
+"Al utilizar los catálogos online con el solucionador de Siril, la opción "
+"predeterminada es obtener un catálogo para toda la secuencia. Si tus "
+"imagenes no son del mismo campo o no tienen la misma resolución, es probable "
+"que falle. En este caso, selecciona esta casilla para obtener un nuevo "
+"catálogo para cada imágen. La información contenida en los encabezados será "
+"utilizada para recalcular la nueva posición / resolución."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1175
 msgid "Use coordinates from headers"
@@ -1257,6 +1270,10 @@ msgid ""
 "points in the background, while a smoothing parameter that is too large may "
 "not be suitable for large deviations in gradient."
 msgstr ""
+"Ajusta el parámetro de suavizado para el método de interpolación. Un "
+"parámetro de suavizado muy pequeño puede resultar en sobre exposición y sub "
+"exposición entre puntos en el fondo, mientras que un parámetro de suavizado "
+"muy alto puede no ser óptimo para grandes desviaciones en el gradiente."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:219
 msgid "page 1"
@@ -1286,6 +1303,9 @@ msgid ""
 "background gradient.\n"
 "This should be enabled for non-stretched images."
 msgstr ""
+"Evita generar bandas agregando algo de ruido aleatorio en el gradiente de "
+"fondo dinámico bajo.\n"
+"Esto debería estar habilitado para imágenes no estiradas."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:360
 #, fuzzy
@@ -1313,6 +1333,9 @@ msgid ""
 "gradients if tolerance 6 is insufficient: you will need to remove samples "
 "from astronomical objects manually."
 msgstr ""
+"Anula la tolerancia y mantiene todas las muestras. Podría ser utilizado en "
+"casos de gradientes extremos si la tolerancia 6 es insuficiente: necesitarás "
+"remover todas las muestra del objeto astronómico manualmente."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:414
 msgid ""
@@ -1351,6 +1374,12 @@ msgid ""
 "placement: samples will automatically be created for each frame in the "
 "sequence."
 msgstr ""
+"Da click aquí para generar las muestra definidas automáticamente:\n"
+"\n"
+"Al procesar una secuencia, las muestras que se observan, son solo a modo de "
+"guía para ver el efecto al configurar las \"muestras_por_línea\" y la "
+"tolerancia de cuadrícula en \"Colocación de muestras\": Las muestras serán "
+"creadas automáticamente para cada cuadro en la secuencia."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:476
 msgid "Click here to clear all the samples."
@@ -1490,7 +1519,7 @@ msgstr "Deconvolución"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:373
 msgid "Estimates a PSF from the image"
-msgstr ""
+msgstr "Estimar el PSF de la imágen"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:386
 #, fuzzy
@@ -1503,6 +1532,9 @@ msgid ""
 "no stars have been detected, an attempt will be made to detect stars in the "
 "image within a suitable range of peak brightness."
 msgstr ""
+"Modela un PSF basado en los parámetros PSF promedio de las estrellas "
+"identificadas. Si no se han detectado estrellas, se intentará detectar "
+"estrellas en la imágen dentro de un rango adecuado de brillo máximo."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:403
 #, fuzzy
@@ -1511,35 +1543,39 @@ msgstr "Manual"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:407
 msgid "Use a manually defined PSF based on the parameters chosen."
-msgstr ""
+msgstr "Utiliza un PSF definido manualmente basado en los parámetros elegidos."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:422
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
 msgstr ""
+"Selecciona el método de estimación PSF ciego a utilizar. ℓ0 descendiente es "
+"la opción predeterminada y generalmente la mejor opción."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:425
 msgid "Spectral Irregularity"
-msgstr ""
+msgstr "Irregularidad Espectral"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:426
 msgid "ℓ0 Descent"
-msgstr ""
+msgstr "ℓ0 Descendiente"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:437
 msgid "Previous PSF"
-msgstr ""
+msgstr "PSF Anterior"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:441
 msgid "Reuse the previously calculated PSF."
-msgstr ""
+msgstr "Reutiliza el PSF calculado previamente."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:456
 msgid ""
 "Select a PSF to load from file. The PSF must be square and should ideally "
 "have odd length / width."
 msgstr ""
+"Selecciona archivo para cargar PSF. El PSF debe ser cuadrado e idealmente "
+"debe tener longitud y ancho impares."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:471
 #, fuzzy
@@ -1554,6 +1590,7 @@ msgstr "Generar"
 #: src/gui/uifiles/bdeconv_dialog.ui:489
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
 msgstr ""
+"Genera y muestra una vista previa del PSF, pero no realiza la deconvolución"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:511
 #, fuzzy
@@ -1570,6 +1607,8 @@ msgid ""
 "Takes a PSF directly from the image fitted to the current dimension. The PSF "
 "size will be the minimum of the selection width and height."
 msgstr ""
+"Toma el PSF directamente de la imagen ajustada a las dimensiones actuales. "
+"El tamaño del PSF será el mínimo del ancho y el alto de la selección."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:549
 #, fuzzy
@@ -1583,13 +1622,15 @@ msgstr "Parámetros del catálogo"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:600
 msgid "PSF size"
-msgstr ""
+msgstr "Tamaño del PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:612
 msgid ""
 "Make sure the size is big enough not to crop off any significant parts of "
 "the PSF."
 msgstr ""
+"Asegura que el tamaño sea lo suficientemente grande para no cortar ninguna "
+"parte significativa del PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:662 src/gui/uifiles/bdeconv_dialog.ui:1630
 #: src/gui/uifiles/cut_dialog.ui:39
@@ -1598,31 +1639,35 @@ msgid "Profile"
 msgstr "Tipos de archivo soportados:"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:673
+#, fuzzy
 msgid ""
 "Gaussian and Moffat profiles are good models for star shapes. Disc profiles "
 "can be used to improve out-of-focus issues. Airy disc models the inherent "
 "diffraction of your telescope."
 msgstr ""
+"Los perfiles Guassian y Moffat son buenos modelos para la forma de las "
+"estrellas. Los perfiles Disc pueden ser usados para problemas de desenfoque. "
+"Los modelos \"airy disc\" modelan la difracción inherente de tu telescopio."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:676 src/gui/uifiles/siril.ui:7185
 #: src/gui/uifiles/stars_list_window.ui:690 src/algos/PSF.c:1045
 #: src/algos/star_finder.c:1436 src/gui/newdeconv.c:533
 msgid "Gaussian"
-msgstr ""
+msgstr "Gaussiano"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:677
 #: src/gui/uifiles/stars_list_window.ui:691 src/algos/PSF.c:1045
 #: src/algos/star_finder.c:1436 src/gui/newdeconv.c:535
 msgid "Moffat"
-msgstr ""
+msgstr "Moffat"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:678
 msgid "Disc"
-msgstr ""
+msgstr "Disco"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:679
 msgid "Airy Disc"
-msgstr ""
+msgstr "Disco Aireado"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:733 src/gui/uifiles/bdeconv_dialog.ui:1654
 #, fuzzy
@@ -1646,6 +1691,9 @@ msgid ""
 "Full width at half maximum. For disc profiles this is just the diameter of "
 "the disc. For elliptical PSFs this is the longer PSF dimension."
 msgstr ""
+"Ancho total a la mitad del máximo. Para perfiles de disco, este es solo el "
+"diámetro del disco. Para PSFs elípticos, este es la dimensión más larga del "
+"PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:787 src/gui/uifiles/bdeconv_dialog.ui:1666
 #, fuzzy
@@ -1761,6 +1809,9 @@ msgid ""
 "This improves ℓ0 PSF estimation for large PSFs. It is not required for small "
 "PSFs and takes longer to compute. Consider using it for PSF sizes above 20."
 msgstr ""
+"Esto mejora la estimación ℓ0 del PSF para PSFs grandes. No es requerido para "
+"PSFs pequeños y toma más tiempo en calcularlo. Considera utilizarlo para "
+"tamaños de PSF superiores a 20."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1113
 msgid "These settings can be left alone in the vast majority of cases. "
@@ -1784,6 +1835,8 @@ msgid ""
 "Number of iterations for PSF estimation. Do not reduce this below 2. There "
 "is negligible benefit in increasing it beyond 3."
 msgstr ""
+"Número de iteraciones para la estimación de PSF. No reduzcas este valor por "
+"debajo de 2. El beneficio de aumentarlo por encima de 3 es insignificante."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1179
 #, fuzzy
@@ -1814,6 +1867,8 @@ msgstr "Factor de escala entre escalas sucesivas de estimación PSF multiescala"
 #: src/gui/uifiles/bdeconv_dialog.ui:1259
 msgid "Amount of blur to use for upsampling during PSF estimation"
 msgstr ""
+"Cantidad de desenfoque utilizado para sobreexponer durante la estimación del "
+"PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1274
 #, fuzzy
@@ -1843,18 +1898,24 @@ msgstr "Tamaño del kernel:"
 #: src/gui/uifiles/bdeconv_dialog.ui:1334
 msgid "Amount of blur to use for downsampling during PSF estimation"
 msgstr ""
+"Cantidad de desenfoque utilizado para subexponer durante la estimación del "
+"PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1349
 msgid ""
 "Sets a minimum pixel value for the PSF. PSF pixels with values less than "
 "this will be set to zero."
 msgstr ""
+"Establece un valor de pixel mínimo para el PSF. Los PSF con valores de pixel "
+"menores a esto se establecerán a cero."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1365
 msgid ""
 "Uses a refinement technique to improve subsequent iterations of the PSF "
 "estimator. This should essentially always be enabled."
 msgstr ""
+"Utiliza una técnica de refinamiento para mejorar las iteraciones posteriores "
+"del estimador de PSF. En esencia, esto debería estar siempre activado."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1378
 msgid "ℓ1 gradient parameter"
@@ -1888,6 +1949,12 @@ msgid ""
 "oversampled) this parameter should be reduced to close to unity in order to "
 "obtain sufficient sharpness in the PSF."
 msgstr ""
+"Este parámetro controla la nitidez del PSF estimado. Si la imagen subyacente "
+"es nítida, este parámetro debe establecerse con un valor alto para evitar "
+"artefactos en el PSF estimado. Por otro lado, si la imagen subyacente "
+"contiene una pequeña cantidad de desenfoque intrínseco (Por ejemplo: Como "
+"resultado de un sobremuestreo) este parámetro debe ser reducido cerca de la "
+"unidad para obtener suficiente nitidez en el PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1499
 #, fuzzy
@@ -1906,6 +1973,11 @@ msgid ""
 "fairly small number of samples will suffice. For noisy images, the value may "
 "require increasing to as much as around 250."
 msgstr ""
+"Este parámetro define el número de muestras por cada bucle externo. "
+"Suficiente muestras deben elegirse para asegurar la convergencia del PSF: "
+"Para imágenes con ruido bajo, una cantidad pequeña de muestras será "
+"suficiente. Para imágenes ruidosas, es posible que sea necesario aumentar el "
+"valor hasta aproximadamente 250."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1536
 msgid ""
@@ -1942,6 +2014,9 @@ msgid ""
 "If checked, a PSF defined from stars will be circularly symmetric. If "
 "unchecked the PSF may be elongated and have a defined rotation angle."
 msgstr ""
+"Si se selecciona, el PSF definido por las estrellas será simétrico "
+"circularmente. Si no esta seleccionado, el PSF podría estar alargado y tener "
+"un ángulo de rotación definido."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1762
 #, fuzzy
@@ -1983,6 +2058,10 @@ msgid ""
 "Choose Richardson-Lucy for deep space images; choose either Split Bregman or "
 "Wiener filtering for lunar and planetary images."
 msgstr ""
+"Una vez que se calcula o se proporciona el PSF, la imágen es finalmente "
+"deconvulsionada utilizando el algoritmo seleccionado.\n"
+"Selecciona Ricahrdson-Lucy para imagenes de espacio profundo, selecciona "
+"Split Bregman o Wiener para imagenes lunares o planetarias."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1912
 msgid "Split Bregman method with TV regularization"
@@ -2007,6 +2086,7 @@ msgstr ""
 #: src/gui/uifiles/bdeconv_dialog.ui:1954
 msgid "Regularization parameter for the final non-blind stage deconvolution"
 msgstr ""
+"Parámetro de regularización para la etapa final de la deconvolución no-ciega"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1969
 msgid ""
@@ -2014,6 +2094,10 @@ msgid ""
 "noise amplification. Deconvolution will stop early if the average pixel "
 "difference ratio between subsequent iterations is less than this value."
 msgstr ""
+"Establece un criterio de detención temprano para el algoritmo Richardson-"
+"Lucy para prevenir amplificación de ruido. La deconvolución se detendrá "
+"antes de tiempo si la diferencia en el radio promedio del pixel, en "
+"iteraciones posteriores es menor a este valor."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1984
 msgid ""
@@ -2024,6 +2108,13 @@ msgid ""
 "more often used in regularizing denoising algorithms but can perform well "
 "when deconvolving a star mask produced by Siril's Starnet++ interface."
 msgstr ""
+"La Regulación de Variación Total, conserva los bordes nítidos de la imágen. "
+"En caso de duda, utiliza Variación Total. Sin embargo, puede tener una "
+"tendencia a producir un \"Efecto escalera\" en grandes áreas uniformes.\n"
+"La norma Frobenius de la Hessiana, utiliza un término de regularización de "
+"segundo órden. Se utiliza más comúnmente regularizando algoritmos de "
+"eliminación de ruido, pero puede funcionar bien al deconvulsionar una "
+"máscara de estrellas producida por la interfaz de Starnet++ en Siril."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1988
 #, fuzzy
@@ -2032,7 +2123,7 @@ msgstr "Saturación del color"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1989
 msgid "Frobenius norm of Hessian"
-msgstr ""
+msgstr "Norma de Frobenius de Hesse"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1990 src/gui/uifiles/savepopup.ui:272
 #: src/gui/uifiles/settings_window.ui:851
@@ -2079,6 +2170,10 @@ msgid ""
 "stretched images Mulitiplicative may give good results and require fewer "
 "iterations."
 msgstr ""
+"En caso de duda, utiliza un Grandiente descendiente. Es más gradual y tiene "
+"un tamaño de paso más controlable que puede prevenir artefactos de anillo "
+"alrededor de las estrellas. Para imágenes estiradas, Multiplicativo puede "
+"dar buenos resultados y necesitar menos iteraciones."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2067 src/gui/uifiles/siril.ui:8136
 msgid "Multiplicative"
@@ -2094,6 +2189,10 @@ msgid ""
 "of each step. Large values will give quicker convergence but smaller values "
 "will offer better control over artefact formation."
 msgstr ""
+"Tamaño de paso para Gradiente Descendiente. Entre más grande el tamaño, "
+"mayores serán los efectos en cada paso. Grandes valores pueden dar una "
+"convergencia más rápida, pero valores más pequeños pueden tener un mejor "
+"control en la formación de artefactos."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2098
 #, fuzzy
@@ -2105,6 +2204,8 @@ msgid ""
 "Deconvolve the currently loaded sequence. If no sequence is loaded, the "
 "current image will be deconvolved."
 msgstr ""
+"Deconvulsiona la secuencia cargada actualmente. Si no hay secuencias "
+"cargadas, la imágen actual será deconvulsionada."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2145
 #, fuzzy
@@ -2114,6 +2215,8 @@ msgstr "Prefijo de salida:"
 #: src/gui/uifiles/bdeconv_dialog.ui:2157
 msgid "Provides a custom prefix to use when deconvolving a sequence."
 msgstr ""
+"Proporciona un prefijo personalizado para usar al deconvulsionar una "
+"secuencia."
 
 #: src/gui/uifiles/binxy_dialog.ui:41
 msgid "Binning"
@@ -2484,6 +2587,10 @@ msgid ""
 "necessary if you aren't happy with the alignment results and wish to re-do "
 "the alignment, for example with a different framing method."
 msgstr ""
+"Vuelve a cargar todas las imágenes de entrada en sus respectivas capas de "
+"composición. Esto es necesario si no estás feliz con los resultados de "
+"alineación y deseas hacerlo nuevamente, por ejemplo con un método de "
+"encuadre diferente."
 
 #: src/gui/uifiles/composition_dialog.ui:80
 #, fuzzy
@@ -2497,6 +2604,10 @@ msgid ""
 "using PixelMath you can still use this tool as a simple means of aligning "
 "them."
 msgstr ""
+"Guarda todas las capas de imágenes con el prefijo <i>comp_</i>. Después de "
+"la alineación, se guardarán las imágenes alineadas y encuadradas, por lo que "
+"si prefieres combinarlas utilizando PixelMath, aún puedes utilizar esta "
+"herramienta como un medio sencillo para alinearlas."
 
 #: src/gui/uifiles/composition_dialog.ui:135
 msgid "Multi-layer image composition"
@@ -2519,6 +2630,9 @@ msgid ""
 "In manual alignment mode, sets the x-axis shift.\n"
 "In other alignment modes, shows the x-axis shift applied to the layer."
 msgstr ""
+"En el modo de alineación manual, establece el deplazamiento del eje X.\n"
+"En otros métodos de alineación, muestra el desplazamiento del eje x aplicado "
+"a la capa."
 
 #: src/gui/uifiles/composition_dialog.ui:248
 #, fuzzy
@@ -2530,6 +2644,9 @@ msgid ""
 "In manual alignment mode, sets the y-axis shift.\n"
 "In other alignment modes, shows the y-axis shift applied to the layer."
 msgstr ""
+"En el modo de alineación manual, establece el deplazamiento del eje Y.\n"
+"En otros métodos de alineación, muestra el desplazamiento del eje Y aplicado "
+"a la capa."
 
 #: src/gui/uifiles/composition_dialog.ui:261
 #, fuzzy
@@ -2543,6 +2660,11 @@ msgid ""
 "origin.\n"
 "Rotation is shown in degrees anticlockwise."
 msgstr ""
+"En el modo de alineación manual, establece la rotación alrededor del centro "
+"de la imágen.\n"
+"En otros métodos de alineación, muestra la rotación aplicada a la capa "
+"alrededor del origen.\n"
+"RLarotación se muestra en grados en sentido antihorario."
 
 #: src/gui/uifiles/composition_dialog.ui:275
 #, fuzzy
@@ -2556,7 +2678,7 @@ msgstr "No se han almacenado datos de registro para esta capa"
 
 #: src/gui/uifiles/composition_dialog.ui:328 src/gui/uifiles/pixelmath.ui:704
 msgid "Sum exposure time"
-msgstr ""
+msgstr "Suma del tiempo de exposición"
 
 #: src/gui/uifiles/composition_dialog.ui:332 src/gui/uifiles/pixelmath.ui:708
 msgid ""
@@ -2564,6 +2686,9 @@ msgid ""
 "This will change the value of some keywords such as STACKCNT (number of "
 "frames stacked) and LIVETIME (total exposure)."
 msgstr ""
+"Suma del tiempo de exposición de las diferentes imágenes utilizadas para la "
+"composición. Esto cambiará el valor de algunas palabras clave como "
+"\"STACNKCNT\" (número de cuadros apliados) y \"LIVETIME\" (Exposición total)."
 
 #: src/gui/uifiles/composition_dialog.ui:350
 #, fuzzy
@@ -2640,6 +2765,12 @@ msgid ""
 "COG - frame to the centre of gravity of the pixels in the set of aligned "
 "images."
 msgstr ""
+"Selecciona el método de encuadre para alineación de espacio profundo:\n"
+"Primer canal - Cuadro del primer canal (Siempre L en modo de luminancia);\n"
+"Max - Cuadro de extensión máxima de las imágenes alineadas;\n"
+"Min - Cuadro de mínima superposición de todas las imágenes alineadas;\n"
+"COG - Cuadro del centro de gravedad de los pixeles en el conjunto de "
+"imágenes alineadas."
 
 #: src/gui/uifiles/composition_dialog.ui:493
 #, fuzzy
@@ -2653,7 +2784,7 @@ msgstr "mín"
 
 #: src/gui/uifiles/composition_dialog.ui:495
 msgid "COG"
-msgstr ""
+msgstr "COG"
 
 #: src/gui/uifiles/composition_dialog.ui:505
 msgid "Align"
@@ -2793,38 +2924,43 @@ msgid ""
 "function display.\n"
 "                            "
 msgstr ""
+"Muestra el histograma con una escala logarítmica. No afecta la visualización "
+"de la función de transferencia.\n"
+"                            "
 
 #: src/gui/uifiles/curves_dialog.ui:294
 msgid "Toggles whether to apply the curve to the red channel"
-msgstr ""
+msgstr "Alterna si se aplica la cuerva al canal rojo"
 
 #: src/gui/uifiles/curves_dialog.ui:312
 msgid "Toggles whether to apply the curve to the green channel"
-msgstr ""
+msgstr "Alterna si se aplica la curva al canal verde"
 
 #: src/gui/uifiles/curves_dialog.ui:330
 msgid "Toggles whether to apply the curve to the blue channel"
-msgstr ""
+msgstr "Alterna si se aplica la curva al canal azul"
 
 #: src/gui/uifiles/curves_dialog.ui:357
 msgid "Toggles whether the grid is shown on the histogram display"
-msgstr ""
+msgstr "Alterna si se muestra la cuadrícula en la pantalla del histograma"
 
 #: src/gui/uifiles/curves_dialog.ui:381
 msgid "Interpolation algorithm used to compute a curve from the placed points"
 msgstr ""
+"Algoritmo de interpolación utilizado para calcular una curva a partir de los "
+"puntos colocados"
 
 #: src/gui/uifiles/curves_dialog.ui:421
 msgid "Curve point Y: "
-msgstr ""
+msgstr "Punto de curva Y: "
 
 #: src/gui/uifiles/curves_dialog.ui:433
 msgid "Curve point ID: "
-msgstr ""
+msgstr "Punto de curva ID: "
 
 #: src/gui/uifiles/curves_dialog.ui:445
 msgid "Curve point X: "
-msgstr ""
+msgstr "Punto de curva X: "
 
 #: src/gui/uifiles/curves_dialog.ui:487
 #, fuzzy
@@ -2927,7 +3063,7 @@ msgstr "Mono"
 
 #: src/gui/uifiles/cut_dialog.ui:121 src/gui/cut.c:1063
 msgid "Generates a single luminance profile along the profile line"
-msgstr ""
+msgstr "Genera un único perfil de luminancia a lo largo de la línea de perfil"
 
 #: src/gui/uifiles/cut_dialog.ui:132
 #, fuzzy
@@ -2939,6 +3075,8 @@ msgid ""
 "Generates separate R, G and B profiles along the profile line. Not "
 "applicable for mono images"
 msgstr ""
+"Genera perfiles separados de R, G, B (Rojos, verdes, azules) a lo largo de "
+"la línea de perfiles. No aplicable para imágenes monocromáticas"
 
 #: src/gui/uifiles/cut_dialog.ui:147
 #, fuzzy
@@ -2948,6 +3086,7 @@ msgstr "Sin coordenadas"
 #: src/gui/uifiles/cut_dialog.ui:151
 msgid "Enter coordinates for the start and end points of the profile manually"
 msgstr ""
+"Ingresa las coordenadas de los puntos de inicio y fin del perfil manualmente"
 
 #: src/gui/uifiles/cut_dialog.ui:161
 msgid "Spectrometric data"
@@ -2956,16 +3095,21 @@ msgstr "Datos espectrométricos"
 #: src/gui/uifiles/cut_dialog.ui:165
 msgid "Enter data relating to profiling along a spectrum"
 msgstr ""
+"Introducir datos relacionados con la elaboración de perfiles a lo largo de "
+"un espectro"
 
 #: src/gui/uifiles/cut_dialog.ui:175
 msgid "Tri-Profile (mono)"
-msgstr ""
+msgstr "Triple-Perfil (Mono)"
 
 #: src/gui/uifiles/cut_dialog.ui:179
 msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile."
 msgstr ""
+"Genera 3 perfiles de intensidad paralelos, separados por una cantidad "
+"predeterminada de pixeles. Los Triples perfiles siempre trazan la luminancia "
+"a lo largo de cada perfil."
 
 #: src/gui/uifiles/cut_dialog.ui:194
 msgid "Set offset step size for tri-profile"
@@ -2986,6 +3130,9 @@ msgid ""
 "Saves the data file used to generate the profile in the working directory. "
 "The filename is based on the current image and includes a timestamp."
 msgstr ""
+"Guarda el archivo de datos utilizado para generar el perfil en el directorio "
+"de trabajo. El nombre del archivo se basa en la imágen actual e incluye "
+"marca de tiempo."
 
 #: src/gui/uifiles/cut_dialog.ui:226
 msgid ""
@@ -2993,6 +3140,10 @@ msgid ""
 "in .png format in the working directory: the plot window will not appear. "
 "This mode automatically enables the \"Save plot as .png\" option."
 msgstr ""
+"Aplica a la secuencia actual. Si esto se selecciona, los gráficos se "
+"generarán en formato .PNG en el directorio de trabajo: la ventana de "
+"gráficos no aparecerá. Este modo habilita automáticamente la opción \"Guardar"
+" gráfico como.png\"."
 
 #: src/gui/uifiles/cut_dialog.ui:237
 #, fuzzy
@@ -3005,16 +3156,21 @@ msgid ""
 "working relies on this so if this option is deactivated, sequence working "
 "will be deactivated too."
 msgstr ""
+"Guarda el gráfico en formato \".png\", y también abre la ventana de "
+"gráficos. El trabajo en seuencia, depende de esto, por lo que si esta opción "
+"está desactivada, la secuencia de trabajo será desactivada también."
 
 #: src/gui/uifiles/cut_dialog.ui:252
 msgid "Measure in pixels"
-msgstr ""
+msgstr "Medida en pixeles"
 
 #: src/gui/uifiles/cut_dialog.ui:256
 msgid ""
 "Measurements and the plot x axis will show distance in pixels. This option "
 "is overridden if spectrometry data is set."
 msgstr ""
+"La mediciones y el gráfico del eje X, mostrarán la distancia en pixeles. "
+"Esta opción se anula si se configuran datos de espectometría."
 
 #: src/gui/uifiles/cut_dialog.ui:268
 #, fuzzy
@@ -3027,6 +3183,10 @@ msgid ""
 "This requires telescope focal length and sensor pixel size metadata in the "
 "FITS header. This option is overridden if spectrometry data is set."
 msgstr ""
+"Si es posible, las mediciones y el gráfico del eje X, mostrarán la distancia "
+"en Arcsec. Esto requiere los metadatos del telescopio, como la distancia "
+"focal y el tamaño del pixel en los encabezados del archivo FITS. Esta opción "
+"se anula si se configuran datos de espectometría."
 
 #: src/gui/uifiles/cut_dialog.ui:288
 msgid ""
@@ -3034,10 +3194,13 @@ msgid ""
 "pixels. Tri-profiles always plot luminance along each profile and do not use "
 "spectrometric data."
 msgstr ""
+"Genera 3 perfiles de intensidad paralelos separados por un número "
+"determinado de pixeles. Los Triples perfiles siempre trazan la luminancia en "
+"cada perfil y no utiliza datos de espectometría."
 
 #: src/gui/uifiles/cut_dialog.ui:303
 msgid "Tri-Profile offset (px)"
-msgstr ""
+msgstr "Desplazamiento del Triple perfil (px)"
 
 #: src/gui/uifiles/cut_dialog.ui:333
 msgid ""
@@ -3048,11 +3211,11 @@ msgstr ""
 
 #: src/gui/uifiles/cut_dialog.ui:334 src/gui/cut.c:171 src/gui/cut.c:1391
 msgid "Intensity Profile"
-msgstr ""
+msgstr "Perfil de intensidad"
 
 #: src/gui/uifiles/cut_dialog.ui:343
 msgid "Plot Title"
-msgstr ""
+msgstr "Título del gráfico"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:73
 #, fuzzy
@@ -3069,6 +3232,8 @@ msgid ""
 "Set the width of the cut. The median pixel value perpendicular to the cut "
 "will be used."
 msgstr ""
+"Establece el ancho del corte. Se utilizará el valor de la mediana de pixeles "
+"perpendicular al corte."
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:170
 #, fuzzy
@@ -3084,6 +3249,11 @@ msgid ""
 "these points snap to the profile line and are reset if the profile line is "
 "moved."
 msgstr ""
+"Seleccione un punto en la línea de perfil correspondiente a una longitud de "
+"onda / número de onda conocidos. Normalmente se trata de una línea espectral "
+"conocida o para verdaderas imágenes espectográficas, el inicio o la longitud "
+"o número de onda central. Nota: Estos puntos se ajustan a la línea del "
+"perfil y se reinician si la línea del perfil se mueve."
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:184
 #, fuzzy
@@ -3252,12 +3422,14 @@ msgstr ""
 
 #: src/gui/uifiles/denoise_dialog.ui:287
 msgid "Secondary Denoising Algorithm"
-msgstr ""
+msgstr "Algoritmo de reducción de ruido secundario"
 
 #: src/gui/uifiles/denoise_dialog.ui:318
 msgid ""
 "Sets the number of SOS iterations. 3-5 is usually a good starting point."
 msgstr ""
+"Define el número de iteraciones de SOS. 3-5 es normalmente un buen punto de "
+"partida."
 
 #: src/gui/uifiles/denoise_dialog.ui:320
 #, fuzzy
@@ -3273,6 +3445,13 @@ msgid ""
 "the next iteration, so the final output noise level is substantially lower "
 "than the intermediate values shown between iterations.)"
 msgstr ""
+"Define el número de iteraciones de SOS. 3-5 iteraciones normalmente da una "
+"buena convergencia. La convergencia se puede ver examinando la estimación de "
+"ruido de la imagen actualizada que se muestra en la ventana de log tras cada "
+"iteración (estos valores de ruido se miden después de que el ruido de la "
+"imagen original es mezclado de nuevo para prepararse para la siguiente "
+"iteración, de manera que el nivel de ruido de salida es substancialmente "
+"menor que los valores intermedios mostrados entre iteraciones.)"
 
 #: src/gui/uifiles/denoise_dialog.ui:347
 msgid ""
@@ -3284,7 +3463,7 @@ msgstr ""
 
 #: src/gui/uifiles/denoise_dialog.ui:349
 msgid "rho"
-msgstr ""
+msgstr "rho"
 
 #: src/gui/uifiles/denoise_dialog.ui:360
 msgid ""
@@ -3296,7 +3475,7 @@ msgstr ""
 
 #: src/gui/uifiles/denoise_dialog.ui:379
 msgid "SOS Advanced Options"
-msgstr ""
+msgstr "Opciones Avanzadas de SOS"
 
 #: src/gui/uifiles/denoise_dialog.ui:401
 msgid ""
@@ -3387,11 +3566,11 @@ msgstr "Histogramas"
 #: src/gui/uifiles/dialog_star_remix.ui:127 src/gui/remixer.c:721
 #: src/gui/remixer.c:1430
 msgid "Advanced"
-msgstr ""
+msgstr "Avanzado"
 
 #: src/gui/uifiles/dialog_star_remix.ui:131
 msgid "Show advanced stretch options"
-msgstr ""
+msgstr "Mostrar las opciones avanzadas de estiramiento"
 
 #: src/gui/uifiles/dialog_star_remix.ui:149
 #, fuzzy
@@ -3400,7 +3579,7 @@ msgstr "Recorte MAD"
 
 #: src/gui/uifiles/dialog_star_remix.ui:161
 msgid "Select the clipping mode for partially clipped pixels."
-msgstr ""
+msgstr "Seleccionar el modo de recorte para los pixels parcialmente recortados."
 
 #: src/gui/uifiles/dialog_star_remix.ui:167
 #: src/gui/uifiles/histogram_dialog.ui:769
@@ -3422,6 +3601,8 @@ msgid ""
 "Expands to show a mini histogram and transfer function display for the star "
 "image"
 msgstr ""
+"Se expande para mostrar un mini histograma y una visualización de la función "
+"de transferencia para la imagen de estrellas"
 
 #: src/gui/uifiles/dialog_star_remix.ui:263
 #, fuzzy
@@ -3504,13 +3685,13 @@ msgstr "Canal verde"
 #: src/gui/uifiles/dialog_star_remix.ui:1009
 #: src/gui/uifiles/histogram_dialog.ui:910
 msgid "Human weighted luminance"
-msgstr ""
+msgstr "Luminancia humana ponderado"
 
 #: src/gui/uifiles/dialog_star_remix.ui:373
 #: src/gui/uifiles/dialog_star_remix.ui:1010
 #: src/gui/uifiles/histogram_dialog.ui:911
 msgid "Even weighted luminance"
-msgstr ""
+msgstr "Luminancia uniforme compensada"
 
 #: src/gui/uifiles/dialog_star_remix.ui:407
 #: src/gui/uifiles/dialog_star_remix.ui:1044
@@ -3531,7 +3712,7 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:1115
 #: src/gui/uifiles/histogram_dialog.ui:1037
 msgid "Local stretch intensity (b)"
-msgstr ""
+msgstr "Intensidad de estiramiento local (b)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:488
 #: src/gui/uifiles/dialog_star_remix.ui:512
