@@ -931,11 +931,11 @@ class SirilInterface:
             # Convert to bytes for transmission
             command_bytes = command_string.encode('utf-8')
 
-            return self._execute_command(_Command.SEND_COMMAND, command_bytes, timeout = None)
+            if self._execute_command(_Command.SEND_COMMAND, command_bytes, timeout = None) is False:
+                raise SirilError(_(f"Error: _execute_command({args[0]}) failed."))
 
         except Exception as e:
-            print(f"Error sending command: {e}", file=sys.stderr)
-            raise SirilException(_("Error executing command {}: {}").format(args[0], e)) from e
+            raise RuntimeError(_("Error executing command {}: {}").format(args[0], e)) from e
 
     def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
         """
