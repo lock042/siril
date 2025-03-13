@@ -101,6 +101,7 @@ class _Command(IntEnum):
     WARNING_MESSAGEBOX = 53
     WARNING_MESSAGEBOX_MODAL = 54
     GET_SEQ_DISTODATA = 55
+    SET_IMAGE_HEADER = 56
     ERROR = 0xFF
 
 class LogColor (IntEnum):
@@ -905,7 +906,7 @@ class SirilInterface:
 
         return self.update_progress("", 0.0)
 
-    def cmd(self, *args: str) -> bool:
+    def cmd(self, *args: str):
         """
         Send a command to Siril to be executed. The range of available commands can
         be found by checking the online documentation. The command and its arguments
@@ -914,8 +915,8 @@ class SirilInterface:
         Args:
             *args: Variable number of string arguments to be combined into a command
 
-        Returns:
-            bool: True if the command was successfully executed, False otherwise
+        Raises:
+            RuntimeError: If the command failed.
 
         Example:
             .. code-block:: python
@@ -930,11 +931,11 @@ class SirilInterface:
             # Convert to bytes for transmission
             command_bytes = command_string.encode('utf-8')
 
-            return self._execute_command(_Command.SEND_COMMAND, command_bytes, timeout = None)
+            if self._execute_command(_Command.SEND_COMMAND, command_bytes, timeout = None) is False:
+                raise SirilError(_(f"Error: _execute_command({args[0]}) failed."))
 
         except Exception as e:
-            print(f"Error sending command: {e}", file=sys.stderr)
-            return False
+            raise RuntimeError(_("Error executing command {}: {}").format(args[0], e)) from e
 
     def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
         """
@@ -2928,10 +2929,10 @@ class SirilInterface:
                 fhi=values[18] if values[18] != 0.0 else None,
                 data_max=values[19],
                 data_min=values[20],
-                pixel_size_x=values[21] if values[21] > 0.0 else None,
-                pixel_size_y=values[22] if values[22] > 0.0 else None,
-                binning_x=values[23] if values[23] > 1 else 1,
-                binning_y=values[24] if values[24] > 1 else 1,
+                pixel_size_x=values[21] if values[21] and values[21] > 0.0 else None,
+                pixel_size_y=values[22] if values[22] and values[21] > 0.0 else None,
+                binning_x=values[23] if values[23] and values[24] > 1 else 1,
+                binning_y=values[24] if values[24] and values[24] > 1 else 1,
                 expstart=values[25],
                 expend=values[26],
                 centalt=values[27],
@@ -2942,8 +2943,8 @@ class SirilInterface:
                 bayer_xoffset=values[32],
                 bayer_yoffset=values[33],
                 airmass=values[34],
-                focal_length=values[35] if values[35] > 0.0 else None,
-                flength=values[36] if values[36] > 0.0 else None,
+                focal_length=values[35] if values[35] and values[35] > 0.0 else None,
+                flength=values[36] if values[36] and values[36] > 0.0 else None,
                 iso_speed=values[37],
                 exposure=values[38],
                 aperture=values[39],
@@ -3691,4 +3692,94 @@ class SirilInterface:
                         raise RuntimeError(_("Failed to cleanup shared memory"))
 
                 except Exception:
+                    pass
+
+    def set_image_metadata_from_header_string(self, header: str) -> bool:
+        """
+        Send image metadata to Siril from a FITS header. The header can be
+        obtained from a sirilpy FFit.header or alternatively from a FITS file
+        obened from disk using astropy.fits.
+
+        Example:
+        .. code-block:: python
+
+            hdul = fits.open('your_fits_file.fits')
+            # Get the header from the primary HDU (or any other HDU you want)
+            header = hdul[0].header
+            # Convert the header to string
+            header_string = header.tostring(sep='\n')
+            # Send the metadata to Siril
+            siril.set_image_metadata_from_header_string(header_string)
+
+        Args:
+            header: string containing the FITS header data
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+
+        shm = None
+        shm_info = None
+        try:
+            # Validate input array
+            if not isinstance(header, str):
+                raise ValueError(_("Header data must be a string"))
+
+            header_bytes = header.encode('utf-8')
+            # Calculate total size
+            total_bytes = len(header_bytes) + 1
+
+            # Create shared memory using our wrapper
+            try:
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise RuntimeError(_("Failed to map shared memory: {}").format(e)) from e
+
+            except Exception as e:
+                raise RuntimeError(_("Failed to create shared memory: {}").format(e)) from e
+
+            # Copy data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                buffer[:len(header_bytes)] = header_bytes
+
+                # Delete transient objects used to structure copy
+                del buffer
+            except Exception as e:
+                raise RuntimeError(_("Failed to copy data to shared memory: {}").format(e)) from e
+
+            # Pack the image info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                0,
+                0,
+                0,
+                0,
+                total_bytes,
+                shm_info.shm_name
+            )
+            # Send command using the existing _execute_command method
+            if not self._execute_command(_Command.SET_IMAGE_HEADER, info):
+                raise RuntimeError(_("_execute_command failed"))
+
+            return True
+
+        except Exception as e:
+            print(f"Error sending FITS header metadata: {e}", file=sys.stderr)
+            return False
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    self._execute_command(_Command.RELEASE_SHM, shm_info)
+                except Exception as e:
                     pass

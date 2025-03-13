@@ -47,7 +47,7 @@
 #include "command.h"
 #include "command_line_processor.h"
 
-static const char *cmd_err_to_str(cmd_errors err) {
+const char *cmd_err_to_str(cmd_errors err) {
 	switch (err) {
 		case CMD_NOT_FOUND:
 			return _("unknown command name");
