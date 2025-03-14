@@ -100,14 +100,42 @@ static gint64 find_space(const gchar *name) {
 			return result;
 		}
 
+		NSFileManager *fileManager = [NSFileManager defaultManager];
+
 		// Check if path exists
 		BOOL isDirectory;
-		if (![[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDirectory]) {
+		if (![fileManager fileExistsAtPath:path isDirectory:&isDirectory]) {
 			NSLog(@"Error: path does not exist: %@", path);
 			return result;
 		}
 
-		NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:path];
+		// Resolve symlink if needed
+		NSString *resolvedPath = path;
+		if ([fileManager isSymbolicLinkAtPath:path]) {
+			NSError *linkError = nil;
+			NSString *destination = [fileManager destinationOfSymbolicLinkAtPath:path error:&linkError];
+
+			if (!destination) {
+				NSLog(@"Error: could not resolve symbolic link: %@", linkError);
+				return result;
+			}
+
+			// If the symlink path is relative, combine it with the parent directory
+			if (![destination hasPrefix:@"/"]) {
+				NSString *parentDir = [path stringByDeletingLastPathComponent];
+				resolvedPath = [parentDir stringByAppendingPathComponent:destination];
+			} else {
+				resolvedPath = destination;
+			}
+
+			// Verify the resolved path exists
+			if (![fileManager fileExistsAtPath:resolvedPath isDirectory:&isDirectory]) {
+				NSLog(@"Error: resolved path does not exist: %@", resolvedPath);
+				return result;
+			}
+		}
+
+		NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:resolvedPath];
 		if (!fileURL) {
 			NSLog(@"Error: could not create NSURL from path");
 			return result;
