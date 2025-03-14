@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-02-04 12:05+0000\n"
+"PO-Revision-Date: 2025-03-03 15:00+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril-1-2/zh_Hans/>\n"
@@ -688,15 +688,14 @@ msgid ""
 "Tolerance factor of global sample rejection, in mad units (median + this * "
 "mad). By decreasing this value, Siril will be more restrictive to select "
 "background samples."
-msgstr ""
-"全局样本剔除容差，单位mad (median + this * mad)。降低该值会使Siril更加谨慎的"
-"选取背景样本。"
+msgstr "全局样本剔除容差，单位mad (median + this * "
+"mad)。降低该值会使Siril更加严格地选取背景样本。"
 
 #: src/gui/siril3.glade:3756
 msgid ""
 "Tolerance of global sample rejection, in sigma units. By decreasing this "
 "value, Siril will be more restrictive to select background samples."
-msgstr "全局样本剔除容差，单位sigma。降低该值会使Siril更加谨慎的选取背景样本。"
+msgstr "全局样本剔除容差，单位sigma。降低该值会使Siril更加严格地选取背景样本。"
 
 #: src/gui/siril3.glade:3771
 msgid "Add dither"
@@ -2325,9 +2324,8 @@ msgid ""
 "Black point adjustment. This is a constant value that is subtracted from the "
 "image after the initial hyperbolic stretch. BP adjustment may result in "
 "clipping the shadows."
-msgstr ""
-"黑点调节。这是一个常量值，在初始双曲拉伸后从图像中减去。BP调节可能会导致阴影"
-"修剪。"
+msgstr "黑点调节。这是一个常量值，在初始双曲拉伸后从图像中减去。BP调节可能会导致阴影"
+"切除。"
 
 #: src/gui/siril3.glade:10187
 msgid ""
@@ -3795,11 +3793,11 @@ msgstr "修剪 (%)"
 
 #: src/gui/siril3.glade:16007
 msgid "Clipped pixels count (shadows)"
-msgstr "修剪像素统计（阴影）"
+msgstr "修剪像素数（阴影）"
 
 #: src/gui/siril3.glade:16025
 msgid "Clipped pixels count (highlights)"
-msgstr "修剪像素统计（高光）"
+msgstr "修剪像素数（高光）"
 
 #: src/gui/siril3.glade:16091
 msgid "Prefix of the image names resulting from the mtf process."
@@ -3872,9 +3870,8 @@ msgid ""
 "Black point adjustment. This is a constant value that is subtracted from the "
 "image. NOTE: altering BP can clip pixels in which case this transformation "
 "is non-reversible."
-msgstr ""
-"黑点调节。这是从图像中减去的常量值。注意：更改 BP 可能会修剪像素，在这种情况"
-"下，此变换是不可逆的。"
+msgstr "黑点调节。这是从图像中减去的常量值。注意：更改 BP "
+"可能会切除像素，在这种情况下，此变换是不可逆的。"
 
 #: src/gui/siril3.glade:16801 src/gui/siril3.glade:16868
 #: src/gui/siril3.glade:16935
@@ -5977,13 +5974,13 @@ msgstr ""
 "\n"
 "<b>基于像素剔除的平均数</b>：该方式用于迭代式剔除离群的像素。\n"
 "包含七种已实现的算法：\n"
-"- 百分数修剪\n"
-"- Sigma修剪\n"
-"- 绝对中位差修剪\n"
-"- 中位数Sigma修剪\n"
-"- Winsorized Sigma修剪\n"
-"- 线性拟合修剪\n"
-"- 广义ESD检验\n"
+"- 百分数排异\n"
+"- Sigma排异\n"
+"- 绝对中位差排异\n"
+"- 中位数Sigma排异\n"
+"- Winsorized Sigma排异\n"
+"- 线性拟合排异\n"
+"- 广义ESD检验排异\n"
 "完成像素剔除之后才会计算平均数。\n"
 "\n"
 "<b>中位数</b>：该方式用于传统的暗/平/偏置场的叠加，不过我们现在建议使用含有像"
@@ -6149,25 +6146,26 @@ msgid ""
 msgstr ""
 "七种可用的剔除算法。\n"
 "\n"
-"<b>百分数修剪</b> 是一种单步操作的剔除算法，适用于小数量的数据（最多6张）。\n"
+"<b>百分数排异</b> 是一种单步操作的剔除算法，适用于小数量的数据（最多6张）。\n"
 "\n"
-"<b>Sigma修剪</b> 是一种迭代式算法，会剔除那些距离中值大于给定的两个sigma值的"
-"像素点。\n"
+"<b>Sigma排异</b> "
+"是一种迭代式算法，会剔除那些距离中值大于给定的两个sigma值的像素点。\n"
 "\n"
-"<b>绝对中位差修剪</b> 是一种类似于Sigma Clipping的迭代算法，其评估方式基于绝"
+"<b>绝对中位差排异</b> 是一种类似于Sigma Clipping的迭代算法，其评估方式基于绝"
 "对中位差（MAD）。通常用于含有红外噪声的图像处理。\n"
 "\n"
-"<b>中位数Sigma修剪</b> 是跟上面类似的算法，所应剔除的像素值会被中值替代。\n"
+"<b>中位数Sigma排异</b> 是跟上面类似的算法，所应剔除的像素值会被中值替代。\n"
 "\n"
-"<b>Winsorized Sigma修剪</b> 也是跟上面类似的算法，所应剔除的像素值却被临近值"
+"<b>Winsorized Sigma排异</b> 也是跟上面类似的算法，所应剔除的像素值却被临近值"
 "所替代。该算法基于Hube的工作，参见 [1] [2].\n"
 "\n"
-"<b>线性拟合修剪</b> 是PixInsight的主开发者Juan Conejero开发的 [2].。该算法基"
-"于一条坐标上的斜线 (y=ax+b) 来计算离群值而用于像素剔除和叠加。该算法非常适用"
-"于巨大数据量的叠加并且图像包含有不同方向和空间分布形式的天光。\n"
+"<b>线性拟合排异</b> 是PixInsight的主开发者Juan Conejero开发的 [2].。"
+"该算法基于一条坐标上的斜线 (y=ax+b) 来计算离群值而用于像素剔除和叠加。该算法"
+"非常适用于巨大数据量的叠加并且图像包含有不同方向和空间分布形式的天光。\n"
 "\n"
-"<b>广义ESD检验</b> 是广义的Grubbs Test算法[3]，用于检测近似正态分布的单变量数"
-"据集中的若干离群值。该算法在超过50张图像的庞大集合中可体现出优秀的性能。\n"
+"<b>广义ESD检验排异</b> 是广义的Grubbs Test算法[3]，用于检测近似正态分布的单变"
+"量数据集中的若干离群值。该算法在超过50张图像的庞大集合中可体现出优秀的性能。"
+"\n"
 "\n"
 "[1] Peter J. Huber and E. Ronchetti (2009), Robust Statistics, 2nd Ed., "
 "Wiley\n"
@@ -6181,27 +6179,27 @@ msgstr "无像素剔除"
 
 #: src/gui/siril3.glade:24399
 msgid "Percentile Clipping"
-msgstr "百分数修剪"
+msgstr "百分数排异"
 
 #: src/gui/siril3.glade:24400
 msgid "Sigma Clipping"
-msgstr "Sigma修剪"
+msgstr "Sigma排异"
 
 #: src/gui/siril3.glade:24401 src/stacking/stacking.c:350
 msgid "MAD clipping"
-msgstr "绝对中位差修剪"
+msgstr "绝对中位差排异"
 
 #: src/gui/siril3.glade:24402
 msgid "Median Sigma Clipping"
-msgstr "中位数Sigma修剪"
+msgstr "中位数Sigma排异"
 
 #: src/gui/siril3.glade:24403
 msgid "Winsorized Sigma Clipping"
-msgstr "Winsorized Sigma修剪"
+msgstr "Winsorized Sigma排异"
 
 #: src/gui/siril3.glade:24404
 msgid "Linear Fit Clipping"
-msgstr "线性拟合修剪"
+msgstr "线性拟合排异"
 
 #: src/gui/siril3.glade:24405
 msgid "Generalized Extreme Studentized Deviate Test"
@@ -8931,8 +8929,8 @@ msgid ""
 "Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-"
 "axis aberration[FWHM]: %.2f\n"
 msgstr ""
-"星点: %d, 截断平均值[FWHM]: %.2f, 传感器倾斜[FWHM]: %.2f (%.0f%%), 离轴像差"
-"[FWHM]: %.2f\n"
+"星点: %d, 排异后的平均值[FWHM]: %.2f, 传感器倾斜[FWHM]: %.2f (%.0f%%), "
+"离轴像差[FWHM]: %.2f\n"
 
 #: src/algos/ccd-inspector.c:283
 msgid "Tilt evaluation"
@@ -11817,10 +11815,11 @@ msgid ""
 "Do not use the unlinked version after color calibration, it will alter the "
 "white balance"
 msgstr ""
-"自动拉伸当前载入的图像，每个通道的参数不同（不绑定），除非输入<b>-linked</"
-"b>。参数是可选的，<b>shadowclip</b>是阴影修剪点，用主直方图峰值来测量，单位为"
-"sigma（默认值为-2.8），<b>targetbg</b>为目标背景值，为图像提供最终亮度，范围"
-"为[0，1]，默认值为0.25。默认值即为GUI的自动拉伸使用的值。\n"
+"自动拉伸当前载入的图像，每个通道的参数不同（不绑定），除非输入<b>-linked</b>"
+"。参数是可选的，<b>shadowclip</b>是阴影切除点，用主直方图峰值来测量，单位为si"
+"gma（默认值为-2."
+"8），<b>targetbg</b>为目标背景值，为图像提供最终亮度，范围为[0，1]，默认值为0"
+".25。默认值即为GUI的自动拉伸使用的值。\n"
 "\n"
 "色彩校准后不要使用不绑定的自动拉伸，这会改变白平衡"
 
@@ -12601,8 +12600,8 @@ msgid ""
 "or use the THRESHLO command"
 msgstr ""
 "将载入的图像减去图像<b>filename</b>。\n"
-"如果偏好设置中允许，结果将为每通道32位，因此能够存储负值。要修剪负值，请使用"
-"16位模式或使用THRESHLO命令"
+"如果偏好设置中允许，结果将为每通道32位，因此能够存储负值。要切除负值，请使用1"
+"6位模式或使用THRESHLO命令"
 
 #: src/core/command_def.h:75
 msgid ""
@@ -12974,7 +12973,7 @@ msgid ""
 msgstr ""
 "将当前图像加上常量<b>value</b>（以ADU为单位）。这个常数可以取负值。\n"
 "\n"
-"在16位模式中，位于[0, 65535]之外的像素值被修剪。在32位模式下，不会修剪"
+"在16位模式下，[0, 65535]之外的像素值被切除。在32位模式下，不会有切除"
 
 #: src/core/command_def.h:101
 msgid ""
@@ -13129,9 +13128,9 @@ msgid ""
 "channel on which the star will be analyzed. It can be omitted for monochrome "
 "images or when run from the GUI with one of the channels active in the view"
 msgstr ""
-"对选定的星点执行PSF（点扩散函数）并显示结果。对于没有文件头的操作，可以使用"
-"BOXSELECT以像素为单位进行选择。提供<b>channel</b>参数，将会在指定的通道上分析"
-"恒星。对于单色图像，或者在GUI运行时界面中已选中了某个通道，则此参数被忽略"
+"对选定的星点执行PSF（点扩散函数）并显示结果。对于无文件头的操作，可以使用BOXS"
+"ELECT以像素为单位进行选择。提供<b>channel</b>参数，将会在指定的通道上分析恒星"
+"。对于单色图像，或者在GUI运行时界面中已选中了某个通道，则此参数被忽略"
 
 #: src/core/command_def.h:106
 msgid ""
@@ -16399,7 +16398,7 @@ msgstr "错误：图像复制失败...\n"
 
 #: src/filters/starnet.c:525
 msgid "StarNet: Pixel values exceed 1.0. Rescaling to avoid clipping peaks.\n"
-msgstr "StatNet：像素值超过 1.0。重新缩放以避免修剪峰值。\n"
+msgstr "StatNet：像素值超过 1.0。重新缩放以避免切除峰值。\n"
 
 #: src/filters/starnet.c:555
 msgid "Error: unable to find the MTF stretch factors...\n"
@@ -18064,7 +18063,7 @@ msgstr "扩展名不匹配"
 msgid ""
 "The given file extension does not match the chosen file type. Do you want to "
 "save the image using this name anyway?"
-msgstr ""
+msgstr "给定的文件扩展名与所选的文件类型不匹配。是否仍要使用此名称保存图像？"
 
 #: src/gui/save_dialog.c:426 src/gui/save_dialog.c:477
 msgid "Save Anyway"
@@ -20064,7 +20063,7 @@ msgstr "表达式x的双曲正切."
 
 #: src/pixelMath/pixel_math_runner.c:105
 msgid "Truncated integer part of x."
-msgstr "表达式x的整数部分（全舍）."
+msgstr "表达式x的整数部分（小数全舍）."
 
 #: src/pixelMath/pixel_math_runner.c:109
 msgid "Average absolute deviation of the image."
@@ -21251,27 +21250,27 @@ msgstr "像素剔除 ………… 无\n"
 
 #: src/stacking/stacking.c:344
 msgid "percentile clipping"
-msgstr "百分数修剪"
+msgstr "百分数排异"
 
 #: src/stacking/stacking.c:347
 msgid "sigma clipping"
-msgstr "sigma修剪"
+msgstr "sigma排异"
 
 #: src/stacking/stacking.c:353
 msgid "median sigma clipping"
-msgstr "中位数sigma修剪"
+msgstr "中位数sigma排异"
 
 #: src/stacking/stacking.c:356
 msgid "winsorized sigma clipping"
-msgstr "winsorized sigma修剪"
+msgstr "winsorized sigma排异"
 
 #: src/stacking/stacking.c:359
 msgid "linear fit clipping"
-msgstr "线性拟合修剪"
+msgstr "线性拟合排异"
 
 #: src/stacking/stacking.c:362
 msgid "GESDT clipping"
-msgstr "广义ESD检验修剪"
+msgstr "广义ESD检验排异"
 
 #: src/stacking/stacking.c:365
 #, c-format
@@ -21338,11 +21337,11 @@ msgstr "未保存的叠加结果"
 
 #: src/stacking/stacking.c:797
 msgid "Low clipping factor for the percentile clipping rejection algorithm."
-msgstr "百分数修剪剔除算法的下限修剪因子。"
+msgstr "百分数排异算法的下限系数。"
 
 #: src/stacking/stacking.c:798
 msgid "High clipping factor for the percentile clipping rejection algorithm."
-msgstr "百分数修剪剔除算法的上限修剪因子。"
+msgstr "百分数排异算法的上限系数。"
 
 #: src/stacking/stacking.c:803
 msgid "Percentile low: "
@@ -21356,13 +21355,13 @@ msgstr "Percentile上限: "
 msgid ""
 "Tolerance for low pixel values of the linear fit clipping algorithm, in "
 "sigma units."
-msgstr "线性拟合修剪算法的像素值容差下限（sigma）。"
+msgstr "线性拟合排异算法的像素值下限容差（sigma）。"
 
 #: src/stacking/stacking.c:814
 msgid ""
 "Tolerance for high pixel values of the linear fit clipping algorithm, in "
 "sigma units."
-msgstr "线性拟合修剪算法的像素值容差上限（sigma）。"
+msgstr "线性拟合排异算法的像素值上限容差（sigma）。"
 
 #: src/stacking/stacking.c:819
 msgid "Linear low: "
@@ -21374,11 +21373,11 @@ msgstr "Linear上限: "
 
 #: src/stacking/stacking.c:833
 msgid "Low clipping factor for the sigma clipping rejection algorithm."
-msgstr "Sigma修剪剔除算法的修剪系数下限。"
+msgstr "Sigma排异算法的下限系数。"
 
 #: src/stacking/stacking.c:834
 msgid "High clipping factor for the sigma clipping rejection algorithm."
-msgstr "Sigma修剪剔除算法的修剪系数上限。"
+msgstr "Sigma排异算法的上限系数。"
 
 #: src/stacking/stacking.c:849
 msgid ""

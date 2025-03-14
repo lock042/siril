@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-01-28 08:46+0000\n"
+"PO-Revision-Date: 2025-03-14 09:13+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/fr/>\n"
@@ -2490,7 +2490,7 @@ msgstr ""
 #: src/gui/siril3.glade:9928 src/gui/siril3.glade:10567
 #: src/gui/siril3.glade:16503
 msgid "Shadow protection point (LP)"
-msgstr "Point de protection de l'ombre (LP)"
+msgstr "Point de protection des ombres (LP)"
 
 #: src/gui/siril3.glade:9939 src/gui/siril3.glade:9964
 #: src/gui/siril3.glade:10578 src/gui/siril3.glade:10603
@@ -6891,7 +6891,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:24479
 msgid "Merge L+H"
-msgstr "Fusionner B+H"
+msgstr "Fusionner F+C"
 
 #: src/gui/siril3.glade:24484
 msgid ""

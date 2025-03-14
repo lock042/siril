@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-02-03 19:14+0000\n"
-"Last-Translator: \"Víctor R. Ruiz\" <rvr@infoastro.com>\n"
+"PO-Revision-Date: 2025-03-14 09:13+0000\n"
+"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/es/>\n"
 "Language: es_ES\n"
@@ -685,6 +685,10 @@ msgid ""
 "points in the background, while a smoothing parameter that is too large may "
 "not be suitable for large deviations in gradient."
 msgstr ""
+"Ajusta el parámetro de suavizado para el método de interpolación. Un "
+"parámetro de suavizado muy pequeño puede resultar en sobre exposición y sub "
+"exposición entre puntos en el fondo, mientras que un parámetro de suavizado "
+"muy alto puede no ser óptimo para grandes desviaciones en el gradiente."
 
 #: src/gui/siril3.glade:3577
 msgid "page 1"
@@ -714,6 +718,9 @@ msgid ""
 "background gradient.\n"
 "This should be enabled for non-stretched images."
 msgstr ""
+"Evita generar bandas agregando algo de ruido aleatorio en el gradiente de "
+"fondo dinámico bajo.\n"
+"Esto debería estar habilitado para imágenes no estiradas."
 
 #: src/gui/siril3.glade:3717
 #, fuzzy
@@ -1099,7 +1106,7 @@ msgstr "Deconvolución"
 
 #: src/gui/siril3.glade:5982
 msgid "Estimates a PSF from the image"
-msgstr ""
+msgstr "Estimar el PSF de la imágen"
 
 #: src/gui/siril3.glade:5995
 #, fuzzy
@@ -1112,6 +1119,9 @@ msgid ""
 "no stars have been detected, an attempt will be made to detect stars in the "
 "image within a suitable range of peak brightness."
 msgstr ""
+"Modela un PSF basado en los parámetros PSF promedio de las estrellas "
+"identificadas. Si no se han detectado estrellas, se intentará detectar "
+"estrellas en la imágen dentro de un rango adecuado de brillo máximo."
 
 #: src/gui/siril3.glade:6012
 #, fuzzy
@@ -1120,35 +1130,39 @@ msgstr "Manual"
 
 #: src/gui/siril3.glade:6016
 msgid "Use a manually defined PSF based on the parameters chosen."
-msgstr ""
+msgstr "Utiliza un PSF definido manualmente basado en los parámetros elegidos."
 
 #: src/gui/siril3.glade:6031
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
 msgstr ""
+"Selecciona el método de estimación PSF ciego a utilizar. ℓ0 descendiente es "
+"la opción predeterminada y generalmente la mejor opción."
 
 #: src/gui/siril3.glade:6034
 msgid "Spectral Irregularity"
-msgstr ""
+msgstr "Irregularidad Espectral"
 
 #: src/gui/siril3.glade:6035
 msgid "ℓ0 Descent"
-msgstr ""
+msgstr "ℓ0 Descendiente"
 
 #: src/gui/siril3.glade:6046
 msgid "Previous PSF"
-msgstr ""
+msgstr "PSF Anterior"
 
 #: src/gui/siril3.glade:6050
 msgid "Reuse the previously calculated PSF."
-msgstr ""
+msgstr "Reutiliza el PSF calculado previamente."
 
 #: src/gui/siril3.glade:6065
 msgid ""
 "Select a PSF to load from file. The PSF must be square and should ideally "
 "have odd length / width."
 msgstr ""
+"Selecciona archivo para cargar PSF. El PSF debe ser cuadrado e idealmente "
+"debe tener longitud y ancho impares."
 
 #: src/gui/siril3.glade:6080
 #, fuzzy
@@ -1163,6 +1177,7 @@ msgstr "Generar"
 #: src/gui/siril3.glade:6098
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
 msgstr ""
+"Genera y muestra una vista previa del PSF, pero no realiza la deconvolución"
 
 #: src/gui/siril3.glade:6120
 #, fuzzy
@@ -1179,6 +1194,8 @@ msgid ""
 "Takes a PSF directly from the image fitted to the current dimension. The PSF "
 "size will be the minimum of the selection width and height."
 msgstr ""
+"Toma el PSF directamente de la imagen ajustada a las dimensiones actuales. "
+"El tamaño del PSF será el mínimo del ancho y el alto de la selección."
 
 #: src/gui/siril3.glade:6158
 #, fuzzy
@@ -1192,13 +1209,15 @@ msgstr "Parámetros del catálogo"
 
 #: src/gui/siril3.glade:6209
 msgid "PSF size"
-msgstr ""
+msgstr "Tamaño del PSF"
 
 #: src/gui/siril3.glade:6221
 msgid ""
 "Make sure the size is big enough not to crop off any significant parts of "
 "the PSF."
 msgstr ""
+"Asegura que el tamaño sea lo suficientemente grande para no cortar ninguna "
+"parte significativa del PSF."
 
 #: src/gui/siril3.glade:6271 src/gui/siril3.glade:7239
 #, fuzzy
@@ -1206,29 +1225,33 @@ msgid "Profile"
 msgstr "Tipos de archivo soportados:"
 
 #: src/gui/siril3.glade:6282
+#, fuzzy
 msgid ""
 "Gaussian and Moffat profiles are good models for star shapes. Disc profiles "
 "can be used to improve out-of-focus issues. Airy disc models the inherent "
 "diffraction of your telescope."
 msgstr ""
+"Los perfiles Guassian y Moffat son buenos modelos para la forma de las "
+"estrellas. Los perfiles Disc pueden ser usados para problemas de desenfoque. "
+"Los modelos \"airy disc\" modelan la difracción inherente de tu telescopio."
 
 #: src/gui/siril3.glade:6285 src/gui/siril3.glade:13512
 #: src/algos/star_finder.c:1304 src/gui/newdeconv.c:549
 msgid "Gaussian"
-msgstr ""
+msgstr "Gaussiano"
 
 #: src/gui/siril3.glade:6286 src/gui/siril3.glade:13513
 #: src/algos/star_finder.c:1304 src/gui/newdeconv.c:551
 msgid "Moffat"
-msgstr ""
+msgstr "Moffat"
 
 #: src/gui/siril3.glade:6287
 msgid "Disc"
-msgstr ""
+msgstr "Disco"
 
 #: src/gui/siril3.glade:6288
 msgid "Airy Disc"
-msgstr ""
+msgstr "Disco Aireado"
 
 #: src/gui/siril3.glade:6342 src/gui/siril3.glade:7263
 #, fuzzy
@@ -1252,6 +1275,9 @@ msgid ""
 "Full width at half maximum. For disc profiles this is just the diameter of "
 "the disc. For elliptical PSFs this is the longer PSF dimension."
 msgstr ""
+"Ancho total a la mitad del máximo. Para perfiles de disco, este es solo el "
+"diámetro del disco. Para PSFs elípticos, este es la dimensión más larga del "
+"PSF."
 
 #: src/gui/siril3.glade:6396 src/gui/siril3.glade:7275
 #, fuzzy
@@ -1364,6 +1390,9 @@ msgid ""
 "This improves ℓ0 PSF estimation for large PSFs. It is not required for small "
 "PSFs and takes longer to compute. Consider using it for PSF sizes above 20."
 msgstr ""
+"Esto mejora la estimación ℓ0 del PSF para PSFs grandes. No es requerido para "
+"PSFs pequeños y toma más tiempo en calcularlo. Considera utilizarlo para "
+"tamaños de PSF superiores a 20."
 
 #: src/gui/siril3.glade:6722
 msgid "These settings can be left alone in the vast majority of cases. "
@@ -1382,6 +1411,8 @@ msgid ""
 "Number of iterations for PSF estimation. Do not reduce this below 2. There "
 "is negligible benefit in increasing it beyond 3."
 msgstr ""
+"Número de iteraciones para la estimación de PSF. No reduzcas este valor por "
+"debajo de 2. El beneficio de aumentarlo por encima de 3 es insignificante."
 
 #: src/gui/siril3.glade:6788
 #, fuzzy
@@ -1412,6 +1443,8 @@ msgstr "Factor de escala entre escalas sucesivas de estimación PSF multiescala"
 #: src/gui/siril3.glade:6868
 msgid "Amount of blur to use for upsampling during PSF estimation"
 msgstr ""
+"Cantidad de desenfoque utilizado para sobreexponer durante la estimación del "
+"PSF"
 
 #: src/gui/siril3.glade:6883
 #, fuzzy
@@ -1441,18 +1474,24 @@ msgstr "Tamaño del kernel:"
 #: src/gui/siril3.glade:6943
 msgid "Amount of blur to use for downsampling during PSF estimation"
 msgstr ""
+"Cantidad de desenfoque utilizado para subexponer durante la estimación del "
+"PSF"
 
 #: src/gui/siril3.glade:6958
 msgid ""
 "Sets a minimum pixel value for the PSF. PSF pixels with values less than "
 "this will be set to zero."
 msgstr ""
+"Establece un valor de pixel mínimo para el PSF. Los PSF con valores de pixel "
+"menores a esto se establecerán a cero."
 
 #: src/gui/siril3.glade:6974
 msgid ""
 "Uses a refinement technique to improve subsequent iterations of the PSF "
 "estimator. This should essentially always be enabled."
 msgstr ""
+"Utiliza una técnica de refinamiento para mejorar las iteraciones posteriores "
+"del estimador de PSF. En esencia, esto debería estar siempre activado."
 
 #: src/gui/siril3.glade:6987
 msgid "ℓ1 gradient parameter"
@@ -1485,6 +1524,12 @@ msgid ""
 "oversampled) this parameter should be reduced to close to unity in order to "
 "obtain sufficient sharpness in the PSF."
 msgstr ""
+"Este parámetro controla la nitidez del PSF estimado. Si la imagen subyacente "
+"es nítida, este parámetro debe establecerse con un valor alto para evitar "
+"artefactos en el PSF estimado. Por otro lado, si la imagen subyacente "
+"contiene una pequeña cantidad de desenfoque intrínseco (Por ejemplo: Como "
+"resultado de un sobremuestreo) este parámetro debe ser reducido cerca de la "
+"unidad para obtener suficiente nitidez en el PSF."
 
 #: src/gui/siril3.glade:7108
 #, fuzzy
@@ -1503,6 +1548,11 @@ msgid ""
 "fairly small number of samples will suffice. For noisy images, the value may "
 "require increasing to as much as around 250."
 msgstr ""
+"Este parámetro define el número de muestras por cada bucle externo. "
+"Suficiente muestras deben elegirse para asegurar la convergencia del PSF: "
+"Para imágenes con ruido bajo, una cantidad pequeña de muestras será "
+"suficiente. Para imágenes ruidosas, es posible que sea necesario aumentar el "
+"valor hasta aproximadamente 250."
 
 #: src/gui/siril3.glade:7145
 msgid ""
@@ -1539,6 +1589,9 @@ msgid ""
 "If checked, a PSF defined from stars will be circularly symmetric. If "
 "unchecked the PSF may be elongated and have a defined rotation angle."
 msgstr ""
+"Si se selecciona, el PSF definido por las estrellas será simétrico "
+"circularmente. Si no esta seleccionado, el PSF podría estar alargado y tener "
+"un ángulo de rotación definido."
 
 #: src/gui/siril3.glade:7371
 #, fuzzy
@@ -1569,6 +1622,9 @@ msgid ""
 "Opens a page in the online Siril documentation with usage tips and examples "
 "of settings that can work for different types of image."
 msgstr ""
+"Abre una página de la documentación en línea de Siril con pistas de uso y "
+"ejemplos de configuraciones que pueden funcionar para distintos tipos de "
+"imagen."
 
 #: src/gui/siril3.glade:7517
 msgid ""
@@ -1577,6 +1633,10 @@ msgid ""
 "Choose Richardson-Lucy for deep space images; choose either Split Bregman or "
 "Wiener filtering for lunar and planetary images."
 msgstr ""
+"Una vez que se calcula o se proporciona el PSF, la imágen es finalmente "
+"deconvulsionada utilizando el algoritmo seleccionado.\n"
+"Selecciona Ricahrdson-Lucy para imagenes de espacio profundo, selecciona "
+"Split Bregman o Wiener para imagenes lunares o planetarias."
 
 #: src/gui/siril3.glade:7521
 msgid "Split Bregman method with TV regularization"
@@ -1601,6 +1661,7 @@ msgstr ""
 #: src/gui/siril3.glade:7563
 msgid "Regularization parameter for the final non-blind stage deconvolution"
 msgstr ""
+"Parámetro de regularización para la etapa final de la deconvolución no-ciega"
 
 #: src/gui/siril3.glade:7578
 msgid ""
@@ -1608,6 +1669,10 @@ msgid ""
 "noise amplification. Deconvolution will stop early if the average pixel "
 "difference ratio between subsequent iterations is less than this value."
 msgstr ""
+"Establece un criterio de detención temprano para el algoritmo Richardson-"
+"Lucy para prevenir amplificación de ruido. La deconvolución se detendrá "
+"antes de tiempo si la diferencia en el radio promedio del pixel, en "
+"iteraciones posteriores es menor a este valor."
 
 #: src/gui/siril3.glade:7593
 msgid ""
@@ -1618,6 +1683,13 @@ msgid ""
 "more often used in regularizing denoising algorithms but can perform well "
 "when deconvolving a star mask produced by Siril's Starnet++ interface."
 msgstr ""
+"La Regulación de Variación Total, conserva los bordes nítidos de la imágen. "
+"En caso de duda, utiliza Variación Total. Sin embargo, puede tener una "
+"tendencia a producir un \"Efecto escalera\" en grandes áreas uniformes.\n"
+"La norma Frobenius de la Hessiana, utiliza un término de regularización de "
+"segundo órden. Se utiliza más comúnmente regularizando algoritmos de "
+"eliminación de ruido, pero puede funcionar bien al deconvulsionar una "
+"máscara de estrellas producida por la interfaz de Starnet++ en Siril."
 
 #: src/gui/siril3.glade:7597
 #, fuzzy
@@ -1626,11 +1698,11 @@ msgstr "Saturación del color"
 
 #: src/gui/siril3.glade:7598
 msgid "Frobenius norm of Hessian"
-msgstr ""
+msgstr "Norma de Frobenius de Hesse"
 
 #: src/gui/siril3.glade:7612
 msgid "Alpha (α)"
-msgstr ""
+msgstr "Alpha (α)"
 
 #: src/gui/siril3.glade:7621
 #, fuzzy
@@ -1642,6 +1714,8 @@ msgid ""
 "Sets a stopping criterion based on difference between successive estimates. "
 "To activate the criterion the checkbox must be selected."
 msgstr ""
+"Fija un criterio de parada basado en la diferencia entre estimaciones "
+"sucesivas. Para activar el criterio la casilla debe ser seleccionada."
 
 #: src/gui/siril3.glade:7638
 #, fuzzy
@@ -1650,7 +1724,7 @@ msgstr "Neutralización del fondo"
 
 #: src/gui/siril3.glade:7650
 msgid "Gradient descent step size"
-msgstr ""
+msgstr "Tamaño del paso de descenso del gradiente"
 
 #: src/gui/siril3.glade:7662
 #, fuzzy
@@ -1664,6 +1738,10 @@ msgid ""
 "stretched images Mulitiplicative may give good results and require fewer "
 "iterations."
 msgstr ""
+"En caso de duda, utiliza un Grandiente descendiente. Es más gradual y tiene "
+"un tamaño de paso más controlable que puede prevenir artefactos de anillo "
+"alrededor de las estrellas. Para imágenes estiradas, Multiplicativo puede "
+"dar buenos resultados y necesitar menos iteraciones."
 
 #: src/gui/siril3.glade:7676 src/gui/siril3.glade:24187
 msgid "Multiplicative"
@@ -1671,7 +1749,7 @@ msgstr "Multiplicativa"
 
 #: src/gui/siril3.glade:7677
 msgid "Gradient Descent"
-msgstr ""
+msgstr "Descenso del Gradiente"
 
 #: src/gui/siril3.glade:7690
 msgid ""
@@ -1679,6 +1757,10 @@ msgid ""
 "of each step. Large values will give quicker convergence but smaller values "
 "will offer better control over artefact formation."
 msgstr ""
+"Tamaño de paso para Gradiente Descendiente. Entre más grande el tamaño, "
+"mayores serán los efectos en cada paso. Grandes valores pueden dar una "
+"convergencia más rápida, pero valores más pequeños pueden tener un mejor "
+"control en la formación de artefactos."
 
 #: src/gui/siril3.glade:7707
 #, fuzzy
@@ -1690,6 +1772,8 @@ msgid ""
 "Deconvolve the currently loaded sequence. If no sequence is loaded, the "
 "current image will be deconvolved."
 msgstr ""
+"Deconvulsiona la secuencia cargada actualmente. Si no hay secuencias "
+"cargadas, la imágen actual será deconvulsionada."
 
 #: src/gui/siril3.glade:7754
 #, fuzzy
@@ -1699,6 +1783,8 @@ msgstr "Prefijo de salida:"
 #: src/gui/siril3.glade:7766
 msgid "Provides a custom prefix to use when deconvolving a sequence."
 msgstr ""
+"Proporciona un prefijo personalizado para usar al deconvulsionar una "
+"secuencia."
 
 #: src/gui/siril3.glade:7793
 msgid "Crop sequence"
@@ -1792,12 +1878,14 @@ msgstr ""
 
 #: src/gui/siril3.glade:8137
 msgid "Secondary Denoising Algorithm"
-msgstr ""
+msgstr "Algoritmo de reducción de ruido secundario"
 
 #: src/gui/siril3.glade:8168
 msgid ""
 "Sets the number of SOS iterations. 3-5 is usually a good starting point."
 msgstr ""
+"Define el número de iteraciones de SOS. 3-5 es normalmente un buen punto de "
+"partida."
 
 #: src/gui/siril3.glade:8170
 #, fuzzy
@@ -1813,6 +1901,13 @@ msgid ""
 "the next iteration, so the final output noise level is substantially lower "
 "than the intermediate values shown between iterations.)"
 msgstr ""
+"Define el número de iteraciones de SOS. 3-5 iteraciones normalmente da una "
+"buena convergencia. La convergencia se puede ver examinando la estimación de "
+"ruido de la imagen actualizada que se muestra en la ventana de log tras cada "
+"iteración (estos valores de ruido se miden después de que el ruido de la "
+"imagen original es mezclado de nuevo para prepararse para la siguiente "
+"iteración, de manera que el nivel de ruido de salida es substancialmente "
+"menor que los valores intermedios mostrados entre iteraciones.)"
 
 #: src/gui/siril3.glade:8197
 msgid ""
@@ -1824,7 +1919,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:8199
 msgid "rho"
-msgstr ""
+msgstr "rho"
 
 #: src/gui/siril3.glade:8210
 msgid ""
@@ -1836,7 +1931,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:8229
 msgid "SOS Advanced Options"
-msgstr ""
+msgstr "Opciones Avanzadas de SOS"
 
 #: src/gui/siril3.glade:8251
 msgid ""
@@ -2207,11 +2302,11 @@ msgstr "Histogramas"
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 #: src/gui/siril3.glade:9460 src/gui/remixer.c:701 src/gui/remixer.c:1388
 msgid "Advanced"
-msgstr ""
+msgstr "Avanzado"
 
 #: src/gui/siril3.glade:9464
 msgid "Show advanced stretch options"
-msgstr ""
+msgstr "Mostrar las opciones avanzadas de estiramiento"
 
 #: src/gui/siril3.glade:9517 src/gui/siril3.glade:10153
 msgid ""
@@ -2226,6 +2321,8 @@ msgid ""
 "Expands to show a mini histogram and transfer function display for the star "
 "image"
 msgstr ""
+"Se expande para mostrar un mini histograma y una visualización de la función "
+"de transferencia para la imagen de estrellas"
 
 #: src/gui/siril3.glade:9552
 #, fuzzy
@@ -2298,12 +2395,12 @@ msgstr "Canal verde"
 #: src/gui/siril3.glade:9661 src/gui/siril3.glade:10299
 #: src/gui/siril3.glade:16216
 msgid "Human weighted luminance"
-msgstr ""
+msgstr "Luminancia humana ponderado"
 
 #: src/gui/siril3.glade:9662 src/gui/siril3.glade:10300
 #: src/gui/siril3.glade:16217
 msgid "Even weighted luminance"
-msgstr ""
+msgstr "Luminancia uniforme compensada"
 
 #: src/gui/siril3.glade:9696 src/gui/siril3.glade:10334
 #: src/gui/siril3.glade:16274
@@ -2321,7 +2418,7 @@ msgstr ""
 #: src/gui/siril3.glade:9766 src/gui/siril3.glade:10405
 #: src/gui/siril3.glade:16343
 msgid "Local stretch intensity (b)"
-msgstr ""
+msgstr "Intensidad de estiramiento local (b)"
 
 #: src/gui/siril3.glade:9777 src/gui/siril3.glade:9801
 msgid ""
