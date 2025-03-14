@@ -188,7 +188,6 @@ void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 			gtk_label_set_text(script_label, scriptname);
 			gtk_text_buffer_set_text(script_textbuffer, contents, (gint)length);
 			g_free(contents);
-			g_error_free(error);
 			siril_open_dialog("script_contents_dialog");
 		} else {
 			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
@@ -198,6 +197,9 @@ void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 			g_error_free(error);
 		}
 	}
+	g_free(scriptname);
+	g_free(scriptpath);
+
 }
 
 void on_script_text_close_clicked(GtkButton *button, gpointer user_data) {
