@@ -111,7 +111,16 @@ static gint64 find_space(const gchar *name) {
 
 		// Resolve symlink if needed
 		NSString *resolvedPath = path;
-		if ([fileManager isSymbolicLinkAtPath:path]) {
+		NSError *attrError = nil;
+		NSDictionary *attributes = [fileManager attributesOfItemAtPath:path error:&attrError];
+
+		if (!attributes) {
+			NSLog(@"Error: could not get attributes: %@", attrError);
+			return result;
+		}
+
+		// Check if it's a symbolic link
+		if ([[attributes fileType] isEqualToString:NSFileTypeSymbolicLink]) {
 			NSError *linkError = nil;
 			NSString *destination = [fileManager destinationOfSymbolicLinkAtPath:path error:&linkError];
 
