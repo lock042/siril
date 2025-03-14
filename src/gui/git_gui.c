@@ -161,7 +161,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
  * It is executed safely in the GTK thread if as_idle is true. */
 void fill_script_repo_list(gboolean as_idle) {
 
-	GtkTreeView *tview = GTK_TREE_VIEW(lookup_widget("treeview_scripts"));
+	GtkTreeView *tview = GTK_TREE_VIEW(lookup_widget("treeview2"));
 	if (as_idle)
 		gdk_threads_add_idle(fill_script_repo_list_idle, tview);
 	else
@@ -332,7 +332,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 	GtkTreeModel *model;
 	gchar *script_path = NULL;
 	path = gtk_tree_path_new_from_string(char_path);
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview2")));
 	if (gtk_tree_model_get_iter(model, &iter, path) == FALSE)
 		return;
 	gtk_tree_model_get(model, &iter, 3, &script_path, -1);
@@ -362,7 +362,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 }
 
 void on_disable_gitscripts() {
-	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview2")));
 	GtkListStore *liststore = GTK_LIST_STORE(model);
 	com.pref.use_scripts_repository = FALSE;
 	gtk_list_store_clear(liststore);
@@ -383,7 +383,7 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 	}
 	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.use_scripts_repository);
 	gtk_widget_set_sensitive(lookup_widget("manual_script_sync_button"), (com.pref.use_scripts_repository && gui.script_repo_available));
-	gtk_widget_set_sensitive(lookup_widget("treeview_scripts"), (com.pref.use_scripts_repository && gui.script_repo_available));
+	gtk_widget_set_sensitive(lookup_widget("treeview2"), (com.pref.use_scripts_repository && gui.script_repo_available));
 }
 
 void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -412,7 +412,7 @@ void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	return;
 }
 
-void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
+void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
                                 GtkTreeViewColumn *column, gpointer user_data) {
 	return;
 }
