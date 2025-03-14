@@ -199,6 +199,9 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 		g_free(scriptname);
 		g_free(scriptpath);
 	}
+	g_free(scriptname);
+	g_free(scriptpath);
+
 }
 
 void on_script_text_close_clicked(GtkButton *button, gpointer user_data) {
