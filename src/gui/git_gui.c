@@ -168,19 +168,28 @@ void fill_script_repo_list(gboolean as_idle) {
 		fill_script_repo_list_idle(tview);
 }
 
+<<<<<<< Updated upstream
+void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
+                                GtkTreeViewColumn *column, gpointer user_data) {
+=======
 void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 		GtkTreeViewColumn *column, gpointer user_data) {
+>>>>>>> Stashed changes
 	gchar *scriptname = NULL, *scriptpath = NULL;
 	gchar *contents = NULL;
 	gsize length;
 	GError *error = NULL;
 	GtkTreeIter iter;
+<<<<<<< Updated upstream
+	GtkTreeModel *model =
+		gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview2")));
+=======
 	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
+>>>>>>> Stashed changes
 
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
-		if (g_file_get_contents(scriptpath, &contents, &length, &error)
-				&& length > 0) {
+		if (g_file_get_contents(scriptpath, &contents, &length, &error) && length > 0) {
 			GtkTextBuffer *script_textbuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget("script_contents")));
 			GtkLabel *script_label = (GtkLabel*) lookup_widget("script_label");
 			gtk_label_set_text(script_label, scriptname);
@@ -188,7 +197,7 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 			g_free(contents);
 			siril_open_dialog("script_contents_dialog");
 		} else {
-			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), error ? error->message : "Unknown error");
+			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
 			siril_log_color_message(msg, "red");
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 			g_free(msg);
@@ -196,8 +205,8 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 				g_error_free(error);
 			}
 		}
-		g_free(scriptname);
-		g_free(scriptpath);
+        g_free(scriptname);
+        g_free(scriptpath);
 	}
 }
 
