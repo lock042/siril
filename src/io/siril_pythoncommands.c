@@ -779,7 +779,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 			}
 			starprofile profile = com.pref.starfinder_conf.profile;
-			psf_star *psf = psf_get_minimisation(&gfit, layer, &selection, FALSE, NULL, TRUE, profile, NULL);
+			psf_star *psf = psf_get_minimisation(&gfit, layer, &selection, FALSE, FALSE, NULL, TRUE, profile, NULL);
 			if (!psf) {
 				error_occurred = TRUE;
 				const char* error_msg = _("Failed to find a star");

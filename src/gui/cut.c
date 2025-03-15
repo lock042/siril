@@ -1179,7 +1179,7 @@ void on_start_select_from_star_clicked(GtkToolButton *button, gpointer user_data
 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
+		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
 		set_cursor_waiting(FALSE);
 		if (result) {
 			gui.cut.cut_start.x = result->x0 + com.selection.x;
@@ -1209,7 +1209,7 @@ void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) 
 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
+		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
 		set_cursor_waiting(FALSE);
 		if (result) {
 			gui.cut.cut_end.x = result->x0 + com.selection.x;

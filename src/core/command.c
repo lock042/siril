@@ -3674,7 +3674,7 @@ int process_set_mag(int nb) {
 		}
 		psf_error error;
 		struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
+		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 		free(ps);
 		if (result) {
 			found = TRUE;
@@ -4356,7 +4356,7 @@ int process_psf(int nb){
 	starprofile profile = com.pref.starfinder_conf.profile;
 	psf_error error;
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, ps, TRUE, profile, &error);
+	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, FALSE, ps, TRUE, profile, &error);
 	free(ps);
 	if (result) {
 		gchar *str = format_psf_result(result, &com.selection, &gfit, NULL);
@@ -4569,7 +4569,7 @@ int process_seq_psf(int nb) {
 		}
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
-	int retval = seqpsf(seq, layer, FALSE, FALSE, framing, TRUE, com.script);
+	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, com.script);
 	if (seq != &com.seq)
 		free_sequence(seq, TRUE);
 	return retval;

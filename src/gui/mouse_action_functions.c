@@ -483,7 +483,7 @@ gboolean main_action_click(mouse_data *data) {
 				if (data->zoomed.x - area.w > 0 && data->zoomed.x + area.w < gfit.rx
 						&& data->zoomed.y - area.h > 0 && data->zoomed.y + area.h < gfit.ry) {
 					ps = phot_set_adjusted_for_image(&gfit);
-					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
+					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 					free(ps);
 					if (gui.qphot) {
 						gui.qphot->xpos = gui.qphot->x0 + area.x;
@@ -566,7 +566,7 @@ gboolean second_action_click(mouse_data *data) {
 				if (data->zoomed.x - area.w > 0 && data->zoomed.x + area.w < gfit.rx
 						&& data->zoomed.y - area.h > 0 && data->zoomed.y + area.h < gfit.ry) {
 					memcpy(&com.selection, &area, sizeof(rectangle));
-					process_seq_psf(0);
+					seq_qphot(&com.seq, select_vport(gui.cvport));
 					delete_selected_area();
 				}
 			}
