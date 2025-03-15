@@ -205,19 +205,19 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 }
 
 // This function returns the epoch of the catalog
-static double siril_catalog_epoch(siril_cat_index cat) {
+double siril_catalog_epoch(siril_cat_index cat) {
 	if ((cat == CAT_GAIADR3_DIRECT) || (cat == CAT_LOCAL_GAIA_ASTRO) || (cat == CAT_LOCAL_GAIA_XPSAMP))
 		return J2016;
 	return J2000;
 }
 
-static double siril_catalog_ra_multiplier(siril_cat_index cat) {
+double siril_catalog_ra_multiplier(siril_cat_index cat) {
 	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
 		return 360.0 / (double) INT32_MAX;
 	return 0.000001;
 }
 
-static double siril_catalog_dec_multiplier(siril_cat_index cat) {
+double siril_catalog_dec_multiplier(siril_cat_index cat) {
 	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
 		return 360.0 / (double) INT32_MAX;
 	return 0.00001;
@@ -509,9 +509,6 @@ siril_catalogue *siril_catalog_new(siril_cat_index Catalog) {
 	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
 	siril_cat->cat_index = Catalog;
 	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
-	siril_cat->epoch = siril_catalog_epoch(siril_cat->cat_index);
-	siril_cat->ra_multiplier = siril_catalog_ra_multiplier(siril_cat->cat_index);
-	siril_cat->dec_multiplier = siril_catalog_dec_multiplier(siril_cat->cat_index);
 	return siril_cat;
 }
 
@@ -935,11 +932,12 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	use_proper_motion = use_proper_motion && can_use_proper_motion(fit, siril_cat);
 	use_velocity = use_velocity && can_use_velocity(fit, siril_cat);
 	gboolean has_second_star = siril_cat->cat_index == CAT_AN_CONST;
+	double cat_epoch = siril_catalog_epoch(siril_cat->cat_index);
 	if (use_proper_motion) {
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
 		gdouble jd = date_time_to_Julian(dt);
 		g_date_time_unref(dt);
-		jyears = (jd - siril_cat->epoch) / 365.25;
+		jyears = (jd - cat_epoch) / 365.25;
 	}
 	if (use_velocity) {
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
@@ -1038,6 +1036,7 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC))
 		return 1;
 	double jyears = 0.;
+	double cat_epoch = siril_catalog_epoch(siril_cat->cat_index);
 	if (use_proper_motion) {
 		if (!date_obs) {
 			siril_log_color_message(_("no DATE-OBS information, cannot account for stars proper motions\n"), "salmon");
@@ -1049,7 +1048,7 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 			GDateTime *dt = g_date_time_ref(date_obs);
 			gdouble jd = date_time_to_Julian(dt);
 			g_date_time_unref(dt);
-			jyears = (jd - siril_cat->epoch) / 365.25;
+			jyears = (jd - cat_epoch) / 365.25;
 		}
 	}
 	dec0 *= DEGTORAD;

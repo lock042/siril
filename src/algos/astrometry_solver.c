@@ -1929,9 +1929,9 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	rectangle croparea = { 0 };
 	if (!args->manual) {
 		// first checking if there is a selection or if the full field is to be used (siril only)
-		if (args->solver == SOLVER_SIRIL && com.selection.w != 0 && com.selection.h != 0) {
-			memcpy(&croparea, &com.selection, sizeof(rectangle));
-			siril_log_color_message(_("Warning: using the current selection to detect stars\n"), "salmon");
+		if (!args->autocrop && args->solver == SOLVER_SIRIL && args->solvearea.w != 0 && args->solvearea.h != 0) {
+			memcpy(&croparea, &args->solvearea, sizeof(rectangle));
+			siril_log_color_message(_("Using the current selection to detect stars\n"), "salmon");
 			selected = TRUE;
 		} else {
 			croparea.x = 0;
@@ -1999,6 +1999,15 @@ void process_plate_solver_input(struct astrometry_data *args) {
 
 	compute_limit_mag(args); // to call after having set args->used_fov
 
+	// selecting local catalogues if available
+	if ((args->ref_stars->cat_index == CAT_GAIADR3 || args->ref_stars->cat_index == CAT_AUTO) &&
+		local_gaia_available()) {
+		args->ref_stars->cat_index = CAT_LOCAL_GAIA_ASTRO;
+	} else if ((args->ref_stars->cat_index == CAT_TYCHO2 || args->ref_stars->cat_index == CAT_NOMAD || args->ref_stars->cat_index == CAT_AUTO) &&
+		local_kstars_available()) {
+		args->ref_stars->cat_index = CAT_LOCAL_KSTARS;
+	}
+	// selecting online catalogues if needed
 	if (args->ref_stars->cat_index == CAT_AUTO) {
 		if (args->ref_stars->limitmag <= 6.5) {
 			args->ref_stars->cat_index = CAT_BSC;
@@ -2069,58 +2078,10 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		return 0;
 	}
 
-	// we detect stars first (using aargs_master)
-	int nb_stars = 0;
-	psf_star **stars = NULL;
-
-	struct starfinder_data *sf_data = findstar_image_worker(aargs_master->sfargs, -1, i, fit, area, threads);
-	if (sf_data) {
-		stars = *sf_data->stars;
-		nb_stars = *sf_data->nb_stars;
-		free(sf_data);
-	}
-
-	if (aargs_master->update_reg && nb_stars) {
-		float FWHMx, FWHMy, B;
-		char *units;
-		FWHM_stats(stars, nb_stars, arg->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
-		regdata *current_regdata = arg->seq->regparam[aargs_master->layer];
-		current_regdata[i].roundness = FWHMy/FWHMx;
-		current_regdata[i].fwhm = FWHMx;
-		current_regdata[i].weighted_fwhm = FWHMx;
-		current_regdata[i].background_lvl = B;
-		current_regdata[i].number_of_stars = nb_stars;
-		current_regdata[i].H = (Homography){ 0 }; // we will update it in the finalize_hook
-	}
-
-	if (!nb_stars) {
-		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
-		arg->seq->imgparam[o].incl = FALSE;
-		return 1;
-	}
-
-	if (!aargs_master->force && has_wcs(fit)) { // we have filled the regparam and allow to skip, we skip now
-		int status = 0;
-		struct wcsprm *wcs = wcs_deepcopy(fit->keywords.wcslib, &status);
-		if (status) {
-			siril_log_color_message(_("Could not copy WCS data, skipping image %d\n"), "salmon", i + 1);
-		} else {
-			memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
-			g_atomic_int_inc(&aargs_master->seqskipped);
-			siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
-		}
-		free_fitted_stars(stars);
-		g_atomic_int_inc(&aargs_master->seqprogress);
-		return status;
-	}
-
 	// We prepare to platesolve and collect the catalog inputs
 	struct astrometry_data *aargs = copy_astrometry_args(aargs_master);
 	if (!aargs)
 		return 1;
-	aargs->fit = fit;
-	aargs->manual = TRUE;
-	aargs->stars = stars;
 
 	char root[256];
 	if (!fit_sequence_get_image_filename(arg->seq, i, root, FALSE)) {
@@ -2176,13 +2137,69 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			}
 		}
 	}
+
+	// we need to call process_plate_solver_input and finding stars to implement the slection if any
+	aargs->fit = fit;
+	process_plate_solver_input(aargs);
+	if (aargs->solvearea.w != 0 && aargs->solvearea.h != 0) {
+		aargs->sfargs->selection = aargs->solvearea;
+	}
+
+	// we detect stars (using aargs)
+	int nb_stars = 0;
+	psf_star **stars = NULL;
+
+	struct starfinder_data *sf_data = findstar_image_worker(aargs->sfargs, -1, i, fit, NULL, threads);
+	if (sf_data) {
+		stars = *sf_data->stars;
+		nb_stars = *sf_data->nb_stars;
+		free(sf_data);
+	}
+
+	if (aargs_master->update_reg && nb_stars) {
+		float FWHMx, FWHMy, B;
+		char *units;
+		FWHM_stats(stars, nb_stars, arg->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+		regdata *current_regdata = arg->seq->regparam[aargs_master->layer];
+		current_regdata[i].roundness = FWHMy/FWHMx;
+		current_regdata[i].fwhm = FWHMx;
+		current_regdata[i].weighted_fwhm = FWHMx;
+		current_regdata[i].background_lvl = B;
+		current_regdata[i].number_of_stars = nb_stars;
+		current_regdata[i].H = (Homography){ 0 }; // we will update it in the finalize_hook
+	}
+
+	if (!nb_stars) {
+		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
+		arg->seq->imgparam[i].incl = FALSE;
+		return 1;
+	}
+
+	if (!aargs_master->force && has_wcs(fit)) { // we have filled the regparam and allow to skip, we skip now
+		int status = 0;
+		struct wcsprm *wcs = wcs_deepcopy(fit->keywords.wcslib, &status);
+		if (status) {
+			siril_log_color_message(_("Could not copy WCS data, skipping image %d\n"), "salmon", i + 1);
+		} else {
+			memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
+			g_atomic_int_inc(&aargs_master->seqskipped);
+			siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
+		}
+		free_fitted_stars(stars);
+		free(aargs);
+
+		g_atomic_int_inc(&aargs_master->seqprogress);
+		return status;
+	}
+
+	aargs->manual = TRUE;
+	aargs->stars = stars;
 	if (aargs->solver == SOLVER_LOCALASNET)
 		aargs->filename = g_strdup(root);	// for localasnet
 
 	if (i == arg->seq->reference_image) { // we want to save master distortion only once for ref image
 		aargs->distofilename = g_strdup(aargs_master->distofilename);
 	}
-	process_plate_solver_input(aargs);
 
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
 

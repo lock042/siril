@@ -242,6 +242,9 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	args->starfile = NULL;
 	args->threading = MULTI_THREADED;
 	args->update_GUI = TRUE;
+	if (com.selection.w != 0 && com.selection.h != 0) {
+		args->selection = com.selection;
+	}
 
 	if (!start_in_new_thread(findstar_worker, args)) {
 		free(args);
@@ -348,7 +351,6 @@ int remove_star(int index) {
 gboolean end_findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *) p;
 	stop_processing_thread();
-	refresh_star_list();
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;

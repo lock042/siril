@@ -1207,7 +1207,8 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		curr_findstar_args->onepass = TRUE;
 	}
 	curr_findstar_args->threading = threads;
-	gboolean can_use_cache = !(com.selection.w != 0 && com.selection.h != 0); //TODO: not ideal, would be better to be passed as args to starfinder_data (to be used in findstar_worker)
+	rectangle selection = findstar_args->selection;
+	gboolean can_use_cache = !(selection.w != 0 && selection.h != 0);
 
 	int retval = 0;
 	gchar *star_filename = NULL;
@@ -1363,12 +1364,10 @@ gpointer findstar_worker(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *)p;
 	int retval = 0;
 	int nbstars = 0;
-	rectangle *selection = NULL;
-	if (com.selection.w != 0 && com.selection.h != 0) //TODO: not ideal, would be better to be passed as args to starfinder_data
-		selection = &com.selection;
 	gboolean limit_stars = (args->max_stars_fitted > 0);
 	int threads = check_threading(&args->threading);
 	fits *green_fit = NULL;
+	gboolean has_selection = args->selection.w != 0 && args->selection.h != 0;
 	if (args->im.fit->keywords.bayer_pattern[0] != '\0') {
 		green_fit = calloc(1, sizeof(fits));
 		copyfits(args->im.fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
@@ -1377,7 +1376,7 @@ gpointer findstar_worker(gpointer p) {
 		siril_log_color_message(_("Undebayered CFA image. Detection is done on green pixels only, using interpolation\n"), "salmon");
 	}
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
-			selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
+			&args->selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
 	if (green_fit) {
 		clearfits(green_fit);
 		free(green_fit);
@@ -1430,11 +1429,11 @@ gpointer findstar_worker(gpointer p) {
 	}
 
 	if (args->update_GUI)
-		update_star_list(stars, TRUE, TRUE);
+		update_star_list(stars, TRUE, FALSE);
 
 	siril_log_message(_("Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"), nbstars,
 			com.pref.starfinder_conf.profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),
-			selection ? _("selection") : _("image"), args->layer, fwhm);
+			has_selection ? _("selection") : _("image"), args->layer, fwhm);
 	if (args->starfile &&
 			save_list(args->starfile, args->max_stars_fitted, stars, nbstars,
 				&com.pref.starfinder_conf, args->layer, args->update_GUI)) {

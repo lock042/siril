@@ -1933,7 +1933,7 @@ int process_update_key(int nb) {
 		if (strlen(__key__) > 8) { \
 			siril_log_color_message(_("The size of the key can't exceed 8 characters.\n"), "red"); \
 			g_free(__key__); \
-			if (!check_seq_is_comseq(seq)) \
+			if (!check_seq_is_comseq(__seq__)) \
 				free_sequence(__seq__, TRUE); \
 			free(__args__); \
 			return CMD_ARG_ERROR; \
@@ -5312,7 +5312,7 @@ int process_findstar(int nb) {
 	args->starfile = NULL;
 	args->max_stars_fitted = 0;
 	args->threading = MULTI_THREADED;
-	args->update_GUI = (!com.headless && !com.script);
+	args->update_GUI = !com.script;
 	siril_debug_print("findstar profiling %s stars\n", (com.pref.starfinder_conf.profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat");
 
 	cmd_errors argparsing = parse_findstar(args, 1, nb);
@@ -5322,9 +5322,8 @@ int process_findstar(int nb) {
 		free(args);
 		return argparsing;
 	}
-	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		siril_log_color_message(_("Warning: an undebayered CFA image is loaded. Star detection may produce results for this image but will not perform optimally and star parameters may be inaccurate.\n"), "salmon");
+	if (!com.script && com.selection.w != 0 && com.selection.h != 0) {
+		args->selection = com.selection;
 	}
 
 	if (!start_in_new_thread(findstar_worker, args)) {
@@ -10227,21 +10226,6 @@ int process_platesolve(int nb) {
 		goto clean_and_exit_platesolve; // not an arror, retval is CMD_OK
 	}
 
-	if (cat == CAT_AUTO && local_catalogues_available()) {
-		cat = local_gaia_available() ? CAT_LOCAL_GAIA_ASTRO : CAT_LOCAL_KSTARS;
-		nocache = TRUE; // we solve each image individually when using local catalogues
-		siril_debug_print("forced no cache when using local catalogues\n");
-	}
-
-	if (local_kstars_available() && (cat == CAT_TYCHO2 || CAT_NOMAD) && solver == SOLVER_SIRIL) {
-		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
-				"salmon", catalog_to_str(cat));
-	}
-	if (local_gaia_available() && cat == CAT_GAIADR3 && solver == SOLVER_SIRIL) {
-		siril_log_color_message(_("Using remote instead of local GAIA catalogue\n"),
-				"salmon");
-	}
-
 	if (solver == SOLVER_LOCALASNET && !asnet_is_available()) {
 		siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
 		retval = CMD_GENERIC_ERROR;
@@ -10375,13 +10359,21 @@ int process_platesolve(int nb) {
 	args->solver = solver;
 	args->downsample = downsample;
 	args->autocrop = autocrop && solver == SOLVER_SIRIL; // we don't crop fov when using asnet
-	args->nocache = nocache || solver == SOLVER_LOCALASNET || cat == CAT_LOCAL_KSTARS || cat == CAT_LOCAL_GAIA_ASTRO;
+	args->nocache = nocache || 
+					solver == SOLVER_LOCALASNET || 
+					((cat == CAT_AUTO || cat == CAT_GAIADR3 || cat == CAT_NOMAD || cat == CAT_TYCHO2) && local_catalogues_available());
 	if (!searchradius && solver == SOLVER_LOCALASNET && !asnet_blind_pos) {
 		args->searchradius = com.pref.astrometry.radius_degrees;
 		siril_log_color_message(_("Cannot force null radius for localasnet if not blind solving, using default instead\n"), "red");
 	} else {
 		args->searchradius = searchradius;
 	}
+
+	if (!com.script && com.selection.w > 0 && com.selection.h > 0 && (!seqps || !seq->is_variable)) {
+		args->solvearea = com.selection;
+		args->autocrop = FALSE;
+	}
+
 	if (distofilename) {
 		args->distofilename = distofilename;
 	}
@@ -10447,7 +10439,7 @@ int process_platesolve(int nb) {
 	}
 	return CMD_OK;
 clean_and_exit_platesolve:
-	if (seq && check_seq_is_comseq(seq))
+	if (seq && !check_seq_is_comseq(seq))
 		free_sequence(seq, TRUE);
 	if (target_coords)
 		siril_world_cs_unref(target_coords);

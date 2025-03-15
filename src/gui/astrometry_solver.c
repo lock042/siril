@@ -855,11 +855,15 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 			args->searchradius = gtk_spin_button_get_value(radiusspin);
 		}
 		args->cat_center = catalog_center;
-		siril_cat_index cat_index =  uselocal ? get_local_catalogue_index() : autocat ? CAT_AUTO : cat;
+		siril_cat_index cat_index =  autocat ? CAT_AUTO : cat;
 		args->ref_stars = siril_catalog_new(cat_index);
 		args->ref_stars->center_ra = siril_world_cs_get_alpha(catalog_center);
 		args->ref_stars->center_dec = siril_world_cs_get_delta(catalog_center);
-
+		if (com.selection.w != 0 && com.selection.h != 0 && (!args->for_sequence || !com.seq.is_variable)) {
+			// we can't use selection for variable size sequences
+			args->solvearea = com.selection;
+			args->autocrop = FALSE; // we force the selection instead of autocrop
+		}
 		if (args->for_sequence) {
 			// we solve each image individually if:
 			// - we use local catalogues

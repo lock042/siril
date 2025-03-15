@@ -733,8 +733,8 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	deepStarData *stars = NULL;
 	uint32_t nb_stars;
 
-	double ra_mult = siril_cat->ra_multiplier;
-	double dec_mult = siril_cat->dec_multiplier;
+	double ra_mult = siril_catalog_ra_multiplier(siril_cat->cat_index);
+	double dec_mult = siril_catalog_dec_multiplier(siril_cat->cat_index);
 
 	if (siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP) {
 		SourceEntryXPsamp *stars = NULL;
