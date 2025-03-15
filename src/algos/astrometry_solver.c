@@ -2077,6 +2077,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
 		return 0;
 	}
+	arg->seq->imgparam[i].incl = FALSE;
 
 	// We prepare to platesolve and collect the catalog inputs
 	struct astrometry_data *aargs = copy_astrometry_args(aargs_master);
@@ -2094,47 +2095,39 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 	if (aargs->nocache) {
 		if (!aargs->forced_metadata[FORCED_CENTER] && aargs->cat_center) { // center coordinates where not forced, we need to read new ones from header or skip if blind for asnet
-			siril_world_cs_unref(aargs->cat_center);
 			SirilWorldCS *target_coords = get_eqs_from_header(fit);
-			aargs->cat_center = target_coords;
-			if (aargs->ref_stars && target_coords) {
-				aargs->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
-				aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+			if (target_coords) {
+				siril_world_cs_unref(aargs->cat_center);
+				aargs->cat_center = target_coords;
+				if (aargs->ref_stars && target_coords) {
+					aargs->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
+					aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+				}
+			} else {
+				siril_log_color_message(_("Could not retrieve center coordinates from image %s metadata, using reference image value instead\n"), "salmon", root);
 			}
-		}
-		if (aargs->solver == SOLVER_SIRIL && !aargs->cat_center) { // we need a cat_center for Siril
-			siril_debug_print("Could not set cat_center, skipping\n");
-			siril_catalog_free(aargs->ref_stars);
-			free(aargs);
-			return 1;
 		}
 		if (!aargs->forced_metadata[FORCED_PIXEL]) { // pixel size was not forced, we need to read new one from header/settings
-			aargs->pixel_size = max(fit->keywords.pixel_size_x, fit->keywords.pixel_size_y);
-			if (aargs->pixel_size <= 0.) {
-				aargs->pixel_size = com.pref.starfinder_conf.pixel_size_x;
-				if (aargs->pixel_size <= 0.0) {
-					siril_log_color_message(_("Could not retrieve pixel size from image %s metadata or settings, skipping\n"), "red", root);
-					siril_catalog_free(aargs->ref_stars);
-					if (aargs->cat_center) // not filled if asnet blind solve
-						siril_world_cs_unref(aargs->cat_center);
-					free(aargs);
-					return 1;
+			double pixel_size = max(fit->keywords.pixel_size_x, fit->keywords.pixel_size_y);
+			if (pixel_size <= 0.) {
+				pixel_size = com.pref.starfinder_conf.pixel_size_x;
+				if (pixel_size <= 0.0) {
+					pixel_size = aargs->pixel_size;
+					siril_log_color_message(_("Could not retrieve pixel size from image %s metadata or settings, using reference image value instead\n"), "salmon", root);
 				}
 			}
+			aargs->pixel_size = pixel_size;
 		}
 		if (!aargs->forced_metadata[FORCED_FOCAL]) { // focal was not forced, we need to read new one from header/settings
-			aargs->focal_length = fit->keywords.focal_length;
-			if (aargs->focal_length <= 0.0) {
-				aargs->focal_length = com.pref.starfinder_conf.focal_length;
-				if (aargs->focal_length <= 0.0) {
-					siril_log_color_message(_("Could not retrieve focal length from image %s metadata or settings, skipping\n"), "red", root);
-					siril_catalog_free(aargs->ref_stars);
-					if (aargs->cat_center) // not filled if asnet blind solve
-						siril_world_cs_unref(aargs->cat_center);
-					free(aargs);
-					return 1;
+			double focal_length = fit->keywords.focal_length;
+			if (focal_length <= 0.0) {
+				focal_length = com.pref.starfinder_conf.focal_length;
+				if (focal_length <= 0.0) {
+					focal_length = aargs->focal_length;
+					siril_log_color_message(_("Could not retrieve focal length from image %s metadata or settings, using reference image value instead\n"), "red", root);
 				}
 			}
+			aargs->focal_length = focal_length;
 		}
 	}
 
@@ -2207,6 +2200,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		siril_log_color_message(_("Image %s did not solve\n"), "red", root);
 		arg->seq->imgparam[i].incl = FALSE;
 	}
+	arg->seq->imgparam[i].incl = (gboolean)!retval;
 
 	if (!retval && !arg->has_output) { // SEQ_REGULAR
 		fit_sequence_get_image_filename(arg->seq, i, root, TRUE);
