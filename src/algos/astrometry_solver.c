@@ -2077,7 +2077,8 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
 		return 0;
 	}
-	arg->seq->imgparam[i].incl = FALSE;
+	if (aargs_master->update_reg) // we don't want to exclude if it's just a seqplatesolve with astrometric registration
+		arg->seq->imgparam[i].incl = FALSE;
 
 	// We prepare to platesolve and collect the catalog inputs
 	struct astrometry_data *aargs = copy_astrometry_args(aargs_master);
@@ -2198,9 +2199,10 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 	if (retval) {
 		siril_log_color_message(_("Image %s did not solve\n"), "red", root);
-		arg->seq->imgparam[i].incl = FALSE;
 	}
-	arg->seq->imgparam[i].incl = (gboolean)!retval;
+
+	if (aargs->update_reg) // we don't want to exclude if it's just a seqplatesolve with astrometric registration
+		arg->seq->imgparam[i].incl = (gboolean)!retval;
 
 	if (!retval && !arg->has_output) { // SEQ_REGULAR
 		fit_sequence_get_image_filename(arg->seq, i, root, TRUE);
