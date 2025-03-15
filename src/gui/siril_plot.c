@@ -166,7 +166,9 @@ static gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int widt
 	if (pixbuf) {
 		GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 		gtk_clipboard_set_image(cb, pixbuf);
+#if !defined _WIN32
 		gtk_clipboard_store(cb);
+#endif
 		siril_log_message(_("Snapshot was saved into the clipboard.\n"));
 		g_object_unref(pixbuf);
 	} else {
