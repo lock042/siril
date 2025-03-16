@@ -48,6 +48,7 @@ typedef enum {
 
 struct seqpsf_args {
 	gboolean for_photometry;
+	gboolean init_from_center;
 	super_bool allow_use_as_regdata;
 	framing_mode framing;
 	char bayer_pattern[FLEN_VALUE];
@@ -74,7 +75,7 @@ fits	*internal_sequence_get(sequence *seq, int index);
 gboolean sequence_is_rgb(sequence *seq);
 gboolean	enforce_area_in_image(rectangle *area, sequence *seq, int index);
 
-int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
+int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean init_from_center, gboolean regall,
 		framing_mode framing, gboolean run_in_thread, gboolean no_GUI);
 int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area, int threads);
 void free_reference_image();

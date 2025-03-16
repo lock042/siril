@@ -1734,7 +1734,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	struct phot_config *ps = NULL;
 	if (spsfargs->for_photometry)
 		ps = phot_set_adjusted_for_image(fit);
-	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry, ps, TRUE, com.pref.starfinder_conf.profile, &error);
+	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry, spsfargs->init_from_center, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 	free(ps);
 	if (data->psf) {
 		/* for photometry ? */
@@ -1744,7 +1744,9 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 						"salmon", index, psf_error_to_string(error));
 			}
 		}
-
+		// TODO: should we check for error or not?
+		// for 3 stars reg, even though it did not converge, we still want to 
+		// have the data to make the registration even with a poor fit (or not?)
 		data->psf->xpos = data->psf->x0 + area->x;
 		if (fit->top_down)
 			data->psf->ypos = data->psf->y0 + area->y;
@@ -1966,8 +1968,9 @@ proper_ending:
  * image selection (com.selection), as a threaded operation or not.
  * expects seq->current to be valid
  */
-int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
-		framing_mode framing, gboolean run_in_thread, gboolean no_GUI) {
+int seqpsf(sequence *seq, int layer, gboolean for_registration,
+		gboolean init_from_center, gboolean regall, framing_mode framing,
+		gboolean run_in_thread, gboolean no_GUI) {
 
 	if (framing == REGISTERED_FRAME && !layer_has_usable_registration(seq, layer))
 		framing = ORIGINAL_FRAME;
@@ -1986,6 +1989,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	else spsfargs->allow_use_as_regdata = for_registration ? BOOL_TRUE : BOOL_FALSE;
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
+	spsfargs->init_from_center = init_from_center;
 
 	fits fit = { 0 };
 	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
