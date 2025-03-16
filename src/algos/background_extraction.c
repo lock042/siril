@@ -1176,20 +1176,14 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	} else if (b_args->degree > 1) {
 		siril_log_color_message(_("Warning: polynomial background removal order > 1 is not recommended for CFA images. Only linear background removal is recommended.\n"), "salmon");
 	}
-	// Obtain CFA pattern as a sensor_pattern
-	fits metadata = { 0 };
-	if (seq_read_frame_metadata(args->seq, i, &metadata)) {
-		siril_log_color_message(_("Error reading metadata.\n"), "red");
-		return 1;
-	}
 	sensor_pattern pattern;
-	if (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4)) {
+	if (!strncmp(fit->keywords.bayer_pattern, "RGGB", 4)) {
 		pattern = BAYER_FILTER_RGGB;
-	} else if (!strncmp(metadata.keywords.bayer_pattern, "BGGR", 4)) {
+	} else if (!strncmp(fit->keywords.bayer_pattern, "BGGR", 4)) {
 		pattern = BAYER_FILTER_BGGR;
-	} else if (!strncmp(metadata.keywords.bayer_pattern, "GBRG", 4)) {
+	} else if (!strncmp(fit->keywords.bayer_pattern, "GBRG", 4)) {
 		pattern = BAYER_FILTER_GBRG;
-	} else if (!strncmp(metadata.keywords.bayer_pattern, "GRBG", 4)) {
+	} else if (!strncmp(fit->keywords.bayer_pattern, "GRBG", 4)) {
 		pattern = BAYER_FILTER_GBRG;
 	} else {
 		siril_log_color_message(_("Error: unsupported CFA pattern for this operation.\n"), "red");
