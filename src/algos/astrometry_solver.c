@@ -2064,6 +2064,9 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	}
 	if (!args->nocache)
 		return get_catalog_stars(args->ref_stars);
+	if (args->solver == SOLVER_SIRIL)
+		siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
+				catalog_to_str(args->ref_stars->cat_index));
 	args->seqprogress = 0; // initialize success counter
 	args->seqskipped = 0; // initialize skipped counter
 	return 0;
@@ -2077,8 +2080,6 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
 		return 0;
 	}
-	if (aargs_master->update_reg) // we don't want to exclude if it's just a seqplatesolve with astrometric registration
-		arg->seq->imgparam[i].incl = FALSE;
 
 	// We prepare to platesolve and collect the catalog inputs
 	struct astrometry_data *aargs = copy_astrometry_args(aargs_master);
@@ -2091,6 +2092,8 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		if (aargs->cat_center) // not filled if asnet blind solve
 			siril_world_cs_unref(aargs->cat_center);
 		free(aargs);
+		if (aargs_master->update_reg) // we don't want to exclude if it's just a seqplatesolve without astrometric registration
+			arg->seq->imgparam[i].incl = FALSE;
 		return 1;
 	}
 
@@ -2162,6 +2165,9 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		current_regdata[i].number_of_stars = nb_stars;
 		current_regdata[i].H = (Homography){ 0 }; // we will update it in the finalize_hook
 	}
+
+	if (aargs_master->update_reg) // we don't want to exclude if it's just a seqplatesolve without astrometric registration
+		arg->seq->imgparam[i].incl = FALSE;
 
 	if (!nb_stars) {
 		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
@@ -2304,9 +2310,6 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 		args->force = TRUE;
 	}
 	seqargs->user = args;
-	if (args->solver == SOLVER_SIRIL)
-		siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
-				catalog_to_str(args->ref_stars->cat_index));
 	if(!start_in_new_thread(generic_sequence_worker, seqargs)) {
 		free_astrometry_data(args);
 		free_generic_seq_args(seqargs, TRUE);

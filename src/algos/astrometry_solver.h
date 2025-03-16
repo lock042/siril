@@ -7,9 +7,8 @@
 #include "algos/search_objects.h"
 #include "registration/matching/degtorad.h"
 
-#define BRIGHTEST_STARS 500
+#define BRIGHTEST_STARS 2000
 #define AT_MATCH_CATALOG_NBRIGHT 60
-
 
 typedef enum {
 	LIMIT_MAG_AUTO,

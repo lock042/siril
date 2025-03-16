@@ -707,7 +707,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	return nbstars;
 }
 
-int compare_stars_by_mag(const void* star1, const void* star2) {
+static int compare_stars_by_mag(const void* star1, const void* star2) {
 	const psf_star *s1 = *(psf_star**) star1;
 	const psf_star *s2 = *(psf_star**) star2;
 	if (s1->mag < s2->mag)
