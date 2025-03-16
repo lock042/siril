@@ -3661,7 +3661,7 @@ int process_set_mag(int nb) {
 	gboolean found = FALSE;
 	double mag = 0.0;
 	if (gui.qphot) {
-		mag = gui.qphot->mag;
+		mag = gui.qphot->phot->mag;
 		found = TRUE;
 	} else {
 		if (com.selection.w > 300 || com.selection.h > 300){
@@ -3674,14 +3674,15 @@ int process_set_mag(int nb) {
 		}
 		psf_error error;
 		struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
+		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 		free(ps);
-		if (result) {
+		if (result && result->phot_is_valid && error != PSF_NO_ERR) {
 			found = TRUE;
-			mag = result->mag;
-			free_psf(result);
+			mag = result->phot->mag;
 		}
-		else siril_log_message(_("PSF minimisation failed with error %d\n"), error);
+		else
+			siril_log_message(_("PSF minimisation failed with error %d\n"), error);
+		free_psf(result);
 	}
 	if (found) {
 		com.magOffset = mag_reference - mag;
@@ -4354,17 +4355,18 @@ int process_psf(int nb){
 	}
 
 	starprofile profile = com.pref.starfinder_conf.profile;
-	psf_error error;
+	psf_error error = PSF_NO_ERR;
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, ps, TRUE, profile, &error);
+	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, FALSE, ps, TRUE, profile, &error);
 	free(ps);
-	if (result) {
+	if (result && result->phot_is_valid && error != PSF_NO_ERR) {
 		gchar *str = format_psf_result(result, &com.selection, &gfit, NULL);
-		free_psf(result);
 		siril_log_message("%s\n", str);
 		g_free(str);
 	}
-	else siril_log_message(_("PSF minimisation failed with error %d\n"), error);
+	else
+		siril_log_message(_("PSF minimisation failed with error %d\n"), error);
+	free_psf(result);
 	return CMD_OK;
 }
 
@@ -4569,7 +4571,7 @@ int process_seq_psf(int nb) {
 		}
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
-	int retval = seqpsf(seq, layer, FALSE, FALSE, framing, TRUE, com.script);
+	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, com.script);
 	if (seq != &com.seq)
 		free_sequence(seq, TRUE);
 	return retval;

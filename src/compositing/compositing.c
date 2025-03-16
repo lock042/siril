@@ -409,6 +409,12 @@ static void grid_add_row(int layer, int index, int first_time) {
  * composition window and make it visible */
 void open_compositing_window() {
 	int i;
+	GtkWidget *button = lookup_widget("demosaicingButton");
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button))) {
+		siril_log_color_message(_("Disabling debayer-on-open setting: this must be unset in order to open monochrome images in the compositing tool.\n"), "salmon");
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), FALSE);
+	}
+
 	if (!compositing_loaded) {
 		register_selection_update_callback(update_compositing_registration_interface);
 
@@ -759,8 +765,6 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 
 	update_compositing_registration_interface();
 
-	// enable the color balance finalization button
-	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	update_result(1);
 	update_metadata(TRUE);
 	gui_function(update_MenuItem, NULL);
@@ -1569,8 +1573,6 @@ void reset_compositing_module() {
 		on_layer_add(NULL, NULL);
 	}
 	layers[i] = NULL;
-
-	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), FALSE);
 
 	gtk_widget_hide(GTK_WIDGET(color_dialog));
 	current_layer_color_choosing = 0;

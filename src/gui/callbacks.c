@@ -2364,3 +2364,16 @@ gboolean set_seq_browser_active(gpointer user_data) {
 	gtk_widget_set_sensitive(widget, state);
 	return FALSE;
 }
+
+int seq_qphot(sequence *seq, int layer) {
+	framing_mode framing = REGISTERED_FRAME;
+	if (framing == REGISTERED_FRAME && !seq->regparam[layer])
+		framing = ORIGINAL_FRAME;
+	if (framing == ORIGINAL_FRAME) {
+		GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+		if (gtk_toggle_button_get_active(follow))
+			framing = FOLLOW_STAR_FRAME;
+	}
+	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
+	return seqpsf(seq, layer, FALSE, TRUE, FALSE, framing, TRUE, com.script);
+}

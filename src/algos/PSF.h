@@ -89,7 +89,7 @@ typedef enum {
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness);
 
 psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
-		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
+		gboolean for_photometry, gboolean init_from_center, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error);
 
 psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence,
