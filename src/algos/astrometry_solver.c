@@ -2165,7 +2165,6 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 	if (!nb_stars) {
 		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
-		arg->seq->imgparam[i].incl = FALSE;
 		return 1;
 	}
 
@@ -2178,11 +2177,11 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
 			g_atomic_int_inc(&aargs_master->seqskipped);
 			siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
+			arg->seq->imgparam[i].incl = TRUE;
+			g_atomic_int_inc(&aargs_master->seqprogress);
 		}
 		free_fitted_stars(stars);
 		free(aargs);
-
-		g_atomic_int_inc(&aargs_master->seqprogress);
 		return status;
 	}
 
