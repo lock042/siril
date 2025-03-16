@@ -5870,6 +5870,10 @@ int process_subsky(int nb) {
 		if (!seq) {
 			return CMD_SEQUENCE_NOT_FOUND;
 		}
+		if (check_seq_is_comseq(seq)) {
+			free_sequence(seq, TRUE);
+			seq = &com.seq;
+		}
 	} else {
 		if (!single_image_is_loaded()) return CMD_IMAGE_NOT_FOUND;
 		dithering = FALSE;
