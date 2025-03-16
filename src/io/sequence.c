@@ -2277,9 +2277,13 @@ gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filen
 				stat(img_filename, &imgfileInfo) ||
 				stat(cache_filename, &cachefileInfo))
 			return FALSE;
-		if (cachefileInfo.st_mtime < imgfileInfo.st_mtime)
+		if (cachefileInfo.st_ctime < imgfileInfo.st_ctime) {
 			siril_debug_print("%s is older than %s\n", cache_filename, img_filename);
-		return (cachefileInfo.st_mtime >= imgfileInfo.st_mtime);
+			if (!g_unlink(cache_filename))
+				siril_debug_print(_("Removed outdated cache file % failed\n"), cache_filename);
+			return FALSE;
+		}
+		return TRUE;
 	}
 	// else, we check the sequence date vs cachefile date
 	gchar *seqname;
@@ -2288,7 +2292,7 @@ gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filen
 	else seqname = seq->fitseq_file->filename;
 	if (stat(seqname, &imgfileInfo) || stat(cache_filename, &cachefileInfo))
 		return FALSE;
-	return (cachefileInfo.st_mtime >= imgfileInfo.st_mtime);
+	return (cachefileInfo.st_ctime >= imgfileInfo.st_ctime);
 }
 
 gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix) {
