@@ -802,9 +802,11 @@ free_and_exit:
 /* Returns the largest FWHM in pixels
  * The optional output parameter roundness is the ratio between the two axis FWHM */
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness) {
-	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, NULL, TRUE, com.pref.starfinder_conf.profile, NULL);
-	if (result == NULL) {
+	psf_error error = PSF_NO_ERR;
+	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, NULL, TRUE, com.pref.starfinder_conf.profile, &error);
+	if (result == NULL || error) {
 		*roundness = 0.0;
+		free_psf(result);
 		return 0.0;
 	}
 	double retval;

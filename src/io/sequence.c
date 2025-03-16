@@ -1744,7 +1744,9 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 						"salmon", index, psf_error_to_string(error));
 			}
 		}
-
+		// TODO: should we check for error or not?
+		// for 3 stars reg, even though it did not converge, we still want to 
+		// have the data to make the registration even with a poor fit (or not?)
 		data->psf->xpos = data->psf->x0 + area->x;
 		if (fit->top_down)
 			data->psf->ypos = data->psf->y0 + area->y;

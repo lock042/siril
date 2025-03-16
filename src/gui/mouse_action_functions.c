@@ -483,9 +483,15 @@ gboolean main_action_click(mouse_data *data) {
 				if (data->zoomed.x - area.w > 0 && data->zoomed.x + area.w < gfit.rx
 						&& data->zoomed.y - area.h > 0 && data->zoomed.y + area.h < gfit.ry) {
 					ps = phot_set_adjusted_for_image(&gfit);
-					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
+					psf_error error = PSF_NO_ERR;
+					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 					free(ps);
 					if (gui.qphot) {
+						if (!gui.qphot->phot_is_valid || error != PSF_NO_ERR) {
+							free_psf(gui.qphot);
+							gui.qphot = NULL;
+							break;
+						}
 						gui.qphot->xpos = gui.qphot->x0 + area.x;
 						if (gfit.top_down)
 							gui.qphot->ypos = gui.qphot->y0 + area.y;

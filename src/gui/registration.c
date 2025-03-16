@@ -451,8 +451,9 @@ void on_button_comet_clicked(GtkButton *button, gpointer p) {
 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
-		if (result && (result->x0 <= 0. || result->x0 >= com.selection.w || result->y0 <= 0. || result->x0 >= com.selection.h)) { // we check result is inside the selection box
+		psf_error error = PSF_NO_ERR;
+		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
+		if (result && (result->x0 <= 0. || result->x0 >= com.selection.w || result->y0 <= 0. || result->x0 >= com.selection.h) && error != PSF_NO_ERR) { // we check result is inside the selection box
 			siril_log_color_message(_("Comet PSF center is out of the box, will use selection center instead\n"), "salmon");
 			free_psf(result);
 			result = NULL;
@@ -466,6 +467,7 @@ void on_button_comet_clicked(GtkButton *button, gpointer p) {
 			pos.x = 0.5 * (double)com.selection.w + com.selection.x;
 			pos.y = com.selection.y + com.selection.h - 0.5 * (double)com.selection.h;
 		}
+		free_psf(result);
 		if (layer_has_registration(&com.seq, layer) &&
 				guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
 				guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
