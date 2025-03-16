@@ -962,18 +962,17 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 		case SEQ_FITSEQ:
 			assert(seq->fitseq_file);
 			if (seq->fitseq_file->thread_fptr) {
-				int thread_id = -1;
 #ifdef _OPENMP
-				// we won't have thread_id if we are not in an OpenMP context 
-				// but won't have a thread_fptr array either so we shouln't be here 
-				thread_id = omp_get_thread_num();
-#endif
+				int thread_id = omp_get_thread_num();
 				dest->fptr = seq->fitseq_file->thread_fptr[thread_id];
 				if (read_fits_metadata(dest)) {
 					siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
 							index, seq->seqname);
 					return 1;
 				}
+#else
+				return 1;
+#endif
 			} else {
 				dest->fptr = seq->fitseq_file->fptr;
 				if (fitseq_set_current_frame(seq->fitseq_file, index) ||
