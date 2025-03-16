@@ -599,7 +599,7 @@ int register_shift_fwhm(struct registration_args *args) {
 	 * images to register, which provides FWHM but also star coordinates */
 	// TODO: detect that it was already computed, and don't do it again
 	// -> should be done at a higher level and passed in the args
-	if (seqpsf(args->seq, args->layer, TRUE, !args->filters.filter_included, framing, FALSE, TRUE))
+	if (seqpsf(args->seq, args->layer, TRUE, FALSE, !args->filters.filter_included, framing, FALSE, TRUE))
 		return 1;
 
 	// regparam is managed in seqpsf idle function already

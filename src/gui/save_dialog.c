@@ -895,8 +895,9 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 		if (clipboard) {
 			GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 			gtk_clipboard_set_image(cb, pixbuf);
+#if !defined _WIN32
 			gtk_clipboard_store(cb);
-
+#endif
 			GtkWidget *w = lookup_widget("header_snapshot_button");
 			GtkWidget *popover = snapshot_notification(w, NULL, pixbuf);
 			g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
