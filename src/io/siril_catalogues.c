@@ -1396,7 +1396,7 @@ gpointer conesearch_worker(gpointer p) {
 			}
 			psf_error error = PSF_NO_ERR;
 			int layer = (args->fit->naxes[2] == 3) ? GLAYER : RLAYER;
-			psf_star *star = psf_get_minimisation(args->fit, layer, &area, FALSE, NULL,
+			psf_star *star = psf_get_minimisation(args->fit, layer, &area, FALSE, FALSE, NULL,
 												  FALSE, com.pref.starfinder_conf.profile, &error);
 			if (star && !error) {
 				dx[k] = area.x + star->x0;

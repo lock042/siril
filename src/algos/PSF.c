@@ -802,9 +802,11 @@ free_and_exit:
 /* Returns the largest FWHM in pixels
  * The optional output parameter roundness is the ratio between the two axis FWHM */
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness) {
-	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, NULL, TRUE, com.pref.starfinder_conf.profile, NULL);
-	if (result == NULL) {
+	psf_error error = PSF_NO_ERR;
+	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, NULL, TRUE, com.pref.starfinder_conf.profile, &error);
+	if (result == NULL || error) {
 		*roundness = 0.0;
+		free_psf(result);
 		return 0.0;
 	}
 	double retval;
@@ -821,7 +823,7 @@ double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundnes
  * verbose is used in photometry only, to inform that inner is too small for example
  */
 psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
-		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
+		gboolean for_photometry, gboolean init_from_center, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error) {
 	int stridefrom, i, j;
 	psf_star *result;
@@ -872,7 +874,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 		return NULL;
 	}
 
-	result = psf_global_minimisation(z, bg, sat, com.pref.starfinder_conf.convergence, FALSE, for_photometry, phot_set, verbose, profile, error);
+	result = psf_global_minimisation(z, bg, sat, com.pref.starfinder_conf.convergence, init_from_center, for_photometry, phot_set, verbose, profile, error);
 
 	if (result) {
 		fwhm_to_arcsec_if_needed(fit, result);

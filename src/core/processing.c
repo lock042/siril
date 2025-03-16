@@ -914,7 +914,7 @@ gboolean end_generic(gpointer arg) {
  * return 0 if idle was not added
  */
 guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
-	if (!com.script && !com.headless)
+	if (!com.script && !com.python_script && !com.headless)
 		return gdk_threads_add_idle(idle_function, data);
 	return 0;
 }

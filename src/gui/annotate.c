@@ -236,8 +236,9 @@ void on_show_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_show_button_get_coords_clicked(GtkButton *button, gpointer user_data) {
 	if (has_wcs(&gfit) && (com.selection.h && com.selection.w)) {
-		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
-		if (result) {
+		psf_error error = PSF_NO_ERR;
+		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
+		if (result && error == PSF_NO_ERR) {
 			double world_x, world_y;
 			gchar *ra, *dec;
 
@@ -262,6 +263,7 @@ void on_show_button_get_coords_clicked(GtkButton *button, gpointer user_data) {
 				}
 			}
 		}
+		free_psf(result);
 	}
 }
 

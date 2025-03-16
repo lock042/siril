@@ -272,8 +272,8 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 		profile = com.pref.starfinder_conf.profile;
 
 	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, TRUE, profile, NULL);
-	if (!result)
+	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, NULL, TRUE, profile, NULL);
+	if (!result) // we don't check for errors as we assume the user has selected a star
 		return NULL;
 	result->angle = -result->angle; // we need to invert the angle because of the way the matrix is passed to minimizer
 	/* We do not check if it's matching with the "reject_star()" criteria.

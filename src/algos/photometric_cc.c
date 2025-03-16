@@ -264,7 +264,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
 			// Photometry
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, FALSE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
 			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR) {
 				no_phot = TRUE;
 			} else {
@@ -576,7 +576,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		gboolean no_phot = FALSE;
 		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, FALSE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
 			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
 				no_phot = TRUE;
 			else flux[chan] = powf(10.f, -0.4f * (float) photometry->mag);
