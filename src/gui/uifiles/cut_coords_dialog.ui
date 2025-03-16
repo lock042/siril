@@ -225,7 +225,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="tooltip-text" translatable="yes">Find a star in the current selection and set the start point to its location</property>
                     <property name="label" translatable="yes">*</property>
                     <property name="use-underline">True</property>
-                    <signal name="clicked" handler="on_start_select_from_star_clicked" swapped="no"/>
+                    <signal name="clicked" handler="on_select_from_star_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -250,7 +250,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="tooltip-text" translatable="yes">Find a star in the current selection and set the end point to its location</property>
                     <property name="label" translatable="yes">*</property>
                     <property name="use-underline">True</property>
-                    <signal name="clicked" handler="on_end_select_from_star_clicked" swapped="no"/>
+                    <signal name="clicked" handler="on_select_from_star_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>

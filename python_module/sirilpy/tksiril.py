@@ -3,12 +3,11 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import tkinter as tk
+from tkinter import ttk
 from .connection import SirilInterface
 
-import tkinter as tk
-import tkinter.ttk as ttk
-
-def create_tooltip(widget, text, max_width=300, wrap_length=250):
+def create_tooltip(widget, text, wrap_length=250):
     """
     Create a tooltip for a given Tkinter widget.
 
@@ -88,14 +87,6 @@ def match_theme_to_siril(themed_tk, s):
         s.__class__.__name__  # Ensure the object is instantiated
     except Exception:
         raise TypeError("Invalid SirilInterface object")
-
-    # Strict type checking for themed_tk
-    # Check for ThemedTk or ttkbootstrap.ThemedTk
-    valid_tk_types = [
-        'ThemedTk',  # ttkthemes
-        'ThemedStyle',  # ttk.Style from ttkthemes
-        'Tk'  # fallback for standard Tkinter if needed
-    ]
 
     # Check if themed_tk has the required method
     if not (hasattr(themed_tk, 'set_theme') or

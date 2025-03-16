@@ -37,6 +37,7 @@
 #include "algos/siril_random.h"
 #include "algos/background_extraction.h"
 #include "algos/statistics.h"
+#include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/siril_pythoncommands.h"
@@ -483,6 +484,15 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	return info;
 }
 
+static gboolean update_sliders_after_set_pixeldata(gpointer user_data) {
+	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
+
+	sliders_mode_set_state(gui.sliders);
+	set_cutoff_sliders_max_values();
+	set_cutoff_sliders_values();
+	return FALSE;
+}
+
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
 	if (!conn->thread_claimed) {
 		const char* error_msg = _("Processing thread is not claimed: unable to update the current image. "
@@ -630,12 +640,21 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 
 	invalidate_stats_from_fit(fit);
+	// Update gfit metadata
+	fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
+	fit->rx = fit->naxes[0] = info->width;
+	fit->ry = fit->naxes[1] = info->height;
+	fit->naxes[2] = info->channels;
 	if (fit == &gfit) {
-		// Update gfit metadata
-		fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
-		fit->rx = fit->naxes[0] = info->width;
-		fit->ry = fit->naxes[1] = info->height;
-		fit->naxes[2] = info->channels;
+		if (!com.headless) {
+			if (g_main_context_is_owner(g_main_context_default())) {
+				// it is safe to call the function directly
+				update_sliders_after_set_pixeldata(NULL);
+			} else {
+				// we aren't in the GTK main thread or a script, so we run the idle and wait for it
+				execute_idle_and_wait_for_it(update_sliders_after_set_pixeldata, NULL);
+			}
+		}
 		siril_debug_print("set_*_pixeldata: updating gfit\n");
 		queue_redraw(REMAP_ALL);
 	}
@@ -785,6 +804,61 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 
 	// Free the positions list
 	g_slist_free_full(pts, free);
+
+	// Cleanup shared memory
+	#ifdef _WIN32
+	UnmapViewOfFile(shm_ptr);
+	CloseHandle(win_handle.mapping);
+	#else
+	munmap(shm_ptr, info->size);
+	close(fd);
+	#endif
+
+	return send_response(conn, STATUS_OK, NULL, 0);
+}
+
+gboolean handle_set_image_header_request(Connection* conn, const incoming_image_info_t* info) {
+	// Open shared memory
+	void* shm_ptr = NULL;
+	#ifdef _WIN32
+	win_shm_handle_t win_handle = {NULL, NULL};
+	HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
+	if (mapping == NULL) {
+		const char* error_msg = "Failed to open shared memory mapping";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
+	if (shm_ptr == NULL) {
+		CloseHandle(mapping);
+		const char* error_msg = "Failed to map shared memory view";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	win_handle.mapping = mapping;
+	win_handle.ptr = shm_ptr;
+	#else
+	int fd = shm_open(info->shm_name, O_RDONLY, 0);
+	if (fd == -1) {
+		const char* error_msg = _("Failed to open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
+	if (shm_ptr == MAP_FAILED) {
+		close(fd);
+		const char* error_msg = _("Failed to map shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	#endif
+	if (!shm_ptr) {
+		const char* error_msg = _("Error: could not open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Unpack the FITS header string
+	char *header = (char*) shm_ptr;
+	fits_parse_header_str(&gfit, header);
+	update_fits_header(&gfit);
+
+	gui_function(update_MenuItem, NULL);
 
 	// Cleanup shared memory
 	#ifdef _WIN32
@@ -1392,6 +1466,8 @@ gboolean delete_directory(const gchar *dir_path, GError **error) {
 		return FALSE;
 	}
 
+	siril_debug_print("Deleting %s...\n", dir_path);
+
 	while ((name = g_dir_read_name(dir))) {
 		full_path = g_build_filename(dir_path, name, NULL);
 
@@ -1653,9 +1729,21 @@ cleanup:
 
 void rebuild_venv() {
 	gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
-	GError *error = NULL;
+	gchar *user_module_path = g_build_filename(g_get_user_data_dir(), "siril", ".python_module", NULL);
+	GError *error = NULL, *error2 = NULL;
 	kill_all_python_scripts();
 	delete_directory(venv_path, &error);
+	delete_directory(user_module_path, &error2);
+	g_free(venv_path);
+	g_free(user_module_path);
+	if (error) {
+		siril_log_color_message(error->message, "red");
+		g_error_free(error);
+	}
+	if (error2) {
+		siril_log_color_message(error2->message, "red");
+		g_error_free(error2);
+	}
 	initialize_python_venv_in_thread();
 }
 
@@ -1694,21 +1782,21 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 
 #ifdef _WIN32
 		gchar *bundle_python_exe = NULL;
-		sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL); // we want to find system python not mingw64 python
+		const gchar *sirilrootpath = get_siril_bundle_path();
+		printf("Siril bundle path: %s\n", sirilrootpath);
+		bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
+		printf("Bundle python path: %s\n", bundle_python_exe);
+		if (g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE))
+			printf("Python found in bundle: %s\n", bundle_python_exe);
+		else {
+			g_free(bundle_python_exe);
+			bundle_python_exe = NULL;
+		}
+		if (!bundle_python_exe)
+			sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL); // we want to find system python not mingw64 python
+
 		if (sys_python_exe)
 			printf("Python found in system: %s\n", sys_python_exe);
-		if (!sys_python_exe) {
-			const gchar *sirilrootpath = get_siril_bundle_path();
-			printf("Siril bundle path: %s\n", sirilrootpath);
-			bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
-			printf("Bundle python path: %s\n", bundle_python_exe);
-			if (g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE))
-				printf("Python found in bundle: %s\n", bundle_python_exe);
-			else {
-				g_free(bundle_python_exe);
-				bundle_python_exe = NULL;
-			}
-		}
 
 		if (!sys_python_exe && !bundle_python_exe) {
 			siril_log_color_message(_("No python installation found in the system or in the bundle, aborting\n"), "red");

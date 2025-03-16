@@ -1970,7 +1970,6 @@ void copy_roi_into_gfit() {
 
 void redraw(remap_type doremap) {
 	if (com.script && !com.python_script) return;
-//	siril_debug_print("redraw %d\n", doremap);
 	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit.type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit.type == DATA_USHORT && gui.roi.fit.data)))
 		copy_roi_into_gfit();
 	switch (doremap) {

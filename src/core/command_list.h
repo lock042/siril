@@ -125,7 +125,7 @@ static command commands[] = {
 	{"mtf", 3, "mtf low mid high [channels]", process_mtf, STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"neg", 0, "neg", process_neg, STR_NEG, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"new", 3, "new width height nb_channel", process_new, STR_NEW, FALSE, REQ_CMD_NONE},
+	{"new", 3, "new width height nb_channel [filename]", process_new, STR_NEW, FALSE, REQ_CMD_NONE},
 	{"nozero", 1, "nozero level", process_nozero, STR_NOZERO, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"offline", 0, "offline", process_offline, STR_OFFLINE, TRUE, REQ_CMD_NONE},

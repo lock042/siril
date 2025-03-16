@@ -637,7 +637,7 @@ gboolean save_graxpert_config(graxpert_data *args) {
 			yyjson_mut_val *point = yyjson_mut_arr(doc);
 
 			yyjson_mut_arr_add_int(doc, point, min(args->fit->rx - 1, round_to_int(s->position.x)));
-			yyjson_mut_arr_add_int(doc, point, min(args->fit->ry - 1, round_to_int(s->position.y)));
+			yyjson_mut_arr_add_int(doc, point, max(min(args->fit->ry - 1, round_to_int(args->fit->ry - s->position.y)), 0));
 			yyjson_mut_arr_add_int(doc, point, 1);
 
 			yyjson_mut_arr_append(bg_points, point);

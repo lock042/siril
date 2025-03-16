@@ -1173,64 +1173,45 @@ void on_cut_spectro_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	siril_close_dialog("cut_spectroscopy_dialog");
 }
 
-void on_start_select_from_star_clicked(GtkToolButton *button, gpointer user_data) {
+void on_select_from_star_clicked(GtkToolButton *button, gpointer user_data) {
 	psf_star *result = NULL;
 	int layer = 0; // Detect stars in layer 0 (mono or red) as this will always be present
+	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));
+	gboolean is_start = !g_strcmp0("start_select_from_star", caller);
 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
+		psf_error error = PSF_NO_ERR;
+		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
 		set_cursor_waiting(FALSE);
-		if (result) {
-			gui.cut.cut_start.x = result->x0 + com.selection.x;
-			gui.cut.cut_start.y = com.selection.y + com.selection.h - result->y0;
-			GtkSpinButton* startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
-			GtkSpinButton* starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
-			gtk_spin_button_set_value(startx, gui.cut.cut_start.x);
-			gtk_spin_button_set_value(starty, gui.cut.cut_start.y);
+		if (result && error == PSF_NO_ERR) {
+			if (is_start) {
+				gui.cut.cut_start.x = result->x0 + com.selection.x;
+				gui.cut.cut_start.y = com.selection.y + com.selection.h - result->y0;
+				GtkSpinButton* startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
+				GtkSpinButton* starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
+				gtk_spin_button_set_value(startx, gui.cut.cut_start.x);
+				gtk_spin_button_set_value(starty, gui.cut.cut_start.y);
+			} else {
+				gui.cut.cut_end.x = result->x0 + com.selection.x;
+				gui.cut.cut_end.y = com.selection.y + com.selection.h - result->y0;
+				GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
+				GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
+				gtk_spin_button_set_value(finishx, gui.cut.cut_end.x);
+				gtk_spin_button_set_value(finishy, gui.cut.cut_end.y);
+			}
 			redraw(REDRAW_OVERLAY);
-			free_psf(result);
 			measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("No star detected"),
-						_("Siril cannot set the start coordinate as no star has been detected in the selection"));
+						_("Siril cannot set the star coordinate as no star has been detected in the selection"));
 		}
+		free_psf(result);
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR,
 					_("No selection"),
-					_("Siril cannot set the start coordinate as no selection is made"));
-	}
-}
-
-void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) {
-	psf_star *result = NULL;
-	int layer = 0; // Detect stars in layer 0 (mono or red) as this will always be present
-
-	if (com.selection.h && com.selection.w) {
-		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
-		set_cursor_waiting(FALSE);
-		if (result) {
-			gui.cut.cut_end.x = result->x0 + com.selection.x;
-			gui.cut.cut_end.y = com.selection.y + com.selection.h - result->y0;
-			GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
-			GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
-			gtk_spin_button_set_value(finishx, gui.cut.cut_end.x);
-			gtk_spin_button_set_value(finishy, gui.cut.cut_end.y);
-			redraw(REDRAW_OVERLAY);
-			free_psf(result);
-			measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
-		} else {
-			siril_message_dialog(GTK_MESSAGE_ERROR,
-						_("No star detected"),
-						_("Siril cannot set the start coordinate as no star has been detected in the selection"));
-		}
-
-	} else {
-		siril_message_dialog(GTK_MESSAGE_ERROR,
-					_("No selection"),
-					_("Siril cannot set the start coordinate as no selection is made"));
+					_("Siril cannot set the star coordinate as no selection is made"));
 	}
 }
 

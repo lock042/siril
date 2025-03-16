@@ -944,8 +944,8 @@ void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 		if (!use_local_catalogue())
 			gtk_label_set_text(cataloglabel, _("(online catalogue)"));
 		else gtk_label_set_text(cataloglabel, _("(local catalogue)"));
-		on_comboastro_solver_changed(NULL, NULL);
 	}
+	on_comboastro_solver_changed(NULL, NULL);
 }
 
 void on_comboastro_order_changed(GtkComboBox *combo, gpointer user_data) {
@@ -965,7 +965,7 @@ void on_comboastro_solver_changed(GtkComboBox *combo, gpointer user_data) {
 	gtk_widget_set_visible(GTK_WIDGET(blindresbutton), !is_siril);
 	gtk_widget_set_visible(GTK_WIDGET(cataloguesexp), is_siril);
 	if (is_siril) {
-		gboolean uselocal = use_local_catalogue();
+		gboolean uselocal = use_local_catalogue() || use_local_gaia();
 		gtk_widget_set_visible(GTK_WIDGET(radiuslabel), uselocal);
 		gtk_widget_set_visible(GTK_WIDGET(radiusspin), uselocal);
 		gtk_widget_set_visible(GTK_WIDGET(nonearbutton), uselocal);

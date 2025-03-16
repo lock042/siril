@@ -1528,7 +1528,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Open the curves transform dialog</property>
             <property name="action-name">win.curves-processing</property>
-            <property name="text">Curves Transformation...</property>
+            <property name="text" translatable="yes">Curves Transformation...</property>
           </object>
           <packing>
             <property name="expand">False</property>

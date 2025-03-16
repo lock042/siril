@@ -779,8 +779,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 			}
 			starprofile profile = com.pref.starfinder_conf.profile;
-			psf_star *psf = psf_get_minimisation(&gfit, layer, &selection, FALSE, NULL, TRUE, profile, NULL);
-			if (!psf) {
+			psf_error error = PSF_NO_ERR;
+			psf_star *psf = psf_get_minimisation(&gfit, layer, &selection, FALSE, FALSE, NULL, TRUE, profile, &error);
+			if (!psf || error) {
+				free_psf(psf);
 				error_occurred = TRUE;
 				const char* error_msg = _("Failed to find a star");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -2172,6 +2174,19 @@ CLEANUP:
 				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
 			g_free(response_buffer);
+			break;
+		}
+
+		case CMD_SET_IMAGE_HEADER: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for SET_IMAGE_HEADER: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_set_image_header_request(conn, info);
+			}
 			break;
 		}
 
