@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-03-13 15:45+0000\n"
+"PO-Revision-Date: 2025-03-16 07:25+0000\n"
 "Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -2342,11 +2342,11 @@ msgstr ""
 
 #: src/gui/uifiles/ccm_dialog.ui:325
 msgid "Simplified sRGB (gamma = 2.2) to XYZ"
-msgstr ""
+msgstr "sRGB simplificado (gamma = 2.2) a XYZ"
 
 #: src/gui/uifiles/ccm_dialog.ui:326
 msgid "XYZ to Simplified sRGB (gamma = 2.2)"
-msgstr ""
+msgstr "XYZ a sRGB Simplificado (gamma = 2.2)"
 
 #: src/gui/uifiles/ccm_dialog.ui:372 src/gui/uifiles/cosmetic_dialog.ui:359
 msgid ""
@@ -2701,6 +2701,9 @@ msgid ""
 "This is important if you are not coloring the layers with pure R, pure G and "
 "pure B."
 msgstr ""
+"Ajuste linealmente las imágenes de la capa de entrada con la primera capa.\n"
+"Esto es importante si no estás coloreando las capas con R puro, G puro y B "
+"puro."
 
 #: src/gui/uifiles/composition_dialog.ui:366
 msgid "Adjust layers brightness"
@@ -3113,7 +3116,7 @@ msgstr ""
 
 #: src/gui/uifiles/cut_dialog.ui:194
 msgid "Set offset step size for tri-profile"
-msgstr ""
+msgstr "Ajuste el tamaño del paso de compensación para el triple-perfil"
 
 #: src/gui/uifiles/cut_dialog.ui:195 src/gui/uifiles/savepopup.ui:921
 #: src/gui/uifiles/settings_window.ui:563
@@ -3595,6 +3598,12 @@ msgid ""
 "reduction workflow, you can specify any two fits files with the same "
 "dimensions and bit depth for blending."
 msgstr ""
+"Selecciona una imagen sin estrellas para recomponerla con un máscara de "
+"estrellas.\n"
+"Aunque el principal objetivo de esta herramienta es la recomposición de "
+"estrellas como parte de flujo de trabajo de reducción de estrellas, se "
+"pueden especificar 2 ficheros fits cualquiera con las mismas dimensiones y "
+"profundidad de bits para la mezcla."
 
 #: src/gui/uifiles/dialog_star_remix.ui:260
 msgid ""
@@ -3727,7 +3736,7 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:1185
 #: src/gui/uifiles/histogram_dialog.ui:1106
 msgid "Symmetry point (SP)"
-msgstr ""
+msgstr "Punto de Simetría (SP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:558
 #: src/gui/uifiles/dialog_star_remix.ui:604
