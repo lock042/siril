@@ -195,11 +195,11 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 		case CAT_LOCAL_KSTARS:
 		case CAT_LOCAL_TRIX:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
-		case CAT_AN_USER_TEMP:
-		case CAT_SHOW:
 		case CAT_LOCAL_GAIA_ASTRO:
 			return (1 << CAT_FIELD_GAIASOURCEID) | (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_TEFF);
-		default:
+		case CAT_AN_USER_TEMP:
+		case CAT_SHOW:
+			default:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC);
 	}
 }
