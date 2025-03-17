@@ -747,10 +747,10 @@ class UserPolygon:
         color (int): Packed RGBA color (32-bit integer).
         fill (bool): If True, the polygon should be filled when drawn.
     """
-    polygon_id: int #: unique identifier
     points: List[SirilPoint] #: List of points defining the polygon's shape
-    color: int #: 32-bit RGBA color (packed, uint_8 per component)
-    fill: bool #: whether or not the polygon should be filled when drawn
+    polygon_id: int = 0 #: unique identifier
+    color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component)
+    fill: bool = False#: whether or not the polygon should be filled when drawn
 
     def serialize(self) -> bytes:
         """

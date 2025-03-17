@@ -3810,8 +3810,8 @@ class SirilInterface:
 
             try:
                 # Assuming the response is in the format: !i (ID) (4 bytes)
-                id = struct.unpack('!i', response)
-                polygon.id = id
+                id = struct.unpack('!i', response)[0]
+                polygon.polygon_id = id
                 return polygon
             except struct.error as e:
                 print(f"Error retrieving assigned polygon ID: {e}", file=sys.stderr)

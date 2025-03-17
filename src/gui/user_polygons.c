@@ -30,25 +30,27 @@ do { \
 } while(0)
 
 int get_unused_polygon_id(void) {
-	int id = 1;
+	int candidate_id = 1;
 	GList *l;
 
-	while (TRUE) {
-		gboolean id_in_use = FALSE;
-		for (l = gui.user_polygons; l != NULL; l = l->next) {
-			UserPolygon *polygon = (UserPolygon *)l->data;
-			if (polygon->id == id) {
-				id_in_use = TRUE;
-				break;
-			}
-		}
+	// Sort the list by ID (if not already sorted)
+	// This step might be needed depending on your implementation
 
-		if (!id_in_use) {
-			return id;
-		}
+	// Check each ID in the list against our candidate
+	for (l = gui.user_polygons; l != NULL; l = l->next) {
+		UserPolygon *polygon = (UserPolygon *)l->data;
 
-		id++;
+		if (polygon->id == candidate_id) {
+			// This ID is taken, try the next one
+			candidate_id++;
+		} else if (polygon->id > candidate_id) {
+			// We found a gap - candidate_id is available
+			return candidate_id;
+		}
 	}
+
+	// If we get here, all IDs up to candidate_id are taken
+	return candidate_id;
 }
 
 int add_user_polygon(point *points, int n_points, const GdkRGBA *color, gboolean fill) {
