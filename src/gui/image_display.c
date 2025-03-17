@@ -44,6 +44,7 @@
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/siril_preview.h"
+#include "gui/user_polygons.h"
 #include "livestacking/livestacking.h"
 #include "histogram.h"
 #include "registration/matching/degtorad.h"
@@ -1010,6 +1011,61 @@ static void draw_measurement_line(const draw_data_t* dd) {
 	cairo_stroke(cr);
 	cairo_restore(cr);
 }
+
+static void draw_user_polygons(const draw_data_t *dd) {
+	if (gui.user_polygons == NULL)
+		return;
+
+	cairo_t *cr = dd->cr;
+	static double dash_format[] = { 4.0, 2.0 };
+
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	cairo_set_dash(cr, dash_format, 2, 0);
+
+	GList *l;
+	for (l = gui.user_polygons; l != NULL; l = l->next) {
+		UserPolygon *polygon = (UserPolygon *)l->data;
+		if (polygon->n_points < 2)
+			continue;
+
+		cairo_save(cr);
+
+		if (polygon->fill) {
+			// Set color for filling
+			cairo_set_source_rgba(cr,
+					polygon->color.red,
+					polygon->color.green,
+					polygon->color.blue,
+					polygon->color.alpha);
+		}
+
+		cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
+		for (int i = 1; i < polygon->n_points; i++) {
+			cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
+		}
+		cairo_close_path(cr);
+
+		double factor;
+		if (polygon->fill) {
+			// Fill the polygon
+			cairo_fill_preserve(cr);
+			factor = 0.8;
+		} else {
+			factor = 1.0;
+		}
+
+		// Draw the outline
+		cairo_set_source_rgba(cr,
+				polygon->color.red * factor, // Slightly darker outline if filled
+				polygon->color.green * factor,
+				polygon->color.blue * factor,
+				polygon->color.alpha);
+		cairo_stroke(cr);
+
+		cairo_restore(cr);
+	}
+}
+
 
 static void draw_stars(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
@@ -2080,6 +2136,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* draw measurement line */
 	draw_measurement_line(&dd);
+
+	/* draw user polygons */
+	draw_user_polygons(&dd);
 
 	/* detected stars and highlight the selected star */
 	g_mutex_lock(&com.mutex);

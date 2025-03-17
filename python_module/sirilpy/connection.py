@@ -17,7 +17,7 @@ from .translations import _
 from .shm import SharedMemoryWrapper
 from .plot import PlotData, _PlotSerializer
 from .exceptions import SirilError, SirilConnectionError, CommandError, NoImageError
-from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType
+from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType, SirilPoint, UserPolygon
 
 DEFAULT_TIMEOUT = 5.
 
@@ -102,6 +102,9 @@ class _Command(IntEnum):
     WARNING_MESSAGEBOX_MODAL = 54
     GET_SEQ_DISTODATA = 55
     SET_IMAGE_HEADER = 56
+    ADD_USER_POLYGON = 57
+    DELETE_USER_POLYGON = 58
+    CLEAR_USER_POLYGONS = 59
     ERROR = 0xFF
 
 class LogColor (IntEnum):
@@ -3783,3 +3786,73 @@ class SirilInterface:
                     self._execute_command(_Command.RELEASE_SHM, shm_info)
                 except Exception as e:
                     pass
+
+    def add_user_polygon(self, polygon: UserPolygon)-> UserPolygon:
+        """
+        Adds a user polygon to the Siril display overlay
+
+        Args:
+            polyon: UserPolygon defining the polygon to be added
+
+        Returns:
+            UserPolygon: the input updated with the ID assigned by Siril
+        """
+        MAX_POINTS_PER_POLYGON = 100 # Sensble limit to avoid excessively slow drawing
+
+        try:
+            # Serialize the provided polygon
+            polygon_bytes = polygon.serialize()
+            # Send it using _execute_command
+            response = self._request_data(_Command.ADD_USER_POLYGON, polygon_bytes)
+            if response is None:
+                print(f"Error sending user polygon", file=sys.stderr)
+                return None
+
+            try:
+                # Assuming the response is in the format: !i (ID) (4 bytes)
+                id = struct.unpack('!i', response)
+                polygon.id = id
+                return polygon
+            except struct.error as e:
+                print(f"Error retrieving assigned polygon ID: {e}", file=sys.stderr)
+                return None
+
+        except Exception as e:
+            print(f"Error sending user polygon: {e}", file=sys.stderr)
+            return None
+
+    def delete_user_polygon(self, id: int) -> bool:
+        """
+        Deletes a single user polygon from the Siril overlay, specified by ID
+
+        Args:
+            id: int specifying the polygon ID to be deleted
+        Returns:
+            bool: True if the command succeeded, False otherwise
+        """
+        try:
+            # Create payload: network-order int followed by string
+            # '!I' for network byte order 32-bit int
+            payload = struct.pack('!i', progress)
+
+            return self._execute_command(_Command.DELETE_USER_POLYGON, payload)
+
+        except Exception as e:
+            print(f"Error sending progress update: {e}", file=sys.stderr)
+            return False
+
+    def clear_user_polygons(self) -> bool:
+        """
+        Clears all user polygons from the Siril overlay
+
+        Returns:
+            bool: True if the command succeeded, False otherwise
+        """
+
+        try:
+            success = self._execute_command(_Command.CLEAR_USER_POLYGONS, None)
+            return success
+
+        except Exception as e:
+            print(f"Error clearing user polygons: {e}", file=sys.stderr)
+            return False

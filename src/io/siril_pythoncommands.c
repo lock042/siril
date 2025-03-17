@@ -20,6 +20,7 @@
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
+#include "gui/user_polygons.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -2187,6 +2188,45 @@ CLEANUP:
 				info->size = GUINT64_FROM_BE(info->size);
 				success = handle_set_image_header_request(conn, info);
 			}
+			break;
+		}
+
+		case CMD_ADD_USER_POLYGON: {
+			UserPolygon *polygon = deserialize_polygon((const uint8_t*) payload, payload_length);
+			if (polygon) {
+				int id = get_unused_polygon_id();
+				polygon->id = id;
+				gui.user_polygons = g_list_append(gui.user_polygons, polygon);
+				queue_redraw(REDRAW_OVERLAY);
+				int id_be = GINT32_TO_BE(id);
+				success = send_response(conn, STATUS_OK, &id_be, 4);
+			} else {
+				siril_debug_print("Failed to add user polygon\n");
+				const char* error_msg = _("Failed to add user polygon");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_DELETE_USER_POLYGON: {
+			if (payload_length == 4) {
+				int32_t id = GINT32_FROM_BE(*(int*) payload);
+				gboolean deleted = delete_user_polygon(id);
+				if (!deleted) {
+					siril_debug_print("Failed to delete user polygon with id %d\n", id);
+					const char* error_msg = _("Invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				}
+				success = send_response(conn, STATUS_OK, NULL, 0);
+			}
+			siril_debug_print("Invalid payload length for DELETE_USER_POLYGON: %u\n", payload_length);
+			const char* error_msg = _("Invalid payload length");
+			success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			break;
+		}
+		case CMD_CLEAR_USER_POLYGONS: {
+			clear_user_polygons();
+			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
 

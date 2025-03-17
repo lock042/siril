@@ -355,6 +355,8 @@ siril_common_SOURCES = \
 	gui/statistics_list.c \
 	gui/unpurple.c \
 	gui/unpurple.h \
+	gui/user_polygons.c \
+	gui/user_polygons.h \
 	gui/utils.c \
 	gui/utils.h \
 	io/annotation_catalogues.c \

@@ -6,10 +6,11 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, Tuple, List
-import numpy as np
 from enum import IntEnum
-from .translations import _
+import struct
 import logging
+import numpy as np
+from .translations import _
 
 class DataType(IntEnum):
     """
@@ -636,18 +637,17 @@ class DistoType(IntEnum):
     def __str__(self):
         if self == DistoType.DISTO_UNDEF:
             return "No distortion"
-        elif self == DistoType.DISTO_IMAGE:
+        if self == DistoType.DISTO_IMAGE:
             return "Distortion from current image"
-        elif self == DistoType.DISTO_FILE: 
+        if self == DistoType.DISTO_FILE:
             return "Distortion from given file"
-        elif self == DistoType.DISTO_MASTER:
+        if self == DistoType.DISTO_MASTER:
             return "Distortion from master files"
-        elif self == DistoType.DISTO_FILES:
+        if self == DistoType.DISTO_FILES:
             return "Distortion stored in each file"
-        elif self == DistoType.DISTO_FILE_COMET:
+        if self == DistoType.DISTO_FILE_COMET:
             return "Cometary alignement"
-        else:
-            return "Unknown distortion type"
+        return "Unknown distortion type"
 
 
 @dataclass
@@ -717,11 +717,60 @@ class Sequence:
         if not self.is_variable:
             pretty += f'\nImage size: {self.rx}x{self.ry}'
         else:
-            pretty += f'\nImages have variable sizes'
+            pretty += '\nImages have variable sizes'
         for i, r in enumerate(self.regparam):
             if any(rr is not None for rr in r):
-                pretty += f'\nSequence has registration data'
+                pretty += '\nSequence has registration data'
                 pretty += f' from layer {i}' if self.nb_layers > 1 else ''
                 if self.distoparam is not None and self.distoparam[i] is not None and self.distoparam[i].index != DistoType.DISTO_UNDEF:
                     pretty += f'\nDistortion found in this layer: {self.distoparam[i]}'
         return pretty
+
+@dataclass
+class SirilPoint:
+    """
+    Represents a 2D point in the Siril image with x and y coordinates.
+    """
+    x: float
+    y: float
+
+MAX_POINTS_PER_POLYGON = 100
+
+@dataclass
+class UserPolygon:
+    """
+    Represents a user-defined polygon.
+
+    Attributes:
+        polygon_id (int): A unique identifier for the polygon.
+        points (List[Point]): List of points defining the polygon's shape.
+        color (int): Packed RGBA color (32-bit integer).
+        fill (bool): If True, the polygon should be filled when drawn.
+    """
+    polygon_id: int #: unique identifier
+    points: List[SirilPoint] #: List of points defining the polygon's shape
+    color: int #: 32-bit RGBA color (packed, uint_8 per component)
+    fill: bool #: whether or not the polygon should be filled when drawn
+
+    def serialize(self) -> bytes:
+        """
+        Serializes a single UserPolygon object into a byte array.
+
+        Returns:
+            bytes: A byte array representing the serialized polygon data.
+
+        Raises:
+            ValueError: If the number of points exceeds the allowed limit.
+        """
+        if len(self.points) > MAX_POINTS_PER_POLYGON:
+            raise ValueError(f"Too many points in polygon {self.polygon_id}: max allowed is {MAX_POINTS_PER_POLYGON}")
+
+        # Pack ID, number of points, packed color, and fill flag
+        buffer = bytearray()
+        buffer.extend(struct.pack('!iiII', self.polygon_id, len(self.points), self.color, self.fill))
+
+        # Pack each point as float
+        for point in self.points:
+            buffer.extend(struct.pack('!dd', point.x, point.y))
+
+        return bytes(buffer)
