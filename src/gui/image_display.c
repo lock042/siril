@@ -1027,45 +1027,52 @@ static void draw_user_polygons(const draw_data_t *dd) {
 		UserPolygon *polygon = (UserPolygon *)l->data;
 		if (polygon->n_points < 2)
 			continue;
-
-		cairo_save(cr);
-
 		if (polygon->fill) {
+			cairo_save(cr);
 			// Set color for filling
 			cairo_set_source_rgba(cr,
 					polygon->color.red,
 					polygon->color.green,
 					polygon->color.blue,
 					polygon->color.alpha);
-		}
 
-		cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
-		for (int i = 1; i < polygon->n_points; i++) {
-			cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
-		}
-		cairo_close_path(cr);
+			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
+			for (int i = 1; i < polygon->n_points; i++) {
+				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
+			}
+			cairo_close_path(cr);
 
-		double factor;
-		if (polygon->fill) {
 			// Fill the polygon
 			cairo_fill_preserve(cr);
-			factor = 0.8;
+
+			// Draw the outline
+			cairo_set_source_rgba(cr,
+					polygon->color.red * 0.8, // Slightly darker outline if filled
+					polygon->color.green * 0.8,
+					polygon->color.blue * 0.8,
+					polygon->color.alpha);
+
+			cairo_stroke(cr);
+			cairo_restore(cr);
 		} else {
-			factor = 1.0;
+			cairo_save(cr);
+			// Set color for filling
+			cairo_set_source_rgba(cr,
+						polygon->color.red,
+						polygon->color.green,
+						polygon->color.blue,
+						polygon->color.alpha);
+
+			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
+			for (int i = 1; i < polygon->n_points; i++) {
+				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
+			}
+			cairo_close_path(cr);
+			cairo_stroke(cr);
+			cairo_restore(cr);
 		}
-
-		// Draw the outline
-		cairo_set_source_rgba(cr,
-				polygon->color.red * factor, // Slightly darker outline if filled
-				polygon->color.green * factor,
-				polygon->color.blue * factor,
-				polygon->color.alpha);
-		cairo_stroke(cr);
-
-		cairo_restore(cr);
 	}
 }
-
 
 static void draw_stars(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;

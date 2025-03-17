@@ -97,7 +97,7 @@ void clear_user_polygons(void) {
 }
 
 UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
-	if (size < 20) {
+	if (size < 13) {  // 4 + 4 + 4 + 1 bytes (minimum)
 		fprintf(stderr, "Invalid data size\n");
 		return NULL;
 	}
@@ -117,6 +117,19 @@ UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
 	polygon->n_points = (int32_t)g_ntohl(*(uint32_t *)ptr);
 	ptr += sizeof(uint32_t);
 
+	// Read RGBA (packed into uint32_t)
+	uint32_t packed_color = g_ntohl(*(uint32_t *)ptr);
+	ptr += sizeof(uint32_t);
+
+	polygon->color.red   = ((packed_color >> 24) & 0xFF) / 255.0;
+	polygon->color.green = ((packed_color >> 16) & 0xFF) / 255.0;
+	polygon->color.blue  = ((packed_color >> 8)  & 0xFF) / 255.0;
+	polygon->color.alpha = (packed_color & 0xFF) / 255.0;
+
+	// Read fill flag (1 byte boolean)
+	polygon->fill = (gboolean)(*ptr);
+	ptr += 1;  // Move pointer past boolean
+
 	if (polygon->n_points <= 0 || polygon->n_points > MAX_POLYGON_POINTS) {
 		fprintf(stderr, "Invalid number of points: %d\n", polygon->n_points);
 		g_free(polygon);
@@ -132,7 +145,8 @@ UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
 	}
 
 	// Ensure enough data for points
-	if (size < (20 + polygon->n_points * 8)) {
+	size_t required_size = 13 + polygon->n_points * (2 * sizeof(double));
+	if (size < required_size) {
 		fprintf(stderr, "Not enough data for points\n");
 		g_free(polygon->points);
 		g_free(polygon);
@@ -142,33 +156,14 @@ UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
 	// Read points
 	for (int i = 0; i < polygon->n_points; i++) {
 		double x_BE, y_BE;
-		ptr += sizeof(double);
 		memcpy(&x_BE, ptr, sizeof(double));
-		FROM_BE64_INTO(polygon->points[i].x, x_BE, double);
 		ptr += sizeof(double);
+		FROM_BE64_INTO(polygon->points[i].x, x_BE, double);
+
 		memcpy(&y_BE, ptr, sizeof(double));
+		ptr += sizeof(double);
 		FROM_BE64_INTO(polygon->points[i].y, y_BE, double);
 	}
-
-	// Ensure enough data for color and fill flag
-	if (size < (20 + polygon->n_points * 8 + 5)) {
-		fprintf(stderr, "Not enough data for color and fill flag\n");
-		g_free(polygon->points);
-		g_free(polygon);
-		return NULL;
-	}
-
-	// Read RGBA (packed into uint32_t)
-	uint32_t packed_color = g_ntohl(*(uint32_t *)ptr);
-	ptr += sizeof(uint32_t);
-	polygon->color.red   = ((packed_color >> 24) & 0xFF) / 255.0;
-	polygon->color.green = ((packed_color >> 16) & 0xFF) / 255.0;
-	polygon->color.blue  = ((packed_color >> 8)  & 0xFF) / 255.0;
-	polygon->color.alpha = (packed_color & 0xFF) / 255.0;
-
-
-	// Read fill flag (1 byte)
-	polygon->fill = (gboolean)g_ntohl(*(uint32_t *)ptr);
 
 	return polygon;
 }

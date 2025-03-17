@@ -755,19 +755,18 @@ class UserPolygon:
     def serialize(self) -> bytes:
         """
         Serializes a single UserPolygon object into a byte array.
-
         Returns:
             bytes: A byte array representing the serialized polygon data.
-
         Raises:
             ValueError: If the number of points exceeds the allowed limit.
         """
         if len(self.points) > MAX_POINTS_PER_POLYGON:
             raise ValueError(f"Too many points in polygon {self.polygon_id}: max allowed is {MAX_POINTS_PER_POLYGON}")
 
-        # Pack ID, number of points, packed color, and fill flag
+        # Pack ID, number of points, color, and fill flag
+        # Use 'I' for unsigned int and '?' for boolean
         buffer = bytearray()
-        buffer.extend(struct.pack('!iiII', self.polygon_id, len(self.points), self.color, self.fill))
+        buffer.extend(struct.pack('!iiI?', self.polygon_id, len(self.points), self.color, self.fill))
 
         # Pack each point as float
         for point in self.points:

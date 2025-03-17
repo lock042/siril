@@ -2,12 +2,12 @@
 #define GUI_USER_POLYGONS_H
 
 typedef struct {
-    int id;
-    int n_points;
-    point *points;
+	int id;
+	int n_points;
+	point *points;
 	GdkRGBA color;
 	gboolean fill;
-} UserPolygon;
+} __attribute__((packed)) UserPolygon;
 
 #define MAX_POLYGON_POINTS 100
 
