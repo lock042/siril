@@ -3821,7 +3821,7 @@ class SirilInterface:
             print(f"Error sending user polygon: {e}", file=sys.stderr)
             return None
 
-    def delete_user_polygon(self, id: int) -> bool:
+    def delete_user_polygon(self, polygon_id: int) -> bool:
         """
         Deletes a single user polygon from the Siril overlay, specified by ID
 
@@ -3833,7 +3833,7 @@ class SirilInterface:
         try:
             # Create payload: network-order int followed by string
             # '!I' for network byte order 32-bit int
-            payload = struct.pack('!i', progress)
+            payload = struct.pack('!i', polygon_id)
 
             return self._execute_command(_Command.DELETE_USER_POLYGON, payload)
 

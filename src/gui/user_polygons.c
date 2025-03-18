@@ -76,6 +76,7 @@ static void free_user_polygon(gpointer data) {
 	UserPolygon *polygon = (UserPolygon *)data;
 	if (polygon) {
 		g_free(polygon->points);
+		g_free(polygon->legend);
 		g_free(polygon);
 	}
 }
@@ -99,11 +100,10 @@ void clear_user_polygons(void) {
 }
 
 UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
-	if (size < 13) {  // 4 + 4 + 4 + 1 bytes (minimum)
+	if (size < 17) {  // 4 + 4 + 4 + 1 + 4 bytes (minimum with string length)
 		fprintf(stderr, "Invalid data size\n");
 		return NULL;
 	}
-
 	const uint8_t *ptr = data;
 	UserPolygon *polygon = g_malloc0(sizeof(UserPolygon));
 	if (!polygon) {
@@ -122,7 +122,6 @@ UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
 	// Read RGBA (packed into uint32_t)
 	uint32_t packed_color = g_ntohl(*(uint32_t *)ptr);
 	ptr += sizeof(uint32_t);
-
 	polygon->color.red   = ((packed_color >> 24) & 0xFF) / 255.0;
 	polygon->color.green = ((packed_color >> 16) & 0xFF) / 255.0;
 	polygon->color.blue  = ((packed_color >> 8)  & 0xFF) / 255.0;
@@ -147,9 +146,10 @@ UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
 	}
 
 	// Ensure enough data for points
-	size_t required_size = 13 + polygon->n_points * (2 * sizeof(double));
+	size_t points_size = polygon->n_points * (2 * sizeof(double));
+	size_t required_size = 13 + points_size + 4;  // Basic data + points + legend length field
 	if (size < required_size) {
-		fprintf(stderr, "Not enough data for points\n");
+		fprintf(stderr, "Not enough data for points and legend length\n");
 		g_free(polygon->points);
 		g_free(polygon);
 		return NULL;
@@ -161,10 +161,36 @@ UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
 		memcpy(&x_BE, ptr, sizeof(double));
 		ptr += sizeof(double);
 		FROM_BE64_INTO(polygon->points[i].x, x_BE, double);
-
 		memcpy(&y_BE, ptr, sizeof(double));
 		ptr += sizeof(double);
 		FROM_BE64_INTO(polygon->points[i].y, y_BE, double);
+	}
+
+	// Read legend string length
+	int32_t legend_length = (int32_t)g_ntohl(*(uint32_t *)ptr);
+	ptr += sizeof(uint32_t);
+
+	// Check if we have enough data for the legend string
+	if (size < required_size + legend_length) {
+		fprintf(stderr, "Not enough data for legend string\n");
+		g_free(polygon->points);
+		g_free(polygon);
+		return NULL;
+	}
+
+	// Handle the legend string
+	if (legend_length > 0) {
+		polygon->legend = g_malloc0(legend_length + 1);  // +1 for null terminator
+		if (!polygon->legend) {
+			fprintf(stderr, "Memory allocation for legend failed\n");
+			g_free(polygon->points);
+			g_free(polygon);
+			return NULL;
+		}
+		memcpy(polygon->legend, ptr, legend_length);
+		polygon->legend[legend_length] = '\0';  // Ensure null termination
+	} else {
+		polygon->legend = NULL;
 	}
 
 	return polygon;

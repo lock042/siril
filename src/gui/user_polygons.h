@@ -7,6 +7,7 @@ typedef struct {
 	point *points;
 	GdkRGBA color;
 	gboolean fill;
+	gchar *legend;
 } __attribute__((packed)) UserPolygon;
 
 #define MAX_POLYGON_POINTS 100

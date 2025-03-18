@@ -746,11 +746,23 @@ class UserPolygon:
         points (List[Point]): List of points defining the polygon's shape.
         color (int): Packed RGBA color (32-bit integer).
         fill (bool): If True, the polygon should be filled when drawn.
+        legend (str): Optional legend for the polygon.
     """
     points: List[SirilPoint] #: List of points defining the polygon's shape
     polygon_id: int = 0 #: unique identifier
     color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component)
-    fill: bool = False#: whether or not the polygon should be filled when drawn
+    fill: bool = False #: whether or not the polygon should be filled when drawn
+    legend: str = None #: an optional legend
+
+    def __str__(self):
+        """For pretty-printing polygon information"""
+        pretty = f'User-defined overlay polygon: {self.legend}'
+        pretty += f'\nID: {self.polygon_id}'
+        pretty += f'\nColor (RGBA): 0x{self.color:08X}'
+        pretty += f'\nFill: {self.fill}'
+        for i, point in enumerate(self.points):
+            pretty += f'\nPoint {i}: {point.x}, {point.y}'
+        return pretty
 
     def serialize(self) -> bytes:
         """
@@ -771,5 +783,15 @@ class UserPolygon:
         # Pack each point as float
         for point in self.points:
             buffer.extend(struct.pack('!dd', point.x, point.y))
+
+        # Pack the legend (if it exists)
+        if self.legend is not None:
+            legend_bytes = self.legend.encode('utf-8')
+            # Pack the length of the string first, then the string itself
+            buffer.extend(struct.pack('!i', len(legend_bytes)))
+            buffer.extend(legend_bytes)
+        else:
+            # If legend is None, pack a length of 0
+            buffer.extend(struct.pack('!i', 0))
 
         return bytes(buffer)
