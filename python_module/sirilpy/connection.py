@@ -107,6 +107,7 @@ class _Command(IntEnum):
     CLEAR_USER_POLYGONS = 59
     GET_USER_POLYGON = 60
     GET_USER_POLYGON_LIST = 61
+    CONFIRM_MESSAGEBOX = 62
     ERROR = 0xFF
 
 class LogColor (IntEnum):
@@ -735,6 +736,47 @@ class SirilInterface:
 
         except Exception as e:
             print(f"Error releasing the processing thread: {e}", file=sys.stderr)
+            return False
+
+    def confirm_messagebox(self, title: str, message: str, confirm_label: str) -> bool:
+        """
+        Create a modal confirmation message dialog in Siril and wait for the response.
+
+        Args:
+            title: The title to display in the message box (up to 256 characters)
+            message: The message to display in the message box (up to 1021 characters)
+            confirm_label: The label to display in the message box confirmation button (OK, Yes, Confirm etc.) (Up to 24 characters)
+
+        Returns:
+            bool: True if the message box confirmation button was clicked, False otherwise
+
+        Raises:
+            RuntimeError: if an error occurred.
+        """
+        try:
+            # Truncate strings to allowed lengths
+            truncated_title = title[:256]
+            truncated_message = message[:1021]
+            truncated_label = confirm_label[:24]
+
+            # Encode strings and add null terminators
+            encoded_title = truncated_title.encode('utf-8') + b'\0'
+            encoded_message = truncated_message.encode('utf-8') + b'\0'
+            encoded_label = truncated_label.encode('utf-8') + b'\0'
+
+            # Concatenate into one buffer
+            message_bytes = encoded_title + encoded_message + encoded_label
+
+            # Call the command with the encoded data
+            response = self._request_data(_Command.CONFIRM_MESSAGEBOX, message_bytes, timeout=None)
+
+            if response is None:
+                raise SirilError(_("Error sending confirm_messagebox command"))
+
+            return bool(int.from_bytes(response, byteorder='little'))
+
+        except Exception as e:
+            print(f"Error sending confirmation message: {e}", file=sys.stderr)
             return False
 
     def _messagebox(self, my_string: str, cmd_type: int, modal: Optional[bool] = False) -> bool:
