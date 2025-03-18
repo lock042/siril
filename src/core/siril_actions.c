@@ -62,6 +62,7 @@
 #include "gui/menu_gray_geometry.h"
 #include "gui/registration_preview.h"
 #include "gui/remixer.h"
+#include "gui/user_polygons.h"
 #include "livestacking/livestacking.h"
 #include "registration/registration.h"
 #include "io/siril_catalogues.h"
@@ -408,6 +409,7 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 			com.found_object = find_objects_in_field(&gfit);
 		}
 	} else {
+		clear_user_polygons();
 		g_slist_free(com.found_object);
 		com.found_object = NULL;
 		purge_user_catalogue(CAT_AN_USER_TEMP);
