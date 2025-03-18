@@ -27,7 +27,9 @@ from .models import (
     RegData,
     ImgData,
     DistoData,
-    Sequence
+    Sequence,
+    SirilPoint,
+    UserPolygon
 )
 from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
 from .shm import SharedMemoryWrapper
@@ -82,6 +84,8 @@ __all__ = [
     'ImgData',
     'DistoData',
     'Sequence',
+    'SirilPoint',
+    'UserPolygon',
     'PlotType',
     'SeriesData',
     'PlotData',

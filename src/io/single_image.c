@@ -45,6 +45,7 @@
 #include "gui/plot.h"
 #include "gui/registration_preview.h"
 #include "gui/registration.h"
+#include "gui/user_polygons.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -79,6 +80,7 @@ void close_single_image() {
 static gboolean free_image_data_gui(gpointer p) {
 	disable_iso12646_conditions(TRUE, FALSE, FALSE);
 	//reset_compositing_module();
+	clear_user_polygons(); // clear list of user polygons
 	delete_selected_area(); // this triggers a redraw
 	reset_plot(); // clear existing plot if any
 	siril_close_preview_dialogs();
