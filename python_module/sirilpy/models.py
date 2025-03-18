@@ -690,11 +690,6 @@ class Sequence:
     type: SequenceType = None            #: the type of sequence
     cfa_opened_monochrome: bool = False  #: CFA SER opened in monochrome mode
     current: int = 0                     #: file number currently loaded
-    # The following fields are not currently implemented:
-    # photometry: List[List[PSFStar]] = None  # psf for multiple stars
-    # reference_star: int = 0              # reference star for apparent magnitude
-    # reference_mag: float = 0.0           # reference magnitude for reference star
-    # photometry_colors: List[List[float]] = None  # colors for each photometry curve
 
     def __post_init__(self):
         """Initialize lists that were set to None by default"""
@@ -731,15 +726,23 @@ class SirilPoint:
     """
     Represents a 2D point in the Siril image with x and y coordinates.
     """
-    x: float
-    y: float
+    x: float #: x co-ordinate
+    y: float #: y co-ordinate
 
 MAX_POINTS_PER_POLYGON = 100
 
 @dataclass
 class UserPolygon:
     """
-    Represents a user-defined polygon.
+    Represents a user-defined polygon for display in the image overlay. These
+    can be filled or outline-only, and can have any color and transparency
+    (alpha) value. They can also have an optional label which is displayed
+    centred on the polygon.
+
+    Note that UserPolygons should be considered transitory - they can be used
+    to display information to the user but they may be cleared at any time if
+    the user toggles the overlay button in the main Siril interface to clear
+    the overlay.
 
     Attributes:
         polygon_id (int): A unique identifier for the polygon.
@@ -750,7 +753,7 @@ class UserPolygon:
     """
     points: List[SirilPoint] #: List of points defining the polygon's shape
     polygon_id: int = 0 #: unique identifier
-    color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component)
+    color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF)
     fill: bool = False #: whether or not the polygon should be filled when drawn
     legend: str = None #: an optional legend
 
@@ -767,8 +770,10 @@ class UserPolygon:
     def serialize(self) -> bytes:
         """
         Serializes a single UserPolygon object into a byte array.
+
         Returns:
             bytes: A byte array representing the serialized polygon data.
+
         Raises:
             ValueError: If the number of points exceeds the allowed limit.
         """
@@ -798,6 +803,18 @@ class UserPolygon:
 
     @classmethod
     def deserialize_polygon(cls, data: bytes) -> Tuple['UserPolygon', bytes]:
+        """
+        Creates a UserPolygon object by deserializing a byte array.
+
+        Returns:
+            Tuple: A UserPolygon object and any remaining bytes in the byte
+                   array. (The remaining bytes are for use in
+                   deserialize_polygon_list and can be safely ignored if
+                   deserializing a single polygon.)
+
+        Raises:
+            ValueError: If there is insufficient data to deserialize.
+        """
         if len(data) < 13:
             raise ValueError("Invalid data size for polygon")
 
@@ -837,6 +854,15 @@ class UserPolygon:
 
     @classmethod
     def deserialize_polygon_list(cls, data: bytes) -> List['UserPolygon']:
+        """
+        Creates a List of UserPolygon objects by deserializing a byte array.
+
+        Returns:
+            List: A List of UserPolygon objects.
+
+        Raises:
+            ValueError: If there is invalid data to deserialize.
+        """
         if len(data) < 4:
             raise ValueError("Invalid data size for polygon list")
 
