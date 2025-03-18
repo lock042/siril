@@ -2277,6 +2277,29 @@ CLEANUP:
 			break;
 		}
 
+		case CMD_CONFIRM_MESSAGEBOX: {
+			const char *title = (const char *)payload;
+			if (!title || title[0] == '\0' || payload_length < strlen(title) + 2) {
+				const char* error_msg = _("Argument error");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			const char *message = title + strlen(title) + 1;  // Move past the null terminator
+			if (!message || message[0] == '\0' || payload_length < strlen(title) + strlen(message) + 3) {
+				const char* error_msg = _("Argument error");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			const char *confirm_label = message + strlen(message) + 1; // Move past the next null terminator
+			if (!confirm_label || confirm_label[0] == '\0' || payload_length < strlen(title) + strlen(message) + strlen(confirm_label) + 3) {
+				const char* error_msg = _("Argument error");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			uint8_t retval = siril_confirm_dialog((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
+			success = send_response(conn, STATUS_OK, (const char*)&retval, sizeof(uint8_t));
+		}
+
 		default:
 			siril_debug_print("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");
