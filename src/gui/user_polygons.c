@@ -29,6 +29,19 @@ do { \
 	(dest) = conv.v; \
 } while(0)
 
+UserPolygon *find_polygon_by_id(int id) {
+	GList *node;
+
+	for (node = gui.user_polygons; node != NULL; node = node->next) {
+		UserPolygon *polygon = (UserPolygon *)node->data;
+		if (polygon->id == id) {
+			return polygon;
+		}
+	}
+
+	return NULL;
+}
+
 int get_unused_polygon_id(void) {
 	int candidate_id = 1;
 	GList *l;
@@ -194,4 +207,115 @@ UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
 	}
 
 	return polygon;
+}
+
+uint8_t* serialize_polygon(UserPolygon *polygon, size_t *size) {
+	if (!polygon || !size) {
+		fprintf(stderr, "Invalid arguments\n");
+		return NULL;
+	}
+
+	// Compute the required buffer size
+	size_t points_size = polygon->n_points * (2 * sizeof(double));
+	size_t legend_size = polygon->legend ? strlen(polygon->legend) : 0;
+	*size = 4 + 4 + 4 + 1 + points_size + 4 + legend_size; // id + n_points + color + fill + points + legend_len + legend
+
+	uint8_t *buffer = g_malloc0(*size);
+	if (!buffer) {
+		fprintf(stderr, "Memory allocation for serialization failed\n");
+		return NULL;
+	}
+
+	uint8_t *ptr = buffer;
+
+	// Write ID
+	*(uint32_t *)ptr = g_htonl((uint32_t)polygon->id);
+	ptr += sizeof(uint32_t);
+
+	// Write number of points
+	*(uint32_t *)ptr = g_htonl((uint32_t)polygon->n_points);
+	ptr += sizeof(uint32_t);
+
+	// Write color as packed RGBA
+	uint32_t packed_color =
+	((uint32_t)(polygon->color.red * 255) << 24) |
+	((uint32_t)(polygon->color.green * 255) << 16) |
+	((uint32_t)(polygon->color.blue * 255) << 8) |
+	((uint32_t)(polygon->color.alpha * 255));
+	*(uint32_t *)ptr = g_htonl(packed_color);
+	ptr += sizeof(uint32_t);
+
+	// Write fill flag
+	*ptr = (uint8_t)polygon->fill;
+	ptr += 1;
+
+	// Write points
+	for (int i = 0; i < polygon->n_points; i++) {
+		double x_BE, y_BE;
+		FROM_BE64_INTO(x_BE, polygon->points[i].x, double);
+		FROM_BE64_INTO(y_BE, polygon->points[i].y, double);
+		memcpy(ptr, &x_BE, sizeof(double));
+		ptr += sizeof(double);
+		memcpy(ptr, &y_BE, sizeof(double));
+		ptr += sizeof(double);
+	}
+
+	// Write legend length and string
+	*(uint32_t *)ptr = g_htonl((uint32_t)legend_size);
+	ptr += sizeof(uint32_t);
+
+	if (legend_size > 0) {
+		memcpy(ptr, polygon->legend, legend_size);
+	}
+
+	return buffer;
+}
+
+uint8_t* serialize_polygon_list(GList *polygons, size_t *out_size) {
+	if (!polygons) {
+		*out_size = 0;
+		return NULL;
+	}
+
+	size_t total_size = sizeof(uint32_t); // Space for number of polygons
+	GList *node;
+	for (node = polygons; node != NULL; node = node->next) {
+		UserPolygon *polygon = (UserPolygon *)node->data;
+		size_t polygon_size;
+		uint8_t *serialized = serialize_polygon(polygon, &polygon_size);
+		if (!serialized) {
+			continue;
+		}
+		total_size += polygon_size;
+		g_free(serialized);
+	}
+
+	uint8_t *buffer = g_malloc0(total_size);
+	if (!buffer) {
+		fprintf(stderr, "Failed to allocate memory for serialized polygon list\n");
+		*out_size = 0;
+		return NULL;
+	}
+
+	uint8_t *ptr = buffer;
+
+	// Write number of polygons
+	*(uint32_t *)ptr = g_htonl(g_list_length(polygons));
+	ptr += sizeof(uint32_t);
+
+	for (node = polygons; node != NULL; node = node->next) {
+		UserPolygon *polygon = (UserPolygon *)node->data;
+		size_t polygon_size;
+		uint8_t *serialized = serialize_polygon(polygon, &polygon_size);
+		if (!serialized) {
+			g_free(buffer);
+			return NULL;
+		}
+		memcpy(ptr, serialized, polygon_size);
+		ptr += polygon_size;
+		g_free(serialized);
+	}
+
+	*out_size = total_size;
+	return buffer;
 }

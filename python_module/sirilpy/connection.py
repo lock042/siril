@@ -105,6 +105,8 @@ class _Command(IntEnum):
     ADD_USER_POLYGON = 57
     DELETE_USER_POLYGON = 58
     CLEAR_USER_POLYGONS = 59
+    GET_USER_POLYGON = 60
+    GET_USER_POLYGON_LIST = 61
     ERROR = 0xFF
 
 class LogColor (IntEnum):
@@ -3797,7 +3799,6 @@ class SirilInterface:
         Returns:
             UserPolygon: the input updated with the ID assigned by Siril
         """
-        MAX_POINTS_PER_POLYGON = 100 # Sensble limit to avoid excessively slow drawing
 
         try:
             # Serialize the provided polygon
@@ -3805,7 +3806,7 @@ class SirilInterface:
             # Send it using _execute_command
             response = self._request_data(_Command.ADD_USER_POLYGON, polygon_bytes)
             if response is None:
-                print(f"Error sending user polygon", file=sys.stderr)
+                print("Error sending user polygon", file=sys.stderr)
                 return None
 
             try:
@@ -3856,3 +3857,95 @@ class SirilInterface:
         except Exception as e:
             print(f"Error clearing user polygons: {e}", file=sys.stderr)
             return False
+
+    def get_user_polygon(self, polygon_id: int) -> 'UserPolygon':
+        """
+        Gets a single user polygon from the Siril overlay, specified by ID
+
+        Args:
+            id: int specifying the polygon ID to be deleted
+
+        Returns:
+            UserPolygon: the specified UserPolygon if it exists, None otherwise
+
+        Raises:
+            RuntimeError: if an error occurred processing the command
+        """
+        try:
+            payload = struct.pack('!i', polygon_id)
+            # Send it using _request_data
+            response = self._request_data(_Command.GET_USER_POLYGON, payload)
+            if response is None:
+                return None
+
+            # Assuming the response is in the format: !i (ID) (4 bytes)
+            polygon = UserPolygon.deserialize_polygon(response)
+            return polygon
+        except Exception as e:
+            raise RuntimeError(_("Failed to get user polygon: {}").format(e)) from e
+
+    def get_user_polygon_list(self) -> List['UserPolygon']:
+        """
+        Gets a List of all user polygons from the Siril overlay
+
+        Returns:
+            List[UserPolygon]: the list of UserPolygon if some exist, None otherwise
+
+        Raises:
+            RuntimeError: if an error occurred processing the command
+        """
+        try:
+            status, response = self._send_command(_Command.GET_USER_POLYGON_LIST)
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("No image is currently loaded in Siril"))
+                    raise RuntimeError(_("Server error: {}").format(error_msg))
+                raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
+
+            if status == _Status.NONE:
+                return None
+
+            if not response:
+                raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
+
+            try:
+                # Parse the shared memory information
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise ValueError(_("Invalid shared memory information received: {}").format(e)) from e
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise RuntimeError(_("Failed to map shared memory: {}").format(e)) from e
+
+            # Read entire buffer at once using memoryview
+            buffer = bytearray(shm.buf)[:shm_info.size]
+
+            polygon_list = UserPolygon.deserialize_polygon_list(buffer)
+
+            return polygon_list
+
+        except Exception as e:
+            raise RuntimeError(_("Error processing polygon data: {}").format(e)) from e
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    finish_info = struct.pack('256s', shm_info.shm_name)
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                        raise RuntimeError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass

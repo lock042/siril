@@ -795,3 +795,58 @@ class UserPolygon:
             buffer.extend(struct.pack('!i', 0))
 
         return bytes(buffer)
+
+    @classmethod
+    def deserialize_polygon(cls, data: bytes) -> Tuple['UserPolygon', bytes]:
+        if len(data) < 13:
+            raise ValueError("Invalid data size for polygon")
+
+        polygon_id, n_points, color, fill = struct.unpack('!iiI?', data[:13])
+        data = data[13:]
+
+        if n_points < 0 or n_points > MAX_POINTS_PER_POLYGON:
+            raise ValueError(f"Invalid number of points: {n_points}")
+
+        points = []
+        for _ in range(n_points):
+            if len(data) < 16:
+                raise ValueError("Not enough data for points")
+
+            x, y = struct.unpack('!dd', data[:16])
+            data = data[16:]
+            points.append(SirilPoint(x, y))
+
+        # Read legend length
+        if len(data) < 4:
+            raise ValueError("Not enough data for legend length")
+
+        legend_length = struct.unpack('!i', data[:4])[0]
+        data = data[4:]
+
+        if legend_length > 0:
+            if len(data) < legend_length:
+                raise ValueError("Not enough data for legend string")
+
+            legend = data[:legend_length].decode('utf-8')
+            data = data[legend_length:]
+        else:
+            legend = None
+
+        polygon = cls(polygon_id, points, color, fill, legend)
+        return polygon, data
+
+    @classmethod
+    def deserialize_polygon_list(cls, data: bytes) -> List['UserPolygon']:
+        if len(data) < 4:
+            raise ValueError("Invalid data size for polygon list")
+
+        num_polygons = struct.unpack('!I', data[:4])[0]
+        data = data[4:]
+
+        polygons = []
+        for _ in range(num_polygons):
+            # Create each polygon from the remaining data
+            polygon, data = cls.deserialize_polygon(data)
+            polygons.append(polygon)
+
+        return polygons
