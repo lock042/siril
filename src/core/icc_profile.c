@@ -1558,6 +1558,6 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	free(horseshoe_x);
 	free(horseshoe_y);
 
-	siril_add_idle(create_new_siril_plot_window, spl_data);
+	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
 }

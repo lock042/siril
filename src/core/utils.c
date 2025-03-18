@@ -2091,7 +2091,7 @@ guint gui_function(GSourceFunc idle_function, gpointer data) {
 		idle_function(data);
 	} else {
 		// we aren't in the GTK main thread or a script, so we add an idle
-		siril_add_idle(idle_function, data);
+		siril_add_pythonsafe_idle(idle_function, data);
 	}
 	return 0;
 }
