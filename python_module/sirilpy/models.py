@@ -832,7 +832,7 @@ class UserPolygon:
         else:
             legend = None
 
-        polygon = cls(polygon_id, points, color, fill, legend)
+        polygon = cls(points, polygon_id, color, fill, legend)
         return polygon, data
 
     @classmethod

@@ -3878,8 +3878,8 @@ class SirilInterface:
             if response is None:
                 return None
 
-            # Assuming the response is in the format: !i (ID) (4 bytes)
-            polygon = UserPolygon.deserialize_polygon(response)
+            # Catch the polygon and disregard leftover bytes
+            polygon, _ = UserPolygon.deserialize_polygon(response)
             return polygon
         except Exception as e:
             raise RuntimeError(_("Failed to get user polygon: {}").format(e)) from e
