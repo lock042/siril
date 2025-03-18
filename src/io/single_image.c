@@ -45,6 +45,7 @@
 #include "gui/plot.h"
 #include "gui/registration_preview.h"
 #include "gui/registration.h"
+#include "gui/user_polygons.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
