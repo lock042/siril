@@ -199,6 +199,7 @@ void wait_for_script_thread();
 
 gboolean end_generic(gpointer arg);
 guint siril_add_idle(GSourceFunc idle_function, gpointer data);
+guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data);
 
 struct generic_seq_args *create_default_seqargs(sequence *seq);
 
