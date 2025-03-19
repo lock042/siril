@@ -929,8 +929,9 @@ int stat_file(const char *filename, image_type *type, char **realname) {
 		if (!is_readable_file(filename)) return 1;
 
 		*type = get_type_for_extension(extension);
-		if (*type == TYPEFITS) {
+		if (*type == TYPEFITS || *type == TYPERAW) {
 			// Fast path: FITS files validated via extension + lstat only
+			// RAW are also validated via extension. If not it opens the image already processed.
 			if (realname) *realname = strdup(filename);
 			return 0;
 		}
