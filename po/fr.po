@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-03-10 21:11+0000\n"
+"PO-Revision-Date: 2025-03-19 10:22+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -29321,7 +29321,7 @@ msgstr "Empilement de %d images sur %d de la séquence"
 
 #: src/gui/statistics_list.c:47
 msgid "mean"
-msgstr "mean"
+msgstr "moyenne"
 
 #: src/gui/statistics_list.c:48
 msgid "median"
