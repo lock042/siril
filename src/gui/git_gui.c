@@ -235,7 +235,8 @@ void on_manual_script_sync_button_clicked(GtkButton *button,
 				return;
 			} else {
 				reset_scripts_repository();
-				g_string_free(git_pending_commit_buffer, TRUE);
+				if (git_pending_commit_buffer)
+					g_string_free(git_pending_commit_buffer, TRUE);
 				fill_script_repo_list(FALSE);
 				return;
 			}
