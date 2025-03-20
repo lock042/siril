@@ -205,8 +205,8 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 		return FALSE;
 	}
 	off_t aligned_size = (total_bytes + page_size - 1) & ~(page_size - 1);
-	printf("SHM allocation: Original size: %zu, Aligned size: %zu, Page size: %ld\n",
-					  total_bytes, aligned_size, page_size);
+	printf("SHM allocation: Original size: %zu, Aligned size: %" G_GOFFSET_FORMAT ", Page size: %ld\n",
+		   total_bytes, aligned_size, page_size);
 
 	siril_debug_print("Truncating shm file to %lu bytes\n", total_bytes);
 
