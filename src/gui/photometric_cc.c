@@ -970,7 +970,7 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 	spl_data->datamax.x = MAX_PLOT;
 	spl_data->datamax.y = min(spl_data->datamax.y, 1.2);
 	spl_data->cfgdata.line.sz = 2;
-	siril_add_idle(create_new_siril_plot_window, spl_data);
+	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
 }
 
@@ -1010,7 +1010,7 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 	if (cbdata->type != WB_REFS)
 		spl_data->datamax.x = MAX_PLOT;
 	spl_data->cfgdata.line.sz = 2;
-	siril_add_idle(create_new_siril_plot_window, spl_data);
+	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
 }
 
@@ -1167,6 +1167,6 @@ void on_spcc_plot_atmos_clicked(GtkButton* button, gpointer user_data) {
 	spl_data->datamin.x = MIN_PLOT;
 	spl_data->datamax.x = MAX_PLOT;
 	spl_data->cfgdata.line.sz = 2;
-	siril_add_idle(create_new_siril_plot_window, spl_data);
+	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
 }

@@ -205,8 +205,8 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 		return FALSE;
 	}
 	off_t aligned_size = (total_bytes + page_size - 1) & ~(page_size - 1);
-	printf("SHM allocation: Original size: %zu, Aligned size: %zu, Page size: %ld\n",
-					  total_bytes, aligned_size, page_size);
+	printf("SHM allocation: Original size: %zu, Aligned size: %" G_GOFFSET_FORMAT ", Page size: %ld\n",
+		   total_bytes, aligned_size, page_size);
 
 	siril_debug_print("Truncating shm file to %lu bytes\n", total_bytes);
 
@@ -723,7 +723,7 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 
 	// Plot the data in a siril_plot_window
 	if (plot_data)
-		siril_add_idle(create_new_siril_plot_window, plot_data);
+		siril_add_pythonsafe_idle(create_new_siril_plot_window, plot_data);
 	return send_response(conn, STATUS_OK, NULL, 0);
 }
 

@@ -929,8 +929,9 @@ int stat_file(const char *filename, image_type *type, char **realname) {
 		if (!is_readable_file(filename)) return 1;
 
 		*type = get_type_for_extension(extension);
-		if (*type == TYPEFITS) {
+		if (*type == TYPEFITS || *type == TYPERAW) {
 			// Fast path: FITS files validated via extension + lstat only
+			// RAW are also validated via extension. If not it opens the image already processed.
 			if (realname) *realname = strdup(filename);
 			return 0;
 		}
@@ -2091,7 +2092,7 @@ guint gui_function(GSourceFunc idle_function, gpointer data) {
 		idle_function(data);
 	} else {
 		// we aren't in the GTK main thread or a script, so we add an idle
-		siril_add_idle(idle_function, data);
+		siril_add_pythonsafe_idle(idle_function, data);
 	}
 	return 0;
 }

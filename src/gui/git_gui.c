@@ -212,44 +212,46 @@ void on_manual_script_sync_button_clicked(GtkButton *button,
 	set_cursor_waiting(TRUE);
 
 	switch (preview_scripts_update(&git_pending_commit_buffer)) {
-	case 1:
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
-		return;
-	case 2:
-		// Merge cannot be fast forwarded
-		if (!siril_confirm_dialog(
-				_("Warning!"),
-				_("Merge analysis shows that "
-				"the merge cannot be fast-forwarded. This indicates you have "
-				"made changes to the local repository. Siril does not "
-				"provide full git functionality and cannot be used to merge "
-				"upstream updates into an altered local repository.\n\nIf you "
-				"accept the update, the local repository will be hard reset "
-				"to match the remote repository and any local changes will "
-				"be lost.\n\nIf you have made local changes that you wish to "
-				"keep, you should cancel this update and copy your modified "
-				"scripts to another location, and add this location to the "
-				"list of script directories to be searched."),
-				_("Accept"))) {
-		g_string_free(git_pending_commit_buffer, TRUE);
-		return;
-		} else {
-		reset_scripts_repository();
-		g_string_free(git_pending_commit_buffer, TRUE);
-		return;
-		}
-	default:
-		break;
+		case 1:
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
+			return;
+		case 2:
+			// Merge cannot be fast forwarded
+			if (!siril_confirm_dialog(
+					_("Warning!"),
+					_("Merge analysis shows that "
+					"the merge cannot be fast-forwarded. This indicates you have "
+					"made changes to the local repository. Siril does not "
+					"provide full git functionality and cannot be used to merge "
+					"upstream updates into an altered local repository.\n\nIf you "
+					"accept the update, the local repository will be hard reset "
+					"to match the remote repository and any local changes will "
+					"be lost.\n\nIf you have made local changes that you wish to "
+					"keep, you should cancel this update and copy your modified "
+					"scripts to another location, and add this location to the "
+					"list of script directories to be searched."),
+					_("Accept"))) {
+				g_string_free(git_pending_commit_buffer, TRUE);
+				return;
+			} else {
+				reset_scripts_repository();
+				if (git_pending_commit_buffer)
+					g_string_free(git_pending_commit_buffer, TRUE);
+				fill_script_repo_list(FALSE);
+				return;
+			}
+		default:
+			break;
 	}
 	if (git_pending_commit_buffer != NULL) {
 		if (siril_confirm_data_dialog(
 				GTK_MESSAGE_QUESTION, _("Manual Update"),
 				_("Read and confirm the pending changes to be synced"),
 				_("Confirm"), git_pending_commit_buffer->str)) {
-		if (reset_scripts_repository()) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! Script database failed to update."));
-		}
-		fill_script_repo_list(FALSE);
+			if (reset_scripts_repository()) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! Script database failed to update."));
+			}
+			fill_script_repo_list(FALSE);
 		} else {
 		siril_message_dialog(
 			GTK_MESSAGE_INFO, _("Manual Update"),
@@ -259,7 +261,7 @@ void on_manual_script_sync_button_clicked(GtkButton *button,
 	} else {
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The script repository is up to date."));
 	}
-	fill_script_repo_list(TRUE);
+	fill_script_repo_list(FALSE);
 	set_cursor_waiting(FALSE);
 }
 

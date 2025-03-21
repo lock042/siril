@@ -261,6 +261,7 @@ src_files = [
   'gui/starnetgui.c',
   'gui/statistics_list.c',
   'gui/unpurple.c',
+  'gui/user_polygons.c',
   'gui/utils.c',
 
   'pixelMath/pixel_math_runner.c',

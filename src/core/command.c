@@ -5871,6 +5871,10 @@ int process_subsky(int nb) {
 		if (!seq) {
 			return CMD_SEQUENCE_NOT_FOUND;
 		}
+		if (check_seq_is_comseq(seq)) {
+			free_sequence(seq, TRUE);
+			seq = &com.seq;
+		}
 	} else {
 		if (!single_image_is_loaded()) return CMD_IMAGE_NOT_FOUND;
 		dithering = FALSE;
@@ -10916,7 +10920,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
-		if (g_str_has_prefix(word[i], "-tri") || g_str_has_prefix(word[i], "-bgremove")) {
+		if (g_str_has_prefix(word[i], "-tri")/* || g_str_has_prefix(word[i], "-bgremove")*/) {
 			cut_args->tri = TRUE;
 		}
 		else if (g_str_has_prefix(word[i], "-cfa")) {
@@ -10979,7 +10983,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 				break;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-xaxis=wavenum")) {
+/*		else if (g_str_has_prefix(arg, "-xaxis=wavenum")) {
 			cut_args->plot_as_wavenumber = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-xaxis=wavelen")) {
@@ -11005,7 +11009,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			arg += 8;
 			cut_args->bg_poly_order = (int) g_ascii_strtod(arg, &end);
 		}
-		else if (g_str_has_prefix(arg, "-from=")) {
+*/		else if (g_str_has_prefix(arg, "-from=")) {
 			gchar *value;
 			value = arg + 6;
 			if ((*err = read_cut_pair(value, &cut_args->cut_start))) {
@@ -11021,7 +11025,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 				break;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-wn1at=")) {
+/*		else if (g_str_has_prefix(arg, "-wn1at=")) {
 			gchar *value;
 			value = arg + 7;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn1))) {
@@ -11037,7 +11041,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 				break;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-filename=")) {
+*/		else if (g_str_has_prefix(arg, "-filename=")) {
 			if (seq) {
 				siril_log_color_message(_("Error: this option cannot be used for sequences.\n"), "red");
 				*err = CMD_ARG_ERROR;
