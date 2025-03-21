@@ -37,13 +37,15 @@ typedef struct _SourceEntryXPsamp {
 	int16_t mag_scaled;  // 2 bytes
 	// The remaining fields are only read for SPCC
 	uint8_t fexpo;       // 1 byte
-	int16_t flux[343];   // 686 bytes: xp_sampled flux values
+	int16_t flux[XPSAMPLED_LEN];   // 686 bytes: xp_sampled flux values
 } SourceEntryXPsamp;
 #pragma pack(pop)
 
 void initialize_local_catalogues_paths();
-gboolean local_catalogues_available();
+gboolean local_kstars_available();
 gboolean local_gaia_available();
+gboolean local_catalogues_available();
+siril_cat_index get_local_catalogue_index();
 
 int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat);
 gpointer write_trixels(gpointer p);

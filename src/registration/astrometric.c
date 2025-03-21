@@ -88,6 +88,8 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 	double pc[2][2];
 	double cdelt[2];
 	double *pcij = WCSDATA->pc;
+	if (!pcij)
+		return FALSE;
 	for (int i = 0; i < 2; i++) {
 		cdelt[i] = WCSDATA->cdelt[i];
 		for (int j = 0; j <2; j++) {
