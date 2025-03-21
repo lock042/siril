@@ -2294,7 +2294,7 @@ gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filen
 		if (cachefileInfo.st_ctime < imgfileInfo.st_ctime) {
 			siril_debug_print("%s is older than %s\n", cache_filename, img_filename);
 			if (!g_unlink(cache_filename))
-				siril_debug_print(_("Removed outdated cache file % failed\n"), cache_filename);
+				siril_debug_print(_("Removed outdated cache file %s failed\n"), cache_filename);
 			return FALSE;
 		}
 		return TRUE;
