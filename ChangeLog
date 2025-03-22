@@ -103,6 +103,7 @@ xx/xx/xx
 * Fixed loss of metadata when Siril uses preview (#1491)
 * Fixed handling NaNs in float statistics (#1487)
 * Fixed h264 and h265 export (!828)
+* Fixed memory error when created new FITS image (#1524)
 
 **Misc:**
 * Removed glib-networking as a dependency (#1157)
