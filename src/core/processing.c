@@ -387,13 +387,12 @@ the_end:
 #endif
 
 	if (!args->already_in_a_thread) {
-		guint run_idle = 0;
+		gboolean run_idle;
 		if (args->idle_function)
 			run_idle = siril_add_idle(args->idle_function, args) > 0; // not python safe because of the call to
 					// update_sequences_list, which may be running after the next python command has started
 					// and clobbers things
-		else
-			run_idle = siril_add_idle(end_generic_sequence, args) > 0; // the generic idle
+		else run_idle = siril_add_idle(end_generic_sequence, args) > 0; // the generic idle
 
 		if (!run_idle) {
 			// some generic cleanup for scripts
