@@ -914,12 +914,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			g_free(cmd);
 
 			// Send response based on command execution
-			if (retval == CMD_OK) {
-				success = send_response(conn, STATUS_OK, NULL, 0);
-			} else {
-				const char* error_msg = _("Siril command error");
-				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-			}
+			// We always return STATUS_OK (this is handled by _request_data)
+			// but return the actual retval as the payload (this is handled
+			// by cmd() and results in exception raising for anything except
+			// CMD_OK or CMD_NO_WAIT)
+			int32_t be_retval = GINT32_TO_BE(retval);
+			success = send_response(conn, STATUS_OK, &be_retval, sizeof(int32_t));
 			break;
 		}
 

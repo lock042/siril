@@ -113,6 +113,33 @@ class _Command(IntEnum):
     ERROR = 0xFF
 
 @unique
+class _CommandStatus(IntEnum):
+    CMD_NOT_FOUND = 1
+    CMD_NO_WAIT = 1 << 1
+    CMD_NO_CWD = 1 << 2
+    CMD_NOT_SCRIPTABLE = 1 << 3
+    CMD_WRONG_N_ARG = 1 << 4
+    CMD_ARG_ERROR = 1 << 5
+    CMD_SELECTION_ERROR = 1 << 6
+    CMD_OK = 0
+    CMD_GENERIC_ERROR = 1 << 7
+    CMD_IMAGE_NOT_FOUND = 1 << 8
+    CMD_SEQUENCE_NOT_FOUND = 1 << 9
+    CMD_INVALID_IMAGE = 1 << 10
+    CMD_LOAD_IMAGE_FIRST = 1 << 11
+    CMD_ONLY_SINGLE_IMAGE = 1 << 12
+    CMD_NOT_FOR_SINGLE = 1 << 13
+    CMD_NOT_FOR_MONO = 1 << 14
+    CMD_NOT_FOR_RGB = 1 << 15
+    CMD_FOR_CFA_IMAGE = 1 << 16
+    CMD_FILE_NOT_FOUND = 1 << 17
+    CMD_FOR_PLATE_SOLVED = 1 << 18
+    CMD_NEED_INIT_FIRST = 1 << 19
+    CMD_ALLOC_ERROR = 1 << 20
+    CMD_THREAD_RUNNING = 1 << 21
+    CMD_DIR_NOT_FOUND = 1 << 22
+
+@unique
 class LogColor (IntEnum):
     """
     Defines colors available for use with ``SirilInterface.log()``
@@ -1026,25 +1053,69 @@ class SirilInterface:
             *args: Variable number of string arguments to be combined into a command
 
         Raises:
-            RuntimeError: If the command failed.
+            SirilError: If the command fails with a specific error code.
+            RuntimeError: If another error occurs during execution.
 
         Example:
             .. code-block:: python
-
                 siril.cmd("ght", "-D=0.5", "-b=2.0")
         """
-
         try:
             # Join arguments with spaces between them
             command_string = " ".join(str(arg) for arg in args)
-
             # Convert to bytes for transmission
             command_bytes = command_string.encode('utf-8')
 
-            if self._execute_command(_Command.SEND_COMMAND, command_bytes, timeout = None) is False:
-                raise SirilError(_(f"Error: _execute_command({args[0]}) failed."))
+            # Use _request_data instead of _execute_command
+            response = self._request_data(_Command.SEND_COMMAND, command_bytes, timeout=None)
+
+            if response is None:
+                raise SirilError(_(f"Error: _request_data({args}) failed."))
+
+            # Convert response bytes to integer from network byte order
+            if len(response) == 4:  # Valid response is int32_t ie 4 bytes
+                status_code = int.from_bytes(response, byteorder='big')
+
+                # Check against _CommandStatus enum
+                if status_code == _CommandStatus.CMD_OK or status_code == _CommandStatus.CMD_NO_WAIT:
+                    return  # Command executed successfully
+                # ERROR HANDLING
+                # Map status code to error message
+                error_messages = {
+                    _CommandStatus.CMD_NOT_FOUND: "Command not found",
+                    _CommandStatus.CMD_NO_WAIT: "Command does not wait for completion",
+                    _CommandStatus.CMD_NO_CWD: "Current working directory not set",
+                    _CommandStatus.CMD_NOT_SCRIPTABLE: "Command not scriptable",
+                    _CommandStatus.CMD_WRONG_N_ARG: "Wrong number of arguments",
+                    _CommandStatus.CMD_ARG_ERROR: "Argument error",
+                    _CommandStatus.CMD_SELECTION_ERROR: "Selection error",
+                    _CommandStatus.CMD_GENERIC_ERROR: "Generic error",
+                    _CommandStatus.CMD_IMAGE_NOT_FOUND: "Image not found",
+                    _CommandStatus.CMD_SEQUENCE_NOT_FOUND: "Sequence not found",
+                    _CommandStatus.CMD_INVALID_IMAGE: "Invalid image",
+                    _CommandStatus.CMD_LOAD_IMAGE_FIRST: "Load image first",
+                    _CommandStatus.CMD_ONLY_SINGLE_IMAGE: "Command requires a single image to be loaded",
+                    _CommandStatus.CMD_NOT_FOR_SINGLE: "Command not for single images",
+                    _CommandStatus.CMD_NOT_FOR_MONO: "Command not for monochrome images",
+                    _CommandStatus.CMD_NOT_FOR_RGB: "Command not for RGB images",
+                    _CommandStatus.CMD_FOR_CFA_IMAGE: "Command only for CFA images",
+                    _CommandStatus.CMD_FILE_NOT_FOUND: "File not found",
+                    _CommandStatus.CMD_FOR_PLATE_SOLVED: "Command requires plate-solved image",
+                    _CommandStatus.CMD_NEED_INIT_FIRST: "Initialization required first",
+                    _CommandStatus.CMD_ALLOC_ERROR: "Memory allocation error",
+                    _CommandStatus.CMD_THREAD_RUNNING: "Command thread already running",
+                    _CommandStatus.CMD_DIR_NOT_FOUND: "Directory not found"
+                }
+                print(f"Status code: {status_code}")
+                error_message = error_messages.get(status_code, f"Unknown error code: {status_code}")
+                raise SirilError(_(f"Command '{args[0]}' failed: {error_message}"))
+            else:
+                # Handle case where response doesn't contain enough bytes for a status code
+                raise SirilError(_(f"Error: Response from {args[0]} incorrect size to contain a status code."))
 
         except Exception as e:
+            if isinstance(e, SirilError):
+                raise  # Re-raise SirilError without wrapping
             raise RuntimeError(_("Error executing command {}: {}").format(args[0], e)) from e
 
     def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
