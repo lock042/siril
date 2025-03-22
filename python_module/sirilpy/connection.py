@@ -9,7 +9,7 @@ import ctypes
 import socket
 import struct
 import threading
-from enum import IntEnum
+from enum import IntEnum, unique
 from datetime import datetime
 from typing import Tuple, Optional, List, Union
 import numpy as np
@@ -27,6 +27,7 @@ if os.name == 'nt':
     import pywintypes
     import winerror
 
+@unique
 class _Status(IntEnum):
     """
     Returns the status of a command. NONE is for commands that
@@ -40,6 +41,7 @@ class _Status(IntEnum):
     NONE = 1
     ERROR = 0xFF
 
+@unique
 class _Command(IntEnum):
     """
     Enumerates the commands. This enum MUST match the one in
@@ -110,6 +112,7 @@ class _Command(IntEnum):
     CONFIRM_MESSAGEBOX = 62
     ERROR = 0xFF
 
+@unique
 class LogColor (IntEnum):
     """
     Defines colors available for use with ``SirilInterface.log()``
@@ -135,6 +138,7 @@ class _Defaults:
     DEFAULT_UINT_VALUE = 2147483647
     VALUES = {DEFAULT_DOUBLE_VALUE, DEFAULT_FLOAT_VALUE, DEFAULT_INT_VALUE, DEFAULT_UINT_VALUE}
 
+@unique
 class _ConfigType(IntEnum):
     """
     Enumerates config variable types for use with the
@@ -656,9 +660,13 @@ class SirilInterface:
     def claim_thread(self) -> bool:
         """
         Claim the processing thread. This prevents other processes using the
-        processing thread to operate on the current Siril image. This function
-        **must** always be called before starting any processing that will end with
-        ``SirilInterface.set_image_pixeldata()``. The sequence of operations should be:
+        processing thread to operate on the current Siril image. The preferred
+        method of thread control is to use the image_lock() context manager
+        rather than using this function manually.
+
+        This function **must** always be called before starting any processing
+        that will end with ``SirilInterface.set_image_pixeldata()``. The
+        sequence of operations should be:
 
         * Call ``SirilInterface.claim_thread()``
         * If the result is False, alert the user and await further input: the
@@ -704,9 +712,13 @@ class SirilInterface:
     def release_thread(self) -> bool:
         """
         Release the processing thread. This permits other processes to use the
-        processing thread to operate on the current Siril image. This function
-        MUST always be called after completing any processing that has updated
-        the image loaded in Siril. The sequence of operations should be:
+        processing thread to operate on the current Siril image. The preferred
+        method of thread control is to use the image_lock() context manager
+        rather than using this function manually.
+
+        This function **must** always be called after completing any processing
+        that has updated the image loaded in Siril. The sequence of operations
+        should be:
 
         * Call ``SirilInterface.claim_thread()``
         * If the result is False, alert the user and await further input: the
@@ -737,6 +749,57 @@ class SirilInterface:
         except Exception as e:
             print(f"Error releasing the processing thread: {e}", file=sys.stderr)
             return False
+
+    def image_lock(self):
+        """
+        A context manager that handles claiming and releasing the processing thread.
+
+        This method is designed to be used with a `with` statement to ensure that
+        the thread is properly claimed before processing and released after processing,
+        even if an exception occurs during processing. It is preferable to use this
+        context manager rather than manually calling claim_thread() and
+        release_thread() as the context manager will ensure correct cleanup if an
+        exception occurs.
+
+        Note that the image_lock() context should only be entered when the script itself
+        is operating on the Siril image data. If the script is calling a Siril command
+        to alter the Siril image then the context **must not** be entered or the Siril
+        command will be unable to acquire the processing thread and will fail.
+
+        Example usage:
+
+        .. code_block:: python
+
+            with self.image_lock():
+                # Get image data
+                image_data = self.get_image_pixeldata()
+                # Process image data
+                processed_data = some_processing_function(image_data)
+                # Set the processed image data
+                self.set_image_pixeldata(processed_data)
+
+        Raises:
+            RuntimeError: If the thread cannot be claimed.
+        """
+        class ImageLockContext:
+            def __init__(self, outer_self):
+                self.outer_self = outer_self
+                self.claimed = False
+
+            def __enter__(self):
+                if not self.outer_self.claim_thread():
+                    raise RuntimeError("Failed to claim processing thread. Thread may be in use or an image processing dialog is open.")
+                self.claimed = True
+                return self.outer_self
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                if self.claimed:
+                    self.outer_self.release_thread()
+                    self.claimed = False
+                # Don't suppress exceptions
+                return False
+
+        return ImageLockContext(self)
 
     def confirm_messagebox(self, title: str, message: str, confirm_label: str) -> bool:
         """
