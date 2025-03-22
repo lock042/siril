@@ -2635,7 +2635,7 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 	data_size = type == DATA_USHORT ? sizeof(WORD) : sizeof(float);
 
 	if (!data) {
-		data = malloc(npixels * nblayer * data_size);
+		data = calloc(npixels * nblayer, data_size);
 		if (!data) {
 			PRINT_ALLOC_ERR;
 			return -1;
