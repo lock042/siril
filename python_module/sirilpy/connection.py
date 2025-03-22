@@ -795,7 +795,7 @@ class SirilInterface:
 
         Example usage:
 
-        .. code_block:: python
+        .. code-block:: python
 
             with self.image_lock():
                 # Get image data
