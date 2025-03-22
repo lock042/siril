@@ -396,10 +396,14 @@ the_end:
 
 		if (!run_idle) {
 			// some generic cleanup for scripts
-			// should we check for seq = com.seq?
-			free(args->new_seq_prefix);
-			free_sequence(args->seq, TRUE);
-			free(args);
+			// here we make sure the new .seq is created if needed
+			if (args->has_output && args->load_new_sequence &&
+				args->new_seq_prefix && !args->retval) {
+				check_seq();
+			}
+			free_generic_seq_args(args, TRUE);
+			// we then make sure we stop the thread and reset cursor to FALSE
+			end_generic(NULL);
 		}
 	}
 	return GINT_TO_POINTER(retval);
