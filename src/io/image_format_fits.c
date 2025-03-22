@@ -3175,13 +3175,13 @@ int get_xpsampled(double *xps, const gchar *filename, int i) {
 		fits_report_error(stderr, status);
 		goto error;
 	}
-	if (array_length != 343) {
-		siril_debug_print("Invalid array length %ld (should be 343)\n", array_length);
+	if (array_length != XPSAMPLED_LEN) {
+		siril_debug_print("Invalid array length %ld (should be %d)\n", array_length, XPSAMPLED_LEN);
 		goto error;
 	}
 
 	// Temporary memory for the data (we have to do this as the data is float but we need it as double)
-	float data[343];
+	float data[XPSAMPLED_LEN];
 
 	// Read the actual array data from the heap
 	if (fits_read_col(fptr, TFLOAT, fluxcol, i+1, 1, array_length, NULL, data, &anynul, &status)) {

@@ -688,6 +688,18 @@ void initialize_local_catalogues_paths() {
 }
 
 gboolean local_catalogues_available() {
+	return local_kstars_available() || local_gaia_available();
+}
+
+siril_cat_index get_local_catalogue_index() {
+	if (local_gaia_available())
+		return CAT_LOCAL_GAIA_ASTRO;
+	if (local_kstars_available())
+		return CAT_LOCAL_KSTARS;
+	return CAT_UNDEF;
+}
+
+gboolean local_kstars_available() {
 	int nb_catalogues = 4;
 	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 		if (!is_readable_file(com.pref.catalogue_paths[catalogue]))
@@ -711,7 +723,7 @@ gboolean local_gaia_available() {
 int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return 0;
-	if (siril_cat->cat_index != CAT_LOCAL &&
+	if (siril_cat->cat_index != CAT_LOCAL_KSTARS &&
 			siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO &&
 			siril_cat->cat_index != CAT_LOCAL_GAIA_XPSAMP &&
 			siril_cat->cat_index != CAT_LOCAL_TRIX) {
@@ -721,8 +733,8 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	deepStarData *stars = NULL;
 	uint32_t nb_stars;
 
-	double ra_mult = siril_cat->ra_multiplier;
-	double dec_mult = siril_cat->dec_multiplier;
+	double ra_mult = siril_catalog_ra_multiplier(siril_cat->cat_index);
+	double dec_mult = siril_catalog_dec_multiplier(siril_cat->cat_index);
 
 	if (siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP) {
 		SourceEntryXPsamp *stars = NULL;
@@ -732,14 +744,14 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 		siril_cat->nbincluded = (int)nb_stars;
 		siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
 		for (int i = 0; i < siril_cat->nbitems; i++) {
-			siril_cat->cat_items[i].xp_sampled = malloc(343 * sizeof(double));
+			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
 			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * ra_mult;
 			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * dec_mult;
 			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
 			siril_cat->cat_items[i].pmdec = (double)stars[i].ddec_scaled;
 			siril_cat->cat_items[i].mag = (float)stars[i].mag_scaled * 0.001;
 			float powexp = pow(10.f, stars[i].fexpo);
-			for (int j = 0 ; j < 343 ; j++) {
+			for (int j = 0 ; j < XPSAMPLED_LEN ; j++) {
 				float d = half_to_float(stars[i].flux[j]);
 				siril_cat->cat_items[i].xp_sampled[j] = d / powexp;
 			}
@@ -754,7 +766,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO && get_raw_stars_from_local_gaia_astro_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, siril_cat->phot, &stars, &nb_stars))
 		return 0;
 
-	if (siril_cat->cat_index == CAT_LOCAL && get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
+	if (siril_cat->cat_index == CAT_LOCAL_KSTARS && get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
 				siril_cat->phot, &stars, &nb_stars))
 		return 0;
 	if (siril_cat->cat_index == CAT_LOCAL_TRIX && get_raw_stars_from_local_catalogues_byID(siril_cat->trixel, siril_cat->limitmag, siril_cat->phot, &stars, &nb_stars))

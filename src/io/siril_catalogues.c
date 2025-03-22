@@ -192,32 +192,32 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS) | (1 << CAT_FIELD_DATEOBS) | (1 << CAT_FIELD_SITELAT) | (1 << CAT_FIELD_SITELON) | (1 << CAT_FIELD_SITEELEV) | (1 << CAT_FIELD_VRA) | (1 << CAT_FIELD_VDEC) | (1 << CAT_FIELD_TYPE);
 		case CAT_COMPSTARS:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_TYPE);
-		case CAT_LOCAL:
+		case CAT_LOCAL_KSTARS:
 		case CAT_LOCAL_TRIX:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
-		case CAT_AN_USER_TEMP:
-		case CAT_SHOW:
 		case CAT_LOCAL_GAIA_ASTRO:
 			return (1 << CAT_FIELD_GAIASOURCEID) | (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_TEFF);
-		default:
+		case CAT_AN_USER_TEMP:
+		case CAT_SHOW:
+			default:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC);
 	}
 }
 
 // This function returns the epoch of the catalog
-static double siril_catalog_epoch(siril_cat_index cat) {
+double siril_catalog_epoch(siril_cat_index cat) {
 	if ((cat == CAT_GAIADR3_DIRECT) || (cat == CAT_LOCAL_GAIA_ASTRO) || (cat == CAT_LOCAL_GAIA_XPSAMP))
 		return J2016;
 	return J2000;
 }
 
-static double siril_catalog_ra_multiplier(siril_cat_index cat) {
+double siril_catalog_ra_multiplier(siril_cat_index cat) {
 	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
 		return 360.0 / (double) INT32_MAX;
 	return 0.000001;
 }
 
-static double siril_catalog_dec_multiplier(siril_cat_index cat) {
+double siril_catalog_dec_multiplier(siril_cat_index cat) {
 	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
 		return 360.0 / (double) INT32_MAX;
 	return 0.00001;
@@ -288,7 +288,7 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return _("IMCCE solar system");
 		case CAT_AAVSO_CHART:
 			return _("AAVSO VSP Chart");
-		case CAT_LOCAL:
+		case CAT_LOCAL_KSTARS:
 			return _("Tycho-2+NOMAD");
 		case CAT_LOCAL_GAIA_ASTRO:
 			return _("Gaia DR3 astrometry");
@@ -333,7 +333,7 @@ gboolean is_star_catalogue(siril_cat_index Catalog) {
 		case CAT_EXOPLANETARCHIVE:
 		case CAT_AAVSO_CHART:
 		case CAT_AN_STARS:
-		case CAT_LOCAL:
+		case CAT_LOCAL_KSTARS:
 		case CAT_LOCAL_TRIX:
 		case CAT_AN_USER_SSO:
 		case CAT_LOCAL_GAIA_ASTRO:
@@ -509,9 +509,6 @@ siril_catalogue *siril_catalog_new(siril_cat_index Catalog) {
 	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
 	siril_cat->cat_index = Catalog;
 	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
-	siril_cat->epoch = siril_catalog_epoch(siril_cat->cat_index);
-	siril_cat->ra_multiplier = siril_catalog_ra_multiplier(siril_cat->cat_index);
-	siril_cat->dec_multiplier = siril_catalog_dec_multiplier(siril_cat->cat_index);
 	return siril_cat;
 }
 
@@ -625,7 +622,7 @@ int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
 		return nbstars;
 #endif
-	} else if (siril_cat->cat_index == CAT_LOCAL || siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO || siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP || siril_cat->cat_index == CAT_LOCAL_TRIX) {
+	} else if (siril_cat->cat_index == CAT_LOCAL_KSTARS || siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO || siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP || siril_cat->cat_index == CAT_LOCAL_TRIX) {
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
 	} else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
 		nbstars = siril_cat->nbitems;
@@ -935,11 +932,12 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	use_proper_motion = use_proper_motion && can_use_proper_motion(fit, siril_cat);
 	use_velocity = use_velocity && can_use_velocity(fit, siril_cat);
 	gboolean has_second_star = siril_cat->cat_index == CAT_AN_CONST;
+	double cat_epoch = siril_catalog_epoch(siril_cat->cat_index);
 	if (use_proper_motion) {
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
 		gdouble jd = date_time_to_Julian(dt);
 		g_date_time_unref(dt);
-		jyears = (jd - siril_cat->epoch) / 365.25;
+		jyears = (jd - cat_epoch) / 365.25;
 	}
 	if (use_velocity) {
 		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
@@ -1038,6 +1036,7 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC))
 		return 1;
 	double jyears = 0.;
+	double cat_epoch = siril_catalog_epoch(siril_cat->cat_index);
 	if (use_proper_motion) {
 		if (!date_obs) {
 			siril_log_color_message(_("no DATE-OBS information, cannot account for stars proper motions\n"), "salmon");
@@ -1049,7 +1048,7 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 			GDateTime *dt = g_date_time_ref(date_obs);
 			gdouble jd = date_time_to_Julian(dt);
 			g_date_time_unref(dt);
-			jyears = (jd - siril_cat->epoch) / 365.25;
+			jyears = (jd - cat_epoch) / 365.25;
 		}
 	}
 	dec0 *= DEGTORAD;
@@ -1244,6 +1243,7 @@ gpointer conesearch_worker(gpointer p) {
 	int retval = 1;
 	double stardiam = 0.0;
 	gboolean hide_display_tag = FALSE;
+	gboolean free_dx = TRUE;
 
 	// Check initial args
 	if (!siril_cat) {
@@ -1260,7 +1260,7 @@ gpointer conesearch_worker(gpointer p) {
 	if (!check) {  // conesearch failed
 		goto exit_conesearch;
 	}
-	if (siril_cat->cat_index != CAT_LOCAL &&
+	if (siril_cat->cat_index != CAT_LOCAL_KSTARS &&
 		siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO &&
 		siril_cat->cat_index != CAT_LOCAL_TRIX)
 	{
@@ -1466,6 +1466,7 @@ gpointer conesearch_worker(gpointer p) {
 		free(dy);
 		dy = NULL;
 	}
+	free_dx = FALSE;
 
 	// Write catalogue if required
 	if (args->outfilename) {
@@ -1515,8 +1516,10 @@ gpointer conesearch_worker(gpointer p) {
 		}
 		if (retval == -1)  // success but empty field
 			retval = 0;
-		free(dx); // may still be NULL if the if (!j) conditional bails out
-		free(dy); // may still be NULL if the if (!j) conditional bails out
+		if (free_dx) {
+			free(dx); // may still be NULL if the if (!j) conditional bails out
+			free(dy); // may still be NULL if the if (!j) conditional bails out
+		}
 	}
 
 	return GINT_TO_POINTER(retval);
