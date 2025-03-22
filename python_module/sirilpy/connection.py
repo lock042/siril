@@ -1053,8 +1053,8 @@ class SirilInterface:
             *args: Variable number of string arguments to be combined into a command
 
         Raises:
-            SirilError: If the command fails with a specific error code.
-            RuntimeError: If another error occurs during execution.
+            CommandError: If the command fails with a specific error code.
+            SirilError: If another error occurs during execution.
 
         Example:
             .. code-block:: python
@@ -1108,15 +1108,13 @@ class SirilInterface:
                 }
                 print(f"Status code: {status_code}")
                 error_message = error_messages.get(status_code, f"Unknown error code: {status_code}")
-                raise SirilError(_(f"Command '{args[0]}' failed: {error_message}"))
+                raise CommandError(_(f"Command '{args[0]}' failed: {error_message}"), status_code)
             else:
                 # Handle case where response doesn't contain enough bytes for a status code
                 raise SirilError(_(f"Error: Response from {args[0]} incorrect size to contain a status code."))
 
         except Exception as e:
-            if isinstance(e, SirilError):
-                raise  # Re-raise SirilError without wrapping
-            raise RuntimeError(_("Error executing command {}: {}").format(args[0], e)) from e
+            raise  # Re-raise without wrapping
 
     def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
         """
