@@ -9,7 +9,7 @@ import ctypes
 import socket
 import struct
 import threading
-from enum import IntEnum
+from enum import IntEnum, unique
 from datetime import datetime
 from typing import Tuple, Optional, List, Union
 import numpy as np
@@ -27,6 +27,7 @@ if os.name == 'nt':
     import pywintypes
     import winerror
 
+@unique
 class _Status(IntEnum):
     """
     Returns the status of a command. NONE is for commands that
@@ -40,6 +41,7 @@ class _Status(IntEnum):
     NONE = 1
     ERROR = 0xFF
 
+@unique
 class _Command(IntEnum):
     """
     Enumerates the commands. This enum MUST match the one in
@@ -110,6 +112,7 @@ class _Command(IntEnum):
     CONFIRM_MESSAGEBOX = 62
     ERROR = 0xFF
 
+@unique
 class LogColor (IntEnum):
     """
     Defines colors available for use with ``SirilInterface.log()``
@@ -135,6 +138,7 @@ class _Defaults:
     DEFAULT_UINT_VALUE = 2147483647
     VALUES = {DEFAULT_DOUBLE_VALUE, DEFAULT_FLOAT_VALUE, DEFAULT_INT_VALUE, DEFAULT_UINT_VALUE}
 
+@unique
 class _ConfigType(IntEnum):
     """
     Enumerates config variable types for use with the

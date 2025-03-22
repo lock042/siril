@@ -6,7 +6,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, Tuple, List
-from enum import IntEnum
+from enum import IntEnum, unique
 import struct
 import logging
 import numpy as np
@@ -120,8 +120,6 @@ class FKeywords:
     sitelat: float = 0.0 # [deg] Observation site latitude
     sitelong: float = 0.0 #: [deg] Observation site longitude
     siteelev: float = 0.0 #: [m] Observation site elevation
-
-
 
 @dataclass
 class FFit:
@@ -521,6 +519,7 @@ class BGSample:
             if field_name not in {"position", "size"}:  # Already set manually
                 setattr(self, field_name, kwargs.get(field_name, getattr(self.__class__, field_name)))
 
+@unique
 class StarProfile(IntEnum):
     """
     Python equivalent of the Siril starprofile enum. Used to identify the type
@@ -532,6 +531,7 @@ class StarProfile(IntEnum):
     MOFFAT = 1
     MOFFAT_FIXED = 2
 
+@unique
 class SequenceType(IntEnum):
     """Python equivalent of the Siril sequence_type enum"""
     SEQ_REGULAR = 0
@@ -625,6 +625,7 @@ class ImgData:
         attrs = [f"    {k}={getattr(self, k)}" for k in self.__dataclass_fields__]
         return f"{self.__class__.__name__}(\n" + ",\n".join(attrs) + "\n)"
 
+@unique
 class DistoType(IntEnum):
     """Python equivalent of the Siril disto_source enum"""
     DISTO_UNDEF = 0      #: No distortion
