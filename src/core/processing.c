@@ -399,7 +399,13 @@ the_end:
 			// here we make sure the new .seq is created if needed
 			if (args->has_output && args->load_new_sequence &&
 				args->new_seq_prefix && !args->retval) {
-				check_seq();
+				const gchar *basename = g_path_get_basename(args->seq->seqname);
+				const char *root = remove_ext_from_filename(basename);
+				const gchar *seqname = g_strdup_printf("%s%s%s", args->new_seq_prefix, root, ".seq");
+				gboolean seqfilecreated = create_one_seq(seqname, args->seq->type);
+				if (!seqfilecreated) { // just a fallback
+					check_seq();
+				}
 			}
 			free_generic_seq_args(args, TRUE);
 			// we then make sure we stop the thread and reset cursor to FALSE
