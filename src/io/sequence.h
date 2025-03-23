@@ -6,6 +6,12 @@
 #include "../core/processing.h"
 #include "../algos/PSF.h"
 
+typedef enum {
+	CACHE_OLDER = -1,
+	CACHE_NOT_FOUND = 0,
+	CACHE_NEWER = 1
+} cache_status;
+
 gboolean populate_seqcombo(gpointer user_data);
 int	read_single_sequence(char *realname, image_type imagetype);
 char *normalize_seqname(char *name, gboolean add_underscore);
@@ -38,7 +44,7 @@ void	close_sequence(int loading_another);
 gboolean check_seq_is_comseq(const sequence *seq);
 gboolean check_seq_is_variable(const sequence *seq);
 gboolean sequence_is_loaded();
-gboolean check_cachefile_date(sequence *seq, int index, const gchar *star_filename) ;
+cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_filename);
 
 typedef enum {
 	ORIGINAL_FRAME,

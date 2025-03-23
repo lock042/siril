@@ -67,7 +67,7 @@ static gboolean compute_mask_read_hook(struct generic_seq_args *args, int i) {
 	if (!g_file_test(mask_filename, G_FILE_TEST_EXISTS)) { // mask file does not exist, we need to read and create the file
 		return TRUE;
 	}
-	if (check_cachefile_date(args->seq, i, mask_filename)) { // the mask exists and is more recent than the img, we don't need to read again
+	if (check_cachefile_date(args->seq, i, mask_filename) == CACHE_NEWER) { // the mask exists and is more recent than the img, we don't need to read again
 		siril_log_message(_("Mask for image %d already exists, skipping\n"), i + 1);
 		return FALSE;
 	}

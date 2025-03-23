@@ -2276,28 +2276,35 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 	writeseqfile(seq);
 }
 
-// returns TRUE if cache_filename is more recent than image (for FITS) or
+// returns CACHE_NEWER if cache_filename last modification is more recent than image (for FITS) or
 // sequence (for FITSEQ or SER). This is used for mask files (*.msk) and star files (*.lst)
-gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filename) {
+// returns CACHE_NOT_FOUND if cache_filename does not exist
+// returns CACHE_OLDER if cache_filename is older than image or sequence
+// for FITS and lst files, we accept 30s difference because FITS may be updated by platesolving which also caches stars
+// for FITSEQ and SER, we don't accept this as original sequence is not altered by platesolving
+// we cannot use st_mtime because it is not reliable on all systems
+cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_filename) {
 	if (!g_file_test(cache_filename, G_FILE_TEST_EXISTS))
-		return FALSE;
+		return CACHE_NOT_FOUND;
 
 	struct stat imgfileInfo, cachefileInfo;
 	// if sequence is FITS, we check individual img file date vs cachefile date
 	if (seq->type == SEQ_REGULAR) {
+		char last_char = cache_filename[strlen(cache_filename) - 1];
+		int margin = (last_char == 't') ? 30 : 0; // we use a margin for lst files but not for msk files
 		char img_filename[256];
 		if (!fit_sequence_get_image_filename(seq, index, img_filename, TRUE) ||
 				!g_file_test(img_filename, G_FILE_TEST_EXISTS) ||
 				stat(img_filename, &imgfileInfo) ||
 				stat(cache_filename, &cachefileInfo))
-			return FALSE;
-		if (cachefileInfo.st_ctime < imgfileInfo.st_ctime) {
-			siril_debug_print("%s is older than %s\n", cache_filename, img_filename);
-			if (!g_unlink(cache_filename))
+			return CACHE_NOT_FOUND;
+		if (cachefileInfo.st_mtime < imgfileInfo.st_mtime - margin) {
+			siril_debug_print("%s is older than %s, removing\n", cache_filename, img_filename);
+			if (g_unlink(cache_filename))
 				siril_debug_print(_("Removed outdated cache file %s failed\n"), cache_filename);
-			return FALSE;
+			return CACHE_OLDER;
 		}
-		return TRUE;
+		return CACHE_NEWER;
 	}
 	// else, we check the sequence date vs cachefile date
 	gchar *seqname;
@@ -2305,8 +2312,15 @@ gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filen
 		seqname = seq->ser_file->filename;
 	else seqname = seq->fitseq_file->filename;
 	if (stat(seqname, &imgfileInfo) || stat(cache_filename, &cachefileInfo))
-		return FALSE;
-	return (cachefileInfo.st_ctime >= imgfileInfo.st_ctime);
+		return CACHE_NOT_FOUND;
+	if (cachefileInfo.st_mtime < imgfileInfo.st_mtime) {
+		siril_debug_print("%s is older than %s, removing\n", cache_filename, seqname);
+		if (g_unlink(cache_filename)) {
+			siril_debug_print(_("Removed outdated cache file %s failed\n"), cache_filename);
+		}
+		return CACHE_OLDER;
+	}
+	return CACHE_NEWER;
 }
 
 gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix) {
