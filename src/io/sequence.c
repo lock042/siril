@@ -357,6 +357,67 @@ int check_seq() {
 	return 1;	// no sequence found
 }
 
+/* Creates a .seq file for regular FITS sequence passed in argument */
+static sequence *create_one_regular_seq(const char *seqname) {
+
+	const gchar *abs_path = g_canonicalize_filename(seqname, com.wd);
+	const gchar *search_folder = g_path_get_dirname(abs_path);
+	const gchar *filename = g_path_get_basename(abs_path);
+
+	const char *root = remove_ext_from_filename(filename);
+	int fixed = 5; // TODO: isn't it defined somewhere else?
+	const gchar *ext = get_com_ext(com.pref.comp.fits_enabled);
+
+	GError* error = NULL;
+	GDir* dir = g_dir_open(search_folder, 0, &error);
+	if (error) {
+		siril_log_color_message(_("Error opening directory: %s\n"), "red", error->message);
+		g_error_free(error);
+		return NULL;
+    }
+	const gchar* pattern = g_strdup_printf("^%s(\\d{%d})\\%s$", 
+										root,
+										fixed,
+										ext);
+	GRegex* regex = g_regex_new(pattern, 0, 0, &error);
+ 
+	sequence *new_seq = calloc(1, sizeof(sequence));
+	initialize_sequence(new_seq, TRUE);
+	new_seq->seqname = g_strdup(root);
+	new_seq->beg = INT_MAX;
+	new_seq->end = 0;
+	new_seq->number = 0;
+	new_seq->type = SEQ_REGULAR;
+	new_seq->fz = com.pref.comp.fits_enabled;
+	new_seq->fixed = fixed;
+	int n = 0;
+
+	const gchar *newfits;
+	while ((newfits = g_dir_read_name(dir))) {
+		GMatchInfo* match_info;
+		if (g_regex_match(regex, newfits, 0, &match_info)) {
+			const gchar* number_str = g_match_info_fetch(match_info, 1);
+			gint number = atoi(number_str);
+			if (number < new_seq->beg)
+				new_seq->beg = number;
+			if (number > new_seq->end)
+				new_seq->end = number;
+			n++;
+		}
+		g_match_info_free(match_info);
+	}
+	if (n < 2) {
+		siril_log_color_message(_("Cannot create sequence %s. Need at least 2 frames to be usable in Siril.\n"), "salmon", seqname);
+		free_sequence(new_seq, TRUE);
+		return NULL;
+	}
+	if (buildseqfile(new_seq, 1)) {
+		free_sequence(new_seq, TRUE);
+		new_seq = NULL;
+	}
+	return new_seq;
+}
+
 /* Creates a .seq file for one-file sequence passed in argument */
 static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq) {
 	if (!com.wd) {
@@ -500,6 +561,33 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 		return 1;
 	}
 	return 0;
+}
+
+// generates the .seq file 
+gboolean create_one_seq(const char *seqname, sequence_type seqtype) {
+	sequence *seq = NULL;
+	switch (seqtype) {
+		case SEQ_REGULAR:
+			seq = create_one_regular_seq(seqname);
+			break;
+		case SEQ_FITSEQ:
+		case SEQ_SER:
+			const char *root = remove_ext_from_filename(seqname);
+			const gchar *ext;
+			if (seqtype == SEQ_FITSEQ)
+				ext = get_com_ext(com.pref.comp.fits_enabled);
+			else
+				ext = ".ser";
+			const gchar *filename = g_strdup_printf("%s%s", root, ext);
+			seq = check_seq_one_file(filename, seqtype == SEQ_FITSEQ);
+			break;
+		default:
+			return FALSE;
+	}
+	if (!seq)
+		return FALSE;
+	free_sequence(seq, TRUE);
+	return TRUE;
 }
 
 static gboolean set_seq_gui(gpointer user_data) {

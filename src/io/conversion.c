@@ -608,10 +608,15 @@ static gboolean end_convert(gpointer p) {
 			} else {
 				converted_seqname = strdup(args->destroot);
 			}
-			check_seq();
 		}
-		if (converted_seqname && args->update_GUI) {
-			update_sequences_list(converted_seqname);
+		if (converted_seqname) {
+			gboolean seqfilecreated = create_one_seq(args->destroot, args->output_type); // this forces creating the .seq file (#1519)
+			if (!seqfilecreated) { // just a fallback
+				check_seq();
+			}
+			if (args->update_GUI) {
+				update_sequences_list(converted_seqname);
+			}
 		}
 		free(converted_seqname);
 	}
