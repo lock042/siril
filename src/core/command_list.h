@@ -140,7 +140,8 @@ static command commands[] = {
 						"platesolve sequencename ... [-localasnet [-blindpos] [-blindres]]", process_platesolve, STR_PLATESOLVE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"pm", 1, "pm \"expression\" [-rescale [low] [high]] [-nosum]", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
 //	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [ {-xaxis=wavelength | -xaxis=wavenumber } ] [ {-wavenumber1= | -wavelength1=} -wn1at=x,y {-wavenumber2= | -wavelength2=} -wn2at=x,y [-bgremove [-bgpoly=] ] ] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"pwd", 0, "pwd", process_pwd, STR_PWD, TRUE, REQ_CMD_NONE},
 	{"pyscript", 1, "pyscript scriptname.py [script_argv]", process_pyscript, STR_PYSCRIPT, TRUE, REQ_CMD_NONE},
 
