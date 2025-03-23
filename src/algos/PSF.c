@@ -1035,7 +1035,7 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 	else {
 		g_snprintf(buffer2, 50, _(", %s channel"), chan);
 	}
-	msg = g_strdup_printf(_("PSF fit Result (%s%s):\n\n"
+	msg = g_strdup_printf(_("PSF %s Result (%s%s):\n\n"
 				"Centroid Coordinates:\n\t\t%s\n\n"
 				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\t\tr=%.2f\n"
 				"Angle:\n\t\t%0.2fdeg\n\n"
@@ -1044,7 +1044,8 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
 				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
 				"RMSE:\n\t\tRMSE=%.3e"),
-			(result->profile == PSF_GAUSSIAN) ? _("Gaussian") : _("Moffat"), buffer2,
+			result->phot_is_valid ? _("photometry") : _("fit"),
+			result->profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"), buffer2,
 			coordinates, fwhmx, unts, fwhmy, unts, fwhmy / fwhmx,
 			result->angle, result->B, result->A, str,
 			result->mag + com.magOffset, result->s_mag, result->SNR,
