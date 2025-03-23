@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from .translations import _
-from .connection import _CommandStatus
+from .enums import _CommandStatus
 
 class SirilError(Exception):
     """
@@ -49,6 +49,7 @@ class CommandError(SirilError):
 
     - Command timeout
     """
+
     def __init__(self, message: str = _("Command execution failed"),
                  status_code=_CommandStatus.CMD_GENERIC_ERROR):
         super().__init__(message)
