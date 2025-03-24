@@ -380,7 +380,7 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	psf_error error = PSF_NO_ERR;
 	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 	free(ps);
-	if (result && result->phot_is_valid && error != PSF_NO_ERR)
+	if (result)
 		popup_psf_result(result, &com.selection, &gfit);
 	free_psf(result);
 }
