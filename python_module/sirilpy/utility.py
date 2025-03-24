@@ -339,9 +339,9 @@ def check_module_version(requires=None):
 
 class SuppressedStdout:
     """
-    This class allows suppression of the script's stdout, which can
-    be useful to avoid flooding the log with stdout messages from
-    an excessively verbose module used in the script.
+    This context manager allows suppression of the script's stdout,
+    which can be useful to avoid flooding the log with stdout messages
+    from an excessively verbose module used in the script.
 
     Example:
         .. code-block:: python
@@ -375,8 +375,8 @@ class SuppressedStdout:
 
 class SuppressedStderr:
     """
-    This class allows suppression of the script's stderr, which can
-    be useful if you are using module functions that are known to
+    This context manager allows suppression of the script's stderr, which
+    can be useful if you are using module functions that are known to
     produce warnings that you want to avoid distracting the user with,
     such as FutureWarnings of features that have become deprecated but
     are in a dependency rather than your own code. The class should

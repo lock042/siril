@@ -5,20 +5,18 @@
 
 import os
 import sys
-import ctypes
 import socket
 import struct
 import threading
-from enum import IntEnum, unique
 from datetime import datetime
 from typing import Tuple, Optional, List, Union
 import numpy as np
 from .translations import _
-from .shm import SharedMemoryWrapper
+from .shm import SharedMemoryWrapper, _SharedMemoryInfo
 from .plot import PlotData, _PlotSerializer
 from .exceptions import SirilError, SirilConnectionError, CommandError, NoImageError
 from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType, SirilPoint, UserPolygon
-from .enums import _Command, _Status, _CommandStatus, _Defaults, _ConfigType
+from .enums import _Command, _Status, CommandStatus, _Defaults, _ConfigType, LogColor, SirilVport
 
 DEFAULT_TIMEOUT = 5.
 
@@ -27,36 +25,6 @@ if os.name == 'nt':
     import win32event
     import pywintypes
     import winerror
-
-@unique
-class LogColor (IntEnum):
-    """
-    Defines colors available for use with ``SirilInterface.log()``
-    For consistency ``LogColor.Default`` should be used for normal messages,
-    ``LogColor.Red`` should be used for error messages, ``LogColor.Salmon``
-    should be used for warning messages, LogColor.Green should  be used
-    for completion notifications, and ``LogColor.Blue`` should be used for
-    technical messages such as equations, coefficients etc.
-    """
-    DEFAULT = 0
-    RED = 1
-    SALMON = 2
-    GREEN = 3
-    BLUE = 4
-
-class _SharedMemoryInfo(ctypes.Structure):
-    """
-    Structure matching the C-side shared memory info. Internal class:
-    this is not intended for use in scripts.
-    """
-    _fields_ = [
-        ("size", ctypes.c_size_t),
-        ("data_type", ctypes.c_int),  # 0 for WORD, 1 for float
-        ("width", ctypes.c_int),
-        ("height", ctypes.c_int),
-        ("channels", ctypes.c_int),
-        ("shm_name", ctypes.c_char * 256)
-    ]
 
 class SirilInterface:
     """
@@ -157,7 +125,7 @@ class SirilInterface:
 
         Raises:
             SirilConnectionError: if the connection cannot be closed because the
-                             pipe / socket cannot be found.
+                                  pipe / socket cannot be found.
         """
 
         if os.name == 'nt':
@@ -179,7 +147,7 @@ class SirilInterface:
     def _recv_exact(self, n: int, timeout: Optional[float] = DEFAULT_TIMEOUT) -> Optional[bytes]:
         """
         Helper method to receive exactly n bytes from the socket or pipe.
-        Internal method, not for direct use in scripts.
+        Private method, not for direct use in scripts.
 
         Args:
             n: Number of bytes to receive
@@ -256,7 +224,8 @@ class SirilInterface:
 
     def _send_command(self, command: _Command, data: Optional[bytes] = None, timeout: Optional[float] = DEFAULT_TIMEOUT) -> Tuple[Optional[int], Optional[bytes]]:
         """
-        Send a command and receive response with optional timeout.
+        Send a command and receive response with optional timeout. Private method, not
+        for use in scripts.
 
         Args:
             command: Command to send
@@ -361,7 +330,7 @@ class SirilInterface:
     def _execute_command(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = DEFAULT_TIMEOUT) -> bool:
         """
         High-level method to execute a command and handle the response.
-        Internal method, not for end-user use.
+        Private method, not for end-user use.
 
         Args:
             command: The command to execute
@@ -395,7 +364,7 @@ class SirilInterface:
         High-level method to request small-volume data from Siril. The
         payload limit is 63336 bytes. For commands expected to return
         larger volumes of data, SHM should be used.
-        Internal method, not for direct use in scripts.
+        Private method, not for direct use in scripts.
 
         Args:
             command: The data request command
@@ -427,7 +396,8 @@ class SirilInterface:
     def _request_shm(self, size: int) -> Optional[_SharedMemoryInfo]:
         """
         Request Siril to create a shared memory allocation and return an
-        object containing the details (name, size).
+        object containing the details (name, size). Private method, not for use in
+        scripts.
 
         Args:
             size: int specifying the size of shm buffer to create.
@@ -480,7 +450,7 @@ class SirilInterface:
     def _map_shared_memory(self, name: str, size: int) -> SharedMemoryWrapper:
         """
         Create or open a shared memory mapping using SharedMemoryWrapper.
-        Internal method, not for direct use in scripts.
+        Private method, not for direct use in scripts.
 
         Args:
             name: Name of the shared memory segment,
@@ -497,9 +467,48 @@ class SirilInterface:
         except Exception as e:
             raise RuntimeError(_("Failed to create shared memory mapping: {}").format(e)) from e
 
+    def command_error_message(self, status_code: CommandStatus) -> str:
+        """
+        Provides a string describing the return status from a Siril command.
+
+        Args:
+            status_code: The status code returned by the Siril command handler, or by
+                  the CommandError exception.
+        Returns:
+            str: A string providing a description of the error code returned by
+                 a Siril command, for use in exception handling.
+        """
+        error_messages = {
+            CommandStatus.CMD_NOT_FOUND: "Command not found",
+            CommandStatus.CMD_NO_WAIT: "Command does not wait for completion",
+            CommandStatus.CMD_NO_CWD: "Current working directory not set",
+            CommandStatus.CMD_NOT_SCRIPTABLE: "Command not scriptable",
+            CommandStatus.CMD_WRONG_N_ARG: "Wrong number of arguments",
+            CommandStatus.CMD_ARG_ERROR: "Argument error",
+            CommandStatus.CMD_SELECTION_ERROR: "Selection error",
+            CommandStatus.CMD_OK: "Command succeeded",
+            CommandStatus.CMD_GENERIC_ERROR: "Generic error",
+            CommandStatus.CMD_IMAGE_NOT_FOUND: "Image not found",
+            CommandStatus.CMD_SEQUENCE_NOT_FOUND: "Sequence not found",
+            CommandStatus.CMD_INVALID_IMAGE: "Invalid image",
+            CommandStatus.CMD_LOAD_IMAGE_FIRST: "Load image first",
+            CommandStatus.CMD_ONLY_SINGLE_IMAGE: "Command requires a single image to be loaded",
+            CommandStatus.CMD_NOT_FOR_SINGLE: "Command not for single images",
+            CommandStatus.CMD_NOT_FOR_MONO: "Command not for monochrome images",
+            CommandStatus.CMD_NOT_FOR_RGB: "Command not for RGB images",
+            CommandStatus.CMD_FOR_CFA_IMAGE: "Command only for CFA images",
+            CommandStatus.CMD_FILE_NOT_FOUND: "File not found",
+            CommandStatus.CMD_FOR_PLATE_SOLVED: "Command requires plate-solved image",
+            CommandStatus.CMD_NEED_INIT_FIRST: "Initialization required first",
+            CommandStatus.CMD_ALLOC_ERROR: "Memory allocation error",
+            CommandStatus.CMD_THREAD_RUNNING: "Command thread already running",
+            CommandStatus.CMD_DIR_NOT_FOUND: "Directory not found"
+        }
+        return error_messages.get(status_code, f"Unknown error code: {status_code}")
+
     def _get_bundle_path(self) ->Optional[str]:
         """
-        Request the bundle path directory. This is an internal method used
+        Request the bundle path directory. This is a private method used
         to ensure that the correct DLL paths are preconfigured on Windows:
         it is not for use by scriptwriters.
 
@@ -549,29 +558,26 @@ class SirilInterface:
             print(f"Error sending log message: {e}", file=sys.stderr)
             return False
 
-    def claim_thread(self) -> bool:
+    def _claim_thread(self) -> bool:
         """
         Claim the processing thread. This prevents other processes using the
         processing thread to operate on the current Siril image. The preferred
         method of thread control is to use the image_lock() context manager
-        rather than using this function manually.
+        rather than using this function manually, therefore this is now a
+        private method.
 
         This function **must** always be called before starting any processing
         that will end with ``SirilInterface.set_image_pixeldata()``. The
         sequence of operations should be:
 
-        * Call ``SirilInterface.claim_thread()``
+        * Call ``SirilInterface.claim_thread()`` by entering image_lock() context
         * If the result is False, alert the user and await further input: the
           thread is already in use, or an image processing dialog is open.
         * If the result is True, you have the thread claimed.
         * Now you can call ``SirilInterface.get_image()`` or ``get_image_pixeldata()``
         * Carry out your image processing
         * Call ``SirilInterface.set_image_pixeldata()``
-        * Call ``SirilInterface.release_thread()``
-
-        As a precaution, the thread will be released automatically if it is still
-        held at the point the script process terminates, but that should not be
-        seen as an excuse for failing to call ``SirilInterface.release_thread()``
+        * Call ``SirilInterface.release_thread()`` by exiting image_lock() context
 
         Note that the thread should only be claimed when the script itself is
         operating on the Siril image data. If the script is calling a Siril command
@@ -601,29 +607,26 @@ class SirilInterface:
             print(f"Error claiming processing thread: {e}", file=sys.stderr)
             return False
 
-    def release_thread(self) -> bool:
+    def _release_thread(self) -> bool:
         """
         Release the processing thread. This permits other processes to use the
         processing thread to operate on the current Siril image. The preferred
         method of thread control is to use the image_lock() context manager
-        rather than using this function manually.
+        rather than using this function manually, therefore this is now a
+        private method.
 
         This function **must** always be called after completing any processing
         that has updated the image loaded in Siril. The sequence of operations
         should be:
 
-        * Call ``SirilInterface.claim_thread()``
+        * Call ``SirilInterface.claim_thread()`` by entering image_lock() context
         * If the result is False, alert the user and await further input: the
           thread is already in use, or an image processing dialog is open.
         * If the result is True, you have the thread claimed.
         * Now you can call ``SirilInterface.get_image()`` or ``get_image_pixeldata()``
         * Carry out your image processing
         * Call ``SirilInterface.set_image_pixeldata()``
-        * Call ``SirilInterface.release_thread()``
-
-        As a precaution, the thread will be released automatically if it is still
-        held at the point the script process terminates, but that should not be
-        seen as an excuse for failing to call this method.
+        * Call ``SirilInterface.release_thread()`` by exiting image_lock() context
 
         Returns:
             True if the thread was successfully released
@@ -679,14 +682,14 @@ class SirilInterface:
                 self.claimed = False
 
             def __enter__(self):
-                if not self.outer_self.claim_thread():
+                if not self.outer_self._claim_thread():
                     raise RuntimeError("Failed to claim processing thread. Thread may be in use or an image processing dialog is open.")
                 self.claimed = True
                 return self.outer_self
 
             def __exit__(self, exc_type, exc_val, exc_tb):
                 if self.claimed:
-                    self.outer_self.release_thread()
+                    self.outer_self._release_thread()
                     self.claimed = False
                 # Don't suppress exceptions
                 return False
@@ -737,7 +740,8 @@ class SirilInterface:
     def _messagebox(self, my_string: str, cmd_type: int, modal: Optional[bool] = False) -> bool:
         """
         Send a message to Siril for display in a messagebox.
-        Helper method for error_messagebox, warning_messagebox, info_messagebox.
+        Private method: the public API is provided by error_messagebox(),
+        warning_messagebox() and info_messagebox().
 
         Args:
             my_string: The message to display in the message box
@@ -941,42 +945,15 @@ class SirilInterface:
             if len(response) == 4:  # Valid response is int32_t ie 4 bytes
                 status_code = int.from_bytes(response, byteorder='big')
 
-                # Check against _CommandStatus enum
-                if status_code == _CommandStatus.CMD_OK or status_code == _CommandStatus.CMD_NO_WAIT:
+                # If the status code is a no-error code, return
+                if status_code == CommandStatus.CMD_OK or status_code == CommandStatus.CMD_NO_WAIT:
                     return  # Command executed successfully
-                # ERROR HANDLING
-                # Map status code to error message
-                error_messages = {
-                    _CommandStatus.CMD_NOT_FOUND: "Command not found",
-                    _CommandStatus.CMD_NO_WAIT: "Command does not wait for completion",
-                    _CommandStatus.CMD_NO_CWD: "Current working directory not set",
-                    _CommandStatus.CMD_NOT_SCRIPTABLE: "Command not scriptable",
-                    _CommandStatus.CMD_WRONG_N_ARG: "Wrong number of arguments",
-                    _CommandStatus.CMD_ARG_ERROR: "Argument error",
-                    _CommandStatus.CMD_SELECTION_ERROR: "Selection error",
-                    _CommandStatus.CMD_GENERIC_ERROR: "Generic error",
-                    _CommandStatus.CMD_IMAGE_NOT_FOUND: "Image not found",
-                    _CommandStatus.CMD_SEQUENCE_NOT_FOUND: "Sequence not found",
-                    _CommandStatus.CMD_INVALID_IMAGE: "Invalid image",
-                    _CommandStatus.CMD_LOAD_IMAGE_FIRST: "Load image first",
-                    _CommandStatus.CMD_ONLY_SINGLE_IMAGE: "Command requires a single image to be loaded",
-                    _CommandStatus.CMD_NOT_FOR_SINGLE: "Command not for single images",
-                    _CommandStatus.CMD_NOT_FOR_MONO: "Command not for monochrome images",
-                    _CommandStatus.CMD_NOT_FOR_RGB: "Command not for RGB images",
-                    _CommandStatus.CMD_FOR_CFA_IMAGE: "Command only for CFA images",
-                    _CommandStatus.CMD_FILE_NOT_FOUND: "File not found",
-                    _CommandStatus.CMD_FOR_PLATE_SOLVED: "Command requires plate-solved image",
-                    _CommandStatus.CMD_NEED_INIT_FIRST: "Initialization required first",
-                    _CommandStatus.CMD_ALLOC_ERROR: "Memory allocation error",
-                    _CommandStatus.CMD_THREAD_RUNNING: "Command thread already running",
-                    _CommandStatus.CMD_DIR_NOT_FOUND: "Directory not found"
-                }
-                print(f"Status code: {status_code}")
-                error_message = error_messages.get(status_code, f"Unknown error code: {status_code}")
+                # Else raise an exception with a helpful error message and the status code
+                error_message = self.command_error_message(status_code)
                 raise CommandError(_(f"Command '{args[0]}' failed: {error_message}"), status_code)
-            else:
-                # Handle case where response doesn't contain enough bytes for a status code
-                raise SirilError(_(f"Error: Response from {args[0]} incorrect size to contain a status code."))
+
+            # Handle case where response doesn't contain enough bytes for a status code
+            raise SirilError(_(f"Error: Response from {args[0]} incorrect size to contain a status code."))
 
         except Exception as e:
             raise  # Re-raise without wrapping
@@ -1008,7 +985,7 @@ class SirilInterface:
         Request the image selection from Siril.
 
         Returns:
-            A tuple (height, width, channels) representing the current selection,
+            A tuple (x, y, height, width) representing the current selection,
             or None if an error occurred.
         """
 
@@ -1025,18 +1002,24 @@ class SirilInterface:
             print(f"Error unpacking image selection: {e}", file=sys.stderr)
             return None
 
-    def get_siril_active_vport(self) -> Optional[int]:
+    def get_siril_active_vport(self) -> Optional[SirilVport]:
 
         """
         Request the active viewport from Siril.
 
         Returns:
-            An int representing the active vport:
-            0 = Red (or Mono),
-            1 = Green,
-            2 = Blue,
-            3 = RGB,
-            or None if an error occurred.
+            A SirilVport representing the active vport:
+
+            - sirilpy.SirilVport.RED / sirilpy.SirilVport.MONO
+            - sirilpy.SirilVport.GREEN,
+            - sirilpy.SirilVport.BLUE,
+            - sirilpy.SirilVport.RGB, or
+            - None if an error occurred.
+
+            Note that RED and MONO share the
+            same IntEnum value, so there is no difference between a test for
+            one and the other; the two enum labels are provided solely to aid
+            code legibility.
         """
 
         response = self._request_data(_Command.GET_ACTIVE_VPORT)
@@ -2123,7 +2106,7 @@ class SirilInterface:
             none.
 
         Returns:
-            bytes: The image FITS header as a string.
+            bytes: The image FITS header as a string, or None if there is no header.
 
         Raises:
             NoImageError: If no image is currently loaded,
@@ -2207,7 +2190,7 @@ class SirilInterface:
             none.
 
         Returns:
-            bytes: The unknown keys as a string.
+            bytes: The unknown keys as a string, or None if there are no unknown keys.
 
         Raises:
             NoImageError: If no image is currently loaded,
@@ -2293,7 +2276,8 @@ class SirilInterface:
             none.
 
         Returns:
-            list: The history entries in the FITS header as a list of strings.
+            list: The HISTORY entries in the FITS header as a list of strings, or
+                  None if there are no HISTORY keywords.
 
         Raises:
             NoImageError: If no image is currently loaded,

@@ -6,24 +6,11 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, Tuple, List
-from enum import IntEnum, unique
 import struct
 import logging
 import numpy as np
+from .enums import DataType, StarProfile, SequenceType, DistoType
 from .translations import _
-
-class DataType(IntEnum):
-    """
-    Mimics the Siril data_type enum. Note that although Siril can
-    handle opening FITS files of any data type, internally it processes
-    images only as USHORT_IMG (uint16) or FLOAT_IMG (float32).
-    """
-    BYTE_IMG = 8
-    SHORT_IMG = 16
-    USHORT_IMG = 16
-    LONG_IMG = 32
-    FLOAT_IMG = 32
-    DOUBLE_IMG = 64
 
 @dataclass
 class ImageStats:
@@ -519,27 +506,6 @@ class BGSample:
             if field_name not in {"position", "size"}:  # Already set manually
                 setattr(self, field_name, kwargs.get(field_name, getattr(self.__class__, field_name)))
 
-@unique
-class StarProfile(IntEnum):
-    """
-    Python equivalent of the Siril starprofile enum. Used to identify the type
-    of fit used to model a star in the image. Note that MOFFAT_FIXED is currently
-    not used in Siril, but is reserved for future use for Moffat stars modelled
-    with a fixed beta parameter
-    """
-    GAUSSIAN = 0
-    MOFFAT = 1
-    MOFFAT_FIXED = 2
-
-@unique
-class SequenceType(IntEnum):
-    """Python equivalent of the Siril sequence_type enum"""
-    SEQ_REGULAR = 0
-    SEQ_SER = 1
-    SEQ_FITSEQ = 2
-    SEQ_AVI = 3
-    SEQ_INTERNAL = 4
-
 @dataclass
 class PSFStar:
     """
@@ -624,16 +590,6 @@ class ImgData:
     def __repr__(self):
         attrs = [f"    {k}={getattr(self, k)}" for k in self.__dataclass_fields__]
         return f"{self.__class__.__name__}(\n" + ",\n".join(attrs) + "\n)"
-
-@unique
-class DistoType(IntEnum):
-    """Python equivalent of the Siril disto_source enum"""
-    DISTO_UNDEF = 0      #: No distortion
-    DISTO_IMAGE = 1      #: Distortion from current image
-    DISTO_FILE = 2       #: Distortion from given file
-    DISTO_MASTER = 3     #: Distortion from master files
-    DISTO_FILES = 4      #: Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
-    DISTO_FILE_COMET = 5 #: special for cometary alignement, to be detected by apply reg
 
     def __str__(self):
         if self == DistoType.DISTO_UNDEF:

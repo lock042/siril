@@ -14,8 +14,17 @@ from Python, enabling advanced astronomical image processing workflows.
 from .translations import _
 
 # Regular imports - all modules needed at runtime
-from .models import (
+from .enums import (
+    LogColor,
+    CommandStatus,
     DataType,
+    StarProfile,
+    SequenceType,
+    DistoType,
+    PlotType,
+    SirilVport
+)
+from .models import (
     ImageStats,
     FKeywords,
     FFit,
@@ -49,7 +58,7 @@ from .exceptions import (
     NoImageError,
     NoSequenceError
 )
-from .connection import LogColor, SirilInterface
+from .connection import SirilInterface
 
 try:  # import from the packaging specification
     from importlib.metadata import metadata, PackageNotFoundError
@@ -70,14 +79,11 @@ __all__ = [
     'ensure_installed',
     'check_module_version',
     'SirilInterface',
-    'LogColor',
     'DataType',
     'ImageStats',
     'FKeywords',
     'FFit',
     'Homography',
-    'StarProfile',
-    'SequenceType',
     'PSFStar',
     'BGSample',
     'RegData',
@@ -89,9 +95,8 @@ __all__ = [
     'PlotType',
     'SeriesData',
     'PlotData',
-    '_PlotSerializer',
     'SirilError',
-    'SirilConnectionError',  # Changed from ConnectionError
+    'SirilConnectionError',
     'CommandError',
     'DataError',
     'NoImageError',
@@ -101,5 +106,13 @@ __all__ = [
     'SuppressedStderr',
     'human_readable_size',
     'download_with_progress',
+    'LogColor',
+    'CommandStatus',
+    'DataType',
+    'StarProfile',
+    'SequenceType',
+    'DistoType',
+    'PlotType',
+    'SirilVport',
     '_'
 ]

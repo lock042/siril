@@ -10,21 +10,9 @@ appearance and error bars.
 """
 
 from typing import Union, Optional, List, Tuple
-from enum import IntEnum
 import struct
 import numpy as np
-
-
-class PlotType(IntEnum):
-    """Enumeration of available plot types for visualizing data series."""
-    POINTS = 0
-    MARKS = 1
-    HYPHENS = 2
-    LINES = 3
-    LINESPOINTS = 4
-    LINESMARKS = 5
-    LINESHYPHENS = 6
-
+from .enums import PlotType
 
 class SeriesData:
     """
