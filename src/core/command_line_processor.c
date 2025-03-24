@@ -562,13 +562,14 @@ static gboolean on_command_key_press_event(GtkWidget *widget, GdkEventKey *event
 int processcommand(const char *line, gboolean wait_for_completion) {
 	int wordnb = 0;
 	GError *error = NULL;
+	int ret = 0;
 
 	if (line[0] == '\0' || line[0] == '\n')
-		return 0;
+		return CMD_NOT_FOUND;
 	if (line[0] == '@') { // case of files
 		if (get_thread_run() || (get_script_thread_run() && !com.script_thread_exited)) {
 			PRINT_ANOTHER_THREAD_RUNNING;
-			return 1;
+			return CMD_THREAD_RUNNING;
 		}
 		if (get_script_thread_run())
 			wait_for_script_thread();
@@ -590,7 +591,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 			}
 
 			g_object_unref(file);
-			return 1;
+			return CMD_FILE_NOT_FOUND;
 		}
 		/* Run the script */
 		siril_log_message(_("Starting script %s\n"), filename);
@@ -606,7 +607,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 			g_print("input command:%s\n", myline);
 
 		parse_line(myline, len, &wordnb);
-		int ret = execute_command(wordnb);
+		ret = execute_command(wordnb);
 
 		if (ret) {
 			siril_log_color_message(_("Command execution failed: %s.\n"), "red", cmd_err_to_str(ret));
@@ -615,13 +616,13 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 				gui_function(show_command_help_popup, GTK_ENTRY(lookup_widget("command")));
 			}
 			free(myline);
-			return 1;
+			return ret;
 		}
 
 		if (wait_for_completion && ret != CMD_NO_WAIT) {
 			while (get_thread_run()) {
 				if (waiting_for_thread()) {
-					ret = 1;  // Command failed during execution
+					ret = CMD_GENERIC_ERROR;  // Command failed during execution
 					break;
 				}
 				g_usleep(100000);  // Sleep for 100ms to avoid busy waiting
@@ -629,11 +630,9 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 		}
 
 		free(myline);
-		if (ret)
-			return 1;
 	}
 
-	return 0;
+	return ret;
 }
 
 // loads the sequence from com.wd
