@@ -571,7 +571,7 @@ gboolean create_one_seq(const char *seqname, sequence_type seqtype) {
 			seq = create_one_regular_seq(seqname);
 			break;
 		case SEQ_FITSEQ:
-		case SEQ_SER:
+		case SEQ_SER:;
 			const char *root = remove_ext_from_filename(seqname);
 			const gchar *ext;
 			if (seqtype == SEQ_FITSEQ)
