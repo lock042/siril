@@ -33,6 +33,15 @@ class SirilConnectionError(SirilError):
     def __init__(self, message: str = _("Failed to connect to Siril")):
         super().__init__(message)
 
+class SharedMemoryError(SirilError):
+    """
+    Raised when there are problems connecting to or
+    communicating with Siril using shared memory.
+    """
+
+    def __init__(self, message: str = _("Siril shared memory error")):
+        super().__init__(message)
+
 class CommandError(SirilError):
     """
     Raised when a command sent to Siril fails to execute properly.

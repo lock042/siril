@@ -67,6 +67,9 @@ def download_with_progress(
 
     Returns:
         bool: True if download successful, False otherwise
+
+    Raises:
+        SirilError: On unhandled errors
     """
     temp_file_path = file_path + '.part'
 
@@ -159,11 +162,10 @@ def download_with_progress(
 
             siril.update_progress(error_message, 0.0)
 
-            # Using proper re-raising with from
             raise RuntimeError(error_message) from e
 
     # All retry attempts failed
-    raise RuntimeError(f"Failed to download file from {url} after {max_retries} attempts")
+    raise SirilError(f"Failed to download file from {url} after {max_retries} attempts")
 
 def ensure_installed(*packages: Union[str, List[str]],
                      version_constraints: Optional[Union[str, List[str]]] = None) -> bool:

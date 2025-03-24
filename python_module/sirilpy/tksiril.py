@@ -18,12 +18,12 @@ def create_tooltip(widget, text, wrap_length=250):
         wrap_length (int, optional): Length at which text wraps. Defaults to 250.
 
     Raises:
-        RuntimeError: If the provided widget is not a valid Tkinter widget
-        TypeError: If text is not a string
+        TypeError: If text is not a string or the provided widget is not a
+                   valid Tkinter widget
     """
     # Validate widget argument
     if not isinstance(widget, (tk.Widget, tk.Tk, tk.Toplevel)):
-        raise RuntimeError(f"Invalid widget type. Expected a Tkinter widget, got {type(widget)}")
+        raise TypeError(f"Invalid widget type. Expected a Tkinter widget, got {type(widget)}")
 
     # Validate text argument
     if not isinstance(text, str):
@@ -137,7 +137,7 @@ def standard_style():
         none
 
     Raises:
-        RuntimeError: If the style creation or configuration fails
+        SirilError: If the style creation or configuration fails
     """
     try:
         style = ttk.Style()
@@ -151,4 +151,4 @@ def standard_style():
         return style
 
     except Exception as e:
-        raise RuntimeError(f"Failed to configure style: {e}")
+        raise SirilError(f"Failed to configure style: {e}")

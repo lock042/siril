@@ -9,7 +9,7 @@ from typing import Optional, Tuple, List
 import struct
 import logging
 import numpy as np
-from .enums import DataType, StarProfile, SequenceType, DistoType
+from .enums import DataType, StarProfile, SequenceType, DistoType, _Defaults
 from .translations import _
 
 @dataclass
@@ -33,6 +33,53 @@ class ImageStats:
     max: float = 0.0    #: maximum pixel value
     normValue: float = 0.0  #: norm value of the pixels
     bgnoise: float = 0.0    #: RMS background noise
+
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'ImageStats':
+        """
+        Deserialize binary data into an ImageStats object.
+
+        Args:
+            data: (bytes) Binary data to unpack
+        Returns: ImageStats object
+
+        Raises: SirilError: If received data size is incorrect
+                struct.error: If unpacking fails
+        """
+        format_string = '!2q12d'  # '!' ensures network byte order
+
+        # Calculate expected size
+        expected_size = struct.calcsize(format_string)
+
+        # Verify we got the expected amount of data
+        if len(data) != expected_size:
+            raise SirilError(
+                f"Received stats data size {len(data)} doesn't match expected size {expected_size}"
+            )
+
+        try:
+            # Unpack the binary data
+            values = struct.unpack(format_string, data)
+
+            # Create and return an ImageStats object with the unpacked values
+            return cls(
+                total=values[0],
+                ngoodpix=values[1],
+                mean=values[2],
+                median=values[3],
+                sigma=values[4],
+                avgDev=values[5],
+                mad=values[6],
+                sqrtbwmv=values[7],
+                location=values[8],
+                scale=values[9],
+                min=values[10],
+                max=values[11],
+                normValue=values[12],
+                bgnoise=values[13]
+            )
+        except struct.error as e:
+            raise
 
 @dataclass
 class FKeywords:
@@ -107,6 +154,182 @@ class FKeywords:
     sitelat: float = 0.0 # [deg] Observation site latitude
     sitelong: float = 0.0 #: [deg] Observation site longitude
     siteelev: float = 0.0 #: [m] Observation site elevation
+
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'FKeywords':
+        """
+        Deserialize binary response into an FKeywords object.
+
+        Args: response: Binary data to unpack
+
+        Returns: (FKeywords) object
+
+        Raises: ValueError: If received data size is incorrect
+                struct.error: If unpacking fails
+        """
+        # Constants matching C implementation
+        FLEN_VALUE = 71  # Standard FITS keyword length
+
+        # Build format string for struct unpacking
+        # Network byte order for all values
+        format_parts = [
+            f'{FLEN_VALUE}s',  # program
+            f'{FLEN_VALUE}s',  # filename
+            f'{FLEN_VALUE}s',  # row_order
+            f'{FLEN_VALUE}s',  # filter
+            f'{FLEN_VALUE}s',  # image_type
+            f'{FLEN_VALUE}s',  # object
+            f'{FLEN_VALUE}s',  # instrume
+            f'{FLEN_VALUE}s',  # telescop
+            f'{FLEN_VALUE}s',  # observer
+            f'{FLEN_VALUE}s',  # sitelat_str
+            f'{FLEN_VALUE}s',  # sitelong_str
+            f'{FLEN_VALUE}s',  # bayer_pattern
+            f'{FLEN_VALUE}s',  # focname
+            'd',  # bscale
+            'd',  # bzero
+            'Q',  # lo padded to 64bit
+            'Q',  # hi padded to 64bit
+            'd',  # flo padded to 64bit
+            'd',  # fhi padded to 64bit
+            'd',  # data_max
+            'd',  # data_min
+            'd',  # pixel_size_x
+            'd',  # pixel_size_y
+            'Q',  # binning_x (padded to uint64_t)
+            'Q',  # binning_y (padded to uint64_t)
+            'd',  # expstart
+            'd',  # expend
+            'd',  # centalt
+            'd',  # centaz
+            'd',  # sitelat
+            'd',  # sitelong
+            'd',  # siteelev
+            'q',  # bayer_xoffset
+            'q',  # bayer_yoffset
+            'd',  # airmass
+            'd',  # focal_length
+            'd',  # flength
+            'd',  # iso_speed
+            'd',  # exposure
+            'd',  # aperture
+            'd',  # ccd_temp
+            'd',  # set_temp
+            'd',  # livetime
+            'Q',  # stackcnt
+            'd',  # cvf
+            'q',  # key_gain
+            'q',  # key_offset
+            'q',  # focuspos
+            'q',  # focussz
+            'd',  # foctemp
+            'q',  # date (int64 unix timestamp)
+            'q'  # date_obs (int64 unix timestamp)
+        ]
+
+        format_string = '!' + ''.join(format_parts)
+
+        # Verify data size
+        expected_size = struct.calcsize(format_string)
+        if len(data) != expected_size:
+            raise ValueError(
+                f"Received keyword data size {len(data)} doesn't match expected size {expected_size}"
+            )
+
+        # Unpack the binary data
+        try:
+            values = struct.unpack(format_string, data)
+
+            # Helper functions
+            def decimal_to_dms(decimal, is_latitude=True):
+                """Convert decimal degrees to degrees, minutes, seconds string."""
+                # Get the absolute value and direction
+                absolute = abs(decimal)
+                if is_latitude:
+                    direction = 'N' if decimal >= 0 else 'S'
+                else:
+                    direction = 'E' if decimal >= 0 else 'W'
+
+                # Calculate degrees, minutes, seconds
+                degrees = int(absolute)
+                minutes_decimal = (absolute - degrees) * 60
+                minutes = int(minutes_decimal)
+                seconds = round((minutes_decimal - minutes) * 60, 2)
+
+                # Format as string
+                return f"{degrees}°{minutes}'{seconds}\"{direction}"
+
+            def decode_string(s: bytes) -> str:
+                return s.decode('utf-8').rstrip('\x00')
+
+            def timestamp_to_datetime(timestamp: int) -> Optional[datetime]:
+                return datetime.fromtimestamp(timestamp) if timestamp != 0 else None
+
+            # Replace default values and unphysical values
+            values = [None if val in _Defaults.VALUES else val for val in values]
+            if values[9] == "" and values[29]: # sitelat_str
+                values[9] = decimal_to_dms(values[29])
+            if values[10] == "" and values[30]: # sitelong_str
+                values[10] = decimal_to_dms(values[30])
+
+            # Create FKeywords object
+            return cls(
+                program=decode_string(values[0]),
+                filename=decode_string(values[1]),
+                row_order=decode_string(values[2]),
+                filter=decode_string(values[3]),
+                image_type=decode_string(values[4]),
+                object=decode_string(values[5]),
+                instrume=decode_string(values[6]),
+                telescop=decode_string(values[7]),
+                observer=decode_string(values[8]),
+                sitelat_str=decode_string(values[9]),
+                sitelong_str=decode_string(values[10]),
+                bayer_pattern=decode_string(values[11]),
+                focname=decode_string(values[12]),
+                bscale=values[13],
+                bzero=values[14],
+                lo=values[15],
+                hi=values[16],
+                # if fhi is 0.0, set both fhi and flo to None
+                flo=values[17] if values[18] != 0.0 else None,
+                fhi=values[18] if values[18] != 0.0 else None,
+                data_max=values[19],
+                data_min=values[20],
+                pixel_size_x=values[21] if values[21] and values[21] > 0.0 else None,
+                pixel_size_y=values[22] if values[22] and values[21] > 0.0 else None,
+                binning_x=values[23] if values[23] and values[24] > 1 else 1,
+                binning_y=values[24] if values[24] and values[24] > 1 else 1,
+                expstart=values[25],
+                expend=values[26],
+                centalt=values[27],
+                centaz=values[28],
+                sitelat=values[29],
+                sitelong=values[30],
+                siteelev=values[31],
+                bayer_xoffset=values[32],
+                bayer_yoffset=values[33],
+                airmass=values[34],
+                focal_length=values[35] if values[35] and values[35] > 0.0 else None,
+                flength=values[36] if values[36] and values[36] > 0.0 else None,
+                iso_speed=values[37],
+                exposure=values[38],
+                aperture=values[39],
+                ccd_temp=values[40],
+                set_temp=values[41],
+                livetime=values[42],
+                stackcnt=values[43],
+                cvf=values[44],
+                gain=values[45],
+                offset=values[46],
+                focuspos=values[47],
+                focussz=values[48],
+                foctemp=values[49],
+                date=timestamp_to_datetime(values[50]),
+                date_obs=timestamp_to_datetime(values[51])
+            )
+        except struct.error as e:
+            raise
 
 @dataclass
 class FFit:
@@ -506,6 +729,46 @@ class BGSample:
             if field_name not in {"position", "size"}:  # Already set manually
                 setattr(self, field_name, kwargs.get(field_name, getattr(self.__class__, field_name)))
 
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'BGSample':
+        """
+        Deserialize a portion of a buffer into a BGSample object
+
+        Args:
+            data (bytes): The full binary buffer containing BGSample data
+
+        Returns:
+            BGSample: A BGSample object
+
+        Raises:
+            ValueError: If the buffer slice size does not match the expected size.
+            struct.error: If there is an error unpacking the binary data.
+        """
+        format_string = '!6dQ2dQ' # Define the format string based on background_sample structure
+        fixed_size = struct.calcsize(format_string)
+
+        # Verify buffer slice
+        if len(data) != fixed_size:
+            raise ValueError(
+                f"Data size {len(data)} doesn't match expected size {fixed_size}"
+            )
+
+        try:
+            # Extract the bytes for this struct and unpack
+            values = struct.unpack(format_string, data)
+
+            return cls(
+                        median = (values[0], values[1], values[2]),
+                        mean = values[3],
+                        min = values[4],
+                        max = values[5],
+                        size = values[6],
+                        position = (values[7], values[8]),
+                        valid = bool(values[9])
+            )
+        except struct.error as e:
+            raise
+
 @dataclass
 class PSFStar:
     """
@@ -562,6 +825,50 @@ class PSFStar:
     ra: float = 0.0            #: Right Ascension
     dec: float = 0.0           #: Declination
 
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'PSFStar':
+        """
+        Deserialize a portion of a buffer into a PSFStar object.
+
+        Args:
+            data: (bytes) The full binary buffer containing PSFStar data.
+
+        Returns:
+            PSFStar object
+
+        Raises:
+            ValueError: If the buffer slice size does not match the expected size.
+            struct.error: If there is an error unpacking the binary data.
+        """
+        format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
+        expected_size = struct.calcsize(format_string)
+        # Verify we got the expected amount of data
+
+        if len(data) != expected_size:
+            raise SirilError(f"Received stats data size {len(data)} doesn't match expected size {expected_size}")
+
+
+        try:
+            # Extract the bytes for this struct and unpack
+            values = struct.unpack(format_string, data)
+
+            return cls(
+                B=values[0], A=values[1], x0=values[2], y0=values[3],
+                sx=values[4], sy=values[5], fwhmx=values[6], fwhmy=values[7],
+                fwhmx_arcsec=values[8], fwhmy_arcsec=values[9], angle=values[10],
+                rmse=values[11], sat=values[12], R=values[13],
+                has_saturated=bool(values[14]), beta=values[15],
+                profile=values[16], xpos=values[17], ypos=values[18],
+                mag=values[19], Bmag=values[20], s_mag=values[21],
+                s_Bmag=values[22], SNR=values[23], BV=values[24],
+                B_err=values[25], A_err=values[26], x_err=values[27],
+                y_err=values[28], sx_err=values[29], sy_err=values[30],
+                ang_err=values[31], beta_err=values[32], layer=values[33],
+                ra=values[34], dec=values[35]
+            )
+        except struct.error as e:
+            raise
+
 @dataclass
 class RegData:
     """Python equivalent of Siril regdata structure"""
@@ -572,6 +879,53 @@ class RegData:
     background_lvl: np.float32 = 0.0     #: background level
     number_of_stars: int = 0             #: number of stars detected in the image
     H: Homography = field(default_factory=Homography)   #: Stores a homography matrix describing the affine transform from this frame to the reference frame
+
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'RegData':
+        """
+        Deserialize a binary response into a RegData object.
+
+        Args:
+            data (bytes): Binary data to unpack
+
+        Returns: RegData object
+
+        Raises: SirilError if the received data doesn't match the expected size'
+                struct.error If unpacking fails
+        """
+        # Calculate expected size
+        format_string = '!5dQ9d2Q'
+        expected_size = struct.calcsize(format_string)
+
+        # Verify we got the expected amount of data
+        if len(data) != expected_size:
+            raise SirilError(f"Received stats data size {len(data)} doesn't match expected size {expected_size}")
+
+        try:
+            values = struct.unpack(format_string, data)
+            return cls(
+                fwhm=values[0],
+                weighted_fwhm=values[1],
+                roundness=values[2],
+                quality=values[3],
+                background_lvl=values[4],
+                number_of_stars=values[5],
+                H=Homography(
+                    h00=values[6],
+                    h01=values[7],
+                    h02=values[8],
+                    h10=values[9],
+                    h11=values[10],
+                    h12=values[11],
+                    h20=values[12],
+                    h21=values[13],
+                    h22=values[14],
+                    pair_matched=values[15],
+                    Inliers=values[16]
+                )
+            )
+        except struct.error as e:
+            raise
 
     def __repr__(self):
         attrs = [f"    {k}={getattr(self, k)}" for k in self.__dataclass_fields__]

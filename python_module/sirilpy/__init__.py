@@ -53,6 +53,7 @@ from .utility import (
 from .exceptions import (
     SirilError,
     SirilConnectionError,
+    SharedMemoryError,
     CommandError,
     DataError,
     NoImageError,
@@ -97,6 +98,7 @@ __all__ = [
     'PlotData',
     'SirilError',
     'SirilConnectionError',
+    'SharedMemoryError',
     'CommandError',
     'DataError',
     'NoImageError',
