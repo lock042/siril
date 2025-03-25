@@ -478,6 +478,12 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		copyfits(fit, &out, CP_FORMAT, -1);
 		// copy the DATE_OBS
 		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
+		// keep the astrometry for later
+		wcsprm_t *wcs_out = NULL;
+		if (has_wcs(fit)) {
+			wcs_out = fit->keywords.wcslib;
+			fit->keywords.wcslib = NULL;
+		}
 		out.rx = out.naxes[0] = dst_rx;
 		out.ry = out.naxes[1] = dst_ry;
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
@@ -505,6 +511,10 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
 		clearfits(&out);
+		// restore the astrometry
+		if (wcs_out) {
+			fit->keywords.wcslib = wcs_out;
+		}
 		if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, fit->rx * fit->ry * fit->naxes[2]), DATA_USHORT);
 		}
