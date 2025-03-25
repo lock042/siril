@@ -981,11 +981,15 @@ gboolean end_platesolve_sequence(gpointer p) {
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
-	else if (!args->retval) {
-		display_filename(); // refresh the display name for gfit in case it's not a symlink anymore
+	else if (!args->retval && !args->has_output) {
+		gchar *seqname = NULL;
+		if (g_str_has_suffix(com.seq.seqname, ".seq"))
+			seqname = g_strdup(com.seq.seqname);
+		else
+			seqname = g_strdup_printf("%s.seq", com.seq.seqname);
+		set_seq(seqname);
+		g_free(seqname);
 	}
-	update_reg_interface(FALSE);
-	update_MenuItem(NULL);
-	free(p);
+	free(p);	
 	return end_generic(NULL);
 }
