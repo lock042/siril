@@ -40,7 +40,7 @@ from .models import (
     SirilPoint,
     UserPolygon
 )
-from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
+from .plot import PlotType, SeriesData, PlotData
 from .shm import SharedMemoryWrapper
 from .utility import (
     human_readable_size,

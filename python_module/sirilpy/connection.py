@@ -13,7 +13,7 @@ from typing import Tuple, Optional, List, Union
 import numpy as np
 from .translations import _
 from .shm import SharedMemoryWrapper, _SharedMemoryInfo
-from .plot import PlotData, _PlotSerializer
+from .plot import PlotData
 from .exceptions import SirilError, SirilConnectionError, CommandError, NoImageError, SharedMemoryError
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType, UserPolygon
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
@@ -66,9 +66,12 @@ class SirilInterface:
 
         self.debug = bool(os.getenv('SIRIL_PYTHON_DEBUG') is not None)
 
-    def connect(self):
+    def connect(self) -> bool:
         """
         Establish a connection to Siril based on the pipe or socket path.
+
+        Returns:
+            True on success
 
         Raises:
             SirilConnectionError: if a connection error occurred
@@ -96,7 +99,7 @@ class SirilInterface:
                         current_pid = os.getpid()
                         print(f'Current ProcessID is {current_pid}')
                         self.info_messagebox(f'Current ProcessID is {current_pid}', False)
-                    return
+                    return True
                 except pywintypes.error as e:
                     if e.winerror == winerror.ERROR_PIPE_BUSY:
                         raise SirilConnectionError(_("Pipe is busy")) from e
@@ -108,7 +111,7 @@ class SirilInterface:
                     current_pid = os.getpid()
                     print(f'Current ProcessID is {current_pid}')
                     self.info_messagebox(f'Current ProcessID is {current_pid}', False)
-                return
+                return True
 
         except Exception as e:
             raise SirilConnectionError(_("Failed to connect: {}").format(e)) from e
@@ -1611,7 +1614,7 @@ class SirilInterface:
             plot_metadata: PlotMetadata object containing plot configuration
         """
         try:
-            serialized_data, total_bytes = _PlotSerializer._serialize_plot_data(plot_data)
+            serialized_data, total_bytes = PlotData.serialize(plot_data)
 
             # Create shared memory using our wrapper
             try:
@@ -3382,7 +3385,8 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded,
-            RuntimeError: For other errors during  data retrieval,
+            SharedMemoryError: for shared memory errors,
+            SirilError: For other errors during  data retrieval,
             ValueError: If the received data format is invalid
         """
 
@@ -3399,20 +3403,20 @@ class SirilInterface:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
                         raise NoImageError(_("No image is currently loaded in Siril"))
-                    raise RuntimeError(_("Server error: {}").format(error_msg))
-                raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
+                    raise SirilConnectionError(_("Server error: {}").format(error_msg))
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
 
             if status == _Status.NONE:
                 return None
 
             if not response:
-                raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
 
             try:
                 # Parse the shared memory information
                 shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
-                raise ValueError(_("Invalid shared memory information received: {}").format(e)) from e
+                raise SharedMemoryError(_("Invalid shared memory information received: {}").format(e)) from e
 
             # Map the shared memory
             try:
@@ -3421,7 +3425,7 @@ class SirilInterface:
                     shm_info.size
                 )
             except (OSError, ValueError) as e:
-                raise RuntimeError(_("Failed to map shared memory: {}").format(e)) from e
+                raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
 
             format_string = '!6dQ2dQ' # Define the format string based on background_sample structure
             fixed_size = struct.calcsize(format_string)
@@ -3455,13 +3459,12 @@ class SirilInterface:
                     samples.append(sample)
 
                 except struct.error as e:
-                    print(f"Error unpacking sample data for index {i}: {e}", file=sys.stderr)
-                    break
+                    raise SirilError(_("Error in get_image_bgsamples()")) from e
 
             return samples
 
         except Exception as e:
-            raise RuntimeError(_("Error processing sample data: {}").format(e)) from e
+            raise SirilError(_("Error in get_image_bgsamples(): {}").format(e)) from e
 
         finally:
             if shm is not None:
@@ -3472,7 +3475,7 @@ class SirilInterface:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
-                        raise RuntimeError(_("Failed to cleanup shared memory"))
+                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
                     pass
@@ -3499,6 +3502,11 @@ class SirilInterface:
 
         Returns:
             bool: True if successful, False otherwise
+
+        Raises:
+            TypeError: for incorrect data input
+            SharedMemoryError: for shared memory errors
+
         """
 
         shm = None
@@ -3506,7 +3514,7 @@ class SirilInterface:
         try:
             # Validate input array
             if not isinstance(header, str):
-                raise ValueError(_("Header data must be a string"))
+                raise TypeError(_("Header data must be a string"))
 
             header_bytes = header.encode('utf-8')
             # Calculate total size
@@ -3524,10 +3532,10 @@ class SirilInterface:
                         shm_info.size
                     )
                 except (OSError, ValueError) as e:
-                    raise RuntimeError(_("Failed to map shared memory: {}").format(e)) from e
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
 
             except Exception as e:
-                raise RuntimeError(_("Failed to create shared memory: {}").format(e)) from e
+                raise SharedMemoryError(_("Failed to create shared memory: {}").format(e)) from e
 
             # Copy data to shared memory
             try:
@@ -3537,7 +3545,7 @@ class SirilInterface:
                 # Delete transient objects used to structure copy
                 del buffer
             except Exception as e:
-                raise RuntimeError(_("Failed to copy data to shared memory: {}").format(e)) from e
+                raise SirilError(_("Failed to copy data to shared memory: {}").format(e)) from e
 
             # Pack the image info structure
             info = struct.pack(
@@ -3551,7 +3559,7 @@ class SirilInterface:
             )
             # Send command using the existing _execute_command method
             if not self._execute_command(_Command.SET_IMAGE_HEADER, info):
-                raise RuntimeError(_("_execute_command failed"))
+                raise SirilConnectionError(_("_execute_command failed"))
 
             return True
 
@@ -3576,6 +3584,9 @@ class SirilInterface:
 
         Returns:
             UserPolygon: the input updated with the ID assigned by Siril
+
+        Raises:
+            SirilError: on any failure
         """
 
         try:
@@ -3593,32 +3604,31 @@ class SirilInterface:
                 polygon.polygon_id = id
                 return polygon
             except struct.error as e:
-                print(f"Error retrieving assigned polygon ID: {e}", file=sys.stderr)
-                return None
+                raise SirilError(_("Error unpacking polygon ID")) from e
 
         except Exception as e:
-            print(f"Error sending user polygon: {e}", file=sys.stderr)
-            return None
+            raise SirilError(f"Error in add_user_polygon(): {e}") from e
 
-    def delete_user_polygon(self, polygon_id: int) -> bool:
+    def delete_user_polygon(self, polygon_id: int):
         """
         Deletes a single user polygon from the Siril overlay, specified by ID
 
         Args:
             id: int specifying the polygon ID to be deleted
-        Returns:
-            bool: True if the command succeeded, False otherwise
+
+        Raises:
+            SirilError: on failure
         """
         try:
             # Create payload: network-order int followed by string
             # '!I' for network byte order 32-bit int
             payload = struct.pack('!i', polygon_id)
 
-            return self._execute_command(_Command.DELETE_USER_POLYGON, payload)
+            self._execute_command(_Command.DELETE_USER_POLYGON, payload)
+            return
 
         except Exception as e:
-            print(f"Error sending progress update: {e}", file=sys.stderr)
-            return False
+            raise SirilError(f"Error in delete_user_polygon(): {e}") from e
 
     def clear_user_polygons(self) -> bool:
         """
@@ -3626,15 +3636,17 @@ class SirilInterface:
 
         Returns:
             bool: True if the command succeeded, False otherwise
+
+        Raises:
+            SirilError: on failure
         """
 
         try:
-            success = self._execute_command(_Command.CLEAR_USER_POLYGONS, None)
-            return success
+            self._execute_command(_Command.CLEAR_USER_POLYGONS, None)
+            return
 
         except Exception as e:
-            print(f"Error clearing user polygons: {e}", file=sys.stderr)
-            return False
+            raise(f"Error clearing user polygons: {e}") from e
 
     def get_user_polygon(self, polygon_id: int) -> 'UserPolygon':
         """
@@ -3647,20 +3659,21 @@ class SirilInterface:
             UserPolygon: the specified UserPolygon if it exists, None otherwise
 
         Raises:
-            RuntimeError: if an error occurred processing the command
+            SirilError: on failure
         """
         try:
             payload = struct.pack('!i', polygon_id)
             # Send it using _request_data
             response = self._request_data(_Command.GET_USER_POLYGON, payload)
             if response is None:
+                print(f"No polygon matching ID {polygon_id} found")
                 return None
 
             # Catch the polygon and disregard leftover bytes
             polygon, unused_bytes = UserPolygon.deserialize_polygon(response) # pylint: disable=unused-variable
             return polygon
         except Exception as e:
-            raise RuntimeError(_("Failed to get user polygon: {}").format(e)) from e
+            raise SirilError(_("Failed to get user polygon: {}").format(e)) from e
 
     def get_user_polygon_list(self) -> List['UserPolygon']:
         """
@@ -3670,7 +3683,8 @@ class SirilInterface:
             List[UserPolygon]: the list of UserPolygon if some exist, None otherwise
 
         Raises:
-            RuntimeError: if an error occurred processing the command
+            SirilError: if an error occurred
+            SharedMemoryError: if a shared memory error occurred
         """
         try:
             status, response = self._send_command(_Command.GET_USER_POLYGON_LIST)
@@ -3680,14 +3694,14 @@ class SirilInterface:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
                         raise NoImageError(_("No image is currently loaded in Siril"))
-                    raise RuntimeError(_("Server error: {}").format(error_msg))
-                raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
+                    raise SirilConnectionError(_("Server error: {}").format(error_msg))
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
 
             if status == _Status.NONE:
-                return None
+                return None # May be correct if there are no user polygons defined
 
             if not response:
-                raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
 
             try:
                 # Parse the shared memory information
@@ -3702,7 +3716,7 @@ class SirilInterface:
                     shm_info.size
                 )
             except (OSError, ValueError) as e:
-                raise RuntimeError(_("Failed to map shared memory: {}").format(e)) from e
+                raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
 
             # Read entire buffer at once using memoryview
             buffer = bytearray(shm.buf)[:shm_info.size]
@@ -3711,8 +3725,10 @@ class SirilInterface:
 
             return polygon_list
 
+        except SharedMemoryError:
+            raise
         except Exception as e:
-            raise RuntimeError(_("Error processing polygon data: {}").format(e)) from e
+            raise SirilError(_("Error in get_user_polygon_list: {}").format(e)) from e
 
         finally:
             if shm is not None:
@@ -3723,7 +3739,7 @@ class SirilInterface:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
-                        raise RuntimeError(_("Failed to cleanup shared memory"))
+                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
                     pass

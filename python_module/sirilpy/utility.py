@@ -33,7 +33,13 @@ def human_readable_size(bytes_size: int) -> str:
 
     Returns:
         str: Formatted size with appropriate unit (B, KB, MB, GB, TB)
+
+    Raises:
+        TypeError: on incorrect input type
     """
+    if not isinstance(bytes_size, int):
+        raise TypeError("bytes_size must be an int")
+
     units = [' B', ' KB', ' MB', ' GB', ' TB']
     size = float(bytes_size)
     unit_index = 0
@@ -162,7 +168,7 @@ def download_with_progress(
 
             siril.update_progress(error_message, 0.0)
 
-            raise RuntimeError(error_message) from e
+            raise SirilError(error_message) from e
 
     # All retry attempts failed
     raise SirilError(f"Failed to download file from {url} after {max_retries} attempts")
@@ -181,7 +187,9 @@ def ensure_installed(*packages: Union[str, List[str]],
         bool: True if all packages are successfully installed or already meet constraints.
 
     Raises:
-        RuntimeError: If package installation fails.
+        SirilError: If package installation fails,
+        ValueError: If a different number of constraints is provided to the number
+                    of packages to be installed.
     """
     # Normalize inputs to lists
     if isinstance(packages[0], list):
@@ -217,7 +225,7 @@ def ensure_installed(*packages: Union[str, List[str]],
         except Exception as e:
             all_installed = False
             print(f"Error processing {package}: {e}")
-            raise RuntimeError(f"Failed to install or verify package {package}") from e
+            raise SirilError(f"Failed to install or verify package {package}") from e
 
     return all_installed
 

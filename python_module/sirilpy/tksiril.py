@@ -79,6 +79,7 @@ def match_theme_to_siril(themed_tk, s):
         TypeError: If input arguments are of incorrect type
         ValueError: If the theme configuration is not 0 or 1
         AttributeError: If required methods are not available
+        RuntimeError: If there are errors installing or setting the theme
     """
     # Strict type checking for s
     if not isinstance(s, SirilInterface):
