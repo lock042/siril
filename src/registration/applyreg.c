@@ -941,7 +941,6 @@ int register_apply_reg(struct registration_args *regargs) {
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
 		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array
 		if (status) {
-			free_generic_seq_args(args, FALSE);
 			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
 			free(sadata);
 			args->user = NULL;
