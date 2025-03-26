@@ -399,6 +399,11 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 				g_free(distoparam->filename);
 				gchar *wcsname = get_wcs_filename(PATHPARSE_MODE_WRITE, seq);
 				distoparam->filename = wcsname;
+				if (!wcsname || save_wcs_fits(&fit, wcsname)) {
+					siril_log_color_message(_("Could not save WCS file for distortion\n"), "red");
+					wcsfree(wcs);
+					return NULL;
+				}
 			}
 			clearfits(&fit);
 			break;
