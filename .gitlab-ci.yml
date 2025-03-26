@@ -224,14 +224,13 @@ macos:
 win64-native:
   stage: packaging
   cache:
-    key: "cache-windows"
+    key: "cache-windows-small"
     paths:
       - ccache
-      - DLLcache
     when: always
   variables:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
-    CCACHE_MAXSIZE: "1.0G"
+    CCACHE_MAXSIZE: "100M"
     CHERE_INVOKING: "yes"
     MSYSTEM: "MINGW64"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
