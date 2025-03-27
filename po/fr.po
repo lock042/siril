@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-27 14:47+0100\n"
-"PO-Revision-Date: 2025-03-19 10:22+0000\n"
+"PO-Revision-Date: 2025-03-27 13:58+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -13054,17 +13054,16 @@ msgid "local"
 msgstr "local"
 
 #: src/algos/astrometry_solver.c:888
-#, fuzzy
 msgid "online"
-msgstr "non lié"
+msgstr "en ligne"
 
 #: src/algos/astrometry_solver.c:889
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Plate solving image from %s %s for a field of view of %.2f degrees%s, using "
 "a limit magnitude of %.2f\n"
 msgstr ""
-"Résolution astrométrique de l'image %s pour un champ de vision de %.2f "
+"Résolution astrométrique de l'image de %s %s pour un champ de vision de %.2f "
 "degrés%s, en utilisant une magnitude limite de %.2f\n"
 
 #: src/algos/astrometry_solver.c:894
@@ -13208,9 +13207,8 @@ msgstr ""
 "%s)\n"
 
 #: src/algos/astrometry_solver.c:1934
-#, fuzzy
 msgid "Using the current selection to detect stars\n"
-msgstr "Attention : utiliser la sélection actuelle pour détecter les étoiles\n"
+msgstr "Utiliser la sélection actuelle pour détecter les étoiles\n"
 
 #: src/algos/astrometry_solver.c:1979
 msgid "Selection is not used in manual star selection mode\n"
@@ -13240,31 +13238,33 @@ msgid "Image %d already platesolved, skipping\n"
 msgstr "L'image %d a déjà été traitée, sauter\n"
 
 #: src/algos/astrometry_solver.c:2111
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not retrieve center coordinates from image %s metadata, using "
 "reference image value instead\n"
 msgstr ""
-"Impossible de récupérer les coordonnées de la cible à partir des métadonnées "
-"de l'image %s\n"
+"Impossible de récupérer les coordonnées du centre à partir des métadonnées "
+"de l'image %s, utilise la valeur de l'image de référence à la place.\n"
 
 #: src/algos/astrometry_solver.c:2120
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not retrieve pixel size from image %s metadata or settings, using "
 "reference image value instead\n"
 msgstr ""
 "Impossible de récupérer la taille des pixels à partir des métadonnées ou des "
-"paramètres de l'image %s\n"
+"paramètres de l'image %s, utilise la valeur de l'image de référence à la "
+"place.\n"
 
 #: src/algos/astrometry_solver.c:2131
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not retrieve focal length from image %s metadata or settings, using "
 "reference image value instead\n"
 msgstr ""
 "Impossible de récupérer la longueur focale à partir des métadonnées ou des "
-"paramètres de l'image %s\n"
+"paramètres de l'image %s, utilise la valeur de l'image de référence à la "
+"place.\n"
 
 #: src/algos/astrometry_solver.c:2173
 #, c-format
@@ -14403,7 +14403,7 @@ msgid ", %s channel"
 msgstr ", canal %s"
 
 #: src/algos/PSF.c:1038
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "PSF %s Result (%s%s):\n"
 "\n"
@@ -14432,42 +14432,40 @@ msgid ""
 "RMSE:\n"
 "\t\tRMSE=%.3e"
 msgstr ""
-"Résultat de la PSF(%s%s) :\n"
+"Résultat %s PSF(%s%s) :\n"
 "\n"
-"Coordonnées du Centroïde :\n"
+"Coordonnées du Centroïde :\n"
 "\t\t%s\n"
 "\n"
-"Largeur à mi-hauteur :\n"
+"Largeur à mi-hauteur :\n"
 "\t\tFWHMx=%.2f%s\n"
 "\t\tFWHMy=%.2f%s\n"
 "\t\tr=%.2f\n"
-"Angle :\n"
+"Angle :\n"
 "\t\t%0.2fdeg\n"
 "\n"
-"Valeur de fond de ciel :\n"
+"Valeur de fond de ciel :\n"
 "\t\tB=%.6f\n"
 "\n"
-"Intensité Maximale :\n"
+"Intensité Maximale :\n"
 "\t\tA=%.6f\n"
 "\n"
-"Magnitude (%s) :\n"
+"Magnitude (%s) :\n"
 "\t\tm=%.4f±%.4f\n"
 "\n"
-"Rapport Signal sur Bruit :\n"
+"Rapport Signal sur Bruit :\n"
 "\t\tRSB=%.1fdB (%s)\n"
 "\n"
-"RMSE :\n"
+"RMSE :\n"
 "\t\tRMSE=%.3e"
 
 #: src/algos/PSF.c:1047
-#, fuzzy
 msgid "photometry"
-msgstr "Photométrie"
+msgstr "photométrie"
 
 #: src/algos/PSF.c:1047
-#, fuzzy
 msgid "fit"
-msgstr ".fit"
+msgstr "ajustement"
 
 #: src/algos/quality.c:354 src/algos/quality.c:405
 #, c-format
@@ -14810,6 +14808,9 @@ msgid ""
 "Disabling debayer-on-open setting: this must be unset in order to open "
 "monochrome images in the compositing tool.\n"
 msgstr ""
+"Désactivation du paramètre de dématriçage à l'ouverture : ce paramètre doit "
+"être désactivé pour pouvoir ouvrir des images monochromes dans l'outil de "
+"composition.\n"
 
 #. the list below depends on the content of the glade file. It
 #. * should be done in the same way as in registration.c, but it
@@ -17461,12 +17462,11 @@ msgstr ""
 "ligne via Vizier\n"
 
 #: src/core/command.c:9827
-#, fuzzy
 msgid ""
 "Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"
 msgstr ""
 "Le catalogue local Gaia n'est pas disponible, retour au catalogue Gaia en "
-"ligne via Vizier\n"
+"ligne via l'ESA\n"
 
 #: src/core/command.c:9918
 msgid ""
@@ -19841,7 +19841,6 @@ msgstr ""
 "ne change pas le mode d'affichage"
 
 #: src/core/command_def.h:108
-#, fuzzy
 msgid ""
 "Creates a new image filled with zeros with a size of <b>width</b> x "
 "<b>height</b>.\n"
@@ -19854,6 +19853,8 @@ msgid ""
 msgstr ""
 "Crée une nouvelle image remplie de zéros avec une taille de <b>width</b> x "
 "<b>height</b>.\n"
+"Le paramètre <b>[filename]</b> peut être utilisé pour spécifier le nom du "
+"nouveau fichier.\n"
 "\n"
 "L'image est au format 32 bits, et elle contient <b>nb_channel</b> channels, "
 "<b>nb_channel</b> valant 1 ou 3. Elle n'est pas enregistrée, mais devient "
@@ -26499,13 +26500,12 @@ msgid "No star detected"
 msgstr "Aucune étoile détectée"
 
 #: src/gui/cut.c:1208
-#, fuzzy
 msgid ""
 "Siril cannot set the star coordinate as no star has been detected in the "
 "selection"
 msgstr ""
-"Siril ne peut pas définir la coordonnée de départ car aucune étoile n'a été "
-"détectée dans la sélection"
+"Siril ne peut pas définir les coordonnées de l'étoile car aucune étoile n'a "
+"été détectée dans la sélection"
 
 #: src/gui/cut.c:1213 src/gui/statistics_list.c:203
 #, c-format
@@ -26513,11 +26513,10 @@ msgid "No selection"
 msgstr "Aucune sélection"
 
 #: src/gui/cut.c:1214
-#, fuzzy
 msgid "Siril cannot set the star coordinate as no selection is made"
 msgstr ""
-"Siril ne peut pas définir la coordonnée de départ car aucune sélection n'a "
-"été effectuée"
+"Siril ne peut pas définir la coordonnée de l'étoile car aucune sélection "
+"n'est effectuée"
 
 #: src/gui/colors.c:53 src/gui/colors.c:139 src/gui/colors.c:172
 #: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1730
@@ -31018,7 +31017,7 @@ msgstr "Données statistiques (sauvegarde) effacées pour le canal %d\n"
 #: src/io/sequence.c:2297
 #, c-format
 msgid "Removed outdated cache file %s failed\n"
-msgstr ""
+msgstr "Échec de la suppression du fichier cache obsolète %s\n"
 
 #: src/io/sequence_export.c:129
 #, c-format
@@ -32161,28 +32160,25 @@ msgid "No distodata available"
 msgstr "Aucune distodata disponible"
 
 #: src/io/siril_pythoncommands.c:2205
-#, fuzzy
 msgid "Failed to add user polygon"
-msgstr "Échec du mappage de la mémoire partagée"
+msgstr "Échec de l'ajout d'un polygone utilisateur"
 
 #: src/io/siril_pythoncommands.c:2240
 msgid "No polygon found matching id"
-msgstr ""
+msgstr "Aucun polygone correspondant à l'identifiant n'a été trouvé"
 
 #: src/io/siril_pythoncommands.c:2247 src/io/siril_pythoncommands.c:2265
-#, fuzzy
 msgid "Failed to serialize user polygon"
-msgstr "Échec de la récupération du chemin d'accès du bundle"
+msgstr "Échec de la sérialisation du polygone utilisateur"
 
 #: src/io/siril_pythoncommands.c:2270
 msgid "No user polygons to serialize"
-msgstr ""
+msgstr "Pas de polygones utilisateur à sérialiser"
 
 #: src/io/siril_pythoncommands.c:2283 src/io/siril_pythoncommands.c:2289
 #: src/io/siril_pythoncommands.c:2295
-#, fuzzy
 msgid "Argument error"
-msgstr "Erreur de paramètres"
+msgstr "Erreur d'argument"
 
 #: src/io/siril_pythoncommands.c:2305
 msgid "Unknown command"
