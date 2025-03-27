@@ -231,7 +231,7 @@ win64-native:
     when: always
   variables:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
-    CCACHE_MAXSIZE: "100M"
+    CCACHE_MAXSIZE: "50M"
     CHERE_INVOKING: "yes"
     MSYSTEM: "MINGW64"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
@@ -259,10 +259,9 @@ win64-native:
     - wget.exe --quiet --no-check-certificate $SDW_RELEASE_URL
     - 7z x -oC:/ "$Env:SDW_NAME.7z"
   script:
-    # Print ccache statistics
-    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "ccache -s"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "ccache -s"
 flatpak:
   rules:
     *run_ondemand_schedule_tag
