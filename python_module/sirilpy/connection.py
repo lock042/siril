@@ -3554,7 +3554,7 @@ class SirilInterface:
             # Get the header from the primary HDU (or any other HDU you want)
             header = hdul[0].header
             # Convert the header to string
-            header_string = header.tostring(sep='\\n')
+            header_string = header.tostring(sep='\\\\n')
             # Send the metadata to Siril
             siril.set_image_metadata_from_header_string(header_string)
 
