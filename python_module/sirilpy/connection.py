@@ -20,7 +20,7 @@ import numpy as np
 from .translations import _
 from .shm import SharedMemoryWrapper, _SharedMemoryInfo
 from .plot import PlotData
-from .exceptions import SirilError, SirilConnectionError, CommandError, NoImageError, SharedMemoryError
+from .exceptions import SirilError, SirilConnectionError, CommandError, NoImageError, NoSequenceError, SharedMemoryError
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType, UserPolygon
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
 
@@ -356,24 +356,41 @@ class SirilInterface:
 
         Returns:
             True if command was successful, False otherwise
+
+        Raises:
+            NoImageError: if no image is loaded when one should be,
+            NoSequenceError: if no sequence is loaded when one should be,
+            SirilError: for unknown errors.
         """
         if self.debug:
             timeout = None
 
-        status, response = self._send_command(command, payload, timeout)
+        try:
+            status, response = self._send_command(command, payload, timeout)
 
-        if status is None:
-            return False
+            if status is None:
+                error_msg = response.decode('utf-8') if response else _("Error: no status returned")
+                raise SirilError(error_msg)
 
-        if status == _Status.NONE:
-            # This indicates "allowed failure" - no data to return but not an error
-            return None
+            if status == _Status.NONE:
+                # This indicates "allowed failure" - no data to return but not an error
+                return None
 
-        if status is None or status == _Status.ERROR:
-            error_msg = response.decode('utf-8') if response else _("Unknown error")
-            raise SirilError(error_msg)
+            # Handle error responses
+            if status == _Command.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace').lower()
+                    if "no image loaded" in error_msg:
+                        raise NoImageError(_("No image is currently loaded in Siril"))
+                    if "no seqeunce loaded" in error_msg:
+                        raise NoSequenceError(_("No sequence is currently loaded in Siril"))
+                    raise SirilError(_("Interface error: {}").format(error_msg))
+                raise SirilError(_("Error: unknown interface error"))
 
-        return True
+            return True
+
+        except Exception as e:
+            raise SirilError(f"{e}") from e
 
     def _request_data(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = DEFAULT_TIMEOUT) -> Optional[bytes]:
         """
@@ -391,22 +408,39 @@ class SirilInterface:
             Requested data or None if no data to return
 
         Raises:
-            SirilError: if an error code is returned from Siril
+            NoImageError: if no image is loaded when one should be,
+            NoSequenceError: if no sequence is loaded when one should be,
+            SirilError: for unknown errors.
         """
         if self.debug:
             timeout = None
 
-        status, response = self._send_command(command, payload, timeout)
+        try:
+            status, response = self._send_command(command, payload, timeout)
 
-        if status == _Status.NONE:
-            # This indicates "allowed failure" - no data to return but not an error
-            return None
+            if status is None:
+                error_msg = response.decode('utf-8') if response else _("Error: no status returned")
+                raise SirilError(error_msg)
 
-        if status is None or status == _Command.ERROR:
-            error_msg = response.decode('utf-8') if response else _("Unknown error")
-            raise SirilError(error_msg)
+            if status == _Status.NONE:
+                # This indicates "allowed failure" - no data to return but not an error
+                return None
 
-        return response
+            # Handle error responses
+            if status == _Command.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace').lower()
+                    if "no image loaded" in error_msg:
+                        raise NoImageError(_("No image is currently loaded in Siril"))
+                    if "no seqeunce loaded" in error_msg:
+                        raise NoSequenceError(_("No sequence is currently loaded in Siril"))
+                    raise SirilError(_("Interface error: {}").format(error_msg))
+                raise SirilError(_("Error: unknown interface error"))
+
+            return response
+
+        except Exception as e:
+            raise SirilError(f"{e}") from e
 
     def _request_shm(self, size: int) -> Optional[_SharedMemoryInfo]:
         """
@@ -488,8 +522,7 @@ class SirilInterface:
             status_code: The status code returned by the Siril command handler, or by
                   the CommandError exception.
         Returns:
-            str: A string providing a description of the error code returned by
-                 a Siril command, for use in exception handling.
+            str: A string providing a description of the error code returned by a Siril command, for use in exception handling.
         """
         error_messages = {
             CommandStatus.CMD_NOT_FOUND: "Command not found",
@@ -1089,17 +1122,17 @@ class SirilInterface:
         Raises: SirilError: if an error occurred.
         """
 
-        response = self._request_data(_Command.GET_DIMENSIONS)
-
-        if response is None:
-            return None
-
         try:
+            response = self._request_data(_Command.GET_DIMENSIONS)
+
+            if response is None:
+                return None
+
             # Assuming the response is in the format: width (4 bytes), height (4 bytes), nb_channels (4 bytes)
             width, height, channels = struct.unpack('!III', response)
             return channels, height, width  # Returning as (channels, height, width)
-        except struct.error as e:
-            raise SirilError(_("Error occurred in get_siril_active_vport")) from e
+        except Exception as e:
+            raise SirilError(_("Error occurred in get_image_shape()")) from e
 
     def get_selection_star(self, shape: Optional[list[int]] = None, \
         channel: Optional[int] = None)-> Optional[PSFStar]:
@@ -1412,7 +1445,7 @@ class SirilInterface:
                 if response:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
-                        raise NoImageError(_("No image is currently loaded in Siril"))
+                        raise NoImageError(_("Error in get_image_pixeldata(): no image is currently loaded in Siril"))
                     raise RuntimeError(_("Server error: {}").format(error_msg))
                 raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
 
@@ -1534,8 +1567,8 @@ class SirilInterface:
             if status == _Command.ERROR:
                 if response:
                     error_msg = response.decode('utf-8', errors='replace')
-                    if "no image loaded" in error_msg.lower():
-                        raise NoImageError(_("No image is currently loaded in Siril"))
+                    if "no sequence loaded" in error_msg.lower():
+                        raise NoSequenceError(_("No sequence is currently loaded in Siril"))
                     raise SirilConnectionError(_("Server error: {}").format(error_msg))
                 raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
 
@@ -1703,9 +1736,13 @@ class SirilInterface:
         Returns: True if the command succeeded, otherwise False
 
         Raises:
+            NoImageError: if no image is loaded in Siril
             SirilError: if there was a Siril error in handling the command
         """
         try:
+            if not self.is_image_loaded():
+                raise NoImageError(_("Error in set_image_bgsamples(): no image loaded"))
+
             # Convert tuples to BGSamples if needed
             recalc = True
             if points and not isinstance(points[0], BGSample):
@@ -1800,7 +1837,8 @@ class SirilInterface:
                         with dtype either np.float32 or np.uint16.
 
         Raises:
-            SirilError: if there was an error in handling the command
+            NoImageError: if no image is loaded in Siril,
+            SirilError: if there was an error in handling the command.
         """
 
         shm = None
@@ -1815,6 +1853,10 @@ class SirilInterface:
 
             if image_data.dtype not in (np.float32, np.uint16):
                 raise ValueError(_("Image data must be float32 or uint16"))
+
+            # Check there is an image loaded in Siril
+            if not self.is_image_loaded():
+                raise NoImageError(_("Error in set_image_pixeldata(): no image loaded"))
 
             # Get dimensions
             if image_data.ndim == 2:
@@ -1899,7 +1941,8 @@ class SirilInterface:
                         with dtype either np.float32 or np.uint16.
 
         Raises:
-            SirilError: if there was an error in handling the command
+            NoSequenceError: if no sequence is loaded in Siril,
+            SirilError: if there was an error in handling the command.
         """
 
         shm = None
@@ -1927,6 +1970,9 @@ class SirilInterface:
 
             if any(dim <= 0 for dim in (width, height)):
                 raise ValueError(_("Invalid image dimensions: {}x{}").format(width, height))
+
+            if not self.is_sequence_loaded():
+                raise NoSequenceError(_("Error in set_seq_frame_pixeldata(): no sequence loaded"))
 
             # Calculate total size
             element_size = 4 if image_data.dtype == np.float32 else 2
@@ -2017,7 +2063,7 @@ class SirilInterface:
                 if response:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
-                        raise NoImageError(_("No image is currently loaded in Siril"))
+                        raise NoImageError(_("Error in get_image_iccprofile(): no image is currently loaded in Siril"))
                     raise SirilConnectionError(_("Server error: {}").format(error_msg))
                 raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
 
@@ -2098,8 +2144,8 @@ class SirilInterface:
                 if response:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
-                        raise NoImageError(_("No image is currently loaded in Siril"))
-                    raise RuntimeError(_("Server error: {}").format(error_msg))
+                        raise NoImageError(_("Error in get_image_fits_header(): no image is currently loaded in Siril"))
+                    raise SirilError(_("Server error: {}").format(error_msg))
                 raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
 
             if not response:
@@ -2168,7 +2214,7 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded,
-            SirilError: For other errors during data retrieval,
+            SirilError: For other errors during data retrieval.
         """
 
         shm = None
@@ -2181,8 +2227,8 @@ class SirilInterface:
                 if response:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
-                        raise NoImageError(_("No image is currently loaded in Siril"))
-                    raise RuntimeError(_("Server error: {}").format(error_msg))
+                        raise NoImageError(_("Error in get_image_unknown_keys(): no image is currently loaded in Siril"))
+                    raise SirilError(_("Server error: {}").format(error_msg))
                 raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
 
             if status == _Status.NONE:
@@ -2254,7 +2300,7 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded,
-            SirilError: For other errors during data retrieval,
+            SirilError: For other errors during data retrieval.
         """
 
         shm = None
@@ -2267,8 +2313,8 @@ class SirilInterface:
                 if response:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
-                        raise NoImageError(_("No image is currently loaded in Siril"))
-                    raise RuntimeError(_("Server error: {}").format(error_msg))
+                        raise NoImageError(_("Error in get_image_history(): no image is currently loaded in Siril"))
+                    raise SirilError(_("Server error: {}").format(error_msg))
                 raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
 
             if status == _Status.NONE:
@@ -2498,8 +2544,12 @@ class SirilInterface:
             The filename as a string.
 
         Raises:
+            NoSequenceError: if no sequence is loaded in Siril,
             SirilError: if a decoding error occurs.
         """
+
+        if not self.is_sequence_loaded():
+            raise NoSequenceError(_("Error in get_seq_frame_filename(): no sequence is loaded"))
 
         # Convert frame number to network byte order bytes
         frame_payload = struct.pack('!I', frame)  # '!I' for network byte order uint32_t
@@ -2528,7 +2578,7 @@ class SirilInterface:
             ImageStats object containing the statistics, or None if no stats are available for the selected channel
 
         Raises:
-            SirilError: if a decoding error occurs
+            SirilError: if a decoding error occurs.
         """
 
         # Convert channel number to network byte order bytes
@@ -2562,8 +2612,12 @@ class SirilInterface:
             and channel
 
         Raises:
-            SirilError: if a decoding error occurs
+            NoSequenceError: if no sequence is loaded in Siril,
+            SirilError: if a decoding error occurs.
         """
+
+        if not self.is_sequence_loaded():
+            raise NoSequenceError(_("Error in get_seq_regdata(): no sequence is loaded"))
 
         data_payload = struct.pack('!II', frame, channel)  # '!I' for network byte order uint32_t
 
@@ -2593,8 +2647,12 @@ class SirilInterface:
             ImageStats object containing the statistics, or None if an error occurred
 
         Raises:
-            SirilError: if a decoding error occurs
+            NoSequenceError: if no sequence is loaded in Siril,
+            SirilError: if a decoding error occurs.
         """
+
+        if not self.is_sequence_loaded():
+            raise NoSequenceError(_("Error in get_seq_stats(): no sequence is loaded"))
 
         data_payload = struct.pack('!II', frame, channel)  # '!I' for network byte order uint32_t
 
@@ -2622,8 +2680,12 @@ class SirilInterface:
             ImgData object containing the frame metadata, or None if an error occurred
 
         Raises:
-            SirilError: if a decoding error occurs
+            NoSequenceError: if no sequence is loaded in Siril,
+            SirilError: if a decoding error occurs.
         """
+
+        if not self.is_sequence_loaded():
+            raise NoSequenceError(_("Error in get_seq_imgdata(): no sequence is loaded"))
 
         data_payload = struct.pack('!I', frame)  # '!I' for network byte order uint32_t
 
@@ -2648,8 +2710,12 @@ class SirilInterface:
             DistoData object containing the channel distortion parameters, or None if an error occurred
 
         Raises:
-            SirilError: if a decoding error occurs
+            NoSequenceError: if no sequence is loaded in Siril,
+            SirilError: if a decoding error occurs.
         """
+
+        if not self.is_sequence_loaded():
+            raise NoSequenceError(_("Error in get_seq_distodata(): no sequence is loaded"))
 
         # Request data with the channel number as payload
         data_payload = struct.pack('!I', channel)
@@ -2686,8 +2752,12 @@ class SirilInterface:
             if an error occurred
 
         Raises:
-            SirilError: if a decoding error occurs
+            NoSequenceError: if no sequence is loaded in Siril,
+            SirilError: if a decoding error occurs.
         """
+
+        if not self.is_sequence_loaded():
+            raise NoSequenceError(_("Error in get_seq(): no sequence is loaded"))
 
         # Request data with the channel number as payload
         response = self._request_data(_Command.GET_SEQ)
@@ -2755,7 +2825,7 @@ class SirilInterface:
             FKeywords object containing the FITS keywords, or None if an error occurred
 
         Raises:
-            SirilError: if a decoding error occurs
+            SirilError: if a decoding error occurs.
         """
 
         response = self._request_data(_Command.GET_KEYWORDS)
@@ -2781,13 +2851,14 @@ class SirilInterface:
             pixel data, or None if an error occurred
 
         Raises:
+            NoImageError: if no image is loaded in Siril
             SirilError: if a decoding error occurs
         """
 
         # Request data with the channel number as payload
         response = self._request_data(_Command.GET_IMAGE)
         if response is None:
-            return None
+            raise NoImageError(_("Error in get_image(): no image currently loaded in Siril"))
 
         try:
             # Build format string for struct unpacking
@@ -2896,11 +2967,15 @@ class SirilInterface:
             frame (default is True).
 
         Returns:
-            FFit object containing the frame data, or None if an error occurred
+            FFit object containing the frame data
 
         Raises:
+            NoSequenceError: if no sequence is loaded in Siril,
             SirilError: if an error occurs.
         """
+
+        if not self.is_sequence_loaded():
+            raise NoSequenceError(_("Error in get_seq_frame(): no sequence is loaded"))
 
         shm = None
         data_payload = struct.pack('!I?', frame, with_pixels)
@@ -3199,7 +3274,7 @@ class SirilInterface:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
                         raise NoImageError(_("No image is currently loaded in Siril"))
-                    raise RuntimeError(_("Server error: {}").format(error_msg))
+                    raise SirilError(_("Server error: {}").format(error_msg))
                 raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
 
             if status == _Status.NONE:
@@ -3347,9 +3422,12 @@ class SirilInterface:
             incl: bool specifying whether the frame is included or not.
 
         Raises:
-            SirilError: on failure
+            NoSequenceError: if no sequence is loaded in Siril,
+            SirilError: on failure.
         """
         try:
+            if not self.is_image_loaded():
+                raise NoSequenceError(_("Error in set_seq_frame_incl(): no sequence loaded"))
             # Pack the index and incl into bytes using network byte order (!)
             payload = struct.pack('!II', index, incl)
             self._execute_command(_Command.SET_SEQ_FRAME_INCL, payload)
@@ -3476,7 +3554,7 @@ class SirilInterface:
             # Get the header from the primary HDU (or any other HDU you want)
             header = hdul[0].header
             # Convert the header to string
-            header_string = header.tostring(sep='\n')
+            header_string = header.tostring(sep='\\n')
             # Send the metadata to Siril
             siril.set_image_metadata_from_header_string(header_string)
 
@@ -3487,7 +3565,8 @@ class SirilInterface:
             bool: True if successful, False otherwise
 
         Raises:
-            SirilError: if an error occurs
+            NoImageError: if no image is loaded in Siril,
+            SirilError: if an error occurs.
 
         """
 
@@ -3497,6 +3576,9 @@ class SirilInterface:
             # Validate input array
             if not isinstance(header, str):
                 raise TypeError(_("Header data must be a string"))
+
+            if not self.is_image_loaded():
+                raise NoImageError(_("Error in set_image_metadata_from_header_string(): no image loaded"))
 
             header_bytes = header.encode('utf-8')
             # Calculate total size
