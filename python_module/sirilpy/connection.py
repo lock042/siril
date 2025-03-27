@@ -993,7 +993,8 @@ class SirilInterface:
             *args: Variable number of string arguments to be combined into a command
 
         Raises:
-            SirilError: If an error occurs during execution.
+            CommandError: If the command returns an error status code,
+            SirilError: If any other error occurs during execution.
 
         Example:
             .. code-block:: python
@@ -1025,8 +1026,10 @@ class SirilInterface:
             # Handle case where response doesn't contain enough bytes for a status code
             raise SirilError(_(f"Error: Response from {args[0]} incorrect size to contain a status code."))
 
+        except CommandError:
+            raise
         except Exception as e:
-            raise  SirilError(_("Error in cmd()")) from e
+            raise SirilError(_("Error in cmd(): {e}")) from e
 
     def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
         """
