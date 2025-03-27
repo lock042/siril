@@ -1025,7 +1025,7 @@ class SirilInterface:
             # Handle case where response doesn't contain enough bytes for a status code
             raise SirilError(_(f"Error: Response from {args[0]} incorrect size to contain a status code."))
 
-        except Exception:
+        except Exception as e:
             raise  SirilError(_("Error in cmd()")) from e
 
     def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
@@ -3664,8 +3664,8 @@ class SirilInterface:
 
             try:
                 # Assuming the response is in the format: !i (ID) (4 bytes)
-                id = struct.unpack('!i', response)[0]
-                polygon.polygon_id = id
+                polygon_id = struct.unpack('!i', response)[0]
+                polygon.polygon_id = polygon_id
                 return polygon
             except struct.error as e:
                 raise SirilError(_("Error unpacking polygon ID")) from e
