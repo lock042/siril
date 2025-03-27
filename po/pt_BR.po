@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-03-18 18:24+0000\n"
+"PO-Revision-Date: 2025-03-24 20:32+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -1501,7 +1501,7 @@ msgstr "Estima um PSF a partir da imagem"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:386
 msgid "PSF from stars"
-msgstr ""
+msgstr "PSF de estrelas"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:390
 msgid ""
@@ -1509,6 +1509,9 @@ msgid ""
 "no stars have been detected, an attempt will be made to detect stars in the "
 "image within a suitable range of peak brightness."
 msgstr ""
+"Modela um PSF com base nos parâmetros médios de PSF das estrelas "
+"identificadas. Se nenhuma estrela for detectada, será feita uma tentativa de "
+"detectar estrelas na imagem dentro de uma faixa adequada de brilho máximo."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:403
 msgid "Manual PSF"
@@ -1516,35 +1519,39 @@ msgstr "PSF manual"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:407
 msgid "Use a manually defined PSF based on the parameters chosen."
-msgstr ""
+msgstr "Use um PSF definido manualmente com base nos parâmetros escolhidos."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:422
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
 msgstr ""
+"Selecione o método de estimativa cega do PSF a ser usado. O gradiente ℓ0 é o "
+"padrão e geralmente a melhor opção."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:425
 msgid "Spectral Irregularity"
-msgstr ""
+msgstr "Irregularidade Espectral"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:426
 msgid "ℓ0 Descent"
-msgstr ""
+msgstr "ℓ0 Descendente"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:437
 msgid "Previous PSF"
-msgstr ""
+msgstr "PSF Anterior"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:441
 msgid "Reuse the previously calculated PSF."
-msgstr ""
+msgstr "Reutiliza o PSF calculado previamente."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:456
 msgid ""
 "Select a PSF to load from file. The PSF must be square and should ideally "
 "have odd length / width."
 msgstr ""
+"Selecione um PSF para carregar do arquivo. O PSF deve ser quadrado e "
+"idealmente deve ter comprimento/largura ímpar."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:471
 msgid "Load PSF from file"
@@ -1552,11 +1559,11 @@ msgstr "Carrega PSF de um arquivo"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:485
 msgid "Generate PSF"
-msgstr ""
+msgstr "Gerar PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:489
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
-msgstr ""
+msgstr "Gerar e visualizar o PSF, mas não realizar a deconvolução"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:511
 msgid "Save PSF to a file"
@@ -1571,6 +1578,8 @@ msgid ""
 "Takes a PSF directly from the image fitted to the current dimension. The PSF "
 "size will be the minimum of the selection width and height."
 msgstr ""
+"Pega um PSF diretamente da imagem ajustada à dimensão atual. O tamanho do "
+"PSF será o mínimo da largura e altura da seleção."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:549
 msgid "PSF Source"
@@ -1582,13 +1591,15 @@ msgstr "Parâmetros gerais do PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:600
 msgid "PSF size"
-msgstr ""
+msgstr "Tamanho do PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:612
 msgid ""
 "Make sure the size is big enough not to crop off any significant parts of "
 "the PSF."
 msgstr ""
+"Certifique-se de que o tamanho seja grande o suficiente para não cortar "
+"nenhuma parte significativa do PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:662 src/gui/uifiles/bdeconv_dialog.ui:1630
 #: src/gui/uifiles/cut_dialog.ui:39
@@ -1601,26 +1612,29 @@ msgid ""
 "can be used to improve out-of-focus issues. Airy disc models the inherent "
 "diffraction of your telescope."
 msgstr ""
+"Os perfis Gaussiano e Moffat são bons modelos para formatos de estrelas. Os "
+"perfis de disco podem ser usados para melhorar problemas de desfoque. O "
+"disco de Airy modela a difração inerente do seu telescópio."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:676 src/gui/uifiles/siril.ui:7185
 #: src/gui/uifiles/stars_list_window.ui:690 src/algos/PSF.c:1045
 #: src/algos/star_finder.c:1436 src/gui/newdeconv.c:533
 msgid "Gaussian"
-msgstr ""
+msgstr "Gaussiano"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:677
 #: src/gui/uifiles/stars_list_window.ui:691 src/algos/PSF.c:1045
 #: src/algos/star_finder.c:1436 src/gui/newdeconv.c:535
 msgid "Moffat"
-msgstr ""
+msgstr "Moffat"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:678
 msgid "Disc"
-msgstr ""
+msgstr "Disco"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:679
 msgid "Airy Disc"
-msgstr ""
+msgstr "Disco de Airy"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:733 src/gui/uifiles/bdeconv_dialog.ui:1654
 msgid "Ratio"
@@ -1631,16 +1645,21 @@ msgid ""
 "For elliptical PSFs, this gives the ratio of the shorter and longer "
 "dimensions."
 msgstr ""
+"Para PSFs elípticos, isso fornece a proporção entre as dimensões mais curta "
+"e mais longa."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:760 src/gui/uifiles/bdeconv_dialog.ui:1642
 msgid "fwhm / \""
-msgstr ""
+msgstr "FWHM / \""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:771
 msgid ""
 "Full width at half maximum. For disc profiles this is just the diameter of "
 "the disc. For elliptical PSFs this is the longer PSF dimension."
 msgstr ""
+"Full width at half maximum (FWHM - Largura total na metade do máximo). Para "
+"perfis de disco, este é apenas o diâmetro do disco. Para PSFs elípticos, "
+"esta é a dimensão PSF mais longa."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:787 src/gui/uifiles/bdeconv_dialog.ui:1666
 msgid "Angle / º"
@@ -1648,17 +1667,19 @@ msgstr "Ângulo / °"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:798
 msgid "For elliptical PSFs, the angle from the x axis in degrees."
-msgstr ""
+msgstr "Para PSFs elípticos, o ângulo do eixo x em graus."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:813 src/gui/uifiles/bdeconv_dialog.ui:1678
 msgid "beta (β)"
-msgstr ""
+msgstr "Beta (β)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:825
 msgid ""
 "For Moffat profiles, this sets the value of beta. See the astrometry "
 "documentation for information on this parameter."
 msgstr ""
+"Para perfis Moffat, isso define o valor de beta. Veja a documentação de "
+"astrometria para obter informações sobre esse parâmetro."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:856
 msgid "Pixel Size / μm"
@@ -1669,7 +1690,7 @@ msgstr "Tamanho do pixel [μm]"
 #: src/gui/photometric_cc.c:1157
 #, c-format
 msgid "Wavelength / nm"
-msgstr ""
+msgstr "Comprimento de onda / nm"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:880
 msgid "Focal length / mm"
@@ -1677,11 +1698,11 @@ msgstr "Distância focal [mm]"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:892
 msgid "Diameter / mm"
-msgstr ""
+msgstr "Diâmetro / mm"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:903
 msgid "Sensor pixel size in microns"
-msgstr ""
+msgstr "Tamanho do pixel do sensor em mícron"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:919
 msgid ""
@@ -1689,20 +1710,26 @@ msgid ""
 "exactly for narrowband filters, or for broadband / OSC / luminance filters "
 "just use a representative central wavelength."
 msgstr ""
+"Comprimento de onda para calcular o padrão de difração. Pode ser "
+"especificado exatamente para filtros de banda estreita, ou para filtros de "
+"banda larga/OSC/luminância, basta usar um comprimento de onda central "
+"representativo."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:934
 msgid ""
 "Telescope focal length (this should account for any multiplication factor "
 "introduced by Barlows or field flatteners)"
 msgstr ""
+"Distância focal do telescópio (isso deve levar em conta qualquer fator de "
+"multiplicação introduzido por Barlows ou aplainadores de campo)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:950
 msgid "Diameter of the telescope primary aperture"
-msgstr ""
+msgstr "Diâmetro da abertura do telescópio principal"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:967
 msgid "Central Obstruction / %"
-msgstr ""
+msgstr "Obstrução Central / %"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:978
 msgid ""
@@ -1710,6 +1737,9 @@ msgid ""
 "This is zero for refractors, typically around 10-20% for fast Newtonians and "
 "may be as much as 40% for a Corrected Dall-Kirkham."
 msgstr ""
+"Define a obstrução central como uma porcentagem da área total de abertura. "
+"Isso é zero para refratores, tipicamente em torno de 10-20% para newtonianos "
+"rápidos e pode ser de até 40% para um Dall-Kirkham corrigido."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1001
 msgid "Manual PSF Parameters"
@@ -1720,36 +1750,43 @@ msgid ""
 "Regularization parameter for PSF estimation. Try decreasing this value for "
 "noisy images."
 msgstr ""
+"Parâmetro de regularização para estimativa de PSF. Tente diminuir esse valor "
+"para imagens com ruído."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1048
 msgid "Lambda (λ)"
-msgstr ""
+msgstr "Lambda (λ)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1061
 msgid "Blind Deconvolution PSF Estimation"
-msgstr ""
+msgstr "Estimativa de PSF de deconvolução cega"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1095
 msgid "Multiscale"
-msgstr ""
+msgstr "Multiescala"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1099
 msgid ""
 "This improves ℓ0 PSF estimation for large PSFs. It is not required for small "
 "PSFs and takes longer to compute. Consider using it for PSF sizes above 20."
 msgstr ""
+"Isso melhora a estimativa de ℓ0 PSF para PSFs grandes. Não é necessário para "
+"PSFs pequenos e leva mais tempo para computar. Considere usá-lo para "
+"tamanhos de PSF acima de 20."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1113
 msgid "These settings can be left alone in the vast majority of cases. "
 msgstr ""
+"Essas configurações podem ser deixadas inalteradas na grande maioria dos "
+"casos. "
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1127
 msgid "Gamma (γ)"
-msgstr ""
+msgstr "Gamma (γ)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1138
 msgid "PSF estimation regularisation parameter"
-msgstr ""
+msgstr "Parâmetro de regularização da estimativa do PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1153
 #: src/gui/uifiles/bdeconv_dialog.ui:1929 src/gui/uifiles/Median_dialog.ui:186
@@ -1761,6 +1798,8 @@ msgid ""
 "Number of iterations for PSF estimation. Do not reduce this below 2. There "
 "is negligible benefit in increasing it beyond 3."
 msgstr ""
+"Número de iterações para estimativa de PSF. Não reduza isso abaixo de 2. Há "
+"benefício insignificante em aumentá-lo além de 3."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1179
 msgid "Lambda ratio"
@@ -1769,14 +1808,15 @@ msgstr "Razão Lambda"
 #: src/gui/uifiles/bdeconv_dialog.ui:1190
 msgid "Ratio of lambda at successive scales for multiscale PSF estimation."
 msgstr ""
+"Razão de lambda em escalas sucessivas para estimativa de PSF multiescala."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1206
 msgid "Lambda min"
-msgstr ""
+msgstr "Lambda mín"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1217
 msgid "Minimum value of lambda for multiscale PSF estimation"
-msgstr ""
+msgstr "Valor mínimo de lambda para estimativa de PSF multiescala"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1233
 msgid "Scale factor"
@@ -1784,11 +1824,13 @@ msgstr "Fator de escala"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1244
 msgid "Scale factor between successive scales of multiscale PSF estimation"
-msgstr ""
+msgstr "Fator de escala entre escalas sucessivas de estimativa PSF multiescala"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1259
 msgid "Amount of blur to use for upsampling during PSF estimation"
 msgstr ""
+"Quantidade de desfoque usada para aumento de escala durante a estimativa de "
+"PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1274
 msgid "Upsample blur"
@@ -1813,26 +1855,32 @@ msgstr "Núcleo ℓ1"
 #: src/gui/uifiles/bdeconv_dialog.ui:1334
 msgid "Amount of blur to use for downsampling during PSF estimation"
 msgstr ""
+"Quantidade de desfoque usada para redução de escala durante a estimativa de "
+"PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1349
 msgid ""
 "Sets a minimum pixel value for the PSF. PSF pixels with values less than "
 "this will be set to zero."
 msgstr ""
+"Define um valor mínimo de pixel para o PSF. Pixels do PSF com valores "
+"menores que isso serão definidos como zero."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1365
 msgid ""
 "Uses a refinement technique to improve subsequent iterations of the PSF "
 "estimator. This should essentially always be enabled."
 msgstr ""
+"Usa uma técnica de refinamento para melhorar as iterações subsequentes do "
+"estimador PSF. Essencialmente, isso deve estar sempre ativado."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1378
 msgid "ℓ1 gradient parameter"
-msgstr ""
+msgstr "Parâmetro do gradiente ℓ1"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1395
 msgid "These settings should almost always be left at the default value."
-msgstr ""
+msgstr "Essas configurações quase sempre devem ser deixadas no valor padrão."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1396
 #: src/gui/uifiles/bdeconv_dialog.ui:1578
@@ -1841,11 +1889,11 @@ msgstr "Ajustes de especialista"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1414
 msgid "ℓ0 Descent Method"
-msgstr ""
+msgstr "Método Descendente ℓ0"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1450
 msgid "Compensation factor"
-msgstr ""
+msgstr "Fator de compensação"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1462
 msgid ""
@@ -1856,6 +1904,12 @@ msgid ""
 "oversampled) this parameter should be reduced to close to unity in order to "
 "obtain sufficient sharpness in the PSF."
 msgstr ""
+"Este parâmetro controla a nitidez do PSF estimado. Se a imagem subjacente "
+"for nítida, este parâmetro deverá ser definido com um valor grande para "
+"evitar artefatos no PSF estimado. Por outro lado, se a imagem subjacente "
+"contiver uma pequena quantidade de desfoque intrínseco (ou seja, como "
+"resultado de sobreamostragem), este parâmetro deverá ser reduzido para perto "
+"da unidade, a fim de obter nitidez suficiente no PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1499
 msgid "Samples per outer loop"
@@ -1872,12 +1926,18 @@ msgid ""
 "fairly small number of samples will suffice. For noisy images, the value may "
 "require increasing to as much as around 250."
 msgstr ""
+"Este parâmetro define o número de amostras por loop externo. Devem ser "
+"escolhidas amostras suficientes para garantir a convergência das estimativas "
+"do PSF: para imagens de baixo ruído, um número bastante pequeno de amostras "
+"será suficiente. Para imagens com ruído, o valor pode exigir um aumento para "
+"cerca de 250."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1536
 msgid ""
 "Outer loop iterations. This parameter should not generally require "
 "adjustment."
 msgstr ""
+"Iterações de loop externo. Este parâmetro geralmente não deve exigir ajuste."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1551
 msgid "Inner loop iterations"
@@ -1888,10 +1948,12 @@ msgid ""
 "This parameter sets the number of iterations in the algorithm inner loop. It "
 "should not usually require adjustment."
 msgstr ""
+"Este parâmetro define o número de iterações no loop interno do algoritmo. "
+"Geralmente não deve exigir ajuste."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1594
 msgid "Spectral Irregularity Method"
-msgstr ""
+msgstr "Método de Irregularidade Espectral"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1737
 msgid "Symmetrical PSF"
@@ -1902,10 +1964,13 @@ msgid ""
 "If checked, a PSF defined from stars will be circularly symmetric. If "
 "unchecked the PSF may be elongated and have a defined rotation angle."
 msgstr ""
+"Se marcada, uma PSF definida a partir de estrelas será circularmente "
+"simétrica. Se não for verificado, o PSF pode ser alongado e ter um ângulo de "
+"rotação definido."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1762
 msgid "PSF from Stars"
-msgstr ""
+msgstr "PSF de Estrelas"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1794
 msgid "PSF Generation"
@@ -1917,17 +1982,19 @@ msgstr "Previsão do PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1834
 msgid "Shows a preview of the PSF, if one has been calculated."
-msgstr ""
+msgstr "Mostra uma prévia do PSF, se algum tiver sido calculado."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1848
 msgid "Usage tips"
-msgstr ""
+msgstr "Dicas de utilização"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1852
 msgid ""
 "Opens a page in the online Siril documentation with usage tips and examples "
 "of settings that can work for different types of image."
 msgstr ""
+"Abre uma página na documentação online do Siril com dicas de uso e exemplos "
+"de configurações que podem funcionar para diferentes tipos de imagem."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1908
 msgid ""
@@ -1936,6 +2003,10 @@ msgid ""
 "Choose Richardson-Lucy for deep space images; choose either Split Bregman or "
 "Wiener filtering for lunar and planetary images."
 msgstr ""
+"Uma vez estimado ou fornecido o PSF, a imagem é finalmente deconvolvida "
+"usando o algoritmo selecionado.\n"
+"Escolha Richardson-Lucy para imagens do espaço profundo; escolha a filtragem "
+"Split Bregman ou Wiener para imagens lunares e planetárias."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1912
 msgid "Split Bregman method with TV regularization"
@@ -2611,13 +2682,12 @@ msgid ""
 "How many times (in averrage deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a hot pixel."
 msgstr ""
-"Quantas vezes (em unidades de desvio médio) o valor de um pi­xel tem de "
+"Quantas vezes (em unidades de desvio médio) o valor de um pixel tem de "
 "variar relativamente aos valores dos que o rodeiam para ser considerado um "
 "pixel quente."
 
 #: src/gui/uifiles/cosmetic_dialog.ui:207
 #: src/gui/uifiles/cosmetic_dialog.ui:237
-#, fuzzy
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a hot pixel."
@@ -2655,29 +2725,24 @@ msgid "Prefix of the image names resulting from the cropping process."
 msgstr "Prefixo dos nomes das imagens resultantes do processo de corte."
 
 #: src/gui/uifiles/curves_dialog.ui:62
-#, fuzzy
 msgid "Curves Transformation"
-msgstr "Executar transformação"
+msgstr "Transformação de curvas"
 
 #: src/gui/uifiles/curves_dialog.ui:84
-#, fuzzy
 msgid "Reset curves transformation dialog window"
-msgstr "Aplicar transformação de histograma"
+msgstr "Janela de diálogo de transformação de redefinição de curvas"
 
 #: src/gui/uifiles/curves_dialog.ui:100
-#, fuzzy
 msgid "Close curves transformation dialog window"
-msgstr "Aplicar transformação de histograma"
+msgstr "Fechar janela de diálogo de transformação de curvas"
 
 #: src/gui/uifiles/curves_dialog.ui:116
-#, fuzzy
 msgid "Apply curves transformation"
-msgstr "Aplicar transformação de histograma"
+msgstr "Aplicar transformação de curvas"
 
 #: src/gui/uifiles/curves_dialog.ui:168
-#, fuzzy
 msgid "Curves histogram display zoom"
-msgstr "Modo de visualização"
+msgstr "Curvas histograma exibição zoom"
 
 #: src/gui/uifiles/curves_dialog.ui:188
 msgid "Reset zoom to 1"
@@ -2727,19 +2792,16 @@ msgid "Curve point X: "
 msgstr ""
 
 #: src/gui/uifiles/curves_dialog.ui:487
-#, fuzzy
 msgid "The ID of the selected curve point"
-msgstr "Remover arquivos selecionados"
+msgstr "O ID do ponto de curva selecionado"
 
 #: src/gui/uifiles/curves_dialog.ui:537
-#, fuzzy
 msgid "X coordinate of the selected curve point"
-msgstr "Seleção de sequência"
+msgstr "Coordenada X do ponto da curva selecionado"
 
 #: src/gui/uifiles/curves_dialog.ui:555
-#, fuzzy
 msgid "Y coordinate of the selected curve point"
-msgstr "Seleção de sequência"
+msgstr "Coordenada Y do ponto da curva selecionado"
 
 #: src/gui/uifiles/curves_dialog.ui:586 src/gui/uifiles/histogram_dialog.ui:620
 msgid "Clip (%)"
@@ -2758,9 +2820,8 @@ msgid "Prefix of the image names resulting from the curve transformation"
 msgstr "Prefixo dos nomes das imagens resultantes da transformação da curva"
 
 #: src/gui/uifiles/curves_dialog.ui:708
-#, fuzzy
 msgid "Toggles preview"
-msgstr "<b>Formato FITS</b>"
+msgstr "Alterna a visualização"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:60
 msgid "Coordinates"
@@ -2779,14 +2840,12 @@ msgstr ""
 
 #: src/gui/uifiles/cut_coords_dialog.ui:160
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:281
-#, fuzzy
 msgid "y"
-msgstr "y0"
+msgstr "y"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:172
-#, fuzzy
 msgid "Start"
-msgstr "Procurar sequências"
+msgstr "Iniciar"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:183
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:270 src/gui/uifiles/siril.ui:4530
@@ -2809,9 +2868,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/cut_dialog.ui:107
-#, fuzzy
 msgid "<b>Type of Profile</b>"
-msgstr "<b>Tipo de Extração</b>"
+msgstr "<b>Tipo de Perfil</b>"
 
 #: src/gui/uifiles/cut_dialog.ui:117 src/gui/cut.c:725 src/gui/cut.c:1062
 msgid "Mono"
@@ -2822,9 +2880,8 @@ msgid "Generates a single luminance profile along the profile line"
 msgstr ""
 
 #: src/gui/uifiles/cut_dialog.ui:132
-#, fuzzy
 msgid "Color"
-msgstr "Imagem a Cores"
+msgstr "Cor"
 
 #: src/gui/uifiles/cut_dialog.ui:136
 msgid ""
@@ -2833,9 +2890,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/cut_dialog.ui:147
-#, fuzzy
 msgid "Manual coordinates"
-msgstr "_Processamento de imagem"
+msgstr "Coordenadas manuais"
 
 #: src/gui/uifiles/cut_dialog.ui:151
 msgid "Enter coordinates for the start and end points of the profile manually"
@@ -2869,9 +2925,8 @@ msgid "1"
 msgstr ""
 
 #: src/gui/uifiles/cut_dialog.ui:207
-#, fuzzy
 msgid "Save profile datafile"
-msgstr "Guardar Ficheiro"
+msgstr "Salvar arquivo de dados de perfil"
 
 #: src/gui/uifiles/cut_dialog.ui:211
 msgid ""
@@ -2887,9 +2942,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/cut_dialog.ui:237
-#, fuzzy
 msgid "Save plot as .png"
-msgstr "Guardar Ficheiro"
+msgstr "Salvar gráfico como .png"
 
 #: src/gui/uifiles/cut_dialog.ui:241
 msgid ""
@@ -2946,9 +3000,8 @@ msgid "Plot Title"
 msgstr ""
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:73
-#, fuzzy
 msgid "Spectrometry"
-msgstr "Fotometria"
+msgstr "Espectrometria"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:148
 msgid "Profile width / px"
@@ -2980,9 +3033,8 @@ msgstr ""
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:200
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:215
-#, fuzzy
 msgid "Enter the wavenumber corresponding to the selected point"
-msgstr "Selecione o espaço de cor correspondente às três imagens extraí­das"
+msgstr "Insira o número da onda correspondente ao ponto selecionado"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:292
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:306
@@ -3027,9 +3079,8 @@ msgid "Spectroscopic Calibration Points"
 msgstr "Pontos de calibração espectroscópica"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:414
-#, fuzzy
 msgid "Polynomial degree"
-msgstr "Interpolação polinomial"
+msgstr "Grau polinomial"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:425
 msgid ""
@@ -3038,14 +3089,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:436
-#, fuzzy
 msgid "Plot measured and modelled background"
-msgstr "Fundo"
+msgstr "Plotar fundo medido e modelado"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:465
-#, fuzzy
 msgid "Background Removal"
-msgstr "Fundo"
+msgstr "Remoção de fundo"
 
 #: src/gui/uifiles/data_dialog.ui:49
 msgid "More details..."
@@ -8659,14 +8708,12 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:5038 src/gui/uifiles/siril.ui:5062
 #: src/gui/uifiles/siril.ui:5092 src/gui/uifiles/siril.ui:5106
-#, fuzzy
 msgid ""
 "How many times the standard deviation, the pixel value must differ to be "
 "considered as defective."
 msgstr ""
-"Quantas vezes (em unidades de desvio médio) o valor de um pi­xel tem de "
-"variar relativamente aos valores dos que o rodeiam para ser considerado um "
-"pixel quente."
+"Quantas vezes o desvio padrão, o valor do pixel deve diferir para ser "
+"considerado defeituoso."
 
 #: src/gui/uifiles/siril.ui:5078
 msgid ""
@@ -14358,9 +14405,10 @@ msgid "Wrong parameter values. Pixel size must be greater than 0, aborting.\n"
 msgstr ""
 
 #: src/core/command.c:3991
-#, fuzzy
 msgid "Wrong parameter values. Relax must be set to on or off, aborting.\n"
-msgstr "não carregada"
+msgstr ""
+"Valores de parâmetros errados. Relax deve ser definido como ligado ou "
+"desligado, cancelando.\n"
 
 #: src/core/command.c:3998
 msgid ""
@@ -14537,24 +14585,20 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:4828
-#, fuzzy
 msgid "Error: height cannot be less than 10, aborting.\n"
-msgstr "não carregada"
+msgstr "Erro: a altura não pode ser menor que 10, cancelando.\n"
 
 #: src/core/command.c:4840
-#, fuzzy
 msgid "Error: width cannot be less than 10, aborting.\n"
-msgstr "não carregada"
+msgstr "Erro: a largura não pode ser menor que 10, cancelando.\n"
 
 #: src/core/command.c:4851
-#, fuzzy
 msgid "Error: max dimension cannot be less than 10, aborting.\n"
-msgstr "não carregada"
+msgstr "Erro: a dimensão máxima não pode ser menor que 10, cancelando.\n"
 
 #: src/core/command.c:4866 src/core/command.c:4918
-#, fuzzy
 msgid "Error: scale cannot be less than 0.01, aborting.\n"
-msgstr "não carregada"
+msgstr "Erro: a escala não pode ser menor que 0.01, cancelando.\n"
 
 #: src/core/command.c:4873
 #, c-format
@@ -14719,9 +14763,8 @@ msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
 msgstr ""
 
 #: src/core/command.c:5966
-#, fuzzy
 msgid "Error, no existing samples available\n"
-msgstr "Não disponível"
+msgstr "Erro, nenhuma amostra existente disponível\n"
 
 #: src/core/command.c:5979
 msgid "Error generating background samples\n"
@@ -14843,9 +14886,8 @@ msgid "Failed to create output file: %s\n"
 msgstr "Falha ao criar arquivo de saída: %s\n"
 
 #: src/core/command.c:7198
-#, fuzzy
 msgid "Failed to write to output file\n"
-msgstr "não carregada"
+msgstr "Falha ao escrever para o arquivo de saída\n"
 
 #: src/core/command.c:7238 src/core/command.c:7398
 msgid ""
@@ -14905,9 +14947,8 @@ msgid "No RAW files were found for conversion\n"
 msgstr ""
 
 #: src/core/command.c:7494
-#, fuzzy
 msgid "No files were found for conversion\n"
-msgstr "Adicionar arquivos para converter"
+msgstr "Nenhum arquivo para conversão foi encontrado\n"
 
 #: src/core/command.c:7511
 #, c-format
@@ -14943,14 +14984,12 @@ msgid "This sequence is not mono / CFA, cannot drizzle.\n"
 msgstr ""
 
 #: src/core/command.c:7804 src/core/command.c:8183
-#, fuzzy
 msgid "Error: flat image already set. Aborting.\n"
-msgstr "não carregada"
+msgstr "Erro: imagem Flat já definida. Cancelando.\n"
 
 #: src/core/command.c:7808 src/core/command.c:8187
-#, fuzzy
 msgid "Error: flat image cannot work with variable sized sequence.\n"
-msgstr "Exportar sequência"
+msgstr "Erro: imagem Flat não funciona com sequência de tamanho variável.\n"
 
 #: src/core/command.c:7816 src/core/command.c:8195 src/gui/registration.c:977
 msgid "NOT USING FLAT: Could not load reference image\n"
@@ -14962,9 +15001,8 @@ msgid "NOT USING FLAT: could not parse the expression"
 msgstr ""
 
 #: src/core/command.c:7827 src/core/command.c:8206 src/gui/registration.c:991
-#, fuzzy
 msgid "Error: no master flat specified in the preprocessing tab.\n"
-msgstr "não carregada"
+msgstr "Erro: nenhum Flat mestre especificado na guia de pré-processamento.\n"
 
 #: src/core/command.c:7833 src/core/command.c:8212 src/core/preprocess.c:886
 #: src/gui/registration.c:999
@@ -15203,9 +15241,8 @@ msgid "Could not save the stacking result %s\n"
 msgstr ""
 
 #: src/core/command.c:8654 src/stacking/stacking.c:469
-#, fuzzy
 msgid "Saving rejection maps\n"
-msgstr "Matriz de Interpolação de Imagem"
+msgstr "Salvando mapas de rejeição\n"
 
 #: src/core/command.c:8683 src/stacking/stacking.c:520
 msgid "Stacking failed, please check the log to fix your issue.\n"
@@ -15472,9 +15509,8 @@ msgid "Current selection [x, y, w, h]: %d %d %d %d\n"
 msgstr ""
 
 #: src/core/command.c:9544
-#, fuzzy
 msgid "No current selection in image\n"
-msgstr "Seleção de sequência"
+msgstr "Nenhuma seleção atual na imagem\n"
 
 #: src/core/command.c:9551
 msgid ""
@@ -15703,14 +15739,16 @@ msgid "Trixel number must be between 0 and 511\n"
 msgstr ""
 
 #: src/core/command.c:10532
-#, fuzzy
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
-msgstr "não carregada"
+msgstr ""
+"Valores de parâmetros errados. O log deve ser definido como on ou off, "
+"cancelando.\n"
 
 #: src/core/command.c:10544
-#, fuzzy
 msgid "Wrong parameter values. Tag must be set to on or off, aborting.\n"
-msgstr "não carregada"
+msgstr ""
+"Valores de parâmetros incorretos. A etiqueta deve ser definida como on ou "
+"off, cancelando.\n"
 
 #: src/core/command.c:10580
 msgid "Cannot use -compare argument with non-star catalogues, ignoring.\n"
@@ -15754,9 +15792,8 @@ msgid "Error: Could not parse -from values.\n"
 msgstr ""
 
 #: src/core/command.c:11004
-#, fuzzy
 msgid "Error: Could not parse -to values.\n"
-msgstr "não carregada"
+msgstr "Erro: Não foi possível analisar os valores -to.\n"
 
 #: src/core/command.c:11012
 msgid "Error: Could not parse -wn1at values.\n"
@@ -15767,23 +15804,20 @@ msgid "Error: Could not parse -wn2at values.\n"
 msgstr ""
 
 #: src/core/command.c:11026
-#, fuzzy
 msgid "Error: this option cannot be used for sequences.\n"
-msgstr "Exportar sequência"
+msgstr "Erro: esta opção não pode ser usada para sequências.\n"
 
 #: src/core/command.c:11056
-#, fuzzy
 msgid "Error: sequence has variable sized images.\n"
-msgstr "não carregada"
+msgstr "Erro: a sequência tem imagens de tamanho variável.\n"
 
 #: src/core/command.c:11136
 msgid "Error: unknown GraXpert operation!\n"
 msgstr ""
 
 #: src/core/command.c:11166
-#, fuzzy
 msgid "Error: unknown background extraction algorithm!\n"
-msgstr "Extrair o fundo"
+msgstr "Erro: algoritmo de extração de fundo desconhecido!\n"
 
 #: src/core/command.c:11176
 msgid "Error: unknown correction mode!\n"
@@ -15794,29 +15828,24 @@ msgid "Error: unknown RBF kernel!\n"
 msgstr ""
 
 #: src/core/command.c:11197
-#, fuzzy
 msgid "Error: no AI batch size specified\n"
-msgstr "não carregada"
+msgstr "Erro: nenhum tamanho de lote de IA especificado\n"
 
 #: src/core/command.c:11204
-#, fuzzy
 msgid "Error: no pts_per_row specified\n"
-msgstr "não carregada"
+msgstr "Erro: nenhum pts_per_row especificado\n"
 
 #: src/core/command.c:11211
-#, fuzzy
 msgid "Error: no spline order specified\n"
-msgstr "não carregada"
+msgstr "Erro: nenhuma ordem de spline especificada\n"
 
 #: src/core/command.c:11218
-#, fuzzy
 msgid "Error: no sample size specified\n"
-msgstr "não carregada"
+msgstr "Erro: nenhum tamanho de amostra especificado\n"
 
 #: src/core/command.c:11225
-#, fuzzy
 msgid "Error: no smoothing value specified\n"
-msgstr "não carregada"
+msgstr "Erro: nenhum valor de suavização especificado\n"
 
 #: src/core/command.c:11232
 msgid "Error: no background tolerance value specified\n"
@@ -15824,19 +15853,16 @@ msgstr ""
 
 #: src/core/command.c:11236 src/core/command.c:11248 src/core/command.c:11267
 #: src/core/command.c:11654
-#, fuzzy
 msgid "Error: unknown argument!\n"
-msgstr "Exportar sequência"
+msgstr "Erro: argumento desconhecido!\n"
 
 #: src/core/command.c:11244 src/core/command.c:11256
-#, fuzzy
 msgid "Error: no strength value specified\n"
-msgstr "não carregada"
+msgstr "Erro: nenhum valor de força especificado\n"
 
 #: src/core/command.c:11263
-#, fuzzy
 msgid "Error: no psf size value specified\n"
-msgstr "não carregada"
+msgstr "Erro: nenhum valor de tamanho psf especificado\n"
 
 #: src/core/command.c:11294
 msgid ""
@@ -15845,23 +15871,20 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:11369 src/core/command.c:11384 src/core/command.c:11399
-#, fuzzy
 msgid "Error: unable to load sequence\n"
-msgstr "Exportar sequência"
+msgstr "Erro: não foi possível carregar a sequência\n"
 
 #: src/core/command.c:11447
-#, fuzzy
 msgid "Error opening target ICC profile.\n"
-msgstr "não carregada"
+msgstr "Erro ao abrir o perfil ICC de destino.\n"
 
 #: src/core/command.c:11451
 msgid "Color profile assignment complete.\n"
 msgstr ""
 
 #: src/core/command.c:11454 src/core/command.c:11518
-#, fuzzy
 msgid "Error opening ICC profile.\n"
-msgstr "não carregada"
+msgstr "Erro ao abrir o perfil ICC.\n"
 
 #: src/core/command.c:11471
 msgid ""
@@ -18845,9 +18868,10 @@ msgid "Fatal error: standard sRGB ICC profile could not be loaded.\n"
 msgstr ""
 
 #: src/core/icc_profile.c:607
-#, fuzzy
 msgid "Error: no filename specfied for custom monitor profile.\n"
-msgstr "não carregada"
+msgstr ""
+"Erro: nenhum nome de arquivo especificado para o perfil do monitor "
+"personalizado.\n"
 
 #: src/core/icc_profile.c:613
 #, c-format
@@ -18864,9 +18888,10 @@ msgid "Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"
 msgstr ""
 
 #: src/core/icc_profile.c:656
-#, fuzzy
 msgid "Error: no filename specfied for output device proofing profile.\n"
-msgstr "não carregada"
+msgstr ""
+"Erro: nenhum nome de arquivo especificado para o perfil de verificação do "
+"dispositivo de saída.\n"
 
 #: src/core/icc_profile.c:662
 #, c-format
@@ -18982,9 +19007,8 @@ msgid "This ICC profile is not RGB. Unable to plot the colorspace.\n"
 msgstr ""
 
 #: src/core/icc_profile.c:1495
-#, fuzzy
 msgid "Error reading chromaticities\n"
-msgstr "não carregada"
+msgstr "Erro ao ler cromaticidades\n"
 
 #: src/core/icc_profile.c:1523
 #, c-format
@@ -19016,9 +19040,8 @@ msgid "CIE 1931"
 msgstr ""
 
 #: src/core/icc_profile.c:1547
-#, fuzzy
 msgid "Could not load background\n"
-msgstr "Fundo"
+msgstr "Não foi possível carregar o plano de fundo\n"
 
 #: src/core/initfile.c:58 src/core/initfile.c:69 src/core/initfile.c:89
 #, c-format
@@ -20540,43 +20563,37 @@ msgid "Siril is up to date\n"
 msgstr ""
 
 #: src/core/siril_update.c:432
-#, fuzzy
 msgid "Cannot fetch version file\n"
-msgstr "não carregada"
+msgstr "Não foi possível encontrar o arquivo de versão\n"
 
 #: src/core/siril_update.c:438
 msgid "Software Update"
 msgstr ""
 
 #: src/core/siril_update.c:473
-#, fuzzy
 msgid "Error parsing JSON from URL: Failed to parse JSON\n"
-msgstr "não carregada"
+msgstr "Erro ao analisar JSON da URL: Falha ao analisar JSON\n"
 
 #: src/core/siril_update.c:479
-#, fuzzy
 msgid "Error parsing JSON from URL: JSON root is not an object or array\n"
-msgstr "não carregada"
+msgstr "Erro ao analisar JSON da URL: a raiz JSON não é um objeto ou matriz\n"
 
 #: src/core/siril_update.c:497
-#, fuzzy
 msgid "Error parsing JSON from URL: Invalid root JSON structure\n"
-msgstr "não carregada"
+msgstr "Erro ao analisar JSON da URL: Estrutura JSON raiz inválida\n"
 
 #: src/core/siril_update.c:507
-#, fuzzy
 msgid "Error parsing JSON from URL: Message is not a valid object\n"
-msgstr "não carregada"
+msgstr "Erro ao analisar JSON da URL: A mensagem não é um objeto válido\n"
 
 #: src/core/siril_update.c:518
-#, fuzzy
 msgid "Error parsing JSON from URL: Required fields missing or invalid\n"
-msgstr "não carregada"
+msgstr ""
+"Erro ao analisar JSON da URL: campos obrigatórios ausentes ou inválidos\n"
 
 #: src/core/siril_update.c:526
-#, fuzzy
 msgid "Error parsing JSON from URL: Invalid ISO8601 date format\n"
-msgstr "não carregada"
+msgstr "Erro ao analisar JSON da URL: Formato de data ISO8601 inválido\n"
 
 #: src/core/siril_update.c:599
 msgid "Error fetching or parsing Siril notifications JSON file from URL\n"
@@ -20884,9 +20901,8 @@ msgid ""
 msgstr ""
 
 #: src/filters/graxpert.c:606
-#, fuzzy
 msgid "None!\n"
-msgstr "Nenhum"
+msgstr "Nenhum!\n"
 
 #: src/filters/graxpert.c:763 src/filters/graxpert.c:771
 msgid "Reading result from the temporary working file...\n"
@@ -20932,9 +20948,8 @@ msgid "Saving temporary working file...\n"
 msgstr ""
 
 #: src/filters/graxpert.c:890
-#, fuzzy
 msgid "Error: failed to save temporary FITS\n"
-msgstr "não carregada"
+msgstr "Erro: falha ao salvar FITS temporário\n"
 
 #: src/filters/graxpert.c:918
 msgid ""
@@ -21138,9 +21153,8 @@ msgstr ""
 "A inicialização do StarNet++ falhou durante a verificação de versão: %s\n"
 
 #: src/filters/starnet.c:258
-#, fuzzy
 msgid "V2 detected\n"
-msgstr "Selecionar Fase"
+msgstr "V2 detectado\n"
 
 #: src/filters/starnet.c:264
 msgid "V2-torch detected\n"
@@ -21158,19 +21172,18 @@ msgid ""
 msgstr ""
 
 #: src/filters/starnet.c:375
-#, fuzzy
 msgid "No suitable StarNet executable found.\n"
-msgstr "Selecionar Pasta Swap"
+msgstr "Nenhum executável StarNet++ adequado foi encontrado.\n"
 
 #: src/filters/starnet.c:387
-#, fuzzy
 msgid "No suitable StarNet executable found for a mono image.\n"
-msgstr "Selecionar Pasta Swap"
+msgstr ""
+"Nenhum executável StarNet++ adequado foi encontrado para uma imagem mono\n"
 
 #: src/filters/starnet.c:402
-#, fuzzy
 msgid "No suitable StarNet executable found for a RGB image.\n"
-msgstr "Selecionar Pasta Swap"
+msgstr ""
+"Nenhum executável StarNet++ adequado foi encontrado para uma imagem RGB\n"
 
 #: src/filters/starnet.c:434 src/filters/starnet.c:460
 #: src/filters/starnet.c:469 src/filters/starnet.c:475 src/gui/newdeconv.c:631
@@ -21248,18 +21261,16 @@ msgid "Error: unable to save working StarNet input file...\n"
 msgstr ""
 
 #: src/filters/starnet.c:642
-#, fuzzy
 msgid "Error: cannot read the neural net weights file.\n"
-msgstr "Exportar sequência"
+msgstr "Erro: não é possível ler o arquivo de pesos da rede neural.\n"
 
 #: src/filters/starnet.c:655
 msgid "Error: StarNet did not execute correctly...\n"
 msgstr ""
 
 #: src/filters/starnet.c:663
-#, fuzzy
 msgid "Error: unable to read StarNet output file...\n"
-msgstr "não carregada"
+msgstr "Erro: não é possível ler o arquivo de saída do StarNet++...\n"
 
 #: src/filters/starnet.c:677
 msgid "Error: unable to remove temporary working file...\n"
@@ -21323,9 +21334,8 @@ msgid "Star synthesis (full star mask creation): processing...\n"
 msgstr ""
 
 #: src/filters/synthstar.c:389
-#, fuzzy
 msgid "No stars detected in the image.\n"
-msgstr "Selecionar Fase"
+msgstr "Nenhuma estrela encontrada na imagem.\n"
 
 #: src/filters/synthstar.c:392
 #, c-format
@@ -21431,9 +21441,8 @@ msgid "csv files (*.csv)"
 msgstr ""
 
 #: src/gui/annotate.c:292
-#, fuzzy
 msgid "Could not parse coordinates or name, aborting\n"
-msgstr "não carregada"
+msgstr "Não foi possível analisar as coordenadas ou o nome, cancelando\n"
 
 #: src/gui/annotate.c:381
 #, fuzzy
@@ -21459,9 +21468,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/astrometry_solver.c:581
-#, fuzzy
 msgid "No object found\n"
-msgstr "Sem Seleção"
+msgstr "Nenhum objeto encontrado\n"
 
 #: src/gui/astrometry_solver.c:688
 msgid ""
@@ -22081,29 +22089,28 @@ msgid "Error: color plot and CFA mode are mutually exclusive.\n"
 msgstr ""
 
 #: src/gui/cut.c:203
-#, fuzzy
 msgid "Error: start and finish points are the same.\n"
-msgstr "Exportar sequência"
+msgstr "Erro: os pontos inicial e final são os mesmos.\n"
 
 #: src/gui/cut.c:207
-#, fuzzy
 msgid "Error: variable image size in sequence.\n"
-msgstr "Exportar sequência"
+msgstr "Erro: tamanho de imagem variável na sequência.\n"
 
 #: src/gui/cut.c:216
-#, fuzzy
 msgid "Error: wavenumber points are the same.\n"
-msgstr "Exportar sequência"
+msgstr "Erro: os pontos do número de onda são os mesmos.\n"
 
 #: src/gui/cut.c:220
-#, fuzzy
 msgid "Error: wavenumber / wavelength for point 1 is not set.\n"
-msgstr "Exportar sequência"
+msgstr ""
+"Erro: o número de onda/comprimento de onda para o ponto 1 não está definido."
+"\n"
 
 #: src/gui/cut.c:224
-#, fuzzy
 msgid "Error: wavenumber / wavelength for point 2 is not set.\n"
-msgstr "Exportar sequência"
+msgstr ""
+"Erro: o número de onda/comprimento de onda para o ponto 2 não está definido."
+"\n"
 
 #: src/gui/cut.c:228
 msgid ""
@@ -22118,9 +22125,10 @@ msgid ""
 msgstr ""
 
 #: src/gui/cut.c:237 src/gui/cut.c:241
-#, fuzzy
 msgid "Error: wavenumber / wavelength point outside image dimensions.\n"
-msgstr "Exportar sequência"
+msgstr ""
+"Erro: ponto de número de onda/comprimento de onda fora das dimensões da "
+"imagem.\n"
 
 #: src/gui/cut.c:245
 msgid "Error: profile line endpoint outside image dimensions.\n"
@@ -22131,9 +22139,8 @@ msgid "Error: spacing is set but tri-profile mode is not selected.\n"
 msgstr ""
 
 #: src/gui/cut.c:253
-#, fuzzy
 msgid "Error: layer out of range.\n"
-msgstr "Relação de área de pixéis"
+msgstr "Erro: camada fora do intervalo.\n"
 
 #: src/gui/cut.c:258
 msgid "Error: background removal polynomial degree should be >= 1 and <= 6.\n"
@@ -22210,9 +22217,8 @@ msgid "Measured background"
 msgstr "Preservar o fundo"
 
 #: src/gui/cut.c:814 src/gui/cut.c:822
-#, fuzzy
 msgid "Error: failed to split FITS into CFA sub-patterns.\n"
-msgstr "não carregada"
+msgstr "Erro: falha ao dividir FITS em subpadrões CFA.\n"
 
 #: src/gui/cut.c:976 src/gui/colors.c:445
 #, fuzzy
@@ -22519,14 +22525,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/graxpert.c:324
-#, fuzzy
 msgid "GraXpert operation cancelled by user\n"
-msgstr "Extrair o fundo"
+msgstr "Operação GraXpert cancelada pelo usuário\n"
 
 #: src/gui/graxpert.c:348
-#, fuzzy
 msgid "Error: no sequence loaded.\n"
-msgstr "Nenhuma sequência selecionada"
+msgstr "Erro: nenhuma sequência carregada.\n"
 
 #: src/gui/graxpert.c:373
 msgid "Stellar"
@@ -23258,9 +23262,8 @@ msgid "No stars selected"
 msgstr "Selecionar Fase"
 
 #: src/gui/newdeconv.c:653
-#, fuzzy
 msgid "No PSF file selected.\n"
-msgstr "Nenhuma sequência selecionada"
+msgstr "Nenhum arquivo PSF selecionado.\n"
 
 #: src/gui/newdeconv.c:763
 #, fuzzy
@@ -23464,9 +23467,8 @@ msgid "Using Gaia DR3 for SPCC\n"
 msgstr ""
 
 #: src/gui/photometric_cc.c:192
-#, fuzzy
 msgid "Using remote APASS instead of local NOMAD catalog\n"
-msgstr "não carregada"
+msgstr "Usando catálogo APASS remoto em vez do catálogo NOMAD local\n"
 
 #: src/gui/photometric_cc.c:281
 msgid "Photometric Color Calibration"
@@ -23912,9 +23914,8 @@ msgstr "Composição HSL"
 
 #. Run the script
 #: src/gui/python_gui.c:1132
-#, fuzzy
 msgid "Starting script\n"
-msgstr "Procurar sequências"
+msgstr "Iniciando script\n"
 
 #: src/gui/registration.c:49
 msgid ""
@@ -24050,9 +24051,8 @@ msgid "Pick object in two images"
 msgstr "Selecionar Fase"
 
 #: src/gui/registration.c:833
-#, fuzzy
 msgid "Failed to determine registration method...\n"
-msgstr "Seleção de sequência"
+msgstr "Falha ao determinar o método de registro...\n"
 
 #. no need to clutter the interface
 #: src/gui/registration.c:862 src/gui/registration.c:950
@@ -24111,9 +24111,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/registration.c:1194
-#, fuzzy
 msgid "Error: unable to read reference frame metadata\n"
-msgstr "não carregada"
+msgstr "Erro: não é possível ler metadados do quadro de referência\n"
 
 #. Estimate was pressed, we need to update the label
 #: src/gui/registration.c:1253
@@ -24132,11 +24131,12 @@ msgid "Preview %d"
 msgstr ""
 
 #: src/gui/registration_preview.c:78
-#, fuzzy
 msgid ""
 "Load\n"
 "sequences"
-msgstr "Procurar sequências"
+msgstr ""
+"Carregar\n"
+"sequências"
 
 #: src/gui/remixer.c:383
 #, fuzzy
@@ -25190,14 +25190,12 @@ msgid "Loaded FITS file has a BSCALE different than 1 (%f)\n"
 msgstr ""
 
 #: src/io/fits_keywords.c:1197
-#, fuzzy
 msgid "Error when closing fitseq\n"
-msgstr "não carregada"
+msgstr "Erro ao fechar fitseq\n"
 
 #: src/io/fits_keywords.c:1205
-#, fuzzy
 msgid "Error when reopening fitseq\n"
-msgstr "não carregada"
+msgstr "Erro ao reabrir fitseq\n"
 
 #: src/io/fits_keywords.c:1228
 #, c-format
@@ -25366,19 +25364,16 @@ msgid "Sorry but Siril cannot open the PIC file: %s.\n"
 msgstr ""
 
 #: src/io/image_formats_internal.c:979
-#, fuzzy
 msgid "Error: seek failure in file.\n"
-msgstr "não carregada"
+msgstr "Erro: falha de busca no arquivo.\n"
 
 #: src/io/image_formats_internal.c:985
-#, fuzzy
 msgid "Error: memory allocation failure.\n"
-msgstr "não carregada"
+msgstr "Erro: falha de alocação de memória.\n"
 
 #: src/io/image_formats_internal.c:992
-#, fuzzy
 msgid "Error: Cannot read the data\n"
-msgstr "Exportar sequência"
+msgstr "Erro: Não é possível ler os dados\n"
 
 #: src/io/image_formats_internal.c:1017
 #, c-format
@@ -25486,9 +25481,8 @@ msgid "Siril cannot create JPG file.\n"
 msgstr ""
 
 #: src/io/image_formats_libraries.c:1382
-#, fuzzy
 msgid "Error: failed to write ICC profile to JPG\n"
-msgstr "não carregada"
+msgstr "Erro: falha ao gravar perfil ICC em JPG\n"
 
 #: src/io/image_formats_libraries.c:1403
 #, c-format
@@ -25583,9 +25577,8 @@ msgid "Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
 #: src/io/image_formats_libraries.c:2969
-#, fuzzy
 msgid "Error interleaving image\n"
-msgstr "não carregada"
+msgstr "Erro ao intercalar imagem\n"
 
 #: src/io/image_formats_libraries.c:3079
 #, c-format
@@ -25825,14 +25818,13 @@ msgid "Error: format does not support video codec.\n"
 msgstr ""
 
 #: src/io/mp4_output.c:556
-#, fuzzy
 msgid "Could not add the video stream in the output film, aborting\n"
-msgstr "não carregada"
+msgstr ""
+"Não foi possível adicionar o fluxo de vídeo no filme de saída, cancelando\n"
 
 #: src/io/mp4_output.c:562
-#, fuzzy
 msgid "Selected codec is not available\n"
-msgstr "Não disponível"
+msgstr "O codec selecionado não está disponível\n"
 
 #: src/io/mp4_output.c:576
 #, c-format
@@ -25980,9 +25972,8 @@ msgid "Error submitting conesearch request.\n"
 msgstr ""
 
 #: src/io/remote_catalogues.c:800
-#, fuzzy
 msgid "Job id not found in the response.\n"
-msgstr "Selecionar Fase"
+msgstr "ID do trabalho não encontrado na resposta.\n"
 
 #. Avoid infinite loop
 #: src/io/remote_catalogues.c:812
@@ -26102,9 +26093,8 @@ msgid ""
 msgstr ""
 
 #: src/io/sequence.c:594
-#, fuzzy
 msgid "could not load reference image from sequence\n"
-msgstr "não carregada"
+msgstr "não foi possível carregar a imagem de referência da sequência\n"
 
 #: src/io/sequence.c:604
 #, c-format
@@ -26660,9 +26650,8 @@ msgid "The %s catalog has been successfully downloaded\n"
 msgstr ""
 
 #: src/io/siril_catalogues.c:1278
-#, fuzzy
 msgid "No item found in the image\n"
-msgstr "Selecionar Fase"
+msgstr "Nenhum item encontrado na imagem\n"
 
 #. Summary log message
 #: src/io/siril_catalogues.c:1416
@@ -26745,9 +26734,8 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_git.c:711 src/io/siril_git.c:856
-#, fuzzy
 msgid "Failed to lookup remote.\n"
-msgstr "não carregada"
+msgstr "A pesquisa remota falhou.\n"
 
 #: src/io/siril_git.c:722 src/io/siril_git.c:867
 msgid "Error: cannot identify local repository's configured remote.\n"
@@ -26828,9 +26816,8 @@ msgid "Invalid file descriptor after shm_open\n"
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:202
-#, fuzzy
 msgid "Invalid page size reported\n"
-msgstr "não carregada"
+msgstr "Tamanho de página inválido relatado\n"
 
 #: src/io/siril_pythonmodule.c:214
 #, c-format
@@ -26984,9 +26971,9 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:1728
-#, fuzzy
 msgid "No python installation found in the system or in the bundle, aborting\n"
-msgstr "não carregada"
+msgstr ""
+"Nenhuma instalação do Python encontrada no sistema ou no pacote, cancelando\n"
 
 #: src/io/siril_pythonmodule.c:1754
 #, c-format
@@ -27010,14 +26997,12 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:1881
-#, fuzzy
 msgid "Error: failed to create Python connection.\n"
-msgstr "não carregada"
+msgstr "Erro: falha ao criar conexão Python.\n"
 
 #: src/io/siril_pythonmodule.c:1893
-#, fuzzy
 msgid "Error: Python connection not available.\n"
-msgstr "Não disponível"
+msgstr "Erro: conexão Python não disponível.\n"
 
 #: src/io/siril_pythonmodule.c:1942
 msgid "Error finding venv python path, unable to spawn python.\n"
@@ -27410,9 +27395,8 @@ msgid "Error: Invalid array sizes (wavelength: %zu, values: %zu).\n"
 msgstr ""
 
 #: src/io/spcc_json.c:573 src/io/spcc_json.c:605
-#, fuzzy
 msgid "Error: Memory allocation failed.\n"
-msgstr "não carregada"
+msgstr "Erro: Falha na alocação de memória.\n"
 
 #: src/io/spcc_json.c:587
 #, c-format
@@ -27433,14 +27417,12 @@ msgid "ID range exceeds catalog bounds.\n"
 msgstr ""
 
 #: src/io/healpix/healpix.cpp:186
-#, fuzzy
 msgid "Failed to read data entries.\n"
-msgstr "não carregada"
+msgstr "Falha ao ler as entradas de dados.\n"
 
 #: src/io/healpix/healpix.cpp:552
-#, fuzzy
 msgid "Error: no chunks detected.\n"
-msgstr "Nenhuma sequência selecionada"
+msgstr "Erro: nenhum bloco detectado.\n"
 
 #: src/io/healpix/healpix.cpp:602
 #, c-format
@@ -27507,9 +27489,8 @@ msgid "COSMETIC CORRECTION: could not read the inputs - disabling"
 msgstr ""
 
 #: src/livestacking/livestacking.c:116
-#, fuzzy
 msgid "Stopping live stacking engine...\n"
-msgstr "Deteção de estrelas"
+msgstr "Parando o mecanismo de empilhamento ao vivo...\n"
 
 #: src/livestacking/livestacking.c:221
 #, c-format
@@ -27567,14 +27548,12 @@ msgid "Master flat %d x %d configured for live stacking\n"
 msgstr ""
 
 #: src/livestacking/livestacking.c:371
-#, fuzzy
 msgid "Preprocessing is ready\n"
-msgstr "_Processamento de imagem"
+msgstr "O pré-processamento está pronto\n"
 
 #: src/livestacking/livestacking.c:372
-#, fuzzy
 msgid "Preprocessing not used\n"
-msgstr "_Processamento de imagem"
+msgstr "O pré-processamento não foi usado\n"
 
 #: src/livestacking/livestacking.c:384
 msgid "live stacking is already running, stop it first\n"
@@ -27586,9 +27565,8 @@ msgid "Global star registration"
 msgstr "Registo de uma estrela (céu profundo)"
 
 #: src/livestacking/livestacking.c:554
-#, fuzzy
 msgid "preprocessing failed\n"
-msgstr "_Processamento de imagem"
+msgstr "pré-processamento falhou\n"
 
 #: src/livestacking/livestacking.c:564
 msgid "Live stacking waiting for files"
@@ -28082,9 +28060,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/3stars.c:379
-#, fuzzy
 msgid "Saving the transformation matrices\n"
-msgstr "Executar transformação"
+msgstr "Salvando as matrizes de transformação\n"
 
 #: src/registration/3stars.c:442 src/registration/3stars.c:465
 #: src/registration/3stars.c:491 src/registration/3stars.c:502
@@ -28136,9 +28113,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/applyreg.c:344 src/registration/global.c:173
-#, fuzzy
 msgid "Could not init distortion mapping\n"
-msgstr "não carregada"
+msgstr "Não foi possível iniciar o mapeamento de distorção\n"
 
 #: src/registration/applyreg.c:372 src/registration/global.c:313
 #, c-format
@@ -28146,9 +28122,8 @@ msgid "Frame %d:\n"
 msgstr ""
 
 #: src/registration/applyreg.c:457
-#, fuzzy
 msgid "Error generating mapping array.\n"
-msgstr "não carregada"
+msgstr "Erro ao gerar matriz de mapeamento.\n"
 
 #: src/registration/applyreg.c:617 src/registration/comet.c:242
 msgid "Applying registration completed.\n"
@@ -28177,9 +28152,8 @@ msgstr "Aplica registro"
 
 #: src/registration/applyreg.c:935 src/registration/global.c:634
 #: src/registration/global.c:850
-#, fuzzy
 msgid "Could not initialize distortion data, aborting\n"
-msgstr "não carregada"
+msgstr "Não foi possível inicializar os dados de distorção, cancelando\n"
 
 #: src/registration/applyreg.c:951
 msgid ""
@@ -28219,14 +28193,12 @@ msgid ""
 msgstr ""
 
 #: src/registration/applyreg.c:1076
-#, fuzzy
 msgid "You should change framing method, aborting\n"
-msgstr "não carregada"
+msgstr "Você deve alterar o método de enquadramento, cancelando\n"
 
 #: src/registration/applyreg.c:1096
-#, fuzzy
 msgid "Not enough space to save the output images\n"
-msgstr "Criar três imagens"
+msgstr "Não há espaço suficiente para salvar as imagens de saída\n"
 
 #: src/registration/applyreg.c:1107
 msgid ""
@@ -28329,24 +28301,20 @@ msgid "Moving object registration"
 msgstr ""
 
 #: src/registration/distorsion.c:348
-#, fuzzy
 msgid "Could not parse the distortion master, aborting\n"
-msgstr "não carregada"
+msgstr "Não foi possível analisar o mestre de distorção, cancelando\n"
 
 #: src/registration/distorsion.c:374
-#, fuzzy
 msgid "Could not save WCS file for distortion\n"
-msgstr "não carregada"
+msgstr "Não foi possível salvar o arquivo WCS devido à distorção\n"
 
 #: src/registration/distorsion.c:388
-#, fuzzy
 msgid "Could not load FITS file for distortion\n"
-msgstr "não carregada"
+msgstr "Não foi possível carregar o arquivo FITS devido à distorção\n"
 
 #: src/registration/distorsion.c:394
-#, fuzzy
 msgid "Could not copy WCS information for distortion\n"
-msgstr "não carregada"
+msgstr "Não foi possível copiar as informações do WCS devido à distorção\n"
 
 #: src/registration/distorsion.c:408
 msgid ""
@@ -28360,19 +28328,21 @@ msgid "Could not load image# %d, deselecting\n"
 msgstr "Não foi possível carregar a imagem# %d, desmarcando\n"
 
 #: src/registration/distorsion.c:438
-#, fuzzy
 msgid "Could not parse master file name for distortion, aborting\n"
-msgstr "não carregada"
+msgstr ""
+"Não foi possível analisar o nome do arquivo mestre para distorção, "
+"cancelando\n"
 
 #: src/registration/distorsion.c:444
-#, fuzzy
 msgid "Could not load master file for distortion, aborting\n"
-msgstr "não carregada"
+msgstr ""
+"Não foi possível carregar o arquivo mestre devido à distorção, cancelando\n"
 
 #: src/registration/distorsion.c:452
-#, fuzzy
 msgid "Could not copy WCS information for distortion, aborting\n"
-msgstr "não carregada"
+msgstr ""
+"Não foi possível copiar as informações do WCS devido à distorção, "
+"cancelando\n"
 
 #: src/registration/distorsion.c:480
 msgid "Selected file has no distortion information\n"
@@ -28626,9 +28596,10 @@ msgid "Trial #%d: Reference image: #%d - Frames aligned: %d\n"
 msgstr ""
 
 #: src/registration/global.c:1035
-#, fuzzy
 msgid "Could not find an image that aligns more than itself, aborting\n"
-msgstr "não carregada"
+msgstr ""
+"Não foi possível encontrar uma imagem que se alinhe mais do que ela mesma, "
+"cancelando\n"
 
 #. for display purposes
 #: src/registration/global.c:1042 src/registration/global.c:1069
@@ -28822,9 +28793,8 @@ msgid "Median stacking failed. Check the log."
 msgstr ""
 
 #: src/stacking/median_and_mean.c:1708
-#, fuzzy
 msgid "Stacking operation was cancelled.\n"
-msgstr "Extrair o fundo"
+msgstr "A operação de empilhamento foi cancelada.\n"
 
 #: src/stacking/median_and_mean.c:1709 src/stacking/stackminmax.c:290
 msgid "Stacking failed.\n"
@@ -28992,14 +28962,12 @@ msgid "Input normalization ....... %s%s%s\n"
 msgstr "Normalização de entrada .......%s%s%s\n"
 
 #: src/stacking/stacking.c:182
-#, fuzzy
 msgid "Output normalization ...... enabled\n"
-msgstr "Extração de Canal"
+msgstr "Normalização de saída ...... habilitada\n"
 
 #: src/stacking/stacking.c:183
-#, fuzzy
 msgid "Output normalization ...... disabled\n"
-msgstr "Extração de Canal"
+msgstr "Normalização de saída ...... desabilitada\n"
 
 #: src/stacking/stacking.c:187
 msgid "Pixel rejection ........... none\n"
@@ -29086,14 +29054,12 @@ msgid "Feathering ................ over %4d pixels\n"
 msgstr ""
 
 #: src/stacking/stacking.c:251
-#, fuzzy
 msgid "RGB equalization .......... enabled\n"
-msgstr "Extrair o fundo"
+msgstr "Equalização RGB .......... habilitada\n"
 
 #: src/stacking/stacking.c:252
-#, fuzzy
 msgid "RGB equalization .......... disabled\n"
-msgstr "Extrair o fundo"
+msgstr "Equalização RGB .......... desabilitada\n"
 
 #: src/stacking/stacking.c:416
 msgid "Stacking result image"

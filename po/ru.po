@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-03-17 18:31+0000\n"
+"PO-Revision-Date: 2025-03-20 00:28+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -4127,9 +4127,8 @@ msgid "Preview the current settings on a region of interest."
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:115
-#, fuzzy
 msgid "Apply the selected operation."
-msgstr "Применить частотное извлечение."
+msgstr "Применить выбранную операцию."
 
 #: src/gui/uifiles/graxpert.ui:159
 msgid "Algorithm"
@@ -4247,9 +4246,8 @@ msgid "RBF Kernel"
 msgstr "Ядро RBF"
 
 #: src/gui/uifiles/graxpert.ui:486
-#, fuzzy
 msgid "Set the RBF kernel type"
-msgstr "Лучшее ядро"
+msgstr "Установить тип ядра RBF"
 
 #: src/gui/uifiles/graxpert.ui:489
 msgid "Thin plate"
@@ -4298,9 +4296,8 @@ msgid "Configure GraXpert deconvolution strength."
 msgstr "GraXpert. Подавление шума, сила %.3f"
 
 #: src/gui/uifiles/graxpert.ui:675
-#, fuzzy
 msgid "Image FWHM (in pixels)"
-msgstr "Измерение в пикселях"
+msgstr "FWHM изображения (пикс.)"
 
 #: src/gui/uifiles/graxpert.ui:687
 msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
@@ -4332,9 +4329,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:934
-#, fuzzy
 msgid "Denoising"
-msgstr "подавление шума"
+msgstr "Подавление шума"
 
 #: src/gui/uifiles/graxpert.ui:973
 msgid "Use GPU"
@@ -8520,9 +8516,8 @@ msgid "Open the curves transform dialog"
 msgstr "Диалог преобразования кривых"
 
 #: src/gui/uifiles/siril.ui:1531
-#, fuzzy
 msgid "Curves Transformation..."
-msgstr "Вейвлетные преобразования"
+msgstr "Преобразование кривых..."
 
 #: src/gui/uifiles/siril.ui:1544
 msgid "Open the hystogram transform dialog"
@@ -30050,7 +30045,7 @@ msgstr ""
 
 #: src/io/mp4_output.c:518
 msgid "FFMPEG does not seem to support mp4 format, aborting.\n"
-msgstr ""
+msgstr "Похоже, что FFMPEG не поддерживает формат mp4, прерывание.\n"
 
 #: src/io/mp4_output.c:550
 msgid "Error: format does not support video codec.\n"
@@ -31558,9 +31553,8 @@ msgid "No regdata available"
 msgstr "Данные регистрации недоступны"
 
 #: src/io/siril_pythoncommands.c:1423
-#, fuzzy
 msgid "Error building frame filename"
-msgstr "Ошибка при загрузке профиля"
+msgstr "Ошибка при создании названия файла"
 
 #: src/io/siril_pythoncommands.c:1454
 msgid "No stats for this sequence"

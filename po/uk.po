@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-03-18 18:24+0000\n"
+"PO-Revision-Date: 2025-03-25 22:27+0000\n"
 "Last-Translator: Ruslan <rpazenko@ukr.net>\n"
 "Language-Team: Ukrainian <https://weblate.siril.org/projects/siril/software/"
 "siril/uk/>\n"
@@ -14834,7 +14834,7 @@ msgstr ""
 
 #: src/core/command.c:2032 src/core/command.c:5878
 msgid "There can be only one prefix argument"
-msgstr ""
+msgstr "Може бути лише один префіксний аргумент (prefix)"
 
 #: src/core/command.c:2038 src/core/command.c:2278 src/core/command.c:3389
 #: src/core/command.c:3396 src/core/command.c:3403 src/core/command.c:3436
@@ -15669,11 +15669,13 @@ msgstr ""
 
 #: src/core/command.c:5868
 msgid "Polynomial degree order must be within the [1, 4] range.\n"
-msgstr ""
+msgstr "Порядок ступеня полінома має бути в діапазоні [1, 4].\n"
 
 #: src/core/command.c:5917
 msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
 msgstr ""
+"параметр згладжування не використовується з поліноміальною моделлю, "
+"ігноруємо.\n"
 
 #: src/core/command.c:5966
 #, fuzzy
@@ -15687,42 +15689,42 @@ msgstr "Siril вибере зразки фону автоматично."
 
 #: src/core/command.c:6008
 msgid "Sigma low must be positive.\n"
-msgstr ""
+msgstr "Мінімальне значення має бути позитивним.\n"
 
 #: src/core/command.c:6014
 msgid "Sigma high must be positive.\n"
-msgstr ""
+msgstr "Максимальне значення має бути позитивним.\n"
 
 #: src/core/command.c:6070
 msgid "The second argument must be between 1 and the number of images.\n"
-msgstr ""
+msgstr "Другий аргумент має бути між 1 та кількістю зображень.\n"
 
 #: src/core/command.c:6076
 msgid ""
 "The third argument must be larger or equal than the \"from\" argument.\n"
-msgstr ""
+msgstr "Третій аргумент має бути більшим або дорівнює аргументу \"from\".\n"
 
 #: src/core/command.c:6082
 msgid "The third argument is larger than the number of images.\n"
-msgstr ""
+msgstr "Третій аргумент більший за кількість зображень.\n"
 
 #: src/core/command.c:6083
 #, c-format
 msgid "Re-adjusting to %d.\n"
-msgstr ""
+msgstr "Переналаштування %d.\n"
 
 #: src/core/command.c:6107 src/gui/sequence_list.c:637
 #, c-format
 msgid "Selection update finished, %d images are selected in the sequence\n"
-msgstr ""
+msgstr "Виділення оновлено, вибрано %d зображень у послідовності\n"
 
 #: src/core/command.c:6136 src/gui/colors.c:393
 msgid "Could not copy the input image, aborting.\n"
-msgstr ""
+msgstr "Не вдалося скопіювати вхідне зображення, переривання.\n"
 
 #: src/core/command.c:6155
 msgid "CieLAB"
-msgstr ""
+msgstr "CieLAB"
 
 #: src/core/command.c:6307
 msgid "Upscaling x2\n"
@@ -15737,18 +15739,20 @@ msgstr ""
 #: src/core/command.c:6607
 #, c-format
 msgid "Reconstructing %s Bayer matrix.\n"
-msgstr ""
+msgstr "Відновлення матриці Байєра %s.\n"
 
 #: src/core/command.c:6816
 msgid ""
 "Statistics cannot be made on CFA images with a selection smaller than a 2x2 "
 "square, aborting\n"
 msgstr ""
+"Статистичні дані не можуть бути отримані для зображень CFA з виділенням менш "
+"ніж квадрат 2×2, переривання\n"
 
 #: src/core/command.c:6830
-#, fuzzy, c-format
+#, c-format
 msgid "Statistics computation failed for channel %d (all nil?).\n"
-msgstr "Помилка: не вдалося обчислити статистики.\n"
+msgstr "Не вдалося визначити статистику для каналу %d (усі нуль?).\n"
 
 #: src/core/command.c:6851
 #, c-format
@@ -15756,6 +15760,8 @@ msgid ""
 "%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.6f\n"
 msgstr ""
+"Шар %s: середнє: %0.6f, медіана: %0.1f, σ: %0.6f, мін.: %0.1f, макс.: %0.1f, "
+"шум фону: %0.6f\n"
 
 #: src/core/command.c:6856
 #, c-format
@@ -15763,6 +15769,8 @@ msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f\n"
 msgstr ""
+"Шар %s: середнє: %0.1f, медіана: %0.1f, σ: %0.1f, мінімальне: %0.1f, "
+"максимальне: %0.1f, фоновий шум: %0.1f\n"
 
 #: src/core/command.c:6868 src/core/command.c:6875
 #, c-format
@@ -15770,21 +15778,24 @@ msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 msgstr ""
+"Шар %s: середнє: %0.1f, медіана: %0.1f, σ: %0.1f, мін.: %0.1f, макс.: %0.1f, "
+"шум фону: %0.1f, абсол. вимк.: %0.1f, MAD: %0.1f, кв. кор.(BWMV): %0.1f\n"
 
 #: src/core/command.c:6959
 #, c-format
 msgid "No image appears to be loaded, reloading from '%s'\n"
 msgstr ""
+"Жодного зображення, мабуть, не було завантажено, перезавантаження з '%s'\n"
 
 #: src/core/command.c:7070
 #, c-format
 msgid "Failed to save the JSON file %s: %s\n"
-msgstr ""
+msgstr "Не вдалося зберегти файл JSON %s: %s\n"
 
 #: src/core/command.c:7074
 #, c-format
 msgid "Save metadata to the JSON file '%s'\n"
-msgstr ""
+msgstr "Метадані збережені у файлі JSON '%s'\n"
 
 #: src/core/command.c:7137
 #, fuzzy, c-format
@@ -15793,30 +15804,32 @@ msgstr "Зображення: %s\n"
 
 #: src/core/command.c:7154
 msgid "This command can only run for FITS images\n"
-msgstr ""
+msgstr "Ця команда може бути запущена лише для зображень FITS\n"
 
 #: src/core/command.c:7192
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create output file: %s\n"
-msgstr "Завантаження вхідного файлу: '%s'\n"
+msgstr "Неможливо створити підсумковий файл: %s\n"
 
 #: src/core/command.c:7198
 msgid "Failed to write to output file\n"
-msgstr ""
+msgstr "Неможливо записати у підсумковий файл\n"
 
 #: src/core/command.c:7238 src/core/command.c:7398
 msgid ""
 "First argument is the converted sequence name and shall not start with a -\n"
 msgstr ""
+"Перший аргумент це назва конвертованої послідовності і не повинен починатися "
+"з -\n"
 
 #: src/core/command.c:7291
-#, fuzzy, c-format
+#, c-format
 msgid "Link: error opening working directory %s.\n"
-msgstr "Змінити поточний робочий каталог"
+msgstr "Посилання: помилка під час відкриття робочої директорії %s.\n"
 
 #: src/core/command.c:7314
 msgid "No FITS files were found for link\n"
-msgstr ""
+msgstr "Не знайдено FITS файлів для посилання\n"
 
 #: src/core/command.c:7328
 #, c-format
@@ -15824,67 +15837,70 @@ msgid ""
 "Sorting by date could not be done, file %s doesn't have DATE-OBS, not "
 "sorting\n"
 msgstr ""
+"Сортувати за датою неможливо, файл %s не містить DATE-OBS, не сортуємо\n"
 
 #: src/core/command.c:7351 src/core/command.c:7505
 msgid ""
 "You should pass an extra argument -fitseq to convert your sequence to fitseq "
 "format.\n"
 msgstr ""
+"Необхідно передати додатковий аргумент -fitseq для конвертації послідовності "
+"у формат fitseq.\n"
 
 #: src/core/command.c:7357
-#, fuzzy, c-format
+#, c-format
 msgid "Link: processing %d FITS file...\n"
 msgid_plural "Link: processing %d FITS files...\n"
-msgstr[0] ": обробка...\n"
-msgstr[1] ": обробка...\n"
-msgstr[2] ": обробка...\n"
+msgstr[0] "Конвертація: обробка %d FITS-файлу…\n"
+msgstr[1] "Конвертація: обробка %d FITS-файлів…\n"
+msgstr[2] "Конвертація: обробка %d FITS-файлів…\n"
 
 #: src/core/command.c:7363
-#, fuzzy
 msgid "Link: no working directory set.\n"
-msgstr "Змінити поточний робочий каталог"
+msgstr "Посилання: робоча директорія не вказана.\n"
 
 #: src/core/command.c:7393
 msgid "Conversion: no working directory set.\n"
-msgstr ""
+msgstr "Конвертація: робоча директорія не вказана.\n"
 
 #: src/core/command.c:7462
 #, c-format
 msgid "Conversion: error opening working directory %s.\n"
-msgstr ""
+msgstr "Конвертація: помилка при відкритті робочої директорії %s.\n"
 
 #: src/core/command.c:7479 src/gui/conversion.c:196
 msgid ""
 "FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. "
 "You may use FITS sequences instead."
 msgstr ""
+"Сенсори FujiFilm XTRANS не підтримуються стандартом SER v2 (стиль CFA). "
+"Натомість ви можете використовувати послідовності FITS."
 
 #: src/core/command.c:7493
 msgid "No RAW files were found for conversion\n"
-msgstr ""
+msgstr "Не знайдено RAW-файлів для конвертування\n"
 
 #: src/core/command.c:7494
-#, fuzzy
 msgid "No files were found for conversion\n"
-msgstr "Додати файли до списку для конвертації"
+msgstr "Не знайдено файлів для конвертування\n"
 
 #: src/core/command.c:7511
-#, fuzzy, c-format
+#, c-format
 msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
-msgstr[0] "Перетворення: обробка...\n"
-msgstr[1] "Перетворення: обробка...\n"
-msgstr[2] "Перетворення: обробка...\n"
+msgstr[0] "Конвертація: обробка %d FITS-файлу…\n"
+msgstr[1] "Конвертація: обробка %d FITS-файлів…\n"
+msgstr[2] "Конвертація: обробка %d FITS-файлів…\n"
 
 #: src/core/command.c:7600 src/gui/registration.c:1132
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
-msgstr ""
+msgstr "Реєстрація тільки по зміщенню можлива з OpenCV 4.4\n"
 
 #. using absolute min_pairs required by homography
 #: src/core/command.c:7653
 #, c-format
 msgid "%d smaller than minimum allowable star pairs: %d, aborting.\n"
-msgstr ""
+msgstr "%d менше, ніж мінімально можливе число пар зірок %d, переривання.\n"
 
 #: src/core/command.c:7727
 #, fuzzy, c-format
@@ -15956,9 +15972,8 @@ msgstr ""
 
 #. we register 2-pass but we won't add it to the combo/tooltip
 #: src/core/command.c:7890 src/gui/registration.c:278
-#, fuzzy
 msgid "Two-Pass Global Star Alignment (deep-sky)"
-msgstr "Глобальне вирівнювання по зірках (далекий космос)"
+msgstr "Глобальне вирівнювання зірок за два проходи (глибокий космос)"
 
 #: src/core/command.c:7893 src/gui/registration.c:265
 msgid "Global Star Alignment (deep-sky)"
@@ -15967,7 +15982,7 @@ msgstr "Глобальне вирівнювання по зірках (дале�
 #: src/core/command.c:7907 src/core/processing.c:156
 #: src/gui/registration.c:1147
 msgid "Not enough space to save the output images, aborting\n"
-msgstr ""
+msgstr "Недостатньо місця для збереження підсумкових зображень, переривання\n"
 
 #: src/core/command.c:7911
 msgid "Scaling a sequence with -2pass has no effect, ignoring\n"
@@ -16245,10 +16260,12 @@ msgstr ""
 #, c-format
 msgid "The offset value is out of allowable bounds [-%d,%d], aborting.\n"
 msgstr ""
+"Значення зміщення (offset) за межами дозволених меж [-%d, %d], переривання.\n"
 
 #: src/core/command.c:9120
 msgid "Dark optimization: This process cannot be applied to 8b images\n"
 msgstr ""
+"Темнова оптимізація: Цей процес не можна застосувати до 8-бітових зображень\n"
 
 #: src/core/command.c:9129
 #, fuzzy, c-format
@@ -16260,43 +16277,53 @@ msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
 msgstr ""
+"Перш ніж вмикати цю опцію, вкажіть темновий майстер-кадр за допомогою -"
+"dark=, переривання.\n"
 
 #: src/core/command.c:9177
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"
 msgstr ""
+"Косметична корекція темновим майстер-кадром: для холодних пікселів "
+"використовується σ (сигма) %.2lf.\n"
 
 #: src/core/command.c:9179
 msgid "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
 msgstr ""
+"Косметична корекція темновим майстер-кадром: відключена для холодних "
+"пікселів.\n"
 
 #: src/core/command.c:9181
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"
 msgstr ""
+"Косметична корекція темновим майстер-кадром: для гарячих пікселів "
+"використовується σ (сигма) %.2lf.\n"
 
 #: src/core/command.c:9183
 msgid "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
 msgstr ""
+"Косметична корекція темновим майстер-кадром відключена для гарячих пікселів."
+"\n"
 
 #: src/core/command.c:9190
 #, c-format
 msgid "Could not open file %s, aborting.\n"
-msgstr ""
+msgstr "Не вдалося відкрити файл %s, переривання.\n"
 
 #: src/core/command.c:9194
 #, c-format
 msgid "Cosmetic correction from Bad Pixel Map: %s.\n"
-msgstr ""
+msgstr "Косметична корекція з карти дефектних пікселів: %s.\n"
 
 #: src/core/command.c:9198
 msgid "You must specify a bad pixel map file with -cc=bpm option, aborting.\n"
-msgstr ""
+msgstr "Вкажіть карту дефектних пікселів за допомогою -cc=bpm, переривання.\n"
 
 #: src/core/command.c:9203
 #, c-format
 msgid "Unknown argument %s, aborting.\n"
-msgstr ""
+msgstr "Невідомий аргумент %s, переривання.\n"
 
 #: src/core/command.c:9241 src/core/command.c:9259 src/core/preprocess.c:948
 msgid "Preprocessing...\n"
@@ -16304,11 +16331,11 @@ msgstr "Попередня обробка...\n"
 
 #: src/core/command.c:9270
 msgid "16-bit per channel in processed images mode is active\n"
-msgstr ""
+msgstr "Активний режим обробки з точністю 16 біт на канал\n"
 
 #: src/core/command.c:9271
 msgid "32-bit per channel in processed images mode is active\n"
-msgstr ""
+msgstr "Активний режим обробки з точністю 32 біти на канал\n"
 
 #. hcompress with mode 2 is not working in cfitsio
 #. see https://gitlab.com/free-astro/siril/-/issues/696#note_932398268
@@ -16325,20 +16352,22 @@ msgstr ""
 #. siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
 #: src/core/command.c:9316
 msgid "Wrong type of compression. Choices are rice, gzip1, gzip2\n"
-msgstr ""
+msgstr "Неправильний тип стиснення. Доступні rice, gzip1, gzip2\n"
 
 #: src/core/command.c:9323
 msgid "Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"
 msgstr ""
+"Для алгоритмів GZIP1 і GZIP2 рівень квантування може дорівнювати тільки 0.\n"
 
 #: src/core/command.c:9329
 msgid ""
 "Compression enabled with the %s algorithm and a quantization value of %.2lf\n"
 msgstr ""
+"Увімкнено стиснення за допомогою алгоритму %s та рівнем квантування %.2lf\n"
 
 #: src/core/command.c:9332
 msgid "No compression enabled.\n"
-msgstr ""
+msgstr "Стиснення вимкнено.\n"
 
 #: src/core/command.c:9350
 #, c-format
@@ -16346,20 +16375,23 @@ msgid ""
 "Number of logical processors MUST be greater than 0 and lower or equal to "
 "%d.\n"
 msgstr ""
+"Число логічних процесорів ПОВИННО бути більше 0 і менше або дорівнює %d.\n"
 
 #: src/core/command.c:9361
-#, fuzzy, c-format
+#, c-format
 msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
-msgstr[0] "Паралельна обробка %s: Використовуємо %d лог. проц.\n"
-msgstr[1] "Паралельна обробка %s: Використовуємо %d лог. проц.\n"
-msgstr[2] "Паралельна обробка %s: Використовуємо %d лог. проц.\n"
+msgstr[0] "Зараз використовується %d логічний процесор\n"
+msgstr[1] "Зараз використовується %d логічних процесора\n"
+msgstr[2] "Зараз використовується %d логічних процесорів\n"
 
 #: src/core/command.c:9377
 msgid ""
 "The accepted range for the ratio of memory used for stacking is [0.05, 4], "
 "with values below the available memory recommended\n"
 msgstr ""
+"Допустимий діапазон для частки пам'яті, що використовується для укладання - ["
+"0.05, 4]. Рекомендуються менші значення, ніж доступний обсяг пам'яті\n"
 
 #: src/core/command.c:9381
 #, c-format
@@ -16497,7 +16529,7 @@ msgstr ""
 #: src/core/command.c:9921 src/core/command.c:10218
 #, c-format
 msgid "Using remote %s instead of local NOMAD catalogue\n"
-msgstr ""
+msgstr "Замість локального використовується віддалений каталог NOMAD %s\n"
 
 #: src/core/command.c:9956
 msgid ""
@@ -16554,6 +16586,8 @@ msgid ""
 "The local astrometry.net solver was not found, aborting. Please check the "
 "settings.\n"
 msgstr ""
+"Локальний вирішувач astrometry.net не знайдено, переривання. Будь ласка, "
+"перевірте налаштування.\n"
 
 #: src/core/command.c:10244 src/core/command.c:10248
 #, c-format
@@ -16581,7 +16615,7 @@ msgstr ""
 #: src/core/command.c:10263
 #, c-format
 msgid "Using target coordinate from image header: %f, %f\n"
-msgstr ""
+msgstr "Використовуються координати цілі із заголовка зображення: %f, %f\n"
 
 #: src/core/command.c:10272 src/core/command.c:10285 src/core/command.c:10310
 #, c-format

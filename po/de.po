@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-02-08 15:43+0000\n"
-"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
+"PO-Revision-Date: 2025-03-25 22:27+0000\n"
+"Last-Translator: Sven Frei <sven.frei@me.com>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -2827,34 +2827,28 @@ msgid "Prefix of the image names resulting from the cropping process."
 msgstr "Namens-Präfix der Ergebnis-Datei nach der Bild-Zuschnitt-Bearbeitung."
 
 #: src/gui/uifiles/curves_dialog.ui:62
-#, fuzzy
 msgid "Curves Transformation"
-msgstr "Wavelet Transformation"
+msgstr "Kurventransformation"
 
 #: src/gui/uifiles/curves_dialog.ui:84
-#, fuzzy
 msgid "Reset curves transformation dialog window"
-msgstr "Öffnet den Dialog Gradationskurven"
+msgstr "Kurventransformation Dialog Fenster zurücksetzen"
 
 #: src/gui/uifiles/curves_dialog.ui:100
-#, fuzzy
 msgid "Close curves transformation dialog window"
-msgstr "Öffnet den Dialog Gradationskurven"
+msgstr "Kurventransformation Dialog Fenster schließen"
 
 #: src/gui/uifiles/curves_dialog.ui:116
-#, fuzzy
 msgid "Apply curves transformation"
-msgstr "Histogramm Transformation anwenden"
+msgstr "Kurventransformation anwenden"
 
 #: src/gui/uifiles/curves_dialog.ui:168
-#, fuzzy
 msgid "Curves histogram display zoom"
-msgstr "Standard-Histogramm-Anzeigemodus"
+msgstr "Histogrammkurve Anzeige Zoom"
 
 #: src/gui/uifiles/curves_dialog.ui:188
-#, fuzzy
 msgid "Reset zoom to 1"
-msgstr "Rücksetzen auf Zoom-Faktor = 1."
+msgstr "Rücksetzen auf Zoom-Faktor = 1"
 
 #: src/gui/uifiles/curves_dialog.ui:207 src/gui/uifiles/histogram_dialog.ui:283
 msgid "Logarithmic scale"
@@ -2871,24 +2865,20 @@ msgstr ""
 "auf die Anzeige der Übertragungsfunktion.\n"
 
 #: src/gui/uifiles/curves_dialog.ui:294
-#, fuzzy
 msgid "Toggles whether to apply the curve to the red channel"
-msgstr "Schaltet um, ob die Streckung für den monochromen Kanal gilt"
+msgstr "Schaltet um, ob die Streckung für den monochromen Kanal (Rot) gilt"
 
 #: src/gui/uifiles/curves_dialog.ui:312
-#, fuzzy
 msgid "Toggles whether to apply the curve to the green channel"
-msgstr "Schaltet um, ob die Streckung für den monochromen Kanal gilt"
+msgstr "Schaltet um, ob die Streckung für den monochromen Kanal (Grün) gilt"
 
 #: src/gui/uifiles/curves_dialog.ui:330
-#, fuzzy
 msgid "Toggles whether to apply the curve to the blue channel"
-msgstr "Schaltet um, ob die Streckung für den monochromen Kanal gilt"
+msgstr "Schaltet um, ob die Streckung für den monochromen Kanal (Blau) gilt"
 
 #: src/gui/uifiles/curves_dialog.ui:357
-#, fuzzy
 msgid "Toggles whether the grid is shown on the histogram display"
-msgstr "Schaltet um, ob die Streckung für den grünen Kanal gilt"
+msgstr "Schaltet um, ob das Gitter auf der Histogramm Anzeige sichtbar ist"
 
 #: src/gui/uifiles/curves_dialog.ui:381
 msgid "Interpolation algorithm used to compute a curve from the placed points"
@@ -4168,9 +4158,8 @@ msgstr ""
 "die für Bilder verwendet werden sollen, die diese Metadaten nicht enthalten"
 
 #: src/gui/uifiles/graxpert.ui:66
-#, fuzzy
 msgid "Siril GraXpert Interface"
-msgstr "GraXpert Benutzeroberfläche..."
+msgstr "Siril GraXpert Benutzeroberfläche"
 
 #: src/gui/uifiles/graxpert.ui:100
 msgid "Preview the current settings on a region of interest."

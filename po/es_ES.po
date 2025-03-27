@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-03-17 18:31+0000\n"
+"PO-Revision-Date: 2025-03-27 13:46+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -3211,6 +3211,9 @@ msgid ""
 "is processed the current image number / total will be added inside the "
 "brackets (e.g. Title (1/n))."
 msgstr ""
+"Configura un título personalizado para la gráfica. Si el título acaba en () "
+"y la secuenca es procesada, el número de imagen actual / total será añadida "
+"dentro del paréntesis (por ejemplo Título(1/n))."
 
 #: src/gui/uifiles/cut_dialog.ui:334 src/gui/cut.c:171 src/gui/cut.c:1391
 msgid "Intensity Profile"
@@ -3277,6 +3280,9 @@ msgid ""
 "instead of wavenumbers. Since wavenumber is required for the plot x axis, "
 "the value entered will be converted to wavenumber"
 msgstr ""
+"Esta función facilita la introducción de una longitud de onda conocida en "
+"lugar de números de onda. Dado que el número de onda es necesario para el "
+"eje x del gráfico, el valor introducido se convertirá a número de onda"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:320
 #, fuzzy
@@ -3326,6 +3332,8 @@ msgid ""
 "Sets the degree of polynomial used for background fitting, between 1 (linear "
 "fit) and 6 (sextic polynomial)"
 msgstr ""
+"Establece el grado del polinomio utilizado para el ajuste de fondo, entre 1 ("
+"ajuste lineal) y 6 (polinomio séptico)"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:436
 #, fuzzy
@@ -3348,7 +3356,7 @@ msgstr "Procesado de imagen"
 
 #: src/gui/uifiles/denoise_dialog.ui:133
 msgid "Remove salt and pepper noise"
-msgstr ""
+msgstr "Elimina el ruido sal y pimienta"
 
 #: src/gui/uifiles/denoise_dialog.ui:137
 msgid ""
@@ -3356,6 +3364,9 @@ msgid ""
 "before the primary denoising algorithm. This is generally a good thing and "
 "the setting defaults to active."
 msgstr ""
+"Esta opción aplica correcciones cosmética para borrar el ruido sal y "
+"pimienta antes del algoritmo primario de eliminación de ruido. Generalmente "
+"es la mejor opción y en la configuración por defecto está activado."
 
 #: src/gui/uifiles/denoise_dialog.ui:169
 #, fuzzy
@@ -3370,6 +3381,11 @@ msgid ""
 "default and should only be enabled in the rare event that you see artefacts "
 "when denoising a colour image."
 msgstr ""
+"Suprime los artefactos de color en bloques que rara vez aparecen en imágenes "
+"a color. Esta opción trata cada canal por separado y elimina los artefactos, "
+"a costa de velocidad. Generalmente no es necesario, por lo que está "
+"desactivada por defecto y solo debe activarse en el caso excepcional de que "
+"se observen artefactos al eliminar el ruido de una imagen a color."
 
 #: src/gui/uifiles/denoise_dialog.ui:182
 #, fuzzy
@@ -3378,7 +3394,7 @@ msgstr "Procesado de imagen"
 
 #: src/gui/uifiles/denoise_dialog.ui:210
 msgid "No secondary denoising stage"
-msgstr ""
+msgstr "Sin fase secundaria de eliminación de ruido"
 
 #: src/gui/uifiles/denoise_dialog.ui:214
 msgid ""
@@ -31628,7 +31644,7 @@ msgstr "Secuencia de escalado para el apilado"
 
 #: src/stacking/upscaling.c:148
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
-msgstr "Se hará el apilado sin escaldo (deshabilitando `drizzle`)\n"
+msgstr "Se hará el apilado sin escalado (deshabilitando `drizzle`)\n"
 
 #, fuzzy
 #~ msgid "15"

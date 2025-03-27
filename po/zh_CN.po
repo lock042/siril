@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-05 16:51+0100\n"
-"PO-Revision-Date: 2025-03-03 10:50+0000\n"
+"PO-Revision-Date: 2025-03-27 13:46+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -1204,9 +1204,8 @@ msgid ""
 "Override tolerance and keep all samples. May be useful in cases of extreme "
 "gradients if tolerance 6 is insufficient: you will need to remove samples "
 "from astronomical objects manually."
-msgstr ""
-"覆盖容差并保留所有样本。如果容差 6 不足，在极端梯度的情况下可能很有用：您将需"
-"要手动从天文物体中删除样本。"
+msgstr "覆盖容差并保留所有样本。可能用于将容差设置为 6 "
+"依然不够的场景。随后需要手动删除天体上的样本。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:414
 msgid ""
@@ -2614,21 +2613,21 @@ msgid "Curves histogram display zoom"
 msgstr "缺省直方图显示模式"
 
 #: src/gui/uifiles/curves_dialog.ui:188
-#, fuzzy
 msgid "Reset zoom to 1"
-msgstr "重置缩放比例为1。"
+msgstr "缩放比例重置为1"
 
 #: src/gui/uifiles/curves_dialog.ui:207 src/gui/uifiles/histogram_dialog.ui:283
 msgid "Logarithmic scale"
 msgstr "对数刻度"
 
 #: src/gui/uifiles/curves_dialog.ui:211
-#, fuzzy
 msgid ""
 "Show the histogram with a logarithmic scale. Does not affect the transfer "
 "function display.\n"
 "                            "
-msgstr "用对数刻度显示直方图。不影响变换函数显示。\n"
+msgstr ""
+"用对数刻度显示直方图。不影响变换函数显示。\n"
+"                            "
 
 #: src/gui/uifiles/curves_dialog.ui:294
 #, fuzzy
@@ -2652,19 +2651,19 @@ msgstr "切换拉伸是否应用于绿色通道"
 
 #: src/gui/uifiles/curves_dialog.ui:381
 msgid "Interpolation algorithm used to compute a curve from the placed points"
-msgstr ""
+msgstr "用于从指定的锚点生成曲线的插值算法"
 
 #: src/gui/uifiles/curves_dialog.ui:421
 msgid "Curve point Y: "
-msgstr ""
+msgstr "锚点Y坐标: "
 
 #: src/gui/uifiles/curves_dialog.ui:433
 msgid "Curve point ID: "
-msgstr ""
+msgstr "锚点编号: "
 
 #: src/gui/uifiles/curves_dialog.ui:445
 msgid "Curve point X: "
-msgstr ""
+msgstr "锚点X坐标: "
 
 #: src/gui/uifiles/curves_dialog.ui:487
 #, fuzzy
@@ -2672,14 +2671,12 @@ msgid "The ID of the selected curve point"
 msgstr "显示所选红色滤镜的详细信息"
 
 #: src/gui/uifiles/curves_dialog.ui:537
-#, fuzzy
 msgid "X coordinate of the selected curve point"
-msgstr "极坐标原点的X轴坐标。"
+msgstr "选定锚点的X坐标"
 
 #: src/gui/uifiles/curves_dialog.ui:555
-#, fuzzy
 msgid "Y coordinate of the selected curve point"
-msgstr "极坐标原点的Y轴坐标。"
+msgstr "选定锚点的Y坐标"
 
 #: src/gui/uifiles/curves_dialog.ui:586 src/gui/uifiles/histogram_dialog.ui:620
 msgid "Clip (%)"
@@ -2694,9 +2691,8 @@ msgid "Clipped pixels count (highlights)"
 msgstr "修剪像素数（高光）"
 
 #: src/gui/uifiles/curves_dialog.ui:683
-#, fuzzy
 msgid "Prefix of the image names resulting from the curve transformation"
-msgstr "对齐结果的文件名前缀。"
+msgstr "曲线变换结果图像的名称前缀"
 
 #: src/gui/uifiles/curves_dialog.ui:708
 #, fuzzy
@@ -3795,13 +3791,12 @@ msgid ""
 msgstr "将焦距和像素尺寸保存为设置中的缺省值，以用于不包含这些元数据的图像"
 
 #: src/gui/uifiles/graxpert.ui:66
-#, fuzzy
 msgid "Siril GraXpert Interface"
-msgstr "GraXpert 界面..."
+msgstr "Siril GraXpert 接口"
 
 #: src/gui/uifiles/graxpert.ui:100
 msgid "Preview the current settings on a region of interest."
-msgstr ""
+msgstr "在图像的特定区域上预览当前的设置。"
 
 #: src/gui/uifiles/graxpert.ui:115
 #, fuzzy
@@ -3809,13 +3804,12 @@ msgid "Apply the selected operation."
 msgstr "应用所选的修正。"
 
 #: src/gui/uifiles/graxpert.ui:159
-#, fuzzy
 msgid "Algorithm"
-msgstr "算法："
+msgstr "算法"
 
 #: src/gui/uifiles/graxpert.ui:170
 msgid "Configure which GraXpert algorithm to use"
-msgstr ""
+msgstr "选取GraXpert算法"
 
 #: src/gui/uifiles/graxpert.ui:173
 #, fuzzy
@@ -3836,19 +3830,19 @@ msgstr "B样条函数"
 msgid ""
 "Configure whether GraXpert applies background correction by subtraction or "
 "division"
-msgstr ""
+msgstr "指定GraXpert使用减法还是除法来提取背景"
 
 #: src/gui/uifiles/graxpert.ui:225
-#, fuzzy
 msgid "Background Tolerance"
-msgstr "参考背景"
+msgstr "背景容差"
 
 #: src/gui/uifiles/graxpert.ui:236
 msgid ""
 "Set the background tolerance: the allowed range is -2.0 to +6.0. Higer "
 "values are more tolerant of strong background gradients; lower values are "
 "better at rejecting background samples in areas representing real neblosity."
-msgstr ""
+msgstr "设置背景容差：允许的范围为[-2.0, +6."
+"0]。值越高，越能适应陡峭的背景渐变；低值会更严格地剔除包含天体的样本。"
 
 #: src/gui/uifiles/graxpert.ui:265
 #, fuzzy
@@ -3861,16 +3855,16 @@ msgid "Set the number of samples per row in the sampling grid."
 msgstr "每行中的样本格子数。"
 
 #: src/gui/uifiles/graxpert.ui:291
-#, fuzzy
 msgid "Sample size / px"
-msgstr "面板尺寸（像素）："
+msgstr "样本尺寸/像素"
 
 #: src/gui/uifiles/graxpert.ui:302
 msgid ""
 "Set the GraXpert sample size of each background sample. Larger samples may "
 "give better statistical properties but have a bigger risk of including non-"
 "background pixels such as stars."
-msgstr ""
+msgstr "设置每个背景样本的尺寸。尺寸越大，统计特征就越明显，但也越可能囊括天体（比如"
+"星点）。"
 
 #: src/gui/uifiles/graxpert.ui:322
 #, fuzzy
@@ -3880,7 +3874,7 @@ msgstr "背景"
 #: src/gui/uifiles/graxpert.ui:326
 msgid ""
 "The generated background model will be saved with the affix \"_background\""
-msgstr ""
+msgstr "生成的背景模型会缀以\"_background\"并保存"
 
 #: src/gui/uifiles/graxpert.ui:342
 #, fuzzy
@@ -3888,9 +3882,8 @@ msgid "Clear samples"
 msgstr "清除图表"
 
 #: src/gui/uifiles/graxpert.ui:346
-#, fuzzy
 msgid "Clear background samples"
-msgstr "生成背景样本时出错\n"
+msgstr "清除背景样本"
 
 #: src/gui/uifiles/graxpert.ui:357
 #, fuzzy
@@ -3901,17 +3894,18 @@ msgstr "生成纯星图像"
 msgid ""
 "Background samples must be generated in order to use the GraXpert RBF, "
 "Kriging or Spline algorithms. It is not necessary for the AI algorithm."
-msgstr ""
+msgstr "在使用RBF、Kriging或Spline算法生成背景模型前，必须先生成背景样本。使用AI背景"
+"提取则无需样本。"
 
 #: src/gui/uifiles/graxpert.ui:391
 msgid "BG AI model version:"
-msgstr ""
+msgstr "背景提取AI模型版本:"
 
 #: src/gui/uifiles/graxpert.ui:403
 msgid ""
 "Set the AI model version for use with GraXpert background extraction. "
 "Defaults to latest."
-msgstr ""
+msgstr "设置GraXpert中用于背景提取的AI模型版本。默认为最新版。"
 
 #: src/gui/uifiles/graxpert.ui:406 src/gui/uifiles/graxpert.ui:750
 #: src/gui/uifiles/graxpert.ui:791 src/gui/uifiles/graxpert.ui:909
@@ -3922,7 +3916,7 @@ msgstr "清除最后项"
 #: src/gui/uifiles/graxpert.ui:438
 msgid ""
 "Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0."
-msgstr ""
+msgstr "设置GraXpert的平滑强度，范围为[0.0, 1.0]。"
 
 #: src/gui/uifiles/graxpert.ui:474
 #, fuzzy
@@ -3936,11 +3930,11 @@ msgstr "更好的内核"
 
 #: src/gui/uifiles/graxpert.ui:489
 msgid "Thin plate"
-msgstr ""
+msgstr "薄板"
 
 #: src/gui/uifiles/graxpert.ui:490
 msgid "Quintic"
-msgstr ""
+msgstr "五次多项式"
 
 #: src/gui/uifiles/graxpert.ui:491
 #, fuzzy
@@ -3948,13 +3942,12 @@ msgid "Cubic"
 msgstr "双三次插值"
 
 #: src/gui/uifiles/graxpert.ui:519
-#, fuzzy
 msgid "Spline Order"
-msgstr "解析的阶: "
+msgstr "spline的阶数"
 
 #: src/gui/uifiles/graxpert.ui:531
 msgid "Set the spline order used for the spline background removal algorithm."
-msgstr ""
+msgstr "设置GraXpert中背景提取spline算法的阶数。"
 
 #: src/gui/uifiles/graxpert.ui:532 src/gui/uifiles/settings_window.ui:1683
 msgid "3"
@@ -3964,12 +3957,11 @@ msgstr "3"
 msgid ""
 "Toggles between stellar and object deconvolution modes. If this item is "
 "unsensitive out, your version of GraXpert is not compatible."
-msgstr ""
+msgstr "切换反卷积模式：深空或盘面。如果GraXpert的版本不合适，则此设置无效。"
 
 #: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:373
-#, fuzzy
 msgid "Objects"
-msgstr "查找目标"
+msgstr "盘面"
 
 #: src/gui/uifiles/graxpert.ui:621 src/gui/uifiles/graxpert.ui:840
 #, fuzzy
@@ -3977,43 +3969,39 @@ msgid "Strength"
 msgstr "拉伸"
 
 #: src/gui/uifiles/graxpert.ui:633
-#, fuzzy
 msgid "Configure GraXpert deconvolution strength."
-msgstr "GraXpert 降噪，强度 %.3f"
+msgstr "配置GraXpert反卷积强度。"
 
 #: src/gui/uifiles/graxpert.ui:675
-#, fuzzy
 msgid "Image FWHM (in pixels)"
-msgstr "以像素为单位进行测量"
+msgstr "图像的FWHM（单位：像素）"
 
 #: src/gui/uifiles/graxpert.ui:687
 msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
-msgstr ""
+msgstr "配置GraXpert反卷积的FWHMK（单位：像素）。"
 
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
-#, fuzzy
 msgid "Deconvolution AI model version:"
-msgstr "反卷积内核已清除。\n"
+msgstr "反卷积AI模型版本:"
 
 #: src/gui/uifiles/graxpert.ui:748 src/gui/uifiles/graxpert.ui:789
 msgid ""
 "Set the AI model version for use with GraXpert deconvolution. Defaults to "
 "latest."
-msgstr ""
+msgstr "设置GraXpert中用于反卷积的AI模型版本。默认为最新版。"
 
 #: src/gui/uifiles/graxpert.ui:852
-#, fuzzy
 msgid "Configure GraXpert denoising strength."
-msgstr "GraXpert 降噪，强度 %.3f"
+msgstr "配置GraXpert降噪强度。"
 
 #: src/gui/uifiles/graxpert.ui:895
 msgid "Denoising AI model version:"
-msgstr ""
+msgstr "降噪AI模型版本:"
 
 #: src/gui/uifiles/graxpert.ui:907
 msgid ""
 "Set the AI model version for use with GraXpert denoising. Defaults to latest."
-msgstr ""
+msgstr "设置GraXpert中用于降噪的AI模型版本。默认为最新版。"
 
 #: src/gui/uifiles/graxpert.ui:934
 #, fuzzy
@@ -4022,22 +4010,23 @@ msgstr "图像降噪"
 
 #: src/gui/uifiles/graxpert.ui:973
 msgid "Use GPU"
-msgstr ""
+msgstr "使用GPU"
 
 #: src/gui/uifiles/graxpert.ui:977
 msgid "Configure GraXpert to use the GPU for AI inference, if available"
-msgstr ""
+msgstr "配置GraXpert在有条件时使用GPU进行AI推算"
 
 #: src/gui/uifiles/graxpert.ui:991
 msgid "AI batch size "
-msgstr ""
+msgstr "AI批大小 "
 
 #: src/gui/uifiles/graxpert.ui:1002
 msgid ""
 "Set the number of image tiles which GraXpert will denoise in parallel. Be "
 "careful: increasing this value might result in out-of-memory errors. Valid "
 "Range: 1 - 32, default: \"4\"."
-msgstr ""
+msgstr "设置GraXpert降噪时并行处理的图像分块数量。注意：提高此值可能导致内存溢出。有"
+"效值：1-32。缺省值：4。"
 
 #: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255
 #: src/gui/uifiles/settings_window.ui:5308 src/gui/uifiles/siril.ui:6357
@@ -7924,9 +7913,8 @@ msgid "Open the curves transform dialog"
 msgstr "打开曲线变换对话框"
 
 #: src/gui/uifiles/siril.ui:1531
-#, fuzzy
 msgid "Curves Transformation..."
-msgstr "小波变换"
+msgstr "曲线变换..."
 
 #: src/gui/uifiles/siril.ui:1544
 msgid "Open the hystogram transform dialog"
@@ -9060,20 +9048,20 @@ msgid ""
 "for <b>Shift</b>, <b>Similarity</b> and <b>Affine</b> and of 4 for "
 "<b>Homography</b>."
 msgstr ""
-"<b>平移</b>是2自由度（x/y）的严格映射，适用于无失真，无缩放，无场旋的情况。这"
-"需要至少1对匹配星点来计算。\n"
+"<b>平移</b>是2自由度（x/y偏移）的严格映射，适用于无畸变，无缩放，无场旋的情况"
+"。需要至少1对匹配的星点。\n"
 "\n"
-"<b>同构</b>是4自由度（缩放，场旋和x/y）的较严格映射，适用于无失真的情况。这需"
-"要至少2对匹配星点来计算。\n"
+"<b>同构</b>是4自由度（1自由度缩放，旋转和x/"
+"y偏移）的较严格映射，适用于无畸变的情况。需要至少2对匹配的星点。\n"
 "\n"
-"<b>仿射</b>是6自由度（双缩放，裁剪，场旋和x/y）的较严格映射，适用于较小失真的"
-"情况。这需要至少3对可匹配星点来计算。\n"
+"<b>仿射</b>是6自由度（2自由度缩放，裁剪，旋转和x/"
+"y偏移）的较严格映射，适用于较小畸变的情况。需要至少3对匹配的星点。\n"
 "\n"
-"<b>单应性</b>是缺省的8自由度映射，适用大多数情况，尤其是广域图像。这需要至少4"
-"对匹配星点来计算。\n"
+"<b>单应</b>是8自由度映射（缺省）。适用于大多数情况。广域图像尤其建议使用。需"
+"要至少4对匹配的星点。\n"
 "\n"
-"<b>警告</b>：初始的星点匹配采用相似三角形算法，因此最小配对星点数不能小于3"
-"（<b>平移</b>、<b>同构</b>和<b>仿射</b>）或4（<b>单应性</b>）。"
+"<b>警告</b>：初始的星点匹配采用相似三角形算法，因此至少需要3对（<b>平移</b>、"
+"<b>同构</b>和<b>仿射</b>）或4对（<b>单应</b>）匹配的星点来执行对齐。"
 
 #: src/gui/uifiles/siril.ui:5651
 msgid "Shift"
@@ -9089,7 +9077,7 @@ msgstr "仿射"
 
 #: src/gui/uifiles/siril.ui:5654
 msgid "Homography"
-msgstr "单应性"
+msgstr "单应"
 
 #: src/gui/uifiles/siril.ui:5668
 msgid "Transformation:"
@@ -10936,16 +10924,16 @@ msgstr "NOMAD星表可以本地安装，不依赖于互联网连接进行此操�
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1143
 msgid "Tolerance / σ"
-msgstr "公差 / σ"
+msgstr "容差 / σ"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1155
 msgid ""
 "Include background samples this many σ above the median. Default is 2.00"
-msgstr "包括高于中值这幺多 σ 的背景样本。默认值为 2.00"
+msgstr "包括高于中值这么多 σ 的背景样本。默认值为 2.00"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1173
 msgid "Include background samples this many σ below the median. Default is 2.8"
-msgstr "包括低于中值这幺多 σ 的背景样本。默认值为 2.8"
+msgstr "包括低于中值这么多 σ 的背景样本。默认值为 2.8"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1196
 msgid "Automatic detection"
@@ -12180,7 +12168,7 @@ msgstr "没有足够的采样。"
 
 #: src/algos/background_extraction.c:884
 msgid "Insufficient samples"
-msgstr ""
+msgstr "样本不足"
 
 #: src/algos/background_extraction.c:898 src/algos/PSF.c:1029
 msgid "monochrome"
@@ -12220,7 +12208,7 @@ msgstr "错误：统计信息计算失败。\n"
 msgid ""
 "Subchannel with negative median detected: removing the gradient on negative "
 "images is not supported\n"
-msgstr ""
+msgstr "某个通道的中位数是负数：不支持在有负数的图像中消除背景渐变\n"
 
 #: src/algos/background_extraction.c:1018
 msgid "Failed to adapt background samples for CFA image\n"
@@ -14444,7 +14432,7 @@ msgstr "合并：工作目录未设置。\n"
 #: src/core/command.c:2876 src/core/command.c:7242 src/core/command.c:7402
 #, c-format
 msgid "Specified output name %s contains forbidden characters, aborting\n"
-msgstr "输出名称“%s”含有非法字符，已停止\n"
+msgstr "输出名称“%s”含有非法字符，异常中止\n"
 
 #: src/core/command.c:2896
 #, c-format
@@ -17633,7 +17621,6 @@ msgstr ""
 "OBS 值而不是按字母数字顺序对文件进行排序"
 
 #: src/core/command_def.h:90
-#, fuzzy
 msgid ""
 "Stretches the image linearly to a new black point BP.\n"
 "The argument <b>[channels]</b> may optionally be used to specify the "
@@ -17649,7 +17636,9 @@ msgstr ""
 "可选参数<b>[channels]</b>用于指定要拉伸的通道：可以是R、G、B、RG、RB或GB。默"
 "认为全通道。\n"
 "可选参数<b>-sat</b>用于将线性拉伸应用于图像饱和度通道。仅当选择了全通道时，此"
-"参数才有效"
+"参数才有效。\n"
+"可选参数<b>-clipmode=</b>，值可以是<b>clip</b>, <b>rescale</b>, "
+"<b>rgbblend</b>（默认）或<b>globalrescale</b>中的一个"
 
 #: src/core/command_def.h:91
 msgid ""
@@ -22085,12 +22074,12 @@ msgstr "%d min %02d s"
 #: src/core/siril_log.c:103
 #, c-format
 msgid "%s ms"
-msgstr ""
+msgstr "%s ms"
 
 #: src/core/siril_log.c:107
 #, c-format
 msgid "%s s"
-msgstr ""
+msgstr "%s s"
 
 #: src/core/siril_log.c:118
 msgid "Execution time"
@@ -22438,14 +22427,13 @@ msgid "Starting GraXpert..."
 msgstr "启动GraXpert..."
 
 #: src/filters/graxpert.c:174
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed: %s\n"
-msgstr "生成 starnet 失败：%s\n"
+msgstr "调用 GraXpert 失败：%s\n"
 
 #: src/filters/graxpert.c:203
-#, fuzzy
 msgid "Running GraXpert"
-msgstr "运行StarNet"
+msgstr "运行GraXpert"
 
 #: src/filters/graxpert.c:205
 msgid "GraXpert reported an error"
@@ -22456,34 +22444,33 @@ msgid "Done."
 msgstr "完成。"
 
 #: src/filters/graxpert.c:217
-#, fuzzy, c-format
+#, c-format
 msgid "GraXpert caught buffer: %s : exit successful\n"
-msgstr "StarNet 捕获缓冲区: %s : 退出成功\n"
+msgstr "GraXpert 捕获缓冲区: %s : 退出成功\n"
 
 #: src/filters/graxpert.c:239
-#, fuzzy
 msgid "GraXpert GUI finished.\n"
-msgstr "对齐结束。\n"
+msgstr "GraXpert GUI结束。\n"
 
 #: src/filters/graxpert.c:245
-#, fuzzy, c-format
+#, c-format
 msgid "GraXpert exit not caught, last buffer: %s\n"
-msgstr "未捕获 StarNet 退出，最后一个缓冲区：%s\n"
+msgstr "未捕获 GraXpert 退出，最后一个缓冲区：%s\n"
 
 #: src/filters/graxpert.c:364
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed during available AI model versions check: %s\n"
-msgstr "版本检查期间生成 StarNet 失败: %s\n"
+msgstr "检查AI模型版本期间调用 GraXpert 失败: %s\n"
 
 #: src/filters/graxpert.c:439
-#, fuzzy, c-format
+#, c-format
 msgid "Thread creation failed: %s\n"
-msgstr "命令执行失败：%s。\n"
+msgstr "线程创建失败: %s\n"
 
 #: src/filters/graxpert.c:528
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning GraXpert failed during version check: %s\n"
-msgstr "版本检查期间生成 StarNet 失败: %s\n"
+msgstr "检查版本期间调用 GraXpert 失败: %s\n"
 
 #: src/filters/graxpert.c:566
 #, c-format
@@ -22502,9 +22489,9 @@ msgid "Reading result from the temporary working file...\n"
 msgstr "正在从临时工作文件读取结果...\n"
 
 #: src/filters/graxpert.c:765 src/filters/graxpert.c:773
-#, fuzzy, c-format
+#, c-format
 msgid "Error opening GraXpert result. Check the file %s\n"
-msgstr "打开文件 %s 时出错\n"
+msgstr "打开GraXpert的结果文件出错。请检查文件 %s\n"
 
 #: src/filters/graxpert.c:781
 msgid ""
@@ -22513,9 +22500,8 @@ msgid ""
 msgstr "错误：GraXpert图像的尺寸和位深与原图不符。请上报此bug。\n"
 
 #: src/filters/graxpert.c:810
-#, fuzzy
 msgid "Removing the temporary working file...\n"
-msgstr "错误：无法删除临时工作文件...\n"
+msgstr "正在删除工作中的临时文件...\n"
 
 #: src/filters/graxpert.c:839
 #, c-format
@@ -22538,20 +22524,18 @@ msgstr "使用GUI的GraXpert操作"
 
 #. Save current image as input filename
 #: src/filters/graxpert.c:888
-#, fuzzy
 msgid "Saving temporary working file...\n"
-msgstr "错误：无法删除临时工作文件...\n"
+msgstr "正在保存工作中的临时文件...\n"
 
 #: src/filters/graxpert.c:890
-#, fuzzy
 msgid "Error: failed to save temporary FITS\n"
-msgstr "错误：无法将无星图像另存为 FITS...\n"
+msgstr "错误：无法将临时文件保存为 FITS\n"
 
 #: src/filters/graxpert.c:918
 msgid ""
 "Background samples must be computed for GraXpert RBF, Spline and Kriging "
 "methods\n"
-msgstr ""
+msgstr "在GraXpert使用RBF、Spline或Kriging算法得到背景渐变之前，背景样本会被计算\n"
 
 #: src/filters/graxpert.c:962
 msgid ""
@@ -22725,7 +22709,7 @@ msgstr "，保持亮度"
 #: src/filters/starnet.c:106
 #, c-format
 msgid "Spawning starnet failed: %s\n"
-msgstr "生成 starnet 失败：%s\n"
+msgstr "调用 StarNet 失败：%s\n"
 
 #: src/filters/starnet.c:154
 msgid "Running StarNet"
@@ -22744,7 +22728,7 @@ msgstr "未捕获 StarNet 退出，最后一个缓冲区：%s\n"
 #: src/filters/starnet.c:235
 #, c-format
 msgid "Spawning starnet failed during version check: %s\n"
-msgstr "版本检查期间生成 StarNet 失败: %s\n"
+msgstr "检查版本期间调用 StarNet 失败: %s\n"
 
 #: src/filters/starnet.c:258
 msgid "V2 detected\n"
@@ -23030,16 +23014,12 @@ msgid "IAU Constellations Names"
 msgstr "IAU 星座名称"
 
 #: src/gui/annotations_pref.c:40
-#, fuzzy
 msgid "User Deep Sky Objects Catalogue"
-msgstr ""
-"清除深空\n"
-"用户星表"
+msgstr "用户深空天体星表"
 
 #: src/gui/annotations_pref.c:41
-#, fuzzy
 msgid "User Solar System Objects Catalogue"
-msgstr "太阳系天体"
+msgstr "用户太阳系天体星表"
 
 #: src/gui/annotate.c:173
 #, fuzzy
@@ -23850,7 +23830,7 @@ msgstr "光谱法"
 msgid ""
 "Reduces a spectrum without background removal. This is suitable when the "
 "entire image represents a calibrated spectrum"
-msgstr ""
+msgstr "进行不带背景消除的光谱处理。适用于整张图像就是已校准过的光谱的情况"
 
 #: src/gui/cut.c:1054
 msgid "Spectro w/ bg removal"
@@ -23865,7 +23845,8 @@ msgid ""
 "Reduces a spectrum with background removal. This is suitable when background "
 "removal is required: the background is computed along parallel lines "
 "equidistant from the central spectral profile line"
-msgstr ""
+msgstr "进行带有背景消除的光谱处理。适用于需要去除背景的情况：背景是沿着与中心谱线等"
+"距的平行线进行计算的"
 
 #: src/gui/cut.c:1064
 msgid "Tri-profile (mono)"
@@ -24121,17 +24102,14 @@ msgid "GraXpert available and supports %s."
 msgstr "GraXpert可用并支持%s。"
 
 #: src/gui/graxpert.c:232
-#, fuzzy
 msgid "background extraction"
 msgstr "背景提取"
 
 #: src/gui/graxpert.c:233
-#, fuzzy
 msgid "denoising"
-msgstr "图像降噪"
+msgstr "降噪"
 
 #: src/gui/graxpert.c:234 src/gui/graxpert.c:235
-#, fuzzy
 msgid "deconvolution"
 msgstr "反卷积"
 
@@ -24154,9 +24132,8 @@ msgid ""
 msgstr "GraXpert正在运行。更改操作会打断正在进行的处理。确定吗？"
 
 #: src/gui/graxpert.c:324
-#, fuzzy
 msgid "GraXpert operation cancelled by user\n"
-msgstr "叠加操作已取消。\n"
+msgstr "GraXpert操作被用户取消\n"
 
 #: src/gui/graxpert.c:348
 msgid "Error: no sequence loaded.\n"
@@ -24164,7 +24141,7 @@ msgstr "错误：没有载入的序列。\n"
 
 #: src/gui/graxpert.c:373
 msgid "Stellar"
-msgstr "星"
+msgstr "深空"
 
 #: src/gui/histogram.c:153 src/gui/histogram.c:159 src/gui/histogram.c:1160
 #: src/gui/histogram.c:1166 src/gui/histogram.c:1822 src/gui/histogram.c:1839
@@ -25648,7 +25625,6 @@ msgstr ""
 "标在首尾两幅图像之间的整体位移对部分像素点进行一个转换。"
 
 #: src/gui/registration.c:75
-#, fuzzy
 msgid ""
 "<b>Apply existing registration</b>: This is not an algorithm but rather a "
 "commodity to apply previously computed registration data stored in the "
@@ -25656,9 +25632,9 @@ msgid ""
 "Output Registration section and it can be applied on selected/filtered "
 "images only, to avoid saving unnecessary images."
 msgstr ""
-"<b>应用现有对齐</b>：这不是一种算法，而是一种商品，用于应用存储在序列文件中的"
-"先前计算的对齐数据。插值方法和“简化 drizzle” 可以在“输出对齐”部分中选择，并且"
-"只能应用于选定的图像，以避免保存不必要的图像。"
+"<b>应用现有对齐</b>：这不是一个算法，而是一项功能，用于应用先前计算并存储在序"
+"列文件中的对齐数据。用户可在“输出对齐”选项区选择插值方法或Drizzle算法来应用对"
+"齐，并可仅应用在筛选过的特定图像上，从而避免生成冗余的图像。"
 
 #: src/gui/registration.c:99 src/gui/stacking.c:48
 msgid ""
@@ -25789,11 +25765,10 @@ msgid ""
 msgstr "当插值设置为“无”时，变换只能设置为“平移”。异常中止\n"
 
 #: src/gui/registration.c:1162
-#, fuzzy
 msgid ""
 "When interpolation is set to None, distortions must be set to None as well. "
 "Aborting\n"
-msgstr "当插值设置为“无”时，变换只能设置为“平移”。异常中止\n"
+msgstr "当插值设置为“无”时，畸变也必须设置为“无”。异常中止\n"
 
 #: src/gui/registration.c:1194
 msgid "Error: unable to read reference frame metadata\n"
@@ -26069,10 +26044,10 @@ msgstr "脚本编辑器..."
 
 #: src/gui/script_menu.c:259
 msgid "Enable Python debug mode"
-msgstr ""
+msgstr "启用Python debug模式"
 
 #: src/gui/script_menu.c:293
-#, fuzzy, c-format
+#, c-format
 msgid "Searching for scripts in: \"%s\"...\n"
 msgstr "检索脚本于: \"%s\"...\n"
 
@@ -26443,7 +26418,7 @@ msgstr "叠加 %d 个图像于序列 %d"
 
 #: src/gui/statistics_list.c:47
 msgid "mean"
-msgstr "mean"
+msgstr "平均值"
 
 #: src/gui/statistics_list.c:48
 msgid "median"
@@ -27528,16 +27503,15 @@ msgstr ""
 
 #: src/io/mp4_output.c:514
 msgid "Could not deduce output format from file extension: using mp4.\n"
-msgstr ""
+msgstr "无法由扩展名推断文件类型: 暂且当作mp4.\n"
 
 #: src/io/mp4_output.c:518
 msgid "FFMPEG does not seem to support mp4 format, aborting.\n"
-msgstr ""
+msgstr "FFMPEG似乎不支持mp4格式，异常中止。\n"
 
 #: src/io/mp4_output.c:550
-#, fuzzy
 msgid "Error: format does not support video codec.\n"
-msgstr "文件格式不支持。"
+msgstr "错误：不支持该视频编码格式。\n"
 
 #: src/io/mp4_output.c:556
 #, fuzzy
@@ -27608,9 +27582,8 @@ msgid "Wrongly formatted string: "
 msgstr "字符串格式不正确: "
 
 #: src/io/path_parse.c:82
-#, fuzzy
 msgid "Wrong wildcard usage: "
-msgstr "错误的日期: "
+msgstr "通配符误用: "
 
 #: src/io/path_parse.c:85
 msgid "More than one match for: "
@@ -27642,9 +27615,9 @@ msgid "Using most recent matching file: %s\n"
 msgstr "使用最新的匹配文件: %s\n"
 
 #: src/io/path_parse.c:292
-#, fuzzy, c-format
+#, c-format
 msgid "Using the closest matching file: %s\n"
-msgstr "使用最新的匹配文件: %s\n"
+msgstr "使用最匹配的文件: %s\n"
 
 #: src/io/remote_catalogues.c:354
 #, c-format
@@ -28404,9 +28377,9 @@ msgid "List saved to %s\n"
 msgstr "列表已保存至 %s\n"
 
 #: src/io/siril_catalogues.c:1475
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to save list to %s\n"
-msgstr "保存图像 %d 的蒙版时出错\n"
+msgstr "将列表保存到%s时出错\n"
 
 #: src/io/siril_git.c:130
 msgid "libgit2: unable to parse some refish\n"
@@ -28538,7 +28511,7 @@ msgstr "未启用在线脚本存储库。不获取或更新 Siril 脚本...\n"
 #: src/io/siril_git.c:970
 #, c-format
 msgid "Error spawning thread to update SPCC repository: %s\n"
-msgstr "更新SPCC仓库时生成线程出错：%s\n"
+msgstr "生成更新SPCC仓库的线程时出错：%s\n"
 
 #: src/io/siril_git.c:974
 #, fuzzy
@@ -28619,9 +28592,9 @@ msgid "Invalid image size: exceeds memory limit"
 msgstr "图像尺寸无效：超出内存限制"
 
 #: src/io/siril_pythonmodule.c:527
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"
-msgstr "图像尺寸或格式无效：w = %u， h = %u， c = %u， size = %"
+msgstr "图像尺寸或格式无效: w = %u, h = %u, c = %u, size = %s"
 
 #: src/io/siril_pythonmodule.c:537
 msgid "Error: image dimensions exceed available memory"
@@ -28757,7 +28730,7 @@ msgstr "错误：命令 %s 不可用\n"
 
 #: src/io/siril_pythonmodule.c:1942
 msgid "Error finding venv python path, unable to spawn python.\n"
-msgstr ""
+msgstr "找不到python虚拟环境的路径，无法调用python。\n"
 
 #: src/io/siril_pythonmodule.c:2058
 #, fuzzy, c-format
@@ -29099,9 +29072,8 @@ msgid "Warning: Duplicate x value detected in JSON file %s: %.1f\n"
 msgstr "警告：在 JSON 文件 %s 中检测到重复的 x 值：%.1f\n"
 
 #: src/io/spcc_json.c:496 src/io/spcc_json.c:499
-#, fuzzy
 msgid "Error: index % "
-msgstr "错误代码："
+msgstr "错误: 索引 % "
 
 #: src/io/spcc_json.c:507
 msgid "Error: index must be 0 for single object JSON.\n"
@@ -29923,9 +29895,8 @@ msgstr ""
 
 #. Estimate button was pressed, we just warn
 #: src/registration/applyreg.c:1038 src/registration/applyreg.c:1039
-#, fuzzy
 msgid "Output too large"
-msgstr "输出前缀:"
+msgstr "输出太大"
 
 #: src/registration/applyreg.c:1052
 msgid ""
@@ -29948,7 +29919,7 @@ msgstr "与参考帧相比，输出序列太小（旋转过多或重叠度不足
 
 #: src/registration/applyreg.c:1076
 msgid "You should change framing method, aborting\n"
-msgstr "异常终止，您应该更改取景范围\n"
+msgstr "您应该更改取景方法，异常中止\n"
 
 #: src/registration/applyreg.c:1096
 msgid "Not enough space to save the output images\n"
@@ -29965,16 +29936,13 @@ msgstr "参考帧具有空矩阵，并且之前未对齐，请选择另一帧，
 msgid ""
 "Applying registration computed with higher degree of freedom (%d) than shift "
 "is not allowed when interpolation is set to none, aborting\n"
-msgstr ""
-"当插值设置为“无”时，不允许应用以高于平移的自由度 （%d） 计算的对齐，异常中"
-"止\n"
+msgstr "当插值设置为“无”时，对齐的自由度不能高于平移的自由度 （%d），异常中止\n"
 
 #: src/registration/applyreg.c:1120
-#, fuzzy
 msgid ""
 "Applying registration with changes in output image size is not allowed when "
 "interpolation is set to none , aborting\n"
-msgstr "当插值设置为“无”时，不允许对齐更改了输出大小的图像，异常中止\n"
+msgstr "当插值设置为“无”时，不允许更改对齐的输出尺寸，异常中止\n"
 
 #: src/registration/applyreg.c:1126
 msgid ""
@@ -29983,11 +29951,10 @@ msgid ""
 msgstr "当插值设置为“无”时，不允许对齐不同尺寸的图像，异常中止\n"
 
 #: src/registration/applyreg.c:1131
-#, fuzzy
 msgid ""
 "Applying registration on images with distortions when interpolation is set "
 "to none is not allowed, aborting\n"
-msgstr "当插值设置为“无”时，不允许对齐不同尺寸的图像，异常中止\n"
+msgstr "当插值设置为“无”时，不允许对齐含有畸变的图像，异常中止\n"
 
 #: src/registration/applyreg.c:1137
 msgid ""
@@ -30092,9 +30059,8 @@ msgid "Could not parse master file name for distortion, aborting\n"
 msgstr "无法解析总和畸变的文件名，异常中止\n"
 
 #: src/registration/distorsion.c:444
-#, fuzzy
 msgid "Could not load master file for distortion, aborting\n"
-msgstr "无法载入图像，异常中止。\n"
+msgstr "无法载入总和畸变文件，异常中止\n"
 
 #: src/registration/distorsion.c:452
 msgid "Could not copy WCS information for distortion, aborting\n"
@@ -30188,7 +30154,7 @@ msgstr "仿射（6自由度）"
 
 #: src/registration/global.c:78
 msgid "homography (8 degrees)"
-msgstr "单应性（8自由度）"
+msgstr "单应（8自由度）"
 
 #: src/registration/global.c:80
 msgid "INVALID"
@@ -30259,7 +30225,7 @@ msgstr "仿射模式使用了少于 %d%% 对星点，可能无法精确对齐：
 msgid ""
 "Less than %d%% star pairs kept by homography model, Image %d may show "
 "important distortion\n"
-msgstr "单应性模式使用了少于 %d%% 对星点，图像 %d 可能出现严重的失真\n"
+msgstr "单应模式使用了少于 %d%% 对星点，图像 %d 可能出现严重的失真\n"
 
 #: src/registration/global.c:334
 #, c-format
