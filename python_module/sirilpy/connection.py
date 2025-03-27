@@ -707,7 +707,7 @@ class SirilInterface:
         to alter the Siril image then the context **must not** be entered or the Siril
         command will be unable to acquire the processing thread and will fail.
 
-        Example usage:
+        Example:
 
         .. code-block:: python
 
@@ -3548,6 +3548,7 @@ class SirilInterface:
         obened from disk using astropy.fits.
 
         Example:
+
         .. code-block:: python
 
             hdul = fits.open('your_fits_file.fits')
