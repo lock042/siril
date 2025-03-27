@@ -11,7 +11,7 @@ import logging
 import numpy as np
 from .enums import DataType, StarProfile, SequenceType, DistoType, _Defaults
 from .translations import _
-from exceptions import SirilError
+from .exceptions import SirilError
 
 @dataclass
 class ImageStats:
