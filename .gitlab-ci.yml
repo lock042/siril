@@ -261,7 +261,8 @@ win64-native:
   script:
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
-
+    # Print ccache directory size
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "du -sh $CCACHE_DIR"
 flatpak:
   rules:
     *run_ondemand_schedule_tag
