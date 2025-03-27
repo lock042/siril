@@ -232,6 +232,7 @@ win64-native:
   variables:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
     CCACHE_MAXSIZE: "50M"
+    CCACHE_MAXFILES: "3000"
     CHERE_INVOKING: "yes"
     MSYSTEM: "MINGW64"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
