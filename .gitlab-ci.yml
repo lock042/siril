@@ -259,8 +259,8 @@ win64-native:
     - wget.exe --quiet --no-check-certificate $SDW_RELEASE_URL
     - 7z x -oC:/ "$Env:SDW_NAME.7z"
   script:
-    # Print ccache directory size
-    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "du -sh \"$CCACHE_DIR\""
+    # Print ccache statistics
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "ccache -s"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
 flatpak:
