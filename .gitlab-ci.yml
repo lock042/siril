@@ -227,6 +227,7 @@ win64-native:
     key: "cache-windows-small"
     paths:
       - ccache
+      - DLLcache # cache for the DLL txt files recording all files to be copied to the package
     when: always
   variables:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
