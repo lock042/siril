@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """
-Plot module for Siril, providing classes for plot data representation and serialization.
-This module enables users to create and configure various types of plots with customizable
+Plot submodule for Siril, providing classes for plot data representation and serialization.
+This submodule enables users to create and configure various types of plots with customizable
 appearance and error bars.
 """
 

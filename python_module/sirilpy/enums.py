@@ -3,6 +3,11 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""
+Enums submodule for Siril. This submodule contains all the enums used
+within sirilpy.
+"""
+
 from enum import IntEnum, unique
 
 @unique

@@ -10,7 +10,6 @@ from Python, enabling advanced astronomical image processing workflows.
 """
 
 # Import translation functions first
-# TODO: this is currently unused (there are no actual translations yet)
 from .translations import _
 
 # Regular imports - all modules needed at runtime
@@ -29,8 +28,6 @@ from .models import (
     FKeywords,
     FFit,
     Homography,
-    StarProfile,
-    SequenceType,
     PSFStar,
     BGSample,
     RegData,
@@ -40,7 +37,7 @@ from .models import (
     SirilPoint,
     UserPolygon
 )
-from .plot import PlotType, SeriesData, PlotData
+from .plot import SeriesData, PlotData
 from .shm import SharedMemoryWrapper
 from .utility import (
     human_readable_size,

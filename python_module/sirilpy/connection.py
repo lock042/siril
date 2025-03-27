@@ -3,6 +3,12 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""
+Connection module for Siril, providing the ability to connect to a running
+Siril instance and communicate with it. Includes an extensive range
+of methods that can be used to get and set data from / to Siril.
+"""
+
 import os
 import sys
 import socket
@@ -121,8 +127,7 @@ class SirilInterface:
         Closes the established socket or pipe connection.
 
         Raises:
-            SirilConnectionError: if the connection cannot be closed because the
-                                  pipe / socket cannot be found.
+            SirilConnectionError: if the connection cannot be closed.
         """
 
         if os.name == 'nt':
@@ -203,6 +208,8 @@ class SirilInterface:
 
             except pywintypes.error as e:
                 raise SirilConnectionError(_("Windows pipe error during receive: {}").format(e)) from e
+            except Exception as ee:
+                raise SirilConnectionError(_("Connection error: {}").format(ee)) from ee
 
         else:
             # Socket implementation
@@ -449,7 +456,6 @@ class SirilInterface:
             raise SharedMemoryError("Error creating shared memory allocation") from re
 
         except Exception as e:
-            # Catch and re-raise any unexpected errors to improve debuggability.
             raise SirilError(
                 _("Unexpected error during shared memory allocation request: {}").format(e)
             ) from e
@@ -691,7 +697,7 @@ class SirilInterface:
 
             def __enter__(self):
                 if not self.outer_self._claim_thread():
-                    raise SirilError("Failed to claim processing thread. Thread may be in use or an image processing dialog is open.")
+                    raise SirilError("Error in image_lock(). Thread may be in use or an image processing dialog is open.")
                 self.claimed = True
                 return self.outer_self
 
@@ -742,8 +748,7 @@ class SirilInterface:
             return bool(int.from_bytes(response, byteorder='little'))
 
         except Exception as e:
-            print(f"Error sending confirmation message: {e}", file=sys.stderr)
-            return False
+            raise SirilError(f"Error in confirm_messagebox(): {e}") from e
 
     def _messagebox(self, my_string: str, cmd_type: int, modal: Optional[bool] = False) -> bool:
         """
@@ -758,7 +763,10 @@ class SirilInterface:
 
         Returns:
             bool: True if the error was successfully displayed, False otherwise
-        """
+
+        Raises:
+            SirilError: if an error occurred.
+         """
 
         try:
             # Append a newline character to the string
@@ -770,8 +778,7 @@ class SirilInterface:
             return self._execute_command(cmd_type, message_bytes)
 
         except Exception as e:
-            print(f"Error sending log message: {e}", file=sys.stderr)
-            return False
+            raise SirilError(f"Error in _messagebox(): {e}") from e
 
     def error_messagebox(self, my_string: str, modal: Optional[bool] = False) -> bool:
         """
@@ -796,9 +803,15 @@ class SirilInterface:
 
         Returns:
             bool: True if the error was successfully displayed, False otherwise
-        """
-        cmd_type = _Command.ERROR_MESSAGEBOX_MODAL if modal else _Command.ERROR_MESSAGEBOX
-        return self._messagebox(my_string, cmd_type, modal)
+
+        Raises:
+            SirilError: if an error occurred.
+         """
+        try:
+            cmd_type = _Command.ERROR_MESSAGEBOX_MODAL if modal else _Command.ERROR_MESSAGEBOX
+            return self._messagebox(my_string, cmd_type, modal)
+        except Exception as e:
+            raise SirilError(f"Error in error_messagebox(): {e}") from e
 
     def info_messagebox(self, my_string: str, modal: Optional[bool] = False) -> bool:
         """
@@ -820,10 +833,16 @@ class SirilInterface:
 
         Returns:
             bool: True if the info was successfully displayed, False otherwise
-        """
 
-        cmd_type = _Command.INFO_MESSAGEBOX_MODAL if modal else _Command.INFO_MESSAGEBOX
-        return self._messagebox(my_string, cmd_type, modal)
+        Raises:
+            SirilError: if an error occurred.
+         """
+
+        try:
+            cmd_type = _Command.INFO_MESSAGEBOX_MODAL if modal else _Command.INFO_MESSAGEBOX
+            return self._messagebox(my_string, cmd_type, modal)
+        except Exception as e:
+            raise SirilError(f"Error in info_messagebox(): {e}") from e
 
     def warning_messagebox(self, my_string: str, modal: Optional[bool] = False) -> bool:
         """
@@ -845,10 +864,17 @@ class SirilInterface:
 
         Returns:
             bool: True if the warning was successfully displayed, False otherwise
-        """
 
-        cmd_type = _Command.WARNING_MESSAGEBOX_MODAL if modal else _Command.WARNING_MESSAGEBOX
-        return self._messagebox(my_string, cmd_type, modal)
+        Raises:
+            SirilError: if an error occurred.
+         """
+
+        try:
+            cmd_type = _Command.WARNING_MESSAGEBOX_MODAL if modal else _Command.WARNING_MESSAGEBOX
+            return self._messagebox(my_string, cmd_type, modal)
+        except Exception as e:
+            raise SirilError(f"Error in warning_messagebox(): {e}") from e
+
 
 
     def undo_save_state(self, my_string: str) -> bool:
@@ -861,6 +887,10 @@ class SirilInterface:
 
         Returns:
             bool: True if the message was successfully logged, False otherwise
+
+        Raises:
+            SirilError: if an error occurred.
+
         """
 
         try:
@@ -870,8 +900,7 @@ class SirilInterface:
             return self._execute_command(_Command.UNDO_SAVE_STATE, message_bytes)
 
         except Exception as e:
-            print(f"Error saving undo state: {e}", file=sys.stderr)
-            return False
+            raise SirilError(f"Error in undo_save_state(): {e}") from e
 
     def update_progress(self, message: str, progress: float) -> bool:
         """
@@ -906,7 +935,7 @@ class SirilInterface:
             return self._execute_command(_Command.UPDATE_PROGRESS, payload)
 
         except Exception as e:
-            raise SirilError(f"Error in update_progress: {e}") from e
+            raise SirilError(f"Error in update_progress(): {e}") from e
 
     def reset_progress(self) -> bool:
         """
@@ -931,8 +960,7 @@ class SirilInterface:
             *args: Variable number of string arguments to be combined into a command
 
         Raises:
-            CommandError: If the command fails with a specific error code.
-            SirilError: If another error occurs during execution.
+            SirilError: If an error occurs during execution.
 
         Example:
             .. code-block:: python
@@ -979,14 +1007,16 @@ class SirilInterface:
 
         Returns:
             bool: True if the selection was successfully set, False otherwise
+
+        Raises:
+            SirilError: if an error occurred.
         """
         try:
             # Pack the coordinates and dimensions into bytes using network byte order (!)
             payload = struct.pack('!IIII', x, y, w, h)
             return self._execute_command(_Command.SET_SELECTION, payload)
         except Exception as e:
-            print(f"Error setting selection: {e}", file=sys.stderr)
-            return False
+            raise SirilError(f"Error in set_siril_selection(): {e}") from e
 
     def get_siril_selection(self) -> Optional[Tuple[int, int, int, int]]:
 
@@ -1054,7 +1084,7 @@ class SirilInterface:
 
         Returns:
             A tuple (channels, height, width) representing the shape of the image,
-            or None if an error occurred.
+            or None if no image shape is available to return.
 
         Raises: SirilError: if an error occurred.
         """
@@ -1096,10 +1126,7 @@ class SirilInterface:
             PSFStar: the PSFStar object representing the star model.
 
         Raises:
-            NoImageError: If no image is currently loaded,
-            SirilError: For other errors during data retrieval,
-            ValueError: If the received data format is invalid or no selection can
-                        be determined
+            SirilError: If a error occurred during execution.
         """
 
         try:
@@ -1154,7 +1181,7 @@ class SirilInterface:
             return star
 
         except Exception as e:
-            raise SirilError(_("Error processing star data: {}").format(e)) from e
+            raise SirilError(_("Error in get_selection_star(): {}").format(e)) from e
 
     def get_selection_stats(self, shape: Optional[list[int]] = None, \
         channel: Optional[int] = None) -> Optional[PSFStar]:
@@ -1178,8 +1205,7 @@ class SirilInterface:
             ImageStats: the ImageStats object representing the selection statistics.
 
         Raises:
-            NoImageError: If no image is currently loaded,
-            SirilError: For other errors during data retrieval,
+            SirilError: If an error occurred during processing,
             ValueError: If the received data format is invalid or no selection can
                         be determined
         """
@@ -1202,7 +1228,7 @@ class SirilInterface:
                 else:
                     shape_data = struct.pack('!IIIII', *shape, channel)
             else:
-                raise RuntimeError(_("Incorrect shape data provided: must be (x,y,w,h)"))
+                raise ValueError(_("Incorrect shape data provided: must be (x,y,w,h)"))
 
         status, response = self._send_command(_Command.GET_STATS_FOR_SELECTION, shape_data)
 
@@ -1214,19 +1240,19 @@ class SirilInterface:
                     raise NoImageError(_("No image is currently loaded in Siril"))
                 if "invalid selection" in error_msg.lower():
                     raise ValueError(_("No selection is currently made in Siril"))
-                raise RuntimeError(_("Server error: {}").format(error_msg))
-            raise RuntimeError(_("Failed to transfer stats data: Empty response"))
+                raise SirilConnectionError(_("Server error: {}").format(error_msg))
+            raise SirilError(_("Error in get_selection_stats(): Failed to transfer stats data: Empty response"))
 
         if status == _Status.NONE:
             return None
 
         if not response:
-            raise RuntimeError(_("Failed to transfer stats data: No data received"))
+            raise SirilError(_("Error in get_selection_stats(): No data received"))
 
         try:
             return ImageStats.deserialize(response)
         except Exception as e:
-            raise SirilError(_("Failed to transfer stats data: error occurred")) from e
+            raise SirilError(_("Error in get_selection_stats(): {e}")) from e
 
     def pix2radec(self, x: float, y: float) -> Optional[Tuple[float, float]]:
         """
@@ -1242,10 +1268,7 @@ class SirilInterface:
             Tuple[float, float]: [RA, dec] as a Tuple of two floats.
 
         Raises:
-            SirilConnectionError: for errors encountered processing data over the
-                                  interface
-            SirilError: For other errors during pixel data retrieval,
-            ValueError: If the received data format is invalid or no WCS is found
+            SirilError: For errors during pix2radec execution.
         """
         try:
             shape_data = struct.pack('!2d', x, y)
@@ -1257,7 +1280,7 @@ class SirilInterface:
                     if "no image loaded" in error_msg.lower():
                         raise NoImageError(_("No image is currently loaded in Siril"))
                     if "not plate solved" in error_msg.lower():
-                        raise SirilError(_("Siril image is not plate solved"))
+                        raise ValueError(_("Siril image is not plate solved"))
                     raise SirilConnectionError(_("Server error: {}").format(error_msg))
                 raise SirilConnectionError(_("Failed to transfer coordinates: Empty response"))
 
@@ -1287,7 +1310,7 @@ class SirilInterface:
             return values
 
         except Exception as e:
-            raise SirilError(_("Failed to transfer pix2radec data: error occurred")) from e
+            raise SirilError(_("Error in pix2radec(): {e}")) from e
 
     def radec2pix(self, ra: float, dec: float) -> Optional[Tuple[float, float]]:
         """
@@ -1303,11 +1326,7 @@ class SirilInterface:
             Tuple[float, float]: [x, y] as a Tuple of two floats.
 
         Raises:
-            NoImageError: If no image is currently loaded,
-            SirilConnectionError: for errors encountered processing data over the
-                                  interface
-            SirilError: For other errors during pixel data retrieval,
-            ValueError: If the received data format is invalid or no WCS is found
+            SirilError: For errors during radec2pix execution.
         """
         try:
             shape_data = struct.pack('!2d', ra, dec)
@@ -1347,7 +1366,7 @@ class SirilInterface:
                 raise SirilError(_("Error unpacking data: {}").format(e)) from e
             return values
         except Exception as e:
-            raise SirilError(_("Failed to transfer radec2pix data: error occurred")) from e
+            raise SirilError(_("Error in radec2pix(): {e}")) from e
 
     def get_image_pixeldata(self, shape: Optional[list[int]] = None) -> Optional[np.ndarray]:
 
@@ -1364,9 +1383,7 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded,
-            SharedMemoryError: for errors relating to shared memory use,
             SirilError: For other errors during pixel data retrieval,
-            ValueError: If the received data format is invalid or shape is invalid
         """
 
         shm = None
@@ -1460,7 +1477,7 @@ class SirilInterface:
             raise
         except Exception as e:
             # Wrap all other exceptions with context
-            raise SirilError(_("Error retrieving pixel data: {}").format(e)) from e
+            raise SirilError(_("Error in get_image_pixeldata(): {}").format(e)) from e
         finally:
             # Clean up shared memory using the wrapper's methods
             if shm is not None:
@@ -1471,7 +1488,7 @@ class SirilInterface:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
-                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
+                        raise SirilError(_("Failed to cleanup shared memory"))
 
                 except Exception:
                     pass
@@ -1479,7 +1496,7 @@ class SirilInterface:
     def get_seq_frame_pixeldata(self, frame: int, shape: Optional[List[int]] = None) -> Optional[np.ndarray]:
 
         """
-        Retrieves the pixel data from the image currently loaded in Siril.
+        Retrieves the pixel data from a frame in the sequence currently loaded in Siril.
 
         Args:
             frame: selects the frame to retrieve pixel data from
@@ -1488,13 +1505,7 @@ class SirilInterface:
             numpy.ndarray: The image data as a numpy array
 
         Raises:
-            NoImageError: If no image is currently loaded,
-            SirilConnectionError: If there is a problem with communication via
-                                  the pipe/socket connection,
-            RuntimeError: For other errors during pixel data retrieval,
-            ValueError: If the received data format is invalid or shape is invalid
-            SharedMemoryError: For errors relating to shared memory use
-            SirilError: For all other exceptions
+            SirilError: If an error occurs
         """
 
         shm = None
@@ -1584,9 +1595,6 @@ class SirilInterface:
 
             return result
 
-        except NoImageError:
-            # Re-raise NoImageError without wrapping
-            raise
         except Exception as e:
             # Wrap all other exceptions with context
             raise SirilError(_("Error retrieving pixel data: {}").format(e)) from e
@@ -1600,7 +1608,7 @@ class SirilInterface:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
-                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
+                        raise SirilError(_("Failed to cleanup shared memory"))
 
                 except Exception:
                     pass
@@ -1612,6 +1620,9 @@ class SirilInterface:
 
         Args:
             plot_metadata: PlotMetadata object containing plot configuration
+
+        Raises:
+            SirilError: If an error occurs.
         """
         try:
             serialized_data, total_bytes = PlotData.serialize(plot_data)
@@ -1658,7 +1669,7 @@ class SirilInterface:
             return True
 
         except Exception as e:
-            raise SirilError(f"Error sending plot data: {e}") from e
+            raise SirilError(f"Error in xy_plot(): {e}") from e
         finally:
             # Ensure shared memory is closed and unlinked
             if 'shm' in locals() and shm is not None:
@@ -1692,7 +1703,6 @@ class SirilInterface:
         Returns: True if the command succeeded, otherwise False
 
         Raises:
-            SharedMemoryError: if there is an error with the shared memory transfer
             SirilError: if there was a Siril error in handling the command
         """
         try:
@@ -1771,8 +1781,7 @@ class SirilInterface:
             return True
 
         except Exception as e:
-            print(f"Error sending background samples: {e}", file=sys.stderr)
-            return False
+            raise SirilError(f"Error in set_image_bgsamples(): {e}") from e
         finally:
             # Ensure shared memory is closed and unlinked
             if 'shm' in locals() and shm is not None:
@@ -1791,9 +1800,7 @@ class SirilInterface:
                         with dtype either np.float32 or np.uint16.
 
         Raises:
-            ValueError: if image_data is the wrong type, dtype or shape
-            SharedMemoryError: if there is an error with the shared memory transfer
-            SirilError: if there was a Siril error in handling the command
+            SirilError: if there was an error in handling the command
         """
 
         shm = None
@@ -1871,7 +1878,7 @@ class SirilInterface:
             return
 
         except Exception as e:
-            raise SirilError(f"Error sending pixel data: {e}") from e
+            raise SirilError(f"Error in set_image_pixeldata(): {e}") from e
 
         finally:
             if shm is not None:
@@ -1892,9 +1899,7 @@ class SirilInterface:
                         with dtype either np.float32 or np.uint16.
 
         Raises:
-            ValueError: if image_data is the wrong type, dtype or shape
-            SharedMemoryError: if there is an error with the shared memory transfer
-            SirilError: if there was a Siril error in handling the command
+            SirilError: if there was an error in handling the command
         """
 
         shm = None
@@ -1977,7 +1982,7 @@ class SirilInterface:
             return
 
         except Exception as e:
-            raise SirilError("Error sending pixel data: {e}") from e
+            raise SirilError("Error in set_seq_frame_pixeldata(): {e}") from e
 
         finally:
             if shm is not None:
@@ -1999,9 +2004,7 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded,
-            SirilConnectionError: For other errors during  data retrieval,
-            SharedMemoryError: For errors relating to shared memory use,
-            ValueError: If the shared memory data is invalid
+            SirilError: If any other error occurs.
         """
 
         shm = None
@@ -2054,7 +2057,7 @@ class SirilInterface:
             raise
         except Exception as e:
             # Wrap all other exceptions with context
-            raise RuntimeError(_("Error retrieving ICC data: {}").format(e)) from e
+            raise SirilError(_("Error in get_image_iccprofile(): {}").format(e)) from e
 
         finally:
             if shm is not None:
@@ -2083,7 +2086,6 @@ class SirilInterface:
         Raises:
             NoImageError: If no image is currently loaded,
             SirilError: For other errors during data retrieval,
-            SharedMemoryError: For errors relating to shared memory use
         """
 
         shm = None
@@ -2138,7 +2140,7 @@ class SirilInterface:
             raise
         except Exception as e:
             # Wrap all other exceptions with context
-            raise SirilError(_("Error retrieving FITS header: {}").format(e)) from e
+            raise SirilError(_("Error in get_image_fits_header(): {}").format(e)) from e
         finally:
             if shm is not None:
                 try:
@@ -2167,7 +2169,6 @@ class SirilInterface:
         Raises:
             NoImageError: If no image is currently loaded,
             SirilError: For other errors during data retrieval,
-            SharedMemoryError: For errors relating to shared memory use
         """
 
         shm = None
@@ -2224,7 +2225,7 @@ class SirilInterface:
             raise
         except Exception as e:
             # Wrap all other exceptions with context
-            raise SirilError(_("Error retrieving FITS unknown keys: {}").format(e)) from e
+            raise SirilError(_("Error in get_image_unknown_keys(): {}").format(e)) from e
         finally:
             if shm is not None:
                 try:
@@ -2254,7 +2255,6 @@ class SirilInterface:
         Raises:
             NoImageError: If no image is currently loaded,
             SirilError: For other errors during data retrieval,
-            SharedMemoryError: For errors relating to shared memory use
         """
 
         shm = None
@@ -2310,7 +2310,7 @@ class SirilInterface:
             raise
         except Exception as e:
             # Wrap all other exceptions with context
-            raise SirilError(_("Error retrieving FITS history: {}").format(e)) from e
+            raise SirilError(_("Error in get_image_history(): {}").format(e)) from e
         finally:
             if shm is not None:
                 try:
@@ -2347,7 +2347,7 @@ class SirilInterface:
             wd = response.decode('utf-8').rstrip('\x00')
             return wd
         except UnicodeDecodeError as e:
-            raise SirilError(_("Error decoding working directory")) from e
+            raise SirilError(_("Error in get_wd(): {}").format(e)) from e
 
     def get_siril_configdir(self) -> Optional[str]:
         """
@@ -2371,7 +2371,7 @@ class SirilInterface:
             wd = response.decode('utf-8').rstrip('\x00')
             return wd
         except UnicodeDecodeError as e:
-            raise SirilError(_("Error decoding user config directory")) from e
+            raise SirilError(_("Error in get_siril_configdir(): {}").format(e)) from e
 
     def get_siril_userdatadir(self) -> Optional[str]:
         """
@@ -2395,7 +2395,7 @@ class SirilInterface:
             path = response.decode('utf-8').rstrip('\x00')
             return path
         except UnicodeDecodeError as e:
-            raise SirilError(_("Error decoding user data directory")) from e
+            raise SirilError(_("Error in get_siril_userdatadir(): {}").format(e)) from e
 
     def get_siril_systemdatadir(self) -> Optional[str]:
         """
@@ -2419,7 +2419,7 @@ class SirilInterface:
             path = response.decode('utf-8').rstrip('\x00')
             return path
         except UnicodeDecodeError as e:
-            raise SirilError(_("Error decoding system data directory")) from e
+            raise SirilError(_("Error in get_siril_systemdatadir(): {}").format(e)) from e
 
     def is_image_loaded(self) -> bool:
         """
@@ -2488,7 +2488,7 @@ class SirilInterface:
             wd = response.decode('utf-8').rstrip('\x00')
             return wd
         except UnicodeDecodeError as e:
-            raise SirilError(f"Error decoding loaded image filename: {e}") from e
+            raise SirilError(f"Error in get_image_filename(): {e}") from e
 
     def get_seq_frame_filename(self, frame: int) -> Optional[str]:
         """
@@ -2514,7 +2514,7 @@ class SirilInterface:
             filename = response.decode('utf-8').rstrip('\x00')
             return filename
         except UnicodeDecodeError as e:
-            raise SirilError(f"Error decoding sequence frame filename: {e}") from e
+            raise SirilError(f"Error in get_seq_frame_filename(): {e}") from e
 
     def get_image_stats(self, channel: int) -> Optional[ImageStats]:
         """
@@ -2544,7 +2544,7 @@ class SirilInterface:
             return ImageStats.deserialize(response)
 
         except struct.error as e:
-            raise SirilError(f"Error decoding stats: {e}") from e
+            raise SirilError(f"Error in get_image_stats(): {e}") from e
 
     def get_seq_regdata(self, frame: int, channel: int) -> Optional[RegData]:
         """
@@ -2577,7 +2577,7 @@ class SirilInterface:
             return RegData.deserialize(response)
 
         except struct.error as e:
-            raise SirilError(f"Error decoding registration data: {e}") from e
+            raise SirilError(f"Error in get_seq_regdata(): {e}") from e
 
     def get_seq_stats(self, frame: int, channel: int) -> Optional[ImageStats]:
         """
@@ -2608,7 +2608,7 @@ class SirilInterface:
             return ImageStats.deserialize(response)
 
         except struct.error as e:
-            raise SirilError(f"Error decoding sequence stats: {e}") from e
+            raise SirilError(f"Error in get_seq_stats(): {e}") from e
 
     def get_seq_imgdata(self, frame: int) -> Optional[ImgData]:
         """
@@ -2631,21 +2631,11 @@ class SirilInterface:
         response = self._request_data(_Command.GET_SEQ_IMGDATA, payload=data_payload)
         if response is None:
             return None
+
         try:
-            format_string = '!3qd2q'
-
-            values = struct.unpack(format_string, response)
-
-            return ImgData (
-                filenum = values[0],
-                incl = values[1],
-                date_obs = datetime.fromtimestamp(values[2]) if values[2] != 0 else None,
-                airmass = values[3],
-                rx = values[4],
-                ry = values[5]
-            )
+            return ImgData.deserialize(response)
         except struct.error as e:
-            raise SirilError(f"Error decoding sequence image data: {e}") from e
+            raise SirilError(f"Error in get_seq_imgdata(): {e}") from e
 
     def get_seq_distodata(self, channel: int) -> Optional[DistoData]:
         """
@@ -2684,7 +2674,7 @@ class SirilInterface:
                 filename = distofilename_string
             )
         except struct.error as e:
-            raise SirilError(f"Error decoding distortion data: {e}") from e
+            raise SirilError(f"Error in get_seq_distodata(): {e}") from e
 
 
     def get_seq(self) -> Optional[Sequence]:
@@ -2755,7 +2745,7 @@ class SirilInterface:
                 seqname = seqname_string
             )
         except struct.error as e:
-            raise SirilError(f"Error unpacking sequence data: {e}") from e
+            raise SirilError(f"Error in get_seq(): {e}") from e
 
     def get_image_keywords(self) -> Optional[FKeywords]:
         """
@@ -2776,7 +2766,7 @@ class SirilInterface:
             return FKeywords.deserialize(response)
 
         except struct.error as e:
-            raise SirilError(f"Error unpacking sequence data: {e}") from e
+            raise SirilError(f"Error in get_image_keywords(): {e}") from e
 
     def get_image(self, with_pixels: Optional[bool] = True) -> Optional[FFit]:
         """
@@ -2892,10 +2882,8 @@ class SirilInterface:
                 history = img_history
             )
 
-        except struct.error as e:
-            raise SirilError(f"Error unpacking FITS metadata: {e}") from e
         except Exception as e:
-            raise SirilError(f"Error processing FITS metadata: {e}") from e
+            raise SirilError(f"Error in get_image(): {e}") from e
 
     def get_seq_frame(self, frame: int, with_pixels: Optional[bool] = True) -> Optional[FFit]:
         """
@@ -2911,9 +2899,7 @@ class SirilInterface:
             FFit object containing the frame data, or None if an error occurred
 
         Raises:
-            SirilError: if a decoding error occurs
-            SharedMemoryError: if a shared memory error occurs
-            ValueError: if invalid dimensions occur or if the array cannot be reshaped
+            SirilError: if an error occurs.
         """
 
         shm = None
@@ -3169,10 +3155,8 @@ class SirilInterface:
             )
             return fit
 
-        except struct.error as e:
-            raise SirilError(f"Error unpacking sequence frame data: {e}") from e
         except Exception as e:
-            raise SirilError(f"Error processing sequence frame data: {e}") from e
+            raise SirilError(f"Error in get_seq_frame(): {e}") from e
 
         finally:
             if shm is not None:
@@ -3183,7 +3167,7 @@ class SirilInterface:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
-                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
+                        raise SirilError(_("Failed to cleanup shared memory"))
 
                 except Exception:
                     pass
@@ -3199,9 +3183,7 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded,
-            RuntimeError: For other errors during  data retrieval,
-            SharedMemoryError: If a shared memory error occurs,
-            ValueError: If the received data is invalid
+            SirilError: For other errors during  data retrieval,
         """
 
         stars = []
@@ -3280,8 +3262,10 @@ class SirilInterface:
 
             return stars
 
+        except NoImageError:
+            raise
         except Exception as e:
-            raise SirilError(_("Error processing star data: {}").format(e)) from e
+            raise SirilError(_("Error in get_image_stars(): {}").format(e)) from e
 
         finally:
             if shm is not None:
@@ -3312,7 +3296,6 @@ class SirilInterface:
 
         Raises:
             SirilError: if an error occurred getting the requested config value
-            ValueError: unknown config type
         """
 
         try:
@@ -3351,7 +3334,7 @@ class SirilInterface:
             raise ValueError(_("Error: unknown config type"))
 
         except Exception as e:
-            raise RuntimeError(_("Error getting config value: {}").format(e)) from e
+            raise SirilError(_("Error in get_siril_config(): {}").format(e)) from e
 
     def set_seq_frame_incl(self, index: int, incl: bool):
         """
@@ -3372,7 +3355,7 @@ class SirilInterface:
             self._execute_command(_Command.SET_SEQ_FRAME_INCL, payload)
             return
         except Exception as e:
-            raise SirilError(f"Error setting frame inclusion: {e}") from e
+            raise SirilError(f"Error in set_seq_frame_incl(): {e}") from e
 
     def get_image_bgsamples(self) -> Optional[List[BGSample]]:
         """
@@ -3385,9 +3368,7 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded,
-            SharedMemoryError: for shared memory errors,
             SirilError: For other errors during  data retrieval,
-            ValueError: If the received data format is invalid
         """
 
         samples = []
@@ -3463,6 +3444,8 @@ class SirilInterface:
 
             return samples
 
+        except NoImageError:
+            raise
         except Exception as e:
             raise SirilError(_("Error in get_image_bgsamples(): {}").format(e)) from e
 
@@ -3475,7 +3458,7 @@ class SirilInterface:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
-                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
+                        raise SirilError(_("Failed to cleanup shared memory"))
 
                 except Exception:
                     pass
@@ -3504,8 +3487,7 @@ class SirilInterface:
             bool: True if successful, False otherwise
 
         Raises:
-            TypeError: for incorrect data input
-            SharedMemoryError: for shared memory errors
+            SirilError: if an error occurs
 
         """
 
@@ -3564,8 +3546,7 @@ class SirilInterface:
             return True
 
         except Exception as e:
-            print(f"Error sending FITS header metadata: {e}", file=sys.stderr)
-            return False
+            raise SirilError(f"Error in set_image_metadata_from_header_string(): {e}") from e
 
         finally:
             if shm is not None:
@@ -3646,7 +3627,7 @@ class SirilInterface:
             return
 
         except Exception as e:
-            raise(f"Error clearing user polygons: {e}") from e
+            raise(f"Error in clear_user_polygons(): {e}") from e
 
     def get_user_polygon(self, polygon_id: int) -> 'UserPolygon':
         """
@@ -3672,8 +3653,9 @@ class SirilInterface:
             # Catch the polygon and disregard leftover bytes
             polygon, unused_bytes = UserPolygon.deserialize_polygon(response) # pylint: disable=unused-variable
             return polygon
+
         except Exception as e:
-            raise SirilError(_("Failed to get user polygon: {}").format(e)) from e
+            raise SirilError(_("Error in get_user_polygon(): {}").format(e)) from e
 
     def get_user_polygon_list(self) -> List['UserPolygon']:
         """
@@ -3725,10 +3707,8 @@ class SirilInterface:
 
             return polygon_list
 
-        except SharedMemoryError:
-            raise
         except Exception as e:
-            raise SirilError(_("Error in get_user_polygon_list: {}").format(e)) from e
+            raise SirilError(_("Error in get_user_polygon_list(): {}").format(e)) from e
 
         finally:
             if shm is not None:
@@ -3739,7 +3719,7 @@ class SirilInterface:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
-                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
+                        raise SirilError(_("Failed to cleanup shared memory"))
 
                 except Exception:
                     pass

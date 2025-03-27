@@ -3,6 +3,11 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""
+Exceptions submodule for Siril, providing exception classes for use
+in exception raising within the sirilpy module.
+"""
+
 from .translations import _
 from .enums import CommandStatus
 

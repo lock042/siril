@@ -11,6 +11,7 @@ import logging
 import numpy as np
 from .enums import DataType, StarProfile, SequenceType, DistoType, _Defaults
 from .translations import _
+from exceptions import SirilError
 
 @dataclass
 class ImageStats:
@@ -57,29 +58,26 @@ class ImageStats:
                 f"Received stats data size {len(data)} doesn't match expected size {expected_size}"
             )
 
-        try:
-            # Unpack the binary data
-            values = struct.unpack(format_string, data)
+        # Unpack the binary data
+        values = struct.unpack(format_string, data)
 
-            # Create and return an ImageStats object with the unpacked values
-            return cls(
-                total=values[0],
-                ngoodpix=values[1],
-                mean=values[2],
-                median=values[3],
-                sigma=values[4],
-                avgDev=values[5],
-                mad=values[6],
-                sqrtbwmv=values[7],
-                location=values[8],
-                scale=values[9],
-                min=values[10],
-                max=values[11],
-                normValue=values[12],
-                bgnoise=values[13]
-            )
-        except struct.error as e:
-            raise
+        # Create and return an ImageStats object with the unpacked values
+        return cls(
+            total=values[0],
+            ngoodpix=values[1],
+            mean=values[2],
+            median=values[3],
+            sigma=values[4],
+            avgDev=values[5],
+            mad=values[6],
+            sqrtbwmv=values[7],
+            location=values[8],
+            scale=values[9],
+            min=values[10],
+            max=values[11],
+            normValue=values[12],
+            bgnoise=values[13]
+        )
 
 @dataclass
 class FKeywords:
@@ -328,8 +326,8 @@ class FKeywords:
                 date=timestamp_to_datetime(values[50]),
                 date_obs=timestamp_to_datetime(values[51])
             )
-        except struct.error as e:
-            raise
+        except Exception as e:
+            raise SirilError(f"Deserialization error: {e}") from e
 
 @dataclass
 class FFit:
@@ -357,7 +355,7 @@ class FFit:
     _data: Optional[np.ndarray] = None #: Holds the image data as a numpy array.
 
     top_down: bool = False #: Specifies the ROWORDER for this image. The FITS specification directs that FITS should be stored bottom-up, but many CMOS sensors are natively TOP_DOWN and capture software tends to save FITS images captured by these sensors as TOP_DOWN.
-    _focalkey: bool = False 
+    _focalkey: bool = False
     _pixelkey: bool = False
 
     history: list[str] = field(default_factory=list) #: Contains a list of strings holding the HISTORY entries for this image.
@@ -519,7 +517,7 @@ class FFit:
             return self.data
         return self.data[channel, ...]
 
-    def _estimate_noise(self, array: np.ndarray, nullcheck: Optional[bool] = True, nullvalue: Optional[float] = 0.0) -> float:
+    def estimate_noise(self, array: np.ndarray, nullcheck: Optional[bool] = True, nullvalue: Optional[float] = 0.0) -> float:
         """
         Estimate the background noise in the input image using the sigma of first-order differences.
 
@@ -532,6 +530,9 @@ class FFit:
 
         Returns:
             float: Estimated noise value.
+
+        Raises:
+            ValueError: if the array is the wrong shape
         """
         farray = array.astype(np.float32)
         if farray.ndim != 2:
@@ -620,7 +621,7 @@ class FFit:
                         if not all(np.isfinite(x) for x in [stats.mean, stats.median, stats.sigma, stats.min, stats.max]):
                             raise ValueError(f"Non-finite statistics computed for channel {i}")
 
-                        stats.bgnoise = self._estimate_noise(channel_data)
+                        stats.bgnoise = self.estimate_noise(channel_data)
 
                         # More complex statistics
                         deviations = np.abs(nonzero - stats.median)
@@ -633,7 +634,7 @@ class FFit:
 
                     except (RuntimeWarning, RuntimeError) as e:
                         # Handle any numerical computation errors
-                        raise ValueError(f"Error computing statistics for channel {i}: {str(e)}")
+                        raise ValueError(f"Error computing statistics for channel {i}: {str(e)}") from e
 
                 else:
                     # Set all statistics to zero when there are no valid non-zero pixels
@@ -650,7 +651,7 @@ class FFit:
 
             except Exception as e:
                 # Log the error and set all statistics to zero for this channel
-                logging.error(f"Error processing channel {i}: {str(e)}")
+                logging.error("Error processing channel %d: %s", i, str(e))
                 stats = ImageStats()
                 stats.total = channel_data.size if 'channel_data' in locals() else 0
                 stats.ngoodpix = 0
@@ -767,7 +768,7 @@ class BGSample:
                         valid = bool(values[9])
             )
         except struct.error as e:
-            raise
+            raise SirilError(f"Deserialization error: {e}") from e
 
 @dataclass
 class PSFStar:
@@ -867,7 +868,7 @@ class PSFStar:
                 ra=values[34], dec=values[35]
             )
         except struct.error as e:
-            raise
+            raise SirilError(f"Deserialization error: {e}") from e
 
 @dataclass
 class RegData:
@@ -925,7 +926,7 @@ class RegData:
                 )
             )
         except struct.error as e:
-            raise
+            raise SirilError(f"Deserialization error: {e}") from e
 
     def __repr__(self):
         attrs = [f"    {k}={getattr(self, k)}" for k in self.__dataclass_fields__]
@@ -960,6 +961,44 @@ class ImgData:
             return "Cometary alignement"
         return "Unknown distortion type"
 
+    @classmethod
+    def deserialize(cls, response):
+        """
+        Deserialize binary response into an ImgData object.
+
+        Args:
+            response (bytes): Binary data to unpack.
+
+        Returns:
+            ImgData: An ImgData object with deserialized data.
+
+        Raises:
+            ValueError: If received data size is incorrect.
+            struct.error: If unpacking fails.
+        """
+        format_string = '!3qd2q'
+
+        # Verify data size
+        expected_size = struct.calcsize(format_string)
+        if len(response) != expected_size:
+            raise ValueError(
+                f"Received image data size {len(response)} doesn't match expected size {expected_size}"
+            )
+
+        try:
+            # Unpack the binary data
+            values = struct.unpack(format_string, response)
+
+            return cls(
+                filenum=values[0],
+                incl=values[1],
+                date_obs=datetime.fromtimestamp(values[2]) if values[2] != 0 else None,
+                airmass=values[3],
+                rx=values[4],
+                ry=values[5]
+            )
+        except struct.error as e:
+            raise SirilError(f"Deserialization error: {e}") from e
 
 @dataclass
 class DistoData:
@@ -1012,7 +1051,7 @@ class Sequence:
             self.stats = []
         if self.distoparam is None:
             self.distoparam = []
-    
+
     def __str__(self):
         """For pretty-printing sequence information"""
         pretty = f'Sequence: {self.seqname}'

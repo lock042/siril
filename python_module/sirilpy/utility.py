@@ -20,6 +20,7 @@ import requests
 from packaging import version as pkg_version
 from packaging.specifiers import SpecifierSet
 from packaging.requirements import Requirement
+from .exceptions import SirilError
 
 if TYPE_CHECKING:
     from .connection import SirilInterface
