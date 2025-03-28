@@ -142,8 +142,7 @@ class SirilInterface:
         not usually any need to close this unless for some reason you wish
         to close a connection and subsequently reopen another one. This
         method is automatically called at script termination using an ``atexit``
-        handler, and disconnecting manually will prevent some cleanup
-        operations (such as ensuring the progress bar is reset) from succeeding.
+        handler so there is no need to do so manually.
         Calling this method will reset the progress bar.
 
         Raises:
