@@ -752,13 +752,13 @@ class SirilInterface:
 
         .. code-block:: python
 
-            with self.image_lock():
+            with siril.image_lock():
                 # Get image data
                 image_data = self.get_image_pixeldata()
                 # Process image data
                 processed_data = some_processing_function(image_data)
                 # Set the processed image data
-                self.set_image_pixeldata(processed_data)
+                siril.set_image_pixeldata(processed_data)
 
         Raises:
             SirilError: If the thread cannot be claimed.
