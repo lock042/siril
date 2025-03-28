@@ -153,9 +153,8 @@ class SirilInterface:
         # disconnected and the progress bar has been left in a bad state.
         try:
             self.reset_progress()
-        except:
+        except Exception:
             print("Warning: unable to reset progress bar in disconnect()", file=sys.stderr)
-            pass
 
         atexit.unregister(self._cleanup)
         if os.name == 'nt':
@@ -185,9 +184,8 @@ class SirilInterface:
         """
         try:
             self.disconnect()
-        except:
+        except Exception:
             print("Warning: failed to clean up python module state")
-            pass
 
     def _recv_exact(self, n: int, timeout: Optional[float] = DEFAULT_TIMEOUT) -> Optional[bytes]:
         """

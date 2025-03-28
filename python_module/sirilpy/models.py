@@ -703,7 +703,7 @@ class BGSample:
     valid: bool = True  #: Samples default to being valid
     position: Optional[Tuple[float, float]] = field(default=None, init=False)  #: Position in (x, y) image coordinates
 
-    def __init__(self, *args, x=None, y=None, position=None, size=25, **kwargs):
+    def __init__(self, x=None, y=None, position=None, size=25, **kwargs):
         """
         Custom constructor to handle both (x, y) and position arguments while allowing other attributes.
         Ensures `size`, if specified, is an odd number.
