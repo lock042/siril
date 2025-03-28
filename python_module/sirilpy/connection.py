@@ -3670,7 +3670,7 @@ class SirilInterface:
                 except Exception as e:
                     pass
 
-    def add_user_polygon(self, polygon: UserPolygon)-> UserPolygon:
+    def overlay_add_polygon(self, polygon: UserPolygon)-> UserPolygon:
         """
         Adds a user polygon to the Siril display overlay
 
@@ -3701,9 +3701,9 @@ class SirilInterface:
                 raise SirilError(_("Error unpacking polygon ID")) from e
 
         except Exception as e:
-            raise SirilError(f"Error in add_user_polygon(): {e}") from e
+            raise SirilError(f"Error in overlay_add_polygon(): {e}") from e
 
-    def delete_user_polygon(self, polygon_id: int):
+    def overlay_delete_polygon(self, polygon_id: int):
         """
         Deletes a single user polygon from the Siril overlay, specified by ID
 
@@ -3722,9 +3722,9 @@ class SirilInterface:
             return
 
         except Exception as e:
-            raise SirilError(f"Error in delete_user_polygon(): {e}") from e
+            raise SirilError(f"Error in overlay_delete_polygon(): {e}") from e
 
-    def clear_user_polygons(self) -> bool:
+    def overlay_clear_polygons(self) -> bool:
         """
         Clears all user polygons from the Siril overlay
 
@@ -3740,9 +3740,9 @@ class SirilInterface:
             return
 
         except Exception as e:
-            raise(f"Error in clear_user_polygons(): {e}") from e
+            raise(f"Error in overlay_clear_polygons(): {e}") from e
 
-    def get_user_polygon(self, polygon_id: int) -> 'UserPolygon':
+    def overlay_get_polygon(self, polygon_id: int) -> 'UserPolygon':
         """
         Gets a single user polygon from the Siril overlay, specified by ID
 
@@ -3768,9 +3768,9 @@ class SirilInterface:
             return polygon
 
         except Exception as e:
-            raise SirilError(_("Error in get_user_polygon(): {}").format(e)) from e
+            raise SirilError(_("Error in overlay_get_polygon(): {}").format(e)) from e
 
-    def get_user_polygon_list(self) -> List['UserPolygon']:
+    def overlay_get_polygons_list(self) -> List['UserPolygon']:
         """
         Gets a List of all user polygons from the Siril overlay
 
@@ -3821,7 +3821,7 @@ class SirilInterface:
             return polygon_list
 
         except Exception as e:
-            raise SirilError(_("Error in get_user_polygon_list(): {}").format(e)) from e
+            raise SirilError(_("Error in overlay_get_polygons_list(): {}").format(e)) from e
 
         finally:
             if shm is not None:
