@@ -11,6 +11,7 @@ of methods that can be used to get and set data from / to Siril.
 
 import os
 import sys
+import atexit
 import socket
 import struct
 import threading
@@ -39,12 +40,16 @@ class SirilInterface:
     Siril's inbuilt command system and accessing image and sequence data.
     """
 
+    _connected = False
+
     def __init__(self):
         """
         Initialize the SirilInterface, automatically determining the
         correct pipe or socket path based on the environment variable and
         operating system. Internal method.
         """
+        self.connected = False
+
         if os.name == 'nt':
             self.pipe_path = os.getenv('MY_PIPE')
             if not self.pipe_path:
@@ -83,6 +88,9 @@ class SirilInterface:
             SirilConnectionError: if a connection error occurred
         """
 
+        if SirilInterface._connected:
+            raise SirilConnectionError(_("Error: a SirilInterface is already connected to Siril"))
+
         try:
             if os.name == 'nt':
                 print(f"Connecting to Windows pipe: {self.pipe_path}")
@@ -105,6 +113,9 @@ class SirilInterface:
                         current_pid = os.getpid()
                         print(f'Current ProcessID is {current_pid}')
                         self.info_messagebox(f'Current ProcessID is {current_pid}', False)
+                    SirilInterface._connected = True
+                    self.connected = True
+                    atexit.register(self._cleanup)
                     return True
                 except pywintypes.error as e:
                     if e.winerror == winerror.ERROR_PIPE_BUSY:
@@ -117,6 +128,9 @@ class SirilInterface:
                     current_pid = os.getpid()
                     print(f'Current ProcessID is {current_pid}')
                     self.info_messagebox(f'Current ProcessID is {current_pid}', False)
+                SirilInterface._connected = True
+                self.connected = True
+                atexit.register(self._cleanup)
                 return True
 
         except Exception as e:
@@ -124,12 +138,18 @@ class SirilInterface:
 
     def disconnect(self):
         """
-        Closes the established socket or pipe connection.
+        Closes the established socket or pipe connection. Note there is
+        not usually any need to close this unless for some reason you wish
+        to close a connection and subsequently reopen another one. This
+        method is automatically called at script termination using an ``atexit``
+        handler, and disconnecting manually will prevent some cleanup
+        operations (such as ensuring the progress bar is reset) from succeeding.
 
         Raises:
             SirilConnectionError: if the connection cannot be closed.
         """
 
+        atexit.unregister(self._cleanup)
         if os.name == 'nt':
             if hasattr(self, 'pipe_handle'):
                 # Close the pipe handle
@@ -139,12 +159,28 @@ class SirilInterface:
                     win32file.CloseHandle(self.overlap_read.hEvent)
                 if hasattr(self, 'overlap_write'):
                     win32file.CloseHandle(self.overlap_write.hEvent)
+                SirilInterface._connected = False
                 return
             raise SirilError(_("No pipe connection to close"))
         if hasattr(self, 'sock'):
             self.sock.close()
+            SirilInterface._connected = False
             return
         raise SirilConnectionError(_("No socket connection to close"))
+
+    def _cleanup(self):
+        """
+        Cleanup method that will run on exit. This is registered once,
+        automatically, when the first SirilInterface class is created.
+        If the connection persists it attempts to reset the progress bar;
+        any other "at exit" methods may be added here as required.
+        """
+        try:
+            self.reset_progress()
+            self.disconnect()
+        except:
+            print("Warning: failed to clean up python module state")
+            pass
 
     def _recv_exact(self, n: int, timeout: Optional[float] = DEFAULT_TIMEOUT) -> Optional[bytes]:
         """
