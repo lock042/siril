@@ -144,10 +144,19 @@ class SirilInterface:
         method is automatically called at script termination using an ``atexit``
         handler, and disconnecting manually will prevent some cleanup
         operations (such as ensuring the progress bar is reset) from succeeding.
+        Calling this method will reset the progress bar.
 
         Raises:
             SirilConnectionError: if the connection cannot be closed.
         """
+
+        # Attempt to reset the progress bar in case the script exits while
+        # disconnected and the progress bar has been left in a bad state.
+        try:
+            self.reset_progress()
+        except:
+            print("Warning: unable to reset progress bar in disconnect()", file=sys.stderr)
+            pass
 
         atexit.unregister(self._cleanup)
         if os.name == 'nt':
@@ -176,7 +185,6 @@ class SirilInterface:
         any other "at exit" methods may be added here as required.
         """
         try:
-            self.reset_progress()
             self.disconnect()
         except:
             print("Warning: failed to clean up python module state")
@@ -1244,13 +1252,7 @@ class SirilInterface:
             # Extract the bytes for this struct and unpack
             values = struct.unpack(format_string, response)
 
-            try:
-                star = PSFStar.deserialize(response)
-            except struct.error as e:
-                print(f"Error unpacking star data: {e}", file=sys.stderr)
-                raise RuntimeError(_("Error processing star data: {}").format(e)) from e
-
-            return star
+            return PSFStar.deserialize(response)
 
         except Exception as e:
             raise SirilError(_("Error in get_selection_star(): {}").format(e)) from e
@@ -1361,25 +1363,20 @@ class SirilInterface:
 
             if not response:
                 raise SirilConnectionError(_("Failed to transfer coordinates: No data received"))
-            try:
-                # Define the format string for unpacking the C struct
-                # '!' for network byte order (big-endian)
-                # 'd' for double (all floating point values)
-                format_string = '!2d'  # '!' ensures network byte order
+            # Define the format string for unpacking the C struct
+            # '!' for network byte order (big-endian)
+            # 'd' for double (all floating point values)
+            format_string = '!2d'  # '!' ensures network byte order
 
-                # Calculate expected size
-                expected_size = struct.calcsize(format_string)
+            # Calculate expected size
+            expected_size = struct.calcsize(format_string)
 
-                # Verify we got the expected amount of data
-                if len(response) != expected_size:
-                    raise SirilConnectionError(f"Received data size {len(response)} doesn't match expected size {expected_size}")
+            # Verify we got the expected amount of data
+            if len(response) != expected_size:
+                raise SirilConnectionError(f"Received data size {len(response)} doesn't match expected size {expected_size}")
 
-                # Unpack the binary data
-                values = struct.unpack(format_string, response)
-            except struct.error as e:
-                print(f"Error unpacking data: {e}", file=sys.stderr)
-                raise SirilError(_("Error processing data: {}").format(e)) from e
-            return values
+            # Unpack the binary data
+            return struct.unpack(format_string, response)
 
         except Exception as e:
             raise SirilError(_("Error in pix2radec(): {e}")) from e
@@ -2924,9 +2921,7 @@ class SirilInterface:
             # Verify data size
             expected_size = struct.calcsize(format_string)
             if len(response) != expected_size:
-                print(f"Received image data size {len(response)} doesn't match expected size {expected_size}",
-                    file=sys.stderr)
-                return None
+                raise ValueError(f"Received image data size {len(response)} doesn't match expected size {expected_size}")
 
             # Unpack the binary data
             values = struct.unpack(format_string, response)
@@ -3112,9 +3107,7 @@ class SirilInterface:
             # Verify data size
             expected_size = struct.calcsize(format_string)
             if len(response) != expected_size:
-                print(f"Received image data size {len(response)} doesn't match expected size {expected_size}",
-                    file=sys.stderr)
-                return None
+                raise ValueError(f"Received image data size {len(response)} doesn't match expected size {expected_size}")
 
             # Unpack the binary data
             values = struct.unpack(format_string, response)
@@ -3698,8 +3691,7 @@ class SirilInterface:
             # Send it using _execute_command
             response = self._request_data(_Command.ADD_USER_POLYGON, polygon_bytes)
             if response is None:
-                print("Error sending user polygon", file=sys.stderr)
-                return None
+                raise RuntimeError(_("Failed to get a response from the SirilInterface"))
 
             try:
                 # Assuming the response is in the format: !i (ID) (4 bytes)
