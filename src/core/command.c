@@ -3676,7 +3676,7 @@ int process_set_mag(int nb) {
 		struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
 		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 		free(ps);
-		if (result && result->phot_is_valid && error != PSF_NO_ERR) {
+		if (result && result->phot_is_valid && error == PSF_NO_ERR) {
 			found = TRUE;
 			mag = result->phot->mag;
 		}
@@ -4359,13 +4359,11 @@ int process_psf(int nb){
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
 	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, FALSE, ps, TRUE, profile, &error);
 	free(ps);
-	if (result && result->phot_is_valid && error != PSF_NO_ERR) {
+	if (result) {
 		gchar *str = format_psf_result(result, &com.selection, &gfit, NULL);
 		siril_log_message("%s\n", str);
 		g_free(str);
 	}
-	else
-		siril_log_message(_("PSF minimisation failed with error %d\n"), error);
 	free_psf(result);
 	return CMD_OK;
 }
