@@ -1136,6 +1136,7 @@ psf_star *duplicate_psf(psf_star *psf) {
 }
 
 void free_psf(psf_star *psf) {
+	if (!psf) return;
 	if (psf->phot) free(psf->phot);
 	if (psf->star_name) g_free(psf->star_name);
 	free(psf);
