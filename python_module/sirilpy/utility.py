@@ -376,6 +376,7 @@ class SuppressedStdout:
         os.dup2(self.devnull.fileno(), 1)  # Redirect stdout to devnull
         self.original_stdout = sys.stdout
         sys.stdout = self.devnull  # Also redirect Python stdout
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         os.dup2(self.original_stdout_fd, 1)  # Restore stdout
@@ -406,6 +407,7 @@ class SuppressedStderr:
         os.dup2(self.devnull.fileno(), 2)  # Redirect stderr to devnull
         self.original_stderr = sys.stderr
         sys.stderr = self.devnull  # Also redirect Python stderr
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         os.dup2(self.original_stderr_fd, 2)  # Restore stderr
