@@ -624,7 +624,7 @@ gpointer light_curve_worker(gpointer arg) {
 	if (!retval)
 		retval = new_light_curve("light_curve.dat", args);
 	if (!retval && args->display_graph && args->spl_data) {
-		siril_add_idle(create_new_siril_plot_window, args->spl_data);
+		siril_add_pythonsafe_idle(create_new_siril_plot_window, args->spl_data);
 	}
 	free_light_curve_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
 	siril_add_idle(end_light_curve_worker, NULL);

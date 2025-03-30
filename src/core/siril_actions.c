@@ -62,6 +62,7 @@
 #include "gui/menu_gray_geometry.h"
 #include "gui/registration_preview.h"
 #include "gui/remixer.h"
+#include "gui/user_polygons.h"
 #include "livestacking/livestacking.h"
 #include "registration/registration.h"
 #include "io/siril_catalogues.h"
@@ -379,7 +380,7 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	psf_error error = PSF_NO_ERR;
 	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 	free(ps);
-	if (result && result->phot_is_valid && error != PSF_NO_ERR)
+	if (result)
 		popup_psf_result(result, &com.selection, &gfit);
 	free_psf(result);
 }
@@ -408,6 +409,7 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 			com.found_object = find_objects_in_field(&gfit);
 		}
 	} else {
+		clear_user_polygons();
 		g_slist_free(com.found_object);
 		com.found_object = NULL;
 		purge_user_catalogue(CAT_AN_USER_TEMP);

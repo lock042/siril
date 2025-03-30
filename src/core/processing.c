@@ -389,7 +389,9 @@ the_end:
 	if (!args->already_in_a_thread) {
 		gboolean run_idle;
 		if (args->idle_function)
-			run_idle = siril_add_idle(args->idle_function, args) > 0;
+			run_idle = siril_add_idle(args->idle_function, args) > 0; // not python safe because of the call to
+					// update_sequences_list, which may be running after the next python command has started
+					// and clobbers things
 		else run_idle = siril_add_idle(end_generic_sequence, args) > 0; // the generic idle
 
 		if (!run_idle) {
@@ -915,6 +917,14 @@ gboolean end_generic(gpointer arg) {
  */
 guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	if (!com.script && !com.python_script && !com.headless)
+		return gdk_threads_add_idle(idle_function, data);
+	return 0;
+}
+
+/* Must only ever be used for GTK updates. Do not call any functions that mess about
+ * with files using this idle, it can break python scripts */
+guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data) {
+	if (!com.script && !com.headless)
 		return gdk_threads_add_idle(idle_function, data);
 	return 0;
 }

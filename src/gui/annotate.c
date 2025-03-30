@@ -142,7 +142,7 @@ static siril_cat_index get_cat_index_from_combo() {
 	if (local_cat == BOOL_NOT_SET)
 		local_cat = (int)local_catalogues_available();
 	if (cat == CAT_AUTO) {
-		cat = (local_cat) ? CAT_LOCAL : CAT_NOMAD;
+		cat = (local_cat) ? get_local_catalogue_index() : CAT_NOMAD;
 	}
 
 	return cat;

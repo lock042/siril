@@ -86,10 +86,10 @@ typedef enum {
 	CAT_SHOW = 96, // for the show command
 	CAT_COMPSTARS = 97,
 	CAT_AUTO = 98,
-	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
-	CAT_LOCAL_TRIX = 100, // for trixel query
-	CAT_LOCAL_GAIA_ASTRO = 101, // siril local (with Gaia source_id)
-	CAT_LOCAL_GAIA_XPSAMP = 102 // siril local (with Gaia source_id and sampled SPCC data)
+	CAT_LOCAL_KSTARS = 99,		// siril local (KStars Tycho-2 and NOMAD)
+	CAT_LOCAL_GAIA_ASTRO = 100, // siril local (with Gaia source_id)
+	CAT_LOCAL_GAIA_XPSAMP = 101, // siril local (with Gaia source_id and sampled SPCC data)
+	CAT_LOCAL_TRIX = 102, // for trixel query
 } siril_cat_index;
 
 typedef enum {
@@ -161,9 +161,6 @@ typedef struct {
 	GDateTime *dateobs; // date-obs in JD
 	gchar *IAUcode; // observatory code
 	gboolean phot; // TRUE if can be used for photometry
-	double epoch; // epoch for proper motion
-	double ra_multiplier; // multiplier for uint32_t RA representation
-	double dec_multiplier; // multiplier for uint32_t Dec representation
 	cat_item *cat_items;
 	int nbitems; // the number of items stored
 	int nbincluded; // the number of items included after projection
@@ -241,6 +238,9 @@ void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to, gboolean m
 gboolean is_star_catalogue(siril_cat_index Catalog);
 gboolean display_names_for_catalogue(siril_cat_index Catalog);
 float siril_catalog_get_default_limit_mag(siril_cat_index cat);
+double siril_catalog_epoch(siril_cat_index cat);
+double siril_catalog_ra_multiplier(siril_cat_index cat);
+double siril_catalog_dec_multiplier(siril_cat_index cat);
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat);
 int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename);

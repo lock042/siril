@@ -223,7 +223,8 @@ static void compute_limit_mag(struct astrometry_data *args) {
 }
 
 static gboolean solve_is_near(struct astrometry_data *args) {
-	return args->solver == SOLVER_LOCALASNET || (args->ref_stars && args->ref_stars->cat_index == CAT_LOCAL && args->searchradius > 0);
+	return args->solver == SOLVER_LOCALASNET || 
+			(args->ref_stars && (args->ref_stars->cat_index == CAT_LOCAL_KSTARS || args->ref_stars->cat_index == CAT_LOCAL_GAIA_ASTRO) && args->searchradius > 0);
 }
 
 SirilWorldCS *get_eqs_from_header(fits *fit) {
@@ -883,14 +884,15 @@ gpointer plate_solver(gpointer p) {
 		if (args->solver == SOLVER_LOCALASNET) {
 			siril_log_message(_("Plate solving image with astrometry.net for a field of view of %.2f degrees\n"), args->used_fov / 60.0);
 		} else {
-			const char *catstr = args->ref_stars->cat_index == CAT_LOCAL ? _("local catalogues") :
-				(args->ref_stars->cat_index == CAT_LOCAL_GAIA_ASTRO || args->ref_stars->cat_index == CAT_LOCAL_GAIA_XPSAMP) ? _("local Gaia catalogue") :
-					_("an online catalogue");
-			siril_log_message(_("Plate solving image from %s for a field of view of %.2f"
+			const char *catstr = (args->ref_stars->cat_index == CAT_LOCAL_KSTARS || args->ref_stars->cat_index == CAT_LOCAL_GAIA_ASTRO) ? _("local") :
+					_("online");
+			siril_log_message(_("Plate solving image from %s %s for a field of view of %.2f"
 						" degrees%s, using a limit magnitude of %.2f\n"),
 					catstr,
+					catalog_to_str(args->ref_stars->cat_index),
 					args->used_fov / 60.0,
-					args->uncentered ? _(" (uncentered)") : "", args->ref_stars->limitmag);
+					args->uncentered ? _(" (uncentered)") : "",
+					args->ref_stars->limitmag);
 		}
 	}
 
@@ -1927,9 +1929,9 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	rectangle croparea = { 0 };
 	if (!args->manual) {
 		// first checking if there is a selection or if the full field is to be used (siril only)
-		if (args->solver == SOLVER_SIRIL && com.selection.w != 0 && com.selection.h != 0) {
-			memcpy(&croparea, &com.selection, sizeof(rectangle));
-			siril_log_color_message(_("Warning: using the current selection to detect stars\n"), "salmon");
+		if (!args->autocrop && args->solver == SOLVER_SIRIL && args->solvearea.w != 0 && args->solvearea.h != 0) {
+			memcpy(&croparea, &args->solvearea, sizeof(rectangle));
+			siril_log_color_message(_("Using the current selection to detect stars\n"), "salmon");
 			selected = TRUE;
 		} else {
 			croparea.x = 0;
@@ -1997,6 +1999,15 @@ void process_plate_solver_input(struct astrometry_data *args) {
 
 	compute_limit_mag(args); // to call after having set args->used_fov
 
+	// selecting local catalogues if available
+	if ((args->ref_stars->cat_index == CAT_GAIADR3 || args->ref_stars->cat_index == CAT_AUTO) &&
+		local_gaia_available()) {
+		args->ref_stars->cat_index = CAT_LOCAL_GAIA_ASTRO;
+	} else if ((args->ref_stars->cat_index == CAT_TYCHO2 || args->ref_stars->cat_index == CAT_NOMAD || args->ref_stars->cat_index == CAT_AUTO) &&
+		local_kstars_available()) {
+		args->ref_stars->cat_index = CAT_LOCAL_KSTARS;
+	}
+	// selecting online catalogues if needed
 	if (args->ref_stars->cat_index == CAT_AUTO) {
 		if (args->ref_stars->limitmag <= 6.5) {
 			args->ref_stars->cat_index = CAT_BSC;
@@ -2053,6 +2064,9 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	}
 	if (!args->nocache)
 		return get_catalog_stars(args->ref_stars);
+	if (args->solver == SOLVER_SIRIL)
+		siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
+				catalog_to_str(args->ref_stars->cat_index));
 	args->seqprogress = 0; // initialize success counter
 	args->seqskipped = 0; // initialize skipped counter
 	return 0;
@@ -2067,11 +2081,72 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		return 0;
 	}
 
-	// we detect stars first (using aargs_master)
+	// We prepare to platesolve and collect the catalog inputs
+	struct astrometry_data *aargs = copy_astrometry_args(aargs_master);
+	if (!aargs)
+		return 1;
+
+	char root[256];
+	if (!fit_sequence_get_image_filename(arg->seq, i, root, FALSE)) {
+		siril_catalog_free(aargs->ref_stars);
+		if (aargs->cat_center) // not filled if asnet blind solve
+			siril_world_cs_unref(aargs->cat_center);
+		free(aargs);
+		if (aargs_master->update_reg) // we don't want to exclude if it's just a seqplatesolve without astrometric registration
+			arg->seq->imgparam[i].incl = FALSE;
+		return 1;
+	}
+
+	if (aargs->nocache) {
+		if (!aargs->forced_metadata[FORCED_CENTER] && aargs->cat_center) { // center coordinates where not forced, we need to read new ones from header or skip if blind for asnet
+			SirilWorldCS *target_coords = get_eqs_from_header(fit);
+			if (target_coords) {
+				siril_world_cs_unref(aargs->cat_center);
+				aargs->cat_center = target_coords;
+				if (aargs->ref_stars && target_coords) {
+					aargs->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
+					aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+				}
+			} else {
+				siril_log_color_message(_("Could not retrieve center coordinates from image %s metadata, using reference image value instead\n"), "salmon", root);
+			}
+		}
+		if (!aargs->forced_metadata[FORCED_PIXEL]) { // pixel size was not forced, we need to read new one from header/settings
+			double pixel_size = max(fit->keywords.pixel_size_x, fit->keywords.pixel_size_y);
+			if (pixel_size <= 0.) {
+				pixel_size = com.pref.starfinder_conf.pixel_size_x;
+				if (pixel_size <= 0.0) {
+					pixel_size = aargs->pixel_size;
+					siril_log_color_message(_("Could not retrieve pixel size from image %s metadata or settings, using reference image value instead\n"), "salmon", root);
+				}
+			}
+			aargs->pixel_size = pixel_size;
+		}
+		if (!aargs->forced_metadata[FORCED_FOCAL]) { // focal was not forced, we need to read new one from header/settings
+			double focal_length = fit->keywords.focal_length;
+			if (focal_length <= 0.0) {
+				focal_length = com.pref.starfinder_conf.focal_length;
+				if (focal_length <= 0.0) {
+					focal_length = aargs->focal_length;
+					siril_log_color_message(_("Could not retrieve focal length from image %s metadata or settings, using reference image value instead\n"), "red", root);
+				}
+			}
+			aargs->focal_length = focal_length;
+		}
+	}
+
+	// we need to call process_plate_solver_input and finding stars to implement the slection if any
+	aargs->fit = fit;
+	process_plate_solver_input(aargs);
+	if (aargs->solvearea.w != 0 && aargs->solvearea.h != 0) {
+		aargs->sfargs->selection = aargs->solvearea;
+	}
+
+	// we detect stars (using aargs)
 	int nb_stars = 0;
 	psf_star **stars = NULL;
 
-	struct starfinder_data *sf_data = findstar_image_worker(aargs_master->sfargs, -1, i, fit, area, threads);
+	struct starfinder_data *sf_data = findstar_image_worker(aargs->sfargs, -1, i, fit, NULL, threads);
 	if (sf_data) {
 		stars = *sf_data->stars;
 		nb_stars = *sf_data->nb_stars;
@@ -2091,9 +2166,11 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		current_regdata[i].H = (Homography){ 0 }; // we will update it in the finalize_hook
 	}
 
+	if (aargs_master->update_reg) // we don't want to exclude if it's just a seqplatesolve without astrometric registration
+		arg->seq->imgparam[i].incl = FALSE;
+
 	if (!nb_stars) {
 		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
-		arg->seq->imgparam[o].incl = FALSE;
 		return 1;
 	}
 
@@ -2106,88 +2183,31 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
 			g_atomic_int_inc(&aargs_master->seqskipped);
 			siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
+			arg->seq->imgparam[i].incl = TRUE;
+			g_atomic_int_inc(&aargs_master->seqprogress);
 		}
 		free_fitted_stars(stars);
-		g_atomic_int_inc(&aargs_master->seqprogress);
+		free(aargs);
 		return status;
 	}
 
-	// We prepare to platesolve and collect the catalog inputs
-	struct astrometry_data *aargs = copy_astrometry_args(aargs_master);
-	if (!aargs)
-		return 1;
-	aargs->fit = fit;
 	aargs->manual = TRUE;
 	aargs->stars = stars;
-
-	char root[256];
-	if (!fit_sequence_get_image_filename(arg->seq, i, root, FALSE)) {
-		siril_catalog_free(aargs->ref_stars);
-		if (aargs->cat_center) // not filled if asnet blind solve
-			siril_world_cs_unref(aargs->cat_center);
-		free(aargs);
-		return 1;
-	}
-
-	if (aargs->nocache) {
-		if (!aargs->forced_metadata[FORCED_CENTER] && aargs->cat_center) { // center coordinates where not forced, we need to read new ones from header or skip if blind for asnet
-			siril_world_cs_unref(aargs->cat_center);
-			SirilWorldCS *target_coords = get_eqs_from_header(fit);
-			aargs->cat_center = target_coords;
-			if (aargs->ref_stars && target_coords) {
-				aargs->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
-				aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
-			}
-		}
-		if (aargs->solver == SOLVER_SIRIL && !aargs->cat_center) { // we need a cat_center for Siril
-			siril_debug_print("Could not set cat_center, skipping\n");
-			siril_catalog_free(aargs->ref_stars);
-			free(aargs);
-			return 1;
-		}
-		if (!aargs->forced_metadata[FORCED_PIXEL]) { // pixel size was not forced, we need to read new one from header/settings
-			aargs->pixel_size = max(fit->keywords.pixel_size_x, fit->keywords.pixel_size_y);
-			if (aargs->pixel_size <= 0.) {
-				aargs->pixel_size = com.pref.starfinder_conf.pixel_size_x;
-				if (aargs->pixel_size <= 0.0) {
-					siril_log_color_message(_("Could not retrieve pixel size from image %s metadata or settings, skipping\n"), "red", root);
-					siril_catalog_free(aargs->ref_stars);
-					if (aargs->cat_center) // not filled if asnet blind solve
-						siril_world_cs_unref(aargs->cat_center);
-					free(aargs);
-					return 1;
-				}
-			}
-		}
-		if (!aargs->forced_metadata[FORCED_FOCAL]) { // focal was not forced, we need to read new one from header/settings
-			aargs->focal_length = fit->keywords.focal_length;
-			if (aargs->focal_length <= 0.0) {
-				aargs->focal_length = com.pref.starfinder_conf.focal_length;
-				if (aargs->focal_length <= 0.0) {
-					siril_log_color_message(_("Could not retrieve focal length from image %s metadata or settings, skipping\n"), "red", root);
-					siril_catalog_free(aargs->ref_stars);
-					if (aargs->cat_center) // not filled if asnet blind solve
-						siril_world_cs_unref(aargs->cat_center);
-					free(aargs);
-					return 1;
-				}
-			}
-		}
-	}
 	if (aargs->solver == SOLVER_LOCALASNET)
 		aargs->filename = g_strdup(root);	// for localasnet
 
 	if (i == arg->seq->reference_image) { // we want to save master distortion only once for ref image
 		aargs->distofilename = g_strdup(aargs_master->distofilename);
 	}
-	process_plate_solver_input(aargs);
 
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
 
 	if (retval) {
 		siril_log_color_message(_("Image %s did not solve\n"), "red", root);
-		arg->seq->imgparam[i].incl = FALSE;
 	}
+
+	if (aargs->update_reg) // we don't want to exclude if it's just a seqplatesolve with astrometric registration
+		arg->seq->imgparam[i].incl = (gboolean)!retval;
 
 	if (!retval && !arg->has_output) { // SEQ_REGULAR
 		fit_sequence_get_image_filename(arg->seq, i, root, TRUE);
@@ -2200,8 +2220,8 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			siril_log_color_message(_("Image %s platesolved and updated\n"), "salmon", root);
 		} else {
 			siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
+			arg->seq->imgparam[i].incl = FALSE;
 			free(aargs);
-			g_atomic_int_inc(&aargs_master->seqprogress);
 			return 1;
 		}
 	}
@@ -2210,11 +2230,13 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		struct wcsprm *wcs = wcs_deepcopy(fit->keywords.wcslib, &status);
 		if (status) {
 			siril_log_color_message(_("Could not copy WCS data, skipping image %d\n"), "salmon", i + 1);
+			arg->seq->imgparam[i].incl = FALSE;
 		} else {
 			memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
 		}
 	}
-	g_atomic_int_inc(&aargs_master->seqprogress);
+	if (!retval)
+		g_atomic_int_inc(&aargs_master->seqprogress);
 	return retval;
 }
 
@@ -2230,6 +2252,7 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		siril_log_color_message(_("Computing astrometric registration...\n"), "green");
 		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_CURRENT, aargs->layer, NULL, NULL);
 	}
+	fix_selnum(arg->seq, FALSE);
 	if (!arg->retval)
 		writeseqfile(arg->seq);
 	if (aargs->cat_center)
@@ -2288,9 +2311,6 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 		args->force = TRUE;
 	}
 	seqargs->user = args;
-	if (args->solver == SOLVER_SIRIL)
-		siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
-				catalog_to_str(args->ref_stars->cat_index));
 	if(!start_in_new_thread(generic_sequence_worker, seqargs)) {
 		free_astrometry_data(args);
 		free_generic_seq_args(seqargs, TRUE);

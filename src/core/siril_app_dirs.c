@@ -120,6 +120,9 @@ static void search_for_locale_dir() {
 		gchar *path = g_build_filename(LOCALEDIR, NULL);
 		if (g_file_test(path, G_FILE_TEST_IS_DIR)) {
 			siril_locale_dir = g_strdup(path);
+		} else {
+			g_warning("Locale directory %s not found in OSX, using fallback", path);
+			siril_locale_dir = g_strdup("/usr/share/locale");
 		}
 		g_free(path);
 	}
@@ -127,11 +130,25 @@ static void search_for_locale_dir() {
 	const gchar *relocated_path = g_getenv("APPDIR");
 	if (relocated_path != NULL) {
 		siril_locale_dir = g_build_filename(relocated_path, "usr", "share", "locale", NULL);
+	} else {
+		g_warning("APPDIR environment variable not set in AppImage");
+		gchar *path = g_build_filename(LOCALEDIR, NULL);
+		if (g_file_test(path, G_FILE_TEST_IS_DIR)) {
+			siril_locale_dir = g_strdup(path);
+		} else {
+			g_warning("Locale directory %s not found in AppImage, using fallback", path);
+			siril_locale_dir = g_strdup("/usr/share/locale");
+		}
+		g_free(path);
 	}
 #else
 	gchar *path = g_build_filename(LOCALEDIR, NULL);
+
 	if (g_file_test(path, G_FILE_TEST_IS_DIR)) {
 		siril_locale_dir = g_strdup(path);
+	} else {
+		g_warning("Locale directory %s not found, using fallback", path);
+		siril_locale_dir = g_strdup("/usr/share/locale");
 	}
 	g_free(path);
 #endif

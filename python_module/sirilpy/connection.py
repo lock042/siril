@@ -9,7 +9,7 @@ import ctypes
 import socket
 import struct
 import threading
-from enum import IntEnum
+from enum import IntEnum, unique
 from datetime import datetime
 from typing import Tuple, Optional, List, Union
 import numpy as np
@@ -17,7 +17,8 @@ from .translations import _
 from .shm import SharedMemoryWrapper
 from .plot import PlotData, _PlotSerializer
 from .exceptions import SirilError, SirilConnectionError, CommandError, NoImageError
-from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType
+from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType, SirilPoint, UserPolygon
+from .enums import _Command, _Status, _CommandStatus, _Defaults, _ConfigType
 
 DEFAULT_TIMEOUT = 5.
 
@@ -27,83 +28,7 @@ if os.name == 'nt':
     import pywintypes
     import winerror
 
-class _Status(IntEnum):
-    """
-    Returns the status of a command. NONE is for commands that
-    may legitimately fail to return data but which should not be
-    regarded as an error, instead this triggers the command processor
-    to return the special python value None
-    Internal class: this is not intended for use in scripts.
-    """
-
-    OK = 0
-    NONE = 1
-    ERROR = 0xFF
-
-class _Command(IntEnum):
-    """
-    Enumerates the commands. This enum MUST match the one in
-    siril_pythonmodule.h. Internal class: this is not intended for
-    use in scripts.
-    """
-    SEND_COMMAND = 1
-    LOG_MESSAGE = 2
-    UPDATE_PROGRESS = 3
-    GET_WORKING_DIRECTORY = 4
-    GET_FILENAME = 5
-    GET_DIMENSIONS = 6
-    GET_PIXELDATA = 7
-    GET_PIXELDATA_REGION = 8
-    RELEASE_SHM = 9
-    SET_PIXELDATA = 10
-    GET_IMAGE_STATS = 11
-    GET_KEYWORDS = 12
-    GET_ICC_PROFILE = 13
-    GET_FITS_HEADER = 14
-    GET_FITS_HISTORY = 15
-    GET_FITS_UNKNOWN_KEYS = 16
-    GET_IMAGE = 17
-    GET_PSFSTARS = 18
-    GET_SEQ_STATS = 19
-    GET_SEQ_REGDATA = 20
-    GET_SEQ_IMGDATA = 21
-    GET_SEQ_PIXELDATA = 22
-    GET_SEQ_IMAGE = 23
-    GET_SEQ = 24
-    GET_CONFIG = 25
-    GET_USERCONFIGDIR = 26
-    GET_IS_IMAGE_LOADED = 27
-    GET_IS_SEQUENCE_LOADED = 28
-    GET_SELECTION = 29
-    SET_SELECTION = 30
-    GET_ACTIVE_VPORT = 31
-    GET_STAR_IN_SELECTION = 32
-    GET_STATS_FOR_SELECTION = 33
-    PIX2WCS = 34
-    WCS2PIX = 35
-    UNDO_SAVE_STATE = 36
-    GET_BUNDLE_PATH = 37
-    ERROR_MESSAGEBOX = 38
-    ERROR_MESSAGEBOX_MODAL = 39
-    SIRIL_PLOT = 40
-    CLAIM_THREAD = 41
-    RELEASE_THREAD = 42
-    SET_SEQ_FRAME_PIXELDATA = 43
-    REQUEST_SHM = 44
-    SET_SEQ_FRAME_INCL = 45
-    GET_USERDATADIR = 46
-    GET_SYSTEMDATADIR = 47
-    GET_BGSAMPLES = 48
-    SET_BGSAMPLES = 49
-    GET_SEQ_FRAME_FILENAME = 50
-    INFO_MESSAGEBOX = 51
-    INFO_MESSAGEBOX_MODAL = 52
-    WARNING_MESSAGEBOX = 53
-    WARNING_MESSAGEBOX_MODAL = 54
-    GET_SEQ_DISTODATA = 55
-    SET_IMAGE_HEADER = 56
-    ERROR = 0xFF
-
+@unique
 class LogColor (IntEnum):
     """
     Defines colors available for use with ``SirilInterface.log()``
@@ -118,29 +43,6 @@ class LogColor (IntEnum):
     SALMON = 2
     GREEN = 3
     BLUE = 4
-
-class _Defaults:
-    """
-    Contains default values for different datatypes, matching Siril
-    """
-    DEFAULT_DOUBLE_VALUE = -999.0
-    DEFAULT_FLOAT_VALUE = -999.0
-    DEFAULT_INT_VALUE = -2147483647
-    DEFAULT_UINT_VALUE = 2147483647
-    VALUES = {DEFAULT_DOUBLE_VALUE, DEFAULT_FLOAT_VALUE, DEFAULT_INT_VALUE, DEFAULT_UINT_VALUE}
-
-class _ConfigType(IntEnum):
-    """
-    Enumerates config variable types for use with the
-    ``get_siril_config()`` method. Internal class: this is not intended
-    for use in scripts.
-    """
-    BOOL = 0
-    INT = 1
-    DOUBLE = 2
-    STR = 3
-    STRDIR = 4
-    STRLIST = 5
 
 class _SharedMemoryInfo(ctypes.Structure):
     """
@@ -650,9 +552,13 @@ class SirilInterface:
     def claim_thread(self) -> bool:
         """
         Claim the processing thread. This prevents other processes using the
-        processing thread to operate on the current Siril image. This function
-        **must** always be called before starting any processing that will end with
-        ``SirilInterface.set_image_pixeldata()``. The sequence of operations should be:
+        processing thread to operate on the current Siril image. The preferred
+        method of thread control is to use the image_lock() context manager
+        rather than using this function manually.
+
+        This function **must** always be called before starting any processing
+        that will end with ``SirilInterface.set_image_pixeldata()``. The
+        sequence of operations should be:
 
         * Call ``SirilInterface.claim_thread()``
         * If the result is False, alert the user and await further input: the
@@ -698,9 +604,13 @@ class SirilInterface:
     def release_thread(self) -> bool:
         """
         Release the processing thread. This permits other processes to use the
-        processing thread to operate on the current Siril image. This function
-        MUST always be called after completing any processing that has updated
-        the image loaded in Siril. The sequence of operations should be:
+        processing thread to operate on the current Siril image. The preferred
+        method of thread control is to use the image_lock() context manager
+        rather than using this function manually.
+
+        This function **must** always be called after completing any processing
+        that has updated the image loaded in Siril. The sequence of operations
+        should be:
 
         * Call ``SirilInterface.claim_thread()``
         * If the result is False, alert the user and await further input: the
@@ -730,6 +640,98 @@ class SirilInterface:
 
         except Exception as e:
             print(f"Error releasing the processing thread: {e}", file=sys.stderr)
+            return False
+
+    def image_lock(self):
+        """
+        A context manager that handles claiming and releasing the processing thread.
+
+        This method is designed to be used with a `with` statement to ensure that
+        the thread is properly claimed before processing and released after processing,
+        even if an exception occurs during processing. It is preferable to use this
+        context manager rather than manually calling claim_thread() and
+        release_thread() as the context manager will ensure correct cleanup if an
+        exception occurs.
+
+        Note that the image_lock() context should only be entered when the script itself
+        is operating on the Siril image data. If the script is calling a Siril command
+        to alter the Siril image then the context **must not** be entered or the Siril
+        command will be unable to acquire the processing thread and will fail.
+
+        Example usage:
+
+        .. code-block:: python
+
+            with self.image_lock():
+                # Get image data
+                image_data = self.get_image_pixeldata()
+                # Process image data
+                processed_data = some_processing_function(image_data)
+                # Set the processed image data
+                self.set_image_pixeldata(processed_data)
+
+        Raises:
+            RuntimeError: If the thread cannot be claimed.
+        """
+        class ImageLockContext:
+            def __init__(self, outer_self):
+                self.outer_self = outer_self
+                self.claimed = False
+
+            def __enter__(self):
+                if not self.outer_self.claim_thread():
+                    raise RuntimeError("Failed to claim processing thread. Thread may be in use or an image processing dialog is open.")
+                self.claimed = True
+                return self.outer_self
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                if self.claimed:
+                    self.outer_self.release_thread()
+                    self.claimed = False
+                # Don't suppress exceptions
+                return False
+
+        return ImageLockContext(self)
+
+    def confirm_messagebox(self, title: str, message: str, confirm_label: str) -> bool:
+        """
+        Create a modal confirmation message dialog in Siril and wait for the response.
+
+        Args:
+            title: The title to display in the message box (up to 256 characters)
+            message: The message to display in the message box (up to 1021 characters)
+            confirm_label: The label to display in the message box confirmation button (OK, Yes, Confirm etc.) (Up to 24 characters)
+
+        Returns:
+            bool: True if the message box confirmation button was clicked, False otherwise
+
+        Raises:
+            RuntimeError: if an error occurred.
+        """
+        try:
+            # Truncate strings to allowed lengths
+            truncated_title = title[:256]
+            truncated_message = message[:1021]
+            truncated_label = confirm_label[:24]
+
+            # Encode strings and add null terminators
+            encoded_title = truncated_title.encode('utf-8') + b'\0'
+            encoded_message = truncated_message.encode('utf-8') + b'\0'
+            encoded_label = truncated_label.encode('utf-8') + b'\0'
+
+            # Concatenate into one buffer
+            message_bytes = encoded_title + encoded_message + encoded_label
+
+            # Call the command with the encoded data
+            response = self._request_data(_Command.CONFIRM_MESSAGEBOX, message_bytes, timeout=None)
+
+            if response is None:
+                raise SirilError(_("Error sending confirm_messagebox command"))
+
+            return bool(int.from_bytes(response, byteorder='little'))
+
+        except Exception as e:
+            print(f"Error sending confirmation message: {e}", file=sys.stderr)
             return False
 
     def _messagebox(self, my_string: str, cmd_type: int, modal: Optional[bool] = False) -> bool:
@@ -916,26 +918,68 @@ class SirilInterface:
             *args: Variable number of string arguments to be combined into a command
 
         Raises:
-            RuntimeError: If the command failed.
+            CommandError: If the command fails with a specific error code.
+            SirilError: If another error occurs during execution.
 
         Example:
             .. code-block:: python
-
                 siril.cmd("ght", "-D=0.5", "-b=2.0")
         """
-
         try:
             # Join arguments with spaces between them
             command_string = " ".join(str(arg) for arg in args)
-
             # Convert to bytes for transmission
             command_bytes = command_string.encode('utf-8')
 
-            if self._execute_command(_Command.SEND_COMMAND, command_bytes, timeout = None) is False:
-                raise SirilError(_(f"Error: _execute_command({args[0]}) failed."))
+            # Use _request_data instead of _execute_command
+            response = self._request_data(_Command.SEND_COMMAND, command_bytes, timeout=None)
+
+            if response is None:
+                raise SirilError(_(f"Error: _request_data({args}) failed."))
+
+            # Convert response bytes to integer from network byte order
+            if len(response) == 4:  # Valid response is int32_t ie 4 bytes
+                status_code = int.from_bytes(response, byteorder='big')
+
+                # Check against _CommandStatus enum
+                if status_code == _CommandStatus.CMD_OK or status_code == _CommandStatus.CMD_NO_WAIT:
+                    return  # Command executed successfully
+                # ERROR HANDLING
+                # Map status code to error message
+                error_messages = {
+                    _CommandStatus.CMD_NOT_FOUND: "Command not found",
+                    _CommandStatus.CMD_NO_WAIT: "Command does not wait for completion",
+                    _CommandStatus.CMD_NO_CWD: "Current working directory not set",
+                    _CommandStatus.CMD_NOT_SCRIPTABLE: "Command not scriptable",
+                    _CommandStatus.CMD_WRONG_N_ARG: "Wrong number of arguments",
+                    _CommandStatus.CMD_ARG_ERROR: "Argument error",
+                    _CommandStatus.CMD_SELECTION_ERROR: "Selection error",
+                    _CommandStatus.CMD_GENERIC_ERROR: "Generic error",
+                    _CommandStatus.CMD_IMAGE_NOT_FOUND: "Image not found",
+                    _CommandStatus.CMD_SEQUENCE_NOT_FOUND: "Sequence not found",
+                    _CommandStatus.CMD_INVALID_IMAGE: "Invalid image",
+                    _CommandStatus.CMD_LOAD_IMAGE_FIRST: "Load image first",
+                    _CommandStatus.CMD_ONLY_SINGLE_IMAGE: "Command requires a single image to be loaded",
+                    _CommandStatus.CMD_NOT_FOR_SINGLE: "Command not for single images",
+                    _CommandStatus.CMD_NOT_FOR_MONO: "Command not for monochrome images",
+                    _CommandStatus.CMD_NOT_FOR_RGB: "Command not for RGB images",
+                    _CommandStatus.CMD_FOR_CFA_IMAGE: "Command only for CFA images",
+                    _CommandStatus.CMD_FILE_NOT_FOUND: "File not found",
+                    _CommandStatus.CMD_FOR_PLATE_SOLVED: "Command requires plate-solved image",
+                    _CommandStatus.CMD_NEED_INIT_FIRST: "Initialization required first",
+                    _CommandStatus.CMD_ALLOC_ERROR: "Memory allocation error",
+                    _CommandStatus.CMD_THREAD_RUNNING: "Command thread already running",
+                    _CommandStatus.CMD_DIR_NOT_FOUND: "Directory not found"
+                }
+                print(f"Status code: {status_code}")
+                error_message = error_messages.get(status_code, f"Unknown error code: {status_code}")
+                raise CommandError(_(f"Command '{args[0]}' failed: {error_message}"), status_code)
+            else:
+                # Handle case where response doesn't contain enough bytes for a status code
+                raise SirilError(_(f"Error: Response from {args[0]} incorrect size to contain a status code."))
 
         except Exception as e:
-            raise RuntimeError(_("Error executing command {}: {}").format(args[0], e)) from e
+            raise  # Re-raise without wrapping
 
     def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
         """
@@ -3782,4 +3826,165 @@ class SirilInterface:
                     shm.close()
                     self._execute_command(_Command.RELEASE_SHM, shm_info)
                 except Exception as e:
+                    pass
+
+    def add_user_polygon(self, polygon: UserPolygon)-> UserPolygon:
+        """
+        Adds a user polygon to the Siril display overlay
+
+        Args:
+            polyon: UserPolygon defining the polygon to be added
+
+        Returns:
+            UserPolygon: the input updated with the ID assigned by Siril
+        """
+
+        try:
+            # Serialize the provided polygon
+            polygon_bytes = polygon.serialize()
+            # Send it using _execute_command
+            response = self._request_data(_Command.ADD_USER_POLYGON, polygon_bytes)
+            if response is None:
+                print("Error sending user polygon", file=sys.stderr)
+                return None
+
+            try:
+                # Assuming the response is in the format: !i (ID) (4 bytes)
+                id = struct.unpack('!i', response)[0]
+                polygon.polygon_id = id
+                return polygon
+            except struct.error as e:
+                print(f"Error retrieving assigned polygon ID: {e}", file=sys.stderr)
+                return None
+
+        except Exception as e:
+            print(f"Error sending user polygon: {e}", file=sys.stderr)
+            return None
+
+    def delete_user_polygon(self, polygon_id: int) -> bool:
+        """
+        Deletes a single user polygon from the Siril overlay, specified by ID
+
+        Args:
+            id: int specifying the polygon ID to be deleted
+        Returns:
+            bool: True if the command succeeded, False otherwise
+        """
+        try:
+            # Create payload: network-order int followed by string
+            # '!I' for network byte order 32-bit int
+            payload = struct.pack('!i', polygon_id)
+
+            return self._execute_command(_Command.DELETE_USER_POLYGON, payload)
+
+        except Exception as e:
+            print(f"Error sending progress update: {e}", file=sys.stderr)
+            return False
+
+    def clear_user_polygons(self) -> bool:
+        """
+        Clears all user polygons from the Siril overlay
+
+        Returns:
+            bool: True if the command succeeded, False otherwise
+        """
+
+        try:
+            success = self._execute_command(_Command.CLEAR_USER_POLYGONS, None)
+            return success
+
+        except Exception as e:
+            print(f"Error clearing user polygons: {e}", file=sys.stderr)
+            return False
+
+    def get_user_polygon(self, polygon_id: int) -> 'UserPolygon':
+        """
+        Gets a single user polygon from the Siril overlay, specified by ID
+
+        Args:
+            id: int specifying the polygon ID to be deleted
+
+        Returns:
+            UserPolygon: the specified UserPolygon if it exists, None otherwise
+
+        Raises:
+            RuntimeError: if an error occurred processing the command
+        """
+        try:
+            payload = struct.pack('!i', polygon_id)
+            # Send it using _request_data
+            response = self._request_data(_Command.GET_USER_POLYGON, payload)
+            if response is None:
+                return None
+
+            # Catch the polygon and disregard leftover bytes
+            polygon, _ = UserPolygon.deserialize_polygon(response)
+            return polygon
+        except Exception as e:
+            raise RuntimeError(_("Failed to get user polygon: {}").format(e)) from e
+
+    def get_user_polygon_list(self) -> List['UserPolygon']:
+        """
+        Gets a List of all user polygons from the Siril overlay
+
+        Returns:
+            List[UserPolygon]: the list of UserPolygon if some exist, None otherwise
+
+        Raises:
+            RuntimeError: if an error occurred processing the command
+        """
+        try:
+            status, response = self._send_command(_Command.GET_USER_POLYGON_LIST)
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("No image is currently loaded in Siril"))
+                    raise RuntimeError(_("Server error: {}").format(error_msg))
+                raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
+
+            if status == _Status.NONE:
+                return None
+
+            if not response:
+                raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
+
+            try:
+                # Parse the shared memory information
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise ValueError(_("Invalid shared memory information received: {}").format(e)) from e
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise RuntimeError(_("Failed to map shared memory: {}").format(e)) from e
+
+            # Read entire buffer at once using memoryview
+            buffer = bytearray(shm.buf)[:shm_info.size]
+
+            polygon_list = UserPolygon.deserialize_polygon_list(buffer)
+
+            return polygon_list
+
+        except Exception as e:
+            raise RuntimeError(_("Error processing polygon data: {}").format(e)) from e
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    finish_info = struct.pack('256s', shm_info.shm_name)
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                        raise RuntimeError(_("Failed to cleanup shared memory"))
+
+                except Exception:
                     pass

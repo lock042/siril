@@ -6,10 +6,11 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, Tuple, List
-import numpy as np
-from enum import IntEnum
-from .translations import _
+from enum import IntEnum, unique
+import struct
 import logging
+import numpy as np
+from .translations import _
 
 class DataType(IntEnum):
     """
@@ -119,8 +120,6 @@ class FKeywords:
     sitelat: float = 0.0 # [deg] Observation site latitude
     sitelong: float = 0.0 #: [deg] Observation site longitude
     siteelev: float = 0.0 #: [m] Observation site elevation
-
-
 
 @dataclass
 class FFit:
@@ -520,6 +519,7 @@ class BGSample:
             if field_name not in {"position", "size"}:  # Already set manually
                 setattr(self, field_name, kwargs.get(field_name, getattr(self.__class__, field_name)))
 
+@unique
 class StarProfile(IntEnum):
     """
     Python equivalent of the Siril starprofile enum. Used to identify the type
@@ -531,6 +531,7 @@ class StarProfile(IntEnum):
     MOFFAT = 1
     MOFFAT_FIXED = 2
 
+@unique
 class SequenceType(IntEnum):
     """Python equivalent of the Siril sequence_type enum"""
     SEQ_REGULAR = 0
@@ -624,6 +625,7 @@ class ImgData:
         attrs = [f"    {k}={getattr(self, k)}" for k in self.__dataclass_fields__]
         return f"{self.__class__.__name__}(\n" + ",\n".join(attrs) + "\n)"
 
+@unique
 class DistoType(IntEnum):
     """Python equivalent of the Siril disto_source enum"""
     DISTO_UNDEF = 0      #: No distortion
@@ -636,18 +638,17 @@ class DistoType(IntEnum):
     def __str__(self):
         if self == DistoType.DISTO_UNDEF:
             return "No distortion"
-        elif self == DistoType.DISTO_IMAGE:
+        if self == DistoType.DISTO_IMAGE:
             return "Distortion from current image"
-        elif self == DistoType.DISTO_FILE: 
+        if self == DistoType.DISTO_FILE:
             return "Distortion from given file"
-        elif self == DistoType.DISTO_MASTER:
+        if self == DistoType.DISTO_MASTER:
             return "Distortion from master files"
-        elif self == DistoType.DISTO_FILES:
+        if self == DistoType.DISTO_FILES:
             return "Distortion stored in each file"
-        elif self == DistoType.DISTO_FILE_COMET:
+        if self == DistoType.DISTO_FILE_COMET:
             return "Cometary alignement"
-        else:
-            return "Unknown distortion type"
+        return "Unknown distortion type"
 
 
 @dataclass
@@ -690,11 +691,6 @@ class Sequence:
     type: SequenceType = None            #: the type of sequence
     cfa_opened_monochrome: bool = False  #: CFA SER opened in monochrome mode
     current: int = 0                     #: file number currently loaded
-    # The following fields are not currently implemented:
-    # photometry: List[List[PSFStar]] = None  # psf for multiple stars
-    # reference_star: int = 0              # reference star for apparent magnitude
-    # reference_mag: float = 0.0           # reference magnitude for reference star
-    # photometry_colors: List[List[float]] = None  # colors for each photometry curve
 
     def __post_init__(self):
         """Initialize lists that were set to None by default"""
@@ -717,11 +713,167 @@ class Sequence:
         if not self.is_variable:
             pretty += f'\nImage size: {self.rx}x{self.ry}'
         else:
-            pretty += f'\nImages have variable sizes'
+            pretty += '\nImages have variable sizes'
         for i, r in enumerate(self.regparam):
             if any(rr is not None for rr in r):
-                pretty += f'\nSequence has registration data'
+                pretty += '\nSequence has registration data'
                 pretty += f' from layer {i}' if self.nb_layers > 1 else ''
                 if self.distoparam is not None and self.distoparam[i] is not None and self.distoparam[i].index != DistoType.DISTO_UNDEF:
                     pretty += f'\nDistortion found in this layer: {self.distoparam[i]}'
         return pretty
+
+@dataclass
+class SirilPoint:
+    """
+    Represents a 2D point in the Siril image with x and y coordinates.
+    """
+    x: float #: x co-ordinate
+    y: float #: y co-ordinate
+
+MAX_POINTS_PER_POLYGON = 100
+
+@dataclass
+class UserPolygon:
+    """
+    Represents a user-defined polygon for display in the image overlay. These
+    can be filled or outline-only, and can have any color and transparency
+    (alpha) value. They can also have an optional label which is displayed
+    centred on the polygon.
+
+    Note that UserPolygons should be considered transitory - they can be used
+    to display information to the user but they may be cleared at any time if
+    the user toggles the overlay button in the main Siril interface to clear
+    the overlay.
+
+    Attributes:
+        polygon_id (int): A unique identifier for the polygon.
+        points (List[Point]): List of points defining the polygon's shape.
+        color (int): Packed RGBA color (32-bit integer).
+        fill (bool): If True, the polygon should be filled when drawn.
+        legend (str): Optional legend for the polygon.
+    """
+    points: List[SirilPoint] #: List of points defining the polygon's shape
+    polygon_id: int = 0 #: unique identifier
+    color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF)
+    fill: bool = False #: whether or not the polygon should be filled when drawn
+    legend: str = None #: an optional legend
+
+    def __str__(self):
+        """For pretty-printing polygon information"""
+        pretty = f'User-defined overlay polygon: {self.legend}'
+        pretty += f'\nID: {self.polygon_id}'
+        pretty += f'\nColor (RGBA): 0x{self.color:08X}'
+        pretty += f'\nFill: {self.fill}'
+        for i, point in enumerate(self.points):
+            pretty += f'\nPoint {i}: {point.x}, {point.y}'
+        return pretty
+
+    def serialize(self) -> bytes:
+        """
+        Serializes a single UserPolygon object into a byte array.
+
+        Returns:
+            bytes: A byte array representing the serialized polygon data.
+
+        Raises:
+            ValueError: If the number of points exceeds the allowed limit.
+        """
+        if len(self.points) > MAX_POINTS_PER_POLYGON:
+            raise ValueError(f"Too many points in polygon {self.polygon_id}: max allowed is {MAX_POINTS_PER_POLYGON}")
+
+        # Pack ID, number of points, color, and fill flag
+        # Use 'I' for unsigned int and '?' for boolean
+        buffer = bytearray()
+        buffer.extend(struct.pack('!iiI?', self.polygon_id, len(self.points), self.color, self.fill))
+
+        # Pack each point as float
+        for point in self.points:
+            buffer.extend(struct.pack('!dd', point.x, point.y))
+
+        # Pack the legend (if it exists)
+        if self.legend is not None:
+            legend_bytes = self.legend.encode('utf-8')
+            # Pack the length of the string first, then the string itself
+            buffer.extend(struct.pack('!i', len(legend_bytes)))
+            buffer.extend(legend_bytes)
+        else:
+            # If legend is None, pack a length of 0
+            buffer.extend(struct.pack('!i', 0))
+
+        return bytes(buffer)
+
+    @classmethod
+    def deserialize_polygon(cls, data: bytes) -> Tuple['UserPolygon', bytes]:
+        """
+        Creates a UserPolygon object by deserializing a byte array.
+
+        Returns:
+            Tuple: A UserPolygon object and any remaining bytes in the byte
+                   array. (The remaining bytes are for use in
+                   deserialize_polygon_list and can be safely ignored if
+                   deserializing a single polygon.)
+
+        Raises:
+            ValueError: If there is insufficient data to deserialize.
+        """
+        if len(data) < 13:
+            raise ValueError("Invalid data size for polygon")
+
+        polygon_id, n_points, color, fill = struct.unpack('!iiI?', data[:13])
+        data = data[13:]
+
+        if n_points < 0 or n_points > MAX_POINTS_PER_POLYGON:
+            raise ValueError(f"Invalid number of points: {n_points}")
+
+        points = []
+        for _ in range(n_points):
+            if len(data) < 16:
+                raise ValueError("Not enough data for points")
+
+            x, y = struct.unpack('!dd', data[:16])
+            data = data[16:]
+            points.append(SirilPoint(x, y))
+
+        # Read legend length
+        if len(data) < 4:
+            raise ValueError("Not enough data for legend length")
+
+        legend_length = struct.unpack('!i', data[:4])[0]
+        data = data[4:]
+
+        if legend_length > 0:
+            if len(data) < legend_length:
+                raise ValueError("Not enough data for legend string")
+
+            legend = data[:legend_length].decode('utf-8')
+            data = data[legend_length:]
+        else:
+            legend = None
+
+        polygon = cls(points, polygon_id, color, fill, legend)
+        return polygon, data
+
+    @classmethod
+    def deserialize_polygon_list(cls, data: bytes) -> List['UserPolygon']:
+        """
+        Creates a List of UserPolygon objects by deserializing a byte array.
+
+        Returns:
+            List: A List of UserPolygon objects.
+
+        Raises:
+            ValueError: If there is invalid data to deserialize.
+        """
+        if len(data) < 4:
+            raise ValueError("Invalid data size for polygon list")
+
+        num_polygons = struct.unpack('!I', data[:4])[0]
+        data = data[4:]
+
+        polygons = []
+        for _ in range(num_polygons):
+            # Create each polygon from the remaining data
+            polygon, data = cls.deserialize_polygon(data)
+            polygons.append(polygon)
+
+        return polygons

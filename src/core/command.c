@@ -1933,7 +1933,7 @@ int process_update_key(int nb) {
 		if (strlen(__key__) > 8) { \
 			siril_log_color_message(_("The size of the key can't exceed 8 characters.\n"), "red"); \
 			g_free(__key__); \
-			if (!check_seq_is_comseq(seq)) \
+			if (!check_seq_is_comseq(__seq__)) \
 				free_sequence(__seq__, TRUE); \
 			free(__args__); \
 			return CMD_ARG_ERROR; \
@@ -3676,7 +3676,7 @@ int process_set_mag(int nb) {
 		struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
 		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 		free(ps);
-		if (result && result->phot_is_valid && error != PSF_NO_ERR) {
+		if (result && result->phot_is_valid && error == PSF_NO_ERR) {
 			found = TRUE;
 			mag = result->phot->mag;
 		}
@@ -4359,13 +4359,11 @@ int process_psf(int nb){
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
 	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, FALSE, ps, TRUE, profile, &error);
 	free(ps);
-	if (result && result->phot_is_valid && error != PSF_NO_ERR) {
+	if (result) {
 		gchar *str = format_psf_result(result, &com.selection, &gfit, NULL);
 		siril_log_message("%s\n", str);
 		g_free(str);
 	}
-	else
-		siril_log_message(_("PSF minimisation failed with error %d\n"), error);
 	free_psf(result);
 	return CMD_OK;
 }
@@ -5314,7 +5312,7 @@ int process_findstar(int nb) {
 	args->starfile = NULL;
 	args->max_stars_fitted = 0;
 	args->threading = MULTI_THREADED;
-	args->update_GUI = (!com.headless && !com.script);
+	args->update_GUI = !com.script;
 	siril_debug_print("findstar profiling %s stars\n", (com.pref.starfinder_conf.profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat");
 
 	cmd_errors argparsing = parse_findstar(args, 1, nb);
@@ -5324,9 +5322,8 @@ int process_findstar(int nb) {
 		free(args);
 		return argparsing;
 	}
-	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		siril_log_color_message(_("Warning: an undebayered CFA image is loaded. Star detection may produce results for this image but will not perform optimally and star parameters may be inaccurate.\n"), "salmon");
+	if (!com.script && com.selection.w != 0 && com.selection.h != 0) {
+		args->selection = com.selection;
 	}
 
 	if (!start_in_new_thread(findstar_worker, args)) {
@@ -5871,6 +5868,10 @@ int process_subsky(int nb) {
 		seq = load_sequence(word[1], NULL);
 		if (!seq) {
 			return CMD_SEQUENCE_NOT_FOUND;
+		}
+		if (check_seq_is_comseq(seq)) {
+			free_sequence(seq, TRUE);
+			seq = &com.seq;
 		}
 	} else {
 		if (!single_image_is_loaded()) return CMD_IMAGE_NOT_FOUND;
@@ -9766,7 +9767,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	gboolean atmos = FALSE, slp = TRUE;
 	double pressure = 1013.25; // standard atmosphere
 	double obsheight = gfit.keywords.siteelev != DEFAULT_DOUBLE_VALUE ? gfit.keywords.siteelev : 10.0;
-	gboolean local_cat = local_catalogues_available();
+	gboolean local_kstars = local_kstars_available();
 	gboolean local_gaia = local_gaia_available();
 	int next_arg = 1;
 
@@ -9800,7 +9801,7 @@ static int do_pcc(int nb, gboolean spectro) {
 			if (!spectro) {
 				char *arg = word[next_arg] + 9;
 				if (!g_strcmp0(arg, "nomad"))
-					cat = CAT_NOMAD;
+					cat = local_kstars ? CAT_LOCAL_KSTARS : CAT_NOMAD;
 				else if (!g_strcmp0(arg, "gaia"))
 					cat = CAT_GAIADR3;
 				else if (!g_strcmp0(arg, "localgaia")) {
@@ -9820,9 +9821,14 @@ static int do_pcc(int nb, gboolean spectro) {
 				char *arg = word[next_arg] + 9;
 				if (!g_strcmp0(arg, "gaia"))
 					cat = CAT_GAIADR3_DIRECT;
-				else if (!g_strcmp0(arg, "localgaia"))
+				else if (!g_strcmp0(arg, "localgaia")) {
 					cat = CAT_LOCAL_GAIA_XPSAMP;
-				else {
+					if (!local_gaia_xpsamp_available()) {
+						siril_log_color_message(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"), "salmon");
+						cat = CAT_GAIADR3_DIRECT;
+				
+					}
+				} else {
 					siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 					return CMD_ARG_ERROR;
@@ -9931,15 +9937,15 @@ static int do_pcc(int nb, gboolean spectro) {
 		}
 	}
 
-	if (!spectro && local_cat && cat == CAT_AUTO) {
-		cat = CAT_LOCAL;
+	if (!spectro && cat == CAT_AUTO) {
+		cat = local_kstars ? CAT_LOCAL_KSTARS : CAT_NOMAD;
 	} else if (spectro && cat == CAT_AUTO) {
 		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : CAT_GAIADR3_DIRECT;
 	}
-	if (!spectro && local_cat && cat != CAT_LOCAL) {
+	if (!spectro && local_kstars && cat != CAT_LOCAL_KSTARS) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
 				"salmon", catalog_to_str(cat));
-		local_cat = FALSE;
+		local_kstars = FALSE;
 	}
 
 	struct photometric_cc_data *pcc_args = NULL;	// filled only if pcc_command
@@ -10055,7 +10061,6 @@ int process_platesolve(int nb) {
 	cmd_errors retval = CMD_OK;
 	struct astrometry_data *args = NULL;
 
-	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
 	if (seqps) {
 		if (!(seq = load_sequence(word[1], NULL)))
@@ -10225,20 +10230,6 @@ int process_platesolve(int nb) {
 		goto clean_and_exit_platesolve; // not an arror, retval is CMD_OK
 	}
 
-	if (local_cat && (cat == CAT_AUTO || (cat != CAT_GAIADR3 && cat != CAT_PPMXL && cat != CAT_APASS))) {
-		cat = CAT_LOCAL;
-		autocrop = FALSE; // we don't crop fov when using local catalogues
-		siril_debug_print("forced no crop when using local catalogues\n");
-		nocache = TRUE; // we solve each image individually when using local catalogues
-		siril_debug_print("forced no cache when using local catalogues\n");
-	}
-
-	if (local_cat && cat != CAT_LOCAL && solver == SOLVER_SIRIL) {
-		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
-				"salmon", catalog_to_str(cat));
-		local_cat = FALSE;
-	}
-
 	if (solver == SOLVER_LOCALASNET && !asnet_is_available()) {
 		siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
 		retval = CMD_GENERIC_ERROR;
@@ -10371,14 +10362,22 @@ int process_platesolve(int nb) {
 		clearfits(preffit);
 	args->solver = solver;
 	args->downsample = downsample;
-	args->autocrop = autocrop && solver == SOLVER_SIRIL && cat != CAT_LOCAL; // we don't crop fov when using local catalogues or asnet
-	args->nocache = nocache || solver == SOLVER_LOCALASNET || cat == CAT_LOCAL;
+	args->autocrop = autocrop && solver == SOLVER_SIRIL; // we don't crop fov when using asnet
+	args->nocache = nocache || 
+					solver == SOLVER_LOCALASNET || 
+					((cat == CAT_AUTO || cat == CAT_GAIADR3 || cat == CAT_NOMAD || cat == CAT_TYCHO2) && local_catalogues_available());
 	if (!searchradius && solver == SOLVER_LOCALASNET && !asnet_blind_pos) {
 		args->searchradius = com.pref.astrometry.radius_degrees;
 		siril_log_color_message(_("Cannot force null radius for localasnet if not blind solving, using default instead\n"), "red");
 	} else {
 		args->searchradius = searchradius;
 	}
+
+	if (!com.script && com.selection.w > 0 && com.selection.h > 0 && (!seqps || !seq->is_variable)) {
+		args->solvearea = com.selection;
+		args->autocrop = FALSE;
+	}
+
 	if (distofilename) {
 		args->distofilename = distofilename;
 	}
@@ -10444,7 +10443,7 @@ int process_platesolve(int nb) {
 	}
 	return CMD_OK;
 clean_and_exit_platesolve:
-	if (seq && check_seq_is_comseq(seq))
+	if (seq && !check_seq_is_comseq(seq))
 		free_sequence(seq, TRUE);
 	if (target_coords)
 		siril_world_cs_unref(target_coords);
@@ -10458,7 +10457,7 @@ clean_and_exit_platesolve:
 
 static conesearch_params* parse_conesearch_args(int nb) {
 	conesearch_params *params = init_conesearch_params();
-	gboolean local_cat = local_catalogues_available();
+	gboolean local_kstars = local_kstars_available();
 
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -10526,7 +10525,7 @@ static conesearch_params* parse_conesearch_args(int nb) {
 			params->default_obscode_used = FALSE;
 			params->obscode = g_strdup(arg);
 		} else if (g_str_has_prefix(word[arg_idx], "-trix=")) {
-			if (!local_cat) {
+			if (!local_kstars) {
 				siril_log_color_message(_("No local catalogues found, ignoring -trix option\n"), "red");
 				continue;
 			}
@@ -10590,8 +10589,8 @@ static conesearch_params* parse_conesearch_args(int nb) {
 	}
 
 	if (params->cat == CAT_AUTO) {
-		params->cat = (local_cat) ? CAT_LOCAL : CAT_NOMAD;
-		if (params->trixel >= 0 && params->cat == CAT_LOCAL)
+		params->cat = (local_kstars) ? CAT_LOCAL_KSTARS : CAT_NOMAD;
+		if (params->trixel >= 0 && params->cat == CAT_LOCAL_KSTARS)
 			params->cat = CAT_LOCAL_TRIX;
 	}
 
@@ -10919,7 +10918,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
-		if (g_str_has_prefix(word[i], "-tri") || g_str_has_prefix(word[i], "-bgremove")) {
+		if (g_str_has_prefix(word[i], "-tri")/* || g_str_has_prefix(word[i], "-bgremove")*/) {
 			cut_args->tri = TRUE;
 		}
 		else if (g_str_has_prefix(word[i], "-cfa")) {
@@ -10982,7 +10981,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 				break;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-xaxis=wavenum")) {
+/*		else if (g_str_has_prefix(arg, "-xaxis=wavenum")) {
 			cut_args->plot_as_wavenumber = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-xaxis=wavelen")) {
@@ -11008,7 +11007,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			arg += 8;
 			cut_args->bg_poly_order = (int) g_ascii_strtod(arg, &end);
 		}
-		else if (g_str_has_prefix(arg, "-from=")) {
+*/		else if (g_str_has_prefix(arg, "-from=")) {
 			gchar *value;
 			value = arg + 6;
 			if ((*err = read_cut_pair(value, &cut_args->cut_start))) {
@@ -11024,7 +11023,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 				break;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-wn1at=")) {
+/*		else if (g_str_has_prefix(arg, "-wn1at=")) {
 			gchar *value;
 			value = arg + 7;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn1))) {
@@ -11040,7 +11039,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 				break;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-filename=")) {
+*/		else if (g_str_has_prefix(arg, "-filename=")) {
 			if (seq) {
 				siril_log_color_message(_("Error: this option cannot be used for sequences.\n"), "red");
 				*err = CMD_ARG_ERROR;

@@ -961,12 +961,26 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 			break;
 		case SEQ_FITSEQ:
 			assert(seq->fitseq_file);
-			dest->fptr = seq->fitseq_file->fptr;
-			if (fitseq_set_current_frame(seq->fitseq_file, index) ||
-					read_fits_metadata(dest)) {
-				siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
-						index, seq->seqname);
+			if (seq->fitseq_file->thread_fptr) {
+#ifdef _OPENMP
+				int thread_id = omp_get_thread_num();
+				dest->fptr = seq->fitseq_file->thread_fptr[thread_id];
+				if (read_fits_metadata(dest)) {
+					siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
+							index, seq->seqname);
+					return 1;
+				}
+#else
 				return 1;
+#endif
+			} else {
+				dest->fptr = seq->fitseq_file->fptr;
+				if (fitseq_set_current_frame(seq->fitseq_file, index) ||
+						read_fits_metadata(dest)) {
+					siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
+							index, seq->seqname);
+					return 1;
+				}
 			}
 			break;
 
@@ -2277,9 +2291,13 @@ gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filen
 				stat(img_filename, &imgfileInfo) ||
 				stat(cache_filename, &cachefileInfo))
 			return FALSE;
-		if (cachefileInfo.st_mtime < imgfileInfo.st_mtime)
+		if (cachefileInfo.st_ctime < imgfileInfo.st_ctime) {
 			siril_debug_print("%s is older than %s\n", cache_filename, img_filename);
-		return (cachefileInfo.st_mtime >= imgfileInfo.st_mtime);
+			if (!g_unlink(cache_filename))
+				siril_debug_print(_("Removed outdated cache file %s failed\n"), cache_filename);
+			return FALSE;
+		}
+		return TRUE;
 	}
 	// else, we check the sequence date vs cachefile date
 	gchar *seqname;
@@ -2288,7 +2306,7 @@ gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filen
 	else seqname = seq->fitseq_file->filename;
 	if (stat(seqname, &imgfileInfo) || stat(cache_filename, &cachefileInfo))
 		return FALSE;
-	return (cachefileInfo.st_mtime >= imgfileInfo.st_mtime);
+	return (cachefileInfo.st_ctime >= imgfileInfo.st_ctime);
 }
 
 gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix) {

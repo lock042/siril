@@ -294,10 +294,10 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 //				break;
 //			case CAT_LOCAL_GAIA_XPSAMP:
 //			default:;
-//				memcpy(&star_spectrum.y, stars[i].flux, 343 * sizeof(double));
+//				memcpy(&star_spectrum.y, stars[i].flux, XPSAMPLED_LEN * sizeof(double));
 		//				break;
 //		}
-		memcpy(&star_spectrum.y, stars[i].xp_sampled, 343 * sizeof(double));
+		memcpy(&star_spectrum.y, stars[i].xp_sampled, XPSAMPLED_LEN * sizeof(double));
 
 		// Convert flux to relative photon count normalized at 550nm
 		flux_to_relcount(&star_spectrum);
@@ -439,7 +439,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 			spl_datarg->cfgdata.point.radius = 1;
 			spl_datarg->cfgdata.point.sz = 2;
 			spl_datarg->cfgdata.line.sz = 2;
-			siril_add_idle(create_new_siril_plot_window, spl_datarg);
+			siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_datarg);
 		}
 
 		int ngoodbg = filtermaskArrays(cbg, ibg, maskbg, ngood);
@@ -463,7 +463,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 			spl_databg->cfgdata.point.radius = 1;
 			spl_databg->cfgdata.point.sz = 2;
 			spl_databg->cfgdata.line.sz = 2;
-			siril_add_idle(create_new_siril_plot_window, spl_databg);
+			siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_databg);
 		}
 
 		siril_add_idle(end_generic, NULL);
@@ -857,15 +857,12 @@ gpointer photometric_cc_standalone(gpointer p) {
 		mag += args->magnitude_arg;
 
 	int retval = 0;
-	if (args->catalog == CAT_LOCAL || args->catalog == CAT_LOCAL_GAIA_XPSAMP) {
+	if (args->catalog == CAT_LOCAL_KSTARS || args->catalog == CAT_LOCAL_GAIA_ASTRO || args->catalog == CAT_LOCAL_GAIA_XPSAMP) {
 		siril_log_message(_("Getting stars from local catalogue %s for %s, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), args->spcc ? _("SPCC") : _("PCC"), radius * 2.0,  mag);
 	} else {
 		switch (args->catalog) {
 			case CAT_GAIADR3:
 				mag = min(mag, 18.0);
-				break;
-			case CAT_LOCAL_GAIA_ASTRO:
-				mag = min(mag, 18.0);	// not very important, this catalogue is density-populated rather than magnitude-limited
 				break;
 			case CAT_GAIADR3_DIRECT:
 				mag = min(mag, 17.6);	// most Gaia XP_SAMPLED spectra are for mag < 17.6
@@ -893,7 +890,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, 5000);
 		for (int i = 0 ; i < siril_cat->nbitems ; i++) {
 			// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
-			siril_cat->cat_items[i].xp_sampled = malloc(343 * sizeof(double));
+			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
 			get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
 		}
 	} else if (siril_catalog_conesearch(siril_cat) <= 0) {

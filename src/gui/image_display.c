@@ -44,6 +44,7 @@
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/siril_preview.h"
+#include "gui/user_polygons.h"
 #include "livestacking/livestacking.h"
 #include "histogram.h"
 #include "registration/matching/degtorad.h"
@@ -1009,6 +1010,101 @@ static void draw_measurement_line(const draw_data_t* dd) {
 	cairo_line_to(cr, gui.measure_end.x + 0.5, gui.measure_end.y + 0.5);
 	cairo_stroke(cr);
 	cairo_restore(cr);
+}
+
+static void draw_user_polygons(const draw_data_t *dd) {
+	if (gui.user_polygons == NULL)
+		return;
+	cairo_t *cr = dd->cr;
+	static double dash_format[] = { 4.0, 2.0 };
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	cairo_set_dash(cr, dash_format, 2, 0);
+	GList *l;
+	for (l = gui.user_polygons; l != NULL; l = l->next) {
+		UserPolygon *polygon = (UserPolygon *)l->data;
+		if (polygon->n_points < 2)
+			continue;
+
+		// Calculate center of polygon for legend placement
+		double center_x = 0, center_y = 0;
+		for (int i = 0; i < polygon->n_points; i++) {
+			center_x += polygon->points[i].x;
+			center_y += polygon->points[i].y;
+		}
+		center_x /= polygon->n_points;
+		center_y /= polygon->n_points;
+
+		if (polygon->fill) {
+			cairo_save(cr);
+			// Set color for filling
+			cairo_set_source_rgba(cr,
+								  polygon->color.red,
+						 polygon->color.green,
+						 polygon->color.blue,
+						 polygon->color.alpha);
+			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
+			for (int i = 1; i < polygon->n_points; i++) {
+				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
+			}
+			cairo_close_path(cr);
+			// Fill the polygon
+			cairo_fill_preserve(cr);
+			// Draw the outline
+			cairo_set_source_rgba(cr,
+								  polygon->color.red * 0.8, // Slightly darker outline if filled
+						 polygon->color.green * 0.8,
+						 polygon->color.blue * 0.8,
+						 polygon->color.alpha);
+			cairo_stroke(cr);
+			cairo_restore(cr);
+		} else {
+			cairo_save(cr);
+			// Set color for filling
+			cairo_set_source_rgba(cr,
+								  polygon->color.red,
+						 polygon->color.green,
+						 polygon->color.blue,
+						 polygon->color.alpha);
+			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
+			for (int i = 1; i < polygon->n_points; i++) {
+				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
+			}
+			cairo_close_path(cr);
+			cairo_stroke(cr);
+			cairo_restore(cr);
+		}
+
+		// Draw legend text if it exists
+		if (polygon->legend != NULL && polygon->legend[0] != '\0') {
+			cairo_save(cr);
+
+			// Set up text properties
+			cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, 12.0 / dd->zoom);
+
+			// Get text dimensions to center properly
+			cairo_text_extents_t text_extents;
+			cairo_text_extents(cr, polygon->legend, &text_extents);
+
+			// Create a background for the text for better visibility
+			double padding = 4.0 / dd->zoom;
+			cairo_set_source_rgba(cr, 0, 0, 0, 0.5);  // Darken the background
+			cairo_rectangle(cr,
+							center_x - text_extents.width/2 - padding,
+				   center_y - text_extents.height/2 - padding,
+				   text_extents.width + 2*padding,
+				   text_extents.height + 2*padding);
+			cairo_fill(cr);
+
+			// Draw the text
+			cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);  // White text
+			cairo_move_to(cr,
+						  center_x - text_extents.width/2,
+				 center_y + text_extents.height/2);
+			cairo_show_text(cr, polygon->legend);
+			cairo_restore(cr);
+		}
+	}
 }
 
 static void draw_stars(const draw_data_t* dd) {
@@ -2005,7 +2101,7 @@ static gboolean redraw_idle(gpointer p) {
 
 void queue_redraw(remap_type doremap) {
 	// request a redraw from another thread
-	siril_add_idle(redraw_idle, GINT_TO_POINTER((int)doremap));
+	siril_add_pythonsafe_idle(redraw_idle, GINT_TO_POINTER((int)doremap));
 }
 
 /* callback for GtkDrawingArea, draw event */
@@ -2080,6 +2176,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* draw measurement line */
 	draw_measurement_line(&dd);
+
+	/* draw user polygons */
+	draw_user_polygons(&dd);
 
 	/* detected stars and highlight the selected star */
 	g_mutex_lock(&com.mutex);

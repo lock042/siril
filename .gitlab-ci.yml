@@ -203,7 +203,7 @@ macos:
     REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 15f01d7bbc6b667b26b64f39559dd1b38c4ad32a
+    SM_REPO_REF: 4a1b2dbb37bae5c5efc2ddfeb3dbf824d61fd99c
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
     WRK_DIR: $CI_PROJECT_DIR
   script:
@@ -247,14 +247,14 @@ macos:
 win64-native:
   stage: packaging
   cache:
-    key: "cache-windows"
+    key: "cache-windows-small"
     paths:
       - ccache
-      - DLLcache
+      - DLLcache # cache for the DLL txt files recording all files to be copied to the package
     when: always
   variables:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
-    CCACHE_MAXSIZE: "1.0G"
+    CCACHE_MAXSIZE: "50M"
     CHERE_INVOKING: "yes"
     MSYSTEM: "MINGW64"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
@@ -284,6 +284,7 @@ win64-native:
   script:
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "ccache -s"
 
 flatpak:
   rules:
