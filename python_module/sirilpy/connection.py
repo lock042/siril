@@ -566,30 +566,30 @@ class SirilInterface:
             str: A string providing a description of the error code returned by a Siril command, for use in exception handling.
         """
         error_messages = {
-            CommandStatus.CMD_NOT_FOUND: "Command not found",
-            CommandStatus.CMD_NO_WAIT: "Command does not wait for completion",
-            CommandStatus.CMD_NO_CWD: "Current working directory not set",
-            CommandStatus.CMD_NOT_SCRIPTABLE: "Command not scriptable",
-            CommandStatus.CMD_WRONG_N_ARG: "Wrong number of arguments",
-            CommandStatus.CMD_ARG_ERROR: "Argument error",
-            CommandStatus.CMD_SELECTION_ERROR: "Selection error",
-            CommandStatus.CMD_OK: "Command succeeded",
-            CommandStatus.CMD_GENERIC_ERROR: "Generic error",
-            CommandStatus.CMD_IMAGE_NOT_FOUND: "Image not found",
-            CommandStatus.CMD_SEQUENCE_NOT_FOUND: "Sequence not found",
-            CommandStatus.CMD_INVALID_IMAGE: "Invalid image",
-            CommandStatus.CMD_LOAD_IMAGE_FIRST: "Load image first",
-            CommandStatus.CMD_ONLY_SINGLE_IMAGE: "Command requires a single image to be loaded",
-            CommandStatus.CMD_NOT_FOR_SINGLE: "Command not for single images",
-            CommandStatus.CMD_NOT_FOR_MONO: "Command not for monochrome images",
-            CommandStatus.CMD_NOT_FOR_RGB: "Command not for RGB images",
-            CommandStatus.CMD_FOR_CFA_IMAGE: "Command only for CFA images",
-            CommandStatus.CMD_FILE_NOT_FOUND: "File not found",
-            CommandStatus.CMD_FOR_PLATE_SOLVED: "Command requires plate-solved image",
-            CommandStatus.CMD_NEED_INIT_FIRST: "Initialization required first",
-            CommandStatus.CMD_ALLOC_ERROR: "Memory allocation error",
-            CommandStatus.CMD_THREAD_RUNNING: "Command thread already running",
-            CommandStatus.CMD_DIR_NOT_FOUND: "Directory not found"
+            CommandStatus.CMD_NOT_FOUND: _("Command not found"),
+            CommandStatus.CMD_NO_WAIT: _("Command does not wait for completion"),
+            CommandStatus.CMD_NO_CWD: _("Current working directory not set"),
+            CommandStatus.CMD_NOT_SCRIPTABLE: _("Command not scriptable"),
+            CommandStatus.CMD_WRONG_N_ARG: _("Wrong number of arguments"),
+            CommandStatus.CMD_ARG_ERROR: _("Argument error"),
+            CommandStatus.CMD_SELECTION_ERROR: _("Selection error"),
+            CommandStatus.CMD_OK: _("Command succeeded"),
+            CommandStatus.CMD_GENERIC_ERROR: _("Generic error"),
+            CommandStatus.CMD_IMAGE_NOT_FOUND: _("Image not found"),
+            CommandStatus.CMD_SEQUENCE_NOT_FOUND: _("Sequence not found"),
+            CommandStatus.CMD_INVALID_IMAGE: _("Invalid image"),
+            CommandStatus.CMD_LOAD_IMAGE_FIRST: _("Load image first"),
+            CommandStatus.CMD_ONLY_SINGLE_IMAGE: _("Command requires a single image to be loaded"),
+            CommandStatus.CMD_NOT_FOR_SINGLE: _("Command not for single images"),
+            CommandStatus.CMD_NOT_FOR_MONO: _("Command not for monochrome images"),
+            CommandStatus.CMD_NOT_FOR_RGB: _("Command not for RGB images"),
+            CommandStatus.CMD_FOR_CFA_IMAGE: _("Command only for CFA images"),
+            CommandStatus.CMD_FILE_NOT_FOUND: _("File not found"),
+            CommandStatus.CMD_FOR_PLATE_SOLVED: _("Command requires plate-solved image"),
+            CommandStatus.CMD_NEED_INIT_FIRST: _("Initialization required first"),
+            CommandStatus.CMD_ALLOC_ERROR: _("Memory allocation error"),
+            CommandStatus.CMD_THREAD_RUNNING: _("Command thread already running"),
+            CommandStatus.CMD_DIR_NOT_FOUND: _("Directory not found")
         }
         return error_messages.get(status_code, f"Unknown error code: {status_code}")
 
@@ -765,7 +765,7 @@ class SirilInterface:
         """
         class ImageLockContext:
             """ Class to manage the image_lock context """
-            def __init__(self, outer_self):
+            def __init__(self, outer_self: SirilInterface):
                 self.outer_self = outer_self
                 self.claimed = False
 
@@ -832,7 +832,7 @@ class SirilInterface:
 
         Args:
             my_string: The message to display in the message box
-            type: Sets whether to show an error, warning or info messagebox
+            cmd_type: Sets whether to show an error, warning or info messagebox
             modal: Whether or not the message box is modal
 
         Returns:
@@ -1339,6 +1339,8 @@ class SirilInterface:
             Tuple[float, float]: [RA, dec] as a Tuple of two floats.
 
         Raises:
+            NoImageError: If no image or sequence is loaded,
+            ValueError: If the image or loaded sequence frame is not plate solved,
             SirilError: For errors during pix2radec execution.
         """
         try:
@@ -1375,6 +1377,8 @@ class SirilInterface:
             # Unpack the binary data
             return struct.unpack(format_string, response)
 
+        except (NoImageError, ValueError):
+            raise
         except Exception as e:
             raise SirilError(_("Error in pix2radec(): {e}")) from e
 
@@ -1392,6 +1396,8 @@ class SirilInterface:
             Tuple[float, float]: [x, y] as a Tuple of two floats.
 
         Raises:
+            NoImageError: If no image or sequence is loaded,
+            ValueError: If the image or loaded sequence frame is not plate solved,
             SirilError: For errors during radec2pix execution.
         """
         try:
@@ -1431,6 +1437,9 @@ class SirilInterface:
             except struct.error as e:
                 raise SirilError(_("Error unpacking data: {}").format(e)) from e
             return values
+
+        except (ValueError, NoImageError):
+            raise
         except Exception as e:
             raise SirilError(_("Error in radec2pix(): {e}")) from e
 
@@ -2906,7 +2915,6 @@ class SirilInterface:
                 'd',  # mini
                 'd',  # maxi
                 'd',  # neg_ratio padded to 64bit
-                'Q',  # data_type (padded to uint64_t)
                 'Q',  # gboolean top_down (padded to uint64_t)
                 'Q',  # gboolean focalkey (padded to uint64_t)
                 'Q',  # gboolean pixelkey (padded to uint64_t)
@@ -2967,10 +2975,10 @@ class SirilInterface:
                 mini=values[6],
                 maxi=values[7],
                 neg_ratio=values[8],
-                top_down=bool(values[10]),
-                _focalkey=bool(values[11]),
-                _pixelkey=bool(values[12]),
-                color_managed=bool(values[13]),
+                top_down=bool(values[9]),
+                _focalkey=bool(values[10]),
+                _pixelkey=bool(values[11]),
+                color_managed=bool(values[12]),
                 _data = img_pixeldata,
                 stats=[
                     self.get_image_stats(0),
@@ -3029,7 +3037,6 @@ class SirilInterface:
                 'd',  # mini
                 'd',  # maxi
                 'd',  # neg_ratio padded to 64bit
-                'Q',  # data_type (padded to uint64_t)
                 'Q',  # gboolean top_down (padded to uint64_t)
                 'Q',  # gboolean focalkey (padded to uint64_t)
                 'Q',  # gboolean pixelkey (padded to uint64_t)
@@ -3123,12 +3130,12 @@ class SirilInterface:
             if with_pixels:
                 try:
                     shm_info = _SharedMemoryInfo(
-                        size = values[66],
-                        data_type = values[67],
-                        width = values[68],
-                        height = values[69],
-                        channels = values[70],
-                        shm_name = values[71]
+                        size = values[65],
+                        data_type = values[66],
+                        width = values[67],
+                        height = values[68],
+                        channels = values[69],
+                        shm_name = values[70]
                     )
                     # Validate dimensions
                     if any(dim <= 0 for dim in (shm_info.width, shm_info.height)):
@@ -3179,58 +3186,58 @@ class SirilInterface:
                     raise SirilError(f"Error obtaining pixeldata: {e}") from e
 
             fits_keywords = FKeywords(
-                program=decode_string(values[14]),
-                filename=decode_string(values[15]),
-                row_order=decode_string(values[16]),
-                filter=decode_string(values[17]),
-                image_type=decode_string(values[18]),
-                object=decode_string(values[19]),
-                instrume=decode_string(values[20]),
-                telescop=decode_string(values[21]),
-                observer=decode_string(values[22]),
-                sitelat_str=decode_string(values[23]),
-                sitelong_str=decode_string(values[24]),
-                bayer_pattern=decode_string(values[25]),
-                focname=decode_string(values[26]),
-                bscale=values[27],
-                bzero=values[28],
-                lo=values[29],
-                hi=values[30],
-                flo=values[31],
-                fhi=values[32],
-                data_max=values[33],
-                data_min=values[34],
-                pixel_size_x=values[35],
-                pixel_size_y=values[36],
-                binning_x=values[37],
-                binning_y=values[38],
-                expstart=values[39],
-                expend=values[40],
-                centalt=values[41],
-                centaz=values[42],
-                sitelat=values[43],
-                sitelong=values[44],
-                siteelev=values[45],
-                bayer_xoffset=values[46],
-                bayer_yoffset=values[47],
-                airmass=values[48],
-                focal_length=values[49],
-                flength=values[50],
-                iso_speed=values[51],
-                exposure=values[52],
-                aperture=values[53],
-                ccd_temp=values[54],
-                set_temp=values[55],
-                livetime=values[56],
-                stackcnt=values[57],
-                cvf=values[58],
-                gain=values[59],
-                offset=values[60],
-                focuspos=values[61],
-                focussz=values[62],
-                foctemp=values[63],
-                date=timestamp_to_datetime(values[64]),
-                date_obs=timestamp_to_datetime(values[65])
+                program=decode_string(values[13]),
+                filename=decode_string(values[14]),
+                row_order=decode_string(values[15]),
+                filter=decode_string(values[16]),
+                image_type=decode_string(values[17]),
+                object=decode_string(values[18]),
+                instrume=decode_string(values[19]),
+                telescop=decode_string(values[20]),
+                observer=decode_string(values[21]),
+                sitelat_str=decode_string(values[22]),
+                sitelong_str=decode_string(values[23]),
+                bayer_pattern=decode_string(values[24]),
+                focname=decode_string(values[25]),
+                bscale=values[26],
+                bzero=values[27],
+                lo=values[28],
+                hi=values[29],
+                flo=values[30],
+                fhi=values[31],
+                data_max=values[32],
+                data_min=values[33],
+                pixel_size_x=values[34],
+                pixel_size_y=values[35],
+                binning_x=values[36],
+                binning_y=values[37],
+                expstart=values[38],
+                expend=values[39],
+                centalt=values[40],
+                centaz=values[41],
+                sitelat=values[42],
+                sitelong=values[43],
+                siteelev=values[44],
+                bayer_xoffset=values[45],
+                bayer_yoffset=values[46],
+                airmass=values[47],
+                focal_length=values[48],
+                flength=values[49],
+                iso_speed=values[50],
+                exposure=values[51],
+                aperture=values[52],
+                ccd_temp=values[53],
+                set_temp=values[54],
+                livetime=values[55],
+                stackcnt=values[56],
+                cvf=values[57],
+                gain=values[58],
+                offset=values[59],
+                focuspos=values[60],
+                focussz=values[61],
+                foctemp=values[62],
+                date=timestamp_to_datetime(values[63]),
+                date_obs=timestamp_to_datetime(values[64])
             )
             fit = FFit(
                 _naxes = (values[0], values[1], values[2]),
@@ -3241,10 +3248,10 @@ class SirilInterface:
                 mini=values[6],
                 maxi=values[7],
                 neg_ratio=values[8],
-                top_down=bool(values[10]),
-                _focalkey=bool(values[11]),
-                _pixelkey=bool(values[12]),
-                color_managed=bool(values[13]),
+                top_down=bool(values[9]),
+                _focalkey=bool(values[10]),
+                _pixelkey=bool(values[11]),
+                color_managed=bool(values[12]),
                 _data = pixeldata,
                 stats=[
                     self.get_seq_stats(frame, 0),

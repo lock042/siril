@@ -9,7 +9,7 @@ from typing import Optional, Tuple, List
 import struct
 import logging
 import numpy as np
-from .enums import DataType, StarProfile, SequenceType, DistoType, _Defaults
+from .enums import BitpixType, StarProfile, SequenceType, DistoType, _Defaults
 from .translations import _
 from .exceptions import SirilError
 
@@ -83,7 +83,7 @@ class ImageStats:
 class FKeywords:
     """
     Python equivalent of Siril fkeywords structure. Contains the FITS
-    header keyword values converted to suitable datatypes.
+    header keyword values converted to suitable data types.
     """
 
     # FITS file data
@@ -335,8 +335,8 @@ class FFit:
     Python equivalent of Siril ffit (FITS) structure, holding image
     pixel data and metadata.
     """
-    bitpix: int = 0 #: Bits per pixel
-    orig_bitpix: int = 0 #: Original bits per pixel (accounts for changes from original file).
+    bitpix: Optional[BitpixType] = None #: FITS header specification of the image data type.
+    orig_bitpix: Optional[BitpixType] = None #: FITS header specification of the original image data type.
     naxis: int = 0 #: The number of axes (2 for a mono image, 3 for a RGB image). Corresponds to the FITS kwyword NAXIS.
     _naxes: Tuple[int, int, int] = (0, 0, 0) #: A tuple holding the image dimensions.
 
@@ -351,7 +351,6 @@ class FFit:
     maxi: float = 0.0 #: The maximum value across all image channels.
     neg_ratio: np.float32 = 0.0 #: The ratio of negative pixels to the total pixels.
 
-    type: DataType = DataType.FLOAT_IMG #: Specifies the image data type.
     _data: Optional[np.ndarray] = None #: Holds the image data as a numpy array.
 
     top_down: bool = False #: Specifies the ROWORDER for this image. The FITS specification directs that FITS should be stored bottom-up, but many CMOS sensors are natively TOP_DOWN and capture software tends to save FITS images captured by these sensors as TOP_DOWN.
@@ -447,26 +446,29 @@ class FFit:
         self._icc_profile = value
         self.color_managed = value is not None
 
-    @property
-    def dtype(self) -> np.dtype:
-        """The NumPy dtype based on the current type"""
-        return np.uint16 if self.type == DataType.USHORT_IMG else np.float32
-
     def allocate_data(self):
         """
         Allocate memory for image data with appropriate type. self.width, self.height,
         self.naxis, self.naxes and self.dtype must be set before calling this
         method.
+
+        Raises:
+            ValueError: if self.bitpix is not set to BitpixType.USHORT_IMG or BitpixType.FLOAT_IMG
         """
         shape = (self.height, self.width) if self.naxis == 2 else (self.channels, self.height, self.width)
-        self.data = np.zeros(shape, dtype=self.dtype)
+        if self.bitpix == BitpixType.USHORT_IMG:
+            self.data = np.zeros(shape, dtype=np.uint16)
+        elif self.bitpix == BitpixType.FLOAT_IMG:
+            self.data = np.zeros(shape, dtype=np.float32)
+        else:
+            raise ValueError(_("Error in FFit.allocate_data(): bitpix not set"))
 
     def ensure_data_type(self, target_type=None):
         """
         Ensure data is in the correct type with proper scaling
 
         Args:
-            target_type: Optional type to convert to. Can be either DataType or np.dtype.
+            target_type: Optional np.dtype to convert to.
                          If None, uses self.type
 
         Raises:
@@ -478,30 +480,32 @@ class FFit:
 
         # Handle input type and determine target dtype
         if target_type is None:
-            type_to_use = self.type
-            dtype_to_use = np.float32 if type_to_use is DataType.FLOAT_IMG else np.uint16
+            type_to_use = self.data.dtype
         elif target_type in (np.float32, np.uint16):
-            dtype_to_use = target_type
-            type_to_use = DataType.FLOAT_IMG if dtype_to_use == np.float32 else DataType.USHORT_IMG
-        elif isinstance(target_type, np.dtype):
-            raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {dtype_to_use}")
-        else:  # Assume DataType
             type_to_use = target_type
-            dtype_to_use = np.float32 if type_to_use is DataType.FLOAT_IMG else np.uint16
+        elif isinstance(target_type, np.dtype):
+            raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {type_to_use}")
+        else:
+            raise ValueError(f"Unrecognized target_type {target_type}")
 
-        if self.data.dtype == dtype_to_use:
+        if self.data.dtype == type_to_use:
+            if type_to_use == np.uint16:
+                self.bitpix = BitpixType.USHORT_IMG
+            elif type_to_use == np.float32:
+                self.bitpix = BitpixType.FLOAT_IMG
+            # Nothing else to do
             return
 
-        if dtype_to_use == np.float32 and self.data.dtype == np.uint16:
+        if type_to_use == np.float32 and self.data.dtype == np.uint16:
             # Convert from USHORT (0-65535) to FLOAT (0.0-1.0)
             self._data = self.data.astype(np.float32) / 65535.0
-            self.type = DataType.FLOAT_IMG
-        elif dtype_to_use == np.uint16 and self.data.dtype == np.float32:
+            self.bitpix = BitpixType.FLOAT_IMG
+        elif type_to_use == np.uint16 and self.data.dtype == np.float32:
             # Convert from FLOAT (0.0-1.0) to USHORT (0-65535)
             self._data = (self.data * 65535.0).clip(0, 65535).astype(np.uint16)
-            self.type = DataType.USHORT_IMG
+            self.bitpix = BitpixType.USHORT_IMG
         else:
-            raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {dtype_to_use}")
+            raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {type_to_use}")
 
     def get_channel(self, channel: int) -> np.ndarray:
         """
@@ -664,6 +668,52 @@ class FFit:
                 stats.mad = 0
                 stats.avgDev = 0
                 self.stats[i] = stats
+
+    def __str__(self):
+        """For pretty-printing sequence information"""
+        pretty = 'FITS image'
+        if self.keywords is not None:
+            pretty += f'\nObject: {self.keywords.object}'
+            if self.keywords.telescop is not None:
+                pretty += f'\nTelescope: {self.keywords.telescop}'
+            if self.keywords.instrume is not None:
+                pretty += f'\nInstrument: {self.keywords.instrume}'
+            if self.keywords.observer is not None:
+                pretty += f'\nObserver: {self.keywords.observer}'
+            if self.keywords.date_obs is not None:
+                pretty += f'\nObservation Date: {self.keywords.date_obs}'
+            if self.keywords.expstart is not None:
+                pretty += f'\nExposure start: {self.keywords.expstart}'
+            if self.keywords.expend is not None:
+                pretty += f'\nExposure end: {self.keywords.expend}'
+            if self.keywords.exposure is not None:
+                pretty += f'\nExposure time: {self.keywords.exposure}'
+            if self.keywords.livetime is not None:
+                pretty += f'\nLive time: {self.keywords.livetime}'
+            if self.keywords.sitelat is not None:
+                pretty += f'\nLatitude: {self.keywords.sitelat}'
+            if self.keywords.sitelong is not None:
+                pretty += f'\nLongitude: {self.keywords.sitelong}'
+            if self.keywords.siteelev is not None:
+                pretty += f'\nElevation: {self.keywords.siteelev}'
+            if self.keywords.gain is not None:
+                pretty += f'\nGain: {self.keywords.gain}'
+            if self.keywords.offset is not None:
+                pretty += f'\nOffset: {self.keywords.offset}'
+            if self.keywords.ccd_temp is not None:
+                pretty += f'\nCCD temp: {self.keywords.ccd_temp}'
+            if self.keywords.focal_length is not None:
+                pretty += f'\nFocal length: {self.keywords.focal_length}'
+        pretty += f'\nBits per pixel: {self.bitpix}'
+        if self.naxis == 2:
+            pretty += f'\nDimensions: {self._naxes[0]} x {self._naxes[1]} (1 channel)'
+        else:
+            pretty += f'\nDimensions: {self._naxes[0]} x {self._naxes[1]} ({self._naxes[2]} channels)'
+        if self.data is not None:
+            pretty += f'\nPixel data type: {self.data.dtype}'
+        else:
+            pretty += '\nNo pixel data (only metadata loaded)'
+        return pretty
 
 @dataclass
 class Homography:

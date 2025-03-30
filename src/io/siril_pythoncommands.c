@@ -174,7 +174,6 @@ static int fits_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	COPY_BE64(fit->mini, double);
 	COPY_BE64(fit->maxi, double);
 	COPY_BE64((double) fit->neg_ratio, double);
-	COPY_BE64((uint64_t) fit->type, uint64_t);
 	COPY_BE64((uint64_t) fit->top_down, uint64_t);
 	COPY_BE64((uint64_t) fit->focalkey, uint64_t);
 	COPY_BE64((uint64_t) fit->pixelkey, uint64_t);
@@ -1599,7 +1598,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for the response
-			size_t ffit_size = sizeof(uint64_t) * 14; // 14 vars packed to 64-bit
+			size_t ffit_size = sizeof(uint64_t) * 13; // 14 vars packed to 64-bit
 			size_t strings_size = FLEN_VALUE * 13;  // 13 string fields of FLEN_VALUE
 			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
 			size_t total_size = ffit_size + strings_size + numeric_size;
@@ -1805,7 +1804,7 @@ CLEANUP:
 			}
 
 			// Calculate size needed for the response
-			size_t total_size = sizeof(uint64_t) * 14; // 14 vars packed to 64-bit
+			size_t total_size = sizeof(uint64_t) * 13; // 14 vars packed to 64-bit
 
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
@@ -1960,7 +1959,7 @@ CLEANUP:
 		}
 
 		case CMD_PIX2WCS: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
 				if (!has_wcs(&gfit)) {
 					// Handle no WCS error
@@ -1999,7 +1998,7 @@ CLEANUP:
 		}
 
 		case CMD_WCS2PIX: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
 				if (!has_wcs(&gfit)) {
 					// Handle no WCS error

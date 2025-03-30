@@ -129,7 +129,6 @@ class CommandStatus(IntEnum):
     returned internally within Siril. These can be used for
     error handling.
     """
-
     CMD_NOT_FOUND = 1
     CMD_NO_WAIT = 1 << 1
     CMD_NO_CWD = 1 << 2
@@ -179,18 +178,19 @@ class _ConfigType(IntEnum):
     STRDIR = 4
     STRLIST = 5
 
-class DataType(IntEnum):
+@unique
+class BitpixType(IntEnum):
     """
-    Mimics the Siril data_type enum. Note that although Siril can
+    Mimics the Siril bitpix enum. Note that although Siril can
     handle opening FITS files of any data type, internally it processes
     images only as USHORT_IMG (uint16) or FLOAT_IMG (float32).
     """
     BYTE_IMG = 8
     SHORT_IMG = 16
-    USHORT_IMG = 16
+    USHORT_IMG = 20
     LONG_IMG = 32
-    FLOAT_IMG = 32
-    DOUBLE_IMG = 64
+    FLOAT_IMG = -32
+    DOUBLE_IMG = -64
 
 @unique
 class StarProfile(IntEnum):
