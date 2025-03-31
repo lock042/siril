@@ -2056,6 +2056,10 @@ CLEANUP:
 		}
 
 		case CMD_CLAIM_THREAD: {
+//			if (!(single_image_is_loaded() || sequence_is_loaded())) {
+//				const char* error_msg = _("Failed to claim thread - no image loaded");
+//				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+//			}
 			int ret = claim_thread_for_python();
 			if (ret == 1) {
 				// Unable to claim the thread

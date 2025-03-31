@@ -13,6 +13,11 @@ from .enums import BitpixType, StarProfile, SequenceType, DistoType, _Defaults
 from .translations import _
 from .exceptions import SirilError
 
+"""
+This submodule contains a number of dataclasses and methods used to model Siril
+data structures for use with the sirilpy Siril <-> python interface.
+"""
+
 @dataclass
 class ImageStats:
     """
@@ -1122,9 +1127,10 @@ class Sequence:
         return pretty
 
 @dataclass
-class SirilPoint:
+class FPoint:
     """
-    Represents a 2D point in the Siril image with x and y coordinates.
+    Represents a 2D point with float x and y coordinate values in the Siril
+    image.
     """
     x: float #: x co-ordinate
     y: float #: y co-ordinate
@@ -1132,26 +1138,26 @@ class SirilPoint:
 MAX_POINTS_PER_POLYGON = 100
 
 @dataclass
-class UserPolygon:
+class Polygon:
     """
     Represents a user-defined polygon for display in the image overlay. These
     can be filled or outline-only, and can have any color and transparency
     (alpha) value. They can also have an optional label which is displayed
     centred on the polygon.
 
-    Note that UserPolygons should be considered transitory - they can be used
+    Note that Polygons should be considered transitory - they can be used
     to display information to the user but they may be cleared at any time if
     the user toggles the overlay button in the main Siril interface to clear
     the overlay.
 
     Attributes:
         polygon_id (int): A unique identifier for the polygon.
-        points (List[Point]): List of points defining the polygon's shape.
+        points (List[FPoint]): List of points defining the polygon's shape.
         color (int): Packed RGBA color (32-bit integer).
         fill (bool): If True, the polygon should be filled when drawn.
         legend (str): Optional legend for the polygon.
     """
-    points: List[SirilPoint] #: List of points defining the polygon's shape
+    points: List[FPoint] #: List of points defining the polygon's shape
     polygon_id: int = 0 #: unique identifier
     color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF)
     fill: bool = False #: whether or not the polygon should be filled when drawn
@@ -1169,7 +1175,7 @@ class UserPolygon:
 
     def serialize(self) -> bytes:
         """
-        Serializes a single UserPolygon object into a byte array.
+        Serializes a single Polygon object into a byte array.
 
         Returns:
             bytes: A byte array representing the serialized polygon data.
@@ -1202,12 +1208,12 @@ class UserPolygon:
         return bytes(buffer)
 
     @classmethod
-    def deserialize_polygon(cls, data: bytes) -> Tuple['UserPolygon', bytes]:
+    def deserialize_polygon(cls, data: bytes) -> Tuple['Polygon', bytes]:
         """
-        Creates a UserPolygon object by deserializing a byte array.
+        Creates a Polygon object by deserializing a byte array.
 
         Returns:
-            Tuple: A UserPolygon object and any remaining bytes in the byte
+            Tuple: A Polygon object and any remaining bytes in the byte
                    array. (The remaining bytes are for use in
                    deserialize_polygon_list and can be safely ignored if
                    deserializing a single polygon.)
@@ -1231,7 +1237,7 @@ class UserPolygon:
 
             x, y = struct.unpack('!dd', data[:16])
             data = data[16:]
-            points.append(SirilPoint(x, y))
+            points.append(FPoint(x, y))
 
         # Read legend length
         if len(data) < 4:
@@ -1253,12 +1259,12 @@ class UserPolygon:
         return polygon, data
 
     @classmethod
-    def deserialize_polygon_list(cls, data: bytes) -> List['UserPolygon']:
+    def deserialize_polygon_list(cls, data: bytes) -> List['Polygon']:
         """
-        Creates a List of UserPolygon objects by deserializing a byte array.
+        Creates a List of Polygon objects by deserializing a byte array.
 
         Returns:
-            List: A List of UserPolygon objects.
+            List: A List of Polygon objects.
 
         Raises:
             ValueError: If there is invalid data to deserialize.
