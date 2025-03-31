@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-27 14:47+0100\n"
+"POT-Creation-Date: 2025-03-31 10:47+0200\n"
 "PO-Revision-Date: 2025-03-27 13:46+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -1352,6 +1352,7 @@ msgid ""
 msgstr "背景提取处理后的文件名前缀。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:249 src/gui/uifiles/graxpert.ui:816
+#: src/filters/deconvolution.c:610 src/filters/deconvolution.c:867
 msgid "Deconvolution"
 msgstr "反卷积"
 
@@ -13488,7 +13489,7 @@ msgid "Error in layers alignment."
 msgstr "图层对齐错误。"
 
 #: src/compositing/align_rgb.c:203 src/compositing/compositing.c:978
-#: src/gui/registration.c:1245
+#: src/gui/registration.c:1244
 msgid "Registration complete."
 msgstr "对齐完成。"
 
@@ -15296,7 +15297,7 @@ msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
 msgstr[0] "转化：正在处理FITS文件 %d…\n"
 
-#: src/core/command.c:7620 src/gui/registration.c:1134
+#: src/core/command.c:7620 src/gui/registration.c:1133
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
 msgstr "平移对齐仅适用于OpenCV 4.4版本\n"
 
@@ -15330,36 +15331,36 @@ msgstr "错误：平场图像已设置，异常中止。\n"
 msgid "Error: flat image cannot work with variable sized sequence.\n"
 msgstr "错误：平场图像无法与可变大小的序列一起工作。\n"
 
-#: src/core/command.c:7836 src/core/command.c:8215 src/gui/registration.c:979
+#: src/core/command.c:7836 src/core/command.c:8215 src/gui/registration.c:978
 msgid "NOT USING FLAT: Could not load reference image\n"
 msgstr "使用平场：无法加载参考帧\n"
 
 #: src/core/command.c:7843 src/core/command.c:8222 src/core/preprocess.c:879
-#: src/gui/registration.c:988
+#: src/gui/registration.c:987
 msgid "NOT USING FLAT: could not parse the expression"
 msgstr "未使用平场：无法解析表达式"
 
-#: src/core/command.c:7847 src/core/command.c:8226 src/gui/registration.c:993
+#: src/core/command.c:7847 src/core/command.c:8226 src/gui/registration.c:992
 msgid "Error: no master flat specified in the preprocessing tab.\n"
 msgstr "错误：预处理选项卡中未指定主平场。\n"
 
 #: src/core/command.c:7853 src/core/command.c:8232 src/core/preprocess.c:886
-#: src/gui/registration.c:1001
+#: src/gui/registration.c:1000
 msgid "NOT USING FLAT: number of channels is different"
 msgstr "未使用平场：通道数目不一致"
 
 #: src/core/command.c:7856 src/core/command.c:8235 src/core/preprocess.c:889
-#: src/gui/registration.c:1004
+#: src/gui/registration.c:1003
 msgid "NOT USING FLAT: image dimensions are different"
 msgstr "未使用平场：图像尺寸不一致"
 
 #. no need to deal with bitdepth conversion as readfits has already forced conversion to float
-#: src/core/command.c:7859 src/core/command.c:8238 src/gui/registration.c:1007
+#: src/core/command.c:7859 src/core/command.c:8238 src/gui/registration.c:1006
 msgid "Master flat read for use as initial pixel weight\n"
 msgstr "主平场读取，用作初始化像素权重\n"
 
 #: src/core/command.c:7862 src/core/command.c:8241 src/core/preprocess.c:895
-#: src/gui/registration.c:1009 src/livestacking/gui.c:281
+#: src/gui/registration.c:1008 src/livestacking/gui.c:281
 msgid "NOT USING FLAT: cannot open the file"
 msgstr "未使用平场：无法打开文件"
 
@@ -15381,7 +15382,7 @@ msgid "Global Star Alignment (deep-sky)"
 msgstr "全局星点对齐（深空）"
 
 #: src/core/command.c:7927 src/core/processing.c:156
-#: src/gui/registration.c:1149
+#: src/gui/registration.c:1148
 msgid "Not enough space to save the output images, aborting\n"
 msgstr "没有足够的空间来保存输出图像，异常中止\n"
 
@@ -15404,7 +15405,7 @@ msgstr ""
 "版本低于 4.4 的 OpenCV 不支持令对齐变换方法为平移（这是唯一可以无插值的变换方"
 "法）。异常中止\n"
 
-#: src/core/command.c:7946 src/gui/registration.c:1156
+#: src/core/command.c:7946 src/gui/registration.c:1155
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "scaling can be applied. Aborting\n"
@@ -15412,12 +15413,12 @@ msgstr ""
 "当插值设置为“无”时，图像必须具有相同的尺寸，并且不能应用缩放。异常中止\n"
 
 #. don't load it for command line execution
-#: src/core/command.c:7954 src/gui/registration.c:1211
+#: src/core/command.c:7954 src/gui/registration.c:1210
 #, c-format
 msgid "Registration: processing using method: %s\n"
 msgstr "对齐：处理中，使用方法：%s\n"
 
-#: src/core/command.c:7965 src/core/command.c:8377 src/gui/registration.c:1216
+#: src/core/command.c:7965 src/core/command.c:8377 src/gui/registration.c:1215
 msgid "Interpolation clamping active\n"
 msgstr "启用插值钳位\n"
 
@@ -20960,7 +20961,7 @@ msgstr "未使用暗场：无法打开文件"
 msgid "Dark optimization: This process cannot be applied to 8b images"
 msgstr "暗场优化：本操作不可应用于8位图像"
 
-#: src/core/preprocess.c:882 src/gui/registration.c:997
+#: src/core/preprocess.c:882 src/gui/registration.c:996
 #: src/livestacking/gui.c:276
 msgid "Opening flat image..."
 msgstr "打开平场帧..."
@@ -22241,64 +22242,64 @@ msgstr "恢复：“%s”"
 msgid "Nothing to redo"
 msgstr "没有可恢复的"
 
-#: src/core/utils.c:631
+#: src/core/utils.c:632
 msgid "red"
 msgstr "红色"
 
-#: src/core/utils.c:633
+#: src/core/utils.c:634
 msgid "green"
 msgstr "绿色"
 
-#: src/core/utils.c:635
+#: src/core/utils.c:636
 msgid "blue"
 msgstr "蓝色"
 
-#: src/core/utils.c:1162
+#: src/core/utils.c:1163
 msgid "Unknown error\n"
 msgstr "未知错误\n"
 
-#: src/core/utils.c:1165
+#: src/core/utils.c:1166
 #, c-format
 msgid "'%s' No such file or directory\n"
 msgstr "‘%s’文件或目录不存在\n"
 
-#: src/core/utils.c:1168
+#: src/core/utils.c:1169
 #, c-format
 msgid "'%s' is not a directory\n"
 msgstr "‘%s’不是一个目录\n"
 
-#: src/core/utils.c:1171
+#: src/core/utils.c:1172
 #, c-format
 msgid "You don't have permission to write in this directory: '%s'\n"
 msgstr "当前用户对目录 ‘%s’ 没有写权限\n"
 
-#: src/core/utils.c:1193
+#: src/core/utils.c:1194
 #, c-format
 msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr "设置当前工作目录 (CWD) 为 '%s'\n"
 
-#: src/core/utils.c:1196
-#, c-format
-msgid "Could not change directory to '%s'.\n"
+#: src/core/utils.c:1198
+#, fuzzy, c-format
+msgid "Could not change directory to '%s'(error code %d: %s).\n"
 msgstr "无法更改目录为 '%s'\n"
 
-#: src/core/utils.c:1222
+#: src/core/utils.c:1224
 msgid "Filename is too long, not expanding it\n"
 msgstr "文件名太长了\n"
 
-#: src/core/utils.c:1331 src/io/image_format_fits.c:2847
+#: src/core/utils.c:1333 src/io/image_format_fits.c:2847
 #: src/io/image_format_fits.c:2852 src/io/ser.c:1394
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "像素"
 
-#: src/core/utils.c:1332 src/io/image_format_fits.c:2848
+#: src/core/utils.c:1334 src/io/image_format_fits.c:2848
 #: src/io/image_format_fits.c:2853 src/io/ser.c:1395
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "通道"
 
-#: src/core/utils.c:1724 src/core/utils.c:1727
+#: src/core/utils.c:1726 src/core/utils.c:1729
 msgid "(invalid UTF-8 string)"
 msgstr "（无效的 UTF-8 字符串）"
 
@@ -22370,17 +22371,184 @@ msgstr "坏点修正：处理中...\n"
 msgid "cosmetic correction: cosme file format error at line %d: %s\n"
 msgstr "坏点修正：cosme文件格式错误于第%d: %s行\n"
 
+#: src/filters/deconvolution.c:198
+msgid "Error: PSF file does not contain a square PSF. Cannot load this file.\n"
+msgstr "错误： PSF 文件不包含方形 PSF。无法载入此文件。\n"
+
+#. no need to check com.script as it is built into the siril_message_dialog function
+#: src/filters/deconvolution.c:200
+msgid "Wrong PSF size"
+msgstr "错误的 PSF 尺寸"
+
+#: src/filters/deconvolution.c:209
+#, c-format
+msgid ""
+"Warning: PSF file is even (%d x %d). PSFs should always be odd. Cropping by "
+"1 pixel in each direction. This may not produce optimum results.\n"
+msgstr ""
+"警告：PSF 文件尺寸为偶数 （%d x %d）。PSF 应该始终是奇数。已裁切横竖各 1 个像"
+"素。这可能产生不好的结果。\n"
+
+#. If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
+#: src/filters/deconvolution.c:255
+msgid ""
+"The selected PSF is RGB but the loaded image is monochrome. The PSF will be "
+"converted to monochrome (luminance).\n"
+msgstr "选定的 PSF 为 RGB，但载入的图像是单色的。PSF 将转换为单色（明度）。\n"
+
+#: src/filters/deconvolution.c:284
+msgid "Error: no PSF has been computed, nothing to save.\n"
+msgstr "错误：未计算任何 PSF，无需保存任何内容。\n"
+
+#: src/filters/deconvolution.c:310
+msgid "Error preparing PSF for save.\n"
+msgstr "准备保存 PSF 时出错。\n"
+
+#. This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
+#: src/filters/deconvolution.c:321
+msgid ""
+"This copy of Siril was compiled without libtiff support: saving PSF in FITS "
+"format.\n"
+msgstr ""
+"这个 Siril 的副本是在没有 libtiff 支持的情况下编译的：以 FITS 格式保存 "
+"PSF。\n"
+
+#: src/filters/deconvolution.c:350
+msgid "Kernel estimation complete.\n"
+msgstr "内核估算完成。\n"
+
+#: src/filters/deconvolution.c:364
+msgid ""
+"Error: no stars detected. Run findstar or select stars using Dynamic PSF "
+"dialog first.\n"
+msgstr "错误：未侦测到星点。首先使用动态 PSF 对话框侦测星点或选择星点。\n"
+
+#: src/filters/deconvolution.c:392
+msgid ""
+"Warning: focal length appears likely to be incorrect. Continuing anyway...\n"
+msgstr "警告：焦距似乎不正确。无论如何继续...\n"
+
+#: src/filters/deconvolution.c:394
+msgid ""
+"Warning: diameter appears likely to be incorrect. Continuing anyway...\n"
+msgstr "警告：口径似乎不正确。无论如何继续...\n"
+
+#: src/filters/deconvolution.c:396
+msgid ""
+"Warning: sensor pixel size appears likely to be incorrect. Continuing "
+"anyway...\n"
+msgstr "警告：传感器像素尺寸可能不正确。无论如何继续...\n"
+
+#: src/filters/deconvolution.c:404
+msgid ""
+"Error: no previous PSF found. A blind PSF estimator or calculation of PSF "
+"from stars or manual parameters must already have been done to use the "
+"Previous PSF option.\n"
+msgstr ""
+"错误：未找到先前生成的PSF。必须提前完成盲PSF估算，或根据星点计算PSF，或手动指"
+"定参数，才能使用“先前生成的 PSF”选项。\n"
+
+#: src/filters/deconvolution.c:413
+msgid ""
+"Error: no PSF defined. Select blind deconvolution or define a PSF from "
+"selection or psf parameters.\n"
+msgstr ""
+"错误：未定义 PSF。选择盲反卷积，或用选区定义 PSF，或用 psf 参数定义 PSF。\n"
+
+#: src/filters/deconvolution.c:430
+msgid "PSF made in bottom up orientation.\n"
+msgstr "PSF以自下而上的方向生成。\n"
+
+#: src/filters/deconvolution.c:432
+msgid "PSF made in top down orientation.\n"
+msgstr "PSF以自上而下的方向生成。\n"
+
+#. User wants PSF from stars but has not selected any stars
+#: src/filters/deconvolution.c:453 src/filters/deconvolution.c:573
+msgid "No stars detected. Finding suitable non-saturated stars...\n"
+msgstr "未侦测到星点。寻找合适的非饱和星点...\n"
+
+#: src/filters/deconvolution.c:469 src/filters/deconvolution.c:589
+msgid "No suitable stars detectable in this image. Aborting..."
+msgstr "在该图像中没有合适的星点。异常终止..."
+
+#: src/filters/deconvolution.c:475
+#, c-format
+msgid "Found %d suitably bright, non-saturated stars.\n"
+msgstr "发现%d颗亮度适当、不饱和的星点。\n"
+
+#: src/filters/deconvolution.c:483
+#, c-format
+msgid ""
+"Kernel size not large enough to fit PSF generated from detected stars. "
+"Increasing kernel size to %d. To override, specify kernel size using the "
+"-ks= option.\n"
+msgstr ""
+"内核尺寸不够大，无法容纳从侦测到的星点所生成的PSF。将内核尺寸增加到 %d。如要"
+"覆盖，请使用 -ks= 选项指定内核尺寸。\n"
+
+#: src/filters/deconvolution.c:488
+#, c-format
+msgid ""
+"Warning: PSF generated from the stars detected in this image appears to be "
+"too big for the specified kernel size. Recommend increasing kernel size to "
+"%d.\n"
+msgstr ""
+"警告：从此图像中侦测到的星点所生成的 PSF 对于指定的内核尺寸来说似乎太大。建议"
+"将内核尺寸增加到 %d。\n"
+
+#: src/filters/deconvolution.c:497 src/filters/deconvolution.c:600
 #: src/filters/fft.c:455
 msgid "Siril FFT wisdom imported successfully...\n"
 msgstr "Siril FFT预优化方案导入成功...\n"
 
+#: src/filters/deconvolution.c:499 src/filters/deconvolution.c:603
 #: src/filters/fft.c:457
 msgid "System FFT wisdom imported successfully...\n"
 msgstr "系统FFT预优化方案导入成功...\n"
 
+#: src/filters/deconvolution.c:501 src/filters/deconvolution.c:606
 #: src/filters/fft.c:459
 msgid "No FFT wisdom found to import...\n"
 msgstr "未发现可导入的FFT预优化方案...\n"
+
+#: src/filters/deconvolution.c:515
+msgid "Starting PSF computation..."
+msgstr "开始PSF计算..."
+
+#: src/filters/deconvolution.c:521 src/filters/deconvolution.c:719
+#: src/filters/fft.c:540
+msgid "Siril FFT wisdom updated successfully...\n"
+msgstr "Siril FFT预优化方案更新成功...\n"
+
+#: src/filters/deconvolution.c:523 src/filters/deconvolution.c:722
+#: src/filters/fft.c:542
+msgid "Siril FFT wisdom update failed...\n"
+msgstr "Siril FFT预优化方案更新失败...\n"
+
+#: src/filters/deconvolution.c:526
+msgid "Deconvolution PSF generated.\n"
+msgstr "反卷积PSF生成。\n"
+
+#. Refuse to process the image using previous PSF if there is no previous PSF defined
+#. Refuse to process the sequence using previous PSF if there is no previous PSF defined
+#: src/filters/deconvolution.c:567 src/filters/deconvolution.c:816
+msgid ""
+"Error: trying to use previous PSF but no PSF has been generated. "
+"Aborting...\n"
+msgstr "错误：尝试使用先前生成的 PSF，但尚未生成过PSF。异常中止...\n"
+
+#: src/filters/deconvolution.c:625
+msgid "Starting PSF estimation..."
+msgstr "开始估算PSF..."
+
+#: src/filters/deconvolution.c:656
+msgid "Starting non-blind deconvolution..."
+msgstr "开始非盲反卷积..."
+
+#: src/filters/deconvolution.c:811
+msgid "Deconvolution. Processing sequence..."
+msgstr "反卷积。处理序列..."
 
 #: src/filters/fft.c:463
 msgid "Fourier Transform: processing...\n"
@@ -22389,14 +22557,6 @@ msgstr "傅立叶变换：处理中...\n"
 #: src/filters/fft.c:525
 msgid "There is something wrong in your files\n"
 msgstr "文件出错\n"
-
-#: src/filters/fft.c:540
-msgid "Siril FFT wisdom updated successfully...\n"
-msgstr "Siril FFT预优化方案更新成功...\n"
-
-#: src/filters/fft.c:542
-msgid "Siril FFT wisdom update failed...\n"
-msgstr "Siril FFT预优化方案更新失败...\n"
 
 #: src/filters/fft.c:584
 msgid "FFT does not work with sequences !\n"
@@ -25667,76 +25827,76 @@ msgstr "CSV文件 (*.csv)"
 msgid "Comet PSF center is out of the box, will use selection center instead\n"
 msgstr "彗星的点扩散函数中心出框了，将改为选区的中心\n"
 
-#: src/gui/registration.c:482
+#: src/gui/registration.c:481
 msgid "There is no timestamp stored in the file"
 msgstr "文件中没有时间戳"
 
-#: src/gui/registration.c:483
+#: src/gui/registration.c:482
 msgid ""
 "Siril cannot perform the registration without date information in the file."
 msgstr "Siril无法执行对齐，因为文件中没有日期信息。"
 
-#: src/gui/registration.c:488
+#: src/gui/registration.c:487
 msgid "Unable to convert DATE-OBS to a valid date"
 msgstr "无法将DATE-OBS转化为有效日期"
 
-#: src/gui/registration.c:489
+#: src/gui/registration.c:488
 msgid ""
 "Siril cannot convert the DATE-OBS keyword into a valid date needed in the "
 "alignment."
 msgstr "Siril在对齐操作时无法将DATE-OBS关键字转化为有效的日期数据。"
 
-#: src/gui/registration.c:615
+#: src/gui/registration.c:614
 #, c-format
 msgid "Registering %d images of the %d of the sequence"
 msgstr "对齐 %d 个图像于序列 %d"
 
-#: src/gui/registration.c:736
+#: src/gui/registration.c:735
 msgid "Max framing not allowed with fitseq, change to regular FITS images"
 msgstr "fitseq 不允许最大取景，更改为常规 FITS 图像"
 
-#: src/gui/registration.c:747
+#: src/gui/registration.c:746
 #, fuzzy
 msgid "Pick object in two images"
 msgstr "选择目标于#1"
 
-#: src/gui/registration.c:835
+#: src/gui/registration.c:834
 msgid "Failed to determine registration method...\n"
 msgstr "无法确定对齐方法...\n"
 
 #. no need to clutter the interface
-#: src/gui/registration.c:864 src/gui/registration.c:952
+#: src/gui/registration.c:863 src/gui/registration.c:951
 msgid "not available for sequences with variable image sizes"
 msgstr "不适用于具有可变图像尺寸的序列"
 
-#: src/gui/registration.c:946
+#: src/gui/registration.c:945
 msgid "Select an area in image first"
 msgstr "请先在图像上选择一个区域"
 
-#: src/gui/registration.c:948
+#: src/gui/registration.c:947
 msgid "Select images in the sequence"
 msgstr "在序列里选定图像"
 
-#: src/gui/registration.c:950
+#: src/gui/registration.c:949
 msgid "Select a layer with existing registration"
 msgstr "选择一个已有对齐数据的图层"
 
-#: src/gui/registration.c:954
+#: src/gui/registration.c:953
 msgid "Unsupported CFA pattern detected"
 msgstr "检测到不支持的 CFA 模式"
 
-#: src/gui/registration.c:955
+#: src/gui/registration.c:954
 msgid ""
 "This sequence cannot be registered with the CFA pattern intact. You must "
 "debayer it prior to registration"
 msgstr "此序列不能在保留有 CFA 阵列时执行对齐。您必须在对齐前对其解拜耳"
 
-#: src/gui/registration.c:957
+#: src/gui/registration.c:956
 #, fuzzy
 msgid "CFA pattern detected"
 msgstr "检测到不支持的 CFA 模式"
 
-#: src/gui/registration.c:958
+#: src/gui/registration.c:957
 msgid ""
 "This sequence cannot be registered with the CFA pattern intact. Select "
 "drizzle or debayer it prior to registration"
@@ -25744,33 +25904,33 @@ msgstr ""
 "此序列不能在保留有 CFA 阵列时执行对齐。您必须选择Drizzle，或在对齐前对其解拜"
 "耳"
 
-#: src/gui/registration.c:1079
+#: src/gui/registration.c:1078
 msgid "Cannot use area selection on a sequence with variable image sizes\n"
 msgstr "无法对图像尺寸不一致的序列使用选区\n"
 
-#: src/gui/registration.c:1160
+#: src/gui/registration.c:1159
 msgid ""
 "When interpolation is set to None, the transformation can only be set to "
 "Shift. Aborting\n"
 msgstr "当插值设置为“无”时，变换只能设置为“平移”。异常中止\n"
 
-#: src/gui/registration.c:1164
+#: src/gui/registration.c:1163
 msgid ""
 "When interpolation is set to None, distortions must be set to None as well. "
 "Aborting\n"
 msgstr "当插值设置为“无”时，畸变也必须设置为“无”。异常中止\n"
 
-#: src/gui/registration.c:1196
+#: src/gui/registration.c:1195
 msgid "Error: unable to read reference frame metadata\n"
 msgstr "错误：无法读取参考帧元数据\n"
 
 #. Estimate was pressed, we need to update the label
-#: src/gui/registration.c:1255
+#: src/gui/registration.c:1254
 #, c-format
 msgid " (assuming a scaling factor of %.2f)"
 msgstr " （假设缩放比例为 %.2f）"
 
-#: src/gui/registration.c:1256
+#: src/gui/registration.c:1255
 #, c-format
 msgid "Output image: %d x %d pixels%s\n"
 msgstr "输出图像：%d x %d 像素%s\n"
@@ -31271,128 +31431,6 @@ msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 #~ msgid "A live preview session is active"
 #~ msgstr "一个活动的预览已激活"
 
-#~ msgid "Error: no PSF has been computed, nothing to save.\n"
-#~ msgstr "错误：未计算任何 PSF，无需保存任何内容。\n"
-
-#~ msgid "Error preparing PSF for save.\n"
-#~ msgstr "准备保存 PSF 时出错。\n"
-
-#~ msgid ""
-#~ "This copy of Siril was compiled without libtiff support: saving PSF in "
-#~ "FITS format.\n"
-#~ msgstr ""
-#~ "这个 Siril 的副本是在没有 libtiff 支持的情况下编译的：以 FITS 格式保存 "
-#~ "PSF。\n"
-
-#~ msgid ""
-#~ "Error: PSF file does not contain a square PSF. Cannot load this file.\n"
-#~ msgstr "错误： PSF 文件不包含方形 PSF。无法载入此文件。\n"
-
-#~ msgid "Wrong PSF size"
-#~ msgstr "错误的 PSF 尺寸"
-
-#, c-format
-#~ msgid ""
-#~ "Warning: PSF file is even (%d x %d). PSFs should always be odd. Cropping "
-#~ "by 1 pixel in each direction. This may not produce optimum results.\n"
-#~ msgstr ""
-#~ "警告：PSF 文件尺寸为偶数 （%d x %d）。PSF 应该始终是奇数。已裁切横竖各 1 "
-#~ "个像素。这可能产生不好的结果。\n"
-
-#~ msgid ""
-#~ "The selected PSF is RGB but the loaded image is monochrome. The PSF will "
-#~ "be converted to monochrome (luminance).\n"
-#~ msgstr ""
-#~ "选定的 PSF 为 RGB，但载入的图像是单色的。PSF 将转换为单色（明度）。\n"
-
-#~ msgid "Kernel estimation complete.\n"
-#~ msgstr "内核估算完成。\n"
-
-#~ msgid ""
-#~ "Error: no stars detected. Run findstar or select stars using Dynamic PSF "
-#~ "dialog first.\n"
-#~ msgstr "错误：未侦测到星点。首先使用动态 PSF 对话框侦测星点或选择星点。\n"
-
-#~ msgid ""
-#~ "Warning: focal length appears likely to be incorrect. Continuing "
-#~ "anyway...\n"
-#~ msgstr "警告：焦距似乎不正确。无论如何继续...\n"
-
-#~ msgid ""
-#~ "Warning: diameter appears likely to be incorrect. Continuing anyway...\n"
-#~ msgstr "警告：口径似乎不正确。无论如何继续...\n"
-
-#~ msgid ""
-#~ "Warning: sensor pixel size appears likely to be incorrect. Continuing "
-#~ "anyway...\n"
-#~ msgstr "警告：传感器像素尺寸可能不正确。无论如何继续...\n"
-
-#~ msgid ""
-#~ "Error: no previous PSF found. A blind PSF estimator or calculation of PSF "
-#~ "from stars or manual parameters must already have been done to use the "
-#~ "Previous PSF option.\n"
-#~ msgstr ""
-#~ "错误：未找到先前生成的PSF。必须提前完成盲PSF估算，或根据星点计算PSF，或手"
-#~ "动指定参数，才能使用“先前生成的 PSF”选项。\n"
-
-#~ msgid ""
-#~ "Error: no PSF defined. Select blind deconvolution or define a PSF from "
-#~ "selection or psf parameters.\n"
-#~ msgstr ""
-#~ "错误：未定义 PSF。选择盲反卷积，或用选区定义 PSF，或用 psf 参数定义 "
-#~ "PSF。\n"
-
-#~ msgid "PSF made in bottom up orientation.\n"
-#~ msgstr "PSF以自下而上的方向生成。\n"
-
-#~ msgid "PSF made in top down orientation.\n"
-#~ msgstr "PSF以自上而下的方向生成。\n"
-
-#~ msgid "No stars detected. Finding suitable non-saturated stars...\n"
-#~ msgstr "未侦测到星点。寻找合适的非饱和星点...\n"
-
-#~ msgid "No suitable stars detectable in this image. Aborting..."
-#~ msgstr "在该图像中没有合适的星点。异常终止..."
-
-#, c-format
-#~ msgid "Found %d suitably bright, non-saturated stars.\n"
-#~ msgstr "发现%d颗亮度适当、不饱和的星点。\n"
-
-#, c-format
-#~ msgid ""
-#~ "Kernel size not large enough to fit PSF generated from detected stars. "
-#~ "Increasing kernel size to %d. To override, specify kernel size using the "
-#~ "-ks= option.\n"
-#~ msgstr ""
-#~ "内核尺寸不够大，无法容纳从侦测到的星点所生成的PSF。将内核尺寸增加到 %d。如"
-#~ "要覆盖，请使用 -ks= 选项指定内核尺寸。\n"
-
-#, c-format
-#~ msgid ""
-#~ "Warning: PSF generated from the stars detected in this image appears to "
-#~ "be too big for the specified kernel size. Recommend increasing kernel "
-#~ "size to %d.\n"
-#~ msgstr ""
-#~ "警告：从此图像中侦测到的星点所生成的 PSF 对于指定的内核尺寸来说似乎太大。"
-#~ "建议将内核尺寸增加到 %d。\n"
-
-#~ msgid "Starting PSF computation..."
-#~ msgstr "开始PSF计算..."
-
-#~ msgid "Deconvolution PSF generated.\n"
-#~ msgstr "反卷积PSF生成。\n"
-
-#~ msgid ""
-#~ "Error: trying to use previous PSF but no PSF has been generated. "
-#~ "Aborting...\n"
-#~ msgstr "错误：尝试使用先前生成的 PSF，但尚未生成过PSF。异常中止...\n"
-
-#~ msgid "Starting PSF estimation..."
-#~ msgstr "开始估算PSF..."
-
-#~ msgid "Starting non-blind deconvolution..."
-#~ msgstr "开始非盲反卷积..."
-
 #~ msgid "Wiener deconvolution..."
 #~ msgstr "Wiener 反卷积…"
 
@@ -31402,9 +31440,6 @@ msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 
 #~ msgid "Richardson-Lucy deconvolution..."
 #~ msgstr "Richardson-Lucy反卷积..."
-
-#~ msgid "Deconvolution. Processing sequence..."
-#~ msgstr "反卷积。处理序列..."
 
 #~ msgid ""
 #~ "<b>1-2-3 Stars Registration</b>: This is the simplest method to register "
