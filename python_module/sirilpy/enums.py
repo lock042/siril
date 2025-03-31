@@ -127,7 +127,11 @@ class CommandStatus(IntEnum):
     """
     Contains Siril command status codes, matching the values
     returned internally within Siril. These can be used for
-    error handling.
+    error handling. CMD_OK and CMD_NO_WAIT are no-error codes;
+    all the other codes represent command errors. These are
+    available through the CommandError exception and may
+    generally be handled without being regarded as fatal to
+    the script.
     """
     CMD_NOT_FOUND = 1
     CMD_NO_WAIT = 1 << 1
