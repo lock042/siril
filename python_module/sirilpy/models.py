@@ -6,24 +6,17 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, Tuple, List
-from enum import IntEnum, unique
 import struct
 import logging
 import numpy as np
+from .enums import BitpixType, StarProfile, SequenceType, DistoType, _Defaults
 from .translations import _
+from .exceptions import SirilError
 
-class DataType(IntEnum):
-    """
-    Mimics the Siril data_type enum. Note that although Siril can
-    handle opening FITS files of any data type, internally it processes
-    images only as USHORT_IMG (uint16) or FLOAT_IMG (float32).
-    """
-    BYTE_IMG = 8
-    SHORT_IMG = 16
-    USHORT_IMG = 16
-    LONG_IMG = 32
-    FLOAT_IMG = 32
-    DOUBLE_IMG = 64
+"""
+This submodule contains a number of dataclasses and methods used to model Siril
+data structures for use with the sirilpy Siril <-> python interface.
+"""
 
 @dataclass
 class ImageStats:
@@ -47,11 +40,55 @@ class ImageStats:
     normValue: float = 0.0  #: norm value of the pixels
     bgnoise: float = 0.0    #: RMS background noise
 
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'ImageStats':
+        """
+        Deserialize binary data into an ImageStats object.
+
+        Args:
+            data: (bytes) Binary data to unpack
+        Returns: ImageStats object
+
+        Raises: SirilError: If received data size is incorrect
+                struct.error: If unpacking fails
+        """
+        format_string = '!2q12d'  # '!' ensures network byte order
+
+        # Calculate expected size
+        expected_size = struct.calcsize(format_string)
+
+        # Verify we got the expected amount of data
+        if len(data) != expected_size:
+            raise SirilError(
+                f"Received stats data size {len(data)} doesn't match expected size {expected_size}"
+            )
+
+        # Unpack the binary data
+        values = struct.unpack(format_string, data)
+
+        # Create and return an ImageStats object with the unpacked values
+        return cls(
+            total=values[0],
+            ngoodpix=values[1],
+            mean=values[2],
+            median=values[3],
+            sigma=values[4],
+            avgDev=values[5],
+            mad=values[6],
+            sqrtbwmv=values[7],
+            location=values[8],
+            scale=values[9],
+            min=values[10],
+            max=values[11],
+            normValue=values[12],
+            bgnoise=values[13]
+        )
+
 @dataclass
 class FKeywords:
     """
     Python equivalent of Siril fkeywords structure. Contains the FITS
-    header keyword values converted to suitable datatypes.
+    header keyword values converted to suitable data types.
     """
 
     # FITS file data
@@ -121,14 +158,190 @@ class FKeywords:
     sitelong: float = 0.0 #: [deg] Observation site longitude
     siteelev: float = 0.0 #: [m] Observation site elevation
 
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'FKeywords':
+        """
+        Deserialize binary response into an FKeywords object.
+
+        Args: response: Binary data to unpack
+
+        Returns: (FKeywords) object
+
+        Raises: ValueError: If received data size is incorrect
+                struct.error: If unpacking fails
+        """
+        # Constants matching C implementation
+        FLEN_VALUE = 71  # Standard FITS keyword length
+
+        # Build format string for struct unpacking
+        # Network byte order for all values
+        format_parts = [
+            f'{FLEN_VALUE}s',  # program
+            f'{FLEN_VALUE}s',  # filename
+            f'{FLEN_VALUE}s',  # row_order
+            f'{FLEN_VALUE}s',  # filter
+            f'{FLEN_VALUE}s',  # image_type
+            f'{FLEN_VALUE}s',  # object
+            f'{FLEN_VALUE}s',  # instrume
+            f'{FLEN_VALUE}s',  # telescop
+            f'{FLEN_VALUE}s',  # observer
+            f'{FLEN_VALUE}s',  # sitelat_str
+            f'{FLEN_VALUE}s',  # sitelong_str
+            f'{FLEN_VALUE}s',  # bayer_pattern
+            f'{FLEN_VALUE}s',  # focname
+            'd',  # bscale
+            'd',  # bzero
+            'Q',  # lo padded to 64bit
+            'Q',  # hi padded to 64bit
+            'd',  # flo padded to 64bit
+            'd',  # fhi padded to 64bit
+            'd',  # data_max
+            'd',  # data_min
+            'd',  # pixel_size_x
+            'd',  # pixel_size_y
+            'Q',  # binning_x (padded to uint64_t)
+            'Q',  # binning_y (padded to uint64_t)
+            'd',  # expstart
+            'd',  # expend
+            'd',  # centalt
+            'd',  # centaz
+            'd',  # sitelat
+            'd',  # sitelong
+            'd',  # siteelev
+            'q',  # bayer_xoffset
+            'q',  # bayer_yoffset
+            'd',  # airmass
+            'd',  # focal_length
+            'd',  # flength
+            'd',  # iso_speed
+            'd',  # exposure
+            'd',  # aperture
+            'd',  # ccd_temp
+            'd',  # set_temp
+            'd',  # livetime
+            'Q',  # stackcnt
+            'd',  # cvf
+            'q',  # key_gain
+            'q',  # key_offset
+            'q',  # focuspos
+            'q',  # focussz
+            'd',  # foctemp
+            'q',  # date (int64 unix timestamp)
+            'q'  # date_obs (int64 unix timestamp)
+        ]
+
+        format_string = '!' + ''.join(format_parts)
+
+        # Verify data size
+        expected_size = struct.calcsize(format_string)
+        if len(data) != expected_size:
+            raise ValueError(
+                f"Received keyword data size {len(data)} doesn't match expected size {expected_size}"
+            )
+
+        # Unpack the binary data
+        try:
+            values = struct.unpack(format_string, data)
+
+            # Helper functions
+            def decimal_to_dms(decimal, is_latitude=True):
+                """Convert decimal degrees to degrees, minutes, seconds string."""
+                # Get the absolute value and direction
+                absolute = abs(decimal)
+                if is_latitude:
+                    direction = 'N' if decimal >= 0 else 'S'
+                else:
+                    direction = 'E' if decimal >= 0 else 'W'
+
+                # Calculate degrees, minutes, seconds
+                degrees = int(absolute)
+                minutes_decimal = (absolute - degrees) * 60
+                minutes = int(minutes_decimal)
+                seconds = round((minutes_decimal - minutes) * 60, 2)
+
+                # Format as string
+                return f"{degrees}°{minutes}'{seconds}\"{direction}"
+
+            def decode_string(s: bytes) -> str:
+                return s.decode('utf-8').rstrip('\x00')
+
+            def timestamp_to_datetime(timestamp: int) -> Optional[datetime]:
+                return datetime.fromtimestamp(timestamp) if timestamp != 0 else None
+
+            # Replace default values and unphysical values
+            values = [None if val in _Defaults.VALUES else val for val in values]
+            if values[9] == "" and values[29]: # sitelat_str
+                values[9] = decimal_to_dms(values[29])
+            if values[10] == "" and values[30]: # sitelong_str
+                values[10] = decimal_to_dms(values[30])
+
+            # Create FKeywords object
+            return cls(
+                program=decode_string(values[0]),
+                filename=decode_string(values[1]),
+                row_order=decode_string(values[2]),
+                filter=decode_string(values[3]),
+                image_type=decode_string(values[4]),
+                object=decode_string(values[5]),
+                instrume=decode_string(values[6]),
+                telescop=decode_string(values[7]),
+                observer=decode_string(values[8]),
+                sitelat_str=decode_string(values[9]),
+                sitelong_str=decode_string(values[10]),
+                bayer_pattern=decode_string(values[11]),
+                focname=decode_string(values[12]),
+                bscale=values[13],
+                bzero=values[14],
+                lo=values[15],
+                hi=values[16],
+                # if fhi is 0.0, set both fhi and flo to None
+                flo=values[17] if values[18] != 0.0 else None,
+                fhi=values[18] if values[18] != 0.0 else None,
+                data_max=values[19],
+                data_min=values[20],
+                pixel_size_x=values[21] if values[21] and values[21] > 0.0 else None,
+                pixel_size_y=values[22] if values[22] and values[21] > 0.0 else None,
+                binning_x=values[23] if values[23] and values[24] > 1 else 1,
+                binning_y=values[24] if values[24] and values[24] > 1 else 1,
+                expstart=values[25],
+                expend=values[26],
+                centalt=values[27],
+                centaz=values[28],
+                sitelat=values[29],
+                sitelong=values[30],
+                siteelev=values[31],
+                bayer_xoffset=values[32],
+                bayer_yoffset=values[33],
+                airmass=values[34],
+                focal_length=values[35] if values[35] and values[35] > 0.0 else None,
+                flength=values[36] if values[36] and values[36] > 0.0 else None,
+                iso_speed=values[37],
+                exposure=values[38],
+                aperture=values[39],
+                ccd_temp=values[40],
+                set_temp=values[41],
+                livetime=values[42],
+                stackcnt=values[43],
+                cvf=values[44],
+                gain=values[45],
+                offset=values[46],
+                focuspos=values[47],
+                focussz=values[48],
+                foctemp=values[49],
+                date=timestamp_to_datetime(values[50]),
+                date_obs=timestamp_to_datetime(values[51])
+            )
+        except Exception as e:
+            raise SirilError(f"Deserialization error: {e}") from e
+
 @dataclass
 class FFit:
     """
     Python equivalent of Siril ffit (FITS) structure, holding image
     pixel data and metadata.
     """
-    bitpix: int = 0 #: Bits per pixel
-    orig_bitpix: int = 0 #: Original bits per pixel (accounts for changes from original file).
+    bitpix: Optional[BitpixType] = None #: FITS header specification of the image data type.
+    orig_bitpix: Optional[BitpixType] = None #: FITS header specification of the original image data type.
     naxis: int = 0 #: The number of axes (2 for a mono image, 3 for a RGB image). Corresponds to the FITS kwyword NAXIS.
     _naxes: Tuple[int, int, int] = (0, 0, 0) #: A tuple holding the image dimensions.
 
@@ -143,11 +356,10 @@ class FFit:
     maxi: float = 0.0 #: The maximum value across all image channels.
     neg_ratio: np.float32 = 0.0 #: The ratio of negative pixels to the total pixels.
 
-    type: DataType = DataType.FLOAT_IMG #: Specifies the image data type.
     _data: Optional[np.ndarray] = None #: Holds the image data as a numpy array.
 
     top_down: bool = False #: Specifies the ROWORDER for this image. The FITS specification directs that FITS should be stored bottom-up, but many CMOS sensors are natively TOP_DOWN and capture software tends to save FITS images captured by these sensors as TOP_DOWN.
-    _focalkey: bool = False 
+    _focalkey: bool = False
     _pixelkey: bool = False
 
     history: list[str] = field(default_factory=list) #: Contains a list of strings holding the HISTORY entries for this image.
@@ -239,26 +451,29 @@ class FFit:
         self._icc_profile = value
         self.color_managed = value is not None
 
-    @property
-    def dtype(self) -> np.dtype:
-        """The NumPy dtype based on the current type"""
-        return np.uint16 if self.type == DataType.USHORT_IMG else np.float32
-
     def allocate_data(self):
         """
         Allocate memory for image data with appropriate type. self.width, self.height,
         self.naxis, self.naxes and self.dtype must be set before calling this
         method.
+
+        Raises:
+            ValueError: if self.bitpix is not set to BitpixType.USHORT_IMG or BitpixType.FLOAT_IMG
         """
         shape = (self.height, self.width) if self.naxis == 2 else (self.channels, self.height, self.width)
-        self.data = np.zeros(shape, dtype=self.dtype)
+        if self.bitpix == BitpixType.USHORT_IMG:
+            self.data = np.zeros(shape, dtype=np.uint16)
+        elif self.bitpix == BitpixType.FLOAT_IMG:
+            self.data = np.zeros(shape, dtype=np.float32)
+        else:
+            raise ValueError(_("Error in FFit.allocate_data(): bitpix not set"))
 
     def ensure_data_type(self, target_type=None):
         """
         Ensure data is in the correct type with proper scaling
 
         Args:
-            target_type: Optional type to convert to. Can be either DataType or np.dtype.
+            target_type: Optional np.dtype to convert to.
                          If None, uses self.type
 
         Raises:
@@ -270,30 +485,32 @@ class FFit:
 
         # Handle input type and determine target dtype
         if target_type is None:
-            type_to_use = self.type
-            dtype_to_use = np.float32 if type_to_use is DataType.FLOAT_IMG else np.uint16
+            type_to_use = self.data.dtype
         elif target_type in (np.float32, np.uint16):
-            dtype_to_use = target_type
-            type_to_use = DataType.FLOAT_IMG if dtype_to_use == np.float32 else DataType.USHORT_IMG
-        elif isinstance(target_type, np.dtype):
-            raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {dtype_to_use}")
-        else:  # Assume DataType
             type_to_use = target_type
-            dtype_to_use = np.float32 if type_to_use is DataType.FLOAT_IMG else np.uint16
+        elif isinstance(target_type, np.dtype):
+            raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {type_to_use}")
+        else:
+            raise ValueError(f"Unrecognized target_type {target_type}")
 
-        if self.data.dtype == dtype_to_use:
+        if self.data.dtype == type_to_use:
+            if type_to_use == np.uint16:
+                self.bitpix = BitpixType.USHORT_IMG
+            elif type_to_use == np.float32:
+                self.bitpix = BitpixType.FLOAT_IMG
+            # Nothing else to do
             return
 
-        if dtype_to_use == np.float32 and self.data.dtype == np.uint16:
+        if type_to_use == np.float32 and self.data.dtype == np.uint16:
             # Convert from USHORT (0-65535) to FLOAT (0.0-1.0)
             self._data = self.data.astype(np.float32) / 65535.0
-            self.type = DataType.FLOAT_IMG
-        elif dtype_to_use == np.uint16 and self.data.dtype == np.float32:
+            self.bitpix = BitpixType.FLOAT_IMG
+        elif type_to_use == np.uint16 and self.data.dtype == np.float32:
             # Convert from FLOAT (0.0-1.0) to USHORT (0-65535)
             self._data = (self.data * 65535.0).clip(0, 65535).astype(np.uint16)
-            self.type = DataType.USHORT_IMG
+            self.bitpix = BitpixType.USHORT_IMG
         else:
-            raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {dtype_to_use}")
+            raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {type_to_use}")
 
     def get_channel(self, channel: int) -> np.ndarray:
         """
@@ -309,7 +526,7 @@ class FFit:
             return self.data
         return self.data[channel, ...]
 
-    def _estimate_noise(self, array: np.ndarray, nullcheck: Optional[bool] = True, nullvalue: Optional[float] = 0.0) -> float:
+    def estimate_noise(self, array: np.ndarray, nullcheck: Optional[bool] = True, nullvalue: Optional[float] = 0.0) -> float:
         """
         Estimate the background noise in the input image using the sigma of first-order differences.
 
@@ -322,6 +539,9 @@ class FFit:
 
         Returns:
             float: Estimated noise value.
+
+        Raises:
+            ValueError: if the array is the wrong shape
         """
         farray = array.astype(np.float32)
         if farray.ndim != 2:
@@ -410,7 +630,7 @@ class FFit:
                         if not all(np.isfinite(x) for x in [stats.mean, stats.median, stats.sigma, stats.min, stats.max]):
                             raise ValueError(f"Non-finite statistics computed for channel {i}")
 
-                        stats.bgnoise = self._estimate_noise(channel_data)
+                        stats.bgnoise = self.estimate_noise(channel_data)
 
                         # More complex statistics
                         deviations = np.abs(nonzero - stats.median)
@@ -423,7 +643,7 @@ class FFit:
 
                     except (RuntimeWarning, RuntimeError) as e:
                         # Handle any numerical computation errors
-                        raise ValueError(f"Error computing statistics for channel {i}: {str(e)}")
+                        raise ValueError(f"Error computing statistics for channel {i}: {str(e)}") from e
 
                 else:
                     # Set all statistics to zero when there are no valid non-zero pixels
@@ -440,7 +660,7 @@ class FFit:
 
             except Exception as e:
                 # Log the error and set all statistics to zero for this channel
-                logging.error(f"Error processing channel {i}: {str(e)}")
+                logging.error("Error processing channel %d: %s", i, str(e))
                 stats = ImageStats()
                 stats.total = channel_data.size if 'channel_data' in locals() else 0
                 stats.ngoodpix = 0
@@ -453,6 +673,52 @@ class FFit:
                 stats.mad = 0
                 stats.avgDev = 0
                 self.stats[i] = stats
+
+    def __str__(self):
+        """For pretty-printing sequence information"""
+        pretty = 'FITS image'
+        if self.keywords is not None:
+            pretty += f'\nObject: {self.keywords.object}'
+            if self.keywords.telescop is not None:
+                pretty += f'\nTelescope: {self.keywords.telescop}'
+            if self.keywords.instrume is not None:
+                pretty += f'\nInstrument: {self.keywords.instrume}'
+            if self.keywords.observer is not None:
+                pretty += f'\nObserver: {self.keywords.observer}'
+            if self.keywords.date_obs is not None:
+                pretty += f'\nObservation Date: {self.keywords.date_obs}'
+            if self.keywords.expstart is not None:
+                pretty += f'\nExposure start: {self.keywords.expstart}'
+            if self.keywords.expend is not None:
+                pretty += f'\nExposure end: {self.keywords.expend}'
+            if self.keywords.exposure is not None:
+                pretty += f'\nExposure time: {self.keywords.exposure}'
+            if self.keywords.livetime is not None:
+                pretty += f'\nLive time: {self.keywords.livetime}'
+            if self.keywords.sitelat is not None:
+                pretty += f'\nLatitude: {self.keywords.sitelat}'
+            if self.keywords.sitelong is not None:
+                pretty += f'\nLongitude: {self.keywords.sitelong}'
+            if self.keywords.siteelev is not None:
+                pretty += f'\nElevation: {self.keywords.siteelev}'
+            if self.keywords.gain is not None:
+                pretty += f'\nGain: {self.keywords.gain}'
+            if self.keywords.offset is not None:
+                pretty += f'\nOffset: {self.keywords.offset}'
+            if self.keywords.ccd_temp is not None:
+                pretty += f'\nCCD temp: {self.keywords.ccd_temp}'
+            if self.keywords.focal_length is not None:
+                pretty += f'\nFocal length: {self.keywords.focal_length}'
+        pretty += f'\nBits per pixel: {self.bitpix}'
+        if self.naxis == 2:
+            pretty += f'\nDimensions: {self._naxes[0]} x {self._naxes[1]} (1 channel)'
+        else:
+            pretty += f'\nDimensions: {self._naxes[0]} x {self._naxes[1]} ({self._naxes[2]} channels)'
+        if self.data is not None:
+            pretty += f'\nPixel data type: {self.data.dtype}'
+        else:
+            pretty += '\nNo pixel data (only metadata loaded)'
+        return pretty
 
 @dataclass
 class Homography:
@@ -492,7 +758,7 @@ class BGSample:
     valid: bool = True  #: Samples default to being valid
     position: Optional[Tuple[float, float]] = field(default=None, init=False)  #: Position in (x, y) image coordinates
 
-    def __init__(self, *args, x=None, y=None, position=None, size=25, **kwargs):
+    def __init__(self, x=None, y=None, position=None, size=25, **kwargs):
         """
         Custom constructor to handle both (x, y) and position arguments while allowing other attributes.
         Ensures `size`, if specified, is an odd number.
@@ -519,26 +785,45 @@ class BGSample:
             if field_name not in {"position", "size"}:  # Already set manually
                 setattr(self, field_name, kwargs.get(field_name, getattr(self.__class__, field_name)))
 
-@unique
-class StarProfile(IntEnum):
-    """
-    Python equivalent of the Siril starprofile enum. Used to identify the type
-    of fit used to model a star in the image. Note that MOFFAT_FIXED is currently
-    not used in Siril, but is reserved for future use for Moffat stars modelled
-    with a fixed beta parameter
-    """
-    GAUSSIAN = 0
-    MOFFAT = 1
-    MOFFAT_FIXED = 2
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'BGSample':
+        """
+        Deserialize a portion of a buffer into a BGSample object
 
-@unique
-class SequenceType(IntEnum):
-    """Python equivalent of the Siril sequence_type enum"""
-    SEQ_REGULAR = 0
-    SEQ_SER = 1
-    SEQ_FITSEQ = 2
-    SEQ_AVI = 3
-    SEQ_INTERNAL = 4
+        Args:
+            data (bytes): The full binary buffer containing BGSample data
+
+        Returns:
+            BGSample: A BGSample object
+
+        Raises:
+            ValueError: If the buffer slice size does not match the expected size.
+            struct.error: If there is an error unpacking the binary data.
+        """
+        format_string = '!6dQ2dQ' # Define the format string based on background_sample structure
+        fixed_size = struct.calcsize(format_string)
+
+        # Verify buffer slice
+        if len(data) != fixed_size:
+            raise ValueError(
+                f"Data size {len(data)} doesn't match expected size {fixed_size}"
+            )
+
+        try:
+            # Extract the bytes for this struct and unpack
+            values = struct.unpack(format_string, data)
+
+            return cls(
+                        median = (values[0], values[1], values[2]),
+                        mean = values[3],
+                        min = values[4],
+                        max = values[5],
+                        size = values[6],
+                        position = (values[7], values[8]),
+                        valid = bool(values[9])
+            )
+        except struct.error as e:
+            raise SirilError(f"Deserialization error: {e}") from e
 
 @dataclass
 class PSFStar:
@@ -596,6 +881,50 @@ class PSFStar:
     ra: float = 0.0            #: Right Ascension
     dec: float = 0.0           #: Declination
 
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'PSFStar':
+        """
+        Deserialize a portion of a buffer into a PSFStar object.
+
+        Args:
+            data: (bytes) The full binary buffer containing PSFStar data.
+
+        Returns:
+            PSFStar object
+
+        Raises:
+            ValueError: If the buffer slice size does not match the expected size.
+            struct.error: If there is an error unpacking the binary data.
+        """
+        format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
+        expected_size = struct.calcsize(format_string)
+        # Verify we got the expected amount of data
+
+        if len(data) != expected_size:
+            raise SirilError(f"Received stats data size {len(data)} doesn't match expected size {expected_size}")
+
+
+        try:
+            # Extract the bytes for this struct and unpack
+            values = struct.unpack(format_string, data)
+
+            return cls(
+                B=values[0], A=values[1], x0=values[2], y0=values[3],
+                sx=values[4], sy=values[5], fwhmx=values[6], fwhmy=values[7],
+                fwhmx_arcsec=values[8], fwhmy_arcsec=values[9], angle=values[10],
+                rmse=values[11], sat=values[12], R=values[13],
+                has_saturated=bool(values[14]), beta=values[15],
+                profile=values[16], xpos=values[17], ypos=values[18],
+                mag=values[19], Bmag=values[20], s_mag=values[21],
+                s_Bmag=values[22], SNR=values[23], BV=values[24],
+                B_err=values[25], A_err=values[26], x_err=values[27],
+                y_err=values[28], sx_err=values[29], sy_err=values[30],
+                ang_err=values[31], beta_err=values[32], layer=values[33],
+                ra=values[34], dec=values[35]
+            )
+        except struct.error as e:
+            raise SirilError(f"Deserialization error: {e}") from e
+
 @dataclass
 class RegData:
     """Python equivalent of Siril regdata structure"""
@@ -606,6 +935,53 @@ class RegData:
     background_lvl: np.float32 = 0.0     #: background level
     number_of_stars: int = 0             #: number of stars detected in the image
     H: Homography = field(default_factory=Homography)   #: Stores a homography matrix describing the affine transform from this frame to the reference frame
+
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'RegData':
+        """
+        Deserialize a binary response into a RegData object.
+
+        Args:
+            data (bytes): Binary data to unpack
+
+        Returns: RegData object
+
+        Raises: SirilError if the received data doesn't match the expected size'
+                struct.error If unpacking fails
+        """
+        # Calculate expected size
+        format_string = '!5dQ9d2Q'
+        expected_size = struct.calcsize(format_string)
+
+        # Verify we got the expected amount of data
+        if len(data) != expected_size:
+            raise SirilError(f"Received stats data size {len(data)} doesn't match expected size {expected_size}")
+
+        try:
+            values = struct.unpack(format_string, data)
+            return cls(
+                fwhm=values[0],
+                weighted_fwhm=values[1],
+                roundness=values[2],
+                quality=values[3],
+                background_lvl=values[4],
+                number_of_stars=values[5],
+                H=Homography(
+                    h00=values[6],
+                    h01=values[7],
+                    h02=values[8],
+                    h10=values[9],
+                    h11=values[10],
+                    h12=values[11],
+                    h20=values[12],
+                    h21=values[13],
+                    h22=values[14],
+                    pair_matched=values[15],
+                    Inliers=values[16]
+                )
+            )
+        except struct.error as e:
+            raise SirilError(f"Deserialization error: {e}") from e
 
     def __repr__(self):
         attrs = [f"    {k}={getattr(self, k)}" for k in self.__dataclass_fields__]
@@ -625,16 +1001,6 @@ class ImgData:
         attrs = [f"    {k}={getattr(self, k)}" for k in self.__dataclass_fields__]
         return f"{self.__class__.__name__}(\n" + ",\n".join(attrs) + "\n)"
 
-@unique
-class DistoType(IntEnum):
-    """Python equivalent of the Siril disto_source enum"""
-    DISTO_UNDEF = 0      #: No distortion
-    DISTO_IMAGE = 1      #: Distortion from current image
-    DISTO_FILE = 2       #: Distortion from given file
-    DISTO_MASTER = 3     #: Distortion from master files
-    DISTO_FILES = 4      #: Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
-    DISTO_FILE_COMET = 5 #: special for cometary alignement, to be detected by apply reg
-
     def __str__(self):
         if self == DistoType.DISTO_UNDEF:
             return "No distortion"
@@ -650,6 +1016,44 @@ class DistoType(IntEnum):
             return "Cometary alignement"
         return "Unknown distortion type"
 
+    @classmethod
+    def deserialize(cls, response):
+        """
+        Deserialize binary response into an ImgData object.
+
+        Args:
+            response (bytes): Binary data to unpack.
+
+        Returns:
+            ImgData: An ImgData object with deserialized data.
+
+        Raises:
+            ValueError: If received data size is incorrect.
+            struct.error: If unpacking fails.
+        """
+        format_string = '!3qd2q'
+
+        # Verify data size
+        expected_size = struct.calcsize(format_string)
+        if len(response) != expected_size:
+            raise ValueError(
+                f"Received image data size {len(response)} doesn't match expected size {expected_size}"
+            )
+
+        try:
+            # Unpack the binary data
+            values = struct.unpack(format_string, response)
+
+            return cls(
+                filenum=values[0],
+                incl=values[1],
+                date_obs=datetime.fromtimestamp(values[2]) if values[2] != 0 else None,
+                airmass=values[3],
+                rx=values[4],
+                ry=values[5]
+            )
+        except struct.error as e:
+            raise SirilError(f"Deserialization error: {e}") from e
 
 @dataclass
 class DistoData:
@@ -702,7 +1106,7 @@ class Sequence:
             self.stats = []
         if self.distoparam is None:
             self.distoparam = []
-    
+
     def __str__(self):
         """For pretty-printing sequence information"""
         pretty = f'Sequence: {self.seqname}'
@@ -723,36 +1127,38 @@ class Sequence:
         return pretty
 
 @dataclass
-class SirilPoint:
+class FPoint:
     """
-    Represents a 2D point in the Siril image with x and y coordinates.
+    Represents a 2D point with float x and y coordinate values in the Siril
+    image.
     """
     x: float #: x co-ordinate
     y: float #: y co-ordinate
 
-MAX_POINTS_PER_POLYGON = 100
+# This is a very liberal limit, only there to protect C against unbounded g_malloc0 calls
+MAX_POINTS_PER_POLYGON = 1000000
 
 @dataclass
-class UserPolygon:
+class Polygon:
     """
     Represents a user-defined polygon for display in the image overlay. These
     can be filled or outline-only, and can have any color and transparency
     (alpha) value. They can also have an optional label which is displayed
     centred on the polygon.
 
-    Note that UserPolygons should be considered transitory - they can be used
+    Note that Polygons should be considered transitory - they can be used
     to display information to the user but they may be cleared at any time if
     the user toggles the overlay button in the main Siril interface to clear
     the overlay.
 
     Attributes:
         polygon_id (int): A unique identifier for the polygon.
-        points (List[Point]): List of points defining the polygon's shape.
+        points (List[FPoint]): List of points defining the polygon's shape.
         color (int): Packed RGBA color (32-bit integer).
         fill (bool): If True, the polygon should be filled when drawn.
         legend (str): Optional legend for the polygon.
     """
-    points: List[SirilPoint] #: List of points defining the polygon's shape
+    points: List[FPoint] #: List of points defining the polygon's shape
     polygon_id: int = 0 #: unique identifier
     color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF)
     fill: bool = False #: whether or not the polygon should be filled when drawn
@@ -770,7 +1176,7 @@ class UserPolygon:
 
     def serialize(self) -> bytes:
         """
-        Serializes a single UserPolygon object into a byte array.
+        Serializes a single Polygon object into a byte array.
 
         Returns:
             bytes: A byte array representing the serialized polygon data.
@@ -803,12 +1209,12 @@ class UserPolygon:
         return bytes(buffer)
 
     @classmethod
-    def deserialize_polygon(cls, data: bytes) -> Tuple['UserPolygon', bytes]:
+    def deserialize_polygon(cls, data: bytes) -> Tuple['Polygon', bytes]:
         """
-        Creates a UserPolygon object by deserializing a byte array.
+        Creates a Polygon object by deserializing a byte array.
 
         Returns:
-            Tuple: A UserPolygon object and any remaining bytes in the byte
+            Tuple: A Polygon object and any remaining bytes in the byte
                    array. (The remaining bytes are for use in
                    deserialize_polygon_list and can be safely ignored if
                    deserializing a single polygon.)
@@ -832,7 +1238,7 @@ class UserPolygon:
 
             x, y = struct.unpack('!dd', data[:16])
             data = data[16:]
-            points.append(SirilPoint(x, y))
+            points.append(FPoint(x, y))
 
         # Read legend length
         if len(data) < 4:
@@ -854,12 +1260,12 @@ class UserPolygon:
         return polygon, data
 
     @classmethod
-    def deserialize_polygon_list(cls, data: bytes) -> List['UserPolygon']:
+    def deserialize_polygon_list(cls, data: bytes) -> List['Polygon']:
         """
-        Creates a List of UserPolygon objects by deserializing a byte array.
+        Creates a List of Polygon objects by deserializing a byte array.
 
         Returns:
-            List: A List of UserPolygon objects.
+            List: A List of Polygon objects.
 
         Raises:
             ValueError: If there is invalid data to deserialize.

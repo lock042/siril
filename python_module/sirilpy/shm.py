@@ -4,8 +4,23 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+import ctypes
 from multiprocessing import shared_memory
 from multiprocessing.resource_tracker import unregister
+
+class _SharedMemoryInfo(ctypes.Structure):
+    """
+    Structure matching the C-side shared memory info. Internal class:
+    this is not intended for use in scripts.
+    """
+    _fields_ = [
+        ("size", ctypes.c_size_t),
+        ("data_type", ctypes.c_int),  # 0 for WORD, 1 for float
+        ("width", ctypes.c_int),
+        ("height", ctypes.c_int),
+        ("channels", ctypes.c_int),
+        ("shm_name", ctypes.c_char * 256)
+    ]
 
 class SharedMemoryWrapper:
     """
