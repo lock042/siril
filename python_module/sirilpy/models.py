@@ -1135,21 +1135,22 @@ class FPoint:
     x: float #: x co-ordinate
     y: float #: y co-ordinate
 
-# This is a very liberal limit, only there to protect C against unbounded g_malloc0 calls
+# This is a very liberal limit, only there to protect C against unbounded g_malloc0
+# calls that could arise from attempts to create a Polygon with astronomical numbers
+# of FPoints.
 MAX_POINTS_PER_POLYGON = 1000000
 
 @dataclass
 class Polygon:
     """
-    Represents a user-defined polygon for display in the image overlay. These
-    can be filled or outline-only, and can have any color and transparency
-    (alpha) value. They can also have an optional label which is displayed
-    centred on the polygon.
+    Represents a user-defined polygon. These can be filled or outline-only, and
+    can have any color and transparency (alpha) value. They can also have an optional
+    label which is displayed centred on the polygon.
 
-    Note that Polygons should be considered transitory - they can be used
-    to display information to the user but they may be cleared at any time if
-    the user toggles the overlay button in the main Siril interface to clear
-    the overlay.
+    Note that Polygons should be considered transitory if used with the overlay -
+    they can be used to display information to the user but they may be cleared
+    at any time if the user toggles the overlay button in the main Siril interface
+    to clear the overlay.
 
     Attributes:
         polygon_id (int): A unique identifier for the polygon.
