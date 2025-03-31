@@ -3,9 +3,15 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""
+TKsiril submodule for Siril, providing utility methods to achieve consistent
+script GUI appearance using the TKinter toolkit.
+"""
+
 import tkinter as tk
 from tkinter import ttk
 from .connection import SirilInterface
+from .exceptions import SirilError
 
 def create_tooltip(widget, text, wrap_length=250):
     """
@@ -18,12 +24,12 @@ def create_tooltip(widget, text, wrap_length=250):
         wrap_length (int, optional): Length at which text wraps. Defaults to 250.
 
     Raises:
-        RuntimeError: If the provided widget is not a valid Tkinter widget
-        TypeError: If text is not a string
+        TypeError: If text is not a string or the provided widget is not a
+                   valid Tkinter widget
     """
     # Validate widget argument
     if not isinstance(widget, (tk.Widget, tk.Tk, tk.Toplevel)):
-        raise RuntimeError(f"Invalid widget type. Expected a Tkinter widget, got {type(widget)}")
+        raise TypeError(f"Invalid widget type. Expected a Tkinter widget, got {type(widget)}")
 
     # Validate text argument
     if not isinstance(text, str):
@@ -79,6 +85,7 @@ def match_theme_to_siril(themed_tk, s):
         TypeError: If input arguments are of incorrect type
         ValueError: If the theme configuration is not 0 or 1
         AttributeError: If required methods are not available
+        RuntimeError: If there are errors installing or setting the theme
     """
     # Strict type checking for s
     if not isinstance(s, SirilInterface):
@@ -87,8 +94,8 @@ def match_theme_to_siril(themed_tk, s):
     # Check if s is an instance of expected SirilInterface class
     try:
         s.__class__.__name__  # Ensure the object is instantiated
-    except Exception:
-        raise TypeError("Invalid SirilInterface object")
+    except Exception as e:
+        raise TypeError(f"Invalid SirilInterface object: {e}") from e
 
     # Check if themed_tk has the required method
     if not (hasattr(themed_tk, 'set_theme') or
@@ -99,7 +106,7 @@ def match_theme_to_siril(themed_tk, s):
     try:
         theme_value = s.get_siril_config("gui", "theme")
     except Exception as e:
-        raise AttributeError(f"Unable to retrieve theme configuration: {e}")
+        raise AttributeError(f"Unable to retrieve theme configuration: {e}") from e
 
     # Map theme values to theme names
     theme_map = {
@@ -126,7 +133,7 @@ def match_theme_to_siril(themed_tk, s):
         else:
             raise RuntimeError("No valid theme-setting method found")
     except Exception as e:
-        raise RuntimeError(f"Failed to set theme: {e}")
+        raise RuntimeError(f"Failed to set theme: {e}") from e
 
 def standard_style():
     """
@@ -137,7 +144,7 @@ def standard_style():
         none
 
     Raises:
-        RuntimeError: If the style creation or configuration fails
+        SirilError: If the style creation or configuration fails
     """
     try:
         style = ttk.Style()
@@ -151,4 +158,4 @@ def standard_style():
         return style
 
     except Exception as e:
-        raise RuntimeError(f"Failed to configure style: {e}")
+        raise SirilError(f"Failed to configure style: {e}") from e

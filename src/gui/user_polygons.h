@@ -10,7 +10,8 @@ typedef struct {
 	gchar *legend;
 } __attribute__((packed)) UserPolygon;
 
-#define MAX_POLYGON_POINTS 100
+// Very liberal limit, purely to avoid unlimited g_malloc0 calls
+#define MAX_POLYGON_POINTS 1e6
 
 UserPolygon *find_polygon_by_id(int id);
 int get_unused_polygon_id(void);
