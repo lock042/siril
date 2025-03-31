@@ -1135,7 +1135,8 @@ class FPoint:
     x: float #: x co-ordinate
     y: float #: y co-ordinate
 
-MAX_POINTS_PER_POLYGON = 100
+# This is a very liberal limit, only there to protect C against unbounded g_malloc0 calls
+MAX_POINTS_PER_POLYGON = 1000000
 
 @dataclass
 class Polygon:
