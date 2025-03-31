@@ -2192,6 +2192,12 @@ CLEANUP:
 
 		case CMD_ADD_USER_POLYGON: {
 			UserPolygon *polygon = deserialize_polygon((const uint8_t*) payload, payload_length);
+			if (!(single_image_is_loaded() || sequence_is_loaded())) {
+				siril_debug_print("Failed to add user polygon\n");
+				const char* error_msg = _("Failed to add user polygon: no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
 			if (polygon) {
 				int id = get_unused_polygon_id();
 				polygon->id = id;
@@ -2214,7 +2220,7 @@ CLEANUP:
 				if (!deleted) {
 					siril_debug_print("Failed to delete user polygon with id %d\n", id);
 					const char* error_msg = _("Invalid payload length");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				}
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
@@ -2237,14 +2243,14 @@ CLEANUP:
 				if (!polygon) {
 					siril_debug_print("Failed to find a user polygon with id %d\n", id);
 					const char* error_msg = _("No polygon found matching id");
-					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				}
 				size_t polygon_size;
 				uint8_t *serialized = serialize_polygon(polygon, &polygon_size);
 				if (!serialized) {
 					siril_debug_print("Failed to serialize the user polygon with id %d\n", id);
 					const char* error_msg = _("Failed to serialize user polygon");
-					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				}
 				shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
