@@ -3778,7 +3778,8 @@ class SirilInterface:
             bool: True if the command succeeded, False otherwise
 
         Raises:
-            SirilError: on failure
+            SirilError: if an error occurred
+            SharedMemoryError: if a shared memory error occurred
         """
 
         try:
@@ -3801,20 +3802,64 @@ class SirilInterface:
         Raises:
             SirilError: on failure
         """
+        shm = None
         try:
             payload = struct.pack('!i', polygon_id)
             # Send it using _request_data
-            response = self._request_data(_Command.GET_USER_POLYGON, payload)
-            if response is None:
-                print(f"No polygon matching ID {polygon_id} found")
-                return None
+            status, response = self._send_command(_Command.GET_USER_POLYGON, payload)
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("No image is currently loaded in Siril"))
+                    raise SirilConnectionError(_("Server error: {}").format(error_msg))
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
 
-            # Catch the polygon and disregard leftover bytes
-            polygon, unused_bytes = Polygon.deserialize_polygon(response) # pylint: disable=unused-variable
+            if status == _Status.NONE:
+                return None # May be correct if there are no user polygons defined
+
+            if not response:
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
+
+            try:
+                # Parse the shared memory information
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise ValueError(_("Invalid shared memory information received: {}").format(e)) from e
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            # Read entire buffer at once using memoryview
+            buffer = bytearray(shm.buf)[:shm_info.size]
+
+            polygon = Polygon.deserialize_polygon(buffer)[0]
+
             return polygon
 
         except Exception as e:
             raise SirilError(_("Error in overlay_get_polygon(): {}").format(e)) from e
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    finish_info = struct.pack('256s', shm_info.shm_name)
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                        raise SirilError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass
 
     def overlay_get_polygons_list(self) -> List['Polygon']:
         """
@@ -3827,6 +3872,7 @@ class SirilInterface:
             SirilError: if an error occurred
             SharedMemoryError: if a shared memory error occurred
         """
+        shm = None
         try:
             status, response = self._send_command(_Command.GET_USER_POLYGON_LIST)
             # Handle error responses

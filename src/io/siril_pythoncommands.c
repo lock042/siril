@@ -2056,10 +2056,6 @@ CLEANUP:
 		}
 
 		case CMD_CLAIM_THREAD: {
-//			if (!(single_image_is_loaded() || sequence_is_loaded())) {
-//				const char* error_msg = _("Failed to claim thread - no image loaded");
-//				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-//			}
 			int ret = claim_thread_for_python();
 			if (ret == 1) {
 				// Unable to claim the thread
@@ -2250,8 +2246,10 @@ CLEANUP:
 					const char* error_msg = _("Failed to serialize user polygon");
 					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				}
-				success = send_response(conn, STATUS_OK, serialized, polygon_size);
+				shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_size);
+				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				g_free(serialized);
+				free(info);
 			} else {
 				siril_debug_print("Invalid payload length for GET_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
@@ -2262,17 +2260,19 @@ CLEANUP:
 
 		case CMD_GET_USER_POLYGON_LIST: {
 			size_t polygon_list_size;
-			uint8_t *serialized = serialize_polygon_list(gui.user_polygons, &polygon_list_size);
-			if (!serialized) {
-				siril_debug_print("Failed to serialize the user polygon with id\n");
-				const char* error_msg = _("Failed to serialize user polygon");
-				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
-			}
 			if (g_list_length(gui.user_polygons) == 0) {
 				siril_debug_print("No user polygons defined\n");
 				const char* error_msg = _("No user polygons to serialize");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			}
+
+			uint8_t *serialized = serialize_polygon_list(gui.user_polygons, &polygon_list_size);
+			if (!serialized) {
+				siril_debug_print("Failed to serialize the user polygon list\n");
+				const char* error_msg = _("Failed to serialize user polygon list");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+			}
+
 			shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_list_size);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 			g_free(serialized);
