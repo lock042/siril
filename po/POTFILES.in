@@ -113,6 +113,7 @@ src/filters/banding.c
 src/filters/clahe.c
 src/filters/cosmetic_correction.c
 src/filters/curve_transform.c
+src/filters/deconvolution.c
 src/filters/fft.c
 src/filters/ght.c
 src/filters/graxpert.c

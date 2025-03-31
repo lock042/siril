@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-27 14:47+0100\n"
-"PO-Revision-Date: 2025-03-25 22:27+0000\n"
+"POT-Creation-Date: 2025-03-31 10:47+0200\n"
+"PO-Revision-Date: 2025-03-31 08:47+0000\n"
 "Last-Translator: Ruslan <rpazenko@ukr.net>\n"
 "Language-Team: Ukrainian <https://weblate.siril.org/projects/siril/software/"
 "siril/uk/>\n"
@@ -1354,6 +1354,7 @@ msgid ""
 msgstr "Префікс назв зображень, які отримані в результаті видалення фону."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:249 src/gui/uifiles/graxpert.ui:816
+#: src/filters/deconvolution.c:610 src/filters/deconvolution.c:867
 msgid "Deconvolution"
 msgstr "Деконволюція"
 
@@ -12988,7 +12989,7 @@ msgstr "Калібрування кольорів: обробка...\n"
 #: src/core/command.c:10463 src/core/command.c:10616 src/core/command.c:10636
 #: src/io/siril_catalogues.c:1123 src/io/siril_catalogues.c:1172
 msgid "This command only works on plate solved images\n"
-msgstr ""
+msgstr "Ця команда працює лише на зображеннях з астрономічним рішенням\n"
 
 #: src/algos/comparison_stars.c:456
 msgid "Target star photometric information not available.\n"
@@ -14072,7 +14073,7 @@ msgid "Error in layers alignment."
 msgstr "Помилка при вирівнюванні шарів."
 
 #: src/compositing/align_rgb.c:203 src/compositing/compositing.c:978
-#: src/gui/registration.c:1245
+#: src/gui/registration.c:1244
 msgid "Registration complete."
 msgstr "Реєстрація завершена."
 
@@ -15900,7 +15901,7 @@ msgstr[0] "Конвертація: обробка %d FITS-файлу…\n"
 msgstr[1] "Конвертація: обробка %d FITS-файлів…\n"
 msgstr[2] "Конвертація: обробка %d FITS-файлів…\n"
 
-#: src/core/command.c:7620 src/gui/registration.c:1134
+#: src/core/command.c:7620 src/gui/registration.c:1133
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
 msgstr "Реєстрація тільки по зміщенню можлива з OpenCV 4.4\n"
 
@@ -15936,36 +15937,36 @@ msgstr ""
 msgid "Error: flat image cannot work with variable sized sequence.\n"
 msgstr "Експортувати послідовність"
 
-#: src/core/command.c:7836 src/core/command.c:8215 src/gui/registration.c:979
+#: src/core/command.c:7836 src/core/command.c:8215 src/gui/registration.c:978
 msgid "NOT USING FLAT: Could not load reference image\n"
 msgstr ""
 
 #: src/core/command.c:7843 src/core/command.c:8222 src/core/preprocess.c:879
-#: src/gui/registration.c:988
+#: src/gui/registration.c:987
 msgid "NOT USING FLAT: could not parse the expression"
 msgstr ""
 
-#: src/core/command.c:7847 src/core/command.c:8226 src/gui/registration.c:993
+#: src/core/command.c:7847 src/core/command.c:8226 src/gui/registration.c:992
 msgid "Error: no master flat specified in the preprocessing tab.\n"
 msgstr ""
 
 #: src/core/command.c:7853 src/core/command.c:8232 src/core/preprocess.c:886
-#: src/gui/registration.c:1001
+#: src/gui/registration.c:1000
 msgid "NOT USING FLAT: number of channels is different"
 msgstr ""
 
 #: src/core/command.c:7856 src/core/command.c:8235 src/core/preprocess.c:889
-#: src/gui/registration.c:1004
+#: src/gui/registration.c:1003
 msgid "NOT USING FLAT: image dimensions are different"
 msgstr ""
 
 #. no need to deal with bitdepth conversion as readfits has already forced conversion to float
-#: src/core/command.c:7859 src/core/command.c:8238 src/gui/registration.c:1007
+#: src/core/command.c:7859 src/core/command.c:8238 src/gui/registration.c:1006
 msgid "Master flat read for use as initial pixel weight\n"
 msgstr ""
 
 #: src/core/command.c:7862 src/core/command.c:8241 src/core/preprocess.c:895
-#: src/gui/registration.c:1009 src/livestacking/gui.c:281
+#: src/gui/registration.c:1008 src/livestacking/gui.c:281
 msgid "NOT USING FLAT: cannot open the file"
 msgstr ""
 
@@ -15988,7 +15989,7 @@ msgid "Global Star Alignment (deep-sky)"
 msgstr "Глобальне вирівнювання по зірках (далекий космос)"
 
 #: src/core/command.c:7927 src/core/processing.c:156
-#: src/gui/registration.c:1149
+#: src/gui/registration.c:1148
 msgid "Not enough space to save the output images, aborting\n"
 msgstr "Недостатньо місця для збереження підсумкових зображень, переривання\n"
 
@@ -16009,19 +16010,19 @@ msgid ""
 "OpenCV below 4.4. Aborting\n"
 msgstr ""
 
-#: src/core/command.c:7946 src/gui/registration.c:1156
+#: src/core/command.c:7946 src/gui/registration.c:1155
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "scaling can be applied. Aborting\n"
 msgstr ""
 
 #. don't load it for command line execution
-#: src/core/command.c:7954 src/gui/registration.c:1211
+#: src/core/command.c:7954 src/gui/registration.c:1210
 #, c-format
 msgid "Registration: processing using method: %s\n"
 msgstr ""
 
-#: src/core/command.c:7965 src/core/command.c:8377 src/gui/registration.c:1216
+#: src/core/command.c:7965 src/core/command.c:8377 src/gui/registration.c:1215
 #, fuzzy
 msgid "Interpolation clamping active\n"
 msgstr "Алгоритм інтерполяції:"
@@ -16690,12 +16691,14 @@ msgstr ""
 #: src/core/command.c:10340
 #, c-format
 msgid "Using focal length from image: %.2f\n"
-msgstr ""
+msgstr "Використовується фокусна відстань, отримана із зображення: %.2f\n"
 
 #: src/core/command.c:10345 src/core/command.c:10352
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr ""
+"Аргументи, що змінюють блиск, марні при пошуку астрономічного рішення за "
+"допомогою astrometry.net\n"
 
 #: src/core/command.c:10371
 msgid ""
@@ -16735,25 +16738,29 @@ msgstr ""
 #: src/core/command.c:10695 src/core/command.c:10743
 #, c-format
 msgid "Unknown option provided: %s\n"
-msgstr ""
+msgstr "Вказано невідому опцію: %s\n"
 
 #: src/core/command.c:10754 src/core/command.c:10775
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
+"Спершу потрібно ініціалізувати живе стекування за допомогою команди "
+"START_LS\n"
 
 #: src/core/command.c:10758
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr ""
+"Живе стекування (на льоту) було налаштовано на використання перегляду "
+"файлів, а не цієї команди\n"
 
 #: src/core/command.c:10800
-#, fuzzy, c-format
+#, c-format
 msgid "String in: %s\n"
-msgstr "Завантажуємо скріпт: %s\n"
+msgstr "Вхідний рядок: %s\n"
 
 #: src/core/command.c:10801
 #, c-format
 msgid "String out: %s\n"
-msgstr ""
+msgstr "Вихідний рядок: %s\n"
 
 #: src/core/command.c:10939
 msgid ""
@@ -16952,6 +16959,9 @@ msgid ""
 "<b>filename</b>. At each pixel location, the new value is determined as the "
 "max of value in current image and in <b>filename</b>"
 msgstr ""
+"Обчислює нове зображення, комбінуючи зображення, що міститься у пам'яті із "
+"зображенням <b>filename</b>. Значення в кожному пікселі обчислюється як "
+"максимум із значень поточного зображення та зображення <b>filename</b>"
 
 #: src/core/command_def.h:7
 msgid ""
@@ -20373,7 +20383,7 @@ msgstr ""
 msgid "Dark optimization: This process cannot be applied to 8b images"
 msgstr ""
 
-#: src/core/preprocess.c:882 src/gui/registration.c:997
+#: src/core/preprocess.c:882 src/gui/registration.c:996
 #: src/livestacking/gui.c:276
 msgid "Opening flat image..."
 msgstr ""
@@ -21677,52 +21687,52 @@ msgstr ""
 msgid "Nothing to redo"
 msgstr ""
 
-#: src/core/utils.c:631
+#: src/core/utils.c:632
 msgid "red"
 msgstr "червоний"
 
-#: src/core/utils.c:633
+#: src/core/utils.c:634
 msgid "green"
 msgstr "зелений"
 
-#: src/core/utils.c:635
+#: src/core/utils.c:636
 msgid "blue"
 msgstr "синій"
 
-#: src/core/utils.c:1162
+#: src/core/utils.c:1163
 msgid "Unknown error\n"
 msgstr ""
 
-#: src/core/utils.c:1165
+#: src/core/utils.c:1166
 #, fuzzy, c-format
 msgid "'%s' No such file or directory\n"
 msgstr "\"%s\" не є каталогом\n"
 
-#: src/core/utils.c:1168
+#: src/core/utils.c:1169
 #, fuzzy, c-format
 msgid "'%s' is not a directory\n"
 msgstr "\"%s\" не є каталогом\n"
 
-#: src/core/utils.c:1171
+#: src/core/utils.c:1172
 #, c-format
 msgid "You don't have permission to write in this directory: '%s'\n"
 msgstr ""
 
-#: src/core/utils.c:1193
+#: src/core/utils.c:1194
 #, c-format
 msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr "Встановлення CWD (поточного робочого каталогу) у '%s'\n"
 
-#: src/core/utils.c:1196
+#: src/core/utils.c:1198
 #, c-format
-msgid "Could not change directory to '%s'.\n"
+msgid "Could not change directory to '%s'(error code %d: %s).\n"
 msgstr ""
 
-#: src/core/utils.c:1222
+#: src/core/utils.c:1224
 msgid "Filename is too long, not expanding it\n"
 msgstr ""
 
-#: src/core/utils.c:1331 src/io/image_format_fits.c:2847
+#: src/core/utils.c:1333 src/io/image_format_fits.c:2847
 #: src/io/image_format_fits.c:2852 src/io/ser.c:1394
 #, fuzzy
 msgid "pixel"
@@ -21731,7 +21741,7 @@ msgstr[0] "Суперпіксельна"
 msgstr[1] "Суперпіксельна"
 msgstr[2] "Суперпіксельна"
 
-#: src/core/utils.c:1332 src/io/image_format_fits.c:2848
+#: src/core/utils.c:1334 src/io/image_format_fits.c:2848
 #: src/io/image_format_fits.c:2853 src/io/ser.c:1395
 #, fuzzy
 msgid "channel"
@@ -21740,7 +21750,7 @@ msgstr[0] "Червоний канал"
 msgstr[1] "Червоний канал"
 msgstr[2] "Червоний канал"
 
-#: src/core/utils.c:1724 src/core/utils.c:1727
+#: src/core/utils.c:1726 src/core/utils.c:1729
 msgid "(invalid UTF-8 string)"
 msgstr ""
 
@@ -21812,17 +21822,184 @@ msgstr ""
 msgid "cosmetic correction: cosme file format error at line %d: %s\n"
 msgstr ""
 
+#: src/filters/deconvolution.c:198
+msgid "Error: PSF file does not contain a square PSF. Cannot load this file.\n"
+msgstr ""
+
+#. no need to check com.script as it is built into the siril_message_dialog function
+#: src/filters/deconvolution.c:200
+#, fuzzy
+msgid "Wrong PSF size"
+msgstr "Розмір PSF"
+
+#: src/filters/deconvolution.c:209
+#, c-format
+msgid ""
+"Warning: PSF file is even (%d x %d). PSFs should always be odd. Cropping by "
+"1 pixel in each direction. This may not produce optimum results.\n"
+msgstr ""
+
+#. If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
+#: src/filters/deconvolution.c:255
+msgid ""
+"The selected PSF is RGB but the loaded image is monochrome. The PSF will be "
+"converted to monochrome (luminance).\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:284
+msgid "Error: no PSF has been computed, nothing to save.\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:310
+#, fuzzy
+msgid "Error preparing PSF for save.\n"
+msgstr "Помилка завантаження PSF.\n"
+
+#. This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
+#: src/filters/deconvolution.c:321
+#, fuzzy
+msgid ""
+"This copy of Siril was compiled without libtiff support: saving PSF in FITS "
+"format.\n"
+msgstr ""
+"Siril скомпільований без підтримки роботи з мережею, не вдалося виконати цю "
+"операцію\n"
+
+#: src/filters/deconvolution.c:350
+#, fuzzy
+msgid "Kernel estimation complete.\n"
+msgstr "Медіанний стекінг завершено."
+
+#: src/filters/deconvolution.c:364
+msgid ""
+"Error: no stars detected. Run findstar or select stars using Dynamic PSF "
+"dialog first.\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:392
+msgid ""
+"Warning: focal length appears likely to be incorrect. Continuing anyway...\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:394
+msgid ""
+"Warning: diameter appears likely to be incorrect. Continuing anyway...\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:396
+msgid ""
+"Warning: sensor pixel size appears likely to be incorrect. Continuing "
+"anyway...\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:404
+msgid ""
+"Error: no previous PSF found. A blind PSF estimator or calculation of PSF "
+"from stars or manual parameters must already have been done to use the "
+"Previous PSF option.\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:413
+msgid ""
+"Error: no PSF defined. Select blind deconvolution or define a PSF from "
+"selection or psf parameters.\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:430
+msgid "PSF made in bottom up orientation.\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:432
+msgid "PSF made in top down orientation.\n"
+msgstr ""
+
+#. User wants PSF from stars but has not selected any stars
+#: src/filters/deconvolution.c:453 src/filters/deconvolution.c:573
+msgid "No stars detected. Finding suitable non-saturated stars...\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:469 src/filters/deconvolution.c:589
+msgid "No suitable stars detectable in this image. Aborting..."
+msgstr ""
+
+#: src/filters/deconvolution.c:475
+#, c-format
+msgid "Found %d suitably bright, non-saturated stars.\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:483
+#, c-format
+msgid ""
+"Kernel size not large enough to fit PSF generated from detected stars. "
+"Increasing kernel size to %d. To override, specify kernel size using the "
+"-ks= option.\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:488
+#, c-format
+msgid ""
+"Warning: PSF generated from the stars detected in this image appears to be "
+"too big for the specified kernel size. Recommend increasing kernel size to "
+"%d.\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:497 src/filters/deconvolution.c:600
 #: src/filters/fft.c:455
 msgid "Siril FFT wisdom imported successfully...\n"
 msgstr ""
 
+#: src/filters/deconvolution.c:499 src/filters/deconvolution.c:603
 #: src/filters/fft.c:457
 msgid "System FFT wisdom imported successfully...\n"
 msgstr ""
 
+#: src/filters/deconvolution.c:501 src/filters/deconvolution.c:606
 #: src/filters/fft.c:459
 msgid "No FFT wisdom found to import...\n"
 msgstr ""
+
+#: src/filters/deconvolution.c:515
+#, fuzzy
+msgid "Starting PSF computation..."
+msgstr "Починаємо стекінг...\n"
+
+#: src/filters/deconvolution.c:521 src/filters/deconvolution.c:719
+#: src/filters/fft.c:540
+msgid "Siril FFT wisdom updated successfully...\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:523 src/filters/deconvolution.c:722
+#: src/filters/fft.c:542
+msgid "Siril FFT wisdom update failed...\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:526
+#, fuzzy
+msgid "Deconvolution PSF generated.\n"
+msgstr "Деконволюція..."
+
+#. Refuse to process the image using previous PSF if there is no previous PSF defined
+#. Refuse to process the sequence using previous PSF if there is no previous PSF defined
+#: src/filters/deconvolution.c:567 src/filters/deconvolution.c:816
+msgid ""
+"Error: trying to use previous PSF but no PSF has been generated. "
+"Aborting...\n"
+msgstr ""
+
+#: src/filters/deconvolution.c:625
+#, fuzzy
+msgid "Starting PSF estimation..."
+msgstr "Починаємо стекінг...\n"
+
+#: src/filters/deconvolution.c:656
+#, fuzzy
+msgid "Starting non-blind deconvolution..."
+msgstr "Деконволюція (Реконструкція) не наосліп"
+
+#: src/filters/deconvolution.c:811
+#, fuzzy
+msgid "Deconvolution. Processing sequence..."
+msgstr "Деконволюція..."
 
 #: src/filters/fft.c:463
 msgid "Fourier Transform: processing...\n"
@@ -21830,14 +22007,6 @@ msgstr ""
 
 #: src/filters/fft.c:525
 msgid "There is something wrong in your files\n"
-msgstr ""
-
-#: src/filters/fft.c:540
-msgid "Siril FFT wisdom updated successfully...\n"
-msgstr ""
-
-#: src/filters/fft.c:542
-msgid "Siril FFT wisdom update failed...\n"
 msgstr ""
 
 #: src/filters/fft.c:584
@@ -25086,110 +25255,110 @@ msgstr "Файли SER (*.ser)"
 msgid "Comet PSF center is out of the box, will use selection center instead\n"
 msgstr ""
 
-#: src/gui/registration.c:482
+#: src/gui/registration.c:481
 msgid "There is no timestamp stored in the file"
 msgstr ""
 
-#: src/gui/registration.c:483
+#: src/gui/registration.c:482
 msgid ""
 "Siril cannot perform the registration without date information in the file."
 msgstr ""
 
-#: src/gui/registration.c:488
+#: src/gui/registration.c:487
 msgid "Unable to convert DATE-OBS to a valid date"
 msgstr ""
 
-#: src/gui/registration.c:489
+#: src/gui/registration.c:488
 msgid ""
 "Siril cannot convert the DATE-OBS keyword into a valid date needed in the "
 "alignment."
 msgstr ""
 
-#: src/gui/registration.c:615
+#: src/gui/registration.c:614
 #, fuzzy, c-format
 msgid "Registering %d images of the %d of the sequence"
 msgstr "Зареєструвати всі зображення у послідовності"
 
-#: src/gui/registration.c:736
+#: src/gui/registration.c:735
 msgid "Max framing not allowed with fitseq, change to regular FITS images"
 msgstr ""
 
-#: src/gui/registration.c:747
+#: src/gui/registration.c:746
 msgid "Pick object in two images"
 msgstr ""
 
-#: src/gui/registration.c:835
+#: src/gui/registration.c:834
 #, fuzzy
 msgid "Failed to determine registration method...\n"
 msgstr "Додано метод реєстрації: %s\n"
 
 #. no need to clutter the interface
-#: src/gui/registration.c:864 src/gui/registration.c:952
+#: src/gui/registration.c:863 src/gui/registration.c:951
 msgid "not available for sequences with variable image sizes"
 msgstr ""
 
-#: src/gui/registration.c:946
+#: src/gui/registration.c:945
 #, fuzzy
 msgid "Select an area in image first"
 msgstr "Спочатку виберіть область на зображенні."
 
-#: src/gui/registration.c:948
+#: src/gui/registration.c:947
 #, fuzzy
 msgid "Select images in the sequence"
 msgstr "всі зображення з послідовності"
 
-#: src/gui/registration.c:950
+#: src/gui/registration.c:949
 msgid "Select a layer with existing registration"
 msgstr ""
 
-#: src/gui/registration.c:954
+#: src/gui/registration.c:953
 msgid "Unsupported CFA pattern detected"
 msgstr ""
 
-#: src/gui/registration.c:955
+#: src/gui/registration.c:954
 msgid ""
 "This sequence cannot be registered with the CFA pattern intact. You must "
 "debayer it prior to registration"
 msgstr ""
 
-#: src/gui/registration.c:957
+#: src/gui/registration.c:956
 #, fuzzy
 msgid "CFA pattern detected"
 msgstr "Послідовність не вибрана"
 
-#: src/gui/registration.c:958
+#: src/gui/registration.c:957
 msgid ""
 "This sequence cannot be registered with the CFA pattern intact. Select "
 "drizzle or debayer it prior to registration"
 msgstr ""
 
-#: src/gui/registration.c:1079
+#: src/gui/registration.c:1078
 msgid "Cannot use area selection on a sequence with variable image sizes\n"
 msgstr ""
 
-#: src/gui/registration.c:1160
+#: src/gui/registration.c:1159
 msgid ""
 "When interpolation is set to None, the transformation can only be set to "
 "Shift. Aborting\n"
 msgstr ""
 
-#: src/gui/registration.c:1164
+#: src/gui/registration.c:1163
 msgid ""
 "When interpolation is set to None, distortions must be set to None as well. "
 "Aborting\n"
 msgstr ""
 
-#: src/gui/registration.c:1196
+#: src/gui/registration.c:1195
 msgid "Error: unable to read reference frame metadata\n"
 msgstr ""
 
 #. Estimate was pressed, we need to update the label
-#: src/gui/registration.c:1255
+#: src/gui/registration.c:1254
 #, c-format
 msgid " (assuming a scaling factor of %.2f)"
 msgstr ""
 
-#: src/gui/registration.c:1256
+#: src/gui/registration.c:1255
 #, c-format
 msgid "Output image: %d x %d pixels%s\n"
 msgstr ""
@@ -30320,31 +30489,11 @@ msgstr ""
 #~ msgstr "Стекінг: обробка...\n"
 
 #, fuzzy
-#~ msgid "Kernel estimation complete.\n"
-#~ msgstr "Медіанний стекінг завершено."
-
-#, fuzzy
-#~ msgid "Starting PSF computation..."
-#~ msgstr "Починаємо стекінг...\n"
-
-#, fuzzy
-#~ msgid "Deconvolution PSF generated.\n"
-#~ msgstr "Деконволюція..."
-
-#, fuzzy
-#~ msgid "Starting PSF estimation..."
-#~ msgstr "Починаємо стекінг...\n"
-
-#, fuzzy
 #~ msgid "Wiener deconvolution..."
 #~ msgstr "Деконволюція..."
 
 #, fuzzy
 #~ msgid "Richardson-Lucy deconvolution..."
-#~ msgstr "Деконволюція..."
-
-#, fuzzy
-#~ msgid "Deconvolution. Processing sequence..."
 #~ msgstr "Деконволюція..."
 
 #, fuzzy
