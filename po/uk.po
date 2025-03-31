@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-27 14:47+0100\n"
-"PO-Revision-Date: 2025-03-25 22:27+0000\n"
+"PO-Revision-Date: 2025-03-31 08:47+0000\n"
 "Last-Translator: Ruslan <rpazenko@ukr.net>\n"
 "Language-Team: Ukrainian <https://weblate.siril.org/projects/siril/software/"
 "siril/uk/>\n"
@@ -12988,7 +12988,7 @@ msgstr "Калібрування кольорів: обробка...\n"
 #: src/core/command.c:10463 src/core/command.c:10616 src/core/command.c:10636
 #: src/io/siril_catalogues.c:1123 src/io/siril_catalogues.c:1172
 msgid "This command only works on plate solved images\n"
-msgstr ""
+msgstr "Ця команда працює лише на зображеннях з астрономічним рішенням\n"
 
 #: src/algos/comparison_stars.c:456
 msgid "Target star photometric information not available.\n"
@@ -16690,12 +16690,14 @@ msgstr ""
 #: src/core/command.c:10340
 #, c-format
 msgid "Using focal length from image: %.2f\n"
-msgstr ""
+msgstr "Використовується фокусна відстань, отримана із зображення: %.2f\n"
 
 #: src/core/command.c:10345 src/core/command.c:10352
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr ""
+"Аргументи, що змінюють блиск, марні при пошуку астрономічного рішення за "
+"допомогою astrometry.net\n"
 
 #: src/core/command.c:10371
 msgid ""
@@ -16735,25 +16737,29 @@ msgstr ""
 #: src/core/command.c:10695 src/core/command.c:10743
 #, c-format
 msgid "Unknown option provided: %s\n"
-msgstr ""
+msgstr "Вказано невідому опцію: %s\n"
 
 #: src/core/command.c:10754 src/core/command.c:10775
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
+"Спершу потрібно ініціалізувати живе стекування за допомогою команди "
+"START_LS\n"
 
 #: src/core/command.c:10758
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr ""
+"Живе стекування (на льоту) було налаштовано на використання перегляду "
+"файлів, а не цієї команди\n"
 
 #: src/core/command.c:10800
-#, fuzzy, c-format
+#, c-format
 msgid "String in: %s\n"
-msgstr "Завантажуємо скріпт: %s\n"
+msgstr "Вхідний рядок: %s\n"
 
 #: src/core/command.c:10801
 #, c-format
 msgid "String out: %s\n"
-msgstr ""
+msgstr "Вихідний рядок: %s\n"
 
 #: src/core/command.c:10939
 msgid ""
@@ -16952,6 +16958,9 @@ msgid ""
 "<b>filename</b>. At each pixel location, the new value is determined as the "
 "max of value in current image and in <b>filename</b>"
 msgstr ""
+"Обчислює нове зображення, комбінуючи зображення, що міститься у пам'яті із "
+"зображенням <b>filename</b>. Значення в кожному пікселі обчислюється як "
+"максимум із значень поточного зображення та зображення <b>filename</b>"
 
 #: src/core/command_def.h:7
 msgid ""
