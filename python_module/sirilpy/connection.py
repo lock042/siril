@@ -21,7 +21,7 @@ import numpy as np
 from .translations import _
 from .shm import SharedMemoryWrapper, _SharedMemoryInfo
 from .plot import PlotData
-from .exceptions import SirilError, SirilConnectionError, CommandError, NoImageError, NoSequenceError, SharedMemoryError
+from .exceptions import SirilError, DataError, SirilConnectionError, CommandError, NoImageError, NoSequenceError, SharedMemoryError
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType, Polygon
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
 
@@ -647,10 +647,10 @@ class SirilInterface:
             packed_message = bytes([color.value]) + message_bytes
             self._execute_command(_Command.LOG_MESSAGE, packed_message)
 
-        except SirilError as e:
+        except SirilError:
             raise
         except Exception as e:
-            raise SirilError(f"Error sending log message {message_bytes}: {e}")
+            raise SirilError(f"Error sending log message {message_bytes}: {e}") from e
 
     def _claim_thread(self) -> bool:
         """
@@ -3432,7 +3432,8 @@ class SirilInterface:
                  the "get -A" command)
 
         Returns:
-            The configuration value with appropriate Python type
+            The configuration value with appropriate Python type, or None if an
+            error occurred.
 
         Raises:
             DataError: if an unknown config type is encountered,
