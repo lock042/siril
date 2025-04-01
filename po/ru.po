@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-01 16:22+0200\n"
+"POT-Creation-Date: 2025-04-01 16:29+0200\n"
 "PO-Revision-Date: 2025-03-31 08:47+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
@@ -45,6 +45,7 @@ msgstr "Параметры AAVSO"
 #: src/gui/uifiles/icc_gamut_dialog.ui:48
 #: src/gui/uifiles/linearmatch_dialog.ui:62 src/gui/uifiles/Median_dialog.ui:66
 #: src/gui/uifiles/mouse_actions.ui:26 src/gui/uifiles/pixelmath.ui:805
+#: src/gui/uifiles/python_scratchpad.ui:224
 #: src/gui/uifiles/resample_dialog.ui:82 src/gui/uifiles/rotation_dialog.ui:57
 #: src/gui/uifiles/SCNR_dialog.ui:59
 #: src/gui/uifiles/script_contents_dialog.ui:46
@@ -717,6 +718,8 @@ msgstr ""
 "метаданные из фото», это, возможно, не потребуется."
 
 #: src/gui/uifiles/astrometry_dialog.ui:353
+#: src/gui/uifiles/python_scratchpad.ui:302
+#: src/gui/uifiles/python_scratchpad.ui:304
 msgid "Find"
 msgstr "Найти"
 
@@ -5335,6 +5338,324 @@ msgstr "Добавить изображение как переменную"
 msgid "Remove selected image"
 msgstr "Удалить выделенное изображение"
 
+#: src/gui/uifiles/python_scratchpad.ui:53
+#, fuzzy
+msgid "0/0"
+msgstr "0.0"
+
+#: src/gui/uifiles/python_scratchpad.ui:72
+#, fuzzy
+msgid "Previous Result"
+msgstr "Предыдущая PSF"
+
+#: src/gui/uifiles/python_scratchpad.ui:94
+msgid "Next Result"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:124
+msgid "unsaved"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:148
+#, fuzzy
+msgid "_File"
+msgstr "Файл"
+
+#: src/gui/uifiles/python_scratchpad.ui:158
+#, fuzzy
+msgid "Clear the current script"
+msgstr "Можно использовать в сценарии: "
+
+#: src/gui/uifiles/python_scratchpad.ui:160
+msgid "_New"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:169
+msgid "Open a script from a file"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/python_gui.c:738
+#: src/pixelMath/pixel_math_runner.c:1229
+msgid "_Open"
+msgstr "_Открыть"
+
+#: src/gui/uifiles/python_scratchpad.ui:180
+#, fuzzy
+msgid "_Recent Files"
+msgstr "Заменить файл"
+
+#: src/gui/uifiles/python_scratchpad.ui:200
+#, fuzzy
+msgid "Save the current script"
+msgstr "Сохранить текущее изображение FITS"
+
+#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/python_gui.c:815
+msgid "_Save"
+msgstr "_Сохранить"
+
+#: src/gui/uifiles/python_scratchpad.ui:211
+#, fuzzy
+msgid "Save the current script (choose filename)"
+msgstr "Сохранить это изображение с новым названием"
+
+#: src/gui/uifiles/python_scratchpad.ui:213
+#, fuzzy
+msgid "_Save As"
+msgstr "Сохранить как"
+
+#: src/gui/uifiles/python_scratchpad.ui:222
+#: src/gui/uifiles/python_scratchpad.ui:543
+#: src/gui/uifiles/python_scratchpad.ui:552
+#, fuzzy
+msgid "Close the script editor"
+msgstr "показать метки строк в редакторе сценариев"
+
+#: src/gui/uifiles/python_scratchpad.ui:236
+msgid "_Edit"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:246
+#: src/gui/uifiles/python_scratchpad.ui:248 src/gui/uifiles/siril.ui:756
+#: src/gui/mouse_action_functions.h:67
+msgid "Undo"
+msgstr "Отменить"
+
+#: src/gui/uifiles/python_scratchpad.ui:256
+#: src/gui/uifiles/python_scratchpad.ui:258 src/gui/uifiles/siril.ui:765
+#: src/gui/mouse_action_functions.h:71
+msgid "Redo"
+msgstr "Повторить"
+
+#: src/gui/uifiles/python_scratchpad.ui:266
+#: src/gui/uifiles/python_scratchpad.ui:268
+#, fuzzy
+msgid "Cut"
+msgstr "обрезать"
+
+#: src/gui/uifiles/python_scratchpad.ui:276
+#: src/gui/uifiles/python_scratchpad.ui:278
+#, fuzzy
+msgid "Copy"
+msgstr "Авторские права"
+
+#: src/gui/uifiles/python_scratchpad.ui:286
+#: src/gui/uifiles/python_scratchpad.ui:288
+msgid "Paste"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:317
+#, fuzzy
+msgid "_Script"
+msgstr "Сценарий"
+
+#: src/gui/uifiles/python_scratchpad.ui:327
+#: src/gui/uifiles/python_scratchpad.ui:413
+#, fuzzy
+msgid "Run the script"
+msgstr "Выполнить сценарий"
+
+#: src/gui/uifiles/python_scratchpad.ui:329
+msgid "Run"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:339
+msgid ""
+"Set scripting language to Python. Ensure you have the correct scripting "
+"language set before executing a script from the editor."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:340
+#, fuzzy
+msgid "Python scripts"
+msgstr "Сценарий python"
+
+#: src/gui/uifiles/python_scratchpad.ui:350
+msgid ""
+"Set scripting language to Siril Script File. Ensure you have the correct "
+"scripting language set before executing a script from the editor."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:251
+msgid "Siril Script Files"
+msgstr "Сценарии Siril"
+
+#: src/gui/uifiles/python_scratchpad.ui:361
+msgid ""
+"When active, any arguments entered in the args entry will be passed to the "
+"script when it is run."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:362
+#, fuzzy
+msgid "Enable test arguments"
+msgstr "неверные аргументы"
+
+#: src/gui/uifiles/python_scratchpad.ui:370
+msgid ""
+"When active, the python interpreter will display a modal dialog showing the "
+"python process as soon as the SirilInterface is initialized, to allow for "
+"connecting a python debugger to the process before continuing."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:371
+#, fuzzy
+msgid "Enable python debug mode"
+msgstr "Режим отладки Python"
+
+#: src/gui/uifiles/python_scratchpad.ui:383
+#, fuzzy
+msgid "_Preferences"
+msgstr "Настройки"
+
+#: src/gui/uifiles/python_scratchpad.ui:393
+msgid "Enable syntax highlighting"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:394
+#, fuzzy
+msgid "Highlight syntax"
+msgstr "Света: "
+
+#: src/gui/uifiles/python_scratchpad.ui:403
+#: src/gui/uifiles/python_scratchpad.ui:404
+#, fuzzy
+msgid "Enable right margin indicator"
+msgstr "показать правую границу в редакторе сценариев"
+
+#: src/gui/uifiles/python_scratchpad.ui:415
+#, fuzzy
+msgid "Set right margin position"
+msgstr "Положение_правой границы"
+
+#: src/gui/uifiles/python_scratchpad.ui:422
+msgid ""
+"When enabled, positioning the cursor on a bracket will show the matching "
+"bracket"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:423
+msgid "Enable bracket matching"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:432
+#, fuzzy
+msgid "Enable line numbers in the left margin"
+msgstr "показать номера строк в редакторе сценариев"
+
+#: src/gui/uifiles/python_scratchpad.ui:433
+msgid "Show line numbers"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:442
+#, fuzzy
+msgid "Show line markers in the left margin"
+msgstr "показать метки строк в редакторе сценариев"
+
+#: src/gui/uifiles/python_scratchpad.ui:443
+#, fuzzy
+msgid "Show line markers"
+msgstr "Степень решения: "
+
+#: src/gui/uifiles/python_scratchpad.ui:452
+#, fuzzy
+msgid "Highlight the current line in the editor"
+msgstr "подсветить текущую строку в редакторе сценариев"
+
+#: src/gui/uifiles/python_scratchpad.ui:453
+#, fuzzy
+msgid "Highlight current line"
+msgstr "Обрезка светов"
+
+#: src/gui/uifiles/python_scratchpad.ui:462
+#: src/gui/uifiles/python_scratchpad.ui:463
+msgid "Enable auto-indentation"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:472
+msgid "When a block of lines is selected, tab increases the indent level"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:473
+msgid "Indent on tab"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:482
+#: src/gui/uifiles/python_scratchpad.ui:483
+msgid "Enable smart backspace"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:492
+msgid ""
+"When Smart Home / End is enabled the Home and End keys will go to the first "
+"and last non-whitespace character on the line respectively"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:493
+msgid "Smart Home / End"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:502
+#, fuzzy
+msgid "Show space and tab characters in the editor view"
+msgstr "Показывать символы пробела и табуляции в редакторе сценариев"
+
+#: src/gui/uifiles/python_scratchpad.ui:503
+msgid "Show spaces and tabs"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:511
+#, fuzzy
+msgid "Show newline characters in the editor view"
+msgstr "Показывать символ новой строки в редакторе сценариев"
+
+#: src/gui/uifiles/python_scratchpad.ui:512
+#, fuzzy
+msgid "Show newlines"
+msgstr "несвязано"
+
+#: src/gui/uifiles/python_scratchpad.ui:520
+#, fuzzy
+msgid "Show minimap in the editor view"
+msgstr "Показывать миникарту в редакторе сценариев"
+
+#: src/gui/uifiles/python_scratchpad.ui:521
+#, fuzzy
+msgid "Show minimap"
+msgstr "Показать оригинальное изображение"
+
+#: src/gui/uifiles/python_scratchpad.ui:533
+msgid "_Help"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:545
+#, fuzzy
+msgid "Python API reference"
+msgstr "Интерфейс Python"
+
+#: src/gui/uifiles/python_scratchpad.ui:554
+#, fuzzy
+msgid "Siril Command Reference"
+msgstr "Ошибка команды Siril"
+
+#: src/gui/uifiles/python_scratchpad.ui:572
+#, fuzzy
+msgid "Script type"
+msgstr "Сценарий"
+
+#: src/gui/uifiles/python_scratchpad.ui:641
+#, fuzzy
+msgid "Arguments:"
+msgstr "Ошибка параметра"
+
+#: src/gui/uifiles/python_scratchpad.ui:653
+msgid ""
+"This entry can be used to set arguments to run the script with, in order to "
+"allow testing of how it will behave when called with the <b>pyscript</b> "
+"command with arguments. Note that arguments  cannot be provided when a "
+"script is run from the Scripts menu, so scripts should not be solely reliant "
+"on arguments for input."
+msgstr ""
+
 #: src/gui/uifiles/resample_dialog.ui:65
 msgid "Resample"
 msgstr "Масштабировать"
@@ -8257,14 +8578,6 @@ msgstr "Регистрация"
 #: src/gui/uifiles/siril.ui:732 src/gui/uifiles/siril.ui:811
 msgid "Selection"
 msgstr "Выделение"
-
-#: src/gui/uifiles/siril.ui:756 src/gui/mouse_action_functions.h:67
-msgid "Undo"
-msgstr "Отменить"
-
-#: src/gui/uifiles/siril.ui:765 src/gui/mouse_action_functions.h:71
-msgid "Redo"
-msgstr "Повторить"
 
 #: src/gui/uifiles/siril.ui:780
 msgid "PSF"
@@ -28075,10 +28388,6 @@ msgstr "Это заменит буфер ввода. Содержимое нел
 msgid "Open Script"
 msgstr "Открыть сценарий"
 
-#: src/gui/python_gui.c:738 src/pixelMath/pixel_math_runner.c:1229
-msgid "_Open"
-msgstr "_Открыть"
-
 #: src/gui/python_gui.c:744 src/gui/python_gui.c:825
 msgid "Script Files (*.py, *.ssf)"
 msgstr "Файлы сценариев (*.py, *.ssf)"
@@ -28086,10 +28395,6 @@ msgstr "Файлы сценариев (*.py, *.ssf)"
 #: src/gui/python_gui.c:811
 msgid "Save Script As"
 msgstr "Сохранить сценарий как"
-
-#: src/gui/python_gui.c:815
-msgid "_Save"
-msgstr "_Сохранить"
 
 #: src/gui/python_gui.c:895 src/gui/python_gui.c:1061
 msgid "Python Script"
@@ -28633,10 +28938,6 @@ msgstr "Выполнить сценарий"
 #, c-format
 msgid "Unknown script type: %s\n"
 msgstr "Неизвестный тип сценария: %s\n"
-
-#: src/gui/script_menu.c:251
-msgid "Siril Script Files"
-msgstr "Сценарии Siril"
 
 #: src/gui/script_menu.c:252
 msgid "Python Scripts"
@@ -33918,9 +34219,6 @@ msgstr "Укладка будет выполнена без увеличения
 #~ msgid "Using remote APASS instead of local NOMAD catalog\n"
 #~ msgstr ""
 #~ "Использовать удалённый каталог APASS вместо локального каталога NOMAD\n"
-
-#~ msgid "Siril command error"
-#~ msgstr "Ошибка команды Siril"
 
 #, fuzzy
 #~ msgid "15"

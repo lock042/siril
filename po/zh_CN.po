@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-01 16:22+0200\n"
+"POT-Creation-Date: 2025-04-01 16:29+0200\n"
 "PO-Revision-Date: 2025-03-27 13:46+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -46,6 +46,7 @@ msgstr "AAVSO 参数"
 #: src/gui/uifiles/icc_gamut_dialog.ui:48
 #: src/gui/uifiles/linearmatch_dialog.ui:62 src/gui/uifiles/Median_dialog.ui:66
 #: src/gui/uifiles/mouse_actions.ui:26 src/gui/uifiles/pixelmath.ui:805
+#: src/gui/uifiles/python_scratchpad.ui:224
 #: src/gui/uifiles/resample_dialog.ui:82 src/gui/uifiles/rotation_dialog.ui:57
 #: src/gui/uifiles/SCNR_dialog.ui:59
 #: src/gui/uifiles/script_contents_dialog.ui:46
@@ -672,6 +673,8 @@ msgstr ""
 "如果在单击下面的“从图像中获取元数据”按钮时已获取坐标，则可能不需要。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:353
+#: src/gui/uifiles/python_scratchpad.ui:302
+#: src/gui/uifiles/python_scratchpad.ui:304
 msgid "Find"
 msgstr "检索"
 
@@ -4942,6 +4945,325 @@ msgstr "添加一个图像作为变量"
 msgid "Remove selected image"
 msgstr "移除选中的图像"
 
+#: src/gui/uifiles/python_scratchpad.ui:53
+#, fuzzy
+msgid "0/0"
+msgstr "0.0"
+
+#: src/gui/uifiles/python_scratchpad.ui:72
+#, fuzzy
+msgid "Previous Result"
+msgstr "先前生成的 PSF"
+
+#: src/gui/uifiles/python_scratchpad.ui:94
+msgid "Next Result"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:124
+msgid "unsaved"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:148
+#, fuzzy
+msgid "_File"
+msgstr "文件"
+
+#: src/gui/uifiles/python_scratchpad.ui:158
+#, fuzzy
+msgid "Clear the current script"
+msgstr "可以在脚本中使用: "
+
+#: src/gui/uifiles/python_scratchpad.ui:160
+msgid "_New"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:169
+msgid "Open a script from a file"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/python_gui.c:738
+#: src/pixelMath/pixel_math_runner.c:1229
+msgid "_Open"
+msgstr "打开"
+
+#: src/gui/uifiles/python_scratchpad.ui:180
+#, fuzzy
+msgid "_Recent Files"
+msgstr "替换文件"
+
+#: src/gui/uifiles/python_scratchpad.ui:200
+#, fuzzy
+msgid "Save the current script"
+msgstr "保存当前FITS文件"
+
+#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/python_gui.c:815
+msgid "_Save"
+msgstr "_保存"
+
+#: src/gui/uifiles/python_scratchpad.ui:211
+#, fuzzy
+msgid "Save the current script (choose filename)"
+msgstr "重命名保存当前图像"
+
+#: src/gui/uifiles/python_scratchpad.ui:213
+#, fuzzy
+msgid "_Save As"
+msgstr "另存为"
+
+#: src/gui/uifiles/python_scratchpad.ui:222
+#: src/gui/uifiles/python_scratchpad.ui:543
+#: src/gui/uifiles/python_scratchpad.ui:552
+#, fuzzy
+msgid "Close the script editor"
+msgstr "在脚本编辑器中显示行标记"
+
+#: src/gui/uifiles/python_scratchpad.ui:236
+msgid "_Edit"
+msgstr "_编辑"
+
+#: src/gui/uifiles/python_scratchpad.ui:246
+#: src/gui/uifiles/python_scratchpad.ui:248 src/gui/uifiles/siril.ui:756
+#: src/gui/mouse_action_functions.h:67
+msgid "Undo"
+msgstr "撤销"
+
+#: src/gui/uifiles/python_scratchpad.ui:256
+#: src/gui/uifiles/python_scratchpad.ui:258 src/gui/uifiles/siril.ui:765
+#: src/gui/mouse_action_functions.h:71
+msgid "Redo"
+msgstr "恢复"
+
+#: src/gui/uifiles/python_scratchpad.ui:266
+#: src/gui/uifiles/python_scratchpad.ui:268
+#, fuzzy
+msgid "Cut"
+msgstr "截除"
+
+#: src/gui/uifiles/python_scratchpad.ui:276
+#: src/gui/uifiles/python_scratchpad.ui:278
+#, fuzzy
+msgid "Copy"
+msgstr "版权信息"
+
+#: src/gui/uifiles/python_scratchpad.ui:286
+#: src/gui/uifiles/python_scratchpad.ui:288
+msgid "Paste"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:317
+#, fuzzy
+msgid "_Script"
+msgstr "脚本"
+
+#: src/gui/uifiles/python_scratchpad.ui:327
+#: src/gui/uifiles/python_scratchpad.ui:413
+#, fuzzy
+msgid "Run the script"
+msgstr "运行脚本"
+
+#: src/gui/uifiles/python_scratchpad.ui:329
+msgid "Run"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:339
+msgid ""
+"Set scripting language to Python. Ensure you have the correct scripting "
+"language set before executing a script from the editor."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:340
+#, fuzzy
+msgid "Python scripts"
+msgstr "运行脚本"
+
+#: src/gui/uifiles/python_scratchpad.ui:350
+msgid ""
+"Set scripting language to Siril Script File. Ensure you have the correct "
+"scripting language set before executing a script from the editor."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:251
+msgid "Siril Script Files"
+msgstr "Siril脚本文件"
+
+#: src/gui/uifiles/python_scratchpad.ui:361
+msgid ""
+"When active, any arguments entered in the args entry will be passed to the "
+"script when it is run."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:362
+#, fuzzy
+msgid "Enable test arguments"
+msgstr "Invalid arguments"
+
+#: src/gui/uifiles/python_scratchpad.ui:370
+msgid ""
+"When active, the python interpreter will display a modal dialog showing the "
+"python process as soon as the SirilInterface is initialized, to allow for "
+"connecting a python debugger to the process before continuing."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:371
+#, fuzzy
+msgid "Enable python debug mode"
+msgstr "启用Python debug模式"
+
+#: src/gui/uifiles/python_scratchpad.ui:383
+#, fuzzy
+msgid "_Preferences"
+msgstr "偏好设置"
+
+#: src/gui/uifiles/python_scratchpad.ui:393
+msgid "Enable syntax highlighting"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:394
+#, fuzzy
+msgid "Highlight syntax"
+msgstr "高光: "
+
+#: src/gui/uifiles/python_scratchpad.ui:403
+#: src/gui/uifiles/python_scratchpad.ui:404
+#, fuzzy
+msgid "Enable right margin indicator"
+msgstr "在脚本编辑器中显示右边界"
+
+#: src/gui/uifiles/python_scratchpad.ui:415
+#, fuzzy
+msgid "Set right margin position"
+msgstr "主窗口位置"
+
+#: src/gui/uifiles/python_scratchpad.ui:422
+msgid ""
+"When enabled, positioning the cursor on a bracket will show the matching "
+"bracket"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:423
+msgid "Enable bracket matching"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:432
+#, fuzzy
+msgid "Enable line numbers in the left margin"
+msgstr "在脚本编辑器中显示行号"
+
+#: src/gui/uifiles/python_scratchpad.ui:433
+msgid "Show line numbers"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:442
+#, fuzzy
+msgid "Show line markers in the left margin"
+msgstr "在脚本编辑器中显示行标记"
+
+#: src/gui/uifiles/python_scratchpad.ui:443
+#, fuzzy
+msgid "Show line markers"
+msgstr "spline的阶数"
+
+#: src/gui/uifiles/python_scratchpad.ui:452
+#, fuzzy
+msgid "Highlight the current line in the editor"
+msgstr "在脚本编辑器中高亮当前行"
+
+#: src/gui/uifiles/python_scratchpad.ui:453
+#, fuzzy
+msgid "Highlight current line"
+msgstr "高光修剪"
+
+#: src/gui/uifiles/python_scratchpad.ui:462
+#: src/gui/uifiles/python_scratchpad.ui:463
+msgid "Enable auto-indentation"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:472
+msgid "When a block of lines is selected, tab increases the indent level"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:473
+msgid "Indent on tab"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:482
+#: src/gui/uifiles/python_scratchpad.ui:483
+msgid "Enable smart backspace"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:492
+msgid ""
+"When Smart Home / End is enabled the Home and End keys will go to the first "
+"and last non-whitespace character on the line respectively"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:493
+msgid "Smart Home / End"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:502
+#, fuzzy
+msgid "Show space and tab characters in the editor view"
+msgstr "在脚本编辑器中显示空白字符标记"
+
+#: src/gui/uifiles/python_scratchpad.ui:503
+msgid "Show spaces and tabs"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:511
+#, fuzzy
+msgid "Show newline characters in the editor view"
+msgstr "在脚本编辑器中显示换行标记"
+
+#: src/gui/uifiles/python_scratchpad.ui:512
+#, fuzzy
+msgid "Show newlines"
+msgstr "不绑定"
+
+#: src/gui/uifiles/python_scratchpad.ui:520
+#, fuzzy
+msgid "Show minimap in the editor view"
+msgstr "脚本运行前显示警告"
+
+#: src/gui/uifiles/python_scratchpad.ui:521
+#, fuzzy
+msgid "Show minimap"
+msgstr "显示原始图像"
+
+#: src/gui/uifiles/python_scratchpad.ui:533
+#, fuzzy
+msgid "_Help"
+msgstr "_帮助"
+
+#: src/gui/uifiles/python_scratchpad.ui:545
+#, fuzzy
+msgid "Python API reference"
+msgstr "Python界面"
+
+#: src/gui/uifiles/python_scratchpad.ui:554
+#, fuzzy
+msgid "Siril Command Reference"
+msgstr "Siril控制中心"
+
+#: src/gui/uifiles/python_scratchpad.ui:572
+#, fuzzy
+msgid "Script type"
+msgstr "脚本"
+
+#: src/gui/uifiles/python_scratchpad.ui:641
+#, fuzzy
+msgid "Arguments:"
+msgstr "参数错误"
+
+#: src/gui/uifiles/python_scratchpad.ui:653
+msgid ""
+"This entry can be used to set arguments to run the script with, in order to "
+"allow testing of how it will behave when called with the <b>pyscript</b> "
+"command with arguments. Note that arguments  cannot be provided when a "
+"script is run from the Scripts menu, so scripts should not be solely reliant "
+"on arguments for input."
+msgstr ""
+
 #: src/gui/uifiles/resample_dialog.ui:65
 msgid "Resample"
 msgstr "重采样（缩放）"
@@ -7661,14 +7983,6 @@ msgstr "对齐"
 #: src/gui/uifiles/siril.ui:732 src/gui/uifiles/siril.ui:811
 msgid "Selection"
 msgstr "选择"
-
-#: src/gui/uifiles/siril.ui:756 src/gui/mouse_action_functions.h:67
-msgid "Undo"
-msgstr "撤销"
-
-#: src/gui/uifiles/siril.ui:765 src/gui/mouse_action_functions.h:71
-msgid "Redo"
-msgstr "恢复"
 
 #: src/gui/uifiles/siril.ui:780
 msgid "PSF"
@@ -25670,10 +25984,6 @@ msgstr "这将替换缓冲区。其中内容将一去不返。"
 msgid "Open Script"
 msgstr "运行脚本"
 
-#: src/gui/python_gui.c:738 src/pixelMath/pixel_math_runner.c:1229
-msgid "_Open"
-msgstr "打开"
-
 #: src/gui/python_gui.c:744 src/gui/python_gui.c:825
 #, fuzzy
 msgid "Script Files (*.py, *.ssf)"
@@ -25683,10 +25993,6 @@ msgstr "JPEG文件 (*.jpg, *.jpeg)"
 #, fuzzy
 msgid "Save Script As"
 msgstr "获取脚本"
-
-#: src/gui/python_gui.c:815
-msgid "_Save"
-msgstr "_保存"
 
 #: src/gui/python_gui.c:895 src/gui/python_gui.c:1061
 #, fuzzy
@@ -26178,10 +26484,6 @@ msgstr "运行脚本"
 #, fuzzy, c-format
 msgid "Unknown script type: %s\n"
 msgstr "提供了未知的选项：%s\n"
-
-#: src/gui/script_menu.c:251
-msgid "Siril Script Files"
-msgstr "Siril脚本文件"
 
 #: src/gui/script_menu.c:252
 #, fuzzy
@@ -31140,10 +31442,6 @@ msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 #~ msgstr "使用远程APASS代替本地NOMAD星表\n"
 
 #, fuzzy
-#~ msgid "Siril command error"
-#~ msgstr "Siril控制中心"
-
-#, fuzzy
 #~ msgid "15"
 #~ msgstr "1"
 
@@ -33362,10 +33660,6 @@ msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 #~ "algorithms are proposed. Here, ''Pixel Area Relation'' is used and cannot "
 #~ "be changed."
 
-#, fuzzy
-#~ msgid "Help"
-#~ msgstr "_帮助"
-
 #~ msgid "This option determines on which channel the factors are normalized."
 #~ msgstr "此选项用确定归一化因子所处的通道。"
 
@@ -34451,9 +34745,6 @@ msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 
 #~ msgid "Save as..."
 #~ msgstr "另存为..."
-
-#~ msgid "_Edit"
-#~ msgstr "_编辑"
 
 #~ msgid "Gray Channels Images"
 #~ msgstr "灰度通道图像"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-01 16:22+0200\n"
+"POT-Creation-Date: 2025-04-01 16:29+0200\n"
 "PO-Revision-Date: 2025-03-31 08:47+0000\n"
 "Last-Translator: Ruslan <rpazenko@ukr.net>\n"
 "Language-Team: Ukrainian <https://weblate.siril.org/projects/siril/software/"
@@ -48,6 +48,7 @@ msgstr "Послідовність не вибрана"
 #: src/gui/uifiles/icc_gamut_dialog.ui:48
 #: src/gui/uifiles/linearmatch_dialog.ui:62 src/gui/uifiles/Median_dialog.ui:66
 #: src/gui/uifiles/mouse_actions.ui:26 src/gui/uifiles/pixelmath.ui:805
+#: src/gui/uifiles/python_scratchpad.ui:224
 #: src/gui/uifiles/resample_dialog.ui:82 src/gui/uifiles/rotation_dialog.ui:57
 #: src/gui/uifiles/SCNR_dialog.ui:59
 #: src/gui/uifiles/script_contents_dialog.ui:46
@@ -664,6 +665,8 @@ msgstr ""
 "можливо, це не потрібно."
 
 #: src/gui/uifiles/astrometry_dialog.ui:353
+#: src/gui/uifiles/python_scratchpad.ui:302
+#: src/gui/uifiles/python_scratchpad.ui:304
 msgid "Find"
 msgstr "Знайти"
 
@@ -5119,6 +5122,318 @@ msgstr "Додати зображення як змінну"
 msgid "Remove selected image"
 msgstr "Видалити вибране зображення"
 
+#: src/gui/uifiles/python_scratchpad.ui:53
+#, fuzzy
+msgid "0/0"
+msgstr "500"
+
+#: src/gui/uifiles/python_scratchpad.ui:72
+#, fuzzy
+msgid "Previous Result"
+msgstr "Попередній PSF"
+
+#: src/gui/uifiles/python_scratchpad.ui:94
+msgid "Next Result"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:124
+msgid "unsaved"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:148
+#, fuzzy
+msgid "_File"
+msgstr "Файл"
+
+#: src/gui/uifiles/python_scratchpad.ui:158
+#, fuzzy
+msgid "Clear the current script"
+msgstr "Може бути використана в скриптах: "
+
+#: src/gui/uifiles/python_scratchpad.ui:160
+msgid "_New"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:169
+msgid "Open a script from a file"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/python_gui.c:738
+#: src/pixelMath/pixel_math_runner.c:1229
+msgid "_Open"
+msgstr "_Відкрити"
+
+#: src/gui/uifiles/python_scratchpad.ui:180
+#, fuzzy
+msgid "_Recent Files"
+msgstr "Зберегти файл"
+
+#: src/gui/uifiles/python_scratchpad.ui:200
+#, fuzzy
+msgid "Save the current script"
+msgstr "Зберегти поточне зображення FITS"
+
+#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/python_gui.c:815
+#, fuzzy
+msgid "_Save"
+msgstr "_Зберегти"
+
+#: src/gui/uifiles/python_scratchpad.ui:211
+#, fuzzy
+msgid "Save the current script (choose filename)"
+msgstr "Збережіть зображення під новою назвою"
+
+#: src/gui/uifiles/python_scratchpad.ui:213
+#, fuzzy
+msgid "_Save As"
+msgstr "_Зберегти"
+
+#: src/gui/uifiles/python_scratchpad.ui:222
+#: src/gui/uifiles/python_scratchpad.ui:543
+#: src/gui/uifiles/python_scratchpad.ui:552
+#, fuzzy
+msgid "Close the script editor"
+msgstr "Закрити вікно"
+
+#: src/gui/uifiles/python_scratchpad.ui:236
+msgid "_Edit"
+msgstr "_Редагування"
+
+#: src/gui/uifiles/python_scratchpad.ui:246
+#: src/gui/uifiles/python_scratchpad.ui:248 src/gui/uifiles/siril.ui:756
+#: src/gui/mouse_action_functions.h:67
+msgid "Undo"
+msgstr "Скасувати"
+
+#: src/gui/uifiles/python_scratchpad.ui:256
+#: src/gui/uifiles/python_scratchpad.ui:258 src/gui/uifiles/siril.ui:765
+#: src/gui/mouse_action_functions.h:71
+msgid "Redo"
+msgstr "Повторити"
+
+#: src/gui/uifiles/python_scratchpad.ui:266
+#: src/gui/uifiles/python_scratchpad.ui:268
+#, fuzzy
+msgid "Cut"
+msgstr "відсічка"
+
+#: src/gui/uifiles/python_scratchpad.ui:276
+#: src/gui/uifiles/python_scratchpad.ui:278
+msgid "Copy"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:286
+#: src/gui/uifiles/python_scratchpad.ui:288
+msgid "Paste"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:317
+#, fuzzy
+msgid "_Script"
+msgstr "_Скріпти"
+
+#: src/gui/uifiles/python_scratchpad.ui:327
+#: src/gui/uifiles/python_scratchpad.ui:413
+#, fuzzy
+msgid "Run the script"
+msgstr "_Скріпти"
+
+#: src/gui/uifiles/python_scratchpad.ui:329
+msgid "Run"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:339
+msgid ""
+"Set scripting language to Python. Ensure you have the correct scripting "
+"language set before executing a script from the editor."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:340
+#, fuzzy
+msgid "Python scripts"
+msgstr "_Скріпти"
+
+#: src/gui/uifiles/python_scratchpad.ui:350
+msgid ""
+"Set scripting language to Siril Script File. Ensure you have the correct "
+"scripting language set before executing a script from the editor."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:251
+#, fuzzy
+msgid "Siril Script Files"
+msgstr "Ім'я файлу:"
+
+#: src/gui/uifiles/python_scratchpad.ui:361
+msgid ""
+"When active, any arguments entered in the args entry will be passed to the "
+"script when it is run."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:362
+msgid "Enable test arguments"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:370
+msgid ""
+"When active, the python interpreter will display a modal dialog showing the "
+"python process as soon as the SirilInterface is initialized, to allow for "
+"connecting a python debugger to the process before continuing."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:371
+msgid "Enable python debug mode"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:383
+#, fuzzy
+msgid "_Preferences"
+msgstr "Налаштування"
+
+#: src/gui/uifiles/python_scratchpad.ui:393
+msgid "Enable syntax highlighting"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:394
+#, fuzzy
+msgid "Highlight syntax"
+msgstr "Світлі ділянки: "
+
+#: src/gui/uifiles/python_scratchpad.ui:403
+#: src/gui/uifiles/python_scratchpad.ui:404
+msgid "Enable right margin indicator"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:415
+#, fuzzy
+msgid "Set right margin position"
+msgstr "Позиція X"
+
+#: src/gui/uifiles/python_scratchpad.ui:422
+msgid ""
+"When enabled, positioning the cursor on a bracket will show the matching "
+"bracket"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:423
+msgid "Enable bracket matching"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:432
+#, fuzzy
+msgid "Enable line numbers in the left margin"
+msgstr "Лінії по центру виділення"
+
+#: src/gui/uifiles/python_scratchpad.ui:433
+msgid "Show line numbers"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:442
+msgid "Show line markers in the left margin"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:443
+#, fuzzy
+msgid "Show line markers"
+msgstr "Деконволюція"
+
+#: src/gui/uifiles/python_scratchpad.ui:452
+#, fuzzy
+msgid "Highlight the current line in the editor"
+msgstr "Змінити поточний робочий каталог"
+
+#: src/gui/uifiles/python_scratchpad.ui:453
+#, fuzzy
+msgid "Highlight current line"
+msgstr "Відсікання світлих ділянок"
+
+#: src/gui/uifiles/python_scratchpad.ui:462
+#: src/gui/uifiles/python_scratchpad.ui:463
+msgid "Enable auto-indentation"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:472
+msgid "When a block of lines is selected, tab increases the indent level"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:473
+msgid "Indent on tab"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:482
+#: src/gui/uifiles/python_scratchpad.ui:483
+msgid "Enable smart backspace"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:492
+msgid ""
+"When Smart Home / End is enabled the Home and End keys will go to the first "
+"and last non-whitespace character on the line respectively"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:493
+msgid "Smart Home / End"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:502
+msgid "Show space and tab characters in the editor view"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:503
+msgid "Show spaces and tabs"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:511
+msgid "Show newline characters in the editor view"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:512
+#, fuzzy
+msgid "Show newlines"
+msgstr "Командний рядок"
+
+#: src/gui/uifiles/python_scratchpad.ui:520
+msgid "Show minimap in the editor view"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:521
+#, fuzzy
+msgid "Show minimap"
+msgstr "Показати початкове зображення"
+
+#: src/gui/uifiles/python_scratchpad.ui:533
+msgid "_Help"
+msgstr "_Допомога"
+
+#: src/gui/uifiles/python_scratchpad.ui:545
+#, fuzzy
+msgid "Python API reference"
+msgstr "Опорний зразок білого"
+
+#: src/gui/uifiles/python_scratchpad.ui:554
+#, fuzzy
+msgid "Siril Command Reference"
+msgstr "Опорний зразок фону"
+
+#: src/gui/uifiles/python_scratchpad.ui:572
+#, fuzzy
+msgid "Script type"
+msgstr "_Скріпти"
+
+#: src/gui/uifiles/python_scratchpad.ui:641
+#, fuzzy
+msgid "Arguments:"
+msgstr "Відзеркалити по вертикалі"
+
+#: src/gui/uifiles/python_scratchpad.ui:653
+msgid ""
+"This entry can be used to set arguments to run the script with, in order to "
+"allow testing of how it will behave when called with the <b>pyscript</b> "
+"command with arguments. Note that arguments  cannot be provided when a "
+"script is run from the Scripts menu, so scripts should not be solely reliant "
+"on arguments for input."
+msgstr ""
+
 #: src/gui/uifiles/resample_dialog.ui:65
 msgid "Resample"
 msgstr "Масштабувати"
@@ -7920,14 +8235,6 @@ msgstr "Реєстрація"
 #: src/gui/uifiles/siril.ui:732 src/gui/uifiles/siril.ui:811
 msgid "Selection"
 msgstr "Виділення"
-
-#: src/gui/uifiles/siril.ui:756 src/gui/mouse_action_functions.h:67
-msgid "Undo"
-msgstr "Скасувати"
-
-#: src/gui/uifiles/siril.ui:765 src/gui/mouse_action_functions.h:71
-msgid "Redo"
-msgstr "Повторити"
 
 #: src/gui/uifiles/siril.ui:780
 msgid "PSF"
@@ -25101,10 +25408,6 @@ msgstr ""
 msgid "Open Script"
 msgstr "_Скріпти"
 
-#: src/gui/python_gui.c:738 src/pixelMath/pixel_math_runner.c:1229
-msgid "_Open"
-msgstr "_Відкрити"
-
 #: src/gui/python_gui.c:744 src/gui/python_gui.c:825
 #, fuzzy
 msgid "Script Files (*.py, *.ssf)"
@@ -25114,11 +25417,6 @@ msgstr "Файли FITS (*.fit, *.fits, *.fts)"
 #, fuzzy
 msgid "Save Script As"
 msgstr "_Скріпти"
-
-#: src/gui/python_gui.c:815
-#, fuzzy
-msgid "_Save"
-msgstr "_Зберегти"
 
 #: src/gui/python_gui.c:895 src/gui/python_gui.c:1061
 #, fuzzy
@@ -25603,11 +25901,6 @@ msgstr "_Скріпти"
 #, fuzzy, c-format
 msgid "Unknown script type: %s\n"
 msgstr "Завантажуємо скріпт: %s\n"
-
-#: src/gui/script_menu.c:251
-#, fuzzy
-msgid "Siril Script Files"
-msgstr "Ім'я файлу:"
 
 #: src/gui/script_menu.c:252
 #, fuzzy
@@ -31006,14 +31299,8 @@ msgstr ""
 #~ msgid "Save as..."
 #~ msgstr "Зберегти як..."
 
-#~ msgid "_Edit"
-#~ msgstr "_Редагування"
-
 #~ msgid "Gray Channels Images"
 #~ msgstr "Зображення \"сірих\" каналів"
-
-#~ msgid "_Help"
-#~ msgstr "_Допомога"
 
 #~ msgid ""
 #~ "Keep the destination image with RGB channels, do not change the channels "

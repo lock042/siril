@@ -40,6 +40,7 @@ src/gui/uifiles/Median_dialog.ui
 src/gui/uifiles/merge_cfa_dialog.ui
 src/gui/uifiles/mouse_actions.ui
 src/gui/uifiles/pixelmath.ui
+src/gui/uifiles/python_scratchpad.ui
 src/gui/uifiles/resample_dialog.ui
 src/gui/uifiles/rgradient_dialog.ui
 src/gui/uifiles/rotation_dialog.ui

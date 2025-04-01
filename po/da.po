@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-01 16:22+0200\n"
+"POT-Creation-Date: 2025-04-01 16:29+0200\n"
 "PO-Revision-Date: 2023-06-06 08:18+0000\n"
 "Last-Translator: Victor Boesen Gandløse <victorboesen@hotmail.com>\n"
 "Language-Team: Danish <https://weblate.pixls.us/projects/siril/siril-"
@@ -46,6 +46,7 @@ msgstr ""
 #: src/gui/uifiles/icc_gamut_dialog.ui:48
 #: src/gui/uifiles/linearmatch_dialog.ui:62 src/gui/uifiles/Median_dialog.ui:66
 #: src/gui/uifiles/mouse_actions.ui:26 src/gui/uifiles/pixelmath.ui:805
+#: src/gui/uifiles/python_scratchpad.ui:224
 #: src/gui/uifiles/resample_dialog.ui:82 src/gui/uifiles/rotation_dialog.ui:57
 #: src/gui/uifiles/SCNR_dialog.ui:59
 #: src/gui/uifiles/script_contents_dialog.ui:46
@@ -619,6 +620,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:353
+#: src/gui/uifiles/python_scratchpad.ui:302
+#: src/gui/uifiles/python_scratchpad.ui:304
 msgid "Find"
 msgstr ""
 
@@ -4538,6 +4541,293 @@ msgstr ""
 msgid "Remove selected image"
 msgstr ""
 
+#: src/gui/uifiles/python_scratchpad.ui:53
+msgid "0/0"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:72
+msgid "Previous Result"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:94
+msgid "Next Result"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:124
+msgid "unsaved"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:148
+msgid "_File"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:158
+msgid "Clear the current script"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:160
+msgid "_New"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:169
+msgid "Open a script from a file"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/python_gui.c:738
+#: src/pixelMath/pixel_math_runner.c:1229
+msgid "_Open"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:180
+#, fuzzy
+msgid "_Recent Files"
+msgstr "Median Filter"
+
+#: src/gui/uifiles/python_scratchpad.ui:200
+msgid "Save the current script"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/python_gui.c:815
+msgid "_Save"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:211
+msgid "Save the current script (choose filename)"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:213
+msgid "_Save As"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:222
+#: src/gui/uifiles/python_scratchpad.ui:543
+#: src/gui/uifiles/python_scratchpad.ui:552
+#, fuzzy
+msgid "Close the script editor"
+msgstr "Luk vinduet."
+
+#: src/gui/uifiles/python_scratchpad.ui:236
+msgid "_Edit"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:246
+#: src/gui/uifiles/python_scratchpad.ui:248 src/gui/uifiles/siril.ui:756
+#: src/gui/mouse_action_functions.h:67
+msgid "Undo"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:256
+#: src/gui/uifiles/python_scratchpad.ui:258 src/gui/uifiles/siril.ui:765
+#: src/gui/mouse_action_functions.h:71
+msgid "Redo"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:266
+#: src/gui/uifiles/python_scratchpad.ui:268
+msgid "Cut"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:276
+#: src/gui/uifiles/python_scratchpad.ui:278
+msgid "Copy"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:286
+#: src/gui/uifiles/python_scratchpad.ui:288
+msgid "Paste"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:317
+msgid "_Script"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:327
+#: src/gui/uifiles/python_scratchpad.ui:413
+msgid "Run the script"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:329
+msgid "Run"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:339
+msgid ""
+"Set scripting language to Python. Ensure you have the correct scripting "
+"language set before executing a script from the editor."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:340
+msgid "Python scripts"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:350
+msgid ""
+"Set scripting language to Siril Script File. Ensure you have the correct "
+"scripting language set before executing a script from the editor."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:251
+msgid "Siril Script Files"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:361
+msgid ""
+"When active, any arguments entered in the args entry will be passed to the "
+"script when it is run."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:362
+msgid "Enable test arguments"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:370
+msgid ""
+"When active, the python interpreter will display a modal dialog showing the "
+"python process as soon as the SirilInterface is initialized, to allow for "
+"connecting a python debugger to the process before continuing."
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:371
+msgid "Enable python debug mode"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:383
+msgid "_Preferences"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:393
+msgid "Enable syntax highlighting"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:394
+msgid "Highlight syntax"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:403
+#: src/gui/uifiles/python_scratchpad.ui:404
+msgid "Enable right margin indicator"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:415
+#, fuzzy
+msgid "Set right margin position"
+msgstr "Interpolering: "
+
+#: src/gui/uifiles/python_scratchpad.ui:422
+msgid ""
+"When enabled, positioning the cursor on a bracket will show the matching "
+"bracket"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:423
+msgid "Enable bracket matching"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:432
+msgid "Enable line numbers in the left margin"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:433
+msgid "Show line numbers"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:442
+msgid "Show line markers in the left margin"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:443
+msgid "Show line markers"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:452
+msgid "Highlight the current line in the editor"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:453
+msgid "Highlight current line"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:462
+#: src/gui/uifiles/python_scratchpad.ui:463
+msgid "Enable auto-indentation"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:472
+msgid "When a block of lines is selected, tab increases the indent level"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:473
+msgid "Indent on tab"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:482
+#: src/gui/uifiles/python_scratchpad.ui:483
+msgid "Enable smart backspace"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:492
+msgid ""
+"When Smart Home / End is enabled the Home and End keys will go to the first "
+"and last non-whitespace character on the line respectively"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:493
+msgid "Smart Home / End"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:502
+msgid "Show space and tab characters in the editor view"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:503
+msgid "Show spaces and tabs"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:511
+msgid "Show newline characters in the editor view"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:512
+msgid "Show newlines"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:520
+msgid "Show minimap in the editor view"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:521
+msgid "Show minimap"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:533
+msgid "_Help"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:545
+msgid "Python API reference"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:554
+msgid "Siril Command Reference"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:572
+msgid "Script type"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:641
+msgid "Arguments:"
+msgstr ""
+
+#: src/gui/uifiles/python_scratchpad.ui:653
+msgid ""
+"This entry can be used to set arguments to run the script with, in order to "
+"allow testing of how it will behave when called with the <b>pyscript</b> "
+"command with arguments. Note that arguments  cannot be provided when a "
+"script is run from the Scripts menu, so scripts should not be solely reliant "
+"on arguments for input."
+msgstr ""
+
 #: src/gui/uifiles/resample_dialog.ui:65
 msgid "Resample"
 msgstr ""
@@ -6998,14 +7288,6 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:732 src/gui/uifiles/siril.ui:811
 msgid "Selection"
-msgstr ""
-
-#: src/gui/uifiles/siril.ui:756 src/gui/mouse_action_functions.h:67
-msgid "Undo"
-msgstr ""
-
-#: src/gui/uifiles/siril.ui:765 src/gui/mouse_action_functions.h:71
-msgid "Redo"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:780
@@ -23056,20 +23338,12 @@ msgstr ""
 msgid "Open Script"
 msgstr ""
 
-#: src/gui/python_gui.c:738 src/pixelMath/pixel_math_runner.c:1229
-msgid "_Open"
-msgstr ""
-
 #: src/gui/python_gui.c:744 src/gui/python_gui.c:825
 msgid "Script Files (*.py, *.ssf)"
 msgstr ""
 
 #: src/gui/python_gui.c:811
 msgid "Save Script As"
-msgstr ""
-
-#: src/gui/python_gui.c:815
-msgid "_Save"
 msgstr ""
 
 #: src/gui/python_gui.c:895 src/gui/python_gui.c:1061
@@ -23524,10 +23798,6 @@ msgstr ""
 #: src/gui/script_menu.c:217
 #, c-format
 msgid "Unknown script type: %s\n"
-msgstr ""
-
-#: src/gui/script_menu.c:251
-msgid "Siril Script Files"
 msgstr ""
 
 #: src/gui/script_menu.c:252
