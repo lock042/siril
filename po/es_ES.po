@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-31 10:47+0200\n"
-"PO-Revision-Date: 2025-03-31 01:13+0000\n"
-"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
+"PO-Revision-Date: 2025-04-01 14:22+0000\n"
+"Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -5227,9 +5227,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/pixelmath.ui:623
-#, fuzzy
 msgid "Parameters"
-msgstr "Parámetros de la imagen"
+msgstr "Parámetros"
 
 #: src/gui/uifiles/pixelmath.ui:649
 msgid "Rescale result"
