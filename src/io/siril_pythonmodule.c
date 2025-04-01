@@ -486,8 +486,8 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 
 static gboolean update_sliders_after_set_pixeldata(gpointer user_data) {
 	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
-	gui.lo = gfit.mini;
-	gui.hi = gfit.maxi;
+	gui.lo = max(0., gfit.mini * USHRT_MAX);
+	gui.hi = min(65535., gfit.maxi * USHRT_MAX);
 	sliders_mode_set_state(gui.sliders);
 	set_cutoff_sliders_max_values();
 	set_cutoff_sliders_values();
