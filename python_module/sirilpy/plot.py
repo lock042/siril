@@ -4,27 +4,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """
-Plot module for Siril, providing classes for plot data representation and serialization.
-This module enables users to create and configure various types of plots with customizable
+Plot submodule for Siril, providing classes for plot data representation and serialization.
+This submodule enables users to create and configure various types of plots with customizable
 appearance and error bars.
 """
 
 from typing import Union, Optional, List, Tuple
-from enum import IntEnum
 import struct
 import numpy as np
-
-
-class PlotType(IntEnum):
-    """Enumeration of available plot types for visualizing data series."""
-    POINTS = 0
-    MARKS = 1
-    HYPHENS = 2
-    LINES = 3
-    LINESPOINTS = 4
-    LINESMARKS = 5
-    LINESHYPHENS = 6
-
+from .enums import PlotType
 
 class SeriesData:
     """
@@ -104,18 +92,12 @@ class PlotData:
 
     Members:
         title: Plot title
-
         xlabel: X-axis label
-
         ylabel: Y-axis label
-
         savename: Save filename (extension is added automatically)
-
         show_legend: bool indicating whether to show legend
-
         datamin: List [xmin, ymin] forcing the bottom left coordinate to show.
         If omitted, the range is set to the data range.
-
         datamax: List [xmax, ymax] forcing the top right coordinate to show.
         If omitted, the range is set to the data range.
     """
@@ -202,12 +184,8 @@ class PlotData:
         """
         self.series_data.append(series)
 
-
-class _PlotSerializer:
-    """Class for serializing plot data for shared memory transfer."""
-
-    @staticmethod
-    def _serialize_plot_data(plot_data: PlotData) -> Tuple[bytes, int]:
+    @classmethod
+    def serialize(cls, plot_data: 'PlotData') -> Tuple[bytes, int]:
         """
         Serialize plot data for shared memory transfer using network byte order.
 
@@ -266,7 +244,3 @@ class _PlotSerializer:
                         serialized += struct.pack('!d', 0.0)
 
         return serialized, len(serialized)
-
-    def __str__(self):
-        """String representation of the _PlotSerializer object."""
-        return "PlotSerializer for Siril plotting"
