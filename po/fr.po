@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-01 16:29+0200\n"
-"PO-Revision-Date: 2025-03-27 13:58+0000\n"
+"PO-Revision-Date: 2025-04-01 14:52+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -5425,35 +5425,32 @@ msgid "0/0"
 msgstr "0.0"
 
 #: src/gui/uifiles/python_scratchpad.ui:72
-#, fuzzy
 msgid "Previous Result"
-msgstr "PSF précédente"
+msgstr "Résultat précédent"
 
 #: src/gui/uifiles/python_scratchpad.ui:94
 msgid "Next Result"
-msgstr ""
+msgstr "Résultat suivant"
 
 #: src/gui/uifiles/python_scratchpad.ui:124
 msgid "unsaved"
-msgstr ""
+msgstr "non sauvé"
 
 #: src/gui/uifiles/python_scratchpad.ui:148
-#, fuzzy
 msgid "_File"
-msgstr "Fichier"
+msgstr "_Fichier"
 
 #: src/gui/uifiles/python_scratchpad.ui:158
-#, fuzzy
 msgid "Clear the current script"
-msgstr "Peut être utilisé dans un script : "
+msgstr "Effacer le script courant"
 
 #: src/gui/uifiles/python_scratchpad.ui:160
 msgid "_New"
-msgstr ""
+msgstr "_Nouveau"
 
 #: src/gui/uifiles/python_scratchpad.ui:169
 msgid "Open a script from a file"
-msgstr ""
+msgstr "Ouvrir un script à partir d'un fichier"
 
 #: src/gui/uifiles/python_scratchpad.ui:171 src/gui/python_gui.c:738
 #: src/pixelMath/pixel_math_runner.c:1229
@@ -5461,35 +5458,30 @@ msgid "_Open"
 msgstr "_Ouvrir"
 
 #: src/gui/uifiles/python_scratchpad.ui:180
-#, fuzzy
 msgid "_Recent Files"
-msgstr "Remplacer le Fichier"
+msgstr "Fichiers récents"
 
 #: src/gui/uifiles/python_scratchpad.ui:200
-#, fuzzy
 msgid "Save the current script"
-msgstr "Enregistre l'image courante FITS"
+msgstr "Sauvegarder le script en cours"
 
 #: src/gui/uifiles/python_scratchpad.ui:202 src/gui/python_gui.c:815
 msgid "_Save"
 msgstr "_Enregistrer"
 
 #: src/gui/uifiles/python_scratchpad.ui:211
-#, fuzzy
 msgid "Save the current script (choose filename)"
-msgstr "Enregistrer l'image courante sous un nouveau nom de fichier"
+msgstr "Sauvegarder le script en cours (choisir le nom du fichier)"
 
 #: src/gui/uifiles/python_scratchpad.ui:213
-#, fuzzy
 msgid "_Save As"
 msgstr "Enregistrer sous"
 
 #: src/gui/uifiles/python_scratchpad.ui:222
 #: src/gui/uifiles/python_scratchpad.ui:543
 #: src/gui/uifiles/python_scratchpad.ui:552
-#, fuzzy
 msgid "Close the script editor"
-msgstr "afficher les marqueurs de ligne dans l'éditeur de script"
+msgstr "Fermer l'éditeur de scripts"
 
 #: src/gui/uifiles/python_scratchpad.ui:236
 msgid "_Edit"
@@ -5509,52 +5501,52 @@ msgstr "Rétablir"
 
 #: src/gui/uifiles/python_scratchpad.ui:266
 #: src/gui/uifiles/python_scratchpad.ui:268
-#, fuzzy
 msgid "Cut"
-msgstr "tronquer"
+msgstr "Couper"
 
 #: src/gui/uifiles/python_scratchpad.ui:276
 #: src/gui/uifiles/python_scratchpad.ui:278
-#, fuzzy
 msgid "Copy"
-msgstr "Copyright"
+msgstr "Copier"
 
 #: src/gui/uifiles/python_scratchpad.ui:286
 #: src/gui/uifiles/python_scratchpad.ui:288
 msgid "Paste"
-msgstr ""
+msgstr "Coller"
 
 #: src/gui/uifiles/python_scratchpad.ui:317
-#, fuzzy
 msgid "_Script"
-msgstr "Script"
+msgstr "_Script"
 
 #: src/gui/uifiles/python_scratchpad.ui:327
 #: src/gui/uifiles/python_scratchpad.ui:413
-#, fuzzy
 msgid "Run the script"
-msgstr "Exécuter le Script"
+msgstr "Exécuter le script"
 
 #: src/gui/uifiles/python_scratchpad.ui:329
 msgid "Run"
-msgstr ""
+msgstr "Exécuter"
 
 #: src/gui/uifiles/python_scratchpad.ui:339
 msgid ""
 "Set scripting language to Python. Ensure you have the correct scripting "
 "language set before executing a script from the editor."
 msgstr ""
+"Définir le langage de script sur Python. Assurez-vous que le langage de "
+"script défini est correct avant d'exécuter un script à partir de l'éditeur."
 
 #: src/gui/uifiles/python_scratchpad.ui:340
-#, fuzzy
 msgid "Python scripts"
-msgstr "Script Python"
+msgstr "Scripts Python"
 
 #: src/gui/uifiles/python_scratchpad.ui:350
 msgid ""
 "Set scripting language to Siril Script File. Ensure you have the correct "
 "scripting language set before executing a script from the editor."
 msgstr ""
+"Définir le langage de script sur le fichier Siril Script. Assurez-vous que "
+"le langage de script défini est correct avant d'exécuter un script à partir "
+"de l'éditeur."
 
 #: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:251
 msgid "Siril Script Files"
@@ -5565,11 +5557,12 @@ msgid ""
 "When active, any arguments entered in the args entry will be passed to the "
 "script when it is run."
 msgstr ""
+"Lorsqu'il est actif, tout argument saisi dans la zone Arguments sera "
+"transmis au script lors de son exécution."
 
 #: src/gui/uifiles/python_scratchpad.ui:362
-#, fuzzy
 msgid "Enable test arguments"
-msgstr "arguments non valide"
+msgstr "Activer les arguments de test"
 
 #: src/gui/uifiles/python_scratchpad.ui:370
 msgid ""
@@ -5577,159 +5570,150 @@ msgid ""
 "python process as soon as the SirilInterface is initialized, to allow for "
 "connecting a python debugger to the process before continuing."
 msgstr ""
+"Lorsqu'il est actif, l'interpréteur python affiche une boîte de dialogue "
+"modale montrant le processus python dès que l'interface Siril est "
+"initialisée, afin de permettre la connexion d'un débogueur python au "
+"processus avant de continuer."
 
 #: src/gui/uifiles/python_scratchpad.ui:371
-#, fuzzy
 msgid "Enable python debug mode"
-msgstr "Activer le mode de débogage de Python"
+msgstr "Activer le mode de débogage de python"
 
 #: src/gui/uifiles/python_scratchpad.ui:383
-#, fuzzy
 msgid "_Preferences"
-msgstr "Préférences"
+msgstr "_Préférences"
 
 #: src/gui/uifiles/python_scratchpad.ui:393
 msgid "Enable syntax highlighting"
-msgstr ""
+msgstr "Activer la coloration syntaxique"
 
 #: src/gui/uifiles/python_scratchpad.ui:394
-#, fuzzy
 msgid "Highlight syntax"
-msgstr "Hautes lumières : "
+msgstr "Mise en évidence de la syntaxe"
 
 #: src/gui/uifiles/python_scratchpad.ui:403
 #: src/gui/uifiles/python_scratchpad.ui:404
-#, fuzzy
 msgid "Enable right margin indicator"
-msgstr "afficher la marge de droite dans l'éditeur de script"
+msgstr "Activer l'indicateur de marge droite"
 
 #: src/gui/uifiles/python_scratchpad.ui:415
-#, fuzzy
 msgid "Set right margin position"
-msgstr "Position de la _marge droite"
+msgstr "Définir la position de la marge de droite"
 
 #: src/gui/uifiles/python_scratchpad.ui:422
 msgid ""
 "When enabled, positioning the cursor on a bracket will show the matching "
 "bracket"
 msgstr ""
+"Lorsque cette option est activée, le fait de placer le curseur sur une "
+"parenthèse fait apparaître la parenthèse correspondante"
 
 #: src/gui/uifiles/python_scratchpad.ui:423
 msgid "Enable bracket matching"
-msgstr ""
+msgstr "Activer la correspondance des parenthèses"
 
 #: src/gui/uifiles/python_scratchpad.ui:432
-#, fuzzy
 msgid "Enable line numbers in the left margin"
-msgstr "afficher les numéros de ligne dans l'éditeur de script"
+msgstr "Activer les numéros de ligne dans la marge gauche"
 
 #: src/gui/uifiles/python_scratchpad.ui:433
 msgid "Show line numbers"
-msgstr ""
+msgstr "Afficher les numéros de ligne"
 
 #: src/gui/uifiles/python_scratchpad.ui:442
-#, fuzzy
 msgid "Show line markers in the left margin"
-msgstr "afficher les marqueurs de ligne dans l'éditeur de script"
+msgstr "Afficher les marqueurs de ligne dans la marge gauche"
 
 #: src/gui/uifiles/python_scratchpad.ui:443
-#, fuzzy
 msgid "Show line markers"
-msgstr "Ordre du spline"
+msgstr "Afficher les marqueurs de ligne"
 
 #: src/gui/uifiles/python_scratchpad.ui:452
-#, fuzzy
 msgid "Highlight the current line in the editor"
-msgstr "met en évidence la ligne en cours dans l'éditeur de script"
+msgstr "Surligner la ligne en cours dans l'éditeur"
 
 #: src/gui/uifiles/python_scratchpad.ui:453
-#, fuzzy
 msgid "Highlight current line"
-msgstr "Hautes lumières"
+msgstr "Surligner la ligne en cours"
 
 #: src/gui/uifiles/python_scratchpad.ui:462
 #: src/gui/uifiles/python_scratchpad.ui:463
 msgid "Enable auto-indentation"
-msgstr ""
+msgstr "Activer l'indentation automatique"
 
 #: src/gui/uifiles/python_scratchpad.ui:472
 msgid "When a block of lines is selected, tab increases the indent level"
 msgstr ""
+"Lorsqu'un bloc de lignes est sélectionné, la touche tabulation augmente le "
+"niveau d'indentation"
 
 #: src/gui/uifiles/python_scratchpad.ui:473
 msgid "Indent on tab"
-msgstr ""
+msgstr "Indentation sur la tabulation"
 
 #: src/gui/uifiles/python_scratchpad.ui:482
 #: src/gui/uifiles/python_scratchpad.ui:483
 msgid "Enable smart backspace"
-msgstr ""
+msgstr "Activer le retour arrière intelligent"
 
 #: src/gui/uifiles/python_scratchpad.ui:492
 msgid ""
 "When Smart Home / End is enabled the Home and End keys will go to the first "
 "and last non-whitespace character on the line respectively"
 msgstr ""
+"Lorsque l'option Début / Fin intelligente est activée, les touches Home et "
+"End se placent respectivement sur le premier et le dernier caractère de la "
+"ligne sans espace blanc"
 
 #: src/gui/uifiles/python_scratchpad.ui:493
 msgid "Smart Home / End"
-msgstr ""
+msgstr "Début / Fin intelligente"
 
 #: src/gui/uifiles/python_scratchpad.ui:502
-#, fuzzy
 msgid "Show space and tab characters in the editor view"
 msgstr ""
-"Afficher les caractères d'espacement et de tabulation visibles dans "
-"l'éditeur de script"
+"Afficher les caractères d'espacement et de tabulation dans la vue de "
+"l'éditeur"
 
 #: src/gui/uifiles/python_scratchpad.ui:503
 msgid "Show spaces and tabs"
-msgstr ""
+msgstr "Afficher les espaces et les tabulations"
 
 #: src/gui/uifiles/python_scratchpad.ui:511
-#, fuzzy
 msgid "Show newline characters in the editor view"
-msgstr "Afficher les caractères de retour à la ligne dans l'éditeur de script"
+msgstr "Afficher les caractères de nouvelle ligne dans la vue de l'éditeur"
 
 #: src/gui/uifiles/python_scratchpad.ui:512
-#, fuzzy
 msgid "Show newlines"
-msgstr "en ligne"
+msgstr "Afficher les nouvelles lignes"
 
 #: src/gui/uifiles/python_scratchpad.ui:520
-#, fuzzy
 msgid "Show minimap in the editor view"
-msgstr "Afficher une minimap dans l'éditeur de script"
+msgstr "Afficher la minicarte dans la vue de l'éditeur"
 
 #: src/gui/uifiles/python_scratchpad.ui:521
-#, fuzzy
 msgid "Show minimap"
-msgstr "Voir l'image originale"
+msgstr "Afficher la minicarte"
 
 #: src/gui/uifiles/python_scratchpad.ui:533
-#, fuzzy
 msgid "_Help"
-msgstr "Aide"
+msgstr "_Aide"
 
 #: src/gui/uifiles/python_scratchpad.ui:545
-#, fuzzy
 msgid "Python API reference"
-msgstr "Interface Python"
+msgstr "Référence de l'API Python"
 
 #: src/gui/uifiles/python_scratchpad.ui:554
-#, fuzzy
 msgid "Siril Command Reference"
-msgstr "Erreur de commande Siril"
+msgstr "Référence des commandes Siril"
 
 #: src/gui/uifiles/python_scratchpad.ui:572
-#, fuzzy
 msgid "Script type"
-msgstr "Script"
+msgstr "Type du script"
 
 #: src/gui/uifiles/python_scratchpad.ui:641
-#, fuzzy
 msgid "Arguments:"
-msgstr "Erreur d'argument"
+msgstr "Arguments :"
 
 #: src/gui/uifiles/python_scratchpad.ui:653
 msgid ""
@@ -5739,6 +5723,12 @@ msgid ""
 "script is run from the Scripts menu, so scripts should not be solely reliant "
 "on arguments for input."
 msgstr ""
+"Cette entrée peut être utilisée pour définir les arguments avec lesquels le "
+"script sera exécuté, afin de permettre de tester son comportement lorsqu'il "
+"est appelé avec la commande <b>pyscript</b> avec des arguments. Notez que "
+"les arguments ne peuvent pas être fournis lorsqu'un script est exécuté à "
+"partir du menu Scripts, de sorte que les scripts ne doivent pas dépendre "
+"uniquement des arguments pour leur entrée."
 
 #: src/gui/uifiles/resample_dialog.ui:65
 msgid "Resample"
