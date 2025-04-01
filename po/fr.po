@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-31 10:47+0200\n"
+"POT-Creation-Date: 2025-04-01 16:22+0200\n"
 "PO-Revision-Date: 2025-03-27 13:58+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
@@ -4078,7 +4078,7 @@ msgid "Interpolation: "
 msgstr "Interpolation : "
 
 #: src/gui/uifiles/file_information_dialog.ui:34
-#: src/io/siril_pythoncommands.c:984
+#: src/io/siril_pythoncommands.c:983
 msgid "Information"
 msgstr "Information"
 
@@ -14934,7 +14934,7 @@ msgstr "Vous devez au moins charger 2 canaux\n"
 #: src/compositing/compositing.c:780 src/filters/wavelets.c:261
 #: src/filters/wavelets.c:270 src/filters/wavelets.c:331 src/gui/colors.c:555
 #: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:864
-#: src/gui/utils.c:480 src/io/siril_pythoncommands.c:978
+#: src/gui/utils.c:480 src/io/siril_pythoncommands.c:977
 msgid "Warning"
 msgstr "Attention"
 
@@ -15042,7 +15042,7 @@ msgstr "Toutes les images ont été rechargées avec succès.\n"
 #: src/gui/open_dialog.c:378 src/gui/preferences.c:554
 #: src/gui/preferences.c:573 src/gui/preferences.c:607 src/gui/PSF_list.c:305
 #: src/gui/PSF_list.c:310 src/gui/PSF_list.c:315 src/gui/save_dialog.c:468
-#: src/io/siril_pythoncommands.c:972
+#: src/io/siril_pythoncommands.c:971
 msgid "Error"
 msgstr "Erreur"
 
@@ -27904,11 +27904,11 @@ msgstr "Rayon externe de l'anneau de fond de ciel (px) :"
 
 #: src/gui/nina_light_curve.c:221 src/gui/sequence_list.c:152
 #: src/gui/starnetgui.c:226 src/io/path_parse.c:74
-#: src/io/siril_pythoncommands.c:1128 src/io/siril_pythoncommands.c:1356
-#: src/io/siril_pythoncommands.c:1401 src/io/siril_pythoncommands.c:1435
-#: src/io/siril_pythoncommands.c:1482 src/io/siril_pythoncommands.c:1514
-#: src/io/siril_pythoncommands.c:1577 src/io/siril_pythoncommands.c:1659
-#: src/io/siril_pythoncommands.c:2111 src/io/siril_pythoncommands.c:2144
+#: src/io/siril_pythoncommands.c:1127 src/io/siril_pythoncommands.c:1355
+#: src/io/siril_pythoncommands.c:1400 src/io/siril_pythoncommands.c:1434
+#: src/io/siril_pythoncommands.c:1481 src/io/siril_pythoncommands.c:1513
+#: src/io/siril_pythoncommands.c:1576 src/io/siril_pythoncommands.c:1658
+#: src/io/siril_pythoncommands.c:2110 src/io/siril_pythoncommands.c:2143
 msgid "No sequence loaded"
 msgstr "Aucune séquence chargée"
 
@@ -31858,7 +31858,7 @@ msgstr "Échec de l'allocation de la mémoire partagée"
 msgid "Incorrect memory region specification"
 msgstr "Spécification incorrecte de la région de mémoire"
 
-#: src/io/siril_pythonmodule.c:498
+#: src/io/siril_pythonmodule.c:500
 msgid ""
 "Processing thread is not claimed: unable to update the current image. This "
 "is a script error: claim_thread() has either not been called or has failed, "
@@ -31868,7 +31868,7 @@ msgstr ""
 "l'image actuelle. Il s'agit d'une erreur de script : claim_thread() n'a pas "
 "été appelé ou a échoué, ou encore le thread a été libéré trop tôt."
 
-#: src/io/siril_pythonmodule.c:507
+#: src/io/siril_pythonmodule.c:509
 msgid ""
 "No image or sequence loaded: set_pixel_data() can only be used to update a "
 "loaded image, not to create a new one"
@@ -31876,68 +31876,68 @@ msgstr ""
 "Aucune image ou séquence chargée : set_pixel_data() ne peut être utilisée "
 "que pour mettre à jour une image chargée, et non pour en créer une nouvelle"
 
-#: src/io/siril_pythonmodule.c:514
+#: src/io/siril_pythonmodule.c:516
 msgid "Invalid image info size"
 msgstr "Taille invalide des informations sur l'image"
 
-#: src/io/siril_pythonmodule.c:526
+#: src/io/siril_pythonmodule.c:528
 msgid "Invalid image size: exceeds memory limit"
 msgstr "Taille d'image non valide : dépasse la limite de mémoire"
 
-#: src/io/siril_pythonmodule.c:537
+#: src/io/siril_pythonmodule.c:539
 #, c-format
 msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"
 msgstr ""
 "Dimensions ou format d'image incorrects : w = %u, h = %u, c = %u, size = %s"
 
-#: src/io/siril_pythonmodule.c:547
+#: src/io/siril_pythonmodule.c:549
 msgid "Error: image dimensions exceed available memory"
 msgstr "Erreur : les dimensions de l'image dépassent la mémoire disponible"
 
-#: src/io/siril_pythonmodule.c:577 src/io/siril_pythonmodule.c:697
-#: src/io/siril_pythonmodule.c:751 src/io/siril_pythonmodule.c:841
+#: src/io/siril_pythonmodule.c:579 src/io/siril_pythonmodule.c:699
+#: src/io/siril_pythonmodule.c:753 src/io/siril_pythonmodule.c:843
 msgid "Failed to open shared memory"
 msgstr "Échec de l'ouverture de la mémoire partagée"
 
-#: src/io/siril_pythonmodule.c:586 src/io/siril_pythonmodule.c:703
-#: src/io/siril_pythonmodule.c:757 src/io/siril_pythonmodule.c:847
+#: src/io/siril_pythonmodule.c:588 src/io/siril_pythonmodule.c:705
+#: src/io/siril_pythonmodule.c:759 src/io/siril_pythonmodule.c:849
 msgid "Failed to map shared memory"
 msgstr "Échec du mappage de la mémoire partagée"
 
-#: src/io/siril_pythonmodule.c:627
+#: src/io/siril_pythonmodule.c:629
 msgid "Failed to allocate image buffer"
 msgstr "Échec de l'allocation de la mémoire tampon de l'image"
 
-#: src/io/siril_pythonmodule.c:708 src/io/siril_pythonmodule.c:762
-#: src/io/siril_pythonmodule.c:852
+#: src/io/siril_pythonmodule.c:710 src/io/siril_pythonmodule.c:764
+#: src/io/siril_pythonmodule.c:854
 msgid "Error: could not open shared memory"
 msgstr "Erreur : Impossible d'ouvrir la mémoire partagée"
 
-#: src/io/siril_pythonmodule.c:888
+#: src/io/siril_pythonmodule.c:890
 #, c-format
 msgid "Error reading stdout: %s\n"
 msgstr "Erreur de lecture de stdout : %s\n"
 
-#: src/io/siril_pythonmodule.c:912
+#: src/io/siril_pythonmodule.c:914
 #, c-format
 msgid "Error reading stderr: %s\n"
 msgstr "Erreur de lecture de stderr : %s\n"
 
-#: src/io/siril_pythonmodule.c:927 src/io/siril_pythonmodule.c:935
+#: src/io/siril_pythonmodule.c:929 src/io/siril_pythonmodule.c:937
 #, c-format
 msgid "Python process (PID: %d) exited with status %d\n"
 msgstr "Le processus Python (PID : %d) s'est arrêté avec le statut %d\n"
 
-#: src/io/siril_pythonmodule.c:938
+#: src/io/siril_pythonmodule.c:940
 #, c-format
 msgid "Python process (PID: %d) terminated by signal %d\n"
 msgstr "Processus Python (PID : %d) terminé par le signal %d\n"
 
-#: src/io/siril_pythonmodule.c:1188
+#: src/io/siril_pythonmodule.c:1190
 msgid "Python communication worker finished...\n"
 msgstr "L'agent de communication Python a terminé...\n"
 
-#: src/io/siril_pythonmodule.c:1588
+#: src/io/siril_pythonmodule.c:1590
 msgid ""
 "Installing / updating python module in the background. This may take a few "
 "seconds...\n"
@@ -31945,28 +31945,28 @@ msgstr ""
 "Installation / mise à jour du module python en arrière-plan. Cela peut "
 "prendre quelques secondes...\n"
 
-#: src/io/siril_pythonmodule.c:1653
+#: src/io/siril_pythonmodule.c:1655
 #, c-format
 msgid "Preparing python virtual environment: %s.\n"
 msgstr "Préparation de l'environnement virtuel python : %s.\n"
 
 #. Check the sirilpy python module is the latest version and install or
 #. update it using the venv pip if not.
-#: src/io/siril_pythonmodule.c:1694
+#: src/io/siril_pythonmodule.c:1696
 msgid "Checking the python module is up-to-date...\n"
 msgstr "Vérifier que le module python est à jour...\n"
 
-#: src/io/siril_pythonmodule.c:1699
+#: src/io/siril_pythonmodule.c:1701
 msgid "Warning: unable to install or update the Siril python module.\n"
 msgstr ""
 "Attention : impossible d'installer ou de mettre à jour le module python "
 "Siril.\n"
 
-#: src/io/siril_pythonmodule.c:1705
+#: src/io/siril_pythonmodule.c:1707
 msgid "Python module is up-to-date\n"
 msgstr "Le module Python est à jour\n"
 
-#: src/io/siril_pythonmodule.c:1765
+#: src/io/siril_pythonmodule.c:1767
 msgid ""
 "Error: msys2 environment detected. Siril Python support cannot be correctly "
 "initialized.\n"
@@ -31974,7 +31974,7 @@ msgstr ""
 "Erreur : environnement msys2 détecté. Le support Siril Python ne peut pas "
 "être initialisé correctement.\n"
 
-#: src/io/siril_pythonmodule.c:1766
+#: src/io/siril_pythonmodule.c:1768
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
@@ -31982,7 +31982,7 @@ msgstr ""
 "Pour compléter le processus, assurez-vous d'abord que vous avez une "
 "installation de Python (>=3.9) sur votre ordinateur.\n"
 
-#: src/io/siril_pythonmodule.c:1767
+#: src/io/siril_pythonmodule.c:1769
 msgid ""
 "Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it "
 "from there.\n"
@@ -31990,7 +31990,7 @@ msgstr ""
 "Localisez siril.exe (généralement situé dans C:\\msys64\\mingw64\\bin) et "
 "démarrez-le à partir de là.\n"
 
-#: src/io/siril_pythonmodule.c:1768
+#: src/io/siril_pythonmodule.c:1770
 msgid ""
 "Next time you need to start siril, you can go back to starting it from msys2 "
 "terminal.\n"
@@ -31998,27 +31998,27 @@ msgstr ""
 "La prochaine fois que vous devrez démarrer siril, vous pourrez revenir au "
 "démarrage à partir du terminal msys2.\n"
 
-#: src/io/siril_pythonmodule.c:1802
+#: src/io/siril_pythonmodule.c:1804
 msgid "No python installation found in the system or in the bundle, aborting\n"
 msgstr ""
 "Aucune installation de python n'a été trouvée dans le système ou dans le "
 "bundle, abandon\n"
 
-#: src/io/siril_pythonmodule.c:1828
+#: src/io/siril_pythonmodule.c:1830
 #, c-format
 msgid "Error in venv creation command: %s\n"
 msgstr "Erreur dans la commande de création de venv : %s\n"
 
-#: src/io/siril_pythonmodule.c:1868
+#: src/io/siril_pythonmodule.c:1870
 #, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
 msgstr "Échec de l'initialisation de l'environnement virtuel Python : %s\n"
 
-#: src/io/siril_pythonmodule.c:1879
+#: src/io/siril_pythonmodule.c:1881
 msgid "Failed to prepare virtual environment\n"
 msgstr "Échec de la préparation de l'environnement virtuel\n"
 
-#: src/io/siril_pythonmodule.c:1935
+#: src/io/siril_pythonmodule.c:1937
 msgid ""
 "Error: python not ready yet. This may happen at first run if the python venv "
 "and module setup has not yet completed. Please wait a short time for a "
@@ -32029,337 +32029,347 @@ msgstr ""
 "encore terminée. Attendez qu'un message de fin de processus apparaisse dans "
 "le journal et réessayez.\n"
 
-#: src/io/siril_pythonmodule.c:1955
+#: src/io/siril_pythonmodule.c:1957
 msgid "Error: failed to create Python connection.\n"
 msgstr "Erreur : échec de la création d'une connexion Python.\n"
 
-#: src/io/siril_pythonmodule.c:1967
+#: src/io/siril_pythonmodule.c:1969
 msgid "Error: Python connection not available.\n"
 msgstr "Erreur : La connexion Python n'est pas disponible.\n"
 
-#: src/io/siril_pythonmodule.c:2016
+#: src/io/siril_pythonmodule.c:2018
 msgid "Error finding venv python path, unable to spawn python.\n"
 msgstr ""
 "Erreur dans la recherche du chemin d'accès à python, impossible de lancer "
 "python.\n"
 
-#: src/io/siril_pythonmodule.c:2132
+#: src/io/siril_pythonmodule.c:2134
 #, c-format
 msgid "Failed to execute Python script: %s\n"
 msgstr "Échec de l'exécution du script Python : %s\n"
 
-#: src/io/siril_pythoncommands.c:460
+#: src/io/siril_pythoncommands.c:459
 msgid "Unknown config type"
 msgstr "Type de configuration inconnu"
 
-#: src/io/siril_pythoncommands.c:615
+#: src/io/siril_pythoncommands.c:614
 msgid "Received incomplete command header\n"
 msgstr "Réception d'un en-tête de commande incomplet\n"
 
-#: src/io/siril_pythoncommands.c:624
+#: src/io/siril_pythoncommands.c:623
 #, c-format
 msgid "Received incomplete command payload: length = %u, expected %u\n"
 msgstr "Réception d'une commande incomplète : longueur = %u, attendue %u\n"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:654 src/io/siril_pythoncommands.c:683
+#: src/io/siril_pythoncommands.c:653 src/io/siril_pythoncommands.c:682
 msgid "Failed to retrieve image dimensions - no image loaded"
 msgstr ""
 "Échec de l'extraction des dimensions de l'image - aucune image n'a été "
 "chargée"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:706
+#: src/io/siril_pythoncommands.c:705
 msgid "Failed to retrieve current vport - no image loaded"
 msgstr ""
 "Échec de la récupération du port virtuel actuel - aucune image n'a été "
 "chargée"
 
-#: src/io/siril_pythoncommands.c:723
+#: src/io/siril_pythoncommands.c:722
 msgid "Failed to set selection - selection exceeds image bounds"
 msgstr ""
 "Échec de la définition de la sélection - la sélection dépasse les limites de "
 "l'image"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:735 src/io/siril_pythoncommands.c:1995
-#: src/io/siril_pythoncommands.c:2032
+#: src/io/siril_pythoncommands.c:734 src/io/siril_pythoncommands.c:1994
+#: src/io/siril_pythoncommands.c:2031
 msgid "Failed to set selection - no image loaded"
 msgstr "Échec de la sélection - aucune image n'a été chargée"
 
-#: src/io/siril_pythoncommands.c:773 src/io/siril_pythoncommands.c:858
+#: src/io/siril_pythoncommands.c:772 src/io/siril_pythoncommands.c:857
 msgid "Invalid selection"
 msgstr "Sélection non valide"
 
-#: src/io/siril_pythoncommands.c:778 src/io/siril_pythoncommands.c:850
-#: src/io/siril_pythoncommands.c:1258
+#: src/io/siril_pythoncommands.c:777 src/io/siril_pythoncommands.c:849
+#: src/io/siril_pythoncommands.c:1257
 msgid "Invalid channel"
 msgstr "Canal non valide"
 
-#: src/io/siril_pythoncommands.c:788
+#: src/io/siril_pythoncommands.c:787
 msgid "Failed to find a star"
 msgstr "N'a pas trouvé d'étoile"
 
-#: src/io/siril_pythoncommands.c:807 src/io/siril_pythoncommands.c:869
-#: src/io/siril_pythoncommands.c:1281 src/io/siril_pythoncommands.c:1345
-#: src/io/siril_pythoncommands.c:1471 src/io/siril_pythoncommands.c:1503
-#: src/io/siril_pythoncommands.c:1616 src/io/siril_pythoncommands.c:1624
-#: src/io/siril_pythoncommands.c:1634 src/io/siril_pythoncommands.c:1671
-#: src/io/siril_pythoncommands.c:1723 src/io/siril_pythoncommands.c:1783
-#: src/io/siril_pythoncommands.c:1814 src/io/siril_pythoncommands.c:2172
+#: src/io/siril_pythoncommands.c:806 src/io/siril_pythoncommands.c:868
+#: src/io/siril_pythoncommands.c:1280 src/io/siril_pythoncommands.c:1344
+#: src/io/siril_pythoncommands.c:1470 src/io/siril_pythoncommands.c:1502
+#: src/io/siril_pythoncommands.c:1615 src/io/siril_pythoncommands.c:1623
+#: src/io/siril_pythoncommands.c:1633 src/io/siril_pythoncommands.c:1670
+#: src/io/siril_pythoncommands.c:1722 src/io/siril_pythoncommands.c:1782
+#: src/io/siril_pythoncommands.c:1813 src/io/siril_pythoncommands.c:2171
 msgid "Memory allocation error"
 msgstr "Erreur d'allocation mémoire"
 
-#: src/io/siril_pythoncommands.c:829
+#: src/io/siril_pythoncommands.c:828
 msgid "Invalid region: selection breaches image dimensions"
 msgstr ""
 "Région non valide : la sélection ne respecte pas les dimensions de l'image"
 
-#: src/io/siril_pythoncommands.c:843 src/io/siril_pythoncommands.c:1251
-#: src/io/siril_pythoncommands.c:1332 src/io/siril_pythoncommands.c:1802
-#: src/io/siril_pythoncommands.c:1825 src/io/siril_pythoncommands.c:1846
-#: src/io/siril_pythoncommands.c:1866 src/io/siril_pythoncommands.c:1899
+#: src/io/siril_pythoncommands.c:842 src/io/siril_pythoncommands.c:1250
+#: src/io/siril_pythoncommands.c:1331 src/io/siril_pythoncommands.c:1801
+#: src/io/siril_pythoncommands.c:1824 src/io/siril_pythoncommands.c:1845
+#: src/io/siril_pythoncommands.c:1865 src/io/siril_pythoncommands.c:1898
 msgid "No image loaded"
 msgstr "Aucune image chargée"
 
-#: src/io/siril_pythoncommands.c:890
+#: src/io/siril_pythoncommands.c:889
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA_REGION\n"
 msgstr ""
 "Longueur inattendue de la charge utile %u reçue pour GET_PIXELDATA_REGION\n"
 
-#: src/io/siril_pythoncommands.c:902
+#: src/io/siril_pythoncommands.c:901
 msgid "Invalid FINISHED_WITH_SHM payload"
 msgstr "Charge utile FINISHED_WITH_SHM non valide"
 
-#: src/io/siril_pythoncommands.c:988
+#: src/io/siril_pythoncommands.c:987
 msgid "Unknown dialog type"
 msgstr "Type de dialogue inconnu"
 
-#: src/io/siril_pythoncommands.c:1027
+#: src/io/siril_pythoncommands.c:1026
 msgid "Undo not supported in headless mode"
 msgstr "L'annulation n'est pas prise en charge en mode ligne de commande"
 
 #. Handle error
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1040 src/io/siril_pythoncommands.c:1109
+#: src/io/siril_pythoncommands.c:1039 src/io/siril_pythoncommands.c:1108
 msgid "Image not loaded"
 msgstr "Image non chargée"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1053
+#: src/io/siril_pythoncommands.c:1052
 msgid "Working directory not set"
 msgstr "Le répertoire de travail n'est pas défini"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1067
+#: src/io/siril_pythoncommands.c:1066
 msgid "Error: user config directory not set"
 msgstr ""
 "Erreur : le répertoire de configuration de l'utilisateur n'est pas défini"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1082
+#: src/io/siril_pythoncommands.c:1081
 msgid "Error: user data directory not set"
 msgstr "Erreur : le répertoire de données de l'utilisateur n'est pas défini"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1096
+#: src/io/siril_pythoncommands.c:1095
 msgid "Error: system data directory not set"
 msgstr "Erreur : le répertoire des données du système n'est pas défini"
 
-#: src/io/siril_pythoncommands.c:1118 src/io/siril_pythoncommands.c:1134
-#: src/io/siril_pythoncommands.c:1210 src/io/siril_pythoncommands.c:1223
-#: src/io/siril_pythoncommands.c:1240 src/io/siril_pythoncommands.c:1293
-#: src/io/siril_pythoncommands.c:2184 src/io/siril_pythoncommands.c:2217
-#: src/io/siril_pythoncommands.c:2223 src/io/siril_pythoncommands.c:2254
+#: src/io/siril_pythoncommands.c:1117 src/io/siril_pythoncommands.c:1133
+#: src/io/siril_pythoncommands.c:1209 src/io/siril_pythoncommands.c:1222
+#: src/io/siril_pythoncommands.c:1239 src/io/siril_pythoncommands.c:1292
+#: src/io/siril_pythoncommands.c:2183 src/io/siril_pythoncommands.c:2222
+#: src/io/siril_pythoncommands.c:2228 src/io/siril_pythoncommands.c:2261
 msgid "Invalid payload length"
 msgstr "Longueur de la charge utile non valide"
 
-#: src/io/siril_pythoncommands.c:1140 src/io/siril_pythoncommands.c:1148
+#: src/io/siril_pythoncommands.c:1139 src/io/siril_pythoncommands.c:1147
 msgid "Failed to load sequence frame"
 msgstr "Échec du chargement de l'image de la séquence"
 
-#: src/io/siril_pythoncommands.c:1164
+#: src/io/siril_pythoncommands.c:1163
 msgid "Failed to compute output index"
 msgstr "Échec du calcul de l'indice de sortie"
 
-#: src/io/siril_pythoncommands.c:1199
+#: src/io/siril_pythoncommands.c:1198
 #, c-format
 msgid "Error writing sequence frame %i from Python\n"
 msgstr "Erreur d'écriture de l'image de la séquence %i depuis Python\n"
 
-#: src/io/siril_pythoncommands.c:1268
+#: src/io/siril_pythoncommands.c:1267
 msgid "No stats"
 msgstr "Aucune stats"
 
-#: src/io/siril_pythoncommands.c:1366 src/io/siril_pythoncommands.c:1410
-#: src/io/siril_pythoncommands.c:1445 src/io/siril_pythoncommands.c:2153
+#: src/io/siril_pythoncommands.c:1365 src/io/siril_pythoncommands.c:1409
+#: src/io/siril_pythoncommands.c:1444 src/io/siril_pythoncommands.c:2152
 msgid "Incorrect command arguments"
 msgstr "Arguments de commande incorrects"
 
-#: src/io/siril_pythoncommands.c:1376 src/io/siril_pythoncommands.c:1697
-#: src/io/siril_pythoncommands.c:1756
+#: src/io/siril_pythoncommands.c:1375 src/io/siril_pythoncommands.c:1696
+#: src/io/siril_pythoncommands.c:1755
 msgid "Memory allocation failed"
 msgstr "Échec de l'allocation de mémoire"
 
-#: src/io/siril_pythoncommands.c:1381 src/io/siril_pythoncommands.c:1390
+#: src/io/siril_pythoncommands.c:1380 src/io/siril_pythoncommands.c:1389
 msgid "No regdata available"
 msgstr "Aucune regdata disponible"
 
-#: src/io/siril_pythoncommands.c:1426
+#: src/io/siril_pythoncommands.c:1425
 msgid "Error building frame filename"
 msgstr "Erreur dans la construction du nom de fichier de l'image"
 
-#: src/io/siril_pythoncommands.c:1457
+#: src/io/siril_pythoncommands.c:1456
 msgid "No stats for this sequence"
 msgstr "Pas de statistiques pour cette séquence"
 
-#: src/io/siril_pythoncommands.c:1465
+#: src/io/siril_pythoncommands.c:1464
 msgid "No stats for this channel for this frame"
 msgstr "Pas de statistiques pour le canal de cette image"
 
-#: src/io/siril_pythoncommands.c:1491 src/io/siril_pythoncommands.c:1541
-#: src/io/siril_pythoncommands.c:1589
+#: src/io/siril_pythoncommands.c:1490 src/io/siril_pythoncommands.c:1540
+#: src/io/siril_pythoncommands.c:1588
 msgid "Incorrect command argument"
 msgstr "Argument de commande incorrect"
 
-#: src/io/siril_pythoncommands.c:1519
+#: src/io/siril_pythoncommands.c:1518
 msgid "Incorrect payload"
 msgstr "Charge utile incorrecte"
 
-#: src/io/siril_pythoncommands.c:1538
+#: src/io/siril_pythoncommands.c:1537
 msgid "Selection cropped to frame boundaries\n"
 msgstr "Sélection recadrée aux limites de l'image\n"
 
-#: src/io/siril_pythoncommands.c:1549
+#: src/io/siril_pythoncommands.c:1548
 msgid "Failed to read sequence frame"
 msgstr "Échec de la lecture de l'image de la séquence"
 
-#: src/io/siril_pythoncommands.c:1562
+#: src/io/siril_pythoncommands.c:1561
 msgid "Invalid dimensions"
 msgstr "Dimension non valide"
 
-#: src/io/siril_pythoncommands.c:1596
+#: src/io/siril_pythoncommands.c:1595
 msgid "Failed to read frame metadata"
 msgstr "Échec de la lecture des métadonnées de l'image"
 
-#: src/io/siril_pythoncommands.c:1682
+#: src/io/siril_pythoncommands.c:1681
 msgid "No stars list available"
 msgstr "Pas de liste d'étoiles disponible"
 
-#: src/io/siril_pythoncommands.c:1705
+#: src/io/siril_pythoncommands.c:1704
 msgid "Stars array was cleared mid-process"
 msgstr "Le tableau des étoiles a été effacé en cours de processus"
 
-#: src/io/siril_pythoncommands.c:1713
+#: src/io/siril_pythoncommands.c:1712
 msgid "Unexpected null star entry"
 msgstr "Entrée étoile nulle inattendue"
 
-#: src/io/siril_pythoncommands.c:1746
+#: src/io/siril_pythoncommands.c:1745
 msgid "No background samples list available"
 msgstr "Pas de liste d'échantillons de fond de ciel disponible"
 
-#: src/io/siril_pythoncommands.c:1765
+#: src/io/siril_pythoncommands.c:1764
 msgid "Mismatch in samples count"
 msgstr "Incohérence dans le nombre d'échantillons"
 
-#: src/io/siril_pythoncommands.c:1773
+#: src/io/siril_pythoncommands.c:1772
 msgid "Unexpected null background sample"
 msgstr "Échantillon de fond nul inattendu"
 
-#: src/io/siril_pythoncommands.c:1830
+#: src/io/siril_pythoncommands.c:1829
 msgid "Image has no ICC profile"
 msgstr "L'image n'a pas de profil ICC"
 
-#: src/io/siril_pythoncommands.c:1852
+#: src/io/siril_pythoncommands.c:1851
 msgid "Image has no FITS header"
 msgstr "L'image n'a pas d'en-tête FITS"
 
-#: src/io/siril_pythoncommands.c:1872
+#: src/io/siril_pythoncommands.c:1871
 msgid "Image has no history entries"
 msgstr "L'image n'a pas d'entrées dans l'historique"
 
-#: src/io/siril_pythoncommands.c:1905
+#: src/io/siril_pythoncommands.c:1904
 msgid "Image has no unknown keys"
 msgstr "L'image n'a pas de clés inconnues"
 
 #. Need at least two null-terminated strings
-#: src/io/siril_pythoncommands.c:1920
+#: src/io/siril_pythoncommands.c:1919
 msgid "Group and key must be provided"
 msgstr "Le groupe et la clé doivent être fournis"
 
-#: src/io/siril_pythoncommands.c:1929
+#: src/io/siril_pythoncommands.c:1928
 msgid "Malformed group/key data"
 msgstr "Données de groupe/clé malformées"
 
-#: src/io/siril_pythoncommands.c:1940
+#: src/io/siril_pythoncommands.c:1939
 msgid "Configuration key not found"
 msgstr "Clé de configuration introuvable"
 
 #. Handle no WCS error
-#: src/io/siril_pythoncommands.c:1967 src/io/siril_pythoncommands.c:2006
+#: src/io/siril_pythoncommands.c:1966 src/io/siril_pythoncommands.c:2005
 msgid "Siril image is not plate solved"
 msgstr "L'image de Siril n'est pas résolue en astrométrie"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:2048
+#: src/io/siril_pythoncommands.c:2047
 msgid "Failed to retrieve bundle path"
 msgstr "Échec de la récupération du chemin d'accès du bundle"
 
 #. Handle error: OS is not Windows
-#: src/io/siril_pythoncommands.c:2053
+#: src/io/siril_pythoncommands.c:2052
 msgid "_get_bundle_path() only applicable on Windows"
 msgstr "_get_bundle_path() applicable uniquement sous Windows"
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2063
+#: src/io/siril_pythoncommands.c:2062
 msgid "Thread is busy"
 msgstr "Le fil est occupé"
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2067
+#: src/io/siril_pythoncommands.c:2066
 msgid "Image processing dialog is open"
 msgstr "La boîte de dialogue de traitement d'image est ouverte"
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2075
+#: src/io/siril_pythoncommands.c:2074
 msgid "Unknown error"
 msgstr "Erreur inconnue"
 
-#: src/io/siril_pythoncommands.c:2101 src/io/siril_pythoncommands.c:2136
+#: src/io/siril_pythoncommands.c:2100 src/io/siril_pythoncommands.c:2135
 msgid "Incorrect payload length"
 msgstr "Longueur incorrecte de la charge utile"
 
-#: src/io/siril_pythoncommands.c:2127
+#: src/io/siril_pythoncommands.c:2126
 msgid "Index is out of range"
 msgstr "L'indice est en dehors de la plage"
 
-#: src/io/siril_pythoncommands.c:2158
+#: src/io/siril_pythoncommands.c:2157
 msgid "No distodata available"
 msgstr "Aucune distodata disponible"
 
-#: src/io/siril_pythoncommands.c:2205
+#: src/io/siril_pythoncommands.c:2197
+#, fuzzy
+msgid "Failed to add user polygon: no image loaded"
+msgstr "Échec de la sélection - aucune image n'a été chargée"
+
+#: src/io/siril_pythoncommands.c:2210
 msgid "Failed to add user polygon"
 msgstr "Échec de l'ajout d'un polygone utilisateur"
 
-#: src/io/siril_pythoncommands.c:2240
+#: src/io/siril_pythoncommands.c:2245
 msgid "No polygon found matching id"
 msgstr "Aucun polygone correspondant à l'identifiant n'a été trouvé"
 
-#: src/io/siril_pythoncommands.c:2247 src/io/siril_pythoncommands.c:2265
+#: src/io/siril_pythoncommands.c:2252
 msgid "Failed to serialize user polygon"
 msgstr "Échec de la sérialisation du polygone utilisateur"
 
-#: src/io/siril_pythoncommands.c:2270
+#: src/io/siril_pythoncommands.c:2271
 msgid "No user polygons to serialize"
 msgstr "Pas de polygones utilisateur à sérialiser"
 
-#: src/io/siril_pythoncommands.c:2283 src/io/siril_pythoncommands.c:2289
-#: src/io/siril_pythoncommands.c:2295
+#: src/io/siril_pythoncommands.c:2278
+#, fuzzy
+msgid "Failed to serialize user polygon list"
+msgstr "Échec de la sérialisation du polygone utilisateur"
+
+#: src/io/siril_pythoncommands.c:2292 src/io/siril_pythoncommands.c:2298
+#: src/io/siril_pythoncommands.c:2304
 msgid "Argument error"
 msgstr "Erreur d'argument"
 
-#: src/io/siril_pythoncommands.c:2305
+#: src/io/siril_pythoncommands.c:2314
 msgid "Unknown command"
 msgstr "Commande inconnue"
 
