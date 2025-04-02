@@ -22,7 +22,6 @@
 #include "curve_transform.h"
 #include "gui/curves.h"
 #include "core/proto.h"
-#include "core/siril_log.h"
 #include <math.h>
 
 void apply_curve(fits *from, fits *to, struct curve_params params, gboolean multithreaded) {
