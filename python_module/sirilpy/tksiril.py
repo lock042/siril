@@ -70,7 +70,7 @@ def create_tooltip(widget, text, wrap_length=250):
 
     widget.bind('<Enter>', show_tooltip)
 
-def match_theme_to_siril(themed_tk, s):
+def match_theme_to_siril(themed_tk, s, on_top=True):
     """
     Match the Tkinter theme to the Siril configuration and set the script dialog
     to have topmost status, meaning that it will remain in front of other
@@ -80,6 +80,7 @@ def match_theme_to_siril(themed_tk, s):
         s (SirilInterface): sirilpy.SirilInterface class to provide the
                             Siril theme (light or dark) to match
         themed_tk (ThemedTk): ThemedTk instance to apply the theme to
+        on_top: whether the script window should be always on top of other windows
 
     Raises:
         TypeError: If input arguments are of incorrect type
@@ -114,9 +115,10 @@ def match_theme_to_siril(themed_tk, s):
         1: "arc"
     }
 
-    # Settings to keep the script window above others
-    themed_tk.focus_force()
-    themed_tk.attributes('-topmost', True)
+    if on_top is True:
+        # Settings to keep the script window above others
+        themed_tk.focus_force()
+        themed_tk.attributes('-topmost', True)
 
     # Check if theme value is valid
     if theme_value not in theme_map:
