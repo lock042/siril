@@ -89,6 +89,9 @@ def match_theme_to_siril(themed_tk, s, on_top=True):
         AttributeError: If required methods are not available
         RuntimeError: If there are errors installing or setting the theme
     """
+    import sys
+    import tkinter as tk
+    
     # Strict type checking for s
     if not isinstance(s, SirilInterface):
         raise TypeError(f"First argument must be a SirilInterface. Got {type(s)}")
@@ -116,36 +119,121 @@ def match_theme_to_siril(themed_tk, s, on_top=True):
         1: "arc"
     }
 
-    if on_top is True:
+    if on_top:
         # Settings to keep the script window above others
         themed_tk.focus_force()
         themed_tk.attributes('-topmost', True)
 
-    # This allows temporarily disabling topmost when opening dialogs
-    original_filedialog_functions = {}
-    
-    # Function to wrap file dialogs
-    def wrap_filedialog(original_func):
-        def wrapper(*args, **kwargs):
-            if on_top is True:
-                 # Temporarily disable topmost for the main window
-                 themed_tk.attributes('-topmost', False)
-            # Call the original dialog function
-            result = original_func(*args, **kwargs)
-            if on_top is True:
-                 # Re-enable topmost after the dialog closes
-                 themed_tk.attributes('-topmost', True)
-            return result
-        return wrapper
-    
-    # Replace standard dialog functions if tkinter.filedialog is used
-    if 'tkinter.filedialog' in sys.modules:
-        import tkinter.filedialog as fd
-        for func_name in ['askopenfilename', 'askopenfilenames', 'asksaveasfilename', 
-                         'askdirectory', 'askopenfile', 'askopenfiles', 'asksaveasfile']:
-            if hasattr(fd, func_name):
-                original_filedialog_functions[func_name] = getattr(fd, func_name)
-                setattr(fd, func_name, wrap_filedialog(getattr(fd, func_name)))
+        # Save the original subprocess module to patch it
+        original_subprocess_module = sys.modules.get('subprocess', None)
+        original_popen = None
+        if original_subprocess_module and hasattr(original_subprocess_module, 'Popen'):
+            original_popen = original_subprocess_module.Popen
+
+            # Create wrapper for subprocess.Popen to handle external processes
+            def wrapped_popen(*args, **kwargs):
+                if on_top:  # Only modify behavior if on_top is True
+                    # Temporarily disable topmost for main window before launching subprocess
+                    themed_tk.attributes('-topmost', False)
+                # Call the original Popen
+                process = original_popen(*args, **kwargs)
+                if on_top:  # Only modify behavior if on_top is True
+                    # Reset topmost after a short delay to allow subprocess window to appear
+                    themed_tk.after(100, lambda: themed_tk.attributes('-topmost', True))
+                return process
+
+            # Replace the original Popen with our wrapped version
+            original_subprocess_module.Popen = wrapped_popen
+
+        # Save original Toplevel class
+        original_toplevel = tk.Toplevel
+
+        # Create a wrapper for Toplevel to handle topmost attribute
+        class TopmostAwareToplevel(original_toplevel):
+            def __init__(self, *args, **kwargs):
+                # Temporarily disable topmost on parent
+                parent = args[0] if args else kwargs.get('master', None)
+                was_topmost = False
+
+                if on_top and parent and hasattr(parent, 'attributes'):  # Check on_top here
+                    try:
+                        was_topmost = parent.attributes('-topmost')
+                        parent.attributes('-topmost', False)
+                    except tk.TclError:
+                        pass
+
+                # Initialize the toplevel window
+                super().__init__(*args, **kwargs)
+
+                # Make the dialog topmost initially to appear in front
+                if on_top:  # Only if on_top is True
+                    try:
+                        self.attributes('-topmost', True)
+                        # After a short delay, remove topmost to allow normal interaction
+                        self.after(100, lambda: self.attributes('-topmost', False))
+                    except tk.TclError:
+                        pass
+
+                # When this dialog is destroyed, restore parent's topmost if needed
+                def on_destroy(event):
+                    if on_top and parent and was_topmost and hasattr(parent, 'attributes'):  # Check on_top here
+                        try:
+                            parent.attributes('-topmost', True)
+                            parent.lift()
+                        except tk.TclError:
+                            pass
+
+                self.bind("<Destroy>", on_destroy)
+
+        # Replace the Toplevel class with our custom one
+        tk.Toplevel = TopmostAwareToplevel
+
+        # Handle file dialogs specifically
+        if 'tkinter.filedialog' in sys.modules:
+            import tkinter.filedialog as fd
+            original_filedialog_functions = {}
+
+            def wrap_filedialog(original_func):
+                def wrapper(*args, **kwargs):
+                    if on_top:  # Only modify behavior if on_top is True
+                        # Explicitly disable topmost for file dialogs
+                        was_topmost = themed_tk.attributes('-topmost')
+                        themed_tk.attributes('-topmost', False)
+                    result = original_func(*args, **kwargs)
+                    if on_top:  # Only modify behavior if on_top is True
+                        # Restore topmost attribute
+                        if was_topmost:
+                            themed_tk.attributes('-topmost', True)
+                    return result
+                return wrapper
+
+            for func_name in ['askopenfilename', 'askopenfilenames', 'asksaveasfilename', 
+                             'askdirectory', 'askopenfile', 'askopenfiles', 'asksaveasfile']:
+                if hasattr(fd, func_name):
+                    original_filedialog_functions[func_name] = getattr(fd, func_name)
+                    setattr(fd, func_name, wrap_filedialog(getattr(fd, func_name)))
+
+        # Handle matplotlib if it's used
+        if 'matplotlib' in sys.modules:
+            try:
+                import matplotlib.pyplot as plt
+                original_show = plt.show
+
+                def wrapped_show(*args, **kwargs):
+                    if on_top:  # Only modify behavior if on_top is True
+                        # Disable topmost before showing plot
+                        themed_tk.attributes('-topmost', False)
+                    # Call original show
+                    result = original_show(*args, **kwargs)
+                    if on_top:  # Only modify behavior if on_top is True
+                        # Re-enable topmost after plot is closed
+                        themed_tk.attributes('-topmost', True)
+                    return result
+
+                # Replace the show function
+                plt.show = wrapped_show
+            except ImportError:
+                pass  # Matplotlib not available
 
     # Check if theme value is valid
     if theme_value not in theme_map:
