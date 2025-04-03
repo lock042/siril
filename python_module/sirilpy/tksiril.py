@@ -121,41 +121,75 @@ def match_theme_to_siril(themed_tk, s, on_top=True):
         themed_tk.focus_force()
         themed_tk.attributes('-topmost', True)
 
-    # This allows temporarily disabling topmost when opening dialogs
+    # Main window reference for transient relationship
+    main_window = themed_tk
+
+    # This allows making dialogs transient of the main window
     original_filedialog_functions = {}
     original_messagebox_functions = {}
-      
-    # Function to wrap dialog functions
-    def wrap_dialog(original_func):
+
+    # Function to wrap dialog functions to make them transient
+    def wrap_dialog_transient(original_func):
         def wrapper(*args, **kwargs):
-            if on_top is True:
-                 # Temporarily disable topmost for the main window
-                 themed_tk.attributes('-topmost', False)
             # Call the original dialog function
             result = original_func(*args, **kwargs)
-            if on_top is True:
-                 # Re-enable topmost after the dialog closes
-                 themed_tk.attributes('-topmost', True)
+
+            # For dialogs that create a Toplevel window and return it
+            if isinstance(result, tk.Toplevel):
+                try:
+                    # Make it transient of the main window
+                    result.transient(main_window)
+                    # Bring it to front
+                    result.lift()
+                except tk.TclError:
+                    pass  # Handle edge cases where window is already destroyed
+
             return result
         return wrapper
-    
+
+    # Hook into Toplevel creation for dialogs that don't return their window
+    original_toplevel_init = tk.Toplevel.__init__
+    def patched_toplevel_init(self, master=None, **kw):
+        # Call the original constructor
+        original_toplevel_init(self, master, **kw)
+
+        # Skip transient if this is a special window (like our main window)
+        if kw.get('class_') == 'Toplevel' and not kw.get('transient'):
+            return
+
+        # For standard dialogs, make them transient of the main window
+        if on_top is True and main_window.winfo_exists():
+            try:
+                # Make this Toplevel transient of the main window
+                self.transient(main_window)
+
+                # Ensure it appears on top
+                self.after(10, self.lift)
+            except tk.TclError:
+                pass  # Window might be gone
+
+    # Set the patched initializer
+    tk.Toplevel.__init__ = patched_toplevel_init
+
     # Replace standard dialog functions if tkinter.filedialog is used
     if 'tkinter.filedialog' in sys.modules:
         import tkinter.filedialog as fd
         for func_name in ['askopenfilename', 'askopenfilenames', 'asksaveasfilename', 
                          'askdirectory', 'askopenfile', 'askopenfiles', 'asksaveasfile']:
             if hasattr(fd, func_name):
-                original_filedialog_functions[func_name] = getattr(fd, func_name)
-                setattr(fd, func_name, wrap_dialog(getattr(fd, func_name)))
-                
+                # We don't wrap these since they don't return Toplevel objects
+                # The fix applies through our Toplevel.__init__ patch
+                pass
+
     # Replace standard messagebox functions if tkinter.messagebox is used
     if 'tkinter.messagebox' in sys.modules:
         import tkinter.messagebox as mb
         for func_name in ['showinfo', 'showwarning', 'showerror', 'askquestion', 
                           'askokcancel', 'askyesno', 'askretrycancel', 'askyesnocancel']:
             if hasattr(mb, func_name):
-                original_messagebox_functions[func_name] = getattr(mb, func_name)
-                setattr(mb, func_name, wrap_dialog(getattr(mb, func_name)))
+                # We don't wrap these since they don't return Toplevel objects
+                # The fix applies through our Toplevel.__init__ patch
+                pass
 
     # Check if theme value is valid
     if theme_value not in theme_map:
