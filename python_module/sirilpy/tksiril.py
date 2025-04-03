@@ -123,9 +123,10 @@ def match_theme_to_siril(themed_tk, s, on_top=True):
 
     # This allows temporarily disabling topmost when opening dialogs
     original_filedialog_functions = {}
-    
-    # Function to wrap file dialogs
-    def wrap_filedialog(original_func):
+    original_messagebox_functions = {}
+      
+    # Function to wrap dialog functions
+    def wrap_dialog(original_func):
         def wrapper(*args, **kwargs):
             if on_top is True:
                  # Temporarily disable topmost for the main window
@@ -145,7 +146,16 @@ def match_theme_to_siril(themed_tk, s, on_top=True):
                          'askdirectory', 'askopenfile', 'askopenfiles', 'asksaveasfile']:
             if hasattr(fd, func_name):
                 original_filedialog_functions[func_name] = getattr(fd, func_name)
-                setattr(fd, func_name, wrap_filedialog(getattr(fd, func_name)))
+                setattr(fd, func_name, wrap_dialog(getattr(fd, func_name)))
+                
+    # Replace standard messagebox functions if tkinter.messagebox is used
+    if 'tkinter.messagebox' in sys.modules:
+        import tkinter.messagebox as mb
+        for func_name in ['showinfo', 'showwarning', 'showerror', 'askquestion', 
+                          'askokcancel', 'askyesno', 'askretrycancel', 'askyesnocancel']:
+            if hasattr(mb, func_name):
+                original_messagebox_functions[func_name] = getattr(mb, func_name)
+                setattr(mb, func_name, wrap_dialog(getattr(mb, func_name)))
 
     # Check if theme value is valid
     if theme_value not in theme_map:
