@@ -9,6 +9,7 @@ script GUI appearance using the TKinter toolkit.
 """
 
 import tkinter as tk
+import sys
 from tkinter import ttk
 from .connection import SirilInterface
 from .exceptions import SirilError
@@ -70,7 +71,7 @@ def create_tooltip(widget, text, wrap_length=250):
 
     widget.bind('<Enter>', show_tooltip)
 
-def match_theme_to_siril(themed_tk, s):
+def match_theme_to_siril(themed_tk, s, on_top=True):
     """
     Match the Tkinter theme to the Siril configuration and set the script dialog
     to have topmost status, meaning that it will remain in front of other
@@ -80,6 +81,7 @@ def match_theme_to_siril(themed_tk, s):
         s (SirilInterface): sirilpy.SirilInterface class to provide the
                             Siril theme (light or dark) to match
         themed_tk (ThemedTk): ThemedTk instance to apply the theme to
+        on_top: whether the script window should be always on top of other windows
 
     Raises:
         TypeError: If input arguments are of incorrect type
@@ -114,9 +116,46 @@ def match_theme_to_siril(themed_tk, s):
         1: "arc"
     }
 
-    # Settings to keep the script window above others
-    themed_tk.focus_force()
-    themed_tk.attributes('-topmost', True)
+    if on_top is True:
+        # Settings to keep the script window above others
+        themed_tk.focus_force()
+        themed_tk.attributes('-topmost', True)
+
+    # This allows temporarily disabling topmost when opening dialogs
+    original_filedialog_functions = {}
+    original_messagebox_functions = {}
+      
+    # Function to wrap dialog functions
+    def wrap_dialog(original_func):
+        def wrapper(*args, **kwargs):
+            if on_top is True:
+                 # Temporarily disable topmost for the main window
+                 themed_tk.attributes('-topmost', False)
+            # Call the original dialog function
+            result = original_func(*args, **kwargs)
+            if on_top is True:
+                 # Re-enable topmost after the dialog closes
+                 themed_tk.attributes('-topmost', True)
+            return result
+        return wrapper
+    
+    # Replace standard dialog functions if tkinter.filedialog is used
+    if 'tkinter.filedialog' in sys.modules:
+        import tkinter.filedialog as fd
+        for func_name in ['askopenfilename', 'askopenfilenames', 'asksaveasfilename', 
+                         'askdirectory', 'askopenfile', 'askopenfiles', 'asksaveasfile']:
+            if hasattr(fd, func_name):
+                original_filedialog_functions[func_name] = getattr(fd, func_name)
+                setattr(fd, func_name, wrap_dialog(getattr(fd, func_name)))
+                
+    # Replace standard messagebox functions if tkinter.messagebox is used
+    if 'tkinter.messagebox' in sys.modules:
+        import tkinter.messagebox as mb
+        for func_name in ['showinfo', 'showwarning', 'showerror', 'askquestion', 
+                          'askokcancel', 'askyesno', 'askretrycancel', 'askyesnocancel']:
+            if hasattr(mb, func_name):
+                original_messagebox_functions[func_name] = getattr(mb, func_name)
+                setattr(mb, func_name, wrap_dialog(getattr(mb, func_name)))
 
     # Check if theme value is valid
     if theme_value not in theme_map:
