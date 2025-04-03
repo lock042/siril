@@ -843,6 +843,27 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->force_float = !com.pref.force_16bit && regargs->seq->type != SEQ_SER;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	int retval = 0;
+	int *included = NULL;
+
+	// we need to update filtering before check_apply_reg
+	// and check_applyreg_output that will check required space
+	// we also need it before we collect astrometry data
+	if (!regargs->filtering_criterion &&
+		convert_parsed_filter_to_filter(&regargs->filters,
+		regargs->seq, &regargs->filtering_criterion,
+		&regargs->filtering_parameter)) {
+		retval = -1;
+		goto END;
+	}
+	// Prepare sequence filtering
+	int nb_frames = compute_nb_filtered_images(regargs->seq,
+		regargs->filtering_criterion, regargs->filtering_parameter);
+	regargs->new_total = nb_frames;	// to avoid recomputing it later
+	gchar *str = describe_filter(regargs->seq, regargs->filtering_criterion,
+			regargs->filtering_parameter);
+	siril_log_message(str);
+	g_free(str);
+
 	if (!check_before_applyreg(regargs)) { // checks for input arguments wrong combinations
 		retval = -1;
 		goto END;
@@ -855,12 +876,20 @@ int register_apply_reg(struct registration_args *regargs) {
 	regargs->undistort = (layer_has_distortion(regargs->seq, regargs->layer)) ? regargs->seq->distoparam[regargs->layer].index : DISTO_UNDEF;
 	if (regargs->undistort == DISTO_FILES) {
 		regargs->WCSDATA = calloc(regargs->seq->number, sizeof(struct wcsprm));
-		if (collect_sequence_astrometry(regargs)) {
+		included = calloc(regargs->seq->number, sizeof(int));
+		if (collect_sequence_astrometry(regargs, included)) {
 			retval = -1;
 			goto END;
 		}
+		int nb_frames2 = compute_nb_filtered_images(regargs->seq,
+			regargs->filtering_criterion, regargs->filtering_parameter);
+		regargs->new_total = nb_frames2;	// to avoid recomputing it later
+		if (nb_frames2 != nb_frames) {
+			siril_log_color_message(_("Warning: the number of images after collecting astrometry is different from the number of images before filtering.\n"), "salmon");
+			siril_log_color_message(_("The registration will be applied to the filtered images only.\n"), "salmon");
+		}
 		Homography Href = { 0 };
-		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer, &Href, &regargs->wcsref)) {
+		if (compute_Hs_from_astrometry(regargs->seq, included, regargs->reference_image, regargs->WCSDATA, regargs->framing, regargs->layer, &Href, &regargs->wcsref)) {
 			retval = -1;
 			goto END;
 		}
@@ -868,25 +897,6 @@ int register_apply_reg(struct registration_args *regargs) {
 	} else {
 		regargs->framingd.Htransf = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
 	}
-
-	// we need to update filtering before check_applyreg_output that will check required space
-	if (!regargs->filtering_criterion &&
-				convert_parsed_filter_to_filter(&regargs->filters,
-				regargs->seq, &regargs->filtering_criterion,
-				&regargs->filtering_parameter)) {
-		retval = -1;
-		goto END;
-
-	}
-
-	// Prepare sequence filtering
-	int nb_frames = compute_nb_filtered_images(regargs->seq,
-			regargs->filtering_criterion, regargs->filtering_parameter);
-	regargs->new_total = nb_frames;	// to avoid recomputing it later
-	gchar *str = describe_filter(regargs->seq, regargs->filtering_criterion,
-			regargs->filtering_parameter);
-	siril_log_message(str);
-	g_free(str);
 
 	// We can now compute the framing and check the output size
 	if (!check_applyreg_output(regargs)) {
@@ -994,6 +1004,7 @@ int register_apply_reg(struct registration_args *regargs) {
 
 END:
 	free_generic_seq_args(args, FALSE);
+	free(included);
 
 	return retval;
 }
@@ -1163,6 +1174,21 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	if (regargs->framing == FRAMING_COG && regargs->seq->is_variable) {
 		siril_log_color_message(_("Framing method \"cog\" requires all images to be of same size, aborting\n"), "red");
 		return FALSE;
+	}
+
+	int ref_index = regargs->seq->reference_image;
+	if (ref_index < 0) {
+		ref_index = sequence_find_refimage(regargs->seq);
+	}
+	if (regargs->filtering_criterion && !regargs->filtering_criterion(regargs->seq, ref_index, regargs->filtering_parameter)) {
+		if (regargs->framing == FRAMING_CURRENT) {
+			siril_log_color_message(_("Reference image is not included in the filtered list, aborting\n"), "red");
+			siril_log_color_message(_("This is not compatible with framing mode \"current\", change reference image"), "red");
+			return FALSE;
+		} else {
+			siril_log_color_message(_("Reference image is not included in the filtered list, using first image instead\n"), "salmon");
+			regargs->reference_image = 0;
+		}
 	}
 	return TRUE;
 }
