@@ -531,14 +531,17 @@ gchar* get_control_window_id() {
 		parent_window_id = g_strdup_printf("%p", (void*)hwnd);
 	}
 #elif defined(GDK_WINDOWING_QUARTZ)
-	if (GDK_IS_QUARTZ_DISPLAY(display)) {
-		// Modern approach for macOS - use GdkQuartzWindow's functionality
-		// Get the window ID using the display and window
-		guint64 window_id = (guint64)gdk_window;
-		parent_window_id = g_strdup_printf("quartz:%llu", window_id);
-	} else {
-		siril_debug_print("Not a Quartz (MacOS) display.\n");
-	}
+    if (GDK_IS_QUARTZ_DISPLAY(display)) {
+        // For macOS, we'll use a unique identifier for the window
+        // The GDK window address itself can serve as a unique ID
+        guintptr window_address = (guintptr)gdk_window;
+        parent_window_id = g_strdup_printf(".%lx", window_address);
+
+        // Note: Using a dot prefix creates a format that Tk can work with
+        // as it looks like a valid Tk window path
+    } else {
+        siril_debug_print("Not a Quartz (MacOS) display.\n");
+    }
 #else
 	if (GDK_IS_WAYLAND_DISPLAY(display)) {
 		// Wayland doesn't use traditional window IDs

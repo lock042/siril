@@ -81,83 +81,46 @@ def set_as_transient_child(window, parent_id):
         
     Returns:
         bool: True if successful, False otherwise
-        
-    Note:
-        This function handles platform-specific differences in window management
-        to properly set up the transient relationship between windows.
     """
     import platform
-    import os
     
     try:
         system = platform.system()
         
-        if system == "Linux":
-            # For X11, use xdotool to set the parent-child relationship
-            try:
-                import subprocess
-                
-                # Get window ID of tkinter window
-                child_id = window.winfo_id()
-                
-                # Run xdotool command to set the transient property
-                subprocess.run(['xdotool', 'windowreparent', str(child_id), parent_id], 
-                              check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                
-                # Set the window type to dialog which is typical for transient windows
-                window.wm_withdraw()
-                window.wm_deiconify()
-                
-                return True
-            except Exception as e:
-                # Fallback to setting window type to dialog
+        # For all platforms, set dialog-like properties
+        try:
+            # Use the Tk command interface directly which is more reliable
+            window.tk.call('wm', 'attributes', window._w, '-topmost', '1')
+            window.tk.call('focus', '-force', window._w)
+            
+            # Try to set transient using the lower-level Tk command
+            if parent_id:
                 try:
-                    window.attributes('-type', 'dialog')
-                    return True
-                except:
-                    pass
-                
-                print(f"X11 transient setup failed: {e}")
-                return False
-                
-        elif system == "Windows":
-            # On Windows, we need to use the Win32 API
-            try:
-                import ctypes
-                from ctypes import windll
-                
-                parent_hwnd = int(parent_id)
-                child_hwnd = int(window.winfo_id())
-                
-                # Use SetParent Windows API
-                result = windll.user32.SetParent(child_hwnd, parent_hwnd)
-                
-                if result:
-                    # Also set window style to be child-like
-                    GWL_STYLE = -16
-                    WS_CHILD = 0x40000000
-                    current_style = windll.user32.GetWindowLongW(child_hwnd, GWL_STYLE)
-                    windll.user32.SetWindowLongW(child_hwnd, GWL_STYLE, 
-                                              current_style | WS_CHILD)
-                    return True
-                return False
-            except Exception as e:
-                print(f"Windows transient setup failed: {e}")
-                return False
-                
-        elif system == "Darwin":
-            # On macOS, this might require Objective-C bridging
-            # For now, we'll just try to make it look like a dialog
-            try:
-                window.wm_transient_for(window.winfo_toplevel())
-                return True
-            except Exception as e:
-                print(f"macOS transient setup failed: {e}")
-                return False
-                
-        return False
+                    window.tk.call('wm', 'transient', window._w, parent_id)
+                except Exception as e:
+                    print(f"Transient setting failed: {e}")
+                    
+                    # Try platform-specific approaches
+                    if system == "Linux":
+                        try:
+                            # Set window type to dialog
+                            window.tk.call('wm', 'attributes', window._w, '-type', 'dialog')
+                        except Exception:
+                            pass
+                    elif system == "Darwin":
+                        try:
+                            # For macOS, try to set utility style
+                            window.tk.call('::tk::unsupported::MacWindowStyle', 'style', window._w, 'utility')
+                        except Exception:
+                            pass
+            
+            return True
+        except Exception as e:
+            print(f"Window property setting failed: {e}")
+            return False
+            
     except Exception as e:
-        print(f"Failed to set window as transient: {e}")
+        print(f"Failed to set window properties: {e}")
         return False
     
 def match_theme_to_siril(themed_tk, s, on_top=True):
