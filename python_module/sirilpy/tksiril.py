@@ -14,15 +14,15 @@ from tkinter import ttk
 from .connection import SirilInterface
 from .exceptions import SirilError
 
-def create_tooltip(widget, text, wrap_length=250):
+def create_tooltip(widget, text, wrap_length=250, parent_window=None):
     """
     Create a tooltip for a given Tkinter widget.
 
     Args:
         widget (tk.Widget): The widget to attach the tooltip to
         text (str): The tooltip text to display
-        max_width (int, optional): Maximum width of the tooltip. Defaults to 300.
         wrap_length (int, optional): Length at which text wraps. Defaults to 250.
+        parent_window (tk.Tk or tk.Toplevel, optional): The parent window that might have topmost attribute
 
     Raises:
         TypeError: If text is not a string or the provided widget is not a
@@ -43,6 +43,16 @@ def create_tooltip(widget, text, wrap_length=250):
         except tk.TclError:
             return  # Widget has been destroyed
 
+        # If parent window has topmost attribute, temporarily disable it
+        is_topmost = False
+        if parent_window and hasattr(parent_window, 'attributes'):
+            try:
+                is_topmost = parent_window.attributes('-topmost')
+                if is_topmost:
+                    parent_window.attributes('-topmost', False)
+            except tk.TclError:
+                pass  # Ignore if we can't get/set attributes
+
         tooltip = tk.Toplevel(widget)
         tooltip.wm_overrideredirect(True)
         tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
@@ -62,6 +72,9 @@ def create_tooltip(widget, text, wrap_length=250):
         def hide_tooltip():
             try:
                 tooltip.destroy()
+                # Restore topmost attribute if it was enabled
+                if is_topmost and parent_window and hasattr(parent_window, 'attributes'):
+                    parent_window.attributes('-topmost', True)
             except tk.TclError:
                 pass  # Ignore if tooltip is already destroyed
 
