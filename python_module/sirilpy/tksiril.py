@@ -87,34 +87,49 @@ def set_as_transient_child(window, parent_id):
     try:
         system = platform.system()
         
-        # For all platforms, set dialog-like properties
+        # Set basic dialog-like properties
         try:
-            # Use the Tk command interface directly which is more reliable
-            window.tk.call('wm', 'attributes', window._w, '-topmost', '1')
-            window.tk.call('focus', '-force', window._w)
+            # Force focus once but don't maintain topmost status
+            window.focus_force()
             
-            # Try to set transient using the lower-level Tk command
-            if parent_id:
+            # Make it non-resizable like a typical dialog
+            window.resizable(False, False)
+            
+            # Platform-specific styling that avoids topmost
+            if system == "Darwin":  # macOS
                 try:
-                    window.tk.call('wm', 'transient', window._w, parent_id)
-                except Exception as e:
-                    print(f"Transient setting failed: {e}")
+                    # Try using MacWindowStyle for utility appearance without topmost
+                    window.tk.call('::tk::unsupported::MacWindowStyle', 'style', window._w, 'utility')
                     
-                    # Try platform-specific approaches
-                    if system == "Linux":
+                    # On macOS, we can use this to make it act like a dialog
+                    # without forcing it to always be on top
+                    window.tk.call('wm', 'transient', window._w, '.')
+                except Exception as e:
+                    print(f"macOS style setting failed: {e}")
+            
+            elif system == "Linux":
+                try:
+                    # On Linux, set as dialog type but don't force topmost
+                    window.attributes('-type', 'dialog')
+                    
+                    # If parent_id is available and it's an X11 window ID
+                    if parent_id and not parent_id.startswith("wayland:"):
                         try:
-                            # Set window type to dialog
-                            window.tk.call('wm', 'attributes', window._w, '-type', 'dialog')
-                        except Exception:
+                            window.tk.call('wm', 'transient', window._w, '.')
+                        except:
                             pass
-                    elif system == "Darwin":
-                        try:
-                            # For macOS, try to set utility style
-                            window.tk.call('::tk::unsupported::MacWindowStyle', 'style', window._w, 'utility')
-                        except Exception:
-                            pass
+                except Exception as e:
+                    print(f"Linux window type setting failed: {e}")
+                    
+            elif system == "Windows":
+                # On Windows, we can make it modal without topmost
+                try:
+                    window.grab_set()
+                except:
+                    pass
             
             return True
+            
         except Exception as e:
             print(f"Window property setting failed: {e}")
             return False
@@ -126,14 +141,14 @@ def set_as_transient_child(window, parent_id):
 def match_theme_to_siril(themed_tk, s, on_top=True):
     """
     Match the Tkinter theme to the Siril configuration and set the script dialog
-    to have topmost status, meaning that it will remain in front of other
-    non-topmost windows.
+    to have appropriate window behavior.
 
     Args:
         s (SirilInterface): sirilpy.SirilInterface class to provide the
                             Siril theme (light or dark) to match
         themed_tk (ThemedTk): ThemedTk instance to apply the theme to
-        on_top: whether the script window should be always on top of other windows
+        on_top: whether the script window should have focus and higher z-order
+                (but not necessarily always on top)
 
     Raises:
         TypeError: If input arguments are of incorrect type
@@ -160,20 +175,23 @@ def match_theme_to_siril(themed_tk, s, on_top=True):
     import os
     parent_window_id = os.environ.get("SIRIL_PARENT_WINDOW")
     
-    # Try to set the window as transient if parent ID is available
-    if parent_window_id:
-        set_as_transient_child(themed_tk, parent_window_id)
+    # Set dialog-like properties regardless of parent ID
+    set_as_transient_child(themed_tk, parent_window_id)
     
-    #if on_top is True:
-        # Settings to keep the script window above others
-        #themed_tk.focus_force()
-        #themed_tk.attributes('-topmost', True)
+    # Basic window management - focus but don't set topmost
+    if on_top:
+        try:
+            themed_tk.focus_force()
+            # Commented out to avoid topmost issues on macOS
+            # themed_tk.attributes('-topmost', True)
+        except Exception:
+            pass
 
     # Get theme configuration from Siril
-    #try:
-    theme_value = s.get_siril_config("gui", "theme")
-    #except Exception as e:
-        #raise AttributeError(f"Unable to retrieve theme configuration: {e}") from e
+    try:
+        theme_value = s.get_siril_config("gui", "theme")
+    except Exception as e:
+        raise AttributeError(f"Unable to retrieve theme configuration: {e}") from e
 
     # Map theme values to theme names
     theme_map = {
