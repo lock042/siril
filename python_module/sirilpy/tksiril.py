@@ -44,6 +44,7 @@ def create_tooltip(widget, text, wrap_length=250):
 
         tooltip = tk.Toplevel(widget)
         tooltip.wm_overrideredirect(True)
+        tooltip.wm_attributes("-topmost", True)
         tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
 
         # Configure tooltip style
