@@ -2006,6 +2006,10 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 #else
 	env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
 #endif
+	gchar *parent_window_id = get_control_window_id();
+	if (parent_window_id)
+		env = g_environ_setenv(env, "SIRIL_PARENT_WINDOW", parent_window_id, TRUE);
+	g_free(parent_window_id);
 	// Set PYTHONUNBUFFERED in environment
 	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);

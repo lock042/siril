@@ -69,7 +69,97 @@ def create_tooltip(widget, text, wrap_length=250):
         tooltip.bind('<Leave>', lambda e: hide_tooltip())
 
     widget.bind('<Enter>', show_tooltip)
-
+    
+def set_as_transient_child(window, parent_id):
+    """
+    Configure a Tkinter window as transient child of a parent window
+    identified by its ID.
+    
+    Args:
+        window: Tkinter window
+        parent_id: Parent window ID (provided by SIRIL_PARENT_WINDOW)
+        
+    Returns:
+        bool: True if successful, False otherwise
+        
+    Note:
+        This function handles platform-specific differences in window management
+        to properly set up the transient relationship between windows.
+    """
+    import platform
+    import os
+    
+    try:
+        system = platform.system()
+        
+        if system == "Linux":
+            # For X11, use xdotool to set the parent-child relationship
+            try:
+                import subprocess
+                
+                # Get window ID of tkinter window
+                child_id = window.winfo_id()
+                
+                # Run xdotool command to set the transient property
+                subprocess.run(['xdotool', 'windowreparent', str(child_id), parent_id], 
+                              check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                
+                # Set the window type to dialog which is typical for transient windows
+                window.wm_withdraw()
+                window.wm_deiconify()
+                
+                return True
+            except Exception as e:
+                # Fallback to setting window type to dialog
+                try:
+                    window.attributes('-type', 'dialog')
+                    return True
+                except:
+                    pass
+                
+                print(f"X11 transient setup failed: {e}")
+                return False
+                
+        elif system == "Windows":
+            # On Windows, we need to use the Win32 API
+            try:
+                import ctypes
+                from ctypes import windll
+                
+                parent_hwnd = int(parent_id)
+                child_hwnd = int(window.winfo_id())
+                
+                # Use SetParent Windows API
+                result = windll.user32.SetParent(child_hwnd, parent_hwnd)
+                
+                if result:
+                    # Also set window style to be child-like
+                    GWL_STYLE = -16
+                    WS_CHILD = 0x40000000
+                    current_style = windll.user32.GetWindowLongW(child_hwnd, GWL_STYLE)
+                    windll.user32.SetWindowLongW(child_hwnd, GWL_STYLE, 
+                                              current_style | WS_CHILD)
+                    return True
+                return False
+            except Exception as e:
+                print(f"Windows transient setup failed: {e}")
+                return False
+                
+        elif system == "Darwin":
+            # On macOS, this might require Objective-C bridging
+            # For now, we'll just try to make it look like a dialog
+            try:
+                window.wm_transient_for(window.winfo_toplevel())
+                return True
+            except Exception as e:
+                print(f"macOS transient setup failed: {e}")
+                return False
+                
+        return False
+    except Exception as e:
+        print(f"Failed to set window as transient: {e}")
+        return False
+    
 def match_theme_to_siril(themed_tk, s, on_top=True):
     """
     Match the Tkinter theme to the Siril configuration and set the script dialog
@@ -103,22 +193,30 @@ def match_theme_to_siril(themed_tk, s, on_top=True):
             (hasattr(themed_tk, 'configure') and hasattr(themed_tk, 'winfo_class'))):
         raise TypeError(f"Second argument must be a Tkinter-like object with theme-setting capabilities. Got {type(themed_tk)}")
 
+    # Get parent window ID from environment variable
+    import os
+    parent_window_id = os.environ.get("SIRIL_PARENT_WINDOW")
+    
+    # Try to set the window as transient if parent ID is available
+    if parent_window_id:
+        set_as_transient_child(themed_tk, parent_window_id)
+    
+    #if on_top is True:
+        # Settings to keep the script window above others
+        #themed_tk.focus_force()
+        #themed_tk.attributes('-topmost', True)
+
     # Get theme configuration from Siril
-    try:
-        theme_value = s.get_siril_config("gui", "theme")
-    except Exception as e:
-        raise AttributeError(f"Unable to retrieve theme configuration: {e}") from e
+    #try:
+    theme_value = s.get_siril_config("gui", "theme")
+    #except Exception as e:
+        #raise AttributeError(f"Unable to retrieve theme configuration: {e}") from e
 
     # Map theme values to theme names
     theme_map = {
         0: "equilux",
         1: "arc"
     }
-
-    if on_top is True:
-        # Settings to keep the script window above others
-        themed_tk.focus_force()
-        themed_tk.attributes('-topmost', True)
 
     # Check if theme value is valid
     if theme_value not in theme_map:
