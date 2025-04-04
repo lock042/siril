@@ -41,22 +41,22 @@ def create_tooltip(widget, text, wrap_length=250):
         except tk.TclError:
             return  # Widget has been destroyed
 
-        # Get the main parent window
-        parent_window = widget.winfo_toplevel()
+        # Store the current active window to properly restore focus
+        try:
+            active_window = widget.winfo_toplevel().focus_get()
+        except:
+            active_window = None
+
+        # Create an independent top-level window not tied to any parent
+        tooltip = tk.Toplevel()
+        tooltip.withdraw()  # Hide initially to avoid flickering
         
-        # Create tooltip as a child of the main window
-        tooltip = tk.Toplevel(parent_window)
-        
-        # Configure to stay on top
+        # Set extreme z-order priority
         tooltip.wm_overrideredirect(True)
-        tooltip.wm_attributes("-topmost", 1)
+        tooltip.wm_attributes("-topmost", True)
         
         # Position the tooltip
         tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
-        
-        # Try to force appearance in the foreground
-        tooltip.lift()
-        tooltip.focus_force()  # Force focus to bring to foreground
         
         # Configure tooltip style
         tooltip.configure(bg='lightyellow')
@@ -69,19 +69,32 @@ def create_tooltip(widget, text, wrap_length=250):
                         wraplength=wrap_length,
                         background='lightyellow')
         label.pack(ipadx=5, ipady=5)
-
+        
+        # Show the tooltip after it's fully configured
+        tooltip.deiconify()
+        
+        # Force it to appear on top of everything
+        tooltip.update_idletasks()
+        tooltip.lift()
+        
         def hide_tooltip():
             try:
                 tooltip.destroy()
+                # Restore focus to original widget if needed
+                if active_window and active_window.winfo_exists():
+                    try:
+                        active_window.focus_set()
+                    except:
+                        pass
             except tk.TclError:
                 pass  # Ignore if tooltip is already destroyed
-                
-        # After a short delay, reassert the topmost status
-        tooltip.after(10, lambda: tooltip.lift())
 
         widget.tooltip = tooltip
         widget.bind('<Leave>', lambda e: hide_tooltip())
         tooltip.bind('<Leave>', lambda e: hide_tooltip())
+        
+        # Set a backup timer to destroy tooltip
+        tooltip.after(5000, hide_tooltip)  # Safety timeout
 
     widget.bind('<Enter>', show_tooltip)
 
