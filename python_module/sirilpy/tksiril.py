@@ -20,7 +20,6 @@ def create_tooltip(widget, text, wrap_length=250):
     Args:
         widget (tk.Widget): The widget to attach the tooltip to
         text (str): The tooltip text to display
-        max_width (int, optional): Maximum width of the tooltip. Defaults to 300.
         wrap_length (int, optional): Length at which text wraps. Defaults to 250.
 
     Raises:
@@ -42,11 +41,23 @@ def create_tooltip(widget, text, wrap_length=250):
         except tk.TclError:
             return  # Widget has been destroyed
 
-        tooltip = tk.Toplevel(widget)
+        # Get the main parent window
+        parent_window = widget.winfo_toplevel()
+        
+        # Create tooltip as a child of the main window
+        tooltip = tk.Toplevel(parent_window)
+        
+        # Configure to stay on top
         tooltip.wm_overrideredirect(True)
-        tooltip.wm_attributes("-topmost", True)
+        tooltip.wm_attributes("-topmost", 1)
+        
+        # Position the tooltip
         tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
-
+        
+        # Try to force appearance in the foreground
+        tooltip.lift()
+        tooltip.focus_force()  # Force focus to bring to foreground
+        
         # Configure tooltip style
         tooltip.configure(bg='lightyellow')
 
@@ -64,6 +75,9 @@ def create_tooltip(widget, text, wrap_length=250):
                 tooltip.destroy()
             except tk.TclError:
                 pass  # Ignore if tooltip is already destroyed
+                
+        # After a short delay, reassert the topmost status
+        tooltip.after(10, lambda: tooltip.lift())
 
         widget.tooltip = tooltip
         widget.bind('<Leave>', lambda e: hide_tooltip())
