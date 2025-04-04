@@ -1186,8 +1186,13 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 			siril_log_color_message(_("This is not compatible with framing mode \"current\", change reference image"), "red");
 			return FALSE;
 		} else {
-			siril_log_color_message(_("Reference image is not included in the filtered list, using first image instead\n"), "salmon");
-			regargs->reference_image = 0;
+			for (int i = 0; i < regargs->seq->number; i++) {
+				if (regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter)) {
+					regargs->reference_image = i;
+					break;
+				}
+			}
+			siril_log_color_message(_("Reference image is not included in the filtered list, using image #%d instead\n"), "salmon", regargs->reference_image + 1);
 		}
 	}
 	return TRUE;
