@@ -531,16 +531,13 @@ gchar* get_control_window_id() {
 		parent_window_id = g_strdup_printf("%p", (void*)hwnd);
 	}
 #elif defined(GDK_WINDOWING_QUARTZ)
-	if (GDK_IS_QUARTZ_WINDOW(gdk_window)) {
-		// Get the NSWindow pointer from the GDK Quartz window
-		gpointer nswindow = gdk_quartz_window_get_nswindow(gdk_window);
-		if (nswindow) {
-			parent_window_id = g_strdup_printf("%p", nswindow);
-		} else {
-			siril_debug_print("Failed to get NSWindow.\n");
-		}
+	if (GDK_IS_QUARTZ_DISPLAY(display)) {
+		// Modern approach for macOS - use GdkQuartzWindow's functionality
+		// Get the window ID using the display and window
+		guint64 window_id = (guint64)gdk_window;
+		parent_window_id = g_strdup_printf("quartz:%llu", window_id);
 	} else {
-		siril_debug_print("Not a Quartz (MacOS) window.\n");
+		siril_debug_print("Not a Quartz (MacOS) display.\n");
 	}
 #else
 	if (GDK_IS_WAYLAND_DISPLAY(display)) {
