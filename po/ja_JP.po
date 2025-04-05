@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2023-07-20 14:11+0000\n"
-"Last-Translator: yoshiharu yamashita <yamashita@tosslec.co.jp>\n"
-"Language-Team: Japanese <https://weblate.pixls.us/projects/siril/siril-"
-"application/ja/>\n"
+"PO-Revision-Date: 2025-04-05 16:47+0000\n"
+"Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
+"Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
+"siril/ja/>\n"
 "Language: ja_JP\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1971
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -72,7 +72,7 @@ msgstr "取り消し"
 #: src/gui/uifiles/unpurple_dialog.ui:105
 #: src/gui/uifiles/wavelets_dialog.ui:127 src/gui/python_gui.c:990
 msgid "Apply"
-msgstr ""
+msgstr "適用"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:129
 msgid "Tiles Grid Size"
@@ -261,7 +261,7 @@ msgstr "統計計算を実行"
 
 #: src/gui/uifiles/StatWindow.ui:83
 msgid "Close the window"
-msgstr "ウィンドウを閉じる"
+msgstr "ウインドウを閉じる"
 
 #: src/gui/uifiles/StatWindow.ui:105
 msgid "Normalized Real [0, 1]"
@@ -481,7 +481,7 @@ msgstr ""
 #: src/gui/uifiles/background_extraction_dialog.ui:77
 #: src/gui/uifiles/s_pcc_dialog.ui:144
 msgid "Close the window."
-msgstr "ウィンドーを閉じる."
+msgstr "ウインドウを閉じる."
 
 #: src/gui/uifiles/annotate_dialog.ui:67
 #, fuzzy
@@ -2243,7 +2243,7 @@ msgstr "Background Extraction…"
 #: src/gui/uifiles/color_calibration.ui:653
 #: src/gui/uifiles/s_pcc_dialog.ui:1307
 msgid "Selected area"
-msgstr "選択された範囲"
+msgstr "選択された領域"
 
 #: src/gui/uifiles/color_calibration.ui:281
 #: src/gui/uifiles/color_calibration.ui:670
@@ -2545,7 +2545,7 @@ msgstr "Cosmetic Correction"
 #: src/gui/uifiles/dialog_star_remix.ui:192
 #: src/gui/uifiles/split_cfa_dialog.ui:55 src/gui/uifiles/starnet_dialog.ui:64
 msgid "Close current window"
-msgstr "このウィンドウを閉じる"
+msgstr "このウインドウを閉じる"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:89
 msgid "Apply Cosmetic Correction"
@@ -5406,11 +5406,11 @@ msgstr "回転"
 
 #: src/gui/uifiles/rotation_dialog.ui:104
 msgid "Angle (°)"
-msgstr "角度°"
+msgstr "角度(°)"
 
 #: src/gui/uifiles/rotation_dialog.ui:116
 msgid "Angle in degrees. Rotation center is the center of the image."
-msgstr "(度数表示による)角度. 回転の中心は, 画像の中心."
+msgstr "度数表示による角度. 回転の中心は, 画像の中心."
 
 #: src/gui/uifiles/rotation_dialog.ui:160 src/gui/uifiles/siril.ui:1008
 #: src/gui/uifiles/siril.ui:1019 src/gui/menu_gray_geometry.c:61
@@ -5423,7 +5423,7 @@ msgstr ""
 
 #: src/gui/uifiles/rotation_dialog.ui:197
 msgid "Type of algorithm used for rotation"
-msgstr "回転に使用されているアルゴリズムのタイプ"
+msgstr "回転に使用するアルゴリズムのタイプ"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:59 src/gui/photometric_cc.c:92
 msgid "Checking Gaia archive status..."
@@ -5870,12 +5870,12 @@ msgstr "<b>ファイル名</b>"
 
 #: src/gui/uifiles/savepopup.ui:193 src/gui/uifiles/savepopup.ui:659
 msgid "8-bit unsigned integer"
-msgstr "8 ビット 非負整数"
+msgstr "8 ビット符号なし整数"
 
 #: src/gui/uifiles/savepopup.ui:209 src/gui/uifiles/savepopup.ui:676
 #: src/gui/uifiles/settings_window.ui:678
 msgid "16-bit unsigned integer"
-msgstr "16 ビット 非負整数"
+msgstr "16 ビット符号なし整数"
 
 #: src/gui/uifiles/savepopup.ui:225 src/gui/uifiles/savepopup.ui:709
 #: src/gui/uifiles/settings_window.ui:679
@@ -5955,7 +5955,7 @@ msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:692
 msgid "16-bit signed integer"
-msgstr "16 ビット 整数"
+msgstr "16 ビット符号付き整数"
 
 #: src/gui/uifiles/savepopup.ui:730
 msgid "Sample Format"
@@ -6954,9 +6954,8 @@ msgid "Background Annulus"
 msgstr "背景"
 
 #: src/gui/uifiles/settings_window.ui:2794
-#, fuzzy
 msgid "Aperture radius:"
-msgstr "外径:"
+msgstr "開口半径:"
 
 #: src/gui/uifiles/settings_window.ui:2805
 msgid "Aperture radius where the flux is measured."
@@ -6998,9 +6997,8 @@ msgid "Overexposed pixels have value equal to or greater than."
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:2966
-#, fuzzy
 msgid "Pixel Value Range"
-msgstr "Pixel Area Relation"
+msgstr "ピクセル値の範囲"
 
 #: src/gui/uifiles/settings_window.ui:2999
 msgid "A/D converter gain in electrons per ADU. Default value is 2.300."
@@ -7077,45 +7075,41 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3244
-#, fuzzy
 msgid "Panel size (px):"
-msgstr "ピクセルサイズ (µm):"
+msgstr "パネルサイズ(ピクセル):"
 
 #: src/gui/uifiles/settings_window.ui:3256
-#, fuzzy
 msgid "Window size (px):"
-msgstr "ピクセルサイズ (µm):"
+msgstr "ウィンドウサイズ(ピクセル):"
 
 #: src/gui/uifiles/settings_window.ui:3267
-#, fuzzy
 msgid "Defines the size of the window."
-msgstr "画像をウィンドーに合わせる"
+msgstr "ウインドウのサイズを定義する。"
 
 #: src/gui/uifiles/settings_window.ui:3289
-#, fuzzy
 msgid "<b>Aberration Inspector</b>"
-msgstr "引き算"
+msgstr "<b>収差検査</b>"
 
 #: src/gui/uifiles/settings_window.ui:3318
 #: src/gui/uifiles/settings_window.ui:4062
 msgid "User Interface"
-msgstr "ユーザー インターフェイス"
+msgstr "ユーザーインターフェイス"
 
 #: src/gui/uifiles/settings_window.ui:3354
 #: src/gui/uifiles/settings_window.ui:3430
 msgid ""
 "Change the theme of the interface. This feature may not work on all "
 "architectures."
-msgstr ""
+msgstr "インターフェイスのテーマを変更します. "
+"この機能はすべてのアーキテクチャで動作するとは限りません."
 
 #: src/gui/uifiles/settings_window.ui:3358 src/core/siril_language.c:157
 msgid "System Language"
 msgstr "システム言語"
 
 #: src/gui/uifiles/settings_window.ui:3368
-#, fuzzy
 msgid "Language (restart required)"
-msgstr "要再起動"
+msgstr "言語(要再起動)"
 
 #: src/gui/uifiles/settings_window.ui:3400
 msgid ""
@@ -7128,14 +7122,12 @@ msgid "Font scale:"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3433
-#, fuzzy
 msgid "Dark theme"
-msgstr "画像を縮小"
+msgstr "ダークテーマ"
 
 #: src/gui/uifiles/settings_window.ui:3434
-#, fuzzy
 msgid "Light theme"
-msgstr "輝度曲線"
+msgstr "ライトテーマ"
 
 #: src/gui/uifiles/settings_window.ui:3446
 #, fuzzy
@@ -7149,17 +7141,18 @@ msgstr "要再起動"
 
 #: src/gui/uifiles/settings_window.ui:3490
 msgid "Remember window size and position"
-msgstr "ウィンドーサイズと位置を記憶"
+msgstr "ウインドウサイズと位置を記憶"
 
 #: src/gui/uifiles/settings_window.ui:3494
 msgid ""
 "Remember position and size of image displaying windows. This feature may not "
 "work on all architectures."
-msgstr ""
+msgstr "画像を表示しているウインドウの位置とサイズを記憶します. "
+"この機能はすべてのアーキテクチャで動作するとは限りません."
 
 #: src/gui/uifiles/settings_window.ui:3507
 msgid "Windows"
-msgstr ""
+msgstr "ウインドウ"
 
 #: src/gui/uifiles/settings_window.ui:3537
 msgid "Show thumbnails in file chooser"
@@ -8870,15 +8863,15 @@ msgstr "画像情報"
 
 #: src/gui/uifiles/siril.ui:2880
 msgid "current red file"
-msgstr "この赤色データーのファイル"
+msgstr "この赤色のデータのファイル"
 
 #: src/gui/uifiles/siril.ui:3045
 msgid "current green file"
-msgstr "この緑色のテーターのファイル"
+msgstr "この緑色のデータのファイル"
 
 #: src/gui/uifiles/siril.ui:3214
 msgid "current blue file"
-msgstr "この青色のデーターのファイル"
+msgstr "この青色のデータのファイル"
 
 #: src/gui/uifiles/siril.ui:3676
 msgid "Size"
@@ -8902,10 +8895,9 @@ msgstr "選択したファイルを除去"
 
 #: src/gui/uifiles/siril.ui:3761
 msgid "Remove all files from the list"
-msgstr "リストのすべてのファイルを除去"
+msgstr "リストからすべてのファイルを除去"
 
 #: src/gui/uifiles/siril.ui:3816
-#, fuzzy
 msgid ""
 "Supported types depend on compile-time libraries availability. See "
 "documentation.\n"
@@ -8914,7 +8906,13 @@ msgid ""
 "Films of any type can be converted as FITS or SER.\n"
 "SER files are directly handled as a sequence, and are not yet available for "
 "conversion."
-msgstr "compile-time library —> nom de bibliothèque"
+msgstr ""
+"サポートされているタイプは、コンパイル時に利用可能なライブラリに依存します. "
+"ドキュメントを参照してください.\n"
+"RAW画像は, CanonのCR2ファイルやNikonのNEFのようなデジタルカメラの生画像です."
+"\n"
+"どのタイプのフィルムも, FITSまたはSERとして変換できます.\n"
+"SERファイルはシーケンスとして直接扱われ, まだ変換できません."
 
 #: src/gui/uifiles/siril.ui:3833
 msgid "Supported file types:"
@@ -8928,9 +8926,8 @@ msgstr "ソース ファイル"
 msgid ""
 "Indicates the start indice of your converted files. This value must be "
 "included in the [1, 65535] range."
-msgstr ""
-"変換後のファイル番号の初期値を記して下さい. この値は 1 以上 65536 以下でなけ"
-"ればなりません."
+msgstr "変換後のファイル番号の初期値を示します. この値は 1 以上 65536 "
+"以下でなければなりません."
 
 #: src/gui/uifiles/siril.ui:3904
 msgid ""
@@ -8953,11 +8950,12 @@ msgid ""
 msgstr ""
 "これは目的の画像シーケンスのタイプを設定します. \n"
 "FITS 画像: 一つの画像に付き一つの FITS ファイル.\n"
-"SER 画像シーケンス: 全ての画像シーケンス(各チャンネル毎に 16 ビットに制限)に"
-"対し一つの SER ファイル.\n"
-"FITS 画像シーケンス: 全ての画像シーケンスに対し一つの FITS ファイル. \n"
-"注意: 前処理段階の画像シーケンスが SER あるいは FITS 画像シーケンスファイルの"
-"場合、FITS 画像には効果はありません."
+"SER 画像シーケンス: 画像シーケンス全体(各チャンネル毎に 16 ビットに制限)"
+"に対し一つの SER ファイル.\n"
+"FITS 画像シーケンス: 画像シーケンス全体に対し一つの FITS ファイル. \n"
+"\n"
+"注意: 前処理段階の画像シーケンスが SER あるいは FITS "
+"画像シーケンスファイルの場合、FITS 画像には効果はありません."
 
 #: src/gui/uifiles/siril.ui:3930 src/gui/uifiles/siril.ui:4298
 #: src/gui/uifiles/siril.ui:5369
@@ -8978,20 +8976,23 @@ msgid "Multiple sequences"
 msgstr "出力画像シーケンス"
 
 #: src/gui/uifiles/siril.ui:3950
-#, fuzzy
 msgid ""
 "Tick this to create several sequence files instead of a single SER or FITS "
 "file for all input elements. Use this if input elements (sequence files such "
 "as films, SER or FITS cubes) don't share the same image size or must not be "
 "processed together."
-msgstr "tikc —> check"
+msgstr ""
+"すべての入力要素に対して1つのSERまたはFITSファイルではなく, "
+"複数のシーケンスファイルを作成する場合は, "
+"このチェックボックスをオンにします. 入力要素（フィルム、SERまたはFITSキューブ"
+"などのシーケンスファイル）が同じ画像サイズを共有していない場合や、一緒に処理"
+"してはいけない場合に使用します."
 
 #: src/gui/uifiles/siril.ui:3962
 msgid "Symbolic Link"
-msgstr "シンボリック リンク"
+msgstr "シンボリックリンク"
 
 #: src/gui/uifiles/siril.ui:3966
-#, fuzzy
 msgid ""
 "Create a symbolic link for FITS files instead of copying them. This is "
 "useful to rename a sequence without duplicating files on the disk. This "
@@ -9000,10 +9001,10 @@ msgid ""
 "<b>WARNING: on Windows, the symbolic link operations are only possible in "
 "Development mode.</b>"
 msgstr ""
-"FTIS ファイルをコピーせずにシンボリック リンクを作ります. これはディスク上の"
-"ファイルを複製せずに画像シーケンスの名前を変えるのに便利.\n"
+"FTIS ファイルをコピーせずにシンボリックリンクを作ります. これはディスク上のフ"
+"ァイルを複製せずに画像シーケンスの名前を変えるのに便利です.\n"
 "\n"
-"<b>警告: Windows 上では, シンボリック リンクは開発モードでのみ可能.</b>"
+"<b>警告: Windows 上では, シンボリックリンクは開発モードでのみ可能です.</b>"
 
 #: src/gui/uifiles/siril.ui:3985
 msgid ""
@@ -9118,9 +9119,9 @@ msgid ""
 "of a sequence with less images. Images of the exported selection can be "
 "cropped and selected with the same criteria as the stacking image selection."
 msgstr ""
-"読み込まれた画像シーケンスを選択した形式でエクスポートします.  これは画像シー"
-"ケンスを他のフォーマットで保存する事, 動画を作る事または画像シーケンスのより"
-"画像の少ないライトバージョンを保存する事にも使えます."
+"読み込まれた画像シーケンスを選択した形式でエクスポートします. "
+"これは画像シーケンスを他のフォーマットで保存する事, 動画を作る事または画像シ"
+"ーケンスのより画像の少ないライトバージョンを保存する事にも使えます."
 
 #: src/gui/uifiles/siril.ui:4351
 msgid "Normalize images"
@@ -9162,7 +9163,7 @@ msgstr "Fps:"
 
 #: src/gui/uifiles/siril.ui:4451
 msgid "Frame rate"
-msgstr "Frame rate"
+msgstr "フレームレート"
 
 #: src/gui/uifiles/siril.ui:4468
 msgid "Resize"
@@ -9546,7 +9547,6 @@ msgid "Match stars in selection"
 msgstr "選択されたゾーン内の星をマッチさせる"
 
 #: src/gui/uifiles/siril.ui:5558
-#, fuzzy
 msgid ""
 "Check this box if you want to perform the Global Star Alignment algorithm "
 "within the selected area in the reference image. If no selection are done, "
@@ -9556,9 +9556,10 @@ msgid ""
 "stars."
 msgstr ""
 "リファレンス画像の選択された範囲内にある全ての星を整列するアルゴリズムを実行"
-"させたい場合は、このボックスをチェックして下さい. 選択範囲がない場合はこのオ"
-"プションは無効になります.\n"
-"警告: 星の数が十分たくさんあるように範囲を選択して下さい."
+"させたい場合は、このボックスをチェックして下さい. "
+"選択範囲がない場合はこのオプションは無効になります.\n"
+"\n"
+"<b>警告</b>: 十分な数の星が含まれるように範囲を選択して下さい."
 
 #: src/gui/uifiles/siril.ui:5574
 msgid "Minimum Star Pairs:"
@@ -10968,7 +10969,7 @@ msgstr "画像を拡大"
 
 #: src/gui/uifiles/siril.ui:10230
 msgid "Fit the image to the window"
-msgstr "画像をウィンドーに合わせる"
+msgstr "画像をウインドウに合わせる"
 
 #: src/gui/uifiles/siril.ui:10247
 msgid "Show the image at its normal size"
@@ -11503,7 +11504,7 @@ msgstr "選択されたゾーン内の星をマッチさせる"
 
 #: src/gui/uifiles/stars_list_window.ui:982
 msgid "Remove selected star from the list"
-msgstr "リストから選択された全ての星を除去"
+msgstr "選択された星をリストから除去"
 
 #: src/gui/uifiles/stars_list_window.ui:996
 msgid ""
@@ -11554,7 +11555,7 @@ msgstr "重ね合わせ開始"
 
 #: src/gui/uifiles/wavelets_dialog.ui:77
 msgid "Wavelets control"
-msgstr "ウェーヴレット コントロール"
+msgstr "ウェーブレット コントロール"
 
 #: src/gui/uifiles/wavelets_dialog.ui:101
 msgid "Reset changes"
@@ -11562,7 +11563,7 @@ msgstr "変更を元に戻す"
 
 #: src/gui/uifiles/wavelets_dialog.ui:116
 msgid "Cancel all changes applied"
-msgstr "適用された全ての変更を中止"
+msgstr "適用されたすべての変更を中止"
 
 #: src/gui/uifiles/wavelets_dialog.ui:179
 msgid "Select an algorithm type to perform wavelets"
@@ -13629,7 +13630,7 @@ msgstr ""
 #: src/core/preprocess.c:1030 src/core/preprocess.c:1031
 #, c-format
 msgid "<span foreground=\"red\">ERROR</span>"
-msgstr "<span foreground=« red »>エラー</span>"
+msgstr "<span foreground=\"red\">エラー</span>"
 
 #: src/compositing/compositing.c:667
 msgid "Cannot load the file, See the log for more information."
@@ -14272,14 +14273,14 @@ msgid "Reference image is undefined, the following would be used:\n"
 msgstr ""
 
 #: src/core/command.c:1309
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: '%s'\n"
-msgstr "RAW 画像"
+msgstr "画像 %d: '%s'\n"
 
 #: src/core/command.c:1311
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d\n"
-msgstr "RAW 画像"
+msgstr "画像 %d\n"
 
 #: src/core/command.c:1314
 msgid ""
@@ -14472,9 +14473,8 @@ msgstr "切り抜き: 横サイズと縦サイズは正の値でなければな�
 #: src/core/command.c:2138 src/core/command.c:4756
 #, c-format
 msgid "Crop: width and height, respectively, must be less than %d and %d.\n"
-msgstr ""
-"切り抜き: 横サイズと縦サイズは, それぞれ, %d および  %d 未満でなければならな"
-"い.\n"
+msgstr "切り抜き: 横サイズと縦サイズは, それぞれ, %d および %d "
+"未満でなければならない.\n"
 
 #: src/core/command.c:2143 src/core/command.c:4746
 msgid "Crop: select a region or provide x, y, width, height\n"
@@ -14872,9 +14872,7 @@ msgstr ""
 #: src/core/command.c:3907
 #, c-format
 msgid "FITS extension unknown: %s\n"
-msgstr ""
-"FITS 拡張子 不明: %s\n"
-"\n"
+msgstr "FITS 拡張子 不明: %s\n"
 
 #: src/core/command.c:3945
 msgid "Wrong parameter values. Radius must be between 3 and 50, aborting.\n"
@@ -14942,9 +14940,9 @@ msgid "roundness = %3.2f\n"
 msgstr "丸み"
 
 #: src/core/command.c:4055
-#, fuzzy, c-format
+#, c-format
 msgid "radius = %d\n"
-msgstr "半径: "
+msgstr "半径 = %d\n"
 
 #: src/core/command.c:4058
 #, c-format
@@ -19576,7 +19574,7 @@ msgstr ""
 
 #: src/gui/callbacks.c:325 src/gui/message_dialog.c:280
 msgid "_Do not show this dialog again"
-msgstr ""
+msgstr "_このダイアログを再度表示しない"
 
 #: src/gui/callbacks.c:442
 #, c-format
@@ -19703,15 +19701,15 @@ msgstr "Rejection:"
 
 #: src/gui/callbacks.c:1930
 msgid "Closing application"
-msgstr ""
+msgstr "アプリケーションを終了します"
 
 #: src/gui/callbacks.c:1931
 msgid "Are you sure you want to quit?"
-msgstr ""
+msgstr "本当に終了しますか?"
 
 #: src/gui/callbacks.c:1931
 msgid "Exit"
-msgstr ""
+msgstr "終了"
 
 #: src/gui/callbacks.c:2091
 #, c-format
@@ -22263,9 +22261,9 @@ msgid "preview"
 msgstr "プレビュー"
 
 #: src/gui/save_dialog.c:833
-#, fuzzy, c-format
+#, c-format
 msgid "Snapshot <b>%s</b> was saved into the working directory."
-msgstr "ワーキングディレクトリー内のファイルとディレクトリーを表示"
+msgstr "スナップショット<b>%s</b>は作業ディレクトリに保存されました."
 
 #: src/gui/save_dialog.c:835
 msgid "Snapshot was saved into the clipboard."
