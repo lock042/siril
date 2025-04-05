@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-04-01 14:52+0000\n"
+"PO-Revision-Date: 2025-04-03 21:48+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -4110,35 +4110,32 @@ msgstr ""
 "paramètres d'étirement."
 
 #: src/gui/uifiles/epf_dialog.ui:58
-#, fuzzy
 msgid "Edge Preserving Filters"
-msgstr "Filtres de préservation des bords..."
+msgstr "Filtres de préservation des bords"
 
 #: src/gui/uifiles/epf_dialog.ui:143
-#, fuzzy
 msgid "Filter Type"
-msgstr "Filter : "
+msgstr "Type de filtre"
 
 #: src/gui/uifiles/epf_dialog.ui:155
 msgid ""
 "Choose filter type. See the documentation for an explanation of the "
 "differences."
 msgstr ""
+"Choisissez le type de filtre. Voir la documentation pour une explication des "
+"différences."
 
 #: src/gui/uifiles/epf_dialog.ui:158
-#, fuzzy
 msgid "Bilateral filter"
-msgstr "Filtre Wiener"
+msgstr "Filtre bilatéral"
 
 #: src/gui/uifiles/epf_dialog.ui:159
-#, fuzzy
 msgid "Guided filter"
-msgstr "Filtre Wiener"
+msgstr "Filtre guidé"
 
 #: src/gui/uifiles/epf_dialog.ui:188
-#, fuzzy
 msgid "Guide Image"
-msgstr "l'image"
+msgstr "Image guide"
 
 #: src/gui/uifiles/epf_dialog.ui:199
 msgid ""
@@ -4147,16 +4144,20 @@ msgid ""
 "WARNING: using guide images that are not based on the original image is "
 "likely to produce bad results."
 msgstr ""
+"Sélectionnez l'image guide. Il n'est pas nécessaire de sélectionner un "
+"fichier si la case \"autoguidage\" est cochée.\n"
+"ATTENTION : l'utilisation d'images guides qui ne sont pas basées sur l'image "
+"originale risque de produire de mauvais résultats."
 
 #: src/gui/uifiles/epf_dialog.ui:211
-#, fuzzy
 msgid "self guided"
-msgstr "Aucun guide"
+msgstr "autoguidage"
 
 #: src/gui/uifiles/epf_dialog.ui:216
-#, fuzzy
 msgid "Check this to use the current image as the guided filter guide image"
-msgstr "Cette action enregistre l'image courante avec un nouveau nom"
+msgstr ""
+"Cochez cette case pour utiliser l'image actuelle comme image guide du filtre "
+"guidé"
 
 #: src/gui/uifiles/epf_dialog.ui:243 src/gui/uifiles/epf_dialog.ui:307
 msgid ""
