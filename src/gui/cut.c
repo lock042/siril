@@ -87,7 +87,7 @@ static gboolean reset_cut_gui(gpointer user_data) {
 	GtkToggleButton *plot_spectro_bg = GTK_TOGGLE_BUTTON(lookup_widget("cut_spectro_plot_bg"));
 	gtk_toggle_button_set_active(plot_spectro_bg, FALSE);
 	GtkEntry *title = (GtkEntry*) lookup_widget("cut_title");
-	gtk_entry_set_text(title, "Intensity Profile");
+	gtk_entry_set_text(title, _("Intensity Profile"));
 	reset_cut_gui_filedependent(NULL);
 	return FALSE;
 }
