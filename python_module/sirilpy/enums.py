@@ -120,6 +120,7 @@ class _Command(IntEnum):
     GET_USER_POLYGON = 60
     GET_USER_POLYGON_LIST = 61
     CONFIRM_MESSAGEBOX = 62
+    GET_SEQ_FRAME_HEADER = 63
     ERROR = 0xFF
 
 @unique

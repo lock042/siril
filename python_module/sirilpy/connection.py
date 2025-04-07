@@ -112,7 +112,7 @@ class SirilInterface:
                     if self.debug:
                         current_pid = os.getpid()
                         print(f'Current ProcessID is {current_pid}')
-                        self.info_messagebox(f'Current ProcessID is {current_pid}', False)
+                        self.info_messagebox(f'Current ProcessID is {current_pid}', True)
                     SirilInterface._connected = True
                     self.connected = True
                     atexit.register(self._cleanup)
@@ -3308,6 +3308,92 @@ class SirilInterface:
                     finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise SirilError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass
+
+    def get_seq_frame_header(self, frame: int) -> Optional[str]:
+        """
+        Retrieve the full FITS header of an image from the sequence loaded in Siril.
+
+        Args:
+            frame: Integer specifying which frame in the sequence to retrieve data for
+            (between 0 and Sequence.number)
+
+        Returns:
+            str: The image FITS header as a string, or None if there is no header.
+
+        Raises:
+            NoSequenceError: If no sequence is currently loaded,
+            SirilError: For other errors during data retrieval,
+        """
+
+        if not self.is_sequence_loaded():
+            raise NoSequenceError(_("Error in get_seq_frame_header(): no sequence is loaded"))
+
+        try:
+            payload = struct.pack('!I', frame)
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_SEQ_FRAME_HEADER, payload)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no sequence loaded" in error_msg.lower():
+                        raise NoSequenceError(_("Error in get_seq_frame_header(): no sequence is currently loaded in Siril"))
+                    raise SirilError(_("Server error: {}").format(error_msg))
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
+
+            if not response:
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
+
+            if status == _Status.NONE:
+                return None
+
+            if len(response) < 25: # No payload
+                return None
+
+            try:
+                # Parse the shared memory information
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise SharedMemoryError(_("Invalid shared memory information received: {}").format(e)) from e
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            try:
+                # Read entire buffer at once
+                buffer = bytearray(shm.buf)[:shm_info.size]
+                result = buffer.decode('utf-8', errors='ignore')
+            except (BufferError, ValueError, TypeError) as e:
+                raise SirilError(_("Failed to create string from shared memory: {}").format(e)) from e
+
+            return result
+
+        except SirilError:
+            # Re-raise NoSequenceError and other SirilErrors without wrapping
+            raise
+        except Exception as e:
+            # Wrap all other exceptions with context
+            raise SirilError(_("Error in get_seq_frame_header(): {}").format(e)) from e
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C will do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    finish_info = struct.pack('256s', shm_info.shm_name)
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
                     pass

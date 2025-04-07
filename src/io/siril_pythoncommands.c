@@ -1582,7 +1582,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 5) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 				const char* pixelbool = payload + 4;
-				with_pixels = BOOL_FROM_BYTE(pixelbool);
+				with_pixels = BOOL_FROM_BYTE(*pixelbool);
 			}
 			if (payload_length != 5 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
@@ -2307,6 +2307,46 @@ CLEANUP:
 			}
 			uint8_t retval = siril_confirm_dialog((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
 			success = send_response(conn, STATUS_OK, (const char*)&retval, sizeof(uint8_t));
+		}
+
+		case CMD_GET_SEQ_FRAME_HEADER: {
+			if (!sequence_is_loaded()) {
+				const char* error_msg = _("No sequence loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			int index;
+			if (payload_length == 4) {
+				index = GUINT32_FROM_BE(*(int*) payload);
+			}
+			if (payload_length != 4 || index >= com.seq.number) {
+				const char* error_msg = _("Incorrect command argument");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			fits *fit = calloc(1, sizeof(fits));
+			if (seq_read_frame_metadata(&com.seq, index, fit)) {
+				clearfits(fit);
+				free(fit);
+				const char* error_msg = _("Failed to read frame metadata");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			if (fit->header == NULL) {
+				const char* error_msg = _("Image has no FITS header");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				clearfits(fit);
+				free(fit);
+				break;
+			}
+			// Prepare data
+			guint32 length = strlen(fit->header) + 1;
+			shared_memory_info_t *info = handle_rawdata_request(conn, fit->header, length);
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
+			clearfits(fit);
+			free(fit);
+			break;
 		}
 
 		default:
