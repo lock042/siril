@@ -1582,7 +1582,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 5) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 				const char* pixelbool = payload + 4;
-				with_pixels = BOOL_FROM_BYTE(pixelbool);
+				with_pixels = BOOL_FROM_BYTE(*pixelbool);
 			}
 			if (payload_length != 5 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");

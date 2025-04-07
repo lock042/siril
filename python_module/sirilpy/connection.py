@@ -112,7 +112,7 @@ class SirilInterface:
                     if self.debug:
                         current_pid = os.getpid()
                         print(f'Current ProcessID is {current_pid}')
-                        self.info_messagebox(f'Current ProcessID is {current_pid}', False)
+                        self.info_messagebox(f'Current ProcessID is {current_pid}', True)
                     SirilInterface._connected = True
                     self.connected = True
                     atexit.register(self._cleanup)
