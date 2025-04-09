@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-03-31 08:47+0000\n"
+"PO-Revision-Date: 2025-04-08 14:45+0000\n"
 "Last-Translator: Ruslan <rpazenko@ukr.net>\n"
 "Language-Team: Ukrainian <https://weblate.siril.org/projects/siril/software/"
 "siril/uk/>\n"
@@ -153,15 +153,17 @@ msgstr "Закрити"
 #: src/gui/uifiles/Median_dialog.ui:80 src/gui/uifiles/SCNR_dialog.ui:73
 #: src/gui/uifiles/bdeconv_dialog.ui:284 src/gui/uifiles/denoise_dialog.ui:84
 #: src/gui/uifiles/graxpert.ui:97
-#, fuzzy
 msgid "ROI Preview"
-msgstr "Прев'ю %d"
+msgstr "Попередній перегляд ROI"
 
 #: src/gui/uifiles/Median_dialog.ui:84
 msgid ""
 "Note: ROI preview will show a black border. Do not panic, the border will be "
 "overwritten by future ROIs and when finally applying the median filter."
 msgstr ""
+"Примітка: перегляд ROI покаже чорний кордон. Не панікуйте, кордон буде "
+"перезаписаний наступними ROI і при заключному застосуванні медіанного "
+"фільтра."
 
 #: src/gui/uifiles/Median_dialog.ui:138
 msgid "Kernel Size:"
@@ -320,9 +322,8 @@ msgid "Blue"
 msgstr "Синій"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
-#, fuzzy
 msgid "AAVSO parameters"
-msgstr "Послідовність не вибрана"
+msgstr "Параметри AAVSO"
 
 #: src/gui/uifiles/aavso_dialog.ui:69
 #: src/gui/uifiles/file_information_dialog.ui:96
@@ -332,36 +333,36 @@ msgstr ""
 "використовуватимуться."
 
 #: src/gui/uifiles/aavso_dialog.ui:71
-#, fuzzy
 msgid "Obstype: "
-msgstr "Тип: "
+msgstr "Тип спост.: "
 
 #: src/gui/uifiles/aavso_dialog.ui:82
 msgid ""
 "The official AAVSO Observer Code for the observer which was previously "
 "assigned by the AAVSO."
 msgstr ""
+"Офіційний код спостерігача AAVSO, раніше наданий Американською асоціацією "
+"спостерігачів змінних зірок (AAVSO)."
 
 #: src/gui/uifiles/aavso_dialog.ui:101
 msgid "Obscode: "
-msgstr ""
+msgstr "Код спостер.: "
 
 #: src/gui/uifiles/aavso_dialog.ui:113
 msgid "Filter: "
-msgstr ""
+msgstr "Фільтр: "
 
 #: src/gui/uifiles/aavso_dialog.ui:124
-#, fuzzy
 msgid "The filter used for the observation."
-msgstr "Тип алгоритму, який викристовується для повороту"
+msgstr "Фільтр, який використаний для спостереження."
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 msgid "Cname: "
-msgstr ""
+msgstr "Назв. зір порівн.: "
 
 #: src/gui/uifiles/aavso_dialog.ui:183
 msgid "Kname: "
-msgstr ""
+msgstr "Назва перев. зорі: "
 
 #: src/gui/uifiles/aavso_dialog.ui:194
 msgid ""
@@ -369,16 +370,23 @@ msgid ""
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
 "characters."
 msgstr ""
+"Назва зірки порівняння (comparison star) або мітка, наприклад, унікальний "
+"ідентифікатор AAVSO - AUID (краще), або мітка на карті для зірки порівняння, "
+"яка використовується. Якщо її немає, використовуйте «na». Обмеження: 20 "
+"символів."
 
 #: src/gui/uifiles/aavso_dialog.ui:211
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart "
 "label for the check star. If not present, use \"na\". Limit: 20 characters."
 msgstr ""
+"Назва перевірочної (check) зірки або її позначка, наприклад, ідентифікатор "
+"AUID (краще), або позначка картки для перевірочної зірки. Якщо її немає, "
+"використовуйте «na». Обмеження: 20 символів."
 
 #: src/gui/uifiles/aavso_dialog.ui:229
 msgid "Starid: "
-msgstr ""
+msgstr "ID зірки: "
 
 #: src/gui/uifiles/aavso_dialog.ui:240
 msgid ""
@@ -2264,7 +2272,7 @@ msgstr "Яскраві пікселі ігноруються."
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:186
 msgid "1/Sigma Factor"
-msgstr "Фактор 1/Sigma"
+msgstr "Коефіцієнт 1/Sigma"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:199
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:223
@@ -2784,7 +2792,7 @@ msgid ""
 "Check if the target frames are CFA images.\n"
 "Uncheck if images come from a monochrome sensor."
 msgstr ""
-"Встановіть цей прапорець, якщо цільові кадри -- зображення CFA.\n"
+"Встановіть цей прапорець, якщо цільові кадри це зображення CFA.\n"
 "Не відмічайте, якщо зображення отримані з монохромного сенсору."
 
 #: src/gui/uifiles/crop_dialog.ui:35
@@ -21296,60 +21304,55 @@ msgstr ""
 
 #: src/gui/epf.c:303
 msgid "Error: image dimensions do not match"
-msgstr ""
+msgstr "Помилка: розміри зображення не збігаються"
 
 #: src/gui/git_gui.c:60 src/gui/git_gui.c:71 src/gui/git_gui.c:248
 #: src/gui/git_gui.c:252 src/gui/git_gui.c:257 src/gui/git_gui.c:262
 #: src/gui/git_gui.c:303 src/gui/git_gui.c:307 src/gui/git_gui.c:310
 #: src/gui/git_gui.c:314
-#, fuzzy
 msgid "Manual Update"
-msgstr "Реєстрація вручну"
+msgstr "Оновлення вручну"
 
 #: src/gui/git_gui.c:61 src/gui/git_gui.c:72
 msgid "Success! The local repository is up-to-date with the remote."
-msgstr ""
+msgstr "Успіх! Локальний репозиторій синхронізовано з віддаленим."
 
 #: src/gui/git_gui.c:112
-#, fuzzy
 msgid "Processing"
-msgstr "Попередня обробка"
+msgstr "Обробка"
 
 #: src/gui/git_gui.c:114
 msgid "Utility"
-msgstr ""
+msgstr "Утиліта"
 
 #: src/gui/git_gui.c:116
 msgid "Core"
-msgstr ""
+msgstr "Базовий"
 
 #: src/gui/git_gui.c:119
 msgid "Other"
-msgstr ""
+msgstr "Інше"
 
 #: src/gui/git_gui.c:125 src/gui/python_gui.c:895 src/gui/python_gui.c:1064
-#, fuzzy
 msgid "Siril Script File"
-msgstr "Ім'я файлу:"
+msgstr "Файл сценарію Siril"
 
 #: src/gui/git_gui.c:127
-#, fuzzy
 msgid "Python script"
-msgstr "_Скріпти"
+msgstr "Сценарій Python"
 
 #: src/gui/git_gui.c:193
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading script contents: %s\n"
-msgstr "Завантажуємо скріпт: %s\n"
+msgstr "Помилка завантаження вмісту сценарію: %s\n"
 
 #: src/gui/git_gui.c:216 src/gui/git_gui.c:274
 msgid "Error getting the list of unmerged changes"
-msgstr ""
+msgstr "Помилка отримання списку необ’єднаних змін"
 
 #: src/gui/git_gui.c:221 src/gui/git_gui.c:279 src/gui/graxpert.c:321
-#, fuzzy
 msgid "Warning!"
-msgstr "Увага"
+msgstr "Увага!"
 
 #: src/gui/git_gui.c:222
 msgid ""
@@ -21365,31 +21368,43 @@ msgid ""
 "update and copy your modified scripts to another location, and add this "
 "location to the list of script directories to be searched."
 msgstr ""
+"Аналіз злиття (merge) показує, що злиття може бути перемотано (fast-"
+"forwarded). Це означає, що ви внесли зміни до локального репозиторію. Siril "
+"не надає повної функціональності git і не може використовуватися для злиття "
+"останньої версії основного репозиторію зі зміненим локальним репозиторієм.\n"
+"\n"
+"Якщо ви приймете це оновлення, локальний репозиторій буде повністю скинутий ("
+"hard reset), щоб відповідати віддаленому репозиторію, і всі локальні зміни "
+"будуть втрачені.\n"
+"\n"
+"У випадку, якщо ви зробили локальні зміни, які хочете зберегти, вам "
+"необхідно скасувати це оновлення та зробити копію змінених сценаріїв в іншій "
+"директорії, після чого додати її до списку директорій, де відбувається пошук "
+"сценаріїв."
 
 #: src/gui/git_gui.c:233 src/gui/git_gui.c:291 src/gui/icc_profile.c:110
 msgid "Accept"
-msgstr ""
+msgstr "Прийняти"
 
 #: src/gui/git_gui.c:249 src/gui/git_gui.c:304
 msgid "Read and confirm the pending changes to be synced"
-msgstr ""
+msgstr "Прочитайте та підтвердьте зміни, що очікують на синхронізацію"
 
 #: src/gui/git_gui.c:250 src/gui/git_gui.c:305
-#, fuzzy
 msgid "Confirm"
-msgstr "Інформація"
+msgstr "Підтвердити"
 
 #: src/gui/git_gui.c:252
 msgid "Error! Script database failed to update."
-msgstr ""
+msgstr "Помилка! Не вдалося оновити базу сценаріїв (скриптів)."
 
 #: src/gui/git_gui.c:258 src/gui/git_gui.c:310
 msgid "Update cancelled. Updates have not been applied."
-msgstr ""
+msgstr "Оновлення скасовано. Оновлення не було застосовано."
 
 #: src/gui/git_gui.c:262
 msgid "The script repository is up to date."
-msgstr ""
+msgstr "Сховище сценаріїв оновлено."
 
 #: src/gui/git_gui.c:280
 msgid ""
@@ -21405,85 +21420,101 @@ msgid ""
 "update and copy your modified scripts to another location, and add this "
 "location to the list of script directories to be searched."
 msgstr ""
+"Аналіз злиття (merge) показує, що злиття може бути перемотано (fast-"
+"forwarded). Це означає, що ви внесли зміни до локального репозиторію. Siril "
+"не надає повної функціональності git і не може використовуватися для злиття "
+"останньої версії основного репозиторію зі зміненим локальним репозиторієм.\n"
+"\n"
+"Якщо ви приймете це оновлення, локальний репозиторій буде повністю скинутий ("
+"hard reset), щоб відповідати віддаленому репозиторію, і всі локальні зміни "
+"будуть втрачені.\n"
+"\n"
+"У випадку, якщо ви зробили локальні зміни, які хочете зберегти, вам "
+"необхідно скасувати це оновлення та зробити копію змінених сценаріїв в іншій "
+"директорії, після чого додати її до списку директорій, де відбувається пошук "
+"сценаріїв."
 
 #: src/gui/git_gui.c:307
 msgid "Error! SPCC database failed to update."
-msgstr ""
+msgstr "Помилка! Не вдалося оновити базу даних SPCC."
 
 #: src/gui/git_gui.c:314
 msgid "The SPCC database repository is up to date."
-msgstr ""
+msgstr "Репозиторій бази даних SPCC оновлений."
 
 #: src/gui/graxpert.c:232
 #, c-format
 msgid "GraXpert available and supports %s."
-msgstr ""
+msgstr "GraXpert доступний і підтримує %s."
 
 #: src/gui/graxpert.c:233
-#, fuzzy
 msgid "background extraction"
-msgstr "Вирівнювання фону..."
+msgstr "вилучення фону"
 
 #: src/gui/graxpert.c:234
-#, fuzzy
 msgid "denoising"
-msgstr "_Обробка зображення"
+msgstr "зменшення шуму"
 
 #: src/gui/graxpert.c:235 src/gui/graxpert.c:236
-#, fuzzy
 msgid "deconvolution"
-msgstr "Деконволюція"
+msgstr "деконволюція (реконструкція)"
 
 #: src/gui/graxpert.c:237
 msgid "GUI"
-msgstr ""
+msgstr "граф. інтерфейс"
 
 #: src/gui/graxpert.c:243
 msgid ""
 "<span foreground=\"red\">No suitable version of GraXpert is available.\n"
 "Configure the executable in Preferences -> Miscellaneous.</span>"
 msgstr ""
+"<span foreground=\"red\">Відповідна версія GraXpert недоступна.\n"
+"Налаштуйте виконуваний файл у Параметри -> Різне.</span>"
 
 #: src/gui/graxpert.c:321
 msgid ""
 "GraXpert is running. Changing the GraXpert operation will cancel the current "
 "GraXpert process. Proceed?"
 msgstr ""
+"Виконується GraXpert. Зміна операції GraXpert скасує поточний процес "
+"GraXpert. Продовжити?"
 
 #: src/gui/graxpert.c:325
 msgid "GraXpert operation cancelled by user\n"
-msgstr ""
+msgstr "Операцію GraXpert скасовано користувачем\n"
 
 #: src/gui/graxpert.c:349
-#, fuzzy
 msgid "Error: no sequence loaded.\n"
-msgstr "Послідовність не вибрана"
+msgstr "Помилка: немає завантажених послідовностей.\n"
 
 #: src/gui/graxpert.c:374
 msgid "Stellar"
-msgstr ""
+msgstr "Зоряний"
 
 #: src/gui/histogram.c:153 src/gui/histogram.c:159 src/gui/histogram.c:1160
 #: src/gui/histogram.c:1166 src/gui/histogram.c:1823 src/gui/histogram.c:1840
-#, fuzzy
 msgid "Channels warning"
-msgstr "Виділення каналів"
+msgstr "Попередження каналів"
 
 #: src/gui/histogram.c:154 src/gui/histogram.c:1161 src/gui/histogram.c:1841
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
 msgstr ""
+"Не всі канали кольорів вибрано. Модель відносної чутливості людського ока не "
+"може бути використана: встановлюємо рівноважну колірну модель."
 
 #: src/gui/histogram.c:160 src/gui/histogram.c:1167 src/gui/histogram.c:1824
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
 msgstr ""
+"Не всі канали кольору вибрано. Розтягування насиченості не може бути "
+"використане: встановлюємо колірну модель із незалежними каналами."
 
 #: src/gui/histogram.c:381
 msgid "Toggles whether to apply the stretch to the monochrome channel"
-msgstr ""
+msgstr "Застосувати розтягування до монохромного каналу"
 
 #: src/gui/histogram.c:399 src/gui/sequence_list.c:128
 msgid "Red channel"
@@ -21492,17 +21523,17 @@ msgstr "Червоний канал"
 #: src/gui/histogram.c:1306
 #, c-format
 msgid "Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"
-msgstr ""
+msgstr "Перетворення гіст-ми (серед.=%.3f, низ=%.3f, верх=%.3f)"
 
 #: src/gui/histogram.c:1313
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "Точка симетрії GHS: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1316
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "Точка симетрії GHS INV: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1319
 #, c-format

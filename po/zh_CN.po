@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-03-27 13:46+0000\n"
+"PO-Revision-Date: 2025-04-09 14:44+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -3732,20 +3732,18 @@ msgid ""
 msgstr "将当前拉伸应用于无星图像并重置拉伸参数。"
 
 #: src/gui/uifiles/epf_dialog.ui:58
-#, fuzzy
 msgid "Edge Preserving Filters"
-msgstr "边缘保留滤镜..."
+msgstr "边缘保护滤镜"
 
 #: src/gui/uifiles/epf_dialog.ui:143
-#, fuzzy
 msgid "Filter Type"
-msgstr "滤镜: "
+msgstr "滤镜类型"
 
 #: src/gui/uifiles/epf_dialog.ui:155
 msgid ""
 "Choose filter type. See the documentation for an explanation of the "
 "differences."
-msgstr ""
+msgstr "选择滤镜类型。每个类型的区别详见说明文档。"
 
 #: src/gui/uifiles/epf_dialog.ui:158
 #, fuzzy
