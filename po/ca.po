@@ -7,17 +7,16 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2023-08-25 11:40+0000\n"
-"Last-Translator: Joan Vinyals Ylla Català "
-"<joan.vinyals.ylla.catala@gmail.com>\n"
-"Language-Team: Catalan <https://weblate.pixls.us/projects/siril/siril-"
-"application/ca/>\n"
+"PO-Revision-Date: 2025-04-09 14:44+0000\n"
+"Last-Translator: Victor Gandia <victorix@gmail.com>\n"
+"Language-Team: Catalan <https://weblate.siril.org/projects/siril/software/"
+"siril/ca/>\n"
 "Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1971
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -1410,9 +1409,8 @@ msgstr ""
 "Aquesta opció hauria d'estar habilitada per imatges no estirades."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:360
-#, fuzzy
 msgid "Grid tolerance"
-msgstr "Tolerància"
+msgstr "Tolerància del patró de reixeta"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:372
 #, fuzzy
@@ -1524,9 +1522,8 @@ msgid "Correction"
 msgstr "Correcció"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:567
-#, fuzzy
 msgid "Compute Background"
-msgstr "Extreure Rerefons"
+msgstr "Extreure Fons d'imatge"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:571
 msgid ""
@@ -1539,9 +1536,8 @@ msgstr ""
 "per permetre a l'usuari treballar iterativament."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:585
-#, fuzzy
 msgid "Show original image"
-msgstr "Redueix les mostres de la imatge"
+msgstr "Mostrar la imatge original"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:590
 msgid "Keep pressing this button to see the original image."
@@ -1598,9 +1594,8 @@ msgstr ""
 "seqüència"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:369
-#, fuzzy
 msgid "Blind deconvolution"
-msgstr "Desconvolució"
+msgstr "Desconvolució a cegues"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:373
 msgid "Estimates a PSF from the image"
@@ -1629,13 +1624,12 @@ msgid "Use a manually defined PSF based on the parameters chosen."
 msgstr "Utilitza una PSF definida per l'usuari."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:422
-#, fuzzy
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
 msgstr ""
-"Selecciona el mètode d'estimació PSF cec que preferiu utilitzar. El descens "
-"ℓ0 es el mètode per defecte i sol ser la millor opció."
+"Selecciona el mètode d'estimació PSF a cegues que voleu utilitzar. El "
+"descens ℓ0 es el mètode per defecte i sol ser la millor opció."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:425
 msgid "Spectral Irregularity"
@@ -1815,15 +1809,15 @@ msgid "Sensor pixel size in microns"
 msgstr "Mida dels píxels del sensor en microns"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:919
-#, fuzzy
 msgid ""
 "Wavelength to calculate the diffraction pattern for. May be specified "
 "exactly for narrowband filters, or for broadband / OSC / luminance filters "
 "just use a representative central wavelength."
 msgstr ""
 "Longitud d'ona per la que calcular el patró de difracció. Pots especificar-"
-"la per a filtres de banda estreta, per filtres de banda ample, OSC, o "
-"lluminositat tria una longitud d'ona central i representativa."
+"la per a filtres de banda estreta. O bé per filtres de banda ampla, imatges "
+"de càmeres en color, o filtres de lluminositat tria només una longitud d'ona "
+"central representativa."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:934
 msgid ""
@@ -6199,14 +6193,14 @@ msgid "Background factor"
 msgstr "Factor de fons"
 
 #: src/gui/uifiles/satu_dialog.ui:268
-#, fuzzy
 msgid ""
 "This is the factor multiplied by the background value. Lower is the value, "
 "stronger is the saturation effect. While a high value will preserve the "
 "background."
 msgstr ""
-"Aquest factor es multiplica pel valor del fons. Com més baix és el valor, "
-"major és l'efecte de saturació. Tanmateix, un valor alt preservarà el fons."
+"Aquest és factor multiplicat pel valor del fons d'imatge. Com més baix és el "
+"valor, més gran és l'efecte de saturació, mentre què un valor alt preservarà "
+"el fons."
 
 #: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10751
 #: src/io/sequence.c:1935

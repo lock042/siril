@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-04-01 14:22+0000\n"
+"PO-Revision-Date: 2025-04-08 09:24+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -162,6 +162,9 @@ msgid ""
 "Note: ROI preview will show a black border. Do not panic, the border will be "
 "overwritten by future ROIs and when finally applying the median filter."
 msgstr ""
+"Nota: La vista de región de interés (ROI) muestra un borde negro. No se "
+"asuste, el borde será reescrito por ROIs futuros y al aplicar finalmente el "
+"filtro median."
 
 #: src/gui/uifiles/Median_dialog.ui:138
 msgid "Kernel Size:"
@@ -288,6 +291,8 @@ msgid ""
 "Compute statistics on pixels that have the same filter as the corresponding "
 "channel, for CFA (non-demosaiced) images."
 msgstr ""
+"Calcular estadísticas sobre píxeles que tienen el mismo filtro que el canal "
+"correspondiente, para imágenes CFA (sin mosaico)."
 
 #. Connect the edited signal
 #: src/gui/uifiles/StatWindow.ui:148 src/gui/uifiles/astrometry_dialog.ui:492
@@ -3421,11 +3426,11 @@ msgstr "Longitud focal (mm): "
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:331
 msgid "The wavenumber is the spatial frequency 1 / λ"
-msgstr ""
+msgstr "El número de onda es la frecuencia espacial 1 / λ"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:332
 msgid "wavenumber / cm<sup>-1</sup>"
-msgstr ""
+msgstr "número de onda / cm<sup>-1</sup>"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:344
 #, fuzzy
@@ -3436,6 +3441,8 @@ msgstr "Dibujar Var."
 msgid ""
 "When plotting a spectrogram, should the x axis show wavenumber or wavelength?"
 msgstr ""
+"Cuando se dibuja un espectrograma, ¿debe mostrarse en el eje x el número de "
+"onda o la longigud de onda?"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:358
 #: src/gui/uifiles/s_pcc_dialog.ui:590
@@ -3445,7 +3452,7 @@ msgstr "Longitud focal (mm): "
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:359
 msgid "Wavenumber"
-msgstr ""
+msgstr "Número de onda"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:382
 #, fuzzy
@@ -3568,6 +3575,11 @@ msgid ""
 "denoising performance and reduce staircasing artefacts. Ref: https://"
 "arxiv.org/abs/1502.06220"
 msgstr ""
+"La iteración SOS funciona iterando el algoritmo de reducción de ruido "
+"múltiples veces, en cada una de las cuales mezcla una fracción de la "
+"anterior. Esto puede mejorar el rendimiento de la reducción de ruido y "
+"reducir los artefactos de efecto escalera. Ref: https://arxiv.org/abs/1502."
+"06220"
 
 #: src/gui/uifiles/denoise_dialog.ui:287
 msgid "Secondary Denoising Algorithm"
@@ -3609,6 +3621,11 @@ msgid ""
 "kept. Values close to 0 or 1 may result in a need for more iterations to "
 "achieve convergence at the maximum improvement SOS can produce."
 msgstr ""
+"rho fija la cantidad de ruido original de la imagen en cada iteración. Un "
+"valor alto indica que se mezcla menos ruido, y el resultado mantiene mayor "
+"proporción intermedia. Valores cercanos a 0 o 1 pueden requerir más "
+"iteraciones para conseguir convergencia en la mejora máxima que SOS puede "
+"producir."
 
 #: src/gui/uifiles/denoise_dialog.ui:349
 msgid "rho"
@@ -19916,9 +19933,9 @@ msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr "Estableciendo CWD (Directorio Actual de Trabajo) a '%s'\n"
 
 #: src/core/utils.c:1198
-#, fuzzy, c-format
+#, c-format
 msgid "Could not change directory to '%s'(error code %d: %s).\n"
-msgstr "No se puede cambiar el directorio a '%s'.\n"
+msgstr "No se puede cambiar el directorio a '%s'(código de error %d: %s).\n"
 
 #: src/core/utils.c:1224
 msgid "Filename is too long, not expanding it\n"
@@ -19940,7 +19957,7 @@ msgstr[1] "canales"
 
 #: src/core/utils.c:1726 src/core/utils.c:1729
 msgid "(invalid UTF-8 string)"
-msgstr ""
+msgstr "(cadena UTF-8 inválida)"
 
 #: src/drizzle/cdrizzlebox.c:497
 #, fuzzy
@@ -19949,7 +19966,7 @@ msgstr "Desbordamiento de memoria - abortando"
 
 #: src/drizzle/cdrizzlebox.c:902
 msgid "Invalid kernel type"
-msgstr ""
+msgstr "Tipo de kernel inválido"
 
 #: src/drizzle/cdrizzleutil.c:123
 #, fuzzy
@@ -19978,7 +19995,7 @@ msgstr ""
 
 #: src/filters/asinh.c:78
 msgid "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"
-msgstr "Transformación Asinh:  (stretch=%6.1lf, bp=%7.5lf)"
+msgstr "Transformación Asinh: (stretch=%6.1lf, bp=%7.5lf)"
 
 #: src/filters/banding.c:190
 msgid "Banding Reducing: processing...\n"

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-04-05 16:47+0000\n"
+"PO-Revision-Date: 2025-04-06 17:34+0000\n"
 "Last-Translator: Johannes Gottschling <johannes.gottschling@web.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -4222,7 +4222,7 @@ msgid ""
 msgstr ""
 "Der kantenerhaltende Filter kann bei großen Bildern sehr langsam sein, "
 "weshalb die Vorschau standardmäßig nicht aktiv ist. Es wird dringend "
-"empfohlen eine Region of Interest (ROI) auszuwählen, bevor die Vorschau des "
+"empfohlen, eine Region of Interest (ROI) auszuwählen, bevor die Vorschau des "
 "kantenerhaltenden Filters aktiviert wird."
 
 #: src/gui/uifiles/extract_channel_dialog.ui:35 src/gui/uifiles/siril.ui:1415
@@ -4374,8 +4374,8 @@ msgid ""
 "Clear all the fields. If you save your image after, the header will not "
 "contain any data about the focal length or sensor size."
 msgstr ""
-"Lösch alle Felder. Wenn Sie Ihr Bild danach speichern, enthält die Kopfzeile "
-"keine Daten über die Brennweite oder die Sensorgröße."
+"Löscht alle Felder. Wenn Sie Ihr Bild danach speichern, enthält die "
+"Kopfzeile keine Daten über die Brennweite oder die Sensorgröße."
 
 #: src/gui/uifiles/file_information_dialog.ui:189
 msgid "Computed sampling (arcsec/pixel):"
@@ -4479,6 +4479,10 @@ msgid ""
 "values are more tolerant of strong background gradients; lower values are "
 "better at rejecting background samples in areas representing real neblosity."
 msgstr ""
+"Hintergrundtoleranz einstellen: Die erlaubten Werte reichen von -2,0 bis +"
+"6,0. Höhere Werte sind toleranter gegenüber starken Hintergrundgradienten; "
+"kleinere Werte sind besser darin, Messpunkte abzulehnen, welche auf echtem "
+"Nebel liegen."
 
 #: src/gui/uifiles/graxpert.ui:265
 #, fuzzy
@@ -4533,6 +4537,9 @@ msgid ""
 "Background samples must be generated in order to use the GraXpert RBF, "
 "Kriging or Spline algorithms. It is not necessary for the AI algorithm."
 msgstr ""
+"Um die GraXpert-Algorithmen RBF, Kriging oder Spline zu verwenden, müssen "
+"Hintergrund-Stichproben generiert werden. Dies ist für den KI-Algorithmus "
+"nicht notwendig."
 
 #: src/gui/uifiles/graxpert.ui:391
 msgid "BG AI model version:"
@@ -4543,6 +4550,8 @@ msgid ""
 "Set the AI model version for use with GraXpert background extraction. "
 "Defaults to latest."
 msgstr ""
+"Einstellen des KI-Modells zur Verwendung bei der GraXpert-"
+"Hintergrundextraktion. Standardmäßig ist das Neueste Modell eingestellt."
 
 #: src/gui/uifiles/graxpert.ui:406 src/gui/uifiles/graxpert.ui:750
 #: src/gui/uifiles/graxpert.ui:791 src/gui/uifiles/graxpert.ui:909
