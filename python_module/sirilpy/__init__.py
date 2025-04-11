@@ -10,28 +10,34 @@ from Python, enabling advanced astronomical image processing workflows.
 """
 
 # Import translation functions first
-# TODO: this is currently unused (there are no actual translations yet)
 from .translations import _
 
 # Regular imports - all modules needed at runtime
+from .enums import (
+    LogColor,
+    CommandStatus,
+    BitpixType,
+    StarProfile,
+    SequenceType,
+    DistoType,
+    PlotType,
+    SirilVport
+)
 from .models import (
-    DataType,
     ImageStats,
     FKeywords,
     FFit,
     Homography,
-    StarProfile,
-    SequenceType,
     PSFStar,
     BGSample,
     RegData,
     ImgData,
     DistoData,
     Sequence,
-    SirilPoint,
-    UserPolygon
+    FPoint,
+    Polygon
 )
-from .plot import PlotType, SeriesData, PlotData, _PlotSerializer
+from .plot import SeriesData, PlotData
 from .shm import SharedMemoryWrapper
 from .utility import (
     human_readable_size,
@@ -44,12 +50,13 @@ from .utility import (
 from .exceptions import (
     SirilError,
     SirilConnectionError,
+    SharedMemoryError,
     CommandError,
     DataError,
     NoImageError,
     NoSequenceError
 )
-from .connection import LogColor, SirilInterface
+from .connection import SirilInterface
 
 try:  # import from the packaging specification
     from importlib.metadata import metadata, PackageNotFoundError
@@ -70,28 +77,24 @@ __all__ = [
     'ensure_installed',
     'check_module_version',
     'SirilInterface',
-    'LogColor',
-    'DataType',
     'ImageStats',
     'FKeywords',
     'FFit',
     'Homography',
-    'StarProfile',
-    'SequenceType',
     'PSFStar',
     'BGSample',
     'RegData',
     'ImgData',
     'DistoData',
     'Sequence',
-    'SirilPoint',
-    'UserPolygon',
+    'FPoint',
+    'Polygon',
     'PlotType',
     'SeriesData',
     'PlotData',
-    '_PlotSerializer',
     'SirilError',
-    'SirilConnectionError',  # Changed from ConnectionError
+    'SirilConnectionError',
+    'SharedMemoryError',
     'CommandError',
     'DataError',
     'NoImageError',
@@ -101,5 +104,13 @@ __all__ = [
     'SuppressedStderr',
     'human_readable_size',
     'download_with_progress',
+    'LogColor',
+    'CommandStatus',
+    'BitpixType',
+    'StarProfile',
+    'SequenceType',
+    'DistoType',
+    'PlotType',
+    'SirilVport',
     '_'
 ]

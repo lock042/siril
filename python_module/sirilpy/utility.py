@@ -20,6 +20,7 @@ import requests
 from packaging import version as pkg_version
 from packaging.specifiers import SpecifierSet
 from packaging.requirements import Requirement
+from .exceptions import SirilError
 
 if TYPE_CHECKING:
     from .connection import SirilInterface
@@ -33,7 +34,13 @@ def human_readable_size(bytes_size: int) -> str:
 
     Returns:
         str: Formatted size with appropriate unit (B, KB, MB, GB, TB)
+
+    Raises:
+        TypeError: on incorrect input type
     """
+    if not isinstance(bytes_size, int):
+        raise TypeError("bytes_size must be an int")
+
     units = [' B', ' KB', ' MB', ' GB', ' TB']
     size = float(bytes_size)
     unit_index = 0
@@ -67,6 +74,9 @@ def download_with_progress(
 
     Returns:
         bool: True if download successful, False otherwise
+
+    Raises:
+        SirilError: On unhandled errors
     """
     temp_file_path = file_path + '.part'
 
@@ -159,11 +169,10 @@ def download_with_progress(
 
             siril.update_progress(error_message, 0.0)
 
-            # Using proper re-raising with from
-            raise RuntimeError(error_message) from e
+            raise SirilError(error_message) from e
 
     # All retry attempts failed
-    raise RuntimeError(f"Failed to download file from {url} after {max_retries} attempts")
+    raise SirilError(f"Failed to download file from {url} after {max_retries} attempts")
 
 def ensure_installed(*packages: Union[str, List[str]],
                      version_constraints: Optional[Union[str, List[str]]] = None) -> bool:
@@ -179,7 +188,9 @@ def ensure_installed(*packages: Union[str, List[str]],
         bool: True if all packages are successfully installed or already meet constraints.
 
     Raises:
-        RuntimeError: If package installation fails.
+        SirilError: If package installation fails,
+        ValueError: If a different number of constraints is provided to the number
+                    of packages to be installed.
     """
     # Normalize inputs to lists
     if isinstance(packages[0], list):
@@ -215,7 +226,7 @@ def ensure_installed(*packages: Union[str, List[str]],
         except Exception as e:
             all_installed = False
             print(f"Error processing {package}: {e}")
-            raise RuntimeError(f"Failed to install or verify package {package}") from e
+            raise SirilError(f"Failed to install or verify package {package}") from e
 
     return all_installed
 
@@ -339,9 +350,9 @@ def check_module_version(requires=None):
 
 class SuppressedStdout:
     """
-    This class allows suppression of the script's stdout, which can
-    be useful to avoid flooding the log with stdout messages from
-    an excessively verbose module used in the script.
+    This context manager allows suppression of the script's stdout,
+    which can be useful to avoid flooding the log with stdout messages
+    from an excessively verbose module used in the script.
 
     Example:
         .. code-block:: python
@@ -365,6 +376,7 @@ class SuppressedStdout:
         os.dup2(self.devnull.fileno(), 1)  # Redirect stdout to devnull
         self.original_stdout = sys.stdout
         sys.stdout = self.devnull  # Also redirect Python stdout
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         os.dup2(self.original_stdout_fd, 1)  # Restore stdout
@@ -375,8 +387,8 @@ class SuppressedStdout:
 
 class SuppressedStderr:
     """
-    This class allows suppression of the script's stderr, which can
-    be useful if you are using module functions that are known to
+    This context manager allows suppression of the script's stderr, which
+    can be useful if you are using module functions that are known to
     produce warnings that you want to avoid distracting the user with,
     such as FutureWarnings of features that have become deprecated but
     are in a dependency rather than your own code. The class should
@@ -395,6 +407,7 @@ class SuppressedStderr:
         os.dup2(self.devnull.fileno(), 2)  # Redirect stderr to devnull
         self.original_stderr = sys.stderr
         sys.stderr = self.devnull  # Also redirect Python stderr
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         os.dup2(self.original_stderr_fd, 2)  # Restore stderr

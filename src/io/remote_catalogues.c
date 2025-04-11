@@ -258,7 +258,7 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 			fmtstr = g_strdup_printf("&-ra=%s&-dec=%s&-rd=%s", rafmt, decfmt, radiusfmt);
 			g_string_append_printf(url, fmtstr, siril_cat->center_ra, siril_cat->center_dec, 2. * siril_cat->radius / 60.); // request uses diameter not radius (despite what's written in the doc)
 			g_free(fmtstr);
-			g_string_append_printf(url,"&-loc=%s", (siril_cat->IAUcode) ? siril_cat->IAUcode : "500");
+			g_string_append_printf(url,"&-observer=%s", (siril_cat->IAUcode) ? siril_cat->IAUcode : "500");
 			return g_string_free(url, FALSE);
 		default:
 			break;
@@ -603,6 +603,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 		remove_file = TRUE;
 		goto download_error;
 	}
+	siril_debug_print("URL: %s\n", url);
 	siril_log_message(_("Contacting server\n"));
 	gsize length;
 	int fetch_url_error;

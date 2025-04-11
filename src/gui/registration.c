@@ -462,7 +462,6 @@ void on_button_comet_clicked(GtkButton *button, gpointer p) {
 		if (result) {
 			pos.x = result->x0 + com.selection.x;
 			pos.y = com.selection.y + com.selection.h - result->y0;
-			free_psf(result);
 		} else { // if psf fails we use the center of selection
 			pos.x = 0.5 * (double)com.selection.w + com.selection.x;
 			pos.y = com.selection.y + com.selection.h - 0.5 * (double)com.selection.h;

@@ -35,6 +35,7 @@
 #include <windows.h>
 #endif
 #include <glib.h>
+#include <errno.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -1193,7 +1194,8 @@ int siril_change_dir(const char *dir, gchar **err) {
 		  siril_log_message(_("Setting CWD (Current Working Directory) to '%s'\n"), com.wd);
 		  retval = 0;
 		} else {
-			error = siril_log_message(_("Could not change directory to '%s'.\n"), dir);
+			int saved_errno = errno;
+			error = siril_log_message(_("Could not change directory to '%s'(error code %d: %s).\n"), dir, saved_errno, g_strerror(saved_errno));
 			retval = 1;
 		}
 	}

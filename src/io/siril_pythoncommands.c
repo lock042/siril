@@ -174,7 +174,6 @@ static int fits_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	COPY_BE64(fit->mini, double);
 	COPY_BE64(fit->maxi, double);
 	COPY_BE64((double) fit->neg_ratio, double);
-	COPY_BE64((uint64_t) fit->type, uint64_t);
 	COPY_BE64((uint64_t) fit->top_down, uint64_t);
 	COPY_BE64((uint64_t) fit->focalkey, uint64_t);
 	COPY_BE64((uint64_t) fit->pixelkey, uint64_t);
@@ -1583,7 +1582,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 5) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 				const char* pixelbool = payload + 4;
-				with_pixels = BOOL_FROM_BYTE(pixelbool);
+				with_pixels = BOOL_FROM_BYTE(*pixelbool);
 			}
 			if (payload_length != 5 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
@@ -1599,7 +1598,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for the response
-			size_t ffit_size = sizeof(uint64_t) * 14; // 14 vars packed to 64-bit
+			size_t ffit_size = sizeof(uint64_t) * 13; // 14 vars packed to 64-bit
 			size_t strings_size = FLEN_VALUE * 13;  // 13 string fields of FLEN_VALUE
 			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
 			size_t total_size = ffit_size + strings_size + numeric_size;
@@ -1805,7 +1804,7 @@ CLEANUP:
 			}
 
 			// Calculate size needed for the response
-			size_t total_size = sizeof(uint64_t) * 14; // 14 vars packed to 64-bit
+			size_t total_size = sizeof(uint64_t) * 13; // 14 vars packed to 64-bit
 
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
@@ -1960,7 +1959,7 @@ CLEANUP:
 		}
 
 		case CMD_PIX2WCS: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
 				if (!has_wcs(&gfit)) {
 					// Handle no WCS error
@@ -1999,7 +1998,7 @@ CLEANUP:
 		}
 
 		case CMD_WCS2PIX: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
 				if (!has_wcs(&gfit)) {
 					// Handle no WCS error
@@ -2193,6 +2192,12 @@ CLEANUP:
 
 		case CMD_ADD_USER_POLYGON: {
 			UserPolygon *polygon = deserialize_polygon((const uint8_t*) payload, payload_length);
+			if (!(single_image_is_loaded() || sequence_is_loaded())) {
+				siril_debug_print("Failed to add user polygon\n");
+				const char* error_msg = _("Failed to add user polygon: no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
 			if (polygon) {
 				int id = get_unused_polygon_id();
 				polygon->id = id;
@@ -2215,7 +2220,7 @@ CLEANUP:
 				if (!deleted) {
 					siril_debug_print("Failed to delete user polygon with id %d\n", id);
 					const char* error_msg = _("Invalid payload length");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				}
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
@@ -2238,17 +2243,19 @@ CLEANUP:
 				if (!polygon) {
 					siril_debug_print("Failed to find a user polygon with id %d\n", id);
 					const char* error_msg = _("No polygon found matching id");
-					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				}
 				size_t polygon_size;
 				uint8_t *serialized = serialize_polygon(polygon, &polygon_size);
 				if (!serialized) {
 					siril_debug_print("Failed to serialize the user polygon with id %d\n", id);
 					const char* error_msg = _("Failed to serialize user polygon");
-					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				}
-				success = send_response(conn, STATUS_OK, serialized, polygon_size);
+				shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_size);
+				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				g_free(serialized);
+				free(info);
 			} else {
 				siril_debug_print("Invalid payload length for GET_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
@@ -2259,17 +2266,19 @@ CLEANUP:
 
 		case CMD_GET_USER_POLYGON_LIST: {
 			size_t polygon_list_size;
-			uint8_t *serialized = serialize_polygon_list(gui.user_polygons, &polygon_list_size);
-			if (!serialized) {
-				siril_debug_print("Failed to serialize the user polygon with id\n");
-				const char* error_msg = _("Failed to serialize user polygon");
-				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
-			}
 			if (g_list_length(gui.user_polygons) == 0) {
 				siril_debug_print("No user polygons defined\n");
 				const char* error_msg = _("No user polygons to serialize");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			}
+
+			uint8_t *serialized = serialize_polygon_list(gui.user_polygons, &polygon_list_size);
+			if (!serialized) {
+				siril_debug_print("Failed to serialize the user polygon list\n");
+				const char* error_msg = _("Failed to serialize user polygon list");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+			}
+
 			shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_list_size);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 			g_free(serialized);
@@ -2298,6 +2307,46 @@ CLEANUP:
 			}
 			uint8_t retval = siril_confirm_dialog((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
 			success = send_response(conn, STATUS_OK, (const char*)&retval, sizeof(uint8_t));
+		}
+
+		case CMD_GET_SEQ_FRAME_HEADER: {
+			if (!sequence_is_loaded()) {
+				const char* error_msg = _("No sequence loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			int index;
+			if (payload_length == 4) {
+				index = GUINT32_FROM_BE(*(int*) payload);
+			}
+			if (payload_length != 4 || index >= com.seq.number) {
+				const char* error_msg = _("Incorrect command argument");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			fits *fit = calloc(1, sizeof(fits));
+			if (seq_read_frame_metadata(&com.seq, index, fit)) {
+				clearfits(fit);
+				free(fit);
+				const char* error_msg = _("Failed to read frame metadata");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			if (fit->header == NULL) {
+				const char* error_msg = _("Image has no FITS header");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				clearfits(fit);
+				free(fit);
+				break;
+			}
+			// Prepare data
+			guint32 length = strlen(fit->header) + 1;
+			shared_memory_info_t *info = handle_rawdata_request(conn, fit->header, length);
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
+			clearfits(fit);
+			free(fit);
+			break;
 		}
 
 		default:
