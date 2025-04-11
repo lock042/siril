@@ -70,7 +70,7 @@ def create_tooltip(widget, text, wrap_length=250):
 
     widget.bind('<Enter>', show_tooltip)
 
-def match_theme_to_siril(themed_tk, s, on_top=True):
+def match_theme_to_siril(themed_tk, s, on_top=False):
     """
     Match the Tkinter theme to the Siril configuration and set the script dialog
     to have topmost status, meaning that it will remain in front of other
