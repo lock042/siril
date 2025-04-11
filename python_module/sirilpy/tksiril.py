@@ -43,6 +43,7 @@ def create_tooltip(widget, text, wrap_length=250):
             return  # Widget has been destroyed
 
         tooltip = tk.Toplevel(widget)
+        tooltip.winfo_toplevel().wm_attributes("-topmost", True)
         tooltip.wm_overrideredirect(True)
         tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
 
@@ -70,7 +71,7 @@ def create_tooltip(widget, text, wrap_length=250):
 
     widget.bind('<Enter>', show_tooltip)
 
-def match_theme_to_siril(themed_tk, s, on_top=False):
+def match_theme_to_siril(themed_tk, s, on_top=True):
     """
     Match the Tkinter theme to the Siril configuration and set the script dialog
     to have topmost status, meaning that it will remain in front of other
