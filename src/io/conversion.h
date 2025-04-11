@@ -33,6 +33,8 @@ struct _convert_data {
 	int nb_converted_files;
 	gchar **report;			// for file to file conversion report
 	int report_length;		// number of entries in the report
+
+	gboolean update_GUI;		// update sequence combo after conversion
 };
 
 #define MAX_EXTENSIONS 50	// actual size of supported_extensions

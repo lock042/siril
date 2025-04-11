@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-04-05 16:47+0000\n"
+"PO-Revision-Date: 2025-04-08 23:17+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -315,7 +315,7 @@ msgstr "選択"
 #: src/gui/uifiles/aavso_dialog.ui:69
 #: src/gui/uifiles/file_information_dialog.ui:96
 msgid "Non-square pixels can be entered but will not be used in most cases."
-msgstr ""
+msgstr "正方形以外のピクセルを入力することもできますが, ほとんどの場合使用されません."
 
 #: src/gui/uifiles/aavso_dialog.ui:71
 msgid "Obstype: "
@@ -3824,11 +3824,12 @@ msgid ""
 "the preferences otherwise.\n"
 "Modified data can be saved in a FITS file."
 msgstr ""
+"画像に関する情報. あればファイルから, なければ環境設定から抽出します.\n"
+"変更したデータはFITSファイルに保存できます."
 
 #: src/gui/uifiles/file_information_dialog.ui:98
-#, fuzzy
 msgid "Pixel size (micron): "
-msgstr "ピクセル X サイズ (ミクロ): "
+msgstr "ピクセル サイズ (ミクロン): "
 
 #: src/gui/uifiles/file_information_dialog.ui:109
 msgid ""
@@ -3887,15 +3888,15 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:258
-#, fuzzy
 msgid "Save as default values"
-msgstr "環境設定を開ける"
+msgstr "デフォルト値として保存"
 
 #: src/gui/uifiles/file_information_dialog.ui:262
 msgid ""
 "Save focal length and pixel size as default values in the settings to be "
 "used for images that do not contain these metadata"
-msgstr ""
+msgstr "焦点距離とピクセルサイズをデフォルト値として設定に保存し, "
+"これらのメタデータを含まない画像に使用します"
 
 #: src/gui/uifiles/graxpert.ui:66
 #, fuzzy
@@ -4184,7 +4185,7 @@ msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:425
 msgid "Show grids"
-msgstr ""
+msgstr "グリッドを表示"
 
 #: src/gui/uifiles/histogram_dialog.ui:442
 msgid "Show transfer curve plus the line y=x"
@@ -7703,9 +7704,8 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5059
 #: src/gui/uifiles/settings_window.ui:5923
-#, fuzzy
 msgid "Warning Dialogs"
-msgstr "警告"
+msgstr "警告ダイアログ"
 
 #: src/gui/uifiles/settings_window.ui:5087
 msgid "Enable use of the siril-scripts online repository"
@@ -7964,7 +7964,7 @@ msgstr "<b>FITS 圧縮</b>"
 #: src/gui/uifiles/settings_window.ui:5766
 #: src/gui/uifiles/settings_window.ui:6210
 msgid "Miscellaneous"
-msgstr ""
+msgstr "その他"
 
 #: src/gui/uifiles/settings_window.ui:5794
 msgid ""
@@ -8091,7 +8091,7 @@ msgstr "アップデートを確認"
 
 #: src/gui/uifiles/settings_window.ui:6193
 msgid "Update"
-msgstr ""
+msgstr "アップデート"
 
 #: src/gui/uifiles/siril.ui:291
 msgid "Clear all curves displayed in photometry."
@@ -8750,11 +8750,11 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:2378
 msgid "Save as unique file"
-msgstr ""
+msgstr "一意なファイルとして保存"
 
 #: src/gui/uifiles/siril.ui:2387
 msgid "Copy to clipboard"
-msgstr ""
+msgstr "クリップボードへコピー"
 
 #: src/gui/uifiles/siril.ui:2435
 msgid "Image Plate Solver..."
@@ -8984,9 +8984,9 @@ msgid ""
 msgstr ""
 "すべての入力要素に対して1つのSERまたはFITSファイルではなく, "
 "複数のシーケンスファイルを作成する場合は, "
-"このチェックボックスをオンにします. 入力要素（フィルム、SERまたはFITSキューブ"
-"などのシーケンスファイル）が同じ画像サイズを共有していない場合や、一緒に処理"
-"してはいけない場合に使用します."
+"このチェックボックスをオンにします. 入力要素(フィルム、SERまたはFITSキューブ"
+"などのシーケンスファイル)が同じ画像サイズを共有していない場合や、一緒に処理し"
+"てはいけない場合に使用します."
 
 #: src/gui/uifiles/siril.ui:3962
 msgid "Symbolic Link"
@@ -10837,11 +10837,11 @@ msgstr "Log ファイルをクリア"
 
 #: src/gui/uifiles/siril.ui:9505
 msgid "This tab shows the Siril logs."
-msgstr ""
+msgstr "このタブはSirilのログを表示します."
 
 #: src/gui/uifiles/siril.ui:9508
 msgid "Console"
-msgstr "Console"
+msgstr "コンソール"
 
 #: src/gui/uifiles/siril.ui:9545
 msgid ""
@@ -18503,9 +18503,9 @@ msgid "File I/O Error: Unable to write swap file in %s: [%s]\n"
 msgstr ""
 
 #: src/core/undo.c:346
-#, fuzzy, c-format
+#, c-format
 msgid "Undo: %s\n"
-msgstr "取り消す"
+msgstr "取り消す: %s\n"
 
 #: src/core/undo.c:363
 msgid ""
@@ -18514,27 +18514,27 @@ msgid ""
 msgstr ""
 
 #: src/core/undo.c:387
-#, fuzzy, c-format
+#, c-format
 msgid "Redo: %s\n"
-msgstr "やり直す"
+msgstr "やり直す: %s\n"
 
 #: src/core/undo.c:435
 #, c-format
 msgid "Undo: \"%s\""
-msgstr ""
+msgstr "取り消す: \"%s\""
 
 #: src/core/undo.c:439
 msgid "Nothing to undo"
-msgstr ""
+msgstr "取り消すものはありません"
 
 #: src/core/undo.c:441
 #, c-format
 msgid "Redo: \"%s\""
-msgstr ""
+msgstr "やり直す: \"%s\""
 
 #: src/core/undo.c:445
 msgid "Nothing to redo"
-msgstr ""
+msgstr "やり直すものはありません"
 
 #: src/core/utils.c:632
 msgid "red"
@@ -19349,7 +19349,7 @@ msgstr ""
 
 #: src/gui/about_dialog.c:78
 msgid "Astronomical image (pre-)processing program"
-msgstr ""
+msgstr "天体画像(前)処理プログラム"
 
 #: src/gui/about_dialog.c:79
 msgid "translator-credits"
@@ -20959,7 +20959,7 @@ msgstr ""
 #: src/gui/menu_gray_geometry.c:385
 msgid ""
 "Crop does not work with avi film. Please, convert your file to SER first.\n"
-msgstr "Avi 動画は切り抜き出来ません. まずは, SER ファイルに変換して下さい.\n"
+msgstr "Avi 動画は切り抜きできません. まずは, SER ファイルに変換して下さい.\n"
 
 #: src/gui/menu_gray_geometry.c:391
 msgid "Not a valid sequence for cropping.\n"
@@ -21416,7 +21416,7 @@ msgstr "グラフィック ファイル (*.bmp)"
 
 #: src/gui/open_dialog.c:179
 msgid "All supported files"
-msgstr ""
+msgstr "サポートしているファイルすべて"
 
 #: src/gui/open_dialog.c:252
 #, fuzzy
@@ -21741,18 +21741,16 @@ msgid "Wrong value"
 msgstr ""
 
 #: src/gui/preferences.c:1057
-#, fuzzy
 msgid "Reset all preferences"
-msgstr "環境設定を開ける"
+msgstr "環境設定をすべてリセット"
 
 #: src/gui/preferences.c:1058
 msgid "Do you really want to reset all preferences to default value?"
-msgstr ""
+msgstr "環境設定をすべてデフォルト値にリセットしますか?"
 
 #: src/gui/preferences.c:1059
-#, fuzzy
 msgid "Reset Preferences"
-msgstr "環境設定を開ける"
+msgstr "環境設定をリセット"
 
 #: src/gui/preferences.c:1078
 msgid "External ICC Profiles"
@@ -22193,7 +22191,7 @@ msgstr "Netpbm ファイル (*.ppm, *.pnm, *.pgm)"
 
 #: src/gui/save_dialog.c:105
 msgid "Supported Image Files"
-msgstr ""
+msgstr "サポートしている画像ファイル"
 
 #: src/gui/save_dialog.c:233
 msgid "Saving BMP"
@@ -22285,12 +22283,11 @@ msgstr ""
 
 #: src/gui/script_menu.c:159
 msgid "Please read me before using scripts"
-msgstr ""
+msgstr "スクリプトを利用する前に読んでください"
 
 #: src/gui/script_menu.c:160
-#, fuzzy
 msgid "Run Script"
-msgstr "スクリプト"
+msgstr "スクリプトを実行"
 
 #: src/gui/script_menu.c:217
 #, fuzzy, c-format
@@ -22429,7 +22426,7 @@ msgstr "最初の画像の「核」の X-座標."
 msgid ""
 "Welcome to the newest version of Siril. Please take a moment to read some "
 "tips about this release"
-msgstr ""
+msgstr "最新版のSirilへようこそ. このリリースに関するヒントをお読みください"
 
 #: src/gui/siril_intro.c:35
 msgid ""
@@ -22493,11 +22490,11 @@ msgstr ""
 
 #: src/gui/siril_intro.c:46
 msgid "Use this button to undo an operation"
-msgstr ""
+msgstr "操作を取り消すためにはこのボタンを使います"
 
 #: src/gui/siril_intro.c:47
 msgid "Use this button to redo an operation"
-msgstr ""
+msgstr "操作をやり直すためにはこのボタンを使います"
 
 #: src/gui/siril_intro.c:48
 msgid ""
@@ -22538,7 +22535,7 @@ msgstr ""
 
 #: src/gui/siril_intro.c:55
 msgid "Enjoy using the new Siril"
-msgstr ""
+msgstr "新しいシリルを使って楽しんでください"
 
 #: src/gui/siril_plot.c:172
 #, fuzzy

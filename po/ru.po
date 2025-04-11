@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-03-31 08:47+0000\n"
+"PO-Revision-Date: 2025-04-09 14:44+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -4049,9 +4049,8 @@ msgstr ""
 "параметры растягивания."
 
 #: src/gui/uifiles/epf_dialog.ui:58
-#, fuzzy
 msgid "Edge Preserving Filters"
-msgstr "Сохранение краёв..."
+msgstr "Сохранение краёв"
 
 #: src/gui/uifiles/epf_dialog.ui:143
 #, fuzzy
@@ -29060,9 +29059,8 @@ msgid "Best frame: #%d.\n"
 msgstr "Лучший кадр: №%d.\n"
 
 #: src/registration/shift_methods.c:427
-#, fuzzy
 msgid "Error reading frame metadata\n"
-msgstr "Ошибка чтения метаданных.\n"
+msgstr "Ошибка чтения метаданных кадра.\n"
 
 #: src/registration/shift_methods.c:438
 msgid "Register using KOMBAT: loading and processing reference frame"

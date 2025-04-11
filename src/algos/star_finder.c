@@ -1179,7 +1179,13 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	if (findstar_args->save_to_file)
 		curr_findstar_args->starfile = star_filename;
 
-	gboolean status = check_star_list(star_filename, curr_findstar_args);
+	cache_status status = check_cachefile_date(args->seq, index, star_filename);
+	if (status <= CACHE_NOT_FOUND) { // cached file is older and was deleted or does not exist, we need to read the image
+		free(curr_findstar_args);
+		g_free(star_filename);
+		return TRUE; 
+	}
+	status = (int)check_star_list(star_filename, curr_findstar_args);
 	free(curr_findstar_args);
 	g_free(star_filename);
 	return !status; // check_star_list returns TRUE on success
@@ -1226,7 +1232,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			return curr_findstar_args;
 		}
 
-		if (seq->type == SEQ_INTERNAL || !check_cachefile_date(seq, i, star_filename) ||
+		if (seq->type == SEQ_INTERNAL || !(check_cachefile_date(seq, i, star_filename) == CACHE_NEWER) ||
 				!check_star_list(star_filename, curr_findstar_args))
 				can_use_cache = FALSE;
 		if (findstar_args->save_to_file)
