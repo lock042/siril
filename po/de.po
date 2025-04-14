@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-04-06 17:34+0000\n"
-"Last-Translator: Johannes Gottschling <johannes.gottschling@web.de>\n"
+"PO-Revision-Date: 2025-04-12 07:26+0000\n"
+"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -3020,30 +3020,27 @@ msgstr ""
 
 #: src/gui/uifiles/curves_dialog.ui:421
 msgid "Curve point Y: "
-msgstr ""
+msgstr "Kurvenpunkt Y: "
 
 #: src/gui/uifiles/curves_dialog.ui:433
 msgid "Curve point ID: "
-msgstr ""
+msgstr "Kurvenpunkt ID: "
 
 #: src/gui/uifiles/curves_dialog.ui:445
 msgid "Curve point X: "
-msgstr ""
+msgstr "Kurvenpunkt X: "
 
 #: src/gui/uifiles/curves_dialog.ui:487
-#, fuzzy
 msgid "The ID of the selected curve point"
-msgstr "Anzeige der Details des gewählten Rotfilters"
+msgstr "ID des gewählten Kurvenpunktes"
 
 #: src/gui/uifiles/curves_dialog.ui:537
-#, fuzzy
 msgid "X coordinate of the selected curve point"
-msgstr "X-Koordinate des Zentrums für Polarkoordinaten."
+msgstr "X-Koordinate des ausgewählten Kurvenpunktes"
 
 #: src/gui/uifiles/curves_dialog.ui:555
-#, fuzzy
 msgid "Y coordinate of the selected curve point"
-msgstr "Y-Koordinate des Zentrums für Polarkoordinaten."
+msgstr "Y-Koordinate des ausgewählten Kurvenpunktes"
 
 #: src/gui/uifiles/curves_dialog.ui:586 src/gui/uifiles/histogram_dialog.ui:621
 #, fuzzy
@@ -3059,9 +3056,8 @@ msgid "Clipped pixels count (highlights)"
 msgstr "Anzahl übersteuerter Pixel (Highlights)"
 
 #: src/gui/uifiles/curves_dialog.ui:683
-#, fuzzy
 msgid "Prefix of the image names resulting from the curve transformation"
-msgstr "Präfix für die Ergebnisbilder aus der Registrierung."
+msgstr "Präfix der aus der Kurventransformation resultierenden Bildnamen"
 
 #: src/gui/uifiles/curves_dialog.ui:708
 #, fuzzy
@@ -4095,30 +4091,28 @@ msgid "Edge Preserving Filters"
 msgstr "Kantenerhaltende Filter..."
 
 #: src/gui/uifiles/epf_dialog.ui:143
-#, fuzzy
 msgid "Filter Type"
-msgstr "Filter: "
+msgstr "Filtertyp"
 
 #: src/gui/uifiles/epf_dialog.ui:155
 msgid ""
 "Choose filter type. See the documentation for an explanation of the "
 "differences."
 msgstr ""
+"Wählen Sie den Filtertyp. In der Dokumentation finden Sie eine Erklärung der "
+"Unterschiede."
 
 #: src/gui/uifiles/epf_dialog.ui:158
-#, fuzzy
 msgid "Bilateral filter"
-msgstr "Wiener Filter"
+msgstr "Beidseitiger Filter"
 
 #: src/gui/uifiles/epf_dialog.ui:159
-#, fuzzy
 msgid "Guided filter"
-msgstr "Wiener Filter"
+msgstr "geführter Filter"
 
 #: src/gui/uifiles/epf_dialog.ui:188
-#, fuzzy
 msgid "Guide Image"
-msgstr "Bild"
+msgstr "Leitbild"
 
 #: src/gui/uifiles/epf_dialog.ui:199
 msgid ""
@@ -4129,14 +4123,14 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/epf_dialog.ui:211
-#, fuzzy
 msgid "self guided"
-msgstr "Keine Rasterlinien"
+msgstr "selbstgesteuert"
 
 #: src/gui/uifiles/epf_dialog.ui:216
-#, fuzzy
 msgid "Check this to use the current image as the guided filter guide image"
-msgstr "Diese Aktion speichert das aktuelle Bild unter einem neuen Dateinamen"
+msgstr ""
+"Aktivieren Sie diese Option, um das aktuelle Bild als Führungsbild für den "
+"geführten Filter zu verwenden"
 
 #: src/gui/uifiles/epf_dialog.ui:243 src/gui/uifiles/epf_dialog.ui:307
 msgid ""
@@ -4147,9 +4141,8 @@ msgstr ""
 "räumlichen Sigma-Werts eingestellt"
 
 #: src/gui/uifiles/epf_dialog.ui:245
-#, fuzzy
 msgid "Diameter"
-msgstr "Durchmesser [mm]"
+msgstr "Durchmesser"
 
 #: src/gui/uifiles/epf_dialog.ui:257
 msgid ""
@@ -4185,9 +4178,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/epf_dialog.ui:366
-#, fuzzy
 msgid "Sigma (intensity)"
-msgstr "Intensität"
+msgstr "Sigma (Intensität)"
 
 #: src/gui/uifiles/epf_dialog.ui:378
 msgid ""
@@ -4199,12 +4191,10 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/epf_dialog.ui:380
-#, fuzzy
 msgid "0.000"
-msgstr "10.00"
+msgstr "0.000"
 
 #: src/gui/uifiles/epf_dialog.ui:425 src/gui/uifiles/epf_dialog.ui:442
-#, fuzzy
 msgid ""
 "Modulation parameter set in the [0, 1] range.\n"
 "When this parameter is equal to 1, no modulation is applied.\n"
@@ -4212,7 +4202,7 @@ msgid ""
 msgstr ""
 "Modulationsparameter im Bereich [0,1].\n"
 "Wenn dieser Parameter gleich 1 ist, wird keine Modulation angewendet.\n"
-"Wenn dieser Parameter null ist, wird kein Filter angewandt."
+"Wenn dieser Parameter 0 ist, wird kein Filter angewandt."
 
 #: src/gui/uifiles/epf_dialog.ui:475
 msgid ""
@@ -4433,33 +4423,28 @@ msgstr ""
 "Vorschau der aktuellen Einstellungen auf einer Region of Interest anzeigen."
 
 #: src/gui/uifiles/graxpert.ui:115
-#, fuzzy
 msgid "Apply the selected operation."
-msgstr "Wendet die ausgewählte Korrektur an."
+msgstr "Wendet die ausgewählte Aktion an."
 
 #: src/gui/uifiles/graxpert.ui:159
-#, fuzzy
 msgid "Algorithm"
-msgstr "Algorithmus:"
+msgstr "Algorithmus"
 
 #: src/gui/uifiles/graxpert.ui:170
 msgid "Configure which GraXpert algorithm to use"
 msgstr "Konfigurieren, welcher GraXpert-Algorithmus benutzt wird"
 
 #: src/gui/uifiles/graxpert.ui:173
-#, fuzzy
 msgid "AI"
-msgstr "A"
+msgstr "AI"
 
 #: src/gui/uifiles/graxpert.ui:175
-#, fuzzy
 msgid "Kriging"
-msgstr "Original"
+msgstr "Kriging"
 
 #: src/gui/uifiles/graxpert.ui:176
-#, fuzzy
 msgid "Spline"
-msgstr "BSpline"
+msgstr "Spline"
 
 #: src/gui/uifiles/graxpert.ui:208
 msgid ""
@@ -4485,19 +4470,17 @@ msgstr ""
 "Nebel liegen."
 
 #: src/gui/uifiles/graxpert.ui:265
-#, fuzzy
 msgid "# samples per row"
-msgstr "Stichproben pro Reihe"
+msgstr "# Stichproben pro Reihe"
 
 #: src/gui/uifiles/graxpert.ui:276
-#, fuzzy
 msgid "Set the number of samples per row in the sampling grid."
-msgstr "Anzahl der Stichproben-Boxen in einer Reihe."
+msgstr ""
+"Legen Sie die Anzahl der Stichproben pro Zeile im Stichprobenraster fest."
 
 #: src/gui/uifiles/graxpert.ui:291
-#, fuzzy
 msgid "Sample size / px"
-msgstr "Panelgröße (px):"
+msgstr "Stichprobengröße / px"
 
 #: src/gui/uifiles/graxpert.ui:302
 msgid ""
@@ -4518,19 +4501,16 @@ msgstr ""
 "gespeichert"
 
 #: src/gui/uifiles/graxpert.ui:342
-#, fuzzy
 msgid "Clear samples"
-msgstr "Grafiken löschen"
+msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:346
-#, fuzzy
 msgid "Clear background samples"
-msgstr "Fehler beim Erzeugen der Hintergrundproben.\n"
+msgstr "Hintergrundmuster löschen"
 
 #: src/gui/uifiles/graxpert.ui:357
-#, fuzzy
 msgid "Generate samples"
-msgstr "Generiere Sternmaske"
+msgstr "Generiere Muster"
 
 #: src/gui/uifiles/graxpert.ui:361
 msgid ""
@@ -4555,42 +4535,39 @@ msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:406 src/gui/uifiles/graxpert.ui:750
 #: src/gui/uifiles/graxpert.ui:791 src/gui/uifiles/graxpert.ui:909
-#, fuzzy
 msgid "latest"
-msgstr "Letztes zurücksetzen"
+msgstr "neueste"
 
 #: src/gui/uifiles/graxpert.ui:438
 msgid ""
 "Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0."
 msgstr ""
+"Legen Sie den Grad der von GraXpert anzuwendenden Glättung zwischen 0,0 und "
+"1,0 fest."
 
 #: src/gui/uifiles/graxpert.ui:474
-#, fuzzy
 msgid "RBF Kernel"
-msgstr "Verbesserter Kernel"
+msgstr "RBF Kernel"
 
 #: src/gui/uifiles/graxpert.ui:486
-#, fuzzy
 msgid "Set the RBF kernel type"
-msgstr "Verbesserter Kernel"
+msgstr "RBF Kerneltyp setzen"
 
 #: src/gui/uifiles/graxpert.ui:489
 msgid "Thin plate"
-msgstr ""
+msgstr "Dünne Platte"
 
 #: src/gui/uifiles/graxpert.ui:490
 msgid "Quintic"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:491
-#, fuzzy
 msgid "Cubic"
-msgstr "Bikubisch"
+msgstr "Kubisch"
 
 #: src/gui/uifiles/graxpert.ui:519
-#, fuzzy
 msgid "Spline Order"
-msgstr "Ordnung der Lösung: "
+msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:531
 msgid "Set the spline order used for the spline background removal algorithm."
@@ -4611,28 +4588,24 @@ msgid "Objects"
 msgstr "Objekte"
 
 #: src/gui/uifiles/graxpert.ui:621 src/gui/uifiles/graxpert.ui:840
-#, fuzzy
 msgid "Strength"
-msgstr "Streckungen"
+msgstr "Stärke"
 
 #: src/gui/uifiles/graxpert.ui:633
-#, fuzzy
 msgid "Configure GraXpert deconvolution strength."
-msgstr "GraXpert-Entrauschung, Stärke %.3f"
+msgstr "Stärke der GraXpert-Dekonvolution einstellen"
 
 #: src/gui/uifiles/graxpert.ui:675
-#, fuzzy
 msgid "Image FWHM (in pixels)"
-msgstr "Abmessung in Pixeln"
+msgstr "FWHM (in Pixeln)"
 
 #: src/gui/uifiles/graxpert.ui:687
 msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
-#, fuzzy
 msgid "Deconvolution AI model version:"
-msgstr "Kernel der Dekonvolution gelöscht.\n"
+msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:748 src/gui/uifiles/graxpert.ui:789
 msgid ""
@@ -4641,9 +4614,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:852
-#, fuzzy
 msgid "Configure GraXpert denoising strength."
-msgstr "GraXpert-Entrauschung, Stärke %.3f"
+msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:895
 msgid "Denoising AI model version:"
@@ -4661,7 +4633,7 @@ msgstr "Entrauschung"
 
 #: src/gui/uifiles/graxpert.ui:973
 msgid "Use GPU"
-msgstr ""
+msgstr "GPU benutzen"
 
 #: src/gui/uifiles/graxpert.ui:977
 msgid "Configure GraXpert to use the GPU for AI inference, if available"
@@ -4684,9 +4656,8 @@ msgid " "
 msgstr " "
 
 #: src/gui/uifiles/graxpert.ui:1061
-#, fuzzy
 msgid "General Settings"
-msgstr "Experteneinstellungen"
+msgstr "Allgemeine Einstellungen"
 
 #: src/gui/uifiles/histogram_dialog.ui:138 src/gui/histogram.c:1392
 msgid "Histogram Transformation"
@@ -5610,32 +5581,28 @@ msgid "Remove selected image"
 msgstr "Entferne ausgewählte Datei"
 
 #: src/gui/uifiles/python_scratchpad.ui:53
-#, fuzzy
 msgid "0/0"
-msgstr "0.0"
+msgstr "0/0"
 
 #: src/gui/uifiles/python_scratchpad.ui:72
-#, fuzzy
 msgid "Previous Result"
-msgstr "Vorherige PSF"
+msgstr "Vorheriges Ergebnis"
 
 #: src/gui/uifiles/python_scratchpad.ui:94
 msgid "Next Result"
-msgstr ""
+msgstr "nächstes Ergebnis"
 
 #: src/gui/uifiles/python_scratchpad.ui:124
 msgid "unsaved"
-msgstr ""
+msgstr "nicht gespeichert"
 
 #: src/gui/uifiles/python_scratchpad.ui:148
-#, fuzzy
 msgid "_File"
-msgstr "Datei"
+msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:158
-#, fuzzy
 msgid "Clear the current script"
-msgstr "Kann in Scripten verwendet werden: "
+msgstr "aktuelles Skript löschen"
 
 #: src/gui/uifiles/python_scratchpad.ui:160
 msgid "_New"
@@ -5643,7 +5610,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:169
 msgid "Open a script from a file"
-msgstr ""
+msgstr "Skript von einer Datei öffnen"
 
 #: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:243
 #: src/gui/python_gui.c:738 src/pixelMath/pixel_math_runner.c:1229
@@ -5651,14 +5618,12 @@ msgid "_Open"
 msgstr "Öffnen"
 
 #: src/gui/uifiles/python_scratchpad.ui:180
-#, fuzzy
 msgid "_Recent Files"
-msgstr "Datei ersetzen"
+msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:200
-#, fuzzy
 msgid "Save the current script"
-msgstr "Aktuelles FITS Bild speichern"
+msgstr "Aktuelles Skript speichern"
 
 #: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:257
 #: src/gui/python_gui.c:815
@@ -5666,14 +5631,12 @@ msgid "_Save"
 msgstr "_Speichern"
 
 #: src/gui/uifiles/python_scratchpad.ui:211
-#, fuzzy
 msgid "Save the current script (choose filename)"
-msgstr "Bild mit einem neuen Dateiname speichern"
+msgstr "Aktuelles Skript speichern (Dateiname auswählen)"
 
 #: src/gui/uifiles/python_scratchpad.ui:213
-#, fuzzy
 msgid "_Save As"
-msgstr "Speichern Als"
+msgstr "Speichern als"
 
 #: src/gui/uifiles/python_scratchpad.ui:222
 #: src/gui/uifiles/python_scratchpad.ui:543
@@ -5711,7 +5674,7 @@ msgstr "Copyright"
 #: src/gui/uifiles/python_scratchpad.ui:286
 #: src/gui/uifiles/python_scratchpad.ui:288
 msgid "Paste"
-msgstr ""
+msgstr "Einfügen"
 
 #: src/gui/uifiles/python_scratchpad.ui:317
 #, fuzzy
@@ -5720,13 +5683,12 @@ msgstr "Skript"
 
 #: src/gui/uifiles/python_scratchpad.ui:327
 #: src/gui/uifiles/python_scratchpad.ui:413
-#, fuzzy
 msgid "Run the script"
 msgstr "Skript ausführen"
 
 #: src/gui/uifiles/python_scratchpad.ui:329
 msgid "Run"
-msgstr ""
+msgstr "Ausführen"
 
 #: src/gui/uifiles/python_scratchpad.ui:339
 msgid ""
@@ -5735,9 +5697,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:340
-#, fuzzy
 msgid "Python scripts"
-msgstr "Pythonskript"
+msgstr "Pythonskripte"
 
 #: src/gui/uifiles/python_scratchpad.ui:350
 msgid ""
@@ -5756,9 +5717,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:362
-#, fuzzy
 msgid "Enable test arguments"
-msgstr "Ungültige Argumente"
+msgstr "Testargumente aktivieren"
 
 #: src/gui/uifiles/python_scratchpad.ui:370
 msgid ""
@@ -5769,7 +5729,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:371
 msgid "Enable python debug mode"
-msgstr ""
+msgstr "Python Debugmodus aktivieren"
 
 #: src/gui/uifiles/python_scratchpad.ui:383
 #, fuzzy
@@ -5778,12 +5738,11 @@ msgstr "Einstellungen"
 
 #: src/gui/uifiles/python_scratchpad.ui:393
 msgid "Enable syntax highlighting"
-msgstr ""
+msgstr "Syntaxhervorhebung aktivieren"
 
 #: src/gui/uifiles/python_scratchpad.ui:394
-#, fuzzy
 msgid "Highlight syntax"
-msgstr "Highlights: "
+msgstr "Highlightsyntax"
 
 #: src/gui/uifiles/python_scratchpad.ui:403
 #: src/gui/uifiles/python_scratchpad.ui:404
@@ -5813,7 +5772,7 @@ msgstr "Zeilennummern im Skripteditor anzeigen"
 
 #: src/gui/uifiles/python_scratchpad.ui:433
 msgid "Show line numbers"
-msgstr ""
+msgstr "Zeilennummern anzeigen"
 
 #: src/gui/uifiles/python_scratchpad.ui:442
 #, fuzzy
@@ -5821,19 +5780,16 @@ msgid "Show line markers in the left margin"
 msgstr "Zeilenmarkierungen im Skripteditor anzeigen"
 
 #: src/gui/uifiles/python_scratchpad.ui:443
-#, fuzzy
 msgid "Show line markers"
-msgstr "Ordnung der Lösung: "
+msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:452
-#, fuzzy
 msgid "Highlight the current line in the editor"
-msgstr "Die aktuelle Zeile im Skripteditor hervorheben"
+msgstr "Die aktuelle Zeile im Editor hervorheben"
 
 #: src/gui/uifiles/python_scratchpad.ui:453
-#, fuzzy
 msgid "Highlight current line"
-msgstr "Highlights Übersteuerung"
+msgstr "aktuelle Zeile hervorheben"
 
 #: src/gui/uifiles/python_scratchpad.ui:462
 #: src/gui/uifiles/python_scratchpad.ui:463
@@ -5878,9 +5834,8 @@ msgid "Show newline characters in the editor view"
 msgstr "Sichtbare Zeilenumbruchzeichen im Scripteditor anzeigen"
 
 #: src/gui/uifiles/python_scratchpad.ui:512
-#, fuzzy
 msgid "Show newlines"
-msgstr "unverknüpft"
+msgstr "neue Linien anzeigen"
 
 #: src/gui/uifiles/python_scratchpad.ui:520
 #, fuzzy
@@ -5888,9 +5843,8 @@ msgid "Show minimap in the editor view"
 msgstr "Eine Mini-Karte im Scripteditor anzeigen"
 
 #: src/gui/uifiles/python_scratchpad.ui:521
-#, fuzzy
 msgid "Show minimap"
-msgstr "Zeige Originalbild"
+msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:533
 #, fuzzy
@@ -5898,24 +5852,20 @@ msgid "_Help"
 msgstr "Hilfe"
 
 #: src/gui/uifiles/python_scratchpad.ui:545
-#, fuzzy
 msgid "Python API reference"
-msgstr "Python Interface"
+msgstr "Python API Referenz"
 
 #: src/gui/uifiles/python_scratchpad.ui:554
-#, fuzzy
 msgid "Siril Command Reference"
-msgstr "Fehler beim SIRIL-Befehl"
+msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:572
-#, fuzzy
 msgid "Script type"
-msgstr "Skript"
+msgstr "Skript-Typ"
 
 #: src/gui/uifiles/python_scratchpad.ui:641
-#, fuzzy
 msgid "Arguments:"
-msgstr "Parameterfehler"
+msgstr "Parameter:"
 
 #: src/gui/uifiles/python_scratchpad.ui:653
 msgid ""
@@ -9487,9 +9437,8 @@ msgid "Open the curves transform dialog"
 msgstr "Öffnet den Dialog Gradationskurven"
 
 #: src/gui/uifiles/siril.ui:1531
-#, fuzzy
 msgid "Curves Transformation..."
-msgstr "Wavelet Transformation"
+msgstr "Kurven Transformation"
 
 #: src/gui/uifiles/siril.ui:1544
 msgid "Open the hystogram transform dialog"
@@ -12888,9 +12837,8 @@ msgstr ""
 "vorhanden"
 
 #: src/gui/uifiles/unpurple_dialog.ui:59
-#, fuzzy
 msgid "Unpurple Filter"
-msgstr "Magentakorrektur-Filter..."
+msgstr "Magentakorrektur-Filter"
 
 #: src/gui/uifiles/unpurple_dialog.ui:147
 msgid "Blue Adjustment"
@@ -12919,9 +12867,8 @@ msgstr ""
 "Wenn dieser Parameter null ist, wird kein Filter angewandt."
 
 #: src/gui/uifiles/unpurple_dialog.ui:215
-#, fuzzy
 msgid "Threshold"
-msgstr "Schwellwert: "
+msgstr "Schwellwert"
 
 #: src/gui/uifiles/unpurple_dialog.ui:226
 #: src/gui/uifiles/unpurple_dialog.ui:244
@@ -12931,11 +12878,15 @@ msgid ""
 "background luminance level for pixels to be selected\n"
 "Threshold for purple reduction set in the [0, 1] range."
 msgstr ""
+"Wenn die Option „Sternmaske verwenden“ aktiviert ist, wirkt sich dies auf "
+"die Größe der einzelnen Sterne\n"
+"in der Sternmaske. Wenn sie ausgeschaltet ist, wirkt sie sich auf die\n"
+"Hintergrundleuchtdichte für die auszuwählenden Pixel\n"
+"Schwellenwert für die Violett-Reduzierung im Bereich [0, 1] eingestellt."
 
 #: src/gui/uifiles/unpurple_dialog.ui:267
-#, fuzzy
 msgid "Use Starmask"
-msgstr "Sternmaske"
+msgstr "nutze Sternmaske"
 
 #: src/gui/uifiles/wavelets_dialog.ui:77
 msgid "Wavelets control"
@@ -13323,9 +13274,8 @@ msgid "photometry"
 msgstr "Photometrie"
 
 #: src/algos/PSF.c:1047
-#, fuzzy
 msgid "fit"
-msgstr ".fit"
+msgstr "fit"
 
 #: src/algos/astrometry_solver.c:339
 msgid ""
@@ -13474,9 +13424,8 @@ msgid "local"
 msgstr "Lokal"
 
 #: src/algos/astrometry_solver.c:888
-#, fuzzy
 msgid "online"
-msgstr "unverknüpft"
+msgstr ""
 
 #: src/algos/astrometry_solver.c:889
 #, fuzzy, c-format
@@ -13628,9 +13577,8 @@ msgstr ""
 "nicht gelesen werden\n"
 
 #: src/algos/astrometry_solver.c:1934
-#, fuzzy
 msgid "Using the current selection to detect stars\n"
-msgstr "Warnung: die aktuelle Auswahl wird für die Sternerkennung genutzt\n"
+msgstr "aktuelle Auswahl wird für die Sternerkennung genutzt\n"
 
 #: src/algos/astrometry_solver.c:1979
 msgid "Selection is not used in manual star selection mode\n"
@@ -13742,7 +13690,7 @@ msgstr "Nicht genügend Samples."
 
 #: src/algos/background_extraction.c:884
 msgid "Insufficient samples"
-msgstr ""
+msgstr "Unzureichende Muster"
 
 #: src/algos/background_extraction.c:899
 #, c-format
@@ -14240,7 +14188,7 @@ msgstr "Lineares Anpassungs-Clipping:\n"
 
 #: src/algos/fitting.c:178 src/algos/fitting.c:228
 msgid "Error! Need at least 2 points...\n"
-msgstr ""
+msgstr "Fehler! Benötige mindestens 2 Punkte...\n"
 
 #: src/algos/fix_xtrans_af.c:189
 #, c-format
@@ -16895,9 +16843,8 @@ msgstr ""
 "ignoriert.\n"
 
 #: src/core/command.c:5986
-#, fuzzy
 msgid "Error, no existing samples available\n"
-msgstr "Fehler: Keine Referenzsterne verfügbar\n"
+msgstr ""
 
 #: src/core/command.c:5999
 msgid "Error generating background samples\n"
@@ -17806,12 +17753,11 @@ msgstr ""
 "Katalog über Vizier zurückgegriffen\n"
 
 #: src/core/command.c:9827
-#, fuzzy
 msgid ""
 "Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"
 msgstr ""
 "Der lokale Gaia-Katalog ist nicht verfügbar, es wird auf den Online-Gaia-"
-"Katalog über Vizier zurückgegriffen\n"
+"Katalog über ESA zurückgegriffen\n"
 
 #: src/core/command.c:9918
 msgid ""
@@ -20400,9 +20346,9 @@ msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr "Lege das aktuelle Arbeitsverzeichnis fest '%s'\n"
 
 #: src/core/utils.c:1198
-#, fuzzy, c-format
+#, c-format
 msgid "Could not change directory to '%s'(error code %d: %s).\n"
-msgstr "Konnte nicht wechseln zu Verzeichnis '%s'.\n"
+msgstr ""
 
 #: src/core/utils.c:1224
 msgid "Filename is too long, not expanding it\n"
@@ -20494,9 +20440,8 @@ msgid "cosmetic correction: cosme file format error at line %d: %s\n"
 msgstr "Kosmetische Korrektur: cosme-Datei Format-Fehler in Zeile %d: %s\n"
 
 #: src/filters/epf.c:122
-#, fuzzy
 msgid "Bilateral filter: processing...\n"
-msgstr "Median Filter: in Bearbeitung...\n"
+msgstr "BeidseitigerFilter: in Bearbeitung...\n"
 
 #: src/filters/fft.c:455
 msgid "Siril FFT wisdom imported successfully...\n"
@@ -22288,12 +22233,11 @@ msgid "No star detected"
 msgstr "Keine Sterne erkannt"
 
 #: src/gui/cut.c:1208
-#, fuzzy
 msgid ""
 "Siril cannot set the star coordinate as no star has been detected in the "
 "selection"
 msgstr ""
-"Siril kann die Startkoordinate nicht festlegen, da kein Stern in der Auswahl "
+"Siril kann die Sternkoordinate nicht festlegen, da kein Stern in der Auswahl "
 "gefunden wurde"
 
 #: src/gui/cut.c:1213 src/gui/statistics_list.c:203
@@ -22302,10 +22246,9 @@ msgid "No selection"
 msgstr "Keine Auswahl getroffen"
 
 #: src/gui/cut.c:1214
-#, fuzzy
 msgid "Siril cannot set the star coordinate as no selection is made"
 msgstr ""
-"Siril kann die Startkoordinate nicht festlegen, da keine Auswahl gesetzt "
+"Siril kann die Sternkoordinate nicht festlegen, da keine Auswahl gesetzt "
 "wurde"
 
 #: src/gui/denoisegui.c:163
@@ -22338,18 +22281,16 @@ msgid "_Cancel"
 msgstr "Abbruch"
 
 #: src/gui/dialogs.c:250
-#, fuzzy
 msgid "Add Files"
-msgstr "Rotfilter"
+msgstr "Dateien hinzufügen"
 
 #: src/gui/dialogs.c:251 src/gui/keywords_tree.c:509
 msgid "_Add"
 msgstr "Hinzufügen"
 
 #: src/gui/dialogs.c:256
-#, fuzzy
 msgid "Save File"
-msgstr "Alles speichern"
+msgstr "Datei speichern"
 
 #: src/gui/documentation.c:65
 #, c-format
@@ -22370,9 +22311,8 @@ msgid "Bilateral filter: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"
 msgstr ""
 
 #: src/gui/epf.c:173
-#, fuzzy
 msgid "Error, no guide image loaded."
-msgstr "Fehler: Keine Sequenz geladen.\n"
+msgstr "Fehler: Keine Leitbild geladen."
 
 #: src/gui/epf.c:297 src/gui/epf.c:304 src/gui/merge_cfa.c:91
 #: src/gui/merge_cfa.c:105 src/gui/merge_cfa.c:118 src/gui/merge_cfa.c:131
@@ -22381,9 +22321,8 @@ msgid "Image loading failed"
 msgstr "Bild laden fehlgeschlagen"
 
 #: src/gui/epf.c:303
-#, fuzzy
 msgid "Error: image dimensions do not match"
-msgstr "Fehler: Abmessungen des Leitbildes stimmen nicht überein\n"
+msgstr "Fehler: Abmessungen des Bildes stimmen nicht überein"
 
 #: src/gui/git_gui.c:60 src/gui/git_gui.c:71 src/gui/git_gui.c:248
 #: src/gui/git_gui.c:252 src/gui/git_gui.c:257 src/gui/git_gui.c:262
@@ -22989,14 +22928,13 @@ msgid "Not a valid sequence for cropping.\n"
 msgstr "Keine gültige Sequenz für das Cropping\n"
 
 #: src/gui/merge_cfa.c:210
-#, fuzzy
 msgid "Error: input sequence CFA marker not found"
-msgstr "Fehler: Keine Sequenz geladen.\n"
+msgstr "Fehler: Eingabesequenz CFA-Marker nicht gefunden"
 
 #: src/gui/merge_cfa.c:214
-#, fuzzy, c-format
+#, c-format
 msgid "Identified the loaded sequence as CFA%d\n"
-msgstr "Führt einen Zuschnitt der geladenen Sequenz durch (crop)"
+msgstr "Geladene Sequenz als CFA%d identifiziert\n"
 
 #: src/gui/merge_cfa.c:242 src/gui/merge_cfa.c:253 src/gui/merge_cfa.c:264
 #: src/gui/merge_cfa.c:275
@@ -23004,16 +22942,16 @@ msgid ""
 "Error: sequence has more than one channel, this is for mono (CFA subchannel) "
 "sequences"
 msgstr ""
+"Fehler: Sequenz hat mehr als einen Kanal, dies ist für Mono (CFA Unterkanal) "
+"Sequenzen"
 
 #: src/gui/merge_cfa.c:342
-#, fuzzy
 msgid "Error: images are not all loaded"
-msgstr "Fehler: Bild konnte nicht geladen werden"
+msgstr "Fehler: nicht alle Bilder sind geladen"
 
 #: src/gui/merge_cfa.c:343
-#, fuzzy
 msgid "Merge CFA cannot proceed"
-msgstr "CFA (Color Filter Array) Kanäle zusammenführen..."
+msgstr "Zusammenführen CFA (Color Filter Array) kann nicht fortgesetzt werden"
 
 #: src/gui/mouse_action_functions.c:309
 msgid "This action opens a new image if there is no image currently loaded"
@@ -24468,7 +24406,7 @@ msgstr "Scripteditor..."
 
 #: src/gui/script_menu.c:259
 msgid "Enable Python debug mode"
-msgstr ""
+msgstr "Python-Debug-Modus einschalten"
 
 #: src/gui/script_menu.c:293
 #, fuzzy, c-format
@@ -25028,7 +24966,7 @@ msgstr "Größe der Auswahl in Pixeln: (%d,%d)"
 #: src/gui/unpurple.c:78
 #, c-format
 msgid "Creating binary star mask for %d stars...\n"
-msgstr ""
+msgstr "Erstellen einer binären Sternmaske für %d Sterne...\n"
 
 #: src/gui/unpurple.c:184
 msgid "Unpurple filter: (thresh=%2.2lf, mod_b=%2.2lf)"
@@ -26089,9 +26027,9 @@ msgid "Found %d trixels:\n"
 msgstr "%d Trixel gefunden\n"
 
 #: src/io/mp4_output.c:95
-#, fuzzy, c-format
+#, c-format
 msgid "Selected encoder: %s\n"
-msgstr "Sequenz %s ausgwählt %s..."
+msgstr "Gewählter Encoder: %s\n"
 
 #: src/io/mp4_output.c:502
 msgid ""
@@ -26108,27 +26046,24 @@ msgstr ""
 
 #: src/io/mp4_output.c:518
 msgid "FFMPEG does not seem to support mp4 format, aborting.\n"
-msgstr ""
+msgstr "FFMPEG scheint das mp4-Format nicht zu unterstützen, Abbruch.\n"
 
 #: src/io/mp4_output.c:550
-#, fuzzy
 msgid "Error: format does not support video codec.\n"
-msgstr "Format wird nicht unterstützt."
+msgstr "Fehler: Format unterstützt keinen Videocodec.\n"
 
 #: src/io/mp4_output.c:556
-#, fuzzy
 msgid "Could not add the video stream in the output film, aborting\n"
-msgstr "Konnte das Stacking-Ergebnis %s nicht speichern, Abbruch\n"
+msgstr ""
 
 #: src/io/mp4_output.c:562
-#, fuzzy
 msgid "Selected codec is not available\n"
-msgstr "Fehler: Befehl %s ist nicht verfügbar\n"
+msgstr "Gewählter Codec ist nicht verfügbar\n"
 
 #: src/io/mp4_output.c:576
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open '%s': %s\n"
-msgstr "Konnte Datei %s: %snicht öffnen\n"
+msgstr "Konnte Datei %s: %s nicht öffnen\n"
 
 #: src/io/mp4_output.c:584
 #, fuzzy, c-format
@@ -27080,9 +27015,9 @@ msgid "List saved to %s\n"
 msgstr "Liste in %s gespeichert\n"
 
 #: src/io/siril_catalogues.c:1476
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to save list to %s\n"
-msgstr "Konnte die Maske für %d nicht speichern\n"
+msgstr ""
 
 #: src/io/siril_git.c:134
 msgid "libgit2: unable to parse some refish\n"
@@ -27405,9 +27340,8 @@ msgid "No regdata available"
 msgstr "Keine regdata verfügbar"
 
 #: src/io/siril_pythoncommands.c:1425
-#, fuzzy
 msgid "Error building frame filename"
-msgstr "Fehler beim laden des Farbprofils"
+msgstr "Fehler beim Erstellen des Dateinamen"
 
 #: src/io/siril_pythoncommands.c:1456
 msgid "No stats for this sequence"
@@ -27534,9 +27468,8 @@ msgid "Index is out of range"
 msgstr "Index ist außerhalb des Bereichs"
 
 #: src/io/siril_pythoncommands.c:2157
-#, fuzzy
 msgid "No distodata available"
-msgstr "Keine regdata verfügbar"
+msgstr ""
 
 #: src/io/siril_pythoncommands.c:2197
 #, fuzzy
@@ -27553,18 +27486,16 @@ msgid "No polygon found matching id"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:2252
-#, fuzzy
 msgid "Failed to serialize user polygon"
-msgstr "Bundlepfad konnte nicht abgerufen werden"
+msgstr ""
 
 #: src/io/siril_pythoncommands.c:2271
 msgid "No user polygons to serialize"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:2278
-#, fuzzy
 msgid "Failed to serialize user polygon list"
-msgstr "Bundlepfad konnte nicht abgerufen werden"
+msgstr ""
 
 #: src/io/siril_pythoncommands.c:2292 src/io/siril_pythoncommands.c:2298
 #: src/io/siril_pythoncommands.c:2304
@@ -27573,9 +27504,8 @@ msgid "Argument error"
 msgstr "Parameterfehler"
 
 #: src/io/siril_pythoncommands.c:2314
-#, fuzzy
 msgid "Unknown command"
-msgstr "unbekannter Befehlsname"
+msgstr "unbekannter Befehl"
 
 #: src/io/siril_pythonmodule.c:190
 #, c-format
@@ -27645,10 +27575,10 @@ msgid "Invalid image size: exceeds memory limit"
 msgstr "Ungültige Bildgröße: Überschreitet das Speicherlimit"
 
 #: src/io/siril_pythonmodule.c:539
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"
 msgstr ""
-"Ungültige Bildabmessungen oder Format: w = %u, h = %u, c = %u, size = %"
+"Ungültige Bildabmessungen oder Format: w = %u, h = %u, c = %u, size = %s"
 
 #: src/io/siril_pythonmodule.c:549
 msgid "Error: image dimensions exceed available memory"
@@ -27834,9 +27764,8 @@ msgid "Warning: Duplicate x value detected in JSON file %s: %.1f\n"
 msgstr "Warnung: Doppelte X-Werte in JSON-Datei %s erkannt: %.1f\n"
 
 #: src/io/spcc_json.c:496 src/io/spcc_json.c:499
-#, fuzzy
 msgid "Error: index % "
-msgstr "Fehlercode:"
+msgstr "Fehler: index % "
 
 #: src/io/spcc_json.c:507
 msgid "Error: index must be 0 for single object JSON.\n"
@@ -28776,9 +28705,8 @@ msgstr ""
 
 #. Estimate button was pressed, we just warn
 #: src/registration/applyreg.c:1047 src/registration/applyreg.c:1048
-#, fuzzy
 msgid "Output too large"
-msgstr "Ausgabepräfix:"
+msgstr "Ausgabe zu groß"
 
 #: src/registration/applyreg.c:1061
 msgid ""
@@ -28790,6 +28718,7 @@ msgstr ""
 #: src/registration/applyreg.c:1075
 msgid "Images will be larger than what Siril can display for now."
 msgstr ""
+"Die Bilder werden größer sein als das, was Siril im Moment anzeigen kann."
 
 #: src/registration/applyreg.c:1076
 msgid "Tune scale ratio to get max dimension smaller than 32767 pixels"
@@ -29307,11 +29236,12 @@ msgstr "Registriere DFT: lade und bearbeite Referenz-Frame"
 
 #: src/registration/shift_methods.c:111 src/registration/shift_methods.c:465
 msgid "Register: could not load first image to register, aborting.\n"
-msgstr "Registrierung: konnte erstes Bild nicht laden. Abbruch.\n"
+msgstr ""
+"Registrierung: konnte erstes Bild zur Registrierung nicht laden. Abbruch.\n"
 
 #: src/registration/shift_methods.c:136
 msgid "Error: SER file has wrong type. Cannot proceed.\n"
-msgstr ""
+msgstr "Fehler: SER Datei hat den falschen Typ. Kann nicht fortfahren.\n"
 
 #: src/registration/shift_methods.c:230 src/registration/shift_methods.c:509
 #, c-format
@@ -29321,12 +29251,11 @@ msgstr "Registrierung: bearbeite Bild %s"
 #: src/registration/shift_methods.c:335 src/registration/shift_methods.c:572
 #, c-format
 msgid "Best frame: #%d.\n"
-msgstr "Bestes Frame: #%d.\n"
+msgstr "Bestes Bild: #%d.\n"
 
 #: src/registration/shift_methods.c:427
-#, fuzzy
 msgid "Error reading frame metadata\n"
-msgstr "Fehler beim lesen der Referenz-Metadaten.\n"
+msgstr "Fehler beim Lesen der Frame-Metadaten.\n"
 
 #: src/registration/shift_methods.c:438
 msgid "Register using KOMBAT: loading and processing reference frame"
@@ -29351,7 +29280,7 @@ msgstr ""
 #: src/registration/shift_methods.c:656
 #, c-format
 msgid "Best frame: #%d with fwhm=%.3g.\n"
-msgstr "Bestes Frame: #%d mit FWHM=%.3g.\n"
+msgstr "Bestes Bild: #%d mit FWHM=%.3g.\n"
 
 #. the mask exists and is more recent than the img, we don't need to read again
 #: src/stacking/blending.c:71
