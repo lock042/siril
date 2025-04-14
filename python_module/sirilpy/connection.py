@@ -1046,6 +1046,7 @@ class SirilInterface:
 
         Example:
             .. code-block:: python
+            
                 siril.cmd("ght", "-D=0.5", "-b=2.0")
         """
         try:
