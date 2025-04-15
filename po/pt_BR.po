@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-04-05 16:47+0000\n"
+"PO-Revision-Date: 2025-04-15 10:54+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1971
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr "Equalização de Histograma Adaptativa com Limitação de Contraste..."
+msgstr "Equalização de histograma adaptativo com contraste limitado..."
 
 #: src/gui/uifiles/CLAHE_dialog.ui:69 src/gui/uifiles/asinh_dialog.ui:64
 #: src/gui/uifiles/ccm_dialog.ui:43 src/gui/uifiles/curves_dialog.ui:80
@@ -34,7 +34,7 @@ msgstr "Equalização de Histograma Adaptativa com Limitação de Contraste..."
 #: src/gui/uifiles/unpurple_dialog.ui:77 src/gui/uifiles/wavelets_dialog.ui:96
 #: src/gui/mouse_action_preferences.c:648
 msgid "Reset"
-msgstr "Reset"
+msgstr "Reiniciar"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:83 src/gui/uifiles/asinh_dialog.ui:78
 #: src/gui/uifiles/denoise_dialog.ui:73 src/gui/uifiles/epf_dialog.ui:90
@@ -76,19 +76,19 @@ msgstr "Aplicar"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:129
 msgid "Tiles Grid Size"
-msgstr "Tamanho da Grade de Blocos"
+msgstr "Tamanho da grade de blocos"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:168
 msgid ""
 "Sets size of grid for histogram equalization. Input image will be divided "
 "into equally sized rectangular tiles. "
 msgstr ""
-"Define o tamanho da grade para a equalização do histograma. A imagem de "
-"entrada será dividida em blocos retangulares de tamanho igual. "
+"Define o tamanho da grade para equalização do histograma. A imagem de "
+"entrada será dividida em blocos retangulares de tamanhos iguais. "
 
 #: src/gui/uifiles/CLAHE_dialog.ui:189
 msgid "Clip Limit"
-msgstr "Limite de Recorte"
+msgstr "Limite de recorte"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:224
 msgid "Sets threshold for contrast limiting."
@@ -160,6 +160,9 @@ msgid ""
 "Note: ROI preview will show a black border. Do not panic, the border will be "
 "overwritten by future ROIs and when finally applying the median filter."
 msgstr ""
+"Observação: a visualização da ROI mostrará uma borda preta. Não entre em "
+"pânico, a borda será substituída por ROIs futuras e pela aplicação final do "
+"filtro de mediana."
 
 #: src/gui/uifiles/Median_dialog.ui:138
 msgid "Kernel Size:"
@@ -262,7 +265,7 @@ msgstr "Estatística"
 #: src/gui/uifiles/StatWindow.ui:62 src/gui/uifiles/starnet_dialog.ui:75
 #: src/gui/uifiles/wavelets_dialog.ui:242
 msgid "Execute"
-msgstr ""
+msgstr "Executar"
 
 #: src/gui/uifiles/StatWindow.ui:66
 msgid "Run statistic calculation"
@@ -277,15 +280,16 @@ msgid "Normalized Real [0, 1]"
 msgstr "Real Normalizado [0 , 1]"
 
 #: src/gui/uifiles/StatWindow.ui:120
-#, fuzzy
 msgid "Per CFA channel"
-msgstr "Canal vermelho"
+msgstr "Por canal CFA"
 
 #: src/gui/uifiles/StatWindow.ui:125
 msgid ""
 "Compute statistics on pixels that have the same filter as the corresponding "
 "channel, for CFA (non-demosaiced) images."
 msgstr ""
+"Calcula estatísticas sobre pixels que têm o mesmo filtro que o canal "
+"correspondente, para imagens CFA (não desmosaicadas)."
 
 #. Connect the edited signal
 #: src/gui/uifiles/StatWindow.ui:148 src/gui/uifiles/astrometry_dialog.ui:492
@@ -2201,11 +2205,11 @@ msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1912
 msgid "Split Bregman method with TV regularization"
-msgstr ""
+msgstr "Método de Bregman dividido com regularização TV"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1913
 msgid "Richardson-Lucy method with TV regularization"
-msgstr ""
+msgstr "Método Richardson-Lucy com regularização TV"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1914
 msgid "Wiener filter"
@@ -2214,11 +2218,12 @@ msgstr "Filtro Wiener"
 #: src/gui/uifiles/bdeconv_dialog.ui:1940
 msgid ""
 "Number of iterations for final deconvolution if using an iterative method"
-msgstr ""
+msgstr "Número de iterações para deconvolução final se usar um método iterativo"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1954
 msgid "Regularization parameter for the final non-blind stage deconvolution"
 msgstr ""
+"Parâmetro de regularização para a deconvolução final do estágio não cego"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1969
 msgid ""
@@ -2226,6 +2231,10 @@ msgid ""
 "noise amplification. Deconvolution will stop early if the average pixel "
 "difference ratio between subsequent iterations is less than this value."
 msgstr ""
+"Define um critério de parada antecipada para o algoritmo Richardson-Lucy "
+"para evitar a amplificação de ruído. A deconvolução será interrompida "
+"antecipadamente se a razão média de diferença de pixels entre as iterações "
+"subsequentes for menor que esse valor."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1984
 msgid ""
@@ -2236,6 +2245,13 @@ msgid ""
 "more often used in regularizing denoising algorithms but can perform well "
 "when deconvolving a star mask produced by Siril's Starnet++ interface."
 msgstr ""
+"A regularização por Variação Total preserva bem as bordas nítidas da imagem. "
+"Em caso de dúvida, opte pela Variação Total. No entanto, ela pode ter a "
+"tendência de produzir um \"efeito escada\" em grandes áreas uniformes.\n"
+"A norma de Frobenius da Hessiana utiliza um termo de regularização de "
+"segunda ordem. É mais frequentemente usado na regularização de algoritmos de "
+"redução de ruído, mas pode ter um bom desempenho ao deconvolver uma máscara "
+"estelar produzida pela interface Starnet++ do Siril."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1988
 msgid "Total Variation"
@@ -2243,7 +2259,7 @@ msgstr "Variação total"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1989
 msgid "Frobenius norm of Hessian"
-msgstr ""
+msgstr "Norma de Frobenius de Hesse"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1990 src/gui/uifiles/savepopup.ui:272
 #: src/gui/uifiles/settings_window.ui:851
@@ -2254,17 +2270,19 @@ msgstr "Nenhum"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2003
 msgid "Alpha (α)"
-msgstr ""
+msgstr "Alpha (α)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2012
 msgid "Stopping criterion"
-msgstr ""
+msgstr "Critério de parada"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2016
 msgid ""
 "Sets a stopping criterion based on difference between successive estimates. "
 "To activate the criterion the checkbox must be selected."
 msgstr ""
+"Define um critério de parada com base na diferença entre estimativas "
+"sucessivas. Para ativar o critério, a caixa de seleção deve estar marcada."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2029
 msgid "Regularization"
@@ -2272,7 +2290,7 @@ msgstr "Regularização"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2041
 msgid "Gradient descent step size"
-msgstr ""
+msgstr "Tamanho do passo de descida do gradiente"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2053
 msgid "Algorithm method"
@@ -2285,14 +2303,18 @@ msgid ""
 "stretched images Mulitiplicative may give good results and require fewer "
 "iterations."
 msgstr ""
+"Em caso de dúvida, use o Gradiente Descendente. Ele é mais gradual e tem um "
+"tamanho de passo controlável que pode ajudar a evitar artefatos de anel ao "
+"redor das estrelas. Para imagens esticadas, a Multiplicativa pode fornecer "
+"bons resultados e exigir menos iterações."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2067 src/gui/uifiles/siril.ui:8136
 msgid "Multiplicative"
-msgstr ""
+msgstr "Multiplicativa"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2068
 msgid "Gradient Descent"
-msgstr ""
+msgstr "Descida gradiente"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2081
 msgid ""
@@ -2300,6 +2322,10 @@ msgid ""
 "of each step. Large values will give quicker convergence but smaller values "
 "will offer better control over artefact formation."
 msgstr ""
+"Tamanho do passo de descida do gradiente. Quanto maior o tamanho do passo, "
+"maior o efeito de cada passo. Valores maiores proporcionarão convergência "
+"mais rápida, mas valores menores oferecerão melhor controle sobre a formação "
+"de artefatos."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2098
 msgid "Non-Blind Deconvolution"
@@ -2310,6 +2336,8 @@ msgid ""
 "Deconvolve the currently loaded sequence. If no sequence is loaded, the "
 "current image will be deconvolved."
 msgstr ""
+"Deconvolve a sequência carregada no momento. Se nenhuma sequência for "
+"carregada, a imagem atual será deconvoluída."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2145
 msgid "Sequence prefix:"
@@ -2318,6 +2346,7 @@ msgstr "Prefixo da sequência:"
 #: src/gui/uifiles/bdeconv_dialog.ui:2157
 msgid "Provides a custom prefix to use when deconvolving a sequence."
 msgstr ""
+"Fornece um prefixo personalizado para usar ao deconvolver uma sequência."
 
 #: src/gui/uifiles/binxy_dialog.ui:41
 msgid "Binning"
@@ -2354,7 +2383,7 @@ msgstr "Proteger das altas luzes"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:166
 msgid "Bright pixels are ignored."
-msgstr ""
+msgstr "Pixels brilhantes são ignorados."
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:186
 msgid "1/Sigma Factor"
@@ -2366,6 +2395,8 @@ msgid ""
 "Background for lines is computed using pixels in SigmaFactor * StdDev only. "
 "Higher value will give a better protection."
 msgstr ""
+"O plano de fundo das linhas é calculado usando pixels apenas em SigmaFactor *"
+" StdDev. Valores mais altos proporcionam melhor proteção."
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:238
 msgid "Vertical banding"
@@ -2386,31 +2417,31 @@ msgstr "Matriz de conversão de cores"
 
 #: src/gui/uifiles/ccm_dialog.ui:27
 msgid "Restore ICC"
-msgstr ""
+msgstr "Restaurar ICC"
 
 #: src/gui/uifiles/ccm_dialog.ui:32
 msgid "Reactivate ICC profile previously disabled by applying a CCM"
-msgstr ""
+msgstr "Reative o perfil ICC previamente desabilitado aplicando um CCM"
 
 #: src/gui/uifiles/ccm_dialog.ui:120 src/gui/uifiles/ccm_dialog.ui:176
 #: src/gui/uifiles/ccm_dialog.ui:232
 msgid "1.0"
-msgstr ""
+msgstr "1.0"
 
 #: src/gui/uifiles/ccm_dialog.ui:134 src/gui/uifiles/ccm_dialog.ui:148
 #: src/gui/uifiles/ccm_dialog.ui:162 src/gui/uifiles/ccm_dialog.ui:190
 #: src/gui/uifiles/ccm_dialog.ui:204 src/gui/uifiles/ccm_dialog.ui:218
 #: src/gui/uifiles/epf_dialog.ui:258 src/gui/uifiles/epf_dialog.ui:321
 msgid "0.0"
-msgstr ""
+msgstr "0.0"
 
 #: src/gui/uifiles/ccm_dialog.ui:281
 msgid "The power to which each result pixel will be raised."
-msgstr ""
+msgstr "A potência à qual cada pixel de resultado será elevado."
 
 #: src/gui/uifiles/ccm_dialog.ui:297
 msgid "Power:"
-msgstr ""
+msgstr "Potência:"
 
 #: src/gui/uifiles/ccm_dialog.ui:309
 msgid "Presets:"
@@ -2418,23 +2449,23 @@ msgstr "Predefinições:"
 
 #: src/gui/uifiles/ccm_dialog.ui:322
 msgid "Custom"
-msgstr ""
+msgstr "Personalizado"
 
 #: src/gui/uifiles/ccm_dialog.ui:323
 msgid "Linear Rec.709_D65 to XYZ"
-msgstr ""
+msgstr "Linear Rec.709_D65 para XYZ"
 
 #: src/gui/uifiles/ccm_dialog.ui:324
 msgid "XYZ to Linear Rec.709_D65"
-msgstr ""
+msgstr "XYZ para Linear Rec.709_D65"
 
 #: src/gui/uifiles/ccm_dialog.ui:325
 msgid "Simplified sRGB (gamma = 2.2) to XYZ"
-msgstr ""
+msgstr "sRGB simplificado (gamma = 2.2) a XYZ"
 
 #: src/gui/uifiles/ccm_dialog.ui:326
 msgid "XYZ to Simplified sRGB (gamma = 2.2)"
-msgstr ""
+msgstr "XYZ a sRGB Simplificado (gamma = 2.2)"
 
 #: src/gui/uifiles/ccm_dialog.ui:372 src/gui/uifiles/cosmetic_dialog.ui:359
 msgid ""
@@ -2449,7 +2480,7 @@ msgstr "Configurações"
 #: src/gui/uifiles/color_calibration.ui:98 src/gui/uifiles/siril.ui:1240
 #: src/gui/uifiles/siril.ui:1588 src/gui/colors.c:275
 msgid "Color Calibration"
-msgstr ""
+msgstr "Calibração de cor"
 
 #: src/gui/uifiles/color_calibration.ui:133
 msgid ""
@@ -3231,9 +3262,8 @@ msgid "More details..."
 msgstr ""
 
 #: src/gui/uifiles/denoise_dialog.ui:52
-#, fuzzy
 msgid "Image Denoising"
-msgstr "_Processamento de imagem"
+msgstr "Eliminação de ruído de imagem"
 
 #: src/gui/uifiles/denoise_dialog.ui:133
 msgid "Remove salt and pepper noise"
@@ -3247,9 +3277,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/denoise_dialog.ui:169
-#, fuzzy
 msgid "Independent Channels"
-msgstr "Canal verde"
+msgstr "Canais independentes"
 
 #: src/gui/uifiles/denoise_dialog.ui:173
 msgid ""
@@ -3261,9 +3290,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/denoise_dialog.ui:182
-#, fuzzy
 msgid "Color Denoising"
-msgstr "_Processamento de imagem"
+msgstr "Eliminação de ruído de cor"
 
 #: src/gui/uifiles/denoise_dialog.ui:210
 msgid "No secondary denoising stage"
@@ -3431,14 +3459,12 @@ msgid "Inverse Transform"
 msgstr "Transformada Inversa"
 
 #: src/gui/uifiles/dialog_star_remix.ui:97
-#, fuzzy
 msgid "Star Recomposition"
-msgstr "Composição HSL"
+msgstr "Recomposição de estrelas"
 
 #: src/gui/uifiles/dialog_star_remix.ui:114
-#, fuzzy
 msgid "Log histograms"
-msgstr "Histogramas"
+msgstr "Histogramas logarítmicos"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 #: src/gui/uifiles/dialog_star_remix.ui:129 src/gui/remixer.c:721
@@ -3460,9 +3486,8 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:169
 #: src/gui/uifiles/histogram_dialog.ui:770
-#, fuzzy
 msgid "Global rescale"
-msgstr "Rejeição global"
+msgstr "Redimensionamento global"
 
 #: src/gui/uifiles/dialog_star_remix.ui:231
 #: src/gui/uifiles/dialog_star_remix.ui:866
@@ -3480,16 +3505,14 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:265
-#, fuzzy
 msgid "Star Histogram"
-msgstr "Histograma"
+msgstr "Histograma de estrela"
 
 #: src/gui/uifiles/dialog_star_remix.ui:303
 #: src/gui/uifiles/dialog_star_remix.ui:940
 #: src/gui/uifiles/histogram_dialog.ui:840
-#, fuzzy
 msgid "Type of stretch"
-msgstr "Tipo de Algoritmo"
+msgstr "Tipo de alongamento"
 
 #: src/gui/uifiles/dialog_star_remix.ui:318
 #: src/gui/uifiles/dialog_star_remix.ui:955
@@ -3517,23 +3540,20 @@ msgstr "Transformada hiperbólica generalizada inversa"
 #: src/gui/uifiles/dialog_star_remix.ui:324
 #: src/gui/uifiles/dialog_star_remix.ui:961
 #: src/gui/uifiles/histogram_dialog.ui:861
-#, fuzzy
 msgid "Modified arcsinh transform"
-msgstr "Transformada Inversa"
+msgstr "Transformada arcsinh modificada"
 
 #: src/gui/uifiles/dialog_star_remix.ui:325
 #: src/gui/uifiles/dialog_star_remix.ui:962
 #: src/gui/uifiles/histogram_dialog.ui:862
-#, fuzzy
 msgid "Inverse modified arcsinh transform"
-msgstr "Transformada Inversa"
+msgstr "Transformada arcsinh modificada inversa"
 
 #: src/gui/uifiles/dialog_star_remix.ui:353
 #: src/gui/uifiles/dialog_star_remix.ui:990
 #: src/gui/uifiles/histogram_dialog.ui:890
-#, fuzzy
 msgid "Colour stretch model"
-msgstr "Saturação de Cor"
+msgstr "Modelo de stretch para cor"
 
 #: src/gui/uifiles/dialog_star_remix.ui:368
 #: src/gui/uifiles/dialog_star_remix.ui:1005
@@ -3550,9 +3570,8 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:373
 #: src/gui/uifiles/dialog_star_remix.ui:1010
 #: src/gui/uifiles/histogram_dialog.ui:910
-#, fuzzy
 msgid "Independent channel values"
-msgstr "Canal verde"
+msgstr "Valores de canais independentes"
 
 #: src/gui/uifiles/dialog_star_remix.ui:374
 #: src/gui/uifiles/dialog_star_remix.ui:1011
@@ -3620,9 +3639,8 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:641
 #: src/gui/uifiles/dialog_star_remix.ui:1279
 #: src/gui/uifiles/histogram_dialog.ui:1198
-#, fuzzy
 msgid "Shadow protection point (LP)"
-msgstr "Corte de altas luzes"
+msgstr "Ponto de proteção de sombra (LP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:652
 #: src/gui/uifiles/dialog_star_remix.ui:677
@@ -3642,9 +3660,8 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:712
 #: src/gui/uifiles/dialog_star_remix.ui:1350
 #: src/gui/uifiles/histogram_dialog.ui:1267
-#, fuzzy
 msgid "Highlight protection point (HP)"
-msgstr "Corte de altas luzes"
+msgstr "Ponto de proteção de altas luzes (LP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:723
 msgid ""
@@ -3684,9 +3701,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:902
-#, fuzzy
 msgid "Background Histogram"
-msgstr "Extrair o fundo"
+msgstr "Histograma de fundo"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1057
 #: src/gui/uifiles/dialog_star_remix.ui:1082
@@ -3750,19 +3766,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:1499
-#, fuzzy
 msgid "Background Stretch Parameters"
-msgstr "_Processamento de imagem"
+msgstr "Parâmetros de alongamento de fundo"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1515
-#, fuzzy
 msgid "Star Stretch Parameters"
-msgstr "_Processamento de imagem"
+msgstr "Parâmetros de alongamento de estrela"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1552
-#, fuzzy
 msgid "Resets stretch parameters for the star image"
-msgstr "Restaurar para o valores Padrão"
+msgstr "Redefine os parâmetros de alongamento para a imagem da estrela"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1567
 msgid ""
@@ -3781,14 +3794,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/epf_dialog.ui:58
-#, fuzzy
 msgid "Edge Preserving Filters"
-msgstr "Filtros de preservação de bordas..."
+msgstr "Filtros de preservação de bordas"
 
 #: src/gui/uifiles/epf_dialog.ui:143
-#, fuzzy
 msgid "Filter Type"
-msgstr "Filtro: "
+msgstr "Tipo de filtro"
 
 #: src/gui/uifiles/epf_dialog.ui:155
 msgid ""
@@ -4008,9 +4019,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:98
-#, fuzzy
 msgid "Pixel size (micron): "
-msgstr "Dimensão X pixel (micron): "
+msgstr "Tamanho do pixel (mícron): "
 
 #: src/gui/uifiles/file_information_dialog.ui:109
 msgid ""
@@ -4041,13 +4051,12 @@ msgstr ""
 "cabeçalho do arquivo, pode atualizar o campo manualmente."
 
 #: src/gui/uifiles/file_information_dialog.ui:175
-#, fuzzy
 msgid ""
 "Clear all the fields. If you save your image after, the header will not "
 "contain any data about the focal length or sensor size."
 msgstr ""
-"Apagar todos os campos. Se guardar a sua imagem depois, o cabeçalho não "
-"conterá nenhuns dados sobre a focal ou o tamanho do sensor."
+"Limpe todos os campos. Se você salvar a imagem depois, o cabeçalho não "
+"conterá nenhum dado sobre a distância focal ou o tamanho do sensor."
 
 #: src/gui/uifiles/file_information_dialog.ui:189
 msgid "Computed sampling (arcsec/pixel):"
@@ -4079,9 +4088,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:258
-#, fuzzy
 msgid "Save as default values"
-msgstr "Restaurar para o valores Padrão"
+msgstr "Salvar como valores padrão"
 
 #: src/gui/uifiles/file_information_dialog.ui:262
 msgid ""
@@ -5317,9 +5325,8 @@ msgid "Enable syntax highlighting"
 msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:394
-#, fuzzy
 msgid "Highlight syntax"
-msgstr "Altas luzes: "
+msgstr "Sintaxe de destaque"
 
 #: src/gui/uifiles/python_scratchpad.ui:403
 #: src/gui/uifiles/python_scratchpad.ui:404
@@ -5444,9 +5451,8 @@ msgid "Script type"
 msgstr "Nome do arquivo de script"
 
 #: src/gui/uifiles/python_scratchpad.ui:641
-#, fuzzy
 msgid "Arguments:"
-msgstr "Espelho Vertical"
+msgstr "Argumentos:"
 
 #: src/gui/uifiles/python_scratchpad.ui:653
 msgid ""
@@ -5532,23 +5538,20 @@ msgid "Rotational Gradient"
 msgstr "Gradiente Rotacional"
 
 #: src/gui/uifiles/rgradient_dialog.ui:79
-#, fuzzy
 msgid "The rotational gradient will be applied."
-msgstr "Calibração de cor..."
+msgstr "O gradiente rotacional será aplicado."
 
 #: src/gui/uifiles/rgradient_dialog.ui:108
-#, fuzzy
 msgid "Radial shift"
-msgstr "Rotação"
+msgstr "Deslocamento radial"
 
 #: src/gui/uifiles/rgradient_dialog.ui:142
 msgid "Radial shift used to compute rotational gradient."
 msgstr ""
 
 #: src/gui/uifiles/rgradient_dialog.ui:165
-#, fuzzy
 msgid "Rotational shift"
-msgstr "Rotação"
+msgstr "Deslocamento rotacional"
 
 #: src/gui/uifiles/rgradient_dialog.ui:199
 msgid "Rotational shift used to compute rotational gradient."
@@ -6004,9 +6007,8 @@ msgstr ""
 "valor positivo aumenta a saturação."
 
 #: src/gui/uifiles/satu_dialog.ui:232
-#, fuzzy
 msgid "Background factor"
-msgstr "Extrair o fundo"
+msgstr "Fator de fundo"
 
 #: src/gui/uifiles/satu_dialog.ui:268
 msgid ""
@@ -6017,9 +6019,8 @@ msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10751
 #: src/io/sequence.c:1935
-#, fuzzy
 msgid "Save"
-msgstr "_Guardar"
+msgstr "Salvar"
 
 #: src/gui/uifiles/savepopup.ui:96
 msgid ""
@@ -11266,9 +11267,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/starnet_dialog.ui:229
-#, fuzzy
 msgid "Upsample x2"
-msgstr "Reamostragem"
+msgstr "Sobreamostragem x2"
 
 #: src/gui/uifiles/starnet_dialog.ui:234
 msgid ""
@@ -11551,9 +11551,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/unpurple_dialog.ui:59
-#, fuzzy
 msgid "Unpurple Filter"
-msgstr "Filtro mediano..."
+msgstr "Filtro de correção magenta"
 
 #: src/gui/uifiles/unpurple_dialog.ui:147
 msgid "Blue Adjustment"
@@ -11582,9 +11581,8 @@ msgstr ""
 "Se o parâmetro é 0, não se aplica qualquer filtro."
 
 #: src/gui/uifiles/unpurple_dialog.ui:215
-#, fuzzy
 msgid "Threshold"
-msgstr "Limite: "
+msgstr "Limite"
 
 #: src/gui/uifiles/unpurple_dialog.ui:226
 #: src/gui/uifiles/unpurple_dialog.ui:244
@@ -11621,9 +11619,8 @@ msgid "Type:"
 msgstr "Tipo:"
 
 #: src/gui/uifiles/wavelets_dialog.ui:210
-#, fuzzy
 msgid "Nb of layers:"
-msgstr "Núm. de Camadas:"
+msgstr "Núm. de camadas:"
 
 #: src/gui/uifiles/wavelets_dialog.ui:221
 msgid "Number of wavelet layers that will be used"
@@ -12247,9 +12244,8 @@ msgid "Could not read the solution from solve-field (expected in file %s)\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:1934
-#, fuzzy
 msgid "Using the current selection to detect stars\n"
-msgstr "Usar a seleção atual"
+msgstr "Usar a seleção atual para detectar estrelas\n"
 
 #: src/algos/astrometry_solver.c:1979
 msgid "Selection is not used in manual star selection mode\n"
@@ -12275,25 +12271,31 @@ msgid "Image %d already platesolved, skipping\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:2111
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not retrieve center coordinates from image %s metadata, using "
 "reference image value instead\n"
-msgstr "Distância focal (mm): "
+msgstr ""
+"Não foi possível recuperar as coordenadas centrais dos metadados da imagem "
+"%s, usando o valor da imagem de referência.\n"
 
 #: src/algos/astrometry_solver.c:2120
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not retrieve pixel size from image %s metadata or settings, using "
 "reference image value instead\n"
-msgstr "Distância focal (mm): "
+msgstr ""
+"Não foi possível recuperar o tamanho do pixel dos metadados ou configurações "
+"da imagem %s, usando o valor da imagem de referência.\n"
 
 #: src/algos/astrometry_solver.c:2131
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not retrieve focal length from image %s metadata or settings, using "
 "reference image value instead\n"
-msgstr "Distância focal (mm): "
+msgstr ""
+"Não foi possível recuperar a distância focal dos metadados ou configurações "
+"da imagem %s, usando o valor da imagem de referência.\n"
 
 #: src/algos/astrometry_solver.c:2173
 #, c-format
@@ -12814,9 +12816,8 @@ msgid "Images must have same dimensions.\n"
 msgstr ""
 
 #: src/algos/fitting.c:153 src/algos/fitting.c:203
-#, fuzzy
 msgid "Linear fit functions:\n"
-msgstr "Corte de altas luzes"
+msgstr "Funções de ajuste linear:\n"
 
 #: src/algos/fitting.c:178 src/algos/fitting.c:228
 msgid "Error! Need at least 2 points...\n"
@@ -19999,9 +20000,9 @@ msgid "Toggles whether to apply the curve to the monochrome channel"
 msgstr ""
 
 #: src/gui/curves.c:552
-#, fuzzy, c-format
+#, c-format
 msgid "Applying %s curve transformation with %d points\n"
-msgstr "Aplicar transformação de curvas"
+msgstr "Aplicando transformação de curva %s com %d pontos\n"
 
 #: src/gui/curves.c:620
 #, fuzzy
@@ -20294,9 +20295,8 @@ msgid "Bilateral filter: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"
 msgstr ""
 
 #: src/gui/epf.c:173
-#, fuzzy
 msgid "Error, no guide image loaded."
-msgstr "Erro: nenhuma sequência carregada.\n"
+msgstr "Erro, nenhuma imagem guia carregada."
 
 #: src/gui/epf.c:297 src/gui/epf.c:304 src/gui/merge_cfa.c:91
 #: src/gui/merge_cfa.c:105 src/gui/merge_cfa.c:118 src/gui/merge_cfa.c:131
@@ -20830,14 +20830,13 @@ msgid "Not a valid sequence for cropping.\n"
 msgstr ""
 
 #: src/gui/merge_cfa.c:210
-#, fuzzy
 msgid "Error: input sequence CFA marker not found"
-msgstr "Erro: nenhuma sequência carregada.\n"
+msgstr "Erro: marcador CFA de sequência de entrada não encontrado"
 
 #: src/gui/merge_cfa.c:214
-#, fuzzy, c-format
+#, c-format
 msgid "Identified the loaded sequence as CFA%d\n"
-msgstr "Exportar sequência"
+msgstr "Identificou a sequência carregada como CFA%d\n"
 
 #: src/gui/merge_cfa.c:242 src/gui/merge_cfa.c:253 src/gui/merge_cfa.c:264
 #: src/gui/merge_cfa.c:275
@@ -20852,9 +20851,8 @@ msgid "Error: images are not all loaded"
 msgstr "não carregada"
 
 #: src/gui/merge_cfa.c:343
-#, fuzzy
 msgid "Merge CFA cannot proceed"
-msgstr "Canais..."
+msgstr "A fusão de CFA não pode prosseguir"
 
 #: src/gui/mouse_action_functions.c:309
 msgid "This action opens a new image if there is no image currently loaded"
@@ -26570,14 +26568,14 @@ msgid "Error: SER file has wrong type. Cannot proceed.\n"
 msgstr ""
 
 #: src/registration/shift_methods.c:230 src/registration/shift_methods.c:509
-#, fuzzy, c-format
+#, c-format
 msgid "Register: processing image %s"
-msgstr "Pré-processando imagem %s\n"
+msgstr "Registro: processando imagem %s"
 
 #: src/registration/shift_methods.c:335 src/registration/shift_methods.c:572
-#, fuzzy, c-format
+#, c-format
 msgid "Best frame: #%d.\n"
-msgstr "excluir tudo"
+msgstr "Melhor quadro: #%d.\n"
 
 #: src/registration/shift_methods.c:427
 #, fuzzy
