@@ -259,6 +259,11 @@ static gboolean check_affine_TRANS_sanity(TRANS *trans) {
 	return (fabs(var1) < TRANS_SANITY_CHECK && fabs(var2) < TRANS_SANITY_CHECK);
 }
 
+static gboolean check_affine_TRANS_scale(TRANS *trans, double scalemin, double scalemax) {
+	double resolution = sqrt(fabs(trans->x10) * fabs(trans->x10) + fabs(trans->y10) * fabs(trans->y10));
+	return resolution <= 1. / scalemin && resolution >= 1. / scalemax;
+}
+
 static double get_det_from_trans(TRANS *trans) {
 	return (trans->x10 * trans->y01 - trans->y10 * trans->x01);
 }
@@ -1423,6 +1428,10 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 		goto clearup;
 	}
 	if (!check_affine_TRANS_sanity(&trans)) {
+		ret = SOLVE_INVALID_TRANS;
+		goto clearup;
+	}
+	if (!check_affine_TRANS_scale(&trans, scale_min, scale_max)) {
 		ret = SOLVE_INVALID_TRANS;
 		goto clearup;
 	}
