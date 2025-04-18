@@ -856,6 +856,15 @@ void read_fits_date_obs_header(fits *fit) {
 	}
 
 	fit->keywords.date_obs = FITS_date_to_date_time(date_obs);
+
+	/** Seen in some files, MJD-OBS is use */
+	if (fit->keywords.date_obs == NULL) {
+		double mjd_obs = 0.0;
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "MJD-OBS", &mjd_obs, NULL, &status);
+		if (status == 0)
+			fit->keywords.date_obs = Julian_to_date_time(mjd_obs);
+	}
 }
 
 static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
