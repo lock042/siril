@@ -71,11 +71,19 @@ static float compute_threshold(image *image, double ksigma, int layer, rectangle
 		*bg = 0.0;
 		return 0;
 	}
-	threshold = (float)(stat->median + ksigma * stat->bgnoise);
-	*norm = stat->normValue;
-	*bg = stat->median;
-	*bgnoise = stat->bgnoise;
-	*max = stat->max;
+	double normvalue = 1.;
+	if (image->from_seq && image->from_seq->bitpix != image->fit->bitpix) { // stats are not correctly normalized, we need to correct that
+		double normavalueseq =  (image->from_seq->bitpix == BYTE_IMG) ? UCHAR_MAX_DOUBLE : 
+								(image->from_seq->bitpix == USHORT_IMG) ? USHRT_MAX_DOUBLE : 1.;
+		double normavaluefit =  (image->fit->bitpix == BYTE_IMG) ? UCHAR_MAX_DOUBLE : 
+								(image->fit->bitpix == USHORT_IMG) ? USHRT_MAX_DOUBLE : 1.;
+		normvalue	= (normavaluefit / normavalueseq);
+	}
+	threshold = (float)(stat->median * normvalue + ksigma * stat->bgnoise * normvalue);
+	*norm = stat->normValue * normvalue;
+	*bg = stat->median * normvalue;;
+	*bgnoise = stat->bgnoise * normvalue;;
+	*max = stat->max * normvalue;
 	free_stats(stat);
 
 	return threshold;
