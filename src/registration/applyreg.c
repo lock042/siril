@@ -856,9 +856,6 @@ int register_apply_reg(struct registration_args *regargs) {
 		goto END;
 	}
 	// Prepare sequence filtering
-	int nb_frames = compute_nb_filtered_images(regargs->seq,
-		regargs->filtering_criterion, regargs->filtering_parameter);
-	regargs->new_total = nb_frames;	// to avoid recomputing it later
 	gchar *str = describe_filter(regargs->seq, regargs->filtering_criterion,
 			regargs->filtering_parameter);
 	siril_log_message(str);
@@ -868,6 +865,10 @@ int register_apply_reg(struct registration_args *regargs) {
 		retval = -1;
 		goto END;
 	}
+	// some images may have been excluded by the checks above
+	int nb_frames = compute_nb_filtered_images(regargs->seq,
+		regargs->filtering_criterion, regargs->filtering_parameter);
+	regargs->new_total = nb_frames;	// to avoid recomputing it later
 
 	// If this is an astrometric aligned sequence,
 	// we need to collect the WCS structures and
@@ -1168,6 +1169,10 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	if (min == NULL_TRANSFORMATION) {
 		siril_log_color_message(_("Some images were not registered, excluding them\n"), "salmon");
 		regargs->filters.filter_included = TRUE;
+		// We update filtering
+		convert_parsed_filter_to_filter(&regargs->filters,
+			regargs->seq, &regargs->filtering_criterion,
+			&regargs->filtering_parameter);
 	}
 
 	// cog framing method requires all images to be of same size
