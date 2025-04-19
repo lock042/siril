@@ -1006,8 +1006,8 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 			}
 
 			if (com.pref.gui.show_deciasec) {
-				strra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%04.1lfs");
-				strdec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.1lf\"");
+				strra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%04.3lfs");
+				strdec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.3lf\"");
 			} else {
 				strra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
 				strdec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
