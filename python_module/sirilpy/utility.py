@@ -25,6 +25,45 @@ from .exceptions import SirilError
 if TYPE_CHECKING:
     from .connection import SirilInterface
 
+def truncate_utf8(data, max_bytes):
+    """
+    Truncates utf8 input. Accepts either bytes or str as input and
+    returns data in the same format as the input.
+
+    Args:
+        data (bytes or str): The data to be truncated
+
+    Returns:
+        bytes or str: The truncated data
+
+    Raises:
+        TypeError: if the input was not bytes or str
+    """
+    if isinstance(data, bytes):
+        # Truncate raw bytes without breaking UTF-8
+        truncated = data[:max_bytes]
+        # Try decoding, backtrack if needed to avoid decoding errors
+        while True:
+            try:
+                truncated.decode('utf-8')
+                return truncated
+            except UnicodeDecodeError:
+                truncated = truncated[:-1]
+                if not truncated:
+                    return b''
+    elif isinstance(data, str):
+        encoded = data.encode('utf-8')
+        if len(encoded) <= max_bytes:
+            return data
+        # Truncate the string by character until it encodes within the limit
+        for i in range(len(data) - 1, -1, -1):
+            sub = data[:i]
+            if len(sub.encode('utf-8')) <= max_bytes:
+                return sub
+        return ''
+    else:
+        raise TypeError("Expected str or bytes, got " + type(data).__name__)
+
 def human_readable_size(bytes_size: int) -> str:
     """
     Convert bytes to human-readable format.

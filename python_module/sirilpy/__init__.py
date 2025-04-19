@@ -9,6 +9,10 @@ This module provides bindings and utilities for interacting with Siril
 from Python, enabling advanced astronomical image processing workflows.
 """
 
+# Core imports required to configure stdout and stderr to accept utf-8
+import io
+import sys
+
 # Import translation functions first
 from .translations import _
 
@@ -40,6 +44,7 @@ from .models import (
 from .plot import SeriesData, PlotData
 from .shm import SharedMemoryWrapper
 from .utility import (
+    truncate_utf8,
     human_readable_size,
     download_with_progress,
     ensure_installed,
@@ -100,6 +105,7 @@ __all__ = [
     'NoImageError',
     'NoSequenceError',
     'SharedMemoryWrapper',
+    'truncate_utf8',
     'SuppressedStdout',
     'SuppressedStderr',
     'human_readable_size',
@@ -114,3 +120,20 @@ __all__ = [
     'SirilVport',
     '_'
 ]
+
+def safe_reconfigure_stream(stream_name):
+    stream = getattr(sys, stream_name)
+    if hasattr(stream, "reconfigure"):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="strict")
+            return
+        except Exception:
+            pass  # Fallback below
+    # Replace stream with a UTF-8 TextIOWrapper that uses errors='replace'
+    buffer = getattr(sys, f"{stream_name}.buffer", None)
+    if buffer is not None:
+        wrapper = io.TextIOWrapper(buffer, encoding="utf-8", errors="replace")
+        setattr(sys, stream_name, wrapper)
+
+safe_reconfigure_stream("stdout")
+safe_reconfigure_stream("stderr")
