@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-04-08 23:17+0000\n"
+"PO-Revision-Date: 2025-04-19 05:07+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -8072,22 +8072,20 @@ msgid "Must point to a valid GraXpert executable."
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:6120
-#, fuzzy
 msgid "Software Location"
-msgstr "ソフトウェアー アップデート"
+msgstr "ソフトウェアの位置"
 
 #: src/gui/uifiles/settings_window.ui:6143
 msgid "Copyright when saving image as TIFF"
-msgstr ""
+msgstr "画像をTIFFとして保存する場合の著作権情報"
 
 #: src/gui/uifiles/settings_window.ui:6155
 msgid "Copyright TIFF"
-msgstr ""
+msgstr "TIFFの著作権情報"
 
 #: src/gui/uifiles/settings_window.ui:6177
-#, fuzzy
 msgid "Check update at startup"
-msgstr "アップデートを確認"
+msgstr "起動時にアップデートを確認"
 
 #: src/gui/uifiles/settings_window.ui:6193
 msgid "Update"
@@ -8111,7 +8109,7 @@ msgstr "最新の曲線を消去"
 
 #: src/gui/uifiles/siril.ui:330
 msgid "Julian Date"
-msgstr ""
+msgstr "ユリウス日"
 
 #: src/gui/uifiles/siril.ui:352
 msgid "Nothing to change"
@@ -11055,8 +11053,8 @@ msgid ""
 "WARNING: Reducing the number of allowed processors too much will degrade "
 "performances."
 msgstr ""
-"工程数のマニュアル設定.\n"
-"警告：工程数の設定が低すぎると機能が十分発揮されない場合があります."
+"手動でスレッド数を設定します.\n"
+"警告：許容プロセッサの数を減らし過ぎるとパフォーマンスが低下します."
 
 #: src/gui/uifiles/siril.ui:10880
 msgid "Displays the amount of used RAM memory by Siril."
@@ -11651,16 +11649,14 @@ msgid "Zoom out"
 msgstr "ズームアウト"
 
 #: src/gui/siril-shortcuts.ui:61
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Fit the image to the window"
-msgstr "画像をウィンドーに合わせる"
+msgstr "画像をウィンドウに合わせる"
 
 #: src/gui/siril-shortcuts.ui:68
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Zoom to 100%"
-msgstr "ズームアウト"
+msgstr "100%表示"
 
 #: src/gui/siril-shortcuts.ui:76
 msgctxt "shortcut window"
@@ -11717,12 +11713,12 @@ msgstr "ツール"
 #: src/gui/siril-shortcuts.ui:142
 msgctxt "shortcut window"
 msgid "Open preferences"
-msgstr "環境設定を開ける"
+msgstr "環境設定を開く"
 
 #: src/gui/siril-shortcuts.ui:149
 msgctxt "shortcut window"
 msgid "Open application menu"
-msgstr "アプリケーションメニューを開ける"
+msgstr "アプリケーションメニューを開く"
 
 #: src/gui/siril-shortcuts.ui:156
 msgctxt "shortcut window"
@@ -11732,7 +11728,7 @@ msgstr ""
 #: src/gui/siril-shortcuts.ui:163
 msgctxt "shortcut window"
 msgid "Change working directory"
-msgstr "ワーキングディレンクトリーを変更"
+msgstr "作業ディレクトリを変更"
 
 #: src/gui/siril-shortcuts.ui:170
 msgctxt "shortcut window"
@@ -11788,7 +11784,7 @@ msgstr ""
 #: src/gui/siril-shortcuts.ui:234
 msgctxt "shortcut window"
 msgid "Windows and Application"
-msgstr ""
+msgstr "ウィンドウとアプリケーション"
 
 #: src/gui/siril-shortcuts.ui:239
 msgctxt "shortcut window"
@@ -13933,7 +13929,7 @@ msgstr ""
 #: src/core/OS_utils.c:620 src/core/OS_utils.c:635 src/core/command.c:9445
 msgid "processor"
 msgid_plural "processors"
-msgstr[0] ""
+msgstr[0] "プロセッサ"
 
 #: src/core/OS_utils.c:626
 #, c-format
@@ -15983,22 +15979,22 @@ msgid "********* LIST OF AVAILABLE COMMANDS *********\n"
 msgstr ""
 
 #: src/core/command.c:9421
-#, fuzzy, c-format
+#, c-format
 msgid "Can be used in a script: %s\n"
-msgstr "このコマンドはスクリプト: %s では使用不可能\n"
+msgstr "スクリプト内で使用可能か: %s\n"
 
 #: src/core/command.c:9421 src/core/command_line_processor.c:460
 msgid "YES"
-msgstr "YES"
+msgstr "はい"
 
 #: src/core/command.c:9421 src/core/command_line_processor.c:463
 msgid "NO"
-msgstr "NO"
+msgstr "いいえ"
 
 #: src/core/command.c:9431
 #, c-format
 msgid "Error: command %s is not available\n"
-msgstr ""
+msgstr "エラー: コマンド %s は利用できません\n"
 
 #: src/core/command.c:9547
 #, c-format
@@ -18436,7 +18432,7 @@ msgstr "ファイル: %s を開けない\n"
 
 #: src/core/siril_update.c:438
 msgid "Software Update"
-msgstr "ソフトウェアー アップデート"
+msgstr "ソフトウェアアップデート"
 
 #: src/core/siril_update.c:473
 #, fuzzy

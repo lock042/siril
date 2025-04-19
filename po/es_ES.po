@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-04-08 09:24+0000\n"
-"Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
+"PO-Revision-Date: 2025-04-18 15:25+0000\n"
+"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -3538,10 +3538,12 @@ msgid ""
 "No secondary denoising process will be used. The primary algorithm by itself "
 "usually performs well so this is the default."
 msgstr ""
+"No se usará ningún proceso secundario de reducción de ruido. El algoritmo "
+"primario por sí solo suele funcionar bien por lo que es el valor por defecto."
 
 #: src/gui/uifiles/denoise_dialog.ui:228
 msgid "Anscombe VST with exact unbiased inverse"
-msgstr ""
+msgstr "Anscombe VST con inversa imparcial exacta"
 
 #: src/gui/uifiles/denoise_dialog.ui:232
 msgid ""
@@ -3550,10 +3552,15 @@ msgid ""
 "Gaussian mix. It cannot be used in conjunction with DA3D or SOS. Ref: "
 "https://ieeexplore.ieee.org/document/5278406"
 msgstr ""
+"La Anscombe VST es útil cuando se aplica a la reducción de ruido de imágenes "
+"limitadas en fotones donde las características del ruido no son Gaussian "
+"sino mayoritariamente Poisson o mezcla Posisson-Guassian. No puede ser "
+"utilizada conjuntamente con DA3D o SOS. Ref: https://ieeexplore.ieee.org/"
+"document/5278406"
 
 #: src/gui/uifiles/denoise_dialog.ui:247
 msgid "Data Adaptive Dual Domain Denoising"
-msgstr ""
+msgstr "Eliminación de ruido de dominio dual adaptativa de datos"
 
 #: src/gui/uifiles/denoise_dialog.ui:251
 msgid ""
@@ -3563,10 +3570,16 @@ msgid ""
 "than the primary algorithm and may improve detail retention and reduce "
 "staircasing artefacts. Ref: https://ieeexplore.ieee.org/document/7350835"
 msgstr ""
+"Usar DA3D como paso final de reducción de ruido. Este algoritmo utiliza la "
+"salida del algoritmo principal de eliminación de ruido como imagen guía para "
+"realizar parches en la contracción en el dominio de la frecuencia y datos "
+"adaptativos. Nunca produce una salida peor a la del algoritmo principal y "
+"puede mejorar la retención de detalles y reducir los artefactos de "
+"escalonamiento. Ref.: https://ieeexplore.ieee.org/document/7350835"
 
 #: src/gui/uifiles/denoise_dialog.ui:265
 msgid "Strengthen Operate Subtract iterator"
-msgstr ""
+msgstr "Iterador de operación sustracción reforzada"
 
 #: src/gui/uifiles/denoise_dialog.ui:269
 msgid ""
@@ -4163,7 +4176,7 @@ msgstr ""
 
 #: src/gui/uifiles/epf_dialog.ui:309
 msgid "Sigma (spatial)"
-msgstr ""
+msgstr "Sigma (espacial)"
 
 #: src/gui/uifiles/epf_dialog.ui:320
 msgid ""
@@ -4174,7 +4187,7 @@ msgstr ""
 
 #: src/gui/uifiles/epf_dialog.ui:366
 msgid "Sigma (intensity)"
-msgstr ""
+msgstr "Sigma (intensidad)"
 
 #: src/gui/uifiles/epf_dialog.ui:378
 msgid ""
@@ -4187,7 +4200,7 @@ msgstr ""
 
 #: src/gui/uifiles/epf_dialog.ui:380
 msgid "0.000"
-msgstr ""
+msgstr "0.000"
 
 # parameter is null or 0?
 #: src/gui/uifiles/epf_dialog.ui:425 src/gui/uifiles/epf_dialog.ui:442
@@ -4698,15 +4711,15 @@ msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:362
 msgid "Toggles whether the stretch applies to the red channel"
-msgstr ""
+msgstr "Elige si el estiramiento se aplica al canal rojo"
 
 #: src/gui/uifiles/histogram_dialog.ui:380
 msgid "Toggles whether the stretch applies to the green channel"
-msgstr ""
+msgstr "Elige si el estiramiento se aplica al canal verde"
 
 #: src/gui/uifiles/histogram_dialog.ui:398
 msgid "Toggles whether the stretch applies to the blue channel"
-msgstr ""
+msgstr "Elige si el estiramiento se aplica al canal azul"
 
 #: src/gui/uifiles/histogram_dialog.ui:425
 msgid "Show grids"
@@ -4714,7 +4727,7 @@ msgstr "Mostrar rejillas"
 
 #: src/gui/uifiles/histogram_dialog.ui:442
 msgid "Show transfer curve plus the line y=x"
-msgstr ""
+msgstr "Muestra la curva de transferencia más la línea y=x"
 
 #: src/gui/uifiles/histogram_dialog.ui:459
 #, fuzzy
@@ -4787,7 +4800,7 @@ msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:863
 msgid "Linear stretch (BP shift)"
-msgstr ""
+msgstr "Estiramiento lineal (desplazamiento de BP)"
 
 #: src/gui/uifiles/histogram_dialog.ui:905
 msgid ""
