@@ -281,6 +281,14 @@ gpointer generic_sequence_worker(gpointer p) {
 			free(fit);
 			continue;
 		}
+		// If not reading image, we still load its metadata to fill imgparam
+		if (!read_image && seq_read_frame_metadata(args->seq, input_idx, fit)) {
+			abort = 1;
+			clearfits(fit);
+			free(fit);
+			continue;
+		}
+
 		if (read_image && args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
 			if (args->stop_on_error)
 				abort = 1;
@@ -880,6 +888,7 @@ void stop_processing_thread() {
 	set_thread_run(FALSE);
 	if (!thread_being_waited)
 		waiting_for_thread();
+	set_cursor_waiting(FALSE);
 }
 
 static void set_thread_run(gboolean b) {
