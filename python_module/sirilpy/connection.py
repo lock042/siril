@@ -24,6 +24,7 @@ from .plot import PlotData
 from .exceptions import SirilError, DataError, SirilConnectionError, CommandError, NoImageError, NoSequenceError, SharedMemoryError
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType, Polygon
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
+from .utility import truncate_utf8
 
 DEFAULT_TIMEOUT = 5.
 
@@ -640,7 +641,7 @@ class SirilInterface:
 
         try:
             # Append a newline character to the string
-            truncated_string = my_string[:1021] + '\n'
+            truncated_string = truncate_utf8(my_string, 1021) + '\n'
             # Convert string to bytes using UTF-8 encoding
             message_bytes = truncated_string.encode('utf-8')
             # Prepend the color byte
@@ -807,17 +808,12 @@ class SirilInterface:
             SirilError: if another error occurred.
         """
         try:
-            # Truncate strings to allowed lengths
-            truncated_title = title[:256]
-            truncated_message = message[:1021]
-            truncated_label = confirm_label[:24]
+            # Truncate strings to byte-size limits minus null terminator
+            encoded_title = truncate_utf8(title, 255).encode('utf-8') + b'\0'
+            encoded_message = truncate_utf8(message, 1020).encode('utf-8') + b'\0'
+            encoded_label = truncate_utf8(confirm_label, 23).encode('utf-8') + b'\0'
 
-            # Encode strings and add null terminators
-            encoded_title = truncated_title.encode('utf-8') + b'\0'
-            encoded_message = truncated_message.encode('utf-8') + b'\0'
-            encoded_label = truncated_label.encode('utf-8') + b'\0'
-
-            # Concatenate into one buffer
+            # Final buffer
             message_bytes = encoded_title + encoded_message + encoded_label
 
             # Call the command with the encoded data
@@ -850,9 +846,7 @@ class SirilInterface:
          """
 
         # Append a newline character to the string
-        truncated_string = my_string[:1021] + '\n'
-        # Convert string to bytes using UTF-8 encoding
-        message_bytes = truncated_string.encode('utf-8')
+        message_bytes = (truncate_utf8(my_string, 1021) + '\n').encode('utf-8')
         if modal:
             return self._execute_command(cmd_type, message_bytes, timeout = None)
         return self._execute_command(cmd_type, message_bytes)
