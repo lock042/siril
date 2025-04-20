@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-04-09 14:44+0000\n"
+"PO-Revision-Date: 2025-04-19 05:56+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -5154,7 +5154,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:124
 msgid "unsaved"
-msgstr ""
+msgstr "未保存"
 
 #: src/gui/uifiles/python_scratchpad.ui:148
 #, fuzzy
@@ -5172,7 +5172,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:169
 msgid "Open a script from a file"
-msgstr ""
+msgstr "从文件中打开一个脚本"
 
 #: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:243
 #: src/gui/python_gui.c:738 src/pixelMath/pixel_math_runner.c:1229
@@ -5240,7 +5240,7 @@ msgstr "版权信息"
 #: src/gui/uifiles/python_scratchpad.ui:286
 #: src/gui/uifiles/python_scratchpad.ui:288
 msgid "Paste"
-msgstr ""
+msgstr "粘贴"
 
 #: src/gui/uifiles/python_scratchpad.ui:317
 #, fuzzy
@@ -5255,7 +5255,7 @@ msgstr "运行脚本"
 
 #: src/gui/uifiles/python_scratchpad.ui:329
 msgid "Run"
-msgstr ""
+msgstr "运行"
 
 #: src/gui/uifiles/python_scratchpad.ui:339
 msgid ""
@@ -11854,9 +11854,8 @@ msgid ""
 msgstr "从列表中删除所有星点并清除倾斜叠加图层（如果显示）"
 
 #: src/gui/uifiles/unpurple_dialog.ui:59
-#, fuzzy
 msgid "Unpurple Filter"
-msgstr "去紫边滤镜..."
+msgstr "去紫边滤镜"
 
 #: src/gui/uifiles/unpurple_dialog.ui:147
 msgid "Blue Adjustment"
