@@ -2307,6 +2307,7 @@ CLEANUP:
 			}
 			uint8_t retval = siril_confirm_dialog((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
 			success = send_response(conn, STATUS_OK, (const char*)&retval, sizeof(uint8_t));
+			break;
 		}
 
 		case CMD_GET_SEQ_FRAME_HEADER: {
