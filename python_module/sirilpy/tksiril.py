@@ -8,6 +8,7 @@ TKsiril submodule for Siril, providing utility methods to achieve consistent
 script GUI appearance using the TKinter toolkit.
 """
 
+from time import sleep
 import tkinter as tk
 from tkinter import ttk
 from .connection import SirilInterface
@@ -161,3 +162,15 @@ def standard_style():
 
     except Exception as e:
         raise SirilError(f"Failed to configure style: {e}") from e
+
+def elevate(root):
+    """
+    Raises the Tk root window to the top of the window stack. Useful after
+    calls to sirilpy methods that present child windows of the main Siril
+    window such as info_messagebox().
+
+    NOTE: Does not work on KDE desktops. Currently no workaround is available.
+    """
+
+    root.lift()
+    root.focus_force()
