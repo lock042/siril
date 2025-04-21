@@ -934,7 +934,7 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 }
 
 void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
-	struct generic_seq_args *seqargs = create_default_seqargs(multi_args->seq);
+    struct generic_seq_args *seqargs = create_default_seqargs(multi_args->seq);
 	seqargs->description = _("StarNet");
 	seqargs->seq = multi_args->seq;
 	seqargs->filtering_criterion = seq_filter_included;

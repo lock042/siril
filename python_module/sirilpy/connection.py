@@ -3399,8 +3399,10 @@ class SirilInterface:
 
         Returns:
             List of PSFStar objects containing the star data, or None if
-            no stars have been detected. (The "findstar" command should
-            be run first to detect stars in the image.)
+            no stars can be found. If stars have already been detected using
+            the `findstar` command then this list will be returned, otherwise
+            automatic star detection will be attempted with the current
+            star finder settings.
 
         Raises:
             NoImageError: If no image is currently loaded,

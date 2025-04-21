@@ -1089,6 +1089,8 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 			copyfits(seq->internal_fits[index], dest, CP_FORMAT, -1);
 			break;
 	}
+	seq->imgparam[index].rx = dest->rx;
+	seq->imgparam[index].ry = dest->ry;
 	return 0;
 }
 

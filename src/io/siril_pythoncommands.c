@@ -27,6 +27,7 @@
 #include "io/image_format_fits.h"
 #include "io/siril_pythonmodule.h"
 #include "siril_pythonmodule.h"
+#include "filters/synthstar.h"
 
 // Helper macros
 #define COPY_FLEN_STRING(str) \
@@ -785,7 +786,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				free_psf(psf);
 				error_occurred = TRUE;
 				const char* error_msg = _("Failed to find a star");
-				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 			// Set xpos and ypos as these are not set by minimisation
@@ -1677,19 +1678,37 @@ CLEANUP:
 		}
 
 		case CMD_GET_PSFSTARS: {
-			if (!com.stars || !com.stars[0]) {
-				const char* error_msg = _("No stars list available");
+			int nb_stars = starcount(com.stars);
+			int channel = 1;
+			psf_star **stars = NULL;
+			gboolean stars_needs_freeing;
+			if (nb_stars < 1) {
+				image *input_image = NULL;
+				input_image = calloc(1, sizeof(image));
+				input_image->fit = &gfit;
+				input_image->from_seq = NULL;
+				input_image->index_in_seq = -1;
+				if (gfit.naxes[2] == 1)
+					channel = 0;
+				stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
+						NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
+				free(input_image);
+				stars_needs_freeing = TRUE;
+			} else {
+				stars = com.stars;
+				stars_needs_freeing = FALSE;
+			}
+
+			// Count the number of stars in com.stars
+			nb_stars = starcount(stars);
+			if (nb_stars < 1) {
+				const char* error_msg = _("No stars in image");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 
-			// Count the number of stars in com.stars
-			int nb_in_com_stars = 0;
-			while (com.stars[nb_in_com_stars])
-				nb_in_com_stars++;
-
 			const size_t psf_star_size = 36 * sizeof(double);
-			const size_t total_size = nb_in_com_stars * psf_star_size;
+			const size_t total_size = nb_stars * psf_star_size;
 
 			unsigned char* allstars = g_try_malloc0(total_size);
 			if (!allstars) {
@@ -1699,18 +1718,21 @@ CLEANUP:
 			}
 
 			gboolean error_occurred = FALSE;
-			for (int i = 0; i < nb_in_com_stars; i++) {
-				if(!com.stars) {
+			for (int i = 0; i < nb_stars; i++) {
+				if(!stars) {
 					const char* error_msg = _("Stars array was cleared mid-process");
 					error_occurred = TRUE;
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				}
-				psf_star *psf = com.stars[i];
+				psf_star *psf = stars[i];
 				if (!psf) {
 					error_occurred = TRUE;
 					const char* error_msg = _("Unexpected null star entry");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (stars_needs_freeing) {
+						free_psf_starstarstar(stars);
+					}
 					break;
 				}
 
@@ -1721,8 +1743,15 @@ CLEANUP:
 					error_occurred = TRUE;
 					const char* error_msg = _("Memory allocation error");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (stars_needs_freeing) {
+						free_psf_starstarstar(stars);
+					}
 					break;
 				}
+			}
+
+			if (stars_needs_freeing) {
+				free_psf_starstarstar(stars);
 			}
 
 			if (!error_occurred) {
