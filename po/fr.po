@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-02 10:54+0200\n"
-"PO-Revision-Date: 2025-04-03 21:48+0000\n"
+"PO-Revision-Date: 2025-04-21 21:31+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -4164,11 +4164,12 @@ msgid ""
 "If set to 0, the diameter will automatically be set based on the spatial "
 "sigma parameter"
 msgstr ""
+"S'il est fixé à 0, le diamètre sera automatiquement fixé sur la base du "
+"paramètre sigma spatial"
 
 #: src/gui/uifiles/epf_dialog.ui:245
-#, fuzzy
 msgid "Diameter"
-msgstr "Diamètre / mm"
+msgstr "Diamètre"
 
 #: src/gui/uifiles/epf_dialog.ui:257
 msgid ""
@@ -4177,16 +4178,23 @@ msgid ""
 "value, otherwise the spatial extent of the filter is set to exactly this "
 "value regardless of sigma (spatial)"
 msgstr ""
+"Ceci définit le diamètre sur lequel le filtre de préservation des contours "
+"s'applique. S'il est égal à zéro, l'étendue spatiale est définie "
+"automatiquement en fonction de la valeur sigma spatiale, sinon l'étendue "
+"spatiale du filtre est définie exactement à cette valeur, indépendamment de "
+"sigma (spatial)"
 
 #: src/gui/uifiles/epf_dialog.ui:283
 msgid ""
 "This affects the diameter the filter applies over. If it is zero, the "
 "spatial extent is set by the spatial sigma value."
 msgstr ""
+"Cette valeur affecte le diamètre sur lequel le filtre s'applique. S'il est "
+"égal à zéro, l'étendue spatiale est définie par la valeur sigma spatiale."
 
 #: src/gui/uifiles/epf_dialog.ui:309
 msgid "Sigma (spatial)"
-msgstr ""
+msgstr "Sigma (spatial)"
 
 #: src/gui/uifiles/epf_dialog.ui:320
 msgid ""
@@ -4194,11 +4202,14 @@ msgid ""
 "operates. A larger sigma means the filter takes into account pixels over a "
 "wider area of the image. Note the interaction with the diameter setting."
 msgstr ""
+"Définit la plage de distance spatiale entre les pixels sur laquelle le "
+"filtre opère. Un sigma plus important signifie que le filtre prend en compte "
+"les pixels sur une zone plus large de l'image. Notez l'interaction avec le "
+"paramètre de diamètre."
 
 #: src/gui/uifiles/epf_dialog.ui:366
-#, fuzzy
 msgid "Sigma (intensity)"
-msgstr "Intensité"
+msgstr "Sigma (Intensité)"
 
 #: src/gui/uifiles/epf_dialog.ui:378
 msgid ""
@@ -4208,6 +4219,12 @@ msgid ""
 "Depending on your data you may need to make substantial adjustments here, "
 "for example setting the value to below 1.0."
 msgstr ""
+"Cette valeur affecte la plage de similarité des valeurs des pixels sur "
+"laquelle le filtre de préservation des bords s'applique.\n"
+"Si vos étoiles semblent énormes et défocalisées, commencez par réduire cette "
+"valeur. En fonction de vos données, il se peut que vous deviez procéder à "
+"des ajustements substantiels, par exemple en réglant la valeur en dessous de "
+"1,0."
 
 #: src/gui/uifiles/epf_dialog.ui:380
 #, fuzzy
@@ -4215,7 +4232,6 @@ msgid "0.000"
 msgstr "10.00"
 
 #: src/gui/uifiles/epf_dialog.ui:425 src/gui/uifiles/epf_dialog.ui:442
-#, fuzzy
 msgid ""
 "Modulation parameter set in the [0, 1] range.\n"
 "When this parameter is equal to 1, no modulation is applied.\n"
@@ -4223,7 +4239,7 @@ msgid ""
 msgstr ""
 "Paramètre de modulation défini dans l'intervalle [0, 1].\n"
 "Quand le paramètre est égal à 1, aucune modulation n'est appliquée.\n"
-"Si le paramètre est nul, alors aucun filtre n'est appliqué à l'image."
+"Si le paramètre est nul, alors aucun filtre n'est appliqué du tout."
 
 #: src/gui/uifiles/epf_dialog.ui:475
 msgid ""
@@ -4231,6 +4247,10 @@ msgid ""
 "active by default. It is strongly recommended to select a Region of Interest "
 "(ROI) before activating the edge preserving filter preview."
 msgstr ""
+"Les filtres de préservation des contours peuvent être lents sur les grandes "
+"images, c'est pourquoi l'aperçu n'est pas activé par défaut. Il est "
+"fortement recommandé de sélectionner une région d'intérêt (ROI) avant "
+"d'activer l'aperçu du filtre de préservation des contours."
 
 #: src/gui/uifiles/extract_channel_dialog.ui:35 src/gui/uifiles/siril.ui:1415
 #: src/gui/uifiles/siril.ui:1726
@@ -9745,11 +9765,11 @@ msgstr "Gradient Rotationnel..."
 
 #: src/gui/uifiles/siril.ui:2089
 msgid "Open the unpurple filter dialog"
-msgstr "Ouvrir la boîte de dialogue du filtre unpurple"
+msgstr "Ouvrir la boîte de dialogue du filtre anti-violet"
 
 #: src/gui/uifiles/siril.ui:2091
 msgid "Unpurple Filter..."
-msgstr "Filtre unpurple..."
+msgstr "Filtre anti-violet..."
 
 #: src/gui/uifiles/siril.ui:2134
 msgid "Rotate  image 90 degrees, clockwise"
@@ -12929,40 +12949,36 @@ msgstr ""
 "elle est affichée"
 
 #: src/gui/uifiles/unpurple_dialog.ui:59
-#, fuzzy
 msgid "Unpurple Filter"
-msgstr "Filtre unpurple..."
+msgstr "Filtre anti-violet"
 
 #: src/gui/uifiles/unpurple_dialog.ui:147
 msgid "Blue Adjustment"
-msgstr ""
+msgstr "Ajustement du bleu"
 
 #: src/gui/uifiles/unpurple_dialog.ui:158
-#, fuzzy
 msgid ""
 "Amount of blue channel adjustment set in the [0, 1] range.\n"
 "When this parameter is equal to 1, no reductiopn is applied.\n"
 "Reduce this value for stronger effect."
 msgstr ""
-"Paramètre de modulation défini dans l'intervalle [0, 1].\n"
-"Quand le paramètre est égal à 1, aucune modulation n'est appliquée.\n"
-"Si le paramètre est nul, alors aucun filtre n'est appliqué à l'image."
+"Montant de l'ajustement du canal bleu défini dans la plage [0, 1].\n"
+"Lorsque ce paramètre est égal à 1, aucune réduction n'est appliquée.\n"
+"Réduisez cette valeur pour obtenir un effet plus prononcé."
 
 #: src/gui/uifiles/unpurple_dialog.ui:175
-#, fuzzy
 msgid ""
 "Amount of blue channel adjustment set in the [0, 1] range.\n"
 "When this parameter is equal to 1, no modulation is applied.\n"
 "Reduce this value for stronger effect."
 msgstr ""
-"Paramètre de modulation défini dans l'intervalle [0, 1].\n"
-"Quand le paramètre est égal à 1, aucune modulation n'est appliquée.\n"
-"Si le paramètre est nul, alors aucun filtre n'est appliqué à l'image."
+"Montant de l'ajustement du canal bleu défini dans la plage [0, 1].\n"
+"Lorsque ce paramètre est égal à 1, aucune modulation n'est appliquée.\n"
+"Réduisez cette valeur pour obtenir un effet plus prononcé."
 
 #: src/gui/uifiles/unpurple_dialog.ui:215
-#, fuzzy
 msgid "Threshold"
-msgstr "Seuil : "
+msgstr "Seuil"
 
 #: src/gui/uifiles/unpurple_dialog.ui:226
 #: src/gui/uifiles/unpurple_dialog.ui:244
@@ -12972,11 +12988,16 @@ msgid ""
 "background luminance level for pixels to be selected\n"
 "Threshold for purple reduction set in the [0, 1] range."
 msgstr ""
+"Lorsque l'option \"Utiliser masque d'étoile\" est activée, elle affecte la "
+"taille de chaque étoile\n"
+"dans le masque d'étoiles. Lorsqu'il est désactivé, il affecte le niveau de "
+"luminance de l'arrière-plan\n"
+"pour les pixels à sélectionner\n"
+"Seuil de réduction du violet dans la plage [0, 1]."
 
 #: src/gui/uifiles/unpurple_dialog.ui:267
-#, fuzzy
 msgid "Use Starmask"
-msgstr "Masque d'étoiles"
+msgstr "Utiliser masque d'étoiles"
 
 #: src/gui/uifiles/wavelets_dialog.ui:77
 msgid "Wavelets control"
@@ -14307,7 +14328,7 @@ msgstr "Fonctions linéaires :\n"
 
 #: src/algos/fitting.c:178 src/algos/fitting.c:228
 msgid "Error! Need at least 2 points...\n"
-msgstr ""
+msgstr "Erreur ! Il faut au moins 2 points...\n"
 
 #: src/algos/fix_xtrans_af.c:189
 #, c-format
@@ -20543,9 +20564,10 @@ msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr "Définir le répertoire de travail à '%s'\n"
 
 #: src/core/utils.c:1198
-#, fuzzy, c-format
+#, c-format
 msgid "Could not change directory to '%s'(error code %d: %s).\n"
-msgstr "Impossible de modifier le répertoire de travail en '%s'.\n"
+msgstr ""
+"Impossible de changer de répertoire vers '%s' (code d'erreur %d : %s).\n"
 
 #: src/core/utils.c:1224
 msgid "Filename is too long, not expanding it\n"
@@ -20639,9 +20661,8 @@ msgstr ""
 "%d : %s\n"
 
 #: src/filters/epf.c:122
-#, fuzzy
 msgid "Bilateral filter: processing...\n"
-msgstr "Filtre médian : en cours...\n"
+msgstr "Filtre bilatéral : en cours...\n"
 
 #: src/filters/fft.c:455
 msgid "Siril FFT wisdom imported successfully...\n"
@@ -22209,17 +22230,15 @@ msgstr[0] "%d fichier sélectionné"
 msgstr[1] "%d fichiers sélectionnés"
 
 #: src/gui/curves.c:161
-#, fuzzy
 msgid "Toggles whether to apply the curve to the monochrome channel"
-msgstr "Permet d'appliquer ou non l'étirement au canal monochrome"
+msgstr "Permet d'appliquer ou non la courbe au canal monochrome"
 
 #: src/gui/curves.c:552
-#, fuzzy, c-format
+#, c-format
 msgid "Applying %s curve transformation with %d points\n"
-msgstr "Appliquer la transformation par courbes"
+msgstr "Application de la transformation par courbe %s avec %d points\n"
 
 #: src/gui/curves.c:620
-#, fuzzy
 msgid "Curves Transform"
 msgstr "Transformation par courbes"
 
@@ -22485,6 +22504,9 @@ msgid ""
 "Error: cannot open an image processing dialog while a Python script claims "
 "the processing thread. Wait for the Python script to finish processing first."
 msgstr ""
+"Erreur : impossible d'ouvrir une boîte de dialogue de traitement d'images "
+"alors qu'un script Python réclame le thread de traitement. Attendez d'abord "
+"que le script Python termine le traitement."
 
 #: src/gui/dialogs.c:238
 msgid "Select Folder"
@@ -22510,9 +22532,8 @@ msgid "_Add"
 msgstr "_Ajouter"
 
 #: src/gui/dialogs.c:256
-#, fuzzy
 msgid "Save File"
-msgstr "Tout sauvegarder"
+msgstr "Enregistrer le fichier"
 
 #: src/gui/documentation.c:65
 #, c-format
@@ -22530,12 +22551,11 @@ msgstr "Veuillez-vous rentre à <a href=\""
 #: src/gui/epf.c:149
 #, c-format
 msgid "Bilateral filter: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"
-msgstr ""
+msgstr "Filtre bilatéral : (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"
 
 #: src/gui/epf.c:173
-#, fuzzy
 msgid "Error, no guide image loaded."
-msgstr "Erreur : Aucune séquence chargée.\n"
+msgstr "Erreur, aucune image guide n'a été chargée."
 
 #: src/gui/epf.c:297 src/gui/epf.c:304 src/gui/merge_cfa.c:91
 #: src/gui/merge_cfa.c:105 src/gui/merge_cfa.c:118 src/gui/merge_cfa.c:131
@@ -22544,9 +22564,8 @@ msgid "Image loading failed"
 msgstr "Le chargement de l'image a échoué"
 
 #: src/gui/epf.c:303
-#, fuzzy
 msgid "Error: image dimensions do not match"
-msgstr "Erreur : les dimensions de l'image guide ne correspondent pas\n"
+msgstr "Erreur : les dimensions de l'image ne correspondent pas"
 
 #: src/gui/git_gui.c:60 src/gui/git_gui.c:71 src/gui/git_gui.c:248
 #: src/gui/git_gui.c:252 src/gui/git_gui.c:257 src/gui/git_gui.c:262
@@ -23153,14 +23172,13 @@ msgid "Not a valid sequence for cropping.\n"
 msgstr "N'est pas une séquence valide pour le recadrage.\n"
 
 #: src/gui/merge_cfa.c:210
-#, fuzzy
 msgid "Error: input sequence CFA marker not found"
-msgstr "Erreur : Aucune séquence chargée.\n"
+msgstr "Erreur : le marquer CFA de la séquence d'entrée n'a pas été trouvé"
 
 #: src/gui/merge_cfa.c:214
-#, fuzzy, c-format
+#, c-format
 msgid "Identified the loaded sequence as CFA%d\n"
-msgstr "Recadre la séquence chargée"
+msgstr "Identification de la séquence chargée comme CFA%d\n"
 
 #: src/gui/merge_cfa.c:242 src/gui/merge_cfa.c:253 src/gui/merge_cfa.c:264
 #: src/gui/merge_cfa.c:275
@@ -23168,16 +23186,16 @@ msgid ""
 "Error: sequence has more than one channel, this is for mono (CFA subchannel) "
 "sequences"
 msgstr ""
+"Erreur : la séquence a plus d'un canal, ceci est pour les séquences mono "
+"(sous-canal CFA)"
 
 #: src/gui/merge_cfa.c:342
-#, fuzzy
 msgid "Error: images are not all loaded"
-msgstr "Erreur : l'image n'a pas pu être chargée"
+msgstr "Erreur : les images ne sont pas toutes chargées"
 
 #: src/gui/merge_cfa.c:343
-#, fuzzy
 msgid "Merge CFA cannot proceed"
-msgstr "Fusionner les canaux CFA..."
+msgstr "La fusion des canaux CFA ne peut avoir lieu"
 
 #: src/gui/mouse_action_functions.c:309
 msgid "This action opens a new image if there is no image currently loaded"
@@ -25216,11 +25234,11 @@ msgstr "Taille de la sélection en pixel : (%d, %d)"
 #: src/gui/unpurple.c:78
 #, c-format
 msgid "Creating binary star mask for %d stars...\n"
-msgstr ""
+msgstr "Création d'un masque d'étoiles binaires pour %d étoiles...\n"
 
 #: src/gui/unpurple.c:184
 msgid "Unpurple filter: (thresh=%2.2lf, mod_b=%2.2lf)"
-msgstr ""
+msgstr "Filtre anti-violet : (seuil=%2.2lf, mod_b=%2.2lf)"
 
 #: src/gui/utils.c:178
 #, c-format
@@ -27751,9 +27769,9 @@ msgid "No distodata available"
 msgstr "Aucune distodata disponible"
 
 #: src/io/siril_pythoncommands.c:2197
-#, fuzzy
 msgid "Failed to add user polygon: no image loaded"
-msgstr "Échec de la sélection - aucune image n'a été chargée"
+msgstr ""
+"Échec de l'ajout d'un polygone utilisateur : aucune image n'a été chargée"
 
 #: src/io/siril_pythoncommands.c:2210
 msgid "Failed to add user polygon"
@@ -27772,9 +27790,8 @@ msgid "No user polygons to serialize"
 msgstr "Pas de polygones utilisateur à sérialiser"
 
 #: src/io/siril_pythoncommands.c:2278
-#, fuzzy
 msgid "Failed to serialize user polygon list"
-msgstr "Échec de la sérialisation du polygone utilisateur"
+msgstr "Échec de la sérialisation de la liste des polygones de l'utilisateur"
 
 #: src/io/siril_pythoncommands.c:2292 src/io/siril_pythoncommands.c:2298
 #: src/io/siril_pythoncommands.c:2304
@@ -29553,6 +29570,7 @@ msgstr "Alignement : impossible de charger la première image, abandon.\n"
 #: src/registration/shift_methods.c:136
 msgid "Error: SER file has wrong type. Cannot proceed.\n"
 msgstr ""
+"Erreur : Le fichier SER n'est pas du bon type. Impossible de poursuivre.\n"
 
 #: src/registration/shift_methods.c:230 src/registration/shift_methods.c:509
 #, c-format
@@ -29565,9 +29583,8 @@ msgid "Best frame: #%d.\n"
 msgstr "Meilleure image : #%d.\n"
 
 #: src/registration/shift_methods.c:427
-#, fuzzy
 msgid "Error reading frame metadata\n"
-msgstr "Erreur de lecture des métadonnées.\n"
+msgstr "Erreur de lecture des métadonnées de l'image\n"
 
 #: src/registration/shift_methods.c:438
 msgid "Register using KOMBAT: loading and processing reference frame"
