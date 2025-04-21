@@ -133,7 +133,7 @@ static void color_has_been_updated(int layer);
 static void update_color_from_saturation(int layer, double newl);
 static void rgb_pixel_limiter(GdkRGBA *pixel);
 static void clear_pixel(GdkRGBA *pixel);
-static void update_result(int assume_gfit_is_ours);
+static void update_result(int and_refresh);
 static void populate_filter_lists();
 static void coeff_clear();
 int register_manual(struct registration_args *regargs);
@@ -345,7 +345,7 @@ static void remove_layer(int layer) {
 	coeff_clear();
 
 	if (refresh)
-		update_result(0);
+		update_result(1);
 }
 
 /* callback of the '-' button that is clicked to remove a layer in the list */
@@ -478,12 +478,15 @@ void open_compositing_window() {
 		/* not the first load, update the CWD just in case it changed in the meantime */
 		i = 0;
 
+//		close_sequence(FALSE);
+//		close_single_image();
 		do {
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(layers[i]->chooser), com.wd);
 			if (!reference)
 				reference = copyICCProfile(layers[i]->the_fit.icc_profile);
 			i++;
 		} while (layers[i]);
+//		update_result(1);
 		gui_function(update_MenuItem, NULL);
 	}
 	if (compositing_loaded == 1)
@@ -528,7 +531,7 @@ void on_composition_use_lum_toggled(GtkToggleButton *togglebutton, gpointer user
 
 	// Update the result if necessary
 	if (has_fit(0) && number_of_images_loaded() >= 1)
-		update_result(0);
+		update_result(1);
 }
 
 static void check_gfit_is_ours() {
@@ -621,7 +624,6 @@ static void update_comp_metadata(fits *fit, gboolean do_sum) {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f, do_sum);
-	update_fits_header(&gfit);
 	free(f);
 }
 
@@ -763,7 +765,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 
 	update_compositing_registration_interface();
 
-	update_result(0);
+	update_result(1);
 	update_metadata(TRUE);
 	gui_function(update_MenuItem, NULL);
 }
@@ -855,13 +857,13 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 
 	// Avoid crash if gfit has been closed since populating the layers
 	if (!gfit.data && !gfit.fdata) {
-		update_result(0);
-	} else {
-		// Avoid crash if the size of gfit is larger than the input images
-		// This can happen if compositing is run twice in a row with a
-		// framing type that increases its dimensions
-		check_gfit_is_ours();
+		update_result(1);
 	}
+
+	// Avoid crash if the size of gfit is larger than the input images
+	// This can happen if compositing is run twice in a row with a
+	// framing type that increases its dimensions
+	check_gfit_is_ours();
 
 	// Check the input images are still all the same size. Size changes
 	// can happen if a prior composition failed to align some images.
@@ -1140,7 +1142,7 @@ void on_compositing_align_method_combo_changed(GtkComboBox *widget, gpointer use
 
 void on_composition_combo_coloringtype_changed(GtkComboBox *widget, gpointer user_data) {
 	coloring_type = gtk_combo_box_get_active(widget);
-	update_result(0);
+	update_result(1);
 }
 
 /* Image composition without luminance. Used for RGB composition for example.
@@ -1322,17 +1324,16 @@ static void clear_pixel(GdkRGBA *pixel) {
 }
 
 /* recompute the layer composition and optionnally refresh the displayed result image */
-static void update_result(int assume_gfit_is_ours) {
+static void update_result(int and_refresh) {
 	icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
 
-	if (!assume_gfit_is_ours)
-		check_gfit_is_ours();
+	check_gfit_is_ours();
 	if (luminance_mode && has_fit(0)) {
 		luminance_and_colors_align_and_compose();
 	} else {
 		colors_align_and_compose();
 	}
-	if (number_of_images_loaded() > 0) {
+	if (and_refresh && number_of_images_loaded() > 0) {
 		notify_gfit_modified();
 		redraw(REMAP_ALL);
 	}
@@ -1423,7 +1424,7 @@ void on_colordialog_response(GtkColorChooserDialog *chooser, gint response_id, g
 		gtk_editable_delete_text(GTK_EDITABLE(wl_entry), 0, -1);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(box), -1);
 		if (has_fit(current_layer_color_choosing))
-			update_result(0);
+			update_result(1);
 	}
 }
 
@@ -1477,7 +1478,7 @@ gboolean on_color_button_release_event(const GtkDrawingArea *widget, GdkEventBut
 		gtk_widget_show(GTK_WIDGET(color_dialog));
 	} else if (event->button == GDK_BUTTON_SECONDARY) {	// right click
 		if (has_fit(current_layer_color_choosing))
-			update_result(0);
+			update_result(1);
 		current_layer_color_choosing = 0;
 		gtk_editable_delete_text(GTK_EDITABLE(wl_entry), 0, -1);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(box), -1);
@@ -1626,7 +1627,7 @@ void autoadjust(int force_redraw) {
 	if (max_pixel.red <= 1.0f && max_pixel.green <= 1.0f && max_pixel.blue <= 1.0f) {
 		if (force_redraw) {
 			siril_log_message(_("No overflow with the current colours, redrawing only\n"));
-			update_result(0);
+			update_result(1);
 		} else {
 			siril_log_message(_("Nothing to adjust, no overflow\n"));
 			set_cursor_waiting(FALSE);
@@ -1673,7 +1674,7 @@ void autoadjust(int force_redraw) {
 	for (layer = 1; layers[layer]; layer++) {
 		gtk_widget_queue_draw(GTK_WIDGET(layers[layer]->color_w));
 	}
-	update_result(0);
+	update_result(1);
 	set_cursor_waiting(FALSE);
 }
 
@@ -1726,7 +1727,7 @@ void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
 		}
 	}
 	siril_log_message(_("All images reloaded successfully.\n"));
-	update_result(0);
+	update_result(1);
 }
 
 void on_compositing_save_all_clicked(GtkButton *button, gpointer user_data) {
@@ -1787,7 +1788,7 @@ void on_compositing_linear_match_clicked(GtkButton *button, gpointer *user_data)
 	set_progress_bar_data(_("Linear match layers complete"), 1.0);
 	if (error)
 		siril_log_color_message(_("Error: failed to match %d layers with the reference layer.\n"), "red", error);
-	update_result(0);
+	update_result(1);
 }
 
 /*********************************
