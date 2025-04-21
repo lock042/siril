@@ -378,43 +378,55 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 
 	args->channel[0] = args->channel[1] = args->channel[2] = NULL;
 
-	if (gtk_entry_get_text(channel_extract_entry[0]))
-		args->channel[0] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[0]), com.pref.ext);
-	if (gtk_entry_get_text(channel_extract_entry[1]))
-		args->channel[1] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[1]), com.pref.ext);
-	if (gtk_entry_get_text(channel_extract_entry[2]))
-		args->channel[2] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[2]), com.pref.ext);
+	for (int i = 0; i < 3; i++) {
+	    const gchar *text = gtk_entry_get_text(channel_extract_entry[i]);
+	    if (text && *text) {
+	        args->channel[i] = g_strdup_printf("%s%s", text, com.pref.ext);
+	    }
+	}
 
-	if ((args->channel[0][0] != '\0') && (args->channel[1][0] != '\0')
-			&& (args->channel[2][0] != '\0')) {
-		args->fit = calloc(1, sizeof(fits));
-		set_cursor_waiting(TRUE);
-		if (copyfits(&gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
-			siril_log_message(_("Could not copy the input image, aborting.\n"));
+	args->fit = calloc(1, sizeof(fits));
+	set_cursor_waiting(TRUE);
+	if (copyfits(&gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+		siril_log_message(_("Could not copy the input image, aborting.\n"));
+		clearfits(args->fit);
+		free(args->fit);
+		free(args->channel[0]);
+		free(args->channel[1]);
+		free(args->channel[2]);
+		free(args);
+	} else {
+		copy_fits_metadata(&gfit, args->fit);
+		if (!start_in_new_thread(extract_channels, args)) {
 			clearfits(args->fit);
 			free(args->fit);
 			free(args->channel[0]);
 			free(args->channel[1]);
 			free(args->channel[2]);
 			free(args);
-		} else {
-			copy_fits_metadata(&gfit, args->fit);
-			if (!start_in_new_thread(extract_channels, args)) {
-				clearfits(args->fit);
-				free(args->fit);
-				free(args->channel[0]);
-				free(args->channel[1]);
-				free(args->channel[2]);
-				free(args);
-			}
 		}
 	}
-	else {
-		free(args->channel[0]);
-		free(args->channel[1]);
-		free(args->channel[2]);
-		free(args);
-	}
+}
+
+void update_button_sensitivity(GtkWidget *entry, gpointer user_data) {
+    GtkWidget *button = GTK_WIDGET(user_data);
+    GtkEntry *channel_extract_entry[3] = {
+        GTK_ENTRY(lookup_widget("Ch1_extract_channel_entry")),
+        GTK_ENTRY(lookup_widget("Ch2_extract_channel_entry")),
+        GTK_ENTRY(lookup_widget("Ch3_extract_channel_entry"))
+    };
+
+    gboolean has_text = FALSE;
+
+    for (int i = 0; i < 3; i++) {
+        const gchar *text = gtk_entry_get_text(channel_extract_entry[i]);
+        if (text && *text) {
+            has_text = TRUE;
+            break;
+        }
+    }
+
+    gtk_widget_set_sensitive(button, has_text);
 }
 
 
