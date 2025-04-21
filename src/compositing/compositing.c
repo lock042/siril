@@ -610,6 +610,7 @@ static void update_metadata(gboolean do_sum) {
 
 	merge_fits_headers_to_result2(&gfit, f, do_sum);
 	update_fits_header(&gfit);
+	gui_function(update_MenuItem, NULL);
 	free(f);
 }
 
@@ -624,6 +625,8 @@ static void update_comp_metadata(fits *fit, gboolean do_sum) {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f, do_sum);
+	update_fits_header(&gfit);
+	gui_function(update_MenuItem, NULL);
 	free(f);
 }
 
@@ -973,8 +976,6 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 	}
-	// update WCS etc.
-	update_comp_metadata(seq->internal_fits[seq->reference_image], do_sum);
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
@@ -999,6 +1000,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	/* align the image and display it.
 	 * Layers are aligned against the reference layer, with zeros where there is not data */
 	update_result(1);
+	// update WCS etc. (must be done after update_result())
+	update_comp_metadata(seq->internal_fits[seq->reference_image], do_sum);
 	// reset the transformation type so that it is always in this state by default
 	the_type = HOMOGRAPHY_TRANSFORMATION;
 	// Reset rotation centers: owing to the change of framing the previous rotation centers
