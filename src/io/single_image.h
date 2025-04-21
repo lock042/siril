@@ -17,6 +17,7 @@ void unique_free_preprocessing_data(single *uniq);
 int single_image_is_loaded();
 
 void adjust_cutoff_from_updated_gfit();		// was level_adjust(), deprecated too
+gboolean end_gfit_operation();
 void notify_gfit_modified();		// to be called after all gfit modifications
 
 #endif
