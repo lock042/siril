@@ -1252,7 +1252,7 @@ class Polygon:
             if len(data) < legend_length:
                 raise ValueError("Not enough data for legend string")
 
-            legend = data[:legend_length].decode('utf-8')
+            legend = data[:legend_length].decode('utf-8').rstrip('\x00')
             data = data[legend_length:]
         else:
             legend = None

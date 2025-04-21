@@ -2793,7 +2793,7 @@ class SirilInterface:
             # Extract remaining bytes for the null-terminated string
             if len(response) > fixed_length:
                 remaining_data = response[fixed_length:]
-                distofilename_string = remaining_data.decode('utf-8')
+                distofilename_string = remaining_data.decode('utf-8').rstrip('\x00')
             else:
                 distofilename_string = ''
 
@@ -2835,7 +2835,7 @@ class SirilInterface:
             values = struct.unpack(format_string, response[:fixed_length])
             # Extract remaining bytes for the null-terminated string
             remaining_data = response[fixed_length:]
-            seqname_string = remaining_data.decode('utf-8')
+            seqname_string = remaining_data.decode('utf-8').rstrip('\x00')
 
             number = values[0]
             nb_layers = values[3]
