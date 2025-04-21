@@ -206,7 +206,13 @@ int execute_command(int wordnb) {
 	if (gui.roi.active)
 		populate_roi();
 	if (retval & CMD_NOTIFY_GFIT_MODIFIED) {
-		notify_gfit_modified();
+		if (!com.python_script) {
+			notify_gfit_modified();
+		} else {
+			invalidate_stats_from_fit(&gfit);
+			invalidate_gfit_histogram();
+			execute_idle_and_wait_for_it(end_gfit_operation, NULL);
+		}
 		retval = retval & ~CMD_NOTIFY_GFIT_MODIFIED;
 	}
 	return (int) retval;
