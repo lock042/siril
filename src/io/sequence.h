@@ -6,13 +6,18 @@
 #include "../core/processing.h"
 #include "../algos/PSF.h"
 
+typedef enum {
+	CACHE_OLDER = -1,
+	CACHE_NOT_FOUND = 0,
+	CACHE_NEWER = 1
+} cache_status;
+
 gboolean populate_seqcombo(gpointer user_data);
 int	read_single_sequence(char *realname, image_type imagetype);
 char *normalize_seqname(char *name, gboolean add_underscore);
 int	check_seq();
 int	seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit);
 gboolean set_seq(gpointer user_data);
-gboolean set_seq_sync(gpointer user_data);
 char *	seq_get_image_filename(sequence *seq, int index, char *name_buf);
 int	seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, int thread_id);
 int seq_read_frame_metadata(sequence *seq, int index, fits *dest);
@@ -21,6 +26,7 @@ int	seq_load_image(sequence *seq, int index, gboolean load_it);
 gboolean seq_load_image_in_thread(gpointer user_data);
 int64_t seq_compute_size(sequence *seq, int nb_frames, data_type type);
 gboolean check_if_seq_exist(gchar *name, gboolean name_is_base);
+gboolean create_one_seq(const char *seqname, sequence_type seqtype);
 int	seq_open_image(sequence *seq, int index);
 void	seq_close_image(sequence *seq, int index);
 int	seq_opened_read_region(sequence *seq, int layer, int index, void *buffer, const rectangle *area, int thread_id);
@@ -38,7 +44,7 @@ void	close_sequence(int loading_another);
 gboolean check_seq_is_comseq(const sequence *seq);
 gboolean check_seq_is_variable(const sequence *seq);
 gboolean sequence_is_loaded();
-gboolean check_cachefile_date(sequence *seq, int index, const gchar *star_filename) ;
+cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_filename);
 
 typedef enum {
 	ORIGINAL_FRAME,

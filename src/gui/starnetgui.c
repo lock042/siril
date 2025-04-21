@@ -220,6 +220,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 			if (sgui_starmask) {
 				multi_args->prefixes[1] = g_strdup("starmask_");
 			}
+			multi_args->seqEntry = strdup(multi_args->prefixes[0]);
 			apply_starnet_to_sequence(multi_args);
 			siril_close_dialog("starnet_dialog");
 		} else {

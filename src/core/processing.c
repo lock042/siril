@@ -281,6 +281,14 @@ gpointer generic_sequence_worker(gpointer p) {
 			free(fit);
 			continue;
 		}
+		// If not reading image, we still load its metadata to fill imgparam
+		if (!read_image && seq_read_frame_metadata(args->seq, input_idx, fit)) {
+			abort = 1;
+			clearfits(fit);
+			free(fit);
+			continue;
+		}
+
 		if (read_image && args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
 			if (args->stop_on_error)
 				abort = 1;
@@ -396,10 +404,20 @@ the_end:
 
 		if (!run_idle) {
 			// some generic cleanup for scripts
-			// should we check for seq = com.seq?
-			free(args->new_seq_prefix);
-			free_sequence(args->seq, TRUE);
-			free(args);
+			// here we make sure the new .seq is created if needed
+			if (args->has_output && args->load_new_sequence &&
+				args->new_seq_prefix && !args->retval) {
+				const gchar *basename = g_path_get_basename(args->seq->seqname);
+				const char *root = remove_ext_from_filename(basename);
+				const gchar *seqname = g_strdup_printf("%s%s%s", args->new_seq_prefix, root, ".seq");
+				gboolean seqfilecreated = create_one_seq(seqname, args->seq->type);
+				if (!seqfilecreated) { // just a fallback
+					check_seq();
+				}
+			}
+			free_generic_seq_args(args, TRUE);
+			// we then make sure we stop the thread and reset cursor to FALSE
+			end_generic(NULL);
 		}
 	}
 	return GINT_TO_POINTER(retval);
@@ -870,6 +888,7 @@ void stop_processing_thread() {
 	set_thread_run(FALSE);
 	if (!thread_being_waited)
 		waiting_for_thread();
+	set_cursor_waiting(FALSE);
 }
 
 static void set_thread_run(gboolean b) {

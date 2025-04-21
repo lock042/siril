@@ -259,6 +259,11 @@ static gboolean check_affine_TRANS_sanity(TRANS *trans) {
 	return (fabs(var1) < TRANS_SANITY_CHECK && fabs(var2) < TRANS_SANITY_CHECK);
 }
 
+static gboolean check_affine_TRANS_scale(TRANS *trans, double scalemin, double scalemax) {
+	double resolution = sqrt(fabs(trans->x10) * fabs(trans->x10) + fabs(trans->y10) * fabs(trans->y10));
+	return resolution <= 1. / scalemin && resolution >= 1. / scalemax;
+}
+
 static double get_det_from_trans(TRANS *trans) {
 	return (trans->x10 * trans->y01 - trans->y10 * trans->x01);
 }
@@ -1426,6 +1431,10 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 		ret = SOLVE_INVALID_TRANS;
 		goto clearup;
 	}
+	if (!check_affine_TRANS_scale(&trans, scale_min, scale_max)) {
+		ret = SOLVE_INVALID_TRANS;
+		goto clearup;
+	}
 
 	int num_matched = trans.nm;
 	int trial = 0;
@@ -2250,7 +2259,7 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		seq_finalize_hook(arg);
 	if (aargs->update_reg && !arg->retval) {
 		siril_log_color_message(_("Computing astrometric registration...\n"), "green");
-		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_CURRENT, aargs->layer, NULL, NULL);
+		arg->retval = compute_Hs_from_astrometry(arg->seq, NULL, -1, aargs->WCSDATA, FRAMING_CURRENT, aargs->layer, NULL, NULL);
 	}
 	fix_selnum(arg->seq, FALSE);
 	if (!arg->retval)

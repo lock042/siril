@@ -7427,6 +7427,7 @@ int process_convert(int nb) {
 	gboolean debayer = FALSE;
 	gboolean make_link = !raw_only;
 	sequence_type output = SEQ_REGULAR;
+	gboolean in_cwd = TRUE;
 
 	for (int i = 2; i < nb; i++) {
 		char *current = word[i], *value;
@@ -7468,6 +7469,7 @@ int process_convert(int nb) {
 			g_free(destroot);
 			destroot = strdup(filename);
 			g_free(filename);
+			in_cwd = FALSE;
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
@@ -7485,6 +7487,12 @@ int process_convert(int nb) {
 		set_cursor_waiting(FALSE);
 		free(destroot);
 		return CMD_NO_CWD;
+	}
+
+	if (in_cwd && (output == SEQ_SER || output == SEQ_FITSEQ) && g_file_test(destroot, G_FILE_TEST_EXISTS)) {
+		siril_log_color_message(_("Destination sequence %s already exists in the current folder, cannot proceed.\n"), "red", destroot);
+		free(destroot);
+		return CMD_GENERIC_ERROR;
 	}
 
 	int count = 0;

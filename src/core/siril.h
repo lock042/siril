@@ -481,6 +481,7 @@ typedef struct {
 	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
 	char row_order[FLEN_VALUE];
 	GDateTime *date, *date_obs;		// creation and acquisition UTC dates
+	double mjd_obs;					// date-obs in Julian
 	double expstart, expend;		// Julian dates
 	char filter[FLEN_VALUE];		// FILTER key
 	char image_type[FLEN_VALUE];		// IMAGETYP key

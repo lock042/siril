@@ -71,11 +71,19 @@ static float compute_threshold(image *image, double ksigma, int layer, rectangle
 		*bg = 0.0;
 		return 0;
 	}
-	threshold = (float)(stat->median + ksigma * stat->bgnoise);
-	*norm = stat->normValue;
-	*bg = stat->median;
-	*bgnoise = stat->bgnoise;
-	*max = stat->max;
+	double normvalue = 1.;
+	if (image->from_seq && image->from_seq->bitpix != image->fit->bitpix) { // stats are not correctly normalized, we need to correct that
+		double normavalueseq =  (image->from_seq->bitpix == BYTE_IMG) ? UCHAR_MAX_DOUBLE : 
+								(image->from_seq->bitpix == USHORT_IMG) ? USHRT_MAX_DOUBLE : 1.;
+		double normavaluefit =  (image->fit->bitpix == BYTE_IMG) ? UCHAR_MAX_DOUBLE : 
+								(image->fit->bitpix == USHORT_IMG) ? USHRT_MAX_DOUBLE : 1.;
+		normvalue	= (normavaluefit / normavalueseq);
+	}
+	threshold = (float)(stat->median * normvalue + ksigma * stat->bgnoise * normvalue);
+	*norm = stat->normValue * normvalue;
+	*bg = stat->median * normvalue;;
+	*bgnoise = stat->bgnoise * normvalue;;
+	*max = stat->max * normvalue;
 	free_stats(stat);
 
 	return threshold;
@@ -1179,7 +1187,13 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	if (findstar_args->save_to_file)
 		curr_findstar_args->starfile = star_filename;
 
-	gboolean status = check_star_list(star_filename, curr_findstar_args);
+	cache_status status = check_cachefile_date(args->seq, index, star_filename);
+	if (status <= CACHE_NOT_FOUND) { // cached file is older and was deleted or does not exist, we need to read the image
+		free(curr_findstar_args);
+		g_free(star_filename);
+		return TRUE; 
+	}
+	status = (int)check_star_list(star_filename, curr_findstar_args);
 	free(curr_findstar_args);
 	g_free(star_filename);
 	return !status; // check_star_list returns TRUE on success
@@ -1226,7 +1240,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			return curr_findstar_args;
 		}
 
-		if (seq->type == SEQ_INTERNAL || !check_cachefile_date(seq, i, star_filename) ||
+		if (seq->type == SEQ_INTERNAL || !(check_cachefile_date(seq, i, star_filename) == CACHE_NEWER) ||
 				!check_star_list(star_filename, curr_findstar_args))
 				can_use_cache = FALSE;
 		if (findstar_args->save_to_file)

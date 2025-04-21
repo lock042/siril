@@ -1,5 +1,0 @@
-#!/bin/sh
-
-head -n 5 < POTFILES.in > POTFILES.in.tmp 
-tail -n +6 < POTFILES.in | sort >> POTFILES.in.tmp
-mv POTFILES.in.tmp POTFILES.in

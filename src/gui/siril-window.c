@@ -184,6 +184,7 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"dyn-psf",
 		"seq-list",
 		"regframe",
+		"cut",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);

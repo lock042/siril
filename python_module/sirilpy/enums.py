@@ -3,6 +3,11 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""
+Enums submodule for Siril. This submodule contains all the enums used
+within sirilpy.
+"""
+
 from enum import IntEnum, unique
 
 @unique
@@ -18,6 +23,33 @@ class _Status(IntEnum):
     OK = 0
     NONE = 1
     ERROR = 0xFF
+
+
+class SirilVport:
+    """
+    Defines the Siril viewports
+    """
+    RED = 0
+    MONO = 0
+    GREEN = 1
+    BLUE = 2
+    RGB = 3
+
+@unique
+class LogColor (IntEnum):
+    """
+    Defines colors available for use with ``SirilInterface.log()``
+    For consistency ``LogColor.Default`` should be used for normal messages,
+    ``LogColor.Red`` should be used for error messages, ``LogColor.Salmon``
+    should be used for warning messages, LogColor.Green should  be used
+    for completion notifications, and ``LogColor.Blue`` should be used for
+    technical messages such as equations, coefficients etc.
+    """
+    DEFAULT = 0
+    RED = 1
+    SALMON = 2
+    GREEN = 3
+    BLUE = 4
 
 @unique
 class _Command(IntEnum):
@@ -88,10 +120,20 @@ class _Command(IntEnum):
     GET_USER_POLYGON = 60
     GET_USER_POLYGON_LIST = 61
     CONFIRM_MESSAGEBOX = 62
+    GET_SEQ_FRAME_HEADER = 63
     ERROR = 0xFF
 
 @unique
-class _CommandStatus(IntEnum):
+class CommandStatus(IntEnum):
+    """
+    Contains Siril command status codes, matching the values
+    returned internally within Siril. These can be used for
+    error handling. CMD_OK and CMD_NO_WAIT are no-error codes;
+    all the other codes represent command errors. These are
+    available through the CommandError exception and may
+    generally be handled without being regarded as fatal to
+    the script.
+    """
     CMD_NOT_FOUND = 1
     CMD_NO_WAIT = 1 << 1
     CMD_NO_CWD = 1 << 2
@@ -140,3 +182,59 @@ class _ConfigType(IntEnum):
     STR = 3
     STRDIR = 4
     STRLIST = 5
+
+@unique
+class BitpixType(IntEnum):
+    """
+    Mimics the Siril bitpix enum. Note that although Siril can
+    handle opening FITS files of any data type, internally it processes
+    images only as USHORT_IMG (uint16) or FLOAT_IMG (float32).
+    """
+    BYTE_IMG = 8
+    SHORT_IMG = 16
+    USHORT_IMG = 20
+    LONG_IMG = 32
+    FLOAT_IMG = -32
+    DOUBLE_IMG = -64
+
+@unique
+class StarProfile(IntEnum):
+    """
+    Python equivalent of the Siril starprofile enum. Used to identify the type
+    of fit used to model a star in the image. Note that MOFFAT_FIXED is currently
+    not used in Siril, but is reserved for future use for Moffat stars modelled
+    with a fixed beta parameter
+    """
+    GAUSSIAN = 0
+    MOFFAT = 1
+    MOFFAT_FIXED = 2
+
+@unique
+class SequenceType(IntEnum):
+    """Python equivalent of the Siril sequence_type enum"""
+    SEQ_REGULAR = 0
+    SEQ_SER = 1
+    SEQ_FITSEQ = 2
+    SEQ_AVI = 3
+    SEQ_INTERNAL = 4
+
+@unique
+class DistoType(IntEnum):
+    """Python equivalent of the Siril disto_source enum"""
+    DISTO_UNDEF = 0      #: No distortion
+    DISTO_IMAGE = 1      #: Distortion from current image
+    DISTO_FILE = 2       #: Distortion from given file
+    DISTO_MASTER = 3     #: Distortion from master files
+    DISTO_FILES = 4      #: Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
+    DISTO_FILE_COMET = 5 #: special for cometary alignement, to be detected by apply reg
+
+@unique
+class PlotType(IntEnum):
+    """Enumeration of available plot types for visualizing data series."""
+    POINTS = 0
+    MARKS = 1
+    HYPHENS = 2
+    LINES = 3
+    LINESPOINTS = 4
+    LINESMARKS = 5
+    LINESHYPHENS = 6
