@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-21 23:31+0200\n"
-"PO-Revision-Date: 2025-04-09 14:44+0000\n"
+"PO-Revision-Date: 2025-04-22 20:03+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -565,33 +565,31 @@ msgstr "автоматически"
 
 #: src/gui/uifiles/annotate_dialog.ui:134
 msgid "tycho2 (TYCHO2)"
-msgstr ""
+msgstr "tycho2 (TYCHO2)"
 
 #: src/gui/uifiles/annotate_dialog.ui:135
 msgid "nomad (NOMAD)"
-msgstr ""
+msgstr "nomad (NOMAD)"
 
 #: src/gui/uifiles/annotate_dialog.ui:136
-#, fuzzy
 msgid "gaia (GAIA DR3)"
-msgstr "GAIA DR3"
+msgstr "gaia (GAIA DR3)"
 
 #: src/gui/uifiles/annotate_dialog.ui:137
 msgid "ppmxl (PPMXL)"
-msgstr ""
+msgstr "ppmxl (PPMXL)"
 
 #: src/gui/uifiles/annotate_dialog.ui:138
-#, fuzzy
 msgid "bsc (Bright Stars)"
-msgstr "яркие звёзды"
+msgstr "bsc (Яркие звёзды)"
 
 #: src/gui/uifiles/annotate_dialog.ui:139
 msgid "apass (APASS DR9)"
-msgstr ""
+msgstr "apass (APASS DR9)"
 
 #: src/gui/uifiles/annotate_dialog.ui:140
 msgid "gcvs (General Catalogue of Variable Stars)"
-msgstr ""
+msgstr "gcvs (Общий каталог переменных звёзд)"
 
 #: src/gui/uifiles/annotate_dialog.ui:141
 #, fuzzy
@@ -599,26 +597,24 @@ msgid "vsx (Variable Stars Index)"
 msgstr "Переменные звёзды AAVSO"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
-#, fuzzy
 msgid "varisum (GAIA DR3 Variability)"
-msgstr "Вариативность Gaia DR3"
+msgstr "varisum (Вариативность Gaia DR3)"
 
 #: src/gui/uifiles/annotate_dialog.ui:143
 msgid "simbad (SIMBAD)"
-msgstr ""
+msgstr "simbad (SIMBAD)"
 
 #: src/gui/uifiles/annotate_dialog.ui:144
-#, fuzzy
 msgid "exo (NASA Exoplanet Archive)"
-msgstr "Архив экзопланет"
+msgstr "exo (Архив экзопланет NASA)"
 
 #: src/gui/uifiles/annotate_dialog.ui:145
 msgid "pgc (Principal Galaxies Catalogue)"
-msgstr ""
+msgstr "pgc (Каталог основных галактик)"
 
 #: src/gui/uifiles/annotate_dialog.ui:146
 msgid "aavso_chart (AAVSO Standard Stars)"
-msgstr ""
+msgstr "aavso_chart (Стандартные звёзды AAVSO)"
 
 #: src/gui/uifiles/annotate_dialog.ui:147
 #, fuzzy
