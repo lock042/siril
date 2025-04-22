@@ -255,7 +255,7 @@ WARNING: using guide images that are not based on the original image is likely t
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">This sets the diameter the edge preserving filter applies over. If it is zero, the spatial extent is set automatically based on the spatial sigma value, otherwise the spatial extent of the filter is set to exactly this value regardless of sigma (spatial)</property>
-                    <property name="text" translatable="yes">0.0</property>
+                    <property name="text">0.0</property>
                     <property name="progress-pulse-step">0</property>
                     <property name="adjustment">adjustment_epf_d</property>
                     <property name="digits">1</property>
@@ -318,7 +318,7 @@ WARNING: using guide images that are not based on the original image is likely t
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">Sets the range of spatial distance between pixels over which the filter operates. A larger sigma means the filter takes into account pixels over a wider area of the image. Note the interaction with the diameter setting.</property>
-                    <property name="text" translatable="yes">0.0</property>
+                    <property name="text">0.0</property>
                     <property name="progress-fraction">0.01</property>
                     <property name="progress-pulse-step">0.01</property>
                     <property name="adjustment">adjustment_epf_sigma_spatial</property>
@@ -377,7 +377,7 @@ WARNING: using guide images that are not based on the original image is likely t
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">This value affects the range of pixel value similarity the edge preserving filter aplies over.
 If your stars look huge and defocused, start by reducing this value. Depending on your data you may need to make substantial adjustments here, for example setting the value to below 1.0.</property>
-                    <property name="text" translatable="yes">0.000</property>
+                    <property name="text">0.000</property>
                     <property name="progress-pulse-step">0</property>
                     <property name="adjustment">adjustment_epf_sigma_col</property>
                     <property name="digits">2</property>
