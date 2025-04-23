@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-21 23:31+0200\n"
+"POT-Creation-Date: 2025-04-23 09:13+0200\n"
 "PO-Revision-Date: 2025-04-19 05:56+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -22700,128 +22700,100 @@ msgstr "确定要全部关闭并打开新图像？"
 msgid "Failed to load CSS sheet: %s.\n"
 msgstr "无法加载 CSS 表：%s。\n"
 
-#: src/gui/siril_intro.c:34
-msgid ""
-"Welcome to the newest version of Siril. Please take a moment to read some "
-"tips about this release"
-msgstr "欢迎来到Siril最新版本。请花点时间来阅读新版本的提示"
-
-#: src/gui/siril_intro.c:35
-msgid ""
-"The RGB tab is now ready for processing. You can select and work on this tab "
-"which is open by default if the image is RGB."
-msgstr ""
-"RGB 标签现在已准备好进行处理。您可以选择并工作于此标签，如果图像是RGB，则默认"
-"情况下打开该标签。"
-
-#: src/gui/siril_intro.c:36
-msgid ""
-"Pre-processing steps are grouped together in the right panel. You can reach "
-"each step with the F1...F7 keys"
-msgstr "预处理操作被分组布置在右侧面板。您可通过快捷键F1…F7来唤起它们"
-
-#: src/gui/siril_intro.c:37
-msgid ""
-"This button will hide the right panel. You can also try the full screen mode "
-"(Control - F)"
-msgstr "该按钮将会隐藏右侧面板。您也可以尝试全屏模式(Control - F)"
-
-#: src/gui/siril_intro.c:38
-msgid ""
-"Press F10 or click on this button to open the menu. Here you can find the "
-"shortcut list and the preferences dialog where many of the options are "
-"available"
-msgstr ""
-"按F10或点此按钮以开启菜单。您可以在偏好设置对话框中找到快捷键列表以及其他可用"
-"操作"
-
-#: src/gui/siril_intro.c:39
-msgid ""
-"You can get more scripts by clicking on the \"Get scripts\" item in the menu"
-msgstr "您可以通过点击菜单中的“获取脚本”选项来获得更多的脚本"
-
-#: src/gui/siril_intro.c:40
-msgid "The documentation set is also available via the menu \"Siril Manual\""
-msgstr "该文档集也可通过菜单“Siril 手册”获取"
-
-#: src/gui/siril_intro.c:41
-msgid ""
-"You can change your working directory by hitting this button. The working "
-"directory is shown right below the title at the center of the headerbar"
-msgstr "您可以通过点此按钮来更改工作目录。工作目录显示在标题栏中心的标题右下方"
-
-#: src/gui/siril_intro.c:42
-msgid "You can open a single image or FITS/SER sequence"
-msgstr "不可以打开单独的图像或者FITS/SER序列"
-
-#: src/gui/siril_intro.c:43
-msgid "Here is a list of the most recent FITS files you’ve opened"
-msgstr "这里显示您最近所打开过的FITS文件列表"
-
-#: src/gui/siril_intro.c:44
-msgid "Processing algorithms are all in this single menu"
-msgstr "处理算法都在单独的菜单项"
-
 #: src/gui/siril_intro.c:45
-msgid ""
-"This new button brings together all the tools that were previously scattered "
-"throughout the application. It includes some of what was contained in the "
-"Hamburger menu, as well as tools for photometry, astrometry and much more. "
-"This menu is generally essential once pre-processing is complete."
+msgid "Welcome to the newest version of Siril, "
 msgstr ""
-"这个新按钮汇集了以前分散在整个应用程序中的所有工具。它包括汉堡菜单中包含的一"
-"些内容，以及测光、天体测量等工具。预处理完成后，此菜单通常是必需的。"
 
 #: src/gui/siril_intro.c:46
-msgid "Use this button to undo an operation"
-msgstr "用此按钮实现撤销操作"
+msgid ""
+"The Processing menu has been reorganized by theme to streamline its "
+"structure and reduce its size. Many new processing tools have been developed "
+"and integrated in this menu."
+msgstr ""
 
 #: src/gui/siril_intro.c:47
-msgid "Use this button to redo an operation"
-msgstr "用此按钮实现恢复操作"
+msgid ""
+"A new menu, Tools, has been created to centralize Siril's tools, which were "
+"previously scattered throughout the interface. It now includes statistics, "
+"FITS header, astrometry and photometry tools, as well as image analysis "
+"features."
+msgstr ""
 
 #: src/gui/siril_intro.c:48
 msgid ""
-"Siril works in 32-bit per channel precision by default. You can change it in "
-"Preferences and you can change the currently loaded image precision with "
-"this selector"
+"The Script menu has also evolved, now featuring both Python scripts and a "
+"script editor."
 msgstr ""
-"Siril目前缺省运行于32位/通道模式。您可以在偏好设置中更改，也可以在此更改当前"
-"载入图像的精度"
 
 #: src/gui/siril_intro.c:49
-msgid "Save your work as many times as needed by choosing a new name ..."
-msgstr "以新命名来保存您当前的工作…"
+msgid ""
+"The new script editor can be used to write both Siril and Python scripts. It "
+"offers syntax highlighting and many other useful features. Additionally, you "
+"can execute the script directly from the editor's interface."
+msgstr ""
 
 #: src/gui/siril_intro.c:50
-msgid "... or save the current FITS image with the same name"
-msgstr "…或以同样的名称保存当前FITS图像"
+msgid ""
+"The hamburger menu has been streamlined and now includes quick access to the "
+"documentation, preferences, keyboard shortcuts help, and the script tab in "
+"the preferences, making it easy to add new scripts."
+msgstr ""
 
 #: src/gui/siril_intro.c:51
 msgid ""
-"Take a snapshot of your image at any time, with false color, in negative "
-"view or with annotation"
-msgstr "随时将图像预览制作成快照，在伪色、负片和标注模式下也都可用"
+"Script management has been entirely revamped. You can now download new "
+"scripts directly from the preferences interface. These scripts are hosted by "
+"the Siril team, but can also be contributed by the community."
+msgstr ""
 
 #: src/gui/siril_intro.c:52
 msgid ""
-"As usual you can enter Siril commands. To have an overview of all commands, "
-"type \"help\""
-msgstr "像往常一样，您可以输入 Siril 命令。要概览所有命令，请键入“help”"
+"The Registration, Plot and Stacking tabs have been redesigned for improved "
+"clarity and better organization. This release adds true Drizzle registration "
+"and mosaic stacking."
+msgstr ""
 
 #: src/gui/siril_intro.c:53
 msgid ""
-"Basic viewing operations are available in the main toolbar. Zooming is "
-"available with Ctrl-Scroll up and down"
-msgstr "主工具栏中提供基础的预览操作。可以按住Ctrl上下滚动鼠标滚轮缩放"
+"This version of Siril includes a color management tool. A left-click on this "
+"button allows you to manage ICC profiles, while a right-click displays the "
+"image in soft proofing mode."
+msgstr ""
 
 #: src/gui/siril_intro.c:54
-msgid "To pan your image you can use Ctrl-Click (and drag)"
-msgstr "浏览图像全貌可以使用Ctrl单击（并拖拽）"
+msgid ""
+"Right-clicking the annotations button now allows selection of the annotation "
+"catalogues to display, and support for IAU constellation names and outlines "
+"has been added."
+msgstr ""
 
 #: src/gui/siril_intro.c:55
-msgid "Enjoy using the new Siril"
-msgstr "欢迎使用新Siril"
+msgid ""
+"A new intensity profiling tool has been added. This allows creating mono or "
+"RGB profiles of pixel values along a line in the image, and also includes "
+"spectrographic options for producing spectrographs from images made using a "
+"diffraction grating."
+msgstr ""
+
+#: src/gui/siril_intro.c:56
+msgid ""
+"All color management options are now centralized in the preferences. This "
+"allows for professional-level work with any mono or RGB ICC profile."
+msgstr ""
+
+#: src/gui/siril_intro.c:57
+msgid ""
+"For more precise control, such as customizing annotation colors or "
+"configuring mouse interactions, visit the User Interface tab in the "
+"preferences. Don't hesitate to use your mouse scroll to view all the "
+"available options."
+msgstr ""
+
+#: src/gui/siril_intro.c:58
+msgid ""
+"Enjoy using the new Siril. You can restart this introduction at any moment "
+"in the Miscellaneous tab of the preferences."
+msgstr ""
 
 #: src/gui/siril_plot.c:172
 msgid "Snapshot was saved into the clipboard.\n"
@@ -27607,6 +27579,111 @@ msgstr "超采样叠加"
 #: src/stacking/upscaling.c:148
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
+
+#~ msgid ""
+#~ "Welcome to the newest version of Siril. Please take a moment to read some "
+#~ "tips about this release"
+#~ msgstr "欢迎来到Siril最新版本。请花点时间来阅读新版本的提示"
+
+#~ msgid ""
+#~ "The RGB tab is now ready for processing. You can select and work on this "
+#~ "tab which is open by default if the image is RGB."
+#~ msgstr ""
+#~ "RGB 标签现在已准备好进行处理。您可以选择并工作于此标签，如果图像是RGB，则"
+#~ "默认情况下打开该标签。"
+
+#~ msgid ""
+#~ "Pre-processing steps are grouped together in the right panel. You can "
+#~ "reach each step with the F1...F7 keys"
+#~ msgstr "预处理操作被分组布置在右侧面板。您可通过快捷键F1…F7来唤起它们"
+
+#~ msgid ""
+#~ "This button will hide the right panel. You can also try the full screen "
+#~ "mode (Control - F)"
+#~ msgstr "该按钮将会隐藏右侧面板。您也可以尝试全屏模式(Control - F)"
+
+#~ msgid ""
+#~ "Press F10 or click on this button to open the menu. Here you can find the "
+#~ "shortcut list and the preferences dialog where many of the options are "
+#~ "available"
+#~ msgstr ""
+#~ "按F10或点此按钮以开启菜单。您可以在偏好设置对话框中找到快捷键列表以及其他"
+#~ "可用操作"
+
+#~ msgid ""
+#~ "You can get more scripts by clicking on the \"Get scripts\" item in the "
+#~ "menu"
+#~ msgstr "您可以通过点击菜单中的“获取脚本”选项来获得更多的脚本"
+
+#~ msgid ""
+#~ "The documentation set is also available via the menu \"Siril Manual\""
+#~ msgstr "该文档集也可通过菜单“Siril 手册”获取"
+
+#~ msgid ""
+#~ "You can change your working directory by hitting this button. The working "
+#~ "directory is shown right below the title at the center of the headerbar"
+#~ msgstr ""
+#~ "您可以通过点此按钮来更改工作目录。工作目录显示在标题栏中心的标题右下方"
+
+#~ msgid "You can open a single image or FITS/SER sequence"
+#~ msgstr "不可以打开单独的图像或者FITS/SER序列"
+
+#~ msgid "Here is a list of the most recent FITS files you’ve opened"
+#~ msgstr "这里显示您最近所打开过的FITS文件列表"
+
+#~ msgid "Processing algorithms are all in this single menu"
+#~ msgstr "处理算法都在单独的菜单项"
+
+#~ msgid ""
+#~ "This new button brings together all the tools that were previously "
+#~ "scattered throughout the application. It includes some of what was "
+#~ "contained in the Hamburger menu, as well as tools for photometry, "
+#~ "astrometry and much more. This menu is generally essential once pre-"
+#~ "processing is complete."
+#~ msgstr ""
+#~ "这个新按钮汇集了以前分散在整个应用程序中的所有工具。它包括汉堡菜单中包含的"
+#~ "一些内容，以及测光、天体测量等工具。预处理完成后，此菜单通常是必需的。"
+
+#~ msgid "Use this button to undo an operation"
+#~ msgstr "用此按钮实现撤销操作"
+
+#~ msgid "Use this button to redo an operation"
+#~ msgstr "用此按钮实现恢复操作"
+
+#~ msgid ""
+#~ "Siril works in 32-bit per channel precision by default. You can change it "
+#~ "in Preferences and you can change the currently loaded image precision "
+#~ "with this selector"
+#~ msgstr ""
+#~ "Siril目前缺省运行于32位/通道模式。您可以在偏好设置中更改，也可以在此更改当"
+#~ "前载入图像的精度"
+
+#~ msgid "Save your work as many times as needed by choosing a new name ..."
+#~ msgstr "以新命名来保存您当前的工作…"
+
+#~ msgid "... or save the current FITS image with the same name"
+#~ msgstr "…或以同样的名称保存当前FITS图像"
+
+#~ msgid ""
+#~ "Take a snapshot of your image at any time, with false color, in negative "
+#~ "view or with annotation"
+#~ msgstr "随时将图像预览制作成快照，在伪色、负片和标注模式下也都可用"
+
+#~ msgid ""
+#~ "As usual you can enter Siril commands. To have an overview of all "
+#~ "commands, type \"help\""
+#~ msgstr "像往常一样，您可以输入 Siril 命令。要概览所有命令，请键入“help”"
+
+#~ msgid ""
+#~ "Basic viewing operations are available in the main toolbar. Zooming is "
+#~ "available with Ctrl-Scroll up and down"
+#~ msgstr "主工具栏中提供基础的预览操作。可以按住Ctrl上下滚动鼠标滚轮缩放"
+
+#~ msgid "To pan your image you can use Ctrl-Click (and drag)"
+#~ msgstr "浏览图像全貌可以使用Ctrl单击（并拖拽）"
+
+#~ msgid "Enjoy using the new Siril"
+#~ msgstr "欢迎使用新Siril"
 
 #~ msgid "tycho2"
 #~ msgstr "tycho2星表"

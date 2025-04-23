@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-21 23:31+0200\n"
+"POT-Creation-Date: 2025-04-23 09:13+0200\n"
 "PO-Revision-Date: 2025-04-21 21:31+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
@@ -24802,158 +24802,100 @@ msgstr "Voulez-vous vraiment tout fermer et ouvrir la nouvelle image ?"
 msgid "Failed to load CSS sheet: %s.\n"
 msgstr "Échec du chargement de la feuille CSS : %s\n"
 
-#: src/gui/siril_intro.c:34
-msgid ""
-"Welcome to the newest version of Siril. Please take a moment to read some "
-"tips about this release"
-msgstr ""
-"Bienvenue dans la nouvelle version de Siril. Veuillez prendre un moment pour "
-"lire les astuces sur cette version"
-
-#: src/gui/siril_intro.c:35
-msgid ""
-"The RGB tab is now ready for processing. You can select and work on this tab "
-"which is open by default if the image is RGB."
-msgstr ""
-"L'onglet RVB est maintenant prêt à être utilisé pour le traitement. Vous "
-"pouvez sélectionner et travailler sur cet onglet qui est ouvert par défaut "
-"si l'image est RVB."
-
-#: src/gui/siril_intro.c:36
-msgid ""
-"Pre-processing steps are grouped together in the right panel. You can reach "
-"each step with the F1...F7 keys"
-msgstr ""
-"Les étapes de prétraitement sont regroupées dans le panneau de droite. Vous "
-"pouvez accéder à chaque étape avec les touches F1 ... F7"
-
-#: src/gui/siril_intro.c:37
-msgid ""
-"This button will hide the right panel. You can also try the full screen mode "
-"(Control - F)"
-msgstr ""
-"Appuyez sur ce bouton pour masquer le panneau de droite. Vous pouvez "
-"également essayer le mode plein écran (Control-F)"
-
-#: src/gui/siril_intro.c:38
-msgid ""
-"Press F10 or click on this button to open the menu. Here you can find the "
-"shortcut list and the preferences dialog where many of the options are "
-"available"
-msgstr ""
-"Appuyez sur F10 ou cliquez sur ce bouton pour ouvrir le menu. Vous pouvez "
-"trouver ici la liste des raccourcis et les boîtes de dialogue des "
-"préférences où de nombreuses options sont disponibles"
-
-#: src/gui/siril_intro.c:39
-msgid ""
-"You can get more scripts by clicking on the \"Get scripts\" item in the menu"
-msgstr ""
-"Vous pouvez obtenir plus de scripts en cliquant sur \"Obtenir les scripts\" "
-"dans le menu"
-
-#: src/gui/siril_intro.c:40
-msgid "The documentation set is also available via the menu \"Siril Manual\""
-msgstr ""
-"La documentation est également disponible via le menu \"Documentation\""
-
-#: src/gui/siril_intro.c:41
-msgid ""
-"You can change your working directory by hitting this button. The working "
-"directory is shown right below the title at the center of the headerbar"
-msgstr ""
-"Vous pouvez changer votre répertoire de travail en cliquant sur ce bouton. "
-"Le répertoire de travail est affiché juste au dessus du titre situé au "
-"centre de la barre d'en-tête"
-
-#: src/gui/siril_intro.c:42
-msgid "You can open a single image or FITS/SER sequence"
-msgstr "Vous pouvez ouvrir une image ou une séquence FITS/SER"
-
-#: src/gui/siril_intro.c:43
-msgid "Here is a list of the most recent FITS files you’ve opened"
-msgstr ""
-"Voici la liste des fichiers FITS les plus récents que vous avez ouverts"
-
-#: src/gui/siril_intro.c:44
-msgid "Processing algorithms are all in this single menu"
-msgstr "Les algorithmes de traitement sont tous dans ce menu unique"
-
 #: src/gui/siril_intro.c:45
-msgid ""
-"This new button brings together all the tools that were previously scattered "
-"throughout the application. It includes some of what was contained in the "
-"Hamburger menu, as well as tools for photometry, astrometry and much more. "
-"This menu is generally essential once pre-processing is complete."
+msgid "Welcome to the newest version of Siril, "
 msgstr ""
-"Ce nouveau bouton rassemble tous les outils qui étaient auparavant dispersés "
-"dans l'application. Il comprend une partie de ce qui était contenu dans le "
-"menu Burger, ainsi que des outils de photométrie, d'astrométrie et bien plus "
-"encore. Ce menu est généralement indispensable une fois le prétraitement "
-"terminé."
 
 #: src/gui/siril_intro.c:46
-msgid "Use this button to undo an operation"
-msgstr "Utilisez ce bouton pour annuler une opération"
+msgid ""
+"The Processing menu has been reorganized by theme to streamline its "
+"structure and reduce its size. Many new processing tools have been developed "
+"and integrated in this menu."
+msgstr ""
 
 #: src/gui/siril_intro.c:47
-msgid "Use this button to redo an operation"
-msgstr "Utilisez ce bouton pour rétablir une opération"
+msgid ""
+"A new menu, Tools, has been created to centralize Siril's tools, which were "
+"previously scattered throughout the interface. It now includes statistics, "
+"FITS header, astrometry and photometry tools, as well as image analysis "
+"features."
+msgstr ""
 
 #: src/gui/siril_intro.c:48
 msgid ""
-"Siril works in 32-bit per channel precision by default. You can change it in "
-"Preferences and you can change the currently loaded image precision with "
-"this selector"
+"The Script menu has also evolved, now featuring both Python scripts and a "
+"script editor."
 msgstr ""
-"Siril fonctionne par défaut avec une précision de 32 bits flottant par "
-"canal. Vous pouvez la modifier dans les préférences et vous pouvez également "
-"modifier la précision de l'image actuellement chargée avec ce sélecteur"
 
 #: src/gui/siril_intro.c:49
-msgid "Save your work as many times as needed by choosing a new name ..."
+msgid ""
+"The new script editor can be used to write both Siril and Python scripts. It "
+"offers syntax highlighting and many other useful features. Additionally, you "
+"can execute the script directly from the editor's interface."
 msgstr ""
-"Enregistrez votre travail autant de fois que nécessaire en choisissant un "
-"nouveau nom ..."
 
 #: src/gui/siril_intro.c:50
-msgid "... or save the current FITS image with the same name"
-msgstr "... ou enregistrez l'image FITS actuelle sous le même nom"
+msgid ""
+"The hamburger menu has been streamlined and now includes quick access to the "
+"documentation, preferences, keyboard shortcuts help, and the script tab in "
+"the preferences, making it easy to add new scripts."
+msgstr ""
 
 #: src/gui/siril_intro.c:51
 msgid ""
-"Take a snapshot of your image at any time, with false color, in negative "
-"view or with annotation"
+"Script management has been entirely revamped. You can now download new "
+"scripts directly from the preferences interface. These scripts are hosted by "
+"the Siril team, but can also be contributed by the community."
 msgstr ""
-"Prenez un instantané de votre image à tout moment, avec les fausses "
-"couleurs, en vue négative ou avec annotation"
 
 #: src/gui/siril_intro.c:52
 msgid ""
-"As usual you can enter Siril commands. To have an overview of all commands, "
-"type \"help\""
+"The Registration, Plot and Stacking tabs have been redesigned for improved "
+"clarity and better organization. This release adds true Drizzle registration "
+"and mosaic stacking."
 msgstr ""
-"Comme d'habitude, vous pouvez entrer les commandes Siril. Pour avoir un "
-"aperçu de toutes les commandes, tapez \"help\""
 
 #: src/gui/siril_intro.c:53
 msgid ""
-"Basic viewing operations are available in the main toolbar. Zooming is "
-"available with Ctrl-Scroll up and down"
+"This version of Siril includes a color management tool. A left-click on this "
+"button allows you to manage ICC profiles, while a right-click displays the "
+"image in soft proofing mode."
 msgstr ""
-"Les opérations de visualisation de base sont disponibles dans la barre "
-"d'outils principale. Le zoom est disponible avec la combinaison Ctrl-Molette "
-"de la souris"
 
 #: src/gui/siril_intro.c:54
-msgid "To pan your image you can use Ctrl-Click (and drag)"
+msgid ""
+"Right-clicking the annotations button now allows selection of the annotation "
+"catalogues to display, and support for IAU constellation names and outlines "
+"has been added."
 msgstr ""
-"Pour naviguer dans votre image, vous pouvez utiliser Ctrl-clic (et faire "
-"glisser)"
 
 #: src/gui/siril_intro.c:55
-msgid "Enjoy using the new Siril"
-msgstr "Maintenant, savourez l'utilisation du nouveau Siril"
+msgid ""
+"A new intensity profiling tool has been added. This allows creating mono or "
+"RGB profiles of pixel values along a line in the image, and also includes "
+"spectrographic options for producing spectrographs from images made using a "
+"diffraction grating."
+msgstr ""
+
+#: src/gui/siril_intro.c:56
+msgid ""
+"All color management options are now centralized in the preferences. This "
+"allows for professional-level work with any mono or RGB ICC profile."
+msgstr ""
+
+#: src/gui/siril_intro.c:57
+msgid ""
+"For more precise control, such as customizing annotation colors or "
+"configuring mouse interactions, visit the User Interface tab in the "
+"preferences. Don't hesitate to use your mouse scroll to view all the "
+"available options."
+msgstr ""
+
+#: src/gui/siril_intro.c:58
+msgid ""
+"Enjoy using the new Siril. You can restart this introduction at any moment "
+"in the Miscellaneous tab of the preferences."
+msgstr ""
 
 #: src/gui/siril_plot.c:172
 msgid "Snapshot was saved into the clipboard.\n"
@@ -30168,6 +30110,141 @@ msgstr "Mise à l'échelle de la séquence pour l’empilement"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 "L'empilement se fera sans mise à l'échelle (désactivation du 'drizzle')\n"
+
+#~ msgid ""
+#~ "Welcome to the newest version of Siril. Please take a moment to read some "
+#~ "tips about this release"
+#~ msgstr ""
+#~ "Bienvenue dans la nouvelle version de Siril. Veuillez prendre un moment "
+#~ "pour lire les astuces sur cette version"
+
+#~ msgid ""
+#~ "The RGB tab is now ready for processing. You can select and work on this "
+#~ "tab which is open by default if the image is RGB."
+#~ msgstr ""
+#~ "L'onglet RVB est maintenant prêt à être utilisé pour le traitement. Vous "
+#~ "pouvez sélectionner et travailler sur cet onglet qui est ouvert par "
+#~ "défaut si l'image est RVB."
+
+#~ msgid ""
+#~ "Pre-processing steps are grouped together in the right panel. You can "
+#~ "reach each step with the F1...F7 keys"
+#~ msgstr ""
+#~ "Les étapes de prétraitement sont regroupées dans le panneau de droite. "
+#~ "Vous pouvez accéder à chaque étape avec les touches F1 ... F7"
+
+#~ msgid ""
+#~ "This button will hide the right panel. You can also try the full screen "
+#~ "mode (Control - F)"
+#~ msgstr ""
+#~ "Appuyez sur ce bouton pour masquer le panneau de droite. Vous pouvez "
+#~ "également essayer le mode plein écran (Control-F)"
+
+#~ msgid ""
+#~ "Press F10 or click on this button to open the menu. Here you can find the "
+#~ "shortcut list and the preferences dialog where many of the options are "
+#~ "available"
+#~ msgstr ""
+#~ "Appuyez sur F10 ou cliquez sur ce bouton pour ouvrir le menu. Vous pouvez "
+#~ "trouver ici la liste des raccourcis et les boîtes de dialogue des "
+#~ "préférences où de nombreuses options sont disponibles"
+
+#~ msgid ""
+#~ "You can get more scripts by clicking on the \"Get scripts\" item in the "
+#~ "menu"
+#~ msgstr ""
+#~ "Vous pouvez obtenir plus de scripts en cliquant sur \"Obtenir les "
+#~ "scripts\" dans le menu"
+
+#~ msgid ""
+#~ "The documentation set is also available via the menu \"Siril Manual\""
+#~ msgstr ""
+#~ "La documentation est également disponible via le menu \"Documentation\""
+
+#~ msgid ""
+#~ "You can change your working directory by hitting this button. The working "
+#~ "directory is shown right below the title at the center of the headerbar"
+#~ msgstr ""
+#~ "Vous pouvez changer votre répertoire de travail en cliquant sur ce "
+#~ "bouton. Le répertoire de travail est affiché juste au dessus du titre "
+#~ "situé au centre de la barre d'en-tête"
+
+#~ msgid "You can open a single image or FITS/SER sequence"
+#~ msgstr "Vous pouvez ouvrir une image ou une séquence FITS/SER"
+
+#~ msgid "Here is a list of the most recent FITS files you’ve opened"
+#~ msgstr ""
+#~ "Voici la liste des fichiers FITS les plus récents que vous avez ouverts"
+
+#~ msgid "Processing algorithms are all in this single menu"
+#~ msgstr "Les algorithmes de traitement sont tous dans ce menu unique"
+
+#~ msgid ""
+#~ "This new button brings together all the tools that were previously "
+#~ "scattered throughout the application. It includes some of what was "
+#~ "contained in the Hamburger menu, as well as tools for photometry, "
+#~ "astrometry and much more. This menu is generally essential once pre-"
+#~ "processing is complete."
+#~ msgstr ""
+#~ "Ce nouveau bouton rassemble tous les outils qui étaient auparavant "
+#~ "dispersés dans l'application. Il comprend une partie de ce qui était "
+#~ "contenu dans le menu Burger, ainsi que des outils de photométrie, "
+#~ "d'astrométrie et bien plus encore. Ce menu est généralement indispensable "
+#~ "une fois le prétraitement terminé."
+
+#~ msgid "Use this button to undo an operation"
+#~ msgstr "Utilisez ce bouton pour annuler une opération"
+
+#~ msgid "Use this button to redo an operation"
+#~ msgstr "Utilisez ce bouton pour rétablir une opération"
+
+#~ msgid ""
+#~ "Siril works in 32-bit per channel precision by default. You can change it "
+#~ "in Preferences and you can change the currently loaded image precision "
+#~ "with this selector"
+#~ msgstr ""
+#~ "Siril fonctionne par défaut avec une précision de 32 bits flottant par "
+#~ "canal. Vous pouvez la modifier dans les préférences et vous pouvez "
+#~ "également modifier la précision de l'image actuellement chargée avec ce "
+#~ "sélecteur"
+
+#~ msgid "Save your work as many times as needed by choosing a new name ..."
+#~ msgstr ""
+#~ "Enregistrez votre travail autant de fois que nécessaire en choisissant un "
+#~ "nouveau nom ..."
+
+#~ msgid "... or save the current FITS image with the same name"
+#~ msgstr "... ou enregistrez l'image FITS actuelle sous le même nom"
+
+#~ msgid ""
+#~ "Take a snapshot of your image at any time, with false color, in negative "
+#~ "view or with annotation"
+#~ msgstr ""
+#~ "Prenez un instantané de votre image à tout moment, avec les fausses "
+#~ "couleurs, en vue négative ou avec annotation"
+
+#~ msgid ""
+#~ "As usual you can enter Siril commands. To have an overview of all "
+#~ "commands, type \"help\""
+#~ msgstr ""
+#~ "Comme d'habitude, vous pouvez entrer les commandes Siril. Pour avoir un "
+#~ "aperçu de toutes les commandes, tapez \"help\""
+
+#~ msgid ""
+#~ "Basic viewing operations are available in the main toolbar. Zooming is "
+#~ "available with Ctrl-Scroll up and down"
+#~ msgstr ""
+#~ "Les opérations de visualisation de base sont disponibles dans la barre "
+#~ "d'outils principale. Le zoom est disponible avec la combinaison Ctrl-"
+#~ "Molette de la souris"
+
+#~ msgid "To pan your image you can use Ctrl-Click (and drag)"
+#~ msgstr ""
+#~ "Pour naviguer dans votre image, vous pouvez utiliser Ctrl-clic (et faire "
+#~ "glisser)"
+
+#~ msgid "Enjoy using the new Siril"
+#~ msgstr "Maintenant, savourez l'utilisation du nouveau Siril"
 
 #~ msgid "tycho2"
 #~ msgstr "tycho2"

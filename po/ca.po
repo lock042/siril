@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-21 23:31+0200\n"
+"POT-Creation-Date: 2025-04-23 09:13+0200\n"
 "PO-Revision-Date: 2025-04-09 14:44+0000\n"
 "Last-Translator: Victor Gandia <victorix@gmail.com>\n"
 "Language-Team: Catalan <https://weblate.siril.org/projects/siril/software/"
@@ -22543,119 +22543,99 @@ msgstr ""
 msgid "Failed to load CSS sheet: %s.\n"
 msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
 
-#: src/gui/siril_intro.c:34
-msgid ""
-"Welcome to the newest version of Siril. Please take a moment to read some "
-"tips about this release"
-msgstr ""
-
-#: src/gui/siril_intro.c:35
-msgid ""
-"The RGB tab is now ready for processing. You can select and work on this tab "
-"which is open by default if the image is RGB."
-msgstr ""
-
-#: src/gui/siril_intro.c:36
-msgid ""
-"Pre-processing steps are grouped together in the right panel. You can reach "
-"each step with the F1...F7 keys"
-msgstr ""
-
-#: src/gui/siril_intro.c:37
-msgid ""
-"This button will hide the right panel. You can also try the full screen mode "
-"(Control - F)"
-msgstr ""
-
-#: src/gui/siril_intro.c:38
-msgid ""
-"Press F10 or click on this button to open the menu. Here you can find the "
-"shortcut list and the preferences dialog where many of the options are "
-"available"
-msgstr ""
-
-#: src/gui/siril_intro.c:39
-msgid ""
-"You can get more scripts by clicking on the \"Get scripts\" item in the menu"
-msgstr ""
-
-#: src/gui/siril_intro.c:40
-msgid "The documentation set is also available via the menu \"Siril Manual\""
-msgstr ""
-
-#: src/gui/siril_intro.c:41
-msgid ""
-"You can change your working directory by hitting this button. The working "
-"directory is shown right below the title at the center of the headerbar"
-msgstr ""
-
-#: src/gui/siril_intro.c:42
-msgid "You can open a single image or FITS/SER sequence"
-msgstr ""
-
-#: src/gui/siril_intro.c:43
-msgid "Here is a list of the most recent FITS files you’ve opened"
-msgstr ""
-
-#: src/gui/siril_intro.c:44
-msgid "Processing algorithms are all in this single menu"
-msgstr ""
-
 #: src/gui/siril_intro.c:45
-msgid ""
-"This new button brings together all the tools that were previously scattered "
-"throughout the application. It includes some of what was contained in the "
-"Hamburger menu, as well as tools for photometry, astrometry and much more. "
-"This menu is generally essential once pre-processing is complete."
+msgid "Welcome to the newest version of Siril, "
 msgstr ""
 
 #: src/gui/siril_intro.c:46
-msgid "Use this button to undo an operation"
+msgid ""
+"The Processing menu has been reorganized by theme to streamline its "
+"structure and reduce its size. Many new processing tools have been developed "
+"and integrated in this menu."
 msgstr ""
 
 #: src/gui/siril_intro.c:47
-msgid "Use this button to redo an operation"
+msgid ""
+"A new menu, Tools, has been created to centralize Siril's tools, which were "
+"previously scattered throughout the interface. It now includes statistics, "
+"FITS header, astrometry and photometry tools, as well as image analysis "
+"features."
 msgstr ""
 
 #: src/gui/siril_intro.c:48
 msgid ""
-"Siril works in 32-bit per channel precision by default. You can change it in "
-"Preferences and you can change the currently loaded image precision with "
-"this selector"
+"The Script menu has also evolved, now featuring both Python scripts and a "
+"script editor."
 msgstr ""
 
 #: src/gui/siril_intro.c:49
-msgid "Save your work as many times as needed by choosing a new name ..."
+msgid ""
+"The new script editor can be used to write both Siril and Python scripts. It "
+"offers syntax highlighting and many other useful features. Additionally, you "
+"can execute the script directly from the editor's interface."
 msgstr ""
 
 #: src/gui/siril_intro.c:50
-msgid "... or save the current FITS image with the same name"
+msgid ""
+"The hamburger menu has been streamlined and now includes quick access to the "
+"documentation, preferences, keyboard shortcuts help, and the script tab in "
+"the preferences, making it easy to add new scripts."
 msgstr ""
 
 #: src/gui/siril_intro.c:51
 msgid ""
-"Take a snapshot of your image at any time, with false color, in negative "
-"view or with annotation"
+"Script management has been entirely revamped. You can now download new "
+"scripts directly from the preferences interface. These scripts are hosted by "
+"the Siril team, but can also be contributed by the community."
 msgstr ""
 
 #: src/gui/siril_intro.c:52
 msgid ""
-"As usual you can enter Siril commands. To have an overview of all commands, "
-"type \"help\""
+"The Registration, Plot and Stacking tabs have been redesigned for improved "
+"clarity and better organization. This release adds true Drizzle registration "
+"and mosaic stacking."
 msgstr ""
 
 #: src/gui/siril_intro.c:53
 msgid ""
-"Basic viewing operations are available in the main toolbar. Zooming is "
-"available with Ctrl-Scroll up and down"
+"This version of Siril includes a color management tool. A left-click on this "
+"button allows you to manage ICC profiles, while a right-click displays the "
+"image in soft proofing mode."
 msgstr ""
 
 #: src/gui/siril_intro.c:54
-msgid "To pan your image you can use Ctrl-Click (and drag)"
+msgid ""
+"Right-clicking the annotations button now allows selection of the annotation "
+"catalogues to display, and support for IAU constellation names and outlines "
+"has been added."
 msgstr ""
 
 #: src/gui/siril_intro.c:55
-msgid "Enjoy using the new Siril"
+msgid ""
+"A new intensity profiling tool has been added. This allows creating mono or "
+"RGB profiles of pixel values along a line in the image, and also includes "
+"spectrographic options for producing spectrographs from images made using a "
+"diffraction grating."
+msgstr ""
+
+#: src/gui/siril_intro.c:56
+msgid ""
+"All color management options are now centralized in the preferences. This "
+"allows for professional-level work with any mono or RGB ICC profile."
+msgstr ""
+
+#: src/gui/siril_intro.c:57
+msgid ""
+"For more precise control, such as customizing annotation colors or "
+"configuring mouse interactions, visit the User Interface tab in the "
+"preferences. Don't hesitate to use your mouse scroll to view all the "
+"available options."
+msgstr ""
+
+#: src/gui/siril_intro.c:58
+msgid ""
+"Enjoy using the new Siril. You can restart this introduction at any moment "
+"in the Miscellaneous tab of the preferences."
 msgstr ""
 
 #: src/gui/siril_plot.c:172
