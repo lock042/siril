@@ -429,8 +429,12 @@ gboolean end_gfit_operation() {
 	init_layers_hi_and_lo_values(gui.sliders);
 	set_cutoff_sliders_values();
 
-	queue_redraw(REMAP_ALL);	// queues a redraw if !com.script
-	gui_function(redraw_previews, NULL);	// queues redraws if !com.script
+	if (com.python_script) // must be synchronous to prevent a crash where this is still running while the next command runs
+		redraw(REMAP_ALL);
+	else
+		queue_redraw(REMAP_ALL);	// queues a redraw if !com.script
+
+	gui_function(redraw_previews, NULL);	// queues redraws of the registration previews if !com.script
 
 	set_cursor_waiting(FALSE); // called from current thread if !com.script, idle else
 	return FALSE;
