@@ -40,7 +40,7 @@
 #define STR_INDIR(x) #x
 #define STR(x) STR_INDIR(x)
 #define GLIB_CONFIG_FILE "config." STR(SIRIL_MAJOR_VERSION) "." STR(SIRIL_MINOR_VERSION) ".ini"
-static char *configfiles[] = { GLIB_CONFIG_FILE, "config.ini" };
+static char *configfiles[] = { GLIB_CONFIG_FILE, "config.1.3.ini", "config.ini" };
 
 static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 	GError *error = NULL;
