@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-23 09:13+0200\n"
+"POT-Creation-Date: 2025-04-23 09:32+0200\n"
 "PO-Revision-Date: 2025-03-13 15:45+0000\n"
 "Last-Translator: Roberto Rodoero <roberto.rodoero@gmail.com>\n"
 "Language-Team: Italian <https://weblate.siril.org/projects/siril/software/"
@@ -5489,11 +5489,6 @@ msgstr "Aggiungi un'immagine come una variabile"
 #: src/gui/uifiles/pixelmath.ui:882
 msgid "Remove selected image"
 msgstr "Rimuovi le immagini selezionate"
-
-#: src/gui/uifiles/python_scratchpad.ui:53
-#, fuzzy
-msgid "0/0"
-msgstr "0"
 
 #: src/gui/uifiles/python_scratchpad.ui:72
 #, fuzzy
@@ -24193,9 +24188,7 @@ msgstr ""
 #: src/gui/siril_intro.c:55
 msgid ""
 "A new intensity profiling tool has been added. This allows creating mono or "
-"RGB profiles of pixel values along a line in the image, and also includes "
-"spectrographic options for producing spectrographs from images made using a "
-"diffraction grating."
+"RGB profiles of pixel values along a line in the image."
 msgstr ""
 
 #: src/gui/siril_intro.c:56
@@ -29306,6 +29299,10 @@ msgstr "Sto up-scalando la sequenza per lo stalking"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 "Lo stacking verrà eseguito senza l'up-scaling ('drizzle' disabilitato)\n"
+
+#, fuzzy
+#~ msgid "0/0"
+#~ msgstr "0"
 
 #~ msgid ""
 #~ "Welcome to the newest version of Siril. Please take a moment to read some "

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-23 09:13+0200\n"
+"POT-Creation-Date: 2025-04-23 09:32+0200\n"
 "PO-Revision-Date: 2023-06-30 08:40+0000\n"
 "Last-Translator: Antoine Hoeffelman <swerves_pilafs.0v@icloud.com>\n"
 "Language-Team: Dutch (Belgium) <https://weblate.pixls.us/projects/siril/"
@@ -5466,11 +5466,6 @@ msgstr "Voeg een afbeelding toe als variabele"
 #: src/gui/uifiles/pixelmath.ui:882
 msgid "Remove selected image"
 msgstr "Geselecteerde afbeelding verwijderen"
-
-#: src/gui/uifiles/python_scratchpad.ui:53
-#, fuzzy
-msgid "0/0"
-msgstr "0"
 
 #: src/gui/uifiles/python_scratchpad.ui:72
 #, fuzzy
@@ -24111,9 +24106,7 @@ msgstr ""
 #: src/gui/siril_intro.c:55
 msgid ""
 "A new intensity profiling tool has been added. This allows creating mono or "
-"RGB profiles of pixel values along a line in the image, and also includes "
-"spectrographic options for producing spectrographs from images made using a "
-"diffraction grating."
+"RGB profiles of pixel values along a line in the image."
 msgstr ""
 
 #: src/gui/siril_intro.c:56
@@ -29223,6 +29216,10 @@ msgstr "Reeksen herschaling voor stacking"
 #: src/stacking/upscaling.c:148
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "Stacking wordt zonder heschaling toegepast (zonder 'drizzle')\n"
+
+#, fuzzy
+#~ msgid "0/0"
+#~ msgstr "0"
 
 #~ msgid ""
 #~ "Welcome to the newest version of Siril. Please take a moment to read some "

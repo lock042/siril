@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-23 09:13+0200\n"
+"POT-Creation-Date: 2025-04-23 09:32+0200\n"
 "PO-Revision-Date: 2025-04-09 14:44+0000\n"
 "Last-Translator: Victor Gandia <victorix@gmail.com>\n"
 "Language-Team: Catalan <https://weblate.siril.org/projects/siril/software/"
@@ -5306,11 +5306,6 @@ msgstr "Afegeix una imatge com a variable"
 #: src/gui/uifiles/pixelmath.ui:882
 msgid "Remove selected image"
 msgstr "Elimina les imatges seleccionades"
-
-#: src/gui/uifiles/python_scratchpad.ui:53
-#, fuzzy
-msgid "0/0"
-msgstr "500"
 
 #: src/gui/uifiles/python_scratchpad.ui:72
 #, fuzzy
@@ -22613,9 +22608,7 @@ msgstr ""
 #: src/gui/siril_intro.c:55
 msgid ""
 "A new intensity profiling tool has been added. This allows creating mono or "
-"RGB profiles of pixel values along a line in the image, and also includes "
-"spectrographic options for producing spectrographs from images made using a "
-"diffraction grating."
+"RGB profiles of pixel values along a line in the image."
 msgstr ""
 
 #: src/gui/siril_intro.c:56
@@ -27432,6 +27425,10 @@ msgstr "Seqüència d'escalat per l'apilonament"
 #: src/stacking/upscaling.c:148
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
+
+#, fuzzy
+#~ msgid "0/0"
+#~ msgstr "500"
 
 #, fuzzy
 #~ msgid "tycho2"
