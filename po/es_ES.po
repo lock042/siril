@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 09:32+0200\n"
-"PO-Revision-Date: 2025-04-21 08:16+0000\n"
+"PO-Revision-Date: 2025-04-23 08:47+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -153,9 +153,8 @@ msgstr "Cerrar"
 #: src/gui/uifiles/Median_dialog.ui:80 src/gui/uifiles/SCNR_dialog.ui:73
 #: src/gui/uifiles/bdeconv_dialog.ui:284 src/gui/uifiles/denoise_dialog.ui:84
 #: src/gui/uifiles/graxpert.ui:97
-#, fuzzy
 msgid "ROI Preview"
-msgstr "Previsualización"
+msgstr "Previsualización ROI"
 
 #: src/gui/uifiles/Median_dialog.ui:84
 msgid ""
@@ -576,9 +575,8 @@ msgid "nomad (NOMAD)"
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:136
-#, fuzzy
 msgid "gaia (GAIA DR3)"
-msgstr "Gaia EDR3"
+msgstr "gaia (GAIA DR3)"
 
 #: src/gui/uifiles/annotate_dialog.ui:137
 msgid "ppmxl (PPMXL)"
@@ -595,20 +593,19 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:140
 msgid "gcvs (General Catalogue of Variable Stars)"
-msgstr ""
+msgstr "gcvs (Catálogo General de Estrellas Variables)"
 
 #: src/gui/uifiles/annotate_dialog.ui:141
-#, fuzzy
 msgid "vsx (Variable Stars Index)"
-msgstr "seleccionada"
+msgstr "vsx (Índice de Estrellas Variables)"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
 msgid "varisum (GAIA DR3 Variability)"
-msgstr ""
+msgstr "varisum (Variabilidad GAIA DR3)"
 
 #: src/gui/uifiles/annotate_dialog.ui:143
 msgid "simbad (SIMBAD)"
-msgstr ""
+msgstr "simbad (SIMBAD)"
 
 #: src/gui/uifiles/annotate_dialog.ui:144
 msgid "exo (NASA Exoplanet Archive)"
