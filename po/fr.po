@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 09:13+0200\n"
-"PO-Revision-Date: 2025-04-21 21:31+0000\n"
+"PO-Revision-Date: 2025-04-23 07:32+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -568,65 +568,59 @@ msgstr "automatique"
 
 #: src/gui/uifiles/annotate_dialog.ui:134
 msgid "tycho2 (TYCHO2)"
-msgstr ""
+msgstr "tycho2 (TYCHO2)"
 
 #: src/gui/uifiles/annotate_dialog.ui:135
 msgid "nomad (NOMAD)"
-msgstr ""
+msgstr "nomad (NOMAD)"
 
 #: src/gui/uifiles/annotate_dialog.ui:136
-#, fuzzy
 msgid "gaia (GAIA DR3)"
-msgstr "GAIA DR3"
+msgstr "gaia (GAIA DR3)"
 
 #: src/gui/uifiles/annotate_dialog.ui:137
 msgid "ppmxl (PPMXL)"
-msgstr ""
+msgstr "ppmxl (PPMXL)"
 
 #: src/gui/uifiles/annotate_dialog.ui:138
-#, fuzzy
 msgid "bsc (Bright Stars)"
-msgstr "étoiles brillantes"
+msgstr "bsc (Bright Stars)"
 
 #: src/gui/uifiles/annotate_dialog.ui:139
 msgid "apass (APASS DR9)"
-msgstr ""
+msgstr "apass (APASS DR9)"
 
 #: src/gui/uifiles/annotate_dialog.ui:140
 msgid "gcvs (General Catalogue of Variable Stars)"
-msgstr ""
+msgstr "gcvs (General Catalogue of Variable Stars)"
 
 #: src/gui/uifiles/annotate_dialog.ui:141
-#, fuzzy
 msgid "vsx (Variable Stars Index)"
-msgstr "AAVSO Étoiles variables"
+msgstr "vsx (Variable Stars Index)"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
-#, fuzzy
 msgid "varisum (GAIA DR3 Variability)"
-msgstr "Gaia DR3 Variables"
+msgstr "varisum (GAIA DR3 Variability)"
 
 #: src/gui/uifiles/annotate_dialog.ui:143
 msgid "simbad (SIMBAD)"
-msgstr ""
+msgstr "simbad (SIMBAD)"
 
 #: src/gui/uifiles/annotate_dialog.ui:144
-#, fuzzy
 msgid "exo (NASA Exoplanet Archive)"
-msgstr "Archives des exoplanètes"
+msgstr "exo (NASA Exoplanet Archive)"
 
 #: src/gui/uifiles/annotate_dialog.ui:145
 msgid "pgc (Principal Galaxies Catalogue)"
-msgstr ""
+msgstr "pgc (Principal Galaxies Catalogue)"
 
 #: src/gui/uifiles/annotate_dialog.ui:146
 msgid "aavso_chart (AAVSO Standard Stars)"
-msgstr ""
+msgstr "aavso_chart (AAVSO Standard Stars)"
 
 #: src/gui/uifiles/annotate_dialog.ui:147
-#, fuzzy
 msgid "solsys (IMCCE Solar System Objects)"
-msgstr "Catalogue utilisateur du Système Solaire"
+msgstr "solsys (IMCCE Solar System Objects)"
 
 #: src/gui/uifiles/annotate_dialog.ui:159
 msgid "Photometric"
@@ -17228,6 +17222,8 @@ msgid ""
 "Destination sequence %s already exists in the current folder, cannot "
 "proceed.\n"
 msgstr ""
+"La séquence de destination %s existe déjà dans le dossier actuel, impossible "
+"de continuer.\n"
 
 #: src/core/command.c:7507 src/gui/conversion.c:196
 msgid ""
@@ -24804,7 +24800,7 @@ msgstr "Échec du chargement de la feuille CSS : %s\n"
 
 #: src/gui/siril_intro.c:45
 msgid "Welcome to the newest version of Siril, "
-msgstr ""
+msgstr "Bienvenue dans la nouvelle version de Siril, "
 
 #: src/gui/siril_intro.c:46
 msgid ""
@@ -24812,6 +24808,9 @@ msgid ""
 "structure and reduce its size. Many new processing tools have been developed "
 "and integrated in this menu."
 msgstr ""
+"Le menu Traitement a été réorganisé par thème afin de rationaliser sa "
+"structure et de réduire sa taille. De nombreux nouveaux outils de traitement "
+"ont été développés et intégrés dans ce menu."
 
 #: src/gui/siril_intro.c:47
 msgid ""
@@ -24820,12 +24819,18 @@ msgid ""
 "FITS header, astrometry and photometry tools, as well as image analysis "
 "features."
 msgstr ""
+"Un nouveau menu, Outils, a été créé pour centraliser les outils de Siril, "
+"qui étaient auparavant dispersés dans l'interface. Il comprend désormais des "
+"outils de statistiques, d'en-tête FITS, d'astrométrie et de photométrie, "
+"ainsi que des fonctions d'analyse d'images."
 
 #: src/gui/siril_intro.c:48
 msgid ""
 "The Script menu has also evolved, now featuring both Python scripts and a "
 "script editor."
 msgstr ""
+"Le menu Script a également évolué et propose désormais des scripts Python et "
+"un éditeur de scripts."
 
 #: src/gui/siril_intro.c:49
 msgid ""
@@ -24833,6 +24838,10 @@ msgid ""
 "offers syntax highlighting and many other useful features. Additionally, you "
 "can execute the script directly from the editor's interface."
 msgstr ""
+"Le nouvel éditeur de scripts peut être utilisé pour écrire des scripts Siril "
+"et Python. Il offre une mise en évidence de la syntaxe et de nombreuses "
+"autres fonctionnalités utiles. En outre, vous pouvez exécuter le script "
+"directement à partir de l'interface de l'éditeur."
 
 #: src/gui/siril_intro.c:50
 msgid ""
@@ -24840,6 +24849,10 @@ msgid ""
 "documentation, preferences, keyboard shortcuts help, and the script tab in "
 "the preferences, making it easy to add new scripts."
 msgstr ""
+"Le menu hamburger a été rationalisé et comprend désormais un accès rapide à "
+"la documentation, aux préférences, à l'aide des raccourcis clavier et à "
+"l'onglet des scripts dans les préférences, ce qui facilite l'ajout de "
+"nouveaux scripts."
 
 #: src/gui/siril_intro.c:51
 msgid ""
@@ -24847,6 +24860,10 @@ msgid ""
 "scripts directly from the preferences interface. These scripts are hosted by "
 "the Siril team, but can also be contributed by the community."
 msgstr ""
+"La gestion des scripts a été entièrement revue. Vous pouvez désormais "
+"télécharger de nouveaux scripts directement depuis l'interface des "
+"préférences. Ces scripts sont hébergés par l'équipe Siril, mais la "
+"communauté peut également y contribuer."
 
 #: src/gui/siril_intro.c:52
 msgid ""
@@ -24854,6 +24871,9 @@ msgid ""
 "clarity and better organization. This release adds true Drizzle registration "
 "and mosaic stacking."
 msgstr ""
+"Les onglets Alignement, Graphique et Empilement ont été redessinés pour plus "
+"de clarté et une meilleure organisation. Cette version ajoute le vrai "
+"alignement par Drizzle et l'empilement des mosaïques."
 
 #: src/gui/siril_intro.c:53
 msgid ""
@@ -24861,6 +24881,9 @@ msgid ""
 "button allows you to manage ICC profiles, while a right-click displays the "
 "image in soft proofing mode."
 msgstr ""
+"Cette version de Siril comprend un outil de gestion des couleurs. Un clic "
+"gauche sur ce bouton permet de gérer les profils ICC, tandis qu'un clic "
+"droit affiche l'image en mode épreuve numérique."
 
 #: src/gui/siril_intro.c:54
 msgid ""
@@ -24868,6 +24891,9 @@ msgid ""
 "catalogues to display, and support for IAU constellation names and outlines "
 "has been added."
 msgstr ""
+"Un clic droit sur le bouton des annotations permet désormais de sélectionner "
+"les catalogues d'annotations à afficher, et la prise en charge des noms et "
+"des contours des constellations de l'UAI a été ajoutée."
 
 #: src/gui/siril_intro.c:55
 msgid ""
@@ -24882,6 +24908,9 @@ msgid ""
 "All color management options are now centralized in the preferences. This "
 "allows for professional-level work with any mono or RGB ICC profile."
 msgstr ""
+"Toutes les options de gestion des couleurs sont désormais centralisées dans "
+"les préférences. Cela permet de travailler de manière professionnelle avec "
+"n'importe quel profil ICC mono ou RVB."
 
 #: src/gui/siril_intro.c:57
 msgid ""
@@ -24890,12 +24919,18 @@ msgid ""
 "preferences. Don't hesitate to use your mouse scroll to view all the "
 "available options."
 msgstr ""
+"Pour un contrôle plus précis, comme la personnalisation des couleurs "
+"d'annotation ou la configuration des interactions avec la souris, visitez "
+"l'onglet Interface utilisateur dans les préférences. N'hésitez pas à faire "
+"défiler votre souris pour visualiser toutes les options disponibles."
 
 #: src/gui/siril_intro.c:58
 msgid ""
 "Enjoy using the new Siril. You can restart this introduction at any moment "
 "in the Miscellaneous tab of the preferences."
 msgstr ""
+"Bonne utilisation du nouveau Siril. Vous pouvez relancer cette introduction "
+"à tout moment dans l'onglet Divers des préférences."
 
 #: src/gui/siril_plot.c:172
 msgid "Snapshot was saved into the clipboard.\n"
@@ -26559,17 +26594,17 @@ msgstr ""
 "l'extension FITS dans les paramètres (actuellement %s)\n"
 
 #: src/io/sequence.c:374
-#, fuzzy, c-format
+#, c-format
 msgid "Error opening directory: %s\n"
-msgstr "Erreur de clonage du dépôt : %s\n"
+msgstr "Erreur d'ouverture du répertoire : %s\n"
 
 #: src/io/sequence.c:410
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot create sequence %s. Need at least 2 frames to be usable in Siril.\n"
 msgstr ""
-"Impossible de charger la séquence SER. Il faut au moins 2 images pour être "
-"utilisable dans Siril. Veuillez convertir le fichier SER en fichier FITS.\n"
+"Impossible de créer la séquence %s. Il faut au moins 2 images pour être "
+"utilisable dans Siril.\n"
 
 #: src/io/sequence.c:504
 msgid ""
@@ -27638,9 +27673,8 @@ msgid "Failed to read frame metadata"
 msgstr "Échec de la lecture des métadonnées de l'image"
 
 #: src/io/siril_pythoncommands.c:1705
-#, fuzzy
 msgid "No stars in image"
-msgstr "Pas de liste d'étoiles disponible"
+msgstr "Pas d'étoiles dans l'image"
 
 #: src/io/siril_pythoncommands.c:1723
 msgid "Stars array was cleared mid-process"
@@ -28961,10 +28995,12 @@ msgid ""
 "Warning: the number of images after collecting astrometry is different from "
 "the number of images before filtering.\n"
 msgstr ""
+"Attention : le nombre d'images après collecte de l'astrométrie est différent "
+"du nombre d'images avant filtrage.\n"
 
 #: src/registration/applyreg.c:890
 msgid "The registration will be applied to the filtered images only.\n"
-msgstr ""
+msgstr "L'alignement ne sera appliqué qu'aux images filtrées.\n"
 
 #: src/registration/applyreg.c:930
 msgid "Apply registration"
@@ -29110,23 +29146,24 @@ msgstr ""
 "taille, ce qui entraîne l'abandon de l'opération.\n"
 
 #: src/registration/applyreg.c:1190
-#, fuzzy
 msgid "Reference image is not included in the filtered list, aborting\n"
-msgstr ""
-"L'image de référence est indéfinie, l'image suivante serait utilisée :\n"
+msgstr "L'image de référence n'est pas incluse dans la liste filtrée.\n"
 
 #: src/registration/applyreg.c:1191
 msgid ""
 "This is not compatible with framing mode \"current\", change reference image"
 msgstr ""
+"Ceci n'est pas compatible avec le mode de cadrage \"courant\", changer "
+"l'image de référence"
 
 #: src/registration/applyreg.c:1200
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Reference image is not included in the filtered list, using image #%d "
 "instead\n"
 msgstr ""
-"L'image de référence est indéfinie, l'image suivante serait utilisée :\n"
+"L'image de référence n'est pas incluse dans la liste filtrée, l'image #%d "
+"est utilisée à la place.\n"
 
 #: src/registration/astrometric.c:242
 #, c-format
