@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-23 09:32+0200\n"
+"POT-Creation-Date: 2025-04-23 10:47+0200\n"
 "PO-Revision-Date: 2025-04-15 10:54+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
@@ -22276,6 +22276,14 @@ msgstr "Falha ao carregar planilha CSS: %s.\n"
 
 #: src/gui/siril_intro.c:45
 msgid "Welcome to the newest version of Siril, "
+msgstr ""
+
+#: src/gui/siril_intro.c:45
+msgid ""
+". Please take a moment to read some tips about this release. If the rate is "
+"too slow, skip to the next tip using the right arrow of your keyboard. You "
+"can also go back to the previous tip using the left arrow and stop the "
+"animation with the escape key."
 msgstr ""
 
 #: src/gui/siril_intro.c:46

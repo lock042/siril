@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-23 09:32+0200\n"
+"POT-Creation-Date: 2025-04-23 10:47+0200\n"
 "PO-Revision-Date: 2024-04-03 05:37+0000\n"
 "Last-Translator: yurim choi <choi@stellaette.com>\n"
 "Language-Team: Korean <https://weblate.pixls.us/projects/siril/siril-"
@@ -21336,6 +21336,14 @@ msgstr ""
 
 #: src/gui/siril_intro.c:45
 msgid "Welcome to the newest version of Siril, "
+msgstr ""
+
+#: src/gui/siril_intro.c:45
+msgid ""
+". Please take a moment to read some tips about this release. If the rate is "
+"too slow, skip to the next tip using the right arrow of your keyboard. You "
+"can also go back to the previous tip using the left arrow and stop the "
+"animation with the escape key."
 msgstr ""
 
 #: src/gui/siril_intro.c:46
