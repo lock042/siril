@@ -801,7 +801,7 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 
 	// Redraw if necessary
 	if (show_samples && !com.headless) {
-		queue_redraw(REDRAW_OVERLAY);
+		redraw(REDRAW_OVERLAY);
 	}
 
 	// Free the positions list

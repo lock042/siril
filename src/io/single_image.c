@@ -429,7 +429,7 @@ gboolean end_gfit_operation() {
 	init_layers_hi_and_lo_values(gui.sliders);
 	set_cutoff_sliders_values();
 
-	if (com.python_script) // must be synchronous to prevent a crash where this is still running while the next command runs
+	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
 		redraw(REMAP_ALL);
 	else
 		queue_redraw(REMAP_ALL);	// queues a redraw if !com.script

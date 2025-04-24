@@ -2231,7 +2231,7 @@ CLEANUP:
 				int id = get_unused_polygon_id();
 				polygon->id = id;
 				gui.user_polygons = g_list_append(gui.user_polygons, polygon);
-				queue_redraw(REDRAW_OVERLAY);
+				redraw(REDRAW_OVERLAY);
 				int id_be = GINT32_TO_BE(id);
 				success = send_response(conn, STATUS_OK, &id_be, 4);
 			} else {

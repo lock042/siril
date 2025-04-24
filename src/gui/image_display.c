@@ -2101,7 +2101,7 @@ static gboolean redraw_idle(gpointer p) {
 
 void queue_redraw(remap_type doremap) {
 	// request a redraw from another thread
-	siril_add_pythonsafe_idle(redraw_idle, GINT_TO_POINTER((int)doremap));
+	siril_add_idle(redraw_idle, GINT_TO_POINTER((int)doremap));
 }
 
 /* callback for GtkDrawingArea, draw event */
