@@ -113,7 +113,7 @@ int repeated_median_fit(double *xdata, double *ydata, int n, double *a,
 		double *b, double *sigma, gboolean *mask) {
 
 	if (n < 2) {
-		return GSL_EINVAL; // Need at least 2 points for a line
+		return -1; // Need at least 2 points for a line
 	}
 
 	// Arrays to hold all possible pairwise slopes
@@ -204,7 +204,7 @@ int repeated_median_fit(double *xdata, double *ydata, int n, double *a,
 	g_free(intercepts);
 	g_free(absolute_residuals);
 
-	return GSL_SUCCESS;
+	return 0;
 }
 
 // Function to evaluate a 1D polynomial at a given point
