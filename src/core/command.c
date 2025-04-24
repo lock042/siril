@@ -4240,7 +4240,12 @@ int process_pm(int nb) {
 	}
 
 	/* gfit image MUST have same size of the others */
-	if (has_gfit && width != -1) {
+	if (has_gfit) {
+		if (width == -1) {
+			width = gfit.rx;
+			height = gfit.ry;
+			channel = gfit.naxes[2];
+		}
 		if (gfit.rx != width || height != gfit.ry || channel != gfit.naxes[2]) {
 			siril_log_message(_("Image must have same dimension\n"));
 			free_pm_var(args->nb_rows);
