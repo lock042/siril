@@ -658,7 +658,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			}
 		}
 		siril_debug_print("set_*_pixeldata: updating gfit\n");
-		queue_redraw(REMAP_ALL);
+		redraw(REMAP_ALL);
 	}
 	// Cleanup shared memory
 	#ifdef _WIN32
