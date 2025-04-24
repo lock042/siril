@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-23 20:19+0000\n"
+"PO-Revision-Date: 2025-04-24 20:49+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -2550,7 +2550,7 @@ msgstr ""
 
 #: src/gui/uifiles/color_calibration.ui:332
 msgid "Background reference"
-msgstr "Referência de fundo"
+msgstr "Referência de plano de fundo"
 
 #: src/gui/uifiles/color_calibration.ui:364
 msgid "Manual White Balance"
@@ -4826,23 +4826,20 @@ msgid "Stacking"
 msgstr "Empilhado"
 
 #: src/gui/uifiles/livestacking_player.ui:297
-#, fuzzy
 msgid "Master-dark and cosmetic correction"
-msgstr "Correção Cosmética"
+msgstr "Master-dark e correção cosmética"
 
 #: src/gui/uifiles/livestacking_player.ui:309
-#, fuzzy
 msgid "Master-flat"
-msgstr "Usar flat"
+msgstr "Master-Flat"
 
 #: src/gui/uifiles/livestacking_player.ui:321
 msgid "Stacking with weighted mean"
 msgstr ""
 
 #: src/gui/uifiles/livestacking_player.ui:370
-#, fuzzy
 msgid "Configuration"
-msgstr "Saturação de Cor"
+msgstr "Configuração"
 
 #: src/gui/uifiles/livestacking_player.ui:396 src/livestacking/gui.c:144
 msgid "Idle"
@@ -5018,9 +5015,8 @@ msgid "Scroll Actions"
 msgstr "Sem Seleção"
 
 #: src/gui/uifiles/pixelmath.ui:81 src/gui/uifiles/seqlist_dialog.ui:56
-#, fuzzy
 msgid "Sequence List"
-msgstr "Sequência"
+msgstr "Lista de sequência"
 
 #: src/gui/uifiles/pixelmath.ui:123 src/gui/uifiles/pixelmath.ui:190
 #: src/gui/uifiles/pixelmath.ui:257
@@ -5620,9 +5616,8 @@ msgid "Click to update Gaia archive status check"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:160
-#, fuzzy
 msgid "Start the photometric color calibration algorithm."
-msgstr "Calibração de cor..."
+msgstr "Iniciar o algoritmo de calibração fotométrica de cores."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:222
 msgid "White Point Reference:"
@@ -5948,9 +5943,8 @@ msgid "Include background samples this many σ below the median. Default is 2.8"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1196
-#, fuzzy
 msgid "Automatic detection"
-msgstr "Auto deteção"
+msgstr "Detecção automática"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1200
 msgid ""
@@ -5959,9 +5953,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1360
-#, fuzzy
 msgid "Background Reference"
-msgstr "Fundo"
+msgstr "Referência de plano de fundo"
 
 #: src/gui/uifiles/satu_dialog.ui:47
 msgid "Color saturation"
@@ -6206,9 +6199,8 @@ msgstr ""
 "melhor. As colunas X e Y são as translações relativas à imagem de referência."
 
 #: src/gui/uifiles/seqlist_dialog.ui:109
-#, fuzzy
 msgid "File"
-msgstr "_Ficheiro"
+msgstr "Arquivo"
 
 #: src/gui/uifiles/seqlist_dialog.ui:124
 msgid "X"
@@ -6220,9 +6212,8 @@ msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
 #: src/gui/uifiles/settings_window.ui:5223
-#, fuzzy
 msgid "Sel"
-msgstr "sel"
+msgstr "Selecionar"
 
 #: src/gui/uifiles/seqlist_dialog.ui:165 src/gui/uifiles/siril.ui:7850
 #: src/gui/uifiles/siril.ui:7885 src/gui/plot.c:138 src/gui/plot.c:1671
@@ -6231,30 +6222,28 @@ msgid "Quality"
 msgstr ""
 
 #: src/gui/uifiles/seqlist_dialog.ui:210 src/gui/sequence_list.c:154
-#, fuzzy
 msgid "Frame List"
-msgstr "Frame rate"
+msgstr "Lista de quadros"
 
 #: src/gui/uifiles/seqlist_dialog.ui:216
 msgid "Select the channel you want to display."
 msgstr ""
 
 #: src/gui/uifiles/seqlist_dialog.ui:231
-#, fuzzy
 msgid "Excludes all images of the sequence from the processing schedule"
-msgstr "Excluir todas as imagens da seqüência do cronograma de processamento"
+msgstr "Exclui todas as imagens da sequência do cronograma de processamento"
 
 #: src/gui/uifiles/seqlist_dialog.ui:252
-#, fuzzy
 msgid "Includes all images of the sequence in the processing schedule"
-msgstr "Inclui todas as imagens da seqüência no cronograma de processamento"
+msgstr "Inclui todas as imagens da sequência no cronograma de processamento"
 
 #: src/gui/uifiles/seqlist_dialog.ui:273
-#, fuzzy
 msgid ""
 "Includes/excludes selected images of the sequence from the processing "
 "schedule"
-msgstr "Excluir todas as imagens da seqüência do cronograma de processamento"
+msgstr ""
+"Inclui/exclui imagens selecionadas da sequência do cronograma de "
+"processamento"
 
 #: src/gui/uifiles/seqlist_dialog.ui:295
 msgid ""
@@ -6264,9 +6253,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/seqlist_dialog.ui:319
-#, fuzzy
 msgid "Reference image"
-msgstr "imagem de referência"
+msgstr "Imagem de referência"
 
 #: src/gui/uifiles/seqlist_dialog.ui:323
 msgid ""
@@ -6281,9 +6269,8 @@ msgid "Enter the number of the image you want to reach."
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:223 src/gui/uifiles/siril.ui:474
-#, fuzzy
 msgid "Preferences"
-msgstr "imagem de referência"
+msgstr "Preferências"
 
 #: src/gui/uifiles/settings_window.ui:326
 #, fuzzy
@@ -8287,9 +8274,8 @@ msgid "arcsec"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:499
-#, fuzzy
 msgid "Siril Manual"
-msgstr "Manual"
+msgstr "Manual do Siril"
 
 #: src/gui/uifiles/siril.ui:513
 msgid "Check For Updates"
@@ -8304,9 +8290,8 @@ msgid "Keyboard Shortcuts"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:555 src/gui/about_dialog.c:71
-#, fuzzy
 msgid "About Siril"
-msgstr "Sobre o siril"
+msgstr "Sobre o Siril"
 
 #: src/gui/uifiles/siril.ui:632
 msgid "AutoStretch"
@@ -8317,14 +8302,12 @@ msgid "High definition"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:668
-#, fuzzy
 msgid "Exclude frame %d"
-msgstr "excluir tudo"
+msgstr "Excluir frame %d"
 
 #: src/gui/uifiles/siril.ui:677 src/gui/uifiles/siril.ui:686
-#, fuzzy
 msgid "Show frame %d"
-msgstr "Mostrar Imagem"
+msgstr "Exibir frame %d"
 
 #: src/gui/uifiles/siril.ui:702 src/gui/uifiles/siril.ui:7640
 #: src/gui/plot.c:938 src/gui/plot.c:939
@@ -8332,9 +8315,8 @@ msgid "Registration"
 msgstr "Registro"
 
 #: src/gui/uifiles/siril.ui:732 src/gui/uifiles/siril.ui:811
-#, fuzzy
 msgid "Selection"
-msgstr "Sem Seleção"
+msgstr "Seleção"
 
 #: src/gui/uifiles/siril.ui:780
 msgid "PSF"
@@ -8348,45 +8330,39 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:789
-#, fuzzy
 msgid "PSF for the Sequence"
-msgstr "PSF para a sequência"
+msgstr "PSF da sequência"
 
 #: src/gui/uifiles/siril.ui:797
 msgid "Pick a Star"
 msgstr "Escolha uma estrela"
 
 #: src/gui/uifiles/siril.ui:821
-#, fuzzy
 msgid "Free aspect ratio"
-msgstr "Manter proporção"
+msgstr "Proporção de aspecto livre"
 
 #: src/gui/uifiles/siril.ui:822 src/gui/uifiles/siril.ui:4491
-#, fuzzy
 msgid "Free ratio"
-msgstr "Frame rate"
+msgstr "Razão livre"
 
 #: src/gui/uifiles/siril.ui:833
 msgid "Preserve the original aspect ratio of the image"
 msgstr "Preservar a proporção original da imagem"
 
 #: src/gui/uifiles/siril.ui:834 src/gui/uifiles/siril.ui:4490
-#, fuzzy
 msgid "Preserve ratio"
-msgstr "Manter proporção"
+msgstr "Manter razão"
 
 #: src/gui/uifiles/siril.ui:851 src/gui/uifiles/siril.ui:863
 #: src/gui/uifiles/siril.ui:875 src/gui/uifiles/siril.ui:887
 #: src/gui/uifiles/siril.ui:899 src/gui/uifiles/siril.ui:911
 #: src/gui/uifiles/siril.ui:923
-#, fuzzy
 msgid "Aspect ratio of the selection"
-msgstr "Seleção de sequência"
+msgstr "Razão de aspecto da seleção"
 
 #: src/gui/uifiles/siril.ui:941
-#, fuzzy
 msgid "Select the whole image and reset ratio"
-msgstr "Mostrar/Ocultar a lista de imagens na sequência com dados de registo"
+msgstr "Selecione a imagem inteira e redefina a razão"
 
 #: src/gui/uifiles/siril.ui:942
 msgid "Select All"
@@ -11330,9 +11306,8 @@ msgid "y0"
 msgstr "y0"
 
 #: src/gui/uifiles/stars_list_window.ui:302
-#, fuzzy
 msgid "Ra"
-msgstr "R"
+msgstr "Ra"
 
 #: src/gui/uifiles/stars_list_window.ui:317
 msgid "Dec"
@@ -11367,9 +11342,8 @@ msgid "RMSE"
 msgstr "RMSE"
 
 #: src/gui/uifiles/stars_list_window.ui:492
-#, fuzzy
 msgid "Center selected star"
-msgstr "Remover arquivos selecionados"
+msgstr "Centralizar estrela selecionada"
 
 #: src/gui/uifiles/stars_list_window.ui:496
 msgid ""
@@ -11395,7 +11369,6 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/stars_list_window.ui:547
-#, fuzzy
 msgid ""
 "Threshold value above the noise for star detection.\n"
 "The median and standard deviation of the image are computed, then the "
@@ -11404,10 +11377,12 @@ msgid ""
 "less dim stars, which should be done only when images have a lot of signal "
 "or low noise (high S/N)."
 msgstr ""
-"Valor limite acima do ruído para deteção de estrelas.\n"
-"Os valores da mediana e do desvio padrão da imagem são determinados, então o "
-"limite é: mediana + [limite]x desv. padrão.\n"
-"O valor padrão para o limite é 1.00."
+"Valor limite acima do ruído para detecção de estrelas.\n"
+"A mediana e o desvio padrão da imagem são calculados, então o limite é: "
+"mediana + [limite] x desvio-padrão.\n"
+"O valor padrão para o limite é 1,00. Aumentar este valor detectará estrelas "
+"menos fracas, o que deve ser feito apenas quando as imagens têm muito sinal "
+"ou pouco ruído (alto sinal/ruído)."
 
 #: src/gui/uifiles/stars_list_window.ui:570
 msgid "Radius: "
@@ -11463,9 +11438,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/stars_list_window.ui:677
-#, fuzzy
 msgid "Profile type:"
-msgstr "Tipos de arquivos suportados:"
+msgstr "Tipo de perfil:"
 
 #: src/gui/uifiles/stars_list_window.ui:704
 msgid "Minimum beta:"
@@ -11494,9 +11468,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/stars_list_window.ui:790
-#, fuzzy
 msgid "Amplitude range"
-msgstr "Amplitude"
+msgstr "Faixa de amplitude"
 
 #: src/gui/uifiles/stars_list_window.ui:794
 msgid ""
@@ -11528,9 +11501,8 @@ msgid "Export PSF parameters in an ASCII file"
 msgstr "Exportar os parâmetros PSF num arquivo ASCII"
 
 #: src/gui/uifiles/stars_list_window.ui:968
-#, fuzzy
 msgid "Add star to list from selection"
-msgstr "Seleção de sequência"
+msgstr "Adicionar estrela à lista a partir da seleção"
 
 #: src/gui/uifiles/stars_list_window.ui:982
 msgid "Remove selected star from the list"

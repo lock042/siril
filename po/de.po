@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-23 17:49+0000\n"
-"Last-Translator: Pip Eicp <PipEcip42@users.noreply.weblate.siril.org>\n"
+"PO-Revision-Date: 2025-04-24 20:49+0000\n"
+"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -5663,7 +5663,7 @@ msgstr "Skripteditor schließen"
 
 #: src/gui/uifiles/python_scratchpad.ui:236
 msgid "_Edit"
-msgstr "_Edit"
+msgstr "_Bearbeiten"
 
 #: src/gui/uifiles/python_scratchpad.ui:246
 #: src/gui/uifiles/python_scratchpad.ui:248 src/gui/uifiles/siril.ui:756
@@ -5727,7 +5727,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:251
 msgid "Siril Script Files"
-msgstr "Skript-Skriptdateien"
+msgstr "SIRIL Skriptdateien"
 
 #: src/gui/uifiles/python_scratchpad.ui:361
 msgid ""
@@ -8656,7 +8656,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:5059
 #: src/gui/uifiles/settings_window.ui:5923
 msgid "Warning Dialogs"
-msgstr "Warnungdialoge"
+msgstr "Warndialoge"
 
 #: src/gui/uifiles/settings_window.ui:5087
 msgid "Enable use of the siril-scripts online repository"
@@ -13457,8 +13457,8 @@ msgid ""
 "Plate solving image from %s %s for a field of view of %.2f degrees%s, using "
 "a limit magnitude of %.2f\n"
 msgstr ""
-"Berechne die astrometrische Lösung des Bildes aus %s %s für ein Bildfeld "
-"von  %.2f Grad%s, mit einer Grenzgröße von %.2f\n"
+"Berechne die astrometrische Lösung des Bildes aus %s %s für ein Bildfeld von "
+"%.2f Grad%s, mit einer Grenzgröße von %.2f\n"
 
 #: src/algos/astrometry_solver.c:899
 msgid " (uncentered)"
@@ -24610,8 +24610,8 @@ msgid ""
 "The Script menu has also evolved, now featuring both Python scripts and a "
 "script editor."
 msgstr ""
-"Das Script-Menu hat sich weiterentwickelt und unterstützt nun sowohl Python-"
-"Skripte als auch einen Script-Editor."
+"Das Skript-Menü hat sich weiterentwickelt und unterstützt nun sowohl Python-"
+"Skripte als auch einen Skript-Editor."
 
 #: src/gui/siril_intro.c:49
 msgid ""
@@ -24619,7 +24619,7 @@ msgid ""
 "offers syntax highlighting and many other useful features. Additionally, you "
 "can execute the script directly from the editor's interface."
 msgstr ""
-"Der neue Script-Editor kann sowohl für die Erstellung von Siril- als auch "
+"Der neue Skript-Editor kann sowohl für die Erstellung von SIRIL- als auch "
 "für Python-Skripte benutzt werden. Er bietet Syntax-Hervorhebung und viele "
 "andere nützliche Funktionen. Zusätzlich kann man Skripte direkt aus der "
 "Benutzeroberfläche des Editors heraus ausführen."
@@ -24652,8 +24652,8 @@ msgid ""
 "and mosaic stacking."
 msgstr ""
 "Die Registerkarten \"Registrierung\", \"Grafik\" und \"Stacking\" wurden für "
-"eine klarere und übersichtliche Organisation überarbeitet. Diese Version "
-"fügt eine echte Drizzle-Registrierung und Mosaik-Stacking hinzu."
+"eine übersichtliche Anordnung überarbeitet. Diese Version fügt eine echte "
+"Drizzle-Registrierung und Mosaik-Stacking hinzu."
 
 #: src/gui/siril_intro.c:53
 msgid ""
@@ -24661,9 +24661,9 @@ msgid ""
 "button allows you to manage ICC profiles, while a right-click displays the "
 "image in soft proofing mode."
 msgstr ""
-"Diese Siril-Version führt Werkzeuge zum Farbmanagement ein. Ein Linkklick "
+"Diese SIRIL-Version führt Werkzeuge zum Farbmanagement ein. Ein Linksklick "
 "auf diese Schaltfläche erlaubt es ICC-Profile zu verwalten, während ein "
-"Rechtklick das Bild im Soft-Proofing-Modus anzeigt."
+"Rechtsklick das Bild im Soft-Proofing-Modus anzeigt."
 
 #: src/gui/siril_intro.c:54
 msgid ""
@@ -24671,7 +24671,7 @@ msgid ""
 "catalogues to display, and support for IAU constellation names and outlines "
 "has been added."
 msgstr ""
-"Ein Rechtklick auf die Schaltfläche \"Beschriftungen\" erlaubt nun die "
+"Ein Rechtsklick auf die Schaltfläche \"Beschriftungen\" erlaubt nun die "
 "Auswahl des Beschriftungskatalogs für die Anzeige und es wurde Unterstützung "
 "für IAU-Sternbildnamen und -grenzen hinzugefügt."
 
@@ -27423,7 +27423,7 @@ msgstr "Ungültige Dimensionen"
 
 #: src/io/siril_pythoncommands.c:1596 src/io/siril_pythoncommands.c:2361
 msgid "Failed to read frame metadata"
-msgstr "Konnte keine Metadaten aus dem Bild  laden"
+msgstr "Konnte keine Metadaten aus dem Bild laden"
 
 #: src/io/siril_pythoncommands.c:1705
 msgid "No stars in image"
