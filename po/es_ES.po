@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-23 08:47+0000\n"
+"PO-Revision-Date: 2025-04-24 13:28+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -609,20 +609,19 @@ msgstr "simbad (SIMBAD)"
 
 #: src/gui/uifiles/annotate_dialog.ui:144
 msgid "exo (NASA Exoplanet Archive)"
-msgstr ""
+msgstr "exo (Archivo de Exoplanetas de NASA)"
 
 #: src/gui/uifiles/annotate_dialog.ui:145
 msgid "pgc (Principal Galaxies Catalogue)"
-msgstr ""
+msgstr "pgc (Catálogo Principal de Galaxias)"
 
 #: src/gui/uifiles/annotate_dialog.ui:146
 msgid "aavso_chart (AAVSO Standard Stars)"
-msgstr ""
+msgstr "aavso_chart (Estrellas Estándar AAVSO)"
 
 #: src/gui/uifiles/annotate_dialog.ui:147
-#, fuzzy
 msgid "solsys (IMCCE Solar System Objects)"
-msgstr "Buscar Objeto"
+msgstr "solsys (Objetos del Sistema Solar IMCCE)"
 
 #: src/gui/uifiles/annotate_dialog.ui:159
 msgid "Photometric"
@@ -1101,7 +1100,6 @@ msgstr "Servidor:"
 
 #: src/gui/uifiles/astrometry_dialog.ui:622
 #: src/gui/uifiles/astrometry_dialog.ui:645
-#, fuzzy
 msgid ""
 "Select the order of the solution:\n"
 "Linear assumes no distortion is present in the image\n"
@@ -1110,11 +1108,11 @@ msgid ""
 "When selecting an order with distortions, additional terms are added to the "
 "solution, using SIP convention"
 msgstr ""
-"Selecciona el orden de la solucion:\n"
+"Selecciona el orden de la solución:\n"
 "\"Linear\" asume que no hay distorsión en la imagen actual\n"
-"Cuadratico, Cubico, Cuartico y Quintico incluirán distorsiones polinominales "
+"Cuadrático, Cúbico, Cuártico y Quíntico incluirán distorsiones polinomiales "
 "de segundo-, tercero-, cuarto- o quinto orden.\n"
-"Al seleccionar un orden con distorsiones, se agregarán terminos adicionales "
+"Al seleccionar un orden con distorsiones, se agregarán términos adicionales "
 "a la solución utilizando la convención SIP"
 
 #: src/gui/uifiles/astrometry_dialog.ui:651
@@ -1517,24 +1515,22 @@ msgstr ""
 "Esto debería estar habilitado para imágenes no estiradas."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:360
-#, fuzzy
 msgid "Grid tolerance"
-msgstr "Tolerancia"
+msgstr "Tolerancia de la cuadrícula"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:372
-#, fuzzy
 msgid ""
 "Tolerance factor of global sample rejection, in mad units (median + this * "
 "mad). By decreasing this value, Siril will be more restrictive to select "
 "background samples."
 msgstr ""
-"Tolerancia del rechazo de muestras global, en unidades sigma. Decrementando "
-"este valor, Siril será más restrictivo al seleccionar las muestras de fondo."
+"Factor de tolerancia del rechazo de muestras global, en unidades sigma ("
+"median + this * mad). Decrementando este valor, Siril será más restrictivo "
+"al seleccionar las muestras de fondo."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:389
-#, fuzzy
 msgid "Keep all samples"
-msgstr "Dibujar muestras"
+msgstr "Mantener todas las muestras"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:393
 msgid ""
@@ -1603,9 +1599,8 @@ msgstr ""
 "El click izquierdo las añade y el derecho las elimina."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:514
-#, fuzzy
 msgid "Interpolation Method"
-msgstr "Interpolación: "
+msgstr "Método de interpolación"
 
 # Can you explain me what is master-flat correction?
 #: src/gui/uifiles/background_extraction_dialog.ui:536
@@ -1641,28 +1636,26 @@ msgid "Correction"
 msgstr "Correción"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:567
-#, fuzzy
 msgid "Compute Background"
-msgstr "Mostrar el fondo"
+msgstr "Calcular el fondo"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:571
-#, fuzzy
 msgid ""
 "This will compute the synthetic background and will apply the selected "
 "correction. The model is always computed from the original image kept in "
 "memory allowing the user to work iteratively."
 msgstr ""
-"Esto calculará el fondo sintético y aplicará la corrección seleccionada."
+"Esto calculará el fondo sintético y aplicará la corrección seleccionada. El "
+"modelo es siempre calculado desde la imagen original mantenida en memoria "
+"permitiendo al usuario trabajar iterativamente."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:585
-#, fuzzy
 msgid "Show original image"
-msgstr "imagen desconocida"
+msgstr "Monstrat imagen original"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:590
-#, fuzzy
 msgid "Keep pressing this button to see the original image."
-msgstr "Pulsar este botón para mostrar la imagen."
+msgstr "Mantener pulsado este botón para mostrar la imagen original."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:608
 #: src/gui/uifiles/bdeconv_dialog.ui:2126
@@ -1898,9 +1891,8 @@ msgstr ""
 "PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:787 src/gui/uifiles/bdeconv_dialog.ui:1666
-#, fuzzy
 msgid "Angle / º"
-msgstr "Ángulo (º)"
+msgstr "Ángulo / º"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:798
 msgid "For elliptical PSFs, the angle from the x axis in degrees."
@@ -1919,9 +1911,8 @@ msgstr ""
 "astrometría para obtener información sobre este parámetro."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:856
-#, fuzzy
 msgid "Pixel Size / μm"
-msgstr "Tamaño de píxel (µm):"
+msgstr "Tamaño de píxel / µm"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:868 src/gui/cut.c:534 src/gui/cut.c:747
 #: src/gui/photometric_cc.c:900 src/gui/photometric_cc.c:982
@@ -1931,9 +1922,8 @@ msgid "Wavelength / nm"
 msgstr "Longitud de onda / nm"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:880
-#, fuzzy
 msgid "Focal length / mm"
-msgstr "Longitud focal (mm): "
+msgstr "Longitud focal / mm"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:892
 msgid "Diameter / mm"
@@ -1981,9 +1971,8 @@ msgstr ""
 "rápidos y quizás hasta 40% para un Dall-Kirkham corregido."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1001
-#, fuzzy
 msgid "Manual PSF Parameters"
-msgstr "Parámetros del catálogo"
+msgstr "Parámetros manuales PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1033
 msgid ""
@@ -2002,9 +1991,8 @@ msgid "Blind Deconvolution PSF Estimation"
 msgstr "Estimación PSF de Deconvolución Ciega"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1095
-#, fuzzy
 msgid "Multiscale"
-msgstr "Multiplicativa"
+msgstr "Multiescala"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1099
 msgid ""
@@ -2036,9 +2024,8 @@ msgstr ""
 "debajo de 2. El beneficio de aumentarlo por encima de 3 es insignificante."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1179
-#, fuzzy
 msgid "Lambda ratio"
-msgstr "Raíz cuadrada"
+msgstr "Relación lambda"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1190
 msgid "Ratio of lambda at successive scales for multiscale PSF estimation."
@@ -2053,9 +2040,8 @@ msgid "Minimum value of lambda for multiscale PSF estimation"
 msgstr "Valor mínimo de lambda para estimación PSF multiescala"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1233
-#, fuzzy
 msgid "Scale factor"
-msgstr "Factor de extensión"
+msgstr "Factor de escala"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1244
 msgid "Scale factor between successive scales of multiscale PSF estimation"
@@ -2068,29 +2054,24 @@ msgstr ""
 "PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1274
-#, fuzzy
 msgid "Upsample blur"
-msgstr "Remuestrear"
+msgstr "Desenfoque de sobremuestreo"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1286
-#, fuzzy
 msgid "Downsample blur"
-msgstr "Reducir la imagen"
+msgstr "Desenfoque de submuestreado"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1298
-#, fuzzy
 msgid "Kernel threshold"
-msgstr "Umbral de redondez:"
+msgstr "Umbral de núcleo"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1310
-#, fuzzy
 msgid "Better kernel"
-msgstr "Patrón bayer/mosaico: "
+msgstr "Mejor núcleo"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1322
-#, fuzzy
 msgid "Kernel ℓ1"
-msgstr "Tamaño del kernel:"
+msgstr "Núcleo ℓ1"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1334
 msgid "Amount of blur to use for downsampling during PSF estimation"
@@ -2124,18 +2105,16 @@ msgstr "Estas opciones casi siempre se deben dejar con el valor por defecto."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1396
 #: src/gui/uifiles/bdeconv_dialog.ui:1578
-#, fuzzy
 msgid "Expert Settings"
-msgstr "Ajustes"
+msgstr "Configuración Experta"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1414
 msgid "ℓ0 Descent Method"
 msgstr "Método Descendente ℓ0"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1450
-#, fuzzy
 msgid "Compensation factor"
-msgstr "Factor de escala de HCompress"
+msgstr "Factor de compensación"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1462
 msgid ""
@@ -2154,14 +2133,12 @@ msgstr ""
 "unidad para obtener suficiente nitidez en el PSF."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1499
-#, fuzzy
 msgid "Samples per outer loop"
-msgstr "Muestras por línea"
+msgstr "Muestras por bucle exterior"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1511
-#, fuzzy
 msgid "Outer loop iterations"
-msgstr "Auto limitar iteraciones"
+msgstr "Iteraciones bucle exterior"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1522
 msgid ""
@@ -2185,9 +2162,8 @@ msgstr ""
 "ajuste."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1551
-#, fuzzy
 msgid "Inner loop iterations"
-msgstr "Iteraciones"
+msgstr "Iteraciones bucle interior"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1562
 msgid ""
@@ -2202,9 +2178,8 @@ msgid "Spectral Irregularity Method"
 msgstr "Método de Irregularidad Espectral"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1737
-#, fuzzy
 msgid "Symmetrical PSF"
-msgstr "PSF Dinámico"
+msgstr "PSF Simétrico"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1741
 msgid ""
@@ -2216,28 +2191,24 @@ msgstr ""
 "un ángulo de rotación definido."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1762
-#, fuzzy
 msgid "PSF from Stars"
-msgstr "PSF en el área"
+msgstr "PSF desde estrellas"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1794
-#, fuzzy
 msgid "PSF Generation"
-msgstr "Generación de muestras"
+msgstr "Generación de PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1817
-#, fuzzy
 msgid "PSF Preview"
-msgstr "Previsualización"
+msgstr "Previsualización PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1834
 msgid "Shows a preview of the PSF, if one has been calculated."
 msgstr "Muestra una previsualización del PSF, si se ha calculado uno."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1848
-#, fuzzy
 msgid "Usage tips"
-msgstr "Uso: %s\n"
+msgstr "Consejos de uso"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1852
 msgid ""
@@ -2269,9 +2240,8 @@ msgid "Richardson-Lucy method with TV regularization"
 msgstr "Método Richardson-Lucy con regularización TV"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1914
-#, fuzzy
 msgid "Wiener filter"
-msgstr "Añadir otro filtro"
+msgstr "Filtro Wiener"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1940
 msgid ""
@@ -2314,9 +2284,8 @@ msgstr ""
 "máscara de estrellas producida por la interfaz de Starnet++ en Siril."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1988
-#, fuzzy
 msgid "Total Variation"
-msgstr "Saturación del color"
+msgstr "Variación total"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1989
 msgid "Frobenius norm of Hessian"
@@ -2334,9 +2303,8 @@ msgid "Alpha (α)"
 msgstr "Alpha (α)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2012
-#, fuzzy
 msgid "Stopping criterion"
-msgstr "Recortando a la selección"
+msgstr "Criterio de parada"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2016
 msgid ""
@@ -2347,18 +2315,16 @@ msgstr ""
 "sucesivas. Para activar el criterio la casilla debe ser seleccionada."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2029
-#, fuzzy
 msgid "Regularization"
-msgstr "Neutralización del fondo"
+msgstr "Regularización"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2041
 msgid "Gradient descent step size"
 msgstr "Tamaño del paso de descenso del gradiente"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2053
-#, fuzzy
 msgid "Algorithm method"
-msgstr "Algoritmo: "
+msgstr "Método de algoritmo:"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2064
 msgid ""
@@ -2392,9 +2358,8 @@ msgstr ""
 "control en la formación de artefactos."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2098
-#, fuzzy
 msgid "Non-Blind Deconvolution"
-msgstr "Deconvolución"
+msgstr "Deconvolución No a ciegas"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2130
 msgid ""
@@ -2405,9 +2370,8 @@ msgstr ""
 "cargadas, la imágen actual será deconvulsionada."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2145
-#, fuzzy
 msgid "Sequence prefix:"
-msgstr "Prefijo de salida:"
+msgstr "Prefijo de secuencia:"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:2157
 msgid "Provides a custom prefix to use when deconvolving a sequence."
@@ -2481,9 +2445,8 @@ msgstr ""
 "bandas."
 
 #: src/gui/uifiles/ccm_dialog.ui:13 src/gui/uifiles/ccm_dialog.ui:248
-#, fuzzy
 msgid "Color Conversion Matrix"
-msgstr "Registro completado."
+msgstr "Matriz de conversión de color"
 
 #: src/gui/uifiles/ccm_dialog.ui:27
 msgid "Restore ICC"
@@ -2495,16 +2458,14 @@ msgstr "Reactivar el perfil ICC previamente desactivado al aplicar un CCM"
 
 #: src/gui/uifiles/ccm_dialog.ui:120 src/gui/uifiles/ccm_dialog.ui:176
 #: src/gui/uifiles/ccm_dialog.ui:232
-#, fuzzy
 msgid "1.0"
-msgstr "0"
+msgstr "1.0"
 
 #: src/gui/uifiles/ccm_dialog.ui:134 src/gui/uifiles/ccm_dialog.ui:148
 #: src/gui/uifiles/ccm_dialog.ui:162 src/gui/uifiles/ccm_dialog.ui:190
 #: src/gui/uifiles/ccm_dialog.ui:204 src/gui/uifiles/ccm_dialog.ui:218
-#, fuzzy
 msgid "0.0"
-msgstr "0"
+msgstr "0.0"
 
 #: src/gui/uifiles/ccm_dialog.ui:281
 msgid "The power to which each result pixel will be raised."
@@ -2515,9 +2476,8 @@ msgid "Power:"
 msgstr "Potencia:"
 
 #: src/gui/uifiles/ccm_dialog.ui:309
-#, fuzzy
 msgid "Presets:"
-msgstr "Reiniciar"
+msgstr "Ajustes preestablecidos:"
 
 #: src/gui/uifiles/ccm_dialog.ui:322
 msgid "Custom"
@@ -2525,11 +2485,11 @@ msgstr "Personalizado"
 
 #: src/gui/uifiles/ccm_dialog.ui:323
 msgid "Linear Rec.709_D65 to XYZ"
-msgstr ""
+msgstr "Rec.709_D65 Lineal a XYZ"
 
 #: src/gui/uifiles/ccm_dialog.ui:324
 msgid "XYZ to Linear Rec.709_D65"
-msgstr ""
+msgstr "XYZ a Rec.709_D65 Lineal"
 
 #: src/gui/uifiles/ccm_dialog.ui:325
 msgid "Simplified sRGB (gamma = 2.2) to XYZ"
@@ -2547,9 +2507,8 @@ msgstr ""
 "cosmética."
 
 #: src/gui/uifiles/ccm_dialog.ui:400
-#, fuzzy
 msgid "Settings"
-msgstr "Preferencias..."
+msgstr "Preferencias"
 
 #: src/gui/uifiles/color_calibration.ui:98 src/gui/uifiles/siril.ui:1240
 #: src/gui/uifiles/siril.ui:1588 src/gui/colors.c:275
@@ -2717,9 +2676,8 @@ msgid "Image compositing"
 msgstr "Composición de la imagen"
 
 #: src/gui/uifiles/composition_dialog.ui:66
-#, fuzzy
 msgid "Reload all"
-msgstr "Borrar todo"
+msgstr "Recargar todo"
 
 #: src/gui/uifiles/composition_dialog.ui:70
 msgid ""
@@ -2733,9 +2691,8 @@ msgstr ""
 "encuadre diferente."
 
 #: src/gui/uifiles/composition_dialog.ui:81
-#, fuzzy
 msgid "Save all"
-msgstr "Guardar archivo"
+msgstr "Guardar todo"
 
 #: src/gui/uifiles/composition_dialog.ui:85
 msgid ""
@@ -2770,9 +2727,8 @@ msgstr ""
 "a la capa."
 
 #: src/gui/uifiles/composition_dialog.ui:249
-#, fuzzy
 msgid "x alignment"
-msgstr "Alineación de las capas"
+msgstr "alineación x"
 
 #: src/gui/uifiles/composition_dialog.ui:260
 msgid ""
@@ -2784,9 +2740,8 @@ msgstr ""
 "a la capa."
 
 #: src/gui/uifiles/composition_dialog.ui:262
-#, fuzzy
 msgid "y alignment"
-msgstr "Alineación de las capas"
+msgstr "alineación y"
 
 #: src/gui/uifiles/composition_dialog.ui:273
 msgid ""
@@ -2802,14 +2757,12 @@ msgstr ""
 "RLarotación se muestra en grados en sentido antihorario."
 
 #: src/gui/uifiles/composition_dialog.ui:276
-#, fuzzy
 msgid "rotation"
-msgstr "Anotaciones"
+msgstr "rotación"
 
 #: src/gui/uifiles/composition_dialog.ui:289 src/compositing/compositing.c:248
-#, fuzzy
 msgid "Set rotation center for this layer"
-msgstr "No se han almacenado datos de registro para esta capa"
+msgstr "Establecer el centro de rotación para esta capa"
 
 #: src/gui/uifiles/composition_dialog.ui:329 src/gui/uifiles/pixelmath.ui:704
 msgid "Sum exposure time"
@@ -2875,14 +2828,12 @@ msgid "CIE L*a*b* composition"
 msgstr "Composición CIE L*a*b"
 
 #: src/gui/uifiles/composition_dialog.ui:432
-#, fuzzy
 msgid "Use this alignment method:"
-msgstr "y usando este método de alineado:"
+msgstr "Usar este método de alineado:"
 
 #: src/gui/uifiles/composition_dialog.ui:445
-#, fuzzy
 msgid "and this framing method:"
-msgstr "y usando este método de alineado:"
+msgstr "y este método de encuadre:"
 
 #: src/gui/uifiles/composition_dialog.ui:473 src/gui/uifiles/siril.ui:1122
 #: src/compositing/align_rgb.c:48
@@ -3805,16 +3756,14 @@ msgstr ""
 "de transferencia para la imagen de estrellas"
 
 #: src/gui/uifiles/dialog_star_remix.ui:265
-#, fuzzy
 msgid "Star Histogram"
-msgstr "Histrograma"
+msgstr "Histrograma de estrella"
 
 #: src/gui/uifiles/dialog_star_remix.ui:303
 #: src/gui/uifiles/dialog_star_remix.ui:940
 #: src/gui/uifiles/histogram_dialog.ui:840
-#, fuzzy
 msgid "Type of stretch"
-msgstr "Tipo de algoritmo"
+msgstr "Tipo de estiramiento"
 
 #: src/gui/uifiles/dialog_star_remix.ui:318
 #: src/gui/uifiles/dialog_star_remix.ui:955
@@ -3837,37 +3786,32 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:322
 #: src/gui/uifiles/dialog_star_remix.ui:959
 #: src/gui/uifiles/histogram_dialog.ui:859
-#, fuzzy
 msgid "Generalised hyperbolic transform"
-msgstr "Transformación Negativa"
+msgstr "Transformación hiperbólica generalizada"
 
 #: src/gui/uifiles/dialog_star_remix.ui:323
 #: src/gui/uifiles/dialog_star_remix.ui:960
 #: src/gui/uifiles/histogram_dialog.ui:860
-#, fuzzy
 msgid "Inverse generalised hyperbolic transform"
-msgstr "Transformación Negativa"
+msgstr "Transformación hiperbólica generalizada inversa"
 
 #: src/gui/uifiles/dialog_star_remix.ui:324
 #: src/gui/uifiles/dialog_star_remix.ui:961
 #: src/gui/uifiles/histogram_dialog.ui:861
-#, fuzzy
 msgid "Modified arcsinh transform"
-msgstr "Transformada inversa"
+msgstr "Transformación arcsinh modificada"
 
 #: src/gui/uifiles/dialog_star_remix.ui:325
 #: src/gui/uifiles/dialog_star_remix.ui:962
 #: src/gui/uifiles/histogram_dialog.ui:862
-#, fuzzy
 msgid "Inverse modified arcsinh transform"
-msgstr "Transformada inversa"
+msgstr "Transformación arcsinh modificada inversa"
 
 #: src/gui/uifiles/dialog_star_remix.ui:353
 #: src/gui/uifiles/dialog_star_remix.ui:990
 #: src/gui/uifiles/histogram_dialog.ui:890
-#, fuzzy
 msgid "Colour stretch model"
-msgstr "Saturación del color"
+msgstr "Modelo de estiramiento de color"
 
 #: src/gui/uifiles/dialog_star_remix.ui:368
 #: src/gui/uifiles/dialog_star_remix.ui:1005
@@ -3894,9 +3838,8 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:373
 #: src/gui/uifiles/dialog_star_remix.ui:1010
 #: src/gui/uifiles/histogram_dialog.ui:910
-#, fuzzy
 msgid "Independent channel values"
-msgstr "Canal verde"
+msgstr "Valores independientes de canales"
 
 #: src/gui/uifiles/dialog_star_remix.ui:374
 #: src/gui/uifiles/dialog_star_remix.ui:1011

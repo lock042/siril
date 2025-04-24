@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-22 20:03+0000\n"
+"PO-Revision-Date: 2025-04-24 00:00+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -24375,7 +24375,7 @@ msgstr "Не удалось загрузить таблицу CSS: %s\n"
 
 #: src/gui/siril_intro.c:45
 msgid "Welcome to the newest version of Siril, "
-msgstr ""
+msgstr "Добро пожаловать в новейшую версию Siril, "
 
 #: src/gui/siril_intro.c:45
 msgid ""
