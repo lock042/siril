@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-24 13:28+0000\n"
+"PO-Revision-Date: 2025-04-25 08:56+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -3991,9 +3991,8 @@ msgstr ""
 "de transferencia de la imagen de fondo."
 
 #: src/gui/uifiles/dialog_star_remix.ui:902
-#, fuzzy
 msgid "Background Histogram"
-msgstr "Factor de fondo"
+msgstr "Histograma de fondo"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1057
 #: src/gui/uifiles/dialog_star_remix.ui:1082
@@ -4006,6 +4005,12 @@ msgid ""
 "brightness. When this is set to zero, the stretch will be the identity "
 "transform, but any ordered black point adjustment will still occur."
 msgstr ""
+"Controla de forma independiente el contraste añadido (la pendiente del "
+"estiramiento) en SP, ajustando así la cantidad de estiramiento aplicada al "
+"resto de la imagen. No cambia la forma del estiramiento, solo la cantidad, y "
+"debe usarse junto con b para controlar la distribución del contraste y el "
+"brillo. Cuando se establece en cero, el estiramiento será la transformación "
+"de identidad, pero cualquier ajuste de punto negro se seguirá procesando."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1128
 #: src/gui/uifiles/dialog_star_remix.ui:1152
@@ -4021,6 +4026,16 @@ msgid ""
 "(with small D) can still be used for precise placement of additional "
 "contrast."
 msgstr ""
+"Controla la precisión del enfoque del estiramiento modificando la forma de "
+"la propia transformación. Para estiramientos concentrados (p. ej., "
+"estiramiento inicial en datos lineales), un valor positivo alto de b "
+"enfocará el estiramiento dentro de un pico del histograma, desenfocando el "
+"resto lejos del pico (como en estrellas brillantes). Para el ajuste de "
+"imágenes no lineales, valores bajos o negativos distribuirán el contraste y "
+"el brillo de forma más uniforme. Por regla general, el valor de b disminuirá "
+"a medida que la secuencia de estiramiento se acerca a su finalización, "
+"aunque se pueden utilizar valores mayores (con una D pequeña) para una "
+"colocación precisa de contraste adicional."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1198
 #: src/gui/uifiles/dialog_star_remix.ui:1244
@@ -4033,6 +4048,12 @@ msgid ""
 "pixel values away from SP. This parameter must be greater than or equal to "
 "LP and less than or equal to HP."
 msgstr ""
+"Establece el punto de simetría alrededor del cual se enfoca el estiramiento: "
+"el contraste se distribuirá simétricamente alrededor del SP. Generalmente, "
+"este punto debe ubicarse dentro de un pico del histograma para que el "
+"estiramiento lo amplíe y lo reduzca añadiendo el mayor contraste en ese "
+"punto. El estiramiento alejará los valores de píxel del SP. Este parámetro "
+"debe ser mayor o igual que LP y menor o igual que HP."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1218
 #: src/gui/uifiles/histogram_dialog.ui:1139
@@ -4058,21 +4079,28 @@ msgid ""
 "of limited use for starless backgrounds but is very effective on the star "
 "mask for preventing star bloat."
 msgstr ""
+"Establece un valor por encima del cual se modifica el estiramiento para "
+"preservar el contraste en brillos altos / estrellas. Esto se logra mediante "
+"un estiramiento lineal de los datos por encima de HP, reservando contraste "
+"del resto de la imagen. Al mover HP hacia SP, se aumenta tanto el alcance "
+"como la cantidad de esta reserva de contraste; el efecto neto es reducir el "
+"estiramiento general a niveles de brillo más bajos, manteniendo el contraste "
+"y la definición en los brillos altos. Este parámetro debe ser menor o igual "
+"a 1 y no menor que SP. Este parámetro generalmente tiene un uso limitado "
+"para fondos sin estrellas, pero es muy efectivo en la máscara de estrellas "
+"para evitar la sobreexposición de estrellas."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1499
-#, fuzzy
 msgid "Background Stretch Parameters"
-msgstr "Parámetros de la imagen"
+msgstr "Parámetros de estiramiento del fondo"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1515
-#, fuzzy
 msgid "Star Stretch Parameters"
-msgstr "Parámetros de la imagen"
+msgstr "Parámetros de estiramiento de estrellas"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1552
-#, fuzzy
 msgid "Resets stretch parameters for the star image"
-msgstr "Restaurar por defecto"
+msgstr "Restaurar los parámetros de estiramiento de la imagen con estrellas"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1567
 msgid ""
@@ -4082,9 +4110,8 @@ msgstr ""
 "parámetros de estiramiento."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1600
-#, fuzzy
 msgid "Resets stretch parameters for the starless image"
-msgstr "Restaurar por defecto"
+msgstr "Restaura los parámetros de estiramiento de la imagen sin estrellas"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1615
 msgid ""
@@ -4095,35 +4122,32 @@ msgstr ""
 "parámetros de estiramiento."
 
 #: src/gui/uifiles/epf_dialog.ui:58
-#, fuzzy
 msgid "Edge Preserving Filters"
-msgstr "Conservar luminosidad"
+msgstr "Filtros de conservación de borde"
 
 #: src/gui/uifiles/epf_dialog.ui:143
-#, fuzzy
 msgid "Filter Type"
-msgstr "Filtro: "
+msgstr "Tipo de Filtro"
 
 #: src/gui/uifiles/epf_dialog.ui:155
 msgid ""
 "Choose filter type. See the documentation for an explanation of the "
 "differences."
 msgstr ""
+"Seleccione tipo de filtro. COnsulte la documentación para una explicación de "
+"las diferencias."
 
 #: src/gui/uifiles/epf_dialog.ui:158
-#, fuzzy
 msgid "Bilateral filter"
-msgstr "Añadir otro filtro"
+msgstr "Filtro bilateral"
 
 #: src/gui/uifiles/epf_dialog.ui:159
-#, fuzzy
 msgid "Guided filter"
-msgstr "Añadir otro filtro"
+msgstr "Filtro de guía"
 
 #: src/gui/uifiles/epf_dialog.ui:188
-#, fuzzy
 msgid "Guide Image"
-msgstr "Imagen RGB"
+msgstr "Imagen guía"
 
 #: src/gui/uifiles/epf_dialog.ui:199
 msgid ""
