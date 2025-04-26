@@ -380,6 +380,12 @@ void describe_stack_for_history(struct stacking_args *args, GSList **hist, gbool
 		else  g_string_append(str, ", unequalized RGB");
 	}
 
+	if (args->filtering_criterion) {
+		gchar *descr = describe_filter_for_history(args->seq, args->filtering_criterion, args->filtering_parameter);
+		g_string_append_printf(str, ", %s", descr);
+		g_free(descr);
+	}
+
 	*hist = g_slist_append(*hist, g_string_free(str, FALSE));
 }
 

@@ -1,4 +1,11 @@
-siril 1.4.0
+siril 1.4.0-beta2
+XX/XX/25
+
+**Fixes:**
+* Fixes option -weight= for stack command and add filtering criteria in HISTORY key of stacked image (#1545)
+
+
+siril 1.4.0-beta1
 04/26/25
 
 **New features:**

@@ -8570,6 +8570,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.reglayer = get_registration_layer(args.seq);
 	args.feather_dist = arg->feather_dist;
 	args.overlap_norm = arg->overlap_norm;
+	args.weighting_type = (arg->method == stack_mean_with_rejection) ? arg->weighting_type : NO_WEIGHT;
 
 	// manage registration data
 	if (!test_regdata_is_valid_and_shift(args.seq, args.reglayer)) {

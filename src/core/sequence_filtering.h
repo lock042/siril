@@ -52,6 +52,7 @@ double compute_lowest_accepted_nbstars(sequence *seq, int layer, double criterio
 
 
 gchar *describe_filter(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter);
+gchar *describe_filter_for_history(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter);
 
 
 #endif
