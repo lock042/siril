@@ -175,14 +175,19 @@ macos:
   tags:
     - macos
     - ${ARCHITECTURE}
+  cache:
+    - key: ccache
+      paths:
+        - ccache
   variables:
-    CCACHE_DIR: /Users/Shared/work/ccache
+    CCACHE_DIR: $CI_PROJECT_DIR/ccache
+    CCACHE_MAXSIZE: "500Mi"
+    PACKAGE_REGISTRY_URL: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic
     REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 4a1b2dbb37bae5c5efc2ddfeb3dbf824d61fd99c
+    SM_REPO_REF: 8fdb05e5e8c21f18193280dc63d33759a8586ba8
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
-    WRK_DIR: $CI_PROJECT_DIR
   script:
     # Clone the repo containing all the build scripts.
     - |
@@ -197,16 +202,15 @@ macos:
       echo $CI_PROJECT_DIR > sm/ci_project_dir.txt
       SM_SHA=$(LANG=C find -s sm -type f -not -wholename '*.git/*' -exec cat {} \+ | shasum | awk '{ print $1 }')
       VER_DIR=$(sm/jhb/usr/bin/config get VER_DIR)
-      PACKAGE_URL=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
+      PACKAGE_URL=${PACKAGE_REGISTRY_URL}/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
       if ! curl -H "JOB-TOKEN: $CI_JOB_TOKEN" -fLO $PACKAGE_URL; then
-        export FORCE_BUILD_FROM_SOURCE=true
         sm/build_toolset.sh
+        rm $VER_DIR/var/cache/pkg/.skip
         sm/jhb/usr/bin/jhb run rustup self uninstall -y || true
         sm/jhb/usr/bin/archive remove_nonessentials
         sm/jhb/usr/bin/archive create_dmg
         curl --fail-with-body -H "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file $(basename $PACKAGE_URL) $PACKAGE_URL
         rm -rf ${VER_DIR:?}
-        unset FORCE_BUILD_FROM_SOURCE
       fi
     - sm/jhb/usr/bin/archive install_dmg
     - sm/build_siril.sh
