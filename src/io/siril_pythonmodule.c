@@ -1700,7 +1700,7 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 	if (!install_module_with_pip(module_path, user_module_path, venv_path, &install_error)) {
 		siril_log_color_message(_("Warning: unable to install or update the "
 					"Siril python module.\n"), "salmon");
-		g_warning("Failed to install Python module: %s",
+		siril_log_message("Failed to install Python module: %s",
 				install_error ? install_error->message : "Unknown error");
 		g_error_free(install_error);
 	} else {
