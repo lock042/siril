@@ -262,14 +262,9 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 	/* Use the tag when documentation will be tagged */
 	const gchar *version = NULL;
 #ifdef SIRIL_UNSTABLE
-    version = "latest";
+	version = "latest";
 #else
 	version = "stable";
-#ifdef PACKAGE_VERSION
-	if (strstr(PACKAGE_VERSION, "beta") != NULL) {
-		version = "latest";
-	}
-#endif
 #endif
 
 	gchar *url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, version, DECONVOLUTION_TIPS_URL);
