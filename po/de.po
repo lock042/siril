@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-02-09 02:01+0000\n"
-"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
+"PO-Revision-Date: 2025-04-27 21:08+0000\n"
+"Last-Translator: Sami <samipar77@gmail.com>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril-1-2/de/>\n"
 "Language: de\n"
@@ -182,7 +182,7 @@ msgstr "Summe"
 
 #: src/gui/siril3.glade:725 src/gui/siril3.glade:17763
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr "Kontrastbegrenzte adaptive Histogrammausgleichung….."
+msgstr "Kontrastbegrenzte adaptive Histogrammausgleichung..."
 
 #: src/gui/siril3.glade:744 src/gui/siril3.glade:2391 src/gui/siril3.glade:3191
 #: src/gui/siril3.glade:5055 src/gui/siril3.glade:10836
@@ -2067,8 +2067,8 @@ msgid ""
 "Clear all the fields. If you save your image after, the header will not "
 "contain any data about the focal length or sensor size."
 msgstr ""
-"Lösch alle Felder. Wenn Sie Ihr Bild danach speichern, enthält die Kopfzeile "
-"keine Daten über die Brennweite oder die Sensorgröße."
+"Löscht alle Felder. Wenn Sie Ihr Bild danach speichern, enthält die "
+"Kopfzeile keine Daten über die Brennweite oder die Sensorgröße."
 
 #: src/gui/siril3.glade:8672
 msgid "Computed sampling (arcsec/pixel):"
@@ -3731,7 +3731,7 @@ msgstr "Information..."
 
 #: src/gui/siril3.glade:14495 src/gui/siril3.glade:14786
 msgid "FITS Header..."
-msgstr ""
+msgstr "FITS-Kopfdaten..."
 
 #: src/gui/siril3.glade:14509
 msgid "Dynamic PSF..."
@@ -4155,7 +4155,6 @@ msgid "Highlights clipping"
 msgstr "Highlights Übersteuerung"
 
 #: src/gui/siril3.glade:15994
-#, fuzzy
 msgid "Clip (%)"
 msgstr "Zuschnitt (%)"
 
@@ -4698,7 +4697,7 @@ msgstr "Binning..."
 
 #: src/gui/siril3.glade:18340
 msgid "Resample..."
-msgstr ""
+msgstr "Neuabtastung..."
 
 #: src/gui/siril3.glade:18384
 msgid "Split Channels..."
@@ -4857,7 +4856,7 @@ msgstr "Grün extrahieren"
 
 #: src/gui/siril3.glade:19134
 msgid "Ha/OIII Resampling"
-msgstr ""
+msgstr "Ha/OIII Neuabtastung"
 
 #: src/gui/siril3.glade:19146
 msgid ""
@@ -5218,7 +5217,7 @@ msgstr "Gehe zum Stacking-Reiter"
 
 #: src/gui/siril3.glade:20788
 msgid "Fps:"
-msgstr ""
+msgstr "Bps:"
 
 #: src/gui/siril3.glade:20800
 msgid "Frame rate"
@@ -8526,7 +8525,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:31093 src/gui/siril3.glade:31643
 msgid "Warning Dialogs"
-msgstr "Warnungdialoge"
+msgstr "Warndialoge"
 
 #: src/gui/siril3.glade:31124 src/gui/siril3.glade:31487
 msgid "Performances"
@@ -10397,7 +10396,7 @@ msgstr "Gut"
 
 #: src/algos/PSF.c:776
 msgid "Fair"
-msgstr ""
+msgstr "Mittelmäßig"
 
 #: src/algos/PSF.c:777
 msgid "Poor"
@@ -11102,7 +11101,7 @@ msgstr "Gauss'sche PSF\n"
 
 #: src/core/command.c:1199
 msgid "Moffat PSF\n"
-msgstr ""
+msgstr "Moffat PSF\n"
 
 #: src/core/command.c:1203
 msgid "Disc PSF\n"
@@ -17114,7 +17113,7 @@ msgstr "Speicherplatz in GB"
 
 #: src/core/settings.c:270
 msgid "HD AutoStretch bit depth"
-msgstr "HD Auto-Stretch Bit Tiefe"
+msgstr "HD Auto-Stretch Bittiefe"
 
 #: src/core/settings.c:271
 msgid "need requires cmd in script"
@@ -17182,7 +17181,7 @@ msgstr "Verzeichnis der Stanet++ Installation"
 
 #: src/core/settings.c:288
 msgid "directory of the asnet_ansvr installation"
-msgstr "Verzeichnis der asnet_ansvr Installation"
+msgstr "Verzeichnis der Installation von asnet_ansvr"
 
 #: src/core/settings.c:290
 msgid "directory containing the solve-field executable"
@@ -17258,7 +17257,7 @@ msgstr "Faktor für die automatische Berechnung des Außenradius"
 
 #: src/core/settings.c:313
 msgid "force flux aperture value"
-msgstr "erzwingt Aperturwert"
+msgstr "erzwingt Flux-Aperturwert"
 
 #: src/core/settings.c:314
 msgid "forced aperture for flux computation"
@@ -17322,7 +17321,7 @@ msgstr "FITS Kompressionsmethode"
 
 #: src/core/settings.c:333
 msgid "quantization factor for 32-bit float"
-msgstr "Quantisierungsfaktor für 32-Bit-Float"
+msgstr "Quantisierungsfaktor für 32-Bit-Fließkomma"
 
 #: src/core/settings.c:334
 msgid "Hcompress scale factor"
@@ -17445,7 +17444,7 @@ msgstr "Speichern nicht bestätigen wenn Nicht-Linearer-Modus"
 
 #: src/core/settings.c:375
 msgid "remember window position"
-msgstr "Fensterposition speichern"
+msgstr "Fensterposition merken"
 
 #: src/core/settings.c:376 src/core/settings.c:377 src/core/settings.c:378
 #: src/core/settings.c:379
@@ -17486,7 +17485,7 @@ msgstr "warnt wenn ein Script startet"
 
 #: src/core/settings.c:388
 msgid "show thumbnails in open dialog"
-msgstr "Vorschaubilder in Dateiöffnungsdialog anzeigen"
+msgstr "Vorschaubilder im Dialog \"Datei öffnen\" anzeigen"
 
 #: src/core/settings.c:389
 msgid "size of the thumbnails"
@@ -19961,15 +19960,16 @@ msgid "Saving FITS"
 msgstr "Speichere FITS"
 
 #: src/gui/save_dialog.c:424
-#, fuzzy
 msgid "Extension Mismatch"
-msgstr "Datei-Extension Typ:"
+msgstr "Falsche Dateierweiterung"
 
 #: src/gui/save_dialog.c:425
 msgid ""
 "The given file extension does not match the chosen file type. Do you want to "
 "save the image using this name anyway?"
 msgstr ""
+"Die angegebene Dateierweiterung passt nicht zum ausgewählten Dateityp. "
+"Möchten Sie das Bild trotzdem unter diesem Namen speichern?"
 
 #: src/gui/save_dialog.c:426 src/gui/save_dialog.c:477
 msgid "Save Anyway"
@@ -23013,7 +23013,8 @@ msgstr "Registriere DFT: lade und bearbeite Referenz-Frame"
 
 #: src/registration/registration.c:280 src/registration/registration.c:573
 msgid "Register: could not load first image to register, aborting.\n"
-msgstr "Registrierung: konnte erstes Bild nicht laden. Abbruch.\n"
+msgstr ""
+"Registrierung: konnte erstes Bild zur Registrierung nicht laden. Abbruch.\n"
 
 #: src/registration/registration.c:372 src/registration/registration.c:616
 #, c-format
@@ -23023,7 +23024,7 @@ msgstr "Registrierung: bearbeite Bild %s"
 #: src/registration/registration.c:480 src/registration/registration.c:678
 #, c-format
 msgid "Best frame: #%d.\n"
-msgstr "Bestes Frame: #%d.\n"
+msgstr "Bestes Bild: #%d.\n"
 
 #: src/registration/registration.c:557
 msgid "Register using KOMBAT: loading and processing reference frame"
@@ -23048,7 +23049,7 @@ msgstr ""
 #: src/registration/registration.c:767
 #, c-format
 msgid "Best frame: #%d with fwhm=%.3g.\n"
-msgstr "Bestes Frame: #%d mit FWHM=%.3g.\n"
+msgstr "Bestes Bild: #%d mit FWHM=%.3g.\n"
 
 #: src/registration/registration.c:1098
 #, c-format

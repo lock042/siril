@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2025-03-03 15:00+0000\n"
+"PO-Revision-Date: 2025-04-02 04:43+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril-1-2/zh_Hans/>\n"
@@ -5242,20 +5242,20 @@ msgid ""
 "for <b>Shift</b>, <b>Similarity</b> and <b>Affine</b> and of 4 for "
 "<b>Homography</b>."
 msgstr ""
-"<b>平移</b>是2自由度（x/y）的严格映射，适用于无失真，无缩放，无场旋的情况。这"
-"需要至少1对匹配星点来计算。\n"
+"<b>平移</b>是2自由度（x/y偏移）的严格映射，适用于无畸变，无缩放，无场旋的情况"
+"。需要至少1对匹配的星点。\n"
 "\n"
-"<b>同构</b>是4自由度（缩放，场旋和x/y）的较严格映射，适用于无失真的情况。这需"
-"要至少2对匹配星点来计算。\n"
+"<b>同构</b>是4自由度（1自由度缩放，旋转和x/"
+"y偏移）的较严格映射，适用于无畸变的情况。需要至少2对匹配的星点。\n"
 "\n"
-"<b>仿射</b>是6自由度（双缩放，裁剪，场旋和x/y）的较严格映射，适用于较小失真的"
-"情况。这需要至少3对可匹配星点来计算。\n"
+"<b>仿射</b>是6自由度（2自由度缩放，裁剪，旋转和x/"
+"y偏移）的较严格映射，适用于较小畸变的情况。需要至少3对匹配的星点。\n"
 "\n"
-"<b>单应性</b>是缺省的8自由度映射，适用大多数情况，尤其是广域图像。这需要至少4"
-"对匹配星点来计算。\n"
+"<b>单应</b>是8自由度映射（缺省）。适用于大多数情况。广域图像尤其建议使用。需"
+"要至少4对匹配的星点。\n"
 "\n"
-"<b>警告</b>：初始的星点匹配采用相似三角形算法，因此最小配对星点数不能小于3"
-"（<b>平移</b>、<b>同构</b>和<b>仿射</b>）或4（<b>单应性</b>）。"
+"<b>警告</b>：初始的星点匹配采用相似三角形算法，因此至少需要3对（<b>平移</b>、"
+"<b>同构</b>和<b>仿射</b>）或4对（<b>单应</b>）匹配的星点来执行对齐。"
 
 #: src/gui/siril3.glade:22047
 msgid "Shift"
@@ -5271,7 +5271,7 @@ msgstr "仿射"
 
 #: src/gui/siril3.glade:22050
 msgid "Homography"
-msgstr "单应性"
+msgstr "单应"
 
 #: src/gui/siril3.glade:22064
 msgid "Transformation:"
@@ -10372,7 +10372,7 @@ msgstr "合并：工作目录未设置。\n"
 #: src/core/command.c:2381 src/core/command.c:6263 src/core/command.c:6419
 #, c-format
 msgid "Specified output name %s contains forbidden characters, aborting\n"
-msgstr "输出名称“%s”含有非法字符，已停止\n"
+msgstr "输出名称“%s”含有非法字符，异常中止\n"
 
 #: src/core/command.c:2401
 #, c-format
@@ -16288,7 +16288,7 @@ msgstr "除去绿色噪声SCNR（type=%s, amount=%0.2lf, preserve=%s）"
 #: src/filters/starnet.c:99
 #, c-format
 msgid "Spawning starnet failed: %s\n"
-msgstr "生成 starnet 失败：%s\n"
+msgstr "调用 StarNet 失败：%s\n"
 
 #: src/filters/starnet.c:142
 msgid "Running StarNet"
@@ -16307,7 +16307,7 @@ msgstr "未捕获 StarNet 退出，最后一个缓冲区：%s\n"
 #: src/filters/starnet.c:222
 #, c-format
 msgid "Spawning starnet failed during version check: %s\n"
-msgstr "版本检查期间生成 StarNet 失败: %s\n"
+msgstr "检查版本期间调用 StarNet 失败: %s\n"
 
 #: src/filters/starnet.c:244
 msgid "V2 detected\n"
@@ -18343,7 +18343,7 @@ msgstr "序列 CFA 拆分仅支持 FITS 格式"
 
 #: src/gui/statistics_list.c:47
 msgid "mean"
-msgstr "mean"
+msgstr "平均值"
 
 #: src/gui/statistics_list.c:48
 msgid "median"
@@ -20413,9 +20413,7 @@ msgstr "参考帧具有空矩阵，并且之前未对齐，请选择另一帧，
 msgid ""
 "Applying registration computed with higher degree of freedom (%d) than shift "
 "is not allowed when interpolation is set to none, aborting\n"
-msgstr ""
-"当插值设置为“无”时，不允许应用以高于平移的自由度 （%d） 计算的对齐，异常中"
-"止\n"
+msgstr "当插值设置为“无”时，对齐的自由度不能高于平移的自由度 （%d），异常中止\n"
 
 #: src/registration/applyreg.c:573
 msgid ""
@@ -20462,7 +20460,7 @@ msgstr "与参考帧相比，输出序列太小（旋转过多或重叠度不足
 
 #: src/registration/applyreg.c:633
 msgid "You should change framing method, aborting\n"
-msgstr "异常终止，您应该更改取景范围\n"
+msgstr "您应该更改取景方法，异常中止\n"
 
 #: src/registration/comet.c:131 src/registration/comet.c:168
 msgid "There is no timestamp stored in the file"
@@ -20509,7 +20507,7 @@ msgstr "仿射（6自由度）"
 
 #: src/registration/global.c:76
 msgid "homography (8 degrees)"
-msgstr "单应性（8自由度）"
+msgstr "单应（8自由度）"
 
 #: src/registration/global.c:78
 msgid "INVALID"
@@ -20588,7 +20586,7 @@ msgstr "仿射模式使用了少于 %d%% 对星点，可能无法精确对齐：
 msgid ""
 "Less than %d%% star pairs kept by homography model, Image %d may show "
 "important distortion\n"
-msgstr "单应性模式使用了少于 %d%% 对星点，图像 %d 可能出现严重的失真\n"
+msgstr "单应模式使用了少于 %d%% 对星点，图像 %d 可能出现严重的失真\n"
 
 #: src/registration/global.c:324
 #, c-format

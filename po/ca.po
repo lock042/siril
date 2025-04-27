@@ -7,17 +7,16 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-17 23:34+0100\n"
-"PO-Revision-Date: 2023-08-25 11:40+0000\n"
-"Last-Translator: Joan Vinyals Ylla Català "
-"<joan.vinyals.ylla.catala@gmail.com>\n"
-"Language-Team: Catalan <https://weblate.pixls.us/projects/siril/siril-"
-"application-1-2/ca/>\n"
+"PO-Revision-Date: 2025-04-09 22:27+0000\n"
+"Last-Translator: Victor Gandia <victorix@gmail.com>\n"
+"Language-Team: Catalan <https://weblate.siril.org/projects/siril/software/"
+"siril-1-2/ca/>\n"
 "Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7998
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -437,7 +436,6 @@ msgid "Pre-stretch linear image"
 msgstr "Pre-estirar imatge lineal"
 
 #: src/gui/siril3.glade:2161
-#, fuzzy
 msgid ""
 "If selected, an optimised Midtone Transfer Function (MTF) stretch is applied "
 "to the image before running StarNet, and the inverse stretch is applied on "
@@ -445,9 +443,10 @@ msgid ""
 "processing, but is generally fine to use with stretched images too."
 msgstr ""
 "Si es selecciona, s'aplica un estirament de Funció de Transferència de Tons "
-"Mitjans (FTTM) optimitzat a la imatge abans d'executar StarNet, i s'aplica "
-"l'estirament invers en finalitzar. Això és necessari per utilitzar StarNet a "
-"l'etapa lineal del processament."
+"Mitjans (FTTM o MTF en anglès) optimitzat a la imatge abans d'executar "
+"StarNet, i s'aplica l'estirament invers en finalitzar. Això és necessari per "
+"utilitzar StarNet a l'etapa lineal del processament, però generalment també "
+"funciona amb imatges estirades."
 
 #: src/gui/siril3.glade:2175
 msgid "Generate star mask"
@@ -715,9 +714,8 @@ msgstr ""
 "Aquesta opció hauria d'estar habilitada per imatges no estirades."
 
 #: src/gui/siril3.glade:3717
-#, fuzzy
 msgid "Grid tolerance"
-msgstr "Tolerància"
+msgstr "Tolerància del patró de reixeta"
 
 #: src/gui/siril3.glade:3729
 #, fuzzy
@@ -815,9 +813,8 @@ msgid "Correction"
 msgstr "Correcció"
 
 #: src/gui/siril3.glade:3907
-#, fuzzy
 msgid "Compute Background"
-msgstr "Extreure Rerefons"
+msgstr "Extreure Fons d'imatge"
 
 #: src/gui/siril3.glade:3911
 msgid ""
@@ -830,9 +827,8 @@ msgstr ""
 "per permetre a l'usuari treballar iterativament."
 
 #: src/gui/siril3.glade:3925
-#, fuzzy
 msgid "Show original image"
-msgstr "Redueix les mostres de la imatge"
+msgstr "Mostrar la imatge original"
 
 #: src/gui/siril3.glade:3930
 msgid "Keep pressing this button to see the original image."
@@ -1009,14 +1005,14 @@ msgid "Background factor"
 msgstr "Factor de fons"
 
 #: src/gui/siril3.glade:5257
-#, fuzzy
 msgid ""
 "This is the factor multiplied by the background value. Lower is the value, "
 "stronger is the saturation effect. While a high value will preserve the "
 "background."
 msgstr ""
-"Aquest factor es multiplica pel valor del fons. Com més baix és el valor, "
-"major és l'efecte de saturació. Tanmateix, un valor alt preservarà el fons."
+"Aquest és factor multiplicat pel valor del fons d'imatge. Com més baix és el "
+"valor, més gran és l'efecte de saturació, mentre què un valor alt preservarà "
+"el fons."
 
 #: src/gui/siril3.glade:5320
 msgid "Subtractive Chromatic Green Noise Reduction"
@@ -1088,9 +1084,8 @@ msgstr ""
 "seqüència"
 
 #: src/gui/siril3.glade:5978
-#, fuzzy
 msgid "Blind deconvolution"
-msgstr "Desconvolució"
+msgstr "Desconvolució a cegues"
 
 #: src/gui/siril3.glade:5982
 msgid "Estimates a PSF from the image"
@@ -1119,13 +1114,12 @@ msgid "Use a manually defined PSF based on the parameters chosen."
 msgstr "Utilitza una PSF definida per l'usuari."
 
 #: src/gui/siril3.glade:6031
-#, fuzzy
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
 msgstr ""
-"Selecciona el mètode d'estimació PSF cec que preferiu utilitzar. El descens "
-"ℓ0 es el mètode per defecte i sol ser la millor opció."
+"Selecciona el mètode d'estimació PSF a cegues que voleu utilitzar. El "
+"descens ℓ0 es el mètode per defecte i sol ser la millor opció."
 
 #: src/gui/siril3.glade:6034
 msgid "Spectral Irregularity"
@@ -1299,15 +1293,15 @@ msgid "Sensor pixel size in microns"
 msgstr "Mida dels píxels del sensor en microns"
 
 #: src/gui/siril3.glade:6528
-#, fuzzy
 msgid ""
 "Wavelength to calculate the diffraction pattern for. May be specified "
 "exactly for narrowband filters, or for broadband / OSC / luminance filters "
 "just use a representative central wavelength."
 msgstr ""
 "Longitud d'ona per la que calcular el patró de difracció. Pots especificar-"
-"la per a filtres de banda estreta, per filtres de banda ample, OSC, o "
-"lluminositat tria una longitud d'ona central i representativa."
+"la per a filtres de banda estreta. O bé per filtres de banda ampla, imatges "
+"de càmeres en color, o filtres de lluminositat tria només una longitud d'ona "
+"central representativa."
 
 #: src/gui/siril3.glade:6543
 msgid ""
