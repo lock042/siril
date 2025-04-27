@@ -8,11 +8,11 @@
     "priority": 2
   },
   {
-    "valid-from": "2025-03-31T23:30:00+01:00",
-    "valid-to": "2025-04-03T00:00:00+00:00",
+    "valid-from": "2025-04-27T00:00:00+01:00",
+    "valid-to": "2025-04-31T00:00:00+01:00",
     "version-from": "1.3.6",
-    "version-to": "1.4.0",
-    "message": "The python scripts have been updated to reflect some API consistency updates in the main repository. This may cause script errors if you have not yet updated. Please ensure you are updated to at least commit 3001dc3e1. Script writers: please review the python script API page to see what has changed. (The changes mostly involve changing methods from returning a bool to indicate success / failure to consistent use of exception raising.)",
+    "version-to": "1.4.1",
+    "message": "Note for Windows users: an issue has been identified with the packaging of the 1.4.0-beta1 installer package that means the new Python scripting functionality will not work. An updated package will be released shortly, however in the meantime you can use the Windows 'portable installation' package which does work correctly.",
     "priority": 2
   }
 ]
