@@ -473,19 +473,12 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	} else {
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-		GThread *thread = g_thread_new("refresh_scripts", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
-		g_thread_unref(thread);
+		refresh_script_menu(1);
 	}
 	if (error) {
 		*error = err;
 	}
 	return retval;
-}
-
-gpointer refresh_scripts_menu_in_thread(gpointer data) {
-	gboolean verbose = (gboolean) GPOINTER_TO_INT(data);
-	refresh_script_menu(verbose);
-	return GINT_TO_POINTER(0);
 }
 
 gpointer initialize_script_menu_in_thread(gpointer data) {
