@@ -9,7 +9,7 @@
   },
   {
     "valid-from": "2025-04-27T00:00:00+01:00",
-    "valid-to": "2025-04-31T00:00:00+01:00",
+    "valid-to": "2025-04-30T00:00:00+01:00",
     "version-from": "1.3.6",
     "version-to": "1.4.1",
     "message": "Note for Windows users: an issue has been identified with the packaging of the 1.4.0-beta1 installer package that means the new Python scripting functionality will not work. An updated package will be released shortly, however in the meantime you can use the Windows 'portable installation' package which does work correctly.",
