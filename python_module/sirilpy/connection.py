@@ -1471,7 +1471,7 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(_("Error in radec2pix(): {e}")) from e
 
-    def get_image_pixeldata(self, shape: Optional[list[int]] = None) -> Optional[np.ndarray]:
+    def get_image_pixeldata(self, shape: Optional[list[int]] = None, preview: Optional[bool] = False) -> Optional[np.ndarray]:
 
         """
         Retrieves the pixel data from the image currently loaded in Siril.
@@ -1480,6 +1480,9 @@ class SirilInterface:
             shape: Optional list of [x, y, w, h] specifying the region to retrieve.
                    If provided, gets pixeldata for just that region.
                    If None, gets pixeldata for the entire image.
+            preview: optional bool specifying whether to get pixeldata as a preview
+                     (i.e. 8-bit autostretched data) or as real image data. Defaults
+                     to False (i.e. real image data)
 
         Returns:
             numpy.ndarray: The image data as a numpy array
@@ -1493,6 +1496,7 @@ class SirilInterface:
 
         shm = None
         try:
+            preview_data = struct.pack('!?', preview)
             # Validate shape if provided
             if shape is not None:
                 if len(shape) != 4:
@@ -1510,7 +1514,8 @@ class SirilInterface:
                 command = _Command.GET_PIXELDATA
 
             # Request shared memory setup
-            status, response = self._send_command(command, shape_data)
+            payload = preview_data + shape_data if shape_data else preview_data
+            status, response = self._send_command(command, payload)
 
             # Handle error responses
             if status == _Command.ERROR:
@@ -1548,7 +1553,10 @@ class SirilInterface:
 
             buffer = bytearray(shm.buf)[:shm_info.size]
             # Create numpy array from shared memory
-            dtype = np.float32 if shm_info.data_type == 1 else np.uint16
+            if preview:
+                dtype = np.uint8
+            else:
+                dtype = np.float32 if shm_info.data_type == 1 else np.uint16
             try:
                 arr = np.frombuffer(buffer, dtype=dtype)
             except (BufferError, ValueError, TypeError) as e:
@@ -1598,13 +1606,19 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_seq_frame_pixeldata(self, frame: int, shape: Optional[List[int]] = None) -> Optional[np.ndarray]:
+    def get_seq_frame_pixeldata(self, frame: int, shape: Optional[List[int]] = None, preview: Optional[bool] = False) -> Optional[np.ndarray]:
 
         """
         Retrieves the pixel data from a frame in the sequence currently loaded in Siril.
 
         Args:
             frame: selects the frame to retrieve pixel data from
+            shape: Optional list of [x, y, w, h] specifying the region to retrieve.
+                   If provided, gets pixeldata for just that region.
+                   If None, gets pixeldata for the entire image.
+            preview: optional bool specifying whether to get pixeldata as a preview
+                     (i.e. 8-bit autostretched data) or as real image data. Defaults
+                     to False (i.e. real image data).
 
         Returns:
             numpy.ndarray: The image data as a numpy array
@@ -1619,6 +1633,7 @@ class SirilInterface:
         # Convert channel number to network byte order bytes
 
         try:
+            preview_payload = struct.pack('!?', preview)
             frame_payload = struct.pack('!I', frame)
             # Validate shape if provided
             if shape is not None:
@@ -1633,7 +1648,7 @@ class SirilInterface:
                 shape_data = struct.pack('!IIII', *shape)
             else:
                 shape_data = None
-            payload = frame_payload + shape_data if shape_data else frame_payload
+            payload = preview_payload + frame_payload + shape_data if shape_data else preview_payload + frame_payload
             # Request shared memory setup
             status, response = self._send_command(_Command.GET_SEQ_PIXELDATA, payload)
 
@@ -1673,7 +1688,10 @@ class SirilInterface:
 
             buffer = bytearray(shm.buf)[:shm_info.size]
             # Create numpy array from shared memory
-            dtype = np.float32 if shm_info.data_type == 1 else np.uint16
+            if preview:
+                dtype = np.uint8
+            else:
+                dtype = np.float32 if shm_info.data_type == 1 else np.uint16
             try:
                 arr = np.frombuffer(buffer, dtype=dtype)
             except (BufferError, ValueError, TypeError) as e:
@@ -2928,13 +2946,16 @@ class SirilInterface:
         except struct.error as e:
             raise SirilError(f"Error in get_image_keywords(): {e}") from e
 
-    def get_image(self, with_pixels: Optional[bool] = True) -> Optional[FFit]:
+    def get_image(self, with_pixels: Optional[bool] = True, preview: Optional[bool] = False) -> Optional[FFit]:
         """
         Request a copy of the current image open in Siril.
 
         Args:
             with_pixels: optional bool specifying whether to get pixel data as a
                          NumPy array, or only the image metadata. Defaults to True
+            preview: optional bool specifying whether to get pixeldata as a preview
+                     (i.e. 8-bit autostretched data) or as real image data. Defaults
+                     to False (i.e. real image data)
 
         Returns:
             FFit object containing the image metadata and (optionally)
@@ -3010,7 +3031,7 @@ class SirilInterface:
             img_pixeldata = None
             if with_pixels:
                 try:
-                    img_pixeldata = self.get_image_pixeldata()
+                    img_pixeldata = self.get_image_pixeldata(preview = preview)
                 except Exception as e:
                     print(f"Error: failed to retrieve pixel data: {e}")
 
