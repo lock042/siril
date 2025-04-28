@@ -298,7 +298,7 @@ flatpak:
 
 snap:
   stage: packaging
-  image: registry.gitlab.com/free-astro/siril/snap:22.04
+  image: registry.gitlab.com/remmina/remmina/snap:22.04
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
