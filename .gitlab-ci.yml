@@ -302,7 +302,14 @@ snap:
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
+	DEBIAN_FRONTEND: noninteractive
   script:
+    - apt-get update
+    - apt-get install -y snapd wget sudo
+    - snap download snapcraft --channel=latest/stable
+    - mkdir -p /etc/apt/keyrings
+    - wget -O - https://archive.canonical.com/ubuntu/dists/mantic/Release.gpg | gpg --dearmor -o /etc/apt/keyrings/canonical-archive-mantic.gpg
+    - echo "deb [signed-by=/etc/apt/keyrings/canonical-archive-mantic.gpg] https://archive.canonical.com/ubuntu mantic partner" | tee /etc/apt/sources.list.d/canonical-archive-mantic.list
     - apt-get update
     - apt-get install -y snapcraft
     - cd build
