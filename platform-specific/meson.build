@@ -15,7 +15,7 @@ if platform_linux or platform_bsd
 elif platform_windows
   subdir('windows')
 elif platform_osx
-  subdir('os-x')
+  subdir('macos')
 else
   error('Unsupported OS.')
 endif
