@@ -241,7 +241,7 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 	ra0 = (ra0 < 0) ? ra0 + 360. : ra0;
 	siril_log_message(_("Sequence COG - RA:%7.3f - DEC:%+7.3f\n"), ra0, dec0);
 
-	int refindex = (ref_index < 0) ? seq->reference_image : ref_index;;
+	int refindex = (ref_index < 0) ? seq->reference_image : ref_index;
 
 	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
 	// ##################################################################
