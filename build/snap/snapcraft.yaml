@@ -3,7 +3,7 @@ adopt-info: siril
 
 grade: stable
 confinement: strict
-base: core24
+base: core22
 compression: lzo
 
 apps:
