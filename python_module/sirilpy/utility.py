@@ -396,9 +396,10 @@ class SuppressedStdout:
     Example:
         .. code-block:: python
 
-            siril = sirilpy.SirilInterface()
+            import sirilpy as s
+            siril = s.SirilInterface()
             print("This message will appear in the Siril log")
-            with siril.SuppressedStdout():
+            with s.SuppressedStdout():
                 print("This message will not appear")
             print("This message will appear again")
 
