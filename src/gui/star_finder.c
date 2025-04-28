@@ -242,8 +242,13 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	args->starfile = NULL;
 	args->threading = MULTI_THREADED;
 	args->update_GUI = TRUE;
+	if (com.selection.w != 0 && com.selection.h != 0) {
+		args->selection = com.selection;
+	}
 
-	start_in_new_thread(findstar_worker, args);
+	if (!start_in_new_thread(findstar_worker, args)) {
+		free(args);
+	}
 }
 
 /* Function to add star one by one, from the selection rectangle, the
@@ -267,8 +272,8 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 		profile = com.pref.starfinder_conf.profile;
 
 	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, TRUE, profile, NULL);
-	if (!result)
+	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, NULL, TRUE, profile, NULL);
+	if (!result) // we don't check for errors as we assume the user has selected a star
 		return NULL;
 	result->angle = -result->angle; // we need to invert the angle because of the way the matrix is passed to minimizer
 	/* We do not check if it's matching with the "reject_star()" criteria.
@@ -346,7 +351,6 @@ int remove_star(int index) {
 gboolean end_findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *) p;
 	stop_processing_thread();
-	refresh_star_list();
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;

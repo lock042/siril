@@ -104,6 +104,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
+		g_free(child);
 		return retval;
 	}
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
@@ -487,6 +488,10 @@ gpointer do_starnet(gpointer p) {
 	 * be the same color space as the imput but will have no ICC profile embedded
 	 * so we have to replace the original */
 	cmsHPROFILE original_profile = copyICCProfile(current_fit->icc_profile);
+	gboolean original_colormanaged = current_fit->color_managed;
+
+	// Disable color management so that savetif doesn't mess about with the image
+	current_fit->color_managed = FALSE;
 
 	// ok, let's start
 	if (verbose)
@@ -662,6 +667,7 @@ gpointer do_starnet(gpointer p) {
 	if (workingfit.icc_profile) {
 		cmsCloseProfile(workingfit.icc_profile);
 		workingfit.icc_profile = copyICCProfile(original_profile);
+		workingfit.color_managed = original_colormanaged;
 	}
 	// Remove working TIFF files, they are no longer required
 	retval = g_remove(starlesstif);
@@ -743,12 +749,13 @@ gpointer do_starnet(gpointer p) {
 		update_filter_information(&fit, "StarMask", TRUE);
 
 		// Replace ICC profile here too
-		if (fit.icc_profile) {
-			cmsCloseProfile(fit.icc_profile);
+		if (original_profile) {
+			if (fit.icc_profile)
+				cmsCloseProfile(fit.icc_profile);
 			fit.icc_profile = copyICCProfile(original_profile);
-		}
-		if (original_profile)
+			fit.color_managed = original_colormanaged;
 			cmsCloseProfile(original_profile);
+		}
 
 		// Save fit as starmask fits
 		if (get_thread_run()) {
@@ -899,7 +906,7 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	int retval = GPOINTER_TO_INT(do_starnet(seqdata));
 	if (!retval) {
 		// Store results in a struct _multi_split
-		struct _multi_split *multi_data = malloc(sizeof(struct _multi_split));
+		struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));
 		multi_data->index = o;
 		int nb_out = ((int) seqdata->starmask) + 1;
 		multi_data->images = calloc(nb_out, sizeof(fits*));
@@ -927,7 +934,7 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 }
 
 void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
-	struct generic_seq_args *seqargs = create_default_seqargs(multi_args->seq);
+    struct generic_seq_args *seqargs = create_default_seqargs(multi_args->seq);
 	seqargs->description = _("StarNet");
 	seqargs->seq = multi_args->seq;
 	seqargs->filtering_criterion = seq_filter_included;
@@ -940,12 +947,16 @@ void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
 	seqargs->has_output = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
 	seqargs->save_hook = multi_save;
-	seqargs->new_seq_prefix = multi_args->seqEntry;
+	seqargs->new_seq_prefix = strdup(multi_args->seqEntry);
 	seqargs->finalize_hook = multi_finalize;
 	seqargs->load_new_sequence = (multi_args->new_seq_index < 2);
 	seqargs->user = multi_args;
 	set_progress_bar_data(_("StarNet: Processing..."), 0.);
-	start_in_new_thread(generic_sequence_worker, seqargs);
+	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
+		free_starnet_args((starnet_data*)multi_args->user_data);
+		free_multi_args(multi_args);
+		free_generic_seq_args(seqargs, TRUE);
+	}
 }
 
 #endif

@@ -3,12 +3,18 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from .connection import SirilInterface
+"""
+TKsiril submodule for Siril, providing utility methods to achieve consistent
+script GUI appearance using the TKinter toolkit.
+"""
 
+from time import sleep
 import tkinter as tk
-import tkinter.ttk as ttk
+from tkinter import ttk
+from .connection import SirilInterface
+from .exceptions import SirilError
 
-def create_tooltip(widget, text, max_width=300, wrap_length=250):
+def create_tooltip(widget, text, wrap_length=250):
     """
     Create a tooltip for a given Tkinter widget.
 
@@ -19,12 +25,12 @@ def create_tooltip(widget, text, max_width=300, wrap_length=250):
         wrap_length (int, optional): Length at which text wraps. Defaults to 250.
 
     Raises:
-        RuntimeError: If the provided widget is not a valid Tkinter widget
-        TypeError: If text is not a string
+        TypeError: If text is not a string or the provided widget is not a
+                   valid Tkinter widget
     """
     # Validate widget argument
     if not isinstance(widget, (tk.Widget, tk.Tk, tk.Toplevel)):
-        raise RuntimeError(f"Invalid widget type. Expected a Tkinter widget, got {type(widget)}")
+        raise TypeError(f"Invalid widget type. Expected a Tkinter widget, got {type(widget)}")
 
     # Validate text argument
     if not isinstance(text, str):
@@ -65,19 +71,23 @@ def create_tooltip(widget, text, max_width=300, wrap_length=250):
 
     widget.bind('<Enter>', show_tooltip)
 
-def match_theme_to_siril(themed_tk, s):
+def match_theme_to_siril(themed_tk, s, on_top=False):
     """
-    Match the Tkinter theme to the Siril configuration.
+    Match the Tkinter theme to the Siril configuration and set the script dialog
+    to have topmost status, meaning that it will remain in front of other
+    non-topmost windows.
 
     Args:
         s (SirilInterface): sirilpy.SirilInterface class to provide the
                             Siril theme (light or dark) to match
         themed_tk (ThemedTk): ThemedTk instance to apply the theme to
+        on_top: whether the script window should be always on top of other windows
 
     Raises:
         TypeError: If input arguments are of incorrect type
         ValueError: If the theme configuration is not 0 or 1
         AttributeError: If required methods are not available
+        RuntimeError: If there are errors installing or setting the theme
     """
     # Strict type checking for s
     if not isinstance(s, SirilInterface):
@@ -86,16 +96,8 @@ def match_theme_to_siril(themed_tk, s):
     # Check if s is an instance of expected SirilInterface class
     try:
         s.__class__.__name__  # Ensure the object is instantiated
-    except Exception:
-        raise TypeError("Invalid SirilInterface object")
-
-    # Strict type checking for themed_tk
-    # Check for ThemedTk or ttkbootstrap.ThemedTk
-    valid_tk_types = [
-        'ThemedTk',  # ttkthemes
-        'ThemedStyle',  # ttk.Style from ttkthemes
-        'Tk'  # fallback for standard Tkinter if needed
-    ]
+    except Exception as e:
+        raise TypeError(f"Invalid SirilInterface object: {e}") from e
 
     # Check if themed_tk has the required method
     if not (hasattr(themed_tk, 'set_theme') or
@@ -106,13 +108,18 @@ def match_theme_to_siril(themed_tk, s):
     try:
         theme_value = s.get_siril_config("gui", "theme")
     except Exception as e:
-        raise AttributeError(f"Unable to retrieve theme configuration: {e}")
+        raise AttributeError(f"Unable to retrieve theme configuration: {e}") from e
 
     # Map theme values to theme names
     theme_map = {
         0: "equilux",
         1: "arc"
     }
+
+    if on_top is True:
+        # Settings to keep the script window above others
+        themed_tk.focus_force()
+        themed_tk.attributes('-topmost', True)
 
     # Check if theme value is valid
     if theme_value not in theme_map:
@@ -129,7 +136,7 @@ def match_theme_to_siril(themed_tk, s):
         else:
             raise RuntimeError("No valid theme-setting method found")
     except Exception as e:
-        raise RuntimeError(f"Failed to set theme: {e}")
+        raise RuntimeError(f"Failed to set theme: {e}") from e
 
 def standard_style():
     """
@@ -140,7 +147,7 @@ def standard_style():
         none
 
     Raises:
-        RuntimeError: If the style creation or configuration fails
+        SirilError: If the style creation or configuration fails
     """
     try:
         style = ttk.Style()
@@ -154,4 +161,16 @@ def standard_style():
         return style
 
     except Exception as e:
-        raise RuntimeError(f"Failed to configure style: {e}")
+        raise SirilError(f"Failed to configure style: {e}") from e
+
+def elevate(root):
+    """
+    Raises the Tk root window to the top of the window stack. Useful after
+    calls to sirilpy methods that present child windows of the main Siril
+    window such as info_messagebox().
+
+    NOTE: Does not work on KDE desktops. Currently no workaround is available.
+    """
+
+    root.lift()
+    root.focus_force()

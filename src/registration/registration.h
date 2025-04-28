@@ -198,8 +198,8 @@ void SetNullH(Homography *H);
 void compute_roi(Homography *H, int rx, int ry, framing_roi *roi);
 
 //astrometry-related functions
-int collect_sequence_astrometry(struct registration_args *regargs);
-int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout, struct wcsprm **prmout);
+int collect_sequence_astrometry(struct registration_args *regargs, int *included);
+int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout, struct wcsprm **prmout);
 
 //image shift
 int shift_fit_from_reg(fits *fit, Homography H);

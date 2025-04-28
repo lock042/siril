@@ -38,10 +38,12 @@
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
+#include "gui/message_dialog.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
+#include "io/fits_keywords.h"
 #include "registration/registration.h"
 #include "algos/demosaicing.h"
 
@@ -413,7 +415,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 				Hshift.h02 *= -1.;
 				// we use (int)(dst_ry / scale) to find the projected area origin size unscaled
 				// we also need to recast fit->ry bec. it's a uint
-				Hshift.h12 += (double)(int)(dst_ry / scale) - (double)fit->ry; 
+				Hshift.h12 += (double)(int)(dst_ry / scale) - (double)fit->ry;
 				reframe_wcs(fit->keywords.wcslib, &Hshift);
 			}
 			if (scale != 1.f) {
@@ -476,6 +478,12 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		copyfits(fit, &out, CP_FORMAT, -1);
 		// copy the DATE_OBS
 		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
+		// keep the astrometry for later
+		wcsprm_t *wcs_out = NULL;
+		if (has_wcs(fit)) {
+			wcs_out = fit->keywords.wcslib;
+			fit->keywords.wcslib = NULL;
+		}
 		out.rx = out.naxes[0] = dst_rx;
 		out.ry = out.naxes[1] = dst_ry;
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
@@ -503,6 +511,10 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
 		clearfits(&out);
+		// restore the astrometry
+		if (wcs_out) {
+			fit->keywords.wcslib = wcs_out;
+		}
 		if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, fit->rx * fit->ry * fit->naxes[2]), DATA_USHORT);
 		}
@@ -516,6 +528,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			*/
 			full_stats_invalidation_from_fit(fit);
 			fit->keywords.lo = 0;
+			clear_Bayer_information(fit); // we also reset the bayerpattern
 		}
 
 		free(p->pixmap->xmap);
@@ -605,7 +618,8 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		}
 	}
 
-	if (sadata->success) free(sadata->success);
+	if (sadata->success)
+		free(sadata->success);
 	free(sadata);
 	args->user = NULL;
 
@@ -668,9 +682,9 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 		* If clamping is enabled, one scaled image (the guide) and a 8b copy (the mask)
 
 		*** Others not to be accounted for:
-		- if Drizzle and master flat is specified, because drizzle init loads it 
+		- if Drizzle and master flat is specified, because drizzle init loads it
 			before we compute available memory
-		- If Interpolation and undistorion with pre-computed maps (DISTO_MAP_D2S or DISTO_MAP_S2D), 
+		- If Interpolation and undistorion with pre-computed maps (DISTO_MAP_D2S or DISTO_MAP_S2D),
 			those two maps are init before this hook
 
 		TODO: there are a few approximations:
@@ -700,7 +714,7 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 		required += 2 * MB_per_mono_float_orig_image; // maps
 	else if (regargs->undistort)
 		required += 2 * MB_per_mono_float_scaled_image; // maps if undistortion, otherwise we directly use openCV warpPerspective() which computes maps iteratively on 32x32 chunks
-	
+
 	// drizzle specifics
 	if (regargs->driz)
 		required += MB_per_scaled_image;
@@ -828,65 +842,80 @@ int register_apply_reg(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
 	args->force_float = !com.pref.force_16bit && regargs->seq->type != SEQ_SER;
 	control_window_switch_to_tab(OUTPUT_LOGS);
+	int retval = 0;
+	int *included = NULL;
+
+	// we need to update filtering before check_apply_reg
+	// and check_applyreg_output that will check required space
+	// we also need it before we collect astrometry data
+	if (!regargs->filtering_criterion &&
+		convert_parsed_filter_to_filter(&regargs->filters,
+		regargs->seq, &regargs->filtering_criterion,
+		&regargs->filtering_parameter)) {
+		retval = -1;
+		goto END;
+	}
+	// Prepare sequence filtering
+	gchar *str = describe_filter(regargs->seq, regargs->filtering_criterion,
+			regargs->filtering_parameter);
+	siril_log_message(str);
+	g_free(str);
 
 	if (!check_before_applyreg(regargs)) { // checks for input arguments wrong combinations
-		free(args);
-		return -1;
+		retval = -1;
+		goto END;
 	}
+	// some images may have been excluded by the checks above
+	int nb_frames = compute_nb_filtered_images(regargs->seq,
+		regargs->filtering_criterion, regargs->filtering_parameter);
+	regargs->new_total = nb_frames;	// to avoid recomputing it later
 
 	// If this is an astrometric aligned sequence,
-	// we need to collect the WCS structures and 
+	// we need to collect the WCS structures and
 	// recompute the homographies based on selected frames
 	// We will also unselected unsolved images before recomputing the filters
 	regargs->undistort = (layer_has_distortion(regargs->seq, regargs->layer)) ? regargs->seq->distoparam[regargs->layer].index : DISTO_UNDEF;
 	if (regargs->undistort == DISTO_FILES) {
 		regargs->WCSDATA = calloc(regargs->seq->number, sizeof(struct wcsprm));
-		if (collect_sequence_astrometry(regargs)) {
-			free(args);
-			return -1;
+		included = calloc(regargs->seq->number, sizeof(int));
+		if (collect_sequence_astrometry(regargs, included)) {
+			retval = -1;
+			goto END;
+		}
+		int nb_frames2 = compute_nb_filtered_images(regargs->seq,
+			regargs->filtering_criterion, regargs->filtering_parameter);
+		regargs->new_total = nb_frames2;	// to avoid recomputing it later
+		if (nb_frames2 != nb_frames) {
+			siril_log_color_message(_("Warning: the number of images after collecting astrometry is different from the number of images before filtering.\n"), "salmon");
+			siril_log_color_message(_("The registration will be applied to the filtered images only.\n"), "salmon");
 		}
 		Homography Href = { 0 };
-		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer, &Href, &regargs->wcsref)) {
-			free(args);
-			return -1;
+		if (compute_Hs_from_astrometry(regargs->seq, included, regargs->reference_image, regargs->WCSDATA, regargs->framing, regargs->layer, &Href, &regargs->wcsref)) {
+			retval = -1;
+			goto END;
 		}
 		regargs->framingd.Htransf = Href;
 	} else {
 		regargs->framingd.Htransf = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
 	}
 
-	// we need to update filtering before check_applyreg_output that will check required space
-	if (!regargs->filtering_criterion &&
-			convert_parsed_filter_to_filter(&regargs->filters,
-				regargs->seq, &regargs->filtering_criterion,
-				&regargs->filtering_parameter)) {
-		free(args);
-		return -1;
-	}
-
-	// Prepare sequence filtering
-	int nb_frames = compute_nb_filtered_images(regargs->seq,
-			regargs->filtering_criterion, regargs->filtering_parameter);
-	regargs->new_total = nb_frames;	// to avoid recomputing it later
-	gchar *str = describe_filter(regargs->seq, regargs->filtering_criterion,
-			regargs->filtering_parameter);
-	siril_log_message(str);
-	g_free(str);
-
 	// We can now compute the framing and check the output size
 	if (!check_applyreg_output(regargs)) {
-		free(args);
-		return -1;
+		retval = -1;
+		goto END;
+
 	}
 
 	if (regargs->no_output) {
-		free(args);
-		return 0;
+		retval = 0;
+		goto END;
+
 	}
 
 	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
-		free(args);
-		return -1;
+		retval = -1;
+		goto END;
+
 	}
 
 	args->upscale_ratio = regargs->output_scale;
@@ -901,14 +930,15 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->description = _("Apply registration");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = regargs->prefix;
+	args->new_seq_prefix = strdupnullok(regargs->prefix);
 	args->load_new_sequence = TRUE;
 	args->already_in_a_thread = TRUE;
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
-		free(args);
-		return -1;
+		retval = -1;
+		goto END;
+
 	}
 	sadata->regargs = regargs;
 	args->user = sadata;
@@ -922,9 +952,11 @@ int register_apply_reg(struct registration_args *regargs) {
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
 		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array
 		if (status) {
-			free(args);
 			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
-			return -1;
+			free(sadata);
+			args->user = NULL;
+			retval = 1;
+			goto END;
 		}
 		if (!regargs->disto) {
 			regargs->undistort = DISTO_UNDEF;
@@ -958,17 +990,24 @@ int register_apply_reg(struct registration_args *regargs) {
 		fits ref = { 0 };
 		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
 			siril_log_message(_("Could not load reference image\n"));
-			return 1;
+			free(sadata);
+			args->user = NULL;
+			retval = -1;
+			goto END;
 		}
 		regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
 		clearfits(&ref);
 	}
 
 	generic_sequence_worker(args);
-
 	regargs->retval = args->retval;
-	free(args);
-	return regargs->retval;
+	retval = regargs->retval;
+
+END:
+	free_generic_seq_args(args, FALSE);
+	free(included);
+
+	return retval;
 }
 
 transformation_type guess_transform_from_H(Homography H) {
@@ -1011,6 +1050,21 @@ void guess_transform_from_seq(sequence *seq, int layer,
 		fix_selnum(seq, FALSE);
 }
 
+static int confirm_exceed_cairomaxdim(gpointer user_data) {
+	struct registration_args *regargs = (struct registration_args*)user_data;
+	gchar *msg = g_strdup(_("Images will be larger than what Siril can display for now. "
+		"Tune scale ratio to get max dimension smaller than 32767 pixels "
+		"or proceed and post process your images with an external program."));
+	if (regargs->no_output) { // Estimate button was pressed, we just warn
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Output too large"), msg);
+	} else if (!siril_confirm_dialog(_("Output too large"),  // Register button was pressed, we ask for confirmation
+				msg, _("Proceed"))) {
+		regargs->retval = 1;
+	}
+	g_free(msg);
+	return 0;
+}
+
 static gboolean check_applyreg_output(struct registration_args *regargs) {
 	/* compute_framing uses the filtered list of images, so we compute the filter here */
 
@@ -1018,6 +1072,21 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 	if (!compute_framing(regargs)) {
 		siril_log_color_message(_("Unselect the images generating the error or change framing method to max\n"), "red");
 		return FALSE;
+	}
+
+	// TODO: temp check for final image size
+	// if larger than cairo image buffer, pop a warning that image will not display at all
+	int max_dim = max(regargs->framingd.roi_out.w, regargs->framingd.roi_out.h);
+	if (max_dim > 32767) {
+		if (!(com.script || com.python_script)) { // through GUI, we warn with GTK objects
+			if (!com.headless)
+				execute_idle_and_wait_for_it(confirm_exceed_cairomaxdim, regargs);
+			if (regargs->retval)
+				return FALSE;
+		} else {
+			siril_log_color_message(_("Images will be larger than what Siril can display for now."), "salmon");
+			siril_log_color_message(_("Tune scale ratio to get max dimension smaller than 32767 pixels"), "salmon");
+		}
 	}
 
 	// make sure we apply registration only if the output sequence has a meaningful size
@@ -1028,7 +1097,7 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 		siril_log_color_message(_("You should change framing method, aborting\n"), "red");
 		return FALSE;
 	}
-	
+
 	int nb_frames = regargs->seq->selnum;
 	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
 	int64_t size = (int64_t) regargs->framingd.roi_out.w * regargs->framingd.roi_out.h * regargs->seq->nb_layers;
@@ -1100,12 +1169,36 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	if (min == NULL_TRANSFORMATION) {
 		siril_log_color_message(_("Some images were not registered, excluding them\n"), "salmon");
 		regargs->filters.filter_included = TRUE;
+		// We update filtering
+		convert_parsed_filter_to_filter(&regargs->filters,
+			regargs->seq, &regargs->filtering_criterion,
+			&regargs->filtering_parameter);
 	}
 
 	// cog framing method requires all images to be of same size
 	if (regargs->framing == FRAMING_COG && regargs->seq->is_variable) {
 		siril_log_color_message(_("Framing method \"cog\" requires all images to be of same size, aborting\n"), "red");
 		return FALSE;
+	}
+
+	int ref_index = regargs->seq->reference_image;
+	if (ref_index < 0) {
+		ref_index = sequence_find_refimage(regargs->seq);
+	}
+	if (regargs->filtering_criterion && !regargs->filtering_criterion(regargs->seq, ref_index, regargs->filtering_parameter)) {
+		if (regargs->framing == FRAMING_CURRENT) {
+			siril_log_color_message(_("Reference image is not included in the filtered list, aborting\n"), "red");
+			siril_log_color_message(_("This is not compatible with framing mode \"current\", change reference image"), "red");
+			return FALSE;
+		} else {
+			for (int i = 0; i < regargs->seq->number; i++) {
+				if (regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter)) {
+					regargs->reference_image = i;
+					break;
+				}
+			}
+			siril_log_color_message(_("Reference image is not included in the filtered list, using image #%d instead\n"), "salmon", regargs->reference_image + 1);
+		}
 	}
 	return TRUE;
 }

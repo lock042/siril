@@ -104,33 +104,33 @@ void annotate_dialog_init_statics() {
 static siril_cat_index get_cat_index_from_combo() {
 	siril_cat_index cat = CAT_AUTO;
 	const gchar *cat_char = gtk_combo_box_text_get_active_text(conesearch_combo);
-	if (!g_strcmp0(cat_char, "tycho2"))
+	if (g_str_has_prefix(cat_char, "tycho2"))
 		cat = CAT_TYCHO2;
-	else if (!g_strcmp0(cat_char, "nomad"))
+	else if (g_str_has_prefix(cat_char, "nomad"))
 		cat = CAT_NOMAD;
-	else if (!g_strcmp0(cat_char, "gaia"))
+	else if (g_str_has_prefix(cat_char, "gaia"))
 		cat = CAT_GAIADR3;
-	else if (!g_strcmp0(cat_char, "ppmxl"))
+	else if (g_str_has_prefix(cat_char, "ppmxl"))
 		cat = CAT_PPMXL;
-	else if (!g_strcmp0(cat_char, "bsc"))
+	else if (g_str_has_prefix(cat_char, "bsc"))
 		cat = CAT_BSC;
-	else if (!g_strcmp0(cat_char, "apass"))
+	else if (g_str_has_prefix(cat_char, "apass"))
 		cat = CAT_APASS;
-	else if (!g_strcmp0(cat_char, "gcvs"))
+	else if (g_str_has_prefix(cat_char, "gcvs"))
 		cat = CAT_GCVS;
-	else if (!g_strcmp0(cat_char, "vsx"))
+	else if (g_str_has_prefix(cat_char, "vsx"))
 		cat = CAT_VSX;
-	else if (!g_strcmp0(cat_char, "varisum"))
+	else if (g_str_has_prefix(cat_char, "varisum"))
 		cat = CAT_VARISUM;
-	else if (!g_strcmp0(cat_char, "simbad"))
+	else if (g_str_has_prefix(cat_char, "simbad"))
 		cat = CAT_SIMBAD;
-	else if (!g_strcmp0(cat_char, "exo"))
+	else if (g_str_has_prefix(cat_char, "exo"))
 		cat = CAT_EXOPLANETARCHIVE;
-	else if (!g_strcmp0(cat_char, "pgc"))
+	else if (g_str_has_prefix(cat_char, "pgc"))
 		cat = CAT_PGC;
-	else if (!g_strcmp0(cat_char, "aavso_chart"))
+	else if (g_str_has_prefix(cat_char, "aavso_chart"))
 		cat = CAT_AAVSO_CHART;
-	else if (!g_strcmp0(cat_char, "solsys")) {
+	else if (g_str_has_prefix(cat_char, "solsys")) {
 		cat = CAT_IMCCE;
 		if (!gfit.keywords.date_obs) {
 			siril_log_color_message(_("This option only works on images that have observation date information\n"), "red");
@@ -142,7 +142,7 @@ static siril_cat_index get_cat_index_from_combo() {
 	if (local_cat == BOOL_NOT_SET)
 		local_cat = (int)local_catalogues_available();
 	if (cat == CAT_AUTO) {
-		cat = (local_cat) ? CAT_LOCAL : CAT_NOMAD;
+		cat = (local_cat) ? get_local_catalogue_index() : CAT_NOMAD;
 	}
 
 	return cat;
@@ -236,8 +236,9 @@ void on_show_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_show_button_get_coords_clicked(GtkButton *button, gpointer user_data) {
 	if (has_wcs(&gfit) && (com.selection.h && com.selection.w)) {
-		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
-		if (result) {
+		psf_error error = PSF_NO_ERR;
+		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
+		if (result && error == PSF_NO_ERR) {
 			double world_x, world_y;
 			gchar *ra, *dec;
 
@@ -262,6 +263,7 @@ void on_show_button_get_coords_clicked(GtkButton *button, gpointer user_data) {
 				}
 			}
 		}
+		free_psf(result);
 	}
 }
 
@@ -381,6 +383,7 @@ void on_annotate_apply_clicked(GtkButton *button, gpointer user_data) {
 			if (!siril_confirm_dialog(N_(title), N_(txt), _("Replace"))) {
 				set_cursor_waiting(FALSE);
 				g_free(basename); g_free(dir_path); g_free(last_dir); g_free(title); g_free(txt);
+				g_free(params_cone);
 				return;
 			}
 			g_free(basename); g_free(dir_path); g_free(last_dir); g_free(title); g_free(txt);

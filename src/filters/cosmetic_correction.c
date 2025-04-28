@@ -434,13 +434,17 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	args->description = _("Cosmetic Correction");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = cosme_args->seqEntry;
+	args->new_seq_prefix = strdup(cosme_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = cosme_args;
 
 	cosme_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(cosme_args->seqEntry);
+		free(cosme_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 // idle function executed at the end of the Cosmetic Correction processing
@@ -587,9 +591,8 @@ int cosme_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 static int cosme_finalize_hook(struct generic_seq_args *args) {
 	int retval = seq_finalize_hook(args);
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
-
-	g_object_unref(c_args->file);
-
+	free(c_args->prefix);
+	g_clear_object(&c_args->file);
 	free(args->user);
 	return retval;
 }
@@ -611,7 +614,12 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 
 	cosme_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		g_clear_object(&cosme_args->file);
+		free(cosme_args->prefix);
+		free(cosme_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 /* this is an autodetect algorithm. Cold and hot pixels
@@ -772,7 +780,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	cosmeticSeqEntry = GTK_ENTRY(lookup_widget("entryCosmeticSeq"));
 	adjCosmeAmount = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjCosmeAmount"));
 
-	struct cosmetic_data *args = malloc(sizeof(struct cosmetic_data));
+	struct cosmetic_data *args = calloc(1, sizeof(struct cosmetic_data));
 
 	if (gtk_toggle_button_get_active(
 				GTK_TOGGLE_BUTTON(lookup_widget("checkSigColdBox"))))
@@ -794,8 +802,10 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
-		if (args->seqEntry && args->seqEntry[0] == '\0')
+		if (args->seqEntry && args->seqEntry[0] == '\0') {
+			free(args->seqEntry);
 			args->seqEntry = strdup("cc_");
+		}
 		args->seq = &com.seq;
 		args->threading = SINGLE_THREADED;
 		gtk_toggle_button_set_active(seq, FALSE);
@@ -803,7 +813,10 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		args->threading = MULTI_THREADED;
 		undo_save_state(&gfit, _("Cosmetic Correction"));
-		start_in_new_thread(autoDetectThreaded, args);
+		if (!start_in_new_thread(autoDetectThreaded, args)) {
+			free(args->seqEntry);
+			free(args);
+		}
 	}
 }
 

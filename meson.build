@@ -27,7 +27,7 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.3.6',
+  version : '1.4.0-beta2',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
   default_options : [
@@ -311,7 +311,7 @@ endif
 gtksourceview_dep = dependency('gtksourceview-4')
 
 healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
-yyjson_dep = dependency('libyyjson', required : false, version: '>= 0.10.0')
+yyjson_dep = dependency('yyjson', required : false, version: '>= 0.10.0')
 if not yyjson_dep.found()
   opt_var = cmake.subproject_options()
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
@@ -480,14 +480,16 @@ conf_data.set_quoted('LOCALEDIR', siril_locale, description : 'Define to the loc
 
 # Man page platform specific
 
+config_filename = 'config.@0@.@1@.ini'.format(siril_version_major, siril_version_minor)
+
 if platform_windows
-  conf_data.set('MAN_CONFIG_PATH', '.B %LOCALAPPDATA%\esiril\econfig.ini')
+  conf_data.set('MAN_CONFIG_PATH', '.B %LOCALAPPDATA%\\esiril\\e' + config_filename)
   conf_data.set('MAN_CSS_PATH', '.B C:\eProgram Files\eSiril\eshare\esiril\esiril.css')
 elif platform_osx
-  conf_data.set('MAN_CONFIG_PATH', '.B ~/Library/Application Support/siril/config.ini')
+  conf_data.set('MAN_CONFIG_PATH', '.B ~/Library/Application Support/siril/' + config_filename)
   conf_data.set('MAN_CSS_PATH', '.B ' + siril_share + 'siril/siril.css')
 else
-  conf_data.set('MAN_CONFIG_PATH', '.B ~/.config/siril/config.ini')
+  conf_data.set('MAN_CONFIG_PATH', '.B ~/.config/siril/' + config_filename)
   conf_data.set('MAN_CSS_PATH', '.B ' + siril_share + 'siril/siril.css')
 endif
 

@@ -124,7 +124,10 @@ void create_output_sequence_for_registration(struct registration_args *args, int
 	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
 	seq.imgparam = args->imgparam;
 	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
-	seq.regparam[args->layer] = args->regparam;
+	if (args->driz && args->driz->is_bayer)
+		seq.regparam[GLAYER] = args->regparam;
+	else
+		seq.regparam[args->layer] = args->regparam;
 	seq.beg = seq.imgparam[0].filenum;
 	seq.end = seq.imgparam[seq.number-1].filenum;
 	seq.type = args->seq->type;
@@ -254,7 +257,6 @@ gpointer register_thread_func(gpointer p) {
 	retval = args->retval;
 	if (args->disto) {
 		free_disto_args(args->disto);
-		free(args->disto);
 	}
 	if (args->driz) {
 		free(args->driz);
@@ -264,7 +266,9 @@ gpointer register_thread_func(gpointer p) {
 	if (args->wcsref)
 		wcsfree(args->wcsref);
 	if (!siril_add_idle(end_register_idle, args)) {
-		free_sequence(args->seq, TRUE);
+		stop_processing_thread();
+		if (args->seq->type != SEQ_INTERNAL && !check_seq_is_comseq(args->seq)) // RGB align needs the sequence preserved
+			free_sequence(args->seq, TRUE);
 		free(args);
 	}
 	return GINT_TO_POINTER(retval);
@@ -355,7 +359,7 @@ int shift_fit_from_reg(fits *fit, Homography H) {
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t) {
-	struct registration_method *reg = malloc(sizeof(struct registration_method));
+	struct registration_method *reg = calloc(1, sizeof(struct registration_method));
 	reg->name = strdup(name);
 	reg->method_ptr = f;
 	reg->sel = s;

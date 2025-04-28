@@ -211,7 +211,8 @@ void configure_graxpert_dialog_for_roi() {
 			free_background_sample_list(com.grad_samples);
 			com.grad_samples = NULL;
 		}
-		on_set_roi(); // this only configures the ROI if one is actually set now, so no slowdown
+		if (gui.roi.active)
+			on_set_roi(); // this only configures the ROI if one is actually set now, so no slowdown
 	} else {
 		roi_supported(FALSE);
 		if (is_preview_active())
@@ -348,7 +349,9 @@ void on_button_graxpert_apply_clicked(GtkButton *button, gpointer user_data) {
 			siril_log_color_message(_("Error: no sequence loaded.\n"), "red");
 		}
 	} else {
-		start_in_new_thread(do_graxpert, data);
+		if (!start_in_new_thread(do_graxpert, data)) {
+			free_graxpert_data(data);
+		}
 	}
 }
 

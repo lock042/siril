@@ -24,7 +24,7 @@
 #endif
 
 #include <gsl/gsl_errno.h>
-#include <gtk/gtk.h>
+//#include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
@@ -262,35 +262,41 @@ static void siril_macos_setenv(const char *progname) {
 		gchar tmp[PATH_MAX];
 		gchar *exe_dir;           /* executable directory */
 		gchar res_dir[PATH_MAX];  /* resources directory  */
+		gchar fra_dir[PATH_MAX];  /* frameworks directory */
 
-		/* get canonical path to Foo.app/Contents/Resources directory */
 		exe_dir = g_path_get_dirname(resolved_path);
+
+		/* check if running inside an application bundle and
+		 * set set res_dir and fra_dir accordingly
+		 */
 		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", exe_dir);
-		struct stat sb;
-		if (realpath(tmp, res_dir) && !stat(res_dir, &sb) && S_ISDIR(sb.st_mode))
+ 	  struct stat sb;
+		if (realpath(tmp, res_dir) && !stat(res_dir, &sb) && S_ISDIR(sb.st_mode)) {
 			g_print("Siril is started as macOS application\n");
-		else
+			g_snprintf(tmp, sizeof(tmp), "%s/../Frameworks", exe_dir);
+			realpath(tmp, fra_dir);
+		}
+		else {
+			g_free(exe_dir);
 			return;
-		g_free(exe_dir);
+		}
 
 		/* store canonical path to resources directory in environment variable. */
 		g_setenv("SIRIL_RELOCATED_RES_DIR", res_dir, TRUE);
 
-    /* prepend PATH with our Resources/bin directory */
-		g_snprintf(tmp, sizeof(tmp), "%s/bin", res_dir);
-		size_t path_len = strlen(g_getenv("PATH") ? g_getenv("PATH") : "")
-			+ strlen(tmp) + 2;
-		gchar *path = g_try_malloc(path_len);
+    /* prepend PATH with our exe_dir (Foo.app/Contents/MacOS) */
+		gchar *path = g_try_malloc(PATH_MAX);
 		if (path == NULL) {
 			g_warning("Failed to allocate memory");
 			exit(EXIT_FAILURE);
 		}
 		if (g_getenv("PATH"))
-			g_snprintf(path, path_len, "%s:%s", tmp, g_getenv("PATH"));
+			g_snprintf(path, PATH_MAX, "%s:%s", exe_dir, g_getenv("PATH"));
 		else
-			g_snprintf(path, path_len, "%s", tmp);
+			g_snprintf(path, PATH_MAX, "%s", exe_dir);
 		g_setenv("PATH", path, TRUE);
 		g_free(path);
+		g_free(exe_dir);
 
 		/* set XDG base directory specification variables */
 		g_snprintf(tmp, sizeof(tmp), "%s/share", res_dir);
@@ -304,18 +310,31 @@ static void siril_macos_setenv(const char *progname) {
 		}
 
 		/* set GTK related environment variables */
-		g_snprintf(tmp, sizeof(tmp), "%s/share/schemas", res_dir);
-		g_setenv("GTK_PATH", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache", res_dir);
+		g_snprintf(tmp, sizeof(tmp), "%s", fra_dir);
+		g_setenv("GTK_EXE_PREFIX", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s", res_dir);
+		g_setenv("GTK_DATA_PREFIX", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/loaders.cache", res_dir);
 		g_setenv("GDK_PIXBUF_MODULE_FILE", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/immodules.cache", res_dir);
+		g_setenv("GTK_IM_MODULE_FILE", tmp, TRUE);
+
+		/* GObject introspection */
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/girepository-1.0", res_dir);
+		g_setenv("GI_TYPELIB_PATH", tmp, TRUE);
 
 		/* set fontconfig related variables */
 		g_snprintf(tmp, sizeof(tmp), "%s/etc/fonts", res_dir);
 		g_setenv("FONTCONFIG_PATH", tmp, TRUE);
 
-		/* set curl related variables */
-		g_snprintf(tmp, sizeof(tmp), "%s/etc/ca-certificates/cacert.pem", res_dir);
+		/* set SSL related variables */
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/python3.12/site-packages/certifi/cacert.pem", res_dir);
 		g_setenv("CURL_CA_BUNDLE", tmp, TRUE);
+		g_setenv("SSL_CERT_FILE", tmp, TRUE);
+
+		/* set PYTHONPAH to our bundled packages */
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/python3.12/site-packages", res_dir);
+		g_setenv("PYTHONPATH", tmp, TRUE);
 
 		/* astropy does not create its director itself */
 		g_snprintf(tmp, sizeof(tmp), "%s/astropy", g_getenv("XDG_CONFIG_HOME"));
@@ -326,7 +345,7 @@ static void siril_macos_setenv(const char *progname) {
 
 
 int main(int argc, char *argv[]) {
-	GtkApplication *app;
+	GApplication *app;
 	const gchar *dir;
 	gint status;
 
@@ -362,9 +381,9 @@ int main(int argc, char *argv[]) {
 	textdomain(PACKAGE);
 
 #if GLIB_CHECK_VERSION(2,74,0)
-	app = gtk_application_new("org.siril.Siril", G_APPLICATION_DEFAULT_FLAGS | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+	app = g_application_new("org.siril.Siril", G_APPLICATION_DEFAULT_FLAGS | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
 #else
-	app = gtk_application_new("org.siril.Siril", G_APPLICATION_FLAGS_NONE | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+	app = g_application_new("org.siril.Siril", G_APPLICATION_FLAGS_NONE | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
 #endif
 
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);

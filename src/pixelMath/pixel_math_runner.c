@@ -631,6 +631,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 	args->ret = 0;
 	float maximum = -FLT_MAX;
 	float minimum = +FLT_MAX;
+	long width, height, nchan;
 
 	if (args->single_rgb && args->fit->naxes[2] > 1) {
 		// No need to null check these two as they will be NULL if args->single_rgb is TRUE
@@ -703,11 +704,20 @@ gpointer apply_pixel_math_operation(gpointer p) {
 				goto failure;
 			}
 		}
+		if (args->has_gfit && nb_rows == 0) {
+			width = gfit.naxes[0];
+			height = gfit.naxes[1];
+			nchan = gfit.naxes[2];
+		} else {
+			width = var_fit[0].naxes[0];
+			height = var_fit[0].naxes[1];
+			nchan = var_fit[0].naxes[2];
+		}
 		if (com.pref.force_16bit) {
 #ifdef _OPENMP
 #pragma omp for schedule(static) reduction(max:maximum) reduction(min:minimum)
 #endif
-			for (size_t px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
+			for (size_t px = 0; px < width * height * nchan; px++) {
 				/* The variables can be changed here, and eval can be called as many
 				 * times as you like. This is fairly efficient because the parsing has
 				 * already been done. */
@@ -745,7 +755,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 #ifdef _OPENMP
 #pragma omp for schedule(static) reduction(max:maximum) reduction(min:minimum)
 #endif
-			for (size_t px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
+			for (size_t px = 0; px < width * height * nchan; px++) {
 				/* The variables can be changed here, and eval can be called as many
 				 * times as you like. This is fairly efficient because the parsing has
 				 * already been done. */
@@ -765,9 +775,9 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					maximum = max(maximum, max(fit->fpdata[RLAYER][px], max(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
 					minimum = min(minimum, min(fit->fpdata[RLAYER][px], min(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
 				} else {
-					if (px < (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+					if (px < (width * height)) {
 						fit->fdata[px] = (float) te_eval(n1);
-					} else if (px < 2 * (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+					} else if (px < 2 * (width * height)) {
 						fit->fdata[px] = (float) te_eval(n2);
 					} else {
 						fit->fdata[px] = (float) te_eval(n3);
@@ -974,34 +984,47 @@ void free_pm_var(int nb) {
 	}
 }
 
-static void replace_t_with_gfit(struct pixel_math_data *args) {
-    if ((args->expression1 && g_strstr_len(args->expression1, -1, "$T") != NULL) ||
-        (args->expression2 && g_strstr_len(args->expression2, -1, "$T") != NULL) ||
-        (args->expression3 && g_strstr_len(args->expression3, -1, "$T") != NULL)) {
+static int replace_t_with_gfit(struct pixel_math_data *args) {
+	int retval = 0;
+	/* Check if single_rgb is FALSE and if $T is present in any expression */
+	if (args->single_rgb == FALSE &&
+		((args->expression1 && g_strstr_len(args->expression1, -1, "$T") != NULL) ||
+		 (args->expression2 && g_strstr_len(args->expression2, -1, "$T") != NULL) ||
+		 (args->expression3 && g_strstr_len(args->expression3, -1, "$T") != NULL))) {
+		retval = 1;
+	}
 
-        const gchar *pattern = "\\$T";
-        const gchar *replacement = T_CURRENT;
+	/* If we reach here, either single_RGB is FALSE or no $T is present */
+	if ((args->expression1 && g_strstr_len(args->expression1, -1, "$T") != NULL) ||
+		(args->expression2 && g_strstr_len(args->expression2, -1, "$T") != NULL) ||
+		(args->expression3 && g_strstr_len(args->expression3, -1, "$T") != NULL)) {
 
-        args->has_gfit = TRUE;
+		const gchar *pattern = "\\$T";
+		const gchar *replacement = T_CURRENT;
 
-        if (args->expression1 != NULL) {
-            gchar *new_expression1 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression1, -1, 0, replacement, 0, NULL);
-            g_free(args->expression1);
-            args->expression1 = new_expression1;
-        }
+		args->has_gfit = TRUE;
 
-        if (args->expression2 != NULL) {
-            gchar *new_expression2 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression2, -1, 0, replacement, 0, NULL);
-            g_free(args->expression2);
-            args->expression2 = new_expression2;
-        }
+		if (args->expression1 != NULL) {
+			gchar *new_expression1 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression1, -1, 0, replacement, 0, NULL);
+			g_free(args->expression1);
+			args->expression1 = new_expression1;
+		}
 
-        if (args->expression3 != NULL) {
-            gchar *new_expression3 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL),  args->expression3, -1, 0, replacement, 0, NULL);
-            g_free(args->expression3);
-            args->expression3 = new_expression3;
-        }
-    }
+		if (args->expression2 != NULL) {
+			gchar *new_expression2 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression2, -1, 0, replacement, 0, NULL);
+			g_free(args->expression2);
+			args->expression2 = new_expression2;
+		}
+
+		if (args->expression3 != NULL) {
+			gchar *new_expression3 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression3, -1, 0, replacement, 0, NULL);
+			g_free(args->expression3);
+			args->expression3 = new_expression3;
+		}
+	}
+
+	/* Success - no errors encountered */
+	return retval;
 }
 
 static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *expression3) {
@@ -1054,7 +1077,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		}
 
 		if (channel == 3 && !single_rgb) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Incompatible parameters"),
+			queue_message_dialog(GTK_MESSAGE_ERROR, _("Incompatible parameters"),
 					_("3 channel images are incompatible with the \"Use single RGB/K expression\" unchecked."));
 			retval = 1;
 			goto free_expressions;
@@ -1064,20 +1087,17 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	channel = single_rgb ? channel : 3;
 
-	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
+	struct pixel_math_data *args = calloc(1, sizeof(struct pixel_math_data));
 
 	if (parse_parameters(&expression1, &expression2, &expression3)) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"),
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"),
 				_("Parameter symbols could not be parsed."));
 		retval = 1;
 		goto free_expressions;
 	}
 
 	args->expression1 = g_strdup(expression1);
-	if (single_rgb) {
-		args->expression2 = NULL;
-		args->expression3 = NULL;
-	} else {
+	if (!single_rgb) {
 		args->expression2 = g_strdup(expression2);
 		args->expression3 = g_strdup(expression3);
 	}
@@ -1097,17 +1117,21 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		args->varname[i] = g_strdup(get_pixel_math_var_name(i));
 	}
 
-	replace_t_with_gfit(args);
+	if (replace_t_with_gfit(args) && gfit.naxes[2] > 1) {
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("Incorrect formula"), _("RGB $T cannot be used in this context."));
+		retval = 1;
+		goto free_expressions;
+	}
 
 	fits *fit = NULL;
 	if (args->has_gfit) { // in the case where no images are loaded, at least gfit must be laded
 		width = gfit.rx;
 		height = gfit.ry;
-		channel = gfit.naxes[2];
+		channel = args->single_rgb ? gfit.naxes[2] : 3;
 		if (nb_rows > 0) {
-			if ((width != var_fit[0].naxes[0] ||
-				height != var_fit[0].naxes[1])) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Images have different size"),
+			if (width != var_fit[0].naxes[0] ||
+				height != var_fit[0].naxes[1]) {
+					queue_message_dialog(GTK_MESSAGE_ERROR, _("Images have different size"),
 						_("The image currently displayed must be the same size as the other images loaded into PixelMath."));
 				retval = 1;
 				goto free_expressions;
@@ -1116,7 +1140,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	}
 
 	if (!nb_rows && !args->has_gfit) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No images loaded"), _("You must load images first."));
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("No images loaded"), _("You must load images first."));
 		retval = 1;
 		goto free_expressions;
 	}
@@ -1128,7 +1152,12 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	args->fit = fit;
 
-	start_in_new_thread(apply_pixel_math_operation, args);
+	if (!start_in_new_thread(apply_pixel_math_operation, args)) {
+		g_free(args->expression1);
+		g_free(args->expression2);
+		g_free(args->expression3);
+		free(args);
+	}
 
 free_expressions:
 	g_free(expression1);

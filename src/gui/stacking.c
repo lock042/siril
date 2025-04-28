@@ -201,9 +201,11 @@ static void start_stacking() {
 	stackparam.output_filename = gtk_entry_get_text(output_file);
 
 	/* Stacking. Result is in gfit if success */
-	struct stacking_args *params = malloc(sizeof(struct stacking_args));
+	struct stacking_args *params = calloc(1, sizeof(struct stacking_args));
 	stacking_args_deep_copy(&stackparam, params);
-	start_in_new_thread(stack_function_handler, params);
+	if (!start_in_new_thread(stack_function_handler, params)) {
+		stacking_args_deep_free(params);
+	}
 }
 
 void on_seqstack_button_clicked (GtkButton *button, gpointer user_data){
@@ -691,8 +693,10 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(max_framing), TRUE);
 		}
 	}
-	gtk_widget_set_visible(blend_frame, stack_method == STACK_MEAN);
-	if (gtk_widget_get_visible(blend_frame)) {
+
+	gboolean can_feather = can_reframe && stack_method == STACK_MEAN;
+	gtk_widget_set_visible(blend_frame, can_feather);
+	if (can_feather) {
 		gtk_widget_set_sensitive(overlap_norm, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(max_framing)));
 		if (!gtk_widget_get_sensitive(overlap_norm))
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(overlap_norm), FALSE);

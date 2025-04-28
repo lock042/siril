@@ -88,6 +88,8 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 	double pc[2][2];
 	double cdelt[2];
 	double *pcij = WCSDATA->pc;
+	if (!pcij)
+		return FALSE;
 	for (int i = 0; i < 2; i++) {
 		cdelt[i] = WCSDATA->cdelt[i];
 		for (int j = 0; j <2; j++) {
@@ -204,7 +206,7 @@ static int optimize_max_framing(double *framingref, optim_params_t *params) {
 	return status;
 }
 
-int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout, struct wcsprm **prmout) {
+int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout, struct wcsprm **prmout) {
 	int retval = 0;
 	double ra0 = 0., dec0 = 0.;
 	int n = seq->number;
@@ -216,6 +218,7 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	Rstmp = calloc(n, sizeof(Homography)); // camera tmp rotation matrices
 	Ks = calloc(n, sizeof(Homography)); // camera intrinsic matrices
 	gboolean *incl = calloc(n, sizeof(gboolean));
+	gboolean included_passed = included != NULL;
 	if (!RA || !DEC || !dist || !WCSDATA || !Rs || !Ks || !incl) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
@@ -223,7 +226,9 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	}
 	// collect all the centers
 	for (int i = 0; i < n; i++) {
-		if (!seq->imgparam[i].incl)
+		if (!included_passed && !seq->imgparam[i].incl) // if included array is not passed, we use incl from seq
+			continue;
+		else if (included_passed && !included[i]) // if included array is passed, we use it instead of seq
 			continue;
 		int width = (seq->is_variable) ? seq->imgparam[i].rx : seq->rx;
 		int height = (seq->is_variable) ? seq->imgparam[i].ry : seq->ry;
@@ -235,7 +240,8 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	compute_center_cog(RA, DEC, n, incl, &ra0, &dec0);
 	ra0 = (ra0 < 0) ? ra0 + 360. : ra0;
 	siril_log_message(_("Sequence COG - RA:%7.3f - DEC:%+7.3f\n"), ra0, dec0);
-	int refindex = seq->reference_image;
+
+	int refindex = (ref_index < 0) ? seq->reference_image : ref_index;;
 
 	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
 	// ##################################################################
@@ -386,6 +392,7 @@ free_all:
 	free(incl);
 	free(Ks);
 	free(Rs);
+	free(Rstmp);
 	siril_log_message(_("Astrometric registration computed.\n"));
 	if (Hout) {
 		cvGetEye(Hout);
@@ -394,7 +401,7 @@ free_all:
 	return retval;
 }
 
-int collect_sequence_astrometry(struct registration_args *regargs) {
+int collect_sequence_astrometry(struct registration_args *regargs, int *included) {
 	int n = regargs->seq->number;
 	int retval = 0;
 	fits fit = { 0 };
@@ -419,6 +426,7 @@ int collect_sequence_astrometry(struct registration_args *regargs) {
 		regargs->WCSDATA[i].flag = -1;
 		wcssub(1, fit.keywords.wcslib, NULL, NULL, regargs->WCSDATA + i); // copying wcsprm structure for each fit to avoid reopening
 		clearfits(&fit);
+		included[i] = TRUE;
 	}
 	return retval;
 }

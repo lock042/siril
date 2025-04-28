@@ -357,6 +357,67 @@ int check_seq() {
 	return 1;	// no sequence found
 }
 
+/* Creates a .seq file for regular FITS sequence passed in argument */
+static sequence *create_one_regular_seq(const char *seqname) {
+
+	const gchar *abs_path = g_canonicalize_filename(seqname, com.wd);
+	const gchar *search_folder = g_path_get_dirname(abs_path);
+	const gchar *filename = g_path_get_basename(abs_path);
+
+	const char *root = remove_ext_from_filename(filename);
+	int fixed = 5; // TODO: isn't it defined somewhere else?
+	const gchar *ext = get_com_ext(com.pref.comp.fits_enabled);
+
+	GError* error = NULL;
+	GDir* dir = g_dir_open(search_folder, 0, &error);
+	if (error) {
+		siril_log_color_message(_("Error opening directory: %s\n"), "red", error->message);
+		g_error_free(error);
+		return NULL;
+    }
+	const gchar* pattern = g_strdup_printf("^%s(\\d{%d})\\%s$", 
+										root,
+										fixed,
+										ext);
+	GRegex* regex = g_regex_new(pattern, 0, 0, &error);
+ 
+	sequence *new_seq = calloc(1, sizeof(sequence));
+	initialize_sequence(new_seq, TRUE);
+	new_seq->seqname = g_strdup(root);
+	new_seq->beg = INT_MAX;
+	new_seq->end = 0;
+	new_seq->number = 0;
+	new_seq->type = SEQ_REGULAR;
+	new_seq->fz = com.pref.comp.fits_enabled;
+	new_seq->fixed = fixed;
+	int n = 0;
+
+	const gchar *newfits;
+	while ((newfits = g_dir_read_name(dir))) {
+		GMatchInfo* match_info;
+		if (g_regex_match(regex, newfits, 0, &match_info)) {
+			const gchar* number_str = g_match_info_fetch(match_info, 1);
+			gint number = atoi(number_str);
+			if (number < new_seq->beg)
+				new_seq->beg = number;
+			if (number > new_seq->end)
+				new_seq->end = number;
+			n++;
+		}
+		g_match_info_free(match_info);
+	}
+	if (n < 2) {
+		siril_log_color_message(_("Cannot create sequence %s. Need at least 2 frames to be usable in Siril.\n"), "salmon", seqname);
+		free_sequence(new_seq, TRUE);
+		return NULL;
+	}
+	if (buildseqfile(new_seq, 1)) {
+		free_sequence(new_seq, TRUE);
+		new_seq = NULL;
+	}
+	return new_seq;
+}
+
 /* Creates a .seq file for one-file sequence passed in argument */
 static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq) {
 	if (!com.wd) {
@@ -502,6 +563,75 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 	return 0;
 }
 
+// generates the .seq file 
+gboolean create_one_seq(const char *seqname, sequence_type seqtype) {
+	sequence *seq = NULL;
+	switch (seqtype) {
+		case SEQ_REGULAR:
+			seq = create_one_regular_seq(seqname);
+			break;
+		case SEQ_FITSEQ:
+		case SEQ_SER:;
+			const char *root = remove_ext_from_filename(seqname);
+			const gchar *ext;
+			if (seqtype == SEQ_FITSEQ)
+				ext = get_com_ext(com.pref.comp.fits_enabled);
+			else
+				ext = ".ser";
+			const gchar *filename = g_strdup_printf("%s%s", root, ext);
+			seq = check_seq_one_file(filename, seqtype == SEQ_FITSEQ);
+			break;
+		default:
+			return FALSE;
+	}
+	if (!seq)
+		return FALSE;
+	free_sequence(seq, TRUE);
+	return TRUE;
+}
+
+static gboolean set_seq_gui(gpointer user_data) {
+	sequence *seq = (sequence *) user_data;
+	init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
+	set_cutoff_sliders_max_values();// update min and max values for contrast sliders
+	set_cutoff_sliders_values();	// update values for contrast sliders for this image
+	int layer = set_layers_for_registration();	// set layers in the combo box for registration
+	update_seqlist(layer);
+	fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
+	set_output_filename_to_sequence_name();
+	sliders_mode_set_state(gui.sliders);
+	initialize_display_mode();
+	update_zoom_label();
+	reset_plot(); // reset all plots
+	reset_3stars();
+
+	/* initialize image-related runtime data */
+	set_display_mode();		// display the display mode in the combo box
+	display_filename();		// display filename in gray window
+	gui_function(set_precision_switch, NULL); // set precision on screen
+	adjust_refimage(seq->current);	// check or uncheck reference image checkbox
+	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
+	update_reg_interface(FALSE);	// change the registration prereq message
+	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
+	adjust_reginfo();		// change registration displayed/editable values
+	update_gfit_histogram_if_needed();
+	adjust_sellabel();
+	fillSeqAviExport();	// fill GtkEntry of export box
+
+	/* update menus */
+	update_MenuItem(NULL);
+	/* update parameters in GUI */
+	set_GUI_CAMERA();
+
+	/* redraw and display image */
+	gui_function(close_tab, NULL);	//close Green and Blue Tab if a 1-layer sequence is loaded
+	gui_function(init_right_tab, NULL);
+
+	redraw(REMAP_ALL);
+	drawPlot();
+	return FALSE;
+}
+
 static void free_cbbt_layers() {
 	GtkComboBoxText *cbbt_layers = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxreglayer"));
 	gtk_combo_box_text_remove_all(cbbt_layers);
@@ -567,45 +697,10 @@ gboolean set_seq(gpointer user_data){
 	memcpy(&com.seq, seq, sizeof(sequence));
 	update_gain_from_gfit();
 
-	if (!com.script) {
-		init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
-		set_cutoff_sliders_max_values();// update min and max values for contrast sliders
-		set_cutoff_sliders_values();	// update values for contrast sliders for this image
-		int layer = set_layers_for_registration();	// set layers in the combo box for registration
-		update_seqlist(layer);
-		fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
-		set_output_filename_to_sequence_name();
-		sliders_mode_set_state(gui.sliders);
-		initialize_display_mode();
-		update_zoom_label();
-		reset_plot(); // reset all plots
-		reset_3stars();
-
-		/* initialize image-related runtime data */
-		set_display_mode();		// display the display mode in the combo box
-		display_filename();		// display filename in gray window
-		gui_function(set_precision_switch, NULL); // set precision on screen
-		adjust_refimage(seq->current);	// check or uncheck reference image checkbox
-		update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
-		update_reg_interface(FALSE);	// change the registration prereq message
-		update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
-		adjust_reginfo();		// change registration displayed/editable values
-		update_gfit_histogram_if_needed();
-		adjust_sellabel();
-		fillSeqAviExport();	// fill GtkEntry of export box
-
-		/* update menus */
-		update_MenuItem(NULL);
-		/* update parameters in GUI */
-		set_GUI_CAMERA();
-
-		/* redraw and display image */
-		gui_function(close_tab, NULL);	//close Green and Blue Tab if a 1-layer sequence is loaded
-		gui_function(init_right_tab, NULL);
-
-		redraw(REMAP_ALL);
-		drawPlot();
+	if (!com.script && !com.headless) {
+		execute_idle_and_wait_for_it(set_seq_gui, seq);
 	}
+
 	free(seq);
 	return FALSE;
 }
@@ -954,12 +1049,26 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 			break;
 		case SEQ_FITSEQ:
 			assert(seq->fitseq_file);
-			dest->fptr = seq->fitseq_file->fptr;
-			if (fitseq_set_current_frame(seq->fitseq_file, index) ||
-					read_fits_metadata(dest)) {
-				siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
-						index, seq->seqname);
+			if (seq->fitseq_file->thread_fptr) {
+#ifdef _OPENMP
+				int thread_id = omp_get_thread_num();
+				dest->fptr = seq->fitseq_file->thread_fptr[thread_id];
+				if (read_fits_metadata(dest)) {
+					siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
+							index, seq->seqname);
+					return 1;
+				}
+#else
 				return 1;
+#endif
+			} else {
+				dest->fptr = seq->fitseq_file->fptr;
+				if (fitseq_set_current_frame(seq->fitseq_file, index) ||
+						read_fits_metadata(dest)) {
+					siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
+							index, seq->seqname);
+					return 1;
+				}
 			}
 			break;
 
@@ -980,6 +1089,8 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 			copyfits(seq->internal_fits[index], dest, CP_FORMAT, -1);
 			break;
 	}
+	seq->imgparam[index].rx = dest->rx;
+	seq->imgparam[index].ry = dest->ry;
 	return 0;
 }
 
@@ -1427,13 +1538,13 @@ gboolean sequence_is_loaded() {
 	return (com.seq.seqname != NULL && com.seq.imgparam != NULL);
 }
 
-gboolean check_seq_is_comseq(sequence *seq) {
+gboolean check_seq_is_comseq(const sequence *seq) {
 	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname))
 		return TRUE;
 	return FALSE;
 }
 
-gboolean check_seq_is_variable(sequence *seq) {
+gboolean check_seq_is_variable(const sequence *seq) {
 	if(!seq || !seq->imgparam)
 		return FALSE;
 	int rx = seq->imgparam[0].rx;
@@ -1727,7 +1838,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	struct phot_config *ps = NULL;
 	if (spsfargs->for_photometry)
 		ps = phot_set_adjusted_for_image(fit);
-	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry, ps, TRUE, com.pref.starfinder_conf.profile, &error);
+	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry, spsfargs->init_from_center, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 	free(ps);
 	if (data->psf) {
 		/* for photometry ? */
@@ -1737,7 +1848,9 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 						"salmon", index, psf_error_to_string(error));
 			}
 		}
-
+		// TODO: should we check for error or not?
+		// for 3 stars reg, even though it did not converge, we still want to 
+		// have the data to make the registration even with a poor fit (or not?)
 		data->psf->xpos = data->psf->x0 + area->x;
 		if (fit->top_down)
 			data->psf->ypos = data->psf->y0 + area->y;
@@ -1786,6 +1899,8 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 
 static void write_regdata(sequence *seq, int layer, GSList *list, gboolean duplicate_for_regdata) {
 	check_or_allocate_regparam(seq, layer);
+	double xref = 0., yref = 0.;
+	gboolean ref_set = FALSE;
 	GSList *iterator;
 	for (iterator = list; iterator; iterator = iterator->next) {
 		struct seqpsf_data *data = iterator->data;
@@ -1798,8 +1913,16 @@ static void write_regdata(sequence *seq, int layer, GSList *list, gboolean dupli
 			seq->regparam[layer][data->image_index].weighted_fwhm = data->psf->fwhmx;
 			seq->regparam[layer][data->image_index].background_lvl = data->psf->B;
 			seq->regparam[layer][data->image_index].number_of_stars = 1;
-			//TODO need to update the H matrix with shifts computed from psf diff to refimage
-			//seq->regparam[layer][data->image_index].H = H_from_translation(shiftx, shifty);
+			// we compute shift wrt to the first image which has data (even if not the ref)
+			// the shifts will then be correctly computed as the Homography matrices are recomposed
+			if (!ref_set) {
+				xref = data->psf->xpos;
+				yref = data->psf->ypos;
+				ref_set = TRUE;
+			}
+			double shiftx = data->psf->xpos - xref;
+			double shifty = data->psf->ypos - yref;
+			seq->regparam[layer][data->image_index].H = H_from_translation(-shiftx, shifty);
 		}
 	}
 	seq->needs_saving = TRUE;
@@ -1949,8 +2072,9 @@ proper_ending:
  * image selection (com.selection), as a threaded operation or not.
  * expects seq->current to be valid
  */
-int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
-		framing_mode framing, gboolean run_in_thread, gboolean no_GUI) {
+int seqpsf(sequence *seq, int layer, gboolean for_registration,
+		gboolean init_from_center, gboolean regall, framing_mode framing,
+		gboolean run_in_thread, gboolean no_GUI) {
 
 	if (framing == REGISTERED_FRAME && !layer_has_usable_registration(seq, layer))
 		framing = ORIGINAL_FRAME;
@@ -1969,6 +2093,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	else spsfargs->allow_use_as_regdata = for_registration ? BOOL_TRUE : BOOL_FALSE;
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
+	spsfargs->init_from_center = init_from_center;
 
 	fits fit = { 0 };
 	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
@@ -1979,7 +2104,10 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	} else {
 		memcpy(spsfargs->bayer_pattern, fit.keywords.bayer_pattern, FLEN_VALUE);
 	}
-	clearfits(&fit);
+	if (seq->type == SEQ_INTERNAL)
+		clearfits_header(&fit); // Mustn't free the pixeldata as we only reference it for internal sequences
+	else
+		clearfits(&fit);
 
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
@@ -2031,7 +2159,11 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	args->parallel = framing != FOLLOW_STAR_FRAME;
 
 	if (run_in_thread) {
-		start_in_new_thread(generic_sequence_worker, args);
+		if (!start_in_new_thread(generic_sequence_worker, args)) {
+			free(spsfargs);
+			free_generic_seq_args(args, TRUE);
+			return 1;
+		}
 		return 0;
 	} else {
 		int retval = GPOINTER_TO_INT(generic_sequence_worker(args));
@@ -2109,7 +2241,7 @@ size_t get_max_seq_dimension(sequence *seq, int *rx, int *ry) {
 }
 
 /* returns the number of images of the sequence that can fit into memory based
- * on the configured memory ratio 
+ * on the configured memory ratio
  * If the sequence is of variable size, we use the size of the largest image
 */
 int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
@@ -2234,24 +2366,35 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 	writeseqfile(seq);
 }
 
-// returns TRUE if cache_filename is more recent than image (for FITS) or
+// returns CACHE_NEWER if cache_filename last modification is more recent than image (for FITS) or
 // sequence (for FITSEQ or SER). This is used for mask files (*.msk) and star files (*.lst)
-gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filename) {
+// returns CACHE_NOT_FOUND if cache_filename does not exist
+// returns CACHE_OLDER if cache_filename is older than image or sequence
+// for FITS and lst files, we accept 30s difference because FITS may be updated by platesolving which also caches stars
+// for FITSEQ and SER, we don't accept this as original sequence is not altered by platesolving
+// we cannot use st_mtime because it is not reliable on all systems
+cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_filename) {
 	if (!g_file_test(cache_filename, G_FILE_TEST_EXISTS))
-		return FALSE;
+		return CACHE_NOT_FOUND;
 
 	struct stat imgfileInfo, cachefileInfo;
 	// if sequence is FITS, we check individual img file date vs cachefile date
 	if (seq->type == SEQ_REGULAR) {
+		char last_char = cache_filename[strlen(cache_filename) - 1];
+		int margin = (last_char == 't') ? 30 : 0; // we use a margin for lst files but not for msk files
 		char img_filename[256];
 		if (!fit_sequence_get_image_filename(seq, index, img_filename, TRUE) ||
 				!g_file_test(img_filename, G_FILE_TEST_EXISTS) ||
 				stat(img_filename, &imgfileInfo) ||
 				stat(cache_filename, &cachefileInfo))
-			return FALSE;
-		if (cachefileInfo.st_mtime < imgfileInfo.st_mtime)
-			siril_debug_print("%s is older than %s\n", cache_filename, img_filename);
-		return (cachefileInfo.st_mtime >= imgfileInfo.st_mtime);
+			return CACHE_NOT_FOUND;
+		if (cachefileInfo.st_mtime < imgfileInfo.st_mtime - margin) {
+			siril_debug_print("%s is older than %s, removing\n", cache_filename, img_filename);
+			if (g_unlink(cache_filename))
+				siril_debug_print(_("Removed outdated cache file %s failed\n"), cache_filename);
+			return CACHE_OLDER;
+		}
+		return CACHE_NEWER;
 	}
 	// else, we check the sequence date vs cachefile date
 	gchar *seqname;
@@ -2259,8 +2402,15 @@ gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filen
 		seqname = seq->ser_file->filename;
 	else seqname = seq->fitseq_file->filename;
 	if (stat(seqname, &imgfileInfo) || stat(cache_filename, &cachefileInfo))
-		return FALSE;
-	return (cachefileInfo.st_mtime >= imgfileInfo.st_mtime);
+		return CACHE_NOT_FOUND;
+	if (cachefileInfo.st_mtime < imgfileInfo.st_mtime) {
+		siril_debug_print("%s is older than %s, removing\n", cache_filename, seqname);
+		if (g_unlink(cache_filename)) {
+			siril_debug_print(_("Removed outdated cache file %s failed\n"), cache_filename);
+		}
+		return CACHE_OLDER;
+	}
+	return CACHE_NEWER;
 }
 
 gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix) {

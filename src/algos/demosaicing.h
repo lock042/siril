@@ -21,7 +21,6 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer);
 #endif
 
 sensor_pattern get_bayer_pattern(fits *fit);
-void clear_Bayer_information(fits *fit);
 
 struct merge_cfa_data {
 	sequence *seq0;

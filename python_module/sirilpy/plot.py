@@ -3,22 +3,16 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import numpy as np
-import struct
-import sys
-import os
-import time
-from typing import Union, Optional, List, Tuple
-from enum import IntEnum
+"""
+Plot submodule for Siril, providing classes for plot data representation and serialization.
+This submodule enables users to create and configure various types of plots with customizable
+appearance and error bars.
+"""
 
-class PlotType(IntEnum):
-    POINTS = 0
-    MARKS = 1
-    HYPHENS = 2
-    LINES = 3
-    LINESPOINTS = 4
-    LINESMARKS = 5
-    LINESHYPHENS= 6
+from typing import Union, Optional, List, Tuple
+import struct
+import numpy as np
+from .enums import PlotType
 
 class SeriesData:
     """
@@ -85,6 +79,11 @@ class SeriesData:
         if self.p_error is not None and len(self.p_error) != len(self.y_coords):
             raise ValueError("p_error must have the same length as y_coords")
 
+    def __str__(self):
+        """String representation of the SeriesData object."""
+        return f"SeriesData(label='{self.label}', points={len(self.x_coords)})"
+
+
 class PlotData:
     """
     Metadata container for plot configuration. The actual series data are
@@ -93,18 +92,12 @@ class PlotData:
 
     Members:
         title: Plot title
-
         xlabel: X-axis label
-
         ylabel: Y-axis label
-
         savename: Save filename (extension is added automatically)
-
         show_legend: bool indicating whether to show legend
-
         datamin: List [xmin, ymin] forcing the bottom left coordinate to show.
         If omitted, the range is set to the data range.
-
         datamax: List [xmax, ymax] forcing the top right coordinate to show.
         If omitted, the range is set to the data range.
     """
@@ -191,14 +184,13 @@ class PlotData:
         """
         self.series_data.append(series)
 
-class _PlotSerializer:
-    @staticmethod
-    def _serialize_plot_data(Plot_data: PlotData) -> Tuple[bytes, int]:
+    @classmethod
+    def serialize(cls, plot_data: 'PlotData') -> Tuple[bytes, int]:
         """
         Serialize plot data for shared memory transfer using network byte order.
 
         Args:
-            Plot_data: PlotData object containing plot configuration
+            plot_data: PlotData object containing plot configuration
 
         Returns:
             Tuple of serialized bytes and total length
@@ -207,26 +199,26 @@ class _PlotSerializer:
             return s.encode('utf-8') + b'\x00'
 
         serialized = b''
-        serialized += encode_null_string(Plot_data.title or "")
-        serialized += encode_null_string(Plot_data.xlabel or "")
-        serialized += encode_null_string(Plot_data.ylabel or "")
-        serialized += encode_null_string(Plot_data.savename or "")
+        serialized += encode_null_string(plot_data.title or "")
+        serialized += encode_null_string(plot_data.xlabel or "")
+        serialized += encode_null_string(plot_data.ylabel or "")
+        serialized += encode_null_string(plot_data.savename or "")
 
         # Pack boolean and number of series
-        serialized += struct.pack('!?', Plot_data.show_legend)
-        serialized += struct.pack('!I', len(Plot_data.series_data))
+        serialized += struct.pack('!?', plot_data.show_legend)
+        serialized += struct.pack('!I', len(plot_data.series_data))
 
         # If datamin is set, serialize it
-        serialized += struct.pack('!?', Plot_data.datamin is not None)
-        if Plot_data.datamin is not None:
-            serialized += struct.pack('!dd', Plot_data.datamin[0], Plot_data.datamin[1])
+        serialized += struct.pack('!?', plot_data.datamin is not None)
+        if plot_data.datamin is not None:
+            serialized += struct.pack('!dd', plot_data.datamin[0], plot_data.datamin[1])
 
         # If datamax is set, serialize it
-        serialized += struct.pack('!?', Plot_data.datamax is not None)
-        if Plot_data.datamax is not None:
-            serialized += struct.pack('!dd', Plot_data.datamax[0], Plot_data.datamax[1])
+        serialized += struct.pack('!?', plot_data.datamax is not None)
+        if plot_data.datamax is not None:
+            serialized += struct.pack('!dd', plot_data.datamax[0], plot_data.datamax[1])
 
-        for series in Plot_data.series_data:
+        for series in plot_data.series_data:
             with_errors = series.n_error is not None or series.p_error is not None
             serialized += encode_null_string(series.label)
             serialized += struct.pack('!?', with_errors)
@@ -234,9 +226,9 @@ class _PlotSerializer:
             serialized += struct.pack('!I', series.plot_type.value)
 
             # Serialize coordinates with optional error bars for each point
-            for i in range(len(series.x_coords)):
+            for i, (x, y) in enumerate(zip(series.x_coords, series.y_coords)):
                 # Serialize x and y coordinates
-                serialized += struct.pack('!dd', series.x_coords[i], series.y_coords[i])
+                serialized += struct.pack('!dd', x, y)
 
                 if with_errors:
                     # Serialize negative error (if exists, otherwise 0)

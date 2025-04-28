@@ -84,58 +84,124 @@
  * @param name the path of the directory to be tested
  * @return the disk space remaining in bytes, or a negative value if error
  */
-#if OS_OSX
+#ifdef OS_OSX
 static gint64 find_space(const gchar *name) {
 	gint64 result = -1;
-	@autoreleasepool
-	{
-		NSString *path = [NSString stringWithUTF8String:name];
-		if (!path) {
+	@autoreleasepool {
+		// Check input parameter
+		if (!name) {
+			NSLog(@"Error: null path provided");
 			return result;
 		}
 
-		NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:path];
+		NSString *path = [NSString stringWithUTF8String:name];
+		if (!path) {
+			NSLog(@"Error: invalid path string encoding");
+			return result;
+		}
+
+		NSFileManager *fileManager = [NSFileManager defaultManager];
+
+		// Check if path exists
+		BOOL isDirectory;
+		if (![fileManager fileExistsAtPath:path isDirectory:&isDirectory]) {
+			NSLog(@"Error: path does not exist: %@", path);
+			return result;
+		}
+
+		// Resolve symlink if needed
+		NSString *resolvedPath = path;
+		NSError *attrError = nil;
+		NSDictionary *attributes = [fileManager attributesOfItemAtPath:path error:&attrError];
+
+		if (!attributes) {
+			NSLog(@"Error: could not get attributes: %@", attrError);
+			return result;
+		}
+
+		// Check if it's a symbolic link
+		if ([[attributes fileType] isEqualToString:NSFileTypeSymbolicLink]) {
+			NSError *linkError = nil;
+			NSString *destination = [fileManager destinationOfSymbolicLinkAtPath:path error:&linkError];
+
+			if (!destination) {
+				NSLog(@"Error: could not resolve symbolic link: %@", linkError);
+				return result;
+			}
+
+			// If the symlink path is relative, combine it with the parent directory
+			if (![destination hasPrefix:@"/"]) {
+				NSString *parentDir = [path stringByDeletingLastPathComponent];
+				resolvedPath = [parentDir stringByAppendingPathComponent:destination];
+			} else {
+				resolvedPath = destination;
+			}
+
+			// Verify the resolved path exists
+			if (![fileManager fileExistsAtPath:resolvedPath isDirectory:&isDirectory]) {
+				NSLog(@"Error: resolved path does not exist: %@", resolvedPath);
+				return result;
+			}
+		}
+
+		NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:resolvedPath];
+		if (!fileURL) {
+			NSLog(@"Error: could not create NSURL from path");
+			return result;
+		}
+
 		NSError *error = nil;
 
-		// First get filesystem type
-		NSDictionary *fsInfo = [fileURL resourceValuesForKeys:@[NSURLVolumeLocalizedFormatDescriptionKey]
-		error:&error];
+		// Check if volume is accessible
+		NSDictionary *fsInfo = [fileURL resourceValuesForKeys:@[NSURLVolumeLocalizedFormatDescriptionKey] error:&error];
 		if (!fsInfo) {
 			NSLog(@"Error getting filesystem info: %@", error);
+			#if !__has_feature(objc_arc)
+			[fileURL release];
+			#endif
 			return result;
 		}
 
 		NSString *fsType = fsInfo[NSURLVolumeLocalizedFormatDescriptionKey];
+		if (!fsType) {
+			NSLog(@"Error: could not determine filesystem type");
+			#if !__has_feature(objc_arc)
+			[fileURL release];
+			#endif
+			return result;
+		}
 
-		// For APFS or HFS+, we can use the important usage key
+		// For APFS or HFS+, use important usage key
 		if ([fsType containsString:@"APFS"] || [fsType containsString:@"HFS"]) {
-			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey]
-			error:&error];
+			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
 			if (!results) {
 				NSLog(@"Error getting space info: %@", error);
-			} else if (results) {
+			} else {
 				NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
 				if (freeSpace) {
 					result = (gint64)[freeSpace longLongValue];
+				} else {
+					NSLog(@"Error: no free space information available");
 				}
 			}
 		} else {
-			// For other filesystems (FAT32, etc.), fall back to basic capacity
-			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey]
-			error:&error];
+			// For other filesystems (FAT32, etc.), use basic capacity
+			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey] error:&error];
 			if (!results) {
 				NSLog(@"Error getting space info: %@", error);
-			} else if (results) {
+			} else {
 				NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityKey];
 				if (freeSpace) {
-				result = (gint64)[freeSpace longLongValue];
+					result = (gint64)[freeSpace longLongValue];
+				} else {
+					NSLog(@"Error: no free space information available");
+				}
 			}
 		}
-	}
 
-	#if !__has_feature(objc_arc)
-	[fileURL release];
-	#endif
+		#if !__has_feature(objc_arc)
+		[fileURL release];
+		#endif
 	}
 
 	return result;
@@ -1015,9 +1081,23 @@ gchar *find_executable_in_path(const char *exe_name, const char *path) {
 	char full_path[MAX_PATH];
 	DWORD result;
 	const gchar *path_value;
-	if (!path)
-		path_value = g_getenv("PATH");
-	else
+	if (!path) { // we need to remove mingw64 tokens from PATH
+		const gchar *tmp_path_value = g_getenv("PATH");
+		// siril_debug_print("Unfiltered: %s\n", tmp_path_value);
+		gchar **tokens = g_strsplit(tmp_path_value, ";", -1);
+		GPtrArray *filtered_tokens = g_ptr_array_new_with_free_func(g_free);
+		for (guint i = 0; tokens[i] != NULL; i++) {
+			if (!g_strstr_len(tokens[i], -1, "mingw64") && !g_strstr_len(tokens[i], -1, "msys64")) {
+				g_ptr_array_add(filtered_tokens, g_strdup(tokens[i]));
+			}
+		}
+		g_ptr_array_add(filtered_tokens, NULL);
+		path_value = g_strjoinv(";", (gchar **)filtered_tokens->pdata);
+		// siril_debug_print("Filtered: %s\n", path_value);
+		// Free memory
+		g_strfreev(tokens);
+		g_ptr_array_free(filtered_tokens, TRUE);
+	} else
 		path_value = path;
 
 	// Use SearchPath to find the executable in PATH

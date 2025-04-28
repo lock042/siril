@@ -264,7 +264,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
 			// Photometry
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, FALSE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
 			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR) {
 				no_phot = TRUE;
 			} else {
@@ -294,10 +294,10 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 //				break;
 //			case CAT_LOCAL_GAIA_XPSAMP:
 //			default:;
-//				memcpy(&star_spectrum.y, stars[i].flux, 343 * sizeof(double));
+//				memcpy(&star_spectrum.y, stars[i].flux, XPSAMPLED_LEN * sizeof(double));
 		//				break;
 //		}
-		memcpy(&star_spectrum.y, stars[i].xp_sampled, 343 * sizeof(double));
+		memcpy(&star_spectrum.y, stars[i].xp_sampled, XPSAMPLED_LEN * sizeof(double));
 
 		// Convert flux to relative photon count normalized at 550nm
 		flux_to_relcount(&star_spectrum);
@@ -421,52 +421,51 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		gsl_stats_minmax(&stat_min, &stat_max, crg, 1, ngoodrg);
 		double best_fit_rgx[2] = {stat_min, stat_max};
 		double best_fit_rgy[2] = {arg + brg * best_fit_rgx[0], arg + brg * best_fit_rgx[1]};
-		siril_plot_data *spl_datarg = NULL;
 		spcc_object *object = (spcc_object*) selected_white->data;
 
-		gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, ngoodrg, ngood - ngoodrg, kw);
-		spl_datarg = malloc(sizeof(siril_plot_data));
-		init_siril_plot_data(spl_datarg);
-		siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
-		siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
-		siril_plot_set_title(spl_datarg, title1);
-		siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
-		siril_plot_add_xydata(spl_datarg, _("R/G"), ngoodrg, crg, irg, NULL, NULL);
-		siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
-		siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
-		siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
-		siril_plot_set_yfmt(spl_datarg, "%.1lf");
-		g_free(title1);
+		siril_plot_data *spl_datarg = init_siril_plot_data();
+		if (spl_datarg) {
+			siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
+			siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
+			gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, ngoodrg, ngood - ngoodrg, kw);
+			siril_plot_set_title(spl_datarg, title1);
+			g_free(title1);
+			siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
+			siril_plot_add_xydata(spl_datarg, _("R/G"), ngoodrg, crg, irg, NULL, NULL);
+			siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
+			siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
+			siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
+			siril_plot_set_yfmt(spl_datarg, "%.1lf");
+			spl_datarg->cfgdata.point.radius = 1;
+			spl_datarg->cfgdata.point.sz = 2;
+			spl_datarg->cfgdata.line.sz = 2;
+			siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_datarg);
+		}
 
 		int ngoodbg = filtermaskArrays(cbg, ibg, maskbg, ngood);
 		gsl_stats_minmax(&stat_min, &stat_max, cbg, 1, ngoodbg);
-		gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, ngoodbg, ngood - ngoodbg, kw);
 		double best_fit_bgx[2] = {stat_min, stat_max};
 		double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
-		siril_plot_data *spl_databg = NULL;
-		spl_databg = malloc(sizeof(siril_plot_data));
-		init_siril_plot_data(spl_databg);
-		siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
-		siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
-		siril_plot_set_title(spl_databg, title2);
-		siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
-		gchar *spl_legendbg = _("B/G");
-		siril_plot_add_xydata(spl_databg, spl_legendbg, ngoodbg, cbg, ibg, NULL, NULL);
-		siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
-		siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
-		siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
-		siril_plot_set_yfmt(spl_databg, "%.1lf");
-		g_free(title2);
+		siril_plot_data *spl_databg = init_siril_plot_data();
+		if (spl_databg) {
+			siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
+			siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
+			gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, ngoodbg, ngood - ngoodbg, kw);
+			siril_plot_set_title(spl_databg, title2);
+			g_free(title2);
+			siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
+			gchar *spl_legendbg = _("B/G");
+			siril_plot_add_xydata(spl_databg, spl_legendbg, ngoodbg, cbg, ibg, NULL, NULL);
+			siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
+			siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
+			siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
+			siril_plot_set_yfmt(spl_databg, "%.1lf");
+			spl_databg->cfgdata.point.radius = 1;
+			spl_databg->cfgdata.point.sz = 2;
+			spl_databg->cfgdata.line.sz = 2;
+			siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_databg);
+		}
 
-		spl_datarg->cfgdata.point.radius = 1;
-		spl_datarg->cfgdata.point.sz = 2;
-		spl_databg->cfgdata.point.radius = 1;
-		spl_databg->cfgdata.point.sz = 2;
-		spl_datarg->cfgdata.line.sz = 2;
-		spl_databg->cfgdata.line.sz = 2;
-
-		siril_add_idle(create_new_siril_plot_window, spl_datarg);
-		siril_add_idle(create_new_siril_plot_window, spl_databg);
 		siril_add_idle(end_generic, NULL);
 	}
 	free(irg);
@@ -577,7 +576,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		gboolean no_phot = FALSE;
 		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, FALSE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
 			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
 				no_phot = TRUE;
 			else flux[chan] = powf(10.f, -0.4f * (float) photometry->mag);
@@ -858,15 +857,12 @@ gpointer photometric_cc_standalone(gpointer p) {
 		mag += args->magnitude_arg;
 
 	int retval = 0;
-	if (args->catalog == CAT_LOCAL || args->catalog == CAT_LOCAL_GAIA_XPSAMP) {
+	if (args->catalog == CAT_LOCAL_KSTARS || args->catalog == CAT_LOCAL_GAIA_ASTRO || args->catalog == CAT_LOCAL_GAIA_XPSAMP) {
 		siril_log_message(_("Getting stars from local catalogue %s for %s, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), args->spcc ? _("SPCC") : _("PCC"), radius * 2.0,  mag);
 	} else {
 		switch (args->catalog) {
 			case CAT_GAIADR3:
 				mag = min(mag, 18.0);
-				break;
-			case CAT_LOCAL_GAIA_ASTRO:
-				mag = min(mag, 18.0);	// not very important, this catalogue is density-populated rather than magnitude-limited
 				break;
 			case CAT_GAIADR3_DIRECT:
 				mag = min(mag, 17.6);	// most Gaia XP_SAMPLED spectra are for mag < 17.6
@@ -894,7 +890,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, 5000);
 		for (int i = 0 ; i < siril_cat->nbitems ; i++) {
 			// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
-			siril_cat->cat_items[i].xp_sampled = malloc(343 * sizeof(double));
+			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
 			get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
 		}
 	} else if (siril_catalog_conesearch(siril_cat) <= 0) {

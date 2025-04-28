@@ -511,7 +511,10 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 			(args->seq->type == SEQ_SER && !args->force_fitseq_output)) ?
 		DATA_USHORT : DATA_FLOAT;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(prepro->ppprefix);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 /********** SINGLE IMAGE (from com.uniq) ************/

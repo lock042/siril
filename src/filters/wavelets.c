@@ -226,15 +226,15 @@ void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("wavelets_dialog");
 }
 
-void on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
+gboolean on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
 	apply_wavelets_cancel();
 	siril_close_dialog("wavelets_dialog");
+	return FALSE;
 }
 
 void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	if (wavelet_show_preview) {
 		copy_backup_to_gfit();
-		undo_save_state(get_preview_gfit_backup(), _("Wavelets Transformation"));
 	}
 
 	int Type_Transform, Nbr_Plan, maxplan, mins, i;
@@ -332,12 +332,13 @@ void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct wavelets_filter_data *args = malloc(sizeof(struct wavelets_filter_data));
+	struct wavelets_filter_data *args = calloc(1, sizeof(struct wavelets_filter_data));
 
 	args->Type = Type;
 	args->Nbr_Plan = Nbr_Plan;
 	args->fit = &gfit;
-	start_in_new_thread(extract_plans, args);
+	if (!start_in_new_thread(extract_plans, args))
+		free(args);
 }
 
 void on_button_extract_w_close_clicked(GtkButton *button, gpointer user_data) {

@@ -3,10 +3,14 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""
+Translation submodule for Siril, providing gettext integration.
+TODO: make use of this submodule with actual translations.
+"""
+
 import os
 import gettext
 import locale
-from functools import wraps
 from typing import Callable, TypeVar
 
 T = TypeVar('T')

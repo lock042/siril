@@ -117,12 +117,16 @@ static int resolve_heads(git_repository *repo, struct merge_options *opts) {
 	size_t annotated_count = 0, i;
 
 	for (i = 0; i < opts->heads_count; i++) {
+		if (!opts->heads[i]) {
+			annotated_count--;
+			continue;
+		}
 		int err =
 			resolve_refish(&annotated[annotated_count++], repo, opts->heads[i]);
 		if (err != 0) {
-		siril_debug_print("libgit2: failed to resolve refish %s: %s\n", opts->heads[i], git_error_last()->message);
-		annotated_count--;
-		continue;
+			siril_debug_print("libgit2: failed to resolve refish %s: %s\n", opts->heads[i], git_error_last()->message);
+			annotated_count--;
+			continue;
 		}
 	}
 
@@ -534,7 +538,7 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 			siril_log_color_message(_("libgit2: repository failed to clean up properly. Cannot continue.\n"), "red");
 			free((char **)opts.heads);
 			free(opts.annotated);
-			return 1;
+			return -1;
 		}
 	}
 
@@ -542,7 +546,8 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 	if (error != 0) {
 		free((char **)opts.heads);
 		free(opts.annotated);
-		return 1;
+
+		return 2;
 	}
 
 	error = git_merge_analysis(&analysis, &preference, repo, (const git_annotated_commit **)opts.annotated, opts.annotated_count);
@@ -551,7 +556,7 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 	// will be lost if they proceed.
 	if (error < 0) {
 		siril_debug_print("Error carrying out merge analysis: %s\n", giterr_last()->message);
-		return -1;
+		return 2;
 	}
 	gboolean can_fastforward = FALSE;
 	if ((analysis & GIT_MERGE_ANALYSIS_FASTFORWARD) || (analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE)) {
@@ -677,7 +682,7 @@ int auto_update_gitscripts(gboolean sync) {
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
-		siril_log_color_message(_("Cannot open repository: %s\n"), "salmon", e->message);
+		siril_debug_print("Cannot open repository: %s\n", e->message);
 		if (is_online()) {
 			siril_log_message(_("Attempting to clone from remote source...\n"));
 			// Perform the clone operation
@@ -831,7 +836,7 @@ int auto_update_gitspcc(gboolean sync) {
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
-		siril_log_color_message(_("Cannot open repository: %s\nAttempting to clone from remote source...\n"), "salmon", e->message);
+		siril_debug_print("Cannot open repository: %s\nAttempting to clone from remote source...\n", e->message);
 		// Perform the clone operation
 		error = git_clone(&repo, SPCC_REPOSITORY_URL, local_path, &clone_opts);
 

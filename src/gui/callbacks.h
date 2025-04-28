@@ -77,6 +77,8 @@ void siril_quit();
 /* for image_display */
 void set_viewer_mode_widgets_sensitive(gboolean sensitive);
 
+int seq_qphot(sequence *seq, int layer);
+
 /*****************************************************************************
 *      P U B L I C      C A L L B A C K      F U N C T I O N S               *
  ****************************************************************************/

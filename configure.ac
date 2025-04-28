@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 m4_define([siril_major_version], [1])
-m4_define([siril_minor_version], [3])
-m4_define([siril_micro_version], [6])
-m4_define([siril_prerelease_version], [alpha-dev])
+m4_define([siril_minor_version], [4])
+m4_define([siril_micro_version], [0])
+m4_define([siril_prerelease_version], [beta2])
 m4_define([siril_version],
           [siril_major_version.siril_minor_version.siril_micro_version])
 m4_define([siril_version_full],
@@ -14,8 +14,8 @@ m4_define([siril_stable],
           m4_if(m4_eval(siril_minor_version % 2), [0], [yes], [no]))
 
 dnl change siril_version_full by siril_version for stable release
-dnl AC_INIT([siril], [siril_version_full],
-AC_INIT([siril], [siril_version],
+AC_INIT([siril], [siril_version_full],
+dnl AC_INIT([siril], [siril_version],
         [https://gitlab.com/free-astro/siril/issues],
         [siril],
         [https://www.siril.org])
@@ -162,9 +162,8 @@ PKG_CHECK_MODULES(GSL, [gsl < 2],
 dnl check cfitsio
 PKG_CHECK_MODULES(CFITSIO, [cfitsio])
 
-dnl Check for json-glib
-PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6])
-
+dnl Check for gtksourceview-4
+PKG_CHECK_MODULES(GTKSOURCEVIEW, [gtksourceview-4])
 
 dnl check opencv
 AC_PROG_CXX
@@ -259,7 +258,7 @@ PKG_CHECK_MODULES(LIBYYJSON, [yyjson >= 0.10.0], have_yyjson="yes", have_yyjson=
 if test "x$have_yyjson" = "xno"; then
   AC_MSG_NOTICE([libyyjson not found])
   if test "$cross_compiling" != "yes"; then
-    dnl check CMake used for librtprocess
+    dnl check CMake used for yyjson
     AC_PATH_PROG(CMAKE, cmake, no)
     if test "x$CMAKE" = xno; then
       AC_MSG_ERROR([CMAKE not found (needed to built internal yyjson)])

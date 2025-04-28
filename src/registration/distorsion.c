@@ -399,6 +399,11 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 				g_free(distoparam->filename);
 				gchar *wcsname = get_wcs_filename(PATHPARSE_MODE_WRITE, seq);
 				distoparam->filename = wcsname;
+				if (!wcsname || save_wcs_fits(&fit, wcsname)) {
+					siril_log_color_message(_("Could not save WCS file for distortion\n"), "red");
+					wcsfree(wcs);
+					return NULL;
+				}
 			}
 			clearfits(&fit);
 			break;
@@ -466,7 +471,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			wcs = NULL;
 		}
 		if (!found) {
-			free(disto);
+			free_disto_args(disto);
 			distoparam->index = DISTO_UNDEF;
 			return NULL;
 		}
@@ -512,7 +517,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 		// it's ok, we'll just set regargs->undistort to DISTO_UNDEF
 		// so as not to use maps and use optimized image transform instead
 		if (!found) {
-			free(disto);
+			free_disto_args(disto);
 			distoparam->index = DISTO_UNDEF;
 			disto = NULL;
 		}
@@ -615,4 +620,5 @@ void free_disto_args(disto_data *disto) {
 		free(disto->xmap);
 		free(disto->ymap);
 	}
+	free(disto);
 }

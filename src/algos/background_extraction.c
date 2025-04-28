@@ -47,8 +47,6 @@
 #define NPARAM_POLY2 6		// Number of parameters used with 2nd order
 #define NPARAM_POLY1 3		// Number of parameters used with 1nd order
 
-#define SAMPLE_SIZE 25		// must be odd to compute a radius
-
 //C contains background function
 #define C(i) (gsl_vector_get(c,(i)))
 
@@ -96,6 +94,14 @@ static double siril_gsl_vector_sum(const gsl_vector *v) {
 	return sum;
 }
 
+static void cfachans_cleanup(fits **cfachans) {
+	for (int i = 0 ; i < 4 ; i++) {
+		clearfits(cfachans[i]);
+		free(cfachans[i]);
+	}
+	free(cfachans);
+}
+
 static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, double smoothing, gchar **err, int threads) {
 	/* Implementation of RBF interpolation with a thin-plate Kernel k(r) = r^2 * log(r)
 
@@ -131,7 +137,8 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	int scaling_factor = 4;
 	int width_scaled = round_to_int(width / scaling_factor);
 	int height_scaled = round_to_int(height / scaling_factor);
-
+	if (width_scaled <= 0 || height_scaled <= 0)
+		return FALSE;
 	double *background_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double *kernel_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double x_scaling = (double)height_scaled / (double)height;
@@ -392,6 +399,12 @@ static gboolean computeBackground_Polynom(GSList *list, double *background, int 
 
 	return TRUE;
 }
+
+
+
+
+
+
 
 static background_sample *get_sample(float *buf, const int xx,
 		const int yy, const int w, const int h) {
@@ -726,6 +739,31 @@ void free_background_sample_list(GSList *list) {
 	g_slist_free_full(list, free);
 }
 
+// This behaves as per add_background_sample but add a whole list of sample points
+// at once, for use with the python interface to add points defined in python
+// without incurring the cost of convert_fits_to_luminance for each one
+
+GSList *add_background_samples(GSList *orig, fits *fit, GSList *pts) {
+	GSList *list;
+	int nx = fit->rx;
+	int ny = fit->ry;
+	float *image;
+	image = convert_fits_to_luminance(fit, MULTI_THREADED);
+	list = orig;
+	for (GSList *iter = pts ; iter ; iter = iter->next) {
+		point *pt = (point*) iter->data;
+		background_sample *sample = get_sample(image, pt->x, pt->y, nx, ny);
+		if (sample)
+			list = g_slist_append(list, sample);
+	}
+	if (fit->naxes[2] > 1) {
+		list = update_median_samples(list, fit);
+	}
+	free(image);
+
+	return list;
+}
+
 GSList *add_background_sample(GSList *orig, fits *fit, point pt) {
 	GSList *list;
 	int nx = fit->rx;
@@ -843,7 +881,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 		if (!interpolation_worked) {
 			free(image);
 			free(background);
-			queue_error_message_dialog(_("Not enough samples."), error);
+			queue_error_message_dialog(_("Not enough samples."), error ? error : _("Insufficient samples"));
 			if (!args->from_ui) {
 				free_background_sample_list(com.grad_samples);
 				com.grad_samples = NULL;
@@ -950,12 +988,25 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 	}
 	if (ret) {
 		siril_log_color_message(_("Error splitting into CFA subcannels, aborting...\n"), "red");
-		for (int i = 0 ; i < 4 ; i++) {
-			clearfits(cfachans[i]);
-			free(cfachans[i]);
-		}
-		free(cfachans);
+		cfachans_cleanup(cfachans);
 		return GINT_TO_POINTER(1);
+	}
+
+	// Check subchannel medians are OK
+	for (int i = 0 ; i < 4 ; i++) {
+		imstats* stat = statistics(NULL, -1, cfachans[i], 0, NULL, STATS_BASIC, MULTI_THREADED);
+		if (!stat) {
+			siril_log_message(_("Error: statistics computation failed.\n"));
+			return GINT_TO_POINTER(1);
+		}
+		float median = (float) stat->median;
+		free_stats(stat);
+
+		if (median <= 0.0f) {
+			siril_log_color_message(_("Subchannel with negative median detected: removing the gradient on negative images is not supported\n"), "red");
+			cfachans_cleanup(cfachans);
+			return GINT_TO_POINTER(1);
+		}
 	}
 
 	for (int i = 0; i < 4; i++) {
@@ -965,6 +1016,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 
 		if (!samples) {
 			siril_log_color_message(_("Failed to adapt background samples for CFA image\n"), "red");
+			cfachans_cleanup(cfachans);
 			return GINT_TO_POINTER(1);
 		}
 
@@ -972,6 +1024,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 		if (!background) {
 			PRINT_ALLOC_ERR;
 			siril_log_message(_("Out of memory - aborting"));
+			cfachans_cleanup(cfachans);
 			return GINT_TO_POINTER(1);
 		}
 
@@ -981,6 +1034,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 			free(background);
 			free_background_sample_list(samples);
 			PRINT_ALLOC_ERR;
+			cfachans_cleanup(cfachans);
 			return GINT_TO_POINTER(1);
 		}
 
@@ -1003,11 +1057,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 				free_background_sample_list(com.grad_samples);
 				com.grad_samples = NULL;
 			}
-			for (int i = 0 ; i < 4 ; i++) {
-				clearfits(cfachans[i]);
-				free(cfachans[i]);
-			}
-			free(cfachans);
+			cfachans_cleanup(cfachans);
 			free(args);
 			siril_add_idle(end_background, NULL);
 			return GINT_TO_POINTER(1);
@@ -1030,6 +1080,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	/* free memory */
+	cfachans_cleanup(cfachans);
 	invalidate_stats_from_fit(&gfit);
 	if (!args->from_ui) {
 		free_background_sample_list(com.grad_samples);
@@ -1125,17 +1176,14 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	} else if (b_args->degree > 1) {
 		siril_log_color_message(_("Warning: polynomial background removal order > 1 is not recommended for CFA images. Only linear background removal is recommended.\n"), "salmon");
 	}
-	// Obtain CFA pattern as a sensor_pattern
-	fits metadata = { 0 };
-	seq_read_frame_metadata(args->seq, i, &metadata);
 	sensor_pattern pattern;
-	if (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4)) {
+	if (!strncmp(fit->keywords.bayer_pattern, "RGGB", 4)) {
 		pattern = BAYER_FILTER_RGGB;
-	} else if (!strncmp(metadata.keywords.bayer_pattern, "BGGR", 4)) {
+	} else if (!strncmp(fit->keywords.bayer_pattern, "BGGR", 4)) {
 		pattern = BAYER_FILTER_BGGR;
-	} else if (!strncmp(metadata.keywords.bayer_pattern, "GBRG", 4)) {
+	} else if (!strncmp(fit->keywords.bayer_pattern, "GBRG", 4)) {
 		pattern = BAYER_FILTER_GBRG;
-	} else if (!strncmp(metadata.keywords.bayer_pattern, "GRBG", 4)) {
+	} else if (!strncmp(fit->keywords.bayer_pattern, "GRBG", 4)) {
 		pattern = BAYER_FILTER_GBRG;
 	} else {
 		siril_log_color_message(_("Error: unsupported CFA pattern for this operation.\n"), "red");
@@ -1158,11 +1206,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	}
 	if (ret) {
 		siril_log_color_message(_("Error splitting into CFA subcannels, aborting...\n"), "red");
-		for (int i = 0 ; i < 4 ; i++) {
-			clearfits(cfachans[i]);
-			free(cfachans[i]);
-		}
-		free(cfachans);
+		cfachans_cleanup(cfachans);
 		return 1;
 	}
 
@@ -1180,6 +1224,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 		if (!background) {
 			PRINT_ALLOC_ERR;
 			siril_log_message(_("Out of memory - aborting"));
+			cfachans_cleanup(cfachans);
 			return 1;
 		}
 
@@ -1188,6 +1233,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 		if (!samples) {
 			siril_log_color_message(_("Failed to generate background samples for image %d: %s\n"), "red", i, _(err));
 			free(background);
+			cfachans_cleanup(cfachans);
 			return 1;
 		}
 
@@ -1197,6 +1243,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 			free(background);
 			free_background_sample_list(samples);
 			PRINT_ALLOC_ERR;
+			cfachans_cleanup(cfachans);
 			return 1;
 		}
 
@@ -1217,6 +1264,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 			free(image);
 			free(background);
 			free_background_sample_list(samples);
+			cfachans_cleanup(cfachans);
 			return 1;
 		}
 		/* remove background */
@@ -1232,6 +1280,11 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	fits_swap_image_data(out, fit); // Efficiently move the merged pixeldata from out to fit
 	clearfits(out);
 	free(out);
+	for (int i = 0 ; i < 4 ; i++) {
+		free(cfachans[i]); // no need to use cfachans_cleanup here as the FITS have already
+				// been cleared in merge_cfa()
+	}
+	free(cfachans);
 	return 0;
 }
 
@@ -1306,6 +1359,7 @@ static int background_mem_limits_hook(struct generic_seq_args *args, gboolean fo
 int bg_extract_finalize_hook(struct generic_seq_args *args) {
 	struct background_data *data = (struct background_data *) args->user;
 	int retval = seq_finalize_hook(args);
+	free(data->seqEntry);
 	free(data);
 	return retval;
 }
@@ -1315,6 +1369,9 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 	struct generic_seq_args *args = create_default_seqargs(background_args->seq);
 	if (seq_read_frame_metadata(background_args->seq, sequence_find_refimage(background_args->seq), &metadata)) {
 		siril_log_color_message(_("Error reading reference metadata.\n"), "red");
+		free(background_args->seqEntry);
+		free(background_args);
+		free_generic_seq_args(args, TRUE);
 		return;
 	}
 	background_args->is_cfa = background_args->seq->nb_layers == 1 && (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4) ||
@@ -1331,13 +1388,17 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 	args->description = _("Background Extraction");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = background_args->seqEntry;
+	args->new_seq_prefix = strdup(background_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = background_args;
 
 	background_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if(!start_in_new_thread(generic_sequence_worker, args)) {
+		free(background_args->seqEntry);
+		free(background_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 /**** getters ***/

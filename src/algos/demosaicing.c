@@ -30,6 +30,7 @@
 #include "core/siril_log.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/fits_keywords.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
 
@@ -1087,9 +1088,6 @@ void get_debayer_area(const rectangle *area, rectangle *debayer_area,
 	assert(debayer_area->w > 2);
 }
 
-void clear_Bayer_information(fits *fit) {
-	memset(fit->keywords.bayer_pattern, 0, FLEN_VALUE);
-}
 
 static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_pattern pattern) {
 	size_t npixels = fit->naxes[0] * fit->naxes[1];
@@ -1433,12 +1431,23 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	args->finalize_hook = mergecfa_finalize_hook;
 	args->description = _("Merge CFA");
 	args->has_output = TRUE;
-	args->new_seq_prefix = merge_cfa_args->seqEntryOut;
+	args->new_seq_prefix = strdup(merge_cfa_args->seqEntryOut);
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;
 	args->user = merge_cfa_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		if (!check_seq_is_comseq(merge_cfa_args->seq0))
+			free_sequence(merge_cfa_args->seq0, TRUE);
+		if (!check_seq_is_comseq(merge_cfa_args->seq1))
+			free_sequence(merge_cfa_args->seq1, TRUE);
+		if (!check_seq_is_comseq(merge_cfa_args->seq2))
+			free_sequence(merge_cfa_args->seq2, TRUE);
+		if (!check_seq_is_comseq(merge_cfa_args->seq3))
+			free_sequence(merge_cfa_args->seq3, TRUE);
+		free(merge_cfa_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 //

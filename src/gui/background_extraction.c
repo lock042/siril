@@ -146,7 +146,7 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	double smoothing = get_smoothing_parameter();
 	background_interpolation interpolation_method = get_interpolation_method();
 
-	struct background_data *args = malloc(sizeof(struct background_data));
+	struct background_data *args = calloc(1, sizeof(struct background_data));
 	args->threads = com.max_thread;
 	args->from_ui = TRUE;
 	args->correction = correction;
@@ -161,15 +161,18 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 					  !strncmp(gfit.keywords.bayer_pattern, "BGGR", 4) ||
 					  !strncmp(gfit.keywords.bayer_pattern, "GBRG", 4) ||
 					  !strncmp(gfit.keywords.bayer_pattern, "GRBG", 4));
-	start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
-						remove_gradient_from_image, args);
+	if (!start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
+						remove_gradient_from_image, args)) {
+		free(args->seqEntry);
+		free(args);
+	}
 }
 
 void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(
 			lookup_widget("checkBkgSeq"));
 	if (gtk_toggle_button_get_active(seq_button) && sequence_is_loaded()) {
-		struct background_data *args = malloc(sizeof(struct background_data));
+		struct background_data *args = calloc(1, sizeof(struct background_data));
 		args->nb_of_samples = get_nb_samples_per_line();
 		args->tolerance = get_tolerance_value();
 		args->correction = get_correction_type();
@@ -205,8 +208,10 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(TRUE);
 
 		args->seqEntry = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryBkgSeq"))));
-		if (args->seqEntry && args->seqEntry[0] == '\0')
+		if (args->seqEntry && args->seqEntry[0] == '\0') {
+			free(args->seqEntry);
 			args->seqEntry = strdup("bkg_");
+		}
 		args->seq = &com.seq;
 		/* now we uncheck the button */
 		gtk_toggle_button_set_active(seq_button, FALSE);

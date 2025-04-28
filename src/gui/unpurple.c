@@ -44,20 +44,20 @@ static double mod_b = 1.0, thresh = 0.0, old_thresh = 0.0;
 static fits starmask = {0};
 static gboolean is_roi = FALSE;
 
-int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
-        gboolean stars_needs_freeing = FALSE;
-        psf_star **stars = NULL;
-        int channel = 1;
+int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
+	gboolean stars_needs_freeing = FALSE;
+	psf_star **stars = NULL;
+	int channel = 1;
 
-        int nb_stars = starcount(com.stars);
-        int dimx = fit->naxes[0];
-        int dimy = fit->naxes[1];
-        int count = dimx * dimy;
+	int nb_stars = starcount(com.stars);
+	int dimx = fit->naxes[0];
+	int dimy = fit->naxes[1];
+	int count = dimx * dimy;
 
-        // Do we have stars from Dynamic PSF or not?
-        if (nb_stars < 1) {
-                image *input_image = NULL;
-                input_image = calloc(1, sizeof(image));
+	// Do we have stars from Dynamic PSF or not?
+	if (nb_stars < 1) {
+		image *input_image = NULL;
+		input_image = calloc(1, sizeof(image));
 		input_image->fit = fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
@@ -76,13 +76,15 @@ int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
 	}
 
 	siril_log_message(_("Creating binary star mask for %d stars...\n"), nb_stars);
-	new_fit_image(&starmask, dimx, dimy, 1, DATA_USHORT);
+	if (new_fit_image(star_mask, dimx, dimy, 1, DATA_USHORT)) {
+		return -1;
+	}
 
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) num_threads(com.max_thread) if (com.max_thread > 1)
 #endif
-	for (int i = 0; i < dimx * dimy; i++) {
-		starmask->pdata[0][i] = 0;
+	for (size_t i = 0; i < dimx * dimy; i++) {
+		(*star_mask)->pdata[0][i] = 0;
 	}
 
 #ifdef _OPENMP
@@ -112,8 +114,8 @@ int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
 						double dx = x - (size / 2.0);
 						double dy = y - (size / 2.0);
 						double distance = sqrt(dx * dx + dy * dy);
-						int is_star = (distance <= (size / 2)) ? 1 : 0;
-						starmask->pdata[0][idx] = is_star ? USHRT_MAX : starmask->pdata[0][idx];
+						int is_star = (distance <= (size / 2.0)) ? 1 : 0;
+						(*star_mask)->pdata[0][idx] = is_star ? USHRT_MAX : (*star_mask)->pdata[0][idx];
 					}
 				}
 			}
@@ -142,7 +144,8 @@ static int unpurple_update_preview() {
 		if (starmask.naxis == 0 || gui.roi.active != is_roi || old_thresh != thresh) {
 			is_roi = gui.roi.active;
 			old_thresh = thresh;
-			generate_binary_starmask(fit, &starmask, thresh);
+			fits *starmask_ptr = &starmask;
+			generate_binary_starmask(fit, &starmask_ptr, thresh);
 		}
 	}
 
@@ -150,7 +153,9 @@ static int unpurple_update_preview() {
 	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = FALSE};
 	set_cursor_waiting(TRUE);
 	// we call the unpurple_filter directly here because update_preview already handles the ROI mutex lock
-	start_in_new_thread(unpurple_filter, args);
+	if (!start_in_new_thread(unpurple_filter, args)) {
+		free(args);
+	}
 	return 0;
 }
 
@@ -197,14 +202,17 @@ static int unpurple_process_all() {
 
 	//TODO: Optimization: Can we reuse the starmask we already have?
 	if (withstarmask) {
-		generate_binary_starmask(fit, &starmask, thresh);
+		fits *starmask_ptr = &starmask;
+		generate_binary_starmask(fit, &starmask_ptr, thresh);
 	}
 
 	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
 	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = TRUE};
 
 	// We call the unpurple handler here because we don't have update_preview to handle the ROI mutex for us
-	start_in_new_thread(unpurple_handler, args);
+	if (!start_in_new_thread(unpurple_handler, args)) {
+		free(args);
+	}
 
 	return 0;
 }

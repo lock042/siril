@@ -409,6 +409,12 @@ static void grid_add_row(int layer, int index, int first_time) {
  * composition window and make it visible */
 void open_compositing_window() {
 	int i;
+	GtkWidget *button = lookup_widget("demosaicingButton");
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button))) {
+		siril_log_color_message(_("Disabling debayer-on-open setting: this must be unset in order to open monochrome images in the compositing tool.\n"), "salmon");
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), FALSE);
+	}
+
 	if (!compositing_loaded) {
 		register_selection_update_callback(update_compositing_registration_interface);
 
@@ -604,6 +610,7 @@ static void update_metadata(gboolean do_sum) {
 
 	merge_fits_headers_to_result2(&gfit, f, do_sum);
 	update_fits_header(&gfit);
+	gui_function(update_MenuItem, NULL);
 	free(f);
 }
 
@@ -618,6 +625,8 @@ static void update_comp_metadata(fits *fit, gboolean do_sum) {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f, do_sum);
+	update_fits_header(&gfit);
+	gui_function(update_MenuItem, NULL);
 	free(f);
 }
 
@@ -759,8 +768,6 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 
 	update_compositing_registration_interface();
 
-	// enable the color balance finalization button
-	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	update_result(1);
 	update_metadata(TRUE);
 	gui_function(update_MenuItem, NULL);
@@ -920,7 +927,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	msg[strlen(msg)-1] = '\0';
 	set_cursor_waiting(TRUE);
 	set_progress_bar_data(msg, PROGRESS_RESET);
-	int ret1 = (method->method_ptr(&regargs));
+	int ret1 = method->method_ptr(&regargs);
 	free(regargs.imgparam);
 	regargs.imgparam = NULL;
 	free(regargs.regparam);
@@ -969,8 +976,6 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 	}
-	// update WCS etc.
-	update_comp_metadata(seq->internal_fits[seq->reference_image], do_sum);
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
@@ -995,6 +1000,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	/* align the image and display it.
 	 * Layers are aligned against the reference layer, with zeros where there is not data */
 	update_result(1);
+	// update WCS etc. (must be done after update_result())
+	update_comp_metadata(seq->internal_fits[seq->reference_image], do_sum);
 	// reset the transformation type so that it is always in this state by default
 	the_type = HOMOGRAPHY_TRANSFORMATION;
 	// Reset rotation centers: owing to the change of framing the previous rotation centers
@@ -1295,12 +1302,6 @@ void on_compositing_cancel_clicked(GtkButton *button, gpointer user_data){
 	siril_close_dialog("composition_dialog");
 }
 
-void on_composition_dialog_hide(GtkWidget *widget, gpointer   user_data) {
-	if (gtk_widget_get_visible(lookup_widget("color_calibration"))) {
-		siril_close_dialog("color_calibration");
-	}
-}
-
 /* When summing all layers to get the RGB values for one pixel, it may overflow.
  * This procedure defines what happens in that case. */
 static void rgb_pixel_limiter(GdkRGBA *pixel) {
@@ -1576,8 +1577,6 @@ void reset_compositing_module() {
 	}
 	layers[i] = NULL;
 
-	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), FALSE);
-
 	gtk_widget_hide(GTK_WIDGET(color_dialog));
 	current_layer_color_choosing = 0;
 
@@ -1696,30 +1695,6 @@ static void coeff_clear() {
 		free(coeff);
 		coeff = NULL;
 	}
-}
-
-void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
-	int photometric = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("rgbcomp_cc_method")));
-	GtkWidget *win = NULL;
-	switch (photometric) {
-		case 0:
-			win = lookup_widget("color_calibration");
-			initialize_calibration_interface();
-		break;
-		case 1:
-			win = lookup_widget("s_pcc_dialog");
-			initialize_photometric_cc_dialog();
-		break;
-		case 2:
-			win = lookup_widget("s_pcc_dialog");
-			initialize_spectrophotometric_cc_dialog();
-	}
-	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));
-	/* Here this is wanted that we do not use siril_open_dialog */
-	gtk_widget_show(win);
-
-	if(photometric)
-		on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 }
 
 void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
@@ -2014,13 +1989,13 @@ int register_manual(struct registration_args *regargs) {
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->upscale_ratio = 1.0;
-	args->new_seq_prefix = regargs->prefix;
+	args->new_seq_prefix = strdupnullok(regargs->prefix);
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
-		free(args);
+		free_generic_seq_args(args, FALSE);
 		return -1;
 	}
 	sadata->regargs = regargs;
@@ -2029,7 +2004,7 @@ int register_manual(struct registration_args *regargs) {
 	generic_sequence_worker(args);
 
 	regargs->retval = args->retval;
-	free(args);
+	free_generic_seq_args(args, FALSE);
 	return regargs->retval;
 }
 

@@ -62,8 +62,32 @@ typedef enum {
 	CMD_SET_SEQ_FRAME_INCL = 45,
 	CMD_GET_USERDATA_DIR = 46,
 	CMD_GET_SYSTEMDATA_DIR = 47,
+	CMD_GET_BGSAMPLES = 48,
+	CMD_SET_BGSAMPLES = 49,
+	CMD_GET_SEQ_FRAME_FILENAME = 50,
+	CMD_INFO_MESSAGEBOX = 51,
+	CMD_INFO_MESSAGEBOX_MODAL = 52,
+	CMD_WARNING_MESSAGEBOX = 53,
+	CMD_WARNING_MESSAGEBOX_MODAL = 54,
+	CMD_GET_SEQ_DISTODATA = 55,
+	CMD_SET_IMAGE_HEADER = 56,
+	CMD_ADD_USER_POLYGON = 57,
+	CMD_DELETE_USER_POLYGON = 58,
+	CMD_CLEAR_USER_POLYGONS = 59,
+	CMD_GET_USER_POLYGON = 60,
+	CMD_GET_USER_POLYGON_LIST = 61,
+	CMD_CONFIRM_MESSAGEBOX = 62,
+	CMD_GET_SEQ_FRAME_HEADER = 63,
 	CMD_ERROR = 0xFF
 } CommandType;
+
+typedef enum {
+	LOG_WHITE = 0,
+	LOG_RED = 1,
+	LOG_SALMON = 2,
+	LOG_GREEN = 3,
+	LOG_BLUE = 4
+} LogColor;
 
 // Config types matching python side
 typedef enum {
@@ -138,8 +162,6 @@ typedef struct _Connection {
 	int client_fd;
 	gchar *socket_path;
 #endif
-	void (*client_connected_callback)(gpointer);
-	void (*client_disconnected_callback)(gpointer);
 	gpointer user_data;
 	GSList* g_shm_allocations;
 	GMutex g_shm_mutex;
@@ -162,6 +184,8 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
 siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size);
 gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info);
+gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples, gboolean recalculate);
+gboolean handle_set_image_header_request(Connection* conn, const incoming_image_info_t* info);
 void cleanup_shm_allocation(Connection *conn, const char* shm_name);
 shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 void initialize_python_venv_in_thread();

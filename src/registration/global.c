@@ -508,7 +508,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		 * the reference channel to act as input and output of the filter as float O(m
 		 * as float for RT, current), O(2m as float for openCV).
 		 * All this is in addition to the image being already loaded.
-		 * In the special case of CFA image as input, we also have a copy of the 
+		 * In the special case of CFA image as input, we also have a copy of the
 		 * orig image so O(n=m) to interpolate non green pixels
 
 		 * Then, we use the same function as apply_reg_compute_mem_limits is used to compute
@@ -516,7 +516,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 
 		 * Since these three operations are in sequence, we need room only for the
 		 * largest.
-		 * 
+		 *
 		 * Step 1 - statistics:
 		 * 1 original image O(n)
 		 * 1 copy of original image O(n) if CFA
@@ -529,7 +529,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 
 		 * Step 3 - transformation:
 		 * See apply_reg_compute_mem_consumption()
-		 * Note: Because scale can be between 0.1 and 3, we can't know how this 
+		 * Note: Because scale can be between 0.1 and 3, we can't know how this
 		 * compares to step 2 before actually doing the calc
 
 // TODO: do we keep this?
@@ -565,7 +565,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 
 	limit_step3 = apply_reg_compute_mem_consumption(args, &required_step2, &MB_per_scaled_image, &MB_avail);
 	limit_step2 = (int)(MB_avail / required_step2);
-	
+
 	limit = min(limit_step2, limit_step3);
 	required = max(required_step2, required_step3);
 
@@ -579,7 +579,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 			 * plus how many images can be stored in what remains
 			 * unused by the main processing */
 			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_scaled_image;
-		} else 
+		} else
 			limit = thread_limit;
 	}
 
@@ -654,13 +654,13 @@ int register_star_alignment(struct registration_args *regargs) {
 	args->description = _("Global star registration");
 	args->has_output = !regargs->no_output;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = regargs->prefix;
+	args->new_seq_prefix = strdup(regargs->prefix);
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
 
 	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
-		free(args);
+		free_generic_seq_args(args, FALSE);
 		return -1;
 	}
 	sadata->regargs = regargs;
@@ -676,7 +676,7 @@ int register_star_alignment(struct registration_args *regargs) {
 	generic_sequence_worker(args);
 
 	regargs->retval = args->retval;
-	free(args);
+	free_generic_seq_args(args, FALSE);
 	return regargs->retval;
 }
 
@@ -852,7 +852,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		if (!regargs->disto) {
 			regargs->undistort = DISTO_UNDEF;
 		}
-	} 
+	}
 
 	struct starfinder_data *sfargs = calloc(1, sizeof(struct starfinder_data));
 	sfargs->im.from_seq = regargs->seq;
@@ -988,7 +988,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	int nb_aligned[MAX_TRIALS_2PASS];
 	best_indexes[trials] = best_index;
 	float allowable_dist = (float)regargs->seq->imgparam[regargs->reference_image].rx * MAX_SHIFT_RATIO;
-	int tmp_failed;
+	int tmp_failed = 0;
 
 	int max_trials = min(MAX_TRIALS_2PASS, regargs->seq->number);
 	while (trials < max_trials) {

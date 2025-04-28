@@ -22,6 +22,7 @@ AM_CPPFLAGS = \
 	$(LIBCONFIG_CFLAGS) \
 	$(LCMS2_CFLAGS)  \
 	$(LIBGIT_CFLAGS) \
+	$(GTKSOURCEVIEW_CFLAGS) \
 	-I$(top_builddir)/subprojects/kplot
 
 
@@ -320,6 +321,8 @@ siril_common_SOURCES = \
 	gui/progress_and_log.h \
 	gui/PSF_list.h \
 	gui/PSF_list.c \
+	gui/python_gui.h \
+	gui/python_gui.c \
 	gui/registration.h \
 	gui/registration.c \
 	gui/registration_preview.c \
@@ -352,6 +355,8 @@ siril_common_SOURCES = \
 	gui/statistics_list.c \
 	gui/unpurple.c \
 	gui/unpurple.h \
+	gui/user_polygons.c \
+	gui/user_polygons.h \
 	gui/utils.c \
 	gui/utils.h \
 	io/annotation_catalogues.c \
@@ -402,6 +407,10 @@ siril_common_SOURCES = \
 	io/siril_git.h \
 	io/siril_plot.c \
 	io/siril_plot.h \
+	io/siril_pythoncommands.h \
+	io/siril_pythoncommands.c \
+	io/siril_pythonmodule.h \
+	io/siril_pythonmodule.c \
 	io/spcc_json.c \
 	livestacking/livestacking.c \
 	livestacking/livestacking.h \
@@ -509,7 +518,9 @@ siril_common_LDADD = \
 	$(LIBATOMIC_LIBS) \
 	$(libdbghelp) \
 	$(librtprocesslibs) \
-	$(LIBGIT_LIBS)
+	$(LIBGIT_LIBS) \
+	$(YYJSON_LIBS) \
+	$(GTKSOURCEVIEW_LIBS)
 
 siril_common_SOURCES += \
 	algos/demosaicing_rtp.cpp \
@@ -540,7 +551,7 @@ siril_common_SOURCES += \
 siril_common_LDADD += $(OPENCV_LIBS) \
 		      $(EXIV2_LIBS) \
 		      $(libhtmeshlibs) \
-			  $(libhealpix_cxxlibs) \
+		      $(libhealpix_cxxlibs)
 
 siril_SOURCES = $(siril_common_SOURCES) siril_resource.c siril_resource.h main.c
 siril_cli_SOURCES = $(siril_common_SOURCES) main-cli.c

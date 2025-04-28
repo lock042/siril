@@ -35,7 +35,9 @@
 #include "core/siril_update.h"
 #include "core/siril_app_dirs.h"
 #include "algos/siril_random.h"
+#include "algos/background_extraction.h"
 #include "algos/statistics.h"
+#include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/siril_pythoncommands.h"
@@ -203,8 +205,8 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 		return FALSE;
 	}
 	off_t aligned_size = (total_bytes + page_size - 1) & ~(page_size - 1);
-	printf("SHM allocation: Original size: %zu, Aligned size: %zu, Page size: %ld\n",
-					  total_bytes, aligned_size, page_size);
+	printf("SHM allocation: Original size: %zu, Aligned size: %" G_GOFFSET_FORMAT ", Page size: %ld\n",
+		   total_bytes, aligned_size, page_size);
 
 	siril_debug_print("Truncating shm file to %lu bytes\n", total_bytes);
 
@@ -482,6 +484,17 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	return info;
 }
 
+static gboolean update_sliders_after_set_pixeldata(gpointer user_data) {
+	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
+	double multiplier = gfit.bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE;
+	gui.lo = round_to_WORD(max(0., gfit.mini * multiplier));
+	gui.hi = round_to_WORD(min(65535., gfit.maxi * multiplier));
+	sliders_mode_set_state(gui.sliders);
+	set_cutoff_sliders_max_values();
+	set_cutoff_sliders_values();
+	return FALSE;
+}
+
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
 	if (!conn->thread_claimed) {
 		const char* error_msg = _("Processing thread is not claimed: unable to update the current image. "
@@ -521,7 +534,10 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	// Validate image dimensions and format
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
 		info->channels > 3 || info->size == 0) {
-		gchar* error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %" G_GUINT64_FORMAT), info->width, info->height, info->channels, info->size);
+		gchar size_str[32];
+		g_snprintf(size_str, sizeof(size_str), "%" G_GUINT64_FORMAT, info->size);
+		gchar *error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"), info->width, info->height, info->channels, size_str);
+
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_log_message("Error in send_response\n");
 		g_free(error_msg);
@@ -626,14 +642,23 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 
 	invalidate_stats_from_fit(fit);
+	// Update gfit metadata
+	fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
+	fit->rx = fit->naxes[0] = info->width;
+	fit->ry = fit->naxes[1] = info->height;
+	fit->naxes[2] = info->channels;
 	if (fit == &gfit) {
-		// Update gfit metadata
-		fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
-		fit->rx = fit->naxes[0] = info->width;
-		fit->ry = fit->naxes[1] = info->height;
-		fit->naxes[2] = info->channels;
+		if (!com.headless) {
+			if (g_main_context_is_owner(g_main_context_default())) {
+				// it is safe to call the function directly
+				update_sliders_after_set_pixeldata(NULL);
+			} else {
+				// we aren't in the GTK main thread or a script, so we run the idle and wait for it
+				execute_idle_and_wait_for_it(update_sliders_after_set_pixeldata, NULL);
+			}
+		}
 		siril_debug_print("set_*_pixeldata: updating gfit\n");
-		queue_redraw(REMAP_ALL);
+		redraw(REMAP_ALL);
 	}
 	// Cleanup shared memory
 	#ifdef _WIN32
@@ -699,7 +724,153 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 #endif
 
 	// Plot the data in a siril_plot_window
-	siril_add_idle(create_new_siril_plot_window, plot_data);
+	if (plot_data)
+		siril_add_pythonsafe_idle(create_new_siril_plot_window, plot_data);
+	return send_response(conn, STATUS_OK, NULL, 0);
+}
+
+gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples, gboolean recalculate) {
+	// Open shared memory
+	void* shm_ptr = NULL;
+#ifdef _WIN32
+	win_shm_handle_t win_handle = {NULL, NULL};
+	HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
+	if (mapping == NULL) {
+		const char* error_msg = "Failed to open shared memory mapping";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
+	if (shm_ptr == NULL) {
+		CloseHandle(mapping);
+		const char* error_msg = "Failed to map shared memory view";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	win_handle.mapping = mapping;
+	win_handle.ptr = shm_ptr;
+#else
+	int fd = shm_open(info->shm_name, O_RDONLY, 0);
+	if (fd == -1) {
+		const char* error_msg = _("Failed to open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
+	if (shm_ptr == MAP_FAILED) {
+		close(fd);
+		const char* error_msg = _("Failed to map shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+#endif
+	if (!shm_ptr) {
+		const char* error_msg = _("Error: could not open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Unpack the plot data
+	size_t total_bytes = info->size;
+	size_t nb_samples = total_bytes / sizeof(background_sample);
+	background_sample* samples = (background_sample*) shm_ptr;
+
+	// Build a list of the coords
+	GSList *pts = NULL;
+
+	// Reset the list in com.
+	free_background_sample_list(com.grad_samples);
+	com.grad_samples = NULL;
+
+	// If we need to recalculate, build samples from the positions and call
+	// add_background_samples
+	if (recalculate) {
+		for (int i = 0 ; i < nb_samples ; i++) {
+			point* p = malloc(sizeof(point));
+			memcpy(p, &samples[i].position, sizeof(point));
+			pts = g_slist_append(pts, p);
+		}
+		com.grad_samples = add_background_samples(com.grad_samples, &gfit, pts);
+	}
+	// Otherwise, create copies of each individual sample and add them directly
+	// to com.grad_samples
+	else {
+		for (int i = 0 ; i < nb_samples ; i++) {
+			background_sample *s = malloc(sizeof(background_sample));
+			memcpy(s, (background_sample*) (samples + i), sizeof(background_sample));
+			// protect against zero sample size
+			s->size = s->size ? s->size : SAMPLE_SIZE;
+			com.grad_samples = g_slist_append(com.grad_samples, s);
+		}
+	}
+
+	// Redraw if necessary
+	if (show_samples && !com.headless) {
+		redraw(REDRAW_OVERLAY);
+	}
+
+	// Free the positions list
+	g_slist_free_full(pts, free);
+
+	// Cleanup shared memory
+	#ifdef _WIN32
+	UnmapViewOfFile(shm_ptr);
+	CloseHandle(win_handle.mapping);
+	#else
+	munmap(shm_ptr, info->size);
+	close(fd);
+	#endif
+
+	return send_response(conn, STATUS_OK, NULL, 0);
+}
+
+gboolean handle_set_image_header_request(Connection* conn, const incoming_image_info_t* info) {
+	// Open shared memory
+	void* shm_ptr = NULL;
+	#ifdef _WIN32
+	win_shm_handle_t win_handle = {NULL, NULL};
+	HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
+	if (mapping == NULL) {
+		const char* error_msg = "Failed to open shared memory mapping";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
+	if (shm_ptr == NULL) {
+		CloseHandle(mapping);
+		const char* error_msg = "Failed to map shared memory view";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	win_handle.mapping = mapping;
+	win_handle.ptr = shm_ptr;
+	#else
+	int fd = shm_open(info->shm_name, O_RDONLY, 0);
+	if (fd == -1) {
+		const char* error_msg = _("Failed to open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
+	if (shm_ptr == MAP_FAILED) {
+		close(fd);
+		const char* error_msg = _("Failed to map shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	#endif
+	if (!shm_ptr) {
+		const char* error_msg = _("Error: could not open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Unpack the FITS header string
+	char *header = (char*) shm_ptr;
+	fits_parse_header_str(&gfit, header);
+	update_fits_header(&gfit);
+
+	gui_function(update_MenuItem, NULL);
+
+	// Cleanup shared memory
+	#ifdef _WIN32
+	UnmapViewOfFile(shm_ptr);
+	CloseHandle(win_handle.mapping);
+	#else
+	munmap(shm_ptr, info->size);
+	close(fd);
+	#endif
+
 	return send_response(conn, STATUS_OK, NULL, 0);
 }
 
@@ -860,9 +1031,6 @@ static gboolean wait_for_client(Connection *conn) {
 
 	g_mutex_lock(&conn->mutex);
 	conn->is_connected = TRUE;
-	if (conn->client_connected_callback) {
-		conn->client_connected_callback(conn->user_data);
-	}
 	g_mutex_unlock(&conn->mutex);
 
 	return TRUE;
@@ -921,9 +1089,6 @@ static gboolean wait_for_client(Connection *conn) {
 
 	g_mutex_lock(&conn->mutex);
 	conn->is_connected = TRUE;
-	if (conn->client_connected_callback) {
-		conn->client_connected_callback(conn->user_data);
-	}
 	g_mutex_unlock(&conn->mutex);
 
 	return TRUE;
@@ -945,9 +1110,6 @@ static gboolean handle_client_communication(Connection *conn) {
 			bytes_read == 0) {
 			g_mutex_lock(&conn->mutex);
 			conn->is_connected = FALSE;
-			if (conn->client_disconnected_callback) {
-				conn->client_disconnected_callback(conn->user_data);
-			}
 			g_mutex_unlock(&conn->mutex);
 
 			DisconnectNamedPipe(conn->pipe_handle);
@@ -971,9 +1133,6 @@ static gboolean handle_client_communication(Connection *conn) {
 
 			g_mutex_lock(&conn->mutex);
 			conn->is_connected = FALSE;
-			if (conn->client_disconnected_callback) {
-				conn->client_disconnected_callback(conn->user_data);
-			}
 			g_mutex_unlock(&conn->mutex);
 
 			close(conn->client_fd);
@@ -1309,6 +1468,8 @@ gboolean delete_directory(const gchar *dir_path, GError **error) {
 		return FALSE;
 	}
 
+	siril_debug_print("Deleting %s...\n", dir_path);
+
 	while ((name = g_dir_read_name(dir))) {
 		full_path = g_build_filename(dir_path, name, NULL);
 
@@ -1570,9 +1731,21 @@ cleanup:
 
 void rebuild_venv() {
 	gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
-	GError *error = NULL;
+	gchar *user_module_path = g_build_filename(g_get_user_data_dir(), "siril", ".python_module", NULL);
+	GError *error = NULL, *error2 = NULL;
 	kill_all_python_scripts();
 	delete_directory(venv_path, &error);
+	delete_directory(user_module_path, &error2);
+	g_free(venv_path);
+	g_free(user_module_path);
+	if (error) {
+		siril_log_color_message(error->message, "red");
+		g_error_free(error);
+	}
+	if (error2) {
+		siril_log_color_message(error2->message, "red");
+		g_error_free(error2);
+	}
 	initialize_python_venv_in_thread();
 }
 
@@ -1604,27 +1777,28 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 	gboolean success = FALSE;
 	GError *local_error = NULL;
 	gchar *sys_python_exe = NULL;
+	gchar **argv = NULL;
 
 	// Check if venv exists
 	if (!python_exe) {
 
 #ifdef _WIN32
 		gchar *bundle_python_exe = NULL;
-		sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL); // we want to find system python not mingw64 python
+		const gchar *sirilrootpath = get_siril_bundle_path();
+		printf("Siril bundle path: %s\n", sirilrootpath);
+		bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
+		printf("Bundle python path: %s\n", bundle_python_exe);
+		if (g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE))
+			printf("Python found in bundle: %s\n", bundle_python_exe);
+		else {
+			g_free(bundle_python_exe);
+			bundle_python_exe = NULL;
+		}
+		if (!bundle_python_exe)
+			sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL); // we want to find system python not mingw64 python
+
 		if (sys_python_exe)
 			printf("Python found in system: %s\n", sys_python_exe);
-		if (!sys_python_exe) {
-			const gchar *sirilrootpath = get_siril_bundle_path();
-			printf("Siril bundle path: %s\n", sirilrootpath);
-			bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
-			printf("Bundle python path: %s\n", bundle_python_exe);
-			if (g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE))
-				printf("Python found in bundle: %s\n", bundle_python_exe);
-			else {
-				g_free(bundle_python_exe);
-				bundle_python_exe = NULL;
-			}
-		}
 
 		if (!sys_python_exe && !bundle_python_exe) {
 			siril_log_color_message(_("No python installation found in the system or in the bundle, aborting\n"), "red");
@@ -1640,14 +1814,13 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 		sys_python_exe = g_find_program_in_path(PYTHON_EXE);
 #endif
 
-		gchar **argv = g_new0(gchar*, 6);
+		argv = g_new0(gchar*, 5);
 		argv[0] = sys_python_exe;
 		argv[1] = g_strdup("-m");
 		argv[2] = g_strdup("venv");
-		argv[3] = g_strdup("--system-site-packages");
-		argv[4] = g_strdup(venv_path);
-		argv[5] = NULL;
-		siril_debug_print("Trying venv creation command: %s %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
+		argv[3] = g_strdup(venv_path);
+		argv[4] = NULL;
+		siril_debug_print("Trying venv creation command: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
 		gint exit_status;
 		if (!g_spawn_sync(NULL, argv, NULL,
 						G_SPAWN_SEARCH_PATH,
@@ -1694,7 +1867,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 
 	// Check/create venv
 	if (!check_or_create_venv(project_path, &error)) {
-		siril_log_color_message(_("Failed to initialize Python virtual environment: %s"), "red",
+		siril_log_color_message(_("Failed to initialize Python virtual environment: %s\n"), "red",
 				error ? error->message : "Unknown error");
 		g_clear_error(&error);
 		g_free(project_path);
@@ -1705,7 +1878,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
 	PythonVenvInfo *venv_info = prepare_venv_environment(venv_path);
 	if (!venv_info) {
-		siril_log_color_message(_("Failed to prepare virtual environment"), "red");
+		siril_log_color_message(_("Failed to prepare virtual environment\n"), "red");
 		g_free(venv_path);
 		g_free(project_path);
 		return GINT_TO_POINTER(1);

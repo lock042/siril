@@ -28,6 +28,7 @@
 #include "algos/geometry.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
+#include "io/fits_keywords.h"
 #include "extraction.h"
 
 /******************************************************************************
@@ -223,12 +224,16 @@ void apply_extractGreen_to_sequence(struct simple_extract_data *extract_args) {
 	args->image_hook = extractGreen_image_hook;
 	args->description = _("Extract Green");
 	args->has_output = TRUE;
-	args->new_seq_prefix = extract_args->seqEntry;
+	args->new_seq_prefix = strdup(extract_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;
 	args->user = extract_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(extract_args->seqEntry);
+		free(extract_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 /* Ha Extraction Functions */
@@ -373,12 +378,16 @@ void apply_extractHa_to_sequence(struct simple_extract_data *extract_args) {
 	args->image_hook = extractHa_image_hook;
 	args->description = _("Extract Ha");
 	args->has_output = TRUE;
-	args->new_seq_prefix = extract_args->seqEntry;
+	args->new_seq_prefix = strdup(extract_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;
 	args->user = extract_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(extract_args->seqEntry);
+		free(extract_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 /* Ha-OIII Extraction Functions */
@@ -856,7 +865,7 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	sensor_pattern pattern = get_bayer_pattern(fit);
 	extraction_scaling scaling = *(extraction_scaling*) multi_args->user_data;
 	/* Demosaic and store images for write */
-	struct _multi_split *multi_data = malloc(sizeof(struct _multi_split));
+	struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));
 	multi_data->index = o;
 	multi_data->images = calloc(3, sizeof(fits*));
 	for (int i = 0 ; i < 3 ; i++) {
@@ -905,7 +914,11 @@ void apply_extractHaOIII_to_sequence(struct multi_output_data *multi_args) {
 	args->new_seq_prefix = NULL;
 	args->user = multi_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(multi_args->user_data);
+		free_multi_args(multi_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 /* Split CFA Functions */
@@ -1182,6 +1195,10 @@ void apply_split_cfa_to_sequence(struct multi_output_data *multi_args) {
 	args->new_seq_prefix = NULL;
 	args->user = multi_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		// multi_args->user_data not used in this operation, no need to free
+		free_multi_args(multi_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 

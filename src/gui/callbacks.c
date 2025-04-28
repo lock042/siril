@@ -352,11 +352,10 @@ void unlock_roi_mutex() {
 }
 
 gpointer on_set_roi() {
-	if (gui.roi.selection.w == 0 && gui.roi.selection.h == 0)
+	if (com.selection.w == 0 && com.selection.h == 0)
 		return GINT_TO_POINTER(0);
 	g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 	if (com.python_command) {
-//		on_clear_roi();
 		g_mutex_unlock(&roi_mutex);
 		return GINT_TO_POINTER(0);
 	}
@@ -1569,7 +1568,9 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);
-	initialize_script_menu(TRUE);
+	GThread *thread = g_thread_new("initialize_script_menu",
+					initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+	g_thread_unref(thread);
 
 	/* initialize command processor */
 	init_command();
@@ -2139,11 +2140,13 @@ void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 	set_progress_bar_data(_("Searching for sequences in "
 				"the current working directory..."), PROGRESS_NONE);
 
-	struct checkSeq_filter_data *args = malloc(sizeof(struct checkSeq_filter_data));
+	struct checkSeq_filter_data *args = calloc(1, sizeof(struct checkSeq_filter_data));
 
 	args->retvalue = 0;
 	set_cursor_waiting(TRUE);
-	start_in_new_thread(checkSeq, args);
+	if (!start_in_new_thread(checkSeq, args)) {
+		free(args);
+	}
 }
 
 void on_button_data_ok_clicked(GtkButton *button, gpointer user_data) {
@@ -2360,4 +2363,17 @@ gboolean set_seq_browser_active(gpointer user_data) {
 	GtkWidget *widget = lookup_widget("seqlist_button");
 	gtk_widget_set_sensitive(widget, state);
 	return FALSE;
+}
+
+int seq_qphot(sequence *seq, int layer) {
+	framing_mode framing = REGISTERED_FRAME;
+	if (framing == REGISTERED_FRAME && !seq->regparam[layer])
+		framing = ORIGINAL_FRAME;
+	if (framing == ORIGINAL_FRAME) {
+		GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+		if (gtk_toggle_button_get_active(follow))
+			framing = FOLLOW_STAR_FRAME;
+	}
+	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
+	return seqpsf(seq, layer, FALSE, TRUE, FALSE, framing, TRUE, com.script);
 }

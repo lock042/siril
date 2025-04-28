@@ -84,10 +84,12 @@ gpointer generic_sequence_worker(gpointer p) {
 	float nb_framesf = (float)nb_frames + 0.3f;	// leave margin for rounding errors and post processing
 	args->retval = 0;
 
+#ifdef HAVE_FFMS2
 	// If the sequence is of type SEQ_AVI, lock out the sequence browser as it can cause a crash
 	if (args->seq->type == SEQ_AVI && !com.headless) {
 		gui_function(set_seq_browser_active, GINT_TO_POINTER(0));
 	}
+#endif
 #ifdef _OPENMP
 	// max_parallel_images can be computed by another function too, hence the check
 	if (args->max_parallel_images < 1) {
@@ -279,6 +281,14 @@ gpointer generic_sequence_worker(gpointer p) {
 			free(fit);
 			continue;
 		}
+		// If not reading image, we still load its metadata to fill imgparam
+		if (!read_image && seq_read_frame_metadata(args->seq, input_idx, fit)) {
+			abort = 1;
+			clearfits(fit);
+			free(fit);
+			continue;
+		}
+
 		if (read_image && args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
 			if (args->stop_on_error)
 				abort = 1;
@@ -379,24 +389,45 @@ the_end:
 		args->retval = 1;
 	}
 	int retval = args->retval;	// so we can free args if needed in the idle
+#ifdef HAVE_FFMS2
 	if (args->seq->type == SEQ_AVI && !com.headless)
 		gui_function(set_seq_browser_active, GINT_TO_POINTER(1)); // re-enable the sequence browser if necessary
+#endif
 
 	if (!args->already_in_a_thread) {
 		gboolean run_idle;
 		if (args->idle_function)
-			run_idle = siril_add_idle(args->idle_function, args) > 0;
+			run_idle = siril_add_idle(args->idle_function, args) > 0; // not python safe because of the call to
+					// update_sequences_list, which may be running after the next python command has started
+					// and clobbers things
 		else run_idle = siril_add_idle(end_generic_sequence, args) > 0; // the generic idle
 
 		if (!run_idle) {
 			// some generic cleanup for scripts
-			// should we check for seq = com.seq?
-			free(args->new_seq_prefix);
-			free_sequence(args->seq, TRUE);
-			free(args);
+			// here we make sure the new .seq is created if needed
+			if (args->has_output && args->load_new_sequence &&
+				args->new_seq_prefix && !args->retval) {
+				const gchar *basename = g_path_get_basename(args->seq->seqname);
+				const char *root = remove_ext_from_filename(basename);
+				const gchar *seqname = g_strdup_printf("%s%s%s", args->new_seq_prefix, root, ".seq");
+				gboolean seqfilecreated = create_one_seq(seqname, args->seq->type);
+				if (!seqfilecreated) { // just a fallback
+					check_seq();
+				}
+			}
+			free_generic_seq_args(args, TRUE);
+			// we then make sure we stop the thread and reset cursor to FALSE
+			end_generic(NULL);
 		}
 	}
 	return GINT_TO_POINTER(retval);
+}
+
+void free_generic_seq_args(struct generic_seq_args *args, gboolean free_seq) {
+	free(args->new_seq_prefix);
+	if (free_seq && !check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free(args);
 }
 
 // default idle function (in GTK main thread) to run at the end of the generic sequence processing
@@ -414,12 +445,9 @@ gboolean end_generic_sequence(gpointer p) {
 	}
 	// frees new_seq_prefix. This means that new_seq_prefix (or the seqEntry
 	// string in function-specific structs) *must* always be allocated using
-	// a freeable function, i.e. char* seqEntry = strdup("prefix_"); rather
-	// than char* seqEntry = "prefix_";
-	free(args->new_seq_prefix);
-	if (!check_seq_is_comseq(args->seq))
-		free_sequence(args->seq, TRUE);
-	free(p);
+	// a stdlib freeable function, i.e. char* seqEntry = strdup("prefix_");
+	// rather than char* seqEntry = "prefix_";
+	free_generic_seq_args(args, TRUE);
 	return end_generic(NULL);
 }
 
@@ -484,7 +512,7 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 			dest = g_strdup_printf("%s%s.ser", args->new_seq_prefix, ptr + 1);
 		else dest = g_strdup_printf("%s%s.ser", args->new_seq_prefix, args->seq->seqname);
 
-		args->new_ser = malloc(sizeof(struct ser_struct));
+		args->new_ser = calloc(1, sizeof(struct ser_struct));
 		if (ser_create_file(dest, args->new_ser, TRUE, args->seq->ser_file)) {
 			free(args->new_ser);
 			args->new_ser = NULL;
@@ -499,7 +527,7 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 			dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, ptr + 1, com.pref.ext);
 		else dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, args->seq->seqname, com.pref.ext);
 
-		args->new_fitseq = malloc(sizeof(fitseq));
+		args->new_fitseq = calloc(1, sizeof(fitseq));
 		if (fitseq_create_file(dest, args->new_fitseq, args->nb_filtered_images)) {
 			free(args->new_fitseq);
 			args->new_fitseq = NULL;
@@ -621,15 +649,17 @@ int multi_prepare(struct generic_seq_args *args) {
 	multi_args->new_fitseq = calloc(n, sizeof(char*));
 	// we call the generic prepare n times with different prefixes
 	for (int i = 0 ; i < n ; i++) {
-		args->new_seq_prefix = multi_args->prefixes[i];
+		args->new_seq_prefix = strdup(multi_args->prefixes[i]);
 		if (seq_prepare_hook(args))
 			return 1;
 		// but we copy the result between each call
 		multi_args->new_ser[i] = args->new_ser;
 		multi_args->new_fitseq[i] = args->new_fitseq;
+		free(args->new_seq_prefix);
+		args->new_seq_prefix = NULL;
 	}
 
-	args->new_seq_prefix = multi_args->prefixes[multi_args->new_seq_index];
+	args->new_seq_prefix = strdup(multi_args->prefixes[multi_args->new_seq_index]);
 	args->new_ser = NULL;
 	args->new_fitseq = NULL;
 
@@ -717,6 +747,13 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 	free(multi_data);
 	return retval;
 }
+void free_multi_args(struct multi_output_data *multi_args) {
+	for (int i = 0 ; i < multi_args->n ; i++) {
+		g_free(multi_args->prefixes[i]);
+	}
+	free(multi_args->prefixes);
+	free(multi_args);
+}
 
 int multi_finalize(struct generic_seq_args *args) {
 	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
@@ -748,14 +785,15 @@ static gboolean thread_being_waited = FALSE;
 
 // This function is reentrant. The pointer will be freed in the idle function,
 // so it must be a proper pointer to an allocated memory chunk.
-void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
+gboolean start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
 
 	if (com.run_thread || com.python_claims_thread || com.thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
-		free(p);
-		return;
+		// We can't free p here as it may have unknown members. We must
+		// indicate failure and allow the caller to clean up
+		return FALSE;
 	}
 
 	com.run_thread = TRUE;
@@ -774,15 +812,15 @@ void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
+	return TRUE; // indicate success
 }
 
-void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
+gboolean start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
 	if (com.thread || com.python_claims_thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
-		free(p);
-		return;
+		return FALSE;
 	}
 
 	com.run_thread = TRUE;
@@ -798,6 +836,7 @@ void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
+	return TRUE;
 }
 
 gpointer waiting_for_thread() {
@@ -849,6 +888,7 @@ void stop_processing_thread() {
 	set_thread_run(FALSE);
 	if (!thread_being_waited)
 		waiting_for_thread();
+	set_cursor_waiting(FALSE);
 }
 
 static void set_thread_run(gboolean b) {
@@ -895,6 +935,14 @@ gboolean end_generic(gpointer arg) {
  * return 0 if idle was not added
  */
 guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
+	if (!com.script && !com.python_command && !com.headless)
+		return gdk_threads_add_idle(idle_function, data);
+	return 0;
+}
+
+/* Must only ever be used for GTK updates. Do not call any functions that mess about
+ * with files using this idle, it can break python scripts */
+guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data) {
 	if (!com.script && !com.headless)
 		return gdk_threads_add_idle(idle_function, data);
 	return 0;
@@ -948,9 +996,6 @@ void remove_child_from_children(GPid pid) {
 		prev = iter;
 		iter = iter->next;
 	}
-
-	// If we get here, no matching PID was found
-	siril_debug_print("Failed to find GPid %d in com.children\n", pid);
 }
 
 // kills external calls

@@ -129,7 +129,7 @@ static int satu_process_all() {
 	else if (gui.roi.active)
 		restore_roi();
 
-	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
+	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
 	satu_set_hues_from_types(args, satu_hue_type);
 
 	args->input = &gfit;
@@ -139,7 +139,8 @@ static int satu_process_all() {
 	args->for_preview = TRUE;
 	args->for_final = TRUE;
 
-	start_in_new_thread(enhance_saturation, args);
+	if (!start_in_new_thread(enhance_saturation, args))
+		free(args);
 
 	return 0;
 }
@@ -155,7 +156,7 @@ static int satu_update_preview() {
 		copy_backup_to_gfit();
 	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
 
-	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
+	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
 	satu_set_hues_from_types(args, satu_hue_type);
 
 	args->input = fit;
@@ -165,14 +166,16 @@ static int satu_update_preview() {
 	args->for_preview = TRUE;
 	args->for_final = FALSE;
 
-	start_in_new_thread(enhance_saturation, args);
+	if (!start_in_new_thread(enhance_saturation, args))
+		free(args);
 
 	return 0;
 }
 
-void on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
+gboolean on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
 	satu_close(TRUE);
 	siril_close_dialog("satu_dialog");
+	return FALSE;
 }
 
 void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {

@@ -52,8 +52,7 @@ static GtkWidget *menuscript = NULL;
 static GSList *initialize_script_paths(){
 	GSList *list = NULL;
 #ifdef _WIN32
-	list = g_slist_prepend(list, g_build_filename(get_special_folder(CSIDL_APPDATA), "siril",
-					"scripts", NULL));
+	list = g_slist_prepend(list, g_build_filename(get_special_folder(CSIDL_APPDATA), "siril", "scripts", NULL));
 
 	gchar *execpath = g_win32_get_package_installation_directory_of_module(NULL);
 
@@ -62,7 +61,7 @@ static GSList *initialize_script_paths(){
 #else
 	list = g_slist_prepend(list, g_build_filename(siril_get_system_data_dir(), "scripts", NULL));
 	if (g_getenv("XDG_CONFIG_HOME") != NULL) {
-		list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), getenv("XDG_CONFIG_HOME"), "scripts", NULL));
+		list = g_slist_prepend(list, g_build_filename(getenv("XDG_CONFIG_HOME"), "scripts", NULL));
 	}
 	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), ".siril", "scripts", NULL));
 	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), "siril", "scripts", NULL));
@@ -239,7 +238,6 @@ int initialize_script_menu(gboolean verbose) {
 #ifdef HAVE_LIBGIT2
 	GList *ss;
 #endif
-	gint nb_item = 0;
 
 	if (!menuscript)
 		menuscript = lookup_widget("header_scripts_button");
@@ -258,6 +256,13 @@ int initialize_script_menu(gboolean verbose) {
 	GtkWidget *sep = gtk_separator_menu_item_new();
 	GtkWidget *menu_item_pythonpad = gtk_menu_item_new_with_label(_("Script Editor..."));
 	g_signal_connect(G_OBJECT(menu_item_pythonpad), "activate", G_CALLBACK(on_open_pythonpad), NULL);
+	GtkWidget *menu_item_pythondebug = gtk_check_menu_item_new_with_label(_("Enable Python debug mode"));
+	GObject *existing = gtk_builder_get_object(gui.builder, "pythondebugtoggle");
+	if (!existing) {
+		gtk_builder_expose_object(gui.builder, "pythondebugtoggle", G_OBJECT(menu_item_pythondebug));
+	}
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_item_pythondebug), FALSE);
+	g_signal_connect(G_OBJECT(menu_item_pythondebug), "toggled", G_CALLBACK(on_pythondebug_toggled), NULL);
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_ssf);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item_ssf), menu_ssf);
@@ -273,6 +278,9 @@ int initialize_script_menu(gboolean verbose) {
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythonpad);
 	gtk_widget_show(menu_item_pythonpad);
 
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythondebug);
+	gtk_widget_show(menu_item_pythondebug);
+
 	gchar *previous_directory_ssf = NULL;
 	gchar *previous_directory_py = NULL;
 	gboolean first_item_ssf = TRUE;
@@ -282,50 +290,57 @@ int initialize_script_menu(gboolean verbose) {
 		list = search_script(s->data);
 		if (list) {
 			if (verbose)
-				siril_log_color_message(_("Searching scripts in: \"%s\"...\n"), "green", s->data);
+				siril_log_color_message(_("Searching for scripts in: \"%s\"...\n"), "green", s->data);
 
 			for (GSList *l = list; l; l = l->next) {
-				nb_item++;
 				GtkWidget *menu_item;
 
 				gchar *display_name = g_strdup(l->data);
 				const gchar *extension = get_filename_ext(display_name);
 				gchar *current_directory = g_path_get_dirname(s->data);
 
-				if (extension && g_strcmp0(extension, SCRIPT_EXT) == 0) {
-					if (!first_item_ssf && (!previous_directory_ssf || g_strcmp0(current_directory, previous_directory_ssf) != 0)) {
-						GtkWidget *separator = gtk_separator_menu_item_new();
-						gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), separator);
-						gtk_widget_show(separator);
+				if (extension) {
+					gboolean match_ssf = !g_strcmp0(extension, SCRIPT_EXT);
+					gboolean match_py = !g_strcmp0(extension, PYSCRIPT_EXT);
+					gboolean match_pyc = !g_strcmp0(extension, PYCSCRIPT_EXT);
+					if (match_ssf) {
+						if (!first_item_ssf && (!previous_directory_ssf || g_strcmp0(current_directory, previous_directory_ssf) != 0)) {
+							GtkWidget *separator = gtk_separator_menu_item_new();
+							gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), separator);
+							gtk_widget_show(separator);
+						}
+						first_item_ssf = FALSE;
+						g_free(previous_directory_ssf);
+						previous_directory_ssf = g_strdup(current_directory);
+					} else {
+						if ( match_py || match_pyc) {
+							if (!first_item_py && (!previous_directory_py || g_strcmp0(current_directory, previous_directory_py) != 0)) {
+								GtkWidget *separator = gtk_separator_menu_item_new();
+								gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), separator);
+								gtk_widget_show(separator);
+							}
+							first_item_py = FALSE;
+							g_free(previous_directory_py);
+							previous_directory_py = g_strdup(current_directory);
+						}
 					}
-					first_item_ssf = FALSE;
-					g_free(previous_directory_ssf);
-					previous_directory_ssf = g_strdup(current_directory);
-				} else if (extension && ((g_strcmp0(extension, PYSCRIPT_EXT) == 0) || (g_strcmp0(extension, PYCSCRIPT_EXT) == 0)) == 0) {
-					if (!first_item_py && (!previous_directory_py || g_strcmp0(current_directory, previous_directory_py) != 0)) {
-						GtkWidget *separator = gtk_separator_menu_item_new();
-						gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), separator);
-						gtk_widget_show(separator);
+
+					menu_item = gtk_menu_item_new_with_label(display_name);
+					gchar *full_path = g_build_filename(s->data, l->data, NULL);
+
+					if (match_ssf) {
+						gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
+					} else if (match_py || match_pyc) {
+						gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), menu_item);
 					}
-					first_item_py = FALSE;
-					g_free(previous_directory_py);
-					previous_directory_py = g_strdup(current_directory);
+
+					g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), full_path);
+					if (verbose)
+						siril_log_message(_("Loading script: %s\n"), l->data);
+
+					gtk_widget_show(menu_item);
 				}
 				g_free(current_directory);
-
-				menu_item = gtk_menu_item_new_with_label(display_name);
-				gchar *full_path = g_build_filename(s->data, l->data, NULL);
-
-				if (extension && g_strcmp0(extension, SCRIPT_EXT) == 0) {
-					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
-				} else if (extension && ((g_strcmp0(extension, PYSCRIPT_EXT) == 0) || (g_strcmp0(extension, PYCSCRIPT_EXT) == 0)) == 0) {
-					gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), menu_item);
-				}
-				g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), full_path);
-				if (verbose)
-					siril_log_message(_("Loading script: %s\n"), l->data);
-
-				gtk_widget_show(menu_item);
 				g_free(display_name);
 			}
 			g_slist_free_full(list, g_free);
@@ -335,10 +350,12 @@ int initialize_script_menu(gboolean verbose) {
 	g_free(previous_directory_py);
 
 	#ifdef HAVE_LIBGIT2
+	// Wait for git repository update to complete during startup
 	if (com.update_scripts_thread) {
 		g_thread_join(com.update_scripts_thread);
 		com.update_scripts_thread = NULL;
 	}
+	// Add scripts from the selections made in preferences
 	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
 		GList *new_list = NULL;
 		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
@@ -349,7 +366,6 @@ int initialize_script_menu(gboolean verbose) {
 				continue;
 			}
 
-			nb_item++;
 			gboolean included = FALSE;
 			GList *iterator;
 			for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
@@ -449,7 +465,7 @@ int refresh_script_menu(gboolean verbose) {
 
 int refresh_scripts(gboolean update_list, gchar **error) {
 	gchar *err = NULL;
-	int retval;
+	int retval = 0;
 	GSList *list = get_list_from_preferences_dialog();
 	if (list == NULL) {
 		err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
@@ -457,12 +473,18 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	} else {
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-		retval = initialize_script_menu(TRUE);
+		refresh_script_menu(1);
 	}
 	if (error) {
 		*error = err;
 	}
 	return retval;
+}
+
+gpointer initialize_script_menu_in_thread(gpointer data) {
+	gboolean state = (gboolean) GPOINTER_TO_INT(data);
+	initialize_script_menu(state);
+	return GINT_TO_POINTER(0);
 }
 
 GSList *get_list_from_preferences_dialog() {

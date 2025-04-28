@@ -380,6 +380,12 @@ void describe_stack_for_history(struct stacking_args *args, GSList **hist, gbool
 		else  g_string_append(str, ", unequalized RGB");
 	}
 
+	if (args->filtering_criterion) {
+		gchar *descr = describe_filter_for_history(args->seq, args->filtering_criterion, args->filtering_parameter);
+		g_string_append_printf(str, ", %s", descr);
+		g_free(descr);
+	}
+
 	*hist = g_slist_append(*hist, g_string_free(str, FALSE));
 }
 
@@ -583,14 +589,12 @@ static gint list_date_compare(gconstpointer *a, gconstpointer *b) {
 void compute_date_time_keywords(GList *list_date, fits *fit) {
 	if (!list_date)
 		return;
-	GDateTime *date_obs;
 	gdouble start, end;
 	/* First we want to sort the list */
 	list_date = g_list_sort(list_date, (GCompareFunc) list_date_compare);
 
 	/* go to the first stacked image and get needed values */
 	list_date = g_list_first(list_date);
-	date_obs = g_date_time_ref(((DateEvent *)list_date->data)->date_obs);
 	start = date_time_to_Julian(((DateEvent *)list_date->data)->date_obs);
 
 	/* go to the last stacked image and get needed values
@@ -607,7 +611,6 @@ void compute_date_time_keywords(GList *list_date, fits *fit) {
 	g_date_time_unref(corrected_last_date);
 
 	/* we address the computed values to the keywords */
-	fit->keywords.date_obs = date_obs;
 	fit->keywords.expstart = start;
 	fit->keywords.expend = end;
 }

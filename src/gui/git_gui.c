@@ -161,14 +161,14 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
  * It is executed safely in the GTK thread if as_idle is true. */
 void fill_script_repo_list(gboolean as_idle) {
 
-	GtkTreeView *tview = GTK_TREE_VIEW(lookup_widget("treeview2"));
+	GtkTreeView *tview = GTK_TREE_VIEW(lookup_widget("treeview_scripts"));
 	if (as_idle)
 		gdk_threads_add_idle(fill_script_repo_list_idle, tview);
 	else
 		fill_script_repo_list_idle(tview);
 }
 
-void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
+void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
                                 GtkTreeViewColumn *column, gpointer user_data) {
 	gchar *scriptname = NULL, *scriptpath = NULL;
 	gchar *contents = NULL;
@@ -176,7 +176,7 @@ void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 	GError *error = NULL;
 	GtkTreeIter iter;
 	GtkTreeModel *model =
-		gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview2")));
+		gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
 
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
@@ -188,7 +188,6 @@ void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 			gtk_label_set_text(script_label, scriptname);
 			gtk_text_buffer_set_text(script_textbuffer, contents, (gint)length);
 			g_free(contents);
-			g_error_free(error);
 			siril_open_dialog("script_contents_dialog");
 		} else {
 			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
@@ -198,6 +197,9 @@ void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 			g_error_free(error);
 		}
 	}
+	g_free(scriptname);
+	g_free(scriptpath);
+
 }
 
 void on_script_text_close_clicked(GtkButton *button, gpointer user_data) {
@@ -210,44 +212,46 @@ void on_manual_script_sync_button_clicked(GtkButton *button,
 	set_cursor_waiting(TRUE);
 
 	switch (preview_scripts_update(&git_pending_commit_buffer)) {
-	case 1:
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
-		return;
-	case 2:
-		// Merge cannot be fast forwarded
-		if (!siril_confirm_dialog(
-				_("Warning!"),
-				_("Merge analysis shows that "
-				"the merge cannot be fast-forwarded. This indicates you have "
-				"made changes to the local repository. Siril does not "
-				"provide full git functionality and cannot be used to merge "
-				"upstream updates into an altered local repository.\n\nIf you "
-				"accept the update, the local repository will be hard reset "
-				"to match the remote repository and any local changes will "
-				"be lost.\n\nIf you have made local changes that you wish to "
-				"keep, you should cancel this update and copy your modified "
-				"scripts to another location, and add this location to the "
-				"list of script directories to be searched."),
-				_("Accept"))) {
-		g_string_free(git_pending_commit_buffer, TRUE);
-		return;
-		} else {
-		reset_scripts_repository();
-		g_string_free(git_pending_commit_buffer, TRUE);
-		return;
-		}
-	default:
-		break;
+		case 1:
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
+			return;
+		case 2:
+			// Merge cannot be fast forwarded
+			if (!siril_confirm_dialog(
+					_("Warning!"),
+					_("Merge analysis shows that "
+					"the merge cannot be fast-forwarded. This indicates you have "
+					"made changes to the local repository. Siril does not "
+					"provide full git functionality and cannot be used to merge "
+					"upstream updates into an altered local repository.\n\nIf you "
+					"accept the update, the local repository will be hard reset "
+					"to match the remote repository and any local changes will "
+					"be lost.\n\nIf you have made local changes that you wish to "
+					"keep, you should cancel this update and copy your modified "
+					"scripts to another location, and add this location to the "
+					"list of script directories to be searched."),
+					_("Accept"))) {
+				g_string_free(git_pending_commit_buffer, TRUE);
+				return;
+			} else {
+				reset_scripts_repository();
+				if (git_pending_commit_buffer)
+					g_string_free(git_pending_commit_buffer, TRUE);
+				fill_script_repo_list(FALSE);
+				return;
+			}
+		default:
+			break;
 	}
 	if (git_pending_commit_buffer != NULL) {
 		if (siril_confirm_data_dialog(
 				GTK_MESSAGE_QUESTION, _("Manual Update"),
 				_("Read and confirm the pending changes to be synced"),
 				_("Confirm"), git_pending_commit_buffer->str)) {
-		if (reset_scripts_repository()) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! Script database failed to update."));
-		}
-		fill_script_repo_list(FALSE);
+			if (reset_scripts_repository()) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! Script database failed to update."));
+			}
+			fill_script_repo_list(FALSE);
 		} else {
 		siril_message_dialog(
 			GTK_MESSAGE_INFO, _("Manual Update"),
@@ -257,7 +261,7 @@ void on_manual_script_sync_button_clicked(GtkButton *button,
 	} else {
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The script repository is up to date."));
 	}
-	fill_script_repo_list(TRUE);
+	fill_script_repo_list(FALSE);
 	set_cursor_waiting(FALSE);
 }
 
@@ -330,7 +334,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 	GtkTreeModel *model;
 	gchar *script_path = NULL;
 	path = gtk_tree_path_new_from_string(char_path);
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview2")));
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
 	if (gtk_tree_model_get_iter(model, &iter, path) == FALSE)
 		return;
 	gtk_tree_model_get(model, &iter, 3, &script_path, -1);
@@ -360,7 +364,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 }
 
 void on_disable_gitscripts() {
-	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview2")));
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
 	GtkListStore *liststore = GTK_LIST_STORE(model);
 	com.pref.use_scripts_repository = FALSE;
 	gtk_list_store_clear(liststore);
@@ -381,7 +385,7 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 	}
 	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.use_scripts_repository);
 	gtk_widget_set_sensitive(lookup_widget("manual_script_sync_button"), (com.pref.use_scripts_repository && gui.script_repo_available));
-	gtk_widget_set_sensitive(lookup_widget("treeview2"), (com.pref.use_scripts_repository && gui.script_repo_available));
+	gtk_widget_set_sensitive(lookup_widget("treeview_scripts"), (com.pref.use_scripts_repository && gui.script_repo_available));
 }
 
 void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -410,7 +414,7 @@ void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	return;
 }
 
-void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
+void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
                                 GtkTreeViewColumn *column, gpointer user_data) {
 	return;
 }

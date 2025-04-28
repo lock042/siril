@@ -16,6 +16,7 @@ struct starfinder_data {
 	int layer;
 	int max_stars_fitted;
 	gboolean save_to_file;	// generate starfile if TRUE and in sequence
+	rectangle selection; // area to search for stars
 	/******* saving the star list with equatorial coordinates *******/
 	int reference_image;	// index of the image in the sequence
 	gboolean save_eqcoords;	// save equatorial coordinates in it
@@ -31,6 +32,7 @@ struct starfinder_data {
 	gboolean process_all_images;	// for sequence operation
 	gboolean already_in_thread;
 	gboolean keep_stars; // TRUE to avoid freeing stars in findstar_worker
+	gboolean onepass;	// identifies if we need to free stars and nb_stars
 };
 
 struct star_candidate_struct {

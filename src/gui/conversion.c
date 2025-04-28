@@ -209,9 +209,9 @@ static void initialize_convert() {
 	 * list with g_list_reverse() when all elements have been added. */
 	list = g_list_reverse(list);
 	/* convert the list to an array for parallel processing */
-	char **files_to_convert = glist_to_array(list, &count);
+	gchar **files_to_convert = glist_to_array(list, &count);
 
-	struct _convert_data *args = malloc(sizeof(struct _convert_data));
+	struct _convert_data *args = calloc(1, sizeof(struct _convert_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		g_strfreev(files_to_convert);
@@ -236,7 +236,10 @@ static void initialize_convert() {
 	args->output_type = output_type;
 	args->multiple_output = multiple;
 	gettimeofday(&(args->t_start), NULL);
-	start_in_new_thread(convert_thread_worker, args);
+	if (!start_in_new_thread(convert_thread_worker, args)) {
+		g_strfreev(args->list);
+		g_free(args->destroot);
+	}
 	return;
 }
 
@@ -566,7 +569,7 @@ void process_destroot(sequence_type output_type) {
 	}
 
 	if (seq_exists && !warning_is_displayed) {
-		set_icon_entry(convroot_entry, "gtk-dialog-warning");
+		set_icon_entry(convroot_entry, "dialog-warning");
 		warning_is_displayed = TRUE;
 	}
 	else if (!seq_exists && warning_is_displayed) {

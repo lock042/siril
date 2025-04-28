@@ -856,6 +856,15 @@ void read_fits_date_obs_header(fits *fit) {
 	}
 
 	fit->keywords.date_obs = FITS_date_to_date_time(date_obs);
+
+	/** Seen in some files, MJD-OBS is use */
+	if (fit->keywords.date_obs == NULL) {
+		double mjd_obs = 0.0;
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "MJD-OBS", &mjd_obs, NULL, &status);
+		if (status == 0)
+			fit->keywords.date_obs = Julian_to_date_time(mjd_obs);
+	}
 }
 
 static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
@@ -1293,7 +1302,9 @@ void start_sequence_keywords(sequence *seq, struct keywords_data *args) {
 		return;
 	}
 	seqargs->user = args;
-	start_in_new_thread(generic_sequence_worker, seqargs);
+	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
+		free_generic_seq_args(seqargs, TRUE);
+	}
 }
 
 
@@ -1316,4 +1327,8 @@ int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry) {
 		return 0;
 	}
 	return 1;
+}
+
+void clear_Bayer_information(fits *fit) {
+	memset(fit->keywords.bayer_pattern, 0, FLEN_VALUE);
 }

@@ -283,6 +283,9 @@ static void histo_recompute() {
 				memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
 			}
 		}
+		// WARNING: the following section is *ONLY* applicable to autostretch. It should
+		// not be copied into any other code as it will mess things up if the image
+		// ICC profile is not the same as the monitor ICC profile.
 		cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = copyICCProfile(gui.icc.monitor);
@@ -290,6 +293,7 @@ static void histo_recompute() {
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = copyICCProfile(temp);
 		cmsCloseProfile(temp);
+		////////////////////////////////////////////////////////////////////////////////
 		if (depth == 1) {
 			size_t npixels = fit->rx * fit->ry;
 			if (fit->type == DATA_FLOAT) {
@@ -746,6 +750,8 @@ void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 			graph_height = bin_val;
 		current_bin++;
 	} while (i < nb_orig_bins && current_bin < nb_bins_allocated);
+	if (!graph_height)
+		return;
 	for (i = 0; i < nb_bins_allocated; i++) {
 		double bin_height = height - height * displayed_values[i] / graph_height;
 		cairo_line_to(cr, i, bin_height);
@@ -1179,12 +1185,13 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 	compute_histo_for_gfit();
 }
 
-void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
+gboolean on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 	closing = TRUE;
 	set_cursor_waiting(TRUE);
 	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("histogram_dialog");
+	return FALSE;
 }
 
 void on_button_histo_reset_clicked(GtkButton *button, gpointer user_data) {
@@ -1224,13 +1231,15 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		/* Apply to the whole sequence */
 		sequence_working = TRUE;
 		if (invocation == HISTO_STRETCH) {
-			struct mtf_data *args = malloc(sizeof(struct mtf_data));
+			struct mtf_data *args = calloc(1, sizeof(struct mtf_data));
 			struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 			fprintf(stdout, "%d %d %d\n", params.do_red, params.do_green, params.do_blue);
 			args->params = params;
-			args->seqEntry = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq"))));
-			if (args->seqEntry && args->seqEntry[0] == '\0')
+			args->seqEntry = strdup(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq"))));
+			if (args->seqEntry && args->seqEntry[0] == '\0') {
+				free(args->seqEntry);
 				args->seqEntry = strdup("stretch_");
+			}
 			args->seq = &com.seq;
 		/* here it is a bit tricky.
 		 * It is better to first close the window as it is a liveview tool
@@ -1243,7 +1252,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			gtk_toggle_button_set_active(seq_button, FALSE);
 			apply_mtf_to_sequence(args);
 		} else if (invocation == GHT_STRETCH) {
-			struct ght_data *args = malloc(sizeof(struct ght_data));
+			struct ght_data *args = calloc(1, sizeof(struct ght_data));
 			struct ght_params *params = malloc(sizeof(struct ght_params));
 			params->B = _B;
 			params->D = _D;
@@ -1259,8 +1268,10 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->params_ght = params;
 			const gchar* temp = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
 			args->seqEntry = strdup(temp);
-			if (args->seqEntry && args->seqEntry[0] == '\0')
+			if (args->seqEntry && args->seqEntry[0] == '\0') {
+				free(args->seqEntry);
 				args->seqEntry = strdup("stretch_");
+			}
 			args->seq = &com.seq;
 		/* here it is a bit tricky.
 		 * It is better to first close the window as it is a liveview tool
@@ -1980,13 +1991,17 @@ void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 	args->stop_on_error = FALSE;
 	args->description = _("Midtone Transfer Function");
 	args->has_output = TRUE;
-	args->new_seq_prefix = mtf_args->seqEntry;
+	args->new_seq_prefix = strdup(mtf_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = mtf_args;
 
 	mtf_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(mtf_args->seqEntry);
+		free(mtf_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 int ght_finalize_hook(struct generic_seq_args *args) {
@@ -2010,13 +2025,17 @@ void apply_ght_to_sequence(struct ght_data *ght_args) {
 	args->stop_on_error = FALSE;
 	args->description = _("Generalised Hyperbolic Transfer Function");
 	args->has_output = TRUE;
-	args->new_seq_prefix = ght_args->seqEntry;
+	args->new_seq_prefix = strdup(ght_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = ght_args;
 
 	ght_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if(!start_in_new_thread(generic_sequence_worker, args)) {
+		free(ght_args->seqEntry);
+		free(ght_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 void on_histo_preview_toggled(GtkToggleButton *button, gpointer user_data) {

@@ -514,7 +514,7 @@ static int start_global_registration(sequence *seq) {
 	args->has_output = reg_rotates;
 	args->output_type = get_data_type(seq->bitpix);
 	args->upscale_ratio = 1.0;
-	args->new_seq_prefix = regargs.prefix;
+	args->new_seq_prefix = strdup(regargs.prefix);
 	args->load_new_sequence = FALSE;
 	args->already_in_a_thread = TRUE;
 	if (!sadata) {
@@ -533,7 +533,7 @@ static int start_global_registration(sequence *seq) {
 	regparam_bkp = seq->regparam[regargs.layer];
 	seq->regparam[regargs.layer] = NULL;
 	free_sequence(seq, FALSE);
-
+	free(regargs.sfargs);
 	return retval || !sadata->success[1];
 }
 
@@ -595,14 +595,16 @@ static gpointer live_stacker(gpointer arg) {
 			/* we want to load the image while avoiding GTK+ calls
 			 * from this thread, setting com.script is a hack to
 			 * avoid this, but this doesn't display the loaded
-			 * image, so we still need the extra idle in
-			 * complete_image_loading
+			 * image, so we still need the extra idle called by
+			 * execute_idle_and_wait_for_it() (this immediately
+			 * returns if headless)
 			 */
 			gboolean script_bkp = com.script;
 			com.script = TRUE;
 			open_single_image(filename);
 			com.script = script_bkp;
-			complete_image_loading();
+			if (!com.headless)
+				execute_idle_and_wait_for_it(end_image_loading, NULL);
 		}
 
 		siril_debug_print("Adding file to input sequence\n");
@@ -656,6 +658,7 @@ static gpointer live_stacker(gpointer arg) {
 				index++;
 				livestacking_display(_("Waiting for second image"), FALSE);
 				livestacking_update_number_of_images(1, gfit.keywords.exposure, -1.0, NULL);
+				free(seq.seqname);
 				continue;
 			}
 			first_loop = FALSE;
@@ -807,7 +810,7 @@ static gpointer live_stacker(gpointer arg) {
 				gdk_threads_add_idle(livestacking_first_result_idle, NULL);
 				first_stacking_result = FALSE;
 			} else {
-				queue_redraw(REMAP_ALL);
+				queue_redraw(REMAP_ALL); // TODO: is this safe enough if the livestacking is running from a python command?
 			}
 		}
 		g_free(result_filename);

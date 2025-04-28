@@ -143,7 +143,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_sampling_tolerance">
-    <property name="lower">10</property>
+    <property name="lower">1</property>
     <property name="upper">50</property>
     <property name="value">20</property>
     <property name="step-increment">1</property>
@@ -1516,7 +1516,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="double-buffered">False</property>
                                         <property name="halign">start</property>
                                         <property name="label" translatable="yes">Gaia astrometric extract:</property>
                                       </object>
@@ -1529,25 +1528,11 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="double-buffered">False</property>
                                         <property name="halign">start</property>
                                         <property name="label" translatable="yes">Gaia photometric extract:</property>
                                       </object>
                                       <packing>
                                         <property name="left-attach">2</property>
-                                        <property name="top-attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkFileChooserButton" id="localcatalogue_path5">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="tooltip-text" translatable="yes">Specify the location of the Siril astrometric extract of the Gaia DR3 catalogue, used for plate solving</property>
-                                        <property name="double-buffered">False</property>
-                                        <property name="title" translatable="yes">gaia_astrometric.dat</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">1</property>
                                         <property name="top-attach">2</property>
                                       </packing>
                                     </child>
@@ -1561,6 +1546,18 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">3</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="localcatalogue_path5">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Specify the location of the Siril astrometric extract of the Gaia DR3 catalogue, used for plate solving</property>
+                                        <property name="title" translatable="yes">gaia_astrometric.dat</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
                                         <property name="top-attach">2</property>
                                       </packing>
                                     </child>
@@ -3310,7 +3307,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkBox" id="user_page">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
@@ -4068,7 +4065,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkScrolledWindow" id="cm_page">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="hscrollbar-policy">never</property>
@@ -4909,7 +4906,7 @@ assign a linear ICC profile. This is technically correct but generally unnecessa
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkScrolledWindow" id="scripts_page">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="shadow-type">in</property>
@@ -4918,7 +4915,7 @@ assign a linear ICC profile. This is technically correct but generally unnecessa
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <child>
-                          <object class="GtkBox" id="scripts_page">
+                          <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="orientation">vertical</property>
@@ -5159,7 +5156,7 @@ Activating the repository will take place immediately, so that you can select sc
                                         <property name="min-content-height">200</property>
                                         <property name="max-content-height">350</property>
                                         <child>
-                                          <object class="GtkTreeView" id="treeview2">
+                                          <object class="GtkTreeView" id="treeview_scripts">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to view the script description and code.</property>
@@ -5170,7 +5167,7 @@ Activating the repository will take place immediately, so that you can select sc
                                             <property name="search-column">1</property>
                                             <property name="show-expanders">False</property>
                                             <property name="enable-grid-lines">horizontal</property>
-                                            <signal name="row-activated" handler="on_treeview2_row_activated" swapped="no"/>
+                                            <signal name="row-activated" handler="on_treeview_scripts_row_activated" swapped="no"/>
                                             <child internal-child="selection">
                                               <object class="GtkTreeSelection"/>
                                             </child>

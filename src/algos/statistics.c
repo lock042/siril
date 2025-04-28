@@ -57,15 +57,6 @@
 #undef siril_debug_print
 #define siril_debug_print(fmt, ...) { }
 
-/* Activating nullcheck will treat pixels with 0 value as null and remove them
- * from stats computation. This can be useful when a large area is black, but
- * this shouldn't happen often. Maybe we could detect it instead of hardcoding
- * it...
- * Deactivating this will take less memory and make a faster statistics
- * computation. ngoodpix will be equal to total if deactivated.
- * Set to 0 to deactivate or 1 to activate. */
-#define ACTIVATE_NULLCHECK 1
-
 static void stats_set_default_values(imstats *stat);
 
 // copies the area of an image into the memory buffer data
@@ -163,8 +154,7 @@ static double siril_stats_ushort_bwmv(const WORD* data, const size_t n,
 			up += ai * SQR((double ) data[i] - median) * SQR(SQR (1 - yi2));
 			down += (ai * (1 - yi2) * (1 - 5 * yi2));
 		}
-
-		bwmv = n * (up / (down * down));
+		bwmv = down ? n * (up / (down * down)) : 0.0;
 	}
 
 	return bwmv;
@@ -222,7 +212,7 @@ static void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
  * computes them and stores them in it if they have not already been */
 static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *selection,
 		int option, imstats *stats, int bitpix, threading_type threads) {
-	int nx, ny;
+	int nx = 0, ny = 0;
 	WORD *data = NULL;
 	int stat_is_local = 0, free_data = 0;
 	imstats* stat = stats;
@@ -319,7 +309,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
-		siril_fits_img_stats_ushort(data, nx, ny, ACTIVATE_NULLCHECK, 0, &stat->ngoodpix,
+		siril_fits_img_stats_ushort(data, nx, ny, &stat->ngoodpix,
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
 				NULL, NULL, NULL, threads, &status);
 		if (status) {
@@ -942,7 +932,13 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 
 	stat_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		int nb_data_layers = stat_args->cfa ? 3 : stat_args->seq->nb_layers;
+		int size = nb_data_layers * args->nb_filtered_images;
+		free_stat_list(stat_args->list, size);
+		free (stat_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 /**** callbacks ****/
@@ -1143,7 +1139,7 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 	float *colarray[3];
 	double fSigma = 0.0;
 	if (nchans == 1) {
-		retval = siril_fits_img_stats_float(array, nx, ny, ACTIVATE_NULLCHECK, 0.0f, NULL, NULL, NULL,
+		retval = siril_fits_img_stats_float(array, nx, ny, NULL, NULL, NULL,
 		NULL, NULL, noise, NULL, NULL, NULL, MULTI_THREADED, &status);
 		return retval;
 	} else {
@@ -1151,7 +1147,7 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 		colarray[1] = array + (nx * ny);
 		colarray[2] = array + 2 * (nx * ny);
 		for (unsigned i = 0 ; i < nchans ; i++) {
-			retval += siril_fits_img_stats_float(colarray[i], nx, ny, ACTIVATE_NULLCHECK, 0.0f, NULL, NULL, NULL,
+			retval += siril_fits_img_stats_float(colarray[i], nx, ny, NULL, NULL, NULL,
 						NULL, NULL, noise, NULL, NULL, NULL, MULTI_THREADED, &status);
 			fSigma += *noise;
 		}

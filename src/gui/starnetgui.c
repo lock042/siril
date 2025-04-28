@@ -197,11 +197,13 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	starnet_args->follow_on = sgui_follow_on;
 	if (gtk_toggle_button_get_active(toggle_starnet_sequence) == FALSE) {
 		if (single_image_is_loaded()) {
-			start_in_new_thread(do_starnet, starnet_args);
+			if (!start_in_new_thread(do_starnet, starnet_args)) {
+				free_starnet_args(starnet_args);
+			}
 			siril_close_dialog("starnet_dialog");
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not in single image mode"), _("Unable to apply StarNet to a single image as no single image is loaded. Did you mean to apply to sequence?"));
-			free(starnet_args);
+			free_starnet_args(starnet_args);
 		}
 		set_cursor_waiting(FALSE);
 	} else {
@@ -218,11 +220,12 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 			if (sgui_starmask) {
 				multi_args->prefixes[1] = g_strdup("starmask_");
 			}
+			multi_args->seqEntry = strdup(multi_args->prefixes[0]);
 			apply_starnet_to_sequence(multi_args);
 			siril_close_dialog("starnet_dialog");
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("No sequence loaded"), _("Unable to apply StarNet to a sequence as no sequence is loaded. Did you mean to uncheck the apply to sequence option?"));
-			free(starnet_args);
+			free_starnet_args(starnet_args);
 		}
 		set_cursor_waiting(FALSE);
 	}

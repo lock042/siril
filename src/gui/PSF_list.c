@@ -785,13 +785,15 @@ static gboolean update_stars_idle(gpointer p) {
  * the PSF window's list will be cleared, only refilled if update_PSF_list is true
  */
 void update_star_list(psf_star **new_stars, gboolean update_PSF_list, gboolean wait_for_update) {
-	struct star_update_s *args = malloc(sizeof(struct star_update_s));
+	struct star_update_s *args = calloc(1, sizeof(struct star_update_s));
 	args->stars = new_stars;
 	args->update_GUI = update_PSF_list;
-	if (wait_for_update)
-		execute_idle_and_wait_for_it(update_stars_idle, args);
-	else
-		siril_add_idle(update_stars_idle, args);
+	if (!com.headless) {
+		if (wait_for_update)
+			execute_idle_and_wait_for_it(update_stars_idle, args);
+		else
+			siril_add_idle(update_stars_idle, args);
+	}
 }
 
 static int get_comstar_count() {

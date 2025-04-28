@@ -234,7 +234,7 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct rgradient_filter_data *args = malloc(sizeof(struct rgradient_filter_data));
+	struct rgradient_filter_data *args = calloc(1, sizeof(struct rgradient_filter_data));
 	args->xc = get_xc();
 	args->yc = get_yc();
 	args->dR = get_dR();
@@ -251,25 +251,27 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 	undo_save_state(&gfit, _("RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"),
 			args->dR, args->da, args->xc, args->yc);
 
-	start_in_new_thread(rgradient_filter, args);
+	if (!start_in_new_thread(rgradient_filter, args))
+		free(args);
 	}
 }
 
 void on_button_rgradient_selection_clicked(GtkButton *button, gpointer user_data) {
 	if (com.selection.h && com.selection.w) {
-		psf_star *result = psf_get_minimisation(&gfit, 0, &com.selection, FALSE, NULL, TRUE, PSF_GAUSSIAN, NULL);
-		if (result) {
+		psf_error error = PSF_NO_ERR;
+		psf_star *result = psf_get_minimisation(&gfit, 0, &com.selection, FALSE, FALSE, NULL, TRUE, PSF_GAUSSIAN, &error);
+		if (result && error == PSF_NO_ERR) {
 			gchar *x0 = g_strdup_printf("%.3lf", result->x0 + com.selection.x);
 			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_rgradient_xc")), x0);
 			gchar *y0 = g_strdup_printf("%.3lf", com.selection.y + com.selection.h - result->y0);
 			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_rgradient_yc")), y0);
 			g_free(x0);
 			g_free(y0);
-			free_psf(result);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Center coordinate selection error"),
 				_("No valid PSF found within selection."));
 		}
+		free_psf(result);
 	}
 }
 

@@ -62,6 +62,7 @@
 #include "gui/menu_gray_geometry.h"
 #include "gui/registration_preview.h"
 #include "gui/remixer.h"
+#include "gui/user_polygons.h"
 #include "livestacking/livestacking.h"
 #include "registration/registration.h"
 #include "io/siril_catalogues.h"
@@ -140,7 +141,6 @@ void close_action_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("settings_window");
 	gtk_stack_set_visible_child((GtkStack*) lookup_widget("stack_pref"), lookup_widget("scripts_page"));
-//	siril_get_on_script_pages();
 }
 
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -377,12 +377,11 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 		return;
 	}
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
+	psf_error error = PSF_NO_ERR;
+	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 	free(ps);
-	if (!result)
-		return;
-
-	popup_psf_result(result, &com.selection, &gfit);
+	if (result)
+		popup_psf_result(result, &com.selection, &gfit);
 	free_psf(result);
 }
 
@@ -410,6 +409,7 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 			com.found_object = find_objects_in_field(&gfit);
 		}
 	} else {
+		clear_user_polygons();
 		g_slist_free(com.found_object);
 		com.found_object = NULL;
 		purge_user_catalogue(CAT_AN_USER_TEMP);

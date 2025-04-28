@@ -258,6 +258,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	for (int i = 0; i < cat->nfields; ++i) {
 		if (!fread(&(cat->de[i]), sizeof(dataElement), 1, f)) {
 			siril_debug_print("error reading field descriptor %d\n", i);
+			free(cat->de);
 			free(cat);
 			return NULL;
 		}
@@ -269,6 +270,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	/* reading the trixel index table */
 	if (!fread(&cat->ntrixels, 4, 1, f)) {
 		siril_debug_print("error reading number of trixels\n");
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -287,6 +289,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	// of headroom)
 	if (cat->ntrixels < 1 || cat->ntrixels > MAX_NUM_TRIXELS) {
 		siril_log_color_message(_("Error: number of trixels reported by file is out of limits.\n"), "red");
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -296,6 +299,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	cat->indices = malloc(cat->ntrixels * sizeof(struct catalogue_index));
 	if (!cat->indices) {
 		PRINT_ALLOC_ERR;
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -303,6 +307,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	if (fread(cat->indices, sizeof(struct catalogue_index), cat->ntrixels, f) < cat->ntrixels) {
 		siril_debug_print("unexpected read failure in index table\n");
 		free(cat->indices);
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -317,6 +322,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 			siril_debug_print("expected trixel ID of %d, got %u\n", i, current->trixelID);
 			// if this is not right, we won't be able to use the indexing of the index
 			free(cat->indices);
+			free(cat->de);
 			free(cat);
 			return NULL;
 		}
@@ -324,6 +330,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 			siril_debug_print("catalogue claims excessive number (%d) of stars in trixel ID %u. Potential data error or corruption\n", current->nrecs, current->trixelID);
 			// memory safety as this value is used for memory allocation
 			free(cat->indices);
+			free(cat->de);
 			free(cat);
 			return NULL;
 		}
@@ -681,6 +688,18 @@ void initialize_local_catalogues_paths() {
 }
 
 gboolean local_catalogues_available() {
+	return local_kstars_available() || local_gaia_available();
+}
+
+siril_cat_index get_local_catalogue_index() {
+	if (local_gaia_available())
+		return CAT_LOCAL_GAIA_ASTRO;
+	if (local_kstars_available())
+		return CAT_LOCAL_KSTARS;
+	return CAT_UNDEF;
+}
+
+gboolean local_kstars_available() {
 	int nb_catalogues = 4;
 	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 		if (!is_readable_file(com.pref.catalogue_paths[catalogue]))
@@ -704,7 +723,7 @@ gboolean local_gaia_available() {
 int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return 0;
-	if (siril_cat->cat_index != CAT_LOCAL &&
+	if (siril_cat->cat_index != CAT_LOCAL_KSTARS &&
 			siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO &&
 			siril_cat->cat_index != CAT_LOCAL_GAIA_XPSAMP &&
 			siril_cat->cat_index != CAT_LOCAL_TRIX) {
@@ -714,8 +733,8 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	deepStarData *stars = NULL;
 	uint32_t nb_stars;
 
-	double ra_mult = siril_cat->ra_multiplier;
-	double dec_mult = siril_cat->dec_multiplier;
+	double ra_mult = siril_catalog_ra_multiplier(siril_cat->cat_index);
+	double dec_mult = siril_catalog_dec_multiplier(siril_cat->cat_index);
 
 	if (siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP) {
 		SourceEntryXPsamp *stars = NULL;
@@ -725,14 +744,14 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 		siril_cat->nbincluded = (int)nb_stars;
 		siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
 		for (int i = 0; i < siril_cat->nbitems; i++) {
-			siril_cat->cat_items[i].xp_sampled = malloc(343 * sizeof(double));
+			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
 			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * ra_mult;
 			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * dec_mult;
 			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
 			siril_cat->cat_items[i].pmdec = (double)stars[i].ddec_scaled;
 			siril_cat->cat_items[i].mag = (float)stars[i].mag_scaled * 0.001;
 			float powexp = pow(10.f, stars[i].fexpo);
-			for (int j = 0 ; j < 343 ; j++) {
+			for (int j = 0 ; j < XPSAMPLED_LEN ; j++) {
 				float d = half_to_float(stars[i].flux[j]);
 				siril_cat->cat_items[i].xp_sampled[j] = d / powexp;
 			}
@@ -747,7 +766,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO && get_raw_stars_from_local_gaia_astro_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, siril_cat->phot, &stars, &nb_stars))
 		return 0;
 
-	if (siril_cat->cat_index == CAT_LOCAL && get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
+	if (siril_cat->cat_index == CAT_LOCAL_KSTARS && get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
 				siril_cat->phot, &stars, &nb_stars))
 		return 0;
 	if (siril_cat->cat_index == CAT_LOCAL_TRIX && get_raw_stars_from_local_catalogues_byID(siril_cat->trixel, siril_cat->limitmag, siril_cat->phot, &stars, &nb_stars))

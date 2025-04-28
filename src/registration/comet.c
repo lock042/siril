@@ -18,7 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "io/FITS_symlink.h" // needs to be included before siril.h to avoid type redefinition 
+#include "io/FITS_symlink.h" // needs to be included before siril.h to avoid type redefinition
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
@@ -201,7 +201,7 @@ static int comet_align_image_hook(struct generic_seq_args *args, int out_index, 
 	cum_shifts(regargs->regparam, in_index, -reg.x, -reg.y); // we left-compose with the additional shift
 
 	regargs->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	
+
 	if (in_index == regargs->reference_image)
 		new_ref_index = in_index; // keeping track of the new ref index in output sequence
 
@@ -272,7 +272,7 @@ int register_comet(struct registration_args *regargs) {
 	if (args->seq->type == SEQ_REGULAR) {
 		args->save_hook = comet_save_hook; // saves a symlink to original images
 		args->has_output = TRUE;
-		args->new_seq_prefix = g_strdup(regargs->prefix);
+		args->new_seq_prefix = strdup(regargs->prefix);
 	}
 	args->description = _("Moving object registration");
 	args->already_in_a_thread = TRUE;
@@ -280,7 +280,7 @@ int register_comet(struct registration_args *regargs) {
 
 	struct comet_align_data *cadata = calloc(1, sizeof(struct comet_align_data));
 	if (!cadata) {
-		free(args);
+		free_generic_seq_args(args, FALSE);
 		return -1;
 	}
 	cadata->regargs = regargs;

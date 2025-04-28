@@ -98,9 +98,13 @@ const char *format_time_diff(struct timeval t_start, struct timeval t_end) {
 			sprintf(str, _("%d min %02d s"), min, sec);
 		} else if (diff < 1.0) {
 			double ms = diff * 1.0E3;
-			sprintf(str, _("%.2lf ms"), ms);
+			char ms_str[32];
+			g_snprintf(ms_str, sizeof(ms_str), "%.2lf", ms);
+			sprintf(str, _("%s ms"), ms_str);
 		} else {
-			sprintf(str, _("%.2lf s"), diff);
+			char diff_str[32];
+			g_snprintf(diff_str, sizeof(diff_str), "%.2lf", diff);
+			sprintf(str, _("%s s"), diff_str);
 		}
 	}
 	return str;

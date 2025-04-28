@@ -271,6 +271,13 @@ static gboolean wrapping_idle(gpointer arg) {
 }
 
 void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
+	// Return immediately if headless, idles should only be used for GUI operations
+	// that must be run in the GTK context.
+	if (com.headless) {
+		siril_debug_print("execute_idle_and_wait_for_it called headless, this should not happen!\n");
+		return;
+	}
+
 	// Check if we're already in the main thread (because if we are,
 	// the mutex control below will fail and will cause a hang)
 	if (g_main_context_is_owner(g_main_context_default())) {
