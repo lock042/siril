@@ -34,6 +34,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
 #include "gui/utils.h"
+#include "gui/python_gui.h"
 #include "io/siril_git.h"
 
 #ifdef HAVE_LIBGIT2
@@ -181,14 +182,10 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
 		if (g_file_get_contents(scriptpath, &contents, &length, &error) &&
-			length > 0) {
-			GtkTextBuffer *script_textbuffer = gtk_text_view_get_buffer(
-				GTK_TEXT_VIEW(lookup_widget("script_contents")));
-			GtkLabel *script_label = (GtkLabel *)lookup_widget("script_label");
-			gtk_label_set_text(script_label, scriptname);
-			gtk_text_buffer_set_text(script_textbuffer, contents, (gint)length);
+					length > 0) {
+			const char *ext = get_filename_ext(scriptpath);
+			new_script(contents, length, ext);
 			g_free(contents);
-			siril_open_dialog("script_contents_dialog");
 		} else {
 			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
 			siril_log_color_message(msg, "red");
@@ -200,10 +197,6 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 	g_free(scriptname);
 	g_free(scriptpath);
 
-}
-
-void on_script_text_close_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("script_contents_dialog");
 }
 
 void on_manual_script_sync_button_clicked(GtkButton *button,
