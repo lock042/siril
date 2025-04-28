@@ -302,7 +302,7 @@ snap:
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
-	DEBIAN_FRONTEND: noninteractive
+    DEBIAN_FRONTEND: noninteractive
   script:
     - apt-get update
     - apt-get install -y snapd wget sudo
