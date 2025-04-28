@@ -156,7 +156,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">Amount of blue channel adjustment set in the [0, 1] range.
-When this parameter is equal to 1, no reductiopn is applied.
+When this parameter is equal to 1, no reduction is applied.
 Reduce this value for stronger effect.</property>
                     <property name="adjustment">adjustment_spin_unpurple_mod_b</property>
                     <property name="digits">2</property>
