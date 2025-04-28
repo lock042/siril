@@ -303,8 +303,10 @@ snap:
     GIT_SUBMODULE_STRATEGY: recursive
     SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
   script:
-    - cd build
-    - snapcraft
+	- apt-get update -qq
+	- apt-get install -y git
+	- cd build
+	- snapcraft remote-build --launchpad-accept-public-upload
   artifacts:
     expire_in: 1 week
     paths:
