@@ -4,6 +4,9 @@ XX/XX/25
 **Fixes:**
 * Fixes option -weight= for stack command and add filtering criteria in HISTORY key of stacked image (#1545)
 
+**Improvements:**
+* Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
+
 
 siril 1.4.0-beta1
 04/26/25
