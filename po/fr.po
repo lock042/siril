@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-23 09:18+0000\n"
-"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
+"PO-Revision-Date: 2025-04-23 16:34+0000\n"
+"Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
 "Language: fr\n"
@@ -21432,11 +21432,11 @@ msgstr "New General Catalogue (NGC)"
 
 #: src/gui/annotations_pref.c:34
 msgid "Index Catalogue (IC)"
-msgstr "Catalogue Index (IC)"
+msgstr "Index Catalogue (IC)"
 
 #: src/gui/annotations_pref.c:35
 msgid "Lynds Catalogue of Dark Nebulae (LdN)"
-msgstr "Catalogue Lynds des nébuleuses sombres (LdN)"
+msgstr "Lynds Catalogue of Dark Nebulae (LdN)"
 
 #: src/gui/annotations_pref.c:36
 msgid "Sharpless Catalogue (Sh2)"

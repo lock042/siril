@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-19 05:07+0000\n"
+"PO-Revision-Date: 2025-04-23 16:34+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1971
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr "ヒストグラム平坦化..."
+msgstr "コントラスト制限付き適応ヒストグラム平坦化..."
 
 #: src/gui/uifiles/CLAHE_dialog.ui:69 src/gui/uifiles/asinh_dialog.ui:64
 #: src/gui/uifiles/ccm_dialog.ui:43 src/gui/uifiles/curves_dialog.ui:80
@@ -109,9 +109,8 @@ msgid "Preview"
 msgstr "プレビュー"
 
 #: src/gui/uifiles/Median_dialog.ui:48
-#, fuzzy
 msgid "Median Filter"
-msgstr "メディアンフィルター..."
+msgstr "メディアンフィルター"
 
 #: src/gui/uifiles/Median_dialog.ui:66 src/gui/uifiles/SCNR_dialog.ui:59
 #: src/gui/uifiles/StatWindow.ui:78 src/gui/uifiles/aavso_dialog.ui:22
@@ -160,19 +159,18 @@ msgstr ""
 
 #: src/gui/uifiles/Median_dialog.ui:138
 msgid "Kernel Size:"
-msgstr ""
+msgstr "カーネルサイズ:"
 
 #: src/gui/uifiles/Median_dialog.ui:150
 msgid ""
 "Kernel Size. This is the odd size of the neighborhood considered for each "
 "pixel."
-msgstr ""
+msgstr "カーネルサイズ. 各ピクセルに対して考慮される近傍領域の奇数サイズ."
 
 #: src/gui/uifiles/Median_dialog.ui:186 src/gui/uifiles/bdeconv_dialog.ui:1153
 #: src/gui/uifiles/bdeconv_dialog.ui:1929
-#, fuzzy
 msgid "Iterations"
-msgstr "引き算"
+msgstr "反復"
 
 #: src/gui/uifiles/Median_dialog.ui:198
 msgid ""
@@ -180,12 +178,14 @@ msgid ""
 "This is useful when modulation parameter is different to 1 helping the whole "
 "process to converge to better result."
 msgstr ""
+"アルゴリズムの反復回数.\n"
+"これは変調パラメータが1と異なる場合に有用で, "
+"プロセス全体がより良い結果に収束するのに役立ちます."
 
 #: src/gui/uifiles/Median_dialog.ui:244 src/gui/uifiles/denoise_dialog.ui:403
 #: src/gui/uifiles/epf_dialog.ui:414
-#, fuzzy
 msgid "Modulation"
-msgstr "情報"
+msgstr "変調"
 
 #: src/gui/uifiles/Median_dialog.ui:280
 msgid ""
@@ -193,6 +193,9 @@ msgid ""
 "When this parameter is equal to 1, no modulation is applied.\n"
 "If the parameters is null, so no filter is apply at all."
 msgstr ""
+"変調パラメータを [0, 1] の範囲で設定します.\n"
+"このパラメータが1の場合, 変調は適用されません.\n"
+"パラメータがNULLの場合, フィルターは一切適用されません."
 
 #: src/gui/uifiles/Median_dialog.ui:297
 #: src/gui/uifiles/composition_dialog.ui:229
@@ -2098,13 +2101,12 @@ msgstr ""
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:48 src/filters/banding.c:125
 msgid "Banding Reduction"
-msgstr ""
+msgstr "バンディングリダクション"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:123
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:146
-#, fuzzy
 msgid "Defines the strength of the correction."
-msgstr "画像をウィンドーに合わせる"
+msgstr "補正の強さを定義します."
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:162
 msgid "Protect from Highlights"
@@ -2112,7 +2114,7 @@ msgstr ""
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:166
 msgid "Bright pixels are ignored."
-msgstr ""
+msgstr "明るいピクセルは無視します."
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:186
 msgid "1/Sigma Factor"
@@ -2126,9 +2128,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:238
-#, fuzzy
 msgid "Vertical banding"
-msgstr "鉛直方向の鏡映"
+msgstr "鉛直方向のバンディング"
 
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:242
 msgid "Check this box if banding is vertical."
@@ -2472,7 +2473,7 @@ msgstr ""
 msgid ""
 "Type of luminance-based colour composition. They represent the way of adding "
 "colour information to luminance data."
-msgstr "輝度に基づく色の構成. 輝度データに色情報を追加する方法."
+msgstr "輝度に基づく色の構成の種類. 輝度データに色情報を追加する方法を表しています."
 
 #: src/gui/uifiles/composition_dialog.ui:387
 msgid "HSL composition"
@@ -2499,12 +2500,12 @@ msgstr "及びこの整列方法を用いる:"
 #: src/gui/uifiles/composition_dialog.ui:473 src/gui/uifiles/siril.ui:1122
 #: src/compositing/align_rgb.c:48
 msgid "Image pattern alignment (planetary/deep-sky)"
-msgstr "位置合わせパターン (惑星/天空)"
+msgstr "位置合わせパターン (惑星/深宇宙)"
 
 #: src/gui/uifiles/composition_dialog.ui:474 src/gui/uifiles/siril.ui:1113
 #: src/compositing/align_rgb.c:46
 msgid "One star registration (deep-sky)"
-msgstr "選択した星の整列 (天空)"
+msgstr "選択した星の整列 (深宇宙)"
 
 #: src/gui/uifiles/composition_dialog.ui:487
 msgid ""
@@ -2555,46 +2556,50 @@ msgid "Apply Cosmetic Correction"
 msgstr "Cosmetic Correction を適用する"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:121 src/gui/uifiles/siril.ui:5058
-#, fuzzy
 msgid "Cold Sigma:"
-msgstr "疎標準偏差:"
+msgstr "コールドシグマ:"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:125
 msgid ""
 "How many times (in averrage deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a cold pixel."
-msgstr ""
+msgstr "あるピクセルの値が周囲のピクセルの値と（平均偏差単位で）何倍違えばコールドピ"
+"クセルとみなされるか."
 
 #: src/gui/uifiles/cosmetic_dialog.ui:141
 #: src/gui/uifiles/cosmetic_dialog.ui:171
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a cold pixel."
-msgstr ""
+msgstr "あるピクセルの値が周囲のピクセルの値と（平均偏差単位で）何倍違えばコールドピ"
+"クセルとみなされるか."
 
 #: src/gui/uifiles/cosmetic_dialog.ui:187 src/gui/uifiles/siril.ui:5088
-#, fuzzy
 msgid "Hot Sigma:"
-msgstr "過標準偏差:"
+msgstr "ホットシグマ:"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:191
 msgid ""
 "How many times (in averrage deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a hot pixel."
-msgstr ""
+msgstr "あるピクセルの値が周囲のピクセルの値と（平均偏差単位で）何倍違えばホットピク"
+"セルとみなされるか."
 
 #: src/gui/uifiles/cosmetic_dialog.ui:207
 #: src/gui/uifiles/cosmetic_dialog.ui:237
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a hot pixel."
-msgstr ""
+msgstr "あるピクセルの値が周囲のピクセルの値と（平均偏差単位で）何倍違えばホットピク"
+"セルとみなされるか."
 
 #: src/gui/uifiles/cosmetic_dialog.ui:291
 msgid ""
 "0: No correction\n"
 "1 : 100% corrected"
 msgstr ""
+"0: 補正なし\n"
+"1 : 100%補正"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:307 src/gui/uifiles/cut_dialog.ui:283
 msgid "CFA"
@@ -2605,7 +2610,7 @@ msgid ""
 "Check if the target frames are CFA images.\n"
 "Uncheck if images come from a monochrome sensor."
 msgstr ""
-"ターゲットの frame が CFA 画像かどうかを確認.\n"
+"ターゲットフレームが CFA 画像かどうかを確認.\n"
 "画像がモノクロセンサーによるものの場合, チェックを外して下さい."
 
 #: src/gui/uifiles/crop_dialog.ui:35
@@ -3789,7 +3794,7 @@ msgstr ""
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:129
 msgid "Type of algorithm"
-msgstr "アルゴリズムのタイプ"
+msgstr "アルゴリズムの種類"
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:134
 #: src/gui/uifiles/graxpert.ui:492 src/gui/uifiles/settings_window.ui:3635
@@ -5301,7 +5306,7 @@ msgstr "背景を維持"
 
 #: src/gui/uifiles/resample_dialog.ui:189
 msgid "Type of algorithm used for resampling"
-msgstr "再サンプリングに用いるアルゴリズムのタイプ"
+msgstr "再サンプリングに用いるアルゴリズムの種類"
 
 #: src/gui/uifiles/resample_dialog.ui:195
 #: src/gui/uifiles/rotation_dialog.ui:203 src/gui/uifiles/siril.ui:7085
@@ -5421,7 +5426,7 @@ msgstr ""
 
 #: src/gui/uifiles/rotation_dialog.ui:197
 msgid "Type of algorithm used for rotation"
-msgstr "回転に使用するアルゴリズムのタイプ"
+msgstr "回転に使用するアルゴリズムの種類"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:59 src/gui/photometric_cc.c:92
 msgid "Checking Gaia archive status..."
@@ -5793,19 +5798,19 @@ msgstr "彩度"
 
 #: src/gui/uifiles/satu_dialog.ui:128
 msgid "Hue:"
-msgstr "色調:"
+msgstr "色相:"
 
 #: src/gui/uifiles/satu_dialog.ui:143
 msgid "Pink-Red / Red-Orange"
-msgstr "ピンクー赤/赤ーオレンジ"
+msgstr "ピンク‐赤/赤‐オレンジ"
 
 #: src/gui/uifiles/satu_dialog.ui:144
 msgid "Orange-Brown / Yellow"
-msgstr "オレンジー茶/黄"
+msgstr "オレンジ‐茶/黄"
 
 #: src/gui/uifiles/satu_dialog.ui:145
 msgid "Yellow-Green / Green-Cyan"
-msgstr "黄ー緑/緑ーシアン"
+msgstr "黄‐緑/緑‐シアン"
 
 #: src/gui/uifiles/satu_dialog.ui:146
 msgid "Cyan"
@@ -5813,7 +5818,7 @@ msgstr "シアン"
 
 #: src/gui/uifiles/satu_dialog.ui:147
 msgid "Cyan-Blue / Blue-Magenta"
-msgstr "シアンー青/青ーマゼンタ"
+msgstr "シアン‐青/青‐マゼンタ"
 
 #: src/gui/uifiles/satu_dialog.ui:148
 msgid "Magenta / Pink"
@@ -5878,7 +5883,7 @@ msgstr "16 ビット符号なし整数"
 #: src/gui/uifiles/savepopup.ui:225 src/gui/uifiles/savepopup.ui:709
 #: src/gui/uifiles/settings_window.ui:679
 msgid "32-bit floating point"
-msgstr "32 ビット 浮動小数点"
+msgstr "32 ビット浮動小数点"
 
 #: src/gui/uifiles/savepopup.ui:245
 msgid "<b>Sample Format</b>"
@@ -5905,7 +5910,7 @@ msgstr "<b>埋め込まれたデータ</b>"
 
 #: src/gui/uifiles/savepopup.ui:424
 msgid "<b>Image Description</b>"
-msgstr "<b>画像の記述</b>"
+msgstr "<b>画像の説明</b>"
 
 #: src/gui/uifiles/savepopup.ui:468
 msgid "<b>Image Copyright</b>"
@@ -7078,7 +7083,7 @@ msgstr "パネルサイズ(ピクセル):"
 
 #: src/gui/uifiles/settings_window.ui:3256
 msgid "Window size (px):"
-msgstr "ウィンドウサイズ(ピクセル):"
+msgstr "ウインドウサイズ(ピクセル):"
 
 #: src/gui/uifiles/settings_window.ui:3267
 msgid "Defines the size of the window."
@@ -8092,11 +8097,11 @@ msgstr "アップデート"
 
 #: src/gui/uifiles/siril.ui:291
 msgid "Clear all curves displayed in photometry."
-msgstr "測光で表示された全ての曲線を消去."
+msgstr "測光で表示された曲線をすべて消去."
 
 #: src/gui/uifiles/siril.ui:292
 msgid "Clear all"
-msgstr "全てを消去"
+msgstr "すべて消去"
 
 #: src/gui/uifiles/siril.ui:307
 msgid "Clear the last curve added in photometry."
@@ -8485,7 +8490,7 @@ msgstr "測光色補正アルゴリズムを開始."
 
 #: src/gui/uifiles/siril.ui:1623
 msgid "Photometric Color Calibration..."
-msgstr "フォトメトリック 色補正."
+msgstr "測光色補正..."
 
 #: src/gui/uifiles/siril.ui:1636
 #, fuzzy
@@ -8931,8 +8936,7 @@ msgstr ""
 msgid ""
 "Start conversion of all source files into the configured output files, FITS "
 "or SER, with colour processing or not."
-msgstr ""
-"全てのソースファイルを, 色処理の有無に関わらず, 設定された出力 FITS または "
+msgstr "すべてのソースファイルを, 色処理の有無に関わらず, 設定された出力 FITS または "
 "SER ファイルに変換を開始."
 
 #: src/gui/uifiles/siril.ui:3921
@@ -8998,10 +9002,11 @@ msgid ""
 "<b>WARNING: on Windows, the symbolic link operations are only possible in "
 "Development mode.</b>"
 msgstr ""
-"FTIS ファイルをコピーせずにシンボリックリンクを作ります. これはディスク上の"
-"ファイルを複製せずに画像シーケンスの名前を変えるのに便利です.\n"
+"FTIS ファイルをコピーせずにシンボリックリンクを作ります. これはディスク上のフ"
+"ァイルを複製せずに画像シーケンスの名前を変えるのに便利です.\n"
 "\n"
-"<b>警告: Windows 上では, シンボリックリンクは開発モードでのみ可能です.</b>"
+"<b>警告: Windows 上では, "
+"シンボリックリンク操作は開発モードでのみ可能です.</b>"
 
 #: src/gui/uifiles/siril.ui:3985
 msgid ""
@@ -9133,17 +9138,17 @@ msgid ""
 "take some time, only the first export of a sequence.\n"
 "\t\t\t"
 msgstr ""
-"エクスポートする為に, 画像の正規化を有効にします. これは全ての画像の明るさを"
-"等しくするため, 一貫性の無い露出や pixel 値を含む画像シーケンスには推奨されま"
-"す.\n"
-"最初の計算パスはエクスポートする前に全ての画像に行われます. これは時間が掛か"
-"ることもありますが、画像シーケンスの最初のエクスポートにのみ行われるもので"
-"す.\n"
+"エクスポートするために, 画像の正規化を有効にします. "
+"これはすべての画像の明るさを等しくするため, "
+"一貫性の無い露出やピクセル値を含む画像シーケンスには推奨されます.\n"
+"最初の計算パスはエクスポートする前にすべての画像に対して行われます. "
+"これは時間が掛かることもありますが, "
+"画像シーケンスの最初のエクスポートにのみ行われるものです.\n"
 "\t\t\t"
 
 #: src/gui/uifiles/siril.ui:4372 src/io/sequence_export.c:758
 msgid "Select area to crop"
-msgstr "切り抜き範囲を選択"
+msgstr "切り抜き領域を選択"
 
 #: src/gui/uifiles/siril.ui:4401
 #, fuzzy
@@ -9170,9 +9175,8 @@ msgstr "サイズ変更"
 msgid ""
 "Check this box if you want to resize exported sequence. Note that this will "
 "degrade image quality."
-msgstr ""
-"エクスポートされた画像シーケンスをリサイズしたければこのボックスをチェックし"
-"て下さい. これは画像の品質を下げるので注意."
+msgstr "エクスポートされた画像シーケンスをリサイズしたければこのボックスをチェックし"
+"て下さい. これは画像の品質を下げることに注意."
 
 #: src/gui/uifiles/siril.ui:4492
 msgid "Full HD"
@@ -9224,15 +9228,14 @@ msgstr "画像シーケンス"
 #. Flat is the kind of the picture used here. In french I've decided to not translate the word.
 #: src/gui/uifiles/siril.ui:4664
 msgid "Use flat"
-msgstr "Flat を使用"
+msgstr "flat を使用"
 
 #: src/gui/uifiles/siril.ui:4668 src/gui/uifiles/siril.ui:4699
 msgid ""
 "All images in the sequence will be divided by the master flat image (each "
 "pixel value)."
-msgstr ""
-"この画像シーケンスに含まれる全ての画像は (各 pixel 値に対する) flat image の"
-"マスターファイルに分割されます."
+msgstr "この画像シーケンスに含まれるすべての画像は (各ピクセル値に対する) "
+"マスターflat画像により分割されます."
 
 #: src/gui/uifiles/siril.ui:4683
 msgid ""
@@ -9240,26 +9243,28 @@ msgid ""
 "All images in the sequence will be divided by the master flat image (each "
 "pixel value)."
 msgstr ""
-"マスター flat file 名をここに入力するか, ブラウスボタンを使用して下さい.\n"
-"この画像シーケンスに含まれる全ての画像は (各 pixel 値に対する) マスター flat "
-"image に分割されます."
+"マスター flatファイル名をここに入力するか, ブラウスボタンを使用してください."
+"\n"
+"この画像シーケンスに含まれるすべての画像は (各 pixel 値に対する) マスター "
+"flat 画像により分割されます."
 
 #. Dark is the kind of the picture used here. In french I've decided to not translate the word.
 #: src/gui/uifiles/siril.ui:4718
 msgid "Use dark"
-msgstr "Dark を使用"
+msgstr "dark を使用"
 
 #: src/gui/uifiles/siril.ui:4722 src/gui/uifiles/siril.ui:4738
 msgid "The dark master image will be removed from all images in the sequence."
-msgstr "この dark マスター画像は画像シーケンスの全ての画像から削除されます."
+msgstr "この dark マスター画像は画像シーケンスのすべての画像から削除されます."
 
 #: src/gui/uifiles/siril.ui:4759
 msgid ""
 "Enter the master dark file name here, or use the browse button.\n"
 "The dark master image will be removed from all images in the sequence."
 msgstr ""
-"マスター dark ファイル名をここに入力するか ブラウスボタンを使用して下さい.\n"
-"Dark マスター画像はこの画像シーケンスの全ての画像から削除されます."
+"マスター dark ファイル名をここに入力するか ブラウスボタンを使用してください."
+"\n"
+"dark マスター画像はこの画像シーケンスのすべての画像から削除されます."
 
 #. Offset is the kind of the picture used here. In french I've decided to not translate the word.
 #: src/gui/uifiles/siril.ui:4772
@@ -9316,7 +9321,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:4865
 msgid "Choose your own normalisation value."
-msgstr "正規化値を選択して下さい."
+msgstr "正規化値を選択してください."
 
 #: src/gui/uifiles/siril.ui:4882
 msgid "Fix X-Trans AF artifact"
@@ -9377,7 +9382,7 @@ msgid ""
 "Check if you want to apply a hot pixel removal.\n"
 "Hot pixels are located on the master-dark."
 msgstr ""
-"ホットピクセルの除去を行いたい場合は、チャックして下さい.\n"
+"ホットピクセルの除去を行いたい場合は、チェックしてください.\n"
 "ホットピクセルは、マスター - dark にあります."
 
 #: src/gui/uifiles/siril.ui:4992
@@ -9552,9 +9557,9 @@ msgid ""
 "<b>WARNING</b>: Make sure to draw a selection with a sufficient number of "
 "stars."
 msgstr ""
-"リファレンス画像の選択された範囲内にある全ての星を整列するアルゴリズムを実行"
-"させたい場合は、このボックスをチェックして下さい. 選択範囲がない場合はこのオ"
-"プションは無効になります.\n"
+"リファレンス画像の選択された範囲内にあるすべての星を整列するアルゴリズムを実"
+"行させたい場合は、このボックスをチェックして下さい. "
+"選択範囲がない場合はこのオプションは無効になります.\n"
 "\n"
 "<b>警告</b>: 十分な数の星が含まれるように範囲を選択して下さい."
 
@@ -9826,7 +9831,7 @@ msgstr "整列方法:"
 
 #: src/gui/uifiles/siril.ui:6413
 msgid "Register all images from sequence"
-msgstr "シリーズ内のすべての画像を整列"
+msgstr "シーケンス内のすべての画像を整列"
 
 #: src/gui/uifiles/siril.ui:6414
 msgid "Register selected images only"
@@ -9869,7 +9874,7 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:6741 src/gui/uifiles/siril.ui:8732
 #: src/gui/uifiles/siril.ui:8861 src/gui/uifiles/siril.ui:9001
 msgid "all"
-msgstr "全て"
+msgstr "すべて"
 
 #: src/gui/uifiles/siril.ui:6473 src/gui/uifiles/siril.ui:6602
 #: src/gui/uifiles/siril.ui:6742 src/gui/uifiles/siril.ui:8733
@@ -10035,7 +10040,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:7069
 msgid "Algorithm: "
-msgstr "アルゴリズム : "
+msgstr "アルゴリズム: "
 
 #: src/gui/uifiles/siril.ui:7080
 #, fuzzy
@@ -10152,7 +10157,7 @@ msgstr "整列処理を開始. "
 
 #: src/gui/uifiles/siril.ui:7324
 msgid "Load a sequence first"
-msgstr "まずは画像シーケンスを読み込んで下さい"
+msgstr "まずは画像シーケンスを読み込んでください"
 
 #: src/gui/uifiles/siril.ui:7341
 #, fuzzy
@@ -10176,15 +10181,14 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:7396
 msgid "Set reference image first"
-msgstr "まずはリファレンス画像を設定して下さい"
+msgstr "まずはリファレンス画像を設定してください"
 
 #: src/gui/uifiles/siril.ui:7425
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the X axis."
-msgstr ""
-"この画像をリファレンス画像の X 軸に合わせる為に、マウスまたは上下矢印を用いて"
-"この値を変更."
+msgstr "この画像をリファレンス画像の X "
+"軸に合わせるために、マウスまたは上下矢印を用いてこの値を変更."
 
 #: src/gui/uifiles/siril.ui:7426
 msgid "X translation:"
@@ -10194,9 +10198,8 @@ msgstr "X 平行移動:"
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the Y axis."
-msgstr ""
-"この画像をリファレンス画像の Y 軸に合わせる為に、マウスまたは上下矢印を用いて"
-"この値を変更."
+msgstr "この画像をリファレンス画像の Y "
+"軸に合わせるために、マウスまたは上下矢印を用いてこの値を変更."
 
 #: src/gui/uifiles/siril.ui:7462
 msgid "Y translation:"
@@ -10331,7 +10334,7 @@ msgstr "最新の曲線を消去"
 
 #: src/gui/uifiles/siril.ui:7996
 msgid "Show all relevant graphs using registration and / or photometry data."
-msgstr "整列 and/or 測光データも用いて関係する全てのグラフを表示."
+msgstr "整列 and/or 測光データも用いて関係するすべてのグラフを表示."
 
 #: src/gui/uifiles/siril.ui:8050
 #, fuzzy
@@ -10783,7 +10786,7 @@ msgstr ""
 #. Must be short
 #: src/gui/uifiles/siril.ui:9256
 msgid "Save in:"
-msgstr "… に保存:"
+msgstr "以下に保存:"
 
 #: src/gui/uifiles/siril.ui:9280
 msgid "Overwrite"
@@ -10855,7 +10858,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:9563
 msgid "Displays manual of the command written in the console."
-msgstr "Console に書かれているコマンドのマニュアルを表示."
+msgstr "コンソールに書かれているコマンドのマニュアルを表示."
 
 #: src/gui/uifiles/siril.ui:9575
 msgid "Stop"
@@ -10986,15 +10989,15 @@ msgstr "開く"
 
 #: src/gui/uifiles/siril.ui:10399
 msgid "Open an image or a SER/AVI sequence"
-msgstr "画像ファイル又は SER/AVI の画像シーケンスを開く"
+msgstr "画像ファイルまたは SER/AVI の画像シーケンスを開く"
 
 #: src/gui/uifiles/siril.ui:10415
 msgid "Open recent images (only FITS and SER files)"
-msgstr "最近の画像(FITS あるいは SER ファイルのみ)"
+msgstr "最近の画像(FITS あるいは SER ファイルのみ)を開く"
 
 #: src/gui/uifiles/siril.ui:10439
 msgid "Change current working directory"
-msgstr "ワーキングディレクトリーを変更"
+msgstr "作業ディレクトリーを変更"
 
 #: src/gui/uifiles/siril.ui:10463
 #, fuzzy
@@ -11005,7 +11008,7 @@ msgstr "重ね合わせ開始"
 msgid ""
 "Menu of the image processing tools. It contains all suitable functions for "
 "image enhancement."
-msgstr "画像処理メニュー. 画像補正に適した全ての機能を含みます."
+msgstr "画像処理メニュー. 画像補正に適したすべての機能を含みます."
 
 #: src/gui/uifiles/siril.ui:10550
 msgid "Image Processing"
@@ -11057,21 +11060,19 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:10880
 msgid "Displays the amount of used RAM memory by Siril."
-msgstr "Siril が使用中の RAM メモリー量を表示."
+msgstr "Siril が使用中の RAM メモリ量を表示."
 
 #: src/gui/uifiles/siril.ui:10901
 msgid ""
 "Displays the amount of disk space available on the file system containing "
 "the working directory."
-msgstr ""
-"現在のワーキングディレクトリーを含むファイルシステムに与えられたディスク容量"
-"を表示."
+msgstr "現在の作業ディレクトリーを含むファイルシステムで利用可能なディスク容量を表示."
 
 #. Must be short !!
 #: src/gui/uifiles/siril.ui:10903
 msgctxt "GUI"
 msgid "Disk Space: N/A"
-msgstr "空き容量：該当せず"
+msgstr "空き容量: 該当せず"
 
 #: src/gui/uifiles/spcc_details.ui:8 src/gui/uifiles/spcc_details.ui:254
 msgid "SPCC Details"
@@ -11492,7 +11493,7 @@ msgstr ""
 
 #: src/gui/uifiles/stars_list_window.ui:944
 msgid "Export PSF parameters in an ASCII file"
-msgstr "点像分布関数 パラメーターを Ascii ファイルにエクスポート"
+msgstr "点像分布関数 パラメーターをASCIIファイルにエクスポート"
 
 #: src/gui/uifiles/stars_list_window.ui:968
 #, fuzzy
@@ -11501,7 +11502,7 @@ msgstr "選択されたゾーン内の星をマッチさせる"
 
 #: src/gui/uifiles/stars_list_window.ui:982
 msgid "Remove selected star from the list"
-msgstr "選択された星をリストから除去"
+msgstr "選択した星をリストから除去"
 
 #: src/gui/uifiles/stars_list_window.ui:996
 msgid ""
@@ -11552,7 +11553,7 @@ msgstr "重ね合わせ開始"
 
 #: src/gui/uifiles/wavelets_dialog.ui:77
 msgid "Wavelets control"
-msgstr "ウェーブレット コントロール"
+msgstr "ウェーブレットコントロール"
 
 #: src/gui/uifiles/wavelets_dialog.ui:101
 msgid "Reset changes"
@@ -11625,7 +11626,7 @@ msgstr "画像/ビデオを開く"
 #: src/gui/siril-shortcuts.ui:26
 msgctxt "shortcut window"
 msgid "Save the loaded image"
-msgstr "読みだした画像を保存"
+msgstr "読み出した画像を保存"
 
 #: src/gui/siril-shortcuts.ui:33
 msgctxt "shortcut window"
@@ -11635,7 +11636,7 @@ msgstr "画像を新規ファイル名にて保存"
 #: src/gui/siril-shortcuts.ui:40
 msgctxt "shortcut window"
 msgid "Close the image / sequence"
-msgstr "画像/シリーズを閉じる"
+msgstr "画像/シーケンスを閉じる"
 
 #: src/gui/siril-shortcuts.ui:47
 msgctxt "shortcut window"
@@ -11650,7 +11651,7 @@ msgstr "ズームアウト"
 #: src/gui/siril-shortcuts.ui:61
 msgctxt "shortcut window"
 msgid "Fit the image to the window"
-msgstr "画像をウィンドウに合わせる"
+msgstr "画像をウインドウに合わせる"
 
 #: src/gui/siril-shortcuts.ui:68
 msgctxt "shortcut window"
@@ -11783,7 +11784,7 @@ msgstr ""
 #: src/gui/siril-shortcuts.ui:234
 msgctxt "shortcut window"
 msgid "Windows and Application"
-msgstr "ウィンドウとアプリケーション"
+msgstr "ウインドウとアプリケーション"
 
 #: src/gui/siril-shortcuts.ui:239
 msgctxt "shortcut window"
@@ -12835,7 +12836,7 @@ msgstr ""
 
 #: src/algos/geometry.c:298 src/algos/geometry.c:393
 msgid "Nearest-Neighbor"
-msgstr "最近傍補間"
+msgstr "最近傍"
 
 #: src/algos/geometry.c:307 src/algos/geometry.c:406
 msgid "Lanczos4"
@@ -14474,7 +14475,7 @@ msgstr ""
 
 #: src/core/command.c:2143 src/core/command.c:4746
 msgid "Crop: select a region or provide x, y, width, height\n"
-msgstr "切り抜き: 領域を選ぶか, 横サイズ x と縦サイズ y を与えて下さい \n"
+msgstr "切り抜き: 領域を選ぶか, x, y, 横サイズ, 縦サイズを与えてください\n"
 
 #: src/core/command.c:2206 src/core/command.c:5213 src/core/command.c:5226
 #: src/core/command.c:5636 src/core/command.c:5654 src/core/command.c:5665
@@ -15174,7 +15175,7 @@ msgstr "切り抜き: x と y は正の値でなければならない.\n"
 
 #: src/core/command.c:5218
 msgid "Fill2: select a region or provide x, y, width, height\n"
-msgstr "Fill2: 領域を選ぶか, 横サイズ x と縦サイズ y を与えて下さい \n"
+msgstr "Fill2: 領域を選ぶか, x, y, 横サイズ, 縦サイズを与えてください\n"
 
 #. handling mono case
 #: src/core/command.c:5257 src/core/command.c:7648 src/core/command.c:8326
@@ -15220,7 +15221,7 @@ msgstr ""
 
 #: src/core/command.c:5491
 msgid "There were some errors, please check your input file.\n"
-msgstr "エラーあり, 入力ファイルを確認して下さい. \n"
+msgstr "エラーあり, 入力ファイルを確認してください.\n"
 
 #: src/core/command.c:5561
 msgid "The size of the kernel MUST be odd and in the range [3, 15].\n"
@@ -16637,18 +16638,18 @@ msgstr ""
 #: src/core/command_line_processor.c:161
 #, c-format
 msgid "This command cannot be used in a script: %s\n"
-msgstr "このコマンドはスクリプト: %s では使用不可能\n"
+msgstr "このコマンドはスクリプトでは使えません: %s\n"
 
 #. process the command
 #: src/core/command_line_processor.c:203
 #, c-format
 msgid "Running command: %s\n"
-msgstr "コマンド: %s を実行中\n"
+msgstr "コマンドを実行中: %s\n"
 
 #: src/core/command_line_processor.c:244
 #, c-format
 msgid "Processing line %d: %s"
-msgstr "%d: %s 行目を処理中"
+msgstr "%d行目を処理中: %s"
 
 #: src/core/command_line_processor.c:295
 msgid ""
@@ -18488,7 +18489,7 @@ msgstr ""
 
 #: src/core/siril_update.c:637
 msgid "Looking for updates..."
-msgstr "アップデートを検索..."
+msgstr "アップデートを確認しています..."
 
 #: src/core/siril_update.c:657
 #, fuzzy
@@ -19816,7 +19817,7 @@ msgstr ""
 #. HSV
 #: src/gui/colors.c:338 src/gui/colors.c:343
 msgid "Hue: "
-msgstr "色調: "
+msgstr "色相: "
 
 #: src/gui/colors.c:339 src/gui/colors.c:344
 msgid "Saturation: "
@@ -20962,7 +20963,7 @@ msgstr ""
 #: src/gui/menu_gray_geometry.c:385
 msgid ""
 "Crop does not work with avi film. Please, convert your file to SER first.\n"
-msgstr "Avi 動画は切り抜きできません. まずは, SER ファイルに変換して下さい.\n"
+msgstr "avi 動画は切り抜きできません. まずは, SER ファイルに変換して下さい.\n"
 
 #: src/gui/menu_gray_geometry.c:391
 msgid "Not a valid sequence for cropping.\n"
@@ -21787,7 +21788,7 @@ msgstr "ファイル: %s を開けない\n"
 
 #: src/gui/progress_and_log.c:245
 msgid "Log files (*.log)"
-msgstr "ログファイル"
+msgstr "ログファイル (*.log)"
 
 #: src/gui/progress_and_log.c:287
 msgid "Are you sure you want to clear the log? There is no possible undo."
@@ -23175,7 +23176,7 @@ msgstr ""
 #: src/io/fits_sequence.c:177
 #, c-format
 msgid "Cannot open FITS file %s\n"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr "FITS ファイル %s を開けません\n"
 
 #: src/io/fits_sequence.c:182
 #, c-format
@@ -24329,7 +24330,7 @@ msgstr ""
 
 #: src/io/sequence_export.c:615
 msgid "Sequence export failed. Check the log."
-msgstr "画像シーケンスのエクスポート失敗. ログを確認して下さい."
+msgstr "画像シーケンスのエクスポート失敗. ログを確認してください."
 
 #: src/io/sequence_export.c:616
 msgid "Sequence export failed\n"

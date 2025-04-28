@@ -658,7 +658,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			}
 		}
 		siril_debug_print("set_*_pixeldata: updating gfit\n");
-		queue_redraw(REMAP_ALL);
+		redraw(REMAP_ALL);
 	}
 	// Cleanup shared memory
 	#ifdef _WIN32
@@ -801,7 +801,7 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 
 	// Redraw if necessary
 	if (show_samples && !com.headless) {
-		queue_redraw(REDRAW_OVERLAY);
+		redraw(REDRAW_OVERLAY);
 	}
 
 	// Free the positions list

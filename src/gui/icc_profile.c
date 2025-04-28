@@ -643,6 +643,7 @@ gboolean on_iso12646_panel_hide_completed(GtkWidget *widget, gpointer data) {
 	gui.display_offset.x = (window_width / 2 - (gfit.rx / 2) * z);
 	gui.display_offset.y = (window_height / 2) - (gfit.ry / 2 * z);
 	adjust_vport_size_to_image();
+	// TODO: convince myself this is safe if a thread is updating gfit...
 	queue_redraw(remap ? REMAP_ALL : REDRAW_IMAGE); // Has to do the remap in case the sliders have been changed
 	gtk_widget_queue_draw(lookup_widget("vbox_r"));
 	gtk_widget_queue_draw(lookup_widget("vbox_g"));

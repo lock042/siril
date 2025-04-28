@@ -1074,23 +1074,50 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(_("Error in cmd(): {e}")) from e
 
-    def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
+    def set_siril_selection(self,
+                            x: Optional[int] = None,
+                            y: Optional[int] = None,
+                            w: Optional[int] = None,
+                            h: Optional[int] = None,
+                            selection: Optional[Tuple[int, int, int, int]] = None) -> bool:
         """
         Set the image selection in Siril using the provided coordinates and dimensions.
 
         Args:
-            x: X-coordinate of the selection's top-left corner
-            y: Y-coordinate of the selection's top-left corner
-            w: Width of the selection
-            h: Height of the selection
+            x: X-coordinate of the selection's top-left corner (must be provided with y, w, h)
+            y: Y-coordinate of the selection's top-left corner (must be provided with x, w, h)
+            w: Width of the selection (must be provided with x, y, h)
+            h: Height of the selection (must be provided with x, y, w)
+            selection: A tuple of (x, y, w, h) as returned by get_siril_selection()
 
         Raises:
             SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the selection was set successfully
         """
         try:
+            # Check if selection tuple is provided
+            if selection is not None:
+                # Make sure individual coordinates are not also provided
+                if any(param is not None for param in (x, y, w, h)):
+                    raise ValueError("Cannot provide both selection tuple and individual coordinates")
+
+                if len(selection) != 4:
+                    raise ValueError("Selection tuple must contain exactly 4 values (x, y, w, h)")
+
+                x, y, w, h = selection
+            # Otherwise check if all individual coordinates are provided
+            elif all(param is not None for param in (x, y, w, h)):
+                pass  # Just use the provided x, y, w, h values
+            else:
+                raise ValueError("Either provide a selection tuple or all four coordinate parameters (x, y, w, h)")
+
             # Pack the coordinates and dimensions into bytes using network byte order (!)
             payload = struct.pack('!IIII', x, y, w, h)
             self._execute_command(_Command.SET_SELECTION, payload)
+            return True
         except Exception as e:
             raise SirilError(f"Error in set_siril_selection(): {e}") from e
 

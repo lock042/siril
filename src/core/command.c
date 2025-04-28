@@ -4240,7 +4240,12 @@ int process_pm(int nb) {
 	}
 
 	/* gfit image MUST have same size of the others */
-	if (has_gfit && width != -1) {
+	if (has_gfit) {
+		if (width == -1) {
+			width = gfit.rx;
+			height = gfit.ry;
+			channel = gfit.naxes[2];
+		}
 		if (gfit.rx != width || height != gfit.ry || channel != gfit.naxes[2]) {
 			siril_log_message(_("Image must have same dimension\n"));
 			free_pm_var(args->nb_rows);
@@ -8565,6 +8570,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.reglayer = get_registration_layer(args.seq);
 	args.feather_dist = arg->feather_dist;
 	args.overlap_norm = arg->overlap_norm;
+	args.weighting_type = (arg->method == stack_mean_with_rejection) ? arg->weighting_type : NO_WEIGHT;
 
 	// manage registration data
 	if (!test_regdata_is_valid_and_shift(args.seq, args.reglayer)) {
