@@ -303,7 +303,7 @@ snap:
     GIT_SUBMODULE_STRATEGY: recursive
     SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
   script:
-	- cd build
+    - cd build
     - snapcraft
   artifacts:
     expire_in: 1 week
