@@ -1583,13 +1583,16 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			gboolean with_pixels = TRUE;
+			gboolean as_preview = FALSE;
 			int index;
-			if (payload_length == 5) {
+			if (payload_length == 6) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 				const char* pixelbool = payload + 4;
+				const char* previewbool = payload + 5;
 				with_pixels = BOOL_FROM_BYTE(*pixelbool);
+				as_preview = BOOL_FROM_BYTE(*previewbool);
 			}
-			if (payload_length != 5 || index >= com.seq.number) {
+			if (payload_length != 6 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1633,7 +1636,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (with_pixels) {
 				ptr += strings_size + numeric_size;
 				rectangle region = (rectangle) {0, 0, fit->rx, fit->ry};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, FALSE); // TODO: implement preview after
+				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview);
 				if (!info) {
 					const char* error_message = _("Memory allocation error");
 					success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));

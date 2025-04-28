@@ -3064,15 +3064,18 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(f"Error in get_image(): {e}") from e
 
-    def get_seq_frame(self, frame: int, with_pixels: Optional[bool] = True) -> Optional[FFit]:
+    def get_seq_frame(self, frame: int, with_pixels: Optional[bool] = True, preview: Optional[bool] = False) -> Optional[FFit]:
         """
         Request sequence frame as a FFit from Siril.
 
         Args:
             frame: Integer specifying which frame in the sequence to retrieve data for
-            (between 0 and Sequence.number)
+                   (between 0 and Sequence.number)
             with_pixels: bool specifying whether or not to return the pixel data for the
-            frame (default is True).
+                         frame (default is True).
+            preview: bool specifying whether or not to return the real pixel data or an
+                     autostretched uint8_t preview version. Only has an effect in
+                     conjunction with with_pixels = True
 
         Returns:
             FFit object containing the frame data
@@ -3087,7 +3090,7 @@ class SirilInterface:
             raise NoSequenceError(_("Error in get_seq_frame(): no sequence is loaded"))
 
         shm = None
-        data_payload = struct.pack('!I?', frame, with_pixels)
+        data_payload = struct.pack('!I??', frame, with_pixels, preview)
         response = self._request_data(_Command.GET_SEQ_IMAGE, data_payload, timeout = None)
         if response is None:
             return None
@@ -3225,7 +3228,10 @@ class SirilInterface:
 
                     buffer = bytearray(shm.buf)[:shm_info.size]
                     # Create numpy array from shared memory
-                    dtype = np.float32 if shm_info.data_type == 1 else np.uint16
+                    if preview:
+                        dtype = np.uint8
+                    else:
+                        dtype = np.float32 if shm_info.data_type == 1 else np.uint16
                     try:
                         arr = np.frombuffer(buffer, dtype=dtype)
                     except (BufferError, ValueError, TypeError) as e:
