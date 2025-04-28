@@ -56,14 +56,9 @@ void siril_get_documentation(const gchar *page_path) {
 	}
 	const gchar *version = NULL;
 #ifdef SIRIL_UNSTABLE
-    version = "latest";
+	version = "latest";
 #else
 	version = "stable";
-#ifdef PACKAGE_VERSION
-	if (strstr(PACKAGE_VERSION, "beta") != NULL) {
-		version = "latest";
-	}
-#endif
 #endif
 	gchar *url = g_build_path (G_DIR_SEPARATOR_S, GET_DOCUMENTATION_URL, lang, version, page_path, NULL);
 	control_window_switch_to_tab(OUTPUT_LOGS);
