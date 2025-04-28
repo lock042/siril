@@ -303,6 +303,8 @@ snap:
     GIT_SUBMODULE_STRATEGY: recursive
     SNAPCRAFT_STORE_CREDENTIALS: ${SNAP_LOGIN}
   script:
+    - apt-get update
+    - apt-get install -y snapcraft
     - cd build
     - snapcraft
   artifacts:
