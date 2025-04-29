@@ -66,16 +66,16 @@ build-image:
     - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-latest --destination $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-latest --cache=true --cache-ttl=120h
 
 # Image for GNU/Linux build
-build-image-oldstable:
-  stage: prepare
-  cache: {}
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
-  script:
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-oldstable --destination $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-oldstable --cache=true --cache-ttl=120h
+#build-image-oldstable:
+#  stage: prepare
+#  cache: {}
+#  image:
+#    name: gcr.io/kaniko-project/executor:debug
+#    entrypoint: [""]
+#  script:
+#    - mkdir -p /kaniko/.docker
+#    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+#    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-oldstable --destination $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-oldstable --cache=true --cache-ttl=120h
 
 ################################################################################
 # GNU/Linux 64-bit CIs
@@ -301,24 +301,24 @@ flatpak:
   allow_failure: true
 
 
-appimage:
-  stage: packaging
-  image: $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-oldstable
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  cache:
-    paths:
-      - apt-cache
-  before_script:
-    - apt-get install -y wget
-  script:
-    - bash -ex build/appimage/generate.sh
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - build/appimage/Siril*.AppImage*
-  needs: ["build-image-oldstable"]
-  allow_failure: true
+#appimage:
+#  stage: packaging
+#  image: $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-oldstable
+#  variables:
+#    GIT_SUBMODULE_STRATEGY: recursive
+#  cache:
+#    paths:
+#      - apt-cache
+#  before_script:
+#    - apt-get install -y wget
+#  script:
+#    - bash -ex build/appimage/generate.sh
+#  artifacts:
+#    expire_in: 1 week
+#    paths:
+#      - build/appimage/Siril*.AppImage*
+#  needs: ["build-image-oldstable"]
+#  allow_failure: true
 
 ################################################################################
 # Analysis
