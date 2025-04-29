@@ -388,25 +388,32 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 		// Copy data from gfit to shared memory
 		int top = region.y + region.h;
 		int right = region.x + region.w;
-		int npixels = fit->rx * fit->ry;
 		uint8_t *shm_byte_ptr = (uint8_t*) shm_ptr;
 		if (fit->type == DATA_FLOAT) {
-			for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
-				int chanindex = chan * npixels;
-				for (int i = region.y ; i < top ; i++) {
+#pragma omp parallel for collapse(2) num_threads(com.max_thread)
+			for (int chan = 0; chan < fit->naxes[2]; chan++) {
+				for (int i = region.y; i < top; i++) {
 					int rowindex = i * fit->rx;
-					for (int j = region.x ; j < right ; j++) {
-						shm_byte_ptr[j + rowindex + chanindex] = roundf_to_BYTE(stretched.fpdata[chan][j + rowindex]);
+					int dest_row_start = (i - region.y) * region.w;
+					int dest_chan_start = chan * region.w * region.h;
+
+					for (int j = region.x; j < right; j++) {
+						int dest_index = (j - region.x) + dest_row_start + dest_chan_start;
+						shm_byte_ptr[dest_index] = roundf_to_BYTE(stretched.fpdata[chan][j + rowindex]);
 					}
 				}
 			}
 		} else {
-			for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
-				int chanindex = chan * npixels;
-				for (int i = region.y ; i < top ; i++) {
+#pragma omp parallel for collapse(2) num_threads(com.max_thread)
+			for (int chan = 0; chan < fit->naxes[2]; chan++) {
+				for (int i = region.y; i < top; i++) {
 					int rowindex = i * fit->rx;
-					for (int j = region.x ; j < right ; j++) {
-						shm_byte_ptr[j + rowindex + chanindex] = (uint8_t)(stretched.pdata[chan][j + rowindex] / UCHAR_MAX);
+					int dest_row_start = (i - region.y) * region.w;
+					int dest_chan_start = chan * region.w * region.h;
+
+					for (int j = region.x; j < right; j++) {
+						int dest_index = (j - region.x) + dest_row_start + dest_chan_start;
+						shm_byte_ptr[dest_index] = (uint8_t)(stretched.pdata[chan][j + rowindex] / UCHAR_MAX);
 					}
 				}
 			}
