@@ -296,6 +296,8 @@ int initialize_script_menu(gboolean verbose) {
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythondebug);
 	gtk_widget_show(menu_item_pythondebug);
 
+	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
+
 	gchar *previous_directory_ssf = NULL;
 	gchar *previous_directory_py = NULL;
 	gboolean first_item_ssf = TRUE;
@@ -468,7 +470,6 @@ int initialize_script_menu(gboolean verbose) {
 	}
 
 	#endif
-	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
 	return 0;
 }
 
