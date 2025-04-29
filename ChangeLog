@@ -6,6 +6,9 @@ XX/XX/25
 * Fixes crash when refreshing the scripts list (#1548)
 * Immplement a better linear regression algorithm for SPCC (!853)
 
+**Improvements:**
+* Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
+
 
 siril 1.4.0-beta1
 04/26/25

@@ -739,11 +739,16 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_PIXELDATA: {
-			rectangle region = {0, 0, gfit.rx, gfit.ry};
-			shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region);
-			// Send shared memory info to Python
-			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-			free(info);
+			if (payload_length == 1) {
+				gboolean as_preview = (gboolean) (uint8_t) payload[0];
+				rectangle region = {0, 0, gfit.rx, gfit.ry};
+				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview);
+				// Send shared memory info to Python
+				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+				free(info);
+			} else {
+				siril_debug_print(_("Unexpected payload length %u received for GET_PIXELDATA\n"), payload_length);
+			}
 			break;
 		}
 
@@ -877,13 +882,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_PIXELDATA_REGION: {
-			if (payload_length == 16) {
-				rectangle region_BE = *(rectangle*) payload;
+			if (payload_length == 17) {
+				gboolean as_preview = (gboolean) (uint8_t) payload[0];
+				unsigned char* rectptr = (unsigned char*) payload + 1;
+				rectangle region_BE = *(rectangle*) rectptr;
 				rectangle region = {GUINT32_FROM_BE(region_BE.x),
 									GUINT32_FROM_BE(region_BE.y),
 									GUINT32_FROM_BE(region_BE.w),
 									GUINT32_FROM_BE(region_BE.h)};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region);
+				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
 			} else {
@@ -1515,17 +1522,19 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (payload_length != 20 && payload_length != 4) {
+			printf("payload length: %d\n", payload_length);
+			if (payload_length != 21 && payload_length != 5) {
 				const char* error_msg = _("Incorrect payload");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-
-			int index = GUINT32_FROM_BE(*(int*) payload);
+			gboolean as_preview = (uint8_t)payload[0] ? TRUE : FALSE;
+			const char *indexptr = payload + 1;
+			int index = GUINT32_FROM_BE(*(int*) indexptr);
 			rectangle region = com.seq.is_variable ?
 						(rectangle) {0, 0, com.seq.imgparam[index].rx, com.seq.imgparam[index].ry} :
 						(rectangle) {0, 0, com.seq.rx, com.seq.ry};
-			if (payload_length == 20) {
+			if (payload_length == 21) {
 				// Use the provided rectangle instead of the full image
 				const char *rectptr = payload + 4;
 				region = *(rectangle*) rectptr;
@@ -1536,11 +1545,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			if(enforce_area_in_image(&region, &com.seq, index)) {
 				siril_log_message(_("Selection cropped to frame boundaries\n"));
-			}
-			if ((payload_length != 4 && payload_length != 20) || index >= com.seq.number) {
-				const char* error_msg = _("Incorrect command argument");
-				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-				break;
 			}
 			fits *fit = calloc(1, sizeof(fits));
 			if (seq_read_frame(&com.seq, index, fit, FALSE, -1)) {
@@ -1564,7 +1568,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 				}
 			}
-			shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region);
+			shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 			free(info);
 			clearfits(fit);
@@ -1579,13 +1583,16 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			gboolean with_pixels = TRUE;
+			gboolean as_preview = FALSE;
 			int index;
-			if (payload_length == 5) {
+			if (payload_length == 6) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 				const char* pixelbool = payload + 4;
+				const char* previewbool = payload + 5;
 				with_pixels = BOOL_FROM_BYTE(*pixelbool);
+				as_preview = BOOL_FROM_BYTE(*previewbool);
 			}
-			if (payload_length != 5 || index >= com.seq.number) {
+			if (payload_length != 6 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1629,7 +1636,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (with_pixels) {
 				ptr += strings_size + numeric_size;
 				rectangle region = (rectangle) {0, 0, fit->rx, fit->ry};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region);
+				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview);
 				if (!info) {
 					const char* error_message = _("Memory allocation error");
 					success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));

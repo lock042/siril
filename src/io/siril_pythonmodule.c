@@ -37,6 +37,7 @@
 #include "algos/siril_random.h"
 #include "algos/background_extraction.h"
 #include "algos/statistics.h"
+#include "filters/mtf.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -328,7 +329,7 @@ void cleanup_shm_resources(Connection *conn) {
 
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
-shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region) {
+shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview) {
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		const char* error_msg = _("Failed to retrieve pixel data - no image loaded");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
@@ -338,7 +339,10 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 
 	// Calculate total size of pixel data
 	size_t total_bytes, row_bytes;
-	if (fit->type == DATA_FLOAT) {
+	if (as_preview) {
+		row_bytes = region.w;
+		total_bytes = row_bytes * fit->naxes[2] * region.h;
+	} else if (fit->type == DATA_FLOAT) {
 		row_bytes = region.w * sizeof(float);
 		total_bytes = row_bytes * fit->naxes[2] * region.h;
 	} else {
@@ -375,22 +379,56 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
-
-	// Copy data from gfit to shared memory
-	size_t index = 0;
-	int top = region.y + region.h;
-	if (fit->type == DATA_FLOAT) {
-		for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
-			for (int i = region.y ; i < top ; i++) {
-				memcpy((char*)shm_ptr + index, fit->fpdata[chan] + (i * fit->rx + region.x), region.w * sizeof(float));
-				index += row_bytes;
+	if (as_preview) {
+		fits stretched = {0};
+		copyfits(fit, &stretched, CP_ALLOC | CP_FORMAT, -1);
+		struct mtf_params params[3];
+		find_unlinked_midtones_balance(fit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, params);
+		apply_unlinked_mtf_to_fits(fit, &stretched, params);
+		// Copy data from gfit to shared memory
+		int top = region.y + region.h;
+		int right = region.x + region.w;
+		int npixels = fit->rx * fit->ry;
+		uint8_t *shm_byte_ptr = (uint8_t*) shm_ptr;
+		if (fit->type == DATA_FLOAT) {
+			for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
+				int chanindex = chan * npixels;
+				for (int i = region.y ; i < top ; i++) {
+					int rowindex = i * fit->rx;
+					for (int j = region.x ; j < right ; j++) {
+						shm_byte_ptr[j + rowindex + chanindex] = roundf_to_BYTE(stretched.fpdata[chan][j + rowindex]);
+					}
+				}
+			}
+		} else {
+			for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
+				int chanindex = chan * npixels;
+				for (int i = region.y ; i < top ; i++) {
+					int rowindex = i * fit->rx;
+					for (int j = region.x ; j < right ; j++) {
+						shm_byte_ptr[j + rowindex + chanindex] = (uint8_t)(stretched.pdata[chan][j + rowindex] / UCHAR_MAX);
+					}
+				}
 			}
 		}
+		clearfits(&stretched);
 	} else {
-		for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
-			for (int i = region.y ; i < top ; i++) {
-				memcpy((char*)shm_ptr + index, fit->pdata[chan] + (i * fit->rx + region.x), region.w * sizeof(WORD));
-				index += row_bytes;
+		// Copy data from gfit to shared memory
+		size_t index = 0;
+		int top = region.y + region.h;
+		if (fit->type == DATA_FLOAT) {
+			for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
+				for (int i = region.y ; i < top ; i++) {
+					memcpy((char*)shm_ptr + index, fit->fpdata[chan] + (i * fit->rx + region.x), region.w * sizeof(float));
+					index += row_bytes;
+				}
+			}
+		} else {
+			for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
+				for (int i = region.y ; i < top ; i++) {
+					memcpy((char*)shm_ptr + index, fit->pdata[chan] + (i * fit->rx + region.x), region.w * sizeof(WORD));
+					index += row_bytes;
+				}
 			}
 		}
 	}
