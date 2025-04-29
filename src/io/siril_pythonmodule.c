@@ -388,7 +388,6 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 		// Copy data from gfit to shared memory
 		int top = region.y + region.h;
 		int right = region.x + region.w;
-		int npixels = fit->rx * fit->ry;
 		uint8_t *shm_byte_ptr = (uint8_t*) shm_ptr;
 		if (fit->type == DATA_FLOAT) {
 #pragma omp parallel for collapse(2) num_threads(com.max_thread)
