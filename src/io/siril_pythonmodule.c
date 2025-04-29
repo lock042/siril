@@ -399,7 +399,7 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 
 					for (int j = region.x; j < right; j++) {
 						int dest_index = (j - region.x) + dest_row_start + dest_chan_start;
-						shm_byte_ptr[dest_index] = roundf_to_BYTE(stretched.fpdata[chan][j + rowindex]);
+						shm_byte_ptr[dest_index] = roundf_to_BYTE(UCHAR_MAX_SINGLE * stretched.fpdata[chan][j + rowindex]);
 					}
 				}
 			}
