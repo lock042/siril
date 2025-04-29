@@ -73,7 +73,6 @@ const char* ui_files[] = {
 	"/org/siril/ui/satu_dialog.ui",
 	"/org/siril/ui/savepopup.ui",
 	"/org/siril/ui/SCNR_dialog.ui",
-	"/org/siril/ui/script_contents_dialog.ui",
 	"/org/siril/ui/seqlist_dialog.ui",
 	"/org/siril/ui/settings_window.ui",
 	"/org/siril/ui/siril.ui",
