@@ -233,6 +233,21 @@ gboolean test_last_subdir(const gchar *path, const gchar *expected_subdir) {
 	return result;
 }
 
+static gint compare_basenames(gconstpointer a, gconstpointer b) {
+	const gchar *path_a = (const gchar*) a;
+	const gchar *path_b = (const gchar*) b;
+
+	gchar *basename_a = g_path_get_basename(path_a);
+	gchar *basename_b = g_path_get_basename(path_b);
+
+	gint result = g_ascii_strcasecmp(basename_a, basename_b); // Insensible à la casse
+
+	g_free(basename_a);
+	g_free(basename_b);
+
+	return result;
+}
+
 int initialize_script_menu(gboolean verbose) {
 	GSList *list, *script_paths, *s;
 #ifdef HAVE_LIBGIT2
@@ -357,6 +372,8 @@ int initialize_script_menu(gboolean verbose) {
 	}
 	// Add scripts from the selections made in preferences
 	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
+		com.pref.selected_scripts = g_list_sort(com.pref.selected_scripts, compare_basenames);
+
 		GList *new_list = NULL;
 		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
 			gchar *full_path = g_strdup(ss->data);
