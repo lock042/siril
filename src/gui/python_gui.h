@@ -26,4 +26,5 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data);
 void on_pythondebug_toggled(GtkCheckMenuItem *item, gpointer user_data);
 void set_code_view_theme();
 gboolean code_view_exists();
+void new_script(const gchar *content, gint length, const char *ext);
 #endif

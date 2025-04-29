@@ -89,7 +89,6 @@ static const SirilDialogEntry entries[] =
 	{"s_pcc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"satu_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_satu_cancel},
 	{"SCNR_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-	{"script_contents_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"settings_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"seqlist_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"split_cfa_dialog", NULL, OTHER_DIALOG, FALSE, NULL},

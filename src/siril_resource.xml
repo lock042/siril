@@ -75,7 +75,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="satu_dialog.ui">gui/uifiles/satu_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="savepopup.ui">gui/uifiles/savepopup.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="SCNR_dialog.ui">gui/uifiles/SCNR_dialog.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks" alias="script_contents_dialog.ui">gui/uifiles/script_contents_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="seqlist_dialog.ui">gui/uifiles/seqlist_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="settings_window.ui">gui/uifiles/settings_window.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="siril.ui">gui/uifiles/siril.ui</file>
