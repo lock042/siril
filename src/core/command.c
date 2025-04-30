@@ -457,6 +457,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	if (args->do_cosme)
 		denoise_hook_cosmetic(args->fit);
 
+	// Apply NR to each channel independently
 	if (args->fit == &gfit && args->fit->naxes[2] == 3 && args->suppress_artefacts) {
 		fits *loop = NULL;
 		if (new_fit_image(&loop, args->fit->rx, args->fit->ry, 1, args->fit->type)) {
@@ -473,7 +474,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 					loop->fdata = loop_fdata;
 					memcpy(loop_fdata, args->fit->fpdata[i], npixels * sizeof(float));
 					retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
-					memcpy(args->fit->pdata[i], loop->data, npixels * sizeof(float));
+					memcpy(args->fit->fpdata[i], loop->fdata, npixels * sizeof(float));
 				}
 				free(loop->fdata);
 				loop->fdata = NULL;
