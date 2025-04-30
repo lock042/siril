@@ -199,15 +199,14 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 
 }
 
-void on_manual_script_sync_button_clicked(GtkButton *button,
-                                          gpointer user_data) {
+gpointer script_sync(gpointer user_data) {
 	GString *git_pending_commit_buffer = NULL;
 	set_cursor_waiting(TRUE);
 
 	switch (preview_scripts_update(&git_pending_commit_buffer)) {
 		case 1:
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
-			return;
+			return GINT_TO_POINTER(0);
 		case 2:
 			// Merge cannot be fast forwarded
 			if (!siril_confirm_dialog(
@@ -225,13 +224,13 @@ void on_manual_script_sync_button_clicked(GtkButton *button,
 					"list of script directories to be searched."),
 					_("Accept"))) {
 				g_string_free(git_pending_commit_buffer, TRUE);
-				return;
+				return GINT_TO_POINTER(0);
 			} else {
 				reset_scripts_repository();
 				if (git_pending_commit_buffer)
 					g_string_free(git_pending_commit_buffer, TRUE);
 				fill_script_repo_list(FALSE);
-				return;
+				return GINT_TO_POINTER(0);
 			}
 		default:
 			break;
@@ -256,6 +255,13 @@ void on_manual_script_sync_button_clicked(GtkButton *button,
 	}
 	fill_script_repo_list(FALSE);
 	set_cursor_waiting(FALSE);
+	return GINT_TO_POINTER(0);
+}
+
+void on_manual_script_sync_button_clicked(GtkButton *button,
+                                          gpointer user_data) {
+	GThread *script_sync_thread = g_thread_new("script sync", script_sync, NULL);
+	g_thread_unref(script_sync_thread);
 }
 
 void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {

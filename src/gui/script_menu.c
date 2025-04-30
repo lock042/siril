@@ -500,15 +500,23 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	return retval;
 }
 
+static GMutex script_mutex = { 0 };
+
 gpointer refresh_scripts_menu_in_thread(gpointer data) {
 	gboolean verbose = (gboolean) GPOINTER_TO_INT(data);
-	refresh_script_menu(verbose);
+	if (g_mutex_trylock(&script_mutex)) {
+		refresh_script_menu(verbose);
+		g_mutex_unlock(&script_mutex);
+	}
 	return GINT_TO_POINTER(0);
 }
 
 gpointer initialize_script_menu_in_thread(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
-	initialize_script_menu(state);
+	if (g_mutex_trylock(&script_mutex)) {
+		initialize_script_menu(state);
+		g_mutex_unlock(&script_mutex);
+	}
 	return GINT_TO_POINTER(0);
 }
 
