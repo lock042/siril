@@ -7,6 +7,8 @@ XX/XX/25
 * Immplemented a better linear regression algorithm for SPCC (!853)
 * Python scripts are now sorted alphabetically (#1559)
 * Fixed crash in Noise Reduction with Independent Channels option selected (#1567)
+* Fixed UI hang when manually refreshing scripts or SPCC (#1566)
+* Fixed incorrect behaviour when using set_image_pixeldata to chage the number of channels (#1570)
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
