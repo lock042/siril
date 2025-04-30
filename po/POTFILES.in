@@ -51,7 +51,6 @@ src/gui/uifiles/rotation_dialog.ui
 src/gui/uifiles/s_pcc_dialog.ui
 src/gui/uifiles/satu_dialog.ui
 src/gui/uifiles/savepopup.ui
-src/gui/uifiles/script_contents_dialog.ui
 src/gui/uifiles/seqlist_dialog.ui
 src/gui/uifiles/settings_window.ui
 src/gui/uifiles/siril.ui
