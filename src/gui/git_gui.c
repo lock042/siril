@@ -317,7 +317,7 @@ void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
 		}
 		g_string_free(git_pending_commit_buffer, TRUE);
 	} else {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The SPCC database repository is up to date."));
+		siril_log_color_message(_("Manual SPCC database update: the SPCC database repository is up to date.\n"), "green");
 	}
 	if (!com.headless) {
 		reset_spcc_filters();
