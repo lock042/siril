@@ -8,7 +8,7 @@ int read_single_image(const char* filename, fits *dest, char **realname_out, gbo
 gboolean end_open_single_image(gpointer arg);
 int open_single_image(const char* filename);
 gboolean open_single_image_from_gfit(gpointer user_data);
-
+gboolean update_single_image_from_gfit(gpointer user_data);
 int image_find_minmax(fits *fit);
 double fit_get_max(fits *fit, int layer);
 double fit_get_min(fits *fit, int layer);
