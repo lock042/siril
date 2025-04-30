@@ -265,6 +265,12 @@ gpointer script_sync(gpointer user_data) {
 	return GINT_TO_POINTER(0);
 }
 
+void on_manual_script_sync_button_clicked(GtkButton *button,
+                                          gpointer user_data) {
+	GThread *script_sync_thread = g_thread_new("script sync", script_sync, NULL);
+	g_thread_unref(script_sync_thread);
+}
+
 static GMutex spcc_sync_mutex = {0};
 
 gpointer spcc_sync(gpointer user_data) {
