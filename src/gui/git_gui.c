@@ -265,72 +265,77 @@ gpointer script_sync(gpointer user_data) {
 	return GINT_TO_POINTER(0);
 }
 
-void on_manual_script_sync_button_clicked(GtkButton *button,
-										gpointer user_data) {
-	GThread *script_sync_thread = g_thread_new("script sync", script_sync, NULL);
-	g_thread_unref(script_sync_thread);
+static GMutex spcc_sync_mutex = {0};
+
+gpointer spcc_sync(gpointer user_data) {
+	if (g_mutex_trylock(&spcc_sync_mutex)) {
+		GString *git_pending_commit_buffer = NULL;
+		set_cursor_waiting(TRUE);
+
+		switch (preview_spcc_update(&git_pending_commit_buffer)) {
+		case 1:
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
+			return GINT_TO_POINTER(0);
+		case 2:
+			// Merge cannot be fast forwarded
+			if (!siril_confirm_dialog(
+					_("Warning!"),
+					_("Merge analysis shows that "
+					"the merge cannot be fast-forwarded. This indicates you have "
+					"made changes to the local scripts repository. Siril does not "
+					"provide full git functionality and cannot be used to merge "
+					"upstream updates into an altered local repository.\n\nIf you "
+					"accept the update, the local repository will be hard reset "
+					"to match the remote repository and any local changes will "
+					"be lost.\n\nIf you have made local changes that you wish to "
+					"keep, you should cancel this update and copy your modified "
+					"scripts to another location, and add this location to the "
+					"list of script directories to be searched."),
+					_("Accept"))) {
+			g_string_free(git_pending_commit_buffer, TRUE);
+			return GINT_TO_POINTER(0);
+			} else {
+			reset_spcc_repository();
+			g_string_free(git_pending_commit_buffer, TRUE);
+			return GINT_TO_POINTER(0);
+			}
+		default:
+			break;
+		}
+		if (git_pending_commit_buffer != NULL) {
+			if (siril_confirm_data_dialog(GTK_MESSAGE_QUESTION, _("Manual Update"),
+					_("Read and confirm the pending changes to be synced"),
+					_("Confirm"), git_pending_commit_buffer->str)) {
+			if (reset_spcc_repository()) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! SPCC database failed to update."));
+			}
+			} else {
+			siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("Update cancelled. Updates have not been applied."));
+			}
+			g_string_free(git_pending_commit_buffer, TRUE);
+		} else {
+			siril_log_color_message(_("Manual SPCC database update: the SPCC database repository is up to date.\n"), "green");
+		}
+		if (!com.headless) {
+			reset_spcc_filters();
+			// Check if the SPCC window is open, if so refresh the combo boxes
+			GtkWidget *spcc_dialog = lookup_widget("s_pcc_dialog");
+			if (gtk_widget_get_visible(spcc_dialog)) {
+			siril_debug_print("Reloading SPCC comboboxes\n");
+			/* populate SPCC combos in a thread */
+			g_thread_unref(
+				g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
+			}
+		}
+		set_cursor_waiting(FALSE);
+		g_mutex_unlock(&spcc_sync_mutex);
+	}
+	return GINT_TO_POINTER(0);
 }
 
 void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
-	GString *git_pending_commit_buffer = NULL;
-	set_cursor_waiting(TRUE);
-
-	switch (preview_spcc_update(&git_pending_commit_buffer)) {
-	case 1:
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
-		return;
-	case 2:
-		// Merge cannot be fast forwarded
-		if (!siril_confirm_dialog(
-				_("Warning!"),
-				_("Merge analysis shows that "
-				"the merge cannot be fast-forwarded. This indicates you have "
-				"made changes to the local scripts repository. Siril does not "
-				"provide full git functionality and cannot be used to merge "
-				"upstream updates into an altered local repository.\n\nIf you "
-				"accept the update, the local repository will be hard reset "
-				"to match the remote repository and any local changes will "
-				"be lost.\n\nIf you have made local changes that you wish to "
-				"keep, you should cancel this update and copy your modified "
-				"scripts to another location, and add this location to the "
-				"list of script directories to be searched."),
-				_("Accept"))) {
-		g_string_free(git_pending_commit_buffer, TRUE);
-		return;
-		} else {
-		reset_spcc_repository();
-		g_string_free(git_pending_commit_buffer, TRUE);
-		return;
-		}
-	default:
-		break;
-	}
-	if (git_pending_commit_buffer != NULL) {
-		if (siril_confirm_data_dialog(GTK_MESSAGE_QUESTION, _("Manual Update"),
-				_("Read and confirm the pending changes to be synced"),
-				_("Confirm"), git_pending_commit_buffer->str)) {
-		if (reset_spcc_repository()) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! SPCC database failed to update."));
-		}
-		} else {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("Update cancelled. Updates have not been applied."));
-		}
-		g_string_free(git_pending_commit_buffer, TRUE);
-	} else {
-		siril_log_color_message(_("Manual SPCC database update: the SPCC database repository is up to date.\n"), "green");
-	}
-	if (!com.headless) {
-		reset_spcc_filters();
-		// Check if the SPCC window is open, if so refresh the combo boxes
-		GtkWidget *spcc_dialog = lookup_widget("s_pcc_dialog");
-		if (gtk_widget_get_visible(spcc_dialog)) {
-		siril_debug_print("Reloading SPCC comboboxes\n");
-		/* populate SPCC combos in a thread */
-		g_thread_unref(
-			g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
-		}
-	}
-	set_cursor_waiting(FALSE);
+	GThread *spcc_sync_thread = g_thread_new("SPCC sync", spcc_sync, NULL);
+	g_thread_unref(spcc_sync_thread);
 }
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *char_path, gpointer user_data) {
