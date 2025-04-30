@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-29 22:01+0000\n"
+"PO-Revision-Date: 2025-04-30 20:31+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -3538,7 +3538,7 @@ msgstr ""
 
 #: src/gui/uifiles/denoise_dialog.ui:379
 msgid "SOS Advanced Options"
-msgstr ""
+msgstr "Opções avançadas de SOS"
 
 #: src/gui/uifiles/denoise_dialog.ui:401
 msgid ""
@@ -3549,6 +3549,13 @@ msgid ""
 "end of the process, after primary and secondary denoising stages have both "
 "completed."
 msgstr ""
+"A modulação permite que uma fração da imagem com ruído seja misturada ao "
+"resultado com redução de ruído. Isso pode ser útil para adicionar "
+"microtextura se o resultado com redução de ruído parecer artificialmente "
+"suave. Um valor de 1 significa que a saída será 100% sem ruído, sem adição "
+"de nenhuma parte da imagem com ruído. A modulação é realizada ao final do "
+"processo, após a conclusão das etapas primária e secundária de redução de "
+"ruído."
 
 #: src/gui/uifiles/denoise_dialog.ui:418 src/gui/uifiles/denoise_dialog.ui:444
 msgid ""
@@ -3558,6 +3565,11 @@ msgid ""
 "modulation can be useful to add back microtexture to flat regions of the "
 "image."
 msgstr ""
+"Define a modulação. O valor do pixel é calculado como m * b + (1-m) * orig, "
+"onde m é a modulação, b é o valor de redução de ruído e orig é o valor "
+"original do pixel. A modulação reduz o desempenho da redução de ruído, mas "
+"um pouco de modulação pode ser útil para adicionar microtextura novamente a "
+"regiões planas da imagem."
 
 #: src/gui/uifiles/dialog_FFT.ui:35
 msgid "Fourier Transform"
@@ -3623,19 +3635,19 @@ msgstr "Histogramas logarítmicos"
 #: src/gui/uifiles/dialog_star_remix.ui:129 src/gui/remixer.c:721
 #: src/gui/remixer.c:1431
 msgid "Advanced"
-msgstr ""
+msgstr "Avançado"
 
 #: src/gui/uifiles/dialog_star_remix.ui:133
 msgid "Show advanced stretch options"
-msgstr ""
+msgstr "Mostra opções avançadas de estiramento"
 
 #: src/gui/uifiles/dialog_star_remix.ui:151
 msgid "Clipping mode:"
-msgstr ""
+msgstr "Modo de recorte:"
 
 #: src/gui/uifiles/dialog_star_remix.ui:163
 msgid "Select the clipping mode for partially clipped pixels."
-msgstr ""
+msgstr "Selecione o modo de recorte para pixels parcialmente recortados."
 
 #: src/gui/uifiles/dialog_star_remix.ui:169
 #: src/gui/uifiles/histogram_dialog.ui:770
@@ -3650,12 +3662,19 @@ msgid ""
 "reduction workflow, you can specify any two fits files with the same "
 "dimensions and bit depth for blending."
 msgstr ""
+"Selecione uma imagem sem estrelas para recompor com uma máscara de estrela.\n"
+"Embora o objetivo principal da ferramenta seja a recomposição de estrelas "
+"como parte de um fluxo de trabalho de redução de estrelas, você pode "
+"especificar quaisquer dois arquivos de ajuste com as mesmas dimensões e "
+"profundidade de bits para mesclagem."
 
 #: src/gui/uifiles/dialog_star_remix.ui:262
 msgid ""
 "Expands to show a mini histogram and transfer function display for the star "
 "image"
 msgstr ""
+"Expande para mostrar um mini histograma e uma exibição de função de "
+"transferência para a imagem da estrela"
 
 #: src/gui/uifiles/dialog_star_remix.ui:265
 msgid "Star Histogram"
@@ -3677,6 +3696,13 @@ msgid ""
 "point, lowlight and highlight preservation. The inverse hyperbolic and "
 "arcsinh stretches are also available."
 msgstr ""
+"Selecione o tipo de alongamento. O alongamento hiperbólico generalizado "
+"realiza um alongamento hiperbólico com parâmetros para intensidade do "
+"alongamento, intensidade local, ponto de simetria e regiões de preservação "
+"de sombras e realces. O alongamento arcsinh modificado realiza um "
+"alongamento arcsinh com parâmetros adicionais para ponto de simetria, "
+"preservação de pouca luz e realces. Os alongamentos hiperbólico inverso e "
+"arcsinh também estão disponíveis."
 
 #: src/gui/uifiles/dialog_star_remix.ui:322
 #: src/gui/uifiles/dialog_star_remix.ui:959
@@ -3719,6 +3745,14 @@ msgid ""
 "which applies the stretch independently to each channel of the pixel.\n"
 "Note that luminance based models are not generally invertible."
 msgstr ""
+"Defina o modelo de estiramento para estiramento de cores. As opções são: "
+"luminância uniformemente ponderada, que calcula o estiramento com base em um "
+"valor de luminância que pondera os canais R, G e B igualmente; luminância "
+"ponderada por humanos, que estiramento com base em um valor de luminância "
+"que pondera os canais R, G e B de acordo com a sensibilidade relativa do "
+"olho humano; e valores de canal independentes, que aplica o estiramento "
+"independentemente a cada canal do pixel.\n"
+"Observe que os modelos baseados em luminância geralmente não são invertíveis."
 
 #: src/gui/uifiles/dialog_star_remix.ui:373
 #: src/gui/uifiles/dialog_star_remix.ui:1010
@@ -3730,19 +3764,19 @@ msgstr "Valores de canais independentes"
 #: src/gui/uifiles/dialog_star_remix.ui:1011
 #: src/gui/uifiles/histogram_dialog.ui:911
 msgid "Human weighted luminance"
-msgstr ""
+msgstr "Luminância ponderada humana"
 
 #: src/gui/uifiles/dialog_star_remix.ui:375
 #: src/gui/uifiles/dialog_star_remix.ui:1012
 #: src/gui/uifiles/histogram_dialog.ui:912
 msgid "Even weighted luminance"
-msgstr ""
+msgstr "Luminância ponderada uniforme"
 
 #: src/gui/uifiles/dialog_star_remix.ui:409
 #: src/gui/uifiles/dialog_star_remix.ui:1046
 #: src/gui/uifiles/histogram_dialog.ui:969
 msgid "Stretch factor (ln(D+1))"
-msgstr ""
+msgstr "Fator de estiramento (ln(D+1))"
 
 #: src/gui/uifiles/dialog_star_remix.ui:420
 #: src/gui/uifiles/dialog_star_remix.ui:445
@@ -3751,12 +3785,16 @@ msgid ""
 "thus adjusting the amount of stretch applied to the rest of the image. "
 "Increasing D increases the intensity of stars in the resulting composition."
 msgstr ""
+"Controla independentemente o contraste adicionado (a inclinação do "
+"alongamento) em SP, ajustando assim a quantidade de alongamento aplicada ao "
+"restante da imagem. Aumentar D aumenta a intensidade das estrelas na "
+"composição resultante."
 
 #: src/gui/uifiles/dialog_star_remix.ui:479
 #: src/gui/uifiles/dialog_star_remix.ui:1117
 #: src/gui/uifiles/histogram_dialog.ui:1038
 msgid "Local stretch intensity (b)"
-msgstr ""
+msgstr "Intensidade de estiramento local (b)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:490
 #: src/gui/uifiles/dialog_star_remix.ui:514
@@ -3766,12 +3804,16 @@ msgid ""
 "peak brightness above SP, but may bloat their PSF; it will reduce the "
 "intensity of stars below SP."
 msgstr ""
+"Controla o quão firmemente o alongamento é focado, alterando a forma da "
+"própria transformação. Aumentar b aumentará a intensidade de estrelas com "
+"brilho máximo acima de SP, mas pode aumentar sua PSF; reduzirá a intensidade "
+"de estrelas abaixo de SP."
 
 #: src/gui/uifiles/dialog_star_remix.ui:549
 #: src/gui/uifiles/dialog_star_remix.ui:1187
 #: src/gui/uifiles/histogram_dialog.ui:1107
 msgid "Symmetry point (SP)"
-msgstr ""
+msgstr "Ponto de simetria (SP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:560
 #: src/gui/uifiles/dialog_star_remix.ui:606
@@ -3781,6 +3823,10 @@ msgid ""
 "brightness below SP and therefore the amount of stars that show in the "
 "resulting composition."
 msgstr ""
+"Define o ponto de simetria em torno do qual o alongamento é focado. Para "
+"recomposição estelar, aumentar o SP reduz a intensidade de estrelas com "
+"brilho máximo abaixo do SP e, portanto, a quantidade de estrelas que "
+"aparecem na composição resultante."
 
 #: src/gui/uifiles/dialog_star_remix.ui:580
 msgid ""
@@ -3788,6 +3834,9 @@ msgid ""
 "with the background image, where it can effectively pick out faint detail "
 "above the background. It is not generally useful with the star mask image."
 msgstr ""
+"Permite definir o SP a partir da seleção atual. É mais adequado para uso com "
+"a imagem de fundo, onde pode efetivamente destacar detalhes tênues acima do "
+"fundo. Geralmente não é útil com a imagem de máscara de estrela."
 
 #: src/gui/uifiles/dialog_star_remix.ui:641
 #: src/gui/uifiles/dialog_star_remix.ui:1279
@@ -3809,6 +3858,13 @@ msgid ""
 "definition in the background. This parameter must be greater than or equal "
 "to 0 and not greater than SP."
 msgstr ""
+"Define um valor abaixo do qual o alongamento é modificado para preservar o "
+"contraste nas sombras. Isso é feito executando um alongamento linear abaixo "
+"do LP, reservando o contraste do restante da imagem. Mover o LP em direção "
+"ao SP altera tanto o escopo quanto a quantidade de reserva de contraste. O "
+"efeito líquido é empurrar o alongamento geral para níveis de brilho mais "
+"altos, mantendo o contraste e a definição no fundo. Este parâmetro deve ser "
+"maior ou igual a 0 e não maior que o SP."
 
 #: src/gui/uifiles/dialog_star_remix.ui:712
 #: src/gui/uifiles/dialog_star_remix.ui:1350
@@ -3822,6 +3878,9 @@ msgid ""
 "highlights / stars. The star mask HP can be set to quite a low value to "
 "prevent bloat of brighter stars."
 msgstr ""
+"Define um valor acima do qual o alongamento é modificado para preservar o "
+"contraste nos realces/estrelas. O HP da máscara estelar pode ser definido "
+"para um valor bem baixo para evitar o inchaço de estrelas mais brilhantes."
 
 #: src/gui/uifiles/dialog_star_remix.ui:749
 msgid ""
@@ -3830,12 +3889,16 @@ msgid ""
 "recomposition mode to prevent bloat of brighter stars while boosting the "
 "brightness of fainter ones."
 msgstr ""
+"Define um valor acima do qual o alongamento é modificado para preservar o "
+"contraste nos realces/estrelas. Este valor pode ser definido como bem baixo "
+"no modo de recomposição estelar para evitar o inchaço de estrelas mais "
+"brilhantes e, ao mesmo tempo, aumentar o brilho das mais fracas."
 
 #: src/gui/uifiles/dialog_star_remix.ui:784
 #: src/gui/uifiles/dialog_star_remix.ui:1422
 #: src/gui/uifiles/histogram_dialog.ui:1337
 msgid "Black Point (BP)"
-msgstr ""
+msgstr "Ponto preto (BP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:795
 #: src/gui/uifiles/dialog_star_remix.ui:821
@@ -3846,12 +3909,17 @@ msgid ""
 "image after the initial hyperbolic stretch. BP adjustment may result in "
 "clipping the shadows."
 msgstr ""
+"Ajuste de ponto preto. Este é um valor constante que é subtraído da imagem "
+"após o alongamento hiperbólico inicial. O ajuste de ponto preto pode "
+"resultar no corte das sombras."
 
 #: src/gui/uifiles/dialog_star_remix.ui:899
 msgid ""
 "Expands to show a mini histogram and transfer function display for the "
 "background image."
 msgstr ""
+"Expande para mostrar um mini histograma e uma exibição de função de "
+"transferência para a imagem de fundo."
 
 #: src/gui/uifiles/dialog_star_remix.ui:902
 msgid "Background Histogram"
@@ -3868,6 +3936,13 @@ msgid ""
 "brightness. When this is set to zero, the stretch will be the identity "
 "transform, but any ordered black point adjustment will still occur."
 msgstr ""
+"Controla independentemente o contraste adicionado (a inclinação do "
+"estiramento) em SP, ajustando assim a quantidade de estiramento aplicada ao "
+"restante da imagem. Não altera a forma do estiramento, apenas a quantidade, "
+"e deve ser usado em conjunto com b para controlar a distribuição de "
+"contraste e brilho. Quando definido como zero, o estiramento será a "
+"transformação de identidade, mas qualquer ajuste ordenado de ponto preto "
+"ainda ocorrerá."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1128
 #: src/gui/uifiles/dialog_star_remix.ui:1152
@@ -3883,6 +3958,16 @@ msgid ""
 "(with small D) can still be used for precise placement of additional "
 "contrast."
 msgstr ""
+"Controla o quão precisamente o alongamento é focado, alterando a forma da "
+"própria transformação. Para alongamentos concentrados (por exemplo, "
+"alongamento inicial em dados lineares), um valor positivo alto de b "
+"focalizará o alongamento dentro de um pico do histograma, enquanto desfocará "
+"o alongamento para longe do pico (como em estrelas brilhantes). Para o "
+"ajuste de imagens não lineares, valores mais baixos ou negativos "
+"distribuirão o contraste e o brilho de forma mais uniforme. Como regra "
+"geral, o valor de b diminuirá à medida que uma sequência de alongamento se "
+"aproxima da conclusão, embora valores maiores (com D pequeno) ainda possam "
+"ser usados para o posicionamento preciso de contraste adicional."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1198
 #: src/gui/uifiles/dialog_star_remix.ui:1244
@@ -3895,6 +3980,12 @@ msgid ""
 "pixel values away from SP. This parameter must be greater than or equal to "
 "LP and less than or equal to HP."
 msgstr ""
+"Define o ponto de simetria em torno do qual o alongamento é focado - o "
+"contraste será distribuído simetricamente ao redor do SP. Geralmente, ele "
+"deve ser colocado dentro de um pico do histograma para que o alongamento "
+"aumente e diminua o pico, adicionando o máximo de contraste no alongamento "
+"naquele ponto. O alongamento afastará os valores de pixel do SP. Este "
+"parâmetro deve ser maior ou igual a LP e menor ou igual a HP."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1218
 #: src/gui/uifiles/histogram_dialog.ui:1139
@@ -3903,6 +3994,9 @@ msgid ""
 "on the average value of  the current selection. This helps in picking out "
 "faint detail above the dark background."
 msgstr ""
+"Este conta-gotas permite definir o ponto de simetria de alongamento do fundo "
+"com base no valor médio da seleção atual. Isso ajuda a destacar detalhes "
+"tênues sobre o fundo escuro."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1361
 #: src/gui/uifiles/dialog_star_remix.ui:1387
@@ -3917,6 +4011,15 @@ msgid ""
 "of limited use for starless backgrounds but is very effective on the star "
 "mask for preventing star bloat."
 msgstr ""
+"Define um valor acima do qual o alongamento é modificado para preservar o "
+"contraste nos realces/estrelas. Isso é feito executando um alongamento "
+"linear dos dados acima do HP, reservando o contraste do restante da imagem. "
+"Mover o HP em direção ao SP aumenta tanto o escopo quanto a quantidade dessa "
+"reserva de contraste. O efeito líquido é empurrar o alongamento geral para "
+"níveis de brilho mais baixos, mantendo o contraste e a definição nos "
+"realces. Este parâmetro deve ser menor ou igual a 1 e não menor que o SP. "
+"Este parâmetro geralmente tem uso limitado para fundos sem estrelas, mas é "
+"muito eficaz na máscara estelar para evitar o inchaço estelar."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1499
 msgid "Background Stretch Parameters"
@@ -3934,6 +4037,8 @@ msgstr "Redefine os parâmetros de alongamento para a imagem da estrela"
 msgid ""
 "Applies current stretch to the star image and resets the stretch parameters."
 msgstr ""
+"Aplica o alongamento atual à imagem da estrela e redefine os parâmetros de "
+"alongamento."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1600
 msgid "Resets stretch parameters for the starless image"
@@ -3944,6 +4049,8 @@ msgid ""
 "Applies current stretch to the starless image and resets the stretch "
 "parameters."
 msgstr ""
+"Aplica o alongamento atual à imagem sem estrelas e redefine os parâmetros de "
+"alongamento."
 
 #: src/gui/uifiles/epf_dialog.ui:58
 msgid "Edge Preserving Filters"
@@ -3958,6 +4065,8 @@ msgid ""
 "Choose filter type. See the documentation for an explanation of the "
 "differences."
 msgstr ""
+"Selecione o tipo de filtro. Consulte a documentação para obter uma "
+"explicação das diferenças."
 
 #: src/gui/uifiles/epf_dialog.ui:158
 msgid "Bilateral filter"
@@ -3978,20 +4087,28 @@ msgid ""
 "WARNING: using guide images that are not based on the original image is "
 "likely to produce bad results."
 msgstr ""
+"Selecione a imagem guia. Não é necessário selecionar um arquivo se a caixa "
+"de seleção \"autoguiado\" estiver marcada.\n"
+"AVISO: usar imagens guia que não sejam baseadas na imagem original pode "
+"produzir resultados ruins."
 
 #: src/gui/uifiles/epf_dialog.ui:211
 msgid "self guided"
-msgstr ""
+msgstr "autoguiado"
 
 #: src/gui/uifiles/epf_dialog.ui:216
 msgid "Check this to use the current image as the guided filter guide image"
 msgstr ""
+"Marque esta opção para usar a imagem atual como guia de filtro de imagem "
+"guiada"
 
 #: src/gui/uifiles/epf_dialog.ui:243 src/gui/uifiles/epf_dialog.ui:307
 msgid ""
 "If set to 0, the diameter will automatically be set based on the spatial "
 "sigma parameter"
 msgstr ""
+"Se definido como 0, o diâmetro será definido automaticamente com base no "
+"parâmetro sigma espacial"
 
 #: src/gui/uifiles/epf_dialog.ui:245
 msgid "Diameter"
@@ -4004,16 +4121,22 @@ msgid ""
 "value, otherwise the spatial extent of the filter is set to exactly this "
 "value regardless of sigma (spatial)"
 msgstr ""
+"Isso define o diâmetro sobre o qual o filtro de preservação de bordas se "
+"aplica. Se for zero, a extensão espacial é definida automaticamente com base "
+"no valor do sigma espacial; caso contrário, a extensão espacial do filtro é "
+"definida exatamente para esse valor, independentemente do sigma (espacial)"
 
 #: src/gui/uifiles/epf_dialog.ui:283
 msgid ""
 "This affects the diameter the filter applies over. If it is zero, the "
 "spatial extent is set by the spatial sigma value."
 msgstr ""
+"Isso afeta o diâmetro sobre o qual o filtro é aplicado. Se for zero, a "
+"extensão espacial é definida pelo valor do sigma espacial."
 
 #: src/gui/uifiles/epf_dialog.ui:309
 msgid "Sigma (spatial)"
-msgstr ""
+msgstr "Sigma (espacial)"
 
 #: src/gui/uifiles/epf_dialog.ui:320
 msgid ""
@@ -4021,10 +4144,13 @@ msgid ""
 "operates. A larger sigma means the filter takes into account pixels over a "
 "wider area of the image. Note the interaction with the diameter setting."
 msgstr ""
+"Define o intervalo de distância espacial entre pixels sobre o qual o filtro "
+"opera. Um sigma maior significa que o filtro considera pixels em uma área "
+"maior da imagem. Observe a interação com a configuração do diâmetro."
 
 #: src/gui/uifiles/epf_dialog.ui:366
 msgid "Sigma (intensity)"
-msgstr ""
+msgstr "Sigma (intensidade)"
 
 #: src/gui/uifiles/epf_dialog.ui:378
 msgid ""
@@ -4034,6 +4160,11 @@ msgid ""
 "Depending on your data you may need to make substantial adjustments here, "
 "for example setting the value to below 1.0."
 msgstr ""
+"Este valor afeta a faixa de similaridade de valores de pixel sobre a qual o "
+"filtro de preservação de bordas é aplicado.\n"
+"Se suas estrelas parecerem enormes e desfocadas, comece reduzindo este "
+"valor. Dependendo dos seus dados, pode ser necessário fazer ajustes "
+"substanciais, por exemplo, definindo o valor para menos de 1,0."
 
 #: src/gui/uifiles/epf_dialog.ui:425 src/gui/uifiles/epf_dialog.ui:442
 msgid ""
@@ -4051,6 +4182,10 @@ msgid ""
 "active by default. It is strongly recommended to select a Region of Interest "
 "(ROI) before activating the edge preserving filter preview."
 msgstr ""
+"Os filtros de preservação de bordas podem ser lentos em imagens grandes, "
+"portanto, a pré-visualização não está ativa por padrão. É altamente "
+"recomendável selecionar uma Região de Interesse (ROI) antes de ativar a pré-"
+"visualização do filtro de preservação de bordas."
 
 #: src/gui/uifiles/extract_channel_dialog.ui:35 src/gui/uifiles/siril.ui:1415
 #: src/gui/uifiles/siril.ui:1726
@@ -4072,7 +4207,7 @@ msgstr "Nome do terceiro arquivo FITS a guardar."
 #. RGB
 #: src/gui/uifiles/extract_channel_dialog.ui:153 src/gui/colors.c:333
 msgid "Red: "
-msgstr ""
+msgstr "Vermelho: "
 
 #: src/gui/uifiles/extract_channel_dialog.ui:165 src/gui/colors.c:334
 msgid "Green: "
@@ -4160,6 +4295,9 @@ msgid ""
 "the preferences otherwise.\n"
 "Modified data can be saved in a FITS file."
 msgstr ""
+"Informações relacionadas à imagem, extraídas do arquivo, se disponível, ou "
+"das preferências, caso contrário.\n"
+"Os dados modificados podem ser salvos em um arquivo FITS."
 
 #: src/gui/uifiles/file_information_dialog.ui:98
 msgid "Pixel size (micron): "
@@ -4203,7 +4341,7 @@ msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:189
 msgid "Computed sampling (arcsec/pixel):"
-msgstr ""
+msgstr "Amostragem computada (arcsec/pixel):"
 
 #: src/gui/uifiles/file_information_dialog.ui:202
 msgid "Binning: "
@@ -4229,6 +4367,11 @@ msgid ""
 "WARNING: checking this stores it as a preference, also available in the FITS "
 "option preferences section."
 msgstr ""
+"Marque esta opção se o binning não for considerado no valor do tamanho do "
+"pixel. Nesse caso, o valor do binning será usado para calcular a amostragem."
+"\n"
+"AVISO: marcar esta opção armazena-o como uma preferência, também disponível "
+"na seção de preferências da opção FITS."
 
 #: src/gui/uifiles/file_information_dialog.ui:258
 msgid "Save as default values"
@@ -4239,14 +4382,16 @@ msgid ""
 "Save focal length and pixel size as default values in the settings to be "
 "used for images that do not contain these metadata"
 msgstr ""
+"Salvar a distância focal e o tamanho do pixel como valores padrão nas "
+"configurações a serem usados para imagens que não contêm esses metadados"
 
 #: src/gui/uifiles/graxpert.ui:66
 msgid "Siril GraXpert Interface"
-msgstr ""
+msgstr "Interface Siril GraXpert"
 
 #: src/gui/uifiles/graxpert.ui:100
 msgid "Preview the current settings on a region of interest."
-msgstr ""
+msgstr "Pré-visualize as configurações atuais em uma região de interesse."
 
 #: src/gui/uifiles/graxpert.ui:115
 msgid "Apply the selected operation."
@@ -4258,7 +4403,7 @@ msgstr "Algoritmo / método"
 
 #: src/gui/uifiles/graxpert.ui:170
 msgid "Configure which GraXpert algorithm to use"
-msgstr ""
+msgstr "Configurar qual algoritmo do GraXpert usar"
 
 #: src/gui/uifiles/graxpert.ui:173
 msgid "AI"
@@ -4266,7 +4411,7 @@ msgstr "IA"
 
 #: src/gui/uifiles/graxpert.ui:175
 msgid "Kriging"
-msgstr ""
+msgstr "Kriging"
 
 #: src/gui/uifiles/graxpert.ui:176
 msgid "Spline"
@@ -4277,6 +4422,7 @@ msgid ""
 "Configure whether GraXpert applies background correction by subtraction or "
 "division"
 msgstr ""
+"Configurar se o GraXpert aplica correção de fundo por subtração ou divisão"
 
 #: src/gui/uifiles/graxpert.ui:225
 msgid "Background Tolerance"
@@ -4288,6 +4434,10 @@ msgid ""
 "values are more tolerant of strong background gradients; lower values are "
 "better at rejecting background samples in areas representing real neblosity."
 msgstr ""
+"Defina a tolerância de fundo: o intervalo permitido é de -2,0 a +6,0. "
+"Valores mais altos são mais tolerantes a gradientes de fundo fortes; valores "
+"mais baixos são mais eficazes na rejeição de amostras de fundo em áreas que "
+"representam nebulosidade real."
 
 #: src/gui/uifiles/graxpert.ui:265
 msgid "# samples per row"
@@ -4307,6 +4457,9 @@ msgid ""
 "give better statistical properties but have a bigger risk of including non-"
 "background pixels such as stars."
 msgstr ""
+"Defina o tamanho da amostra do GraXpert para cada amostra de fundo. Amostras "
+"maiores podem gerar melhores propriedades estatísticas, mas apresentam um "
+"risco maior de incluir pixels que não sejam de fundo, como estrelas."
 
 #: src/gui/uifiles/graxpert.ui:322
 msgid "Keep background"
@@ -4315,7 +4468,7 @@ msgstr "Manter o fundo"
 #: src/gui/uifiles/graxpert.ui:326
 msgid ""
 "The generated background model will be saved with the affix \"_background\""
-msgstr ""
+msgstr "O modelo de fundo gerado será salvo com o afixo \"_background\""
 
 #: src/gui/uifiles/graxpert.ui:342
 msgid "Clear samples"
@@ -4334,16 +4487,20 @@ msgid ""
 "Background samples must be generated in order to use the GraXpert RBF, "
 "Kriging or Spline algorithms. It is not necessary for the AI algorithm."
 msgstr ""
+"Amostras de fundo devem ser geradas para usar os algoritmos RBF, Kriging ou "
+"Spline do GraXpert. Isso não é necessário para o algoritmo de IA."
 
 #: src/gui/uifiles/graxpert.ui:391
 msgid "BG AI model version:"
-msgstr ""
+msgstr "Versão do modelo BG AI:"
 
 #: src/gui/uifiles/graxpert.ui:403
 msgid ""
 "Set the AI model version for use with GraXpert background extraction. "
 "Defaults to latest."
 msgstr ""
+"Define a versão do modelo de IA para uso com a extração de fundo do "
+"GraXpert. O padrão é a versão mais recente."
 
 #: src/gui/uifiles/graxpert.ui:406 src/gui/uifiles/graxpert.ui:750
 #: src/gui/uifiles/graxpert.ui:791 src/gui/uifiles/graxpert.ui:909
@@ -4354,6 +4511,7 @@ msgstr "mais recente"
 msgid ""
 "Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0."
 msgstr ""
+"Defina o nível de suavização a ser aplicado pelo GraXpert, entre 0,0 e 1,0."
 
 #: src/gui/uifiles/graxpert.ui:474
 msgid "RBF Kernel"
@@ -4365,11 +4523,11 @@ msgstr "Defina o tipo de kernel RBF"
 
 #: src/gui/uifiles/graxpert.ui:489
 msgid "Thin plate"
-msgstr ""
+msgstr "Prato fino"
 
 #: src/gui/uifiles/graxpert.ui:490
 msgid "Quintic"
-msgstr ""
+msgstr "Quintico"
 
 #: src/gui/uifiles/graxpert.ui:491
 msgid "Cubic"
@@ -4382,6 +4540,8 @@ msgstr "Ordem da spline"
 #: src/gui/uifiles/graxpert.ui:531
 msgid "Set the spline order used for the spline background removal algorithm."
 msgstr ""
+"Defina a ordem das splines usada para o algoritmo de remoção de fundo das "
+"splines."
 
 #: src/gui/uifiles/graxpert.ui:532 src/gui/uifiles/settings_window.ui:1679
 msgid "3"
@@ -4392,6 +4552,8 @@ msgid ""
 "Toggles between stellar and object deconvolution modes. If this item is "
 "unsensitive out, your version of GraXpert is not compatible."
 msgstr ""
+"Alterna entre os modos de deconvolução estelar e de objetos. Se este item "
+"não estiver disponível, sua versão do GraXpert não é compatível."
 
 #: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:374
 msgid "Objects"
@@ -4403,15 +4565,15 @@ msgstr "Força"
 
 #: src/gui/uifiles/graxpert.ui:633
 msgid "Configure GraXpert deconvolution strength."
-msgstr ""
+msgstr "Configurar a intensidade da deconvolução do GraXpert."
 
 #: src/gui/uifiles/graxpert.ui:675
 msgid "Image FWHM (in pixels)"
-msgstr ""
+msgstr "FWHM da imagem (em pixels)"
 
 #: src/gui/uifiles/graxpert.ui:687
 msgid "Configure GraXpert deconvolution Image FWHM (in pixels)."
-msgstr ""
+msgstr "Define o FWHM da imagem do GraXpert (em pixels)."
 
 #: src/gui/uifiles/graxpert.ui:736 src/gui/uifiles/graxpert.ui:777
 msgid "Deconvolution AI model version:"
@@ -4422,19 +4584,23 @@ msgid ""
 "Set the AI model version for use with GraXpert deconvolution. Defaults to "
 "latest."
 msgstr ""
+"Defina a versão do modelo de IA para uso com a deconvolução do GraXpert. O "
+"padrão é o mais recente."
 
 #: src/gui/uifiles/graxpert.ui:852
 msgid "Configure GraXpert denoising strength."
-msgstr ""
+msgstr "Configurar a intensidade da redução de ruído do GraXpert."
 
 #: src/gui/uifiles/graxpert.ui:895
 msgid "Denoising AI model version:"
-msgstr ""
+msgstr "Versão do modelo de IA de redução de ruído:"
 
 #: src/gui/uifiles/graxpert.ui:907
 msgid ""
 "Set the AI model version for use with GraXpert denoising. Defaults to latest."
 msgstr ""
+"Defina a versão do modelo de IA para uso com a redução de ruído do GraXpert. "
+"O padrão é o mais recente."
 
 #: src/gui/uifiles/graxpert.ui:934
 msgid "Denoising"
@@ -4442,15 +4608,16 @@ msgstr "Eliminação de ruído"
 
 #: src/gui/uifiles/graxpert.ui:973
 msgid "Use GPU"
-msgstr ""
+msgstr "Usar a GPU"
 
 #: src/gui/uifiles/graxpert.ui:977
 msgid "Configure GraXpert to use the GPU for AI inference, if available"
 msgstr ""
+"Configure o GraXpert para usar a GPU para inferência de IA, se disponível"
 
 #: src/gui/uifiles/graxpert.ui:991
 msgid "AI batch size "
-msgstr ""
+msgstr "Tamanho do lote de IA "
 
 #: src/gui/uifiles/graxpert.ui:1002
 msgid ""
@@ -4458,11 +4625,14 @@ msgid ""
 "careful: increasing this value might result in out-of-memory errors. Valid "
 "Range: 1 - 32, default: \"4\"."
 msgstr ""
+"Defina o número de blocos de imagem que o GraXpert eliminará ruído em "
+"paralelo. Cuidado: aumentar esse valor pode resultar em erros de falta de "
+"memória. Intervalo válido: 1 - 32, padrão: \"4\"."
 
 #: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255
 #: src/gui/uifiles/settings_window.ui:5304 src/gui/uifiles/siril.ui:6357
 msgid " "
-msgstr ""
+msgstr " "
 
 #: src/gui/uifiles/graxpert.ui:1061
 msgid "General Settings"
@@ -4489,18 +4659,20 @@ msgid ""
 "Show the histogram with a logarithmic scale. Does not affect the transfer "
 "function display.\n"
 msgstr ""
+"Mostre o histograma com uma escala logarítmica. Não afeta a exibição da "
+"função de transferência.\n"
 
 #: src/gui/uifiles/histogram_dialog.ui:362
 msgid "Toggles whether the stretch applies to the red channel"
-msgstr ""
+msgstr "Alterna se o alongamento se aplica ao canal vermelho"
 
 #: src/gui/uifiles/histogram_dialog.ui:380
 msgid "Toggles whether the stretch applies to the green channel"
-msgstr ""
+msgstr "Alterna se o alongamento se aplica ao canal verde"
 
 #: src/gui/uifiles/histogram_dialog.ui:398
 msgid "Toggles whether the stretch applies to the blue channel"
-msgstr ""
+msgstr "Alterna se o alongamento se aplica ao canal azul"
 
 #: src/gui/uifiles/histogram_dialog.ui:425
 msgid "Show grids"
@@ -4508,7 +4680,7 @@ msgstr "Mostrar grades"
 
 #: src/gui/uifiles/histogram_dialog.ui:442
 msgid "Show transfer curve plus the line y=x"
-msgstr ""
+msgstr "Mostrar a curva de transferência mais a reta y=x"
 
 #: src/gui/uifiles/histogram_dialog.ui:459
 msgid "Show pre-stretch histogram"
@@ -4548,7 +4720,7 @@ msgstr "Prefixo dos nomes das imagens resultantes do processo mtf."
 
 #: src/gui/uifiles/histogram_dialog.ui:748
 msgid "Clip mode:"
-msgstr ""
+msgstr "Modo de recorte:"
 
 #: src/gui/uifiles/histogram_dialog.ui:760
 msgid ""
@@ -4560,10 +4732,18 @@ msgid ""
 "Globa rescale: Same as Rescale, but rescales to the global maximum component "
 "value"
 msgstr ""
+"Selecione o modo de mesclagem.\n"
+"Recortar: recorta os valores para o intervalo de 0,0 a 1,0\n"
+"Redimensionar: redimensiona os valores RGB dos pixels recortados para não "
+"exceder 1,0 por pixel\n"
+"Mesclagem RGB: aplica uma função de mesclagem para cores de realce "
+"reconstruídas e suaves. <b>Padrão</b>\n"
+"Redimensionar global: O mesmo que Redimensionar, mas redimensiona para o "
+"valor máximo global do componente"
 
 #: src/gui/uifiles/histogram_dialog.ui:793
 msgid "Toggle preview on / off"
-msgstr ""
+msgstr "Ativar/desativar a pré-visualização"
 
 #: src/gui/uifiles/histogram_dialog.ui:855
 msgid ""
@@ -4575,10 +4755,19 @@ msgid ""
 "and highlight preservation. The inverse hyperbolic and arcsinh stretches are "
 "also available, useful for working in negative space."
 msgstr ""
+"Selecione o tipo de alongamento. O alongamento linear realiza um alongamento "
+"linear simples até um novo ponto preto. O alongamento hiperbólico "
+"generalizado realiza um alongamento hiperbólico com parâmetros para "
+"intensidade do alongamento, intensidade local, ponto de simetria e regiões "
+"de preservação de sombras e realces. O alongamento arcsinh modificado "
+"realiza um alongamento arcsinh com parâmetros adicionais para ponto de "
+"simetria, preservação de pouca luz e realces. Os alongamentos hiperbólico "
+"inverso e arcsinh também estão disponíveis, úteis para trabalhar em espaço "
+"negativo."
 
 #: src/gui/uifiles/histogram_dialog.ui:863
 msgid "Linear stretch (BP shift)"
-msgstr ""
+msgstr "Alongamento linear (deslocamento de BP)"
 
 #: src/gui/uifiles/histogram_dialog.ui:905
 msgid ""
@@ -4593,6 +4782,17 @@ msgid ""
 "Note: human-weighted luminance is not allowed if less than 3 colour channels "
 "are selected as it doesn't make sense."
 msgstr ""
+"Defina o modelo de estiramento para estiramentos de cor. As opções são: "
+"luminância ponderada uniformemente, que calcula o estiramento com base em um "
+"valor de luminância que pondera os canais R, G e B igualmente; luminância "
+"ponderada por humanos, que estiramento com base em um valor de luminância "
+"que pondera os canais R, G e B de acordo com a sensibilidade relativa do "
+"olho humano; valores de canal independentes, que aplica o estiramento "
+"independentemente a cada canal do pixel; e saturação, que aplica o "
+"estiramento ao componente S no espaço HSL. No modo de saturação, a curva do "
+"histograma de saturação é mostrada em amarelo.\n"
+"Observação: a luminância ponderada por humanos não é permitida se menos de 3 "
+"canais de cor forem selecionados, pois não faz sentido."
 
 #: src/gui/uifiles/histogram_dialog.ui:913
 msgid "Saturation stretch"
@@ -4612,6 +4812,13 @@ msgid ""
 "keeping the contrast and definition in the highlights. This parameter must "
 "be less than or equal to 1 and not less than SP."
 msgstr ""
+"Define um valor acima do qual o alongamento é modificado para preservar o "
+"contraste nos realces/estrelas. Isso é feito executando um alongamento "
+"linear dos dados acima do HP, reservando o contraste do restante da imagem. "
+"Mover o HP em direção ao SP aumenta tanto o escopo quanto a quantidade dessa "
+"reserva de contraste. O efeito líquido é empurrar o alongamento geral para "
+"níveis de brilho mais baixos, mantendo o contraste e a definição nos "
+"realces. Este parâmetro deve ser menor ou igual a 1 e não menor que o SP."
 
 #: src/gui/uifiles/histogram_dialog.ui:1348
 msgid ""
@@ -4619,6 +4826,9 @@ msgid ""
 "image. NOTE: altering BP can clip pixels in which case this transformation "
 "is non-reversible."
 msgstr ""
+"Ajuste de ponto preto. Este é um valor constante que é subtraído da imagem. "
+"OBSERVAÇÃO: alterar o BP pode cortar pixels, caso em que essa transformação "
+"é irreversível."
 
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4086
 #: src/gui/uifiles/settings_window.ui:4903 src/core/icc_profile.c:1285
@@ -4636,6 +4846,8 @@ msgid ""
 "Plot the current ICC profile in a 1931 chromatcity diagram, alongside sRGB "
 "for reference"
 msgstr ""
+"Trace o perfil ICC atual em um diagrama de cromaticidade 1931, junto com "
+"sRGB para referência"
 
 #: src/gui/uifiles/icc_dialog.ui:80
 msgid "Export"
@@ -4646,18 +4858,20 @@ msgid ""
 "Export the profile currently assigned to the image to the working directory. "
 "It will be saved with the filename {imagename}.icc"
 msgstr ""
+"Exporte o perfil atualmente atribuído à imagem para o diretório de trabalho. "
+"Ele será salvo com o nome de arquivo {imagename}.icc"
 
 #: src/gui/uifiles/icc_dialog.ui:95 src/gui/uifiles/siril.ui:3747
 msgid "Remove"
-msgstr ""
+msgstr "Remover"
 
 #: src/gui/uifiles/icc_dialog.ui:99
 msgid "Remove the ICC profile from the image and stop color managing it"
-msgstr ""
+msgstr "Remova o perfil ICC da imagem e pare de gerenciá-la com cores"
 
 #: src/gui/uifiles/icc_dialog.ui:110 src/core/icc_profile.c:1285
 msgid "Assign"
-msgstr ""
+msgstr "Atribuir"
 
 #: src/gui/uifiles/icc_dialog.ui:114
 msgid ""
@@ -4665,6 +4879,9 @@ msgid ""
 "color space transform. This is useful if the image has an incorrect ICC "
 "profile."
 msgstr ""
+"Atribui o perfil ICC selecionado à imagem atual sem realizar nenhuma "
+"transformação de espaço de cor. Isso é útil se a imagem tiver um perfil ICC "
+"incorreto."
 
 #: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3899
 #: src/core/icc_profile.c:1287
@@ -4676,10 +4893,12 @@ msgid ""
 "Converts the image to a different color space. This can be useful for "
 "exporting an image to sRGB for WWW use, for example."
 msgstr ""
+"Converte a imagem em um espaço de cor diferente. Isso pode ser útil para "
+"exportar uma imagem para sRGB para uso na WWW, por exemplo."
 
 #: src/gui/uifiles/icc_dialog.ui:178
 msgid "<b><i>Current ICC profile</i></b>"
-msgstr ""
+msgstr "<b><i>Perfil ICC atual</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:228
 msgid "<b><i>Target ICC profile</i></b>"
@@ -4688,19 +4907,19 @@ msgstr "<b><i>Perfil ICC de destino</i></b>"
 #: src/gui/uifiles/icc_dialog.ui:254 src/gui/uifiles/icc_dialog.ui:308
 #: src/gui/uifiles/spcc_details.ui:96
 msgid "Manufacturer"
-msgstr ""
+msgstr "Fabricante"
 
 #: src/gui/uifiles/icc_dialog.ui:267 src/gui/uifiles/icc_dialog.ui:321
 msgid "Copyright"
-msgstr ""
+msgstr "Direitos autorais"
 
 #: src/gui/uifiles/icc_dialog.ui:332
 msgid "\n"
-msgstr ""
+msgstr "\n"
 
 #: src/gui/uifiles/icc_dialog.ui:360
 msgid "Built-in profile"
-msgstr ""
+msgstr "Perfil integrado"
 
 #: src/gui/uifiles/icc_dialog.ui:371
 msgid ""
@@ -4708,6 +4927,9 @@ msgid ""
 "of an image, not its type, so you cannot convert a RGB image to a Gray "
 "profile or vice versa."
 msgstr ""
+"Selecione um perfil ICC integrado. Esta ferramenta serve apenas para "
+"converter o perfil de uma imagem, não seu tipo, portanto você não pode "
+"converter uma imagem RGB em um perfil Gray ou vice-versa."
 
 #: src/gui/uifiles/icc_dialog.ui:374
 msgid "None selected"
@@ -4715,31 +4937,31 @@ msgstr "Nada selecionado"
 
 #: src/gui/uifiles/icc_dialog.ui:375
 msgid "sRGB (linear TRC)"
-msgstr ""
+msgstr "sRGB (TRC linear)"
 
 #: src/gui/uifiles/icc_dialog.ui:376
 msgid "sRGB (standard sRGB TRC)"
-msgstr ""
+msgstr "sRGB (padrão sRGB TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:377
 msgid "Rec2020 (linear TRC)"
-msgstr ""
+msgstr "Rec2020 (TRC linear)"
 
 #: src/gui/uifiles/icc_dialog.ui:378
 msgid "Rec2020 (standard Rec709 TRC)"
-msgstr ""
+msgstr "Rec2020 (padrão Rec709 TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:379
 msgid "Gray (linear TRC)"
-msgstr ""
+msgstr "Cinza (TRC linear)"
 
 #: src/gui/uifiles/icc_dialog.ui:380
 msgid "Gray (sRGB TRC)"
-msgstr ""
+msgstr "Cinza (sRGB TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:381
 msgid "Gray (Rec709 TRC)"
-msgstr ""
+msgstr "Cinza (Rec709 TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:394
 msgid "Load profile from file"
@@ -4771,6 +4993,21 @@ msgid ""
 "larger gamuts than sRGB, and you will probably want to use a gamut at least "
 "as large as your monitor can display."
 msgstr ""
+"Esta imagem mostra uma comparação das várias gamas de cores disponíveis no "
+"Siril. (Observação: P3 não está disponível no Siril: é mostrado para "
+"referência e você pode fornecer um perfil ICC P3, se desejar.)\n"
+"O espaço xy CIE1931 representa todas as cores visíveis à visão humana.\n"
+"sRGB é um padrão para publicação na web e corresponde à gama de cores da "
+"maioria dos monitores.\n"
+"Outros espaços de cores oferecem gamas maiores, cobrindo uma parte maior do "
+"espaço CIE1931. O Rec2020 possui a maior gama que não inclui cores "
+"imaginárias; o ProPhoto RGB possui uma gama ainda maior, especialmente na "
+"região verde/azul, mas inclui algumas cores imaginárias.\n"
+"Fotografias impressas podem oferecer cores mais ricas e profundas se "
+"produzidas a partir de um espaço de cores com uma gama maior. Monitores "
+"especializados também estão disponíveis com gamas maiores que o sRGB, e você "
+"provavelmente desejará usar uma gama pelo menos tão ampla quanto a que seu "
+"monitor pode exibir."
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:93
 msgid ""
@@ -4778,6 +5015,9 @@ msgid ""
 "w/index.php?curid=116654642\">https://commons.wikimedia.org/w/index.php?"
 "curid=116654642</a>"
 msgstr ""
+"Por Myndex - Trabalho próprio, CC BY-SA 4.0, <a href=\"https://commons."
+"wikimedia.org/w/index.php?curid=116654642\">https://commons.wikimedia.org/w/"
+"index.php?curid=116654642</a>"
 
 #: src/gui/uifiles/keywords_dialog.ui:27
 msgid "FITS Header"
@@ -8002,7 +8242,7 @@ msgstr "Defina agora a profundidade de bits do HD AutoStretch selecionado"
 
 #: src/gui/uifiles/settings_window.ui:5563
 msgid "HD AutoStretch"
-msgstr "HD AutoStretch"
+msgstr "HD Auto estiramento"
 
 #: src/gui/uifiles/settings_window.ui:5594
 msgid "Multithreaded FFTW"

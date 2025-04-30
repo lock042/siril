@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-30 09:44+0000\n"
+"PO-Revision-Date: 2025-04-30 20:31+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -5445,41 +5445,48 @@ msgstr "Parámetros"
 
 #: src/gui/uifiles/pixelmath.ui:649
 msgid "Rescale result"
-msgstr ""
+msgstr "Reescalar resultado"
 
 #: src/gui/uifiles/pixelmath.ui:653
 msgid ""
 "Check this option to rescale the pixel values of the resulting image to the "
 "specified output range (see the lower range and upper range parameters below)"
 msgstr ""
+"Marque esta opción para reescalar los valores de pixel de la imagen "
+"resultante al rango especificado de salida (mirar los parámetros de rango "
+"inferior y superior abajo)"
 
 #: src/gui/uifiles/pixelmath.ui:668
 msgid ""
 "When the rescale option is enabled, this is the lower bound of the output "
 "rescaling range."
 msgstr ""
+"Cuando la opción de reescalado está habilitada, este es el límite inferior "
+"del rango de reescalado de salida."
 
 #: src/gui/uifiles/pixelmath.ui:687
 msgid ""
 "When the rescale option is enabled, this is the upper bound of the output "
 "rescaling range."
 msgstr ""
+"Cuando la opción de reescalado está habilitada, este es el límite superior "
+"del rango de reescalado de salida."
 
 #: src/gui/uifiles/pixelmath.ui:724 src/gui/uifiles/siril.ui:7781
-#, fuzzy
 msgid "Output"
-msgstr "Logs de salida"
+msgstr "Salida"
 
 #: src/gui/uifiles/pixelmath.ui:751
 msgid ""
 "Preset list. You can delete an item or the entire list by selecting what you "
 "want and pressing the delete key."
 msgstr ""
+"Lista de preajustes. Puedes eliminar un elemento o la lista completa "
+"seleccionando lo que quieras y pulsando la tecla Supr."
 
 #: src/gui/uifiles/pixelmath.ui:784
-#, fuzzy
 msgid "Presets"
-msgstr "Reiniciar"
+msgstr "Preajustes"
 
 #: src/gui/uifiles/pixelmath.ui:823
 msgid "Apply formula in the text area"
@@ -5498,17 +5505,16 @@ msgid "Remove selected image"
 msgstr "Eliminar la imagen seleccionada"
 
 #: src/gui/uifiles/python_scratchpad.ui:72
-#, fuzzy
 msgid "Previous Result"
-msgstr "PSF Anterior"
+msgstr "Resultado anterior"
 
 #: src/gui/uifiles/python_scratchpad.ui:94
 msgid "Next Result"
-msgstr ""
+msgstr "Resultado siguiente"
 
 #: src/gui/uifiles/python_scratchpad.ui:124
 msgid "unsaved"
-msgstr ""
+msgstr "sin guardar"
 
 #: src/gui/uifiles/python_scratchpad.ui:148
 #, fuzzy
