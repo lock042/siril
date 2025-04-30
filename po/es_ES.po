@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-25 08:56+0000\n"
+"PO-Revision-Date: 2025-04-30 09:44+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -281,9 +281,8 @@ msgid "Normalized Real [0, 1]"
 msgstr "Normalizado real [0, 1]"
 
 #: src/gui/uifiles/StatWindow.ui:120
-#, fuzzy
 msgid "Per CFA channel"
-msgstr "Canal rojo"
+msgstr "Por canal CFA"
 
 #: src/gui/uifiles/StatWindow.ui:125
 msgid ""
@@ -583,9 +582,8 @@ msgid "ppmxl (PPMXL)"
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:138
-#, fuzzy
 msgid "bsc (Bright Stars)"
-msgstr "%d estrella"
+msgstr "bsc (Estrellas brillantes)"
 
 #: src/gui/uifiles/annotate_dialog.ui:139
 msgid "apass (APASS DR9)"
@@ -1708,18 +1706,16 @@ msgstr ""
 "Genera el núcleo y úsalo para deconvolucionar la imagen o secuenca actual"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:369
-#, fuzzy
 msgid "Blind deconvolution"
-msgstr "Deconvolución"
+msgstr "Deconvolución a ciegas"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:373
 msgid "Estimates a PSF from the image"
 msgstr "Estimar el PSF de la imágen"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:386
-#, fuzzy
 msgid "PSF from stars"
-msgstr "PSF en el área"
+msgstr "PSF desde estrellas"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:390
 msgid ""
@@ -1732,9 +1728,8 @@ msgstr ""
 "estrellas en la imágen dentro de un rango adecuado de brillo máximo."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:403
-#, fuzzy
 msgid "Manual PSF"
-msgstr "Manual"
+msgstr "PSF Manual"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:407
 msgid "Use a manually defined PSF based on the parameters chosen."
@@ -1773,14 +1768,12 @@ msgstr ""
 "debe tener longitud y ancho impares."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:471
-#, fuzzy
 msgid "Load PSF from file"
-msgstr "Filtro mediano aplicado"
+msgstr "Cargar PSF desde fichero"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:485
-#, fuzzy
 msgid "Generate PSF"
-msgstr "Generar"
+msgstr "Generar PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:489
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
@@ -1788,14 +1781,12 @@ msgstr ""
 "Genera y muestra una vista previa del PSF, pero no realiza la deconvolución"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:511
-#, fuzzy
 msgid "Save PSF to a file"
-msgstr "Guardar archivo"
+msgstr "Guardar PSF a archivo"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:530
-#, fuzzy
 msgid "PSF from selection"
-msgstr "Sin selección"
+msgstr "PSF desde selección"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:533
 msgid ""
@@ -1806,14 +1797,12 @@ msgstr ""
 "El tamaño del PSF será el mínimo del ancho y el alto de la selección."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:549
-#, fuzzy
 msgid "PSF Source"
-msgstr "Origen"
+msgstr "Fuente PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:577
-#, fuzzy
 msgid "General PSF Parameters"
-msgstr "Parámetros del catálogo"
+msgstr "Parámetros generales PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:600
 msgid "PSF size"
@@ -1829,20 +1818,19 @@ msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:662 src/gui/uifiles/bdeconv_dialog.ui:1630
 #: src/gui/uifiles/cut_dialog.ui:39
-#, fuzzy
 msgid "Profile"
-msgstr "Tipos de archivo soportados:"
+msgstr "Perfil"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:673
-#, fuzzy
 msgid ""
 "Gaussian and Moffat profiles are good models for star shapes. Disc profiles "
 "can be used to improve out-of-focus issues. Airy disc models the inherent "
 "diffraction of your telescope."
 msgstr ""
 "Los perfiles Guassian y Moffat son buenos modelos para la forma de las "
-"estrellas. Los perfiles Disc pueden ser usados para problemas de desenfoque. "
-"Los modelos \"airy disc\" modelan la difracción inherente de tu telescopio."
+"estrellas. Los perfiles de disco pueden ser usados para problemas de "
+"desenfoque. Los modelos \"airy disc\" modelan la difracción inherente de tu "
+"telescopio."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:676 src/gui/uifiles/siril.ui:7185
 #: src/gui/uifiles/stars_list_window.ui:690 src/algos/PSF.c:1048
@@ -1865,9 +1853,8 @@ msgid "Airy Disc"
 msgstr "Disco Aireado"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:733 src/gui/uifiles/bdeconv_dialog.ui:1654
-#, fuzzy
 msgid "Ratio"
-msgstr "Rotación..."
+msgstr "Relación"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:744
 msgid ""
@@ -1877,9 +1864,8 @@ msgstr ""
 "Para PSFs elípticas, esto da el ratio entre las dimensión mayor y la menor."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:760 src/gui/uifiles/bdeconv_dialog.ui:1642
-#, fuzzy
 msgid "fwhm / \""
-msgstr "fwhm: N/A"
+msgstr "fwhm / \""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:771
 msgid ""
@@ -2779,9 +2765,8 @@ msgstr ""
 "\"STACNKCNT\" (número de cuadros apliados) y \"LIVETIME\" (Exposición total)."
 
 #: src/gui/uifiles/composition_dialog.ui:351
-#, fuzzy
 msgid "Linear match"
-msgstr "Coincidencia Lineal"
+msgstr "Coincidencia lineal"
 
 #: src/gui/uifiles/composition_dialog.ui:355
 msgid ""
@@ -2862,14 +2847,12 @@ msgstr ""
 "imágenes alineadas."
 
 #: src/gui/uifiles/composition_dialog.ui:494
-#, fuzzy
 msgid "First channel"
-msgstr "Canal gris"
+msgstr "Primer canal"
 
 #: src/gui/uifiles/composition_dialog.ui:495
-#, fuzzy
 msgid "Min"
-msgstr "mín"
+msgstr "Mín"
 
 #: src/gui/uifiles/composition_dialog.ui:496
 msgid "COG"
@@ -2974,34 +2957,28 @@ msgid "Prefix of the image names resulting from the cropping process."
 msgstr "Prefijo de las imágenes resultantes del proceso de corte."
 
 #: src/gui/uifiles/curves_dialog.ui:62 src/gui/curves.c:656
-#, fuzzy
 msgid "Curves Transformation"
-msgstr "Transformación Wavelet"
+msgstr "Transformación curvas"
 
 #: src/gui/uifiles/curves_dialog.ui:84
-#, fuzzy
 msgid "Reset curves transformation dialog window"
-msgstr "Abrir diálogo  resolución de placas"
+msgstr "Diálogo de reinicio de transformación de curvas"
 
 #: src/gui/uifiles/curves_dialog.ui:100
-#, fuzzy
 msgid "Close curves transformation dialog window"
-msgstr "Abrir diálogo  resolución de placas"
+msgstr "Cerrar diálogo de transformación de curvas"
 
 #: src/gui/uifiles/curves_dialog.ui:116
-#, fuzzy
 msgid "Apply curves transformation"
-msgstr "Aplicar la transformación del histograma"
+msgstr "Aplicar la transformación de curvas"
 
 #: src/gui/uifiles/curves_dialog.ui:168
-#, fuzzy
 msgid "Curves histogram display zoom"
-msgstr "Modo de visualización"
+msgstr "Zoom de visualización del histograma de curvas"
 
 #: src/gui/uifiles/curves_dialog.ui:188
-#, fuzzy
 msgid "Reset zoom to 1"
-msgstr "Restablecer zoom a 1."
+msgstr "Restablecer zoom a 1"
 
 #: src/gui/uifiles/curves_dialog.ui:207 src/gui/uifiles/histogram_dialog.ui:284
 msgid "Logarithmic scale"
@@ -3052,19 +3029,16 @@ msgid "Curve point X: "
 msgstr "Punto de curva X: "
 
 #: src/gui/uifiles/curves_dialog.ui:487
-#, fuzzy
 msgid "The ID of the selected curve point"
-msgstr "Eliminar el archivo seleccionado"
+msgstr "El ID del punto de la curva seleccionado"
 
 #: src/gui/uifiles/curves_dialog.ui:537
-#, fuzzy
 msgid "X coordinate of the selected curve point"
-msgstr "Coordenada X del centro de las coordenadas polares."
+msgstr "Coordenada X del punto de la curva seleccionado"
 
 #: src/gui/uifiles/curves_dialog.ui:555
-#, fuzzy
 msgid "Y coordinate of the selected curve point"
-msgstr "Coordenada Y del centro de las coordenadas polares."
+msgstr "Coordenada Y del punto de la curva seleccionado"
 
 #: src/gui/uifiles/curves_dialog.ui:586 src/gui/uifiles/histogram_dialog.ui:621
 msgid "Clip (%)"
@@ -3079,43 +3053,37 @@ msgid "Clipped pixels count (highlights)"
 msgstr "Contador de píxeles recortados (altas luces)"
 
 #: src/gui/uifiles/curves_dialog.ui:683
-#, fuzzy
 msgid "Prefix of the image names resulting from the curve transformation"
-msgstr "Prefijo de los nombres de imagen resultantes del registro."
+msgstr ""
+"Prefijo de los nombres de imagen resultantes de la transformación de la curva"
 
 #: src/gui/uifiles/curves_dialog.ui:708
-#, fuzzy
 msgid "Toggles preview"
-msgstr "[ventana de acceso directo]Pantalla completa on / off"
+msgstr "Alterna vista previa"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:60
-#, fuzzy
 msgid "Coordinates"
-msgstr "Sin coordenadas"
+msgstr "Coordenadas"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:122
 #: src/gui/uifiles/cut_coords_dialog.ui:135
 #: src/gui/uifiles/cut_coords_dialog.ui:194
 #: src/gui/uifiles/cut_coords_dialog.ui:207
-#, fuzzy
 msgid "-1"
-msgstr "1"
+msgstr "-1"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:149
-#, fuzzy
 msgid "End"
-msgstr "Habilitado"
+msgstr "Fin"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:160
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:281
-#, fuzzy
 msgid "y"
-msgstr "y0"
+msgstr "y"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:172
-#, fuzzy
 msgid "Start"
-msgstr "Comenzando apilado...\n"
+msgstr "Iniciar"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:183
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:270 src/gui/uifiles/siril.ui:4530
@@ -3142,9 +3110,8 @@ msgstr ""
 "posición"
 
 #: src/gui/uifiles/cut_dialog.ui:107
-#, fuzzy
 msgid "<b>Type of Profile</b>"
-msgstr "<b>Tipo de extracción</b>"
+msgstr "<b>Tipo de perfil</b>"
 
 #: src/gui/uifiles/cut_dialog.ui:117 src/gui/cut.c:725 src/gui/cut.c:1062
 msgid "Mono"
@@ -3155,9 +3122,8 @@ msgid "Generates a single luminance profile along the profile line"
 msgstr "Genera un único perfil de luminancia a lo largo de la línea de perfil"
 
 #: src/gui/uifiles/cut_dialog.ui:132
-#, fuzzy
 msgid "Color"
-msgstr "Color de la imgen"
+msgstr "Color"
 
 #: src/gui/uifiles/cut_dialog.ui:136
 msgid ""
@@ -3168,9 +3134,8 @@ msgstr ""
 "la línea de perfiles. No aplicable para imágenes monocromáticas"
 
 #: src/gui/uifiles/cut_dialog.ui:147
-#, fuzzy
 msgid "Manual coordinates"
-msgstr "Sin coordenadas"
+msgstr "Coordenadas manuales"
 
 #: src/gui/uifiles/cut_dialog.ui:151
 msgid "Enter coordinates for the start and end points of the profile manually"
@@ -3210,9 +3175,8 @@ msgid "1"
 msgstr "1"
 
 #: src/gui/uifiles/cut_dialog.ui:206
-#, fuzzy
 msgid "Save profile datafile"
-msgstr "Guardar archivo"
+msgstr "Guardar fichero del perfil"
 
 #: src/gui/uifiles/cut_dialog.ui:210
 msgid ""
@@ -3235,9 +3199,8 @@ msgstr ""
 "\"Guardar gráfico como.png\"."
 
 #: src/gui/uifiles/cut_dialog.ui:236
-#, fuzzy
 msgid "Save plot as .png"
-msgstr "Guardar archivo"
+msgstr "Guardar gráfica como .png"
 
 #: src/gui/uifiles/cut_dialog.ui:240
 msgid ""
@@ -3262,9 +3225,8 @@ msgstr ""
 "Esta opción se anula si se configuran datos de espectometría."
 
 #: src/gui/uifiles/cut_dialog.ui:267
-#, fuzzy
 msgid "Measure in arcsec"
-msgstr "El FWHM se convertirá en arcsec"
+msgstr "Medido en arcsec"
 
 #: src/gui/uifiles/cut_dialog.ui:271
 msgid ""
@@ -3311,14 +3273,12 @@ msgid "Plot Title"
 msgstr "Título del gráfico"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:73
-#, fuzzy
 msgid "Spectrometry"
-msgstr "Atrometría"
+msgstr "Espectrometría"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:148
-#, fuzzy
 msgid "Profile width / px"
-msgstr "Tipos de archivo soportados:"
+msgstr "Anchura delperfil /px"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:159
 msgid ""
@@ -3329,9 +3289,8 @@ msgstr ""
 "perpendicular al corte."
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:170
-#, fuzzy
 msgid "Pick point 1"
-msgstr "Escoger objeto en #1"
+msgstr "Elegir punto 1"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:174
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:188
@@ -3349,16 +3308,13 @@ msgstr ""
 "perfil y se reinician si la línea del perfil se mueve."
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:184
-#, fuzzy
 msgid "Pick point 2"
-msgstr "Escoger objeto en #2"
+msgstr "Elegir punto 2"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:200
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:215
-#, fuzzy
 msgid "Enter the wavenumber corresponding to the selected point"
-msgstr ""
-"Selecciones el espacio de color correspondiente a las tres imágenes extraídas"
+msgstr "Introduzca el número de onda correspondiente al punto seleccionado"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:292
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:306
@@ -3372,9 +3328,8 @@ msgstr ""
 "eje x del gráfico, el valor introducido se convertirá a número de onda"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:320
-#, fuzzy
 msgid "wavelength / nm"
-msgstr "Longitud focal (mm): "
+msgstr "Longitud de onda / nm"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:331
 msgid "The wavenumber is the spatial frequency 1 / λ"
@@ -3385,9 +3340,8 @@ msgid "wavenumber / cm<sup>-1</sup>"
 msgstr "número de onda / cm<sup>-1</sup>"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:344
-#, fuzzy
 msgid "Plot x axis"
-msgstr "Dibujar Var."
+msgstr "Eje x del gráfico"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:355
 msgid ""
@@ -3398,23 +3352,20 @@ msgstr ""
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:358
 #: src/gui/uifiles/s_pcc_dialog.ui:590
-#, fuzzy
 msgid "Wavelength"
-msgstr "Longitud focal (mm): "
+msgstr "Longitud de onda"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:359
 msgid "Wavenumber"
 msgstr "Número de onda"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:382
-#, fuzzy
 msgid "Spectroscopic Calibration Points"
-msgstr "Calibración de color fotométrica"
+msgstr "Puntos de calibración espectroscópicos"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:414
-#, fuzzy
 msgid "Polynomial degree"
-msgstr "El orden polinómico parece demasiado alto."
+msgstr "Orden polinómico"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:425
 msgid ""
@@ -3425,23 +3376,20 @@ msgstr ""
 "(ajuste lineal) y 6 (polinomio séptico)"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:436
-#, fuzzy
 msgid "Plot measured and modelled background"
-msgstr "Mostrar el fondo"
+msgstr "Trazar el fondo medido y modelado"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:465
-#, fuzzy
 msgid "Background Removal"
-msgstr "Valor de fondo"
+msgstr "Eliminación del fondo"
 
 #: src/gui/uifiles/data_dialog.ui:49
 msgid "More details..."
 msgstr "Más detalles ..."
 
 #: src/gui/uifiles/denoise_dialog.ui:52
-#, fuzzy
 msgid "Image Denoising"
-msgstr "Procesado de imagen"
+msgstr "Eliminación de ruido de imagen"
 
 #: src/gui/uifiles/denoise_dialog.ui:133
 msgid "Remove salt and pepper noise"
@@ -3458,9 +3406,8 @@ msgstr ""
 "es la mejor opción y en la configuración por defecto está activado."
 
 #: src/gui/uifiles/denoise_dialog.ui:169
-#, fuzzy
 msgid "Independent Channels"
-msgstr "Canal verde"
+msgstr "Canales independientes"
 
 #: src/gui/uifiles/denoise_dialog.ui:173
 msgid ""
@@ -3477,9 +3424,8 @@ msgstr ""
 "se observen artefactos al eliminar el ruido de una imagen a color."
 
 #: src/gui/uifiles/denoise_dialog.ui:182
-#, fuzzy
 msgid "Color Denoising"
-msgstr "Procesado de imagen"
+msgstr "Eliminación ruido del color"
 
 #: src/gui/uifiles/denoise_dialog.ui:210
 msgid "No secondary denoising stage"
@@ -3558,9 +3504,8 @@ msgstr ""
 "partida."
 
 #: src/gui/uifiles/denoise_dialog.ui:320
-#, fuzzy
 msgid "SOS iterations"
-msgstr "Iteraciones"
+msgstr "Iteraciones SOS"
 
 #: src/gui/uifiles/denoise_dialog.ui:331
 msgid ""
@@ -3697,14 +3642,12 @@ msgid "Inverse Transform"
 msgstr "Transformada inversa"
 
 #: src/gui/uifiles/dialog_star_remix.ui:97
-#, fuzzy
 msgid "Star Recomposition"
-msgstr "Composición HSL"
+msgstr "Recomposición de estrellas"
 
 #: src/gui/uifiles/dialog_star_remix.ui:114
-#, fuzzy
 msgid "Log histograms"
-msgstr "Histogramas"
+msgstr "Registro histogramas"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 #: src/gui/uifiles/dialog_star_remix.ui:129 src/gui/remixer.c:721
@@ -3717,9 +3660,8 @@ msgid "Show advanced stretch options"
 msgstr "Mostrar las opciones avanzadas de estiramiento"
 
 #: src/gui/uifiles/dialog_star_remix.ui:151
-#, fuzzy
 msgid "Clipping mode:"
-msgstr "Recorte MAD"
+msgstr "Modo de recorte:"
 
 #: src/gui/uifiles/dialog_star_remix.ui:163
 msgid "Select the clipping mode for partially clipped pixels."
@@ -3728,9 +3670,8 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:169
 #: src/gui/uifiles/histogram_dialog.ui:770
-#, fuzzy
 msgid "Global rescale"
-msgstr "Descarte global"
+msgstr "Reescalado global"
 
 #: src/gui/uifiles/dialog_star_remix.ui:231
 #: src/gui/uifiles/dialog_star_remix.ui:866
@@ -3856,9 +3797,8 @@ msgstr "Luminancia uniforme compensada"
 #: src/gui/uifiles/dialog_star_remix.ui:409
 #: src/gui/uifiles/dialog_star_remix.ui:1046
 #: src/gui/uifiles/histogram_dialog.ui:969
-#, fuzzy
 msgid "Stretch factor (ln(D+1))"
-msgstr "Factor de extensión"
+msgstr "Factor de estiramiento (ln(D+1))"
 
 #: src/gui/uifiles/dialog_star_remix.ui:420
 #: src/gui/uifiles/dialog_star_remix.ui:445
@@ -4694,7 +4634,7 @@ msgstr ""
 #: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255
 #: src/gui/uifiles/settings_window.ui:5304 src/gui/uifiles/siril.ui:6357
 msgid " "
-msgstr ""
+msgstr " "
 
 #: src/gui/uifiles/graxpert.ui:1061
 #, fuzzy
@@ -4722,6 +4662,8 @@ msgid ""
 "Show the histogram with a logarithmic scale. Does not affect the transfer "
 "function display.\n"
 msgstr ""
+"Muestra el histograma en escala logorítmica. No afecta la visualización de "
+"la función de transferencia.\n"
 
 #: src/gui/uifiles/histogram_dialog.ui:362
 msgid "Toggles whether the stretch applies to the red channel"
@@ -4857,6 +4799,9 @@ msgid ""
 "image. NOTE: altering BP can clip pixels in which case this transformation "
 "is non-reversible."
 msgstr ""
+"Ajuste del punto negro. Es un valor constante que que se sustrae de la "
+"imagen. NOTA: alterar el BP puede recortar pixels que puede hacer que la "
+"transformación no sea reversible."
 
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4086
 #: src/gui/uifiles/settings_window.ui:4903 src/core/icc_profile.c:1285
@@ -4892,7 +4837,7 @@ msgstr "Borrar"
 
 #: src/gui/uifiles/icc_dialog.ui:99
 msgid "Remove the ICC profile from the image and stop color managing it"
-msgstr ""
+msgstr "Elimina el perfil ICC de la imagen y detiene la gestión del color"
 
 #: src/gui/uifiles/icc_dialog.ui:110 src/core/icc_profile.c:1285
 #, fuzzy
@@ -4916,10 +4861,12 @@ msgid ""
 "Converts the image to a different color space. This can be useful for "
 "exporting an image to sRGB for WWW use, for example."
 msgstr ""
+"Convierte la imagen a un espacio de color distinto. Puede ser útil para "
+"exportar una imagen a sRGB para uso en WWW, por ejemplo."
 
 #: src/gui/uifiles/icc_dialog.ui:178
 msgid "<b><i>Current ICC profile</i></b>"
-msgstr ""
+msgstr "<b><i>Perfil ICC actual</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:228
 #, fuzzy
@@ -4929,7 +4876,7 @@ msgstr "<b>Tipo de extracción</b>"
 #: src/gui/uifiles/icc_dialog.ui:254 src/gui/uifiles/icc_dialog.ui:308
 #: src/gui/uifiles/spcc_details.ui:96
 msgid "Manufacturer"
-msgstr ""
+msgstr "Fabricante"
 
 #: src/gui/uifiles/icc_dialog.ui:267 src/gui/uifiles/icc_dialog.ui:321
 #, fuzzy
@@ -4938,11 +4885,11 @@ msgstr "Copyright TIFF"
 
 #: src/gui/uifiles/icc_dialog.ui:332
 msgid "\n"
-msgstr ""
+msgstr "\n"
 
 #: src/gui/uifiles/icc_dialog.ui:360
 msgid "Built-in profile"
-msgstr ""
+msgstr "Perfil incluido"
 
 #: src/gui/uifiles/icc_dialog.ui:371
 msgid ""
@@ -4963,27 +4910,27 @@ msgstr "Alineación RGB (DFT)"
 
 #: src/gui/uifiles/icc_dialog.ui:376
 msgid "sRGB (standard sRGB TRC)"
-msgstr ""
+msgstr "sRGB (sRGB TRC estándar)"
 
 #: src/gui/uifiles/icc_dialog.ui:377
 msgid "Rec2020 (linear TRC)"
-msgstr ""
+msgstr "Rec2020 (TRC lineal)"
 
 #: src/gui/uifiles/icc_dialog.ui:378
 msgid "Rec2020 (standard Rec709 TRC)"
-msgstr ""
+msgstr "Rec2020 (Rec709 TRC estándar)"
 
 #: src/gui/uifiles/icc_dialog.ui:379
 msgid "Gray (linear TRC)"
-msgstr ""
+msgstr "Gray (TRC lineal)"
 
 #: src/gui/uifiles/icc_dialog.ui:380
 msgid "Gray (sRGB TRC)"
-msgstr ""
+msgstr "Gray (sRGB TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:381
 msgid "Gray (Rec709 TRC)"
-msgstr ""
+msgstr "Gray (Rec709 TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:394
 #, fuzzy
@@ -5043,7 +4990,7 @@ msgstr "Copiar al portapapeles"
 
 #: src/gui/uifiles/keywords_dialog.ui:107
 msgid "Keyword"
-msgstr ""
+msgstr "Palabra clave"
 
 #: src/gui/uifiles/keywords_dialog.ui:126
 #, fuzzy
@@ -5052,41 +4999,39 @@ msgstr "Valor: "
 
 #: src/gui/uifiles/keywords_dialog.ui:144 src/gui/uifiles/spcc_details.ui:223
 msgid "Comment"
-msgstr ""
+msgstr "Comentario"
 
 #: src/gui/uifiles/keywords_dialog.ui:163
 msgid "Dtype"
-msgstr ""
+msgstr "Dtype"
 
 #: src/gui/uifiles/keywords_dialog.ui:177
-#, fuzzy
 msgid "Protected"
-msgstr "Método de protección: "
+msgstr "Protegido"
 
 #: src/gui/uifiles/keywords_dialog.ui:208
-#, fuzzy
 msgid "Add a new keyword in the FITS header."
-msgstr "No se han encontrado palabras clave en la cabecera FITS.\n"
+msgstr "Añadir nueva palabras clave en la cabecera FITS."
 
 #: src/gui/uifiles/keywords_dialog.ui:229
-#, fuzzy
 msgid "Delete keyword in the FITS header."
-msgstr "No se han encontrado palabras clave en la cabecera FITS.\n"
+msgstr "Borrar palabra clave en la cabecera FITS."
 
 #: src/gui/uifiles/keywords_dialog.ui:250
 msgid ""
 "In <span foreground=\"salmon\">salmon</span>, these are protected keywords, "
 "which cannot be modified."
 msgstr ""
+"En <span foreground=\"salmon\">salmon</span>, estas son palabras clave "
+"protegidas, que no se pueden modificar."
 
 #: src/gui/uifiles/keywords_dialog.ui:272
 msgid "Header Editor"
-msgstr ""
+msgstr "Editor de Encabezados"
 
 #: src/gui/uifiles/keywords_dialog.ui:305
-#, fuzzy
 msgid "Saved Header"
-msgstr "Cabecera FITS..."
+msgstr "Cabecera guardada"
 
 #: src/gui/uifiles/linearmatch_dialog.ui:46 src/gui/linear_match.c:79
 msgid "Linear Match"
@@ -5135,23 +5080,22 @@ msgid "Reject high"
 msgstr "Descarte alto"
 
 #: src/gui/uifiles/livestacking_player.ui:33
-#, fuzzy
 msgid "Live Stacking"
-msgstr "Apilado"
+msgstr "Apilado en vivo"
 
 #: src/gui/uifiles/livestacking_player.ui:93
 #, fuzzy
 msgid "debayer"
-msgstr "Debayer"
+msgstr "debayer"
 
 #: src/gui/uifiles/livestacking_player.ui:98
 msgid "for now only detected in files and automatically enabled"
-msgstr ""
+msgstr "por ahora solo detectado en ficheros y habilitado automáticamente"
 
 #: src/gui/uifiles/livestacking_player.ui:111
 #, fuzzy
 msgid "shift-only registration"
-msgstr "Registro manual"
+msgstr "Registro solo por cambio"
 
 #: src/gui/uifiles/livestacking_player.ui:115
 msgid ""
@@ -5162,7 +5106,7 @@ msgstr ""
 
 #: src/gui/uifiles/livestacking_player.ui:126
 msgid "remove gradient"
-msgstr ""
+msgstr "eliminar gradiente"
 
 #: src/gui/uifiles/livestacking_player.ui:130
 msgid "Apply a linear background gradient removal on calibrated input frames."
@@ -5193,72 +5137,76 @@ msgid "Master-dark and cosmetic correction"
 msgstr "Habilitar Corrección Cosmética"
 
 #: src/gui/uifiles/livestacking_player.ui:309
-#, fuzzy
 msgid "Master-flat"
-msgstr "master-flat"
+msgstr "Master-flat"
 
 #: src/gui/uifiles/livestacking_player.ui:321
 msgid "Stacking with weighted mean"
-msgstr ""
+msgstr "Apilado con media ponderada"
 
 #: src/gui/uifiles/livestacking_player.ui:370
-#, fuzzy
 msgid "Configuration"
-msgstr "Información"
+msgstr "Configuración"
 
 #: src/gui/uifiles/livestacking_player.ui:396 src/livestacking/gui.c:144
 msgid "Idle"
-msgstr ""
+msgstr "Reposo"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:34
-#, fuzzy
 msgid "Merge CFA Elements"
-msgstr "Dividir Canales CFA ..."
+msgstr "Unir Elementos CFA"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:121
 msgid "CFA0"
-msgstr ""
+msgstr "CFA0"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:132
 msgid "CFA1"
-msgstr ""
+msgstr "CFA1"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:143
 msgid "CFA2"
-msgstr ""
+msgstr "CFA2"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:154
 msgid "CFA3"
-msgstr ""
+msgstr "CFA3"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:166
 msgid ""
 "Select the image containing the CFA0 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA0 prefix."
 msgstr ""
+"Seleccione la imagen que contiene el subpatrón Bayer CFA0. Si se generó con "
+"la función Dividir CFA de Siril, tendrá el prefijo CFA0."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:181
 msgid ""
 "Select the image containing the CFA1 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA1 prefix."
 msgstr ""
+"Seleccione la imagen que contiene el subpatrón Bayer CFA1. Si se generó con "
+"la función \"Dividir CFA\" de Siril, tendrá el prefijo CFA1."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:196
 msgid ""
 "Select the image containing the CFA2 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA2 prefix."
 msgstr ""
+"Seleccione la imagen que contiene el subpatrón Bayer CFA2. Si se generó con "
+"la función \"Dividir CFA\" de Siril, tendrá el prefijo CFA2."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:211
 msgid ""
 "Select the image containing the CFA3 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA3 prefix."
 msgstr ""
+"Seleccione la imagen que contiene el subpatrón Bayer CFA3. Si se generó con "
+"la función \"Dividir CFA\" de Siril, tendrá el prefijo CFA3."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:229
-#, fuzzy
 msgid "Input Files"
-msgstr "Archivos TIFF"
+msgstr "Archivos de entrada"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:258
 msgid ""
@@ -5266,6 +5214,9 @@ msgid ""
 "the Bayer pattern of the image that the original Bayer subchannels were "
 "split from."
 msgstr ""
+"Establece el encabezado del patrón Bayer que se aplicará al resultado. Debe "
+"coincidir con el patrón Bayer de la imagen de la que se separaron los "
+"subcanales Bayer originales."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:262
 msgid "RGGB"
@@ -5284,9 +5235,8 @@ msgid "GRBG"
 msgstr "GRBG"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:275
-#, fuzzy
 msgid "Bayer Pattern"
-msgstr "Patrón bayer/mosaico: "
+msgstr "Patrón bayer"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:294
 msgid ""
@@ -5294,15 +5244,17 @@ msgid ""
 "CFA0 loaded to start with, and ensure filenames are consistent across images "
 "for all CFA channels."
 msgstr ""
+"Fusiona imágenes CFA separadas para una secuencia. Debe tener cargada la "
+"secuencia CFA0 para iniciar el proceso, y asegurarse de que los nombres de "
+"archivo sean consistentes en todas las imágenes de todos los canales CFA."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:326
 msgid "CFA marker string"
-msgstr ""
+msgstr "Cadena de marcadores CFA"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:337
-#, fuzzy
 msgid "Sequence output prefix"
-msgstr "Prefijo de salida:"
+msgstr "Prefijo de salida de secuencia"
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:348
 msgid ""
@@ -5310,11 +5262,14 @@ msgid ""
 "images. This should be set to whatever sequence prefix was used when the "
 "split_cfa process was run (default: CFA)."
 msgstr ""
+"Prefijo identificador utilizado para indicar el número de CFA en las "
+"imágenes de canal CFA independientes. Debe configurarse con el prefijo de "
+"secuencia utilizado al ejecutar el proceso split_cfa (predeterminado: CFA)."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:365
-#, fuzzy
 msgid "Prefix of the image names resulting from the merge CFA process."
-msgstr "Prefijo de las imágenes resultantes del proceso de mtf."
+msgstr ""
+"Prefijo de los nombres de imágenes resultantes del proceso de fusión CFA."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:407
 msgid ""
@@ -5333,6 +5288,21 @@ msgid ""
 "\n"
 "Note that CFA merge does not work for X-Trans files."
 msgstr ""
+"Debe tener una de las secuencias CFA seleccionada en la pestaña de "
+"secuencias de la ventana principal. Siril detectará automáticamente a qué "
+"canal CFA corresponde a partir de la cadena de marcadores CFA. Las cuatro "
+"secuencias deben tener el mismo formato de nombre y la misma cadena de "
+"marcadores CFA, diferenciándose únicamente en el número que sigue a la "
+"cadena (p. ej., CFA0, CFA1, CFA2 y CFA3).\n"
+"\n"
+"Cada imagen de la secuencia solo se procesará si se encuentran las imágenes "
+"correspondientes a los otros tres canales CFA. Se requieren los archivos G1 "
+"y G2. Tenga en cuenta que esto significa que si descarta una imagen que "
+"contenga un canal CFA de una imagen entre split_cfa y merge_cfa, merge_cfa "
+"no podrá fusionar los canales CFA restantes de esa imagen. Todo el filtrado "
+"de secuencia debe realizarse antes de split_cfa o después de merge_cfa.\n"
+"\n"
+"Tenga en cuenta que la fusión de CFA no funciona con archivos X-Trans."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:430
 #, fuzzy

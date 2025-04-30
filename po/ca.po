@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-09 14:44+0000\n"
+"PO-Revision-Date: 2025-04-29 22:01+0000\n"
 "Last-Translator: Victor Gandia <victorix@gmail.com>\n"
 "Language-Team: Catalan <https://weblate.siril.org/projects/siril/software/"
 "siril/ca/>\n"
@@ -151,15 +151,17 @@ msgstr "Tancar"
 #: src/gui/uifiles/Median_dialog.ui:80 src/gui/uifiles/SCNR_dialog.ui:73
 #: src/gui/uifiles/bdeconv_dialog.ui:284 src/gui/uifiles/denoise_dialog.ui:84
 #: src/gui/uifiles/graxpert.ui:97
-#, fuzzy
 msgid "ROI Preview"
-msgstr "Vista prèvia"
+msgstr "Vista prèvia de la regió d'interès (ROI)"
 
 #: src/gui/uifiles/Median_dialog.ui:84
 msgid ""
 "Note: ROI preview will show a black border. Do not panic, the border will be "
 "overwritten by future ROIs and when finally applying the median filter."
 msgstr ""
+"Nota: la vista prèvia de la regió d'interès (ROI) mostrarà un marc negre. No "
+"és un problema, el marc serà redibuixat per futures ROI quan s'apliqui "
+"finalment el filtre de mediana."
 
 #: src/gui/uifiles/Median_dialog.ui:138
 msgid "Kernel Size:"
@@ -277,9 +279,8 @@ msgid "Normalized Real [0, 1]"
 msgstr "Normalització Real [0, 1]"
 
 #: src/gui/uifiles/StatWindow.ui:120
-#, fuzzy
 msgid "Per CFA channel"
-msgstr "Canal Vermell"
+msgstr "Canal de matriu de filtre de color (CFA)"
 
 #: src/gui/uifiles/StatWindow.ui:125
 msgid ""
@@ -318,9 +319,9 @@ msgid "Blue"
 msgstr "Blau"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
-#, fuzzy
 msgid "AAVSO parameters"
-msgstr "Àrea seleccionada"
+msgstr ""
+"Paràmetres de l'AAVSO (Associació americana d'observadors d'estels variables)"
 
 #: src/gui/uifiles/aavso_dialog.ui:69
 #: src/gui/uifiles/file_information_dialog.ui:96
@@ -331,26 +332,27 @@ msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:71
 msgid "Obstype: "
-msgstr ""
+msgstr "Tipus d'observació: "
 
 #: src/gui/uifiles/aavso_dialog.ui:82
 msgid ""
 "The official AAVSO Observer Code for the observer which was previously "
 "assigned by the AAVSO."
 msgstr ""
+"El codi d'observador de l'AAVSO (Associació americana d'observadors d'estels "
+"variables) per a l'observador, que va ser assignat prèviament per l'AAVSO."
 
 #: src/gui/uifiles/aavso_dialog.ui:101
 msgid "Obscode: "
-msgstr ""
+msgstr "Codi d'observació: "
 
 #: src/gui/uifiles/aavso_dialog.ui:113
 msgid "Filter: "
-msgstr ""
+msgstr "Filtre: "
 
 #: src/gui/uifiles/aavso_dialog.ui:124
-#, fuzzy
 msgid "The filter used for the observation."
-msgstr "Tipus d'algorisme per la rotació"
+msgstr "El filtre utilitzat per l'observació."
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 msgid "Cname: "
@@ -366,17 +368,24 @@ msgid ""
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
 "characters."
 msgstr ""
+"Nom o etiqueta de l'estrella de comparació, com ara l'AUID (Identificador "
+"únic de l'AAVSO; molt preferible) o l'etiqueta del gràfic per a l'estrella "
+"de comparació utilitzada. Si no està present, utilitza \"na\". Límit: 20 "
+"caràcters."
 
 #: src/gui/uifiles/aavso_dialog.ui:211
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart "
 "label for the check star. If not present, use \"na\". Limit: 20 characters."
 msgstr ""
+"Nom o etiqueta de l'estrella de control, com ara l'AUID (Identificador únic "
+"de l'AAVSO; molt preferible) o l'etiqueta del gràfic per a l'estrella de "
+"control. Si no està present, utilitza \"na\". Límit: 20 caràcters."
 
 #: src/gui/uifiles/aavso_dialog.ui:229
 #, fuzzy
 msgid "Starid: "
-msgstr "Estel #1:"
+msgstr "Starid: : "
 
 #: src/gui/uifiles/aavso_dialog.ui:240
 msgid ""
@@ -384,6 +393,9 @@ msgid ""
 "the AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 "
 "characters."
 msgstr ""
+"L'identificador de l'estrella. Pot ser la Designació AAVSO (Associació "
+"americana d'observadors d'estrelles variables), el Nom AAVSO o "
+"l'Identificador Únic AAVSO, però NO més d'un d'aquests. Límit: 30 caràcters."
 
 #: src/gui/uifiles/aavso_dialog.ui:258
 msgid ""
@@ -391,16 +403,17 @@ msgid ""
 "Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a "
 "CMOS camera please report it as CCD."
 msgstr ""
+"El tipus d'observació en el fitxer de dades. Pot ser CCD, DSLR, PEP (per a "
+"fotometria fotoelèctrica). Si no està present, es considera CCD. Si "
+"utilitzes una càmera CMOS, informa-ho com a CCD."
 
 #: src/gui/uifiles/aavso_dialog.ui:275
-#, fuzzy
 msgid "Comparison star: "
-msgstr "Factor de compensació"
+msgstr "Estrella de comparació: "
 
 #: src/gui/uifiles/aavso_dialog.ui:286
-#, fuzzy
 msgid "The number of the comparison star."
-msgstr "Introdueix el número de la imatge a la que vols arribar."
+msgstr "El número de l'estrella de comparació."
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
@@ -416,6 +429,13 @@ msgid ""
 "instrumental value of the comparison, and Cstd is the chart magnitude for "
 "the comparison."
 msgstr ""
+"La magnitud estandaritzada per a la variable ve donada per\n"
+"\n"
+"Vstd = (Vins - Cins) + Cstd\n"
+"\n"
+"on Vins és la magnitud instrumental de la variable, Cins és el valor "
+"instrumental de la comparació, i Cstd és la magnitud del gràfic per a la "
+"comparació."
 
 #: src/gui/uifiles/aavso_dialog.ui:315 src/gui/uifiles/astrometry_dialog.ui:180
 #: src/gui/uifiles/astrometry_dialog.ui:202
@@ -431,13 +451,13 @@ msgid "0"
 msgstr "0"
 
 #: src/gui/uifiles/aavso_dialog.ui:328
+#, fuzzy
 msgid "Check star: "
-msgstr ""
+msgstr "Estrella de control: "
 
 #: src/gui/uifiles/aavso_dialog.ui:339
-#, fuzzy
 msgid "The number of the check star."
-msgstr "Introdueix el número de la imatge a la que vols arribar."
+msgstr "El número de l'estrella de control."
 
 #: src/gui/uifiles/aavso_dialog.ui:351
 msgid ""
@@ -450,27 +470,38 @@ msgid ""
 "chart) and give a proper chart name like \"APASS DR10\". Then add "
 "information on the comp stars in the notes. Limit: 20 characters."
 msgstr ""
+"Utilitza l'ID de la seqüència que trobaràs escrit en negreta a prop de la "
+"part superior de la taula de fotometria en una frase que digui: 'Informa "
+"d'aquesta seqüència com a [ID] en el camp del gràfic del teu informe "
+"d'observació.' Si has utilitzat les teves pròpies estrelles de comparació ("
+"per exemple, en casos d'alertes urgents quan l'Equip de Seqüències no ha "
+"tingut temps de crear una seqüència), no proporcionis un ID de gràfic, fins "
+"i tot si has traçat el gràfic utilitzant VSP. Usa el codi de comentari K ("
+"gràfic no AAVSO) i dona un nom de gràfic adequat com 'APASS DR10'. Després, "
+"afegeix informació sobre les estrelles de comparació a les notes. Límit: 20 "
+"caràcters."
 
 #: src/gui/uifiles/aavso_dialog.ui:367
 msgid "Chart: "
-msgstr ""
+msgstr "Gràfic: "
 
 #: src/gui/uifiles/aavso_dialog.ui:379
 msgid "Notes: "
-msgstr ""
+msgstr "Notes: "
 
 #: src/gui/uifiles/aavso_dialog.ui:390
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
+"Comentaris o notes sobre l'observació. Si no hi ha comentaris, utilitza \"na"
+"\"."
 
 #: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2520
 msgid "Aberration Inspector"
 msgstr "Inspector d'aberració"
 
 #: src/gui/uifiles/annotate_dialog.ui:14
-#, fuzzy
 msgid "Annotate"
-msgstr "Iteracions"
+msgstr "Anotar"
 
 #: src/gui/uifiles/annotate_dialog.ui:30
 #: src/gui/uifiles/background_extraction_dialog.ui:472
@@ -485,7 +516,7 @@ msgstr "Netejar"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current annotations."
-msgstr ""
+msgstr "Esborrar totes les anotacions actuals."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -495,14 +526,12 @@ msgid "Close the window."
 msgstr "Tanca la finestra."
 
 #: src/gui/uifiles/annotate_dialog.ui:67
-#, fuzzy
 msgid "Apply requested annotation."
-msgstr "Aplica registrat"
+msgstr "Aplicar anotació sol·licitada."
 
 #: src/gui/uifiles/annotate_dialog.ui:110
-#, fuzzy
 msgid "Catalogue: "
-msgstr "Paràmetres del Catàleg"
+msgstr "Catàleg: "
 
 #: src/gui/uifiles/annotate_dialog.ui:121
 msgid ""
@@ -519,6 +548,21 @@ msgid ""
 "- for solar system objects: solsys (closest IAU observatory code can be "
 "passed in the dedicated text field."
 msgstr ""
+"Aquests són els catàlegs utilitzats per a la imatge carregada amb solució de "
+"placa:\n"
+"\n"
+"Automàtic: Utilitza catàlegs locals si estan disponibles, sinó utilitza "
+"nomad per defecte.\n"
+"\n"
+"També pots triar un catàleg en línia alternatiu:\n"
+"\n"
+"per a estrelles: tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, simbad, "
+"aavso_chart\n"
+"per a exoplanetes: exo\n"
+"per a objectes del cel profund: pgc\n"
+"per a objectes del sistema solar: solsys (el codi d'observatori IAU (Unió "
+"Astronòmica Internacional) més proper es pot introduir en el camp de text "
+"dedicat)."
 
 #: src/gui/uifiles/annotate_dialog.ui:133
 #, fuzzy

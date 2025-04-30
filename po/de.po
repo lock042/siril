@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-24 20:49+0000\n"
-"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
+"PO-Revision-Date: 2025-04-26 19:49+0000\n"
+"Last-Translator: Sami <samipar77@gmail.com>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1971
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr "Kontrastbegrenzte adaptive Histogrammausgleichung….."
+msgstr "Kontrastbegrenzte adaptive Histogrammausgleichung..."
 
 #: src/gui/uifiles/CLAHE_dialog.ui:69 src/gui/uifiles/asinh_dialog.ui:64
 #: src/gui/uifiles/ccm_dialog.ui:43 src/gui/uifiles/curves_dialog.ui:80
