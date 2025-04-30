@@ -491,7 +491,8 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	} else {
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-		refresh_script_menu(1);
+		GThread *thread = g_thread_new("refresh_scripts", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+		g_thread_unref(thread);
 	}
 	if (error) {
 		*error = err;
@@ -499,9 +500,23 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	return retval;
 }
 
+static GMutex script_mutex = { 0 };
+
+gpointer refresh_scripts_menu_in_thread(gpointer data) {
+	gboolean verbose = (gboolean) GPOINTER_TO_INT(data);
+	if (g_mutex_trylock(&script_mutex)) {
+		refresh_script_menu(verbose);
+		g_mutex_unlock(&script_mutex);
+	}
+	return GINT_TO_POINTER(0);
+}
+
 gpointer initialize_script_menu_in_thread(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
-	initialize_script_menu(state);
+	if (g_mutex_trylock(&script_mutex)) {
+		initialize_script_menu(state);
+		g_mutex_unlock(&script_mutex);
+	}
 	return GINT_TO_POINTER(0);
 }
 
