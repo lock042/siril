@@ -16,6 +16,7 @@ XX/XX/25
 * Removed graxpert_deconv from the command line (#1575)
 * Fixed SPCC failing to open files on Windows when the filepath contains non-ASCII characters (e.g., accented characters) (#1584)
 * Fixed parameter parsing in PixelMath (#1594)
+* Fixed bad font kerning on macOS (#1508)
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
