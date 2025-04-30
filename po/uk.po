@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-23 10:47+0200\n"
-"PO-Revision-Date: 2025-04-08 14:45+0000\n"
+"PO-Revision-Date: 2025-04-30 09:44+0000\n"
 "Last-Translator: Ruslan <rpazenko@ukr.net>\n"
 "Language-Team: Ukrainian <https://weblate.siril.org/projects/siril/software/"
 "siril/uk/>\n"
@@ -5410,9 +5410,8 @@ msgstr "Повторити"
 
 #: src/gui/uifiles/python_scratchpad.ui:266
 #: src/gui/uifiles/python_scratchpad.ui:268
-#, fuzzy
 msgid "Cut"
-msgstr "відсічка"
+msgstr "Обрізати"
 
 #: src/gui/uifiles/python_scratchpad.ui:276
 #: src/gui/uifiles/python_scratchpad.ui:278
@@ -5422,54 +5421,57 @@ msgstr ""
 #: src/gui/uifiles/python_scratchpad.ui:286
 #: src/gui/uifiles/python_scratchpad.ui:288
 msgid "Paste"
-msgstr ""
+msgstr "Вставити"
 
 #: src/gui/uifiles/python_scratchpad.ui:317
-#, fuzzy
 msgid "_Script"
-msgstr "_Скріпти"
+msgstr "_Скрипт"
 
 #: src/gui/uifiles/python_scratchpad.ui:327
 #: src/gui/uifiles/python_scratchpad.ui:413
-#, fuzzy
 msgid "Run the script"
-msgstr "_Скріпти"
+msgstr "Виконати скрипт"
 
 #: src/gui/uifiles/python_scratchpad.ui:329
 msgid "Run"
-msgstr ""
+msgstr "Виконати"
 
 #: src/gui/uifiles/python_scratchpad.ui:339
 msgid ""
 "Set scripting language to Python. Ensure you have the correct scripting "
 "language set before executing a script from the editor."
 msgstr ""
+"Встановіть мову сценаріїв на Python. Переконайтеся, що у вас встановлено "
+"правильну мову сценаріїв, перш ніж виконувати сценарій з редактора."
 
 #: src/gui/uifiles/python_scratchpad.ui:340
-#, fuzzy
 msgid "Python scripts"
-msgstr "_Скріпти"
+msgstr "Скрипти Python"
 
 #: src/gui/uifiles/python_scratchpad.ui:350
 msgid ""
 "Set scripting language to Siril Script File. Ensure you have the correct "
 "scripting language set before executing a script from the editor."
 msgstr ""
+"Встановіть мову сценаріїв на Siril Script File. Переконайтеся, що у вас "
+"встановлено правильну мову сценаріїв, перш ніж виконувати сценарій з "
+"редактора."
 
 #: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:251
-#, fuzzy
 msgid "Siril Script Files"
-msgstr "Ім'я файлу:"
+msgstr "Скрипти Siril"
 
 #: src/gui/uifiles/python_scratchpad.ui:361
 msgid ""
 "When active, any arguments entered in the args entry will be passed to the "
 "script when it is run."
 msgstr ""
+"Коли цей параметр активний, будь-які аргументи, введені в запис args, будуть "
+"передані скрипту під час його запуску."
 
 #: src/gui/uifiles/python_scratchpad.ui:362
 msgid "Enable test arguments"
-msgstr ""
+msgstr "Увімкнути тестові аргументи"
 
 #: src/gui/uifiles/python_scratchpad.ui:370
 msgid ""
@@ -5477,150 +5479,143 @@ msgid ""
 "python process as soon as the SirilInterface is initialized, to allow for "
 "connecting a python debugger to the process before continuing."
 msgstr ""
+"Коли інтерпретатор Python активний, одразу після ініціалізації інтерфейс "
+"Siril відобразить модальне діалогове вікно, що показує процес Python, щоб "
+"дозволити підключити налагоджувач Python до процесу перед продовженням."
 
 #: src/gui/uifiles/python_scratchpad.ui:371
 msgid "Enable python debug mode"
-msgstr ""
+msgstr "Увімкнути режим налагодження Python"
 
 #: src/gui/uifiles/python_scratchpad.ui:383
-#, fuzzy
 msgid "_Preferences"
 msgstr "Налаштування"
 
 #: src/gui/uifiles/python_scratchpad.ui:393
 msgid "Enable syntax highlighting"
-msgstr ""
+msgstr "Увімкнути підсвічування синтаксису"
 
 #: src/gui/uifiles/python_scratchpad.ui:394
-#, fuzzy
 msgid "Highlight syntax"
-msgstr "Світлі ділянки: "
+msgstr "Підкреслення синтаксису"
 
 #: src/gui/uifiles/python_scratchpad.ui:403
 #: src/gui/uifiles/python_scratchpad.ui:404
 msgid "Enable right margin indicator"
-msgstr ""
+msgstr "Увімкнути індикатор правої границі"
 
 #: src/gui/uifiles/python_scratchpad.ui:415
-#, fuzzy
 msgid "Set right margin position"
-msgstr "Позиція X"
+msgstr "Встановити положення правої границі"
 
 #: src/gui/uifiles/python_scratchpad.ui:422
 msgid ""
 "When enabled, positioning the cursor on a bracket will show the matching "
 "bracket"
 msgstr ""
+"Якщо увімкнено, розміщення курсора на дужці відображатиме відповідну дужку"
 
 #: src/gui/uifiles/python_scratchpad.ui:423
 msgid "Enable bracket matching"
-msgstr ""
+msgstr "Увімкнути зіставлення дужок"
 
 #: src/gui/uifiles/python_scratchpad.ui:432
-#, fuzzy
 msgid "Enable line numbers in the left margin"
-msgstr "Лінії по центру виділення"
+msgstr "Увімкнути нумерацію рядків у лівому полі"
 
 #: src/gui/uifiles/python_scratchpad.ui:433
 msgid "Show line numbers"
-msgstr ""
+msgstr "Показати номери рядків"
 
 #: src/gui/uifiles/python_scratchpad.ui:442
 msgid "Show line markers in the left margin"
-msgstr ""
+msgstr "Показувати лінійні маркери в лівому полі"
 
 #: src/gui/uifiles/python_scratchpad.ui:443
-#, fuzzy
 msgid "Show line markers"
-msgstr "Деконволюція"
+msgstr "Показати лінійні маркери"
 
 #: src/gui/uifiles/python_scratchpad.ui:452
-#, fuzzy
 msgid "Highlight the current line in the editor"
-msgstr "Змінити поточний робочий каталог"
+msgstr "Підсвітити поточний рядок у редакторі сценаріїв"
 
 #: src/gui/uifiles/python_scratchpad.ui:453
-#, fuzzy
 msgid "Highlight current line"
-msgstr "Відсікання світлих ділянок"
+msgstr "Виділити поточний рядок"
 
 #: src/gui/uifiles/python_scratchpad.ui:462
 #: src/gui/uifiles/python_scratchpad.ui:463
 msgid "Enable auto-indentation"
-msgstr ""
+msgstr "Увімкнути автоматичний відступ"
 
 #: src/gui/uifiles/python_scratchpad.ui:472
 msgid "When a block of lines is selected, tab increases the indent level"
-msgstr ""
+msgstr "Коли виділено блок рядків, клавіша табуляції збільшує рівень відступу"
 
 #: src/gui/uifiles/python_scratchpad.ui:473
 msgid "Indent on tab"
-msgstr ""
+msgstr "Відступ по tab"
 
 #: src/gui/uifiles/python_scratchpad.ui:482
 #: src/gui/uifiles/python_scratchpad.ui:483
 msgid "Enable smart backspace"
-msgstr ""
+msgstr "Увімкнути розумний Backspace"
 
 #: src/gui/uifiles/python_scratchpad.ui:492
 msgid ""
 "When Smart Home / End is enabled the Home and End keys will go to the first "
 "and last non-whitespace character on the line respectively"
 msgstr ""
+"Коли ввімкнено функцію Smart Home / End, клавіші Home і End переходять "
+"відповідно до першого та останнього символу рядка, що не є пробілом."
 
 #: src/gui/uifiles/python_scratchpad.ui:493
 msgid "Smart Home / End"
-msgstr ""
+msgstr "Smart Home / End"
 
 #: src/gui/uifiles/python_scratchpad.ui:502
 msgid "Show space and tab characters in the editor view"
-msgstr ""
+msgstr "Відображати символи пробілу та табуляції в режимі редактора"
 
 #: src/gui/uifiles/python_scratchpad.ui:503
 msgid "Show spaces and tabs"
-msgstr ""
+msgstr "Показати пробіли та табуляцію"
 
 #: src/gui/uifiles/python_scratchpad.ui:511
 msgid "Show newline characters in the editor view"
-msgstr ""
+msgstr "Показувати символи нового рядка в області редагування"
 
 #: src/gui/uifiles/python_scratchpad.ui:512
-#, fuzzy
 msgid "Show newlines"
-msgstr "Командний рядок"
+msgstr "Показати нові рядки"
 
 #: src/gui/uifiles/python_scratchpad.ui:520
 msgid "Show minimap in the editor view"
-msgstr ""
+msgstr "Показати міні-карту в режимі редактора"
 
 #: src/gui/uifiles/python_scratchpad.ui:521
-#, fuzzy
 msgid "Show minimap"
-msgstr "Показати початкове зображення"
+msgstr "Показати міні-карту"
 
 #: src/gui/uifiles/python_scratchpad.ui:533
 msgid "_Help"
 msgstr "_Допомога"
 
 #: src/gui/uifiles/python_scratchpad.ui:545
-#, fuzzy
 msgid "Python API reference"
-msgstr "Опорний зразок білого"
+msgstr "Довідник з API Python"
 
 #: src/gui/uifiles/python_scratchpad.ui:554
-#, fuzzy
 msgid "Siril Command Reference"
-msgstr "Опорний зразок фону"
+msgstr "Довідник команд Siril"
 
 #: src/gui/uifiles/python_scratchpad.ui:572
-#, fuzzy
 msgid "Script type"
-msgstr "_Скріпти"
+msgstr "Тип скрипта"
 
 #: src/gui/uifiles/python_scratchpad.ui:641
-#, fuzzy
 msgid "Arguments:"
-msgstr "Відзеркалити по вертикалі"
+msgstr "Аргументи:"
 
 #: src/gui/uifiles/python_scratchpad.ui:653
 msgid ""
@@ -5630,20 +5625,23 @@ msgid ""
 "script is run from the Scripts menu, so scripts should not be solely reliant "
 "on arguments for input."
 msgstr ""
+"Цей запис можна використовувати для встановлення аргументів для запуску "
+"скрипта, щоб дозволити тестування його поведінки під час виклику командою "
+"<b>pyscript</b> з аргументами. Зверніть увагу, що аргументи не можна "
+"надавати, коли скрипт запускається з меню «Скрипти», тому скрипти не повинні "
+"покладатися виключно на аргументи для введення."
 
 #: src/gui/uifiles/resample_dialog.ui:65
 msgid "Resample"
 msgstr "Масштабувати"
 
 #: src/gui/uifiles/resample_dialog.ui:137
-#, fuzzy
 msgid "X scale"
-msgstr "Масштаб по X (%): "
+msgstr "Масштаб по X"
 
 #: src/gui/uifiles/resample_dialog.ui:149
-#, fuzzy
 msgid "Y scale"
-msgstr "Масштаб по Y (%): "
+msgstr "Масштаб по Y"
 
 #: src/gui/uifiles/resample_dialog.ui:158
 msgid "Preserve Aspect Ratio"
