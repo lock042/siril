@@ -1,40 +1,40 @@
 [build-system]
-requires = ["setuptools",
-            ]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "sirilpy"
-version = "0.5.126"
+version = "0.6.5"
 authors = [
-  { name="Team free-astro"},
+  { name = "Team free-astro" },
 ]
 description = "Python interface for Siril astronomical image processing"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Science/Research",
-        "Topic :: Scientific/Engineering :: Astronomy",
-        "Copyright :: (c) Team free-astro 2024",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Programming Language :: Python :: 3.13",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Astronomy",
+  "Copyright :: (c) Team free-astro 2024",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
 license = { text = "GPL-3.0-or-later" }
 
 dependencies = [
-  'numpy>=1.20.0',
-  'packaging>=21.0',
-  'requests>=2.25.0',
+  "numpy>=1.20.0",
+  "packaging>=21.0",
+  "requests>=2.25.0",
   'pywin32>=300;platform_system=="Windows"'
 ]
 
-[tool.setuptools]
-packages = ["sirilpy"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sirilpy*"]
 
 [project.urls]
 "Homepage" = "https://siril.org"
