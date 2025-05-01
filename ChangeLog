@@ -20,7 +20,7 @@ XX/XX/25
 * Implemented a better linear regression algorithm for SPCC (!853)
 * Python scripts are now sorted alphabetically (#1559)
 * Add an optional rate limit for smooth scroll zoom speed (#1576)
-
+* Make crop and ROI selection CFA-aware (#1579)
 
 siril 1.4.0-beta1
 04/26/25

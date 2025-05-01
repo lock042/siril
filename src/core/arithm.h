@@ -59,7 +59,7 @@ void magnify(float *y, const float *x, int W, int H, int pd, int w, int h, float
 void shrink(float *y, float *x, int outw, int outh, int inw, int inh, float scale, float sigma);
 void gaussblur(float *y, float *x, int w, int h, float sigma);
 float half_to_float(const uint16_t val);
-
+int round_down_to_multiple(int value, int multiple);
 #ifdef __cplusplus
 }
 #endif
