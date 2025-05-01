@@ -3,7 +3,7 @@ XX/XX/25
 
 **Fixes:**
 * Fixed option -weight= for stack command and add filtering criteria in HISTORY key of stacked image (#1545)
-* Fixed crash when refreshing the scripts list (#1548)
+* Fixed crash and slowness when refreshing the scripts list (#1548, #1574)
 * Immplemented a better linear regression algorithm for SPCC (!853)
 * Python scripts are now sorted alphabetically (#1559)
 * Fixed crash in Noise Reduction with Independent Channels option selected (#1567)

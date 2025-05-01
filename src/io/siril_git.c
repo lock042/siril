@@ -708,6 +708,7 @@ int auto_update_gitscripts(gboolean sync) {
 				return 1;
 			} else {
 				siril_log_message(_("Repository cloned successfully!\n"));
+				git_scripts_repo_cloned = TRUE;
 			}
 		} else {
 			siril_log_message(_("Siril is in offline mode. Will not attempt to clone remote repository.\n"));
@@ -863,6 +864,7 @@ int auto_update_gitspcc(gboolean sync) {
 			return 1;
 		} else {
 			siril_log_message(_("Repository cloned successfully!\n"));
+			git_spcc_repo_cloned = TRUE;
 		}
 	} else {
 		siril_debug_print("Local SPCC database repository opened successfully!\n");
