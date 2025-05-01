@@ -138,11 +138,6 @@ void close_action_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 	process_close(0);
 }
 
-void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("settings_window");
-	gtk_stack_set_visible_child((GtkStack*) lookup_widget("stack_pref"), lookup_widget("scripts_page"));
-}
-
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 #if defined(HAVE_LIBCURL)
 	siril_check_updates(TRUE);
