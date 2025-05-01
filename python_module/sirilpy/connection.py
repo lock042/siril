@@ -11,6 +11,7 @@ of methods that can be used to get and set data from / to Siril.
 
 import os
 import sys
+import re
 import atexit
 import socket
 import struct
@@ -948,8 +949,6 @@ class SirilInterface:
 
         except Exception as e:
             raise SirilError(f"Error in warning_messagebox(): {e}") from e
-
-
 
     def undo_save_state(self, my_string: str) -> bool:
         """
@@ -4065,3 +4064,48 @@ class SirilInterface:
 
                 except Exception:
                     pass
+
+    def create_new_seq(self, seq_root: str) -> bool:
+        """
+        Creates a new .seq file with all images named seq_rootXXXXX.ext located in
+        the current home folder. If a sequence with the same name is already loaded
+        in Siril, it will not be recreated. This only works for FITS files, not FITSEQ nor SER.
+        The newly created sequence is not loaded in Siril.
+
+        Args:
+            seq_root: The root name of the sequence to be created. The sequence will be
+                named `seq_root_`.seq (a `_` is appended if not present)
+
+        Returns:
+            bool: True if the sequence was successfully created, False otherwise.
+
+        Raises:
+            SirilError: if an error occurred.
+
+        """
+
+        try:
+            if self.is_sequence_loaded():
+                seq = self.get_seq()
+                seq1_stripped = seq.seqname.rstrip('_')
+                seq2_stripped = seq_root.rstrip('_')
+                if seq1_stripped == seq2_stripped:
+                    self.log(_('A sequence with the same name is already loaded in Siril, aborting'), LogColor.RED)
+                    return False
+            seq_root = f'{seq_root}_' if seq_root[-1] != '_' else seq_root
+            home_folder = self.get_siril_wd()
+            all_files = os.listdir(home_folder)
+            ext = self.siril.get_siril_config('core','extension')
+            pattern = fr'^seqroot\d{5}{ext}$'
+            regex = re.compile(pattern)
+            exact_matches = [os.path.join(home_folder, f) for f in all_files if regex.match(f)]
+            if len(exact_matches) < 0:
+                self.log(_(f'No files matching {seq_root} pattern found in the Home folder'), LogColor.RED)
+                return False
+            if len(exact_matches) == 1:
+                self.log(_(f'Only one file matching {seq_root} found in the Home folder, cannot create sequence'), LogColor.RED)
+            message_bytes = seq_root.encode('utf-8')
+            return self._execute_command(_Command.CREATE_NEW_SEQ, message_bytes)
+
+        except Exception as e:
+            raise SirilError(f"Error in create_new_seq(): {e}") from e
