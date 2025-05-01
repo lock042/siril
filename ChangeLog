@@ -10,6 +10,7 @@ XX/XX/25
 * Fixed incorrect siril command return values (#1569)
 * Fixed crash in astrometric registration when the reference image could not be platesolved (#1557)
 * Fixed preventing max framing export in seqapplyreg with FITSEQ or SER (#1561)
+* Fixed obscode that was not exported in the AAVSO csv (#1577)
 * Removed graxpert_deconv from the command line (#1575)
 
 **Improvements:**
