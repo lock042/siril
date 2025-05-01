@@ -332,6 +332,7 @@ class FileBrowser(tk.Toplevel):
         # -------- devices
         devices = psutil.disk_partitions(all=True if OSNAME == "nt" else False)
 
+        dupes = []
         for d in devices:
             m = d.mountpoint
             if m == "/":
@@ -341,9 +342,11 @@ class FileBrowser(tk.Toplevel):
                     txt = m
                 else:
                     txt = split(m)[-1]
-            self.left_tree.insert("", "end", iid=m, text=txt,
+            if not m in dupes:
+                self.left_tree.insert("", "end", iid=m, text=txt,
                                   image=self.im_drive)
-            wrapper.add_tooltip(m, m)
+                wrapper.add_tooltip(m, m)
+                dupes.append(m)
 
         # -------- home
         home = expanduser("~")
