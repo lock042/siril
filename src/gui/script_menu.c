@@ -38,6 +38,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "io/siril_pythonmodule.h"
+#include "io/siril_git.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -368,7 +369,7 @@ int initialize_script_menu(gboolean verbose) {
 
 	#ifdef HAVE_LIBGIT2
 	// Wait for git repository update to complete during startup
-	if (com.update_scripts_thread) {
+	if (com.update_scripts_thread && !is_scripts_repo_cloned()) {
 		g_thread_join(com.update_scripts_thread);
 		com.update_scripts_thread = NULL;
 	}

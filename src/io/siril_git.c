@@ -31,6 +31,7 @@
 #include "core/siril_networking.h"
 #include "core/siril_update.h" // for the version_number struct
 #include "gui/message_dialog.h"
+#include "gui/callbacks.h"
 #include "gui/photometric_cc.h"
 #include "gui/script_menu.h" // for SCRIPT_EXT TODO: after python3 is merged, move this out of src/gui
 #include "io/siril_git.h"
@@ -41,6 +42,17 @@
 
 #ifdef HAVE_LIBGIT2
 #include <git2.h>
+
+static gboolean git_scripts_repo_cloned = FALSE;
+static gboolean git_spcc_repo_cloned = FALSE;
+
+gboolean is_scripts_repo_cloned() {
+	return git_scripts_repo_cloned;
+}
+
+gboolean is_spcc_repo_cloned() {
+	return git_spcc_repo_cloned;
+}
 
 const gchar *SCRIPT_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
 const gchar *SPCC_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-spcc-database";
@@ -705,6 +717,7 @@ int auto_update_gitscripts(gboolean sync) {
 		}
 	} else {
 		siril_debug_print("Local scripts repository opened successfully!\n");
+		git_scripts_repo_cloned = TRUE;
 	}
 	gui.script_repo_available = TRUE;
 
@@ -805,6 +818,8 @@ int auto_update_gitscripts(gboolean sync) {
 		}
 	}
 
+	if (is_gui_ready())
+		refresh_scripts_menu_in_thread(GINT_TO_POINTER(0));
 	// Cleanup
 	cleanup:
 	git_remote_free(remote);
@@ -851,6 +866,7 @@ int auto_update_gitspcc(gboolean sync) {
 		}
 	} else {
 		siril_debug_print("Local SPCC database repository opened successfully!\n");
+		git_spcc_repo_cloned = TRUE;
 	}
 	gui.spcc_repo_available = TRUE;
 
