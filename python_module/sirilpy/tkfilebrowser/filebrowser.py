@@ -66,6 +66,7 @@ class Stats:
 
 class FileBrowser(tk.Toplevel):
     """Filebrowser dialog class."""
+    _path_id_counter = 0
     def __init__(self, parent, initialdir="", initialfile="", mode="openfile",
                  multiple_selection=False, defaultext="", title="Filebrowser",
                  filetypes=[], okbuttontext=None, cancelbuttontext=_("Cancel"),
