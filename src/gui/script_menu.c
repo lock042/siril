@@ -233,6 +233,21 @@ gboolean test_last_subdir(const gchar *path, const gchar *expected_subdir) {
 	return result;
 }
 
+static gint compare_basenames(gconstpointer a, gconstpointer b) {
+	const gchar *path_a = (const gchar*) a;
+	const gchar *path_b = (const gchar*) b;
+
+	gchar *basename_a = g_path_get_basename(path_a);
+	gchar *basename_b = g_path_get_basename(path_b);
+
+	gint result = g_ascii_strcasecmp(basename_a, basename_b); // Insensible à la casse
+
+	g_free(basename_a);
+	g_free(basename_b);
+
+	return result;
+}
+
 int initialize_script_menu(gboolean verbose) {
 	GSList *list, *script_paths, *s;
 #ifdef HAVE_LIBGIT2
@@ -280,6 +295,8 @@ int initialize_script_menu(gboolean verbose) {
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythondebug);
 	gtk_widget_show(menu_item_pythondebug);
+
+	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
 
 	gchar *previous_directory_ssf = NULL;
 	gchar *previous_directory_py = NULL;
@@ -357,6 +374,8 @@ int initialize_script_menu(gboolean verbose) {
 	}
 	// Add scripts from the selections made in preferences
 	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
+		com.pref.selected_scripts = g_list_sort(com.pref.selected_scripts, compare_basenames);
+
 		GList *new_list = NULL;
 		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
 			gchar *full_path = g_strdup(ss->data);
@@ -451,7 +470,6 @@ int initialize_script_menu(gboolean verbose) {
 	}
 
 	#endif
-	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
 	return 0;
 }
 
@@ -473,7 +491,8 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	} else {
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-		refresh_script_menu(1);
+		GThread *thread = g_thread_new("refresh_scripts", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+		g_thread_unref(thread);
 	}
 	if (error) {
 		*error = err;
@@ -481,9 +500,23 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	return retval;
 }
 
+static GMutex script_mutex = { 0 };
+
+gpointer refresh_scripts_menu_in_thread(gpointer data) {
+	gboolean verbose = (gboolean) GPOINTER_TO_INT(data);
+	if (g_mutex_trylock(&script_mutex)) {
+		refresh_script_menu(verbose);
+		g_mutex_unlock(&script_mutex);
+	}
+	return GINT_TO_POINTER(0);
+}
+
 gpointer initialize_script_menu_in_thread(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
-	initialize_script_menu(state);
+	if (g_mutex_trylock(&script_mutex)) {
+		initialize_script_menu(state);
+		g_mutex_unlock(&script_mutex);
+	}
 	return GINT_TO_POINTER(0);
 }
 

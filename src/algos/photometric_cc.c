@@ -382,7 +382,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		return 1;
 	}
 	maskrg = calloc(ngood, sizeof(gboolean));
-	if (robust_linear_fit(crg, irg, ngood, &arg, &brg, &deviation[0], maskrg)) {
+	if (repeated_median_fit(crg, irg, ngood, &arg, &brg, &deviation[0], maskrg)) {
 		free(irg);
 		free(ibg);
 		free(crg);
@@ -393,7 +393,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		return 1;
 	}
 	maskbg = calloc(ngood, sizeof(gboolean));
-	if (robust_linear_fit(cbg, ibg, ngood, &abg, &bbg, &deviation[1], maskbg)) {
+	if (repeated_median_fit(cbg, ibg, ngood, &abg, &bbg, &deviation[1], maskbg)) {
 		free(irg);
 		free(ibg);
 		free(crg);

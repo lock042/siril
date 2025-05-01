@@ -352,6 +352,27 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 	return FALSE;
 }
 
+gboolean update_single_image_from_gfit(gpointer user_data) {
+	/* a variation on open_single_image_from_gfit that only
+	 does the things necessary when key aspects may have
+	 changed (eg changed number of channels, bitpix etc.)*/
+
+	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
+
+	sliders_mode_set_state(gui.sliders);
+	set_cutoff_sliders_max_values();
+	set_cutoff_sliders_values();
+
+	set_precision_switch(NULL); // set precision on screen
+
+	close_tab(NULL);
+	init_right_tab(NULL);
+
+	update_gfit_histogram_if_needed();
+	redraw(REMAP_ALL);
+	return FALSE;
+}
+
 /* searches the image for minimum and maximum pixel value, on each layer
  * the values are stored in fit->min[layer] and fit->max[layer] */
 int image_find_minmax(fits *fit) {
