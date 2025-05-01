@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-30 22:33+0200\n"
-"PO-Revision-Date: 2025-04-24 00:00+0000\n"
+"PO-Revision-Date: 2025-05-01 14:04+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -510,9 +510,8 @@ msgid "Clear"
 msgstr "Очистить"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-#, fuzzy
 msgid "Clear all current annotations from the user catalog."
-msgstr "Очистить все текущие аннотации."
+msgstr "Очистить все текущие аннотации из пользовательского каталога."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -592,9 +591,8 @@ msgid "gcvs (General Catalogue of Variable Stars)"
 msgstr "gcvs (Общий каталог переменных звёзд)"
 
 #: src/gui/uifiles/annotate_dialog.ui:141
-#, fuzzy
 msgid "vsx (Variable Stars Index)"
-msgstr "Переменные звёзды AAVSO"
+msgstr "vsx (индекс переменных звёзд)"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
 msgid "varisum (GAIA DR3 Variability)"
@@ -4055,30 +4053,26 @@ msgid "Edge Preserving Filters"
 msgstr "Сохранение краёв"
 
 #: src/gui/uifiles/epf_dialog.ui:143
-#, fuzzy
 msgid "Filter Type"
-msgstr "Фильтр: "
+msgstr "Тип фильтра"
 
 #: src/gui/uifiles/epf_dialog.ui:155
 msgid ""
 "Choose filter type. See the documentation for an explanation of the "
 "differences."
-msgstr ""
+msgstr "Укажите тип фильтра. Различия между фильтрами описаны в документации."
 
 #: src/gui/uifiles/epf_dialog.ui:158
-#, fuzzy
 msgid "Bilateral filter"
-msgstr "Фильтр Винера"
+msgstr "Билатеральный"
 
 #: src/gui/uifiles/epf_dialog.ui:159
-#, fuzzy
 msgid "Guided filter"
-msgstr "Фильтр Винера"
+msgstr "С учителем"
 
 #: src/gui/uifiles/epf_dialog.ui:188
-#, fuzzy
 msgid "Guide Image"
-msgstr "на изображении"
+msgstr "Эталонное изобр."
 
 #: src/gui/uifiles/epf_dialog.ui:199
 msgid ""
@@ -4087,27 +4081,32 @@ msgid ""
 "WARNING: using guide images that are not based on the original image is "
 "likely to produce bad results."
 msgstr ""
+"Выберите эталонное изображение. В выборе файла нет необходимости, если "
+"установлен флажок «самообучение».\n"
+"ПРЕДУПРЕЖДЕНИЕ: использование эталонного изображения, не основанного на "
+"исходном, скорее всего даст плохие результаты."
 
 #: src/gui/uifiles/epf_dialog.ui:211
-#, fuzzy
 msgid "self guided"
-msgstr "Без направляющих"
+msgstr "самообучение"
 
 #: src/gui/uifiles/epf_dialog.ui:216
-#, fuzzy
 msgid "Check this to use the current image as the guided filter guide image"
-msgstr "Это действие сохраняет текущее изображение под новым именем"
+msgstr ""
+"Установите этот флажок, что использовать текущее изображение как эталонное "
+"для фильтра с учителем"
 
 #: src/gui/uifiles/epf_dialog.ui:243 src/gui/uifiles/epf_dialog.ui:307
 msgid ""
 "If set to 0, the diameter will automatically be set based on the spatial "
 "sigma parameter"
 msgstr ""
+"Если равно 0, диаметр будет автоматически установлен на основе значения "
+"параметра σ (пространственная)"
 
 #: src/gui/uifiles/epf_dialog.ui:245
-#, fuzzy
 msgid "Diameter"
-msgstr "Диаметр / мм"
+msgstr "Диаметр"
 
 #: src/gui/uifiles/epf_dialog.ui:257
 msgid ""
@@ -4116,16 +4115,24 @@ msgid ""
 "value, otherwise the spatial extent of the filter is set to exactly this "
 "value regardless of sigma (spatial)"
 msgstr ""
+"Задаёт диаметр, к которому применяется фильтр, сохраняющий края. Если "
+"значение равно нулю, пространственная протяженность устанавливается "
+"автоматически на основе пространственного значения σ. В противном случае "
+"пространственная протяженность фильтра устанавливается точно в это значение "
+"независимо от значения σ (пространственная)"
 
 #: src/gui/uifiles/epf_dialog.ui:283
 msgid ""
 "This affects the diameter the filter applies over. If it is zero, the "
 "spatial extent is set by the spatial sigma value."
 msgstr ""
+"Это значение влияет на диаметр, к которому применяется фильтр. Если оно "
+"равно нулю, пространственная протяженность задаётся значением σ "
+"(пространственная)."
 
 #: src/gui/uifiles/epf_dialog.ui:309
 msgid "Sigma (spatial)"
-msgstr ""
+msgstr "σ (пространственная)"
 
 #: src/gui/uifiles/epf_dialog.ui:320
 msgid ""
@@ -4133,11 +4140,14 @@ msgid ""
 "operates. A larger sigma means the filter takes into account pixels over a "
 "wider area of the image. Note the interaction with the diameter setting."
 msgstr ""
+"Задаёт диапазон расстояний между пикселями, в пределах которого работает "
+"фильтр. Бо́льшее значение σ означает, что фильтр учитывает пиксели из более "
+"широкой области изображения. Обратите внимание на взаимодействие с "
+"настройкой диаметра."
 
 #: src/gui/uifiles/epf_dialog.ui:366
-#, fuzzy
 msgid "Sigma (intensity)"
-msgstr "Интенсивность"
+msgstr "σ (интенсивность)"
 
 #: src/gui/uifiles/epf_dialog.ui:378
 msgid ""
@@ -4147,9 +4157,14 @@ msgid ""
 "Depending on your data you may need to make substantial adjustments here, "
 "for example setting the value to below 1.0."
 msgstr ""
+"Это значение влияет на диапазон сходства значений пикселей, к которым "
+"применяется фильтр, сохраняющий края.\n"
+"Если ваши звёзды выглядят большими и расфокусированными, начните с "
+"уменьшения этого значения. В зависимости от ваших данных, вам может "
+"потребоваться внести существенные коррективы, например, установить значение "
+"ниже 1.0."
 
 #: src/gui/uifiles/epf_dialog.ui:425 src/gui/uifiles/epf_dialog.ui:442
-#, fuzzy
 msgid ""
 "Modulation parameter set in the [0, 1] range.\n"
 "When this parameter is equal to 1, no modulation is applied.\n"
@@ -4157,7 +4172,7 @@ msgid ""
 msgstr ""
 "Параметр модуляции устанавливается в диапазоне [0, 1].\n"
 "Когда этот параметр равен 1, модуляция не применяется.\n"
-"Если параметр равен null, тогда фильтр вообще не применяется."
+"Если параметр равен 0, тогда фильтр вообще не применяется."
 
 #: src/gui/uifiles/epf_dialog.ui:475
 msgid ""
@@ -4165,6 +4180,10 @@ msgid ""
 "active by default. It is strongly recommended to select a Region of Interest "
 "(ROI) before activating the edge preserving filter preview."
 msgstr ""
+"Фильтры, сохраняющие края, могут работать медленно на больших изображениях, "
+"поэтому предварительный просмотр по умолчанию не включен. Настоятельно "
+"рекомендуется выбрать область интереса (ROI) перед включением "
+"предварительного просмотра фильтра, сохраняющего края."
 
 #: src/gui/uifiles/extract_channel_dialog.ui:35 src/gui/uifiles/siril.ui:1415
 #: src/gui/uifiles/siril.ui:1726
@@ -5561,7 +5580,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:169
 msgid "Open a script from a file"
-msgstr ""
+msgstr "Открыть сценарий из файла"
 
 #: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:242
 #: src/gui/python_gui.c:766 src/pixelMath/pixel_math_runner.c:1256
@@ -5574,9 +5593,8 @@ msgid "_Recent Files"
 msgstr "Заменить файл"
 
 #: src/gui/uifiles/python_scratchpad.ui:200
-#, fuzzy
 msgid "Save the current script"
-msgstr "Сохранить текущее изображение FITS"
+msgstr "Сохранить текущий сценарий"
 
 #: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:256
 #: src/gui/python_gui.c:843
@@ -5584,21 +5602,18 @@ msgid "_Save"
 msgstr "_Сохранить"
 
 #: src/gui/uifiles/python_scratchpad.ui:211
-#, fuzzy
 msgid "Save the current script (choose filename)"
-msgstr "Сохранить это изображение с новым названием"
+msgstr "Сохранить этот сценарий (выберите название файла)"
 
 #: src/gui/uifiles/python_scratchpad.ui:213
-#, fuzzy
 msgid "_Save As"
-msgstr "Сохранить как"
+msgstr "_Сохранить как"
 
 #: src/gui/uifiles/python_scratchpad.ui:222
 #: src/gui/uifiles/python_scratchpad.ui:543
 #: src/gui/uifiles/python_scratchpad.ui:552
-#, fuzzy
 msgid "Close the script editor"
-msgstr "показать метки строк в редакторе сценариев"
+msgstr "Закрыть редактор сценариев"
 
 #: src/gui/uifiles/python_scratchpad.ui:236
 msgid "_Edit"
@@ -5697,7 +5712,7 @@ msgstr "Настройки"
 
 #: src/gui/uifiles/python_scratchpad.ui:393
 msgid "Enable syntax highlighting"
-msgstr ""
+msgstr "Включить подсветку синтаксиса"
 
 #: src/gui/uifiles/python_scratchpad.ui:394
 #, fuzzy
@@ -13147,7 +13162,7 @@ msgid ", %s channel"
 msgstr ", %s канал"
 
 #: src/algos/PSF.c:1038
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "PSF %s Result (%s%s):\n"
 "\n"
@@ -13176,7 +13191,7 @@ msgid ""
 "RMSE:\n"
 "\t\tRMSE=%.3e"
 msgstr ""
-"Результат подгонки PSF (%s%s):\n"
+"Результат %s PSF (%s%s):\n"
 "\n"
 "Координаты центроида:\n"
 "\t\t%s\n"
@@ -13204,14 +13219,12 @@ msgstr ""
 "\t\tRMSE=%.3e"
 
 #: src/algos/PSF.c:1047
-#, fuzzy
 msgid "photometry"
-msgstr "Фотометрия"
+msgstr "фотометрии"
 
 #: src/algos/PSF.c:1047
-#, fuzzy
 msgid "fit"
-msgstr ".fit"
+msgstr "подгонки"
 
 #: src/algos/astrometry_solver.c:344
 msgid ""

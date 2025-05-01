@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-30 22:33+0200\n"
-"PO-Revision-Date: 2025-04-23 16:34+0000\n"
-"Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
+"PO-Revision-Date: 2025-05-01 03:16+0000\n"
+"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
 "Language: fr\n"
@@ -512,9 +512,8 @@ msgid "Clear"
 msgstr "Effacer"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-#, fuzzy
 msgid "Clear all current annotations from the user catalog."
-msgstr "Efface toutes les annotations en cours."
+msgstr "Efface toutes les annotations du catalogue utilisateur."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -7550,16 +7549,15 @@ msgstr ""
 "du résultat"
 
 #: src/gui/uifiles/settings_window.ui:1603
-#, fuzzy
 msgid ""
 "When an astrometric solution is found, the computed focal length and input "
 "pixel size are stored in the settings as default values for images that "
 "don't have the corresponding metadata."
 msgstr ""
 "Lorsqu'une solution astrométrique est trouvée, la distance focale calculée "
-"et la taille des pixels d'entrée sont stockées dans les paramètres comme "
-"valeurs par défaut pour les images qui n'ont pas la meta-donnée "
-"correspondante."
+"et la taille du pixel d'entrée sont stockées dans les paramètres comme "
+"valeurs par défaut pour les images qui n'ont pas les métadonnées "
+"correspondantes."
 
 #: src/gui/uifiles/settings_window.ui:1623
 msgid "Sampling tolerance (%):"
@@ -8770,15 +8768,15 @@ msgstr ""
 "de confirmer l'application des modifications."
 
 #: src/gui/uifiles/settings_window.ui:5162
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
 "(This can be used to make and save local changes to a script.)"
 msgstr ""
 "Liste des scripts disponibles. Les scripts sélectionnés sont accessibles via "
-"le menu Scripts. Double-cliquez sur une ligne pour afficher la description "
-"et le code du script."
+"le menu Scripts. Double-cliquez sur une ligne pour ouvrir le script dans "
+"l'éditeur de script. (Cette fonction peut être utilisée pour apporter et "
+"enregistrer des modifications locales à un script.)"
 
 #: src/gui/uifiles/settings_window.ui:5177
 msgid "Category"
@@ -12946,7 +12944,6 @@ msgid "Blue Adjustment"
 msgstr "Ajustement du bleu"
 
 #: src/gui/uifiles/unpurple_dialog.ui:158
-#, fuzzy
 msgid ""
 "Amount of blue channel adjustment set in the [0, 1] range.\n"
 "When this parameter is equal to 1, no reduction is applied.\n"
@@ -22606,9 +22603,8 @@ msgid "Error loading script contents: %s\n"
 msgstr "Erreur de chargement du contenu du script : %s\n"
 
 #: src/gui/git_gui.c:208
-#, fuzzy
 msgid "Manually synchronising script repository\n"
-msgstr "Synchroniser manuellement le dépôt"
+msgstr "Synchroniser manuellement le dépôt des scripts\n"
 
 #: src/gui/git_gui.c:212 src/gui/git_gui.c:277
 msgid "Error getting the list of unmerged changes"
@@ -22667,9 +22663,8 @@ msgid "Update cancelled. Updates have not been applied."
 msgstr "Mise à jour annulée. Les mises à jour n'ont pas été appliquées."
 
 #: src/gui/git_gui.c:258
-#, fuzzy
 msgid "Manual scripts update: the script repository is up to date.\n"
-msgstr "Le dépôt de scripts est à jour."
+msgstr "Mise à jour manuelle des scripts : le dépôt de scripts est à jour.\n"
 
 #: src/gui/git_gui.c:283
 msgid ""
@@ -22705,10 +22700,11 @@ msgid "Error! SPCC database failed to update."
 msgstr "Erreur ! La mise à jour de la base de données SPCC a échoué."
 
 #: src/gui/git_gui.c:317
-#, fuzzy
 msgid ""
 "Manual SPCC database update: the SPCC database repository is up to date.\n"
-msgstr "Le dépôt de la base de données SPCC est à jour."
+msgstr ""
+"Mise à jour manuelle de la base de données SPCC : le dépôt de la base de "
+"données SPCC est à jour.\n"
 
 #: src/gui/graxpert.c:232
 #, c-format
@@ -27532,10 +27528,9 @@ msgid "Failed to set selection - no image loaded"
 msgstr "Échec de la sélection - aucune image n'a été chargée"
 
 #: src/io/siril_pythoncommands.c:750
-#, fuzzy, c-format
+#, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA\n"
-msgstr ""
-"Longueur inattendue de la charge utile %u reçue pour GET_PIXELDATA_REGION\n"
+msgstr "Longueur inattendue de la charge utile %u reçue pour GET_PIXELDATA\n"
 
 #: src/io/siril_pythoncommands.c:778 src/io/siril_pythoncommands.c:863
 msgid "Invalid selection"
@@ -28815,14 +28810,12 @@ msgid "Parameter symbols could not be parsed."
 msgstr "Les symboles de paramètres n'ont pas pu être analysés."
 
 #: src/pixelMath/pixel_math_runner.c:1121
-#, fuzzy
 msgid "Incorrect formula"
-msgstr "Charge utile incorrecte"
+msgstr "Formule incorrecte"
 
 #: src/pixelMath/pixel_math_runner.c:1121
-#, fuzzy
 msgid "RGB $T cannot be used in this context."
-msgstr "cette commande ne peut pas être utilisée dans un script"
+msgstr "RVB $T ne peut pas être utilisé dans ce contexte."
 
 #: src/pixelMath/pixel_math_runner.c:1134
 msgid "Images have different size"
