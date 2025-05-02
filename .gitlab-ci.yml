@@ -263,11 +263,10 @@ win64-native:
     - wget.exe --quiet --no-check-certificate $SDW_RELEASE_URL
     - 7z x -oC:/ "$Env:SDW_NAME.7z"
   script:
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/patch_yyjson.sh"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "ccache -s"
-    - cd subprojects/yyjson
-    - Get-Content -Path "../../build/yyjson_wchar.patch" | patch --binary -p1
 
 flatpak:
   rules:
