@@ -1,6 +1,7 @@
 git submodule update --init
 
 cd ./subprojects/yyjson
+dos2unix ../../build/yyjson_wchar.patch
 patch --binary -p1 < ../../build/yyjson_wchar.patch
 cd ../..
 
