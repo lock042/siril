@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-30 22:33+0200\n"
-"PO-Revision-Date: 2025-04-26 19:49+0000\n"
-"Last-Translator: Sami <samipar77@gmail.com>\n"
+"PO-Revision-Date: 2025-05-02 19:48+0000\n"
+"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -511,9 +511,8 @@ msgid "Clear"
 msgstr "Löschen"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-#, fuzzy
 msgid "Clear all current annotations from the user catalog."
-msgstr "Alle aktuellen Anmerkungen löschen."
+msgstr "Alle aktuellen Anmerkungen aus dem User-Katalog löschen."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -1117,12 +1116,12 @@ msgid ""
 "Choose Siril internal solver or local Astrometry.net (needs to be installed "
 "on your system)"
 msgstr ""
-"Wählen Sie den Siril-internen Solver oder das lokale Astrometry.net (muss "
+"Wählen Sie den SIRIL-internen Solver oder das lokale Astrometry.net (muss "
 "auf Ihrem System installiert sein)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:665
 msgid "Siril solver"
-msgstr "Siril Solver (astrometrischer Löser)"
+msgstr "SIRIL Solver (astrometrischer Löser)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:666
 msgid "Astrometry.net (local)"
@@ -1147,7 +1146,7 @@ msgid ""
 "internal solver."
 msgstr ""
 "Aktivieren Sie dieses Kontrollkästchen, um die Suche um die Zielposition mit "
-"dem internen Siril-Solver zu deaktivieren."
+"dem internen SIRIL-Solver zu deaktivieren."
 
 #: src/gui/uifiles/astrometry_dialog.ui:732
 msgid "Ignore position (blind solve)"
@@ -1323,7 +1322,7 @@ msgid ""
 "your image."
 msgstr ""
 "Wählen Sie diese Option, um Sterne manuell auszuwählen. Hilfreich, wenn "
-"Siril selber nicht genügend Sterne erkennen kann. Bitte versuchen Sie die "
+"SIRIL selber nicht genügend Sterne erkennen kann. Bitte versuchen Sie die "
 "hellsten Sterne im Bild zu wählen.\n"
 "Verwenden Sie das Werkzeug Dynamischer PSF oder den Befehl findstar und "
 "passen Sie die Einstellungen an Ihr Bild an."
@@ -1375,7 +1374,7 @@ msgid ""
 "box to fetch a new catalogue for each image. The information contained in "
 "the headers will be used to recompute the new position/resolution."
 msgstr ""
-"Bei der Verwendung von Online-Katalogen mit dem Siril-Solver wird "
+"Bei der Verwendung von Online-Katalogen mit dem SIRIL-Solver wird "
 "standardmäßig ein Katalog für die gesamte Sequenz abgerufen. Wenn Ihre "
 "Bilder nicht aus demselben Bereich stammen oder die gleiche Auflösung haben, "
 "schlägt dies wahrscheinlich fehl. Aktivieren Sie in diesem Fall dieses "
@@ -2208,7 +2207,7 @@ msgid ""
 "Opens a page in the online Siril documentation with usage tips and examples "
 "of settings that can work for different types of image."
 msgstr ""
-"Öffnet eine Seite in der Online-Dokumentation von Siril mit Tipps zur "
+"Öffnet eine Seite in der Online-Dokumentation von SIRIL mit Tipps zur "
 "Verwendung und Beispielen für Einstellungen, die für verschiedene Bildtypen "
 "verwendet werden können."
 
@@ -2275,7 +2274,7 @@ msgstr ""
 "Die \"Frobenius norm of the Hessian\" verwendet einen nichtlinearen "
 "Regularisierungsterm. Sie wird häufiger bei der Regularisierung von "
 "Rauschunterdrückungsalgorithmen verwendet, kann jedoch auch eine gute "
-"Leistung erbringen, wenn eine von Sirils Starnet++-Schnittstelle erzeugte "
+"Leistung erbringen, wenn eine von SIRILs Starnet++-Schnittstelle erzeugte "
 "Sternmaske entfaltet wird."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1988
@@ -4421,7 +4420,7 @@ msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:66
 msgid "Siril GraXpert Interface"
-msgstr "Siril GraXpert Benutzeroberfläche"
+msgstr "SIRIL GraXpert Benutzeroberfläche"
 
 #: src/gui/uifiles/graxpert.ui:100
 msgid "Preview the current settings on a region of interest."
@@ -5040,10 +5039,10 @@ msgid ""
 "larger gamuts than sRGB, and you will probably want to use a gamut at least "
 "as large as your monitor can display."
 msgstr ""
-"Dieses Bild zeigt einen Vergleich der verschiedenen in Siril verfügbaren "
-"Arbeitsfarbräume (Hinweis: P3 ist in Siril nicht verfügbar: es wird als "
-"Referenz gezeigt, und Sie können auf Wunsch ein P3 ICC-Profil "
-"bereitstellen).\n"
+"Dieses Bild zeigt einen Vergleich der verschiedenen in SIRIL verfügbaren "
+"Arbeitsfarbräume (Hinweis: P3 ist in SIRIL nicht verfügbar: es wird als "
+"Referenz gezeigt, und Sie können auf Wunsch ein P3 ICC-Profil bereitstellen)."
+"\n"
 "Der CIE1931 xy-Raum repräsentiert alle für das menschliche Auge sichtbaren "
 "Farben.\n"
 "sRGB ist ein Standard für Webpublikationen und entspricht dem Farbraum der "
@@ -5051,8 +5050,8 @@ msgstr ""
 "Andere Farbräume bieten größere Farbräume, die einen größeren Teil des "
 "CIE1931-Raums abdecken. Rec2020 hat den größten Farbraum, der keine "
 "imaginären Farben enthält; ProPhoto RGB hat einen noch größeren Farbraum, "
-"insbesondere im Grün-/Blaubereich, enthält aber auch einige imaginäre "
-"Farben.\n"
+"insbesondere im Grün-/Blaubereich, enthält aber auch einige imaginäre Farben."
+"\n"
 "Gedruckte Fotos können sattere, tiefere Farben bieten, wenn sie in einem "
 "Farbraum mit einem größeren Gamut erstellt wurden. Es gibt auch "
 "Spezialmonitore mit einem größeren Gamut als sRGB, und Sie werden "
@@ -5274,7 +5273,7 @@ msgid ""
 "produced using Siril's Split CFA function it will have the CFA0 prefix."
 msgstr ""
 "Wählen Sie das Bild welches das CFA0 Bayer-Teilmuster enthält. Wenn es mit "
-"Sirils \"Split CFA\"-Funktion erstellt wurde, hat es das Präfix CFA0."
+"SIRILs \"Split CFA\"-Funktion erstellt wurde, hat es das Präfix CFA0."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:181
 msgid ""
@@ -5385,7 +5384,7 @@ msgid ""
 "Note that CFA merge does not work for X-Trans files."
 msgstr ""
 "Sie müssen eine der CFA-Sequenzen im Sequenz-Tab des Hauptfensters "
-"ausgewählt haben. Siril erkennt automatisch anhand der CFA-"
+"ausgewählt haben. SIRIL erkennt automatisch anhand der CFA-"
 "Markierungszeichenfolge, welchem CFA-Kanal sie entspricht. Alle 4 Sequenzen "
 "müssen dasselbe Namensformat und dieselbe CFA-Markierungszeichenfolge haben "
 "und dürfen sich nur durch die Zahl unterscheiden, die der Zeichenfolge folgt "
@@ -5721,7 +5720,7 @@ msgid ""
 "Set scripting language to Siril Script File. Ensure you have the correct "
 "scripting language set before executing a script from the editor."
 msgstr ""
-"Setzt die Skriptsprache zu Siril Script File. Es muss sichergestellt werden, "
+"Setzt die Skriptsprache zu SIRIL Script File. Es muss sichergestellt werden, "
 "dass die richtige Skriptsprache ausgewählt ist, wenn ein Skript durch den "
 "Editor ausgeführt wird."
 
@@ -5748,7 +5747,7 @@ msgid ""
 "connecting a python debugger to the process before continuing."
 msgstr ""
 "Wenn diese Option aktiviert ist, zeigt der Python-Interpreter einen modalen "
-"Dialog an, der den Python-Prozess anzeigt, sobald das Siril-Interface "
+"Dialog an, der den Python-Prozess anzeigt, sobald das SIRIL-Interface "
 "initialisiert ist, um die Verbindung eines Python-Debuggers mit dem Prozess "
 "zu ermöglichen, bevor er fortgesetzt wird."
 
@@ -5878,7 +5877,7 @@ msgstr "Python API Referenz"
 
 #: src/gui/uifiles/python_scratchpad.ui:554
 msgid "Siril Command Reference"
-msgstr "Siril Befehlsreferenz"
+msgstr "SIRIL Befehlsreferenz"
 
 #: src/gui/uifiles/python_scratchpad.ui:572
 msgid "Script type"
@@ -6358,7 +6357,7 @@ msgstr ""
 "Photometriedaten für etwa 1,46 Milliarden Quellen, mit einer Grenzgröße von "
 "G = 21. Es werden andere Filter als bei Johnson B und V verwendet, aber er "
 "liefert Messungen der effektiven Temperatur der Quelle auf der Grundlage des "
-"Spektrums der Quelle, und Siril verwendet diesen \"Teff\"-Wert für PCC."
+"Spektrums der Quelle, und SIRIL verwendet diesen \"Teff\"-Wert für PCC."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:999 src/io/siril_catalogues.c:274
 msgid "APASS"
@@ -7059,8 +7058,8 @@ msgid ""
 "otherwise considered as invalid Siril FITSEQ files."
 msgstr ""
 "Dies kann nützlich sein, um wissenschaftliche FITS-Dateien zu öffnen, die "
-"nicht von Siril erstellt wurden und die mehrere Bilder mit unterschiedlichen "
-"Abmessungen enthalten, die sonst als ungültige Siril FITSEQ-Dateien "
+"nicht von SIRIL erstellt wurden und die mehrere Bilder mit unterschiedlichen "
+"Abmessungen enthalten, die sonst als ungültige SIRIL FITSEQ-Dateien "
 "betrachtet würden."
 
 #: src/gui/uifiles/settings_window.ui:723
@@ -7493,7 +7492,6 @@ msgstr ""
 "Aktualisiere die Standardbrennweite und die Pixelgröße anhand des Ergebnisses"
 
 #: src/gui/uifiles/settings_window.ui:1603
-#, fuzzy
 msgid ""
 "When an astrometric solution is found, the computed focal length and input "
 "pixel size are stored in the settings as default values for images that "
@@ -7501,7 +7499,7 @@ msgid ""
 msgstr ""
 "Wenn eine astrometrische Lösung gefunden wird, werden die berechnete "
 "Brennweite und die Eingabepixelgröße in den Einstellungen als Standardwerte "
-"für Bilder gespeichert, die nicht über die entsprechende Medatada verfügen."
+"für Bilder gespeichert, die nicht über die entsprechende Metadaten verfügen."
 
 #: src/gui/uifiles/settings_window.ui:1623
 msgid "Sampling tolerance (%):"
@@ -8703,15 +8701,15 @@ msgstr ""
 "Änderungen übernommen werden sollen."
 
 #: src/gui/uifiles/settings_window.ui:5162
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
 "(This can be used to make and save local changes to a script.)"
 msgstr ""
 "Liste der verfügbaren Skripte. Ausgewählte Skripte werden über das Menü "
-"„Skripte“ verfügbar gemacht. Doppelklicken Sie auf eine Zeile, um die "
-"Skriptbeschreibung und den Code anzuzeigen."
+"„Skripte“ verfügbar gemacht. Doppelklicken Sie auf eine Zeile, um das Skript "
+"im Skripteditor zu öffnen. (z.B. um lokale Änderungen an einem Skript zu "
+"speichern.)"
 
 #: src/gui/uifiles/settings_window.ui:5177
 msgid "Category"
@@ -12871,7 +12869,6 @@ msgid "Blue Adjustment"
 msgstr "Blau-Justierung"
 
 #: src/gui/uifiles/unpurple_dialog.ui:158
-#, fuzzy
 msgid ""
 "Amount of blue channel adjustment set in the [0, 1] range.\n"
 "When this parameter is equal to 1, no reduction is applied.\n"
@@ -15464,7 +15461,7 @@ msgstr ""
 msgid "processor"
 msgid_plural "processors"
 msgstr[0] "Prozessor"
-msgstr[1] "Vorverarbeitung"
+msgstr[1] "Prozessoren"
 
 #: src/core/OS_utils.c:626
 #, c-format
@@ -21571,7 +21568,7 @@ msgstr "Die Standard-FITS-Erweiterung ist eingestellt auf %s\n"
 #: src/gui/callbacks.c:1649
 #, c-format
 msgid "Welcome to %s"
-msgstr "Wilkommen zu %s"
+msgstr "Willkommen zu %s"
 
 #: src/gui/callbacks.c:1652
 msgid ""
@@ -22404,9 +22401,8 @@ msgid "Error loading script contents: %s\n"
 msgstr "Fehler beim Laden des Skriptinhalts: %s\n"
 
 #: src/gui/git_gui.c:208
-#, fuzzy
 msgid "Manually synchronising script repository\n"
-msgstr "Manuelle Synchronisierung des Repositories"
+msgstr "Manuelle Synchronisierung des Repositories\n"
 
 #: src/gui/git_gui.c:212 src/gui/git_gui.c:277
 msgid "Error getting the list of unmerged changes"
@@ -22467,9 +22463,8 @@ msgid "Update cancelled. Updates have not been applied."
 msgstr "Update abgebrochen. Updates wurden nicht angewendet."
 
 #: src/gui/git_gui.c:258
-#, fuzzy
 msgid "Manual scripts update: the script repository is up to date.\n"
-msgstr "Die Skriptdatenbank ist aktuell."
+msgstr "Manuelles Skript-Update: die Skriptdatenbank ist aktuell.\n"
 
 #: src/gui/git_gui.c:283
 msgid ""
@@ -22504,10 +22499,11 @@ msgid "Error! SPCC database failed to update."
 msgstr "Fehler! SPCC-Datenbank konnte nicht aktualisiert werden."
 
 #: src/gui/git_gui.c:317
-#, fuzzy
 msgid ""
 "Manual SPCC database update: the SPCC database repository is up to date.\n"
-msgstr "Das SPCC-Datenbank-Repository ist auf dem neuesten Stand."
+msgstr ""
+"Manuelles SPCC Datenbankupdate: das SPCC-Datenbank-Repository ist auf dem "
+"neuesten Stand.\n"
 
 #: src/gui/graxpert.c:232
 #, c-format
@@ -24130,7 +24126,7 @@ msgid ""
 "debayer it prior to registration"
 msgstr ""
 "Diese Sequenz kann nicht mit intaktem CFA-Muster registriert werden. Sie "
-"müssen sie vor der Registrierung debayern."
+"müssen sie vor der Registrierung Debayern."
 
 #: src/gui/registration.c:956
 msgid "CFA pattern detected"
@@ -24637,9 +24633,10 @@ msgid ""
 "documentation, preferences, keyboard shortcuts help, and the script tab in "
 "the preferences, making it easy to add new scripts."
 msgstr ""
-"Das Hamburger-Menü wurde gestrafft und beinhaltet nun einen Schnellzugriff "
-"auf Dokumentation, Voreinstellungen, Hilfe zu Tastenkürzeln und das Skript-"
-"Tab in den Einstellungen, was es einfach macht neue Skripte hinzuzufügen."
+"Das Hamburger-Menü wurde überarbeitet und beinhaltet nun einen "
+"Schnellzugriff auf Dokumentation, Voreinstellungen, Hilfe zu Tastenkürzeln "
+"und das Skript-Tab in den Einstellungen, was es einfach macht neue Skripte "
+"hinzuzufügen."
 
 #: src/gui/siril_intro.c:51
 msgid ""
@@ -27280,9 +27277,9 @@ msgid "Failed to set selection - no image loaded"
 msgstr "Auswahl kann nicht gesetzt werden - kein Bild geladen"
 
 #: src/io/siril_pythoncommands.c:750
-#, fuzzy, c-format
+#, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA\n"
-msgstr "Unerwartete Dtenlänge %u für GET_PIXELDATA_REGION empfangen\n"
+msgstr "Unerwartete Datenlänge %u für GET_PIXELDATA empfangen\n"
 
 #: src/io/siril_pythoncommands.c:778 src/io/siril_pythoncommands.c:863
 msgid "Invalid selection"
@@ -28128,7 +28125,7 @@ msgstr "Copyright drucken"
 #: src/main-cli.c:172 src/main.c:332
 #, c-format
 msgid "Welcome to %s v%s\n"
-msgstr "Wilkommen zu %s v%s\n"
+msgstr "Willkommen zu %s v%s\n"
 
 #: src/main-cli.c:182 src/main.c:342
 #, c-format
@@ -28544,14 +28541,12 @@ msgid "Parameter symbols could not be parsed."
 msgstr "Parametersymbole konnten nicht analysiert werden."
 
 #: src/pixelMath/pixel_math_runner.c:1121
-#, fuzzy
 msgid "Incorrect formula"
-msgstr "Ungültige Daten"
+msgstr "Ungültige Formel"
 
 #: src/pixelMath/pixel_math_runner.c:1121
-#, fuzzy
 msgid "RGB $T cannot be used in this context."
-msgstr "Dieser Befehl kann in Scripten nicht verwendet werden"
+msgstr "Dieser Befehl kann in Skripten nicht verwendet werden."
 
 #: src/pixelMath/pixel_math_runner.c:1134
 msgid "Images have different size"
@@ -29627,7 +29622,7 @@ msgstr "Normalisierung fehlgeschlagen."
 #: src/stacking/normalization.c:258 src/stacking/normalization.c:766
 #, c-format
 msgid "%s Check image %d first.\n"
-msgstr "%s Prüfe zuerste Bild %d\n"
+msgstr "%s Prüfe zuerst Bild %d\n"
 
 #: src/stacking/normalization.c:515
 #, c-format

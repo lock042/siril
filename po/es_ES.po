@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-04-30 22:33+0200\n"
-"PO-Revision-Date: 2025-04-30 20:31+0000\n"
+"PO-Revision-Date: 2025-05-02 19:48+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -4158,14 +4158,13 @@ msgstr ""
 
 # parameter is null or 0?
 #: src/gui/uifiles/epf_dialog.ui:425 src/gui/uifiles/epf_dialog.ui:442
-#, fuzzy
 msgid ""
 "Modulation parameter set in the [0, 1] range.\n"
 "When this parameter is equal to 1, no modulation is applied.\n"
 "If the parameters is 0, no filter is applied at all."
 msgstr ""
-"Parámetro de modulación, en el rango entre 0 y 1.\n"
-"Cuanto este parámetro es 1 no se aplica modulación.\n"
+"Parámetro de modulación configurado en el rango [0, 1]\n"
+"Cuando este parámetro es 1, no se aplica modulación.\n"
 "Si el parámetro es 0 no se aplica filtro alguno."
 
 #: src/gui/uifiles/epf_dialog.ui:475
@@ -4174,6 +4173,10 @@ msgid ""
 "active by default. It is strongly recommended to select a Region of Interest "
 "(ROI) before activating the edge preserving filter preview."
 msgstr ""
+"Los filtros de conservación de bordes pueden ser lentos en imágenes grandes, "
+"por lo que la vista previa no está activa por defecto. Se recomienda "
+"encarecidamente seleccionar una región de interés (ROI) antes de activar la "
+"vista previa del filtro de conservación de bordes."
 
 #: src/gui/uifiles/extract_channel_dialog.ui:35 src/gui/uifiles/siril.ui:1415
 #: src/gui/uifiles/siril.ui:1726
@@ -4289,9 +4292,8 @@ msgstr ""
 "Los datos modificados se pueden guardar en el fichero FITS."
 
 #: src/gui/uifiles/file_information_dialog.ui:98
-#, fuzzy
 msgid "Pixel size (micron): "
-msgstr "Dim. del píxel X (micrones): "
+msgstr "Tamaño del píxel (micras): "
 
 #: src/gui/uifiles/file_information_dialog.ui:109
 msgid ""
@@ -4322,7 +4324,6 @@ msgstr ""
 "fichero, puede actualizar la celda usted mismo."
 
 #: src/gui/uifiles/file_information_dialog.ui:175
-#, fuzzy
 msgid ""
 "Clear all the fields. If you save your image after, the header will not "
 "contain any data about the focal length or sensor size."
@@ -4347,12 +4348,10 @@ msgstr ""
 "puede actualizar esta casilla."
 
 #: src/gui/uifiles/file_information_dialog.ui:231
-#, fuzzy
 msgid "Real pixel size"
-msgstr "Píxeles de muestra:"
+msgstr "Tamaño de pixel real"
 
 #: src/gui/uifiles/file_information_dialog.ui:235
-#, fuzzy
 msgid ""
 "Check this button if binning is not taken into account in the pixel size "
 "value. In this case, the binning value will be used to compute the "
@@ -4360,13 +4359,15 @@ msgid ""
 "WARNING: checking this stores it as a preference, also available in the FITS "
 "option preferences section."
 msgstr ""
-"Marque este botón si el valor binning no se tendrá en cuenta en el tamaño de "
-"píxel. En este caso, se usará el valor binning de la caja de debajo."
+"Marque esta opción si no se tiene en cuenta el binning en el valor del "
+"tamaño de píxel. En este caso, se utilizará el valor de binning para "
+"calcular el muestreo.\n"
+"ADVERTENCIA: Al marcar esta opción, se guarda como una preferencia, también "
+"disponible en la sección de preferencias de la opción FITS."
 
 #: src/gui/uifiles/file_information_dialog.ui:258
-#, fuzzy
 msgid "Save as default values"
-msgstr "Restaurar por defecto"
+msgstr "Guardar como valores por defecto"
 
 #: src/gui/uifiles/file_information_dialog.ui:262
 msgid ""
@@ -4377,41 +4378,36 @@ msgstr ""
 "configuración para usarlo en imágenes que no contienen esos metadatos"
 
 #: src/gui/uifiles/graxpert.ui:66
-#, fuzzy
 msgid "Siril GraXpert Interface"
-msgstr "Interfaz de usuario"
+msgstr "Interfaz GraXpert de Siril"
 
 #: src/gui/uifiles/graxpert.ui:100
 msgid "Preview the current settings on a region of interest."
 msgstr "Previsualiza los parámetros actuales en una región de interés."
 
 #: src/gui/uifiles/graxpert.ui:115
-#, fuzzy
 msgid "Apply the selected operation."
-msgstr "Esto aplicará la corrección seleccionada."
+msgstr "Aplicar la operación seleccionada."
 
 #: src/gui/uifiles/graxpert.ui:159
-#, fuzzy
 msgid "Algorithm"
-msgstr "Algoritmo:"
+msgstr "Algoritmo"
 
 #: src/gui/uifiles/graxpert.ui:170
 msgid "Configure which GraXpert algorithm to use"
 msgstr "Configura qué algoritmo de GraXpert usar"
 
 #: src/gui/uifiles/graxpert.ui:173
-#, fuzzy
 msgid "AI"
-msgstr "A"
+msgstr "IA"
 
 #: src/gui/uifiles/graxpert.ui:175
 msgid "Kriging"
 msgstr "Kriging"
 
 #: src/gui/uifiles/graxpert.ui:176
-#, fuzzy
 msgid "Spline"
-msgstr "BSpline"
+msgstr "Spline"
 
 #: src/gui/uifiles/graxpert.ui:208
 msgid ""
@@ -4422,9 +4418,8 @@ msgstr ""
 "división"
 
 #: src/gui/uifiles/graxpert.ui:225
-#, fuzzy
 msgid "Background Tolerance"
-msgstr "Referencia de fondo"
+msgstr "Tolerancia de fondo"
 
 #: src/gui/uifiles/graxpert.ui:236
 msgid ""
@@ -4432,21 +4427,22 @@ msgid ""
 "values are more tolerant of strong background gradients; lower values are "
 "better at rejecting background samples in areas representing real neblosity."
 msgstr ""
+"Establezca la tolerancia de fondo: el rango permitido es de -2,0 a +6,0. Los "
+"valores más altos son más tolerantes a gradientes de fondo fuertes; los "
+"valores más bajos son más efectivos para rechazar muestras de fondo en áreas "
+"con nebulosidad real."
 
 #: src/gui/uifiles/graxpert.ui:265
-#, fuzzy
 msgid "# samples per row"
-msgstr "Muestras por línea"
+msgstr "# muestras por fila"
 
 #: src/gui/uifiles/graxpert.ui:276
-#, fuzzy
 msgid "Set the number of samples per row in the sampling grid."
-msgstr "Este es el número de cajas de muestra en una línea."
+msgstr "Establece el número de muestras por fila en la matriz de muestreo."
 
 #: src/gui/uifiles/graxpert.ui:291
-#, fuzzy
 msgid "Sample size / px"
-msgstr "Tamaño de píxel (µm):"
+msgstr "Tamaño de muestra / px"
 
 #: src/gui/uifiles/graxpert.ui:302
 msgid ""
@@ -4454,11 +4450,14 @@ msgid ""
 "give better statistical properties but have a bigger risk of including non-"
 "background pixels such as stars."
 msgstr ""
+"Establezca el tamaño de muestra de GraXpert para cada muestra de fondo. Las "
+"muestras más grandes pueden ofrecer mejores propiedades estadísticas, pero "
+"presentan un mayor riesgo de incluir píxeles que no sean de fondo, como "
+"estrellas."
 
 #: src/gui/uifiles/graxpert.ui:322
-#, fuzzy
 msgid "Keep background"
-msgstr "Fondo"
+msgstr "Mantener fondo"
 
 #: src/gui/uifiles/graxpert.ui:326
 msgid ""
@@ -4466,25 +4465,24 @@ msgid ""
 msgstr "El modelo de fondo generado será guardado con el afijo \"_background\""
 
 #: src/gui/uifiles/graxpert.ui:342
-#, fuzzy
 msgid "Clear samples"
-msgstr "Borrar las últimas"
+msgstr "Borrar muestras"
 
 #: src/gui/uifiles/graxpert.ui:346
-#, fuzzy
 msgid "Clear background samples"
-msgstr "Borrar las muestras del fondo."
+msgstr "Borrar las muestras del fondo"
 
 #: src/gui/uifiles/graxpert.ui:357
-#, fuzzy
 msgid "Generate samples"
-msgstr "Generar máscara de estrellas"
+msgstr "Generar muestras"
 
 #: src/gui/uifiles/graxpert.ui:361
 msgid ""
 "Background samples must be generated in order to use the GraXpert RBF, "
 "Kriging or Spline algorithms. It is not necessary for the AI algorithm."
 msgstr ""
+"Se deben generar muestras de fondo para usar los algoritmos GraXpert RBF, "
+"Kriging o Spline. No es necesario para el algoritmo de IA."
 
 #: src/gui/uifiles/graxpert.ui:391
 msgid "BG AI model version:"
@@ -4500,9 +4498,8 @@ msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:406 src/gui/uifiles/graxpert.ui:750
 #: src/gui/uifiles/graxpert.ui:791 src/gui/uifiles/graxpert.ui:909
-#, fuzzy
 msgid "latest"
-msgstr "Borrar las últimas"
+msgstr "última"
 
 #: src/gui/uifiles/graxpert.ui:438
 msgid ""
@@ -4511,41 +4508,40 @@ msgstr ""
 "Selecciona el nivel de suavizado aplicado por GraXpert, entre 0.0 y 1.0."
 
 #: src/gui/uifiles/graxpert.ui:474
-#, fuzzy
 msgid "RBF Kernel"
-msgstr "Patrón bayer/mosaico: "
+msgstr "Kernel RBF"
 
 #: src/gui/uifiles/graxpert.ui:486
-#, fuzzy
 msgid "Set the RBF kernel type"
-msgstr "Patrón bayer/mosaico: "
+msgstr "Asigna el tipo de kernel RBF"
 
 #: src/gui/uifiles/graxpert.ui:489
+#, fuzzy
 msgid "Thin plate"
-msgstr ""
+msgstr "Placa fina"
 
 #: src/gui/uifiles/graxpert.ui:490
 msgid "Quintic"
 msgstr ""
 
 #: src/gui/uifiles/graxpert.ui:491
-#, fuzzy
 msgid "Cubic"
-msgstr "Bicúbica"
+msgstr "Cúbica"
 
 #: src/gui/uifiles/graxpert.ui:519
 #, fuzzy
 msgid "Spline Order"
-msgstr "Orden de solución: "
+msgstr "Orden de Spline"
 
 #: src/gui/uifiles/graxpert.ui:531
 msgid "Set the spline order used for the spline background removal algorithm."
 msgstr ""
+"Establezca el orden de spline utilizado para el algoritmo spline de "
+"eliminación de fondo."
 
 #: src/gui/uifiles/graxpert.ui:532 src/gui/uifiles/settings_window.ui:1680
-#, fuzzy
 msgid "3"
-msgstr "0"
+msgstr "3"
 
 #: src/gui/uifiles/graxpert.ui:581
 msgid ""
@@ -4556,9 +4552,8 @@ msgstr ""
 "está disponible, tu versión de GraXpert no es compatible."
 
 #: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:374
-#, fuzzy
 msgid "Objects"
-msgstr "Buscar Objeto"
+msgstr "Objetos"
 
 #: src/gui/uifiles/graxpert.ui:621 src/gui/uifiles/graxpert.ui:840
 #, fuzzy
