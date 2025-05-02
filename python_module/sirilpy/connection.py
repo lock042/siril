@@ -2849,7 +2849,6 @@ class SirilInterface:
         except struct.error as e:
             raise SirilError(f"Error in get_seq_distodata(): {e}") from e
 
-
     def get_seq(self) -> Optional[Sequence]:
         """
         Request metadata for the current sequence loaded in Siril.
@@ -4073,8 +4072,7 @@ class SirilInterface:
         The newly created sequence is not loaded in Siril.
 
         Args:
-            seq_root: The root name of the sequence to be created. The sequence will be
-                named `seq_root_`.seq (a `_` is appended if not present)
+            seq_root: The root name of the sequence to be created.
 
         Returns:
             bool: True if the sequence was successfully created, False otherwise.
@@ -4092,11 +4090,10 @@ class SirilInterface:
                 if seq1_stripped == seq2_stripped:
                     self.log(_('A sequence with the same name is already loaded in Siril, aborting'), LogColor.RED)
                     return False
-            seq_root = f'{seq_root}_' if seq_root[-1] != '_' else seq_root
             home_folder = self.get_siril_wd()
             all_files = os.listdir(home_folder)
-            ext = self.siril.get_siril_config('core','extension')
-            pattern = fr'^seqroot\d{5}{ext}$'
+            ext = self.get_siril_config('core','extension')
+            pattern = fr'^{seq_root}\d{{5}}{ext}$'
             regex = re.compile(pattern)
             exact_matches = [os.path.join(home_folder, f) for f in all_files if regex.match(f)]
             if len(exact_matches) < 0:
