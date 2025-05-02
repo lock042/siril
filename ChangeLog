@@ -13,6 +13,7 @@ XX/XX/25
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
+* Add a fork of tkfilebrowser to support improved script UI file selection on Linux (!864)
 
 
 siril 1.4.0-beta1
