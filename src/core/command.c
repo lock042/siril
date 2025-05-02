@@ -8643,7 +8643,8 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	free(args.description);
 	free(args.critical_value);
 
-	if (retval != CMD_OK) {
+	if (retval == CMD_OK) {
+		stop_processing_thread();
 		bgnoise_async(&args.result, TRUE);
 		// preparing the output filename
 		// needs to be done after stack is completed to have

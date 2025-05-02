@@ -2,6 +2,11 @@
 <!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.24"/>
+  <object class="GtkAdjustment" id="mouse_speed_limit_adjustment">
+    <property name="upper">5</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">0.5</property>
+  </object>
   <object class="GtkDialog" id="mouse_actions_dialog">
     <property name="width-request">800</property>
     <property name="height-request">600</property>
@@ -260,7 +265,47 @@
                   </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Scroll speed limit</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spin_mouse_speed_limit">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Set a scroll speed limit. Not required for most mice, but if you have an issue where the scroll wheel carries out its action (eg zoom) far too fast, you can limit the action step size using this control. Try starting with 1.0 and working down from there. 0.0 means unlimited.</property>
+                        <property name="shadow-type">none</property>
+                        <property name="input-purpose">number</property>
+                        <property name="adjustment">mouse_speed_limit_adjustment</property>
+                        <property name="digits">2</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">0</property>
+                  </packing>
                 </child>
               </object>
             </child>
