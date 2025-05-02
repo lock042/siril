@@ -4096,7 +4096,7 @@ class SirilInterface:
             pattern = fr'^{seq_root}\d{{5}}{ext}$'
             regex = re.compile(pattern)
             exact_matches = [os.path.join(home_folder, f) for f in all_files if regex.match(f)]
-            if len(exact_matches) < 0:
+            if len(exact_matches) == 0:
                 self.log(_(f'No files matching {seq_root} pattern found in the Home folder'), LogColor.RED)
                 return False
             if len(exact_matches) == 1:
