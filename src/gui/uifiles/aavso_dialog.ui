@@ -76,7 +76,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="obscode_entry">
+              <object class="GtkEntry" id="observationcode_entry">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">The official AAVSO Observer Code for the observer which was previously assigned by the AAVSO.</property>
@@ -85,7 +85,6 @@
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">10</property>
                 <property name="text">na</property>
-                <property name="input-purpose">number</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
               </object>
               <packing>
@@ -243,7 +242,6 @@
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">30</property>
                 <property name="text">na</property>
-                <property name="input-purpose">number</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
               </object>
               <packing>

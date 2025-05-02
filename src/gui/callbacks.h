@@ -17,6 +17,7 @@ void add_roi_callback(ROICallback func);
 void remove_roi_callback(ROICallback func);
 void update_roi_config();
 
+gboolean is_gui_ready();
 void lock_roi_mutex();
 void unlock_roi_mutex();
 void roi_supported(gboolean state);
