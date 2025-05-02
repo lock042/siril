@@ -1,25 +1,38 @@
 diff --git a/src/yyjson.c b/src/yyjson.c
-index 16ecbac..01aa9cf 100644
+index 16ecbac..ac00633 100644
 --- a/src/yyjson.c
 +++ b/src/yyjson.c
-@@ -923,7 +923,7 @@ static_inline FILE *fopen_safe(const char *path, const char *mode) {
-     if (fopen_s(&file, path, mode) != 0) return NULL;
-     return file;
- #else
--    return fopen(path, mode);
-+    return g_fopen(path, mode);
+@@ -917,7 +917,24 @@ static_inline void u128_mul_add(u64 a, u64 b, u64 c, u64 *hi, u64 *lo) {
+ #   endif
  #endif
+ 
+-static_inline FILE *fopen_safe(const char *path, const char *mode) {
++#if defined(_WIN32)
++#include <windows.h>
++#endif
++
++static inline FILE *fopen_safe(const char *path, const char *mode) {
++#if defined(_WIN32) && YYJSON_MSC_VER >= 1400
++    // Convert UTF-8 path and mode to UTF-16
++    wchar_t wpath[MAX_PATH];
++    wchar_t wmode[8]; // "rb+", etc.
++
++    if (!MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, MAX_PATH)) return NULL;
++    if (!MultiByteToWideChar(CP_UTF8, 0, mode, -1, wmode, 8)) return NULL;
++
++    FILE *file = NULL;
++    if (_wfopen_s(&file, wpath, wmode) != 0) return NULL;
++    return file;
++#else
++    // Fallback to fopen / fopen_s if not on Windows
+ #if YYJSON_MSC_VER >= 1400
+     FILE *file = NULL;
+     if (fopen_s(&file, path, mode) != 0) return NULL;
+@@ -925,6 +942,7 @@ static_inline FILE *fopen_safe(const char *path, const char *mode) {
+ #else
+     return fopen(path, mode);
+ #endif
++#endif
  }
  
-diff --git a/src/yyjson.h b/src/yyjson.h
-index 88cec2b..5999d4d 100644
---- a/src/yyjson.h
-+++ b/src/yyjson.h
-@@ -41,6 +41,7 @@
- #include <limits.h>
- #include <string.h>
- #include <float.h>
-+#include <glib.h>
- 
- 
- 
+ static_inline FILE *fopen_readonly(const char *path) {

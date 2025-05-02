@@ -267,7 +267,7 @@ win64-native:
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "ccache -s"
     - cd subprojects/yyjson
-    - patch --binary -p1 < ../../build/yyjson_wchar.patch
+    - Get-Content -Path "../../build/yyjson_wchar.patch" | patch --binary -p1
 
 flatpak:
   rules:
