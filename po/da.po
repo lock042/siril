@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-30 22:33+0200\n"
+"POT-Creation-Date: 2025-05-02 21:49+0200\n"
 "PO-Revision-Date: 2023-06-06 08:18+0000\n"
 "Last-Translator: Victor Boesen Gandløse <victorboesen@hotmail.com>\n"
 "Language-Team: Danish <https://weblate.pixls.us/projects/siril/siril-"
@@ -29,7 +29,7 @@ msgstr "Kontrastbegrænset og Adaptiv Histogram Udligning"
 #: src/gui/uifiles/dialog_star_remix.ui:1596 src/gui/uifiles/epf_dialog.ui:76
 #: src/gui/uifiles/histogram_dialog.ui:157
 #: src/gui/uifiles/histogram_dialog.ui:161
-#: src/gui/uifiles/merge_cfa_dialog.ui:63 src/gui/uifiles/mouse_actions.ui:40
+#: src/gui/uifiles/merge_cfa_dialog.ui:63 src/gui/uifiles/mouse_actions.ui:45
 #: src/gui/uifiles/satu_dialog.ui:66 src/gui/uifiles/settings_window.ui:241
 #: src/gui/uifiles/unpurple_dialog.ui:77 src/gui/uifiles/wavelets_dialog.ui:96
 #: src/gui/mouse_action_preferences.c:648
@@ -64,7 +64,7 @@ msgstr "Afbryd"
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:73
 #: src/gui/uifiles/graxpert.ui:111 src/gui/uifiles/histogram_dialog.ui:189
 #: src/gui/uifiles/linearmatch_dialog.ui:77
-#: src/gui/uifiles/merge_cfa_dialog.ui:77 src/gui/uifiles/mouse_actions.ui:54
+#: src/gui/uifiles/merge_cfa_dialog.ui:77 src/gui/uifiles/mouse_actions.ui:59
 #: src/gui/uifiles/pixelmath.ui:819 src/gui/uifiles/resample_dialog.ui:96
 #: src/gui/uifiles/rgradient_dialog.ui:75 src/gui/uifiles/rotation_dialog.ui:71
 #: src/gui/uifiles/satu_dialog.ui:94 src/gui/uifiles/settings_window.ui:269
@@ -137,7 +137,7 @@ msgstr "Median Filter"
 #: src/gui/uifiles/histogram_dialog.ui:173
 #: src/gui/uifiles/histogram_dialog.ui:177 src/gui/uifiles/icc_dialog.ui:51
 #: src/gui/uifiles/icc_gamut_dialog.ui:48 src/gui/uifiles/keywords_dialog.ui:58
-#: src/gui/uifiles/linearmatch_dialog.ui:62 src/gui/uifiles/mouse_actions.ui:26
+#: src/gui/uifiles/linearmatch_dialog.ui:62 src/gui/uifiles/mouse_actions.ui:31
 #: src/gui/uifiles/pixelmath.ui:805 src/gui/uifiles/python_scratchpad.ui:224
 #: src/gui/uifiles/resample_dialog.ui:82 src/gui/uifiles/rotation_dialog.ui:57
 #: src/gui/uifiles/s_pcc_dialog.ui:140 src/gui/uifiles/spcc_details.ui:39
@@ -327,70 +327,70 @@ msgid ""
 "assigned by the AAVSO."
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:101
+#: src/gui/uifiles/aavso_dialog.ui:100
 msgid "Obscode: "
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:113
+#: src/gui/uifiles/aavso_dialog.ui:112
 msgid "Filter: "
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:124
+#: src/gui/uifiles/aavso_dialog.ui:123
 msgid "The filter used for the observation."
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:171
+#: src/gui/uifiles/aavso_dialog.ui:170
 msgid "Cname: "
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:183
+#: src/gui/uifiles/aavso_dialog.ui:182
 msgid "Kname: "
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:194
+#: src/gui/uifiles/aavso_dialog.ui:193
 msgid ""
 "Comparison star name or label such as the AUID (much preferred) or the chart "
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
 "characters."
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:211
+#: src/gui/uifiles/aavso_dialog.ui:210
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart "
 "label for the check star. If not present, use \"na\". Limit: 20 characters."
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:229
+#: src/gui/uifiles/aavso_dialog.ui:228
 msgid "Starid: "
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:240
+#: src/gui/uifiles/aavso_dialog.ui:239
 msgid ""
 "The star's identifier. It can be the AAVSO Designation, the AAVSO Name, or "
 "the AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 "
 "characters."
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:258
+#: src/gui/uifiles/aavso_dialog.ui:256
 msgid ""
 "The type of observation in the data file. It can be CCD, DSLR, PEP (for "
 "Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a "
 "CMOS camera please report it as CCD."
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:275
+#: src/gui/uifiles/aavso_dialog.ui:273
 msgid "Comparison star: "
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:286
+#: src/gui/uifiles/aavso_dialog.ui:284
 msgid "The number of the comparison star."
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:299
+#: src/gui/uifiles/aavso_dialog.ui:297
 msgid "Cstd: "
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:310
+#: src/gui/uifiles/aavso_dialog.ui:308
 msgid ""
 "The standardized magnitude for the variable is given by\n"
 "\n"
@@ -401,7 +401,7 @@ msgid ""
 "the comparison."
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:315 src/gui/uifiles/astrometry_dialog.ui:180
+#: src/gui/uifiles/aavso_dialog.ui:313 src/gui/uifiles/astrometry_dialog.ui:180
 #: src/gui/uifiles/astrometry_dialog.ui:202
 #: src/gui/uifiles/astrometry_dialog.ui:224
 #: src/gui/uifiles/astrometry_dialog.ui:246
@@ -414,15 +414,15 @@ msgstr ""
 msgid "0"
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:328
+#: src/gui/uifiles/aavso_dialog.ui:326
 msgid "Check star: "
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:339
+#: src/gui/uifiles/aavso_dialog.ui:337
 msgid "The number of the check star."
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:351
+#: src/gui/uifiles/aavso_dialog.ui:349
 msgid ""
 "Please use the sequence ID you will find written in Bold print near the top "
 "of the photometry table in a sentence that reads \"Report this sequence as "
@@ -434,15 +434,15 @@ msgid ""
 "information on the comp stars in the notes. Limit: 20 characters."
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:367
+#: src/gui/uifiles/aavso_dialog.ui:365
 msgid "Chart: "
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:379
+#: src/gui/uifiles/aavso_dialog.ui:377
 msgid "Notes: "
 msgstr ""
 
-#: src/gui/uifiles/aavso_dialog.ui:390
+#: src/gui/uifiles/aavso_dialog.ui:388
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
 
@@ -3938,7 +3938,7 @@ msgid ""
 "Range: 1 - 32, default: \"4\"."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255
+#: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:260
 #: src/gui/uifiles/settings_window.ui:5305 src/gui/uifiles/siril.ui:6357
 msgid " "
 msgstr ""
@@ -4546,41 +4546,53 @@ msgstr ""
 msgid "Sequences"
 msgstr ""
 
-#: src/gui/uifiles/mouse_actions.ui:9
+#: src/gui/uifiles/mouse_actions.ui:14
 msgid "Mouse Action Preferences"
 msgstr ""
 
-#: src/gui/uifiles/mouse_actions.ui:111
+#: src/gui/uifiles/mouse_actions.ui:116
 msgid "Add an extra mouse action"
 msgstr ""
 
-#: src/gui/uifiles/mouse_actions.ui:126
+#: src/gui/uifiles/mouse_actions.ui:131
 msgid "Remove the selected mouse action"
 msgstr ""
 
-#: src/gui/uifiles/mouse_actions.ui:139 src/gui/mouse_action_preferences.c:720
+#: src/gui/uifiles/mouse_actions.ui:144 src/gui/mouse_action_preferences.c:721
 msgid "Mouse button / scroll check"
 msgstr ""
 
-#: src/gui/uifiles/mouse_actions.ui:156
+#: src/gui/uifiles/mouse_actions.ui:161
 msgid ""
 "Click this area to check mouse button numbering and scroll direction, to "
 "ensure you set the correct number for mouse actions"
 msgstr ""
 
-#: src/gui/uifiles/mouse_actions.ui:176
+#: src/gui/uifiles/mouse_actions.ui:181
 msgid "Mouse Click Actions"
 msgstr ""
 
-#: src/gui/uifiles/mouse_actions.ui:227
+#: src/gui/uifiles/mouse_actions.ui:232
 msgid "Add a scroll action"
 msgstr ""
 
-#: src/gui/uifiles/mouse_actions.ui:242
+#: src/gui/uifiles/mouse_actions.ui:247
 msgid "Remove a scroll action"
 msgstr ""
 
-#: src/gui/uifiles/mouse_actions.ui:271
+#: src/gui/uifiles/mouse_actions.ui:277
+msgid "Scroll speed limit"
+msgstr ""
+
+#: src/gui/uifiles/mouse_actions.ui:292
+msgid ""
+"Set a scroll speed limit. Not required for most mice, but if you have an "
+"issue where the scroll wheel carries out its action (eg zoom) far too fast, "
+"you can limit the action step size using this control. Try starting with 1.0 "
+"and working down from there. 0.0 means unlimited."
+msgstr ""
+
+#: src/gui/uifiles/mouse_actions.ui:316
 msgid "Scroll Actions"
 msgstr ""
 
@@ -4844,7 +4856,7 @@ msgid ""
 "scripting language set before executing a script from the editor."
 msgstr ""
 
-#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:266
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:267
 msgid "Siril Script Files"
 msgstr ""
 
@@ -6139,7 +6151,7 @@ msgstr ""
 msgid "Astrometry"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 msgid "Catalogue"
 msgstr ""
 
@@ -7487,7 +7499,7 @@ msgid ""
 "operates on an image of a given size."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5614 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5614 src/core/settings.c:383
 msgid "FFTW planning strategy"
 msgstr ""
 
@@ -8357,13 +8369,20 @@ msgstr ""
 msgid "Create Output"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:2672 src/gui/uifiles/siril.ui:2689
-#: src/gui/uifiles/siril.ui:2704
+#: src/gui/uifiles/siril.ui:2672
 msgid "Save current plot to png file"
+msgstr ""
+
+#: src/gui/uifiles/siril.ui:2689
+msgid "Build a light curve in the ETD text format"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:2690
 msgid "Light Curve (ETD format)"
+msgstr ""
+
+#: src/gui/uifiles/siril.ui:2704
+msgid "Build an output file in the AAVSO format"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:2705
@@ -8695,7 +8714,7 @@ msgid ""
 "you can filter images out."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4624 src/gui/callbacks.c:2210
+#: src/gui/uifiles/siril.ui:4624 src/gui/callbacks.c:2217
 msgid "Sequence"
 msgstr ""
 
@@ -11338,7 +11357,7 @@ msgstr ""
 msgid "Plate Solve"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1056 src/gui/callbacks.c:1835
+#: src/algos/astrometry_solver.c:1056 src/gui/callbacks.c:1842
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr ""
@@ -11521,13 +11540,17 @@ msgstr ""
 msgid "Computing astrometric registration...\n"
 msgstr "Anvend Kosmetisk Korrektion"
 
+#: src/algos/astrometry_solver.c:2263
+msgid "Reference image was not platesolved, changing reference\n"
+msgstr ""
+
 #: src/algos/background_extraction.c:300
 msgid ""
 "There are not enough background samples. The background to be extracted "
 "cannot be computed.\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:829 src/core/command.c:11353
+#: src/algos/background_extraction.c:829 src/core/command.c:11354
 #: src/filters/graxpert.c:1034 src/gui/graxpert.c:195
 #, c-format
 msgid "Failed to generate background samples for image: %s\n"
@@ -11809,8 +11832,8 @@ msgstr ""
 msgid "Comparison stars: processing...\n"
 msgstr ""
 
-#: src/algos/comparison_stars.c:441 src/core/command.c:9768
-#: src/core/command.c:10478 src/core/command.c:10631 src/core/command.c:10651
+#: src/algos/comparison_stars.c:441 src/core/command.c:9769
+#: src/core/command.c:10479 src/core/command.c:10632 src/core/command.c:10652
 #: src/io/siril_catalogues.c:1123 src/io/siril_catalogues.c:1172
 msgid "This command only works on plate solved images\n"
 msgstr ""
@@ -12628,7 +12651,7 @@ msgid "Found %d stars with same settings in %s, skipping detection\n"
 msgstr ""
 
 #: src/algos/star_finder.c:943 src/core/command.c:5253 src/core/command.c:7295
-#: src/core/command.c:7469 src/core/command.c:8676
+#: src/core/command.c:7469 src/core/command.c:8677
 #: src/io/image_format_fits.c:833 src/io/path_parse.c:669
 #: src/io/remote_catalogues.c:534 src/io/siril_catalogues.c:836
 #, c-format
@@ -12914,7 +12937,7 @@ msgstr ""
 #. Register button was pressed, we ask for confirmation
 #: src/compositing/compositing.c:956 src/gui/keywords_tree.c:196
 #: src/gui/keywords_tree.c:601 src/gui/mouse_action_preferences.c:117
-#: src/gui/preferences.c:1108 src/gui/python_gui.c:684 src/gui/python_gui.c:703
+#: src/gui/preferences.c:1110 src/gui/python_gui.c:684 src/gui/python_gui.c:703
 #: src/gui/python_gui.c:732 src/gui/python_gui.c:758 src/gui/python_gui.c:829
 #: src/gui/utils.c:314 src/registration/applyreg.c:1061
 msgid "Proceed"
@@ -12970,14 +12993,14 @@ msgstr ""
 #: src/gui/PSF_list.c:315 src/gui/colors.c:457 src/gui/compstars.c:225
 #: src/gui/compstars.c:294 src/gui/compstars.c:302 src/gui/compstars.c:309
 #: src/gui/compstars.c:316 src/gui/dialogs.c:146 src/gui/git_gui.c:192
-#: src/gui/git_gui.c:212 src/gui/git_gui.c:277 src/gui/icc_profile.c:307
+#: src/gui/git_gui.c:212 src/gui/git_gui.c:283 src/gui/icc_profile.c:307
 #: src/gui/icc_profile.c:375 src/gui/icc_profile.c:551 src/gui/merge_cfa.c:209
 #: src/gui/merge_cfa.c:241 src/gui/merge_cfa.c:252 src/gui/merge_cfa.c:263
 #: src/gui/merge_cfa.c:274 src/gui/nina_light_curve.c:221
 #: src/gui/nina_light_curve.c:226 src/gui/nina_light_curve.c:232
 #: src/gui/nina_light_curve.c:241 src/gui/nina_light_curve.c:279
-#: src/gui/open_dialog.c:378 src/gui/preferences.c:554
-#: src/gui/preferences.c:573 src/gui/preferences.c:607
+#: src/gui/open_dialog.c:378 src/gui/preferences.c:555
+#: src/gui/preferences.c:574 src/gui/preferences.c:608
 #: src/gui/save_dialog.c:468 src/io/siril_pythoncommands.c:979
 msgid "Error"
 msgstr ""
@@ -13111,7 +13134,7 @@ msgid ""
 "Questionable parallel processing detection - openmp reports %d %s, glib %d.\n"
 msgstr ""
 
-#: src/core/OS_utils.c:620 src/core/OS_utils.c:635 src/core/command.c:9460
+#: src/core/OS_utils.c:620 src/core/OS_utils.c:635 src/core/command.c:9461
 msgid "processor"
 msgid_plural "processors"
 msgstr[0] ""
@@ -13194,8 +13217,8 @@ msgstr ""
 #: src/core/command.c:6512 src/core/command.c:6660 src/core/command.c:6716
 #: src/core/command.c:6769 src/core/command.c:6947 src/core/command.c:6957
 #: src/core/command.c:6991 src/core/command.c:7308 src/core/command.c:7481
-#: src/core/command.c:7883 src/core/command.c:8351 src/core/command.c:9244
-#: src/core/command.c:11637 src/core/command.c:11655
+#: src/core/command.c:7883 src/core/command.c:8351 src/core/command.c:9245
+#: src/core/command.c:11638 src/core/command.c:11656
 #, c-format
 msgid "Unknown parameter %s, aborting.\n"
 msgstr ""
@@ -13207,10 +13230,10 @@ msgstr ""
 #: src/core/command.c:2671 src/core/command.c:3196 src/core/command.c:3203
 #: src/core/command.c:3215 src/core/command.c:3223 src/core/command.c:3231
 #: src/core/command.c:3320 src/core/command.c:4496 src/core/command.c:5410
-#: src/core/command.c:5415 src/core/command.c:9313 src/core/command.c:9912
-#: src/core/command.c:9920 src/core/command.c:9925 src/core/command.c:10236
-#: src/core/command.c:10597 src/core/command.c:10801 src/core/command.c:10845
-#: src/core/command.c:10863
+#: src/core/command.c:5415 src/core/command.c:9314 src/core/command.c:9913
+#: src/core/command.c:9921 src/core/command.c:9926 src/core/command.c:10237
+#: src/core/command.c:10598 src/core/command.c:10802 src/core/command.c:10846
+#: src/core/command.c:10864
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr ""
@@ -13592,7 +13615,7 @@ msgstr ""
 #: src/core/command.c:8036 src/core/command.c:8055 src/core/command.c:8074
 #: src/core/command.c:8093 src/core/command.c:8111 src/core/command.c:8266
 #: src/core/command.c:8276 src/core/command.c:8309 src/core/command.c:8503
-#: src/core/command.c:9148 src/core/command.c:9188 src/core/command.c:10585
+#: src/core/command.c:9149 src/core/command.c:9189 src/core/command.c:10586
 #, c-format
 msgid "Missing argument to %s, aborting.\n"
 msgstr ""
@@ -13692,7 +13715,7 @@ msgstr ""
 msgid "Error: cannot apply saturation stretch to a mono image.\n"
 msgstr ""
 
-#: src/core/command.c:2560 src/core/command.c:9529 src/filters/wavelets.c:258
+#: src/core/command.c:2560 src/core/command.c:9530 src/filters/wavelets.c:258
 #: src/filters/wavelets.c:328
 #, c-format
 msgid "Wavelet: maximum number of plans for this image size is %d\n"
@@ -13758,7 +13781,7 @@ msgstr ""
 msgid "Image: %s\n"
 msgstr ""
 
-#: src/core/command.c:2863 src/core/command.c:9444
+#: src/core/command.c:2863 src/core/command.c:9445
 msgid "********* END OF THE LIST *********\n"
 msgstr ""
 
@@ -13811,7 +13834,7 @@ msgstr ""
 msgid "This type of sequence cannot be created by Siril, aborting the merge\n"
 msgstr ""
 
-#: src/core/command.c:3061 src/core/command.c:9028 src/io/single_image.c:215
+#: src/core/command.c:3061 src/core/command.c:9029 src/io/single_image.c:215
 #, c-format
 msgid "Error opening image %s: file not found or not supported.\n"
 msgstr ""
@@ -13829,7 +13852,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:3078 src/core/command.c:3092 src/core/command.c:5432
-#: src/core/command.c:10780 src/pixelMath/pixel_math_runner.c:1282
+#: src/core/command.c:10781 src/pixelMath/pixel_math_runner.c:1282
 #, c-format
 msgid "Could not open file: %s\n"
 msgstr ""
@@ -13852,13 +13875,13 @@ msgstr ""
 #: src/core/command.c:5938 src/core/command.c:6421 src/core/command.c:7282
 #: src/core/command.c:7456 src/core/command.c:7803 src/core/command.c:7814
 #: src/core/command.c:7833 src/core/command.c:8182 src/core/command.c:8193
-#: src/core/command.c:8212 src/core/command.c:8340 src/core/command.c:9797
-#: src/core/command.c:9808 src/core/command.c:9831 src/core/command.c:9847
-#: src/core/command.c:10142 src/core/command.c:10153 src/core/command.c:10165
-#: src/core/command.c:10178 src/core/command.c:10189 src/core/command.c:10217
-#: src/core/command.c:10225 src/core/command.c:10525 src/core/command.c:10671
-#: src/core/command.c:10680 src/core/command.c:10689 src/core/command.c:10698
-#: src/core/command.c:10705
+#: src/core/command.c:8212 src/core/command.c:8340 src/core/command.c:9798
+#: src/core/command.c:9809 src/core/command.c:9832 src/core/command.c:9848
+#: src/core/command.c:10143 src/core/command.c:10154 src/core/command.c:10166
+#: src/core/command.c:10179 src/core/command.c:10190 src/core/command.c:10218
+#: src/core/command.c:10226 src/core/command.c:10526 src/core/command.c:10672
+#: src/core/command.c:10681 src/core/command.c:10690 src/core/command.c:10699
+#: src/core/command.c:10706
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr ""
@@ -14199,7 +14222,7 @@ msgstr ""
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr ""
 
-#: src/core/command.c:4577 src/gui/callbacks.c:2377
+#: src/core/command.c:4577 src/gui/callbacks.c:2384
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr ""
@@ -14620,7 +14643,7 @@ msgid "Unknown distortion type %s, aborting.\n"
 msgstr ""
 
 #: src/core/command.c:7770 src/core/command.c:7900 src/core/command.c:8364
-#: src/core/command.c:9021 src/core/command.c:10260 src/core/command.c:10945
+#: src/core/command.c:9022 src/core/command.c:10261 src/core/command.c:10946
 #: src/core/preprocess.c:685 src/core/preprocess.c:1011
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr ""
@@ -14888,154 +14911,154 @@ msgstr ""
 msgid "Normalizing on overlaps for more than %d images can be slow\n"
 msgstr ""
 
-#: src/core/command.c:8682
+#: src/core/command.c:8683
 #, c-format
 msgid "Could not save the stacking result %s\n"
 msgstr ""
 
-#: src/core/command.c:8689 src/stacking/stacking.c:475
+#: src/core/command.c:8690 src/stacking/stacking.c:475
 msgid "Saving rejection maps\n"
 msgstr ""
 
-#: src/core/command.c:8718 src/stacking/stacking.c:526
+#: src/core/command.c:8719 src/stacking/stacking.c:526
 msgid "Stacking failed, please check the log to fix your issue.\n"
 msgstr ""
 
-#: src/core/command.c:8743
+#: src/core/command.c:8744
 msgid "Looking for sequences in current working directory...\n"
 msgstr ""
 
-#: src/core/command.c:8745
+#: src/core/command.c:8746
 msgid "Error while searching sequences or opening the directory.\n"
 msgstr ""
 
-#: src/core/command.c:8754
+#: src/core/command.c:8755
 msgid "Starting stacking of found sequences...\n"
 msgstr ""
 
-#: src/core/command.c:8766
+#: src/core/command.c:8767
 #, c-format
 msgid "Stacked %d sequences successfully.\n"
 msgstr ""
 
-#: src/core/command.c:8823 src/core/command.c:8954
+#: src/core/command.c:8824 src/core/command.c:8955
 msgid ""
 "The average stacking with rejection requires two extra arguments: sigma low "
 "and high.\n"
 msgstr ""
 
-#: src/core/command.c:8828 src/core/command.c:8962
+#: src/core/command.c:8829 src/core/command.c:8963
 msgid ""
 "Extra parameters of GESDT rejection algorithm must be between 0 and 1, "
 "default is 0.3 and 0.05.\n"
 msgstr ""
 
-#: src/core/command.c:8833 src/core/command.c:8967
+#: src/core/command.c:8834 src/core/command.c:8968
 msgid ""
 "Extra parameters of percentile rejection algorithm must be between 0 and 1, "
 "default is 0.2 and 0.1.\n"
 msgstr ""
 
-#: src/core/command.c:8842 src/core/command.c:8976
+#: src/core/command.c:8843 src/core/command.c:8977
 #, c-format
 msgid "Stacking method type '%s' is invalid\n"
 msgstr ""
 
-#: src/core/command.c:8877 src/stacking/stacking.c:528
+#: src/core/command.c:8878 src/stacking/stacking.c:528
 msgid ""
 "It looks like there is a memory allocation error, change memory settings and "
 "try to fix it.\n"
 msgstr ""
 
-#: src/core/command.c:8880
+#: src/core/command.c:8881
 msgid "Stacked sequence successfully.\n"
 msgstr ""
 
-#: src/core/command.c:8924
+#: src/core/command.c:8925
 msgid "Missing arguments for rejection stacking.\n"
 msgstr ""
 
-#: src/core/command.c:9033 src/core/preprocess.c:578
+#: src/core/command.c:9034 src/core/preprocess.c:578
 msgid "Could not load the image, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9058
+#: src/core/command.c:9059
 #, c-format
 msgid "The offset value could not be parsed from expression: %s, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9064 src/core/preprocess.c:708
+#: src/core/command.c:9065 src/core/preprocess.c:708
 #, c-format
 msgid "Synthetic offset: Level = %d\n"
 msgstr ""
 
 #. not excluding all neg values here to allow defining a pedestal
-#: src/core/command.c:9067
+#: src/core/command.c:9068
 #, c-format
 msgid "The offset value is out of allowable bounds [-%d,%d], aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9155
+#: src/core/command.c:9156
 msgid "Dark optimization: This process cannot be applied to 8b images\n"
 msgstr ""
 
-#: src/core/command.c:9164
+#: src/core/command.c:9165
 #, c-format
 msgid "Missing or wrong argument to %s, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9194
+#: src/core/command.c:9195
 msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9212
+#: src/core/command.c:9213
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"
 msgstr ""
 
-#: src/core/command.c:9214
+#: src/core/command.c:9215
 msgid "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
 msgstr ""
 
-#: src/core/command.c:9216
+#: src/core/command.c:9217
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"
 msgstr ""
 
-#: src/core/command.c:9218
+#: src/core/command.c:9219
 msgid "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
 msgstr ""
 
-#: src/core/command.c:9225
+#: src/core/command.c:9226
 #, c-format
 msgid "Could not open file %s, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9229
+#: src/core/command.c:9230
 #, c-format
 msgid "Cosmetic correction from Bad Pixel Map: %s.\n"
 msgstr ""
 
-#: src/core/command.c:9233
+#: src/core/command.c:9234
 msgid "You must specify a bad pixel map file with -cc=bpm option, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9238
+#: src/core/command.c:9239
 #, c-format
 msgid "Unknown argument %s, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9276 src/core/command.c:9294 src/core/preprocess.c:948
+#: src/core/command.c:9277 src/core/command.c:9295 src/core/preprocess.c:948
 msgid "Preprocessing...\n"
 msgstr ""
 
-#: src/core/command.c:9305
+#: src/core/command.c:9306
 msgid "16-bit per channel in processed images mode is active\n"
 msgstr ""
 
-#: src/core/command.c:9306
+#: src/core/command.c:9307
 msgid "32-bit per channel in processed images mode is active\n"
 msgstr ""
 
@@ -15052,44 +15075,44 @@ msgstr ""
 #. comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);
 #. }
 #. siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
-#: src/core/command.c:9351
+#: src/core/command.c:9352
 msgid "Wrong type of compression. Choices are rice, gzip1, gzip2\n"
 msgstr ""
 
-#: src/core/command.c:9358
+#: src/core/command.c:9359
 msgid "Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"
 msgstr ""
 
-#: src/core/command.c:9364
+#: src/core/command.c:9365
 msgid ""
 "Compression enabled with the %s algorithm and a quantization value of %.2lf\n"
 msgstr ""
 
-#: src/core/command.c:9367
+#: src/core/command.c:9368
 msgid "No compression enabled.\n"
 msgstr ""
 
-#: src/core/command.c:9385
+#: src/core/command.c:9386
 #, c-format
 msgid ""
 "Number of logical processors MUST be greater than 0 and lower or equal to "
 "%d.\n"
 msgstr ""
 
-#: src/core/command.c:9396
+#: src/core/command.c:9397
 #, c-format
 msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/core/command.c:9412
+#: src/core/command.c:9413
 msgid ""
 "The accepted range for the ratio of memory used for stacking is [0.05, 4], "
 "with values below the available memory recommended\n"
 msgstr ""
 
-#: src/core/command.c:9416
+#: src/core/command.c:9417
 #, c-format
 msgid ""
 "Setting the ratio of memory used for stacking above 1 will require the use "
@@ -15097,506 +15120,506 @@ msgid ""
 "requested)\n"
 msgstr ""
 
-#: src/core/command.c:9421
+#: src/core/command.c:9422
 #, c-format
 msgid "Usable memory for stacking changed to %g\n"
 msgstr ""
 
-#: src/core/command.c:9428
+#: src/core/command.c:9429
 msgid "********* LIST OF AVAILABLE COMMANDS *********\n"
 msgstr ""
 
-#: src/core/command.c:9436
+#: src/core/command.c:9437
 #, c-format
 msgid "Can be used in a script: %s\n"
 msgstr ""
 
-#: src/core/command.c:9436 src/core/command_line_processor.c:466
+#: src/core/command.c:9437 src/core/command_line_processor.c:466
 msgid "YES"
 msgstr ""
 
-#: src/core/command.c:9436 src/core/command_line_processor.c:469
+#: src/core/command.c:9437 src/core/command_line_processor.c:469
 msgid "NO"
 msgstr ""
 
-#: src/core/command.c:9446
+#: src/core/command.c:9447
 #, c-format
 msgid "Error: command %s is not available\n"
 msgstr ""
 
-#: src/core/command.c:9562
+#: src/core/command.c:9563
 #, c-format
 msgid ""
 "A newer version (>= %lu.%lu.%lu-%s%lu) of Siril is required in order to run "
 "this script: please update your installation.\n"
 msgstr ""
 
-#: src/core/command.c:9562
+#: src/core/command.c:9563
 msgid "beta"
 msgstr ""
 
-#: src/core/command.c:9562
+#: src/core/command.c:9563
 msgid "RC"
 msgstr ""
 
-#: src/core/command.c:9565
+#: src/core/command.c:9566
 msgid ""
 "This script has been marked as obsolete for this version of Siril, please "
 "check for an update to the script.\n"
 msgstr ""
 
-#: src/core/command.c:9568
+#: src/core/command.c:9569
 msgid "OK! This script is compatible with this version of Siril.\n"
 msgstr ""
 
-#: src/core/command.c:9576 src/core/command.c:9627
+#: src/core/command.c:9577 src/core/command.c:9628
 #, c-format
 msgid "Current selection [x, y, w, h]: %d %d %d %d\n"
 msgstr ""
 
-#: src/core/command.c:9579
+#: src/core/command.c:9580
 msgid "No current selection in image\n"
 msgstr ""
 
-#: src/core/command.c:9586
+#: src/core/command.c:9587
 msgid ""
 "Too many arguments to boxselect, use either -clear or the coordinates, not "
 "both.\n"
 msgstr ""
 
-#: src/core/command.c:9590
+#: src/core/command.c:9591
 msgid "Selected area in image was cleared\n"
 msgstr ""
 
-#: src/core/command.c:9596 src/core/command.c:9612
+#: src/core/command.c:9597 src/core/command.c:9613
 msgid "Please specify x, y, w and h, aborting\n"
 msgstr ""
 
-#: src/core/command.c:9616
+#: src/core/command.c:9617
 #, c-format
 msgid ""
 "The provided coordinates are outside the dimension of the currently loaded "
 "image (%d x %d).\n"
 msgstr ""
 
-#: src/core/command.c:9621
+#: src/core/command.c:9622
 msgid "Overriding previous selection\n"
 msgstr ""
 
-#: src/core/command.c:9698 src/core/command.c:9732
+#: src/core/command.c:9699 src/core/command.c:9733
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr ""
 
-#: src/core/command.c:9758
+#: src/core/command.c:9759
 #, c-format
 msgid "Successful RGB composition with metadata accumulate option %s.\n"
 msgstr ""
 
-#: src/core/command.c:9825 src/core/command.c:10207
+#: src/core/command.c:9826 src/core/command.c:10208
 msgid ""
 "Local Gaia catalog is unavailable, reverting to online Gaia catalog via "
 "Vizier\n"
 msgstr ""
 
-#: src/core/command.c:9842
+#: src/core/command.c:9843
 msgid ""
 "Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"
 msgstr ""
 
-#: src/core/command.c:9933
+#: src/core/command.c:9934
 msgid ""
 "Found linear plate solve data, you may need to solve your image with "
 "distortions to ensure correct calibration of stars near image corners.\n"
 msgstr ""
 
-#: src/core/command.c:9944
+#: src/core/command.c:9945
 msgid "NB wavelength out of range (must be 380 <= wl <= 700)\n"
 msgstr ""
 
-#: src/core/command.c:9949
+#: src/core/command.c:9950
 msgid "NB bandwidth out of range (must be 1.0 <= wl <= 40.0)\n"
 msgstr ""
 
-#: src/core/command.c:9961
+#: src/core/command.c:9962
 #, c-format
 msgid "Using remote %s instead of local NOMAD catalogue\n"
 msgstr ""
 
-#: src/core/command.c:9996
+#: src/core/command.c:9997
 msgid ""
 "Either the sensor or a filter / LPF was not specified as argument or "
 "guessable from previous use. Ensure all necessary data is set.\n"
 msgstr ""
 
-#: src/core/command.c:10003
+#: src/core/command.c:10004
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\", filter \"%s\" and DSLR LPF \"%s\"\n"
 msgstr ""
 
-#: src/core/command.c:10005
+#: src/core/command.c:10006
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\" and filter \"%s\"\n"
 msgstr ""
 
-#: src/core/command.c:10013
+#: src/core/command.c:10014
 msgid ""
 "Either the sensor or a filter was not specified as argument or guessable "
 "from previous use. Ensure all necessary data is set.\n"
 msgstr ""
 
-#: src/core/command.c:10019
+#: src/core/command.c:10020
 #, c-format
 msgid "SPCC will use mono senor \"%s\" and filters \"%s\", \"%s\" and \"%s\n"
 msgstr ""
 
-#: src/core/command.c:10055
+#: src/core/command.c:10056
 msgid ""
 "Siril has been compiled without libcurl support for network operations; SPCC "
 "is therefore not available. Recompile with libcurl support to enable SPCC.\n"
 msgstr ""
 
-#: src/core/command.c:10084
+#: src/core/command.c:10085
 msgid ""
 "SER cannot contain WCS info, plate solving will export to FITS cube format\n"
 msgstr ""
 
-#: src/core/command.c:10100 src/core/command.c:10113 src/core/command.c:10881
+#: src/core/command.c:10101 src/core/command.c:10114 src/core/command.c:10882
 msgid "Could not parse target coordinates\n"
 msgstr ""
 
-#: src/core/command.c:10233
+#: src/core/command.c:10234
 msgid "Specifying a catalog has no effect for astrometry.net solving\n"
 msgstr ""
 
-#: src/core/command.c:10244
+#: src/core/command.c:10245
 msgid "Image is already plate solved. Nothing will be done.\n"
 msgstr ""
 
-#: src/core/command.c:10249
+#: src/core/command.c:10250
 msgid ""
 "The local astrometry.net solver was not found, aborting. Please check the "
 "settings.\n"
 msgstr ""
 
-#: src/core/command.c:10269 src/core/command.c:10273
+#: src/core/command.c:10270 src/core/command.c:10274
 #, c-format
 msgid "Siril internal solver cannot be set blind in %s\n"
 msgstr ""
 
-#: src/core/command.c:10269 src/core/command.c:10297
+#: src/core/command.c:10270 src/core/command.c:10298
 #, fuzzy
 msgid "position"
 msgstr "Gentagelser"
 
-#: src/core/command.c:10273 src/core/command.c:10310 src/core/command.c:10335
+#: src/core/command.c:10274 src/core/command.c:10311 src/core/command.c:10336
 #, fuzzy
 msgid "resolution"
 msgstr "Gentagelser"
 
-#: src/core/command.c:10281
+#: src/core/command.c:10282
 msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
 msgstr ""
 
-#: src/core/command.c:10288
+#: src/core/command.c:10289
 #, c-format
 msgid "Using target coordinate from image header: %f, %f\n"
 msgstr ""
 
-#: src/core/command.c:10297 src/core/command.c:10310 src/core/command.c:10335
+#: src/core/command.c:10298 src/core/command.c:10311 src/core/command.c:10336
 #, c-format
 msgid "%s is ignored when using local astrometry.net blind in %s\n"
 msgstr ""
 
-#: src/core/command.c:10297
+#: src/core/command.c:10298
 #, fuzzy
 msgid "Center position"
 msgstr "Interpolering: "
 
-#: src/core/command.c:10310
+#: src/core/command.c:10311
 msgid "Pixel size"
 msgstr ""
 
-#: src/core/command.c:10316
+#: src/core/command.c:10317
 #, c-format
 msgid "Using provided pixel size: %.2f\n"
 msgstr ""
 
-#: src/core/command.c:10322
+#: src/core/command.c:10323
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
 msgstr ""
 
-#: src/core/command.c:10328
+#: src/core/command.c:10329
 #, c-format
 msgid "Using pixel size from preferences: %.2f\n"
 msgstr ""
 
-#: src/core/command.c:10330
+#: src/core/command.c:10331
 #, c-format
 msgid "Using pixel size from image: %.2f\n"
 msgstr ""
 
-#: src/core/command.c:10335
+#: src/core/command.c:10336
 msgid "Focal length"
 msgstr ""
 
-#: src/core/command.c:10341
+#: src/core/command.c:10342
 #, c-format
 msgid "Using provided focal length: %.2f\n"
 msgstr ""
 
-#: src/core/command.c:10347
+#: src/core/command.c:10348
 msgid "Focal length not found in image or in settings, cannot proceed\n"
 msgstr ""
 
-#: src/core/command.c:10353
+#: src/core/command.c:10354
 #, c-format
 msgid "Using focal length from preferences: %.2f\n"
 msgstr ""
 
-#: src/core/command.c:10355
+#: src/core/command.c:10356
 #, c-format
 msgid "Using focal length from image: %.2f\n"
 msgstr ""
 
-#: src/core/command.c:10360 src/core/command.c:10367
+#: src/core/command.c:10361 src/core/command.c:10368
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr ""
 
-#: src/core/command.c:10386
+#: src/core/command.c:10387
 msgid ""
 "Cannot force null radius for localasnet if not blind solving, using default "
 "instead\n"
 msgstr ""
 
-#: src/core/command.c:10519 src/gui/annotate.c:136
+#: src/core/command.c:10520 src/gui/annotate.c:136
 msgid ""
 "This option only works on images that have observation date information\n"
 msgstr ""
 
-#: src/core/command.c:10533
+#: src/core/command.c:10534
 msgid "The observatory should be coded as a 3-letter word\n"
 msgstr ""
 
-#: src/core/command.c:10544
+#: src/core/command.c:10545
 msgid "No local catalogues found, ignoring -trix option\n"
 msgstr ""
 
-#: src/core/command.c:10550
+#: src/core/command.c:10551
 msgid "Trixel number must be between 0 and 511\n"
 msgstr ""
 
-#: src/core/command.c:10565
+#: src/core/command.c:10566
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:10577
+#: src/core/command.c:10578
 msgid "Wrong parameter values. Tag must be set to on or off, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:10613
+#: src/core/command.c:10614
 msgid "Cannot use -compare argument with non-star catalogues, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:10710 src/core/command.c:10758
+#: src/core/command.c:10711 src/core/command.c:10759
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr ""
 
-#: src/core/command.c:10769 src/core/command.c:10790
+#: src/core/command.c:10770 src/core/command.c:10791
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
 
-#: src/core/command.c:10773
+#: src/core/command.c:10774
 msgid "Live stacking was configured to use file watching, not this command\n"
-msgstr ""
-
-#: src/core/command.c:10815
-#, c-format
-msgid "String in: %s\n"
 msgstr ""
 
 #: src/core/command.c:10816
 #, c-format
+msgid "String in: %s\n"
+msgstr ""
+
+#: src/core/command.c:10817
+#, c-format
 msgid "String out: %s\n"
 msgstr ""
 
-#: src/core/command.c:10954
+#: src/core/command.c:10955
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
 msgstr ""
 
-#: src/core/command.c:10994
+#: src/core/command.c:10995
 msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:11029
+#: src/core/command.c:11030
 msgid "Error: Could not parse -from values.\n"
 msgstr ""
 
-#: src/core/command.c:11037
+#: src/core/command.c:11038
 msgid "Error: Could not parse -to values.\n"
 msgstr ""
 
-#: src/core/command.c:11059
+#: src/core/command.c:11060
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr ""
 
-#: src/core/command.c:11089
+#: src/core/command.c:11090
 msgid "Error: sequence has variable sized images.\n"
 msgstr ""
 
-#: src/core/command.c:11169
+#: src/core/command.c:11170
 msgid "Error: unknown GraXpert operation!\n"
 msgstr ""
 
-#: src/core/command.c:11199
+#: src/core/command.c:11200
 msgid "Error: unknown background extraction algorithm!\n"
 msgstr ""
 
-#: src/core/command.c:11209
+#: src/core/command.c:11210
 msgid "Error: unknown correction mode!\n"
 msgstr ""
 
-#: src/core/command.c:11223
+#: src/core/command.c:11224
 msgid "Error: unknown RBF kernel!\n"
 msgstr ""
 
-#: src/core/command.c:11230
+#: src/core/command.c:11231
 msgid "Error: no AI batch size specified\n"
 msgstr ""
 
-#: src/core/command.c:11237
+#: src/core/command.c:11238
 msgid "Error: no pts_per_row specified\n"
 msgstr ""
 
-#: src/core/command.c:11244
+#: src/core/command.c:11245
 msgid "Error: no spline order specified\n"
 msgstr ""
 
-#: src/core/command.c:11251
+#: src/core/command.c:11252
 msgid "Error: no sample size specified\n"
 msgstr ""
 
-#: src/core/command.c:11258
+#: src/core/command.c:11259
 msgid "Error: no smoothing value specified\n"
 msgstr ""
 
-#: src/core/command.c:11265
+#: src/core/command.c:11266
 msgid "Error: no background tolerance value specified\n"
 msgstr ""
 
-#: src/core/command.c:11269 src/core/command.c:11281 src/core/command.c:11300
-#: src/core/command.c:11687
+#: src/core/command.c:11270 src/core/command.c:11282 src/core/command.c:11301
+#: src/core/command.c:11688
 msgid "Error: unknown argument!\n"
 msgstr ""
 
-#: src/core/command.c:11277 src/core/command.c:11289
+#: src/core/command.c:11278 src/core/command.c:11290
 msgid "Error: no strength value specified\n"
 msgstr ""
 
-#: src/core/command.c:11296
+#: src/core/command.c:11297
 msgid "Error: no psf size value specified\n"
 msgstr ""
 
-#: src/core/command.c:11327
+#: src/core/command.c:11328
 msgid ""
 "Error: the requested AI model version is unavailable. Available versions "
 "are:\n"
 msgstr ""
 
-#: src/core/command.c:11402 src/core/command.c:11417 src/core/command.c:11432
+#: src/core/command.c:11403 src/core/command.c:11418 src/core/command.c:11433
 msgid "Error: unable to load sequence\n"
 msgstr ""
 
-#: src/core/command.c:11480
+#: src/core/command.c:11481
 msgid "Error opening target ICC profile.\n"
 msgstr ""
 
-#: src/core/command.c:11484
+#: src/core/command.c:11485
 msgid "Color profile assignment complete.\n"
 msgstr ""
 
-#: src/core/command.c:11487 src/core/command.c:11551
+#: src/core/command.c:11488 src/core/command.c:11552
 msgid "Error opening ICC profile.\n"
 msgstr ""
 
-#: src/core/command.c:11504
+#: src/core/command.c:11505
 msgid ""
 "Image has no color profile assigned to convert from. Assign a profile "
 "first.\n"
 msgstr ""
 
-#: src/core/command.c:11518
+#: src/core/command.c:11519
 msgid ""
 "Specified intent not recognized. Specify one of \"perceptual\", "
 "\"relative\", \"saturation\" or \"absolute\"\n"
 msgstr ""
 
-#: src/core/command.c:11549
+#: src/core/command.c:11550
 msgid "Color space conversion complete.\n"
 msgstr ""
 
-#: src/core/command.c:11585
+#: src/core/command.c:11586
 msgid "OSC Sensors"
 msgstr ""
 
-#: src/core/command.c:11588
+#: src/core/command.c:11589
 msgid "Mono Sensors"
 msgstr ""
 
-#: src/core/command.c:11591
+#: src/core/command.c:11592
 #, fuzzy
 msgid "Red Filters"
 msgstr "Median Filter"
 
-#: src/core/command.c:11594
+#: src/core/command.c:11595
 #, fuzzy
 msgid "Green Filters"
 msgstr "Median Filter"
 
-#: src/core/command.c:11597
+#: src/core/command.c:11598
 #, fuzzy
 msgid "Blue Filters"
 msgstr "Median Filter"
 
-#: src/core/command.c:11600
+#: src/core/command.c:11601
 msgid "OSC Filters"
 msgstr ""
 
-#: src/core/command.c:11603
+#: src/core/command.c:11604
 msgid "OSC Low-Pass Filters"
 msgstr ""
 
-#: src/core/command.c:11606
+#: src/core/command.c:11607
 msgid "White References"
 msgstr ""
 
-#: src/core/command.c:11608
+#: src/core/command.c:11609
 msgid "Unknown SPCC list\n"
 msgstr ""
 
-#: src/core/command.c:11622 src/core/siril_actions.c:527
+#: src/core/command.c:11623 src/core/siril_actions.c:527
 msgid ""
 "This command only works on plate solved images with distortions included\n"
 msgstr ""
 
-#: src/core/command.c:11665
+#: src/core/command.c:11666
 msgid "16-bit images cannot have out-of-range pixels: nothing to do.\n"
 msgstr ""
 
-#: src/core/command.c:11675
+#: src/core/command.c:11676
 msgid "No pixels require clipping. Nothing to do...\n"
 msgstr ""
 
-#: src/core/command.c:11692
+#: src/core/command.c:11693
 msgid "Pixel limits applied successfully.\n"
 msgstr ""
 
-#: src/core/command.c:11707
+#: src/core/command.c:11708
 #, c-format
 msgid "Current working directory: '%s'\n"
 msgstr ""
@@ -15767,13 +15790,13 @@ msgid "No help for this command"
 msgstr ""
 
 #: src/core/command_line_processor.c:596 src/core/preprocess.c:649
-#: src/filters/cosmetic_correction.c:502 src/gui/script_menu.c:207
+#: src/filters/cosmetic_correction.c:502 src/gui/script_menu.c:208
 #, c-format
 msgid "File [%s] does not exist\n"
 msgstr ""
 
 #. Run the script
-#: src/core/command_line_processor.c:603 src/gui/script_menu.c:188
+#: src/core/command_line_processor.c:603 src/gui/script_menu.c:189
 #, c-format
 msgid "Starting script %s\n"
 msgstr ""
@@ -16508,769 +16531,773 @@ msgstr ""
 msgid "for a total of images processed of %d)\n"
 msgstr ""
 
-#: src/core/settings.c:347
+#: src/core/settings.c:348
 msgid "current working directory"
 msgstr ""
 
-#: src/core/settings.c:348
+#: src/core/settings.c:349
 msgid "FITS file extension"
 msgstr ""
 
-#: src/core/settings.c:349
+#: src/core/settings.c:350
 msgid "don't use 32 bits for pixel depth"
 msgstr ""
 
-#: src/core/settings.c:350
+#: src/core/settings.c:351
 msgid "embed ICC profiles in FITS when saving"
 msgstr ""
 
-#: src/core/settings.c:351
+#: src/core/settings.c:352
 msgid "allow FITS cubes to have different sizes"
 msgstr ""
 
-#: src/core/settings.c:352
+#: src/core/settings.c:353
 msgid "memory mode (0 ratio, 1 amount)"
 msgstr ""
 
-#: src/core/settings.c:353
+#: src/core/settings.c:354
 msgid "memory ratio of available"
 msgstr ""
 
-#: src/core/settings.c:354
+#: src/core/settings.c:355
 msgid "amount of memory in GB"
 msgstr ""
 
-#: src/core/settings.c:355
+#: src/core/settings.c:356
 msgid "HD AutoStretch bit depth"
 msgstr ""
 
-#: src/core/settings.c:356
+#: src/core/settings.c:357
 msgid "need requires cmd in script"
 msgstr ""
 
-#: src/core/settings.c:357
+#: src/core/settings.c:358
 msgid "need requires cmd in pipe"
 msgstr ""
 
-#: src/core/settings.c:358
+#: src/core/settings.c:359
 msgid "check update at start-up"
 msgstr ""
 
-#: src/core/settings.c:359
+#: src/core/settings.c:360
 msgid "active siril language"
 msgstr ""
 
-#: src/core/settings.c:360
+#: src/core/settings.c:361
 msgid "swap directory"
 msgstr ""
 
-#: src/core/settings.c:361
+#: src/core/settings.c:362
 msgid "update pixel size of binned images"
 msgstr ""
 
-#: src/core/settings.c:362
+#: src/core/settings.c:363
 msgid "WCS formalism used in FITS header"
 msgstr ""
 
-#: src/core/settings.c:363
+#: src/core/settings.c:364
 msgid "Path of the namedstars.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:364
+#: src/core/settings.c:365
 msgid "Path of the unnamedstars.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:365
+#: src/core/settings.c:366
 msgid "Path of the deepstars.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:366
+#: src/core/settings.c:367
 msgid "Path of the USNO-NOMAD-1e8.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:367
+#: src/core/settings.c:368
 msgid "Path of the local Gaia astrometric catalogue"
 msgstr ""
 
-#: src/core/settings.c:368
+#: src/core/settings.c:369
 msgid "Path of the local Gaia photometric catalogue"
 msgstr ""
 
-#: src/core/settings.c:369
+#: src/core/settings.c:370
 msgid "add CTYPE3='RGB' in the FITS header"
 msgstr ""
 
-#: src/core/settings.c:370
+#: src/core/settings.c:371
 msgid "Verify file checksums if they exist"
 msgstr ""
 
-#: src/core/settings.c:371
+#: src/core/settings.c:372
 msgid "user copyright to put in file header"
 msgstr ""
 
-#: src/core/settings.c:372
+#: src/core/settings.c:373
 msgid "location of the StarNet executable"
 msgstr ""
 
-#: src/core/settings.c:373
+#: src/core/settings.c:374
 msgid "location of the StarNet-torch weights file"
 msgstr ""
 
-#: src/core/settings.c:374
+#: src/core/settings.c:375
 msgid "location of the GraXpert executable"
 msgstr ""
 
-#: src/core/settings.c:376
+#: src/core/settings.c:377
 msgid "directory of the asnet_ansvr installation"
 msgstr ""
 
-#: src/core/settings.c:378
+#: src/core/settings.c:379
 msgid "directory containing the solve-field executable"
 msgstr ""
 
-#: src/core/settings.c:380
+#: src/core/settings.c:381
 msgid "FFTW planning timelimit"
 msgstr ""
 
-#: src/core/settings.c:381
+#: src/core/settings.c:382
 msgid "Convolution minimum kernel size to use FFTW"
 msgstr ""
 
-#: src/core/settings.c:383
+#: src/core/settings.c:384
 msgid "multithreaded FFTW"
 msgstr ""
 
-#: src/core/settings.c:384
+#: src/core/settings.c:385
 msgid "Maximum slice size for automated slice processing"
 msgstr ""
 
-#: src/core/settings.c:386
+#: src/core/settings.c:387
 msgid "focal length in mm for radius adjustment"
 msgstr ""
 
-#: src/core/settings.c:387
+#: src/core/settings.c:388
 msgid "pixel size in µm for radius adjustment"
 msgstr ""
 
-#: src/core/settings.c:389
+#: src/core/settings.c:390
 msgid "use pattern from the file header"
 msgstr ""
 
-#: src/core/settings.c:390
+#: src/core/settings.c:391
 msgid "index of the Bayer pattern"
 msgstr ""
 
-#: src/core/settings.c:391
+#: src/core/settings.c:392
 msgid "type of interpolation"
 msgstr ""
 
-#: src/core/settings.c:392
+#: src/core/settings.c:393
 msgid "force debayer top-down"
 msgstr ""
 
-#: src/core/settings.c:393
+#: src/core/settings.c:394
 msgid "Bayer matrix offset X"
 msgstr ""
 
-#: src/core/settings.c:394
+#: src/core/settings.c:395
 msgid "Bayer matrix offset Y"
 msgstr ""
 
-#: src/core/settings.c:395
+#: src/core/settings.c:396
 msgid "Number of passes for the X-Trans Markesteijn algorithm"
 msgstr ""
 
-#: src/core/settings.c:397
+#: src/core/settings.c:398
 msgid "electrons per ADU for noise estimation"
 msgstr ""
 
-#: src/core/settings.c:398
+#: src/core/settings.c:399
 msgid "inner radius for background annulus"
 msgstr ""
 
-#: src/core/settings.c:399
+#: src/core/settings.c:400
 msgid "outer radius for background annulus"
 msgstr ""
 
-#: src/core/settings.c:400
+#: src/core/settings.c:401
 msgid "factor for inner radius automatic computation"
 msgstr ""
 
-#: src/core/settings.c:401
+#: src/core/settings.c:402
 msgid "factor for outer radius automatic computation"
 msgstr ""
 
-#: src/core/settings.c:402
+#: src/core/settings.c:403
 msgid "force flux aperture value"
 msgstr ""
 
-#: src/core/settings.c:403
+#: src/core/settings.c:404
 msgid "Radius/halfFWHM ratio"
 msgstr ""
 
-#: src/core/settings.c:404
+#: src/core/settings.c:405
 msgid "forced aperture for flux computation"
 msgstr ""
 
-#: src/core/settings.c:405
+#: src/core/settings.c:406
 msgid "minimum valid pixel value for photometry"
 msgstr ""
 
-#: src/core/settings.c:406
+#: src/core/settings.c:407
 msgid "maximum valid pixel value for photometry"
 msgstr ""
 
-#: src/core/settings.c:407
+#: src/core/settings.c:408
 msgid ""
 "catalogues to be used to discard the variable stars from the comparison "
 "stars list"
 msgstr ""
 
-#: src/core/settings.c:408
+#: src/core/settings.c:409
 msgid "preferred SPCC red filter"
 msgstr ""
 
-#: src/core/settings.c:409
+#: src/core/settings.c:410
 msgid "preferred SPCC green filter"
 msgstr ""
 
-#: src/core/settings.c:410
+#: src/core/settings.c:411
 msgid "preferred SPCC blue filter"
 msgstr ""
 
-#: src/core/settings.c:411
+#: src/core/settings.c:412
 msgid "preferred SPCC DSLR LPF filter"
 msgstr ""
 
-#: src/core/settings.c:412
+#: src/core/settings.c:413
 msgid "preferred SPCC OSC filter"
 msgstr ""
 
-#: src/core/settings.c:413
+#: src/core/settings.c:414
 msgid "preferred SPCC mono sensor"
 msgstr ""
 
-#: src/core/settings.c:414
+#: src/core/settings.c:415
 msgid "preferred SPCC OSC sensor"
 msgstr ""
 
-#: src/core/settings.c:415
+#: src/core/settings.c:416
 msgid "is the SPCC sensor mono?"
 msgstr ""
 
-#: src/core/settings.c:416
+#: src/core/settings.c:417
 msgid "is the SPCC OSC sensor a DSLR?"
 msgstr ""
 
-#: src/core/settings.c:417
+#: src/core/settings.c:418
 msgid "are we in narrowband mode?"
 msgstr ""
 
-#: src/core/settings.c:418
+#: src/core/settings.c:419
 msgid "red NB filter wavelength"
 msgstr ""
 
-#: src/core/settings.c:419
+#: src/core/settings.c:420
 msgid "red NB filter bandwidth"
 msgstr ""
 
-#: src/core/settings.c:420
+#: src/core/settings.c:421
 msgid "green NB filter wavelength"
 msgstr ""
 
-#: src/core/settings.c:421
+#: src/core/settings.c:422
 msgid "green NB filter bandwidth"
 msgstr ""
 
-#: src/core/settings.c:422
+#: src/core/settings.c:423
 msgid "blue NB filter wavelength"
 msgstr ""
 
-#: src/core/settings.c:423
+#: src/core/settings.c:424
 msgid "blue NB filter bandwidth"
 msgstr ""
 
-#: src/core/settings.c:425
+#: src/core/settings.c:426
 msgid "do not delete .xyls FITS tables"
 msgstr ""
 
-#: src/core/settings.c:426
+#: src/core/settings.c:427
 msgid "do not delete .wcs result files"
 msgstr ""
 
-#: src/core/settings.c:427
+#: src/core/settings.c:428
 msgid "show solve-field output in main log"
 msgstr ""
 
-#: src/core/settings.c:429
+#: src/core/settings.c:430
 msgid "degrees of the polynomial correction"
 msgstr ""
 
-#: src/core/settings.c:430
+#: src/core/settings.c:431
 msgid "radius around the target coordinates (degrees)"
 msgstr ""
 
-#: src/core/settings.c:431
+#: src/core/settings.c:432
 msgid "maximum seconds to try solving"
 msgstr ""
 
-#: src/core/settings.c:432
+#: src/core/settings.c:433
 msgid "update default focal length and pixel size from the result"
 msgstr ""
 
-#: src/core/settings.c:433
+#: src/core/settings.c:434
 msgid "percent below and above the expected sampling to allow"
 msgstr ""
 
-#: src/core/settings.c:434
+#: src/core/settings.c:435
 msgid "default IAU observatory code"
 msgstr ""
 
-#: src/core/settings.c:436
+#: src/core/settings.c:437
 msgid "panel size of aberration inspector"
 msgstr ""
 
-#: src/core/settings.c:437
+#: src/core/settings.c:438
 msgid "window size of aberration inspector"
 msgstr ""
 
-#: src/core/settings.c:439
+#: src/core/settings.c:440
 msgid "FITS compression enabled"
 msgstr ""
 
-#: src/core/settings.c:440
+#: src/core/settings.c:441
 msgid "FITS compression method"
 msgstr ""
 
-#: src/core/settings.c:441
+#: src/core/settings.c:442
 msgid "quantization factor for 32-bit float"
 msgstr ""
 
-#: src/core/settings.c:442
+#: src/core/settings.c:443
 msgid "Hcompress scale factor"
 msgstr ""
 
 #. the GUI part, not as useful but still required to be listed in order to be saved in the ini file
-#: src/core/settings.c:445
+#: src/core/settings.c:446
 msgid "type of sensor for cosmetic correction"
 msgstr ""
 
-#: src/core/settings.c:446
+#: src/core/settings.c:447
 msgid "equalize flat channels"
 msgstr ""
 
-#: src/core/settings.c:447
+#: src/core/settings.c:448
 msgid "enable correction for X-Trans sensor"
 msgstr ""
 
-#: src/core/settings.c:448 src/core/settings.c:449 src/core/settings.c:450
-#: src/core/settings.c:451 src/core/settings.c:452 src/core/settings.c:453
-#: src/core/settings.c:454 src/core/settings.c:455
+#: src/core/settings.c:449 src/core/settings.c:450 src/core/settings.c:451
+#: src/core/settings.c:452 src/core/settings.c:453 src/core/settings.c:454
+#: src/core/settings.c:455 src/core/settings.c:456
 msgid "if no X-Trans model found, use this"
 msgstr ""
 
-#: src/core/settings.c:456
+#: src/core/settings.c:457
 msgid "default master bias"
 msgstr ""
 
-#: src/core/settings.c:457
+#: src/core/settings.c:458
 msgid "use default master bias"
 msgstr ""
 
-#: src/core/settings.c:458
+#: src/core/settings.c:459
 msgid "default master dark"
 msgstr ""
 
-#: src/core/settings.c:459
+#: src/core/settings.c:460
 msgid "use default master dark"
 msgstr ""
 
-#: src/core/settings.c:460
+#: src/core/settings.c:461
 msgid "default master flat"
 msgstr ""
 
-#: src/core/settings.c:461
+#: src/core/settings.c:462
 msgid "use default master flat"
 msgstr ""
 
-#: src/core/settings.c:462
+#: src/core/settings.c:463
 msgid "default distortion master"
 msgstr ""
 
-#: src/core/settings.c:463
+#: src/core/settings.c:464
 msgid "use default master distortion"
 msgstr ""
 
-#: src/core/settings.c:464
+#: src/core/settings.c:465
 msgid "default stack name"
 msgstr ""
 
-#: src/core/settings.c:465
+#: src/core/settings.c:466
 msgid "use preferred stack name"
 msgstr ""
 
-#: src/core/settings.c:467
+#: src/core/settings.c:468
 msgid "index of the selected registration method"
 msgstr ""
 
-#: src/core/settings.c:468
+#: src/core/settings.c:469
 msgid "index of the selected interpolation method"
 msgstr ""
 
-#: src/core/settings.c:469
+#: src/core/settings.c:470
 msgid "use clamping method with Lanczos and Cubic interpolation"
 msgstr ""
 
-#: src/core/settings.c:471
+#: src/core/settings.c:472
 msgid "index of the selected method"
 msgstr ""
 
-#: src/core/settings.c:472
+#: src/core/settings.c:473
 msgid "index of the normalization method"
 msgstr ""
 
-#: src/core/settings.c:473
+#: src/core/settings.c:474
 msgid "index of the rejection method"
 msgstr ""
 
-#: src/core/settings.c:474
+#: src/core/settings.c:475
 msgid "index of the weighting method"
 msgstr ""
 
-#: src/core/settings.c:475
+#: src/core/settings.c:476
 msgid "sigma low value for rejection"
 msgstr ""
 
-#: src/core/settings.c:476
+#: src/core/settings.c:477
 msgid "sigma high value for rejection"
 msgstr ""
 
-#: src/core/settings.c:477
+#: src/core/settings.c:478
 msgid "linear low value for rejection"
 msgstr ""
 
-#: src/core/settings.c:478
+#: src/core/settings.c:479
 msgid "linear high value for rejection"
 msgstr ""
 
-#: src/core/settings.c:479
+#: src/core/settings.c:480
 msgid "percentile low value for rejection"
 msgstr ""
 
-#: src/core/settings.c:480
+#: src/core/settings.c:481
 msgid "percentile high value for rejection"
 msgstr ""
 
-#: src/core/settings.c:482
+#: src/core/settings.c:483
 msgid "first start of siril"
 msgstr ""
 
-#: src/core/settings.c:483
+#: src/core/settings.c:484
 msgid "don't confirm quit when exiting"
 msgstr ""
 
-#: src/core/settings.c:484
+#: src/core/settings.c:485
 msgid "don't confirm save when non linear mode"
 msgstr ""
 
-#: src/core/settings.c:485
+#: src/core/settings.c:486
 msgid "remember window position"
 msgstr ""
 
-#: src/core/settings.c:486 src/core/settings.c:487 src/core/settings.c:488
-#: src/core/settings.c:489
+#: src/core/settings.c:487 src/core/settings.c:488 src/core/settings.c:489
+#: src/core/settings.c:490
 msgid "main window position"
 msgstr ""
 
-#: src/core/settings.c:490
+#: src/core/settings.c:491
 msgid "position of the two sides separator"
 msgstr ""
 
-#: src/core/settings.c:491
+#: src/core/settings.c:492
 msgid "main window is extended"
 msgstr ""
 
-#: src/core/settings.c:492
+#: src/core/settings.c:493
 msgid "main window is maximized"
 msgstr ""
 
-#: src/core/settings.c:493
+#: src/core/settings.c:494
 msgid "index of the selected theme"
 msgstr ""
 
-#: src/core/settings.c:494
+#: src/core/settings.c:495
 msgid "font scale in percent"
 msgstr ""
 
-#: src/core/settings.c:495
+#: src/core/settings.c:496
 msgid "icon style"
 msgstr ""
 
-#: src/core/settings.c:496
+#: src/core/settings.c:497
 msgid "list of script directories"
 msgstr ""
 
-#: src/core/settings.c:497
+#: src/core/settings.c:498
 msgid "use and sync online scripts repository"
 msgstr ""
 
-#: src/core/settings.c:498
+#: src/core/settings.c:499
 msgid "use and sync spcc-database repository"
 msgstr ""
 
-#: src/core/settings.c:499
+#: src/core/settings.c:500
 msgid "auto sync online scripts repository"
 msgstr ""
 
-#: src/core/settings.c:500
+#: src/core/settings.c:501
 msgid "auto sync spcc-database repository"
 msgstr ""
 
-#: src/core/settings.c:501
+#: src/core/settings.c:502
 msgid "list of scripts selected from the repository"
 msgstr ""
 
-#: src/core/settings.c:502
+#: src/core/settings.c:503
 msgid "warn when launching a script"
 msgstr ""
 
-#: src/core/settings.c:503
+#: src/core/settings.c:504
 msgid "show thumbnails in open dialog"
 msgstr ""
 
-#: src/core/settings.c:504
+#: src/core/settings.c:505
 msgid "size of the thumbnails"
 msgstr ""
 
-#: src/core/settings.c:505
+#: src/core/settings.c:506
 msgid "number of elements of the grid guides"
 msgstr ""
 
-#: src/core/settings.c:506
+#: src/core/settings.c:507
 msgid "show tenths of arcseconds on hover"
 msgstr ""
 
-#: src/core/settings.c:507
+#: src/core/settings.c:508
 msgid "default display mode"
 msgstr ""
 
-#: src/core/settings.c:508
+#: src/core/settings.c:509
 msgid "default histogram display mode"
 msgstr ""
 
-#: src/core/settings.c:509
+#: src/core/settings.c:510
 msgid "ROI selection mode"
 msgstr ""
 
-#: src/core/settings.c:510
+#: src/core/settings.c:511
 msgid "enable ROI dialog warning"
 msgstr ""
 
-#: src/core/settings.c:511
+#: src/core/settings.c:512
 msgid "Middle mouse button double click zoom action"
 msgstr ""
 
-#: src/core/settings.c:512
-msgid "configure background samples color"
-msgstr ""
-
 #: src/core/settings.c:513
-msgid "configure standard annotation color"
+msgid "Mouse smooth scroll speed limit"
 msgstr ""
 
 #: src/core/settings.c:514
-msgid "configure dso annotation color"
+msgid "configure background samples color"
 msgstr ""
 
 #: src/core/settings.c:515
-msgid "configure sso annotation color"
+msgid "configure standard annotation color"
 msgstr ""
 
 #: src/core/settings.c:516
-msgid "configure tmp annotation color"
+msgid "configure dso annotation color"
 msgstr ""
 
 #: src/core/settings.c:517
-msgid "path to custom monitor ICC profile"
+msgid "configure sso annotation color"
 msgstr ""
 
 #: src/core/settings.c:518
-msgid "path to soft proofing ICC profile"
+msgid "configure tmp annotation color"
 msgstr ""
 
 #: src/core/settings.c:519
-msgid "custom monitor profile active"
+msgid "path to custom monitor ICC profile"
 msgstr ""
 
 #: src/core/settings.c:520
-msgid "output proofing profile active"
+msgid "path to soft proofing ICC profile"
 msgstr ""
 
 #: src/core/settings.c:521
-msgid "path to custom RGB ICC profile"
+msgid "custom monitor profile active"
 msgstr ""
 
 #: src/core/settings.c:522
-msgid "path to custom gray ICC profile"
+msgid "output proofing profile active"
 msgstr ""
 
 #: src/core/settings.c:523
-msgid "color management rendering intent"
+msgid "path to custom RGB ICC profile"
 msgstr ""
 
 #: src/core/settings.c:524
-msgid "color management soft proofing intent"
+msgid "path to custom gray ICC profile"
 msgstr ""
 
 #: src/core/settings.c:525
-msgid "color mangement export intent"
+msgid "color management rendering intent"
 msgstr ""
 
 #: src/core/settings.c:526
-msgid "default to sRGB when exporting non color managed images"
+msgid "color management soft proofing intent"
 msgstr ""
 
 #: src/core/settings.c:527
-msgid "color mangement working gamut"
+msgid "color mangement export intent"
 msgstr ""
 
 #: src/core/settings.c:528
-msgid "color mangement export profile for 8bit files"
+msgid "default to sRGB when exporting non color managed images"
 msgstr ""
 
 #: src/core/settings.c:529
-msgid "color mangement export profile for 16bit files"
+msgid "color mangement working gamut"
 msgstr ""
 
 #: src/core/settings.c:530
-msgid "autoconvert images with an ICC profile to the working color space"
+msgid "color mangement export profile for 8bit files"
 msgstr ""
 
 #: src/core/settings.c:531
-msgid "encodes ICC profile auto-assignment options"
+msgid "color mangement export profile for 16bit files"
 msgstr ""
 
 #: src/core/settings.c:532
-msgid "enable rendering BPC"
+msgid "autoconvert images with an ICC profile to the working color space"
 msgstr ""
 
 #: src/core/settings.c:533
-msgid "pedantically assign linear ICC profiles"
+msgid "encodes ICC profile auto-assignment options"
 msgstr ""
 
 #: src/core/settings.c:534
-msgid "mouse actions config. Opaque data structure, edit this using the GUI"
+msgid "enable rendering BPC"
 msgstr ""
 
 #: src/core/settings.c:535
-msgid "scroll actions config. Opaque data structure, edit this using the GUI"
+msgid "pedantically assign linear ICC profiles"
 msgstr ""
 
 #: src/core/settings.c:536
-msgid "index of the compass position over grid"
+msgid "mouse actions config. Opaque data structure, edit this using the GUI"
 msgstr ""
 
 #: src/core/settings.c:537
-msgid "show Messier objects in annotations"
+msgid "scroll actions config. Opaque data structure, edit this using the GUI"
 msgstr ""
 
 #: src/core/settings.c:538
-msgid "show NGC objects in annotations"
+msgid "index of the compass position over grid"
 msgstr ""
 
 #: src/core/settings.c:539
-msgid "show IC objects in annotations"
+msgid "show Messier objects in annotations"
 msgstr ""
 
 #: src/core/settings.c:540
-msgid "show LDN objects in annotations"
+msgid "show NGC objects in annotations"
 msgstr ""
 
 #: src/core/settings.c:541
-msgid "show SH2 objects in annotations"
+msgid "show IC objects in annotations"
 msgstr ""
 
 #: src/core/settings.c:542
-msgid "show stars in annotations"
+msgid "show LDN objects in annotations"
 msgstr ""
 
 #: src/core/settings.c:543
-msgid "show constellations in annotations"
+msgid "show SH2 objects in annotations"
 msgstr ""
 
 #: src/core/settings.c:544
-msgid "show constellations names in annotations"
+msgid "show stars in annotations"
 msgstr ""
 
 #: src/core/settings.c:545
-msgid "show user DSO objects in annotations"
+msgid "show constellations in annotations"
 msgstr ""
 
 #: src/core/settings.c:546
-msgid "show user SSO objects in annotations"
+msgid "show constellations names in annotations"
+msgstr ""
+
+#: src/core/settings.c:547
+msgid "show user DSO objects in annotations"
 msgstr ""
 
 #: src/core/settings.c:548
-msgid "list of pixel math presets"
+msgid "show user SSO objects in annotations"
 msgstr ""
 
 #: src/core/settings.c:550
-msgid "highlight syntax in the script editor"
-msgstr ""
-
-#: src/core/settings.c:551
-msgid "highlight matching brackets in the script editor"
+msgid "list of pixel math presets"
 msgstr ""
 
 #: src/core/settings.c:552
-msgid "show the right margin in the script editor"
+msgid "highlight syntax in the script editor"
 msgstr ""
 
 #: src/core/settings.c:553
-msgid "position of the right margin in the script editor"
+msgid "highlight matching brackets in the script editor"
 msgstr ""
 
 #: src/core/settings.c:554
-msgid "show line numbers in the script editor"
+msgid "show the right margin in the script editor"
 msgstr ""
 
 #: src/core/settings.c:555
-msgid "show line marks in the script editor"
+msgid "position of the right margin in the script editor"
 msgstr ""
 
 #: src/core/settings.c:556
-msgid "highlight the current line in the script editor"
+msgid "show line numbers in the script editor"
 msgstr ""
 
 #: src/core/settings.c:557
-msgid "automatically indent new lines"
+msgid "show line marks in the script editor"
 msgstr ""
 
 #: src/core/settings.c:558
-msgid "indent selected blocks of lines in the script editor using the tab key"
+msgid "highlight the current line in the script editor"
 msgstr ""
 
 #: src/core/settings.c:559
-msgid "Smart Backspace behaviour in the script editor"
+msgid "automatically indent new lines"
 msgstr ""
 
 #: src/core/settings.c:560
-msgid "Smart Home / End behaviour in the script editor"
+msgid "indent selected blocks of lines in the script editor using the tab key"
 msgstr ""
 
 #: src/core/settings.c:561
-msgid "Show visible space and tab characters in the script editor"
+msgid "Smart Backspace behaviour in the script editor"
 msgstr ""
 
 #: src/core/settings.c:562
-msgid "Show visible newline characters in the script editor"
+msgid "Smart Home / End behaviour in the script editor"
 msgstr ""
 
 #: src/core/settings.c:563
+msgid "Show visible space and tab characters in the script editor"
+msgstr ""
+
+#: src/core/settings.c:564
+msgid "Show visible newline characters in the script editor"
+msgstr ""
+
+#: src/core/settings.c:565
 msgid "Show a minimap in the script editor"
 msgstr ""
 
-#: src/core/settings.c:603
+#: src/core/settings.c:605
 #, c-format
 msgid "Unknown settings variable %s.%s\n"
 msgstr ""
@@ -18638,17 +18665,17 @@ msgstr ""
 msgid "Binning %d x %d is not supported\n"
 msgstr ""
 
-#: src/gui/callbacks.c:1626
+#: src/gui/callbacks.c:1632
 #, c-format
 msgid "Default FITS extension is set to %s\n"
 msgstr ""
 
-#: src/gui/callbacks.c:1649
+#: src/gui/callbacks.c:1655
 #, c-format
 msgid "Welcome to %s"
 msgstr ""
 
-#: src/gui/callbacks.c:1652
+#: src/gui/callbacks.c:1658
 msgid ""
 "Hello, this is the first time you use this new version of Siril. Please, "
 "have a seat and take the time to watch the short introduction we have "
@@ -18656,85 +18683,85 @@ msgid ""
 "the Miscellaneous tab of the preferences dialog box."
 msgstr ""
 
-#: src/gui/callbacks.c:1655
+#: src/gui/callbacks.c:1661
 msgid "See Introduction"
 msgstr ""
 
-#: src/gui/callbacks.c:1930
+#: src/gui/callbacks.c:1937
 msgid "Closing application"
 msgstr ""
 
-#: src/gui/callbacks.c:1931
+#: src/gui/callbacks.c:1938
 msgid "Are you sure you want to quit?"
 msgstr ""
 
-#: src/gui/callbacks.c:1931
+#: src/gui/callbacks.c:1938
 msgid "Exit"
 msgstr ""
 
-#: src/gui/callbacks.c:2091
+#: src/gui/callbacks.c:2098
 #, c-format
 msgid "Selected %s sequence %s..."
 msgstr ""
 
-#: src/gui/callbacks.c:2140
+#: src/gui/callbacks.c:2147
 msgid "Searching for sequences in the current working directory..."
 msgstr ""
 
-#: src/gui/callbacks.c:2191
+#: src/gui/callbacks.c:2198
 msgid "This erases the following data, and there's no possible undo:\n"
 msgstr ""
 
-#: src/gui/callbacks.c:2192
+#: src/gui/callbacks.c:2199
 msgid ""
 "\n"
 "- Registration"
 msgstr ""
 
-#: src/gui/callbacks.c:2193
+#: src/gui/callbacks.c:2200
 msgid ""
 "\n"
 "- Statistics"
 msgstr ""
 
-#: src/gui/callbacks.c:2194
+#: src/gui/callbacks.c:2201
 msgid ""
 "\n"
 "- Selection"
 msgstr ""
 
-#: src/gui/callbacks.c:2198
+#: src/gui/callbacks.c:2205
 msgid "Clear Sequence Data?"
 msgstr ""
 
-#: src/gui/callbacks.c:2198
+#: src/gui/callbacks.c:2205
 msgid "Clear Data"
 msgstr ""
 
-#: src/gui/callbacks.c:2210
+#: src/gui/callbacks.c:2217
 msgid "The requested data of the sequence has been cleaned."
 msgstr ""
 
-#: src/gui/callbacks.c:2218
+#: src/gui/callbacks.c:2225
 #, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
 "the manually added objects will be deleted. This operation cannot be undone."
 msgstr ""
 
-#: src/gui/callbacks.c:2220
+#: src/gui/callbacks.c:2227
 msgid "SOLAR SYSTEM"
 msgstr ""
 
-#: src/gui/callbacks.c:2220
+#: src/gui/callbacks.c:2227
 msgid "DEEP SKY"
 msgstr ""
 
-#: src/gui/callbacks.c:2222
+#: src/gui/callbacks.c:2229
 msgid "Catalog deletion"
 msgstr ""
 
-#: src/gui/callbacks.c:2222
+#: src/gui/callbacks.c:2229
 msgid "Purge Catalogue"
 msgstr ""
 
@@ -19360,8 +19387,8 @@ msgid "Error: image dimensions do not match"
 msgstr ""
 
 #: src/gui/git_gui.c:61 src/gui/git_gui.c:72 src/gui/git_gui.c:244
-#: src/gui/git_gui.c:248 src/gui/git_gui.c:253 src/gui/git_gui.c:306
-#: src/gui/git_gui.c:310 src/gui/git_gui.c:313
+#: src/gui/git_gui.c:248 src/gui/git_gui.c:253 src/gui/git_gui.c:312
+#: src/gui/git_gui.c:316 src/gui/git_gui.c:319
 msgid "Manual Update"
 msgstr ""
 
@@ -19402,11 +19429,11 @@ msgstr ""
 msgid "Manually synchronising script repository\n"
 msgstr ""
 
-#: src/gui/git_gui.c:212 src/gui/git_gui.c:277
+#: src/gui/git_gui.c:212 src/gui/git_gui.c:283
 msgid "Error getting the list of unmerged changes"
 msgstr ""
 
-#: src/gui/git_gui.c:217 src/gui/git_gui.c:282 src/gui/graxpert.c:321
+#: src/gui/git_gui.c:217 src/gui/git_gui.c:288 src/gui/graxpert.c:321
 msgid "Warning!"
 msgstr ""
 
@@ -19425,15 +19452,15 @@ msgid ""
 "location to the list of script directories to be searched."
 msgstr ""
 
-#: src/gui/git_gui.c:229 src/gui/git_gui.c:294 src/gui/icc_profile.c:110
+#: src/gui/git_gui.c:229 src/gui/git_gui.c:300 src/gui/icc_profile.c:110
 msgid "Accept"
 msgstr ""
 
-#: src/gui/git_gui.c:245 src/gui/git_gui.c:307
+#: src/gui/git_gui.c:245 src/gui/git_gui.c:313
 msgid "Read and confirm the pending changes to be synced"
 msgstr ""
 
-#: src/gui/git_gui.c:246 src/gui/git_gui.c:308
+#: src/gui/git_gui.c:246 src/gui/git_gui.c:314
 msgid "Confirm"
 msgstr ""
 
@@ -19441,7 +19468,7 @@ msgstr ""
 msgid "Error! Script database failed to update."
 msgstr ""
 
-#: src/gui/git_gui.c:254 src/gui/git_gui.c:313
+#: src/gui/git_gui.c:254 src/gui/git_gui.c:319
 msgid "Update cancelled. Updates have not been applied."
 msgstr ""
 
@@ -19449,7 +19476,7 @@ msgstr ""
 msgid "Manual scripts update: the script repository is up to date.\n"
 msgstr ""
 
-#: src/gui/git_gui.c:283
+#: src/gui/git_gui.c:289
 msgid ""
 "Merge analysis shows that the merge cannot be fast-forwarded. This indicates "
 "you have made changes to the local scripts repository. Siril does not "
@@ -19464,11 +19491,11 @@ msgid ""
 "location to the list of script directories to be searched."
 msgstr ""
 
-#: src/gui/git_gui.c:310
+#: src/gui/git_gui.c:316
 msgid "Error! SPCC database failed to update."
 msgstr ""
 
-#: src/gui/git_gui.c:317
+#: src/gui/git_gui.c:323
 msgid ""
 "Manual SPCC database update: the SPCC database repository is up to date.\n"
 msgstr ""
@@ -19967,15 +19994,15 @@ msgstr ""
 msgid "Scroll wheel zooms in / out"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:755
+#: src/gui/mouse_action_functions.c:766
 msgid "Scroll wheel scrolls through the frames in the current sequence"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:799
+#: src/gui/mouse_action_functions.c:810
 msgid "Error: image load failed, reloading reference image!\n"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:806
+#: src/gui/mouse_action_functions.c:817
 msgid "Scroll wheel scrolls through the Siril GUI tabs"
 msgstr ""
 
@@ -20076,34 +20103,34 @@ msgid ""
 "changes. Are you sure?"
 msgstr ""
 
-#: src/gui/mouse_action_preferences.c:739
+#: src/gui/mouse_action_preferences.c:740
 #, c-format
 msgid "Scroll (vertical)"
 msgstr ""
 
-#: src/gui/mouse_action_preferences.c:743
+#: src/gui/mouse_action_preferences.c:744
 #, c-format
 msgid "Scroll (horizontal)"
 msgstr ""
 
-#: src/gui/mouse_action_preferences.c:749
+#: src/gui/mouse_action_preferences.c:750
 #, c-format
 msgid "Smooth scroll (vertical)"
 msgstr ""
 
-#: src/gui/mouse_action_preferences.c:751
+#: src/gui/mouse_action_preferences.c:752
 #, c-format
 msgid "Smooth scroll (horizontal)"
 msgstr ""
 
-#: src/gui/mouse_action_preferences.c:756
+#: src/gui/mouse_action_preferences.c:757
 #, c-format
 msgid "Button %u"
 msgstr ""
 
-#: src/gui/mouse_action_preferences.c:811
-#: src/gui/mouse_action_preferences.c:819
-#: src/gui/mouse_action_preferences.c:882
+#: src/gui/mouse_action_preferences.c:812
+#: src/gui/mouse_action_preferences.c:820
+#: src/gui/mouse_action_preferences.c:883
 #, c-format
 msgid ""
 "Warning: when parsing mouse action config, config string parsed to an "
@@ -20111,14 +20138,14 @@ msgid ""
 msgstr ""
 
 #. Handle error: input format is incorrect
-#: src/gui/mouse_action_preferences.c:827
+#: src/gui/mouse_action_preferences.c:828
 #, c-format
 msgid ""
 "Warning: when parsing mouse action config, config string has incorrect "
 "format: \"%s\". Skipping..."
 msgstr ""
 
-#: src/gui/mouse_action_preferences.c:890
+#: src/gui/mouse_action_preferences.c:891
 #, c-format
 msgid ""
 "Warning: when parsing scroll action config, string parsed to an unknown "
@@ -20126,7 +20153,7 @@ msgid ""
 msgstr ""
 
 #. Handle error: input format is incorrect
-#: src/gui/mouse_action_preferences.c:898
+#: src/gui/mouse_action_preferences.c:899
 #, c-format
 msgid ""
 "Warning: when parsing mouse action config, string has incorrect format: "
@@ -20576,68 +20603,68 @@ msgid ""
 "a 3-character code.\n"
 msgstr ""
 
-#: src/gui/preferences.c:553
+#: src/gui/preferences.c:554
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:572
+#: src/gui/preferences.c:573
 #, c-format
 msgid "You don't have permission to execute this file: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:606
+#: src/gui/preferences.c:607
 #, c-format
 msgid "You don't have permission to read this file: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:635
+#: src/gui/preferences.c:636
 msgid "Cannot refresh script list"
 msgstr ""
 
-#: src/gui/preferences.c:987
+#: src/gui/preferences.c:989
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
 msgstr ""
 
-#: src/gui/preferences.c:996
+#: src/gui/preferences.c:998
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
 msgstr ""
 
-#: src/gui/preferences.c:1008
+#: src/gui/preferences.c:1010
 msgid "Wrong value"
 msgstr ""
 
-#: src/gui/preferences.c:1057
+#: src/gui/preferences.c:1059
 msgid "Reset all preferences"
 msgstr ""
 
-#: src/gui/preferences.c:1058
+#: src/gui/preferences.c:1060
 msgid "Do you really want to reset all preferences to default value?"
 msgstr ""
 
-#: src/gui/preferences.c:1059
+#: src/gui/preferences.c:1061
 msgid "Reset Preferences"
 msgstr ""
 
-#: src/gui/preferences.c:1078
+#: src/gui/preferences.c:1080
 msgid "External ICC Profiles"
 msgstr ""
 
-#: src/gui/preferences.c:1078
+#: src/gui/preferences.c:1080
 msgid ""
 "In order to use ICC profiles loaded from files as your preferred color space "
 "you must set the Preferred Color Space drop-down to \"From files\"."
 msgstr ""
 
-#: src/gui/preferences.c:1103
+#: src/gui/preferences.c:1105
 msgid "WARNING!"
 msgstr ""
 
-#: src/gui/preferences.c:1103
+#: src/gui/preferences.c:1105
 msgid ""
 "This will kill all running python processes and delete and reinstall the "
 "python venv directory. This is not normally necessary for upgrades or "
@@ -20834,7 +20861,8 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr ""
 
 #: src/gui/registration.c:735
-msgid "Max framing not allowed with fitseq, change to regular FITS images"
+msgid ""
+"Max framing not allowed with FITSEQ or SER, change to regular FITS images"
 msgstr ""
 
 #: src/gui/registration.c:746
@@ -21121,7 +21149,7 @@ msgstr ""
 msgid "Cannot take snapshot: %s\n"
 msgstr ""
 
-#: src/gui/script_menu.c:48
+#: src/gui/script_menu.c:49
 msgid ""
 "You are about to use scripts. Note that scripts execute code with your "
 "current user privileges. While Siril Script Files can only execute Siril "
@@ -21130,58 +21158,58 @@ msgid ""
 "Siril team. Ensure you obtain scripts from a reputable source."
 msgstr ""
 
-#: src/gui/script_menu.c:159
+#: src/gui/script_menu.c:160
 msgid "Please read me before using scripts"
 msgstr ""
 
-#: src/gui/script_menu.c:160
+#: src/gui/script_menu.c:161
 msgid "Run Script"
 msgstr ""
 
-#: src/gui/script_menu.c:217
+#: src/gui/script_menu.c:218
 #, c-format
 msgid "Unknown script type: %s\n"
 msgstr ""
 
-#: src/gui/script_menu.c:267
+#: src/gui/script_menu.c:268
 msgid "Python Scripts"
 msgstr ""
 
-#: src/gui/script_menu.c:272
+#: src/gui/script_menu.c:273
 msgid "Script Editor..."
 msgstr ""
 
-#: src/gui/script_menu.c:274
+#: src/gui/script_menu.c:275
 msgid "Enable Python debug mode"
 msgstr ""
 
-#: src/gui/script_menu.c:310
+#: src/gui/script_menu.c:311
 #, c-format
 msgid "Searching for scripts in: \"%s\"...\n"
 msgstr ""
 
-#: src/gui/script_menu.c:356
+#: src/gui/script_menu.c:357
 #, c-format
 msgid "Loading script: %s\n"
 msgstr ""
 
-#: src/gui/script_menu.c:383 src/gui/script_menu.c:417
+#: src/gui/script_menu.c:384 src/gui/script_menu.c:418
 #, c-format
 msgid ""
 "Script %s no longer exists in repository, removing from Scripts menu...\n"
 msgstr ""
 
-#: src/gui/script_menu.c:411
+#: src/gui/script_menu.c:412
 #, c-format
 msgid "Loading script from repository: %s\n"
 msgstr ""
 
-#: src/gui/script_menu.c:462
+#: src/gui/script_menu.c:463
 #, c-format
 msgid "Adding core script to menu: %s\n"
 msgstr ""
 
-#: src/gui/script_menu.c:489
+#: src/gui/script_menu.c:490
 msgid "Cannot refresh the scripts if the list is empty.\n"
 msgstr ""
 
@@ -21271,26 +21299,23 @@ msgstr ""
 msgid "Failed to load CSS sheet: %s.\n"
 msgstr ""
 
-#: src/gui/siril_intro.c:45
-msgid "Welcome to the newest version of Siril, "
-msgstr ""
-
-#: src/gui/siril_intro.c:45
+#: src/gui/siril_intro.c:47
+#, c-format
 msgid ""
-". Please take a moment to read some tips about this release. If the rate is "
-"too slow, skip to the next tip using the right arrow of your keyboard. You "
-"can also go back to the previous tip using the left arrow and stop the "
-"animation with the escape key."
+"Welcome to the newest version of Siril, %s. Please take a moment to read "
+"some tips about this release. If the rate is too slow, skip to the next tip "
+"using the right arrow of your keyboard. You can also go back to the previous "
+"tip using the left arrow and stop the animation with the escape key."
 msgstr ""
 
-#: src/gui/siril_intro.c:46
+#: src/gui/siril_intro.c:48
 msgid ""
 "The Processing menu has been reorganized by theme to streamline its "
 "structure and reduce its size. Many new processing tools have been developed "
 "and integrated in this menu."
 msgstr ""
 
-#: src/gui/siril_intro.c:47
+#: src/gui/siril_intro.c:49
 msgid ""
 "A new menu, Tools, has been created to centralize Siril's tools, which were "
 "previously scattered throughout the interface. It now includes statistics, "
@@ -21298,67 +21323,67 @@ msgid ""
 "features."
 msgstr ""
 
-#: src/gui/siril_intro.c:48
+#: src/gui/siril_intro.c:50
 msgid ""
 "The Script menu has also evolved, now featuring both Python scripts and a "
 "script editor."
 msgstr ""
 
-#: src/gui/siril_intro.c:49
+#: src/gui/siril_intro.c:51
 msgid ""
 "The new script editor can be used to write both Siril and Python scripts. It "
 "offers syntax highlighting and many other useful features. Additionally, you "
 "can execute the script directly from the editor's interface."
 msgstr ""
 
-#: src/gui/siril_intro.c:50
+#: src/gui/siril_intro.c:52
 msgid ""
 "The hamburger menu has been streamlined and now includes quick access to the "
 "documentation, preferences, keyboard shortcuts help, and the script tab in "
 "the preferences, making it easy to add new scripts."
 msgstr ""
 
-#: src/gui/siril_intro.c:51
+#: src/gui/siril_intro.c:53
 msgid ""
 "Script management has been entirely revamped. You can now download new "
 "scripts directly from the preferences interface. These scripts are hosted by "
 "the Siril team, but can also be contributed by the community."
 msgstr ""
 
-#: src/gui/siril_intro.c:52
+#: src/gui/siril_intro.c:54
 msgid ""
 "The Registration, Plot and Stacking tabs have been redesigned for improved "
 "clarity and better organization. This release adds true Drizzle registration "
 "and mosaic stacking."
 msgstr ""
 
-#: src/gui/siril_intro.c:53
+#: src/gui/siril_intro.c:55
 msgid ""
 "This version of Siril includes a color management tool. A left-click on this "
 "button allows you to manage ICC profiles, while a right-click displays the "
 "image in soft proofing mode."
 msgstr ""
 
-#: src/gui/siril_intro.c:54
+#: src/gui/siril_intro.c:56
 msgid ""
 "Right-clicking the annotations button now allows selection of the annotation "
 "catalogues to display, and support for IAU constellation names and outlines "
 "has been added."
 msgstr ""
 
-#: src/gui/siril_intro.c:55
+#: src/gui/siril_intro.c:57
 msgid ""
 "A new intensity profiling tool has been added. This allows creating mono or "
 "RGB profiles of pixel values along a line in the image."
 msgstr ""
 
-#: src/gui/siril_intro.c:56
+#: src/gui/siril_intro.c:58
 msgid ""
 "All color management options are now centralized in the preferences. This "
 "allows for professional-level work with any mono or RGB ICC profile."
 msgstr ""
 
-#: src/gui/siril_intro.c:57
+#: src/gui/siril_intro.c:59
 msgid ""
 "For more precise control, such as customizing annotation colors or "
 "configuring mouse interactions, visit the User Interface tab in the "
@@ -21366,7 +21391,7 @@ msgid ""
 "available options."
 msgstr ""
 
-#: src/gui/siril_intro.c:58
+#: src/gui/siril_intro.c:60
 msgid ""
 "Enjoy using the new Siril. You can restart this introduction at any moment "
 "in the Miscellaneous tab of the preferences."
@@ -23471,79 +23496,79 @@ msgstr ""
 msgid "Failed to save list to %s\n"
 msgstr ""
 
-#: src/io/siril_git.c:134
+#: src/io/siril_git.c:146
 msgid "libgit2: unable to parse some refish\n"
 msgstr ""
 
-#: src/io/siril_git.c:149
+#: src/io/siril_git.c:161
 msgid "Failed to find commit with given OID.\n"
 msgstr ""
 
-#: src/io/siril_git.c:228
+#: src/io/siril_git.c:240
 msgid ""
 "Error removing Git lock files. You may need to delete the local git "
 "repository and allow Siril to re-clone it.\n"
 msgstr ""
 
-#: src/io/siril_git.c:245 src/io/siril_git.c:257 src/io/siril_git.c:269
+#: src/io/siril_git.c:257 src/io/siril_git.c:269 src/io/siril_git.c:281
 msgid ""
 "Error performing hard reset. You may need to delete the local git repository "
 "and allow Siril to re-clone it.\n"
 msgstr ""
 
-#: src/io/siril_git.c:294
+#: src/io/siril_git.c:306
 msgid ""
 "Unable to create anonymous remote for the repository. Check your "
 "connectivity and try again.\n"
 msgstr ""
 
-#: src/io/siril_git.c:300
+#: src/io/siril_git.c:312
 msgid ""
 "Error fetching remote. This may be a temporary error, check your "
 "connectivity and try again.\n"
 msgstr ""
 
-#: src/io/siril_git.c:534
+#: src/io/siril_git.c:546
 #, c-format
 msgid "libgit2: repository is in unexpected state %d. Cleaning up...\n"
 msgstr ""
 
-#: src/io/siril_git.c:538
+#: src/io/siril_git.c:550
 msgid "libgit2: repository failed to clean up properly. Cannot continue.\n"
 msgstr ""
 
-#: src/io/siril_git.c:625 src/io/siril_git.c:629
+#: src/io/siril_git.c:637 src/io/siril_git.c:641
 #, c-format
 msgid "Commit message: %s\n"
 msgstr ""
 
-#: src/io/siril_git.c:687
+#: src/io/siril_git.c:699
 msgid "Attempting to clone from remote source...\n"
 msgstr ""
 
-#: src/io/siril_git.c:693 src/io/siril_git.c:845
+#: src/io/siril_git.c:705 src/io/siril_git.c:861
 #, c-format
 msgid "Error cloning repository: %s\n"
 msgstr ""
 
-#: src/io/siril_git.c:698 src/io/siril_git.c:850
+#: src/io/siril_git.c:710 src/io/siril_git.c:866
 msgid "Repository cloned successfully!\n"
 msgstr ""
 
-#: src/io/siril_git.c:701
+#: src/io/siril_git.c:714
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:716 src/io/siril_git.c:861
+#: src/io/siril_git.c:730 src/io/siril_git.c:879
 msgid "Failed to lookup remote.\n"
 msgstr ""
 
-#: src/io/siril_git.c:727 src/io/siril_git.c:872
+#: src/io/siril_git.c:741 src/io/siril_git.c:890
 msgid "Error: cannot identify local repository's configured remote.\n"
 msgstr ""
 
-#: src/io/siril_git.c:735
+#: src/io/siril_git.c:749
 #, c-format
 msgid ""
 "Error: local siril-scripts repository folder is not configured with %s as "
@@ -23551,22 +23576,22 @@ msgid ""
 "the correct repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:740 src/io/siril_git.c:885
+#: src/io/siril_git.c:754 src/io/siril_git.c:903
 msgid "Repository Error"
 msgstr ""
 
-#: src/io/siril_git.c:757 src/io/siril_git.c:771 src/io/siril_git.c:902
-#: src/io/siril_git.c:916
+#: src/io/siril_git.c:771 src/io/siril_git.c:785 src/io/siril_git.c:920
+#: src/io/siril_git.c:934
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
 msgstr ""
 
-#: src/io/siril_git.c:779
+#: src/io/siril_git.c:793
 msgid "Local scripts repository is up-to-date!\n"
 msgstr ""
 
-#: src/io/siril_git.c:880
+#: src/io/siril_git.c:898
 #, c-format
 msgid ""
 "Error: local siril-spcc-database repository folder is not configured with %s "
@@ -23574,37 +23599,37 @@ msgid ""
 "the correct repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:924
+#: src/io/siril_git.c:942
 msgid "Local SPCC database repository is up-to-date!\n"
 msgstr ""
 
-#: src/io/siril_git.c:961
+#: src/io/siril_git.c:979
 #, c-format
 msgid "Error spawning thread to update scripts repository: %s\n"
 msgstr ""
 
-#: src/io/siril_git.c:965
+#: src/io/siril_git.c:983
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "scripts...\n"
 msgstr ""
 
-#: src/io/siril_git.c:975
+#: src/io/siril_git.c:993
 #, c-format
 msgid "Error spawning thread to update SPCC repository: %s\n"
 msgstr ""
 
-#: src/io/siril_git.c:979
+#: src/io/siril_git.c:997
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "spcc...\n"
 msgstr ""
 
-#: src/io/siril_git.c:994
+#: src/io/siril_git.c:1012
 msgid "Error: unable to open local scripts repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:1019
+#: src/io/siril_git.c:1037
 msgid "Error: unable to open local spcc-database repository.\n"
 msgstr ""
 
@@ -25126,16 +25151,21 @@ msgid ""
 "Framing method \"cog\" requires all images to be of same size, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1190
+#: src/registration/applyreg.c:1186
+msgid ""
+"Framing method \"max\" cannot export to FITSEQ or SER format, aborting\n"
+msgstr ""
+
+#: src/registration/applyreg.c:1196
 msgid "Reference image is not included in the filtered list, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1191
+#: src/registration/applyreg.c:1197
 msgid ""
 "This is not compatible with framing mode \"current\", change reference image"
 msgstr ""
 
-#: src/registration/applyreg.c:1200
+#: src/registration/applyreg.c:1206
 #, c-format
 msgid ""
 "Reference image is not included in the filtered list, using image #%d "
@@ -25158,8 +25188,7 @@ msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
 msgstr ""
 
 #: src/registration/astrometric.c:293
-#, c-format
-msgid "No image selected after computing transformations, aborting%s\n"
+msgid "No image selected after computing transformations, aborting\n"
 msgstr ""
 
 #: src/registration/astrometric.c:316
