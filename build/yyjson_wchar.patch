@@ -6,7 +6,7 @@ index 16ecbac..3ca262c 100644
      FILE *file = NULL;
      if (fopen_s(&file, path, mode) != 0) return NULL;
      return file;
-+#else if defined(_WIN32)
++#elif defined(_WIN32)
 +    // Convert UTF-8 path and mode to UTF-16
 +    wchar_t wpath[MAX_PATH];
 +    wchar_t wmode[8]; // "rb+", etc.
