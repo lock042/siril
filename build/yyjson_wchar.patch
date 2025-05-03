@@ -1,5 +1,5 @@
 diff --git a/src/yyjson.c b/src/yyjson.c
-index 16ecbac..3c34379 100644
+index 16ecbac..f9f5f33 100644
 --- a/src/yyjson.c
 +++ b/src/yyjson.c
 @@ -917,11 +917,26 @@ static_inline void u128_mul_add(u64 a, u64 b, u64 c, u64 *hi, u64 *lo) {
@@ -15,7 +15,7 @@ index 16ecbac..3c34379 100644
      FILE *file = NULL;
      if (fopen_s(&file, path, mode) != 0) return NULL;
      return file;
-+#else if defined(_WIN32)
++#elif defined(_WIN32)
 +    // Convert UTF-8 path and mode to UTF-16
 +    wchar_t wpath[MAX_PATH];
 +    wchar_t wmode[8]; // "rb+", etc.
