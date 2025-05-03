@@ -1136,7 +1136,9 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 			if (gtk_check_menu_item_get_active(useargs)) {
 				const gchar *args_string = gtk_entry_get_text(args_entry);
 				script_args = g_strsplit(args_string, " ", -1);
-			}
+				g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);
+			} else
+				g_unsetenv("SIRIL_PYTHON_CLI");
 			execute_python_script(text, FALSE, FALSE, script_args);
 			g_strfreev(script_args);
 			break;
@@ -1304,6 +1306,11 @@ void on_editor_minimap_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 
 void on_editor_useargs_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gtk_widget_set_visible(GTK_WIDGET(args_box), gtk_check_menu_item_get_active(item));
+	if (gtk_check_menu_item_get_active(item)) {
+		g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);
+	} else {
+		g_unsetenv("SIRIL_PYTHON_CLI");
+	}
 }
 
 void on_editor_args_clear_clicked(GtkButton *button, gpointer user_data) {

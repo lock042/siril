@@ -11756,6 +11756,7 @@ int process_pyscript(int nb) {
 		pyscript_data *data = calloc(1, sizeof(pyscript_data));
 		data->script_name = script_name;
 		data->argv_script = argv_script;
+		g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);  // TRUE to overwrite if it exists
 		// Cannot use start_in_new_thread here because of the possibility of the python script
 		// calling siril.cmd() and running commands that themselves require the processing thread
 		// so we use a generic GThread

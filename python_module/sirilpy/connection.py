@@ -78,6 +78,7 @@ class SirilInterface:
             self.command_lock = threading.Lock()
 
         self.debug = bool(os.getenv('SIRIL_PYTHON_DEBUG') is not None)
+        self._is_cli = bool(os.getenv('SIRIL_PYTHON_CLI') is not None)
 
     def connect(self) -> bool:
         """
@@ -4106,3 +4107,16 @@ class SirilInterface:
 
         except Exception as e:
             raise SirilError(f"Error in create_new_seq(): {e}") from e
+
+
+    def is_cli(self) -> bool:
+        """
+        Check if the current instance is running in CLI mode. This method is useful
+        to detect how the script was invoked and whether to show or not a GUI.
+        This is False when the script is called by clicking in the Script menu, 
+        True otherwise.
+
+        Returns:
+            bool: True if running in CLI mode, False otherwise.
+        """
+        return self._is_cli
