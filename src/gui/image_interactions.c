@@ -30,6 +30,7 @@
 #include "core/undo.h"
 #include "core/siril_world_cs.h"
 #include "algos/background_extraction.h"
+#include "algos/demosaicing.h"
 #include "algos/siril_wcs.h"
 #include "algos/photometry.h"
 #include "io/single_image.h"
@@ -366,6 +367,20 @@ void enforce_ratio_and_clamp() {
 	// clamp the selection inside the image (needed when enforcing a ratio or moving)
 	com.selection.x = set_int_in_interval(com.selection.x, 0, gfit.rx - com.selection.w);
 	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit.ry - com.selection.h);
+
+	// If the image is CFA ensure the selection is aligned to a Bayer repeat
+	// This ensures CFA statistics (for Bayer patterns) will be valid
+	int cfa = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
+	if (cfa != BAYER_FILTER_NONE) {
+		com.selection.x &= ~1;
+		com.selection.y &= ~1;
+		com.selection.w &= ~1;
+		com.selection.h &= ~1;
+		if(com.selection.w < 2)
+			com.selection.w = 2;
+		if (com.selection.h < 2)
+			com.selection.h = 2;
+	}
 }
 
 gboolean on_drawingarea_button_press_event(GtkWidget *widget,
