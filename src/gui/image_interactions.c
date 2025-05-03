@@ -371,6 +371,25 @@ void enforce_ratio_and_clamp() {
 	// If the image is CFA ensure the selection is aligned to a Bayer repeat
 	// This ensures CFA statistics (for Bayer patterns) will be valid
 	int cfa = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
+	switch (cfa) {
+		case BAYER_FILTER_NONE:
+			break;
+		case BAYER_FILTER_RGGB: // Fallthrough intentional
+		case BAYER_FILTER_BGGR:
+		case BAYER_FILTER_GBRG:
+		case BAYER_FILTER_GRBG:
+			// Bayer (2x2 guarantees at least 1 pixel per subchannel for statistics)
+			if(com.selection.w < 2)
+				com.selection.w = 2;
+			if (com.selection.h < 2)
+				com.selection.h = 2;
+			break;
+		default: // X-trans (3x3 guarantees at least 1 pixel per subchannel for statistics)
+			if(com.selection.w < 3)
+				com.selection.w = 3;
+			if (com.selection.h < 3)
+				com.selection.h = 3;
+	}
 	if (cfa != BAYER_FILTER_NONE) {
 		com.selection.x &= ~1;
 		com.selection.y &= ~1;

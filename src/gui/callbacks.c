@@ -357,42 +357,6 @@ gpointer on_set_roi() {
 	if (com.selection.w == 0 && com.selection.h == 0)
 		return GINT_TO_POINTER(0);
 	rectangle sel = com.selection;
-
-	// Ensure the ROI aligns with CFA pattern boundaries
-	int cfa = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
-	switch (cfa) {
-		case BAYER_FILTER_NONE:
-			break;
-		case BAYER_FILTER_RGGB: // Fallthrough intentional
-		case BAYER_FILTER_BGGR:
-		case BAYER_FILTER_GBRG:
-		case BAYER_FILTER_GRBG:
-			if (sel.x & 1 || sel.y & 1 || sel.w & 1 || sel.h & 1) {
-				siril_log_message(_("Rounding ROI selection to match CFA pattern\n"));
-				sel.x &= ~1;
-				sel.y &= ~1;
-				sel.w &= ~1;
-				sel.h &= ~1;
-				if(sel.w < 2)
-					sel.w = 2;
-				if (sel.h < 2)
-					sel.h = 2;
-			}
-			break;
-		default: // X-trans
-			if (sel.x % 6 || sel.y % 6 || sel.w % 6 || sel.h % 6) {
-				siril_log_message(_("Rounding ROI selection to match CFA pattern\n"));
-				sel.x = round_down_to_multiple(sel.x, 6);
-				sel.y = round_down_to_multiple(sel.y, 6);
-				sel.w = round_down_to_multiple(sel.w, 6);
-				sel.h = round_down_to_multiple(sel.h, 6);
-				if(sel.w < 6)
-					sel.w = 6;
-				if (sel.h < 6)
-					sel.h = 6;
-			}
-	}
-
 	g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 	if (com.python_command) {
 		g_mutex_unlock(&roi_mutex);
