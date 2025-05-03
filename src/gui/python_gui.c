@@ -950,7 +950,7 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	gtk_check_menu_item_set_active(shownewlines, com.pref.gui.editor_cfg.shownewlines);
 	gtk_check_menu_item_set_active(minimap, com.pref.gui.editor_cfg.minimap);
 	gtk_widget_set_visible(GTK_WIDGET(map), com.pref.gui.editor_cfg.minimap);
-	gtk_widget_set_visible(GTK_WIDGET(args_box), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(args_box), gtk_check_menu_item_get_active(useargs));
 	return 0;
 }
 
