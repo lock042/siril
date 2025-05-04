@@ -51,9 +51,9 @@
 #include "filters/graxpert.h"
 
 // Uncomment the following line for highly verbose debugging messages
-// #define GRAXPERT_DEBUG
+#define GRAXPERT_DEBUG
 // The following line keeps the config file
-#define GRAXPERT_CONFIG_DEBUG
+//#define GRAXPERT_CONFIG_DEBUG
 
 // Define the minumum version numbers that support different operations
 static const version_number min_bg_ver = { 3, 0, 0, 0 , FALSE, FALSE};
@@ -200,7 +200,8 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 		if (arg)
 			value = g_ascii_strtod(arg + strlen(progress_key), NULL);
 		if (value > 0.0 && value == value && verbose) {
-			if (!is_sequence) set_progress_bar_data(_("Running GraXpert"), value / 100.0);
+			if (!is_sequence)
+				set_progress_bar_data(_("Running GraXpert"), value / 100.0);
 		} else if ( ((errmsg = g_strstr_len(buffer, -1, "ERROR")) && !graxpert_aborted) ) {
 			if (!is_sequence) set_progress_bar_data(_("GraXpert reported an error"), max(value, 0.0) / 100);
 			if (strlen(errmsg) > 9) {
