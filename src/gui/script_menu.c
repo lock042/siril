@@ -190,6 +190,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	if (g_str_has_suffix(script_file, PYSCRIPT_EXT) || g_str_has_suffix(script_file, PYCSCRIPT_EXT)) {
 		// Run Python script
+		g_unsetenv("SIRIL_PYTHON_CLI");
 		execute_python_script(script_file, TRUE, FALSE, NULL);
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
 		/* Last thing before running the script, disable widgets except for Stop */
