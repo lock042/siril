@@ -358,7 +358,8 @@
                           <object class="GtkCheckMenuItem" id="editor_useargs">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">When active, any arguments entered in the args entry will be passed to the script when it is run.</property>
+                            <property name="tooltip-text" translatable="yes">When active, any arguments entered in the args entry will be passed to the script when it is run.
+This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli() will return True)</property>
                             <property name="label" translatable="yes">Enable test arguments</property>
                             <signal name="toggled" handler="on_editor_useargs_toggled" swapped="no"/>
                           </object>
