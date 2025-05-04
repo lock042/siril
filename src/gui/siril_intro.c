@@ -41,8 +41,10 @@ typedef struct {
 	gulong handler_id;
 } WindowKeyHandler;
 
+
+
 const SirilTipIntro intro_tips[] = {
-		{"headerbar", N_("Welcome to the newest version of Siril, ") PACKAGE_STRING N_(". Please take a moment to read some tips about this release. If the rate is too slow, skip to the next tip using the right arrow of your keyboard. You can also go back to the previous tip using the left arrow and stop the animation with the escape key."), 14, SIRIL_INTRO_GTK_POPOVER},
+		{"headerbar", N_("Welcome to the newest version of Siril, %s. Please take a moment to read some tips about this release. If the rate is too slow, skip to the next tip using the right arrow of your keyboard. You can also go back to the previous tip using the left arrow and stop the animation with the escape key."), 14, SIRIL_INTRO_GTK_POPOVER},
 		{"header_processing_button", N_("The Processing menu has been reorganized by theme to streamline its structure and reduce its size. Many new processing tools have been developed and integrated in this menu."), 10, SIRIL_INTRO_GTK_POPOVER},
 		{"header_tools_button", N_("A new menu, Tools, has been created to centralize Siril's tools, which were previously scattered throughout the interface. It now includes statistics, FITS header, astrometry and photometry tools, as well as image analysis features."), 12, SIRIL_INTRO_GTK_POPOVER},
 		{"header_scripts_button", N_("The Script menu has also evolved, now featuring both Python scripts and a script editor."), 7, SIRIL_INTRO_GTK_POPOVER},
@@ -301,11 +303,21 @@ static gboolean intro_popover_update(gpointer user_data) {
 		ensure_widget_and_parents_visible(current_ui->widget);
 		gtk_style_context_add_class(gtk_widget_get_style_context(current_ui->widget), "siril-intro-highlight");
 
-		if (intro_tips[tip_index].type == SIRIL_INTRO_GTK_POPOVER) {
-			current_ui->popover = intro_popover(current_ui->widget, _(intro_tips[tip_index].tip));
+		gchar *tip_text;
+		if (tip_index == 0) {
+			gchar *translated_format = _(intro_tips[tip_index].tip);
+			tip_text = g_strdup_printf(translated_format, PACKAGE_STRING);
 		} else {
-			current_ui->popover = floating_window_new(current_ui->widget, _(intro_tips[tip_index].tip));
+			tip_text = g_strdup(_(intro_tips[tip_index].tip));
 		}
+
+		if (intro_tips[tip_index].type == SIRIL_INTRO_GTK_POPOVER) {
+			current_ui->popover = intro_popover(current_ui->widget, tip_text);
+		} else {
+			current_ui->popover = floating_window_new(current_ui->widget, tip_text);
+		}
+		g_free(tip_text);
+
 		add_key_handler_to_widget(current_ui->popover);
 
 		current_timeout_id = g_timeout_add(INTRO_DELAY * intro_tips[tip_index].delay, (GSourceFunc) intro_popover_close, (gpointer) current_ui);

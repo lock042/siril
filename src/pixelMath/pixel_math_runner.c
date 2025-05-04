@@ -908,36 +908,41 @@ static guint siril_string_replace_parameter(GString *string, const gchar *find,
 
 static int parse_parameters(gchar **expression1, gchar **expression2, gchar **expression3) {
 	GtkEntry *entry_param = GTK_ENTRY(lookup_widget("pixel_math_entry_param"));
-	gchar *entry_text = g_strdup(gtk_entry_get_text(entry_param));
 
-	if (entry_text == NULL)
-		return 0;
+	char *entry_text = g_strdup(gtk_entry_get_text(entry_param));
 
-	/* Remove spaces */
+	if (entry_text == NULL) return 0;
+	/* first we remove spaces */
 	remove_spaces_from_str(entry_text);
 
-	/* Define the regex pattern for key=value pairs */
-	const gchar *pattern = "(\\w+)=([\\w.]+)";
-	GRegex *regex = g_regex_new(pattern, 0, 0, NULL);
-	GMatchInfo *match_info;
+	/* all parameters are comma separated expressions */
+	gchar **token = g_strsplit(entry_text, ",", -1);
+	int nargs = g_strv_length(token);
 
-	/* Iterate over each match of the regex */
-	g_regex_match(regex, entry_text, 0, &match_info);
-	while (g_match_info_matches(match_info)) {
-		gchar *key = g_match_info_fetch(match_info, 1);
-		gchar *value = g_match_info_fetch(match_info, 2);
+	/* now we parse equality */
+	for (int i = 0; i < nargs; i++) {
+		gchar **expr = g_strsplit(token[i], "=", -1);
+		int n = g_strv_length(expr);
+		/* we want something like "expr[0]=expr[1]"
+		 * so we need two tokens */
+		if (n != 2) {
+			g_strfreev(token);
+			g_strfreev(expr);
+			g_free(entry_text);
+			return -1;
+		}
 
-		/* Create GString versions of the expressions */
+		/* We copy original char* in a string structure */
 		GString *string1 = g_string_new(*expression1);
 		GString *string2 = g_string_new(*expression2);
 		GString *string3 = g_string_new(*expression3);
 
-		/* Replace the parameters */
-		siril_string_replace_parameter(string1, key, value);
-		siril_string_replace_parameter(string2, key, value);
-		siril_string_replace_parameter(string3, key, value);
+		/* we replace old expression by new ones */
+		siril_string_replace_parameter(string1, expr[0], expr[1]);
+		siril_string_replace_parameter(string2, expr[0], expr[1]);
+		siril_string_replace_parameter(string3, expr[0], expr[1]);
 
-		/* Free old expressions and update with new ones */
+		/* copy string into char */
 		g_free(*expression1);
 		g_free(*expression2);
 		g_free(*expression3);
@@ -946,20 +951,15 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 		*expression2 = g_string_free(string2, FALSE);
 		*expression3 = g_string_free(string3, FALSE);
 
-		/* Free memory */
-		g_free(key);
-		g_free(value);
-
-		g_match_info_next(match_info, NULL);
+		g_strfreev(expr);
 	}
 
-	/* Cleanup */
-	g_match_info_free(match_info);
-	g_regex_unref(regex);
+	g_strfreev(token);
 	g_free(entry_text);
 
 	return 0;
 }
+
 
 int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
 	if (index > MAX_IMAGES - 1) {
@@ -1090,8 +1090,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	struct pixel_math_data *args = calloc(1, sizeof(struct pixel_math_data));
 
 	if (parse_parameters(&expression1, &expression2, &expression3)) {
-		queue_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"),
-				_("Parameter symbols could not be parsed."));
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"), _("Parameter symbols could not be parsed."));
 		retval = 1;
 		goto free_expressions;
 	}
