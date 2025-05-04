@@ -46,12 +46,24 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	// Ensure data is zero-filled to prevent any issues with freeing members at validation fail time
 	memset(data, 0, sizeof(spcc_object));
 
-	// Read the entire file
+	// Open the file using g_fopen()
+	FILE *fp = g_fopen(jsonFilePath, "r");
+	if (!fp) {
+		// Handle file opening error
+		siril_log_color_message(_("Failed to open file: %s\n"), "red", jsonFilePath);
+		return NULL; // Or handle the error as appropriate
+	}
+
+	// Read the file using yyjson_read_fp()
 	yyjson_read_err err;
-	yyjson_doc *doc = yyjson_read_file(jsonFilePath, 0, NULL, &err);
+	yyjson_doc *doc = yyjson_read_fp(fp, 0, NULL, &err);
+
+	// Close the file
+	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", err.msg);
-		return 0;
+		siril_log_color_message(_("Error loading SPCC JSON file: %s (at position %zu)\n"),
+				"red", err.msg, err.pos);
+		return NULL; // Or handle the error as appropriate
 	}
 
 	// Get root array
@@ -252,10 +264,24 @@ static gboolean processJsonFile(const char *file_path) {
 
 	// Read and parse JSON file
 	yyjson_read_err err;
-	yyjson_doc *doc = yyjson_read_file(file_path, 0, NULL, &err);
+	// Open the file using g_fopen()
+	FILE *fp = g_fopen(file_path, "r");
+	if (!fp) {
+		// Handle file opening error
+		siril_log_color_message(_("Failed to open file: %s\n"), "red", jsonFilePath);
+		return NULL; // Or handle the error as appropriate
+	}
+
+	// Read the file using yyjson_read_fp()
+	yyjson_read_err err;
+	yyjson_doc *doc = yyjson_read_fp(fp, 0, NULL, &err);
+
+	// Close the file
+	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", err.msg);
-		return FALSE;
+		siril_log_color_message(_("Error loading SPCC JSON file: %s (at position %zu)\n"),
+				"red", err.msg, err.pos);
+		return FALSE; // Or handle the error as appropriate
 	}
 
 	// Get root array
@@ -479,10 +505,24 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 
 	// Read JSON file
 	yyjson_read_err err;
-	yyjson_doc *doc = yyjson_read_file(data->filepath, 0, NULL, &err);
+	// Open the file using g_fopen()
+	FILE *fp = g_fopen(data->file_path, "r");
+	if (!fp) {
+		// Handle file opening error
+		siril_log_color_message(_("Failed to open file: %s\n"), "red", jsonFilePath);
+		return NULL; // Or handle the error as appropriate
+	}
+
+	// Read the file using yyjson_read_fp()
+	yyjson_read_err err;
+	yyjson_doc *doc = yyjson_read_fp(fp, 0, NULL, &err);
+
+	// Close the file
+	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", err.msg);
-		return FALSE;
+		siril_log_color_message(_("Error loading SPCC JSON file: %s (at position %zu)\n"),
+				"red", err.msg, err.pos);
+		return FALSE; // Or handle the error as appropriate
 	}
 
 	// Get root and handle both array and single object cases
