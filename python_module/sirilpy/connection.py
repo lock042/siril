@@ -11,6 +11,7 @@ of methods that can be used to get and set data from / to Siril.
 
 import os
 import sys
+import re
 import atexit
 import socket
 import struct
@@ -77,6 +78,7 @@ class SirilInterface:
             self.command_lock = threading.Lock()
 
         self.debug = bool(os.getenv('SIRIL_PYTHON_DEBUG') is not None)
+        self._is_cli = bool(os.getenv('SIRIL_PYTHON_CLI') is not None)
 
     def connect(self) -> bool:
         """
@@ -949,8 +951,6 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(f"Error in warning_messagebox(): {e}") from e
 
-
-
     def undo_save_state(self, my_string: str) -> bool:
         """
         Saves an undo state. The maximum message length is 70 bytes: longer
@@ -1074,23 +1074,50 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(_("Error in cmd(): {e}")) from e
 
-    def set_siril_selection(self, x: int, y: int, w: int, h: int) -> bool:
+    def set_siril_selection(self,
+                            x: Optional[int] = None,
+                            y: Optional[int] = None,
+                            w: Optional[int] = None,
+                            h: Optional[int] = None,
+                            selection: Optional[Tuple[int, int, int, int]] = None) -> bool:
         """
         Set the image selection in Siril using the provided coordinates and dimensions.
 
         Args:
-            x: X-coordinate of the selection's top-left corner
-            y: Y-coordinate of the selection's top-left corner
-            w: Width of the selection
-            h: Height of the selection
+            x: X-coordinate of the selection's top-left corner (must be provided with y, w, h)
+            y: Y-coordinate of the selection's top-left corner (must be provided with x, w, h)
+            w: Width of the selection (must be provided with x, y, h)
+            h: Height of the selection (must be provided with x, y, w)
+            selection: A tuple of (x, y, w, h) as returned by get_siril_selection()
 
         Raises:
             SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the selection was set successfully
         """
         try:
+            # Check if selection tuple is provided
+            if selection is not None:
+                # Make sure individual coordinates are not also provided
+                if any(param is not None for param in (x, y, w, h)):
+                    raise ValueError("Cannot provide both selection tuple and individual coordinates")
+
+                if len(selection) != 4:
+                    raise ValueError("Selection tuple must contain exactly 4 values (x, y, w, h)")
+
+                x, y, w, h = selection
+            # Otherwise check if all individual coordinates are provided
+            elif all(param is not None for param in (x, y, w, h)):
+                pass  # Just use the provided x, y, w, h values
+            else:
+                raise ValueError("Either provide a selection tuple or all four coordinate parameters (x, y, w, h)")
+
             # Pack the coordinates and dimensions into bytes using network byte order (!)
             payload = struct.pack('!IIII', x, y, w, h)
             self._execute_command(_Command.SET_SELECTION, payload)
+            return True
         except Exception as e:
             raise SirilError(f"Error in set_siril_selection(): {e}") from e
 
@@ -1444,7 +1471,7 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(_("Error in radec2pix(): {e}")) from e
 
-    def get_image_pixeldata(self, shape: Optional[list[int]] = None) -> Optional[np.ndarray]:
+    def get_image_pixeldata(self, shape: Optional[list[int]] = None, preview: Optional[bool] = False) -> Optional[np.ndarray]:
 
         """
         Retrieves the pixel data from the image currently loaded in Siril.
@@ -1453,6 +1480,9 @@ class SirilInterface:
             shape: Optional list of [x, y, w, h] specifying the region to retrieve.
                    If provided, gets pixeldata for just that region.
                    If None, gets pixeldata for the entire image.
+            preview: optional bool specifying whether to get pixeldata as a preview
+                     (i.e. 8-bit autostretched data) or as real image data. Defaults
+                     to False (i.e. real image data)
 
         Returns:
             numpy.ndarray: The image data as a numpy array
@@ -1466,6 +1496,7 @@ class SirilInterface:
 
         shm = None
         try:
+            preview_data = struct.pack('!?', preview)
             # Validate shape if provided
             if shape is not None:
                 if len(shape) != 4:
@@ -1483,7 +1514,8 @@ class SirilInterface:
                 command = _Command.GET_PIXELDATA
 
             # Request shared memory setup
-            status, response = self._send_command(command, shape_data)
+            payload = preview_data + shape_data if shape_data else preview_data
+            status, response = self._send_command(command, payload)
 
             # Handle error responses
             if status == _Command.ERROR:
@@ -1521,7 +1553,10 @@ class SirilInterface:
 
             buffer = bytearray(shm.buf)[:shm_info.size]
             # Create numpy array from shared memory
-            dtype = np.float32 if shm_info.data_type == 1 else np.uint16
+            if preview:
+                dtype = np.uint8
+            else:
+                dtype = np.float32 if shm_info.data_type == 1 else np.uint16
             try:
                 arr = np.frombuffer(buffer, dtype=dtype)
             except (BufferError, ValueError, TypeError) as e:
@@ -1571,13 +1606,19 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_seq_frame_pixeldata(self, frame: int, shape: Optional[List[int]] = None) -> Optional[np.ndarray]:
+    def get_seq_frame_pixeldata(self, frame: int, shape: Optional[List[int]] = None, preview: Optional[bool] = False) -> Optional[np.ndarray]:
 
         """
         Retrieves the pixel data from a frame in the sequence currently loaded in Siril.
 
         Args:
             frame: selects the frame to retrieve pixel data from
+            shape: Optional list of [x, y, w, h] specifying the region to retrieve.
+                   If provided, gets pixeldata for just that region.
+                   If None, gets pixeldata for the entire image.
+            preview: optional bool specifying whether to get pixeldata as a preview
+                     (i.e. 8-bit autostretched data) or as real image data. Defaults
+                     to False (i.e. real image data).
 
         Returns:
             numpy.ndarray: The image data as a numpy array
@@ -1592,6 +1633,7 @@ class SirilInterface:
         # Convert channel number to network byte order bytes
 
         try:
+            preview_payload = struct.pack('!?', preview)
             frame_payload = struct.pack('!I', frame)
             # Validate shape if provided
             if shape is not None:
@@ -1606,7 +1648,7 @@ class SirilInterface:
                 shape_data = struct.pack('!IIII', *shape)
             else:
                 shape_data = None
-            payload = frame_payload + shape_data if shape_data else frame_payload
+            payload = preview_payload + frame_payload + shape_data if shape_data else preview_payload + frame_payload
             # Request shared memory setup
             status, response = self._send_command(_Command.GET_SEQ_PIXELDATA, payload)
 
@@ -1646,7 +1688,10 @@ class SirilInterface:
 
             buffer = bytearray(shm.buf)[:shm_info.size]
             # Create numpy array from shared memory
-            dtype = np.float32 if shm_info.data_type == 1 else np.uint16
+            if preview:
+                dtype = np.uint8
+            else:
+                dtype = np.float32 if shm_info.data_type == 1 else np.uint16
             try:
                 arr = np.frombuffer(buffer, dtype=dtype)
             except (BufferError, ValueError, TypeError) as e:
@@ -2805,7 +2850,6 @@ class SirilInterface:
         except struct.error as e:
             raise SirilError(f"Error in get_seq_distodata(): {e}") from e
 
-
     def get_seq(self) -> Optional[Sequence]:
         """
         Request metadata for the current sequence loaded in Siril.
@@ -2901,13 +2945,16 @@ class SirilInterface:
         except struct.error as e:
             raise SirilError(f"Error in get_image_keywords(): {e}") from e
 
-    def get_image(self, with_pixels: Optional[bool] = True) -> Optional[FFit]:
+    def get_image(self, with_pixels: Optional[bool] = True, preview: Optional[bool] = False) -> Optional[FFit]:
         """
         Request a copy of the current image open in Siril.
 
         Args:
             with_pixels: optional bool specifying whether to get pixel data as a
                          NumPy array, or only the image metadata. Defaults to True
+            preview: optional bool specifying whether to get pixeldata as a preview
+                     (i.e. 8-bit autostretched data) or as real image data. Defaults
+                     to False (i.e. real image data)
 
         Returns:
             FFit object containing the image metadata and (optionally)
@@ -2983,7 +3030,7 @@ class SirilInterface:
             img_pixeldata = None
             if with_pixels:
                 try:
-                    img_pixeldata = self.get_image_pixeldata()
+                    img_pixeldata = self.get_image_pixeldata(preview = preview)
                 except Exception as e:
                     print(f"Error: failed to retrieve pixel data: {e}")
 
@@ -3016,15 +3063,18 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(f"Error in get_image(): {e}") from e
 
-    def get_seq_frame(self, frame: int, with_pixels: Optional[bool] = True) -> Optional[FFit]:
+    def get_seq_frame(self, frame: int, with_pixels: Optional[bool] = True, preview: Optional[bool] = False) -> Optional[FFit]:
         """
         Request sequence frame as a FFit from Siril.
 
         Args:
             frame: Integer specifying which frame in the sequence to retrieve data for
-            (between 0 and Sequence.number)
+                   (between 0 and Sequence.number)
             with_pixels: bool specifying whether or not to return the pixel data for the
-            frame (default is True).
+                         frame (default is True).
+            preview: bool specifying whether or not to return the real pixel data or an
+                     autostretched uint8_t preview version. Only has an effect in
+                     conjunction with with_pixels = True
 
         Returns:
             FFit object containing the frame data
@@ -3039,7 +3089,7 @@ class SirilInterface:
             raise NoSequenceError(_("Error in get_seq_frame(): no sequence is loaded"))
 
         shm = None
-        data_payload = struct.pack('!I?', frame, with_pixels)
+        data_payload = struct.pack('!I??', frame, with_pixels, preview)
         response = self._request_data(_Command.GET_SEQ_IMAGE, data_payload, timeout = None)
         if response is None:
             return None
@@ -3177,7 +3227,10 @@ class SirilInterface:
 
                     buffer = bytearray(shm.buf)[:shm_info.size]
                     # Create numpy array from shared memory
-                    dtype = np.float32 if shm_info.data_type == 1 else np.uint16
+                    if preview:
+                        dtype = np.uint8
+                    else:
+                        dtype = np.float32 if shm_info.data_type == 1 else np.uint16
                     try:
                         arr = np.frombuffer(buffer, dtype=dtype)
                     except (BufferError, ValueError, TypeError) as e:
@@ -4011,3 +4064,59 @@ class SirilInterface:
 
                 except Exception:
                     pass
+
+    def create_new_seq(self, seq_root: str) -> bool:
+        """
+        Creates a new .seq file with all images named seq_rootXXXXX.ext located in
+        the current home folder. If a sequence with the same name is already loaded
+        in Siril, it will not be recreated. This only works for FITS files, not FITSEQ nor SER.
+        The newly created sequence is not loaded in Siril.
+
+        Args:
+            seq_root: The root name of the sequence to be created.
+
+        Returns:
+            bool: True if the sequence was successfully created, False otherwise.
+
+        Raises:
+            SirilError: if an error occurred.
+
+        """
+
+        try:
+            if self.is_sequence_loaded():
+                seq = self.get_seq()
+                seq1_stripped = seq.seqname.rstrip('_')
+                seq2_stripped = seq_root.rstrip('_')
+                if seq1_stripped == seq2_stripped:
+                    self.log(_('A sequence with the same name is already loaded in Siril, aborting'), LogColor.RED)
+                    return False
+            home_folder = self.get_siril_wd()
+            all_files = os.listdir(home_folder)
+            ext = self.get_siril_config('core','extension')
+            pattern = fr'^{seq_root}\d{{5}}{ext}$'
+            regex = re.compile(pattern)
+            exact_matches = [os.path.join(home_folder, f) for f in all_files if regex.match(f)]
+            if len(exact_matches) == 0:
+                self.log(_(f'No files matching {seq_root} pattern found in the Home folder'), LogColor.RED)
+                return False
+            if len(exact_matches) == 1:
+                self.log(_(f'Only one file matching {seq_root} found in the Home folder, cannot create sequence'), LogColor.RED)
+            message_bytes = seq_root.encode('utf-8')
+            return self._execute_command(_Command.CREATE_NEW_SEQ, message_bytes)
+
+        except Exception as e:
+            raise SirilError(f"Error in create_new_seq(): {e}") from e
+
+
+    def is_cli(self) -> bool:
+        """
+        Check if the current instance is running in CLI mode. This method is useful
+        to detect how the script was invoked and whether to show or not a GUI.
+        This is False when the script is called by clicking in the Script menu, 
+        True otherwise.
+
+        Returns:
+            bool: True if running in CLI mode, False otherwise.
+        """
+        return self._is_cli

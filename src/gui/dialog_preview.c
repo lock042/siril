@@ -272,7 +272,7 @@ static gpointer update_preview(gpointer p) {
 #endif
 	free(mime_type);
 	args->pixbuf = pixbuf;
-	siril_add_idle(end_update_preview_cb, args);
+	gdk_threads_add_idle(end_update_preview_cb, args);
 	return GINT_TO_POINTER(0);
 }
 

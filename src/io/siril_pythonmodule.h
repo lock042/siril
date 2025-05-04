@@ -78,6 +78,7 @@ typedef enum {
 	CMD_GET_USER_POLYGON_LIST = 61,
 	CMD_CONFIRM_MESSAGEBOX = 62,
 	CMD_GET_SEQ_FRAME_HEADER = 63,
+	CMD_CREATE_NEW_SEQ = 64,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -180,7 +181,7 @@ typedef struct {
 //int release_python_channel();
 void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script);
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
-shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region);
+shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
 siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size);
 gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info);

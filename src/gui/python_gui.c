@@ -695,6 +695,34 @@ void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer use
 	}
 }
 
+void new_script(const gchar *contents, gint length, const char *ext) {
+	on_open_pythonpad(NULL, NULL);
+	// Get the start and end iterators
+	GtkTextIter start, end;
+	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
+		if (G_IS_OBJECT(current_file))
+			g_object_unref(current_file);
+		current_file = NULL;
+		gtk_source_buffer_begin_not_undoable_action(sourcebuffer);
+		gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+		gtk_text_buffer_set_text(GTK_TEXT_BUFFER(sourcebuffer), contents, (gint) length);
+		buffer_modified = FALSE;
+		gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
+		gtk_source_buffer_end_not_undoable_action(sourcebuffer);
+		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
+		if (!g_ascii_strcasecmp(ext, "ssf")) {
+			active_language = LANG_SSF;
+			gtk_check_menu_item_set_active(radio_ssf, TRUE);
+		} else {
+			active_language = LANG_PYTHON;
+			gtk_check_menu_item_set_active(radio_py, TRUE);
+		}
+		gtk_window_present_with_time(editor_window, GDK_CURRENT_TIME);
+		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+	}
+}
+
 void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	gint char_count = gtk_text_buffer_get_char_count(GTK_TEXT_BUFFER(sourcebuffer));
 	gboolean is_empty = (char_count == 0);
@@ -922,7 +950,7 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	gtk_check_menu_item_set_active(shownewlines, com.pref.gui.editor_cfg.shownewlines);
 	gtk_check_menu_item_set_active(minimap, com.pref.gui.editor_cfg.minimap);
 	gtk_widget_set_visible(GTK_WIDGET(map), com.pref.gui.editor_cfg.minimap);
-	gtk_widget_set_visible(GTK_WIDGET(args_box), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(args_box), gtk_check_menu_item_get_active(useargs));
 	return 0;
 }
 
@@ -1108,7 +1136,9 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 			if (gtk_check_menu_item_get_active(useargs)) {
 				const gchar *args_string = gtk_entry_get_text(args_entry);
 				script_args = g_strsplit(args_string, " ", -1);
-			}
+				g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);
+			} else
+				g_unsetenv("SIRIL_PYTHON_CLI");
 			execute_python_script(text, FALSE, FALSE, script_args);
 			g_strfreev(script_args);
 			break;
@@ -1276,6 +1306,11 @@ void on_editor_minimap_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 
 void on_editor_useargs_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gtk_widget_set_visible(GTK_WIDGET(args_box), gtk_check_menu_item_get_active(item));
+	if (gtk_check_menu_item_get_active(item)) {
+		g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);
+	} else {
+		g_unsetenv("SIRIL_PYTHON_CLI");
+	}
 }
 
 void on_editor_args_clear_clicked(GtkButton *button, gpointer user_data) {

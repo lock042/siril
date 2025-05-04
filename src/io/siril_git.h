@@ -10,6 +10,8 @@ void fill_script_repo_list(gboolean as_idle);
 int reset_repository(const gchar *local_path);
 int preview_scripts_update(GString **git_pending_commit_buffer);
 int preview_spcc_update(GString **git_pending_commit_buffer);
+gboolean is_scripts_repo_cloned();
+gboolean is_spcc_repo_cloned();
 #else
 void hide_git_widgets();
 #endif

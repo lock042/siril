@@ -22,6 +22,12 @@
 
 #include <gtk/gtk.h>
 
+typedef enum {
+	SIRIL_INTRO_GTK_POPOVER,
+	SIRIL_INTRO_WORKAROUND_POPOVER // this workaround is used when popover must be displayed on a child. popover is cropped, here we use a GtkDialog.
+} type_of_popover;
+
+
 typedef struct {
 	GtkWidget *popover;
 	GtkWidget *widget;
@@ -31,6 +37,7 @@ typedef struct {
 	const gchar *widget;
 	const gchar *tip;
 	const gint delay;
+	type_of_popover type;
 } SirilTipIntro;
 
 void start_intro_script();

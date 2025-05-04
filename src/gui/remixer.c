@@ -625,9 +625,6 @@ int remixer() {
 				break;
 		}
 	}
-	// If 16bit preference is set, check the images are 16bit
-	if (com.pref.force_16bit && gfit.type == DATA_FLOAT)
-		fit_replace_buffer(&gfit, float_buffer_to_ushort(gfit.fdata, ndata), DATA_USHORT);
 
 	notify_gfit_modified();
 

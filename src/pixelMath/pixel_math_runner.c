@@ -631,6 +631,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 	args->ret = 0;
 	float maximum = -FLT_MAX;
 	float minimum = +FLT_MAX;
+	long width, height, nchan;
 
 	if (args->single_rgb && args->fit->naxes[2] > 1) {
 		// No need to null check these two as they will be NULL if args->single_rgb is TRUE
@@ -703,11 +704,20 @@ gpointer apply_pixel_math_operation(gpointer p) {
 				goto failure;
 			}
 		}
+		if (args->has_gfit && nb_rows == 0) {
+			width = gfit.naxes[0];
+			height = gfit.naxes[1];
+			nchan = gfit.naxes[2];
+		} else {
+			width = var_fit[0].naxes[0];
+			height = var_fit[0].naxes[1];
+			nchan = var_fit[0].naxes[2];
+		}
 		if (com.pref.force_16bit) {
 #ifdef _OPENMP
 #pragma omp for schedule(static) reduction(max:maximum) reduction(min:minimum)
 #endif
-			for (size_t px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
+			for (size_t px = 0; px < width * height * nchan; px++) {
 				/* The variables can be changed here, and eval can be called as many
 				 * times as you like. This is fairly efficient because the parsing has
 				 * already been done. */
@@ -745,7 +755,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 #ifdef _OPENMP
 #pragma omp for schedule(static) reduction(max:maximum) reduction(min:minimum)
 #endif
-			for (size_t px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
+			for (size_t px = 0; px < width * height * nchan; px++) {
 				/* The variables can be changed here, and eval can be called as many
 				 * times as you like. This is fairly efficient because the parsing has
 				 * already been done. */
@@ -765,9 +775,9 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					maximum = max(maximum, max(fit->fpdata[RLAYER][px], max(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
 					minimum = min(minimum, min(fit->fpdata[RLAYER][px], min(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
 				} else {
-					if (px < (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+					if (px < (width * height)) {
 						fit->fdata[px] = (float) te_eval(n1);
-					} else if (px < 2 * (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+					} else if (px < 2 * (width * height)) {
 						fit->fdata[px] = (float) te_eval(n2);
 					} else {
 						fit->fdata[px] = (float) te_eval(n3);
@@ -898,36 +908,41 @@ static guint siril_string_replace_parameter(GString *string, const gchar *find,
 
 static int parse_parameters(gchar **expression1, gchar **expression2, gchar **expression3) {
 	GtkEntry *entry_param = GTK_ENTRY(lookup_widget("pixel_math_entry_param"));
-	gchar *entry_text = g_strdup(gtk_entry_get_text(entry_param));
 
-	if (entry_text == NULL)
-		return 0;
+	char *entry_text = g_strdup(gtk_entry_get_text(entry_param));
 
-	/* Remove spaces */
+	if (entry_text == NULL) return 0;
+	/* first we remove spaces */
 	remove_spaces_from_str(entry_text);
 
-	/* Define the regex pattern for key=value pairs */
-	const gchar *pattern = "(\\w+)=([\\w.]+)";
-	GRegex *regex = g_regex_new(pattern, 0, 0, NULL);
-	GMatchInfo *match_info;
+	/* all parameters are comma separated expressions */
+	gchar **token = g_strsplit(entry_text, ",", -1);
+	int nargs = g_strv_length(token);
 
-	/* Iterate over each match of the regex */
-	g_regex_match(regex, entry_text, 0, &match_info);
-	while (g_match_info_matches(match_info)) {
-		gchar *key = g_match_info_fetch(match_info, 1);
-		gchar *value = g_match_info_fetch(match_info, 2);
+	/* now we parse equality */
+	for (int i = 0; i < nargs; i++) {
+		gchar **expr = g_strsplit(token[i], "=", -1);
+		int n = g_strv_length(expr);
+		/* we want something like "expr[0]=expr[1]"
+		 * so we need two tokens */
+		if (n != 2) {
+			g_strfreev(token);
+			g_strfreev(expr);
+			g_free(entry_text);
+			return -1;
+		}
 
-		/* Create GString versions of the expressions */
+		/* We copy original char* in a string structure */
 		GString *string1 = g_string_new(*expression1);
 		GString *string2 = g_string_new(*expression2);
 		GString *string3 = g_string_new(*expression3);
 
-		/* Replace the parameters */
-		siril_string_replace_parameter(string1, key, value);
-		siril_string_replace_parameter(string2, key, value);
-		siril_string_replace_parameter(string3, key, value);
+		/* we replace old expression by new ones */
+		siril_string_replace_parameter(string1, expr[0], expr[1]);
+		siril_string_replace_parameter(string2, expr[0], expr[1]);
+		siril_string_replace_parameter(string3, expr[0], expr[1]);
 
-		/* Free old expressions and update with new ones */
+		/* copy string into char */
 		g_free(*expression1);
 		g_free(*expression2);
 		g_free(*expression3);
@@ -936,20 +951,15 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 		*expression2 = g_string_free(string2, FALSE);
 		*expression3 = g_string_free(string3, FALSE);
 
-		/* Free memory */
-		g_free(key);
-		g_free(value);
-
-		g_match_info_next(match_info, NULL);
+		g_strfreev(expr);
 	}
 
-	/* Cleanup */
-	g_match_info_free(match_info);
-	g_regex_unref(regex);
+	g_strfreev(token);
 	g_free(entry_text);
 
 	return 0;
 }
+
 
 int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
 	if (index > MAX_IMAGES - 1) {
@@ -974,34 +984,47 @@ void free_pm_var(int nb) {
 	}
 }
 
-static void replace_t_with_gfit(struct pixel_math_data *args) {
-    if ((args->expression1 && g_strstr_len(args->expression1, -1, "$T") != NULL) ||
-        (args->expression2 && g_strstr_len(args->expression2, -1, "$T") != NULL) ||
-        (args->expression3 && g_strstr_len(args->expression3, -1, "$T") != NULL)) {
+static int replace_t_with_gfit(struct pixel_math_data *args) {
+	int retval = 0;
+	/* Check if single_rgb is FALSE and if $T is present in any expression */
+	if (args->single_rgb == FALSE &&
+		((args->expression1 && g_strstr_len(args->expression1, -1, "$T") != NULL) ||
+		 (args->expression2 && g_strstr_len(args->expression2, -1, "$T") != NULL) ||
+		 (args->expression3 && g_strstr_len(args->expression3, -1, "$T") != NULL))) {
+		retval = 1;
+	}
 
-        const gchar *pattern = "\\$T";
-        const gchar *replacement = T_CURRENT;
+	/* If we reach here, either single_RGB is FALSE or no $T is present */
+	if ((args->expression1 && g_strstr_len(args->expression1, -1, "$T") != NULL) ||
+		(args->expression2 && g_strstr_len(args->expression2, -1, "$T") != NULL) ||
+		(args->expression3 && g_strstr_len(args->expression3, -1, "$T") != NULL)) {
 
-        args->has_gfit = TRUE;
+		const gchar *pattern = "\\$T";
+		const gchar *replacement = T_CURRENT;
 
-        if (args->expression1 != NULL) {
-            gchar *new_expression1 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression1, -1, 0, replacement, 0, NULL);
-            g_free(args->expression1);
-            args->expression1 = new_expression1;
-        }
+		args->has_gfit = TRUE;
 
-        if (args->expression2 != NULL) {
-            gchar *new_expression2 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression2, -1, 0, replacement, 0, NULL);
-            g_free(args->expression2);
-            args->expression2 = new_expression2;
-        }
+		if (args->expression1 != NULL) {
+			gchar *new_expression1 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression1, -1, 0, replacement, 0, NULL);
+			g_free(args->expression1);
+			args->expression1 = new_expression1;
+		}
 
-        if (args->expression3 != NULL) {
-            gchar *new_expression3 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL),  args->expression3, -1, 0, replacement, 0, NULL);
-            g_free(args->expression3);
-            args->expression3 = new_expression3;
-        }
-    }
+		if (args->expression2 != NULL) {
+			gchar *new_expression2 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression2, -1, 0, replacement, 0, NULL);
+			g_free(args->expression2);
+			args->expression2 = new_expression2;
+		}
+
+		if (args->expression3 != NULL) {
+			gchar *new_expression3 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression3, -1, 0, replacement, 0, NULL);
+			g_free(args->expression3);
+			args->expression3 = new_expression3;
+		}
+	}
+
+	/* Success - no errors encountered */
+	return retval;
 }
 
 static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *expression3) {
@@ -1067,8 +1090,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	struct pixel_math_data *args = calloc(1, sizeof(struct pixel_math_data));
 
 	if (parse_parameters(&expression1, &expression2, &expression3)) {
-		queue_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"),
-				_("Parameter symbols could not be parsed."));
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"), _("Parameter symbols could not be parsed."));
 		retval = 1;
 		goto free_expressions;
 	}
@@ -1094,16 +1116,20 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		args->varname[i] = g_strdup(get_pixel_math_var_name(i));
 	}
 
-	replace_t_with_gfit(args);
+	if (replace_t_with_gfit(args) && gfit.naxes[2] > 1) {
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("Incorrect formula"), _("RGB $T cannot be used in this context."));
+		retval = 1;
+		goto free_expressions;
+	}
 
 	fits *fit = NULL;
 	if (args->has_gfit) { // in the case where no images are loaded, at least gfit must be laded
 		width = gfit.rx;
 		height = gfit.ry;
-		channel = gfit.naxes[2];
+		channel = args->single_rgb ? gfit.naxes[2] : 3;
 		if (nb_rows > 0) {
-			if ((width != var_fit[0].naxes[0] ||
-				height != var_fit[0].naxes[1])) {
+			if (width != var_fit[0].naxes[0] ||
+				height != var_fit[0].naxes[1]) {
 					queue_message_dialog(GTK_MESSAGE_ERROR, _("Images have different size"),
 						_("The image currently displayed must be the same size as the other images loaded into PixelMath."));
 				retval = 1;

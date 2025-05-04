@@ -50,7 +50,7 @@
                   <object class="GtkLabel" id="find_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">0/0</property>
+                    <property name="label">0/0</property>
                     <property name="width-chars">10</property>
                   </object>
                   <packing>
@@ -328,8 +328,8 @@
                             <property name="action-name">editor.execute</property>
                             <property name="label" translatable="yes">Run</property>
                             <property name="use-underline">True</property>
-                            <accelerator key="F5" signal="activate"/>
                             <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                            <accelerator key="F5" signal="activate"/>
                           </object>
                         </child>
                         <child>
@@ -358,7 +358,8 @@
                           <object class="GtkCheckMenuItem" id="editor_useargs">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">When active, any arguments entered in the args entry will be passed to the script when it is run.</property>
+                            <property name="tooltip-text" translatable="yes">When active, any arguments entered in the args entry will be passed to the script when it is run.
+This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli() will return True)</property>
                             <property name="label" translatable="yes">Enable test arguments</property>
                             <signal name="toggled" handler="on_editor_useargs_toggled" swapped="no"/>
                           </object>

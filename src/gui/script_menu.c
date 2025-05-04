@@ -38,6 +38,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "io/siril_pythonmodule.h"
+#include "io/siril_git.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -189,6 +190,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	if (g_str_has_suffix(script_file, PYSCRIPT_EXT) || g_str_has_suffix(script_file, PYCSCRIPT_EXT)) {
 		// Run Python script
+		g_unsetenv("SIRIL_PYTHON_CLI");
 		execute_python_script(script_file, TRUE, FALSE, NULL);
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
 		/* Last thing before running the script, disable widgets except for Stop */
@@ -229,6 +231,21 @@ gboolean test_last_subdir(const gchar *path, const gchar *expected_subdir) {
 
 	g_free(last_dir_component);
 	g_free(dir);
+
+	return result;
+}
+
+static gint compare_basenames(gconstpointer a, gconstpointer b) {
+	const gchar *path_a = (const gchar*) a;
+	const gchar *path_b = (const gchar*) b;
+
+	gchar *basename_a = g_path_get_basename(path_a);
+	gchar *basename_b = g_path_get_basename(path_b);
+
+	gint result = g_ascii_strcasecmp(basename_a, basename_b); // Insensible à la casse
+
+	g_free(basename_a);
+	g_free(basename_b);
 
 	return result;
 }
@@ -280,6 +297,8 @@ int initialize_script_menu(gboolean verbose) {
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythondebug);
 	gtk_widget_show(menu_item_pythondebug);
+
+	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
 
 	gchar *previous_directory_ssf = NULL;
 	gchar *previous_directory_py = NULL;
@@ -351,12 +370,14 @@ int initialize_script_menu(gboolean verbose) {
 
 	#ifdef HAVE_LIBGIT2
 	// Wait for git repository update to complete during startup
-	if (com.update_scripts_thread) {
+	if (com.update_scripts_thread && !is_scripts_repo_cloned()) {
 		g_thread_join(com.update_scripts_thread);
 		com.update_scripts_thread = NULL;
 	}
 	// Add scripts from the selections made in preferences
 	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
+		com.pref.selected_scripts = g_list_sort(com.pref.selected_scripts, compare_basenames);
+
 		GList *new_list = NULL;
 		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
 			gchar *full_path = g_strdup(ss->data);
@@ -451,7 +472,6 @@ int initialize_script_menu(gboolean verbose) {
 	}
 
 	#endif
-	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
 	return 0;
 }
 
@@ -463,19 +483,38 @@ int refresh_script_menu(gboolean verbose) {
 	return 0;
 }
 
+static GMutex script_mutex = { 0 };
+
+static gboolean call_initialize_script_menu(gpointer data) {
+	gboolean state = (gboolean) GPOINTER_TO_INT(data);
+
+	// Make sure this function doesn't wait for the mutex
+	// as this could create a deadlock
+	initialize_script_menu(state);
+
+	return G_SOURCE_REMOVE;
+}
+
 int refresh_scripts(gboolean update_list, gchar **error) {
 	gchar *err = NULL;
 	int retval = 0;
 	GSList *list = get_list_from_preferences_dialog();
+
 	if (list == NULL) {
 		err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
 		retval = 1;
 	} else {
+		g_mutex_lock(&script_mutex);
+
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
+
+		g_mutex_unlock(&script_mutex);
+
 		GThread *thread = g_thread_new("refresh_scripts", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
 		g_thread_unref(thread);
 	}
+
 	if (error) {
 		*error = err;
 	}
@@ -484,13 +523,23 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 
 gpointer refresh_scripts_menu_in_thread(gpointer data) {
 	gboolean verbose = (gboolean) GPOINTER_TO_INT(data);
+
+	g_mutex_lock(&script_mutex);
 	refresh_script_menu(verbose);
+	g_mutex_unlock(&script_mutex);
+
 	return GINT_TO_POINTER(0);
 }
 
 gpointer initialize_script_menu_in_thread(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
-	initialize_script_menu(state);
+
+	g_mutex_lock(&script_mutex);
+
+	g_idle_add(G_SOURCE_FUNC(call_initialize_script_menu), GINT_TO_POINTER(state));
+
+	g_mutex_unlock(&script_mutex);
+
 	return GINT_TO_POINTER(0);
 }
 

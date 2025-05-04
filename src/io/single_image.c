@@ -352,6 +352,27 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 	return FALSE;
 }
 
+gboolean update_single_image_from_gfit(gpointer user_data) {
+	/* a variation on open_single_image_from_gfit that only
+	 does the things necessary when key aspects may have
+	 changed (eg changed number of channels, bitpix etc.)*/
+
+	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
+
+	sliders_mode_set_state(gui.sliders);
+	set_cutoff_sliders_max_values();
+	set_cutoff_sliders_values();
+
+	set_precision_switch(NULL); // set precision on screen
+
+	close_tab(NULL);
+	init_right_tab(NULL);
+
+	update_gfit_histogram_if_needed();
+	redraw(REMAP_ALL);
+	return FALSE;
+}
+
 /* searches the image for minimum and maximum pixel value, on each layer
  * the values are stored in fit->min[layer] and fit->max[layer] */
 int image_find_minmax(fits *fit) {
@@ -409,7 +430,7 @@ int single_image_is_loaded() {
 /**************** updating the single image *******************/
 
 /* generic idle function for end of operation on gfit */
-static gboolean end_gfit_operation() {
+gboolean end_gfit_operation() {
 	// this function should not contain anything required by the execution
 	// of the operation because it won't be run in headless
 
@@ -429,8 +450,12 @@ static gboolean end_gfit_operation() {
 	init_layers_hi_and_lo_values(gui.sliders);
 	set_cutoff_sliders_values();
 
-	queue_redraw(REMAP_ALL);	// queues a redraw if !com.script
-	gui_function(redraw_previews, NULL);	// queues redraws if !com.script
+	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
+		redraw(REMAP_ALL);
+	else
+		queue_redraw(REMAP_ALL);	// queues a redraw if !com.script
+
+	gui_function(redraw_previews, NULL);	// queues redraws of the registration previews if !com.script
 
 	set_cursor_waiting(FALSE); // called from current thread if !com.script, idle else
 	return FALSE;

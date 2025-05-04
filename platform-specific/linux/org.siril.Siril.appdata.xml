@@ -99,6 +99,43 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.4.0-beta1" date="2025-04-26">
+      <url type="details">https://siril.org/download/1.4.0-beta1</url>
+      <description>
+        <p>
+          First beta release of the 1.4.0 series. This version marks a huge leap compared 
+          with 1.2 across many areas of the software. GUI has been improved in several places 
+          for better user experience, and many new features have been implemented.
+          The most outstanding changes are:
+        </p>
+        <ul>
+          <li>
+            Added solving with distortions using SIP convention and image undistortion for registration
+          </li>
+          <li>
+            Added mosaic stacking with blending masks and normalization on overlaps
+          </li>
+          <li>
+            Replaced simplified Drizzle with proper Hubble Space Telescope Drizzle algorithms
+          </li>
+          <li>
+            Added full Python scripting capabilities with integrated script editor
+          </li>
+          <li>
+            Added fully color managed workflow using ICC profiles
+          </li>
+          <li>
+            Added SpectroPhotometric Color Calibration tool using Gaia DR3 catalog
+          </li>
+          <li>
+            Added new Curves Transformation tool and edge preserving filters
+          </li>
+          <li>
+            Added FITS header management and keyword updates
+          </li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.6" type="stable" date="2025-01-22">
       <url type="details">https://siril.org/download/1.2.6</url>
       <description>

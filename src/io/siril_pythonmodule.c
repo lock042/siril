@@ -37,6 +37,7 @@
 #include "algos/siril_random.h"
 #include "algos/background_extraction.h"
 #include "algos/statistics.h"
+#include "filters/mtf.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -328,7 +329,7 @@ void cleanup_shm_resources(Connection *conn) {
 
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
-shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region) {
+shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview) {
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		const char* error_msg = _("Failed to retrieve pixel data - no image loaded");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
@@ -338,7 +339,10 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 
 	// Calculate total size of pixel data
 	size_t total_bytes, row_bytes;
-	if (fit->type == DATA_FLOAT) {
+	if (as_preview) {
+		row_bytes = region.w;
+		total_bytes = row_bytes * fit->naxes[2] * region.h;
+	} else if (fit->type == DATA_FLOAT) {
 		row_bytes = region.w * sizeof(float);
 		total_bytes = row_bytes * fit->naxes[2] * region.h;
 	} else {
@@ -375,22 +379,63 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
+	if (as_preview) {
+		fits stretched = {0};
+		copyfits(fit, &stretched, CP_ALLOC | CP_FORMAT, -1);
+		struct mtf_params params[3];
+		find_unlinked_midtones_balance(fit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, params);
+		apply_unlinked_mtf_to_fits(fit, &stretched, params);
+		// Copy data from gfit to shared memory
+		int top = region.y + region.h;
+		int right = region.x + region.w;
+		uint8_t *shm_byte_ptr = (uint8_t*) shm_ptr;
+		if (fit->type == DATA_FLOAT) {
+#pragma omp parallel for collapse(2) num_threads(com.max_thread)
+			for (int chan = 0; chan < fit->naxes[2]; chan++) {
+				for (int i = region.y; i < top; i++) {
+					int rowindex = i * fit->rx;
+					int dest_row_start = (i - region.y) * region.w;
+					int dest_chan_start = chan * region.w * region.h;
 
-	// Copy data from gfit to shared memory
-	size_t index = 0;
-	int top = region.y + region.h;
-	if (fit->type == DATA_FLOAT) {
-		for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
-			for (int i = region.y ; i < top ; i++) {
-				memcpy((char*)shm_ptr + index, fit->fpdata[chan] + (i * fit->rx + region.x), region.w * sizeof(float));
-				index += row_bytes;
+					for (int j = region.x; j < right; j++) {
+						int dest_index = (j - region.x) + dest_row_start + dest_chan_start;
+						shm_byte_ptr[dest_index] = roundf_to_BYTE(UCHAR_MAX_SINGLE * stretched.fpdata[chan][j + rowindex]);
+					}
+				}
+			}
+		} else {
+#pragma omp parallel for collapse(2) num_threads(com.max_thread)
+			for (int chan = 0; chan < fit->naxes[2]; chan++) {
+				for (int i = region.y; i < top; i++) {
+					int rowindex = i * fit->rx;
+					int dest_row_start = (i - region.y) * region.w;
+					int dest_chan_start = chan * region.w * region.h;
+
+					for (int j = region.x; j < right; j++) {
+						int dest_index = (j - region.x) + dest_row_start + dest_chan_start;
+						shm_byte_ptr[dest_index] = (uint8_t)(stretched.pdata[chan][j + rowindex] / UCHAR_MAX);
+					}
+				}
 			}
 		}
+		clearfits(&stretched);
 	} else {
-		for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
-			for (int i = region.y ; i < top ; i++) {
-				memcpy((char*)shm_ptr + index, fit->pdata[chan] + (i * fit->rx + region.x), region.w * sizeof(WORD));
-				index += row_bytes;
+		// Copy data from gfit to shared memory
+		size_t index = 0;
+		int top = region.y + region.h;
+		if (fit->type == DATA_FLOAT) {
+			for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
+				for (int i = region.y ; i < top ; i++) {
+					memcpy((char*)shm_ptr + index, fit->fpdata[chan] + (i * fit->rx + region.x), region.w * sizeof(float));
+					index += row_bytes;
+				}
+			}
+		} else {
+			for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
+				for (int i = region.y ; i < top ; i++) {
+					memcpy((char*)shm_ptr + index, fit->pdata[chan] + (i * fit->rx + region.x), region.w * sizeof(WORD));
+					index += row_bytes;
+				}
 			}
 		}
 	}
@@ -482,17 +527,6 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 
 	// Send shared memory info to Python
 	return info;
-}
-
-static gboolean update_sliders_after_set_pixeldata(gpointer user_data) {
-	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
-	double multiplier = gfit.bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE;
-	gui.lo = round_to_WORD(max(0., gfit.mini * multiplier));
-	gui.hi = round_to_WORD(min(65535., gfit.maxi * multiplier));
-	sliders_mode_set_state(gui.sliders);
-	set_cutoff_sliders_max_values();
-	set_cutoff_sliders_values();
-	return FALSE;
 }
 
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
@@ -640,25 +674,25 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	} else {  // float data
 		memcpy(fit->fdata, (char*) shm_ptr, total_bytes);
 	}
-
 	invalidate_stats_from_fit(fit);
+
 	// Update gfit metadata
 	fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
 	fit->rx = fit->naxes[0] = info->width;
 	fit->ry = fit->naxes[1] = info->height;
+	fit->naxis = info->channels == 3 ? 3 : 2;
 	fit->naxes[2] = info->channels;
 	if (fit == &gfit) {
 		if (!com.headless) {
 			if (g_main_context_is_owner(g_main_context_default())) {
 				// it is safe to call the function directly
-				update_sliders_after_set_pixeldata(NULL);
+				update_single_image_from_gfit(NULL);
 			} else {
 				// we aren't in the GTK main thread or a script, so we run the idle and wait for it
-				execute_idle_and_wait_for_it(update_sliders_after_set_pixeldata, NULL);
+				execute_idle_and_wait_for_it(update_single_image_from_gfit, NULL);
 			}
 		}
 		siril_debug_print("set_*_pixeldata: updating gfit\n");
-		queue_redraw(REMAP_ALL);
 	}
 	// Cleanup shared memory
 	#ifdef _WIN32
@@ -801,7 +835,7 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 
 	// Redraw if necessary
 	if (show_samples && !com.headless) {
-		queue_redraw(REDRAW_OVERLAY);
+		redraw(REDRAW_OVERLAY);
 	}
 
 	// Free the positions list

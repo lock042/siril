@@ -1525,6 +1525,12 @@ gboolean on_main_panel_button_release_event(GtkWidget *widget,
 	return FALSE;
 }
 
+static gboolean gui_ready = FALSE;
+
+gboolean is_gui_ready() {
+	return gui_ready;
+}
+
 void initialize_all_GUI(gchar *supported_files) {
 	/* pre-check the Gaia archive status */
 	check_gaia_archive_status();
@@ -1679,6 +1685,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
 	/* GraXpert checks, if required */
 	g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));
+	gui_ready = TRUE;
 }
 
 /*****************************************************************************

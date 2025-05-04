@@ -70,7 +70,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		int i;
 
 		nb_raw = get_nb_raw_supported();
-		raw = calloc(sizeof(char), nb_raw * 12 + 1);// we assume the extension size of 3 char "*.xxx;*.XXX;" = 12
+		raw = calloc(sizeof(char), nb_raw * 12 + 1); // we assume the extension size of 3 char "*.xxx;*.XXX;" = 12
 		for (i = 0; i < nb_raw; i++) {
 			char *ext;
 			gchar *upcase;
