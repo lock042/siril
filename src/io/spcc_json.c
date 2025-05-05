@@ -47,7 +47,7 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	memset(data, 0, sizeof(spcc_object));
 
 	// Open the file using g_fopen()
-	FILE *fp = g_fopen(jsonFilePath, "r");
+	FILE *fp = g_fopen(jsonFilePath, "rb");
 	if (!fp) {
 		// Handle file opening error
 		siril_log_color_message(_("Failed to open file: %s\n"), "red", jsonFilePath);
@@ -264,7 +264,7 @@ static gboolean processJsonFile(const char *file_path) {
 
 	// Read and parse JSON file
 	// Open the file using g_fopen()
-	FILE *fp = g_fopen(file_path, "r");
+	FILE *fp = g_fopen(file_path, "rb");
 	if (!fp) {
 		// Handle file opening error
 		siril_log_color_message(_("Failed to open file: %s\n"), "red", file_path);
@@ -504,7 +504,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 
 	// Read JSON file
 	// Open the file using g_fopen()
-	FILE *fp = g_fopen(data->filepath, "r");
+	FILE *fp = g_fopen(data->filepath, "rb");
 	if (!fp) {
 		// Handle file opening error
 		siril_log_color_message(_("Failed to open file: %s\n"), "red", data->filepath);
