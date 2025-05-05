@@ -61,8 +61,8 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	// Close the file
 	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file: %s (at position %zu)\n"),
-				"red", err.msg, err.pos);
+		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
+				"red", jsonFilePath, err.msg, err.pos);
 		return FALSE;
 	}
 
@@ -278,8 +278,8 @@ static gboolean processJsonFile(const char *file_path) {
 	// Close the file
 	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file: %s (at position %zu)\n"),
-				"red", err.msg, err.pos);
+		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
+				"red", file_path, err.msg, err.pos);
 		return FALSE;
 	}
 
@@ -518,8 +518,8 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	// Close the file
 	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file: %s (at position %zu)\n"),
-				"red", err.msg, err.pos);
+		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
+				"red", data->filepath, err.msg, err.pos);
 		return FALSE;
 	}
 
