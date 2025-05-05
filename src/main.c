@@ -595,7 +595,7 @@ int main(int argc, char *argv[]) {
 	GtkApplication *app;
 	const gchar *dir;
 	gint status;
-	g_setenv("GTK_IM_MODULE", "simple", TRUE);
+
 #if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
 	// Remove macOS session identifier from command line arguments.
 	// Code adopted from GIMP's app/main.c
