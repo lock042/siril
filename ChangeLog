@@ -17,6 +17,7 @@ XX/XX/25
 * Fixed SPCC failing to open files on Windows when the filepath contains non-ASCII characters (e.g., accented characters) (#1584)
 * Fixed parameter parsing in PixelMath (#1594)
 * Fixed bad font kerning on macOS (#1508)
+* Fixed crash on Windows language change (#1560)
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
@@ -25,7 +26,6 @@ XX/XX/25
 * Python scripts are now sorted alphabetically (#1559)
 * Added an optional rate limit for smooth scroll zoom speed (#1576)
 * Added SirilInterface.create_new_seq() and SirilInterface.is_cli() in sirilpy (!867)
-
 
 siril 1.4.0-beta1
 04/26/25
