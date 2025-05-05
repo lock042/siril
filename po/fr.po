@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-02 21:49+0200\n"
-"PO-Revision-Date: 2025-05-01 03:16+0000\n"
+"PO-Revision-Date: 2025-05-05 08:22+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -5469,7 +5469,7 @@ msgstr "Supprimer une action de défilement"
 
 #: src/gui/uifiles/mouse_actions.ui:277
 msgid "Scroll speed limit"
-msgstr ""
+msgstr "Limite de vitesse de défilement"
 
 #: src/gui/uifiles/mouse_actions.ui:292
 msgid ""
@@ -5478,6 +5478,11 @@ msgid ""
 "you can limit the action step size using this control. Try starting with 1.0 "
 "and working down from there. 0.0 means unlimited."
 msgstr ""
+"Définir une limite de vitesse de défilement. Cette option n'est pas "
+"nécessaire pour la plupart des souris, mais si la molette de défilement "
+"exécute son action (par exemple, le zoom) beaucoup trop rapidement, vous "
+"pouvez limiter la taille du pas d'action à l'aide de cette commande. "
+"Commencez par 1.0 et descendez ensuite. 0.0 signifie illimité."
 
 #: src/gui/uifiles/mouse_actions.ui:316
 msgid "Scroll Actions"
@@ -9925,9 +9930,8 @@ msgid "Save current plot to png file"
 msgstr "Enregistrer le graphique suivant dans un fichier png"
 
 #: src/gui/uifiles/siril.ui:2689
-#, fuzzy
 msgid "Build a light curve in the ETD text format"
-msgstr "Courbe de lumière (format ETD)"
+msgstr "Construire une courbe de lumière au format texte ETD"
 
 #: src/gui/uifiles/siril.ui:2690
 msgid "Light Curve (ETD format)"
@@ -9935,7 +9939,7 @@ msgstr "Courbe de lumière (format ETD)"
 
 #: src/gui/uifiles/siril.ui:2704
 msgid "Build an output file in the AAVSO format"
-msgstr ""
+msgstr "Construire un fichier de sortie au format AAVSO"
 
 #: src/gui/uifiles/siril.ui:2705
 msgid "AAVSO file format"
@@ -13797,9 +13801,8 @@ msgid "Computing astrometric registration...\n"
 msgstr "Calcul de l'alignement par astrométrie...\n"
 
 #: src/algos/astrometry_solver.c:2263
-#, fuzzy
 msgid "Reference image was not platesolved, changing reference\n"
-msgstr "L'image de référence n'est pas incluse dans la liste filtrée.\n"
+msgstr "L'image de référence n'était pas résolue, changer la référence\n"
 
 #: src/algos/background_extraction.c:300
 msgid ""
@@ -20026,7 +20029,7 @@ msgstr "Double clic sur le bouton du milieu de la souris pour zoomer"
 
 #: src/core/settings.c:513
 msgid "Mouse smooth scroll speed limit"
-msgstr ""
+msgstr "Limitation de la vitesse de défilement de la souris"
 
 #: src/core/settings.c:514
 msgid "configure background samples color"
@@ -24340,12 +24343,11 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr "Alignement de %d images sur %d de la séquence"
 
 #: src/gui/registration.c:735
-#, fuzzy
 msgid ""
 "Max framing not allowed with FITSEQ or SER, change to regular FITS images"
 msgstr ""
-"Le cadrage maximal n'est pas autorisé avec fitseq, passer à des images FITS "
-"normales"
+"Le cadrage maximal n'est pas autorisé avec FITSEQ ou SER, il faut passer à "
+"des images FITS normales"
 
 #: src/gui/registration.c:746
 msgid "Pick object in two images"
@@ -24828,17 +24830,18 @@ msgid "Failed to load CSS sheet: %s.\n"
 msgstr "Échec du chargement de la feuille CSS : %s\n"
 
 #: src/gui/siril_intro.c:47
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Welcome to the newest version of Siril, %s. Please take a moment to read "
 "some tips about this release. If the rate is too slow, skip to the next tip "
 "using the right arrow of your keyboard. You can also go back to the previous "
 "tip using the left arrow and stop the animation with the escape key."
 msgstr ""
-". Prenez le temps de lire quelques conseils sur cette version. Si le rythme "
-"est trop lent, passez au conseil suivant en utilisant la flèche droite de "
-"votre clavier. Vous pouvez également revenir au conseil précédent en "
-"utilisant la flèche gauche et arrêter l'animation avec la touche Echap."
+"Bienvenue dans la nouvelle version de Siril, %s. Prenez le temps de lire "
+"quelques conseils sur cette version. Si le rythme est trop lent, passez au "
+"conseil suivant en utilisant la flèche droite de votre clavier. Vous pouvez "
+"également revenir au conseil précédent en utilisant la flèche gauche et "
+"arrêter l'animation avec la touche Echap."
 
 #: src/gui/siril_intro.c:48
 msgid ""
@@ -29201,6 +29204,8 @@ msgstr ""
 msgid ""
 "Framing method \"max\" cannot export to FITSEQ or SER format, aborting\n"
 msgstr ""
+"La méthode de cadrage \"max\" ne peut pas être exportée au format FITSEQ ou "
+"SER.\n"
 
 #: src/registration/applyreg.c:1196
 msgid "Reference image is not included in the filtered list, aborting\n"
@@ -29240,10 +29245,9 @@ msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
 msgstr "Image #%5d - AD :%7.3f - DEC :%+7.3f - Rotation :%+6.1f\n"
 
 #: src/registration/astrometric.c:293
-#, fuzzy
 msgid "No image selected after computing transformations, aborting\n"
 msgstr ""
-"Aucune image sélectionnée après le calcul des transformations, abandon%s\n"
+"Aucune image n'a été sélectionnée après le calcul des transformations.\n"
 
 #: src/registration/astrometric.c:316
 #, c-format

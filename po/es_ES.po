@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-02 21:49+0200\n"
-"PO-Revision-Date: 2025-05-02 19:48+0000\n"
+"PO-Revision-Date: 2025-05-05 08:22+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -5738,37 +5738,42 @@ msgstr ""
 #: src/gui/uifiles/python_scratchpad.ui:472
 msgid "When a block of lines is selected, tab increases the indent level"
 msgstr ""
+"Cuando se selecciona un bloque de líneas, la tecla Tab aumenta el nivel de "
+"sangría"
 
 #: src/gui/uifiles/python_scratchpad.ui:473
 msgid "Indent on tab"
-msgstr ""
+msgstr "Sangría al tabular"
 
 #: src/gui/uifiles/python_scratchpad.ui:482
 #: src/gui/uifiles/python_scratchpad.ui:483
 msgid "Enable smart backspace"
-msgstr ""
+msgstr "Habilitar retroceso inteligente"
 
 #: src/gui/uifiles/python_scratchpad.ui:492
 msgid ""
 "When Smart Home / End is enabled the Home and End keys will go to the first "
 "and last non-whitespace character on the line respectively"
 msgstr ""
+"Cuando Inicio/Fin Inteligente está habilitado, las teclas Inicio y Fin irán "
+"al primer y al último carácter que no sea un espacio en blanco en la línea "
+"respectivamente"
 
 #: src/gui/uifiles/python_scratchpad.ui:493
 msgid "Smart Home / End"
-msgstr ""
+msgstr "Inicio/Fin Inteligente"
 
 #: src/gui/uifiles/python_scratchpad.ui:502
 msgid "Show space and tab characters in the editor view"
-msgstr ""
+msgstr "Mostrar espacios y tabuladores en la vista de edición"
 
 #: src/gui/uifiles/python_scratchpad.ui:503
 msgid "Show spaces and tabs"
-msgstr ""
+msgstr "Mostrar espacios y tabuladores"
 
 #: src/gui/uifiles/python_scratchpad.ui:511
 msgid "Show newline characters in the editor view"
-msgstr ""
+msgstr "Mostrar caracteres de línea nueva en la vista de edición"
 
 #: src/gui/uifiles/python_scratchpad.ui:512
 #, fuzzy
