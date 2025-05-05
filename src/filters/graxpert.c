@@ -106,6 +106,32 @@ static gchar* convert_path_for_windows(const gchar *path) {
 }
 #endif
 
+static gchar** prepare_graxpert_args(gchar **argv) {
+#ifdef _WIN32
+	// Create new array with converted paths
+	int argc = g_strv_length(argv);
+	gchar **prepared_argv = g_malloc0((argc + 1) * sizeof(gchar*));
+
+	for (int i = 0; i < argc; i++) {
+		// Check if argument is a file path
+		if (g_file_test(argv[i], G_FILE_TEST_EXISTS)) {
+			prepared_argv[i] = convert_path_for_windows(argv[i]);
+		} else {
+			prepared_argv[i] = g_strdup(argv[i]);
+		}
+	}
+
+	return prepared_argv;
+	#else
+	// On non-Windows, just return a copy
+	return g_strdupv(argv);
+#endif
+}
+
+static void free_prepared_args(gchar **argv) {
+	g_strfreev(argv);
+}
+
 // This ensures GraXpert is always called with a wide enough environment variable
 // terminal width to prevent munging of the output we need to parse to get version
 // information.
@@ -356,32 +382,6 @@ static GError *spawn_graxpert_sync(gchar **argv, gint columns,
 	}
 
 	return NULL;
-}
-
-static gchar** prepare_graxpert_args(gchar **argv) {
-#ifdef _WIN32
-	// Create new array with converted paths
-	int argc = g_strv_length(argv);
-	gchar **prepared_argv = g_malloc0((argc + 1) * sizeof(gchar*));
-
-	for (int i = 0; i < argc; i++) {
-		// Check if argument is a file path
-		if (g_file_test(argv[i], G_FILE_TEST_EXISTS)) {
-			prepared_argv[i] = convert_path_for_windows(argv[i]);
-		} else {
-			prepared_argv[i] = g_strdup(argv[i]);
-		}
-	}
-
-	return prepared_argv;
-	#else
-	// On non-Windows, just return a copy
-	return g_strdupv(argv);
-#endif
-}
-
-static void free_prepared_args(gchar **argv) {
-	g_strfreev(argv);
 }
 
 gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
