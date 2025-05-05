@@ -88,23 +88,42 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_spawn_close_pid(pid);
 }
 
+#ifdef _WIN32
+/**
+ * Convert UTF-8 path to system encoding (wide chars) for Windows
+ *
+ * @param path Original UTF-8 path
+ * @return Wide character path or copy of original path if conversion fails
+ */
+static gchar* convert_path_for_windows(const gchar *path) {
+	// Convert to wide characters for Windows
+	gchar *wide_path = g_filename_from_utf8(path, -1, NULL, NULL, NULL);
+	if (!wide_path) {
+		// Fallback to original path if conversion fails
+		return g_strdup(path);
+	}
+	return wide_path;
+}
+#endif
+
 // This ensures GraXpert is always called with a wide enough environment variable
 // terminal width to prevent munging of the output we need to parse to get version
 // information.
 
 static GError *spawn_graxpert(gchar **argv, gint columns,
-												GPid *child_pid, gint *stdin_fd,
-												gint *stdout_fd, gint *stderr_fd) {
+                                                GPid *child_pid, gint *stdin_fd,
+                                                gint *stdout_fd, gint *stderr_fd) {
 	GError *error = NULL;
 	gchar **env = g_get_environ();
 	gchar *columns_str = g_strdup_printf("%d", columns);
 
+	// Set terminal width environment variables
 	env = g_environ_setenv(env, "COLUMNS", columns_str, TRUE);
 
-	// On Windows, also set ANSICON_COLUMNS and ANSICON_LINES
-	#ifdef G_OS_WIN32
+	// On Windows, also set ANSICON_COLUMNS
+#ifdef _WIN32
 	env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
-	#endif
+#endif
 
 	child_info *child = g_malloc(sizeof(child_info));
 	gboolean spawn_result = siril_spawn_host_async_with_pipes(
@@ -121,8 +140,7 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 		&error
 	);
 
-	// At this point, remove the processing thread from the list of children and replace it
-	// with the GraXpert process. This avoids tracking two children for the same task.
+	// Replace processing thread with GraXpert process in child list
 	if (get_thread_run())
 		remove_child_from_children((GPid)-2);
 	child->childpid = *child_pid;
@@ -131,7 +149,7 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	child->datetime = g_date_time_new_now_local();
 	com.children = g_slist_prepend(com.children, child);
 
-	// Set a static variable so we can recover the pid info from gui
+	// Store pid for GUI access
 	running_pid = *child_pid;
 	g_child_watch_add(*child_pid, child_watch_cb, NULL);
 
@@ -152,6 +170,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 	g_autoptr(GError) error = NULL;
 	int retval = -1;
 
+	// Debug output of arguments
 	int index = 0;
 	while (argv[index]) {
 		fprintf(stdout, "%s ", argv[index++]);
@@ -162,19 +181,29 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 		return retval;
 	}
 
-	// g_spawn handles wchar so not need to convert
+	// Set progress bar
 	if (!is_sequence) set_progress_bar_data(_("Starting GraXpert..."), 0.0);
-	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL, &child_stderr);
 
+	// Prepare arguments with proper path encoding
+	gchar **prepared_argv = prepare_graxpert_args(argv);
+
+	// Spawn GraXpert
+	error = spawn_graxpert(prepared_argv, 200, &child_pid, NULL, NULL, &child_stderr);
+
+	// Clean up original arguments
 	int i = 0;
 	while (argv[i])
 		g_free(argv[i++]);
+
+	// Clean up prepared arguments
+	free_prepared_args(prepared_argv);
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning GraXpert failed: %s\n"), "red", error->message);
 		return retval;
 	}
 
+	// Create input stream for process output
 	GInputStream *stream = NULL;
 #ifdef _WIN32
 	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(child_stderr), FALSE);
@@ -182,6 +211,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 	stream = g_unix_input_stream_new(child_stderr, FALSE);
 #endif
 
+	// Process output
 	gboolean doprint = TRUE;
 	gchar *buffer;
 	gsize length = 0;
@@ -232,9 +262,11 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 #endif
 		g_free(buffer);
 	}
+
 	// GraXpert has exited, remove from child list and reset the stored pid
 	remove_child_from_children(child_pid);
 	running_pid = (GPid) -1;
+
 	if (graxpert_no_exit_report && retval == -1) {
 		if (!is_sequence) siril_log_message(_("GraXpert GUI finished.\n"));
 		if (!is_sequence) set_progress_bar_data(_("Done."), 1.0);
@@ -296,11 +328,12 @@ static GError *spawn_graxpert_sync(gchar **argv, gint columns,
 	gchar **env = g_get_environ();
 	gchar *columns_str = g_strdup_printf("%d", columns);
 
+	// Set terminal width environment variables
 	env = g_environ_setenv(env, "COLUMNS", columns_str, TRUE);
 
-	#ifdef G_OS_WIN32
+#ifdef _WIN32
 	env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
-	#endif
+#endif
 
 	gboolean spawn_result = siril_spawn_host_sync(
 		NULL,           // working directory
@@ -323,6 +356,32 @@ static GError *spawn_graxpert_sync(gchar **argv, gint columns,
 	}
 
 	return NULL;
+}
+
+static gchar** prepare_graxpert_args(gchar **argv) {
+#ifdef _WIN32
+	// Create new array with converted paths
+	int argc = g_strv_length(argv);
+	gchar **prepared_argv = g_malloc0((argc + 1) * sizeof(gchar*));
+
+	for (int i = 0; i < argc; i++) {
+		// Check if argument is a file path
+		if (g_file_test(argv[i], G_FILE_TEST_EXISTS)) {
+			prepared_argv[i] = convert_path_for_windows(argv[i]);
+		} else {
+			prepared_argv[i] = g_strdup(argv[i]);
+		}
+	}
+
+	return prepared_argv;
+	#else
+	// On non-Windows, just return a copy
+	return g_strdupv(argv);
+#endif
+}
+
+static void free_prepared_args(gchar **argv) {
+	g_strfreev(argv);
 }
 
 gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
@@ -884,6 +943,7 @@ gpointer do_graxpert (gpointer p) {
 	outpath = remove_ext_from_filename(temp);
 	g_free(temp);
 	g_free(filename);
+
 	// Save current image as input filename
 	siril_log_message(_("Saving temporary working file...\n"));
 	if (savefits(path, args->fit)) {
