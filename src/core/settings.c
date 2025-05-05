@@ -159,6 +159,7 @@ preferences pref_init = {
 		.config_colors.color_sso_annotations = NULL,
 		.config_colors.color_tmp_annotations = NULL,
 		.mmb_action = MMB_ZOOM_FIT,
+		.mouse_speed_limit = 0.0,
 		.mouse_cfg = {
 			.mouse_actions_array = NULL,
 			.scroll_actions_array = NULL
@@ -509,6 +510,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "roi_mode", STYPE_INT, N_("ROI selection mode"), &com.pref.gui.roi_mode },
 	{ "gui", "roi_warning", STYPE_BOOL, N_("enable ROI dialog warning"), &com.pref.gui.enable_roi_warning },
 	{ "gui", "mmb_zoom_action", STYPE_INT, N_("Middle mouse button double click zoom action"), &com.pref.gui.mmb_action },
+	{ "gui", "mouse_speed_limit", STYPE_DOUBLE, N_("Mouse smooth scroll speed limit"), &com.pref.gui.mouse_speed_limit },
 	{ "gui", "color_bkg_samples", STYPE_STR, N_("configure background samples color"), &com.pref.gui.config_colors.color_bkg_samples },
 	{ "gui", "color_std_annotations", STYPE_STR, N_("configure standard annotation color"), &com.pref.gui.config_colors.color_std_annotations },
 	{ "gui", "color_dso_annotations", STYPE_STR, N_("configure dso annotation color"), &com.pref.gui.config_colors.color_dso_annotations },

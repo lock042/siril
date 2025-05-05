@@ -257,6 +257,7 @@ struct gui_config {
 	gboolean enable_roi_warning; // Whether to notify when a ROI-enabled dialog starts
 	configurable_colors config_colors; // This used to configure some colors in Siril
 	mmb_action_t mmb_action; // Defines middle mouse button double click behaviour
+	double mouse_speed_limit; // Defines a mximum step size for GDK_SCROLL_SMOOTH actions
 	struct mouse_config mouse_cfg; // String representation of mouse & scroll actions
 	struct editor_config editor_cfg; // Configuration for the script editor
 };

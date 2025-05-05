@@ -334,10 +334,10 @@ int process_save(int nb){
 
 	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
-		retval = 1;
+		retval = CMD_GENERIC_ERROR;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savefits(savename, &gfit);
+		retval = savefits(savename, &gfit) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
 	}
 	gui_function(set_precision_switch, NULL);
@@ -352,10 +352,10 @@ int process_savebmp(int nb){
 	int status, retval;
 	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
-		retval = 1;
+		retval = CMD_GENERIC_ERROR;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savebmp(savename, &gfit);
+		retval = savebmp(savename, &gfit) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
 	}
 	g_free(filename);
@@ -777,10 +777,10 @@ int process_savejpg(int nb){
 	int status, retval;
 	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
-		retval = 1;
+		retval = CMD_GENERIC_ERROR;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savejpg(savename, &gfit, quality, TRUE);
+		retval = savejpg(savename, &gfit, quality, TRUE) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
 	}
 	g_free(filename);
@@ -826,7 +826,7 @@ int process_savejxl(int nb){
 		retval = CMD_GENERIC_ERROR;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savejxl(savename, &gfit, effort, quality, force_8bit);
+		retval = savejxl(savename, &gfit, effort, quality, force_8bit) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
 	}
 	g_free(filename);
@@ -841,11 +841,11 @@ int process_savepng(int nb){
 	int status, retval;
 	gchar *savename =update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
-		retval = 1;
+		retval = CMD_GENERIC_ERROR;
 	} else {
 		set_cursor_waiting(TRUE);
 		uint32_t bytes_per_sample = gfit.orig_bitpix != BYTE_IMG ? 2 : 1;
-		retval = savepng(savename, &gfit, bytes_per_sample, gfit.naxes[2] == 3);
+		retval = savepng(savename, &gfit, bytes_per_sample, gfit.naxes[2] == 3) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
 	}
 	g_free(filename);
@@ -884,10 +884,10 @@ int process_savetif(int nb){
 	int status, retval;
 	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
-		retval = 1;
+		retval = CMD_GENERIC_ERROR;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savetif(savename, &gfit, bitspersample, astro_tiff, com.pref.copyright, tiff_compression, TRUE, TRUE);
+		retval = savetif(savename, &gfit, bitspersample, astro_tiff, com.pref.copyright, tiff_compression, TRUE, TRUE) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
 	}
 	free(astro_tiff);
@@ -902,10 +902,10 @@ int process_savepnm(int nb){
 	int status, retval;
 	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
-		retval = 1;
+		retval = CMD_GENERIC_ERROR;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = saveNetPBM(savename, &gfit);
+		retval = saveNetPBM(savename, &gfit) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
 	}
 	g_free(filename);
@@ -1013,7 +1013,7 @@ int process_imoper(int nb){
 	fits fit = { 0 };
 	if (readfits(word[1], &fit, NULL, !com.pref.force_16bit)) return CMD_INVALID_IMAGE;
 
-	int retval = imoper(&gfit, &fit, oper, !com.pref.force_16bit);
+	int retval = imoper(&gfit, &fit, oper, !com.pref.force_16bit) ? CMD_GENERIC_ERROR : CMD_OK;
 
 	clearfits(&fit);
 	return retval | CMD_NOTIFY_GFIT_MODIFIED;
@@ -2436,7 +2436,7 @@ int process_seq_ghs(int nb, int stretchtype) {
 		free(seqdata);
 		if (seq != &com.seq)
 			free_sequence(seq, TRUE);
-		return retval;
+		return CMD_ARG_ERROR;
 	}
 	if (params->payne_colourstretchmodel == COL_SAT && seq->nb_layers != 3) {
 		siril_log_message(_("Error: cannot apply saturation stretch to mono images.\n"));
@@ -2482,7 +2482,7 @@ int process_ghs(int nb, int stretchtype) {
 	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
 	if (retval) {
 		free (params);
-		return retval;
+		return CMD_ARG_ERROR;
 	}
 	if (params->payne_colourstretchmodel == COL_SAT && gfit.naxes[2] != 3) {
 		siril_log_message(_("Error: cannot apply saturation stretch to a mono image.\n"));
@@ -2895,14 +2895,14 @@ int process_merge(int nb) {
 			siril_change_dir(dir, NULL);
 		if (!(seqs[i] = load_sequence(seqname, NULL))) {
 			siril_log_message(_("Could not open sequence `%s' for merging\n"), word[i + 1]);
-			retval = 1;
+			retval = CMD_SEQUENCE_NOT_FOUND;
 			free(seqpath1); free(seqpath2);	g_free(seqname); g_free(dir);
 			goto merge_clean_up;
 		}
 		g_free(seqname);
 		if (seq_check_basic_data(seqs[i], FALSE) < 0) {
 			siril_log_message(_("Sequence `%s' is invalid, could not merge\n"), word[i + 1]);
-			retval = 1;
+			retval = CMD_GENERIC_ERROR;
 			free(seqpath1); free(seqpath2); g_free(dir);
 			goto merge_clean_up;
 		}
@@ -2913,7 +2913,7 @@ int process_merge(int nb) {
 					seqs[i]->bitpix != seqs[0]->bitpix ||
 					seqs[i]->type != seqs[0]->type)) {
 			siril_log_message(_("All sequences must be the same format for merging. Sequence `%s' is different\n"), word[i + 1]);
-			retval = 1;
+			retval = CMD_GENERIC_ERROR;
 			free(seqpath1); free(seqpath2); g_free(dir);
 			goto merge_clean_up;
 		}
@@ -2964,7 +2964,7 @@ int process_merge(int nb) {
 			else outseq_name = g_strdup_printf("%s.ser", word[nb - 1]);
 			if (ser_create_file(outseq_name, &out_ser, TRUE, seqs[0]->ser_file)) {
 				siril_log_message(_("Failed to create the output SER file `%s'\n"), word[nb - 1]);
-				retval = 1;
+				retval = CMD_GENERIC_ERROR;
 				goto merge_clean_up;
 			}
 			seqwriter_set_max_active_blocks(2);
@@ -2975,7 +2975,7 @@ int process_merge(int nb) {
 					fits *fit = calloc(1, sizeof(fits));
 					if (ser_read_frame(seqs[i]->ser_file, frame, fit, FALSE, com.pref.debayer.open_debayer)) {
 						siril_log_message(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i + 1]);
-						retval = 1;
+						retval = CMD_INVALID_IMAGE;
 						seqwriter_release_memory();
 						ser_close_and_delete_file(&out_ser);
 						goto merge_clean_up;
@@ -2983,7 +2983,7 @@ int process_merge(int nb) {
 
 					if (ser_write_frame_from_fit(&out_ser, fit, written_frames)) {
 						siril_log_message(_("Failed to write frame %d in merged sequence\n"), written_frames);
-						retval = 1;
+						retval = CMD_GENERIC_ERROR;
 						seqwriter_release_memory();
 						ser_close_and_delete_file(&out_ser);
 						goto merge_clean_up;
@@ -2993,7 +2993,7 @@ int process_merge(int nb) {
 			}
 			if (ser_write_and_close(&out_ser)) {
 				siril_log_message(_("Error while finalizing the merged sequence\n"));
-				retval = 1;
+				retval = CMD_GENERIC_ERROR;
 			}
 			break;
 
@@ -3003,7 +3003,7 @@ int process_merge(int nb) {
 			else outseq_name = g_strdup_printf("%s%s", word[nb - 1], com.pref.ext);
 			if (fitseq_create_file(outseq_name, &out_fitseq, -1)) {
 				siril_log_message(_("Failed to create the output SER file `%s'\n"), word[nb - 1]);
-				retval = 1;
+				retval = CMD_GENERIC_ERROR;
 				goto merge_clean_up;
 			}
 			g_free(outseq_name);
@@ -3016,7 +3016,7 @@ int process_merge(int nb) {
 					fits *fit = calloc(1, sizeof(fits));
 					if (fitseq_read_frame(seqs[i]->fitseq_file, frame, fit, FALSE, -1)) {
 						siril_log_message(_("Failed to read frame %d from input sequence `%s'\n"), frame, word[i + 1]);
-						retval = 1;
+						retval = CMD_INVALID_IMAGE;
 						seqwriter_release_memory();
 						fitseq_close_and_delete_file(&out_fitseq);
 						goto merge_clean_up;
@@ -3024,7 +3024,7 @@ int process_merge(int nb) {
 
 					if (fitseq_write_image(&out_fitseq, fit, written_frames)) {
 						siril_log_message(_("Failed to write frame %d in merged sequence\n"), written_frames);
-						retval = 1;
+						retval = CMD_GENERIC_ERROR;
 						seqwriter_release_memory();
 						fitseq_close_and_delete_file(&out_fitseq);
 						goto merge_clean_up;
@@ -3034,12 +3034,12 @@ int process_merge(int nb) {
 			}
 			if (fitseq_close_file(&out_fitseq)) {
 				siril_log_message(_("Error while finalizing the merged sequence\n"));
-				retval = 1;
+				retval = CMD_GENERIC_ERROR;
 			}
 			break;
 		default:
 			siril_log_message(_("This type of sequence cannot be created by Siril, aborting the merge\n"));
-			retval = 1;
+			retval = CMD_GENERIC_ERROR;
 	}
 
 merge_clean_up:
@@ -3635,7 +3635,7 @@ int process_set(int nb) {
 			break;
 	if (sep == len) {
 		siril_log_message("syntax: group.key=value\n");
-		return 1;
+		return CMD_ARG_ERROR;
 	}
 	input[sep] = '\0';
 	if (is_get) {
@@ -4556,7 +4556,7 @@ int process_seq_psf(int nb) {
 		if (parse_star_position_arg(word[3], seq, &first, &area, NULL)) {
 			free_sequence(seq, TRUE);
 			clearfits(&first);
-			return 1;
+			return CMD_ARG_ERROR;
 		}
 		com.selection = area;
 		clearfits(&first);
@@ -4575,7 +4575,7 @@ int process_seq_psf(int nb) {
 		}
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
-	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, com.script);
+	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, com.script) ? CMD_GENERIC_ERROR : CMD_OK;
 	if (seq != &com.seq)
 		free_sequence(seq, TRUE);
 	return retval;
@@ -5498,7 +5498,7 @@ int process_cosme(int nb) {
 
 	invalidate_stats_from_fit(&gfit);
 	notify_gfit_modified();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return retval ? CMD_GENERIC_ERROR : ( CMD_OK | CMD_NOTIFY_GFIT_MODIFIED );
 }
 
 int process_seq_cosme(int nb) {
@@ -8637,13 +8637,14 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 
 	main_stack(&args);
 
-	int retval = args.retval;
+	int retval = args.retval ? CMD_GENERIC_ERROR : CMD_OK;
 	clean_end_stacking(&args);
 	free(args.image_indices);
 	free(args.description);
 	free(args.critical_value);
 
-	if (!retval) {
+	if (retval == CMD_OK) {
+		stop_processing_thread();
 		bgnoise_async(&args.result, TRUE);
 		// preparing the output filename
 		// needs to be done after stack is completed to have
@@ -9759,7 +9760,7 @@ int process_rgbcomp(int nb) {
 	g_free(result_filename);
 	clearfits(rgbptr);
 
-	return retval;
+	return retval ? CMD_GENERIC_ERROR : CMD_OK;
 }
 
 // used for PCC and SPCC commands
@@ -11755,6 +11756,7 @@ int process_pyscript(int nb) {
 		pyscript_data *data = calloc(1, sizeof(pyscript_data));
 		data->script_name = script_name;
 		data->argv_script = argv_script;
+		g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);  // TRUE to overwrite if it exists
 		// Cannot use start_in_new_thread here because of the possibility of the python script
 		// calling siril.cmd() and running commands that themselves require the processing thread
 		// so we use a generic GThread

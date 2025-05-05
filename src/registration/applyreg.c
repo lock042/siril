@@ -1181,6 +1181,12 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		return FALSE;
 	}
 
+	// max framing method cannot output FITSEQ or SER
+	if (regargs->framing == FRAMING_MAX && (regargs->seq->type == SEQ_FITSEQ || regargs->seq->type == SEQ_SER)) {
+		siril_log_color_message(_("Framing method \"max\" cannot export to FITSEQ or SER format, aborting\n"), "red");
+		return FALSE;
+	}
+
 	int ref_index = regargs->seq->reference_image;
 	if (ref_index < 0) {
 		ref_index = sequence_find_refimage(regargs->seq);
