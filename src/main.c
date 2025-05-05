@@ -304,6 +304,11 @@ static void siril_app_startup(GApplication *application) {
 	 */
 	setlocale(LC_NUMERIC, "C");
 
+#ifdef _WIN32
+	GtkSettings *settings = gtk_settings_get_default();
+    g_object_set(settings, "gtk-im-module", "ime", NULL);
+#endif
+
 	g_set_application_name(PACKAGE_NAME);
 	gtk_window_set_default_icon_name("siril");
 	g_application_set_resource_base_path(application, "/org/siril/Siril/pixmaps/");
