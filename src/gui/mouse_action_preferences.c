@@ -666,6 +666,7 @@ void on_mouse_actions_apply_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("mouse_treeview_scrolled_window"));
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
+	com.pref.gui.mouse_speed_limit = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_mouse_speed_limit")));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "mouse_actions_treeview") == 0) {
 		update_mouse_actions_from_treeview(GTK_TREE_VIEW(existing_tree_view));
 	}

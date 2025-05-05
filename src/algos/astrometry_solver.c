@@ -2259,6 +2259,12 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		seq_finalize_hook(arg);
 	if (aargs->update_reg && !arg->retval) {
 		siril_log_color_message(_("Computing astrometric registration...\n"), "green");
+		if (!arg->seq->imgparam[arg->seq->reference_image].incl) {
+			siril_log_color_message(_("Reference image was not platesolved, changing reference\n"), "salmon");
+			arg->seq->reference_image = -1;
+			arg->seq->reference_image = sequence_find_refimage(arg->seq);
+			retval = 1;
+		}
 		arg->retval = compute_Hs_from_astrometry(arg->seq, NULL, -1, aargs->WCSDATA, FRAMING_CURRENT, aargs->layer, NULL, NULL);
 	}
 	fix_selnum(arg->seq, FALSE);

@@ -267,6 +267,7 @@ static void update_user_interface_preferences() {
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 	com.pref.gui.roi_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")));
 	com.pref.gui.mmb_action = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mmb_zoom")));
+	com.pref.gui.mouse_speed_limit = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_mouse_speed_limit")));
 	update_roi_config();
 	/* Configure colors */
 	GdkRGBA color;
@@ -801,6 +802,7 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mmb_zoom")), pref->gui.mmb_action);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_mouse_speed_limit")), pref->gui.mouse_speed_limit);
 
 	GdkRGBA color;
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_bkg_samples);

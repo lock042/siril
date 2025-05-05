@@ -1309,7 +1309,7 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	/* temporary code */
 	aavso_dlg *aavso_ptr = calloc(1, sizeof(aavso_dlg));
 
-	aavso_ptr->obscode = gtk_entry_get_text(GTK_ENTRY(lookup_widget("obscode_entry")));
+	aavso_ptr->obscode = gtk_entry_get_text(GTK_ENTRY(lookup_widget("observationcode_entry")));
 	aavso_ptr->obstype = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(lookup_widget("obstype_combo")));
 	aavso_ptr->starid = gtk_entry_get_text(GTK_ENTRY(lookup_widget("starid_entry")));
 	aavso_ptr->cname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("cname_entry")));

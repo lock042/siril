@@ -38,6 +38,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "io/siril_pythonmodule.h"
+#include "io/siril_git.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -189,6 +190,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	if (g_str_has_suffix(script_file, PYSCRIPT_EXT) || g_str_has_suffix(script_file, PYCSCRIPT_EXT)) {
 		// Run Python script
+		g_unsetenv("SIRIL_PYTHON_CLI");
 		execute_python_script(script_file, TRUE, FALSE, NULL);
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
 		/* Last thing before running the script, disable widgets except for Stop */
@@ -368,7 +370,7 @@ int initialize_script_menu(gboolean verbose) {
 
 	#ifdef HAVE_LIBGIT2
 	// Wait for git repository update to complete during startup
-	if (com.update_scripts_thread) {
+	if (com.update_scripts_thread && !is_scripts_repo_cloned()) {
 		g_thread_join(com.update_scripts_thread);
 		com.update_scripts_thread = NULL;
 	}
@@ -481,27 +483,63 @@ int refresh_script_menu(gboolean verbose) {
 	return 0;
 }
 
+static GMutex script_mutex = { 0 };
+
+static gboolean call_initialize_script_menu(gpointer data) {
+	gboolean state = (gboolean) GPOINTER_TO_INT(data);
+
+	// Make sure this function doesn't wait for the mutex
+	// as this could create a deadlock
+	initialize_script_menu(state);
+
+	return G_SOURCE_REMOVE;
+}
+
 int refresh_scripts(gboolean update_list, gchar **error) {
 	gchar *err = NULL;
 	int retval = 0;
 	GSList *list = get_list_from_preferences_dialog();
+
 	if (list == NULL) {
 		err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
 		retval = 1;
 	} else {
+		g_mutex_lock(&script_mutex);
+
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-		refresh_script_menu(1);
+
+		g_mutex_unlock(&script_mutex);
+
+		GThread *thread = g_thread_new("refresh_scripts", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+		g_thread_unref(thread);
 	}
+
 	if (error) {
 		*error = err;
 	}
 	return retval;
 }
 
+gpointer refresh_scripts_menu_in_thread(gpointer data) {
+	gboolean verbose = (gboolean) GPOINTER_TO_INT(data);
+
+	g_mutex_lock(&script_mutex);
+	refresh_script_menu(verbose);
+	g_mutex_unlock(&script_mutex);
+
+	return GINT_TO_POINTER(0);
+}
+
 gpointer initialize_script_menu_in_thread(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
-	initialize_script_menu(state);
+
+	g_mutex_lock(&script_mutex);
+
+	g_idle_add(G_SOURCE_FUNC(call_initialize_script_menu), GINT_TO_POINTER(state));
+
+	g_mutex_unlock(&script_mutex);
+
 	return GINT_TO_POINTER(0);
 }
 

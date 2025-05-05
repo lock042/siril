@@ -720,9 +720,20 @@ gboolean scroll_zooms(scroll_data *data) {
 	// The handler is written to act on either horizontal or vertical scroll events
 	// However the handler will only ever be called for one or the other depending
 	// on the configuration.
+	double speed_limit = com.pref.gui.mouse_speed_limit;
 	switch (event->direction) {
 		case GDK_SCROLL_SMOOTH:
 			gdk_event_get_scroll_deltas((GdkEvent*) event, &delta.x, &delta.y);
+			if (speed_limit) {
+				if (delta.x > speed_limit)
+					delta.x = speed_limit;
+				else if (delta.x < -speed_limit)
+					delta.x = -speed_limit;
+				if (delta.y > speed_limit)
+					delta.y = speed_limit;
+				else if (delta.y < -speed_limit)
+					delta.y = -speed_limit;
+			}
 			if (data->direction == MOUSE_VERTICAL_SCROLL) {
 				if (delta.y < 0) {
 					return update_zoom(event->x, event->y, ((ZOOM_IN - 1.0) * fabs(delta.y)) + 1.0);

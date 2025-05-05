@@ -731,8 +731,8 @@ static gboolean check_applyreg(regmethod_index index) {
 	if (index != REG_APPLY)
 		return TRUE;
 	framing_type framingmethod = (framing_type)gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_framing));
-	if (framingmethod == FRAMING_MAX && com.seq.type == SEQ_FITSEQ) {
-		gtk_label_set_text(labelregisterinfo, _("Max framing not allowed with fitseq, change to regular FITS images"));
+	if (framingmethod == FRAMING_MAX && (com.seq.type == SEQ_FITSEQ || com.seq.type == SEQ_SER)) {
+		gtk_label_set_text(labelregisterinfo, _("Max framing not allowed with FITSEQ or SER, change to regular FITS images"));
 		return FALSE;
 	}
 	return TRUE;

@@ -75,7 +75,6 @@ static command commands[] = {
 	{"getref", 1, "getref sequencename", process_getref, STR_GETREF, TRUE, REQ_CMD_NONE},
 	{"ght", 1, "ght -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels]", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"graxpert_bg", 0, "graxpert_bg [-algo=] [-mode=] [-kernel=] [-ai_batch_size=] [-pts_per_row=] [-splineorder=] [-samplesize=] [-smoothing=] [-bgtol=] [ { -gpu | -cpu } ] [-ai_version=] [-keep_bg]", process_graxpert_bg, STR_GRAXPERT_BG, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"graxpert_deconv", 1, "graxpert_deconv { object | stellar } [-strength=] [-psfsize=] [ { -gpu | -cpu } [-ai_version=] ]", process_graxpert_deconv, STR_GRAXPERT_DECONV, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"graxpert_denoise", 0, "graxpert_denoise [-strength=] [ { -gpu | -cpu } [-ai_version=] ]", process_graxpert_denoise, STR_GRAXPERT_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 
@@ -198,7 +197,6 @@ static command commands[] = {
 	{"seqfixbanding", 3, "seqfixbanding sequencename amount sigma [-prefix=] [-vertical]", process_seq_fixbanding, STR_SEQFIXBANDING CMD_CAT(FIXBANDING) STR_FIXBANDING, TRUE, REQ_CMD_NONE},
 	{"seqght", 2, "seqght sequence -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_ght, STR_SEQGHT CMD_CAT(GHT) STR_GHT, TRUE, REQ_CMD_NONE},
 	{"seqgraxpert_bg", 2, "seqgraxpert_bg sequencename [-algo=] [-mode=] [-kernel=] [-ai_batch_size=] [-pts_per_row=] [-splineorder=] [-samplesize=] [-smoothing=] [-bgtol=] [ { -gpu | -cpu } ] [-keep_bg]", process_seq_graxpert_bg, STR_SEQGRAXPERT_BG, TRUE, REQ_CMD_NONE},
-	{"seqgraxpert_deconv", 2, "seqgraxpert_deconv sequencename [-strength=] [-psfsize=] [ { -gpu | -cpu } ]", process_seq_graxpert_deconv, STR_SEQGRAXPERT_DECONV, TRUE, REQ_CMD_NONE},
 	{"seqgraxpert_denoise", 2, "seqgraxpert_denoise sequencename [-strength=] [ { -gpu | -cpu } ]", process_seq_graxpert_denoise, STR_SEQGRAXPERT_DENOISE, TRUE, REQ_CMD_NONE},
 	{"seqheader", 2, "seqheader sequencename keyword [keyword2 ...] [-sel] [-out=file.csv]", process_seq_header, STR_SEQHEADER, TRUE, REQ_CMD_NONE},
 	{"seqinvght", 2, "seqinvght sequence -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_invght, STR_SEQINVGHT CMD_CAT(INVGHT) STR_INVGHT CMD_CAT(GHT) STR_GHT, TRUE, REQ_CMD_NONE},
