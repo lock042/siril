@@ -382,3 +382,47 @@ void on_graxpert_deconv_switch_state_set(GtkSwitch *widget, gboolean state, gpoi
 void on_toggle_graxpert_gpu_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.gui.graxpert_gpu = gtk_toggle_button_get_active(button);
 }
+
+void on_graxpert_troubleshooting_clicked(GtkButton *button, gpointer user_data) {
+	if(!com.uniq || !com.uniq->filename || com.uniq->filename[0] == '\0') {
+		siril_log_color_message(_("Can only troubleshoot with a single image loaded\n"), "red");
+		return;
+	}
+	char *my_argv[64] = {0};
+	graxpert_data *args = fill_graxpert_data_from_gui(FALSE);
+	if (args->operation == GRAXPERT_BG && args->bg_algo != GRAXPERT_BG_AI) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
+			_("Troubleshooting does not support this background extraction mode as "
+			"it requires generation of an on-the-fly config file to configure the sample points"));
+		free_graxpert_data(args);
+		return;
+	}
+	gchar *basename = g_path_get_basename(com.uniq->filename);
+	gchar *dirname = g_path_get_dirname(com.uniq->filename);
+	gchar *temp = g_strdup_printf("%s/graxpert_test_%s", dirname, basename);
+	gchar *outfile = remove_ext_from_filename(temp);
+	g_free(temp);
+	g_free(basename);
+	g_free(dirname);
+	gboolean no_exit_report = FALSE;
+	gboolean is_gui = FALSE;
+	configure_graxpert_argv(args, my_argv, outfile, com.uniq->filename, &no_exit_report, &is_gui);
+	free_graxpert_data(args);
+	g_free(outfile);
+	gchar *test_cmdline = g_strjoinv(" ", my_argv);
+	int i = 0;
+	while (my_argv[i]) {
+		g_free(my_argv[i++]);
+	}
+	siril_log_color_message(_("GraXpert troubleshooting\n"), "salmon");
+	gchar *msg = g_strdup(siril_log_message(_("If you have problems relating to the GraXpert interface "
+		"it is important to find out whether the problem is with GraXpert or with Siril. "
+		"Copy the GraXpert command shown in blue in the Siril log into a console or Windows cmd.exe shell and run it.\n"
+		"If it succeeds, the problem is with Siril and should be reported at "
+		"https://gitlab.com/free-astro/siril\nHowever if it fails then the problem is "
+		"with GraXpert and should be reported at https://github.com/Steffenhir/GraXpert\n")));
+	siril_log_color_message(_("%s\n\n"), "blue", test_cmdline);
+	siril_message_dialog(GTK_MESSAGE_QUESTION, _("GraXpert Troubleshooting"), msg);
+	g_free(msg);
+	g_free(test_cmdline);
+}

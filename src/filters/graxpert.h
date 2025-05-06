@@ -74,5 +74,5 @@ void free_graxpert_data(graxpert_data *p);
 gpointer do_graxpert (gpointer p);
 void apply_graxpert_to_sequence(graxpert_data *args);
 const gchar** get_ai_models(graxpert_operation operation);
-
+int configure_graxpert_argv(graxpert_data *args, char **my_argv, const gchar *outpath, const gchar *path, gboolean *graxpert_no_exit_report, gboolean *is_gui);
 #endif

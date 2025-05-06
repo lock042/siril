@@ -152,16 +152,17 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 	g_autoptr(GError) error = NULL;
 	int retval = -1;
 
+#ifdef DEBUG_GRAXPERT
 	int index = 0;
 	while (argv[index]) {
 		fprintf(stdout, "%s ", argv[index++]);
 	}
 	fprintf(stdout, "\n");
+#endif
 
 	if (!get_thread_run()) {
 		return retval;
 	}
-
 	// g_spawn handles wchar so not need to convert
 	if (!is_sequence) set_progress_bar_data(_("Starting GraXpert..."), 0.0);
 	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL, &child_stderr);
@@ -826,6 +827,93 @@ static gboolean end_graxpert(gpointer p) {
 	return end_generic(NULL);
 }
 
+int configure_graxpert_argv(graxpert_data *args, char **my_argv, const gchar *outpath, const gchar *path,
+							gboolean *graxpert_no_exit_report, gboolean *is_gui) {
+	int nb = 0;
+	my_argv[nb++] = g_strdup(com.pref.graxpert_path);
+	if (args->operation == GRAXPERT_BG) {
+		my_argv[nb++] = g_strdup("-cli");
+		my_argv[nb++] = g_strdup("-cmd");
+		my_argv[nb++] = g_strdup("background-extraction");
+		if (args->bg_algo == GRAXPERT_BG_AI) {
+			my_argv[nb++] = g_strdup("-correction");
+			my_argv[nb++] = g_strdup_printf("%s", args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" : "Division");
+			my_argv[nb++] = g_strdup("-smoothing");
+			my_argv[nb++] = g_strdup_printf("%f", args->bg_smoothing);
+			my_argv[nb++] = g_strdup("-gpu");
+			my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
+			if (args->ai_version != NULL) {
+				my_argv[nb++] = g_strdup("-ai_version");
+				my_argv[nb++] = g_strdup(args->ai_version);
+			}
+		} else {
+			if (!args->bg_samples) {
+				siril_log_color_message(_("Background samples must be computed for GraXpert RBF, Spline and Kriging methods\n"), "red");
+				goto ARGV_CONFIG_ERROR;
+			}
+			my_argv[nb++] = g_strdup("-preferences_file");
+			args->configfile = g_build_filename(com.wd, "siril-graxpert.pref", NULL);
+			my_argv[nb++] = g_strdup(args->configfile);
+			save_graxpert_config(args);
+		}
+		if (args->keep_bg)
+			my_argv[nb++] = g_strdup("-bg");
+		my_argv[nb++] = g_strdup("-output");
+		my_argv[nb++] = g_strdup_printf("%s", outpath);
+		*graxpert_no_exit_report = TRUE;
+	} else if (args->operation == GRAXPERT_DENOISE) {
+		my_argv[nb++] = g_strdup("-cli");
+		my_argv[nb++] = g_strdup("-cmd");
+		my_argv[nb++] = g_strdup("denoising");
+		my_argv[nb++] = g_strdup_printf("-output");
+		my_argv[nb++] = g_strdup_printf("%s", outpath);
+		my_argv[nb++] = g_strdup("-gpu");
+		my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
+		my_argv[nb++] = g_strdup("-strength");
+		my_argv[nb++] = g_strdup_printf("%.2f", args->denoise_strength);
+		if (args->ai_version != NULL) {
+			my_argv[nb++] = g_strdup("-ai_version");
+			my_argv[nb++] = g_strdup(args->ai_version);
+		}
+	} else if (args->operation == GRAXPERT_DECONV || args->operation == GRAXPERT_DECONV_STELLAR) {
+		my_argv[nb++] = g_strdup("-cli");
+		my_argv[nb++] = g_strdup("-cmd");
+		my_argv[nb++] = args->operation == GRAXPERT_DECONV ? g_strdup("deconv-obj") : g_strdup("deconv-stellar");
+		my_argv[nb++] = g_strdup_printf("-output");
+		my_argv[nb++] = g_strdup_printf("%s", outpath);
+		my_argv[nb++] = g_strdup("-gpu");
+		my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
+		my_argv[nb++] = g_strdup("-strength");
+		my_argv[nb++] = g_strdup_printf("%.2f", args->deconv_strength);
+		my_argv[nb++] = g_strdup("-psfsize");
+		my_argv[nb++] = g_strdup_printf("%.2f", args->deconv_blur_psf_size);
+		if (args->ai_version != NULL) {
+			my_argv[nb++] = g_strdup("-ai_version");
+			my_argv[nb++] = g_strdup(args->ai_version);
+		}
+	} else if (args->operation == GRAXPERT_GUI) {
+		siril_log_message(_("GraXpert GUI will open with the current image. When you have finished, save the "
+							"image and return to Siril.\nYou will need to check and re-assign the ICC profile "
+							"as GraXpert does not preserve ICC profiles embedded in FITS files.\n"));
+		*graxpert_no_exit_report = TRUE;
+		*is_gui = TRUE;
+	} else {
+		siril_log_message(_("Error: unknown GraXpert operation\n"));
+		goto ARGV_CONFIG_ERROR;
+	}
+	my_argv[nb++] = g_strdup_printf("%s", path);
+	return 0;
+
+ARGV_CONFIG_ERROR:
+	// Clean up the args
+	while (nb > 0) {
+		nb--;
+		g_free(my_argv[nb]);
+		my_argv[nb] = NULL;
+	}
+	return 1;
+}
+
 gpointer do_graxpert (gpointer p) {
 	lock_roi_mutex();
 	set_graxpert_aborted(FALSE);
@@ -894,82 +982,12 @@ gpointer do_graxpert (gpointer p) {
 	com.pref.comp.fits_enabled = pref_fitscomp;
 
 	// Configure GraXpert commandline
-	int nb = 0;
 	gboolean graxpert_no_exit_report = FALSE;
 	gboolean is_gui = FALSE;
-	my_argv[nb++] = g_strdup(com.pref.graxpert_path);
-	if (args->operation == GRAXPERT_BG) {
-		my_argv[nb++] = g_strdup("-cli");
-		my_argv[nb++] = g_strdup("-cmd");
-		my_argv[nb++] = g_strdup("background-extraction");
-		if (args->bg_algo == GRAXPERT_BG_AI) {
-			my_argv[nb++] = g_strdup("-correction");
-			my_argv[nb++] = g_strdup_printf("%s", args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" : "Division");
-			my_argv[nb++] = g_strdup("-smoothing");
-			my_argv[nb++] = g_strdup_printf("%f", args->bg_smoothing);
-			my_argv[nb++] = g_strdup("-gpu");
-			my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
-			if (args->ai_version != NULL) {
-				my_argv[nb++] = g_strdup("-ai_version");
-				my_argv[nb++] = g_strdup(args->ai_version);
-			}
-		} else {
-			if (!args->bg_samples) {
-				siril_log_color_message(_("Background samples must be computed for GraXpert RBF, Spline and Kriging methods\n"), "red");
-				goto ERROR_OR_FINISHED;
-			}
-			my_argv[nb++] = g_strdup("-preferences_file");
-			args->configfile = g_build_filename(com.wd, "siril-graxpert.pref", NULL);
-			my_argv[nb++] = g_strdup(args->configfile);
-			save_graxpert_config(args);
-		}
-		if (args->keep_bg)
-			my_argv[nb++] = g_strdup("-bg");
-		my_argv[nb++] = g_strdup("-output");
-		my_argv[nb++] = g_strdup_printf("%s", outpath);
-		graxpert_no_exit_report = TRUE;
-	} else if (args->operation == GRAXPERT_DENOISE) {
-		my_argv[nb++] = g_strdup("-cli");
-		my_argv[nb++] = g_strdup("-cmd");
-		my_argv[nb++] = g_strdup("denoising");
-		my_argv[nb++] = g_strdup_printf("-output");
-		my_argv[nb++] = g_strdup_printf("%s", outpath);
-		my_argv[nb++] = g_strdup("-gpu");
-		my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
-		my_argv[nb++] = g_strdup("-strength");
-		my_argv[nb++] = g_strdup_printf("%.2f", args->denoise_strength);
-		if (args->ai_version != NULL) {
-			my_argv[nb++] = g_strdup("-ai_version");
-			my_argv[nb++] = g_strdup(args->ai_version);
-		}
-	} else if (args->operation == GRAXPERT_DECONV || args->operation == GRAXPERT_DECONV_STELLAR) {
-		my_argv[nb++] = g_strdup("-cli");
-		my_argv[nb++] = g_strdup("-cmd");
-		my_argv[nb++] = args->operation == GRAXPERT_DECONV ? g_strdup("deconv-obj") : g_strdup("deconv-stellar");
-		my_argv[nb++] = g_strdup_printf("-output");
-		my_argv[nb++] = g_strdup_printf("%s", outpath);
-		my_argv[nb++] = g_strdup("-gpu");
-		my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
-		my_argv[nb++] = g_strdup("-strength");
-		my_argv[nb++] = g_strdup_printf("%.2f", args->deconv_strength);
-		my_argv[nb++] = g_strdup("-psfsize");
-		my_argv[nb++] = g_strdup_printf("%.2f", args->deconv_blur_psf_size);
-		if (args->ai_version != NULL) {
-			my_argv[nb++] = g_strdup("-ai_version");
-			my_argv[nb++] = g_strdup(args->ai_version);
-		}
-	} else if (args->operation == GRAXPERT_GUI) {
-		siril_log_message(_("GraXpert GUI will open with the current image. When you have finished, save the "
-							"image and return to Siril.\nYou will need to check and re-assign the ICC profile "
-							"as GraXpert does not preserve ICC profiles embedded in FITS files.\n"));
-		graxpert_no_exit_report = TRUE;
-		is_gui = TRUE;
-	} else {
-		siril_log_message(_("Error: unknown GraXpert operation\n"));
-		g_free(my_argv[0]);
+	if (configure_graxpert_argv(args, my_argv, outpath, path, &graxpert_no_exit_report, &is_gui)) {
+		siril_debug_print("Error configuring GraXpert argv\n");
 		goto ERROR_OR_FINISHED;
 	}
-	my_argv[nb++] = g_strdup_printf("%s", path);
 
 	// Save a copy of the current ICC profile, as GraXpert does not preserve these
 	if (args->fit->icc_profile)
