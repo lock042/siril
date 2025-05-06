@@ -18,6 +18,7 @@ XX/XX/25
 * Fixed parameter parsing in PixelMath (#1594)
 * Fixed bad font kerning on macOS (#1508)
 * Fixed crash on Windows language change (#1560)
+* Fixed incorrect option handling in denoise (#1599)
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
