@@ -46,12 +46,24 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	// Ensure data is zero-filled to prevent any issues with freeing members at validation fail time
 	memset(data, 0, sizeof(spcc_object));
 
-	// Read the entire file
+	// Open the file using g_fopen()
+	FILE *fp = g_fopen(jsonFilePath, "rb");
+	if (!fp) {
+		// Handle file opening error
+		siril_log_color_message(_("Failed to open file: %s\n"), "red", jsonFilePath);
+		return FALSE;
+	}
+
+	// Read the file using yyjson_read_fp()
 	yyjson_read_err err;
-	yyjson_doc *doc = yyjson_read_file(jsonFilePath, 0, NULL, &err);
+	yyjson_doc *doc = yyjson_read_fp(fp, 0, NULL, &err);
+
+	// Close the file
+	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", err.msg);
-		return 0;
+		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
+				"red", jsonFilePath, err.msg, err.pos);
+		return FALSE;
 	}
 
 	// Get root array
@@ -251,10 +263,23 @@ static gboolean processJsonFile(const char *file_path) {
 		return FALSE;
 
 	// Read and parse JSON file
+	// Open the file using g_fopen()
+	FILE *fp = g_fopen(file_path, "rb");
+	if (!fp) {
+		// Handle file opening error
+		siril_log_color_message(_("Failed to open file: %s\n"), "red", file_path);
+		return FALSE;
+	}
+
+	// Read the file using yyjson_read_fp()
 	yyjson_read_err err;
-	yyjson_doc *doc = yyjson_read_file(file_path, 0, NULL, &err);
+	yyjson_doc *doc = yyjson_read_fp(fp, 0, NULL, &err);
+
+	// Close the file
+	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", err.msg);
+		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
+				"red", file_path, err.msg, err.pos);
 		return FALSE;
 	}
 
@@ -478,10 +503,23 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	data->x = data->y = NULL;
 
 	// Read JSON file
+	// Open the file using g_fopen()
+	FILE *fp = g_fopen(data->filepath, "rb");
+	if (!fp) {
+		// Handle file opening error
+		siril_log_color_message(_("Failed to open file: %s\n"), "red", data->filepath);
+		return FALSE;
+	}
+
+	// Read the file using yyjson_read_fp()
 	yyjson_read_err err;
-	yyjson_doc *doc = yyjson_read_file(data->filepath, 0, NULL, &err);
+	yyjson_doc *doc = yyjson_read_fp(fp, 0, NULL, &err);
+
+	// Close the file
+	fclose(fp);
 	if (!doc) {
-		siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", err.msg);
+		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
+				"red", data->filepath, err.msg, err.pos);
 		return FALSE;
 	}
 
