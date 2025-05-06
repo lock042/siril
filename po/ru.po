@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-02 21:49+0200\n"
-"PO-Revision-Date: 2025-05-01 14:04+0000\n"
+"PO-Revision-Date: 2025-05-05 08:22+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -23938,12 +23938,11 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr "Регистрация %d изображений из %d в последовательности"
 
 #: src/gui/registration.c:735
-#, fuzzy
 msgid ""
 "Max framing not allowed with FITSEQ or SER, change to regular FITS images"
 msgstr ""
-"Максимальное кадрирование не допустимо для fitseq. Переход к обычным "
-"изображениям FITS"
+"Максимальное кадрирование не допускается для FITSEQ или SER. Переход к "
+"обычным изображениям FITS"
 
 #: src/gui/registration.c:746
 msgid "Pick object in two images"

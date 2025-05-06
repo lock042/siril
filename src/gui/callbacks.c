@@ -1577,8 +1577,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);
-	GThread *thread = g_thread_new("initialize_script_menu",
-					initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+	GThread *thread = g_thread_new("initialize_script_menu", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
 	g_thread_unref(thread);
 
 	/* initialize command processor */
@@ -1625,6 +1624,9 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(on_button_histo_close_clicked), NULL);
 	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(siril_widget_hide_on_delete), NULL);
+
+	/* due to another in glade, we need to associate the model here */
+	gtk_tree_view_set_model(GTK_TREE_VIEW(lookup_widget("pref_astro_tree_view")), GTK_TREE_MODEL(gtk_builder_get_object(gui.builder, "liststore_astrometry")));
 
 	selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
