@@ -101,6 +101,7 @@ gboolean initialize_graxpert_widgets_if_needed(gpointer user_data) {
 		// GtkSwitch
 		graxpert_deconv_switch = GTK_SWITCH(gtk_builder_get_object(gui.builder, "graxpert_deconv_switch"));
 	}
+	gtk_toggle_button_set_active(toggle_graxpert_gpu, com.pref.gui.graxpert_gpu);
 	if (populate_ai_combos) {
 		populate_graxpert_ai_combos(NULL);
 	}
@@ -376,4 +377,8 @@ void on_graxpert_deconv_switch_state_set(GtkSwitch *widget, gboolean state, gpoi
 	gtk_widget_set_visible(ai_model_settings_deconv_stellar, state);
 	gint page_num = gtk_notebook_get_current_page(notebook_graxpert_operation);
 	set_widgets(page_num);
+}
+
+void on_toggle_graxpert_gpu_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.pref.gui.graxpert_gpu = gtk_toggle_button_get_active(button);
 }

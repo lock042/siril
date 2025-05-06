@@ -27,6 +27,7 @@ XX/XX/25
 * Python scripts are now sorted alphabetically (#1559)
 * Added an optional rate limit for smooth scroll zoom speed (#1576)
 * Added SirilInterface.create_new_seq() and SirilInterface.is_cli() in sirilpy (!867)
+* GraXpert "Use GPU" now defaults to False but is persistent (saved in config)
 
 siril 1.4.0-beta1
 04/26/25

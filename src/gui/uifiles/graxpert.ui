@@ -975,8 +975,8 @@
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
                                 <property name="tooltip-text" translatable="yes">Configure GraXpert to use the GPU for AI inference, if available</property>
-                                <property name="active">True</property>
                                 <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="on_toggle_graxpert_gpu_toggled" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
