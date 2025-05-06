@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-02 21:49+0200\n"
-"PO-Revision-Date: 2025-04-28 20:49+0000\n"
+"PO-Revision-Date: 2025-05-06 14:41+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -2606,7 +2606,7 @@ msgstr ""
 "首通道 - 构图到第一个通道（明度模式下始终为 L 通道）;\n"
 "最大化 - 构图到对齐图像的并集区域；\n"
 "最小化 - 构图到对齐图像的交集区域；\n"
-"重心法 - 构图到对齐图像像素的重心。"
+"重心 - 构图到对齐图像像素的重心。"
 
 #: src/gui/uifiles/composition_dialog.ui:494
 msgid "First channel"
@@ -3212,7 +3212,7 @@ msgstr "二次降噪算法"
 #: src/gui/uifiles/denoise_dialog.ui:318
 msgid ""
 "Sets the number of SOS iterations. 3-5 is usually a good starting point."
-msgstr "设置 SOS 迭代次数。3-5 通常是一个很好的起点。"
+msgstr "设置 SOS 迭代次数。可以从 3-5 开始尝试。"
 
 #: src/gui/uifiles/denoise_dialog.ui:320
 msgid "SOS iterations"
@@ -4961,7 +4961,7 @@ msgstr "删除滚动动作"
 
 #: src/gui/uifiles/mouse_actions.ui:277
 msgid "Scroll speed limit"
-msgstr ""
+msgstr "滚动速度上限"
 
 #: src/gui/uifiles/mouse_actions.ui:292
 msgid ""
@@ -4969,7 +4969,8 @@ msgid ""
 "issue where the scroll wheel carries out its action (eg zoom) far too fast, "
 "you can limit the action step size using this control. Try starting with 1.0 "
 "and working down from there. 0.0 means unlimited."
-msgstr ""
+msgstr "设置滚动速度上限。大多数鼠标无需设置。但如果滚轮动作（如缩放）太快，可以以此"
+"限制滚轮的步长。试着从1.0开始递减。0.0表示无限制。"
 
 #: src/gui/uifiles/mouse_actions.ui:316
 msgid "Scroll Actions"
@@ -9078,7 +9079,7 @@ msgstr "光变曲线（ETD 格式）"
 
 #: src/gui/uifiles/siril.ui:2704
 msgid "Build an output file in the AAVSO format"
-msgstr ""
+msgstr "以AAVSO格式构建输出文件"
 
 #: src/gui/uifiles/siril.ui:2705
 msgid "AAVSO file format"
@@ -18045,7 +18046,7 @@ msgstr "启用 X-Trans 传感器修正"
 #: src/core/settings.c:452 src/core/settings.c:453 src/core/settings.c:454
 #: src/core/settings.c:455 src/core/settings.c:456
 msgid "if no X-Trans model found, use this"
-msgstr "如果未找到 X-Trans 模型，请使用此"
+msgstr "如果未找到 X-Trans 模型，就用这个"
 
 #: src/core/settings.c:457
 msgid "default master bias"
@@ -18250,7 +18251,7 @@ msgstr "鼠标中键双击缩放操作"
 
 #: src/core/settings.c:513
 msgid "Mouse smooth scroll speed limit"
-msgstr ""
+msgstr "鼠标平滑滚动速度上限"
 
 #: src/core/settings.c:514
 msgid "configure background samples color"
@@ -19252,7 +19253,7 @@ msgstr "错误：文件路径太长！\n"
 
 #: src/filters/starnet.c:498
 msgid "Starting StarNet"
-msgstr "开始StarNet"
+msgstr "启动StarNet"
 
 #: src/filters/starnet.c:504
 msgid "StarNet: running. Please wait...\n"
@@ -20659,9 +20660,8 @@ msgid "Error loading script contents: %s\n"
 msgstr "加载脚本内容时出错：%s\n"
 
 #: src/gui/git_gui.c:208
-#, fuzzy
 msgid "Manually synchronising script repository\n"
-msgstr "手动同步存储库"
+msgstr "手动同步脚本存储库\n"
 
 #: src/gui/git_gui.c:212 src/gui/git_gui.c:283
 msgid "Error getting the list of unmerged changes"
@@ -20715,9 +20715,8 @@ msgid "Update cancelled. Updates have not been applied."
 msgstr "更新已取消。更新尚未应用。"
 
 #: src/gui/git_gui.c:258
-#, fuzzy
 msgid "Manual scripts update: the script repository is up to date.\n"
-msgstr "脚本存储库是最新的。"
+msgstr "手动更新脚本：脚本存储库是最新的。\n"
 
 #: src/gui/git_gui.c:289
 msgid ""
@@ -20747,10 +20746,9 @@ msgid "Error! SPCC database failed to update."
 msgstr "错误！ SPCC 数据库更新失败。"
 
 #: src/gui/git_gui.c:323
-#, fuzzy
 msgid ""
 "Manual SPCC database update: the SPCC database repository is up to date.\n"
-msgstr "SPCC 数据库存储库是最新的。"
+msgstr "手动更新SPCC数据库：SPCC数据库存储库是最新的。\n"
 
 #: src/gui/graxpert.c:232
 #, c-format
@@ -22034,7 +22032,7 @@ msgstr "右边界位置"
 #. Run the script
 #: src/gui/python_gui.c:1160
 msgid "Starting script\n"
-msgstr "开始运行脚本\n"
+msgstr "启动脚本\n"
 
 #: src/gui/registration.c:49
 msgid ""
@@ -22629,15 +22627,15 @@ msgid "Failed to load CSS sheet: %s.\n"
 msgstr "无法加载 CSS 表：%s。\n"
 
 #: src/gui/siril_intro.c:47
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Welcome to the newest version of Siril, %s. Please take a moment to read "
 "some tips about this release. If the rate is too slow, skip to the next tip "
 "using the right arrow of your keyboard. You can also go back to the previous "
 "tip using the left arrow and stop the animation with the escape key."
 msgstr ""
-"。请花点时间阅读有关此版本的一些提示。如果速度太慢，请按键盘的右箭头跳到下一"
-"个提示。也可以按左箭头返回上一个提示。按Esc键停止动画。"
+"欢迎使用Siril的最新版本%s。请花点时间阅读有关此版本的一些提示。如果速度太慢，"
+"可以按右键跳到下一个提示；也可以按左键返回上一个提示；按Esc键退出提示。"
 
 #: src/gui/siril_intro.c:48
 msgid ""
@@ -26595,7 +26593,7 @@ msgstr "构图方式\"重心\"要求全部图像尺寸相同，异常中止\n"
 #: src/registration/applyreg.c:1186
 msgid ""
 "Framing method \"max\" cannot export to FITSEQ or SER format, aborting\n"
-msgstr ""
+msgstr "构图方式\"最大化\"不能导出为FITSEQ或者SER格式，异常中止\n"
 
 #: src/registration/applyreg.c:1196
 msgid "Reference image is not included in the filtered list, aborting\n"
