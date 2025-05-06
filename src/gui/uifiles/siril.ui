@@ -2672,7 +2672,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Save current plot to png file</property>
+            <property name="tooltip-text" translatable="yes">Build a light curve in the ETD text format</property>
             <property name="text" translatable="yes">Light Curve (ETD format)</property>
             <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
           </object>
@@ -2687,7 +2687,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Save current plot to png file</property>
+            <property name="tooltip-text" translatable="yes">Build an output file in the AAVSO format</property>
             <property name="text" translatable="yes">AAVSO file format</property>
             <signal name="clicked" handler="on_exportAAVSO_button_clicked" swapped="no"/>
           </object>

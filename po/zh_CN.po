@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-30 22:33+0200\n"
+"POT-Creation-Date: 2025-05-02 21:49+0200\n"
 "PO-Revision-Date: 2025-04-28 20:49+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -29,7 +29,7 @@ msgstr "限制对比度自适应直方图均衡…"
 #: src/gui/uifiles/dialog_star_remix.ui:1596 src/gui/uifiles/epf_dialog.ui:76
 #: src/gui/uifiles/histogram_dialog.ui:157
 #: src/gui/uifiles/histogram_dialog.ui:161
-#: src/gui/uifiles/merge_cfa_dialog.ui:63 src/gui/uifiles/mouse_actions.ui:40
+#: src/gui/uifiles/merge_cfa_dialog.ui:63 src/gui/uifiles/mouse_actions.ui:45
 #: src/gui/uifiles/satu_dialog.ui:66 src/gui/uifiles/settings_window.ui:241
 #: src/gui/uifiles/unpurple_dialog.ui:77 src/gui/uifiles/wavelets_dialog.ui:96
 #: src/gui/mouse_action_preferences.c:648
@@ -64,7 +64,7 @@ msgstr "取消"
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:73
 #: src/gui/uifiles/graxpert.ui:111 src/gui/uifiles/histogram_dialog.ui:189
 #: src/gui/uifiles/linearmatch_dialog.ui:77
-#: src/gui/uifiles/merge_cfa_dialog.ui:77 src/gui/uifiles/mouse_actions.ui:54
+#: src/gui/uifiles/merge_cfa_dialog.ui:77 src/gui/uifiles/mouse_actions.ui:59
 #: src/gui/uifiles/pixelmath.ui:819 src/gui/uifiles/resample_dialog.ui:96
 #: src/gui/uifiles/rgradient_dialog.ui:75 src/gui/uifiles/rotation_dialog.ui:71
 #: src/gui/uifiles/satu_dialog.ui:94 src/gui/uifiles/settings_window.ui:269
@@ -138,7 +138,7 @@ msgstr "中位数滤波"
 #: src/gui/uifiles/histogram_dialog.ui:173
 #: src/gui/uifiles/histogram_dialog.ui:177 src/gui/uifiles/icc_dialog.ui:51
 #: src/gui/uifiles/icc_gamut_dialog.ui:48 src/gui/uifiles/keywords_dialog.ui:58
-#: src/gui/uifiles/linearmatch_dialog.ui:62 src/gui/uifiles/mouse_actions.ui:26
+#: src/gui/uifiles/linearmatch_dialog.ui:62 src/gui/uifiles/mouse_actions.ui:31
 #: src/gui/uifiles/pixelmath.ui:805 src/gui/uifiles/python_scratchpad.ui:224
 #: src/gui/uifiles/resample_dialog.ui:82 src/gui/uifiles/rotation_dialog.ui:57
 #: src/gui/uifiles/s_pcc_dialog.ui:140 src/gui/uifiles/spcc_details.ui:39
@@ -329,27 +329,27 @@ msgid ""
 "assigned by the AAVSO."
 msgstr "由AAVSO指定的官方AAVSO天文台编号。"
 
-#: src/gui/uifiles/aavso_dialog.ui:101
+#: src/gui/uifiles/aavso_dialog.ui:100
 msgid "Obscode: "
 msgstr "天文台编号: "
 
-#: src/gui/uifiles/aavso_dialog.ui:113
+#: src/gui/uifiles/aavso_dialog.ui:112
 msgid "Filter: "
 msgstr "滤镜: "
 
-#: src/gui/uifiles/aavso_dialog.ui:124
+#: src/gui/uifiles/aavso_dialog.ui:123
 msgid "The filter used for the observation."
 msgstr "观测所用滤镜。"
 
-#: src/gui/uifiles/aavso_dialog.ui:171
+#: src/gui/uifiles/aavso_dialog.ui:170
 msgid "Cname: "
 msgstr "C名称: "
 
-#: src/gui/uifiles/aavso_dialog.ui:183
+#: src/gui/uifiles/aavso_dialog.ui:182
 msgid "Kname: "
 msgstr "K名称: "
 
-#: src/gui/uifiles/aavso_dialog.ui:194
+#: src/gui/uifiles/aavso_dialog.ui:193
 msgid ""
 "Comparison star name or label such as the AUID (much preferred) or the chart "
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
@@ -358,7 +358,7 @@ msgstr ""
 "参考星的名称或标签，例如 AUID（首选）或参考星的星图标签。如果没有，请使"
 "用“na”。限制：20 个字符。"
 
-#: src/gui/uifiles/aavso_dialog.ui:211
+#: src/gui/uifiles/aavso_dialog.ui:210
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart "
 "label for the check star. If not present, use \"na\". Limit: 20 characters."
@@ -366,11 +366,11 @@ msgstr ""
 "被测星名称或标签，例如 AUID（首选）或被测星的星图标签。如果不存在，请使"
 "用“na”。限制：20 个字符。"
 
-#: src/gui/uifiles/aavso_dialog.ui:229
+#: src/gui/uifiles/aavso_dialog.ui:228
 msgid "Starid: "
 msgstr "恒星id: "
 
-#: src/gui/uifiles/aavso_dialog.ui:240
+#: src/gui/uifiles/aavso_dialog.ui:239
 msgid ""
 "The star's identifier. It can be the AAVSO Designation, the AAVSO Name, or "
 "the AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 "
@@ -379,7 +379,7 @@ msgstr ""
 "恒星的标识符。它可以是 AAVSO 称号、AAVSO 名称或 AAVSO 唯一标识符，但不能超过"
 "其中之一。限制：30 个字符。"
 
-#: src/gui/uifiles/aavso_dialog.ui:258
+#: src/gui/uifiles/aavso_dialog.ui:256
 msgid ""
 "The type of observation in the data file. It can be CCD, DSLR, PEP (for "
 "Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a "
@@ -388,19 +388,19 @@ msgstr ""
 "数据文件中的观测类型。它可以是 CCD、DSLR、PEP（用于光度测定）。如果不存在，则"
 "假定为 CCD。如果您使用 CMOS 相机，请将其报告为 CCD。"
 
-#: src/gui/uifiles/aavso_dialog.ui:275
+#: src/gui/uifiles/aavso_dialog.ui:273
 msgid "Comparison star: "
 msgstr "参考星: "
 
-#: src/gui/uifiles/aavso_dialog.ui:286
+#: src/gui/uifiles/aavso_dialog.ui:284
 msgid "The number of the comparison star."
 msgstr "参考星的数量。"
 
-#: src/gui/uifiles/aavso_dialog.ui:299
+#: src/gui/uifiles/aavso_dialog.ui:297
 msgid "Cstd: "
 msgstr "参考星的图表星等: "
 
-#: src/gui/uifiles/aavso_dialog.ui:310
+#: src/gui/uifiles/aavso_dialog.ui:308
 msgid ""
 "The standardized magnitude for the variable is given by\n"
 "\n"
@@ -417,7 +417,7 @@ msgstr ""
 "其中 Vins 是变星的仪器星等，Cins 是参考星的仪器星等，Cstd 是参考星的图表星"
 "等。"
 
-#: src/gui/uifiles/aavso_dialog.ui:315 src/gui/uifiles/astrometry_dialog.ui:180
+#: src/gui/uifiles/aavso_dialog.ui:313 src/gui/uifiles/astrometry_dialog.ui:180
 #: src/gui/uifiles/astrometry_dialog.ui:202
 #: src/gui/uifiles/astrometry_dialog.ui:224
 #: src/gui/uifiles/astrometry_dialog.ui:246
@@ -430,15 +430,15 @@ msgstr ""
 msgid "0"
 msgstr "0"
 
-#: src/gui/uifiles/aavso_dialog.ui:328
+#: src/gui/uifiles/aavso_dialog.ui:326
 msgid "Check star: "
 msgstr "被测星: "
 
-#: src/gui/uifiles/aavso_dialog.ui:339
+#: src/gui/uifiles/aavso_dialog.ui:337
 msgid "The number of the check star."
 msgstr "被测星数量。"
 
-#: src/gui/uifiles/aavso_dialog.ui:351
+#: src/gui/uifiles/aavso_dialog.ui:349
 msgid ""
 "Please use the sequence ID you will find written in Bold print near the top "
 "of the photometry table in a sentence that reads \"Report this sequence as "
@@ -455,15 +455,15 @@ msgstr ""
 "也是如此。使用注释代码 K（非 AAVSO 图表）并给出适当的图表名称，例如“APASS "
 "DR10”。然后在注释中添加有关参考星的信息。限制：20 个字符。"
 
-#: src/gui/uifiles/aavso_dialog.ui:367
+#: src/gui/uifiles/aavso_dialog.ui:365
 msgid "Chart: "
 msgstr "图表: "
 
-#: src/gui/uifiles/aavso_dialog.ui:379
+#: src/gui/uifiles/aavso_dialog.ui:377
 msgid "Notes: "
 msgstr "注释: "
 
-#: src/gui/uifiles/aavso_dialog.ui:390
+#: src/gui/uifiles/aavso_dialog.ui:388
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr "关于观测的评论或注释。如果没有注释，则使用“na”。"
 
@@ -4247,7 +4247,7 @@ msgstr ""
 "设置GraXpert降噪时并行处理的图像分块数量。注意：提高此值可能导致内存溢出。有"
 "效值：1-32。缺省值：4。"
 
-#: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:255
+#: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:260
 #: src/gui/uifiles/settings_window.ui:5305 src/gui/uifiles/siril.ui:6357
 msgid " "
 msgstr " "
@@ -4925,41 +4925,53 @@ msgstr ""
 msgid "Sequences"
 msgstr "序列"
 
-#: src/gui/uifiles/mouse_actions.ui:9
+#: src/gui/uifiles/mouse_actions.ui:14
 msgid "Mouse Action Preferences"
 msgstr "鼠标动作偏好设置"
 
-#: src/gui/uifiles/mouse_actions.ui:111
+#: src/gui/uifiles/mouse_actions.ui:116
 msgid "Add an extra mouse action"
 msgstr "添加额外的鼠标动作"
 
-#: src/gui/uifiles/mouse_actions.ui:126
+#: src/gui/uifiles/mouse_actions.ui:131
 msgid "Remove the selected mouse action"
 msgstr "删除选定的鼠标动作"
 
-#: src/gui/uifiles/mouse_actions.ui:139 src/gui/mouse_action_preferences.c:720
+#: src/gui/uifiles/mouse_actions.ui:144 src/gui/mouse_action_preferences.c:721
 msgid "Mouse button / scroll check"
 msgstr "鼠标按钮/滚动检查"
 
-#: src/gui/uifiles/mouse_actions.ui:156
+#: src/gui/uifiles/mouse_actions.ui:161
 msgid ""
 "Click this area to check mouse button numbering and scroll direction, to "
 "ensure you set the correct number for mouse actions"
 msgstr "单击此区域可检查鼠标按钮编号和滚动方向，以确保为鼠标动作设置正确的编号"
 
-#: src/gui/uifiles/mouse_actions.ui:176
+#: src/gui/uifiles/mouse_actions.ui:181
 msgid "Mouse Click Actions"
 msgstr "鼠标单击动作"
 
-#: src/gui/uifiles/mouse_actions.ui:227
+#: src/gui/uifiles/mouse_actions.ui:232
 msgid "Add a scroll action"
 msgstr "添加滚动动作"
 
-#: src/gui/uifiles/mouse_actions.ui:242
+#: src/gui/uifiles/mouse_actions.ui:247
 msgid "Remove a scroll action"
 msgstr "删除滚动动作"
 
-#: src/gui/uifiles/mouse_actions.ui:271
+#: src/gui/uifiles/mouse_actions.ui:277
+msgid "Scroll speed limit"
+msgstr ""
+
+#: src/gui/uifiles/mouse_actions.ui:292
+msgid ""
+"Set a scroll speed limit. Not required for most mice, but if you have an "
+"issue where the scroll wheel carries out its action (eg zoom) far too fast, "
+"you can limit the action step size using this control. Try starting with 1.0 "
+"and working down from there. 0.0 means unlimited."
+msgstr ""
+
+#: src/gui/uifiles/mouse_actions.ui:316
 msgid "Scroll Actions"
 msgstr "滚动动作"
 
@@ -5231,7 +5243,7 @@ msgstr ""
 "将脚本语言设置为Siril脚本文件。在编辑器中执行脚本之前，请确保设置了正确的脚本"
 "语言。"
 
-#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:266
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:267
 msgid "Siril Script Files"
 msgstr "Siril脚本文件"
 
@@ -6638,7 +6650,7 @@ msgstr "FITS选项"
 msgid "Astrometry"
 msgstr "天体测量"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 msgid "Catalogue"
 msgstr "星表"
 
@@ -8128,7 +8140,7 @@ msgstr ""
 "如果选中，FFTW将使用多个线程。这通常可以加速大图像的处理，但在FFTW首次对给定"
 "尺寸的图像进行操作时会增加初始规划时间。"
 
-#: src/gui/uifiles/settings_window.ui:5614 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5614 src/core/settings.c:383
 msgid "FFTW planning strategy"
 msgstr "FFTW规划策略"
 
@@ -9051,14 +9063,22 @@ msgstr "这是输出光度数据的按钮。"
 msgid "Create Output"
 msgstr "创建输出"
 
-#: src/gui/uifiles/siril.ui:2672 src/gui/uifiles/siril.ui:2689
-#: src/gui/uifiles/siril.ui:2704
+#: src/gui/uifiles/siril.ui:2672
 msgid "Save current plot to png file"
 msgstr "保存当前图表为png文件"
+
+#: src/gui/uifiles/siril.ui:2689
+#, fuzzy
+msgid "Build a light curve in the ETD text format"
+msgstr "光变曲线（ETD 格式）"
 
 #: src/gui/uifiles/siril.ui:2690
 msgid "Light Curve (ETD format)"
 msgstr "光变曲线（ETD 格式）"
+
+#: src/gui/uifiles/siril.ui:2704
+msgid "Build an output file in the AAVSO format"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:2705
 msgid "AAVSO file format"
@@ -9432,7 +9452,7 @@ msgstr ""
 "Siril以序列的形式操作图像，Siril可以找到当前目录中的序列，并且用户可以筛选其"
 "中的图像。"
 
-#: src/gui/uifiles/siril.ui:4624 src/gui/callbacks.c:2210
+#: src/gui/uifiles/siril.ui:4624 src/gui/callbacks.c:2217
 msgid "Sequence"
 msgstr "序列"
 
@@ -12400,7 +12420,7 @@ msgstr "尝试半径为 %3.1f 度的临近解析\n"
 msgid "Plate Solve"
 msgstr "图像解析"
 
-#: src/algos/astrometry_solver.c:1056 src/gui/callbacks.c:1835
+#: src/algos/astrometry_solver.c:1056 src/gui/callbacks.c:1842
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr "将焦距%.2f和像素尺寸%.2f保存为缺省值\n"
@@ -12583,13 +12603,18 @@ msgstr "（%d 已解析并被跳过）\n"
 msgid "Computing astrometric registration...\n"
 msgstr "计算天体测量对齐...\n"
 
+#: src/algos/astrometry_solver.c:2263
+#, fuzzy
+msgid "Reference image was not platesolved, changing reference\n"
+msgstr "参考帧不在筛选后的列表中，异常中止\n"
+
 #: src/algos/background_extraction.c:300
 msgid ""
 "There are not enough background samples. The background to be extracted "
 "cannot be computed.\n"
 msgstr "背景样本不足。无法进行背景提取。\n"
 
-#: src/algos/background_extraction.c:829 src/core/command.c:11353
+#: src/algos/background_extraction.c:829 src/core/command.c:11354
 #: src/filters/graxpert.c:1034 src/gui/graxpert.c:195
 #, c-format
 msgid "Failed to generate background samples for image: %s\n"
@@ -12878,8 +12903,8 @@ msgstr "比较"
 msgid "Comparison stars: processing...\n"
 msgstr "参考星：处理中...\n"
 
-#: src/algos/comparison_stars.c:441 src/core/command.c:9768
-#: src/core/command.c:10478 src/core/command.c:10631 src/core/command.c:10651
+#: src/algos/comparison_stars.c:441 src/core/command.c:9769
+#: src/core/command.c:10479 src/core/command.c:10632 src/core/command.c:10652
 #: src/io/siril_catalogues.c:1123 src/io/siril_catalogues.c:1172
 msgid "This command only works on plate solved images\n"
 msgstr "此命令仅适用于已解析的图像\n"
@@ -13701,7 +13726,7 @@ msgid "Found %d stars with same settings in %s, skipping detection\n"
 msgstr "找到了 %d 颗星以使用与 %s 中相同的参数，跳过侦测\n"
 
 #: src/algos/star_finder.c:943 src/core/command.c:5253 src/core/command.c:7295
-#: src/core/command.c:7469 src/core/command.c:8676
+#: src/core/command.c:7469 src/core/command.c:8677
 #: src/io/image_format_fits.c:833 src/io/path_parse.c:669
 #: src/io/remote_catalogues.c:534 src/io/siril_catalogues.c:836
 #, c-format
@@ -13999,7 +14024,7 @@ msgstr ""
 #. Register button was pressed, we ask for confirmation
 #: src/compositing/compositing.c:956 src/gui/keywords_tree.c:196
 #: src/gui/keywords_tree.c:601 src/gui/mouse_action_preferences.c:117
-#: src/gui/preferences.c:1108 src/gui/python_gui.c:684 src/gui/python_gui.c:703
+#: src/gui/preferences.c:1110 src/gui/python_gui.c:684 src/gui/python_gui.c:703
 #: src/gui/python_gui.c:732 src/gui/python_gui.c:758 src/gui/python_gui.c:829
 #: src/gui/utils.c:314 src/registration/applyreg.c:1061
 msgid "Proceed"
@@ -14058,14 +14083,14 @@ msgstr "已成功重新加载所有图像。\n"
 #: src/gui/PSF_list.c:315 src/gui/colors.c:457 src/gui/compstars.c:225
 #: src/gui/compstars.c:294 src/gui/compstars.c:302 src/gui/compstars.c:309
 #: src/gui/compstars.c:316 src/gui/dialogs.c:146 src/gui/git_gui.c:192
-#: src/gui/git_gui.c:212 src/gui/git_gui.c:277 src/gui/icc_profile.c:307
+#: src/gui/git_gui.c:212 src/gui/git_gui.c:283 src/gui/icc_profile.c:307
 #: src/gui/icc_profile.c:375 src/gui/icc_profile.c:551 src/gui/merge_cfa.c:209
 #: src/gui/merge_cfa.c:241 src/gui/merge_cfa.c:252 src/gui/merge_cfa.c:263
 #: src/gui/merge_cfa.c:274 src/gui/nina_light_curve.c:221
 #: src/gui/nina_light_curve.c:226 src/gui/nina_light_curve.c:232
 #: src/gui/nina_light_curve.c:241 src/gui/nina_light_curve.c:279
-#: src/gui/open_dialog.c:378 src/gui/preferences.c:554
-#: src/gui/preferences.c:573 src/gui/preferences.c:607
+#: src/gui/open_dialog.c:378 src/gui/preferences.c:555
+#: src/gui/preferences.c:574 src/gui/preferences.c:608
 #: src/gui/save_dialog.c:468 src/io/siril_pythoncommands.c:979
 msgid "Error"
 msgstr "错误"
@@ -14202,7 +14227,7 @@ msgid ""
 "Questionable parallel processing detection - openmp reports %d %s, glib %d.\n"
 msgstr "有问题的并行处理检测 - openmp 报告 %d %s，glib %d。\n"
 
-#: src/core/OS_utils.c:620 src/core/OS_utils.c:635 src/core/command.c:9460
+#: src/core/OS_utils.c:620 src/core/OS_utils.c:635 src/core/command.c:9461
 msgid "processor"
 msgid_plural "processors"
 msgstr[0] "处理器"
@@ -14288,8 +14313,8 @@ msgstr "=当前载入图像的FITS文件头=\n"
 #: src/core/command.c:6512 src/core/command.c:6660 src/core/command.c:6716
 #: src/core/command.c:6769 src/core/command.c:6947 src/core/command.c:6957
 #: src/core/command.c:6991 src/core/command.c:7308 src/core/command.c:7481
-#: src/core/command.c:7883 src/core/command.c:8351 src/core/command.c:9244
-#: src/core/command.c:11637 src/core/command.c:11655
+#: src/core/command.c:7883 src/core/command.c:8351 src/core/command.c:9245
+#: src/core/command.c:11638 src/core/command.c:11656
 #, c-format
 msgid "Unknown parameter %s, aborting.\n"
 msgstr "位置参数 %s，异常中止。\n"
@@ -14301,10 +14326,10 @@ msgstr "位置参数 %s，异常中止。\n"
 #: src/core/command.c:2671 src/core/command.c:3196 src/core/command.c:3203
 #: src/core/command.c:3215 src/core/command.c:3223 src/core/command.c:3231
 #: src/core/command.c:3320 src/core/command.c:4496 src/core/command.c:5410
-#: src/core/command.c:5415 src/core/command.c:9313 src/core/command.c:9912
-#: src/core/command.c:9920 src/core/command.c:9925 src/core/command.c:10236
-#: src/core/command.c:10597 src/core/command.c:10801 src/core/command.c:10845
-#: src/core/command.c:10863
+#: src/core/command.c:5415 src/core/command.c:9314 src/core/command.c:9913
+#: src/core/command.c:9921 src/core/command.c:9926 src/core/command.c:10237
+#: src/core/command.c:10598 src/core/command.c:10802 src/core/command.c:10846
+#: src/core/command.c:10864
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr "无效参数 %s，异常中止。\n"
@@ -14690,7 +14715,7 @@ msgstr "只能有一个前缀参数"
 #: src/core/command.c:8036 src/core/command.c:8055 src/core/command.c:8074
 #: src/core/command.c:8093 src/core/command.c:8111 src/core/command.c:8266
 #: src/core/command.c:8276 src/core/command.c:8309 src/core/command.c:8503
-#: src/core/command.c:9148 src/core/command.c:9188 src/core/command.c:10585
+#: src/core/command.c:9149 src/core/command.c:9189 src/core/command.c:10586
 #, c-format
 msgid "Missing argument to %s, aborting.\n"
 msgstr "缺少参数%s，异常中止。\n"
@@ -14790,7 +14815,7 @@ msgstr "错误：无法对单色图像应用饱和度拉伸。\n"
 msgid "Error: cannot apply saturation stretch to a mono image.\n"
 msgstr "错误：无法对单色图像应用饱和度拉伸。\n"
 
-#: src/core/command.c:2560 src/core/command.c:9529 src/filters/wavelets.c:258
+#: src/core/command.c:2560 src/core/command.c:9530 src/filters/wavelets.c:258
 #: src/filters/wavelets.c:328
 #, c-format
 msgid "Wavelet: maximum number of plans for this image size is %d\n"
@@ -14856,7 +14881,7 @@ msgstr "序列：%s\n"
 msgid "Image: %s\n"
 msgstr "图像：%s\n"
 
-#: src/core/command.c:2863 src/core/command.c:9444
+#: src/core/command.c:2863 src/core/command.c:9445
 msgid "********* END OF THE LIST *********\n"
 msgstr "********* 列表完 *********\n"
 
@@ -14909,7 +14934,7 @@ msgstr "完成合并序列时出错。\n"
 msgid "This type of sequence cannot be created by Siril, aborting the merge\n"
 msgstr "Siril 无法创建这种类型的序列，合并异常中止\n"
 
-#: src/core/command.c:3061 src/core/command.c:9028 src/io/single_image.c:215
+#: src/core/command.c:3061 src/core/command.c:9029 src/io/single_image.c:215
 #, c-format
 msgid "Error opening image %s: file not found or not supported.\n"
 msgstr "打开图像错误 %s: 文件未找到或无法识别。\n"
@@ -14927,7 +14952,7 @@ msgid ""
 msgstr "对于第一个 HDU，仅单个 FITS 图像支持此命令，而不支持 FITS 矩阵\n"
 
 #: src/core/command.c:3078 src/core/command.c:3092 src/core/command.c:5432
-#: src/core/command.c:10780 src/pixelMath/pixel_math_runner.c:1282
+#: src/core/command.c:10781 src/pixelMath/pixel_math_runner.c:1282
 #, c-format
 msgid "Could not open file: %s\n"
 msgstr "无法打开文件: %s\n"
@@ -14950,13 +14975,13 @@ msgstr "无法保存镜像图像: %s\n"
 #: src/core/command.c:5938 src/core/command.c:6421 src/core/command.c:7282
 #: src/core/command.c:7456 src/core/command.c:7803 src/core/command.c:7814
 #: src/core/command.c:7833 src/core/command.c:8182 src/core/command.c:8193
-#: src/core/command.c:8212 src/core/command.c:8340 src/core/command.c:9797
-#: src/core/command.c:9808 src/core/command.c:9831 src/core/command.c:9847
-#: src/core/command.c:10142 src/core/command.c:10153 src/core/command.c:10165
-#: src/core/command.c:10178 src/core/command.c:10189 src/core/command.c:10217
-#: src/core/command.c:10225 src/core/command.c:10525 src/core/command.c:10671
-#: src/core/command.c:10680 src/core/command.c:10689 src/core/command.c:10698
-#: src/core/command.c:10705
+#: src/core/command.c:8212 src/core/command.c:8340 src/core/command.c:9798
+#: src/core/command.c:9809 src/core/command.c:9832 src/core/command.c:9848
+#: src/core/command.c:10143 src/core/command.c:10154 src/core/command.c:10166
+#: src/core/command.c:10179 src/core/command.c:10190 src/core/command.c:10218
+#: src/core/command.c:10226 src/core/command.c:10526 src/core/command.c:10672
+#: src/core/command.c:10681 src/core/command.c:10690 src/core/command.c:10699
+#: src/core/command.c:10706
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr "%s 的参数无效，异常中止。\n"
@@ -15300,7 +15325,7 @@ msgstr "仅当序列已载入并且框选了一个星点时，参数才是可选
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr "PSF在通道 %d上，在有%d通道的序列中无法被计算\n"
 
-#: src/core/command.c:4577 src/gui/callbacks.c:2377
+#: src/core/command.c:4577 src/gui/callbacks.c:2384
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "于序列中执行PSF，图层 %d\n"
@@ -15732,7 +15757,7 @@ msgid "Unknown distortion type %s, aborting.\n"
 msgstr "未知的转化类型 %s，异常中止。\n"
 
 #: src/core/command.c:7770 src/core/command.c:7900 src/core/command.c:8364
-#: src/core/command.c:9021 src/core/command.c:10260 src/core/command.c:10945
+#: src/core/command.c:9022 src/core/command.c:10261 src/core/command.c:10946
 #: src/core/preprocess.c:685 src/core/preprocess.c:1011
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr "无法载入序列的参考帧，异常中止。\n"
@@ -16006,49 +16031,49 @@ msgstr "加权仅在当已激活归一化时才被允许，已忽略。\n"
 msgid "Normalizing on overlaps for more than %d images can be slow\n"
 msgstr "在超过%d张图像的重叠区域执行归一化可能要很久\n"
 
-#: src/core/command.c:8682
+#: src/core/command.c:8683
 #, c-format
 msgid "Could not save the stacking result %s\n"
 msgstr "无法保存叠加结果 %s\n"
 
-#: src/core/command.c:8689 src/stacking/stacking.c:475
+#: src/core/command.c:8690 src/stacking/stacking.c:475
 msgid "Saving rejection maps\n"
 msgstr "保存像素剔除图\n"
 
-#: src/core/command.c:8718 src/stacking/stacking.c:526
+#: src/core/command.c:8719 src/stacking/stacking.c:526
 msgid "Stacking failed, please check the log to fix your issue.\n"
 msgstr "叠加失败，请检查日志。\n"
 
-#: src/core/command.c:8743
+#: src/core/command.c:8744
 msgid "Looking for sequences in current working directory...\n"
 msgstr "在当前工作目录中搜索序列...\n"
 
-#: src/core/command.c:8745
+#: src/core/command.c:8746
 msgid "Error while searching sequences or opening the directory.\n"
 msgstr "搜索或打开目录出错。\n"
 
-#: src/core/command.c:8754
+#: src/core/command.c:8755
 msgid "Starting stacking of found sequences...\n"
 msgstr "开始对已找到的序列进行叠加...\n"
 
-#: src/core/command.c:8766
+#: src/core/command.c:8767
 #, c-format
 msgid "Stacked %d sequences successfully.\n"
 msgstr "%d 序列叠加成功。\n"
 
-#: src/core/command.c:8823 src/core/command.c:8954
+#: src/core/command.c:8824 src/core/command.c:8955
 msgid ""
 "The average stacking with rejection requires two extra arguments: sigma low "
 "and high.\n"
 msgstr "带有像素剔除的平均数叠加需要两个附加参数：sigma下限和sigma上限。\n"
 
-#: src/core/command.c:8828 src/core/command.c:8962
+#: src/core/command.c:8829 src/core/command.c:8963
 msgid ""
 "Extra parameters of GESDT rejection algorithm must be between 0 and 1, "
 "default is 0.3 and 0.05.\n"
 msgstr "广义ESD检验剔除算法的附加参数必须介于0和1之间，默认值为0.3和0.05。\n"
 
-#: src/core/command.c:8833 src/core/command.c:8967
+#: src/core/command.c:8834 src/core/command.c:8968
 msgid ""
 "Extra parameters of percentile rejection algorithm must be between 0 and 1, "
 "default is 0.2 and 0.1.\n"
@@ -16056,106 +16081,106 @@ msgstr ""
 "Percentile Rejection Algorithm算法的额外参数必须在0到1之间，默认为0.2和"
 "0.1。\n"
 
-#: src/core/command.c:8842 src/core/command.c:8976
+#: src/core/command.c:8843 src/core/command.c:8977
 #, c-format
 msgid "Stacking method type '%s' is invalid\n"
 msgstr "叠加方式 '%s' 不可用\n"
 
-#: src/core/command.c:8877 src/stacking/stacking.c:528
+#: src/core/command.c:8878 src/stacking/stacking.c:528
 msgid ""
 "It looks like there is a memory allocation error, change memory settings and "
 "try to fix it.\n"
 msgstr "看起来存在内存分配错误，请更改内存设置并尝试修复它。\n"
 
-#: src/core/command.c:8880
+#: src/core/command.c:8881
 msgid "Stacked sequence successfully.\n"
 msgstr "序列叠加成功。\n"
 
-#: src/core/command.c:8924
+#: src/core/command.c:8925
 msgid "Missing arguments for rejection stacking.\n"
 msgstr "剔除叠加缺少参数。\n"
 
-#: src/core/command.c:9033 src/core/preprocess.c:578
+#: src/core/command.c:9034 src/core/preprocess.c:578
 msgid "Could not load the image, aborting.\n"
 msgstr "无法载入图像，异常中止。\n"
 
-#: src/core/command.c:9058
+#: src/core/command.c:9059
 #, c-format
 msgid "The offset value could not be parsed from expression: %s, aborting.\n"
 msgstr "无法从表达式中计算偏移值：%s，异常中止。\n"
 
-#: src/core/command.c:9064 src/core/preprocess.c:708
+#: src/core/command.c:9065 src/core/preprocess.c:708
 #, c-format
 msgid "Synthetic offset: Level = %d\n"
 msgstr "合成偏移量：Level = %d\n"
 
 #. not excluding all neg values here to allow defining a pedestal
-#: src/core/command.c:9067
+#: src/core/command.c:9068
 #, c-format
 msgid "The offset value is out of allowable bounds [-%d,%d], aborting.\n"
 msgstr "offset 值超出允许的范围 [-%d，%d]，异常中止。\n"
 
-#: src/core/command.c:9155
+#: src/core/command.c:9156
 msgid "Dark optimization: This process cannot be applied to 8b images\n"
 msgstr "暗场优化：此过程不适用于8b图像\n"
 
-#: src/core/command.c:9164
+#: src/core/command.c:9165
 #, c-format
 msgid "Missing or wrong argument to %s, aborting.\n"
 msgstr "缺少或错误参数%s，异常中止。\n"
 
-#: src/core/command.c:9194
+#: src/core/command.c:9195
 msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
 msgstr "在激活此选项之前，必须使用 -dark= 指定主暗场帧，异常中止。\n"
 
-#: src/core/command.c:9212
+#: src/core/command.c:9213
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"
 msgstr "基于主暗场帧的坏点修正：对冷像素使用 sigma %.2lf\n"
 
-#: src/core/command.c:9214
+#: src/core/command.c:9215
 msgid "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
 msgstr "基于主暗场帧的坏点修正：对冷像素停用。\n"
 
-#: src/core/command.c:9216
+#: src/core/command.c:9217
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"
 msgstr "基于主暗场帧的坏点修正：对热像素使用 sigma %.2lf\n"
 
-#: src/core/command.c:9218
+#: src/core/command.c:9219
 msgid "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
 msgstr "基于主暗场帧的坏点修正：对热像素停用。\n"
 
-#: src/core/command.c:9225
+#: src/core/command.c:9226
 #, c-format
 msgid "Could not open file %s, aborting.\n"
 msgstr "无法打开文件 %s，异常中止。\n"
 
-#: src/core/command.c:9229
+#: src/core/command.c:9230
 #, c-format
 msgid "Cosmetic correction from Bad Pixel Map: %s.\n"
 msgstr "基于坏点图的坏点修正：%s\n"
 
-#: src/core/command.c:9233
+#: src/core/command.c:9234
 msgid "You must specify a bad pixel map file with -cc=bpm option, aborting.\n"
 msgstr "您必须使用-cc=bpm选项指定一个坏像素图，异常中止。\n"
 
-#: src/core/command.c:9238
+#: src/core/command.c:9239
 #, c-format
 msgid "Unknown argument %s, aborting.\n"
 msgstr "未知参数%s，异常中止。\n"
 
-#: src/core/command.c:9276 src/core/command.c:9294 src/core/preprocess.c:948
+#: src/core/command.c:9277 src/core/command.c:9295 src/core/preprocess.c:948
 msgid "Preprocessing...\n"
 msgstr "预处理...\n"
 
-#: src/core/command.c:9305
+#: src/core/command.c:9306
 msgid "16-bit per channel in processed images mode is active\n"
 msgstr "每通道16位模式启用\n"
 
-#: src/core/command.c:9306
+#: src/core/command.c:9307
 msgid "32-bit per channel in processed images mode is active\n"
 msgstr "每通道32位模式启用\n"
 
@@ -16172,43 +16197,43 @@ msgstr "每通道32位模式启用\n"
 #. comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);
 #. }
 #. siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
-#: src/core/command.c:9351
+#: src/core/command.c:9352
 msgid "Wrong type of compression. Choices are rice, gzip1, gzip2\n"
 msgstr "压缩类型错误。可选项为：rice, gzip1, gzip2\n"
 
-#: src/core/command.c:9358
+#: src/core/command.c:9359
 msgid "Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"
 msgstr "GZIP1和GZIP2算法的量化值只能为0。\n"
 
-#: src/core/command.c:9364
+#: src/core/command.c:9365
 msgid ""
 "Compression enabled with the %s algorithm and a quantization value of %.2lf\n"
 msgstr "启用了算法为%s且量化值为%.2lf的压缩。\n"
 
-#: src/core/command.c:9367
+#: src/core/command.c:9368
 msgid "No compression enabled.\n"
 msgstr "无压缩。\n"
 
-#: src/core/command.c:9385
+#: src/core/command.c:9386
 #, c-format
 msgid ""
 "Number of logical processors MUST be greater than 0 and lower or equal to "
 "%d.\n"
 msgstr "逻辑处理器的数量必须大于0并且小于等于%d.\n"
 
-#: src/core/command.c:9396
+#: src/core/command.c:9397
 #, c-format
 msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
 msgstr[0] "当前使用 %d 逻辑处理器\n"
 
-#: src/core/command.c:9412
+#: src/core/command.c:9413
 msgid ""
 "The accepted range for the ratio of memory used for stacking is [0.05, 4], "
 "with values below the available memory recommended\n"
 msgstr "叠加时的可用内存比例范围为[0.05, 4]，建议使用低于总内存量\n"
 
-#: src/core/command.c:9416
+#: src/core/command.c:9417
 #, c-format
 msgid ""
 "Setting the ratio of memory used for stacking above 1 will require the use "
@@ -16218,113 +16243,113 @@ msgstr ""
 "将叠加时的可用内存比例设置为1以上，将用到磁盘上的虚拟内存，这可能非常缓慢，因"
 "此不推荐这么做（您请求了%g）\n"
 
-#: src/core/command.c:9421
+#: src/core/command.c:9422
 #, c-format
 msgid "Usable memory for stacking changed to %g\n"
 msgstr "可用于叠加的内存变为%g\n"
 
-#: src/core/command.c:9428
+#: src/core/command.c:9429
 msgid "********* LIST OF AVAILABLE COMMANDS *********\n"
 msgstr "********* 可用命令列表 *********\n"
 
-#: src/core/command.c:9436
+#: src/core/command.c:9437
 #, c-format
 msgid "Can be used in a script: %s\n"
 msgstr "脚本中可用: %s\n"
 
-#: src/core/command.c:9436 src/core/command_line_processor.c:466
+#: src/core/command.c:9437 src/core/command_line_processor.c:466
 msgid "YES"
 msgstr "YES"
 
-#: src/core/command.c:9436 src/core/command_line_processor.c:469
+#: src/core/command.c:9437 src/core/command_line_processor.c:469
 msgid "NO"
 msgstr "NO"
 
-#: src/core/command.c:9446
+#: src/core/command.c:9447
 #, c-format
 msgid "Error: command %s is not available\n"
 msgstr "错误：命令 %s 不可用\n"
 
-#: src/core/command.c:9562
+#: src/core/command.c:9563
 #, c-format
 msgid ""
 "A newer version (>= %lu.%lu.%lu-%s%lu) of Siril is required in order to run "
 "this script: please update your installation.\n"
 msgstr "需要更新版本的Siril（>= %lu.%lu.%lu-%s%lu）才能运行此脚本。请更新。\n"
 
-#: src/core/command.c:9562
+#: src/core/command.c:9563
 msgid "beta"
 msgstr "beta（公测版）"
 
-#: src/core/command.c:9562
+#: src/core/command.c:9563
 msgid "RC"
 msgstr "RC（Release Candidate / 发布候选版）"
 
-#: src/core/command.c:9565
+#: src/core/command.c:9566
 msgid ""
 "This script has been marked as obsolete for this version of Siril, please "
 "check for an update to the script.\n"
 msgstr "此脚本已在此版本的 Siril 中标记为过时，请检查脚本的更新。\n"
 
-#: src/core/command.c:9568
+#: src/core/command.c:9569
 msgid "OK! This script is compatible with this version of Siril.\n"
 msgstr "恭喜！此脚本在当前版本的Siril上可用。\n"
 
-#: src/core/command.c:9576 src/core/command.c:9627
+#: src/core/command.c:9577 src/core/command.c:9628
 #, c-format
 msgid "Current selection [x, y, w, h]: %d %d %d %d\n"
 msgstr "当前选区 [x, y, w, h]: %d %d %d %d\n"
 
-#: src/core/command.c:9579
+#: src/core/command.c:9580
 msgid "No current selection in image\n"
 msgstr "当前图像中没有选区\n"
 
-#: src/core/command.c:9586
+#: src/core/command.c:9587
 msgid ""
 "Too many arguments to boxselect, use either -clear or the coordinates, not "
 "both.\n"
 msgstr "参数过多，无法框选，请任选-clear或坐标之一，而不是两者都使用。\n"
 
-#: src/core/command.c:9590
+#: src/core/command.c:9591
 msgid "Selected area in image was cleared\n"
 msgstr "图像中的选定区域已清除\n"
 
-#: src/core/command.c:9596 src/core/command.c:9612
+#: src/core/command.c:9597 src/core/command.c:9613
 msgid "Please specify x, y, w and h, aborting\n"
 msgstr "请指定x，y，w和h，异常中止。\n"
 
-#: src/core/command.c:9616
+#: src/core/command.c:9617
 #, c-format
 msgid ""
 "The provided coordinates are outside the dimension of the currently loaded "
 "image (%d x %d).\n"
 msgstr "提供的坐标超出了当前载入图像的尺寸（%d x %d）。\n"
 
-#: src/core/command.c:9621
+#: src/core/command.c:9622
 msgid "Overriding previous selection\n"
 msgstr "覆写先前的选择\n"
 
-#: src/core/command.c:9698 src/core/command.c:9732
+#: src/core/command.c:9699 src/core/command.c:9733
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr "图像必须尺寸相同且全为单色\n"
 
-#: src/core/command.c:9758
+#: src/core/command.c:9759
 #, c-format
 msgid "Successful RGB composition with metadata accumulate option %s.\n"
 msgstr "使用元数据累积选项 %s 成功进行 RGB 合成。\n"
 
-#: src/core/command.c:9825 src/core/command.c:10207
+#: src/core/command.c:9826 src/core/command.c:10208
 msgid ""
 "Local Gaia catalog is unavailable, reverting to online Gaia catalog via "
 "Vizier\n"
 msgstr "本地 Gaia 星表不可用，正在通过 Vizier 回退至在线 Gaia 星表\n"
 
-#: src/core/command.c:9842
+#: src/core/command.c:9843
 msgid ""
 "Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"
 msgstr "本地 Gaia 星表不可用，正在通过 ESA 回退至在线 Gaia 星表\n"
 
-#: src/core/command.c:9933
+#: src/core/command.c:9934
 msgid ""
 "Found linear plate solve data, you may need to solve your image with "
 "distortions to ensure correct calibration of stars near image corners.\n"
@@ -16332,20 +16357,20 @@ msgstr ""
 "找到解析数据，您可能需要解析具有失真的图像，以确保正确校准图像边角附近的星"
 "点。\n"
 
-#: src/core/command.c:9944
+#: src/core/command.c:9945
 msgid "NB wavelength out of range (must be 380 <= wl <= 700)\n"
 msgstr "NB 波长超出范围（必须为 380 <= wl <= 700）\n"
 
-#: src/core/command.c:9949
+#: src/core/command.c:9950
 msgid "NB bandwidth out of range (must be 1.0 <= wl <= 40.0)\n"
 msgstr "NB 带宽超出范围（必须为 1.0 <= wl <= 40.0）\n"
 
-#: src/core/command.c:9961
+#: src/core/command.c:9962
 #, c-format
 msgid "Using remote %s instead of local NOMAD catalogue\n"
 msgstr "使用远程 %s 代替本地 NOMAD 星表\n"
 
-#: src/core/command.c:9996
+#: src/core/command.c:9997
 msgid ""
 "Either the sensor or a filter / LPF was not specified as argument or "
 "guessable from previous use. Ensure all necessary data is set.\n"
@@ -16353,17 +16378,17 @@ msgstr ""
 "传感器或滤镜/低通未指定为参数或可从之前的使用中猜测。确保所有必要的数据均已设"
 "置。\n"
 
-#: src/core/command.c:10003
+#: src/core/command.c:10004
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\", filter \"%s\" and DSLR LPF \"%s\"\n"
 msgstr "SPCC 将使用 OSC 传感器“%s”、滤镜“%s”和 DSLR 低通“%s”\n"
 
-#: src/core/command.c:10005
+#: src/core/command.c:10006
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\" and filter \"%s\"\n"
 msgstr "SPCC 将使用 OSC 传感器“%s”和滤镜“%s”\n"
 
-#: src/core/command.c:10013
+#: src/core/command.c:10014
 msgid ""
 "Either the sensor or a filter was not specified as argument or guessable "
 "from previous use. Ensure all necessary data is set.\n"
@@ -16371,12 +16396,12 @@ msgstr ""
 "传感器或滤镜未指定为参数或可从以前的使用中猜测。确保所有必要的数据均已设"
 "置。\n"
 
-#: src/core/command.c:10019
+#: src/core/command.c:10020
 #, c-format
 msgid "SPCC will use mono senor \"%s\" and filters \"%s\", \"%s\" and \"%s\n"
 msgstr "SPCC 将使用单色传感器“%s”和滤镜“%s”、“%s”和“%s”\n"
 
-#: src/core/command.c:10055
+#: src/core/command.c:10056
 msgid ""
 "Siril has been compiled without libcurl support for network operations; SPCC "
 "is therefore not available. Recompile with libcurl support to enable SPCC.\n"
@@ -16384,343 +16409,343 @@ msgstr ""
 "Siril 编译时没有 libcurl 支持网络操作；因此 SPCC 不可用。使用 libcurl 支持重"
 "新编译以启用 SPCC。\n"
 
-#: src/core/command.c:10084
+#: src/core/command.c:10085
 msgid ""
 "SER cannot contain WCS info, plate solving will export to FITS cube format\n"
 msgstr "SER不能包含WCS信息，解析将导出为FITS cube格式\n"
 
-#: src/core/command.c:10100 src/core/command.c:10113 src/core/command.c:10881
+#: src/core/command.c:10101 src/core/command.c:10114 src/core/command.c:10882
 msgid "Could not parse target coordinates\n"
 msgstr "无法解析目标坐标\n"
 
-#: src/core/command.c:10233
+#: src/core/command.c:10234
 msgid "Specifying a catalog has no effect for astrometry.net solving\n"
 msgstr "指定星表对 astrometry.net 解析器没有影响\n"
 
-#: src/core/command.c:10244
+#: src/core/command.c:10245
 msgid "Image is already plate solved. Nothing will be done.\n"
 msgstr "图像已解析。什么都不会做。\n"
 
-#: src/core/command.c:10249
+#: src/core/command.c:10250
 msgid ""
 "The local astrometry.net solver was not found, aborting. Please check the "
 "settings.\n"
 msgstr "未找到本地astrometry.net解析器，异常中止。请检查设置。\n"
 
-#: src/core/command.c:10269 src/core/command.c:10273
+#: src/core/command.c:10270 src/core/command.c:10274
 #, c-format
 msgid "Siril internal solver cannot be set blind in %s\n"
 msgstr "Siril 内部解析器无法在 %s 中设置为盲解\n"
 
-#: src/core/command.c:10269 src/core/command.c:10297
+#: src/core/command.c:10270 src/core/command.c:10298
 msgid "position"
 msgstr "坐标"
 
-#: src/core/command.c:10273 src/core/command.c:10310 src/core/command.c:10335
+#: src/core/command.c:10274 src/core/command.c:10311 src/core/command.c:10336
 msgid "resolution"
 msgstr "分辨率"
 
-#: src/core/command.c:10281
+#: src/core/command.c:10282
 msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
 msgstr "无法解析，未输入目标坐标，图像文件头也不包含任何坐标\n"
 
-#: src/core/command.c:10288
+#: src/core/command.c:10289
 #, c-format
 msgid "Using target coordinate from image header: %f, %f\n"
 msgstr "使用图像文件头中的目标坐标: %f, %f\n"
 
-#: src/core/command.c:10297 src/core/command.c:10310 src/core/command.c:10335
+#: src/core/command.c:10298 src/core/command.c:10311 src/core/command.c:10336
 #, c-format
 msgid "%s is ignored when using local astrometry.net blind in %s\n"
 msgstr "%s 被忽略，当在 %s 中使用本地 astrometry.net 盲解时\n"
 
-#: src/core/command.c:10297
+#: src/core/command.c:10298
 msgid "Center position"
 msgstr "中央坐标"
 
-#: src/core/command.c:10310
+#: src/core/command.c:10311
 msgid "Pixel size"
 msgstr "像素尺寸"
 
-#: src/core/command.c:10316
+#: src/core/command.c:10317
 #, c-format
 msgid "Using provided pixel size: %.2f\n"
 msgstr "使用所提供的像素尺寸：%.2f\n"
 
-#: src/core/command.c:10322
+#: src/core/command.c:10323
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
 msgstr "在图像或设置中找不到像素尺寸，无法继续\n"
 
-#: src/core/command.c:10328
+#: src/core/command.c:10329
 #, c-format
 msgid "Using pixel size from preferences: %.2f\n"
 msgstr "使用偏好设置中的像素尺寸：%.2f\n"
 
-#: src/core/command.c:10330
+#: src/core/command.c:10331
 #, c-format
 msgid "Using pixel size from image: %.2f\n"
 msgstr "使用图像中的像素尺寸：%.2f\n"
 
-#: src/core/command.c:10335
+#: src/core/command.c:10336
 msgid "Focal length"
 msgstr "焦距"
 
-#: src/core/command.c:10341
+#: src/core/command.c:10342
 #, c-format
 msgid "Using provided focal length: %.2f\n"
 msgstr "使用所提供的焦距：%.2f\n"
 
-#: src/core/command.c:10347
+#: src/core/command.c:10348
 msgid "Focal length not found in image or in settings, cannot proceed\n"
 msgstr "在图像或设置中找不到焦距，无法继续\n"
 
-#: src/core/command.c:10353
+#: src/core/command.c:10354
 #, c-format
 msgid "Using focal length from preferences: %.2f\n"
 msgstr "使用偏好设置中的焦距：%.2f\n"
 
-#: src/core/command.c:10355
+#: src/core/command.c:10356
 #, c-format
 msgid "Using focal length from image: %.2f\n"
 msgstr "使用图像中的焦距：%.2f\n"
 
-#: src/core/command.c:10360 src/core/command.c:10367
+#: src/core/command.c:10361 src/core/command.c:10368
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr "星等变化参数对于astrometry.net解析无用\n"
 
-#: src/core/command.c:10386
+#: src/core/command.c:10387
 msgid ""
 "Cannot force null radius for localasnet if not blind solving, using default "
 "instead\n"
 msgstr "如果不是盲解，则无法强制 localasnet 为空半径，而是使用默认值\n"
 
-#: src/core/command.c:10519 src/gui/annotate.c:136
+#: src/core/command.c:10520 src/gui/annotate.c:136
 msgid ""
 "This option only works on images that have observation date information\n"
 msgstr "此选项仅适用于具有观测日期信息的图像\n"
 
-#: src/core/command.c:10533
+#: src/core/command.c:10534
 msgid "The observatory should be coded as a 3-letter word\n"
 msgstr "天文台编号应为 3 个字母的单词\n"
 
-#: src/core/command.c:10544
+#: src/core/command.c:10545
 msgid "No local catalogues found, ignoring -trix option\n"
 msgstr "未找到本地目录，已忽略 -trix 选项\n"
 
-#: src/core/command.c:10550
+#: src/core/command.c:10551
 msgid "Trixel number must be between 0 and 511\n"
 msgstr "Trixel 值必须介于 0 到 511 之间\n"
 
-#: src/core/command.c:10565
+#: src/core/command.c:10566
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
 msgstr "参数错误。Log必须设置为on或off，异常中止。\n"
 
-#: src/core/command.c:10577
+#: src/core/command.c:10578
 msgid "Wrong parameter values. Tag must be set to on or off, aborting.\n"
 msgstr "参数错误。Tag必须设置为on或off，异常中止。\n"
 
-#: src/core/command.c:10613
+#: src/core/command.c:10614
 msgid "Cannot use -compare argument with non-star catalogues, ignoring.\n"
 msgstr "使用非恒星的星表时不能使用-compare参数，已忽略。\n"
 
-#: src/core/command.c:10710 src/core/command.c:10758
+#: src/core/command.c:10711 src/core/command.c:10759
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr "提供了未知的选项：%s\n"
 
-#: src/core/command.c:10769 src/core/command.c:10790
+#: src/core/command.c:10770 src/core/command.c:10791
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr "实时叠加需要首先使用START_LS命令初始化\n"
 
-#: src/core/command.c:10773
+#: src/core/command.c:10774
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr "实时叠加配置为使用文件监视，而不是此命令\n"
 
-#: src/core/command.c:10815
+#: src/core/command.c:10816
 #, c-format
 msgid "String in: %s\n"
 msgstr "String in: %s\n"
 
-#: src/core/command.c:10816
+#: src/core/command.c:10817
 #, c-format
 msgid "String out: %s\n"
 msgstr "输出字符串：%s\n"
 
-#: src/core/command.c:10954
+#: src/core/command.c:10955
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
 msgstr "错误：CFA 模式不能用于彩色图像或没有拜耳阵列的单色图像。\n"
 
-#: src/core/command.c:10994
+#: src/core/command.c:10995
 msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr "-layer= 后面的错误选项，异常中止。\n"
 
-#: src/core/command.c:11029
+#: src/core/command.c:11030
 msgid "Error: Could not parse -from values.\n"
 msgstr "错误：无法解析 -from 值。\n"
 
-#: src/core/command.c:11037
+#: src/core/command.c:11038
 msgid "Error: Could not parse -to values.\n"
 msgstr "错误：无法解析 -to 值。\n"
 
-#: src/core/command.c:11059
+#: src/core/command.c:11060
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr "错误：此选项不能用于序列。\n"
 
-#: src/core/command.c:11089
+#: src/core/command.c:11090
 msgid "Error: sequence has variable sized images.\n"
 msgstr "错误：序列中的图像尺寸不一致。\n"
 
-#: src/core/command.c:11169
+#: src/core/command.c:11170
 msgid "Error: unknown GraXpert operation!\n"
 msgstr "错误：未知的 GraXpert 操作！\n"
 
-#: src/core/command.c:11199
+#: src/core/command.c:11200
 msgid "Error: unknown background extraction algorithm!\n"
 msgstr "错误：未知的背景提取算法！\n"
 
-#: src/core/command.c:11209
+#: src/core/command.c:11210
 msgid "Error: unknown correction mode!\n"
 msgstr "错误：未知的修正模式！\n"
 
-#: src/core/command.c:11223
+#: src/core/command.c:11224
 msgid "Error: unknown RBF kernel!\n"
 msgstr "错误：未知的RBF核！\n"
 
-#: src/core/command.c:11230
+#: src/core/command.c:11231
 msgid "Error: no AI batch size specified\n"
 msgstr "错误：未指定AI批处理尺寸\n"
 
-#: src/core/command.c:11237
+#: src/core/command.c:11238
 msgid "Error: no pts_per_row specified\n"
 msgstr "错误：未指定pts_per_row（每行的点数）\n"
 
-#: src/core/command.c:11244
+#: src/core/command.c:11245
 msgid "Error: no spline order specified\n"
 msgstr "错误：未指定spline order\n"
 
-#: src/core/command.c:11251
+#: src/core/command.c:11252
 msgid "Error: no sample size specified\n"
 msgstr "错误：未指定样本尺寸\n"
 
-#: src/core/command.c:11258
+#: src/core/command.c:11259
 msgid "Error: no smoothing value specified\n"
 msgstr "错误：未指定平滑值\n"
 
-#: src/core/command.c:11265
+#: src/core/command.c:11266
 msgid "Error: no background tolerance value specified\n"
 msgstr "错误：未指定背景容差\n"
 
-#: src/core/command.c:11269 src/core/command.c:11281 src/core/command.c:11300
-#: src/core/command.c:11687
+#: src/core/command.c:11270 src/core/command.c:11282 src/core/command.c:11301
+#: src/core/command.c:11688
 msgid "Error: unknown argument!\n"
 msgstr "错误：未知的参数！\n"
 
-#: src/core/command.c:11277 src/core/command.c:11289
+#: src/core/command.c:11278 src/core/command.c:11290
 msgid "Error: no strength value specified\n"
 msgstr "错误：未指定强度值\n"
 
-#: src/core/command.c:11296
+#: src/core/command.c:11297
 msgid "Error: no psf size value specified\n"
 msgstr "错误：未指定psf尺寸\n"
 
-#: src/core/command.c:11327
+#: src/core/command.c:11328
 msgid ""
 "Error: the requested AI model version is unavailable. Available versions "
 "are:\n"
 msgstr "错误：请求的 AI 模型版本不可用。可用版本为：\n"
 
-#: src/core/command.c:11402 src/core/command.c:11417 src/core/command.c:11432
+#: src/core/command.c:11403 src/core/command.c:11418 src/core/command.c:11433
 msgid "Error: unable to load sequence\n"
 msgstr "错误：无法载入序列\n"
 
-#: src/core/command.c:11480
+#: src/core/command.c:11481
 msgid "Error opening target ICC profile.\n"
 msgstr "打开目标 ICC 配置文件时出错。\n"
 
-#: src/core/command.c:11484
+#: src/core/command.c:11485
 msgid "Color profile assignment complete.\n"
 msgstr "色彩配置文件分配完成。\n"
 
-#: src/core/command.c:11487 src/core/command.c:11551
+#: src/core/command.c:11488 src/core/command.c:11552
 msgid "Error opening ICC profile.\n"
 msgstr "打开 ICC 配置文件时出错。\n"
 
-#: src/core/command.c:11504
+#: src/core/command.c:11505
 msgid ""
 "Image has no color profile assigned to convert from. Assign a profile "
 "first.\n"
 msgstr "图像没有分配用于转换的彩色配置文件。首先分配一个配置文件。\n"
 
-#: src/core/command.c:11518
+#: src/core/command.c:11519
 msgid ""
 "Specified intent not recognized. Specify one of \"perceptual\", "
 "\"relative\", \"saturation\" or \"absolute\"\n"
 msgstr ""
 "未识别指定的意图。指定“perceptual”、“relative”、“relative”或“absolute”之一\n"
 
-#: src/core/command.c:11549
+#: src/core/command.c:11550
 msgid "Color space conversion complete.\n"
 msgstr "色彩空间转换完成。\n"
 
-#: src/core/command.c:11585
+#: src/core/command.c:11586
 msgid "OSC Sensors"
 msgstr "OSC 传感器"
 
-#: src/core/command.c:11588
+#: src/core/command.c:11589
 msgid "Mono Sensors"
 msgstr "单色传感器"
 
-#: src/core/command.c:11591
+#: src/core/command.c:11592
 msgid "Red Filters"
 msgstr "红色滤镜"
 
-#: src/core/command.c:11594
+#: src/core/command.c:11595
 msgid "Green Filters"
 msgstr "绿色滤镜"
 
-#: src/core/command.c:11597
+#: src/core/command.c:11598
 msgid "Blue Filters"
 msgstr "蓝色滤镜"
 
-#: src/core/command.c:11600
+#: src/core/command.c:11601
 msgid "OSC Filters"
 msgstr "OSC 滤镜"
 
-#: src/core/command.c:11603
+#: src/core/command.c:11604
 msgid "OSC Low-Pass Filters"
 msgstr "OSC 低通滤镜"
 
-#: src/core/command.c:11606
+#: src/core/command.c:11607
 msgid "White References"
 msgstr "白点参考"
 
-#: src/core/command.c:11608
+#: src/core/command.c:11609
 msgid "Unknown SPCC list\n"
 msgstr "未知的 SPCC 列表\n"
 
-#: src/core/command.c:11622 src/core/siril_actions.c:527
+#: src/core/command.c:11623 src/core/siril_actions.c:527
 msgid ""
 "This command only works on plate solved images with distortions included\n"
 msgstr "此命令仅适用于包含失真的已解析的图像\n"
 
-#: src/core/command.c:11665
+#: src/core/command.c:11666
 msgid "16-bit images cannot have out-of-range pixels: nothing to do.\n"
 msgstr "16位图像不能有越界像素：什么都没做。\n"
 
-#: src/core/command.c:11675
+#: src/core/command.c:11676
 msgid "No pixels require clipping. Nothing to do...\n"
 msgstr "没有需要排异的像素。什么都没做...\n"
 
-#: src/core/command.c:11692
+#: src/core/command.c:11693
 msgid "Pixel limits applied successfully.\n"
 msgstr "成功应用像素极限值。\n"
 
-#: src/core/command.c:11707
+#: src/core/command.c:11708
 #, c-format
 msgid "Current working directory: '%s'\n"
 msgstr "当前工作目录：%s\n"
@@ -16891,13 +16916,13 @@ msgid "No help for this command"
 msgstr "此命令没有帮助"
 
 #: src/core/command_line_processor.c:596 src/core/preprocess.c:649
-#: src/filters/cosmetic_correction.c:502 src/gui/script_menu.c:207
+#: src/filters/cosmetic_correction.c:502 src/gui/script_menu.c:208
 #, c-format
 msgid "File [%s] does not exist\n"
 msgstr "文件 [%s] 不存在\n"
 
 #. Run the script
-#: src/core/command_line_processor.c:603 src/gui/script_menu.c:188
+#: src/core/command_line_processor.c:603 src/gui/script_menu.c:189
 #, c-format
 msgid "Starting script %s\n"
 msgstr "开始运行脚本%s\n"
@@ -17661,769 +17686,773 @@ msgstr "叠加尚未有输出结果的图像（%d帧）"
 msgid "for a total of images processed of %d)\n"
 msgstr "得到总计图像（%d帧）将被叠加\n"
 
-#: src/core/settings.c:347
+#: src/core/settings.c:348
 msgid "current working directory"
 msgstr "当前工作目录"
 
-#: src/core/settings.c:348
+#: src/core/settings.c:349
 msgid "FITS file extension"
 msgstr "FITS扩展名"
 
-#: src/core/settings.c:349
+#: src/core/settings.c:350
 msgid "don't use 32 bits for pixel depth"
 msgstr "不要使用 32 位作为像素深度"
 
-#: src/core/settings.c:350
+#: src/core/settings.c:351
 msgid "embed ICC profiles in FITS when saving"
 msgstr "保存时将 ICC 配置文件嵌入 FITS"
 
-#: src/core/settings.c:351
+#: src/core/settings.c:352
 msgid "allow FITS cubes to have different sizes"
 msgstr "允许 FITS 矩阵具有不同的尺寸"
 
-#: src/core/settings.c:352
+#: src/core/settings.c:353
 msgid "memory mode (0 ratio, 1 amount)"
 msgstr "内存模式（0比例，1数量）"
 
-#: src/core/settings.c:353
+#: src/core/settings.c:354
 msgid "memory ratio of available"
 msgstr "可用内存比例"
 
-#: src/core/settings.c:354
+#: src/core/settings.c:355
 msgid "amount of memory in GB"
 msgstr "内存量（以 GB 为单位）"
 
-#: src/core/settings.c:355
+#: src/core/settings.c:356
 msgid "HD AutoStretch bit depth"
 msgstr "高分辨率自动拉伸位深"
 
-#: src/core/settings.c:356
+#: src/core/settings.c:357
 msgid "need requires cmd in script"
 msgstr "需要脚本中的requires命令"
 
-#: src/core/settings.c:357
+#: src/core/settings.c:358
 msgid "need requires cmd in pipe"
 msgstr "需要管道中的 cmd"
 
-#: src/core/settings.c:358
+#: src/core/settings.c:359
 msgid "check update at start-up"
 msgstr "启动时检查更新"
 
-#: src/core/settings.c:359
+#: src/core/settings.c:360
 msgid "active siril language"
 msgstr "启用 siril 语言"
 
-#: src/core/settings.c:360
+#: src/core/settings.c:361
 msgid "swap directory"
 msgstr "swap目录"
 
-#: src/core/settings.c:361
+#: src/core/settings.c:362
 msgid "update pixel size of binned images"
 msgstr "更新像素合并后的像素尺寸"
 
-#: src/core/settings.c:362
+#: src/core/settings.c:363
 msgid "WCS formalism used in FITS header"
 msgstr "FITS 文件头中使用的 WCS 形式"
 
-#: src/core/settings.c:363
+#: src/core/settings.c:364
 msgid "Path of the namedstars.dat catalogue"
 msgstr "namedstars.dat星表路径"
 
-#: src/core/settings.c:364
+#: src/core/settings.c:365
 msgid "Path of the unnamedstars.dat catalogue"
 msgstr "unnamedstars.dat星表路径"
 
-#: src/core/settings.c:365
+#: src/core/settings.c:366
 msgid "Path of the deepstars.dat catalogue"
 msgstr "deepstars.dat星表路径"
 
-#: src/core/settings.c:366
+#: src/core/settings.c:367
 msgid "Path of the USNO-NOMAD-1e8.dat catalogue"
 msgstr "USNO-NOMAD-1e8.dat星表路径"
 
-#: src/core/settings.c:367
+#: src/core/settings.c:368
 msgid "Path of the local Gaia astrometric catalogue"
 msgstr "本地Gaia天体测量目录的路径"
 
-#: src/core/settings.c:368
+#: src/core/settings.c:369
 msgid "Path of the local Gaia photometric catalogue"
 msgstr "本地Gaia测光星表的路径"
 
-#: src/core/settings.c:369
+#: src/core/settings.c:370
 msgid "add CTYPE3='RGB' in the FITS header"
 msgstr "在 FITS 文件头中添加 CTYPE3='RGB'"
 
-#: src/core/settings.c:370
+#: src/core/settings.c:371
 msgid "Verify file checksums if they exist"
 msgstr "如果存在，验证文件的校验和"
 
-#: src/core/settings.c:371
+#: src/core/settings.c:372
 msgid "user copyright to put in file header"
 msgstr "放入文件头的用户版权"
 
-#: src/core/settings.c:372
+#: src/core/settings.c:373
 msgid "location of the StarNet executable"
 msgstr "StarNet 可执行文件位置"
 
-#: src/core/settings.c:373
+#: src/core/settings.c:374
 msgid "location of the StarNet-torch weights file"
 msgstr "StarNet-torch 权重文件位置"
 
-#: src/core/settings.c:374
+#: src/core/settings.c:375
 msgid "location of the GraXpert executable"
 msgstr "GraXpert可执行文件位置"
 
-#: src/core/settings.c:376
+#: src/core/settings.c:377
 msgid "directory of the asnet_ansvr installation"
 msgstr "asnet_ansvr 安装目录"
 
-#: src/core/settings.c:378
+#: src/core/settings.c:379
 msgid "directory containing the solve-field executable"
 msgstr "包含 solve-field 可执行文件的目录"
 
-#: src/core/settings.c:380
+#: src/core/settings.c:381
 msgid "FFTW planning timelimit"
 msgstr "FFTW规划时限"
 
-#: src/core/settings.c:381
+#: src/core/settings.c:382
 msgid "Convolution minimum kernel size to use FFTW"
 msgstr "FFTW 所使用的卷积最小内核尺寸"
 
-#: src/core/settings.c:383
+#: src/core/settings.c:384
 msgid "multithreaded FFTW"
 msgstr "多线程 FFTW"
 
-#: src/core/settings.c:384
+#: src/core/settings.c:385
 msgid "Maximum slice size for automated slice processing"
 msgstr "自动分片处理时的最大切片尺寸"
 
-#: src/core/settings.c:386
+#: src/core/settings.c:387
 msgid "focal length in mm for radius adjustment"
 msgstr "焦距（毫米），用于半径调整"
 
-#: src/core/settings.c:387
+#: src/core/settings.c:388
 msgid "pixel size in µm for radius adjustment"
 msgstr "像素尺寸（以μm为单位），用于半径调整"
 
-#: src/core/settings.c:389
+#: src/core/settings.c:390
 msgid "use pattern from the file header"
 msgstr "使用文件头中的模式"
 
-#: src/core/settings.c:390
+#: src/core/settings.c:391
 msgid "index of the Bayer pattern"
 msgstr "拜耳阵列索引值"
 
-#: src/core/settings.c:391
+#: src/core/settings.c:392
 msgid "type of interpolation"
 msgstr "插值类型"
 
-#: src/core/settings.c:392
+#: src/core/settings.c:393
 msgid "force debayer top-down"
 msgstr "强制自上而下解拜耳"
 
-#: src/core/settings.c:393
+#: src/core/settings.c:394
 msgid "Bayer matrix offset X"
 msgstr "拜尔阵列X轴偏移量"
 
-#: src/core/settings.c:394
+#: src/core/settings.c:395
 msgid "Bayer matrix offset Y"
 msgstr "拜尔阵列Y轴偏移量"
 
-#: src/core/settings.c:395
+#: src/core/settings.c:396
 msgid "Number of passes for the X-Trans Markesteijn algorithm"
 msgstr "X-Trans Markesteijn 算法的传递次数"
 
-#: src/core/settings.c:397
+#: src/core/settings.c:398
 msgid "electrons per ADU for noise estimation"
 msgstr "每个 ADU 的电子数，用于噪声估算"
 
-#: src/core/settings.c:398
+#: src/core/settings.c:399
 msgid "inner radius for background annulus"
 msgstr "背景环的内半径"
 
-#: src/core/settings.c:399
+#: src/core/settings.c:400
 msgid "outer radius for background annulus"
 msgstr "背景环的外半径"
 
-#: src/core/settings.c:400
+#: src/core/settings.c:401
 msgid "factor for inner radius automatic computation"
 msgstr "内半径自动计算系数"
 
-#: src/core/settings.c:401
+#: src/core/settings.c:402
 msgid "factor for outer radius automatic computation"
 msgstr "外半径自动计算系数"
 
-#: src/core/settings.c:402
+#: src/core/settings.c:403
 msgid "force flux aperture value"
 msgstr "强制光通量孔径"
 
-#: src/core/settings.c:403
+#: src/core/settings.c:404
 msgid "Radius/halfFWHM ratio"
 msgstr "半径/半FWHM比"
 
-#: src/core/settings.c:404
+#: src/core/settings.c:405
 msgid "forced aperture for flux computation"
 msgstr "用于光通量计算的强制孔径"
 
-#: src/core/settings.c:405
+#: src/core/settings.c:406
 msgid "minimum valid pixel value for photometry"
 msgstr "用于测光的最小有效像素值"
 
-#: src/core/settings.c:406
+#: src/core/settings.c:407
 msgid "maximum valid pixel value for photometry"
 msgstr "用于测光的最大有效像素值"
 
-#: src/core/settings.c:407
+#: src/core/settings.c:408
 msgid ""
 "catalogues to be used to discard the variable stars from the comparison "
 "stars list"
 msgstr "用于从参考星列表中排除变星的星表"
 
-#: src/core/settings.c:408
+#: src/core/settings.c:409
 msgid "preferred SPCC red filter"
 msgstr "首选SPCC红色滤镜"
 
-#: src/core/settings.c:409
+#: src/core/settings.c:410
 msgid "preferred SPCC green filter"
 msgstr "首选SPCC绿色滤镜"
 
-#: src/core/settings.c:410
+#: src/core/settings.c:411
 msgid "preferred SPCC blue filter"
 msgstr "首选SPCC蓝色滤镜"
 
-#: src/core/settings.c:411
+#: src/core/settings.c:412
 msgid "preferred SPCC DSLR LPF filter"
 msgstr "首选SPCC DSLR低通滤镜"
 
-#: src/core/settings.c:412
+#: src/core/settings.c:413
 msgid "preferred SPCC OSC filter"
 msgstr "首选SPCC OSC滤镜"
 
-#: src/core/settings.c:413
+#: src/core/settings.c:414
 msgid "preferred SPCC mono sensor"
 msgstr "首选SPCC单色传感器"
 
-#: src/core/settings.c:414
+#: src/core/settings.c:415
 msgid "preferred SPCC OSC sensor"
 msgstr "首选SPCC OSC传感器"
 
-#: src/core/settings.c:415
+#: src/core/settings.c:416
 msgid "is the SPCC sensor mono?"
 msgstr "SPCC传感器是否为单色？"
 
-#: src/core/settings.c:416
+#: src/core/settings.c:417
 msgid "is the SPCC OSC sensor a DSLR?"
 msgstr "SPCC OSC传感器是否为DSLR？"
 
-#: src/core/settings.c:417
+#: src/core/settings.c:418
 msgid "are we in narrowband mode?"
 msgstr "我们处于窄带模式吗？"
 
-#: src/core/settings.c:418
+#: src/core/settings.c:419
 msgid "red NB filter wavelength"
 msgstr "红色NB滤镜波长"
 
-#: src/core/settings.c:419
+#: src/core/settings.c:420
 msgid "red NB filter bandwidth"
 msgstr "红色NB滤镜带宽"
 
-#: src/core/settings.c:420
+#: src/core/settings.c:421
 msgid "green NB filter wavelength"
 msgstr "绿色NB滤镜波长"
 
-#: src/core/settings.c:421
+#: src/core/settings.c:422
 msgid "green NB filter bandwidth"
 msgstr "绿色NB滤镜带宽"
 
-#: src/core/settings.c:422
+#: src/core/settings.c:423
 msgid "blue NB filter wavelength"
 msgstr "蓝色NB滤镜波长"
 
-#: src/core/settings.c:423
+#: src/core/settings.c:424
 msgid "blue NB filter bandwidth"
 msgstr "蓝色NB滤镜带宽"
 
-#: src/core/settings.c:425
+#: src/core/settings.c:426
 msgid "do not delete .xyls FITS tables"
 msgstr "不要删除 .xyls FITS 表"
 
-#: src/core/settings.c:426
+#: src/core/settings.c:427
 msgid "do not delete .wcs result files"
 msgstr "不要删除 .wcs 结果文件"
 
-#: src/core/settings.c:427
+#: src/core/settings.c:428
 msgid "show solve-field output in main log"
 msgstr "在主日志中显示 solve-field 输出"
 
-#: src/core/settings.c:429
+#: src/core/settings.c:430
 msgid "degrees of the polynomial correction"
 msgstr "多项式修正中多项式的次数"
 
-#: src/core/settings.c:430
+#: src/core/settings.c:431
 msgid "radius around the target coordinates (degrees)"
 msgstr "目标坐标周围的半径（度）"
 
-#: src/core/settings.c:431
+#: src/core/settings.c:432
 msgid "maximum seconds to try solving"
 msgstr "尝试解析的最大秒数"
 
-#: src/core/settings.c:432
+#: src/core/settings.c:433
 msgid "update default focal length and pixel size from the result"
 msgstr "从结果更新缺省的焦距和像素尺寸"
 
-#: src/core/settings.c:433
+#: src/core/settings.c:434
 msgid "percent below and above the expected sampling to allow"
 msgstr "所允许的低于和高于预期采样的百分比"
 
-#: src/core/settings.c:434
+#: src/core/settings.c:435
 msgid "default IAU observatory code"
 msgstr "默认IAU天文台编号"
 
-#: src/core/settings.c:436
+#: src/core/settings.c:437
 msgid "panel size of aberration inspector"
 msgstr "像差检查器面板尺寸"
 
-#: src/core/settings.c:437
+#: src/core/settings.c:438
 msgid "window size of aberration inspector"
 msgstr "像差检查器窗口尺寸"
 
-#: src/core/settings.c:439
+#: src/core/settings.c:440
 msgid "FITS compression enabled"
 msgstr "FITS压缩启用"
 
-#: src/core/settings.c:440
+#: src/core/settings.c:441
 msgid "FITS compression method"
 msgstr "FITS压缩方法"
 
-#: src/core/settings.c:441
+#: src/core/settings.c:442
 msgid "quantization factor for 32-bit float"
 msgstr "用于32位浮点数的量化因子"
 
-#: src/core/settings.c:442
+#: src/core/settings.c:443
 msgid "Hcompress scale factor"
 msgstr "HCompress 比例因子"
 
 #. the GUI part, not as useful but still required to be listed in order to be saved in the ini file
-#: src/core/settings.c:445
+#: src/core/settings.c:446
 msgid "type of sensor for cosmetic correction"
 msgstr "需应用坏点修正的传感器类型"
 
-#: src/core/settings.c:446
+#: src/core/settings.c:447
 msgid "equalize flat channels"
 msgstr "均衡平场帧的各通道"
 
-#: src/core/settings.c:447
+#: src/core/settings.c:448
 msgid "enable correction for X-Trans sensor"
 msgstr "启用 X-Trans 传感器修正"
 
-#: src/core/settings.c:448 src/core/settings.c:449 src/core/settings.c:450
-#: src/core/settings.c:451 src/core/settings.c:452 src/core/settings.c:453
-#: src/core/settings.c:454 src/core/settings.c:455
+#: src/core/settings.c:449 src/core/settings.c:450 src/core/settings.c:451
+#: src/core/settings.c:452 src/core/settings.c:453 src/core/settings.c:454
+#: src/core/settings.c:455 src/core/settings.c:456
 msgid "if no X-Trans model found, use this"
 msgstr "如果未找到 X-Trans 模型，请使用此"
 
-#: src/core/settings.c:456
+#: src/core/settings.c:457
 msgid "default master bias"
 msgstr "缺省主偏置帧"
 
-#: src/core/settings.c:457
+#: src/core/settings.c:458
 msgid "use default master bias"
 msgstr "使用缺省主偏置帧"
 
-#: src/core/settings.c:458
+#: src/core/settings.c:459
 msgid "default master dark"
 msgstr "缺省主暗场帧"
 
-#: src/core/settings.c:459
+#: src/core/settings.c:460
 msgid "use default master dark"
 msgstr "使用缺省主暗场帧"
 
-#: src/core/settings.c:460
+#: src/core/settings.c:461
 msgid "default master flat"
 msgstr "缺省主平场帧"
 
-#: src/core/settings.c:461
+#: src/core/settings.c:462
 msgid "use default master flat"
 msgstr "使用缺省主平场帧"
 
-#: src/core/settings.c:462
+#: src/core/settings.c:463
 msgid "default distortion master"
 msgstr "缺省总和畸变文件"
 
-#: src/core/settings.c:463
+#: src/core/settings.c:464
 msgid "use default master distortion"
 msgstr "使用缺省总和畸变文件"
 
-#: src/core/settings.c:464
+#: src/core/settings.c:465
 msgid "default stack name"
 msgstr "缺省叠加名"
 
-#: src/core/settings.c:465
+#: src/core/settings.c:466
 msgid "use preferred stack name"
 msgstr "使用首选的叠加名"
 
-#: src/core/settings.c:467
+#: src/core/settings.c:468
 msgid "index of the selected registration method"
 msgstr "所选对齐方法的指标"
 
-#: src/core/settings.c:468
+#: src/core/settings.c:469
 msgid "index of the selected interpolation method"
 msgstr "所选插值方法的指标"
 
-#: src/core/settings.c:469
+#: src/core/settings.c:470
 msgid "use clamping method with Lanczos and Cubic interpolation"
 msgstr "对 Lanczos 和 Cubic 插值启用钳定"
 
-#: src/core/settings.c:471
+#: src/core/settings.c:472
 msgid "index of the selected method"
 msgstr "所选方法的指标"
 
-#: src/core/settings.c:472
+#: src/core/settings.c:473
 msgid "index of the normalization method"
 msgstr "所选归一化方法的指标"
 
-#: src/core/settings.c:473
+#: src/core/settings.c:474
 msgid "index of the rejection method"
 msgstr "剔除方法的指标"
 
-#: src/core/settings.c:474
+#: src/core/settings.c:475
 msgid "index of the weighting method"
 msgstr "加权方法的指标"
 
-#: src/core/settings.c:475
+#: src/core/settings.c:476
 msgid "sigma low value for rejection"
 msgstr "用作剔除的sigma下限"
 
-#: src/core/settings.c:476
+#: src/core/settings.c:477
 msgid "sigma high value for rejection"
 msgstr "用作剔除的sigma上限"
 
-#: src/core/settings.c:477
+#: src/core/settings.c:478
 msgid "linear low value for rejection"
 msgstr "用作剔除的linear下限"
 
-#: src/core/settings.c:478
+#: src/core/settings.c:479
 msgid "linear high value for rejection"
 msgstr "用作剔除的linear上限"
 
-#: src/core/settings.c:479
+#: src/core/settings.c:480
 msgid "percentile low value for rejection"
 msgstr "用作剔除的percentile下限"
 
-#: src/core/settings.c:480
+#: src/core/settings.c:481
 msgid "percentile high value for rejection"
 msgstr "用作剔除的percentile上限"
 
-#: src/core/settings.c:482
+#: src/core/settings.c:483
 msgid "first start of siril"
 msgstr "siril第一次启动"
 
-#: src/core/settings.c:483
+#: src/core/settings.c:484
 msgid "don't confirm quit when exiting"
 msgstr "退出时不需要确认"
 
-#: src/core/settings.c:484
+#: src/core/settings.c:485
 msgid "don't confirm save when non linear mode"
 msgstr "非线性模式时不确认保存"
 
-#: src/core/settings.c:485
+#: src/core/settings.c:486
 msgid "remember window position"
 msgstr "记住窗口位置"
 
-#: src/core/settings.c:486 src/core/settings.c:487 src/core/settings.c:488
-#: src/core/settings.c:489
+#: src/core/settings.c:487 src/core/settings.c:488 src/core/settings.c:489
+#: src/core/settings.c:490
 msgid "main window position"
 msgstr "主窗口位置"
 
-#: src/core/settings.c:490
+#: src/core/settings.c:491
 msgid "position of the two sides separator"
 msgstr "两侧分隔符的位置"
 
-#: src/core/settings.c:491
+#: src/core/settings.c:492
 msgid "main window is extended"
 msgstr "主窗口已扩展"
 
-#: src/core/settings.c:492
+#: src/core/settings.c:493
 msgid "main window is maximized"
 msgstr "主窗口最大化"
 
-#: src/core/settings.c:493
+#: src/core/settings.c:494
 msgid "index of the selected theme"
 msgstr "所选主题的指标"
 
-#: src/core/settings.c:494
+#: src/core/settings.c:495
 msgid "font scale in percent"
 msgstr "字体缩放百分比"
 
-#: src/core/settings.c:495
+#: src/core/settings.c:496
 msgid "icon style"
 msgstr "图标样式"
 
-#: src/core/settings.c:496
+#: src/core/settings.c:497
 msgid "list of script directories"
 msgstr "脚本目录列表"
 
-#: src/core/settings.c:497
+#: src/core/settings.c:498
 msgid "use and sync online scripts repository"
 msgstr "使用和同步在线脚本存储库"
 
-#: src/core/settings.c:498
+#: src/core/settings.c:499
 msgid "use and sync spcc-database repository"
 msgstr "使用和同步 spcc 数据库存储库"
 
-#: src/core/settings.c:499
+#: src/core/settings.c:500
 msgid "auto sync online scripts repository"
 msgstr "自动同步在线脚本存储库"
 
-#: src/core/settings.c:500
+#: src/core/settings.c:501
 msgid "auto sync spcc-database repository"
 msgstr "自动同步 spcc 数据库存储库"
 
-#: src/core/settings.c:501
+#: src/core/settings.c:502
 msgid "list of scripts selected from the repository"
 msgstr "从存储库中选择的脚本列表"
 
-#: src/core/settings.c:502
+#: src/core/settings.c:503
 msgid "warn when launching a script"
 msgstr "启动脚本时发出警告"
 
-#: src/core/settings.c:503
+#: src/core/settings.c:504
 msgid "show thumbnails in open dialog"
 msgstr "在打开对话框中显示缩略图"
 
-#: src/core/settings.c:504
+#: src/core/settings.c:505
 msgid "size of the thumbnails"
 msgstr "缩略图尺寸"
 
-#: src/core/settings.c:505
+#: src/core/settings.c:506
 msgid "number of elements of the grid guides"
 msgstr "网格参考线的元素数量"
 
-#: src/core/settings.c:506
+#: src/core/settings.c:507
 msgid "show tenths of arcseconds on hover"
 msgstr "悬停时显示十分之一角秒"
 
-#: src/core/settings.c:507
+#: src/core/settings.c:508
 msgid "default display mode"
 msgstr "缺省显示模式"
 
-#: src/core/settings.c:508
+#: src/core/settings.c:509
 msgid "default histogram display mode"
 msgstr "缺省直方图显示模式"
 
-#: src/core/settings.c:509
+#: src/core/settings.c:510
 msgid "ROI selection mode"
 msgstr "ROI选择模式"
 
-#: src/core/settings.c:510
+#: src/core/settings.c:511
 msgid "enable ROI dialog warning"
 msgstr "启用 ROI 对话框警告"
 
-#: src/core/settings.c:511
+#: src/core/settings.c:512
 msgid "Middle mouse button double click zoom action"
 msgstr "鼠标中键双击缩放操作"
 
-#: src/core/settings.c:512
+#: src/core/settings.c:513
+msgid "Mouse smooth scroll speed limit"
+msgstr ""
+
+#: src/core/settings.c:514
 msgid "configure background samples color"
 msgstr "配置背景提取样本框的颜色"
 
-#: src/core/settings.c:513
+#: src/core/settings.c:515
 msgid "configure standard annotation color"
 msgstr "配置标准标注的颜色"
 
-#: src/core/settings.c:514
+#: src/core/settings.c:516
 msgid "configure dso annotation color"
 msgstr "配置深空天体标注的颜色"
 
-#: src/core/settings.c:515
+#: src/core/settings.c:517
 msgid "configure sso annotation color"
 msgstr "配置太阳系天体标注的颜色"
 
-#: src/core/settings.c:516
+#: src/core/settings.c:518
 msgid "configure tmp annotation color"
 msgstr "配置临时标注的颜色"
 
-#: src/core/settings.c:517
+#: src/core/settings.c:519
 msgid "path to custom monitor ICC profile"
 msgstr "自定义显示器 ICC 配置文件的路径"
 
-#: src/core/settings.c:518
+#: src/core/settings.c:520
 msgid "path to soft proofing ICC profile"
 msgstr "软打样 ICC 配置文件的路径"
 
-#: src/core/settings.c:519
+#: src/core/settings.c:521
 msgid "custom monitor profile active"
 msgstr "自定义显视器描述文件启用"
 
-#: src/core/settings.c:520
+#: src/core/settings.c:522
 msgid "output proofing profile active"
 msgstr "输出打样描述文件启用"
 
-#: src/core/settings.c:521
+#: src/core/settings.c:523
 msgid "path to custom RGB ICC profile"
 msgstr "自定义 RGB ICC 配置文件的路径"
 
-#: src/core/settings.c:522
+#: src/core/settings.c:524
 msgid "path to custom gray ICC profile"
 msgstr "自定义灰度 ICC 配置文件的路径"
 
-#: src/core/settings.c:523
+#: src/core/settings.c:525
 msgid "color management rendering intent"
 msgstr "色彩管理渲染意图"
 
-#: src/core/settings.c:524
+#: src/core/settings.c:526
 msgid "color management soft proofing intent"
 msgstr "色彩管理软打样意图"
 
-#: src/core/settings.c:525
+#: src/core/settings.c:527
 msgid "color mangement export intent"
 msgstr "色彩管理导出意图"
 
-#: src/core/settings.c:526
+#: src/core/settings.c:528
 msgid "default to sRGB when exporting non color managed images"
 msgstr "导出非色彩管理图像时默认为 sRGB"
 
-#: src/core/settings.c:527
+#: src/core/settings.c:529
 msgid "color mangement working gamut"
 msgstr "色彩管理工作色域"
 
-#: src/core/settings.c:528
+#: src/core/settings.c:530
 msgid "color mangement export profile for 8bit files"
 msgstr "8 位文件的色彩管理导出配置文件"
 
-#: src/core/settings.c:529
+#: src/core/settings.c:531
 msgid "color mangement export profile for 16bit files"
 msgstr "16 位文件的色彩管理导出配置文件"
 
-#: src/core/settings.c:530
+#: src/core/settings.c:532
 msgid "autoconvert images with an ICC profile to the working color space"
 msgstr "将具有 ICC 配置文件的图像自动转换为工作色彩空间"
 
-#: src/core/settings.c:531
+#: src/core/settings.c:533
 msgid "encodes ICC profile auto-assignment options"
 msgstr "编码 ICC 配置文件自动分配选项"
 
-#: src/core/settings.c:532
+#: src/core/settings.c:534
 msgid "enable rendering BPC"
 msgstr "启用渲染 BPC"
 
-#: src/core/settings.c:533
+#: src/core/settings.c:535
 msgid "pedantically assign linear ICC profiles"
 msgstr "学术式地分配线性 ICC 配置文件"
 
-#: src/core/settings.c:534
+#: src/core/settings.c:536
 msgid "mouse actions config. Opaque data structure, edit this using the GUI"
 msgstr "鼠标动作配置。不透明的数据结构，请使用 GUI 进行编辑"
 
-#: src/core/settings.c:535
+#: src/core/settings.c:537
 msgid "scroll actions config. Opaque data structure, edit this using the GUI"
 msgstr "滚动操作配置。不透明的数据结构，请使用 GUI 进行编辑"
 
-#: src/core/settings.c:536
+#: src/core/settings.c:538
 msgid "index of the compass position over grid"
 msgstr "网格上罗盘位置的指标"
 
-#: src/core/settings.c:537
+#: src/core/settings.c:539
 msgid "show Messier objects in annotations"
 msgstr "标注梅西耶天体"
 
-#: src/core/settings.c:538
+#: src/core/settings.c:540
 msgid "show NGC objects in annotations"
 msgstr "标注NGC天体"
 
-#: src/core/settings.c:539
+#: src/core/settings.c:541
 msgid "show IC objects in annotations"
 msgstr "标注IC天体"
 
-#: src/core/settings.c:540
+#: src/core/settings.c:542
 msgid "show LDN objects in annotations"
 msgstr "标注LDN天体"
 
-#: src/core/settings.c:541
+#: src/core/settings.c:543
 msgid "show SH2 objects in annotations"
 msgstr "标注SH2天体"
 
-#: src/core/settings.c:542
+#: src/core/settings.c:544
 msgid "show stars in annotations"
 msgstr "标注恒星"
 
-#: src/core/settings.c:543
+#: src/core/settings.c:545
 msgid "show constellations in annotations"
 msgstr "标注星座"
 
-#: src/core/settings.c:544
+#: src/core/settings.c:546
 msgid "show constellations names in annotations"
 msgstr "标注星座名称"
 
-#: src/core/settings.c:545
+#: src/core/settings.c:547
 msgid "show user DSO objects in annotations"
 msgstr "在标注中显示用户深空天体"
 
-#: src/core/settings.c:546
+#: src/core/settings.c:548
 msgid "show user SSO objects in annotations"
 msgstr "在标注中显示用户太阳系天体"
 
-#: src/core/settings.c:548
+#: src/core/settings.c:550
 msgid "list of pixel math presets"
 msgstr "像素数学预设列表"
 
-#: src/core/settings.c:550
+#: src/core/settings.c:552
 msgid "highlight syntax in the script editor"
 msgstr "在脚本编辑器中高亮语法"
 
-#: src/core/settings.c:551
+#: src/core/settings.c:553
 msgid "highlight matching brackets in the script editor"
 msgstr "在脚本编辑器中高亮成对的括号"
 
-#: src/core/settings.c:552
+#: src/core/settings.c:554
 msgid "show the right margin in the script editor"
 msgstr "在脚本编辑器中显示右边界"
 
-#: src/core/settings.c:553
+#: src/core/settings.c:555
 msgid "position of the right margin in the script editor"
 msgstr "脚本编辑器中右边界的位置"
 
-#: src/core/settings.c:554
+#: src/core/settings.c:556
 msgid "show line numbers in the script editor"
 msgstr "在脚本编辑器中显示行号"
 
-#: src/core/settings.c:555
+#: src/core/settings.c:557
 msgid "show line marks in the script editor"
 msgstr "在脚本编辑器中显示行标记"
 
-#: src/core/settings.c:556
+#: src/core/settings.c:558
 msgid "highlight the current line in the script editor"
 msgstr "在脚本编辑器中高亮当前行"
 
-#: src/core/settings.c:557
+#: src/core/settings.c:559
 msgid "automatically indent new lines"
 msgstr "自动缩进新行"
 
-#: src/core/settings.c:558
+#: src/core/settings.c:560
 msgid "indent selected blocks of lines in the script editor using the tab key"
 msgstr "在脚本编辑器中用tab键缩进选中的整段脚本"
 
-#: src/core/settings.c:559
+#: src/core/settings.c:561
 msgid "Smart Backspace behaviour in the script editor"
 msgstr "在脚本编辑器中启用智能退格"
 
-#: src/core/settings.c:560
+#: src/core/settings.c:562
 msgid "Smart Home / End behaviour in the script editor"
 msgstr "在脚本编辑器中启用智能Home / End键"
 
-#: src/core/settings.c:561
+#: src/core/settings.c:563
 msgid "Show visible space and tab characters in the script editor"
 msgstr "在脚本编辑器中显示空白字符标记"
 
-#: src/core/settings.c:562
+#: src/core/settings.c:564
 msgid "Show visible newline characters in the script editor"
 msgstr "在脚本编辑器中显示换行标记"
 
-#: src/core/settings.c:563
+#: src/core/settings.c:565
 msgid "Show a minimap in the script editor"
 msgstr "在脚本编辑器中显示小地图"
 
-#: src/core/settings.c:603
+#: src/core/settings.c:605
 #, c-format
 msgid "Unknown settings variable %s.%s\n"
 msgstr "未知设置变量 %s.%s\n"
@@ -19849,17 +19878,17 @@ msgstr "未知"
 msgid "Binning %d x %d is not supported\n"
 msgstr "不支持合并 %d x %d\n"
 
-#: src/gui/callbacks.c:1626
+#: src/gui/callbacks.c:1632
 #, c-format
 msgid "Default FITS extension is set to %s\n"
 msgstr "缺省FITS扩展名设置为 %s\n"
 
-#: src/gui/callbacks.c:1649
+#: src/gui/callbacks.c:1655
 #, c-format
 msgid "Welcome to %s"
 msgstr "欢迎来到 %s"
 
-#: src/gui/callbacks.c:1652
+#: src/gui/callbacks.c:1658
 msgid ""
 "Hello, this is the first time you use this new version of Siril. Please, "
 "have a seat and take the time to watch the short introduction we have "
@@ -19869,36 +19898,36 @@ msgstr ""
 "欢迎！这是您第一次打开Siril新版本。请坐下来花点时间观看我们为您准备的简介。您"
 "随时可以通过偏好设置对话框里的“杂项”选项卡重播此简介。"
 
-#: src/gui/callbacks.c:1655
+#: src/gui/callbacks.c:1661
 msgid "See Introduction"
 msgstr "观看介绍"
 
-#: src/gui/callbacks.c:1930
+#: src/gui/callbacks.c:1937
 msgid "Closing application"
 msgstr "关闭程序"
 
-#: src/gui/callbacks.c:1931
+#: src/gui/callbacks.c:1938
 msgid "Are you sure you want to quit?"
 msgstr "确定要退出吗？"
 
-#: src/gui/callbacks.c:1931
+#: src/gui/callbacks.c:1938
 msgid "Exit"
 msgstr "退出"
 
-#: src/gui/callbacks.c:2091
+#: src/gui/callbacks.c:2098
 #, c-format
 msgid "Selected %s sequence %s..."
 msgstr "已选择 %s 序列 %s..."
 
-#: src/gui/callbacks.c:2140
+#: src/gui/callbacks.c:2147
 msgid "Searching for sequences in the current working directory..."
 msgstr "在当前工作目录中搜索序列..."
 
-#: src/gui/callbacks.c:2191
+#: src/gui/callbacks.c:2198
 msgid "This erases the following data, and there's no possible undo:\n"
 msgstr "这将清除以下数据，且无法撤消：\n"
 
-#: src/gui/callbacks.c:2192
+#: src/gui/callbacks.c:2199
 msgid ""
 "\n"
 "- Registration"
@@ -19906,7 +19935,7 @@ msgstr ""
 "\n"
 "- 对齐"
 
-#: src/gui/callbacks.c:2193
+#: src/gui/callbacks.c:2200
 msgid ""
 "\n"
 "- Statistics"
@@ -19914,7 +19943,7 @@ msgstr ""
 "\n"
 "- 统计信息"
 
-#: src/gui/callbacks.c:2194
+#: src/gui/callbacks.c:2201
 msgid ""
 "\n"
 "- Selection"
@@ -19922,19 +19951,19 @@ msgstr ""
 "\n"
 "- 选择"
 
-#: src/gui/callbacks.c:2198
+#: src/gui/callbacks.c:2205
 msgid "Clear Sequence Data?"
 msgstr "清除序列数据？"
 
-#: src/gui/callbacks.c:2198
+#: src/gui/callbacks.c:2205
 msgid "Clear Data"
 msgstr "清除数据"
 
-#: src/gui/callbacks.c:2210
+#: src/gui/callbacks.c:2217
 msgid "The requested data of the sequence has been cleaned."
 msgstr "序列的请求数据已被清除。"
 
-#: src/gui/callbacks.c:2218
+#: src/gui/callbacks.c:2225
 #, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
@@ -19943,19 +19972,19 @@ msgstr ""
 "您将要清除您的 %s 用户目录。这意味着包含手动添加的天体的文件将被删除。此操作"
 "无法撤消。"
 
-#: src/gui/callbacks.c:2220
+#: src/gui/callbacks.c:2227
 msgid "SOLAR SYSTEM"
 msgstr "太阳系"
 
-#: src/gui/callbacks.c:2220
+#: src/gui/callbacks.c:2227
 msgid "DEEP SKY"
 msgstr "深空"
 
-#: src/gui/callbacks.c:2222
+#: src/gui/callbacks.c:2229
 msgid "Catalog deletion"
 msgstr "星表删除"
 
-#: src/gui/callbacks.c:2222
+#: src/gui/callbacks.c:2229
 msgid "Purge Catalogue"
 msgstr "清除星表"
 
@@ -20591,8 +20620,8 @@ msgid "Error: image dimensions do not match"
 msgstr "错误：图像尺寸不匹配"
 
 #: src/gui/git_gui.c:61 src/gui/git_gui.c:72 src/gui/git_gui.c:244
-#: src/gui/git_gui.c:248 src/gui/git_gui.c:253 src/gui/git_gui.c:306
-#: src/gui/git_gui.c:310 src/gui/git_gui.c:313
+#: src/gui/git_gui.c:248 src/gui/git_gui.c:253 src/gui/git_gui.c:312
+#: src/gui/git_gui.c:316 src/gui/git_gui.c:319
 msgid "Manual Update"
 msgstr "手动更新"
 
@@ -20634,11 +20663,11 @@ msgstr "加载脚本内容时出错：%s\n"
 msgid "Manually synchronising script repository\n"
 msgstr "手动同步存储库"
 
-#: src/gui/git_gui.c:212 src/gui/git_gui.c:277
+#: src/gui/git_gui.c:212 src/gui/git_gui.c:283
 msgid "Error getting the list of unmerged changes"
 msgstr "获取未合并更改的列表时出错"
 
-#: src/gui/git_gui.c:217 src/gui/git_gui.c:282 src/gui/graxpert.c:321
+#: src/gui/git_gui.c:217 src/gui/git_gui.c:288 src/gui/graxpert.c:321
 msgid "Warning!"
 msgstr "警告！"
 
@@ -20665,15 +20694,15 @@ msgstr ""
 "如果您希望保留本地更改，则应取消此更新并将修改后的脚本复制到另一个位置，并将"
 "该位置添加到要搜索的脚本目录列表中。"
 
-#: src/gui/git_gui.c:229 src/gui/git_gui.c:294 src/gui/icc_profile.c:110
+#: src/gui/git_gui.c:229 src/gui/git_gui.c:300 src/gui/icc_profile.c:110
 msgid "Accept"
 msgstr "接受"
 
-#: src/gui/git_gui.c:245 src/gui/git_gui.c:307
+#: src/gui/git_gui.c:245 src/gui/git_gui.c:313
 msgid "Read and confirm the pending changes to be synced"
 msgstr "阅读并确认要同步的待处理更改"
 
-#: src/gui/git_gui.c:246 src/gui/git_gui.c:308
+#: src/gui/git_gui.c:246 src/gui/git_gui.c:314
 msgid "Confirm"
 msgstr "确认"
 
@@ -20681,7 +20710,7 @@ msgstr "确认"
 msgid "Error! Script database failed to update."
 msgstr "错误！脚本数据库更新失败。"
 
-#: src/gui/git_gui.c:254 src/gui/git_gui.c:313
+#: src/gui/git_gui.c:254 src/gui/git_gui.c:319
 msgid "Update cancelled. Updates have not been applied."
 msgstr "更新已取消。更新尚未应用。"
 
@@ -20690,7 +20719,7 @@ msgstr "更新已取消。更新尚未应用。"
 msgid "Manual scripts update: the script repository is up to date.\n"
 msgstr "脚本存储库是最新的。"
 
-#: src/gui/git_gui.c:283
+#: src/gui/git_gui.c:289
 msgid ""
 "Merge analysis shows that the merge cannot be fast-forwarded. This indicates "
 "you have made changes to the local scripts repository. Siril does not "
@@ -20713,11 +20742,11 @@ msgstr ""
 "如果您希望保留本地更改，则应取消此更新并将修改后的脚本复制到另一个位置，并将"
 "该位置添加到要搜索的脚本目录列表中。"
 
-#: src/gui/git_gui.c:310
+#: src/gui/git_gui.c:316
 msgid "Error! SPCC database failed to update."
 msgstr "错误！ SPCC 数据库更新失败。"
 
-#: src/gui/git_gui.c:317
+#: src/gui/git_gui.c:323
 #, fuzzy
 msgid ""
 "Manual SPCC database update: the SPCC database repository is up to date.\n"
@@ -21241,15 +21270,15 @@ msgstr "此动作将打开分光光度色彩校准对话框"
 msgid "Scroll wheel zooms in / out"
 msgstr "滚轮放大/缩小"
 
-#: src/gui/mouse_action_functions.c:755
+#: src/gui/mouse_action_functions.c:766
 msgid "Scroll wheel scrolls through the frames in the current sequence"
 msgstr "滚轮滚动浏览当前序列中的帧"
 
-#: src/gui/mouse_action_functions.c:799
+#: src/gui/mouse_action_functions.c:810
 msgid "Error: image load failed, reloading reference image!\n"
 msgstr "错误：图像加载失败，重新加载参考帧！\n"
 
-#: src/gui/mouse_action_functions.c:806
+#: src/gui/mouse_action_functions.c:817
 msgid "Scroll wheel scrolls through the Siril GUI tabs"
 msgstr "滚轮滚动浏览 Siril GUI 选项卡"
 
@@ -21354,34 +21383,34 @@ msgstr ""
 "这将重置所有鼠标按钮并将滚轮动作重置为默认设置。无法撤消此操作，您需要重新配"
 "置所有的更改。是否确定？"
 
-#: src/gui/mouse_action_preferences.c:739
+#: src/gui/mouse_action_preferences.c:740
 #, c-format
 msgid "Scroll (vertical)"
 msgstr "滚动（垂直）"
 
-#: src/gui/mouse_action_preferences.c:743
+#: src/gui/mouse_action_preferences.c:744
 #, c-format
 msgid "Scroll (horizontal)"
 msgstr "滚动（水平）"
 
-#: src/gui/mouse_action_preferences.c:749
+#: src/gui/mouse_action_preferences.c:750
 #, c-format
 msgid "Smooth scroll (vertical)"
 msgstr "平滑滚动（垂直）"
 
-#: src/gui/mouse_action_preferences.c:751
+#: src/gui/mouse_action_preferences.c:752
 #, c-format
 msgid "Smooth scroll (horizontal)"
 msgstr "平滑滚动（ 水平）"
 
-#: src/gui/mouse_action_preferences.c:756
+#: src/gui/mouse_action_preferences.c:757
 #, c-format
 msgid "Button %u"
 msgstr "按钮 %u"
 
-#: src/gui/mouse_action_preferences.c:811
-#: src/gui/mouse_action_preferences.c:819
-#: src/gui/mouse_action_preferences.c:882
+#: src/gui/mouse_action_preferences.c:812
+#: src/gui/mouse_action_preferences.c:820
+#: src/gui/mouse_action_preferences.c:883
 #, c-format
 msgid ""
 "Warning: when parsing mouse action config, config string parsed to an "
@@ -21389,14 +21418,14 @@ msgid ""
 msgstr "警告：解析鼠标动作配置时，配置字符串解析为未知功能：“%s”。跳过..."
 
 #. Handle error: input format is incorrect
-#: src/gui/mouse_action_preferences.c:827
+#: src/gui/mouse_action_preferences.c:828
 #, c-format
 msgid ""
 "Warning: when parsing mouse action config, config string has incorrect "
 "format: \"%s\". Skipping..."
 msgstr "警告：解析鼠标动作配置时，配置字符串的格式不正确：“%s”。跳过..."
 
-#: src/gui/mouse_action_preferences.c:890
+#: src/gui/mouse_action_preferences.c:891
 #, c-format
 msgid ""
 "Warning: when parsing scroll action config, string parsed to an unknown "
@@ -21404,7 +21433,7 @@ msgid ""
 msgstr "警告：解析滚轮动作配置时，字符串解析为未知功能：“%s”。跳过...\n"
 
 #. Handle error: input format is incorrect
-#: src/gui/mouse_action_preferences.c:898
+#: src/gui/mouse_action_preferences.c:899
 #, c-format
 msgid ""
 "Warning: when parsing mouse action config, string has incorrect format: "
@@ -21864,32 +21893,32 @@ msgid ""
 "a 3-character code.\n"
 msgstr "错误：从偏好设置中读取的IAU天文台编号无效。代码必须是 3 字符代码。\n"
 
-#: src/gui/preferences.c:553
+#: src/gui/preferences.c:554
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr "当前用户对目录%s没有写权限\n"
 
-#: src/gui/preferences.c:572
+#: src/gui/preferences.c:573
 #, c-format
 msgid "You don't have permission to execute this file: %s\n"
 msgstr "您没有权限以执行该文件: %s\n"
 
-#: src/gui/preferences.c:606
+#: src/gui/preferences.c:607
 #, c-format
 msgid "You don't have permission to read this file: %s\n"
 msgstr "您没有权限以读取该文件: %s\n"
 
-#: src/gui/preferences.c:635
+#: src/gui/preferences.c:636
 msgid "Cannot refresh script list"
 msgstr "无法刷新脚本列表"
 
-#: src/gui/preferences.c:987
+#: src/gui/preferences.c:989
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
 msgstr "内半径必须小于外半径，请在测光标签中更改。"
 
-#: src/gui/preferences.c:996
+#: src/gui/preferences.c:998
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
@@ -21897,27 +21926,27 @@ msgstr ""
 "将量化设置为 0 仅在使用 GZIP 压缩时有效；对于压缩浮点图像，GZIP 2 通常效果更"
 "好。"
 
-#: src/gui/preferences.c:1008
+#: src/gui/preferences.c:1010
 msgid "Wrong value"
 msgstr "无效值"
 
-#: src/gui/preferences.c:1057
+#: src/gui/preferences.c:1059
 msgid "Reset all preferences"
 msgstr "重置所有偏好设置"
 
-#: src/gui/preferences.c:1058
+#: src/gui/preferences.c:1060
 msgid "Do you really want to reset all preferences to default value?"
 msgstr "您确定要将所有偏好设置恢复为缺省值？"
 
-#: src/gui/preferences.c:1059
+#: src/gui/preferences.c:1061
 msgid "Reset Preferences"
 msgstr "重置偏好设置"
 
-#: src/gui/preferences.c:1078
+#: src/gui/preferences.c:1080
 msgid "External ICC Profiles"
 msgstr "外部ICC色彩配置文件"
 
-#: src/gui/preferences.c:1078
+#: src/gui/preferences.c:1080
 msgid ""
 "In order to use ICC profiles loaded from files as your preferred color space "
 "you must set the Preferred Color Space drop-down to \"From files\"."
@@ -21925,11 +21954,11 @@ msgstr ""
 "为了使用从文件载入的 ICC 配置文件作为您的首选色彩空间，您必须将首选色彩空间下"
 "拉列表设置为“来自文件”。"
 
-#: src/gui/preferences.c:1103
+#: src/gui/preferences.c:1105
 msgid "WARNING!"
 msgstr "警告！"
 
-#: src/gui/preferences.c:1103
+#: src/gui/preferences.c:1105
 msgid ""
 "This will kill all running python processes and delete and reinstall the "
 "python venv directory. This is not normally necessary for upgrades or "
@@ -22150,7 +22179,9 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr "对齐 %d 个图像于序列 %d"
 
 #: src/gui/registration.c:735
-msgid "Max framing not allowed with fitseq, change to regular FITS images"
+#, fuzzy
+msgid ""
+"Max framing not allowed with FITSEQ or SER, change to regular FITS images"
 msgstr "fitseq 不允许最大化构图，更改为常规 FITS 图像"
 
 #: src/gui/registration.c:746
@@ -22445,7 +22476,7 @@ msgstr "快照已保存到剪贴板。"
 msgid "Cannot take snapshot: %s\n"
 msgstr "无法获取快照: %s\n"
 
-#: src/gui/script_menu.c:48
+#: src/gui/script_menu.c:49
 msgid ""
 "You are about to use scripts. Note that scripts execute code with your "
 "current user privileges. While Siril Script Files can only execute Siril "
@@ -22457,58 +22488,58 @@ msgstr ""
 "Siril命令和极少数特定的外部程序，而Python脚本则强大得多，可以执行非Siril团队"
 "编写的代码。请确保您从可信来源获取脚本。"
 
-#: src/gui/script_menu.c:159
+#: src/gui/script_menu.c:160
 msgid "Please read me before using scripts"
 msgstr "使用脚本之前请先阅读"
 
-#: src/gui/script_menu.c:160
+#: src/gui/script_menu.c:161
 msgid "Run Script"
 msgstr "运行脚本"
 
-#: src/gui/script_menu.c:217
+#: src/gui/script_menu.c:218
 #, c-format
 msgid "Unknown script type: %s\n"
 msgstr "未知脚本类型：%s\n"
 
-#: src/gui/script_menu.c:267
+#: src/gui/script_menu.c:268
 msgid "Python Scripts"
 msgstr "Python 脚本"
 
-#: src/gui/script_menu.c:272
+#: src/gui/script_menu.c:273
 msgid "Script Editor..."
 msgstr "脚本编辑器..."
 
-#: src/gui/script_menu.c:274
+#: src/gui/script_menu.c:275
 msgid "Enable Python debug mode"
 msgstr "启用Python debug模式"
 
-#: src/gui/script_menu.c:310
+#: src/gui/script_menu.c:311
 #, c-format
 msgid "Searching for scripts in: \"%s\"...\n"
 msgstr "搜索脚本于: \"%s\"...\n"
 
-#: src/gui/script_menu.c:356
+#: src/gui/script_menu.c:357
 #, c-format
 msgid "Loading script: %s\n"
 msgstr "载入脚本：%s\n"
 
-#: src/gui/script_menu.c:383 src/gui/script_menu.c:417
+#: src/gui/script_menu.c:384 src/gui/script_menu.c:418
 #, c-format
 msgid ""
 "Script %s no longer exists in repository, removing from Scripts menu...\n"
 msgstr "脚本 %s 不再存在于存储库中，已从脚本菜单中删除...\n"
 
-#: src/gui/script_menu.c:411
+#: src/gui/script_menu.c:412
 #, c-format
 msgid "Loading script from repository: %s\n"
 msgstr "从存储库中载入脚本：%s\n"
 
-#: src/gui/script_menu.c:462
+#: src/gui/script_menu.c:463
 #, c-format
 msgid "Adding core script to menu: %s\n"
 msgstr "正在将核心脚本添加到菜单：%s\n"
 
-#: src/gui/script_menu.c:489
+#: src/gui/script_menu.c:490
 msgid "Cannot refresh the scripts if the list is empty.\n"
 msgstr "若列表为空则无法刷新脚本。\n"
 
@@ -22597,21 +22628,18 @@ msgstr "确定要全部关闭并打开新图像？"
 msgid "Failed to load CSS sheet: %s.\n"
 msgstr "无法加载 CSS 表：%s。\n"
 
-#: src/gui/siril_intro.c:45
-msgid "Welcome to the newest version of Siril, "
-msgstr "欢迎来到最新版本的Siril， "
-
-#: src/gui/siril_intro.c:45
+#: src/gui/siril_intro.c:47
+#, fuzzy, c-format
 msgid ""
-". Please take a moment to read some tips about this release. If the rate is "
-"too slow, skip to the next tip using the right arrow of your keyboard. You "
-"can also go back to the previous tip using the left arrow and stop the "
-"animation with the escape key."
+"Welcome to the newest version of Siril, %s. Please take a moment to read "
+"some tips about this release. If the rate is too slow, skip to the next tip "
+"using the right arrow of your keyboard. You can also go back to the previous "
+"tip using the left arrow and stop the animation with the escape key."
 msgstr ""
 "。请花点时间阅读有关此版本的一些提示。如果速度太慢，请按键盘的右箭头跳到下一"
 "个提示。也可以按左箭头返回上一个提示。按Esc键停止动画。"
 
-#: src/gui/siril_intro.c:46
+#: src/gui/siril_intro.c:48
 msgid ""
 "The Processing menu has been reorganized by theme to streamline its "
 "structure and reduce its size. Many new processing tools have been developed "
@@ -22620,7 +22648,7 @@ msgstr ""
 "“图像处理”菜单已按类别重新组织为更清晰、更小巧的多个菜单。其中有许多新开发的"
 "处理工具。"
 
-#: src/gui/siril_intro.c:47
+#: src/gui/siril_intro.c:49
 msgid ""
 "A new menu, Tools, has been created to centralize Siril's tools, which were "
 "previously scattered throughout the interface. It now includes statistics, "
@@ -22630,13 +22658,13 @@ msgstr ""
 "有一个新的菜单“工具”，集中了以前分散在整个界面中的Siril工具，包括统计数据、"
 "FITS文件头、天体测量和测光工具，以及图像分析功能。"
 
-#: src/gui/siril_intro.c:48
+#: src/gui/siril_intro.c:50
 msgid ""
 "The Script menu has also evolved, now featuring both Python scripts and a "
 "script editor."
 msgstr "脚本菜单也有升级：现在有了Python脚本以及脚本编辑器。"
 
-#: src/gui/siril_intro.c:49
+#: src/gui/siril_intro.c:51
 msgid ""
 "The new script editor can be used to write both Siril and Python scripts. It "
 "offers syntax highlighting and many other useful features. Additionally, you "
@@ -22645,7 +22673,7 @@ msgstr ""
 "新的脚本编辑器可用于编写Siril命令脚本和Python脚本。编辑器提供语法高亮和许多其"
 "他有用的功能。此外，在编辑器界面中可以直接执行脚本。"
 
-#: src/gui/siril_intro.c:50
+#: src/gui/siril_intro.c:52
 msgid ""
 "The hamburger menu has been streamlined and now includes quick access to the "
 "documentation, preferences, keyboard shortcuts help, and the script tab in "
@@ -22654,7 +22682,7 @@ msgstr ""
 "三横菜单现已拆分为文件的快捷访问功能、首选项、键盘快捷键帮助以及偏好设置中的"
 "脚本选项卡，从而可以轻松添加新脚本。"
 
-#: src/gui/siril_intro.c:51
+#: src/gui/siril_intro.c:53
 msgid ""
 "Script management has been entirely revamped. You can now download new "
 "scripts directly from the preferences interface. These scripts are hosted by "
@@ -22663,7 +22691,7 @@ msgstr ""
 "脚本管理已全面更新。现可直接从偏好设置界面下载新脚本。这些脚本有的由Siril团队"
 "托管，有的由社区贡献。"
 
-#: src/gui/siril_intro.c:52
+#: src/gui/siril_intro.c:54
 msgid ""
 "The Registration, Plot and Stacking tabs have been redesigned for improved "
 "clarity and better organization. This release adds true Drizzle registration "
@@ -22672,7 +22700,7 @@ msgstr ""
 "重新设计了更清晰、更合理的“对齐”、“图表”和“叠加”选项卡。此版本新增了真正的"
 "Drizzle对齐和马赛克拼接。"
 
-#: src/gui/siril_intro.c:53
+#: src/gui/siril_intro.c:55
 msgid ""
 "This version of Siril includes a color management tool. A left-click on this "
 "button allows you to manage ICC profiles, while a right-click displays the "
@@ -22681,7 +22709,7 @@ msgstr ""
 "此版本的Siril包含一个色彩管理工具。左键单击此按钮可以管理ICC配置文件。右键单"
 "击则可以以软打样模式显示图像。"
 
-#: src/gui/siril_intro.c:54
+#: src/gui/siril_intro.c:56
 msgid ""
 "Right-clicking the annotations button now allows selection of the annotation "
 "catalogues to display, and support for IAU constellation names and outlines "
@@ -22690,7 +22718,7 @@ msgstr ""
 "右键单击标注按钮，可以选择要使用的星表，并且添加了对IAU星座名称和星座连线的支"
 "持。"
 
-#: src/gui/siril_intro.c:55
+#: src/gui/siril_intro.c:57
 msgid ""
 "A new intensity profiling tool has been added. This allows creating mono or "
 "RGB profiles of pixel values along a line in the image."
@@ -22698,7 +22726,7 @@ msgstr ""
 "添加了一个新的亮度分析工具。这允许沿着图像中的一条线段创建单色或RGB的像素值曲"
 "线。"
 
-#: src/gui/siril_intro.c:56
+#: src/gui/siril_intro.c:58
 msgid ""
 "All color management options are now centralized in the preferences. This "
 "allows for professional-level work with any mono or RGB ICC profile."
@@ -22706,7 +22734,7 @@ msgstr ""
 "所有色彩管理选项都集中到了偏好设置中。允许使用单色或RGB的ICC配置文件进行专业"
 "级别的工作。"
 
-#: src/gui/siril_intro.c:57
+#: src/gui/siril_intro.c:59
 msgid ""
 "For more precise control, such as customizing annotation colors or "
 "configuring mouse interactions, visit the User Interface tab in the "
@@ -22716,7 +22744,7 @@ msgstr ""
 "在偏好设置中的“用户界面”选项卡，可以配置更多细节，例如标注的颜色以及鼠标的交"
 "互行为。现在可以使用鼠标滚轮来快速浏览所有可用选项了。"
 
-#: src/gui/siril_intro.c:58
+#: src/gui/siril_intro.c:60
 msgid ""
 "Enjoy using the new Siril. You can restart this introduction at any moment "
 "in the Miscellaneous tab of the preferences."
@@ -24875,81 +24903,81 @@ msgstr "列表已保存至 %s\n"
 msgid "Failed to save list to %s\n"
 msgstr "将列表保存到%s时出错\n"
 
-#: src/io/siril_git.c:134
+#: src/io/siril_git.c:146
 msgid "libgit2: unable to parse some refish\n"
 msgstr "libgit2：无法解析一些 refish\n"
 
-#: src/io/siril_git.c:149
+#: src/io/siril_git.c:161
 msgid "Failed to find commit with given OID.\n"
 msgstr "无法找到具有给定 OID 的提交。\n"
 
-#: src/io/siril_git.c:228
+#: src/io/siril_git.c:240
 msgid ""
 "Error removing Git lock files. You may need to delete the local git "
 "repository and allow Siril to re-clone it.\n"
 msgstr ""
 "删除 Git 锁定文件时出错。可能需要删除本地 Git 仓库并允许 Siril 重新克隆它。\n"
 
-#: src/io/siril_git.c:245 src/io/siril_git.c:257 src/io/siril_git.c:269
+#: src/io/siril_git.c:257 src/io/siril_git.c:269 src/io/siril_git.c:281
 msgid ""
 "Error performing hard reset. You may need to delete the local git repository "
 "and allow Siril to re-clone it.\n"
 msgstr ""
 "执行硬重置时出错。您可能需要删除本地 git 存储库并允许 Siril 重新克隆它。\n"
 
-#: src/io/siril_git.c:294
+#: src/io/siril_git.c:306
 msgid ""
 "Unable to create anonymous remote for the repository. Check your "
 "connectivity and try again.\n"
 msgstr "无法为存储库创建匿名远程。检查您的连接并重试。\n"
 
-#: src/io/siril_git.c:300
+#: src/io/siril_git.c:312
 msgid ""
 "Error fetching remote. This may be a temporary error, check your "
 "connectivity and try again.\n"
 msgstr "获取远程时出错。这可能是暂时错误，请检查您的连接并重试。\n"
 
-#: src/io/siril_git.c:534
+#: src/io/siril_git.c:546
 #, c-format
 msgid "libgit2: repository is in unexpected state %d. Cleaning up...\n"
 msgstr "libgit2：存储库处于意外状态 %d。清理...\n"
 
-#: src/io/siril_git.c:538
+#: src/io/siril_git.c:550
 msgid "libgit2: repository failed to clean up properly. Cannot continue.\n"
 msgstr "libgit2：存储库未能正确清理。无法继续。\n"
 
-#: src/io/siril_git.c:625 src/io/siril_git.c:629
+#: src/io/siril_git.c:637 src/io/siril_git.c:641
 #, c-format
 msgid "Commit message: %s\n"
 msgstr "提交消息：%s\n"
 
-#: src/io/siril_git.c:687
+#: src/io/siril_git.c:699
 msgid "Attempting to clone from remote source...\n"
 msgstr "正在尝试从远程源克隆...\n"
 
-#: src/io/siril_git.c:693 src/io/siril_git.c:845
+#: src/io/siril_git.c:705 src/io/siril_git.c:861
 #, c-format
 msgid "Error cloning repository: %s\n"
 msgstr "克隆存储库时出错：%s\n"
 
-#: src/io/siril_git.c:698 src/io/siril_git.c:850
+#: src/io/siril_git.c:710 src/io/siril_git.c:866
 msgid "Repository cloned successfully!\n"
 msgstr "存储库克隆成功！\n"
 
-#: src/io/siril_git.c:701
+#: src/io/siril_git.c:714
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
 msgstr "Siril现为离线模式。不会克隆远程仓库。\n"
 
-#: src/io/siril_git.c:716 src/io/siril_git.c:861
+#: src/io/siril_git.c:730 src/io/siril_git.c:879
 msgid "Failed to lookup remote.\n"
 msgstr "无法查找远程。\n"
 
-#: src/io/siril_git.c:727 src/io/siril_git.c:872
+#: src/io/siril_git.c:741 src/io/siril_git.c:890
 msgid "Error: cannot identify local repository's configured remote.\n"
 msgstr "错误：无法识别本地存储库配置的远程存储库。\n"
 
-#: src/io/siril_git.c:735
+#: src/io/siril_git.c:749
 #, c-format
 msgid ""
 "Error: local siril-scripts repository folder is not configured with %s as "
@@ -24959,12 +24987,12 @@ msgstr ""
 "错误：本地 Siril-scripts 存储库文件夹未配置 %s 作为其远程。您应该删除文件夹 "
 "%s 并重新启动 Siril 以重新克隆正确的存储库。\n"
 
-#: src/io/siril_git.c:740 src/io/siril_git.c:885
+#: src/io/siril_git.c:754 src/io/siril_git.c:903
 msgid "Repository Error"
 msgstr "存储库错误"
 
-#: src/io/siril_git.c:757 src/io/siril_git.c:771 src/io/siril_git.c:902
-#: src/io/siril_git.c:916
+#: src/io/siril_git.c:771 src/io/siril_git.c:785 src/io/siril_git.c:920
+#: src/io/siril_git.c:934
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
@@ -24972,11 +25000,11 @@ msgstr ""
 "执行硬重置时出错。如果问题仍然存在，您可能需要删除本地 git 存储库并允许 "
 "Siril 重新克隆它。\n"
 
-#: src/io/siril_git.c:779
+#: src/io/siril_git.c:793
 msgid "Local scripts repository is up-to-date!\n"
 msgstr "本地脚本存储库是最新的！\n"
 
-#: src/io/siril_git.c:880
+#: src/io/siril_git.c:898
 #, c-format
 msgid ""
 "Error: local siril-spcc-database repository folder is not configured with %s "
@@ -24986,37 +25014,37 @@ msgstr ""
 "错误：本地 Siril-spcc-database 存储库文件夹未配置为 %s 作为其远程。您应该删除"
 "文件夹 %s 并重新启动 Siril 以重新克隆正确的存储库。\n"
 
-#: src/io/siril_git.c:924
+#: src/io/siril_git.c:942
 msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "本地 SPCC 数据库存储库是最新的！\n"
 
-#: src/io/siril_git.c:961
+#: src/io/siril_git.c:979
 #, c-format
 msgid "Error spawning thread to update scripts repository: %s\n"
 msgstr "生成更新脚本存储库的线程时出错：%s\n"
 
-#: src/io/siril_git.c:965
+#: src/io/siril_git.c:983
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "scripts...\n"
 msgstr "未启用在线脚本存储库。不获取或更新 Siril 脚本...\n"
 
-#: src/io/siril_git.c:975
+#: src/io/siril_git.c:993
 #, c-format
 msgid "Error spawning thread to update SPCC repository: %s\n"
 msgstr "生成更新SPCC仓库的线程时出错：%s\n"
 
-#: src/io/siril_git.c:979
+#: src/io/siril_git.c:997
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "spcc...\n"
 msgstr "未启用联机脚本存储库。不获取或更新siril spcc...\n"
 
-#: src/io/siril_git.c:994
+#: src/io/siril_git.c:1012
 msgid "Error: unable to open local scripts repository.\n"
 msgstr "错误：无法打开本地脚本存储库。\n"
 
-#: src/io/siril_git.c:1019
+#: src/io/siril_git.c:1037
 msgid "Error: unable to open local spcc-database repository.\n"
 msgstr "错误：无法打开本地 spcc 数据库存储库。\n"
 
@@ -26564,16 +26592,21 @@ msgid ""
 "Framing method \"cog\" requires all images to be of same size, aborting\n"
 msgstr "构图方式\"重心\"要求全部图像尺寸相同，异常中止\n"
 
-#: src/registration/applyreg.c:1190
+#: src/registration/applyreg.c:1186
+msgid ""
+"Framing method \"max\" cannot export to FITSEQ or SER format, aborting\n"
+msgstr ""
+
+#: src/registration/applyreg.c:1196
 msgid "Reference image is not included in the filtered list, aborting\n"
 msgstr "参考帧不在筛选后的列表中，异常中止\n"
 
-#: src/registration/applyreg.c:1191
+#: src/registration/applyreg.c:1197
 msgid ""
 "This is not compatible with framing mode \"current\", change reference image"
 msgstr "这与“当前”构图方式不兼容，请更改参考帧"
 
-#: src/registration/applyreg.c:1200
+#: src/registration/applyreg.c:1206
 #, c-format
 msgid ""
 "Reference image is not included in the filtered list, using image #%d "
@@ -26596,8 +26629,8 @@ msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
 msgstr "图像 # %5d - 赤经：%7.3f - 赤纬：%+7.3f - 旋转：%+6.1f\n"
 
 #: src/registration/astrometric.c:293
-#, c-format
-msgid "No image selected after computing transformations, aborting%s\n"
+#, fuzzy
+msgid "No image selected after computing transformations, aborting\n"
 msgstr "在执行转化后没有图像被选中，异常中止%s\n"
 
 #: src/registration/astrometric.c:316
@@ -27477,6 +27510,9 @@ msgstr "将要叠加的超采样序列"
 #: src/stacking/upscaling.c:148
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
+
+#~ msgid "Welcome to the newest version of Siril, "
+#~ msgstr "欢迎来到最新版本的Siril， "
 
 #~ msgid "Script Filename"
 #~ msgstr "脚本文件名"
