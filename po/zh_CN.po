@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-02 21:49+0200\n"
-"PO-Revision-Date: 2025-05-06 14:41+0000\n"
+"PO-Revision-Date: 2025-05-07 14:11+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -487,9 +487,8 @@ msgid "Clear"
 msgstr "清除"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-#, fuzzy
 msgid "Clear all current annotations from the user catalog."
-msgstr "清除所有标注。"
+msgstr "从用户星表中清除当前所有标注。"
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -6872,13 +6871,11 @@ msgid "Update default focal length and pixel size from the result"
 msgstr "根据结果更新默认焦距和像素尺寸"
 
 #: src/gui/uifiles/settings_window.ui:1603
-#, fuzzy
 msgid ""
 "When an astrometric solution is found, the computed focal length and input "
 "pixel size are stored in the settings as default values for images that "
 "don't have the corresponding metadata."
-msgstr ""
-"找到天体测量的解之后，计算出的焦距和输入像素尺寸将被设为默认值，用于没有相应"
+msgstr "找到天体测量的解之后，计算出的焦距和输入像素尺寸将被设为默认值，用于没有相应"
 "元数据的图像。"
 
 #: src/gui/uifiles/settings_window.ui:1623
@@ -7994,14 +7991,12 @@ msgstr ""
 "更改。"
 
 #: src/gui/uifiles/settings_window.ui:5162
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
 "(This can be used to make and save local changes to a script.)"
-msgstr ""
-"可用脚本的列表。选定的脚本将通过“脚本”菜单提供。双击某一行可查看脚本说明和代"
-"码。"
+msgstr "可用脚本列表。所选脚本将通过脚本菜单提供。双击一行可以在脚本编辑器中打开脚本"
+"。（可以对脚本进行局部修改并保存。）"
 
 #: src/gui/uifiles/settings_window.ui:5177
 msgid "Category"
@@ -9069,9 +9064,8 @@ msgid "Save current plot to png file"
 msgstr "保存当前图表为png文件"
 
 #: src/gui/uifiles/siril.ui:2689
-#, fuzzy
 msgid "Build a light curve in the ETD text format"
-msgstr "光变曲线（ETD 格式）"
+msgstr "以 ETD 文本格式构建光变曲线"
 
 #: src/gui/uifiles/siril.ui:2690
 msgid "Light Curve (ETD format)"
@@ -11820,7 +11814,6 @@ msgid "Blue Adjustment"
 msgstr "蓝色调整"
 
 #: src/gui/uifiles/unpurple_dialog.ui:158
-#, fuzzy
 msgid ""
 "Amount of blue channel adjustment set in the [0, 1] range.\n"
 "When this parameter is equal to 1, no reduction is applied.\n"
@@ -12605,9 +12598,8 @@ msgid "Computing astrometric registration...\n"
 msgstr "计算天体测量对齐...\n"
 
 #: src/algos/astrometry_solver.c:2263
-#, fuzzy
 msgid "Reference image was not platesolved, changing reference\n"
-msgstr "参考帧不在筛选后的列表中，异常中止\n"
+msgstr "参考帧未解析，更改参考帧\n"
 
 #: src/algos/background_extraction.c:300
 msgid ""
@@ -19969,9 +19961,8 @@ msgstr "序列的请求数据已被清除。"
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
 "the manually added objects will be deleted. This operation cannot be undone."
-msgstr ""
-"您将要清除您的 %s 用户目录。这意味着包含手动添加的天体的文件将被删除。此操作"
-"无法撤消。"
+msgstr "您将要清除您的 %s "
+"用户星表。这意味着包含手动添加的天体的文件将被删除。此操作无法撤消。"
 
 #: src/gui/callbacks.c:2227
 msgid "SOLAR SYSTEM"
@@ -22177,10 +22168,9 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr "对齐 %d 个图像于序列 %d"
 
 #: src/gui/registration.c:735
-#, fuzzy
 msgid ""
 "Max framing not allowed with FITSEQ or SER, change to regular FITS images"
-msgstr "fitseq 不允许最大化构图，更改为常规 FITS 图像"
+msgstr "FITSEQ 和 SER 都不允许最大化构图，改为常规 FITS 图像"
 
 #: src/gui/registration.c:746
 msgid "Pick object in two images"
@@ -25080,9 +25070,9 @@ msgid "Failed to set selection - no image loaded"
 msgstr "无法设置选区 - 未载入图像"
 
 #: src/io/siril_pythoncommands.c:750
-#, fuzzy, c-format
+#, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA\n"
-msgstr "GET_PIXELDATA_REGION收到了意外的载荷长度：%u\n"
+msgstr "GET_PIXELDATA收到了意外的载荷长度：%u\n"
 
 #: src/io/siril_pythoncommands.c:778 src/io/siril_pythoncommands.c:863
 msgid "Invalid selection"
@@ -26285,14 +26275,12 @@ msgid "Parameter symbols could not be parsed."
 msgstr "参数符号无法被解析。"
 
 #: src/pixelMath/pixel_math_runner.c:1121
-#, fuzzy
 msgid "Incorrect formula"
-msgstr "错误的载荷"
+msgstr "公式不正确"
 
 #: src/pixelMath/pixel_math_runner.c:1121
-#, fuzzy
 msgid "RGB $T cannot be used in this context."
-msgstr "命令不能在脚本中使用"
+msgstr "RGB $T 在此上下文中不可用。"
 
 #: src/pixelMath/pixel_math_runner.c:1134
 msgid "Images have different size"
@@ -26627,9 +26615,8 @@ msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
 msgstr "图像 # %5d - 赤经：%7.3f - 赤纬：%+7.3f - 旋转：%+6.1f\n"
 
 #: src/registration/astrometric.c:293
-#, fuzzy
 msgid "No image selected after computing transformations, aborting\n"
-msgstr "在执行转化后没有图像被选中，异常中止%s\n"
+msgstr "计算转换后没有选中图像，异常中止\n"
 
 #: src/registration/astrometric.c:316
 #, c-format

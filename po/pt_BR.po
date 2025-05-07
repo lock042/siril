@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-02 21:49+0200\n"
-"PO-Revision-Date: 2025-04-30 20:31+0000\n"
+"PO-Revision-Date: 2025-05-07 14:11+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -3394,11 +3394,11 @@ msgid ""
 "default and should only be enabled in the rare event that you see artefacts "
 "when denoising a colour image."
 msgstr ""
-"Suprime artefatos de cores em blocos que raramente aparecem em imagens "
-"coloridas. Esta opção trata cada canal separadamente e elimina artefatos, "
-"mas com alguma perda de velocidade. Na maioria das vezes, isso não é "
-"necessário, por isso está desativado por padrão e só deve ser ativado no "
-"raro caso de você observar artefatos ao remover ruído de uma imagem colorida."
+"Suprime artefatos coloridos em blocos que raramente podem aparecer em "
+"imagens coloridas. Esta opção trata cada canal separadamente e elimina "
+"artefatos ao custo de alguma velocidade. Na maioria das vezes, isso não é "
+"necessário, portanto, está desativado por padrão e só deve ser ativado no "
+"caso raro de você ver artefatos ao eliminar o ruído de uma imagem colorida."
 
 #: src/gui/uifiles/denoise_dialog.ui:182
 msgid "Color Denoising"
@@ -5029,23 +5029,23 @@ msgstr "Copiar seleção"
 
 #: src/gui/uifiles/keywords_dialog.ui:47
 msgid "Copy selected keywords to clipboard."
-msgstr ""
+msgstr "Copie as palavras-chave selecionadas para a área de transferência."
 
 #: src/gui/uifiles/keywords_dialog.ui:107
 msgid "Keyword"
-msgstr ""
+msgstr "Palavra chave"
 
 #: src/gui/uifiles/keywords_dialog.ui:126
 msgid "Value"
-msgstr ""
+msgstr "Valor"
 
 #: src/gui/uifiles/keywords_dialog.ui:144 src/gui/uifiles/spcc_details.ui:223
 msgid "Comment"
-msgstr ""
+msgstr "Comentário"
 
 #: src/gui/uifiles/keywords_dialog.ui:163
 msgid "Dtype"
-msgstr ""
+msgstr "Dtype"
 
 #: src/gui/uifiles/keywords_dialog.ui:177
 msgid "Protected"
@@ -5053,21 +5053,23 @@ msgstr "Protegido"
 
 #: src/gui/uifiles/keywords_dialog.ui:208
 msgid "Add a new keyword in the FITS header."
-msgstr ""
+msgstr "Adicione uma nova palavra-chave no cabeçalho FITS."
 
 #: src/gui/uifiles/keywords_dialog.ui:229
 msgid "Delete keyword in the FITS header."
-msgstr ""
+msgstr "Apague a palavra-chave no cabeçalho FITS."
 
 #: src/gui/uifiles/keywords_dialog.ui:250
 msgid ""
 "In <span foreground=\"salmon\">salmon</span>, these are protected keywords, "
 "which cannot be modified."
 msgstr ""
+"Em <span foreground=\"salmon\">salmon</span>, estas são palavras-chave "
+"protegidas, que não podem ser modificadas."
 
 #: src/gui/uifiles/keywords_dialog.ui:272
 msgid "Header Editor"
-msgstr ""
+msgstr "Editor de Cabeçalhos"
 
 #: src/gui/uifiles/keywords_dialog.ui:305
 msgid "Saved Header"
@@ -5083,7 +5085,7 @@ msgstr "Fechar o diálogo."
 
 #: src/gui/uifiles/linearmatch_dialog.ui:81
 msgid "Computes a linear function between a reference image and a target."
-msgstr ""
+msgstr "Calcula uma função linear entre uma imagem de referência e um objetivo."
 
 #: src/gui/uifiles/linearmatch_dialog.ui:115
 msgid "Reference: "
@@ -5092,6 +5094,7 @@ msgstr "Referência: "
 #: src/gui/uifiles/linearmatch_dialog.ui:127
 msgid "Choose the reference image. This image must have same dimensions."
 msgstr ""
+"Escolha a imagem de referência. Esta imagem deve ter as mesmas dimensões."
 
 #: src/gui/uifiles/linearmatch_dialog.ui:129
 msgid "Choose Reference Image"
@@ -5109,6 +5112,8 @@ msgid ""
 "The algorithm will ignore all reference pixels whose values are outside of "
 "the [low, high] range."
 msgstr ""
+"O algoritmo irá ignorar todos os pixels de referência cujos valores estejam "
+"fora do intervalo [baixo, alto]."
 
 #: src/gui/uifiles/linearmatch_dialog.ui:212
 msgid "Reject high"
@@ -5124,7 +5129,7 @@ msgstr "debayerização"
 
 #: src/gui/uifiles/livestacking_player.ui:98
 msgid "for now only detected in files and automatically enabled"
-msgstr ""
+msgstr "por enquanto detectado apenas em arquivos e ativado automaticamente"
 
 #: src/gui/uifiles/livestacking_player.ui:111
 msgid "shift-only registration"
@@ -5136,24 +5141,31 @@ msgid ""
 "unchecked for alt-az or heavily drifting mounts. This makes one image "
 "processing much faster."
 msgstr ""
+"Apenas mude as imagens em vez de usar a rotação no registro. Isso deve ser "
+"desmarcado para montagens alt-az ou com muita deriva. Isso torna o "
+"processamento de uma imagem muito mais rápido."
 
 #: src/gui/uifiles/livestacking_player.ui:126
 msgid "remove gradient"
-msgstr ""
+msgstr "remover gradiente"
 
 #: src/gui/uifiles/livestacking_player.ui:130
 msgid "Apply a linear background gradient removal on calibrated input frames."
 msgstr ""
+"Aplique uma remoção linear de gradiente de fundo em quadros de entrada "
+"calibrados."
 
 #: src/gui/uifiles/livestacking_player.ui:141
 msgid "use 32 bits"
-msgstr ""
+msgstr "usar 32 bits"
 
 #: src/gui/uifiles/livestacking_player.ui:145
 msgid ""
 "Use 32 bits for image processing. This is slower and generally useless in "
 "terms of quality for live stacking."
 msgstr ""
+"Use 32 bits para processamento de imagem. Isto é mais lento e geralmente "
+"inútil em termos de qualidade para empilhamento dinâmico."
 
 #: src/gui/uifiles/livestacking_player.ui:219
 msgid "waiting for input files"
@@ -6614,7 +6626,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:412
 #: src/gui/uifiles/settings_window.ui:425
 msgid "Select your camera's Bayer pattern."
-msgstr "Selecione o padrão Bayer da sua câmara."
+msgstr "Selecione o padrão Bayer da sua câmera."
 
 #: src/gui/uifiles/settings_window.ui:414
 msgid "Bayer/mosaic pattern: "
@@ -7109,14 +7121,13 @@ msgid "Update default focal length and pixel size from the result"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1603
-#, fuzzy
 msgid ""
 "When an astrometric solution is found, the computed focal length and input "
 "pixel size are stored in the settings as default values for images that "
 "don't have the corresponding metadata."
 msgstr ""
 "Salvar a distância focal e o tamanho do pixel como valores padrão nas "
-"configurações a serem usados para imagens que não contêm esses metadados"
+"configurações a serem usados para imagens que não contêm esses metadados."
 
 #: src/gui/uifiles/settings_window.ui:1623
 msgid "Sampling tolerance (%):"
