@@ -604,7 +604,7 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 			com.pref.icc.icc_path_monitor = g_strdup(gtk_file_chooser_get_filename(filechooser));
 		}
 		if (!com.pref.icc.icc_path_monitor || com.pref.icc.icc_path_monitor[0] == '\0') {
-			siril_log_color_message(_("Error: no filename specfied for custom monitor profile.\n"), "red");
+			siril_log_color_message(_("Error: no filename specified for custom monitor profile.\n"), "red");
 			no_file = TRUE;
 		} else {
 			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
@@ -653,7 +653,7 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 			com.pref.icc.icc_path_soft_proof = g_strdup(gtk_file_chooser_get_filename(filechooser));
 		}
 		if (!com.pref.icc.icc_path_soft_proof || com.pref.icc.icc_path_soft_proof[0] == '\0') {
-			siril_log_color_message(_("Error: no filename specfied for output device proofing profile.\n"), "red");
+			siril_log_color_message(_("Error: no filename specified for output device proofing profile.\n"), "red");
 			no_file = TRUE;
 		} else {
 			gui.icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc.icc_path_soft_proof, "r");

@@ -120,7 +120,7 @@ static sf_errors reject_star(psf_star *result, const star_finder_params *sf, sta
 		return SF_FWHM_TOO_LARGE; //crit 2
 	}
 	if (((result->rmse * sf->sigma / result->A) > 0.2) && (!(result->A > dynrange))) {
-		//  do not apply for saturated stars to keep them for alignement purposes
+		//  do not apply for saturated stars to keep them for alignment purposes
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE; //crit 3
 	}

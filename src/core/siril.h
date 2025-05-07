@@ -316,7 +316,7 @@ typedef enum {
 	DISTO_FILE,  // Distortion from given file
 	DISTO_MASTER, // Distortion from master files
 	DISTO_FILES, // Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
-	DISTO_FILE_COMET // special for cometary alignement, to be detected by apply reg. Enables to
+	DISTO_FILE_COMET // special for cometary alignment, to be detected by apply reg. Enables to
 } disto_source;
 
 // defined in src/io/pythonmodule.h

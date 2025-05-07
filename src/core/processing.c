@@ -351,7 +351,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	}
 
 	/* the finalize hook contains the sequence writer synchronization, it
-	 * should be called before outputing the logs */
+	 * should be called before outputting the logs */
 	if (have_seqwriter && args->finalize_hook && args->finalize_hook(args)) {
 		siril_log_message(_("Finalizing sequence processing failed.\n"));
 		abort = 1;

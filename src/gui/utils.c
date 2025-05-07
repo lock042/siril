@@ -405,7 +405,7 @@ static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title,
 		_("Cancel without making any changes"),
 		_("Clip pixel values to the range 0.0 - 1.0"),
 		_("Rescale pixel values to fit the range 0.0 - 1.0, clipping negative pixel values"),
-		_("Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to bring negatve pixel values into range")
+		_("Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to bring negative pixel values into range")
 	};
 	OverrangeResponse responses[] = {
 		RESPONSE_CANCEL, RESPONSE_CLIP, RESPONSE_RESCALE_CLIPNEG, RESPONSE_RESCALE_ALL
