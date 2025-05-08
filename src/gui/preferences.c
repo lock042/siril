@@ -247,7 +247,7 @@ static void update_scripts_preferences() {
 	com.pref.spcc.auto_spcc_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_sync_at_startup")));
 #else
 	com.pref.use_scripts_repository = FALSE;
-	com.pref.use_spcc_repository = FALSE;
+	com.pref.spcc.use_spcc_repository = FALSE;
 #endif
 }
 

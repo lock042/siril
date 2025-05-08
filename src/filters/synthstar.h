@@ -1,8 +1,8 @@
 #ifndef SRC_SYNTHSTAR_H_
 #define SRC_SYNTHSTAR_H_
 
-gpointer do_synthstar();
-gpointer fix_saturated_stars();
+gpointer do_synthstar(gpointer);
+gpointer fix_saturated_stars(gpointer);
 void makeairy(float *psf, const int size, const float lum, const float xoff, const float yoff, const float wavelength, const float aperture, const float focal_length, const float pixel_scale, const float obstruction);
 
 void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, float yoffset, float ratio, float angle);

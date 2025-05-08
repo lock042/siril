@@ -539,7 +539,7 @@ int save_fits_keywords(fits *fit) {
 	KeywordInfo *keys = initialize_keywords(fit, NULL);
 	KeywordInfo *keys_start = keys;
 	super_bool sbool;
-	gboolean bool;
+	gboolean boolean;
 	int status;
 	gchar *str;
 	gushort us;
@@ -623,8 +623,8 @@ int save_fits_keywords(fits *fit) {
 			status = 0;
 			sbool = *((super_bool*) keys->data);
 			if (sbool != BOOL_NOT_SET) {
-				bool = (sbool == BOOL_FALSE) ? FALSE : TRUE;
-				fits_update_key(fit->fptr, TLOGICAL, keys->key, &(bool), keys->comment, &status);
+				boolean = (sbool == BOOL_FALSE) ? FALSE : TRUE;
+				fits_update_key(fit->fptr, TLOGICAL, keys->key, &(boolean), keys->comment, &status);
 			}
 			break;
 		default:

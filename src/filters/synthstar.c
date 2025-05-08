@@ -344,13 +344,13 @@ int starcount(psf_star **stars) {
 	return i;
 }
 
-gpointer fix_saturated_stars() {
+gpointer fix_saturated_stars(gpointer) {
 	reprofile_saturated_stars(&gfit);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(0);
 }
 
-gpointer do_synthstar() {
+gpointer do_synthstar(gpointer) {
 	generate_synthstars(&gfit);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(0);

@@ -335,7 +335,7 @@ gboolean is_space_disk_available(const gchar *disk) {
  * and displays information on the control window.
  * @return always return TRUE
  */
-gboolean update_displayed_memory() {
+gboolean update_displayed_memory(gpointer) {
 	set_GUI_MEM(get_used_RAM_memory(), "labelmem");
 	set_GUI_DiskSpace(find_space(com.wd), "labelFreeSpace");
 	set_GUI_DiskSpace(find_space(com.pref.swap_dir), "free_mem_swap");
