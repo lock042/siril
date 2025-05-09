@@ -223,7 +223,8 @@ def ensure_installed(*packages: Union[str, List[str]],
         *packages (str or List[str]): Name(s) of the package(s) to ensure are installed.
         version_constraints (str or List[str], optional): Version constraint string(s)
             (e.g. ">=1.5", "==2.0"). Can be a single constraint or a list matching packages.
-        from_url (str, optional): URL to find packages at, passed as "-f URL" to pip.
+        from_url (str, optional): URL to find packages at, passed as "-f URL" to pip. Only
+            required for a very few corner cases: if you don't KNOW you need this, omit it.
 
     Returns:
         bool: True if all packages are successfully installed or already meet constraints.
@@ -318,7 +319,8 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
     Args:
         package_name (str): Name of the package to install.
         version_constraint (str, optional): Version constraint for installation.
-        from_url (str, optional): URL to find packages at, passed as "-f URL" to pip.
+        from_url (str, optional): URL to find packages at, passed as "-f URL" to pip. Only
+            required for a very few corner cases: if you don't KNOW you need this, omit it.
 
     Raises:
         subprocess.CalledProcessError: If pip installation fails.
