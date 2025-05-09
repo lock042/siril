@@ -819,8 +819,8 @@ int auto_update_gitscripts(gboolean sync) {
 		}
 	}
 
-	if (is_gui_ready())
-		refresh_scripts_menu_in_thread(GINT_TO_POINTER(0));
+//	if (is_gui_ready())
+//		refresh_scripts_menu_in_thread(GINT_TO_POINTER(0));
 	// Cleanup
 	cleanup:
 	git_remote_free(remote);

@@ -1534,10 +1534,10 @@ gboolean is_gui_ready() {
 }
 
 static gpointer initialize_scripts(gpointer user_data) {
-	initialize_script_menu(!com.pref.auto_script_update);
+	execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(com.pref.auto_script_update));
 	if (com.pref.auto_script_update && is_online()) {
 		auto_update_gitscripts(TRUE);
-		refresh_script_menu(TRUE);
+		execute_idle_and_wait_for_it(refresh_scripts_menu_in_thread, GINT_TO_POINTER(0));
 	}
 	return GINT_TO_POINTER(0);
 }

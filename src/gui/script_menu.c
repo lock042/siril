@@ -506,8 +506,7 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 
 		g_mutex_unlock(&script_mutex);
 
-		GThread *thread = g_thread_new("refresh_scripts", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
-		g_thread_unref(thread);
+		execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(1));
 	}
 
 	if (error) {
@@ -516,17 +515,17 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	return retval;
 }
 
-gpointer refresh_scripts_menu_in_thread(gpointer data) {
+gboolean refresh_scripts_menu_in_thread(gpointer data) {
 	gboolean verbose = (gboolean) GPOINTER_TO_INT(data);
 
 	g_mutex_lock(&script_mutex);
 	refresh_script_menu(verbose);
 	g_mutex_unlock(&script_mutex);
 
-	return GINT_TO_POINTER(0);
+	return FALSE;
 }
 
-gpointer initialize_script_menu_in_thread(gpointer data) {
+gboolean initialize_script_menu_in_thread(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
 
 	g_mutex_lock(&script_mutex);
@@ -535,7 +534,7 @@ gpointer initialize_script_menu_in_thread(gpointer data) {
 
 	g_mutex_unlock(&script_mutex);
 
-	return GINT_TO_POINTER(0);
+	return FALSE;
 }
 
 GSList *get_list_from_preferences_dialog() {
