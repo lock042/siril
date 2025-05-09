@@ -214,7 +214,8 @@ def download_with_progress(
     raise SirilError(f"Failed to download file from {url} after {max_retries} attempts")
 
 def ensure_installed(*packages: Union[str, List[str]],
-                     version_constraints: Optional[Union[str, List[str]]] = None) -> bool:
+                     version_constraints: Optional[Union[str, List[str]]] = None,
+                     from_url: Optional[str] = None) -> bool:
     """
     Ensures that the specified package(s) are installed and meet optional version constraints.
 
@@ -222,6 +223,7 @@ def ensure_installed(*packages: Union[str, List[str]],
         *packages (str or List[str]): Name(s) of the package(s) to ensure are installed.
         version_constraints (str or List[str], optional): Version constraint string(s)
             (e.g. ">=1.5", "==2.0"). Can be a single constraint or a list matching packages.
+        from_url (str, optional): URL to find packages at, passed as "-f URL" to pip.
 
     Returns:
         bool: True if all packages are successfully installed or already meet constraints.
@@ -260,7 +262,7 @@ def ensure_installed(*packages: Union[str, List[str]],
                 continue
 
             # Attempt installation
-            _install_package(package, constraint)
+            _install_package(package, constraint, from_url)
 
         except Exception as e:
             all_installed = False
@@ -309,13 +311,14 @@ def _stream_output(process):
     for line in io.TextIOWrapper(process.stdout, encoding='utf-8', errors='replace'):
         print(line.rstrip())
 
-def _install_package(package_name: str, version_constraint: Optional[str] = None):
+def _install_package(package_name: str, version_constraint: Optional[str] = None, from_url: Optional[str] = None):
     """
     Install a package with optional version constraint, streaming pip output to stdout.
 
     Args:
         package_name (str): Name of the package to install.
         version_constraint (str, optional): Version constraint for installation.
+        from_url (str, optional): URL to find packages at, passed as "-f URL" to pip.
 
     Raises:
         subprocess.CalledProcessError: If pip installation fails.
@@ -326,9 +329,19 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
     install_target = f"{package_name}{version_constraint}" if version_constraint else package_name
 
     try:
+        # Build pip command
+        pip_command = [sys.executable, "-m", "pip", "install"]
+
+        # Add find-links option if from_url is provided
+        if from_url:
+            pip_command.extend(["-f", from_url])
+
+        # Add the package to install
+        pip_command.append(install_target)
+
         # Start pip install process with pipe for stdout
         with subprocess.Popen(
-            [sys.executable, "-m", "pip", "install", install_target],
+            pip_command,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             bufsize=-1,
