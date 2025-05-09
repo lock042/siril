@@ -8,10 +8,15 @@ Utility module for Siril Python interface providing helper functions for file op
 package management, and standard I/O control to support Siril's scripting capabilities.
 """
 
+
+
+
 import os
 import sys
 import io
 import time
+import json
+import platform
 import threading
 import subprocess
 from importlib import metadata, util
@@ -469,3 +474,328 @@ class SuppressedStderr:
         os.close(self.original_stderr_fd)
         sys.stderr = self.original_stderr  # Restore Python stderr
         self.devnull.close()
+
+class ONNXRuntimeInstaller:
+    """
+    A class to handle detection and installation of the appropriate ONNX Runtime
+    package based on the system hardware and configuration.
+
+    Example usage (this should be used instead of
+    ``sirilpy.ensure_installed("onnxruntime")`` to install the correct package for
+    the user's system.)
+
+    .. code-block:: python
+
+        installer = ONNXRuntimeInstaller()
+        installer.install_appropriate_onnxruntime()
+
+
+    """
+
+    def __init__(self):
+        """Initialize the ONNXRuntimeInstaller."""
+        self.system = platform.system().lower()
+
+    def install_appropriate_onnxruntime(self):
+        """
+        Detect system configuration and install the appropriate ONNX Runtime package.
+
+        Returns:
+            bool: True if installation was successful or already installed, False otherwise.
+        """
+        # First check if any onnxruntime is already installed
+        is_installed, package_name = self.check_onnxruntime_installed()
+
+        if is_installed:
+            print(f"ONNX Runtime is already installed: {package_name}")
+            return True
+
+        # If not installed, get recommended package
+        onnxruntime_pkg, url = self.get_onnxruntime_package()
+
+        # Check if the package exists
+        if not self._check_onnxruntime_availability(onnxruntime_pkg):
+            print(f"Package {onnxruntime_pkg} not found. Falling back to default onnxruntime.")
+            onnxruntime_pkg = "onnxruntime"
+
+        # Install the package
+        try:
+            self._ensure_installed(onnxruntime_pkg, from_url=url)
+        except Exception as e:
+            print(f"Failed to install {onnxruntime_pkg}: {str(e)}")
+            print("Falling back to default onnxruntime package.")
+            try:
+                self._ensure_installed("onnxruntime")
+            except Exception as err:
+                print(f"Failed to install default onnxruntime: {str(err)}")
+                return False
+        return True
+
+    def check_onnxruntime_installed(self):
+        """
+        Check if any onnxruntime package is already installed and usable.
+
+        Returns:
+            tuple: (is_installed, package_name) where package_name could be
+                  'onnxruntime', 'onnxruntime-gpu', 'onnxruntime-silicon', etc.
+        """
+        try:
+            # Try importing onnxruntime - if this fails, the package is not usable
+            import onnxruntime
+
+            # If we get here, some version of onnxruntime is installed and working
+            package_name = "onnxruntime"  # Default assumption
+
+            # Check provider information to determine specific package variant
+            providers = onnxruntime.get_available_providers()
+            print(f"Detected ONNX Runtime with providers: {providers}")
+
+            # Check for specific provider patterns
+            if any(p for p in providers if "CUDA" in p or "GPU" in p):
+                package_name = "onnxruntime-gpu"
+            elif any(p for p in providers if "DirectML" in p):
+                package_name = "onnxruntime-directml"
+            elif any(p for p in providers if "ROCm" in p):
+                package_name = "onnxruntime-rocm"
+            elif any(p for p in providers if "CoreML" in p) and self.system == "darwin":
+                # Check for Apple Silicon (M1/M2/etc.)
+                if platform.machine().lower() in ["arm64", "aarch64"]:
+                    package_name = "onnxruntime-silicon"
+            elif any(p for p in providers if "OpenVINO" in p or "DML" in p):
+                package_name = "onnxruntime-intel"
+
+            return True, package_name
+        except ImportError:
+            # If import fails, package is not usable regardless of pip list
+            return False, None
+        except Exception as e:
+            print(f"Error checking for installed onnxruntime: {e}")
+            return False, None
+
+    def get_onnxruntime_package(self):
+        """
+        Determine the appropriate ONNX Runtime package based on system and available hardware.
+
+        Returns:
+            tuple: (package_name, url) where url is None except for special cases like ROCm
+        """
+        url = None
+        onnxruntime_pkg = "onnxruntime"
+
+        if self.system == "windows":
+            if self._detect_nvidia_gpu():
+                onnxruntime_pkg = "onnxruntime-gpu"
+            else:
+                # DirectML provides hardware acceleration for various GPUs on Windows
+                onnxruntime_pkg = "onnxruntime-directml"
+
+        elif self.system == "linux":
+            if self._detect_nvidia_gpu():
+                onnxruntime_pkg = "onnxruntime-gpu"
+            elif self._detect_rocm_support() and self._detect_amd_gpu():
+                # ROCm support for AMD GPUs on Linux
+                onnxruntime_pkg = "onnxruntime-rocm"
+                url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/"
+            elif self._detect_intel_gpu():
+                # Check for OneAPI/Level Zero for Intel GPUs
+                try:
+                    subprocess.check_output(["clinfo"], stderr=subprocess.DEVNULL, text=True)
+                    output = subprocess.check_output(["clinfo"], stderr=subprocess.DEVNULL, text=True)
+                    if "Intel" in output and ("Level-Zero" in output or "NEO" in output):
+                        onnxruntime_pkg = "onnxruntime-intel"
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+
+        elif self.system == "darwin":  # macOS
+            if self._detect_apple_silicon():
+                # For Apple Silicon (M1/M2/etc.)
+                onnxruntime_pkg = "onnxruntime-silicon"
+            else:
+                # For Intel-based Macs
+                if self._detect_nvidia_gpu():
+                    # Older Macs might have NVIDIA GPUs
+                    onnxruntime_pkg = "onnxruntime-gpu"
+                else:
+                    # Standard package for Intel Macs will use CPU or Metal where available
+                    onnxruntime_pkg = "onnxruntime"
+
+        return onnxruntime_pkg, url
+
+    def _detect_nvidia_gpu(self):
+        """
+        Detect if NVIDIA GPU is available.
+
+        Returns:
+            bool: True if NVIDIA GPU is detected, False otherwise.
+        """
+        try:
+            if self.system == "windows":
+                # Windows detection using PowerShell
+                output = subprocess.check_output(
+                    ["powershell", "-Command", "Get-WmiObject -Class Win32_VideoController"],
+                    text=True
+                )
+                return "NVIDIA" in output
+            # Linux and macOS detection using lspci or similar
+            if self.system == "linux":
+                try:
+                    output = subprocess.check_output(["nvidia-smi"], stderr=subprocess.DEVNULL, text=True)
+                    return True
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+
+                try:
+                    output = subprocess.check_output(["lspci"], text=True)
+                    return "NVIDIA" in output
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    return False
+            elif self.system == "darwin":
+                # For macOS, check system_profiler
+                output = subprocess.check_output(["system_profiler", "SPDisplaysDataType"], text=True)
+                return "NVIDIA" in output
+        except Exception:
+            pass
+        return False
+
+    def _detect_amd_gpu(self):
+        """
+        Detect if AMD GPU is available.
+
+        Returns:
+            bool: True if AMD GPU is detected, False otherwise.
+        """
+        try:
+            if self.system == "windows":
+                output = subprocess.check_output(
+                    ["powershell", "-Command", "Get-WmiObject -Class Win32_VideoController"],
+                    text=True
+                )
+                return any(gpu in output for gpu in ["AMD", "ATI", "Radeon"])
+            if self.system == "linux":
+                # Try rocm-smi first
+                try:
+                    output = subprocess.check_output(["rocm-smi"], stderr=subprocess.DEVNULL, text=True)
+                    return True
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+
+                # Fallback to lspci
+                try:
+                    output = subprocess.check_output(["lspci"], text=True)
+                    return any(gpu in output for gpu in ["AMD", "ATI", "Radeon"])
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    return False
+            elif self.system == "darwin":
+                output = subprocess.check_output(["system_profiler", "SPDisplaysDataType"], text=True)
+                return any(gpu in output for gpu in ["AMD", "ATI", "Radeon"])
+        except Exception:
+            pass
+        return False
+
+    def _detect_intel_gpu(self):
+        """
+        Detect if Intel GPU is available.
+
+        Returns:
+            bool: True if Intel GPU is detected, False otherwise.
+        """
+        try:
+            if self.system == "windows":
+                output = subprocess.check_output(
+                    ["powershell", "-Command", "Get-WmiObject -Class Win32_VideoController"],
+                    text=True
+                )
+                return "Intel" in output and any(gpu in output.lower() for gpu in ["graphics", "gpu", "iris", "uhd", "hd graphics"])
+            if self.system == "linux":
+                try:
+                    output = subprocess.check_output(["lspci"], text=True)
+                    return "Intel" in output and any(gpu in output.lower() for gpu in ["graphics", "gpu", "iris", "uhd", "hd graphics"])
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    return False
+            elif self.system == "darwin":
+                output = subprocess.check_output(["system_profiler", "SPDisplaysDataType"], text=True)
+                return "Intel" in output and any(gpu in output.lower() for gpu in ["graphics", "gpu", "iris", "uhd", "hd graphics"])
+        except Exception:
+            pass
+        return False
+
+    def _detect_rocm_support(self):
+        """
+        Check if ROCm is installed and supported.
+
+        Returns:
+            bool: True if ROCm is supported, False otherwise.
+        """
+        try:
+            if self.system == "linux":
+                try:
+                    subprocess.check_output(["rocm-smi"], stderr=subprocess.DEVNULL)
+                    return True
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+
+                # Check for ROCm directory
+                return os.path.exists("/opt/rocm")
+        except Exception:
+            pass
+        return False
+
+    def _detect_apple_silicon(self):
+        """
+        Detect if running on Apple Silicon (ARM).
+
+        Returns:
+            bool: True if Apple Silicon is detected, False otherwise.
+        """
+        if self.system == "darwin":
+            return platform.machine().lower() in ["arm64", "aarch64"]
+        return False
+
+    def _check_onnxruntime_availability(self, package_name):
+        """
+        Check if the specified ONNX Runtime package is available on PyPI.
+
+        Args:
+            package_name (str): Package name to check
+
+        Returns:
+            bool: True if the package is available, False otherwise.
+        """
+        try:
+            output = subprocess.check_output(
+                [sys.executable, "-m", "pip", "index", "versions", package_name],
+                stderr=subprocess.DEVNULL,
+                text=True
+            )
+            return "No matching distribution found" not in output
+        except subprocess.SubprocessError:
+            # If the command fails, check directly from PyPI
+            try:
+                url = f"https://pypi.org/pypi/{package_name}/json"
+                response = requests.get(url)
+                return response.status_code == 200
+            except Exception:
+                return False
+
+    def _ensure_installed(self, package_name, from_url=None):
+        """
+        Ensure the specified package is installed.
+
+        Args:
+            package_name (str): The package to install
+            from_url (str, optional): URL to install from, if applicable
+
+        Returns:
+            bool: True if installation was successful, raises exception otherwise
+        """
+        try:
+            install_cmd = [sys.executable, "-m", "pip", "install", package_name]
+            if from_url:
+                install_cmd.append(f"--index-url={from_url}")
+
+            print(f"Installing {package_name}...")
+            subprocess.check_call(install_cmd)
+            print(f"Successfully installed {package_name}")
+            return True
+        except subprocess.SubprocessError as e:
+            raise SirilError(f'Failed to install {package_name}: {str(e)}') from e
