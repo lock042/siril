@@ -186,6 +186,7 @@ class SirilInterface:
         any other "at exit" methods may be added here as required.
         """
         try:
+            self._release_thread()
             self.disconnect()
         except Exception:
             print("Warning: failed to clean up python module state")

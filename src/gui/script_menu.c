@@ -252,9 +252,7 @@ static gint compare_basenames(gconstpointer a, gconstpointer b) {
 
 int initialize_script_menu(gboolean verbose) {
 	GSList *list, *script_paths, *s;
-#ifdef HAVE_LIBGIT2
 	GList *ss;
-#endif
 
 	if (!menuscript)
 		menuscript = lookup_widget("header_scripts_button");
@@ -368,12 +366,6 @@ int initialize_script_menu(gboolean verbose) {
 	g_free(previous_directory_ssf);
 	g_free(previous_directory_py);
 
-	#ifdef HAVE_LIBGIT2
-	// Wait for git repository update to complete during startup
-	if (com.update_scripts_thread && !is_scripts_repo_cloned()) {
-		g_thread_join(com.update_scripts_thread);
-		com.update_scripts_thread = NULL;
-	}
 	// Add scripts from the selections made in preferences
 	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
 		com.pref.selected_scripts = g_list_sort(com.pref.selected_scripts, compare_basenames);
@@ -386,13 +378,17 @@ int initialize_script_menu(gboolean verbose) {
 				g_free(full_path);
 				continue;
 			}
-
-			gboolean included = FALSE;
-			GList *iterator;
-			for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
-				if (g_strrstr((gchar*) ss->data, (gchar*) iterator->data)) {
-					included = TRUE;
-					break;
+			// The first time this is run, we aren't rigorous about removing scripts
+			// When it is run again after updating the repository, we check that scripts
+			// haven't been removed.
+			gboolean included = !gui.repo_scripts;
+			if (!included) {
+				GList *iterator;
+				for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
+					if (g_strrstr((gchar*) ss->data, (gchar*) iterator->data)) {
+						included = TRUE;
+						break;
+					}
 				}
 			}
 			if (included) {
@@ -471,7 +467,6 @@ int initialize_script_menu(gboolean verbose) {
 		}
 	}
 
-	#endif
 	return 0;
 }
 

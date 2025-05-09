@@ -970,18 +970,10 @@ static gpointer thread_func(gpointer user_data) {
 
 void async_update_git_repositories() {
 	GError *error = NULL;
-	if (com.pref.use_scripts_repository) {
-		ThreadData *data = g_new(ThreadData, 1);
-		data->func = auto_update_gitscripts;
-		data->sync = com.pref.auto_script_update;
-		com.update_scripts_thread = g_thread_try_new("update_thread", thread_func, data, &error);
-		if (error) {
-			siril_log_color_message(_("Error spawning thread to update scripts repository: %s\n"), "red", error->message);
-			g_error_free(error);
-		}
-	} else {
-		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
-	}
+
+	// Currently this function only updates the SPCC repository, as there is
+	// special handling required for the scripts repository.
+
 	if (com.pref.spcc.use_spcc_repository) {
 		ThreadData *data = g_new(ThreadData, 1);
 		data->func = auto_update_gitspcc;

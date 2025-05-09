@@ -31,6 +31,7 @@
 #include "core/command_line_processor.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
+#include "core/siril_networking.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "filters/graxpert.h"
@@ -49,6 +50,7 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/siril_pythonmodule.h"
+#include "io/siril_git.h"
 #include "annotations_pref.h"
 #include "compositing/align_rgb.h"
 #include "preferences.h"
@@ -1531,6 +1533,15 @@ gboolean is_gui_ready() {
 	return gui_ready;
 }
 
+static gpointer initialize_scripts(gpointer user_data) {
+	initialize_script_menu(!com.pref.auto_script_update);
+	if (com.pref.auto_script_update && is_online()) {
+		auto_update_gitscripts(TRUE);
+		refresh_script_menu(TRUE);
+	}
+	return GINT_TO_POINTER(0);
+}
+
 void initialize_all_GUI(gchar *supported_files) {
 	/* pre-check the Gaia archive status */
 	check_gaia_archive_status();
@@ -1574,8 +1585,15 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);
-	GThread *thread = g_thread_new("initialize_script_menu", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
-	g_thread_unref(thread);
+	// GThread *thread = g_thread_new("initialize_script_menu", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+	g_thread_unref(g_thread_new("initialize_scripts", initialize_scripts, GINT_TO_POINTER(1)));
+
+	/* update git repositories */
+	if (is_online()) {
+		async_update_git_repositories();
+	} else {
+		siril_log_message(_("Siril started in offline mode. Will not attempt to update siril-scripts or siril-spcc-database...\n"));
+	}
 
 	/* initialize command processor */
 	init_command();
@@ -1669,14 +1687,6 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* every 0.5sec update memory display */
 	g_timeout_add(500, update_displayed_memory, NULL);
-
-#ifndef HAVE_LIBCURL
-	// SPCC is not available if compiled without networking
-	gtk_widget_set_visible(lookup_widget("proc_spcc"), FALSE);
-	// Remove it from the RGB composition color calibration methods list too
-	gtk_combo_box_text_remove(GTK_COMBO_BOX_TEXT(lookup_widget("rgbcomp_cc_method")), 2);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("rgbcomp_cc_method")), 1);
-#endif
 
 	/* now that everything is loaded we can connect these signals
 	 * Doing it in the glade file is a bad idea because they are called too many times during loading */

@@ -379,16 +379,6 @@ static void siril_app_activate(GApplication *application) {
 	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
 
-#ifdef HAVE_LIBGIT2
-	if (is_online()) {
-		async_update_git_repositories();
-	} else {
-		siril_log_message(_("Siril started in offline mode. Will not attempt to update siril-scripts or siril-spcc-database...\n"));
-	}
-#else
-	siril_log_message(_("Siril was compiled without libgit2 support. Remote repositories cannot be automatically fetched...\n"));
-#endif
-
 	if (com.headless) {
 		if (main_option_script) {
 			GInputStream *input_stream = NULL;
