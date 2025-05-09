@@ -162,7 +162,9 @@ static void state_cell_edited(GtkCellRendererText *renderer, const gchar *path, 
 	}
 }
 
-static gboolean fill_mouse_actions_list_idle(gpointer) {
+static gboolean fill_mouse_actions_list_idle(gpointer data) {
+	// Remove unused argument warnings
+	(void) data;
 	// Check if there is already a GtkTreeView child of the scrollable window
 	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("mouse_treeview_scrolled_window"));
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
@@ -436,7 +438,9 @@ static void scroll_state_cell_edited(GtkCellRendererText *renderer, const gchar 
 	}
 }
 
-static gboolean fill_scroll_actions_list_idle(gpointer) {
+static gboolean fill_scroll_actions_list_idle(gpointer data) {
+	// Remove unused argument warnings
+	(void) data;
 	// Check if there is already a GtkTreeView child of the scrollable window
 	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("scroll_treeview_scrolled_window"));
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));

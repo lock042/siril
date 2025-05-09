@@ -430,7 +430,9 @@ int single_image_is_loaded() {
 /**************** updating the single image *******************/
 
 /* generic idle function for end of operation on gfit */
-gboolean end_gfit_operation(gpointer) {
+gboolean end_gfit_operation(gpointer data) {
+	// Remove unused argument warnings
+	(void) data;
 	// this function should not contain anything required by the execution
 	// of the operation because it won't be run in headless
 
