@@ -446,7 +446,7 @@ void validate_custom_profiles() {
 			com.icc.mono_standard = cmsOpenProfileFromFile(com.pref.icc.custom_icc_gray, "r");
 			if (!com.icc.mono_standard) {
 				com.icc.mono_standard = gray_srgbtrc();
-				siril_log_color_message(_("Error opening matched grayscale working profile. Profile set to Gray with srGB tone response curve.\n"), "red");
+				siril_log_color_message(_("Error opening matched grayscale working profile. Profile set to Gray with sRGB tone response curve.\n"), "red");
 			}
 		} else {
 			com.icc.mono_standard = gray_srgbtrc();
