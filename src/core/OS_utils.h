@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 gboolean is_space_disk_available(const gchar *disk);
-gboolean update_displayed_memory(gpointer);
+gboolean update_displayed_memory(gpointer data);
 int test_available_space(gint64 req_size);
 
 guint64 get_available_memory();
