@@ -15,7 +15,6 @@ import os
 import sys
 import io
 import time
-import json
 import platform
 import threading
 import subprocess
@@ -238,6 +237,7 @@ def ensure_installed(*packages: Union[str, List[str]],
         SirilError: If package installation fails,
         ValueError: If a different number of constraints is provided to the number
                     of packages to be installed.
+        TimeoutError: If pip fails with an apparent timeout.
     """
     # Normalize inputs to lists
     if isinstance(packages[0], list):
@@ -269,6 +269,11 @@ def ensure_installed(*packages: Union[str, List[str]],
 
             # Attempt installation
             _install_package(package, constraint, from_url)
+
+        except TimeoutError as e:
+            all_installed = False
+            print(f"Timeout error processing {package}: {e}")
+            raise
 
         except Exception as e:
             all_installed = False
@@ -329,6 +334,7 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
 
     Raises:
         subprocess.CalledProcessError: If pip installation fails.
+        TimeoutError: if pip appears to have encountered a TimeOutError internally
     """
     print(f"Installing {package_name}. This may take a few seconds...")
 
@@ -367,8 +373,10 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
             else:
                 raise subprocess.CalledProcessError(return_code, process.args)
 
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         print(f"Failed to install {install_target}")
+        if "timed out" in e.stderr.lower():
+            raise TimeoutError(f"Likely timeout error in pip: {e}") from e
         raise
 
 def check_module_version(requires=None):
@@ -486,8 +494,8 @@ class ONNXRuntimeInstaller:
 
     .. code-block:: python
 
-        installer = ONNXRuntimeInstaller()
-        installer.install_appropriate_onnxruntime()
+        installer = sirilpy.ONNXRuntimeInstaller()
+        installer.install_onnxruntime()
 
 
     """
@@ -496,12 +504,16 @@ class ONNXRuntimeInstaller:
         """Initialize the ONNXRuntimeInstaller."""
         self.system = platform.system().lower()
 
-    def install_appropriate_onnxruntime(self):
+    def install_onnxruntime(self):
         """
         Detect system configuration and install the appropriate ONNX Runtime package.
 
         Returns:
             bool: True if installation was successful or already installed, False otherwise.
+
+        Raises:
+            TimooutError: if a TimeoutError occurs in ensure_installed() - this avoids falling
+                        back to the CPU-only package purely because of network issues
         """
         # First check if any onnxruntime is already installed
         is_installed, package_name = self.check_onnxruntime_installed()
@@ -520,12 +532,16 @@ class ONNXRuntimeInstaller:
 
         # Install the package
         try:
-            self._ensure_installed(onnxruntime_pkg, from_url=url)
+            ensure_installed(onnxruntime_pkg, from_url=url)
+        except TimeoutError as e:
+            print(f"Failed to install {onnxruntime_pkg}: timeout error {str(e)}")
+            raise TimeoutError("Error: timeout in install_onnxruntime()") from e
+
         except Exception as e:
             print(f"Failed to install {onnxruntime_pkg}: {str(e)}")
             print("Falling back to default onnxruntime package.")
             try:
-                self._ensure_installed("onnxruntime")
+                ensure_installed("onnxruntime")
             except Exception as err:
                 print(f"Failed to install default onnxruntime: {str(err)}")
                 return False
@@ -776,26 +792,3 @@ class ONNXRuntimeInstaller:
                 return response.status_code == 200
             except Exception:
                 return False
-
-    def _ensure_installed(self, package_name, from_url=None):
-        """
-        Ensure the specified package is installed.
-
-        Args:
-            package_name (str): The package to install
-            from_url (str, optional): URL to install from, if applicable
-
-        Returns:
-            bool: True if installation was successful, raises exception otherwise
-        """
-        try:
-            install_cmd = [sys.executable, "-m", "pip", "install", package_name]
-            if from_url:
-                install_cmd.append(f"--index-url={from_url}")
-
-            print(f"Installing {package_name}...")
-            subprocess.check_call(install_cmd)
-            print(f"Successfully installed {package_name}")
-            return True
-        except subprocess.SubprocessError as e:
-            raise SirilError(f'Failed to install {package_name}: {str(e)}') from e
