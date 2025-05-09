@@ -686,6 +686,8 @@ int auto_update_gitscripts(gboolean sync) {
 
 	// Clone options
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
+	// Set up fetch options to create a shallow clone with depth=1, for speed
+	clone_opts.fetch_opts.depth = 1;
 
 	git_repository *repo = NULL;
 
@@ -819,8 +821,6 @@ int auto_update_gitscripts(gboolean sync) {
 		}
 	}
 
-//	if (is_gui_ready())
-//		refresh_scripts_menu_in_thread(GINT_TO_POINTER(0));
 	// Cleanup
 	cleanup:
 	git_remote_free(remote);
@@ -843,6 +843,8 @@ int auto_update_gitspcc(gboolean sync) {
 
 	// Clone options
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
+	// Set up fetch options to create a shallow clone with depth=1, for speed
+	clone_opts.fetch_opts.depth = 1;
 
 	git_repository *repo = NULL;
 	git_remote *remote = NULL;
