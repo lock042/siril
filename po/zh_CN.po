@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-08 18:57+0200\n"
-"PO-Revision-Date: 2025-05-07 14:11+0000\n"
+"PO-Revision-Date: 2025-05-09 13:30+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -2228,7 +2228,7 @@ msgstr "恢复 ICC"
 
 #: src/gui/uifiles/ccm_dialog.ui:32
 msgid "Reactivate ICC profile previously disabled by applying a CCM"
-msgstr "通过应用 CCM 重新激活之前禁用的 ICC 配置文件"
+msgstr "通过应用 CCM 重新激活之前禁用的 ICC 色彩特性文件"
 
 #: src/gui/uifiles/ccm_dialog.ui:120 src/gui/uifiles/ccm_dialog.ui:176
 #: src/gui/uifiles/ccm_dialog.ui:232
@@ -4176,7 +4176,7 @@ msgstr "3"
 msgid ""
 "Toggles between stellar and object deconvolution modes. If this item is "
 "unsensitive out, your version of GraXpert is not compatible."
-msgstr "切换反卷积模式：深空或盘面。如果GraXpert的版本不合适，则此设置无效。"
+msgstr "切换反卷积模式：星点或深空天体。如果GraXpert的版本不合适，则此设置无效。"
 
 #: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:375
 msgid "Objects"
@@ -4238,6 +4238,10 @@ msgid ""
 "GPUsupport but see GraXpert errors, disable it again and report the issue "
 "upstream to GraXpert."
 msgstr ""
+"配置GraXpert以使用GPU进行AI推理（如果可用）。注意：若GPU支持不可用，GraXpert"
+"应该自动改用CPU，但可能会失败。该选项默认关闭，且是持久化的。因此如果您的GPU"
+"不受支持，您可以关闭此选项然后忘掉它。如果您启用了GPU支持，但GraXpert出错，请"
+"禁用它，并向GraXpert上游报告问题。"
 
 #: src/gui/uifiles/graxpert.ui:991
 msgid "AI batch size "
@@ -4449,7 +4453,7 @@ msgstr "图表"
 msgid ""
 "Plot the current ICC profile in a 1931 chromatcity diagram, alongside sRGB "
 "for reference"
-msgstr "在 1931 年色度图中绘制当前 ICC 配置文件，并附上 sRGB 以供参考"
+msgstr "在 1931 年色度图中绘制当前 ICC 色彩特性文件，并附上 sRGB 以供参考"
 
 #: src/gui/uifiles/icc_dialog.ui:80
 msgid "Export"
@@ -4459,9 +4463,8 @@ msgstr "导出"
 msgid ""
 "Export the profile currently assigned to the image to the working directory. "
 "It will be saved with the filename {imagename}.icc"
-msgstr ""
-"将当前分配给图像的ICC配置文件导出到工作目录。它将以文件名 {imagename}.icc 保"
-"存"
+msgstr "将当前分配给图像的ICC色彩特性文件导出到工作目录。它将以文件名 {imagename}."
+"icc 保存"
 
 #: src/gui/uifiles/icc_dialog.ui:95 src/gui/uifiles/siril.ui:3747
 msgid "Remove"
@@ -4469,7 +4472,7 @@ msgstr "移除"
 
 #: src/gui/uifiles/icc_dialog.ui:99
 msgid "Remove the ICC profile from the image and stop color managing it"
-msgstr "从图像中删除 ICC 配置文件并停止对其进行色彩管理"
+msgstr "从图像中删除 ICC 色彩特性文件并停止对其进行色彩管理"
 
 #: src/gui/uifiles/icc_dialog.ui:110 src/core/icc_profile.c:1285
 msgid "Assign"
@@ -4480,9 +4483,8 @@ msgid ""
 "Assigns the selected ICC profile to the current image without performing any "
 "color space transform. This is useful if the image has an incorrect ICC "
 "profile."
-msgstr ""
-"将选定的 ICC 配置文件指定给当前图像，而不执行任何色彩空间转换。如果图像的 "
-"ICC 配置文件不正确，这非常有用。"
+msgstr "将选定的 ICC 色彩特性文件指定给当前图像，而不执行任何色彩空间转换。"
+"如果图像的 ICC 色彩特性文件不正确，这非常有用。"
 
 #: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3899
 #: src/core/icc_profile.c:1287
@@ -4499,11 +4501,11 @@ msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:178
 msgid "<b><i>Current ICC profile</i></b>"
-msgstr "<b><i>当前 ICC 配置文件</i></b>"
+msgstr "<b><i>当前 ICC 色彩特性文件</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:228
 msgid "<b><i>Target ICC profile</i></b>"
-msgstr "<b><i>目标 ICC 配置文件</i></b>"
+msgstr "<b><i>目标 ICC 色彩特性文件</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:254 src/gui/uifiles/icc_dialog.ui:308
 #: src/gui/uifiles/spcc_details.ui:96
@@ -4520,16 +4522,15 @@ msgstr "\n"
 
 #: src/gui/uifiles/icc_dialog.ui:360
 msgid "Built-in profile"
-msgstr "内置ICC配置文件"
+msgstr "内置ICC色彩特性文件"
 
 #: src/gui/uifiles/icc_dialog.ui:371
 msgid ""
 "Select a built-in ICC profile. This tool is only for converting the profile "
 "of an image, not its type, so you cannot convert a RGB image to a Gray "
 "profile or vice versa."
-msgstr ""
-"选择内置 ICC 配置文件。此工具仅用于转换图像的色彩配置，而不是其配置文件类型，"
-"因此您无法将 RGB 图像转换为灰度配置文件，反之亦然。"
+msgstr "选择内置 ICC 色彩特性文件。此工具仅用于转换图像的色彩配置，而不是特性文件，"
+"因此您无法将 RGB 图像转换为灰度特性文件，反之亦然。"
 
 #: src/gui/uifiles/icc_dialog.ui:374
 msgid "None selected"
@@ -4593,16 +4594,16 @@ msgid ""
 "larger gamuts than sRGB, and you will probably want to use a gamut at least "
 "as large as your monitor can display."
 msgstr ""
-"此图显示了 Siril 中可用的各种工作色域的比较。 （注意 P3 在 Siril 中不可用：显"
-"示它仅供参考，如果需要，您可以提供 P3 ICC 配置文件。）\n"
+"此图显示了 Siril 中可用的各种工作色域的比较。 （注意 P3 在 Siril "
+"中不可用：显示它仅供参考，如果需要，您可以提供 P3 ICC 色彩特性文件。）\n"
 "CIE1931 xy 空间代表人眼可见的所有色彩。\n"
 "sRGB 是网络发布的标准，对应于大多数显示器的色域。\n"
-"其他色彩空间提供更大的色域，覆盖更多的 CIE1931 空间。 Rec2020拥有最大的色域，"
-"不包括想象的色彩； ProPhoto RGB 具有更大的色域，尤其是在绿色/蓝色区域，但确实"
-"包含一些想象的色彩。\n"
-"如果从具有更大色域的色彩空间生成，打印的照片可以提供更丰富、更深的色彩。专业"
-"显示器还提供比 sRGB 更大的色域，您可能希望使用至少与显示器可以显示的色域一样"
-"大的色域。"
+"其他色彩空间提供更大的色域，覆盖更多的 CIE1931 空间。 "
+"Rec2020拥有最大的色域，不包括想象的色彩； ProPhoto RGB "
+"具有更大的色域，尤其是在绿色/蓝色区域，但确实包含一些想象的色彩。\n"
+"如果从具有更大色域的色彩空间生成，打印的照片可以提供更丰富、更深的色彩。"
+"专业显示器还提供比 sRGB "
+"更大的色域，您可能希望使用至少与显示器可以显示的色域一样大的色域。"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:93
 msgid ""
@@ -5255,13 +5256,15 @@ msgid "Siril Script Files"
 msgstr "Siril脚本文件"
 
 #: src/gui/uifiles/python_scratchpad.ui:361
-#, fuzzy
 msgid ""
 "When active, any arguments entered in the args entry will be passed to the "
 "script when it is run.\n"
 "This also ensures SirilInterface is invoked in CLI mode "
 "(SirilInterface.is_cli() will return True)"
-msgstr "启用后，args条目中输入的任何参数都将在脚本运行时传递给脚本。"
+msgstr ""
+"启用后，args条目中输入的任何参数都将在脚本运行时传递给脚本。\n"
+"这也确保了在CLI模式下Siril界面被invoke调用（SirilInterface."
+"is_cl()将返回True）"
 
 #: src/gui/uifiles/python_scratchpad.ui:363
 msgid "Enable test arguments"
@@ -5985,9 +5988,9 @@ msgid ""
 "entire profile. This means that when you re-open the file the ICC profile "
 "description may be different, although it will be functionally equivalent."
 msgstr ""
-"注意：嵌入 ICC 配置文件时，libjxl 将检查它是否识别该配置文件。如果是，它将设"
-"置一个参考值而不是存储整个配置文件。这意味着当您重新打开文件时，ICC 配置文件"
-"说明可能会有所不同，尽管它在功能上是等效的。"
+"注意：嵌入 ICC 色彩特性文件时，libjxl 将检查它是否识别该特性文件。如果是，它"
+"将设置一个参考值而不存储整个特性文件。这意味着当您重新打开文件时，ICC "
+"色彩特性文件说明可能会有所不同，尽管它在功能上是等效的。"
 
 #: src/gui/uifiles/savepopup.ui:128
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
@@ -6030,7 +6033,7 @@ msgstr "<b>压缩</b>"
 
 #: src/gui/uifiles/savepopup.ui:340
 msgid "<b>ICC Profile</b>"
-msgstr "<b>ICC配置文件</b>"
+msgstr "<b>ICC色彩特性文件</b>"
 
 #: src/gui/uifiles/savepopup.ui:367
 msgid "<b>Embedded Data</b>"
@@ -6531,7 +6534,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:784
 msgid "Embed ICC profiles in saved FITS files"
-msgstr "图像中嵌入sRGB式ICC色彩配置文件"
+msgstr "图像中嵌入sRGB式ICC色彩特性文件"
 
 #: src/gui/uifiles/settings_window.ui:788
 msgid ""
@@ -6539,8 +6542,9 @@ msgid ""
 "you need interoperability with a program that fails to handle FITS with "
 "embedded ICC profiles (none are currently known)."
 msgstr ""
-"将 ICC 配置文件嵌入 FITS 文件中。通常应将其保留，除非您需要与无法处理带有嵌入"
-"式 ICC 配置文件的 FITS 程序进行互操作（目前尚不清楚）。"
+"将 ICC 色彩特性文件嵌入 FITS 文件中。通常应将其保留，"
+"除非您需要与无法处理带有嵌入式 ICC 色彩特性文件的 FITS "
+"程序进行互操作（目前尚不清楚）。"
 
 #: src/gui/uifiles/settings_window.ui:801
 msgid "Verify file checksums in FITS header (DATASUM and CHECKSUM)"
@@ -7536,9 +7540,8 @@ msgid ""
 "This selects the family of RGB profiles that will be used throughout most of "
 "the workflow. For a discussion of which gamut to pick, see the Color "
 "Management section of the manual."
-msgstr ""
-"该选择将在大部分工作流程中使用的 RGB 配置文件系列。有关选择哪个色域的讨论，请"
-"参阅手册的色彩管理部分。"
+msgstr "该选择将在大部分工作流程中使用 RGB "
+"特性文件系列。有关选择哪个色域的讨论，请参阅手册的色彩管理部分。"
 
 #: src/gui/uifiles/settings_window.ui:4121
 msgid "Preferred Color Space:"
@@ -7551,8 +7554,8 @@ msgid ""
 "This preference is used by the auto conversion / assignment options and can "
 "also be used by the file export options."
 msgstr ""
-"这将设置您首选的色彩空间以用作工作色彩空间：它包含 RGB 色彩配置文件和匹配的灰"
-"度色彩配置文件。此首选项由自动转换/分配选项使用，也可由文件导出选项使用。"
+"这将设置您首选的色彩空间以用作工作色彩空间：它包含 RGB 色彩特性文件和匹配的灰"
+"度色彩特性文件。此首选项由自动转换/分配选项使用，也可由文件导出选项使用。"
 
 #: src/gui/uifiles/settings_window.ui:4135
 #: src/gui/uifiles/settings_window.ui:4504
@@ -7582,30 +7585,29 @@ msgstr "将这些选项与上述首选色彩空间的“来自文件”选项一
 
 #: src/gui/uifiles/settings_window.ui:4167
 msgid "External color profiles:"
-msgstr "外部色彩配置文件："
+msgstr "外部色彩特性文件："
 
 #: src/gui/uifiles/settings_window.ui:4179
 msgid ""
 "This should be an ICC profile in your preferred gamut with the color space's "
 "native nonlinear tone response curve."
-msgstr ""
-"这应该是您首选色域中的 ICC 配置文件，具有色彩空间的原生非线性色调响应曲线。"
+msgstr "这应该是您首选色域中的 ICC "
+"色彩特性文件，具有色彩空间的原生非线性色调响应曲线。"
 
 #: src/gui/uifiles/settings_window.ui:4181
 msgid "RGB ICC profile"
-msgstr "RGB ICC色彩配置文件"
+msgstr "RGB ICC色彩特性文件"
 
 #: src/gui/uifiles/settings_window.ui:4192
 msgid ""
 "This should be a Gray ICC profile with a tone response curve that matches "
 "that of the nonlinear TRC profile you set above."
-msgstr ""
-"这应该是一个灰度 ICC 配置文件，其色调响应曲线与您上面设置的非线性 TRC 配置文"
-"件的曲线相匹配。"
+msgstr "这应该是一个灰度 ICC 色彩特性文件，其色调响应曲线与您上面设置的非线性 TRC "
+"特性文件的曲线相匹配。"
 
 #: src/gui/uifiles/settings_window.ui:4194
 msgid "Gray ICC profile"
-msgstr "灰度 ICC 配置文件"
+msgstr "灰度 ICC 色彩特性文件"
 
 #: src/gui/uifiles/settings_window.ui:4206
 msgid ""
@@ -7613,17 +7615,16 @@ msgid ""
 "ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg "
 "etc.)"
 msgstr ""
-"将此选项与上面的“来自文件”选项一起使用。这应该是您首选色域中的 RGB ICC 配置文"
-"件（例如 ProPhoto、ClayRGB、ACEScg 等）"
+"将此选项与上面的“来自文件”选项一起使用。这应该是您首选色域中的 RGB ICC "
+"色彩特性文件（例如 ProPhoto、ClayRGB、ACEScg 等）"
 
 #: src/gui/uifiles/settings_window.ui:4220
 msgid ""
 "Use this together with the \"From files\" option above. This should be a "
 "Gray (mono) ICC profile with a tone response curve that matches that of the "
 "RGB profile you set above."
-msgstr ""
-"将此选项与上面的“来自文件”选项一起使用。这应该是一个灰度（单色）ICC 配置文"
-"件，其色调响应曲线与您上面设置的 RGB 配置文件相匹配。"
+msgstr "将此选项与上面的“来自文件”选项一起使用。这应该是一个灰度（单色）ICC "
+"色彩特性文件，其色调响应曲线与您上面设置的 RGB 特性文件相匹配。"
 
 #: src/gui/uifiles/settings_window.ui:4237
 msgid "Working Color Spaces"
@@ -7631,28 +7632,28 @@ msgstr "工作色彩空间"
 
 #: src/gui/uifiles/settings_window.ui:4270
 msgid "Custom monitor profile:"
-msgstr "自定义显示器描述文件："
+msgstr "自定义显示器特性文件："
 
 #: src/gui/uifiles/settings_window.ui:4282
 msgid ""
 "To use a custom monitor ICC profile, set it here. If no custom profile is "
 "set, sRGB with D65 white point and gamma = 2.2 will be used."
 msgstr ""
-"要使用自定义显示器 ICC 配置文件，请在此处进行设置。如果未设置自定义配置文件，"
-"则将使用具有 D65 白点和 gamma = 2.2 的 sRGB。"
+"要使用自定义显示器 ICC "
+"色彩特性文件，请在此处进行设置。如果未设置自定义特性文件，则将使用具有 D65 "
+"白点和 gamma = 2.2 的 sRGB。"
 
 #: src/gui/uifiles/settings_window.ui:4295
 msgid ""
 "Specify an output device profile for soft proofing purposes. If this is not "
 "set or is inactive, the monitor profile (or sRGB by default) will be used as "
 "the soft proofing target."
-msgstr ""
-"指定用于软打样目的的输出设备描述文件。如果未设置或未启用状态，则显示器描述文"
+msgstr "指定用于软打样目的的输出设备特性文件。如果未设置或未启用状态，则显示器特性文"
 "件（默认情况下为 sRGB）将用作软打样目标。"
 
 #: src/gui/uifiles/settings_window.ui:4309
 msgid "Output device proofing profile:"
-msgstr "输出设备打样描述文件："
+msgstr "输出设备打样特性文件："
 
 #: src/gui/uifiles/settings_window.ui:4322
 msgid "Rendering intent:"
@@ -7690,13 +7691,12 @@ msgstr "黑点补偿"
 msgid ""
 "Enable BPC for rendering. This is not normally required but may be useful if "
 "an image has a malformed source profile."
-msgstr ""
-"启用黑点补偿进行渲染。通常不必这么做，但如果图像具有格式错误的源描述文件，这"
-"可能会很有用。"
+msgstr "启用黑点补偿进行渲染。通常不必这么做，但如果图像具有格式错误的源色彩特性文件"
+"，这可能会很有用。"
 
 #: src/gui/uifiles/settings_window.ui:4373
 msgid "Clear the profile and revert to the default"
-msgstr "清除描述文件并恢复为默认值"
+msgstr "清除特性文件并恢复为默认值"
 
 #: src/gui/uifiles/settings_window.ui:4384
 #: src/gui/uifiles/settings_window.ui:4425
@@ -7707,26 +7707,24 @@ msgstr "启用"
 msgid ""
 "Whether or not to use the custom monitor profile. This will take effect when "
 "Apply is clicked. The setting is ignored if no custom monitor profile is set."
-msgstr ""
-"是否使用自定义显视器描述文件。单击“应用”后，这将生效。如果未设置自定义显示器"
-"描述文件，则该设置将被忽略。"
+msgstr "是否使用自定义显示器色彩特性文件。单击“应用”后，这将生效。如果未设置自定义显"
+"示器特性文件，则该设置将被忽略。"
 
 #: src/gui/uifiles/settings_window.ui:4414
 msgid "Clear the profile: soft proofing will be unavailable"
-msgstr "清除描述文件：软打样将不可用"
+msgstr "清除色彩特性文件：软打样将不可用"
 
 #: src/gui/uifiles/settings_window.ui:4429
 msgid ""
 "Whether or not to use the custom soft proofing profile. This will take "
 "effect when Apply is clicked. The setting is ignored if no custom monitor "
 "profile is set."
-msgstr ""
-"是否使用自定义软打样描述文件。单击“应用”后，这将生效。如果未设置自定义显示器"
-"描述文件，则该设置将被忽略。"
+msgstr "是否使用自定义软打样色彩特性文件。单击“应用”后，这将生效。如果未设置自定义显"
+"示器特性文件，则该设置将被忽略。"
 
 #: src/gui/uifiles/settings_window.ui:4453
 msgid "Custom Profiles"
-msgstr "自定义描述文件"
+msgstr "自定义色彩特性文件"
 
 #: src/gui/uifiles/settings_window.ui:4470
 msgid ""
@@ -7738,8 +7736,8 @@ msgid ""
 msgstr ""
 "此部分包含影响色彩空间如何应用于已保存文件的设置\n"
 "\n"
-"这些选项不会影响保存在 FITS 文件中的配置文件，这些配置文件是在 FITS 选项中配"
-"置的"
+"这些选项不会影响保存在 FITS 文件中的特性文件，这些特性文件是在 FITS "
+"选项中配置的"
 
 #: src/gui/uifiles/settings_window.ui:4489
 msgid "Export high bit depth images using:"
@@ -7752,8 +7750,8 @@ msgid ""
 "Note: if the format does not support ICC profile embedding, images will "
 "always be exported as sRGB."
 msgstr ""
-"选择用于导出大于 8bpp 位深图像的色彩空间。 ICC 色彩配置文件将嵌入到文件中。\n"
-"注意：如果格式不支持 ICC 配置文件嵌入，则图像将始终导出为 sRGB。"
+"选择用于导出大于 8bpp 位深图像的色彩空间。 ICC 色彩特性文件将嵌入到文件中。\n"
+"注意：如果格式不支持 ICC 色彩特性文件嵌入，则图像将始终导出为 sRGB。"
 
 #: src/gui/uifiles/settings_window.ui:4505
 #: src/gui/uifiles/settings_window.ui:4585
@@ -7763,7 +7761,7 @@ msgstr "工作色域"
 #: src/gui/uifiles/settings_window.ui:4506
 #: src/gui/uifiles/settings_window.ui:4586
 msgid "Image's current ICC profile"
-msgstr "图像当前的 ICC 配置文件"
+msgstr "图像当前的 ICC 色彩特性文件"
 
 #: src/gui/uifiles/settings_window.ui:4520
 msgid "Conversion and export intent:"
@@ -7785,10 +7783,10 @@ msgid ""
 "reproduction when opening the exported files in other applications.\n"
 "If this option is unchecked, no ICC profile will be embedded."
 msgstr ""
-"对于没有指定色彩描述的文件，在导出为 TIFF / PNG / JPG 时，嵌入 sRGB（或带有 "
-"sRGB TRC 的灰度）ICC 配置文件。这不能提供真正的色彩管理工作流程，并且不能保证"
-"在其他应用程序中打开导出的文件时提供一致的色彩再现。\n"
-"如果未选中此选项，则不会嵌入 ICC 配置文件。"
+"对于没有指定色彩特性的文件，在导出为 TIFF / PNG / JPG 时，嵌入 sRGB（或带有 "
+"sRGB TRC 的灰度）ICC 色彩特性文件。这不能提供真正的色彩管理工作流程，并且不能"
+"保证在其他应用程序中打开导出的文件时提供一致的色彩再现。\n"
+"如果未选中此选项，则不会嵌入 ICC 色彩特性文件。"
 
 #: src/gui/uifiles/settings_window.ui:4569
 msgid "Export 8-bit images using:"
@@ -7801,9 +7799,9 @@ msgid ""
 "Note: if the format does not support ICC profile embedding, images will "
 "always be exported as sRGB."
 msgstr ""
-"如果格式支持 ICC 配置文件，则选择用于导出 8 位图像的色彩空间。 ICC 色彩描述将"
-"嵌入到文件中。\n"
-"注意：如果格式不支持 ICC 配置文件嵌入，则图像将始终导出为 sRGB。"
+"如果格式支持 ICC 色彩特性文件，则选择用于导出 8 位图像的色彩空间。 ICC "
+"色彩特性将嵌入到文件中。\n"
+"注意：如果格式不支持 ICC 色彩特性文件嵌入，则图像将始终导出为 sRGB。"
 
 #: src/gui/uifiles/settings_window.ui:4603
 msgid "File Import / Export Options"
@@ -7815,13 +7813,13 @@ msgstr "自动分配工作色彩空间："
 
 #: src/gui/uifiles/settings_window.ui:4650
 msgid "Convert other color profiles to the working profile?"
-msgstr "将其他色彩配置文件转换为工作配置文件？"
+msgstr "将其他色彩特性文件转换为工作中的特性文件？"
 
 #: src/gui/uifiles/settings_window.ui:4661
 msgid ""
 "This option sets the behaviour if an image is loaded and it already contains "
 "an ICC profile."
-msgstr "此选项设置加载图像且图像已包含 ICC 配置文件时的行为。"
+msgstr "此选项设置加载图像且图像已包含 ICC 色彩特性文件时的行为。"
 
 #: src/gui/uifiles/settings_window.ui:4664
 #: src/gui/uifiles/settings_window.ui:4718
@@ -7854,7 +7852,7 @@ msgstr "输出RGB合成 / PixelMath"
 
 #: src/gui/uifiles/settings_window.ui:4747
 msgid "Pedantically assign linear ICC profiles"
-msgstr "学术式地分配线性 ICC 配置文件"
+msgstr "学术式地分配线性 ICC 色彩特性文件"
 
 #: src/gui/uifiles/settings_window.ui:4751
 msgid ""
@@ -7869,7 +7867,7 @@ msgstr ""
 "* 加载中的图像在历史记录中不显示拉伸\n"
 "* 新合成的图像\n"
 "* 新叠加的图像\n"
-"分配线性 ICC 配置文件。这在技术上是正确的，但通常是不必要的。"
+"分配线性 ICC 色彩特性文件。这在技术上是正确的，但通常是不必要的。"
 
 #: src/gui/uifiles/settings_window.ui:4772
 msgid "Auto Conversion / Assignment Options"
@@ -7890,7 +7888,7 @@ msgstr "CIE 1964 10级补充标准遵循者"
 
 #: src/gui/uifiles/settings_window.ui:4865
 msgid "Export built-in profiles"
-msgstr "导出内置描述文件"
+msgstr "导出内置色彩特性文件"
 
 #: src/gui/uifiles/settings_window.ui:4869
 msgid ""
@@ -7899,13 +7897,13 @@ msgid ""
 "Siril binary, this export function serves to comply with the \"share-alike\" "
 "provision of the licence."
 msgstr ""
-"将内置描述文件导出到工作目录。 Elle Stone 的个人资料是通过 CC BY-SA-3.0 许可"
-"证分发的。由于它们内置于 Siril 二进制文件中，因此此导出功能旨在遵守许可证的"
-"“相同方式共享”条款。"
+"将内置色彩特性文件导出到工作目录。 Elle Stone 的个人资料是通过 CC BY-SA-3.0 "
+"许可证分发的。由于它们内置于 Siril "
+"二进制文件中，因此此导出功能旨在遵守许可证的“相同方式共享”条款。"
 
 #: src/gui/uifiles/settings_window.ui:4886
 msgid "<b>Built-in Profiles</b>"
-msgstr "<b>内置描述文件</b>"
+msgstr "<b>内置色彩特性文件</b>"
 
 #: src/gui/uifiles/settings_window.ui:4927
 #: src/gui/uifiles/settings_window.ui:5341 src/gui/uifiles/siril.ui:10643
@@ -8696,7 +8694,7 @@ msgstr "返回主菜单"
 
 #: src/gui/uifiles/siril.ui:1498
 msgid "Stretches Processing"
-msgstr "拉伸处理中"
+msgstr "拉伸处理"
 
 #: src/gui/uifiles/siril.ui:1514
 msgid "Open the inverse hyperbolic sine dialog"
@@ -8844,7 +8842,7 @@ msgstr "打开动态PSF窗口。"
 
 #: src/gui/uifiles/siril.ui:1923
 msgid "Filters Processing"
-msgstr "过滤处理中"
+msgstr "滤镜处理"
 
 #: src/gui/uifiles/siril.ui:1939
 msgid "Open the À Trou wavelet transform dialog"
@@ -8975,9 +8973,8 @@ msgid ""
 "Show pixels that are out of gamut in the proofing profile in magenta. If an "
 "output proofing profile is set, this will be used, otherwise the image will "
 "be proofed against the monitor profile."
-msgstr ""
-"以洋红色显示打样配置文件中超出色域的像素。如果设置了输出校对配置文件，则将使"
-"用该配置文件，否则将根据显示器配置文件对图像进行校对。"
+msgstr "以洋红色显示按照打样色彩特性时超出色域的像素。如果设置了输出打样特性文件，则"
+"将使用该特性文件，否则将根据显示器特性文件来打样。"
 
 #: src/gui/uifiles/siril.ui:2285
 msgid "cut"
@@ -12767,7 +12764,7 @@ msgstr "图像未进行色彩管理。假设sRGB。\n"
 #: src/algos/colors.c:882 src/algos/colors.c:1029
 #, c-format
 msgid "Channel extraction from 3-channel image with ICC profile:"
-msgstr "使用 ICC 配置文件从 3 通道图像中提取通道："
+msgstr "使用 ICC 色彩特性文件从 3 通道图像中提取通道："
 
 #: src/algos/colors.c:929
 msgid "Siril cannot extract channels. Make sure your image is in RGB mode.\n"
@@ -13699,7 +13696,7 @@ msgid ""
 "This will occur when carrying out SPCC on compositions such as HOO whre the "
 "same data is assigned to multiple channels.\n"
 msgstr ""
-"无法创建源配置文件，因为色度原色不是唯一的。当对诸如 HOO 之类的组合执行 SPCC "
+"无法创建源特性文件，因为色度原色不是唯一的。当对诸如 HOO 之类的组合执行 SPCC "
 "时，会发生这种情况，其中相同的数据被分配给多个信道。\n"
 
 #: src/algos/star_finder.c:197 src/algos/star_finder.c:200
@@ -13938,17 +13935,15 @@ msgstr "只有单通道图像可被载入"
 msgid ""
 "ICC profile differs to that of the first image loaded. Converting this image "
 "to match the first one loaded.\n"
-msgstr ""
-"ICC 配置文件与载入的第一幅图像的配置文件不同。转换此图像以匹配载入的第一幅图"
-"像。\n"
+msgstr "ICC 色彩特性文件与载入的第一幅图像的特性文件不同。转换此图像以匹配载入的第一"
+"幅图像。\n"
 
 #: src/compositing/compositing.c:702
 msgid ""
 "Input images have inconsistent ICC profiles. First image had no ICC profile. "
 "All input layers will be treated as raw data.\n"
-msgstr ""
-"输入图像的 ICC 配置文件不一致。第一幅图像没有 ICC 配置文件。所有输入图层都将"
-"被视为原始数据。\n"
+msgstr "输入图像的 ICC 色彩特性文件不一致。第一幅图像没有 ICC "
+"色彩特性文件。所有输入图层都将被视为原始数据。\n"
 
 #: src/compositing/compositing.c:714
 msgid "The first loaded image should have the greatest sizes for now\n"
@@ -14698,7 +14693,6 @@ msgid "The size of the key can't exceed 8 characters.\n"
 msgstr "关键字长度不能超过8个字符。\n"
 
 #: src/core/command.c:1961
-#, fuzzy
 msgid "Updating keywords...\n"
 msgstr "正在更新关键字...\n"
 
@@ -16671,21 +16665,21 @@ msgstr "错误：无法载入序列\n"
 
 #: src/core/command.c:11481
 msgid "Error opening target ICC profile.\n"
-msgstr "打开目标 ICC 配置文件时出错。\n"
+msgstr "打开目标 ICC 色彩特性文件时出错。\n"
 
 #: src/core/command.c:11485
 msgid "Color profile assignment complete.\n"
-msgstr "色彩配置文件分配完成。\n"
+msgstr "色彩特性文件分配完成。\n"
 
 #: src/core/command.c:11488 src/core/command.c:11552
 msgid "Error opening ICC profile.\n"
-msgstr "打开 ICC 配置文件时出错。\n"
+msgstr "打开 ICC 色彩特性文件时出错。\n"
 
 #: src/core/command.c:11505
 msgid ""
 "Image has no color profile assigned to convert from. Assign a profile "
 "first.\n"
-msgstr "图像没有分配用于转换的彩色配置文件。首先分配一个配置文件。\n"
+msgstr "图像没有分配用于转换的彩色特性文件。首先分配一个特性文件。\n"
 
 #: src/core/command.c:11519
 msgid ""
@@ -16952,9 +16946,9 @@ msgid ""
 "Soft proofing profile: %s"
 msgstr ""
 "图像有色彩管理\n"
-"图像配置文件：%s\n"
-"显视器配置文件：%s\n"
-"软打样配置文件：%s"
+"图像特性文件：%s\n"
+"显示器特性文件：%s\n"
+"软打样特性文件：%s"
 
 #: src/core/icc_profile.c:90
 msgid ""
@@ -16983,48 +16977,46 @@ msgstr ""
 #: src/core/icc_profile.c:225 src/gui/icc_profile.c:537
 #, c-format
 msgid "Exported ICC profile to %s\n"
-msgstr "已将 ICC 配置文件导出到 %s\n"
+msgstr "已将 ICC 色彩特性文件导出到 %s\n"
 
 #: src/core/icc_profile.c:227 src/gui/icc_profile.c:539
 #, c-format
 msgid "Failed to export ICC profile to %s\n"
-msgstr "无法将 ICC 配置文件导出到 %s\n"
+msgstr "无法将 ICC 色彩特性文件导出到 %s\n"
 
 #: src/core/icc_profile.c:364
 msgid "Error opening custom monitor profile. Monitor profile set to sRGB.\n"
-msgstr "打开自定义显视器描述文件时出错。显示器描述文件设置为 sRGB。\n"
+msgstr "打开自定义显示器色彩特性文件时出错。显示器色彩特性文件设置为 sRGB。\n"
 
 #: src/core/icc_profile.c:371
 msgid ""
 "Warning: custom monitor profile set but could not be loaded. Display will "
 "use a sRGB profile with the standard sRGB TRC.\n"
-msgstr ""
-"警告：自定义显视器描述文件已设置但无法加载。显示器将使用 sRGB 描述文件和标准 "
-"sRGB TRC。\n"
+msgstr "警告：自定义显示器色彩特性文件已设置但无法加载。显示器将使用 sRGB "
+"特性文件和标准 sRGB TRC。\n"
 
 #: src/core/icc_profile.c:394
 msgid ""
 "Warning: soft proofing profile set but could not be loaded. Soft proofing "
 "will be unavailable.\n"
-msgstr "警告：软打样描述文件已设置但无法加载。软打样将不可用。\n"
+msgstr "警告：软打样色彩特性文件已设置但无法加载。软打样将不可用。\n"
 
 #: src/core/icc_profile.c:434
 msgid "Error opening nonlinear working profile. Profile set to sRGB.\n"
-msgstr "打开非线性工作描述文件时出错。描述文件设置为 sRGB。\n"
+msgstr "打开非线性工作色彩特性文件时出错。色彩特性文件设置为 sRGB。\n"
 
 #: src/core/icc_profile.c:449
 msgid ""
 "Error opening matched grayscale working profile. Profile set to Gray with "
 "srGB tone response curve.\n"
-msgstr ""
-"打开匹配的灰度工作配置文件时出错。配置文件设置为灰度，带有 sRGB 色调响应曲"
-"线。\n"
+msgstr "打开匹配的灰度工作色彩特性文件时出错。特性文件设置为灰度，带有 sRGB "
+"的响应曲线。\n"
 
 #: src/core/icc_profile.c:494
 msgid ""
 "Error: standard color management profiles could not be loaded. Cannot "
 "continue. Please report this error.\n"
-msgstr "错误：无法加载标准色彩管理配置文件。无法继续。请报告此错误。\n"
+msgstr "错误：无法加载标准色彩管理特性文件。无法继续。请报告此错误。\n"
 
 #: src/core/icc_profile.c:499
 msgid "Color management active.\n"
@@ -17032,81 +17024,78 @@ msgstr "启用色彩管理。\n"
 
 #: src/core/icc_profile.c:502
 msgid "JPEG ICC profiles supported.\n"
-msgstr "支持 JPEG ICC 配置文件。\n"
+msgstr "支持 JPEG ICC 色彩特性文件。\n"
 
 #: src/core/icc_profile.c:504
 msgid ""
 "JPEG ICC profiles unsupported: libjpeg-turbo 2.0.0 or higher is required.\n"
-msgstr "不支持 JPEG ICC 配置文件：需要 libjpeg-turbo 2.0.0 或更高版本。\n"
+msgstr "不支持 JPEG ICC 色彩特性文件：需要 libjpeg-turbo 2.0.0 或更高版本。\n"
 
 #: src/core/icc_profile.c:556
 msgid "Monitor ICC profile set to sRGB\n"
-msgstr "显示器 ICC 配置文件设置为 sRGB\n"
+msgstr "显示器 ICC 色彩特性文件设置为 sRGB\n"
 
 #: src/core/icc_profile.c:558 src/core/icc_profile.c:625
 #: src/core/icc_profile.c:634
 msgid "Fatal error: standard sRGB ICC profile could not be loaded.\n"
-msgstr "致命错误：无法加载标准 sRGB ICC 配置文件。\n"
+msgstr "致命错误：无法加载标准 sRGB ICC 色彩特性文件。\n"
 
 #: src/core/icc_profile.c:607
-#, fuzzy
 msgid "Error: no filename specified for custom monitor profile.\n"
-msgstr "错误：没有为自定义显视器描述文件指定文件名。\n"
+msgstr "错误：没有为自定义显视器色彩特性文件指定文件名。\n"
 
 #: src/core/icc_profile.c:613
 #, c-format
 msgid "Monitor profile loaded from %s\n"
-msgstr "从 %s 加载显示器描述文件\n"
+msgstr "从 %s 加载显示器色彩特性文件\n"
 
 #: src/core/icc_profile.c:619
 #, c-format
 msgid "Monitor profile could not be loaded from %s\n"
-msgstr "无法从 %s 加载显视器描述文件\n"
+msgstr "无法从 %s 加载显示器色彩特性文件\n"
 
 #: src/core/icc_profile.c:623 src/core/icc_profile.c:632
 msgid "Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"
-msgstr "显示器 ICC 配置文件设置为 sRGB（D65 白点，gamma = 2.2）\n"
+msgstr "显示器 ICC 色彩特性文件设置为 sRGB（D65 白点，gamma = 2.2）\n"
 
 #: src/core/icc_profile.c:656
-#, fuzzy
 msgid "Error: no filename specified for output device proofing profile.\n"
-msgstr "错误：没有为输出设备打样描述文件指定文件名。\n"
+msgstr "错误：没有为输出设备打样色彩特性文件指定文件名。\n"
 
 #: src/core/icc_profile.c:662
 #, c-format
 msgid "Output device proofing profile loaded from %s\n"
-msgstr "从 %s 载入输出设备打样描述文件\n"
+msgstr "从 %s 载入输出设备打样色彩特性文件\n"
 
 #: src/core/icc_profile.c:669
 #, c-format
 msgid "Output device proofing profile could not be loaded from %s\n"
-msgstr "无法从 %s 加载输出设备打样描述文件\n"
+msgstr "无法从 %s 加载输出设备打样色彩特性文件\n"
 
 #: src/core/icc_profile.c:671
 msgid ""
 "Soft proofing is not available while no soft proofing ICC profile is "
 "loaded.\n"
-msgstr "当未载入软打样 ICC 配置文件时，软打样不可用。\n"
+msgstr "当未载入软打样 ICC 色彩特性文件时，软打样不可用。\n"
 
 #: src/core/icc_profile.c:674
 msgid ""
 "Output device proofing profile deactivated. Soft proofing will proof to the "
 "monitor profile.\n"
-msgstr "输出设备打样描述文件已停用。软打样将打样到显示器描述文件。\n"
+msgstr "输出设备打样色彩特性文件已停用。软打样将打样到显示器色彩特性文件。\n"
 
 #: src/core/icc_profile.c:1001
 msgid ""
 "FITS did not contain an ICC profile but is declared to be stretched. "
 "Assigning a sRGB color profile.\n"
-msgstr "FITS 不包含 ICC 配置文件，但声明已拉伸。分配 sRGB 色彩配置文件。\n"
+msgstr "FITS 不包含 ICC 色彩特性文件，但声明为已拉伸。分配 sRGB 色彩特性文件。\n"
 
 #: src/core/icc_profile.c:1008
 msgid ""
 "FITS did not contain an ICC profile. It appears to have been stretched using "
 "an older version of Siril. Assigning a sRGB color profile.\n"
-msgstr ""
-"FITS 不包含 ICC 配置文件。它似乎是使用旧版本的 Siril 进行了拉伸。分配 sRGB 色"
-"彩配置文件。\n"
+msgstr "FITS 不包含 ICC 色彩特性文件。它似乎是使用旧版本的 Siril 进行了拉伸。分配 "
+"sRGB 色彩特性文件。\n"
 
 #: src/core/icc_profile.c:1024
 msgid ""
@@ -17114,36 +17103,35 @@ msgid ""
 "count. Color management is disabled for this image. To re-enable it, an ICC "
 "profile must be assigned using the Color Management menu item.\n"
 msgstr ""
-"警告：嵌入式 ICC 配置文件通道数与图像通道数不匹配。该图像的色彩管理已禁用。欲"
-"重新启用，请使用“色彩管理”菜单项指定 ICC 配置文件。\n"
+"警告：嵌入式 ICC 色彩特性文件通道数与图像通道数不匹配。该图像的色彩管理已禁用"
+"。欲重新启用，请使用“色彩管理”菜单项指定 ICC 色彩特性文件。\n"
 
 #: src/core/icc_profile.c:1149
 msgid "ICC profile removed"
-msgstr "ICC配置文件已移除"
+msgstr "ICC色彩特性文件已移除"
 
 #: src/core/icc_profile.c:1169 src/core/icc_profile.c:1260
 #, c-format
 msgid "Assigned ICC profile: %s"
-msgstr "分配的 ICC 配置文件：%s"
+msgstr "分配的 ICC 色彩特性文件：%s"
 
 #: src/core/icc_profile.c:1175
 msgid ""
 "Image number of channels does not match color profile number of channels. "
 "Cannot assign this profile to this image."
-msgstr "图像通道数与色彩配置文件通道数不匹配。无法将此配置文件分配给此图像。"
+msgstr "图像通道数与色彩特性文件通道数不匹配。无法将此特性文件分配给此图像。"
 
 #: src/core/icc_profile.c:1185
 msgid ""
 "Siril only supports representing the image in Gray or RGB color spaces. You "
 "cannot assign or convert to non-RGB color profiles"
-msgstr ""
-"Siril 仅支持以灰度或 RGB 色彩空间表现图像。您无法分配或转换为非 RGB 色彩配置"
-"文件"
+msgstr "Siril 仅支持以灰度或 RGB 色彩空间表示图像。您无法分配或转换为非 RGB "
+"的彩色特性文件"
 
 #: src/core/icc_profile.c:1211
 #, c-format
 msgid "Converted to ICC profile: %s"
-msgstr "已转换为 ICC 配置文件：%s"
+msgstr "已转换为 ICC 色彩特性文件：%s"
 
 #: src/core/icc_profile.c:1216
 msgid "Failed to create colorspace transform."
@@ -17154,9 +17142,8 @@ msgid ""
 "This image is a channel extracted from a 3-channel image. Cannot sensibly "
 "auto-assign an ICC profile. You must manually assign one at an appropriate "
 "time.\n"
-msgstr ""
-"该图像是从 3 通道图像中提取的一个通道。无法合理地自动分配 ICC 配置文件。您必"
-"须在适当的时间手动分配一个。\n"
+msgstr "该图像是从 3 通道图像中提取的一个通道。无法合理地自动分配 ICC "
+"色彩特性文件。您必须在适当的时间手动分配一个。\n"
 
 #: src/core/icc_profile.c:1285
 msgid ""
@@ -17170,21 +17157,20 @@ msgstr "您想将此图像转换为工作色彩空间吗？"
 
 #: src/core/icc_profile.c:1384
 msgid "Error loading profile"
-msgstr "载入描述文件出错"
+msgstr "载入色彩特性文件出错"
 
 #: src/core/icc_profile.c:1385
 msgid ""
 "The selected profile could not be loaded or did not contain a valid ICC "
 "profile. Defaulting to sRGB."
-msgstr "无法加载所选配置文件或不包含有效的 ICC 配置文件。默认为 sRGB。"
+msgstr "无法加载所选特性文件或不包含有效的 ICC 色彩特性文件。默认为 sRGB。"
 
 #: src/core/icc_profile.c:1390
 msgid ""
 "Error: the preferred colorspace profiles are not all set, or some are not "
 "valid. You need to set both a RGB and a Gray profile. Defaulting to sRGB.\n"
-msgstr ""
-"错误：首选色彩空间配置文件未全部设置，或者某些配置文件无效。您需要设置 RGB 和"
-"灰度配置文件。默认为 sRGB。\n"
+msgstr "错误：首选色彩空间特性文件未全部设置，或者某些特性文件无效。RGB "
+"和灰度特性文件都需要设置。默认为 sRGB。\n"
 
 #: src/core/icc_profile.c:1403
 msgid "Updating working profiles.\n"
@@ -17192,7 +17178,7 @@ msgstr "更新工作文件。\n"
 
 #: src/core/icc_profile.c:1490
 msgid "This ICC profile is not RGB. Unable to plot the colorspace.\n"
-msgstr "此 ICC 配置文件不是 RGB。无法绘制色彩空间。\n"
+msgstr "此 ICC 色彩特性文件不是 RGB。无法绘制色彩空间。\n"
 
 #: src/core/icc_profile.c:1495
 msgid "Error reading chromaticities\n"
@@ -17204,7 +17190,7 @@ msgid ""
 "Source Color Profile Chromaticity Diagram\n"
 "<span size=\"small\">%s</span>"
 msgstr ""
-"源色彩配置文件色度图\n"
+"源色彩特性文件色度图\n"
 "<span size=\"small\">%s</span>"
 
 #: src/core/icc_profile.c:1528
@@ -17217,11 +17203,11 @@ msgstr "CIE y"
 
 #: src/core/icc_profile.c:1534
 msgid "Color profile"
-msgstr "色彩配置文件"
+msgstr "色彩特性文件"
 
 #: src/core/icc_profile.c:1538
 msgid "Color profile whitepoint"
-msgstr "色彩描述白点"
+msgstr "色彩特性的白点"
 
 #: src/core/icc_profile.c:1542
 msgid "CIE 1931"
@@ -17234,7 +17220,7 @@ msgstr "无法载入背景不够\n"
 #: src/core/initfile.c:58 src/core/initfile.c:69 src/core/initfile.c:89
 #, c-format
 msgid "error in config file for %s.%s: %s (value: %s)\n"
-msgstr "描述文件错误 %s.%s: %s（值：%s）\n"
+msgstr "配置文件错误 %s.%s: %s（值：%s）\n"
 
 #: src/core/initfile.c:76
 #, c-format
@@ -17708,7 +17694,7 @@ msgstr "不要使用 32 位作为像素深度"
 
 #: src/core/settings.c:352
 msgid "embed ICC profiles in FITS when saving"
-msgstr "保存时将 ICC 配置文件嵌入 FITS"
+msgstr "保存时将 ICC 色彩特性文件嵌入 FITS"
 
 #: src/core/settings.c:353
 msgid "allow FITS cubes to have different sizes"
@@ -18226,7 +18212,7 @@ msgstr "在打开对话框中显示缩略图"
 
 #: src/core/settings.c:506
 msgid "whether to use the GPU for GraXpert"
-msgstr ""
+msgstr "是否让GraXpert使用GPU"
 
 #: src/core/settings.c:507
 msgid "size of the thumbnails"
@@ -18286,27 +18272,27 @@ msgstr "配置临时标注的颜色"
 
 #: src/core/settings.c:521
 msgid "path to custom monitor ICC profile"
-msgstr "自定义显示器 ICC 配置文件的路径"
+msgstr "自定义显示器 ICC 色彩特性文件的路径"
 
 #: src/core/settings.c:522
 msgid "path to soft proofing ICC profile"
-msgstr "软打样 ICC 配置文件的路径"
+msgstr "软打样 ICC 色彩特性文件的路径"
 
 #: src/core/settings.c:523
 msgid "custom monitor profile active"
-msgstr "自定义显视器描述文件启用"
+msgstr "自定义显示器色彩特性文件启用"
 
 #: src/core/settings.c:524
 msgid "output proofing profile active"
-msgstr "输出打样描述文件启用"
+msgstr "输出打样色彩特性文件启用"
 
 #: src/core/settings.c:525
 msgid "path to custom RGB ICC profile"
-msgstr "自定义 RGB ICC 配置文件的路径"
+msgstr "自定义 RGB ICC 色彩特性文件的路径"
 
 #: src/core/settings.c:526
 msgid "path to custom gray ICC profile"
-msgstr "自定义灰度 ICC 配置文件的路径"
+msgstr "自定义灰度 ICC 色彩特性文件的路径"
 
 #: src/core/settings.c:527
 msgid "color management rendering intent"
@@ -18317,7 +18303,6 @@ msgid "color management soft proofing intent"
 msgstr "色彩管理软打样意图"
 
 #: src/core/settings.c:529
-#, fuzzy
 msgid "color management export intent"
 msgstr "色彩管理导出意图"
 
@@ -18326,27 +18311,24 @@ msgid "default to sRGB when exporting non color managed images"
 msgstr "导出非色彩管理图像时默认为 sRGB"
 
 #: src/core/settings.c:531
-#, fuzzy
 msgid "color management working gamut"
 msgstr "色彩管理工作色域"
 
 #: src/core/settings.c:532
-#, fuzzy
 msgid "color management export profile for 8bit files"
-msgstr "8 位文件的色彩管理导出配置文件"
+msgstr "8 位文件的色彩管理导出色彩特性文件"
 
 #: src/core/settings.c:533
-#, fuzzy
 msgid "color management export profile for 16bit files"
-msgstr "16 位文件的色彩管理导出配置文件"
+msgstr "16 位文件的色彩管理导出色彩特性文件"
 
 #: src/core/settings.c:534
 msgid "autoconvert images with an ICC profile to the working color space"
-msgstr "将具有 ICC 配置文件的图像自动转换为工作色彩空间"
+msgstr "将具有 ICC 色彩特性文件的图像自动转换为工作色彩空间"
 
 #: src/core/settings.c:535
 msgid "encodes ICC profile auto-assignment options"
-msgstr "编码 ICC 配置文件自动分配选项"
+msgstr "编码 ICC 色彩特性文件自动分配选项"
 
 #: src/core/settings.c:536
 msgid "enable rendering BPC"
@@ -18354,7 +18336,7 @@ msgstr "启用渲染 BPC"
 
 #: src/core/settings.c:537
 msgid "pedantically assign linear ICC profiles"
-msgstr "学术式地分配线性 ICC 配置文件"
+msgstr "学术式地分配线性 ICC 色彩特性文件"
 
 #: src/core/settings.c:538
 msgid "mouse actions config. Opaque data structure, edit this using the GUI"
@@ -19046,8 +19028,8 @@ msgid ""
 "preserve ICC profiles embedded in FITS files.\n"
 msgstr ""
 "GraXpert GUI 将打开当前图像。完成后，保存图像并返回 Siril。\n"
-"您需要检查并重新分配 ICC 配置文件，因为 GraXpert 不保留 FITS 文件中嵌入的 "
-"ICC 配置文件。\n"
+"您需要检查并重新分配 ICC 色彩特性文件，因为 GraXpert 不保留 FITS "
+"文件中嵌入的 ICC 色彩特性文件。\n"
 
 #: src/filters/graxpert.c:968
 msgid "Error: unknown GraXpert operation\n"
@@ -20053,7 +20035,7 @@ msgstr "无序列载入"
 
 #: src/gui/colors.c:461
 msgid "ICC Profile"
-msgstr "ICC色彩配置文件"
+msgstr "ICC色彩特性文件"
 
 #: src/gui/colors.c:461
 msgid ""
@@ -20063,9 +20045,9 @@ msgid ""
 "space described by its ICC profile you can re-enable it using the button at "
 "the bottom of this dialog."
 msgstr ""
-"该图像附有 ICC 配置文件。应用 CCM 将使 ICC 配置文件无效，因此色彩管理将被禁"
-"用。当您完成低级色彩操作并将图像返回到其 ICC 配置文件所描述的色彩空间后，您可"
-"以使用此对话框底部的按钮重新启用它。"
+"该图像附有 ICC 色彩特性文件。应用 CCM 将使 ICC "
+"色彩特性文件无效，因此色彩管理将被禁用。当您完成低级色彩操作并将图像返回到其 "
+"ICC 色彩特性文件所描述的色彩空间后，您可以使用此对话框底部的按钮重新启用它。"
 
 #: src/gui/colors.c:468
 #, c-format
@@ -20191,7 +20173,6 @@ msgid ""
 msgstr "至少需要一颗变星和一颗参考星。无法创建任何文件"
 
 #: src/gui/compstars.c:233
-#, fuzzy
 msgid "Problem with conversion\n"
 msgstr "转换有问题\n"
 
@@ -20648,7 +20629,7 @@ msgstr "成功！本地存储库与远程存储库保持同步。"
 
 #: src/gui/git_gui.c:113
 msgid "Processing"
-msgstr "处理中"
+msgstr "处理"
 
 #: src/gui/git_gui.c:115
 msgid "Utility"
@@ -20656,7 +20637,7 @@ msgstr "工具"
 
 #: src/gui/git_gui.c:117
 msgid "Core"
-msgstr "核"
+msgstr "核心"
 
 #: src/gui/git_gui.c:120
 msgid "Other"
@@ -20955,35 +20936,36 @@ msgid ""
 "permission. ICC makes no representations about the suitability of this "
 "software for any purpose."
 msgstr ""
-"要导出带有感知意图的 sRGB 显示器配置文件副本，请接受 ICC 的使用条款：\n"
+"要导出带有感知意图的 sRGB 显示器特性文件副本，请接受 ICC 的使用条款：\n"
 "\n"
 "对于任何承认文件“sRGB_v4_ICC_preference.icc”按“原样”提供且无明示或默示保证的"
-"人，特此授予出于任何目的使用、复制和分发此文件的许可，无需付费，前提是该文件"
-"未更改包括 ICC 版权声明标签，未经事先明确书面许可，不得在与软件分发相关的广告"
-"或宣传中使用 ICC 名称。 ICC 不对该软件针对任何目的的适用性做出任何陈述。"
+"人，特此授予出于任何目的使用、复制和分发此文件的许可，无需付费，"
+"前提是该文件未更改包括 ICC 版权声明标签，未经事先明确书面许可，"
+"不得在与软件分发相关的广告或宣传中使用 ICC 名称。 ICC "
+"不对该软件针对任何目的的适用性做出任何陈述。"
 
 #: src/gui/icc_profile.c:123 src/gui/icc_profile.c:130
 msgid "No ICC profile"
-msgstr "无ICC色彩配置文件"
+msgstr "无ICC色彩特性文件"
 
 #: src/gui/icc_profile.c:166
 msgid ""
 "To write an ICC profile, assign a profile to the image using the Color "
 "Management dialog."
-msgstr "要写入 ICC 配置文件，请使用“色彩管理”对话框为图像分配配置文件。"
+msgstr "要写入 ICC 色彩特性文件，请使用“色彩管理”对话框为图像分配特性文件。"
 
 #: src/gui/icc_profile.c:167
 msgid "Image is not color managed. Will not write an ICC profile."
-msgstr "图像未进行色彩管理。不会写入 ICC 配置文件。"
+msgstr "图像未进行色彩管理。不会写入 ICC 色彩特性文件。"
 
 #: src/gui/icc_profile.c:307 src/gui/icc_profile.c:375
 msgid "No color profile chosen, nothing to assign."
-msgstr "未选择色彩配置文件，无需指定任何内容。"
+msgstr "未选择色彩特性文件，无需分配任何内容。"
 
 #. We save the undo state as dealing with gfit
 #: src/gui/icc_profile.c:312
 msgid "Color profile assignment"
-msgstr "彩色配置文件分配"
+msgstr "彩色特性文件分配"
 
 #: src/gui/icc_profile.c:324
 msgid "Color space has incorrect channels"
@@ -20993,9 +20975,8 @@ msgstr "色空间含有无效的通道"
 msgid ""
 "Mismatch in number of channels between the current image and the ICC "
 "profile. You cannot assign a RGB ICC profile to a mono image."
-msgstr ""
-"当前图像和ICC配置文件之间的通道数不匹配。无法将RGB ICC配置文件应用于单色图"
-"像。"
+msgstr "当前图像和ICC色彩特性文件之间的通道数不匹配。无法将RGB "
+"ICC色彩特性文件应用于单色图像。"
 
 #: src/gui/icc_profile.c:334 src/gui/icc_profile.c:387
 msgid "Color space not supported"
@@ -21005,9 +20986,8 @@ msgstr "色彩空间不支持"
 msgid ""
 "Siril only supports representing the image in Gray or RGB color spaces at "
 "present. You cannot assign or convert to non-RGB color profiles"
-msgstr ""
-"Siril 目前仅支持以灰度或 RGB 色彩空间表示图像。您无法分配或转换为非 RGB 色彩"
-"配置文件"
+msgstr "Siril 目前仅支持以灰度或 RGB 色彩空间表示图像。您无法分配或转换为非 RGB "
+"的彩色特性文件"
 
 #: src/gui/icc_profile.c:338
 msgid "Transform not supported"
@@ -21017,26 +20997,26 @@ msgstr "变换不支持"
 msgid ""
 "Image cannot be assigned a color profile with a different number of channels "
 "to its current color profile"
-msgstr "无法为图像分配通道数与其当前色彩配置文件不同的色彩配置文件"
+msgstr "无法为图像分配通道数与其当前色彩特性不同的色彩特性文件"
 
 #. We save the undo state as dealing with gfit
 #: src/gui/icc_profile.c:359
 msgid "Color profile removal"
-msgstr "色彩配置文件移除"
+msgstr "色彩特性文件移除"
 
 #: src/gui/icc_profile.c:380
 msgid "No color profile set"
-msgstr "未设置色彩配置文件"
+msgstr "未设置色彩特性文件"
 
 #: src/gui/icc_profile.c:380
 msgid "The current image has no color profile. You need to assign one first."
-msgstr "当前图像没有色彩配置文件。您需要先分配一个。"
+msgstr "当前图像没有色彩特性文件。您需要先分配一个。"
 
 #. Do the transform
 #. We save the undo state if dealing with gfit
 #: src/gui/icc_profile.c:393
 msgid "Color profile conversion"
-msgstr "色彩配置文件转换"
+msgstr "色彩特性文件转换"
 
 #: src/gui/icc_profile.c:469 src/gui/icc_profile.c:474
 msgid "Could not load file"
@@ -21048,11 +21028,11 @@ msgstr "从小部件获取文件名时出错。"
 
 #: src/gui/icc_profile.c:474
 msgid "Error loading selected file or it does not contain a valid ICC profile."
-msgstr "加载所选文件时出错，或者它不包含有效的 ICC 配置文件。"
+msgstr "加载所选文件时出错，或者它不包含有效的 ICC 色彩特性文件。"
 
 #: src/gui/icc_profile.c:481
 msgid "Profile error"
-msgstr "描述文件错误"
+msgstr "色彩特性文件错误"
 
 #: src/gui/icc_profile.c:481
 msgid ""
@@ -21060,17 +21040,17 @@ msgid ""
 "spaces (e.g. CIE La*b*, XYZ, HSL) as image working spaces is not supported, "
 "though these color spaces may be used internally for some operations."
 msgstr ""
-"错误：配置文件未描述 RGB 色彩空间。不支持使用非 RGB 色彩空间（例如 CIE "
+"错误：特性文件未描述 RGB 色彩空间。不支持使用非 RGB 色彩空间（例如 CIE "
 "La*b*、XYZ、HSL）作为图像工作空间，尽管这些色彩空间可能在内部用于某些操作。"
 
 #: src/gui/icc_profile.c:524
 msgid ""
 "Error: no ICC profile associated with the current image. Cannot export.\n"
-msgstr "错误：没有与当前图像关联的 ICC 配置文件。无法导出。\n"
+msgstr "错误：没有与当前图像关联的 ICC 色彩特性文件。无法导出。\n"
 
 #: src/gui/icc_profile.c:551
 msgid "Chromaticity plot only works with RGB color profiles"
-msgstr "色度图表仅适用于 RGB 色彩配置文件"
+msgstr "色度图表仅适用于 RGB 色彩特性文件"
 
 #: src/gui/image_display.c:171
 msgid ""
@@ -21958,15 +21938,14 @@ msgstr "重置偏好设置"
 
 #: src/gui/preferences.c:1080
 msgid "External ICC Profiles"
-msgstr "外部ICC色彩配置文件"
+msgstr "外部ICC色彩特性文件"
 
 #: src/gui/preferences.c:1080
 msgid ""
 "In order to use ICC profiles loaded from files as your preferred color space "
 "you must set the Preferred Color Space drop-down to \"From files\"."
-msgstr ""
-"为了使用从文件载入的 ICC 配置文件作为您的首选色彩空间，您必须将首选色彩空间下"
-"拉列表设置为“来自文件”。"
+msgstr "为了使用从文件载入的 ICC 色彩特性文件作为您的首选色彩空间，您必须将首选色彩空"
+"间下拉列表设置为“来自文件”。"
 
 #: src/gui/preferences.c:1105
 msgid "WARNING!"
@@ -22325,29 +22304,29 @@ msgstr "图像宽度、高度、位深和通道数必须匹配"
 msgid ""
 "Color profiles did not match: left-hand image has been converted to right-"
 "hand image color profile.\n"
-msgstr "色彩配置文件不匹配：左侧图像已转换为右侧图像色彩配置文件。\n"
+msgstr "色彩特性不匹配：左侧图像已转换为右侧图像色彩特性。\n"
 
 #: src/gui/remixer.c:1154
 msgid ""
 "Color profiles did not match: right-hand image has been assigned the left-"
 "hand image color profile.\n"
-msgstr "色彩配置文件不匹配：右侧图像已分配给左侧图像色彩配置文件。\n"
+msgstr "色彩特性不匹配：右侧图像已分配给左侧图像色彩特性。\n"
 
 #: src/gui/remixer.c:1187
 msgid "Setting the output image ICC profile to the working color space.\n"
-msgstr "将输出图像 ICC 配置文件设置为工作色彩空间。\n"
+msgstr "将输出图像 ICC 色彩特性文件设置为工作色彩空间。\n"
 
 #: src/gui/remixer.c:1240 src/gui/remixer.c:1248
 msgid ""
 "Color profiles did not match: right-hand image has been converted to left-"
 "hand image color profile.\n"
-msgstr "色彩配置文件不匹配：右侧图像已转换为左侧图像色彩配置文件。\n"
+msgstr "色彩特性不匹配：右侧图像已转换为左侧图像色彩特性。\n"
 
 #: src/gui/remixer.c:1243
 msgid ""
 "Color profiles did not match: left-hand image has been assigned the right-"
 "hand image color profile.\n"
-msgstr "色彩配置文件不匹配：左侧图像已分配右侧图像色彩配置文件。\n"
+msgstr "色彩特性不匹配：左侧图像已分配右侧图像色彩特性。\n"
 
 #: src/gui/remixer.c:1317 src/gui/remixer.c:1365
 msgid "There is no starless image loaded"
@@ -22718,9 +22697,8 @@ msgid ""
 "This version of Siril includes a color management tool. A left-click on this "
 "button allows you to manage ICC profiles, while a right-click displays the "
 "image in soft proofing mode."
-msgstr ""
-"此版本的Siril包含一个色彩管理工具。左键单击此按钮可以管理ICC配置文件。右键单"
-"击则可以以软打样模式显示图像。"
+msgstr "此版本的Siril包含一个色彩管理工具。左键单击此按钮可以管理ICC色彩特性文件。右"
+"键单击则可以以软打样模式显示图像。"
 
 #: src/gui/siril_intro.c:56
 msgid ""
@@ -22743,9 +22721,8 @@ msgstr ""
 msgid ""
 "All color management options are now centralized in the preferences. This "
 "allows for professional-level work with any mono or RGB ICC profile."
-msgstr ""
-"所有色彩管理选项都集中到了偏好设置中。允许使用单色或RGB的ICC配置文件进行专业"
-"级别的工作。"
+msgstr "所有色彩管理选项都集中到了偏好设置中。允许使用单色或RGB的ICC色彩特性文件进行"
+"专业级别的工作。"
 
 #: src/gui/siril_intro.c:59
 msgid ""
@@ -23096,11 +23073,10 @@ msgid ""
 msgstr "将值的范围重新缩放至 0.0 - 1.0，负值截断"
 
 #: src/gui/utils.c:408
-#, fuzzy
 msgid ""
 "Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to "
 "bring negative pixel values into range"
-msgstr "将值的范围重新缩放至 0.0 - 1.0，并应用一个偏移量以将负值抬高为非负"
+msgstr "将值的范围重新缩放至 0.0 - 1.0，并应用一个偏移量以将负值抬高到此范围内"
 
 #: src/gui/utils.c:479
 #, c-format
@@ -23534,7 +23510,7 @@ msgstr "Fitsio 读取数据时出错，文件: %s。\n"
 
 #: src/io/image_format_fits.c:980
 msgid "Warning: error encountered writing ICC profile to FITS.\n"
-msgstr "警告：将 ICC 配置文件写入 FITS 时遇到错误。\n"
+msgstr "警告：将 ICC 色彩特性文件写入 FITS 时遇到错误。\n"
 
 #: src/io/image_format_fits.c:1204
 #, c-format
@@ -23828,15 +23804,15 @@ msgstr "抱歉，Siril无法打开文件：%s\n"
 
 #: src/io/image_formats_libraries.c:1167
 msgid "Read ICC profile from JPEG.\n"
-msgstr "从 JPEG 读取 ICC 配置文件。\n"
+msgstr "从 JPEG 读取 ICC 色彩特性文件。\n"
 
 #: src/io/image_formats_libraries.c:1170
 msgid "Cannot read an ICC profile from this JPEG, assuming sRGB.\n"
-msgstr "无法从此 JPEG 读取 ICC 配置文件（假定为 sRGB）。\n"
+msgstr "无法从此 JPEG 读取 ICC 色彩特性文件（假定为 sRGB）。\n"
 
 #: src/io/image_formats_libraries.c:1173
 msgid "JPEG ICC profile support unavailable, assuming sRGB.\n"
-msgstr "JPEG ICC 配置文件支持不可用（假定为 sRGB）。\n"
+msgstr "JPEG ICC 色彩特性文件支持不可用（假定为 sRGB）。\n"
 
 #: src/io/image_formats_libraries.c:1209
 #, c-format
@@ -23849,7 +23825,7 @@ msgstr "Siril无法创建JPG文件。\n"
 
 #: src/io/image_formats_libraries.c:1382
 msgid "Error: failed to write ICC profile to JPG\n"
-msgstr "错误：无法将 ICC 配置文件写入 JPG\n"
+msgstr "错误：无法将 ICC 色彩特性文件写入 JPG\n"
 
 #: src/io/image_formats_libraries.c:1403
 #, c-format
@@ -23928,8 +23904,8 @@ msgstr "这是一个由%d帧图像所组成的序列：读取第一帧。\n"
 msgid ""
 "Error getting ICC profile from HEIF file. Continuing: you will need to "
 "manually assign an ICC profile\n"
-msgstr ""
-"从 HEIF 文档获取 ICC 配置文件时出错。继续：您将需要手动分配 ICC 配置文件\n"
+msgstr "从 HEIF 文档获取 ICC 色彩特性文件时出错。继续：您将需要手动分配 ICC "
+"色彩特性文件\n"
 
 #: src/io/image_formats_libraries.c:2671
 msgid "Input image has undefined bit-depth.\n"
@@ -24530,11 +24506,11 @@ msgstr "使用图层 %d 中的对齐信息导出序列\n"
 msgid ""
 "Reference frame has an ICC profile. Will assign / convert other frames to to "
 "match.\n"
-msgstr "参考帧具有 ICC 配置文件。将分配/转换其他帧以进行匹配。\n"
+msgstr "参考帧具有 ICC 色彩特性文件。将分配/转换其他帧以进行匹配。\n"
 
 #: src/io/sequence_export.c:209 src/io/sequence_export.c:240
 msgid "Reference frame has an ICC profile. Exporting as sRGB.\n"
-msgstr "参考帧含有ICC配置文件。导出为sRGB。\n"
+msgstr "参考帧含有ICC色彩特性文件。导出为sRGB。\n"
 
 #: src/io/sequence_export.c:219
 #, c-format
@@ -24575,7 +24551,7 @@ msgstr "序列中的图像尺寸不一致\n"
 msgid ""
 "Info: this frame has an ICC profile but the reference frame does not. "
 "Profile will be preserved...\n"
-msgstr "信息：此帧具有 ICC 配置文件，但参考帧没有。配置文件将被保留...\n"
+msgstr "信息：此帧具有 ICC 色彩特性文件，但参考帧没有。特性文件将被保留...\n"
 
 #: src/io/sequence_export.c:615
 msgid "Sequence export failed. Check the log."
@@ -25281,7 +25257,7 @@ msgstr "意外的空背景样本"
 
 #: src/io/siril_pythoncommands.c:1865
 msgid "Image has no ICC profile"
-msgstr "图像不含 ICC 配置文件"
+msgstr "图像不含 ICC 色彩特性文件"
 
 #: src/io/siril_pythoncommands.c:1887 src/io/siril_pythoncommands.c:2373
 msgid "Image has no FITS header"
@@ -25380,9 +25356,8 @@ msgid "Argument error"
 msgstr "参数错误"
 
 #: src/io/siril_pythoncommands.c:2394
-#, fuzzy
 msgid "Could not create the new sequence"
-msgstr "无法创建命名管道 %s\n"
+msgstr "无法创建新序列"
 
 #: src/io/siril_pythoncommands.c:2402
 msgid "Unknown command"
@@ -25455,22 +25430,20 @@ msgid "Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"
 msgstr "图像尺寸或格式无效: w = %u, h = %u, c = %u, size = %s"
 
 #: src/io/siril_pythonmodule.c:585
-#, fuzzy
 msgid "Error: image pixelbuffer does not match expected size"
-msgstr "错误：图像不匹配"
+msgstr "错误：图像像素缓冲区与预期尺寸不匹配"
 
 #: src/io/siril_pythonmodule.c:587
 msgid "Error in send_response: size mismatch\n"
-msgstr ""
+msgstr "send_response错误：尺寸不匹配\n"
 
 #: src/io/siril_pythonmodule.c:591
 msgid "Error: image dimensions exceed available memory"
 msgstr "错误：图像尺寸超出可用内存"
 
 #: src/io/siril_pythonmodule.c:593
-#, fuzzy
 msgid "Error in send_response: image exceeds available memory\n"
-msgstr "错误：图像尺寸超出可用内存"
+msgstr "send_response错误：图像尺寸超出可用内存\n"
 
 #: src/io/siril_pythonmodule.c:621 src/io/siril_pythonmodule.c:747
 #: src/io/siril_pythonmodule.c:801 src/io/siril_pythonmodule.c:891
@@ -25609,9 +25582,9 @@ msgid "Failed to execute Python script: %s\n"
 msgstr "无法执行Python脚本：%s\n"
 
 #: src/io/spcc_json.c:64 src/io/spcc_json.c:281 src/io/spcc_json.c:521
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading SPCC JSON file %s: %s (at position %zu)\n"
-msgstr "加载 SPCC JSON 文件时出错：%s\n"
+msgstr "加载 SPCC JSON 文件%s时出错：%s （在位置%zu处）\n"
 
 #: src/io/spcc_json.c:72
 msgid "Error: The JSON file should contain an array of objects.\n"
@@ -25893,7 +25866,7 @@ msgstr "在控制台模式运行siril命令脚本，如果参数为“-”则sir
 #: src/main-cli.c:124 src/main.c:133
 msgid ""
 "load configuration from file name instead of the default configuration file"
-msgstr "从特定文件读取描述而非缺省的描述文件"
+msgstr "从特定文件读取色彩特性而非缺省的配置文件"
 
 #: src/main-cli.c:125 src/main.c:134
 msgid "run in console mode with command and log stream through named pipes"
@@ -25904,9 +25877,8 @@ msgid "specify the path for the read pipe, the one receiving commands"
 msgstr "指定读取管道的路径，即接收命令的路径"
 
 #: src/main-cli.c:127 src/main.c:136
-#, fuzzy
 msgid "specify the path for the write pipe, the one outputting messages"
-msgstr "指定写入管道的路径，即输出消息的路径"
+msgstr "指定输出消息的写管道的路径"
 
 #: src/main-cli.c:128 src/main.c:137
 msgid ""
@@ -26289,20 +26261,20 @@ msgstr "单个表达式中最多可以使用 %d 帧图像。\n"
 msgid ""
 "ICC profiles are inconsistent. The output color profile will be based on the "
 "first layer to be loaded.\n"
-msgstr "ICC 配置文件不一致。输出色彩配置文件将基于要加载的第一图层。\n"
+msgstr "ICC 色彩特性文件不一致。输出色彩特性文件将基于要加载的第一图层。\n"
 
 #: src/pixelMath/pixel_math_runner.c:1061
 #, c-format
 msgid ""
 "ICC profile of layer %d does not match the first image. Converting it to "
 "match.\n"
-msgstr "%d 图层的 ICC 配置文件与第一张图像不匹配。将其转换为匹配。\n"
+msgstr "%d 图层的 ICC 色彩特性文件与第一张图像不匹配。将其转换为匹配。\n"
 
 #: src/pixelMath/pixel_math_runner.c:1063
 msgid ""
 "The first layer loaded had no color profile. All input layers will be "
 "treated as raw data.\n"
-msgstr "加载的第一图层没有色彩配置文件。所有输入图层都将被视为原始数据。\n"
+msgstr "加载的第一图层没有色彩特性文件。所有输入图层都将被视为原始数据。\n"
 
 #: src/pixelMath/pixel_math_runner.c:1080
 msgid "Incompatible parameters"
@@ -26966,11 +26938,11 @@ msgid "The number of stars has capped, readapting threshold and filtering\n"
 msgstr "星点数量达到上限，重新调整阈值和筛选条件\n"
 
 #: src/registration/global.c:1004
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Trial #%d: After sequence alignment, image #%d could not align more than "
 "half of the frames, recomputing\n"
-msgstr "试验 #%d：序列对齐后，图像 #%d 无法使超过半数的帧对齐，重新计算\n"
+msgstr "第%d次尝试：序列对齐后，图像#%d无法对齐超过半数的帧，正在重新计算\n"
 
 #: src/registration/global.c:1026
 #, c-format
@@ -26997,11 +26969,11 @@ msgid ""
 msgstr "序列分析后，我们选择图像%d作为新参考用于对齐\n"
 
 #: src/registration/global.c:1055
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "After sequence alignment, image %d is too far from the sequence cog, "
 "recomputing\n"
-msgstr "序列对齐后，图像%d离序列重心太远，重新计算\n"
+msgstr "序列对齐后，图像%d距离序列重心太远，正在重新计算\n"
 
 #: src/registration/global.c:1056
 #, c-format
