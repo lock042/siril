@@ -51,7 +51,7 @@
 #include "filters/graxpert.h"
 
 // Uncomment the following line for highly verbose debugging messages
-// #define GRAXPERT_DEBUG
+#define GRAXPERT_DEBUG
 // The following line keeps the config file
 // #define GRAXPERT_CONFIG_DEBUG
 
@@ -84,7 +84,7 @@ const gchar** get_ai_models(graxpert_operation operation) {
 }
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
-	siril_debug_print("GraXpert exited with status %d\n", status);
+	siril_log_message("GraXpert exited with status %d\n", status);
 	g_spawn_close_pid(pid);
 }
 
@@ -139,6 +139,7 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	g_free(columns_str);
 
 	if (!spawn_result) {
+		siril_log_color_message("spawn_async failed\n", "salmon");
 		return error;
 	}
 
@@ -161,10 +162,11 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 	if (!get_thread_run()) {
 		return retval;
 	}
-
+	siril_log_color_message("exec_prog_graxpert() about to spawn the program...\n", "salmon");
 	// g_spawn handles wchar so not need to convert
 	if (!is_sequence) set_progress_bar_data(_("Starting GraXpert..."), 0.0);
 	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL, &child_stderr);
+	siril_log_color_message("exec_prog_graxpert() called spawn_graxpert, about to parse its output...\n", "salmon");
 
 	int i = 0;
 	while (argv[i])
@@ -192,7 +194,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
 #ifdef GRAXPERT_DEBUG
-		siril_debug_print("%s\n", buffer);
+		siril_log_message("%s\n", buffer);
 #endif
 		gchar *arg = g_strstr_len(buffer, -1, progress_key);
 		double value = -1.0;
@@ -217,7 +219,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 				siril_log_message(_("GraXpert caught buffer: %s : exit successful\n"), buffer);
 #endif
 		} else if (doprint && verbose) {
-			if (!g_strstr_len(buffer, -1, "ForkProcess") && !g_strstr_len(buffer, -1, "ai_version")) { // These are not useful messages
+		//	if (!g_strstr_len(buffer, -1, "ForkProcess") && !g_strstr_len(buffer, -1, "ai_version")) { // These are not useful messages
 				gchar *print_from = g_strstr_len(buffer, -1, "INFO");
 				if (print_from) {
 					if (strlen(print_from) > 9) {
@@ -225,7 +227,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 						siril_log_message("GraXpert: %s\n", print_from);
 					}
 				}
-			}
+		//	}
 		}
 #ifdef GRAXPERT_DEBUG
 		lastbuffer = g_strdup(buffer);
@@ -248,7 +250,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gbo
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	if (!g_close(child_stderr, &error))
-		siril_debug_print("%s\n", error->message);
+		siril_log_message("%s\n", error->message);
 	return retval;
 }
 
@@ -278,9 +280,9 @@ static gchar** parse_ai_versions(const char* version_line) {
 	// Copy each version string
 	for (int i = 0; i < count; i++) {
 		result[i] = g_strdup(g_strstrip(versions_array[i]));
-		siril_debug_print("%s ", result[i]);
+		siril_log_message("%s ", result[i]);
 	}
-	siril_debug_print("\n");
+	siril_log_message("\n");
 	result[count] = NULL;  // NULL-terminate the array
 
 	g_strfreev(versions_array);
@@ -326,7 +328,7 @@ static GError *spawn_graxpert_sync(gchar **argv, gint columns,
 }
 
 gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
-	siril_debug_print("AI version check\n");
+	siril_log_message("AI version check\n");
 	g_mutex_lock(&ai_version_check_mutex);
 	const gchar *key = "available remotely: [";
 	gchar **result = NULL;
@@ -335,12 +337,12 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 
 	if (memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
 		if (!executable || executable[0] == '\0') {
-			siril_debug_print("No executable defined\n");
+			siril_log_message("No executable defined\n");
 			g_mutex_unlock(&ai_version_check_mutex);
 			return FALSE;
 		}
 		if (!g_file_test(executable, G_FILE_TEST_IS_EXECUTABLE)) {
-			siril_debug_print("Executable indicates it is not executable\n");
+			siril_log_message("Executable indicates it is not executable\n");
 			g_mutex_unlock(&ai_version_check_mutex);
 			return FALSE;
 		}
@@ -372,7 +374,7 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 			// Find the start of the version substring
 			gchar *start = g_strstr_len(output, -1, key);
 			if (start) {
-				siril_debug_print("Version string found for %d\n", (int) operation);
+				siril_log_message("Version string found for %d\n", (int) operation);
 				result = parse_ai_versions(start);
 			}
 			g_free(output);
@@ -577,9 +579,9 @@ gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operatio
 
 gpointer graxpert_setup_async(gpointer user_data) {
 	if (graxpert_fetchversion(com.pref.graxpert_path)) {
-		siril_debug_print("GraXpert version %d.%d.%d found\n", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
+		siril_log_message("GraXpert version %d.%d.%d found\n", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
 		fill_graxpert_version_arrays();
-		siril_debug_print("GraXpert AI model arrays populated\n");
+		siril_log_message("GraXpert AI model arrays populated\n");
 		version_number null_version = { 0 };
 		if (!com.headless && memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
 			// initialize widgets in the GTK thread
@@ -750,7 +752,7 @@ static void open_graxpert_result(graxpert_data *args) {
 	// Clean up config file if one was used
 #ifndef GRAXPERT_CONFIG_DEBUG
 	if (args->configfile && g_unlink(args->configfile))
-		siril_debug_print("Failed to remove GraXpert config file\n");
+		siril_log_message("Failed to remove GraXpert config file\n");
 #endif
 	// If successful, open the result image
 	/* Note: we do this even when sequence working: it's a bit inefficient to read it in,
@@ -786,7 +788,7 @@ static void open_graxpert_result(graxpert_data *args) {
 			// gets freed by the call to clearfits(result) and the result data becomes
 			// owned by args->fit
 			if (fits_swap_image_data(args->fit, result)) {
-				siril_debug_print("Error, NULL pointer passed to fits_swap_image_data\n");
+				siril_log_message("Error, NULL pointer passed to fits_swap_image_data\n");
 				goto END_AND_RETURN;
 			}
 			if (args->fit->type == DATA_FLOAT && com.pref.force_16bit) {
@@ -809,7 +811,7 @@ static void open_graxpert_result(graxpert_data *args) {
 		}
 		siril_log_message(_("Removing the temporary working file...\n"));
 		if (g_unlink(args->path))
-			siril_debug_print("Failed to unlink GraXpert working file\n");
+			siril_log_message("Failed to unlink GraXpert working file\n");
 		enable_profile_check_verbose();
 	}
 END_AND_RETURN:
@@ -818,6 +820,7 @@ END_AND_RETURN:
 }
 
 static gboolean end_graxpert(gpointer p) {
+	siril_log_color_message("Running idle...\n", "salmon");
 	stop_processing_thread();
 	open_graxpert_result((graxpert_data *) p);
 	free_graxpert_data((graxpert_data *) p);
@@ -978,13 +981,15 @@ gpointer do_graxpert (gpointer p) {
 	// Execute GraXpert
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
+	siril_log_color_message("About to run GraXpert...\n", "salmon");
 	retval = exec_prog_graxpert(my_argv, graxpert_no_exit_report, args->seq != NULL);
+	siril_log_color_message("Graxpert was run...\n", "salmon");
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
 	if (retval) {
 		if (g_unlink(path))
-			siril_debug_print("Error removing temporary file %s\n", path);
+			siril_log_message("Error removing temporary file %s\n", path);
 		goto ERROR_OR_FINISHED;
 	}
 
@@ -998,14 +1003,17 @@ gpointer do_graxpert (gpointer p) {
 ERROR_OR_FINISHED:
 	g_free(outpath);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	siril_log_color_message("Progress reset\n", "salmon");
 	if (!retval && text) {
 		undo_save_state(&gfit, text);
 	}
 	g_free(text);
-	if (!args->seq && !com.script)
+	if (!args->seq && !com.script) {
+		siril_log_color_message("Adding idle...\n", "salmon");
 		siril_add_idle(end_graxpert, args); // this loads the result
-	else
+	} else {
 		open_graxpert_result(args);
+	}
 	return GINT_TO_POINTER(retval);
 }
 
