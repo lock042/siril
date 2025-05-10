@@ -764,21 +764,25 @@ class ONNXHelper:
         available_providers = onnxruntime.get_available_providers()
 
         if ai_gpu_acceleration:
-            # NVIDIA GPU - typically best performance for deep learning
-            if "CUDAExecutionProvider" in available_providers:
-                providers.append("CUDAExecutionProvider")
-
-            # TensorRT - optimized for NVIDIA GPUs but more specific than CUDA
+            # NVIDIA TensorRT - best performance if the model features are supported
             if "TensorrtExecutionProvider" in available_providers:
                 providers.append("TensorrtExecutionProvider")
 
-            # Apple Silicon / Neural Engine
+            # NVIDIA GPU - good fallback option, still much faster than CPU
+            if "CUDAExecutionProvider" in available_providers:
+                providers.append("CUDAExecutionProvider")
+
+            # Apple Silicon / Neural Engine (faster if available and supports the model features)
             if "CoreMLExecutionProvider" in available_providers:
                 providers.append("CoreMLExecutionProvider")
 
             # Apple MacOS (all ARM macs and Intel macs that support Metal)
             if "MPSExecutionProvider" in available_providers:
                 providers.append("MPSExecutionProvider")
+
+            # AMD GPU - fastest possible but commented out until not marked as experimental
+            #if "MIGraphXExecutionProvider" in available_providers:
+            #    providers.append("MIGraphXExecutionProvider")
 
             # AMD GPU
             if "ROCmExecutionProvider" in available_providers:
