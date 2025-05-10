@@ -3439,7 +3439,7 @@ int associate_header_to_memfile(const char *header, fitsfile *fptr) {
     int status = 0;
 
     char *header_copy = strdup(header);
-    char *line = strtok(header_copy, "\n");
+    char *line = strtok_r(header_copy, "\n");
 
     while (line != NULL) {
         if (fits_write_record(fptr, line, &status)) {
@@ -3448,7 +3448,7 @@ int associate_header_to_memfile(const char *header, fitsfile *fptr) {
             return status;
         }
 
-        line = strtok(NULL, "\n");
+        line = strtok_r(NULL, "\n");
     }
 
     free(header_copy);
