@@ -483,7 +483,7 @@ class SuppressedStderr:
         sys.stderr = self.original_stderr  # Restore Python stderr
         self.devnull.close()
 
-class ONNXRuntimeInstaller:
+class ONNXHelper:
     """
     A class to handle detection and installation of the appropriate ONNX Runtime
     package based on the system hardware and configuration.
@@ -494,14 +494,14 @@ class ONNXRuntimeInstaller:
 
     .. code-block:: python
 
-        installer = sirilpy.ONNXRuntimeInstaller()
+        installer = sirilpy.ONNXHelper()
         installer.install_onnxruntime()
 
 
     """
 
     def __init__(self):
-        """Initialize the ONNXRuntimeInstaller."""
+        """Initialize the ONNXHelper."""
         self.system = platform.system().lower()
 
     def install_onnxruntime(self):
@@ -792,3 +792,63 @@ class ONNXRuntimeInstaller:
                 return response.status_code == 200
             except Exception:
                 return False
+
+    def get_execution_providers_ordered(ai_gpu_acceleration=True):
+        """
+        Get execution providers ordered by priority.
+
+        This function returns a list of available ONNX Runtime execution providers
+        in a reasonable order of priority, covering major GPU platforms:
+        - NVIDIA GPUs (CUDAExecutionProvider)
+        - AMD GPUs (ROCmExecutionProvider)
+        - Intel GPUs (OpenVINOExecutionProvider)
+        - Apple Silicon (CoreMLExecutionProvider)
+        - DirectML for Windows GPUs (DmlExecutionProvider)
+        - TensorRT for optimized NVIDIA inference (TensorrtExecutionProvider)
+        - Generic GPU fallback (GPUExecutionProvider)
+
+        The CPU provider is always included as the final fallback option.
+
+        Args:
+            ai_gpu_acceleration (bool): Whether to include GPU acceleration providers.
+                                    Defaults to True.
+
+        Returns:
+            list: Ordered list of available execution providers.
+        """
+        providers = []
+        available_providers = onnxruntime.get_available_providers()
+
+        if ai_gpu_acceleration:
+            # NVIDIA GPU - typically best performance for deep learning
+            if "CUDAExecutionProvider" in available_providers:
+                providers.append("CUDAExecutionProvider")
+
+            # TensorRT - optimized for NVIDIA GPUs but more specific than CUDA
+            if "TensorrtExecutionProvider" in available_providers:
+                providers.append("TensorrtExecutionProvider")
+
+            # AMD GPU
+            if "ROCmExecutionProvider" in available_providers:
+                providers.append("ROCmExecutionProvider")
+
+            # Apple Silicon / Neural Engine
+            if "CoreMLExecutionProvider" in available_providers:
+                providers.append("CoreMLExecutionProvider")
+
+            # Intel GPU via OpenVINO
+            if "OpenVINOExecutionProvider" in available_providers:
+                providers.append("OpenVINOExecutionProvider")
+
+            # DirectML for Windows GPUs (supports various vendors)
+            if "DmlExecutionProvider" in available_providers:
+                providers.append("DmlExecutionProvider")
+
+            # Generic GPU fallback
+            if "GPUExecutionProvider" in available_providers:
+                providers.append("GPUExecutionProvider")
+
+        # CPU is always the fallback option
+        providers.append("CPUExecutionProvider")
+
+        return providers
