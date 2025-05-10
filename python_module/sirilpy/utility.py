@@ -573,10 +573,6 @@ class ONNXHelper:
                 package_name = "onnxruntime-directml"
             elif any(p for p in providers if "ROCm" in p):
                 package_name = "onnxruntime-rocm"
-            elif any(p for p in providers if "CoreML" in p) and self.system == "darwin":
-                # Check for Apple Silicon (M1/M2/etc.)
-                if platform.machine().lower() in ["arm64", "aarch64"]:
-                    package_name = "onnxruntime-silicon"
             elif any(p for p in providers if "OpenVINO" in p or "DML" in p):
                 package_name = "onnxruntime-intel"
 
@@ -605,41 +601,25 @@ class ONNXHelper:
                 # DirectML provides hardware acceleration for various GPUs on Windows
                 onnxruntime_pkg = "onnxruntime-directml"
 
+        elif self.system == "darwin":  # macOS
+            onnxruntime_pkg = "onnxruntime"
+
         elif self.system == "linux":
             if self._detect_nvidia_gpu():
                 onnxruntime_pkg = "onnxruntime-gpu"
-            elif self._detect_rocm_support() and self._detect_amd_gpu():
+            elif self.self._detect_amd_gpu():
                 # ROCm support for AMD GPUs on Linux
                 onnxruntime_pkg = "onnxruntime-rocm"
                 url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/"
             elif self._detect_intel_gpu():
-                # Check for OneAPI/Level Zero for Intel GPUs
-                try:
-                    subprocess.check_output(["clinfo"], stderr=subprocess.DEVNULL, text=True)
-                    output = subprocess.check_output(["clinfo"], stderr=subprocess.DEVNULL, text=True)
-                    if "Intel" in output and ("Level-Zero" in output or "NEO" in output):
-                        onnxruntime_pkg = "onnxruntime-intel"
-                except (subprocess.SubprocessError, FileNotFoundError):
+                onnxruntime_pkg = "onnxruntime-openvino"
                     pass
-
-        elif self.system == "darwin":  # macOS
-            if self._detect_apple_silicon():
-                # For Apple Silicon (M1/M2/etc.)
-                onnxruntime_pkg = "onnxruntime-silicon"
-            else:
-                # For Intel-based Macs
-                if self._detect_nvidia_gpu():
-                    # Older Macs might have NVIDIA GPUs
-                    onnxruntime_pkg = "onnxruntime-gpu"
-                else:
-                    # Standard package for Intel Macs will use CPU or Metal where available
-                    onnxruntime_pkg = "onnxruntime"
 
         return onnxruntime_pkg, url
 
     def _detect_nvidia_gpu(self):
         """
-        Detect if NVIDIA GPU is available.
+        Detect if NVIDIA GPU is available. (Required to check Windows and Linux, not required on MacOS.)
 
         Returns:
             bool: True if NVIDIA GPU is detected, False otherwise.
@@ -665,107 +645,71 @@ class ONNXHelper:
                     return "NVIDIA" in output
                 except (subprocess.SubprocessError, FileNotFoundError):
                     return False
-            elif self.system == "darwin":
-                # For macOS, check system_profiler
-                output = subprocess.check_output(["system_profiler", "SPDisplaysDataType"], text=True)
-                return "NVIDIA" in output
         except Exception:
             pass
         return False
 
     def _detect_amd_gpu(self):
         """
-        Detect if AMD GPU is available.
+        Detect if AMD GPU is available (Only needed on Linux, as on Windows the directml
+        package is used.)
 
         Returns:
             bool: True if AMD GPU is detected, False otherwise.
         """
         try:
-            if self.system == "windows":
-                output = subprocess.check_output(
-                    ["powershell", "-Command", "Get-WmiObject -Class Win32_VideoController"],
-                    text=True
-                )
+            # Try rocm-smi first
+            try:
+                output = subprocess.check_output(["rocm-smi"], stderr=subprocess.DEVNULL, text=True)
+                return True
+            except (subprocess.SubprocessError, FileNotFoundError):
+                pass
+
+            # Fallback to lspci
+            try:
+                output = subprocess.check_output(["lspci"], text=True)
                 return any(gpu in output for gpu in ["AMD", "ATI", "Radeon"])
-            if self.system == "linux":
-                # Try rocm-smi first
-                try:
-                    output = subprocess.check_output(["rocm-smi"], stderr=subprocess.DEVNULL, text=True)
-                    return True
-                except (subprocess.SubprocessError, FileNotFoundError):
-                    pass
-
-                # Fallback to lspci
-                try:
-                    output = subprocess.check_output(["lspci"], text=True)
-                    return any(gpu in output for gpu in ["AMD", "ATI", "Radeon"])
-                except (subprocess.SubprocessError, FileNotFoundError):
-                    return False
-            elif self.system == "darwin":
-                output = subprocess.check_output(["system_profiler", "SPDisplaysDataType"], text=True)
-                return any(gpu in output for gpu in ["AMD", "ATI", "Radeon"])
+            except (subprocess.SubprocessError, FileNotFoundError):
+                return False
         except Exception:
             pass
         return False
 
-    def _detect_intel_gpu(self):
+    def detect_intel_gpu_for_openvino(self):
         """
-        Detect if Intel GPU is available.
+        Detect if an Intel GPU compatible with OpenVINO is available.
 
         Returns:
-            bool: True if Intel GPU is detected, False otherwise.
+            bool: True if compatible Intel GPU is detected
         """
+        # First try using OpenVINO's native detection if available
         try:
-            if self.system == "windows":
-                output = subprocess.check_output(
-                    ["powershell", "-Command", "Get-WmiObject -Class Win32_VideoController"],
-                    text=True
-                )
-                return "Intel" in output and any(gpu in output.lower() for gpu in ["graphics", "gpu", "iris", "uhd", "hd graphics"])
-            if self.system == "linux":
-                try:
-                    output = subprocess.check_output(["lspci"], text=True)
-                    return "Intel" in output and any(gpu in output.lower() for gpu in ["graphics", "gpu", "iris", "uhd", "hd graphics"])
-                except (subprocess.SubprocessError, FileNotFoundError):
-                    return False
-            elif self.system == "darwin":
-                output = subprocess.check_output(["system_profiler", "SPDisplaysDataType"], text=True)
-                return "Intel" in output and any(gpu in output.lower() for gpu in ["graphics", "gpu", "iris", "uhd", "hd graphics"])
-        except Exception:
-            pass
-        return False
+            import openvino as ov
+            core = ov.Core()
+            available_devices = core.available_devices
+            return any(device.startswith("GPU") for device in available_devices)
+        except ImportError:
+            print("OpenVINO not installed, falling back to hardware detection")
+        except Exception as e:
+            print(f"Error using OpenVINO device detection: {e}")
 
-    def _detect_rocm_support(self):
-        """
-        Check if ROCm is installed and supported.
-
-        Returns:
-            bool: True if ROCm is supported, False otherwise.
-        """
+        # Fall back to lspci detection if OpenVINO is not available
         try:
-            if self.system == "linux":
-                try:
-                    subprocess.check_output(["rocm-smi"], stderr=subprocess.DEVNULL)
-                    return True
-                except (subprocess.SubprocessError, FileNotFoundError):
-                    pass
+            output = subprocess.check_output(["lspci"], text=True).lower()
 
-                # Check for ROCm directory
-                return os.path.exists("/opt/rocm")
-        except Exception:
-            pass
-        return False
+            # Intel integrated and discrete GPU keywords
+            intel_keywords = ["intel", "graphics", "iris", "uhd", "hd graphics", "arc",
+                            "a3", "a5", "a7", "a370m", "a730m", "a770", "a750",
+                            "a580", "a380", "battlemage"]
 
-    def _detect_apple_silicon(self):
-        """
-        Detect if running on Apple Silicon (ARM).
+            # Check for any Intel GPU
+            return "intel" in output and any(keyword in output for keyword in intel_keywords)
 
-        Returns:
-            bool: True if Apple Silicon is detected, False otherwise.
-        """
-        if self.system == "darwin":
-            return platform.machine().lower() in ["arm64", "aarch64"]
-        return False
+        except (subprocess.SubprocessError, FileNotFoundError):
+            return False
+        except Exception as e:
+            print(f"Error detecting Intel GPU: {e}")
+            return False
 
     def _check_onnxruntime_availability(self, package_name):
         """
@@ -828,13 +772,17 @@ class ONNXHelper:
             if "TensorrtExecutionProvider" in available_providers:
                 providers.append("TensorrtExecutionProvider")
 
-            # AMD GPU
-            if "ROCmExecutionProvider" in available_providers:
-                providers.append("ROCmExecutionProvider")
-
             # Apple Silicon / Neural Engine
             if "CoreMLExecutionProvider" in available_providers:
                 providers.append("CoreMLExecutionProvider")
+
+            # Apple MacOS (all ARM macs and Intel macs that support Metal)
+            if "MPSExecutionProvider" in available_providers:
+                providers.append("MPSExecutionProvider")
+
+            # AMD GPU
+            if "ROCmExecutionProvider" in available_providers:
+                providers.append("ROCmExecutionProvider")
 
             # Intel GPU via OpenVINO
             if "OpenVINOExecutionProvider" in available_providers:
