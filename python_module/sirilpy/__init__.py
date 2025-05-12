@@ -51,7 +51,7 @@ from .utility import (
     check_module_version,
     SuppressedStdout,
     SuppressedStderr,
-    ONNXRuntimeInstaller
+    ONNXHelper
 )
 from .exceptions import (
     SirilError,
@@ -109,7 +109,7 @@ __all__ = [
     'truncate_utf8',
     'SuppressedStdout',
     'SuppressedStderr',
-    'ONNXRuntimeInstaller',
+    'ONNXHelper',
     'human_readable_size',
     'download_with_progress',
     'LogColor',

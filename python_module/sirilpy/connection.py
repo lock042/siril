@@ -982,7 +982,10 @@ class SirilInterface:
 
         Args:
             message: Status message to display,
-            progress: Progress value in the range 0.0 to 1.0
+            progress: Progress value in the range 0.0 to 1.0. The following special
+                      values can be used: -1.0 will pulsate the progress bar, and
+                      -2.0 will update the progress bar text but will not update
+                      the progress shown in the bar.
 
         Raises:
             ValueError: If the progress argument is out of range,
@@ -991,7 +994,7 @@ class SirilInterface:
 
         try:
             # Validate progress value
-            if not 0.0 <= progress <= 1.0:
+            if not (0.0 <= progress <= 1.0 or progress == -1.0 or progress == -2.0):
                 raise ValueError(_("Progress value must be between 0.0 and 1.0"))
 
             # Convert string to UTF-8 bytes

@@ -613,7 +613,6 @@ class ONNXHelper:
                 url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/"
             elif self._detect_intel_gpu():
                 onnxruntime_pkg = "onnxruntime-openvino"
-                    pass
 
         return onnxruntime_pkg, url
 
@@ -737,19 +736,12 @@ class ONNXHelper:
             except Exception:
                 return False
 
-    def get_execution_providers_ordered(ai_gpu_acceleration=True):
+    def get_execution_providers_ordered(self, ai_gpu_acceleration=True):
         """
         Get execution providers ordered by priority.
 
         This function returns a list of available ONNX Runtime execution providers
         in a reasonable order of priority, covering major GPU platforms:
-        - NVIDIA GPUs (CUDAExecutionProvider)
-        - AMD GPUs (ROCmExecutionProvider)
-        - Intel GPUs (OpenVINOExecutionProvider)
-        - Apple Silicon (CoreMLExecutionProvider)
-        - DirectML for Windows GPUs (DmlExecutionProvider)
-        - TensorRT for optimized NVIDIA inference (TensorrtExecutionProvider)
-        - Generic GPU fallback (GPUExecutionProvider)
 
         The CPU provider is always included as the final fallback option.
 
@@ -760,47 +752,145 @@ class ONNXHelper:
         Returns:
             list: Ordered list of available execution providers.
         """
+        def has_tensorrt_library():
+            """
+            Checks if TensorRT libraries are available and can be loaded.
+            """
+            import ctypes.util
+            import ctypes
+
+            lib_names = {
+                "linux": "nvinfer",
+                "windows": "nvinfer",
+                "darwin": None  # TensorRT isn't available on macOS
+            }
+            lib_name = lib_names.get(platform.system().lower())
+            if not lib_name:
+                return False
+
+            path = ctypes.util.find_library(lib_name)
+            if path:
+                try:
+                    ctypes.CDLL(path)
+                    return True
+                except OSError:
+                    return False
+            return False
+
+        import onnxruntime
         providers = []
         available_providers = onnxruntime.get_available_providers()
 
         if ai_gpu_acceleration:
-            # NVIDIA TensorRT - best performance if the model features are supported
-            if "TensorrtExecutionProvider" in available_providers:
-                providers.append("TensorrtExecutionProvider")
+            if self.system == "darwin":
+                is_apple_silicon = (
+                    platform.machine().startswith(("arm", "aarch"))
+                )
+                # Apple Silicon / Neural Engine (faster if available and supports the model features)
+                if (is_apple_silicon):
+                    if "CoreMLExecutionProvider" in available_providers:
+                        # On Apple silicon it's safe to create a MLPROGRAM instead of the older MLMODEL
+                        providers.append(
+                            (
+                                "CoreMLExecutionProvider",
+                                {
+                                    "flags": "COREML_FLAG_CREATE_MLPROGRAM",
+                                },
+                            )
+                        )
+                    else:
+                        # On Intel silicon we omit the MLPROGRAM flag
+                        providers.append("CoreMLExecutionProvider")
 
-            # NVIDIA GPU - good fallback option, still much faster than CPU
-            if "CUDAExecutionProvider" in available_providers:
-                providers.append("CUDAExecutionProvider")
+                    # Apple MacOS (all ARM macs and Intel macs that support Metal)
+                    if "MPSExecutionProvider" in available_providers:
+                        providers.append("MPSExecutionProvider")
 
-            # Apple Silicon / Neural Engine (faster if available and supports the model features)
-            if "CoreMLExecutionProvider" in available_providers:
-                providers.append("CoreMLExecutionProvider")
+            elif self.system == "windows":
+                # NVIDIA TensorRT - best performance if the model features are supported
+                if "TensorrtExecutionProvider" in available_providers and has_tensorrt_library():
+                    providers.append("TensorrtExecutionProvider")
 
-            # Apple MacOS (all ARM macs and Intel macs that support Metal)
-            if "MPSExecutionProvider" in available_providers:
-                providers.append("MPSExecutionProvider")
+                # NVIDIA GPU - good fallback option, still much faster than CPU
+                if "CUDAExecutionProvider" in available_providers:
+                    providers.append("CUDAExecutionProvider")
 
-            # AMD GPU - fastest possible but commented out until not marked as experimental
-            #if "MIGraphXExecutionProvider" in available_providers:
-            #    providers.append("MIGraphXExecutionProvider")
+                # DirectML for Windows GPUs (supports various vendors)
+                if "DmlExecutionProvider" in available_providers:
+                    providers.append("DmlExecutionProvider")
 
-            # AMD GPU
-            if "ROCmExecutionProvider" in available_providers:
-                providers.append("ROCmExecutionProvider")
+            elif self.system == "linux":
+                # NVIDIA TensorRT - best performance if the model features are supported
+                if "TensorrtExecutionProvider" in available_providers and has_tensorrt_library():
+                    providers.append("TensorrtExecutionProvider")
 
-            # Intel GPU via OpenVINO
-            if "OpenVINOExecutionProvider" in available_providers:
-                providers.append("OpenVINOExecutionProvider")
+                # NVIDIA GPU - good fallback option, still much faster than CPU
+                if "CUDAExecutionProvider" in available_providers:
+                    providers.append("CUDAExecutionProvider")
 
-            # DirectML for Windows GPUs (supports various vendors)
-            if "DmlExecutionProvider" in available_providers:
-                providers.append("DmlExecutionProvider")
+                # AMD GPU - fastest possible but commented out until not marked as experimental
+                #if "MIGraphXExecutionProvider" in available_providers:
+                #    providers.append("MIGraphXExecutionProvider")
 
-            # Generic GPU fallback
-            if "GPUExecutionProvider" in available_providers:
-                providers.append("GPUExecutionProvider")
+                # AMD GPU
+                if "ROCmExecutionProvider" in available_providers:
+                    providers.append("ROCmExecutionProvider")
+
+                # Intel GPU via OpenVINO
+                if "OpenVINOExecutionProvider" in available_providers:
+                    providers.append("OpenVINOExecutionProvider")
 
         # CPU is always the fallback option
         providers.append("CPUExecutionProvider")
 
         return providers
+
+    def uninstall_onnxruntime(self):
+        """
+        Detects and uninstalls all variants of onnxruntime packages.
+        Checks for any package starting with 'onnxruntime'.
+
+        Returns:
+            list: A list of uninstalled packages
+        """
+        # Get all installed packages
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "list"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            installed_packages = result.stdout.splitlines()
+        except subprocess.CalledProcessError as e:
+            print(f"Error getting installed packages: {e}")
+            return []
+
+        # Find all packages that start with 'onnxruntime'
+        onnx_packages = []
+        for line in installed_packages:
+            parts = line.split()
+            if parts and parts[0].lower().startswith('onnxruntime'):
+                onnx_packages.append(parts[0])
+
+        # Uninstall found packages
+        if not onnx_packages:
+            print("No onnxruntime packages found.")
+            return []
+
+        print(f"Found onnxruntime packages: {', '.join(onnx_packages)}")
+        uninstalled = []
+
+        for package in onnx_packages:
+            print(f"Uninstalling {package}...")
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "uninstall", "-y", package],
+                    check=True
+                )
+                uninstalled.append(package)
+                print(f"Successfully uninstalled {package}")
+            except subprocess.CalledProcessError:
+                print(f"Failed to uninstall {package}")
+
+        return uninstalled
