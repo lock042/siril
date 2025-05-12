@@ -19,6 +19,10 @@ XX/XX/25
 * Fixed bad font kerning on macOS (#1508)
 * Fixed crash on Windows language change (#1560)
 * Fixed incorrect option handling in denoise (#1599)
+* Fixed poor star detection when input sequence was in 16b and preferences set in 32b (#1614)
+* Fixed incorrect image size with latest cameras added to LibRaw, Siril now uses 202502 snapshot (#1565)
+* Fixed metadata filling problem in PixelMath using $T (#1605)
+* Fixed python API SirilInterface::set_seq_frame_incl (#1617)
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)

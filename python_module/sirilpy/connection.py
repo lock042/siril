@@ -3634,7 +3634,7 @@ class SirilInterface:
             SirilError: on failure.
         """
         try:
-            if not self.is_image_loaded():
+            if not self.is_sequence_loaded():
                 raise NoSequenceError(_("Error in set_seq_frame_incl(): no sequence loaded"))
             # Pack the index and incl into bytes using network byte order (!)
             payload = struct.pack('!II', index, incl)
