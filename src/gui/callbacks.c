@@ -33,6 +33,7 @@
 #include "core/siril_language.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/arithm.h"
 #include "filters/graxpert.h"
 #include "gui/cut.h"
 #include "gui/graxpert.h"
@@ -42,6 +43,7 @@
 #include "gui/stacking.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
+#include "algos/demosaicing.h"
 #include "io/annotation_catalogues.h"
 #include "io/conversion.h"
 #include "io/films.h"
@@ -354,6 +356,7 @@ void unlock_roi_mutex() {
 gpointer on_set_roi() {
 	if (com.selection.w == 0 && com.selection.h == 0)
 		return GINT_TO_POINTER(0);
+	rectangle sel = com.selection;
 	g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 	if (com.python_command) {
 		g_mutex_unlock(&roi_mutex);
@@ -365,7 +368,7 @@ gpointer on_set_roi() {
 	// Ensure any pending ROI changes are overwritten by the backup
 	// Must copy the whole backup to gfit and gui.roi.fit to account
 	// for switching between full image and ROI
-	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
+	memcpy(&gui.roi.selection, &sel, sizeof(rectangle));
 	gui.roi.active = TRUE;
 	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && is_preview_active())
 		copy_backup_to_gfit();

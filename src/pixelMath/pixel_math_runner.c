@@ -479,10 +479,10 @@ static void update_metadata(fits *fit, gboolean do_sum) {
 			f[j++] = &var_fit[i];
 	f[j] = NULL;
 
-	if (!f[0])
+	if (!f[0] && single_image_is_loaded() )
 		// if no fit used (only constants),
-		// we copy the metadata from first image of the list
-		copy_fits_metadata(var_fit, fit);
+		// we copy the metadata from gfit
+		copy_fits_metadata(&gfit, fit);
 	else
 		merge_fits_headers_to_result2(fit, f, do_sum);
 	update_fits_header(fit);

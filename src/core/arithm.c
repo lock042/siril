@@ -750,3 +750,8 @@ float half_to_float(const uint16_t val) {
 
 	return *(float *)&bits;
 }
+
+int round_down_to_multiple(int value, int multiple) {
+    if (value < 0) return 0;
+    return (value / multiple) * multiple;
+}
