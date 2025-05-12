@@ -23,6 +23,7 @@ XX/XX/25
 * Fixed incorrect image size with latest cameras added to LibRaw, Siril now uses 202502 snapshot (#1565)
 * Fixed metadata filling problem in PixelMath using $T (#1605)
 * Fixed python API SirilInterface::set_seq_frame_incl (#1617)
+* Fixed FWHM units when printing alignement results (#1616)
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
