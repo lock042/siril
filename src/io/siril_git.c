@@ -43,15 +43,14 @@
 #ifdef HAVE_LIBGIT2
 #include <git2.h>
 
-static gboolean git_scripts_repo_cloned = FALSE;
-static gboolean git_spcc_repo_cloned = FALSE;
+static GMutex gui_repo_scripts_mutex = { 0 };
 
-gboolean is_scripts_repo_cloned() {
-	return git_scripts_repo_cloned;
+void gui_repo_scripts_mutex_lock() {
+	g_mutex_lock(&gui_repo_scripts_mutex);
 }
 
-gboolean is_spcc_repo_cloned() {
-	return git_spcc_repo_cloned;
+void gui_repo_scripts_mutex_unlock() {
+	g_mutex_unlock(&gui_repo_scripts_mutex);
 }
 
 const gchar *SCRIPT_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
@@ -524,6 +523,7 @@ static gboolean pyscript_version_check(const gchar *filename) {
 	g_object_unref(file);
 	return retval;
 }
+
 static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 	git_remote *remote = NULL;
 
@@ -710,7 +710,6 @@ int auto_update_gitscripts(gboolean sync) {
 				return 1;
 			} else {
 				siril_log_message(_("Repository cloned successfully!\n"));
-				git_scripts_repo_cloned = TRUE;
 			}
 		} else {
 			siril_log_message(_("Siril is in offline mode. Will not attempt to clone remote repository.\n"));
@@ -720,7 +719,6 @@ int auto_update_gitscripts(gboolean sync) {
 		}
 	} else {
 		siril_debug_print("Local scripts repository opened successfully!\n");
-		git_scripts_repo_cloned = TRUE;
 	}
 	gui.script_repo_available = TRUE;
 
@@ -803,6 +801,7 @@ int auto_update_gitscripts(gboolean sync) {
 	if (error < 0)
 		retval = 1;
 
+	gui_repo_scripts_mutex_lock();
 	/* populate gui.repo_scripts with all the scripts in the index.
 	* We ignore anything not ending in SCRIPT_EXT */
 	size_t entry_count = git_index_entrycount(index);
@@ -813,13 +812,15 @@ int auto_update_gitscripts(gboolean sync) {
 	for (i = 0; i < entry_count; i++) {
 		entry = git_index_get_byindex(index, i);
 		if ((g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) ||
-			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && pyscript_version_check(entry->path))) {
+			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && pyscript_version_check(entry->path)) ||
+			(g_str_has_suffix(entry->path, PYCSCRIPT_EXT))) {
 			gui.repo_scripts = g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", entry->path);
 #endif
 		}
 	}
+	gui_repo_scripts_mutex_unlock();
 
 	// Cleanup
 	cleanup:
@@ -866,11 +867,9 @@ int auto_update_gitspcc(gboolean sync) {
 			return 1;
 		} else {
 			siril_log_message(_("Repository cloned successfully!\n"));
-			git_spcc_repo_cloned = TRUE;
 		}
 	} else {
 		siril_debug_print("Local SPCC database repository opened successfully!\n");
-		git_spcc_repo_cloned = TRUE;
 	}
 	gui.spcc_repo_available = TRUE;
 

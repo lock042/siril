@@ -494,8 +494,8 @@ class ONNXHelper:
 
     .. code-block:: python
 
-        installer = sirilpy.ONNXHelper()
-        installer.install_onnxruntime()
+       installer = sirilpy.ONNXHelper()
+       installer.install_onnxruntime()
 
 
     """

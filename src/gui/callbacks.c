@@ -1542,7 +1542,10 @@ gboolean is_gui_ready() {
 	return gui_ready;
 }
 
-static gpointer initialize_spcc(gpointer user_data) {
+static GMutex spcc_mutex = {0};
+
+gpointer initialize_spcc(gpointer user_data) {
+	g_mutex_lock(&spcc_mutex);
 	// 1. Initialize the SPCC combos
 		populate_spcc_combos_async(GINT_TO_POINTER(1));
 	// 2. Update the repository
@@ -1551,10 +1554,34 @@ static gpointer initialize_spcc(gpointer user_data) {
 		// 3. Update the SPCC combos
 			populate_spcc_combos_async(GINT_TO_POINTER(0));
 	}
+	g_mutex_unlock(&spcc_mutex);
 	return GINT_TO_POINTER(0);
 }
 
-static gpointer initialize_scripts(gpointer user_data) {
+gpointer update_spcc(gpointer user_data) {
+	g_mutex_lock(&spcc_mutex);
+	// 1. Update the repository
+	if (com.pref.spcc.auto_spcc_update && is_online()) {
+		auto_update_gitspcc(TRUE);
+		// 2. Update the SPCC combos
+			populate_spcc_combos_async(GINT_TO_POINTER(0));
+	}
+	g_mutex_unlock(&spcc_mutex);
+	return GINT_TO_POINTER(0);
+}
+
+static GMutex script_mutex = {0};
+
+void lock_script_mutex() {
+	g_mutex_lock(&script_mutex);
+}
+
+void unlock_script_mutex() {
+	g_mutex_unlock(&script_mutex);
+}
+
+gpointer initialize_scripts(gpointer user_data) {
+	g_mutex_lock(&script_mutex);
 	// 1. Initialize the menu (verbose)
 	execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(com.pref.auto_script_update));
 	// 2. Update the repository
@@ -1563,6 +1590,19 @@ static gpointer initialize_scripts(gpointer user_data) {
 		// 3. Update the menu (not verbose)
 		execute_idle_and_wait_for_it(refresh_scripts_menu_in_thread, GINT_TO_POINTER(0));
 	}
+	g_mutex_unlock(&script_mutex);
+	return GINT_TO_POINTER(0);
+}
+
+gpointer update_scripts(gpointer user_data) {
+	g_mutex_lock(&script_mutex);
+	// 1. Update the repository
+	if (is_online()) {
+		auto_update_gitscripts(TRUE);
+		// 2. Update the menu (not verbose)
+		execute_idle_and_wait_for_it(refresh_scripts_menu_in_thread, GINT_TO_POINTER(0));
+	}
+	g_mutex_unlock(&script_mutex);
 	return GINT_TO_POINTER(0);
 }
 
@@ -1618,8 +1658,8 @@ void initialize_all_GUI(gchar *supported_files) {
 	if (!is_online()) {
 		siril_log_message(_("Siril started in offline mode. Will not attempt to update siril-scripts or siril-spcc-database...\n"));
 	}
-	g_thread_unref(g_thread_new("initialize_scripts", initialize_scripts, GINT_TO_POINTER(1)));
-	g_thread_unref(g_thread_new("initialize_spcc", initialize_spcc, GINT_TO_POINTER(1)));
+	g_thread_unref(g_thread_new("initialize_scripts", initialize_scripts, NULL));
+	g_thread_unref(g_thread_new("initialize_spcc", initialize_spcc, NULL));
 
 
 	/* initialize command processor */

@@ -53,6 +53,7 @@ enum {
 	N_COLUMNS
 };
 
+/*
 static int reset_scripts_repository() {
 	// Local directory where the repository will be cloned
 	const gchar *local_path = siril_get_scripts_repo_path();
@@ -63,7 +64,9 @@ static int reset_scripts_repository() {
 	}
 	return retval;
 }
+*/
 
+/*
 static int reset_spcc_repository() {
 	// Local directory where the repository will be cloned
 	const gchar *local_path = siril_get_spcc_repo_path();
@@ -74,6 +77,7 @@ static int reset_spcc_repository() {
 	}
 	return retval;
 }
+*/
 
 static void get_list_store() {
 	if (list_store == NULL) {
@@ -82,7 +86,7 @@ static void get_list_store() {
 	}
 }
 
-static gboolean fill_script_repo_list_idle(gpointer p) {
+static gboolean fill_script_repo_tree_idle(gpointer p) {
 	GtkTreeView *tview = (GtkTreeView *)p;
 	GtkTreeIter iter;
 	if (!tview)
@@ -99,6 +103,8 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 		GTK_TREE_SORTABLE(list_store), GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID,
 		GTK_SORT_ASCENDING);
 	gtk_tree_view_set_model(tview, NULL);
+
+	gui_repo_scripts_mutex_lock();
 	if (gui.repo_scripts) {
 		int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 		GList *iterator;
@@ -153,6 +159,8 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 			g_free(scriptpath); // it's ok to free this as the list_store keeps a copy internally
 		}
 	}
+	gui_repo_scripts_mutex_unlock();
+
 	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
 	return FALSE;
@@ -160,13 +168,13 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 
 /* called on preference window loading.
  * It is executed safely in the GTK thread if as_idle is true. */
-void fill_script_repo_list(gboolean as_idle) {
+void fill_script_repo_tree(gboolean as_idle) {
 
 	GtkTreeView *tview = GTK_TREE_VIEW(lookup_widget("treeview_scripts"));
 	if (as_idle)
-		gdk_threads_add_idle(fill_script_repo_list_idle, tview);
+		gdk_threads_add_idle(fill_script_repo_tree_idle, tview);
 	else
-		fill_script_repo_list_idle(tview);
+		fill_script_repo_tree_idle(tview);
 }
 
 void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
@@ -241,30 +249,33 @@ void on_disable_gitscripts() {
 	com.pref.use_scripts_repository = FALSE;
 	gtk_list_store_clear(liststore);
 	liststore = NULL;
+
+	gui_repo_scripts_mutex_lock();
 	g_list_free_full(gui.repo_scripts, g_free);
+	gui_repo_scripts_mutex_unlock();
+
 	gui.repo_scripts = NULL;
 	if (com.pref.selected_scripts)
 		g_list_free_full(com.pref.selected_scripts, g_free);
 	com.pref.selected_scripts = NULL;
-	refresh_script_menu(TRUE);
+	refresh_script_menu(GINT_TO_POINTER(1));
 }
 
 void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(button)) {
-		com.pref.use_scripts_repository = TRUE;
-		auto_update_gitscripts(FALSE);
-		fill_script_repo_list(FALSE);
+	com.pref.use_scripts_repository = gtk_toggle_button_get_active(button);
+	if (com.pref.use_scripts_repository) {
+		g_thread_unref(g_thread_new("update_scripts", initialize_scripts, NULL));
 	}
 	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.use_scripts_repository);
 	gtk_widget_set_sensitive(lookup_widget("treeview_scripts"), (com.pref.use_scripts_repository && gui.script_repo_available));
 }
 
 void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(button)) {
-		com.pref.spcc.use_spcc_repository = TRUE;
-		auto_update_gitspcc(FALSE);
+	com.pref.spcc.use_spcc_repository = gtk_toggle_button_get_active(button);
+	if (com.pref.spcc.use_spcc_repository) {
+		g_thread_unref(g_thread_new("update_spcc", initialize_spcc, NULL));
 	}
-	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.spcc.use_spcc_repository);
+	gtk_widget_set_sensitive(lookup_widget("spcc_repo_sync_at_startup"), com.pref.spcc.use_spcc_repository);
 }
 #else
 

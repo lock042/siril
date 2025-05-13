@@ -975,7 +975,7 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 #ifndef HAVE_LIBGIT2
 	hide_git_widgets();
 #else
-	fill_script_repo_list(FALSE);
+	fill_script_repo_tree(FALSE);
 #endif
 }
 
@@ -1016,7 +1016,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 			on_disable_gitscripts();
 		else
 #endif
-			refresh_script_menu(scripts_updated);	// To update the UI with scripts from the repo
+			refresh_script_menu(GINT_TO_POINTER((int) scripts_updated));	// To update the UI with scripts from the repo
 			// Note this line is part of the if/else with the #ifdef and always runs
 			// otherwise. This is intentional.
 		scripts_updated = FALSE;
