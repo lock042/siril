@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-07 21:19+0200\n"
-"PO-Revision-Date: 2025-05-05 08:22+0000\n"
+"POT-Creation-Date: 2025-05-08 18:57+0200\n"
+"PO-Revision-Date: 2025-05-09 11:07+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -4687,6 +4687,14 @@ msgid ""
 "GPUsupport but see GraXpert errors, disable it again and report the issue "
 "upstream to GraXpert."
 msgstr ""
+"Configurer GraXpert pour qu'il utilise le GPU, si disponible. Remarque : "
+"bien que GraXpert doive revenir à l'utilisation du CPU si le support GPU "
+"n'est pas disponible, dans certains cas, il peut échouer. L'option est "
+"désactivée par défaut, mais elle est persistante, de sorte que si votre GPU "
+"est pris en charge, vous pouvez l'activer et l'oublier par la suite. Si vous "
+"activez la prise en charge du GPU mais que vous constatez des erreurs de "
+"GraXpert, désactivez-la à nouveau et signalez le problème en amont à "
+"GraXpert."
 
 #: src/gui/uifiles/graxpert.ui:991
 msgid "AI batch size "
@@ -5781,15 +5789,16 @@ msgid "Siril Script Files"
 msgstr "Fichiers de Scripts Siril"
 
 #: src/gui/uifiles/python_scratchpad.ui:361
-#, fuzzy
 msgid ""
 "When active, any arguments entered in the args entry will be passed to the "
 "script when it is run.\n"
 "This also ensures SirilInterface is invoked in CLI mode "
 "(SirilInterface.is_cli() will return True)"
 msgstr ""
-"Lorsqu'il est actif, tout argument saisi dans la zone Arguments sera "
-"transmis au script lors de son exécution."
+"Lorsqu'il est actif, tous les arguments saisis dans l'entrée args seront "
+"transmis au script lorsqu'il sera exécuté.\n"
+"Cela garantit également que SirilInterface est invoqué en mode CLI "
+"(SirilInterface.is_cli() renverra True)"
 
 #: src/gui/uifiles/python_scratchpad.ui:363
 msgid "Enable test arguments"
@@ -16112,9 +16121,8 @@ msgid "The size of the key can't exceed 8 characters.\n"
 msgstr "La taille de la clé ne peut excéder 8 caractères.\n"
 
 #: src/core/command.c:1961
-#, fuzzy
 msgid "Updating keywords...\n"
-msgstr "Mettre à jour les mots clés...\n"
+msgstr "Mise à jour les mots clés...\n"
 
 #: src/core/command.c:2033 src/core/command.c:5904
 msgid "There can be only one prefix argument"
@@ -18747,10 +18755,9 @@ msgid "Fatal error: standard sRGB ICC profile could not be loaded.\n"
 msgstr "Erreur fatale : le profil ICC standard sRGB n'a pas pu être chargé.\n"
 
 #: src/core/icc_profile.c:607
-#, fuzzy
 msgid "Error: no filename specified for custom monitor profile.\n"
 msgstr ""
-"Erreur : aucun nom de fichier n'a été spécifié pour le profil de moniteur "
+"Erreur : aucun nom de fichier n'a été spécifié pour le profil de moniteur "
 "personnalisé.\n"
 
 #: src/core/icc_profile.c:613
@@ -18768,10 +18775,9 @@ msgid "Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"
 msgstr "Profil ICC du moniteur réglé sur sRGB (point blanc D65, gamma = 2.2)\n"
 
 #: src/core/icc_profile.c:656
-#, fuzzy
 msgid "Error: no filename specified for output device proofing profile.\n"
 msgstr ""
-"Erreur : aucun nom de fichier n'est spécifié pour le profil d'épreuvage du "
+"Erreur : aucun nom de fichier n'est spécifié pour le profil d'épreuvage du "
 "périphérique de sortie.\n"
 
 #: src/core/icc_profile.c:662
@@ -20007,7 +20013,7 @@ msgstr "montrer la vignette dans le sélecteur de fichiers"
 
 #: src/core/settings.c:506
 msgid "whether to use the GPU for GraXpert"
-msgstr ""
+msgstr "utilisation ou non du GPU pour GraXpert"
 
 #: src/core/settings.c:507
 msgid "size of the thumbnails"
@@ -20098,7 +20104,6 @@ msgid "color management soft proofing intent"
 msgstr "intention de l'épreuvage de la gestion des couleurs"
 
 #: src/core/settings.c:529
-#, fuzzy
 msgid "color management export intent"
 msgstr "intention d'exportation de la gestion des couleurs"
 
@@ -20109,20 +20114,16 @@ msgstr ""
 "colorimétriquement"
 
 #: src/core/settings.c:531
-#, fuzzy
 msgid "color management working gamut"
 msgstr "gamut de travail de la gestion des couleurs"
 
 #: src/core/settings.c:532
-#, fuzzy
 msgid "color management export profile for 8bit files"
 msgstr "profil d'exportation de la gestion des couleurs pour les fichiers 8bit"
 
 #: src/core/settings.c:533
-#, fuzzy
 msgid "color management export profile for 16bit files"
-msgstr ""
-"profil d'exportation de la gestion des couleurs pour les fichiers 16bit"
+msgstr "profil d'exportation de la gestion des couleurs pour les fichiers 16bit"
 
 #: src/core/settings.c:534
 msgid "autoconvert images with an ICC profile to the working color space"
@@ -22120,9 +22121,8 @@ msgstr ""
 "Aucun fichier ne peut être créé"
 
 #: src/gui/compstars.c:233
-#, fuzzy
 msgid "Problem with conversion\n"
-msgstr "Problème de conversion :\n"
+msgstr "Problème de conversion :\n"
 
 #. Header for the console display
 #: src/gui/compstars.c:248
@@ -25351,7 +25351,6 @@ msgstr ""
 "0.0 - 1.0, en écrêtant les valeurs négatives des pixels"
 
 #: src/gui/utils.c:408
-#, fuzzy
 msgid ""
 "Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to "
 "bring negative pixel values into range"
@@ -27867,9 +27866,8 @@ msgid "Argument error"
 msgstr "Erreur d'argument"
 
 #: src/io/siril_pythoncommands.c:2394
-#, fuzzy
 msgid "Could not create the new sequence"
-msgstr "Impossible de créer le tube nommé %s\n"
+msgstr "Impossible de créer la nouvelle séquence"
 
 #: src/io/siril_pythoncommands.c:2402
 msgid "Unknown command"
@@ -27948,22 +27946,22 @@ msgstr ""
 "Dimensions ou format d'image incorrects : w = %u, h = %u, c = %u, size = %s"
 
 #: src/io/siril_pythonmodule.c:585
-#, fuzzy
 msgid "Error: image pixelbuffer does not match expected size"
-msgstr "Erreur : les images ne correspondent pas"
+msgstr ""
+"Erreur : le tampon de pixels de l'image ne correspond pas à la taille "
+"attendue"
 
 #: src/io/siril_pythonmodule.c:587
 msgid "Error in send_response: size mismatch\n"
-msgstr ""
+msgstr "Erreur dans send_response : incompatibilité de taille\n"
 
 #: src/io/siril_pythonmodule.c:591
 msgid "Error: image dimensions exceed available memory"
 msgstr "Erreur : les dimensions de l'image dépassent la mémoire disponible"
 
 #: src/io/siril_pythonmodule.c:593
-#, fuzzy
 msgid "Error in send_response: image exceeds available memory\n"
-msgstr "Erreur : les dimensions de l'image dépassent la mémoire disponible"
+msgstr "Erreur dans send_response : l'image dépasse la mémoire disponible\n"
 
 #: src/io/siril_pythonmodule.c:621 src/io/siril_pythonmodule.c:747
 #: src/io/siril_pythonmodule.c:801 src/io/siril_pythonmodule.c:891
@@ -28120,9 +28118,9 @@ msgid "Failed to execute Python script: %s\n"
 msgstr "Échec de l'exécution du script Python : %s\n"
 
 #: src/io/spcc_json.c:64 src/io/spcc_json.c:281 src/io/spcc_json.c:521
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading SPCC JSON file %s: %s (at position %zu)\n"
-msgstr "Erreur de chargement du fichier SPCC JSON : %s\n"
+msgstr "Erreur de chargement du fichier SPCC JSON %s : %s (à la position %zu)\n"
 
 #: src/io/spcc_json.c:72
 msgid "Error: The JSON file should contain an array of objects.\n"
@@ -28441,10 +28439,9 @@ msgstr ""
 "spécifier le chemin pour le tube de lecture, celui qui reçoit les messages"
 
 #: src/main-cli.c:127 src/main.c:136
-#, fuzzy
 msgid "specify the path for the write pipe, the one outputting messages"
 msgstr ""
-"spécifier le chemin pour le tube d'écriture, celui qui sort les messages"
+"spécifier le chemin d'accès au tuyau d'écriture, celui qui émet les messages"
 
 #: src/main-cli.c:128 src/main.c:137
 msgid ""
@@ -29621,12 +29618,12 @@ msgid "The number of stars has capped, readapting threshold and filtering\n"
 msgstr "Le nombre d'étoiles a plafonné, seuil de réadaptation et filtrage\n"
 
 #: src/registration/global.c:1004
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Trial #%d: After sequence alignment, image #%d could not align more than "
 "half of the frames, recomputing\n"
 msgstr ""
-"Essai #%d : Après l'alignement de la séquence, l'image #%d n'a pas pu "
+"Essai #%d : Après l'alignement de la séquence, l'image #%d n'a pas pu "
 "aligner plus de la moitié des images, recalculer...\n"
 
 #: src/registration/global.c:1026
@@ -29660,13 +29657,13 @@ msgstr ""
 "référence pour l'alignement.\n"
 
 #: src/registration/global.c:1055
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "After sequence alignment, image %d is too far from the sequence cog, "
 "recomputing\n"
 msgstr ""
 "Après l'alignement de la séquence, l'image %d est trop éloignée de la "
-"séquence cog, recalculer...\n"
+"séquence cog, recalculer\n"
 
 #: src/registration/global.c:1056
 #, c-format

@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-07 21:19+0200\n"
-"PO-Revision-Date: 2025-05-02 19:48+0000\n"
-"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
+"POT-Creation-Date: 2025-05-08 18:57+0200\n"
+"PO-Revision-Date: 2025-05-09 11:07+0000\n"
+"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -4661,6 +4661,14 @@ msgid ""
 "GPUsupport but see GraXpert errors, disable it again and report the issue "
 "upstream to GraXpert."
 msgstr ""
+"Konfigurieren Sie GraXpert so, dass die GPU für die KI-Inferenz verwendet "
+"wird, falls verfügbar. Hinweis: Obwohl GraXpert auf die CPU-Nutzung "
+"zurückgreifen sollte, wenn keine GPU-Unterstützung verfügbar ist, kann dies "
+"in einigen Fällen fehlschlagen. Die Option ist standardmäßig ausgeschaltet, "
+"aber sie ist dauerhaft, so dass Sie, wenn Ihr Grafikprozessor unterstützt "
+"wird, sie einstellen und vergessen können. Wenn Sie die GPU-Unterstützung "
+"aktivieren, aber GraXpert-Fehler sehen, deaktivieren Sie sie wieder und "
+"melden Sie das Problem an GraXpert."
 
 #: src/gui/uifiles/graxpert.ui:991
 msgid "AI batch size "
@@ -5449,7 +5457,7 @@ msgstr "Scrollaction entfernen"
 
 #: src/gui/uifiles/mouse_actions.ui:277
 msgid "Scroll speed limit"
-msgstr ""
+msgstr "Begrenzung Bildlaufgeschwindigkeit"
 
 #: src/gui/uifiles/mouse_actions.ui:292
 msgid ""
@@ -5458,6 +5466,11 @@ msgid ""
 "you can limit the action step size using this control. Try starting with 1.0 "
 "and working down from there. 0.0 means unlimited."
 msgstr ""
+"Begrenzung der Bildlaufgeschwindigkeit. Für die meisten Mäuse nicht "
+"erforderlich, aber wenn Sie ein Problem haben, bei dem das Scrollrad seine "
+"Aktion (z. B. Zoom) viel zu schnell ausführt, können Sie die Schrittgröße "
+"der Aktion mit diesem Steuerelement begrenzen. Beginnen Sie mit 1,0 und "
+"arbeiten Sie sich von dort nach unten vor. 0,0 bedeutet unbegrenzt."
 
 #: src/gui/uifiles/mouse_actions.ui:316
 msgid "Scroll Actions"
@@ -9873,7 +9886,7 @@ msgstr "Lichtkurve (ETD-Format)"
 
 #: src/gui/uifiles/siril.ui:2704
 msgid "Build an output file in the AAVSO format"
-msgstr ""
+msgstr "Erstellen einer Ausgabedatei im AAVSO-Format"
 
 #: src/gui/uifiles/siril.ui:2705
 msgid "AAVSO file format"
@@ -19842,7 +19855,7 @@ msgstr "Vorschaubilder im Dialog \"Datei öffnen\" anzeigen"
 
 #: src/core/settings.c:506
 msgid "whether to use the GPU for GraXpert"
-msgstr ""
+msgstr "ob die GPU für GraXpert verwendet werden soll"
 
 #: src/core/settings.c:507
 msgid "size of the thumbnails"
@@ -19878,7 +19891,7 @@ msgstr "Zoom-Funktion der mittleren Maustaste"
 
 #: src/core/settings.c:515
 msgid "Mouse smooth scroll speed limit"
-msgstr ""
+msgstr "Begrenzung Mausgeschwindigkeit für sanften Bildlauf"
 
 #: src/core/settings.c:516
 msgid "configure background samples color"
@@ -24622,18 +24635,18 @@ msgid "Failed to load CSS sheet: %s.\n"
 msgstr "CSS-Tabelle konnte nicht geladen werden: %s.\n"
 
 #: src/gui/siril_intro.c:47
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Welcome to the newest version of Siril, %s. Please take a moment to read "
 "some tips about this release. If the rate is too slow, skip to the next tip "
 "using the right arrow of your keyboard. You can also go back to the previous "
 "tip using the left arrow and stop the animation with the escape key."
 msgstr ""
-". Bitte nehmen Sie sich einen Moment Zeit, um einige Tipps zu dieser Version "
-"zu lesen. Wenn das Tempo zu langsam ist, springen Sie mit der rechten "
-"Pfeiltaste auf Ihrer Tastatur zum nächsten Tipp. Sie können auch mit der "
-"linken Pfeiltaste zum vorherigen Tipp zurückkehren und die Animation mit der "
-"Escape-Taste anhalten."
+"Willkommen zur neuesten Version von SIRIL, %s. Bitte nehmen Sie sich einen "
+"Moment Zeit, um einige Tipps zu dieser Version zu lesen. Wenn das Tempo zu "
+"langsam ist, springen Sie mit der rechten Pfeiltaste auf Ihrer Tastatur zum "
+"nächsten Tipp. Sie können auch mit der linken Pfeiltaste zum vorherigen Tipp "
+"zurückkehren und die Animation mit der Escape-Taste anhalten."
 
 #: src/gui/siril_intro.c:48
 msgid ""
@@ -27700,7 +27713,7 @@ msgstr "Fehler: Bilder stimmen nicht überein"
 
 #: src/io/siril_pythonmodule.c:587
 msgid "Error in send_response: size mismatch\n"
-msgstr ""
+msgstr "Fehler in send_response: Größenunterschied\n"
 
 #: src/io/siril_pythonmodule.c:591
 msgid "Error: image dimensions exceed available memory"
@@ -28968,6 +28981,8 @@ msgstr ""
 msgid ""
 "Framing method \"max\" cannot export to FITSEQ or SER format, aborting\n"
 msgstr ""
+"Rahmungsmethode „max“ kann nicht in das FITSEQ- oder SER-Format exportieren "
+"und bricht ab\n"
 
 #: src/registration/applyreg.c:1196
 msgid "Reference image is not included in the filtered list, aborting\n"

@@ -4,7 +4,6 @@ XX/XX/25
 **Fixes:**
 * Fixed option -weight= for stack command and add filtering criteria in HISTORY key of stacked image (#1545)
 * Fixed crash and slowness when refreshing the scripts list (#1548, #1574)
-* Immplemented a better linear regression algorithm for SPCC (!853)
 * Python scripts are now sorted alphabetically (#1559)
 * Fixed crash in Noise Reduction with Independent Channels option selected (#1567)
 * Fixed UI hang when manually refreshing scripts or SPCC (#1566)
@@ -19,15 +18,24 @@ XX/XX/25
 * Fixed bad font kerning on macOS (#1508)
 * Fixed crash on Windows language change (#1560)
 * Fixed incorrect option handling in denoise (#1599)
+* Fixed poor star detection when input sequence was in 16b and preferences set in 32b (#1614)
+* Fixed incorrect image size with latest cameras added to LibRaw, Siril now uses 202502 snapshot (#1565)
+* Fixed metadata filling problem in PixelMath using $T (#1605)
+* Fixed crash in Image Plate Solver (#1609)
+* Fixed python API SirilInterface::set_seq_frame_incl (#1617)
+* Fixed FWHM units when printing alignement results (#1616)
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
 * Added a fork of tkfilebrowser to support improved script UI file selection on Linux (!864)
 * Implemented a better linear regression algorithm for SPCC (!853)
 * Python scripts are now sorted alphabetically (#1559)
+* Made crop and ROI selection CFA-aware (#1579)
 * Added an optional rate limit for smooth scroll zoom speed (#1576)
 * Added SirilInterface.create_new_seq() and SirilInterface.is_cli() in sirilpy (!867)
 * GraXpert "Use GPU" now defaults to False but is persistent (saved in config)
+* Added utility.ONNXHelper class in python module to make it easier to ensure the correct onnxruntime module is installed. (!874)
+* Added ability to calibrate images for debayering only, without Dark, Flat, or Bias files (#1619)
 
 siril 1.4.0-beta1
 04/26/25

@@ -1128,6 +1128,7 @@ clearup:
 	}
 	else {
 		free(args);
+		args = NULL;
 	}
 	if (is_verbose)
 		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
@@ -2209,13 +2210,14 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		aargs->distofilename = g_strdup(aargs_master->distofilename);
 	}
 
+	/* be careful, aargs is freed in plate_solver */
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
 
 	if (retval) {
 		siril_log_color_message(_("Image %s did not solve\n"), "red", root);
 	}
 
-	if (aargs->update_reg) // we don't want to exclude if it's just a seqplatesolve with astrometric registration
+	if (aargs_master->update_reg) // we don't want to exclude if it's just a seqplatesolve with astrometric registration
 		arg->seq->imgparam[i].incl = (gboolean)!retval;
 
 	if (!retval && !arg->has_output) { // SEQ_REGULAR

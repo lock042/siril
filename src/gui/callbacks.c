@@ -34,6 +34,7 @@
 #include "core/siril_networking.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/arithm.h"
 #include "filters/graxpert.h"
 #include "gui/cut.h"
 #include "gui/graxpert.h"
@@ -43,6 +44,7 @@
 #include "gui/stacking.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
+#include "algos/demosaicing.h"
 #include "io/annotation_catalogues.h"
 #include "io/conversion.h"
 #include "io/films.h"
@@ -356,6 +358,7 @@ void unlock_roi_mutex() {
 gpointer on_set_roi() {
 	if (com.selection.w == 0 && com.selection.h == 0)
 		return GINT_TO_POINTER(0);
+	rectangle sel = com.selection;
 	g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 	if (com.python_command) {
 		g_mutex_unlock(&roi_mutex);
@@ -367,7 +370,7 @@ gpointer on_set_roi() {
 	// Ensure any pending ROI changes are overwritten by the backup
 	// Must copy the whole backup to gfit and gui.roi.fit to account
 	// for switching between full image and ROI
-	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
+	memcpy(&gui.roi.selection, &sel, sizeof(rectangle));
 	gui.roi.active = TRUE;
 	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && is_preview_active())
 		copy_backup_to_gfit();
@@ -836,19 +839,25 @@ void update_prepro_interface(gboolean allow_debayer) {
 	}
 
 	gtk_widget_set_sensitive(prepro_button,
-			(sequence_is_loaded() || single_image_is_loaded())
-			&& (gtk_toggle_button_get_active(udark)
-				|| gtk_toggle_button_get_active(uoffset)
-				|| gtk_toggle_button_get_active(uflat)));
+			gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(debayer)) ||
+			((sequence_is_loaded() || single_image_is_loaded()) &&
+			(gtk_toggle_button_get_active(udark) ||
+			gtk_toggle_button_get_active(uoffset) ||
+			gtk_toggle_button_get_active(uflat))));
+
 	gtk_widget_set_sensitive(cosme_grid, gtk_toggle_button_get_active(udark));
+
 	gtk_widget_set_sensitive(dark_optim, gtk_toggle_button_get_active(udark));
+
 	gtk_widget_set_sensitive(equalize, gtk_toggle_button_get_active(uflat));
+
 	gtk_widget_set_sensitive(auto_eval, gtk_toggle_button_get_active(uflat));
+
 	gtk_widget_set_sensitive(flat_norm,
 			gtk_toggle_button_get_active(uflat) &&
 			!gtk_toggle_button_get_active(checkAutoEvaluate));
 
-	gtk_widget_set_sensitive(debayer, allow_debayer && gtk_widget_get_sensitive(prepro_button));
+	gtk_widget_set_sensitive(debayer, allow_debayer);
 	gtk_widget_set_sensitive(fix_xtrans, gtk_toggle_button_get_active(udark) || gtk_toggle_button_get_active(uoffset));
 
 	gtk_widget_set_sensitive(GTK_WIDGET(output_type), sequence_is_loaded());

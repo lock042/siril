@@ -228,7 +228,7 @@ macos:
 win64-native:
   stage: packaging
   cache:
-    key: "cache-windows-small"
+    key: "cache-windows-small1"
     paths:
       - ccache
       - DLLcache # cache for the DLL txt files recording all files to be copied to the package
@@ -239,7 +239,7 @@ win64-native:
     CHERE_INVOKING: "yes"
     MSYSTEM: "MINGW64"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
-    SDW_VERSION: 36
+    SDW_VERSION: 47
     SDW_NAME: siril$SDW_VERSION
     SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
     # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python

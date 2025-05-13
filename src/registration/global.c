@@ -360,7 +360,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-		print_alignment_results(H, filenum, FWHMx, FWHMy/FWHMx, units);
+		print_alignment_results(H, filenum, FWHMx, FWHMy/FWHMx, "px");
 
 		sadata->current_regdata[in_index].roundness = FWHMy/FWHMx;
 		sadata->current_regdata[in_index].fwhm = FWHMx;

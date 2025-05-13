@@ -8,10 +8,14 @@ Utility module for Siril Python interface providing helper functions for file op
 package management, and standard I/O control to support Siril's scripting capabilities.
 """
 
+
+
+
 import os
 import sys
 import io
 import time
+import platform
 import threading
 import subprocess
 from importlib import metadata, util
@@ -214,7 +218,8 @@ def download_with_progress(
     raise SirilError(f"Failed to download file from {url} after {max_retries} attempts")
 
 def ensure_installed(*packages: Union[str, List[str]],
-                     version_constraints: Optional[Union[str, List[str]]] = None) -> bool:
+                     version_constraints: Optional[Union[str, List[str]]] = None,
+                     from_url: Optional[str] = None) -> bool:
     """
     Ensures that the specified package(s) are installed and meet optional version constraints.
 
@@ -222,6 +227,8 @@ def ensure_installed(*packages: Union[str, List[str]],
         *packages (str or List[str]): Name(s) of the package(s) to ensure are installed.
         version_constraints (str or List[str], optional): Version constraint string(s)
             (e.g. ">=1.5", "==2.0"). Can be a single constraint or a list matching packages.
+        from_url (str, optional): URL to find packages at, passed as "-f URL" to pip. Only
+            required for a very few corner cases: if you don't KNOW you need this, omit it.
 
     Returns:
         bool: True if all packages are successfully installed or already meet constraints.
@@ -230,6 +237,7 @@ def ensure_installed(*packages: Union[str, List[str]],
         SirilError: If package installation fails,
         ValueError: If a different number of constraints is provided to the number
                     of packages to be installed.
+        TimeoutError: If pip fails with an apparent timeout.
     """
     # Normalize inputs to lists
     if isinstance(packages[0], list):
@@ -260,7 +268,12 @@ def ensure_installed(*packages: Union[str, List[str]],
                 continue
 
             # Attempt installation
-            _install_package(package, constraint)
+            _install_package(package, constraint, from_url)
+
+        except TimeoutError as e:
+            all_installed = False
+            print(f"Timeout error processing {package}: {e}")
+            raise
 
         except Exception as e:
             all_installed = False
@@ -309,16 +322,19 @@ def _stream_output(process):
     for line in io.TextIOWrapper(process.stdout, encoding='utf-8', errors='replace'):
         print(line.rstrip())
 
-def _install_package(package_name: str, version_constraint: Optional[str] = None):
+def _install_package(package_name: str, version_constraint: Optional[str] = None, from_url: Optional[str] = None):
     """
     Install a package with optional version constraint, streaming pip output to stdout.
 
     Args:
         package_name (str): Name of the package to install.
         version_constraint (str, optional): Version constraint for installation.
+        from_url (str, optional): URL to find packages at, passed as "-f URL" to pip. Only
+            required for a very few corner cases: if you don't KNOW you need this, omit it.
 
     Raises:
         subprocess.CalledProcessError: If pip installation fails.
+        TimeoutError: if pip appears to have encountered a TimeOutError internally
     """
     print(f"Installing {package_name}. This may take a few seconds...")
 
@@ -326,9 +342,19 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
     install_target = f"{package_name}{version_constraint}" if version_constraint else package_name
 
     try:
+        # Build pip command
+        pip_command = [sys.executable, "-m", "pip", "install"]
+
+        # Add find-links option if from_url is provided
+        if from_url:
+            pip_command.extend(["-f", from_url])
+
+        # Add the package to install
+        pip_command.append(install_target)
+
         # Start pip install process with pipe for stdout
         with subprocess.Popen(
-            [sys.executable, "-m", "pip", "install", install_target],
+            pip_command,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             bufsize=-1,
@@ -347,8 +373,10 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
             else:
                 raise subprocess.CalledProcessError(return_code, process.args)
 
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         print(f"Failed to install {install_target}")
+        if "timed out" in e.stderr.lower():
+            raise TimeoutError(f"Likely timeout error in pip: {e}") from e
         raise
 
 def check_module_version(requires=None):
@@ -454,3 +482,415 @@ class SuppressedStderr:
         os.close(self.original_stderr_fd)
         sys.stderr = self.original_stderr  # Restore Python stderr
         self.devnull.close()
+
+class ONNXHelper:
+    """
+    A class to handle detection and installation of the appropriate ONNX Runtime
+    package based on the system hardware and configuration.
+
+    Example usage (this should be used instead of
+    ``sirilpy.ensure_installed("onnxruntime")`` to install the correct package for
+    the user's system.)
+
+    .. code-block:: python
+
+        installer = sirilpy.ONNXHelper()
+        installer.install_onnxruntime()
+
+
+    """
+
+    def __init__(self):
+        """Initialize the ONNXHelper."""
+        self.system = platform.system().lower()
+
+    def install_onnxruntime(self):
+        """
+        Detect system configuration and install the appropriate ONNX Runtime package.
+
+        Returns:
+            bool: True if installation was successful or already installed, False otherwise.
+
+        Raises:
+            TimooutError: if a TimeoutError occurs in ensure_installed() - this avoids falling
+                        back to the CPU-only package purely because of network issues
+        """
+        # First check if any onnxruntime is already installed
+        is_installed, package_name = self.check_onnxruntime_installed()
+
+        if is_installed:
+            print(f"ONNX Runtime is already installed: {package_name}")
+            return True
+
+        # If not installed, get recommended package
+        onnxruntime_pkg, url = self.get_onnxruntime_package()
+
+        # Check if the package exists
+        if not self._check_onnxruntime_availability(onnxruntime_pkg):
+            print(f"Package {onnxruntime_pkg} not found. Falling back to default onnxruntime.")
+            onnxruntime_pkg = "onnxruntime"
+
+        # Install the package
+        try:
+            ensure_installed(onnxruntime_pkg, from_url=url)
+        except TimeoutError as e:
+            print(f"Failed to install {onnxruntime_pkg}: timeout error {str(e)}")
+            raise TimeoutError("Error: timeout in install_onnxruntime()") from e
+
+        except Exception as e:
+            print(f"Failed to install {onnxruntime_pkg}: {str(e)}")
+            print("Falling back to default onnxruntime package.")
+            try:
+                ensure_installed("onnxruntime")
+            except Exception as err:
+                print(f"Failed to install default onnxruntime: {str(err)}")
+                return False
+        return True
+
+    def check_onnxruntime_installed(self):
+        """
+        Check if any onnxruntime package is already installed and usable.
+
+        Returns:
+            tuple: (is_installed, package_name) where package_name could be
+                  'onnxruntime', 'onnxruntime-gpu', 'onnxruntime-silicon', etc.
+        """
+        try:
+            # Try importing onnxruntime - if this fails, the package is not usable
+            import onnxruntime
+
+            # If we get here, some version of onnxruntime is installed and working
+            package_name = "onnxruntime"  # Default assumption
+
+            # Check provider information to determine specific package variant
+            providers = onnxruntime.get_available_providers()
+            print(f"Detected ONNX Runtime with providers: {providers}")
+
+            # Check for specific provider patterns
+            if any(p for p in providers if "CUDA" in p or "GPU" in p):
+                package_name = "onnxruntime-gpu"
+            elif any(p for p in providers if "DirectML" in p):
+                package_name = "onnxruntime-directml"
+            elif any(p for p in providers if "ROCm" in p):
+                package_name = "onnxruntime-rocm"
+            elif any(p for p in providers if "OpenVINO" in p or "DML" in p):
+                package_name = "onnxruntime-intel"
+
+            return True, package_name
+        except ImportError:
+            # If import fails, package is not usable regardless of pip list
+            return False, None
+        except Exception as e:
+            print(f"Error checking for installed onnxruntime: {e}")
+            return False, None
+
+    def get_onnxruntime_package(self):
+        """
+        Determine the appropriate ONNX Runtime package based on system and available hardware.
+
+        Returns:
+            tuple: (package_name, url) where url is None except for special cases like ROCm
+        """
+        url = None
+        onnxruntime_pkg = "onnxruntime"
+
+        if self.system == "windows":
+            if self._detect_nvidia_gpu():
+                onnxruntime_pkg = "onnxruntime-gpu"
+            else:
+                # DirectML provides hardware acceleration for various GPUs on Windows
+                onnxruntime_pkg = "onnxruntime-directml"
+
+        elif self.system == "darwin":  # macOS
+            onnxruntime_pkg = "onnxruntime"
+
+        elif self.system == "linux":
+            if self._detect_nvidia_gpu():
+                onnxruntime_pkg = "onnxruntime-gpu"
+            elif self.self._detect_amd_gpu():
+                # ROCm support for AMD GPUs on Linux
+                onnxruntime_pkg = "onnxruntime-rocm"
+                url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/"
+            elif self._detect_intel_gpu():
+                onnxruntime_pkg = "onnxruntime-openvino"
+
+        return onnxruntime_pkg, url
+
+    def _detect_nvidia_gpu(self):
+        """
+        Detect if NVIDIA GPU is available. (Required to check Windows and Linux, not required on MacOS.)
+
+        Returns:
+            bool: True if NVIDIA GPU is detected, False otherwise.
+        """
+        try:
+            if self.system == "windows":
+                # Windows detection using PowerShell
+                output = subprocess.check_output(
+                    ["powershell", "-Command", "Get-WmiObject -Class Win32_VideoController"],
+                    text=True
+                )
+                return "NVIDIA" in output
+            # Linux and macOS detection using lspci or similar
+            if self.system == "linux":
+                try:
+                    output = subprocess.check_output(["nvidia-smi"], stderr=subprocess.DEVNULL, text=True)
+                    return True
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+
+                try:
+                    output = subprocess.check_output(["lspci"], text=True)
+                    return "NVIDIA" in output
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    return False
+        except Exception:
+            pass
+        return False
+
+    def _detect_amd_gpu(self):
+        """
+        Detect if AMD GPU is available (Only needed on Linux, as on Windows the directml
+        package is used.)
+
+        Returns:
+            bool: True if AMD GPU is detected, False otherwise.
+        """
+        try:
+            # Try rocm-smi first
+            try:
+                output = subprocess.check_output(["rocm-smi"], stderr=subprocess.DEVNULL, text=True)
+                return True
+            except (subprocess.SubprocessError, FileNotFoundError):
+                pass
+
+            # Fallback to lspci
+            try:
+                output = subprocess.check_output(["lspci"], text=True)
+                return any(gpu in output for gpu in ["AMD", "ATI", "Radeon"])
+            except (subprocess.SubprocessError, FileNotFoundError):
+                return False
+        except Exception:
+            pass
+        return False
+
+    def detect_intel_gpu_for_openvino(self):
+        """
+        Detect if an Intel GPU compatible with OpenVINO is available.
+
+        Returns:
+            bool: True if compatible Intel GPU is detected
+        """
+        # First try using OpenVINO's native detection if available
+        try:
+            import openvino as ov
+            core = ov.Core()
+            available_devices = core.available_devices
+            return any(device.startswith("GPU") for device in available_devices)
+        except ImportError:
+            print("OpenVINO not installed, falling back to hardware detection")
+        except Exception as e:
+            print(f"Error using OpenVINO device detection: {e}")
+
+        # Fall back to lspci detection if OpenVINO is not available
+        try:
+            output = subprocess.check_output(["lspci"], text=True).lower()
+
+            # Intel integrated and discrete GPU keywords
+            intel_keywords = ["intel", "graphics", "iris", "uhd", "hd graphics", "arc",
+                            "a3", "a5", "a7", "a370m", "a730m", "a770", "a750",
+                            "a580", "a380", "battlemage"]
+
+            # Check for any Intel GPU
+            return "intel" in output and any(keyword in output for keyword in intel_keywords)
+
+        except (subprocess.SubprocessError, FileNotFoundError):
+            return False
+        except Exception as e:
+            print(f"Error detecting Intel GPU: {e}")
+            return False
+
+    def _check_onnxruntime_availability(self, package_name):
+        """
+        Check if the specified ONNX Runtime package is available on PyPI.
+
+        Args:
+            package_name (str): Package name to check
+
+        Returns:
+            bool: True if the package is available, False otherwise.
+        """
+        try:
+            output = subprocess.check_output(
+                [sys.executable, "-m", "pip", "index", "versions", package_name],
+                stderr=subprocess.DEVNULL,
+                text=True
+            )
+            return "No matching distribution found" not in output
+        except subprocess.SubprocessError:
+            # If the command fails, check directly from PyPI
+            try:
+                url = f"https://pypi.org/pypi/{package_name}/json"
+                response = requests.get(url)
+                return response.status_code == 200
+            except Exception:
+                return False
+
+    def get_execution_providers_ordered(self, ai_gpu_acceleration=True):
+        """
+        Get execution providers ordered by priority.
+
+        This function returns a list of available ONNX Runtime execution providers
+        in a reasonable order of priority, covering major GPU platforms:
+
+        The CPU provider is always included as the final fallback option.
+
+        Args:
+            ai_gpu_acceleration (bool): Whether to include GPU acceleration providers.
+                                    Defaults to True.
+
+        Returns:
+            list: Ordered list of available execution providers.
+        """
+        def has_tensorrt_library():
+            """
+            Checks if TensorRT libraries are available and can be loaded.
+            """
+            import ctypes.util
+            import ctypes
+
+            lib_names = {
+                "linux": "nvinfer",
+                "windows": "nvinfer",
+                "darwin": None  # TensorRT isn't available on macOS
+            }
+            lib_name = lib_names.get(platform.system().lower())
+            if not lib_name:
+                return False
+
+            path = ctypes.util.find_library(lib_name)
+            if path:
+                try:
+                    ctypes.CDLL(path)
+                    return True
+                except OSError:
+                    return False
+            return False
+
+        import onnxruntime
+        providers = []
+        available_providers = onnxruntime.get_available_providers()
+
+        if ai_gpu_acceleration:
+            if self.system == "darwin":
+                is_apple_silicon = (
+                    platform.machine().startswith(("arm", "aarch"))
+                )
+                # Apple Silicon / Neural Engine (faster if available and supports the model features)
+                if (is_apple_silicon):
+                    if "CoreMLExecutionProvider" in available_providers:
+                        # On Apple silicon it's safe to create a MLPROGRAM instead of the older MLMODEL
+                        providers.append(
+                            (
+                                "CoreMLExecutionProvider",
+                                {
+                                    "flags": "COREML_FLAG_CREATE_MLPROGRAM",
+                                },
+                            )
+                        )
+                    else:
+                        # On Intel silicon we omit the MLPROGRAM flag
+                        providers.append("CoreMLExecutionProvider")
+
+                    # Apple MacOS (all ARM macs and Intel macs that support Metal)
+                    if "MPSExecutionProvider" in available_providers:
+                        providers.append("MPSExecutionProvider")
+
+            elif self.system == "windows":
+                # NVIDIA TensorRT - best performance if the model features are supported
+                if "TensorrtExecutionProvider" in available_providers and has_tensorrt_library():
+                    providers.append("TensorrtExecutionProvider")
+
+                # NVIDIA GPU - good fallback option, still much faster than CPU
+                if "CUDAExecutionProvider" in available_providers:
+                    providers.append("CUDAExecutionProvider")
+
+                # DirectML for Windows GPUs (supports various vendors)
+                if "DmlExecutionProvider" in available_providers:
+                    providers.append("DmlExecutionProvider")
+
+            elif self.system == "linux":
+                # NVIDIA TensorRT - best performance if the model features are supported
+                if "TensorrtExecutionProvider" in available_providers and has_tensorrt_library():
+                    providers.append("TensorrtExecutionProvider")
+
+                # NVIDIA GPU - good fallback option, still much faster than CPU
+                if "CUDAExecutionProvider" in available_providers:
+                    providers.append("CUDAExecutionProvider")
+
+                # AMD GPU - fastest possible but commented out until not marked as experimental
+                #if "MIGraphXExecutionProvider" in available_providers:
+                #    providers.append("MIGraphXExecutionProvider")
+
+                # AMD GPU
+                if "ROCmExecutionProvider" in available_providers:
+                    providers.append("ROCmExecutionProvider")
+
+                # Intel GPU via OpenVINO
+                if "OpenVINOExecutionProvider" in available_providers:
+                    providers.append("OpenVINOExecutionProvider")
+
+        # CPU is always the fallback option
+        providers.append("CPUExecutionProvider")
+
+        return providers
+
+    def uninstall_onnxruntime(self):
+        """
+        Detects and uninstalls all variants of onnxruntime packages.
+        Checks for any package starting with 'onnxruntime'.
+
+        Returns:
+            list: A list of uninstalled packages
+        """
+        # Get all installed packages
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "list"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            installed_packages = result.stdout.splitlines()
+        except subprocess.CalledProcessError as e:
+            print(f"Error getting installed packages: {e}")
+            return []
+
+        # Find all packages that start with 'onnxruntime'
+        onnx_packages = []
+        for line in installed_packages:
+            parts = line.split()
+            if parts and parts[0].lower().startswith('onnxruntime'):
+                onnx_packages.append(parts[0])
+
+        # Uninstall found packages
+        if not onnx_packages:
+            print("No onnxruntime packages found.")
+            return []
+
+        print(f"Found onnxruntime packages: {', '.join(onnx_packages)}")
+        uninstalled = []
+
+        for package in onnx_packages:
+            print(f"Uninstalling {package}...")
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "uninstall", "-y", package],
+                    check=True
+                )
+                uninstalled.append(package)
+                print(f"Successfully uninstalled {package}")
+            except subprocess.CalledProcessError:
+                print(f"Failed to uninstall {package}")
+
+        return uninstalled

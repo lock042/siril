@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-07 21:19+0200\n"
-"PO-Revision-Date: 2025-05-05 08:22+0000\n"
+"POT-Creation-Date: 2025-05-08 18:57+0200\n"
+"PO-Revision-Date: 2025-05-11 15:05+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -4973,28 +4973,24 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/keywords_dialog.ui:27
-#, fuzzy
 msgid "FITS Header"
-msgstr "Cabecera FITS..."
+msgstr "Cabecera FITS"
 
 #: src/gui/uifiles/keywords_dialog.ui:42
-#, fuzzy
 msgid "Copy Selection"
-msgstr "Sin selección"
+msgstr "Copiar selección"
 
 #: src/gui/uifiles/keywords_dialog.ui:47
-#, fuzzy
 msgid "Copy selected keywords to clipboard."
-msgstr "Copiar al portapapeles"
+msgstr "Copiar las palabras clave seleccionadas al portapapeles."
 
 #: src/gui/uifiles/keywords_dialog.ui:107
 msgid "Keyword"
 msgstr "Palabra clave"
 
 #: src/gui/uifiles/keywords_dialog.ui:126
-#, fuzzy
 msgid "Value"
-msgstr "Valor: "
+msgstr "Valor"
 
 #: src/gui/uifiles/keywords_dialog.ui:144 src/gui/uifiles/spcc_details.ui:223
 msgid "Comment"
@@ -5083,7 +5079,6 @@ msgid "Live Stacking"
 msgstr "Apilado en vivo"
 
 #: src/gui/uifiles/livestacking_player.ui:93
-#, fuzzy
 msgid "debayer"
 msgstr "debayer"
 
@@ -5092,7 +5087,6 @@ msgid "for now only detected in files and automatically enabled"
 msgstr "por ahora solo detectado en ficheros y habilitado automáticamente"
 
 #: src/gui/uifiles/livestacking_player.ui:111
-#, fuzzy
 msgid "shift-only registration"
 msgstr "Registro solo por cambio"
 
@@ -5102,6 +5096,9 @@ msgid ""
 "unchecked for alt-az or heavily drifting mounts. This makes one image "
 "processing much faster."
 msgstr ""
+"Desplazar solo las imágenes en lugar de usar la rotación al registrar. Esta "
+"opción debe estar desmarcada para monturas altazimutales o con mucha deriva. "
+"Esto agiliza mucho el procesamiento de una imagen."
 
 #: src/gui/uifiles/livestacking_player.ui:126
 msgid "remove gradient"
@@ -5110,30 +5107,32 @@ msgstr "eliminar gradiente"
 #: src/gui/uifiles/livestacking_player.ui:130
 msgid "Apply a linear background gradient removal on calibrated input frames."
 msgstr ""
+"Aplicar una eliminación de degradado de fondo lineal a los fotogramas de "
+"entrada calibrados"
 
 #: src/gui/uifiles/livestacking_player.ui:141
-#, fuzzy
 msgid "use 32 bits"
-msgstr "32 bits"
+msgstr "usar 32 bits"
 
 #: src/gui/uifiles/livestacking_player.ui:145
 msgid ""
 "Use 32 bits for image processing. This is slower and generally useless in "
 "terms of quality for live stacking."
 msgstr ""
+"Utilice 32 bits para el procesamiento de imágenes. Esto es más lento y, por "
+"lo general, inútil en términos de calidad para el apilamiento en vivo."
 
 #: src/gui/uifiles/livestacking_player.ui:219
 msgid "waiting for input files"
-msgstr ""
+msgstr "esperando dicheros de entrada"
 
 #: src/gui/uifiles/livestacking_player.ui:228 src/gui/uifiles/siril.ui:9358
 msgid "Stacking"
 msgstr "Apilado"
 
 #: src/gui/uifiles/livestacking_player.ui:297
-#, fuzzy
 msgid "Master-dark and cosmetic correction"
-msgstr "Habilitar Corrección Cosmética"
+msgstr "Corrección Master-dark y cosmética"
 
 #: src/gui/uifiles/livestacking_player.ui:309
 msgid "Master-flat"
@@ -5304,18 +5303,16 @@ msgstr ""
 "Tenga en cuenta que la fusión de CFA no funciona con archivos X-Trans."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:430
-#, fuzzy
 msgid "Sequences"
-msgstr "Secuencia"
+msgstr "Secuencias"
 
 #: src/gui/uifiles/mouse_actions.ui:14
-#, fuzzy
 msgid "Mouse Action Preferences"
-msgstr "Reiniciar preferncias"
+msgstr "Preferencias acciones de ratón"
 
 #: src/gui/uifiles/mouse_actions.ui:116
 msgid "Add an extra mouse action"
-msgstr ""
+msgstr "Añadir acción extra de ratón"
 
 #: src/gui/uifiles/mouse_actions.ui:131
 #, fuzzy
@@ -5413,9 +5410,8 @@ msgid "Width"
 msgstr ""
 
 #: src/gui/uifiles/pixelmath.ui:431
-#, fuzzy
 msgid "Height"
-msgstr "Ponderado"
+msgstr "Altura"
 
 #: src/gui/uifiles/pixelmath.ui:473
 msgid "Function"
@@ -5423,20 +5419,19 @@ msgstr "Función"
 
 #: src/gui/uifiles/pixelmath.ui:488 src/gui/uifiles/stars_list_window.ui:472
 msgid "index"
-msgstr ""
+msgstr "índice"
 
 #: src/gui/uifiles/pixelmath.ui:532
 msgid "Operator"
-msgstr ""
+msgstr "Operador"
 
 #: src/gui/uifiles/pixelmath.ui:547
 msgid "column"
-msgstr ""
+msgstr "columna"
 
 #: src/gui/uifiles/pixelmath.ui:575
-#, fuzzy
 msgid "Images"
-msgstr "Imagen:"
+msgstr "Imágenes"
 
 #: src/gui/uifiles/pixelmath.ui:610
 msgid ""
@@ -5553,12 +5548,11 @@ msgstr "_Abrir"
 #: src/gui/uifiles/python_scratchpad.ui:180
 #, fuzzy
 msgid "_Recent Files"
-msgstr "Reemplazar archivo"
+msgstr "_Ficheros recientes"
 
 #: src/gui/uifiles/python_scratchpad.ui:200
-#, fuzzy
 msgid "Save the current script"
-msgstr "Guardar la imagen FITS actual"
+msgstr "Guardar el script actual"
 
 #: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:256
 #: src/gui/python_gui.c:843
@@ -5566,21 +5560,18 @@ msgid "_Save"
 msgstr "_Guardar"
 
 #: src/gui/uifiles/python_scratchpad.ui:211
-#, fuzzy
 msgid "Save the current script (choose filename)"
-msgstr "Guarda la imagen con un nombre nuevo"
+msgstr "Guarda el script actual (elegir nombre de fichero)"
 
 #: src/gui/uifiles/python_scratchpad.ui:213
-#, fuzzy
 msgid "_Save As"
-msgstr "Guardar"
+msgstr "_Guardar como"
 
 #: src/gui/uifiles/python_scratchpad.ui:222
 #: src/gui/uifiles/python_scratchpad.ui:544
 #: src/gui/uifiles/python_scratchpad.ui:553
-#, fuzzy
 msgid "Close the script editor"
-msgstr "Cerrar la ventana"
+msgstr "Cerrar editor de script"
 
 #: src/gui/uifiles/python_scratchpad.ui:236
 msgid "_Edit"
@@ -5598,57 +5589,56 @@ msgstr "Rehacer"
 
 #: src/gui/uifiles/python_scratchpad.ui:266
 #: src/gui/uifiles/python_scratchpad.ui:268
-#, fuzzy
 msgid "Cut"
-msgstr "cortar"
+msgstr "Cortar"
 
 #: src/gui/uifiles/python_scratchpad.ui:276
 #: src/gui/uifiles/python_scratchpad.ui:278
-#, fuzzy
 msgid "Copy"
-msgstr "Copyright TIFF"
+msgstr "Copiar"
 
 #: src/gui/uifiles/python_scratchpad.ui:286
 #: src/gui/uifiles/python_scratchpad.ui:288
 msgid "Paste"
-msgstr ""
+msgstr "Pegar"
 
 #: src/gui/uifiles/python_scratchpad.ui:317
-#, fuzzy
 msgid "_Script"
-msgstr "Scritps"
+msgstr "_Script"
 
 #: src/gui/uifiles/python_scratchpad.ui:327
 #: src/gui/uifiles/python_scratchpad.ui:414
-#, fuzzy
 msgid "Run the script"
-msgstr "Ejecutar Scritp"
+msgstr "Ejecutar script"
 
 #: src/gui/uifiles/python_scratchpad.ui:329
 msgid "Run"
-msgstr ""
+msgstr "Ejecutar"
 
 #: src/gui/uifiles/python_scratchpad.ui:339
 msgid ""
 "Set scripting language to Python. Ensure you have the correct scripting "
 "language set before executing a script from the editor."
 msgstr ""
+"Configure Python como lenguaje de script. Asegúrese de tener configurado el "
+"lenguaje de script correcto antes de ejecutar un script desde el editor."
 
 #: src/gui/uifiles/python_scratchpad.ui:340
-#, fuzzy
 msgid "Python scripts"
-msgstr "Ejecutar Scritp"
+msgstr "Scritps de Python"
 
 #: src/gui/uifiles/python_scratchpad.ui:350
 msgid ""
 "Set scripting language to Siril Script File. Ensure you have the correct "
 "scripting language set before executing a script from the editor."
 msgstr ""
+"Configure el lenguaje de script en el archivo de script Siril. Asegúrese de "
+"tener configurado el lenguaje de script correcto antes de ejecutar un script "
+"desde el editor."
 
 #: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:268
-#, fuzzy
 msgid "Siril Script Files"
-msgstr "Nombre del archivo:"
+msgstr "Ficheros de script de Siril"
 
 #: src/gui/uifiles/python_scratchpad.ui:361
 msgid ""
@@ -5657,11 +5647,14 @@ msgid ""
 "This also ensures SirilInterface is invoked in CLI mode "
 "(SirilInterface.is_cli() will return True)"
 msgstr ""
+"Cuando está activo, cualquier argumento introducido en la entrada args se "
+"pasará al script al ejecutarse. \n"
+"Esto también garantiza que SirilInterface se invoque en modo CLI "
+"(SirilInterface.is_cli() devolverá \"True\")"
 
 #: src/gui/uifiles/python_scratchpad.ui:363
-#, fuzzy
 msgid "Enable test arguments"
-msgstr "Argumento faltante %s, abortando.\n"
+msgstr "Habilitar argumentos de test"
 
 #: src/gui/uifiles/python_scratchpad.ui:371
 msgid ""
@@ -5669,40 +5662,43 @@ msgid ""
 "python process as soon as the SirilInterface is initialized, to allow for "
 "connecting a python debugger to the process before continuing."
 msgstr ""
+"Cuando está activo, el intérprete de Python mostrará un cuadro de diálogo "
+"modal que muestra el proceso de Python tan pronto como se inicialice "
+"SirilInterface, para permitir la conexión de un depurador de Python al "
+"proceso antes de continuar."
 
 #: src/gui/uifiles/python_scratchpad.ui:372
 msgid "Enable python debug mode"
-msgstr ""
+msgstr "Habilitar modo depuración de Python"
 
 #: src/gui/uifiles/python_scratchpad.ui:384
-#, fuzzy
 msgid "_Preferences"
-msgstr "Preferencias"
+msgstr "_Preferencias"
 
 #: src/gui/uifiles/python_scratchpad.ui:394
 msgid "Enable syntax highlighting"
-msgstr ""
+msgstr "Habilitar el resaltado de sintaxis"
 
 #: src/gui/uifiles/python_scratchpad.ui:395
-#, fuzzy
 msgid "Highlight syntax"
-msgstr "Altas luces: "
+msgstr "Resaltado de sintaxis"
 
 #: src/gui/uifiles/python_scratchpad.ui:404
 #: src/gui/uifiles/python_scratchpad.ui:405
 msgid "Enable right margin indicator"
-msgstr ""
+msgstr "Habilitar indicador de margen derecho"
 
 #: src/gui/uifiles/python_scratchpad.ui:416
-#, fuzzy
 msgid "Set right margin position"
-msgstr "Recordar posiciones de las ventanas"
+msgstr "Establecer la posición del margen derecho"
 
 #: src/gui/uifiles/python_scratchpad.ui:423
 msgid ""
 "When enabled, positioning the cursor on a bracket will show the matching "
 "bracket"
 msgstr ""
+"Cuando está habilitado, al posicionar el cursor sobre un corchete se "
+"mostrará el corchete asociado."
 
 #: src/gui/uifiles/python_scratchpad.ui:424
 msgid "Enable bracket matching"
