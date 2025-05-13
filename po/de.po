@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-08 18:57+0200\n"
-"PO-Revision-Date: 2025-05-09 11:07+0000\n"
+"PO-Revision-Date: 2025-05-13 13:17+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -5760,7 +5760,6 @@ msgid "Siril Script Files"
 msgstr "SIRIL Skriptdateien"
 
 #: src/gui/uifiles/python_scratchpad.ui:361
-#, fuzzy
 msgid ""
 "When active, any arguments entered in the args entry will be passed to the "
 "script when it is run.\n"
@@ -5768,7 +5767,9 @@ msgid ""
 "(SirilInterface.is_cli() will return True)"
 msgstr ""
 "Wenn aktiv, werden alle Argumente, die in den Argument-Eintrag eingegeben "
-"werden, an das Skript weitergegeben."
+"werden, an das Skript weitergegeben wenn es gestartet wird. Dies sichert "
+"außerdem, dass SirilInterface im CLI-Modus aufgerufen wird (SirilInterface."
+"is_cli() gibt TRUE zurück)"
 
 #: src/gui/uifiles/python_scratchpad.ui:363
 msgid "Enable test arguments"
@@ -9876,9 +9877,8 @@ msgid "Save current plot to png file"
 msgstr "Aktuelle Grafik als PNG Datei speichern"
 
 #: src/gui/uifiles/siril.ui:2689
-#, fuzzy
 msgid "Build a light curve in the ETD text format"
-msgstr "Lichtkurve (ETD-Format)"
+msgstr "Erstellt eine Lichtkurve im ETD-Textformat"
 
 #: src/gui/uifiles/siril.ui:2690
 msgid "Light Curve (ETD format)"
@@ -13734,9 +13734,8 @@ msgid "Computing astrometric registration...\n"
 msgstr "Astrometrische Registrierung berechnen...\n"
 
 #: src/algos/astrometry_solver.c:2263
-#, fuzzy
 msgid "Reference image was not platesolved, changing reference\n"
-msgstr "Referenzbild ist nicht in der gefilterten Liste enthalten, breche ab\n"
+msgstr "Referenzbild ist nicht astrometrisch gelöst, ändere Referenz\n"
 
 #: src/algos/background_extraction.c:300
 msgid ""
@@ -16006,7 +16005,6 @@ msgid "The size of the key can't exceed 8 characters.\n"
 msgstr "Die Größe des Schlüssels kann nicht größer als 8 Zeichen sein.\n"
 
 #: src/core/command.c:1961
-#, fuzzy
 msgid "Updating keywords...\n"
 msgstr "Schlüsselwörter werden aktualisiert...\n"
 
@@ -18606,7 +18604,6 @@ msgstr ""
 "werden.\n"
 
 #: src/core/icc_profile.c:607
-#, fuzzy
 msgid "Error: no filename specified for custom monitor profile.\n"
 msgstr ""
 "Fehler: Für das benutzerdefinierte Monitorprofil wurde kein Dateiname "
@@ -18628,7 +18625,6 @@ msgstr ""
 "Bildschirm-ICC-Profil auf sRGB eingestellt (D65-Weißpunkt, Gamma = 2,2)\n"
 
 #: src/core/icc_profile.c:656
-#, fuzzy
 msgid "Error: no filename specified for output device proofing profile.\n"
 msgstr ""
 "Fehler: Für das Proofing-Profil des Ausgabegeräts wurde kein Dateiname "
@@ -19946,7 +19942,6 @@ msgid "color management soft proofing intent"
 msgstr "Farbmanagement Soft-Proof-Renderabsicht"
 
 #: src/core/settings.c:529
-#, fuzzy
 msgid "color management export intent"
 msgstr "Farbmanagement Export-Renderabsicht"
 
@@ -19955,17 +19950,14 @@ msgid "default to sRGB when exporting non color managed images"
 msgstr "Nutze sRGB als Default bei nicht farbverwalteten Bildern"
 
 #: src/core/settings.c:531
-#, fuzzy
 msgid "color management working gamut"
 msgstr "Farbmanagement Arbeitsgamut"
 
 #: src/core/settings.c:532
-#, fuzzy
 msgid "color management export profile for 8bit files"
 msgstr "Farbmanagement Exportprofil für 8-Bit-Dateien"
 
 #: src/core/settings.c:533
-#, fuzzy
 msgid "color management export profile for 16bit files"
 msgstr "Farbmanagement Exportprofil für 16-Bit-Dateien"
 
@@ -21939,7 +21931,6 @@ msgstr ""
 "benötigt. Kann keine Datei erzeugen"
 
 #: src/gui/compstars.c:233
-#, fuzzy
 msgid "Problem with conversion\n"
 msgstr "Problem mit der Konvertierung\n"
 
@@ -24150,7 +24141,6 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr "Registriere %d Bildern aus %d aus der Sequenz"
 
 #: src/gui/registration.c:735
-#, fuzzy
 msgid ""
 "Max framing not allowed with FITSEQ or SER, change to regular FITS images"
 msgstr ""
@@ -25137,13 +25127,13 @@ msgstr ""
 "Pixelwerte abgeschnitten werden"
 
 #: src/gui/utils.c:408
-#, fuzzy
 msgid ""
 "Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to "
 "bring negative pixel values into range"
 msgstr ""
 "Skaliere die Pixelwerte so, dass sie in den Bereich von 0,0 bis 1,0 passen, "
-"und wende einen Offset an, um negative Pixelwerte in den Bereich zu bringen"
+"und wende einen Offset an, um negative Pixelwerte in den Wertebereich zu "
+"bringen"
 
 #: src/gui/utils.c:479
 #, c-format
@@ -27625,9 +27615,8 @@ msgid "Argument error"
 msgstr "Parameterfehler"
 
 #: src/io/siril_pythoncommands.c:2394
-#, fuzzy
 msgid "Could not create the new sequence"
-msgstr "Konnte die benannte Pipeline nicht erstellen %s\n"
+msgstr "Kan n keine neue Sequenz erzeugen"
 
 #: src/io/siril_pythoncommands.c:2402
 msgid "Unknown command"
@@ -27707,9 +27696,8 @@ msgstr ""
 "Ungültige Bildabmessungen oder Format: w = %u, h = %u, c = %u, size = %s"
 
 #: src/io/siril_pythonmodule.c:585
-#, fuzzy
 msgid "Error: image pixelbuffer does not match expected size"
-msgstr "Fehler: Bilder stimmen nicht überein"
+msgstr "Fehler: Bildpuffer stimmt nicht mit der erwarteten Größe überein"
 
 #: src/io/siril_pythonmodule.c:587
 msgid "Error in send_response: size mismatch\n"
@@ -27720,9 +27708,8 @@ msgid "Error: image dimensions exceed available memory"
 msgstr "Fehler: Bildabmessungen überschreiten den verfügbaren Speicher"
 
 #: src/io/siril_pythonmodule.c:593
-#, fuzzy
 msgid "Error in send_response: image exceeds available memory\n"
-msgstr "Fehler: Bildabmessungen überschreiten den verfügbaren Speicher"
+msgstr "Fehler bei send_response: Bild überschreiten den verfügbaren Speicher\n"
 
 #: src/io/siril_pythonmodule.c:621 src/io/siril_pythonmodule.c:747
 #: src/io/siril_pythonmodule.c:801 src/io/siril_pythonmodule.c:891
@@ -27877,9 +27864,9 @@ msgid "Failed to execute Python script: %s\n"
 msgstr "Python-Skript konnte nicht ausgeführt werden: %s\n"
 
 #: src/io/spcc_json.c:64 src/io/spcc_json.c:281 src/io/spcc_json.c:521
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading SPCC JSON file %s: %s (at position %zu)\n"
-msgstr "Fehler beim Laden der SPCC JSON-Datei: %s\n"
+msgstr "Fehler beim Laden der SPCC JSON-Datei %s: %s (an Position %zu)\n"
 
 #: src/io/spcc_json.c:72
 msgid "Error: The JSON file should contain an array of objects.\n"
@@ -28184,7 +28171,6 @@ msgid "specify the path for the read pipe, the one receiving commands"
 msgstr "den Pfad für die Read-Pipe angeben, die Befehle empfängt"
 
 #: src/main-cli.c:127 src/main.c:136
-#, fuzzy
 msgid "specify the path for the write pipe, the one outputting messages"
 msgstr "den Pfad für die Write-Pipe angeben, die die Nachrichten ausgibt"
 
@@ -29022,7 +29008,6 @@ msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
 msgstr "Bild #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
 
 #: src/registration/astrometric.c:293
-#, fuzzy
 msgid "No image selected after computing transformations, aborting\n"
 msgstr "Kein Bild nach Berechnung der Transformationen ausgewählt, Abbruch%s\n"
 
@@ -29352,7 +29337,7 @@ msgstr ""
 "angepasst\n"
 
 #: src/registration/global.c:1004
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Trial #%d: After sequence alignment, image #%d could not align more than "
 "half of the frames, recomputing\n"
@@ -29390,13 +29375,13 @@ msgstr ""
 "Registrierung\n"
 
 #: src/registration/global.c:1055
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "After sequence alignment, image %d is too far from the sequence cog, "
 "recomputing\n"
 msgstr ""
-"Nach der Sequenzausrichtung ist das Bild %d zu weit von der Sequenz "
-"entfernt, Neuberechnung\n"
+"Nach der Sequenzausrichtung ist das Bild %d zu weit vom Schwerpunkt der "
+"Sequenz entfernt, Neuberechnung\n"
 
 #: src/registration/global.c:1056
 #, c-format
