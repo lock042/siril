@@ -953,41 +953,6 @@ int auto_update_gitspcc(gboolean sync) {
 	return retval;
 }
 
-typedef struct {
-	int (*func)(gboolean);  // Function pointer to the update function
-	gboolean sync;          // Sync parameter to pass to the function
-} ThreadData;
-
-// Thread function that will be executed
-static gpointer thread_func(gpointer user_data) {
-	ThreadData *data = (ThreadData *)user_data;
-	int result = data->func(data->sync);
-	g_free(data);
-	return GINT_TO_POINTER(result);
-}
-
-void async_update_git_repositories() {
-	GError *error = NULL;
-
-	// Currently this function only updates the SPCC repository, as there is
-	// special handling required for the scripts repository.
-
-	if (com.pref.spcc.use_spcc_repository) {
-		ThreadData *data = g_new(ThreadData, 1);
-		data->func = auto_update_gitspcc;
-		data->sync = com.pref.spcc.auto_spcc_update;
-
-		GThread *thread = g_thread_try_new("update_thread", thread_func, data, &error);
-		g_thread_unref(thread);
-		if (error) {
-			siril_log_color_message(_("Error spawning thread to update SPCC repository: %s\n"), "red", error->message);
-			g_error_free(error);
-		}
-	} else {
-		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-spcc...\n"));
-	}
-}
-
 int preview_scripts_update(GString** git_pending_commit_buffer) {
 	// Initialize libgit2
 	git_libgit2_init();
