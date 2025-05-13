@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-08 18:57+0200\n"
-"PO-Revision-Date: 2025-04-28 13:33+0000\n"
+"PO-Revision-Date: 2025-05-13 08:40+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -3237,7 +3237,7 @@ msgstr "X 中心:"
 
 #: src/gui/uifiles/dialog_FFT.ui:184
 msgid "Direct Transform"
-msgstr "直接変換"
+msgstr "順変換"
 
 #: src/gui/uifiles/dialog_FFT.ui:203
 #, fuzzy
@@ -6043,7 +6043,7 @@ msgstr ""
 #: src/gui/uifiles/savepopup.ui:975
 #, fuzzy
 msgid "JPEG XL"
-msgstr "JPEG"
+msgstr "JPEG XL"
 
 #: src/gui/uifiles/seqlist_dialog.ui:72
 msgid ""
@@ -8164,7 +8164,7 @@ msgstr "キーボードショートカット"
 
 #: src/gui/uifiles/siril.ui:555 src/gui/about_dialog.c:71
 msgid "About Siril"
-msgstr "Siril について"
+msgstr "Sirilについて"
 
 #: src/gui/uifiles/siril.ui:632
 msgid "AutoStretch"
@@ -20430,9 +20430,8 @@ msgid "Select Folder"
 msgstr "フォルダーを選ぶ"
 
 #: src/gui/dialogs.c:239
-#, fuzzy
 msgid "Open File"
-msgstr "ファイルを保存"
+msgstr "ファイルを開く"
 
 #: src/gui/dialogs.c:241 src/gui/dialogs.c:250 src/gui/dialogs.c:256
 #: src/gui/keywords_tree.c:508 src/gui/python_gui.c:765
@@ -21554,7 +21553,7 @@ msgstr ""
 
 #: src/gui/photometric_cc.c:274
 msgid "Photometric Color Calibration"
-msgstr ""
+msgstr "測光色補正"
 
 #: src/gui/photometric_cc.c:355
 #, fuzzy
@@ -22238,9 +22237,8 @@ msgid "JPEG Files (*.jpg, *.jpeg)"
 msgstr "JPEG ファイル (*.jpg, *.jpeg)"
 
 #: src/gui/save_dialog.c:80
-#, fuzzy
 msgid "JPEG XL Files (*.jxl)"
-msgstr "PNG フアイル (*.png)"
+msgstr "JPEG XLファイル(*.jxl)"
 
 #: src/gui/save_dialog.c:88
 msgid "PNG Files (*.png)"
@@ -22276,9 +22274,8 @@ msgid "Saving JPG"
 msgstr "JPG ファイルを保存"
 
 #: src/gui/save_dialog.c:249
-#, fuzzy
 msgid "Saving JPEG XL"
-msgstr "JPG ファイルを保存"
+msgstr "JPEG XLファイルを保存"
 
 #: src/gui/save_dialog.c:253
 msgid "Saving TIFF"
@@ -23025,18 +23022,16 @@ msgid "JPG images"
 msgstr "JPG 画像"
 
 #: src/io/conversion.c:240
-#, fuzzy
 msgid "JPEG XL images"
-msgstr "JPG 画像"
+msgstr "JPEG XL画像"
 
 #: src/io/conversion.c:247
 msgid "PNG images"
 msgstr "PNG 画像"
 
 #: src/io/conversion.c:255
-#, fuzzy
 msgid "HEIF images, AVIF images"
-msgstr "HEIF 画像"
+msgstr "HEIF画像、AVIF画像"
 
 #: src/io/conversion.c:265
 #, c-format
