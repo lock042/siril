@@ -4,7 +4,6 @@ XX/XX/25
 **Fixes:**
 * Fixed option -weight= for stack command and add filtering criteria in HISTORY key of stacked image (#1545)
 * Fixed crash and slowness when refreshing the scripts list (#1548, #1574)
-* Immplemented a better linear regression algorithm for SPCC (!853)
 * Python scripts are now sorted alphabetically (#1559)
 * Fixed crash in Noise Reduction with Independent Channels option selected (#1567)
 * Fixed UI hang when manually refreshing scripts or SPCC (#1566)
@@ -22,6 +21,7 @@ XX/XX/25
 * Fixed poor star detection when input sequence was in 16b and preferences set in 32b (#1614)
 * Fixed incorrect image size with latest cameras added to LibRaw, Siril now uses 202502 snapshot (#1565)
 * Fixed metadata filling problem in PixelMath using $T (#1605)
+* Fixed crash in Image Plate Solver (#1609)
 * Fixed python API SirilInterface::set_seq_frame_incl (#1617)
 * Fixed FWHM units when printing alignement results (#1616)
 

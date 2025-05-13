@@ -484,8 +484,10 @@ static void start_image_plate_solve() {
 			start_sequence_astrometry(&com.seq, args);
 		}
 	} else {
-		free(args->sfargs);
-		free(args);
+		if (args) {
+			free(args->sfargs);
+			free(args);
+		}
 		set_cursor_waiting(FALSE);
 	}
 }
