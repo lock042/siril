@@ -23,6 +23,7 @@ XX/XX/25
 * Fixed incorrect image size with latest cameras added to LibRaw, Siril now uses 202502 snapshot (#1565)
 * Fixed metadata filling problem in PixelMath using $T (#1605)
 * Fixed python API SirilInterface::set_seq_frame_incl (#1617)
+* Fixed FWHM units when printing alignement results (#1616)
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
@@ -34,6 +35,7 @@ XX/XX/25
 * Added SirilInterface.create_new_seq() and SirilInterface.is_cli() in sirilpy (!867)
 * GraXpert "Use GPU" now defaults to False but is persistent (saved in config)
 * Added utility.ONNXHelper class in python module to make it easier to ensure the correct onnxruntime module is installed. (!874)
+* Added ability to calibrate images for debayering only, without Dark, Flat, or Bias files (#1619)
 
 siril 1.4.0-beta1
 04/26/25
