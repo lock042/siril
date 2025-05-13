@@ -305,11 +305,13 @@ map_point(struct driz_param_t *par, float xin, float yin, float *xout,
         if (i >= par->xmin && i <= par->xmax && j >= par->ymin &&
 					j <= par->ymax) {
             status = map_pixel(par->pixmap, i, j, xout, yout);
+			return status;
         } else {
             return 1;
         }
-    }
-    return status ? 1 : interpolate_point(par, xin, yin, xout, yout);
+    } else {
+		return interpolate_point(par, xin, yin, xout, yout);
+	}
 }
 
 /** ---------------------------------------------------------------------------
@@ -613,8 +615,8 @@ clip_polygon_to_window(struct polygon *p, struct polygon *wnd,
     }
 
     // Ensure polygons are oriented counter-clockwise
-    orient_ccw(p);
-    orient_ccw(wnd);
+    orient_ccw((struct polygon*) p);
+    orient_ccw((struct polygon*) wnd);
 
     // Initialize working polygons
     p1 = *p;
