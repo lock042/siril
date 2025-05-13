@@ -309,8 +309,9 @@ map_point(struct driz_param_t *par, float xin, float yin, float *xout,
         } else {
             return 1;
         }
-    }
-    return status ? 1 : interpolate_point(par, xin, yin, xout, yout);
+    } else {
+		return interpolate_point(par, xin, yin, xout, yout);
+	}
 }
 
 /** ---------------------------------------------------------------------------
