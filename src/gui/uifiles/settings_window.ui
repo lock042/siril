@@ -3072,23 +3072,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               <packing>
                                 <property name="left-attach">0</property>
                                 <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkCheckButton" id="spcc_repo_enable">
-                                <property name="label" translatable="yes">Enable repository</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">Enable the git repository. This provides the filter and sensor data required to use SPCC.
-It is strongly recommended to leave this enabled. If you choose not to use the repository, you will need to download the .json files manually and unpack them into the repository path shown below in order to use SPCC.</property>
-                                <property name="active">True</property>
-                                <property name="draw-indicator">True</property>
-                                <signal name="toggled" handler="on_spcc_repo_enable_toggled" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">0</property>
+                                <property name="width">3</property>
                               </packing>
                             </child>
                             <child>
@@ -3119,28 +3103,16 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                             </child>
                             <child>
                               <object class="GtkCheckButton" id="spcc_repo_sync_at_startup">
-                                <property name="label" translatable="yes">Sync at startup</property>
+                                <property name="label" translatable="yes">Automatic updates at startup</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">Synchronise the repository at Siril startup.</property>
+                                <property name="tooltip-text" translatable="yes">Synchronise the repository at Siril startup. Note that updates happen in the background: the SPCC GUI will be updated on completion of the update.
+Warning: if you disable and then subsequently re-enable this option, the repository will not immediately update until the next time the application is started.</property>
                                 <property name="halign">start</property>
+                                <property name="margin-left">12</property>
                                 <property name="active">True</property>
                                 <property name="draw-indicator">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkButton" id="spcc_repo_manual_sync">
-                                <property name="label" translatable="yes">Manual sync</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">Manually synchronise the repository</property>
-                                <signal name="clicked" handler="on_manual_spcc_sync_button_clicked" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -3148,7 +3120,21 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                               </packing>
                             </child>
                             <child>
-                              <placeholder/>
+                              <object class="GtkCheckButton" id="spcc_repo_enable">
+                                <property name="label" translatable="yes">Enable repository</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Enable the git repository. This provides the filter and sensor data required to use SPCC.
+It is strongly recommended to leave this enabled. If you choose not to use the repository, you will need to download the .json files manually and unpack them into the repository path shown below in order to use SPCC.</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="on_spcc_repo_enable_toggled" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
+                              </packing>
                             </child>
                             <child>
                               <placeholder/>
@@ -5106,11 +5092,12 @@ Activating the repository will take place immediately, so that you can select sc
                                     </child>
                                     <child>
                                       <object class="GtkCheckButton" id="pref_script_automatic_updates">
-                                        <property name="label" translatable="yes">Automatic updates</property>
+                                        <property name="label" translatable="yes">Automatic updates at startup</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
-                                        <property name="tooltip-text" translatable="yes">Automatically update the repository at startup. Note: if you disable this and then later re-enable it, the repository will not immediately update but will do so the next time the application is started.</property>
+                                        <property name="tooltip-text" translatable="yes">Automatically update the repository at startup.
+Warning: if you disable this and then later re-enable it, the repository will not immediately update but will do so the next time the application is started.</property>
                                         <property name="margin-left">12</property>
                                         <property name="margin-start">12</property>
                                         <property name="draw-indicator">True</property>
