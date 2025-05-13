@@ -285,6 +285,7 @@ void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 		g_thread_unref(g_thread_new("update_spcc", initialize_spcc, NULL));
 	}
 	gtk_widget_set_sensitive(lookup_widget("spcc_repo_sync_at_startup"), com.pref.spcc.use_spcc_repository);
+	gtk_widget_set_sensitive(lookup_widget("spcc_repo_manual_sync"), (com.pref.spcc.use_spcc_repository && gui.spcc_repo_available));
 }
 #else
 
