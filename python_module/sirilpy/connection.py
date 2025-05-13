@@ -91,6 +91,10 @@ class SirilInterface:
             SirilConnectionError: if a connection error occurred
         """
 
+        if self.connected is True:
+            print(_("Already connected"))
+            return
+
         if SirilInterface._connected:
             raise SirilConnectionError(_("Error: a SirilInterface is already connected to Siril"))
 
@@ -154,10 +158,15 @@ class SirilInterface:
 
         # Attempt to reset the progress bar in case the script exits while
         # disconnected and the progress bar has been left in a bad state.
+        if self.connected is False:
+            print("Not connected")
+            return
+
         try:
             self.reset_progress()
         except Exception:
             print("Warning: unable to reset progress bar in disconnect()", file=sys.stderr)
+            pass
 
         atexit.unregister(self._cleanup)
         if os.name == 'nt':
@@ -169,11 +178,13 @@ class SirilInterface:
                     win32file.CloseHandle(self.overlap_read.hEvent)
                 if hasattr(self, 'overlap_write'):
                     win32file.CloseHandle(self.overlap_write.hEvent)
+                self.connected = False
                 SirilInterface._connected = False
                 return
             raise SirilError(_("No pipe connection to close"))
         if hasattr(self, 'sock'):
             self.sock.close()
+            self.connected = False
             SirilInterface._connected = False
             return
         raise SirilConnectionError(_("No socket connection to close"))
