@@ -941,10 +941,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		free(args);
 		return;
 	}
-	if (!args->use_bias && !args->use_dark && !args->use_flat) {
-		free(args);
-		return;
-	}
+
 	siril_log_color_message(_("Preprocessing...\n"), "green");
 
 	// set output filename (preprocessed file name prefix)

@@ -837,19 +837,25 @@ void update_prepro_interface(gboolean allow_debayer) {
 	}
 
 	gtk_widget_set_sensitive(prepro_button,
-			(sequence_is_loaded() || single_image_is_loaded())
-			&& (gtk_toggle_button_get_active(udark)
-				|| gtk_toggle_button_get_active(uoffset)
-				|| gtk_toggle_button_get_active(uflat)));
+			gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(debayer)) ||
+			((sequence_is_loaded() || single_image_is_loaded()) &&
+			(gtk_toggle_button_get_active(udark) ||
+			gtk_toggle_button_get_active(uoffset) ||
+			gtk_toggle_button_get_active(uflat))));
+
 	gtk_widget_set_sensitive(cosme_grid, gtk_toggle_button_get_active(udark));
+
 	gtk_widget_set_sensitive(dark_optim, gtk_toggle_button_get_active(udark));
+
 	gtk_widget_set_sensitive(equalize, gtk_toggle_button_get_active(uflat));
+
 	gtk_widget_set_sensitive(auto_eval, gtk_toggle_button_get_active(uflat));
+
 	gtk_widget_set_sensitive(flat_norm,
 			gtk_toggle_button_get_active(uflat) &&
 			!gtk_toggle_button_get_active(checkAutoEvaluate));
 
-	gtk_widget_set_sensitive(debayer, allow_debayer && gtk_widget_get_sensitive(prepro_button));
+	gtk_widget_set_sensitive(debayer, allow_debayer);
 	gtk_widget_set_sensitive(fix_xtrans, gtk_toggle_button_get_active(udark) || gtk_toggle_button_get_active(uoffset));
 
 	gtk_widget_set_sensitive(GTK_WIDGET(output_type), sequence_is_loaded());
