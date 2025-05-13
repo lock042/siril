@@ -99,6 +99,53 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.4.0-beta2" date="2025-05-21">
+      <url type="details">https://siril.org/download/1.4.0-beta2</url>
+      <description>
+        <p>
+          Second beta release of the 1.4.0 series, building upon the foundations established in beta1. 
+          This version focuses on stability improvements, bug fixes, and user experience enhancements 
+          while continuing to refine the major features introduced in the previous beta.
+        </p>
+        <ul>
+          <li>
+            Fixed crashes in multiple areas (Noise Reduction, astrometric registration, script refreshing)
+          </li>
+          <li>
+            Fixed option -weight= for stack command and added filtering criteria in HISTORY
+          </li>
+          <li>
+            Fixed UI hangs when manually refreshing scripts or SPCC
+          </li>
+          <li>
+            Fixed SPCC issues with non-ASCII characters in filepaths on Windows
+          </li>
+          <li>
+            Fixed parameter parsing in PixelMath and metadata handling
+          </li>
+          <li>
+            Made crop and ROI selection CFA-aware
+          </li>
+          <li>
+            Added an optional rate limit for smooth scroll zoom speed
+          </li>
+          <li>
+            Scripts can now be opened in the editor directly from Script Preferences
+          </li>
+          <li>
+            Implemented better linear regression algorithm for SPCC
+          </li>
+          <li>
+            Enhanced Python support with new interface methods and utilities
+          </li>
+          <li>
+            Added ability to calibrate images for debayering only
+          </li>
+        </ul>
+      </description>
+
+    </release>
+  <releases>
     <release version="1.4.0-beta1" date="2025-04-26">
       <url type="details">https://siril.org/download/1.4.0-beta1</url>
       <description>
