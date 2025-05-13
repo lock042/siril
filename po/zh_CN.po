@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-08 18:57+0200\n"
+"POT-Creation-Date: 2025-05-13 21:53+0200\n"
 "PO-Revision-Date: 2025-05-09 13:30+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -32,7 +32,7 @@ msgstr "限制对比度自适应直方图均衡…"
 #: src/gui/uifiles/merge_cfa_dialog.ui:63 src/gui/uifiles/mouse_actions.ui:45
 #: src/gui/uifiles/satu_dialog.ui:66 src/gui/uifiles/settings_window.ui:241
 #: src/gui/uifiles/unpurple_dialog.ui:77 src/gui/uifiles/wavelets_dialog.ui:96
-#: src/gui/mouse_action_preferences.c:648
+#: src/gui/mouse_action_preferences.c:652
 msgid "Reset"
 msgstr "重置"
 
@@ -285,8 +285,8 @@ msgstr ""
 #. Connect the edited signal
 #: src/gui/uifiles/StatWindow.ui:148 src/gui/uifiles/astrometry_dialog.ui:492
 #: src/gui/uifiles/siril.ui:3660 src/gui/uifiles/spcc_details.ui:83
-#: src/gui/mouse_action_preferences.c:203
-#: src/gui/mouse_action_preferences.c:478
+#: src/gui/mouse_action_preferences.c:205
+#: src/gui/mouse_action_preferences.c:482
 msgid "Name"
 msgstr "名称"
 
@@ -296,17 +296,17 @@ msgstr "无选区"
 
 #: src/gui/uifiles/StatWindow.ui:200 src/gui/uifiles/color_calibration.ui:389
 #: src/gui/uifiles/siril.ui:3028 src/compositing/compositing.c:681
-#: src/gui/callbacks.c:896 src/gui/callbacks.c:1279
+#: src/gui/callbacks.c:905 src/gui/callbacks.c:1288
 msgid "Red"
 msgstr "红色"
 
 #: src/gui/uifiles/StatWindow.ui:214 src/gui/uifiles/color_calibration.ui:448
-#: src/gui/uifiles/siril.ui:3197 src/gui/callbacks.c:898
+#: src/gui/uifiles/siril.ui:3197 src/gui/callbacks.c:907
 msgid "Green"
 msgstr "绿色"
 
 #: src/gui/uifiles/StatWindow.ui:228 src/gui/uifiles/color_calibration.ui:507
-#: src/gui/uifiles/siril.ui:3366 src/gui/callbacks.c:900
+#: src/gui/uifiles/siril.ui:3366 src/gui/callbacks.c:909
 msgid "Blue"
 msgstr "蓝色"
 
@@ -1674,15 +1674,15 @@ msgstr ""
 "高斯和Moffat形是星点形状的良好模型。圆盘形可用于改善失焦问题。艾里斑模拟望远"
 "镜的固有衍射。"
 
-#: src/gui/uifiles/bdeconv_dialog.ui:676 src/gui/uifiles/siril.ui:7185
+#: src/gui/uifiles/bdeconv_dialog.ui:676 src/gui/uifiles/siril.ui:7186
 #: src/gui/uifiles/stars_list_window.ui:690 src/algos/PSF.c:1048
-#: src/algos/star_finder.c:1449 src/gui/newdeconv.c:533
+#: src/algos/star_finder.c:1448 src/gui/newdeconv.c:533
 msgid "Gaussian"
 msgstr "高斯"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:677
 #: src/gui/uifiles/stars_list_window.ui:691 src/algos/PSF.c:1048
-#: src/algos/star_finder.c:1449 src/gui/newdeconv.c:535
+#: src/algos/star_finder.c:1448 src/gui/newdeconv.c:535
 msgid "Moffat"
 msgstr "Moffat"
 
@@ -1739,7 +1739,7 @@ msgstr ""
 msgid "Pixel Size / μm"
 msgstr "像素尺寸 / 微米"
 
-#: src/gui/uifiles/bdeconv_dialog.ui:868 src/gui/cut.c:534 src/gui/cut.c:747
+#: src/gui/uifiles/bdeconv_dialog.ui:868 src/gui/cut.c:535 src/gui/cut.c:748
 #: src/gui/photometric_cc.c:900 src/gui/photometric_cc.c:982
 #: src/gui/photometric_cc.c:1151
 #, c-format
@@ -2081,8 +2081,8 @@ msgstr "黑森的弗罗贝尼乌斯规范"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1990 src/gui/uifiles/savepopup.ui:272
 #: src/gui/uifiles/settings_window.ui:851
-#: src/gui/uifiles/settings_window.ui:1314 src/gui/uifiles/siril.ui:5743
-#: src/gui/uifiles/siril.ui:7090 src/gui/uifiles/siril.ui:8379
+#: src/gui/uifiles/settings_window.ui:1314 src/gui/uifiles/siril.ui:5744
+#: src/gui/uifiles/siril.ui:7091 src/gui/uifiles/siril.ui:8380
 msgid "None"
 msgstr "无"
 
@@ -2122,7 +2122,7 @@ msgstr ""
 "如有疑问，请使用梯度下降。它更平滑，步长可控，有助于避免星点周围的振铃伪影。"
 "对于已拉伸图像，乘法可以产生良好的结果，并且需要较少的迭代。"
 
-#: src/gui/uifiles/bdeconv_dialog.ui:2067 src/gui/uifiles/siril.ui:8136
+#: src/gui/uifiles/bdeconv_dialog.ui:2067 src/gui/uifiles/siril.ui:8137
 msgid "Multiplicative"
 msgstr "乘法"
 
@@ -2862,11 +2862,11 @@ msgstr "在当前选区中查找一颗星点，并将其位置设置为终点"
 msgid "<b>Type of Profile</b>"
 msgstr "<b>曲线类型</b>"
 
-#: src/gui/uifiles/cut_dialog.ui:117 src/gui/cut.c:725 src/gui/cut.c:1062
+#: src/gui/uifiles/cut_dialog.ui:117 src/gui/cut.c:726 src/gui/cut.c:1063
 msgid "Mono"
 msgstr "单色"
 
-#: src/gui/uifiles/cut_dialog.ui:121 src/gui/cut.c:1063
+#: src/gui/uifiles/cut_dialog.ui:121 src/gui/cut.c:1064
 msgid "Generates a single luminance profile along the profile line"
 msgstr "生成沿线的一条亮度曲线"
 
@@ -2998,7 +2998,7 @@ msgstr ""
 "将添加到括号内（例如标题 （1/n））。"
 
 #: src/gui/uifiles/cut_dialog.ui:333 src/gui/cut.c:90 src/gui/cut.c:171
-#: src/gui/cut.c:1372
+#: src/gui/cut.c:1373
 msgid "Intensity Profile"
 msgstr "亮度曲线"
 
@@ -3912,7 +3912,7 @@ msgstr "算法类型"
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:134
 #: src/gui/uifiles/graxpert.ui:492 src/gui/uifiles/settings_window.ui:3636
 #: src/gui/uifiles/settings_window.ui:3705 src/gui/uifiles/siril.ui:577
-#: src/gui/uifiles/siril.ui:10030 src/gui/uifiles/wavelets_dialog.ui:184
+#: src/gui/uifiles/siril.ui:10031 src/gui/uifiles/wavelets_dialog.ui:184
 msgid "Linear"
 msgstr "线性"
 
@@ -4176,7 +4176,8 @@ msgstr "3"
 msgid ""
 "Toggles between stellar and object deconvolution modes. If this item is "
 "unsensitive out, your version of GraXpert is not compatible."
-msgstr "切换反卷积模式：星点或深空天体。如果GraXpert的版本不合适，则此设置无效。"
+msgstr ""
+"切换反卷积模式：星点或深空天体。如果GraXpert的版本不合适，则此设置无效。"
 
 #: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:375
 msgid "Objects"
@@ -4257,7 +4258,7 @@ msgstr ""
 "效值：1-32。缺省值：4。"
 
 #: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:260
-#: src/gui/uifiles/settings_window.ui:5305 src/gui/uifiles/siril.ui:6357
+#: src/gui/uifiles/settings_window.ui:5305 src/gui/uifiles/siril.ui:6358
 msgid " "
 msgstr " "
 
@@ -4445,7 +4446,7 @@ msgid "Color Management"
 msgstr "色彩管理"
 
 #: src/gui/uifiles/icc_dialog.ui:65 src/gui/uifiles/s_pcc_dialog.ui:906
-#: src/gui/uifiles/siril.ui:7997 src/gui/uifiles/spcc_details.ui:24
+#: src/gui/uifiles/siril.ui:7998 src/gui/uifiles/spcc_details.ui:24
 msgid "Plot"
 msgstr "图表"
 
@@ -4463,8 +4464,9 @@ msgstr "导出"
 msgid ""
 "Export the profile currently assigned to the image to the working directory. "
 "It will be saved with the filename {imagename}.icc"
-msgstr "将当前分配给图像的ICC色彩特性文件导出到工作目录。它将以文件名 {imagename}."
-"icc 保存"
+msgstr ""
+"将当前分配给图像的ICC色彩特性文件导出到工作目录。它将以文件名 "
+"{imagename}.icc 保存"
 
 #: src/gui/uifiles/icc_dialog.ui:95 src/gui/uifiles/siril.ui:3747
 msgid "Remove"
@@ -4483,8 +4485,9 @@ msgid ""
 "Assigns the selected ICC profile to the current image without performing any "
 "color space transform. This is useful if the image has an incorrect ICC "
 "profile."
-msgstr "将选定的 ICC 色彩特性文件指定给当前图像，而不执行任何色彩空间转换。"
-"如果图像的 ICC 色彩特性文件不正确，这非常有用。"
+msgstr ""
+"将选定的 ICC 色彩特性文件指定给当前图像，而不执行任何色彩空间转换。如果图像"
+"的 ICC 色彩特性文件不正确，这非常有用。"
 
 #: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3899
 #: src/core/icc_profile.c:1287
@@ -4529,8 +4532,9 @@ msgid ""
 "Select a built-in ICC profile. This tool is only for converting the profile "
 "of an image, not its type, so you cannot convert a RGB image to a Gray "
 "profile or vice versa."
-msgstr "选择内置 ICC 色彩特性文件。此工具仅用于转换图像的色彩配置，而不是特性文件，"
-"因此您无法将 RGB 图像转换为灰度特性文件，反之亦然。"
+msgstr ""
+"选择内置 ICC 色彩特性文件。此工具仅用于转换图像的色彩配置，而不是特性文件，因"
+"此您无法将 RGB 图像转换为灰度特性文件，反之亦然。"
 
 #: src/gui/uifiles/icc_dialog.ui:374
 msgid "None selected"
@@ -4594,16 +4598,16 @@ msgid ""
 "larger gamuts than sRGB, and you will probably want to use a gamut at least "
 "as large as your monitor can display."
 msgstr ""
-"此图显示了 Siril 中可用的各种工作色域的比较。 （注意 P3 在 Siril "
-"中不可用：显示它仅供参考，如果需要，您可以提供 P3 ICC 色彩特性文件。）\n"
+"此图显示了 Siril 中可用的各种工作色域的比较。 （注意 P3 在 Siril 中不可用：显"
+"示它仅供参考，如果需要，您可以提供 P3 ICC 色彩特性文件。）\n"
 "CIE1931 xy 空间代表人眼可见的所有色彩。\n"
 "sRGB 是网络发布的标准，对应于大多数显示器的色域。\n"
-"其他色彩空间提供更大的色域，覆盖更多的 CIE1931 空间。 "
-"Rec2020拥有最大的色域，不包括想象的色彩； ProPhoto RGB "
-"具有更大的色域，尤其是在绿色/蓝色区域，但确实包含一些想象的色彩。\n"
-"如果从具有更大色域的色彩空间生成，打印的照片可以提供更丰富、更深的色彩。"
-"专业显示器还提供比 sRGB "
-"更大的色域，您可能希望使用至少与显示器可以显示的色域一样大的色域。"
+"其他色彩空间提供更大的色域，覆盖更多的 CIE1931 空间。 Rec2020拥有最大的色域，"
+"不包括想象的色彩； ProPhoto RGB 具有更大的色域，尤其是在绿色/蓝色区域，但确实"
+"包含一些想象的色彩。\n"
+"如果从具有更大色域的色彩空间生成，打印的照片可以提供更丰富、更深的色彩。专业"
+"显示器还提供比 sRGB 更大的色域，您可能希望使用至少与显示器可以显示的色域一样"
+"大的色域。"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:93
 msgid ""
@@ -4760,7 +4764,7 @@ msgstr ""
 msgid "waiting for input files"
 msgstr "等待输入文件"
 
-#: src/gui/uifiles/livestacking_player.ui:228 src/gui/uifiles/siril.ui:9358
+#: src/gui/uifiles/livestacking_player.ui:228 src/gui/uifiles/siril.ui:9359
 msgid "Stacking"
 msgstr "叠加"
 
@@ -4943,7 +4947,7 @@ msgstr "添加额外的鼠标动作"
 msgid "Remove the selected mouse action"
 msgstr "删除选定的鼠标动作"
 
-#: src/gui/uifiles/mouse_actions.ui:144 src/gui/mouse_action_preferences.c:721
+#: src/gui/uifiles/mouse_actions.ui:144 src/gui/mouse_action_preferences.c:725
 msgid "Mouse button / scroll check"
 msgstr "鼠标按钮/滚动检查"
 
@@ -4996,12 +5000,12 @@ msgstr "将表达式保存在预设中"
 msgid "RGB/K"
 msgstr "RGB/K"
 
-#: src/gui/uifiles/pixelmath.ui:212 src/gui/cut.c:729
+#: src/gui/uifiles/pixelmath.ui:212 src/gui/cut.c:730
 msgid "G"
 msgstr "G"
 
 #: src/gui/uifiles/pixelmath.ui:279 src/gui/uifiles/stars_list_window.ui:223
-#: src/gui/cut.c:731
+#: src/gui/cut.c:732
 msgid "B"
 msgstr "B"
 
@@ -5100,7 +5104,7 @@ msgid ""
 "rescaling range."
 msgstr "启用重新缩放选项后，这是输出重新缩放范围的上限。"
 
-#: src/gui/uifiles/pixelmath.ui:724 src/gui/uifiles/siril.ui:7781
+#: src/gui/uifiles/pixelmath.ui:724 src/gui/uifiles/siril.ui:7782
 msgid "Output"
 msgstr "输出"
 
@@ -5263,8 +5267,8 @@ msgid ""
 "(SirilInterface.is_cli() will return True)"
 msgstr ""
 "启用后，args条目中输入的任何参数都将在脚本运行时传递给脚本。\n"
-"这也确保了在CLI模式下Siril界面被invoke调用（SirilInterface."
-"is_cl()将返回True）"
+"这也确保了在CLI模式下Siril界面被invoke调用（SirilInterface.is_cl()将返回"
+"True）"
 
 #: src/gui/uifiles/python_scratchpad.ui:363
 msgid "Enable test arguments"
@@ -5444,30 +5448,30 @@ msgid "Type of algorithm used for resampling"
 msgstr "重采样（缩放）算法"
 
 #: src/gui/uifiles/resample_dialog.ui:195
-#: src/gui/uifiles/rotation_dialog.ui:203 src/gui/uifiles/siril.ui:7085
+#: src/gui/uifiles/rotation_dialog.ui:203 src/gui/uifiles/siril.ui:7086
 msgid "Nearest Neighbor"
 msgstr "最近邻"
 
 #: src/gui/uifiles/resample_dialog.ui:196
-#: src/gui/uifiles/rotation_dialog.ui:204 src/gui/uifiles/siril.ui:7086
-#: src/algos/geometry.c:301 src/algos/geometry.c:397
+#: src/gui/uifiles/rotation_dialog.ui:204 src/gui/uifiles/siril.ui:7087
+#: src/algos/geometry.c:303 src/algos/geometry.c:399
 msgid "Bilinear"
 msgstr "双线性"
 
 #: src/gui/uifiles/resample_dialog.ui:197
-#: src/gui/uifiles/rotation_dialog.ui:205 src/gui/uifiles/siril.ui:7087
-#: src/algos/geometry.c:305 src/algos/geometry.c:403
+#: src/gui/uifiles/rotation_dialog.ui:205 src/gui/uifiles/siril.ui:7088
+#: src/algos/geometry.c:307 src/algos/geometry.c:405
 msgid "Bicubic"
 msgstr "双三次插值"
 
 #: src/gui/uifiles/resample_dialog.ui:198
-#: src/gui/uifiles/rotation_dialog.ui:206 src/gui/uifiles/siril.ui:7088
-#: src/algos/geometry.c:303 src/algos/geometry.c:400
+#: src/gui/uifiles/rotation_dialog.ui:206 src/gui/uifiles/siril.ui:7089
+#: src/algos/geometry.c:305 src/algos/geometry.c:402
 msgid "Pixel Area Relation"
 msgstr "像素区域关联法"
 
 #: src/gui/uifiles/resample_dialog.ui:199
-#: src/gui/uifiles/rotation_dialog.ui:207 src/gui/uifiles/siril.ui:7089
+#: src/gui/uifiles/rotation_dialog.ui:207 src/gui/uifiles/siril.ui:7090
 msgid "Lanczos-4"
 msgstr "Lanczos-4"
 
@@ -5480,7 +5484,7 @@ msgid "pixels"
 msgstr "像素"
 
 #: src/gui/uifiles/resample_dialog.ui:310
-#: src/gui/uifiles/rotation_dialog.ui:226 src/gui/uifiles/siril.ui:7101
+#: src/gui/uifiles/rotation_dialog.ui:226 src/gui/uifiles/siril.ui:7102
 msgid "Interpolation clamping"
 msgstr "插值钳定"
 
@@ -5976,7 +5980,7 @@ msgid ""
 "background."
 msgstr "用于计算背景的乘法因子。该值越小饱和效应越高，越大则背景保留越多。"
 
-#: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10751
+#: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10752
 #: src/io/sequence.c:2025
 msgid "Save"
 msgstr "保存"
@@ -5989,8 +5993,8 @@ msgid ""
 "description may be different, although it will be functionally equivalent."
 msgstr ""
 "注意：嵌入 ICC 色彩特性文件时，libjxl 将检查它是否识别该特性文件。如果是，它"
-"将设置一个参考值而不存储整个特性文件。这意味着当您重新打开文件时，ICC "
-"色彩特性文件说明可能会有所不同，尽管它在功能上是等效的。"
+"将设置一个参考值而不存储整个特性文件。这意味着当您重新打开文件时，ICC 色彩特"
+"性文件说明可能会有所不同，尽管它在功能上是等效的。"
 
 #: src/gui/uifiles/savepopup.ui:128
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
@@ -6186,8 +6190,8 @@ msgstr "Y"
 msgid "Sel"
 msgstr "选中"
 
-#: src/gui/uifiles/seqlist_dialog.ui:165 src/gui/uifiles/siril.ui:7850
-#: src/gui/uifiles/siril.ui:7885 src/gui/plot.c:138 src/gui/plot.c:1671
+#: src/gui/uifiles/seqlist_dialog.ui:165 src/gui/uifiles/siril.ui:7851
+#: src/gui/uifiles/siril.ui:7886 src/gui/plot.c:138 src/gui/plot.c:1671
 #: src/gui/plot.c:1699 src/gui/sequence_list.c:515
 msgid "Quality"
 msgstr "品质"
@@ -6542,9 +6546,8 @@ msgid ""
 "you need interoperability with a program that fails to handle FITS with "
 "embedded ICC profiles (none are currently known)."
 msgstr ""
-"将 ICC 色彩特性文件嵌入 FITS 文件中。通常应将其保留，"
-"除非您需要与无法处理带有嵌入式 ICC 色彩特性文件的 FITS "
-"程序进行互操作（目前尚不清楚）。"
+"将 ICC 色彩特性文件嵌入 FITS 文件中。通常应将其保留，除非您需要与无法处理带有"
+"嵌入式 ICC 色彩特性文件的 FITS 程序进行互操作（目前尚不清楚）。"
 
 #: src/gui/uifiles/settings_window.ui:801
 msgid "Verify file checksums in FITS header (DATASUM and CHECKSUM)"
@@ -6664,7 +6667,7 @@ msgstr "FITS选项"
 msgid "Astrometry"
 msgstr "天体测量"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
 msgid "Catalogue"
 msgstr "星表"
 
@@ -7540,8 +7543,9 @@ msgid ""
 "This selects the family of RGB profiles that will be used throughout most of "
 "the workflow. For a discussion of which gamut to pick, see the Color "
 "Management section of the manual."
-msgstr "该选择将在大部分工作流程中使用 RGB "
-"特性文件系列。有关选择哪个色域的讨论，请参阅手册的色彩管理部分。"
+msgstr ""
+"该选择将在大部分工作流程中使用 RGB 特性文件系列。有关选择哪个色域的讨论，请参"
+"阅手册的色彩管理部分。"
 
 #: src/gui/uifiles/settings_window.ui:4121
 msgid "Preferred Color Space:"
@@ -7591,8 +7595,9 @@ msgstr "外部色彩特性文件："
 msgid ""
 "This should be an ICC profile in your preferred gamut with the color space's "
 "native nonlinear tone response curve."
-msgstr "这应该是您首选色域中的 ICC "
-"色彩特性文件，具有色彩空间的原生非线性色调响应曲线。"
+msgstr ""
+"这应该是您首选色域中的 ICC 色彩特性文件，具有色彩空间的原生非线性色调响应曲"
+"线。"
 
 #: src/gui/uifiles/settings_window.ui:4181
 msgid "RGB ICC profile"
@@ -7602,8 +7607,9 @@ msgstr "RGB ICC色彩特性文件"
 msgid ""
 "This should be a Gray ICC profile with a tone response curve that matches "
 "that of the nonlinear TRC profile you set above."
-msgstr "这应该是一个灰度 ICC 色彩特性文件，其色调响应曲线与您上面设置的非线性 TRC "
-"特性文件的曲线相匹配。"
+msgstr ""
+"这应该是一个灰度 ICC 色彩特性文件，其色调响应曲线与您上面设置的非线性 TRC 特"
+"性文件的曲线相匹配。"
 
 #: src/gui/uifiles/settings_window.ui:4194
 msgid "Gray ICC profile"
@@ -7615,16 +7621,17 @@ msgid ""
 "ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg "
 "etc.)"
 msgstr ""
-"将此选项与上面的“来自文件”选项一起使用。这应该是您首选色域中的 RGB ICC "
-"色彩特性文件（例如 ProPhoto、ClayRGB、ACEScg 等）"
+"将此选项与上面的“来自文件”选项一起使用。这应该是您首选色域中的 RGB ICC 色彩特"
+"性文件（例如 ProPhoto、ClayRGB、ACEScg 等）"
 
 #: src/gui/uifiles/settings_window.ui:4220
 msgid ""
 "Use this together with the \"From files\" option above. This should be a "
 "Gray (mono) ICC profile with a tone response curve that matches that of the "
 "RGB profile you set above."
-msgstr "将此选项与上面的“来自文件”选项一起使用。这应该是一个灰度（单色）ICC "
-"色彩特性文件，其色调响应曲线与您上面设置的 RGB 特性文件相匹配。"
+msgstr ""
+"将此选项与上面的“来自文件”选项一起使用。这应该是一个灰度（单色）ICC 色彩特性"
+"文件，其色调响应曲线与您上面设置的 RGB 特性文件相匹配。"
 
 #: src/gui/uifiles/settings_window.ui:4237
 msgid "Working Color Spaces"
@@ -7639,16 +7646,16 @@ msgid ""
 "To use a custom monitor ICC profile, set it here. If no custom profile is "
 "set, sRGB with D65 white point and gamma = 2.2 will be used."
 msgstr ""
-"要使用自定义显示器 ICC "
-"色彩特性文件，请在此处进行设置。如果未设置自定义特性文件，则将使用具有 D65 "
-"白点和 gamma = 2.2 的 sRGB。"
+"要使用自定义显示器 ICC 色彩特性文件，请在此处进行设置。如果未设置自定义特性文"
+"件，则将使用具有 D65 白点和 gamma = 2.2 的 sRGB。"
 
 #: src/gui/uifiles/settings_window.ui:4295
 msgid ""
 "Specify an output device profile for soft proofing purposes. If this is not "
 "set or is inactive, the monitor profile (or sRGB by default) will be used as "
 "the soft proofing target."
-msgstr "指定用于软打样目的的输出设备特性文件。如果未设置或未启用状态，则显示器特性文"
+msgstr ""
+"指定用于软打样目的的输出设备特性文件。如果未设置或未启用状态，则显示器特性文"
 "件（默认情况下为 sRGB）将用作软打样目标。"
 
 #: src/gui/uifiles/settings_window.ui:4309
@@ -7691,8 +7698,9 @@ msgstr "黑点补偿"
 msgid ""
 "Enable BPC for rendering. This is not normally required but may be useful if "
 "an image has a malformed source profile."
-msgstr "启用黑点补偿进行渲染。通常不必这么做，但如果图像具有格式错误的源色彩特性文件"
-"，这可能会很有用。"
+msgstr ""
+"启用黑点补偿进行渲染。通常不必这么做，但如果图像具有格式错误的源色彩特性文"
+"件，这可能会很有用。"
 
 #: src/gui/uifiles/settings_window.ui:4373
 msgid "Clear the profile and revert to the default"
@@ -7707,7 +7715,8 @@ msgstr "启用"
 msgid ""
 "Whether or not to use the custom monitor profile. This will take effect when "
 "Apply is clicked. The setting is ignored if no custom monitor profile is set."
-msgstr "是否使用自定义显示器色彩特性文件。单击“应用”后，这将生效。如果未设置自定义显"
+msgstr ""
+"是否使用自定义显示器色彩特性文件。单击“应用”后，这将生效。如果未设置自定义显"
 "示器特性文件，则该设置将被忽略。"
 
 #: src/gui/uifiles/settings_window.ui:4414
@@ -7719,7 +7728,8 @@ msgid ""
 "Whether or not to use the custom soft proofing profile. This will take "
 "effect when Apply is clicked. The setting is ignored if no custom monitor "
 "profile is set."
-msgstr "是否使用自定义软打样色彩特性文件。单击“应用”后，这将生效。如果未设置自定义显"
+msgstr ""
+"是否使用自定义软打样色彩特性文件。单击“应用”后，这将生效。如果未设置自定义显"
 "示器特性文件，则该设置将被忽略。"
 
 #: src/gui/uifiles/settings_window.ui:4453
@@ -7736,8 +7746,8 @@ msgid ""
 msgstr ""
 "此部分包含影响色彩空间如何应用于已保存文件的设置\n"
 "\n"
-"这些选项不会影响保存在 FITS 文件中的特性文件，这些特性文件是在 FITS "
-"选项中配置的"
+"这些选项不会影响保存在 FITS 文件中的特性文件，这些特性文件是在 FITS 选项中配"
+"置的"
 
 #: src/gui/uifiles/settings_window.ui:4489
 msgid "Export high bit depth images using:"
@@ -7799,8 +7809,8 @@ msgid ""
 "Note: if the format does not support ICC profile embedding, images will "
 "always be exported as sRGB."
 msgstr ""
-"如果格式支持 ICC 色彩特性文件，则选择用于导出 8 位图像的色彩空间。 ICC "
-"色彩特性将嵌入到文件中。\n"
+"如果格式支持 ICC 色彩特性文件，则选择用于导出 8 位图像的色彩空间。 ICC 色彩特"
+"性将嵌入到文件中。\n"
 "注意：如果格式不支持 ICC 色彩特性文件嵌入，则图像将始终导出为 sRGB。"
 
 #: src/gui/uifiles/settings_window.ui:4603
@@ -7898,15 +7908,15 @@ msgid ""
 "provision of the licence."
 msgstr ""
 "将内置色彩特性文件导出到工作目录。 Elle Stone 的个人资料是通过 CC BY-SA-3.0 "
-"许可证分发的。由于它们内置于 Siril "
-"二进制文件中，因此此导出功能旨在遵守许可证的“相同方式共享”条款。"
+"许可证分发的。由于它们内置于 Siril 二进制文件中，因此此导出功能旨在遵守许可证"
+"的“相同方式共享”条款。"
 
 #: src/gui/uifiles/settings_window.ui:4886
 msgid "<b>Built-in Profiles</b>"
 msgstr "<b>内置色彩特性文件</b>"
 
 #: src/gui/uifiles/settings_window.ui:4927
-#: src/gui/uifiles/settings_window.ui:5341 src/gui/uifiles/siril.ui:10643
+#: src/gui/uifiles/settings_window.ui:5341 src/gui/uifiles/siril.ui:10644
 msgid "Scripts"
 msgstr "脚本"
 
@@ -8179,7 +8189,7 @@ msgstr ""
 "他策略产生的计算开销对单次傅里叶变换而言得不偿失。"
 
 #: src/gui/uifiles/settings_window.ui:5630 src/gui/uifiles/siril.ui:5074
-#: src/gui/uifiles/siril.ui:6943
+#: src/gui/uifiles/siril.ui:6944
 msgid "Estimate"
 msgstr "估算"
 
@@ -8451,7 +8461,7 @@ msgstr "排除帧 %d"
 msgid "Show frame %d"
 msgstr "显示帧 %d"
 
-#: src/gui/uifiles/siril.ui:702 src/gui/uifiles/siril.ui:7640
+#: src/gui/uifiles/siril.ui:702 src/gui/uifiles/siril.ui:7641
 #: src/gui/plot.c:938 src/gui/plot.c:939
 msgid "Registration"
 msgstr "对齐"
@@ -8600,12 +8610,12 @@ msgstr "将显示的图表导出为CSV文件。"
 msgid "Export to CSV"
 msgstr "导出为CSV"
 
-#: src/gui/uifiles/siril.ui:1186 src/gui/callbacks.c:1076
+#: src/gui/uifiles/siril.ui:1186 src/gui/callbacks.c:1085
 msgid "16 bits"
 msgstr "16位"
 
-#: src/gui/uifiles/siril.ui:1194 src/gui/uifiles/siril.ui:10715
-#: src/gui/callbacks.c:1076
+#: src/gui/uifiles/siril.ui:1194 src/gui/uifiles/siril.ui:10716
+#: src/gui/callbacks.c:1085
 msgid "32 bits"
 msgstr "32位"
 
@@ -8932,7 +8942,7 @@ msgstr "去紫边滤镜..."
 msgid "Rotate  image 90 degrees, clockwise"
 msgstr "顺时针旋转图像90度"
 
-#: src/gui/uifiles/siril.ui:2136 src/gui/uifiles/siril.ui:10291
+#: src/gui/uifiles/siril.ui:2136 src/gui/uifiles/siril.ui:10292
 msgid "Rotate 90 degrees, clockwise"
 msgstr "顺时针旋转90度"
 
@@ -8940,7 +8950,7 @@ msgstr "顺时针旋转90度"
 msgid "Rotate image 90 degrees, counter-clockwise"
 msgstr "逆时针旋转图像90度"
 
-#: src/gui/uifiles/siril.ui:2151 src/gui/uifiles/siril.ui:10274
+#: src/gui/uifiles/siril.ui:2151 src/gui/uifiles/siril.ui:10275
 msgid "Rotate 90 degrees, counter-clockwise"
 msgstr "逆时针旋转90度"
 
@@ -8973,7 +8983,8 @@ msgid ""
 "Show pixels that are out of gamut in the proofing profile in magenta. If an "
 "output proofing profile is set, this will be used, otherwise the image will "
 "be proofed against the monitor profile."
-msgstr "以洋红色显示按照打样色彩特性时超出色域的像素。如果设置了输出打样特性文件，则"
+msgstr ""
+"以洋红色显示按照打样色彩特性时超出色域的像素。如果设置了输出打样特性文件，则"
 "将使用该特性文件，否则将根据显示器特性文件来打样。"
 
 #: src/gui/uifiles/siril.ui:2285
@@ -9200,15 +9211,15 @@ msgstr ""
 "注意：如果处理前的序列为SER文件或FITS序列文件，FITS图像无效。"
 
 #: src/gui/uifiles/siril.ui:3930 src/gui/uifiles/siril.ui:4298
-#: src/gui/uifiles/siril.ui:5369
+#: src/gui/uifiles/siril.ui:5370
 msgid "FITS images"
 msgstr "FITS图像"
 
-#: src/gui/uifiles/siril.ui:3931 src/gui/uifiles/siril.ui:5370
+#: src/gui/uifiles/siril.ui:3931 src/gui/uifiles/siril.ui:5371
 msgid "SER sequence"
 msgstr "SER序列"
 
-#: src/gui/uifiles/siril.ui:3932 src/gui/uifiles/siril.ui:5371
+#: src/gui/uifiles/siril.ui:3932 src/gui/uifiles/siril.ui:5372
 msgid "FITS sequence"
 msgstr "FITS序列"
 
@@ -9314,7 +9325,7 @@ msgstr "在当前目录中搜索以FITS文件组成的序列，SER文件或者�
 msgid "Open Frame List"
 msgstr "打开帧列表"
 
-#: src/gui/uifiles/siril.ui:4206 src/gui/uifiles/siril.ui:10352
+#: src/gui/uifiles/siril.ui:4206 src/gui/uifiles/siril.ui:10353
 msgid "Show/Hide list of images in the sequence with registration data"
 msgstr "显示/隐藏序列中的文件以及相关数据"
 
@@ -9456,7 +9467,7 @@ msgstr ""
 "Siril以序列的形式操作图像，Siril可以找到当前目录中的序列，并且用户可以筛选其"
 "中的图像。"
 
-#: src/gui/uifiles/siril.ui:4624 src/gui/callbacks.c:2219
+#: src/gui/uifiles/siril.ui:4624 src/gui/callbacks.c:2228
 msgid "Sequence"
 msgstr "序列"
 
@@ -9503,7 +9514,7 @@ msgid "Use bias"
 msgstr "使用偏置"
 
 #: src/gui/uifiles/siril.ui:4776 src/gui/uifiles/siril.ui:4808
-#: src/gui/uifiles/siril.ui:5780
+#: src/gui/uifiles/siril.ui:5781
 msgid ""
 "The bias/offset master image will be removed from all images in the sequence."
 msgstr "序列中的所有图像中将扣除（减去）主偏置帧/偏置值。"
@@ -9725,7 +9736,7 @@ msgstr ""
 "如果要在预处理后的FITS图像上应用去马赛克算法，请选中此选项。这样您可以跳过一"
 "个需要花费时间的手动步骤。"
 
-#: src/gui/uifiles/siril.ui:5362
+#: src/gui/uifiles/siril.ui:5363
 msgid ""
 "This sets the destination sequence type.\n"
 "FITS images: one FITS file per image.\n"
@@ -9738,31 +9749,31 @@ msgstr ""
 "SER序列：整个序列保存为一个SER文件（每通道上限为16位）。\n"
 "FITS序列：整个序列保存为一个FITS文件。"
 
-#: src/gui/uifiles/siril.ui:5381
+#: src/gui/uifiles/siril.ui:5382
 msgid "Calibrate all frames"
 msgstr "校准所有帧"
 
-#: src/gui/uifiles/siril.ui:5385
+#: src/gui/uifiles/siril.ui:5386
 msgid "Force calibration of all frames even if marked as excluded."
 msgstr "强制校准所有帧，即使标记为已排除。"
 
-#: src/gui/uifiles/siril.ui:5399
+#: src/gui/uifiles/siril.ui:5400
 msgid "Output sequence"
 msgstr "输出序列"
 
-#: src/gui/uifiles/siril.ui:5425
+#: src/gui/uifiles/siril.ui:5426
 msgid "Calibration is an optional step to apply to a sequence of images."
 msgstr "校准是一个针对图像序列的可选步骤。"
 
-#: src/gui/uifiles/siril.ui:5427
+#: src/gui/uifiles/siril.ui:5428
 msgid "Calibration"
 msgstr "校准"
 
-#: src/gui/uifiles/siril.ui:5498
+#: src/gui/uifiles/siril.ui:5499
 msgid "Registration channel: "
 msgstr "对齐通道: "
 
-#: src/gui/uifiles/siril.ui:5510
+#: src/gui/uifiles/siril.ui:5511
 msgid ""
 "Layer on which the registration is done. It can only be done on one layer at "
 "a time, so on monochrome images.\n"
@@ -9776,11 +9787,11 @@ msgstr ""
 "处理图像时，会从可用的缺省通道所获取对齐数据（对于RGB图像：绿通道，如果没有就"
 "从蓝通道，再到红通道）。"
 
-#: src/gui/uifiles/siril.ui:5554
+#: src/gui/uifiles/siril.ui:5555
 msgid "Match stars in selection"
 msgstr "匹配选区内的星点"
 
-#: src/gui/uifiles/siril.ui:5558
+#: src/gui/uifiles/siril.ui:5559
 msgid ""
 "Check this box if you want to perform the Global Star Alignment algorithm "
 "within the selected area in the reference image. If no selection are done, "
@@ -9794,11 +9805,11 @@ msgstr ""
 "\n"
 "<b>警告</b>：请确定选区内有足够的星点。"
 
-#: src/gui/uifiles/siril.ui:5574
+#: src/gui/uifiles/siril.ui:5575
 msgid "Minimum Star Pairs:"
 msgstr "最小配对星点数:"
 
-#: src/gui/uifiles/siril.ui:5585
+#: src/gui/uifiles/siril.ui:5586
 msgid ""
 "The minimum number of star pairs a given frame can have in relation with the "
 "reference frame. If a given light frame has less star pairs, it will not be "
@@ -9806,11 +9817,11 @@ msgid ""
 msgstr ""
 "当前帧和参考帧之间的最小配对星点数。如果小于该数，则该帧将不会被纳入对齐。"
 
-#: src/gui/uifiles/siril.ui:5610
+#: src/gui/uifiles/siril.ui:5611
 msgid "Maximum Stars Fitted:"
 msgstr "最多星点匹配:"
 
-#: src/gui/uifiles/siril.ui:5621
+#: src/gui/uifiles/siril.ui:5622
 msgid ""
 "The maximum number of stars to be searched for in each frame (default 2000). "
 "The larger this value, the more stars will potentially be detected, "
@@ -9819,11 +9830,11 @@ msgstr ""
 "每帧中侦测星点的最大数量（缺省2000）。该值越大则可能侦测越多星点，会耗费更长"
 "的时间并得到更加精确的对齐。"
 
-#: src/gui/uifiles/siril.ui:5626
+#: src/gui/uifiles/siril.ui:5627
 msgid "500"
 msgstr "500"
 
-#: src/gui/uifiles/siril.ui:5640
+#: src/gui/uifiles/siril.ui:5641
 msgid ""
 "<b>Shift</b> is a 2 degree-of-freedom (x/y shifts) rigid mapping, well-"
 "suited for images with no distortion, no scaling and no field rotation. It "
@@ -9865,35 +9876,35 @@ msgstr ""
 "<b>警告</b>：初始的星点匹配采用相似三角形算法，因此至少需要3对（<b>平移</b>、"
 "<b>同构</b>和<b>仿射</b>）或4对（<b>单应</b>）匹配的星点来执行对齐。"
 
-#: src/gui/uifiles/siril.ui:5651
+#: src/gui/uifiles/siril.ui:5652
 msgid "Shift"
 msgstr "平移"
 
-#: src/gui/uifiles/siril.ui:5652
+#: src/gui/uifiles/siril.ui:5653
 msgid "Similarity"
 msgstr "同构"
 
-#: src/gui/uifiles/siril.ui:5653
+#: src/gui/uifiles/siril.ui:5654
 msgid "Affine"
 msgstr "仿射"
 
-#: src/gui/uifiles/siril.ui:5654
+#: src/gui/uifiles/siril.ui:5655
 msgid "Homography"
 msgstr "单应"
 
-#: src/gui/uifiles/siril.ui:5668
+#: src/gui/uifiles/siril.ui:5669
 msgid "Transformation:"
 msgstr "变换："
 
-#: src/gui/uifiles/siril.ui:5680
+#: src/gui/uifiles/siril.ui:5681
 msgid "Hit this button for star detection settings"
 msgstr "点此项以设置星点侦测属性"
 
-#: src/gui/uifiles/siril.ui:5698
+#: src/gui/uifiles/siril.ui:5699
 msgid "2pass registration"
 msgstr "二次对齐"
 
-#: src/gui/uifiles/siril.ui:5702
+#: src/gui/uifiles/siril.ui:5703
 msgid ""
 "When this box is checked, the transformed images are not saved as a newly "
 "registered sequence. The transformation matrices are saved to the sequence "
@@ -9910,11 +9921,11 @@ msgstr ""
 "\n"
 "当未勾选此框时，将计算全局星点对齐，并立即应用下面选择的输出对齐选项。"
 
-#: src/gui/uifiles/siril.ui:5726
+#: src/gui/uifiles/siril.ui:5727
 msgid "Undistortion:"
 msgstr "畸变消除："
 
-#: src/gui/uifiles/siril.ui:5737
+#: src/gui/uifiles/siril.ui:5738
 msgid ""
 "To correct images for distortions, you can either select:\n"
 "- distortion solution from current platesolved image\n"
@@ -9926,19 +9937,19 @@ msgstr ""
 "- 根据一个WCS文件\n"
 "- 根据总和畸变文件"
 
-#: src/gui/uifiles/siril.ui:5744
+#: src/gui/uifiles/siril.ui:5745
 msgid "From image"
 msgstr "来自图像"
 
-#: src/gui/uifiles/siril.ui:5745
+#: src/gui/uifiles/siril.ui:5746
 msgid "From FITS/WCS file"
 msgstr "来自 FITS/WCS 文件"
 
-#: src/gui/uifiles/siril.ui:5746
+#: src/gui/uifiles/siril.ui:5747
 msgid "From distortion masters"
 msgstr "计算总和畸变"
 
-#: src/gui/uifiles/siril.ui:5763
+#: src/gui/uifiles/siril.ui:5764
 msgid ""
 "Select a file to read distortion information from:\n"
 "- a FITS file which has been platesolved with distortion.\n"
@@ -9948,20 +9959,20 @@ msgstr ""
 "- 一个已经解析过畸变的FITS文件。\n"
 "- 一个由先前的包含畸变的对齐写入的wcs文件。"
 
-#: src/gui/uifiles/siril.ui:5872 src/gui/uifiles/siril.ui:5886
-#: src/gui/uifiles/siril.ui:6020
+#: src/gui/uifiles/siril.ui:5873 src/gui/uifiles/siril.ui:5887
+#: src/gui/uifiles/siril.ui:6021
 msgid "Comet velocity in pixel per hour."
 msgstr "彗星速率（像素/小时）。"
 
-#: src/gui/uifiles/siril.ui:5874
+#: src/gui/uifiles/siril.ui:5875
 msgid "Velocity: "
 msgstr "速率: "
 
-#: src/gui/uifiles/siril.ui:5905
+#: src/gui/uifiles/siril.ui:5906
 msgid "Pick object in #1"
 msgstr "选择目标于#1"
 
-#: src/gui/uifiles/siril.ui:5909
+#: src/gui/uifiles/siril.ui:5910
 msgid ""
 "Select an area around the asteroid or the comet core in the first selected "
 "image, then click on this button. The pixel coordinates of the object will "
@@ -9970,11 +9981,11 @@ msgstr ""
 "在首图中选取小行星/彗核周围的一个区域，然后点击此按钮，自动计算并显示目标的像"
 "素坐标。"
 
-#: src/gui/uifiles/siril.ui:5919
+#: src/gui/uifiles/siril.ui:5920
 msgid "Pick object in #2"
 msgstr "选择目标于#2"
 
-#: src/gui/uifiles/siril.ui:5923
+#: src/gui/uifiles/siril.ui:5924
 msgid ""
 "Select an area around the asteroid or the comet core in the last selected "
 "image, then click on this button. The pixel coordinates of the object will "
@@ -9983,61 +9994,61 @@ msgstr ""
 "在末图中选取小行星/彗核周围的一个区域，然后点击此按钮，自动计算并显示目标的像"
 "素坐标。"
 
-#: src/gui/uifiles/siril.ui:5935
+#: src/gui/uifiles/siril.ui:5936
 msgid "Core X-coordinates of the first image."
 msgstr "第一幅图像中内核的X坐标。"
 
-#: src/gui/uifiles/siril.ui:5951
+#: src/gui/uifiles/siril.ui:5952
 msgid "Core X-coordinates of the second image."
 msgstr "第二幅图像中内核的X坐标。"
 
-#: src/gui/uifiles/siril.ui:5967
+#: src/gui/uifiles/siril.ui:5968
 msgid "Core Y-coordinates of the first image."
 msgstr "第一幅图像中内核的Y坐标。"
 
-#: src/gui/uifiles/siril.ui:5982
+#: src/gui/uifiles/siril.ui:5983
 msgid "Core Y-coordinates of the second image."
 msgstr "第二幅图像中内核的Y坐标。"
 
-#: src/gui/uifiles/siril.ui:6022
+#: src/gui/uifiles/siril.ui:6023
 msgid "Prefix: "
 msgstr "前缀: "
 
-#: src/gui/uifiles/siril.ui:6033
+#: src/gui/uifiles/siril.ui:6034
 msgid ""
 "Prefix of the sequence resulting from the registration. Only the seq file is "
 "created, not new images."
 msgstr "对齐结果的文件名前缀。仅创建seq文件，而不创建新图像。"
 
-#: src/gui/uifiles/siril.ui:6089
+#: src/gui/uifiles/siril.ui:6090
 msgid "Pick 1st star"
 msgstr "选择第一颗星"
 
-#: src/gui/uifiles/siril.ui:6107
+#: src/gui/uifiles/siril.ui:6108
 msgid "Pick 2nd star"
 msgstr "选择第二颗星"
 
-#: src/gui/uifiles/siril.ui:6122
+#: src/gui/uifiles/siril.ui:6123
 msgid "Pick 3rd star"
 msgstr "选择第三颗星"
 
-#: src/gui/uifiles/siril.ui:6146
+#: src/gui/uifiles/siril.ui:6147
 msgid "Star #1:"
 msgstr "第一颗星:"
 
-#: src/gui/uifiles/siril.ui:6157
+#: src/gui/uifiles/siril.ui:6158
 msgid "Star #2:"
 msgstr "第二颗星:"
 
-#: src/gui/uifiles/siril.ui:6168
+#: src/gui/uifiles/siril.ui:6169
 msgid "Star #3:"
 msgstr "第三颗星:"
 
-#: src/gui/uifiles/siril.ui:6239
+#: src/gui/uifiles/siril.ui:6240
 msgid "Follow star movement"
 msgstr "跟随星点移动"
 
-#: src/gui/uifiles/siril.ui:6243
+#: src/gui/uifiles/siril.ui:6244
 msgid ""
 "Use this option to use the position of the star(s) found in the previous "
 "image as new centre for the current image registration. This allows the "
@@ -10050,11 +10061,11 @@ msgstr ""
 "的选区，对齐更快，可用于处理有平移的图像或有大量星点的图像。\n"
 "警告：开启本选项会要求对齐操作非并行，因此只能使用一个CPU核心来运行。"
 
-#: src/gui/uifiles/siril.ui:6257
+#: src/gui/uifiles/siril.ui:6258
 msgid "Shift only"
 msgstr "仅平移"
 
-#: src/gui/uifiles/siril.ui:6261
+#: src/gui/uifiles/siril.ui:6262
 msgid ""
 "Use this option to compute only shifts (so no rotation) even if more than "
 "one star is selected. When only one star is selected, this is activated by "
@@ -10063,7 +10074,7 @@ msgstr ""
 "使用此选项仅计算平移（因此不计算旋转），即使选择了多颗星也是如此。当仅选择一"
 "颗星时，本选项被默认激活。"
 
-#: src/gui/uifiles/siril.ui:6314
+#: src/gui/uifiles/siril.ui:6315
 msgid ""
 "Indicate relative distance (in percentage vs total image size) over which to "
 "look for the alignment pattern.\n"
@@ -10080,27 +10091,27 @@ msgstr ""
 "\n"
 "设置更高的比例会获得更大的对齐宽容度，而更低的比例会获得更快的计算速度。"
 
-#: src/gui/uifiles/siril.ui:6336
+#: src/gui/uifiles/siril.ui:6337
 msgid "Size of alignment region(%):"
 msgstr "对齐区域尺寸(%):"
 
-#: src/gui/uifiles/siril.ui:6380
+#: src/gui/uifiles/siril.ui:6381
 msgid "Registration method:"
 msgstr "对齐方法:"
 
-#: src/gui/uifiles/siril.ui:6413
+#: src/gui/uifiles/siril.ui:6414
 msgid "Register all images from sequence"
 msgstr "对齐序列中的全部图像"
 
-#: src/gui/uifiles/siril.ui:6414
+#: src/gui/uifiles/siril.ui:6415
 msgid "Register selected images only"
 msgstr "仅对齐选中的图像"
 
-#: src/gui/uifiles/siril.ui:6435
+#: src/gui/uifiles/siril.ui:6436
 msgid "Registering 0 images of the 0 of the sequence"
 msgstr "序列位置：0，对齐图像：0"
 
-#: src/gui/uifiles/siril.ui:6453
+#: src/gui/uifiles/siril.ui:6454
 msgid ""
 "Select the set of images to be registered:\n"
 "\n"
@@ -10146,82 +10157,82 @@ msgstr ""
 "\n"
 "<b>品质</b>：品质最优图像 （行星DFT或者Kombat对齐）"
 
-#: src/gui/uifiles/siril.ui:6472 src/gui/uifiles/siril.ui:6601
-#: src/gui/uifiles/siril.ui:6741 src/gui/uifiles/siril.ui:8732
-#: src/gui/uifiles/siril.ui:8861 src/gui/uifiles/siril.ui:9001
-msgid "all"
-msgstr "全部"
-
 #: src/gui/uifiles/siril.ui:6473 src/gui/uifiles/siril.ui:6602
 #: src/gui/uifiles/siril.ui:6742 src/gui/uifiles/siril.ui:8733
 #: src/gui/uifiles/siril.ui:8862 src/gui/uifiles/siril.ui:9002
+msgid "all"
+msgstr "全部"
+
+#: src/gui/uifiles/siril.ui:6474 src/gui/uifiles/siril.ui:6603
+#: src/gui/uifiles/siril.ui:6743 src/gui/uifiles/siril.ui:8734
+#: src/gui/uifiles/siril.ui:8863 src/gui/uifiles/siril.ui:9003
 msgid "selected"
 msgstr "已选择"
 
-#: src/gui/uifiles/siril.ui:6474 src/gui/uifiles/siril.ui:6603
-#: src/gui/uifiles/siril.ui:6743 src/gui/uifiles/siril.ui:7843
-#: src/gui/uifiles/siril.ui:7880 src/gui/uifiles/siril.ui:8734
-#: src/gui/uifiles/siril.ui:8863 src/gui/uifiles/siril.ui:9003
+#: src/gui/uifiles/siril.ui:6475 src/gui/uifiles/siril.ui:6604
+#: src/gui/uifiles/siril.ui:6744 src/gui/uifiles/siril.ui:7844
+#: src/gui/uifiles/siril.ui:7881 src/gui/uifiles/siril.ui:8735
+#: src/gui/uifiles/siril.ui:8864 src/gui/uifiles/siril.ui:9004
 #: src/gui/plot.c:120 src/gui/plot.c:131 src/gui/sequence_list.c:506
 #: src/gui/sequence_list.c:527 src/gui/sequence_list.c:537
 #: src/gui/sequence_list.c:561
 msgid "FWHM"
 msgstr "FWHM"
 
-#: src/gui/uifiles/siril.ui:6475 src/gui/uifiles/siril.ui:6604
-#: src/gui/uifiles/siril.ui:6744 src/gui/uifiles/siril.ui:8735
-#: src/gui/uifiles/siril.ui:8864 src/gui/uifiles/siril.ui:9004
-msgid "weighted FWHM"
-msgstr "加权FWHM"
-
 #: src/gui/uifiles/siril.ui:6476 src/gui/uifiles/siril.ui:6605
 #: src/gui/uifiles/siril.ui:6745 src/gui/uifiles/siril.ui:8736
 #: src/gui/uifiles/siril.ui:8865 src/gui/uifiles/siril.ui:9005
-msgid "roundness"
-msgstr "圆度"
+msgid "weighted FWHM"
+msgstr "加权FWHM"
 
 #: src/gui/uifiles/siril.ui:6477 src/gui/uifiles/siril.ui:6606
 #: src/gui/uifiles/siril.ui:6746 src/gui/uifiles/siril.ui:8737
 #: src/gui/uifiles/siril.ui:8866 src/gui/uifiles/siril.ui:9006
-msgid "background"
-msgstr "背景"
+msgid "roundness"
+msgstr "圆度"
 
 #: src/gui/uifiles/siril.ui:6478 src/gui/uifiles/siril.ui:6607
 #: src/gui/uifiles/siril.ui:6747 src/gui/uifiles/siril.ui:8738
 #: src/gui/uifiles/siril.ui:8867 src/gui/uifiles/siril.ui:9007
-msgid "nb stars"
-msgstr "星数"
+msgid "background"
+msgstr "背景"
 
 #: src/gui/uifiles/siril.ui:6479 src/gui/uifiles/siril.ui:6608
 #: src/gui/uifiles/siril.ui:6748 src/gui/uifiles/siril.ui:8739
 #: src/gui/uifiles/siril.ui:8868 src/gui/uifiles/siril.ui:9008
+msgid "nb stars"
+msgstr "星数"
+
+#: src/gui/uifiles/siril.ui:6480 src/gui/uifiles/siril.ui:6609
+#: src/gui/uifiles/siril.ui:6749 src/gui/uifiles/siril.ui:8740
+#: src/gui/uifiles/siril.ui:8869 src/gui/uifiles/siril.ui:9009
 msgid "quality"
 msgstr "品质"
 
-#: src/gui/uifiles/siril.ui:6493 src/gui/uifiles/siril.ui:6621
-#: src/gui/uifiles/siril.ui:6761 src/gui/uifiles/siril.ui:8753
-#: src/gui/uifiles/siril.ui:8881 src/gui/uifiles/siril.ui:9021
+#: src/gui/uifiles/siril.ui:6494 src/gui/uifiles/siril.ui:6622
+#: src/gui/uifiles/siril.ui:6762 src/gui/uifiles/siril.ui:8754
+#: src/gui/uifiles/siril.ui:8882 src/gui/uifiles/siril.ui:9022
 #: src/gui/registration.c:98 src/gui/stacking.c:47
 msgid "Percents of the images of the sequence."
 msgstr "序列里图像数量的百分比。"
 
-#: src/gui/uifiles/siril.ui:6521 src/gui/uifiles/siril.ui:6649
-#: src/gui/uifiles/siril.ui:6789 src/gui/uifiles/siril.ui:8781
-#: src/gui/uifiles/siril.ui:8909 src/gui/uifiles/siril.ui:9049
+#: src/gui/uifiles/siril.ui:6522 src/gui/uifiles/siril.ui:6650
+#: src/gui/uifiles/siril.ui:6790 src/gui/uifiles/siril.ui:8782
+#: src/gui/uifiles/siril.ui:8910 src/gui/uifiles/siril.ui:9050
 msgid ""
 "Choose between % and k-σ to keep given percentage of images or to compute "
 "the allowable threshold using k-σ clipping."
 msgstr ""
 "在 % 和 k-σ 之间进行选择以保留给定百分比的图像或使用 k-σ 修剪计算允许的阈值。"
 
-#: src/gui/uifiles/siril.ui:6552 src/gui/uifiles/siril.ui:6679
-#: src/gui/uifiles/siril.ui:8812 src/gui/uifiles/siril.ui:8939
+#: src/gui/uifiles/siril.ui:6553 src/gui/uifiles/siril.ui:6680
+#: src/gui/uifiles/siril.ui:8813 src/gui/uifiles/siril.ui:8940
 msgid "Add another filter"
 msgstr "添加另外的筛选条件"
 
-#: src/gui/uifiles/siril.ui:6582 src/gui/uifiles/siril.ui:6722
-#: src/gui/uifiles/siril.ui:8713 src/gui/uifiles/siril.ui:8842
-#: src/gui/uifiles/siril.ui:8982
+#: src/gui/uifiles/siril.ui:6583 src/gui/uifiles/siril.ui:6723
+#: src/gui/uifiles/siril.ui:8714 src/gui/uifiles/siril.ui:8843
+#: src/gui/uifiles/siril.ui:8983
 msgid ""
 "Select the set of images to be stacked:\n"
 "\n"
@@ -10267,16 +10278,16 @@ msgstr ""
 "\n"
 "<b>品质</b>：品质最优图像 （行星DFT或者Kombat对齐）"
 
-#: src/gui/uifiles/siril.ui:6695 src/gui/uifiles/siril.ui:6822
-#: src/gui/uifiles/siril.ui:8955 src/gui/uifiles/siril.ui:9082
+#: src/gui/uifiles/siril.ui:6696 src/gui/uifiles/siril.ui:6823
+#: src/gui/uifiles/siril.ui:8956 src/gui/uifiles/siril.ui:9083
 msgid "Remove this filter"
 msgstr "移除此筛选条件"
 
-#: src/gui/uifiles/siril.ui:6854
+#: src/gui/uifiles/siril.ui:6855
 msgid "Image selection:"
 msgstr "图像选择："
 
-#: src/gui/uifiles/siril.ui:6907
+#: src/gui/uifiles/siril.ui:6908
 msgid ""
 "Specifies the framing method to be used:\n"
 "- \"current\" uses the current reference image\n"
@@ -10294,55 +10305,55 @@ msgstr ""
 "- \"最小化\"（交集）将每个图像裁切到序列里所有图像共有的区域。\n"
 "- \"重心\" 将全部图像的重心（cog）作为最佳构图位置"
 
-#: src/gui/uifiles/siril.ui:6916
+#: src/gui/uifiles/siril.ui:6917
 msgid "current"
 msgstr "当前"
 
-#: src/gui/uifiles/siril.ui:6917
+#: src/gui/uifiles/siril.ui:6918
 msgid "maximum"
 msgstr "最大"
 
-#: src/gui/uifiles/siril.ui:6918
+#: src/gui/uifiles/siril.ui:6919
 msgid "minimum"
 msgstr "最小"
 
-#: src/gui/uifiles/siril.ui:6919
+#: src/gui/uifiles/siril.ui:6920
 msgid "center of gravity"
 msgstr "重心"
 
-#: src/gui/uifiles/siril.ui:6934
+#: src/gui/uifiles/siril.ui:6935
 msgid "Framing method"
 msgstr "构图方式"
 
-#: src/gui/uifiles/siril.ui:6947
+#: src/gui/uifiles/siril.ui:6948
 msgid "Estimates the final size and space used by the stacked image."
 msgstr "估算叠加后图像的最终大小和空间。"
 
-#: src/gui/uifiles/siril.ui:6991
+#: src/gui/uifiles/siril.ui:6992
 msgid "Scaling:"
 msgstr "比例："
 
-#: src/gui/uifiles/siril.ui:7004
+#: src/gui/uifiles/siril.ui:7005
 msgid ""
 "Scaling of the output images. Use Estimate button to determine the final "
 "image size."
 msgstr "输出图像的缩放比例。使用“估算”按钮确定最终图像尺寸。"
 
-#: src/gui/uifiles/siril.ui:7041
+#: src/gui/uifiles/siril.ui:7042
 msgid ""
 "Choose whether to use an interpolation algorithm or Drizzle to apply "
 "registration"
 msgstr "选择使用插值算法还是Drizzle来进行对齐"
 
-#: src/gui/uifiles/siril.ui:7069
+#: src/gui/uifiles/siril.ui:7070
 msgid "Algorithm: "
 msgstr "算法: "
 
-#: src/gui/uifiles/siril.ui:7080
+#: src/gui/uifiles/siril.ui:7081
 msgid "Set the interpolation algorithm"
 msgstr "设置插值算法"
 
-#: src/gui/uifiles/siril.ui:7105
+#: src/gui/uifiles/siril.ui:7106
 msgid ""
 "Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms\n"
 "\n"
@@ -10364,15 +10375,15 @@ msgstr ""
 "在当前Siril的实现中，我们引入了钳定机制，该机制能有效防止大多数图像出现负值和"
 "振铃伪影。"
 
-#: src/gui/uifiles/siril.ui:7124
+#: src/gui/uifiles/siril.ui:7125
 msgid "Use interpolation"
 msgstr "使用插值"
 
-#: src/gui/uifiles/siril.ui:7137
+#: src/gui/uifiles/siril.ui:7138
 msgid "Include master flat in initial pixel weighting"
 msgstr "在初始像素权重中包含主平场"
 
-#: src/gui/uifiles/siril.ui:7141
+#: src/gui/uifiles/siril.ui:7142
 msgid ""
 "Check this to include the master flat in the initial pixel weighting. This "
 "will result in pixels from less vignetted areas of input frames being "
@@ -10387,15 +10398,15 @@ msgstr ""
 "\n"
 "必须在“校准”选项卡中设置主平场。"
 
-#: src/gui/uifiles/siril.ui:7157
+#: src/gui/uifiles/siril.ui:7158
 msgid "Droplet Model"
 msgstr "液滴模型"
 
-#: src/gui/uifiles/siril.ui:7169
+#: src/gui/uifiles/siril.ui:7170
 msgid "Pixel Fraction"
 msgstr "像素分数"
 
-#: src/gui/uifiles/siril.ui:7180
+#: src/gui/uifiles/siril.ui:7181
 msgid ""
 "Select the droplet model. See the documentation for details\n"
 "Note that the Gaussian and Lanczos models do not conserve flux and should "
@@ -10405,54 +10416,54 @@ msgstr ""
 "注意：高斯模型和 Lanczos 模型不保持通量守恒。如果您希望使用输出进行精确测光，"
 "则不应使用它们。"
 
-#: src/gui/uifiles/siril.ui:7184
+#: src/gui/uifiles/siril.ui:7185
 msgid "Square"
 msgstr "平方"
 
-#: src/gui/uifiles/siril.ui:7186
+#: src/gui/uifiles/siril.ui:7187
 msgid "Point"
 msgstr "点"
 
-#: src/gui/uifiles/siril.ui:7187
+#: src/gui/uifiles/siril.ui:7188
 msgid "Turbo"
 msgstr "Turbo"
 
-#: src/gui/uifiles/siril.ui:7188
+#: src/gui/uifiles/siril.ui:7189
 msgid "Lanczos2"
 msgstr "Lanczos2"
 
-#: src/gui/uifiles/siril.ui:7189
+#: src/gui/uifiles/siril.ui:7190
 msgid "Lanczos3"
 msgstr "Lanczos3"
 
-#: src/gui/uifiles/siril.ui:7201
+#: src/gui/uifiles/siril.ui:7202
 msgid ""
 "Sets the droplet size as a fraction of the input pixel size. Typically a "
 "good value for this is the reciprocal of the drizzle scale."
 msgstr ""
 "将液滴大小设置为输入像素大小的分数。通常，一个很好的值是 drizzle 比例的倒数。"
 
-#: src/gui/uifiles/siril.ui:7221
+#: src/gui/uifiles/siril.ui:7222
 msgid "Use drizzle"
 msgstr "使用Drizzle"
 
-#: src/gui/uifiles/siril.ui:7241
+#: src/gui/uifiles/siril.ui:7242
 msgid "Prefix:"
 msgstr "前缀："
 
-#: src/gui/uifiles/siril.ui:7255
+#: src/gui/uifiles/siril.ui:7256
 msgid "Prefix of the image names resulting from the registration."
 msgstr "对齐结果的文件名前缀。"
 
-#: src/gui/uifiles/siril.ui:7285
+#: src/gui/uifiles/siril.ui:7286
 msgid "Output registration:"
 msgstr "输出对齐："
 
-#: src/gui/uifiles/siril.ui:7300
+#: src/gui/uifiles/siril.ui:7301
 msgid "Go register"
 msgstr "去对齐"
 
-#: src/gui/uifiles/siril.ui:7305
+#: src/gui/uifiles/siril.ui:7306
 msgid ""
 "Start the registration process. It will register images in the loaded "
 "sequence using the selected method and reference layer (loaded in the 'Image "
@@ -10461,19 +10472,19 @@ msgstr ""
 "开启对齐处理。将使用所选定的方法和参考图层来载入和对齐序列中的图像（在“图像序"
 "列”标签页中载入，当前序列名称也会在窗口底部显示）。"
 
-#: src/gui/uifiles/siril.ui:7324
+#: src/gui/uifiles/siril.ui:7325
 msgid "Load a sequence first"
 msgstr "请先载入序列"
 
-#: src/gui/uifiles/siril.ui:7341
+#: src/gui/uifiles/siril.ui:7342
 msgid "Automatic image registration"
 msgstr "自动图像对齐"
 
-#: src/gui/uifiles/siril.ui:7376
+#: src/gui/uifiles/siril.ui:7377
 msgid "Display reference image"
 msgstr "显示参考帧"
 
-#: src/gui/uifiles/siril.ui:7381
+#: src/gui/uifiles/siril.ui:7382
 msgid ""
 "Display the reference image over the current image using a 50% "
 "transparency.\n"
@@ -10484,35 +10495,35 @@ msgstr ""
 "若要开启本选项，参考帧必须已经设定好，并且至少已经在所选择的对齐图层上显示过"
 "一次。"
 
-#: src/gui/uifiles/siril.ui:7396
+#: src/gui/uifiles/siril.ui:7397
 msgid "Set reference image first"
 msgstr "请先选定参考帧"
 
-#: src/gui/uifiles/siril.ui:7425
+#: src/gui/uifiles/siril.ui:7426
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the X axis."
 msgstr "使用鼠标滚轮或者上下方向键改变此数值，以在X轴上把当前帧向参考帧对齐。"
 
-#: src/gui/uifiles/siril.ui:7426
+#: src/gui/uifiles/siril.ui:7427
 msgid "X translation:"
 msgstr "X 平移:"
 
-#: src/gui/uifiles/siril.ui:7461
+#: src/gui/uifiles/siril.ui:7462
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the Y axis."
 msgstr "使用鼠标滚轮或者上下方向键改变此数值，以在Y轴上把当前帧向参考帧对齐。"
 
-#: src/gui/uifiles/siril.ui:7462
+#: src/gui/uifiles/siril.ui:7463
 msgid "Y translation:"
 msgstr "Y 平移:"
 
-#: src/gui/uifiles/siril.ui:7521
+#: src/gui/uifiles/siril.ui:7522
 msgid "Set first preview"
 msgstr "设置预览一"
 
-#: src/gui/uifiles/siril.ui:7525 src/gui/uifiles/siril.ui:7567
+#: src/gui/uifiles/siril.ui:7526 src/gui/uifiles/siril.ui:7568
 msgid ""
 "Allows a preview area to be displayed just below. After clicking on this "
 "button, click on the image to position the preview area's centre"
@@ -10520,29 +10531,29 @@ msgstr ""
 "在下方区域内显示预览。点击完本按钮后，请点击图像来指定某位置作为预览区域的中"
 "心"
 
-#: src/gui/uifiles/siril.ui:7563
+#: src/gui/uifiles/siril.ui:7564
 msgid "Set second preview"
 msgstr "设置预览二"
 
-#: src/gui/uifiles/siril.ui:7611 src/compositing/compositing.c:1988
+#: src/gui/uifiles/siril.ui:7612 src/compositing/compositing.c:1988
 msgid "Manual registration"
 msgstr "手动对齐"
 
-#: src/gui/uifiles/siril.ui:7637
+#: src/gui/uifiles/siril.ui:7638
 msgid ""
 "Registration is basically aligning the images from a sequence to be able to "
 "process them afterwards."
 msgstr "对齐序列里的图像，使之可用于后续处理。"
 
-#: src/gui/uifiles/siril.ui:7699
+#: src/gui/uifiles/siril.ui:7700
 msgid "Modify x-axis units, or y-axis units if available."
 msgstr "修改 x 轴单位或 y 轴单位（如果可用）。"
 
-#: src/gui/uifiles/siril.ui:7711
+#: src/gui/uifiles/siril.ui:7712
 msgid "Display"
 msgstr "显示"
 
-#: src/gui/uifiles/siril.ui:7746
+#: src/gui/uifiles/siril.ui:7747
 msgid ""
 "Purple curve: actual plot as configured with X and Y selectors.\n"
 "Green curve: sorted values by order of decreasing quality.\n"
@@ -10554,88 +10565,88 @@ msgstr ""
 "圆圈标记：参考帧的值。\n"
 "十字标记：当前载入帧的值。"
 
-#: src/gui/uifiles/siril.ui:7750
+#: src/gui/uifiles/siril.ui:7751
 msgid "Hovering for the legend"
 msgstr "在说明上悬停"
 
-#: src/gui/uifiles/siril.ui:7769
+#: src/gui/uifiles/siril.ui:7770
 msgid ""
 "This button opens a CSV export of the data, or a screenshot of the plot."
 msgstr "此按钮可打开数据的 CSV 导出或图表的屏幕截图。"
 
-#: src/gui/uifiles/siril.ui:7829
+#: src/gui/uifiles/siril.ui:7830
 msgid "X:"
 msgstr "X:"
 
-#: src/gui/uifiles/siril.ui:7844 src/gui/uifiles/siril.ui:7881
+#: src/gui/uifiles/siril.ui:7845 src/gui/uifiles/siril.ui:7882
 #: src/gui/plot.c:121 src/gui/plot.c:132 src/gui/sequence_list.c:512
 #: src/gui/sequence_list.c:534
 msgid "Roundness"
 msgstr "圆度"
 
-#: src/gui/uifiles/siril.ui:7845 src/gui/uifiles/siril.ui:7882
+#: src/gui/uifiles/siril.ui:7846 src/gui/uifiles/siril.ui:7883
 #: src/gui/plot.c:133 src/gui/sequence_list.c:509
 msgid "wFWHM"
 msgstr "wFWHM"
 
-#: src/gui/uifiles/siril.ui:7846 src/gui/uifiles/siril.ui:7883
+#: src/gui/uifiles/siril.ui:7847 src/gui/uifiles/siril.ui:7884
 #: src/gui/plot.c:124 src/gui/plot.c:134 src/gui/sequence_list.c:518
 #: src/gui/sequence_list.c:546
 msgid "Background"
 msgstr "背景"
 
-#: src/gui/uifiles/siril.ui:7847 src/gui/uifiles/siril.ui:7884
+#: src/gui/uifiles/siril.ui:7848 src/gui/uifiles/siril.ui:7885
 #: src/gui/plot.c:135
 msgid "# Stars"
 msgstr "# 星点"
 
-#: src/gui/uifiles/siril.ui:7848 src/gui/uifiles/siril.ui:7886
+#: src/gui/uifiles/siril.ui:7849 src/gui/uifiles/siril.ui:7887
 #: src/gui/plot.c:125 src/gui/plot.c:136 src/gui/sequence_list.c:549
 msgid "X Position"
 msgstr "X 坐标"
 
-#: src/gui/uifiles/siril.ui:7849 src/gui/uifiles/siril.ui:7887
+#: src/gui/uifiles/siril.ui:7850 src/gui/uifiles/siril.ui:7888
 #: src/gui/plot.c:126 src/gui/plot.c:137 src/gui/sequence_list.c:552
 msgid "Y Position"
 msgstr "Y 坐标"
 
-#: src/gui/uifiles/siril.ui:7851 src/gui/plot.c:139
+#: src/gui/uifiles/siril.ui:7852 src/gui/plot.c:139
 msgid "Frame"
 msgstr "帧"
 
-#: src/gui/uifiles/siril.ui:7865
+#: src/gui/uifiles/siril.ui:7866
 msgid "Y:"
 msgstr "Y:"
 
-#: src/gui/uifiles/siril.ui:7877
+#: src/gui/uifiles/siril.ui:7878
 msgid "Select which information to display from photometry data."
 msgstr "选择将被显示的测光数据。"
 
-#: src/gui/uifiles/siril.ui:7914
+#: src/gui/uifiles/siril.ui:7915
 msgid "Select the source of graph information."
 msgstr "选择曲线数据源。"
 
-#: src/gui/uifiles/siril.ui:7917
+#: src/gui/uifiles/siril.ui:7918
 msgid "Registration data"
 msgstr "对齐数据"
 
-#: src/gui/uifiles/siril.ui:7918
+#: src/gui/uifiles/siril.ui:7919
 msgid "Photometry data"
 msgstr "测光数据"
 
-#: src/gui/uifiles/siril.ui:7933
+#: src/gui/uifiles/siril.ui:7934
 msgid "Deletes photometric plots displayed in the graphics area."
 msgstr "删除图形区域中显示的测光图表。"
 
-#: src/gui/uifiles/siril.ui:7945
+#: src/gui/uifiles/siril.ui:7946
 msgid "Clear plots"
 msgstr "清除图表"
 
-#: src/gui/uifiles/siril.ui:7996
+#: src/gui/uifiles/siril.ui:7997
 msgid "Show all relevant graphs using registration and / or photometry data."
 msgstr "显示所有对齐/测光相关数据的的图表。"
 
-#: src/gui/uifiles/siril.ui:8050
+#: src/gui/uifiles/siril.ui:8051
 msgid ""
 "<b>Sum</b>: This is the simplest method.\n"
 "Pixel values are added in an image normalized to 32-bit values.\n"
@@ -10692,31 +10703,31 @@ msgstr ""
 "<b>像素最小值</b>：该方式可用于找到叠加后应该裁掉的区域。\n"
 "所得图像每个像素的值是所有图像同一位置像素值的最小值。"
 
-#: src/gui/uifiles/siril.ui:8075 src/stacking/sum.c:270
+#: src/gui/uifiles/siril.ui:8076 src/stacking/sum.c:270
 msgid "Sum stacking"
 msgstr "加法叠加"
 
-#: src/gui/uifiles/siril.ui:8076
+#: src/gui/uifiles/siril.ui:8077
 msgid "Average stacking with rejection"
 msgstr "含有像素剔除的平均数叠加"
 
-#: src/gui/uifiles/siril.ui:8077
+#: src/gui/uifiles/siril.ui:8078
 msgid "Median stacking"
 msgstr "中位数叠加"
 
-#: src/gui/uifiles/siril.ui:8078
+#: src/gui/uifiles/siril.ui:8079
 msgid "Pixel maximum stacking"
 msgstr "像素最大值叠加"
 
-#: src/gui/uifiles/siril.ui:8079
+#: src/gui/uifiles/siril.ui:8080
 msgid "Pixel minimum stacking"
 msgstr "像素最小值叠加"
 
-#: src/gui/uifiles/siril.ui:8090
+#: src/gui/uifiles/siril.ui:8091
 msgid "Method:"
 msgstr "方法:"
 
-#: src/gui/uifiles/siril.ui:8125
+#: src/gui/uifiles/siril.ui:8126
 msgid ""
 "If one of these items is selected, a normalisation process will be applied "
 "to all input images before stacking.\n"
@@ -10746,27 +10757,27 @@ msgstr ""
 "\n"
 "<b>偏置和暗场帧不应使用归一化。而平场帧必须使用乘法归一化。</b>"
 
-#: src/gui/uifiles/siril.ui:8134
+#: src/gui/uifiles/siril.ui:8135
 msgid "No normalisation"
 msgstr "无归一化"
 
-#: src/gui/uifiles/siril.ui:8135
+#: src/gui/uifiles/siril.ui:8136
 msgid "Additive"
 msgstr "加法"
 
-#: src/gui/uifiles/siril.ui:8137
+#: src/gui/uifiles/siril.ui:8138
 msgid "Additive with scaling"
 msgstr "加法带拉伸"
 
-#: src/gui/uifiles/siril.ui:8138
+#: src/gui/uifiles/siril.ui:8139
 msgid "Multiplicative with scaling"
 msgstr "乘法带拉伸"
 
-#: src/gui/uifiles/siril.ui:8150
+#: src/gui/uifiles/siril.ui:8151
 msgid "Recompute"
 msgstr "重新计算"
 
-#: src/gui/uifiles/siril.ui:8154
+#: src/gui/uifiles/siril.ui:8155
 msgid ""
 "By default, Siril takes the normalisation coefficients from seq file if "
 "already computed. However you can force Siril to recompute it before "
@@ -10775,11 +10786,11 @@ msgstr ""
 "缺省下，Siril会从seq文件中读取已经计算好的归一化系数。不过用户可以强制Siril在"
 "叠加前重新计算。"
 
-#: src/gui/uifiles/siril.ui:8167
+#: src/gui/uifiles/siril.ui:8168
 msgid "Faster normalisation"
 msgstr "快速归一化"
 
-#: src/gui/uifiles/siril.ui:8171
+#: src/gui/uifiles/siril.ui:8172
 msgid ""
 "By default, Siril uses IKSS estimators of location and scale to compute "
 "normalisation. For long sequences, computing these estimators can be quite "
@@ -10792,19 +10803,19 @@ msgstr ""
 "非常大。这种情况下，您可以选择快速归一化（基于中位数和绝对中位差）。当每幅图"
 "像中的异常值较少的时候，仍然会得到令人满意的结果（相比于完全不做归一化）。"
 
-#: src/gui/uifiles/siril.ui:8190
+#: src/gui/uifiles/siril.ui:8191
 msgid "Normalisation:"
 msgstr "归一化："
 
-#: src/gui/uifiles/siril.ui:8281 src/gui/stacking.c:360
+#: src/gui/uifiles/siril.ui:8282 src/gui/stacking.c:360
 msgid "Sigma low: "
 msgstr "Sigma下限: "
 
-#: src/gui/uifiles/siril.ui:8315 src/gui/stacking.c:361
+#: src/gui/uifiles/siril.ui:8316 src/gui/stacking.c:361
 msgid "Sigma high: "
 msgstr "Sigma上限: "
 
-#: src/gui/uifiles/siril.ui:8326
+#: src/gui/uifiles/siril.ui:8327
 msgid ""
 "Seven rejection algorithms are available:\n"
 "\n"
@@ -10872,39 +10883,39 @@ msgstr ""
 "[3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-"
 "Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 
-#: src/gui/uifiles/siril.ui:8347
+#: src/gui/uifiles/siril.ui:8348
 msgid "No rejection"
 msgstr "无像素剔除"
 
-#: src/gui/uifiles/siril.ui:8348
+#: src/gui/uifiles/siril.ui:8349
 msgid "Percentile Clipping"
 msgstr "百分数排异"
 
-#: src/gui/uifiles/siril.ui:8349
+#: src/gui/uifiles/siril.ui:8350
 msgid "Sigma Clipping"
 msgstr "Sigma排异"
 
-#: src/gui/uifiles/siril.ui:8350 src/stacking/stacking.c:202
+#: src/gui/uifiles/siril.ui:8351 src/stacking/stacking.c:202
 msgid "MAD clipping"
 msgstr "绝对中位差排异"
 
-#: src/gui/uifiles/siril.ui:8351
+#: src/gui/uifiles/siril.ui:8352
 msgid "Median Sigma Clipping"
 msgstr "中位数Sigma排异"
 
-#: src/gui/uifiles/siril.ui:8352
+#: src/gui/uifiles/siril.ui:8353
 msgid "Winsorized Sigma Clipping"
 msgstr "Winsorized Sigma排异"
 
-#: src/gui/uifiles/siril.ui:8353
+#: src/gui/uifiles/siril.ui:8354
 msgid "Linear Fit Clipping"
 msgstr "线性拟合排异"
 
-#: src/gui/uifiles/siril.ui:8354
+#: src/gui/uifiles/siril.ui:8355
 msgid "Generalized Extreme Studentized Deviate Test"
 msgstr "广义ESD检验"
 
-#: src/gui/uifiles/siril.ui:8367
+#: src/gui/uifiles/siril.ui:8368
 msgid ""
 "Four methods of weighting are available:\n"
 "\n"
@@ -10929,31 +10940,31 @@ msgstr ""
 "\n"
 "<b>图像数量</b> 根据各帧的积分时间对齐进行加权。"
 
-#: src/gui/uifiles/siril.ui:8380 src/gui/plot.c:1677 src/gui/plot.c:1705
+#: src/gui/uifiles/siril.ui:8381 src/gui/plot.c:1677 src/gui/plot.c:1705
 msgid "Number of stars"
 msgstr "星点数量"
 
-#: src/gui/uifiles/siril.ui:8381
+#: src/gui/uifiles/siril.ui:8382
 msgid "Weighted FWHM"
 msgstr "加权FWHM"
 
-#: src/gui/uifiles/siril.ui:8382
+#: src/gui/uifiles/siril.ui:8383
 msgid "Noise"
 msgstr "噪声"
 
-#: src/gui/uifiles/siril.ui:8383
+#: src/gui/uifiles/siril.ui:8384
 msgid "Number of images"
 msgstr "图像数量"
 
-#: src/gui/uifiles/siril.ui:8397
+#: src/gui/uifiles/siril.ui:8398
 msgid "Weighting:"
 msgstr "权重："
 
-#: src/gui/uifiles/siril.ui:8412
+#: src/gui/uifiles/siril.ui:8413
 msgid "Create rejection maps"
 msgstr "创建像素剔除图"
 
-#: src/gui/uifiles/siril.ui:8416
+#: src/gui/uifiles/siril.ui:8417
 msgid ""
 "Compute and create rejection maps during stacking. These are images showing "
 "how many images were rejected for each pixel of the result image, divided by "
@@ -10962,34 +10973,34 @@ msgstr ""
 "在叠加期间计算和创建像素剔除图。这些图像显示结果图像的每个像素被剔除的图像数"
 "除以已叠加的图像的数量。"
 
-#: src/gui/uifiles/siril.ui:8428
+#: src/gui/uifiles/siril.ui:8429
 msgid "Merge L+H"
 msgstr "合并 L+H"
 
-#: src/gui/uifiles/siril.ui:8433
+#: src/gui/uifiles/siril.ui:8434
 msgid ""
 "Create only one rejection map that will be the sum of the low and high maps"
 msgstr "仅创建一个像素剔除图，该图将是被剔除的低值和高值的总和"
 
-#: src/gui/uifiles/siril.ui:8464
+#: src/gui/uifiles/siril.ui:8465
 msgid "Pixel rejection:"
 msgstr "像素剔除："
 
-#: src/gui/uifiles/siril.ui:8593
+#: src/gui/uifiles/siril.ui:8594
 msgid "Borders feathering [pix]:"
 msgstr "边界羽化（像素）："
 
-#: src/gui/uifiles/siril.ui:8604
+#: src/gui/uifiles/siril.ui:8605
 msgid ""
 "Select here the number of pixels that will be faded out on the borders of "
 "each image."
 msgstr "在此选择将在每张图像边缘淡出(被羽化)的像素数量。"
 
-#: src/gui/uifiles/siril.ui:8636
+#: src/gui/uifiles/siril.ui:8637
 msgid "Normalization on overlaps"
 msgstr "在重叠区域应用归一化"
 
-#: src/gui/uifiles/siril.ui:8640
+#: src/gui/uifiles/siril.ui:8641
 msgid ""
 "By default, Siril computes the normalisation coefficients from each image. "
 "Ticking this box computes them on overlapping regions instead."
@@ -10997,27 +11008,27 @@ msgstr ""
 "默认情况下，Siril 会计算每张图像的归一化系数。勾选此框后，改为仅在重叠区域上"
 "计算这些系数，以实现对齐。"
 
-#: src/gui/uifiles/siril.ui:8659
+#: src/gui/uifiles/siril.ui:8660
 msgid "Stack stitching:"
 msgstr "叠加拼合："
 
-#: src/gui/uifiles/siril.ui:8695
+#: src/gui/uifiles/siril.ui:8696
 msgid "Stacking 0 images of the 0 of the sequence"
 msgstr "序列位置：0，叠加图像：0"
 
-#: src/gui/uifiles/siril.ui:9109
+#: src/gui/uifiles/siril.ui:9110
 msgid "Image rejection:"
 msgstr "图像剔除："
 
-#: src/gui/uifiles/siril.ui:9128
+#: src/gui/uifiles/siril.ui:9129
 msgid "Sequence stacking"
 msgstr "序列叠加"
 
-#: src/gui/uifiles/siril.ui:9162
+#: src/gui/uifiles/siril.ui:9163
 msgid "Output Normalisation"
 msgstr "输出归一化"
 
-#: src/gui/uifiles/siril.ui:9165
+#: src/gui/uifiles/siril.ui:9166
 msgid ""
 "If you check this button, the final image will be normalized in the [0, 1] "
 "range if you work in 32-bit format precision, or clipped in [0, 65535] "
@@ -11032,11 +11043,11 @@ msgstr ""
 "\n"
 "警告：叠加主校准帧时不要选择此项。"
 
-#: src/gui/uifiles/siril.ui:9178
+#: src/gui/uifiles/siril.ui:9179
 msgid "RGB equalization"
 msgstr "RGB均衡"
 
-#: src/gui/uifiles/siril.ui:9181
+#: src/gui/uifiles/siril.ui:9182
 msgid ""
 "If you check this button, the channels in the final image will be equalized "
 "(color images only).\n"
@@ -11047,21 +11058,21 @@ msgstr ""
 "\n"
 "警告：叠加主校准帧时不要选择此项。"
 
-#: src/gui/uifiles/siril.ui:9194
+#: src/gui/uifiles/siril.ui:9195
 msgid "Maximize framing"
 msgstr "最大化构图"
 
-#: src/gui/uifiles/siril.ui:9197
+#: src/gui/uifiles/siril.ui:9198
 msgid ""
 "If you check this button, the final image size will be enlarged to fit all "
 "the selected frames of the sequence."
 msgstr "如果选中此按钮，最终图像尺寸将被放大，以适合序列的所有选定帧。"
 
-#: src/gui/uifiles/siril.ui:9209
+#: src/gui/uifiles/siril.ui:9210
 msgid "Interpolation upscaling x2"
 msgstr "插值放大 x2"
 
-#: src/gui/uifiles/siril.ui:9212
+#: src/gui/uifiles/siril.ui:9213
 msgid ""
 "If you check this button, the final image size will be upscaled by a factor "
 "of 2. This can be faster than real drizzle images obtained during "
@@ -11070,138 +11081,138 @@ msgstr ""
 "如果选中此按钮，最终图像尺寸将放大 2 倍。这比对齐期间得到的真正的 drizzle 图"
 "像更快，但没那么清晰。"
 
-#: src/gui/uifiles/siril.ui:9223
+#: src/gui/uifiles/siril.ui:9224
 msgid "Force 32b output"
 msgstr "强制32位输出"
 
-#: src/gui/uifiles/siril.ui:9227
+#: src/gui/uifiles/siril.ui:9228
 msgid ""
 "If you check this button, the final image bitdepth will be forced to 32b "
 "even if the input images are in 16b."
 msgstr "如果勾选，结果图像会强制为32位深度。即使输入16位图像也一样。"
 
 #. Must be short
-#: src/gui/uifiles/siril.ui:9256
+#: src/gui/uifiles/siril.ui:9257
 msgid "Save in:"
 msgstr "保存于:"
 
-#: src/gui/uifiles/siril.ui:9280
+#: src/gui/uifiles/siril.ui:9281
 msgid "Overwrite"
 msgstr "覆盖"
 
-#: src/gui/uifiles/siril.ui:9284
+#: src/gui/uifiles/siril.ui:9285
 msgid "Overwrite file without notice if it already exists."
 msgstr "无提示覆盖已经存在的文件。"
 
-#: src/gui/uifiles/siril.ui:9304
+#: src/gui/uifiles/siril.ui:9305
 msgid "Start stacking"
 msgstr "开始叠加"
 
-#: src/gui/uifiles/siril.ui:9309
+#: src/gui/uifiles/siril.ui:9310
 msgid ""
 "Start stacking the current sequence of images, using the method and other "
 "information provided above."
 msgstr "开始叠加当前序列中的图像，应用上面所选择的方式和其他信息。"
 
-#: src/gui/uifiles/siril.ui:9329
+#: src/gui/uifiles/siril.ui:9330
 msgid "Stacking result"
 msgstr "叠加结果"
 
-#: src/gui/uifiles/siril.ui:9355
+#: src/gui/uifiles/siril.ui:9356
 msgid ""
 "Stacking of images, either summing, median, mean with rejection or pixel "
 "minimum/maximum."
 msgstr "图像叠加，支持加法，中位数，基于像素剔除的平均数，或最大/最小值。"
 
-#: src/gui/uifiles/siril.ui:9393
+#: src/gui/uifiles/siril.ui:9394
 msgid ""
 "Siril output window, displays messages about what has been done and in "
 "response to command inputs."
 msgstr "Siril输出窗口，显示各种程序执行过程的信息，并且对输入的命令进行响应。"
 
-#: src/gui/uifiles/siril.ui:9454
+#: src/gui/uifiles/siril.ui:9455
 msgid "Export the log"
 msgstr "导出日志"
 
-#: src/gui/uifiles/siril.ui:9468 src/gui/progress_and_log.c:286
+#: src/gui/uifiles/siril.ui:9469 src/gui/progress_and_log.c:286
 msgid "Clear the log"
 msgstr "清除日志"
 
-#: src/gui/uifiles/siril.ui:9505
+#: src/gui/uifiles/siril.ui:9506
 msgid "This tab shows the Siril logs."
 msgstr "该标签页显示Siril日志。"
 
-#: src/gui/uifiles/siril.ui:9508
+#: src/gui/uifiles/siril.ui:9509
 msgid "Console"
 msgstr "控制台"
 
-#: src/gui/uifiles/siril.ui:9545
+#: src/gui/uifiles/siril.ui:9546
 msgid ""
 "Input command. Typing \"help\" here will bring the list of supported "
 "commands."
 msgstr "输入命令。键入“help”以得到命令列表。"
 
-#: src/gui/uifiles/siril.ui:9548
+#: src/gui/uifiles/siril.ui:9549
 msgid "Type \"help\" for the list of supported commands"
 msgstr "输入“help”以获得命令列表"
 
-#: src/gui/uifiles/siril.ui:9563
+#: src/gui/uifiles/siril.ui:9564
 msgid "Displays manual of the command written in the console."
 msgstr "显示控制台命令的手册。"
 
-#: src/gui/uifiles/siril.ui:9575
+#: src/gui/uifiles/siril.ui:9576
 msgid "Stop"
 msgstr "停止"
 
-#: src/gui/uifiles/siril.ui:9579
+#: src/gui/uifiles/siril.ui:9580
 msgid "Stop running processes"
 msgstr "停止正在执行的处理"
 
-#: src/gui/uifiles/siril.ui:9604
+#: src/gui/uifiles/siril.ui:9605
 msgid "Command line"
 msgstr "命令行"
 
-#: src/gui/uifiles/siril.ui:9622 src/gui/progress_and_log.c:46
+#: src/gui/uifiles/siril.ui:9623 src/gui/progress_and_log.c:46
 msgid "Ready."
 msgstr "就绪。"
 
-#: src/gui/uifiles/siril.ui:9655
+#: src/gui/uifiles/siril.ui:9656
 msgid "Hide the control panel to show only the image panel (toggle)."
 msgstr "隐藏控制面板，仅显示图像面板（切换）。"
 
-#: src/gui/uifiles/siril.ui:9700
+#: src/gui/uifiles/siril.ui:9701
 msgid "Click to Set the name of the item to clipboard (green-ed label)"
 msgstr "单击以将项目的名称设置为剪贴板（绿色标签）"
 
-#: src/gui/uifiles/siril.ui:9701
+#: src/gui/uifiles/siril.ui:9702
 msgid "Sequence:"
 msgstr "序列:"
 
-#: src/gui/uifiles/siril.ui:9755
+#: src/gui/uifiles/siril.ui:9756
 msgid "Image validation tools"
 msgstr "图像验证工具"
 
-#: src/gui/uifiles/siril.ui:9829
+#: src/gui/uifiles/siril.ui:9830
 msgid "High value"
 msgstr "高值"
 
-#: src/gui/uifiles/siril.ui:9888
+#: src/gui/uifiles/siril.ui:9889
 msgid "Low value"
 msgstr "低值"
 
-#: src/gui/uifiles/siril.ui:9938
+#: src/gui/uifiles/siril.ui:9939
 msgid "Min/Max"
 msgstr "最大/最小"
 
-#: src/gui/uifiles/siril.ui:9955
+#: src/gui/uifiles/siril.ui:9956
 msgid "MIPS-LO/HI"
 msgstr "MIPS-低/高"
 
-#: src/gui/uifiles/siril.ui:9972
+#: src/gui/uifiles/siril.ui:9973
 msgid "User"
 msgstr "自定义"
 
-#: src/gui/uifiles/siril.ui:10016
+#: src/gui/uifiles/siril.ui:10017
 msgid ""
 "Display mode: this list presents all the visual modes available in Siril.\n"
 "\n"
@@ -11214,30 +11225,30 @@ msgstr ""
 "\n"
 "<b>警告：只有线性模式会显示真实的像素值（当滑块位于最大和最小的位置）。 其他模式只是显示数据的便捷方式。使用外部工具处理之前请先完成直方图拉伸。</b>"
 
-#: src/gui/uifiles/siril.ui:10066
+#: src/gui/uifiles/siril.ui:10067
 msgid "Chain/unchain channels in autostretch viewer mode.\n"
 msgstr "绑定/非绑定各通道于自动拉伸预览模式。\n"
 
-#: src/gui/uifiles/siril.ui:10092
+#: src/gui/uifiles/siril.ui:10093
 msgid "Switch to normal and negative view"
 msgstr "切换标准/负片视图"
 
-#: src/gui/uifiles/siril.ui:10109
+#: src/gui/uifiles/siril.ui:10110
 msgid "Switch to normal and rainbow colormap (false color rendering)"
 msgstr "切换正常色彩和彩虹伪色（伪色映射）"
 
-#: src/gui/uifiles/siril.ui:10135
+#: src/gui/uifiles/siril.ui:10136
 msgid ""
 "Left-click to show object names if WCS information is available. Right-click "
 "to display a list of astro catalogs to choose from."
 msgstr ""
 "左键单击，当WCS信息存在时，显示天体名称。右键单击，显示一系列星表以供选择。"
 
-#: src/gui/uifiles/siril.ui:10150
+#: src/gui/uifiles/siril.ui:10151
 msgid "Show celestial grid if WCS information is available"
 msgstr "当WCS信息可用时，显示坐标网格"
 
-#: src/gui/uifiles/siril.ui:10164
+#: src/gui/uifiles/siril.ui:10165
 msgid ""
 "Switch to PSF/photometry mode. If a sequence is loaded, a right click on the "
 "displayed image applies the PSF/Photometry on the whole sequence."
@@ -11245,76 +11256,76 @@ msgstr ""
 "切换到 PSF/测光模式。如果已载入序列，则右键单击显示的图像会将PSF/测光模式应用"
 "于整个序列。"
 
-#: src/gui/uifiles/siril.ui:10178
+#: src/gui/uifiles/siril.ui:10179
 msgid ""
 "Make an intensity profile cut, showing a graph of the pixel value along a "
 "line between two points"
 msgstr "将沿着图像中一条线段的像素值绘制成一条曲线"
 
-#: src/gui/uifiles/siril.ui:10202
+#: src/gui/uifiles/siril.ui:10203
 msgid "Shrink the image"
 msgstr "缩小图像"
 
-#: src/gui/uifiles/siril.ui:10216
+#: src/gui/uifiles/siril.ui:10217
 msgid "Enlarge the image"
 msgstr "放大图像"
 
-#: src/gui/uifiles/siril.ui:10230
+#: src/gui/uifiles/siril.ui:10231
 msgid "Fit the image to the window"
 msgstr "缩放至窗口尺寸"
 
-#: src/gui/uifiles/siril.ui:10247
+#: src/gui/uifiles/siril.ui:10248
 msgid "Show the image at its normal size"
 msgstr "显示图像实际尺寸"
 
-#: src/gui/uifiles/siril.ui:10308
+#: src/gui/uifiles/siril.ui:10309
 msgid "Horizontal mirror"
 msgstr "水平翻转"
 
-#: src/gui/uifiles/siril.ui:10325
+#: src/gui/uifiles/siril.ui:10326
 msgid "Vertical mirror"
 msgstr "垂直翻转"
 
-#: src/gui/uifiles/siril.ui:10394 src/gui/single_image.c:75
+#: src/gui/uifiles/siril.ui:10395 src/gui/single_image.c:75
 msgid "Open"
 msgstr "打开"
 
-#: src/gui/uifiles/siril.ui:10399
+#: src/gui/uifiles/siril.ui:10400
 msgid "Open an image or a SER/AVI sequence"
 msgstr "打开图像文件或 SER/AVI 序列"
 
-#: src/gui/uifiles/siril.ui:10415
+#: src/gui/uifiles/siril.ui:10416
 msgid "Open recent images (only FITS and SER files)"
 msgstr "打开最近的文件（仅FITS和SER）"
 
-#: src/gui/uifiles/siril.ui:10439
+#: src/gui/uifiles/siril.ui:10440
 msgid "Change current working directory"
 msgstr "更改当前工作目录"
 
-#: src/gui/uifiles/siril.ui:10463
+#: src/gui/uifiles/siril.ui:10464
 msgid "Start livestacking session"
 msgstr "开始动态叠加"
 
-#: src/gui/uifiles/siril.ui:10539
+#: src/gui/uifiles/siril.ui:10540
 msgid ""
 "Menu of the image processing tools. It contains all suitable functions for "
 "image enhancement."
 msgstr "图像处理工具菜单，包含所有可用于强化图像的功能。"
 
-#: src/gui/uifiles/siril.ui:10550
+#: src/gui/uifiles/siril.ui:10551
 msgid "Image Processing"
 msgstr "图像处理"
 
-#: src/gui/uifiles/siril.ui:10586
+#: src/gui/uifiles/siril.ui:10587
 msgid ""
 "Siril tools menu. It contains all the functions required for image analysis."
 msgstr "Siril 工具菜单。它包含图像分析所需的所有功能。"
 
-#: src/gui/uifiles/siril.ui:10597
+#: src/gui/uifiles/siril.ui:10598
 msgid "Tools"
 msgstr "工具"
 
-#: src/gui/uifiles/siril.ui:10632
+#: src/gui/uifiles/siril.ui:10633
 msgid ""
 "Menu of the script files. This menu appears only when the script paths "
 "defined in the preferences are set to the existing script folders."
@@ -11322,23 +11333,23 @@ msgstr ""
 "脚本菜单。只有在偏好设置中定义的脚本路径设置为现有脚本文件夹时，才会显示此菜"
 "单。"
 
-#: src/gui/uifiles/siril.ui:10702
+#: src/gui/uifiles/siril.ui:10703
 msgid "Bit-depth select button"
 msgstr "位深选择按钮"
 
-#: src/gui/uifiles/siril.ui:10756
+#: src/gui/uifiles/siril.ui:10757
 msgid "Save the current FITS image"
 msgstr "保存当前FITS文件"
 
-#: src/gui/uifiles/siril.ui:10771
+#: src/gui/uifiles/siril.ui:10772
 msgid "Save the current image in a different name"
 msgstr "当前图像另存为"
 
-#: src/gui/uifiles/siril.ui:10793
+#: src/gui/uifiles/siril.ui:10794
 msgid "Take a snapshot of your displayed image."
 msgstr "将当前所显示的图像制作为快照。"
 
-#: src/gui/uifiles/siril.ui:10845
+#: src/gui/uifiles/siril.ui:10846
 msgid ""
 "Set number of threads manually.\n"
 "WARNING: Reducing the number of allowed processors too much will degrade "
@@ -11347,18 +11358,18 @@ msgstr ""
 "手动设定线程数。\n"
 "警告：降低该数值会影响程序的性能。"
 
-#: src/gui/uifiles/siril.ui:10880
+#: src/gui/uifiles/siril.ui:10881
 msgid "Displays the amount of used RAM memory by Siril."
 msgstr "显示Siril所占用的内存大小。"
 
-#: src/gui/uifiles/siril.ui:10901
+#: src/gui/uifiles/siril.ui:10902
 msgid ""
 "Displays the amount of disk space available on the file system containing "
 "the working directory."
 msgstr "显示当前工作目录所在的文件系统的可用磁盘空间。"
 
 #. Must be short !!
-#: src/gui/uifiles/siril.ui:10903
+#: src/gui/uifiles/siril.ui:10904
 msgctxt "GUI"
 msgid "Disk Space: N/A"
 msgstr "磁盘空间：N/A"
@@ -12423,7 +12434,7 @@ msgstr "尝试半径为 %3.1f 度的临近解析\n"
 msgid "Plate Solve"
 msgstr "图像解析"
 
-#: src/algos/astrometry_solver.c:1056 src/gui/callbacks.c:1844
+#: src/algos/astrometry_solver.c:1056 src/gui/callbacks.c:1853
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr "将焦距%.2f和像素尺寸%.2f保存为缺省值\n"
@@ -12451,37 +12462,37 @@ msgstr "解析警告：%s"
 msgid "Plate solving failed: %s"
 msgstr "解析失败：%s"
 
-#: src/algos/astrometry_solver.c:1225
+#: src/algos/astrometry_solver.c:1226
 msgid "Near solver started"
 msgstr "临近解析开始"
 
-#: src/algos/astrometry_solver.c:1305
+#: src/algos/astrometry_solver.c:1306
 msgid "Near solver done"
 msgstr "临近解析完成"
 
-#: src/algos/astrometry_solver.c:1314
+#: src/algos/astrometry_solver.c:1315
 msgid "Solving again at updated center\n"
 msgstr "中心更新后再次临近解析\n"
 
-#: src/algos/astrometry_solver.c:1605
+#: src/algos/astrometry_solver.c:1606
 #, c-format
 msgid "Running asnet version %s\n"
 msgstr "正在运行asnet，版本为%s\n"
 
-#: src/algos/astrometry_solver.c:1643
+#: src/algos/astrometry_solver.c:1644
 #, c-format
 msgid "Astrometry.net path (%s) incorrectly set in preferences\n"
 msgstr "Astrometry.net的路径(%s)设置不正确\n"
 
-#: src/algos/astrometry_solver.c:1675
+#: src/algos/astrometry_solver.c:1676
 msgid "solve-field was not found, set its path in the preferences\n"
 msgstr "solve-field 未找到，请在偏好设置中设置其路径\n"
 
-#: src/algos/astrometry_solver.c:1692
+#: src/algos/astrometry_solver.c:1693
 msgid "Failed to create the input data for solve-field\n"
 msgstr "无法为 solve-field 创建输入数据\n"
 
-#: src/algos/astrometry_solver.c:1755
+#: src/algos/astrometry_solver.c:1756
 #, c-format
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
@@ -12490,123 +12501,123 @@ msgstr ""
 "Astrometry.net 进行解析基于RA：%s，Dec：%s，半径为%s度，缩放比例为[%s, "
 "%s]。\n"
 
-#: src/algos/astrometry_solver.c:1759
+#: src/algos/astrometry_solver.c:1760
 #, c-format
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius, blindly for scale\n"
 msgstr "Astrometry.net 进行解析基于RA：%s，Dec：%s，半径为%s度，盲解缩放\n"
 
-#: src/algos/astrometry_solver.c:1763
+#: src/algos/astrometry_solver.c:1764
 #, c-format
 msgid "Astrometry.net solving blindly in position for scales [%s, %s]\n"
 msgstr "Astrometry.net盲解比例尺范围为[%s, %s]。\n"
 
-#: src/algos/astrometry_solver.c:1766
+#: src/algos/astrometry_solver.c:1767
 msgid "Astrometry.net solving blindly\n"
 msgstr "Astrometry.net 盲解\n"
 
-#: src/algos/astrometry_solver.c:1831
+#: src/algos/astrometry_solver.c:1832
 msgid "Astrometry.net local solver"
 msgstr "Astrometry.net 本地解析器"
 
-#: src/algos/astrometry_solver.c:1869
+#: src/algos/astrometry_solver.c:1870
 msgid "No astrometric solution found\n"
 msgstr "未找到天体测量的解\n"
 
-#: src/algos/astrometry_solver.c:1902
+#: src/algos/astrometry_solver.c:1903
 #, c-format
 msgid "Could not read the solution from solve-field (expected in file %s)\n"
 msgstr "无法从 solve-field 读取解（应在文件 %s 中）\n"
 
-#: src/algos/astrometry_solver.c:1943
+#: src/algos/astrometry_solver.c:1944
 msgid "Using the current selection to detect stars\n"
 msgstr "使用当前选区来侦测星点\n"
 
-#: src/algos/astrometry_solver.c:1988
+#: src/algos/astrometry_solver.c:1989
 msgid "Selection is not used in manual star selection mode\n"
 msgstr "在手动选星模式下不使用选区\n"
 
-#: src/algos/astrometry_solver.c:2045
+#: src/algos/astrometry_solver.c:2046
 msgid "Error: no reference stars available\n"
 msgstr "错误：没有可用的参考星点\n"
 
-#: src/algos/astrometry_solver.c:2062 src/registration/registration.c:94
+#: src/algos/astrometry_solver.c:2063 src/registration/registration.c:94
 #: src/registration/shift_methods.c:85 src/registration/shift_methods.c:385
 msgid "Recomputing already existing registration for this layer\n"
 msgstr "对该图层重新计算已经有的对齐数据\n"
 
-#: src/algos/astrometry_solver.c:2077
+#: src/algos/astrometry_solver.c:2078
 #, c-format
 msgid "Running sequence plate solving using the %s catalogue\n"
 msgstr "使用 %s 星表运行序列解析\n"
 
-#: src/algos/astrometry_solver.c:2089 src/algos/astrometry_solver.c:2194
+#: src/algos/astrometry_solver.c:2090 src/algos/astrometry_solver.c:2195
 #, c-format
 msgid "Image %d already platesolved, skipping\n"
 msgstr "图像 %d 已解析，跳过\n"
 
-#: src/algos/astrometry_solver.c:2120
+#: src/algos/astrometry_solver.c:2121
 #, c-format
 msgid ""
 "Could not retrieve center coordinates from image %s metadata, using "
 "reference image value instead\n"
 msgstr "无法从图像%s的元数据中找到中心坐标，使用参考帧的值代替\n"
 
-#: src/algos/astrometry_solver.c:2129
+#: src/algos/astrometry_solver.c:2130
 #, c-format
 msgid ""
 "Could not retrieve pixel size from image %s metadata or settings, using "
 "reference image value instead\n"
 msgstr "无法从图像%s的元数据中找到像素尺寸，使用参考帧的值代替\n"
 
-#: src/algos/astrometry_solver.c:2140
+#: src/algos/astrometry_solver.c:2141
 #, c-format
 msgid ""
 "Could not retrieve focal length from image %s metadata or settings, using "
 "reference image value instead\n"
 msgstr "无法从图像%s的元数据中找到焦距，使用参考帧的值代替\n"
 
-#: src/algos/astrometry_solver.c:2182
+#: src/algos/astrometry_solver.c:2183
 #, c-format
 msgid "Image %d: no stars found\n"
 msgstr "图像%d：没有找到星\n"
 
-#: src/algos/astrometry_solver.c:2190 src/algos/astrometry_solver.c:2241
+#: src/algos/astrometry_solver.c:2191 src/algos/astrometry_solver.c:2243
 #, c-format
 msgid "Could not copy WCS data, skipping image %d\n"
 msgstr "无法拷贝WCS数据，跳过图像 %d\n"
 
-#: src/algos/astrometry_solver.c:2215
+#: src/algos/astrometry_solver.c:2217
 #, c-format
 msgid "Image %s did not solve\n"
 msgstr "图像 %s 未解析\n"
 
-#: src/algos/astrometry_solver.c:2229
+#: src/algos/astrometry_solver.c:2231
 #, c-format
 msgid "Image %s platesolved and updated\n"
 msgstr "图像 %s 解析完成并更新\n"
 
-#: src/algos/astrometry_solver.c:2231
+#: src/algos/astrometry_solver.c:2233
 #, c-format
 msgid "Image %s platesolved but could not be saved\n"
 msgstr "图像 %s 已解析但无法保存\n"
 
-#: src/algos/astrometry_solver.c:2255
+#: src/algos/astrometry_solver.c:2257
 #, c-format
 msgid "%d images successfully platesolved out of %d included\n"
 msgstr "已成功解析 %d 张图像（共有 %d 张）\n"
 
-#: src/algos/astrometry_solver.c:2257
+#: src/algos/astrometry_solver.c:2259
 #, c-format
 msgid "(%d were already solved and skipped)\n"
 msgstr "（%d 已解析并被跳过）\n"
 
-#: src/algos/astrometry_solver.c:2261
+#: src/algos/astrometry_solver.c:2263
 msgid "Computing astrometric registration...\n"
 msgstr "计算天体测量对齐...\n"
 
-#: src/algos/astrometry_solver.c:2263
+#: src/algos/astrometry_solver.c:2265
 msgid "Reference image was not platesolved, changing reference\n"
 msgstr "参考帧未解析，更改参考帧\n"
 
@@ -12701,10 +12712,10 @@ msgstr ""
 "警告：建议不要对CFA图像应用次数>1的多项式背景去除，而是使用线性背景去除。\n"
 
 #: src/algos/background_extraction.c:1335 src/algos/demosaicing.c:1298
-#: src/algos/extraction.c:1158 src/algos/star_finder.c:1151
+#: src/algos/extraction.c:1158 src/algos/star_finder.c:1150
 #: src/algos/statistics.c:902 src/core/preprocess.c:283
 #: src/core/processing.c:468 src/filters/banding.c:85
-#: src/filters/cosmetic_correction.c:401 src/gui/cut.c:1328
+#: src/filters/cosmetic_correction.c:401 src/gui/cut.c:1329
 #, c-format
 msgid ""
 "%s: not enough memory to do this operation (%s required per image, %s "
@@ -13128,53 +13139,57 @@ msgstr "fix_xtrans_ac无法处理此CFA模式。\n"
 msgid "Failed to sample enough pixels for AF type %d.\n"
 msgstr "无法对AF类型%d获取足够的像素采样。\n"
 
-#: src/algos/geometry.c:270
+#: src/algos/geometry.c:272
 #, c-format
 msgid "Binning x%d: processing...\n"
 msgstr "合并 x%d：处理中...\n"
 
-#: src/algos/geometry.c:290
+#: src/algos/geometry.c:292
 #, c-format
 msgid "New image size: %dx%d pixels.\n"
 msgstr "新图像尺寸: %dx%d 像素。\n"
 
-#: src/algos/geometry.c:298 src/algos/geometry.c:393
+#: src/algos/geometry.c:300 src/algos/geometry.c:395
 msgid "Nearest-Neighbor"
 msgstr "最近邻"
 
-#: src/algos/geometry.c:307 src/algos/geometry.c:406
+#: src/algos/geometry.c:309 src/algos/geometry.c:408
 msgid "Lanczos4"
 msgstr "Lanczos4"
 
-#: src/algos/geometry.c:320
+#: src/algos/geometry.c:322
 #, c-format
 msgid "Resample (%s interpolation): processing...\n"
 msgstr "%s 插值的重采样（缩放）：处理中...\n"
 
-#: src/algos/geometry.c:360 src/algos/geometry.c:411
+#: src/algos/geometry.c:362 src/algos/geometry.c:413
 #, c-format
 msgid "Rotation (%s interpolation, angle=%g): processing...\n"
 msgstr "旋转（%s 差值，角度=%g）: 处理中…\n"
 
-#: src/algos/geometry.c:361 src/algos/geometry.c:390
+#: src/algos/geometry.c:363 src/algos/geometry.c:392
 msgid "No"
 msgstr "无"
 
-#: src/algos/geometry.c:446 src/algos/geometry.c:480
+#: src/algos/geometry.c:448 src/algos/geometry.c:482
 msgid "Horizontal mirror: processing...\n"
 msgstr "水平翻转：处理中...\n"
 
-#: src/algos/geometry.c:539
+#: src/algos/geometry.c:541
 msgid "Vertical mirror: processing...\n"
 msgstr "垂直翻转：处理中...\n"
 
-#: src/algos/geometry.c:675 src/core/command.c:2152
+#: src/algos/geometry.c:652 src/algos/geometry.c:663
+msgid "Rounding selection to match CFA pattern\n"
+msgstr ""
+
+#: src/algos/geometry.c:706 src/core/command.c:2152
 #: src/gui/menu_gray_geometry.c:350 src/gui/menu_gray_geometry.c:365
 #, c-format
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
 msgstr "裁切（x=%d, y=%d, w=%d, h=%d）"
 
-#: src/algos/geometry.c:727 src/registration/applyreg.c:766
+#: src/algos/geometry.c:758 src/registration/applyreg.c:766
 #: src/registration/global.c:590 src/stacking/blending.c:116
 #, c-format
 msgid ""
@@ -13182,11 +13197,11 @@ msgid ""
 "considered available)\n"
 msgstr "%s: 没有足够的内存来执行操作（每线程需要%s，而仅%s可用)\n"
 
-#: src/algos/geometry.c:784
+#: src/algos/geometry.c:815
 msgid "Crop Sequence"
 msgstr "裁切整个序列"
 
-#: src/algos/geometry.c:811
+#: src/algos/geometry.c:842
 msgid "Scale Sequence"
 msgstr "缩放整个序列"
 
@@ -13716,18 +13731,18 @@ msgstr "无法应用高斯滤波，异常中止\n"
 msgid "Selection is larger than image\n"
 msgstr "选区大于图像\n"
 
-#: src/algos/star_finder.c:710
+#: src/algos/star_finder.c:709
 msgid ""
 "More than half of PSF fits have failed - try increasing the convergence "
 "criterion\n"
 msgstr "超过半数的PSF拟合失败 - 尝试提高收敛判据\n"
 
-#: src/algos/star_finder.c:915
+#: src/algos/star_finder.c:914
 #, c-format
 msgid "Found %d stars with same settings in %s, skipping detection\n"
 msgstr "找到了 %d 颗星以使用与 %s 中相同的参数，跳过侦测\n"
 
-#: src/algos/star_finder.c:943 src/core/command.c:5253 src/core/command.c:7295
+#: src/algos/star_finder.c:942 src/core/command.c:5253 src/core/command.c:7295
 #: src/core/command.c:7469 src/core/command.c:8677
 #: src/io/image_format_fits.c:833 src/io/path_parse.c:669
 #: src/io/remote_catalogues.c:534 src/io/siril_catalogues.c:836
@@ -13735,21 +13750,21 @@ msgstr "找到了 %d 颗星以使用与 %s 中相同的参数，跳过侦测\n"
 msgid "Cannot create output folder: %s\n"
 msgstr "无法创建输出目录: %s\n"
 
-#: src/algos/star_finder.c:957
+#: src/algos/star_finder.c:956
 #, c-format
 msgid "Cannot save star list %s: %s\n"
 msgstr "无法保存星点列表%s: %s\n"
 
-#: src/algos/star_finder.c:1012 src/core/command.c:7227
+#: src/algos/star_finder.c:1011 src/core/command.c:7227
 #, c-format
 msgid "The file %s has been created.\n"
 msgstr "文件%s已被创建。\n"
 
-#: src/algos/star_finder.c:1331
+#: src/algos/star_finder.c:1330
 msgid "FindStar"
 msgstr "星点侦测"
 
-#: src/algos/star_finder.c:1345 src/compositing/compositing.c:1839
+#: src/algos/star_finder.c:1344 src/compositing/compositing.c:1839
 #: src/io/sequence.c:2276 src/io/sequence.c:2294
 #: src/registration/applyreg.c:329 src/registration/applyreg.c:801
 #: src/registration/applyreg.c:992 src/registration/comet.c:141
@@ -13757,22 +13772,22 @@ msgstr "星点侦测"
 msgid "Could not load reference image\n"
 msgstr "无法载入参考帧\n"
 
-#: src/algos/star_finder.c:1390
+#: src/algos/star_finder.c:1389
 msgid ""
 "Undebayered CFA image. Detection is done on green pixels only, using "
 "interpolation\n"
 msgstr "CFA图像未解拜耳。仅在绿像素上插值并进行侦测。\n"
 
-#: src/algos/star_finder.c:1448
+#: src/algos/star_finder.c:1447
 #, c-format
 msgid "Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"
 msgstr "找到 %d 个 %s 形星于 %s，通道 #%d（FWHM %f）\n"
 
-#: src/algos/star_finder.c:1450
+#: src/algos/star_finder.c:1449
 msgid "selection"
 msgstr "选择"
 
-#: src/algos/star_finder.c:1450
+#: src/algos/star_finder.c:1449
 msgid "image"
 msgstr "图像"
 
@@ -13918,7 +13933,7 @@ msgid ""
 msgstr "根据可用内存限制，已达到此大小的图像的最大数量。"
 
 #: src/compositing/compositing.c:669 src/compositing/compositing.c:674
-#: src/core/preprocess.c:1030 src/core/preprocess.c:1031
+#: src/core/preprocess.c:1027 src/core/preprocess.c:1028
 #, c-format
 msgid "<span foreground=\"red\">ERROR</span>"
 msgstr "<span foreground=\"red\">错误</span>"
@@ -13935,15 +13950,17 @@ msgstr "只有单通道图像可被载入"
 msgid ""
 "ICC profile differs to that of the first image loaded. Converting this image "
 "to match the first one loaded.\n"
-msgstr "ICC 色彩特性文件与载入的第一幅图像的特性文件不同。转换此图像以匹配载入的第一"
+msgstr ""
+"ICC 色彩特性文件与载入的第一幅图像的特性文件不同。转换此图像以匹配载入的第一"
 "幅图像。\n"
 
 #: src/compositing/compositing.c:702
 msgid ""
 "Input images have inconsistent ICC profiles. First image had no ICC profile. "
 "All input layers will be treated as raw data.\n"
-msgstr "输入图像的 ICC 色彩特性文件不一致。第一幅图像没有 ICC "
-"色彩特性文件。所有输入图层都将被视为原始数据。\n"
+msgstr ""
+"输入图像的 ICC 色彩特性文件不一致。第一幅图像没有 ICC 色彩特性文件。所有输入"
+"图层都将被视为原始数据。\n"
 
 #: src/compositing/compositing.c:714
 msgid "The first loaded image should have the greatest sizes for now\n"
@@ -14162,15 +14179,15 @@ msgstr "总计: %d 失败， %d 已对齐。\n"
 msgid "Registration aborted.\n"
 msgstr "对齐操作异常中止。\n"
 
-#: src/core/OS_utils.c:357
+#: src/core/OS_utils.c:359
 msgid "Error while computing available free disk space.\n"
 msgstr "计算可用磁盘空间错误。\n"
 
-#: src/core/OS_utils.c:361
+#: src/core/OS_utils.c:363
 msgid "Error in requested space disk.\n"
 msgstr "请求磁盘空间错误。\n"
 
-#: src/core/OS_utils.c:372
+#: src/core/OS_utils.c:374
 #, c-format
 msgid ""
 "Compression enabled: There may no be enough free disk space to perform this "
@@ -14179,13 +14196,13 @@ msgstr ""
 "已启用压缩：可能没有足够的可用磁盘空间来执行此操作：%s 可用于所需的 %s（缺少 "
 "%s）\n"
 
-#: src/core/OS_utils.c:375
+#: src/core/OS_utils.c:377
 msgid ""
 "Compression enabled: There may not be enough free disk space to perform this "
 "operation"
 msgstr "已启用压缩：可能没有足够的磁盘空间可用来执行此操作"
 
-#: src/core/OS_utils.c:377
+#: src/core/OS_utils.c:379
 #, c-format
 msgid ""
 "Compression enabled: It is likely that there is not enough free disk space "
@@ -14194,63 +14211,63 @@ msgstr ""
 "已启用压缩：可能没有足够的可用磁盘空间来执行此操作：%s 可用于所需的 %s（缺少 "
 "%s）\n"
 
-#: src/core/OS_utils.c:380
+#: src/core/OS_utils.c:382
 msgid ""
 "Compression enabled: It is likely that there is not enough free disk space "
 "to perform this operation"
 msgstr "已启用压缩：可能没有足够的可用磁盘空间来执行此操作"
 
-#: src/core/OS_utils.c:384
+#: src/core/OS_utils.c:386
 #, c-format
 msgid ""
 "Not enough free disk space to perform this operation: %s available for %s "
 "needed (missing %s)\n"
 msgstr "没有足够的剩余磁盘空间来执行操作：可用 %s 而需要 %s （缺少 %s）\n"
 
-#: src/core/OS_utils.c:387
+#: src/core/OS_utils.c:389
 msgid "Not enough disk space"
 msgstr "没有足够的磁盘空间"
 
-#: src/core/OS_utils.c:529
+#: src/core/OS_utils.c:531
 #, c-format
 msgid "Using cgroups limit on memory: %s\n"
 msgstr "对内存使用 cgroups 限制：%s\n"
 
-#: src/core/OS_utils.c:546
+#: src/core/OS_utils.c:548
 #, c-format
 msgid "Error reading from %s, disabling cgroups memory limits\n"
 msgstr "从 %s 读取时出错，禁用 cgroups 内存限制\n"
 
-#: src/core/OS_utils.c:619
+#: src/core/OS_utils.c:621
 #, c-format
 msgid ""
 "Questionable parallel processing detection - openmp reports %d %s, glib %d.\n"
 msgstr "有问题的并行处理检测 - openmp 报告 %d %s，glib %d。\n"
 
-#: src/core/OS_utils.c:620 src/core/OS_utils.c:635 src/core/command.c:9461
+#: src/core/OS_utils.c:622 src/core/OS_utils.c:637 src/core/command.c:9461
 msgid "processor"
 msgid_plural "processors"
 msgstr[0] "处理器"
 
-#: src/core/OS_utils.c:626
+#: src/core/OS_utils.c:628
 #, c-format
 msgid "Using cgroups limit on the number of processors: %d\n"
 msgstr "对处理器数量使用 cgroups 限制：%d\n"
 
-#: src/core/OS_utils.c:633
+#: src/core/OS_utils.c:635
 #, c-format
 msgid "Parallel processing enabled: using %d logical %s%s.\n"
 msgstr "并行计算已启用：使用 %d 逻辑 %s%s。\n"
 
-#: src/core/OS_utils.c:636
+#: src/core/OS_utils.c:638
 msgid ", nesting not supported"
 msgstr "，嵌套不被支持"
 
-#: src/core/OS_utils.c:639
+#: src/core/OS_utils.c:641
 msgid "Parallel processing disabled: using 1 logical processor.\n"
 msgstr "并行计算关闭：使用1逻辑处理器。\n"
 
-#: src/core/OS_utils.c:828
+#: src/core/OS_utils.c:830
 msgid "Limiting processing to 1900 MiB allocations (32-bit system)\n"
 msgstr "将处理限制为 1900 MiB 分配（32 位系统）\n"
 
@@ -15325,7 +15342,7 @@ msgstr "仅当序列已载入并且框选了一个星点时，参数才是可选
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr "PSF在通道 %d上，在有%d通道的序列中无法被计算\n"
 
-#: src/core/command.c:4577 src/gui/callbacks.c:2386
+#: src/core/command.c:4577 src/gui/callbacks.c:2395
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "于序列中执行PSF，图层 %d\n"
@@ -15758,7 +15775,7 @@ msgstr "未知的转化类型 %s，异常中止。\n"
 
 #: src/core/command.c:7770 src/core/command.c:7900 src/core/command.c:8364
 #: src/core/command.c:9022 src/core/command.c:10261 src/core/command.c:10946
-#: src/core/preprocess.c:685 src/core/preprocess.c:1011
+#: src/core/preprocess.c:685 src/core/preprocess.c:1008
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr "无法载入序列的参考帧，异常中止。\n"
 
@@ -16172,7 +16189,7 @@ msgstr "您必须使用-cc=bpm选项指定一个坏像素图，异常中止。\n
 msgid "Unknown argument %s, aborting.\n"
 msgstr "未知参数%s，异常中止。\n"
 
-#: src/core/command.c:9277 src/core/command.c:9295 src/core/preprocess.c:948
+#: src/core/command.c:9277 src/core/command.c:9295 src/core/preprocess.c:945
 msgid "Preprocessing...\n"
 msgstr "预处理...\n"
 
@@ -16992,8 +17009,9 @@ msgstr "打开自定义显示器色彩特性文件时出错。显示器色彩特
 msgid ""
 "Warning: custom monitor profile set but could not be loaded. Display will "
 "use a sRGB profile with the standard sRGB TRC.\n"
-msgstr "警告：自定义显示器色彩特性文件已设置但无法加载。显示器将使用 sRGB "
-"特性文件和标准 sRGB TRC。\n"
+msgstr ""
+"警告：自定义显示器色彩特性文件已设置但无法加载。显示器将使用 sRGB 特性文件和"
+"标准 sRGB TRC。\n"
 
 #: src/core/icc_profile.c:394
 msgid ""
@@ -17006,11 +17024,13 @@ msgid "Error opening nonlinear working profile. Profile set to sRGB.\n"
 msgstr "打开非线性工作色彩特性文件时出错。色彩特性文件设置为 sRGB。\n"
 
 #: src/core/icc_profile.c:449
+#, fuzzy
 msgid ""
 "Error opening matched grayscale working profile. Profile set to Gray with "
-"srGB tone response curve.\n"
-msgstr "打开匹配的灰度工作色彩特性文件时出错。特性文件设置为灰度，带有 sRGB "
-"的响应曲线。\n"
+"sRGB tone response curve.\n"
+msgstr ""
+"打开匹配的灰度工作色彩特性文件时出错。特性文件设置为灰度，带有 sRGB 的响应曲"
+"线。\n"
 
 #: src/core/icc_profile.c:494
 msgid ""
@@ -17088,13 +17108,15 @@ msgstr "输出设备打样色彩特性文件已停用。软打样将打样到显
 msgid ""
 "FITS did not contain an ICC profile but is declared to be stretched. "
 "Assigning a sRGB color profile.\n"
-msgstr "FITS 不包含 ICC 色彩特性文件，但声明为已拉伸。分配 sRGB 色彩特性文件。\n"
+msgstr ""
+"FITS 不包含 ICC 色彩特性文件，但声明为已拉伸。分配 sRGB 色彩特性文件。\n"
 
 #: src/core/icc_profile.c:1008
 msgid ""
 "FITS did not contain an ICC profile. It appears to have been stretched using "
 "an older version of Siril. Assigning a sRGB color profile.\n"
-msgstr "FITS 不包含 ICC 色彩特性文件。它似乎是使用旧版本的 Siril 进行了拉伸。分配 "
+msgstr ""
+"FITS 不包含 ICC 色彩特性文件。它似乎是使用旧版本的 Siril 进行了拉伸。分配 "
 "sRGB 色彩特性文件。\n"
 
 #: src/core/icc_profile.c:1024
@@ -17103,8 +17125,8 @@ msgid ""
 "count. Color management is disabled for this image. To re-enable it, an ICC "
 "profile must be assigned using the Color Management menu item.\n"
 msgstr ""
-"警告：嵌入式 ICC 色彩特性文件通道数与图像通道数不匹配。该图像的色彩管理已禁用"
-"。欲重新启用，请使用“色彩管理”菜单项指定 ICC 色彩特性文件。\n"
+"警告：嵌入式 ICC 色彩特性文件通道数与图像通道数不匹配。该图像的色彩管理已禁"
+"用。欲重新启用，请使用“色彩管理”菜单项指定 ICC 色彩特性文件。\n"
 
 #: src/core/icc_profile.c:1149
 msgid "ICC profile removed"
@@ -17125,8 +17147,9 @@ msgstr "图像通道数与色彩特性文件通道数不匹配。无法将此特
 msgid ""
 "Siril only supports representing the image in Gray or RGB color spaces. You "
 "cannot assign or convert to non-RGB color profiles"
-msgstr "Siril 仅支持以灰度或 RGB 色彩空间表示图像。您无法分配或转换为非 RGB "
-"的彩色特性文件"
+msgstr ""
+"Siril 仅支持以灰度或 RGB 色彩空间表示图像。您无法分配或转换为非 RGB 的彩色特"
+"性文件"
 
 #: src/core/icc_profile.c:1211
 #, c-format
@@ -17142,8 +17165,9 @@ msgid ""
 "This image is a channel extracted from a 3-channel image. Cannot sensibly "
 "auto-assign an ICC profile. You must manually assign one at an appropriate "
 "time.\n"
-msgstr "该图像是从 3 通道图像中提取的一个通道。无法合理地自动分配 ICC "
-"色彩特性文件。您必须在适当的时间手动分配一个。\n"
+msgstr ""
+"该图像是从 3 通道图像中提取的一个通道。无法合理地自动分配 ICC 色彩特性文件。"
+"您必须在适当的时间手动分配一个。\n"
 
 #: src/core/icc_profile.c:1285
 msgid ""
@@ -17169,8 +17193,9 @@ msgstr "无法加载所选特性文件或不包含有效的 ICC 色彩特性文�
 msgid ""
 "Error: the preferred colorspace profiles are not all set, or some are not "
 "valid. You need to set both a RGB and a Gray profile. Defaulting to sRGB.\n"
-msgstr "错误：首选色彩空间特性文件未全部设置，或者某些特性文件无效。RGB "
-"和灰度特性文件都需要设置。默认为 sRGB。\n"
+msgstr ""
+"错误：首选色彩空间特性文件未全部设置，或者某些特性文件无效。RGB 和灰度特性文"
+"件都需要设置。默认为 sRGB。\n"
 
 #: src/core/icc_profile.c:1403
 msgid "Updating working profiles.\n"
@@ -17464,11 +17489,11 @@ msgstr "打开平场帧..."
 msgid "Some errors have been detected, Please check the logs.\n"
 msgstr "发生错误，请检查日志。\n"
 
-#: src/core/preprocess.c:984
+#: src/core/preprocess.c:981
 msgid "Error in preprocessing."
 msgstr "预处理错误。"
 
-#: src/core/preprocess.c:1045 src/core/preprocess.c:1057
+#: src/core/preprocess.c:1042 src/core/preprocess.c:1054
 msgid ""
 "This value may be too high. Please, consider to change sigma value or "
 "uncheck the box."
@@ -19028,8 +19053,8 @@ msgid ""
 "preserve ICC profiles embedded in FITS files.\n"
 msgstr ""
 "GraXpert GUI 将打开当前图像。完成后，保存图像并返回 Siril。\n"
-"您需要检查并重新分配 ICC 色彩特性文件，因为 GraXpert 不保留 FITS "
-"文件中嵌入的 ICC 色彩特性文件。\n"
+"您需要检查并重新分配 ICC 色彩特性文件，因为 GraXpert 不保留 FITS 文件中嵌入"
+"的 ICC 色彩特性文件。\n"
 
 #: src/filters/graxpert.c:968
 msgid "Error: unknown GraXpert operation\n"
@@ -19393,34 +19418,34 @@ msgstr "StarNet"
 msgid "StarNet: Processing..."
 msgstr "StarNet：处理中..."
 
-#: src/filters/synthstar.c:362
+#: src/filters/synthstar.c:366
 msgid "Star synthesis (full star mask creation): processing...\n"
 msgstr "星点合成（创建纯星图像）：处理中...\n"
 
-#: src/filters/synthstar.c:389 src/gui/unpurple.c:74
+#: src/filters/synthstar.c:393 src/gui/unpurple.c:74
 msgid "No stars detected in the image.\n"
 msgstr "图像中未侦测到星点。\n"
 
-#: src/filters/synthstar.c:392
+#: src/filters/synthstar.c:396
 #, c-format
 msgid "Synthesizing %d stars...\n"
 msgstr "合成 %d 颗星点...\n"
 
-#: src/filters/synthstar.c:654
+#: src/filters/synthstar.c:658
 msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
 msgstr "星点合成（溢出的星点去饱和）：处理中...\n"
 
-#: src/filters/synthstar.c:710
+#: src/filters/synthstar.c:714
 #, c-format
 msgid "Star synthesis: desaturating stars in channel %u...\n"
 msgstr "星点合成：通道%u中的星点去饱和...\n"
 
-#: src/filters/synthstar.c:753
+#: src/filters/synthstar.c:757
 #, c-format
 msgid "Star synthesis: %d stars desaturated\n"
 msgstr "星点合成：%d 颗星已去饱和\n"
 
-#: src/filters/synthstar.c:765
+#: src/filters/synthstar.c:769
 msgid "Remapping output to floating point range 0.0 to 1.0\n"
 msgstr "将输出重新映射到浮点范围 0.0 到 1.0\n"
 
@@ -19635,57 +19660,57 @@ msgstr ""
 "\n"
 "最后，请注意解析算法只能作用于线性图像。"
 
-#: src/gui/astrometry_solver.c:573
+#: src/gui/astrometry_solver.c:575
 msgid "No object found\n"
 msgstr "未找到对象\n"
 
-#: src/gui/astrometry_solver.c:680
+#: src/gui/astrometry_solver.c:682
 msgid ""
 "There are no available coordinates with this name, try with another name\n"
 msgstr "没有改名称的坐标信息，请换个名称\n"
 
-#: src/gui/astrometry_solver.c:681 src/gui/astrometry_solver.c:844
+#: src/gui/astrometry_solver.c:683 src/gui/astrometry_solver.c:846
 msgid "No coordinates"
 msgstr "无坐标"
 
-#: src/gui/astrometry_solver.c:692
+#: src/gui/astrometry_solver.c:694
 msgid "There are no keywords stored in the FITS header.\n"
 msgstr "在FITS文件头中无法找到关键字。\n"
 
-#: src/gui/astrometry_solver.c:693
+#: src/gui/astrometry_solver.c:695
 msgid "No metadata"
 msgstr "没有元数据"
 
-#: src/gui/astrometry_solver.c:759
+#: src/gui/astrometry_solver.c:761
 msgid "wcs files (*.wcs)"
 msgstr "WCS 文件 (*.wcs)"
 
-#: src/gui/astrometry_solver.c:845
+#: src/gui/astrometry_solver.c:847
 msgid "Please enter object coordinates."
 msgstr "请输入目标的坐标。"
 
-#: src/gui/astrometry_solver.c:880
+#: src/gui/astrometry_solver.c:882
 msgid "Selection is not used with the astrometry.net solver\n"
 msgstr "选区未被 astrometry.net 解析\n"
 
-#: src/gui/astrometry_solver.c:917
+#: src/gui/astrometry_solver.c:919
 msgid "Astrometric solution detected"
 msgstr "发现天体测量信息"
 
-#: src/gui/astrometry_solver.c:918
+#: src/gui/astrometry_solver.c:920
 msgid ""
 "The astrometric solution contained in the image will be erased by the "
 "geometric transformation and no undo will be possible."
 msgstr "图像中包含的天体测量信息将因进行几何变换而擦除，并且无法撤消。"
 
-#: src/gui/astrometry_solver.c:920
+#: src/gui/astrometry_solver.c:922
 msgid "Process"
 msgstr "处理"
 
 #. APASS
 #. GAIA
 #. Gaia archive
-#: src/gui/astrometry_solver.c:934 src/gui/photometric_cc.c:498
+#: src/gui/astrometry_solver.c:936 src/gui/photometric_cc.c:498
 #: src/gui/photometric_cc.c:501 src/gui/photometric_cc.c:504
 #: src/gui/photometric_cc.c:518
 msgid "(online catalogue)"
@@ -19693,7 +19718,7 @@ msgstr "（在线星表）"
 
 #. NOMAD
 #. Local Gaia xp_sampled
-#: src/gui/astrometry_solver.c:936 src/gui/photometric_cc.c:498
+#: src/gui/astrometry_solver.c:938 src/gui/photometric_cc.c:498
 #: src/gui/photometric_cc.c:521
 msgid "(local catalogue)"
 msgstr "（本地星表）"
@@ -19743,19 +19768,19 @@ msgstr "没有背景模式可计算"
 msgid "You must first compute the background model."
 msgstr "请首先计算背景模式。"
 
-#: src/gui/callbacks.c:132 src/gui/callbacks.c:135 src/gui/callbacks.c:625
+#: src/gui/callbacks.c:134 src/gui/callbacks.c:137 src/gui/callbacks.c:628
 msgid "Image: "
 msgstr "图像: "
 
-#: src/gui/callbacks.c:146 src/gui/callbacks.c:149 src/gui/callbacks.c:618
+#: src/gui/callbacks.c:148 src/gui/callbacks.c:151 src/gui/callbacks.c:621
 msgid "Sequence: "
 msgstr "序列: "
 
-#: src/gui/callbacks.c:316
+#: src/gui/callbacks.c:318
 msgid "Region of Interest supported"
 msgstr "所支持的关注区域"
 
-#: src/gui/callbacks.c:318
+#: src/gui/callbacks.c:320
 msgid ""
 "This image operation supports ROI processing. This is indicated by the green "
 "border around the ROI. In image operation dialogs that do not support ROI "
@@ -19770,87 +19795,87 @@ msgstr ""
 "当启用 ROI 时，处理将仅在 ROI 中进行。单击“应用”按钮后，该操作将应用于整个图"
 "像。"
 
-#: src/gui/callbacks.c:325 src/gui/message_dialog.c:280
+#: src/gui/callbacks.c:327 src/gui/message_dialog.c:280
 msgid "_Do not show this dialog again"
 msgstr "_不再显示此对话框"
 
-#: src/gui/callbacks.c:442
+#: src/gui/callbacks.c:445
 #, c-format
 msgid "Setting MAX value for cutoff sliders adjustments (%f)\n"
 msgstr "设置截止滑块调整的最大值 （%f）\n"
 
-#: src/gui/callbacks.c:467
+#: src/gui/callbacks.c:470
 #, c-format
 msgid "Setting ranges scalemin=%d, scalemax=%d\n"
 msgstr "设置范围 scalemin=%d, scalemax=%d\n"
 
-#: src/gui/callbacks.c:494
+#: src/gui/callbacks.c:497
 msgid ""
 "Current image is not 32 bit. Standard 16 bit AutoStretch will be used.\n"
 msgstr "当前图像不是 32 位。将使用标准的 16 位自动拉伸。\n"
 
-#: src/gui/callbacks.c:497 src/gui/callbacks.c:523
+#: src/gui/callbacks.c:500 src/gui/callbacks.c:526
 #, c-format
 msgid "The AutoStretch display mode will use a %d bit LUT\n"
 msgstr "自动拉伸显示模式将使用%d位 LUT\n"
 
-#: src/gui/callbacks.c:501 src/gui/callbacks.c:526
+#: src/gui/callbacks.c:504 src/gui/callbacks.c:529
 msgid "The AutoStretch display mode will use a 16 bit LUT\n"
 msgstr "自动拉伸显示模式将使用16位 LUT\n"
 
-#: src/gui/callbacks.c:537
+#: src/gui/callbacks.c:540
 #, c-format
 msgid "Setting HD AutoStretch display mode bit depth to %d...\n"
 msgstr "将高分辨率自动拉伸显示模式位深设置为 %d...\n"
 
-#: src/gui/callbacks.c:616
+#: src/gui/callbacks.c:619
 #, c-format
 msgid "%s, %d/%d images selected"
 msgstr "%s, %d/%d 图像已被选择"
 
-#: src/gui/callbacks.c:629
+#: src/gui/callbacks.c:632
 msgid "- none -"
 msgstr "- 无 -"
 
-#: src/gui/callbacks.c:646
+#: src/gui/callbacks.c:649
 msgid ""
 "This sequence name already exists!! Please change the name before converting."
 msgstr "序列名称已存在！！请更名。"
 
-#: src/gui/callbacks.c:892
+#: src/gui/callbacks.c:901
 msgid "Luminance"
 msgstr "明度"
 
-#: src/gui/callbacks.c:924
+#: src/gui/callbacks.c:933
 #, c-format
 msgid "W: %dpx H: %dpx ratio: %.4f"
 msgstr "宽: %dpx 高: %dpx 缩放: %.4f"
 
-#: src/gui/callbacks.c:964
+#: src/gui/callbacks.c:973
 #, c-format
 msgid "fwhm: %.2f px, r: %.2f"
 msgstr "FWHM：%.2f px，半径：%.2f"
 
-#: src/gui/callbacks.c:966 src/gui/callbacks.c:968
+#: src/gui/callbacks.c:975 src/gui/callbacks.c:977
 #, c-format
 msgid "fwhm: N/A"
 msgstr "FWHM：N/A"
 
-#: src/gui/callbacks.c:1036
+#: src/gui/callbacks.c:1045
 msgid "Cannot convert a sequence file"
 msgstr "无法转化一个序列文件"
 
-#: src/gui/callbacks.c:1037
+#: src/gui/callbacks.c:1046
 msgid ""
 "A sequence file cannot be converted to 32 bits. This operation can only be "
 "done on a single file."
 msgstr "序列文件不能倍转化为32位。本操作只能针对单一文件执行。"
 
-#: src/gui/callbacks.c:1042
+#: src/gui/callbacks.c:1051
 msgid "Precision loss"
 msgstr "精度损失"
 
-#: src/gui/callbacks.c:1043
+#: src/gui/callbacks.c:1052
 msgid ""
 "Converting the image from 32 bits to 16 bits may lead to a loss of numerical "
 "accuracy. Getting back to 32 bits will not recover this loss.\n"
@@ -19859,34 +19884,34 @@ msgstr ""
 "将32位图像转化为16位会导致数值精度的损失。再转回32位也无法还原这些损失。\n"
 "您确定要转化吗？"
 
-#: src/gui/callbacks.c:1045
+#: src/gui/callbacks.c:1054
 msgid "Convert to 16 bits"
 msgstr "转化为16位"
 
-#: src/gui/callbacks.c:1276
+#: src/gui/callbacks.c:1285
 msgid "B&W"
 msgstr "黑白"
 
-#: src/gui/callbacks.c:1433 src/io/siril_catalogues.c:324
+#: src/gui/callbacks.c:1442 src/io/siril_catalogues.c:324
 msgid "unknown"
 msgstr "未知"
 
-#: src/gui/callbacks.c:1473
+#: src/gui/callbacks.c:1482
 #, c-format
 msgid "Binning %d x %d is not supported\n"
 msgstr "不支持合并 %d x %d\n"
 
-#: src/gui/callbacks.c:1634
+#: src/gui/callbacks.c:1643
 #, c-format
 msgid "Default FITS extension is set to %s\n"
 msgstr "缺省FITS扩展名设置为 %s\n"
 
-#: src/gui/callbacks.c:1657
+#: src/gui/callbacks.c:1666
 #, c-format
 msgid "Welcome to %s"
 msgstr "欢迎来到 %s"
 
-#: src/gui/callbacks.c:1660
+#: src/gui/callbacks.c:1669
 msgid ""
 "Hello, this is the first time you use this new version of Siril. Please, "
 "have a seat and take the time to watch the short introduction we have "
@@ -19896,36 +19921,36 @@ msgstr ""
 "欢迎！这是您第一次打开Siril新版本。请坐下来花点时间观看我们为您准备的简介。您"
 "随时可以通过偏好设置对话框里的“杂项”选项卡重播此简介。"
 
-#: src/gui/callbacks.c:1663
+#: src/gui/callbacks.c:1672
 msgid "See Introduction"
 msgstr "观看介绍"
 
-#: src/gui/callbacks.c:1939
+#: src/gui/callbacks.c:1948
 msgid "Closing application"
 msgstr "关闭程序"
 
-#: src/gui/callbacks.c:1940
+#: src/gui/callbacks.c:1949
 msgid "Are you sure you want to quit?"
 msgstr "确定要退出吗？"
 
-#: src/gui/callbacks.c:1940
+#: src/gui/callbacks.c:1949
 msgid "Exit"
 msgstr "退出"
 
-#: src/gui/callbacks.c:2100
+#: src/gui/callbacks.c:2109
 #, c-format
 msgid "Selected %s sequence %s..."
 msgstr "已选择 %s 序列 %s..."
 
-#: src/gui/callbacks.c:2149
+#: src/gui/callbacks.c:2158
 msgid "Searching for sequences in the current working directory..."
 msgstr "在当前工作目录中搜索序列..."
 
-#: src/gui/callbacks.c:2200
+#: src/gui/callbacks.c:2209
 msgid "This erases the following data, and there's no possible undo:\n"
 msgstr "这将清除以下数据，且无法撤消：\n"
 
-#: src/gui/callbacks.c:2201
+#: src/gui/callbacks.c:2210
 msgid ""
 "\n"
 "- Registration"
@@ -19933,7 +19958,7 @@ msgstr ""
 "\n"
 "- 对齐"
 
-#: src/gui/callbacks.c:2202
+#: src/gui/callbacks.c:2211
 msgid ""
 "\n"
 "- Statistics"
@@ -19941,7 +19966,7 @@ msgstr ""
 "\n"
 "- 统计信息"
 
-#: src/gui/callbacks.c:2203
+#: src/gui/callbacks.c:2212
 msgid ""
 "\n"
 "- Selection"
@@ -19949,19 +19974,19 @@ msgstr ""
 "\n"
 "- 选择"
 
-#: src/gui/callbacks.c:2207
+#: src/gui/callbacks.c:2216
 msgid "Clear Sequence Data?"
 msgstr "清除序列数据？"
 
-#: src/gui/callbacks.c:2207
+#: src/gui/callbacks.c:2216
 msgid "Clear Data"
 msgstr "清除数据"
 
-#: src/gui/callbacks.c:2219
+#: src/gui/callbacks.c:2228
 msgid "The requested data of the sequence has been cleaned."
 msgstr "序列的请求数据已被清除。"
 
-#: src/gui/callbacks.c:2227
+#: src/gui/callbacks.c:2236
 #, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
@@ -19970,19 +19995,19 @@ msgstr ""
 "您将要清除您的 %s 用户星表。这意味着包含手动添加的天体的文件将被删除。此操作"
 "无法撤消。"
 
-#: src/gui/callbacks.c:2229
+#: src/gui/callbacks.c:2238
 msgid "SOLAR SYSTEM"
 msgstr "太阳系"
 
-#: src/gui/callbacks.c:2229
+#: src/gui/callbacks.c:2238
 msgid "DEEP SKY"
 msgstr "深空"
 
-#: src/gui/callbacks.c:2231
+#: src/gui/callbacks.c:2240
 msgid "Catalog deletion"
 msgstr "星表删除"
 
-#: src/gui/callbacks.c:2231
+#: src/gui/callbacks.c:2240
 msgid "Purge Catalogue"
 msgstr "清除星表"
 
@@ -20029,7 +20054,7 @@ msgstr "亮度: "
 msgid "Value: "
 msgstr "值: "
 
-#: src/gui/colors.c:457 src/gui/cut.c:976
+#: src/gui/colors.c:457 src/gui/cut.c:977
 msgid "No sequence is loaded"
 msgstr "无序列载入"
 
@@ -20045,9 +20070,9 @@ msgid ""
 "space described by its ICC profile you can re-enable it using the button at "
 "the bottom of this dialog."
 msgstr ""
-"该图像附有 ICC 色彩特性文件。应用 CCM 将使 ICC "
-"色彩特性文件无效，因此色彩管理将被禁用。当您完成低级色彩操作并将图像返回到其 "
-"ICC 色彩特性文件所描述的色彩空间后，您可以使用此对话框底部的按钮重新启用它。"
+"该图像附有 ICC 色彩特性文件。应用 CCM 将使 ICC 色彩特性文件无效，因此色彩管理"
+"将被禁用。当您完成低级色彩操作并将图像返回到其 ICC 色彩特性文件所描述的色彩空"
+"间后，您可以使用此对话框底部的按钮重新启用它。"
 
 #: src/gui/colors.c:468
 #, c-format
@@ -20426,79 +20451,79 @@ msgstr "测量值：%.1f px"
 msgid "Warning: angular measurement > 10º. Error is > 1%\n"
 msgstr "警告：角度测量> 10º。误差> 1%\n"
 
-#: src/gui/cut.c:534 src/gui/cut.c:747
+#: src/gui/cut.c:535 src/gui/cut.c:748
 #, c-format
 msgid "Wavenumber / cm^{-1}"
 msgstr "波数 / cm^{-1}"
 
-#: src/gui/cut.c:537 src/gui/cut.c:749 src/gui/cut.c:876
+#: src/gui/cut.c:538 src/gui/cut.c:750 src/gui/cut.c:877
 #, c-format
 msgid "Distance along cut / arcsec"
 msgstr "沿剪切的距离/角秒"
 
-#: src/gui/cut.c:539 src/gui/cut.c:751 src/gui/cut.c:878
+#: src/gui/cut.c:540 src/gui/cut.c:752 src/gui/cut.c:879
 #, c-format
 msgid "Distance along cut / px"
 msgstr "沿剪切的距离/px"
 
-#: src/gui/cut.c:693
+#: src/gui/cut.c:694
 msgid "Coefficients: y = "
 msgstr "系数：y = "
 
-#: src/gui/cut.c:709
+#: src/gui/cut.c:710
 #, c-format
 msgid "Subtracting dark strips: polynomial fit of degree %d:\n"
 msgstr "除去暗条：%d次多项式拟合：\n"
 
-#: src/gui/cut.c:721 src/gui/cut.c:733
+#: src/gui/cut.c:722 src/gui/cut.c:734
 msgid "Intensity"
 msgstr "亮度"
 
-#: src/gui/cut.c:723 src/pixelMath/pixel_math_runner.c:353
+#: src/gui/cut.c:724 src/pixelMath/pixel_math_runner.c:353
 msgid "R"
 msgstr "R"
 
-#: src/gui/cut.c:733
+#: src/gui/cut.c:734
 msgid "L"
 msgstr "明度"
 
-#: src/gui/cut.c:736
+#: src/gui/cut.c:737
 #, c-format
 msgid "Fitted background"
 msgstr "拟合的背景"
 
-#: src/gui/cut.c:737
+#: src/gui/cut.c:738
 #, c-format
 msgid "Measured background"
 msgstr "测量的背景"
 
-#: src/gui/cut.c:814 src/gui/cut.c:822
+#: src/gui/cut.c:815 src/gui/cut.c:823
 msgid "Error: failed to split FITS into CFA sub-patterns.\n"
 msgstr "错误：无法将 FITS 拆分为 CFA 子模式。\n"
 
-#: src/gui/cut.c:977
+#: src/gui/cut.c:978
 msgid "The Apply to sequence option is checked, but no sequence is loaded."
 msgstr "选中“应用于序列”选项，但不加载任何序列。"
 
-#: src/gui/cut.c:1052
+#: src/gui/cut.c:1053
 msgid "Spectroscopic"
 msgstr "光谱法"
 
-#: src/gui/cut.c:1053
+#: src/gui/cut.c:1054
 msgid ""
 "Reduces a spectrum without background removal. This is suitable when the "
 "entire image represents a calibrated spectrum"
 msgstr "进行不带背景消除的光谱处理。适用于整张图像就是已校准过的光谱的情况"
 
-#: src/gui/cut.c:1054
+#: src/gui/cut.c:1055
 msgid "Spectro w/ bg removal"
 msgstr "光谱w/背景去除"
 
-#: src/gui/cut.c:1055
+#: src/gui/cut.c:1056
 msgid "Spectro bg offset (px)"
 msgstr "光谱背景偏移量（像素）"
 
-#: src/gui/cut.c:1056
+#: src/gui/cut.c:1057
 msgid ""
 "Reduces a spectrum with background removal. This is suitable when background "
 "removal is required: the background is computed along parallel lines "
@@ -20507,11 +20532,11 @@ msgstr ""
 "进行带有背景消除的光谱处理。适用于需要去除背景的情况：背景是沿着与中心谱线等"
 "距的平行线进行计算的"
 
-#: src/gui/cut.c:1064
+#: src/gui/cut.c:1065
 msgid "Tri-profile (mono)"
 msgstr "三重分布曲线（单色）"
 
-#: src/gui/cut.c:1065
+#: src/gui/cut.c:1066
 msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile"
@@ -20519,26 +20544,26 @@ msgstr ""
 "生成三条平行的强度分布曲线，按指定的像素间隔分隔。三重分布曲线始终沿每条分布"
 "曲线绘制亮度值"
 
-#: src/gui/cut.c:1066
+#: src/gui/cut.c:1067
 msgid "Tri-profile offset (px)"
 msgstr "三重分布曲线的偏移量（像素）"
 
-#: src/gui/cut.c:1207
+#: src/gui/cut.c:1208
 msgid "No star detected"
 msgstr "未检测到星点"
 
-#: src/gui/cut.c:1208
+#: src/gui/cut.c:1209
 msgid ""
 "Siril cannot set the star coordinate as no star has been detected in the "
 "selection"
 msgstr "Siril无法设置星点坐标，因为在选区中没有检测到星点"
 
-#: src/gui/cut.c:1213 src/gui/statistics_list.c:203
+#: src/gui/cut.c:1214 src/gui/statistics_list.c:203
 #, c-format
 msgid "No selection"
 msgstr "无选区"
 
-#: src/gui/cut.c:1214
+#: src/gui/cut.c:1215
 msgid "Siril cannot set the star coordinate as no selection is made"
 msgstr "Siril无法设置星点坐标，因为没有选区"
 
@@ -20939,10 +20964,9 @@ msgstr ""
 "要导出带有感知意图的 sRGB 显示器特性文件副本，请接受 ICC 的使用条款：\n"
 "\n"
 "对于任何承认文件“sRGB_v4_ICC_preference.icc”按“原样”提供且无明示或默示保证的"
-"人，特此授予出于任何目的使用、复制和分发此文件的许可，无需付费，"
-"前提是该文件未更改包括 ICC 版权声明标签，未经事先明确书面许可，"
-"不得在与软件分发相关的广告或宣传中使用 ICC 名称。 ICC "
-"不对该软件针对任何目的的适用性做出任何陈述。"
+"人，特此授予出于任何目的使用、复制和分发此文件的许可，无需付费，前提是该文件"
+"未更改包括 ICC 版权声明标签，未经事先明确书面许可，不得在与软件分发相关的广告"
+"或宣传中使用 ICC 名称。 ICC 不对该软件针对任何目的的适用性做出任何陈述。"
 
 #: src/gui/icc_profile.c:123 src/gui/icc_profile.c:130
 msgid "No ICC profile"
@@ -20975,8 +20999,9 @@ msgstr "色空间含有无效的通道"
 msgid ""
 "Mismatch in number of channels between the current image and the ICC "
 "profile. You cannot assign a RGB ICC profile to a mono image."
-msgstr "当前图像和ICC色彩特性文件之间的通道数不匹配。无法将RGB "
-"ICC色彩特性文件应用于单色图像。"
+msgstr ""
+"当前图像和ICC色彩特性文件之间的通道数不匹配。无法将RGB ICC色彩特性文件应用于"
+"单色图像。"
 
 #: src/gui/icc_profile.c:334 src/gui/icc_profile.c:387
 msgid "Color space not supported"
@@ -20986,8 +21011,9 @@ msgstr "色彩空间不支持"
 msgid ""
 "Siril only supports representing the image in Gray or RGB color spaces at "
 "present. You cannot assign or convert to non-RGB color profiles"
-msgstr "Siril 目前仅支持以灰度或 RGB 色彩空间表示图像。您无法分配或转换为非 RGB "
-"的彩色特性文件"
+msgstr ""
+"Siril 目前仅支持以灰度或 RGB 色彩空间表示图像。您无法分配或转换为非 RGB 的彩"
+"色特性文件"
 
 #: src/gui/icc_profile.c:338
 msgid "Transform not supported"
@@ -21293,82 +21319,82 @@ msgstr ""
 
 #. Make the spin button editable and set digits to 0
 #. Connect the edited signal
-#: src/gui/mouse_action_preferences.c:210
+#: src/gui/mouse_action_preferences.c:212
 msgid "Button"
 msgstr "按钮"
 
 #. Connect the edited signal
-#: src/gui/mouse_action_preferences.c:219
+#: src/gui/mouse_action_preferences.c:221
 msgid "Action"
 msgstr "动作"
 
 #. Connect the edited signal
-#: src/gui/mouse_action_preferences.c:231
-#: src/gui/mouse_action_preferences.c:499
+#: src/gui/mouse_action_preferences.c:233
+#: src/gui/mouse_action_preferences.c:503
 msgid "Modifier"
 msgstr "修饰"
 
-#: src/gui/mouse_action_preferences.c:272
+#: src/gui/mouse_action_preferences.c:274
 #, c-format
 msgid "Duplicate mouse_actions found with type: %d, state: %d, button: %d\n"
 msgstr "找到的重复mouse_actions类型：%d，状态：%d，按钮：%d\n"
 
-#: src/gui/mouse_action_preferences.c:278
+#: src/gui/mouse_action_preferences.c:280
 #, c-format
 msgid ""
 "Double click action %s on button %u conflicts with single click action %s on "
 "the same button.\n"
 msgstr "双击按钮动作 %s 与同一按钮 %u 上的单击动作 %s 冲突。\n"
 
-#: src/gui/mouse_action_preferences.c:283
+#: src/gui/mouse_action_preferences.c:285
 msgid ""
 "Main mouse action is not configured. This is essential for using Siril and "
 "must be assigned to a mouse action.\n"
 msgstr "未配置鼠标主动作。这对于使用 Siril 至关重要，必须给鼠标分配动作。\n"
 
-#: src/gui/mouse_action_preferences.c:288
+#: src/gui/mouse_action_preferences.c:290
 msgid "Invalid mouse action configuration"
 msgstr "鼠标动作配置无效"
 
-#: src/gui/mouse_action_preferences.c:288
-#: src/gui/mouse_action_preferences.c:541
+#: src/gui/mouse_action_preferences.c:290
+#: src/gui/mouse_action_preferences.c:545
 msgid ""
 "There are conflicts between the actions you have configured. Please check "
 "the log for details and revise your action configuration."
 msgstr "您配置的动作之间存在冲突。请查看日志了解详细信息并修改您的动作配置。"
 
-#: src/gui/mouse_action_preferences.c:331
-#: src/gui/mouse_action_preferences.c:569
+#: src/gui/mouse_action_preferences.c:333
+#: src/gui/mouse_action_preferences.c:573
 msgid "Warning: ignoring unconfigured action (\""
 msgstr "警告：忽略未配置的动作 （”"
 
-#: src/gui/mouse_action_preferences.c:357
+#: src/gui/mouse_action_preferences.c:359
 msgid "Mouse configuration updated successfully.\n"
 msgstr "鼠标配置已成功更新。\n"
 
 #. Connect the edited signal
-#: src/gui/mouse_action_preferences.c:487
+#: src/gui/mouse_action_preferences.c:491
 msgid "Direction"
 msgstr "方向"
 
-#: src/gui/mouse_action_preferences.c:535
+#: src/gui/mouse_action_preferences.c:539
 #, c-format
 msgid "Duplicate scroll_actions found with state: %d, direction: %d\n"
 msgstr "找到状态：%d，方向：%d 的重复scroll_actions\n"
 
-#: src/gui/mouse_action_preferences.c:541
+#: src/gui/mouse_action_preferences.c:545
 msgid "Invalid mouse scroll action configuration"
 msgstr "鼠标滚轮动作配置无效"
 
-#: src/gui/mouse_action_preferences.c:608
+#: src/gui/mouse_action_preferences.c:612
 msgid "Mouse scroll configuration updated successfully.\n"
 msgstr "鼠标滚动配置已成功更新。\n"
 
-#: src/gui/mouse_action_preferences.c:647
+#: src/gui/mouse_action_preferences.c:651
 msgid "Reset Mouse Actions"
 msgstr "重置鼠标操作"
 
-#: src/gui/mouse_action_preferences.c:647
+#: src/gui/mouse_action_preferences.c:651
 msgid ""
 "This will reset all mouse button and scroll actions to the default settings. "
 "It is not possible to undo this and you will need to reconfigure any "
@@ -21377,34 +21403,34 @@ msgstr ""
 "这将重置所有鼠标按钮并将滚轮动作重置为默认设置。无法撤消此操作，您需要重新配"
 "置所有的更改。是否确定？"
 
-#: src/gui/mouse_action_preferences.c:740
+#: src/gui/mouse_action_preferences.c:744
 #, c-format
 msgid "Scroll (vertical)"
 msgstr "滚动（垂直）"
 
-#: src/gui/mouse_action_preferences.c:744
+#: src/gui/mouse_action_preferences.c:748
 #, c-format
 msgid "Scroll (horizontal)"
 msgstr "滚动（水平）"
 
-#: src/gui/mouse_action_preferences.c:750
+#: src/gui/mouse_action_preferences.c:754
 #, c-format
 msgid "Smooth scroll (vertical)"
 msgstr "平滑滚动（垂直）"
 
-#: src/gui/mouse_action_preferences.c:752
+#: src/gui/mouse_action_preferences.c:756
 #, c-format
 msgid "Smooth scroll (horizontal)"
 msgstr "平滑滚动（ 水平）"
 
-#: src/gui/mouse_action_preferences.c:757
+#: src/gui/mouse_action_preferences.c:761
 #, c-format
 msgid "Button %u"
 msgstr "按钮 %u"
 
-#: src/gui/mouse_action_preferences.c:812
-#: src/gui/mouse_action_preferences.c:820
-#: src/gui/mouse_action_preferences.c:883
+#: src/gui/mouse_action_preferences.c:816
+#: src/gui/mouse_action_preferences.c:824
+#: src/gui/mouse_action_preferences.c:887
 #, c-format
 msgid ""
 "Warning: when parsing mouse action config, config string parsed to an "
@@ -21412,14 +21438,14 @@ msgid ""
 msgstr "警告：解析鼠标动作配置时，配置字符串解析为未知功能：“%s”。跳过..."
 
 #. Handle error: input format is incorrect
-#: src/gui/mouse_action_preferences.c:828
+#: src/gui/mouse_action_preferences.c:832
 #, c-format
 msgid ""
 "Warning: when parsing mouse action config, config string has incorrect "
 "format: \"%s\". Skipping..."
 msgstr "警告：解析鼠标动作配置时，配置字符串的格式不正确：“%s”。跳过..."
 
-#: src/gui/mouse_action_preferences.c:891
+#: src/gui/mouse_action_preferences.c:895
 #, c-format
 msgid ""
 "Warning: when parsing scroll action config, string parsed to an unknown "
@@ -21427,7 +21453,7 @@ msgid ""
 msgstr "警告：解析滚轮动作配置时，字符串解析为未知功能：“%s”。跳过...\n"
 
 #. Handle error: input format is incorrect
-#: src/gui/mouse_action_preferences.c:899
+#: src/gui/mouse_action_preferences.c:903
 #, c-format
 msgid ""
 "Warning: when parsing mouse action config, string has incorrect format: "
@@ -21944,7 +21970,8 @@ msgstr "外部ICC色彩特性文件"
 msgid ""
 "In order to use ICC profiles loaded from files as your preferred color space "
 "you must set the Preferred Color Space drop-down to \"From files\"."
-msgstr "为了使用从文件载入的 ICC 色彩特性文件作为您的首选色彩空间，您必须将首选色彩空"
+msgstr ""
+"为了使用从文件载入的 ICC 色彩特性文件作为您的首选色彩空间，您必须将首选色彩空"
 "间下拉列表设置为“来自文件”。"
 
 #: src/gui/preferences.c:1105
@@ -22697,7 +22724,8 @@ msgid ""
 "This version of Siril includes a color management tool. A left-click on this "
 "button allows you to manage ICC profiles, while a right-click displays the "
 "image in soft proofing mode."
-msgstr "此版本的Siril包含一个色彩管理工具。左键单击此按钮可以管理ICC色彩特性文件。右"
+msgstr ""
+"此版本的Siril包含一个色彩管理工具。左键单击此按钮可以管理ICC色彩特性文件。右"
 "键单击则可以以软打样模式显示图像。"
 
 #: src/gui/siril_intro.c:56
@@ -22721,7 +22749,8 @@ msgstr ""
 msgid ""
 "All color management options are now centralized in the preferences. This "
 "allows for professional-level work with any mono or RGB ICC profile."
-msgstr "所有色彩管理选项都集中到了偏好设置中。允许使用单色或RGB的ICC色彩特性文件进行"
+msgstr ""
+"所有色彩管理选项都集中到了偏好设置中。允许使用单色或RGB的ICC色彩特性文件进行"
 "专业级别的工作。"
 
 #: src/gui/siril_intro.c:59
@@ -23604,17 +23633,17 @@ msgstr "叠加错误：图像拥有不同的尺寸\n"
 msgid "Stacking error: input images have different precision\n"
 msgstr "叠加错误：图像拥有不同的精度\n"
 
-#: src/io/image_format_fits.c:3539
+#: src/io/image_format_fits.c:3544
 #, c-format
 msgid "Saving WCS file %s\n"
 msgstr "保存 WCS 文件 %s\n"
 
-#: src/io/image_format_fits.c:3578
+#: src/io/image_format_fits.c:3583
 #, c-format
 msgid "Saving mask file %s\n"
 msgstr "保存蒙版文件 %s\n"
 
-#: src/io/image_format_fits.c:3739
+#: src/io/image_format_fits.c:3744
 msgid "Error: unknown CFA pattern\n"
 msgstr "错误：未知的 CFA 模式\n"
 
@@ -23904,8 +23933,9 @@ msgstr "这是一个由%d帧图像所组成的序列：读取第一帧。\n"
 msgid ""
 "Error getting ICC profile from HEIF file. Continuing: you will need to "
 "manually assign an ICC profile\n"
-msgstr "从 HEIF 文档获取 ICC 色彩特性文件时出错。继续：您将需要手动分配 ICC "
-"色彩特性文件\n"
+msgstr ""
+"从 HEIF 文档获取 ICC 色彩特性文件时出错。继续：您将需要手动分配 ICC 色彩特性"
+"文件\n"
 
 #: src/io/image_formats_libraries.c:2671
 msgid "Input image has undefined bit-depth.\n"
