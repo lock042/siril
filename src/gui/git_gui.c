@@ -265,12 +265,6 @@ gpointer script_sync(gpointer user_data) {
 	return GINT_TO_POINTER(0);
 }
 
-void on_manual_script_sync_button_clicked(GtkButton *button,
-                                          gpointer user_data) {
-	GThread *script_sync_thread = g_thread_new("script sync", script_sync, NULL);
-	g_thread_unref(script_sync_thread);
-}
-
 static GMutex spcc_sync_mutex = {0};
 
 gpointer spcc_sync(gpointer user_data) {
@@ -337,11 +331,6 @@ gpointer spcc_sync(gpointer user_data) {
 		g_mutex_unlock(&spcc_sync_mutex);
 	}
 	return GINT_TO_POINTER(0);
-}
-
-void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
-	GThread *spcc_sync_thread = g_thread_new("SPCC sync", spcc_sync, NULL);
-	g_thread_unref(spcc_sync_thread);
 }
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *char_path, gpointer user_data) {
@@ -438,11 +427,6 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
                                    gchar *char_path, gpointer user_data) {
-	return;
-}
-
-void on_manual_script_sync_button_clicked(GtkButton *button,
-                                          gpointer user_data) {
 	return;
 }
 

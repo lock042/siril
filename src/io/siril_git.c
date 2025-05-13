@@ -944,10 +944,6 @@ int auto_update_gitspcc(gboolean sync) {
 		siril_log_color_message(_("Local SPCC database repository is up-to-date!\n"), "green");
 	}
 
-	// In case this has run very slowly in the async startup update, repopulate the SPCC combos
-	// to ensure they are up to date with any changes
-	populate_spcc_combos_async(NULL);
-
 	// Cleanup
 	cleanup:
 	git_remote_free(remote);

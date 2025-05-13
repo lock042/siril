@@ -1542,10 +1542,25 @@ gboolean is_gui_ready() {
 	return gui_ready;
 }
 
+static gpointer initialize_spcc(gpointer user_data) {
+	// 1. Initialize the SPCC combos
+		populate_spcc_combos_async(GINT_TO_POINTER(1));
+	// 2. Update the repository
+	if (com.pref.spcc.auto_spcc_update && is_online()) {
+		auto_update_gitspcc(TRUE);
+		// 3. Update the SPCC combos
+			populate_spcc_combos_async(GINT_TO_POINTER(0));
+	}
+	return GINT_TO_POINTER(0);
+}
+
 static gpointer initialize_scripts(gpointer user_data) {
+	// 1. Initialize the menu (verbose)
 	execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(com.pref.auto_script_update));
+	// 2. Update the repository
 	if (com.pref.auto_script_update && is_online()) {
 		auto_update_gitscripts(TRUE);
+		// 3. Update the menu (not verbose)
 		execute_idle_and_wait_for_it(refresh_scripts_menu_in_thread, GINT_TO_POINTER(0));
 	}
 	return GINT_TO_POINTER(0);
@@ -1594,15 +1609,18 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);
-	// GThread *thread = g_thread_new("initialize_script_menu", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
-	g_thread_unref(g_thread_new("initialize_scripts", initialize_scripts, GINT_TO_POINTER(1)));
 
-	/* update git repositories */
-	if (is_online()) {
-		async_update_git_repositories();
-	} else {
+	/* initialize scripts and SPCC in threads:
+	 * 1) initialize the scripts menu / SPCC widgets
+	 * 2) sync the scripts repositories
+	 * 3) update the scripts menu / SPCC widgets
+	 */
+	if (!is_online()) {
 		siril_log_message(_("Siril started in offline mode. Will not attempt to update siril-scripts or siril-spcc-database...\n"));
 	}
+	g_thread_unref(g_thread_new("initialize_scripts", initialize_scripts, GINT_TO_POINTER(1)));
+	g_thread_unref(g_thread_new("initialize_spcc", initialize_spcc, GINT_TO_POINTER(1)));
+
 
 	/* initialize command processor */
 	init_command();

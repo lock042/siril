@@ -680,6 +680,7 @@ gboolean populate_spcc_combos(gpointer user_data) {
 }
 
 gpointer populate_spcc_combos_async(gpointer user_data) {
+	gboolean wait_for_it = (gboolean) GPOINTER_TO_INT(user_data);
 	g_mutex_lock(&combos_filling);
 	if (!spcc_filters_initialized) {
 		// do most of the slow file reading in this thread, separate to GTK thread
@@ -688,7 +689,10 @@ gpointer populate_spcc_combos_async(gpointer user_data) {
 	}
 	g_mutex_unlock(&combos_filling);
 	// update combos back in the GTK thread
-	siril_add_idle(populate_spcc_combos, NULL);
+	if (wait_for_it)
+		execute_idle_and_wait_for_it(populate_spcc_combos, NULL);
+	else
+		siril_add_idle(populate_spcc_combos, NULL);
 	return GINT_TO_POINTER(0);
 }
 
