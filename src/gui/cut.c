@@ -409,6 +409,7 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 		} else if (arg->seq) {
 			char seq_image_canonical_name[256] = "";
 			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);
+			*filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
 		} else if (sequence_is_loaded()) { // when sequence is loaded in the GUI and we only apply cut to the currently loaded image
 			char seq_image_canonical_name[256] = "";
 			seq_get_image_filename(&com.seq, com.seq.current, seq_image_canonical_name);

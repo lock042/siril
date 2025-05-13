@@ -217,7 +217,7 @@ struct generic_seq_metadata_args {
 	/** function called for each image with image index in sequence */
 	int (*image_hook)(struct generic_seq_metadata_args *, fitsfile *, int);
 
-	/** instead of outputing to the log, output to a file */
+	/** instead of outputting to the log, output to a file */
 	GOutputStream *output_stream;
 	/** filtering the images from the sequence, maybe we don't want them all */
 	seq_image_filter filtering_criterion;

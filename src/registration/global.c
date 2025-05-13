@@ -360,7 +360,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-		print_alignment_results(H, filenum, FWHMx, FWHMy/FWHMx, units);
+		print_alignment_results(H, filenum, FWHMx, FWHMy/FWHMx, "px");
 
 		sadata->current_regdata[in_index].roundness = FWHMy/FWHMx;
 		sadata->current_regdata[in_index].fwhm = FWHMx;
@@ -1001,7 +1001,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		// we do not remove it from the meaningful frames count or included ones, as it still may be worth aligning with the new ref
 		if (nb_aligned[trials] < nb_meaningful / 2) {
 			scores[best_index] = FLT_MAX;
-			siril_log_message(_("Trial #%d: After sequence alignement, image #%d could not align more than half of the frames, recomputing\n"), trials + 1, reffilenum);
+			siril_log_message(_("Trial #%d: After sequence alignment, image #%d could not align more than half of the frames, recomputing\n"), trials + 1, reffilenum);
 			best_index = minidx(scores, included, regargs->seq->number, NULL);
 			regargs->seq->reference_image = best_index;
 			reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
@@ -1052,7 +1052,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	compute_dist(regargs, dist, included);
 	//if larger than cog, we recompute a score accoutning for the distance
 	if (dist[best_index] > allowable_dist) {
-		siril_log_message(_("After sequence alignement, image %d is too far from the sequence cog, recomputing\n"), reffilenum);
+		siril_log_message(_("After sequence alignment, image %d is too far from the sequence cog, recomputing\n"), reffilenum);
 		siril_debug_print(_("Distance to cog is  %2.1fpx while threshold is set at %2.1fpx\n"), dist[best_indexes[trials]], allowable_dist);
 		float FWHMx;
 		int new_best_index = -1;

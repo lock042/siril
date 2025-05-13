@@ -579,10 +579,18 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 	// Compute and sanitize ncpixels
 	size_t ncpixels = info->width * info->height * info->channels;
-	if (ncpixels * (info->data_type == 0 ? sizeof(WORD) : sizeof(float)) > get_available_memory() / 2) {
+	siril_debug_print("received w x h x c: %d x %d x %d\n", info->width, info->height, info->channels);
+	size_t expected_size = ncpixels * (info->data_type == 0 ? sizeof(WORD) : sizeof(float));
+	if (info->size != expected_size) {
+		const char* error_msg = _("Error: image pixelbuffer does not match expected size");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message(_("Error in send_response: size mismatch\n"));
+		return FALSE;
+	}
+	if (expected_size > get_available_memory() / 2) {
 		const char* error_msg = _("Error: image dimensions exceed available memory");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
-			siril_log_message("Error in send_response\n");
+			siril_log_message(_("Error in send_response: image exceeds available memory\n"));
 		return FALSE;
 	}
 
@@ -667,7 +675,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 
 	// Copy data from shared memory to gfit
-	size_t total_bytes = ncpixels * (info->data_type == 1 ? sizeof(float) : sizeof(WORD));
+	size_t total_bytes = expected_size;
 
 	if (info->data_type == 0) {  // WORD data
 		memcpy(fit->data, (char*) shm_ptr, total_bytes);
@@ -676,11 +684,17 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 	invalidate_stats_from_fit(fit);
 
+	// Ensure fit->stats is sized correctly
+	if (info->channels != fit->naxes[2]) {
+		siril_debug_print("Resizing stats allocation to match new channels\n");
+		free(fit->stats);
+		fit->stats = calloc(info->channels, sizeof(imstats*));
+	}
 	// Update gfit metadata
 	fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
 	fit->rx = fit->naxes[0] = info->width;
 	fit->ry = fit->naxes[1] = info->height;
-	fit->naxis = info->channels == 3 ? 3 : 2;
+	fit->naxis = (info->channels == 3) ? 3 : 2;
 	fit->naxes[2] = info->channels;
 	if (fit == &gfit) {
 		if (!com.headless) {

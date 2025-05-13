@@ -120,7 +120,7 @@ static sf_errors reject_star(psf_star *result, const star_finder_params *sf, sta
 		return SF_FWHM_TOO_LARGE; //crit 2
 	}
 	if (((result->rmse * sf->sigma / result->A) > 0.2) && (!(result->A > dynrange))) {
-		//  do not apply for saturated stars to keep them for alignement purposes
+		//  do not apply for saturated stars to keep them for alignment purposes
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE; //crit 3
 	}
@@ -171,7 +171,7 @@ static gboolean candidate_is_duplicate(int xx, int yy, int boxradius, starc *can
  * profiles (PSF).
  */
 
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, int threads);
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double bg, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, int threads);
 
 psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, starprofile profile, int threads) {
 	int nx = image->fit->rx;
@@ -549,7 +549,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	siril_debug_print("Candidates for stars: %d\n", nbstars);
 	/* Check if candidates are stars by minimizing a PSF on each */
 	psf_star **results;
-	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, dynrange, &results, limit_nbstars, maxstars, profile, threads);
+	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, bg, dynrange, &results, limit_nbstars, maxstars, profile, threads);
 	if (nbstars == 0)
 		results = NULL;
 	sort_stars_by_mag(results, nbstars);
@@ -569,14 +569,13 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 }
 
 /* returns number of stars found, result is in parameters */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, int threads) {
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double bg, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, int threads) {
 	int nx = image->rx;
 	int ny = image->ry;
 	WORD **image_ushort = NULL;
 	float **image_float = NULL;
 	gint nbstars = 0;
 	sf_errors accepted_level = (com.pref.starfinder_conf.relax_checks) ? SF_RMSE_TOO_LARGE : SF_OK;
-	double bg = background(image, layer, NULL, SINGLE_THREADED);
 	int psf_failure = 0;
 	double minA = 0.0, maxA = 0.0;
 	if (sf->min_A > 0.0 || sf->max_A > 0.0) {

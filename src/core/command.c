@@ -1958,7 +1958,7 @@ int process_seq_update_key(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	siril_log_color_message(_("Upating keywords...\n"), "green");
+	siril_log_color_message(_("Updating keywords...\n"), "green");
 
 	/* manage options */
 	if (word[2][0] == '-') {

@@ -17,15 +17,24 @@ XX/XX/25
 * Fixed SPCC failing to open files on Windows when the filepath contains non-ASCII characters (e.g., accented characters) (#1584)
 * Fixed parameter parsing in PixelMath (#1594)
 * Fixed bad font kerning on macOS (#1508)
+* Fixed crash on Windows language change (#1560)
+* Fixed incorrect option handling in denoise (#1599)
+* Fixed poor star detection when input sequence was in 16b and preferences set in 32b (#1614)
+* Fixed incorrect image size with latest cameras added to LibRaw, Siril now uses 202502 snapshot (#1565)
+* Fixed metadata filling problem in PixelMath using $T (#1605)
+* Fixed python API SirilInterface::set_seq_frame_incl (#1617)
+* Fixed FWHM units when printing alignement results (#1616)
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
 * Added a fork of tkfilebrowser to support improved script UI file selection on Linux (!864)
 * Implemented a better linear regression algorithm for SPCC (!853)
 * Python scripts are now sorted alphabetically (#1559)
+* Made crop and ROI selection CFA-aware (#1579)
 * Added an optional rate limit for smooth scroll zoom speed (#1576)
 * Added SirilInterface.create_new_seq() and SirilInterface.is_cli() in sirilpy (!867)
-
+* GraXpert "Use GPU" now defaults to False but is persistent (saved in config)
+* Added ability to calibrate images for debayering only, without Dark, Flat, or Bias files (#1619)
 
 siril 1.4.0-beta1
 04/26/25
