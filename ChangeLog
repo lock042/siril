@@ -33,6 +33,7 @@ XX/XX/25
 * Added an optional rate limit for smooth scroll zoom speed (#1576)
 * Added SirilInterface.create_new_seq() and SirilInterface.is_cli() in sirilpy (!867)
 * GraXpert "Use GPU" now defaults to False but is persistent (saved in config)
+* Added utility.ONNXHelper class in python module to make it easier to ensure the correct onnxruntime module is installed. (!874)
 
 siril 1.4.0-beta1
 04/26/25
