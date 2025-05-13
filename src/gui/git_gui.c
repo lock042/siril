@@ -275,6 +275,7 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 		g_thread_unref(g_thread_new("update_scripts", initialize_scripts, NULL));
 	}
 	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.use_scripts_repository);
+	gtk_widget_set_sensitive(lookup_widget("manual_script_sync_button"), (com.pref.use_scripts_repository && gui.script_repo_available));
 	gtk_widget_set_sensitive(lookup_widget("treeview_scripts"), (com.pref.use_scripts_repository && gui.script_repo_available));
 }
 
