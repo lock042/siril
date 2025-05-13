@@ -3436,24 +3436,29 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 }
 
 int associate_header_to_memfile(const char *header, fitsfile *fptr) {
-    int status = 0;
+	int status = 0;
+	char *saveptr = NULL;
 
-    char *header_copy = strdup(header);
-    char *line = strtok(header_copy, "\n");
+	char *header_copy = strdup(header);
+	if (!header_copy) {
+		return -1;
+	}
 
-    while (line != NULL) {
-        if (fits_write_record(fptr, line, &status)) {
-            report_fits_error(status);
-            free(header_copy);
-            return status;
-        }
+	char *line = strtok_r(header_copy, "\n", &saveptr);
 
-        line = strtok(NULL, "\n");
-    }
+	while (line != NULL) {
+		if (fits_write_record(fptr, line, &status)) {
+			report_fits_error(status);
+			free(header_copy);
+			return status;
+		}
 
-    free(header_copy);
+		line = strtok_r(NULL, "\n", &saveptr);
+	}
 
-    return 0;
+	free(header_copy);
+
+	return 0;
 }
 
 int fits_parse_header_str(fits *fit, const char *header){
