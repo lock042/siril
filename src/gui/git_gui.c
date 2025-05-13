@@ -261,6 +261,14 @@ void on_disable_gitscripts() {
 	refresh_script_menu(GINT_TO_POINTER(1));
 }
 
+void on_manual_script_sync_button_clicked(GtkButton *button, gpointer user_data) {
+	g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL));
+}
+
+void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
+	g_thread_unref(g_thread_new("update_spcc", update_spcc, NULL));
+}
+
 void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.use_scripts_repository = gtk_toggle_button_get_active(button);
 	if (com.pref.use_scripts_repository) {
@@ -306,6 +314,14 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 }
 
 void on_script_text_close_clicked(GtkButton *button, gpointer user_data) {
+	return;
+}
+
+void on_manual_script_sync_button_clicked(GtkButton *button, gpointer user_data) {
+	return;
+}
+
+void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
 	return;
 }
 
