@@ -5105,42 +5105,15 @@ Activating the repository will take place immediately, so that you can select sc
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkBox">
+                                      <object class="GtkCheckButton" id="pref_script_automatic_updates">
+                                        <property name="label" translatable="yes">Automatic updates</property>
                                         <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="homogeneous">True</property>
-                                        <child>
-                                          <object class="GtkCheckButton" id="pref_script_automatic_updates">
-                                            <property name="label" translatable="yes">Automatic updates</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="receives-default">False</property>
-                                            <property name="tooltip-text" translatable="yes">Automatically update the repository at startup.</property>
-                                            <property name="margin-start">12</property>
-                                            <property name="draw-indicator">True</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkButton" id="manual_script_sync_button">
-                                            <property name="label" translatable="yes">Manual update</property>
-                                            <property name="name">update_scripts_now</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="receives-default">True</property>
-                                            <property name="tooltip-text" translatable="yes">Update the scripts repository now. If there are any pending changes, the commit messages will be shown and you will be asked to confirm applying the changes.</property>
-                                            <signal name="clicked" handler="on_manual_script_sync_button_clicked" swapped="no"/>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">Automatically update the repository at startup. Note: if you disable this and then later re-enable it, the repository will not immediately update but will do so the next time the application is started.</property>
+                                        <property name="margin-left">12</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
