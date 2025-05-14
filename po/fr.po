@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-13 21:53+0200\n"
-"PO-Revision-Date: 2025-05-09 11:07+0000\n"
+"PO-Revision-Date: 2025-05-14 12:32+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -14435,7 +14435,7 @@ msgstr "Miroir vertical : en cours...\n"
 
 #: src/algos/geometry.c:652 src/algos/geometry.c:663
 msgid "Rounding selection to match CFA pattern\n"
-msgstr ""
+msgstr "Arrondir la sélection pour qu'elle corresponde au modèle CFA\n"
 
 #: src/algos/geometry.c:706 src/core/command.c:2152
 #: src/gui/menu_gray_geometry.c:350 src/gui/menu_gray_geometry.c:365
@@ -18719,13 +18719,12 @@ msgstr ""
 "sur sRGB.\n"
 
 #: src/core/icc_profile.c:449
-#, fuzzy
 msgid ""
 "Error opening matched grayscale working profile. Profile set to Gray with "
 "sRGB tone response curve.\n"
 msgstr ""
 "Erreur lors de l'ouverture du profil de travail en niveaux de gris. Le "
-"profil est défini sur Gris avec la courbe de réponse des tons srGB.\n"
+"profil est défini sur Gris avec la courbe de réponse des tons sRGB.\n"
 
 #: src/core/icc_profile.c:494
 msgid ""

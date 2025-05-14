@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-13 21:53+0200\n"
-"PO-Revision-Date: 2025-05-13 08:40+0000\n"
+"PO-Revision-Date: 2025-05-14 09:47+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -5676,17 +5676,20 @@ msgid ""
 "Set scripting language to Python. Ensure you have the correct scripting "
 "language set before executing a script from the editor."
 msgstr ""
+"Использовать сценарии на языке Python. Перед запуском сценария из редактора "
+"убедитесь, что выбран правильный язык сценариев."
 
 #: src/gui/uifiles/python_scratchpad.ui:340
-#, fuzzy
 msgid "Python scripts"
-msgstr "Сценарий python"
+msgstr "Сценарии Python"
 
 #: src/gui/uifiles/python_scratchpad.ui:350
 msgid ""
 "Set scripting language to Siril Script File. Ensure you have the correct "
 "scripting language set before executing a script from the editor."
 msgstr ""
+"Использовать сценарии Siril. Перед запуском сценария из редактора убедитесь, "
+"что выбран правильный язык сценариев."
 
 #: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:268
 msgid "Siril Script Files"
@@ -5701,9 +5704,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:363
-#, fuzzy
 msgid "Enable test arguments"
-msgstr "неверные аргументы"
+msgstr "Включить тестовые аргументы"
 
 #: src/gui/uifiles/python_scratchpad.ui:371
 msgid ""
@@ -5713,9 +5715,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:372
-#, fuzzy
 msgid "Enable python debug mode"
-msgstr "Режим отладки Python"
+msgstr "Режим отладки python"
 
 #: src/gui/uifiles/python_scratchpad.ui:384
 msgid "_Preferences"
@@ -5746,7 +5747,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:424
 msgid "Enable bracket matching"
-msgstr ""
+msgstr "Подсветка парных скобок"
 
 #: src/gui/uifiles/python_scratchpad.ui:433
 #, fuzzy
@@ -5768,7 +5769,7 @@ msgstr "Показать метки строк"
 
 #: src/gui/uifiles/python_scratchpad.ui:453
 msgid "Highlight the current line in the editor"
-msgstr "Подсветить текущую строку в редакторе сценариев"
+msgstr "Подсветить текущую строку в редакторе"
 
 #: src/gui/uifiles/python_scratchpad.ui:454
 msgid "Highlight current line"
@@ -5809,7 +5810,7 @@ msgstr "Показывать символы пробела и табуляции
 
 #: src/gui/uifiles/python_scratchpad.ui:504
 msgid "Show spaces and tabs"
-msgstr "Отобразить пробелы и табы"
+msgstr "Показать пробелы и табуляции"
 
 #: src/gui/uifiles/python_scratchpad.ui:512
 #, fuzzy
@@ -5833,7 +5834,7 @@ msgstr "Показать оригинальное изображение"
 
 #: src/gui/uifiles/python_scratchpad.ui:534
 msgid "_Help"
-msgstr ""
+msgstr "_Помощь"
 
 #: src/gui/uifiles/python_scratchpad.ui:546
 #, fuzzy
@@ -18402,13 +18403,12 @@ msgstr ""
 "sRGB.\n"
 
 #: src/core/icc_profile.c:449
-#, fuzzy
 msgid ""
 "Error opening matched grayscale working profile. Profile set to Gray with "
 "sRGB tone response curve.\n"
 msgstr ""
 "Ошибка при открытии соответствующего рабочего профиля в градациях серого. "
-"Установлен профиль Серый и кривой воспроизведения тонов srGB.\n"
+"Установлен профиль Серый с кривой воспроизведения тонов sRGB.\n"
 
 #: src/core/icc_profile.c:494
 msgid ""
@@ -18443,7 +18443,6 @@ msgid "Fatal error: standard sRGB ICC profile could not be loaded.\n"
 msgstr "Фатальная ошибка: не удалось загрузить стандартный ICC-профиль sRGB.\n"
 
 #: src/core/icc_profile.c:607
-#, fuzzy
 msgid "Error: no filename specified for custom monitor profile.\n"
 msgstr ""
 "Ошибка: не указано название файла для пользовательского профиля монитора.\n"
@@ -18464,7 +18463,6 @@ msgstr ""
 "ICC-профиль монитора установлен в sRGB (точка белого D65, гамма = 2.2)\n"
 
 #: src/core/icc_profile.c:656
-#, fuzzy
 msgid "Error: no filename specified for output device proofing profile.\n"
 msgstr ""
 "Ошибка: не указано название файла для профиля цветопробы устройства вывода.\n"
