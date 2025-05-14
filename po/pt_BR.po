@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-13 21:53+0200\n"
+"POT-Creation-Date: 2025-05-14 14:33+0200\n"
 "PO-Revision-Date: 2025-05-12 20:19+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
@@ -304,17 +304,17 @@ msgstr "Sem Seleção"
 
 #: src/gui/uifiles/StatWindow.ui:200 src/gui/uifiles/color_calibration.ui:389
 #: src/gui/uifiles/siril.ui:3028 src/compositing/compositing.c:681
-#: src/gui/callbacks.c:905 src/gui/callbacks.c:1288
+#: src/gui/callbacks.c:907 src/gui/callbacks.c:1290
 msgid "Red"
 msgstr "Vermelho"
 
 #: src/gui/uifiles/StatWindow.ui:214 src/gui/uifiles/color_calibration.ui:448
-#: src/gui/uifiles/siril.ui:3197 src/gui/callbacks.c:907
+#: src/gui/uifiles/siril.ui:3197 src/gui/callbacks.c:909
 msgid "Green"
 msgstr "Verde"
 
 #: src/gui/uifiles/StatWindow.ui:228 src/gui/uifiles/color_calibration.ui:507
-#: src/gui/uifiles/siril.ui:3366 src/gui/callbacks.c:909
+#: src/gui/uifiles/siril.ui:3366 src/gui/callbacks.c:911
 msgid "Blue"
 msgstr "Azul"
 
@@ -1886,8 +1886,8 @@ msgid "Pixel Size / μm"
 msgstr "Tamanho do pixel [μm]"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:868 src/gui/cut.c:535 src/gui/cut.c:748
-#: src/gui/photometric_cc.c:900 src/gui/photometric_cc.c:982
-#: src/gui/photometric_cc.c:1151
+#: src/gui/photometric_cc.c:904 src/gui/photometric_cc.c:986
+#: src/gui/photometric_cc.c:1155
 #, c-format
 msgid "Wavelength / nm"
 msgstr "Comprimento de onda / nm"
@@ -5668,7 +5668,7 @@ msgid ""
 "scripting language set before executing a script from the editor."
 msgstr ""
 
-#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:268
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:266
 msgid "Siril Script Files"
 msgstr "Arquivos de script do Siril"
 
@@ -6171,7 +6171,7 @@ msgstr ""
 msgid "Sensor Type:"
 msgstr "Tipo do sensor:"
 
-#: src/gui/uifiles/s_pcc_dialog.ui:766 src/gui/photometric_cc.c:718
+#: src/gui/uifiles/s_pcc_dialog.ui:766 src/gui/photometric_cc.c:722
 msgid "mono"
 msgstr "mono"
 
@@ -6214,7 +6214,7 @@ msgid ""
 "pressure at the observer's height."
 msgstr ""
 
-#: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1164
+#: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1168
 msgid "sea level"
 msgstr "nível do mar"
 
@@ -8784,12 +8784,12 @@ msgstr ""
 msgid "Export to CSV"
 msgstr "Exportar para CSV"
 
-#: src/gui/uifiles/siril.ui:1186 src/gui/callbacks.c:1085
+#: src/gui/uifiles/siril.ui:1186 src/gui/callbacks.c:1087
 msgid "16 bits"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:1194 src/gui/uifiles/siril.ui:10716
-#: src/gui/callbacks.c:1085
+#: src/gui/callbacks.c:1087
 msgid "32 bits"
 msgstr ""
 
@@ -9638,7 +9638,7 @@ msgid ""
 "you can filter images out."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4624 src/gui/callbacks.c:2228
+#: src/gui/uifiles/siril.ui:4624 src/gui/callbacks.c:2296
 msgid "Sequence"
 msgstr "Sequência"
 
@@ -12347,7 +12347,7 @@ msgid ""
 "Plate solving image with astrometry.net for a field of view of %.2f degrees\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:892 src/gui/photometric_cc.c:1164
+#: src/algos/astrometry_solver.c:892 src/gui/photometric_cc.c:1168
 msgid "local"
 msgstr ""
 
@@ -12394,7 +12394,7 @@ msgstr ""
 msgid "Plate Solve"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1056 src/gui/callbacks.c:1853
+#: src/algos/astrometry_solver.c:1056 src/gui/callbacks.c:1921
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr ""
@@ -13963,7 +13963,7 @@ msgstr ""
 
 #: src/compositing/compositing.c:783 src/filters/wavelets.c:260
 #: src/filters/wavelets.c:269 src/filters/wavelets.c:330 src/gui/colors.c:567
-#: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:864
+#: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:868
 #: src/gui/utils.c:480 src/io/siril_pythoncommands.c:985
 msgid "Warning"
 msgstr "Aviso"
@@ -13999,7 +13999,7 @@ msgstr ""
 #. Register button was pressed, we ask for confirmation
 #: src/compositing/compositing.c:956 src/gui/keywords_tree.c:196
 #: src/gui/keywords_tree.c:601 src/gui/mouse_action_preferences.c:117
-#: src/gui/preferences.c:1110 src/gui/python_gui.c:684 src/gui/python_gui.c:703
+#: src/gui/preferences.c:1117 src/gui/python_gui.c:684 src/gui/python_gui.c:703
 #: src/gui/python_gui.c:732 src/gui/python_gui.c:758 src/gui/python_gui.c:829
 #: src/gui/utils.c:314 src/registration/applyreg.c:1061
 #, fuzzy
@@ -14055,16 +14055,16 @@ msgstr ""
 #: src/filters/fft.c:610 src/gui/PSF_list.c:305 src/gui/PSF_list.c:310
 #: src/gui/PSF_list.c:315 src/gui/colors.c:457 src/gui/compstars.c:225
 #: src/gui/compstars.c:294 src/gui/compstars.c:302 src/gui/compstars.c:309
-#: src/gui/compstars.c:316 src/gui/dialogs.c:146 src/gui/git_gui.c:192
-#: src/gui/git_gui.c:212 src/gui/git_gui.c:283 src/gui/icc_profile.c:307
-#: src/gui/icc_profile.c:375 src/gui/icc_profile.c:551 src/gui/merge_cfa.c:209
-#: src/gui/merge_cfa.c:241 src/gui/merge_cfa.c:252 src/gui/merge_cfa.c:263
-#: src/gui/merge_cfa.c:274 src/gui/nina_light_curve.c:221
-#: src/gui/nina_light_curve.c:226 src/gui/nina_light_curve.c:232
-#: src/gui/nina_light_curve.c:241 src/gui/nina_light_curve.c:279
-#: src/gui/open_dialog.c:378 src/gui/preferences.c:555
-#: src/gui/preferences.c:574 src/gui/preferences.c:608
-#: src/gui/save_dialog.c:468 src/io/siril_pythoncommands.c:979
+#: src/gui/compstars.c:316 src/gui/dialogs.c:146 src/gui/git_gui.c:200
+#: src/gui/icc_profile.c:307 src/gui/icc_profile.c:375
+#: src/gui/icc_profile.c:551 src/gui/merge_cfa.c:209 src/gui/merge_cfa.c:241
+#: src/gui/merge_cfa.c:252 src/gui/merge_cfa.c:263 src/gui/merge_cfa.c:274
+#: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
+#: src/gui/nina_light_curve.c:232 src/gui/nina_light_curve.c:241
+#: src/gui/nina_light_curve.c:279 src/gui/open_dialog.c:378
+#: src/gui/preferences.c:555 src/gui/preferences.c:574
+#: src/gui/preferences.c:608 src/gui/save_dialog.c:468
+#: src/io/siril_pythoncommands.c:979
 msgid "Error"
 msgstr ""
 
@@ -15291,7 +15291,7 @@ msgstr ""
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr ""
 
-#: src/core/command.c:4577 src/gui/callbacks.c:2395
+#: src/core/command.c:4577 src/gui/callbacks.c:2463
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr ""
@@ -15676,7 +15676,7 @@ msgid ""
 "proceed.\n"
 msgstr ""
 
-#: src/core/command.c:7513 src/gui/conversion.c:196
+#: src/core/command.c:7513 src/gui/conversion.c:197
 msgid ""
 "FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. "
 "You may use FITS sequences instead."
@@ -15918,7 +15918,7 @@ msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr ""
 
 #: src/core/command.c:8538 src/core/command_line_processor.c:660
-#: src/gui/single_image.c:82 src/main.c:474
+#: src/gui/single_image.c:82 src/main.c:464
 #, c-format
 msgid "No sequence `%s' found.\n"
 msgstr "Nenhuma sequência '%s' encontrada.\n"
@@ -17327,7 +17327,7 @@ msgid ""
 "Darkmap cosmetic correction is only supported with single channel images\n"
 msgstr ""
 
-#: src/core/preprocess.c:502 src/gui/git_gui.c:111
+#: src/core/preprocess.c:502 src/gui/git_gui.c:117
 #, fuzzy
 msgid "Preprocessing"
 msgstr "_Processamento de imagem"
@@ -19701,19 +19701,19 @@ msgstr ""
 msgid "You must first compute the background model."
 msgstr ""
 
-#: src/gui/callbacks.c:134 src/gui/callbacks.c:137 src/gui/callbacks.c:628
+#: src/gui/callbacks.c:136 src/gui/callbacks.c:139 src/gui/callbacks.c:630
 msgid "Image: "
 msgstr "Imagem: "
 
-#: src/gui/callbacks.c:148 src/gui/callbacks.c:151 src/gui/callbacks.c:621
+#: src/gui/callbacks.c:150 src/gui/callbacks.c:153 src/gui/callbacks.c:623
 msgid "Sequence: "
 msgstr "Sequência: "
 
-#: src/gui/callbacks.c:318
+#: src/gui/callbacks.c:320
 msgid "Region of Interest supported"
 msgstr ""
 
-#: src/gui/callbacks.c:320
+#: src/gui/callbacks.c:322
 msgid ""
 "This image operation supports ROI processing. This is indicated by the green "
 "border around the ROI. In image operation dialogs that do not support ROI "
@@ -19723,121 +19723,127 @@ msgid ""
 "button is clicked, the operation will apply to the whole image."
 msgstr ""
 
-#: src/gui/callbacks.c:327 src/gui/message_dialog.c:280
+#: src/gui/callbacks.c:329 src/gui/message_dialog.c:280
 msgid "_Do not show this dialog again"
 msgstr ""
 
-#: src/gui/callbacks.c:445
+#: src/gui/callbacks.c:447
 #, c-format
 msgid "Setting MAX value for cutoff sliders adjustments (%f)\n"
 msgstr ""
 
-#: src/gui/callbacks.c:470
+#: src/gui/callbacks.c:472
 #, c-format
 msgid "Setting ranges scalemin=%d, scalemax=%d\n"
 msgstr ""
 
-#: src/gui/callbacks.c:497
+#: src/gui/callbacks.c:499
 msgid ""
 "Current image is not 32 bit. Standard 16 bit AutoStretch will be used.\n"
 msgstr ""
 
-#: src/gui/callbacks.c:500 src/gui/callbacks.c:526
+#: src/gui/callbacks.c:502 src/gui/callbacks.c:528
 #, c-format
 msgid "The AutoStretch display mode will use a %d bit LUT\n"
 msgstr ""
 
-#: src/gui/callbacks.c:504 src/gui/callbacks.c:529
+#: src/gui/callbacks.c:506 src/gui/callbacks.c:531
 msgid "The AutoStretch display mode will use a 16 bit LUT\n"
 msgstr ""
 
-#: src/gui/callbacks.c:540
+#: src/gui/callbacks.c:542
 #, c-format
 msgid "Setting HD AutoStretch display mode bit depth to %d...\n"
 msgstr ""
 
-#: src/gui/callbacks.c:619
+#: src/gui/callbacks.c:621
 #, c-format
 msgid "%s, %d/%d images selected"
 msgstr ""
 
-#: src/gui/callbacks.c:632
+#: src/gui/callbacks.c:634
 msgid "- none -"
 msgstr ""
 
-#: src/gui/callbacks.c:649
+#: src/gui/callbacks.c:651
 msgid ""
 "This sequence name already exists!! Please change the name before converting."
 msgstr ""
 
-#: src/gui/callbacks.c:901
+#: src/gui/callbacks.c:903
 msgid "Luminance"
 msgstr "Luminância"
 
-#: src/gui/callbacks.c:933
+#: src/gui/callbacks.c:935
 #, c-format
 msgid "W: %dpx H: %dpx ratio: %.4f"
 msgstr ""
 
-#: src/gui/callbacks.c:973
+#: src/gui/callbacks.c:975
 #, c-format
 msgid "fwhm: %.2f px, r: %.2f"
 msgstr ""
 
-#: src/gui/callbacks.c:975 src/gui/callbacks.c:977
+#: src/gui/callbacks.c:977 src/gui/callbacks.c:979
 #, c-format
 msgid "fwhm: N/A"
 msgstr ""
 
-#: src/gui/callbacks.c:1045
+#: src/gui/callbacks.c:1047
 msgid "Cannot convert a sequence file"
 msgstr ""
 
-#: src/gui/callbacks.c:1046
+#: src/gui/callbacks.c:1048
 msgid ""
 "A sequence file cannot be converted to 32 bits. This operation can only be "
 "done on a single file."
 msgstr ""
 
-#: src/gui/callbacks.c:1051
+#: src/gui/callbacks.c:1053
 msgid "Precision loss"
 msgstr ""
 
-#: src/gui/callbacks.c:1052
+#: src/gui/callbacks.c:1054
 msgid ""
 "Converting the image from 32 bits to 16 bits may lead to a loss of numerical "
 "accuracy. Getting back to 32 bits will not recover this loss.\n"
 "Are you sure you want to convert your data?"
 msgstr ""
 
-#: src/gui/callbacks.c:1054
+#: src/gui/callbacks.c:1056
 msgid "Convert to 16 bits"
 msgstr ""
 
-#: src/gui/callbacks.c:1285
+#: src/gui/callbacks.c:1287
 msgid "B&W"
 msgstr ""
 
-#: src/gui/callbacks.c:1442 src/io/siril_catalogues.c:324
+#: src/gui/callbacks.c:1444 src/io/siril_catalogues.c:324
 msgid "unknown"
 msgstr ""
 
-#: src/gui/callbacks.c:1482
+#: src/gui/callbacks.c:1484
 #, c-format
 msgid "Binning %d x %d is not supported\n"
 msgstr ""
 
-#: src/gui/callbacks.c:1643
+#: src/gui/callbacks.c:1659
+msgid ""
+"Siril started in offline mode. Will not attempt to update siril-scripts or "
+"siril-spcc-database...\n"
+msgstr ""
+
+#: src/gui/callbacks.c:1719
 #, c-format
 msgid "Default FITS extension is set to %s\n"
 msgstr ""
 
-#: src/gui/callbacks.c:1666
+#: src/gui/callbacks.c:1742
 #, c-format
 msgid "Welcome to %s"
 msgstr ""
 
-#: src/gui/callbacks.c:1669
+#: src/gui/callbacks.c:1745
 msgid ""
 "Hello, this is the first time you use this new version of Siril. Please, "
 "have a seat and take the time to watch the short introduction we have "
@@ -19845,37 +19851,37 @@ msgid ""
 "the Miscellaneous tab of the preferences dialog box."
 msgstr ""
 
-#: src/gui/callbacks.c:1672
+#: src/gui/callbacks.c:1748
 #, fuzzy
 msgid "See Introduction"
 msgstr "Interpolação"
 
-#: src/gui/callbacks.c:1948
+#: src/gui/callbacks.c:2016
 msgid "Closing application"
 msgstr "Fechando aplicação"
 
-#: src/gui/callbacks.c:1949
+#: src/gui/callbacks.c:2017
 msgid "Are you sure you want to quit?"
 msgstr ""
 
-#: src/gui/callbacks.c:1949
+#: src/gui/callbacks.c:2017
 msgid "Exit"
 msgstr ""
 
-#: src/gui/callbacks.c:2109
+#: src/gui/callbacks.c:2177
 #, c-format
 msgid "Selected %s sequence %s..."
 msgstr ""
 
-#: src/gui/callbacks.c:2158
+#: src/gui/callbacks.c:2226
 msgid "Searching for sequences in the current working directory..."
 msgstr ""
 
-#: src/gui/callbacks.c:2209
+#: src/gui/callbacks.c:2277
 msgid "This erases the following data, and there's no possible undo:\n"
 msgstr ""
 
-#: src/gui/callbacks.c:2210
+#: src/gui/callbacks.c:2278
 msgid ""
 "\n"
 "- Registration"
@@ -19883,7 +19889,7 @@ msgstr ""
 "\n"
 "- Registro"
 
-#: src/gui/callbacks.c:2211
+#: src/gui/callbacks.c:2279
 msgid ""
 "\n"
 "- Statistics"
@@ -19891,7 +19897,7 @@ msgstr ""
 "\n"
 "- Estatísticas"
 
-#: src/gui/callbacks.c:2212
+#: src/gui/callbacks.c:2280
 msgid ""
 "\n"
 "- Selection"
@@ -19899,40 +19905,40 @@ msgstr ""
 "\n"
 "- Seleção"
 
-#: src/gui/callbacks.c:2216
+#: src/gui/callbacks.c:2284
 msgid "Clear Sequence Data?"
 msgstr "Limpar dados de sequência?"
 
-#: src/gui/callbacks.c:2216
+#: src/gui/callbacks.c:2284
 #, fuzzy
 msgid "Clear Data"
 msgstr "Fechar a janela"
 
-#: src/gui/callbacks.c:2228
+#: src/gui/callbacks.c:2296
 msgid "The requested data of the sequence has been cleaned."
 msgstr ""
 
-#: src/gui/callbacks.c:2236
+#: src/gui/callbacks.c:2304
 #, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
 "the manually added objects will be deleted. This operation cannot be undone."
 msgstr ""
 
-#: src/gui/callbacks.c:2238
+#: src/gui/callbacks.c:2306
 msgid "SOLAR SYSTEM"
 msgstr ""
 
-#: src/gui/callbacks.c:2238
+#: src/gui/callbacks.c:2306
 msgid "DEEP SKY"
 msgstr ""
 
-#: src/gui/callbacks.c:2240
+#: src/gui/callbacks.c:2308
 #, fuzzy
 msgid "Catalog deletion"
 msgstr "Auto deteção"
 
-#: src/gui/callbacks.c:2240
+#: src/gui/callbacks.c:2308
 msgid "Purge Catalogue"
 msgstr ""
 
@@ -20215,47 +20221,47 @@ msgstr ""
 msgid "Convert to FITS Sequence"
 msgstr "Sequência"
 
-#: src/gui/conversion.c:185
+#: src/gui/conversion.c:186
 msgid ""
 "Symbolic links cannot be used when demosaicing the images, new images will "
 "be created\n"
 msgstr ""
 
-#: src/gui/conversion.c:189 src/gui/conversion.c:195
+#: src/gui/conversion.c:190 src/gui/conversion.c:196
 msgid "A conflict has been detected."
 msgstr ""
 
-#: src/gui/conversion.c:190
+#: src/gui/conversion.c:191
 msgid ""
 "Creating multiple sequences can only be done with only sequences as input."
 msgstr ""
 
-#: src/gui/conversion.c:201
+#: src/gui/conversion.c:202
 #, c-format
 msgid "Conversion: processing %d files...\n"
 msgstr ""
 
-#: src/gui/conversion.c:419
+#: src/gui/conversion.c:420
 #, c-format
 msgid "%d file was ignored while drag and drop\n"
 msgid_plural "%d files were ignored while drag and drop\n"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/gui/conversion.c:424
+#: src/gui/conversion.c:425
 msgid ""
 "Files with unknown extension cannot be dropped in this area. Therefore they "
 "are ignored."
 msgstr ""
 
-#: src/gui/conversion.c:506
+#: src/gui/conversion.c:507
 #, c-format
 msgid "%d file loaded"
 msgid_plural "%d files loaded"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/gui/conversion.c:511
+#: src/gui/conversion.c:512
 #, c-format
 msgid "%d file selected"
 msgid_plural "%d files selected"
@@ -20574,123 +20580,35 @@ msgstr "não carregada"
 msgid "Error: image dimensions do not match"
 msgstr ""
 
-#: src/gui/git_gui.c:61 src/gui/git_gui.c:72 src/gui/git_gui.c:244
-#: src/gui/git_gui.c:248 src/gui/git_gui.c:253 src/gui/git_gui.c:312
-#: src/gui/git_gui.c:316 src/gui/git_gui.c:319
-#, fuzzy
-msgid "Manual Update"
-msgstr "_Processamento de imagem"
-
-#: src/gui/git_gui.c:62 src/gui/git_gui.c:73
-msgid "Success! The local repository is up-to-date with the remote."
-msgstr ""
-
-#: src/gui/git_gui.c:113
+#: src/gui/git_gui.c:119
 #, fuzzy
 msgid "Processing"
 msgstr "_Processamento de imagem"
 
-#: src/gui/git_gui.c:115
+#: src/gui/git_gui.c:121
 msgid "Utility"
 msgstr ""
 
-#: src/gui/git_gui.c:117
+#: src/gui/git_gui.c:123
 msgid "Core"
 msgstr ""
 
-#: src/gui/git_gui.c:120
+#: src/gui/git_gui.c:126
 msgid "Other"
 msgstr ""
 
-#: src/gui/git_gui.c:126 src/gui/python_gui.c:923 src/gui/python_gui.c:1092
+#: src/gui/git_gui.c:132 src/gui/python_gui.c:923 src/gui/python_gui.c:1092
 msgid "Siril Script File"
 msgstr "Arquivo de script do Siril"
 
-#: src/gui/git_gui.c:128
+#: src/gui/git_gui.c:134
 msgid "Python script"
 msgstr "Script do Python"
 
-#: src/gui/git_gui.c:190
+#: src/gui/git_gui.c:198
 #, c-format
 msgid "Error loading script contents: %s\n"
 msgstr "Erro ao carregar o conteúdo do script: %s\n"
-
-#: src/gui/git_gui.c:208
-#, fuzzy
-msgid "Manually synchronising script repository\n"
-msgstr "Carregando script do repositório: %s\n"
-
-#: src/gui/git_gui.c:212 src/gui/git_gui.c:283
-msgid "Error getting the list of unmerged changes"
-msgstr ""
-
-#: src/gui/git_gui.c:217 src/gui/git_gui.c:288 src/gui/graxpert.c:322
-msgid "Warning!"
-msgstr "Aviso!"
-
-#: src/gui/git_gui.c:218
-msgid ""
-"Merge analysis shows that the merge cannot be fast-forwarded. This indicates "
-"you have made changes to the local repository. Siril does not provide full "
-"git functionality and cannot be used to merge upstream updates into an "
-"altered local repository.\n"
-"\n"
-"If you accept the update, the local repository will be hard reset to match "
-"the remote repository and any local changes will be lost.\n"
-"\n"
-"If you have made local changes that you wish to keep, you should cancel this "
-"update and copy your modified scripts to another location, and add this "
-"location to the list of script directories to be searched."
-msgstr ""
-
-#: src/gui/git_gui.c:229 src/gui/git_gui.c:300 src/gui/icc_profile.c:110
-msgid "Accept"
-msgstr ""
-
-#: src/gui/git_gui.c:245 src/gui/git_gui.c:313
-msgid "Read and confirm the pending changes to be synced"
-msgstr ""
-
-#: src/gui/git_gui.c:246 src/gui/git_gui.c:314
-#, fuzzy
-msgid "Confirm"
-msgstr "Saturação de Cor"
-
-#: src/gui/git_gui.c:248
-msgid "Error! Script database failed to update."
-msgstr ""
-
-#: src/gui/git_gui.c:254 src/gui/git_gui.c:319
-msgid "Update cancelled. Updates have not been applied."
-msgstr ""
-
-#: src/gui/git_gui.c:258
-msgid "Manual scripts update: the script repository is up to date.\n"
-msgstr ""
-
-#: src/gui/git_gui.c:289
-msgid ""
-"Merge analysis shows that the merge cannot be fast-forwarded. This indicates "
-"you have made changes to the local scripts repository. Siril does not "
-"provide full git functionality and cannot be used to merge upstream updates "
-"into an altered local repository.\n"
-"\n"
-"If you accept the update, the local repository will be hard reset to match "
-"the remote repository and any local changes will be lost.\n"
-"\n"
-"If you have made local changes that you wish to keep, you should cancel this "
-"update and copy your modified scripts to another location, and add this "
-"location to the list of script directories to be searched."
-msgstr ""
-
-#: src/gui/git_gui.c:316
-msgid "Error! SPCC database failed to update."
-msgstr ""
-
-#: src/gui/git_gui.c:323
-msgid ""
-"Manual SPCC database update: the SPCC database repository is up to date.\n"
-msgstr ""
 
 #: src/gui/graxpert.c:233
 #, c-format
@@ -20720,6 +20638,10 @@ msgid ""
 "<span foreground=\"red\">No suitable version of GraXpert is available.\n"
 "Configure the executable in Preferences -> Miscellaneous.</span>"
 msgstr ""
+
+#: src/gui/graxpert.c:322
+msgid "Warning!"
+msgstr "Aviso!"
 
 #: src/gui/graxpert.c:322
 msgid ""
@@ -20879,6 +20801,10 @@ msgid ""
 "pertaining to distribution of the software without specific, written prior "
 "permission. ICC makes no representations about the suitability of this "
 "software for any purpose."
+msgstr ""
+
+#: src/gui/icc_profile.c:110
+msgid "Accept"
 msgstr ""
 
 #: src/gui/icc_profile.c:123 src/gui/icc_profile.c:130
@@ -21646,50 +21572,50 @@ msgid ""
 "Error: ensure OSC sensor, OSC filter and white reference are selected.\n"
 msgstr ""
 
-#: src/gui/photometric_cc.c:718
+#: src/gui/photometric_cc.c:722
 msgid "one-shot color (OSC)"
 msgstr ""
 
-#: src/gui/photometric_cc.c:864
+#: src/gui/photometric_cc.c:868
 msgid "No selection made: no details to show."
 msgstr ""
 
-#: src/gui/photometric_cc.c:902
+#: src/gui/photometric_cc.c:906
 #, fuzzy
 msgid "SPCC Data"
 msgstr "Fechar a janela"
 
-#: src/gui/photometric_cc.c:903
+#: src/gui/photometric_cc.c:907
 msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
 msgstr ""
 
-#: src/gui/photometric_cc.c:964
+#: src/gui/photometric_cc.c:968
 msgid "Atmosphere model"
 msgstr ""
 
-#: src/gui/photometric_cc.c:986 src/gui/photometric_cc.c:1001
+#: src/gui/photometric_cc.c:990 src/gui/photometric_cc.c:1005
 #, c-format
 msgid "SPCC Data: %s"
 msgstr ""
 
-#: src/gui/photometric_cc.c:988 src/gui/photometric_cc.c:1004
+#: src/gui/photometric_cc.c:992 src/gui/photometric_cc.c:1008
 msgid "Quantum Efficiency"
 msgstr ""
 
-#: src/gui/photometric_cc.c:1004
+#: src/gui/photometric_cc.c:1008
 msgid "Relative photon count"
 msgstr ""
 
-#: src/gui/photometric_cc.c:1004 src/gui/photometric_cc.c:1156
+#: src/gui/photometric_cc.c:1008 src/gui/photometric_cc.c:1160
 msgid "Transmittance"
 msgstr ""
 
-#: src/gui/photometric_cc.c:1153
+#: src/gui/photometric_cc.c:1157
 #, c-format
 msgid "SPCC Data: Atmospheric model"
 msgstr ""
 
-#: src/gui/photometric_cc.c:1164
+#: src/gui/photometric_cc.c:1168
 #, c-format
 msgid ""
 "Atmospheric model\n"
@@ -21843,50 +21769,50 @@ msgstr ""
 msgid "Cannot refresh script list"
 msgstr ""
 
-#: src/gui/preferences.c:989
+#: src/gui/preferences.c:996
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
 msgstr ""
 
-#: src/gui/preferences.c:998
+#: src/gui/preferences.c:1005
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
 msgstr ""
 
-#: src/gui/preferences.c:1010
+#: src/gui/preferences.c:1017
 msgid "Wrong value"
 msgstr ""
 
-#: src/gui/preferences.c:1059
+#: src/gui/preferences.c:1066
 msgid "Reset all preferences"
 msgstr ""
 
-#: src/gui/preferences.c:1060
+#: src/gui/preferences.c:1067
 msgid "Do you really want to reset all preferences to default value?"
 msgstr ""
 
-#: src/gui/preferences.c:1061
+#: src/gui/preferences.c:1068
 #, fuzzy
 msgid "Reset Preferences"
 msgstr "imagem de referência"
 
-#: src/gui/preferences.c:1080
+#: src/gui/preferences.c:1087
 msgid "External ICC Profiles"
 msgstr ""
 
-#: src/gui/preferences.c:1080
+#: src/gui/preferences.c:1087
 msgid ""
 "In order to use ICC profiles loaded from files as your preferred color space "
 "you must set the Preferred Color Space drop-down to \"From files\"."
 msgstr ""
 
-#: src/gui/preferences.c:1105
+#: src/gui/preferences.c:1112
 msgid "WARNING!"
 msgstr ""
 
-#: src/gui/preferences.c:1105
+#: src/gui/preferences.c:1112
 msgid ""
 "This will kill all running python processes and delete and reinstall the "
 "python venv directory. This is not normally necessary for upgrades or "
@@ -22407,45 +22333,45 @@ msgstr ""
 msgid "Unknown script type: %s\n"
 msgstr "Tipo de script desconhecido: %s\n"
 
-#: src/gui/script_menu.c:269
+#: src/gui/script_menu.c:267
 msgid "Python Scripts"
 msgstr ""
 
-#: src/gui/script_menu.c:274
+#: src/gui/script_menu.c:272
 msgid "Script Editor..."
 msgstr ""
 
-#: src/gui/script_menu.c:276
+#: src/gui/script_menu.c:274
 msgid "Enable Python debug mode"
 msgstr ""
 
-#: src/gui/script_menu.c:312
+#: src/gui/script_menu.c:310
 #, c-format
 msgid "Searching for scripts in: \"%s\"...\n"
 msgstr ""
 
-#: src/gui/script_menu.c:358
+#: src/gui/script_menu.c:356
 #, c-format
 msgid "Loading script: %s\n"
 msgstr ""
 
-#: src/gui/script_menu.c:385 src/gui/script_menu.c:419
+#: src/gui/script_menu.c:377 src/gui/script_menu.c:415
 #, c-format
 msgid ""
 "Script %s no longer exists in repository, removing from Scripts menu...\n"
 msgstr ""
 
-#: src/gui/script_menu.c:413
+#: src/gui/script_menu.c:409
 #, c-format
 msgid "Loading script from repository: %s\n"
 msgstr "Carregando script do repositório: %s\n"
 
-#: src/gui/script_menu.c:464
+#: src/gui/script_menu.c:460
 #, c-format
 msgid "Adding core script to menu: %s\n"
 msgstr "Adicionando script principal ao menu: %s\n"
 
-#: src/gui/script_menu.c:504
+#: src/gui/script_menu.c:480
 msgid "Cannot refresh the scripts if the list is empty.\n"
 msgstr ""
 
@@ -24748,33 +24674,33 @@ msgstr ""
 msgid "Failed to save list to %s\n"
 msgstr "Falha ao salvar a lista em %s\n"
 
-#: src/io/siril_git.c:146
+#: src/io/siril_git.c:145
 msgid "libgit2: unable to parse some refish\n"
 msgstr ""
 
-#: src/io/siril_git.c:161
+#: src/io/siril_git.c:160
 msgid "Failed to find commit with given OID.\n"
 msgstr ""
 
-#: src/io/siril_git.c:240
+#: src/io/siril_git.c:239
 msgid ""
 "Error removing Git lock files. You may need to delete the local git "
 "repository and allow Siril to re-clone it.\n"
 msgstr ""
 
-#: src/io/siril_git.c:257 src/io/siril_git.c:269 src/io/siril_git.c:281
+#: src/io/siril_git.c:256 src/io/siril_git.c:268 src/io/siril_git.c:280
 msgid ""
 "Error performing hard reset. You may need to delete the local git repository "
 "and allow Siril to re-clone it.\n"
 msgstr ""
 
-#: src/io/siril_git.c:306
+#: src/io/siril_git.c:305
 msgid ""
 "Unable to create anonymous remote for the repository. Check your "
 "connectivity and try again.\n"
 msgstr ""
 
-#: src/io/siril_git.c:312
+#: src/io/siril_git.c:311
 msgid ""
 "Error fetching remote. This may be a temporary error, check your "
 "connectivity and try again.\n"
@@ -24794,29 +24720,29 @@ msgstr ""
 msgid "Commit message: %s\n"
 msgstr ""
 
-#: src/io/siril_git.c:699
+#: src/io/siril_git.c:701
 msgid "Attempting to clone from remote source...\n"
 msgstr ""
 
-#: src/io/siril_git.c:705 src/io/siril_git.c:861
+#: src/io/siril_git.c:707 src/io/siril_git.c:864
 #, c-format
 msgid "Error cloning repository: %s\n"
 msgstr "Erro ao clonar repositório: %s\n"
 
-#: src/io/siril_git.c:710 src/io/siril_git.c:866
+#: src/io/siril_git.c:712 src/io/siril_git.c:869
 msgid "Repository cloned successfully!\n"
 msgstr ""
 
-#: src/io/siril_git.c:714
+#: src/io/siril_git.c:715
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:730 src/io/siril_git.c:879
+#: src/io/siril_git.c:730 src/io/siril_git.c:880
 msgid "Failed to lookup remote.\n"
 msgstr "A pesquisa remota falhou.\n"
 
-#: src/io/siril_git.c:741 src/io/siril_git.c:890
+#: src/io/siril_git.c:741 src/io/siril_git.c:891
 msgid "Error: cannot identify local repository's configured remote.\n"
 msgstr ""
 
@@ -24828,12 +24754,12 @@ msgid ""
 "the correct repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:754 src/io/siril_git.c:903
+#: src/io/siril_git.c:754 src/io/siril_git.c:904
 msgid "Repository Error"
 msgstr ""
 
-#: src/io/siril_git.c:771 src/io/siril_git.c:785 src/io/siril_git.c:920
-#: src/io/siril_git.c:934
+#: src/io/siril_git.c:771 src/io/siril_git.c:785 src/io/siril_git.c:921
+#: src/io/siril_git.c:935
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
@@ -24843,7 +24769,7 @@ msgstr ""
 msgid "Local scripts repository is up-to-date!\n"
 msgstr ""
 
-#: src/io/siril_git.c:898
+#: src/io/siril_git.c:899
 #, c-format
 msgid ""
 "Error: local siril-spcc-database repository folder is not configured with %s "
@@ -24851,37 +24777,15 @@ msgid ""
 "the correct repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:942
+#: src/io/siril_git.c:943
 msgid "Local SPCC database repository is up-to-date!\n"
 msgstr ""
 
-#: src/io/siril_git.c:979
-#, c-format
-msgid "Error spawning thread to update scripts repository: %s\n"
-msgstr "Erro ao gerar thread para atualizar o repositório de scripts: %s\n"
-
-#: src/io/siril_git.c:983
-msgid ""
-"Online scripts repository not enabled. Not fetching or updating siril-"
-"scripts...\n"
-msgstr ""
-
-#: src/io/siril_git.c:993
-#, c-format
-msgid "Error spawning thread to update SPCC repository: %s\n"
-msgstr "Erro ao gerar thread para atualizar o repositório SPCC: %s\n"
-
-#: src/io/siril_git.c:997
-msgid ""
-"Online scripts repository not enabled. Not fetching or updating siril-"
-"spcc...\n"
-msgstr ""
-
-#: src/io/siril_git.c:1012
+#: src/io/siril_git.c:966
 msgid "Error: unable to open local scripts repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:1037
+#: src/io/siril_git.c:991
 msgid "Error: unable to open local spcc-database repository.\n"
 msgstr ""
 
@@ -25788,17 +25692,17 @@ msgstr ""
 msgid "Could not load or create settings file, exiting.\n"
 msgstr ""
 
-#: src/main-cli.c:232 src/main.c:406
+#: src/main-cli.c:232 src/main.c:396
 #, c-format
 msgid "File [%s] does not exist (from CWD, use absolute path?)\n"
 msgstr ""
 
 #. g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
-#: src/main-cli.c:392 src/main.c:646
+#: src/main-cli.c:392 src/main.c:636
 msgid "Siril - A free astronomical image processing software."
 msgstr ""
 
-#: src/main-cli.c:399 src/main.c:664
+#: src/main-cli.c:399 src/main.c:654
 #, c-format
 msgid "Run “%s --help” to see a full list of available command line options."
 msgstr ""
@@ -25821,18 +25725,6 @@ msgstr ""
 #: src/main.c:280
 #, c-format
 msgid "Initializing FFTW multithreading support...\n"
-msgstr ""
-
-#: src/main.c:386
-msgid ""
-"Siril started in offline mode. Will not attempt to update siril-scripts or "
-"siril-spcc-database...\n"
-msgstr ""
-
-#: src/main.c:389
-msgid ""
-"Siril was compiled without libgit2 support. Remote repositories cannot be "
-"automatically fetched...\n"
 msgstr ""
 
 #: src/opencv/opencv.cpp:114
@@ -27392,6 +27284,26 @@ msgstr ""
 #: src/stacking/upscaling.c:148
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
+
+#, fuzzy
+#~ msgid "Manual Update"
+#~ msgstr "_Processamento de imagem"
+
+#, fuzzy
+#~ msgid "Manually synchronising script repository\n"
+#~ msgstr "Carregando script do repositório: %s\n"
+
+#, fuzzy
+#~ msgid "Confirm"
+#~ msgstr "Saturação de Cor"
+
+#, c-format
+#~ msgid "Error spawning thread to update scripts repository: %s\n"
+#~ msgstr "Erro ao gerar thread para atualizar o repositório de scripts: %s\n"
+
+#, c-format
+#~ msgid "Error spawning thread to update SPCC repository: %s\n"
+#~ msgstr "Erro ao gerar thread para atualizar o repositório SPCC: %s\n"
 
 #~ msgid "Configure GraXpert to use the GPU for AI inference, if available"
 #~ msgstr ""
