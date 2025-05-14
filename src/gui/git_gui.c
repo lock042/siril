@@ -53,6 +53,7 @@ enum {
 	N_COLUMNS
 };
 
+/*
 static int reset_scripts_repository() {
 	// Local directory where the repository will be cloned
 	const gchar *local_path = siril_get_scripts_repo_path();
@@ -63,7 +64,9 @@ static int reset_scripts_repository() {
 	}
 	return retval;
 }
+*/
 
+/*
 static int reset_spcc_repository() {
 	// Local directory where the repository will be cloned
 	const gchar *local_path = siril_get_spcc_repo_path();
@@ -74,6 +77,7 @@ static int reset_spcc_repository() {
 	}
 	return retval;
 }
+*/
 
 static void get_list_store() {
 	if (list_store == NULL) {
@@ -82,7 +86,7 @@ static void get_list_store() {
 	}
 }
 
-static gboolean fill_script_repo_list_idle(gpointer p) {
+static gboolean fill_script_repo_tree_idle(gpointer p) {
 	GtkTreeView *tview = (GtkTreeView *)p;
 	GtkTreeIter iter;
 	if (!tview)
@@ -99,6 +103,8 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 		GTK_TREE_SORTABLE(list_store), GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID,
 		GTK_SORT_ASCENDING);
 	gtk_tree_view_set_model(tview, NULL);
+
+	gui_repo_scripts_mutex_lock();
 	if (gui.repo_scripts) {
 		int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 		GList *iterator;
@@ -153,6 +159,8 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 			g_free(scriptpath); // it's ok to free this as the list_store keeps a copy internally
 		}
 	}
+	gui_repo_scripts_mutex_unlock();
+
 	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
 	return FALSE;
@@ -160,13 +168,13 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 
 /* called on preference window loading.
  * It is executed safely in the GTK thread if as_idle is true. */
-void fill_script_repo_list(gboolean as_idle) {
+void fill_script_repo_tree(gboolean as_idle) {
 
 	GtkTreeView *tview = GTK_TREE_VIEW(lookup_widget("treeview_scripts"));
 	if (as_idle)
-		gdk_threads_add_idle(fill_script_repo_list_idle, tview);
+		gdk_threads_add_idle(fill_script_repo_tree_idle, tview);
 	else
-		fill_script_repo_list_idle(tview);
+		fill_script_repo_tree_idle(tview);
 }
 
 void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
@@ -197,151 +205,6 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 	g_free(scriptname);
 	g_free(scriptpath);
 
-}
-
-static GMutex script_sync_mutex = {0};
-
-gpointer script_sync(gpointer user_data) {
-	if (g_mutex_trylock(&script_sync_mutex)) {
-		GString *git_pending_commit_buffer = NULL;
-		set_cursor_waiting(TRUE);
-		siril_log_message(_("Manually synchronising script repository\n"));
-
-		switch (preview_scripts_update(&git_pending_commit_buffer)) {
-			case 1:
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
-				return GINT_TO_POINTER(0);
-			case 2:
-				// Merge cannot be fast forwarded
-				if (!siril_confirm_dialog(
-						_("Warning!"),
-						_("Merge analysis shows that "
-						"the merge cannot be fast-forwarded. This indicates you have "
-						"made changes to the local repository. Siril does not "
-						"provide full git functionality and cannot be used to merge "
-						"upstream updates into an altered local repository.\n\nIf you "
-						"accept the update, the local repository will be hard reset "
-						"to match the remote repository and any local changes will "
-						"be lost.\n\nIf you have made local changes that you wish to "
-						"keep, you should cancel this update and copy your modified "
-						"scripts to another location, and add this location to the "
-						"list of script directories to be searched."),
-						_("Accept"))) {
-					g_string_free(git_pending_commit_buffer, TRUE);
-					return GINT_TO_POINTER(0);
-				} else {
-					reset_scripts_repository();
-					if (git_pending_commit_buffer)
-						g_string_free(git_pending_commit_buffer, TRUE);
-					fill_script_repo_list(FALSE);
-					return GINT_TO_POINTER(0);
-				}
-			default:
-				break;
-		}
-		if (git_pending_commit_buffer != NULL) {
-			if (siril_confirm_data_dialog(
-					GTK_MESSAGE_QUESTION, _("Manual Update"),
-					_("Read and confirm the pending changes to be synced"),
-					_("Confirm"), git_pending_commit_buffer->str)) {
-				if (reset_scripts_repository()) {
-					siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! Script database failed to update."));
-				}
-				fill_script_repo_list(FALSE);
-			} else {
-				siril_message_dialog(
-					GTK_MESSAGE_INFO, _("Manual Update"),
-					_("Update cancelled. Updates have not been applied."));
-			}
-			g_string_free(git_pending_commit_buffer, TRUE);
-		} else {
-			siril_log_color_message(_("Manual scripts update: the script repository is up to date.\n"), "green");
-		}
-		GtkTreeView *tview = GTK_TREE_VIEW(lookup_widget("treeview_scripts"));
-		execute_idle_and_wait_for_it(fill_script_repo_list_idle, tview);
-		set_cursor_waiting(FALSE);
-		g_mutex_unlock(&script_sync_mutex);
-	}
-	return GINT_TO_POINTER(0);
-}
-
-void on_manual_script_sync_button_clicked(GtkButton *button,
-                                          gpointer user_data) {
-	GThread *script_sync_thread = g_thread_new("script sync", script_sync, NULL);
-	g_thread_unref(script_sync_thread);
-}
-
-static GMutex spcc_sync_mutex = {0};
-
-gpointer spcc_sync(gpointer user_data) {
-	if (g_mutex_trylock(&spcc_sync_mutex)) {
-		GString *git_pending_commit_buffer = NULL;
-		set_cursor_waiting(TRUE);
-
-		switch (preview_spcc_update(&git_pending_commit_buffer)) {
-		case 1:
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
-			return GINT_TO_POINTER(0);
-		case 2:
-			// Merge cannot be fast forwarded
-			if (!siril_confirm_dialog(
-					_("Warning!"),
-					_("Merge analysis shows that "
-					"the merge cannot be fast-forwarded. This indicates you have "
-					"made changes to the local scripts repository. Siril does not "
-					"provide full git functionality and cannot be used to merge "
-					"upstream updates into an altered local repository.\n\nIf you "
-					"accept the update, the local repository will be hard reset "
-					"to match the remote repository and any local changes will "
-					"be lost.\n\nIf you have made local changes that you wish to "
-					"keep, you should cancel this update and copy your modified "
-					"scripts to another location, and add this location to the "
-					"list of script directories to be searched."),
-					_("Accept"))) {
-			g_string_free(git_pending_commit_buffer, TRUE);
-			return GINT_TO_POINTER(0);
-			} else {
-			reset_spcc_repository();
-			g_string_free(git_pending_commit_buffer, TRUE);
-			return GINT_TO_POINTER(0);
-			}
-		default:
-			break;
-		}
-		if (git_pending_commit_buffer != NULL) {
-			if (siril_confirm_data_dialog(GTK_MESSAGE_QUESTION, _("Manual Update"),
-					_("Read and confirm the pending changes to be synced"),
-					_("Confirm"), git_pending_commit_buffer->str)) {
-			if (reset_spcc_repository()) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! SPCC database failed to update."));
-			}
-			} else {
-			siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("Update cancelled. Updates have not been applied."));
-			}
-			g_string_free(git_pending_commit_buffer, TRUE);
-		} else {
-			siril_log_color_message(_("Manual SPCC database update: the SPCC database repository is up to date.\n"), "green");
-		}
-		if (!com.headless) {
-			reset_spcc_filters();
-			// Check if the SPCC window is open, if so refresh the combo boxes
-			GtkWidget *spcc_dialog = lookup_widget("s_pcc_dialog");
-			if (gtk_widget_get_visible(spcc_dialog)) {
-			siril_debug_print("Reloading SPCC comboboxes\n");
-			/* populate SPCC combos in a thread */
-			g_thread_unref(
-				g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
-			}
-		}
-		set_cursor_waiting(FALSE);
-		g_mutex_unlock(&spcc_sync_mutex);
-	}
-	return GINT_TO_POINTER(0);
-}
-
-void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
-	GThread *spcc_sync_thread = g_thread_new("SPCC sync", spcc_sync, NULL);
-	g_thread_unref(spcc_sync_thread);
 }
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *char_path, gpointer user_data) {
@@ -386,19 +249,30 @@ void on_disable_gitscripts() {
 	com.pref.use_scripts_repository = FALSE;
 	gtk_list_store_clear(liststore);
 	liststore = NULL;
+
+	gui_repo_scripts_mutex_lock();
 	g_list_free_full(gui.repo_scripts, g_free);
+	gui_repo_scripts_mutex_unlock();
+
 	gui.repo_scripts = NULL;
 	if (com.pref.selected_scripts)
 		g_list_free_full(com.pref.selected_scripts, g_free);
 	com.pref.selected_scripts = NULL;
-	refresh_script_menu(TRUE);
+	refresh_script_menu(GINT_TO_POINTER(1));
+}
+
+void on_manual_script_sync_button_clicked(GtkButton *button, gpointer user_data) {
+	g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL));
+}
+
+void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
+	g_thread_unref(g_thread_new("update_spcc", update_spcc, NULL));
 }
 
 void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(button)) {
-		com.pref.use_scripts_repository = TRUE;
-		auto_update_gitscripts(FALSE);
-		fill_script_repo_list(FALSE);
+	com.pref.use_scripts_repository = gtk_toggle_button_get_active(button);
+	if (com.pref.use_scripts_repository) {
+		g_thread_unref(g_thread_new("update_scripts", initialize_scripts, NULL));
 	}
 	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.use_scripts_repository);
 	gtk_widget_set_sensitive(lookup_widget("manual_script_sync_button"), (com.pref.use_scripts_repository && gui.script_repo_available));
@@ -406,11 +280,11 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 }
 
 void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(button)) {
-		com.pref.spcc.use_spcc_repository = TRUE;
-		auto_update_gitspcc(FALSE);
+	com.pref.spcc.use_spcc_repository = gtk_toggle_button_get_active(button);
+	if (com.pref.spcc.use_spcc_repository) {
+		g_thread_unref(g_thread_new("update_spcc", initialize_spcc, NULL));
 	}
-	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.spcc.use_spcc_repository);
+	gtk_widget_set_sensitive(lookup_widget("spcc_repo_sync_at_startup"), com.pref.spcc.use_spcc_repository);
 	gtk_widget_set_sensitive(lookup_widget("spcc_repo_manual_sync"), (com.pref.spcc.use_spcc_repository && gui.spcc_repo_available));
 }
 #else
@@ -441,12 +315,15 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 	return;
 }
 
-void on_manual_script_sync_button_clicked(GtkButton *button,
-                                          gpointer user_data) {
+void on_script_text_close_clicked(GtkButton *button, gpointer user_data) {
 	return;
 }
 
-void on_script_text_close_clicked(GtkButton *button, gpointer user_data) {
+void on_manual_script_sync_button_clicked(GtkButton *button, gpointer user_data) {
+	return;
+}
+
+void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
 	return;
 }
 

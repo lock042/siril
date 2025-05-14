@@ -252,9 +252,7 @@ static gint compare_basenames(gconstpointer a, gconstpointer b) {
 
 int initialize_script_menu(gboolean verbose) {
 	GSList *list, *script_paths, *s;
-#ifdef HAVE_LIBGIT2
 	GList *ss;
-#endif
 
 	if (!menuscript)
 		menuscript = lookup_widget("header_scripts_button");
@@ -368,12 +366,6 @@ int initialize_script_menu(gboolean verbose) {
 	g_free(previous_directory_ssf);
 	g_free(previous_directory_py);
 
-	#ifdef HAVE_LIBGIT2
-	// Wait for git repository update to complete during startup
-	if (com.update_scripts_thread && !is_scripts_repo_cloned()) {
-		g_thread_join(com.update_scripts_thread);
-		com.update_scripts_thread = NULL;
-	}
 	// Add scripts from the selections made in preferences
 	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
 		com.pref.selected_scripts = g_list_sort(com.pref.selected_scripts, compare_basenames);
@@ -386,13 +378,17 @@ int initialize_script_menu(gboolean verbose) {
 				g_free(full_path);
 				continue;
 			}
-
-			gboolean included = FALSE;
-			GList *iterator;
-			for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
-				if (g_strrstr((gchar*) ss->data, (gchar*) iterator->data)) {
-					included = TRUE;
-					break;
+			// The first time this is run, we aren't rigorous about removing scripts
+			// When it is run again after updating the repository, we check that scripts
+			// haven't been removed.
+			gboolean included = !gui.repo_scripts;
+			if (!included) {
+				GList *iterator;
+				for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
+					if (g_strrstr((gchar*) ss->data, (gchar*) iterator->data)) {
+						included = TRUE;
+						break;
+					}
 				}
 			}
 			if (included) {
@@ -470,30 +466,10 @@ int initialize_script_menu(gboolean verbose) {
 			}
 		}
 	}
-
-	#endif
 	return 0;
 }
 
-int refresh_script_menu(gboolean verbose) {
-	if (menuscript) {
-		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), NULL);
-	}
-	initialize_script_menu(verbose);
-	return 0;
-}
-
-static GMutex script_mutex = { 0 };
-
-static gboolean call_initialize_script_menu(gpointer data) {
-	gboolean state = (gboolean) GPOINTER_TO_INT(data);
-
-	// Make sure this function doesn't wait for the mutex
-	// as this could create a deadlock
-	initialize_script_menu(state);
-
-	return G_SOURCE_REMOVE;
-}
+// Called when the specified scripts directories are updated
 
 int refresh_scripts(gboolean update_list, gchar **error) {
 	gchar *err = NULL;
@@ -504,15 +480,9 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 		err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
 		retval = 1;
 	} else {
-		g_mutex_lock(&script_mutex);
-
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-
-		g_mutex_unlock(&script_mutex);
-
-		GThread *thread = g_thread_new("refresh_scripts", initialize_script_menu_in_thread, GINT_TO_POINTER(1));
-		g_thread_unref(thread);
+		execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(1));
 	}
 
 	if (error) {
@@ -521,26 +491,31 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	return retval;
 }
 
-gpointer refresh_scripts_menu_in_thread(gpointer data) {
-	gboolean verbose = (gboolean) GPOINTER_TO_INT(data);
-
-	g_mutex_lock(&script_mutex);
-	refresh_script_menu(verbose);
-	g_mutex_unlock(&script_mutex);
-
-	return GINT_TO_POINTER(0);
+gboolean refresh_script_menu(gpointer user_data) {
+	gboolean verbose = (gboolean) GPOINTER_TO_INT(user_data);
+	if (menuscript) {
+		// Remove the popup while we refresh the menu
+		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), NULL);
+	}
+	initialize_script_menu(verbose);
+	fill_script_repo_tree(FALSE);
+	return FALSE;
 }
 
-gpointer initialize_script_menu_in_thread(gpointer data) {
+gboolean refresh_scripts_menu_in_thread(gpointer data) {
+	execute_idle_and_wait_for_it(refresh_script_menu, data);
+	return FALSE;
+}
+
+static gboolean call_initialize_script_menu(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
+	initialize_script_menu(state);
+	return FALSE;
+}
 
-	g_mutex_lock(&script_mutex);
-
-	g_idle_add(G_SOURCE_FUNC(call_initialize_script_menu), GINT_TO_POINTER(state));
-
-	g_mutex_unlock(&script_mutex);
-
-	return GINT_TO_POINTER(0);
+gboolean initialize_script_menu_in_thread(gpointer data) {
+	execute_idle_and_wait_for_it(call_initialize_script_menu, data);
+	return FALSE;
 }
 
 GSList *get_list_from_preferences_dialog() {
