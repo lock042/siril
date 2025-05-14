@@ -240,44 +240,51 @@ static int remove_git_locks_by_path(const char *git_dir) {
  * @param out Pointer to store the opened repository
  * @param path Path to the Git repository
  * @return 0 on success, error code on failure
+ * WARNING: a failure here may be due to the path not existing so you cannot
+ * rely on git_error_last being set. Check it is non-NULL before printing e->message!!
  */
 static int siril_repository_open(git_repository **out, const gchar *path) {
-    int retval = git_repository_open(out, path);
+	// Check if directory exists first
+	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
+		// Directory doesn't exist, return with error
+		return -1;
+	}
+	int retval = git_repository_open(out, path);
 
-    if (retval != 0) {  // Opening failed, try to fix by removing locks
-        // Construct the path to the .git directory
-        gchar *git_dir = NULL;
+	if (retval != 0) {  // Opening failed, try to fix by removing locks
+		// Construct the path to the .git directory
+		gchar *git_dir = NULL;
 
-        // Check if path itself is a .git directory or a working directory
-        if (g_str_has_suffix(path, ".git") || g_file_test(g_build_filename(path, ".git", NULL), G_FILE_TEST_IS_DIR)) {
-            // Path is either the .git directory or contains a .git directory
-            if (g_str_has_suffix(path, ".git")) {
-                // Path is the .git directory itself
-                git_dir = g_strdup(path);
-            } else {
-                // Path is the working directory, need to append .git
-                git_dir = g_build_filename(path, ".git", NULL);
-            }
+		// Check if path itself is a .git directory or a working directory
+		if (g_str_has_suffix(path, ".git") || g_file_test(g_build_filename(path, ".git", NULL), G_FILE_TEST_IS_DIR)) {
+			// Path is either the .git directory or contains a .git directory
+			if (g_str_has_suffix(path, ".git")) {
+				// Path is the .git directory itself
+				git_dir = g_strdup(path);
+			} else {
+				// Path is the working directory, need to append .git
+				git_dir = g_build_filename(path, ".git", NULL);
+			}
 
-            // Remove any existing lock files
-            int error = remove_git_locks_by_path(git_dir);
-            g_free(git_dir);
+			// Remove any existing lock files
+			int error = remove_git_locks_by_path(git_dir);
+			g_free(git_dir);
 
-            if (error != 0) {
-                siril_log_color_message(_("Error removing Git lock files. You may need to delete the local "
-                                        "git repository and allow Siril to re-clone it.\n"), "red");
-                return -1;
-            }
+			if (error != 0) {
+				siril_log_color_message(_("Error removing Git lock files. You may need to delete the local "
+										"git repository and allow Siril to re-clone it.\n"), "red");
+				return -1;
+			}
 
-            // Try opening again after removing locks
-            retval = git_repository_open(out, path);
-        } else {
-            // Not a valid git path
-            siril_log_color_message(_("Invalid Git repository path.\n"), "red");
-        }
-    }
+			// Try opening again after removing locks
+			retval = git_repository_open(out, path);
+		} else {
+			// Not a valid git path
+			siril_log_color_message(_("Invalid Git repository path.\n"), "red");
+		}
+	}
 
-    return retval;
+	return retval;
 }
 
 int reset_repository(const gchar *local_path) {
@@ -732,7 +739,7 @@ int auto_update_gitscripts(gboolean sync) {
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
-		siril_debug_print("Cannot open repository: %s\n", e->message);
+		siril_debug_print("Cannot open repository: %s\n", e ? e->message : "");
 		if (is_online()) {
 			siril_log_message(_("Attempting to clone from remote source...\n"));
 			// Perform the clone operation
@@ -891,7 +898,7 @@ int auto_update_gitspcc(gboolean sync) {
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
-		siril_debug_print("Cannot open repository: %s\nAttempting to clone from remote source...\n", e->message);
+		siril_debug_print("Cannot open repository: %s\nAttempting to clone from remote source...\n", e ? e->message : "");
 		// Perform the clone operation
 		error = git_clone(&repo, SPCC_REPOSITORY_URL, local_path, &clone_opts);
 
