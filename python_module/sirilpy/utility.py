@@ -14,6 +14,7 @@ package management, and standard I/O control to support Siril's scripting capabi
 import os
 import sys
 import io
+import re
 import time
 import platform
 import threading
@@ -218,8 +219,7 @@ def download_with_progress(
     raise SirilError(f"Failed to download file from {url} after {max_retries} attempts")
 
 def ensure_installed(*packages: Union[str, List[str]],
-                     version_constraints: Optional[Union[str, List[str]]] = None,
-                     from_url: Optional[str] = None) -> bool:
+                     version_constraints: Optional[Union[str, List[str]]] = None):
     """
     Ensures that the specified package(s) are installed and meet optional version constraints.
 
@@ -227,8 +227,6 @@ def ensure_installed(*packages: Union[str, List[str]],
         *packages (str or List[str]): Name(s) of the package(s) to ensure are installed.
         version_constraints (str or List[str], optional): Version constraint string(s)
             (e.g. ">=1.5", "==2.0"). Can be a single constraint or a list matching packages.
-        from_url (str, optional): URL to find packages at, passed as "-f URL" to pip. Only
-            required for a very few corner cases: if you don't KNOW you need this, omit it.
 
     Returns:
         bool: True if all packages are successfully installed or already meet constraints.
@@ -268,7 +266,7 @@ def ensure_installed(*packages: Union[str, List[str]],
                 continue
 
             # Attempt installation
-            _install_package(package, constraint, from_url)
+            _install_package(package, constraint)
 
         except TimeoutError as e:
             all_installed = False
@@ -322,15 +320,18 @@ def _stream_output(process):
     for line in io.TextIOWrapper(process.stdout, encoding='utf-8', errors='replace'):
         print(line.rstrip())
 
-def _install_package(package_name: str, version_constraint: Optional[str] = None, from_url: Optional[str] = None):
+def _install_package(package_name: str, version_constraint: Optional[str] = None, from_url: Optional[str] = None, index_url: Optional[str] = None):
     """
     Install a package with optional version constraint, streaming pip output to stdout.
 
     Args:
         package_name (str): Name of the package to install.
         version_constraint (str, optional): Version constraint for installation.
-        from_url (str, optional): URL to find packages at, passed as "-f URL" to pip. Only
-            required for a very few corner cases: if you don't KNOW you need this, omit it.
+        from_url (str, optional): URL to find packages at, passed as "-f URL" to pip.
+        index_url (str, optional): repository URL, passed as "--index-url URL" to pip.
+
+    Note: the from_url and index_url parameters are not for general use and are only
+    required for certain very specific circustances.
 
     Raises:
         subprocess.CalledProcessError: If pip installation fails.
@@ -344,6 +345,10 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
     try:
         # Build pip command
         pip_command = [sys.executable, "-m", "pip", "install"]
+
+        # Add index-url option if index_url is provided
+        if index_url:
+            pip_command.append(["--index-url", index_url])
 
         # Add find-links option if from_url is provided
         if from_url:
@@ -523,7 +528,7 @@ class ONNXHelper:
             return True
 
         # If not installed, get recommended package
-        onnxruntime_pkg, url = self.get_onnxruntime_package()
+        onnxruntime_pkg, from_url, index_url = self.get_onnxruntime_package()
 
         # Check if the package exists
         if not self._check_onnxruntime_availability(onnxruntime_pkg):
@@ -532,7 +537,13 @@ class ONNXHelper:
 
         # Install the package
         try:
-            ensure_installed(onnxruntime_pkg, from_url=url)
+            if not _check_package_installed(onnxruntime_pkg):
+                _install_package(onnxruntime_pkg, None, from_url=from_url, index_url=index_url)
+                # For openvino we need to set the runtime environment:
+                # https://github.com/intel/onnxruntime/releases/tag/v5.6
+                if self.system == 'windows' and onnxruntime_pkg == 'onnxruntime-openvino':
+                    import onnxruntime.tools.add_openvino_win_libs as utils
+                    utils.add_openvino_libs_to_path()
         except TimeoutError as e:
             print(f"Failed to install {onnxruntime_pkg}: timeout error {str(e)}")
             raise TimeoutError("Error: timeout in install_onnxruntime()") from e
@@ -591,12 +602,16 @@ class ONNXHelper:
         Returns:
             tuple: (package_name, url) where url is None except for special cases like ROCm
         """
-        url = None
+        from_url = None
+        index_url = None
         onnxruntime_pkg = "onnxruntime"
-
+        cuda_version = self._detect_cuda_version()
         if self.system == "windows":
-            if self._detect_nvidia_gpu():
+                # NVidia GPU runtime that supports CUDA
+            if self._detect_nvidia_gpu() and pkg_version.Version(cuda_version).major >= 11:
                 onnxruntime_pkg = "onnxruntime-gpu"
+                if pkg_version.Version(cuda_version).major == 11:
+                    index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
             else:
                 # DirectML provides hardware acceleration for various GPUs on Windows
                 onnxruntime_pkg = "onnxruntime-directml"
@@ -605,16 +620,53 @@ class ONNXHelper:
             onnxruntime_pkg = "onnxruntime"
 
         elif self.system == "linux":
-            if self._detect_nvidia_gpu():
+            if self._detect_nvidia_gpu() and pkg_version.Version(cuda_version).major >= 11:
                 onnxruntime_pkg = "onnxruntime-gpu"
-            elif self.self._detect_amd_gpu():
+                if pkg_version.Version(cuda_version).major == 11:
+                    index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
+            elif self._detect_amd_gpu():
                 # ROCm support for AMD GPUs on Linux
                 onnxruntime_pkg = "onnxruntime-rocm"
-                url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/"
-            elif self._detect_intel_gpu():
+                from_url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/"
+            elif self._detect_intel_gpu_for_openvino():
                 onnxruntime_pkg = "onnxruntime-openvino"
 
-        return onnxruntime_pkg, url
+        return onnxruntime_pkg, from_url, index_url
+
+    def _detect_cuda_version(self) -> Optional[str]:
+        """
+        Detects the CUDA version by parsing the output of 'nvcc -v'.
+
+        Returns:
+            Optional[str]: The CUDA version as a string (e.g., '11.7') if detected,
+                          or None if nvcc is not installed or version cannot be determined.
+        """
+        try:
+            nvcc_command = 'nvcc.exe' if self.system == 'windows' else 'nvcc'
+
+            # Run nvcc -V and capture the output
+            result = subprocess.run([nvcc_command, '-V'],
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE,
+                                   text=True,
+                                   check=False)
+
+            output = result.stderr if result.stderr else result.stdout
+
+            version_match = re.search(r'release (\d+\.\d+)', output)
+            if version_match:
+                return version_match.group(1)
+
+            alt_match = re.search(r'V(\d+\.\d+\.\d+)', output)
+            if alt_match:
+                # Return just the major.minor part (e.g., 11.7 from 11.7.0)
+                version_parts = alt_match.group(1).split('.')
+                return f"{version_parts[0]}.{version_parts[1]}"
+
+            return None
+        except (subprocess.SubprocessError, FileNotFoundError):
+            # nvcc is not installed or an error occurred
+            return None
 
     def _detect_nvidia_gpu(self):
         """
@@ -674,7 +726,7 @@ class ONNXHelper:
             pass
         return False
 
-    def detect_intel_gpu_for_openvino(self):
+    def _detect_intel_gpu_for_openvino(self):
         """
         Detect if an Intel GPU compatible with OpenVINO is available.
 
@@ -787,7 +839,7 @@ class ONNXHelper:
                     platform.machine().startswith(("arm", "aarch"))
                 )
                 # Apple Silicon / Neural Engine (faster if available and supports the model features)
-                if (is_apple_silicon):
+                if is_apple_silicon:
                     if "CoreMLExecutionProvider" in available_providers:
                         # On Apple silicon it's safe to create a MLPROGRAM instead of the older MLMODEL
                         providers.append(
@@ -801,10 +853,6 @@ class ONNXHelper:
                     else:
                         # On Intel silicon we omit the MLPROGRAM flag
                         providers.append("CoreMLExecutionProvider")
-
-                    # Apple MacOS (all ARM macs and Intel macs that support Metal)
-                    if "MPSExecutionProvider" in available_providers:
-                        providers.append("MPSExecutionProvider")
 
             elif self.system == "windows":
                 # NVIDIA TensorRT - best performance if the model features are supported
