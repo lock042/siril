@@ -36,6 +36,7 @@ siril 1.4.0-beta2
 * GraXpert "Use GPU" now defaults to False but is persistent (saved in config)
 * Added utility.ONNXHelper class in python module to make it easier to ensure the correct onnxruntime module is installed. (!874)
 * Added ability to calibrate images for debayering only, without Dark, Flat, or Bias files (#1619)
+* Simplified the scripts and SPCC repository checking and made it more robust and thread-safe (!872)
 
 siril 1.4.0-beta1
 04/26/25

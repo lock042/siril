@@ -69,6 +69,11 @@ void update_statusbar_convert();
 
 gboolean update_spinCPU(gpointer user_data);
 
+gpointer update_scripts(gpointer user_data);
+gpointer update_spcc(gpointer user_data);
+gpointer initialize_scripts(gpointer user_data);
+gpointer initialize_spcc(gpointer user_data);
+
 gboolean save_main_window_state(gpointer user_data);
 gboolean load_main_window_state(gpointer user_data);
 GPid show_child_process_selection_dialog(GSList *children);

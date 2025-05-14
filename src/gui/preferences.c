@@ -952,6 +952,9 @@ static void dump_ui_to_global_var() {
 	update_misc_preferences();
 }
 
+void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data);
+void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data);
+
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_debug_print("show preferences window: updating it\n");
 	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path1")), "filter_namedstars", "Catalogue");
@@ -969,13 +972,17 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	gtk_label_set_text(spcc_path_label, siril_get_spcc_repo_path());
 
 	set_icc_filechooser_directories();
+	g_signal_handlers_block_by_func(G_OBJECT(lookup_widget("spcc_repo_enable")), on_spcc_repo_enable_toggled, NULL);
+	g_signal_handlers_block_by_func(G_OBJECT(lookup_widget("pref_use_gitscripts")), on_pref_use_gitscripts_toggled, NULL);
 	update_preferences_from_model();
+	g_signal_handlers_unblock_by_func(G_OBJECT(lookup_widget("spcc_repo_enable")), on_spcc_repo_enable_toggled, NULL);
+	g_signal_handlers_unblock_by_func(G_OBJECT(lookup_widget("pref_use_gitscripts")), on_pref_use_gitscripts_toggled, NULL);
 	graxpert_changed = FALSE;
 	scripts_updated = FALSE;
 #ifndef HAVE_LIBGIT2
 	hide_git_widgets();
 #else
-	fill_script_repo_list(FALSE);
+	fill_script_repo_tree(FALSE);
 #endif
 }
 
@@ -1016,7 +1023,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 			on_disable_gitscripts();
 		else
 #endif
-			refresh_script_menu(scripts_updated);	// To update the UI with scripts from the repo
+			refresh_script_menu(GINT_TO_POINTER((int) scripts_updated));	// To update the UI with scripts from the repo
 			// Note this line is part of the if/else with the #ifdef and always runs
 			// otherwise. This is intentional.
 		scripts_updated = FALSE;
