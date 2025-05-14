@@ -191,58 +191,94 @@ static int fetchhead_cb(const char *ref_name, const char *remote_url,
 	return 0;
 }
 
-static int remove_git_locks(const git_repository *repo) {
-	const char *git_dir = git_repository_path(repo);
-	GError *error = NULL;
-	gint ret = 0;
+/**
+ * Removes Git lock files from a repository directory path.
+ * This is a path-based version that doesn't require an open repository.
+ *
+ * @param git_dir Path to the Git repository directory (typically the .git directory)
+ * @return 0 on success, or the error code on failure
+ */
+static int remove_git_locks_by_path(const char *git_dir) {
+    GError *error = NULL;
+    gint ret = 0;
 
-	// Remove index.lock
-	gchar *index_lock_path = g_build_filename(git_dir, "index.lock", NULL);
-	if (g_unlink(index_lock_path) != 0 && errno != ENOENT) {
-		g_warning("Error removing index.lock: %s", g_strerror(errno));
-		ret = errno;
-	}
-	g_free(index_lock_path);
+    // Remove index.lock
+    gchar *index_lock_path = g_build_filename(git_dir, "index.lock", NULL);
+    if (g_unlink(index_lock_path) != 0 && errno != ENOENT) {
+        g_warning("Error removing index.lock: %s", g_strerror(errno));
+        ret = errno;
+    }
+    g_free(index_lock_path);
 
-	// Remove branch lock files
-	GDir *dir = g_dir_open(git_dir, 0, &error);
-	if (dir) {
-		const gchar *entry;
-		while ((entry = g_dir_read_name(dir)) != NULL) {
-			if (g_str_has_suffix(entry, ".lock")) {
-				gchar *lock_path = g_build_filename(git_dir, entry, NULL);
-				if (g_unlink(lock_path) != 0 && errno != ENOENT) {
-					g_warning("Error removing lock file '%s': %s", entry, g_strerror(errno));
-					ret = errno;
-				}
-				g_free(lock_path);
-			}
-		}
-		g_dir_close(dir);
-	} else {
-		g_warning("Error opening Git directory '%s': %s", git_dir, error->message);
-		ret = error->code;
-		g_clear_error(&error);
-	}
+    // Remove branch lock files
+    GDir *dir = g_dir_open(git_dir, 0, &error);
+    if (dir) {
+        const gchar *entry;
+        while ((entry = g_dir_read_name(dir)) != NULL) {
+            if (g_str_has_suffix(entry, ".lock")) {
+                gchar *lock_path = g_build_filename(git_dir, entry, NULL);
+                if (g_unlink(lock_path) != 0 && errno != ENOENT) {
+                    g_warning("Error removing lock file '%s': %s", entry, g_strerror(errno));
+                    ret = errno;
+                }
+                g_free(lock_path);
+            }
+        }
+        g_dir_close(dir);
+    } else {
+        g_warning("Error opening Git directory '%s': %s", git_dir, error->message);
+        ret = error->code;
+        g_clear_error(&error);
+    }
 
-	return ret;
+    return ret;
 }
 
+/**
+ * Attempts to open a Git repository. If that fails due to locks,
+ * removes lock files and tries again.
+ *
+ * @param out Pointer to store the opened repository
+ * @param path Path to the Git repository
+ * @return 0 on success, error code on failure
+ */
 static int siril_repository_open(git_repository **out, const gchar *path) {
-	int retval = git_repository_open(out, path);
-	if (!retval) {
-		// Remove any existing lock files
-		// We don't care about the state of the repo because we're about to hard
-		// reset it
-		int error = remove_git_locks(*out);
-		if (error != 0) {
-			siril_log_color_message(
-				_("Error removing Git lock files. You may need to delete the local "
-					"git repository and allow Siril to re-clone it.\n"), "red");
-			return -1;
-		}
-	}
-	return retval;
+    int retval = git_repository_open(out, path);
+
+    if (retval != 0) {  // Opening failed, try to fix by removing locks
+        // Construct the path to the .git directory
+        gchar *git_dir = NULL;
+
+        // Check if path itself is a .git directory or a working directory
+        if (g_str_has_suffix(path, ".git") || g_file_test(g_build_filename(path, ".git", NULL), G_FILE_TEST_IS_DIR)) {
+            // Path is either the .git directory or contains a .git directory
+            if (g_str_has_suffix(path, ".git")) {
+                // Path is the .git directory itself
+                git_dir = g_strdup(path);
+            } else {
+                // Path is the working directory, need to append .git
+                git_dir = g_build_filename(path, ".git", NULL);
+            }
+
+            // Remove any existing lock files
+            int error = remove_git_locks_by_path(git_dir);
+            g_free(git_dir);
+
+            if (error != 0) {
+                siril_log_color_message(_("Error removing Git lock files. You may need to delete the local "
+                                        "git repository and allow Siril to re-clone it.\n"), "red");
+                return -1;
+            }
+
+            // Try opening again after removing locks
+            retval = git_repository_open(out, path);
+        } else {
+            // Not a valid git path
+            siril_log_color_message(_("Invalid Git repository path.\n"), "red");
+        }
+    }
+
+    return retval;
 }
 
 int reset_repository(const gchar *local_path) {
@@ -702,7 +738,7 @@ int auto_update_gitscripts(gboolean sync) {
 
 			if (error != 0) {
 				e = giterr_last();
-				siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
+				siril_log_color_message(_("Error cloning repository into %s: %s\n"), "red", local_path, e->message);
 				gui.script_repo_available = FALSE;
 				git_libgit2_shutdown();
 				return 1;
