@@ -25,6 +25,7 @@ siril 1.4.0-beta2
 * Fixed python API SirilInterface::set_seq_frame_incl (#1617)
 * Fixed FWHM units when printing alignement results (#1616)
 * Fixed incorrect behaviour when opening the git repositories if a git lock file was in place
+* Fixed failure in stacking if both feathering and image filtering were selected (#1629)
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
