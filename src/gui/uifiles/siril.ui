@@ -10064,7 +10064,7 @@ WARNING: This option should not be checked for master stacking.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Chain/unchain channels in autostretch viewer mode.
+                            <property name="tooltip-text" translatable="yes">Link/unlink channels in autostretch viewer mode.
 Current state: linked.</property>
                             <property name="action-name">win.chain-chan</property>
                             <property name="image">autostretch_linked_icon</property>

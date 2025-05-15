@@ -346,7 +346,7 @@ void chain_channels_state_change(GSimpleAction *action, GVariant *state, gpointe
 	GtkWidget *image = lookup_widget("autostretch_linked_icon");
 	gtk_image_set_from_resource((GtkImage*) image, name);
 	GtkWidget *button = lookup_widget("linked_autostretch_button");
-	gchar *tooltip_text = g_strdup_printf(_("Chain/unchain channels in autostretch viewer mode.\nCurrent state: %s."), linked ? _("linked") : _("unlinked"));
+	gchar *tooltip_text = g_strdup_printf(_("Link/unlink channels in autostretch viewer mode.\nCurrent state: %s."), linked ? _("linked") : _("unlinked"));
 	gtk_widget_set_tooltip_text(button, tooltip_text);
 	g_free(name);
 	g_free(tooltip_text);
