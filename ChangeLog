@@ -39,6 +39,7 @@ siril 1.4.0-beta2
 * Added ability to calibrate images for debayering only, without Dark, Flat, or Bias files (#1619)
 * Simplified the scripts and SPCC repository checking and made it more robust and thread-safe (!872)
 * Improved visibility of whether the autostretch preview is linked or unlinked (!878)
+* Changed the default GHT and asinh settings to update faster.
 
 siril 1.4.0-beta1
 04/26/25
