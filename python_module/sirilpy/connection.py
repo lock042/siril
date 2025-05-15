@@ -91,6 +91,10 @@ class SirilInterface:
             SirilConnectionError: if a connection error occurred
         """
 
+        if self.connected is True:
+            print(_("Already connected"))
+            return
+
         if SirilInterface._connected:
             raise SirilConnectionError(_("Error: a SirilInterface is already connected to Siril"))
 
@@ -154,10 +158,15 @@ class SirilInterface:
 
         # Attempt to reset the progress bar in case the script exits while
         # disconnected and the progress bar has been left in a bad state.
+        if self.connected is False:
+            print("Not connected")
+            return
+
         try:
             self.reset_progress()
         except Exception:
             print("Warning: unable to reset progress bar in disconnect()", file=sys.stderr)
+            pass
 
         atexit.unregister(self._cleanup)
         if os.name == 'nt':
@@ -169,11 +178,13 @@ class SirilInterface:
                     win32file.CloseHandle(self.overlap_read.hEvent)
                 if hasattr(self, 'overlap_write'):
                     win32file.CloseHandle(self.overlap_write.hEvent)
+                self.connected = False
                 SirilInterface._connected = False
                 return
             raise SirilError(_("No pipe connection to close"))
         if hasattr(self, 'sock'):
             self.sock.close()
+            self.connected = False
             SirilInterface._connected = False
             return
         raise SirilConnectionError(_("No socket connection to close"))
@@ -186,6 +197,7 @@ class SirilInterface:
         any other "at exit" methods may be added here as required.
         """
         try:
+            self._release_thread()
             self.disconnect()
         except Exception:
             print("Warning: failed to clean up python module state")
@@ -982,7 +994,10 @@ class SirilInterface:
 
         Args:
             message: Status message to display,
-            progress: Progress value in the range 0.0 to 1.0
+            progress: Progress value in the range 0.0 to 1.0. The following special
+                      values can be used: -1.0 will pulsate the progress bar, and
+                      -2.0 will update the progress bar text but will not update
+                      the progress shown in the bar.
 
         Raises:
             ValueError: If the progress argument is out of range,
@@ -991,7 +1006,7 @@ class SirilInterface:
 
         try:
             # Validate progress value
-            if not 0.0 <= progress <= 1.0:
+            if not (0.0 <= progress <= 1.0 or progress == -1.0 or progress == -2.0):
                 raise ValueError(_("Progress value must be between 0.0 and 1.0"))
 
             # Convert string to UTF-8 bytes

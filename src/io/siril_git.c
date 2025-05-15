@@ -43,15 +43,14 @@
 #ifdef HAVE_LIBGIT2
 #include <git2.h>
 
-static gboolean git_scripts_repo_cloned = FALSE;
-static gboolean git_spcc_repo_cloned = FALSE;
+static GMutex gui_repo_scripts_mutex = { 0 };
 
-gboolean is_scripts_repo_cloned() {
-	return git_scripts_repo_cloned;
+void gui_repo_scripts_mutex_lock() {
+	g_mutex_lock(&gui_repo_scripts_mutex);
 }
 
-gboolean is_spcc_repo_cloned() {
-	return git_spcc_repo_cloned;
+void gui_repo_scripts_mutex_unlock() {
+	g_mutex_unlock(&gui_repo_scripts_mutex);
 }
 
 const gchar *SCRIPT_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
@@ -191,57 +190,100 @@ static int fetchhead_cb(const char *ref_name, const char *remote_url,
 	return 0;
 }
 
-static int remove_git_locks(const git_repository *repo) {
-	const char *git_dir = git_repository_path(repo);
-	GError *error = NULL;
-	gint ret = 0;
+/**
+ * Removes Git lock files from a repository directory path.
+ * This is a path-based version that doesn't require an open repository.
+ *
+ * @param git_dir Path to the Git repository directory (typically the .git directory)
+ * @return 0 on success, or the error code on failure
+ */
+static int remove_git_locks_by_path(const char *git_dir) {
+    GError *error = NULL;
+    gint ret = 0;
 
-	// Remove index.lock
-	gchar *index_lock_path = g_build_filename(git_dir, "index.lock", NULL);
-	if (g_unlink(index_lock_path) != 0 && errno != ENOENT) {
-		g_warning("Error removing index.lock: %s", g_strerror(errno));
-		ret = errno;
-	}
-	g_free(index_lock_path);
+    // Remove index.lock
+    gchar *index_lock_path = g_build_filename(git_dir, "index.lock", NULL);
+    if (g_unlink(index_lock_path) != 0 && errno != ENOENT) {
+        g_warning("Error removing index.lock: %s", g_strerror(errno));
+        ret = errno;
+    }
+    g_free(index_lock_path);
 
-	// Remove branch lock files
-	GDir *dir = g_dir_open(git_dir, 0, &error);
-	if (dir) {
-		const gchar *entry;
-		while ((entry = g_dir_read_name(dir)) != NULL) {
-			if (g_str_has_suffix(entry, ".lock")) {
-				gchar *lock_path = g_build_filename(git_dir, entry, NULL);
-				if (g_unlink(lock_path) != 0 && errno != ENOENT) {
-					g_warning("Error removing lock file '%s': %s", entry, g_strerror(errno));
-					ret = errno;
-				}
-				g_free(lock_path);
-			}
-		}
-		g_dir_close(dir);
-	} else {
-		g_warning("Error opening Git directory '%s': %s", git_dir, error->message);
-		ret = error->code;
-		g_clear_error(&error);
-	}
+    // Remove branch lock files
+    GDir *dir = g_dir_open(git_dir, 0, &error);
+    if (dir) {
+        const gchar *entry;
+        while ((entry = g_dir_read_name(dir)) != NULL) {
+            if (g_str_has_suffix(entry, ".lock")) {
+                gchar *lock_path = g_build_filename(git_dir, entry, NULL);
+                if (g_unlink(lock_path) != 0 && errno != ENOENT) {
+                    g_warning("Error removing lock file '%s': %s", entry, g_strerror(errno));
+                    ret = errno;
+                }
+                g_free(lock_path);
+            }
+        }
+        g_dir_close(dir);
+    } else {
+        g_warning("Error opening Git directory '%s': %s", git_dir, error->message);
+        ret = error->code;
+        g_clear_error(&error);
+    }
 
-	return ret;
+    return ret;
 }
 
+/**
+ * Attempts to open a Git repository. If that fails due to locks,
+ * removes lock files and tries again.
+ *
+ * @param out Pointer to store the opened repository
+ * @param path Path to the Git repository
+ * @return 0 on success, error code on failure
+ * WARNING: a failure here may be due to the path not existing so you cannot
+ * rely on git_error_last being set. Check it is non-NULL before printing e->message!!
+ */
 static int siril_repository_open(git_repository **out, const gchar *path) {
+	// Check if directory exists first
+	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
+		// Directory doesn't exist, return with error
+		return -1;
+	}
 	int retval = git_repository_open(out, path);
-	if (!retval) {
-		// Remove any existing lock files
-		// We don't care about the state of the repo because we're about to hard
-		// reset it
-		int error = remove_git_locks(*out);
-		if (error != 0) {
-			siril_log_color_message(
-				_("Error removing Git lock files. You may need to delete the local "
-					"git repository and allow Siril to re-clone it.\n"), "red");
-			return -1;
+
+	if (retval != 0) {  // Opening failed, try to fix by removing locks
+		// Construct the path to the .git directory
+		gchar *git_dir = NULL;
+
+		// Check if path itself is a .git directory or a working directory
+		if (g_str_has_suffix(path, ".git") || g_file_test(g_build_filename(path, ".git", NULL), G_FILE_TEST_IS_DIR)) {
+			// Path is either the .git directory or contains a .git directory
+			if (g_str_has_suffix(path, ".git")) {
+				// Path is the .git directory itself
+				git_dir = g_strdup(path);
+			} else {
+				// Path is the working directory, need to append .git
+				git_dir = g_build_filename(path, ".git", NULL);
+			}
+
+			// Remove any existing lock files
+			int error = remove_git_locks_by_path(git_dir);
+			g_free(git_dir);
+
+			if (error != 0) {
+				siril_log_color_message(_("Error removing Git lock files. You may need to delete the local "
+										"git repository and allow Siril to re-clone it.\n"), "red");
+				return -1;
+			}
+
+			// Try opening again after removing locks
+			retval = git_repository_open(out, path);
+		} else {
+			// Not a valid git path
+			siril_log_color_message(_("Invalid Git repository path.\n"), "red");
 		}
 	}
+
 	return retval;
 }
 
@@ -524,6 +566,7 @@ static gboolean pyscript_version_check(const gchar *filename) {
 	g_object_unref(file);
 	return retval;
 }
+
 static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 	git_remote *remote = NULL;
 
@@ -686,6 +729,8 @@ int auto_update_gitscripts(gboolean sync) {
 
 	// Clone options
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
+	// Set up fetch options to create a shallow clone with depth=1, for speed
+	clone_opts.fetch_opts.depth = 1;
 
 	git_repository *repo = NULL;
 
@@ -694,7 +739,7 @@ int auto_update_gitscripts(gboolean sync) {
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
-		siril_debug_print("Cannot open repository: %s\n", e->message);
+		siril_debug_print("Cannot open repository: %s\n", e ? e->message : "");
 		if (is_online()) {
 			siril_log_message(_("Attempting to clone from remote source...\n"));
 			// Perform the clone operation
@@ -702,13 +747,12 @@ int auto_update_gitscripts(gboolean sync) {
 
 			if (error != 0) {
 				e = giterr_last();
-				siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
+				siril_log_color_message(_("Error cloning repository into %s: %s\n"), "red", local_path, e->message);
 				gui.script_repo_available = FALSE;
 				git_libgit2_shutdown();
 				return 1;
 			} else {
 				siril_log_message(_("Repository cloned successfully!\n"));
-				git_scripts_repo_cloned = TRUE;
 			}
 		} else {
 			siril_log_message(_("Siril is in offline mode. Will not attempt to clone remote repository.\n"));
@@ -718,7 +762,6 @@ int auto_update_gitscripts(gboolean sync) {
 		}
 	} else {
 		siril_debug_print("Local scripts repository opened successfully!\n");
-		git_scripts_repo_cloned = TRUE;
 	}
 	gui.script_repo_available = TRUE;
 
@@ -801,6 +844,7 @@ int auto_update_gitscripts(gboolean sync) {
 	if (error < 0)
 		retval = 1;
 
+	gui_repo_scripts_mutex_lock();
 	/* populate gui.repo_scripts with all the scripts in the index.
 	* We ignore anything not ending in SCRIPT_EXT */
 	size_t entry_count = git_index_entrycount(index);
@@ -811,16 +855,16 @@ int auto_update_gitscripts(gboolean sync) {
 	for (i = 0; i < entry_count; i++) {
 		entry = git_index_get_byindex(index, i);
 		if ((g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) ||
-			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && pyscript_version_check(entry->path))) {
+			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && pyscript_version_check(entry->path)) ||
+			(g_str_has_suffix(entry->path, PYCSCRIPT_EXT))) {
 			gui.repo_scripts = g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", entry->path);
 #endif
 		}
 	}
+	gui_repo_scripts_mutex_unlock();
 
-	if (is_gui_ready())
-		refresh_scripts_menu_in_thread(GINT_TO_POINTER(0));
 	// Cleanup
 	cleanup:
 	git_remote_free(remote);
@@ -843,6 +887,8 @@ int auto_update_gitspcc(gboolean sync) {
 
 	// Clone options
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
+	// Set up fetch options to create a shallow clone with depth=1, for speed
+	clone_opts.fetch_opts.depth = 1;
 
 	git_repository *repo = NULL;
 	git_remote *remote = NULL;
@@ -852,7 +898,7 @@ int auto_update_gitspcc(gboolean sync) {
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
-		siril_debug_print("Cannot open repository: %s\nAttempting to clone from remote source...\n", e->message);
+		siril_debug_print("Cannot open repository: %s\nAttempting to clone from remote source...\n", e ? e->message : "");
 		// Perform the clone operation
 		error = git_clone(&repo, SPCC_REPOSITORY_URL, local_path, &clone_opts);
 
@@ -864,11 +910,9 @@ int auto_update_gitspcc(gboolean sync) {
 			return 1;
 		} else {
 			siril_log_message(_("Repository cloned successfully!\n"));
-			git_spcc_repo_cloned = TRUE;
 		}
 	} else {
 		siril_debug_print("Local SPCC database repository opened successfully!\n");
-		git_spcc_repo_cloned = TRUE;
 	}
 	gui.spcc_repo_available = TRUE;
 
@@ -942,10 +986,6 @@ int auto_update_gitspcc(gboolean sync) {
 		siril_log_color_message(_("Local SPCC database repository is up-to-date!\n"), "green");
 	}
 
-	// In case this has run very slowly in the async startup update, repopulate the SPCC combos
-	// to ensure they are up to date with any changes
-	populate_spcc_combos_async(NULL);
-
 	// Cleanup
 	cleanup:
 	git_remote_free(remote);
@@ -953,49 +993,6 @@ int auto_update_gitspcc(gboolean sync) {
 	git_libgit2_shutdown();
 
 	return retval;
-}
-
-typedef struct {
-	int (*func)(gboolean);  // Function pointer to the update function
-	gboolean sync;          // Sync parameter to pass to the function
-} ThreadData;
-
-// Thread function that will be executed
-static gpointer thread_func(gpointer user_data) {
-	ThreadData *data = (ThreadData *)user_data;
-	int result = data->func(data->sync);
-	g_free(data);
-	return GINT_TO_POINTER(result);
-}
-
-void async_update_git_repositories() {
-	GError *error = NULL;
-	if (com.pref.use_scripts_repository) {
-		ThreadData *data = g_new(ThreadData, 1);
-		data->func = auto_update_gitscripts;
-		data->sync = com.pref.auto_script_update;
-		com.update_scripts_thread = g_thread_try_new("update_thread", thread_func, data, &error);
-		if (error) {
-			siril_log_color_message(_("Error spawning thread to update scripts repository: %s\n"), "red", error->message);
-			g_error_free(error);
-		}
-	} else {
-		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
-	}
-	if (com.pref.spcc.use_spcc_repository) {
-		ThreadData *data = g_new(ThreadData, 1);
-		data->func = auto_update_gitspcc;
-		data->sync = com.pref.spcc.auto_spcc_update;
-
-		GThread *thread = g_thread_try_new("update_thread", thread_func, data, &error);
-		g_thread_unref(thread);
-		if (error) {
-			siril_log_color_message(_("Error spawning thread to update SPCC repository: %s\n"), "red", error->message);
-			g_error_free(error);
-		}
-	} else {
-		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-spcc...\n"));
-	}
 }
 
 int preview_scripts_update(GString** git_pending_commit_buffer) {

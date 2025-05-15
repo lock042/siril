@@ -55,3 +55,4 @@ GRTAGS
 GPATH
 *.pyc
 *.egg-info
+.idea/

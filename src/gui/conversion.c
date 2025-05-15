@@ -172,6 +172,7 @@ static void initialize_convert() {
 				"However, your OS limits the number of files that will be processed in the same time."
 				"You may want to convert your input files into a FITS sequence."), _("Convert to FITS Sequence"));
 		if (!confirm) return;
+		output_type = SEQ_FITSEQ;
 	}
 
 	GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("multiple_seq"));
