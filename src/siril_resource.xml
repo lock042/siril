@@ -92,6 +92,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/astrometry_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/b.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/chain.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/chain-linked.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/check_menu.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/CIE1931.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/cm.svg</file>
