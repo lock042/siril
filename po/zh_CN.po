@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-14 14:33+0200\n"
-"PO-Revision-Date: 2025-05-09 13:30+0000\n"
+"PO-Revision-Date: 2025-05-15 11:00+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -4025,7 +4025,7 @@ msgstr "Siril GraXpert 接口"
 
 #: src/gui/uifiles/graxpert.ui:100
 msgid "Preview the current settings on a region of interest."
-msgstr "在图像的特定区域上预览当前的设置。"
+msgstr "在图像的感兴趣区域（ROI）上预览当前的设置。"
 
 #: src/gui/uifiles/graxpert.ui:115
 msgid "Apply the selected operation."
@@ -7480,7 +7480,7 @@ msgstr "自动选择"
 
 #: src/gui/uifiles/settings_window.ui:3789
 msgid "Region of Interest"
-msgstr "关注区域"
+msgstr "感兴趣区域（ROI）"
 
 #: src/gui/uifiles/settings_window.ui:3822
 msgid "Middle button double click"
@@ -13181,7 +13181,7 @@ msgstr "垂直翻转：处理中...\n"
 
 #: src/algos/geometry.c:652 src/algos/geometry.c:663
 msgid "Rounding selection to match CFA pattern\n"
-msgstr ""
+msgstr "略微调整选区大小以匹配CFA阵列\n"
 
 #: src/algos/geometry.c:706 src/core/command.c:2152
 #: src/gui/menu_gray_geometry.c:350 src/gui/menu_gray_geometry.c:365
@@ -17024,13 +17024,11 @@ msgid "Error opening nonlinear working profile. Profile set to sRGB.\n"
 msgstr "打开非线性工作色彩特性文件时出错。色彩特性文件设置为 sRGB。\n"
 
 #: src/core/icc_profile.c:449
-#, fuzzy
 msgid ""
 "Error opening matched grayscale working profile. Profile set to Gray with "
 "sRGB tone response curve.\n"
-msgstr ""
-"打开匹配的灰度工作色彩特性文件时出错。特性文件设置为灰度，带有 sRGB 的响应曲"
-"线。\n"
+msgstr "打开匹配的灰度工作色彩特性文件时出错。特性文件设置为灰度，带有 sRGB "
+"的响应曲线。\n"
 
 #: src/core/icc_profile.c:494
 msgid ""
@@ -19778,7 +19776,7 @@ msgstr "序列: "
 
 #: src/gui/callbacks.c:320
 msgid "Region of Interest supported"
-msgstr "所支持的关注区域"
+msgstr "支持使用感兴趣区域（ROI）"
 
 #: src/gui/callbacks.c:322
 msgid ""
