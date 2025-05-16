@@ -293,8 +293,6 @@ void initialize_registration_methods() {
 	gtk_combo_box_text_remove_all(comboboxregmethod);
 	for (j = 0; j < NUMBER_OF_METHODS - 1; j ++) {
 		gtk_combo_box_text_append_text(comboboxregmethod, reg_methods[j]->name);
-		siril_log_message(_("Loading registration method: %s\n"),
-				reg_methods[j]->name);
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(comboboxregmethod), com.pref.gui.reg_settings);
 
