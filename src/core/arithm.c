@@ -437,23 +437,23 @@ int addmax(fits *a, fits *b) {
 }
 
 void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB) {
-	float *out[3] = { r, g, b };
+    // Compute the maximum values using fmaxf for better vectorization
+    float sfmax = fmaxf(fmaxf(data->sf[0], data->sf[1]), data->sf[2]);
+    float tfmax = fmaxf(fmaxf(data->tf[0], data->tf[1]), data->tf[2]);
 
-	// Compute the maximum values using fmaxf for better vectorization
-	float sfmax = fmaxf(fmaxf(data->sf[0], data->sf[1]), data->sf[2]);
-	float tfmax = fmaxf(fmaxf(data->tf[0], data->tf[1]), data->tf[2]);
+    // Compute the difference
+    float d = sfmax - tfmax;
 
-	// Compute the difference
-	float d = sfmax - tfmax;
+    // Calculate k based on conditions
+    float k = (tfmax + m_CB * d > 1.f) ? ((d != 0.f) ? fminf(m_CB, (1.f - tfmax) / d) : m_CB) : m_CB;
 
-	// Calculate k based on conditions
-	float k = (tfmax + m_CB * d > 1.f) ? ((d != 0.f) ? fminf(m_CB, (1.f - tfmax) / d) : m_CB) : m_CB;
+    // Pre-compute the common factor once
+    float one_minus_k = 1.f - k;
 
-	// Loop over channels
-	for (size_t chan = 0; chan < 3; chan++) {
-		// Compute the output using the precomputed k
-		*out[chan] = data->do_channel[chan] ? (1.f - k) * data->tf[chan] + k * data->sf[chan] : *out[chan];
-	}
+    // Process channels - keep compact for OpenMP SIMD optimization
+    *r = data->do_channel[0] ? (one_minus_k * data->tf[0] + k * data->sf[0]) : *r;
+    *g = data->do_channel[1] ? (one_minus_k * data->tf[1] + k * data->sf[1]) : *g;
+    *b = data->do_channel[2] ? (one_minus_k * data->tf[2] + k * data->sf[2]) : *b;
 }
 
 void clip(fits *fit) {

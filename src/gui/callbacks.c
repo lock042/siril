@@ -1583,7 +1583,7 @@ void unlock_script_mutex() {
 gpointer initialize_scripts(gpointer user_data) {
 	g_mutex_lock(&script_mutex);
 	// 1. Initialize the menu (verbose)
-	execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(com.pref.auto_script_update));
+	execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(1));
 	// 2. Update the repository
 	if (com.pref.auto_script_update && is_online()) {
 		auto_update_gitscripts(TRUE);

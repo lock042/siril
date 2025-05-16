@@ -39,7 +39,7 @@
 
 static gboolean asinh_rgb_space = FALSE;
 static float asinh_stretch_value = 0.0f, asinh_black_value = 0.0f;
-static clip_mode_t clip_mode = RGBBLEND;
+static clip_mode_t clip_mode = CLIP;
 
 static int asinh_update_preview() {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))))
