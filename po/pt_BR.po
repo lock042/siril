@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-14 14:33+0200\n"
+"POT-Creation-Date: 2025-05-16 23:47+0200\n"
 "PO-Revision-Date: 2025-05-15 20:35+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
@@ -107,7 +107,7 @@ msgstr ""
 
 #: src/gui/uifiles/CLAHE_dialog.ui:255 src/gui/uifiles/asinh_dialog.ui:253
 #: src/gui/uifiles/curves_dialog.ui:704 src/gui/uifiles/epf_dialog.ui:471
-#: src/gui/uifiles/histogram_dialog.ui:789 src/gui/uifiles/satu_dialog.ui:281
+#: src/gui/uifiles/histogram_dialog.ui:791 src/gui/uifiles/satu_dialog.ui:281
 #: src/gui/uifiles/unpurple_dialog.ui:284
 #: src/gui/uifiles/wavelets_dialog.ui:752
 msgid "Preview"
@@ -510,7 +510,8 @@ msgid "Clear"
 msgstr "Excluir"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-msgid "Clear all current annotations from the user catalog."
+#, fuzzy
+msgid "Clear all current temporary annotations (in red by default)"
 msgstr "Limpar todas as anotações atuais do catálogo do usuário."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
@@ -860,22 +861,45 @@ msgstr ""
 msgid "Clip mode"
 msgstr "Modo de recorte"
 
-#: src/gui/uifiles/asinh_dialog.ui:291 src/gui/uifiles/dialog_star_remix.ui:166
-#: src/gui/uifiles/histogram_dialog.ui:767 src/gui/utils.c:402
+#: src/gui/uifiles/asinh_dialog.ui:289 src/gui/uifiles/histogram_dialog.ui:760
+#, fuzzy
+msgid ""
+"Select blend mode.\n"
+"Clip: clips values to the range 0.0 - 1.0. <b>Default</b>\n"
+"Rescale: rescales RGB values of clipped pixels to not exceed 1.0 per pixel\n"
+"RGB blend: applies a blending function for smooth reconstructed highlight "
+"colors.\n"
+"Globa rescale: Same as Rescale, but rescales to the global maximum component "
+"value\n"
+"\n"
+"Clip is fastest: set one of the other modes when you're happy with your "
+"stretch if you notice colour artefacts around bright stars."
+msgstr ""
+"Selecione o modo de mesclagem.\n"
+"Recortar: recorta os valores para o intervalo de 0,0 a 1,0\n"
+"Redimensionar: redimensiona os valores RGB dos pixels recortados para não "
+"exceder 1,0 por pixel\n"
+"Mesclagem RGB: aplica uma função de mesclagem para cores de realce "
+"reconstruídas e suaves. <b>Padrão</b>\n"
+"Redimensionar global: O mesmo que Redimensionar, mas redimensiona para o "
+"valor máximo global do componente"
+
+#: src/gui/uifiles/asinh_dialog.ui:298 src/gui/uifiles/dialog_star_remix.ui:166
+#: src/gui/uifiles/histogram_dialog.ui:769 src/gui/utils.c:402
 msgid "Clip"
 msgstr "Recorte"
 
-#: src/gui/uifiles/asinh_dialog.ui:292 src/gui/uifiles/dialog_star_remix.ui:167
-#: src/gui/uifiles/histogram_dialog.ui:768
+#: src/gui/uifiles/asinh_dialog.ui:299 src/gui/uifiles/dialog_star_remix.ui:167
+#: src/gui/uifiles/histogram_dialog.ui:770
 msgid "Rescale"
 msgstr "Reescalar"
 
-#: src/gui/uifiles/asinh_dialog.ui:293 src/gui/uifiles/dialog_star_remix.ui:168
-#: src/gui/uifiles/histogram_dialog.ui:769
+#: src/gui/uifiles/asinh_dialog.ui:300 src/gui/uifiles/dialog_star_remix.ui:168
+#: src/gui/uifiles/histogram_dialog.ui:771
 msgid "RGB Blend"
 msgstr "Mistura RGB"
 
-#: src/gui/uifiles/asinh_dialog.ui:294
+#: src/gui/uifiles/asinh_dialog.ui:301
 msgid "Global Rescale"
 msgstr "Reescala global"
 
@@ -3649,7 +3673,7 @@ msgid "Select the clipping mode for partially clipped pixels."
 msgstr "Selecione o modo de recorte para pixels parcialmente recortados."
 
 #: src/gui/uifiles/dialog_star_remix.ui:169
-#: src/gui/uifiles/histogram_dialog.ui:770
+#: src/gui/uifiles/histogram_dialog.ui:772
 msgid "Global rescale"
 msgstr "Redimensionamento global"
 
@@ -3681,7 +3705,7 @@ msgstr "Histograma de estrela"
 
 #: src/gui/uifiles/dialog_star_remix.ui:303
 #: src/gui/uifiles/dialog_star_remix.ui:940
-#: src/gui/uifiles/histogram_dialog.ui:840
+#: src/gui/uifiles/histogram_dialog.ui:842
 msgid "Type of stretch"
 msgstr "Tipo de alongamento"
 
@@ -3705,31 +3729,31 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:322
 #: src/gui/uifiles/dialog_star_remix.ui:959
-#: src/gui/uifiles/histogram_dialog.ui:859
+#: src/gui/uifiles/histogram_dialog.ui:861
 msgid "Generalised hyperbolic transform"
 msgstr "Transformada hiperbólica generalizada"
 
 #: src/gui/uifiles/dialog_star_remix.ui:323
 #: src/gui/uifiles/dialog_star_remix.ui:960
-#: src/gui/uifiles/histogram_dialog.ui:860
+#: src/gui/uifiles/histogram_dialog.ui:862
 msgid "Inverse generalised hyperbolic transform"
 msgstr "Transformada hiperbólica generalizada inversa"
 
 #: src/gui/uifiles/dialog_star_remix.ui:324
 #: src/gui/uifiles/dialog_star_remix.ui:961
-#: src/gui/uifiles/histogram_dialog.ui:861
+#: src/gui/uifiles/histogram_dialog.ui:863
 msgid "Modified arcsinh transform"
 msgstr "Transformada arcsinh modificada"
 
 #: src/gui/uifiles/dialog_star_remix.ui:325
 #: src/gui/uifiles/dialog_star_remix.ui:962
-#: src/gui/uifiles/histogram_dialog.ui:862
+#: src/gui/uifiles/histogram_dialog.ui:864
 msgid "Inverse modified arcsinh transform"
 msgstr "Transformada arcsinh modificada inversa"
 
 #: src/gui/uifiles/dialog_star_remix.ui:353
 #: src/gui/uifiles/dialog_star_remix.ui:990
-#: src/gui/uifiles/histogram_dialog.ui:890
+#: src/gui/uifiles/histogram_dialog.ui:892
 msgid "Colour stretch model"
 msgstr "Modelo de stretch para cor"
 
@@ -3755,25 +3779,25 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:373
 #: src/gui/uifiles/dialog_star_remix.ui:1010
-#: src/gui/uifiles/histogram_dialog.ui:910
+#: src/gui/uifiles/histogram_dialog.ui:912
 msgid "Independent channel values"
 msgstr "Valores de canais independentes"
 
 #: src/gui/uifiles/dialog_star_remix.ui:374
 #: src/gui/uifiles/dialog_star_remix.ui:1011
-#: src/gui/uifiles/histogram_dialog.ui:911
+#: src/gui/uifiles/histogram_dialog.ui:913
 msgid "Human weighted luminance"
 msgstr "Luminância ponderada humana"
 
 #: src/gui/uifiles/dialog_star_remix.ui:375
 #: src/gui/uifiles/dialog_star_remix.ui:1012
-#: src/gui/uifiles/histogram_dialog.ui:912
+#: src/gui/uifiles/histogram_dialog.ui:914
 msgid "Even weighted luminance"
 msgstr "Luminância ponderada uniforme"
 
 #: src/gui/uifiles/dialog_star_remix.ui:409
 #: src/gui/uifiles/dialog_star_remix.ui:1046
-#: src/gui/uifiles/histogram_dialog.ui:969
+#: src/gui/uifiles/histogram_dialog.ui:971
 msgid "Stretch factor (ln(D+1))"
 msgstr "Fator de estiramento (ln(D+1))"
 
@@ -3791,7 +3815,7 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:479
 #: src/gui/uifiles/dialog_star_remix.ui:1117
-#: src/gui/uifiles/histogram_dialog.ui:1038
+#: src/gui/uifiles/histogram_dialog.ui:1040
 msgid "Local stretch intensity (b)"
 msgstr "Intensidade de estiramento local (b)"
 
@@ -3810,7 +3834,7 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:549
 #: src/gui/uifiles/dialog_star_remix.ui:1187
-#: src/gui/uifiles/histogram_dialog.ui:1107
+#: src/gui/uifiles/histogram_dialog.ui:1109
 msgid "Symmetry point (SP)"
 msgstr "Ponto de simetria (SP)"
 
@@ -3839,7 +3863,7 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:641
 #: src/gui/uifiles/dialog_star_remix.ui:1279
-#: src/gui/uifiles/histogram_dialog.ui:1198
+#: src/gui/uifiles/histogram_dialog.ui:1200
 msgid "Shadow protection point (LP)"
 msgstr "Ponto de proteção de sombra (LP)"
 
@@ -3847,7 +3871,7 @@ msgstr "Ponto de proteção de sombra (LP)"
 #: src/gui/uifiles/dialog_star_remix.ui:677
 #: src/gui/uifiles/dialog_star_remix.ui:1290
 #: src/gui/uifiles/dialog_star_remix.ui:1315
-#: src/gui/uifiles/histogram_dialog.ui:1209
+#: src/gui/uifiles/histogram_dialog.ui:1211
 msgid ""
 "Sets a value below which the stretch is modified to preserve contrast in the "
 "shadows. This is done by performing a linear stretch below LP by reserving "
@@ -3867,7 +3891,7 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:712
 #: src/gui/uifiles/dialog_star_remix.ui:1350
-#: src/gui/uifiles/histogram_dialog.ui:1267
+#: src/gui/uifiles/histogram_dialog.ui:1269
 msgid "Highlight protection point (HP)"
 msgstr "Ponto de proteção de altas luzes (LP)"
 
@@ -3895,7 +3919,7 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:784
 #: src/gui/uifiles/dialog_star_remix.ui:1422
-#: src/gui/uifiles/histogram_dialog.ui:1337
+#: src/gui/uifiles/histogram_dialog.ui:1339
 msgid "Black Point (BP)"
 msgstr "Ponto preto (BP)"
 
@@ -3926,7 +3950,7 @@ msgstr "Histograma de fundo"
 
 #: src/gui/uifiles/dialog_star_remix.ui:1057
 #: src/gui/uifiles/dialog_star_remix.ui:1082
-#: src/gui/uifiles/histogram_dialog.ui:980
+#: src/gui/uifiles/histogram_dialog.ui:982
 msgid ""
 "Independently controls the contrast added (the slope of the stretch) at SP, "
 "thus adjusting the amount of stretch applied to the rest of the image. It "
@@ -3945,7 +3969,7 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:1128
 #: src/gui/uifiles/dialog_star_remix.ui:1152
-#: src/gui/uifiles/histogram_dialog.ui:1049
+#: src/gui/uifiles/histogram_dialog.ui:1051
 msgid ""
 "Controls how tightly the stretch is focused by changing the form of the "
 "transform itself. For concentrated stretches (e.g. initial stretch on linear "
@@ -3970,7 +3994,7 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:1198
 #: src/gui/uifiles/dialog_star_remix.ui:1244
-#: src/gui/uifiles/histogram_dialog.ui:1118
+#: src/gui/uifiles/histogram_dialog.ui:1120
 msgid ""
 "Sets the symmetry point around which the stretch is focused - contrast will "
 "be distributed symmetrically around SP. This should generally be placed "
@@ -3987,7 +4011,7 @@ msgstr ""
 "parâmetro deve ser maior ou igual a LP e menor ou igual a HP."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1218
-#: src/gui/uifiles/histogram_dialog.ui:1139
+#: src/gui/uifiles/histogram_dialog.ui:1141
 msgid ""
 "This dropper allows you to set the background stretch symmetry point  based "
 "on the average value of  the current selection. This helps in picking out "
@@ -4732,30 +4756,11 @@ msgstr "Prefixo dos nomes das imagens resultantes do processo mtf."
 msgid "Clip mode:"
 msgstr "Modo de recorte:"
 
-#: src/gui/uifiles/histogram_dialog.ui:760
-msgid ""
-"Select blend mode.\n"
-"Clip: clips values to the range 0.0 - 1.0\n"
-"Rescale: rescales RGB values of clipped pixels to not exceed 1.0 per pixel\n"
-"RGB blend: applies a blending function for smooth reconstructed highlight "
-"colors. <b>Default</b>\n"
-"Globa rescale: Same as Rescale, but rescales to the global maximum component "
-"value"
-msgstr ""
-"Selecione o modo de mesclagem.\n"
-"Recortar: recorta os valores para o intervalo de 0,0 a 1,0\n"
-"Redimensionar: redimensiona os valores RGB dos pixels recortados para não "
-"exceder 1,0 por pixel\n"
-"Mesclagem RGB: aplica uma função de mesclagem para cores de realce "
-"reconstruídas e suaves. <b>Padrão</b>\n"
-"Redimensionar global: O mesmo que Redimensionar, mas redimensiona para o "
-"valor máximo global do componente"
-
-#: src/gui/uifiles/histogram_dialog.ui:793
+#: src/gui/uifiles/histogram_dialog.ui:795
 msgid "Toggle preview on / off"
 msgstr "Ativar/desativar a pré-visualização"
 
-#: src/gui/uifiles/histogram_dialog.ui:855
+#: src/gui/uifiles/histogram_dialog.ui:857
 msgid ""
 "Select type of stretch. Linear performs a simple linear stretch to a new "
 "black point. Generalised hyperbolic stretch performs a hyperbolic stretch "
@@ -4775,11 +4780,11 @@ msgstr ""
 "inverso e arcsinh também estão disponíveis, úteis para trabalhar em espaço "
 "negativo."
 
-#: src/gui/uifiles/histogram_dialog.ui:863
+#: src/gui/uifiles/histogram_dialog.ui:865
 msgid "Linear stretch (BP shift)"
 msgstr "Alongamento linear (deslocamento de BP)"
 
-#: src/gui/uifiles/histogram_dialog.ui:905
+#: src/gui/uifiles/histogram_dialog.ui:907
 msgid ""
 "Set the stretch model for colour stretches. The options are: evenly weighted "
 "luminance, which calculates the stretch based on a luminance value weighting "
@@ -4804,15 +4809,15 @@ msgstr ""
 "Observação: a luminância ponderada por humanos não é permitida se menos de 3 "
 "canais de cor forem selecionados, pois não faz sentido."
 
-#: src/gui/uifiles/histogram_dialog.ui:913
+#: src/gui/uifiles/histogram_dialog.ui:915
 msgid "Saturation stretch"
 msgstr "Alongamento de saturação"
 
-#: src/gui/uifiles/histogram_dialog.ui:942
+#: src/gui/uifiles/histogram_dialog.ui:944
 msgid "Stretch Parameters"
 msgstr "Parâmetros de stretch da imagem"
 
-#: src/gui/uifiles/histogram_dialog.ui:1278
+#: src/gui/uifiles/histogram_dialog.ui:1280
 msgid ""
 "Sets a value above which the stretch is modified to preserve contrast in the "
 "highlights / stars. This is done by performing a linear stretch of the data "
@@ -4830,7 +4835,7 @@ msgstr ""
 "níveis de brilho mais baixos, mantendo o contraste e a definição nos "
 "realces. Este parâmetro deve ser menor ou igual a 1 e não menor que o SP."
 
-#: src/gui/uifiles/histogram_dialog.ui:1348
+#: src/gui/uifiles/histogram_dialog.ui:1350
 msgid ""
 "Black point adjustment. This is a constant value that is subtracted from the "
 "image. NOTE: altering BP can clip pixels in which case this transformation "
@@ -5506,9 +5511,9 @@ msgid ""
 msgstr ""
 "Parâmetros com valores separados por vírgula. O parâmetro assim definido "
 "pode ser usado nas expressões.\n"
-"Por exemplo, se você definir parâmetros com a expressão <i>fator=0,8, "
-"K=0,2,</i>, todas as ocorrências de <i>fator</i> e <i>K</i> na fórmula acima "
-"serão substituídas por 0,8 e 0,2, respectivamente.\n"
+"Por exemplo, se você definir parâmetros com a expressão <i>fator=0,8, K=0,2,"
+"</i>, todas as ocorrências de <i>fator</i> e <i>K</i> na fórmula acima serão "
+"substituídas por 0,8 e 0,2, respectivamente.\n"
 "\n"
 "<i>Ha * fator + OIII * K</i>, portanto, resultaria em <i>Ha * 0,8 + OIII * "
 "0,2</i>"
@@ -5701,7 +5706,7 @@ msgstr ""
 "de ter a linguagem de script correta definida antes de executar um script a "
 "partir do editor."
 
-#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:266
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:264
 msgid "Siril Script Files"
 msgstr "Arquivos de script do Siril"
 
@@ -8759,31 +8764,31 @@ msgstr ""
 msgid "Update"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:291
+#: src/gui/uifiles/siril.ui:296
 msgid "Clear all curves displayed in photometry."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:292
+#: src/gui/uifiles/siril.ui:297
 msgid "Clear all"
 msgstr "Limpar tudo"
 
-#: src/gui/uifiles/siril.ui:307
+#: src/gui/uifiles/siril.ui:312
 msgid "Clear the last curve added in photometry."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:308
+#: src/gui/uifiles/siril.ui:313
 msgid "Clear latest"
 msgstr "Limpar mais recente"
 
-#: src/gui/uifiles/siril.ui:330
+#: src/gui/uifiles/siril.ui:335
 msgid "Julian Date"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:352
+#: src/gui/uifiles/siril.ui:357
 msgid "Nothing to change"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:362
+#: src/gui/uifiles/siril.ui:367
 msgid "arcsec"
 msgstr ""
 
@@ -11383,7 +11388,9 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:10067
-msgid "Chain/unchain channels in autostretch viewer mode.\n"
+msgid ""
+"Link/unlink channels in autostretch viewer mode.\n"
+"Current state: linked."
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:10093
@@ -13994,7 +14001,7 @@ msgid "Error in layers alignment."
 msgstr ""
 
 #: src/compositing/align_rgb.c:203 src/compositing/compositing.c:979
-#: src/gui/registration.c:1244
+#: src/gui/registration.c:1242
 msgid "Registration complete."
 msgstr ""
 
@@ -15154,11 +15161,11 @@ msgstr ""
 msgid "Computing %s auto-stretch with values %f and %f\n"
 msgstr ""
 
-#: src/core/command.c:3336
+#: src/core/command.c:3336 src/core/siril_actions.c:349
 msgid "linked"
 msgstr ""
 
-#: src/core/command.c:3336
+#: src/core/command.c:3336 src/core/siril_actions.c:349
 msgid "unlinked"
 msgstr ""
 
@@ -15218,7 +15225,7 @@ msgid "Wrong magnitude value.\n"
 msgstr ""
 
 #: src/core/command.c:3669 src/core/command.c:4340 src/core/command.c:4521
-#: src/core/siril_actions.c:783
+#: src/core/siril_actions.c:792
 msgid ""
 "Current selection is too large. To determine the PSF, please make a "
 "selection around a single star.\n"
@@ -15873,7 +15880,7 @@ msgid_plural "Convert: processing %d files...\n"
 msgstr[0] "Converter: processando %d arquivo...\n"
 msgstr[1] "Converter: processando %d arquivos...\n"
 
-#: src/core/command.c:7634 src/gui/registration.c:1133
+#: src/core/command.c:7634 src/gui/registration.c:1131
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
 msgstr ""
 
@@ -15907,36 +15914,36 @@ msgstr "Erro: imagem Flat já definida. Cancelando.\n"
 msgid "Error: flat image cannot work with variable sized sequence.\n"
 msgstr "Erro: imagem Flat não funciona com sequência de tamanho variável.\n"
 
-#: src/core/command.c:7850 src/core/command.c:8229 src/gui/registration.c:978
+#: src/core/command.c:7850 src/core/command.c:8229 src/gui/registration.c:976
 msgid "NOT USING FLAT: Could not load reference image\n"
 msgstr ""
 
 #: src/core/command.c:7857 src/core/command.c:8236 src/core/preprocess.c:879
-#: src/gui/registration.c:987
+#: src/gui/registration.c:985
 msgid "NOT USING FLAT: could not parse the expression"
 msgstr ""
 
-#: src/core/command.c:7861 src/core/command.c:8240 src/gui/registration.c:992
+#: src/core/command.c:7861 src/core/command.c:8240 src/gui/registration.c:990
 msgid "Error: no master flat specified in the preprocessing tab.\n"
 msgstr "Erro: nenhum Flat mestre especificado na guia de pré-processamento.\n"
 
 #: src/core/command.c:7867 src/core/command.c:8246 src/core/preprocess.c:886
-#: src/gui/registration.c:1000
+#: src/gui/registration.c:998
 msgid "NOT USING FLAT: number of channels is different"
 msgstr ""
 
 #: src/core/command.c:7870 src/core/command.c:8249 src/core/preprocess.c:889
-#: src/gui/registration.c:1003
+#: src/gui/registration.c:1001
 msgid "NOT USING FLAT: image dimensions are different"
 msgstr ""
 
 #. no need to deal with bitdepth conversion as readfits has already forced conversion to float
-#: src/core/command.c:7873 src/core/command.c:8252 src/gui/registration.c:1006
+#: src/core/command.c:7873 src/core/command.c:8252 src/gui/registration.c:1004
 msgid "Master flat read for use as initial pixel weight\n"
 msgstr ""
 
 #: src/core/command.c:7876 src/core/command.c:8255 src/core/preprocess.c:895
-#: src/gui/registration.c:1008 src/livestacking/gui.c:281
+#: src/gui/registration.c:1006 src/livestacking/gui.c:281
 msgid "NOT USING FLAT: cannot open the file"
 msgstr ""
 
@@ -15958,7 +15965,7 @@ msgid "Global Star Alignment (deep-sky)"
 msgstr ""
 
 #: src/core/command.c:7941 src/core/processing.c:156
-#: src/gui/registration.c:1148
+#: src/gui/registration.c:1146
 msgid "Not enough space to save the output images, aborting\n"
 msgstr ""
 
@@ -15979,19 +15986,19 @@ msgid ""
 "OpenCV below 4.4. Aborting\n"
 msgstr ""
 
-#: src/core/command.c:7960 src/gui/registration.c:1155
+#: src/core/command.c:7960 src/gui/registration.c:1153
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "scaling can be applied. Aborting\n"
 msgstr ""
 
 #. don't load it for command line execution
-#: src/core/command.c:7968 src/gui/registration.c:1210
+#: src/core/command.c:7968 src/gui/registration.c:1208
 #, c-format
 msgid "Registration: processing using method: %s\n"
 msgstr ""
 
-#: src/core/command.c:7979 src/core/command.c:8391 src/gui/registration.c:1215
+#: src/core/command.c:7979 src/core/command.c:8391 src/gui/registration.c:1213
 msgid "Interpolation clamping active\n"
 msgstr "Fixação de interpolação ativa\n"
 
@@ -16856,7 +16863,7 @@ msgstr "imagem de referência"
 msgid "Unknown SPCC list\n"
 msgstr ""
 
-#: src/core/command.c:11623 src/core/siril_actions.c:527
+#: src/core/command.c:11623 src/core/siril_actions.c:536
 msgid ""
 "This command only works on plate solved images with distortions included\n"
 msgstr ""
@@ -17059,13 +17066,13 @@ msgid "No help for this command"
 msgstr ""
 
 #: src/core/command_line_processor.c:596 src/core/preprocess.c:649
-#: src/filters/cosmetic_correction.c:502 src/gui/script_menu.c:209
+#: src/filters/cosmetic_correction.c:502 src/gui/script_menu.c:207
 #, c-format
 msgid "File [%s] does not exist\n"
 msgstr ""
 
 #. Run the script
-#: src/core/command_line_processor.c:603 src/gui/script_menu.c:189
+#: src/core/command_line_processor.c:603 src/gui/script_menu.c:187
 #, c-format
 msgid "Starting script %s\n"
 msgstr ""
@@ -17587,7 +17594,7 @@ msgstr ""
 msgid "Dark optimization: This process cannot be applied to 8b images"
 msgstr "Otimização de darks: Este processo não pode ser aplicado a imagens 8b"
 
-#: src/core/preprocess.c:882 src/gui/registration.c:996
+#: src/core/preprocess.c:882 src/gui/registration.c:994
 #: src/livestacking/gui.c:276
 msgid "Opening flat image..."
 msgstr ""
@@ -18643,19 +18650,26 @@ msgstr ""
 msgid "Cannot check for updates with this version, missing dependency\n"
 msgstr ""
 
-#: src/core/siril_actions.c:375 src/gui/PSF_list.c:812
+#: src/core/siril_actions.c:349
+#, c-format
+msgid ""
+"Link/unlink channels in autostretch viewer mode.\n"
+"Current state: %s."
+msgstr ""
+
+#: src/core/siril_actions.c:384 src/gui/PSF_list.c:812
 msgid "Current selection is too large"
 msgstr ""
 
-#: src/core/siril_actions.c:376 src/gui/PSF_list.c:813
+#: src/core/siril_actions.c:385 src/gui/PSF_list.c:813
 msgid "To determine the PSF, please make a selection around a star."
 msgstr ""
 
-#: src/core/siril_actions.c:465
+#: src/core/siril_actions.c:474
 msgid "Save your changes before loading a frame of the sequence."
 msgstr ""
 
-#: src/core/siril_actions.c:466
+#: src/core/siril_actions.c:475
 msgid ""
 "The image currently displayed is the result of the previous stack. If you "
 "load an image from the sequence, you might lose the entire process you "
@@ -18663,45 +18677,45 @@ msgid ""
 "before doing this."
 msgstr ""
 
-#: src/core/siril_actions.c:469
+#: src/core/siril_actions.c:478
 msgid "Load another image"
 msgstr "Carregar outra imagem"
 
-#: src/core/siril_actions.c:709 src/core/siril_actions.c:717
+#: src/core/siril_actions.c:718 src/core/siril_actions.c:726
 msgid "Close current image?"
 msgstr "Fechar a janela atual?"
 
-#: src/core/siril_actions.c:709
+#: src/core/siril_actions.c:718
 msgid ""
 "Opening the RGB Composition dialog will close the current image without "
 "saving. Are you sure?"
 msgstr ""
 
-#: src/core/siril_actions.c:709 src/core/siril_actions.c:717
+#: src/core/siril_actions.c:718 src/core/siril_actions.c:726
 #: src/gui/graxpert.c:323
 msgid "Yes"
 msgstr ""
 
-#: src/core/siril_actions.c:717
+#: src/core/siril_actions.c:726
 msgid ""
 "Opening the Star Recomposition dialog will close the current image without "
 "saving. Are you sure?"
 msgstr ""
 
-#: src/core/siril_actions.c:766
+#: src/core/siril_actions.c:775
 msgid "RGB alignment (DFT)"
 msgstr ""
 
-#: src/core/siril_actions.c:771
+#: src/core/siril_actions.c:780
 msgid "RGB alignment (Global stars)"
 msgstr ""
 
-#: src/core/siril_actions.c:776
+#: src/core/siril_actions.c:785
 #, fuzzy
 msgid "RGB alignment (KOMBAT)"
 msgstr "Alinhamentos de camadas"
 
-#: src/core/siril_actions.c:781
+#: src/core/siril_actions.c:790
 msgid "RGB alignment (PSF)"
 msgstr ""
 
@@ -18856,32 +18870,32 @@ msgstr ""
 msgid "Undo: %s\n"
 msgstr ""
 
-#: src/core/undo.c:363
+#: src/core/undo.c:362
 msgid ""
 "Following undo / redo with a preview active you may need to toggle the "
 "preview off and on again to reactivate the preview effect\n"
 msgstr ""
 
-#: src/core/undo.c:387
+#: src/core/undo.c:386
 #, c-format
 msgid "Redo: %s\n"
 msgstr ""
 
-#: src/core/undo.c:435
+#: src/core/undo.c:433
 #, c-format
 msgid "Undo: \"%s\""
 msgstr ""
 
-#: src/core/undo.c:439
+#: src/core/undo.c:437
 msgid "Nothing to undo"
 msgstr ""
 
-#: src/core/undo.c:441
+#: src/core/undo.c:439
 #, c-format
 msgid "Redo: \"%s\""
 msgstr ""
 
-#: src/core/undo.c:445
+#: src/core/undo.c:443
 msgid "Nothing to redo"
 msgstr ""
 
@@ -21629,7 +21643,7 @@ msgstr ""
 msgid "Something went wrong while saving plot"
 msgstr ""
 
-#: src/gui/open_dialog.c:60 src/gui/registration.c:406
+#: src/gui/open_dialog.c:60 src/gui/registration.c:404
 #: src/pixelMath/pixel_math_runner.c:1259
 msgid "FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"
 msgstr ""
@@ -22152,123 +22166,118 @@ msgstr ""
 msgid "Apply Existing Registration"
 msgstr "Aplicar transformação de histograma"
 
-#: src/gui/registration.c:296
-#, c-format
-msgid "Loading registration method: %s\n"
-msgstr ""
-
-#: src/gui/registration.c:404
+#: src/gui/registration.c:402
 msgid "WCS Files (*.wcs)"
 msgstr ""
 
 #. we check result is inside the selection box
-#: src/gui/registration.c:457
+#: src/gui/registration.c:455
 msgid "Comet PSF center is out of the box, will use selection center instead\n"
 msgstr ""
 
-#: src/gui/registration.c:481
+#: src/gui/registration.c:479
 msgid "There is no timestamp stored in the file"
 msgstr ""
 
-#: src/gui/registration.c:482
+#: src/gui/registration.c:480
 msgid ""
 "Siril cannot perform the registration without date information in the file."
 msgstr ""
 
-#: src/gui/registration.c:487
+#: src/gui/registration.c:485
 msgid "Unable to convert DATE-OBS to a valid date"
 msgstr ""
 
-#: src/gui/registration.c:488
+#: src/gui/registration.c:486
 msgid ""
 "Siril cannot convert the DATE-OBS keyword into a valid date needed in the "
 "alignment."
 msgstr ""
 
-#: src/gui/registration.c:614
+#: src/gui/registration.c:612
 #, c-format
 msgid "Registering %d images of the %d of the sequence"
 msgstr "Registrando %d imagens de %d da sequência"
 
-#: src/gui/registration.c:735
+#: src/gui/registration.c:733
 msgid ""
 "Max framing not allowed with FITSEQ or SER, change to regular FITS images"
 msgstr ""
 
-#: src/gui/registration.c:746
+#: src/gui/registration.c:744
 msgid "Pick object in two images"
 msgstr "Selecione um objeto em duas imagens"
 
-#: src/gui/registration.c:834
+#: src/gui/registration.c:832
 msgid "Failed to determine registration method...\n"
 msgstr "Falha ao determinar o método de registro...\n"
 
 #. no need to clutter the interface
-#: src/gui/registration.c:863 src/gui/registration.c:951
+#: src/gui/registration.c:861 src/gui/registration.c:949
 msgid "not available for sequences with variable image sizes"
 msgstr ""
 
-#: src/gui/registration.c:945
+#: src/gui/registration.c:943
 msgid "Select an area in image first"
 msgstr ""
 
-#: src/gui/registration.c:947
+#: src/gui/registration.c:945
 #, fuzzy
 msgid "Select images in the sequence"
 msgstr "Seleção de imagem na sequência"
 
-#: src/gui/registration.c:949
+#: src/gui/registration.c:947
 #, fuzzy
 msgid "Select a layer with existing registration"
 msgstr "Mostrar/Ocultar a lista de imagens na sequência com dados de registo"
 
-#: src/gui/registration.c:953
+#: src/gui/registration.c:951
 msgid "Unsupported CFA pattern detected"
 msgstr ""
 
-#: src/gui/registration.c:954
+#: src/gui/registration.c:952
 msgid ""
 "This sequence cannot be registered with the CFA pattern intact. You must "
 "debayer it prior to registration"
 msgstr ""
 
-#: src/gui/registration.c:956
+#: src/gui/registration.c:954
 msgid "CFA pattern detected"
 msgstr "Padrão CFA detectado"
 
-#: src/gui/registration.c:957
+#: src/gui/registration.c:955
 msgid ""
 "This sequence cannot be registered with the CFA pattern intact. Select "
 "drizzle or debayer it prior to registration"
 msgstr ""
 
-#: src/gui/registration.c:1078
+#: src/gui/registration.c:1076
 msgid "Cannot use area selection on a sequence with variable image sizes\n"
 msgstr ""
 
-#: src/gui/registration.c:1159
+#: src/gui/registration.c:1157
 msgid ""
 "When interpolation is set to None, the transformation can only be set to "
 "Shift. Aborting\n"
 msgstr ""
 
-#: src/gui/registration.c:1163
+#: src/gui/registration.c:1161
 msgid ""
 "When interpolation is set to None, distortions must be set to None as well. "
 "Aborting\n"
 msgstr ""
 
-#: src/gui/registration.c:1195
+#: src/gui/registration.c:1193
 msgid "Error: unable to read reference frame metadata\n"
 msgstr "Erro: não é possível ler metadados do quadro de referência\n"
 
 #. Estimate was pressed, we need to update the label
-#: src/gui/registration.c:1254
+#: src/gui/registration.c:1252
 #, c-format
 msgid " (assuming a scaling factor of %.2f)"
 msgstr ""
 
-#: src/gui/registration.c:1255
+#: src/gui/registration.c:1253
 #, c-format
 msgid "Output image: %d x %d pixels%s\n"
 msgstr ""
@@ -22496,58 +22505,58 @@ msgid ""
 "Siril team. Ensure you obtain scripts from a reputable source."
 msgstr ""
 
-#: src/gui/script_menu.c:160
+#: src/gui/script_menu.c:158
 msgid "Please read me before using scripts"
 msgstr ""
 
-#: src/gui/script_menu.c:161
+#: src/gui/script_menu.c:159
 msgid "Run Script"
 msgstr ""
 
-#: src/gui/script_menu.c:219
+#: src/gui/script_menu.c:217
 #, c-format
 msgid "Unknown script type: %s\n"
 msgstr "Tipo de script desconhecido: %s\n"
 
-#: src/gui/script_menu.c:267
+#: src/gui/script_menu.c:265
 msgid "Python Scripts"
 msgstr ""
 
-#: src/gui/script_menu.c:272
+#: src/gui/script_menu.c:270
 msgid "Script Editor..."
 msgstr ""
 
-#: src/gui/script_menu.c:274
+#: src/gui/script_menu.c:272
 msgid "Enable Python debug mode"
 msgstr ""
 
-#: src/gui/script_menu.c:310
+#: src/gui/script_menu.c:308
 #, c-format
 msgid "Searching for scripts in: \"%s\"...\n"
 msgstr ""
 
-#: src/gui/script_menu.c:356
+#: src/gui/script_menu.c:354
 #, c-format
 msgid "Loading script: %s\n"
 msgstr ""
 
-#: src/gui/script_menu.c:377 src/gui/script_menu.c:415
+#: src/gui/script_menu.c:375 src/gui/script_menu.c:413
 #, c-format
 msgid ""
 "Script %s no longer exists in repository, removing from Scripts menu...\n"
 msgstr ""
 
-#: src/gui/script_menu.c:409
+#: src/gui/script_menu.c:407
 #, c-format
 msgid "Loading script from repository: %s\n"
 msgstr "Carregando script do repositório: %s\n"
 
-#: src/gui/script_menu.c:460
+#: src/gui/script_menu.c:458
 #, c-format
 msgid "Adding core script to menu: %s\n"
 msgstr "Adicionando script principal ao menu: %s\n"
 
-#: src/gui/script_menu.c:480
+#: src/gui/script_menu.c:478
 msgid "Cannot refresh the scripts if the list is empty.\n"
 msgstr ""
 
@@ -24858,71 +24867,77 @@ msgstr ""
 msgid "Failed to find commit with given OID.\n"
 msgstr ""
 
-#: src/io/siril_git.c:239
+#: src/io/siril_git.c:274
 msgid ""
 "Error removing Git lock files. You may need to delete the local git "
 "repository and allow Siril to re-clone it.\n"
 msgstr ""
 
-#: src/io/siril_git.c:256 src/io/siril_git.c:268 src/io/siril_git.c:280
+#. Not a valid git path
+#: src/io/siril_git.c:283
+#, fuzzy
+msgid "Invalid Git repository path.\n"
+msgstr "Tamanho de página inválido relatado\n"
+
+#: src/io/siril_git.c:299 src/io/siril_git.c:311 src/io/siril_git.c:323
 msgid ""
 "Error performing hard reset. You may need to delete the local git repository "
 "and allow Siril to re-clone it.\n"
 msgstr ""
 
-#: src/io/siril_git.c:305
+#: src/io/siril_git.c:348
 msgid ""
 "Unable to create anonymous remote for the repository. Check your "
 "connectivity and try again.\n"
 msgstr ""
 
-#: src/io/siril_git.c:311
+#: src/io/siril_git.c:354
 msgid ""
 "Error fetching remote. This may be a temporary error, check your "
 "connectivity and try again.\n"
 msgstr ""
 
-#: src/io/siril_git.c:546
+#: src/io/siril_git.c:589
 #, c-format
 msgid "libgit2: repository is in unexpected state %d. Cleaning up...\n"
 msgstr ""
 
-#: src/io/siril_git.c:550
+#: src/io/siril_git.c:593
 msgid "libgit2: repository failed to clean up properly. Cannot continue.\n"
 msgstr ""
 
-#: src/io/siril_git.c:637 src/io/siril_git.c:641
+#: src/io/siril_git.c:680 src/io/siril_git.c:684
 #, c-format
 msgid "Commit message: %s\n"
 msgstr ""
 
-#: src/io/siril_git.c:701
+#: src/io/siril_git.c:746
 msgid "Attempting to clone from remote source...\n"
 msgstr ""
 
-#: src/io/siril_git.c:707 src/io/siril_git.c:864
-#, c-format
-msgid "Error cloning repository: %s\n"
+#: src/io/siril_git.c:752
+#, fuzzy, c-format
+msgid "Error cloning repository into %s: %s\n"
 msgstr "Erro ao clonar repositório: %s\n"
 
-#: src/io/siril_git.c:712 src/io/siril_git.c:869
+#: src/io/siril_git.c:757 src/io/siril_git.c:916
 msgid "Repository cloned successfully!\n"
 msgstr ""
 
-#: src/io/siril_git.c:715
+#: src/io/siril_git.c:760
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:730 src/io/siril_git.c:880
+#: src/io/siril_git.c:775 src/io/siril_git.c:927
 msgid "Failed to lookup remote.\n"
 msgstr "A pesquisa remota falhou.\n"
 
-#: src/io/siril_git.c:741 src/io/siril_git.c:891
+#: src/io/siril_git.c:786 src/io/siril_git.c:938
 msgid "Error: cannot identify local repository's configured remote.\n"
 msgstr ""
 
-#: src/io/siril_git.c:749
+#: src/io/siril_git.c:794
 #, c-format
 msgid ""
 "Error: local siril-scripts repository folder is not configured with %s as "
@@ -24930,22 +24945,27 @@ msgid ""
 "the correct repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:754 src/io/siril_git.c:904
+#: src/io/siril_git.c:799 src/io/siril_git.c:951
 msgid "Repository Error"
 msgstr ""
 
-#: src/io/siril_git.c:771 src/io/siril_git.c:785 src/io/siril_git.c:921
-#: src/io/siril_git.c:935
+#: src/io/siril_git.c:816 src/io/siril_git.c:830 src/io/siril_git.c:968
+#: src/io/siril_git.c:982
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
 msgstr ""
 
-#: src/io/siril_git.c:793
+#: src/io/siril_git.c:838
 msgid "Local scripts repository is up-to-date!\n"
 msgstr ""
 
-#: src/io/siril_git.c:899
+#: src/io/siril_git.c:911
+#, c-format
+msgid "Error cloning repository: %s\n"
+msgstr "Erro ao clonar repositório: %s\n"
+
+#: src/io/siril_git.c:946
 #, c-format
 msgid ""
 "Error: local siril-spcc-database repository folder is not configured with %s "
@@ -24953,15 +24973,15 @@ msgid ""
 "the correct repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:943
+#: src/io/siril_git.c:990
 msgid "Local SPCC database repository is up-to-date!\n"
 msgstr ""
 
-#: src/io/siril_git.c:966
+#: src/io/siril_git.c:1013
 msgid "Error: unable to open local scripts repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:991
+#: src/io/siril_git.c:1038
 msgid "Error: unable to open local spcc-database repository.\n"
 msgstr ""
 
