@@ -758,11 +758,13 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="tooltip-markup" translatable="yes">Select blend mode.
-Clip: clips values to the range 0.0 - 1.0
+Clip: clips values to the range 0.0 - 1.0. &lt;b&gt;Default&lt;/b&gt;
 Rescale: rescales RGB values of clipped pixels to not exceed 1.0 per pixel
-RGB blend: applies a blending function for smooth reconstructed highlight colors. &lt;b&gt;Default&lt;/b&gt;
-Globa rescale: Same as Rescale, but rescales to the global maximum component value</property>
-                        <property name="active">2</property>
+RGB blend: applies a blending function for smooth reconstructed highlight colors.
+Globa rescale: Same as Rescale, but rescales to the global maximum component value
+
+Clip is fastest: set one of the other modes when you're happy with your stretch if you notice colour artefacts around bright stars.</property>
+                        <property name="active">0</property>
                         <items>
                           <item translatable="yes">Clip</item>
                           <item translatable="yes">Rescale</item>
@@ -905,7 +907,7 @@ Globa rescale: Same as Rescale, but rescales to the global maximum component val
                             <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which stretches based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; independent channel values, which applies the stretch independently to each channel of the pixel; and saturation, which applies the stretch to the S component in HSL space. In saturation mode the saturation histogram curve is shown in yellow.
 Note: human-weighted luminance is not allowed if less than 3 colour channels are selected as it doesn't make sense.</property>
                             <property name="hexpand">True</property>
-                            <property name="active">0</property>
+                            <property name="active">1</property>
                             <items>
                               <item translatable="yes">Independent channel values</item>
                               <item translatable="yes">Human weighted luminance</item>

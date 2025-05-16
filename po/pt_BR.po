@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-14 14:33+0200\n"
-"PO-Revision-Date: 2025-05-12 20:19+0000\n"
+"PO-Revision-Date: 2025-05-15 20:35+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -510,9 +510,8 @@ msgid "Clear"
 msgstr "Excluir"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-#, fuzzy
 msgid "Clear all current annotations from the user catalog."
-msgstr "Excluir todas as anotações atuais."
+msgstr "Limpar todas as anotações atuais do catálogo do usuário."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -5299,6 +5298,9 @@ msgid ""
 "CFA0 loaded to start with, and ensure filenames are consistent across images "
 "for all CFA channels."
 msgstr ""
+"Mescla imagens CFA separadas para uma sequência. Você deve ter a sequência "
+"para CFA0 carregada para começar e garantir que os nomes dos arquivos sejam "
+"consistentes em todas as imagens para todos os canais CFA."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:326
 msgid "CFA marker string"
@@ -5314,6 +5316,9 @@ msgid ""
 "images. This should be set to whatever sequence prefix was used when the "
 "split_cfa process was run (default: CFA)."
 msgstr ""
+"Prefixo identificador usado para denotar o número CFA nas imagens separadas "
+"do canal CFA. Deve ser definido como o prefixo de sequência usado quando o "
+"processo split_cfa foi executado (padrão: CFA)."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:365
 msgid "Prefix of the image names resulting from the merge CFA process."
@@ -5337,6 +5342,21 @@ msgid ""
 "\n"
 "Note that CFA merge does not work for X-Trans files."
 msgstr ""
+"Você deve ter uma das sequências CFA selecionada na aba de sequências da "
+"janela principal. O Siril detectará automaticamente a qual canal CFA ela "
+"corresponde a partir da sequência de marcadores CFA. Todas as 4 sequências "
+"devem ter o mesmo formato de nome e sequência de marcadores CFA, diferindo "
+"apenas pelo número após a sequência (por exemplo, CFA0, CFA1, CFA2 e CFA3).\n"
+"\n"
+"Cada imagem na sequência só será processada se as imagens correspondentes "
+"aos outros 3 canais CFA puderem ser encontradas. Os arquivos G1 e G2 são "
+"necessários. Observe que isso significa que, se você descartar uma imagem "
+"contendo um canal CFA de uma imagem entre split_cfa e merge_cfa, merge_cfa "
+"não poderá mesclar os canais CFA restantes para essa imagem. Toda a "
+"filtragem de sequência deve ser feita antes de split_cfa ou depois de "
+"merge_cfa.\n"
+"\n"
+"Observe que a mesclagem CFA não funciona para arquivos X-Trans."
 
 #: src/gui/uifiles/merge_cfa_dialog.ui:430
 msgid "Sequences"
@@ -5484,6 +5504,14 @@ msgid ""
 "<i>Ha * factor + OIII * K</i> would therefore evaluate to <i>Ha * 0.8 + OIII "
 "* 0.2</i>"
 msgstr ""
+"Parâmetros com valores separados por vírgula. O parâmetro assim definido "
+"pode ser usado nas expressões.\n"
+"Por exemplo, se você definir parâmetros com a expressão <i>fator=0,8, "
+"K=0,2,</i>, todas as ocorrências de <i>fator</i> e <i>K</i> na fórmula acima "
+"serão substituídas por 0,8 e 0,2, respectivamente.\n"
+"\n"
+"<i>Ha * fator + OIII * K</i>, portanto, resultaria em <i>Ha * 0,8 + OIII * "
+"0,2</i>"
 
 #: src/gui/uifiles/pixelmath.ui:623
 msgid "Parameters"
@@ -5657,6 +5685,8 @@ msgid ""
 "Set scripting language to Python. Ensure you have the correct scripting "
 "language set before executing a script from the editor."
 msgstr ""
+"Defina a linguagem de script como Python. Certifique-se de ter a linguagem "
+"de script correta definida antes de executar um script no editor."
 
 #: src/gui/uifiles/python_scratchpad.ui:340
 msgid "Python scripts"
@@ -5667,6 +5697,9 @@ msgid ""
 "Set scripting language to Siril Script File. Ensure you have the correct "
 "scripting language set before executing a script from the editor."
 msgstr ""
+"Defina a linguagem de script para o arquivo de script Siril. Certifique-se "
+"de ter a linguagem de script correta definida antes de executar um script a "
+"partir do editor."
 
 #: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:266
 msgid "Siril Script Files"
@@ -5679,6 +5712,10 @@ msgid ""
 "This also ensures SirilInterface is invoked in CLI mode "
 "(SirilInterface.is_cli() will return True)"
 msgstr ""
+"Quando ativo, quaisquer argumentos inseridos na entrada args serão passados "
+"ao script quando ele for executado.\n"
+"Isso também garante que SirilInterface seja invocado no modo CLI "
+"(SirilInterface.is_cli() retornará True)"
 
 #: src/gui/uifiles/python_scratchpad.ui:363
 msgid "Enable test arguments"
@@ -5690,6 +5727,10 @@ msgid ""
 "python process as soon as the SirilInterface is initialized, to allow for "
 "connecting a python debugger to the process before continuing."
 msgstr ""
+"Quando ativo, o interpretador Python exibirá uma caixa de diálogo modal "
+"mostrando o processo Python assim que a SirilInterface for inicializada, "
+"para permitir a conexão de um depurador Python ao processo antes de "
+"continuar."
 
 #: src/gui/uifiles/python_scratchpad.ui:372
 msgid "Enable python debug mode"
@@ -5721,10 +5762,12 @@ msgid ""
 "When enabled, positioning the cursor on a bracket will show the matching "
 "bracket"
 msgstr ""
+"Quando ativado, posicionar o cursor em um colchete mostrará o colchete "
+"correspondente"
 
 #: src/gui/uifiles/python_scratchpad.ui:424
 msgid "Enable bracket matching"
-msgstr ""
+msgstr "Ativar correspondência de colchetes"
 
 #: src/gui/uifiles/python_scratchpad.ui:433
 msgid "Enable line numbers in the left margin"
@@ -5758,6 +5801,7 @@ msgstr "Habilitar auto-indentação"
 #: src/gui/uifiles/python_scratchpad.ui:473
 msgid "When a block of lines is selected, tab increases the indent level"
 msgstr ""
+"Quando um bloco de linhas é selecionado, a tecla Tab aumenta o nível de recuo"
 
 #: src/gui/uifiles/python_scratchpad.ui:474
 msgid "Indent on tab"
@@ -5773,6 +5817,8 @@ msgid ""
 "When Smart Home / End is enabled the Home and End keys will go to the first "
 "and last non-whitespace character on the line respectively"
 msgstr ""
+"Quando o Smart Home / End estiver ativado, as teclas Home e End irão para o "
+"primeiro e o último caractere sem espaço em branco na linha, respectivamente"
 
 #: src/gui/uifiles/python_scratchpad.ui:494
 msgid "Smart Home / End"
@@ -5788,7 +5834,7 @@ msgstr "Exibir espaços e tabulações"
 
 #: src/gui/uifiles/python_scratchpad.ui:512
 msgid "Show newline characters in the editor view"
-msgstr ""
+msgstr "Mostrar caracteres de nova linha na visualização do editor"
 
 #: src/gui/uifiles/python_scratchpad.ui:513
 msgid "Show newlines"
@@ -5830,6 +5876,11 @@ msgid ""
 "script is run from the Scripts menu, so scripts should not be solely reliant "
 "on arguments for input."
 msgstr ""
+"Esta entrada pode ser usada para definir argumentos para executar o script, "
+"a fim de permitir testes de como ele se comportará quando chamado com o "
+"comando <b>pyscript</b> com argumentos. Observe que argumentos não podem ser "
+"fornecidos quando um script é executado a partir do menu Scripts, portanto, "
+"os scripts não devem depender exclusivamente de argumentos para entrada."
 
 #: src/gui/uifiles/resample_dialog.ui:65
 msgid "Resample"
@@ -5898,6 +5949,8 @@ msgid ""
 "Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to "
 "prevent ringing artefacts"
 msgstr ""
+"Aplique um fator de fixação à interpolação Bicubic e Lanczos-4 para evitar "
+"artefatos em anel (ringing)"
 
 #: src/gui/uifiles/rgradient_dialog.ui:45
 msgid "Rotational Gradient"
@@ -5913,7 +5966,7 @@ msgstr "Deslocamento radial"
 
 #: src/gui/uifiles/rgradient_dialog.ui:142
 msgid "Radial shift used to compute rotational gradient."
-msgstr ""
+msgstr "Deslocamento radial usado para calcular gradiente rotacional."
 
 #: src/gui/uifiles/rgradient_dialog.ui:165
 msgid "Rotational shift"
@@ -5921,11 +5974,12 @@ msgstr "Deslocamento rotacional"
 
 #: src/gui/uifiles/rgradient_dialog.ui:199
 msgid "Rotational shift used to compute rotational gradient."
-msgstr ""
+msgstr "Deslocamento rotacional usado para calcular gradiente rotacional."
 
 #: src/gui/uifiles/rgradient_dialog.ui:219
 msgid "You should specify a selection around the object you want to analyze."
 msgstr ""
+"Você deve especificar uma seleção em torno do objeto que deseja analisar."
 
 #: src/gui/uifiles/rgradient_dialog.ui:240
 msgid "X centre:"
@@ -6083,6 +6137,11 @@ msgid ""
 "model). For modified DSLRs, select the replacement LPF (if there isn't an "
 "exact match the Baader BCF is probably close)."
 msgstr ""
+"Para DSLRs não modificadas, selecione o filtro de passa baixa (LPF) que mais "
+"se aproxima do seu modelo (muitos LPFs da Canon são quase idênticos, então "
+"pode não haver uma correspondência exata para o seu modelo). Para DSLRs "
+"modificadas, selecione o LPF de substituição (se não houver uma "
+"correspondência exata, o Baader BCF provavelmente será o mais próximo)."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:506
 msgid "Select white balance reference"
@@ -6097,6 +6156,9 @@ msgid ""
 "Plot the selected sensor QE, filter responses and white reference relative "
 "photon count as a function of wavelength"
 msgstr ""
+"Trace o QE do sensor selecionado, as respostas do filtro e a contagem "
+"relativa de fótons de referência branca como uma função do comprimento de "
+"onda"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:533
 msgid "Show details of the selected white reference"
@@ -6120,6 +6182,9 @@ msgid ""
 "Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - "
 "486.1 nm"
 msgstr ""
+"Comprimento de onda nominal da banda passante em nm\n"
+"Comprimento de onda comum: S II - 672 nm; Ha - 656,46 nm; O III - 500 nm; Hb "
+"- 486,1 nm"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:601
 msgid "Filter bandwidth in nm"
@@ -6150,14 +6215,18 @@ msgstr ""
 #: src/gui/uifiles/s_pcc_dialog.ui:661
 msgid "Enter the nominal bandwidth of the red channel narrowband filter"
 msgstr ""
+"Insira a largura de banda nominal do filtro de banda estreita do canal "
+"vermelho"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:677
 msgid "Enter the nominal bandwidth of the green channel narrowband filter"
 msgstr ""
+"Insira a largura de banda nominal do filtro de banda estreita do canal verde"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:693
 msgid "Enter the nominal bandwidth of the blue channel narrowband filter"
 msgstr ""
+"Insira a largura de banda nominal do filtro de banda estreita do canal azul"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:717
 msgid "Plot fits"
@@ -6166,6 +6235,8 @@ msgstr "Exibir fits"
 #: src/gui/uifiles/s_pcc_dialog.ui:721
 msgid "Plot SPCC linear fits for catalog to image R/G and B/G ratios"
 msgstr ""
+"Plotar ajustes lineares SPCC para relações R/G e B/G do catálogo para a "
+"imagem"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:736
 msgid "Sensor Type:"
@@ -6184,6 +6255,9 @@ msgid ""
 "Set narrowband mode. This is suitable for composited narrowband images such "
 "as HOO as well as for OSC images taken with dual narrowband filters etc."
 msgstr ""
+"Defina o modo de banda estreita. Isso é adequado para imagens compostas de "
+"banda estreita, como HOO, bem como para imagens OSC obtidas com filtros "
+"duplos de banda estreita, etc."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:798
 msgid "Atmospheric corrections"
@@ -6194,14 +6268,16 @@ msgid ""
 "Apply an atmosphere model to account for wavelength-dependent atmospheric "
 "extinction."
 msgstr ""
+"Aplique um modelo de atmosfera para contabilizar a extinção atmosférica "
+"dependente do comprimento de onda."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:828
 msgid "Observer height / m:"
-msgstr ""
+msgstr "Altura do observador / m:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:839
 msgid "Observer's height (altitude) above sea level."
-msgstr ""
+msgstr "Altura do observador (altitude) acima do nível do mar."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:855
 msgid "Atmospheric pressure / hPa:"
@@ -6213,6 +6289,9 @@ msgid ""
 "is taken to be sea level pressure, otherwise it is taken to be local "
 "pressure at the observer's height."
 msgstr ""
+"Pressão atmosférica em hPa. Se a caixa de seleção \"nível do mar\" estiver "
+"marcada, considera-se a pressão ao nível do mar; caso contrário, considera-"
+"se a pressão local na altura do observador."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1168
 msgid "sea level"
@@ -6220,11 +6299,11 @@ msgstr "nível do mar"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:897
 msgid "Airmass:"
-msgstr ""
+msgstr "Massa aérea:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:910
 msgid "Plot atmosphere model"
-msgstr ""
+msgstr "Desenhar o modelo de atmosfera"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:940
 msgid "Atmospheric Parameters"
@@ -6252,14 +6331,30 @@ msgid ""
 "source effective temperature based on the source's spectrum, and Siril uses "
 "this Teff for PCC."
 msgstr ""
+"Selecione o catálogo online para comparar a imagem e calcular a fotometria.\n"
+"* O NOMAD é uma fusão simples de dados dos catálogos Hipparcos, Tycho-2, "
+"UCAC2, Yellow-Blue 6 e USNO-B para astrometria e fotometria óptica, "
+"complementados pelo infravermelho próximo 2MASS. O conjunto de dados de "
+"quase 100 GB contém dados astrométricos e fotométricos para cerca de 1,1 "
+"bilhão de estrelas.\n"
+"* O APASS, o AAVSO Photometric All Sky Survey, realiza um levantamento "
+"fotométrico de todo o céu. Este levantamento é realizado em oito filtros: "
+"Johnson B e V, além de Sloan u', g', r', i', z_s e Z. É válido de "
+"aproximadamente 7ª magnitude a aproximadamente 17ª magnitude para mais de 37 "
+"milhões de estrelas.\n"
+"* O Gaia Data Release 3 foi lançado em 13 de junho de 2022. A fotometria é "
+"fornecida para cerca de 1,46 bilhão de fontes, com uma magnitude limite de G "
+"= 21. Ela usa filtros diferentes de Johnson B e V, no entanto, fornece "
+"medidas de temperatura efetiva da fonte com base no espectro da fonte, e o "
+"Siril usa esse Teff para PCC."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:999 src/io/siril_catalogues.c:274
 msgid "APASS"
-msgstr ""
+msgstr "APASS"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1000
 msgid "GAIA DR3"
-msgstr ""
+msgstr "GAIA DR3"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1014
 msgid "Photometric Star Catalogue: "
@@ -6275,29 +6370,43 @@ msgid ""
 "Gaia DR3 contains sampled spectra for c. 30 million stars down to magnitude "
 "17.6."
 msgstr ""
+"Selecione o catálogo a ser usado para calibração espectrofotométrica de "
+"cores.\n"
+"* O arquivo Gaia DR3 é um serviço online que fornece acesso direto ao "
+"catálogo Gaia DR3.\n"
+"* O catálogo local Gaia DR3 xp_sampled é um catálogo local otimizado, "
+"projetado para o SPCC.\n"
+"O Gaia DR3 contém espectros amostrados de aproximadamente 30 milhões de "
+"estrelas até magnitude 17,6."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1060
 msgid "Local Gaia DR3 xp_sampled catalogue"
-msgstr ""
+msgstr "Catálogo local Gaia DR3 xp_sampled"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1090
 msgid ""
 "The NOMAD catalogue can be installed locally to not rely on an Internet "
 "connection for this operation."
 msgstr ""
+"O catálogo NOMAD pode ser instalado localmente para não depender de uma "
+"conexão com a Internet para esta operação."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1143
 msgid "Tolerance / σ"
-msgstr ""
+msgstr "Tolerância / σ"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1155
 msgid ""
 "Include background samples this many σ above the median. Default is 2.00"
 msgstr ""
+"Incluir amostras de fundo com este número de σ acima da mediana. O padrão é "
+"2,00"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1173
 msgid "Include background samples this many σ below the median. Default is 2.8"
 msgstr ""
+"Incluir amostras de fundo com esta quantidade de σ abaixo da mediana. O "
+"padrão é 2,8"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1196
 msgid "Automatic detection"
@@ -6308,6 +6417,8 @@ msgid ""
 "Uncheck this button if you want to select the background reference by "
 "yourself. It can be useful when nebulae cover a large portion of the image."
 msgstr ""
+"Desmarque este botão se quiser selecionar a referência de fundo você mesmo. "
+"Pode ser útil quando nebulosas cobrem uma grande parte da imagem."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1360
 msgid "Background Reference"
@@ -6367,6 +6478,9 @@ msgid ""
 "stronger is the saturation effect. While a high value will preserve the "
 "background."
 msgstr ""
+"Este é o fator multiplicado pelo valor do plano de fundo. Quanto menor o "
+"valor, mais intenso é o efeito de saturação. Já um valor alto preservará o "
+"plano de fundo."
 
 #: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10752
 #: src/io/sequence.c:2025
@@ -6380,6 +6494,11 @@ msgid ""
 "entire profile. This means that when you re-open the file the ICC profile "
 "description may be different, although it will be functionally equivalent."
 msgstr ""
+"Observação: ao incorporar perfis ICC, a libjxl verificará se reconhece o "
+"perfil. Em caso afirmativo, definirá um valor de referência em vez de "
+"armazenar o perfil inteiro. Isso significa que, ao reabrir o arquivo, a "
+"descrição do perfil ICC poderá ser diferente, embora seja funcionalmente "
+"equivalente."
 
 #: src/gui/uifiles/savepopup.ui:128
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
@@ -6487,7 +6606,7 @@ msgstr "Guardar os valores MIPS-HI e MIPS-LO"
 
 #: src/gui/uifiles/savepopup.ui:777
 msgid "Save CHECKSUM and DATASUM keywords"
-msgstr ""
+msgstr "Salvar palavras-chave CHECKSUM e DATASUM"
 
 #: src/gui/uifiles/savepopup.ui:797
 msgid "Embedded Data"
@@ -6510,6 +6629,16 @@ msgid ""
 "filesize than TIFF compression at the expense of being slower and not "
 "providing the metadata that is available with TIFF."
 msgstr ""
+"Qualidade. Definir qualidade = 100 resulta em compressão sem perdas (observe "
+"que isso pode ser bastante lento). Outros valores de qualidade funcionam da "
+"mesma forma que a qualidade JPEG, mas não há leitura cruzada direta (o mesmo "
+"valor de qualidade não fornecerá exatamente a mesma qualidade visual ou "
+"tamanho de arquivo que forneceria para um arquivo JPEG).\n"
+"\n"
+"NOTA: a compressão com perdas produz resultados ruins ao salvar dados "
+"lineares devido à faixa dinâmica muito alta; no entanto, a compressão sem "
+"perdas oferece um tamanho de arquivo menor do que a compressão TIFF, mas é "
+"mais lenta e não fornece os metadados disponíveis com TIFF."
 
 #: src/gui/uifiles/savepopup.ui:895
 msgid "Effort:"
@@ -6521,6 +6650,10 @@ msgid ""
 "the default: values higher than this are not recommended as they become very "
 "slow and may not result in an improvement in file size."
 msgstr ""
+"O esforço representa o trabalho feito pelo codificador para otimizar a "
+"saída. 7 é o padrão: valores maiores que isso não são recomendados, pois se "
+"tornam muito lentos e podem não resultar em uma melhoria no tamanho do "
+"arquivo."
 
 #: src/gui/uifiles/savepopup.ui:933
 msgid "8 bit output"
@@ -6532,6 +6665,10 @@ msgid ""
 "its native bit depth (32 bit images will be stored as 32 bit; 16 bit images "
 "will be stored as 16 bit unless they originated as 8 bit images)"
 msgstr ""
+"Se marcada, a saída será de 8 bits. Se desmarcada, a imagem será salva em "
+"sua profundidade de bits nativa (imagens de 32 bits serão armazenadas como "
+"32 bits; imagens de 16 bits serão armazenadas como 16 bits, a menos que "
+"tenham sido originadas como imagens de 8 bits)"
 
 #: src/gui/uifiles/savepopup.ui:975
 msgid "JPEG XL"
@@ -6602,6 +6739,9 @@ msgid ""
 "registration data is drawn on each image to review image position wrt. "
 "reference."
 msgstr ""
+"Quando alternado, o contorno da imagem de referência, conforme transformado "
+"com dados de registro, é desenhado em cada imagem para revisar a posição da "
+"imagem em relação à referência."
 
 #: src/gui/uifiles/seqlist_dialog.ui:319
 msgid "Reference image"
@@ -6614,6 +6754,11 @@ msgid ""
 "unset the image previously set as reference.\n"
 "If not set manually, the first image of the sequence is taken as reference."
 msgstr ""
+"Se definido, a imagem atual será a imagem de referência para registro.\n"
+"Apenas uma imagem pode ser a imagem de referência em uma sequência; defini-"
+"la removerá a imagem previamente definida como referência.\n"
+"Se não for definido manualmente, a primeira imagem da sequência será usada "
+"como referência."
 
 #: src/gui/uifiles/seqlist_dialog.ui:339
 msgid "Enter the number of the image you want to reach."
@@ -6652,6 +6797,8 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:374
 msgid "Debayer FITS files in top-down if no explicit keywords found"
 msgstr ""
+"Arquivos FITS do Debayer em top-down se nenhuma palavra-chave explícita for "
+"encontrada"
 
 #: src/gui/uifiles/settings_window.ui:378
 msgid ""
@@ -6660,6 +6807,10 @@ msgid ""
 "orientation (as they usual do), you need to check this box in order to "
 "debayer the file in the right orientation."
 msgstr ""
+"O Siril lê dados FITS na orientação de baixo para cima, mas muitos softwares "
+"de captura não atendem a essa especificação. Se os dados forem armazenados "
+"na orientação de cima para baixo (como de costume), você precisa marcar esta "
+"caixa para debayerizar o arquivo na orientação correta."
 
 #: src/gui/uifiles/settings_window.ui:392
 msgid ""
@@ -6667,11 +6818,17 @@ msgid ""
 "used in the rejection stacking. Our tests also showed that there is no gain "
 "in quaity when many images are used, while processing time increases 20-fold."
 msgstr ""
+"Devido a restrições algorítmicas, algoritmos de demosaico mais complexos não "
+"podem ser usados no empilhamento de rejeição. Nossos testes também mostraram "
+"que não há ganho de qualidade quando muitas imagens são usadas, enquanto o "
+"tempo de processamento aumenta 20 vezes."
 
 #: src/gui/uifiles/settings_window.ui:394
 msgid ""
 "Warning: For SER on-the-fly demosaicing, the RCD algorithm is always used."
 msgstr ""
+"Aviso: Para demosaico de arquivo SER on-the-fly, o algoritmo RCD é sempre "
+"usado."
 
 #: src/gui/uifiles/settings_window.ui:412
 #: src/gui/uifiles/settings_window.ui:425
@@ -6721,6 +6878,34 @@ msgid ""
 "For the XTRANS sensor, a special algorithm called <b>Markesteijn</b> is used "
 "regardless of the method selected in the preferences."
 msgstr ""
+"Selecione um método de interpolação para realizar o demosaicing.\n"
+"\n"
+"* <b>Fast Debayer</b> é o algoritmo mais rápido disponível no Siril. No "
+"entanto, outros algoritmos listados abaixo costumam ser bem melhores.\n"
+"* <b>VNG4</b>, Threshold-Based Variable Number of Gradients, trabalha em uma "
+"vizinhança de 5x5 pixels ao redor de cada pixel de origem. É um algoritmo "
+"muito bom para áreas planas da imagem (como o fundo do céu), mas produz "
+"artefatos em áreas de alto contraste (como estrelas).\n"
+"* <b>AHD</b>, Adaptive Homogeneity-Directed, é outro algoritmo de debayer "
+"bem conhecido. No entanto, ele geralmente mostra artefatos no fundo e "
+"formatos de estrelas ruins.\n"
+"* <b>AMaZE</b>, Aliasing Minimization and Zipper Elimination, é um algoritmo "
+"que oferece bons resultados, especialmente em capturas com baixo ruído.\n"
+"* <b>DCB</b>, Double Corrected Bilinear, um algoritmo mais recente, pode "
+"mostrar alguns artefatos no fundo, como o AHD.\n"
+"* <b>HPHD</b>, Heterogeneity-Projection Hard-Decision, é um algoritmo antigo "
+"que oferece bons resultados, mas é bastante lento.\n"
+"* <b>IGV</b> e <b>LMMSE</b> são muito bons ao trabalhar com imagens com "
+"muito ruído. No entanto, o IGV tende a perder alguma informação cromática, "
+"enquanto o LMMSE é um dos demosaicings computacionalmente mais caros e "
+"requer muita memória.\n"
+"* <b>RCD</b>, Ratio Corrected Demosaicing, visa suavizar os erros de "
+"correção de cor comuns em muitos outros métodos de interpolação. Ele faz um "
+"excelente trabalho para bordas arredondadas, por exemplo, estrelas, e, "
+"portanto, é o algoritmo padrão usado no Siril.\n"
+"\n"
+"Para o sensor XTRANS, um algoritmo especial chamado <b>Markesteijn</b> é "
+"usado independentemente do método selecionado nas preferências."
 
 #: src/gui/uifiles/settings_window.ui:472
 msgid "Fast Debayer"
@@ -6768,11 +6953,11 @@ msgstr "Deslocamento em Y:"
 
 #: src/gui/uifiles/settings_window.ui:516
 msgid "X offset of Bayer array."
-msgstr ""
+msgstr "Deslocamento X do conjunto Bayer."
 
 #: src/gui/uifiles/settings_window.ui:531
 msgid "Y offset of Bayer array."
-msgstr ""
+msgstr "Deslocamento Y do conjunto Bayer."
 
 #: src/gui/uifiles/settings_window.ui:546
 #: src/gui/uifiles/settings_window.ui:560
@@ -6781,6 +6966,8 @@ msgid ""
 "Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly "
 "better but slower."
 msgstr ""
+"Número de passagens para o algoritmo de demosaico X-Trans\n"
+"Markesteijn, 1 é o padrão, 3 pode ser um pouco melhor, mas mais lento."
 
 #: src/gui/uifiles/settings_window.ui:549
 msgid "X-Trans demosaicing quality"
@@ -8712,18 +8899,16 @@ msgid "Center lines"
 msgstr "Linhas de centros"
 
 #: src/gui/uifiles/siril.ui:980
-#, fuzzy
 msgid "3 thirds grid guides on the selection"
-msgstr "Seleção de sequência"
+msgstr "Guias de grade de 3 terços na seleção"
 
 #: src/gui/uifiles/siril.ui:981
 msgid "Rule of thirds"
 msgstr "Regra dos terços"
 
 #: src/gui/uifiles/siril.ui:992
-#, fuzzy
 msgid "5 fifhts grid guides on the selection"
-msgstr "Seleção de sequência"
+msgstr "guia de grade de 5 quintos na seleção"
 
 #: src/gui/uifiles/siril.ui:993
 msgid "Rule of fifths"
@@ -8742,9 +8927,8 @@ msgid "ROI"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:1059
-#, fuzzy
 msgid "Set ROI to selection"
-msgstr "Sem Seleção"
+msgstr "Definir ROI para seleção"
 
 #: src/gui/uifiles/siril.ui:1067
 msgid "Clear ROI"
@@ -8755,14 +8939,12 @@ msgid "RGB align"
 msgstr "Alinhar RGB"
 
 #: src/gui/uifiles/siril.ui:1095
-#, fuzzy
 msgid "2-pass global star alignment (deep-sky)"
-msgstr "Alinhamento de padrão de imagem (planetário/céu profundo)"
+msgstr "Alinhamento global de estrelas em 2 passos (céu profundo)"
 
 #: src/gui/uifiles/siril.ui:1104
-#, fuzzy
 msgid "KOMBAT alignment (planetary/deep-sky)"
-msgstr "Alinhamento de padrão de imagem (planetário/céu profundo)"
+msgstr "Alinhamento KOMBAT (planetário/céu profundo)"
 
 #: src/gui/uifiles/siril.ui:1144
 msgid ""
@@ -8806,9 +8988,8 @@ msgid "Color Saturation..."
 msgstr "Saturação de cor..."
 
 #: src/gui/uifiles/siril.ui:1269
-#, fuzzy
 msgid "Open the subtractive chromatic noise reduction dialog"
-msgstr "Redução subtrativa de ruído cromático Verde"
+msgstr "Abra a caixa de diálogo de redução de ruído cromático subtrativo"
 
 #: src/gui/uifiles/siril.ui:1271
 msgid "Remove Green Noise..."
@@ -8835,9 +9016,8 @@ msgid "Geometry"
 msgstr "Geometria"
 
 #: src/gui/uifiles/siril.ui:1385
-#, fuzzy
 msgid "Open the background extraction dialog"
-msgstr "Extrair o fundo"
+msgstr "Abra a caixa de diálogo de extração de fundo"
 
 #: src/gui/uifiles/siril.ui:1387
 msgid "Background Extraction..."
@@ -8879,9 +9059,8 @@ msgid "Go back to main menu"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:1498
-#, fuzzy
 msgid "Stretches Processing"
-msgstr "_Processamento de imagem"
+msgstr "Processamento de alongamentos"
 
 #: src/gui/uifiles/siril.ui:1514
 msgid "Open the inverse hyperbolic sine dialog"
@@ -8892,18 +9071,16 @@ msgid "Asinh Transformation..."
 msgstr "Transformação Asinh..."
 
 #: src/gui/uifiles/siril.ui:1529
-#, fuzzy
 msgid "Open the curves transform dialog"
-msgstr "Aplicar transformação de histograma"
+msgstr "Abra a caixa de diálogo de transformação de curvas"
 
 #: src/gui/uifiles/siril.ui:1531
 msgid "Curves Transformation..."
 msgstr "Transformação de curvas..."
 
 #: src/gui/uifiles/siril.ui:1544
-#, fuzzy
 msgid "Open the hystogram transform dialog"
-msgstr "Aplicar transformação de histograma"
+msgstr "Abra a caixa de diálogo de transformação do histograma"
 
 #: src/gui/uifiles/siril.ui:1546
 msgid "Histogram Transformation..."
@@ -8914,9 +9091,8 @@ msgid "Open the generalized hyperbolic transform dialog"
 msgstr "Abra a caixa de diálogo de transformada hiperbólica generalizada"
 
 #: src/gui/uifiles/siril.ui:1561
-#, fuzzy
 msgid "Generalised Hyperbolic Stretch Transformations..."
-msgstr "Transformação de histograma..."
+msgstr "Transformações de alongamento hiperbólico generalizadas..."
 
 #: src/gui/uifiles/siril.ui:1604
 msgid "Open the manual color calibration dialog"
