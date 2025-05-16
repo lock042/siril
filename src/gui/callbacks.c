@@ -35,9 +35,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "core/arithm.h"
-#include "filters/graxpert.h"
 #include "gui/cut.h"
-#include "gui/graxpert.h"
 #include "gui/keywords_tree.h"
 #include "gui/registration.h"
 #include "gui/photometric_cc.h"
@@ -1762,8 +1760,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
 	/* populate SPCC combos in a thread */
 	g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
-	/* GraXpert checks, if required */
-	g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));
 	gui_ready = TRUE;
 }
 
