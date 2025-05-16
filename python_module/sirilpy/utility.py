@@ -942,3 +942,52 @@ class ONNXHelper:
                 print(f"Failed to uninstall {package}")
 
         return uninstalled
+
+def parse_fits_header(header_text: str) -> dict:
+    """
+    Parse FITS header from text content into a dictionary
+    
+    Parameters:
+    header_text (str): Content of the FITS header text file
+    
+    Returns:
+    dict: Dictionary containing all header keywords and values
+    """
+    header_dict = {}
+    
+    for line in header_text.split('\n'):
+        # Skip empty lines, COMMENT, HISTORY, and END
+        if not line.strip() or line.startswith('COMMENT') or line.startswith('HISTORY') or line.startswith('END'):
+            continue
+            
+        # Split the line into key and value parts
+        parts = line.split('=')
+        if len(parts) != 2:
+            continue
+            
+        key = parts[0].strip()
+        value_part = parts[1].strip()
+        
+        # Handle the value part (removing comments after /)
+        if '/' in value_part:
+            value_part = value_part.split('/')[0].strip()
+            
+        # Convert value to appropriate type
+        try:
+            # Try converting to float first
+            if value_part.startswith("'") and value_part.endswith("'"):
+                # String value
+                value = value_part.strip("'").strip()
+            elif value_part == 'T':
+                value = True
+            elif value_part == 'F':
+                value = False
+            else:
+                value = float(value_part)
+        except ValueError:
+            # If conversion fails, keep as string
+            value = value_part.strip()
+            
+        header_dict[key] = value
+        
+    return header_dict

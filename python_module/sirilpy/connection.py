@@ -25,7 +25,7 @@ from .plot import PlotData
 from .exceptions import SirilError, DataError, SirilConnectionError, CommandError, NoImageError, NoSequenceError, SharedMemoryError
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType, Polygon
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
-from .utility import truncate_utf8
+from .utility import truncate_utf8, parse_fits_header
 
 DEFAULT_TIMEOUT = 5.
 
@@ -2240,15 +2240,18 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_image_fits_header(self) -> Optional[str]:
+    def get_image_fits_header(self, return_as = 'str') -> str | dict | None:
         """
         Retrieve the full FITS header of the current image loaded in Siril.
 
         Args:
-            none.
+            return_as: Optional string specifying the format of the returned header.
+             Can be 'str' for a string or 'dict' for a dictionary.
 
         Returns:
-            bytes: The image FITS header as a string, or None if there is no header.
+            str: The image FITS header as a string, or None if there is no header.
+            dict: The image FITS header as a dictionary, or None if there is no header.
+            None: If the header is empty or not available.
 
         Raises:
             NoImageError: If no image is currently loaded,
@@ -2300,7 +2303,12 @@ class SirilInterface:
             except (BufferError, ValueError, TypeError) as e:
                 raise SirilError(_("Failed to create string from shared memory: {}").format(e)) from e
 
-            return result
+            if return_as == 'dict':
+                return parse_fits_header(result)
+            elif return_as == 'str':
+                return result
+            else:
+                raise ValueError(_(f"Invalid return_as value: {return_as}"))
 
         except SirilError:
             # Re-raise NoImageError and other SirilErrors without wrapping
@@ -3375,16 +3383,20 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_seq_frame_header(self, frame: int) -> Optional[str]:
+    def get_seq_frame_header(self, frame: int, return_as = 'str') -> str | dict | None:
         """
         Retrieve the full FITS header of an image from the sequence loaded in Siril.
 
         Args:
             frame: Integer specifying which frame in the sequence to retrieve data for
             (between 0 and Sequence.number)
+            return_as: Optional string specifying the format of the returned header.
+                        Can be 'str' for a string or 'dict' for a dictionary.
 
         Returns:
             str: The image FITS header as a string, or None if there is no header.
+            dict: The image FITS header as a dictionary, or None if there is no header.
+            None: If the header is empty or not available.
 
         Raises:
             NoSequenceError: If no sequence is currently loaded,
@@ -3439,7 +3451,12 @@ class SirilInterface:
             except (BufferError, ValueError, TypeError) as e:
                 raise SirilError(_("Failed to create string from shared memory: {}").format(e)) from e
 
-            return result
+            if return_as == 'dict':
+                return parse_fits_header(result)
+            elif return_as == 'str':
+                return result
+            else:
+                raise ValueError(_(f"Invalid return_as value: {return_as}"))
 
         except SirilError:
             # Re-raise NoSequenceError and other SirilErrors without wrapping
