@@ -967,54 +967,6 @@ static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
 	return NULL;
 }
 
-static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
-	Connection *conn = (Connection*) user_data;
-	// Log the Python process exit status if needed
-#ifdef G_OS_WIN32
-	if (status == 0) {
-		siril_debug_print("Python process (PID: %d) exited normally\n", pid);
-	} else {
-		siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
-			pid, status);
-	}
-#else
-	if (WIFEXITED(status)) {
-		if (WEXITSTATUS(status) == 0)
-			siril_debug_print("Python process (PID: %d) exited normally\n", pid);
-		else
-			siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
-				pid, WEXITSTATUS(status));
-	} else if (WIFSIGNALED(status)) {
-		siril_log_color_message(_("Python process (PID: %d) terminated by signal %d\n"), "salmon",
-				pid, WTERMSIG(status));
-	}
-#endif
-
-	// If we had the python thread lock and failed to release it, release it now
-	// and reset the busy cursor
-	if (conn->thread_claimed) {
-		com.python_claims_thread = FALSE;
-		set_cursor_waiting(FALSE);
-		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	}
-
-	// Clean up shared memory resources
-	cleanup_shm_resources(conn);
-
-	// Clean up the Connection
-	free(conn);
-
-	// Close the process handle
-	g_spawn_close_pid(pid);
-	remove_child_from_children(pid);
-
-	// Check if it's OK to clear com.python_script
-	check_python_flag();
-
-	// Re-enable widgets
-	gui_function(script_widgets_idle, NULL);
-}
-
 // Function to get Python version from venv (could be called during venv activation)
 gchar* get_venv_python_version(const gchar* venv_path) {
 	gchar* python_path;
@@ -1975,7 +1927,89 @@ void shutdown_python_communication(CommunicationState *commstate) {
 	}
 }
 
-void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script) {
+typedef struct {
+    gchar *temp_filename;  // Path to temporary file
+    GPid child_pid;        // Process ID of the spawned Python process
+    gboolean is_temp_file; // Flag indicating if file should be deleted after execution
+    Connection *python_conn; // Python connection for cleanup
+} python_cleanup_info;
+
+static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
+	python_cleanup_info *cleanup = (python_cleanup_info *)user_data;
+
+	// Log process exit status
+#ifdef G_OS_WIN32
+	if (status == 0) {
+		siril_debug_print("Python process (PID: %d) exited normally\n", pid);
+	} else {
+		siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
+			pid, status);
+	}
+#else
+	if (WIFEXITED(status)) {
+		if (WEXITSTATUS(status) == 0)
+			siril_debug_print("Python process (PID: %d) exited normally\n", pid);
+		else
+			siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
+				pid, WEXITSTATUS(status));
+	} else if (WIFSIGNALED(status)) {
+		siril_log_color_message(_("Python process (PID: %d) terminated by signal %d\n"), "salmon",
+				pid, WTERMSIG(status));
+	}
+#endif
+
+	if (cleanup) {
+		// Only delete if it's a temporary file
+		if (cleanup->is_temp_file && cleanup->temp_filename) {
+			// Check if file exists before attempting removal
+			if (g_file_test(cleanup->temp_filename, G_FILE_TEST_EXISTS)) {
+				if (g_unlink(cleanup->temp_filename) != 0) {
+					siril_debug_print("Failed to delete temporary script file: %s\n",
+									cleanup->temp_filename);
+				} else {
+					siril_debug_print("Temporary script file deleted: %s\n",
+									cleanup->temp_filename);
+				}
+			}
+		}
+
+		// Clean up shared memory resources if connection exists
+		if (cleanup->python_conn) {
+			// If we had the python thread lock and failed to release it, release it now
+			if (cleanup->python_conn->thread_claimed) {
+				com.python_claims_thread = FALSE;
+				set_cursor_waiting(FALSE);
+				set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+			}
+
+			// Clean up shared memory resources
+			cleanup_shm_resources(cleanup->python_conn);
+
+			// Clean up the Connection
+			free(cleanup->python_conn);
+		}
+
+		// Remove from children list
+		remove_child_from_children(cleanup->child_pid);
+
+		// Close the process handle
+		g_spawn_close_pid(cleanup->child_pid);
+
+		// Check if it's OK to clear com.python_script
+		check_python_flag();
+
+		// Re-enable widgets
+		gui_function(script_widgets_idle, NULL);
+
+		// Free the cleanup structure
+		g_unlink(cleanup->temp_filename);
+		g_free(cleanup->temp_filename);
+		g_free(cleanup);
+	}
+}
+
+void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync,
+						gchar** argv_script, gboolean is_temp_file) {
 	version_number none = { 0 };
 	if (compare_version(none, com.python_version) >= 0) {
 		if (com.python_init_thread) {
@@ -1985,6 +2019,11 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			siril_log_color_message(_("Error: python not ready yet. This may happen at first run "
 					"if the python venv and module setup has not yet completed. Please wait a short "
 					"time for a completion message in the log and try again.\n"), "red");
+			// Clean up the temporary file if it's one
+			if (is_temp_file && script_name) {
+				g_unlink(script_name);
+				g_free(script_name);
+			}
 			return;
 		}
 	}
@@ -1997,14 +2036,19 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	#else
 	connection_path = g_strdup_printf("/tmp/%s.sock", uuid);
 	#endif
+	g_free(uuid);
 
 	// Create connection
 	CommunicationState commstate = {0};
 	commstate.python_conn = create_connection(connection_path);
+
 	if (!commstate.python_conn) {
 		siril_log_color_message(_("Error: failed to create Python connection.\n"), "red");
-		g_free(uuid);
-		g_free(connection_path);
+		// Clean up the temporary file if it's one
+		if (is_temp_file && script_name) {
+			g_unlink(script_name);
+			g_free(script_name);
+		}
 		return;
 	}
 
@@ -2015,6 +2059,11 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 
 	if (!commstate.python_conn) {
 		siril_log_color_message(_("Error: Python connection not available.\n"), "red");
+		// Clean up the temporary file if it's one
+		if (is_temp_file && script_name) {
+			g_unlink(script_name);
+			g_free(script_name);
+		}
 		return;
 	}
 	init_shm_tracking(commstate.python_conn);
@@ -2054,6 +2103,9 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 #else
 	env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
 #endif
+	// Finished with connection_path regardless of OS now, so we can free it
+	g_free(connection_path);
+
 	// Set PYTHONUNBUFFERED in environment
 	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
@@ -2064,6 +2116,15 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	gint stdout_fd, stderr_fd;
 	if (!python_path) {
 		siril_log_color_message(_("Error finding venv python path, unable to spawn python.\n"), "red");
+		// Clean up on error
+		cleanup_shm_resources(commstate.python_conn);
+		free(commstate.python_conn);
+		g_strfreev(env);
+		if (is_temp_file && script_name) {
+			g_unlink(script_name);
+		}
+		g_free(script_name);
+		return;
 	} else {
 		// Clear any ROI that is set
 		on_clear_roi();
@@ -2127,66 +2188,54 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		}
 	}
 
-	if (success) {
-		if (sync) {
-			// Cross-platform process waiting
-#ifdef _WIN32
-			// Use Windows-specific waiting
-			HANDLE process_handle = (HANDLE) child_pid;
-			if (process_handle != NULL) {
-				WaitForSingleObject(process_handle, INFINITE);
-				CloseHandle(process_handle);
-			}
-#else
-			// Use POSIX waitpid
-			gint status;
-			waitpid(child_pid, &status, 0);
-#endif
-			// If we had the python thread lock and failed to release it, release it now
-			if (commstate.python_conn->thread_claimed) {
-				com.python_claims_thread = FALSE;
-			}
-
-			// Clean up shared memory resources
-			cleanup_shm_resources(commstate.python_conn);
-
-			// Clean up the Connection
-			free(commstate.python_conn);
-
-			// Close the process handle
-			g_spawn_close_pid(child_pid);
-			remove_child_from_children(child_pid);
-
-			// Check if it's OK to clear com.python_script
-			check_python_flag();
-
-			// Re-enable widgets
-			gui_function(script_widgets_idle, NULL);
-		} else {
-			// Set up child process monitoring: the callback will clean up any overlooked shm resources
-			g_child_watch_add(child_pid, (GChildWatchFunc)cleanup_child_process, commstate.python_conn);
-		}
-	} else {
-		// Clean up shared memory resources
+	if (!success) {
+		// Clean up on error
 		cleanup_shm_resources(commstate.python_conn);
-		// Clean up the Connection
 		free(commstate.python_conn);
+		g_strfreev(env);
+		if (is_temp_file && script_name) {
+			g_unlink(script_name);
+		}
+		g_free(script_name);
+		g_free(working_dir);
+
+		if (error) {
+			siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
+			g_error_free(error);
+		}
+
 		// Re-enable widgets
 		gui_function(script_widgets_idle, NULL);
-	}
-
-	g_strfreev(env);
-	g_free(script_name);
-
-	if (!success && error) {
-		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
-		g_error_free(error);
-	}
-	if (!success) {
-		g_free(working_dir);
 		return;
 	}
 
+	// Create cleanup info structure for either synchronous or async operation
+	python_cleanup_info *cleanup = g_malloc(sizeof(python_cleanup_info));
+	cleanup->temp_filename = is_temp_file ? g_strdup(script_name) : NULL;
+	cleanup->child_pid = child_pid;
+	cleanup->is_temp_file = is_temp_file;
+	cleanup->python_conn = commstate.python_conn;
+
+	if (sync) {
+		// Cross-platform process waiting
+#ifdef _WIN32
+		// Use Windows-specific waiting
+		HANDLE process_handle = (HANDLE) child_pid;
+		if (process_handle != NULL) {
+			WaitForSingleObject(process_handle, INFINITE);
+			CloseHandle(process_handle);
+		}
+#else
+		// Use POSIX waitpid
+		gint status;
+		waitpid(child_pid, &status, 0);
+#endif
+		// Handle cleanup directly
+		python_process_cleanup(child_pid, 0, cleanup);
+	} else {
+		// Set up child process monitoring with cleanup
+		g_child_watch_add(child_pid, python_process_cleanup, cleanup);
+	}
 
 	// Create input streams with appropriate flags
 	GInputStream *stdout_stream = NULL;
@@ -2226,4 +2275,6 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 
 	siril_debug_print("Python script launched asynchronously with PID %d\n", child_pid);
 	g_free(working_dir);
+	g_strfreev(env);
+
 }
