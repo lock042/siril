@@ -1935,346 +1935,346 @@ typedef struct {
 } python_cleanup_info;
 
 static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
-    python_cleanup_info *cleanup = (python_cleanup_info *)user_data;
+	python_cleanup_info *cleanup = (python_cleanup_info *)user_data;
 
-    // Log process exit status
+	// Log process exit status
 #ifdef G_OS_WIN32
-    if (status == 0) {
-        siril_debug_print("Python process (PID: %d) exited normally\n", pid);
-    } else {
-        siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
-            pid, status);
-    }
+	if (status == 0) {
+		siril_debug_print("Python process (PID: %d) exited normally\n", pid);
+	} else {
+		siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
+			pid, status);
+	}
 #else
-    if (WIFEXITED(status)) {
-        if (WEXITSTATUS(status) == 0)
-            siril_debug_print("Python process (PID: %d) exited normally\n", pid);
-        else
-            siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
-                pid, WEXITSTATUS(status));
-    } else if (WIFSIGNALED(status)) {
-        siril_log_color_message(_("Python process (PID: %d) terminated by signal %d\n"), "salmon",
-                pid, WTERMSIG(status));
-    }
+	if (WIFEXITED(status)) {
+		if (WEXITSTATUS(status) == 0)
+			siril_debug_print("Python process (PID: %d) exited normally\n", pid);
+		else
+			siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
+				pid, WEXITSTATUS(status));
+	} else if (WIFSIGNALED(status)) {
+		siril_log_color_message(_("Python process (PID: %d) terminated by signal %d\n"), "salmon",
+				pid, WTERMSIG(status));
+	}
 #endif
 
-    if (cleanup) {
-        // Only delete if it's a temporary file
-        if (cleanup->is_temp_file && cleanup->temp_filename) {
-            // Check if file exists before attempting removal
-            if (g_file_test(cleanup->temp_filename, G_FILE_TEST_EXISTS)) {
-                if (g_unlink(cleanup->temp_filename) != 0) {
-                    siril_debug_print("Failed to delete temporary script file: %s\n",
-                                     cleanup->temp_filename);
-                } else {
-                    siril_debug_print("Temporary script file deleted: %s\n",
-                                     cleanup->temp_filename);
-                }
-            }
-        }
+	if (cleanup) {
+		// Only delete if it's a temporary file
+		if (cleanup->is_temp_file && cleanup->temp_filename) {
+			// Check if file exists before attempting removal
+			if (g_file_test(cleanup->temp_filename, G_FILE_TEST_EXISTS)) {
+				if (g_unlink(cleanup->temp_filename) != 0) {
+					siril_debug_print("Failed to delete temporary script file: %s\n",
+									cleanup->temp_filename);
+				} else {
+					siril_debug_print("Temporary script file deleted: %s\n",
+									cleanup->temp_filename);
+				}
+			}
+		}
 
-        // Clean up shared memory resources if connection exists
-        if (cleanup->python_conn) {
-            // If we had the python thread lock and failed to release it, release it now
-            if (cleanup->python_conn->thread_claimed) {
-                com.python_claims_thread = FALSE;
-                set_cursor_waiting(FALSE);
-                set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-            }
+		// Clean up shared memory resources if connection exists
+		if (cleanup->python_conn) {
+			// If we had the python thread lock and failed to release it, release it now
+			if (cleanup->python_conn->thread_claimed) {
+				com.python_claims_thread = FALSE;
+				set_cursor_waiting(FALSE);
+				set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+			}
 
-            // Clean up shared memory resources
-            cleanup_shm_resources(cleanup->python_conn);
+			// Clean up shared memory resources
+			cleanup_shm_resources(cleanup->python_conn);
 
-            // Clean up the Connection
-            free(cleanup->python_conn);
-        }
+			// Clean up the Connection
+			free(cleanup->python_conn);
+		}
 
-        // Remove from children list
-        remove_child_from_children(cleanup->child_pid);
+		// Remove from children list
+		remove_child_from_children(cleanup->child_pid);
 
-        // Close the process handle
-        g_spawn_close_pid(cleanup->child_pid);
+		// Close the process handle
+		g_spawn_close_pid(cleanup->child_pid);
 
-        // Check if it's OK to clear com.python_script
-        check_python_flag();
+		// Check if it's OK to clear com.python_script
+		check_python_flag();
 
-        // Re-enable widgets
-        gui_function(script_widgets_idle, NULL);
+		// Re-enable widgets
+		gui_function(script_widgets_idle, NULL);
 
-        // Free the cleanup structure
+		// Free the cleanup structure
 		g_unlink(cleanup->temp_filename);
-        g_free(cleanup->temp_filename);
-        g_free(cleanup);
-    }
+		g_free(cleanup->temp_filename);
+		g_free(cleanup);
+	}
 }
 
 void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync,
-                         gchar** argv_script, gboolean is_temp_file) {
-    version_number none = { 0 };
-    if (compare_version(none, com.python_version) >= 0) {
-        if (com.python_init_thread) {
-            g_thread_join(com.python_init_thread); // wait for python initialization to start
-            com.python_init_thread = NULL;
-        } else {
-            siril_log_color_message(_("Error: python not ready yet. This may happen at first run "
-                    "if the python venv and module setup has not yet completed. Please wait a short "
-                    "time for a completion message in the log and try again.\n"), "red");
-            // Clean up the temporary file if it's one
-            if (is_temp_file && script_name) {
-                g_unlink(script_name);
-                g_free(script_name);
-            }
-            return;
-        }
-    }
+						gchar** argv_script, gboolean is_temp_file) {
+	version_number none = { 0 };
+	if (compare_version(none, com.python_version) >= 0) {
+		if (com.python_init_thread) {
+			g_thread_join(com.python_init_thread); // wait for python initialization to start
+			com.python_init_thread = NULL;
+		} else {
+			siril_log_color_message(_("Error: python not ready yet. This may happen at first run "
+					"if the python venv and module setup has not yet completed. Please wait a short "
+					"time for a completion message in the log and try again.\n"), "red");
+			// Clean up the temporary file if it's one
+			if (is_temp_file && script_name) {
+				g_unlink(script_name);
+				g_free(script_name);
+			}
+			return;
+		}
+	}
 
-    // Generate a unique connection path for the pipe or socket for this script
-    gchar *connection_path = NULL;
-    gchar *uuid = g_uuid_string_random();
-    #ifdef _WIN32
-    connection_path = g_strdup_printf("\\\\.\\pipe\\%s", uuid);
-    #else
-    connection_path = g_strdup_printf("/tmp/%s.sock", uuid);
-    #endif
-    g_free(uuid);
+	// Generate a unique connection path for the pipe or socket for this script
+	gchar *connection_path = NULL;
+	gchar *uuid = g_uuid_string_random();
+	#ifdef _WIN32
+	connection_path = g_strdup_printf("\\\\.\\pipe\\%s", uuid);
+	#else
+	connection_path = g_strdup_printf("/tmp/%s.sock", uuid);
+	#endif
+	g_free(uuid);
 
-    // Create connection
-    CommunicationState commstate = {0};
-    commstate.python_conn = create_connection(connection_path);
+	// Create connection
+	CommunicationState commstate = {0};
+	commstate.python_conn = create_connection(connection_path);
 
-    if (!commstate.python_conn) {
-        siril_log_color_message(_("Error: failed to create Python connection.\n"), "red");
-        // Clean up the temporary file if it's one
-        if (is_temp_file && script_name) {
-            g_unlink(script_name);
-            g_free(script_name);
-        }
-        return;
-    }
+	if (!commstate.python_conn) {
+		siril_log_color_message(_("Error: failed to create Python connection.\n"), "red");
+		// Clean up the temporary file if it's one
+		if (is_temp_file && script_name) {
+			g_unlink(script_name);
+			g_free(script_name);
+		}
+		return;
+	}
 
-    // Create worker thread
-    commstate.worker_thread = g_thread_new("python-comm",
-                                        connection_worker,
-                                        commstate.python_conn);
+	// Create worker thread
+	commstate.worker_thread = g_thread_new("python-comm",
+										connection_worker,
+										commstate.python_conn);
 
-    if (!commstate.python_conn) {
-        siril_log_color_message(_("Error: Python connection not available.\n"), "red");
-        // Clean up the temporary file if it's one
-        if (is_temp_file && script_name) {
-            g_unlink(script_name);
-            g_free(script_name);
-        }
-        return;
-    }
-    init_shm_tracking(commstate.python_conn);
+	if (!commstate.python_conn) {
+		siril_log_color_message(_("Error: Python connection not available.\n"), "red");
+		// Clean up the temporary file if it's one
+		if (is_temp_file && script_name) {
+			g_unlink(script_name);
+			g_free(script_name);
+		}
+		return;
+	}
+	init_shm_tracking(commstate.python_conn);
 
-    // Get base environment
-    gchar** env = g_get_environ();
+	// Get base environment
+	gchar** env = g_get_environ();
 
-    // Handle virtual environment if active
-    const gchar* venv_path = g_getenv("VIRTUAL_ENV");
-    if (venv_path != NULL) {
-        // Get the specific Python version for the site-packages path
-        gchar* python_version = get_venv_python_version(venv_path);
-        if (python_version) {
-            gchar* site_packages = NULL;
+	// Handle virtual environment if active
+	const gchar* venv_path = g_getenv("VIRTUAL_ENV");
+	if (venv_path != NULL) {
+		// Get the specific Python version for the site-packages path
+		gchar* python_version = get_venv_python_version(venv_path);
+		if (python_version) {
+			gchar* site_packages = NULL;
 #ifdef _WIN32
-            site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
+			site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
 #else
-            site_packages = g_build_filename(venv_path, "lib", g_strdup_printf("python%s", python_version), "site-packages", NULL);
+			site_packages = g_build_filename(venv_path, "lib", g_strdup_printf("python%s", python_version), "site-packages", NULL);
 #endif
-            // Update PYTHONPATH to include site-packages
-            const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
-            if (current_pythonpath != NULL) {
-                gchar* new_pythonpath = g_strjoin(G_SEARCHPATH_SEPARATOR_S, site_packages, current_pythonpath, NULL);
-                env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
-                g_free(new_pythonpath);
-            } else {
-                env = g_environ_setenv(env, "PYTHONPATH", site_packages, TRUE);
-            }
-            g_free(site_packages);
-            g_free(python_version);
-        }
-    }
+			// Update PYTHONPATH to include site-packages
+			const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
+			if (current_pythonpath != NULL) {
+				gchar* new_pythonpath = g_strjoin(G_SEARCHPATH_SEPARATOR_S, site_packages, current_pythonpath, NULL);
+				env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
+				g_free(new_pythonpath);
+			} else {
+				env = g_environ_setenv(env, "PYTHONPATH", site_packages, TRUE);
+			}
+			g_free(site_packages);
+			g_free(python_version);
+		}
+	}
 
-    // Set up connection information in environment
+	// Set up connection information in environment
 #ifdef _WIN32
-    env = g_environ_setenv(env, "MY_PIPE", connection_path, TRUE);
+	env = g_environ_setenv(env, "MY_PIPE", connection_path, TRUE);
 #else
-    env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
+	env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
 #endif
 	// Finished with connection_path regardless of OS now, so we can free it
 	g_free(connection_path);
 
 	// Set PYTHONUNBUFFERED in environment
-    env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
-    gchar *python_path = find_venv_python_exe(venv_path, TRUE);
-    gboolean success = FALSE;
-    gchar *working_dir = NULL;
-    GError* error = NULL;
-    GPid child_pid;
-    gint stdout_fd, stderr_fd;
-    if (!python_path) {
-        siril_log_color_message(_("Error finding venv python path, unable to spawn python.\n"), "red");
-        // Clean up on error
-        cleanup_shm_resources(commstate.python_conn);
-        free(commstate.python_conn);
-        g_strfreev(env);
-        if (is_temp_file && script_name) {
-            g_unlink(script_name);
-        }
-        g_free(script_name);
-        return;
-    } else {
-        // Clear any ROI that is set
-        on_clear_roi();
+	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
+	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
+	gboolean success = FALSE;
+	gchar *working_dir = NULL;
+	GError* error = NULL;
+	GPid child_pid;
+	gint stdout_fd, stderr_fd;
+	if (!python_path) {
+		siril_log_color_message(_("Error finding venv python path, unable to spawn python.\n"), "red");
+		// Clean up on error
+		cleanup_shm_resources(commstate.python_conn);
+		free(commstate.python_conn);
+		g_strfreev(env);
+		if (is_temp_file && script_name) {
+			g_unlink(script_name);
+		}
+		g_free(script_name);
+		return;
+	} else {
+		// Clear any ROI that is set
+		on_clear_roi();
 
-        // Basic argv to spawn python to run the script
-        GPtrArray* python_argv = g_ptr_array_new();
-        g_ptr_array_add(python_argv, python_path);
-        g_ptr_array_add(python_argv, "-u");  // Set unbuffered mode
+		// Basic argv to spawn python to run the script
+		GPtrArray* python_argv = g_ptr_array_new();
+		g_ptr_array_add(python_argv, python_path);
+		g_ptr_array_add(python_argv, "-u");  // Set unbuffered mode
 
-        if (from_file) {
-            g_ptr_array_add(python_argv, script_name);
-        } else {
-            g_ptr_array_add(python_argv, "-c");
-            g_ptr_array_add(python_argv, script_name);
-        }
+		if (from_file) {
+			g_ptr_array_add(python_argv, script_name);
+		} else {
+			g_ptr_array_add(python_argv, "-c");
+			g_ptr_array_add(python_argv, script_name);
+		}
 
-        // Add delimiter and script arguments if script arguments are provided
-        if (argv_script != NULL) {
-            // Add all script arguments
-            for (int i = 0; argv_script[i] != NULL; i++) {
-                g_ptr_array_add(python_argv, argv_script[i]);
-            }
-        }
+		// Add delimiter and script arguments if script arguments are provided
+		if (argv_script != NULL) {
+			// Add all script arguments
+			for (int i = 0; argv_script[i] != NULL; i++) {
+				g_ptr_array_add(python_argv, argv_script[i]);
+			}
+		}
 
-        // Null-terminate the array
-        g_ptr_array_add(python_argv, NULL);
+		// Null-terminate the array
+		g_ptr_array_add(python_argv, NULL);
 
-        // Use the GPtrArray for spawning
-        GSpawnFlags spawn_flags = G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD;
+		// Use the GPtrArray for spawning
+		GSpawnFlags spawn_flags = G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD;
 
-        success = g_spawn_async_with_pipes(
-            working_dir,
-            (gchar**)python_argv->pdata,
-            env,
-            spawn_flags,
-            NULL,
-            NULL,
-            &child_pid,
-            NULL,
-            &stdout_fd,
-            &stderr_fd,
-            &error
-        );
-        // Free the GPtrArray (but not its contents - the caller must free argv_script)
-        g_ptr_array_free(python_argv, FALSE);
-        g_free(python_path);
+		success = g_spawn_async_with_pipes(
+			working_dir,
+			(gchar**)python_argv->pdata,
+			env,
+			spawn_flags,
+			NULL,
+			NULL,
+			&child_pid,
+			NULL,
+			&stdout_fd,
+			&stderr_fd,
+			&error
+		);
+		// Free the GPtrArray (but not its contents - the caller must free argv_script)
+		g_ptr_array_free(python_argv, FALSE);
+		g_free(python_path);
 
-        if (success) {
-            // Set the flag that a python script is running
-            com.python_script = TRUE;
-            siril_debug_print("***** com.python_script flag set\n");
-            // Prepend this process to the list of child processes com.children
-            child_info *child = g_malloc(sizeof(child_info));
-            child->childpid = child_pid;
-            child->program = EXT_PYTHON;
-            gchar *script_basename = g_path_get_basename(script_name);
-            child->name = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
-            g_free(script_basename);
-            child->datetime = g_date_time_new_now_local();
-            com.children = g_slist_prepend(com.children, child);
-        }
-    }
+		if (success) {
+			// Set the flag that a python script is running
+			com.python_script = TRUE;
+			siril_debug_print("***** com.python_script flag set\n");
+			// Prepend this process to the list of child processes com.children
+			child_info *child = g_malloc(sizeof(child_info));
+			child->childpid = child_pid;
+			child->program = EXT_PYTHON;
+			gchar *script_basename = g_path_get_basename(script_name);
+			child->name = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
+			g_free(script_basename);
+			child->datetime = g_date_time_new_now_local();
+			com.children = g_slist_prepend(com.children, child);
+		}
+	}
 
-    if (!success) {
-        // Clean up on error
-        cleanup_shm_resources(commstate.python_conn);
-        free(commstate.python_conn);
-        g_strfreev(env);
-        if (is_temp_file && script_name) {
-            g_unlink(script_name);
-        }
-        g_free(script_name);
-        g_free(working_dir);
+	if (!success) {
+		// Clean up on error
+		cleanup_shm_resources(commstate.python_conn);
+		free(commstate.python_conn);
+		g_strfreev(env);
+		if (is_temp_file && script_name) {
+			g_unlink(script_name);
+		}
+		g_free(script_name);
+		g_free(working_dir);
 
-        if (error) {
-            siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
-            g_error_free(error);
-        }
+		if (error) {
+			siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
+			g_error_free(error);
+		}
 
-        // Re-enable widgets
-        gui_function(script_widgets_idle, NULL);
-        return;
-    }
+		// Re-enable widgets
+		gui_function(script_widgets_idle, NULL);
+		return;
+	}
 
-    // Create cleanup info structure for either synchronous or async operation
-    python_cleanup_info *cleanup = g_malloc(sizeof(python_cleanup_info));
-    cleanup->temp_filename = is_temp_file ? g_strdup(script_name) : NULL;
-    cleanup->child_pid = child_pid;
-    cleanup->is_temp_file = is_temp_file;
-    cleanup->python_conn = commstate.python_conn;
+	// Create cleanup info structure for either synchronous or async operation
+	python_cleanup_info *cleanup = g_malloc(sizeof(python_cleanup_info));
+	cleanup->temp_filename = is_temp_file ? g_strdup(script_name) : NULL;
+	cleanup->child_pid = child_pid;
+	cleanup->is_temp_file = is_temp_file;
+	cleanup->python_conn = commstate.python_conn;
 
-    if (sync) {
-        // Cross-platform process waiting
+	if (sync) {
+		// Cross-platform process waiting
 #ifdef _WIN32
-        // Use Windows-specific waiting
-        HANDLE process_handle = (HANDLE) child_pid;
-        if (process_handle != NULL) {
-            WaitForSingleObject(process_handle, INFINITE);
-            CloseHandle(process_handle);
-        }
+		// Use Windows-specific waiting
+		HANDLE process_handle = (HANDLE) child_pid;
+		if (process_handle != NULL) {
+			WaitForSingleObject(process_handle, INFINITE);
+			CloseHandle(process_handle);
+		}
 #else
-        // Use POSIX waitpid
-        gint status;
-        waitpid(child_pid, &status, 0);
+		// Use POSIX waitpid
+		gint status;
+		waitpid(child_pid, &status, 0);
 #endif
-        // Handle cleanup directly
-        python_process_cleanup(child_pid, 0, cleanup);
-    } else {
-        // Set up child process monitoring with cleanup
-        g_child_watch_add(child_pid, python_process_cleanup, cleanup);
-    }
+		// Handle cleanup directly
+		python_process_cleanup(child_pid, 0, cleanup);
+	} else {
+		// Set up child process monitoring with cleanup
+		g_child_watch_add(child_pid, python_process_cleanup, cleanup);
+	}
 
-    // Create input streams with appropriate flags
-    GInputStream *stdout_stream = NULL;
-    GInputStream *stderr_stream = NULL;
+	// Create input streams with appropriate flags
+	GInputStream *stdout_stream = NULL;
+	GInputStream *stderr_stream = NULL;
 
 #ifdef _WIN32
-    stdout_stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(stdout_fd), FALSE);
-    stderr_stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(stderr_fd), FALSE);
+	stdout_stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(stdout_fd), FALSE);
+	stderr_stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(stderr_fd), FALSE);
 #else
-    stdout_stream = g_unix_input_stream_new(stdout_fd, TRUE);
-    g_unix_set_fd_nonblocking(stdout_fd, TRUE, &error);
-    stderr_stream = g_unix_input_stream_new(stderr_fd, TRUE);
-    g_unix_set_fd_nonblocking(stderr_fd, TRUE, &error);
+	stdout_stream = g_unix_input_stream_new(stdout_fd, TRUE);
+	g_unix_set_fd_nonblocking(stdout_fd, TRUE, &error);
+	stderr_stream = g_unix_input_stream_new(stderr_fd, TRUE);
+	g_unix_set_fd_nonblocking(stderr_fd, TRUE, &error);
 #endif
 
-    // Create unbuffered data input streams
-    GDataInputStream *stdout_data = g_data_input_stream_new(stdout_stream);
-    GDataInputStream *stderr_data = g_data_input_stream_new(stderr_stream);
+	// Create unbuffered data input streams
+	GDataInputStream *stdout_data = g_data_input_stream_new(stdout_stream);
+	GDataInputStream *stderr_data = g_data_input_stream_new(stderr_stream);
 
-    // Set smaller buffer size for more responsive output
-    g_object_set(stdout_data, "buffer-size", 1024, NULL);
-    g_object_set(stderr_data, "buffer-size", 1024, NULL);
+	// Set smaller buffer size for more responsive output
+	g_object_set(stdout_data, "buffer-size", 1024, NULL);
+	g_object_set(stderr_data, "buffer-size", 1024, NULL);
 
-    // Start monitoring threads
-    GThread *stdout_thread = g_thread_new("stdout-monitor",
-        (GThreadFunc)monitor_stream_stdout,
-        g_object_ref(stdout_data));
-    GThread *stderr_thread = g_thread_new("stderr-monitor",
-        (GThreadFunc)monitor_stream_stderr,
-        g_object_ref(stderr_data));
+	// Start monitoring threads
+	GThread *stdout_thread = g_thread_new("stdout-monitor",
+		(GThreadFunc)monitor_stream_stdout,
+		g_object_ref(stdout_data));
+	GThread *stderr_thread = g_thread_new("stderr-monitor",
+		(GThreadFunc)monitor_stream_stderr,
+		g_object_ref(stderr_data));
 
-    // Clean up references
-    g_object_unref(stdout_stream);
-    g_object_unref(stderr_stream);
-    g_thread_unref(stdout_thread);
-    g_thread_unref(stderr_thread);
+	// Clean up references
+	g_object_unref(stdout_stream);
+	g_object_unref(stderr_stream);
+	g_thread_unref(stdout_thread);
+	g_thread_unref(stderr_thread);
 
-    siril_debug_print("Python script launched asynchronously with PID %d\n", child_pid);
-    g_free(working_dir);
-    g_strfreev(env);
+	siril_debug_print("Python script launched asynchronously with PID %d\n", child_pid);
+	g_free(working_dir);
+	g_strfreev(env);
 
 }
