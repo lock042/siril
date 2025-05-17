@@ -2002,6 +2002,7 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
         gui_function(script_widgets_idle, NULL);
 
         // Free the cleanup structure
+		g_unlink(cleanup->temp_filename);
         g_free(cleanup->temp_filename);
         g_free(cleanup);
     }
