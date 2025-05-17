@@ -2041,7 +2041,6 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
     // Create connection
     CommunicationState commstate = {0};
     commstate.python_conn = create_connection(connection_path);
-    g_free(connection_path);
 
     if (!commstate.python_conn) {
         siril_log_color_message(_("Error: failed to create Python connection.\n"), "red");
@@ -2100,11 +2099,14 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 
     // Set up connection information in environment
 #ifdef _WIN32
-    env = g_environ_setenv(env, "MY_PIPE", commstate.python_conn->socket_path, TRUE);
+    env = g_environ_setenv(env, "MY_PIPE", connection_path, TRUE);
 #else
     env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
 #endif
-    // Set PYTHONUNBUFFERED in environment
+	// Finished with connection_path regardless of OS now, so we can free it
+	g_free(connection_path);
+
+	// Set PYTHONUNBUFFERED in environment
     env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
     gchar *python_path = find_venv_python_exe(venv_path, TRUE);
     gboolean success = FALSE;
