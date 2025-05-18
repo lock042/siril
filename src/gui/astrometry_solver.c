@@ -36,11 +36,9 @@
 #include "gui/image_interactions.h"
 #include "gui/PSF_list.h"
 #include "gui/photometric_cc.h"
-#include "gui/registration.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/siril_catalogues.h"
-#include "io/remote_catalogues.h"
 #include "io/local_catalogues.h"
 
 enum {

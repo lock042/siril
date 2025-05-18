@@ -28,7 +28,6 @@
 #include "core/processing.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
-#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
@@ -39,7 +38,7 @@
 
 static gboolean asinh_rgb_space = FALSE;
 static float asinh_stretch_value = 0.0f, asinh_black_value = 0.0f;
-static clip_mode_t clip_mode = RGBBLEND;
+static clip_mode_t clip_mode = CLIP;
 
 static int asinh_update_preview() {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))))

@@ -25,7 +25,6 @@
 #include "algos/extraction.h"
 #include "io/sequence.h"
 #include "gui/dialogs.h"
-#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 

@@ -21,9 +21,6 @@
 #include "io/siril_plot.h"
 
 #include <cairo.h>
-#ifdef CAIRO_HAS_SVG_SURFACE
-#include <cairo/cairo-svg.h>
-#endif
 #include <math.h>
 #include "core/proto.h"
 #include "core/siril_log.h"

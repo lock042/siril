@@ -27,7 +27,6 @@
 #include <pango/pangocairo.h>
 #include <math.h>
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "gui/plot.h"
 

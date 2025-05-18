@@ -26,22 +26,18 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/icc_profile.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
-#include "core/arithm.h"
 #include "algos/statistics.h"
 #include "algos/colors.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"	// for lookup_widget()
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/siril_preview.h"
-#include "gui/registration_preview.h"
 #include "core/undo.h"
 #include "histogram.h"
 
@@ -62,10 +58,10 @@ static gboolean closing = FALSE;
 static gboolean sequence_working = FALSE;
 // Parameters for use in calculations
 static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0f;
-static clip_mode_t _clip_mode = RGBBLEND;
+static clip_mode_t _clip_mode = CLIP;
 static gboolean do_channel[3];
 static int _stretchtype = STRETCH_PAYNE_NORMAL;
-static int _payne_colourstretchmodel = COL_INDEP;
+static int _payne_colourstretchmodel = COL_HUMANLUM;
 static ght_compute_params compute_params;
 
 static fits* fit = &gfit;
@@ -888,9 +884,9 @@ static void reset_cursors_and_values(gboolean full_reset) {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP")), _HP);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtBP")), _BP);
 		if (full_reset) {
-			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 0);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 1);
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payneTyp")), 0);
-			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("histo_clip_mode")), 2);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("histo_clip_mode")), 0);
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")), TRUE);
 		}
 	}

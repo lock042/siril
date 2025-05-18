@@ -31,7 +31,6 @@
 #include "core/siril_networking.h"
 #include "core/siril_update.h" // for the version_number struct
 #include "gui/message_dialog.h"
-#include "gui/callbacks.h"
 #include "gui/photometric_cc.h"
 #include "gui/script_menu.h" // for SCRIPT_EXT TODO: after python3 is merged, move this out of src/gui
 #include "io/siril_git.h"
@@ -729,8 +728,10 @@ int auto_update_gitscripts(gboolean sync) {
 
 	// Clone options
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
+#if LIBGIT2_VER_MAJOR > 1 || (LIBGIT2_VER_MAJOR == 1 && LIBGIT2_VER_MINOR >= 7)
 	// Set up fetch options to create a shallow clone with depth=1, for speed
 	clone_opts.fetch_opts.depth = 1;
+#endif
 
 	git_repository *repo = NULL;
 
@@ -887,8 +888,10 @@ int auto_update_gitspcc(gboolean sync) {
 
 	// Clone options
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
+#if LIBGIT2_VER_MAJOR > 1 || (LIBGIT2_VER_MAJOR == 1 && LIBGIT2_VER_MINOR >= 7)
 	// Set up fetch options to create a shallow clone with depth=1, for speed
 	clone_opts.fetch_opts.depth = 1;
+#endif
 
 	git_repository *repo = NULL;
 	git_remote *remote = NULL;

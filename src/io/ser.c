@@ -34,10 +34,8 @@
 #include "core/siril_date.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "algos/demosaicing.h"
-#include "io/conversion.h"
 #include "io/image_format_fits.h"
 #include "ser.h"
 
@@ -855,7 +853,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 					if (!user_warned) {
 						siril_log_color_message(_("Bayer pattern found in header (%s) is different"
 								" from Bayer pattern in settings (%s). Overriding settings.\n"),
-								"salmon", filter_pattern[bayer], filter_pattern[com.pref.debayer.bayer_pattern]);
+								"blue", filter_pattern[bayer], filter_pattern[com.pref.debayer.bayer_pattern]);
 					}
 					com.pref.debayer.bayer_pattern = bayer;
 				}
@@ -1099,7 +1097,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 					if (!user_warned) {
 						siril_log_color_message(_("Bayer pattern found in header (%s) is different"
 								" from Bayer pattern in settings (%s). Overriding settings.\n"),
-								"salmon", filter_pattern[bayer], filter_pattern[com.pref.debayer.bayer_pattern]);
+								"blue", filter_pattern[bayer], filter_pattern[com.pref.debayer.bayer_pattern]);
 					}
 					com.pref.debayer.bayer_pattern = bayer;
 				}

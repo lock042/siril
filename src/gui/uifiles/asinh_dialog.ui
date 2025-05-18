@@ -286,7 +286,14 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkComboBoxText" id="asinh_clipmode">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="active">2</property>
+                <property name="tooltip-markup" translatable="yes">Select blend mode.
+Clip: clips values to the range 0.0 - 1.0. &lt;b&gt;Default&lt;/b&gt;
+Rescale: rescales RGB values of clipped pixels to not exceed 1.0 per pixel
+RGB blend: applies a blending function for smooth reconstructed highlight colors.
+Global rescale: Same as Rescale, but rescales to the global maximum component value
+
+Clip is fastest: set one of the other modes when you're happy with your stretch if you notice colour artefacts around bright stars.</property>
+                <property name="active">0</property>
                 <items>
                   <item translatable="yes">Clip</item>
                   <item translatable="yes">Rescale</item>

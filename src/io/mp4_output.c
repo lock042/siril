@@ -40,7 +40,6 @@
 #include "io/mp4_output.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
-#include "gui/progress_and_log.h"
 
 //#define STREAM_DURATION   10.0
 #define STREAM_PIX_FMT    AV_PIX_FMT_YUV420P /* default output pix_fmt */

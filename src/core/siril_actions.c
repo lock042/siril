@@ -22,8 +22,6 @@
 #include "core/proto.h"
 #include "core/command.h"
 #include "core/undo.h"
-#include "core/icc_profile.h"
-#include "core/command.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
 #include "core/siril_log.h"
@@ -34,7 +32,6 @@
 #include "io/sequence.h"
 #include "algos/astrometry_solver.h"
 #include "algos/noise.h"
-#include "algos/geometry.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/ccd-inspector.h"
@@ -55,7 +52,6 @@
 #include "gui/sequence_list.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
-#include "gui/script_menu.h"
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
@@ -63,7 +59,6 @@
 #include "gui/registration_preview.h"
 #include "gui/remixer.h"
 #include "gui/user_polygons.h"
-#include "livestacking/livestacking.h"
 #include "registration/registration.h"
 #include "io/siril_catalogues.h"
 
@@ -339,8 +334,17 @@ void color_map_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 }
 
 void chain_channels_state_change(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	gboolean linked = g_variant_get_boolean(state);
 	g_simple_action_set_state(action, state);
-	set_unlink_channels(!g_variant_get_boolean(state));
+	set_unlink_channels(!linked);
+	gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", linked ? "chain-linked.svg" : "chain.svg", NULL);
+	GtkWidget *image = lookup_widget("autostretch_linked_icon");
+	gtk_image_set_from_resource((GtkImage*) image, name);
+	GtkWidget *button = lookup_widget("linked_autostretch_button");
+	gchar *tooltip_text = g_strdup_printf(_("Link/unlink channels in autostretch viewer mode.\nCurrent state: %s."), linked ? _("linked") : _("unlinked"));
+	gtk_widget_set_tooltip_text(button, tooltip_text);
+	g_free(name);
+	g_free(tooltip_text);
 }
 
 void chain_channels_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

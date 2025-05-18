@@ -20,21 +20,19 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include "core/OS_utils.h"
 /* Constant available since Shell32.dll 4.72 */
 #ifndef CSIDL_APPDATA
 #define CSIDL_APPDATA 0x001a
 #endif
 #endif
 #include <string.h>
-#include <locale.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/initfile.h"
-#include "core/command.h" // for process_close()
 #include "core/command_line_processor.h"
 #include "core/processing.h"
-#include "core/OS_utils.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "io/siril_pythonmodule.h"
@@ -189,7 +187,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	if (g_str_has_suffix(script_file, PYSCRIPT_EXT) || g_str_has_suffix(script_file, PYCSCRIPT_EXT)) {
 		// Run Python script
 		g_unsetenv("SIRIL_PYTHON_CLI");
-		execute_python_script(script_file, TRUE, FALSE, NULL);
+		execute_python_script(script_file, TRUE, FALSE, NULL, FALSE);
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
 		/* Last thing before running the script, disable widgets except for Stop */
 		script_widgets_enable(FALSE);

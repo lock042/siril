@@ -29,24 +29,19 @@
 #include "core/undo.h"
 #include "core/command.h"
 #include "core/command_line_processor.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/siril_networking.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
-#include "core/arithm.h"
 #include "filters/graxpert.h"
 #include "gui/cut.h"
-#include "gui/graxpert.h"
 #include "gui/keywords_tree.h"
 #include "gui/registration.h"
 #include "gui/photometric_cc.h"
 #include "gui/stacking.h"
+#include "gui/python_gui.h"
 #include "algos/siril_wcs.h"
-#include "algos/star_finder.h"
-#include "algos/demosaicing.h"
 #include "io/annotation_catalogues.h"
-#include "io/conversion.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
@@ -54,8 +49,6 @@
 #include "io/siril_pythonmodule.h"
 #include "io/siril_git.h"
 #include "annotations_pref.h"
-#include "compositing/align_rgb.h"
-#include "preferences.h"
 #include "image_display.h"
 #include "image_interactions.h"
 #include "single_image.h"
@@ -72,7 +65,6 @@
 #include "script_menu.h"
 #include "progress_and_log.h"
 #include "dialogs.h"
-#include "fix_xtrans_af.h"
 #include "siril_intro.h"
 #include "siril_preview.h"
 #include "siril-window.h"
@@ -1583,7 +1575,7 @@ void unlock_script_mutex() {
 gpointer initialize_scripts(gpointer user_data) {
 	g_mutex_lock(&script_mutex);
 	// 1. Initialize the menu (verbose)
-	execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(com.pref.auto_script_update));
+	execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(1));
 	// 2. Update the repository
 	if (com.pref.auto_script_update && is_online()) {
 		auto_update_gitscripts(TRUE);
@@ -2010,6 +2002,15 @@ void gtk_main_quit() {
 }
 
 void siril_quit() {
+	if (script_editor_has_unsaved_changes()) {
+		gboolean quit_anyway = siril_confirm_dialog(_("Unsaved script changes"),
+				_("There are unsaved changes in the script editor. Quit anyway?"),
+				_("Quit"));
+		if (!quit_anyway) {
+			on_open_pythonpad(NULL, NULL);
+			return;
+		}
+	}
 	if (com.pref.gui.silent_quit) {
 		gtk_main_quit();
 	}

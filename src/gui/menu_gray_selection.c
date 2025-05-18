@@ -18,13 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
 #include "core/siril.h"
 #include "core/proto.h"
 
-#include "core/command.h"
 #include "io/sequence.h"
-#include "gui/message_dialog.h"
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
