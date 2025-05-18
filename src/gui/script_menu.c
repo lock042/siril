@@ -20,6 +20,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include "core/OS_utils.h"
 /* Constant available since Shell32.dll 4.72 */
 #ifndef CSIDL_APPDATA
 #define CSIDL_APPDATA 0x001a
