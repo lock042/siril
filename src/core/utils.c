@@ -39,9 +39,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
-#include "core/exif.h"
 #include "io/conversion.h"
 #include "io/ser.h"
 #include "io/sequence.h"

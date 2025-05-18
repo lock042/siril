@@ -29,9 +29,7 @@
 #include <gsl/gsl_histogram.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <opencv2/core/version.hpp>
 #include <glib.h>
-#include <libgen.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <tchar.h>
@@ -78,7 +76,6 @@
 #include "gui/image_interactions.h"
 #include "gui/keywords_tree.h"
 #include "gui/newdeconv.h"
-#include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
 #include "gui/stacking.h"
 #include "gui/registration.h"
@@ -108,7 +105,6 @@
 #include "algos/astrometry_solver.h"
 #include "algos/search_objects.h"
 #include "algos/star_finder.h"
-#include "algos/Def_Math.h"
 #include "algos/Def_Wavelet.h"
 #include "algos/background_extraction.h"
 #include "algos/ccd-inspector.h"
@@ -131,7 +127,6 @@
 #include "registration/registration.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
-#include "git-version.h"
 #include "io/healpix/healpix_cat.h"
 
 #include "command.h"

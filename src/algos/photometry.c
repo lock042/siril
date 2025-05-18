@@ -20,7 +20,6 @@
 
 #include <math.h>
 #include <gsl/gsl_matrix.h>
-#include <gsl/gsl_sort.h>
 #include <gsl/gsl_statistics.h>
 #include <string.h>
 
@@ -31,12 +30,8 @@
 #include "algos/sorting.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
-#include "algos/astrometry_solver.h"
 #include "algos/statistics_float.h"
-#include "algos/siril_wcs.h"
-#include "algos/search_objects.h"
 #include "algos/comparison_stars.h"
-#include "gui/PSF_list.h"
 #include "gui/plot.h"
 #include "gui/image_display.h"
 #include "gui/siril_plot.h"

@@ -32,10 +32,8 @@
 #include "core/command.h" // process_close
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
-#include "algos/astrometry_solver.h"
 #include "algos/colors.h"
 #include "algos/fitting.h"
-#include "algos/siril_wcs.h"
 #include "filters/linear_match.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -50,7 +48,6 @@
 #include "gui/photometric_cc.h"
 #include "gui/progress_and_log.h"
 #include "gui/sequence_list.h"
-#include "gui/colors.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"

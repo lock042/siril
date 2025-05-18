@@ -25,11 +25,9 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
-#include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/search_objects.h"
 #include "io/siril_catalogues.h"
-#include "io/remote_catalogues.h"
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
 

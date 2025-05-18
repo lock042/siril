@@ -28,7 +28,6 @@
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
 #include "io/local_catalogues.h"
-#include "io/remote_catalogues.h"
 #include "stacking/stacking.h"
 
 /* the settings as initialized in static.

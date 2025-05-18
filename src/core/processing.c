@@ -35,10 +35,8 @@
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "filters/graxpert.h" // for set_graxpert_aborted()
-#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
-#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
 #include "io/sequence.h"

@@ -23,7 +23,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "core/icc_profile.h"

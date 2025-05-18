@@ -18,7 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 #include <stdlib.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
@@ -29,9 +28,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
-#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
-#include "io/single_image.h"
 #include "io/image_format_fits.h"
 
 #include "arithm.h"

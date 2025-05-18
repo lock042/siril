@@ -41,7 +41,6 @@
 #include "gui/dialogs.h"
 #include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
-#include "gui/preferences.h"
 #include "gui/plot.h"
 #include "gui/registration_preview.h"
 #include "gui/registration.h"
@@ -53,11 +52,8 @@
 #include "gui/PSF_list.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
-#include "gui/utils.h"
 #include "core/undo.h"
 #include "core/processing.h"
-#include "compositing/compositing.h"
-#include "registration/registration.h"
 
 /* Closes and frees resources attached to the single image opened in gfit.
  * If a sequence is loaded and one of its images is displayed, nothing is done.

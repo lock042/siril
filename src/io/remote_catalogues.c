@@ -34,15 +34,9 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
-#include "algos/PSF.h"
-#include "algos/search_objects.h"
-#include "algos/siril_wcs.h"
-#include "io/annotation_catalogues.h"
 #include "algos/astrometry_solver.h"
-#include "algos/comparison_stars.h"
 #include "io/siril_catalogues.h"
 #include "io/remote_catalogues.h"
-#include "registration/matching/misc.h"
 
 // These statics define the formatting for some fields used when writing catalog names
 static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",
