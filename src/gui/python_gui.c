@@ -146,6 +146,10 @@ static void setup_editor_actions(GtkWindow *window) {
 	g_object_unref(action_group);
 }
 
+gboolean script_editor_has_unsaved_changes() {
+	return buffer_modified;
+}
+
 void add_code_view(GtkBuilder *builder) {
 	// Create a new GtkSourceBuffer (glade doesn't handle this properly)
 	sourcebuffer = gtk_source_buffer_new(NULL);

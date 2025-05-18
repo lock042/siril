@@ -42,6 +42,7 @@
 #include "gui/registration.h"
 #include "gui/photometric_cc.h"
 #include "gui/stacking.h"
+#include "gui/python_gui.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "algos/demosaicing.h"
@@ -2010,6 +2011,15 @@ void gtk_main_quit() {
 }
 
 void siril_quit() {
+	if (script_editor_has_unsaved_changes()) {
+		gboolean quit_anyway = siril_confirm_dialog(_("Unsaved script changes"),
+				_("There are unsaved changes in the script editor. Quit anyway?"),
+				_("Quit"));
+		if (!quit_anyway) {
+			on_open_pythonpad(NULL, NULL);
+			return;
+		}
+	}
 	if (com.pref.gui.silent_quit) {
 		gtk_main_quit();
 	}
