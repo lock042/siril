@@ -700,16 +700,11 @@ class SirilInterface:
                   user to try again once the thread is free.
         """
         try:
-            retval = self._execute_command(_Command.CLAIM_THREAD, None)
-            if retval is True:
-                return True
-            if retval is None:
-                print(_("The processing thread is locked. Wait for the current "
-                    "processing task to finish."))
+            status, response = self._send_command(_Command.CLAIM_THREAD, None)
+            if status == _Status.NONE or status == _Status.ERROR:
+                print(f"image_lock: {response.decode('utf-8')}", file=sys.stderr)
                 return False
-            print(_("Error trying to claim the processing thread. Thread is "
-                "in use or an image processing dialog is open."))
-            return False
+            return True
 
         except Exception as e:
             print(f"Error claiming processing thread: {e}", file=sys.stderr)

@@ -2095,11 +2095,13 @@ CLEANUP:
 			int ret = claim_thread_for_python();
 			if (ret == 1) {
 				// Unable to claim the thread
-				const char* error_msg = _("Thread is busy");
+				const char* error_msg = _("the processing thread is locked. Wait "
+						"for the current processing task to finish.");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			} else if (ret == 2) {
 				// Unable to claim the thread
-				const char* error_msg = _("Image processing dialog is open");
+				const char* error_msg = _("an image processing dialog is open. Close "
+						"it to release the image lock and try again.");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			} else  if (ret == 0) {
 				// Thread claimed, we can safely do gfit processing tasks
