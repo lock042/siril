@@ -23,8 +23,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
-#include "algos/statistics.h"
-#include "core/arithm.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"

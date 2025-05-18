@@ -26,7 +26,6 @@
 #include "drizzle/cdrizzleutil.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
-#include "gui/open_dialog.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
@@ -40,7 +39,6 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
-#include "io/fits_keywords.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
 

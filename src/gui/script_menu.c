@@ -26,15 +26,12 @@
 #endif
 #endif
 #include <string.h>
-#include <locale.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/initfile.h"
-#include "core/command.h" // for process_close()
 #include "core/command_line_processor.h"
 #include "core/processing.h"
-#include "core/OS_utils.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "io/siril_pythonmodule.h"

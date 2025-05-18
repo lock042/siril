@@ -49,7 +49,6 @@
 #include "registration/matching/degtorad.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
-#include "git-version.h"
 
 #include <wcslib.h>
 #include <wcsfix.h>
