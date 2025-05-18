@@ -34,10 +34,8 @@
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
 #include "io/image_format_fits.h"
-#include "io/single_image.h"
 #include "algos/Def_Wavelet.h"
 #include "wavelets.h"
-#include "core/OS_utils.h"
 
 static float wavelet_value[6];
 static gboolean wavelet_show_preview;

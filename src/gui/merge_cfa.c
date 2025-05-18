@@ -19,7 +19,6 @@
 */
 
 #include "core/siril.h"
-#include "core/command.h"
 #include "core/command_line_processor.h" // for load_sequence - TODO: move this to sequence.c
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"

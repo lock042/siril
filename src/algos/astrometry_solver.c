@@ -38,20 +38,14 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
-#include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/siril_spawn.h"
 #include "core/undo.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
-#include "io/annotation_catalogues.h"
 #include "algos/photometry.h"
-#include "algos/photometric_cc.h"
-#include "algos/spcc.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
-#include "io/fits_keywords.h"
-#include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
@@ -61,8 +55,6 @@
 #include "registration/matching/match.h"
 #include "registration/matching/apply_match.h"
 #include "registration/matching/atpmatch.h"
-#include "gui/message_dialog.h"
-
 
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-2 // convergence tolerance in arcsec from the projection center

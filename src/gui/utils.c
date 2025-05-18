@@ -23,13 +23,11 @@
 #include "core/processing.h"
 #include <glib.h>
 
-#include "algos/demosaicing.h"
 #include "algos/statistics.h"
 #include "core/arithm.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
 #include "utils.h"
-#include "core/siril_log.h"
 #include "message_dialog.h"
 
 struct _label_data {

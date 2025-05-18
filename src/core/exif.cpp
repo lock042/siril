@@ -24,9 +24,6 @@ extern "C" {
 #endif
 }
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include <glib.h>
 

@@ -27,7 +27,6 @@
 #include "algos/PSF.h"
 #include "core/siril_log.h"
 #include "io/siril_plot.h"
-#include "gui/siril_plot.h"
 
 #include "aavso_extended.h"
 

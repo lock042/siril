@@ -29,7 +29,6 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"
-#include "gui/image_interactions.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 

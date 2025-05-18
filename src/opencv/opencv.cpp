@@ -27,8 +27,6 @@
 #include <iostream>
 #include <iomanip>
 #include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/core/version.hpp>
 #include <opencv2/core/matx.hpp>
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
@@ -41,7 +39,6 @@
 #include "core/siril_log.h"
 #include "core/settings.h"
 #include "registration/registration.h"
-#include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv.h"
 #include "guidedfilter.h"

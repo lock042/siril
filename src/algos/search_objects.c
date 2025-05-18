@@ -25,13 +25,11 @@
 #include "core/processing.h"
 #include "core/siril_networking.h"
 #include "io/annotation_catalogues.h"
-#include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
 #include "io/remote_catalogues.h"
 #include "gui/dialogs.h"
 #include "gui/utils.h"
-#include "gui/image_display.h"
 
 
 /* parse response from online catalogue lookups (search_in_online_catalogs()

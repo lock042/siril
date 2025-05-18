@@ -28,7 +28,6 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
@@ -39,13 +38,10 @@
 #include "gui/message_dialog.h"
 #include "gui/siril_preview.h"
 #include "gui/histogram.h"
-#include "core/undo.h"
 #include "core/arithm.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "filters/ght.h"
 
-#include "gui/histogram.h"
 #include <gsl/gsl_histogram.h>
 
 // Invocation: 1 if called directly from starnet GUI,

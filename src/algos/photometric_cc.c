@@ -47,7 +47,6 @@
 #include "gui/siril_plot.h"
 #include "gui/progress_and_log.h"
 #include "gui/photometric_cc.h"
-#include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "photometric_cc.h"
 
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};

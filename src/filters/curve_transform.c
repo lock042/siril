@@ -20,7 +20,6 @@
 
 #include <glib.h>
 #include "curve_transform.h"
-#include "gui/curves.h"
 #include "core/proto.h"
 #include <math.h>
 

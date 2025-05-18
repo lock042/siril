@@ -34,7 +34,6 @@
 #include "core/processing.h"
 #include "opencv/opencv.h"
 #include "gui/image_interactions.h"
-#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/PSF_list.h"	// clear_stars_list
 

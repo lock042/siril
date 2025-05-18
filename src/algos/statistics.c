@@ -47,7 +47,6 @@
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "sorting.h"
 #include "statistics.h"
 #include "statistics_float.h"
 #include "demosaicing.h"

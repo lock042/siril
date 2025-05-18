@@ -21,8 +21,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
-#include "core/command.h" // for process_clear()
-#include "core/OS_utils.h"
 #include "core/pipe.h"
 #include "gui/progress_and_log.h"
 

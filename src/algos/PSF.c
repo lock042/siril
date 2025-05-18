@@ -25,10 +25,7 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_linalg.h>
-#include <gsl/gsl_cblas.h>
 #include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit_nlinear.h>
 
 #include "core/siril.h"
@@ -36,9 +33,7 @@
 #include "core/siril_log.h"
 #include "core/siril_world_cs.h"
 #include "algos/photometry.h"
-#include "algos/sorting.h"
 #include "algos/siril_wcs.h"
-#include "algos/star_finder.h"
 #include "filters/median.h"
 
 #include "PSF.h"

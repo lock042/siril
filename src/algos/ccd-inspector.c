@@ -22,7 +22,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/command.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "algos/PSF.h"
