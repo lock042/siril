@@ -26,6 +26,9 @@
 #include "io/image_format_fits.h"
 #include "io/siril_pythonmodule.h"
 #include "filters/synthstar.h"
+#ifdef _WIN32
+#include "core/OS_utils.h"
+#endif
 
 // Helper macros
 #define COPY_FLEN_STRING(str) \

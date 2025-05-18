@@ -8,7 +8,6 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <gio/gwin32inputstream.h>
-#include "core/OS_utils.h"
 #else
 #include <gio/gunixinputstream.h>
 #include <glib-unix.h>
