@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-16 23:47+0200\n"
-"PO-Revision-Date: 2025-05-14 12:32+0000\n"
+"PO-Revision-Date: 2025-05-17 00:20+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -512,9 +512,8 @@ msgid "Clear"
 msgstr "Effacer"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-#, fuzzy
 msgid "Clear all current temporary annotations (in red by default)"
-msgstr "Efface toutes les annotations du catalogue utilisateur."
+msgstr "Efface toutes les annotations temporaires (en rouge par défaut)"
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -870,7 +869,6 @@ msgid "Clip mode"
 msgstr "Mode d'écrêtage"
 
 #: src/gui/uifiles/asinh_dialog.ui:289 src/gui/uifiles/histogram_dialog.ui:760
-#, fuzzy
 msgid ""
 "Select blend mode.\n"
 "Clip: clips values to the range 0.0 - 1.0. <b>Default</b>\n"
@@ -890,7 +888,11 @@ msgstr ""
 "Mélanger RVB : applique une fonction de fusion pour des couleurs de "
 "surbrillance reconstruites en douceur. <b>Par défaut</b>\n"
 "Rééchelonnement global : identique à Rééchelonner, mais redimensionne à la "
-"valeur maximale globale du composant"
+"valeur maximale globale du composant\n"
+"\n"
+"L'écrêtage est le plus rapide : définissez l'un des autres modes lorsque "
+"vous êtes satisfait de votre étirement si vous remarquez des artefacts de "
+"couleur autour des étoiles brillantes."
 
 #: src/gui/uifiles/asinh_dialog.ui:298 src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:769 src/gui/utils.c:402
@@ -12317,11 +12319,12 @@ msgstr ""
 "votre histogramme avant de travailler sur un outil externe. </b>"
 
 #: src/gui/uifiles/siril.ui:10067
-#, fuzzy
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
 "Current state: linked."
-msgstr "Lier/délier les canaux en mode de visualisation auto-ajustement.\n"
+msgstr ""
+"Lier/dissocier les canaux en mode autoajustement\n"
+"État actuel : lié."
 
 #: src/gui/uifiles/siril.ui:10093
 msgid "Switch to normal and negative view"
@@ -16488,7 +16491,7 @@ msgstr "lié"
 
 #: src/core/command.c:3336 src/core/siril_actions.c:349
 msgid "unlinked"
-msgstr "non lié"
+msgstr "dissocié"
 
 #: src/core/command.c:3366
 msgid "Factor must be a number greater than 0.\n"
@@ -20313,11 +20316,13 @@ msgstr ""
 "manquante\n"
 
 #: src/core/siril_actions.c:349
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
 "Current state: %s."
-msgstr "Lier/délier les canaux en mode de visualisation auto-ajustement.\n"
+msgstr ""
+"Associer/dissocier les canaux en mode autoajustement\n"
+"État actuel : %s."
 
 #: src/core/siril_actions.c:384 src/gui/PSF_list.c:812
 msgid "Current selection is too large"
@@ -27308,9 +27313,8 @@ msgstr ""
 
 #. Not a valid git path
 #: src/io/siril_git.c:283
-#, fuzzy
 msgid "Invalid Git repository path.\n"
-msgstr "Chemin d'accès au dépôt :"
+msgstr "Chemin de dépôt Git non valide.\n"
 
 #: src/io/siril_git.c:299 src/io/siril_git.c:311 src/io/siril_git.c:323
 msgid ""
@@ -27357,9 +27361,9 @@ msgid "Attempting to clone from remote source...\n"
 msgstr "Tentative de clonage à partir d'une source distante...\n"
 
 #: src/io/siril_git.c:752
-#, fuzzy, c-format
+#, c-format
 msgid "Error cloning repository into %s: %s\n"
-msgstr "Erreur de clonage du dépôt : %s\n"
+msgstr "Erreur lors du clonage du dépôt dans %s : %s\n"
 
 #: src/io/siril_git.c:757 src/io/siril_git.c:916
 msgid "Repository cloned successfully!\n"

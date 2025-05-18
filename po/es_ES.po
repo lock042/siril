@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-16 23:47+0200\n"
-"PO-Revision-Date: 2025-05-11 15:05+0000\n"
+"PO-Revision-Date: 2025-05-18 19:13+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -3910,6 +3910,10 @@ msgid ""
 "highlights / stars. The star mask HP can be set to quite a low value to "
 "prevent bloat of brighter stars."
 msgstr ""
+"Establece un valor por encima del cual se modifica el estiramiento para "
+"preservar el contraste en los brillos/estrellas. La máscara de estrellas HP "
+"puede configurarse a un valor bastante bajo para evitar que las estrellas "
+"más brillantes se llenen de brillo."
 
 #: src/gui/uifiles/dialog_star_remix.ui:749
 msgid ""
@@ -3918,6 +3922,11 @@ msgid ""
 "recomposition mode to prevent bloat of brighter stars while boosting the "
 "brightness of fainter ones."
 msgstr ""
+"Establece un valor por encima del cual se modifica el estiramiento para "
+"preservar el contraste en los brillos/estrellas. Este valor se puede "
+"establecer en un valor bastante bajo en el modo de recomposición de "
+"estrellas para evitar que las estrellas más brillantes se engrosen y "
+"aumentar el brillo de las más tenues."
 
 #: src/gui/uifiles/dialog_star_remix.ui:784
 #: src/gui/uifiles/dialog_star_remix.ui:1422
@@ -3935,6 +3944,9 @@ msgid ""
 "image after the initial hyperbolic stretch. BP adjustment may result in "
 "clipping the shadows."
 msgstr ""
+"Ajuste de punto negro. Este es un valor constante que se resta de la imagen "
+"tras el estiramiento hiperbólico inicial. El ajuste de punto negro puede "
+"provocar el recorte de las sombras."
 
 #: src/gui/uifiles/dialog_star_remix.ui:899
 msgid ""
@@ -4110,6 +4122,10 @@ msgid ""
 "WARNING: using guide images that are not based on the original image is "
 "likely to produce bad results."
 msgstr ""
+"Seleccionar imagen guía. No es necesario seleccionar un archivo si la "
+"casilla \"Autoguiado\" está marcada.\n"
+"ADVERTENCIA: Usar imágenes guía que no se basen en la imagen original puede "
+"producir resultados incorrectos."
 
 #: src/gui/uifiles/epf_dialog.ui:211
 #, fuzzy
@@ -4126,6 +4142,8 @@ msgid ""
 "If set to 0, the diameter will automatically be set based on the spatial "
 "sigma parameter"
 msgstr ""
+"Si se establece en 0, el diámetro se establecerá automáticamente en función "
+"del parámetro sigma espacial."
 
 #: src/gui/uifiles/epf_dialog.ui:245
 #, fuzzy
@@ -4139,12 +4157,19 @@ msgid ""
 "value, otherwise the spatial extent of the filter is set to exactly this "
 "value regardless of sigma (spatial)"
 msgstr ""
+"Esto define el diámetro sobre el que se aplica el filtro de conservación de "
+"bordes. Si es cero, la extensión espacial se establece automáticamente según "
+"el valor de sigma espacial; de lo contrario, la extensión espacial del "
+"filtro se establece exactamente en este valor, independientemente de sigma "
+"(espacial)."
 
 #: src/gui/uifiles/epf_dialog.ui:283
 msgid ""
 "This affects the diameter the filter applies over. If it is zero, the "
 "spatial extent is set by the spatial sigma value."
 msgstr ""
+"Esto afecta el diámetro sobre el que se aplica el filtro. Si es cero, la "
+"extensión espacial se define mediante el valor sigma espacial."
 
 #: src/gui/uifiles/epf_dialog.ui:309
 msgid "Sigma (spatial)"
@@ -4156,6 +4181,10 @@ msgid ""
 "operates. A larger sigma means the filter takes into account pixels over a "
 "wider area of the image. Note the interaction with the diameter setting."
 msgstr ""
+"Establece el rango de distancia espacial entre píxeles sobre el que opera el "
+"filtro. Un valor de sigma alto significa que el filtro considera píxeles en "
+"un área más amplia de la imagen. Observe la interacción con el ajuste de "
+"diámetro."
 
 #: src/gui/uifiles/epf_dialog.ui:366
 msgid "Sigma (intensity)"
@@ -4169,6 +4198,11 @@ msgid ""
 "Depending on your data you may need to make substantial adjustments here, "
 "for example setting the value to below 1.0."
 msgstr ""
+"Este valor afecta el rango de similitud de valores de píxeles sobre el que "
+"se aplica el filtro de conservación de bordes.\n"
+"Si las estrellas se ven enormes y desenfocadas, comience por reducir este "
+"valor. Dependiendo de sus datos, podría necesitar realizar ajustes "
+"sustanciales, por ejemplo, establecer el valor por debajo de 1.0."
 
 # parameter is null or 0?
 #: src/gui/uifiles/epf_dialog.ui:425 src/gui/uifiles/epf_dialog.ui:442
@@ -4536,7 +4570,7 @@ msgstr "Placa fina"
 
 #: src/gui/uifiles/graxpert.ui:490
 msgid "Quintic"
-msgstr ""
+msgstr "Quintica"
 
 #: src/gui/uifiles/graxpert.ui:491
 msgid "Cubic"
@@ -4632,10 +4666,16 @@ msgid ""
 "GPUsupport but see GraXpert errors, disable it again and report the issue "
 "upstream to GraXpert."
 msgstr ""
+"Configure GraXpert para usar la GPU para la inferencia de IA, si está "
+"disponible. Nota: Aunque GraXpert debería volver al uso de la CPU si la "
+"compatibilidad con la GPU no está disponible, en algunos casos puede fallar. "
+"La opción está desactivada por defecto, así que si su GPU es compatible, "
+"puede activarla. Si habilita la compatibilidad con la GPU, pero observa "
+"errores de GraXpert, deshabilítela de nuevo e informe el problema a GraXpert."
 
 #: src/gui/uifiles/graxpert.ui:991
 msgid "AI batch size "
-msgstr ""
+msgstr "Tamaño del lote de IA "
 
 #: src/gui/uifiles/graxpert.ui:1002
 msgid ""
@@ -4643,6 +4683,10 @@ msgid ""
 "careful: increasing this value might result in out-of-memory errors. Valid "
 "Range: 1 - 32, default: \"4\"."
 msgstr ""
+"Establezca el número de mosaicos de imagen en las que GraXpert eliminará el "
+"ruido en paralelo. Tenga cuidado: aumentar este valor podría provocar "
+"errores de memoria insuficiente. Rango válido: 1 - 32, valor predeterminado: "
+"\"4\"."
 
 #: src/gui/uifiles/graxpert.ui:1041 src/gui/uifiles/mouse_actions.ui:260
 #: src/gui/uifiles/settings_window.ui:5305 src/gui/uifiles/siril.ui:6358
@@ -4821,6 +4865,8 @@ msgid ""
 "Plot the current ICC profile in a 1931 chromatcity diagram, alongside sRGB "
 "for reference"
 msgstr ""
+"Grafica el perfil ICC actual en un diagrama de cromatografía de 1931, junto "
+"con sRGB como referencia"
 
 #: src/gui/uifiles/icc_dialog.ui:80
 #, fuzzy
@@ -4832,6 +4878,8 @@ msgid ""
 "Export the profile currently assigned to the image to the working directory. "
 "It will be saved with the filename {imagename}.icc"
 msgstr ""
+"Exporta el perfil asignado a la imagen al directorio de trabajo. Se guardará "
+"con el nombre de archivo {imagename}.icc."
 
 #: src/gui/uifiles/icc_dialog.ui:95 src/gui/uifiles/siril.ui:3747
 msgid "Remove"
@@ -5331,10 +5379,13 @@ msgid ""
 "Click this area to check mouse button numbering and scroll direction, to "
 "ensure you set the correct number for mouse actions"
 msgstr ""
+"Haga clic en este área para verificar la numeración de los botones del ratón "
+"y la dirección de desplazamiento, para asegurarse de configurar el número "
+"correcto para las acciones del ratón."
 
 #: src/gui/uifiles/mouse_actions.ui:181
 msgid "Mouse Click Actions"
-msgstr ""
+msgstr "Acciones de clic del ratón"
 
 #: src/gui/uifiles/mouse_actions.ui:232
 #, fuzzy
@@ -5348,7 +5399,7 @@ msgstr "normalización"
 
 #: src/gui/uifiles/mouse_actions.ui:277
 msgid "Scroll speed limit"
-msgstr ""
+msgstr "Límite de velocidad de desplazamiento"
 
 #: src/gui/uifiles/mouse_actions.ui:292
 msgid ""

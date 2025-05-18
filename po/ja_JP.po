@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-16 23:47+0200\n"
-"PO-Revision-Date: 2025-05-13 08:40+0000\n"
+"PO-Revision-Date: 2025-05-18 15:15+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -310,9 +310,8 @@ msgid "Blue"
 msgstr "青"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
-#, fuzzy
 msgid "AAVSO parameters"
-msgstr "選択"
+msgstr "AAVSO パラメータ"
 
 #: src/gui/uifiles/aavso_dialog.ui:69
 #: src/gui/uifiles/file_information_dialog.ui:96
@@ -339,9 +338,8 @@ msgid "Filter: "
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:123
-#, fuzzy
 msgid "The filter used for the observation."
-msgstr "回転に使用されているアルゴリズムのタイプ"
+msgstr "観測に使用されたフィルター。"
 
 #: src/gui/uifiles/aavso_dialog.ui:170
 msgid "Cname: "
@@ -4331,9 +4329,8 @@ msgstr ""
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4087
 #: src/gui/uifiles/settings_window.ui:4904 src/core/icc_profile.c:1285
 #: src/core/icc_profile.c:1287
-#, fuzzy
 msgid "Color Management"
-msgstr "<b>メモリー管理</b>"
+msgstr "カラーマネージメント"
 
 #: src/gui/uifiles/icc_dialog.ui:65 src/gui/uifiles/s_pcc_dialog.ui:906
 #: src/gui/uifiles/siril.ui:7998 src/gui/uifiles/spcc_details.ui:24
@@ -4378,7 +4375,6 @@ msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3899
 #: src/core/icc_profile.c:1287
-#, fuzzy
 msgid "Convert"
 msgstr "変換"
 
@@ -5134,9 +5130,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:264
-#, fuzzy
 msgid "Siril Script Files"
-msgstr "ファイル名："
+msgstr "Sirilスクリプトファイル"
 
 #: src/gui/uifiles/python_scratchpad.ui:361
 msgid ""
@@ -8893,9 +8888,8 @@ msgid "FITS Header..."
 msgstr "FITS ヘッダー..."
 
 #: src/gui/uifiles/siril.ui:2828
-#, fuzzy
 msgid "Image Information..."
-msgstr "画像情報"
+msgstr "画像情報…"
 
 #: src/gui/uifiles/siril.ui:2880
 msgid "current red file"
@@ -20091,13 +20085,14 @@ msgstr ""
 
 #: src/gui/conversion.c:109
 msgid "Invalid char"
-msgstr ""
+msgstr "無効な文字"
 
 #: src/gui/conversion.c:109
 msgid ""
 "Please remove invalid characters in the sequence name before trying to "
 "convert images into a new sequence again."
-msgstr ""
+msgstr "画像を新しいシーケンスに再び変換する前に、シーケンス名の無効な文字を削除して"
+"ください。"
 
 #: src/gui/conversion.c:115
 #, c-format
