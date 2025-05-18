@@ -25,7 +25,6 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "drizzle/cdrizzleutil.h"
-#include "gui/utils.h" // TODO: used functions should not be in the gui section
 #include "algos/quality.h"
 #include "io/ser.h"
 #include "opencv/opencv.h"

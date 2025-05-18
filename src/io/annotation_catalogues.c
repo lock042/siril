@@ -27,12 +27,8 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
-#include "gui/message_dialog.h"
-#include "gui/utils.h"
 #include "algos/siril_wcs.h"
-#include "gui/image_display.h"
 #include "io/siril_catalogues.h"
-#include "algos/search_objects.h"
 
 #include "annotation_catalogues.h"
 

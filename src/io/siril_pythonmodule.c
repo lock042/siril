@@ -15,7 +15,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/mman.h>
@@ -23,7 +22,6 @@
 #endif
 #include <string.h>
 #include <stdio.h>
-#include <errno.h>
 #include <limits.h>
 #include <time.h>
 

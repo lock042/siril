@@ -40,11 +40,9 @@
 #include "algos/star_finder.h"
 #include "registration/registration.h"
 #include "registration/matching/atpmatch.h"
-#include "registration/matching/match.h"
 #include "opencv/opencv.h"
 /* ******************* */
 #include "stacking/stacking.h"
-#include "stacking/sum.h"
 #include "algos/noise.h"
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
