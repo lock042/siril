@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <string.h>
-#include <math.h>
 #include <stdint.h>
 #include <assert.h>
 
@@ -16,12 +15,10 @@
 #include "core/processing.h"
 #include "core/command_line_processor.h"
 #include "gui/documentation.h"
-#include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/script_menu.h"
 #include "gui/utils.h"
 #include "io/siril_pythonmodule.h"
-#include "script_menu.h"
 
 #include "python_gui.h"
 

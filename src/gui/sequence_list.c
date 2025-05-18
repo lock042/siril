@@ -23,11 +23,9 @@
 #endif
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
-#include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"

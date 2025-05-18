@@ -26,12 +26,9 @@
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "algos/colors.h"
-#include "algos/statistics.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
-#include "gui/image_display.h"
 #include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
 #include "gui/siril_preview.h" // For copy_gfit_to_backup() etc
 #include "gui/utils.h"
 #include "gui/histogram.h"

@@ -14,7 +14,6 @@
 #include "core/siril_log.h"
 #include "core/proto.h"
 #include "core/undo.h"
-#include "core/OS_utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
@@ -26,8 +25,10 @@
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "io/siril_pythonmodule.h"
-#include "siril_pythonmodule.h"
 #include "filters/synthstar.h"
+#ifdef _WIN32
+#include "core/OS_utils.h"
+#endif
 
 // Helper macros
 #define COPY_FLEN_STRING(str) \

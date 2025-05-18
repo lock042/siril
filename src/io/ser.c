@@ -34,10 +34,8 @@
 #include "core/siril_date.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "algos/demosaicing.h"
-#include "io/conversion.h"
 #include "io/image_format_fits.h"
 #include "ser.h"
 

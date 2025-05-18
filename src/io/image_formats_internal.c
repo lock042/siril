@@ -33,7 +33,6 @@
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
-#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
 #include "io/fits_keywords.h"

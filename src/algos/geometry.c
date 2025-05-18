@@ -32,11 +32,8 @@
 #include "algos/siril_wcs.h"
 #include "core/processing.h"
 #include "opencv/opencv.h"
-#include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
-#include "gui/PSF_list.h"
-#include "gui/utils.h"
 #include "gui/callbacks.h"
 
 #include "geometry.h"

@@ -25,13 +25,11 @@
 #include <gtk/gtk.h>
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
 #include "core/command_line_processor.h"
 #include "algos/PSF.h"
-#include "algos/search_objects.h"
 #include "algos/siril_wcs.h"
 #include "algos/photometric_cc.h"
 #include "io/annotation_catalogues.h"
@@ -41,7 +39,6 @@
 #include "io/local_catalogues.h"
 #include "registration/matching/misc.h"
 #include "gui/image_display.h"
-#include "gui/PSF_list.h"
 #include "gui/utils.h"
 #include "gui/siril_plot.h"
 

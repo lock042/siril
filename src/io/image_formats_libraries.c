@@ -60,17 +60,13 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/icc_profile.h"
-#include "core/processing.h"
 #include "core/siril_log.h"
-#include "core/siril_date.h"
 #include "core/exif.h"
 #include "io/fits_keywords.h"
 #include "algos/geometry.h"
-#include "algos/siril_wcs.h"
 #include "algos/demosaicing.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
-#include "single_image.h"
 #include "image_format_fits.h"
 
 static void fill_date_obs_if_any(fits *fit, const char *file) {

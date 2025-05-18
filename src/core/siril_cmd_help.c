@@ -20,8 +20,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "gui/utils.h"
-#include "core/siril_app_dirs.h"
 
 #include "core/siril_cmd_help.h"
 

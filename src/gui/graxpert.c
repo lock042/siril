@@ -23,7 +23,6 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
-#include "core/undo.h"
 #include "algos/background_extraction.h"
 #include "filters/graxpert.h"
 #include "gui/callbacks.h"

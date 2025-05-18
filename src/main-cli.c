@@ -24,7 +24,6 @@
 #endif
 
 #include <gsl/gsl_errno.h>
-//#include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
@@ -56,24 +55,17 @@
 #include "core/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
-#include "core/command.h"
 #include "core/pipe.h"
-#include "core/signals.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/OS_utils.h"
 #include "algos/siril_random.h"
-#include "algos/star_finder.h"
 #include "io/sequence.h"
 #include "io/conversion.h"
-#include "io/single_image.h"
 #include "io/siril_pythonmodule.h"
-#include "gui/utils.h"
-#include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
-#include "registration/registration.h"
 
 /* the global variables of the whole project */
 cominfo com;	// the core data struct
