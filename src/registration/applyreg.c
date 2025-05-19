@@ -532,6 +532,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		free(p->pixmap);
 
 		// Get rid of the output_counts image, no longer required
+		const gchar *count_filename = get_sequence_cache_filename(args->seq, out_index, "drizztmp", "fit", NULL);
+		savefits(count_filename, output_counts);
 		clearfits(output_counts);
 		free(output_counts);
 		output_counts = NULL;
