@@ -3633,6 +3633,63 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 	return status;
 }
 
+// TODO: should not be different than read_mask_fits_area, to be improved
+// read an area form a 32b drizz_weight
+// we have this dedicated function to avoid the automatic rescaling
+// and dealing with all the types and headers
+int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, float *drizz) {
+	if (layer < 0)
+		return read_mask_fits_area(name, area, ry, drizz);
+	int status = 0;
+	fitsfile *fptr;
+	int naxis = 3;
+	long fpixel[3], lpixel[3], inc[3] = { 1L, 1L , 1L};
+	long naxes[3] = { 1L, 1L, 1L};
+
+	/* fpixel is first pixel, lpixel is last pixel, starts with value 1 */
+	fpixel[0] = area->x + 1;        // in siril, it starts with 0
+	fpixel[1] = ry - area->y - area->h + 1;
+	fpixel[2] = layer + 1;
+	lpixel[0] = area->x + area->w;  // with w and h at least 1, we're ok
+	lpixel[1] = ry - area->y;
+	lpixel[2] = layer + 1;
+
+	if (!name)
+		return 1;
+	fits_open_file(&fptr, name, READONLY, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_get_img_size(fptr, naxis, naxes, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	if (naxes[0] < area->w) {
+		siril_debug_print("area too wide\n");
+		fits_close_file(fptr, NULL);
+		return 1;
+	}
+	if (naxes[1] < area->h) {
+		siril_debug_print("area too high\n");
+		fits_close_file(fptr, NULL);
+		return 1;
+	}
+	fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, drizz, NULL, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_close_file(fptr, &status);
+	if (!status) {
+		siril_debug_print("Read drizz file %s\n", name);
+	} else {
+		report_fits_error(status);
+	}
+	return status;
+}
+
 // Swaps all image-data related elements of two FITS (the data pointers themselves,
 // also dimensions and statistics, but not the header, keywords or fptr).
 

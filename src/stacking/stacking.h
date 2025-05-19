@@ -140,9 +140,10 @@ struct _data_block {
 	void *tmp;	// the actual single buffer for all others below
 	void **pix;	// buffer for a block on all images
 	float **mask; // buffer for the mask on all images
-	float **driz_w; // buffer for the drizzle weights on all images
+	float **drizz; // buffer for the drizzle weights on all images
 	void *stack;	// the reordered stack for one pixel in all images
 	float *mstack;	// the unordered mask data for one pixel in all images
+	float *dstack;	// the unordered drizzle data for one pixel in all images	
 	int *rejected;	// 0 if pixel ok, 1 or -1 if rejected
 	void *o_stack;	// original unordered stack
 	void *w_stack;	// stack for the winsorized rejection
