@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-19 00:01+0200\n"
-"PO-Revision-Date: 2025-05-18 19:13+0000\n"
-"Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
+"PO-Revision-Date: 2025-05-19 22:50+0000\n"
+"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -5765,7 +5765,7 @@ msgstr "Centrar líneas guía en la selección"
 
 #: src/gui/uifiles/python_scratchpad.ui:434
 msgid "Show line numbers"
-msgstr ""
+msgstr "Mostrar números de línea"
 
 #: src/gui/uifiles/python_scratchpad.ui:443
 msgid "Show line markers in the left margin"
@@ -5789,7 +5789,7 @@ msgstr "Corte de altas luces"
 #: src/gui/uifiles/python_scratchpad.ui:463
 #: src/gui/uifiles/python_scratchpad.ui:464
 msgid "Enable auto-indentation"
-msgstr ""
+msgstr "Activar auto-indentación"
 
 #: src/gui/uifiles/python_scratchpad.ui:473
 msgid "When a block of lines is selected, tab increases the indent level"
@@ -6027,7 +6027,7 @@ msgstr "Tipo de algoritmo usado en la rotación"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:59 src/gui/photometric_cc.c:87
 msgid "Checking Gaia archive status..."
-msgstr ""
+msgstr "Comprobando el estado del archivo de Gaia..."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:122
 #, fuzzy
@@ -6036,7 +6036,7 @@ msgstr "Radio: "
 
 #: src/gui/uifiles/s_pcc_dialog.ui:126
 msgid "Click to update Gaia archive status check"
-msgstr ""
+msgstr "Pulse para actualizar la comprobación del estado del archivo de Gaia"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:160
 msgid "Start the photometric color calibration algorithm."
@@ -6049,11 +6049,11 @@ msgstr "Referencia de blanco:\n"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:234
 msgid "Mono Sensor:"
-msgstr ""
+msgstr "Sensor Mono:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:246
 msgid "OSC Sensor:"
-msgstr ""
+msgstr "Sensor OSC:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:258
 #, fuzzy
@@ -6088,25 +6088,27 @@ msgstr "Seleccione fase"
 #: src/gui/uifiles/s_pcc_dialog.ui:331
 msgid "Select an OSC filter (e.g. a broadband light pollution filter)"
 msgstr ""
+"Selecciona un filtro OSC (p.ej. un filtro de luz de contaminación de banda "
+"ancha)"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:344
 msgid "Select a red filter used with composited mono images"
-msgstr ""
+msgstr "Selecciona el filtro rojo usado con imágenes mono compuestas"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:357
 msgid "Select a green filter used with composited mono images"
-msgstr ""
+msgstr "Selecciona un filtro verde usado con imágenes mono compuestas"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:370
 msgid "Select a blue filter used with composited mono images"
-msgstr ""
+msgstr "Selecciona un filtro azul usado con imágenes mono compuestas"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:381 src/gui/uifiles/s_pcc_dialog.ui:395
 #: src/gui/uifiles/s_pcc_dialog.ui:409 src/gui/uifiles/s_pcc_dialog.ui:423
 #: src/gui/uifiles/s_pcc_dialog.ui:437 src/gui/uifiles/s_pcc_dialog.ui:451
 #: src/gui/uifiles/s_pcc_dialog.ui:477 src/gui/uifiles/s_pcc_dialog.ui:529
 msgid "Details"
-msgstr ""
+msgstr "Detalles"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:385
 #, fuzzy
@@ -6140,7 +6142,7 @@ msgstr "Eliminar el archivo seleccionado"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:468
 msgid "DSLR Low Pass Filter:"
-msgstr ""
+msgstr "Filtro de Paso Bajo DSLR:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:481
 #, fuzzy
@@ -6197,15 +6199,17 @@ msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:601
 msgid "Filter bandwidth in nm"
-msgstr ""
+msgstr "Ancho de banda del filtro en nm"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:602
 msgid "Bandwidth"
-msgstr ""
+msgstr "Ancho de banda"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:613
 msgid "Enter the nominal wavelength of the red channel narrowband filter"
 msgstr ""
+"Introduce el valor nominal de la longitud de onda del canal rojo del filtro "
+"de banda estrecha"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:629
 msgid "Enter the nominal wavelength of the blue channel narrowband filter"
@@ -6298,17 +6302,14 @@ msgid "Plot atmosphere model"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:940
-#, fuzzy
 msgid "Atmospheric Parameters"
-msgstr "Parámetros de la imagen"
+msgstr "Parámetros atmosféricos"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:960
-#, fuzzy
 msgid "SPCC Parameters"
-msgstr "Parámetros de la imagen"
+msgstr "Parámetros SPCC"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:992
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image and "
 "compute photometry.\n"
@@ -6337,16 +6338,20 @@ msgstr ""
 "of Variable Star Observers (AAVSO), está elaborando un estudio fotométrico "
 "de todo el cielo. Este estudio es conducido con 8 filtros: Johnson B y V, "
 "plus Sloan u', g', r', i', z_s y Z. Es válido para unos 37 millones de "
-"estrellas de magnitud 7 a 17."
+"estrellas de magnitud 7 a 17.\n"
+"* La versión 3 de datos de Gaia se publicó el 13 de junio de 2022. Se "
+"proporciona fotometría para alrededor de 1.460 millones de fuentes, con una "
+"magnitud límite de G = 21. Utiliza filtros diferentes de Johnson B y V; sin "
+"embargo, proporciona medidas de la temperatura efectiva de la fuente basadas "
+"en el espectro de la fuente, y Siril utiliza este Teff para PCC."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:999 src/io/siril_catalogues.c:271
 msgid "APASS"
 msgstr "APASS"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1000
-#, fuzzy
 msgid "GAIA DR3"
-msgstr "Gaia EDR3"
+msgstr "Gaia DR3"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1014
 msgid "Photometric Star Catalogue: "
@@ -6362,36 +6367,49 @@ msgid ""
 "Gaia DR3 contains sampled spectra for c. 30 million stars down to magnitude "
 "17.6."
 msgstr ""
+"Seleccione el catálogo que desea utilizar para la calibración "
+"espectrofotométrica del color.\n"
+"* El archivo de Gaia DR3 es un servicio en línea que proporciona acceso "
+"directo al catálogo de Gaia DR3.\n"
+"* El catálogo local xp_sampled de Gaia DR3 es un catálogo local optimizado, "
+"diseñado para SPCC.\n"
+"Gaia DR3 contiene espectros muestreados de aproximadamente 30 millones de "
+"estrellas hasta magnitud 17.6."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1060
 msgid "Local Gaia DR3 xp_sampled catalogue"
-msgstr ""
+msgstr "Catálogo local de Gaia DR3 xp_sampled"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1090
 msgid ""
 "The NOMAD catalogue can be installed locally to not rely on an Internet "
 "connection for this operation."
 msgstr ""
+"El catálogo NOMAD puede ser instalado localmente para no tener que depender "
+"de una conexión a Internet para esta operación"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1143
 msgid "Tolerance / σ"
-msgstr ""
+msgstr "Tolerancia / σ"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1155
 msgid ""
 "Include background samples this many σ above the median. Default is 2.00"
 msgstr ""
+"Incluye muestras de fondo con esta cantidad de σ por encima de la mediana. "
+"El valor predeterminado es 2.00"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1173
 msgid "Include background samples this many σ below the median. Default is 2.8"
 msgstr ""
+"Incluye muestras de fondo con esta cantidad de σ por debajo de la mediana. "
+"El valor predeterminado es 2.8"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1196
 msgid "Automatic detection"
 msgstr "Detección automática"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1200
-#, fuzzy
 msgid ""
 "Uncheck this button if you want to select the background reference by "
 "yourself. It can be useful when nebulae cover a large portion of the image."
@@ -6453,15 +6471,13 @@ msgid "Background factor"
 msgstr "Factor de fondo"
 
 #: src/gui/uifiles/satu_dialog.ui:268
-#, fuzzy
 msgid ""
 "This is the factor multiplied by the background value. Lower is the value, "
 "stronger is the saturation effect. While a high value will preserve the "
 "background."
 msgstr ""
-"Este es el factor de multiplicación con el valor de fondo. Mientras más "
-"bajo, más fuerte será el efecto de saturación. Un valor alto conservará el "
-"fondo."
+"Este es el factor de multiplicación con el valor de fondo. Cuanto más bajo, "
+"más fuerte será el efecto de saturación. Un valor alto conservará el fondo."
 
 #: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10752
 #: src/io/sequence.c:2019
@@ -13995,8 +14011,9 @@ msgid "Vertical mirror: processing...\n"
 msgstr "Espejo vertical: procesando...\n"
 
 #: src/algos/geometry.c:649 src/algos/geometry.c:660
+#, fuzzy
 msgid "Rounding selection to match CFA pattern\n"
-msgstr ""
+msgstr "Selección de redondeo para que coincida con el patrón CFA\n"
 
 #: src/algos/geometry.c:703 src/core/command.c:2147
 #: src/gui/menu_gray_geometry.c:350 src/gui/menu_gray_geometry.c:365

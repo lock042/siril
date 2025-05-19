@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-19 00:01+0200\n"
-"PO-Revision-Date: 2025-05-17 00:20+0000\n"
+"PO-Revision-Date: 2025-05-19 09:48+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -869,7 +869,6 @@ msgid "Clip mode"
 msgstr "Mode d'écrêtage"
 
 #: src/gui/uifiles/asinh_dialog.ui:289 src/gui/uifiles/histogram_dialog.ui:760
-#, fuzzy
 msgid ""
 "Select blend mode.\n"
 "Clip: clips values to the range 0.0 - 1.0. <b>Default</b>\n"
@@ -883,11 +882,11 @@ msgid ""
 "stretch if you notice colour artefacts around bright stars."
 msgstr ""
 "Sélectionnez le mode de mélange.\n"
-"Écrêter : coupe les valeurs dans la plage 0,0 - 1,0\n"
+"Écrêter : coupe les valeurs dans la plage 0,0 - 1,0. <b>Par défaut</b>\n"
 "Rééchelonner : redimensionne les valeurs RVB des pixels tronqués pour ne pas "
 "dépasser 1,0 par pixel\n"
 "Mélanger RVB : applique une fonction de fusion pour des couleurs de "
-"surbrillance reconstruites en douceur. <b>Par défaut</b>\n"
+"surbrillance reconstruites en douceur.\n"
 "Rééchelonnement global : identique à Rééchelonner, mais redimensionne à la "
 "valeur maximale globale du composant\n"
 "\n"
@@ -21865,17 +21864,18 @@ msgid "See Introduction"
 msgstr "Voir l'Introduction"
 
 #: src/gui/callbacks.c:2006
-#, fuzzy
 msgid "Unsaved script changes"
-msgstr "Résultat non enregistré"
+msgstr "Modifications de script non enregistrées"
 
 #: src/gui/callbacks.c:2007
 msgid "There are unsaved changes in the script editor. Quit anyway?"
 msgstr ""
+"Il y a des modifications non enregistrées dans l'éditeur de scripts. Voulez-"
+"vous quand même quitter ?"
 
 #: src/gui/callbacks.c:2008
 msgid "Quit"
-msgstr ""
+msgstr "Quitter"
 
 #: src/gui/callbacks.c:2017
 msgid "Closing application"
@@ -24127,14 +24127,13 @@ msgid "Right _margin position"
 msgstr "Position de la _marge droite"
 
 #: src/gui/python_gui.c:1139
-#, fuzzy, c-format
+#, c-format
 msgid "Error creating temporary script file: %s\n"
-msgstr "Erreur de lecture de stderr : %s\n"
+msgstr "Erreur lors de la création du fichier de script temporaire : %s\n"
 
 #: src/gui/python_gui.c:1146
-#, fuzzy
 msgid "Error writing to temporary script file\n"
-msgstr "Erreur : impossible de supprimer le fichier de travail temporaire...\n"
+msgstr "Erreur lors de l'écriture dans le fichier de script temporaire\n"
 
 #. Run the script
 #: src/gui/python_gui.c:1183
@@ -27740,6 +27739,8 @@ msgid ""
 "the processing thread is locked. Wait for the current processing task to "
 "finish."
 msgstr ""
+"Le thread de traitement est verrouillé. Attendez la fin de la tâche de "
+"traitement en cours."
 
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:2104
@@ -27747,6 +27748,8 @@ msgid ""
 "an image processing dialog is open. Close it to release the image lock and "
 "try again."
 msgstr ""
+"une boîte de dialogue de traitement d'image est ouverte. Fermez-la pour "
+"déverrouiller l'image et réessayez."
 
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:2113
