@@ -605,13 +605,18 @@ class ONNXHelper:
         from_url = None
         index_url = None
         onnxruntime_pkg = "onnxruntime"
-        cuda_version = self._detect_cuda_version()
         if self.system == "windows":
-                # NVidia GPU runtime that supports CUDA
-            if self._detect_nvidia_gpu() and pkg_version.Version(cuda_version).major >= 11:
-                onnxruntime_pkg = "onnxruntime-gpu"
-                if pkg_version.Version(cuda_version).major == 11:
-                    index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
+            # NVidia GPU runtime that supports CUDA
+            nvidia_gpu_found = self._detect_nvidia_gpu()
+            if nvidia_gpu_found:
+                cuda_version = self._detect_cuda_version()
+                major_version = pkg_version.Version(cuda_version).major
+                print(f"Found CUDA version: {cuda_version}")
+                print(f"Nvidia GPU found: {nvidia_gpu_found}")
+                if nvidia_gpu_found and major_version >= 11:
+                    onnxruntime_pkg = "onnxruntime-gpu"
+                    if major_version == 11:
+                        index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
             else:
                 # DirectML provides hardware acceleration for various GPUs on Windows
                 onnxruntime_pkg = "onnxruntime-directml"
@@ -620,10 +625,13 @@ class ONNXHelper:
             onnxruntime_pkg = "onnxruntime"
 
         elif self.system == "linux":
-            if self._detect_nvidia_gpu() and pkg_version.Version(cuda_version).major >= 11:
-                onnxruntime_pkg = "onnxruntime-gpu"
-                if pkg_version.Version(cuda_version).major == 11:
-                    index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
+            if self._detect_nvidia_gpu():
+                cuda_version = self._detect_cuda_version()
+                if cuda_version = self._detect_cuda_version() and \
+                            pkg_version.Version(cuda_version).major >= 11:
+                    onnxruntime_pkg = "onnxruntime-gpu"
+                    if pkg_version.Version(cuda_version).major == 11:
+                        index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
             elif self._detect_amd_gpu():
                 # ROCm support for AMD GPUs on Linux
                 onnxruntime_pkg = "onnxruntime-rocm"
@@ -633,71 +641,479 @@ class ONNXHelper:
 
         return onnxruntime_pkg, from_url, index_url
 
-    def _detect_cuda_version(self) -> Optional[str]:
+    def detect_cuda_version(self) -> Optional[str]:
         """
-        Detects the CUDA version by parsing the output of 'nvcc -v'.
+        Detects the CUDA version using multiple methods.
 
         Returns:
             Optional[str]: The CUDA version as a string (e.g., '11.7') if detected,
-                          or "0.0" if nvcc is not installed or version cannot be determined.
+                        or None if CUDA is not installed or version cannot be determined.
         """
+        # Try multiple methods to detect CUDA version
+        cuda_version = (
+            self._detect_cuda_with_nvcc() or
+            self._detect_cuda_with_nvidia_smi() or
+            self._detect_cuda_from_library_path()
+        )
+        return cuda_version
+
+    def _detect_cuda_with_nvcc(self) -> Optional[str]:
+        """Try to detect CUDA version using nvcc command"""
         try:
-            nvcc_command = 'nvcc.exe' if self.system == 'windows' else 'nvcc'
+            # Use self.system which is already platform.system().lower()
+            if self.system == 'windows':
+                nvcc_command = 'nvcc.exe'
+            else:
+                nvcc_command = 'nvcc'
 
-            # Run nvcc -V and capture the output
-            result = subprocess.run([nvcc_command, '-V'],
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   text=True,
-                                   check=False)
+            # Try to locate nvcc in common paths if not in PATH
+            nvcc_paths = self._get_potential_nvcc_paths()
 
-            output = result.stderr if result.stderr else result.stdout
+            for path in nvcc_paths:
+                try:
+                    full_path = os.path.join(path, nvcc_command)
+                    if os.path.exists(full_path) and os.access(full_path, os.X_OK):
+                        # Run nvcc -V with timeout to prevent hanging
+                        result = subprocess.run(
+                            [full_path, '-V'],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                            check=False,
+                            timeout=5  # 5 second timeout
+                        )
 
-            version_match = re.search(r'release (\d+\.\d+)', output)
-            if version_match:
-                return version_match.group(1)
+                        output = result.stderr if result.stderr else result.stdout
 
-            alt_match = re.search(r'V(\d+\.\d+\.\d+)', output)
-            if alt_match:
-                # Return just the major.minor part (e.g., 11.7 from 11.7.0)
-                version_parts = alt_match.group(1).split('.')
-                return f"{version_parts[0]}.{version_parts[1]}"
+                        # Try different regex patterns for version detection
+                        for pattern in [
+                            r'release (\d+\.\d+)',
+                            r'V(\d+\.\d+\.\d+)',
+                            r'version (\d+\.\d+\.\d+)',
+                            r'cuda[_-]?(\d+\.\d+)'
+                        ]:
+                            match = re.search(pattern, output, re.IGNORECASE)
+                            if match:
+                                version = match.group(1)
+                                # Ensure we return just major.minor
+                                version_parts = version.split('.')
+                                if len(version_parts) >= 2:
+                                    return f"{version_parts[0]}.{version_parts[1]}"
+                                return version
+                except (subprocess.SubprocessError, FileNotFoundError, PermissionError,
+                        subprocess.TimeoutExpired, OSError):
+                    continue  # Try next path
 
-            return "0.0"
-        except (subprocess.SubprocessError, FileNotFoundError):
-            # nvcc is not installed or an error occurred
-            return "0.0"
+            return None  # No valid nvcc found or version couldn't be determined
+        except Exception:
+            return None  # Catch any unexpected errors
 
-    def _detect_nvidia_gpu(self):
+    def _detect_cuda_with_nvidia_smi(self) -> Optional[str]:
+        """Try to detect CUDA version using nvidia-smi command"""
+        try:
+            # nvidia-smi command name may differ between OS
+            nvidia_smi_cmd = 'nvidia-smi.exe' if self.system == 'windows' else 'nvidia-smi'
+
+            # Get validated nvidia-smi paths where the executable exists
+            nvidia_smi_paths = self._get_potential_nvidia_smi_paths()
+
+            for path in nvidia_smi_paths:
+                try:
+                    # For empty path, assume nvidia-smi is in system PATH
+                    if path == "":
+                        cmd = nvidia_smi_cmd
+                    else:
+                        cmd = os.path.join(path, nvidia_smi_cmd)
+
+                    result = subprocess.run(
+                        [cmd, '--query-gpu=driver_version', '--format=csv,noheader'],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        check=False,
+                        timeout=5
+                    )
+
+                    if result.returncode == 0 and result.stdout.strip():
+                        # Extract driver version, which can help determine CUDA version
+                        driver_version = result.stdout.strip()
+
+                        # Map NVIDIA driver version to CUDA version (approximate mapping)
+                        # Based on https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html
+                        driver_to_cuda = {
+                            '535': '12.2',  # CUDA 12.2 requires 535.104.05+
+                            '530': '12.1',  # CUDA 12.1 requires 530.30.02+
+                            '525': '12.0',  # CUDA 12.0 requires 525.60.13+
+                            '520': '11.8',  # CUDA 11.8 requires 520.61.05+
+                            '515': '11.7',  # CUDA 11.7 requires 515.43.04+
+                            '510': '11.6',  # CUDA 11.6 requires 510.39.01+
+                            '495': '11.5',  # CUDA 11.5 requires 495.29.05+
+                            '470': '11.4',  # CUDA 11.4 requires 470.57.02+
+                            '465': '11.3',  # CUDA 11.3 requires 465.19.01+
+                            '460': '11.2',  # CUDA 11.2 requires 460.27.03+
+                            '455': '11.1',  # CUDA 11.1 requires 455.23+
+                            '450': '11.0',  # CUDA 11.0 requires 450.36.06+
+                            '440': '10.2',  # CUDA 10.2 requires 440.33+
+                            '418': '10.1',  # CUDA 10.1 requires 418.39+
+                            '410': '10.0',  # CUDA 10.0 requires 410.48+
+                            '396': '9.2',   # CUDA 9.2 requires 396.26+
+                        }
+
+                        # Extract first part of driver version (e.g., 470 from 470.82.01)
+                        driver_major = re.match(r'(\d+)', driver_version)
+                        if driver_major:
+                            major_ver = driver_major.group(1)
+
+                            # Check for future/newer driver versions (assume latest CUDA version)
+                            major_ver_int = int(major_ver)
+                            highest_known_driver = max(int(k) for k in driver_to_cuda.keys())
+                            highest_known_cuda = driver_to_cuda[str(highest_known_driver)]
+
+                            if major_ver_int > highest_known_driver:
+                                # If driver is newer than any in our mapping, assume it's at least compatible
+                                # with the highest known CUDA version (12.x or whatever is the latest known)
+                                cuda_major = int(highest_known_cuda.split('.')[0])
+                                return f"{cuda_major}.0"  # Default to x.0 for unknown future versions
+
+                            # Find best match in our mapping
+                            for driver_prefix, cuda_ver in sorted(driver_to_cuda.items(), key=lambda x: int(x[0]), reverse=True):
+                                if major_ver_int >= int(driver_prefix):
+                                    return cuda_ver
+
+                        # Alternative: try to extract CUDA version directly from nvidia-smi output
+                        try:
+                            result = subprocess.run(
+                                [cmd],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                text=True,
+                                check=False,
+                                timeout=5
+                            )
+
+                            cuda_match = re.search(r'CUDA Version: (\d+\.\d+)', result.stdout)
+                            if cuda_match:
+                                return cuda_match.group(1)
+                        except:
+                            pass  # Continue to next method if this fails
+                except (subprocess.SubprocessError, subprocess.TimeoutExpired, OSError):
+                    continue  # Try next path
+
+            return None
+        except Exception:
+            return None
+
+    def _detect_cuda_from_library_path(self) -> Optional[str]:
+        """Try to detect CUDA version from installed libraries/paths"""
+        try:
+            # Get validated CUDA paths that actually exist
+            cuda_paths = self._get_potential_cuda_paths()
+
+            for cuda_path in cuda_paths:
+                # Look for version-specific subdirectories or files
+                try:
+                    entries = os.listdir(cuda_path)
+                    for entry in entries:
+                        # Look for directories like "v11.2" or files with version info
+                        version_match = re.match(r'v?(\d+\.\d+)', entry)
+                        if version_match and os.path.isdir(os.path.join(cuda_path, entry)):
+                            return version_match.group(1)
+
+                    # Check for version file that might contain version info
+                    version_files = ['version.txt', 'version']
+                    for vf in version_files:
+                        vf_path = os.path.join(cuda_path, vf)
+                        if os.path.exists(vf_path):
+                            try:
+                                with open(vf_path, 'r') as f:
+                                    content = f.read().strip()
+                                    version_match = re.search(r'(\d+\.\d+)', content)
+                                    if version_match:
+                                        return version_match.group(1)
+                            except:
+                                pass
+                except (PermissionError, OSError):
+                    continue  # Skip this path if we can't access it
+
+            return None
+        except Exception:
+            return None
+
+    def _get_potential_nvcc_paths(self) -> List[str]:
         """
-        Detect if NVIDIA GPU is available. (Required to check Windows and Linux, not required on MacOS.)
+        Get a list of paths where nvcc executable actually exists and is executable.
+        Returns validated paths only.
+        """
+        candidate_paths = [""]  # Start with current PATH
+
+        if self.system == 'windows':
+            # Windows-specific paths
+            program_files = [
+                os.environ.get('ProgramFiles', 'C:\\Program Files'),
+                os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)')
+            ]
+
+            for pf in program_files:
+                # Add paths for different CUDA versions
+                for version in range(8, 13):  # CUDA 8.0 through 12.x
+                    for minor in range(0, 10):
+                        candidate_paths.append(os.path.join(pf, f'NVIDIA GPU Computing Toolkit\\CUDA\\v{version}.{minor}\\bin'))
+
+                # Generic CUDA path
+                candidate_paths.append(os.path.join(pf, 'NVIDIA GPU Computing Toolkit\\CUDA\\bin'))
+
+        else:
+            # Unix-like systems (Linux/macOS)
+            base_paths = [
+                '/usr/local/cuda/bin',
+                '/usr/local/bin',
+                '/opt/cuda/bin',
+            ]
+
+            candidate_paths.extend(base_paths)
+
+            # Add version-specific paths
+            for version in range(8, 13):  # CUDA 8.0 through 12.x
+                for minor in range(0, 10):
+                    candidate_paths.append(f'/usr/local/cuda-{version}.{minor}/bin')
+
+        # Filter for existing and executable nvcc
+        valid_paths = []
+        nvcc_command = 'nvcc.exe' if self.system == 'windows' else 'nvcc'
+
+        for path in candidate_paths:
+            try:
+                # For empty path (current PATH), check if nvcc exists in PATH
+                if path == "":
+                    try:
+                        # Try to get nvcc path using 'where' on Windows or 'which' on Unix
+                        which_cmd = 'where' if self.system == 'windows' else 'which'
+                        result = subprocess.run(
+                            [which_cmd, nvcc_command],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                            check=False,
+                            timeout=2
+                        )
+                        if result.returncode == 0 and result.stdout.strip():
+                            # Extract the directory from the full path
+                            nvcc_path = result.stdout.strip().split('\n')[0]  # Take first result
+                            nvcc_dir = os.path.dirname(nvcc_path)
+                            if nvcc_dir and nvcc_dir not in valid_paths:
+                                valid_paths.append(nvcc_dir)
+                    except:
+                        pass  # Ignore errors from which/where command
+                else:
+                    full_path = os.path.join(path, nvcc_command)
+                    if os.path.exists(full_path) and os.access(full_path, os.X_OK):
+                        valid_paths.append(path)
+            except (PermissionError, OSError):
+                continue  # Skip paths we can't access
+
+        return valid_paths
+
+    def _get_potential_nvidia_smi_paths(self) -> List[str]:
+        """
+        Get a list of paths where nvidia-smi executable actually exists and is executable.
+        Returns validated paths only.
+        """
+        candidate_paths = [""]  # Start with current PATH
+
+        if self.system == 'windows':
+            program_files = [
+                os.environ.get('ProgramFiles', 'C:\\Program Files'),
+                os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)')
+            ]
+
+            for pf in program_files:
+                candidate_paths.append(os.path.join(pf, 'NVIDIA Corporation\\NVSMI'))
+        else:
+            # Unix-like systems
+            candidate_paths.extend([
+                '/usr/bin',
+                '/usr/local/bin',
+                '/opt/nvidia/bin'
+            ])
+
+        # Filter for existing and executable nvidia-smi
+        valid_paths = []
+        nvidia_smi_cmd = 'nvidia-smi.exe' if self.system == 'windows' else 'nvidia-smi'
+
+        for path in candidate_paths:
+            try:
+                # For empty path (current PATH), check if nvidia-smi exists in PATH
+                if path == "":
+                    try:
+                        # Try to get nvidia-smi path using 'where' on Windows or 'which' on Unix
+                        which_cmd = 'where' if self.system == 'windows' else 'which'
+                        result = subprocess.run(
+                            [which_cmd, nvidia_smi_cmd],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                            check=False,
+                            timeout=2
+                        )
+                        if result.returncode == 0 and result.stdout.strip():
+                            # Extract the directory from the full path
+                            nvidiasmi_path = result.stdout.strip().split('\n')[0]  # Take first result
+                            nvidiasmi_dir = os.path.dirname(nvidiasmi_path)
+                            if nvidiasmi_dir and nvidiasmi_dir not in valid_paths:
+                                valid_paths.append(nvidiasmi_dir)
+                    except:
+                        pass  # Ignore errors from which/where command
+                else:
+                    full_path = os.path.join(path, nvidia_smi_cmd)
+                    if os.path.exists(full_path) and os.access(full_path, os.X_OK):
+                        valid_paths.append(path)
+            except (PermissionError, OSError):
+                continue  # Skip paths we can't access
+
+        return valid_paths
+
+    def _get_potential_cuda_paths(self) -> List[str]:
+        """
+        Get a list of CUDA installation paths that actually exist.
+        Returns validated paths only.
+        """
+        candidate_paths = []
+
+        if self.system == 'windows':
+            program_files = [
+                os.environ.get('ProgramFiles', 'C:\\Program Files'),
+                os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)')
+            ]
+
+            for pf in program_files:
+                candidate_paths.append(os.path.join(pf, 'NVIDIA GPU Computing Toolkit\\CUDA'))
+        else:
+            # Unix-like systems
+            candidate_paths.extend([
+                '/usr/local/cuda',
+                '/opt/cuda'
+            ])
+
+            # Check for version-specific directories
+            for version in range(8, 13):
+                for minor in range(0, 10):
+                    candidate_paths.append(f'/usr/local/cuda-{version}.{minor}')
+
+        # Filter for existing paths only
+        valid_paths = []
+        for path in candidate_paths:
+            try:
+                if os.path.exists(path) and os.path.isdir(path):
+                    valid_paths.append(path)
+            except (PermissionError, OSError):
+                continue  # Skip paths we can't access
+
+        return valid_paths
+
+    def detect_nvidia_gpu(self):
+        """
+        Detect if NVIDIA GPU is available and usable.
+        Only Windows and Linux detection are implemented as macOS doesn't use NVIDIA GPUs.
 
         Returns:
-            bool: True if NVIDIA GPU is detected, False otherwise.
+            bool: True if NVIDIA GPU is detected and appears to be functional.
         """
         try:
+            # Windows detection with reliable methods
             if self.system == "windows":
-                # Windows detection using PowerShell
-                output = subprocess.check_output(
-                    ["powershell", "-Command", "Get-WmiObject -Class Win32_VideoController"],
-                    text=True
-                )
-                return "NVIDIA" in output
-            # Linux and macOS detection using lspci or similar
-            if self.system == "linux":
+                # Method 1: Try nvidia-smi first (most reliable, confirms drivers are working)
                 try:
-                    output = subprocess.check_output(["nvidia-smi"], stderr=subprocess.DEVNULL, text=True)
+                    subprocess.check_output(["nvidia-smi"], stderr=subprocess.DEVNULL)
                     return True
                 except (subprocess.SubprocessError, FileNotFoundError):
                     pass
 
+                # Method 2: PowerShell with Get-CimInstance (modern systems)
+                try:
+                    output = subprocess.check_output(
+                        ["powershell", "-Command", "Get-CimInstance -ClassName Win32_VideoController"],
+                        text=True, stderr=subprocess.DEVNULL
+                    )
+                    # More specific check: look for NVIDIA in VGA compatible controllers
+                    lines = output.splitlines()
+                    for i, line in enumerate(lines):
+                        if "NVIDIA" in line:
+                            # Check if this is actually a GPU by looking for nearby keywords
+                            start = max(0, i-5)
+                            end = min(len(lines), i+5)
+                            context = "\n".join(lines[start:end])
+                            if any(gpu_term in context for gpu_term in ["GPU", "Graphics", "GeForce", "Quadro", "RTX", "GTX"]):
+                                return True
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+
+                # Method 3: PowerShell with Get-WmiObject (older systems)
+                try:
+                    output = subprocess.check_output(
+                        ["powershell", "-Command", "Get-WmiObject -Class Win32_VideoController"],
+                        text=True, stderr=subprocess.DEVNULL
+                    )
+                    # Same specific check as above
+                    lines = output.splitlines()
+                    for i, line in enumerate(lines):
+                        if "NVIDIA" in line:
+                            start = max(0, i-5)
+                            end = min(len(lines), i+5)
+                            context = "\n".join(lines[start:end])
+                            if any(gpu_term in context for gpu_term in ["GPU", "Graphics", "GeForce", "Quadro", "RTX", "GTX"]):
+                                return True
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+
+                # Method 4: WMIC with careful parsing
+                try:
+                    output = subprocess.check_output(
+                        ["wmic", "path", "win32_VideoController", "get", "name,status"],
+                        text=True, stderr=subprocess.DEVNULL
+                    )
+                    # Parse output to look for enabled NVIDIA devices
+                    lines = output.splitlines()
+                    for line in lines:
+                        if "NVIDIA" in line and "OK" in line:
+                            return True
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+
+            # Linux detection with focused methods
+            elif self.system == "linux":
+                # Method 1: nvidia-smi (most reliable)
+                try:
+                    subprocess.check_output(["nvidia-smi"], stderr=subprocess.DEVNULL)
+                    return True
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+
+                # Method 2: lspci with specific VGA/3D controller filtering
                 try:
                     output = subprocess.check_output(["lspci"], text=True)
-                    return "NVIDIA" in output
+                    vga_lines = [line for line in output.splitlines()
+                            if ("VGA" in line or "3D controller" in line) and "NVIDIA" in line]
+                    if vga_lines:
+                        return True
                 except (subprocess.SubprocessError, FileNotFoundError):
-                    return False
+                    pass
+
+                # Method 3: Check specifically for nvidia GPU modules
+                try:
+                    output = subprocess.check_output(["lsmod"], text=True)
+                    nvidia_modules = [line for line in output.splitlines()
+                                    if line.startswith("nvidia") or line.startswith("nvidia_")]
+                    if nvidia_modules:
+                        return True
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+
+                # Method 4: Check for /dev/nvidia0 (device node created by working drivers)
+                if os.path.exists("/dev/nvidia0"):
+                    return True
         except Exception:
             pass
+
         return False
 
     def _detect_amd_gpu(self):
@@ -735,6 +1151,7 @@ class ONNXHelper:
         """
         # First try using OpenVINO's native detection if available
         try:
+            ensure_installed("openvino")
             import openvino as ov
             core = ov.Core()
             available_devices = core.available_devices
