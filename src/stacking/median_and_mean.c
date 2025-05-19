@@ -65,6 +65,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 	int nb_frames = args->nb_images_to_stack;
 	guint stackcnt = 0;
 	double livetime = 0.0;
+	gboolean drizzle = TRUE;
 	*bitpix = 0;
 	*naxis = 0;
 	*naxes = 0;
@@ -96,6 +97,8 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		double scale = (args->upscale_at_stacking) ? 2. : 1.;
 		for (int i = 0; i < nb_frames; ++i) {
 			int image_index = args->image_indices[i]; // image index in sequence
+			const gchar *drizztmp = get_sequence_cache_filename(args->seq, image_index, "drizztmp", "fit", NULL);
+			drizzle &= g_file_test(drizztmp, G_FILE_TEST_EXISTS);
 			if (!get_thread_run())
 				return ST_GENERIC_ERROR;
 			if (i % 20 == 0)
@@ -231,6 +234,10 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		return ST_SEQUENCE_ERROR;
 	}
 
+	args->drizzle = drizzle;
+	if (args->drizzle) {
+		siril_log_message(_("Drizzle stacking will be used.\n"));
+	}
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	siril_debug_print("stack count: %u, livetime: %f\n", fit->keywords.stackcnt, fit->keywords.livetime);
 	return ST_OK;

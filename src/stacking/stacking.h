@@ -83,6 +83,7 @@ struct stacking_args {
 	gboolean maximize_framing;	/* maximize the framing instead of conforming to ref image size*/
 	int offset[2];				/* offset used by max framing*/
 	gboolean upscale_at_stacking; /* x2 upscale during stacking*/
+	gboolean drizzle;		/* drizzle mode */
 
 	rejection type_of_rejection;	/* type of rejection */
 	float sig[2];			/* low and high sigma rejection or GESTD parameters */
@@ -139,6 +140,7 @@ struct _data_block {
 	void *tmp;	// the actual single buffer for all others below
 	void **pix;	// buffer for a block on all images
 	float **mask; // buffer for the mask on all images
+	float **driz_w; // buffer for the drizzle weights on all images
 	void *stack;	// the reordered stack for one pixel in all images
 	float *mstack;	// the unordered mask data for one pixel in all images
 	int *rejected;	// 0 if pixel ok, 1 or -1 if rejected
