@@ -627,8 +627,7 @@ class ONNXHelper:
         elif self.system == "linux":
             if self._detect_nvidia_gpu():
                 cuda_version = self._detect_cuda_version()
-                if cuda_version = self._detect_cuda_version() and \
-                            pkg_version.Version(cuda_version).major >= 11:
+                if pkg_version.Version(cuda_version).major >= 11:
                     onnxruntime_pkg = "onnxruntime-gpu"
                     if pkg_version.Version(cuda_version).major == 11:
                         index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
@@ -641,7 +640,7 @@ class ONNXHelper:
 
         return onnxruntime_pkg, from_url, index_url
 
-    def detect_cuda_version(self) -> Optional[str]:
+    def _detect_cuda_version(self) -> Optional[str]:
         """
         Detects the CUDA version using multiple methods.
 
@@ -1010,7 +1009,7 @@ class ONNXHelper:
 
         return valid_paths
 
-    def detect_nvidia_gpu(self):
+    def _detect_nvidia_gpu(self):
         """
         Detect if NVIDIA GPU is available and usable.
         Only Windows and Linux detection are implemented as macOS doesn't use NVIDIA GPUs.
@@ -1028,7 +1027,7 @@ class ONNXHelper:
                 except (subprocess.SubprocessError, FileNotFoundError):
                     pass
 
-                # Method 2: PowerShell with Get-CimInstance (modern systems)
+                # Method 2: PowerShell with Get-CimInstance (modern systems that we care about)
                 try:
                     output = subprocess.check_output(
                         ["powershell", "-Command", "Get-CimInstance -ClassName Win32_VideoController"],
@@ -1047,39 +1046,7 @@ class ONNXHelper:
                 except (subprocess.SubprocessError, FileNotFoundError):
                     pass
 
-                # Method 3: PowerShell with Get-WmiObject (older systems)
-                try:
-                    output = subprocess.check_output(
-                        ["powershell", "-Command", "Get-WmiObject -Class Win32_VideoController"],
-                        text=True, stderr=subprocess.DEVNULL
-                    )
-                    # Same specific check as above
-                    lines = output.splitlines()
-                    for i, line in enumerate(lines):
-                        if "NVIDIA" in line:
-                            start = max(0, i-5)
-                            end = min(len(lines), i+5)
-                            context = "\n".join(lines[start:end])
-                            if any(gpu_term in context for gpu_term in ["GPU", "Graphics", "GeForce", "Quadro", "RTX", "GTX"]):
-                                return True
-                except (subprocess.SubprocessError, FileNotFoundError):
-                    pass
-
-                # Method 4: WMIC with careful parsing
-                try:
-                    output = subprocess.check_output(
-                        ["wmic", "path", "win32_VideoController", "get", "name,status"],
-                        text=True, stderr=subprocess.DEVNULL
-                    )
-                    # Parse output to look for enabled NVIDIA devices
-                    lines = output.splitlines()
-                    for line in lines:
-                        if "NVIDIA" in line and "OK" in line:
-                            return True
-                except (subprocess.SubprocessError, FileNotFoundError):
-                    pass
-
-            # Linux detection with focused methods
+            # Linux detection methods
             elif self.system == "linux":
                 # Method 1: nvidia-smi (most reliable)
                 try:
@@ -1098,17 +1065,7 @@ class ONNXHelper:
                 except (subprocess.SubprocessError, FileNotFoundError):
                     pass
 
-                # Method 3: Check specifically for nvidia GPU modules
-                try:
-                    output = subprocess.check_output(["lsmod"], text=True)
-                    nvidia_modules = [line for line in output.splitlines()
-                                    if line.startswith("nvidia") or line.startswith("nvidia_")]
-                    if nvidia_modules:
-                        return True
-                except (subprocess.SubprocessError, FileNotFoundError):
-                    pass
-
-                # Method 4: Check for /dev/nvidia0 (device node created by working drivers)
+                # Method 3: Check for /dev/nvidia0 (device node created by working drivers)
                 if os.path.exists("/dev/nvidia0"):
                     return True
         except Exception:
