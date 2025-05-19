@@ -361,7 +361,7 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
         with subprocess.Popen(
             pip_command,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
             bufsize=-1,
             universal_newlines=False
         ) as process:
@@ -380,7 +380,7 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
 
     except subprocess.CalledProcessError as e:
         print(f"Failed to install {install_target}")
-        if "timed out" in e.stderr.lower():
+        if e.stderr and "timed out" in e.stderr.lower():
             raise TimeoutError(f"Likely timeout error in pip: {e}") from e
         raise
 
@@ -639,7 +639,7 @@ class ONNXHelper:
 
         Returns:
             Optional[str]: The CUDA version as a string (e.g., '11.7') if detected,
-                          or None if nvcc is not installed or version cannot be determined.
+                          or "0.0" if nvcc is not installed or version cannot be determined.
         """
         try:
             nvcc_command = 'nvcc.exe' if self.system == 'windows' else 'nvcc'
@@ -663,10 +663,10 @@ class ONNXHelper:
                 version_parts = alt_match.group(1).split('.')
                 return f"{version_parts[0]}.{version_parts[1]}"
 
-            return None
+            return "0.0"
         except (subprocess.SubprocessError, FileNotFoundError):
             # nvcc is not installed or an error occurred
-            return None
+            return "0.0"
 
     def _detect_nvidia_gpu(self):
         """
