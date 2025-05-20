@@ -99,8 +99,6 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			int image_index = args->image_indices[i]; // image index in sequence
 			const gchar *drizztmp = get_sequence_cache_filename(args->seq, image_index, "drizztmp", "fit", NULL);
 			drizzle &= g_file_test(drizztmp, G_FILE_TEST_EXISTS);
-			if(!drizzle)
-				siril_log_message("Drizzle disabled, weights file %s for index %d not found\n", drizztmp, i);
 			if (!get_thread_run())
 				return ST_GENERIC_ERROR;
 			if (i % 20 == 0)

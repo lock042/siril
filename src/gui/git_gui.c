@@ -204,6 +204,7 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 	}
 	g_free(scriptname);
 	g_free(scriptpath);
+
 }
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *char_path, gpointer user_data) {
@@ -212,56 +213,33 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 	GtkTreePath *path;
 	GtkTreeModel *model;
 	gchar *script_path = NULL;
-
 	path = gtk_tree_path_new_from_string(char_path);
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
-
-	if (gtk_tree_model_get_iter(model, &iter, path) == FALSE) {
-		gtk_tree_path_free(path);
+	if (gtk_tree_model_get_iter(model, &iter, path) == FALSE)
 		return;
-	}
-
-	// Free the path as soon as we don't need it anymore
-	gtk_tree_path_free(path);
-
-	// Get the script path and current toggle value
 	gtk_tree_model_get(model, &iter, 3, &script_path, -1);
 	gtk_tree_model_get(model, &iter, 2, &val, -1);
-
-	// Toggle the value in the model
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 2, !val, -1);
 
 	if (!val) {
-		// Checkbox is now checked - add to list if not already present
-		if (!g_list_find_custom(com.pref.selected_scripts, script_path,
-							(GCompareFunc)g_strcmp0)) {
+		if (!(g_list_find(com.pref.selected_scripts, script_path))) {
 #ifdef DEBUG_GITSCRIPTS
-			printf("Adding script: %s\n", script_path);
+		printf("%s\n", script_path);
 #endif
-			// g_list_prepend takes ownership of script_path
-			com.pref.selected_scripts = g_list_prepend(com.pref.selected_scripts, script_path);
-		} else {
-			// Already in list, free our copy
-			g_free(script_path);
+		com.pref.selected_scripts =
+			g_list_prepend(com.pref.selected_scripts, script_path);
 		}
 	} else {
-		// Checkbox is now unchecked - remove from list
-		GList *found = g_list_find_custom(com.pref.selected_scripts, script_path,
-										(GCompareFunc)g_strcmp0);
-		if (found) {
-#ifdef DEBUG_GITSCRIPTS
-			printf("Removing script: %s\n", script_path);
-#endif
-			// Free the data stored in the list
-			g_free(found->data);
-			// Remove the element and update the list
-			com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, found);
+		GList *iterator = com.pref.selected_scripts;
+		while (iterator) {
+		if (g_strrstr((gchar *)iterator->data, script_path)) {
+			iterator = g_list_remove_all(iterator, iterator->data);
+			break;
 		}
-
-		// Free our copy of script_path
-		g_free(script_path);
+		iterator = iterator->next;
+		}
+		com.pref.selected_scripts = g_list_first(iterator);
 	}
-
 	notify_script_update();
 }
 
