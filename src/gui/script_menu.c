@@ -372,11 +372,21 @@ int initialize_script_menu(gboolean verbose) {
 
 	// Add scripts from the selections made in preferences
 	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
-		com.pref.selected_scripts = g_list_sort(com.pref.selected_scripts, compare_basenames);
+		GList *filtered_list = NULL;
+		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
+			if (ss->data != NULL) {
+				filtered_list = g_list_append(filtered_list, ss->data);
+			}
+		}
+
+		filtered_list = g_list_sort(filtered_list, compare_basenames);
+
+		g_list_free(com.pref.selected_scripts); // don't free the data
+		com.pref.selected_scripts = filtered_list;
 
 		GList *new_list = NULL;
 		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
-			printf("test: %s\n", (gchar*)ss->data);
+			if (!ss->data) continue;
 			gchar *full_path = g_strdup(ss->data);
 			if (!g_file_test(full_path, G_FILE_TEST_EXISTS)) {
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
@@ -433,6 +443,7 @@ int initialize_script_menu(gboolean verbose) {
 			// Check if this core script is already in selected_scripts
 			gboolean already_added = FALSE;
 			for (GList *selected = com.pref.selected_scripts; selected; selected = selected->next) {
+				if (!selected->data) continue;
 				if (g_strrstr((gchar*)selected->data, script_path)) {
 					already_added = TRUE;
 					break;
