@@ -376,7 +376,7 @@ int initialize_script_menu(gboolean verbose) {
 
 		GList *new_list = NULL;
 		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
-			if (!ss->data) continue;
+			printf("test: %s\n", (gchar*)ss->data);
 			gchar *full_path = g_strdup(ss->data);
 			if (!g_file_test(full_path, G_FILE_TEST_EXISTS)) {
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
