@@ -23,7 +23,6 @@
 #include "core/undo.h"
 #include "core/siril_log.h"
 #include "algos/fitting.h"
-#include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "gui/message_dialog.h"

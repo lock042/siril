@@ -22,7 +22,6 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
-#include "algos/siril_wcs.h"
 #include "algos/comparison_stars.h"
 #include "gui/message_dialog.h"
 #include "gui/utils.h"

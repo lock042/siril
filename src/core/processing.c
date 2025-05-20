@@ -34,10 +34,8 @@
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
-#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
-#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
 #include "io/sequence.h"
@@ -852,9 +850,21 @@ gpointer waiting_for_thread() {
 
 int claim_thread_for_python() {
 	g_mutex_lock(&com.mutex);
-	if (com.thread || com.run_thread || com.python_claims_thread) {
-		fprintf(stderr, "The processing thread is busy. It must stop before Python can claim "
-					"the processing thread.\n");
+	if (com.thread) {
+		fprintf(stderr, "The processing thread is busy (com.thread is not NULL). "
+					"It must stop before Python can claim the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 1;
+	}
+	if (com.run_thread) {
+		fprintf(stderr, "The processing thread is busy (com.run_thread is TRUE). "
+					"It must stop before Python can claim the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 1;
+	}
+	if (com.python_claims_thread) {
+		fprintf(stderr, "The processing thread is already claimed by Python. It must be "
+					"released before Python can claim the processing thread again.\n");
 		g_mutex_unlock(&com.mutex);
 		return 1;
 	}

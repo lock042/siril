@@ -60,7 +60,9 @@ from .exceptions import (
     CommandError,
     DataError,
     NoImageError,
-    NoSequenceError
+    NoSequenceError,
+    ProcessingThreadBusyError,
+    ImageDialogOpenError
 )
 from .connection import SirilInterface
 
@@ -105,6 +107,8 @@ __all__ = [
     'DataError',
     'NoImageError',
     'NoSequenceError',
+    'ProcessingThreadBusyError',
+    'ImageDialogOpenError',
     'SharedMemoryWrapper',
     'truncate_utf8',
     'SuppressedStdout',

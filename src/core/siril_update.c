@@ -422,28 +422,27 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 		return NULL;
 	}
 
-	if (siril_update_get_highest(doc, &last_version, &release_timestamp,
-		&build_revision, &build_comment)) {
+	if (siril_update_get_highest(doc, &last_version, &release_timestamp, &build_revision, &build_comment)) {
 		g_fprintf(stdout, "Last available version: %s\n", last_version);
 
-	msg = check_version(last_version, &(args->verbose), &data);
-	message_type = GTK_MESSAGE_INFO;
-		} else {
-			msg = siril_log_message(_("Cannot fetch version file\n"));
+		msg = check_version(last_version, &(args->verbose), &data);
+		message_type = GTK_MESSAGE_INFO;
+	} else {
+		msg = siril_log_message(_("Cannot fetch version file\n"));
+	}
+
+	if (args->verbose) {
+		set_cursor_waiting(FALSE);
+		if (msg) {
+			siril_data_dialog(message_type, _("Software Update"), msg, data);
 		}
+	}
 
-		if (args->verbose) {
-			set_cursor_waiting(FALSE);
-			if (msg) {
-				siril_data_dialog(message_type, _("Software Update"), msg, data);
-			}
-		}
+	g_clear_pointer(&last_version, g_free);
+	g_clear_pointer(&build_comment, g_free);
+	yyjson_doc_free(doc);
 
-		g_clear_pointer(&last_version, g_free);
-		g_clear_pointer(&build_comment, g_free);
-		yyjson_doc_free(doc);
-
-		return msg;
+	return msg;
 }
 
 static gboolean end_update_idle(gpointer p) {

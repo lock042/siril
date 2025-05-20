@@ -263,8 +263,8 @@ static void restart_resample_signal_handlers() {
 }
 
 void on_resample_dialog_show(GtkWidget *dialog, gpointer user_data) {
-	pause_resample_signal_handlers();
 	initialize_resample_widgets_if_needed();
+	pause_resample_signal_handlers();
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), gfit.rx);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), gfit.ry);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), 100.0);

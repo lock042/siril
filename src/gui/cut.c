@@ -21,7 +21,6 @@
 #include <math.h>
 #include "algos/extraction.h"
 #include "algos/fitting.h"
-#include "algos/statistics_float.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"

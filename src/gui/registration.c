@@ -26,7 +26,6 @@
 #include "drizzle/cdrizzleutil.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
-#include "gui/open_dialog.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
@@ -40,7 +39,6 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
-#include "io/fits_keywords.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
 
@@ -293,8 +291,6 @@ void initialize_registration_methods() {
 	gtk_combo_box_text_remove_all(comboboxregmethod);
 	for (j = 0; j < NUMBER_OF_METHODS - 1; j ++) {
 		gtk_combo_box_text_append_text(comboboxregmethod, reg_methods[j]->name);
-		siril_log_message(_("Loading registration method: %s\n"),
-				reg_methods[j]->name);
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(comboboxregmethod), com.pref.gui.reg_settings);
 

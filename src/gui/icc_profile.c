@@ -23,7 +23,6 @@
 #include "algos/colors.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
-#include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/undo.h"
 #include "gui/image_display.h"
@@ -33,18 +32,11 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/image_interactions.h"
-#include "gui/siril-window.h"
-#include "gui/registration_preview.h"
 #include "gui/utils.h"
-#include "gui/siril_plot.h"
-#include "gui/siril_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "io/siril_plot.h"
 #include "core/siril_log.h"
-#include "core/siril_app_dirs.h"
-#include "core/proto.h"
 
 static cmsHPROFILE target = NULL; // Target profile for the GUI tool
 

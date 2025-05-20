@@ -22,10 +22,12 @@ import numpy as np
 from .translations import _
 from .shm import SharedMemoryWrapper, _SharedMemoryInfo
 from .plot import PlotData
-from .exceptions import SirilError, DataError, SirilConnectionError, CommandError, NoImageError, NoSequenceError, SharedMemoryError
-from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, DistoData, Sequence, SequenceType, Polygon
+from .exceptions import SirilError, DataError, SirilConnectionError, CommandError, \
+        NoImageError, NoSequenceError, SharedMemoryError, ProcessingThreadBusyError, ImageDialogOpenError
+from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, \
+        DistoData, Sequence, SequenceType, Polygon
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
-from .utility import truncate_utf8
+from .utility import truncate_utf8, parse_fits_header
 
 DEFAULT_TIMEOUT = 5.
 
@@ -667,7 +669,7 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(f"Error sending log message {message_bytes}: {e}") from e
 
-    def _claim_thread(self) -> bool:
+    def _claim_thread(self) -> None:
         """
         Claim the processing thread. This prevents other processes using the
         processing thread to operate on the current Siril image. The preferred
@@ -680,9 +682,10 @@ class SirilInterface:
         sequence of operations should be:
 
         * Call ``SirilInterface.claim_thread()`` by entering image_lock() context
-        * If the result is False, alert the user and await further input: the
-          thread is already in use, or an image processing dialog is open.
-        * If the result is True, you have the thread claimed.
+        * If an exception is raised, handle it appropriately:
+        - ProcessingThreadBusyError: the thread is already in use
+        - ImageDialogOpenError: an image processing dialog is open
+        * If no exception is raised, you have the thread claimed.
         * Now you can call ``SirilInterface.get_image()`` or ``get_image_pixeldata()``
         * Carry out your image processing
         * Call ``SirilInterface.set_image_pixeldata()``
@@ -693,29 +696,30 @@ class SirilInterface:
         to alter the Siril image then the thread **must not** be claimed or the
         Siril command will be unable to acquire it, and will fail.
 
-        Returns:
-            bool: True if the processing thread is claimed successfully, or
-                  False if the thread is in use or if an error occured. In either case
-                  processing cannot continue, though the script can wait and allow the
-                  user to try again once the thread is free.
+        Raises:
+            ProcessingThreadBusyError: If the thread is already in use
+            ImageDialogOpenError: If an image processing dialog is open
+            SirilError: If any other error occurs while claiming the thread
         """
         try:
-            retval = self._execute_command(_Command.CLAIM_THREAD, None)
-            if retval is True:
-                return True
-            if retval is None:
-                print(_("The processing thread is locked. Wait for the current "
-                    "processing task to finish."))
-                return False
-            print(_("Error trying to claim the processing thread. Thread is "
-                "in use or an image processing dialog is open."))
-            return False
+            status, response = self._send_command(_Command.CLAIM_THREAD, None)
+            if status == _Status.NONE or status == _Status.ERROR:
+                response_str = response.decode('utf-8')
+                print(f"image_lock: {response_str}", file=sys.stderr)
 
+                if "processing thread is locked" in response_str:
+                    raise ProcessingThreadBusyError("Processing thread is already in use")
+                elif "processing dialog is open" in response_str:
+                    raise ImageDialogOpenError("Image processing dialog is open")
+                else:
+                    raise SirilError(f"Failed to claim processing thread: {response_str}")
+        except (ProcessingThreadBusyError, ImageDialogOpenError):
+            # Re-raise specific exceptions
+            raise
         except Exception as e:
-            print(f"Error claiming processing thread: {e}", file=sys.stderr)
-            return False
+            raise SirilError(f"Error claiming processing thread: {e}")
 
-    def _release_thread(self) -> bool:
+    def _release_thread(self) -> None:
         """
         Release the processing thread. This permits other processes to use the
         processing thread to operate on the current Siril image. The preferred
@@ -728,30 +732,20 @@ class SirilInterface:
         should be:
 
         * Call ``SirilInterface.claim_thread()`` by entering image_lock() context
-        * If the result is False, alert the user and await further input: the
-          thread is already in use, or an image processing dialog is open.
-        * If the result is True, you have the thread claimed.
+        * If an exception is raised, handle it appropriately
+        * If no exception is raised, you have the thread claimed.
         * Now you can call ``SirilInterface.get_image()`` or ``get_image_pixeldata()``
         * Carry out your image processing
         * Call ``SirilInterface.set_image_pixeldata()``
         * Call ``SirilInterface.release_thread()`` by exiting image_lock() context
 
-        Returns:
-            True if the thread was successfully released
-
         Raises:
             SirilError: if an error occurred in releasing the thread
         """
-        try:
-            retval = self._execute_command(_Command.RELEASE_THREAD, None)
-            if retval is True:
-                return True
+        retval = self._execute_command(_Command.RELEASE_THREAD, None)
+        if retval is not True:
             raise SirilError(_("Error trying to release the processing thread. "
                 "It will be released when the script terminates."))
-
-        except Exception as e:
-            print(f"Error releasing the processing thread: {e}", file=sys.stderr)
-            return False
 
     def image_lock(self):
         """
@@ -773,16 +767,25 @@ class SirilInterface:
 
         .. code-block:: python
 
-            with siril.image_lock():
-                # Get image data
-                image_data = self.get_image_pixeldata()
-                # Process image data
-                processed_data = some_processing_function(image_data)
-                # Set the processed image data
-                siril.set_image_pixeldata(processed_data)
+            try:
+                with siril.image_lock():
+                    # Get image data
+                    image_data = self.get_image_pixeldata()
+                    # Process image data
+                    processed_data = some_processing_function(image_data)
+                    # Set the processed image data
+                    siril.set_image_pixeldata(processed_data)
+            except ProcessingThreadBusyError:
+                # Handle busy thread case
+                pass
+            except ImageDialogOpenError:
+                # Handle open dialog case
+                pass
 
         Raises:
-            SirilError: If the thread cannot be claimed.
+            ProcessingThreadBusyError: If the thread is already in use
+            ImageDialogOpenError: If an image processing dialog is open
+            SirilError: If the thread cannot be claimed or released for other reasons
         """
         class ImageLockContext:
             """ Class to manage the image_lock context """
@@ -791,13 +794,14 @@ class SirilInterface:
                 self.claimed = False
 
             def __enter__(self):
-                if not self.outer_self._claim_thread():
-                    raise SirilError("Error in image_lock(). Thread may be in use or an image processing dialog is open.")
+                # This will raise the appropriate exception if claim fails
+                self.outer_self._claim_thread()
                 self.claimed = True
                 return self.outer_self
 
             def __exit__(self, exc_type, exc_val, exc_tb):
                 if self.claimed:
+                    # Always release the thread and raise any exceptions that occur
                     self.outer_self._release_thread()
                     self.claimed = False
                 # Don't suppress exceptions
@@ -2240,15 +2244,18 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_image_fits_header(self) -> Optional[str]:
+    def get_image_fits_header(self, return_as = 'str') -> str | dict | None:
         """
         Retrieve the full FITS header of the current image loaded in Siril.
 
         Args:
-            none.
+            return_as: Optional string specifying the format of the returned header.
+             Can be 'str' for a string or 'dict' for a dictionary.
 
         Returns:
-            bytes: The image FITS header as a string, or None if there is no header.
+            str: The image FITS header as a string, or None if there is no header.
+            dict: The image FITS header as a dictionary, or None if there is no header.
+            None: If the header is empty or not available.
 
         Raises:
             NoImageError: If no image is currently loaded,
@@ -2300,7 +2307,12 @@ class SirilInterface:
             except (BufferError, ValueError, TypeError) as e:
                 raise SirilError(_("Failed to create string from shared memory: {}").format(e)) from e
 
-            return result
+            if return_as == 'dict':
+                return parse_fits_header(result)
+            elif return_as == 'str':
+                return result
+            else:
+                raise ValueError(_(f"Invalid return_as value: {return_as}"))
 
         except SirilError:
             # Re-raise NoImageError and other SirilErrors without wrapping
@@ -3375,16 +3387,20 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_seq_frame_header(self, frame: int) -> Optional[str]:
+    def get_seq_frame_header(self, frame: int, return_as = 'str') -> str | dict | None:
         """
         Retrieve the full FITS header of an image from the sequence loaded in Siril.
 
         Args:
             frame: Integer specifying which frame in the sequence to retrieve data for
             (between 0 and Sequence.number)
+            return_as: Optional string specifying the format of the returned header.
+                        Can be 'str' for a string or 'dict' for a dictionary.
 
         Returns:
             str: The image FITS header as a string, or None if there is no header.
+            dict: The image FITS header as a dictionary, or None if there is no header.
+            None: If the header is empty or not available.
 
         Raises:
             NoSequenceError: If no sequence is currently loaded,
@@ -3439,7 +3455,12 @@ class SirilInterface:
             except (BufferError, ValueError, TypeError) as e:
                 raise SirilError(_("Failed to create string from shared memory: {}").format(e)) from e
 
-            return result
+            if return_as == 'dict':
+                return parse_fits_header(result)
+            elif return_as == 'str':
+                return result
+            else:
+                raise ValueError(_(f"Invalid return_as value: {return_as}"))
 
         except SirilError:
             # Re-raise NoSequenceError and other SirilErrors without wrapping

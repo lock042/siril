@@ -21,27 +21,20 @@
 #include <math.h>
 
 #include <string.h>
-#include <math.h>
 #include <float.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
-#include "core/siril_app_dirs.h"
-#include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
 #include "gui/dialogs.h"
-#include "gui/remixer.h"
 #include "gui/siril_preview.h"
-#include "gui/registration_preview.h"
-#include "core/undo.h"
-
 #include "filters/starnet.h"
+
 static gboolean sgui_customstride;
 static gboolean sgui_starmask;
 static gboolean sgui_upscale;

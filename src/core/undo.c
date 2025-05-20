@@ -29,7 +29,6 @@
 #include "core/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
-#include "gui/dialogs.h"
 #include "gui/image_display.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"

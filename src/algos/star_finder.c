@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <locale.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_statistics.h>
 
@@ -36,14 +35,11 @@
 #include "algos/statistics.h"
 #include "algos/sorting.h"
 #include "algos/siril_wcs.h"
-#include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui/PSF_list.h"
-#include "gui/utils.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
-#include <wcslib.h>
 #include <wcsfix.h>
 
 #define _SQRT_EXP1 1.6487212707
