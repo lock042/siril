@@ -232,13 +232,21 @@ gboolean test_last_subdir(const gchar *path, const gchar *expected_subdir) {
 }
 
 static gint compare_basenames(gconstpointer a, gconstpointer b) {
+	// Handle NULL inputs
+	if (a == NULL && b == NULL) return 0;
+	if (a == NULL) return -1;
+	if (b == NULL) return 1;
+
 	const gchar *path_a = (const gchar*) a;
 	const gchar *path_b = (const gchar*) b;
 
 	gchar *basename_a = g_path_get_basename(path_a);
 	gchar *basename_b = g_path_get_basename(path_b);
 
-	gint result = g_ascii_strcasecmp(basename_a, basename_b); // Insensible à la casse
+	// Use g_utf8_collate for proper Unicode comparison
+	// This handles accented characters correctly
+	gint result = g_utf8_collate(g_utf8_casefold(basename_a, -1),
+								g_utf8_casefold(basename_b, -1));
 
 	g_free(basename_a);
 	g_free(basename_b);
