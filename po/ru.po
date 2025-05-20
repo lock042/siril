@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-19 00:01+0200\n"
-"PO-Revision-Date: 2025-05-17 02:54+0000\n"
+"PO-Revision-Date: 2025-05-18 23:45+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -510,9 +510,8 @@ msgid "Clear"
 msgstr "Очистить"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-#, fuzzy
 msgid "Clear all current temporary annotations (in red by default)"
-msgstr "Очистить все текущие аннотации из пользовательского каталога."
+msgstr "Очистить все временные аннотации (по умолчанию обозначены красным)"
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -862,7 +861,6 @@ msgid "Clip mode"
 msgstr "Режим обрезки"
 
 #: src/gui/uifiles/asinh_dialog.ui:289 src/gui/uifiles/histogram_dialog.ui:760
-#, fuzzy
 msgid ""
 "Select blend mode.\n"
 "Clip: clips values to the range 0.0 - 1.0. <b>Default</b>\n"
@@ -876,13 +874,17 @@ msgid ""
 "stretch if you notice colour artefacts around bright stars."
 msgstr ""
 "Выберите режим смешения.\n"
-"Обрезка: обрезает значения до диапазона 0.0 - 1.0\n"
+"Обрезка: обрезает значения до диапазона 0.0 - 1.0. <b>Значение по "
+"умолчанию</b>\n"
 "Масштабировать: масштабирует значения RGB обрезанных пикселей, чтобы они не "
 "превышали 1.0 на пиксель\n"
 "Смешение RGB: применяет функцию смешения для плавного восстановления "
-"пересвеченных цветов. <b>Значение по умолчанию</b>\n"
-"Общее масштабирование: аналогично масштабированию, но масштабирование "
-"происходит до общего максимального значения компонента"
+"пересвеченных цветов. \n"
+"Общее масштабирование: аналогичен «Масштабировать», но масштабирование "
+"происходит до общего максимального значения компонента\n"
+"\n"
+"Самый быстрый — Обрезка. Установите иной режим, когда вы будете довольны "
+"своим растягиванием, если заметите цветовые эффекты вокруг ярких звёзд."
 
 #: src/gui/uifiles/asinh_dialog.ui:298 src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:769 src/gui/utils.c:400
@@ -5749,6 +5751,7 @@ msgid ""
 "When enabled, positioning the cursor on a bracket will show the matching "
 "bracket"
 msgstr ""
+"При установке курсора на скобку, подсвечивает соответствующую парную скобку"
 
 #: src/gui/uifiles/python_scratchpad.ui:424
 msgid "Enable bracket matching"
@@ -5785,11 +5788,11 @@ msgstr "Включить автоматические отступы"
 
 #: src/gui/uifiles/python_scratchpad.ui:473
 msgid "When a block of lines is selected, tab increases the indent level"
-msgstr ""
+msgstr "Когда выбраны несколько строк, табуляция увеличивает уровень отступа"
 
 #: src/gui/uifiles/python_scratchpad.ui:474
 msgid "Indent on tab"
-msgstr ""
+msgstr "Отступ по табуляции"
 
 #: src/gui/uifiles/python_scratchpad.ui:483
 #: src/gui/uifiles/python_scratchpad.ui:484
@@ -7450,15 +7453,14 @@ msgid "Update default focal length and pixel size from the result"
 msgstr "Обновить фокусное расстояние и размер пикселя из результатов"
 
 #: src/gui/uifiles/settings_window.ui:1603
-#, fuzzy
 msgid ""
 "When an astrometric solution is found, the computed focal length and input "
 "pixel size are stored in the settings as default values for images that "
 "don't have the corresponding metadata."
 msgstr ""
 "Когда астрометрическое решение найдено, рассчитанное фокусное расстояние и "
-"входящий размер пикселя сохраняются в настройках как значения по умолчанию "
-"для изображений, которые не имеют соответствующих метаданных."
+"входящий размер пикселя будут сохранены в настройках как значения по "
+"умолчанию для изображений, которые не имеют соответствующих метаданных."
 
 #: src/gui/uifiles/settings_window.ui:1623
 msgid "Sampling tolerance (%):"
@@ -8646,14 +8648,15 @@ msgstr ""
 "применение изменений."
 
 #: src/gui/uifiles/settings_window.ui:5162
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
 "(This can be used to make and save local changes to a script.)"
 msgstr ""
 "Список доступных сценариев. Выбранные сценарии будут доступные через меню "
-"«Сценарии». Двойное нажатие на строку отобразит описание и код сценария."
+"«Сценарии». После двойного нажатия на строку, код сценария будет открыть в "
+"редакторе (Это позволяет делать локальные изменения в сценарии и сохранять "
+"их)"
 
 #: src/gui/uifiles/settings_window.ui:5177
 msgid "Category"
@@ -9771,9 +9774,8 @@ msgid "Save current plot to png file"
 msgstr "Сохранить текущий график в файл png"
 
 #: src/gui/uifiles/siril.ui:2689
-#, fuzzy
 msgid "Build a light curve in the ETD text format"
-msgstr "Кривая блеска (формат ETD)"
+msgstr "Построить кривую блеска в текстовом формате ETD"
 
 #: src/gui/uifiles/siril.ui:2690
 msgid "Light Curve (ETD format)"
@@ -21472,17 +21474,16 @@ msgid "See Introduction"
 msgstr "Посмотреть вступление"
 
 #: src/gui/callbacks.c:2006
-#, fuzzy
 msgid "Unsaved script changes"
-msgstr "Несохранённый результат укладки"
+msgstr "Несохранённые изменения в сценарии"
 
 #: src/gui/callbacks.c:2007
 msgid "There are unsaved changes in the script editor. Quit anyway?"
-msgstr ""
+msgstr "В редакторе сценариев есть несохранённые изменения. Выйти?"
 
 #: src/gui/callbacks.c:2008
 msgid "Quit"
-msgstr ""
+msgstr "Выйти"
 
 #: src/gui/callbacks.c:2017
 msgid "Closing application"
@@ -23692,9 +23693,8 @@ msgid "Error creating temporary script file: %s\n"
 msgstr "Ошибка чтения stderr: %s\n"
 
 #: src/gui/python_gui.c:1146
-#, fuzzy
 msgid "Error writing to temporary script file\n"
-msgstr "Ошибка: не удалось удалить временный рабочий файл…\n"
+msgstr "Ошибка записи во временный файл сценария\n"
 
 #. Run the script
 #: src/gui/python_gui.c:1183

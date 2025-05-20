@@ -295,6 +295,13 @@ static void set_widgets(gint page_num) {
 }
 
 void on_graxpert_dialog_show(GtkWidget *widget, gpointer user_data) {
+	siril_message_dialog(GTK_MESSAGE_INFO, _("Deprecation Notice"), _("The builtin C interface "
+			"to GraXpert is deprecated owing to issues with reliability and the level of technical "
+			"debt, and it will soon be removed in an upcoming release. It is replaced by a Python "
+			"script that interfaces directly with the GraXpert AI models and provides a model manager "
+			"that uses GraXpert to download model files.\n\nYou can find the Python script in the "
+			"hamburger menu -> Get Scripts and look in the Python repository for \"GraXpert_AI.py\""
+	));
 	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
 	initialize_graxpert_widgets_if_needed(GINT_TO_POINTER(0));
 	gint page_num = gtk_notebook_get_current_page(notebook_graxpert_operation);

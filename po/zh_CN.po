@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-19 00:01+0200\n"
-"PO-Revision-Date: 2025-05-15 11:00+0000\n"
+"PO-Revision-Date: 2025-05-18 23:45+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -487,9 +487,8 @@ msgid "Clear"
 msgstr "清除"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-#, fuzzy
 msgid "Clear all current temporary annotations (in red by default)"
-msgstr "从用户星表中清除当前所有标注。"
+msgstr "清除当前所有临时标注（默认以红色显示）"
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -813,7 +812,6 @@ msgid "Clip mode"
 msgstr "修剪模式"
 
 #: src/gui/uifiles/asinh_dialog.ui:289 src/gui/uifiles/histogram_dialog.ui:760
-#, fuzzy
 msgid ""
 "Select blend mode.\n"
 "Clip: clips values to the range 0.0 - 1.0. <b>Default</b>\n"
@@ -827,10 +825,12 @@ msgid ""
 "stretch if you notice colour artefacts around bright stars."
 msgstr ""
 "选择混合模式。\n"
-"修剪：将数值修剪到[0.0, 1.0]。\n"
-"重缩放：重缩放已修剪像素的RGB值，使每个像素的值不超过1.0。\n"
-"RGB混合：应用混合函数来平滑地重建高光的色彩。<b>缺省</b>。\n"
-"全局重缩放：与重缩放相同，但基于全局最大分量值"
+"修剪：将数值修剪到[0.0, 1.0]。<b>（默认值）</b>\n"
+"重缩放：重缩放已修剪像素的RGB值，使每个像素的值不超过1.0\n"
+"RGB混合：应用混合函数来平滑地重建高光的色彩。\n"
+"全局重缩放：与重缩放相同，但按全局最大分量值来重缩放\n"
+"\n"
+"修剪是最快的。若亮星周围有伪影，请改用其他混合模式。"
 
 #: src/gui/uifiles/asinh_dialog.ui:298 src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:769 src/gui/utils.c:400
@@ -7253,11 +7253,11 @@ msgstr "相机"
 
 #: src/gui/uifiles/settings_window.ui:3070
 msgid "siril-spcc-database repository:"
-msgstr "Siril-spcc-数据库存储库："
+msgstr "Siril-spcc-数据库仓库："
 
 #: src/gui/uifiles/settings_window.ui:3079
 msgid "Enable repository"
-msgstr "启用存储库"
+msgstr "启用仓库"
 
 #: src/gui/uifiles/settings_window.ui:3083
 msgid ""
@@ -7267,20 +7267,19 @@ msgid ""
 "the repository, you will need to download the .json files manually and "
 "unpack them into the repository path shown below in order to use SPCC."
 msgstr ""
-"启用 git 存储库。这提供了使用 SPCC 所需的滤镜和传感器数据。\n"
-"强烈建议启用此功能。如果您选择不使用存储库，则需要手动下载 .json 文件并将其解"
-"压到如下所示的存储库路径中才能使用 SPCC。"
+"启用 git 仓库。这提供了使用 SPCC 所需的滤镜和传感器数据。\n"
+"强烈建议启用此功能。如果您选择不使用仓库，则需要手动下载 .json "
+"文件并将其解压到如下所示的仓库路径中才能使用 SPCC。"
 
 #: src/gui/uifiles/settings_window.ui:3099
 msgid "Repository path:"
-msgstr "存储库路径："
+msgstr "仓库路径："
 
 #: src/gui/uifiles/settings_window.ui:3110
 msgid ""
 "If you disable the repository, any SPCC data json files you need must be "
 "placed in this directory."
-msgstr ""
-"如果禁用存储库，则您需要的任何 SPCC 数据 json 文件都必须放置在此目录中。"
+msgstr "如果禁用仓库，则您需要的任何 SPCC 数据 json 文件都必须放置在此目录中。"
 
 #: src/gui/uifiles/settings_window.ui:3122
 msgid "Sync at startup"
@@ -7288,7 +7287,7 @@ msgstr "启动时同步"
 
 #: src/gui/uifiles/settings_window.ui:3126
 msgid "Synchronise the repository at Siril startup."
-msgstr "在 Siril 启动时同步存储库。"
+msgstr "在 Siril 启动时同步仓库。"
 
 #: src/gui/uifiles/settings_window.ui:3138
 msgid "Manual sync"
@@ -7296,7 +7295,7 @@ msgstr "手动同步"
 
 #: src/gui/uifiles/settings_window.ui:3142
 msgid "Manually synchronise the repository"
-msgstr "手动同步存储库"
+msgstr "手动同步仓库"
 
 #: src/gui/uifiles/settings_window.ui:3164
 msgid "Spectrophotometric Calibration"
@@ -7973,7 +7972,7 @@ msgstr "警告对话框"
 
 #: src/gui/uifiles/settings_window.ui:5088
 msgid "Enable use of the siril-scripts online repository"
-msgstr "启用 Siril-scripts 在线存储库的使用"
+msgstr "启用 Siril-scripts 在线仓库的使用"
 
 #: src/gui/uifiles/settings_window.ui:5092
 msgid ""
@@ -7986,12 +7985,12 @@ msgid ""
 "select scripts once the list populates. Deactivating the repository will "
 "only take place when the Apply button is clicked, in the usual way."
 msgstr ""
-"Siril 将从官方 Siril-scripts 存储库获取并更新脚本。这些将可以离线使用，并且可"
-"以选择特定脚本来添加到“脚本”菜单中。\n"
+"Siril 将从官方 Siril-scripts 仓库获取并更新脚本。这些将可以离线使用，并且可以"
+"选择特定脚本来添加到“脚本”菜单中。\n"
 "\n"
 "<b>注：</b>\n"
-"激活存储库将立即发生，以便您可以在列表填充后选择脚本。仅当以通常的方式单击“应"
-"用”按钮时才会停用存储库。"
+"激活仓库将立即发生，以便您可以在列表填充后选择脚本。仅当以通常的方式单击“应用"
+"”按钮时才会停用仓库。"
 
 #: src/gui/uifiles/settings_window.ui:5114
 msgid "Automatic updates"
@@ -7999,7 +7998,7 @@ msgstr "自动更新"
 
 #: src/gui/uifiles/settings_window.ui:5118
 msgid "Automatically update the repository at startup."
-msgstr "启动时自动更新存储库。"
+msgstr "启动时自动更新仓库。"
 
 #: src/gui/uifiles/settings_window.ui:5130
 msgid "Manual update"
@@ -8010,9 +8009,8 @@ msgid ""
 "Update the scripts repository now. If there are any pending changes, the "
 "commit messages will be shown and you will be asked to confirm applying the "
 "changes."
-msgstr ""
-"立即更新脚本存储库。如果有任何待处理的更改，将显示提交消息，并要求您确认应用"
-"更改。"
+msgstr "立即更新脚本仓库。如果有任何待处理的更改，将显示提交消息，并要求您确认应用更"
+"改。"
 
 #: src/gui/uifiles/settings_window.ui:5162
 msgid ""
@@ -8037,7 +8035,7 @@ msgstr "类型"
 
 #: src/gui/uifiles/settings_window.ui:5253
 msgid "<b>Siril Scripts Repository</b>"
-msgstr "<b>Siril 脚本存储库</b>"
+msgstr "<b>Siril 脚本仓库</b>"
 
 #: src/gui/uifiles/settings_window.ui:5286
 msgid "Reset python venv"
@@ -11231,11 +11229,12 @@ msgstr ""
 "<b>警告：只有线性模式会显示真实的像素值（当滑块位于最大和最小的位置）。 其他模式只是显示数据的便捷方式。使用外部工具处理之前请先完成直方图拉伸。</b>"
 
 #: src/gui/uifiles/siril.ui:10067
-#, fuzzy
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
 "Current state: linked."
-msgstr "绑定/非绑定各通道于自动拉伸预览模式。\n"
+msgstr ""
+"在自动拉伸预览中绑定/解绑各通道。\n"
+"当前状态：绑定。"
 
 #: src/gui/uifiles/siril.ui:10093
 msgid "Switch to normal and negative view"
@@ -13922,7 +13921,7 @@ msgstr "无法显示图像\n"
 
 #: src/compositing/compositing.c:573
 msgid "Unsaved compositing result"
-msgstr "未保存的合成结果"
+msgstr "合成结果未保存"
 
 #: src/compositing/compositing.c:575
 msgid "Compositing result image"
@@ -14524,7 +14523,7 @@ msgstr "载入文件出错！\n"
 
 #: src/core/command.c:974 src/gui/merge_cfa.c:375
 msgid "Unsaved Bayer pattern merge"
-msgstr "未保存的拜耳阵列合并"
+msgstr "拜耳阵列合并未保存"
 
 #: src/core/command.c:975 src/gui/merge_cfa.c:376
 msgid "Bayer pattern merge"
@@ -14748,7 +14747,7 @@ msgstr "缺少参数%s，异常中止。\n"
 #: src/core/command.c:2050
 #, c-format
 msgid "Invalid matrix element (%d, %d) %s, aborting.\n"
-msgstr "无效的矩阵元素（%d，%d）%s，异常中止。\n"
+msgstr "矩阵元素（%d，%d）%s 无效，异常中止。\n"
 
 #: src/core/command.c:2060
 #, c-format
@@ -16801,7 +16800,7 @@ msgstr "Invalid arguments"
 
 #: src/core/command_line_processor.c:64
 msgid "invalid image area selection"
-msgstr "无效的图像选区"
+msgstr "图像选区无效"
 
 #: src/core/command_line_processor.c:66
 msgid "command succeeded"
@@ -16817,11 +16816,11 @@ msgstr "输入图像未找到"
 
 #: src/core/command_line_processor.c:73
 msgid "invalid input sequence"
-msgstr "无效的输入序列"
+msgstr "输入序列无效"
 
 #: src/core/command_line_processor.c:75
 msgid "invalid input image"
-msgstr "无效的输入图像"
+msgstr "输入图像无效"
 
 #: src/core/command_line_processor.c:77
 msgid "load an image or sequence first"
@@ -18216,23 +18215,23 @@ msgstr "脚本目录列表"
 
 #: src/core/settings.c:498
 msgid "use and sync online scripts repository"
-msgstr "使用和同步在线脚本存储库"
+msgstr "使用和同步在线脚本仓库"
 
 #: src/core/settings.c:499
 msgid "use and sync spcc-database repository"
-msgstr "使用和同步 spcc 数据库存储库"
+msgstr "使用和同步 spcc 数据库仓库"
 
 #: src/core/settings.c:500
 msgid "auto sync online scripts repository"
-msgstr "自动同步在线脚本存储库"
+msgstr "自动同步在线脚本仓库"
 
 #: src/core/settings.c:501
 msgid "auto sync spcc-database repository"
-msgstr "自动同步 spcc 数据库存储库"
+msgstr "自动同步 spcc 数据库仓库"
 
 #: src/core/settings.c:502
 msgid "list of scripts selected from the repository"
-msgstr "从存储库中选择的脚本列表"
+msgstr "从仓库中选择的脚本列表"
 
 #: src/core/settings.c:503
 msgid "warn when launching a script"
@@ -18513,11 +18512,13 @@ msgid "Cannot check for updates with this version, missing dependency\n"
 msgstr "无法检查此版本的更新，缺少依赖项\n"
 
 #: src/core/siril_actions.c:344
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
 "Current state: %s."
-msgstr "绑定/非绑定各通道于自动拉伸预览模式。\n"
+msgstr ""
+"在自动拉伸预览中绑定/解绑各通道。\n"
+"当前状态：%s。"
 
 #: src/core/siril_actions.c:379 src/gui/PSF_list.c:810
 msgid "Current selection is too large"
@@ -18824,7 +18825,7 @@ msgstr[0] "通道"
 
 #: src/core/utils.c:1724 src/core/utils.c:1727
 msgid "(invalid UTF-8 string)"
-msgstr "（无效的 UTF-8 字符串）"
+msgstr "（UTF-8 字符串无效）"
 
 #: src/drizzle/cdrizzlebox.c:497
 msgid "Out of memory"
@@ -18832,7 +18833,7 @@ msgstr "内存不足"
 
 #: src/drizzle/cdrizzlebox.c:902
 msgid "Invalid kernel type"
-msgstr "无效的内核类型"
+msgstr "内核类型无效"
 
 #: src/drizzle/cdrizzleutil.c:123
 msgid "Drizzling parameters:\n"
@@ -19946,17 +19947,16 @@ msgid "See Introduction"
 msgstr "观看介绍"
 
 #: src/gui/callbacks.c:2006
-#, fuzzy
 msgid "Unsaved script changes"
-msgstr "未保存的叠加结果"
+msgstr "脚本更改未保存"
 
 #: src/gui/callbacks.c:2007
 msgid "There are unsaved changes in the script editor. Quit anyway?"
-msgstr ""
+msgstr "脚本编辑器中有未保存的更改。依然退出吗？"
 
 #: src/gui/callbacks.c:2008
 msgid "Quit"
-msgstr ""
+msgstr "退出"
 
 #: src/gui/callbacks.c:2017
 msgid "Closing application"
@@ -21992,14 +21992,13 @@ msgid "Right _margin position"
 msgstr "右边界位置"
 
 #: src/gui/python_gui.c:1139
-#, fuzzy, c-format
+#, c-format
 msgid "Error creating temporary script file: %s\n"
-msgstr "无法读取stderr: %s\n"
+msgstr "创建临时脚本文件失败：%s\n"
 
 #: src/gui/python_gui.c:1146
-#, fuzzy
 msgid "Error writing to temporary script file\n"
-msgstr "错误：无法删除临时工作文件...\n"
+msgstr "写入临时脚本文件失败\n"
 
 #. Run the script
 #: src/gui/python_gui.c:1183
@@ -22241,7 +22240,7 @@ msgstr ""
 
 #: src/gui/remixer.c:379
 msgid "Unsaved star recomposition result"
-msgstr "未保存的星点重混合结果"
+msgstr "星点重混合结果未保存"
 
 #: src/gui/remixer.c:380
 msgid "Star recomposition"
@@ -22491,12 +22490,12 @@ msgstr "载入脚本：%s\n"
 #, c-format
 msgid ""
 "Script %s no longer exists in repository, removing from Scripts menu...\n"
-msgstr "脚本 %s 不再存在于存储库中，已从脚本菜单中删除...\n"
+msgstr "脚本 %s 不再存在于仓库中，已从脚本菜单中删除...\n"
 
 #: src/gui/script_menu.c:405
 #, c-format
 msgid "Loading script from repository: %s\n"
-msgstr "从存储库中载入脚本：%s\n"
+msgstr "从仓库中载入脚本：%s\n"
 
 #: src/gui/script_menu.c:456
 #, c-format
@@ -24887,22 +24886,20 @@ msgstr ""
 
 #. Not a valid git path
 #: src/io/siril_git.c:282
-#, fuzzy
 msgid "Invalid Git repository path.\n"
-msgstr "存储库路径："
+msgstr "Git仓库路径无效。\n"
 
 #: src/io/siril_git.c:298 src/io/siril_git.c:310 src/io/siril_git.c:322
 msgid ""
 "Error performing hard reset. You may need to delete the local git repository "
 "and allow Siril to re-clone it.\n"
-msgstr ""
-"执行硬重置时出错。您可能需要删除本地 git 存储库并允许 Siril 重新克隆它。\n"
+msgstr "执行硬重置时出错。您可能需要删除本地 git 仓库并允许 Siril 重新克隆它。\n"
 
 #: src/io/siril_git.c:347
 msgid ""
 "Unable to create anonymous remote for the repository. Check your "
 "connectivity and try again.\n"
-msgstr "无法为存储库创建匿名远程。检查您的连接并重试。\n"
+msgstr "无法为仓库创建匿名远程。检查您的连接并重试。\n"
 
 #: src/io/siril_git.c:353
 msgid ""
@@ -24913,11 +24910,11 @@ msgstr "获取远程时出错。这可能是暂时错误，请检查您的连接
 #: src/io/siril_git.c:588
 #, c-format
 msgid "libgit2: repository is in unexpected state %d. Cleaning up...\n"
-msgstr "libgit2：存储库处于意外状态 %d。清理...\n"
+msgstr "libgit2：仓库处于意外状态 %d。清理...\n"
 
 #: src/io/siril_git.c:592
 msgid "libgit2: repository failed to clean up properly. Cannot continue.\n"
-msgstr "libgit2：存储库未能正确清理。无法继续。\n"
+msgstr "libgit2：仓库未能正确清理。无法继续。\n"
 
 #: src/io/siril_git.c:679 src/io/siril_git.c:683
 #, c-format
@@ -24929,13 +24926,13 @@ msgid "Attempting to clone from remote source...\n"
 msgstr "正在尝试从远程源克隆...\n"
 
 #: src/io/siril_git.c:751
-#, fuzzy, c-format
+#, c-format
 msgid "Error cloning repository into %s: %s\n"
-msgstr "克隆存储库时出错：%s\n"
+msgstr "将仓库克隆到%s时出错：%s\n"
 
 #: src/io/siril_git.c:756 src/io/siril_git.c:915
 msgid "Repository cloned successfully!\n"
-msgstr "存储库克隆成功！\n"
+msgstr "仓库克隆成功！\n"
 
 #: src/io/siril_git.c:759
 msgid ""
@@ -24948,7 +24945,7 @@ msgstr "无法查找远程。\n"
 
 #: src/io/siril_git.c:785 src/io/siril_git.c:937
 msgid "Error: cannot identify local repository's configured remote.\n"
-msgstr "错误：无法识别本地存储库配置的远程存储库。\n"
+msgstr "错误：无法识别本地仓库配置的远程仓库。\n"
 
 #: src/io/siril_git.c:793
 #, c-format
@@ -24957,30 +24954,29 @@ msgid ""
 "its remote. You should remove the folder %s and restart Siril to re-clone "
 "the correct repository.\n"
 msgstr ""
-"错误：本地 Siril-scripts 存储库文件夹未配置 %s 作为其远程。您应该删除文件夹 "
-"%s 并重新启动 Siril 以重新克隆正确的存储库。\n"
+"错误：本地 Siril-scripts 仓库文件夹未配置 %s 作为其远程。您应该删除文件夹 %s "
+"并重新启动 Siril 以重新克隆正确的仓库。\n"
 
 #: src/io/siril_git.c:798 src/io/siril_git.c:950
 msgid "Repository Error"
-msgstr "存储库错误"
+msgstr "仓库错误"
 
 #: src/io/siril_git.c:815 src/io/siril_git.c:829 src/io/siril_git.c:967
 #: src/io/siril_git.c:981
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
-msgstr ""
-"执行硬重置时出错。如果问题仍然存在，您可能需要删除本地 git 存储库并允许 "
-"Siril 重新克隆它。\n"
+msgstr "执行硬重置时出错。如果问题仍然存在，您可能需要删除本地 git 仓库并允许 Siril "
+"重新克隆它。\n"
 
 #: src/io/siril_git.c:837
 msgid "Local scripts repository is up-to-date!\n"
-msgstr "本地脚本存储库是最新的！\n"
+msgstr "本地脚本仓库是最新的！\n"
 
 #: src/io/siril_git.c:910
 #, c-format
 msgid "Error cloning repository: %s\n"
-msgstr "克隆存储库时出错：%s\n"
+msgstr "克隆仓库时出错：%s\n"
 
 #: src/io/siril_git.c:945
 #, c-format
@@ -24989,20 +24985,20 @@ msgid ""
 "as its remote. You should remove the folder %s and restart Siril to re-clone "
 "the correct repository.\n"
 msgstr ""
-"错误：本地 Siril-spcc-database 存储库文件夹未配置为 %s 作为其远程。您应该删除"
-"文件夹 %s 并重新启动 Siril 以重新克隆正确的存储库。\n"
+"错误：本地 Siril-spcc-database 仓库文件夹未配置为 %s 作为其远程。"
+"您应该删除文件夹 %s 并重新启动 Siril 以重新克隆正确的仓库。\n"
 
 #: src/io/siril_git.c:989
 msgid "Local SPCC database repository is up-to-date!\n"
-msgstr "本地 SPCC 数据库存储库是最新的！\n"
+msgstr "本地 SPCC 数据库仓库是最新的！\n"
 
 #: src/io/siril_git.c:1012
 msgid "Error: unable to open local scripts repository.\n"
-msgstr "错误：无法打开本地脚本存储库。\n"
+msgstr "错误：无法打开本地脚本仓库。\n"
 
 #: src/io/siril_git.c:1037
 msgid "Error: unable to open local spcc-database repository.\n"
-msgstr "错误：无法打开本地 spcc 数据库存储库。\n"
+msgstr "错误：无法打开本地 spcc 数据库仓库。\n"
 
 #: src/io/siril_pythoncommands.c:461
 msgid "Unknown config type"
@@ -25083,7 +25079,7 @@ msgstr "GET_PIXELDATA_REGION收到了意外的载荷长度：%u\n"
 
 #: src/io/siril_pythoncommands.c:910
 msgid "Invalid FINISHED_WITH_SHM payload"
-msgstr "无效的FINISHED_WITH_SHM载荷"
+msgstr "FINISHED_WITH_SHM载荷无效"
 
 #: src/io/siril_pythoncommands.c:996
 msgid "Unknown dialog type"
@@ -25268,14 +25264,14 @@ msgstr "_get_bundle_path()仅在Windows上可用"
 msgid ""
 "the processing thread is locked. Wait for the current processing task to "
 "finish."
-msgstr ""
+msgstr "处理中的线程已锁定。请等待当前处理任务完成。"
 
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:2104
 msgid ""
 "an image processing dialog is open. Close it to release the image lock and "
 "try again."
-msgstr ""
+msgstr "有已打开的图像处理对话框。请将其关闭，以解除图像锁定，然后再试。"
 
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:2113
@@ -25342,7 +25338,7 @@ msgstr "shm_open之后的文件描述符无效\n"
 
 #: src/io/siril_pythonmodule.c:201
 msgid "Invalid page size reported\n"
-msgstr "报告了无效的页面大小\n"
+msgstr "报告的页面大小无效\n"
 
 #: src/io/siril_pythonmodule.c:213
 #, c-format
@@ -25588,11 +25584,11 @@ msgstr "错误：JSON root必须是数组或对象。\n"
 
 #: src/io/spcc_json.c:558
 msgid "Error: Missing or invalid wavelength/values objects.\n"
-msgstr "错误：缺少或无效的波长/值对象。\n"
+msgstr "错误：波长/值对象缺失或无效。\n"
 
 #: src/io/spcc_json.c:565
 msgid "Error: Missing or invalid wavelength units.\n"
-msgstr "错误：缺少或无效的波长单位。\n"
+msgstr "错误：波长单位缺失或无效。\n"
 
 #: src/io/spcc_json.c:576
 #, c-format
@@ -25601,16 +25597,16 @@ msgstr "警告：JSON 文件 %s 中出现错误：无法识别的波长单位\n"
 
 #: src/io/spcc_json.c:584
 msgid "Error: Missing or invalid value range.\n"
-msgstr "错误：缺少或无效的取值范围。\n"
+msgstr "错误：取值范围缺失或无效。\n"
 
 #: src/io/spcc_json.c:593
 msgid "Error: Missing or invalid value arrays.\n"
-msgstr "错误：缺少或无效的值数组。\n"
+msgstr "错误：值数组缺失或无效。\n"
 
 #: src/io/spcc_json.c:600
 #, c-format
 msgid "Error: Invalid array sizes (wavelength: %zu, values: %zu).\n"
-msgstr "错误：无效的数组大小（波长: %zu, 值: %zu）。\n"
+msgstr "错误：数组大小（波长: %zu, 值: %zu）无效。\n"
 
 #: src/io/spcc_json.c:611 src/io/spcc_json.c:643
 msgid "Error: Memory allocation failed.\n"
@@ -27436,7 +27432,7 @@ msgstr "叠加最终目标图像"
 
 #: src/stacking/stacking.c:466
 msgid "Unsaved stacking result"
-msgstr "未保存的叠加结果"
+msgstr "叠加结果未保存"
 
 #: src/stacking/stackminmax.c:67
 msgid "No frame selected for stacking (select at least 2). Aborting.\n"

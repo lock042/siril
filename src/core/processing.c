@@ -851,9 +851,21 @@ gpointer waiting_for_thread() {
 
 int claim_thread_for_python() {
 	g_mutex_lock(&com.mutex);
-	if (com.thread || com.run_thread || com.python_claims_thread) {
-		fprintf(stderr, "The processing thread is busy. It must stop before Python can claim "
-					"the processing thread.\n");
+	if (com.thread) {
+		fprintf(stderr, "The processing thread is busy (com.thread is not NULL). "
+					"It must stop before Python can claim the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 1;
+	}
+	if (com.run_thread) {
+		fprintf(stderr, "The processing thread is busy (com.run_thread is TRUE). "
+					"It must stop before Python can claim the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 1;
+	}
+	if (com.python_claims_thread) {
+		fprintf(stderr, "The processing thread is already claimed by Python. It must be "
+					"released before Python can claim the processing thread again.\n");
 		g_mutex_unlock(&com.mutex);
 		return 1;
 	}

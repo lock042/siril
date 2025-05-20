@@ -174,16 +174,20 @@ void siril_open_dialog(gchar *id) {
 	gtk_window_set_transient_for(win, GTK_WINDOW(lookup_widget("control_window")));
 	gtk_window_present_with_time(win, GDK_CURRENT_TIME);
 	dialog_is_opened = TRUE;
-	if (entry.type == IMAGE_PROCESSING_DIALOG)
+	if (entry.type == IMAGE_PROCESSING_DIALOG) {
+		siril_debug_print("### Opening imgproc dialog: %s\n", entry.identifier);
 		processing_dialog_is_opened = TRUE;
+	}
 }
 
 void siril_close_dialog(gchar *id) {
 	gtk_widget_hide(get_widget_by_id(id));
 	dialog_is_opened = FALSE;
 	SirilDialogEntry entry = get_entry_by_id(id);
-	if (entry.type == IMAGE_PROCESSING_DIALOG)
+	if (entry.type == IMAGE_PROCESSING_DIALOG) {
+		siril_debug_print("### Closing imgproc dialog: %s\n", entry.identifier);
 		processing_dialog_is_opened = FALSE;
+	}
 }
 
 void siril_close_preview_dialogs() {

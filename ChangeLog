@@ -45,6 +45,8 @@ siril 1.4.0-beta2
 * Improved Quit behaviour if there are unsaved script changes.
 * Improved feedback when the python context manager image_lock() reports an error.
 * Improved method of calling scripts from the editor to eliminate a script length restriction.
+* Added a GraXpert python script to replace the legacy C GraXpert interface (siril-scripts:!42)
+* Deprecated the legacy C interface which proved unreliable (#1620, #1611, #1573)
 
 siril 1.4.0-beta1
 04/26/25
