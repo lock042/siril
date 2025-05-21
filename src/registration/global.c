@@ -435,6 +435,13 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 			if (!sadata->success[i])
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
+		if (regargs->new_total <= 1) {
+			siril_log_color_message(_("No image was registered to the reference\n"), "red");
+			args->retval = 1;
+		}
+	}
+
+	if (!args->retval) {
 		regargs->seq->distoparam[regargs->layer] = regargs->distoparam;
 
 		if (!regargs->no_output) {
@@ -467,6 +474,9 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 		else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
 			fitseq_close_and_delete_file(args->new_fitseq);
 			free(args->new_fitseq);
+		} else if (args->seq->type == SEQ_REGULAR) {
+			remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
+			remove_prefixed_drizzle_files(regargs->seq, regargs->prefix);
 		}
 	}
 

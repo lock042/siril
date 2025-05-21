@@ -37,6 +37,7 @@ char *	get_possible_image_filename(sequence *seq, int image_number, char *name_b
 int	get_index_and_basename(const char *filename, char **basename, int *index, int *fixed, const gchar *com_ext);
 void	remove_prefixed_sequence_files(sequence *seq, const char *prefix);
 void	remove_prefixed_star_files(sequence *seq, const char *prefix);
+void 	remove_prefixed_drizzle_files(sequence *seq, const char *prefix);
 void	initialize_sequence(sequence *seq, gboolean is_zeroed);
 void	free_sequence(sequence *seq, gboolean free_seq_too);
 void	free_photometry_set(sequence *seq, int set);

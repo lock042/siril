@@ -137,6 +137,7 @@ void create_output_sequence_for_registration(struct registration_args *args, int
 		seq.rx = args->seq->rx;
 		seq.ry = args->seq->ry;
 	}
+	seq.is_drizzle = args->driz != NULL;
 	seq.fz = com.pref.comp.fits_enabled;
 	// don't copy from old sequence, it may not be the same image
 	if (refindex == -1)

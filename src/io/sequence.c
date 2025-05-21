@@ -1365,11 +1365,19 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 
 void remove_prefixed_star_files(sequence *seq, const char *prefix) {
 	for (int i = 0; i < seq->number; i++) {
-		gchar *star_filename = get_sequence_cache_filename(seq, i, "cache", "lst", NULL);
+		const gchar *star_filename = get_sequence_cache_filename(seq, i, "cache", "lst", NULL);
 		siril_debug_print("Removing %s\n", star_filename);
 		if (g_unlink(star_filename))
 			siril_debug_print("g_unlink() failed\n");
-		g_free(star_filename);
+	}
+}
+
+void remove_prefixed_drizzle_files(sequence *seq, const char *prefix) {
+	for (int i = 0; i < seq->number; i++) {
+		const gchar *drizzle_filename = get_sequence_cache_filename(seq, i, "drizztmp", "fit", NULL);
+		siril_debug_print("Removing %s\n", drizzle_filename);
+		if (g_unlink(drizzle_filename))
+			siril_debug_print("g_unlink() failed\n");
 	}
 }
 

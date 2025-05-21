@@ -97,8 +97,14 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		double scale = (args->upscale_at_stacking) ? 2. : 1.;
 		for (int i = 0; i < nb_frames; ++i) {
 			int image_index = args->image_indices[i]; // image index in sequence
-			const gchar *drizztmp = get_sequence_cache_filename(args->seq, image_index, "drizztmp", "fit", NULL);
-			drizzle &= g_file_test(drizztmp, G_FILE_TEST_EXISTS);
+			if (args->seq->is_drizzle) {
+				const gchar *drizztmp = get_sequence_cache_filename(args->seq, image_index, "drizztmp", "fit", NULL);
+				if (!g_file_test(drizztmp, G_FILE_TEST_EXISTS)) {
+					const gchar *basename = g_path_get_basename(drizztmp);
+					siril_log_color_message(_("Drizzle file %s not found in ./drizztmp folder, aborting\n"), "red", basename);
+					drizzle = FALSE;
+				}
+			}
 			if (!get_thread_run())
 				return ST_GENERIC_ERROR;
 			if (i % 20 == 0)
@@ -234,9 +240,14 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		return ST_SEQUENCE_ERROR;
 	}
 
-	args->drizzle = drizzle;
-	if (args->drizzle) {
-		siril_log_message(_("Drizzle stacking will be used.\n"));
+	if (args->seq->is_drizzle) { 
+		if (drizzle) {
+			siril_log_color_message(_("Drizzle stacking will be used.\n"), "blue");
+			args->drizzle = TRUE;
+		} else {
+			siril_log_color_message(_("Drizzle stacking cannot be performed because drizzle weights are missing.\n"), "red");
+			return ST_GENERIC_ERROR;
+		}
 	}
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	siril_debug_print("stack count: %u, livetime: %f\n", fit->keywords.stackcnt, fit->keywords.livetime);

@@ -532,7 +532,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		free(p->pixmap);
 
 		// Save drizzle weights to the drizztmp folder
-		const gchar *count_filename = get_sequence_cache_filename(args->seq, out_index, "drizztmp", "fit", args->new_seq_prefix);
+		const gchar *count_filename = get_sequence_cache_filename(args->seq, in_index, "drizztmp", "fit", args->new_seq_prefix);
 		savefits(count_filename, output_counts);
 		clearfits(output_counts);
 		free(output_counts);
@@ -589,6 +589,12 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 			if (!sadata->success[i])
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
+		if (regargs->new_total <= 1) {
+			siril_log_color_message(_("No image was registered to the reference\n"), "red");
+			args->retval = 1;
+		}
+	}
+	if (!args->retval) {
 		if (failed) {
 			// regargs->imgparam and regargs->regparam may have holes caused by images
 			// that failed to be registered - compact them
@@ -614,6 +620,7 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 			free(args->new_fitseq);
 		} else if (args->seq->type == SEQ_REGULAR) {
 			remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
+			remove_prefixed_drizzle_files(regargs->seq, regargs->prefix);
 		}
 	}
 
