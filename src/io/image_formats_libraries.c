@@ -1091,19 +1091,19 @@ char* format_fits_header_for_xisf(fits *fit, const char *original_header) {
 	strcat(naxis_line, "\n");
 	strcat(formatted_header, naxis_line);
 
-	// Add NAXIS1 (position 4) - Changed %d to %ld for long int
+	// Add NAXIS1 (position 4)
 	char naxis1_line[81] = {0};
 	snprintf(naxis1_line, 80, "NAXIS1  =                 %5ld / Size of the first axis", fit->naxes[0]);
 	strcat(naxis1_line, "\n");
 	strcat(formatted_header, naxis1_line);
 
-	// Add NAXIS2 (position 5) - Changed %d to %ld for long int
+	// Add NAXIS2 (position 5)
 	char naxis2_line[81] = {0};
 	snprintf(naxis2_line, 80, "NAXIS2  =                 %5ld / Size of the second axis", fit->naxes[1]);
 	strcat(naxis2_line, "\n");
 	strcat(formatted_header, naxis2_line);
 
-	// Add NAXIS3 if needed (position 6) - Changed %d to %ld for long int
+	// Add NAXIS3 if needed (position 6)
 	if (fit->naxis > 2) {
 		char naxis3_line[81] = {0};
 		snprintf(naxis3_line, 80, "NAXIS3  =                 %5ld / Size of the third axis", fit->naxes[2]);
