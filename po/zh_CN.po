@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-19 00:01+0200\n"
-"PO-Revision-Date: 2025-05-18 23:45+0000\n"
+"PO-Revision-Date: 2025-05-21 04:51+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -2087,10 +2087,10 @@ msgid ""
 "more often used in regularizing denoising algorithms but can perform well "
 "when deconvolving a star mask produced by Siril's Starnet++ interface."
 msgstr ""
-"全变分正则化可以很好地保留图像中的锐利边缘。如有疑问，请坚持使用全变分。然"
-"而，它可能倾向于在大面积的均匀区域产生“阶梯效应”。\n"
-"黑森的弗罗贝尼乌斯规范使用二阶正则项。它更常用于正则化降噪算法，但在对Siril的"
-"Starnet++接口产生的纯星图像进行反卷积时可以表现良好。"
+"全变分正则化可以很好地保护图像中的锐利边缘。如有疑问，请坚持使用全变分。然而"
+"，它有可能在大面积的均匀区域产生“阶梯效应”。\n"
+"黑森的弗罗贝尼乌斯范数使用二阶正则项。它更常用于正则化降噪算法，但在对Siril的"
+"Starnet++接口产生的纯星图像进行反卷积时表现良好。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1988
 msgid "Total Variation"
@@ -3208,8 +3208,7 @@ msgid ""
 msgstr ""
 "使用 DA3D 作为最后的降噪步骤。该算法使用主降噪算法的输出作为引导图像，通过执"
 "行频域收缩对形状和数据自适应修补。它永远不会产生比主算法更差的输出，并且可以"
-"改善细节保留并减少阶梯伪影。参考: https://ieeexplore.ieee.org/document/"
-"7350835"
+"改善细节并减少阶梯状伪影。参考: https://ieeexplore.ieee.org/document/7350835"
 
 #: src/gui/uifiles/denoise_dialog.ui:264
 msgid "Strengthen Operate Subtract iterator"
@@ -3428,8 +3427,8 @@ msgid ""
 "point, lowlight and highlight preservation. The inverse hyperbolic and "
 "arcsinh stretches are also available."
 msgstr ""
-"选择拉伸类型。广义双曲拉伸使用拉伸强度、局部强度、拐点以及阴影和高光保留区域"
-"等参数执行双曲线拉伸。改良反双曲正弦拉伸使用拐点、低光和高光保留等附加参数执"
+"选择拉伸类型。广义双曲拉伸使用拉伸强度、局部强度、拐点以及阴影和高光保护区域"
+"等参数执行双曲线拉伸。改良反双曲正弦拉伸使用拐点、低光和高光保护等附加参数执"
 "行反双曲正弦拉伸。这两个拉伸的逆变换也可使用。"
 
 #: src/gui/uifiles/dialog_star_remix.ui:322
@@ -4384,9 +4383,9 @@ msgid ""
 "also available, useful for working in negative space."
 msgstr ""
 "选择拉伸类型。线性执行简单的线性拉伸到新的黑点。广义双曲拉伸使用拉伸强度、局"
-"部强度、拐点以及阴影和高光保留区域等参数执行双曲线拉伸。改良反双曲正弦拉伸使"
-"用拐点、低光和高光保留等附加参数执行反双曲正弦拉伸。这两个拉伸的逆变换可用于"
-"负片图像。"
+"部强度、拐点以及阴影和高光保护区域等参数执行双曲线拉伸。改良反双曲正弦拉伸使"
+"用拐点、低光和高光保护等附加参数执行反双曲正弦拉伸。这两个拉伸的逆变换可用于"
+"反相的图像。"
 
 #: src/gui/uifiles/histogram_dialog.ui:865
 msgid "Linear stretch (BP shift)"
@@ -4603,16 +4602,15 @@ msgid ""
 "larger gamuts than sRGB, and you will probably want to use a gamut at least "
 "as large as your monitor can display."
 msgstr ""
-"此图显示了 Siril 中可用的各种工作色域的比较。 （注意 P3 在 Siril 中不可用：显"
-"示它仅供参考，如果需要，您可以提供 P3 ICC 色彩特性文件。）\n"
+"此图比较了 Siril 中可用的各种工作色域。（注意：P3 在 Siril "
+"中不可用，仅供参考。如有需要，您可以提供 P3 的 ICC 色彩特性文件。）\n"
 "CIE1931 xy 空间代表人眼可见的所有色彩。\n"
-"sRGB 是网络发布的标准，对应于大多数显示器的色域。\n"
-"其他色彩空间提供更大的色域，覆盖更多的 CIE1931 空间。 Rec2020拥有最大的色域，"
-"不包括想象的色彩； ProPhoto RGB 具有更大的色域，尤其是在绿色/蓝色区域，但确实"
-"包含一些想象的色彩。\n"
-"如果从具有更大色域的色彩空间生成，打印的照片可以提供更丰富、更深的色彩。专业"
-"显示器还提供比 sRGB 更大的色域，您可能希望使用至少与显示器可以显示的色域一样"
-"大的色域。"
+"sRGB 是网络发布的标准，也是大多数显示器的色域。\n"
+"其他色彩空间提供更大的色域，覆盖更多的 CIE1931 空间。 Rec.2020 "
+"是不包含虚构颜色的最大色域；ProPhoto RGB "
+"的色域更大，尤其是在蓝绿色区域，但包含了一些虚构的颜色。\n"
+"如果在色域更大的色彩空间中生产，打印的照片就可以提供更丰富、更深的色彩。"
+"专业显示器会提供比 sRGB 更大的色域。通常希望显示器的色域不小于工作色域。"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:93
 msgid ""
@@ -4954,13 +4952,13 @@ msgstr "删除选定的鼠标动作"
 
 #: src/gui/uifiles/mouse_actions.ui:144 src/gui/mouse_action_preferences.c:725
 msgid "Mouse button / scroll check"
-msgstr "鼠标按钮/滚动检查"
+msgstr "鼠标按键/滚轮检查"
 
 #: src/gui/uifiles/mouse_actions.ui:161
 msgid ""
 "Click this area to check mouse button numbering and scroll direction, to "
 "ensure you set the correct number for mouse actions"
-msgstr "单击此区域可检查鼠标按钮编号和滚动方向，以确保为鼠标动作设置正确的编号"
+msgstr "点击此区域可检查鼠标按键的编号和滚轮方向，以确保为鼠标动作设置正确的编号"
 
 #: src/gui/uifiles/mouse_actions.ui:181
 msgid "Mouse Click Actions"
@@ -6528,7 +6526,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:766
 msgid "Update pixel size of binned image"
-msgstr "更新合并图像的像素尺寸"
+msgstr "像素尺寸不包含像素合并（bin）的系数"
 
 #: src/gui/uifiles/settings_window.ui:770
 msgid ""
@@ -6537,9 +6535,10 @@ msgid ""
 "binning (checked), the already multiplied pixel size is given (unchecked).\n"
 "It depends on the acquistion software used to create the FITS."
 msgstr ""
-"用于图像采样计算，像素尺寸可以通过两种不同的方式给出：给出实际像素尺寸，但必"
-"须乘以合并（选中）；给定已经相乘的像素尺寸（未选中）。\n"
-"这取决于用于创建 FITS 的软件。"
+"文件头中的像素尺寸（用于计算图像采样）有两种不同的来源：如果选中，则表示像素"
+"尺寸信息即为物理像素尺寸，没有与像素合并（bin）的系数相乘；如果不选中，则表示"
+"像素尺寸信息已经与像素合并（bin）的系数相乘。\n"
+"这取决于创建 FITS 所使用的软件。"
 
 #: src/gui/uifiles/settings_window.ui:784
 msgid "Embed ICC profiles in saved FITS files"
@@ -6911,7 +6910,7 @@ msgstr "允许的低于和高于预期采样的百分比。"
 
 #: src/gui/uifiles/settings_window.ui:1665
 msgid "Default degree of the polynomial correction:"
-msgstr "多项式修正的默认次数："
+msgstr "多项式修正的默认阶数："
 
 #: src/gui/uifiles/settings_window.ui:1677
 msgid ""
@@ -7504,7 +7503,7 @@ msgstr "缩放在适合和 100% 之间切换"
 
 #: src/gui/uifiles/settings_window.ui:3847
 msgid "Configure mouse button actions"
-msgstr "配置鼠标按钮动作"
+msgstr "配置鼠标按键动作"
 
 #: src/gui/uifiles/settings_window.ui:3851
 msgid "Open the mouse action configuration dialog"
@@ -7890,15 +7889,15 @@ msgstr "自动转换/分配选项"
 #: src/gui/uifiles/settings_window.ui:4808
 #: src/gui/uifiles/settings_window.ui:4839
 msgid "Color Matching Functions"
-msgstr "配色功能"
+msgstr "颜色匹配函数"
 
 #: src/gui/uifiles/settings_window.ui:4821
 msgid "CIE 1931 2 degree standard observer"
-msgstr "CIE 1931 2级标准遵循者"
+msgstr "CIE 1931 2度视场的标准观察者"
 
 #: src/gui/uifiles/settings_window.ui:4822
 msgid "CIE 1964 10 degree supplementary standard observer"
-msgstr "CIE 1964 10级补充标准遵循者"
+msgstr "CIE 1964 10度补充视场的标准观察者"
 
 #: src/gui/uifiles/settings_window.ui:4865
 msgid "Export built-in profiles"
@@ -8648,7 +8647,7 @@ msgstr "计算图像的反相"
 
 #: src/gui/uifiles/siril.ui:1286 src/gui/colors.c:312
 msgid "Negative Transformation"
-msgstr "负片变换"
+msgstr "反相"
 
 #: src/gui/uifiles/siril.ui:1310
 msgid "Filters"
@@ -8672,11 +8671,11 @@ msgstr "背景提取…"
 
 #: src/gui/uifiles/siril.ui:1400
 msgid "Open the GraXpert external tool interface"
-msgstr "打开GraXpert工具界面（第三方）"
+msgstr "打开GraXpert工具接口（第三方）"
 
 #: src/gui/uifiles/siril.ui:1402
 msgid "GraXpert Interface..."
-msgstr "GraXpert 界面..."
+msgstr "GraXpert 接口..."
 
 #: src/gui/uifiles/siril.ui:1429
 msgid "Open the linear match dialog"
@@ -11238,7 +11237,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:10093
 msgid "Switch to normal and negative view"
-msgstr "切换标准/负片视图"
+msgstr "切换标准/反相视图"
 
 #: src/gui/uifiles/siril.ui:10110
 msgid "Switch to normal and rainbow colormap (false color rendering)"
@@ -12010,7 +12009,7 @@ msgstr "图像处理"
 #: src/gui/siril-shortcuts.ui:101
 msgctxt "shortcut window"
 msgid "Negative transformation"
-msgstr "负片变换"
+msgstr "反相"
 
 #: src/gui/siril-shortcuts.ui:108
 msgctxt "shortcut window"
@@ -17769,7 +17768,7 @@ msgstr "swap目录"
 
 #: src/core/settings.c:362
 msgid "update pixel size of binned images"
-msgstr "更新像素合并后的像素尺寸"
+msgstr "像素尺寸不包含像素合并（bin）的系数"
 
 #: src/core/settings.c:363
 msgid "WCS formalism used in FITS header"
@@ -19613,7 +19612,7 @@ msgstr "替换"
 
 #: src/gui/annotations_pref.c:32
 msgid "Messier Catalogue (M)"
-msgstr "梅西叶星云星团表 (M)"
+msgstr "梅西耶星云星团表 (M)"
 
 #: src/gui/annotations_pref.c:33
 msgid "New General Catalogue (NGC)"
@@ -21339,9 +21338,8 @@ msgid ""
 "This will reset all mouse button and scroll actions to the default settings. "
 "It is not possible to undo this and you will need to reconfigure any "
 "changes. Are you sure?"
-msgstr ""
-"这将重置所有鼠标按钮并将滚轮动作重置为默认设置。无法撤消此操作，您需要重新配"
-"置所有的更改。是否确定？"
+msgstr "这将把所有鼠标按键和滚轮动作重置为默认设置。此操作无法撤消。您需要重新配置所"
+"有的更改。是否确定？"
 
 #: src/gui/mouse_action_preferences.c:744
 #, c-format
