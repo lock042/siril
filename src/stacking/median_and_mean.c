@@ -967,7 +967,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 						norm += n;
 					}
 				}
-				if (norm == 0) { // if norm is 0, sum is 0 too
+				if (norm == 0. || sum == 0.) { // if norm is 0, sum is 0 too
 					// We replace by the sum without weighting
 					// Will not look good, but it's better than a black pixel
 					sum = 0.;
@@ -1017,7 +1017,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 						norm += n;
 					}
 				}
-				if (norm == 0) { // if norm is 0, sum is 0 too
+				if (norm == 0. || sum == 0.) { // if norm is 0, sum is 0 too
 					// We replace by the sum without weighting
 					// Will not look good, but it's better than a black pixel
 					sum = 0.;
