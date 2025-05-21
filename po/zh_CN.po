@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-19 00:01+0200\n"
+"POT-Creation-Date: 2025-05-21 16:22+0200\n"
 "PO-Revision-Date: 2025-05-21 04:51+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -1024,7 +1024,7 @@ msgstr "CDS"
 msgid "VizieR"
 msgstr "VizieR"
 
-#: src/gui/uifiles/astrometry_dialog.ui:597 src/io/siril_catalogues.c:277
+#: src/gui/uifiles/astrometry_dialog.ui:597 src/io/siril_catalogues.c:276
 msgid "SIMBAD"
 msgstr "SIMBAD"
 
@@ -2087,8 +2087,8 @@ msgid ""
 "more often used in regularizing denoising algorithms but can perform well "
 "when deconvolving a star mask produced by Siril's Starnet++ interface."
 msgstr ""
-"全变分正则化可以很好地保护图像中的锐利边缘。如有疑问，请坚持使用全变分。然而"
-"，它有可能在大面积的均匀区域产生“阶梯效应”。\n"
+"全变分正则化可以很好地保护图像中的锐利边缘。如有疑问，请坚持使用全变分。然"
+"而，它有可能在大面积的均匀区域产生“阶梯效应”。\n"
 "黑森的弗罗贝尼乌斯范数使用二阶正则项。它更常用于正则化降噪算法，但在对Siril的"
 "Starnet++接口产生的纯星图像进行反卷积时表现良好。"
 
@@ -4199,7 +4199,7 @@ msgid ""
 msgstr ""
 "切换反卷积模式：星点或深空天体。如果GraXpert的版本不合适，则此设置无效。"
 
-#: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:374
+#: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:381
 msgid "Objects"
 msgstr "盘面"
 
@@ -4602,15 +4602,15 @@ msgid ""
 "larger gamuts than sRGB, and you will probably want to use a gamut at least "
 "as large as your monitor can display."
 msgstr ""
-"此图比较了 Siril 中可用的各种工作色域。（注意：P3 在 Siril "
-"中不可用，仅供参考。如有需要，您可以提供 P3 的 ICC 色彩特性文件。）\n"
+"此图比较了 Siril 中可用的各种工作色域。（注意：P3 在 Siril 中不可用，仅供参"
+"考。如有需要，您可以提供 P3 的 ICC 色彩特性文件。）\n"
 "CIE1931 xy 空间代表人眼可见的所有色彩。\n"
 "sRGB 是网络发布的标准，也是大多数显示器的色域。\n"
-"其他色彩空间提供更大的色域，覆盖更多的 CIE1931 空间。 Rec.2020 "
-"是不包含虚构颜色的最大色域；ProPhoto RGB "
-"的色域更大，尤其是在蓝绿色区域，但包含了一些虚构的颜色。\n"
-"如果在色域更大的色彩空间中生产，打印的照片就可以提供更丰富、更深的色彩。"
-"专业显示器会提供比 sRGB 更大的色域。通常希望显示器的色域不小于工作色域。"
+"其他色彩空间提供更大的色域，覆盖更多的 CIE1931 空间。 Rec.2020 是不包含虚构颜"
+"色的最大色域；ProPhoto RGB 的色域更大，尤其是在蓝绿色区域，但包含了一些虚构的"
+"颜色。\n"
+"如果在色域更大的色彩空间中生产，打印的照片就可以提供更丰富、更深的色彩。专业"
+"显示器会提供比 sRGB 更大的色域。通常希望显示器的色域不小于工作色域。"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:93
 msgid ""
@@ -4958,7 +4958,8 @@ msgstr "鼠标按键/滚轮检查"
 msgid ""
 "Click this area to check mouse button numbering and scroll direction, to "
 "ensure you set the correct number for mouse actions"
-msgstr "点击此区域可检查鼠标按键的编号和滚轮方向，以确保为鼠标动作设置正确的编号"
+msgstr ""
+"点击此区域可检查鼠标按键的编号和滚轮方向，以确保为鼠标动作设置正确的编号"
 
 #: src/gui/uifiles/mouse_actions.ui:181
 msgid "Mouse Click Actions"
@@ -5165,7 +5166,7 @@ msgstr "新建"
 msgid "Open a script from a file"
 msgstr "从文件中打开一个脚本"
 
-#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:242
+#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:246
 #: src/gui/python_gui.c:767 src/pixelMath/pixel_math_runner.c:1253
 msgid "_Open"
 msgstr "打开"
@@ -5178,7 +5179,7 @@ msgstr "最近文件"
 msgid "Save the current script"
 msgstr "保存当前脚本"
 
-#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:256
+#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:260
 #: src/gui/python_gui.c:844
 msgid "_Save"
 msgstr "_保存"
@@ -5258,7 +5259,7 @@ msgstr ""
 "将脚本语言设置为Siril脚本文件。在编辑器中执行脚本之前，请确保设置了正确的脚本"
 "语言。"
 
-#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:262
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:270
 msgid "Siril Script Files"
 msgstr "Siril脚本文件"
 
@@ -5865,7 +5866,7 @@ msgstr ""
 "体光谱提供有效温度测量，Siril软件正是利用该有效温度值进行PCC（光度颜色校准）"
 "处理。"
 
-#: src/gui/uifiles/s_pcc_dialog.ui:999 src/io/siril_catalogues.c:271
+#: src/gui/uifiles/s_pcc_dialog.ui:999 src/io/siril_catalogues.c:270
 msgid "APASS"
 msgstr "APASS"
 
@@ -7267,8 +7268,8 @@ msgid ""
 "unpack them into the repository path shown below in order to use SPCC."
 msgstr ""
 "启用 git 仓库。这提供了使用 SPCC 所需的滤镜和传感器数据。\n"
-"强烈建议启用此功能。如果您选择不使用仓库，则需要手动下载 .json "
-"文件并将其解压到如下所示的仓库路径中才能使用 SPCC。"
+"强烈建议启用此功能。如果您选择不使用仓库，则需要手动下载 .json 文件并将其解压"
+"到如下所示的仓库路径中才能使用 SPCC。"
 
 #: src/gui/uifiles/settings_window.ui:3099
 msgid "Repository path:"
@@ -7988,8 +7989,8 @@ msgstr ""
 "选择特定脚本来添加到“脚本”菜单中。\n"
 "\n"
 "<b>注：</b>\n"
-"激活仓库将立即发生，以便您可以在列表填充后选择脚本。仅当以通常的方式单击“应用"
-"”按钮时才会停用仓库。"
+"激活仓库将立即发生，以便您可以在列表填充后选择脚本。仅当以通常的方式单击“应"
+"用”按钮时才会停用仓库。"
 
 #: src/gui/uifiles/settings_window.ui:5114
 msgid "Automatic updates"
@@ -8008,7 +8009,8 @@ msgid ""
 "Update the scripts repository now. If there are any pending changes, the "
 "commit messages will be shown and you will be asked to confirm applying the "
 "changes."
-msgstr "立即更新脚本仓库。如果有任何待处理的更改，将显示提交消息，并要求您确认应用更"
+msgstr ""
+"立即更新脚本仓库。如果有任何待处理的更改，将显示提交消息，并要求您确认应用更"
 "改。"
 
 #: src/gui/uifiles/settings_window.ui:5162
@@ -12924,7 +12926,7 @@ msgstr "参考星：处理中...\n"
 
 #: src/algos/comparison_stars.c:439 src/core/command.c:9764
 #: src/core/command.c:10474 src/core/command.c:10627 src/core/command.c:10647
-#: src/io/siril_catalogues.c:1120 src/io/siril_catalogues.c:1169
+#: src/io/siril_catalogues.c:1119 src/io/siril_catalogues.c:1168
 msgid "This command only works on plate solved images\n"
 msgstr "此命令仅适用于已解析的图像\n"
 
@@ -13664,7 +13666,7 @@ msgid "Object %s not found or encountered an error processing it\n"
 msgstr "找不到天体 %s 或处理它时遇到错误\n"
 
 #: src/algos/search_objects.c:420 src/io/remote_catalogues.c:717
-#: src/io/siril_catalogues.c:616
+#: src/io/siril_catalogues.c:615
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr "Siril 是在没有网络支持的情况下编译的，无法执行此操作\n"
@@ -13751,7 +13753,7 @@ msgstr "找到了 %d 颗星以使用与 %s 中相同的参数，跳过侦测\n"
 #: src/algos/star_finder.c:938 src/core/command.c:5248 src/core/command.c:7290
 #: src/core/command.c:7464 src/core/command.c:8672
 #: src/io/image_format_fits.c:828 src/io/path_parse.c:669
-#: src/io/remote_catalogues.c:528 src/io/siril_catalogues.c:833
+#: src/io/remote_catalogues.c:528 src/io/siril_catalogues.c:832
 #, c-format
 msgid "Cannot create output folder: %s\n"
 msgstr "无法创建输出目录: %s\n"
@@ -17504,7 +17506,7 @@ msgid ""
 "uncheck the box."
 msgstr "参数值可能过大。请酌情改变sigma值或者取消本选项。"
 
-#: src/core/processing.c:77 src/core/processing.c:1150
+#: src/core/processing.c:77 src/core/processing.c:1162
 msgid "No image selected for processing, aborting\n"
 msgstr "没有任何选中的待处理图像，异常中止\n"
 
@@ -17519,7 +17521,7 @@ msgstr "%s：基于当前的内存和线程上限， 最多 %d 线程可用\n"
 msgid "Preparing sequence processing failed.\n"
 msgstr "准备待处理序列失败。\n"
 
-#: src/core/processing.c:142 src/core/processing.c:1173
+#: src/core/processing.c:142 src/core/processing.c:1185
 #, c-format
 msgid "Output index mapping failed (%d/%d).\n"
 msgstr "输出指标映射失败（%d/%d）。\n"
@@ -17575,11 +17577,11 @@ msgstr "序列处理成功。\n"
 msgid "Image %d not found for writing\n"
 msgstr "找不到用于写入的图像 %d\n"
 
-#: src/core/processing.c:1049
+#: src/core/processing.c:1061
 msgid "Process aborted by user\n"
 msgstr "程序处理被用户中断\n"
 
-#: src/core/processing.c:1061
+#: src/core/processing.c:1073
 #, c-format
 msgid "Failed to find GPid %d, it may already have exited...\n"
 msgstr "找不到GPid%d，它可能已经退出...\n"
@@ -18556,7 +18558,7 @@ msgid ""
 msgstr "打开RGB合成对话框会直接关闭当前图像，而不保存。确定吗？"
 
 #: src/core/siril_actions.c:713 src/core/siril_actions.c:721
-#: src/gui/graxpert.c:322
+#: src/gui/graxpert.c:329
 msgid "Yes"
 msgstr "是的"
 
@@ -19906,7 +19908,7 @@ msgstr "转化为16位"
 msgid "B&W"
 msgstr "黑白"
 
-#: src/gui/callbacks.c:1436 src/io/siril_catalogues.c:321
+#: src/gui/callbacks.c:1436 src/io/siril_catalogues.c:320
 msgid "unknown"
 msgstr "未知"
 
@@ -20126,7 +20128,7 @@ msgid "_Close"
 msgstr "_关闭"
 
 #: src/gui/compstars.c:51 src/gui/nina_light_curve.c:50
-#: src/io/image_formats_libraries.c:2305
+#: src/io/image_formats_libraries.c:2489
 msgid "_OK"
 msgstr "_OK"
 
@@ -20615,30 +20617,30 @@ msgstr ""
 "错误：当Python脚本声明处理线程时，无法打开图像处理对话框。请先等待Python脚本"
 "完成处理。"
 
-#: src/gui/dialogs.c:237
+#: src/gui/dialogs.c:241
 msgid "Select Folder"
 msgstr "选择文件夹"
 
-#: src/gui/dialogs.c:239
+#: src/gui/dialogs.c:243
 msgid "Open File"
 msgstr "打开文件"
 
-#: src/gui/dialogs.c:241 src/gui/dialogs.c:250 src/gui/dialogs.c:256
+#: src/gui/dialogs.c:245 src/gui/dialogs.c:254 src/gui/dialogs.c:260
 #: src/gui/keywords_tree.c:508 src/gui/python_gui.c:766
-#: src/gui/python_gui.c:843 src/io/image_formats_libraries.c:2305
+#: src/gui/python_gui.c:843 src/io/image_formats_libraries.c:2489
 #: src/pixelMath/pixel_math_runner.c:1253
 msgid "_Cancel"
 msgstr "_取消"
 
-#: src/gui/dialogs.c:249
+#: src/gui/dialogs.c:253
 msgid "Add Files"
 msgstr "添加文件"
 
-#: src/gui/dialogs.c:250 src/gui/keywords_tree.c:509
+#: src/gui/dialogs.c:254 src/gui/keywords_tree.c:509
 msgid "_Add"
 msgstr "_添加"
 
-#: src/gui/dialogs.c:255
+#: src/gui/dialogs.c:259
 msgid "Save File"
 msgstr "保存文件"
 
@@ -20732,25 +20734,42 @@ msgstr ""
 "<span foreground=\"red\">没有合适的 GraXpert 版本可用。\n"
 "在“偏好设置”->“杂项”中配置可执行文件。</span>"
 
-#: src/gui/graxpert.c:321
+#: src/gui/graxpert.c:298
+#, fuzzy
+msgid "Deprecation Notice"
+msgstr "执行时间"
+
+#: src/gui/graxpert.c:298
+msgid ""
+"The builtin C interface to GraXpert is deprecated owing to issues with "
+"reliability and the level of technical debt, and it will soon be removed in "
+"an upcoming release. It is replaced by a Python script that interfaces "
+"directly with the GraXpert AI models and provides a model manager that uses "
+"GraXpert to download model files.\n"
+"\n"
+"You can find the Python script in the hamburger menu -> Get Scripts and look "
+"in the Python repository for \"GraXpert_AI.py\""
+msgstr ""
+
+#: src/gui/graxpert.c:328
 msgid "Warning!"
 msgstr "警告！"
 
-#: src/gui/graxpert.c:321
+#: src/gui/graxpert.c:328
 msgid ""
 "GraXpert is running. Changing the GraXpert operation will cancel the current "
 "GraXpert process. Proceed?"
 msgstr "GraXpert正在运行。更改操作会打断正在进行的处理。确定吗？"
 
-#: src/gui/graxpert.c:325
+#: src/gui/graxpert.c:332
 msgid "GraXpert operation cancelled by user\n"
 msgstr "GraXpert操作被用户取消\n"
 
-#: src/gui/graxpert.c:349
+#: src/gui/graxpert.c:356
 msgid "Error: no sequence loaded.\n"
 msgstr "错误：没有载入的序列。\n"
 
-#: src/gui/graxpert.c:374
+#: src/gui/graxpert.c:381
 msgid "Stellar"
 msgstr "深空"
 
@@ -21338,7 +21357,8 @@ msgid ""
 "This will reset all mouse button and scroll actions to the default settings. "
 "It is not possible to undo this and you will need to reconfigure any "
 "changes. Are you sure?"
-msgstr "这将把所有鼠标按键和滚轮动作重置为默认设置。此操作无法撤消。您需要重新配置所"
+msgstr ""
+"这将把所有鼠标按键和滚轮动作重置为默认设置。此操作无法撤消。您需要重新配置所"
 "有的更改。是否确定？"
 
 #: src/gui/mouse_action_preferences.c:744
@@ -22462,45 +22482,45 @@ msgstr "运行脚本"
 msgid "Unknown script type: %s\n"
 msgstr "未知脚本类型：%s\n"
 
-#: src/gui/script_menu.c:263
+#: src/gui/script_menu.c:271
 msgid "Python Scripts"
 msgstr "Python 脚本"
 
-#: src/gui/script_menu.c:268
+#: src/gui/script_menu.c:276
 msgid "Script Editor..."
 msgstr "脚本编辑器..."
 
-#: src/gui/script_menu.c:270
+#: src/gui/script_menu.c:278
 msgid "Enable Python debug mode"
 msgstr "启用Python debug模式"
 
-#: src/gui/script_menu.c:306
+#: src/gui/script_menu.c:314
 #, c-format
 msgid "Searching for scripts in: \"%s\"...\n"
 msgstr "搜索脚本于: \"%s\"...\n"
 
-#: src/gui/script_menu.c:352
+#: src/gui/script_menu.c:360
 #, c-format
 msgid "Loading script: %s\n"
 msgstr "载入脚本：%s\n"
 
-#: src/gui/script_menu.c:373 src/gui/script_menu.c:411
+#: src/gui/script_menu.c:392 src/gui/script_menu.c:430
 #, c-format
 msgid ""
 "Script %s no longer exists in repository, removing from Scripts menu...\n"
 msgstr "脚本 %s 不再存在于仓库中，已从脚本菜单中删除...\n"
 
-#: src/gui/script_menu.c:405
+#: src/gui/script_menu.c:424
 #, c-format
 msgid "Loading script from repository: %s\n"
 msgstr "从仓库中载入脚本：%s\n"
 
-#: src/gui/script_menu.c:456
+#: src/gui/script_menu.c:476
 #, c-format
 msgid "Adding core script to menu: %s\n"
 msgstr "正在将核心脚本添加到菜单：%s\n"
 
-#: src/gui/script_menu.c:476
+#: src/gui/script_menu.c:496
 msgid "Cannot refresh the scripts if the list is empty.\n"
 msgstr "若列表为空则无法刷新脚本。\n"
 
@@ -23758,103 +23778,108 @@ msgstr "保存TIFF：无法写入TIFF文件。\n"
 msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "保存TIFF：%d-bit 文件名 %s, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:1076
+#: src/io/image_formats_libraries.c:1182
+#, fuzzy
+msgid "Memory allocation error for image data.\n"
+msgstr "内存分配错误"
+
+#: src/io/image_formats_libraries.c:1248
 msgid "This image type is not handled.\n"
 msgstr "该图像类型无法处理。\n"
 
-#: src/io/image_formats_libraries.c:1102
+#: src/io/image_formats_libraries.c:1286
 #, c-format
 msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "读取XISF：文件名 %s, %ld 图层， %ux%u 像素\n"
 
-#: src/io/image_formats_libraries.c:1123 src/io/image_formats_libraries.c:1417
-#: src/io/image_formats_libraries.c:2844
+#: src/io/image_formats_libraries.c:1307 src/io/image_formats_libraries.c:1601
+#: src/io/image_formats_libraries.c:3028
 #, c-format
 msgid "Sorry but Siril cannot open the file: %s.\n"
 msgstr "抱歉，Siril无法打开文件：%s\n"
 
-#: src/io/image_formats_libraries.c:1163
+#: src/io/image_formats_libraries.c:1347
 msgid "Read ICC profile from JPEG.\n"
 msgstr "从 JPEG 读取 ICC 色彩特性文件。\n"
 
-#: src/io/image_formats_libraries.c:1166
+#: src/io/image_formats_libraries.c:1350
 msgid "Cannot read an ICC profile from this JPEG, assuming sRGB.\n"
 msgstr "无法从此 JPEG 读取 ICC 色彩特性文件（假定为 sRGB）。\n"
 
-#: src/io/image_formats_libraries.c:1169
+#: src/io/image_formats_libraries.c:1353
 msgid "JPEG ICC profile support unavailable, assuming sRGB.\n"
 msgstr "JPEG ICC 色彩特性文件支持不可用（假定为 sRGB）。\n"
 
-#: src/io/image_formats_libraries.c:1205
+#: src/io/image_formats_libraries.c:1389
 #, c-format
 msgid "Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "读取JPG：文件名 %s, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:1228
+#: src/io/image_formats_libraries.c:1412
 msgid "Siril cannot create JPG file.\n"
 msgstr "Siril无法创建JPG文件。\n"
 
-#: src/io/image_formats_libraries.c:1378
+#: src/io/image_formats_libraries.c:1562
 msgid "Error: failed to write ICC profile to JPG\n"
 msgstr "错误：无法将 ICC 色彩特性文件写入 JPG\n"
 
-#: src/io/image_formats_libraries.c:1399
+#: src/io/image_formats_libraries.c:1583
 #, c-format
 msgid "Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 msgstr "保存JPG：文件名 %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:1431
+#: src/io/image_formats_libraries.c:1615
 #, c-format
 msgid "Error opening the file %s\n"
 msgstr "打开文件 %s 时出错\n"
 
-#: src/io/image_formats_libraries.c:1576
+#: src/io/image_formats_libraries.c:1760
 #, c-format
 msgid "Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "读取PNG：%d-bit 文件名 %s, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:1866
+#: src/io/image_formats_libraries.c:2050
 #, c-format
 msgid "Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "保存PNG：文件名 %s, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:2001
+#: src/io/image_formats_libraries.c:2185
 msgid "Siril cannot open this file in CFA mode: no RAW data available.\n"
 msgstr "Siril无法以CFA模式打开此文件：无可用RAW数据。\n"
 
-#: src/io/image_formats_libraries.c:2030
+#: src/io/image_formats_libraries.c:2214
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"
 msgstr "解码 %s %s 文件 (ISO=%g, Exposure=1/%0.1f sec)\n"
 
-#: src/io/image_formats_libraries.c:2033
+#: src/io/image_formats_libraries.c:2217
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=%0.1f sec)\n"
 msgstr "解码 %s %s 文件 (ISO=%g, Exposure=%0.1f sec)\n"
 
-#: src/io/image_formats_libraries.c:2056
+#: src/io/image_formats_libraries.c:2240
 #, c-format
 msgid "Filter pattern: %s\n"
 msgstr "滤镜模式: %s\n"
 
-#: src/io/image_formats_libraries.c:2143
+#: src/io/image_formats_libraries.c:2327
 #, c-format
 msgid "Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "读取RAW：文件名 %s, %ld layer(s), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:2194
+#: src/io/image_formats_libraries.c:2378
 msgid "primary"
 msgstr "主要"
 
-#: src/io/image_formats_libraries.c:2303
+#: src/io/image_formats_libraries.c:2487
 msgid "Load HEIF image content"
 msgstr "读取HEIF图像内容"
 
-#: src/io/image_formats_libraries.c:2311
+#: src/io/image_formats_libraries.c:2495
 msgid "Select image"
 msgstr "选择图像"
 
-#: src/io/image_formats_libraries.c:2526
+#: src/io/image_formats_libraries.c:2710
 msgid ""
 "Error: the specified NCLX TRC is not yet supported in Siril. A linear TRC "
 "will be used: you may need to fix this file up manually.\n"
@@ -23862,16 +23887,16 @@ msgstr ""
 "错误：Siril 尚不支持指定的 NCLX TRC。将使用线性 TRC：您可能需要手动修复此文"
 "件。\n"
 
-#: src/io/image_formats_libraries.c:2574
+#: src/io/image_formats_libraries.c:2758
 msgid "Input file contains no readable images.\n"
 msgstr "输入文件含有不可读取的信息。\n"
 
-#: src/io/image_formats_libraries.c:2607
+#: src/io/image_formats_libraries.c:2791
 #, c-format
 msgid "This is a sequence of %d images: loading the primary one.\n"
 msgstr "这是一个由%d帧图像所组成的序列：读取第一帧。\n"
 
-#: src/io/image_formats_libraries.c:2642
+#: src/io/image_formats_libraries.c:2826
 msgid ""
 "Error getting ICC profile from HEIF file. Continuing: you will need to "
 "manually assign an ICC profile\n"
@@ -23879,32 +23904,32 @@ msgstr ""
 "从 HEIF 文档获取 ICC 色彩特性文件时出错。继续：您将需要手动分配 ICC 色彩特性"
 "文件\n"
 
-#: src/io/image_formats_libraries.c:2667
+#: src/io/image_formats_libraries.c:2851
 msgid "Input image has undefined bit-depth.\n"
 msgstr "输入图像具有未定义的位深。\n"
 
-#: src/io/image_formats_libraries.c:2828
+#: src/io/image_formats_libraries.c:3012
 #, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"
 msgstr "正在读取 HEIF：文件 %s，%ld 图层，%ux%u 像素，位深 %d\n"
 
-#: src/io/image_formats_libraries.c:2945
+#: src/io/image_formats_libraries.c:3129
 #, c-format
 msgid "Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "读取JPEG XL：文件 %s, %ld 图层， %ux%u 像素\n"
 
-#: src/io/image_formats_libraries.c:2965
+#: src/io/image_formats_libraries.c:3149
 msgid "Error interleaving image\n"
 msgstr "交错图像时出错\n"
 
-#: src/io/image_formats_libraries.c:3075
+#: src/io/image_formats_libraries.c:3259
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit "
 "depth: %d\n"
 msgstr "保存 JPEG XL：文件 %s，无损，力度=%d %ld 图层，%ux%u 像素，位深：%d\n"
 
-#: src/io/image_formats_libraries.c:3078
+#: src/io/image_formats_libraries.c:3262
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, "
@@ -23912,7 +23937,7 @@ msgid ""
 msgstr ""
 "保存 JPEG XL：文件 %s，质量=%.3f，力度=%d %ld 层图，%ux%u 像素，位深：%d\n"
 
-#: src/io/image_formats_libraries.c:3086
+#: src/io/image_formats_libraries.c:3270
 msgid "Save complete.\n"
 msgstr "保存完成。\n"
 
@@ -23939,13 +23964,13 @@ msgstr "无法打开本地星表%s\n"
 msgid "Error: number of trixels reported by file is out of limits.\n"
 msgstr "错误：文件报告的 trixel 数量超出限制。\n"
 
-#: src/io/local_catalogues.c:854 src/io/siril_catalogues.c:845
+#: src/io/local_catalogues.c:854 src/io/siril_catalogues.c:844
 #, c-format
 msgid "File %s cannot be deleted (%s), aborting\n"
 msgstr "文件 %s 无法删除 (%s)，异常中止\n"
 
 #: src/io/local_catalogues.c:864 src/io/remote_catalogues.c:642
-#: src/io/remote_catalogues.c:969 src/io/siril_catalogues.c:854
+#: src/io/remote_catalogues.c:969 src/io/siril_catalogues.c:853
 #, c-format
 msgid "Cannot create catalogue file %s (%s)\n"
 msgstr "无法创建星表文件%s（%s）\n"
@@ -24704,165 +24729,165 @@ msgid ""
 "There was an error when opening this image. See the log for more information."
 msgstr "打开图像发生错误。请查询日志以获取更多信息。"
 
-#: src/io/siril_catalogues.c:259
+#: src/io/siril_catalogues.c:258
 msgid "Tycho-2"
 msgstr "Tycho-2"
 
-#: src/io/siril_catalogues.c:261
+#: src/io/siril_catalogues.c:260
 msgid "NOMAD"
 msgstr "NOMAD"
 
-#: src/io/siril_catalogues.c:263
+#: src/io/siril_catalogues.c:262
 msgid "Gaia DR3 (via Vizier)"
 msgstr "Gaia DR3 (via Vizier)"
 
-#: src/io/siril_catalogues.c:265
+#: src/io/siril_catalogues.c:264
 msgid "Gaia DR3 (direct)"
 msgstr "Gaia DR3 (direct)"
 
-#: src/io/siril_catalogues.c:267
+#: src/io/siril_catalogues.c:266
 msgid "PPMXL"
 msgstr "PPMXL"
 
-#: src/io/siril_catalogues.c:269
+#: src/io/siril_catalogues.c:268
 msgid "bright stars"
 msgstr "亮星"
 
-#: src/io/siril_catalogues.c:273
+#: src/io/siril_catalogues.c:272
 msgid "AAVSO Variable stars"
 msgstr "AAVSO 变星"
 
-#: src/io/siril_catalogues.c:275
+#: src/io/siril_catalogues.c:274
 msgid "GCVS"
 msgstr "GCVS"
 
-#: src/io/siril_catalogues.c:279
+#: src/io/siril_catalogues.c:278
 msgid "Gaia DR3 Variability"
 msgstr "Gaia DR3 光变数据集"
 
-#: src/io/siril_catalogues.c:281
+#: src/io/siril_catalogues.c:280
 msgid "PGC"
 msgstr "PGC"
 
-#: src/io/siril_catalogues.c:283
+#: src/io/siril_catalogues.c:282
 msgid "Exoplanet archive"
 msgstr "系外行星档案"
 
-#: src/io/siril_catalogues.c:285
+#: src/io/siril_catalogues.c:284
 msgid "IMCCE solar system"
 msgstr "IMCEE 太阳系"
 
-#: src/io/siril_catalogues.c:287
+#: src/io/siril_catalogues.c:286
 msgid "AAVSO VSP Chart"
 msgstr "AAVSO VSP 星图"
 
-#: src/io/siril_catalogues.c:289
+#: src/io/siril_catalogues.c:288
 msgid "Tycho-2+NOMAD"
 msgstr "Tycho-2+NOMAD星表"
 
-#: src/io/siril_catalogues.c:291
+#: src/io/siril_catalogues.c:290
 msgid "Gaia DR3 astrometry"
 msgstr "Gaia DR3 天体测量"
 
-#: src/io/siril_catalogues.c:293
+#: src/io/siril_catalogues.c:292
 msgid "Gaia DR3 xp_sampled"
 msgstr "Gaia DR3 xp_sampled 星表"
 
-#: src/io/siril_catalogues.c:386
+#: src/io/siril_catalogues.c:385
 #, c-format
 msgid ""
 "Did not find the minimal set of columns necessary for the catalog %s, "
 "aborting\n"
 msgstr "未找到星表 %s 所需的最小列集，异常中止\n"
 
-#: src/io/siril_catalogues.c:644 src/io/siril_catalogues.c:647
+#: src/io/siril_catalogues.c:643 src/io/siril_catalogues.c:646
 #, c-format
 msgid "Could not open the catalog (%s)\n"
 msgstr "无法打开星表（%s）\n"
 
-#: src/io/siril_catalogues.c:688
+#: src/io/siril_catalogues.c:687
 msgid "No columns found in the catalogue\n"
 msgstr "在星表中找不到列\n"
 
 #. checking that current line has a number of columns consistent with the headers
-#: src/io/siril_catalogues.c:708
+#: src/io/siril_catalogues.c:707
 #, c-format
 msgid "Malformed line found %s\n"
 msgstr "发现格式错误的行: %s\n"
 
-#: src/io/siril_catalogues.c:741
+#: src/io/siril_catalogues.c:740
 #, c-format
 msgid ""
 "Catalog %s was read but no items were found in the view cone, nothing to "
 "show\n"
 msgstr "星表 %s 已读取，但在视锥中未找到任何项目，没有可显示的内容\n"
 
-#: src/io/siril_catalogues.c:950
+#: src/io/siril_catalogues.c:949
 msgid "Cannot correct for velocities, will use ra/dec as is\n"
 msgstr "无法校正速率，将按原样使用 赤经/赤纬\n"
 
-#: src/io/siril_catalogues.c:951
+#: src/io/siril_catalogues.c:950
 msgid "To tag solar system objects, please refer to conesearch command\n"
 msgstr "要标记太阳系天体，请参考conesearch命令\n"
 
-#: src/io/siril_catalogues.c:1039
+#: src/io/siril_catalogues.c:1038
 msgid "no DATE-OBS information, cannot account for stars proper motions\n"
 msgstr "没有 DATE-OBS 信息，无法解释恒星自行运动\n"
 
-#: src/io/siril_catalogues.c:1042
+#: src/io/siril_catalogues.c:1041
 msgid "This catalog does not have proper motion info, will not be computed\n"
 msgstr "该星表没有自行信息，不会被计算\n"
 
-#: src/io/siril_catalogues.c:1104
+#: src/io/siril_catalogues.c:1103
 #, c-format
 msgid ""
 "Won't log list of objects for catalog %s which does not have name "
 "information\n"
 msgstr "不会记录没有名称信息的星表 %s 的天体列表\n"
 
-#: src/io/siril_catalogues.c:1108
+#: src/io/siril_catalogues.c:1107
 msgid "Won't show objects tags as there is no display, ignoring\n"
 msgstr "不会显示天体标签，因为没有显示，已忽略\n"
 
-#: src/io/siril_catalogues.c:1112
+#: src/io/siril_catalogues.c:1111
 #, c-format
 msgid ""
 "Won't display objects tags for catalog %s which does not have name "
 "information\n"
 msgstr "不会显示没有名称信息的星表 %s 的天体标签\n"
 
-#: src/io/siril_catalogues.c:1132
+#: src/io/siril_catalogues.c:1131
 #, c-format
 msgid "Using default observatory code %s\n"
 msgstr "使用默认天文台代码 %s\n"
 
-#: src/io/siril_catalogues.c:1136
+#: src/io/siril_catalogues.c:1135
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
 msgstr "未指定天文台代码，默认使用地心，位置可能不准确\n"
 
-#: src/io/siril_catalogues.c:1264
+#: src/io/siril_catalogues.c:1263
 #, c-format
 msgid "The %s catalog has been successfully downloaded\n"
 msgstr "%s 星表已成功下载\n"
 
-#: src/io/siril_catalogues.c:1275
+#: src/io/siril_catalogues.c:1274
 msgid "No item found in the image\n"
 msgstr "图像中未找到项目\n"
 
 #. Summary log message
-#: src/io/siril_catalogues.c:1413
+#: src/io/siril_catalogues.c:1412
 #, c-format
 msgid "%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"
 msgstr "%d 个天体在图像%s中找到（极限星等: %.2f，使用星表: %s）\n"
 
-#: src/io/siril_catalogues.c:1471
+#: src/io/siril_catalogues.c:1470
 #, c-format
 msgid "List saved to %s\n"
 msgstr "列表已保存至 %s\n"
 
-#: src/io/siril_catalogues.c:1473
+#: src/io/siril_catalogues.c:1472
 #, c-format
 msgid "Failed to save list to %s\n"
 msgstr "将列表保存到%s时出错\n"
@@ -24891,7 +24916,8 @@ msgstr "Git仓库路径无效。\n"
 msgid ""
 "Error performing hard reset. You may need to delete the local git repository "
 "and allow Siril to re-clone it.\n"
-msgstr "执行硬重置时出错。您可能需要删除本地 git 仓库并允许 Siril 重新克隆它。\n"
+msgstr ""
+"执行硬重置时出错。您可能需要删除本地 git 仓库并允许 Siril 重新克隆它。\n"
 
 #: src/io/siril_git.c:347
 msgid ""
@@ -24964,7 +24990,8 @@ msgstr "仓库错误"
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
-msgstr "执行硬重置时出错。如果问题仍然存在，您可能需要删除本地 git 仓库并允许 Siril "
+msgstr ""
+"执行硬重置时出错。如果问题仍然存在，您可能需要删除本地 git 仓库并允许 Siril "
 "重新克隆它。\n"
 
 #: src/io/siril_git.c:837
@@ -24983,8 +25010,8 @@ msgid ""
 "as its remote. You should remove the folder %s and restart Siril to re-clone "
 "the correct repository.\n"
 msgstr ""
-"错误：本地 Siril-spcc-database 仓库文件夹未配置为 %s 作为其远程。"
-"您应该删除文件夹 %s 并重新启动 Siril 以重新克隆正确的仓库。\n"
+"错误：本地 Siril-spcc-database 仓库文件夹未配置为 %s 作为其远程。您应该删除文"
+"件夹 %s 并重新启动 Siril 以重新克隆正确的仓库。\n"
 
 #: src/io/siril_git.c:989
 msgid "Local SPCC database repository is up-to-date!\n"
