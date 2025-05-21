@@ -99,6 +99,15 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.4.0-beta3" date="2025-xx-xx">
+      <url type="details">https://siril.org/download/1.4.0-beta3</url>
+      <description>
+        <p>
+         .
+        </p>
+         .
+      </description>
+    </release>
     <release version="1.4.0-beta2" date="2025-05-21">
       <url type="details">https://siril.org/download/1.4.0-beta2</url>
       <description>
@@ -143,9 +152,7 @@
           </li>
         </ul>
       </description>
-
     </release>
-  <releases>
     <release version="1.4.0-beta1" date="2025-04-26">
       <url type="details">https://siril.org/download/1.4.0-beta1</url>
       <description>

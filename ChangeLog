@@ -1,3 +1,9 @@
+siril 1.4.0-beta3
+xx/xx/25
+
+**Fixes**
+* Fixed crash when opening 8-bit XISF file (#1638)
+
 siril 1.4.0-beta2
 05/21/25
 
@@ -45,6 +51,8 @@ siril 1.4.0-beta2
 * Improved Quit behaviour if there are unsaved script changes.
 * Improved feedback when the python context manager image_lock() reports an error.
 * Improved method of calling scripts from the editor to eliminate a script length restriction.
+* Added a GraXpert python script to replace the legacy C GraXpert interface (siril-scripts:!42)
+* Deprecated the legacy C interface which proved unreliable (#1620, #1611, #1573)
 
 siril 1.4.0-beta1
 04/26/25
