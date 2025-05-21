@@ -835,25 +835,7 @@ class ONNXHelper:
 
         if ai_gpu_acceleration:
             if self.system == "darwin":
-                is_apple_silicon = (
-                    platform.machine().startswith(("arm", "aarch"))
-                )
-                # Apple Silicon / Neural Engine (faster if available and supports the model features)
-                if is_apple_silicon:
-                    if "CoreMLExecutionProvider" in available_providers:
-                        # On Apple silicon it's safe to create a MLPROGRAM instead of the older MLMODEL
-                        providers.append(
-                            (
-                                "CoreMLExecutionProvider",
-                                {
-                                    "flags": "COREML_FLAG_CREATE_MLPROGRAM",
-                                },
-                            )
-                        )
-                    else:
-                        # On Intel silicon we omit the MLPROGRAM flag
-                        providers.append("CoreMLExecutionProvider")
-
+                providers.append("CoreMLExecutionProvider")
             elif self.system == "windows":
                 # NVIDIA TensorRT - best performance if the model features are supported
                 if "TensorrtExecutionProvider" in available_providers and has_tensorrt_library():
@@ -875,10 +857,6 @@ class ONNXHelper:
                 # NVIDIA GPU - good fallback option, still much faster than CPU
                 if "CUDAExecutionProvider" in available_providers:
                     providers.append("CUDAExecutionProvider")
-
-                # AMD GPU - fastest possible but commented out until not marked as experimental
-                #if "MIGraphXExecutionProvider" in available_providers:
-                #    providers.append("MIGraphXExecutionProvider")
 
                 # AMD GPU
                 if "ROCmExecutionProvider" in available_providers:
