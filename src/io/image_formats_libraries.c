@@ -1172,10 +1172,11 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 
 	uint32_t *buffer32;
 	double *buffer64;
+	unsigned char *buffer8;
 
 	switch (xdata->sampleFormat) {
 	case BYTE_IMG:
-			unsigned char *buffer8 = (unsigned char *)xdata->data;
+			buffer8 = (unsigned char *)xdata->data;
 			fit->data = (WORD *)malloc(npixels * fit->naxes[2] * sizeof(WORD));
 			if (!fit->data) {
 				siril_log_message(_("Memory allocation error for image data.\n"));
