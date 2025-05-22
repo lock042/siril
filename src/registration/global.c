@@ -653,6 +653,12 @@ int register_star_alignment(struct registration_args *regargs) {
 	regargs->sfargs->keep_stars = TRUE;
 	regargs->sfargs->save_to_file = !regargs->matchSelection && !regargs->no_starlist;
 	regargs->sfargs->max_stars_fitted = regargs->max_stars_candidates;
+	if (regargs->matchSelection && com.selection.w > 0 && com.selection.h > 0)
+		regargs->sfargs->selection = com.selection;
+	else {
+		regargs->sfargs->selection = (rectangle) {0, 0, 0, 0};
+		regargs->matchSelection = FALSE;
+	}
 
 	args->prepare_hook = star_align_prepare_hook;
 	args->image_hook = star_align_image_hook;
