@@ -2244,7 +2244,7 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_image_fits_header(self, return_as = 'str') -> str | dict | None:
+    def get_image_fits_header(self, return_as = 'str') -> Union[str, dict, None]:
         """
         Retrieve the full FITS header of the current image loaded in Siril.
 

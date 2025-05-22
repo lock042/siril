@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-19 00:01+0200\n"
-"PO-Revision-Date: 2025-05-18 15:15+0000\n"
+"POT-Creation-Date: 2025-05-21 16:22+0200\n"
+"PO-Revision-Date: 2025-05-21 14:12+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -982,7 +982,7 @@ msgstr "RCD"
 msgid "VizieR"
 msgstr ""
 
-#: src/gui/uifiles/astrometry_dialog.ui:597 src/io/siril_catalogues.c:277
+#: src/gui/uifiles/astrometry_dialog.ui:597 src/io/siril_catalogues.c:276
 msgid "SIMBAD"
 msgstr ""
 
@@ -4091,7 +4091,7 @@ msgid ""
 "unsensitive out, your version of GraXpert is not compatible."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:374
+#: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:381
 #, fuzzy
 msgid "Objects"
 msgstr "画像シーケンスを検索"
@@ -5028,7 +5028,7 @@ msgstr ""
 msgid "Open a script from a file"
 msgstr ""
 
-#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:242
+#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:246
 #: src/gui/python_gui.c:767 src/pixelMath/pixel_math_runner.c:1253
 msgid "_Open"
 msgstr "_開く"
@@ -5043,7 +5043,7 @@ msgstr "ファイルを保存"
 msgid "Save the current script"
 msgstr "この FITS 画像を保存"
 
-#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:256
+#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:260
 #: src/gui/python_gui.c:844
 msgid "_Save"
 msgstr "_保存"
@@ -5129,7 +5129,7 @@ msgid ""
 "scripting language set before executing a script from the editor."
 msgstr ""
 
-#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:262
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:270
 msgid "Siril Script Files"
 msgstr "Sirilスクリプトファイル"
 
@@ -5753,7 +5753,7 @@ msgid ""
 "this Teff for PCC."
 msgstr ""
 
-#: src/gui/uifiles/s_pcc_dialog.ui:999 src/io/siril_catalogues.c:271
+#: src/gui/uifiles/s_pcc_dialog.ui:999 src/io/siril_catalogues.c:270
 msgid "APASS"
 msgstr "APASS"
 
@@ -7116,7 +7116,7 @@ msgstr "<b>収差検査</b>"
 #: src/gui/uifiles/settings_window.ui:3319
 #: src/gui/uifiles/settings_window.ui:4063
 msgid "User Interface"
-msgstr "ユーザーインターフェイス"
+msgstr "ユーザインタフェース"
 
 #: src/gui/uifiles/settings_window.ui:3355
 #: src/gui/uifiles/settings_window.ui:3431
@@ -7124,8 +7124,8 @@ msgid ""
 "Change the theme of the interface. This feature may not work on all "
 "architectures."
 msgstr ""
-"インターフェイスのテーマを変更します. この機能はすべてのアーキテクチャで動作"
-"するとは限りません."
+"インタフェースのテーマを変更します. この機能はすべてのアーキテクチャで動作す"
+"るとは限りません."
 
 #: src/gui/uifiles/settings_window.ui:3359 src/core/siril_language.c:157
 msgid "System Language"
@@ -7133,7 +7133,7 @@ msgstr "システム言語"
 
 #: src/gui/uifiles/settings_window.ui:3369
 msgid "Language (restart required)"
-msgstr "言語(要再起動)"
+msgstr "言語（要再起動）"
 
 #: src/gui/uifiles/settings_window.ui:3401
 msgid ""
@@ -7159,9 +7159,8 @@ msgid "Symbolic icons"
 msgstr "シンボリック リンク"
 
 #: src/gui/uifiles/settings_window.ui:3470
-#, fuzzy
 msgid "Look and Feel (restart required)"
-msgstr "要再起動"
+msgstr "ルックアンドフィール（要再起動）"
 
 #: src/gui/uifiles/settings_window.ui:3491
 msgid "Remember window size and position"
@@ -7810,9 +7809,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5321
-#, fuzzy
 msgid "Python Interface"
-msgstr "ユーザー インターフェイス"
+msgstr "Pythonインタフェース"
 
 #: src/gui/uifiles/settings_window.ui:5355
 #: src/gui/uifiles/settings_window.ui:5753
@@ -7982,9 +7980,8 @@ msgid "Unlimited"
 msgstr "制限無し"
 
 #: src/gui/uifiles/settings_window.ui:5739
-#, fuzzy
 msgid "<b>FFTW Options</b>"
-msgstr "<b>FITS 圧縮</b>"
+msgstr "<b>FFTWオプション</b>"
 
 #: src/gui/uifiles/settings_window.ui:5767
 #: src/gui/uifiles/settings_window.ui:6211
@@ -7996,6 +7993,8 @@ msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
 msgstr ""
+"既存のディレクトリーを選択します。書き込み権限と十分な空き容量があることを確"
+"認してください。"
 
 #: src/gui/uifiles/settings_window.ui:5798
 #, fuzzy
@@ -8007,19 +8006,16 @@ msgid "available mem"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5823
-#, fuzzy
 msgid "Restore to Default"
-msgstr "デフォルトとして使用"
+msgstr "デフォルトに戻す"
 
 #: src/gui/uifiles/settings_window.ui:5827
-#, fuzzy
 msgid "Restore the default swap storage directory"
-msgstr "環境設定を開ける"
+msgstr "デフォルトのスワップストレージディレクトリーに戻す"
 
 #: src/gui/uifiles/settings_window.ui:5846
-#, fuzzy
 msgid "<b>Swap Storage Directory</b>"
-msgstr "<b>スクリプト 保存 ディレクトリー</b>"
+msgstr "<b>スワップストレージディレクトリー</b>"
 
 #: src/gui/uifiles/settings_window.ui:5873
 msgid "Don't ask before quitting"
@@ -8040,14 +8036,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5946
-#, fuzzy
 msgid "Play introduction"
-msgstr "Rejection:"
+msgstr "紹介を再生"
 
 #: src/gui/uifiles/settings_window.ui:5960
-#, fuzzy
 msgid "Introduction Tips"
-msgstr "Rejection:"
+msgstr "ヒントの紹介"
 
 #: src/gui/uifiles/settings_window.ui:5992
 msgid ""
@@ -8414,9 +8408,8 @@ msgid "Open the GraXpert external tool interface"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:1402
-#, fuzzy
 msgid "GraXpert Interface..."
-msgstr "ユーザー インターフェイス"
+msgstr "GraXpertインタフェース…"
 
 #: src/gui/uifiles/siril.ui:1429
 #, fuzzy
@@ -9074,9 +9067,8 @@ msgid "Conversion"
 msgstr "変換"
 
 #: src/gui/uifiles/siril.ui:4125
-#, fuzzy
 msgid "Clean Sequence"
-msgstr "画像シーケンスの切り抜き"
+msgstr "画像シーケンスの消去"
 
 #: src/gui/uifiles/siril.ui:4129
 msgid ""
@@ -12637,7 +12629,7 @@ msgstr "切り抜き: 処理中…\n"
 
 #: src/algos/comparison_stars.c:439 src/core/command.c:9764
 #: src/core/command.c:10474 src/core/command.c:10627 src/core/command.c:10647
-#: src/io/siril_catalogues.c:1120 src/io/siril_catalogues.c:1169
+#: src/io/siril_catalogues.c:1119 src/io/siril_catalogues.c:1168
 #, fuzzy
 msgid "This command only works on plate solved images\n"
 msgstr "このコマンドはスクリプト: %s では使用不可能\n"
@@ -13393,7 +13385,7 @@ msgid "Object %s not found or encountered an error processing it\n"
 msgstr ""
 
 #: src/algos/search_objects.c:420 src/io/remote_catalogues.c:717
-#: src/io/siril_catalogues.c:616
+#: src/io/siril_catalogues.c:615
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr ""
@@ -13480,7 +13472,7 @@ msgstr ""
 #: src/algos/star_finder.c:938 src/core/command.c:5248 src/core/command.c:7290
 #: src/core/command.c:7464 src/core/command.c:8672
 #: src/io/image_format_fits.c:828 src/io/path_parse.c:669
-#: src/io/remote_catalogues.c:528 src/io/siril_catalogues.c:833
+#: src/io/remote_catalogues.c:528 src/io/siril_catalogues.c:832
 #, c-format
 msgid "Cannot create output folder: %s\n"
 msgstr ""
@@ -13995,7 +13987,7 @@ msgstr ""
 
 #: src/core/OS_utils.c:641
 msgid "Parallel processing disabled: using 1 logical processor.\n"
-msgstr ""
+msgstr "並列処理無効: 1つの論理プロセッサを使用。\n"
 
 #: src/core/OS_utils.c:830
 msgid "Limiting processing to 1900 MiB allocations (32-bit system)\n"
@@ -17290,7 +17282,7 @@ msgid ""
 "uncheck the box."
 msgstr ""
 
-#: src/core/processing.c:77 src/core/processing.c:1150
+#: src/core/processing.c:77 src/core/processing.c:1162
 msgid "No image selected for processing, aborting\n"
 msgstr ""
 
@@ -17305,7 +17297,7 @@ msgstr ""
 msgid "Preparing sequence processing failed.\n"
 msgstr ""
 
-#: src/core/processing.c:142 src/core/processing.c:1173
+#: src/core/processing.c:142 src/core/processing.c:1185
 #, c-format
 msgid "Output index mapping failed (%d/%d).\n"
 msgstr ""
@@ -17361,11 +17353,11 @@ msgstr ""
 msgid "Image %d not found for writing\n"
 msgstr ""
 
-#: src/core/processing.c:1049
+#: src/core/processing.c:1061
 msgid "Process aborted by user\n"
 msgstr ""
 
-#: src/core/processing.c:1061
+#: src/core/processing.c:1073
 #, c-format
 msgid "Failed to find GPid %d, it may already have exited...\n"
 msgstr ""
@@ -18389,7 +18381,7 @@ msgid ""
 msgstr ""
 
 #: src/core/siril_actions.c:713 src/core/siril_actions.c:721
-#: src/gui/graxpert.c:322
+#: src/gui/graxpert.c:329
 msgid "Yes"
 msgstr ""
 
@@ -18639,7 +18631,7 @@ msgstr ""
 #: src/core/utils.c:1192
 #, c-format
 msgid "Setting CWD (Current Working Directory) to '%s'\n"
-msgstr ""
+msgstr "CWD (現在の作業ディレクトリー)を'%s'に設定\n"
 
 #: src/core/utils.c:1196
 #, c-format
@@ -19618,14 +19610,12 @@ msgid "You must first compute the background model."
 msgstr ""
 
 #: src/gui/callbacks.c:128 src/gui/callbacks.c:131 src/gui/callbacks.c:622
-#, fuzzy
 msgid "Image: "
-msgstr "RAW 画像"
+msgstr "画像: "
 
 #: src/gui/callbacks.c:142 src/gui/callbacks.c:145 src/gui/callbacks.c:615
-#, fuzzy
 msgid "Sequence: "
-msgstr "画像シーケンス:"
+msgstr "シーケンス: "
 
 #: src/gui/callbacks.c:312
 msgid "Region of Interest supported"
@@ -19675,13 +19665,13 @@ msgid "Setting HD AutoStretch display mode bit depth to %d...\n"
 msgstr ""
 
 #: src/gui/callbacks.c:613
-#, fuzzy, c-format
+#, c-format
 msgid "%s, %d/%d images selected"
-msgstr "%d 個のファイルを選択済み"
+msgstr "%s, %d/%d 画像を選択済み"
 
 #: src/gui/callbacks.c:626
 msgid "- none -"
-msgstr ""
+msgstr "- なし -"
 
 #: src/gui/callbacks.c:643
 msgid ""
@@ -19736,7 +19726,7 @@ msgstr ""
 msgid "B&W"
 msgstr ""
 
-#: src/gui/callbacks.c:1436 src/io/siril_catalogues.c:321
+#: src/gui/callbacks.c:1436 src/io/siril_catalogues.c:320
 msgid "unknown"
 msgstr ""
 
@@ -19754,12 +19744,12 @@ msgstr ""
 #: src/gui/callbacks.c:1711
 #, c-format
 msgid "Default FITS extension is set to %s\n"
-msgstr ""
+msgstr "FITSのデフォルトの拡張子を%sに設定\n"
 
 #: src/gui/callbacks.c:1734
 #, c-format
 msgid "Welcome to %s"
-msgstr ""
+msgstr "%sへようこそ"
 
 #: src/gui/callbacks.c:1737
 msgid ""
@@ -19768,11 +19758,13 @@ msgid ""
 "prepared for you. Be aware you can replay this introduction at any times in "
 "the Miscellaneous tab of the preferences dialog box."
 msgstr ""
+"こんにちは、Sirilのこの新バージョンを使うのは初めてですね。どうぞお座りになっ"
+"て、私たちが用意した短い紹介をご覧ください。この紹介は、環境設定ダイアログ"
+"ボックスの「その他」タブでいつでも再生できます。"
 
 #: src/gui/callbacks.c:1740
-#, fuzzy
 msgid "See Introduction"
-msgstr "Rejection:"
+msgstr "紹介を見る"
 
 #: src/gui/callbacks.c:2006
 #, fuzzy
@@ -19810,7 +19802,7 @@ msgstr ""
 
 #: src/gui/callbacks.c:2278
 msgid "This erases the following data, and there's no possible undo:\n"
-msgstr ""
+msgstr "これは以下のデータを消去します。元に戻すことはできません:\n"
 
 #: src/gui/callbacks.c:2279
 #, fuzzy
@@ -19834,18 +19826,16 @@ msgid ""
 msgstr "Rejection:"
 
 #: src/gui/callbacks.c:2285
-#, fuzzy
 msgid "Clear Sequence Data?"
-msgstr "画像シーケンスの切り抜き"
+msgstr "シーケンスデータを消去しますか？"
 
 #: src/gui/callbacks.c:2285
-#, fuzzy
 msgid "Clear Data"
-msgstr "全てを消去"
+msgstr "データを消去"
 
 #: src/gui/callbacks.c:2297
 msgid "The requested data of the sequence has been cleaned."
-msgstr ""
+msgstr "要求されたシーケンスのデータは消去されました。"
 
 #: src/gui/callbacks.c:2305
 #, c-format
@@ -19953,7 +19943,7 @@ msgid "_Close"
 msgstr "閉じる"
 
 #: src/gui/compstars.c:51 src/gui/nina_light_curve.c:50
-#: src/io/image_formats_libraries.c:2305
+#: src/io/image_formats_libraries.c:2489
 msgid "_OK"
 msgstr ""
 
@@ -20455,32 +20445,32 @@ msgid ""
 "the processing thread. Wait for the Python script to finish processing first."
 msgstr ""
 
-#: src/gui/dialogs.c:237
+#: src/gui/dialogs.c:241
 #, fuzzy
 msgid "Select Folder"
 msgstr "フォルダーを選ぶ"
 
-#: src/gui/dialogs.c:239
+#: src/gui/dialogs.c:243
 msgid "Open File"
 msgstr "ファイルを開く"
 
-#: src/gui/dialogs.c:241 src/gui/dialogs.c:250 src/gui/dialogs.c:256
+#: src/gui/dialogs.c:245 src/gui/dialogs.c:254 src/gui/dialogs.c:260
 #: src/gui/keywords_tree.c:508 src/gui/python_gui.c:766
-#: src/gui/python_gui.c:843 src/io/image_formats_libraries.c:2305
+#: src/gui/python_gui.c:843 src/io/image_formats_libraries.c:2489
 #: src/pixelMath/pixel_math_runner.c:1253
 msgid "_Cancel"
 msgstr "_取り消し"
 
-#: src/gui/dialogs.c:249
+#: src/gui/dialogs.c:253
 #, fuzzy
 msgid "Add Files"
 msgstr "メディアンフィルター..."
 
-#: src/gui/dialogs.c:250 src/gui/keywords_tree.c:509
+#: src/gui/dialogs.c:254 src/gui/keywords_tree.c:509
 msgid "_Add"
 msgstr "_追加"
 
-#: src/gui/dialogs.c:255
+#: src/gui/dialogs.c:259
 #, fuzzy
 msgid "Save File"
 msgstr "ファイルを保存"
@@ -20521,13 +20511,12 @@ msgid "Error: image dimensions do not match"
 msgstr "エラー: 統計計算失敗\n"
 
 #: src/gui/git_gui.c:119
-#, fuzzy
 msgid "Processing"
-msgstr "前処理"
+msgstr "処理"
 
 #: src/gui/git_gui.c:121
 msgid "Utility"
-msgstr ""
+msgstr "ユーティリティ"
 
 #: src/gui/git_gui.c:123
 msgid "Core"
@@ -20538,14 +20527,12 @@ msgid "Other"
 msgstr ""
 
 #: src/gui/git_gui.c:132 src/gui/python_gui.c:924 src/gui/python_gui.c:1093
-#, fuzzy
 msgid "Siril Script File"
-msgstr "ファイル名："
+msgstr "Sirilスクリプトファイル"
 
 #: src/gui/git_gui.c:134
-#, fuzzy
 msgid "Python script"
-msgstr "スクリプト"
+msgstr "Pythonスクリプト"
 
 #: src/gui/git_gui.c:198
 #, fuzzy, c-format
@@ -20582,28 +20569,45 @@ msgid ""
 "Configure the executable in Preferences -> Miscellaneous.</span>"
 msgstr ""
 
-#: src/gui/graxpert.c:321
+#: src/gui/graxpert.c:298
+#, fuzzy
+msgid "Deprecation Notice"
+msgstr "実行時間"
+
+#: src/gui/graxpert.c:298
+msgid ""
+"The builtin C interface to GraXpert is deprecated owing to issues with "
+"reliability and the level of technical debt, and it will soon be removed in "
+"an upcoming release. It is replaced by a Python script that interfaces "
+"directly with the GraXpert AI models and provides a model manager that uses "
+"GraXpert to download model files.\n"
+"\n"
+"You can find the Python script in the hamburger menu -> Get Scripts and look "
+"in the Python repository for \"GraXpert_AI.py\""
+msgstr ""
+
+#: src/gui/graxpert.c:328
 #, fuzzy
 msgid "Warning!"
 msgstr "警告"
 
-#: src/gui/graxpert.c:321
+#: src/gui/graxpert.c:328
 msgid ""
 "GraXpert is running. Changing the GraXpert operation will cancel the current "
 "GraXpert process. Proceed?"
 msgstr ""
 
-#: src/gui/graxpert.c:325
+#: src/gui/graxpert.c:332
 #, fuzzy
 msgid "GraXpert operation cancelled by user\n"
 msgstr "Background Extraction…"
 
-#: src/gui/graxpert.c:349
+#: src/gui/graxpert.c:356
 #, fuzzy
 msgid "Error: no sequence loaded.\n"
 msgstr "画像シーケンスをエクスポート"
 
-#: src/gui/graxpert.c:374
+#: src/gui/graxpert.c:381
 msgid "Stellar"
 msgstr ""
 
@@ -22311,46 +22315,46 @@ msgstr "スクリプトを実行"
 msgid "Unknown script type: %s\n"
 msgstr "FITS ファイル %s を開けない\n"
 
-#: src/gui/script_menu.c:263
+#: src/gui/script_menu.c:271
 #, fuzzy
 msgid "Python Scripts"
 msgstr "スクリプトを入手"
 
-#: src/gui/script_menu.c:268
+#: src/gui/script_menu.c:276
 msgid "Script Editor..."
 msgstr ""
 
-#: src/gui/script_menu.c:270
+#: src/gui/script_menu.c:278
 msgid "Enable Python debug mode"
 msgstr ""
 
-#: src/gui/script_menu.c:306
+#: src/gui/script_menu.c:314
 #, c-format
 msgid "Searching for scripts in: \"%s\"...\n"
-msgstr ""
+msgstr "以下でスクリプトを探しています: \"%s\"...\n"
 
-#: src/gui/script_menu.c:352
+#: src/gui/script_menu.c:360
 #, c-format
 msgid "Loading script: %s\n"
-msgstr ""
+msgstr "スクリプトを読み込んでいます: %s\n"
 
-#: src/gui/script_menu.c:373 src/gui/script_menu.c:411
+#: src/gui/script_menu.c:392 src/gui/script_menu.c:430
 #, c-format
 msgid ""
 "Script %s no longer exists in repository, removing from Scripts menu...\n"
 msgstr ""
 
-#: src/gui/script_menu.c:405
+#: src/gui/script_menu.c:424
 #, fuzzy, c-format
 msgid "Loading script from repository: %s\n"
 msgstr "%d: ‘%s’ 行目にエラー.\n"
 
-#: src/gui/script_menu.c:456
+#: src/gui/script_menu.c:476
 #, fuzzy, c-format
 msgid "Adding core script to menu: %s\n"
 msgstr "FITS ファイル %s を開けない\n"
 
-#: src/gui/script_menu.c:476
+#: src/gui/script_menu.c:496
 msgid "Cannot refresh the scripts if the list is empty.\n"
 msgstr ""
 
@@ -22447,6 +22451,10 @@ msgid ""
 "using the right arrow of your keyboard. You can also go back to the previous "
 "tip using the left arrow and stop the animation with the escape key."
 msgstr ""
+"Sirilの最新バージョン、%sへようこそ。このリリースに関するヒントをお読みくださ"
+"い。速度が遅すぎる場合は、キーボードの右矢印を使用して次のヒントにスキップし"
+"ます。左矢印で前のヒントに戻り、エスケープキーでアニメーションを止めることも"
+"できます。"
 
 #: src/gui/siril_intro.c:47
 msgid ""
@@ -22454,6 +22462,8 @@ msgid ""
 "structure and reduce its size. Many new processing tools have been developed "
 "and integrated in this menu."
 msgstr ""
+"画像処理メニューがテーマごとに再編成され、構造が合理化され、サイズが小さくな"
+"りました。多くの新しい処理ツールが開発され、このメニューに統合されました。"
 
 #: src/gui/siril_intro.c:48
 msgid ""
@@ -22468,6 +22478,8 @@ msgid ""
 "The Script menu has also evolved, now featuring both Python scripts and a "
 "script editor."
 msgstr ""
+"スクリプトメニューも進化し、Pythonスクリプトとスクリプトエディターの両方を備"
+"えるようになりました。"
 
 #: src/gui/siril_intro.c:50
 msgid ""
@@ -22536,6 +22548,8 @@ msgid ""
 "Enjoy using the new Siril. You can restart this introduction at any moment "
 "in the Miscellaneous tab of the preferences."
 msgstr ""
+"新しいSirilをお楽しみください。この紹介は環境設定の「その他」タブでいつでも再"
+"開できます。"
 
 #: src/gui/siril_plot.c:169
 #, fuzzy
@@ -22547,19 +22561,16 @@ msgid "Could not copy the snapshot into the clipboard.\n"
 msgstr ""
 
 #: src/gui/siril_plot.c:443
-#, fuzzy
 msgid "PNG files (*.png)"
-msgstr "PNG フアイル (*.png)"
+msgstr "PNGフアイル (*.png)"
 
 #: src/gui/siril_plot.c:447
-#, fuzzy
 msgid "DAT files (*.dat)"
-msgstr "SER ファイル (*.ser)"
+msgstr "DATファイル (*.ser)"
 
 #: src/gui/siril_plot.c:455
-#, fuzzy
 msgid "SVG files (*.svg)"
-msgstr "SER ファイル (*.ser)"
+msgstr "SVGファイル (*.ser)"
 
 #: src/gui/siril_preview.c:104
 msgid "Warning: insufficient memory available to create a preview.\n"
@@ -22936,23 +22947,23 @@ msgstr "リファレンス画像の読み込み失敗\n"
 
 #: src/io/conversion.c:162
 msgid "BMP images, "
-msgstr "BMP 画像, "
+msgstr "BMP画像, "
 
 #: src/io/conversion.c:164
 msgid "PIC images (IRIS), "
-msgstr "PIC 画像 (IRIS), "
+msgstr "PIC画像 (IRIS), "
 
 #: src/io/conversion.c:166
 msgid "PGM and PPM binary images"
-msgstr "PGM 及び PPM バイナリー画像"
+msgstr "PGM及びPPMバイナリー画像"
 
 #: src/io/conversion.c:187
 msgid "RAW images"
-msgstr "RAW 画像"
+msgstr "RAW画像"
 
 #: src/io/conversion.c:199
 msgid "FITS-CFA images"
-msgstr "FITS-CFA 画像"
+msgstr "FITS-CFA画像"
 
 #: src/io/conversion.c:204
 msgid "Films"
@@ -22964,16 +22975,15 @@ msgstr "SER 画像シーケンス"
 
 #: src/io/conversion.c:215
 msgid "TIFF images"
-msgstr "TIFF 画像"
+msgstr "TIFF画像"
 
 #: src/io/conversion.c:223
-#, fuzzy
 msgid "XISF images"
-msgstr "TIFF 画像"
+msgstr "XISF画像"
 
 #: src/io/conversion.c:230
 msgid "JPG images"
-msgstr "JPG 画像"
+msgstr "JPG画像"
 
 #: src/io/conversion.c:238
 msgid "JPEG XL images"
@@ -22981,16 +22991,16 @@ msgstr "JPEG XL画像"
 
 #: src/io/conversion.c:245
 msgid "PNG images"
-msgstr "PNG 画像"
+msgstr "PNG画像"
 
 #: src/io/conversion.c:253
 msgid "HEIF images, AVIF images"
-msgstr "HEIF画像、AVIF画像"
+msgstr "HEIF画像, AVIF画像"
 
 #: src/io/conversion.c:263
 #, c-format
 msgid "Supported file types: %s\n"
-msgstr ""
+msgstr "サポートしているファイルタイプ: %s\n"
 
 #: src/io/conversion.c:409
 msgid ""
@@ -23575,158 +23585,164 @@ msgstr ""
 msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1076
+#: src/io/image_formats_libraries.c:1182
+#, fuzzy
+msgid "Memory allocation error for image data.\n"
+msgstr "エラー: 統計計算失敗\n"
+
+#: src/io/image_formats_libraries.c:1248
 msgid "This image type is not handled.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1102
+#: src/io/image_formats_libraries.c:1286
 #, c-format
 msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1123 src/io/image_formats_libraries.c:1417
-#: src/io/image_formats_libraries.c:2844
+#: src/io/image_formats_libraries.c:1307 src/io/image_formats_libraries.c:1601
+#: src/io/image_formats_libraries.c:3028
 #, c-format
 msgid "Sorry but Siril cannot open the file: %s.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1163
+#: src/io/image_formats_libraries.c:1347
 msgid "Read ICC profile from JPEG.\n"
-msgstr ""
+msgstr "JPEGからICCプロファイルを読み込みます。\n"
 
-#: src/io/image_formats_libraries.c:1166
+#: src/io/image_formats_libraries.c:1350
 msgid "Cannot read an ICC profile from this JPEG, assuming sRGB.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1169
+#: src/io/image_formats_libraries.c:1353
 msgid "JPEG ICC profile support unavailable, assuming sRGB.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1205
+#: src/io/image_formats_libraries.c:1389
 #, c-format
 msgid "Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr ""
+msgstr "JPGを読み込んでいます: ファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
-#: src/io/image_formats_libraries.c:1228
+#: src/io/image_formats_libraries.c:1412
 msgid "Siril cannot create JPG file.\n"
 msgstr "Siril は JPG ファイルを作れません.\n"
 
-#: src/io/image_formats_libraries.c:1378
+#: src/io/image_formats_libraries.c:1562
 #, fuzzy
 msgid "Error: failed to write ICC profile to JPG\n"
 msgstr "最初の画像の「核」の X-座標."
 
-#: src/io/image_formats_libraries.c:1399
+#: src/io/image_formats_libraries.c:1583
 #, c-format
 msgid "Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1431
+#: src/io/image_formats_libraries.c:1615
 #, fuzzy, c-format
 msgid "Error opening the file %s\n"
 msgstr "%d: ‘%s’ 行目にエラー.\n"
 
-#: src/io/image_formats_libraries.c:1576
+#: src/io/image_formats_libraries.c:1760
 #, c-format
 msgid "Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
+"PNGを読み込んでいます: %dビットファイル %s, %ld レイヤー, %ux%u ピクセル\n"
 
-#: src/io/image_formats_libraries.c:1866
+#: src/io/image_formats_libraries.c:2050
 #, c-format
 msgid "Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2001
+#: src/io/image_formats_libraries.c:2185
 msgid "Siril cannot open this file in CFA mode: no RAW data available.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2030
+#: src/io/image_formats_libraries.c:2214
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2033
+#: src/io/image_formats_libraries.c:2217
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=%0.1f sec)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2056
+#: src/io/image_formats_libraries.c:2240
 #, c-format
 msgid "Filter pattern: %s\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2143
+#: src/io/image_formats_libraries.c:2327
 #, c-format
 msgid "Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2194
+#: src/io/image_formats_libraries.c:2378
 msgid "primary"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2303
+#: src/io/image_formats_libraries.c:2487
 msgid "Load HEIF image content"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2311
+#: src/io/image_formats_libraries.c:2495
 msgid "Select image"
 msgstr "画像を選ぶ"
 
-#: src/io/image_formats_libraries.c:2526
+#: src/io/image_formats_libraries.c:2710
 msgid ""
 "Error: the specified NCLX TRC is not yet supported in Siril. A linear TRC "
 "will be used: you may need to fix this file up manually.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2574
+#: src/io/image_formats_libraries.c:2758
 msgid "Input file contains no readable images.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2607
+#: src/io/image_formats_libraries.c:2791
 #, c-format
 msgid "This is a sequence of %d images: loading the primary one.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2642
+#: src/io/image_formats_libraries.c:2826
 msgid ""
 "Error getting ICC profile from HEIF file. Continuing: you will need to "
 "manually assign an ICC profile\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2667
+#: src/io/image_formats_libraries.c:2851
 msgid "Input image has undefined bit-depth.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2828
+#: src/io/image_formats_libraries.c:3012
 #, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2945
+#: src/io/image_formats_libraries.c:3129
 #, c-format
 msgid "Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2965
+#: src/io/image_formats_libraries.c:3149
 #, fuzzy
 msgid "Error interleaving image\n"
 msgstr "%d: ‘%s’ 行目にエラー.\n"
 
-#: src/io/image_formats_libraries.c:3075
+#: src/io/image_formats_libraries.c:3259
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit "
 "depth: %d\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:3078
+#: src/io/image_formats_libraries.c:3262
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, "
 "bit depth: %d\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:3086
+#: src/io/image_formats_libraries.c:3270
 #, fuzzy
 msgid "Save complete.\n"
 msgstr "整列完了."
@@ -23754,13 +23770,13 @@ msgstr "リファレンス画像の読み込み失敗\n"
 msgid "Error: number of trixels reported by file is out of limits.\n"
 msgstr ""
 
-#: src/io/local_catalogues.c:854 src/io/siril_catalogues.c:845
+#: src/io/local_catalogues.c:854 src/io/siril_catalogues.c:844
 #, fuzzy, c-format
 msgid "File %s cannot be deleted (%s), aborting\n"
 msgstr "FITS ファイル %s を開けない\n"
 
 #: src/io/local_catalogues.c:864 src/io/remote_catalogues.c:642
-#: src/io/remote_catalogues.c:969 src/io/siril_catalogues.c:854
+#: src/io/remote_catalogues.c:969 src/io/siril_catalogues.c:853
 #, fuzzy, c-format
 msgid "Cannot create catalogue file %s (%s)\n"
 msgstr "ファイル: %s を開けない\n"
@@ -24514,170 +24530,170 @@ msgid ""
 "There was an error when opening this image. See the log for more information."
 msgstr ""
 
-#: src/io/siril_catalogues.c:259
+#: src/io/siril_catalogues.c:258
 msgid "Tycho-2"
 msgstr ""
 
-#: src/io/siril_catalogues.c:261
+#: src/io/siril_catalogues.c:260
 msgid "NOMAD"
 msgstr ""
 
-#: src/io/siril_catalogues.c:263
+#: src/io/siril_catalogues.c:262
 msgid "Gaia DR3 (via Vizier)"
 msgstr ""
 
-#: src/io/siril_catalogues.c:265
+#: src/io/siril_catalogues.c:264
 msgid "Gaia DR3 (direct)"
 msgstr ""
 
-#: src/io/siril_catalogues.c:267
+#: src/io/siril_catalogues.c:266
 msgid "PPMXL"
 msgstr ""
 
-#: src/io/siril_catalogues.c:269
+#: src/io/siril_catalogues.c:268
 #, fuzzy
 msgid "bright stars"
 msgstr "層の数: "
 
-#: src/io/siril_catalogues.c:273
+#: src/io/siril_catalogues.c:272
 #, fuzzy
 msgid "AAVSO Variable stars"
 msgstr "選択"
 
-#: src/io/siril_catalogues.c:275
+#: src/io/siril_catalogues.c:274
 msgid "GCVS"
 msgstr ""
 
-#: src/io/siril_catalogues.c:279
+#: src/io/siril_catalogues.c:278
 msgid "Gaia DR3 Variability"
 msgstr ""
 
-#: src/io/siril_catalogues.c:281
+#: src/io/siril_catalogues.c:280
 #, fuzzy
 msgid "PGC"
 msgstr "PPG"
 
-#: src/io/siril_catalogues.c:283
+#: src/io/siril_catalogues.c:282
 msgid "Exoplanet archive"
 msgstr ""
 
-#: src/io/siril_catalogues.c:285
+#: src/io/siril_catalogues.c:284
 msgid "IMCCE solar system"
 msgstr ""
 
-#: src/io/siril_catalogues.c:287
+#: src/io/siril_catalogues.c:286
 msgid "AAVSO VSP Chart"
 msgstr ""
 
-#: src/io/siril_catalogues.c:289
+#: src/io/siril_catalogues.c:288
 msgid "Tycho-2+NOMAD"
 msgstr ""
 
-#: src/io/siril_catalogues.c:291
+#: src/io/siril_catalogues.c:290
 #, fuzzy
 msgid "Gaia DR3 astrometry"
 msgstr "測光"
 
-#: src/io/siril_catalogues.c:293
+#: src/io/siril_catalogues.c:292
 msgid "Gaia DR3 xp_sampled"
 msgstr ""
 
-#: src/io/siril_catalogues.c:386
+#: src/io/siril_catalogues.c:385
 #, c-format
 msgid ""
 "Did not find the minimal set of columns necessary for the catalog %s, "
 "aborting\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:644 src/io/siril_catalogues.c:647
+#: src/io/siril_catalogues.c:643 src/io/siril_catalogues.c:646
 #, fuzzy, c-format
 msgid "Could not open the catalog (%s)\n"
 msgstr "リファレンス画像の読み込み失敗\n"
 
-#: src/io/siril_catalogues.c:688
+#: src/io/siril_catalogues.c:687
 msgid "No columns found in the catalogue\n"
 msgstr ""
 
 #. checking that current line has a number of columns consistent with the headers
-#: src/io/siril_catalogues.c:708
+#: src/io/siril_catalogues.c:707
 #, c-format
 msgid "Malformed line found %s\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:741
+#: src/io/siril_catalogues.c:740
 #, c-format
 msgid ""
 "Catalog %s was read but no items were found in the view cone, nothing to "
 "show\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:950
+#: src/io/siril_catalogues.c:949
 msgid "Cannot correct for velocities, will use ra/dec as is\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:951
+#: src/io/siril_catalogues.c:950
 msgid "To tag solar system objects, please refer to conesearch command\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1039
+#: src/io/siril_catalogues.c:1038
 msgid "no DATE-OBS information, cannot account for stars proper motions\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1042
+#: src/io/siril_catalogues.c:1041
 msgid "This catalog does not have proper motion info, will not be computed\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1104
+#: src/io/siril_catalogues.c:1103
 #, c-format
 msgid ""
 "Won't log list of objects for catalog %s which does not have name "
 "information\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1108
+#: src/io/siril_catalogues.c:1107
 msgid "Won't show objects tags as there is no display, ignoring\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1112
+#: src/io/siril_catalogues.c:1111
 #, c-format
 msgid ""
 "Won't display objects tags for catalog %s which does not have name "
 "information\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1132
+#: src/io/siril_catalogues.c:1131
 #, c-format
 msgid "Using default observatory code %s\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1136
+#: src/io/siril_catalogues.c:1135
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1264
+#: src/io/siril_catalogues.c:1263
 #, c-format
 msgid "The %s catalog has been successfully downloaded\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1275
+#: src/io/siril_catalogues.c:1274
 #, fuzzy
 msgid "No item found in the image\n"
 msgstr "画像を選ぶ"
 
 #. Summary log message
-#: src/io/siril_catalogues.c:1413
+#: src/io/siril_catalogues.c:1412
 #, c-format
 msgid "%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1471
+#: src/io/siril_catalogues.c:1470
 #, c-format
 msgid "List saved to %s\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1473
+#: src/io/siril_catalogues.c:1472
 #, fuzzy, c-format
 msgid "Failed to save list to %s\n"
 msgstr "最初の画像の「核」の X-座標."
@@ -24783,7 +24799,7 @@ msgstr ""
 
 #: src/io/siril_git.c:837
 msgid "Local scripts repository is up-to-date!\n"
-msgstr ""
+msgstr "ローカルのスクリプトリポジトリは最新です！\n"
 
 #: src/io/siril_git.c:910
 #, fuzzy, c-format
@@ -24800,7 +24816,7 @@ msgstr ""
 
 #: src/io/siril_git.c:989
 msgid "Local SPCC database repository is up-to-date!\n"
-msgstr ""
+msgstr "ローカルのSPCCデータベースリポジトリは最新です！\n"
 
 #: src/io/siril_git.c:1012
 msgid "Error: unable to open local scripts repository.\n"
@@ -25313,13 +25329,13 @@ msgstr ""
 #: src/io/siril_pythonmodule.c:1652
 #, c-format
 msgid "Preparing python virtual environment: %s.\n"
-msgstr ""
+msgstr "python仮想環境を準備しています: %s.\n"
 
 #. Check the sirilpy python module is the latest version and install or
 #. update it using the venv pip if not.
 #: src/io/siril_pythonmodule.c:1693
 msgid "Checking the python module is up-to-date...\n"
-msgstr ""
+msgstr "pythonモジュールが最新か確認しています...\n"
 
 #: src/io/siril_pythonmodule.c:1698
 msgid "Warning: unable to install or update the Siril python module.\n"
@@ -25327,7 +25343,7 @@ msgstr ""
 
 #: src/io/siril_pythonmodule.c:1704
 msgid "Python module is up-to-date\n"
-msgstr ""
+msgstr "Pythonモジュールは最新です\n"
 
 #: src/io/siril_pythonmodule.c:1764
 msgid ""
@@ -25733,7 +25749,7 @@ msgstr "Log ファイルをエクスポート"
 #: src/main-cli.c:164 src/main.c:332
 #, c-format
 msgid "Welcome to %s v%s\n"
-msgstr ""
+msgstr "%s v%sへようこそ\n"
 
 #: src/main-cli.c:174 src/main.c:342
 #, c-format

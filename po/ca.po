@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-19 00:01+0200\n"
+"POT-Creation-Date: 2025-05-21 16:22+0200\n"
 "PO-Revision-Date: 2025-04-29 22:01+0000\n"
 "Last-Translator: Victor Gandia <victorix@gmail.com>\n"
 "Language-Team: Catalan <https://weblate.siril.org/projects/siril/software/"
@@ -1073,7 +1073,7 @@ msgstr "CDS"
 msgid "VizieR"
 msgstr "VizieR"
 
-#: src/gui/uifiles/astrometry_dialog.ui:597 src/io/siril_catalogues.c:277
+#: src/gui/uifiles/astrometry_dialog.ui:597 src/io/siril_catalogues.c:276
 msgid "SIMBAD"
 msgstr "SIMBAD"
 
@@ -4449,7 +4449,7 @@ msgid ""
 "unsensitive out, your version of GraXpert is not compatible."
 msgstr ""
 
-#: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:374
+#: src/gui/uifiles/graxpert.ui:596 src/gui/graxpert.c:381
 #, fuzzy
 msgid "Objects"
 msgstr "Buscar Objecte"
@@ -5402,7 +5402,7 @@ msgstr ""
 msgid "Open a script from a file"
 msgstr ""
 
-#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:242
+#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:246
 #: src/gui/python_gui.c:767 src/pixelMath/pixel_math_runner.c:1253
 msgid "_Open"
 msgstr "_Obrir"
@@ -5417,7 +5417,7 @@ msgstr "Filtre de Mediana"
 msgid "Save the current script"
 msgstr "Guarda la imatge actual en un nom diferent"
 
-#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:256
+#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:260
 #: src/gui/python_gui.c:844
 #, fuzzy
 msgid "_Save"
@@ -5503,7 +5503,7 @@ msgid ""
 "scripting language set before executing a script from the editor."
 msgstr ""
 
-#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:262
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:270
 msgid "Siril Script Files"
 msgstr ""
 
@@ -6138,7 +6138,7 @@ msgstr ""
 "vuit filtres: Johnson B i V, plus Solan u', g´, r´, i´, s_s i Z. Es vàlid "
 "des de el 7é grau de magnitud fins el 17é per més de 37 milions d'estrelles."
 
-#: src/gui/uifiles/s_pcc_dialog.ui:999 src/io/siril_catalogues.c:271
+#: src/gui/uifiles/s_pcc_dialog.ui:999 src/io/siril_catalogues.c:270
 msgid "APASS"
 msgstr "APASS"
 
@@ -12956,7 +12956,7 @@ msgstr "Correcció Cosmètica: processant...\n"
 
 #: src/algos/comparison_stars.c:439 src/core/command.c:9764
 #: src/core/command.c:10474 src/core/command.c:10627 src/core/command.c:10647
-#: src/io/siril_catalogues.c:1120 src/io/siril_catalogues.c:1169
+#: src/io/siril_catalogues.c:1119 src/io/siril_catalogues.c:1168
 msgid "This command only works on plate solved images\n"
 msgstr ""
 
@@ -13707,7 +13707,7 @@ msgid "Object %s not found or encountered an error processing it\n"
 msgstr ""
 
 #: src/algos/search_objects.c:420 src/io/remote_catalogues.c:717
-#: src/io/siril_catalogues.c:616
+#: src/io/siril_catalogues.c:615
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr ""
@@ -13792,7 +13792,7 @@ msgstr ""
 #: src/algos/star_finder.c:938 src/core/command.c:5248 src/core/command.c:7290
 #: src/core/command.c:7464 src/core/command.c:8672
 #: src/io/image_format_fits.c:828 src/io/path_parse.c:669
-#: src/io/remote_catalogues.c:528 src/io/siril_catalogues.c:833
+#: src/io/remote_catalogues.c:528 src/io/siril_catalogues.c:832
 #, c-format
 msgid "Cannot create output folder: %s\n"
 msgstr ""
@@ -17518,7 +17518,7 @@ msgid ""
 "uncheck the box."
 msgstr ""
 
-#: src/core/processing.c:77 src/core/processing.c:1150
+#: src/core/processing.c:77 src/core/processing.c:1162
 msgid "No image selected for processing, aborting\n"
 msgstr ""
 
@@ -17533,7 +17533,7 @@ msgstr ""
 msgid "Preparing sequence processing failed.\n"
 msgstr ""
 
-#: src/core/processing.c:142 src/core/processing.c:1173
+#: src/core/processing.c:142 src/core/processing.c:1185
 #, c-format
 msgid "Output index mapping failed (%d/%d).\n"
 msgstr ""
@@ -17589,11 +17589,11 @@ msgstr ""
 msgid "Image %d not found for writing\n"
 msgstr "Imatge %d no trobada per escriure\n"
 
-#: src/core/processing.c:1049
+#: src/core/processing.c:1061
 msgid "Process aborted by user\n"
 msgstr ""
 
-#: src/core/processing.c:1061
+#: src/core/processing.c:1073
 #, c-format
 msgid "Failed to find GPid %d, it may already have exited...\n"
 msgstr ""
@@ -18589,7 +18589,7 @@ msgid ""
 msgstr ""
 
 #: src/core/siril_actions.c:713 src/core/siril_actions.c:721
-#: src/gui/graxpert.c:322
+#: src/gui/graxpert.c:329
 msgid "Yes"
 msgstr ""
 
@@ -19914,7 +19914,7 @@ msgstr ""
 msgid "B&W"
 msgstr "Blanc i Negre"
 
-#: src/gui/callbacks.c:1436 src/io/siril_catalogues.c:321
+#: src/gui/callbacks.c:1436 src/io/siril_catalogues.c:320
 msgid "unknown"
 msgstr "desconegut"
 
@@ -20131,7 +20131,7 @@ msgid "_Close"
 msgstr "Tancar"
 
 #: src/gui/compstars.c:51 src/gui/nina_light_curve.c:50
-#: src/io/image_formats_libraries.c:2305
+#: src/io/image_formats_libraries.c:2489
 msgid "_OK"
 msgstr "_OK"
 
@@ -20626,33 +20626,33 @@ msgid ""
 "the processing thread. Wait for the Python script to finish processing first."
 msgstr ""
 
-#: src/gui/dialogs.c:237
+#: src/gui/dialogs.c:241
 #, fuzzy
 msgid "Select Folder"
 msgstr "Selecciona-ho tot"
 
-#: src/gui/dialogs.c:239
+#: src/gui/dialogs.c:243
 #, fuzzy
 msgid "Open File"
 msgstr "Filtre de Mediana"
 
-#: src/gui/dialogs.c:241 src/gui/dialogs.c:250 src/gui/dialogs.c:256
+#: src/gui/dialogs.c:245 src/gui/dialogs.c:254 src/gui/dialogs.c:260
 #: src/gui/keywords_tree.c:508 src/gui/python_gui.c:766
-#: src/gui/python_gui.c:843 src/io/image_formats_libraries.c:2305
+#: src/gui/python_gui.c:843 src/io/image_formats_libraries.c:2489
 #: src/pixelMath/pixel_math_runner.c:1253
 msgid "_Cancel"
 msgstr "_Cancel·lar"
 
-#: src/gui/dialogs.c:249
+#: src/gui/dialogs.c:253
 #, fuzzy
 msgid "Add Files"
 msgstr "Filtre de Mediana"
 
-#: src/gui/dialogs.c:250 src/gui/keywords_tree.c:509
+#: src/gui/dialogs.c:254 src/gui/keywords_tree.c:509
 msgid "_Add"
 msgstr ""
 
-#: src/gui/dialogs.c:255
+#: src/gui/dialogs.c:259
 #, fuzzy
 msgid "Save File"
 msgstr "Guarda"
@@ -20752,28 +20752,44 @@ msgid ""
 "Configure the executable in Preferences -> Miscellaneous.</span>"
 msgstr ""
 
-#: src/gui/graxpert.c:321
+#: src/gui/graxpert.c:298
+msgid "Deprecation Notice"
+msgstr ""
+
+#: src/gui/graxpert.c:298
+msgid ""
+"The builtin C interface to GraXpert is deprecated owing to issues with "
+"reliability and the level of technical debt, and it will soon be removed in "
+"an upcoming release. It is replaced by a Python script that interfaces "
+"directly with the GraXpert AI models and provides a model manager that uses "
+"GraXpert to download model files.\n"
+"\n"
+"You can find the Python script in the hamburger menu -> Get Scripts and look "
+"in the Python repository for \"GraXpert_AI.py\""
+msgstr ""
+
+#: src/gui/graxpert.c:328
 #, fuzzy
 msgid "Warning!"
 msgstr "Alerta"
 
-#: src/gui/graxpert.c:321
+#: src/gui/graxpert.c:328
 msgid ""
 "GraXpert is running. Changing the GraXpert operation will cancel the current "
 "GraXpert process. Proceed?"
 msgstr ""
 
-#: src/gui/graxpert.c:325
+#: src/gui/graxpert.c:332
 #, fuzzy
 msgid "GraXpert operation cancelled by user\n"
 msgstr "L'operació d'apilonament s'ha cancel·lat.\n"
 
-#: src/gui/graxpert.c:349
+#: src/gui/graxpert.c:356
 #, fuzzy
 msgid "Error: no sequence loaded.\n"
 msgstr "Error: la seqüència és SER"
 
-#: src/gui/graxpert.c:374
+#: src/gui/graxpert.c:381
 msgid "Stellar"
 msgstr ""
 
@@ -22461,46 +22477,46 @@ msgstr ""
 msgid "Unknown script type: %s\n"
 msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 
-#: src/gui/script_menu.c:263
+#: src/gui/script_menu.c:271
 #, fuzzy
 msgid "Python Scripts"
 msgstr "Obtenir scripts"
 
-#: src/gui/script_menu.c:268
+#: src/gui/script_menu.c:276
 msgid "Script Editor..."
 msgstr ""
 
-#: src/gui/script_menu.c:270
+#: src/gui/script_menu.c:278
 msgid "Enable Python debug mode"
 msgstr ""
 
-#: src/gui/script_menu.c:306
+#: src/gui/script_menu.c:314
 #, c-format
 msgid "Searching for scripts in: \"%s\"...\n"
 msgstr ""
 
-#: src/gui/script_menu.c:352
+#: src/gui/script_menu.c:360
 #, c-format
 msgid "Loading script: %s\n"
 msgstr ""
 
-#: src/gui/script_menu.c:373 src/gui/script_menu.c:411
+#: src/gui/script_menu.c:392 src/gui/script_menu.c:430
 #, c-format
 msgid ""
 "Script %s no longer exists in repository, removing from Scripts menu...\n"
 msgstr ""
 
-#: src/gui/script_menu.c:405
+#: src/gui/script_menu.c:424
 #, fuzzy, c-format
 msgid "Loading script from repository: %s\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/gui/script_menu.c:456
+#: src/gui/script_menu.c:476
 #, fuzzy, c-format
 msgid "Adding core script to menu: %s\n"
 msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 
-#: src/gui/script_menu.c:476
+#: src/gui/script_menu.c:496
 msgid "Cannot refresh the scripts if the list is empty.\n"
 msgstr ""
 
@@ -23762,157 +23778,162 @@ msgstr ""
 msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1076
+#: src/io/image_formats_libraries.c:1182
+#, fuzzy
+msgid "Memory allocation error for image data.\n"
+msgstr "No disponible"
+
+#: src/io/image_formats_libraries.c:1248
 msgid "This image type is not handled.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1102
+#: src/io/image_formats_libraries.c:1286
 #, c-format
 msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1123 src/io/image_formats_libraries.c:1417
-#: src/io/image_formats_libraries.c:2844
+#: src/io/image_formats_libraries.c:1307 src/io/image_formats_libraries.c:1601
+#: src/io/image_formats_libraries.c:3028
 #, c-format
 msgid "Sorry but Siril cannot open the file: %s.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1163
+#: src/io/image_formats_libraries.c:1347
 msgid "Read ICC profile from JPEG.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1166
+#: src/io/image_formats_libraries.c:1350
 msgid "Cannot read an ICC profile from this JPEG, assuming sRGB.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1169
+#: src/io/image_formats_libraries.c:1353
 msgid "JPEG ICC profile support unavailable, assuming sRGB.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1205
+#: src/io/image_formats_libraries.c:1389
 #, c-format
 msgid "Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1228
+#: src/io/image_formats_libraries.c:1412
 msgid "Siril cannot create JPG file.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1378
+#: src/io/image_formats_libraries.c:1562
 msgid "Error: failed to write ICC profile to JPG\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1399
+#: src/io/image_formats_libraries.c:1583
 #, c-format
 msgid "Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1431
+#: src/io/image_formats_libraries.c:1615
 #, c-format
 msgid "Error opening the file %s\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1576
+#: src/io/image_formats_libraries.c:1760
 #, c-format
 msgid "Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1866
+#: src/io/image_formats_libraries.c:2050
 #, c-format
 msgid "Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2001
+#: src/io/image_formats_libraries.c:2185
 msgid "Siril cannot open this file in CFA mode: no RAW data available.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2030
+#: src/io/image_formats_libraries.c:2214
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2033
+#: src/io/image_formats_libraries.c:2217
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=%0.1f sec)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2056
+#: src/io/image_formats_libraries.c:2240
 #, c-format
 msgid "Filter pattern: %s\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2143
+#: src/io/image_formats_libraries.c:2327
 #, c-format
 msgid "Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2194
+#: src/io/image_formats_libraries.c:2378
 msgid "primary"
 msgstr "primari"
 
-#: src/io/image_formats_libraries.c:2303
+#: src/io/image_formats_libraries.c:2487
 msgid "Load HEIF image content"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2311
+#: src/io/image_formats_libraries.c:2495
 msgid "Select image"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2526
+#: src/io/image_formats_libraries.c:2710
 msgid ""
 "Error: the specified NCLX TRC is not yet supported in Siril. A linear TRC "
 "will be used: you may need to fix this file up manually.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2574
+#: src/io/image_formats_libraries.c:2758
 msgid "Input file contains no readable images.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2607
+#: src/io/image_formats_libraries.c:2791
 #, c-format
 msgid "This is a sequence of %d images: loading the primary one.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2642
+#: src/io/image_formats_libraries.c:2826
 msgid ""
 "Error getting ICC profile from HEIF file. Continuing: you will need to "
 "manually assign an ICC profile\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2667
+#: src/io/image_formats_libraries.c:2851
 msgid "Input image has undefined bit-depth.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2828
+#: src/io/image_formats_libraries.c:3012
 #, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2945
+#: src/io/image_formats_libraries.c:3129
 #, c-format
 msgid "Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2965
+#: src/io/image_formats_libraries.c:3149
 #, fuzzy
 msgid "Error interleaving image\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/io/image_formats_libraries.c:3075
+#: src/io/image_formats_libraries.c:3259
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit "
 "depth: %d\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:3078
+#: src/io/image_formats_libraries.c:3262
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, "
 "bit depth: %d\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:3086
+#: src/io/image_formats_libraries.c:3270
 #, fuzzy
 msgid "Save complete.\n"
 msgstr "Apilonament finalitzat."
@@ -23940,13 +23961,13 @@ msgstr "Impossible obrir el catàleg local NOMAD\n"
 msgid "Error: number of trixels reported by file is out of limits.\n"
 msgstr "Error: el nombre de trixels reportat pel fitxer és fora de límits.\n"
 
-#: src/io/local_catalogues.c:854 src/io/siril_catalogues.c:845
+#: src/io/local_catalogues.c:854 src/io/siril_catalogues.c:844
 #, fuzzy, c-format
 msgid "File %s cannot be deleted (%s), aborting\n"
 msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 
 #: src/io/local_catalogues.c:864 src/io/remote_catalogues.c:642
-#: src/io/remote_catalogues.c:969 src/io/siril_catalogues.c:854
+#: src/io/remote_catalogues.c:969 src/io/siril_catalogues.c:853
 #, fuzzy, c-format
 msgid "Cannot create catalogue file %s (%s)\n"
 msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
@@ -24692,171 +24713,171 @@ msgid ""
 "There was an error when opening this image. See the log for more information."
 msgstr ""
 
-#: src/io/siril_catalogues.c:259
+#: src/io/siril_catalogues.c:258
 msgid "Tycho-2"
 msgstr "Tycho-2"
 
-#: src/io/siril_catalogues.c:261
+#: src/io/siril_catalogues.c:260
 msgid "NOMAD"
 msgstr "NOMAD"
 
-#: src/io/siril_catalogues.c:263
+#: src/io/siril_catalogues.c:262
 msgid "Gaia DR3 (via Vizier)"
 msgstr ""
 
-#: src/io/siril_catalogues.c:265
+#: src/io/siril_catalogues.c:264
 #, fuzzy
 msgid "Gaia DR3 (direct)"
 msgstr "Gaia EDR3"
 
-#: src/io/siril_catalogues.c:267
+#: src/io/siril_catalogues.c:266
 msgid "PPMXL"
 msgstr "PPMXL"
 
-#: src/io/siril_catalogues.c:269
+#: src/io/siril_catalogues.c:268
 #, fuzzy
 msgid "bright stars"
 msgstr "Regla de terços"
 
-#: src/io/siril_catalogues.c:273
+#: src/io/siril_catalogues.c:272
 #, fuzzy
 msgid "AAVSO Variable stars"
 msgstr "Àrea seleccionada"
 
-#: src/io/siril_catalogues.c:275
+#: src/io/siril_catalogues.c:274
 msgid "GCVS"
 msgstr ""
 
-#: src/io/siril_catalogues.c:279
+#: src/io/siril_catalogues.c:278
 msgid "Gaia DR3 Variability"
 msgstr ""
 
-#: src/io/siril_catalogues.c:281
+#: src/io/siril_catalogues.c:280
 msgid "PGC"
 msgstr ""
 
-#: src/io/siril_catalogues.c:283
+#: src/io/siril_catalogues.c:282
 msgid "Exoplanet archive"
 msgstr ""
 
-#: src/io/siril_catalogues.c:285
+#: src/io/siril_catalogues.c:284
 msgid "IMCCE solar system"
 msgstr ""
 
-#: src/io/siril_catalogues.c:287
+#: src/io/siril_catalogues.c:286
 msgid "AAVSO VSP Chart"
 msgstr ""
 
-#: src/io/siril_catalogues.c:289
+#: src/io/siril_catalogues.c:288
 #, fuzzy
 msgid "Tycho-2+NOMAD"
 msgstr "Tycho-2"
 
-#: src/io/siril_catalogues.c:291
+#: src/io/siril_catalogues.c:290
 #, fuzzy
 msgid "Gaia DR3 astrometry"
 msgstr "Gaia EDR3"
 
-#: src/io/siril_catalogues.c:293
+#: src/io/siril_catalogues.c:292
 msgid "Gaia DR3 xp_sampled"
 msgstr ""
 
-#: src/io/siril_catalogues.c:386
+#: src/io/siril_catalogues.c:385
 #, c-format
 msgid ""
 "Did not find the minimal set of columns necessary for the catalog %s, "
 "aborting\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:644 src/io/siril_catalogues.c:647
+#: src/io/siril_catalogues.c:643 src/io/siril_catalogues.c:646
 #, fuzzy, c-format
 msgid "Could not open the catalog (%s)\n"
 msgstr "Impossible obrir el fitxer %s : %s\n"
 
-#: src/io/siril_catalogues.c:688
+#: src/io/siril_catalogues.c:687
 msgid "No columns found in the catalogue\n"
 msgstr ""
 
 #. checking that current line has a number of columns consistent with the headers
-#: src/io/siril_catalogues.c:708
+#: src/io/siril_catalogues.c:707
 #, c-format
 msgid "Malformed line found %s\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:741
+#: src/io/siril_catalogues.c:740
 #, c-format
 msgid ""
 "Catalog %s was read but no items were found in the view cone, nothing to "
 "show\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:950
+#: src/io/siril_catalogues.c:949
 msgid "Cannot correct for velocities, will use ra/dec as is\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:951
+#: src/io/siril_catalogues.c:950
 msgid "To tag solar system objects, please refer to conesearch command\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1039
+#: src/io/siril_catalogues.c:1038
 msgid "no DATE-OBS information, cannot account for stars proper motions\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1042
+#: src/io/siril_catalogues.c:1041
 msgid "This catalog does not have proper motion info, will not be computed\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1104
+#: src/io/siril_catalogues.c:1103
 #, c-format
 msgid ""
 "Won't log list of objects for catalog %s which does not have name "
 "information\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1108
+#: src/io/siril_catalogues.c:1107
 msgid "Won't show objects tags as there is no display, ignoring\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1112
+#: src/io/siril_catalogues.c:1111
 #, c-format
 msgid ""
 "Won't display objects tags for catalog %s which does not have name "
 "information\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1132
+#: src/io/siril_catalogues.c:1131
 #, c-format
 msgid "Using default observatory code %s\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1136
+#: src/io/siril_catalogues.c:1135
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1264
+#: src/io/siril_catalogues.c:1263
 #, c-format
 msgid "The %s catalog has been successfully downloaded\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1275
+#: src/io/siril_catalogues.c:1274
 #, fuzzy
 msgid "No item found in the image\n"
 msgstr "Cap estel detectat a la imatge.\n"
 
 #. Summary log message
-#: src/io/siril_catalogues.c:1413
+#: src/io/siril_catalogues.c:1412
 #, c-format
 msgid "%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1471
+#: src/io/siril_catalogues.c:1470
 #, c-format
 msgid "List saved to %s\n"
 msgstr ""
 
-#: src/io/siril_catalogues.c:1473
+#: src/io/siril_catalogues.c:1472
 #, fuzzy, c-format
 msgid "Failed to save list to %s\n"
 msgstr "Error en obrir la primera imatge"

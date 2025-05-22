@@ -8,11 +8,11 @@
     "priority": 2
   },
   {
-    "valid-from": "2025-04-27T00:00:00+01:00",
-    "valid-to": "2025-04-28T16:45:00+01:00",
+    "valid-from": "2025-05-22T00:00:00+01:00",
+    "valid-to": "2025-05-29T23:59:00+01:00",
     "version-from": "1.3.6",
     "version-to": "1.4.1",
-    "message": "Note for Windows users: an updated package has been released for 1.4.0-beta1. If you had problems with Python scripts using the initial package, the new one should solve the problem. It is available at the same link.",
+    "message": "Note for MacOS users of beta 2: you are encouraged to download the second version of the package that fixes the multithreading issue and restores normal performance.",
     "priority": 2
   }
 ]
