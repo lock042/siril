@@ -820,5 +820,12 @@ void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 }
 
 void graxpert_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("graxpert_dialog");
+	siril_message_dialog(GTK_MESSAGE_INFO, _("Update"), _("The original GraXpert "
+		"interface has been removed for technical reasons and unreliability. Please use "
+		"the GraXpert_AI.py script available in the scripts repository: you can add it "
+		"via the \"Get Scripts\" menu entry in the hamburger menu.\n"
+		"The new script handles single images and sequences just like the original "
+		"interface and provides both a GUI and command-line access using the pyscript "
+		"command, for use in scripts. It is less resource hungry, better integrated and "
+		"performs better than the original, and we expect it will be more reliable too."));
 }

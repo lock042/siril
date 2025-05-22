@@ -34,7 +34,6 @@
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
-#include "filters/graxpert.h" // for set_graxpert_aborted()
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
@@ -1025,7 +1024,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 			if (child->program == INT_PROC_THREAD) {
 				stop_processing_thread();
 			} else {
-				if (child->program == EXT_STARNET || child->program == EXT_GRAXPERT || child->program == EXT_PYTHON) {
+				if (child->program == EXT_STARNET || child->program == EXT_PYTHON) {
 #ifdef _WIN32
 					TerminateProcess((void *) child->childpid, 1);
 #else
@@ -1126,8 +1125,6 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 		kill_child_process(pid, FALSE);
 	} else if (children == 1) {
 		child_info *child = (child_info*) com.children->data;
-		if (child->program == EXT_GRAXPERT)
-			set_graxpert_aborted(TRUE);
 		kill_child_process(child->childpid, FALSE);
 	} else {
 		com.stop_script = TRUE;

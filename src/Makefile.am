@@ -202,8 +202,6 @@ siril_common_SOURCES = \
 	filters/mtf.h \
 	filters/ght.c \
 	filters/ght.h \
-	filters/graxpert.c \
-	filters/graxpert.h \
 	filters/rgradient.c \
 	filters/rgradient.h \
 	filters/saturation.c \
@@ -283,8 +281,6 @@ siril_common_SOURCES = \
 	gui/epf.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
-	gui/graxpert.c \
-	gui/graxpert.h \
 	gui/git_gui.c \
 	gui/histogram.c \
 	gui/histogram.h \
