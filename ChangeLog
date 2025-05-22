@@ -1,8 +1,9 @@
-siril 1.4.0-beta3 / rc1
-xx/xx/xx
+siril 1.4.0-beta3
+xx/xx/25
 
 **Fixes:**
-*
+* Fixed crash when opening 8-bit XISF file (#1638)
+* Fixed `match stars in selection` option for global registration (#1644)
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
