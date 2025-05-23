@@ -888,16 +888,27 @@ void python_releases_thread() {
 	return;
 }
 
-void stop_processing_thread() {
+
+static gboolean stop_processing_thread_idle(gpointer user_data) {
 	if (com.thread == NULL) {
 		siril_debug_print("The processing thread is not running.\n");
-		return;
+		return FALSE;
 	}
 	remove_child_from_children((GPid) -2); // magic number indicating the processing thread
 	set_thread_run(FALSE);
 	if (!thread_being_waited)
 		waiting_for_thread();
 	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
+static gpointer stop_processing_thread_idle_caller(gpointer user_data) {
+	siril_add_idle(stop_processing_thread_idle, NULL);
+	return GINT_TO_POINTER(0);
+}
+
+void stop_processing_thread() {
+	g_thread_unref(g_thread_new("processing thread stopper", stop_processing_thread_idle_caller, NULL));
 }
 
 static void set_thread_run(gboolean b) {
