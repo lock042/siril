@@ -61,7 +61,7 @@
                 <property name="title" translatable="yes" context="shortcut window">Fit the image to the window</property>
               </object>
             </child>
-             <child>
+            <child>
               <object class="GtkShortcutsShortcut">
                 <property name="visible">1</property>
                 <property name="accelerator">&lt;Primary&gt;1</property>
@@ -147,6 +147,13 @@
                 <property name="visible">1</property>
                 <property name="accelerator">F10</property>
                 <property name="title" translatable="yes" context="shortcut window">Open application menu</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
+                <property name="accelerator">&lt;Alt&gt;s</property>
+                <property name="title" translatable="yes" context="shortcut window">Show Statistics</property>
               </object>
             </child>
             <child>

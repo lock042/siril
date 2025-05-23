@@ -1358,6 +1358,7 @@ static void load_accels() {
 		"win.pickstar",               "<Primary>space", NULL,
 		"win.dyn-psf",                "<Primary>F6", NULL,
 		"win.clipboard",              "<Primary><Shift>x", NULL,
+		"win.statistics",             "<alt>s", NULL,
 
 		"win.negative-processing",    "<Primary>i", NULL,
 		"win.rotation90-processing",  "<Primary>Right", NULL,
