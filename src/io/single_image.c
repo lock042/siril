@@ -168,7 +168,7 @@ void free_image_data() {
 
 	if (!com.headless) {
 		if (com.script || com.python_command) {
-			execute_idle_and_wait_for_it(free_image_data_gui, NULL); // checked safe for calls to stop_processing_thread
+			execute_idle_and_wait_for_it(free_image_data_gui, NULL);
 		} else if (!g_main_context_is_owner(g_main_context_default())) {
 			siril_add_idle(free_image_data_gui, NULL);
 		} else {
@@ -302,7 +302,7 @@ int open_single_image(const char* filename) {
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
 		if (!com.headless)
-			execute_idle_and_wait_for_it(end_open_single_image, NULL); // checked safe for calls to stop_processing_thread
+			execute_idle_and_wait_for_it(end_open_single_image, NULL);
 	} else {
 		free(realname);
 	}

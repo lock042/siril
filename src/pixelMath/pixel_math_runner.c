@@ -847,8 +847,7 @@ failure: // failure before the eval loop
 		free(args);
 	}
 	else {
-		execute_idle_and_wait_for_it(end_pixel_math_operation, args); // checked safe for calls to stop_processing_thread (end_generic moved out)
-//		siril_add_idle(end_generic, NULL);
+		execute_idle_and_wait_for_it(end_pixel_math_operation, args);
 	}
 	return GINT_TO_POINTER((gint)failed);
 }

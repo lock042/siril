@@ -504,7 +504,7 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	} else {
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-		execute_idle_and_wait_for_it(call_initialize_script_menu, GINT_TO_POINTER(1)); // checked safe for calls to stop_processing_thread
+		execute_idle_and_wait_for_it(call_initialize_script_menu, GINT_TO_POINTER(1));
 	}
 
 	if (error) {
@@ -525,7 +525,7 @@ gboolean refresh_script_menu(gpointer user_data) {
 }
 
 gboolean refresh_scripts_menu_in_thread(gpointer data) {
-	execute_idle_and_wait_for_it(refresh_script_menu, data); // checked safe for calls to stop_processing_thread
+	execute_idle_and_wait_for_it(refresh_script_menu, data);
 	return FALSE;
 }
 

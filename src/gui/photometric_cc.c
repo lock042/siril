@@ -685,7 +685,7 @@ gpointer populate_spcc_combos_async(gpointer user_data) {
 	g_mutex_unlock(&combos_filling);
 	// update combos back in the GTK thread
 	if (wait_for_it)
-		execute_idle_and_wait_for_it(populate_spcc_combos, NULL); // checked safe for calls to stop_processing_thread
+		execute_idle_and_wait_for_it(populate_spcc_combos, NULL);
 	else
 		siril_add_idle(populate_spcc_combos, NULL);
 	return GINT_TO_POINTER(0);
