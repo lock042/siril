@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-21 16:22+0200\n"
-"PO-Revision-Date: 2025-05-21 04:51+0000\n"
-"Last-Translator: GarthTB <g-art-h@outlook.com>\n"
+"PO-Revision-Date: 2025-05-23 07:37+0000\n"
+"Last-Translator: DikeSu <poi_yudachi_poi@qq.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -4496,7 +4496,7 @@ msgstr ""
 #: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3899
 #: src/core/icc_profile.c:1278
 msgid "Convert"
-msgstr "转化"
+msgstr "转换"
 
 #: src/gui/uifiles/icc_dialog.ui:132
 msgid ""
@@ -6002,11 +6002,11 @@ msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:128
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
-msgstr "转化后的文件名词根（例如 dest1.fit 的 &apos;dest&apos; ）"
+msgstr "转换后的文件名前缀（例如 dest1.fit 中的 &apos;dest&apos; ）"
 
 #: src/gui/uifiles/savepopup.ui:129
 msgid "root name of the converted images (the 'dest' in dest1.fit)"
-msgstr "转化后的文件名词根（例如dest1.fit的“dest”）"
+msgstr "转换后的文件名前缀（例如dest1.fit中的“dest”）"
 
 #: src/gui/uifiles/savepopup.ui:143
 msgid "<b>Filename</b>"
@@ -6272,9 +6272,9 @@ msgid ""
 "to allow SER files converted from films to be demosaiced, monochrome SER "
 "will be forced as CFA with the configured pattern."
 msgstr ""
-"勾选此项，Siril会自动应用文件头中的拜耳阵列模式和XY轴偏置。如果结果看上去不"
-"妥，关闭本选项，在下面的解拜耳框中手动选择拜耳阵列模式。\n"
-"不选此项，下面设定的拜耳阵列模式将被使用。警告：若SER视频文件转化为彩色，单色"
+"勾选此项，Siril会自动应用文件头中的拜耳阵列模式和XY轴偏置。如果结果看上去不妥"
+"，关闭本选项，在下面的解拜耳框中手动选择拜耳阵列模式。\n"
+"不选此项，下面设定的拜耳阵列模式将被使用。警告：若SER视频文件转换为彩色，单色"
 "SER将被强制以CFA格式处理。"
 
 #: src/gui/uifiles/settings_window.ui:374
@@ -6484,7 +6484,7 @@ msgid ""
 "images in 32-bit."
 msgstr ""
 "选择FITS文件的缺省类型。32位浮点数是精度最高的类型，可是它比16位无符号整数型"
-"需要两倍的磁盘空间。RGB合成工具总是会将图像转化为32位，其余的处理工具都会在所"
+"需要两倍的磁盘空间。RGB合成工具总是会将图像转换为32位，其余的处理工具都会在所"
 "选定的类型下工作。"
 
 #: src/gui/uifiles/settings_window.ui:692
@@ -7672,27 +7672,27 @@ msgstr "渲染意图："
 
 #: src/gui/uifiles/settings_window.ui:4333
 msgid "Select the display intent. The default is perceptual rendering."
-msgstr "选择显示意图。默认是感知渲染。"
+msgstr "选择颜色渲染显示意图。默认值是可感知。"
 
 #: src/gui/uifiles/settings_window.ui:4336
 #: src/gui/uifiles/settings_window.ui:4534
 msgid "Perceptual"
-msgstr "感知"
+msgstr "可感知"
 
 #: src/gui/uifiles/settings_window.ui:4337
 #: src/gui/uifiles/settings_window.ui:4535
 msgid "Relative Colorimetric"
-msgstr "相对色度"
+msgstr "相对比色"
 
 #: src/gui/uifiles/settings_window.ui:4338
 #: src/gui/uifiles/settings_window.ui:4536
 msgid "Saturation"
-msgstr "饱和"
+msgstr "维持饱和度"
 
 #: src/gui/uifiles/settings_window.ui:4339
 #: src/gui/uifiles/settings_window.ui:4537
 msgid "Absolute Colorimetric"
-msgstr "绝对色度"
+msgstr "绝对比色"
 
 #: src/gui/uifiles/settings_window.ui:4350
 msgid "Black point compensation"
@@ -7894,11 +7894,11 @@ msgstr "颜色匹配函数"
 
 #: src/gui/uifiles/settings_window.ui:4821
 msgid "CIE 1931 2 degree standard observer"
-msgstr "CIE 1931 2度视场的标准观察者"
+msgstr "CIE 1931 2度标准观察者"
 
 #: src/gui/uifiles/settings_window.ui:4822
 msgid "CIE 1964 10 degree supplementary standard observer"
-msgstr "CIE 1964 10度补充视场的标准观察者"
+msgstr "CIE 1964 10度补充标准观察者"
 
 #: src/gui/uifiles/settings_window.ui:4865
 msgid "Export built-in profiles"
@@ -9145,7 +9145,7 @@ msgstr "日期"
 
 #: src/gui/uifiles/siril.ui:3729
 msgid "Add files to convert"
-msgstr "添加文件用于转化"
+msgstr "添加待转换的文件"
 
 #: src/gui/uifiles/siril.ui:3731
 msgid "Add"
@@ -9171,8 +9171,8 @@ msgid ""
 msgstr ""
 "支持的文件类型基于所安装的支持库，参见说明文档。\n"
 "RAW为数码相机特有，例如佳能的CR2和尼康的NEF。\n"
-"视频为任何可以被转化为FITS或者SER的格式。\n"
-"SER为可直接操作的序列文件，并且尚不支持转化。"
+"视频为任何可以被转换为FITS或者SER的格式。\n"
+"SER为可直接操作的序列文件，并且尚不支持转换。"
 
 #: src/gui/uifiles/siril.ui:3833
 msgid "Supported file types:"
@@ -9186,15 +9186,14 @@ msgstr "源文件"
 msgid ""
 "Indicates the start indice of your converted files. This value must be "
 "included in the [1, 65535] range."
-msgstr "转化文件的起始点。该值必须在[1, 65535]范围内。"
+msgstr "转换后文件的起始编号。该值必须在[1, 65535]范围内。"
 
 #: src/gui/uifiles/siril.ui:3904
 msgid ""
 "Start conversion of all source files into the configured output files, FITS "
 "or SER, with colour processing or not."
-msgstr ""
-"开始将所有源文件转化为设定的目标文件（启用或禁用彩色处理），格式为FITS或者"
-"SER。"
+msgstr "开始将所有源文件转换为指定的目标文件（启用或禁用彩色处理，格式为FITS或者SER）"
+"。"
 
 #: src/gui/uifiles/siril.ui:3921
 msgid ""
@@ -9266,7 +9265,7 @@ msgid ""
 "Only for RAW and FITS input images and SER films.\n"
 "Colour image target also applies to the debayer result for conversion."
 msgstr ""
-"使用设置中定义的拜耳滤镜排列模式来解拜耳单通道图像(CFA格式)。不仅作用于转化，"
+"使用设置中定义的拜耳滤镜排列模式来解拜耳单通道图像(CFA格式)。不仅作用于转换，"
 "也作用于打开的图像。\n"
 "只针对RAW和FITS图像文件，还有SER视频。\n"
 "彩色图像目标也适用于用于转换的解拜耳结果。"
@@ -9291,11 +9290,11 @@ msgstr "目标文件"
 msgid ""
 "This conversion tab is used to import files and convert them into a format "
 "with which Siril can work: FITS or SER."
-msgstr "转化标签页用于导入文件并且将其转化为Siril可以操作的格式：FITS 或 SER。"
+msgstr "转换标签页用于导入文件，并将其转换为Siril可以操作的格式：FITS 或 SER。"
 
 #: src/gui/uifiles/siril.ui:4065
 msgid "Conversion"
-msgstr "转化"
+msgstr "转换"
 
 #: src/gui/uifiles/siril.ui:4125
 msgid "Clean Sequence"
@@ -9361,7 +9360,7 @@ msgstr ""
 "3种8位格式。\n"
 "FITS图像是由众多FITS文件（每帧）所组成的序列，FITS矩阵是将整个序列保存为单一"
 "的FITS文件。\n"
-"对于SER和TIFF，如果输入图像为32位，则会被转化为16位，从而导致一定的精度丢失。"
+"对于SER和TIFF，如果输入图像为32位，则会被转换为16位，从而导致一定的精度丢失。"
 
 #: src/gui/uifiles/siril.ui:4299
 msgid "FITS cube"
@@ -9722,10 +9721,10 @@ msgid ""
 "The next action for DSLR images would be to debayer the preprocessed images, "
 "go to the Conversion tab."
 msgstr ""
-"使用上述的主校准帧校准整个序列，生成的结果序列将以pp_<seq.name>或用户自定义的"
-"方式命名。\n"
+"使用上述的主校准帧校准整个序列，生成的结果序列将以pp_<seq."
+"name>或用户自定义的方式命名。\n"
 "完成后，预处理的结果序列会被自动载入为当前序列。\n"
-"对于DSLR的照片来说，下一个步骤为解拜耳，请移步转化标签页。"
+"对于DSLR的照片来说，下一个步骤为解拜耳，请移步转换标签页。"
 
 #: src/gui/uifiles/siril.ui:5345
 msgid "Debayer before saving"
@@ -12121,7 +12120,7 @@ msgstr "隐藏/显示工具条"
 #: src/gui/siril-shortcuts.ui:253
 msgctxt "shortcut window"
 msgid "Switch to the Conversion page"
-msgstr "切换到转化页面"
+msgstr "切换到转换页面"
 
 #: src/gui/siril-shortcuts.ui:260
 msgctxt "shortcut window"
@@ -14265,7 +14264,7 @@ msgstr "对处理器数量使用 cgroups 限制：%d\n"
 #: src/core/OS_utils.c:635
 #, c-format
 msgid "Parallel processing enabled: using %d logical %s%s.\n"
-msgstr "并行计算已启用：使用 %d 逻辑 %s%s。\n"
+msgstr "并行计算已启用：使用 %d 个逻辑%s%s。\n"
 
 #: src/core/OS_utils.c:638
 msgid ", nesting not supported"
@@ -14273,7 +14272,7 @@ msgstr "，嵌套不被支持"
 
 #: src/core/OS_utils.c:641
 msgid "Parallel processing disabled: using 1 logical processor.\n"
-msgstr "并行计算关闭：使用1逻辑处理器。\n"
+msgstr "并行计算关闭：使用1个逻辑处理器。\n"
 
 #: src/core/OS_utils.c:830
 msgid "Limiting processing to 1900 MiB allocations (32-bit system)\n"
@@ -15060,7 +15059,7 @@ msgstr "缩放比为 1.0。什么都不做。\n"
 #: src/core/command.c:7645 src/core/command.c:7734 src/core/command.c:8298
 #, c-format
 msgid "Unknown transformation type %s, aborting.\n"
-msgstr "未知的转化类型 %s，异常中止。\n"
+msgstr "未知的变换类型 %s，异常中止。\n"
 
 #: src/core/command.c:3464
 #, c-format
@@ -15695,7 +15694,7 @@ msgstr "无法写入输出文件\n"
 #: src/core/command.c:7259 src/core/command.c:7419
 msgid ""
 "First argument is the converted sequence name and shall not start with a -\n"
-msgstr "第一个参数声明了被转化后的序列名称，不能以 a - 开头\n"
+msgstr "第一个参数声明了转换后的序列名称，不能以 - 号开头\n"
 
 #: src/core/command.c:7312
 #, c-format
@@ -15731,12 +15730,12 @@ msgstr "链接：工作目录未设置。\n"
 
 #: src/core/command.c:7414
 msgid "Conversion: no working directory set.\n"
-msgstr "转化：工作目录未设置。\n"
+msgstr "转换：工作目录未设置。\n"
 
 #: src/core/command.c:7485
 #, c-format
 msgid "Conversion: error opening working directory %s.\n"
-msgstr "转化：无法打开工作目录 %s.\n"
+msgstr "转换：无法打开工作目录 %s.\n"
 
 #: src/core/command.c:7494
 #, c-format
@@ -15754,17 +15753,17 @@ msgstr ""
 
 #: src/core/command.c:7522
 msgid "No RAW files were found for conversion\n"
-msgstr "未发现用于转化的RAW文件\n"
+msgstr "未发现待转换的RAW文件\n"
 
 #: src/core/command.c:7523
 msgid "No files were found for conversion\n"
-msgstr "未发现用于转化的RAW文件\n"
+msgstr "未发现待转换的文件\n"
 
 #: src/core/command.c:7540
 #, c-format
 msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
-msgstr[0] "转化：正在处理FITS文件 %d…\n"
+msgstr[0] "转换：正在处理 %d 个文件…\n"
 
 #: src/core/command.c:7629 src/gui/registration.c:1129
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
@@ -15779,7 +15778,7 @@ msgstr "%d 少于最小配对星点数：%d，异常中止。\n"
 #: src/core/command.c:7756
 #, c-format
 msgid "Unknown distortion type %s, aborting.\n"
-msgstr "未知的转化类型 %s，异常中止。\n"
+msgstr "未知的畸变类型 %s，异常中止。\n"
 
 #: src/core/command.c:7765 src/core/command.c:7895 src/core/command.c:8359
 #: src/core/command.c:9017 src/core/command.c:10256 src/core/command.c:10941
@@ -16250,7 +16249,7 @@ msgstr "逻辑处理器的数量必须大于0并且小于等于%d.\n"
 #, c-format
 msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
-msgstr[0] "当前使用 %d 逻辑处理器\n"
+msgstr[0] "当前使用 %d 个逻辑处理器\n"
 
 #: src/core/command.c:9408
 msgid ""
@@ -19879,13 +19878,13 @@ msgstr "FWHM：N/A"
 
 #: src/gui/callbacks.c:1039
 msgid "Cannot convert a sequence file"
-msgstr "无法转化一个序列文件"
+msgstr "无法转换一个序列文件"
 
 #: src/gui/callbacks.c:1040
 msgid ""
 "A sequence file cannot be converted to 32 bits. This operation can only be "
 "done on a single file."
-msgstr "序列文件不能倍转化为32位。本操作只能针对单一文件执行。"
+msgstr "序列文件不能被转换为32位。本操作只能对单一文件执行。"
 
 #: src/gui/callbacks.c:1045
 msgid "Precision loss"
@@ -19897,12 +19896,12 @@ msgid ""
 "accuracy. Getting back to 32 bits will not recover this loss.\n"
 "Are you sure you want to convert your data?"
 msgstr ""
-"将32位图像转化为16位会导致数值精度的损失。再转回32位也无法还原这些损失。\n"
-"您确定要转化吗？"
+"将32位图像转换为16位会导致数值精度损失。再转回32位也无法还原这些损失。\n"
+"您确定要转换吗？"
 
 #: src/gui/callbacks.c:1048
 msgid "Convert to 16 bits"
-msgstr "转化为16位"
+msgstr "转换为16位"
 
 #: src/gui/callbacks.c:1279
 msgid "B&W"
@@ -20273,7 +20272,7 @@ msgstr "非法字符"
 msgid ""
 "Please remove invalid characters in the sequence name before trying to "
 "convert images into a new sequence again."
-msgstr "请移除序列名称中的非法字符后再尝试将图像转化为新的序列。"
+msgstr "请移除序列名称中的非法字符后再尝试将图像转换为新的序列。"
 
 #: src/gui/conversion.c:115
 #, c-format
@@ -20291,7 +20290,7 @@ msgstr "替换文件"
 #: src/gui/conversion.c:144
 #, c-format
 msgid "Filetype is not supported, cannot convert: %s\n"
-msgstr "文件类型错误，无法转化：%s\n"
+msgstr "文件类型不受支持，无法转换：%s\n"
 
 #: src/gui/conversion.c:145
 #, c-format
@@ -20313,7 +20312,7 @@ msgstr ""
 
 #: src/gui/conversion.c:170
 msgid "Too many files are being converted."
-msgstr "要转化的文件太多了。"
+msgstr "待转换的文件过多。"
 
 #: src/gui/conversion.c:171
 msgid ""
@@ -20326,7 +20325,7 @@ msgstr ""
 
 #: src/gui/conversion.c:173
 msgid "Convert to FITS Sequence"
-msgstr "转化为FITS序列"
+msgstr "转换为FITS序列"
 
 #: src/gui/conversion.c:186
 msgid ""
@@ -20346,7 +20345,7 @@ msgstr "必须以序列作为输入才能创建多重序列。"
 #: src/gui/conversion.c:202
 #, c-format
 msgid "Conversion: processing %d files...\n"
-msgstr "转化：处理 %d 文件…\n"
+msgstr "转换：正在处理 %d 个文件…\n"
 
 #: src/gui/conversion.c:420
 #, c-format
@@ -20735,9 +20734,8 @@ msgstr ""
 "在“偏好设置”->“杂项”中配置可执行文件。</span>"
 
 #: src/gui/graxpert.c:298
-#, fuzzy
 msgid "Deprecation Notice"
-msgstr "执行时间"
+msgstr "弃用功能通知"
 
 #: src/gui/graxpert.c:298
 msgid ""
@@ -20750,6 +20748,12 @@ msgid ""
 "You can find the Python script in the hamburger menu -> Get Scripts and look "
 "in the Python repository for \"GraXpert_AI.py\""
 msgstr ""
+"由于可靠性和一定程度的技术债问题，GraXpert的内置C接口已被弃用，并将在即将发布"
+"的版本中删除。一个Python脚本取而代之。该脚本直接与GraXpert "
+"AI模型交互，并提供了一个利用GraXpert来下载模型文件的模型管理器。\n"
+"\n"
+"该Python脚本名为“GraXpert_AI.py”，可以在 三横菜单 -> 获取脚本 "
+"中找到，也可以在Python仓库中找到"
 
 #: src/gui/graxpert.c:328
 msgid "Warning!"
@@ -21146,7 +21150,7 @@ msgstr ""
 #: src/gui/menu_gray_geometry.c:385
 msgid ""
 "Crop does not work with avi film. Please, convert your file to SER first.\n"
-msgstr "AVI文件不能裁切。请先将文件转化为SER格式。\n"
+msgstr "AVI文件不能裁切。请先将文件转换为SER格式。\n"
 
 #: src/gui/menu_gray_geometry.c:391
 msgid "Not a valid sequence for cropping.\n"
@@ -22147,13 +22151,13 @@ msgstr "Siril无法执行对齐，因为文件中没有日期信息。"
 
 #: src/gui/registration.c:483
 msgid "Unable to convert DATE-OBS to a valid date"
-msgstr "无法将DATE-OBS转化为有效日期"
+msgstr "无法将DATE-OBS转换为有效日期"
 
 #: src/gui/registration.c:484
 msgid ""
 "Siril cannot convert the DATE-OBS keyword into a valid date needed in the "
 "alignment."
-msgstr "Siril在对齐操作时无法将DATE-OBS关键字转化为有效的日期数据。"
+msgstr "Siril在对齐操作时无法将DATE-OBS关键字转换为有效的日期数据。"
 
 #: src/gui/registration.c:610
 #, c-format
@@ -23207,7 +23211,7 @@ msgstr "支持的文件类型: %s\n"
 msgid ""
 "Requested converting a sequence file to single FITS image, should not "
 "happen\n"
-msgstr "将一个序列文件转化为单个FITS文件的请求是违法的\n"
+msgstr "请求将一个序列文件转换为单个FITS图像，这不应该发生\n"
 
 #. when the ifdefs are not compiled, default happens!
 #: src/io/conversion.c:414
@@ -23217,49 +23221,49 @@ msgstr "文件打开错误 %s: 文件类型不支持。\n"
 
 #: src/io/conversion.c:648
 msgid "disabling incompatible multiple output option in conversion\n"
-msgstr "在转化中禁用不兼容的多输出选项\n"
+msgstr "在转换中禁用不兼容的多输出选项\n"
 
 #: src/io/conversion.c:654
 msgid "Converting files"
-msgstr "转化文件"
+msgstr "转换文件"
 
 #: src/io/conversion.c:713
 msgid "Failed to queue image conversion task, aborting"
-msgstr "无法将图像转化排入任务，异常中止"
+msgstr "无法将图像转换排入任务，异常中止"
 
 #: src/io/conversion.c:746
 #, c-format
 msgid "Conversion ended with error, %d/%d input files converted\n"
-msgstr "转化产生错误， %d/%d 输入文件已转化\n"
+msgstr "转换因出错而中止， %d/%d 输入文件已转换\n"
 
 #: src/io/conversion.c:749 src/io/conversion.c:759
 #, c-format
 msgid ""
 "Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) "
 "converted, %d failed)\n"
-msgstr "转化成功，创建了%d个文件，共输入%d个文件（%d 帧已转化，%d 失败）\n"
+msgstr "转换成功，创建了%d个文件，共输入%d个文件（%d 帧已转换，%d 失败）\n"
 
 #: src/io/conversion.c:750
 #, c-format
 msgid ""
 "Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) "
 "converted, %d failed)\n"
-msgstr "转化异常终止，创建了%d个文件，共输入%d个文件（%d 帧已转化，%d 失败）\n"
+msgstr "转换异常中止，创建了%d个文件，共输入%d个文件（%d 帧已转换，%d 失败）\n"
 
 #: src/io/conversion.c:755
 #, c-format
 msgid "Conversion ended with error, %d output files created\n"
-msgstr "转化产生错误， 输出了%d帧文件\n"
+msgstr "转换因出错而中止， 输出了%d帧文件\n"
 
 #: src/io/conversion.c:761
 #, c-format
 msgid "Conversion succeeded, %d file(s) created for %d input file(s)\n"
-msgstr "转化成功，创建了%d帧文件（输入%d帧文件）\n"
+msgstr "转换成功，创建了%d个文件，共输入%d个文件\n"
 
 #: src/io/conversion.c:763
 #, c-format
 msgid "Conversion aborted, %d file(s) created for %d input file(s)\n"
-msgstr "转化异常终止，创建了%d帧文件（输入%d帧文件）\n"
+msgstr "转换异常中止，创建了%d个文件，共输入%d个文件\n"
 
 #: src/io/conversion.c:910
 #, c-format
@@ -23412,7 +23416,7 @@ msgstr "您的 cfitsio 版本不支持多线程\n"
 #: src/io/image_format_fits.c:522 src/io/image_format_fits.c:1400
 #: src/io/image_format_fits.c:1526
 msgid "Unknown FITS data format in internal conversion\n"
-msgstr "内部转化中有不可识别的FITS数据格式\n"
+msgstr "内部转换中有未知的FITS数据格式\n"
 
 #: src/io/fits_sequence.c:389
 msgid "Cannot save image in sequence not opened for writing\n"
@@ -23552,7 +23556,7 @@ msgstr "FITS图像中包含超过3个通道 (%ld)。只打开前三个。\n"
 
 #: src/io/image_format_fits.c:1750
 msgid "Unknown FITS compression method in internal conversion\n"
-msgstr "转化中遇到未知的FITS压缩方法\n"
+msgstr "转换时遇到未知的FITS压缩方法\n"
 
 #: src/io/image_format_fits.c:1914
 #, c-format
@@ -23630,7 +23634,7 @@ msgstr "读取BMP: 无法读取所有数据: （%zu， %lu）\n"
 #: src/io/image_formats_internal.c:284
 msgid ""
 "Sorry but Siril cannot open this kind of BMP. Try to convert it before.\n"
-msgstr "抱歉，Siril无法打开此类BMP文件，请先转化该文件。\n"
+msgstr "抱歉，Siril无法打开此类BMP文件，请先转换该文件。\n"
 
 #: src/io/image_formats_internal.c:294
 #, c-format
@@ -23779,9 +23783,8 @@ msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "保存TIFF：%d-bit 文件名 %s, %ld layer(s), %ux%u pixels\n"
 
 #: src/io/image_formats_libraries.c:1182
-#, fuzzy
 msgid "Memory allocation error for image data.\n"
-msgstr "内存分配错误"
+msgstr "图像数据的内存分配错误。\n"
 
 #: src/io/image_formats_libraries.c:1248
 msgid "This image type is not handled.\n"
@@ -27133,7 +27136,7 @@ msgstr "以RGB模式处理当前序列\n"
 msgid ""
 "Stacking a film will work only on one core and will be slower than if you "
 "convert it to SER\n"
-msgstr "叠加影片只能在单线程上工作，将其转化为SER再处理会更快\n"
+msgstr "视频叠加只能在单线程上工作，将其转换为SER再处理会更快\n"
 
 #: src/stacking/median_and_mean.c:1424
 msgid "Computing weights based on noise...\n"
@@ -27286,7 +27289,7 @@ msgid ""
 "before stacking, or to stack with the \"sum\" method.\n"
 msgstr ""
 "你的系统不支持同时打开超过 %d 个文件。您需要修改操作系统的限制，或者在叠加之"
-"前将FITS文件序列转化为一个SER序列文件，或者使用“加法叠加”。\n"
+"前将FITS序列转换为一个SER序列文件，或者使用“加法叠加”。\n"
 
 #: src/stacking/stacking.c:101
 msgid "Stacking result will be stored as a 32-bit image\n"

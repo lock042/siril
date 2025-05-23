@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-21 16:22+0200\n"
-"PO-Revision-Date: 2025-05-21 03:55+0000\n"
+"PO-Revision-Date: 2025-05-22 06:31+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -9783,7 +9783,7 @@ msgstr "Кривая блеска (формат ETD)"
 
 #: src/gui/uifiles/siril.ui:2704
 msgid "Build an output file in the AAVSO format"
-msgstr ""
+msgstr "Построить итоговый файл в формате AAVSO"
 
 #: src/gui/uifiles/siril.ui:2705
 msgid "AAVSO file format"
@@ -12137,12 +12137,12 @@ msgstr ""
 "гистограмму прежде чем работать с внешними инструментами.</b>"
 
 #: src/gui/uifiles/siril.ui:10067
-#, fuzzy
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
 "Current state: linked."
 msgstr ""
 "Заблокировать/разблокировать каналы в режиме автоматического растягивания.\n"
+"Текущее состояние: заблокированы."
 
 #: src/gui/uifiles/siril.ui:10093
 msgid "Switch to normal and negative view"
@@ -25581,9 +25581,8 @@ msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Сохранение TIFF: %d-битный файл %s, слоёв %ld, пикселей %u×%u\n"
 
 #: src/io/image_formats_libraries.c:1182
-#, fuzzy
 msgid "Memory allocation error for image data.\n"
-msgstr "Ошибка выделения памяти"
+msgstr "Ошибка выделения памяти для данных изображения.\n"
 
 #: src/io/image_formats_libraries.c:1248
 msgid "This image type is not handled.\n"
