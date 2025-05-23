@@ -5173,7 +5173,7 @@ int process_new(int nb){
 			open_single_image_from_gfit(NULL);
 		} else {
 			// we aren't in the GTK main thread or a script, so we run the idle and wait for it
-			execute_idle_and_wait_for_it(open_single_image_from_gfit, NULL);
+			execute_idle_and_wait_for_it(open_single_image_from_gfit, NULL); // checked safe for calls to stop_processing_thread
 		}
 	}
 	return CMD_OK;

@@ -788,7 +788,7 @@ void update_star_list(psf_star **new_stars, gboolean update_PSF_list, gboolean w
 	args->update_GUI = update_PSF_list;
 	if (!com.headless) {
 		if (wait_for_update)
-			execute_idle_and_wait_for_it(update_stars_idle, args);
+			execute_idle_and_wait_for_it(update_stars_idle, args); // checked safe for calls to stop_processing_thread
 		else
 			siril_add_idle(update_stars_idle, args);
 	}

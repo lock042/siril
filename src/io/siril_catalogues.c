@@ -1506,7 +1506,7 @@ gpointer conesearch_worker(gpointer p) {
 		if (go_idle) {
 			if (spl_data)
 				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
-			execute_idle_and_wait_for_it(end_conesearch, temp_cat);
+			execute_idle_and_wait_for_it(end_conesearch, temp_cat); // checked safe for calls to stop_processing_thread
 			siril_add_idle(end_generic, NULL);
 		} else {
 			end_generic(NULL);

@@ -210,7 +210,7 @@ int execute_command(int wordnb) {
 		} else {
 			invalidate_stats_from_fit(&gfit);
 			invalidate_gfit_histogram();
-			execute_idle_and_wait_for_it(end_gfit_operation, NULL);
+			execute_idle_and_wait_for_it(end_gfit_operation, NULL); // checked safe for calls to stop_processing_thread
 		}
 		retval = retval & ~CMD_NOTIFY_GFIT_MODIFIED;
 	}

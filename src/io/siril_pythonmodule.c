@@ -700,7 +700,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 				update_single_image_from_gfit(NULL);
 			} else {
 				// we aren't in the GTK main thread or a script, so we run the idle and wait for it
-				execute_idle_and_wait_for_it(update_single_image_from_gfit, NULL);
+				execute_idle_and_wait_for_it(update_single_image_from_gfit, NULL); // checked safe for calls to stop_processing_thread
 			}
 		}
 		siril_debug_print("set_*_pixeldata: updating gfit\n");

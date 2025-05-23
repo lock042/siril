@@ -319,7 +319,6 @@ static gboolean check_files_dimensions(guint *width, guint* height, guint *chann
 
 static gboolean end_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
-	stop_processing_thread();// can it be done here in case there is no thread?
 
 	if (!args->ret) {
 		/* write to gfit in the graphical thread */
@@ -846,10 +845,10 @@ failure: // failure before the eval loop
 		free(args->fit);
 		free(args);
 	}
-	else if (com.script || com.python_script)
-		execute_idle_and_wait_for_it(end_pixel_math_operation, args);
-	else
-		siril_add_idle(end_pixel_math_operation, args);
+	else {
+		execute_idle_and_wait_for_it(end_pixel_math_operation, args); // checked safe for calls to stop_processing_thread (end_generic moved out)
+		siril_add_idle(end_generic, NULL);
+	}
 	return GINT_TO_POINTER((gint)failed);
 }
 

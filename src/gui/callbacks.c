@@ -1575,12 +1575,12 @@ void unlock_script_mutex() {
 gpointer initialize_scripts(gpointer user_data) {
 	g_mutex_lock(&script_mutex);
 	// 1. Initialize the menu (verbose)
-	execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+	execute_idle_and_wait_for_it(call_initialize_script_menu, GINT_TO_POINTER(1)); // checked safe for calls to stop_processing_thread
 	// 2. Update the repository
 	if (com.pref.auto_script_update && is_online()) {
 		auto_update_gitscripts(TRUE);
 		// 3. Update the menu (not verbose)
-		execute_idle_and_wait_for_it(refresh_scripts_menu_in_thread, GINT_TO_POINTER(0));
+		execute_idle_and_wait_for_it(refresh_scripts_menu_in_thread, GINT_TO_POINTER(0)); // checked safe for calls to stop_processing_thread
 	}
 	g_mutex_unlock(&script_mutex);
 	return GINT_TO_POINTER(0);
@@ -1592,7 +1592,7 @@ gpointer update_scripts(gpointer user_data) {
 	if (is_online()) {
 		auto_update_gitscripts(TRUE);
 		// 2. Update the menu (not verbose)
-		execute_idle_and_wait_for_it(refresh_scripts_menu_in_thread, GINT_TO_POINTER(0));
+		execute_idle_and_wait_for_it(refresh_scripts_menu_in_thread, GINT_TO_POINTER(0)); // checked safe for calls to stop_processing_thread
 	}
 	g_mutex_unlock(&script_mutex);
 	return GINT_TO_POINTER(0);

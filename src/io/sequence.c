@@ -692,7 +692,7 @@ gboolean set_seq(gpointer user_data){
 	update_gain_from_gfit();
 
 	if (!com.script && !com.headless) {
-		execute_idle_and_wait_for_it(set_seq_gui, seq);
+		execute_idle_and_wait_for_it(set_seq_gui, seq); // checked safe for calls to stop_processing_thread
 	}
 
 	free(seq);
@@ -1576,7 +1576,7 @@ gboolean close_sequence_idle(gpointer data) {
 static void close_sequence_gui(gboolean loading_sequence_from_combo) {
 	if (com.script || com.python_command)
 		execute_idle_and_wait_for_it(close_sequence_idle,
-				GINT_TO_POINTER(loading_sequence_from_combo));
+				GINT_TO_POINTER(loading_sequence_from_combo)); // checked safe for calls to stop_processing_thread
 	else close_sequence_idle(GINT_TO_POINTER(loading_sequence_from_combo));
 }
 
