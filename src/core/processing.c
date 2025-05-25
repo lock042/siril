@@ -903,7 +903,7 @@ static gboolean stop_processing_thread_idle(gpointer user_data) {
 }
 
 static gpointer stop_processing_thread_idle_caller(gpointer user_data) {
-	siril_add_idle(stop_processing_thread_idle, NULL);
+	gdk_threads_add_idle(stop_processing_thread_idle, NULL);
 	return GINT_TO_POINTER(0);
 }
 
