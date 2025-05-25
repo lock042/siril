@@ -154,8 +154,8 @@ siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OF
 enable_arch_native = get_option('arch_native')
 if enable_arch_native
   message('Enabling -march=native optimization')
-  siril_c_flag += ['-march=native']
-  siril_cpp_flag += ['-march=native']
+  siril_c_flag += ['-march=native', '-O3', '-mtune=native']
+  siril_cpp_flag += ['-march=native', '-O3', '-mtune=native']
 endif
 
 if platform_linux
