@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-23 16:08+0200\n"
-"PO-Revision-Date: 2025-05-21 14:12+0000\n"
+"PO-Revision-Date: 2025-05-25 19:43+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -4248,7 +4248,7 @@ msgstr ""
 
 #: src/gui/uifiles/keywords_dialog.ui:126
 msgid "Value"
-msgstr ""
+msgstr "値"
 
 #: src/gui/uifiles/keywords_dialog.ui:144 src/gui/uifiles/spcc_details.ui:223
 msgid "Comment"
@@ -4813,13 +4813,11 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:246
 #: src/gui/uifiles/python_scratchpad.ui:248 src/gui/uifiles/siril.ui:756
-#, fuzzy
 msgid "Undo"
 msgstr "取り消す"
 
 #: src/gui/uifiles/python_scratchpad.ui:256
 #: src/gui/uifiles/python_scratchpad.ui:258 src/gui/uifiles/siril.ui:765
-#, fuzzy
 msgid "Redo"
 msgstr "やり直す"
 
@@ -19265,7 +19263,7 @@ msgstr ""
 
 #: src/gui/callbacks.c:1279
 msgid "B&W"
-msgstr ""
+msgstr "白黒"
 
 #: src/gui/callbacks.c:1436 src/io/siril_catalogues.c:320
 msgid "unknown"
