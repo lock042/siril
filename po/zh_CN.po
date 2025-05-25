@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-23 16:08+0200\n"
-"PO-Revision-Date: 2025-05-23 07:37+0000\n"
-"Last-Translator: DikeSu <poi_yudachi_poi@qq.com>\n"
+"PO-Revision-Date: 2025-05-24 18:57+0000\n"
+"Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -7650,11 +7650,11 @@ msgstr "颜色匹配函数"
 
 #: src/gui/uifiles/settings_window.ui:4821
 msgid "CIE 1931 2 degree standard observer"
-msgstr "CIE 1931 2度标准观察者"
+msgstr "CIE 1931 标准观察者（2度视场）"
 
 #: src/gui/uifiles/settings_window.ui:4822
 msgid "CIE 1964 10 degree supplementary standard observer"
-msgstr "CIE 1964 10度补充标准观察者"
+msgstr "CIE 1964 标准观察者（10度补充视场）"
 
 #: src/gui/uifiles/settings_window.ui:4865
 msgid "Export built-in profiles"
@@ -18287,6 +18287,11 @@ msgid ""
 "and performs better than the original, and we expect it will be more "
 "reliable too."
 msgstr ""
+"原先的GraXpert接口由于技术原因和不可靠性已被删除。请改用脚本仓库中的 "
+"GraXpert_AI.py 脚本：您可以使用三横菜单中的“获取脚本”来获取它。\n"
+"这个新脚本和原先的接口一样，可以处理单个图像或者序列；既可以通过 GUI 操作，"
+"也可以使用 pyscript 命令在命令行中操作（以便在脚本中使用）。它对资源的消耗更"
+"少，集成度更好，性能也更好，我们预计它也会更可靠。"
 
 #: src/core/siril_log.c:92
 #, c-format
