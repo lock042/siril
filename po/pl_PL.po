@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-23 16:08+0200\n"
+"POT-Creation-Date: 2025-05-25 21:43+0200\n"
 "PO-Revision-Date: 2025-02-08 15:43+0000\n"
 "Last-Translator: Marcin Greń <marcin.gren@hotmail.com>\n"
 "Language-Team: Polish <https://weblate.siril.org/projects/siril/software/"
@@ -24,7 +24,7 @@ msgstr ""
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
 msgstr ""
 
-#: src/gui/uifiles/CLAHE_dialog.ui:69 src/gui/uifiles/asinh_dialog.ui:64
+#: src/gui/uifiles/CLAHE_dialog.ui:69 src/gui/uifiles/asinh_dialog.ui:63
 #: src/gui/uifiles/ccm_dialog.ui:43 src/gui/uifiles/curves_dialog.ui:80
 #: src/gui/uifiles/dialog_star_remix.ui:1548
 #: src/gui/uifiles/dialog_star_remix.ui:1596 src/gui/uifiles/epf_dialog.ui:76
@@ -37,7 +37,7 @@ msgstr ""
 msgid "Reset"
 msgstr "Resetuj"
 
-#: src/gui/uifiles/CLAHE_dialog.ui:83 src/gui/uifiles/asinh_dialog.ui:78
+#: src/gui/uifiles/CLAHE_dialog.ui:83 src/gui/uifiles/asinh_dialog.ui:77
 #: src/gui/uifiles/denoise_dialog.ui:73 src/gui/uifiles/epf_dialog.ui:90
 #: src/gui/uifiles/merge_cfa_dialog.ui:49 src/gui/uifiles/satu_dialog.ui:80
 #: src/gui/uifiles/savepopup.ui:73 src/gui/uifiles/settings_window.ui:255
@@ -48,7 +48,7 @@ msgstr "Anuluj"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:97 src/gui/uifiles/Median_dialog.ui:98
 #: src/gui/uifiles/SCNR_dialog.ui:90 src/gui/uifiles/aavso_dialog.ui:36
-#: src/gui/uifiles/annotate_dialog.ui:62 src/gui/uifiles/asinh_dialog.ui:92
+#: src/gui/uifiles/annotate_dialog.ui:62 src/gui/uifiles/asinh_dialog.ui:91
 #: src/gui/uifiles/background_extraction_dialog.ui:88
 #: src/gui/uifiles/bdeconv_dialog.ui:302 src/gui/uifiles/binxy_dialog.ui:71
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:78
@@ -66,7 +66,7 @@ msgstr "Anuluj"
 #: src/gui/uifiles/histogram_dialog.ui:189
 #: src/gui/uifiles/linearmatch_dialog.ui:77
 #: src/gui/uifiles/merge_cfa_dialog.ui:77 src/gui/uifiles/mouse_actions.ui:59
-#: src/gui/uifiles/pixelmath.ui:819 src/gui/uifiles/resample_dialog.ui:96
+#: src/gui/uifiles/pixelmath.ui:819 src/gui/uifiles/resample_dialog.ui:94
 #: src/gui/uifiles/rgradient_dialog.ui:75 src/gui/uifiles/rotation_dialog.ui:71
 #: src/gui/uifiles/satu_dialog.ui:94 src/gui/uifiles/settings_window.ui:269
 #: src/gui/uifiles/split_cfa_dialog.ui:66
@@ -103,7 +103,7 @@ msgid ""
 "artifacts may appear."
 msgstr ""
 
-#: src/gui/uifiles/CLAHE_dialog.ui:255 src/gui/uifiles/asinh_dialog.ui:253
+#: src/gui/uifiles/CLAHE_dialog.ui:255 src/gui/uifiles/asinh_dialog.ui:252
 #: src/gui/uifiles/curves_dialog.ui:704 src/gui/uifiles/epf_dialog.ui:471
 #: src/gui/uifiles/histogram_dialog.ui:791 src/gui/uifiles/satu_dialog.ui:281
 #: src/gui/uifiles/unpurple_dialog.ui:284
@@ -139,7 +139,7 @@ msgstr "Filtr mediany"
 #: src/gui/uifiles/icc_gamut_dialog.ui:48 src/gui/uifiles/keywords_dialog.ui:58
 #: src/gui/uifiles/linearmatch_dialog.ui:62 src/gui/uifiles/mouse_actions.ui:31
 #: src/gui/uifiles/pixelmath.ui:805 src/gui/uifiles/python_scratchpad.ui:224
-#: src/gui/uifiles/resample_dialog.ui:82 src/gui/uifiles/rotation_dialog.ui:57
+#: src/gui/uifiles/resample_dialog.ui:80 src/gui/uifiles/rotation_dialog.ui:57
 #: src/gui/uifiles/s_pcc_dialog.ui:140 src/gui/uifiles/spcc_details.ui:39
 #: src/gui/uifiles/split_cfa_dialog.ui:51
 #: src/gui/uifiles/stars_list_window.ui:157 src/gui/python_gui.c:1017
@@ -832,29 +832,29 @@ msgstr "Wyszukiwanie obiektu"
 msgid "Asinh Transformation"
 msgstr "Transformacja Asinha"
 
-#: src/gui/uifiles/asinh_dialog.ui:124
+#: src/gui/uifiles/asinh_dialog.ui:123
 msgid "Stretch factor"
 msgstr "Współczynnik rozciągania"
 
-#: src/gui/uifiles/asinh_dialog.ui:161
+#: src/gui/uifiles/asinh_dialog.ui:160
 msgid "The parameter stretch factor allows to adjust the non-linearity factor."
 msgstr ""
 "Parametr współczynnik rozciągnięcia pozwala na regulację współczynnika "
 "nieliniowości."
 
-#: src/gui/uifiles/asinh_dialog.ui:183
+#: src/gui/uifiles/asinh_dialog.ui:182
 msgid "Black Point"
 msgstr "Czarny Punkt"
 
-#: src/gui/uifiles/asinh_dialog.ui:219
+#: src/gui/uifiles/asinh_dialog.ui:218
 msgid "Constant value that is subtracted from the image."
 msgstr "Stała wartość odejmowana od obrazu."
 
-#: src/gui/uifiles/asinh_dialog.ui:235
+#: src/gui/uifiles/asinh_dialog.ui:234
 msgid "Human-weighted luminance"
 msgstr "Luminancja ważona przez człowieka"
 
-#: src/gui/uifiles/asinh_dialog.ui:239
+#: src/gui/uifiles/asinh_dialog.ui:238
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
@@ -863,11 +863,11 @@ msgstr ""
 "oka, aby obliczyć luminancję stosowaną do obliczenia rozciągnięcia każdego "
 "piksela."
 
-#: src/gui/uifiles/asinh_dialog.ui:277
+#: src/gui/uifiles/asinh_dialog.ui:276
 msgid "Clip mode"
 msgstr "Tryb klipu"
 
-#: src/gui/uifiles/asinh_dialog.ui:289 src/gui/uifiles/histogram_dialog.ui:760
+#: src/gui/uifiles/asinh_dialog.ui:288 src/gui/uifiles/histogram_dialog.ui:760
 msgid ""
 "Select blend mode.\n"
 "Clip: clips values to the range 0.0 - 1.0. <b>Default</b>\n"
@@ -881,23 +881,23 @@ msgid ""
 "stretch if you notice colour artefacts around bright stars."
 msgstr ""
 
-#: src/gui/uifiles/asinh_dialog.ui:298 src/gui/uifiles/dialog_star_remix.ui:166
+#: src/gui/uifiles/asinh_dialog.ui:297 src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:769 src/gui/utils.c:400
 msgid "Clip"
 msgstr "Klip"
 
-#: src/gui/uifiles/asinh_dialog.ui:299 src/gui/uifiles/dialog_star_remix.ui:167
+#: src/gui/uifiles/asinh_dialog.ui:298 src/gui/uifiles/dialog_star_remix.ui:167
 #: src/gui/uifiles/histogram_dialog.ui:770
 msgid "Rescale"
 msgstr "Przeskaluj"
 
-#: src/gui/uifiles/asinh_dialog.ui:300 src/gui/uifiles/dialog_star_remix.ui:168
+#: src/gui/uifiles/asinh_dialog.ui:299 src/gui/uifiles/dialog_star_remix.ui:168
 #: src/gui/uifiles/histogram_dialog.ui:771
 #, fuzzy
 msgid "RGB Blend"
 msgstr "Wyrównanie RGB"
 
-#: src/gui/uifiles/asinh_dialog.ui:301
+#: src/gui/uifiles/asinh_dialog.ui:300
 msgid "Global Rescale"
 msgstr "Globalne Przeskalowanie"
 
@@ -1589,7 +1589,7 @@ msgstr ""
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:278
 #: src/gui/uifiles/ccm_dialog.ui:360 src/gui/uifiles/cosmetic_dialog.ui:347
 #: src/gui/uifiles/crop_dialog.ui:117 src/gui/uifiles/curves_dialog.ui:671
-#: src/gui/uifiles/histogram_dialog.ui:706 src/gui/uifiles/siril.ui:5300
+#: src/gui/uifiles/histogram_dialog.ui:706 src/gui/uifiles/siril.ui:5299
 #: src/gui/uifiles/split_cfa_dialog.ui:118
 msgid "Output prefix:"
 msgstr "Prefiks wyjściowy:"
@@ -1729,7 +1729,7 @@ msgid ""
 "diffraction of your telescope."
 msgstr ""
 
-#: src/gui/uifiles/bdeconv_dialog.ui:676 src/gui/uifiles/siril.ui:7186
+#: src/gui/uifiles/bdeconv_dialog.ui:676 src/gui/uifiles/siril.ui:7185
 #: src/gui/uifiles/stars_list_window.ui:690 src/algos/PSF.c:1043
 #: src/algos/star_finder.c:1444 src/gui/newdeconv.c:523
 msgid "Gaussian"
@@ -1796,8 +1796,8 @@ msgid "Pixel Size / μm"
 msgstr "Rozmiar pixela X (micron): "
 
 #: src/gui/uifiles/bdeconv_dialog.ui:868 src/gui/cut.c:534 src/gui/cut.c:747
-#: src/gui/photometric_cc.c:899 src/gui/photometric_cc.c:981
-#: src/gui/photometric_cc.c:1150
+#: src/gui/photometric_cc.c:904 src/gui/photometric_cc.c:986
+#: src/gui/photometric_cc.c:1155
 #, c-format
 msgid "Wavelength / nm"
 msgstr ""
@@ -2138,8 +2138,8 @@ msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1990 src/gui/uifiles/savepopup.ui:272
 #: src/gui/uifiles/settings_window.ui:851
-#: src/gui/uifiles/settings_window.ui:1314 src/gui/uifiles/siril.ui:5744
-#: src/gui/uifiles/siril.ui:7091 src/gui/uifiles/siril.ui:8380
+#: src/gui/uifiles/settings_window.ui:1314 src/gui/uifiles/siril.ui:5743
+#: src/gui/uifiles/siril.ui:7090 src/gui/uifiles/siril.ui:8379
 msgid "None"
 msgstr "Żaden"
 
@@ -2180,7 +2180,7 @@ msgid ""
 "iterations."
 msgstr ""
 
-#: src/gui/uifiles/bdeconv_dialog.ui:2067 src/gui/uifiles/siril.ui:8137
+#: src/gui/uifiles/bdeconv_dialog.ui:2067 src/gui/uifiles/siril.ui:8136
 #, fuzzy
 msgid "Multiplicative"
 msgstr ""
@@ -2719,7 +2719,7 @@ msgstr "Automatyczne wyrównanie przy użyciu wybranej metody rejestracji."
 
 #: src/gui/uifiles/cosmetic_dialog.ui:53 src/gui/uifiles/denoise_dialog.ui:147
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:608
-#: src/filters/cosmetic_correction.c:815
+#: src/filters/cosmetic_correction.c:820
 msgid "Cosmetic Correction"
 msgstr "Korekta kosmetyczna"
 
@@ -2733,7 +2733,7 @@ msgstr "Zamknij aktywne okno"
 msgid "Apply Cosmetic Correction"
 msgstr "Zastosuj korektę kosmetyczną"
 
-#: src/gui/uifiles/cosmetic_dialog.ui:121 src/gui/uifiles/siril.ui:5058
+#: src/gui/uifiles/cosmetic_dialog.ui:121 src/gui/uifiles/siril.ui:5057
 #, fuzzy
 msgid "Cold Sigma:"
 msgstr "Sigma:"
@@ -2758,7 +2758,7 @@ msgstr ""
 "Ile razy (w jednostkach średniego odchylenia) wartość piksela musi różnić "
 "się od wartości sąsiednich, aby zostać uznanym za zimny piksel."
 
-#: src/gui/uifiles/cosmetic_dialog.ui:187 src/gui/uifiles/siril.ui:5088
+#: src/gui/uifiles/cosmetic_dialog.ui:187 src/gui/uifiles/siril.ui:5087
 #, fuzzy
 msgid "Hot Sigma:"
 msgstr "Sigma:"
@@ -2793,7 +2793,7 @@ msgstr ""
 msgid "CFA"
 msgstr "CFA"
 
-#: src/gui/uifiles/cosmetic_dialog.ui:311 src/gui/uifiles/siril.ui:4996
+#: src/gui/uifiles/cosmetic_dialog.ui:311 src/gui/uifiles/siril.ui:4995
 msgid ""
 "Check if the target frames are CFA images.\n"
 "Uncheck if images come from a monochrome sensor."
@@ -2810,7 +2810,7 @@ msgstr "Sekwencja przycinania..."
 msgid "Prefix of the image names resulting from the cropping process."
 msgstr "Prefiks nazw obrazów powstałych w wyniku procesu przycinania."
 
-#: src/gui/uifiles/curves_dialog.ui:62 src/gui/curves.c:651
+#: src/gui/uifiles/curves_dialog.ui:62 src/gui/curves.c:652
 #, fuzzy
 msgid "Curves Transformation"
 msgstr "Transformacja histogramu..."
@@ -2950,7 +2950,7 @@ msgid "Start"
 msgstr "Rozpoczęcie stackowania…\n"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:183
-#: src/gui/uifiles/cut_spectroscopy_dialog.ui:270 src/gui/uifiles/siril.ui:4530
+#: src/gui/uifiles/cut_spectroscopy_dialog.ui:270 src/gui/uifiles/siril.ui:4529
 msgid "x"
 msgstr "x"
 
@@ -3913,17 +3913,17 @@ msgid "File name for the third FITS file to save."
 msgstr "Nazwa trzeciego pliku FITS do zapisania."
 
 #. RGB
-#: src/gui/uifiles/extract_channel_dialog.ui:153 src/gui/colors.c:332
+#: src/gui/uifiles/extract_channel_dialog.ui:153 src/gui/colors.c:337
 #, fuzzy
 msgid "Red: "
 msgstr "Czerwony:"
 
-#: src/gui/uifiles/extract_channel_dialog.ui:165 src/gui/colors.c:333
+#: src/gui/uifiles/extract_channel_dialog.ui:165 src/gui/colors.c:338
 #, fuzzy
 msgid "Green: "
 msgstr "Zielony:"
 
-#: src/gui/uifiles/extract_channel_dialog.ui:177 src/gui/colors.c:334
+#: src/gui/uifiles/extract_channel_dialog.ui:177 src/gui/colors.c:339
 #, fuzzy
 msgid "Blue: "
 msgstr "Niebieski:"
@@ -3975,7 +3975,7 @@ msgstr "Typ algorytmu"
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:134
 #: src/gui/uifiles/settings_window.ui:3636
 #: src/gui/uifiles/settings_window.ui:3705 src/gui/uifiles/siril.ui:577
-#: src/gui/uifiles/siril.ui:10031 src/gui/uifiles/wavelets_dialog.ui:184
+#: src/gui/uifiles/siril.ui:10030 src/gui/uifiles/wavelets_dialog.ui:184
 msgid "Linear"
 msgstr "Liniowy"
 
@@ -3990,7 +3990,7 @@ msgid "Nb. of Layers: "
 msgstr "Liczba warstw: "
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:160
-#: src/gui/uifiles/resample_dialog.ui:178
+#: src/gui/uifiles/resample_dialog.ui:176
 #: src/gui/uifiles/rotation_dialog.ui:185
 #, fuzzy
 msgid "Interpolation: "
@@ -4092,7 +4092,7 @@ msgid ""
 "used for images that do not contain these metadata"
 msgstr ""
 
-#: src/gui/uifiles/histogram_dialog.ui:138 src/gui/histogram.c:1388
+#: src/gui/uifiles/histogram_dialog.ui:138 src/gui/histogram.c:1390
 #, fuzzy
 msgid "Histogram Transformation"
 msgstr "Transformacja histogramu..."
@@ -4252,7 +4252,7 @@ msgid "Color Management"
 msgstr "Cel obrazu kolorowego"
 
 #: src/gui/uifiles/icc_dialog.ui:65 src/gui/uifiles/s_pcc_dialog.ui:906
-#: src/gui/uifiles/siril.ui:7998 src/gui/uifiles/spcc_details.ui:24
+#: src/gui/uifiles/siril.ui:7997 src/gui/uifiles/spcc_details.ui:24
 msgid "Plot"
 msgstr "Diagram"
 
@@ -4473,7 +4473,7 @@ msgstr ""
 msgid "Saved Header"
 msgstr "Nagłówek FITS..."
 
-#: src/gui/uifiles/linearmatch_dialog.ui:46 src/gui/linear_match.c:78
+#: src/gui/uifiles/linearmatch_dialog.ui:46 src/gui/linear_match.c:83
 #, fuzzy
 msgid "Linear Match"
 msgstr "Liniowy"
@@ -4569,7 +4569,7 @@ msgstr ""
 msgid "waiting for input files"
 msgstr ""
 
-#: src/gui/uifiles/livestacking_player.ui:228 src/gui/uifiles/siril.ui:9359
+#: src/gui/uifiles/livestacking_player.ui:228 src/gui/uifiles/siril.ui:9358
 msgid "Stacking"
 msgstr "Stackowanie"
 
@@ -4764,7 +4764,7 @@ msgid "Remove a scroll action"
 msgstr "normalizacja"
 
 #: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5305
-#: src/gui/uifiles/siril.ui:6358
+#: src/gui/uifiles/siril.ui:6357
 msgid " "
 msgstr ""
 
@@ -4900,7 +4900,7 @@ msgid ""
 "rescaling range."
 msgstr ""
 
-#: src/gui/uifiles/pixelmath.ui:724 src/gui/uifiles/siril.ui:7782
+#: src/gui/uifiles/pixelmath.ui:724 src/gui/uifiles/siril.ui:7781
 #, fuzzy
 msgid "Output"
 msgstr "Dziennik wyjściowy"
@@ -4963,8 +4963,8 @@ msgstr ""
 msgid "Open a script from a file"
 msgstr ""
 
-#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:245
-#: src/gui/python_gui.c:767 src/pixelMath/pixel_math_runner.c:1253
+#: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:254
+#: src/gui/python_gui.c:767 src/pixelMath/pixel_math_runner.c:1252
 msgid "_Open"
 msgstr "_Otwórz"
 
@@ -4978,7 +4978,7 @@ msgstr "Zapisz plik"
 msgid "Save the current script"
 msgstr "Utwórz trzy obrazy"
 
-#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:259
+#: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:268
 #: src/gui/python_gui.c:844
 msgid "_Save"
 msgstr "_Zapisz"
@@ -5244,74 +5244,74 @@ msgid ""
 "on arguments for input."
 msgstr ""
 
-#: src/gui/uifiles/resample_dialog.ui:65
+#: src/gui/uifiles/resample_dialog.ui:63
 #, fuzzy
 msgid "Resample"
 msgstr "Narysuj próbki"
 
-#: src/gui/uifiles/resample_dialog.ui:137
+#: src/gui/uifiles/resample_dialog.ui:135
 #, fuzzy
 msgid "X scale"
 msgstr "Skala X (%): "
 
-#: src/gui/uifiles/resample_dialog.ui:149
+#: src/gui/uifiles/resample_dialog.ui:147
 #, fuzzy
 msgid "Y scale"
 msgstr "Skala Y (%): "
 
-#: src/gui/uifiles/resample_dialog.ui:158
+#: src/gui/uifiles/resample_dialog.ui:156
 msgid "Preserve Aspect Ratio"
 msgstr "Zachowaj proporcje"
 
-#: src/gui/uifiles/resample_dialog.ui:189
+#: src/gui/uifiles/resample_dialog.ui:187
 msgid "Type of algorithm used for resampling"
 msgstr "Typ algorytmu użytego do ponownego próbkowania"
 
-#: src/gui/uifiles/resample_dialog.ui:195
-#: src/gui/uifiles/rotation_dialog.ui:203 src/gui/uifiles/siril.ui:7086
+#: src/gui/uifiles/resample_dialog.ui:193
+#: src/gui/uifiles/rotation_dialog.ui:203 src/gui/uifiles/siril.ui:7085
 msgid "Nearest Neighbor"
 msgstr "Najbliższy sąsiad"
 
-#: src/gui/uifiles/resample_dialog.ui:196
-#: src/gui/uifiles/rotation_dialog.ui:204 src/gui/uifiles/siril.ui:7087
+#: src/gui/uifiles/resample_dialog.ui:194
+#: src/gui/uifiles/rotation_dialog.ui:204 src/gui/uifiles/siril.ui:7086
 #: src/algos/geometry.c:300 src/algos/geometry.c:396
 msgid "Bilinear"
 msgstr "Bilinear"
 
-#: src/gui/uifiles/resample_dialog.ui:197
-#: src/gui/uifiles/rotation_dialog.ui:205 src/gui/uifiles/siril.ui:7088
+#: src/gui/uifiles/resample_dialog.ui:195
+#: src/gui/uifiles/rotation_dialog.ui:205 src/gui/uifiles/siril.ui:7087
 #: src/algos/geometry.c:304 src/algos/geometry.c:402
 msgid "Bicubic"
 msgstr "Bicubic"
 
-#: src/gui/uifiles/resample_dialog.ui:198
-#: src/gui/uifiles/rotation_dialog.ui:206 src/gui/uifiles/siril.ui:7089
+#: src/gui/uifiles/resample_dialog.ui:196
+#: src/gui/uifiles/rotation_dialog.ui:206 src/gui/uifiles/siril.ui:7088
 #: src/algos/geometry.c:302 src/algos/geometry.c:399
 msgid "Pixel Area Relation"
 msgstr "Stosunek obszaru pikseli"
 
 # Should we have to "Lanczos", one with "-" and other one without "-" ?
-#: src/gui/uifiles/resample_dialog.ui:199
-#: src/gui/uifiles/rotation_dialog.ui:207 src/gui/uifiles/siril.ui:7090
+#: src/gui/uifiles/resample_dialog.ui:197
+#: src/gui/uifiles/rotation_dialog.ui:207 src/gui/uifiles/siril.ui:7089
 msgid "Lanczos-4"
 msgstr "Lanczos-4"
 
-#: src/gui/uifiles/resample_dialog.ui:280
+#: src/gui/uifiles/resample_dialog.ui:278
 msgid "%"
 msgstr "%"
 
-#: src/gui/uifiles/resample_dialog.ui:291
+#: src/gui/uifiles/resample_dialog.ui:289
 #, fuzzy
 msgid "pixels"
 msgstr "Super Pixel"
 
-#: src/gui/uifiles/resample_dialog.ui:310
-#: src/gui/uifiles/rotation_dialog.ui:226 src/gui/uifiles/siril.ui:7102
+#: src/gui/uifiles/resample_dialog.ui:308
+#: src/gui/uifiles/rotation_dialog.ui:226 src/gui/uifiles/siril.ui:7101
 #, fuzzy
 msgid "Interpolation clamping"
 msgstr "Interpolacja"
 
-#: src/gui/uifiles/resample_dialog.ui:314
+#: src/gui/uifiles/resample_dialog.ui:312
 #: src/gui/uifiles/rotation_dialog.ui:230
 msgid ""
 "Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to "
@@ -5397,7 +5397,7 @@ msgstr "Zaznaczenie tego pola spowoduje przycięcie obrazu wyjściowego."
 msgid "Type of algorithm used for rotation"
 msgstr "Typ algorytmu użytego do obrotu"
 
-#: src/gui/uifiles/s_pcc_dialog.ui:59 src/gui/photometric_cc.c:87
+#: src/gui/uifiles/s_pcc_dialog.ui:59 src/gui/photometric_cc.c:92
 msgid "Checking Gaia archive status..."
 msgstr ""
 
@@ -5613,7 +5613,7 @@ msgstr ""
 msgid "Sensor Type:"
 msgstr ""
 
-#: src/gui/uifiles/s_pcc_dialog.ui:766 src/gui/photometric_cc.c:717
+#: src/gui/uifiles/s_pcc_dialog.ui:766 src/gui/photometric_cc.c:722
 msgid "mono"
 msgstr ""
 
@@ -5657,7 +5657,7 @@ msgid ""
 "pressure at the observer's height."
 msgstr ""
 
-#: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1163
+#: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1168
 #, fuzzy
 msgid "sea level"
 msgstr "Poziom powiększenia"
@@ -5818,7 +5818,7 @@ msgid ""
 "background."
 msgstr ""
 
-#: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10752
+#: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10751
 #: src/io/sequence.c:2019
 #, fuzzy
 msgid "Save"
@@ -6026,8 +6026,8 @@ msgstr "Y"
 msgid "Sel"
 msgstr ""
 
-#: src/gui/uifiles/seqlist_dialog.ui:165 src/gui/uifiles/siril.ui:7851
-#: src/gui/uifiles/siril.ui:7886 src/gui/plot.c:133 src/gui/plot.c:1666
+#: src/gui/uifiles/seqlist_dialog.ui:165 src/gui/uifiles/siril.ui:7850
+#: src/gui/uifiles/siril.ui:7885 src/gui/plot.c:133 src/gui/plot.c:1666
 #: src/gui/plot.c:1694 src/gui/sequence_list.c:513
 msgid "Quality"
 msgstr "Jakość"
@@ -6469,7 +6469,7 @@ msgstr "Pliki FITS"
 msgid "Astrometry"
 msgstr "Fotometria"
 
-#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10958
+#: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 #, fuzzy
 msgid "Catalogue"
 msgstr "Kalibracja kolorów..."
@@ -7711,7 +7711,7 @@ msgid "<b>Built-in Profiles</b>"
 msgstr "<b>Rodzaj ekstrakcji</b>"
 
 #: src/gui/uifiles/settings_window.ui:4927
-#: src/gui/uifiles/settings_window.ui:5341 src/gui/uifiles/siril.ui:10644
+#: src/gui/uifiles/settings_window.ui:5341 src/gui/uifiles/siril.ui:10643
 msgid "Scripts"
 msgstr ""
 
@@ -7947,8 +7947,8 @@ msgid ""
 "the other strategies is not worth it for a single Fourier Transform."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5630 src/gui/uifiles/siril.ui:5074
-#: src/gui/uifiles/siril.ui:6944
+#: src/gui/uifiles/settings_window.ui:5630 src/gui/uifiles/siril.ui:5073
+#: src/gui/uifiles/siril.ui:6943
 msgid "Estimate"
 msgstr "Oszacowanie"
 
@@ -8218,7 +8218,7 @@ msgstr "Wykluczony"
 msgid "Show frame %d"
 msgstr "Wykluczony"
 
-#: src/gui/uifiles/siril.ui:702 src/gui/uifiles/siril.ui:7641
+#: src/gui/uifiles/siril.ui:702 src/gui/uifiles/siril.ui:7640
 #: src/gui/plot.c:933 src/gui/plot.c:934
 msgid "Registration"
 msgstr "Rejestracja"
@@ -8256,7 +8256,7 @@ msgstr "Wybierz gwiazdę"
 msgid "Free aspect ratio"
 msgstr "Częstotliwość wyświetlania klatek"
 
-#: src/gui/uifiles/siril.ui:822 src/gui/uifiles/siril.ui:4491
+#: src/gui/uifiles/siril.ui:822 src/gui/uifiles/siril.ui:4490
 #, fuzzy
 msgid "Free ratio"
 msgstr "Częstotliwość wyświetlania klatek"
@@ -8266,7 +8266,7 @@ msgstr "Częstotliwość wyświetlania klatek"
 msgid "Preserve the original aspect ratio of the image"
 msgstr "Zachowuje oryginalny komponent CIE L* w przetworzonym obrazie."
 
-#: src/gui/uifiles/siril.ui:834 src/gui/uifiles/siril.ui:4490
+#: src/gui/uifiles/siril.ui:834 src/gui/uifiles/siril.ui:4489
 #, fuzzy
 msgid "Preserve ratio"
 msgstr "Zachowaj proporcje"
@@ -8389,7 +8389,7 @@ msgstr "Eksport do pliku CSV"
 msgid "16 bits"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:1194 src/gui/uifiles/siril.ui:10716
+#: src/gui/uifiles/siril.ui:1194 src/gui/uifiles/siril.ui:10715
 #: src/gui/callbacks.c:1079
 msgid "32 bits"
 msgstr ""
@@ -8423,7 +8423,7 @@ msgstr "Usuń zielony szum..."
 msgid "Compute the inverse of the image"
 msgstr "Faza obrazu: "
 
-#: src/gui/uifiles/siril.ui:1286 src/gui/colors.c:312
+#: src/gui/uifiles/siril.ui:1286 src/gui/colors.c:317
 #, fuzzy
 msgid "Negative Transformation"
 msgstr "Transformacja histogramu..."
@@ -8758,7 +8758,7 @@ msgstr "Filtr mediany"
 msgid "Rotate  image 90 degrees, clockwise"
 msgstr "Obróć o 90 stopni zgodnie z ruchem wskazówek zegara"
 
-#: src/gui/uifiles/siril.ui:2136 src/gui/uifiles/siril.ui:10292
+#: src/gui/uifiles/siril.ui:2136 src/gui/uifiles/siril.ui:10291
 msgid "Rotate 90 degrees, clockwise"
 msgstr "Obróć o 90 stopni zgodnie z ruchem wskazówek zegara"
 
@@ -8767,7 +8767,7 @@ msgstr "Obróć o 90 stopni zgodnie z ruchem wskazówek zegara"
 msgid "Rotate image 90 degrees, counter-clockwise"
 msgstr "Obróć o 90 stopni w kierunku przeciwnym do ruchu wskazówek zegara"
 
-#: src/gui/uifiles/siril.ui:2151 src/gui/uifiles/siril.ui:10275
+#: src/gui/uifiles/siril.ui:2151 src/gui/uifiles/siril.ui:10274
 msgid "Rotate 90 degrees, counter-clockwise"
 msgstr "Obróć o 90 stopni w kierunku przeciwnym do ruchu wskazówek zegara"
 
@@ -9034,18 +9034,18 @@ msgid ""
 "or FITS sequence file."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:3930 src/gui/uifiles/siril.ui:4298
-#: src/gui/uifiles/siril.ui:5370
+#: src/gui/uifiles/siril.ui:3930 src/gui/uifiles/siril.ui:4297
+#: src/gui/uifiles/siril.ui:5369
 #, fuzzy
 msgid "FITS images"
 msgstr "Obrazy FITS-CFA"
 
-#: src/gui/uifiles/siril.ui:3931 src/gui/uifiles/siril.ui:5371
+#: src/gui/uifiles/siril.ui:3931 src/gui/uifiles/siril.ui:5370
 #, fuzzy
 msgid "SER sequence"
 msgstr "Sekwencje SER"
 
-#: src/gui/uifiles/siril.ui:3932 src/gui/uifiles/siril.ui:5372
+#: src/gui/uifiles/siril.ui:3932 src/gui/uifiles/siril.ui:5371
 #, fuzzy
 msgid "FITS sequence"
 msgstr "Sekwencje SER"
@@ -9128,57 +9128,57 @@ msgstr ""
 msgid "Conversion"
 msgstr "Konwertowanie pliku"
 
-#: src/gui/uifiles/siril.ui:4125
+#: src/gui/uifiles/siril.ui:4124
 #, fuzzy
 msgid "Clean Sequence"
 msgstr "Sekwencja przycinania..."
 
-#: src/gui/uifiles/siril.ui:4129
+#: src/gui/uifiles/siril.ui:4128
 msgid ""
 "This button clears selection, registration and/or statistics data stored in "
 "the loaded sequence. You can specify to clear only registration, statistics "
 "and/or selection with the button on the right.\n"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4145
+#: src/gui/uifiles/siril.ui:4144
 msgid ""
 "You can specify to clear only registration, statistics and/or selection by "
 "checking the option you want."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4183
+#: src/gui/uifiles/siril.ui:4182
 msgid "Search sequences"
 msgstr "Wyszukiwanie sekwencji"
 
-#: src/gui/uifiles/siril.ui:4187
+#: src/gui/uifiles/siril.ui:4186
 #, fuzzy
 msgid ""
 "Search current directory for sequences of FITS images, SER or film videos."
 msgstr "Wyszukaj sekwencje obrazów FITS w bieżącym katalogu."
 
-#: src/gui/uifiles/siril.ui:4202
+#: src/gui/uifiles/siril.ui:4201
 #, fuzzy
 msgid "Open Frame List"
 msgstr "Najpierw otwórz obraz !\n"
 
-#: src/gui/uifiles/siril.ui:4206 src/gui/uifiles/siril.ui:10353
+#: src/gui/uifiles/siril.ui:4205 src/gui/uifiles/siril.ui:10352
 msgid "Show/Hide list of images in the sequence with registration data"
 msgstr "Pokaż/ukryj listę obrazów w sekwencji z danymi rejestracyjnymi"
 
-#: src/gui/uifiles/siril.ui:4230
+#: src/gui/uifiles/siril.ui:4229
 msgid "Sequence selection"
 msgstr "Wybór sekwencji"
 
-#: src/gui/uifiles/siril.ui:4264
+#: src/gui/uifiles/siril.ui:4263
 msgid "Base name:"
 msgstr "Nazwa podstawowa:"
 
-#: src/gui/uifiles/siril.ui:4277
+#: src/gui/uifiles/siril.ui:4276
 #, fuzzy
 msgid "Base name for the exported sequence"
 msgstr "Nazwa podstawowa:"
 
-#: src/gui/uifiles/siril.ui:4292
+#: src/gui/uifiles/siril.ui:4291
 msgid ""
 "Export sequence format.\n"
 "MP4 and WEBM replace GIF for Web publication, AVI is uncompressed 8 bits. To "
@@ -9190,17 +9190,17 @@ msgid ""
 "with a loss of precision."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4299
+#: src/gui/uifiles/siril.ui:4298
 #, fuzzy
 msgid "FITS cube"
 msgstr "Sekwencje SER"
 
-#: src/gui/uifiles/siril.ui:4336
+#: src/gui/uifiles/siril.ui:4335
 #, fuzzy
 msgid "Export sequence"
 msgstr "Sekwencja:"
 
-#: src/gui/uifiles/siril.ui:4340
+#: src/gui/uifiles/siril.ui:4339
 msgid ""
 "Export the loaded sequence in the selected format. It can be used to store a "
 "sequence in another format, make animated movies, or store a lighter version "
@@ -9213,11 +9213,11 @@ msgstr ""
 "obrazów. Wyeksportowane obrazy można przycinać i wybierać z zastosowaniem "
 "tych samych kryteriów, co w przypadku wyboru do stackowania."
 
-#: src/gui/uifiles/siril.ui:4351
+#: src/gui/uifiles/siril.ui:4350
 msgid "Normalize images"
 msgstr "Normalizuj obrazy"
 
-#: src/gui/uifiles/siril.ui:4355
+#: src/gui/uifiles/siril.ui:4354
 msgid ""
 "Activate image normalisation for the export. This will make all images the "
 "same brightness and is thus recommended for sequences with inconsistent "
@@ -9233,34 +9233,34 @@ msgstr ""
 "przed eksportem, może to zająć trochę czasu.\n"
 "\t\t\t"
 
-#: src/gui/uifiles/siril.ui:4372 src/io/sequence_export.c:758
+#: src/gui/uifiles/siril.ui:4371 src/io/sequence_export.c:758
 msgid "Select area to crop"
 msgstr "Wybierz obszar do przycięcia"
 
-#: src/gui/uifiles/siril.ui:4401
+#: src/gui/uifiles/siril.ui:4400
 #, fuzzy
 msgid "Image selection uses the same controls as for stacking:"
 msgstr ""
 "Wybór obrazu używa tych samych elementów sterujących, co w przypadku "
 "stackowania"
 
-#: src/gui/uifiles/siril.ui:4411
+#: src/gui/uifiles/siril.ui:4410
 msgid "Go to the stacking tab"
 msgstr "Przejdź do zakładki stackowania"
 
-#: src/gui/uifiles/siril.ui:4439
+#: src/gui/uifiles/siril.ui:4438
 msgid "Fps:"
 msgstr "Klatek na sekundę:"
 
-#: src/gui/uifiles/siril.ui:4451
+#: src/gui/uifiles/siril.ui:4450
 msgid "Frame rate"
 msgstr "Częstotliwość wyświetlania klatek"
 
-#: src/gui/uifiles/siril.ui:4468
+#: src/gui/uifiles/siril.ui:4467
 msgid "Resize"
 msgstr "Zmień rozmiar"
 
-#: src/gui/uifiles/siril.ui:4472
+#: src/gui/uifiles/siril.ui:4471
 msgid ""
 "Check this box if you want to resize exported sequence. Note that this will "
 "degrade image quality."
@@ -9268,27 +9268,27 @@ msgstr ""
 "Zaznacz to pole, jeśli chcesz zmienić rozmiar wyeksportowanej sekwencji. "
 "Pamiętaj, że pogorszy to jakość obrazu."
 
-#: src/gui/uifiles/siril.ui:4492
+#: src/gui/uifiles/siril.ui:4491
 msgid "Full HD"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4493
+#: src/gui/uifiles/siril.ui:4492
 msgid "4K"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4494
+#: src/gui/uifiles/siril.ui:4493
 msgid "8K"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4509
+#: src/gui/uifiles/siril.ui:4508
 msgid "Width of output video"
 msgstr "Szerokość wyjściowego wideo"
 
-#: src/gui/uifiles/siril.ui:4543
+#: src/gui/uifiles/siril.ui:4542
 msgid "Height of output video"
 msgstr "Wysokość wyjściowego wideo"
 
-#: src/gui/uifiles/siril.ui:4570
+#: src/gui/uifiles/siril.ui:4569
 #, fuzzy
 msgid ""
 "Film quality: lower value will use more compression and less bitrate, also "
@@ -9298,11 +9298,11 @@ msgstr ""
 "Jakość filmu: niższa wartość spowoduje większą kompresję ale także mniejszy "
 "rozmiar pliku."
 
-#: src/gui/uifiles/siril.ui:4595
+#: src/gui/uifiles/siril.ui:4594
 msgid "Sequence export"
 msgstr "Eksport sekwencji"
 
-#: src/gui/uifiles/siril.ui:4621
+#: src/gui/uifiles/siril.ui:4620
 msgid ""
 "Images are manipulated in sequences. Siril can find sequences in CWD, and "
 "you can filter images out."
@@ -9310,16 +9310,16 @@ msgstr ""
 "Obrazy są manipulowane sekwencyjnie. Siril może znaleźć sekwencje w CWD i "
 "możesz filtrować obrazy."
 
-#: src/gui/uifiles/siril.ui:4624 src/gui/callbacks.c:2295
+#: src/gui/uifiles/siril.ui:4623 src/gui/callbacks.c:2296
 msgid "Sequence"
 msgstr "Sekwencja"
 
 #. Flat is the kind of the picture used here. In french I've decided to not translate the word.
-#: src/gui/uifiles/siril.ui:4664
+#: src/gui/uifiles/siril.ui:4663
 msgid "Use flat"
 msgstr "Użyj flat"
 
-#: src/gui/uifiles/siril.ui:4668 src/gui/uifiles/siril.ui:4699
+#: src/gui/uifiles/siril.ui:4667 src/gui/uifiles/siril.ui:4698
 msgid ""
 "All images in the sequence will be divided by the master flat image (each "
 "pixel value)."
@@ -9327,7 +9327,7 @@ msgstr ""
 "Wszystkie obrazy w sekwencji zostaną podzielone przez master flat (każda "
 "wartość piksela)."
 
-#: src/gui/uifiles/siril.ui:4683
+#: src/gui/uifiles/siril.ui:4682
 msgid ""
 "Enter the master flat file name here, or use the browse button.\n"
 "All images in the sequence will be divided by the master flat image (each "
@@ -9338,15 +9338,15 @@ msgstr ""
 "wartość piksela)."
 
 #. Dark is the kind of the picture used here. In french I've decided to not translate the word.
-#: src/gui/uifiles/siril.ui:4718
+#: src/gui/uifiles/siril.ui:4717
 msgid "Use dark"
 msgstr "Użyj dark"
 
-#: src/gui/uifiles/siril.ui:4722 src/gui/uifiles/siril.ui:4738
+#: src/gui/uifiles/siril.ui:4721 src/gui/uifiles/siril.ui:4737
 msgid "The dark master image will be removed from all images in the sequence."
 msgstr "Master dark zostanie usunięty ze wszystkich obrazów w sekwencji."
 
-#: src/gui/uifiles/siril.ui:4759
+#: src/gui/uifiles/siril.ui:4758
 msgid ""
 "Enter the master dark file name here, or use the browse button.\n"
 "The dark master image will be removed from all images in the sequence."
@@ -9355,18 +9355,18 @@ msgstr ""
 "Master dark zostanie usunięty ze wszystkich obrazów w sekwencji."
 
 #. Offset is the kind of the picture used here. In french I've decided to not translate the word.
-#: src/gui/uifiles/siril.ui:4772
+#: src/gui/uifiles/siril.ui:4771
 #, fuzzy
 msgid "Use bias"
 msgstr "Użyj flat"
 
-#: src/gui/uifiles/siril.ui:4776 src/gui/uifiles/siril.ui:4808
-#: src/gui/uifiles/siril.ui:5781
+#: src/gui/uifiles/siril.ui:4775 src/gui/uifiles/siril.ui:4807
+#: src/gui/uifiles/siril.ui:5780
 msgid ""
 "The bias/offset master image will be removed from all images in the sequence."
 msgstr "Bias/offset zostanie usunięty ze wszystkich obrazów w sekwencji."
 
-#: src/gui/uifiles/siril.ui:4791
+#: src/gui/uifiles/siril.ui:4790
 #, fuzzy
 msgid ""
 "Enter the master bias/offset file name here, or use the browse button.\n"
@@ -9378,25 +9378,25 @@ msgstr ""
 "Wprowadź nazwę pliku master bias/offset lub użyj przycisku przeglądania.\n"
 "Master bias/offset zostanie usunięty ze wszystkich obrazów w sekwencji."
 
-#: src/gui/uifiles/siril.ui:4795
+#: src/gui/uifiles/siril.ui:4794
 #, fuzzy
 msgid "master-bias.fit"
 msgstr "Użyj flat"
 
-#: src/gui/uifiles/siril.ui:4827
+#: src/gui/uifiles/siril.ui:4826
 msgid "Equalize CFA"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4831
+#: src/gui/uifiles/siril.ui:4830
 msgid ""
 "This option equalizes the mean intensity of RGB layers in a CFA flat image."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4843
+#: src/gui/uifiles/siril.ui:4842
 msgid "Auto evaluate normalisation value"
 msgstr "Automatyczna ocena wartość normalizacji"
 
-#: src/gui/uifiles/siril.ui:4847
+#: src/gui/uifiles/siril.ui:4846
 msgid ""
 "If this box is checked, Siril will auto-evaluate the normalisation value.\n"
 "This value is the mean of the master flat calibrated with the master offset."
@@ -9405,15 +9405,15 @@ msgstr ""
 "normalizacji.\n"
 "Ta wartość jest średnią master flat skalibrowanej z master offset."
 
-#: src/gui/uifiles/siril.ui:4865
+#: src/gui/uifiles/siril.ui:4864
 msgid "Choose your own normalisation value."
 msgstr "Wybierz własną wartość normalizacji."
 
-#: src/gui/uifiles/siril.ui:4882
+#: src/gui/uifiles/siril.ui:4881
 msgid "Fix X-Trans AF artifact"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4886
+#: src/gui/uifiles/siril.ui:4885
 msgid ""
 "This option helps to fix the Fujifilm X-Trans Auto Focus pixels. Indeed, "
 "because of the phase detection auto focus system, the photosites used for "
@@ -9422,7 +9422,7 @@ msgid ""
 "photosites giving a visible square in the middle of the dark/bias frames."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4901
+#: src/gui/uifiles/siril.ui:4900
 #, fuzzy
 msgid ""
 "Dark subtraction can be optimized. Siril offers two ways of doing this.\n"
@@ -9447,31 +9447,31 @@ msgstr ""
 "OSTRZEŻENIE: Nie stosuj optymalizacji dark w trybie master-dark, jeśli "
 "uprzednie odchylenie od wartości głównej nie zostało odjęte."
 
-#: src/gui/uifiles/siril.ui:4910
+#: src/gui/uifiles/siril.ui:4909
 #, fuzzy
 msgid "No dark optimization"
 msgstr "Optymalizacja dark"
 
-#: src/gui/uifiles/siril.ui:4911
+#: src/gui/uifiles/siril.ui:4910
 #, fuzzy
 msgid "Auto-evaluation"
 msgstr "Stosunek obszaru pikseli"
 
-#: src/gui/uifiles/siril.ui:4912
+#: src/gui/uifiles/siril.ui:4911
 #, fuzzy
 msgid "Use Exposure"
 msgstr "Użyj offset"
 
-#: src/gui/uifiles/siril.ui:4932
+#: src/gui/uifiles/siril.ui:4931
 #, fuzzy
 msgid "Image calibration"
 msgstr "Rejestracja obrazu"
 
-#: src/gui/uifiles/siril.ui:4958
+#: src/gui/uifiles/siril.ui:4957
 msgid "Enable Cosmectic Correction"
 msgstr "Włącz korektę kosmiczną"
 
-#: src/gui/uifiles/siril.ui:4962
+#: src/gui/uifiles/siril.ui:4961
 msgid ""
 "Check if you want to apply a hot pixel removal.\n"
 "Hot pixels are located on the master-dark."
@@ -9479,12 +9479,12 @@ msgstr ""
 "Sprawdź, czy chcesz zastosować usuwanie gorących pikseli.\n"
 "Gorące piksele znajdują się w master-dark."
 
-#: src/gui/uifiles/siril.ui:4992
+#: src/gui/uifiles/siril.ui:4991
 msgid "CFA data"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5038 src/gui/uifiles/siril.ui:5062
-#: src/gui/uifiles/siril.ui:5092 src/gui/uifiles/siril.ui:5106
+#: src/gui/uifiles/siril.ui:5037 src/gui/uifiles/siril.ui:5061
+#: src/gui/uifiles/siril.ui:5091 src/gui/uifiles/siril.ui:5105
 msgid ""
 "How many times the standard deviation, the pixel value must differ to be "
 "considered as defective."
@@ -9492,7 +9492,7 @@ msgstr ""
 "Ile razy wartość piksela musi być różna od odchylenia standardowego, aby "
 "mogła zostać uznana za wadliwą."
 
-#: src/gui/uifiles/siril.ui:5078
+#: src/gui/uifiles/siril.ui:5077
 #, fuzzy
 msgid ""
 "Click on this button to evaluate the number of deviant pixels. If values are "
@@ -9502,22 +9502,22 @@ msgstr ""
 "Kliknij ten przycisk, aby ocenić liczbę wadliwych pikseli. Jeśli wartości są "
 "większe niż 10000 pikseli, rozważ zmianę wartości sigma."
 
-#: src/gui/uifiles/siril.ui:5129 src/gui/uifiles/siril.ui:5141
+#: src/gui/uifiles/siril.ui:5128 src/gui/uifiles/siril.ui:5140
 #, fuzzy
 msgid "0 px"
 msgstr "Gorący: 0 pikseli"
 
-#: src/gui/uifiles/siril.ui:5162
+#: src/gui/uifiles/siril.ui:5161
 #, fuzzy
 msgid "Master-dark"
 msgstr "Użyj dark"
 
-#: src/gui/uifiles/siril.ui:5171
+#: src/gui/uifiles/siril.ui:5170
 #, fuzzy
 msgid "Using Master-Dark"
 msgstr "Użyj dark"
 
-#: src/gui/uifiles/siril.ui:5197
+#: src/gui/uifiles/siril.ui:5196
 msgid ""
 "Enter the bad pixel map file name here, or use the browse button. This file "
 "is generally created by the command <i>find_hot</i> applied on a dark frame "
@@ -9531,38 +9531,38 @@ msgid ""
 "* The line <i>L y 0 type</i> will fix the bad line at coordinates <i>y</i>."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5216
+#: src/gui/uifiles/siril.ui:5215
 msgid ""
 "Load the bad pixel map file. This file must be ended by the <i>*.lst</i> "
 "extension."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5243
+#: src/gui/uifiles/siril.ui:5242
 #, fuzzy
 msgid "Bad Pixel Map"
 msgstr "Liniowy"
 
-#: src/gui/uifiles/siril.ui:5252
+#: src/gui/uifiles/siril.ui:5251
 #, fuzzy
 msgid "Using Bad Pixel Map"
 msgstr "Liniowy"
 
-#: src/gui/uifiles/siril.ui:5269
+#: src/gui/uifiles/siril.ui:5268
 #, fuzzy
 msgid "Cosmetic correction"
 msgstr "Korekta kosmetyczna"
 
-#: src/gui/uifiles/siril.ui:5312
+#: src/gui/uifiles/siril.ui:5311
 #, fuzzy
 msgid "Prefix of the image names resulting from the calibration."
 msgstr "Przedrostek nazw obrazów powstałych w wyniku rejestracji."
 
-#: src/gui/uifiles/siril.ui:5324
+#: src/gui/uifiles/siril.ui:5323
 #, fuzzy
 msgid "Start calibration"
 msgstr "Rejestracja obrazu"
 
-#: src/gui/uifiles/siril.ui:5329
+#: src/gui/uifiles/siril.ui:5328
 msgid ""
 "Pre-process sequence with the above master files, resulting sequence will be "
 "in pp_<seq.name> or another prefix given aside.\n"
@@ -9578,18 +9578,18 @@ msgstr ""
 "Następną czynnością dla obrazów DSLR będzie debayer wstępnie przetworzonych "
 "obrazów, przejdź do zakładki Konwersja."
 
-#: src/gui/uifiles/siril.ui:5345
+#: src/gui/uifiles/siril.ui:5344
 msgid "Debayer before saving"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5349
+#: src/gui/uifiles/siril.ui:5348
 msgid ""
 "Check this option if you want to apply a demosaicing algorithm to your FITS "
 "images right after they were preprocessed. By doing this, you skip one "
 "manual step which can take some time."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5363
+#: src/gui/uifiles/siril.ui:5362
 msgid ""
 "This sets the destination sequence type.\n"
 "FITS images: one FITS file per image.\n"
@@ -9598,36 +9598,36 @@ msgid ""
 "FITS sequence: one FITS file for the whole sequence."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5382
+#: src/gui/uifiles/siril.ui:5381
 msgid "Calibrate all frames"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5386
+#: src/gui/uifiles/siril.ui:5385
 msgid "Force calibration of all frames even if marked as excluded."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5400
+#: src/gui/uifiles/siril.ui:5399
 msgid "Output sequence"
 msgstr "Sekwencja wyjściowa"
 
-#: src/gui/uifiles/siril.ui:5426
+#: src/gui/uifiles/siril.ui:5425
 #, fuzzy
 msgid "Calibration is an optional step to apply to a sequence of images."
 msgstr ""
 "Przetwarzanie wstępne jest opcjonalnym krokiem do zastosowania dla sekwencji "
 "obrazów."
 
-#: src/gui/uifiles/siril.ui:5428
+#: src/gui/uifiles/siril.ui:5427
 #, fuzzy
 msgid "Calibration"
 msgstr "Kalibracja kolorów"
 
-#: src/gui/uifiles/siril.ui:5499
+#: src/gui/uifiles/siril.ui:5498
 #, fuzzy
 msgid "Registration channel: "
 msgstr "Wybierz warstwę rejestracji:"
 
-#: src/gui/uifiles/siril.ui:5511
+#: src/gui/uifiles/siril.ui:5510
 msgid ""
 "Layer on which the registration is done. It can only be done on one layer at "
 "a time, so on monochrome images.\n"
@@ -9644,11 +9644,11 @@ msgstr ""
 "domyślnej, o ile są dostępne (w przypadku obrazów RGB: zielony, w przeciwnym "
 "razie w kolorze niebieskim, a następnie w kolorze czerwonym)."
 
-#: src/gui/uifiles/siril.ui:5555
+#: src/gui/uifiles/siril.ui:5554
 msgid "Match stars in selection"
 msgstr "Dopasuj gwiazdy w selekcji"
 
-#: src/gui/uifiles/siril.ui:5559
+#: src/gui/uifiles/siril.ui:5558
 #, fuzzy
 msgid ""
 "Check this box if you want to perform the Global Star Alignment algorithm "
@@ -9663,36 +9663,36 @@ msgstr ""
 "zostanie ona zignorowana.\n"
 "OSTRZEŻENIE: Upewnij się, że zaznaczenie posiada wystarczającą liczbą gwiazd."
 
-#: src/gui/uifiles/siril.ui:5575
+#: src/gui/uifiles/siril.ui:5574
 #, fuzzy
 msgid "Minimum Star Pairs:"
 msgstr "Maksymalne neutralne"
 
-#: src/gui/uifiles/siril.ui:5586
+#: src/gui/uifiles/siril.ui:5585
 msgid ""
 "The minimum number of star pairs a given frame can have in relation with the "
 "reference frame. If a given light frame has less star pairs, it will not be "
 "registered."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5611
+#: src/gui/uifiles/siril.ui:5610
 #, fuzzy
 msgid "Maximum Stars Fitted:"
 msgstr "Maska maksymalna"
 
-#: src/gui/uifiles/siril.ui:5622
+#: src/gui/uifiles/siril.ui:5621
 msgid ""
 "The maximum number of stars to be searched for in each frame (default 2000). "
 "The larger this value, the more stars will potentially be detected, "
 "resulting in a longer detection but more accurate registration."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5627
+#: src/gui/uifiles/siril.ui:5626
 #, fuzzy
 msgid "500"
 msgstr "x0"
 
-#: src/gui/uifiles/siril.ui:5641
+#: src/gui/uifiles/siril.ui:5640
 msgid ""
 "<b>Shift</b> is a 2 degree-of-freedom (x/y shifts) rigid mapping, well-"
 "suited for images with no distortion, no scaling and no field rotation. It "
@@ -9720,37 +9720,37 @@ msgid ""
 "<b>Homography</b>."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5652
+#: src/gui/uifiles/siril.ui:5651
 msgid "Shift"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5653
+#: src/gui/uifiles/siril.ui:5652
 msgid "Similarity"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5654
+#: src/gui/uifiles/siril.ui:5653
 msgid "Affine"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5655
+#: src/gui/uifiles/siril.ui:5654
 msgid "Homography"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5669
+#: src/gui/uifiles/siril.ui:5668
 #, fuzzy
 msgid "Transformation:"
 msgstr "Wykonuje transformację"
 
-#: src/gui/uifiles/siril.ui:5681
+#: src/gui/uifiles/siril.ui:5680
 msgid "Hit this button for star detection settings"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5699
+#: src/gui/uifiles/siril.ui:5698
 #, fuzzy
 msgid "2pass registration"
 msgstr "Ręczna rejestracja"
 
-#: src/gui/uifiles/siril.ui:5703
+#: src/gui/uifiles/siril.ui:5702
 msgid ""
 "When this box is checked, the transformed images are not saved as a newly "
 "registered sequence. The transformation matrices are saved to the sequence "
@@ -9762,12 +9762,12 @@ msgid ""
 "and immediately applied using the output registration options selected below."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5727
+#: src/gui/uifiles/siril.ui:5726
 #, fuzzy
 msgid "Undistortion:"
 msgstr "nieznany obraz"
 
-#: src/gui/uifiles/siril.ui:5738
+#: src/gui/uifiles/siril.ui:5737
 msgid ""
 "To correct images for distortions, you can either select:\n"
 "- distortion solution from current platesolved image\n"
@@ -9775,124 +9775,124 @@ msgid ""
 "- distortion solution from distortions masters"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5745
+#: src/gui/uifiles/siril.ui:5744
 #, fuzzy
 msgid "From image"
 msgstr "Obsługiwane typy plików:"
 
-#: src/gui/uifiles/siril.ui:5746
+#: src/gui/uifiles/siril.ui:5745
 #, fuzzy
 msgid "From FITS/WCS file"
 msgstr "Obsługiwane typy plików:"
 
-#: src/gui/uifiles/siril.ui:5747
+#: src/gui/uifiles/siril.ui:5746
 #, fuzzy
 msgid "From distortion masters"
 msgstr "Przetwarzanie normalizacji…\n"
 
-#: src/gui/uifiles/siril.ui:5764
+#: src/gui/uifiles/siril.ui:5763
 msgid ""
 "Select a file to read distortion information from:\n"
 "- a FITS file which has been platesolved with distortion.\n"
 "- a wcs file which was written by a previous registration with distortions."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5873 src/gui/uifiles/siril.ui:5887
-#: src/gui/uifiles/siril.ui:6021
+#: src/gui/uifiles/siril.ui:5872 src/gui/uifiles/siril.ui:5886
+#: src/gui/uifiles/siril.ui:6020
 msgid "Comet velocity in pixel per hour."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5875
+#: src/gui/uifiles/siril.ui:5874
 #, fuzzy
 msgid "Velocity: "
 msgstr "Jakość: "
 
-#: src/gui/uifiles/siril.ui:5906
+#: src/gui/uifiles/siril.ui:5905
 msgid "Pick object in #1"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5910
+#: src/gui/uifiles/siril.ui:5909
 msgid ""
 "Select an area around the asteroid or the comet core in the first selected "
 "image, then click on this button. The pixel coordinates of the object will "
 "be computed and displayed."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5920
+#: src/gui/uifiles/siril.ui:5919
 msgid "Pick object in #2"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5924
+#: src/gui/uifiles/siril.ui:5923
 msgid ""
 "Select an area around the asteroid or the comet core in the last selected "
 "image, then click on this button. The pixel coordinates of the object will "
 "be computed and displayed."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:5936
+#: src/gui/uifiles/siril.ui:5935
 #, fuzzy
 msgid "Core X-coordinates of the first image."
 msgstr "współrzędna x początku wyboru tła"
 
-#: src/gui/uifiles/siril.ui:5952
+#: src/gui/uifiles/siril.ui:5951
 #, fuzzy
 msgid "Core X-coordinates of the second image."
 msgstr "współrzędna x początku wyboru tła"
 
-#: src/gui/uifiles/siril.ui:5968
+#: src/gui/uifiles/siril.ui:5967
 #, fuzzy
 msgid "Core Y-coordinates of the first image."
 msgstr "współrzędna x początku wyboru tła"
 
-#: src/gui/uifiles/siril.ui:5983
+#: src/gui/uifiles/siril.ui:5982
 #, fuzzy
 msgid "Core Y-coordinates of the second image."
 msgstr "współrzędna x początku wyboru tła"
 
-#: src/gui/uifiles/siril.ui:6023
+#: src/gui/uifiles/siril.ui:6022
 #, fuzzy
 msgid "Prefix: "
 msgstr "Prefiks:"
 
-#: src/gui/uifiles/siril.ui:6034
+#: src/gui/uifiles/siril.ui:6033
 #, fuzzy
 msgid ""
 "Prefix of the sequence resulting from the registration. Only the seq file is "
 "created, not new images."
 msgstr "Przedrostek nazw obrazów powstałych w wyniku rejestracji."
 
-#: src/gui/uifiles/siril.ui:6090
+#: src/gui/uifiles/siril.ui:6089
 #, fuzzy
 msgid "Pick 1st star"
 msgstr "Wybierz gwiazdę"
 
-#: src/gui/uifiles/siril.ui:6108
+#: src/gui/uifiles/siril.ui:6107
 #, fuzzy
 msgid "Pick 2nd star"
 msgstr "Wybierz gwiazdę"
 
-#: src/gui/uifiles/siril.ui:6123
+#: src/gui/uifiles/siril.ui:6122
 #, fuzzy
 msgid "Pick 3rd star"
 msgstr "Wybierz gwiazdę"
 
-#: src/gui/uifiles/siril.ui:6147
+#: src/gui/uifiles/siril.ui:6146
 msgid "Star #1:"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6158
+#: src/gui/uifiles/siril.ui:6157
 msgid "Star #2:"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6169
+#: src/gui/uifiles/siril.ui:6168
 msgid "Star #3:"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6240
+#: src/gui/uifiles/siril.ui:6239
 msgid "Follow star movement"
 msgstr "Obserwuj ruch gwiazdy"
 
-#: src/gui/uifiles/siril.ui:6244
+#: src/gui/uifiles/siril.ui:6243
 #, fuzzy
 msgid ""
 "Use this option to use the position of the star(s) found in the previous "
@@ -9909,19 +9909,19 @@ msgstr ""
 "OSTRZEŻENIE: włączenie tej opcji wymaga działania tylko na jednym rdzeniu "
 "procesora."
 
-#: src/gui/uifiles/siril.ui:6258
+#: src/gui/uifiles/siril.ui:6257
 #, fuzzy
 msgid "Shift only"
 msgstr "Pozycja gwiazdy na osi X"
 
-#: src/gui/uifiles/siril.ui:6262
+#: src/gui/uifiles/siril.ui:6261
 msgid ""
 "Use this option to compute only shifts (so no rotation) even if more than "
 "one star is selected. When only one star is selected, this is activated by "
 "default."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6315
+#: src/gui/uifiles/siril.ui:6314
 msgid ""
 "Indicate relative distance (in percentage vs total image size) over which to "
 "look for the alignment pattern.\n"
@@ -9933,31 +9933,31 @@ msgid ""
 "faster computations."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6337
+#: src/gui/uifiles/siril.ui:6336
 msgid "Size of alignment region(%):"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6381
+#: src/gui/uifiles/siril.ui:6380
 #, fuzzy
 msgid "Registration method:"
 msgstr "Wybierz metodę rejestracji:"
 
-#: src/gui/uifiles/siril.ui:6414
+#: src/gui/uifiles/siril.ui:6413
 msgid "Register all images from sequence"
 msgstr "Zarejestruj wszystkie obrazy z sekwencji"
 
-#: src/gui/uifiles/siril.ui:6415
+#: src/gui/uifiles/siril.ui:6414
 msgid "Register selected images only"
 msgstr "Zarejestruj tylko wybrane obrazy"
 
-#: src/gui/uifiles/siril.ui:6436
+#: src/gui/uifiles/siril.ui:6435
 #, fuzzy
 msgid "Registering 0 images of the 0 of the sequence"
 msgstr ""
 "Stackowanie wszystkich obrazów w sekwencji (%d)\n"
 "\n"
 
-#: src/gui/uifiles/siril.ui:6454
+#: src/gui/uifiles/siril.ui:6453
 msgid ""
 "Select the set of images to be registered:\n"
 "\n"
@@ -9985,87 +9985,87 @@ msgid ""
 "registrations)"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6473 src/gui/uifiles/siril.ui:6602
-#: src/gui/uifiles/siril.ui:6742 src/gui/uifiles/siril.ui:8733
-#: src/gui/uifiles/siril.ui:8862 src/gui/uifiles/siril.ui:9002
+#: src/gui/uifiles/siril.ui:6472 src/gui/uifiles/siril.ui:6601
+#: src/gui/uifiles/siril.ui:6741 src/gui/uifiles/siril.ui:8732
+#: src/gui/uifiles/siril.ui:8861 src/gui/uifiles/siril.ui:9001
 msgid "all"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6474 src/gui/uifiles/siril.ui:6603
-#: src/gui/uifiles/siril.ui:6743 src/gui/uifiles/siril.ui:8734
-#: src/gui/uifiles/siril.ui:8863 src/gui/uifiles/siril.ui:9003
+#: src/gui/uifiles/siril.ui:6473 src/gui/uifiles/siril.ui:6602
+#: src/gui/uifiles/siril.ui:6742 src/gui/uifiles/siril.ui:8733
+#: src/gui/uifiles/siril.ui:8862 src/gui/uifiles/siril.ui:9002
 #, fuzzy
 msgid "selected"
 msgstr "Wybrany obszar"
 
-#: src/gui/uifiles/siril.ui:6475 src/gui/uifiles/siril.ui:6604
-#: src/gui/uifiles/siril.ui:6744 src/gui/uifiles/siril.ui:7844
-#: src/gui/uifiles/siril.ui:7881 src/gui/uifiles/siril.ui:8735
-#: src/gui/uifiles/siril.ui:8864 src/gui/uifiles/siril.ui:9004
+#: src/gui/uifiles/siril.ui:6474 src/gui/uifiles/siril.ui:6603
+#: src/gui/uifiles/siril.ui:6743 src/gui/uifiles/siril.ui:7843
+#: src/gui/uifiles/siril.ui:7880 src/gui/uifiles/siril.ui:8734
+#: src/gui/uifiles/siril.ui:8863 src/gui/uifiles/siril.ui:9003
 #: src/gui/plot.c:115 src/gui/plot.c:126 src/gui/sequence_list.c:504
 #: src/gui/sequence_list.c:525 src/gui/sequence_list.c:535
 #: src/gui/sequence_list.c:559
 msgid "FWHM"
 msgstr "FWHM"
 
+#: src/gui/uifiles/siril.ui:6475 src/gui/uifiles/siril.ui:6604
+#: src/gui/uifiles/siril.ui:6744 src/gui/uifiles/siril.ui:8735
+#: src/gui/uifiles/siril.ui:8864 src/gui/uifiles/siril.ui:9004
+msgid "weighted FWHM"
+msgstr ""
+
 #: src/gui/uifiles/siril.ui:6476 src/gui/uifiles/siril.ui:6605
 #: src/gui/uifiles/siril.ui:6745 src/gui/uifiles/siril.ui:8736
 #: src/gui/uifiles/siril.ui:8865 src/gui/uifiles/siril.ui:9005
-msgid "weighted FWHM"
-msgstr ""
+#, fuzzy
+msgid "roundness"
+msgstr "Okrągłość"
 
 #: src/gui/uifiles/siril.ui:6477 src/gui/uifiles/siril.ui:6606
 #: src/gui/uifiles/siril.ui:6746 src/gui/uifiles/siril.ui:8737
 #: src/gui/uifiles/siril.ui:8866 src/gui/uifiles/siril.ui:9006
 #, fuzzy
-msgid "roundness"
-msgstr "Okrągłość"
+msgid "background"
+msgstr "Tło"
 
 #: src/gui/uifiles/siril.ui:6478 src/gui/uifiles/siril.ui:6607
 #: src/gui/uifiles/siril.ui:6747 src/gui/uifiles/siril.ui:8738
 #: src/gui/uifiles/siril.ui:8867 src/gui/uifiles/siril.ui:9007
 #, fuzzy
-msgid "background"
-msgstr "Tło"
+msgid "nb stars"
+msgstr "Liczba warstw: "
 
 #: src/gui/uifiles/siril.ui:6479 src/gui/uifiles/siril.ui:6608
 #: src/gui/uifiles/siril.ui:6748 src/gui/uifiles/siril.ui:8739
 #: src/gui/uifiles/siril.ui:8868 src/gui/uifiles/siril.ui:9008
-#, fuzzy
-msgid "nb stars"
-msgstr "Liczba warstw: "
-
-#: src/gui/uifiles/siril.ui:6480 src/gui/uifiles/siril.ui:6609
-#: src/gui/uifiles/siril.ui:6749 src/gui/uifiles/siril.ui:8740
-#: src/gui/uifiles/siril.ui:8869 src/gui/uifiles/siril.ui:9009
 msgid "quality"
 msgstr "jakość"
 
-#: src/gui/uifiles/siril.ui:6494 src/gui/uifiles/siril.ui:6622
-#: src/gui/uifiles/siril.ui:6762 src/gui/uifiles/siril.ui:8754
-#: src/gui/uifiles/siril.ui:8882 src/gui/uifiles/siril.ui:9022
+#: src/gui/uifiles/siril.ui:6493 src/gui/uifiles/siril.ui:6621
+#: src/gui/uifiles/siril.ui:6761 src/gui/uifiles/siril.ui:8753
+#: src/gui/uifiles/siril.ui:8881 src/gui/uifiles/siril.ui:9021
 #: src/gui/registration.c:96 src/gui/stacking.c:47
 #, fuzzy
 msgid "Percents of the images of the sequence."
 msgstr "wszystkie obrazy sekwencji"
 
-#: src/gui/uifiles/siril.ui:6522 src/gui/uifiles/siril.ui:6650
-#: src/gui/uifiles/siril.ui:6790 src/gui/uifiles/siril.ui:8782
-#: src/gui/uifiles/siril.ui:8910 src/gui/uifiles/siril.ui:9050
+#: src/gui/uifiles/siril.ui:6521 src/gui/uifiles/siril.ui:6649
+#: src/gui/uifiles/siril.ui:6789 src/gui/uifiles/siril.ui:8781
+#: src/gui/uifiles/siril.ui:8909 src/gui/uifiles/siril.ui:9049
 msgid ""
 "Choose between % and k-σ to keep given percentage of images or to compute "
 "the allowable threshold using k-σ clipping."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6553 src/gui/uifiles/siril.ui:6680
-#: src/gui/uifiles/siril.ui:8813 src/gui/uifiles/siril.ui:8940
+#: src/gui/uifiles/siril.ui:6552 src/gui/uifiles/siril.ui:6679
+#: src/gui/uifiles/siril.ui:8812 src/gui/uifiles/siril.ui:8939
 #, fuzzy
 msgid "Add another filter"
 msgstr "Faza obrazu: "
 
-#: src/gui/uifiles/siril.ui:6583 src/gui/uifiles/siril.ui:6723
-#: src/gui/uifiles/siril.ui:8714 src/gui/uifiles/siril.ui:8843
-#: src/gui/uifiles/siril.ui:8983
+#: src/gui/uifiles/siril.ui:6582 src/gui/uifiles/siril.ui:6722
+#: src/gui/uifiles/siril.ui:8713 src/gui/uifiles/siril.ui:8842
+#: src/gui/uifiles/siril.ui:8982
 msgid ""
 "Select the set of images to be stacked:\n"
 "\n"
@@ -10093,18 +10093,18 @@ msgid ""
 "registrations)"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6696 src/gui/uifiles/siril.ui:6823
-#: src/gui/uifiles/siril.ui:8956 src/gui/uifiles/siril.ui:9083
+#: src/gui/uifiles/siril.ui:6695 src/gui/uifiles/siril.ui:6822
+#: src/gui/uifiles/siril.ui:8955 src/gui/uifiles/siril.ui:9082
 #, fuzzy
 msgid "Remove this filter"
 msgstr "Usuń wybrane pliki"
 
-#: src/gui/uifiles/siril.ui:6855
+#: src/gui/uifiles/siril.ui:6854
 #, fuzzy
 msgid "Image selection:"
 msgstr "Brak wyboru"
 
-#: src/gui/uifiles/siril.ui:6908
+#: src/gui/uifiles/siril.ui:6907
 msgid ""
 "Specifies the framing method to be used:\n"
 "- \"current\" uses the current reference image\n"
@@ -10116,60 +10116,60 @@ msgid ""
 "of gravity (cog) of all the images"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6917
+#: src/gui/uifiles/siril.ui:6916
 #, fuzzy
 msgid "current"
 msgstr "aktualny plik czerwony"
 
-#: src/gui/uifiles/siril.ui:6918
+#: src/gui/uifiles/siril.ui:6917
 #, fuzzy
 msgid "maximum"
 msgstr "Maska maksymalna"
 
-#: src/gui/uifiles/siril.ui:6919
+#: src/gui/uifiles/siril.ui:6918
 #, fuzzy
 msgid "minimum"
 msgstr "Maska maksymalna"
 
-#: src/gui/uifiles/siril.ui:6920
+#: src/gui/uifiles/siril.ui:6919
 msgid "center of gravity"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6935
+#: src/gui/uifiles/siril.ui:6934
 #, fuzzy
 msgid "Framing method"
 msgstr "Wybierz metodę rejestracji:"
 
-#: src/gui/uifiles/siril.ui:6948
+#: src/gui/uifiles/siril.ui:6947
 msgid "Estimates the final size and space used by the stacked image."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:6992
+#: src/gui/uifiles/siril.ui:6991
 msgid "Scaling:"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7005
+#: src/gui/uifiles/siril.ui:7004
 msgid ""
 "Scaling of the output images. Use Estimate button to determine the final "
 "image size."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7042
+#: src/gui/uifiles/siril.ui:7041
 msgid ""
 "Choose whether to use an interpolation algorithm or Drizzle to apply "
 "registration"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7070
+#: src/gui/uifiles/siril.ui:7069
 msgid "Algorithm: "
 msgstr "Algorytm: "
 
-#: src/gui/uifiles/siril.ui:7081
+#: src/gui/uifiles/siril.ui:7080
 #, fuzzy
 msgid "Set the interpolation algorithm"
 msgstr "Kalibracja kolorów..."
 
-#: src/gui/uifiles/siril.ui:7106
+#: src/gui/uifiles/siril.ui:7105
 msgid ""
 "Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms\n"
 "\n"
@@ -10183,16 +10183,16 @@ msgid ""
 "prevents negative interpolated values and ringing artifacts for most images."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7125
+#: src/gui/uifiles/siril.ui:7124
 #, fuzzy
 msgid "Use interpolation"
 msgstr "Interpolacja debayer: "
 
-#: src/gui/uifiles/siril.ui:7138
+#: src/gui/uifiles/siril.ui:7137
 msgid "Include master flat in initial pixel weighting"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7142
+#: src/gui/uifiles/siril.ui:7141
 msgid ""
 "Check this to include the master flat in the initial pixel weighting. This "
 "will result in pixels from less vignetted areas of input frames being "
@@ -10202,75 +10202,75 @@ msgid ""
 "The master flat must be set in the Calibration tab."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7158
+#: src/gui/uifiles/siril.ui:7157
 msgid "Droplet Model"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7170
+#: src/gui/uifiles/siril.ui:7169
 #, fuzzy
 msgid "Pixel Fraction"
 msgstr "Stosunek obszaru pikseli"
 
-#: src/gui/uifiles/siril.ui:7181
+#: src/gui/uifiles/siril.ui:7180
 msgid ""
 "Select the droplet model. See the documentation for details\n"
 "Note that the Gaussian and Lanczos models do not conserve flux and should "
 "not be used f you wish to use the output for accurate photometry."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7185
+#: src/gui/uifiles/siril.ui:7184
 #, fuzzy
 msgid "Square"
 msgstr "Kwadratowy"
 
-#: src/gui/uifiles/siril.ui:7187
+#: src/gui/uifiles/siril.ui:7186
 msgid "Point"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7188
+#: src/gui/uifiles/siril.ui:7187
 msgid "Turbo"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7189
+#: src/gui/uifiles/siril.ui:7188
 #, fuzzy
 msgid "Lanczos2"
 msgstr "Lanczos4"
 
-#: src/gui/uifiles/siril.ui:7190
+#: src/gui/uifiles/siril.ui:7189
 #, fuzzy
 msgid "Lanczos3"
 msgstr "Lanczos4"
 
-#: src/gui/uifiles/siril.ui:7202
+#: src/gui/uifiles/siril.ui:7201
 msgid ""
 "Sets the droplet size as a fraction of the input pixel size. Typically a "
 "good value for this is the reciprocal of the drizzle scale."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7222
+#: src/gui/uifiles/siril.ui:7221
 #, fuzzy
 msgid "Use drizzle"
 msgstr "Użyj dark"
 
-#: src/gui/uifiles/siril.ui:7242
+#: src/gui/uifiles/siril.ui:7241
 msgid "Prefix:"
 msgstr "Prefiks:"
 
-#: src/gui/uifiles/siril.ui:7256
+#: src/gui/uifiles/siril.ui:7255
 msgid "Prefix of the image names resulting from the registration."
 msgstr "Przedrostek nazw obrazów powstałych w wyniku rejestracji."
 
-#: src/gui/uifiles/siril.ui:7286
+#: src/gui/uifiles/siril.ui:7285
 #, fuzzy
 msgid "Output registration:"
 msgstr "Ręczna rejestracja"
 
-#: src/gui/uifiles/siril.ui:7301
+#: src/gui/uifiles/siril.ui:7300
 #, fuzzy
 msgid "Go register"
 msgstr "Rejestracja: przetwarzanie obrazu  %s\n"
 
-#: src/gui/uifiles/siril.ui:7306
+#: src/gui/uifiles/siril.ui:7305
 msgid ""
 "Start the registration process. It will register images in the loaded "
 "sequence using the selected method and reference layer (loaded in the 'Image "
@@ -10281,21 +10281,21 @@ msgstr ""
 "zakładce \"Kolejność obrazów\", obecna nazwa sekwencji znajduje się również "
 "w dolnej części okna)."
 
-#: src/gui/uifiles/siril.ui:7325
+#: src/gui/uifiles/siril.ui:7324
 #, fuzzy
 msgid "Load a sequence first"
 msgstr "Najpierw wczytaj sekwencję."
 
-#: src/gui/uifiles/siril.ui:7342
+#: src/gui/uifiles/siril.ui:7341
 #, fuzzy
 msgid "Automatic image registration"
 msgstr "Rejestracja obrazu"
 
-#: src/gui/uifiles/siril.ui:7377
+#: src/gui/uifiles/siril.ui:7376
 msgid "Display reference image"
 msgstr "Wyświetl obraz referencyjny"
 
-#: src/gui/uifiles/siril.ui:7382
+#: src/gui/uifiles/siril.ui:7381
 msgid ""
 "Display the reference image over the current image using a 50% "
 "transparency.\n"
@@ -10307,12 +10307,12 @@ msgstr ""
 "Aby włączyć, obraz referencyjny musiał zostać ustawiony i wyświetlony na "
 "wybranej warstwie rejestracji."
 
-#: src/gui/uifiles/siril.ui:7397
+#: src/gui/uifiles/siril.ui:7396
 #, fuzzy
 msgid "Set reference image first"
 msgstr "Najpierw ustaw obraz referencyjny."
 
-#: src/gui/uifiles/siril.ui:7426
+#: src/gui/uifiles/siril.ui:7425
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the X axis."
@@ -10320,12 +10320,12 @@ msgstr ""
 "Zmień tę wartość za pomocą kółka myszy lub strzałek w górę i w dół, aby "
 "wyrównać obraz z obrazem odniesienia na osi X."
 
-#: src/gui/uifiles/siril.ui:7427
+#: src/gui/uifiles/siril.ui:7426
 #, fuzzy
 msgid "X translation:"
 msgstr "X"
 
-#: src/gui/uifiles/siril.ui:7462
+#: src/gui/uifiles/siril.ui:7461
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the Y axis."
@@ -10333,16 +10333,16 @@ msgstr ""
 "Zmień tę wartość za pomocą kółka myszy lub strzałek w górę i w dół, aby "
 "wyrównać obraz z obrazem odniesienia na osi Y."
 
-#: src/gui/uifiles/siril.ui:7463
+#: src/gui/uifiles/siril.ui:7462
 #, fuzzy
 msgid "Y translation:"
 msgstr "Tylko tłumaczenie"
 
-#: src/gui/uifiles/siril.ui:7522
+#: src/gui/uifiles/siril.ui:7521
 msgid "Set first preview"
 msgstr "Ustaw pierwszy podgląd"
 
-#: src/gui/uifiles/siril.ui:7526 src/gui/uifiles/siril.ui:7568
+#: src/gui/uifiles/siril.ui:7525 src/gui/uifiles/siril.ui:7567
 msgid ""
 "Allows a preview area to be displayed just below. After clicking on this "
 "button, click on the image to position the preview area's centre"
@@ -10350,15 +10350,15 @@ msgstr ""
 "Umożliwia wyświetlenie poniżej obszaru podglądu. Po kliknięciu tego "
 "przycisku, kliknij na obraz, aby ustawić środek obszaru podglądu"
 
-#: src/gui/uifiles/siril.ui:7564
+#: src/gui/uifiles/siril.ui:7563
 msgid "Set second preview"
 msgstr "Ustaw drugi podgląd"
 
-#: src/gui/uifiles/siril.ui:7612 src/compositing/compositing.c:1985
+#: src/gui/uifiles/siril.ui:7611 src/compositing/compositing.c:1985
 msgid "Manual registration"
 msgstr "Ręczna rejestracja"
 
-#: src/gui/uifiles/siril.ui:7638
+#: src/gui/uifiles/siril.ui:7637
 msgid ""
 "Registration is basically aligning the images from a sequence to be able to "
 "process them afterwards."
@@ -10366,16 +10366,16 @@ msgstr ""
 "Rejestracja polega na wyrównaniu obrazów z sekwencji, aby móc je później "
 "przetwarzać."
 
-#: src/gui/uifiles/siril.ui:7700
+#: src/gui/uifiles/siril.ui:7699
 msgid "Modify x-axis units, or y-axis units if available."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7712
+#: src/gui/uifiles/siril.ui:7711
 #, fuzzy
 msgid "Display"
 msgstr "_Przetwarzanie obrazu"
 
-#: src/gui/uifiles/siril.ui:7747
+#: src/gui/uifiles/siril.ui:7746
 msgid ""
 "Purple curve: actual plot as configured with X and Y selectors.\n"
 "Green curve: sorted values by order of decreasing quality.\n"
@@ -10383,97 +10383,97 @@ msgid ""
 "Cross marker: the value for the currently loaded frame."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7751
+#: src/gui/uifiles/siril.ui:7750
 msgid "Hovering for the legend"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7770
+#: src/gui/uifiles/siril.ui:7769
 msgid ""
 "This button opens a CSV export of the data, or a screenshot of the plot."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7830
+#: src/gui/uifiles/siril.ui:7829
 #, fuzzy
 msgid "X:"
 msgstr "X"
 
-#: src/gui/uifiles/siril.ui:7845 src/gui/uifiles/siril.ui:7882
+#: src/gui/uifiles/siril.ui:7844 src/gui/uifiles/siril.ui:7881
 #: src/gui/plot.c:116 src/gui/plot.c:127 src/gui/sequence_list.c:510
 #: src/gui/sequence_list.c:532
 msgid "Roundness"
 msgstr "Okrągłość"
 
-#: src/gui/uifiles/siril.ui:7846 src/gui/uifiles/siril.ui:7883
+#: src/gui/uifiles/siril.ui:7845 src/gui/uifiles/siril.ui:7882
 #: src/gui/plot.c:128 src/gui/sequence_list.c:507
 #, fuzzy
 msgid "wFWHM"
 msgstr "FWHM"
 
-#: src/gui/uifiles/siril.ui:7847 src/gui/uifiles/siril.ui:7884
+#: src/gui/uifiles/siril.ui:7846 src/gui/uifiles/siril.ui:7883
 #: src/gui/plot.c:119 src/gui/plot.c:129 src/gui/sequence_list.c:516
 #: src/gui/sequence_list.c:544
 msgid "Background"
 msgstr "Tło"
 
-#: src/gui/uifiles/siril.ui:7848 src/gui/uifiles/siril.ui:7885
+#: src/gui/uifiles/siril.ui:7847 src/gui/uifiles/siril.ui:7884
 #: src/gui/plot.c:130
 msgid "# Stars"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7849 src/gui/uifiles/siril.ui:7887
+#: src/gui/uifiles/siril.ui:7848 src/gui/uifiles/siril.ui:7886
 #: src/gui/plot.c:120 src/gui/plot.c:131 src/gui/sequence_list.c:547
 #, fuzzy
 msgid "X Position"
 msgstr "Pozycja X"
 
-#: src/gui/uifiles/siril.ui:7850 src/gui/uifiles/siril.ui:7888
+#: src/gui/uifiles/siril.ui:7849 src/gui/uifiles/siril.ui:7887
 #: src/gui/plot.c:121 src/gui/plot.c:132 src/gui/sequence_list.c:550
 #, fuzzy
 msgid "Y Position"
 msgstr "Pozycja Y"
 
-#: src/gui/uifiles/siril.ui:7852 src/gui/plot.c:134
+#: src/gui/uifiles/siril.ui:7851 src/gui/plot.c:134
 #, fuzzy
 msgid "Frame"
 msgstr "Klatki"
 
-#: src/gui/uifiles/siril.ui:7866
+#: src/gui/uifiles/siril.ui:7865
 #, fuzzy
 msgid "Y:"
 msgstr "Y"
 
-#: src/gui/uifiles/siril.ui:7878
+#: src/gui/uifiles/siril.ui:7877
 msgid "Select which information to display from photometry data."
 msgstr "Wybierz informacje do wyświetlenia z danych fotometrycznych."
 
-#: src/gui/uifiles/siril.ui:7915
+#: src/gui/uifiles/siril.ui:7914
 msgid "Select the source of graph information."
 msgstr "Wybierz źródło informacji o wykresie."
 
-#: src/gui/uifiles/siril.ui:7918
+#: src/gui/uifiles/siril.ui:7917
 #, fuzzy
 msgid "Registration data"
 msgstr "Wybierz metodę rejestracji:"
 
-#: src/gui/uifiles/siril.ui:7919
+#: src/gui/uifiles/siril.ui:7918
 #, fuzzy
 msgid "Photometry data"
 msgstr "Fotometria"
 
-#: src/gui/uifiles/siril.ui:7934
+#: src/gui/uifiles/siril.ui:7933
 msgid "Deletes photometric plots displayed in the graphics area."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:7946
+#: src/gui/uifiles/siril.ui:7945
 #, fuzzy
 msgid "Clear plots"
 msgstr "Wyczyść ostatnie"
 
-#: src/gui/uifiles/siril.ui:7997
+#: src/gui/uifiles/siril.ui:7996
 msgid "Show all relevant graphs using registration and / or photometry data."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8051
+#: src/gui/uifiles/siril.ui:8050
 #, fuzzy
 msgid ""
 "<b>Sum</b>: This is the simplest method.\n"
@@ -10538,35 +10538,35 @@ msgstr ""
 "Piksele obrazu są zastępowane pikselami o tych samych współrzędnych, jeśli "
 "intensywność jest mniejsza."
 
-#: src/gui/uifiles/siril.ui:8076 src/stacking/sum.c:270
+#: src/gui/uifiles/siril.ui:8075 src/stacking/sum.c:270
 msgid "Sum stacking"
 msgstr "Stackowanie sumacyjne"
 
-#: src/gui/uifiles/siril.ui:8077
+#: src/gui/uifiles/siril.ui:8076
 msgid "Average stacking with rejection"
 msgstr "Stackowanie średnie z odrzuceniem"
 
-#: src/gui/uifiles/siril.ui:8078
+#: src/gui/uifiles/siril.ui:8077
 #, fuzzy
 msgid "Median stacking"
 msgstr "mediana"
 
-#: src/gui/uifiles/siril.ui:8079
+#: src/gui/uifiles/siril.ui:8078
 #, fuzzy
 msgid "Pixel maximum stacking"
 msgstr "Rozmiar pixela X (micron): "
 
-#: src/gui/uifiles/siril.ui:8080
+#: src/gui/uifiles/siril.ui:8079
 #, fuzzy
 msgid "Pixel minimum stacking"
 msgstr "Rozmiar pixela X (micron): "
 
-#: src/gui/uifiles/siril.ui:8091
+#: src/gui/uifiles/siril.ui:8090
 #, fuzzy
 msgid "Method:"
 msgstr "Metody stackowania:"
 
-#: src/gui/uifiles/siril.ui:8126
+#: src/gui/uifiles/siril.ui:8125
 msgid ""
 "If one of these items is selected, a normalisation process will be applied "
 "to all input images before stacking.\n"
@@ -10586,30 +10586,30 @@ msgid ""
 "b>"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8135
+#: src/gui/uifiles/siril.ui:8134
 msgid "No normalisation"
 msgstr "Brak normalizacji"
 
-#: src/gui/uifiles/siril.ui:8136
+#: src/gui/uifiles/siril.ui:8135
 #, fuzzy
 msgid "Additive"
 msgstr "Maska addytywna"
 
-#: src/gui/uifiles/siril.ui:8138
+#: src/gui/uifiles/siril.ui:8137
 #, fuzzy
 msgid "Additive with scaling"
 msgstr "Maska addytywna"
 
-#: src/gui/uifiles/siril.ui:8139
+#: src/gui/uifiles/siril.ui:8138
 msgid "Multiplicative with scaling"
 msgstr "Multiplikatywne ze skalowaniem"
 
-#: src/gui/uifiles/siril.ui:8151
+#: src/gui/uifiles/siril.ui:8150
 #, fuzzy
 msgid "Recompute"
 msgstr "To obliczy syntetyczne tło."
 
-#: src/gui/uifiles/siril.ui:8155
+#: src/gui/uifiles/siril.ui:8154
 #, fuzzy
 msgid ""
 "By default, Siril takes the normalisation coefficients from seq file if "
@@ -10620,12 +10620,12 @@ msgstr ""
 "zostale już wyliczone. Jednak możesz zmusić Sirila, aby przeliczył go przed "
 "ułożeniem w stos."
 
-#: src/gui/uifiles/siril.ui:8168
+#: src/gui/uifiles/siril.ui:8167
 #, fuzzy
 msgid "Faster normalisation"
 msgstr "Brak normalizacji"
 
-#: src/gui/uifiles/siril.ui:8172
+#: src/gui/uifiles/siril.ui:8171
 msgid ""
 "By default, Siril uses IKSS estimators of location and scale to compute "
 "normalisation. For long sequences, computing these estimators can be quite "
@@ -10635,21 +10635,21 @@ msgid ""
 "normalization at all."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8191
+#: src/gui/uifiles/siril.ui:8190
 msgid "Normalisation:"
 msgstr "Normalizacja:"
 
-#: src/gui/uifiles/siril.ui:8282 src/gui/stacking.c:360
+#: src/gui/uifiles/siril.ui:8281 src/gui/stacking.c:360
 #, fuzzy
 msgid "Sigma low: "
 msgstr "Sigma:"
 
-#: src/gui/uifiles/siril.ui:8316 src/gui/stacking.c:361
+#: src/gui/uifiles/siril.ui:8315 src/gui/stacking.c:361
 #, fuzzy
 msgid "Sigma high: "
 msgstr "Sigma:"
 
-#: src/gui/uifiles/siril.ui:8327
+#: src/gui/uifiles/siril.ui:8326
 msgid ""
 "Seven rejection algorithms are available:\n"
 "\n"
@@ -10689,45 +10689,45 @@ msgid ""
 "Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8348
+#: src/gui/uifiles/siril.ui:8347
 msgid "No rejection"
 msgstr "Bez odrzucenia"
 
-#: src/gui/uifiles/siril.ui:8349
+#: src/gui/uifiles/siril.ui:8348
 #, fuzzy
 msgid "Percentile Clipping"
 msgstr "Przycinanie cieni"
 
-#: src/gui/uifiles/siril.ui:8350
+#: src/gui/uifiles/siril.ui:8349
 #, fuzzy
 msgid "Sigma Clipping"
 msgstr "Przycinanie cieni"
 
-#: src/gui/uifiles/siril.ui:8351 src/stacking/stacking.c:197
+#: src/gui/uifiles/siril.ui:8350 src/stacking/stacking.c:197
 #, fuzzy
 msgid "MAD clipping"
 msgstr "Przycinanie cieni"
 
-#: src/gui/uifiles/siril.ui:8352
+#: src/gui/uifiles/siril.ui:8351
 #, fuzzy
 msgid "Median Sigma Clipping"
 msgstr "Przycinanie cieni"
 
-#: src/gui/uifiles/siril.ui:8353
+#: src/gui/uifiles/siril.ui:8352
 #, fuzzy
 msgid "Winsorized Sigma Clipping"
 msgstr "Przycinanie cieni"
 
-#: src/gui/uifiles/siril.ui:8354
+#: src/gui/uifiles/siril.ui:8353
 #, fuzzy
 msgid "Linear Fit Clipping"
 msgstr ".fit"
 
-#: src/gui/uifiles/siril.ui:8355
+#: src/gui/uifiles/siril.ui:8354
 msgid "Generalized Extreme Studentized Deviate Test"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8368
+#: src/gui/uifiles/siril.ui:8367
 msgid ""
 "Four methods of weighting are available:\n"
 "\n"
@@ -10743,71 +10743,71 @@ msgid ""
 "time."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8381 src/gui/plot.c:1672 src/gui/plot.c:1700
+#: src/gui/uifiles/siril.ui:8380 src/gui/plot.c:1672 src/gui/plot.c:1700
 #, fuzzy
 msgid "Number of stars"
 msgstr "Liczba warstw: "
 
-#: src/gui/uifiles/siril.ui:8382
+#: src/gui/uifiles/siril.ui:8381
 msgid "Weighted FWHM"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8383
+#: src/gui/uifiles/siril.ui:8382
 #, fuzzy
 msgid "Noise"
 msgstr "Pamięć: Niedostępna"
 
-#: src/gui/uifiles/siril.ui:8384
+#: src/gui/uifiles/siril.ui:8383
 #, fuzzy
 msgid "Number of images"
 msgstr "Liczba warstw: "
 
-#: src/gui/uifiles/siril.ui:8398
+#: src/gui/uifiles/siril.ui:8397
 msgid "Weighting:"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8413
+#: src/gui/uifiles/siril.ui:8412
 #, fuzzy
 msgid "Create rejection maps"
 msgstr "Bez odrzucenia"
 
-#: src/gui/uifiles/siril.ui:8417
+#: src/gui/uifiles/siril.ui:8416
 msgid ""
 "Compute and create rejection maps during stacking. These are images showing "
 "how many images were rejected for each pixel of the result image, divided by "
 "the number of stacked images."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8429
+#: src/gui/uifiles/siril.ui:8428
 msgid "Merge L+H"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8434
+#: src/gui/uifiles/siril.ui:8433
 msgid ""
 "Create only one rejection map that will be the sum of the low and high maps"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8465
+#: src/gui/uifiles/siril.ui:8464
 #, fuzzy
 msgid "Pixel rejection:"
 msgstr "Stosunek obszaru pikseli"
 
-#: src/gui/uifiles/siril.ui:8594
+#: src/gui/uifiles/siril.ui:8593
 msgid "Borders feathering [pix]:"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8605
+#: src/gui/uifiles/siril.ui:8604
 msgid ""
 "Select here the number of pixels that will be faded out on the borders of "
 "each image."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:8637
+#: src/gui/uifiles/siril.ui:8636
 #, fuzzy
 msgid "Normalization on overlaps"
 msgstr "Normalizacja nie powiodła się."
 
-#: src/gui/uifiles/siril.ui:8641
+#: src/gui/uifiles/siril.ui:8640
 #, fuzzy
 msgid ""
 "By default, Siril computes the normalisation coefficients from each image. "
@@ -10817,33 +10817,33 @@ msgstr ""
 "zostale już wyliczone. Jednak możesz zmusić Sirila, aby przeliczył go przed "
 "ułożeniem w stos."
 
-#: src/gui/uifiles/siril.ui:8660
+#: src/gui/uifiles/siril.ui:8659
 #, fuzzy
 msgid "Stack stitching:"
 msgstr "Stackowanie najlepszych:"
 
-#: src/gui/uifiles/siril.ui:8696
+#: src/gui/uifiles/siril.ui:8695
 #, fuzzy
 msgid "Stacking 0 images of the 0 of the sequence"
 msgstr ""
 "Stackowanie wszystkich obrazów w sekwencji (%d)\n"
 "\n"
 
-#: src/gui/uifiles/siril.ui:9110
+#: src/gui/uifiles/siril.ui:9109
 #, fuzzy
 msgid "Image rejection:"
 msgstr "Bez odrzucenia"
 
-#: src/gui/uifiles/siril.ui:9129
+#: src/gui/uifiles/siril.ui:9128
 msgid "Sequence stacking"
 msgstr "Sekwencja stackowania"
 
-#: src/gui/uifiles/siril.ui:9163
+#: src/gui/uifiles/siril.ui:9162
 #, fuzzy
 msgid "Output Normalisation"
 msgstr "Normalizacja:"
 
-#: src/gui/uifiles/siril.ui:9166
+#: src/gui/uifiles/siril.ui:9165
 msgid ""
 "If you check this button, the final image will be normalized in the [0, 1] "
 "range if you work in 32-bit format precision, or clipped in [0, 65535] "
@@ -10853,12 +10853,12 @@ msgid ""
 "WARNING: This option should not be checked for master stacking."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9179
+#: src/gui/uifiles/siril.ui:9178
 #, fuzzy
 msgid "RGB equalization"
 msgstr "Neutralizacja tła"
 
-#: src/gui/uifiles/siril.ui:9182
+#: src/gui/uifiles/siril.ui:9181
 msgid ""
 "If you check this button, the channels in the final image will be equalized "
 "(color images only).\n"
@@ -10866,68 +10866,68 @@ msgid ""
 "WARNING: This option should not be checked for master stacking."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9195
+#: src/gui/uifiles/siril.ui:9194
 msgid "Maximize framing"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9198
+#: src/gui/uifiles/siril.ui:9197
 msgid ""
 "If you check this button, the final image size will be enlarged to fit all "
 "the selected frames of the sequence."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9210
+#: src/gui/uifiles/siril.ui:9209
 #, fuzzy
 msgid "Interpolation upscaling x2"
 msgstr "Interpolacja"
 
-#: src/gui/uifiles/siril.ui:9213
+#: src/gui/uifiles/siril.ui:9212
 msgid ""
 "If you check this button, the final image size will be upscaled by a factor "
 "of 2. This can be faster than real drizzle images obtained during "
 "registration but will not produced images as sharp."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9224
+#: src/gui/uifiles/siril.ui:9223
 msgid "Force 32b output"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9228
+#: src/gui/uifiles/siril.ui:9227
 msgid ""
 "If you check this button, the final image bitdepth will be forced to 32b "
 "even if the input images are in 16b."
 msgstr ""
 
 #. Must be short
-#: src/gui/uifiles/siril.ui:9257
+#: src/gui/uifiles/siril.ui:9256
 #, fuzzy
 msgid "Save in:"
 msgstr "Zapisz plik"
 
-#: src/gui/uifiles/siril.ui:9281
+#: src/gui/uifiles/siril.ui:9280
 msgid "Overwrite"
 msgstr "Nadpisz"
 
-#: src/gui/uifiles/siril.ui:9285
+#: src/gui/uifiles/siril.ui:9284
 msgid "Overwrite file without notice if it already exists."
 msgstr "Nadpisz plik bez powiadomienia, jeśli już istnieje."
 
-#: src/gui/uifiles/siril.ui:9305
+#: src/gui/uifiles/siril.ui:9304
 msgid "Start stacking"
 msgstr "Rozpocznij stackowanie"
 
-#: src/gui/uifiles/siril.ui:9310
+#: src/gui/uifiles/siril.ui:9309
 msgid ""
 "Start stacking the current sequence of images, using the method and other "
 "information provided above."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9330
+#: src/gui/uifiles/siril.ui:9329
 #, fuzzy
 msgid "Stacking result"
 msgstr "Zapisz wynik do pliku:"
 
-#: src/gui/uifiles/siril.ui:9356
+#: src/gui/uifiles/siril.ui:9355
 msgid ""
 "Stacking of images, either summing, median, mean with rejection or pixel "
 "minimum/maximum."
@@ -10935,7 +10935,7 @@ msgstr ""
 "Stackowanie obrazów, albo sumowanie, mediana, średnia z odrzuceniem lub "
 "piksel minimum/maksimum."
 
-#: src/gui/uifiles/siril.ui:9394
+#: src/gui/uifiles/siril.ui:9393
 msgid ""
 "Siril output window, displays messages about what has been done and in "
 "response to command inputs."
@@ -10943,97 +10943,97 @@ msgstr ""
 "Okno wyjściowe Siril, wyświetla komunikaty o tym, co zostało zrobione oraz w "
 "odpowiedzi na dane wejściowe polecenia."
 
-#: src/gui/uifiles/siril.ui:9455
+#: src/gui/uifiles/siril.ui:9454
 #, fuzzy
 msgid "Export the log"
 msgstr "Eksport do pliku CSV"
 
-#: src/gui/uifiles/siril.ui:9469 src/gui/progress_and_log.c:285
+#: src/gui/uifiles/siril.ui:9468 src/gui/progress_and_log.c:285
 #, fuzzy
 msgid "Clear the log"
 msgstr "Wyczyść ostatnie"
 
-#: src/gui/uifiles/siril.ui:9506
+#: src/gui/uifiles/siril.ui:9505
 msgid "This tab shows the Siril logs."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9509
+#: src/gui/uifiles/siril.ui:9508
 #, fuzzy
 msgid "Console"
 msgstr "<b>Konsola</b>"
 
-#: src/gui/uifiles/siril.ui:9546
+#: src/gui/uifiles/siril.ui:9545
 #, fuzzy
 msgid ""
 "Input command. Typing \"help\" here will bring the list of supported "
 "commands."
 msgstr "Wpisz 'pomoc' dla listy obsługiwanych poleceń"
 
-#: src/gui/uifiles/siril.ui:9549
+#: src/gui/uifiles/siril.ui:9548
 #, fuzzy
 msgid "Type \"help\" for the list of supported commands"
 msgstr "Wpisz 'pomoc' dla listy obsługiwanych poleceń"
 
-#: src/gui/uifiles/siril.ui:9564
+#: src/gui/uifiles/siril.ui:9563
 msgid "Displays manual of the command written in the console."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9576
+#: src/gui/uifiles/siril.ui:9575
 msgid "Stop"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9580
+#: src/gui/uifiles/siril.ui:9579
 msgid "Stop running processes"
 msgstr "Zatrzymaj uruchomione procesy"
 
-#: src/gui/uifiles/siril.ui:9605
+#: src/gui/uifiles/siril.ui:9604
 msgid "Command line"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9623 src/gui/progress_and_log.c:45
+#: src/gui/uifiles/siril.ui:9622 src/gui/progress_and_log.c:45
 msgid "Ready."
 msgstr "Gotowy."
 
-#: src/gui/uifiles/siril.ui:9656
+#: src/gui/uifiles/siril.ui:9655
 msgid "Hide the control panel to show only the image panel (toggle)."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9701
+#: src/gui/uifiles/siril.ui:9700
 msgid "Click to Set the name of the item to clipboard (green-ed label)"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:9702
+#: src/gui/uifiles/siril.ui:9701
 msgid "Sequence:"
 msgstr "Sekwencja:"
 
-#: src/gui/uifiles/siril.ui:9756
+#: src/gui/uifiles/siril.ui:9755
 #, fuzzy
 msgid "Image validation tools"
 msgstr "Rejestracja obrazu"
 
-#: src/gui/uifiles/siril.ui:9830
+#: src/gui/uifiles/siril.ui:9829
 #, fuzzy
 msgid "High value"
 msgstr "Wartość tła"
 
-#: src/gui/uifiles/siril.ui:9889
+#: src/gui/uifiles/siril.ui:9888
 #, fuzzy
 msgid "Low value"
 msgstr "Wartość tła"
 
-#: src/gui/uifiles/siril.ui:9939
+#: src/gui/uifiles/siril.ui:9938
 msgid "Min/Max"
 msgstr "Min/Max"
 
-#: src/gui/uifiles/siril.ui:9956
+#: src/gui/uifiles/siril.ui:9955
 msgid "MIPS-LO/HI"
 msgstr "MIPS-LO/HI"
 
-#: src/gui/uifiles/siril.ui:9973
+#: src/gui/uifiles/siril.ui:9972
 msgid "User"
 msgstr "Użytkownik"
 
-#: src/gui/uifiles/siril.ui:10017
+#: src/gui/uifiles/siril.ui:10016
 msgid ""
 "Display mode: this list presents all the visual modes available in Siril.\n"
 "\n"
@@ -11043,137 +11043,137 @@ msgid ""
 "tool.</b>"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10067
+#: src/gui/uifiles/siril.ui:10066
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
 "Current state: linked."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10093
+#: src/gui/uifiles/siril.ui:10092
 msgid "Switch to normal and negative view"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10110
+#: src/gui/uifiles/siril.ui:10109
 msgid "Switch to normal and rainbow colormap (false color rendering)"
 msgstr ""
 "Przełącz na normalną i tęczową mapę kolorów (fałszywe renderowanie kolorów)"
 
-#: src/gui/uifiles/siril.ui:10136
+#: src/gui/uifiles/siril.ui:10135
 msgid ""
 "Left-click to show object names if WCS information is available. Right-click "
 "to display a list of astro catalogs to choose from."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10151
+#: src/gui/uifiles/siril.ui:10150
 msgid "Show celestial grid if WCS information is available"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10165
+#: src/gui/uifiles/siril.ui:10164
 msgid ""
 "Switch to PSF/photometry mode. If a sequence is loaded, a right click on the "
 "displayed image applies the PSF/Photometry on the whole sequence."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10179
+#: src/gui/uifiles/siril.ui:10178
 msgid ""
 "Make an intensity profile cut, showing a graph of the pixel value along a "
 "line between two points"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10203
+#: src/gui/uifiles/siril.ui:10202
 #, fuzzy
 msgid "Shrink the image"
 msgstr "Utwórz trzy obrazy"
 
-#: src/gui/uifiles/siril.ui:10217
+#: src/gui/uifiles/siril.ui:10216
 #, fuzzy
 msgid "Enlarge the image"
 msgstr "Utwórz trzy obrazy"
 
-#: src/gui/uifiles/siril.ui:10231
+#: src/gui/uifiles/siril.ui:10230
 msgid "Fit the image to the window"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10248
+#: src/gui/uifiles/siril.ui:10247
 msgid "Show the image at its normal size"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10309
+#: src/gui/uifiles/siril.ui:10308
 msgid "Horizontal mirror"
 msgstr "Lustro w poziomie"
 
-#: src/gui/uifiles/siril.ui:10326
+#: src/gui/uifiles/siril.ui:10325
 msgid "Vertical mirror"
 msgstr "Lustro pionowe"
 
-#: src/gui/uifiles/siril.ui:10395 src/gui/single_image.c:75
+#: src/gui/uifiles/siril.ui:10394 src/gui/single_image.c:75
 #, fuzzy
 msgid "Open"
 msgstr "_Otwórz"
 
-#: src/gui/uifiles/siril.ui:10400
+#: src/gui/uifiles/siril.ui:10399
 #, fuzzy
 msgid "Open an image or a SER/AVI sequence"
 msgstr "Nie można załadować obrazu %d z sekwencji %s\n"
 
-#: src/gui/uifiles/siril.ui:10416
+#: src/gui/uifiles/siril.ui:10415
 msgid "Open recent images (only FITS and SER files)"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10440
+#: src/gui/uifiles/siril.ui:10439
 msgid "Change current working directory"
 msgstr "Zmień bieżący katalog roboczy"
 
-#: src/gui/uifiles/siril.ui:10464
+#: src/gui/uifiles/siril.ui:10463
 #, fuzzy
 msgid "Start livestacking session"
 msgstr "Rozpocznij stackowanie"
 
-#: src/gui/uifiles/siril.ui:10540
+#: src/gui/uifiles/siril.ui:10539
 msgid ""
 "Menu of the image processing tools. It contains all suitable functions for "
 "image enhancement."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10551
+#: src/gui/uifiles/siril.ui:10550
 #, fuzzy
 msgid "Image Processing"
 msgstr "_Przetwarzanie obrazu"
 
-#: src/gui/uifiles/siril.ui:10587
+#: src/gui/uifiles/siril.ui:10586
 msgid ""
 "Siril tools menu. It contains all the functions required for image analysis."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10598
+#: src/gui/uifiles/siril.ui:10597
 msgid "Tools"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10633
+#: src/gui/uifiles/siril.ui:10632
 msgid ""
 "Menu of the script files. This menu appears only when the script paths "
 "defined in the preferences are set to the existing script folders."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10703
+#: src/gui/uifiles/siril.ui:10702
 msgid "Bit-depth select button"
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10757
+#: src/gui/uifiles/siril.ui:10756
 #, fuzzy
 msgid "Save the current FITS image"
 msgstr "Utwórz trzy obrazy"
 
-#: src/gui/uifiles/siril.ui:10772
+#: src/gui/uifiles/siril.ui:10771
 #, fuzzy
 msgid "Save the current image in a different name"
 msgstr "Próbujesz dodać obraz o różnej wielkości w SER\n"
 
-#: src/gui/uifiles/siril.ui:10794
+#: src/gui/uifiles/siril.ui:10793
 msgid "Take a snapshot of your displayed image."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:10846
+#: src/gui/uifiles/siril.ui:10845
 msgid ""
 "Set number of threads manually.\n"
 "WARNING: Reducing the number of allowed processors too much will degrade "
@@ -11182,11 +11182,11 @@ msgstr ""
 "Ustaw ręcznie liczbę wątków.\n"
 "OSTRZEŻENIE: zbyt mała liczba dozwolonych procesorów pogorszy wydajność."
 
-#: src/gui/uifiles/siril.ui:10881
+#: src/gui/uifiles/siril.ui:10880
 msgid "Displays the amount of used RAM memory by Siril."
 msgstr "Wyświetla ilość wykorzystanej pamięci RAM przez Siril."
 
-#: src/gui/uifiles/siril.ui:10902
+#: src/gui/uifiles/siril.ui:10901
 msgid ""
 "Displays the amount of disk space available on the file system containing "
 "the working directory."
@@ -11195,7 +11195,7 @@ msgstr ""
 "katalog roboczy."
 
 #. Must be short !!
-#: src/gui/uifiles/siril.ui:10904
+#: src/gui/uifiles/siril.ui:10903
 msgctxt "GUI"
 msgid "Disk Space: N/A"
 msgstr "Miejsce na dysku: N/A"
@@ -11885,126 +11885,132 @@ msgid "Open application menu"
 msgstr "Kalibracja kolorów"
 
 #: src/gui/siril-shortcuts.ui:156
+#, fuzzy
+msgctxt "shortcut window"
+msgid "Show statistics"
+msgstr "Statystyki"
+
+#: src/gui/siril-shortcuts.ui:163
 msgctxt "shortcut window"
 msgid "Open dynamic PSF window"
 msgstr ""
 
-#: src/gui/siril-shortcuts.ui:163
+#: src/gui/siril-shortcuts.ui:170
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Change working directory"
 msgstr "Zmień bieżący katalog roboczy"
 
-#: src/gui/siril-shortcuts.ui:170
+#: src/gui/siril-shortcuts.ui:177
 msgctxt "shortcut window"
 msgid "Open plate solver dialog"
 msgstr ""
 
-#: src/gui/siril-shortcuts.ui:177
+#: src/gui/siril-shortcuts.ui:184
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Open photometric color calibration dialog"
 msgstr "Kalibracja kolorów..."
 
-#: src/gui/siril-shortcuts.ui:184
+#: src/gui/siril-shortcuts.ui:191
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Open spectrophotometric color calibration dialog"
 msgstr "Kalibracja kolorów..."
 
-#: src/gui/siril-shortcuts.ui:191
+#: src/gui/siril-shortcuts.ui:198
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Open comparison stars dialog"
 msgstr "Usuń wybrane pliki"
 
-#: src/gui/siril-shortcuts.ui:198
+#: src/gui/siril-shortcuts.ui:205
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Open light curve dialog"
 msgstr "Zamknij okno."
 
-#: src/gui/siril-shortcuts.ui:205
+#: src/gui/siril-shortcuts.ui:212
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Open dialog for annotations"
 msgstr "Dopasuj gwiazdy w selekcji"
 
-#: src/gui/siril-shortcuts.ui:212
+#: src/gui/siril-shortcuts.ui:219
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Pick the star within the selection"
 msgstr "Dopasuj gwiazdy w selekcji"
 
-#: src/gui/siril-shortcuts.ui:219
+#: src/gui/siril-shortcuts.ui:226
 msgctxt "shortcut window"
 msgid "Copy snapshot to clipboard"
 msgstr ""
 
-#: src/gui/siril-shortcuts.ui:226
+#: src/gui/siril-shortcuts.ui:233
 msgctxt "shortcut window"
 msgid "Toggle On/Off registration framing"
 msgstr ""
 
-#: src/gui/siril-shortcuts.ui:234
+#: src/gui/siril-shortcuts.ui:241
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Windows and Application"
 msgstr "Kalibracja kolorów"
 
-#: src/gui/siril-shortcuts.ui:239
+#: src/gui/siril-shortcuts.ui:246
 msgctxt "shortcut window"
 msgid "Fullscreen on / off"
 msgstr ""
 
-#: src/gui/siril-shortcuts.ui:246
+#: src/gui/siril-shortcuts.ui:253
 msgctxt "shortcut window"
 msgid "Hide / Show toolbar"
 msgstr ""
 
-#: src/gui/siril-shortcuts.ui:253
+#: src/gui/siril-shortcuts.ui:260
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Switch to the Conversion page"
 msgstr "Przejście do warstwy rejestracyjnej\n"
 
-#: src/gui/siril-shortcuts.ui:260
+#: src/gui/siril-shortcuts.ui:267
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Switch to the Sequence page"
 msgstr "PFS dla sekwencji"
 
-#: src/gui/siril-shortcuts.ui:267
+#: src/gui/siril-shortcuts.ui:274
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Switch to the Pre-Processing page"
 msgstr "Przejście do warstwy rejestracyjnej\n"
 
-#: src/gui/siril-shortcuts.ui:274
+#: src/gui/siril-shortcuts.ui:281
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Switch to the Registration page"
 msgstr "Przejście do warstwy rejestracyjnej\n"
 
-#: src/gui/siril-shortcuts.ui:281
+#: src/gui/siril-shortcuts.ui:288
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Switch to the Plot page"
 msgstr "Przejście do warstwy rejestracyjnej\n"
 
-#: src/gui/siril-shortcuts.ui:288
+#: src/gui/siril-shortcuts.ui:295
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Switch to the Stacking page"
 msgstr "Przejdź do zakładki stackowania"
 
-#: src/gui/siril-shortcuts.ui:295
+#: src/gui/siril-shortcuts.ui:302
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Switch to the Output logs page"
 msgstr "Przejście do warstwy rejestracyjnej\n"
 
-#: src/gui/siril-shortcuts.ui:302
+#: src/gui/siril-shortcuts.ui:309
 #, fuzzy
 msgctxt "shortcut window"
 msgid "Quit the application"
@@ -12234,7 +12240,7 @@ msgid ""
 "Plate solving image with astrometry.net for a field of view of %.2f degrees\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:884 src/gui/photometric_cc.c:1163
+#: src/algos/astrometry_solver.c:884 src/gui/photometric_cc.c:1168
 msgid "local"
 msgstr ""
 
@@ -12284,7 +12290,7 @@ msgstr ""
 msgid "Plate Solve"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1048 src/gui/callbacks.c:1911
+#: src/algos/astrometry_solver.c:1048 src/gui/callbacks.c:1912
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr ""
@@ -12529,7 +12535,7 @@ msgstr "Błąd podczas odczytu klatki %d z %s, przerwanie.\n"
 #: src/filters/banding.c:220 src/filters/banding.c:303
 #: src/filters/cosmetic_correction.c:206 src/filters/cosmetic_correction.c:634
 #: src/filters/saturation.c:207 src/filters/saturation.c:266
-#: src/gui/histogram.c:1735 src/gui/remixer.c:1320 src/gui/remixer.c:1368
+#: src/gui/histogram.c:1737 src/gui/remixer.c:1320 src/gui/remixer.c:1368
 #: src/gui/statistics_list.c:229
 #, fuzzy
 msgid "Error: statistics computation failed.\n"
@@ -12882,26 +12888,26 @@ msgstr "Błąd otwarcia pliku BMP.\n"
 msgid "Merge CFA"
 msgstr ""
 
-#: src/algos/demosaicing.c:1472 src/gui/merge_cfa.c:349
+#: src/algos/demosaicing.c:1472 src/gui/merge_cfa.c:354
 msgid ""
 "Input files are incompatible (all must be mono with the same size and bit "
 "depth). Aborting...\n"
 msgstr ""
 
-#: src/algos/demosaicing.c:1474 src/gui/merge_cfa.c:351
+#: src/algos/demosaicing.c:1474 src/gui/merge_cfa.c:356
 msgid "X dimensions incompatible\n"
 msgstr ""
 
-#: src/algos/demosaicing.c:1476 src/gui/merge_cfa.c:353
+#: src/algos/demosaicing.c:1476 src/gui/merge_cfa.c:358
 msgid "Y dimensions incompatible\n"
 msgstr ""
 
-#: src/algos/demosaicing.c:1478 src/gui/merge_cfa.c:355
+#: src/algos/demosaicing.c:1478 src/gui/merge_cfa.c:360
 #, fuzzy
 msgid "Channels not all mono\n"
 msgstr "Ekstrakcja kanału"
 
-#: src/algos/demosaicing.c:1480 src/gui/merge_cfa.c:357
+#: src/algos/demosaicing.c:1480 src/gui/merge_cfa.c:362
 msgid "Input files not all the same bit depth\n"
 msgstr ""
 
@@ -13075,7 +13081,7 @@ msgid "Rounding selection to match CFA pattern\n"
 msgstr ""
 
 #: src/algos/geometry.c:703 src/core/command.c:2146
-#: src/gui/menu_gray_geometry.c:350 src/gui/menu_gray_geometry.c:365
+#: src/gui/menu_gray_geometry.c:365 src/gui/menu_gray_geometry.c:380
 #, c-format
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
 msgstr ""
@@ -13847,8 +13853,8 @@ msgstr "Niezapisany wynik kompozycyji"
 msgid "Compositing result image"
 msgstr "Kompozycja obrazu wynikowego"
 
-#: src/compositing/compositing.c:655 src/gui/epf.c:294 src/gui/merge_cfa.c:89
-#: src/gui/merge_cfa.c:103 src/gui/merge_cfa.c:116 src/gui/merge_cfa.c:129
+#: src/compositing/compositing.c:655 src/gui/epf.c:294 src/gui/merge_cfa.c:94
+#: src/gui/merge_cfa.c:108 src/gui/merge_cfa.c:121 src/gui/merge_cfa.c:134
 #: src/gui/remixer.c:1125 src/gui/remixer.c:1214
 #, fuzzy
 msgid "Error: image could not be loaded"
@@ -13936,8 +13942,8 @@ msgid "You must at least load two layers before!\n"
 msgstr "Musisz wczytać wcześniej przynajmniej dwie warstwy !\n"
 
 #: src/compositing/compositing.c:780 src/filters/wavelets.c:258
-#: src/filters/wavelets.c:267 src/filters/wavelets.c:328 src/gui/colors.c:566
-#: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:863
+#: src/filters/wavelets.c:267 src/filters/wavelets.c:328 src/gui/colors.c:571
+#: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:868
 #: src/gui/utils.c:478 src/io/siril_pythoncommands.c:986
 msgid "Warning"
 msgstr "Ostrzeżenie"
@@ -14029,12 +14035,12 @@ msgstr "Sekwencja stackowania: %s\n"
 #: src/core/icc_profile.c:1166 src/core/icc_profile.c:1176
 #: src/core/icc_profile.c:1207 src/filters/fft.c:585 src/filters/fft.c:591
 #: src/filters/fft.c:610 src/gui/PSF_list.c:303 src/gui/PSF_list.c:308
-#: src/gui/PSF_list.c:313 src/gui/colors.c:456 src/gui/compstars.c:224
+#: src/gui/PSF_list.c:313 src/gui/colors.c:461 src/gui/compstars.c:224
 #: src/gui/compstars.c:293 src/gui/compstars.c:301 src/gui/compstars.c:308
-#: src/gui/compstars.c:315 src/gui/dialogs.c:145 src/gui/git_gui.c:200
+#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:200
 #: src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
-#: src/gui/icc_profile.c:543 src/gui/merge_cfa.c:208 src/gui/merge_cfa.c:240
-#: src/gui/merge_cfa.c:251 src/gui/merge_cfa.c:262 src/gui/merge_cfa.c:273
+#: src/gui/icc_profile.c:543 src/gui/merge_cfa.c:213 src/gui/merge_cfa.c:245
+#: src/gui/merge_cfa.c:256 src/gui/merge_cfa.c:267 src/gui/merge_cfa.c:278
 #: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
 #: src/gui/nina_light_curve.c:232 src/gui/nina_light_curve.c:241
 #: src/gui/nina_light_curve.c:279 src/gui/open_dialog.c:378
@@ -14459,12 +14465,12 @@ msgstr ""
 msgid "Error loading files!\n"
 msgstr "Błąd otwarcia pliku BMP.\n"
 
-#: src/core/command.c:973 src/gui/merge_cfa.c:375
+#: src/core/command.c:973 src/gui/merge_cfa.c:380
 #, fuzzy
 msgid "Unsaved Bayer pattern merge"
 msgstr "Wybierz wzór Bayer dla aparatu."
 
-#: src/core/command.c:974 src/gui/merge_cfa.c:376
+#: src/core/command.c:974 src/gui/merge_cfa.c:381
 #, fuzzy
 msgid "Bayer pattern merge"
 msgstr "Wzór Bayer:"
@@ -14943,7 +14949,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:3072 src/core/command.c:3086 src/core/command.c:5426
-#: src/core/command.c:10775 src/pixelMath/pixel_math_runner.c:1279
+#: src/core/command.c:10775 src/pixelMath/pixel_math_runner.c:1278
 #, fuzzy, c-format
 msgid "Could not open file: %s\n"
 msgstr "Nie można otworzyć pliku TIFF %s\n"
@@ -15037,7 +15043,7 @@ msgstr "Błąd podczas odczytu klatki %d z %s, przerwanie.\n"
 msgid "Resampling to %d x %d pixels with %s interpolation\n"
 msgstr ""
 
-#: src/core/command.c:3482 src/core/siril.c:274 src/filters/rgradient.c:233
+#: src/core/command.c:3482 src/core/siril.c:274 src/filters/rgradient.c:238
 #, fuzzy
 msgid "This process cannot be applied to 8b images\n"
 msgstr "Tego polecenia można użyć tylko po załadowaniu sekwencji\n"
@@ -15329,7 +15335,7 @@ msgstr ""
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr ""
 
-#: src/core/command.c:4571 src/gui/callbacks.c:2462
+#: src/core/command.c:4571 src/gui/callbacks.c:2463
 #, fuzzy, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "Uruchamianie PSF w załadowanej sekwencji, warstwa %d\n"
@@ -15598,7 +15604,7 @@ msgid "Selection update finished, %d images are selected in the sequence\n"
 msgstr ""
 "Aktualizacja selekcji zakończona, %d obrazy zostały wybrane w sekwencji\n"
 
-#: src/core/command.c:6156 src/gui/colors.c:390
+#: src/core/command.c:6156 src/gui/colors.c:395
 #, fuzzy
 msgid "Could not copy the input image, aborting.\n"
 msgstr "Nie można otworzyć pliku TIFF %s\n"
@@ -15611,7 +15617,7 @@ msgstr ""
 msgid "Upscaling x2\n"
 msgstr ""
 
-#: src/core/command.c:6586 src/gui/merge_cfa.c:290
+#: src/core/command.c:6586 src/gui/merge_cfa.c:295
 msgid ""
 "Error: sequences don't match (dimensions, bitdepth, number of images must "
 "all be the same)\n"
@@ -17528,7 +17534,7 @@ msgstr ""
 "Ta wartość może być za wysoka. Proszę rozważyć zmianę wartości sigma lub "
 "odznaczenie tego pola."
 
-#: src/core/processing.c:76 src/core/processing.c:1159
+#: src/core/processing.c:76 src/core/processing.c:1170
 #, fuzzy
 msgid "No image selected for processing, aborting\n"
 msgstr ""
@@ -17545,7 +17551,7 @@ msgstr ""
 msgid "Preparing sequence processing failed.\n"
 msgstr "Przygotowanie przetwarzania sekwencji nie powiodło się.\n"
 
-#: src/core/processing.c:141 src/core/processing.c:1182
+#: src/core/processing.c:141 src/core/processing.c:1193
 #, c-format
 msgid "Output index mapping failed (%d/%d).\n"
 msgstr ""
@@ -17608,11 +17614,11 @@ msgstr ""
 msgid "Image %d not found for writing\n"
 msgstr ""
 
-#: src/core/processing.c:1060
+#: src/core/processing.c:1071
 msgid "Process aborted by user\n"
 msgstr "Proces przerwany przez użytkownika\n"
 
-#: src/core/processing.c:1072
+#: src/core/processing.c:1083
 #, c-format
 msgid "Failed to find GPid %d, it may already have exited...\n"
 msgstr ""
@@ -19009,12 +19015,12 @@ msgstr "Transformacja histogramu..."
 msgid "Banding Reducing: processing...\n"
 msgstr "Redukcja Banding: przetwarzanie…\n"
 
-#: src/filters/banding.c:415
+#: src/filters/banding.c:420
 #, fuzzy
 msgid "Canon Banding Reduction (amount=%.2lf)"
 msgstr "Redukcja banding…"
 
-#: src/filters/banding.c:417
+#: src/filters/banding.c:422
 msgid "Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"
 msgstr ""
 
@@ -19177,26 +19183,26 @@ msgstr "Bez odrzucenia"
 msgid "Rotational gradient complete."
 msgstr "Rejestracja zakończona."
 
-#: src/filters/rgradient.c:245
+#: src/filters/rgradient.c:250
 msgid "Wrong center coordinates"
 msgstr ""
 
-#: src/filters/rgradient.c:246
+#: src/filters/rgradient.c:251
 msgid ""
 "The coordinates cannot be greater than the size of the image. Please change "
 "their values and retry."
 msgstr ""
 
-#: src/filters/rgradient.c:251
+#: src/filters/rgradient.c:256
 msgid "RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"
 msgstr ""
 
-#: src/filters/rgradient.c:271
+#: src/filters/rgradient.c:276
 #, fuzzy
 msgid "Center coordinate selection error"
 msgstr "fwhm: brak wyboru"
 
-#: src/filters/rgradient.c:272
+#: src/filters/rgradient.c:277
 #, fuzzy
 msgid "No valid PSF found within selection."
 msgstr "Wysokość wyboru tła"
@@ -19503,7 +19509,7 @@ msgstr "Eksport: nie można odczytać klatki, anulowani\n"
 msgid "Extracting %s..."
 msgstr "Ekstrakcja"
 
-#: src/filters/wavelets.c:222
+#: src/filters/wavelets.c:223
 #, fuzzy
 msgid "Wavelets Transformation"
 msgstr "Transformacja histogramu..."
@@ -19747,17 +19753,17 @@ msgstr "Wstępne przetwarzanie"
 #. APASS
 #. GAIA
 #. Gaia archive
-#: src/gui/astrometry_solver.c:934 src/gui/photometric_cc.c:493
-#: src/gui/photometric_cc.c:496 src/gui/photometric_cc.c:499
-#: src/gui/photometric_cc.c:513
+#: src/gui/astrometry_solver.c:934 src/gui/photometric_cc.c:498
+#: src/gui/photometric_cc.c:501 src/gui/photometric_cc.c:504
+#: src/gui/photometric_cc.c:518
 #, fuzzy
 msgid "(online catalogue)"
 msgstr "Kalibracja kolorów..."
 
 #. NOMAD
 #. Local Gaia xp_sampled
-#: src/gui/astrometry_solver.c:936 src/gui/photometric_cc.c:493
-#: src/gui/photometric_cc.c:516
+#: src/gui/astrometry_solver.c:936 src/gui/photometric_cc.c:498
+#: src/gui/photometric_cc.c:521
 #, fuzzy
 msgid "(local catalogue)"
 msgstr "Kalibracja kolorów..."
@@ -19926,33 +19932,33 @@ msgstr ""
 msgid "B&W"
 msgstr ""
 
-#: src/gui/callbacks.c:1436 src/io/siril_catalogues.c:320
+#: src/gui/callbacks.c:1437 src/io/siril_catalogues.c:320
 #, fuzzy
 msgid "unknown"
 msgstr "Nieznany błąd\n"
 
-#: src/gui/callbacks.c:1476
+#: src/gui/callbacks.c:1477
 #, fuzzy, c-format
 msgid "Binning %d x %d is not supported\n"
 msgstr "Ten binning nie jest jeszcze obsługiwany\n"
 
-#: src/gui/callbacks.c:1651
+#: src/gui/callbacks.c:1652
 msgid ""
 "Siril started in offline mode. Will not attempt to update siril-scripts or "
 "siril-spcc-database...\n"
 msgstr ""
 
-#: src/gui/callbacks.c:1711
+#: src/gui/callbacks.c:1712
 #, c-format
 msgid "Default FITS extension is set to %s\n"
 msgstr ""
 
-#: src/gui/callbacks.c:1734
+#: src/gui/callbacks.c:1735
 #, fuzzy, c-format
 msgid "Welcome to %s"
 msgstr "Witaj w %s v%s\n"
 
-#: src/gui/callbacks.c:1737
+#: src/gui/callbacks.c:1738
 msgid ""
 "Hello, this is the first time you use this new version of Siril. Please, "
 "have a seat and take the time to watch the short introduction we have "
@@ -19960,48 +19966,48 @@ msgid ""
 "the Miscellaneous tab of the preferences dialog box."
 msgstr ""
 
-#: src/gui/callbacks.c:1740
+#: src/gui/callbacks.c:1741
 #, fuzzy
 msgid "See Introduction"
 msgstr "Interpolacja"
 
-#: src/gui/callbacks.c:2004
+#: src/gui/callbacks.c:2005
 #, fuzzy
 msgid "Unsaved script changes"
 msgstr "Zapisz wynik do pliku:"
 
-#: src/gui/callbacks.c:2005
+#: src/gui/callbacks.c:2006
 msgid "There are unsaved changes in the script editor. Quit anyway?"
 msgstr ""
 
-#: src/gui/callbacks.c:2006
+#: src/gui/callbacks.c:2007
 msgid "Quit"
 msgstr ""
 
-#: src/gui/callbacks.c:2015
+#: src/gui/callbacks.c:2016
 #, fuzzy
 msgid "Closing application"
 msgstr "Kalibracja kolorów"
 
-#: src/gui/callbacks.c:2016
+#: src/gui/callbacks.c:2017
 #, fuzzy
 msgid "Are you sure you want to quit?"
 msgstr "Czy na pewno chcesz zakończyć?"
 
-#: src/gui/callbacks.c:2016
+#: src/gui/callbacks.c:2017
 msgid "Exit"
 msgstr ""
 
-#: src/gui/callbacks.c:2176
+#: src/gui/callbacks.c:2177
 #, fuzzy, c-format
 msgid "Selected %s sequence %s..."
 msgstr "Wybrano %s, %d zdjęć"
 
-#: src/gui/callbacks.c:2225
+#: src/gui/callbacks.c:2226
 msgid "Searching for sequences in the current working directory..."
 msgstr "Wyszukiwanie sekwencji w bieżącym katalogu roboczym..."
 
-#: src/gui/callbacks.c:2276
+#: src/gui/callbacks.c:2277
 #, fuzzy
 msgid "This erases the following data, and there's no possible undo:\n"
 msgstr ""
@@ -20009,77 +20015,104 @@ msgstr ""
 "  (to skasuje poprzedni wybór obrazu\n"
 "  ... i nie ma odwrotu)"
 
-#: src/gui/callbacks.c:2277
+#: src/gui/callbacks.c:2278
 #, fuzzy
 msgid ""
 "\n"
 "- Registration"
 msgstr "Rejestracja"
 
-#: src/gui/callbacks.c:2278
+#: src/gui/callbacks.c:2279
 #, fuzzy
 msgid ""
 "\n"
 "- Statistics"
 msgstr "Statystyki"
 
-#: src/gui/callbacks.c:2279
+#: src/gui/callbacks.c:2280
 #, fuzzy
 msgid ""
 "\n"
 "- Selection"
 msgstr "Brak wyboru"
 
-#: src/gui/callbacks.c:2283
+#: src/gui/callbacks.c:2284
 #, fuzzy
 msgid "Clear Sequence Data?"
 msgstr "Sekwencja przycinania..."
 
-#: src/gui/callbacks.c:2283
+#: src/gui/callbacks.c:2284
 #, fuzzy
 msgid "Clear Data"
 msgstr "Wyczyść wszystko"
 
-#: src/gui/callbacks.c:2295
+#: src/gui/callbacks.c:2296
 msgid "The requested data of the sequence has been cleaned."
 msgstr ""
 
-#: src/gui/callbacks.c:2303
+#: src/gui/callbacks.c:2304
 #, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
 "the manually added objects will be deleted. This operation cannot be undone."
 msgstr ""
 
-#: src/gui/callbacks.c:2305
+#: src/gui/callbacks.c:2306
 msgid "SOLAR SYSTEM"
 msgstr ""
 
-#: src/gui/callbacks.c:2305
+#: src/gui/callbacks.c:2306
 msgid "DEEP SKY"
 msgstr ""
 
-#: src/gui/callbacks.c:2307
+#: src/gui/callbacks.c:2308
 #, fuzzy
 msgid "Catalog deletion"
 msgstr "Ręczna rejestracja"
 
-#: src/gui/callbacks.c:2307
+#: src/gui/callbacks.c:2308
 #, fuzzy
 msgid "Purge Catalogue"
 msgstr "Kalibracja kolorów..."
 
+#: src/gui/callbacks.c:2334
+#, fuzzy
+msgid "Select task to stop"
+msgstr "Wybierz obszar do przycięcia"
+
+#: src/gui/callbacks.c:2337 src/gui/dialogs.c:253 src/gui/dialogs.c:262
+#: src/gui/dialogs.c:268 src/gui/keywords_tree.c:508 src/gui/python_gui.c:766
+#: src/gui/python_gui.c:843 src/io/image_formats_libraries.c:2489
+#: src/pixelMath/pixel_math_runner.c:1252
+msgid "_Cancel"
+msgstr "_Anuluj"
+
+#: src/gui/callbacks.c:2338
+#, fuzzy
+msgid "_Stop Process"
+msgstr "Rozpocznij wstępne przetwarzanie"
+
+#: src/gui/callbacks.c:2382
+#, fuzzy
+msgid "Process Name"
+msgstr "Wstępne przetwarzanie"
+
+#: src/gui/callbacks.c:2392
+#, fuzzy
+msgid "Start Time"
+msgstr "Rozpoczęcie stackowania…\n"
+
 #: src/gui/colors.c:52 src/gui/colors.c:138 src/gui/colors.c:171
-#: src/gui/colors.c:257 src/gui/colors.c:268 src/gui/histogram.c:1726
-#: src/gui/photometric_cc.c:436 src/gui/photometric_cc.c:448
-#: src/gui/photometric_cc.c:466 src/gui/remixer.c:1308 src/gui/remixer.c:1356
+#: src/gui/colors.c:257 src/gui/colors.c:268 src/gui/histogram.c:1728
+#: src/gui/photometric_cc.c:441 src/gui/photometric_cc.c:453
+#: src/gui/photometric_cc.c:471 src/gui/remixer.c:1308 src/gui/remixer.c:1356
 #, fuzzy
 msgid "There is no selection"
 msgstr "fwhm: brak wyboru"
 
 #: src/gui/colors.c:53 src/gui/colors.c:139 src/gui/colors.c:258
-#: src/gui/photometric_cc.c:437 src/gui/photometric_cc.c:449
-#: src/gui/photometric_cc.c:467
+#: src/gui/photometric_cc.c:442 src/gui/photometric_cc.c:454
+#: src/gui/photometric_cc.c:472
 #, fuzzy
 msgid "Make a selection of the background area"
 msgstr "Wybierz najpierw obszar tła"
@@ -20100,37 +20133,37 @@ msgstr "Kalibracja kolorów: przetwarzanie…\n"
 
 #. HSL
 #. HSV
-#: src/gui/colors.c:337 src/gui/colors.c:342
+#: src/gui/colors.c:342 src/gui/colors.c:347
 #, fuzzy
 msgid "Hue: "
 msgstr "Odcień koloru:"
 
-#: src/gui/colors.c:338 src/gui/colors.c:343
+#: src/gui/colors.c:343 src/gui/colors.c:348
 #, fuzzy
 msgid "Saturation: "
 msgstr "Iteracje:"
 
-#: src/gui/colors.c:339
+#: src/gui/colors.c:344
 #, fuzzy
 msgid "Lightness: "
 msgstr "Jasność"
 
-#: src/gui/colors.c:344
+#: src/gui/colors.c:349
 #, fuzzy
 msgid "Value: "
 msgstr "Niebieski:"
 
-#: src/gui/colors.c:456 src/gui/cut.c:976
+#: src/gui/colors.c:461 src/gui/cut.c:976
 #, fuzzy
 msgid "No sequence is loaded"
 msgstr "Nie wybrano sekwencji"
 
-#: src/gui/colors.c:460
+#: src/gui/colors.c:465
 #, fuzzy
 msgid "ICC Profile"
 msgstr "Obsługiwane typy plików:"
 
-#: src/gui/colors.c:460
+#: src/gui/colors.c:465
 msgid ""
 "This image has an attached ICC profile. Applying the CCM will invalidate the "
 "ICC profile therefore color management will be disabled. When you have "
@@ -20139,12 +20172,12 @@ msgid ""
 "the bottom of this dialog."
 msgstr ""
 
-#: src/gui/colors.c:467
+#: src/gui/colors.c:472
 #, c-format
 msgid "CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"
 msgstr ""
 
-#: src/gui/colors.c:566
+#: src/gui/colors.c:571
 #, fuzzy
 msgid "This case is not handled yet"
 msgstr "Ten rodzaj wzoru Bayera nie jest jeszcze obsługiwany.\n"
@@ -20673,39 +20706,32 @@ msgstr ""
 msgid "Folder"
 msgstr "faza"
 
-#: src/gui/dialogs.c:145
+#: src/gui/dialogs.c:144
 msgid ""
 "Error: cannot open an image processing dialog while a Python script claims "
 "the processing thread. Wait for the Python script to finish processing first."
 msgstr ""
 
-#: src/gui/dialogs.c:240
+#: src/gui/dialogs.c:249
 #, fuzzy
 msgid "Select Folder"
 msgstr "faza"
 
-#: src/gui/dialogs.c:242
+#: src/gui/dialogs.c:251
 #, fuzzy
 msgid "Open File"
 msgstr "Zapisz plik"
 
-#: src/gui/dialogs.c:244 src/gui/dialogs.c:253 src/gui/dialogs.c:259
-#: src/gui/keywords_tree.c:508 src/gui/python_gui.c:766
-#: src/gui/python_gui.c:843 src/io/image_formats_libraries.c:2489
-#: src/pixelMath/pixel_math_runner.c:1253
-msgid "_Cancel"
-msgstr "_Anuluj"
-
-#: src/gui/dialogs.c:252
+#: src/gui/dialogs.c:261
 #, fuzzy
 msgid "Add Files"
 msgstr "Pliki JPEG"
 
-#: src/gui/dialogs.c:253 src/gui/keywords_tree.c:509
+#: src/gui/dialogs.c:262 src/gui/keywords_tree.c:509
 msgid "_Add"
 msgstr ""
 
-#: src/gui/dialogs.c:258
+#: src/gui/dialogs.c:267
 #, fuzzy
 msgid "Save File"
 msgstr "Zapisz plik"
@@ -20733,8 +20759,8 @@ msgstr ""
 msgid "Error, no guide image loaded."
 msgstr "Nie wybrano sekwencji"
 
-#: src/gui/epf.c:295 src/gui/epf.c:302 src/gui/merge_cfa.c:90
-#: src/gui/merge_cfa.c:104 src/gui/merge_cfa.c:117 src/gui/merge_cfa.c:130
+#: src/gui/epf.c:295 src/gui/epf.c:302 src/gui/merge_cfa.c:95
+#: src/gui/merge_cfa.c:109 src/gui/merge_cfa.c:122 src/gui/merge_cfa.c:135
 #: src/gui/remixer.c:1126 src/gui/remixer.c:1215
 #, fuzzy
 msgid "Image loading failed"
@@ -20778,18 +20804,18 @@ msgid "Error loading script contents: %s\n"
 msgstr "Ładuje plik startowy: '%s'\n"
 
 #: src/gui/histogram.c:149 src/gui/histogram.c:155 src/gui/histogram.c:1156
-#: src/gui/histogram.c:1162 src/gui/histogram.c:1819 src/gui/histogram.c:1836
+#: src/gui/histogram.c:1162 src/gui/histogram.c:1821 src/gui/histogram.c:1838
 #, fuzzy
 msgid "Channels warning"
 msgstr "Ekstrakcja kanału"
 
-#: src/gui/histogram.c:150 src/gui/histogram.c:1157 src/gui/histogram.c:1837
+#: src/gui/histogram.c:150 src/gui/histogram.c:1157 src/gui/histogram.c:1839
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
 msgstr ""
 
-#: src/gui/histogram.c:156 src/gui/histogram.c:1163 src/gui/histogram.c:1820
+#: src/gui/histogram.c:156 src/gui/histogram.c:1163 src/gui/histogram.c:1822
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
@@ -20858,46 +20884,46 @@ msgstr ""
 msgid "GHS LINEAR SAT BP: %.2f"
 msgstr ""
 
-#: src/gui/histogram.c:1382
+#: src/gui/histogram.c:1384
 msgid "Could not compute autostretch parameters, using default values\n"
 msgstr ""
 
-#: src/gui/histogram.c:1403
+#: src/gui/histogram.c:1405
 #, fuzzy
 msgid "Generalised Hyperbolic Stretch Transformations"
 msgstr "Transformacja histogramu..."
 
-#: src/gui/histogram.c:1428 src/gui/histogram.c:1805
+#: src/gui/histogram.c:1430 src/gui/histogram.c:1807
 msgid "Clicking on the histogram sets SP"
 msgstr ""
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1687
+#: src/gui/histogram.c:1689
 msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr ""
 
-#: src/gui/histogram.c:1727 src/gui/remixer.c:1309 src/gui/remixer.c:1357
+#: src/gui/histogram.c:1729 src/gui/remixer.c:1309 src/gui/remixer.c:1357
 #, fuzzy
 msgid "Make a selection of the point or area to set SP"
 msgstr "Wybierz najpierw obszar tła"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1766
+#: src/gui/histogram.c:1768
 msgid ""
 "Highlight preservation point cannot be set lower than stretch focal point\n"
 msgstr ""
 
-#: src/gui/histogram.c:1803
+#: src/gui/histogram.c:1805
 msgid "Clicking on the linear stretch histogram sets BP"
 msgstr ""
 
-#: src/gui/histogram.c:1988
+#: src/gui/histogram.c:1990
 #, fuzzy
 msgid "Midtone Transfer Function"
 msgstr "Wykonuje transformację"
 
-#: src/gui/histogram.c:2022
+#: src/gui/histogram.c:2024
 #, fuzzy
 msgid "Generalised Hyperbolic Transfer Function"
 msgstr "Transformacja histogramu..."
@@ -21081,7 +21107,7 @@ msgid ""
 "sequence. Are you sure?"
 msgstr ""
 
-#: src/gui/linear_match.c:86
+#: src/gui/linear_match.c:91
 msgid "Cannot compute linear coefficients."
 msgstr ""
 
@@ -21105,77 +21131,77 @@ msgstr "Obrót..."
 msgid "Rotation (-90 deg)"
 msgstr "Obrót..."
 
-#: src/gui/menu_gray_geometry.c:156
+#: src/gui/menu_gray_geometry.c:161
 #, fuzzy
 msgid "Mirror X"
 msgstr "Błąd"
 
-#: src/gui/menu_gray_geometry.c:165
+#: src/gui/menu_gray_geometry.c:170
 #, fuzzy
 msgid "Mirror Y"
 msgstr "Błąd"
 
-#: src/gui/menu_gray_geometry.c:187
+#: src/gui/menu_gray_geometry.c:192
 #, fuzzy, c-format
 msgid "Binning x%d (%s)"
 msgstr "Ten binning nie jest jeszcze obsługiwany\n"
 
-#: src/gui/menu_gray_geometry.c:187
+#: src/gui/menu_gray_geometry.c:192
 msgid "average"
 msgstr ""
 
-#: src/gui/menu_gray_geometry.c:187
+#: src/gui/menu_gray_geometry.c:192
 msgid "sum"
 msgstr ""
 
-#: src/gui/menu_gray_geometry.c:218
+#: src/gui/menu_gray_geometry.c:228
 #, c-format
 msgid "Resample (%g - %g)"
 msgstr ""
 
-#: src/gui/menu_gray_geometry.c:354
+#: src/gui/menu_gray_geometry.c:369
 msgid "Image backup is active"
 msgstr ""
 
-#: src/gui/menu_gray_geometry.c:355
+#: src/gui/menu_gray_geometry.c:370
 msgid ""
 "It is impossible to crop the image when the image backup is active. This "
 "occurs when a filter has a live preview active or when a filter with on-"
 "demand ROI preview is open. Please close the filter dialog before cropping."
 msgstr ""
 
-#: src/gui/menu_gray_geometry.c:385
+#: src/gui/menu_gray_geometry.c:400
 msgid ""
 "Crop does not work with avi film. Please, convert your file to SER first.\n"
 msgstr "Przycinanie nie działa z filmem AVI. Skonwertuj swój plik do SER.\n"
 
-#: src/gui/menu_gray_geometry.c:391
+#: src/gui/menu_gray_geometry.c:406
 msgid "Not a valid sequence for cropping.\n"
 msgstr "Niepoprawna sekwencja dla przycinania.\n"
 
-#: src/gui/merge_cfa.c:209
+#: src/gui/merge_cfa.c:214
 #, fuzzy
 msgid "Error: input sequence CFA marker not found"
 msgstr "Nie wybrano sekwencji"
 
-#: src/gui/merge_cfa.c:213
+#: src/gui/merge_cfa.c:218
 #, fuzzy, c-format
 msgid "Identified the loaded sequence as CFA%d\n"
 msgstr "Nie można załadować sekwencji %s\n"
 
-#: src/gui/merge_cfa.c:241 src/gui/merge_cfa.c:252 src/gui/merge_cfa.c:263
-#: src/gui/merge_cfa.c:274
+#: src/gui/merge_cfa.c:246 src/gui/merge_cfa.c:257 src/gui/merge_cfa.c:268
+#: src/gui/merge_cfa.c:279
 msgid ""
 "Error: sequence has more than one channel, this is for mono (CFA subchannel) "
 "sequences"
 msgstr ""
 
-#: src/gui/merge_cfa.c:341
+#: src/gui/merge_cfa.c:346
 #, fuzzy
 msgid "Error: images are not all loaded"
 msgstr "Błąd: brak danych.\n"
 
-#: src/gui/merge_cfa.c:342
+#: src/gui/merge_cfa.c:347
 #, fuzzy
 msgid "Merge CFA cannot proceed"
 msgstr "Kanały..."
@@ -21597,7 +21623,7 @@ msgid "Something went wrong while saving plot"
 msgstr "Coś poszło nie tak podczas zapisywania diagramu"
 
 #: src/gui/open_dialog.c:60 src/gui/registration.c:402
-#: src/pixelMath/pixel_math_runner.c:1257
+#: src/pixelMath/pixel_math_runner.c:1256
 #, fuzzy
 msgid "FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"
 msgstr "Pliki FITS (*.fit, *.fits, *.fts)"
@@ -21632,7 +21658,7 @@ msgid ""
 msgstr ""
 
 #. status page is down
-#: src/gui/photometric_cc.c:95
+#: src/gui/photometric_cc.c:100
 msgid ""
 "The Gaia archive status indicator is not responding. This does not "
 "necessarily mean the Gaia archive is offline, however if it is then SPCC "
@@ -21640,129 +21666,129 @@ msgid ""
 "www.cosmos.esa.int/web/gaia/"
 msgstr ""
 
-#: src/gui/photometric_cc.c:106
+#: src/gui/photometric_cc.c:111
 #, fuzzy
 msgid "Gaia archive available"
 msgstr "Niedostępne"
 
-#: src/gui/photometric_cc.c:111
+#: src/gui/photometric_cc.c:116
 msgid "Gaia archive running but performing slightly slower\n"
 msgstr ""
 
-#: src/gui/photometric_cc.c:116
+#: src/gui/photometric_cc.c:121
 msgid "Gaia archive running but performing very slowly"
 msgstr ""
 
-#: src/gui/photometric_cc.c:122
+#: src/gui/photometric_cc.c:127
 #, fuzzy
 msgid "Gaia archive unavailable"
 msgstr "Niedostępne"
 
-#: src/gui/photometric_cc.c:127
+#: src/gui/photometric_cc.c:132
 msgid "Gaia archive unreachable"
 msgstr ""
 
-#: src/gui/photometric_cc.c:132
+#: src/gui/photometric_cc.c:137
 msgid "Unknown Gaia archive status"
 msgstr ""
 
-#: src/gui/photometric_cc.c:150
+#: src/gui/photometric_cc.c:155
 msgid ""
 "Siril is offline or built without networking. Gaia archive is unavailable.\n"
 msgstr ""
 
-#: src/gui/photometric_cc.c:165
+#: src/gui/photometric_cc.c:170
 msgid ""
 "There is no valid WCS information in the header. Please platesolve first.\n"
 msgstr ""
 
-#: src/gui/photometric_cc.c:173
+#: src/gui/photometric_cc.c:178
 msgid "Using Gaia DR3 for SPCC\n"
 msgstr ""
 
-#: src/gui/photometric_cc.c:269
+#: src/gui/photometric_cc.c:274
 #, fuzzy
 msgid "Photometric Color Calibration"
 msgstr "Kalibracja kolorów..."
 
-#: src/gui/photometric_cc.c:350
+#: src/gui/photometric_cc.c:355
 #, fuzzy
 msgid "Spectrophotometric Color Calibration"
 msgstr "Kalibracja kolorów..."
 
-#: src/gui/photometric_cc.c:367
+#: src/gui/photometric_cc.c:372
 msgid "Airmass read from FITS header AIRMASS card"
 msgstr ""
 
-#: src/gui/photometric_cc.c:370
+#: src/gui/photometric_cc.c:375
 msgid "Airmass computed from FITS header CENTALT card"
 msgstr ""
 
-#: src/gui/photometric_cc.c:373
+#: src/gui/photometric_cc.c:378
 msgid ""
 "No airmass data available or computable. Estimating airmass based on average "
 "observation height of 48.1°"
 msgstr ""
 
-#: src/gui/photometric_cc.c:377
+#: src/gui/photometric_cc.c:382
 msgid "Observer height read from FITS header SITEELEV card"
 msgstr ""
 
-#: src/gui/photometric_cc.c:587
+#: src/gui/photometric_cc.c:592
 msgid ""
 "Error: ensure mono sensor, R, G and B filters and white reference are "
 "selected.\n"
 msgstr ""
 
-#: src/gui/photometric_cc.c:594
+#: src/gui/photometric_cc.c:599
 msgid ""
 "Error: ensure OSC sensor, OSC filter and white reference are selected.\n"
 msgstr ""
 
-#: src/gui/photometric_cc.c:717
+#: src/gui/photometric_cc.c:722
 msgid "one-shot color (OSC)"
 msgstr ""
 
-#: src/gui/photometric_cc.c:863
+#: src/gui/photometric_cc.c:868
 msgid "No selection made: no details to show."
 msgstr ""
 
-#: src/gui/photometric_cc.c:901
+#: src/gui/photometric_cc.c:906
 #, fuzzy
 msgid "SPCC Data"
 msgstr "Wyczyść wszystko"
 
-#: src/gui/photometric_cc.c:902
+#: src/gui/photometric_cc.c:907
 msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
 msgstr ""
 
-#: src/gui/photometric_cc.c:963
+#: src/gui/photometric_cc.c:968
 msgid "Atmosphere model"
 msgstr ""
 
-#: src/gui/photometric_cc.c:985 src/gui/photometric_cc.c:1000
+#: src/gui/photometric_cc.c:990 src/gui/photometric_cc.c:1005
 #, c-format
 msgid "SPCC Data: %s"
 msgstr ""
 
-#: src/gui/photometric_cc.c:987 src/gui/photometric_cc.c:1003
+#: src/gui/photometric_cc.c:992 src/gui/photometric_cc.c:1008
 msgid "Quantum Efficiency"
 msgstr ""
 
-#: src/gui/photometric_cc.c:1003
+#: src/gui/photometric_cc.c:1008
 msgid "Relative photon count"
 msgstr ""
 
-#: src/gui/photometric_cc.c:1003 src/gui/photometric_cc.c:1155
+#: src/gui/photometric_cc.c:1008 src/gui/photometric_cc.c:1160
 msgid "Transmittance"
 msgstr ""
 
-#: src/gui/photometric_cc.c:1152
+#: src/gui/photometric_cc.c:1157
 #, c-format
 msgid "SPCC Data: Atmospheric model"
 msgstr ""
 
-#: src/gui/photometric_cc.c:1163
+#: src/gui/photometric_cc.c:1168
 #, c-format
 msgid ""
 "Atmospheric model\n"
@@ -22568,7 +22594,7 @@ msgstr "Ładuje plik startowy: '%s'\n"
 msgid "Adding core script to menu: %s\n"
 msgstr "Ładuje plik startowy: '%s'\n"
 
-#: src/gui/script_menu.c:496
+#: src/gui/script_menu.c:502
 msgid "Cannot refresh the scripts if the list is empty.\n"
 msgstr ""
 
@@ -26441,96 +26467,96 @@ msgstr "Liniowy"
 msgid "Error in pixel math expression '%s' at character %d\n"
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:964
+#: src/pixelMath/pixel_math_runner.c:963
 #, fuzzy, c-format
 msgid "A maximum of %d images can be used in a single expression.\n"
 msgstr "Tylko obrazy Siril FITS mogą zostać użyte z ich częściowym odczytem.\n"
 
-#: src/pixelMath/pixel_math_runner.c:1055
+#: src/pixelMath/pixel_math_runner.c:1054
 msgid ""
 "ICC profiles are inconsistent. The output color profile will be based on the "
 "first layer to be loaded.\n"
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1059
+#: src/pixelMath/pixel_math_runner.c:1058
 #, c-format
 msgid ""
 "ICC profile of layer %d does not match the first image. Converting it to "
 "match.\n"
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1061
+#: src/pixelMath/pixel_math_runner.c:1060
 msgid ""
 "The first layer loaded had no color profile. All input layers will be "
 "treated as raw data.\n"
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1078
+#: src/pixelMath/pixel_math_runner.c:1077
 #, fuzzy
 msgid "Incompatible parameters"
 msgstr "<b>Prawa autorskie do obrazu</b>"
 
-#: src/pixelMath/pixel_math_runner.c:1079
+#: src/pixelMath/pixel_math_runner.c:1078
 msgid ""
 "3 channel images are incompatible with the \"Use single RGB/K expression\" "
 "unchecked."
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1091
+#: src/pixelMath/pixel_math_runner.c:1090
 msgid "Parameter error"
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1091
+#: src/pixelMath/pixel_math_runner.c:1090
 msgid "Parameter symbols could not be parsed."
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1118
+#: src/pixelMath/pixel_math_runner.c:1117
 #, fuzzy
 msgid "Incorrect formula"
 msgstr "nieznany parametr wiersza poleceń  '%c'\n"
 
-#: src/pixelMath/pixel_math_runner.c:1118
+#: src/pixelMath/pixel_math_runner.c:1117
 #, fuzzy
 msgid "RGB $T cannot be used in this context."
 msgstr "Tego polecenia można użyć tylko po załadowaniu sekwencji\n"
 
-#: src/pixelMath/pixel_math_runner.c:1131
+#: src/pixelMath/pixel_math_runner.c:1130
 #, fuzzy
 msgid "Images have different size"
 msgstr "Próbujesz dodać obraz o różnej wielkości w SER\n"
 
-#: src/pixelMath/pixel_math_runner.c:1132
+#: src/pixelMath/pixel_math_runner.c:1131
 msgid ""
 "The image currently displayed must be the same size as the other images "
 "loaded into PixelMath."
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1140
+#: src/pixelMath/pixel_math_runner.c:1139
 #, fuzzy
 msgid "No images loaded"
 msgstr "Wczytano %d plików"
 
-#: src/pixelMath/pixel_math_runner.c:1140
+#: src/pixelMath/pixel_math_runner.c:1139
 msgid "You must load images first."
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1287
+#: src/pixelMath/pixel_math_runner.c:1286
 #, fuzzy
 msgid "Image must have same dimension"
 msgstr "Gwiazdy muszą mieć te same jednostki."
 
-#: src/pixelMath/pixel_math_runner.c:1356
+#: src/pixelMath/pixel_math_runner.c:1355
 #, fuzzy
 msgid "Cannot load new image"
 msgstr ""
 "Nie można odczytać danych\n"
 "\n"
 
-#: src/pixelMath/pixel_math_runner.c:1357
+#: src/pixelMath/pixel_math_runner.c:1356
 msgid "You've reached the maximum of loaded image file."
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1404
+#: src/pixelMath/pixel_math_runner.c:1403
 #, fuzzy
 msgid "Error evaluating pixelmath expression.\n"
 msgstr "Wstępne przetwarzanie ...\n"

@@ -2331,11 +2331,11 @@ void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
 GPid show_child_process_selection_dialog(GSList *children) {
 	// Create the dialog
 	GtkWidget *dialog = gtk_dialog_new_with_buttons(
-		"Select task to stop",
-		NULL,  // No parent window
+		_("Select task to stop"),
+		GTK_WINDOW(lookup_widget("control_window")),  // No parent window
 		GTK_DIALOG_MODAL,
-		"_Cancel", GTK_RESPONSE_CANCEL,
-		"_Stop Process", GTK_RESPONSE_OK,
+		_("_Cancel"), GTK_RESPONSE_CANCEL,
+		_("_Stop Process"), GTK_RESPONSE_OK,
 		NULL
 	);
 	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_OK);
@@ -2379,7 +2379,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 
 	// Process Name Column
 	column = gtk_tree_view_column_new_with_attributes(
-		"Process Name",
+		_("Process Name"),
 		renderer,
 		"text", 1,
 		NULL
@@ -2389,7 +2389,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 
 	// Start Time Column
 	column = gtk_tree_view_column_new_with_attributes(
-		"Start Time",
+		_("Start Time"),
 		renderer,
 		"text", 2,
 		NULL
