@@ -15,6 +15,18 @@ image: debian:testing
 # at these rule alone).
 workflow:
   rules:
+    # Skip pipeline if only non-paper documentation files are changed
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - "ChangeLog"
+        - "README*"
+        - "*.md"
+        - "docs/**/*"
+      when: never
+    # Allow pipeline when only paper files are changed (for build-paper job)
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - "paper/**/*"
     # run merge request pipelines
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     # do not run branch pipelines if corresponding merge requests exist...
@@ -369,7 +381,14 @@ win64-native-installer:
 ################################################################################
 build-paper:
   rules:
-    *run_ondemand_schedule_tag
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_COMMIT_TAG'
+    # Auto-run when only paper files are changed
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - "paper/**/*"
+    # Manual trigger for other cases
+    - when: manual
   stage: distribution
   image: docker:latest
   services:
