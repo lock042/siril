@@ -4,6 +4,7 @@ xx/xx/25
 **Fixes:**
 * Fixed crash when opening 8-bit XISF file (#1638)
 * Fixed `match stars in selection` option for global registration (#1644)
+* Fixed an issue where image processing dialogs could fail to unblock python scripts when closed.
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
