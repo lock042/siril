@@ -26,7 +26,7 @@ from .filebrowser import FileBrowser
 
 
 def askopenpathname(parent=None, title=_("Open"), **kwargs):
-    """
+    r"""
     Return :obj:`''` or the absolute path of the chosen path (file or directory).
 
     Arguments:
@@ -65,7 +65,7 @@ def askopenpathname(parent=None, title=_("Open"), **kwargs):
 
 
 def askopenpathnames(parent=None, title=_("Open"), **kwargs):
-    """
+    r"""
     Return :obj:`()` or the tuple of the absolute paths of the chosen paths (files and directories)
 
     Arguments:
@@ -107,7 +107,7 @@ def askopenpathnames(parent=None, title=_("Open"), **kwargs):
 
 
 def askopendirname(parent=None, title=_("Open"), **kwargs):
-    """
+    r"""
     Return :obj:`''` or the absolute path of the chosen directory.
 
     Arguments:
@@ -146,7 +146,7 @@ def askopendirname(parent=None, title=_("Open"), **kwargs):
 
 
 def askopendirnames(parent=None, title=_("Open"), **kwargs):
-    """
+    r"""
     Return :obj:`()` or the tuple of the absolute paths of the chosen directories
 
     Arguments:
@@ -188,7 +188,7 @@ def askopendirnames(parent=None, title=_("Open"), **kwargs):
 
 
 def askopenfilename(parent=None, title=_("Open"), **kwargs):
-    """
+    r"""
     Return :obj:`''` or the absolute path of the chosen file
 
     Arguments:
@@ -227,7 +227,7 @@ def askopenfilename(parent=None, title=_("Open"), **kwargs):
 
 
 def askopenfilenames(parent=None, title=_("Open"), **kwargs):
-    """
+    r"""
     Return :obj:`()` or the tuple of the absolute paths of the chosen files
 
     Arguments:
@@ -269,7 +269,7 @@ def askopenfilenames(parent=None, title=_("Open"), **kwargs):
 
 
 def asksaveasfilename(parent=None, title=_("Save As"), **kwargs):
-    """
+    r"""
     Return :obj:`''` or the chosen absolute path (the file might not exist)
 
     Arguments:

@@ -379,6 +379,11 @@ void on_button_ok_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("canon_fixbanding_dialog");
 }
 
+gboolean banding_hide_on_delete(GtkWidget *widget) {
+	on_button_ok_fixbanding_clicked(GTK_BUTTON(widget), NULL);
+	return TRUE;
+}
+
 void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;

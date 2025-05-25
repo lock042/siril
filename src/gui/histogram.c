@@ -1355,6 +1355,8 @@ void apply_histo_cancel() {
 	set_cursor_waiting(TRUE);
 	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
+	siril_close_dialog("histogram_dialog");
+
 }
 
 void on_histoSpinZoom_value_changed(GtkRange *range, gpointer user_data) {

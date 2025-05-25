@@ -643,3 +643,7 @@ void on_button_fft_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("dialog_FFT");
 }
 
+gboolean fft_hide_on_delete(GtkWidget *widget) {
+	on_button_fft_close_clicked(GTK_BUTTON(widget), NULL);
+	return TRUE;
+}

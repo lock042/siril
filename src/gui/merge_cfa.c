@@ -66,6 +66,11 @@ void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("merge_cfa_dialog");
 }
 
+gboolean merge_cfa_hide_on_delete(GtkWidget *widget) {
+	on_merge_cfa_close_clicked(GTK_BUTTON(widget), NULL);
+	return TRUE;
+}
+
 void on_merge_cfa_reset_clicked(GtkButton *button, gpointer user_data) {
 	reset_controls();
 }

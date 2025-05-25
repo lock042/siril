@@ -236,7 +236,12 @@ void apply_background_cancel() {
 }
 
 void on_background_close_button_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("background_extraction_dialog");
+	apply_background_cancel();
+}
+
+gboolean bge_hide_on_delete(GtkWidget *widget) {
+	apply_background_cancel();
+	return TRUE;
 }
 
 void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data) {

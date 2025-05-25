@@ -33,7 +33,7 @@
 #include "core/siril_networking.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
-#include "filters/graxpert.h"
+//#include "core/arithm.h"
 #include "gui/cut.h"
 #include "gui/keywords_tree.h"
 #include "gui/registration.h"
@@ -1358,6 +1358,7 @@ static void load_accels() {
 		"win.pickstar",               "<Primary>space", NULL,
 		"win.dyn-psf",                "<Primary>F6", NULL,
 		"win.clipboard",              "<Primary><Shift>x", NULL,
+		"win.statistics",             "<alt>s", NULL,
 
 		"win.negative-processing",    "<Primary>i", NULL,
 		"win.rotation90-processing",  "<Primary>Right", NULL,
@@ -1575,7 +1576,7 @@ void unlock_script_mutex() {
 gpointer initialize_scripts(gpointer user_data) {
 	g_mutex_lock(&script_mutex);
 	// 1. Initialize the menu (verbose)
-	execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+	execute_idle_and_wait_for_it(call_initialize_script_menu, GINT_TO_POINTER(1));
 	// 2. Update the repository
 	if (com.pref.auto_script_update && is_online()) {
 		auto_update_gitscripts(TRUE);
@@ -1754,8 +1755,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
 	/* populate SPCC combos in a thread */
 	g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
-	/* GraXpert checks, if required */
-	g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));
 	gui_ready = TRUE;
 }
 

@@ -70,7 +70,7 @@ class FileBrowser(tk.Toplevel):
                  multiple_selection=False, defaultext="", title="Filebrowser",
                  filetypes=[], okbuttontext=None, cancelbuttontext=_("Cancel"),
                  foldercreation=True, **kw):
-        """
+        r"""
         Create a filebrowser dialog.
 
         Arguments:
@@ -229,7 +229,7 @@ class FileBrowser(tk.Toplevel):
             for name, exts in filetypes:
                 if name not in self.filetypes:
                     self.filetypes[name] = []
-                self.filetypes[name] = r'%s$' % exts.strip().replace('.', '\.').replace('*', '.*')
+                self.filetypes[name] = r'%s$' % exts.strip().replace('.', r'\.').replace('*', '.*')
             values = list(self.filetypes.keys())
             w = max([len(f) for f in values] + [5])
             b_filetype = ttk.Combobox(self, textvariable=self.filetype,
@@ -850,7 +850,7 @@ class FileBrowser(tk.Toplevel):
             new_ext = self.filetypes[self.filetype.get()]
             if filename and not search(new_ext, filename):
                 old_ext = search(r'\..+$', filename).group()
-                exts = [e[2:].replace('\.', '.') for e in new_ext[:-1].split('|')]
+                exts = [e[2:].replace(r'\.', '.') for e in new_ext[:-1].split('|')]
                 exts = [e for e in exts if search(r'\.[^\*]+$', e)]
                 if exts:
                     filename = filename.replace(old_ext, exts[0])
@@ -913,12 +913,12 @@ class FileBrowser(tk.Toplevel):
                         files.sort(key=lambda n: n.lower())
                         extension = self.filetypes[self.filetype.get()]
                         if extension == r".*$":
-                            l2.extend([i.replace(" ", "\ ") for i in files if i[:len(f)] == f])
+                            l2.extend([i.replace(" ", r"\ ") for i in files if i[:len(f)] == f])
                         else:
                             for i in files:
                                 if search(extension, i) and i[:len(f)] == f:
-                                    l2.append(i.replace(" ", "\ "))
-                    l2.extend([i.replace(" ", "\ ") + "/" for i in dirs if i[:len(f)] == f])
+                                    l2.append(i.replace(" ", r"\ "))
+                    l2.extend([i.replace(" ", r"\ ") + "/" for i in dirs if i[:len(f)] == f])
 
                 except StopIteration:
                     # invalid content

@@ -487,6 +487,12 @@ int initialize_script_menu(gboolean verbose) {
 
 // Called when the specified scripts directories are updated
 
+gboolean call_initialize_script_menu(gpointer data) {
+	gboolean state = (gboolean) GPOINTER_TO_INT(data);
+	initialize_script_menu(state);
+	return FALSE;
+}
+
 int refresh_scripts(gboolean update_list, gchar **error) {
 	gchar *err = NULL;
 	int retval = 0;
@@ -498,7 +504,7 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	} else {
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-		execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+		execute_idle_and_wait_for_it(call_initialize_script_menu, GINT_TO_POINTER(1));
 	}
 
 	if (error) {
@@ -520,17 +526,6 @@ gboolean refresh_script_menu(gpointer user_data) {
 
 gboolean refresh_scripts_menu_in_thread(gpointer data) {
 	execute_idle_and_wait_for_it(refresh_script_menu, data);
-	return FALSE;
-}
-
-static gboolean call_initialize_script_menu(gpointer data) {
-	gboolean state = (gboolean) GPOINTER_TO_INT(data);
-	initialize_script_menu(state);
-	return FALSE;
-}
-
-gboolean initialize_script_menu_in_thread(gpointer data) {
-	execute_idle_and_wait_for_it(call_initialize_script_menu, data);
 	return FALSE;
 }
 
