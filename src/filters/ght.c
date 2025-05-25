@@ -387,6 +387,12 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, float* out, size_t layersize, siz
 					outp[chan][i] = (do_channel[chan]) ? data.sf[chan] : f[chan];
 				}
 				break;
+			case RGBBLEND:
+				rgbblend(&data, &f[0], &f[1], &f[2], m_CB);
+				for (size_t chan = 0 ; chan < 3 ; chan++) {
+					outp[chan][i] = (do_channel[chan]) ? data.sf[chan] : f[chan];
+				}
+				break;
 			case RESCALE:
 				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
 				if (maxval > 1.f) {
@@ -394,12 +400,6 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, float* out, size_t layersize, siz
 					data.sf[1] /= maxval;
 					data.sf[2] /= maxval;
 				}
-				for (size_t chan = 0 ; chan < 3 ; chan++) {
-					outp[chan][i] = (do_channel[chan]) ? data.sf[chan] : f[chan];
-				}
-				break;
-			case RGBBLEND:
-				rgbblend(&data, &f[0], &f[1], &f[2], m_CB);
 				for (size_t chan = 0 ; chan < 3 ; chan++) {
 					outp[chan][i] = (do_channel[chan]) ? data.sf[chan] : f[chan];
 				}
@@ -549,6 +549,12 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 					outp[chan][i] = (do_channel[chan]) ? roundf_to_WORD(USHRT_MAX_SINGLE * data.sf[chan]) : Wpbuf[chan][i];
 				}
 				break;
+			case RGBBLEND:
+				rgbblend(&data, &f[0], &f[1], &f[2], m_CB);
+				outp[0][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[0]);
+				outp[1][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[1]);
+				outp[2][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[2]);
+				break;
 			case RESCALE:
 				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
 				if (maxval > 1.f) {
@@ -559,12 +565,6 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 				for (size_t chan = 0 ; chan < 3 ; chan++) {
 					outp[chan][i] = (do_channel[chan]) ? roundf_to_WORD(USHRT_MAX_SINGLE * data.sf[chan]) : Wpbuf[chan][i];
 				}
-				break;
-			case RGBBLEND:
-				rgbblend(&data, &f[0], &f[1], &f[2], m_CB);
-				outp[0][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[0]);
-				outp[1][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[1]);
-				outp[2][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[2]);
 				break;
 			case RESCALEGLOBAL:
 				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));

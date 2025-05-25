@@ -37,9 +37,7 @@
 #include "core/processing.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
-#include "algos/astrometry_solver.h"
 #include "registration/matching/degtorad.h"
-#include "registration/matching/misc.h"
 #include "local_catalogues.h"
 #include "io/healpix/healpix_cat.h"
 #include <stdio.h>

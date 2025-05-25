@@ -34,7 +34,6 @@ src/gui/uifiles/extract_channel_dialog.ui
 src/gui/uifiles/extract_wavelet_layers_dialog.ui
 src/gui/uifiles/file_information_dialog.ui
 src/gui/uifiles/filefilters.ui
-src/gui/uifiles/graxpert.ui
 src/gui/uifiles/histogram_dialog.ui
 src/gui/uifiles/icc_dialog.ui
 src/gui/uifiles/icc_gamut_dialog.ui
@@ -113,7 +112,6 @@ src/filters/cosmetic_correction.c
 src/filters/epf.c
 src/filters/fft.c
 src/filters/ght.c
-src/filters/graxpert.c
 src/filters/median.c
 src/filters/mtf.c
 src/filters/nlbayes/call_nlbayes.cpp
@@ -141,7 +139,6 @@ src/gui/dialogs.c
 src/gui/documentation.c
 src/gui/epf.c
 src/gui/git_gui.c
-src/gui/graxpert.c
 src/gui/histogram.c
 src/gui/icc_profile.c
 src/gui/image_display.c

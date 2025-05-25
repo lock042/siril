@@ -25,13 +25,11 @@
 #include <gtk/gtk.h>
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
 #include "core/command_line_processor.h"
 #include "algos/PSF.h"
-#include "algos/search_objects.h"
 #include "algos/siril_wcs.h"
 #include "algos/photometric_cc.h"
 #include "io/annotation_catalogues.h"
@@ -41,10 +39,8 @@
 #include "io/local_catalogues.h"
 #include "registration/matching/misc.h"
 #include "gui/image_display.h"
-#include "gui/PSF_list.h"
 #include "gui/utils.h"
 #include "gui/siril_plot.h"
-
 
 static void free_conesearch_params(conesearch_params *params);
 static void free_conesearch_args(conesearch_args *args);
@@ -1510,7 +1506,7 @@ gpointer conesearch_worker(gpointer p) {
 		if (go_idle) {
 			if (spl_data)
 				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
-			siril_add_idle(end_conesearch, temp_cat);
+			execute_idle_and_wait_for_it(end_conesearch, temp_cat);
 		} else {
 			end_generic(NULL);
 		}

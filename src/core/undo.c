@@ -29,7 +29,6 @@
 #include "core/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
-#include "gui/dialogs.h"
 #include "gui/image_display.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
@@ -356,7 +355,6 @@ int undo_display_data(int dir) {
 			unlock_display_transform();
 			refresh_annotations(TRUE);
 			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
-			gui_function(init_right_tab,NULL);
 			redraw(REMAP_ALL);
 			if (preview_was_active) {
 				copy_gfit_to_backup();
@@ -398,7 +396,6 @@ int undo_display_data(int dir) {
 			gui.icc.proofing_transform = NULL;
 			unlock_display_transform();
 			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
-			gui_function(init_right_tab, NULL);
 			redraw(REMAP_ALL);
 			if (preview_was_active)
 				copy_gfit_to_backup();

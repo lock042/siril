@@ -23,7 +23,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "core/icc_profile.h"
@@ -50,7 +49,6 @@
 #include "registration/matching/degtorad.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
-#include "git-version.h"
 
 #include <wcslib.h>
 #include <wcsfix.h>

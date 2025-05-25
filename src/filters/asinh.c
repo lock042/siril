@@ -28,7 +28,6 @@
 #include "core/processing.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
-#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
@@ -39,7 +38,7 @@
 
 static gboolean asinh_rgb_space = FALSE;
 static float asinh_stretch_value = 0.0f, asinh_black_value = 0.0f;
-static clip_mode_t clip_mode = RGBBLEND;
+static clip_mode_t clip_mode = CLIP;
 
 static int asinh_update_preview() {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))))
@@ -315,6 +314,16 @@ static void apply_asinh_changes() {
 void apply_asinh_cancel() {
 	asinh_close(TRUE);
 	siril_close_dialog("asinh_dialog");
+
+}
+
+void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
+	apply_asinh_cancel();
+}
+
+gboolean asinh_hide_on_delete(GtkWidget *widget) {
+	apply_asinh_cancel();
+	return TRUE;
 }
 
 /*** callbacks **/
@@ -344,10 +353,6 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	set_notify_block(FALSE);
 
 	/* default parameters do not transform image, no need to update preview */
-}
-
-void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
-	apply_asinh_cancel();
 }
 
 void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {

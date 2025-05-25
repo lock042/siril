@@ -22,8 +22,6 @@
 #include "core/proto.h"
 #include "core/command.h"
 #include "core/undo.h"
-#include "core/icc_profile.h"
-#include "core/command.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
 #include "core/siril_log.h"
@@ -34,7 +32,6 @@
 #include "io/sequence.h"
 #include "algos/astrometry_solver.h"
 #include "algos/noise.h"
-#include "algos/geometry.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/ccd-inspector.h"
@@ -55,7 +52,6 @@
 #include "gui/sequence_list.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
-#include "gui/script_menu.h"
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
@@ -63,7 +59,6 @@
 #include "gui/registration_preview.h"
 #include "gui/remixer.h"
 #include "gui/user_polygons.h"
-#include "livestacking/livestacking.h"
 #include "registration/registration.h"
 #include "io/siril_catalogues.h"
 
@@ -825,5 +820,12 @@ void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 }
 
 void graxpert_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("graxpert_dialog");
+	siril_message_dialog(GTK_MESSAGE_INFO, _("Update"), _("The original GraXpert "
+		"interface has been removed for technical reasons and unreliability. Please use "
+		"the GraXpert_AI.py script available in the scripts repository: you can add it "
+		"via the \"Get Scripts\" menu entry in the hamburger menu.\n"
+		"The new script handles single images and sequences just like the original "
+		"interface and provides both a GUI and command-line access using the pyscript "
+		"command, for use in scripts. It is less resource hungry, better integrated and "
+		"performs better than the original, and we expect it will be more reliable too."));
 }

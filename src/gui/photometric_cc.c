@@ -29,20 +29,15 @@
 #include "algos/photometric_cc.h"
 #include "algos/spcc.h"
 #include "algos/siril_wcs.h"
-#include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/message_dialog.h"
 #include "gui/siril_plot.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
-#include "gui/histogram.h"
 #include "gui/dialogs.h"
-#include "gui/registration_preview.h"
-#include "io/remote_catalogues.h"
 #include "io/local_catalogues.h"
 #include "io/healpix/healpix_cat.h"
 #include "photometric_cc.h"
-#include "io/image_format_fits.h"
 
 #define MIN_PLOT 336.0
 #define MAX_PLOT 1020.0
@@ -65,6 +60,11 @@ void reset_spcc_filters() {
 
 void on_buttonPCC_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("s_pcc_dialog");
+}
+
+gboolean s_pcc_hide_on_delete(GtkWidget *widget) {
+	on_buttonPCC_close_clicked(GTK_BUTTON(widget), NULL);
+	return TRUE;
 }
 
 static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {

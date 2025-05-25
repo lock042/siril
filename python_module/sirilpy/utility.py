@@ -361,7 +361,7 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
         with subprocess.Popen(
             pip_command,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
             bufsize=-1,
             universal_newlines=False
         ) as process:
@@ -380,7 +380,7 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
 
     except subprocess.CalledProcessError as e:
         print(f"Failed to install {install_target}")
-        if "timed out" in e.stderr.lower():
+        if e.stderr and "timed out" in e.stderr.lower():
             raise TimeoutError(f"Likely timeout error in pip: {e}") from e
         raise
 
@@ -639,7 +639,7 @@ class ONNXHelper:
 
         Returns:
             Optional[str]: The CUDA version as a string (e.g., '11.7') if detected,
-                          or None if nvcc is not installed or version cannot be determined.
+                          or "0.0" if nvcc is not installed or version cannot be determined.
         """
         try:
             nvcc_command = 'nvcc.exe' if self.system == 'windows' else 'nvcc'
@@ -663,10 +663,10 @@ class ONNXHelper:
                 version_parts = alt_match.group(1).split('.')
                 return f"{version_parts[0]}.{version_parts[1]}"
 
-            return None
+            return "0.0"
         except (subprocess.SubprocessError, FileNotFoundError):
             # nvcc is not installed or an error occurred
-            return None
+            return "0.0"
 
     def _detect_nvidia_gpu(self):
         """
@@ -942,3 +942,52 @@ class ONNXHelper:
                 print(f"Failed to uninstall {package}")
 
         return uninstalled
+
+def parse_fits_header(header_text: str) -> dict:
+    """
+    Parse FITS header from text content into a dictionary
+    
+    Parameters:
+    header_text (str): Content of the FITS header text file
+    
+    Returns:
+    dict: Dictionary containing all header keywords and values
+    """
+    header_dict = {}
+    
+    for line in header_text.split('\n'):
+        # Skip empty lines, COMMENT, HISTORY, and END
+        if not line.strip() or line.startswith('COMMENT') or line.startswith('HISTORY') or line.startswith('END'):
+            continue
+            
+        # Split the line into key and value parts
+        parts = line.split('=')
+        if len(parts) != 2:
+            continue
+            
+        key = parts[0].strip()
+        value_part = parts[1].strip()
+        
+        # Handle the value part (removing comments after /)
+        if '/' in value_part:
+            value_part = value_part.split('/')[0].strip()
+            
+        # Convert value to appropriate type
+        try:
+            # Try converting to float first
+            if value_part.startswith("'") and value_part.endswith("'"):
+                # String value
+                value = value_part.strip("'").strip()
+            elif value_part == 'T':
+                value = True
+            elif value_part == 'F':
+                value = False
+            else:
+                value = float(value_part)
+        except ValueError:
+            # If conversion fails, keep as string
+            value = value_part.strip()
+            
+        header_dict[key] = value
+        
+    return header_dict

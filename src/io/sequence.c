@@ -38,12 +38,10 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_date.h"
 #include "core/OS_utils.h"
 #include "core/initfile.h"
 #include "core/undo.h"
 #include "core/siril_log.h"
-#include "core/icc_profile.h"
 #include "io/conversion.h"
 #include "gui/utils.h"
 #include "gui/cut.h"
@@ -56,7 +54,6 @@
 #ifdef HAVE_FFMS2
 #include "films.h"
 #endif
-#include "avi_pipp/avi_writer.h"
 #include "single_image.h"
 #include "image_format_fits.h"
 #include "gui/histogram.h"
@@ -65,14 +62,11 @@
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"	// clear_stars_list
 #include "gui/sequence_list.h"
-#include "gui/preferences.h"
 #include "gui/registration_preview.h"
 #include "gui/stacking.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
-#include "algos/quality.h"
 #include "algos/statistics.h"
-#include "algos/geometry.h"
 #include "algos/siril_wcs.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface

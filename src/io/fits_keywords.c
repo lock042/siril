@@ -95,6 +95,14 @@ static void pixel_x_handler_read(fits *fit, const char *comment, KeywordInfo *in
 	}
 }
 
+static void bayer_pattern_read(fits *fit, const char *comment, KeywordInfo *info) {
+	/* Handle some bad BAYER PATTERN from Maxim DL */
+	if (strstr(fit->keywords.bayer_pattern, "INVALID")) {
+		siril_debug_print("Ignoring INVALID Bayer pattern\n");
+		fit->keywords.bayer_pattern[0] = '\0';
+	}
+}
+
 static void binning_x_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
 	if (fit->keywords.binning_x <= 0)
 		fit->keywords.binning_x = 1;
@@ -344,7 +352,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "camera", "BLKLEVEL", KTYPE_UINT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "CVF", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
 			KEYWORD_SECONDA( "camera", "EGAIN", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
-			KEYWORD_PRIMARY( "camera", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern), NULL, NULL),
+			KEYWORD_PRIMARY( "camera", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern), bayer_pattern_read, NULL),
 			KEYWORD_PRIMARY( "camera", "XBAYROFF", KTYPE_INT, "X offset of Bayer array", &(fit->keywords.bayer_xoffset), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "YBAYROFF", KTYPE_INT, "Y offset of Bayer array", &(fit->keywords.bayer_yoffset), NULL, NULL),
 			KEYWORD_PRIMARY( "focuser", "FOCNAME", KTYPE_STR, "Focusing equipment name", &(fit->keywords.focname), NULL, NULL),

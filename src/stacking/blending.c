@@ -204,7 +204,7 @@ int compute_masks(struct stacking_args *args) {
 	arg->image_read_hook = compute_mask_read_hook;
 	arg->filtering_criterion = args->filtering_criterion;
 	arg->filtering_parameter = args->filtering_parameter;
-	arg->nb_filtered_images = args->seq->selnum;
+	arg->nb_filtered_images = args->nb_images_to_stack;
 	arg->image_hook = compute_mask_image_hook;
 	arg->description = _("Compute feathering masks");
 	arg->has_output = FALSE;

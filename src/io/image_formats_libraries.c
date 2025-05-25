@@ -60,17 +60,13 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/icc_profile.h"
-#include "core/processing.h"
 #include "core/siril_log.h"
-#include "core/siril_date.h"
 #include "core/exif.h"
 #include "io/fits_keywords.h"
 #include "algos/geometry.h"
-#include "algos/siril_wcs.h"
 #include "algos/demosaicing.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
-#include "single_image.h"
 #include "image_format_fits.h"
 
 static void fill_date_obs_if_any(fits *fit, const char *file) {
@@ -998,6 +994,162 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 
 #ifdef HAVE_LIBXISF
 
+/**
+ * Reformats a FITS header to ensure it contains all necessary information
+ * in the correct order (SIMPLE, BITPIX, NAXIS, etc.)
+ *
+ * @param fit Fits structure containing image information
+ * @param original_header The original header that might be malformed
+ * @return A newly formatted header (to be freed by the caller) or NULL if error
+ */
+char* format_fits_header_for_xisf(fits *fit, const char *original_header) {
+	if (!fit || !original_header) {
+		return NULL;
+	}
+
+	// Check if the header starts with SIMPLE
+	if (strncmp(original_header, "SIMPLE", 6) != 0) {
+		// If the header doesn't start with SIMPLE, create a minimal header with essential information
+		char *basic_header = malloc(1024); // Arbitrary size for a minimalist header
+		if (!basic_header) {
+			return NULL;
+		}
+
+		// Create minimal header with essential information
+		int offset = 0;
+		offset += snprintf(basic_header + offset, 1024 - offset,
+				"SIMPLE  =                    T / File conforms to FITS standard\n");
+
+		// Add the rest of the original header
+		strcat(basic_header, original_header);
+		original_header = basic_header;
+	} else {
+		// If the header starts with SIMPLE, we can duplicate it for modification
+		original_header = strdup(original_header);
+		if (!original_header) {
+			return NULL;
+		}
+	}
+
+	// Allocate buffer to build the new header (generous estimation)
+	size_t header_size = strlen(original_header) + 1024; // Extra for new lines
+	char *formatted_header = malloc(header_size);
+	if (!formatted_header) {
+		free((char*)original_header);
+		return NULL;
+	}
+
+	formatted_header[0] = '\0'; // Initialize string as empty
+
+	// Extract the first line (SIMPLE)
+	char simple_line[81] = {0};
+	const char *first_line_end = strchr(original_header, '\n');
+	if (first_line_end) {
+		size_t first_line_len = first_line_end - original_header;
+		if (first_line_len > 80) first_line_len = 80;
+		strncpy(simple_line, original_header, first_line_len);
+		simple_line[first_line_len] = '\0';
+		// Add newline if needed
+		strcat(simple_line, "\n");
+	} else {
+		// If there's no newline, use the entire string
+		strncpy(simple_line, original_header, 80);
+		simple_line[80] = '\0';
+		strcat(simple_line, "\n");
+	}
+
+	// Start the formatted header with SIMPLE
+	strcat(formatted_header, simple_line);
+
+	// Add BITPIX (position 2)
+	char bitpix_line[81] = {0};
+	switch (fit->bitpix) {
+		case BYTE_IMG:
+			snprintf(bitpix_line, 80, "BITPIX  =                    8 / Bits per data value");
+			break;
+		case USHORT_IMG:
+			snprintf(bitpix_line, 80, "BITPIX  =                   16 / Bits per data value");
+			break;
+		case LONG_IMG:
+			snprintf(bitpix_line, 80, "BITPIX  =                   32 / Bits per data value");
+			break;
+		case FLOAT_IMG:
+			snprintf(bitpix_line, 80, "BITPIX  =                  -32 / Bits per data value");
+			break;
+		case DOUBLE_IMG:
+			snprintf(bitpix_line, 80, "BITPIX  =                  -64 / Bits per data value");
+			break;
+		default:
+			snprintf(bitpix_line, 80, "BITPIX  =                   16 / Bits per data value");
+	}
+	strcat(bitpix_line, "\n");
+	strcat(formatted_header, bitpix_line);
+
+	// Add NAXIS (position 3)
+	char naxis_line[81] = {0};
+	snprintf(naxis_line, 80, "NAXIS   =                    %d / Number of axes", fit->naxis);
+	strcat(naxis_line, "\n");
+	strcat(formatted_header, naxis_line);
+
+	// Add NAXIS1 (position 4)
+	char naxis1_line[81] = {0};
+	snprintf(naxis1_line, 80, "NAXIS1  =                 %5ld / Size of the first axis", fit->naxes[0]);
+	strcat(naxis1_line, "\n");
+	strcat(formatted_header, naxis1_line);
+
+	// Add NAXIS2 (position 5)
+	char naxis2_line[81] = {0};
+	snprintf(naxis2_line, 80, "NAXIS2  =                 %5ld / Size of the second axis", fit->naxes[1]);
+	strcat(naxis2_line, "\n");
+	strcat(formatted_header, naxis2_line);
+
+	// Add NAXIS3 if needed (position 6)
+	if (fit->naxis > 2) {
+		char naxis3_line[81] = {0};
+		snprintf(naxis3_line, 80, "NAXIS3  =                 %5ld / Size of the third axis", fit->naxes[2]);
+		strcat(naxis3_line, "\n");
+		strcat(formatted_header, naxis3_line);
+	}
+
+	// Add the other lines from the original header ignoring those already added
+	const char *line_start = original_header;
+	const char *line_end;
+
+	while ((line_end = strchr(line_start, '\n')) != NULL) {
+		char line[81] = {0};
+		size_t line_len = line_end - line_start;
+		if (line_len > 80) line_len = 80;
+
+		strncpy(line, line_start, line_len);
+		line[line_len] = '\0';
+
+		// Skip lines that we've already added
+		if (strncmp(line, "SIMPLE", 6) != 0 &&
+			strncmp(line, "BITPIX", 6) != 0 &&
+			strncmp(line, "NAXIS ", 6) != 0 &&
+			strncmp(line, "NAXIS1", 6) != 0 &&
+			strncmp(line, "NAXIS2", 6) != 0 &&
+			strncmp(line, "NAXIS3", 6) != 0) {
+
+			strcat(formatted_header, line);
+			strcat(formatted_header, "\n");
+		}
+
+		line_start = line_end + 1;
+	}
+
+	// Check if the header ends with END
+	if (strstr(formatted_header, "END     ") == NULL &&
+		strstr(formatted_header, "END\n") == NULL) {
+		strcat(formatted_header, "END\n");
+	}
+
+	// Free memory allocated for the duplicated original header
+	free((char*)original_header);
+
+	return formatted_header;
+}
+
 int readxisf(const char* name, fits *fit, gboolean force_float) {
 	struct xisf_data *xdata = (struct xisf_data *) calloc(1, sizeof(struct xisf_data));
 
@@ -1020,19 +1172,35 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 
 	uint32_t *buffer32;
 	double *buffer64;
+	unsigned char *buffer8;
 
 	switch (xdata->sampleFormat) {
 	case BYTE_IMG:
-		fit->data = (WORD *)xdata->data;
-		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->naxes[2] == 3 ? fit->data + npixels : fit->data;
-		fit->pdata[BLAYER] = fit->naxes[2] == 3 ? fit->data + npixels * 2 : fit->data;
-		fit->bitpix = fit->orig_bitpix = BYTE_IMG;
-		fit->type = DATA_USHORT;
-		if (force_float) {
-			fit_replace_buffer(fit, ushort8_buffer_to_float(fit->data, npixels * fit->naxes[2]), DATA_FLOAT);
-		}
-		break;
+			buffer8 = (unsigned char *)xdata->data;
+			fit->data = (WORD *)malloc(npixels * fit->naxes[2] * sizeof(WORD));
+			if (!fit->data) {
+				siril_log_message(_("Memory allocation error for image data.\n"));
+				free(xdata);
+				return -1;
+			}
+
+			for (size_t i = 0; i < npixels * fit->naxes[2]; i++) {
+				fit->data[i] = (WORD)buffer8[i];
+			}
+
+			free(xdata->data);
+			xdata->data = NULL;
+
+			fit->pdata[RLAYER] = fit->data;
+			fit->pdata[GLAYER] = fit->naxes[2] == 3 ? fit->data + npixels : fit->data;
+			fit->pdata[BLAYER] = fit->naxes[2] == 3 ? fit->data + npixels * 2 : fit->data;
+			fit->bitpix = fit->orig_bitpix = BYTE_IMG;
+			fit->type = DATA_USHORT;
+
+			if (force_float) {
+				fit_replace_buffer(fit, ushort8_buffer_to_float(fit->data, npixels * fit->naxes[2]), DATA_FLOAT);
+			}
+			break;
 	case USHORT_IMG:
 		fit->data = (WORD *)xdata->data;
 		fit->pdata[RLAYER] = fit->data;
@@ -1094,14 +1262,26 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	/* let's do it before header parsing. */
 	g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 
-	if (xdata->fitsHeader) {
-		if (fit->header) free(fit->header);
+	// Format the header to ensure it's properly structured
+	char *formatted_header = format_fits_header_for_xisf(fit, xdata->fitsHeader);
+
+	if (formatted_header) {
+		fit->header = formatted_header;
+		int ret = fits_parse_header_str(fit, formatted_header);
+		if (ret) {
+			siril_debug_print("XISF Header cannot be read despite formatting.\n");
+		}
+	} else {
+		// If formatting fails, use the original header
 		fit->header = strdup(xdata->fitsHeader);
-		int ret = fits_parse_header_str(fit, xdata->fitsHeader);
+		siril_debug_print("Failed to format XISF header, using original.\n");
+
+		int ret = fits_parse_header_str(fit, fit->header);
 		if (ret) {
 			siril_debug_print("XISF Header cannot be read.\n");
 		}
 	}
+
 	fits_flip_top_to_bottom(fit);
 	siril_log_message(_("Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);

@@ -20,21 +20,19 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include "core/OS_utils.h"
 /* Constant available since Shell32.dll 4.72 */
 #ifndef CSIDL_APPDATA
 #define CSIDL_APPDATA 0x001a
 #endif
 #endif
 #include <string.h>
-#include <locale.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/initfile.h"
-#include "core/command.h" // for process_close()
 #include "core/command_line_processor.h"
 #include "core/processing.h"
-#include "core/OS_utils.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "io/siril_pythonmodule.h"
@@ -189,7 +187,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	if (g_str_has_suffix(script_file, PYSCRIPT_EXT) || g_str_has_suffix(script_file, PYCSCRIPT_EXT)) {
 		// Run Python script
 		g_unsetenv("SIRIL_PYTHON_CLI");
-		execute_python_script(script_file, TRUE, FALSE, NULL);
+		execute_python_script(script_file, TRUE, FALSE, NULL, FALSE);
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
 		/* Last thing before running the script, disable widgets except for Stop */
 		script_widgets_enable(FALSE);
@@ -234,13 +232,21 @@ gboolean test_last_subdir(const gchar *path, const gchar *expected_subdir) {
 }
 
 static gint compare_basenames(gconstpointer a, gconstpointer b) {
+	// Handle NULL inputs
+	if (a == NULL && b == NULL) return 0;
+	if (a == NULL) return -1;
+	if (b == NULL) return 1;
+
 	const gchar *path_a = (const gchar*) a;
 	const gchar *path_b = (const gchar*) b;
 
 	gchar *basename_a = g_path_get_basename(path_a);
 	gchar *basename_b = g_path_get_basename(path_b);
 
-	gint result = g_ascii_strcasecmp(basename_a, basename_b); // Insensible à la casse
+	// Use g_utf8_collate for proper Unicode comparison
+	// This handles accented characters correctly
+	gint result = g_utf8_collate(g_utf8_casefold(basename_a, -1),
+								g_utf8_casefold(basename_b, -1));
 
 	g_free(basename_a);
 	g_free(basename_b);
@@ -366,10 +372,21 @@ int initialize_script_menu(gboolean verbose) {
 
 	// Add scripts from the selections made in preferences
 	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
-		com.pref.selected_scripts = g_list_sort(com.pref.selected_scripts, compare_basenames);
+		GList *filtered_list = NULL;
+		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
+			if (ss->data != NULL) {
+				filtered_list = g_list_append(filtered_list, ss->data);
+			}
+		}
+
+		filtered_list = g_list_sort(filtered_list, compare_basenames);
+
+		g_list_free(com.pref.selected_scripts); // don't free the data
+		com.pref.selected_scripts = filtered_list;
 
 		GList *new_list = NULL;
 		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
+			if (!ss->data) continue;
 			gchar *full_path = g_strdup(ss->data);
 			if (!g_file_test(full_path, G_FILE_TEST_EXISTS)) {
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
@@ -426,6 +443,7 @@ int initialize_script_menu(gboolean verbose) {
 			// Check if this core script is already in selected_scripts
 			gboolean already_added = FALSE;
 			for (GList *selected = com.pref.selected_scripts; selected; selected = selected->next) {
+				if (!selected->data) continue;
 				if (g_strrstr((gchar*)selected->data, script_path)) {
 					already_added = TRUE;
 					break;
@@ -469,6 +487,12 @@ int initialize_script_menu(gboolean verbose) {
 
 // Called when the specified scripts directories are updated
 
+gboolean call_initialize_script_menu(gpointer data) {
+	gboolean state = (gboolean) GPOINTER_TO_INT(data);
+	initialize_script_menu(state);
+	return FALSE;
+}
+
 int refresh_scripts(gboolean update_list, gchar **error) {
 	gchar *err = NULL;
 	int retval = 0;
@@ -480,7 +504,7 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	} else {
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-		execute_idle_and_wait_for_it(initialize_script_menu_in_thread, GINT_TO_POINTER(1));
+		execute_idle_and_wait_for_it(call_initialize_script_menu, GINT_TO_POINTER(1));
 	}
 
 	if (error) {
@@ -502,17 +526,6 @@ gboolean refresh_script_menu(gpointer user_data) {
 
 gboolean refresh_scripts_menu_in_thread(gpointer data) {
 	execute_idle_and_wait_for_it(refresh_script_menu, data);
-	return FALSE;
-}
-
-static gboolean call_initialize_script_menu(gpointer data) {
-	gboolean state = (gboolean) GPOINTER_TO_INT(data);
-	initialize_script_menu(state);
-	return FALSE;
-}
-
-gboolean initialize_script_menu_in_thread(gpointer data) {
-	execute_idle_and_wait_for_it(call_initialize_script_menu, data);
 	return FALSE;
 }
 

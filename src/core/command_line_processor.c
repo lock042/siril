@@ -35,7 +35,6 @@
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui/histogram.h"
-#include "gui/preferences.h"
 #include "gui/script_menu.h"
 #include "core/processing.h"
 #include "core/command_list.h"

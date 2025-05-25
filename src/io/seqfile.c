@@ -27,7 +27,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <assert.h>
 
 #include "core/siril.h"
@@ -38,7 +37,6 @@
 #include "io/ser.h"
 #include "io/sequence.h"
 #include "core/proto.h"
-#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"

@@ -22,17 +22,13 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/icc_profile.h"
-#include "core/command.h"
 #include "core/command_line_processor.h"
 #include "core/siril_log.h"
 #include "gui/cut.h"
 #include "gui/icc_profile.h"
 #include "core/processing.h"
 #include "core/undo.h"
-#include "core/siril_world_cs.h"
 #include "algos/background_extraction.h"
-#include "algos/siril_wcs.h"
 #include "algos/photometry.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -47,7 +43,6 @@
 #include "gui/save_dialog.h"
 #include "gui/utils.h"
 #include "progress_and_log.h"
-#include "message_dialog.h"
 #include "registration_preview.h"
 
 // Tracks whether double middle click will zoom to fit or zoom to 1:1, for the

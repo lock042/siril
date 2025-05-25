@@ -34,11 +34,8 @@
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
-#include "filters/graxpert.h" // for set_graxpert_aborted()
-#include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
-#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
 #include "io/sequence.h"
@@ -853,9 +850,21 @@ gpointer waiting_for_thread() {
 
 int claim_thread_for_python() {
 	g_mutex_lock(&com.mutex);
-	if (com.thread || com.run_thread || com.python_claims_thread) {
-		fprintf(stderr, "The processing thread is busy. It must stop before Python can claim "
-					"the processing thread.\n");
+	if (com.thread) {
+		fprintf(stderr, "The processing thread is busy (com.thread is not NULL). "
+					"It must stop before Python can claim the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 1;
+	}
+	if (com.run_thread) {
+		fprintf(stderr, "The processing thread is busy (com.run_thread is TRUE). "
+					"It must stop before Python can claim the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 1;
+	}
+	if (com.python_claims_thread) {
+		fprintf(stderr, "The processing thread is already claimed by Python. It must be "
+					"released before Python can claim the processing thread again.\n");
 		g_mutex_unlock(&com.mutex);
 		return 1;
 	}
@@ -879,16 +888,27 @@ void python_releases_thread() {
 	return;
 }
 
-void stop_processing_thread() {
+
+static gboolean stop_processing_thread_idle(gpointer user_data) {
 	if (com.thread == NULL) {
 		siril_debug_print("The processing thread is not running.\n");
-		return;
+		return FALSE;
 	}
 	remove_child_from_children((GPid) -2); // magic number indicating the processing thread
 	set_thread_run(FALSE);
 	if (!thread_being_waited)
 		waiting_for_thread();
 	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
+static gpointer stop_processing_thread_idle_caller(gpointer user_data) {
+	siril_add_idle(stop_processing_thread_idle, NULL);
+	return GINT_TO_POINTER(0);
+}
+
+void stop_processing_thread() {
+	g_thread_unref(g_thread_new("processing thread stopper", stop_processing_thread_idle_caller, NULL));
 }
 
 static void set_thread_run(gboolean b) {
@@ -1015,7 +1035,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 			if (child->program == INT_PROC_THREAD) {
 				stop_processing_thread();
 			} else {
-				if (child->program == EXT_STARNET || child->program == EXT_GRAXPERT || child->program == EXT_PYTHON) {
+				if (child->program == EXT_STARNET || child->program == EXT_PYTHON) {
 #ifdef _WIN32
 					TerminateProcess((void *) child->childpid, 1);
 #else
@@ -1116,8 +1136,6 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 		kill_child_process(pid, FALSE);
 	} else if (children == 1) {
 		child_info *child = (child_info*) com.children->data;
-		if (child->program == EXT_GRAXPERT)
-			set_graxpert_aborted(TRUE);
 		kill_child_process(child->childpid, FALSE);
 	} else {
 		com.stop_script = TRUE;
