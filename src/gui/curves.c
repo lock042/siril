@@ -630,6 +630,7 @@ void apply_curves_cancel() {
 	set_cursor_waiting(TRUE);
 	curves_close(TRUE);
 	set_cursor_waiting(FALSE);
+	siril_close_dialog("curves_dialog");
 }
 
 void on_curves_reset_zoom_clicked(GtkButton *button, gpointer user_data) {

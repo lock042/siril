@@ -57,6 +57,11 @@ void on_linearmatch_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("linearmatch_dialog");
 }
 
+gboolean linearmatch_hide_on_delete(GtkWidget *widget) {
+	on_linearmatch_close_clicked(GTK_BUTTON(widget), NULL);
+	return TRUE;
+}
+
 void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;

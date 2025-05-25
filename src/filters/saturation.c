@@ -381,6 +381,7 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 
 void apply_satu_cancel() {
 	satu_close(TRUE);
+	siril_close_dialog("satu_dialog");
 }
 
 /*** adjusters **/

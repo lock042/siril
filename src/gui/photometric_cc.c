@@ -62,6 +62,11 @@ void on_buttonPCC_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("s_pcc_dialog");
 }
 
+gboolean s_pcc_hide_on_delete(GtkWidget *widget) {
+	on_buttonPCC_close_clicked(GTK_BUTTON(widget), NULL);
+	return TRUE;
+}
+
 static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
 	GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("S_PCC_Mag_Limit"));
 	gboolean autob = gtk_toggle_button_get_active(autobutton);

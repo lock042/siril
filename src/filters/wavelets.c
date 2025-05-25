@@ -209,6 +209,7 @@ void apply_wavelets_cancel() {
 		reset_scale_w();
 		update_wavelets();
 	}
+	siril_close_dialog("wavelets_dialog");
 }
 
 void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
@@ -226,7 +227,6 @@ void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 
 gboolean on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
 	apply_wavelets_cancel();
-	siril_close_dialog("wavelets_dialog");
 	return FALSE;
 }
 
