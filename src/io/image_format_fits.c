@@ -3637,6 +3637,7 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 // read an area form a 32b drizz_weight
 // we have this dedicated function to avoid the automatic rescaling
 // and dealing with all the types and headers
+// if we pass layer == 4, it reads the whole file
 int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, float *drizz) {
 	if (layer < 0)
 		return read_mask_fits_area(name, area, ry, drizz);
@@ -3676,7 +3677,13 @@ int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, 
 		fits_close_file(fptr, NULL);
 		return 1;
 	}
-	fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, drizz, NULL, &status);
+	if (layer == 4) { // read the whole file
+		size_t nbdata = area->w * area->h * 3;
+		fits_read_img(fptr, TFLOAT, 1, nbdata, NULL, drizz, NULL, &status);
+	} else {
+		fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, drizz, NULL, &status);
+	}
+	
 	if (status) {
 		report_fits_error(status);
 		return 1;
