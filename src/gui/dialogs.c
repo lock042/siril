@@ -198,6 +198,10 @@ void siril_close_preview_dialogs() {
 	}
 }
 
+// WARNING: do not use siril_widget_hide_on_delete() for IMAGE_PROCESSING_DIALOGs. These
+// must call siril_close_dialog(builder_id) and therefore must have a custom handler
+// as the GtkBuilder ID does not have a reverse lookup function.
+
 gboolean siril_widget_hide_on_delete(GtkWidget *widget) {
     dialog_is_opened = FALSE;
     gtk_widget_hide(widget);
