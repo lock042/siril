@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-25 21:43+0200\n"
-"PO-Revision-Date: 2025-05-24 18:57+0000\n"
+"PO-Revision-Date: 2025-05-26 13:01+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -11805,10 +11805,9 @@ msgid "Open application menu"
 msgstr "打开应用程序菜单"
 
 #: src/gui/siril-shortcuts.ui:156
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Show statistics"
-msgstr "统计信息"
+msgstr "显示统计信息"
 
 #: src/gui/siril-shortcuts.ui:163
 msgctxt "shortcut window"
@@ -19616,9 +19615,8 @@ msgid "Purge Catalogue"
 msgstr "清除星表"
 
 #: src/gui/callbacks.c:2334
-#, fuzzy
 msgid "Select task to stop"
-msgstr "选择裁切区域"
+msgstr "选择要中止的任务"
 
 #: src/gui/callbacks.c:2337 src/gui/dialogs.c:253 src/gui/dialogs.c:262
 #: src/gui/dialogs.c:268 src/gui/keywords_tree.c:508 src/gui/python_gui.c:766
@@ -19628,19 +19626,16 @@ msgid "_Cancel"
 msgstr "_取消"
 
 #: src/gui/callbacks.c:2338
-#, fuzzy
 msgid "_Stop Process"
-msgstr "星点加工"
+msgstr "_中止进程"
 
 #: src/gui/callbacks.c:2382
-#, fuzzy
 msgid "Process Name"
-msgstr "处理"
+msgstr "进程名称"
 
 #: src/gui/callbacks.c:2392
-#, fuzzy
 msgid "Start Time"
-msgstr "起点"
+msgstr "开始时间"
 
 #: src/gui/colors.c:52 src/gui/colors.c:138 src/gui/colors.c:171
 #: src/gui/colors.c:257 src/gui/colors.c:268 src/gui/histogram.c:1728

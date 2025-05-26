@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-25 21:43+0200\n"
-"PO-Revision-Date: 2025-05-25 19:43+0000\n"
+"PO-Revision-Date: 2025-05-26 13:00+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -6225,9 +6225,8 @@ msgstr "FITS 画像"
 #: src/gui/uifiles/settings_window.ui:1120
 #: src/gui/uifiles/settings_window.ui:1949 src/gui/uifiles/siril.ui:2418
 #: src/gui/uifiles/siril.ui:2745
-#, fuzzy
 msgid "Astrometry"
-msgstr "測光"
+msgstr "天体位置測定学"
 
 #: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 #, fuzzy
@@ -21779,7 +21778,7 @@ msgstr "スナップショット<b>%s</b>は作業ディレクトリに保存さ
 
 #: src/gui/save_dialog.c:833
 msgid "Snapshot was saved into the clipboard."
-msgstr ""
+msgstr "スナップショットはクリップボードに保存されました。"
 
 #: src/gui/save_dialog.c:849
 #, c-format
@@ -22045,9 +22044,8 @@ msgstr ""
 "開できます。"
 
 #: src/gui/siril_plot.c:169
-#, fuzzy
 msgid "Snapshot was saved into the clipboard.\n"
-msgstr "ワーキングディレクトリー内のファイルとディレクトリーを表示"
+msgstr "スナップショットはクリップボードに保存されました。\n"
 
 #: src/gui/siril_plot.c:172
 msgid "Could not copy the snapshot into the clipboard.\n"
@@ -22059,11 +22057,11 @@ msgstr "PNGフアイル (*.png)"
 
 #: src/gui/siril_plot.c:447
 msgid "DAT files (*.dat)"
-msgstr "DATファイル (*.ser)"
+msgstr "DATファイル (*.dat)"
 
 #: src/gui/siril_plot.c:455
 msgid "SVG files (*.svg)"
-msgstr "SVGファイル (*.ser)"
+msgstr "SVGファイル (*.svg)"
 
 #: src/gui/siril_preview.c:104
 msgid "Warning: insufficient memory available to create a preview.\n"
