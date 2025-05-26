@@ -570,30 +570,37 @@ class ONNXHelper:
             # Try importing onnxruntime - if this fails, the package is not usable
             import onnxruntime
 
-            # If we get here, some version of onnxruntime is installed and working
-            package_name = "onnxruntime"  # Default assumption
-
-            # Check provider information to determine specific package variant
-            providers = onnxruntime.get_available_providers()
-            print(f"Detected ONNX Runtime with providers: {providers}")
-
-            # Check for specific provider patterns
-            if any(p for p in providers if "CUDA" in p or "GPU" in p):
-                package_name = "onnxruntime-gpu"
-            elif any(p for p in providers if "DirectML" in p):
-                package_name = "onnxruntime-directml"
-            elif any(p for p in providers if "ROCm" in p):
-                package_name = "onnxruntime-rocm"
-            elif any(p for p in providers if "OpenVINO" in p or "DML" in p):
-                package_name = "onnxruntime-intel"
-
-            return True, package_name
-        except ImportError:
+        except ImportError as e:
             # If import fails, package is not usable regardless of pip list
+            # One of the error messages is a clue that MSVC runtime need updating
+            if platform.system().lower() == "windows" and \
+                                "DLL load failed" in str(e):
+                print("DLL load failed. This means you need to update system "
+                    "libraries. Usually updating Microsoft Visual C++ Runtime "
+                    "will solve the issue.", file=sys.stderr)
             return False, None
         except Exception as e:
             print(f"Error checking for installed onnxruntime: {e}")
             return False, None
+
+        # If we get here, some version of onnxruntime is installed and working
+        package_name = "onnxruntime"  # Default assumption
+
+        # Check provider information to determine specific package variant
+        providers = onnxruntime.get_available_providers()
+        print(f"Detected ONNX Runtime with providers: {providers}")
+
+        # Check for specific provider patterns
+        if any(p for p in providers if "CUDA" in p or "GPU" in p):
+            package_name = "onnxruntime-gpu"
+        elif any(p for p in providers if "DirectML" in p):
+            package_name = "onnxruntime-directml"
+        elif any(p for p in providers if "ROCm" in p):
+            package_name = "onnxruntime-rocm"
+        elif any(p for p in providers if "OpenVINO" in p or "DML" in p):
+            package_name = "onnxruntime-intel"
+
+        return True, package_name
 
     def get_onnxruntime_package(self):
         """

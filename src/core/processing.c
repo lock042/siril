@@ -890,7 +890,6 @@ void python_releases_thread() {
 }
 
 
-// Add this as a static variable at file scope
 static gboolean stop_processing_requested = FALSE;
 
 static gboolean stop_processing_thread_idle(gpointer user_data) {
