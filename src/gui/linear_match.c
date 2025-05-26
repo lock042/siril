@@ -58,7 +58,7 @@ void on_linearmatch_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 gboolean linearmatch_hide_on_delete(GtkWidget *widget) {
-	on_linearmatch_close_clicked(GTK_BUTTON(widget), NULL);
+	siril_close_dialog("linearmatch_dialog");
 	return TRUE;
 }
 

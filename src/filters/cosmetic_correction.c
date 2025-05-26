@@ -752,7 +752,7 @@ void on_button_cosmetic_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 gboolean cosmetic_hide_on_delete(GtkWidget *widget) {
-	on_button_cosmetic_close_clicked(GTK_BUTTON(widget), NULL);
+	siril_close_dialog("cosmetic_dialog");
 	return TRUE;
 }
 
