@@ -189,7 +189,7 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-								ssdata->fsum[layer][pixel] += (double)(fit->pdata[layer][ii] * INV_USHRT_MAX_SINGLE * weights[layer][ii]);
+								ssdata->fsum[layer][pixel] += (double)(fit->pdata[layer][ii] * weights[layer][ii]);
 							}
 #ifdef _OPENMP
 #pragma omp atomic
@@ -312,7 +312,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 			}
 		}
 	} else { // divide by drizzle weights
-		for (layer=0; layer<args->seq->nb_layers; ++layer){
+		for (layer = 0; layer<args->seq->nb_layers; ++layer){
 			double *from = ssdata->fsum[layer];
 			double *fromw = ssdata->fweight[layer];
 			float *to = fit->fpdata[layer];
@@ -327,7 +327,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 					}
 				} else {
 					if (*fromw > 0.0)
-						*to++ = round_to_WORD((*from++) / (*fromw++));
+						*to++ = round_to_WORD((*from++) * INV_USHRT_MAX_SINGLE / (*fromw++));
 					else {
 						*to++ = 0; // avoid division by zero
 						++from;
