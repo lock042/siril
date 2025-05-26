@@ -63,7 +63,7 @@ void on_buttonPCC_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 gboolean s_pcc_hide_on_delete(GtkWidget *widget) {
-	on_buttonPCC_close_clicked(GTK_BUTTON(widget), NULL);
+	siril_close_dialog("s_pcc_dialog");
 	return TRUE;
 }
 
