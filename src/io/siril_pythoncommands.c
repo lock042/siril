@@ -2015,7 +2015,7 @@ CLEANUP:
 					double fx, fy;
 				//	display_to_siril(x, y, &fx, &fy, gfit.ry);
 					fx = x;
-					fx = gfit.ry - y;
+					fy = gfit.ry - y;
 					pix2wcs2(gfit.keywords.wcslib, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					TO_BE64_INTO(ra_BE, ra, double);
