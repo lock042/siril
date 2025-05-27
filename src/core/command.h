@@ -50,6 +50,7 @@ int	process_boxselect(int nb);
 int	process_calibrate(int nb);
 int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
+int	process_catmag_mono(int nb);
 int	process_catsearch(int nb);
 int	process_ccm(int nb);
 int	process_cd(int nb);

@@ -59,4 +59,11 @@ gpointer light_curve_worker(gpointer arg);
 int new_light_curve(const char *filename, struct light_curve_args *lcargs);
 
 
+struct catmag_data {
+	float refBV, dBV;
+	gboolean limitBV;
+	fits *fit;
+};
+gpointer catmag_mono_worker(gpointer arg);
+
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

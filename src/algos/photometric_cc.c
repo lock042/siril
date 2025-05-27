@@ -142,13 +142,14 @@ static void TempK2rgb(float *r, float *g, float *b, float TempK, cmsHTRANSFORM t
 	*b = rgb[2] / maxval;
 }
 
-int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit) {
+int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit, struct phot_config *pset) {
 	/* make a selection around the star, coordinates are in display reference frame */
 	double fx = star->x, fy = star->y;
 	double dx, dy;
 	siril_to_display(fx, fy, &dx, &dy, fit->ry);
 
-	double outer = com.pref.phot_set.outer;
+	struct phot_config *phot_set = pset != NULL ? pset : &com.pref.phot_set;
+	double outer = phot_set->outer;
 	area->x = round_to_int(dx - outer);
 	area->y = round_to_int(dy - outer);
 	area->w = area->h = (int)ceil(outer * 2.0);
@@ -252,7 +253,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		g_atomic_int_inc(&progress);
 
 		// Make a selection 'area' around the ith star in the list of cat_items passed to the function
-		if (make_selection_around_a_star(&stars[i], &area, fit)) {
+		if (make_selection_around_a_star(&stars[i], &area, fit, NULL)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
@@ -566,7 +567,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
 		g_atomic_int_inc(&progress);
 
-		if (make_selection_around_a_star(&stars[i], &area, fit)) {
+		if (make_selection_around_a_star(&stars[i], &area, fit, NULL)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
@@ -828,7 +829,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	}
 
 	/* run peaker to measure FWHM of the image to adjust photometry settings */
-	args->fwhm = measure_image_FWHM(args->fit, -1);
+	args->fwhm = measure_image_FWHM(args->fit, -1, NULL);
 	if (args->fwhm <= 0.0f) {
 		siril_log_message(_("Error computing FWHM for photometry settings adjustment\n"));
 		siril_add_idle(end_generic, NULL);

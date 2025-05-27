@@ -4628,7 +4628,7 @@ int process_light_curve(int nb) {
 				free_sequence(seq, TRUE);
 			return CMD_GENERIC_ERROR;
 		}
-		float fwhm = measure_image_FWHM(&reffit, layer);
+		float fwhm = measure_image_FWHM(&reffit, layer, NULL);
 		if (fwhm <= 0.0f) {
 			siril_log_color_message(_("Could not find stars in the reference image, aborting.\n"), "red");
 			if (seq != &com.seq)
@@ -11466,3 +11466,34 @@ int process_pyscript(int nb) {
 		return CMD_FILE_NOT_FOUND;
 	}
 }
+
+int process_catmag_mono(int nb) {
+        // catmag [refbv] [dbv]
+        /* find stars in image to set aperture photometry parameters and get the number of stars, gets
+         * NOMAD stars for the plate solved image, keep only those with B-V within [refbv-dbv, refbv+dbf]
+         * if provided and those bright enough to keep the same number as detected stars in the image,
+         * find the best fit for the magnitude offset for all measured and valid stars.
+         * Sun has a B-V of 0.65
+         */
+        if (!has_wcs(&gfit)) {
+                siril_log_color_message("Image is not plate solved!\n", "red");
+                return CMD_FOR_PLATE_SOLVED;
+        }
+        gboolean limitBV = FALSE;
+        float refBV = 0.0f, dBV = 0.4f;
+        if (nb > 1) { refBV = g_ascii_strtod(word[1], NULL); limitBV = TRUE; }
+        if (nb > 2) dBV = g_ascii_strtod(word[2], NULL);
+
+        if (limitBV && (refBV < -0.5 || refBV > 1.5 || dBV < 0.001f || dBV > 2.0f)) {
+                siril_log_color_message("Reference B-V index is out of usual range [-0.5, 1.5]\n", "red");
+                return CMD_ARG_ERROR;
+        }
+        struct catmag_data *args = calloc(1, sizeof(struct catmag_data));
+        args->refBV = refBV;
+        args->dBV = dBV;
+        args->limitBV = limitBV;
+        args->fit = &gfit;
+        start_in_new_thread(catmag_mono_worker, args);
+        return 0;
+}
+
