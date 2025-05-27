@@ -42,6 +42,7 @@ static fits preview_roi_backup;
 static fits preview_gfit_backup = { 0 };
 
 static gboolean update_preview(gpointer user_data) {
+	START_TIMER;
 	lock_roi_mutex();
 	if (notify_is_blocked)
 		return FALSE;
@@ -58,6 +59,7 @@ static gboolean update_preview(gpointer user_data) {
 	set_cursor_waiting(FALSE);
 	// Don't notify_gfit_modified() here, it must be done by the callers
 	unlock_roi_mutex();
+	END_TIMER;
 	return FALSE;
 }
 
