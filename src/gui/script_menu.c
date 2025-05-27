@@ -173,8 +173,8 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	if (!accept_script_warning_dialog())
 		return;
 
-	if (com.script_thread)
-		g_thread_join(com.script_thread);
+	if (get_script_thread_run())
+		wait_for_script_thread();
 
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
