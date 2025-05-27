@@ -258,6 +258,8 @@ int initialize_script_menu(gboolean verbose) {
 	GSList *list, *script_paths, *s;
 	GList *ss;
 
+	gboolean purge_removed = !verbose;
+
 	if (!menuscript)
 		menuscript = lookup_widget("header_scripts_button");
 
@@ -388,7 +390,7 @@ int initialize_script_menu(gboolean verbose) {
 		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
 			if (!ss->data) continue;
 			gchar *full_path = g_strdup(ss->data);
-			if (!g_file_test(full_path, G_FILE_TEST_EXISTS)) {
+			if (purge_removed && !g_file_test(full_path, G_FILE_TEST_EXISTS)) {
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
 				g_free(full_path);
 				continue;
@@ -396,7 +398,7 @@ int initialize_script_menu(gboolean verbose) {
 			// The first time this is run, we aren't rigorous about removing scripts
 			// When it is run again after updating the repository, we check that scripts
 			// haven't been removed.
-			gboolean included = !gui.repo_scripts;
+			gboolean included = !(gui.repo_scripts);
 			if (!included) {
 				GList *iterator;
 				for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
@@ -426,7 +428,7 @@ int initialize_script_menu(gboolean verbose) {
 				new_list = g_list_prepend(new_list, g_strdup(ss->data));
 
 				g_free(basename);
-			} else {
+			} else if (purge_removed) {
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
 				g_free(full_path);
 			}
