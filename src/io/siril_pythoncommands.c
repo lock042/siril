@@ -2013,7 +2013,8 @@ CLEANUP:
 					FROM_BE64_INTO(y, y_BE, double);
 					double ra, dec, ra_BE, dec_BE;
 					double fx, fy;
-					display_to_siril(x, y, &fx, &fy, gfit.ry);
+					fx = x;
+					fy = gfit.ry - y;
 					pix2wcs2(gfit.keywords.wcslib, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					TO_BE64_INTO(ra_BE, ra, double);
@@ -2052,7 +2053,8 @@ CLEANUP:
 					FROM_BE64_INTO(dec, dec_BE, double);
 					double x, y, fx, fy, x_BE, y_BE;
 					wcs2pix(&gfit, ra, dec, &fx, &fy);
-					siril_to_display(fx, fy, &x, &y, gfit.ry);
+					x = fx;
+					y = gfit.ry - fy;
 					TO_BE64_INTO(x_BE, x, double);
 					TO_BE64_INTO(y_BE, y, double);
 					unsigned char* payload = g_try_malloc0(2 * sizeof(double));
