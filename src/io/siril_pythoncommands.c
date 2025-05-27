@@ -2052,7 +2052,9 @@ CLEANUP:
 					FROM_BE64_INTO(dec, dec_BE, double);
 					double x, y, fx, fy, x_BE, y_BE;
 					wcs2pix(&gfit, ra, dec, &fx, &fy);
-					siril_to_display(fx, fy, &x, &y, gfit.ry);
+					x = fx;
+					y = gfit.ry - fy;
+				//	siril_to_display(fx, fy, &x, &y, gfit.ry);
 					TO_BE64_INTO(x_BE, x, double);
 					TO_BE64_INTO(y_BE, y, double);
 					unsigned char* payload = g_try_malloc0(2 * sizeof(double));
