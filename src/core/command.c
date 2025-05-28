@@ -11466,3 +11466,118 @@ int process_pyscript(int nb) {
 		return CMD_FILE_NOT_FOUND;
 	}
 }
+
+int process_eqcrop(int nb) {
+        gboolean is_sequence = (word[0][0] == 's');
+        int arg_idx = (is_sequence) ? 2 : 1;
+        int image_size;
+        if (is_sequence) {
+                sequence *seq = load_sequence(word[1], NULL);
+                if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+
+                fits fit = { 0 };
+                int refimage = sequence_find_refimage(seq);
+                if (seq_read_frame_metadata(seq, refimage, &fit))
+                        return CMD_GENERIC_ERROR;
+                if (!has_wcs(&fit)) {
+                        siril_log_color_message("Cannot run this command on this image because it has no WCS data or it is not supported\n", "red");
+                        clearfits(&fit);
+                        return CMD_FOR_PLATE_SOLVED;
+                }
+                image_size = max(fit.rx, fit.ry);
+                clearfits(&fit);
+                arg_idx++;
+        } else {
+                if (!has_wcs(&gfit)) {
+                        siril_log_color_message("Cannot run this command on this image because it has no WCS data or it is not supported\n", "red");
+                        return CMD_FOR_PLATE_SOLVED;
+                }
+                image_size = max(gfit.rx, gfit.ry);
+        }
+
+        SirilWorldCS *coords1 = siril_world_cs_new_from_objct_ra_dec(word[arg_idx], word[arg_idx+1]);
+        arg_idx += 2;
+        SirilWorldCS *coords2 = siril_world_cs_new_from_objct_ra_dec(word[arg_idx], word[arg_idx+1]);
+        arg_idx += 2;
+        if (!coords1 || !coords2) {
+                siril_log_message(_("Could not parse the coordinates\n"));
+                return CMD_ARG_ERROR;
+        }
+
+        //TODO: sequence operation
+        //gboolean sliding = FALSE;
+        int minsize = 0, margin_px = INT_MAX;
+        double margin_asec = DBL_MAX;
+        for (int i = arg_idx; i < nb; i++) {
+                gchar *end;
+                if (g_str_has_prefix(word[i], "-marginpx=")) {
+                        const char *arg = word[i] + 10;
+                        margin_px = g_ascii_strtoull(arg, &end, 10);
+                        if (end == arg || margin_px >= image_size) {
+                                siril_log_color_message("margin in pixels is incorrect (%s)\n", "red", word[i]);
+                                siril_world_cs_unref(coords1);
+                                siril_world_cs_unref(coords2);
+                                return CMD_ARG_ERROR;
+                        }
+                }
+                else if (g_str_has_prefix(word[i], "-marginasec=")) {
+                        const char *arg = word[i] + 12;
+                        margin_asec = g_ascii_strtod(arg, &end);
+                        if (end == arg || margin_asec >= 1000000.0) {
+                                siril_log_color_message("margin in arcsec is incorrect (%s)\n", "red", word[i]);
+                                siril_world_cs_unref(coords1);
+                                siril_world_cs_unref(coords2);
+                                return CMD_ARG_ERROR;
+                        }
+                }
+                else if (g_str_has_prefix(word[i], "-minsize=")) {
+                        const char *arg = word[i] + 9;
+                        minsize = g_ascii_strtoull(arg, &end, 10);
+                        if (end == arg || minsize >= image_size) {
+                                siril_log_color_message("minimal size in pixels is incorrect (%s)\n", "red", word[i]);
+                                siril_world_cs_unref(coords1);
+                                siril_world_cs_unref(coords2);
+                                return CMD_ARG_ERROR;
+                        }
+                }
+                /*else if (is_sequence) {
+                        if (!g_strcmp0(word[i], "-sliding")) {
+                                sliding = TRUE;
+                        }
+                }*/
+                else {
+                        siril_log_message(_("Invalid argument %s, aborting.\n"), word[i]);
+                        siril_world_cs_unref(coords1);
+                        siril_world_cs_unref(coords2);
+                        return CMD_ARG_ERROR;
+                }
+        }
+
+        if (margin_asec != DBL_MAX && margin_px != INT_MAX) {
+                siril_log_color_message(_("Arguments for margins in arcsec or pixels are mutually exclusive\n"), "red");
+                siril_world_cs_unref(coords1);
+                siril_world_cs_unref(coords2);
+                return CMD_ARG_ERROR;
+        }
+        if (margin_asec == DBL_MAX && margin_px == INT_MAX)
+                margin_px = 10;         // set a default margin value, 10 pixels
+
+        if (!is_sequence) {
+                double ra1 = siril_world_cs_get_alpha(coords1), dec1 = siril_world_cs_get_delta(coords1), ra2 = siril_world_cs_get_alpha(coords2), dec2 = siril_world_cs_get_delta(coords2);
+                siril_world_cs_unref(coords1);
+                siril_world_cs_unref(coords2);
+
+                int retval = eqcrop(ra1, dec1, ra2, dec2, margin_px, margin_asec, minsize, &gfit, NULL, NULL);
+                if (retval)
+                        return retval;
+
+                notify_gfit_modified();
+                siril_add_idle(crop_command_idle, NULL);
+        } else {
+                siril_log_message("NOT YET IMPLEMENTED\n");
+                return CMD_GENERIC_ERROR;
+        }
+
+        return CMD_OK;
+}
+

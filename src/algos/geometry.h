@@ -34,6 +34,8 @@ int crop(fits *fit, rectangle *bounds);
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data);
 gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data);
 
+int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, double margin_asec, int minsize, fits *fit, int *newx, int *newy);
+
 const char *interp_to_str(opencv_interpolation interpolation);
 
 #endif /* SRC_ALGOS_GEOMETRY_H_ */
