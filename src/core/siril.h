@@ -459,6 +459,21 @@ typedef struct {
 	char ord[FLEN_VALUE];		// regular, centered
 } dft_info;
 
+/* data from QHY Pro rolling shutter cameras with GPSBOX, stored in the header by NINA */
+struct gps_rs_data {
+        double exposure;                        // exposure reported by the SDK, in seconds
+        int line_period;                        // line cycle time, in nanoseconds (QHY GPS)
+        int crop_offset_x, crop_offset_y;
+        double end_offset0;                     // result of GetQHYCCDRollingShutterEndOffset(0) in µs
+        GDateTime *end_vsync_date;              // the timestamp from metadata, probably of Vsync
+        int flag;                               // the flag from GPS metadata, shifted
+        char readout_mode[FLEN_VALUE];
+
+        int ry;                                 // image height
+        int binning;                            // binning value
+        gboolean top_down;                      // track the capture settings and flips
+};
+
 typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
 
 #define DEFAULT_DOUBLE_VALUE -999.0
@@ -483,6 +498,8 @@ typedef struct {
 	GDateTime *date, *date_obs;		// creation and acquisition UTC dates
 	double mjd_obs;					// date-obs in Julian
 	double expstart, expend;		// Julian dates
+	struct gps_rs_data *gps_data;           // data for QHY Pro cameras, from NINA
+	gboolean date_and_exp_from_gps;         // date_obs and exposure are set from global shutter GPS
 	char filter[FLEN_VALUE];		// FILTER key
 	char image_type[FLEN_VALUE];		// IMAGETYP key
 	char object[FLEN_VALUE];		// OBJECT key

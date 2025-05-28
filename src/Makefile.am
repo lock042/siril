@@ -373,6 +373,8 @@ siril_common_SOURCES = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
+	io/gps_parser.c \
+	io/gps_parser.h \
 	io/healpix/healpix.cpp \
 	io/healpix/healpix_cat.h \
 	io/image_format_fits.c \

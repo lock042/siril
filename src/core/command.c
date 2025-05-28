@@ -49,6 +49,7 @@
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
+#include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/siril_update.h"
@@ -64,6 +65,7 @@
 #include "io/FITS_symlink.h"
 #include "io/fits_keywords.h"
 #include "io/siril_pythonmodule.h"
+#include "io/gps_parser.h"
 #include "drizzle/cdrizzleutil.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
@@ -11466,3 +11468,125 @@ int process_pyscript(int nb) {
 		return CMD_FILE_NOT_FOUND;
 	}
 }
+
+/* QHY GPS: there are two use cases:
+ * 1. we have images from a QHY global shutter camera (QHY174GPS and a few others) taken with any
+ * software that is able to handle the specifics of acquisition of this type of camera like the
+ * calibration and that keeps the metadata in the first row of pixels.
+ * 	In that case, use the `gps` command to read the metadata (in parse_gps_image()) and replace
+ * 	DATE-OBS and EXPOSURE in the image (in update_fit_from_qhy_header()), with another header
+ * 	(DATE-GPS) anad history indicating that this operation has been done. The metadata line is also
+ * 	removed to not cause statistics problems.
+ * 	The `gps -ro` command only does the first part and prints out the parsed metadata, useful to
+ * 	check if the GPS works on the camera and with the acquisition software.
+ *
+ * 2. we have images from a QHY rolling shutter camera (QHY268M-PRO, QHY600M-PRO and a few others) taken
+ * by NINA. In that case we explicitly read and manage the headers that NINA set to be able to compute
+ * timestamps if needed.
+ *	The command `gps 1234` will compute the timestamp of the middle of the exposure for pixel row
+ *	1234 for example.
+ *	Possible improvement: add an option to change if the timestamp is for the beginning, middle or
+ *	end of the exposure, this currently requires a recompilation and it's useful to have.
+ */
+
+int process_gps(int nb) {
+        int crop_rows = 1; // used to be 6 because of a QHY bug in 2023
+        if (nb == 2) {
+                gchar *end;
+                const char *arg = word[1];
+                int pix_y = g_ascii_strtoull(arg, &end, 10);
+                if (end == arg) {
+                        if (!g_strcmp0(word[1], "-header")) {
+                                /* read from header instead of from pixels */
+                                struct _qhy_struct qhy_header = { 0 };
+                                gchar *filename = get_image_filename_no_ext(NULL, -1);
+                                int retval = parse_gps_from_header(&gfit, filename, &qhy_header);
+                                g_free(filename);
+                                if (retval >= 0) {
+                                        print_qhy_data(&qhy_header);
+                                        release_qhy_struct(&qhy_header);
+                                        if (retval) retval = CMD_INVALID_IMAGE;
+                                        return retval;
+                                }
+                                return CMD_INVALID_IMAGE;
+                        }
+                        if (!g_strcmp0(word[1], "-ro")) {
+                                /* gps -ro */
+                                struct _qhy_struct qhy_header = { 0 };
+                                int retval = parse_gps_image(&gfit, &qhy_header);
+                                if (retval >= 0) {
+                                        print_qhy_data(&qhy_header);
+                                        release_qhy_struct(&qhy_header);
+                                        if (retval) retval = CMD_INVALID_IMAGE;
+                                        return retval;
+                                }
+                                return CMD_INVALID_IMAGE;
+                        }
+                        if (g_str_has_prefix(word[1], "-crop=")) {
+                                gchar *end;
+                                char *arg = word[1] + 6;
+                                crop_rows = g_ascii_strtoull(arg, &end, 10);
+                                if (end == arg || crop_rows > 6)
+                                        return CMD_ARG_ERROR;
+                        }
+                        else return CMD_ARG_ERROR;
+                } else {
+                        if (!gfit.keywords.gps_data) {
+                                siril_log_message("The loaded image does not have the expected QHY GPS headers from NINA\n");
+                                return CMD_INVALID_IMAGE;
+                        }
+                        if (pix_y < 0 || pix_y >= gfit.ry) {
+                                siril_log_message("Line is outside image\n");
+                                return CMD_ARG_ERROR;
+                        }
+                        /* gps row_number */
+                        GDateTime *date = get_timestamp_for_pixel(gfit.keywords.gps_data, EXP_MIDDLE, 0, pix_y);
+                        if (date) {
+                                gchar *date_str = date_time_to_FITS_date(date);
+                                siril_log_message("%4d: %s (exposure end)\n", pix_y, date_str);
+                                g_free(date_str);
+                                g_date_time_unref(date);
+                                return CMD_OK;
+                        }
+                        return CMD_ARG_ERROR;
+                }
+        }
+        struct generic_seq_args args = { 0 };
+        args.user = GINT_TO_POINTER(crop_rows);
+        int retval = gps_extract_image_hook(&args, 0, 0, &gfit, NULL, MULTI_THREADED);
+        if (!retval)
+                notify_gfit_modified();
+        else retval = CMD_INVALID_IMAGE;
+        return retval;
+}
+
+int process_seq_gps_extract(int nb) {
+        sequence *seq = load_sequence(word[1], NULL);
+        if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+
+        int crop_rows = 6; // matching the QHY bug on most cameras in 2023
+        if (nb == 3) {
+                if (g_str_has_prefix(word[2], "-crop=")) {
+                        gchar *end;
+                        char *arg = word[2] + 6;
+                        crop_rows = g_ascii_strtoull(arg, &end, 10);
+                        if (end == arg || crop_rows > 6)
+                                return CMD_ARG_ERROR;
+                }
+                else return CMD_ARG_ERROR;
+
+        }
+        struct generic_seq_args *args = create_default_seqargs(seq);
+        args->filtering_criterion = seq_filter_included;
+        args->nb_filtered_images = seq->selnum;
+        args->image_hook = gps_extract_image_hook;
+        args->description = "GPS metadata extraction";
+        args->has_output = TRUE;
+        args->output_type = get_data_type(seq->bitpix);
+        args->new_seq_prefix = strdup("gps_");
+        args->load_new_sequence = TRUE;
+        args->user = GINT_TO_POINTER(crop_rows);
+        start_in_new_thread(generic_sequence_worker, args);
+        return 0;
+}
+

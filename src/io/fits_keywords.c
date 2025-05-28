@@ -29,6 +29,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/path_parse.h"
+#include "io/gps_parser.h"
 
 #include "fits_keywords.h"
 
@@ -830,6 +831,57 @@ int save_history_keywords(fits *fit) {
 	return status;
 }
 
+/* NINA + QHY specific timing headers for rolling shutter cameras, call after DATE-OBS and exposure have been read */
+void read_qhy_gps_data(fits *fit) {
+        int status = 0;
+        double exposure;
+        fits_read_key(fit->fptr, TDOUBLE, "QHY_EXP", &exposure, NULL, &status);
+        if (status)
+                return;
+
+        struct gps_rs_data *gps_data = calloc(1, sizeof(struct gps_rs_data));
+        if (!gps_data) {
+                PRINT_ALLOC_ERR;
+                return;
+        }
+        gps_data->exposure = exposure;
+        if (fit->keywords.exposure > 0.0 && fabs(exposure - fit->keywords.exposure) > 1e-3)
+                siril_log_message("Exposure mismatch between what the QHY SDK reported and what it in the regular FITS header (%.4f vs %.4f)\n", exposure, fit->keywords.exposure);
+
+        fits_read_key(fit->fptr, TINT, "QHY_LP", &gps_data->line_period, NULL, &status);
+
+        fits_read_key(fit->fptr, TDOUBLE, "QHY_OFF0", &gps_data->end_offset0, NULL, &status);
+
+        fits_read_key(fit->fptr, TSTRING, "READOUTM", &gps_data->readout_mode, NULL, &status);
+
+        char date[FLEN_VALUE] = { 0 };
+        if (!fits_read_key(fit->fptr, TSTRING, "GPS_EUTC", &date, NULL, &status)) {
+                gps_data->end_vsync_date = FITS_date_to_date_time(date);
+                GDateTime *gps_start = g_date_time_add_seconds(gps_data->end_vsync_date,
+                                gps_data->end_offset0 * 1e-6 - gps_data->exposure);
+                siril_debug_print("offset between DATE-OBS and GPS timestamp for first row: %.3f seconds\n",
+                                g_date_time_difference(fit->keywords.date_obs, gps_start) / 1000000.0);
+                g_date_time_unref(gps_start);
+        }
+        fits_read_key(fit->fptr, TINT, "GPS_EFLG", &gps_data->flag, NULL, &status);
+
+        if (status) {
+                /* all keywords above are required */
+                if (gps_data->end_vsync_date)
+                        g_date_time_unref(gps_data->end_vsync_date);
+                free(gps_data);
+                return;
+        }
+
+        fits_read_key(fit->fptr, TINT, "CROPOFFX", &gps_data->crop_offset_x, NULL, &status);
+        fits_read_key(fit->fptr, TINT, "CROPOFFY", &gps_data->crop_offset_y, NULL, &status);
+
+        gps_data->ry = fit->ry;
+        gps_data->binning = fit->keywords.binning_x;
+        gps_data->top_down = !g_strcmp0(fit->keywords.row_order, "TOP-DOWN");
+        fit->keywords.gps_data = gps_data;
+}
+
 void read_fits_date_obs_header(fits *fit) {
 	int status = 0;
 	char ut_start[FLEN_VALUE] = { 0 };
@@ -952,6 +1004,23 @@ int read_fits_keywords(fits *fit) {
 	GString *unknown_keys = g_string_new(NULL);
 
 	read_fits_date_obs_header(fit); // handle very special case
+
+	read_qhy_gps_data(fit); // sets fit->gps_data for rolling shutter cameras
+        if (!fit->keywords.gps_data) {
+                // maybe it's a global shutter GPS camera?
+                status = 0;
+                fits_read_key(fit->fptr, TINT, "DATE-GPS", &(fit->keywords.date_and_exp_from_gps), NULL, &status);
+                if (status || !fit->keywords.date_and_exp_from_gps) {
+                        // first time opening the image, check if it has all the GPS headers (not the
+			// pixel metadata) and update DATE-OBS and EXPTIME with them, mark it done with
+			// DATE-GPS
+                        struct _qhy_struct qhy_header = { 0 };
+                        if (!parse_gps_from_header(fit, NULL, &qhy_header)) {
+                                update_fit_from_qhy_header(fit, &qhy_header);
+                                release_qhy_struct(&qhy_header);
+                        }
+                }
+        }
 
 	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
 

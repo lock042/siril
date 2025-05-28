@@ -46,6 +46,7 @@
 #include "algos/siril_wcs.h"
 #include "io/fits_keywords.h"
 #include "image_format_fits.h"
+#include "io/gps_parser.h"
 
 #define RECIPSQRT2 0.70710678f // 1/sqrt(2) as float
 
@@ -71,7 +72,6 @@ static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 		__iter__++; \
 	} while ((keywords[__iter__]) && (*status > 0)); \
 }
-
 
 void fit_get_photometry_data(fits *fit) {
 	int status = 0;

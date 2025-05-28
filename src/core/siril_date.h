@@ -34,5 +34,6 @@ gchar *date_time_to_date(GDateTime *datetime);
 gchar *date_time_to_date_time(GDateTime *datetime);
 GDateTime *julian_sec_to_date(uint32_t jsecs, uint32_t ms);
 double timediff_in_s(GDateTime *dt1, GDateTime *dt2);
+double get_decimal_hours(GDateTime *dt);
 
 #endif /* SRC_CORE_SIRIL_DATE_H_ */

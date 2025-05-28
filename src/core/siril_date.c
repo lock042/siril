@@ -142,6 +142,14 @@ GDateTime* Julian_to_date_time(gdouble jd) {
 	return date_with_seconds;
 }
 
+double get_decimal_hours(GDateTime *dt) {
+        gint hour = g_date_time_get_hour(dt);
+        gint min = g_date_time_get_minute(dt);
+        gint sec = g_date_time_get_second(dt);
+        double ms = g_date_time_get_microsecond(dt) * 0.000001;
+        return hour + min / 60.0 + (sec + ms) / 3600.0;
+}
+
 /**
  * Build filename in the iso8601 format
  * @return a newly allocated string formatted in ISO 8601 format

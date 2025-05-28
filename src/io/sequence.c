@@ -882,6 +882,22 @@ char *seq_get_image_filename(sequence *seq, int index, char *name_buf) {
 	return NULL;
 }
 
+gchar *get_image_filename_no_ext(sequence *seq, int idx) {
+        if (!seq) {
+                // check loaded image
+                if (com.uniq)
+                        return g_strdup(com.uniq->filename);
+                seq = &com.seq;
+                idx = com.seq.current;
+        }
+        char root[256];
+        if (!fit_sequence_get_image_filename(seq, idx, root, FALSE)) {
+                return NULL;
+        }
+	// TO COMPLETE FOR OTHER TYPES OF SEQUENCE
+        return g_strdup(root);
+}
+
 /* Read an entire image from a sequence, inside a pre-allocated fits.
  * Opens the file, reads data, closes the file.
  */
