@@ -35,6 +35,7 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
+#include "gui/utils.h"
 #include "io/local_catalogues.h"
 #include "io/healpix/healpix_cat.h"
 #include "photometric_cc.h"
@@ -636,35 +637,36 @@ int get_favourite_oscsensor(GList *list, const gchar *favourite) {
 void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data);
 
 void fill_combo_from_glist(gchar *comboname, GList *list, int channel, const gchar *favourite) {
-    GtkComboBoxText *combo;
+	GtkComboBoxText *combo;
 
-    combo = GTK_COMBO_BOX_TEXT(lookup_widget(comboname));
+	combo = GTK_COMBO_BOX_TEXT(lookup_widget(comboname));
 	g_signal_handlers_block_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
-    // Clear the model
-    gtk_combo_box_text_remove_all(combo);
+	// Clear the model
+	gtk_combo_box_text_remove_all(combo);
 
-    GList *iterator = list;
+	GList *iterator = list;
 
-    if (list == com.spcc_data.osc_sensors) {
-        while (iterator) {
-            osc_sensor *object = (osc_sensor *)iterator->data;
-            gtk_combo_box_text_append_text(combo, object->channel[0].model);
-            iterator = iterator->next;
-        }
+	if (list == com.spcc_data.osc_sensors) {
+		while (iterator) {
+			osc_sensor *object = (osc_sensor *)iterator->data;
+			gtk_combo_box_text_append_text(combo, object->channel[0].model);
+			iterator = iterator->next;
+		}
 		g_signal_handlers_unblock_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_oscsensor(list, favourite));
-    } else {
-        while (iterator) {
-            spcc_object *object = (spcc_object *)iterator->data;
-            gtk_combo_box_text_append_text(combo, object->name);
-            iterator = iterator->next;
-        }
+		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_oscsensor(list, favourite));
+	} else {
+		while (iterator) {
+			spcc_object *object = (spcc_object *)iterator->data;
+			gtk_combo_box_text_append_text(combo, object->name);
+			iterator = iterator->next;
+		}
 		g_signal_handlers_unblock_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_spccobject(list, favourite));
-    }
+		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_spccobject(list, favourite));
+	}
 }
 
 gboolean populate_spcc_combos(gpointer user_data) {
+	gui_mutex_lock();
 	// Initialize filters if required
 	fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
 	fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
@@ -676,6 +678,7 @@ gboolean populate_spcc_combos(gpointer user_data) {
 	fill_combo_from_glist("combo_spcc_whitepoint", com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
 	GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
 	gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
+	gui_mutex_unlock();
 	return FALSE;
 }
 

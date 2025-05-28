@@ -56,4 +56,7 @@ OverrangeResponse apply_limits(fits *fit, double minval, double maxval, Overrang
 gboolean value_check(fits *fit); // checks for pixel values outside [0.0, 1.0]
 gchar* get_control_window_id();
 
+void gui_mutex_lock();
+void gui_mutex_unlock();
+
 #endif /* SRC_GUI_UTILS_H_ */

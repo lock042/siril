@@ -33,7 +33,6 @@
 #include "core/siril_networking.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
-//#include "core/arithm.h"
 #include "gui/cut.h"
 #include "gui/keywords_tree.h"
 #include "gui/registration.h"
