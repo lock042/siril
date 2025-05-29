@@ -666,7 +666,6 @@ void fill_combo_from_glist(gchar *comboname, GList *list, int channel, const gch
 }
 
 gboolean populate_spcc_combos(gpointer user_data) {
-	gui_mutex_lock();
 	// Initialize filters if required
 	fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
 	fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
@@ -678,12 +677,12 @@ gboolean populate_spcc_combos(gpointer user_data) {
 	fill_combo_from_glist("combo_spcc_whitepoint", com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
 	GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
 	gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
-	gui_mutex_unlock();
 	return FALSE;
 }
 
 gpointer populate_spcc_combos_async(gpointer user_data) {
-	gboolean wait_for_it = (gboolean) GPOINTER_TO_INT(user_data);
+	gui_mutex_lock();
+	siril_debug_print("populate_spcc_combos_async locks gui mutex\n");
 	g_mutex_lock(&combos_filling);
 	if (!spcc_filters_initialized) {
 		// do most of the slow file reading in this thread, separate to GTK thread
@@ -692,10 +691,9 @@ gpointer populate_spcc_combos_async(gpointer user_data) {
 	}
 	g_mutex_unlock(&combos_filling);
 	// update combos back in the GTK thread
-	if (wait_for_it)
-		execute_idle_and_wait_for_it(populate_spcc_combos, NULL);
-	else
-		siril_add_idle(populate_spcc_combos, NULL);
+	execute_idle_and_wait_for_it(populate_spcc_combos, NULL);
+	gui_mutex_unlock();
+	siril_debug_print("populate_spcc_combos_async unlocks gui mutex\n");
 	return GINT_TO_POINTER(0);
 }
 

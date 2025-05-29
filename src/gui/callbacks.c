@@ -1539,12 +1539,12 @@ static GMutex spcc_mutex = {0};
 gpointer initialize_spcc(gpointer user_data) {
 	g_mutex_lock(&spcc_mutex);
 	// 1. Initialize the SPCC combos
-		populate_spcc_combos_async(GINT_TO_POINTER(1));
+		populate_spcc_combos_async(NULL);
 	// 2. Update the repository
 	if (com.pref.spcc.auto_spcc_update && is_online()) {
 		auto_update_gitspcc(TRUE);
 		// 3. Update the SPCC combos
-			populate_spcc_combos_async(GINT_TO_POINTER(0));
+			populate_spcc_combos_async(NULL);
 	}
 	g_mutex_unlock(&spcc_mutex);
 	return GINT_TO_POINTER(0);
@@ -1556,7 +1556,7 @@ gpointer update_spcc(gpointer user_data) {
 	if (com.pref.spcc.auto_spcc_update && is_online()) {
 		auto_update_gitspcc(TRUE);
 		// 2. Update the SPCC combos
-			populate_spcc_combos_async(GINT_TO_POINTER(0));
+			populate_spcc_combos_async(NULL);
 	}
 	g_mutex_unlock(&spcc_mutex);
 	return GINT_TO_POINTER(0);
@@ -1575,12 +1575,20 @@ void unlock_script_mutex() {
 gpointer initialize_scripts(gpointer user_data) {
 	g_mutex_lock(&script_mutex);
 	// 1. Initialize the menu (verbose)
+	gui_mutex_lock();
+	siril_debug_print("initialize_scripts locks gui mutex\n");
 	execute_idle_and_wait_for_it(call_initialize_script_menu, GINT_TO_POINTER(1));
+	gui_mutex_unlock();
+	siril_debug_print("initialize_scripts unlocks gui mutex\n");
 	// 2. Update the repository
 	if (com.pref.auto_script_update && is_online()) {
 		auto_update_gitscripts(TRUE);
 		// 3. Update the menu (not verbose)
-		execute_idle_and_wait_for_it(refresh_scripts_menu_in_thread, GINT_TO_POINTER(0));
+		gui_mutex_lock();
+	siril_debug_print("initialize_scripts locks gui mutex for update\n");
+		execute_idle_and_wait_for_it(refresh_script_menu, GINT_TO_POINTER(0));
+		gui_mutex_unlock();
+	siril_debug_print("initialize_scripts unlocks gui mutex for update\n");
 	}
 	g_mutex_unlock(&script_mutex);
 	return GINT_TO_POINTER(0);
@@ -1592,7 +1600,11 @@ gpointer update_scripts(gpointer user_data) {
 	if (is_online()) {
 		auto_update_gitscripts(TRUE);
 		// 2. Update the menu (not verbose)
+		gui_mutex_lock();
+		siril_debug_print("update_scripts locks gui mutex\n");
 		execute_idle_and_wait_for_it(refresh_scripts_menu_in_thread, GINT_TO_POINTER(0));
+		gui_mutex_unlock();
+		siril_debug_print("update_scripts unlocks gui mutex\n");
 	}
 	g_mutex_unlock(&script_mutex);
 	return GINT_TO_POINTER(0);

@@ -491,9 +491,7 @@ int initialize_script_menu(gboolean verbose) {
 
 gboolean call_initialize_script_menu(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
-	gui_mutex_lock();
 	initialize_script_menu(state);
-	gui_mutex_unlock();
 	return FALSE;
 }
 
@@ -519,14 +517,12 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 
 gboolean refresh_script_menu(gpointer user_data) {
 	gboolean verbose = (gboolean) GPOINTER_TO_INT(user_data);
-	gui_mutex_lock();
 	if (menuscript) {
 		// Remove the popup while we refresh the menu
 		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), NULL);
 	}
 	initialize_script_menu(verbose);
 	fill_script_repo_tree(FALSE);
-	gui_mutex_unlock();
 	return FALSE;
 }
 
