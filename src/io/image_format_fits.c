@@ -878,6 +878,7 @@ void update_fits_header(fits *fit) {
 
 void save_fits_header(fits *fit) {
 	save_fits_keywords(fit);
+	save_gps_keywords(fit);
 	save_wcs_keywords(fit);
 	save_history_keywords(fit);
 	save_fits_unknown_keywords(fit);
@@ -3504,7 +3505,6 @@ int save_wcs_fits(fits *f, const gchar *name) {
 
 	if (g_unlink(name))
 		siril_debug_print("g_unlink() failed\n");
-	
 
 	status = 0;
 	if (siril_fits_create_diskfile(&(f->fptr), name, &status)) {

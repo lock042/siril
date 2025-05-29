@@ -882,6 +882,26 @@ void read_qhy_gps_data(fits *fit) {
         fit->keywords.gps_data = gps_data;
 }
 
+void save_gps_keywords(fits *fit) {
+	if (fit->keywords.gps_data) {    // set by NINA for QHY Pro + GPS cameras
+		int status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "QHY_EXP", &fit->keywords.gps_data->exposure,
+				"Actual exposure time in seconds", &status);
+		fits_update_key(fit->fptr, TINT, "QHY_LP", &fit->keywords.gps_data->line_period, "linePeriod (ns)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "QHY_OFF0", &fit->keywords.gps_data->end_offset0, "RollingShutterEndOffset row 0 (us)", &status);
+		gchar *formatted_date = date_time_to_FITS_date(fit->keywords.gps_data->end_vsync_date);
+		fits_update_key(fit->fptr, TSTRING, "GPS_EUTC", formatted_date, "QHY end time of first row", &status);
+		g_free(formatted_date);
+		fits_update_key(fit->fptr, TINT, "GPS_EFLG", &fit->keywords.gps_data->flag, "QHY end_flag", &status);
+		fits_update_key(fit->fptr, TINT, "CROPOFFX", &fit->keywords.gps_data->crop_offset_x, "X offset from the sensor origin", &status);
+		fits_update_key(fit->fptr, TINT, "CROPOFFY", &fit->keywords.gps_data->crop_offset_y, "Y offset from the sensor origin", &status);
+		fits_update_key(fit->fptr, TSTRING, "READOUTM", &fit->keywords.gps_data->readout_mode, "Sensor readout mode", &status);
+	} else if (fit->keywords.date_and_exp_from_gps) {
+		int status = 0;
+		fits_update_key(fit->fptr, TINT, "DATE-GPS", &fit->keywords.date_and_exp_from_gps, "DATE-OBS and EXPTIME come from GPS", &status);
+	}
+}
+
 void read_fits_date_obs_header(fits *fit) {
 	int status = 0;
 	char ut_start[FLEN_VALUE] = { 0 };

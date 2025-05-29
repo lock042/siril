@@ -64,8 +64,10 @@ int save_fits_keywords(fits *fit);
 int save_fits_unknown_keywords(fits *fit);
 int save_history_keywords(fits *fit);
 int save_wcs_keywords(fits *fit);
+void save_gps_keywords(fits *fit);
 void read_fits_date_obs_header(fits *fit);
 int read_fits_keywords(fits *fit);
+void read_qhy_gps_data(fits *fit);
 int remove_all_fits_keywords(fits *fit);
 void clear_Bayer_information(fits *fit);
 
