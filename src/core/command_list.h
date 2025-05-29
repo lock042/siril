@@ -74,7 +74,7 @@ static command commands[] = {
 	{"get", 1, "get { -a | -A | variable }", process_set, STR_GET, TRUE, REQ_CMD_NONE},
 	{"getref", 1, "getref sequencename", process_getref, STR_GETREF, TRUE, REQ_CMD_NONE},
 	{"ght", 1, "ght -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels]", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"gps", 0, "gps [{ -ro | -header | -crop= | line_number }]", process_gps, STR_GPS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"gps", 0, "gps [{ -ro | -header | -crop= | line_number [{s | start | m | middle | e | end}] }]", process_gps, STR_GPS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"help", 0, "help [command]", process_help, STR_HELP, TRUE, REQ_CMD_NONE},

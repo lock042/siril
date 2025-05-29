@@ -11485,79 +11485,104 @@ int process_pyscript(int nb) {
  * timestamps if needed.
  *	The command `gps 1234` will compute the timestamp of the middle of the exposure for pixel row
  *	1234 for example.
- *	Possible improvement: add an option to change if the timestamp is for the beginning, middle or
- *	end of the exposure, this currently requires a recompilation and it's useful to have.
  */
 
 int process_gps(int nb) {
         int crop_rows = 1; // used to be 6 because of a QHY bug in 2023
-        if (nb == 2) {
+        if (nb == 2 || nb == 3) {
                 gchar *end;
                 const char *arg = word[1];
                 int pix_y = g_ascii_strtoull(arg, &end, 10);
                 if (end == arg) {
-                        if (!g_strcmp0(word[1], "-header")) {
-                                /* read from header instead of from pixels */
-                                struct _qhy_struct qhy_header = { 0 };
-                                gchar *filename = get_image_filename_no_ext(NULL, -1);
-                                int retval = parse_gps_from_header(&gfit, filename, &qhy_header);
-                                g_free(filename);
-                                if (retval >= 0) {
-                                        print_qhy_data(&qhy_header);
-                                        release_qhy_struct(&qhy_header);
-                                        if (retval) retval = CMD_INVALID_IMAGE;
-                                        return retval;
-                                }
-                                return CMD_INVALID_IMAGE;
-                        }
-                        if (!g_strcmp0(word[1], "-ro")) {
-                                /* gps -ro */
-                                struct _qhy_struct qhy_header = { 0 };
-                                int retval = parse_gps_image(&gfit, &qhy_header);
-                                if (retval >= 0) {
-                                        print_qhy_data(&qhy_header);
-                                        release_qhy_struct(&qhy_header);
-                                        if (retval) retval = CMD_INVALID_IMAGE;
-                                        return retval;
-                                }
-                                return CMD_INVALID_IMAGE;
-                        }
-                        if (g_str_has_prefix(word[1], "-crop=")) {
-                                gchar *end;
-                                char *arg = word[1] + 6;
-                                crop_rows = g_ascii_strtoull(arg, &end, 10);
-                                if (end == arg || crop_rows > 6)
-                                        return CMD_ARG_ERROR;
-                        }
-                        else return CMD_ARG_ERROR;
-                } else {
-                        if (!gfit.keywords.gps_data) {
-                                siril_log_message("The loaded image does not have the expected QHY GPS headers from NINA\n");
-                                return CMD_INVALID_IMAGE;
-                        }
-                        if (pix_y < 0 || pix_y >= gfit.ry) {
-                                siril_log_message("Line is outside image\n");
-                                return CMD_ARG_ERROR;
-                        }
-                        /* gps row_number */
-                        GDateTime *date = get_timestamp_for_pixel(gfit.keywords.gps_data, EXP_MIDDLE, 0, pix_y);
-                        if (date) {
-                                gchar *date_str = date_time_to_FITS_date(date);
-                                siril_log_message("%4d: %s (exposure end)\n", pix_y, date_str);
-                                g_free(date_str);
-                                g_date_time_unref(date);
-                                return CMD_OK;
-                        }
-                        return CMD_ARG_ERROR;
-                }
-        }
-        struct generic_seq_args args = { 0 };
-        args.user = GINT_TO_POINTER(crop_rows);
-        int retval = gps_extract_image_hook(&args, 0, 0, &gfit, NULL, MULTI_THREADED);
-        if (!retval)
-                notify_gfit_modified();
-        else retval = CMD_INVALID_IMAGE;
-        return retval;
+			if (nb > 2) { // only one of those allowed
+				siril_log_message(_("Error parsing arguments, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!g_strcmp0(word[1], "-header")) {
+				/* read from header instead of from pixels */
+				struct _qhy_struct qhy_header = { 0 };
+				gchar *filename = get_image_filename_no_ext(NULL, -1);
+				int retval = parse_gps_from_header(&gfit, filename, &qhy_header);
+				g_free(filename);
+				if (retval >= 0) {
+					print_qhy_data(&qhy_header);
+					release_qhy_struct(&qhy_header);
+					if (retval) retval = CMD_INVALID_IMAGE;
+					return retval;
+				}
+				return CMD_INVALID_IMAGE;
+			}
+			if (!g_strcmp0(word[1], "-ro")) {
+				/* gps -ro */
+				struct _qhy_struct qhy_header = { 0 };
+				int retval = parse_gps_image(&gfit, &qhy_header);
+				if (retval >= 0) {
+					print_qhy_data(&qhy_header);
+					release_qhy_struct(&qhy_header);
+					if (retval) retval = CMD_INVALID_IMAGE;
+					return retval;
+				}
+				return CMD_INVALID_IMAGE;
+			}
+			if (g_str_has_prefix(word[1], "-crop=")) {
+				gchar *end;
+				char *arg = word[1] + 6;
+				crop_rows = g_ascii_strtoull(arg, &end, 10);
+				if (end == arg || crop_rows > 6)
+					return CMD_ARG_ERROR;
+			}
+			else return CMD_ARG_ERROR;
+		} else {
+			/* gps row_number */
+			if (!gfit.keywords.gps_data) {
+				siril_log_message(_("The loaded image does not have the expected QHY GPS headers from NINA\n"));
+				return CMD_INVALID_IMAGE;
+			}
+			if (pix_y < 0 || pix_y >= gfit.ry) {
+				siril_log_message(_("Line is outside image\n"));
+				return CMD_ARG_ERROR;
+			}
+			enum timestamp_type moment = EXP_MIDDLE;
+			char *moment_str = "middle";
+			if (nb == 3) {
+				if (!g_strcmp0(word[2], "start") || !g_strcmp0(word[2], "s")) {
+					moment = EXP_START;
+					moment_str = "start";
+				}
+				else if (!g_strcmp0(word[2], "end") || !g_strcmp0(word[2], "e")) {
+					moment = EXP_END;
+					moment_str = "end";
+				}
+				else if (!g_strcmp0(word[2], "middle") || !g_strcmp0(word[2], "m")) {
+					moment = EXP_MIDDLE;
+				}
+				else {
+					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[2]);
+					return CMD_ARG_ERROR;
+				}
+			}
+			GDateTime *date = get_timestamp_for_pixel(gfit.keywords.gps_data, moment, 0, pix_y);
+			if (date) {
+				gchar *date_str = date_time_to_FITS_date(date);
+				siril_log_message(_("%4d: %s (exposure %s)\n"), pix_y, date_str, moment_str);
+				g_free(date_str);
+				g_date_time_unref(date);
+				return CMD_OK;
+			}
+			return CMD_ARG_ERROR;
+		}
+	}
+	else if (nb > 3) {
+		siril_log_message(_("Error parsing arguments, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+	struct generic_seq_args args = { 0 };
+	args.user = GINT_TO_POINTER(crop_rows);
+	int retval = gps_extract_image_hook(&args, 0, 0, &gfit, NULL, MULTI_THREADED);
+	if (!retval)
+		notify_gfit_modified();
+	else retval = CMD_INVALID_IMAGE;
+	return retval;
 }
 
 int process_seq_gps_extract(int nb) {
