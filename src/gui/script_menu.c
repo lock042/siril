@@ -302,8 +302,6 @@ int initialize_script_menu(gboolean verbose) {
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythondebug);
 	gtk_widget_show(menu_item_pythondebug);
 
-	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
-
 	gchar *previous_directory_ssf = NULL;
 	gchar *previous_directory_py = NULL;
 	gboolean first_item_ssf = TRUE;
@@ -484,6 +482,10 @@ int initialize_script_menu(gboolean verbose) {
 			}
 		}
 	}
+	gtk_widget_set_sensitive(menuscript, FALSE);
+	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
+	gtk_widget_set_sensitive(menuscript, TRUE);
+
 	return 0;
 }
 
@@ -517,10 +519,6 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 
 gboolean refresh_script_menu(gpointer user_data) {
 	gboolean verbose = (gboolean) GPOINTER_TO_INT(user_data);
-	if (menuscript) {
-		// Remove the popup while we refresh the menu
-		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), NULL);
-	}
 	initialize_script_menu(verbose);
 	fill_script_repo_tree(FALSE);
 	return FALSE;
