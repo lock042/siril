@@ -33,6 +33,7 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
+#include "core/command_line_processor.h"
 #include "core/OS_utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
@@ -846,7 +847,8 @@ gpointer waiting_for_thread() {
 	com.thread = NULL;
 	thread_being_waited = FALSE;
 	set_thread_run(FALSE);	// do it anyway in case of wait without stop
-	return retval;
+
+	return GINT_TO_POINTER(GPOINTER_TO_INT(retval) & ~CMD_NOTIFY_GFIT_MODIFIED);
 }
 
 int claim_thread_for_python() {
