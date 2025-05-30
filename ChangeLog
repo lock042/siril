@@ -6,6 +6,8 @@ xx/xx/25
 * Fixed `match stars in selection` option for global registration (#1644)
 * Fixed an issue where image processing dialogs could fail to unblock python scripts when closed.
 * Fixed an issue where the python pix2radec and radec2pix commands failed with coords outside the image (!887)
+* Fixed an issue that meant the pyscript command was not waiting for the python interpreter to exit (#1660)
+* Fixed an issue with some commands e.g. denoise that meant they would always indicate failure in a script (#1661)
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
