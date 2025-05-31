@@ -670,9 +670,9 @@ gpointer catmag_mono_worker(gpointer arg) {
 	//double limit_mag = compute_mag_limit_from_fov(radius * 2.0) + 1.4;
 	// we want to get more stars than the default, they will be discarded later if they are too faint
 	double limit_mag = compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, nb_stars_in_image);
-	siril_catalogue cat = { .cat_index = CAT_LOCAL_KSTARS, .center_ra = ra, .center_dec = dec,
-		.radius = radius * 60.0, .limitmag = limit_mag, .dateobs = gfit.keywords.date_obs,
-		.IAUcode = NULL, .phot = TRUE, 0 };
+	siril_catalogue cat = { .cat_index = args->use_nomad ? CAT_LOCAL_KSTARS : CAT_LOCAL_GAIA_ASTRO,
+		.center_ra = ra, .center_dec = dec, .radius = radius * 60.0, .limitmag = limit_mag,
+		.dateobs = gfit.keywords.date_obs, .IAUcode = NULL, .phot = TRUE, 0 };
 	int retval = siril_catalog_get_stars_from_local_catalogues(&cat);
 	if (retval < 1) {
 		siril_log_message(_("Failed to get stars from catalog\n"));

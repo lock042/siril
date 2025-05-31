@@ -11479,21 +11479,45 @@ int process_catmag_mono(int nb) {
                 siril_log_color_message("Image is not plate solved!\n", "red");
                 return CMD_FOR_PLATE_SOLVED;
         }
-        gboolean limitBV = FALSE;
-        float refBV = 0.0f, dBV = 0.4f;
-        if (nb > 1) { refBV = g_ascii_strtod(word[1], NULL); limitBV = TRUE; }
-        if (nb > 2) dBV = g_ascii_strtod(word[2], NULL);
-
-        if (limitBV && (refBV < -0.5 || refBV > 1.5 || dBV < 0.001f || dBV > 2.0f)) {
-                siril_log_color_message("Reference B-V index is out of usual range [-0.5, 1.5]\n", "red");
-                return CMD_ARG_ERROR;
-        }
         struct catmag_data *args = calloc(1, sizeof(struct catmag_data));
-        args->refBV = refBV;
-        args->dBV = dBV;
-        args->limitBV = limitBV;
-        args->fit = &gfit;
-        start_in_new_thread(catmag_mono_worker, args);
-        return 0;
+	if (local_gaia_available()) {
+		gboolean limitTemperature = FALSE;
+		float refT = 5555.0f, dT = 500.0f;
+		if (nb > 1) { refT = g_ascii_strtod(word[1], NULL); limitTemperature = TRUE; }
+		if (nb > 2) dT = g_ascii_strtod(word[2], NULL);
+
+		if (limitTemperature && (refT < 2000.0f || refT > 10000.0f || dT < 10.0f || dT > 3000.0f)) {
+			siril_log_color_message("Reference temperature is out of usual range [2000, 10000]K\n", "red");
+			free(args);
+			return CMD_ARG_ERROR;
+		}
+		args->refT = refT;
+		args->dT = dT;
+		args->limitTemperature = limitTemperature;
+	}
+	else if (local_kstars_available()) {
+		args->use_nomad = TRUE;
+		gboolean limitBV = FALSE;
+		float refBV = 0.0f, dBV = 0.4f;
+		if (nb > 1) { refBV = g_ascii_strtod(word[1], NULL); limitBV = TRUE; }
+		if (nb > 2) dBV = g_ascii_strtod(word[2], NULL);
+
+		if (limitBV && (refBV < -0.5f || refBV > 1.5f || dBV < 0.001f || dBV > 2.0f)) {
+			siril_log_color_message("Reference B-V index is out of usual range [-0.5, 1.5]\n", "red");
+			free(args);
+			return CMD_ARG_ERROR;
+		}
+		args->refBV = refBV;
+		args->dBV = dBV;
+		args->limitBV = limitBV;
+	}
+	else {
+		siril_log_color_message("This feature is not implemented for other catalogues than the two local ones\n", "red");
+		free(args);
+		return CMD_GENERIC_ERROR;
+	}
+	args->fit = &gfit;
+	start_in_new_thread(catmag_mono_worker, args);
+	return 0;
 }
 

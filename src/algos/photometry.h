@@ -60,8 +60,11 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs);
 
 
 struct catmag_data {
+	gboolean use_nomad;
+	gboolean limitBV;	// NOMAD
 	float refBV, dBV;
-	gboolean limitBV;
+	gboolean limitTemperature; // Gaia
+	float refT, dT;
 	fits *fit;
 };
 gpointer catmag_mono_worker(gpointer arg);
