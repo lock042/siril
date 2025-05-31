@@ -53,7 +53,10 @@ from .utility import (
     check_module_version,
     SuppressedStdout,
     SuppressedStderr,
-    ONNXHelper
+)
+from .gpuhelper import (
+    ONNXHelper,
+    TorchHelper,
 )
 from .exceptions import (
     SirilError,
@@ -116,6 +119,7 @@ __all__ = [
     'SuppressedStdout',
     'SuppressedStderr',
     'ONNXHelper',
+    'TorchHelper',
     'human_readable_size',
     'download_with_progress',
     'LogColor',
