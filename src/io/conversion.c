@@ -137,15 +137,6 @@ void list_format_available() {
 #endif
 }
 
-static void initialize_ser_debayer_settings() {
-	com.pref.debayer.open_debayer = FALSE;
-	com.pref.debayer.use_bayer_header = TRUE;
-	com.pref.debayer.top_down = TRUE;
-	com.pref.debayer.bayer_pattern = BAYER_FILTER_RGGB;
-	com.pref.debayer.bayer_inter = BAYER_RCD;
-	com.pref.debayer.xbayeroff = 0;
-	com.pref.debayer.ybayeroff = 0;
-}
 
 /**************************Public functions***********************************************************/
 
@@ -177,7 +168,6 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".pnm";
 	supported_extensions[count_ext++] = ".pic";
 
-	initialize_ser_debayer_settings();	// below in the file
 
 #ifdef HAVE_LIBRAW
 	int i, nb_raw;

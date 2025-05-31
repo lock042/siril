@@ -828,9 +828,12 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 
 int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 	int xbayeroff = 0, ybayeroff = 0;
-	gboolean top_down = com.pref.debayer.top_down;
+	gboolean top_down = FALSE;
 
-	if (com.pref.debayer.use_bayer_header) {
+	if (com.pref.debayer.orientation == ROW_ORDER_FORCE_TOPDOWN || com.pref.debayer.orientation == ROW_ORDER_HEADER_TOPDOWN)
+		top_down = TRUE;
+
+	if (com.pref.debayer.orientation == ROW_ORDER_HEADER_TOPDOWN || com.pref.debayer.orientation == ROW_ORDER_HEADER_BOTTOMUP) {
 		if (!g_strcmp0(fit->keywords.row_order, "TOP-DOWN")) {
 			top_down = TRUE;
 		} else if (!g_strcmp0(fit->keywords.row_order, "BOTTOM-UP")) {
@@ -909,9 +912,11 @@ int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 }
 
 static void adjust_XTrans_pattern(fits *fit, unsigned int xtrans[6][6]) {
-	gboolean top_down = com.pref.debayer.top_down;
+	gboolean top_down = FALSE;
+	if (com.pref.debayer.orientation == ROW_ORDER_FORCE_TOPDOWN || com.pref.debayer.orientation == ROW_ORDER_HEADER_TOPDOWN)
+		top_down = TRUE;
 
-	if (com.pref.debayer.use_bayer_header) {
+	if (com.pref.debayer.orientation == ROW_ORDER_HEADER_TOPDOWN || com.pref.debayer.orientation == ROW_ORDER_HEADER_BOTTOMUP) {
 		if (!g_strcmp0(fit->keywords.row_order, "TOP-DOWN")) {
 			top_down = TRUE;
 		} else if (!g_strcmp0(fit->keywords.row_order, "BOTTOM-UP")) {
@@ -1094,7 +1099,7 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	int width = fit->rx;
 	int height = fit->ry;
 	WORD *buf = fit->data;
-	gboolean top_down = com.pref.debayer.top_down;
+	gboolean top_down = TRUE;//com.pref.debayer.top_down;
 
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
@@ -1164,7 +1169,7 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	int width = fit->rx;
 	int height = fit->ry;
 	float *buf = fit->fdata;
-	gboolean top_down = com.pref.debayer.top_down;
+	gboolean top_down = TRUE;//com.pref.debayer.top_down;
 
 	unsigned int xtrans[6][6];
 	if (interpolation == XTRANS) {
