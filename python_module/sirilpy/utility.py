@@ -345,7 +345,7 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
 
         # Add index-url option if index_url is provided
         if index_url:
-            pip_command.append(["--index-url", index_url])
+            pip_command.extend(["--index-url", index_url])
 
         # Add find-links option if from_url is provided
         if from_url:

@@ -256,17 +256,26 @@ class ONNXHelper:
             list: a list of confirmed working ONNXRuntime ExecutionProviders in priority order
         """
         import onnx
+        import os
+        import tempfile
+
         print("=== ONNX Execution Provider Tester ===")
         print("Creating ONNX model...")
         model = self.create_simple_onnx_model()
-        # Create temporary file for the model
-        with tempfile.NamedTemporaryFile(suffix='.onnx', delete=True) as temp_file:
-            model_path = temp_file.name
+
+        # Create temporary file for the model - Windows compatible approach
+        temp_file = tempfile.NamedTemporaryFile(suffix='.onnx', delete=False)
+        model_path = temp_file.name
+        temp_file.close()  # Close the file handle immediately
+
+        try:
             onnx.save(model, model_path)
             print(f"Model saved to temporary file: {model_path}")
+
             input_data = np.random.randn(1, 128, 256).astype(np.float32)
             print("\nRunning reference on CPU...")
             cpu_output = None
+
             try:
                 cpu_session = ort.InferenceSession(model_path, providers=['CPUExecutionProvider'])
                 cpu_output = cpu_session.run(None, {'input': input_data})[0]
@@ -274,30 +283,42 @@ class ONNXHelper:
             except Exception as e:
                 print(f"✗ Failed to run on CPU: {e}")
                 return []
+
             all_providers = ort.get_available_providers()
             print("\nAvailable execution providers:")
             for p in all_providers:
                 print(f"  - {p}")
+
             print("\nTesting each provider without fallback...")
             working_providers = []
+
             for provider in all_providers:
                 print(f"\nTesting {provider}...")
                 with SuppressedStderr():
                     if self.try_provider(ort, model_path, input_data, provider, reference_output=cpu_output):
                         working_providers.append(provider)
+
             print("\n=== Summary ===")
             if working_providers:
                 print("✓ Working providers (in priority order):")
                 for p in working_providers:
                     print(f"  - {p}")
                 print(f"\n→ Best available provider: {working_providers[0]}")
-
                 # Save to cache
                 self._save_providers_to_cache(working_providers)
                 self.providers = working_providers
                 return working_providers
+
             print("✗ No execution providers were able to run the model.")
             return []
+
+        finally:
+            # Clean up the temporary file
+            try:
+                os.unlink(model_path)
+            except (OSError, FileNotFoundError):
+                # File might already be deleted or inaccessible, ignore
+                pass
 
     def run(self, session, model_path, output_names, input_feed, run_options=None, return_first_output=False):
         """
