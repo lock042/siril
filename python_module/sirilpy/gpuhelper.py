@@ -18,7 +18,7 @@ import platform
 import tempfile
 import importlib
 import subprocess
-from typing import Optional, Any
+from typing import Optional, Dict, Any
 from packaging import version as pkg_version
 import requests
 import numpy as np
@@ -972,3 +972,467 @@ class TorchHelper:
         self.test_torch_gpu()
         self.test_tensor_operations()
         return True
+
+class JaxHelper:
+    """
+    A helper class for detecting, installing, and testing JAX with appropriate hardware acceleration.
+
+    This class automatically detects the system configuration and installs the correct JAX variant
+    (CPU, CUDA, ROCm, etc.) based on available hardware.
+    """
+
+    def __init__(self):
+        self.system = platform.system().lower()
+        self.jax_installed = False
+        self.detected_config = None
+
+    def detect_hardware_config(self) -> Dict[str, Any]:
+        """
+        Detect the hardware configuration and determine the appropriate JAX variant.
+
+        Returns:
+            Dict containing detected hardware info and recommended JAX installation.
+        """
+        config = {
+            'system': self.system,
+            'has_nvidia_gpu': False,
+            'has_amd_gpu': False,
+            'has_intel_gpu': False,
+            'cuda_version': None,
+            'recommended_jax_variant': 'jax[cpu]',
+            'install_url': None,
+            'index_url': None
+        }
+
+        # Detect GPUs
+        config['has_nvidia_gpu'] = _detect_nvidia_gpu(self.system)
+        config['has_amd_gpu'] = _detect_amd_gpu()
+        config['has_intel_gpu'] = _detect_intel_gpu_for_openvino()
+
+        # Detect CUDA version if NVIDIA GPU is present
+        if config['has_nvidia_gpu']:
+            config['cuda_version'] = _detect_cuda_version(self.system)
+
+        # Determine JAX variant based on hardware
+        config = self._determine_jax_variant(config)
+
+        self.detected_config = config
+        return config
+
+    def _determine_jax_variant(self, config: Dict[str, Any], force_cpu=False) -> Dict[str, Any]:
+        """
+        Determine the appropriate JAX variant based on detected hardware.
+
+        Args:
+            config: Hardware configuration dictionary
+            force_cpu: forces CPU-only installation
+
+        Returns:
+            Updated configuration with JAX variant recommendation
+        """
+        if force_cpu:
+            config['recommended_jax_variant'] = 'jax[cpu]'
+            print("⚠ Warning: performance of the CPU-only jax variant "
+                "is slow and is intended for development use only. It "
+                "is generally recommended that you do NOT enable jax "
+                "optimisation in scripts that offer it!")
+            return config
+
+        if config['has_nvidia_gpu']:
+            if config['system'] == 'linux':
+                # NVIDIA GPU with CUDA
+                config['recommended_jax_variant'] = 'jax[cuda12]'
+            elif config['system'] == 'windows':
+                print("⚠ Windows CUDA support for jax is experimental: "
+                    "if you have problems, reinstall forcing CPU support")
+
+        elif config['has_amd_gpu'] and config['system'] == 'linux':
+            # AMD GPU with ROCm (Linux only)
+            config['recommended_jax_variant'] = 'jax[rocm]'
+
+        elif config['has_intel_gpu']:
+            # Current pypi package for intel-extension-for-openxla
+            # has dependency clashes (still requires numpy 1.x)
+            print("⚠ Intel GPU detected: unfortunately the experimental "
+                "jax plugin for Intel GPUs has dependency clashes and "
+                "still requires numpy 1.x therefore only the CPU variant "
+                "can be installed. Hopefully this will change in the "
+                "future.")
+            config['recommended_jax_variant'] = 'jax[cpu]'
+
+        elif config['system'] == 'darwin':
+            # macOS - use Metal wheel and print an experimental warning
+            print("⚠ jax Metal support on MacOS is still experimental")
+            config['recommended_jax_variant'] = 'jax-metal'
+
+        else:
+            # Default to CPU
+            config['recommended_jax_variant'] = 'jax[cpu]'
+
+        return config
+
+    def install_jax(self, force_variant: Optional[str] = None,
+                   version_constraint: Optional[str] = None) -> bool:
+        """
+        Install JAX with the appropriate variant for the detected hardware.
+
+        Args:
+            force_variant: Override auto-detection with specific variant (e.g., 'jax[cpu]')
+            version_constraint: Version constraint string (e.g., '>=0.4.0')
+
+        Returns:
+            bool: True if installation succeeded, False otherwise
+        """
+        if not self.detected_config:
+            self.detect_hardware_config()
+
+        variant = force_variant or self.detected_config['recommended_jax_variant']
+
+        try:
+            print(f"Installing {variant}...")
+
+            # Use the provided install_package function
+            _install_package(
+                package_name=variant,
+                version_constraint=version_constraint,
+                from_url=self.detected_config.get('install_url'),
+                index_url=self.detected_config.get('index_url')
+            )
+
+            self.jax_installed = True
+            print(f"Successfully installed {variant}")
+            return True
+
+        except Exception as e:
+            print(f"Failed to install {variant}: {e}")
+            return False
+
+    def test_jax_installation(self) -> str:
+        """
+        Test JAX functionality and return execution provider.
+
+        Returns:
+            str: "gpu" if JAX is using GPU, "cpu" if using CPU
+
+        Raises:
+            RuntimeError: If JAX computation fails or accuracy check fails
+            ImportError: If JAX is not installed
+        """
+        try:
+            import jax
+            import jax.numpy as jnp
+        except ImportError as e:
+            raise ImportError(f"JAX is not installed or not importable: {e}") from e
+
+        try:
+            # Get the default device
+            default_device = jax.devices()[0]
+
+            # Create test data with fixed seed for reproducible results
+            np.random.seed(42)
+            test_data_np = np.random.randn(100, 100).astype(np.float32)
+
+            # Define a JIT-compiled function to test compilation
+            @jax.jit
+            def test_computation_jax(x):
+                # Test matrix operations that benefit from GPU acceleration
+                y = jnp.dot(x, x.T)
+                z = jnp.sin(y) + jnp.cos(y)
+                return jnp.sum(z)
+
+            # Define equivalent numpy computation for cross-check
+            def test_computation_numpy(x):
+                y = np.dot(x, x.T)
+                z = np.sin(y) + np.cos(y)
+                return np.sum(z)
+
+            # Convert to JAX array
+            test_data_jax = jnp.array(test_data_np)
+
+            # Execute JAX computation (JIT-compiled)
+            jax_result = test_computation_jax(test_data_jax)
+            jax_result.block_until_ready()
+
+            # Execute numpy computation for cross-check
+            numpy_result = test_computation_numpy(test_data_np)
+
+            # Cross-check accuracy with appropriate tolerance
+            # Using rtol=1e-5, atol=1e-6 for float32 precision
+            if not np.allclose(jax_result, numpy_result, rtol=1e-5, atol=1e-6):
+                raise RuntimeError(f"JAX result {jax_result} does not match numpy result {numpy_result} within tolerance")
+            print("Accuracy cross-check between jax.numpy and numpy succeeded")
+
+            # Check the platform of the device that was actually used
+            if default_device.platform.lower() == 'gpu':
+                return "gpu"
+            return "cpu"
+
+        except Exception as e:
+            # If main test fails, try fallback to basic CPU operations
+            if "does not match numpy" in str(e):
+                # Re-raise accuracy errors immediately
+                raise
+
+            try:
+                # Try basic CPU operations with accuracy check
+                test_array_np = np.array([1.0, 2.0, 3.0], dtype=np.float32)
+                test_array_jax = jnp.array(test_array_np)
+
+                jax_sum = jnp.sum(test_array_jax)
+                jax_sum.block_until_ready()
+                numpy_sum = np.sum(test_array_np)
+
+                if not np.allclose(jax_sum, numpy_sum, rtol=1e-7, atol=1e-8):
+                    raise RuntimeError(f"Basic JAX operation failed accuracy check: {jax_sum} vs {numpy_sum}") from e
+
+                return "cpu"
+            except Exception:
+                # If even CPU fails, something is seriously wrong
+                raise RuntimeError("JAX is not functioning properly") from e
+
+    def get_jax_info(self) -> Dict[str, Any]:
+        """
+        Get information about the current JAX installation.
+
+        Returns:
+            Dict containing JAX version, devices, and backend info
+        """
+        try:
+            import jax
+            return {
+                'version': jax.__version__,
+                'devices': [str(device) for device in jax.devices()],
+                'default_backend': jax.default_backend(),
+                'available_backends': list(jax.lib.xla_bridge.get_backend_names())
+            }
+        except ImportError:
+            return {'error': 'JAX not installed'}
+        except Exception as e:
+            return {'error': f'Error getting JAX info: {e}'}
+
+    def setup_jax(self, force_variant: Optional[str] = None,
+                  version_constraint: Optional[str] = None,
+                  test_after_install: bool = True) -> Dict[str, Any]:
+        """
+        Complete setup: detect hardware, install JAX, and optionally test.
+
+        Args:
+            force_variant: Override auto-detection with specific variant
+            version_constraint: Version constraint for JAX installation
+            test_after_install: Whether to test JAX after installation
+
+        Returns:
+            Dict containing setup results and information
+        """
+        results = {
+            'detection_successful': False,
+            'installation_successful': False,
+            'test_successful': False,
+            'execution_provider': None,
+            'detected_config': None,
+            'jax_info': None,
+            'errors': []
+        }
+
+        try:
+            # Step 1: Detect hardware configuration
+            print("Detecting hardware configuration...")
+            config = self.detect_hardware_config()
+            results['detected_config'] = config
+            results['detection_successful'] = True
+            print(f"Detected configuration: {config['recommended_jax_variant']}")
+
+            # Step 2: Install JAX
+            print("Installing JAX...")
+            install_success = self.install_jax(force_variant, version_constraint)
+            results['installation_successful'] = install_success
+
+            if install_success:
+                # Step 3: Get JAX info
+                jax_info = self.get_jax_info()
+                results['jax_info'] = jax_info
+
+                # Step 4: Test if requested
+                if test_after_install:
+                    print("Testing JAX installation...")
+                    try:
+                        execution_provider = self.test_jax_installation()
+                        results['test_successful'] = True
+                        results['execution_provider'] = execution_provider
+                        print(f"JAX test successful! Using: {execution_provider}")
+                    except Exception as e:
+                        results['errors'].append(f"Test failed: {e}")
+                        print(f"JAX test failed: {e}")
+            else:
+                results['errors'].append("JAX installation failed")
+
+        except Exception as e:
+            results['errors'].append(f"Setup error: {e}")
+            print(f"Setup error: {e}")
+
+        return results
+
+    def detect_and_uninstall_jax(self, dry_run: bool = False) -> Dict[str, Any]:
+        """
+        Detect and uninstall any existing JAX-related packages.
+
+        This is useful when you need to clean up a problematic JAX installation
+        before installing a different variant (e.g., falling back from GPU to CPU).
+
+        Args:
+            dry_run: If True, only detect packages without uninstalling them
+
+        Returns:
+            Dict containing information about detected and uninstalled packages
+        """
+        results = {
+            'detected_packages': [],
+            'uninstalled_packages': [],
+            'errors': [],
+            'dry_run': dry_run
+        }
+
+        # Common JAX-related package patterns
+        jax_packages = [
+            'jax',
+            'jaxlib',
+            'jax-cuda',
+            'jax-cuda11-local',
+            'jax-cuda12-local',
+            'jax-rocm',
+            'jax-metal',
+            'intel-extension-for-openxla'
+        ]
+
+        try:
+            # Get list of installed packages
+            result = subprocess.run(
+                [sys.executable, '-m', 'pip', 'list', '--format=freeze'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+
+            installed_packages = result.stdout.strip().split('\n')
+            installed_dict = {}
+
+            for package_line in installed_packages:
+                if '==' in package_line:
+                    name, version = package_line.split('==', 1)
+                    installed_dict[name.lower()] = version
+
+            # Find JAX-related packages
+            detected = []
+            for pkg_name in jax_packages:
+                if pkg_name.lower() in installed_dict:
+                    detected.append({
+                        'name': pkg_name,
+                        'version': installed_dict[pkg_name.lower()],
+                        'installed_name': pkg_name.lower()
+                    })
+
+            # Also check for packages that start with 'jax'
+            for installed_name in installed_dict.keys():
+                if installed_name.startswith('jax') and installed_name not in [p['installed_name'] for p in detected]:
+                    detected.append({
+                        'name': installed_name,
+                        'version': installed_dict[installed_name],
+                        'installed_name': installed_name
+                    })
+
+            results['detected_packages'] = detected
+
+            if detected:
+                print(f"Found {len(detected)} JAX-related packages:")
+                for pkg in detected:
+                    print(f"  - {pkg['name']}=={pkg['version']}")
+            else:
+                print("No JAX-related packages found.")
+                return results
+
+            # Uninstall packages if not dry run
+            if not dry_run and detected:
+                print("Uninstalling JAX packages...")
+
+                # Uninstall in reverse dependency order - start with main packages
+                uninstall_order = ['jax'] + [pkg['name'] for pkg in detected if pkg['name'] != 'jax']
+
+                for pkg_name in uninstall_order:
+                    # Find the package info
+                    pkg_info = next((p for p in detected if p['name'] == pkg_name), None)
+                    if not pkg_info:
+                        continue
+
+                    try:
+                        print(f"Uninstalling {pkg_name}...")
+                        subprocess.run(
+                            [sys.executable, '-m', 'pip', 'uninstall', pkg_name, '-y'],
+                            check=True,
+                            capture_output=True,
+                            text=True
+                        )
+                        results['uninstalled_packages'].append(pkg_info)
+                        print(f"Successfully uninstalled {pkg_name}")
+
+                    except subprocess.CalledProcessError as e:
+                        error_msg = f"Failed to uninstall {pkg_name}: {e}"
+                        results['errors'].append(error_msg)
+                        print(error_msg)
+                        # Continue with other packages
+
+                # Reset installation status
+                self.jax_installed = False
+                self.detected_config = None
+
+                print(f"Uninstallation complete. Removed {len(results['uninstalled_packages'])} packages.")
+
+            elif detected:
+                print("Dry run - no packages were uninstalled.")
+
+        except subprocess.CalledProcessError as e:
+            error_msg = f"Error running pip list: {e}"
+            results['errors'].append(error_msg)
+            print(error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error during JAX detection/uninstallation: {e}"
+            results['errors'].append(error_msg)
+            print(error_msg)
+
+        return results
+
+    def clean_install_jax(self, force_variant: Optional[str] = None,
+                         version_constraint: Optional[str] = None) -> bool:
+        """
+        Clean install JAX by first uninstalling any existing versions.
+
+        This is useful when switching between JAX variants or fixing problematic installations.
+
+        Args:
+            force_variant: JAX variant to install (e.g., 'jax[cpu]', 'jax[cuda12]')
+            version_constraint: Version constraint for installation
+
+        Returns:
+            bool: True if clean installation succeeded, False otherwise
+        """
+        print("Performing clean JAX installation...")
+
+        # Step 1: Detect and uninstall existing JAX
+        uninstall_results = self.detect_and_uninstall_jax(dry_run=False)
+
+        if uninstall_results['errors']:
+            print("Warning: Some errors occurred during uninstallation:")
+            for error in uninstall_results['errors']:
+                print(f"  - {error}")
+
+        # Step 2: Install fresh JAX
+        success = self.install_jax(force_variant, version_constraint)
+
+        if success:
+            print("Clean installation completed successfully.")
+        else:
+            print("Clean installation failed.")
+
+        return success
+
+    def __repr__(self) -> str:
+        return f"JaxHelper(system={self.system}, jax_installed={self.jax_installed})"

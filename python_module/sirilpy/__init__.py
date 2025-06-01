@@ -57,6 +57,7 @@ from .utility import (
 from .gpuhelper import (
     ONNXHelper,
     TorchHelper,
+    JaxHelper,
 )
 from .exceptions import (
     SirilError,
@@ -120,6 +121,7 @@ __all__ = [
     'SuppressedStderr',
     'ONNXHelper',
     'TorchHelper',
+    'JaxHelper',
     'human_readable_size',
     'download_with_progress',
     'LogColor',
