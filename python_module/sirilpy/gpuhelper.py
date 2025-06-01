@@ -1066,6 +1066,7 @@ class JaxHelper:
             elif config['system'] == 'windows':
                 print("⚠ Windows CUDA support for jax is experimental: "
                     "if you have problems, reinstall forcing CPU support")
+                config['recommended_jax_variant'] = 'jax[cuda12]'
 
         elif config['has_amd_gpu'] and config['system'] == 'linux':
             # AMD GPU with ROCm (Linux only)
