@@ -954,7 +954,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Create null-terminated string from remaining payload
 			char* log_msg = g_strndup(payload + 1, payload_length - 1);
-			siril_log_color_message(log_msg, log_color_to_str(color));  // Assuming function name updated to handle color
+			siril_log_literal_color_message(log_msg, log_color_to_str(color));  // Assuming function name updated to handle color
 			g_free(log_msg);
 
 			// Send success response
