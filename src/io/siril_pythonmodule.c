@@ -723,6 +723,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info) {
 	// Extract save flag from width field
 	gboolean save = (info->width != 0);
+	gboolean display = (info->height != 0);
 
 	// Open shared memory
 	void* shm_ptr = NULL;
@@ -774,7 +775,8 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 	// Plot the data in a siril_plot_window
 	if (plot_data) {
 		// Generate the plot window
-		siril_add_pythonsafe_idle(create_new_siril_plot_window, plot_data);
+		if (display)
+			siril_add_pythonsafe_idle(create_new_siril_plot_window, plot_data);
 
 		// Handle save functionality
 		if (save) {
