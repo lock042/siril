@@ -780,13 +780,21 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 
 		// Handle save functionality
 		if (save) {
-			gchar *lext = g_utf8_strdown(get_filename_ext(plot_data->savename), -1);
+			const char *ext = get_filename_ext(plot_data->savename);
+			gchar *lext = NULL;
+			if (ext)
+				lext = g_utf8_strdown(ext, -1);
+			else
+				lext = g_strdup("png");
 			gchar *basepath = remove_extension_from_path(plot_data->savename);
 			gchar *filename = NULL;
 			int width = plot_data->width != 0 ? plot_data->width : SIRIL_PLOT_DISPLAY_WIDTH;
 			int height = plot_data->height != 0 ? plot_data->height : SIRIL_PLOT_DISPLAY_HEIGHT;
 			if (!g_strcmp0(lext, "png")) {
-				filename = build_save_filename(basepath, ".png", plot_data->forsequence, TRUE);
+				// No timestamps are added: since this is for use with python, if timestamps are
+				// required they must be added programatically in python. We just save what we
+				// are given.
+				filename = build_save_filename(basepath, ".png", plot_data->forsequence, FALSE);
 				siril_plot_save_png(plot_data, filename, width, height);
 			} else if (!g_strcmp0(lext, "dat")) {
 				filename = build_save_filename(basepath, ".dat", plot_data->forsequence, FALSE);
@@ -796,7 +804,7 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 			}
 			else if (!g_strcmp0(lext, "svg")) {
 #ifdef CAIRO_HAS_SVG_SURFACE
-				filename = build_save_filename(basepath, ".svg", plot_data->forsequence, TRUE);
+				filename = build_save_filename(basepath, ".svg", plot_data->forsequence, FALSE);
 				siril_plot_save_svg(plot_data, filename, width, height);
 #else
 				siril_log_color_message(_("Error: Siril has been compiled with a version of Cairo "
@@ -804,6 +812,7 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 					"possible with this build.\n"), "red");
 #endif
 			}
+			siril_log_message(_("Saved plot to %s\n"), filename);
 			g_free(basepath);
 			g_free(filename);
 			g_free(lext);
