@@ -9,6 +9,7 @@ xx/xx/25
 * Fixed an issue that meant the pyscript command was not waiting for the python interpreter to exit (#1660)
 * Fixed an issue with some commands e.g. denoise that meant they would always indicate failure in a script (#1661)
 * Fixed Crash in pixelmath command with 16-bit images (#1672)
+* Fixed incorrect handling of sirilpy.connection.SirilInterface.log() strings (#1662)
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
