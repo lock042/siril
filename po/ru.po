@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-25 21:43+0200\n"
-"PO-Revision-Date: 2025-05-22 06:31+0000\n"
+"PO-Revision-Date: 2025-05-30 00:03+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -5160,6 +5160,12 @@ msgid ""
 "you can limit the action step size using this control. Try starting with 1.0 "
 "and working down from there. 0.0 means unlimited."
 msgstr ""
+"Устанавливает ограничение скорости прокрутки. В большинстве случаев это не "
+"требуется, но если у вас возникла проблема, когда колесо прокрутки выполняет "
+"свои действия (например, масштабирование) слишком быстро, вы можете "
+"ограничить размер шага прокрутки с помощью этого элемента управления. "
+"Попробуйте начать с 1.0 и продвигаться дальше. При значении 0.0 ограничения "
+"отсутствуют."
 
 #: src/gui/uifiles/mouse_actions.ui:316
 msgid "Scroll Actions"
@@ -5334,7 +5340,7 @@ msgstr "Следующий результат"
 
 #: src/gui/uifiles/python_scratchpad.ui:124
 msgid "unsaved"
-msgstr ""
+msgstr "несохранённый"
 
 #: src/gui/uifiles/python_scratchpad.ui:148
 msgid "_File"
@@ -5457,6 +5463,10 @@ msgid ""
 "This also ensures SirilInterface is invoked in CLI mode "
 "(SirilInterface.is_cli() will return True)"
 msgstr ""
+"Если флажок установлен, все аргументы, введённые в args, будут переданы "
+"сценарию при его запуске.\n"
+"Это также гарантирует, что SirilInterface в режиме CLI (функция "
+"SirilInterface.is_cli() вернёт значение True)"
 
 #: src/gui/uifiles/python_scratchpad.ui:363
 msgid "Enable test arguments"
@@ -5468,6 +5478,10 @@ msgid ""
 "python process as soon as the SirilInterface is initialized, to allow for "
 "connecting a python debugger to the process before continuing."
 msgstr ""
+"Если флажок установлен, интерпретатор python отобразит модальное диалоговое "
+"окно, показывающее процесс python, как только SirilInterface будет "
+"инициализирован, чтобы можно было подключить отладчик python к процессу, "
+"прежде чем продолжить."
 
 #: src/gui/uifiles/python_scratchpad.ui:372
 msgid "Enable python debug mode"
@@ -5552,6 +5566,8 @@ msgid ""
 "When Smart Home / End is enabled the Home and End keys will go to the first "
 "and last non-whitespace character on the line respectively"
 msgstr ""
+"Когда включена функция умные Home / End, клавиши Home и End позволяют "
+"перейти к первому и последнему непустому символу в строке, соответственно"
 
 #: src/gui/uifiles/python_scratchpad.ui:494
 msgid "Smart Home / End"
@@ -19402,7 +19418,7 @@ msgstr "Изменение масштаба по двойному клику п�
 
 #: src/core/settings.c:512
 msgid "Mouse smooth scroll speed limit"
-msgstr ""
+msgstr "Ограничение скорости прокрутки мыши"
 
 #: src/core/settings.c:513
 msgid "configure background samples color"
@@ -20067,9 +20083,8 @@ msgid "cosmetic correction: cosme file format error at line %d: %s\n"
 msgstr "косметическая коррекция: ошибка формата файла cosme в строке %d: %s\n"
 
 #: src/filters/epf.c:120
-#, fuzzy
 msgid "Bilateral filter: processing...\n"
-msgstr "Медианный фильтр: выполняется…\n"
+msgstr "Билатеральный фильтр: выполняется…\n"
 
 #: src/filters/fft.c:455
 msgid "Siril FFT wisdom imported successfully...\n"
@@ -23876,6 +23891,11 @@ msgid ""
 "using the right arrow of your keyboard. You can also go back to the previous "
 "tip using the left arrow and stop the animation with the escape key."
 msgstr ""
+"Добро пожаловать в новейшую версию Siril, %s. Пожалуйста, найдите минутку, "
+"чтобы ознакомиться с некоторыми советами по этому выпуску. Если скорость "
+"работы слишком низкая, перейдите к следующему совету, используя стрелку "
+"вправо на клавиатуре. Вы также можете вернуться к предыдущей подсказке, "
+"используя стрелку влево, и остановить анимацию с помощью клавиши Escape."
 
 #: src/gui/siril_intro.c:47
 msgid ""
@@ -23883,6 +23903,9 @@ msgid ""
 "structure and reduce its size. Many new processing tools have been developed "
 "and integrated in this menu."
 msgstr ""
+"Меню «Обработка» было изменено в соответствии с тематикой, для упрощения его "
+"структуры и уменьшения размера. Для него было разработано и добавлено "
+"множество новых инструментов обработки."
 
 #: src/gui/siril_intro.c:48
 msgid ""
@@ -23891,12 +23914,18 @@ msgid ""
 "FITS header, astrometry and photometry tools, as well as image analysis "
 "features."
 msgstr ""
+"Инструменты Siril, ранее разбросанные по всему интерфейсу, были собраны в "
+"новом меню «Инструменты». Это меню включает в себя статистику, заголовок "
+"FITS, инструменты астрометрии и фотометрии, а также функции анализа "
+"изображений."
 
 #: src/gui/siril_intro.c:49
 msgid ""
 "The Script menu has also evolved, now featuring both Python scripts and a "
 "script editor."
 msgstr ""
+"Меню «Сценарии» тоже эволюционировало и теперь содержит сценарии Python и "
+"редактор сценариев."
 
 #: src/gui/siril_intro.c:50
 msgid ""
@@ -23904,6 +23933,10 @@ msgid ""
 "offers syntax highlighting and many other useful features. Additionally, you "
 "can execute the script directly from the editor's interface."
 msgstr ""
+"Новый редактор сценариев можно использовать для создания сценариев Siril и "
+"Python. Редактор предлагает подсветку синтаксиса и множество других полезных "
+"функций. Кроме того, вы можете запустить сценарий непосредственно из "
+"интерфейса редактора."
 
 #: src/gui/siril_intro.c:51
 msgid ""
@@ -23911,6 +23944,9 @@ msgid ""
 "documentation, preferences, keyboard shortcuts help, and the script tab in "
 "the preferences, making it easy to add new scripts."
 msgstr ""
+"Главное было оптимизировано и теперь включает быстрый доступ к документации, "
+"настройкам, справке по сочетаниям клавиш и вкладке сценариев в настройках, "
+"что упрощает добавление новых сценариев."
 
 #: src/gui/siril_intro.c:52
 msgid ""
@@ -23918,6 +23954,9 @@ msgid ""
 "scripts directly from the preferences interface. These scripts are hosted by "
 "the Siril team, but can also be contributed by the community."
 msgstr ""
+"Управление сценариями было полностью обновлено. Теперь вы можете загружать "
+"новые сценарии непосредственно из интерфейса настроек. Эти сценарии "
+"принадлежат команде Siril, но также могут быть предоставлены сообществом."
 
 #: src/gui/siril_intro.c:53
 msgid ""
@@ -23925,6 +23964,9 @@ msgid ""
 "clarity and better organization. This release adds true Drizzle registration "
 "and mosaic stacking."
 msgstr ""
+"Вкладки «Регистрация», «График» и «Укладка» были переработаны для лучшей "
+"организации и повышения наглядности. В этот выпуск добавлены функции "
+"«Сверхразрешение» при регистрации и «Сшивка» при укладке."
 
 #: src/gui/siril_intro.c:54
 msgid ""
@@ -27336,10 +27378,9 @@ msgstr ""
 "команды"
 
 #: src/main-cli.c:119 src/main.c:131
-#, fuzzy
 msgid "specify the path for the write pipe, the one outputting messages"
 msgstr ""
-"указывает путь к именованному каналу для вывода, через который выводятся "
+"указывает путь к именованному каналу для записи, через который выводятся "
 "сообщения"
 
 #: src/main-cli.c:120 src/main.c:132
@@ -27771,9 +27812,8 @@ msgid "Incorrect formula"
 msgstr "Некорректная формула"
 
 #: src/pixelMath/pixel_math_runner.c:1117
-#, fuzzy
 msgid "RGB $T cannot be used in this context."
-msgstr "команда не может быть использована в сценарии"
+msgstr "RGB $T нельзя использовать в этом контексте."
 
 #: src/pixelMath/pixel_math_runner.c:1130
 msgid "Images have different size"
@@ -28114,10 +28154,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/applyreg.c:1193
-#, fuzzy
 msgid "Reference image is not included in the filtered list, aborting\n"
-msgstr ""
-"Опорное изображение не определено, было бы лучше использовать следующее:\n"
+msgstr "Опорное изображение не включено в список после фильтрации, прерывание\n"
 
 #: src/registration/applyreg.c:1194
 msgid ""
@@ -28125,12 +28163,13 @@ msgid ""
 msgstr ""
 
 #: src/registration/applyreg.c:1203
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Reference image is not included in the filtered list, using image #%d "
 "instead\n"
 msgstr ""
-"Опорное изображение не определено, было бы лучше использовать следующее:\n"
+"Опорное изображение не включено в список после фильтрации, используется "
+"изображение №%d\n"
 
 #: src/registration/astrometric.c:238
 #, c-format
@@ -28150,9 +28189,8 @@ msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
 msgstr "Изображение №%5d — ɑ:%7.3f — δ:%+7.3f — Поворот:%+6.1f\n"
 
 #: src/registration/astrometric.c:289
-#, fuzzy
 msgid "No image selected after computing transformations, aborting\n"
-msgstr "После вычисления преобразований изображения не выбраны, прерывание%s\n"
+msgstr "После вычисления преобразований изображения не выбраны, прерывание\n"
 
 #: src/registration/astrometric.c:312
 #, c-format
