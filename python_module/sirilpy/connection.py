@@ -1759,13 +1759,15 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def xy_plot(self, plot_data: PlotData):
+    def xy_plot(self, plot_data: PlotData, save=False):
         """
         Serialize plot data and send via shared memory. See the sirilpy.plot submodule
         documentation for how to configure a PlotData object for use with SirilInterface.xy_plot()
 
         Args:
             plot_metadata: PlotMetadata object containing plot configuration
+            save: bool indicating whether to save to the file specified in PlotData.savename
+                  (defaults to False)
 
         Raises:
             DataError: if invalid xy_plot data is received via shared memory,
@@ -1802,7 +1804,7 @@ class SirilInterface:
             # Pack the plot info structure
             info = struct.pack(
                 '!IIIIQ256s',
-                0,  # width (not used for plots)
+                1 if save else 0,  # width (repurposed as a "save" flag)
                 0,  # height (not used for plots)
                 0,  # reserved/unused
                 0,  # reserved/unused

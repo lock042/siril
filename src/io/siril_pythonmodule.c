@@ -721,6 +721,9 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 }
 
 gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info) {
+	// Extract save flag from width field
+	gboolean save = (info->width != 0);
+
 	// Open shared memory
 	void* shm_ptr = NULL;
 #ifdef _WIN32
@@ -769,8 +772,42 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 #endif
 
 	// Plot the data in a siril_plot_window
-	if (plot_data)
+	if (plot_data) {
+		// Generate the plot window
 		siril_add_pythonsafe_idle(create_new_siril_plot_window, plot_data);
+
+		// Handle save functionality
+		if (save) {
+			gchar *lext = g_utf8_strdown(get_filename_ext(plot_data->savename), -1);
+			gchar *basepath = remove_extension_from_path(plot_data->savename);
+			gchar *filename = NULL;
+			int width = plot_data->width != 0 ? plot_data->width : SIRIL_PLOT_DISPLAY_WIDTH;
+			int height = plot_data->height != 0 ? plot_data->height : SIRIL_PLOT_DISPLAY_HEIGHT;
+			if (!g_strcmp0(lext, "png")) {
+				filename = build_save_filename(basepath, ".png", plot_data->forsequence, TRUE);
+				siril_plot_save_png(plot_data, filename, width, height);
+			} else if (!g_strcmp0(lext, "dat")) {
+				filename = build_save_filename(basepath, ".dat", plot_data->forsequence, FALSE);
+				siril_plot_save_dat(plot_data, filename, FALSE);
+			} else if (!g_strcmp0(lext, "cb")) {
+				save_siril_plot_to_clipboard(plot_data, width, height);
+			}
+			else if (!g_strcmp0(lext, "svg")) {
+#ifdef CAIRO_HAS_SVG_SURFACE
+				filename = build_save_filename(basepath, ".svg", plot_data->forsequence, TRUE);
+				siril_plot_save_svg(plot_data, filename, width, height);
+#else
+				siril_log_color_message(_("Error: Siril has been compiled with a version of Cairo "
+					"that does not provide SVG surface support. Saving plots as SVG is not "
+					"possible with this build.\n"), "red");
+#endif
+			}
+			g_free(basepath);
+			g_free(filename);
+			g_free(lext);
+		}
+	}
+
 	return send_response(conn, STATUS_OK, NULL, 0);
 }
 
