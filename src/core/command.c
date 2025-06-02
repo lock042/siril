@@ -4099,7 +4099,7 @@ int process_pm(int nb) {
 	gchar *cleaned_expression = g_regex_replace(regex, expression, -1, 0, "gfit", 0, NULL);
 	g_regex_unref(regex);
 
-	// Check if a replacement was made to set some flags and check if an image is really laoded
+	// Check if a replacement was made to set some flags and check if an image is really loaded
 	if (g_strcmp0(expression, cleaned_expression) != 0) {
 		if (!single_image_is_loaded()) {
 			g_free(cleaned_expression);
