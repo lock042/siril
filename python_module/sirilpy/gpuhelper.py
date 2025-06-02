@@ -1051,6 +1051,13 @@ class JaxHelper:
         Returns:
             Updated configuration with JAX variant recommendation
         """
+        if config['system'] == 'windows':
+            priint("⚠ The Windows jax[cuda] wheel currently does not "
+                "support numpy 2.x and therefore causes unacceptable "
+                "conflicts with other packages. As jax Windows support "
+                "matures we hope to enable the cuda wheel however at "
+                "present only CPU support is available, which is mostly "
+                "only useful for development purposes.")
         if force_cpu:
             config['recommended_jax_variant'] = 'jax[cpu]'
             print("⚠ Warning: performance of the CPU-only jax variant "
@@ -1063,10 +1070,13 @@ class JaxHelper:
             if config['system'] == 'linux':
                 # NVIDIA GPU with CUDA
                 config['recommended_jax_variant'] = 'jax[cuda12]'
-            elif config['system'] == 'windows':
-                print("⚠ Windows CUDA support for jax is experimental: "
-                    "if you have problems, reinstall forcing CPU support")
-                config['recommended_jax_variant'] = 'jax[cuda12]'
+# ## Commented out until the Windows wheel supports numpy 2.x
+#            elif config['system'] == 'windows':
+#                print("⚠ Windows CUDA support for jax is experimental: "
+#                    "if you have problems, reinstall forcing CPU support")
+#                config['recommended_jax_variant'] = 'jax[cuda12]'
+            else:
+                config['recommended_jax_variant'] = 'jax[cpu]'
 
         elif config['has_amd_gpu'] and config['system'] == 'linux':
             # AMD GPU with ROCm (Linux only)
@@ -1091,6 +1101,11 @@ class JaxHelper:
             # Default to CPU
             config['recommended_jax_variant'] = 'jax[cpu]'
 
+        if config['recommended_jax_variant'] == 'jax[cpu]':
+            print("⚠ Warning: performance of the CPU-only jax variant "
+                "is slow and is intended for development use only. It "
+                "is generally recommended that you do NOT enable jax "
+                "optimisation in scripts that offer it!")
         return config
 
     def install_jax(self, force_variant: Optional[str] = None,
@@ -1129,7 +1144,7 @@ class JaxHelper:
             print(f"Failed to install {variant}: {e}")
             return False
 
-    def test_jax_installation(self) -> str:
+    def test_jax(self) -> str:
         """
         Test JAX functionality and return execution provider.
 
@@ -1294,7 +1309,7 @@ class JaxHelper:
 
         return results
 
-    def detect_and_uninstall_jax(self, dry_run: bool = False) -> Dict[str, Any]:
+    def uninstall_jax(self, dry_run: bool = False) -> Dict[str, Any]:
         """
         Detect and uninstall any existing JAX-related packages.
 

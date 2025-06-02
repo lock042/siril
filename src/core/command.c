@@ -8526,6 +8526,11 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 	return CMD_OK;
 }
 
+static gboolean stack_stop_thread(gpointer user_data) {
+	stop_processing_thread();
+	return FALSE;
+}
+
 static int stack_one_seq(struct stacking_configuration *arg) {
 	sequence *seq = readseqfile(arg->seqfile);
 	if (!seq) {
@@ -8638,7 +8643,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	free(args.critical_value);
 
 	if (retval == CMD_OK) {
-		stop_processing_thread();
+		execute_idle_and_wait_for_it(stack_stop_thread, NULL);
 		bgnoise_async(&args.result, TRUE);
 		// preparing the output filename
 		// needs to be done after stack is completed to have
