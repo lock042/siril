@@ -12,6 +12,7 @@ xx/xx/25
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
+* Allow saving plots to files using sirilpy.connection.SirilInterface.xy_plot() (#1670)
 
 siril 1.4.0-beta2
 05/21/25
