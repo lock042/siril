@@ -254,6 +254,34 @@ static gint compare_basenames(gconstpointer a, gconstpointer b) {
 	return result;
 }
 
+// Helper function to get or create Python submenu based on script path
+static GtkWidget* get_py_submenu(const gchar *script_path, GtkWidget *menu_py, GHashTable *py_submenus) {
+	gchar *dir_path = g_path_get_dirname(script_path);
+	gchar *dir_name = g_path_get_basename(dir_path);
+
+	// Capitalize the directory name
+	gchar *capitalized = g_strdup(dir_name);
+	if (capitalized && capitalized[0]) {
+		capitalized[0] = g_ascii_toupper(capitalized[0]);
+	}
+
+	GtkWidget *submenu = (GtkWidget*)g_hash_table_lookup(py_submenus, capitalized);
+	if (!submenu) {
+		submenu = gtk_menu_new();
+		GtkWidget *submenu_item = gtk_menu_item_new_with_label(capitalized);
+		gtk_menu_item_set_submenu(GTK_MENU_ITEM(submenu_item), submenu);
+		gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), submenu_item);
+		gtk_widget_show(submenu_item);
+
+		g_hash_table_insert(py_submenus, g_strdup(capitalized), submenu);
+	}
+
+	g_free(dir_path);
+	g_free(dir_name);
+	g_free(capitalized);
+	return submenu;
+}
+
 int initialize_script_menu(gboolean verbose) {
 	GSList *list, *script_paths, *s;
 	GList *ss;
@@ -268,6 +296,9 @@ int initialize_script_menu(gboolean verbose) {
 	GtkWidget *menu = gtk_menu_new();
 	GtkWidget *menu_ssf = gtk_menu_new();
 	GtkWidget *menu_py = gtk_menu_new();
+
+	// Hash table to store Python script submenus by directory name
+	GHashTable *py_submenus = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
 	GtkWidget *menu_item_ssf = gtk_menu_item_new_with_label(_("Siril Script Files"));
 	GtkWidget *menu_item_py = gtk_menu_item_new_with_label(_("Python Scripts"));
@@ -338,9 +369,8 @@ int initialize_script_menu(gboolean verbose) {
 					} else {
 						if ( match_py || match_pyc) {
 							if (!first_item_py && (!previous_directory_py || g_strcmp0(current_directory, previous_directory_py) != 0)) {
-								GtkWidget *separator = gtk_separator_menu_item_new();
-								gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), separator);
-								gtk_widget_show(separator);
+								// Note: We're not adding separators to the main Python menu anymore
+								// since scripts will be organized in submenus
 							}
 							first_item_py = FALSE;
 							g_free(previous_directory_py);
@@ -354,7 +384,8 @@ int initialize_script_menu(gboolean verbose) {
 					if (match_ssf) {
 						gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
 					} else if (match_py || match_pyc) {
-						gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), menu_item);
+						GtkWidget *py_submenu = get_py_submenu(full_path, menu_py, py_submenus);
+						gtk_menu_shell_append(GTK_MENU_SHELL(py_submenu), menu_item);
 					}
 
 					g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), full_path);
@@ -418,7 +449,8 @@ int initialize_script_menu(gboolean verbose) {
 				if (extension && g_strcmp0(extension, SCRIPT_EXT) == 0) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
 				} else if (extension && ((g_strcmp0(extension, PYSCRIPT_EXT) == 0) || (g_strcmp0(extension, PYCSCRIPT_EXT) == 0))) {
-					gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), menu_item);
+					GtkWidget *py_submenu = get_py_submenu(full_path, menu_py, py_submenus);
+					gtk_menu_shell_append(GTK_MENU_SHELL(py_submenu), menu_item);
 				}
 
 				g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), full_path);
@@ -460,17 +492,20 @@ int initialize_script_menu(gboolean verbose) {
 					continue;
 				}
 				GtkWidget *menu_item = gtk_menu_item_new_with_label(basename);
+				gchar *full_path = g_build_filename(siril_get_scripts_repo_path(), script_path, NULL);
+
 				if (extension && g_strcmp0(extension, SCRIPT_EXT) == 0) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
 				} else if (extension && ((g_strcmp0(extension, PYSCRIPT_EXT) == 0) ||
 								(g_strcmp0(extension, PYCSCRIPT_EXT) == 0))) {
-					gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), menu_item);
+					GtkWidget *py_submenu = get_py_submenu(full_path, menu_py, py_submenus);
+					gtk_menu_shell_append(GTK_MENU_SHELL(py_submenu), menu_item);
 				} else {
 					g_free(basename);
+					g_free(full_path);
 					continue;
 				}
 
-				gchar *full_path = g_build_filename(siril_get_scripts_repo_path(), script_path, NULL);
 				g_signal_connect(G_OBJECT(menu_item), "activate",
 								 G_CALLBACK(on_script_execution), full_path);
 
@@ -484,11 +519,14 @@ int initialize_script_menu(gboolean verbose) {
 			}
 		}
 	}
+
+	// Clean up hash table
+	g_hash_table_destroy(py_submenus);
+
 	return 0;
 }
 
 // Called when the specified scripts directories are updated
-
 gboolean call_initialize_script_menu(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
 	initialize_script_menu(state);
