@@ -10,6 +10,7 @@ xx/xx/25
 * Fixed an issue with some commands e.g. denoise that meant they would always indicate failure in a script (#1661)
 * Fixed Crash in pixelmath command with 16-bit images (#1672)
 * Fixed incorrect handling of sirilpy.connection.SirilInterface.log() strings (#1662)
+* Fixed incorrect channel handling in get_selection_stats() when no shape is provided (#1673)
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
