@@ -824,7 +824,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_STATS_FOR_SELECTION: {
 			int layer = 0;
 			rectangle selection = { 0 };
+
 			if (payload_length == 16 || payload_length == 20) {
+				// Shape provided (with or without channel)
 				rectangle region_BE = *(rectangle*) payload;
 				selection = (rectangle) {GUINT32_FROM_BE(region_BE.x),
 									GUINT32_FROM_BE(region_BE.y),
@@ -837,13 +839,22 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 				}
 			} else {
+				// No shape provided, use current selection
 				memcpy(&selection, &com.selection, sizeof(rectangle));
 			}
+
+			// Determine layer/channel
 			if (payload_length == 20) {
+				// Shape + channel provided
 				layer = GUINT32_FROM_BE(*((int*) payload + 4));
+			} else if (payload_length == 4) {
+				// Only channel provided
+				layer = GUINT32_FROM_BE(*(int*) payload);
 			} else {
+				// No channel specified, use default
 				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
 			}
+
 			// Check an image is loaded
 			if (!single_image_is_loaded()) {
 				const char* error_msg = _("No image loaded");
@@ -857,6 +868,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
+
 			// Check selection is valid
 			if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
 				selection.w * selection.h < 3 ||
@@ -865,9 +877,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 			}
+
 			// Compute stats
 			imstats *stats = statistics(NULL, -1, &gfit, layer, &selection, STATS_MAIN, MULTI_THREADED);
-
 			const size_t total_size = 14 * sizeof(double);
 			unsigned char* response_buffer = g_try_malloc0(total_size);
 			unsigned char* ptr = response_buffer;
