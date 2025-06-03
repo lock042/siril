@@ -6262,6 +6262,11 @@ int process_extractGreen(int nb) {
 	}
 
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract green channel.\n"), "red");
+		g_free(filename);
+		return CMD_INVALID_IMAGE;
+	}
 
 	gchar *green = g_strdup_printf("Green_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
@@ -6302,6 +6307,11 @@ int extract_Ha(extraction_scaling scaling) {
 		}
 	}
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha.\n"), "red");
+		g_free(filename);
+		return CMD_INVALID_IMAGE;
+	}
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
 		if (!(ret = extractHa_ushort(&gfit, &f_Ha, pattern, scaling))) {
@@ -6345,6 +6355,11 @@ int extract_HaOIII(extraction_scaling scaling) {
 		}
 	}
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha/OIII channels.\n"), "red");
+		g_free(filename);
+		return CMD_INVALID_IMAGE;
+	}
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
@@ -7897,6 +7912,7 @@ int process_register(int nb) {
 		} else
 			preffit = &gfit;
 		if (preffit->naxes[2] == 1 && preffit->keywords.bayer_pattern[0] != '\0') {
+			// TODO: same remark as in gui/registration.c
 			sensor_pattern pattern = get_bayer_pattern(preffit);
 			if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 				siril_log_color_message(_("Cannot use drizzle on non-bayer sensors, aborting.\n"), "red");

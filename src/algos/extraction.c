@@ -61,38 +61,6 @@ void update_filter_information(fits *fit, char *filter, gboolean append) {
 	g_free(filtername);
 }
 
-sensor_pattern get_bayer_pattern(fits *fit) {
-	/* Get Bayer informations from header if available */
-	sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
-	if (com.pref.debayer.use_bayer_header) {
-		sensor_pattern bayer = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern);
-		if (bayer <= BAYER_FILTER_MAX) {
-			if (bayer != tmp_pattern) {
-				if (bayer == BAYER_FILTER_NONE) {
-					siril_log_color_message(_("No Bayer pattern found in the header file.\n"), "salmon");
-				}
-				else {
-					siril_log_color_message(_("Bayer pattern found in header (%s) is different"
-								" from Bayer pattern in settings (%s). Overriding settings.\n"),
-							"blue", filter_pattern[bayer], filter_pattern[com.pref.debayer.bayer_pattern]);
-					tmp_pattern = bayer;
-				}
-			}
-		} else {
-			siril_log_message(_("XTRANS pattern not supported for this feature.\n"));
-			return XTRANS_FILTER_1;
-		}
-	}
-	if (tmp_pattern >= BAYER_FILTER_MIN && tmp_pattern <= BAYER_FILTER_MAX) {
-		siril_log_message(_("Filter Pattern: %s\n"),
-				filter_pattern[tmp_pattern]);
-	}
-
-	if (adjust_Bayer_pattern(fit, &tmp_pattern))
-		return BAYER_FILTER_NONE;
-	return tmp_pattern;
-}
-
 static int extract_prepare_hook(struct generic_seq_args *args) {
 	int retval = multi_prepare(args);
 	if (!retval && args->new_ser) {
@@ -201,6 +169,10 @@ int extractGreen_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	int ret = 1;
 	fits f_green = { 0 };
 	sensor_pattern pattern = get_bayer_pattern(fit);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+		siril_log_message(_("Extract Green: unsupported Bayer pattern.\n"));
+		return 1;
+	}
 
 	if (fit->type == DATA_USHORT)
 		ret = extractGreen_ushort(fit, &f_green, pattern);
@@ -355,6 +327,10 @@ int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	int ret = 1;
 	fits f_Ha = { 0 };
 	sensor_pattern pattern = get_bayer_pattern(fit);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+		siril_log_message(_("Extract Ha: unsupported Bayer pattern.\n"));
+		return 1;
+	}
 
 	if (fit->type == DATA_USHORT)
 		ret = extractHa_ushort(fit, &f_Ha, pattern, data->scaling);
@@ -863,6 +839,10 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	int ret = 1;
 	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
 	sensor_pattern pattern = get_bayer_pattern(fit);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+		siril_log_message(_("Extract HaOIII: unsupported Bayer pattern.\n"));
+		return 1;
+	}
 	extraction_scaling scaling = *(extraction_scaling*) multi_args->user_data;
 	/* Demosaic and store images for write */
 	struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));

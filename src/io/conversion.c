@@ -327,7 +327,7 @@ image_type get_type_for_extension(const char *extension) {
 
 /* open the file with path source from any image type and load it into the given FITS object */
 int any_to_fits(image_type imagetype, const char *source, fits *dest,
-		gboolean interactive, gboolean force_float, gboolean debayer) {
+		gboolean interactive, gboolean force_float) {
 	int retval = 0;
 
 	switch (imagetype) {
@@ -385,7 +385,7 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 					src  = rsrc;
 				}
 #endif
-				retval = (open_raw_files(src , dest, debayer) < 0);
+				retval = (open_raw_files(src , dest) < 0);
 #ifdef _WIN32
 				if (rsrc != NULL) {
 					g_free(rsrc);
@@ -933,17 +933,17 @@ static void open_next_input_seq(convert_status *conv) {
 }
 
 /* open the file with path source from any image type and load it into a new FITS object */
-static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean debayer, gboolean allow_32bits) {
+static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean force_debayer, gboolean allow_32bits) {
 	int retval = 0;
 	fits *tmpfit = calloc(1, sizeof(fits));
-	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE, debayer);
+	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE);
 
 	if (!retval) {
 		if (!allow_32bits && tmpfit->type == DATA_FLOAT) {
 			siril_log_color_message(_("Converting 32 bits images (from %s) to 16 bits is not supported, ignoring file.\n"), "salmon", source);
 			retval = 1;
 		}
-		else retval = debayer_if_needed(imagetype, tmpfit, debayer);
+		else retval = debayer_if_needed(imagetype, tmpfit, force_debayer);
 	}
 
 	if (retval) {

@@ -917,6 +917,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 					 (has_drizzle && gfit.naxes[2] == 1); // drizzle or bayer-drizzle will be applied to produce the output
 
 	// if not debayered, check that the bayer pattern is known
+	// TODO: we can't force drizzle as we do for debayer because here, we rely on the header having a bayer_pattern keyword
+	// Note that get_bayer_pattern will still get the bayer pattern according to prefs, so not necessarily the header
 	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
 		pattern = get_bayer_pattern(&gfit);
 	}
@@ -930,6 +932,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			(!samesizeseq_required || (samesizeseq_required && !com.seq.is_variable)) &&
 			(selection_is_done || method->sel == REQUIRES_NO_SELECTION) &&
 			pattern <= BAYER_FILTER_MAX &&
+			pattern >= BAYER_FILTER_MIN &&
 			(!isapplyreg || has_reg) && // must have reg data if applyreg
 			check_applyreg(regindex) &&
 			check_comet(regindex) &&
@@ -945,7 +948,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_label_set_text(labelregisterinfo, _("Select a layer with existing registration"));
 		} else if (samesizeseq_required && com.seq.is_variable) {
 			gtk_label_set_text(labelregisterinfo, _("not available for sequences with variable image sizes"));
-		} else if (pattern > BAYER_FILTER_MAX) {
+		} else if (pattern > BAYER_FILTER_MAX || pattern < BAYER_FILTER_MIN) {
 			gtk_label_set_text(labelregisterinfo, _("Unsupported CFA pattern detected"));
 			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
 		} else if (!check_bayer_ok) {

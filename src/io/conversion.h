@@ -47,7 +47,7 @@ void list_format_available();
 image_type get_type_for_extension(const char *extension);
 gchar *initialize_converters();
 gpointer convert_thread_worker(gpointer p);
-int any_to_fits(image_type imagetype, const char *source, fits *dest, gboolean interactive, gboolean force_float, gboolean debayer);
+int any_to_fits(image_type imagetype, const char *source, fits *dest, gboolean interactive, gboolean force_float);
 #ifdef HAVE_FFMS2
 int convert_single_film_to_ser(sequence *seq);
 #endif
