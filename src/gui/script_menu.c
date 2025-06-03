@@ -333,12 +333,9 @@ int initialize_script_menu(gboolean verbose) {
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythondebug);
 	gtk_widget_show(menu_item_pythondebug);
 
-	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
-
 	gchar *previous_directory_ssf = NULL;
 	gchar *previous_directory_py = NULL;
 	gboolean first_item_ssf = TRUE;
-	gboolean first_item_py = TRUE;
 
 	for (s = script_paths; s; s = s->next) {
 		list = search_script(s->data);
@@ -368,11 +365,6 @@ int initialize_script_menu(gboolean verbose) {
 						previous_directory_ssf = g_strdup(current_directory);
 					} else {
 						if ( match_py || match_pyc) {
-							if (!first_item_py && (!previous_directory_py || g_strcmp0(current_directory, previous_directory_py) != 0)) {
-								// Note: We're not adding separators to the main Python menu anymore
-								// since scripts will be organized in submenus
-							}
-							first_item_py = FALSE;
 							g_free(previous_directory_py);
 							previous_directory_py = g_strdup(current_directory);
 						}
@@ -519,6 +511,9 @@ int initialize_script_menu(gboolean verbose) {
 			}
 		}
 	}
+
+	// Now we have finished populating it, set the menu_button popup
+	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
 
 	// Clean up hash table
 	g_hash_table_destroy(py_submenus);
