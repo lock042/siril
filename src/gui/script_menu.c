@@ -526,11 +526,6 @@ gboolean refresh_script_menu(gpointer user_data) {
 	return FALSE;
 }
 
-gboolean refresh_scripts_menu_in_thread(gpointer data) {
-	execute_idle_and_wait_for_it(refresh_script_menu, data);
-	return FALSE;
-}
-
 GSList *get_list_from_preferences_dialog() {
 	GSList *list = NULL;
 	static GtkTextBuffer *tbuf = NULL;
