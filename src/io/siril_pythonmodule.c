@@ -46,6 +46,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/siril_plot.h"
 #include "gui/script_menu.h"
+#include "gui/user_polygons.h"
 #include "gui/utils.h"
 
 // 65k buffer is enough for any object except pixel data and things
@@ -965,6 +966,88 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 	#endif
 
 	return send_response(conn, STATUS_OK, NULL, 0);
+}
+
+gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_info_t* info) {
+	// Check if image is loaded first
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		siril_debug_print("Failed to add user polygon: no image loaded\n");
+		const char* error_msg = _("Failed to add user polygon: no image loaded");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Open shared memory
+	void* shm_ptr = NULL;
+	#ifdef _WIN32
+	win_shm_handle_t win_handle = {NULL, NULL};
+	HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
+	if (mapping == NULL) {
+		const char* error_msg = "Failed to open shared memory mapping";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
+	if (shm_ptr == NULL) {
+		CloseHandle(mapping);
+		const char* error_msg = "Failed to map shared memory view";
+		CloseHandle(mapping);
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	win_handle.mapping = mapping;
+	win_handle.ptr = shm_ptr;
+	#else
+	int fd = shm_open(info->shm_name, O_RDONLY, 0);
+	if (fd == -1) {
+		const char* error_msg = _("Failed to open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
+	if (shm_ptr == MAP_FAILED) {
+		close(fd);
+		const char* error_msg = _("Failed to map shared memory");
+		close(fd);
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	#endif
+
+	if (!shm_ptr) {
+		const char* error_msg = _("Error: could not open shared memory");
+		#ifdef _WIN32
+		UnmapViewOfFile(shm_ptr);
+		CloseHandle(win_handle.mapping);
+		#else
+		munmap(shm_ptr, info->size);
+		close(fd);
+		#endif
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Deserialize the polygon from shared memory
+	UserPolygon *polygon = deserialize_polygon((const uint8_t*) shm_ptr, info->size);
+
+	// Cleanup shared memory
+#ifdef _WIN32
+	UnmapViewOfFile(shm_ptr);
+	CloseHandle(win_handle.mapping);
+#else
+	munmap(shm_ptr, info->size);
+	close(fd);
+#endif
+
+	gboolean result = FALSE;
+	if (polygon) {
+		int id = get_unused_polygon_id();
+		polygon->id = id;
+		gui.user_polygons = g_list_append(gui.user_polygons, polygon);
+		redraw(REDRAW_OVERLAY);
+		int id_be = GINT32_TO_BE(id);
+		result = send_response(conn, STATUS_OK, &id_be, 4);
+	} else {
+		siril_debug_print("Failed to deserialize user polygon\n");
+		const char* error_msg = _("Failed to add user polygon");
+		result = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	return result;
 }
 
 // Monitor stdout stream
