@@ -179,7 +179,7 @@ typedef struct {
 // Public functions
 //gpointer open_python_channel(gpointer user_data);
 //int release_python_channel();
-void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file);
+void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file, gboolean from_cli, gboolean debug_mode);
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
 shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);

@@ -1933,10 +1933,12 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, venv_info->env_vars);
+	g_mutex_lock(&com.env_mutex);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		if (!g_setenv((const gchar*)key, (const gchar*)value, TRUE))
 			siril_debug_print("Error in g_setenv: key = %s, value = %s\n", (const gchar*) key, (const gchar*) value);
 	}
+	g_mutex_unlock(&com.env_mutex);
 
 	// Clean up
 	if (venv_info) {
@@ -2054,7 +2056,8 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 }
 
 void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync,
-						gchar** argv_script, gboolean is_temp_file) {
+						gchar** argv_script, gboolean is_temp_file, gboolean from_cli,
+						gboolean debug_mode) {
 	version_number none = { 0 };
 	if (compare_version(none, com.python_version) >= 0) {
 		if (com.python_init_thread) {
@@ -2150,6 +2153,14 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 #endif
 	// Finished with connection_path regardless of OS now, so we can free it
 	g_free(connection_path);
+
+	// Set from_cli env
+	if (from_cli)
+		env = g_environ_setenv(env, "SIRIL_PYTHON_CLI", "1", TRUE);
+
+	// Set from_cli env
+	if (debug_mode)
+		env = g_environ_setenv(env, "SIRIL_PYTHON_DEBUG", "1", TRUE);
 
 	// Set PYTHONUNBUFFERED in environment
 	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
