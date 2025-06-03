@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-25 21:43+0200\n"
-"PO-Revision-Date: 2025-05-19 09:48+0000\n"
+"PO-Revision-Date: 2025-05-26 13:00+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -12934,10 +12934,9 @@ msgid "Open application menu"
 msgstr "Ouvrir le menu de l'application"
 
 #: src/gui/siril-shortcuts.ui:156
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Show statistics"
-msgstr "Statistiques"
+msgstr "Afficher les statistiques"
 
 #: src/gui/siril-shortcuts.ui:163
 msgctxt "shortcut window"
@@ -21493,9 +21492,8 @@ msgid "Purge Catalogue"
 msgstr "Purger le Catalogue"
 
 #: src/gui/callbacks.c:2334
-#, fuzzy
 msgid "Select task to stop"
-msgstr "Sélectionner zone à recadrer"
+msgstr "Sélectionner la tâche à arrêter"
 
 #: src/gui/callbacks.c:2337 src/gui/dialogs.c:253 src/gui/dialogs.c:262
 #: src/gui/dialogs.c:268 src/gui/keywords_tree.c:508 src/gui/python_gui.c:766
@@ -21505,19 +21503,16 @@ msgid "_Cancel"
 msgstr "_Annuler"
 
 #: src/gui/callbacks.c:2338
-#, fuzzy
 msgid "_Stop Process"
-msgstr "Traitement des étoiles"
+msgstr "Arrêter le processus"
 
 #: src/gui/callbacks.c:2382
-#, fuzzy
 msgid "Process Name"
-msgstr "Traiter"
+msgstr "Nom du processus"
 
 #: src/gui/callbacks.c:2392
-#, fuzzy
 msgid "Start Time"
-msgstr "Début"
+msgstr "Heure de début"
 
 #: src/gui/colors.c:52 src/gui/colors.c:138 src/gui/colors.c:171
 #: src/gui/colors.c:257 src/gui/colors.c:268 src/gui/histogram.c:1728
@@ -25583,9 +25578,8 @@ msgstr ""
 "Fichier TIFF enregistré : %d-bit fichier %s, %ld canal(aux), %ux%u pixels\n"
 
 #: src/io/image_formats_libraries.c:1182
-#, fuzzy
 msgid "Memory allocation error for image data.\n"
-msgstr "Erreur d'allocation mémoire"
+msgstr "Erreur d'allocation de mémoire pour les données d'image.\n"
 
 #: src/io/image_formats_libraries.c:1248
 msgid "This image type is not handled.\n"

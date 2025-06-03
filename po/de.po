@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-25 21:43+0200\n"
-"PO-Revision-Date: 2025-05-13 13:17+0000\n"
+"PO-Revision-Date: 2025-05-26 18:51+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -510,9 +510,9 @@ msgid "Clear"
 msgstr "Löschen"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-#, fuzzy
 msgid "Clear all current temporary annotations (in red by default)"
-msgstr "Alle aktuellen Anmerkungen aus dem User-Katalog löschen."
+msgstr ""
+"Alle aktuellen Anmerkungen aus dem User-Katalog löschen (Default in rot)."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -868,7 +868,6 @@ msgid "Clip mode"
 msgstr "Clip-Modus"
 
 #: src/gui/uifiles/asinh_dialog.ui:288 src/gui/uifiles/histogram_dialog.ui:760
-#, fuzzy
 msgid ""
 "Select blend mode.\n"
 "Clip: clips values to the range 0.0 - 1.0. <b>Default</b>\n"
@@ -888,7 +887,11 @@ msgstr ""
 "RGB-Mischung: wendet eine Mischfunktion für glatt rekonstruierte "
 "Hervorhebungsfarben an. <b>Standard</b>\n"
 "Global neu skalieren: Wie „Neu skalieren“, skaliert aber auf den globalen "
-"maximalen Komponentenwert"
+"maximalen Komponentenwert\n"
+"\n"
+"Clip ist am schnellsten: Stellen Sie einen der anderen Modi ein, wenn Sie "
+"mit Ihrem Stretch zufrieden sind, falls Sie Farbartefakte um helle Sterne "
+"herum bemerken."
 
 #: src/gui/uifiles/asinh_dialog.ui:297 src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:769 src/gui/utils.c:400
@@ -11966,11 +11969,12 @@ msgstr ""
 "Histogramm, bevor Sie mit einem externen Werkzeug arbeiten.</b>"
 
 #: src/gui/uifiles/siril.ui:10066
-#, fuzzy
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
 "Current state: linked."
-msgstr "Verkettung/Verknüpfung von Kanälen im Autostretch-Viewer-Modus.\n"
+msgstr ""
+"Verkettung/Verknüpfung von Kanälen im Autostretch-Viewer-Modus.\n"
+"Aktuelle Einstellung: Verknüpft"
 
 #: src/gui/uifiles/siril.ui:10092
 msgid "Switch to normal and negative view"
@@ -12856,10 +12860,9 @@ msgid "Open application menu"
 msgstr "Anwendungsmenü öffnen"
 
 #: src/gui/siril-shortcuts.ui:156
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Show statistics"
-msgstr "Statistiken"
+msgstr "Statistiken anzeigen"
 
 #: src/gui/siril-shortcuts.ui:163
 msgctxt "shortcut window"
@@ -14073,7 +14076,7 @@ msgstr "Vertikale Spiegelung: in Bearbeitung...\n"
 
 #: src/algos/geometry.c:649 src/algos/geometry.c:660
 msgid "Rounding selection to match CFA pattern\n"
-msgstr ""
+msgstr "Rundungsauswahl entsprechend dem CFA-Muster\n"
 
 #: src/algos/geometry.c:703 src/core/command.c:2146
 #: src/gui/menu_gray_geometry.c:365 src/gui/menu_gray_geometry.c:380
@@ -18246,7 +18249,6 @@ msgstr ""
 "eingestellt.\n"
 
 #: src/core/icc_profile.c:440
-#, fuzzy
 msgid ""
 "Error opening matched grayscale working profile. Profile set to Gray with "
 "sRGB tone response curve.\n"
@@ -19811,11 +19813,13 @@ msgstr ""
 "Abhängigkeit\n"
 
 #: src/core/siril_actions.c:344
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
 "Current state: %s."
-msgstr "Verkettung/Verknüpfung von Kanälen im Autostretch-Viewer-Modus.\n"
+msgstr ""
+"Verkettung/Verknüpfung von Kanälen im Autostretch-Viewer-Modus.\n"
+"Aktuelle Einstellung: %s"
 
 #: src/core/siril_actions.c:379 src/gui/PSF_list.c:810
 msgid "Current selection is too large"
@@ -19897,6 +19901,16 @@ msgid ""
 "and performs better than the original, and we expect it will be more "
 "reliable too."
 msgstr ""
+"Die ursprüngliche GraXpert-Schnittstelle wurde aus technischen Gründen und "
+"wegen Unzuverlässigkeit entfernt. Bitte verwenden Sie das Skript "
+"GraXpert_AI.py, das im Skript-Repository verfügbar ist: Sie können es über "
+"den Menüeintrag „Skripte laden“ im Hamburger-Menü hinzufügen.\n"
+"Das neue Skript verarbeitet Einzelbilder und Sequenzen genau wie die "
+"ursprüngliche Schnittstelle und bietet sowohl eine grafische "
+"Benutzeroberfläche als auch einen Kommandozeilenzugriff mit dem pyscript-"
+"Befehl zur Verwendung in Skripten. Es ist weniger ressourcenhungrig, besser "
+"integriert und leistungsfähiger als das Original, und wir erwarten, dass es "
+"auch zuverlässiger sein wird."
 
 #: src/core/siril_log.c:92
 #, c-format
@@ -21197,17 +21211,16 @@ msgid "See Introduction"
 msgstr "Tipps zur Einführung"
 
 #: src/gui/callbacks.c:2005
-#, fuzzy
 msgid "Unsaved script changes"
-msgstr "Nicht gespeichertes Stacking-Ergebnis"
+msgstr "Nicht gespeichertes Skriptänderungen"
 
 #: src/gui/callbacks.c:2006
 msgid "There are unsaved changes in the script editor. Quit anyway?"
-msgstr ""
+msgstr "Es gibt ungespeicherte Änderungen im Skripteditor. Dennoch beenden?"
 
 #: src/gui/callbacks.c:2007
 msgid "Quit"
-msgstr ""
+msgstr "Beenden"
 
 #: src/gui/callbacks.c:2016
 msgid "Closing application"
@@ -21299,9 +21312,8 @@ msgid "Purge Catalogue"
 msgstr "Katalog bereinigen"
 
 #: src/gui/callbacks.c:2334
-#, fuzzy
 msgid "Select task to stop"
-msgstr "Wählen Sie den Bereich für den Zuschnitt aus"
+msgstr "Wählen Sie einen zu stoppenden Prozess/Task aus"
 
 #: src/gui/callbacks.c:2337 src/gui/dialogs.c:253 src/gui/dialogs.c:262
 #: src/gui/dialogs.c:268 src/gui/keywords_tree.c:508 src/gui/python_gui.c:766
@@ -21311,19 +21323,16 @@ msgid "_Cancel"
 msgstr "Abbruch"
 
 #: src/gui/callbacks.c:2338
-#, fuzzy
 msgid "_Stop Process"
-msgstr "Sternbearbeitung"
+msgstr ""
 
 #: src/gui/callbacks.c:2382
-#, fuzzy
 msgid "Process Name"
-msgstr "Verarbeitung starten"
+msgstr "Prozessname"
 
 #: src/gui/callbacks.c:2392
-#, fuzzy
 msgid "Start Time"
-msgstr "Start"
+msgstr "Startzeit"
 
 #: src/gui/colors.c:52 src/gui/colors.c:138 src/gui/colors.c:171
 #: src/gui/colors.c:257 src/gui/colors.c:268 src/gui/histogram.c:1728
@@ -23391,14 +23400,13 @@ msgid "Right _margin position"
 msgstr "Rechte _Randposition"
 
 #: src/gui/python_gui.c:1139
-#, fuzzy, c-format
+#, c-format
 msgid "Error creating temporary script file: %s\n"
-msgstr "Fehler beim Lesen von stderr: %s\n"
+msgstr "Fehler beim Erzeugen der temporären Skriptdatei: %s\n"
 
 #: src/gui/python_gui.c:1146
-#, fuzzy
 msgid "Error writing to temporary script file\n"
-msgstr "Fehler: temporäre Arbeitsdatei kann nicht gelöscht werden...\n"
+msgstr "Fehler beim Schreiben der temporäre Arbeitsdatei\n"
 
 #. Run the script
 #: src/gui/python_gui.c:1183
@@ -25339,9 +25347,8 @@ msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Speichere TIFF: %d-bit Datei %s, %ld Layer, %ux%u Pixel\n"
 
 #: src/io/image_formats_libraries.c:1182
-#, fuzzy
 msgid "Memory allocation error for image data.\n"
-msgstr "Speicherzuweisungsfehler"
+msgstr "Speicher für Bildaten kann nicht angeforder werden\n"
 
 #: src/io/image_formats_libraries.c:1248
 msgid "This image type is not handled.\n"
@@ -26581,9 +26588,8 @@ msgstr ""
 
 #. Not a valid git path
 #: src/io/siril_git.c:282
-#, fuzzy
 msgid "Invalid Git repository path.\n"
-msgstr "Pfad des Repositories:"
+msgstr "Unzulässiger Pfad des GIT-Repositories.\n"
 
 #: src/io/siril_git.c:298 src/io/siril_git.c:310 src/io/siril_git.c:322
 msgid ""
@@ -26630,9 +26636,9 @@ msgid "Attempting to clone from remote source...\n"
 msgstr "Es wird versucht, von einer Remote-Quelle zu klonen…\n"
 
 #: src/io/siril_git.c:751
-#, fuzzy, c-format
+#, c-format
 msgid "Error cloning repository into %s: %s\n"
-msgstr "Fehler beim Klonen des Repositorys: %s\n"
+msgstr "Fehler beim Klonen des Repositories in %s: %s\n"
 
 #: src/io/siril_git.c:756 src/io/siril_git.c:915
 msgid "Repository cloned successfully!\n"
@@ -26979,6 +26985,8 @@ msgid ""
 "the processing thread is locked. Wait for the current processing task to "
 "finish."
 msgstr ""
+"Der Verarbeitungsthread ist gesperrt. Warten Sie, bis die aktuelle "
+"Verarbeitungsaufgabe beendet ist."
 
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:2104
@@ -26986,6 +26994,8 @@ msgid ""
 "an image processing dialog is open. Close it to release the image lock and "
 "try again."
 msgstr ""
+"Ein Bildbearbeitungsdialog ist geöffnet. Schließen Sie ihn, um die "
+"Bildsperre aufzuheben, und versuchen Sie es erneut."
 
 #. Unable to claim the thread
 #: src/io/siril_pythoncommands.c:2113

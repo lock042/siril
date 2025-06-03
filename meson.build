@@ -150,6 +150,14 @@ siril_link_arg = []
 siril_c_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
 siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
 
+# Add arch=native support if enabled
+enable_arch_native = get_option('arch_native')
+if enable_arch_native
+  message('Enabling -march=native optimization')
+  siril_c_flag += ['-march=native', '-O3', '-mtune=native']
+  siril_cpp_flag += ['-march=native', '-O3', '-mtune=native']
+endif
+
 if platform_linux
   siril_link_arg += ['-rdynamic']
   siril_link_arg += '-lrt' # for shm_open()
@@ -729,6 +737,7 @@ summary(
 summary(
   {
     'openmp'    : get_option('openmp'),
+    'arch_native' : get_option('arch_native'),
   }, section: 'Optional features'
 )
 

@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-25 21:43+0200\n"
-"PO-Revision-Date: 2025-05-19 22:50+0000\n"
-"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
+"PO-Revision-Date: 2025-05-30 00:03+0000\n"
+"Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -24702,19 +24702,17 @@ msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Guardando TIFF: %d-bit archivo %s, %ld capa(s), %ux%u píxeles\n"
 
 #: src/io/image_formats_libraries.c:1182
-#, fuzzy
 msgid "Memory allocation error for image data.\n"
-msgstr "normalización"
+msgstr "Error de asignación de memoria para datos de imagen.\n"
 
 #: src/io/image_formats_libraries.c:1248
-#, fuzzy
 msgid "This image type is not handled.\n"
-msgstr "Este tipo de patrón Bayer todavía no se maneja.\n"
+msgstr "Este tipo de imagen no se gestiona.\n"
 
 #: src/io/image_formats_libraries.c:1286
-#, fuzzy, c-format
+#, c-format
 msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr "Leyendo archivo HEIF: archivo %s, %ld capa(s), %ux%u píxeles\n"
+msgstr "Leyendo XISF: archivo %s, %ld capa(s), %ux%u píxeles\n"
 
 #: src/io/image_formats_libraries.c:1307 src/io/image_formats_libraries.c:1601
 #: src/io/image_formats_libraries.c:3028
@@ -24724,15 +24722,15 @@ msgstr "Lo sentimos pero Siril no puede abrir el fichero: %s.\n"
 
 #: src/io/image_formats_libraries.c:1347
 msgid "Read ICC profile from JPEG.\n"
-msgstr ""
+msgstr "Leer perfil ICC desde JPEG\n"
 
 #: src/io/image_formats_libraries.c:1350
 msgid "Cannot read an ICC profile from this JPEG, assuming sRGB.\n"
-msgstr ""
+msgstr "No es posible leer el perfil ICC de este JPEG, se asume sRGB\n"
 
 #: src/io/image_formats_libraries.c:1353
 msgid "JPEG ICC profile support unavailable, assuming sRGB.\n"
-msgstr ""
+msgstr "Soporte JPEG del perfil ICC no disponible, se asume sRGB\n"
 
 #: src/io/image_formats_libraries.c:1389
 #, c-format
@@ -24744,9 +24742,8 @@ msgid "Siril cannot create JPG file.\n"
 msgstr "Siril no puede crear el fichero JPG.\n"
 
 #: src/io/image_formats_libraries.c:1562
-#, fuzzy
 msgid "Error: failed to write ICC profile to JPG\n"
-msgstr "Fallo al crear el fichero SER de salida '%s'\n"
+msgstr "Error: fallo al escribir el perfil ICC en JPG\n"
 
 #: src/io/image_formats_libraries.c:1583
 #, c-format

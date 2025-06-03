@@ -875,6 +875,7 @@ struct cominf {
 	GThread *python_init_thread; // python initialization thread, used to monitor startup completion
 	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread
+	GMutex env_mutex;		// a mutex used for updating environment vars (g_setenv is not threadsafe)
 	GThread *python_thread;	// the thread for the python interpreter
 	gboolean run_thread;		// the main thread loop condition
 	gboolean python_claims_thread;	// prevent other things acquiring the processing thread while a python script has it

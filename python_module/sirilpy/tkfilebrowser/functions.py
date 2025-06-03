@@ -144,6 +144,11 @@ def askopendirname(parent=None, title=_("Open"), **kwargs):
     dialog.wait_window(dialog)
     return dialog.get_result()
 
+def askdirectory(parent=None, title=_("Open"), **kwargs):
+    """
+    Alias for askopendirname, for tk.filedialog compatibility
+    """
+    return askopendirname(parent=parent, title=title, **kwargs)
 
 def askopendirnames(parent=None, title=_("Open"), **kwargs):
     r"""

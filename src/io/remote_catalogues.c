@@ -602,7 +602,6 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	gsize length;
 	int fetch_url_error;
 	buffer = fetch_url(url, &length, &fetch_url_error, FALSE);
-	g_free(url);
 
 	/* save (and parse if required)*/
 	if (buffer && !error) {
@@ -635,9 +634,21 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 		remove_file = TRUE;
 		goto download_error;
 	}
+
+	g_free(url);
 	return filepath;
 
 download_error:
+	if (fetch_url_error) {
+		siril_log_color_message(_("Error: unable to retrieve the remote catalogue from the server at %s. "
+			"This is not a Siril bug. It means the catalogue server is unavailable. This is usually a "
+			"short-lived problem however this server is not affiliated with Siril and the Siril team do "
+			"not control it. We highly recommend using a local server such as the optimized Siril extract "
+			"from Gaia DR3, installable using the Catalog_Installer.py script. This is faster and does not "
+			"rely on third party servers.\n"), "red", url);
+	}
+	g_free(url);
+
 	if (error) {
 		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filepath, error->message);
 		g_clear_error(&error);

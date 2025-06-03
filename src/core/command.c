@@ -4099,7 +4099,7 @@ int process_pm(int nb) {
 	gchar *cleaned_expression = g_regex_replace(regex, expression, -1, 0, "gfit", 0, NULL);
 	g_regex_unref(regex);
 
-	// Check if a replacement was made to set some flags and check if an image is really laoded
+	// Check if a replacement was made to set some flags and check if an image is really loaded
 	if (g_strcmp0(expression, cleaned_expression) != 0) {
 		if (!single_image_is_loaded()) {
 			g_free(cleaned_expression);
@@ -8542,6 +8542,11 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 	return CMD_OK;
 }
 
+gboolean stack_stop_thread(gpointer user_data) {
+	stop_processing_thread();
+	return FALSE;
+}
+
 static int stack_one_seq(struct stacking_configuration *arg) {
 	sequence *seq = readseqfile(arg->seqfile);
 	if (!seq) {
@@ -8654,7 +8659,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	free(args.critical_value);
 
 	if (retval == CMD_OK) {
-		stop_processing_thread();
+		execute_idle_and_wait_for_it(stack_stop_thread, NULL);
 		bgnoise_async(&args.result, TRUE);
 		// preparing the output filename
 		// needs to be done after stack is completed to have
@@ -11420,11 +11425,12 @@ int process_pwd(int nb) {
 typedef struct _pyscript_data {
 	gchar *script_name;
 	gchar **argv_script;
+	gboolean from_cli;
 } pyscript_data;
 
 gpointer execute_python_script_wrapper(gpointer user_data) {
 	pyscript_data *data = (pyscript_data*) user_data;
-	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE);
+	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE, data->from_cli, FALSE);
 	g_strfreev(data->argv_script);
 	free(data);
 	return GINT_TO_POINTER(0);
@@ -11464,10 +11470,11 @@ int process_pyscript(int nb) {
 		pyscript_data *data = calloc(1, sizeof(pyscript_data));
 		data->script_name = script_name;
 		data->argv_script = argv_script;
-		g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);  // TRUE to overwrite if it exists
+		data->from_cli = TRUE;
 		// Cannot use start_in_new_thread here because of the possibility of the python script
 		// calling siril.cmd() and running commands that themselves require the processing thread
 		// so we use a generic GThread
+		gboolean already_in_a_python_script = com.python_script;
 		GThread *thread = g_thread_new("pyscript_thread", execute_python_script_wrapper, data);
 		if (!thread) {
 			free(data);
@@ -11475,7 +11482,11 @@ int process_pyscript(int nb) {
 			g_strfreev(argv_script);
 			return CMD_GENERIC_ERROR;
 		} else {
-			g_thread_unref(thread);
+			if (com.script || already_in_a_python_script) {
+				g_thread_join(thread);
+			} else {
+				g_thread_unref(thread);
+			}
 		}
 		return CMD_OK;
 	} else {

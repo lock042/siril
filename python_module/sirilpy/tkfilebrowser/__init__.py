@@ -21,4 +21,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from .filebrowser import FileBrowser
 from .functions import askopendirname, askopendirnames, \
     askopenfilename, askopenfilenames, askopenpathname, askopenpathnames, \
-    asksaveasfilename
+    asksaveasfilename, askdirectory

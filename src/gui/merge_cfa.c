@@ -57,7 +57,7 @@ void reset_controls() {
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMergeCFAout")), "mCFA_");
 }
 
-void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
+static void close_everything() {
 	reset_controls();
 	clearfits(&cfa0);
 	clearfits(&cfa1);
@@ -65,9 +65,12 @@ void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
 	clearfits(&cfa3);
 	siril_close_dialog("merge_cfa_dialog");
 }
+void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
+	close_everything();
+}
 
 gboolean merge_cfa_hide_on_delete(GtkWidget *widget) {
-	on_merge_cfa_close_clicked(GTK_BUTTON(widget), NULL);
+	close_everything();
 	return TRUE;
 }
 

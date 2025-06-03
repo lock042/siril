@@ -30,6 +30,11 @@ typedef enum {
 	CMD_DIR_NOT_FOUND = 1 << 22
 } cmd_errors;
 
+/* WARNING: Do not use 1<<23 as an error retval from any threaded function:
+ * it is masked out of the return value of waiting_for_thread() to prevent
+ * issues with use of commands returning this flag in their retval bitmask
+ * in scripts!
+ */
 typedef enum {
 	CMD_NOTIFY_GFIT_MODIFIED = 1 << 23
 } cmd_status;

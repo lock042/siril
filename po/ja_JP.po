@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-25 21:43+0200\n"
-"PO-Revision-Date: 2025-05-25 19:43+0000\n"
+"PO-Revision-Date: 2025-05-30 13:52+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -4751,7 +4751,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:124
 msgid "unsaved"
-msgstr ""
+msgstr "未保存"
 
 #: src/gui/uifiles/python_scratchpad.ui:148
 #, fuzzy
@@ -4760,15 +4760,15 @@ msgstr "ファイル"
 
 #: src/gui/uifiles/python_scratchpad.ui:158
 msgid "Clear the current script"
-msgstr ""
+msgstr "現在のスクリプトを消去します"
 
 #: src/gui/uifiles/python_scratchpad.ui:160
 msgid "_New"
-msgstr ""
+msgstr "_新規"
 
 #: src/gui/uifiles/python_scratchpad.ui:169
 msgid "Open a script from a file"
-msgstr ""
+msgstr "スクリプトをファイルから開きます"
 
 #: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:254
 #: src/gui/python_gui.c:767 src/pixelMath/pixel_math_runner.c:1252
@@ -4776,14 +4776,12 @@ msgid "_Open"
 msgstr "_開く"
 
 #: src/gui/uifiles/python_scratchpad.ui:180
-#, fuzzy
 msgid "_Recent Files"
-msgstr "ファイルを保存"
+msgstr "_最近使用したファイル"
 
 #: src/gui/uifiles/python_scratchpad.ui:200
-#, fuzzy
 msgid "Save the current script"
-msgstr "この FITS 画像を保存"
+msgstr "現在のスクリプトを保存します"
 
 #: src/gui/uifiles/python_scratchpad.ui:202 src/gui/dialogs.c:268
 #: src/gui/python_gui.c:844
@@ -4791,9 +4789,8 @@ msgid "_Save"
 msgstr "_保存"
 
 #: src/gui/uifiles/python_scratchpad.ui:211
-#, fuzzy
 msgid "Save the current script (choose filename)"
-msgstr "画像を新規ファイル名にて保存"
+msgstr "現在のスクリプトを保存します（ファイル名を選択してください）"
 
 #: src/gui/uifiles/python_scratchpad.ui:213
 #, fuzzy
@@ -4803,23 +4800,22 @@ msgstr "保存"
 #: src/gui/uifiles/python_scratchpad.ui:222
 #: src/gui/uifiles/python_scratchpad.ui:544
 #: src/gui/uifiles/python_scratchpad.ui:553
-#, fuzzy
 msgid "Close the script editor"
-msgstr "ウィンドウを閉じる"
+msgstr "スクリプトエディタを閉じます"
 
 #: src/gui/uifiles/python_scratchpad.ui:236
 msgid "_Edit"
-msgstr ""
+msgstr "編集"
 
 #: src/gui/uifiles/python_scratchpad.ui:246
 #: src/gui/uifiles/python_scratchpad.ui:248 src/gui/uifiles/siril.ui:756
 msgid "Undo"
-msgstr "取り消す"
+msgstr "取り消し"
 
 #: src/gui/uifiles/python_scratchpad.ui:256
 #: src/gui/uifiles/python_scratchpad.ui:258 src/gui/uifiles/siril.ui:765
 msgid "Redo"
-msgstr "やり直す"
+msgstr "やり直し"
 
 #: src/gui/uifiles/python_scratchpad.ui:266
 #: src/gui/uifiles/python_scratchpad.ui:268
@@ -4950,9 +4946,8 @@ msgid "Show line markers"
 msgstr "解像度: "
 
 #: src/gui/uifiles/python_scratchpad.ui:453
-#, fuzzy
 msgid "Highlight the current line in the editor"
-msgstr "ワーキングディレクトリーを変更"
+msgstr "ワーキングディレクトリを変更"
 
 #: src/gui/uifiles/python_scratchpad.ui:454
 #, fuzzy
@@ -6225,9 +6220,8 @@ msgstr "FITS 画像"
 #: src/gui/uifiles/settings_window.ui:1120
 #: src/gui/uifiles/settings_window.ui:1949 src/gui/uifiles/siril.ui:2418
 #: src/gui/uifiles/siril.ui:2745
-#, fuzzy
 msgid "Astrometry"
-msgstr "測光"
+msgstr "天体位置測定学"
 
 #: src/gui/uifiles/settings_window.ui:1180 src/gui/uifiles/siril.ui:10957
 #, fuzzy
@@ -7446,19 +7440,19 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4971
 msgid "<b>Scripts Storage Directories</b>"
-msgstr "<b>スクリプト 保存 ディレクトリー</b>"
+msgstr "<b>スクリプト保存ディレクトリ</b>"
 
 #: src/gui/uifiles/settings_window.ui:4988
 msgid "Rescans the scripts folders and updates scripts menu."
-msgstr ""
+msgstr "スクリプトフォルダを再スキャンし、スクリプトメニューを更新します。"
 
 #: src/gui/uifiles/settings_window.ui:5019
 msgid "Show warning before script execution"
-msgstr ""
+msgstr "スクリプト実行前に警告を表示"
 
 #: src/gui/uifiles/settings_window.ui:5035
 msgid "\"Requires\" command is mandatory in scripts"
-msgstr ""
+msgstr "\"requires\"コマンドはスクリプトでは必須"
 
 #: src/gui/uifiles/settings_window.ui:5039
 msgid ""
@@ -7492,25 +7486,24 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5114
-#, fuzzy
 msgid "Automatic updates"
-msgstr "自動検出"
+msgstr "自動アップデート"
 
 #: src/gui/uifiles/settings_window.ui:5118
 msgid "Automatically update the repository at startup."
-msgstr ""
+msgstr "開始時に自動的にリポジトリを更新します。"
 
 #: src/gui/uifiles/settings_window.ui:5130
-#, fuzzy
 msgid "Manual update"
-msgstr "座標なし"
+msgstr "手動アップデート"
 
 #: src/gui/uifiles/settings_window.ui:5135
 msgid ""
 "Update the scripts repository now. If there are any pending changes, the "
 "commit messages will be shown and you will be asked to confirm applying the "
 "changes."
-msgstr ""
+msgstr "スクリプトリポジトリを今更新します。保留中の変更がある場合は、コミットメッセ"
+"ージが表示され、変更の適用を確認するよう求められます。"
 
 #: src/gui/uifiles/settings_window.ui:5162
 msgid ""
@@ -7518,6 +7511,9 @@ msgid ""
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
 "(This can be used to make and save local changes to a script.)"
 msgstr ""
+"利用可能なスクリプトの一覧。選択したスクリプトは、スクリプトメニューから使用"
+"できます。行をダブルクリックすると、スクリプトエディタでスクリプトが開きます"
+"。（これは、スクリプトにローカルな変更を加えて保存するために使用できます。）"
 
 #: src/gui/uifiles/settings_window.ui:5177
 msgid "Category"
@@ -7529,19 +7525,16 @@ msgid "Script"
 msgstr "スクリプト"
 
 #: src/gui/uifiles/settings_window.ui:5209
-#, fuzzy
 msgid "Type"
-msgstr "タイプ:"
+msgstr "タイプ"
 
 #: src/gui/uifiles/settings_window.ui:5253
-#, fuzzy
 msgid "<b>Siril Scripts Repository</b>"
-msgstr "<b>スクリプト 保存 ディレクトリー</b>"
+msgstr "<b>Sirilスクリプトリポジトリ</b>"
 
 #: src/gui/uifiles/settings_window.ui:5286
-#, fuzzy
 msgid "Reset python venv"
-msgstr "変更を元に戻す"
+msgstr "python venvをリセット"
 
 #: src/gui/uifiles/settings_window.ui:5290
 msgid ""
@@ -7737,9 +7730,8 @@ msgstr "その他"
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
-msgstr ""
-"既存のディレクトリーを選択します。書き込み権限と十分な空き容量があることを確"
-"認してください。"
+msgstr "既存のディレクトリを選択します。書き込み権限と十分な空き容量があることを確認"
+"してください。"
 
 #: src/gui/uifiles/settings_window.ui:5798
 #, fuzzy
@@ -7756,11 +7748,11 @@ msgstr "デフォルトに戻す"
 
 #: src/gui/uifiles/settings_window.ui:5827
 msgid "Restore the default swap storage directory"
-msgstr "デフォルトのスワップストレージディレクトリーに戻す"
+msgstr "デフォルトのスワップストレージディレクトリに戻す"
 
 #: src/gui/uifiles/settings_window.ui:5846
 msgid "<b>Swap Storage Directory</b>"
-msgstr "<b>スワップストレージディレクトリー</b>"
+msgstr "<b>スワップストレージディレクトリ</b>"
 
 #: src/gui/uifiles/settings_window.ui:5873
 msgid "Don't ask before quitting"
@@ -7925,9 +7917,8 @@ msgid "Registration"
 msgstr "整列"
 
 #: src/gui/uifiles/siril.ui:732 src/gui/uifiles/siril.ui:811
-#, fuzzy
 msgid "Selection"
-msgstr "Rejection:"
+msgstr "選択"
 
 #: src/gui/uifiles/siril.ui:780
 msgid "PSF"
@@ -7952,79 +7943,67 @@ msgid "Pick a Star"
 msgstr "星を選択"
 
 #: src/gui/uifiles/siril.ui:821
-#, fuzzy
 msgid "Free aspect ratio"
-msgstr "Frame rate"
+msgstr "自由なアスペクト比"
 
 #: src/gui/uifiles/siril.ui:822 src/gui/uifiles/siril.ui:4490
-#, fuzzy
 msgid "Free ratio"
-msgstr "Frame rate"
+msgstr "自由な比"
 
 #: src/gui/uifiles/siril.ui:833
 msgid "Preserve the original aspect ratio of the image"
-msgstr ""
+msgstr "元の画像のアスペクト比を維持"
 
 #: src/gui/uifiles/siril.ui:834 src/gui/uifiles/siril.ui:4489
-#, fuzzy
 msgid "Preserve ratio"
-msgstr "背景を維持"
+msgstr "比を維持"
 
 #: src/gui/uifiles/siril.ui:851 src/gui/uifiles/siril.ui:863
 #: src/gui/uifiles/siril.ui:875 src/gui/uifiles/siril.ui:887
 #: src/gui/uifiles/siril.ui:899 src/gui/uifiles/siril.ui:911
 #: src/gui/uifiles/siril.ui:923
-#, fuzzy
 msgid "Aspect ratio of the selection"
-msgstr "この選択を用いる"
+msgstr "選択のアスペクト比"
 
 #: src/gui/uifiles/siril.ui:941
-#, fuzzy
 msgid "Select the whole image and reset ratio"
-msgstr "整列データを有する画像シーケンスのリストを表示する/隠す"
+msgstr "画像全体を選択し、比をリセット"
 
 #: src/gui/uifiles/siril.ui:942
-#, fuzzy
 msgid "Select All"
-msgstr "フォルダーを選ぶ"
+msgstr "全体を選択"
 
 #: src/gui/uifiles/siril.ui:957
-#, fuzzy
 msgid "No guides on the selection"
-msgstr "この選択を用いる"
+msgstr "選択に関する補助線なし"
 
 #: src/gui/uifiles/siril.ui:958
 msgid "No guides"
-msgstr ""
+msgstr "補助線なし"
 
 #: src/gui/uifiles/siril.ui:968
-#, fuzzy
 msgid "Center line guides on the selection"
-msgstr "この選択を用いる"
+msgstr "選択に関する中央補助線"
 
 #: src/gui/uifiles/siril.ui:969
-#, fuzzy
 msgid "Center lines"
-msgstr "選択したファイルを除去"
+msgstr "中央補助線"
 
 #: src/gui/uifiles/siril.ui:980
-#, fuzzy
 msgid "3 thirds grid guides on the selection"
-msgstr "この選択を用いる"
+msgstr "選択を3等分する補助線"
 
 #: src/gui/uifiles/siril.ui:981
-#, fuzzy
 msgid "Rule of thirds"
-msgstr "層の数: "
+msgstr "3等分の補助線"
 
 #: src/gui/uifiles/siril.ui:992
-#, fuzzy
 msgid "5 fifhts grid guides on the selection"
-msgstr "この選択を用いる"
+msgstr "選択を5等分する補助線"
 
 #: src/gui/uifiles/siril.ui:993
 msgid "Rule of fifths"
-msgstr ""
+msgstr "5等分の補助線"
 
 #: src/gui/uifiles/siril.ui:1028
 #, fuzzy
@@ -8040,14 +8019,12 @@ msgid "ROI"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:1059
-#, fuzzy
 msgid "Set ROI to selection"
-msgstr "fwhm: 選択なし"
+msgstr "選択をROIに設定"
 
 #: src/gui/uifiles/siril.ui:1067
-#, fuzzy
 msgid "Clear ROI"
-msgstr "クリア"
+msgstr "ROIをクリア"
 
 #: src/gui/uifiles/siril.ui:1084
 #, fuzzy
@@ -8835,9 +8812,8 @@ msgstr "画像シーケンスを検索"
 #: src/gui/uifiles/siril.ui:4186
 msgid ""
 "Search current directory for sequences of FITS images, SER or film videos."
-msgstr ""
-"このディレクトリー内の FITS 画像, SER 又は画像ビデオの画像シーケンスを検索し"
-"ます."
+msgstr "このディレクトリ内の FITS 画像, SER "
+"又は画像ビデオの画像シーケンスを検索します."
 
 #: src/gui/uifiles/siril.ui:4201
 msgid "Open Frame List"
@@ -10595,15 +10571,16 @@ msgstr ""
 msgid ""
 "Siril output window, displays messages about what has been done and in "
 "response to command inputs."
-msgstr ""
+msgstr "Siril出力ウインドウ、何が行なわれたかのメッセージとコマンド入力の応答を表示し"
+"ます。"
 
 #: src/gui/uifiles/siril.ui:9454
 msgid "Export the log"
-msgstr "Log ファイルをエクスポート"
+msgstr "ログをエクスポート"
 
 #: src/gui/uifiles/siril.ui:9468 src/gui/progress_and_log.c:285
 msgid "Clear the log"
-msgstr "Log ファイルをクリア"
+msgstr "ログをクリア"
 
 #: src/gui/uifiles/siril.ui:9505
 msgid "This tab shows the Siril logs."
@@ -10623,8 +10600,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:9548
 msgid "Type \"help\" for the list of supported commands"
-msgstr ""
-"サポートされているコマンドのリストを見るには ``help’’ をタイプして下さい"
+msgstr "サポートされているコマンドの一覧を見るには ``help’’ とタイプして下さい"
 
 #: src/gui/uifiles/siril.ui:9563
 msgid "Displays manual of the command written in the console."
@@ -10769,7 +10745,7 @@ msgstr "最近の画像(FITS あるいは SER ファイルのみ)を開く"
 
 #: src/gui/uifiles/siril.ui:10439
 msgid "Change current working directory"
-msgstr "作業ディレクトリーを変更"
+msgstr "作業ディレクトリを変更"
 
 #: src/gui/uifiles/siril.ui:10463
 #, fuzzy
@@ -10819,7 +10795,7 @@ msgstr "この画像に別名を付けて保存"
 
 #: src/gui/uifiles/siril.ui:10793
 msgid "Take a snapshot of your displayed image."
-msgstr ""
+msgstr "表示中の画像のスナップショットを撮る。"
 
 #: src/gui/uifiles/siril.ui:10845
 msgid ""
@@ -10838,8 +10814,7 @@ msgstr "Siril が使用中の RAM メモリ量を表示."
 msgid ""
 "Displays the amount of disk space available on the file system containing "
 "the working directory."
-msgstr ""
-"現在の作業ディレクトリーを含むファイルシステムで利用可能なディスク容量を表示."
+msgstr "現在の作業ディレクトリを含むファイルシステムで利用可能なディスク容量を表示。"
 
 #. Must be short !!
 #: src/gui/uifiles/siril.ui:10903
@@ -13763,9 +13738,9 @@ msgid "This command is deprecated: %s should be used instead.\n"
 msgstr "このコマンドはスクリプト: %s では使用不可能\n"
 
 #: src/core/command.c:136
-#, fuzzy, c-format
+#, c-format
 msgid "The %s option is deprecated: %s should be used instead.\n"
-msgstr "このコマンドはスクリプト: %s では使用不可能\n"
+msgstr "%s オプションは非推奨です: %s を代わりに使用してください。\n"
 
 #: src/core/command.c:158
 msgid ""
@@ -14392,7 +14367,7 @@ msgstr ""
 
 #: src/core/command.c:2857 src/core/command.c:9439
 msgid "********* END OF THE LIST *********\n"
-msgstr "********* リスト終了 *********\n"
+msgstr "********* 一覧終了 *********\n"
 
 #: src/core/command.c:2866
 #, fuzzy
@@ -15168,9 +15143,9 @@ msgid "Save metadata to the JSON file '%s'\n"
 msgstr ""
 
 #: src/core/command.c:7157
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d, %s\n"
-msgstr "RAW 画像"
+msgstr "画像 %d, %s\n"
 
 #: src/core/command.c:7174
 #, fuzzy
@@ -15774,7 +15749,7 @@ msgstr ""
 
 #: src/core/command.c:9423
 msgid "********* LIST OF AVAILABLE COMMANDS *********\n"
-msgstr ""
+msgstr "********* 利用可能なコマンドの一覧 *********\n"
 
 #: src/core/command.c:9431
 #, c-format
@@ -16229,23 +16204,21 @@ msgid "Pixel limits applied successfully.\n"
 msgstr "スクリプトの実行を無事に終了.\n"
 
 #: src/core/command.c:11400
-#, fuzzy, c-format
+#, c-format
 msgid "Current working directory: '%s'\n"
-msgstr "ワーキングディレクトリーを変更"
+msgstr "現在の作業ディレクトリ: '%s'\n"
 
 #: src/core/command_line_processor.c:52
-#, fuzzy
 msgid "unknown command name"
-msgstr "コマンド: %s を実行中\n"
+msgstr "不明なコマンド名"
 
 #: src/core/command_line_processor.c:54
 msgid "non-blocking command, no error"
 msgstr ""
 
 #: src/core/command_line_processor.c:56
-#, fuzzy
 msgid "current working directory is invalid"
-msgstr "ワーキングディレクトリーを変更"
+msgstr "現在の作業ディレクトリは無効です"
 
 #: src/core/command_line_processor.c:58
 #, fuzzy
@@ -16291,9 +16264,8 @@ msgid "invalid input image"
 msgstr "ファイル: %s を開けない\n"
 
 #: src/core/command_line_processor.c:77
-#, fuzzy
 msgid "load an image or sequence first"
-msgstr "まずは画像シーケンスを読み込んで下さい"
+msgstr "まずは画像またはシーケンスを読み込んでください"
 
 #: src/core/command_line_processor.c:79
 #, fuzzy
@@ -16350,7 +16322,7 @@ msgstr "No rejection"
 #: src/core/command_line_processor.c:146
 #, c-format
 msgid "Unknown command: '%s' or not implemented yet\n"
-msgstr ""
+msgstr "不明なコマンド: '%s' もしくは未実装\n"
 
 #: src/core/command_line_processor.c:153
 #, c-format
@@ -16430,9 +16402,9 @@ msgid "Starting script %s\n"
 msgstr ""
 
 #: src/core/command_line_processor.c:618
-#, fuzzy, c-format
+#, c-format
 msgid "Command execution failed: %s.\n"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr "コマンド実行失敗: %s.\n"
 
 #: src/core/command_line_processor.c:680
 #, c-format
@@ -17169,9 +17141,8 @@ msgid "for a total of images processed of %d)\n"
 msgstr ""
 
 #: src/core/settings.c:347
-#, fuzzy
 msgid "current working directory"
-msgstr "ワーキングディレクトリーを変更"
+msgstr "現在の作業ディレクトリ"
 
 #: src/core/settings.c:348
 #, fuzzy
@@ -18321,7 +18292,7 @@ msgstr ""
 #: src/core/utils.c:1192
 #, c-format
 msgid "Setting CWD (Current Working Directory) to '%s'\n"
-msgstr "CWD (現在の作業ディレクトリー)を'%s'に設定\n"
+msgstr "CWD (現在の作業ディレクトリ)を'%s'に設定\n"
 
 #: src/core/utils.c:1196
 #, c-format
@@ -21775,11 +21746,11 @@ msgstr "プレビュー"
 #: src/gui/save_dialog.c:831
 #, c-format
 msgid "Snapshot <b>%s</b> was saved into the working directory."
-msgstr "スナップショット<b>%s</b>は作業ディレクトリに保存されました."
+msgstr "スナップショット<b>%s</b>は作業ディレクトリに保存されました。"
 
 #: src/gui/save_dialog.c:833
 msgid "Snapshot was saved into the clipboard."
-msgstr ""
+msgstr "スナップショットはクリップボードに保存されました。"
 
 #: src/gui/save_dialog.c:849
 #, c-format
@@ -21809,13 +21780,12 @@ msgid "Unknown script type: %s\n"
 msgstr "FITS ファイル %s を開けない\n"
 
 #: src/gui/script_menu.c:271
-#, fuzzy
 msgid "Python Scripts"
-msgstr "スクリプトを入手"
+msgstr "Pythonスクリプト"
 
 #: src/gui/script_menu.c:276
 msgid "Script Editor..."
-msgstr ""
+msgstr "スクリプトエディタ…"
 
 #: src/gui/script_menu.c:278
 msgid "Enable Python debug mode"
@@ -21970,9 +21940,8 @@ msgstr ""
 msgid ""
 "The Script menu has also evolved, now featuring both Python scripts and a "
 "script editor."
-msgstr ""
-"スクリプトメニューも進化し、Pythonスクリプトとスクリプトエディターの両方を備"
-"えるようになりました。"
+msgstr "スクリプトメニューも進化し、Pythonスクリプトとスクリプトエディタの両方を備え"
+"るようになりました。"
 
 #: src/gui/siril_intro.c:50
 msgid ""
@@ -22045,9 +22014,8 @@ msgstr ""
 "開できます。"
 
 #: src/gui/siril_plot.c:169
-#, fuzzy
 msgid "Snapshot was saved into the clipboard.\n"
-msgstr "ワーキングディレクトリー内のファイルとディレクトリーを表示"
+msgstr "スナップショットはクリップボードに保存されました。\n"
 
 #: src/gui/siril_plot.c:172
 msgid "Could not copy the snapshot into the clipboard.\n"
@@ -22059,11 +22027,11 @@ msgstr "PNGフアイル (*.png)"
 
 #: src/gui/siril_plot.c:447
 msgid "DAT files (*.dat)"
-msgstr "DATファイル (*.ser)"
+msgstr "DATファイル (*.dat)"
 
 #: src/gui/siril_plot.c:455
 msgid "SVG files (*.svg)"
-msgstr "SVGファイル (*.ser)"
+msgstr "SVGファイル (*.svg)"
 
 #: src/gui/siril_preview.c:104
 msgid "Warning: insufficient memory available to create a preview.\n"
@@ -24688,9 +24656,8 @@ msgid "Could not create the new sequence"
 msgstr "FITS ファイル %s を開けない\n"
 
 #: src/io/siril_pythoncommands.c:2405
-#, fuzzy
 msgid "Unknown command"
-msgstr "コマンド: %s を実行中\n"
+msgstr "不明なコマンド"
 
 #: src/io/siril_pythonmodule.c:188
 #, c-format
