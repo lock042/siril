@@ -183,6 +183,7 @@ class ONNXHelper:
     def __init__(self):
         """Initialize the ONNXHelper."""
         ensure_installed("platformdirs")
+        ensure_installed("onnx")
         from platformdirs import user_data_dir
         self.system = platform.system().lower()
         self.providers = None
@@ -462,14 +463,19 @@ class ONNXHelper:
         onnxruntime_pkg = "onnxruntime"
         cuda_version = _detect_cuda_version(self.system)
         if self.system == "windows":
-                # NVidia GPU runtime that supports CUDA
-            if _detect_nvidia_gpu(self.system) and pkg_version.Version(cuda_version).major >= 11:
-                onnxruntime_pkg = "onnxruntime-gpu"
-                if pkg_version.Version(cuda_version).major == 11:
-                    index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
-            else:
-                # DirectML provides hardware acceleration for various GPUs on Windows
-                onnxruntime_pkg = "onnxruntime-directml"
+            onnxruntime_pkg = "onnxruntime-directml"
+            # NVidia GPU runtime that supports CUDA
+            ## onnxruntime-gpu currently disabled for Windows as it is highly problematic to get all the dependencies correct.
+            ## may be reinstated later if a version of the runtime is released that can depend on the nvidia-* modules in the same
+            ## way as torch
+
+#            if _detect_nvidia_gpu(self.system) and pkg_version.Version(cuda_version).major >= 11:
+#                onnxruntime_pkg = "onnxruntime-gpu"
+#                if pkg_version.Version(cuda_version).major == 11:
+#                    index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
+#            else:
+#                # DirectML provides hardware acceleration for various GPUs on Windows
+#                onnxruntime_pkg = "onnxruntime-directml"
 
         elif self.system == "darwin":  # macOS
             onnxruntime_pkg = "onnxruntime"
