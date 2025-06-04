@@ -1542,14 +1542,14 @@ gpointer initialize_spcc(gpointer user_data) {
 	// 1. Initialize the SPCC combos
 	// populate_spcc_combos_async runs in this thread but the actual call to
 	// populate_spcc_combos is run from it in an idle in the GTK thread
-		populate_spcc_combos_async(GINT_TO_POINTER(0));
+		populate_spcc_combos_async(NULL);
 	// 2. Update the repository
 	if (com.pref.spcc.auto_spcc_update && is_online()) {
 		auto_update_gitspcc(TRUE);
 		// 3. Update the SPCC combos
 		// populate_spcc_combos_async runs in this thread but the actual call to
 		// populate_spcc_combos is run from it in an idle in the GTK thread
-		populate_spcc_combos_async(GINT_TO_POINTER(0));
+		populate_spcc_combos_async(NULL);
 	}
 	g_mutex_unlock(&spcc_mutex);
 	return GINT_TO_POINTER(0);
@@ -1563,7 +1563,7 @@ gpointer update_spcc(gpointer user_data) {
 		// 2. Update the SPCC combos
 		// populate_spcc_combos_async runs in this thread but the actual call to
 		// populate_spcc_combos is run from it in an idle in the GTK thread
-		populate_spcc_combos_async(GINT_TO_POINTER(0));
+		populate_spcc_combos_async(NULL);
 	}
 	g_mutex_unlock(&spcc_mutex);
 	return GINT_TO_POINTER(0);
@@ -1764,8 +1764,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("control_window"), "configure-event", G_CALLBACK(on_control_window_configure_event), NULL);
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
-	/* populate SPCC combos in a thread */
-	g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
 	gui_ready = TRUE;
 }
 
