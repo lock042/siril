@@ -4099,7 +4099,7 @@ int process_pm(int nb) {
 	gchar *cleaned_expression = g_regex_replace(regex, expression, -1, 0, "gfit", 0, NULL);
 	g_regex_unref(regex);
 
-	// Check if a replacement was made to set some flags and check if an image is really laoded
+	// Check if a replacement was made to set some flags and check if an image is really loaded
 	if (g_strcmp0(expression, cleaned_expression) != 0) {
 		if (!single_image_is_loaded()) {
 			g_free(cleaned_expression);
@@ -11409,11 +11409,12 @@ int process_pwd(int nb) {
 typedef struct _pyscript_data {
 	gchar *script_name;
 	gchar **argv_script;
+	gboolean from_cli;
 } pyscript_data;
 
 gpointer execute_python_script_wrapper(gpointer user_data) {
 	pyscript_data *data = (pyscript_data*) user_data;
-	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE);
+	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE, data->from_cli, FALSE);
 	g_strfreev(data->argv_script);
 	free(data);
 	return GINT_TO_POINTER(0);
@@ -11453,7 +11454,7 @@ int process_pyscript(int nb) {
 		pyscript_data *data = calloc(1, sizeof(pyscript_data));
 		data->script_name = script_name;
 		data->argv_script = argv_script;
-		g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);  // TRUE to overwrite if it exists
+		data->from_cli = TRUE;
 		// Cannot use start_in_new_thread here because of the possibility of the python script
 		// calling siril.cmd() and running commands that themselves require the processing thread
 		// so we use a generic GThread

@@ -186,8 +186,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	if (g_str_has_suffix(script_file, PYSCRIPT_EXT) || g_str_has_suffix(script_file, PYCSCRIPT_EXT)) {
 		// Run Python script
-		g_unsetenv("SIRIL_PYTHON_CLI");
-		execute_python_script(script_file, TRUE, FALSE, NULL, FALSE);
+		execute_python_script(script_file, TRUE, FALSE, NULL, FALSE, FALSE, get_python_debug_mode());
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
 		/* Last thing before running the script, disable widgets except for Stop */
 		script_widgets_enable(FALSE);
@@ -487,18 +486,24 @@ int initialize_script_menu(gboolean verbose) {
 	return 0;
 }
 
-// Called when the specified scripts directories are updated
-
+// Called when the specified scripts directories are updated. Just a wrapper so that the function
+// can be called in an idle in the GTK thread.
 gboolean call_initialize_script_menu(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
 	initialize_script_menu(state);
 	return FALSE;
 }
 
+// This is called from preferences or the reloadscripts command to refresh the
+// script menu. TODO: it currently doesn't set the popup to NULL while the menu rebuilds:
+// should it actually execute refresh_script_menu as its idle function?
 int refresh_scripts(gboolean update_list, gchar **error) {
 	gchar *err = NULL;
 	int retval = 0;
 	GSList *list = get_list_from_preferences_dialog();
+	// TODO: is there anything to stop refreshscripts being called from a script run by siril-cli?
+	// if not, we need to prevent it as get_list_from_preferences_dialog() uses GTK code and will fail,
+	// probably badly.
 
 	if (list == NULL) {
 		err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
@@ -515,6 +520,8 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	return retval;
 }
 
+// This function updates the scripts menu, first removing the old one, it is called at startup
+// after refreshing the repository
 gboolean refresh_script_menu(gpointer user_data) {
 	gboolean verbose = (gboolean) GPOINTER_TO_INT(user_data);
 	if (menuscript) {
@@ -523,11 +530,6 @@ gboolean refresh_script_menu(gpointer user_data) {
 	}
 	initialize_script_menu(verbose);
 	fill_script_repo_tree(FALSE);
-	return FALSE;
-}
-
-gboolean refresh_scripts_menu_in_thread(gpointer data) {
-	execute_idle_and_wait_for_it(refresh_script_menu, data);
 	return FALSE;
 }
 

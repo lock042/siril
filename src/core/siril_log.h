@@ -28,7 +28,9 @@ extern "C" {
 #endif
 
 char* siril_log_message(const char* format, ...);
+char* siril_log_literal_message(const char* message);
 char* siril_log_color_message(const char* format, const char* color, ...);
+char* siril_log_literal_color_message(const char* message, const char* color);
 
 void show_time(struct timeval, struct timeval);
 void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg);

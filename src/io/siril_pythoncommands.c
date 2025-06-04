@@ -824,7 +824,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_STATS_FOR_SELECTION: {
 			int layer = 0;
 			rectangle selection = { 0 };
+
 			if (payload_length == 16 || payload_length == 20) {
+				// Shape provided (with or without channel)
 				rectangle region_BE = *(rectangle*) payload;
 				selection = (rectangle) {GUINT32_FROM_BE(region_BE.x),
 									GUINT32_FROM_BE(region_BE.y),
@@ -837,13 +839,22 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 				}
 			} else {
+				// No shape provided, use current selection
 				memcpy(&selection, &com.selection, sizeof(rectangle));
 			}
+
+			// Determine layer/channel
 			if (payload_length == 20) {
+				// Shape + channel provided
 				layer = GUINT32_FROM_BE(*((int*) payload + 4));
+			} else if (payload_length == 4) {
+				// Only channel provided
+				layer = GUINT32_FROM_BE(*(int*) payload);
 			} else {
+				// No channel specified, use default
 				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
 			}
+
 			// Check an image is loaded
 			if (!single_image_is_loaded()) {
 				const char* error_msg = _("No image loaded");
@@ -857,6 +868,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
+
 			// Check selection is valid
 			if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
 				selection.w * selection.h < 3 ||
@@ -865,9 +877,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 			}
+
 			// Compute stats
 			imstats *stats = statistics(NULL, -1, &gfit, layer, &selection, STATS_MAIN, MULTI_THREADED);
-
 			const size_t total_size = 14 * sizeof(double);
 			unsigned char* response_buffer = g_try_malloc0(total_size);
 			unsigned char* ptr = response_buffer;
@@ -954,7 +966,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Create null-terminated string from remaining payload
 			char* log_msg = g_strndup(payload + 1, payload_length - 1);
-			siril_log_color_message(log_msg, log_color_to_str(color));  // Assuming function name updated to handle color
+			siril_log_literal_color_message(log_msg, log_color_to_str(color));  // Assuming function name updated to handle color
 			g_free(log_msg);
 
 			// Send success response
@@ -2218,38 +2230,15 @@ CLEANUP:
 			break;
 		}
 
-		case CMD_SET_IMAGE_HEADER: {
+		case CMD_ADD_USER_POLYGON: {
 			if (payload_length != sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_IMAGE_HEADER: %u\n", payload_length);
+				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->size = GUINT64_FROM_BE(info->size);
-				success = handle_set_image_header_request(conn, info);
-			}
-			break;
-		}
-
-		case CMD_ADD_USER_POLYGON: {
-			UserPolygon *polygon = deserialize_polygon((const uint8_t*) payload, payload_length);
-			if (!(single_image_is_loaded() || sequence_is_loaded())) {
-				siril_debug_print("Failed to add user polygon\n");
-				const char* error_msg = _("Failed to add user polygon: no image loaded");
-				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-				break;
-			}
-			if (polygon) {
-				int id = get_unused_polygon_id();
-				polygon->id = id;
-				gui.user_polygons = g_list_append(gui.user_polygons, polygon);
-				redraw(REDRAW_OVERLAY);
-				int id_be = GINT32_TO_BE(id);
-				success = send_response(conn, STATUS_OK, &id_be, 4);
-			} else {
-				siril_debug_print("Failed to add user polygon\n");
-				const char* error_msg = _("Failed to add user polygon");
-				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = handle_add_user_polygon_request(conn, info);
 			}
 			break;
 		}

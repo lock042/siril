@@ -2171,3 +2171,29 @@ gchar *find_file_recursively(gchar *basename, const gchar *top_path) {
 char *strdupnullok(char *data) {
 	return (data) ? strdup(data) : NULL;
 }
+
+// Returns the full path minus the extension
+gchar* remove_extension_from_path(const gchar* filepath) {
+    if (!filepath) return NULL;
+
+    // Find the last dot in the entire path
+    gchar* last_dot = g_strrstr(filepath, ".");
+
+    // Find the last directory separator to ensure the dot is in the filename part
+    gchar* last_sep = g_strrstr(filepath, G_DIR_SEPARATOR_S);
+
+    // Only remove extension if:
+    // 1. There is a dot
+    // 2. The dot comes after the last directory separator (or there's no separator)
+    // 3. The dot is not at the end of the string
+    if (last_dot &&
+        (!last_sep || last_dot > last_sep) &&
+        *(last_dot + 1) != '\0') {
+
+        // Create new string up to (but not including) the dot
+        return g_strndup(filepath, last_dot - filepath);
+    }
+
+    // No extension found, return copy of original
+    return g_strdup(filepath);
+}

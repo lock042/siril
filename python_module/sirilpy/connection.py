@@ -1304,33 +1304,27 @@ class SirilInterface:
 
     def get_selection_stats(self, shape: Optional[list[int]] = None, \
         channel: Optional[int] = None) -> Optional[PSFStar]:
-
         """
         Retrieves statistics for the current selection in Siril.
-
         Args:
             shape: Optional list of [x, y, w, h] specifying the selection to
-                   retrieve from.
-                   If provided, looks for a star in the specified selection
-                   If None, looks for a star in the selection already made in Siril,
-                   if one is made.
+                retrieve from.
+                If provided, looks for a star in the specified selection
+                If None, looks for a star in the selection already made in Siril,
+                if one is made.
             channel: Optional int specifying the channel to retrieve from.
-                     If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
-                     channel is omitted the current viewport will be used if
-                     in GUI mode, or if not in GUI mode the method will fall back
-                     to channel 0
-
+                    If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
+                    channel is omitted the current viewport will be used if
+                    in GUI mode, or if not in GUI mode the method will fall back
+                    to channel 0
         Returns:
             ImageStats: the ImageStats object representing the selection statistics.
-
         Raises:
             SirilError: If an error occurred during processing,
             ValueError: If an invalid shape is provided.
         """
-
         # Validate shape if provided
         shape_data = None
-
         if shape is not None:
             if len(shape) != 4:
                 raise ValueError(_("Shape must be a list of [x, y, w, h]"))
@@ -1338,7 +1332,6 @@ class SirilInterface:
                 raise ValueError(_("All shape values must be integers"))
             if any(v < 0 for v in shape):
                 raise ValueError(_("All shape values must be non-negative"))
-
             # Pack shape data for the command
             if len(shape) == 4:
                 if channel is None:
@@ -1347,9 +1340,11 @@ class SirilInterface:
                     shape_data = struct.pack('!IIIII', *shape, channel)
             else:
                 raise ValueError(_("Incorrect shape data provided: must be (x,y,w,h)"))
+        elif channel is not None:
+            # Pack only channel data when no shape is provided but channel is specified
+            shape_data = struct.pack('!I', channel)
 
         status, response = self._send_command(_Command.GET_STATS_FOR_SELECTION, shape_data)
-
         # Handle error responses
         if status == _Status.ERROR:
             if response:
@@ -1360,13 +1355,10 @@ class SirilInterface:
                     raise ValueError(_("No selection is currently made in Siril"))
                 raise SirilConnectionError(_("Server error: {}").format(error_msg))
             raise SirilError(_("Error in get_selection_stats(): Failed to transfer stats data: Empty response"))
-
         if status == _Status.NONE:
             return None
-
         if not response:
             raise SirilError(_("Error in get_selection_stats(): No data received"))
-
         try:
             return ImageStats.deserialize(response)
         except Exception as e:
@@ -1759,13 +1751,16 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def xy_plot(self, plot_data: PlotData):
+    def xy_plot(self, plot_data: PlotData, display=True, save=False):
         """
         Serialize plot data and send via shared memory. See the sirilpy.plot submodule
         documentation for how to configure a PlotData object for use with SirilInterface.xy_plot()
 
         Args:
             plot_metadata: PlotMetadata object containing plot configuration
+            display: bool indicating whether to display the plot on screen (defaults to True)
+            save: bool indicating whether to save to the file specified in PlotData.savename
+                  (defaults to False)
 
         Raises:
             DataError: if invalid xy_plot data is received via shared memory,
@@ -1802,8 +1797,8 @@ class SirilInterface:
             # Pack the plot info structure
             info = struct.pack(
                 '!IIIIQ256s',
-                0,  # width (not used for plots)
-                0,  # height (not used for plots)
+                1 if save else 0,  # width (repurposed as a "save" flag)
+                1 if display else 0,  # height (repurposed as a "display" flag)
                 0,  # reserved/unused
                 0,  # reserved/unused
                 total_bytes,
@@ -3886,40 +3881,89 @@ class SirilInterface:
                 except Exception as e:
                     pass
 
-    def overlay_add_polygon(self, polygon: Polygon)-> Polygon:
+    def overlay_add_polygon(self, polygon: Polygon) -> Polygon:
         """
         Adds a user polygon to the Siril display overlay
-
         Args:
-            polyon: Polygon defining the polygon to be added
-
+            polygon: Polygon defining the polygon to be added
         Returns:
             Polygon: the input updated with the ID assigned by Siril
-
         Raises:
+            TypeError: invalid data provided,
             SirilConnectionError: on a connection failure,
             DataError: on receipt of invalid data,
             SirilError: on any failure
         """
-
+        shm = None
+        shm_info = None
         try:
             # Serialize the provided polygon
             polygon_bytes = polygon.serialize()
-            # Send it using _execute_command
-            response = self._request_data(_Command.ADD_USER_POLYGON, polygon_bytes)
-            if response is None:
-                raise SirilConnectionError(_("Failed to get a response from the SirilInterface"))
 
+            # Calculate total size needed
+            total_bytes = len(polygon_bytes)
+
+            # Create shared memory using our wrapper
             try:
-                # Assuming the response is in the format: !i (ID) (4 bytes)
-                polygon_id = struct.unpack('!i', response)[0]
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to create shared memory: {}").format(e)) from e
+
+            # Copy polygon data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                buffer[:len(polygon_bytes)] = polygon_bytes
+
+                # Delete transient objects used to structure copy
+                del buffer
+            except Exception as e:
+                raise SirilError(_("Failed to copy data to shared memory: {}").format(e)) from e
+
+            # Pack the polygon info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                0,  # unused field 1
+                0,  # unused field 2
+                0,  # unused field 3
+                0,  # unused field 4
+                total_bytes,  # size of polygon data
+                shm_info.shm_name  # shared memory name
+            )
+
+            # Send command using the existing _execute_command method
+            response = self._request_data(_Command.ADD_USER_POLYGON, info)
+            if response is None:
+                raise SirilConnectionError(("Failed to get a response from the SirilInterface"))
+            try:
+                polygon_id = struct.unpack('!i', response[:4])[0]
                 polygon.polygon_id = polygon_id
                 return polygon
+
             except struct.error as e:
                 raise DataError(_("Error unpacking polygon ID")) from e
 
+        except (TypeError, SirilError, DataError, SirilConnectionError, SharedMemoryError):
+            raise
         except Exception as e:
             raise SirilError(f"Error in overlay_add_polygon(): {e}") from e
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    if shm_info is not None:
+                        self._execute_command(_Command.RELEASE_SHM, shm_info)
+                except Exception:
+                    pass
 
     def overlay_delete_polygon(self, polygon_id: int):
         """
