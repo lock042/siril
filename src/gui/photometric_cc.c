@@ -705,6 +705,7 @@ gboolean populate_spcc_combos(gpointer user_data) {
 	GtkWidget *monosensors = lookup_widget("combo_spcc_sensors_mono");
 	GtkWidget *oscsensors = lookup_widget("combo_spcc_sensors_osc");
 	GtkWidget *whitepoint = lookup_widget("combo_spcc_whitepoint");
+	GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
 
 	// Initialize filters if required
 	fill_combo_from_glist(oscfilters, com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
@@ -715,7 +716,6 @@ gboolean populate_spcc_combos(gpointer user_data) {
 	fill_combo_from_glist(monosensors, com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
 	fill_combo_from_glist(oscsensors, com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
 	fill_combo_from_glist(whitepoint, com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
-	GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
 	gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
 	return FALSE;
 }
