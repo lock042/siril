@@ -642,11 +642,6 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 		siril_debug_print("Widget not found or not a combo box");
 		return;
 	}
-	// Global state validation
-	if (!com.spcc_data.osc_sensors || !com.spcc_data.mono_filters) {
-		siril_debug_print("SPCC data not initialized");
-		return;
-	}
 
 	GtkComboBoxText *combo = GTK_COMBO_BOX_TEXT(widget);
 
