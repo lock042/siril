@@ -1542,7 +1542,7 @@ gpointer initialize_spcc(gpointer user_data) {
 	// 1. Initialize the SPCC combos
 	// populate_spcc_combos_async runs in this thread but the actual call to
 	// populate_spcc_combos is run from it in an idle in the GTK thread
-		populate_spcc_combos_async(GINT_TO_POINTER(1));
+		populate_spcc_combos_async(GINT_TO_POINTER(0));
 	// 2. Update the repository
 	if (com.pref.spcc.auto_spcc_update && is_online()) {
 		auto_update_gitspcc(TRUE);
