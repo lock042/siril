@@ -47,6 +47,7 @@ static int area_is_unique(rectangle *area, rectangle *areas, int nb_areas) {
 	return 1;
 }
 
+
 static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangle *ret_area) {
 	double fx, fy;
 	if (wcs2pix(fit, ra, dec, &fx, &fy)) {
