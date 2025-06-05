@@ -11409,11 +11409,12 @@ int process_pwd(int nb) {
 typedef struct _pyscript_data {
 	gchar *script_name;
 	gchar **argv_script;
+	gboolean from_cli;
 } pyscript_data;
 
 gpointer execute_python_script_wrapper(gpointer user_data) {
 	pyscript_data *data = (pyscript_data*) user_data;
-	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE);
+	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE, data->from_cli, FALSE);
 	g_strfreev(data->argv_script);
 	free(data);
 	return GINT_TO_POINTER(0);
@@ -11453,7 +11454,7 @@ int process_pyscript(int nb) {
 		pyscript_data *data = calloc(1, sizeof(pyscript_data));
 		data->script_name = script_name;
 		data->argv_script = argv_script;
-		g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);  // TRUE to overwrite if it exists
+		data->from_cli = TRUE;
 		// Cannot use start_in_new_thread here because of the possibility of the python script
 		// calling siril.cmd() and running commands that themselves require the processing thread
 		// so we use a generic GThread

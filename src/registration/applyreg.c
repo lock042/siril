@@ -1081,8 +1081,8 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 			if (regargs->retval)
 				return FALSE;
 		} else {
-			siril_log_color_message(_("Images will be larger than what Siril can display for now."), "salmon");
-			siril_log_color_message(_("Tune scale ratio to get max dimension smaller than 32767 pixels"), "salmon");
+			siril_log_color_message(_("Images will be larger than what Siril can display for now.\n"), "salmon");
+			siril_log_color_message(_("Tune scale ratio to get max dimension smaller than 32767 pixels.\n"), "salmon");
 		}
 	}
 

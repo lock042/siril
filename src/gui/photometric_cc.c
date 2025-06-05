@@ -635,64 +635,96 @@ int get_favourite_oscsensor(GList *list, const gchar *favourite) {
 
 void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data);
 
-void fill_combo_from_glist(gchar *comboname, GList *list, int channel, const gchar *favourite) {
-    GtkComboBoxText *combo;
+void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gchar *favourite) {
+	// Input validation
+	if (!widget) return;
+	if (!GTK_IS_COMBO_BOX_TEXT(widget)) {
+		siril_debug_print("Widget not found or not a combo box");
+		return;
+	}
 
-    combo = GTK_COMBO_BOX_TEXT(lookup_widget(comboname));
-	g_signal_handlers_block_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
-    // Clear the model
-    gtk_combo_box_text_remove_all(combo);
+	GtkComboBoxText *combo = GTK_COMBO_BOX_TEXT(widget);
 
-    GList *iterator = list;
+	// Block signal handler so we don't call the callback while messing about with the combobox
+	// Find the specific handler ID instead of using function-based blocking
+	guint n_blocked = g_signal_handlers_block_matched(G_OBJECT(combo),
+		G_SIGNAL_MATCH_ID,
+		g_signal_lookup("changed", GTK_TYPE_COMBO_BOX),
+		0, NULL, NULL, NULL);
 
-    if (list == com.spcc_data.osc_sensors) {
-        while (iterator) {
-            osc_sensor *object = (osc_sensor *)iterator->data;
-            gtk_combo_box_text_append_text(combo, object->channel[0].model);
-            iterator = iterator->next;
-        }
-		g_signal_handlers_unblock_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_oscsensor(list, favourite));
-    } else {
-        while (iterator) {
-            spcc_object *object = (spcc_object *)iterator->data;
-            gtk_combo_box_text_append_text(combo, object->name);
-            iterator = iterator->next;
-        }
-		g_signal_handlers_unblock_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_spccobject(list, favourite));
-    }
+	// Clear the model
+	gtk_combo_box_text_remove_all(combo);
+
+	GList *iterator = list;
+	int active_index = -1;
+
+	if (list == com.spcc_data.osc_sensors) {
+		while (iterator) {
+			osc_sensor *object = (osc_sensor *)iterator->data;
+			gtk_combo_box_text_append_text(combo, object->channel[0].model);
+			iterator = iterator->next;
+		}
+		active_index = get_favourite_oscsensor(list, favourite);
+	} else {
+		while (iterator) {
+			spcc_object *object = (spcc_object *)iterator->data;
+			gtk_combo_box_text_append_text(combo, object->name);
+			iterator = iterator->next;
+		}
+		active_index = get_favourite_spccobject(list, favourite);
+	}
+
+	// Unblock handlers we blocked
+	if (n_blocked > 0) {
+		g_signal_handlers_unblock_matched(G_OBJECT(combo),
+			G_SIGNAL_MATCH_ID,
+			g_signal_lookup("changed", GTK_TYPE_COMBO_BOX),
+			0, NULL, NULL, NULL);
+	}
+
+	if (active_index >= 0) {
+		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), active_index);
+	}
 }
 
 gboolean populate_spcc_combos(gpointer user_data) {
-	// Initialize filters if required
-	fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
-	fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
-	fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GLAYER], GLAYER, com.pref.spcc.greenpref);
-	fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLAYER], BLAYER, com.pref.spcc.bluepref);
-	fill_combo_from_glist("combo_spcc_filters_lpf", com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
-	fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
-	fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
-	fill_combo_from_glist("combo_spcc_whitepoint", com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
+	g_assert(g_main_context_is_owner(g_main_context_default()));
+
+	// Look up all the widgets here
+	// TODO: change the widgets to static and initialize on first use
+	GtkWidget *oscfilters = lookup_widget("combo_spcc_filters_osc");
+	GtkWidget *rfilters = lookup_widget("combo_spcc_filters_r");
+	GtkWidget *gfilters = lookup_widget("combo_spcc_filters_g");
+	GtkWidget *bfilters = lookup_widget("combo_spcc_filters_b");
+	GtkWidget *lpfilters = lookup_widget("combo_spcc_filters_lpf");
+	GtkWidget *monosensors = lookup_widget("combo_spcc_sensors_mono");
+	GtkWidget *oscsensors = lookup_widget("combo_spcc_sensors_osc");
+	GtkWidget *whitepoint = lookup_widget("combo_spcc_whitepoint");
 	GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
+
+	// Initialize filters if required
+	fill_combo_from_glist(oscfilters, com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
+	fill_combo_from_glist(rfilters, com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
+	fill_combo_from_glist(gfilters, com.spcc_data.mono_filters[GLAYER], GLAYER, com.pref.spcc.greenpref);
+	fill_combo_from_glist(bfilters, com.spcc_data.mono_filters[BLAYER], BLAYER, com.pref.spcc.bluepref);
+	fill_combo_from_glist(lpfilters, com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
+	fill_combo_from_glist(monosensors, com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
+	fill_combo_from_glist(oscsensors, com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
+	fill_combo_from_glist(whitepoint, com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
 	gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
 	return FALSE;
 }
 
 gpointer populate_spcc_combos_async(gpointer user_data) {
-	gboolean wait_for_it = (gboolean) GPOINTER_TO_INT(user_data);
 	g_mutex_lock(&combos_filling);
 	if (!spcc_filters_initialized) {
 		// do most of the slow file reading in this thread, separate to GTK thread
 		load_all_spcc_metadata();
 		spcc_filters_initialized = TRUE;
 	}
-	g_mutex_unlock(&combos_filling);
 	// update combos back in the GTK thread
-	if (wait_for_it)
-		execute_idle_and_wait_for_it(populate_spcc_combos, NULL);
-	else
-		siril_add_idle(populate_spcc_combos, NULL);
+	execute_idle_and_wait_for_it(populate_spcc_combos, NULL);
+	g_mutex_unlock(&combos_filling);
 	return GINT_TO_POINTER(0);
 }
 
