@@ -635,83 +635,381 @@ int get_favourite_oscsensor(GList *list, const gchar *favourite) {
 
 void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data);
 
+/**
+ * Validates a string for safe use in GTK widgets
+ * @param str The string to validate
+ * @return TRUE if string is valid, FALSE otherwise
+ */
+static gboolean is_valid_string(const char *str) {
+	// Check for NULL pointer
+	if (!str) {
+		return FALSE;
+	}
+
+	// Check for empty string
+	if (strlen(str) == 0) {
+		return FALSE;
+	}
+
+	// Check for reasonable length (prevent buffer overflows/memory issues)
+	if (strlen(str) > 1000) {
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gchar *favourite) {
 	// Input validation
-	if (!widget) return;
+	if (!widget) {
+		siril_debug_print("fill_combo_from_glist: widget is NULL\n");
+		return;
+	}
+
 	if (!GTK_IS_COMBO_BOX_TEXT(widget)) {
-		siril_debug_print("Widget not found or not a combo box");
+		siril_debug_print("fill_combo_from_glist: widget is not a combo box text widget\n");
+		return;
+	}
+
+	// Critical: Check if list is NULL
+	if (!list) {
+		siril_debug_print("fill_combo_from_glist: list is NULL, cannot populate combo\n");
 		return;
 	}
 
 	GtkComboBoxText *combo = GTK_COMBO_BOX_TEXT(widget);
 
+	// Validate that the combo box is still valid
+	if (!GTK_IS_COMBO_BOX_TEXT(combo)) {
+		siril_debug_print("fill_combo_from_glist: combo cast failed\n");
+		return;
+	}
+
 	// Block signal handler so we don't call the callback while messing about with the combobox
 	// Find the specific handler ID instead of using function-based blocking
+	guint signal_id = g_signal_lookup("changed", GTK_TYPE_COMBO_BOX);
+	if (signal_id == 0) {
+		siril_debug_print("fill_combo_from_glist: failed to lookup 'changed' signal\n");
+		return;
+	}
+
 	guint n_blocked = g_signal_handlers_block_matched(G_OBJECT(combo),
 		G_SIGNAL_MATCH_ID,
-		g_signal_lookup("changed", GTK_TYPE_COMBO_BOX),
+		signal_id,
 		0, NULL, NULL, NULL);
 
 	// Clear the model
 	gtk_combo_box_text_remove_all(combo);
 
-	GList *iterator = list;
-	int active_index = -1;
-
-	if (list == com.spcc_data.osc_sensors) {
-		while (iterator) {
-			osc_sensor *object = (osc_sensor *)iterator->data;
-			gtk_combo_box_text_append_text(combo, object->channel[0].model);
-			iterator = iterator->next;
-		}
-		active_index = get_favourite_oscsensor(list, favourite);
-	} else {
-		while (iterator) {
-			spcc_object *object = (spcc_object *)iterator->data;
-			gtk_combo_box_text_append_text(combo, object->name);
-			iterator = iterator->next;
-		}
-		active_index = get_favourite_spccobject(list, favourite);
+	// Ensure GTK UI is fully updated
+	while (g_main_context_pending(NULL)) {
+		g_main_context_iteration(NULL, FALSE);
 	}
 
+	GList *iterator = list;
+	int active_index = -1;
+	int item_count = 0;
+
+	// Validate list length to prevent infinite loops
+	int max_items = 10000; // reasonable upper limit
+	GList *temp_iter = list;
+	int list_length = 0;
+	while (temp_iter && list_length < max_items) {
+		list_length++;
+		temp_iter = temp_iter->next;
+	}
+
+	if (list_length >= max_items) {
+		siril_debug_print("fill_combo_from_glist: list appears to be corrupted (too long or circular)\n");
+		goto cleanup;
+	}
+
+	if (list == com.spcc_data.osc_sensors) {
+		siril_debug_print("fill_combo_from_glist: populating OSC sensors (%d items)\n", list_length);
+
+		while (iterator && item_count < max_items) {
+			// Validate iterator and its data
+			if (!iterator->data) {
+				siril_debug_print("fill_combo_from_glist: NULL data in osc_sensors list at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			osc_sensor *object = (osc_sensor *)iterator->data;
+
+			// Comprehensive validation of osc_sensor object
+			if (!object) {
+				siril_debug_print("fill_combo_from_glist: NULL osc_sensor object at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			if (!object->channel[0].model) {
+				siril_debug_print("fill_combo_from_glist: NULL model string in osc_sensor at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			// Validate string
+			if (!is_valid_string(object->channel[0].model)) {
+				siril_debug_print("fill_combo_from_glist: invalid string in osc_sensor at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			// Attempt to add to combo box
+			gtk_combo_box_text_append_text(combo, object->channel[0].model);
+			iterator = iterator->next;
+			item_count++;
+		}
+
+		// Get favourite index with validation
+		if (favourite) {
+			active_index = get_favourite_oscsensor(list, favourite);
+		}
+
+	} else {
+		siril_debug_print("fill_combo_from_glist: populating SPCC objects (%d items)\n", list_length);
+
+		while (iterator && item_count < max_items) {
+			// Validate iterator and its data
+			if (!iterator->data) {
+				siril_debug_print("fill_combo_from_glist: NULL data in spcc_object list at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			spcc_object *object = (spcc_object *)iterator->data;
+
+			// Comprehensive validation of spcc_object
+			if (!object) {
+				siril_debug_print("fill_combo_from_glist: NULL spcc_object at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			if (!object->name) {
+				siril_debug_print("fill_combo_from_glist: NULL name in spcc_object at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			// Validate string
+			if (!is_valid_string(object->name)) {
+				siril_debug_print("fill_combo_from_glist: invalid string in spcc_object at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			// Attempt to add to combo box
+			gtk_combo_box_text_append_text(combo, object->name);
+			iterator = iterator->next;
+			item_count++;
+		}
+
+		// Get favourite index with validation
+		if (favourite) {
+			active_index = get_favourite_spccobject(list, favourite);
+		}
+	}
+
+	siril_debug_print("fill_combo_from_glist: successfully added %d items to combo\n", item_count);
+
+cleanup:
 	// Unblock handlers we blocked
 	if (n_blocked > 0) {
 		g_signal_handlers_unblock_matched(G_OBJECT(combo),
 			G_SIGNAL_MATCH_ID,
-			g_signal_lookup("changed", GTK_TYPE_COMBO_BOX),
+			signal_id,
 			0, NULL, NULL, NULL);
 	}
 
-	if (active_index >= 0) {
+	// Set active index with validation
+	if (active_index >= 0 && active_index < item_count) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), active_index);
+		siril_debug_print("fill_combo_from_glist: set active index to %d\n", active_index);
+	} else if (active_index >= 0) {
+		siril_debug_print("fill_combo_from_glist: favourite index %d is out of range (max: %d)\n", active_index, item_count - 1);
 	}
 }
 
 gboolean populate_spcc_combos(gpointer user_data) {
-	g_assert(g_main_context_is_owner(g_main_context_default()));
+	siril_debug_print("populate_spcc_combos: starting\n");
 
-	// Look up all the widgets here
-	// TODO: change the widgets to static and initialize on first use
+	// Validate we're on the main thread
+	if (!g_main_context_is_owner(g_main_context_default())) {
+		siril_debug_print("populate_spcc_combos: ERROR - not called from main thread!\n");
+		return FALSE;
+	}
+
+	// Comprehensive validation of critical data structures before use
+	if (!com.spcc_data.osc_sensors) {
+		siril_debug_print("populate_spcc_combos: ERROR - osc_sensors is NULL\n");
+		return FALSE;
+	}
+
+	if (!com.spcc_data.mono_sensors) {
+		siril_debug_print("populate_spcc_combos: ERROR - mono_sensors is NULL\n");
+		return FALSE;
+	}
+
+	if (!com.spcc_data.osc_filters) {
+		siril_debug_print("populate_spcc_combos: ERROR - osc_filters is NULL\n");
+		return FALSE;
+	}
+
+	if (!com.spcc_data.wb_ref) {
+		siril_debug_print("populate_spcc_combos: ERROR - wb_ref is NULL\n");
+		return FALSE;
+	}
+
+	if (!com.spcc_data.osc_lpf) {
+		siril_debug_print("populate_spcc_combos: ERROR - osc_lpf is NULL\n");
+		return FALSE;
+	}
+
+	// Check individual filter arrays
+	if (!com.spcc_data.mono_filters[RLAYER]) {
+		siril_debug_print("populate_spcc_combos: ERROR - red filters (RLAYER) is NULL\n");
+		return FALSE;
+	}
+
+	if (!com.spcc_data.mono_filters[GLAYER]) {
+		siril_debug_print("populate_spcc_combos: ERROR - green filters (GLAYER) is NULL\n");
+		return FALSE;
+	}
+
+	if (!com.spcc_data.mono_filters[BLAYER]) {
+		siril_debug_print("populate_spcc_combos: ERROR - blue filters (BLAYER) is NULL\n");
+		return FALSE;
+	}
+
+	// Look up all the widgets here with validation
 	GtkWidget *oscfilters = lookup_widget("combo_spcc_filters_osc");
-	GtkWidget *rfilters = lookup_widget("combo_spcc_filters_r");
-	GtkWidget *gfilters = lookup_widget("combo_spcc_filters_g");
-	GtkWidget *bfilters = lookup_widget("combo_spcc_filters_b");
-	GtkWidget *lpfilters = lookup_widget("combo_spcc_filters_lpf");
-	GtkWidget *monosensors = lookup_widget("combo_spcc_sensors_mono");
-	GtkWidget *oscsensors = lookup_widget("combo_spcc_sensors_osc");
-	GtkWidget *whitepoint = lookup_widget("combo_spcc_whitepoint");
-	GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
+	if (!oscfilters) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_osc widget\n");
+		return FALSE;
+	}
 
-	// Initialize filters if required
+	GtkWidget *rfilters = lookup_widget("combo_spcc_filters_r");
+	if (!rfilters) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_r widget\n");
+		return FALSE;
+	}
+
+	GtkWidget *gfilters = lookup_widget("combo_spcc_filters_g");
+	if (!gfilters) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_g widget\n");
+		return FALSE;
+	}
+
+	GtkWidget *bfilters = lookup_widget("combo_spcc_filters_b");
+	if (!bfilters) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_b widget\n");
+		return FALSE;
+	}
+
+	GtkWidget *lpfilters = lookup_widget("combo_spcc_filters_lpf");
+	if (!lpfilters) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_lpf widget\n");
+		return FALSE;
+	}
+
+	GtkWidget *monosensors = lookup_widget("combo_spcc_sensors_mono");
+	if (!monosensors) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_sensors_mono widget\n");
+		return FALSE;
+	}
+
+	GtkWidget *oscsensors = lookup_widget("combo_spcc_sensors_osc");
+	if (!oscsensors) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_sensors_osc widget\n");
+		return FALSE;
+	}
+
+	GtkWidget *whitepoint = lookup_widget("combo_spcc_whitepoint");
+	if (!whitepoint) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_whitepoint widget\n");
+		return FALSE;
+	}
+
+	GtkWidget *switch_widget_lookup = lookup_widget("spcc_sensor_switch");
+	if (!switch_widget_lookup) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find spcc_sensor_switch widget\n");
+		return FALSE;
+	}
+
+	GtkSwitch *switch_widget = GTK_SWITCH(switch_widget_lookup);
+	if (!GTK_IS_SWITCH(switch_widget)) {
+		siril_debug_print("populate_spcc_combos: ERROR - spcc_sensor_switch is not a GtkSwitch\n");
+		return FALSE;
+	}
+
+	// Validate preferences exist (basic check)
+	if (!com.pref.spcc.oscfilterpref) {
+		siril_debug_print("populate_spcc_combos: WARNING - oscfilterpref is NULL\n");
+	}
+	if (!com.pref.spcc.redpref) {
+		siril_debug_print("populate_spcc_combos: WARNING - redpref is NULL\n");
+	}
+	if (!com.pref.spcc.greenpref) {
+		siril_debug_print("populate_spcc_combos: WARNING - greenpref is NULL\n");
+	}
+	if (!com.pref.spcc.bluepref) {
+		siril_debug_print("populate_spcc_combos: WARNING - bluepref is NULL\n");
+	}
+	if (!com.pref.spcc.lpfpref) {
+		siril_debug_print("populate_spcc_combos: WARNING - lpfpref is NULL\n");
+	}
+	if (!com.pref.spcc.monosensorpref) {
+		siril_debug_print("populate_spcc_combos: WARNING - monosensorpref is NULL\n");
+	}
+	if (!com.pref.spcc.oscsensorpref) {
+		siril_debug_print("populate_spcc_combos: WARNING - oscsensorpref is NULL\n");
+	}
+
+	// Initialize filters with error handling - each call is now safe due to validation in fill_combo_from_glist
+	siril_debug_print("populate_spcc_combos: populating OSC filters");
 	fill_combo_from_glist(oscfilters, com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
+
+	siril_debug_print("populate_spcc_combos: populating red filters\n");
 	fill_combo_from_glist(rfilters, com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
+
+	siril_debug_print("populate_spcc_combos: populating green filters\n");
 	fill_combo_from_glist(gfilters, com.spcc_data.mono_filters[GLAYER], GLAYER, com.pref.spcc.greenpref);
+
+	siril_debug_print("populate_spcc_combos: populating blue filters\n");
 	fill_combo_from_glist(bfilters, com.spcc_data.mono_filters[BLAYER], BLAYER, com.pref.spcc.bluepref);
+
+	siril_debug_print("populate_spcc_combos: populating LP filters\n");
 	fill_combo_from_glist(lpfilters, com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
+
+	siril_debug_print("populate_spcc_combos: populating mono sensors\n");
 	fill_combo_from_glist(monosensors, com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
+
+	siril_debug_print("populate_spcc_combos: populating OSC sensors\n");
 	fill_combo_from_glist(oscsensors, com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
+
+	siril_debug_print("populate_spcc_combos: populating white point\n");
 	fill_combo_from_glist(whitepoint, com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
+
+	siril_debug_print("populate_spcc_combos: setting switch state\n");
 	gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
+
+	// Ensure GTK UI is fully updated
+	while (g_main_context_pending(NULL)) {
+		g_main_context_iteration(NULL, FALSE);
+	}
+
+	siril_debug_print("populate_spcc_combos: completed successfully\n");
 	return FALSE;
 }
 
