@@ -570,7 +570,7 @@ typedef enum {
 	SPCC_GREEN = 1 << GLAYER,
 	SPCC_BLUE = 1 << BLAYER,
 	SPCC_CLEAR = SPCC_RED | SPCC_GREEN | SPCC_BLUE,
-	SPCC_INVIS = 0
+	SPCC_INVIS = 1 << 7
 } spcc_channel;
 
 /* Filter spectral responses are defined by unevenly spaced frequency samples
