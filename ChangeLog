@@ -24,6 +24,7 @@ xx/xx/25
 * Updated overlay_add_polygon() to use shared memory, to handle polygons with large numbers of sides
 * Improved compatibility of sirilpy.tkfilebrowser with tkinter.filedialog (allows replacing the awful Linux tk filedialog)
 * Improved the GPU module helper methods in sirilpy
+* Fix a crash with RGB compositing (#1562)
 
 siril 1.4.0-beta2
 05/21/25
