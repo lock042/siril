@@ -42,6 +42,17 @@
 #define MIN_PLOT 336.0
 #define MAX_PLOT 1020.0
 
+// Uncomment the next line to enable more verbose debug reporting
+//#define SPCC_DEBUG_TEST
+
+#ifdef SPCC_DEBUG_TEST
+#define DEBUG_SPCC 1
+#else
+#define DEBUG_SPCC 0
+#endif
+#define spcc_debug_print(fmt, ...) \
+	do { if (DEBUG_TEST && DEBUG_SPCC) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
+
 static gboolean spcc_filters_initialized = FALSE;
 static int get_spcc_catalog_from_GUI();
 static rectangle get_bkg_selection();
@@ -768,7 +779,7 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 		}
 
 	} else {
-		siril_debug_print("fill_combo_from_glist: populating SPCC objects (%d items)\n", list_length);
+		spcc_debug_print("fill_combo_from_glist: populating SPCC objects (%d items)\n", list_length);
 
 		while (iterator && item_count < max_items) {
 			// Validate iterator and its data
@@ -834,7 +845,7 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 		}
 	}
 
-	siril_debug_print("fill_combo_from_glist: successfully added %d items to combo\n", item_count);
+	spcc_debug_print("fill_combo_from_glist: successfully added %d items to combo\n", item_count);
 
 cleanup:
 	// Unblock handlers we blocked
@@ -848,7 +859,7 @@ cleanup:
 	// Set active index with validation
 	if (active_index >= 0 && active_index < item_count) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), active_index);
-		siril_debug_print("fill_combo_from_glist: set active index to %d\n", active_index);
+		spcc_debug_print("fill_combo_from_glist: set active index to %d\n", active_index);
 	} else if (active_index >= 0) {
 		siril_debug_print("fill_combo_from_glist: favourite index %d is out of range (max: %d)\n", active_index, item_count - 1);
 	}
@@ -993,34 +1004,34 @@ gboolean populate_spcc_combos(gpointer user_data) {
 	}
 
 	// Initialize filters with error handling - each call is now safe due to validation in fill_combo_from_glist
-	siril_debug_print("populate_spcc_combos: populating OSC filters\n");
+	spcc_debug_print("populate_spcc_combos: populating OSC filters\n");
 	fill_combo_from_glist(oscfilters, com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
 
-	siril_debug_print("populate_spcc_combos: populating red filters\n");
+	spcc_debug_print("populate_spcc_combos: populating red filters\n");
 	fill_combo_from_glist(rfilters, com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
 
-	siril_debug_print("populate_spcc_combos: populating green filters\n");
+	spcc_debug_print("populate_spcc_combos: populating green filters\n");
 	fill_combo_from_glist(gfilters, com.spcc_data.mono_filters[GLAYER], GLAYER, com.pref.spcc.greenpref);
 
-	siril_debug_print("populate_spcc_combos: populating blue filters\n");
+	spcc_debug_print("populate_spcc_combos: populating blue filters\n");
 	fill_combo_from_glist(bfilters, com.spcc_data.mono_filters[BLAYER], BLAYER, com.pref.spcc.bluepref);
 
-	siril_debug_print("populate_spcc_combos: populating LP filters\n");
+	spcc_debug_print("populate_spcc_combos: populating LP filters\n");
 	fill_combo_from_glist(lpfilters, com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
 
-	siril_debug_print("populate_spcc_combos: populating mono sensors\n");
+	spcc_debug_print("populate_spcc_combos: populating mono sensors\n");
 	fill_combo_from_glist(monosensors, com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
 
-	siril_debug_print("populate_spcc_combos: populating OSC sensors\n");
+	spcc_debug_print("populate_spcc_combos: populating OSC sensors\n");
 	fill_combo_from_glist(oscsensors, com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
 
-	siril_debug_print("populate_spcc_combos: populating white point\n");
+	spcc_debug_print("populate_spcc_combos: populating white point\n");
 	fill_combo_from_glist(whitepoint, com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
 
-	siril_debug_print("populate_spcc_combos: setting switch state\n");
+	spcc_debug_print("populate_spcc_combos: setting switch state\n");
 	gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
 
-	siril_debug_print("populate_spcc_combos: completed successfully\n");
+	spcc_debug_print("populate_spcc_combos: completed successfully\n");
 	g_mutex_unlock(&spcc_data_mutex);
 end:
 	return FALSE;
