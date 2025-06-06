@@ -701,11 +701,6 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 	// Clear the model
 	gtk_combo_box_text_remove_all(combo);
 
-	// Ensure GTK UI is fully updated
-	while (g_main_context_pending(NULL)) {
-		g_main_context_iteration(NULL, FALSE);
-	}
-
 	GList *iterator = list;
 	int active_index = -1;
 	int item_count = 0;

@@ -256,7 +256,6 @@ struct idle_data {
 
 static gboolean wrapping_idle(gpointer arg) {
 	struct idle_data *data = (struct idle_data *)arg;
-
 	fprintf(stderr, "Entering wrapping_idle for function %p\n", data->idle);
 	data->idle(data->user);
 	siril_debug_print("idle %p signaling end\n", data->idle);
@@ -264,40 +263,39 @@ static gboolean wrapping_idle(gpointer arg) {
 	data->idle_finished = TRUE;
 	g_cond_signal(&data->cond);
 	g_mutex_unlock(&data->mutex);
-
 	return FALSE;
 }
 
 void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
-	// Return immediately if headless, idles should only be used for GUI operations
-	// that must be run in the GTK context.
 	if (com.headless) {
 		siril_debug_print("execute_idle_and_wait_for_it called headless, this should not happen!\n");
 		return;
 	}
 
-	// Check if we're already in the main thread (because if we are,
-	// the mutex control below will fail and will cause a hang)
 	if (g_main_context_is_owner(g_main_context_default())) {
-		// If in main thread, just call the function directly
 		idle(arg);
 		return;
 	}
 
-	struct idle_data data = { .idle_finished = FALSE, .idle = idle, .user = arg };
-	g_mutex_init(&data.mutex);
-	g_cond_init(&data.cond);
+	struct idle_data *data = g_malloc(sizeof(struct idle_data));
+	data->idle_finished = FALSE;
+	data->idle = idle;
+	data->user = arg;
+	g_mutex_init(&data->mutex);
+	g_cond_init(&data->cond);
+
 	siril_debug_print("queueing idle %p\n", idle);
-	gdk_threads_add_idle(wrapping_idle, &data);
-
+	gdk_threads_add_idle(wrapping_idle, data);
 	siril_debug_print("waiting for idle %p\n", idle);
-	g_mutex_lock (&data.mutex);
-	while (!data.idle_finished)
-		g_cond_wait(&data.cond, &data.mutex);
-	g_mutex_unlock (&data.mutex);
 
-	g_mutex_clear(&data.mutex);
-	g_cond_clear(&data.cond);
+	g_mutex_lock(&data->mutex);
+	while (!data->idle_finished)
+		g_cond_wait(&data->cond, &data->mutex);
+	g_mutex_unlock(&data->mutex);
+
+	g_mutex_clear(&data->mutex);
+	g_cond_clear(&data->cond);
+	g_free(data);
 	siril_debug_print("idle %p wait is over\n", idle);
 }
 
