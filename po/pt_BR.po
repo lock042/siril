@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-25 21:43+0200\n"
-"PO-Revision-Date: 2025-05-15 20:35+0000\n"
+"PO-Revision-Date: 2025-06-04 19:20+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -509,9 +509,8 @@ msgid "Clear"
 msgstr "Excluir"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-#, fuzzy
 msgid "Clear all current temporary annotations (in red by default)"
-msgstr "Limpar todas as anotações atuais do catálogo do usuário."
+msgstr "Limpar todas as anotações temporárias atuais (em vermelho por padrão)"
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -861,7 +860,6 @@ msgid "Clip mode"
 msgstr "Modo de recorte"
 
 #: src/gui/uifiles/asinh_dialog.ui:288 src/gui/uifiles/histogram_dialog.ui:760
-#, fuzzy
 msgid ""
 "Select blend mode.\n"
 "Clip: clips values to the range 0.0 - 1.0. <b>Default</b>\n"
@@ -875,13 +873,17 @@ msgid ""
 "stretch if you notice colour artefacts around bright stars."
 msgstr ""
 "Selecione o modo de mesclagem.\n"
-"Recortar: recorta os valores para o intervalo de 0,0 a 1,0\n"
+"Recortar: recorta os valores para o intervalo de 0,0 a 1,0. <b>Padrão</b>\n"
 "Redimensionar: redimensiona os valores RGB dos pixels recortados para não "
-"exceder 1,0 por pixel\n"
-"Mesclagem RGB: aplica uma função de mesclagem para cores de realce "
-"reconstruídas e suaves. <b>Padrão</b>\n"
-"Redimensionar global: O mesmo que Redimensionar, mas redimensiona para o "
-"valor máximo global do componente"
+"exceder 1,0 por pixel.\n"
+"Mesclagem RGB: aplica uma função de mesclagem para suavizar as cores de "
+"realce reconstruídas.\n"
+"Redimensionar global: Igual a Redimensionar, mas redimensiona para o valor "
+"máximo global do componente.\n"
+"\n"
+"Recortar é mais rápido: defina um dos outros modos quando estiver satisfeito "
+"com o alongamento, caso note artefatos de cor ao redor de estrelas "
+"brilhantes."
 
 #: src/gui/uifiles/asinh_dialog.ui:297 src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:769 src/gui/utils.c:400
@@ -6711,7 +6713,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:549
 msgid "X-Trans demosaicing quality"
-msgstr ""
+msgstr "Qualidade de demosaicing X-Trans"
 
 #: src/gui/uifiles/settings_window.ui:581 src/gui/uifiles/siril.ui:3981
 #: src/gui/open_dialog.c:191
@@ -6754,6 +6756,11 @@ msgid ""
 "chosen format except the RGB compositing tool that always will convert "
 "images in 32-bit."
 msgstr ""
+"Selecione o tipo de FITS que será usado por padrão. O formato de ponto "
+"flutuante de 32 bits oferece a melhor precisão, porém ocupa o dobro de "
+"espaço em disco do que inteiros de 16 bits sem sinal. Todas as ferramentas "
+"de processamento funcionarão com o formato escolhido, exceto a ferramenta de "
+"composição RGB, que sempre converterá imagens em 32 bits."
 
 #: src/gui/uifiles/settings_window.ui:692
 msgid "Default Type:"
@@ -6761,7 +6768,7 @@ msgstr "Tipo padrão:"
 
 #: src/gui/uifiles/settings_window.ui:701
 msgid "Allow FITS cubes to have images of different sizes"
-msgstr ""
+msgstr "Permitir que cubos FITS tenham imagens de tamanhos diferentes"
 
 #: src/gui/uifiles/settings_window.ui:705
 msgid ""
@@ -6769,6 +6776,9 @@ msgid ""
 "Siril and that contain multiple images of different dimensions, which would "
 "otherwise considered as invalid Siril FITSEQ files."
 msgstr ""
+"Isso pode ser útil para abrir arquivos FITS científicos que não foram "
+"criados pela Siril e que contêm várias imagens de dimensões diferentes, que "
+"de outra forma seriam considerados arquivos Siril FITSEQ inválidos."
 
 #: src/gui/uifiles/settings_window.ui:723
 msgid "<b>FITS Format</b>"
@@ -6786,6 +6796,12 @@ msgid ""
 "= 'RGB ' set, only FITS cube with 3 frames sharing the same dimension and "
 "with a BITPIX=8 will be automatically detected as RGB FITS."
 msgstr ""
+"O Aladin considera um cubo FITS 3D como uma imagem RGB (componentes "
+"Vermelho, Azul e Verde) se a palavra-chave FITS CTYPE3 = 'RGB' for "
+"especificada no cabeçalho. Nesse caso, qualquer valor BITPIX é suportado. "
+"Sem a palavra-chave FITS CTYPE3 = 'RGB' definida, apenas cubos FITS com 3 "
+"quadros compartilhando a mesma dimensão e com BITPIX=8 serão detectados "
+"automaticamente como RGB FITS."
 
 #: src/gui/uifiles/settings_window.ui:766
 msgid "Update pixel size of binned image"
@@ -6798,6 +6814,11 @@ msgid ""
 "binning (checked), the already multiplied pixel size is given (unchecked).\n"
 "It depends on the acquistion software used to create the FITS."
 msgstr ""
+"Utilizado para cálculo de amostragem de imagens, o tamanho do pixel pode ser "
+"fornecido de duas maneiras diferentes: o tamanho real do pixel é fornecido, "
+"mas precisa ser multiplicado pelo binning (marcado), e o tamanho do pixel já "
+"multiplicado é fornecido (desmarcado).\n"
+"Depende do software de aquisição usado para criar o FITS."
 
 #: src/gui/uifiles/settings_window.ui:784
 msgid "Embed ICC profiles in saved FITS files"
@@ -6809,10 +6830,16 @@ msgid ""
 "you need interoperability with a program that fails to handle FITS with "
 "embedded ICC profiles (none are currently known)."
 msgstr ""
+"Incorpora perfis ICC em arquivos FITS. Geralmente, essa opção deve ser "
+"deixada ativada, a menos que você precise de interoperabilidade com um "
+"programa que não consiga lidar com FITS com perfis ICC incorporados (nenhum "
+"deles é conhecido atualmente)."
 
 #: src/gui/uifiles/settings_window.ui:801
 msgid "Verify file checksums in FITS header (DATASUM and CHECKSUM)"
 msgstr ""
+"Verifique as somas de verificação dos arquivos no cabeçalho FITS (DATASUM e "
+"CHECKSUM)"
 
 #: src/gui/uifiles/settings_window.ui:805
 msgid ""
@@ -6820,6 +6847,9 @@ msgid ""
 "file is read, which may significantly impact Siril's performance when using "
 "a sequence."
 msgstr ""
+"Verifique as somas de verificação dos arquivos, se existirem. A verificação "
+"ocorre sempre que o arquivo é lido, o que pode afetar significativamente o "
+"desempenho do Siril ao usar uma sequência."
 
 #: src/gui/uifiles/settings_window.ui:823
 msgid "<b>FITS Header</b>"
@@ -6842,6 +6872,16 @@ msgid ""
 "however, it preserves too much of the noise (or even amplifies the noise) in "
 "the pixel values, resulting in poor compression."
 msgstr ""
+"Embora imagens em formato de ponto flutuante possam ser compactadas sem "
+"perdas (usando gzip, já que o Rice compacta apenas matrizes de inteiros), "
+"essas imagens geralmente não são compactadas muito bem porque os valores de "
+"pixel são muito ruidosos; os bits menos significativos na mantissa dos "
+"valores de pixel contêm padrões de bits aleatórios incompressíveis. Para "
+"obter uma compressão mais alta, é necessário remover parte desse ruído, mas "
+"sem perder o conteúdo informativo útil. Se for muito grande, os valores de "
+"pixel são subamostrados, resultando em perda de informação na imagem. Se for "
+"muito pequeno, no entanto, preserva muito do ruído (ou até mesmo o amplifica)"
+" nos valores de pixel, resultando em compressão ruim."
 
 #: src/gui/uifiles/settings_window.ui:909
 msgid ""
@@ -6856,6 +6896,16 @@ msgid ""
 "algorithm. This is usually especially effective when compressing floating-"
 "point arrays."
 msgstr ""
+"Selecione um método de algoritmo para compressão FITS:\n"
+"\n"
+"* <b>Rice</b>: O algoritmo Rice é simples e muito rápido\n"
+"* <b>GZIP 1</b>: O algoritmo gzip é usado para comprimir e descomprimir os "
+"pixels da imagem. Gzip é o algoritmo de compressão usado no utilitário de "
+"software GNU gratuito de mesmo nome.\n"
+"* <b>GZIP 2</b>: Os bytes na matriz de valores de pixels da imagem são "
+"embaralhados em ordem decrescente de significância antes de serem "
+"comprimidos com o algoritmo gzip. Isso geralmente é especialmente eficaz na "
+"compressão de matrizes de ponto flutuante."
 
 #: src/gui/uifiles/settings_window.ui:921
 msgid "GZIP1"
@@ -6936,6 +6986,8 @@ msgid ""
 "Purge Solar Sys\n"
 "user Catalog"
 msgstr ""
+"Apaga catálogo de\n"
+"usuário do sistema solar"
 
 #: src/gui/uifiles/settings_window.ui:1226
 msgid ""
@@ -7011,11 +7063,11 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1364
 msgid "Formalism 2 (CD keywords)"
-msgstr ""
+msgstr "Formalismo 2 (Palavras chave CD)"
 
 #: src/gui/uifiles/settings_window.ui:1365
 msgid "Formalism 1 (PC keywords)"
-msgstr ""
+msgstr "Formalismo 1 (Palavras chave PC)"
 
 #: src/gui/uifiles/settings_window.ui:1375
 msgid "World Coordinate System"
@@ -7144,7 +7196,7 @@ msgstr "Tolerância de amostragem (%):"
 
 #: src/gui/uifiles/settings_window.ui:1635
 msgid "Percent below and above the expected sampling to allow."
-msgstr ""
+msgstr "Porcentagem abaixo e acima da amostragem esperada para permitir."
 
 #: src/gui/uifiles/settings_window.ui:1665
 msgid "Default degree of the polynomial correction:"
@@ -7156,6 +7208,9 @@ msgid ""
 "optical aberrations, this is the default order of the polynomial model. Set "
 "to 1 to disable it."
 msgstr ""
+"Solucionadores de astrometria podem usar uma correção polinomial (SIP) para "
+"lidar com aberrações ópticas. Esta é a ordem padrão do modelo polinomial. "
+"Defina como 1 para desativá-la."
 
 #: src/gui/uifiles/settings_window.ui:1680
 msgid "3"
@@ -7170,6 +7225,8 @@ msgid ""
 "Allowed search radius around the target coordinates for the solve (degrees). "
 "Unused for blind (no target passed) solves."
 msgstr ""
+"Raio de busca permitido em torno das coordenadas alvo para a solução (graus)"
+". Não utilizado para soluções cegas (sem alvo passado)."
 
 #: src/gui/uifiles/settings_window.ui:1723
 msgid "10.00"
@@ -7177,7 +7234,7 @@ msgstr "10.00"
 
 #: src/gui/uifiles/settings_window.ui:1753
 msgid "Maximum seconds to try solving. 0 to disable it"
-msgstr ""
+msgstr "Máximo de segundos para tentar resolver. 0 para desativá-lo"
 
 #: src/gui/uifiles/settings_window.ui:1765
 msgid ""
@@ -7185,6 +7242,9 @@ msgid ""
 "total solve time only if solve-field is configured to do so in its "
 "configuration file."
 msgstr ""
+"Tempo permitido para a resolução de cada arquivo de catálogo. Pode ser usado "
+"como tempo total de resolução somente se o campo de resolução estiver "
+"configurado para isso em seu arquivo de configuração."
 
 #: src/gui/uifiles/settings_window.ui:1768
 msgid "30"
@@ -7203,6 +7263,8 @@ msgid ""
 "The list of stars is passed to solve-field as a FITS table, check this to "
 "keep the file in the working directory."
 msgstr ""
+"A lista de estrelas é passada para solve-field como uma tabela FITS, marque "
+"esta opção para manter o arquivo no diretório de trabalho."
 
 #: src/gui/uifiles/settings_window.ui:1839
 msgid "Do not delete .wcs result files"
@@ -8883,9 +8945,8 @@ msgid "RGB Compositing..."
 msgstr "Composição RGB..."
 
 #: src/gui/uifiles/siril.ui:1699
-#, fuzzy
 msgid "Merge CFA Channels..."
-msgstr "Canais..."
+msgstr "Mesclar canais CFA..."
 
 #: src/gui/uifiles/siril.ui:1743
 msgid "Split Channels..."
@@ -8942,9 +9003,8 @@ msgid "Full Resynthesis"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:1880
-#, fuzzy
 msgid "Open Dynamic PSF dialog."
-msgstr "PSF Dinâmico..."
+msgstr "Abra o diálogo de PSF Dinâmico."
 
 #: src/gui/uifiles/siril.ui:1923
 msgid "Filters Processing"
@@ -8989,9 +9049,8 @@ msgid "Deconvolution..."
 msgstr "Deconvolução..."
 
 #: src/gui/uifiles/siril.ui:2014
-#, fuzzy
 msgid "Open the edge preserving filters dialog"
-msgstr "Filtro Mediano"
+msgstr "Abra o diálogo dos filtros que preservam as bordas"
 
 #: src/gui/uifiles/siril.ui:2016
 msgid "Edge Preserving Filters..."
@@ -23312,9 +23371,8 @@ msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
 #: src/io/image_formats_libraries.c:1182
-#, fuzzy
 msgid "Memory allocation error for image data.\n"
-msgstr "não carregada"
+msgstr "Erro de alocação de memória para dados de imagem.\n"
 
 #: src/io/image_formats_libraries.c:1248
 msgid "This image type is not handled.\n"
@@ -24463,9 +24521,9 @@ msgid "Attempting to clone from remote source...\n"
 msgstr ""
 
 #: src/io/siril_git.c:751
-#, fuzzy, c-format
+#, c-format
 msgid "Error cloning repository into %s: %s\n"
-msgstr "Erro ao clonar repositório: %s\n"
+msgstr "Erro ao clonar repositório em %s: %s\n"
 
 #: src/io/siril_git.c:756 src/io/siril_git.c:915
 msgid "Repository cloned successfully!\n"

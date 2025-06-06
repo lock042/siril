@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-25 21:43+0200\n"
-"PO-Revision-Date: 2025-05-30 00:03+0000\n"
+"PO-Revision-Date: 2025-06-06 12:57+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -5963,49 +5963,56 @@ msgid "Plot fits"
 msgstr "Dibujar Var."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:721
+#, fuzzy
 msgid "Plot SPCC linear fits for catalog to image R/G and B/G ratios"
 msgstr ""
+"Dibujar ajustes lineales SPCC por catálogo para las relaciones R/G y B/G"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:736
 msgid "Sensor Type:"
-msgstr ""
+msgstr "Tipo de sensor:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:766 src/gui/photometric_cc.c:722
 msgid "mono"
-msgstr ""
+msgstr "mono"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:783
 msgid "Narrowband mode"
-msgstr ""
+msgstr "Modo banda estrecha"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:787
 msgid ""
 "Set narrowband mode. This is suitable for composited narrowband images such "
 "as HOO as well as for OSC images taken with dual narrowband filters etc."
 msgstr ""
+"Activar modo de banda estrecha. Es adecuado para imágenes compuestas de "
+"banda estrecha, como HOO, así como para imágenes OSC tomadas con filtros "
+"duales de banda estrecha, etc."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:798
-#, fuzzy
 msgid "Atmospheric corrections"
-msgstr "Correción Cosmética"
+msgstr "Correciones atmosféricas"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:802
+#, fuzzy
 msgid ""
 "Apply an atmosphere model to account for wavelength-dependent atmospheric "
 "extinction."
 msgstr ""
+"Aplicar un modelo atmosférico para tener en cuenta la extinción atmosférica "
+"dependiente de la longitud de onda."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:828
 msgid "Observer height / m:"
-msgstr ""
+msgstr "Altura del observador / m:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:839
 msgid "Observer's height (altitude) above sea level."
-msgstr ""
+msgstr "Altura (altitud) del observador sobre el nivel del mar."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:855
 msgid "Atmospheric pressure / hPa:"
-msgstr ""
+msgstr "Presión atmosférica / hPa:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:866
 msgid ""
@@ -6013,19 +6020,22 @@ msgid ""
 "is taken to be sea level pressure, otherwise it is taken to be local "
 "pressure at the observer's height."
 msgstr ""
+"Presión atmosférica en hPa. Si la casilla \"Nivel del mar\" está marcada, se "
+"considera la presión a nivel del mar; de lo contrario, se considera la "
+"presión local a la altura del observador."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1168
-#, fuzzy
 msgid "sea level"
-msgstr "Nivel de zoom"
+msgstr "nivel del mar"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:897
+#, fuzzy
 msgid "Airmass:"
-msgstr ""
+msgstr "Masa de aire:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:910
 msgid "Plot atmosphere model"
-msgstr ""
+msgstr "Dibujar modelo atmosférico"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:940
 msgid "Atmospheric Parameters"
@@ -6217,6 +6227,10 @@ msgid ""
 "entire profile. This means that when you re-open the file the ICC profile "
 "description may be different, although it will be functionally equivalent."
 msgstr ""
+"Nota: al incrustar perfiles ICC, libjxl comprobará si reconoce el perfil. De "
+"ser así, fijará un valor de referencia en lugar de almacenar el perfil "
+"completo. Esto significa que al reabrir el archivo, la descripción del "
+"perfil ICC podría ser diferente, aunque funcionalmente equivalente."
 
 #: src/gui/uifiles/savepopup.ui:128
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
@@ -6262,9 +6276,8 @@ msgid "<b>Compression</b>"
 msgstr "<b>Compresión</b>"
 
 #: src/gui/uifiles/savepopup.ui:340
-#, fuzzy
 msgid "<b>ICC Profile</b>"
-msgstr "<b>Tipo de extracción</b>"
+msgstr "<b>Perfil ICC</b>"
 
 #: src/gui/uifiles/savepopup.ui:367
 #, fuzzy
@@ -6280,13 +6293,13 @@ msgid "<b>Image Copyright</b>"
 msgstr "<b>Copyright de la imagen</b>"
 
 #: src/gui/uifiles/savepopup.ui:492
+#, fuzzy
 msgid "ASTRO-TIFF"
-msgstr ""
+msgstr "ASTRO-TIFF"
 
 #: src/gui/uifiles/savepopup.ui:493
-#, fuzzy
 msgid "Standard TIFF"
-msgstr "Guardando TIFF"
+msgstr "TIFF estándar"
 
 #: src/gui/uifiles/savepopup.ui:509
 msgid "TIFF"
@@ -6295,7 +6308,7 @@ msgstr "TIFF"
 #: src/gui/uifiles/savepopup.ui:554 src/gui/uifiles/savepopup.ui:869
 #, fuzzy
 msgid "100"
-msgstr "0"
+msgstr "100"
 
 #: src/gui/uifiles/savepopup.ui:569 src/gui/uifiles/savepopup.ui:884
 msgid "Quality: "
@@ -6767,9 +6780,8 @@ msgstr ""
 "con BITPIX=8 se detectarán automáticamente como FITS RGB."
 
 #: src/gui/uifiles/settings_window.ui:766
-#, fuzzy
 msgid "Update pixel size of binned image"
-msgstr "Fallo en el análisis de la fotometría de la imagen %d\n"
+msgstr "Actualizar el tamaño de píxel de la imagen agrupada"
 
 #: src/gui/uifiles/settings_window.ui:770
 msgid ""

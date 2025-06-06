@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-25 21:43+0200\n"
-"PO-Revision-Date: 2025-05-30 13:52+0000\n"
+"PO-Revision-Date: 2025-06-04 18:18+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -6820,9 +6820,8 @@ msgid "Manually synchronise the repository"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3164
-#, fuzzy
 msgid "Spectrophotometric Calibration"
-msgstr "フォトメトリック 色補正."
+msgstr "分光測光色補正"
 
 #: src/gui/uifiles/settings_window.ui:3194
 #: src/gui/uifiles/settings_window.ui:3305
@@ -7877,7 +7876,7 @@ msgstr "arcsec"
 
 #: src/gui/uifiles/siril.ui:499
 msgid "Siril Manual"
-msgstr ""
+msgstr "Sirilのマニュアル"
 
 #: src/gui/uifiles/siril.ui:513
 msgid "Check For Updates"
@@ -8208,9 +8207,8 @@ msgid "Generalised Hyperbolic Stretch Transformations..."
 msgstr "ヒストグラム変換..."
 
 #: src/gui/uifiles/siril.ui:1604
-#, fuzzy
 msgid "Open the manual color calibration dialog"
-msgstr "測光色補正アルゴリズムを開始."
+msgstr "手動色補正ダイアログを開く"
 
 #: src/gui/uifiles/siril.ui:1606
 msgid "Color Calibration..."
@@ -8237,9 +8235,8 @@ msgid ""
 msgstr "測光色補正アルゴリズムを開始."
 
 #: src/gui/uifiles/siril.ui:1640
-#, fuzzy
 msgid "Spectrophotometric Color Calibration..."
-msgstr "フォトメトリック 色補正."
+msgstr "分光測光色補正…"
 
 #: src/gui/uifiles/siril.ui:1683
 #, fuzzy
@@ -11494,16 +11491,14 @@ msgid "Open plate solver dialog"
 msgstr ""
 
 #: src/gui/siril-shortcuts.ui:184
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Open photometric color calibration dialog"
-msgstr "測光色補正アルゴリズムを開始."
+msgstr "測光色補正ダイアログを開く"
 
 #: src/gui/siril-shortcuts.ui:191
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Open spectrophotometric color calibration dialog"
-msgstr "測光色補正アルゴリズムを開始."
+msgstr "分光測光色補正ダイアログを開く"
 
 #: src/gui/siril-shortcuts.ui:198
 #, fuzzy
@@ -12814,13 +12809,12 @@ msgid "Photometry radii set to %.1f for inner and %.1f for outer\n"
 msgstr ""
 
 #: src/algos/photometric_cc.c:789
-#, fuzzy
 msgid "Photometric color calibration in progress..."
-msgstr "フォトメトリック 色補正."
+msgstr "測光色補正中…"
 
 #: src/algos/photometric_cc.c:808
 msgid "Photometric Color Calibration failed"
-msgstr ""
+msgstr "測光色補正は失敗しました"
 
 #: src/algos/photometric_cc.c:825 src/algos/photometric_cc.c:843
 msgid ""
@@ -12860,9 +12854,9 @@ msgid ""
 msgstr ""
 
 #: src/algos/photometric_cc.c:909
-#, fuzzy, c-format
+#, c-format
 msgid "Photometric CC (algorithm: %s)"
-msgstr "測光"
+msgstr "測光CC (アルゴリズム: %s)"
 
 #: src/algos/photometric_cc.c:916
 #, fuzzy
@@ -12870,14 +12864,12 @@ msgid "Catalog error, no stars identified!\n"
 msgstr "ファイル: %s を開けない\n"
 
 #: src/algos/photometric_cc.c:925
-#, fuzzy
 msgid "Spectrophotometric Color Calibration succeeded.\n"
-msgstr "フォトメトリック 色補正."
+msgstr "分光測光色補正は成功しました。\n"
 
 #: src/algos/photometric_cc.c:927
-#, fuzzy
 msgid "Photometric Color Calibration succeeded.\n"
-msgstr "フォトメトリック 色補正."
+msgstr "測光色補正は成功しました。\n"
 
 #. Translator note: radii is plural for radius
 #: src/algos/photometry.c:113
@@ -16379,7 +16371,7 @@ msgstr ""
 
 #: src/core/command_line_processor.c:432
 msgid "Please enter an existing command before hitting this button"
-msgstr ""
+msgstr "このボタンを押す前に既存のコマンドを入力してください"
 
 #: src/core/command_line_processor.c:461
 msgid "Can be used in a script: "
