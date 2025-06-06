@@ -241,7 +241,8 @@ static gint compare_basenames(gconstpointer a, gconstpointer b) {
 
 	gchar *basename_a = g_path_get_basename(path_a);
 	gchar *basename_b = g_path_get_basename(path_b);
-
+	if (!path_a || !*path_a) return -1;
+	if (!path_b || !*path_b) return 1;
 	// Use g_utf8_collate for proper Unicode comparison
 	// This handles accented characters correctly
 	gint result = g_utf8_collate(g_utf8_casefold(basename_a, -1),
