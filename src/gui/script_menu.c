@@ -302,8 +302,8 @@ int initialize_script_menu(gboolean verbose) {
 	GtkWidget *menu_item_ssf = gtk_menu_item_new_with_label(_("Siril Script Files"));
 	GtkWidget *menu_item_py = gtk_menu_item_new_with_label(_("Python Scripts"));
 	gtk_widget_set_tooltip_markup(menu_item_py,
-			"<b>EXPERIMENTAL</b>: python scripts are currently an experimental feature. "
-			"Please read the documentation for details...");
+			_("<b>EXPERIMENTAL</b>: python scripts are currently an experimental feature. "
+			"Please read the documentation for details..."));
 	GtkWidget *sep = gtk_separator_menu_item_new();
 	GtkWidget *menu_item_pythonpad = gtk_menu_item_new_with_label(_("Script Editor..."));
 	g_signal_connect(G_OBJECT(menu_item_pythonpad), "activate", G_CALLBACK(on_open_pythonpad), NULL);
@@ -343,16 +343,21 @@ int initialize_script_menu(gboolean verbose) {
 				siril_log_color_message(_("Searching for scripts in: \"%s\"...\n"), "green", s->data);
 
 			for (GSList *l = list; l; l = l->next) {
+				if (l->data == NULL)
+					continue;
 				GtkWidget *menu_item;
-
 				gchar *display_name = g_strdup(l->data);
 				const gchar *extension = get_filename_ext(display_name);
-				gchar *current_directory = g_path_get_dirname(s->data);
-
+				gchar *full_path = g_build_filename(s->data, l->data, NULL);
+				gchar *current_directory = g_path_get_dirname(full_path);
+				if (!current_directory || *current_directory == '\0') {
+					siril_debug_print("Directory name not found for script %s, skipping...\n", display_name);
+					g_free(current_directory);
+					continue;
+				}
 				if (extension) {
 					gboolean match_ssf = !g_strcmp0(extension, SCRIPT_EXT);
-					gboolean match_py = !g_strcmp0(extension, PYSCRIPT_EXT);
-					gboolean match_pyc = !g_strcmp0(extension, PYCSCRIPT_EXT);
+					gboolean match_py = !g_strcmp0(extension, PYSCRIPT_EXT) || !g_strcmp0(extension, PYCSCRIPT_EXT);
 					if (match_ssf) {
 						if (!first_item_ssf && (!previous_directory_ssf || g_strcmp0(current_directory, previous_directory_ssf) != 0)) {
 							GtkWidget *separator = gtk_separator_menu_item_new();
@@ -363,18 +368,17 @@ int initialize_script_menu(gboolean verbose) {
 						g_free(previous_directory_ssf);
 						previous_directory_ssf = g_strdup(current_directory);
 					} else {
-						if ( match_py || match_pyc) {
+						if ( match_py) {
 							g_free(previous_directory_py);
 							previous_directory_py = g_strdup(current_directory);
 						}
 					}
 
 					menu_item = gtk_menu_item_new_with_label(display_name);
-					gchar *full_path = g_build_filename(s->data, l->data, NULL);
 
 					if (match_ssf) {
 						gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
-					} else if (match_py || match_pyc) {
+					} else if (match_py) {
 						GtkWidget *py_submenu = get_py_submenu(full_path, menu_py, py_submenus);
 						gtk_menu_shell_append(GTK_MENU_SHELL(py_submenu), menu_item);
 					}
@@ -395,44 +399,46 @@ int initialize_script_menu(gboolean verbose) {
 	g_free(previous_directory_py);
 
 	// Add scripts from the selections made in preferences
-	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
-		GList *filtered_list = NULL;
-		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
-			if (ss->data != NULL) {
-				filtered_list = g_list_append(filtered_list, ss->data);
+	if (com.pref.use_scripts_repository && com.pref.selected_scripts) {
+		// 1. Remove NULL entries from selected_scripts in-place
+		GList *l = com.pref.selected_scripts;
+		while (l != NULL) {
+			GList *next = l->next;
+			if (l->data == NULL) {
+				com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, l);
 			}
+			l = next;
 		}
 
-		filtered_list = g_list_sort(filtered_list, compare_basenames);
+		// 2. Sort selected_scripts in-place
+		com.pref.selected_scripts = g_list_sort(com.pref.selected_scripts, compare_basenames);
 
-		g_list_free(com.pref.selected_scripts); // don't free the data
-		com.pref.selected_scripts = filtered_list;
+		// 3. Iterate and prune any items not found in repo (if purge_removed)
+		l = com.pref.selected_scripts;
+		while (l != NULL) {
+			GList *next = l->next;
+			gchar *path = l->data;
 
-		GList *new_list = NULL;
-		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
-			if (!ss->data) continue;
-			gchar *full_path = g_strdup(ss->data);
-			if (purge_removed && !g_file_test(full_path, G_FILE_TEST_EXISTS)) {
-				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
-				g_free(full_path);
-				continue;
-			}
-			// The first time this is run, we aren't rigorous about removing scripts
-			// When it is run again after updating the repository, we check that scripts
-			// haven't been removed.
-			gboolean included = !(gui.repo_scripts);
-			if (!included) {
-				GList *iterator;
-				for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
-					if (g_strrstr((gchar*) ss->data, (gchar*) iterator->data)) {
+			gboolean exists = g_file_test(path, G_FILE_TEST_EXISTS);
+			gboolean included = !gui.repo_scripts;
+
+			if (!included && exists) {
+				for (GList *it = gui.repo_scripts; it; it = it->next) {
+					if (g_strrstr(path, it->data)) {
 						included = TRUE;
 						break;
 					}
 				}
 			}
-			if (included) {
+
+			if (!exists || (!included && purge_removed)) {
+				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", path);
+				g_free(path);
+				com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, l);
+			} else if (included) {
+				// Build menu entry
 				GtkWidget *menu_item;
-				gchar *basename = g_path_get_basename(ss->data);
+				gchar *basename = g_path_get_basename(path);
 				const char *extension = get_filename_ext(basename);
 
 				menu_item = gtk_menu_item_new_with_label(basename);
@@ -440,25 +446,22 @@ int initialize_script_menu(gboolean verbose) {
 				if (extension && g_strcmp0(extension, SCRIPT_EXT) == 0) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
 				} else if (extension && ((g_strcmp0(extension, PYSCRIPT_EXT) == 0) || (g_strcmp0(extension, PYCSCRIPT_EXT) == 0))) {
-					GtkWidget *py_submenu = get_py_submenu(full_path, menu_py, py_submenus);
+					GtkWidget *py_submenu = get_py_submenu(path, menu_py, py_submenus);
 					gtk_menu_shell_append(GTK_MENU_SHELL(py_submenu), menu_item);
 				}
 
-				g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), full_path);
-				if (verbose)
-					siril_log_message(_("Loading script from repository: %s\n"), basename);
-				gtk_widget_show(menu_item);
-				new_list = g_list_prepend(new_list, g_strdup(ss->data));
+				g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), g_strdup(path));
 
+				if (verbose) {
+					siril_log_message(_("Loading script from repository: %s\n"), basename);
+				}
+
+				gtk_widget_show(menu_item);
 				g_free(basename);
-			} else if (purge_removed) {
-				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
-				g_free(full_path);
 			}
+
+			l = next;
 		}
-		GList *tmp = com.pref.selected_scripts;
-		com.pref.selected_scripts = new_list;
-		g_list_free_full(tmp, g_free);
 	}
 
 	// Add core scripts if they're not already in the menu
@@ -503,8 +506,6 @@ int initialize_script_menu(gboolean verbose) {
 				if (verbose)
 					siril_log_message(_("Adding core script to menu: %s\n"), basename);
 				g_free(basename);
-				if(!menu_item)
-					continue;
 				gtk_widget_show(menu_item);
 
 			}

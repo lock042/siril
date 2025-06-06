@@ -1033,11 +1033,7 @@ gboolean populate_spcc_combos(gpointer user_data) {
 
 gpointer populate_spcc_combos_async(gpointer user_data) {
 	g_mutex_lock(&combos_filling);
-	if (!spcc_filters_initialized) {
-		// do most of the slow file reading in this thread, separate to GTK thread
-		load_all_spcc_metadata();
-		spcc_filters_initialized = TRUE;
-	}
+	load_spcc_metadata_if_needed();
 	// update combos back in the GTK thread
 	execute_idle_and_wait_for_it(populate_spcc_combos, NULL);
 	g_mutex_unlock(&combos_filling);

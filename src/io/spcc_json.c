@@ -404,19 +404,29 @@ static gboolean processJsonFile(const char *file_path) {
 
 spcc_object* spcc_object_copy(spcc_object *data) {
 	spcc_object *copy = malloc(sizeof(spcc_object));
-	if (!copy) return NULL;
+	if (!copy) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 
 	memcpy(copy, data, sizeof(spcc_object));  // Copies primitive values and pointers
 
 	// Set string pointers to NULL before duplicating
 	copy->model = copy->name = copy->filepath = copy->comment = copy->manufacturer = copy->source = NULL;
 	// Duplicate strings individually
-	if (!(copy->model = g_strdup(data->model)) ||
-		!(copy->name = g_strdup(data->name)) ||
-		!(copy->filepath = g_strdup(data->filepath)) ||
-		!(copy->comment = g_strdup(data->comment)) ||
-		!(copy->manufacturer = g_strdup(data->manufacturer)) ||
-		!(copy->source = g_strdup(data->source))) {
+	copy->model = g_strdup(data->model);
+	copy->name = g_strdup(data->name);
+	copy->filepath = g_strdup(data->filepath);
+	copy->comment = g_strdup(data->comment);
+	copy->manufacturer = g_strdup(data->manufacturer);
+	copy->source = g_strdup(data->source);
+	if ((!copy->model && data->model != NULL) ||
+		(!copy->name && data->name != NULL) ||
+		(!copy->filepath && data->filepath != NULL) ||
+		(!copy->comment && data->comment != NULL) ||
+		(!copy->manufacturer && data->manufacturer != NULL) ||
+		(!copy->source && data->source != NULL)) {
+		siril_debug_print("Error copying strings in spcc_object %s\n", data->filepath);
 		// Free anything that was already allocated
 		g_free(copy->model);
 		g_free(copy->name);
