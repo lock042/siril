@@ -399,24 +399,15 @@ int initialize_script_menu(gboolean verbose) {
 	// Add scripts from the selections made in preferences
 	if (com.pref.use_scripts_repository && com.pref.selected_scripts) {
 		// Remove NULL entries from selected_scripts in-place
-		GList *l = com.pref.selected_scripts;
-		while (l != NULL) {
-			GList *next = l->next;
-			// Remove any entries where the list element exists but the path is NULL
-			if (l->data == NULL) {
-				com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, l);
-			}
-			l = next;
-		}
-
 		// Sort selected_scripts in-place
 		com.pref.selected_scripts = g_list_sort(com.pref.selected_scripts, compare_basenames);
-
 		// Iterate and prune any items not found in repo (if purge_removed)
+		GList *l = com.pref.selected_scripts;
 		l = com.pref.selected_scripts;
 		while (l != NULL) {
 			GList *next = l->next;
 			gchar *path = l->data;
+			// Remove any scripts with a NULL path
 			if (!path) {
 				com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, l);
 				l = next;
