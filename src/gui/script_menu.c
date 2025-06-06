@@ -402,6 +402,7 @@ int initialize_script_menu(gboolean verbose) {
 		GList *l = com.pref.selected_scripts;
 		while (l != NULL) {
 			GList *next = l->next;
+			// Remove any entries where the list element exists but the path is NULL
 			if (l->data == NULL) {
 				com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, l);
 			}
@@ -416,7 +417,11 @@ int initialize_script_menu(gboolean verbose) {
 		while (l != NULL) {
 			GList *next = l->next;
 			gchar *path = l->data;
-
+			if (!path) {
+				com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, l);
+				l = next;
+				continue;
+			}
 			gboolean exists = g_file_test(path, G_FILE_TEST_EXISTS);
 			gboolean included = !gui.repo_scripts;
 

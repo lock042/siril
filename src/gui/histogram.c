@@ -61,7 +61,7 @@ static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0
 static clip_mode_t _clip_mode = CLIP;
 static gboolean do_channel[3];
 static int _stretchtype = STRETCH_PAYNE_NORMAL;
-static int _payne_colourstretchmodel = COL_HUMANLUM;
+static int _payne_colourstretchmodel = COL_INDEP;
 static ght_compute_params compute_params;
 
 static fits* fit = &gfit;
