@@ -15,6 +15,7 @@ xx/xx/25
 * Fixed idle handling to eliminate a hang where a thread was stuck waiting for itself to exit  during stacking (#1665)
 * Fixed potential thread safety issues setting environment variables
 * Fixed issues with updating the script repository - no longer cloned with depth=1
+* Fixed handling of star cluster names containing * characters
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
