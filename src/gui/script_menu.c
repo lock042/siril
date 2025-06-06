@@ -283,7 +283,6 @@ static GtkWidget* get_py_submenu(const gchar *script_path, GtkWidget *menu_py, G
 
 int initialize_script_menu(gboolean verbose) {
 	GSList *list, *script_paths, *s;
-	GList *ss;
 
 	gboolean purge_removed = !verbose;
 
@@ -346,7 +345,7 @@ int initialize_script_menu(gboolean verbose) {
 				if (l->data == NULL)
 					continue;
 				GtkWidget *menu_item;
-				gchar *display_name = g_strdup(l->data);
+				gchar *display_name = l->data;
 				const gchar *extension = get_filename_ext(display_name);
 				gchar *full_path = g_build_filename(s->data, l->data, NULL);
 				gchar *current_directory = g_path_get_dirname(full_path);
@@ -390,7 +389,6 @@ int initialize_script_menu(gboolean verbose) {
 					gtk_widget_show(menu_item);
 				}
 				g_free(current_directory);
-				g_free(display_name);
 			}
 			g_slist_free_full(list, g_free);
 		}
@@ -400,7 +398,7 @@ int initialize_script_menu(gboolean verbose) {
 
 	// Add scripts from the selections made in preferences
 	if (com.pref.use_scripts_repository && com.pref.selected_scripts) {
-		// 1. Remove NULL entries from selected_scripts in-place
+		// Remove NULL entries from selected_scripts in-place
 		GList *l = com.pref.selected_scripts;
 		while (l != NULL) {
 			GList *next = l->next;
@@ -410,10 +408,10 @@ int initialize_script_menu(gboolean verbose) {
 			l = next;
 		}
 
-		// 2. Sort selected_scripts in-place
+		// Sort selected_scripts in-place
 		com.pref.selected_scripts = g_list_sort(com.pref.selected_scripts, compare_basenames);
 
-		// 3. Iterate and prune any items not found in repo (if purge_removed)
+		// Iterate and prune any items not found in repo (if purge_removed)
 		l = com.pref.selected_scripts;
 		while (l != NULL) {
 			GList *next = l->next;
@@ -433,6 +431,7 @@ int initialize_script_menu(gboolean verbose) {
 
 			if (!exists || (!included && purge_removed)) {
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", path);
+				// Remove the list element and free it as well as its data
 				g_free(path);
 				com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, l);
 			} else if (included) {
