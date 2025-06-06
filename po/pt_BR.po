@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-06 16:56+0200\n"
-"PO-Revision-Date: 2025-06-04 19:20+0000\n"
+"PO-Revision-Date: 2025-06-06 21:05+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -7060,6 +7060,17 @@ msgid ""
 "FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by "
 "FITS keyword CTYPEi."
 msgstr ""
+"<b>Formalismo 1</b>: Ele codifica Mij em chamados parâmetros PCi_j e fator "
+"de escala Si são os valores dos parâmetros CDELTi do cabeçalho FITS. É óbvio "
+"que o valor de CDELT não deve ser 0,0.\n"
+"\n"
+"<b>Formalismo 2</b>: Se a matriz e a escala forem combinadas, obtemos para a "
+"COORDENADA MUNDIAL INTERMEDIÁRIA Xi:\n"
+"\n"
+"               Xi = Sigma_j=1^N (Si*Mij)(Pj-Rj)\n"
+"\n"
+"Os parâmetros FITS CDi_j codificam o produto Si*Mij. As unidades de xi são "
+"dadas pelo parâmetro FITS CTYPEi."
 
 #: src/gui/uifiles/settings_window.ui:1364
 msgid "Formalism 2 (CD keywords)"
@@ -7080,6 +7091,10 @@ msgid ""
 "\n"
 "<b>namedstars.dat</b>: the brightest stars, all of them have names."
 msgstr ""
+"Esses quatro catálogos do KStars são usados para resolução de placas e "
+"astrometria.\n"
+"\n"
+"<b>namedstars.dat</b>: as estrelas mais brilhantes, todas elas têm nomes."
 
 #: src/gui/uifiles/settings_window.ui:1424
 msgid ""
@@ -7088,6 +7103,10 @@ msgid ""
 "\n"
 "<b>unnamedstars.dat</b>: also bright stars, but down to magnitude 8"
 msgstr ""
+"Esses quatro catálogos do KStars são usados para solução de placas e "
+"astrometria.\n"
+"\n"
+"<b>unnamedstars.dat</b>: também estrelas brilhantes, mas até magnitude 8"
 
 #: src/gui/uifiles/settings_window.ui:1440
 msgid ""
@@ -7118,6 +7137,11 @@ msgid ""
 "<b>deepstars.dat</b>: fainter stars extracted from The Tycho-2 Catalogue of "
 "the 2.5 Million Brightest Stars, down to magnitude 12.5"
 msgstr ""
+"Esses quatro catálogos do KStars são usados para solução de placas e "
+"astrometria.\n"
+"\n"
+"<b>deepstars.dat</b>: estrelas mais fracas extraídas do Catálogo Tycho-2 das "
+"2.5 milhões de estrelas mais brilhantes, até a magnitude 12.5"
 
 #: src/gui/uifiles/settings_window.ui:1492
 msgid ""
@@ -7135,6 +7159,12 @@ msgid ""
 "B-V photometric information and star proper motion in a compact binary form, "
 "down to magnitude 18."
 msgstr ""
+"Esses quatro catálogos do KStars são usados para solução de placas e "
+"astrometria.\n"
+"\n"
+"<b>USNO-NOMAD-1e8.dat</b>: uma extração do enorme catálogo NOMAD limitada às "
+"informações fotométricas B-V e ao movimento próprio das estrelas em uma "
+"forma binária compacta, até a magnitude 18."
 
 #: src/gui/uifiles/settings_window.ui:1520
 msgid "Gaia astrometric extract:"
@@ -7175,6 +7205,9 @@ msgid ""
 "<b>Local Star Catalogues</b> (<a href=\"https://siril.readthedocs.io/en/"
 "stable/astrometry/platesolving.html#using-local-catalogues\">more info</a>)"
 msgstr ""
+"<b>Catálogos de Estrelas Locais</b> (<a href=\"https://siril.readthedocs.io/"
+"en/stable/astrometry/platesolving.html#using-local-catalogues\">mais "
+"informações</a>)"
 
 #: src/gui/uifiles/settings_window.ui:1599
 msgid "Update default focal length and pixel size from the result"
@@ -7275,10 +7308,13 @@ msgid ""
 "The results from solve-field are stored in a FITS header with a file name "
 "ending in .wcs. Check this to not remove this file."
 msgstr ""
+"Os resultados do solve-field são armazenados em um cabeçalho FITS com um "
+"nome de arquivo terminando em .wcs. Verifique isso para não remover este "
+"arquivo."
 
 #: src/gui/uifiles/settings_window.ui:1856
 msgid "Location of local astrometry.net solver"
-msgstr ""
+msgstr "Localização do solucionador astrometry.net"
 
 #: src/gui/uifiles/settings_window.ui:1867
 msgid ""
@@ -7288,6 +7324,11 @@ msgid ""
 "On Windows, you must point to the location of cygwin_ansvr folder only if "
 "not installed in %LOCALAPPDATA%."
 msgstr ""
+"Selecione a localização do astrometry.net.\n"
+"Em sistemas baseados em UNIX, geralmente está na variável PATH e não é "
+"necessário.\n"
+"No Windows, você deve apontar para a localização da pasta cygwin_ansvr "
+"apenas se não estiver instalada no %LOCALAPPDATA%."
 
 #: src/gui/uifiles/settings_window.ui:1874
 msgid "Select astrometry.net installation directory"
@@ -7295,17 +7336,19 @@ msgstr "Selecione o diretório de instalação do astrometry.net"
 
 #: src/gui/uifiles/settings_window.ui:1883
 msgid "Show solve-field output"
-msgstr ""
+msgstr "Mostre a saída solução de campo"
 
 #: src/gui/uifiles/settings_window.ui:1887
 msgid ""
 "Show the output of solve-field, the astrometry.net local solver, in the main "
 "Siril log."
 msgstr ""
+"Mostre a saída da solução de campo, o solucionador local do astrometry.net, "
+"no log principal do Siril."
 
 #: src/gui/uifiles/settings_window.ui:1929
 msgid "Astrometry.net Platesolving"
-msgstr ""
+msgstr "Platesolving do Astrometry.net"
 
 #: src/gui/uifiles/settings_window.ui:1963
 #: src/gui/uifiles/settings_window.ui:2648
@@ -7324,7 +7367,7 @@ msgstr "Use-o como padrão"
 #: src/gui/uifiles/settings_window.ui:2011
 #: src/gui/uifiles/settings_window.ui:2026
 msgid "Use the chosen master as default file in the Calibration tab"
-msgstr ""
+msgstr "Use o mestre escolhido como arquivo padrão na aba de Calibração"
 
 #: src/gui/uifiles/settings_window.ui:2040
 msgid "Master-flat:"
@@ -7343,24 +7386,32 @@ msgid ""
 "Instead of an image, you can also specify a uniform level to be subtracted, "
 "starting with an \"=\" sign, such as =256 or =64*$OFFSET"
 msgstr ""
+"Em vez de uma imagem, você também pode especificar um nível uniforme a ser "
+"subtraído, começando com um sinal de igual, como =256 ou =64*$OFFSET"
 
 #: src/gui/uifiles/settings_window.ui:2089
 msgid ""
 "Choose a master-bias that can be used as generic master-bias by clicking on "
 "the button \"Use it as default\""
 msgstr ""
+"Escolha um arquivo bias mestre que possa ser usado como bias mestre genérico "
+"clicando no botão \"Usá-lo como padrão\""
 
 #: src/gui/uifiles/settings_window.ui:2111
 msgid ""
 "Choose a master-dark that can be used as generic master-dark by clicking on "
 "the button \"Use it as default\"."
 msgstr ""
+"Escolha um arquivo dark mestre que possa ser usado como dark mestre genérico "
+"clicando no botão \"Usá-lo como padrão\"."
 
 #: src/gui/uifiles/settings_window.ui:2133
 msgid ""
 "Choose a master-flat that can be used as generic master-flat by clicking on "
 "the button \"Use it as default\"."
 msgstr ""
+"Escolha um arquivo flat mestre que possa ser usado como flat mestre genérico "
+"clicando no botão \"Usá-lo como padrão\"."
 
 #: src/gui/uifiles/settings_window.ui:2179
 msgid "Master-distortion:"
@@ -7371,14 +7422,16 @@ msgid ""
 "Choose a master-distortion that can be used as generic master-distortion by "
 "clicking on the button \"Use it as default\"."
 msgstr ""
+"Escolha uma arquivo mestre de distorção que possa ser usada como distorção "
+"mestre genérica clicando no botão \"Usá-la como padrão\"."
 
 #: src/gui/uifiles/settings_window.ui:2226
 msgid "Use the chosen master as default file in the Astrometry dialog"
-msgstr ""
+msgstr "Use o mestre escolhido como arquivo padrão na janela de Astrometria"
 
 #: src/gui/uifiles/settings_window.ui:2243
 msgid "Dark/Bias/Flat/Distortion Libraries"
-msgstr ""
+msgstr "Bibliotecas Dark/Bias/Flat/Distorção"
 
 #: src/gui/uifiles/settings_window.ui:2273
 msgid "Default name:"
@@ -7394,10 +7447,19 @@ msgid ""
 "specicified).\n"
 "If sequence name does not have the suffix \"_\", it is automatically added"
 msgstr ""
+"O nome padrão a ser usado para nomear o resultado do empilhamento.\n"
+"Isso pode ser uma expressão que utiliza a palavra-chave $seqname$, que será "
+"analisada como o nome da sequência atual ao final da operação de "
+"empilhamento.\n"
+"Exemplo: $seqname$stacked produziria \"r_pp_light_stacked\" para uma "
+"sequência chamada \"r_pp_light_\" (esse é o comportamento padrão se nada for "
+"especificado).\n"
+"Se o nome da sequência não tiver o sufixo \"_\", ele é adicionado "
+"automaticamente"
 
 #: src/gui/uifiles/settings_window.ui:2305
 msgid "Use this name as default in the Stacking tab"
-msgstr ""
+msgstr "Use este nome como padrão na aba de Empilhamento (Stacking)"
 
 #: src/gui/uifiles/settings_window.ui:2323
 msgid "Stacking default"
@@ -7409,6 +7471,9 @@ msgid ""
 "values ​​of the AF square and the sample. For more information you can contact "
 "us on our forum."
 msgstr ""
+"Se o seu modelo X-Trans não for reconhecido, você também pode inserir os "
+"valores de coordenadas do quadrado AF e da amostra. Para mais informações, "
+"você pode nos contatar em nosso fórum."
 
 #: src/gui/uifiles/settings_window.ui:2361
 msgid "AF pixels:"
@@ -7422,17 +7487,17 @@ msgstr "x:"
 #: src/gui/uifiles/settings_window.ui:2393
 #: src/gui/uifiles/settings_window.ui:2529
 msgid "w:"
-msgstr ""
+msgstr "w:"
 
 #: src/gui/uifiles/settings_window.ui:2405
 #: src/gui/uifiles/settings_window.ui:2541
 msgid "h:"
-msgstr ""
+msgstr "h:"
 
 #: src/gui/uifiles/settings_window.ui:2417
 #: src/gui/uifiles/settings_window.ui:2553
 msgid "y:"
-msgstr ""
+msgstr "y:"
 
 #: src/gui/uifiles/settings_window.ui:2497
 msgid "Sample pixels:"
@@ -7440,7 +7505,7 @@ msgstr "Pixels de amostra:"
 
 #: src/gui/uifiles/settings_window.ui:2631
 msgid "Fix Xtrans files"
-msgstr ""
+msgstr "Corrigir arquivos Xtrans"
 
 #: src/gui/uifiles/settings_window.ui:2662
 #: src/gui/uifiles/settings_window.ui:3180 src/gui/uifiles/siril.ui:2598
@@ -7482,11 +7547,11 @@ msgstr "Raio de abertura:"
 
 #: src/gui/uifiles/settings_window.ui:2806
 msgid "Aperture radius where the flux is measured."
-msgstr ""
+msgstr "Raio de abertura onde o fluxo é medido."
 
 #: src/gui/uifiles/settings_window.ui:2824
 msgid "Automatic with a Radius/half-FWHM ratio of:"
-msgstr ""
+msgstr "Automático com uma razão raio/meio-FWHM de:"
 
 #: src/gui/uifiles/settings_window.ui:2828
 msgid ""
@@ -7494,30 +7559,33 @@ msgid ""
 "with the specified radius/half-FWHM ratio. When unchecked, you can set a "
 "fixed radius value in the box below."
 msgstr ""
+"Marque esta opção para que o Siril calcule automaticamente o raio de "
+"abertura com a razão especificada de raio/meia largura a meia altura (FWHM). "
+"Quando desmarcado, você pode definir um valor de raio fixo na caixa abaixo."
 
 #: src/gui/uifiles/settings_window.ui:2843
 msgid "Radius/half-FWHM ratio"
-msgstr ""
+msgstr "Relação Raio/meio-FWHM"
 
 #: src/gui/uifiles/settings_window.ui:2867
 msgid "Flux Aperture"
-msgstr ""
+msgstr "Abertura de fluxo"
 
 #: src/gui/uifiles/settings_window.ui:2903
 msgid "Min. pixel value:"
-msgstr ""
+msgstr "Mínimo valor de píxel:"
 
 #: src/gui/uifiles/settings_window.ui:2915
 msgid "Max. pixel value:"
-msgstr ""
+msgstr "Máximo valor de píxel:"
 
 #: src/gui/uifiles/settings_window.ui:2926
 msgid "Bad pixels have value equal to or less than."
-msgstr ""
+msgstr "Pixels defeituosos têm valor igual ou inferior a."
 
 #: src/gui/uifiles/settings_window.ui:2944
 msgid "Overexposed pixels have value equal to or greater than."
-msgstr ""
+msgstr "Pixels superexpostos têm valor igual ou maior que."
 
 #: src/gui/uifiles/settings_window.ui:2967
 msgid "Pixel Value Range"
@@ -7537,11 +7605,11 @@ msgstr "Câmara"
 
 #: src/gui/uifiles/settings_window.ui:3070
 msgid "siril-spcc-database repository:"
-msgstr ""
+msgstr "repositório siril-spcc-database:"
 
 #: src/gui/uifiles/settings_window.ui:3079
 msgid "Enable repository"
-msgstr ""
+msgstr "Habilitar repositório"
 
 #: src/gui/uifiles/settings_window.ui:3083
 msgid ""
@@ -7551,24 +7619,31 @@ msgid ""
 "the repository, you will need to download the .json files manually and "
 "unpack them into the repository path shown below in order to use SPCC."
 msgstr ""
+"Habilite o repositório git. Isso fornece os dados de filtro e sensor "
+"necessários para usar o SPCC.\n"
+"É fortemente recomendado deixar isso habilitado. Se você optar por não usar "
+"o repositório, precisará baixar os arquivos .json manualmente e descompactá-"
+"los no caminho do repositório mostrado abaixo para usar o SPCC."
 
 #: src/gui/uifiles/settings_window.ui:3099
 msgid "Repository path:"
-msgstr ""
+msgstr "Caminho do repositório:"
 
 #: src/gui/uifiles/settings_window.ui:3110
 msgid ""
 "If you disable the repository, any SPCC data json files you need must be "
 "placed in this directory."
 msgstr ""
+"Se você desativar o repositório, todos os arquivos json de dados SPCC que "
+"você precisar devem ser colocados neste diretório."
 
 #: src/gui/uifiles/settings_window.ui:3122
 msgid "Sync at startup"
-msgstr ""
+msgstr "Sincronizar na inicialização"
 
 #: src/gui/uifiles/settings_window.ui:3126
 msgid "Synchronise the repository at Siril startup."
-msgstr ""
+msgstr "Sincronize o repositório na inicialização do Siril."
 
 #: src/gui/uifiles/settings_window.ui:3138
 msgid "Manual sync"
@@ -7576,7 +7651,7 @@ msgstr "Sincronização manual"
 
 #: src/gui/uifiles/settings_window.ui:3142
 msgid "Manually synchronise the repository"
-msgstr ""
+msgstr "Sincronize manualmente o repositório"
 
 #: src/gui/uifiles/settings_window.ui:3164
 msgid "Spectrophotometric Calibration"
@@ -7593,6 +7668,9 @@ msgid ""
 "pixels. The higher you set the value, the more stars you will see, but at a "
 "lower resolution."
 msgstr ""
+"Define o tamanho do painel usado para o mosaico. Esse tamanho é expresso em "
+"pixels. Quanto maior você definir o valor, mais estrelas você verá, mas em "
+"uma resolução mais baixa."
 
 #: src/gui/uifiles/settings_window.ui:3245
 msgid "Panel size (px):"
@@ -7604,7 +7682,7 @@ msgstr "Tamanho da janela (px):"
 
 #: src/gui/uifiles/settings_window.ui:3268
 msgid "Defines the size of the window."
-msgstr ""
+msgstr "Define o tamanho da janela."
 
 #: src/gui/uifiles/settings_window.ui:3290
 msgid "<b>Aberration Inspector</b>"
@@ -7613,7 +7691,7 @@ msgstr "<b>Inspetor de Aberrações</b>"
 #: src/gui/uifiles/settings_window.ui:3319
 #: src/gui/uifiles/settings_window.ui:4063
 msgid "User Interface"
-msgstr ""
+msgstr "Interface de usuário"
 
 #: src/gui/uifiles/settings_window.ui:3355
 #: src/gui/uifiles/settings_window.ui:3431
@@ -7621,24 +7699,28 @@ msgid ""
 "Change the theme of the interface. This feature may not work on all "
 "architectures."
 msgstr ""
+"Altere o tema da interface. Este recurso pode não funcionar em todas as "
+"arquiteturas."
 
 #: src/gui/uifiles/settings_window.ui:3359 src/core/siril_language.c:157
 msgid "System Language"
-msgstr ""
+msgstr "Idioma do sistema"
 
 #: src/gui/uifiles/settings_window.ui:3369
 msgid "Language (restart required)"
-msgstr ""
+msgstr "Idioma (necessita reiniciar)"
 
 #: src/gui/uifiles/settings_window.ui:3401
 msgid ""
 "Set the scale of the fonts. 90 is the smallest scale you can have while the "
 "maximum is at 150."
 msgstr ""
+"Defina a escala das fontes. 90 é a menor escala que você pode ter, enquanto "
+"o máximo é 150."
 
 #: src/gui/uifiles/settings_window.ui:3420
 msgid "Font scale:"
-msgstr ""
+msgstr "Escala da fonte:"
 
 #: src/gui/uifiles/settings_window.ui:3434
 msgid "Dark theme"
@@ -7646,25 +7728,27 @@ msgstr "Tema escuro"
 
 #: src/gui/uifiles/settings_window.ui:3435
 msgid "Light theme"
-msgstr ""
+msgstr "Tema claro"
 
 #: src/gui/uifiles/settings_window.ui:3447
 msgid "Symbolic icons"
-msgstr ""
+msgstr "Ícones simbólicos"
 
 #: src/gui/uifiles/settings_window.ui:3470
 msgid "Look and Feel (restart required)"
-msgstr ""
+msgstr "Aparência e Sensação (reinício necessário)"
 
 #: src/gui/uifiles/settings_window.ui:3491
 msgid "Remember window size and position"
-msgstr ""
+msgstr "Lembrar o tamanho e a posição da janela"
 
 #: src/gui/uifiles/settings_window.ui:3495
 msgid ""
 "Remember position and size of image displaying windows. This feature may not "
 "work on all architectures."
 msgstr ""
+"Lembre-se da posição e do tamanho das janelas de exibição de imagens. Este "
+"recurso pode não funcionar em todas as arquiteturas."
 
 #: src/gui/uifiles/settings_window.ui:3508
 msgid "Windows"
@@ -7672,7 +7756,7 @@ msgstr "Janelas"
 
 #: src/gui/uifiles/settings_window.ui:3538
 msgid "Show thumbnails in file chooser"
-msgstr ""
+msgstr "Mostrar miniaturas na seleção de arquivos"
 
 #: src/gui/uifiles/settings_window.ui:3542
 msgid ""
@@ -25064,9 +25148,9 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:816
-#, fuzzy, c-format
+#, c-format
 msgid "Saved plot to %s\n"
-msgstr "Criar três imagens"
+msgstr "Salvou o gráfico em %s\n"
 
 #: src/io/siril_pythonmodule.c:975
 #, fuzzy

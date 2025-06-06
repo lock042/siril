@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-06 16:56+0200\n"
-"PO-Revision-Date: 2025-05-26 13:00+0000\n"
+"PO-Revision-Date: 2025-06-06 21:05+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -20074,6 +20074,16 @@ msgid ""
 "and performs better than the original, and we expect it will be more "
 "reliable too."
 msgstr ""
+"L'interface originale de GraXpert a été supprimée pour des raisons "
+"techniques et de manque de fiabilité. Veuillez utiliser le script "
+"GraXpert_AI.py disponible dans le dépôt de scripts : vous pouvez l'ajouter "
+"via l'entrée « Obtenir des scripts» du menu hamburger.\n"
+"Le nouveau script gère les images individuelles et les séquences tout comme "
+"l'interface originale et fournit à la fois une interface graphique et un "
+"accès en ligne de commande à l'aide de la commande pyscript, pour une "
+"utilisation dans les scripts. Il est moins gourmand en ressources, mieux "
+"intégré et plus performant que l'original, et nous espérons qu'il sera "
+"également plus fiable."
 
 #: src/core/siril_log.c:105
 #, c-format
@@ -25976,6 +25986,14 @@ msgid ""
 "using the Catalog_Installer.py script. This is faster and does not rely on "
 "third party servers.\n"
 msgstr ""
+"Erreur : impossible de récupérer le catalogue distant du serveur à %s. Il ne "
+"s'agit pas d'un bug du Siril. Cela signifie que le serveur du catalogue est "
+"indisponible. Il s'agit généralement d'un problème de courte durée, mais ce "
+"serveur n'est pas affilié à Siril et l'équipe Siril ne le contrôle pas. Nous "
+"recommandons fortement l'utilisation d'un serveur local tel que l'extrait "
+"Siril optimisé de Gaia DR3, installable à l'aide du script "
+"Catalog_Installer.py. Cette solution est plus rapide et ne dépend pas de "
+"serveurs tiers.\n"
 
 #: src/io/remote_catalogues.c:656
 #, c-format
@@ -27417,11 +27435,14 @@ msgid ""
 "Error: Siril has been compiled with a version of Cairo that does not provide "
 "SVG surface support. Saving plots as SVG is not possible with this build.\n"
 msgstr ""
+"Erreur : Siril a été compilé avec une version de Cairo qui ne supporte pas "
+"les surfaces SVG. L'enregistrement des tracés au format SVG n'est pas "
+"possible avec cette version.\n"
 
 #: src/io/siril_pythonmodule.c:816
-#, fuzzy, c-format
+#, c-format
 msgid "Saved plot to %s\n"
-msgstr "Enregistrement du graphique dans l'image %s\n"
+msgstr "Tracé sauvegardé dans %s\n"
 
 #: src/io/siril_pythonmodule.c:975
 msgid "Failed to add user polygon: no image loaded"
@@ -28574,17 +28595,16 @@ msgstr ""
 "en max.\n"
 
 #: src/registration/applyreg.c:1084
-#, fuzzy
 msgid "Images will be larger than what Siril can display for now.\n"
 msgstr ""
 "Les images seront plus grandes que ce que Siril peut afficher pour l'instant."
+"\n"
 
 #: src/registration/applyreg.c:1085
-#, fuzzy
 msgid "Tune scale ratio to get max dimension smaller than 32767 pixels.\n"
 msgstr ""
-"Ajuster le ratio d'échelle pour obtenir une dimension maximale inférieure à "
-"32767 pixels"
+"Ajuster le rapport d'échelle pour obtenir une dimension maximale inférieure "
+"à 32767 pixels.\n"
 
 #: src/registration/applyreg.c:1093
 msgid ""
