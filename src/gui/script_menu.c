@@ -417,7 +417,7 @@ int initialize_script_menu(gboolean verbose) {
 			gboolean exists = g_file_test(path, G_FILE_TEST_EXISTS);
 			gboolean included = !gui.repo_scripts;
 
-			if (!included && exists) {
+			if (gui.repo_scripts != NULL && exists) {
 				for (GList *it = gui.repo_scripts; it; it = it->next) {
 					if (g_strrstr(path, it->data)) {
 						included = TRUE;
