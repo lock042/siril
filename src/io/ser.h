@@ -115,6 +115,7 @@ struct ser_struct {			// size and offset from header
 
 	gint64 filesize;		// size of the file
 
+	ser_color debayer_type_ser; // same as color_id but taking into account preferences
 	// internal representations of header data
 	ser_pixdepth byte_pixel_depth;	// more useful representation of the bit_pixel_depth
 	unsigned int number_of_planes;	// derived from the color_id
@@ -133,7 +134,7 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp);
 void ser_init_struct(struct ser_struct *ser_file);
 void ser_display_info(struct ser_struct *ser_file);
 
-int ser_open_file(const char *filename, struct ser_struct *ser_file);
+int ser_open_file(const char *filename, struct ser_struct *ser_file, gboolean bayer_verbose);
 int ser_close_and_delete_file(struct ser_struct *ser_file);
 int ser_write_and_close(struct ser_struct *ser_file);
 int ser_create_file(const char *filename, struct ser_struct *ser_file, gboolean overwrite, const struct ser_struct *copy_from);

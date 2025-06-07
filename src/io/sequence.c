@@ -425,7 +425,7 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 	if (!strcasecmp(ext, "ser")) {
 		struct ser_struct *ser_file = malloc(sizeof(struct ser_struct));
 		ser_init_struct(ser_file);
-		int ret = ser_open_file(name, ser_file);
+		int ret = ser_open_file(name, ser_file, FALSE);
 		if (ret) {
 			return NULL;
 		}
