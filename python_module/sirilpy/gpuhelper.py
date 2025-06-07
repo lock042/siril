@@ -700,6 +700,7 @@ class TorchHelper:
         self.np: Optional[Any] = None
         self.device_info: Optional[dict] = None
         self._torch_installed = False
+        self.system = platform.system().lower()
 
     def is_torch_installed(self) -> bool:
         """Check if PyTorch is installed without importing it."""
@@ -716,19 +717,19 @@ class TorchHelper:
     def status(self):
         print(f"TorchHelper status as of sirilpy version {sirilpy.__version__}")
         if self.system == 'windows':
-            print("Windows: TorchHelper will install Torch. Currently it defaults to installing "
-                "the CUDA 12.6 version but can also install other CUDA versions as well as a CPU "
-                "version for unsupported GPUs. There are not yet Intel, ROCm or DirectML Torch runtimes "
-                "that are sufficietly stable to support in this helper module. Autodetection of which "
-                "variant to install is not yet supported but is in work.")
+            print("Windows: TorchHelper will install Torch. A version may be specified but by default "
+                "autodetection will take place. The CUDA 12.8 version will be installed for NVidia GPUs "
+                "but other CUDA versions may be specified manually and a CPU version will be installed "
+                "for unsupported GPUs. There are not yet Intel, ROCm or DirectML Torch runtimes that are "
+                "sufficietly stable to support in this helper module.")
         elif self.system == 'linux':
-            print("Linux: TorchHelper will install Torch. Currently it defaults to installing "
-                "the CUDA 12.6 version but can also install other CUDA versions as well as a ROCm "
-                "version for AMD GPUs. There is not yet an Intel Torch runtime that is sufficietly "
-                "stable to support in this helper module. Autodetection of which variant to install "
-                "is not yet supported but is in work.")
+            print("Linux: TorchHelper will install Torch.  A version may be specified but by default "
+                "autodetection will take place. The CUDA 12.8 version will be installed for NVidia GPUs "
+                "but other CUDA versions may be specified manually as well as a ROCm version for AMD GPUs. "
+                "There is not yet an Intel Torch runtime that is sufficietly stable to support in this "
+                "helper module.")
         elif self.system == 'darwin':
-            print("MacOS: ONNXHelper will install the standard Torch module on MacOS. This is targeted "
+            print("MacOS: TorchHelper will install the standard Torch module on MacOS. This is targeted "
                 "at all Apple Macs regardless of CPU architecture: any issues with Torch on MacOS "
                 "should be reported upstream to Torch.")
         print("Dependencies: Torch is currently excessively strict about required versions of some "
@@ -738,12 +739,12 @@ class TorchHelper:
             "to write a script that uses both Torch and jax, and even switching between the two in "
             "different scripts is difficult at present. This issue has been raised upstream with Torch.")
 
-    def install_torch(self, cuda_version: str = "cu126", force_reinstall: bool = False) -> bool:
+    def install_torch(self, cuda_version: str = "auto", force_reinstall: bool = False) -> bool:
         """
         Install PyTorch with CUDA support.
 
         Args:
-            cuda_version: compute platform to install (e.g., 'cu118', 'cu126', 'rocm', 'cpu')
+            cuda_version: compute platform to install (e.g., 'cu118', 'cu126', 'cu128', 'rocm', 'cpu', 'auto')
             force_reinstall: Whether to reinstall even if already installed
 
         Returns:
@@ -753,8 +754,13 @@ class TorchHelper:
             print("PyTorch is already installed. Use force_reinstall=True to reinstall.")
             return self._import_torch()
 
+        # Auto-detect GPU if needed
+        if cuda_version == "auto":
+            cuda_version = self._detect_compute_platform()
+            print(f"Auto-detected compute platform: {cuda_version}")
+
         print(f"Installing PyTorch for compute platform {cuda_version}...")
-        host = platform.system().lower()
+        host = self.system
         try:
             if host == 'darwin' or (host == 'windows' and cuda_version == 'cpu'):
                 _install_package("torch")
@@ -774,6 +780,36 @@ class TorchHelper:
         except Exception as e:
             print(f"(x) Unexpected error during installation: {e}")
             return False
+
+    def _detect_compute_platform(self) -> str:
+        """
+        Auto-detect the appropriate compute platform for PyTorch installation.
+
+        Returns:
+            str: The compute platform string ('cu128', 'rocm', 'cpu')
+        """
+        if self.system == 'darwin':
+            # macOS: use standard package
+            return 'cpu'  # This will trigger standard installation
+
+        elif self.system == 'windows':
+            if detect_nvidia_gpu(self.system):
+                return 'cu128'
+            else:
+                return 'cpu'
+
+        elif self.system == 'linux':
+            if detect_nvidia_gpu(self.system):
+                return 'cu128'
+            elif detect_amd_gpu():
+                return 'rocm'
+            else:
+                return 'cpu'
+
+        else:
+            # Unknown system, default to CPU
+            print(f"Unknown system '{self.system}', defaulting to CPU installation")
+            return 'cpu'
 
     def _import_torch(self) -> bool:
         """Import torch modules and set instance variables."""
