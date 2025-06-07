@@ -15,6 +15,7 @@ xx/xx/25
 * Fixed idle handling to eliminate a hang where a thread was stuck waiting for itself to exit  during stacking (#1665)
 * Fixed potential thread safety issues setting environment variables
 * Fixed issues with updating the script repository - no longer cloned with depth=1
+* Fixed handling of star cluster names containing * characters
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
@@ -23,6 +24,7 @@ xx/xx/25
 * Updated overlay_add_polygon() to use shared memory, to handle polygons with large numbers of sides
 * Improved compatibility of sirilpy.tkfilebrowser with tkinter.filedialog (allows replacing the awful Linux tk filedialog)
 * Improved the GPU module helper methods in sirilpy
+* Fix a crash with RGB compositing (#1562)
 
 siril 1.4.0-beta2
 05/21/25
