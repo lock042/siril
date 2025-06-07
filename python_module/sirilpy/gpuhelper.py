@@ -189,6 +189,38 @@ class ONNXHelper:
         self.providers = None
         self.config_file = os.path.join(user_data_dir(appname="siril"), "siril_onnx.conf")
 
+    def status(self):
+        print(f"ONNXHelper status as of sirilpy version {sirilpy.__version__}")
+        if self.system == 'windows':
+            print("Windows: ONNXHelper will install the DirectML runtime wherever it is supported. "
+                "This includes NVidia CPUs which might see a slight performance improvement using "
+                "the onnxruntime-gpu module as this is difficult to configure correctly on some "
+                "systems as it relies on system libraries and paths, so onnxruntime-directml is "
+                "more robust.")
+        elif self.system == 'linux':
+            print("Linux: ONNXHelper will attempt to detect NVidia, AMD and Intel GPUs and install "
+                "either onnxruntime-gpu, onnxruntime-rocm or onnxruntime-intel as appropriate. "
+                "Note that we have had no feedback so far from AMD or Intel GPU users and none of "
+                "the developers have these GPUs, so although it *should* work on these systems "
+                "we would be very grateful for confirmation either of success or failure.")
+        elif self.system == 'darwin':
+            print("MacOS: ONNXHelper will install the standard onnxruntime module on MacOS. This "
+                "provides good support for Apple silicon and reasonable support for older Intel "
+                "silicon Macs.")
+        print("Detection of working ExecutionProviders: ONNXHelper tests using a simple model to "
+            "confirm whether each supported ExecutionProvider in the installed runtime actually "
+            "works or not. This helps to ensure that scripts calling "
+            "ONNXHelper.get_execution_providers_ordered() get a set of known working "
+            "ExecutionProviders. The set is cached so the model does not need to be run on "
+            "subsequent calls.")
+        print("Model features: ONNX does not support all machine learning functions that are "
+            "supported by all targets, and different runtimes support different subsets of "
+            "machine learning operations. This means that some more demandng models may not "
+            "work on all providers. In such cases the user may need to fall back to the "
+            "CPU ExecutionProvider. As onnxruntime does not automatically handle runtime errors "
+            "the ONNXHelper.run() method is provided to manage this (see the method docstring "
+            "for details).")
+
     def create_simple_onnx_model(self):
         """Create a simple ONNX model with matrix multiplication and ReLU."""
         import onnx
@@ -237,15 +269,15 @@ class ONNXHelper:
 
             output = session.run(None, {'input': input_data})
 
-            print(f"✓ {provider} ran successfully")
+            print(f"OK: {provider} ran successfully")
             if reference_output is not None:
                 if not np.allclose(reference_output, output[0], rtol=1e-3, atol=1e-5):
-                    print("  ⚠ Output mismatch with CPU")
+                    print("(!) Output mismatch with CPU")
                     return False
             return True
 
         except Exception as e:
-            print(f"✗ {provider} failed: {e}")
+            print(f"(x) {provider} failed: {e}")
             return False
 
     def onnx_test(self, ort):
@@ -280,9 +312,9 @@ class ONNXHelper:
             try:
                 cpu_session = ort.InferenceSession(model_path, providers=['CPUExecutionProvider'])
                 cpu_output = cpu_session.run(None, {'input': input_data})[0]
-                print("✓ CPU output computed.")
+                print("OK: CPU output computed.")
             except Exception as e:
-                print(f"✗ Failed to run on CPU: {e}")
+                print(f"(x) Failed to run on CPU: {e}")
                 return []
 
             all_providers = ort.get_available_providers()
@@ -301,7 +333,7 @@ class ONNXHelper:
 
             print("\n=== Summary ===")
             if working_providers:
-                print("✓ Working providers (in priority order):")
+                print("OK: Working providers (in priority order):")
                 for p in working_providers:
                     print(f"  - {p}")
                 print(f"\n→ Best available provider: {working_providers[0]}")
@@ -310,7 +342,7 @@ class ONNXHelper:
                 self.providers = working_providers
                 return working_providers
 
-            print("✗ No execution providers were able to run the model.")
+            print("(x) No execution providers were able to run the model.")
             return []
 
         finally:
@@ -681,6 +713,31 @@ class TorchHelper:
             return True
         return False
 
+    def status(self):
+        print(f"TorchHelper status as of sirilpy version {sirilpy.__version__}")
+        if self.system == 'windows':
+            print("Windows: TorchHelper will install Torch. Currently it defaults to installing "
+                "the CUDA 12.6 version but can also install other CUDA versions as well as a CPU "
+                "version for unsupported GPUs. There are not yet Intel, ROCm or DirectML Torch runtimes "
+                "that are sufficietly stable to support in this helper module. Autodetection of which "
+                "variant to install is not yet supported but is in work.")
+        elif self.system == 'linux':
+            print("Linux: TorchHelper will install Torch. Currently it defaults to installing "
+                "the CUDA 12.6 version but can also install other CUDA versions as well as a ROCm "
+                "version for AMD GPUs. There is not yet an Intel Torch runtime that is sufficietly "
+                "stable to support in this helper module. Autodetection of which variant to install "
+                "is not yet supported but is in work.")
+        elif self.system == 'darwin':
+            print("MacOS: ONNXHelper will install the standard Torch module on MacOS. This is targeted "
+                "at all Apple Macs regardless of CPU architecture: any issues with Torch on MacOS "
+                "should be reported upstream to Torch.")
+        print("Dependencies: Torch is currently excessively strict about required versions of some "
+            "dependencies including CUDnn: it requires an exact version match rather than at least a "
+            "certain version. This cauess conflict with other GPU acceleration modules that have "
+            "differing dependency requirements, including jax. It is therefore not currently possible "
+            "to write a script that uses both Torch and jax, and even switching between the two in "
+            "different scripts is difficult at present. This issue has been raised upstream with Torch.")
+
     def install_torch(self, cuda_version: str = "cu126", force_reinstall: bool = False) -> bool:
         """
         Install PyTorch with CUDA support.
@@ -710,12 +767,12 @@ class TorchHelper:
             return self._import_torch()
 
         except subprocess.CalledProcessError as e:
-            print(f"✗ PyTorch installation failed: {e}")
+            print(f"(x) PyTorch installation failed: {e}")
             if e.stderr:
                 print("Error output:", e.stderr[-500:])  # Show last 500 chars
             return False
         except Exception as e:
-            print(f"✗ Unexpected error during installation: {e}")
+            print(f"(x) Unexpected error during installation: {e}")
             return False
 
     def _import_torch(self) -> bool:
@@ -734,14 +791,14 @@ class TorchHelper:
             # Get device info after successful import
             self.device_info = self._get_device_info()
 
-            print(f"✓ PyTorch {torch.__version__} imported successfully!")
+            print(f"OK: PyTorch {torch.__version__} imported successfully!")
             return True
 
         except ImportError as e:
-            print(f"✗ Failed to import PyTorch: {e}")
+            print(f"(x) Failed to import PyTorch: {e}")
             return False
         except Exception as e:
-            print(f"✗ Unexpected error importing PyTorch: {e}")
+            print(f"(x) Unexpected error importing PyTorch: {e}")
             return False
 
     def ensure_torch(self, cuda_version: str = "cu126") -> bool:
@@ -902,7 +959,7 @@ class TorchHelper:
                 model_gpu = self._create_simple_model()  # Create fresh model for GPU
                 model_gpu.load_state_dict(model.state_dict())  # Copy same weights
                 gpu_output, _ = self.benchmark_model(model_gpu, input_data, gpu_device)
-                print("✓ GPU execution successful!")
+                print("OK: GPU execution successful!")
 
                 # Compare outputs using appropriate tolerance for CPU vs GPU
                 cpu_output_np = cpu_output.numpy()
@@ -912,14 +969,14 @@ class TorchHelper:
                 are_close = self.np.allclose(cpu_output_np, gpu_output_np, rtol=1e-3, atol=1e-4)
 
                 if are_close:
-                    print("✓ CPU and GPU outputs match within tolerance!")
+                    print("OK: CPU and GPU outputs match within tolerance!")
                 else:
-                    print("⚠ CPU and GPU outputs differ more than expected")
+                    print("(!) CPU and GPU outputs differ more than expected")
 
             except Exception as e:
-                print(f"✗ GPU execution failed: {e}")
+                print(f"(x) GPU execution failed: {e}")
         else:
-            print("\n⚠ CUDA not available - cannot test GPU execution")
+            print("\n(!) CUDA not available - cannot test GPU execution")
             print("To enable GPU support:")
             print("  1. Install CUDA toolkit")
             print("  2. Use install_torch() with appropriate CUDA version")
@@ -936,7 +993,7 @@ class TorchHelper:
             return False
 
         if not self.torch.cuda.is_available():
-            print("⚠ CUDA not available - skipping tensor operations test")
+            print("(!) CUDA not available - skipping tensor operations test")
             return False
 
         # Create large tensors for meaningful GPU test with fixed seed
@@ -972,9 +1029,9 @@ class TorchHelper:
         are_close = self.np.allclose(cpu_np, gpu_np, rtol=1e-3, atol=1e-3)
 
         if are_close:
-            print("✓ Results match within tolerance!")
+            print("OK: Results match within tolerance!")
         else:
-            print("⚠ Results differ more than expected")
+            print("(!) Results differ more than expected")
 
         print(f"CPU time: {cpu_time:.4f}s")
         print(f"GPU time: {gpu_time:.4f}s")
@@ -1012,6 +1069,37 @@ class JaxHelper:
         self.system = platform.system().lower()
         self.jax_installed = False
         self.detected_config = None
+
+    def status(self):
+        print(f"JaxHelper status as of sirilpy version {sirilpy.__version__}")
+        if self.system == 'windows':
+            print("Windows: JaxHelper will install the CPU version of jax. This does not provide "
+                "acceleration and jax.numpy may often be slower than numpy itself, so it is only "
+                "recommended for development and research purposes at the moment. A jax CUDA wheel is "
+                "in development for Windows however the current version does not support numpy v2.x "
+                "and therefore causes unacceptable conflict with other modules. As the wheel develops "
+                "the CUDA wheel will hopefully be supportable in the future. There is also an Intel "
+                "plugin under development, however as with the CUDA wheel this is not yet built so "
+                "as to be compatible with numpy 2.x so the helper will not install it. An issue has "
+                "been raised with the plugin authors and we hope progress on this plugin improves soon.")
+        elif self.system == 'linux':
+            print("Linux: JaxHelper will install jax variants for NVidia or AMD GPUs, with automatic "
+                "GPU hardware detection. Note that as none of the developers have an AMD GPU, feedback "
+                "on how well jax[rocm] works would be very much appreciated. There is also an Intel "
+                "plugin under development, however as with the CUDA wheel this is not yet built so "
+                "as to be compatible with numpy 2.x so the helper will not install it. An issue has "
+                "been raised with the plugin authors and we hope progress on this plugin improves soon.")
+        elif self.system == 'darwin':
+            print("MacOS: ONNXHelper will install the Metal jax backed on MacOS. Note that this is still "
+                "experimental and may provide only limited acceleration at present. We hope that support "
+                "for this platform improves soon.")
+        print("Dependencies: Jax has a sensible dependency on CUDnn however unfortunately it conflicts "
+            "with Torch, which is currently excessively strict about required versions of some "
+            "dependencies including CUDnn: it requires an exact version match rather than at least a "
+            "certain version, and the version Torch requires is older than the version that jax is "
+            "built against. This issue has been raised upstream with Torch but for now the two modules "
+            "cannot be used in the same script and can cause problems if both are used together in the "
+            "same venv. It is recommended to use jax only for development purposes at present.")
 
     def detect_hardware_config(self) -> Dict[str, Any]:
         """
@@ -1058,7 +1146,7 @@ class JaxHelper:
             Updated configuration with JAX variant recommendation
         """
         if config['system'] == 'windows':
-            priint("⚠ The Windows jax[cuda] wheel currently does not "
+            priint("(!) The Windows jax[cuda] wheel currently does not "
                 "support numpy 2.x and therefore causes unacceptable "
                 "conflicts with other packages. As jax Windows support "
                 "matures we hope to enable the cuda wheel however at "
@@ -1066,7 +1154,7 @@ class JaxHelper:
                 "only useful for development purposes.")
         if force_cpu:
             config['recommended_jax_variant'] = 'jax[cpu]'
-            print("⚠ Warning: performance of the CPU-only jax variant "
+            print("(!) Warning: performance of the CPU-only jax variant "
                 "is slow and is intended for development use only. It "
                 "is generally recommended that you do NOT enable jax "
                 "optimisation in scripts that offer it!")
@@ -1078,7 +1166,7 @@ class JaxHelper:
                 config['recommended_jax_variant'] = 'jax[cuda12]'
 # ## Commented out until the Windows wheel supports numpy 2.x
 #            elif config['system'] == 'windows':
-#                print("⚠ Windows CUDA support for jax is experimental: "
+#                print("(!) Windows CUDA support for jax is experimental: "
 #                    "if you have problems, reinstall forcing CPU support")
 #                config['recommended_jax_variant'] = 'jax[cuda12]'
             else:
@@ -1091,7 +1179,7 @@ class JaxHelper:
         elif config['has_intel_gpu']:
             # Current pypi package for intel-extension-for-openxla
             # has dependency clashes (still requires numpy 1.x)
-            print("⚠ Intel GPU detected: unfortunately the experimental "
+            print("(!) Intel GPU detected: unfortunately the experimental "
                 "jax plugin for Intel GPUs has dependency clashes and "
                 "still requires numpy 1.x therefore only the CPU variant "
                 "can be installed. Hopefully this will change in the "
@@ -1100,7 +1188,7 @@ class JaxHelper:
 
         elif config['system'] == 'darwin':
             # macOS - use Metal wheel and print an experimental warning
-            print("⚠ jax Metal support on MacOS is still experimental")
+            print("(!) jax Metal support on MacOS is still experimental")
             config['recommended_jax_variant'] = 'jax-metal'
 
         else:
@@ -1108,7 +1196,7 @@ class JaxHelper:
             config['recommended_jax_variant'] = 'jax[cpu]'
 
         if config['recommended_jax_variant'] == 'jax[cpu]':
-            print("⚠ Warning: performance of the CPU-only jax variant "
+            print("(!) Warning: performance of the CPU-only jax variant "
                 "is slow and is intended for development use only. It "
                 "is generally recommended that you do NOT enable jax "
                 "optimisation in scripts that offer it!")
