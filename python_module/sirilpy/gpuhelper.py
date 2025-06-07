@@ -741,7 +741,7 @@ class TorchHelper:
 
     def install_torch(self, cuda_version: str = "auto", force_reinstall: bool = False) -> bool:
         """
-        Install PyTorch with CUDA support.
+        Install PyTorch with GPU compute platform support where available and stable.
 
         Args:
             cuda_version: compute platform to install (e.g., 'cu118', 'cu126', 'cu128', 'rocm', 'cpu', 'auto')
