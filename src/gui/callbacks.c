@@ -1567,34 +1567,38 @@ gpointer update_scripts(gpointer user_data) {
 		auto_update_gitscripts(TRUE);
 		// 2. Update the menu (not verbose)
 		// refresh_script_menu runs in an idle in the GTK thread
-		execute_idle_and_wait_for_it(refresh_script_menu, GINT_TO_POINTER(0));
+		gui_mutex_lock();
+		execute_idle_and_wait_for_it(refresh_script_menu_idle, GINT_TO_POINTER(0));
+		gui_mutex_unlock();
 	}
 	g_mutex_unlock(&repos_mutex);
 	return GINT_TO_POINTER(0);
 }
 
 gpointer initialize_script_menu_and_spcc_widgets_serially(gpointer user_data) {
-	// First fill the SPCC combos
+	// First fill the SPCC combos and script menu so they are immediately available
 	initialize_script_menu(TRUE); // script menu first as it's quick based on an already loaded list
-	g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL)); // this is slow as will require repository syncing
 	populate_spcc_combos_async(NULL); // this after, as it takes a little time to load the actual files
+	// Now, in threads, update the repositories and then update the combos and menu again to reflect any changes
+	g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL)); // this is slow as will require repository syncing
 	g_thread_unref(g_thread_new("update_spcc", update_spcc, NULL)); // this is slow as will require repository syncing
 	return FALSE;
 }
 
+// Only called from preferences when reactivating the SPCC repository
 gpointer initialize_spcc(gpointer user_data) {
 	g_mutex_lock(&repos_mutex);
 	// 1. Initialize the SPCC combos
 	// populate_spcc_combos_async runs in this thread but the actual call to
 	// populate_spcc_combos is run from it in an idle in the GTK thread
-	populate_spcc_combos_async(NULL);
+	populate_spcc_combos_async(NULL); // controls the GUI mutex
 	// 2. Update the repository
 	if (com.pref.spcc.auto_spcc_update && is_online()) {
 		auto_update_gitspcc(TRUE);
 		// 3. Update the SPCC combos
 		// populate_spcc_combos_async runs in this thread but the actual call to
 		// populate_spcc_combos is run from it in an idle in the GTK thread
-		populate_spcc_combos_async(NULL);
+		populate_spcc_combos_async(NULL); // controls the GUI mutex again
 	}
 	g_mutex_unlock(&repos_mutex);
 	return GINT_TO_POINTER(0);
@@ -1602,16 +1606,19 @@ gpointer initialize_spcc(gpointer user_data) {
 
 // Initializes the scripts menu, updates the repository and then refreshes the scripts menu
 gpointer initialize_scripts(gpointer user_data) {
-	g_mutex_lock(&repos_mutex);
 	// 1. Initialize the menu (verbose)
-	// call_initialize_script_menu runs in an idle in the GTK thread
-	execute_idle_and_wait_for_it(call_initialize_script_menu, GINT_TO_POINTER(1));
+	// initialize_script_menu_idle runs as an idle in the GTK thread
+	gui_mutex_lock();
+	execute_idle_and_wait_for_it(initialize_script_menu_idle, GINT_TO_POINTER(1));
+	gui_mutex_unlock();
 	// 2. Update the repository
 	if (com.pref.auto_script_update && is_online()) {
 		auto_update_gitscripts(TRUE);
 		// 3. Update the menu (not verbose)
 		// refresh_script_menu runs in an idle in the GTK thread
-		execute_idle_and_wait_for_it(refresh_script_menu, GINT_TO_POINTER(0));
+		gui_mutex_lock();
+		execute_idle_and_wait_for_it(refresh_script_menu_idle, GINT_TO_POINTER(0));
+		gui_mutex_unlock();
 	}
 	g_mutex_unlock(&repos_mutex);
 	return GINT_TO_POINTER(0);

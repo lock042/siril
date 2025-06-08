@@ -882,128 +882,92 @@ gboolean populate_spcc_combos(gpointer user_data) {
 		siril_debug_print("populate_spcc_combos: ERROR - osc_sensors is NULL\n");
 		goto end;
 	}
-
 	if (!com.spcc_data.mono_sensors) {
 		siril_debug_print("populate_spcc_combos: ERROR - mono_sensors is NULL\n");
 		goto end;
 	}
-
 	if (!com.spcc_data.osc_filters) {
 		siril_debug_print("populate_spcc_combos: ERROR - osc_filters is NULL\n");
 		goto end;
 	}
-
 	if (!com.spcc_data.wb_ref) {
 		siril_debug_print("populate_spcc_combos: ERROR - wb_ref is NULL\n");
 		goto end;
 	}
-
 	if (!com.spcc_data.osc_lpf) {
 		siril_debug_print("populate_spcc_combos: ERROR - osc_lpf is NULL\n");
 		goto end;
 	}
-
 	// Check individual filter arrays
 	if (!com.spcc_data.mono_filters[RLAYER]) {
 		siril_debug_print("populate_spcc_combos: ERROR - red filters (RLAYER) is NULL\n");
 		goto end;
 	}
-
 	if (!com.spcc_data.mono_filters[GLAYER]) {
 		siril_debug_print("populate_spcc_combos: ERROR - green filters (GLAYER) is NULL\n");
 		goto end;
 	}
-
 	if (!com.spcc_data.mono_filters[BLAYER]) {
 		siril_debug_print("populate_spcc_combos: ERROR - blue filters (BLAYER) is NULL\n");
 		goto end;
 	}
-
 	// Look up all the widgets here with validation
 	GtkWidget *oscfilters = lookup_widget("combo_spcc_filters_osc");
 	if (!oscfilters) {
 		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_osc widget\n");
 		goto end;
 	}
-
 	GtkWidget *rfilters = lookup_widget("combo_spcc_filters_r");
 	if (!rfilters) {
 		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_r widget\n");
 		goto end;
 	}
-
 	GtkWidget *gfilters = lookup_widget("combo_spcc_filters_g");
 	if (!gfilters) {
 		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_g widget\n");
 		goto end;
 	}
-
 	GtkWidget *bfilters = lookup_widget("combo_spcc_filters_b");
 	if (!bfilters) {
 		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_b widget\n");
 		goto end;
 	}
-
 	GtkWidget *lpfilters = lookup_widget("combo_spcc_filters_lpf");
 	if (!lpfilters) {
 		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_lpf widget\n");
 		goto end;
 	}
-
 	GtkWidget *monosensors = lookup_widget("combo_spcc_sensors_mono");
 	if (!monosensors) {
 		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_sensors_mono widget\n");
 		goto end;
 	}
-
 	GtkWidget *oscsensors = lookup_widget("combo_spcc_sensors_osc");
 	if (!oscsensors) {
 		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_sensors_osc widget\n");
 		goto end;
 	}
-
 	GtkWidget *whitepoint = lookup_widget("combo_spcc_whitepoint");
 	if (!whitepoint) {
 		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_whitepoint widget\n");
 		goto end;
 	}
-
 	GtkWidget *switch_widget_lookup = lookup_widget("spcc_sensor_switch");
 	if (!switch_widget_lookup) {
 		siril_debug_print("populate_spcc_combos: ERROR - could not find spcc_sensor_switch widget\n");
 		goto end;
 	}
-
 	GtkSwitch *switch_widget = GTK_SWITCH(switch_widget_lookup);
 	if (!GTK_IS_SWITCH(switch_widget)) {
 		siril_debug_print("populate_spcc_combos: ERROR - spcc_sensor_switch is not a GtkSwitch\n");
 		goto end;
 	}
-
 	// Validate preferences exist (basic check)
 	if (!com.pref.spcc.oscfilterpref) {
 		siril_debug_print("populate_spcc_combos: WARNING - oscfilterpref is NULL\n");
 	}
-	if (!com.pref.spcc.redpref) {
-		siril_debug_print("populate_spcc_combos: WARNING - redpref is NULL\n");
-	}
-	if (!com.pref.spcc.greenpref) {
-		siril_debug_print("populate_spcc_combos: WARNING - greenpref is NULL\n");
-	}
-	if (!com.pref.spcc.bluepref) {
-		siril_debug_print("populate_spcc_combos: WARNING - bluepref is NULL\n");
-	}
-	if (!com.pref.spcc.lpfpref) {
-		siril_debug_print("populate_spcc_combos: WARNING - lpfpref is NULL\n");
-	}
-	if (!com.pref.spcc.monosensorpref) {
-		siril_debug_print("populate_spcc_combos: WARNING - monosensorpref is NULL\n");
-	}
-	if (!com.pref.spcc.oscsensorpref) {
-		siril_debug_print("populate_spcc_combos: WARNING - oscsensorpref is NULL\n");
-	}
 
-	// Initialize filters with error handling - each call is now safe due to validation in fill_combo_from_glist
+	// Initialize filters with error handling
 	spcc_debug_print("populate_spcc_combos: populating OSC filters\n");
 	fill_combo_from_glist(oscfilters, com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
 
@@ -1041,7 +1005,9 @@ gpointer populate_spcc_combos_async(gpointer user_data) {
 	g_mutex_lock(&combos_filling);
 	load_spcc_metadata_if_needed();
 	// update combos back in the GTK thread
+	gui_mutex_lock(); // force deconfliction with other GUI updates (specifically the script menu)
 	execute_idle_and_wait_for_it(populate_spcc_combos, NULL);
+	gui_mutex_unlock();
 	g_mutex_unlock(&combos_filling);
 	return GINT_TO_POINTER(0);
 }

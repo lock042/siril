@@ -281,7 +281,7 @@ void on_disable_gitscripts() {
 	if (com.pref.selected_scripts)
 		g_list_free_full(com.pref.selected_scripts, g_free);
 	com.pref.selected_scripts = NULL;
-	refresh_script_menu(GINT_TO_POINTER(1));
+	g_thread_unref(g_thread_new("refresh_script_menu", refresh_script_menu_in_thread, GINT_TO_POINTER(1)));
 }
 
 void on_manual_script_sync_button_clicked(GtkButton *button, gpointer user_data) {

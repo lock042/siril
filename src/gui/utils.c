@@ -37,6 +37,16 @@ struct _label_data {
 	const char *class_to_remove;
 };
 
+static GMutex gui_mutex = { 0 };
+
+void gui_mutex_lock() {
+	g_mutex_lock(&gui_mutex);
+}
+
+void gui_mutex_unlock() {
+	g_mutex_unlock(&gui_mutex);
+}
+
 static gboolean set_label_text_idle(gpointer p) {
 	struct _label_data *args = (struct _label_data *) p;
 	GtkWidget *widget = lookup_widget(args->label_name);

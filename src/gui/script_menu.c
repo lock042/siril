@@ -518,42 +518,41 @@ int initialize_script_menu(gboolean verbose) {
 }
 
 // Called when the specified scripts directories are updated. Just a wrapper so that the function
-// can be called in an idle in the GTK thread.
-gboolean call_initialize_script_menu(gpointer data) {
+// has the right signature to be called in an idle in the GTK thread.
+// You must call this from a secondary thread and call gui_mutex_lock() / unlock() around it
+gboolean initialize_script_menu_idle(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
 	initialize_script_menu(state);
 	return FALSE;
 }
 
 // This is called from preferences or the reloadscripts command to refresh the
-// script menu. TODO: it currently doesn't set the popup to NULL while the menu rebuilds:
-// should it actually execute refresh_script_menu as its idle function?
-int refresh_scripts(gboolean update_list, gchar **error) {
-	gchar *err = NULL;
-	int retval = 0;
+// script menu.
+
+gpointer refresh_scripts_in_thread(gpointer user_data) {
 	GSList *list = get_list_from_preferences_dialog();
 	// TODO: is there anything to stop refreshscripts being called from a script run by siril-cli?
 	// if not, we need to prevent it as get_list_from_preferences_dialog() uses GTK code and will fail,
 	// probably badly.
 
 	if (list == NULL) {
-		err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
-		retval = 1;
+		gchar *err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
+		queue_warning_message_dialog(_("Warning"), err);
+		g_free(err);
 	} else {
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-		execute_idle_and_wait_for_it(call_initialize_script_menu, GINT_TO_POINTER(1));
+		gui_mutex_lock();
+		execute_idle_and_wait_for_it(initialize_script_menu_idle, GINT_TO_POINTER(1));
+		gui_mutex_unlock();
 	}
-
-	if (error) {
-		*error = err;
-	}
-	return retval;
+	return FALSE;
 }
 
 // This function updates the scripts menu, first removing the old one, it is called at startup
 // after refreshing the repository
-gboolean refresh_script_menu(gpointer user_data) {
+// You must call this from a secondary thread and call gui_mutex_lock() / unlock() around it
+gboolean refresh_script_menu_idle(gpointer user_data) {
 	gboolean verbose = (gboolean) GPOINTER_TO_INT(user_data);
 	if (menuscript) {
 		// Remove the popup while we refresh the menu
@@ -562,6 +561,14 @@ gboolean refresh_script_menu(gpointer user_data) {
 	initialize_script_menu(verbose);
 	fill_script_repo_tree(FALSE);
 	return FALSE;
+}
+
+// Called from preferences to refresh the script menu
+gpointer refresh_script_menu_in_thread(gpointer user_data) {
+	gui_mutex_lock();
+	execute_idle_and_wait_for_it(refresh_script_menu_idle, user_data);
+	gui_mutex_unlock();
+	return GINT_TO_POINTER(0);
 }
 
 GSList *get_list_from_preferences_dialog() {
