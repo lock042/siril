@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-06 16:56+0200\n"
-"PO-Revision-Date: 2025-06-04 18:18+0000\n"
+"PO-Revision-Date: 2025-06-07 22:52+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -5175,7 +5175,7 @@ msgstr "度数表示による角度. 回転の中心は, 画像の中心."
 #: src/gui/uifiles/rotation_dialog.ui:160 src/gui/uifiles/siril.ui:1008
 #: src/gui/uifiles/siril.ui:1019 src/gui/menu_gray_geometry.c:61
 msgid "Crop"
-msgstr "選択範囲で切り抜き"
+msgstr "切り抜き"
 
 #: src/gui/uifiles/rotation_dialog.ui:164
 msgid "Checking this box will crop the output image."
@@ -7936,9 +7936,8 @@ msgstr ""
 "チェックボックス ``星の動きを追う’’ をチェックしている場合はこれに従う."
 
 #: src/gui/uifiles/siril.ui:789
-#, fuzzy
 msgid "PSF for the Sequence"
-msgstr "画像シーケンスに点像分布関数"
+msgstr "シーケンスに対する点像分布関数"
 
 #: src/gui/uifiles/siril.ui:797
 msgid "Pick a Star"
@@ -10771,7 +10770,6 @@ msgid ""
 msgstr "画像処理メニュー. 画像補正に適した全ての機能を含みます."
 
 #: src/gui/uifiles/siril.ui:10597
-#, fuzzy
 msgid "Tools"
 msgstr "ツール"
 

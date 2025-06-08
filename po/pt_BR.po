@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-06 16:56+0200\n"
-"PO-Revision-Date: 2025-06-06 21:05+0000\n"
+"PO-Revision-Date: 2025-06-07 18:13+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -7763,22 +7763,24 @@ msgid ""
 "Show preview, if possible, in the file chooser dialog box when opening an "
 "unique file."
 msgstr ""
+"Mostrar pré-visualização, se possível, na caixa de diálogo do seletor de "
+"arquivos ao abrir um arquivo exclusivo."
 
 #: src/gui/uifiles/settings_window.ui:3559
 msgid "Size of thumbnails:"
-msgstr ""
+msgstr "Tamanho das miniaturas:"
 
 #: src/gui/uifiles/settings_window.ui:3572
 msgid "Small (128x128)"
-msgstr ""
+msgstr "Pequeno (128x128)"
 
 #: src/gui/uifiles/settings_window.ui:3573
 msgid "Normal (256x256)"
-msgstr ""
+msgstr "Normal (256x256)"
 
 #: src/gui/uifiles/settings_window.ui:3589
 msgid "Image Thumbnails"
-msgstr ""
+msgstr "Miniaturas de imagens"
 
 #: src/gui/uifiles/settings_window.ui:3623
 msgid "Default screen transfer function:"
@@ -7833,6 +7835,11 @@ msgid ""
 "<b>Automatic</b> automatically synchronises the ROI with the current "
 "selection, and clears it when the selection is cleared."
 msgstr ""
+"Define o método de seleção de uma ROI.\n"
+"<b>Manual</b> requer que a ROI seja selecionada e limpa manualmente usando o "
+"menu do botão direito do mouse.\n"
+"<b>Automático</b> sincroniza automaticamente a ROI com a seleção atual e a "
+"limpa quando a seleção é limpa."
 
 #: src/gui/uifiles/settings_window.ui:3772
 msgid "Manual"
@@ -7844,11 +7851,11 @@ msgstr "Automático da seleção"
 
 #: src/gui/uifiles/settings_window.ui:3789
 msgid "Region of Interest"
-msgstr ""
+msgstr "Região de interesse (ROI)"
 
 #: src/gui/uifiles/settings_window.ui:3822
 msgid "Middle button double click"
-msgstr ""
+msgstr "Clique duplo no botão do meio"
 
 #: src/gui/uifiles/settings_window.ui:3835
 msgid "Zoom to fit"
@@ -7856,11 +7863,11 @@ msgstr "Zoom para ajustar"
 
 #: src/gui/uifiles/settings_window.ui:3836
 msgid "Zoom 100% centred on mouse"
-msgstr ""
+msgstr "Zoom 100% centralizado no mouse"
 
 #: src/gui/uifiles/settings_window.ui:3837
 msgid "Zoom toggles between fit and 100%"
-msgstr ""
+msgstr "O zoom alterna entre ajustar à janela e 100%"
 
 #: src/gui/uifiles/settings_window.ui:3847
 msgid "Configure mouse button actions"
@@ -7872,7 +7879,7 @@ msgstr "Abra a caixa de diálogo de configuração da ação do mouse"
 
 #: src/gui/uifiles/settings_window.ui:3870
 msgid "Mouse Behaviour"
-msgstr ""
+msgstr "Comportamento do mouse"
 
 #: src/gui/uifiles/settings_window.ui:3917
 msgid "Background extraction samples:"
@@ -7884,7 +7891,7 @@ msgstr "Anotações padrão:"
 
 #: src/gui/uifiles/settings_window.ui:3941
 msgid "Deep Sky Object (user) annotations:"
-msgstr ""
+msgstr "Anotações de objetos do céu profundo (usuário):"
 
 #: src/gui/uifiles/settings_window.ui:3953
 msgid "Solar System Object (user) annotations:"
@@ -7892,15 +7899,15 @@ msgstr "Anotações de objetos do sistema solar (usuário):"
 
 #: src/gui/uifiles/settings_window.ui:3965
 msgid "Temporary Object (user) annotations:"
-msgstr ""
+msgstr "Anotações de objeto temporário (usuário):"
 
 #: src/gui/uifiles/settings_window.ui:4036
 msgid "Overlay Colors"
-msgstr ""
+msgstr "Cores de sobreposição"
 
 #: src/gui/uifiles/settings_window.ui:4103
 msgid "This section contains options relating to working color spaces"
-msgstr ""
+msgstr "Esta seção contém opções relacionadas aos espaços de cores de trabalho"
 
 #: src/gui/uifiles/settings_window.ui:4119
 msgid ""
@@ -7908,6 +7915,9 @@ msgid ""
 "the workflow. For a discussion of which gamut to pick, see the Color "
 "Management section of the manual."
 msgstr ""
+"Isso seleciona a família de perfis RGB que será usada na maior parte do "
+"fluxo de trabalho. Para uma discussão sobre qual gama escolher, consulte a "
+"seção Gerenciamento de Cores do manual."
 
 #: src/gui/uifiles/settings_window.ui:4121
 msgid "Preferred Color Space:"
@@ -7920,16 +7930,21 @@ msgid ""
 "This preference is used by the auto conversion / assignment options and can "
 "also be used by the file export options."
 msgstr ""
+"Isso define sua família preferida de espaços de cores para uso como espaços "
+"de cores de trabalho: compreende um perfil de cores RGB e um perfil de cores "
+"Cinza correspondente. Essa preferência é usada pelas opções de conversão/"
+"atribuição automática e também pode ser usada pelas opções de exportação de "
+"arquivo."
 
 #: src/gui/uifiles/settings_window.ui:4135
 #: src/gui/uifiles/settings_window.ui:4504
 #: src/gui/uifiles/settings_window.ui:4584 src/core/icc_profile.c:1540
 msgid "sRGB"
-msgstr ""
+msgstr "sRGB"
 
 #: src/gui/uifiles/settings_window.ui:4136
 msgid "Rec2020"
-msgstr ""
+msgstr "Rec2020"
 
 #: src/gui/uifiles/settings_window.ui:4137
 msgid "From files"
@@ -7940,36 +7955,44 @@ msgid ""
 "Show the CIE1931 xy space and a representation of various color gamuts "
 "within it."
 msgstr ""
+"Mostre o espaço xy CIE1931 e uma representação de várias gamas de cores "
+"dentro dele."
 
 #: src/gui/uifiles/settings_window.ui:4164
 msgid ""
 "Use these opions together with the \"From files\" option for Preferred Color "
 "Spaces above."
 msgstr ""
+"Use essas opções junto com a opção \"De arquivos\" para Espaços de Cores "
+"Preferidos acima."
 
 #: src/gui/uifiles/settings_window.ui:4167
 msgid "External color profiles:"
-msgstr ""
+msgstr "Perfis de cores externas:"
 
 #: src/gui/uifiles/settings_window.ui:4179
 msgid ""
 "This should be an ICC profile in your preferred gamut with the color space's "
 "native nonlinear tone response curve."
 msgstr ""
+"Este deve ser um perfil ICC na sua gama preferida com a curva de resposta de "
+"tom não linear nativa do espaço de cores."
 
 #: src/gui/uifiles/settings_window.ui:4181
 msgid "RGB ICC profile"
-msgstr ""
+msgstr "Perfil RGB ICC"
 
 #: src/gui/uifiles/settings_window.ui:4192
 msgid ""
 "This should be a Gray ICC profile with a tone response curve that matches "
 "that of the nonlinear TRC profile you set above."
 msgstr ""
+"Este deve ser um perfil ICC Gray com uma curva de resposta de tom que "
+"corresponde à do perfil TRC não linear que você definiu acima."
 
 #: src/gui/uifiles/settings_window.ui:4194
 msgid "Gray ICC profile"
-msgstr ""
+msgstr "Perfil Gray ICC"
 
 #: src/gui/uifiles/settings_window.ui:4206
 msgid ""
@@ -7991,7 +8014,7 @@ msgstr "Espaços de cores de trabalho"
 
 #: src/gui/uifiles/settings_window.ui:4270
 msgid "Custom monitor profile:"
-msgstr ""
+msgstr "Perfil de monitor personalizado:"
 
 #: src/gui/uifiles/settings_window.ui:4282
 msgid ""
@@ -8008,25 +8031,25 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4309
 msgid "Output device proofing profile:"
-msgstr ""
+msgstr "Perfil de prova do dispositivo de saída:"
 
 #: src/gui/uifiles/settings_window.ui:4322
 msgid "Rendering intent:"
-msgstr ""
+msgstr "Intenção de renderização:"
 
 #: src/gui/uifiles/settings_window.ui:4333
 msgid "Select the display intent. The default is perceptual rendering."
-msgstr ""
+msgstr "Selecione a intenção de exibição. O padrão é renderização perceptual."
 
 #: src/gui/uifiles/settings_window.ui:4336
 #: src/gui/uifiles/settings_window.ui:4534
 msgid "Perceptual"
-msgstr ""
+msgstr "Perceptivo"
 
 #: src/gui/uifiles/settings_window.ui:4337
 #: src/gui/uifiles/settings_window.ui:4535
 msgid "Relative Colorimetric"
-msgstr ""
+msgstr "Colorimétrico Relativo"
 
 #: src/gui/uifiles/settings_window.ui:4338
 #: src/gui/uifiles/settings_window.ui:4536

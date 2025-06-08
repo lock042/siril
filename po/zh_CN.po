@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-06 16:56+0200\n"
-"PO-Revision-Date: 2025-05-30 13:52+0000\n"
+"PO-Revision-Date: 2025-06-08 17:11+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -23669,6 +23669,11 @@ msgid ""
 "using the Catalog_Installer.py script. This is faster and does not rely on "
 "third party servers.\n"
 msgstr ""
+"错误：无法从位于 %s 的服务器获取远程星表。此问题并非Siril软件缺陷，而是目标星"
+"表服务器当前不可用。此类问题通常不会持续很久，但需注意：该服务器与Siril无隶属"
+"关系，Siril开发团队亦无法控制其运行状态。我们强烈建议使用本地化服务器方案——"
+"例如通过Catalog_Installer.py脚本安装的Gaia "
+"DR3优化版Siril提取文件。此方案不仅响应速度更快，且无需依赖第三方服务器。\n"
 
 #: src/io/remote_catalogues.c:656
 #, c-format
@@ -24979,12 +24984,13 @@ msgstr "错误：无法打开共享内存"
 msgid ""
 "Error: Siril has been compiled with a version of Cairo that does not provide "
 "SVG surface support. Saving plots as SVG is not possible with this build.\n"
-msgstr ""
+msgstr "错误：Siril 编译时使用的 Cairo 版本不支持 SVG surface 功能。"
+"当前版本无法将图表保存为 SVG 格式。\n"
 
 #: src/io/siril_pythonmodule.c:816
-#, fuzzy, c-format
+#, c-format
 msgid "Saved plot to %s\n"
-msgstr "将图表保存为 %s\n"
+msgstr "已将图表保存到 %s\n"
 
 #: src/io/siril_pythonmodule.c:975
 msgid "Failed to add user polygon: no image loaded"
@@ -26042,14 +26048,12 @@ msgid ""
 msgstr "取消勾选导致错误的图像，或者将构图方式改为最大化\n"
 
 #: src/registration/applyreg.c:1084
-#, fuzzy
 msgid "Images will be larger than what Siril can display for now.\n"
-msgstr "图像将超出现在的Siril能显示的最大尺寸。"
+msgstr "图像将超出现在的Siril能显示的最大尺寸。\n"
 
 #: src/registration/applyreg.c:1085
-#, fuzzy
 msgid "Tune scale ratio to get max dimension smaller than 32767 pixels.\n"
-msgstr "调整缩放比例，使长边小于32767像素"
+msgstr "调整缩放比例，使长边小于32767像素。\n"
 
 #: src/registration/applyreg.c:1093
 msgid ""
