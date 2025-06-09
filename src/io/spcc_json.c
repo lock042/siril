@@ -796,8 +796,8 @@ static void osc_sensor_destroy(void *user_data) {
 	osc_sensor_free(object, TRUE);
 }
 
-void debug_null_list_entries(GList *list) {
-	for (GList *iter = list; iter != NULL; iter = iter->next) {
+static void debug_null_list_entries(GList **list) {
+	for (GList *iter = *list; iter != NULL; iter = iter->next) {
 		if (iter->data == NULL) {
 			const gchar *prev_name = NULL;
 			const gchar *next_name = NULL;
@@ -815,6 +815,9 @@ void debug_null_list_entries(GList *list) {
 			g_print("Found NULL entry in list\n");
 			g_print("Previous entry name: %s\n", prev_name ? prev_name : "(null)");
 			g_print("Next entry name: %s\n", next_name ? next_name : "(null)");
+			// Remove the entry with NULL data
+			*list = g_list_delete_link(*list, iter);
+			g_print("NULL entry removed\n");
 		}
 	}
 }
@@ -840,10 +843,10 @@ void load_all_spcc_metadata() {
 	processDirectory(path);
 	siril_debug_print("SPCC JSON metadata loaded\n");
 
-	debug_null_list_entries(com.spcc_data.wb_ref);
-	debug_null_list_entries(com.spcc_data.osc_lpf);
-	debug_null_list_entries(com.spcc_data.osc_filters);
-	debug_null_list_entries(com.spcc_data.mono_sensors);
+	debug_null_list_entries(&com.spcc_data.wb_ref);
+	debug_null_list_entries(&com.spcc_data.osc_lpf);
+	debug_null_list_entries(&com.spcc_data.osc_filters);
+	debug_null_list_entries(&com.spcc_data.mono_sensors);
 
 	com.spcc_data.wb_ref = g_list_sort(com.spcc_data.wb_ref, compare_spcc_object_names);
 	com.spcc_data.osc_sensors = g_list_sort(com.spcc_data.osc_sensors, compare_osc_object_models);
