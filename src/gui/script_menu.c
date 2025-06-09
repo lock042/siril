@@ -282,10 +282,8 @@ static GtkWidget* get_py_submenu(const gchar *script_path, GtkWidget *menu_py, G
 	return submenu;
 }
 
-int initialize_script_menu(gboolean verbose) {
+static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	GSList *list, *script_paths, *s;
-
-	gboolean purge_removed = !verbose;
 
 	if (!menuscript)
 		menuscript = lookup_widget("header_scripts_button");
@@ -426,7 +424,7 @@ int initialize_script_menu(gboolean verbose) {
 				}
 			}
 
-			if (!exists || (!included && purge_removed)) {
+			if (!first_run && (!exists && included)) {
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", path);
 				// Remove the list element and free it as well as its data
 				g_free(path);
@@ -517,18 +515,31 @@ int initialize_script_menu(gboolean verbose) {
 	return 0;
 }
 
-// Called when the specified scripts directories are updated. Just a wrapper so that the function
+// Called when the specified scripts directories are initialized. Just a wrapper so that the function
 // has the right signature to be called in an idle in the GTK thread.
 // You must call this from a secondary thread and call gui_mutex_lock() / unlock() around it
 gboolean initialize_script_menu_idle(gpointer data) {
 	gboolean state = (gboolean) GPOINTER_TO_INT(data);
-	initialize_script_menu(state);
+	initialize_script_menu(state, TRUE);
+	return FALSE;
+}
+
+// This function updates the scripts menu, first removing the old one, it is called at startup
+// after refreshing the repository
+// You must call this from a secondary thread and call gui_mutex_lock() / unlock() around it
+gboolean refresh_script_menu_idle(gpointer user_data) {
+	gboolean verbose = (gboolean) GPOINTER_TO_INT(user_data);
+	if (menuscript) {
+		// Remove the popup while we refresh the menu
+		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), NULL);
+	}
+	initialize_script_menu(verbose, FALSE);
+	fill_script_repo_tree(FALSE);
 	return FALSE;
 }
 
 // This is called from preferences or the reloadscripts command to refresh the
 // script menu.
-
 gpointer refresh_scripts_in_thread(gpointer user_data) {
 	GSList *list = get_list_from_preferences_dialog();
 	// TODO: is there anything to stop refreshscripts being called from a script run by siril-cli?
@@ -546,20 +557,6 @@ gpointer refresh_scripts_in_thread(gpointer user_data) {
 		execute_idle_and_wait_for_it(initialize_script_menu_idle, GINT_TO_POINTER(1));
 		gui_mutex_unlock();
 	}
-	return FALSE;
-}
-
-// This function updates the scripts menu, first removing the old one, it is called at startup
-// after refreshing the repository
-// You must call this from a secondary thread and call gui_mutex_lock() / unlock() around it
-gboolean refresh_script_menu_idle(gpointer user_data) {
-	gboolean verbose = (gboolean) GPOINTER_TO_INT(user_data);
-	if (menuscript) {
-		// Remove the popup while we refresh the menu
-		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), NULL);
-	}
-	initialize_script_menu(verbose);
-	fill_script_repo_tree(FALSE);
 	return FALSE;
 }
 

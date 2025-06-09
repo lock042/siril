@@ -63,7 +63,6 @@ static int set_spcc_args(struct photometric_cc_data *args);
 gboolean populate_spcc_combos(gpointer user_data);
 void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data);
 void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data);
-static GMutex combos_filling = { 0 };
 
 void reset_spcc_filters() {
 	spcc_filters_initialized = FALSE;
@@ -731,7 +730,7 @@ void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gc
 	}
 
 	if (list == com.spcc_data.osc_sensors) {
-		siril_debug_print("fill_combo_from_glist: populating OSC sensors (%d items)\n", list_length);
+		spcc_debug_print("fill_combo_from_glist: populating OSC sensors (%d items)\n", list_length);
 
 		while (iterator && item_count < max_items) {
 			// Validate iterator and its data
@@ -865,10 +864,7 @@ cleanup:
 	}
 }
 
-static GMutex spcc_data_mutex = { 0 };
-
 gboolean populate_spcc_combos(gpointer user_data) {
-	g_mutex_lock(&spcc_data_mutex);
 	siril_debug_print("populate_spcc_combos: starting\n");
 
 	// Validate we're on the main thread
@@ -996,19 +992,16 @@ gboolean populate_spcc_combos(gpointer user_data) {
 	gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
 
 	spcc_debug_print("populate_spcc_combos: completed successfully\n");
-	g_mutex_unlock(&spcc_data_mutex);
 end:
 	return FALSE;
 }
 
 gpointer populate_spcc_combos_async(gpointer user_data) {
-	g_mutex_lock(&combos_filling);
 	load_spcc_metadata_if_needed();
 	// update combos back in the GTK thread
 	gui_mutex_lock(); // force deconfliction with other GUI updates (specifically the script menu)
 	execute_idle_and_wait_for_it(populate_spcc_combos, NULL);
 	gui_mutex_unlock();
-	g_mutex_unlock(&combos_filling);
 	return GINT_TO_POINTER(0);
 }
 

@@ -1577,7 +1577,7 @@ gpointer update_scripts(gpointer user_data) {
 
 gpointer initialize_script_menu_and_spcc_widgets_serially(gpointer user_data) {
 	// First fill the SPCC combos and script menu so they are immediately available
-	initialize_script_menu(TRUE); // script menu first as it's quick based on an already loaded list
+	execute_idle_and_wait_for_it(initialize_script_menu_idle, GINT_TO_POINTER(1)); // script menu first as it's quick based on an already loaded list
 	populate_spcc_combos_async(NULL); // this after, as it takes a little time to load the actual files
 	// Now, in threads, update the repositories and then update the combos and menu again to reflect any changes
 	g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL)); // this is slow as will require repository syncing

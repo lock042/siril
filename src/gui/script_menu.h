@@ -8,7 +8,6 @@
 GSList *get_list_from_preferences_dialog();
 GSList *set_list_to_preferences_dialog(GSList *list);
 
-int initialize_script_menu(gboolean verbose);
 gpointer refresh_scripts_in_thread(gpointer user_data);
 
 gboolean refresh_script_menu_idle(gpointer user_data);
