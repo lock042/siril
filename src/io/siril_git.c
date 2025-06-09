@@ -54,7 +54,7 @@ void gui_repo_scripts_mutex_unlock() {
 	g_mutex_unlock(&gui_repo_scripts_mutex);
 }
 
-const gchar *SCRIPT_REPOSITORY_URL = "https://gitlab.com/aje.baugh/siril-scripts";
+const gchar *SCRIPT_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
 const gchar *SPCC_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-spcc-database";
 
 static void *xrealloc(void *oldp, size_t newsz) {
