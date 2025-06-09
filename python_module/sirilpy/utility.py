@@ -142,7 +142,7 @@ def download_with_progress(
                 headers['Range'] = f'bytes={initial_size}-'
 
             # Establish connection with timeout
-            response = requests.get(url, stream=True, headers=headers, timeout=30)
+            response = requests.get(url, stream=True, headers=headers, timeout=(10, 30))
             response.raise_for_status()
 
             # Determine total file size and content range

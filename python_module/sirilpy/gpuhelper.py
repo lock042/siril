@@ -22,6 +22,7 @@ from typing import Optional, Dict, Any
 from packaging import version as pkg_version
 import requests
 import numpy as np
+from . import __version__
 from .utility import ensure_installed, _check_package_installed, _install_package, \
                      SuppressedStderr
 
@@ -190,7 +191,13 @@ class ONNXHelper:
         self.config_file = os.path.join(user_data_dir(appname="siril"), "siril_onnx.conf")
 
     def status(self):
-        print(f"ONNXHelper status as of sirilpy version {sirilpy.__version__}")
+        """
+        Prints the current status of the ONNX Helper class in regard to its support for different
+        OSes, GPUs. The world of heterogenous computing is developing rapidly and while support
+        for some of the frameworks for which helpers are available is not yet universally
+        available, hopefully it will improve in the future.
+        """
+        print(f"ONNXHelper status as of sirilpy version {__version__}")
         if self.system == 'windows':
             print("Windows: ONNXHelper will install the DirectML runtime wherever it is supported. "
                 "This includes NVidia CPUs which might see a slight performance improvement using "
@@ -289,8 +296,6 @@ class ONNXHelper:
             list: a list of confirmed working ONNXRuntime ExecutionProviders in priority order
         """
         import onnx
-        import os
-        import tempfile
 
         print("=== ONNX Execution Provider Tester ===")
         print("Creating ONNX model...")
@@ -547,8 +552,12 @@ class ONNXHelper:
             # If the command fails, check directly from PyPI
             try:
                 url = f"https://pypi.org/pypi/{package_name}/json"
-                response = requests.get(url)
+                response = requests.get(url, timeout=10)
                 return response.status_code == 200
+            except requests.exceptions.RequestException:
+                print("Connection error {e}, please try again later")
+                raise
+
             except Exception:
                 return False
 
@@ -715,7 +724,13 @@ class TorchHelper:
         return False
 
     def status(self):
-        print(f"TorchHelper status as of sirilpy version {sirilpy.__version__}")
+        """
+        Prints the current status of the Torch Helper class in regard to its support for different
+        OSes, GPUs. The world of heterogenous computing is developing rapidly and while support
+        for some of the frameworks for which helpers are available is not yet universally
+        available, hopefully it will improve in the future.
+        """
+        print(f"TorchHelper status as of sirilpy version {__version__}")
         if self.system == 'windows':
             print("Windows: TorchHelper will install Torch. A version may be specified but by default "
                 "autodetection will take place. The CUDA 12.8 version will be installed for NVidia GPUs "
@@ -792,24 +807,21 @@ class TorchHelper:
             # macOS: use standard package
             return 'cpu'  # This will trigger standard installation
 
-        elif self.system == 'windows':
-            if detect_nvidia_gpu(self.system):
+        if self.system == 'windows':
+            if _detect_nvidia_gpu(self.system):
                 return 'cu128'
-            else:
-                return 'cpu'
-
-        elif self.system == 'linux':
-            if detect_nvidia_gpu(self.system):
-                return 'cu128'
-            elif detect_amd_gpu():
-                return 'rocm'
-            else:
-                return 'cpu'
-
-        else:
-            # Unknown system, default to CPU
-            print(f"Unknown system '{self.system}', defaulting to CPU installation")
             return 'cpu'
+
+        if self.system == 'linux':
+            if _detect_nvidia_gpu(self.system):
+                return 'cu128'
+            if _detect_amd_gpu():
+                return 'rocm'
+            return 'cpu'
+
+        # Unknown system, default to CPU
+        print(f"Unknown system '{self.system}', defaulting to CPU installation")
+        return 'cpu'
 
     def _import_torch(self) -> bool:
         """Import torch modules and set instance variables."""
@@ -1107,7 +1119,13 @@ class JaxHelper:
         self.detected_config = None
 
     def status(self):
-        print(f"JaxHelper status as of sirilpy version {sirilpy.__version__}")
+        """
+        Prints the current status of the Jax Helper class in regard to its support for different
+        OSes, GPUs. The world of heterogenous computing is developing rapidly and while support
+        for some of the frameworks for which helpers are available is not yet universally
+        available, hopefully it will improve in the future.
+        """
+        print(f"JaxHelper status as of sirilpy version {__version__}")
         if self.system == 'windows':
             print("Windows: JaxHelper will install the CPU version of jax. This does not provide "
                 "acceleration and jax.numpy may often be slower than numpy itself, so it is only "
@@ -1182,7 +1200,7 @@ class JaxHelper:
             Updated configuration with JAX variant recommendation
         """
         if config['system'] == 'windows':
-            priint("(!) The Windows jax[cuda] wheel currently does not "
+            print("(!) The Windows jax[cuda] wheel currently does not "
                 "support numpy 2.x and therefore causes unacceptable "
                 "conflicts with other packages. As jax Windows support "
                 "matures we hope to enable the cuda wheel however at "
@@ -1423,7 +1441,7 @@ class JaxHelper:
                 if test_after_install:
                     print("Testing JAX installation...")
                     try:
-                        execution_provider = self.test_jax_installation()
+                        execution_provider = self.test_jax()
                         results['test_successful'] = True
                         results['execution_provider'] = execution_provider
                         print(f"JAX test successful! Using: {execution_provider}")
@@ -1499,11 +1517,12 @@ class JaxHelper:
                     })
 
             # Also check for packages that start with 'jax'
-            for installed_name in installed_dict.keys():
-                if installed_name.startswith('jax') and installed_name not in [p['installed_name'] for p in detected]:
+            installed_names = [p['installed_name'] for p in detected]
+            for installed_name, version in installed_dict.items():
+                if installed_name.startswith('jax') and installed_name not in installed_names:
                     detected.append({
                         'name': installed_name,
-                        'version': installed_dict[installed_name],
+                        'version': version,
                         'installed_name': installed_name
                     })
 
@@ -1584,7 +1603,7 @@ class JaxHelper:
         print("Performing clean JAX installation...")
 
         # Step 1: Detect and uninstall existing JAX
-        uninstall_results = self.detect_and_uninstall_jax(dry_run=False)
+        uninstall_results = self.uninstall_jax(dry_run=False)
 
         if uninstall_results['errors']:
             print("Warning: Some errors occurred during uninstallation:")
