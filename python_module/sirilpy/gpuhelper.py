@@ -22,7 +22,7 @@ from typing import Optional, Dict, Any
 from packaging import version as pkg_version
 import requests
 import numpy as np
-from . import __version__
+from .version import __version__
 from .utility import ensure_installed, _check_package_installed, _install_package, \
                      SuppressedStderr
 
@@ -1104,6 +1104,67 @@ class TorchHelper:
         self.test_torch_gpu()
         self.test_tensor_operations()
         return True
+
+    def uninstall_torch(self):
+        """
+        Detects and uninstalls PyTorch and related packages.
+        Checks for torch ecosystem packages.
+        Returns:
+            list: A list of uninstalled packages
+        """
+        # Define torch ecosystem packages to look for
+        torch_ecosystem_packages = [
+            'torch', 'torchvision', 'torchaudio', 'torchtext', 'torchdata',
+            'pytorch-lightning', 'lightning', 'pytorch-ignite', 'ignite',
+            'fastai', 'transformers', 'accelerate', 'timm'
+        ]
+
+        # Get all installed packages
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "list"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            installed_packages = result.stdout.splitlines()
+        except subprocess.CalledProcessError as e:
+            print(f"Error getting installed packages: {e}")
+            return []
+
+        # Extract package names from pip list output
+        installed_package_names = set()
+        for line in installed_packages:
+            parts = line.split()
+            if parts:
+                installed_package_names.add(parts[0].lower())
+
+        # Find torch packages that are actually installed
+        torch_packages = []
+        for package in torch_ecosystem_packages:
+            if package.lower() in installed_package_names:
+                torch_packages.append(package)
+
+        # Uninstall found packages
+        if not torch_packages:
+            print("No torch packages found.")
+            return []
+
+        print(f"Found torch packages: {', '.join(torch_packages)}")
+        uninstalled = []
+        for package in torch_packages:
+            print(f"Uninstalling {package}...")
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "uninstall", "-y", package],
+                    check=True
+                )
+                uninstalled.append(package)
+                print(f"Successfully uninstalled {package}")
+            except subprocess.CalledProcessError:
+                print(f"Failed to uninstall {package}")
+
+        return uninstalled
 
 class JaxHelper:
     """
