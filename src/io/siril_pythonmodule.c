@@ -1584,55 +1584,6 @@ cleanup_files:
 	return success;
 }
 
-gboolean delete_directory(const gchar *dir_path, GError **error) {
-	GDir *dir;
-	const gchar *name;
-	gchar *full_path;
-	GFile *file;
-	gboolean success = TRUE;
-
-	dir = g_dir_open(dir_path, 0, error);
-	if (!dir) {
-		return FALSE;
-	}
-
-	siril_debug_print("Deleting %s...\n", dir_path);
-
-	while ((name = g_dir_read_name(dir))) {
-		full_path = g_build_filename(dir_path, name, NULL);
-
-		if (g_file_test(full_path, G_FILE_TEST_IS_DIR)) {
-			if (!delete_directory(full_path, error)) {
-				success = FALSE;
-				break;
-			}
-		} else {
-			file = g_file_new_for_path(full_path);
-			if (!g_file_delete(file, NULL, error)) {
-				g_object_unref(file);
-				success = FALSE;
-				break;
-			}
-			g_object_unref(file);
-		}
-
-		g_free(full_path);
-	}
-
-	g_dir_close(dir);
-
-	if (success) {
-		file = g_file_new_for_path(dir_path);
-		if (!g_file_delete(file, NULL, error)) {
-			g_object_unref(file);
-			return FALSE;
-		}
-		g_object_unref(file);
-	}
-
-	return success;
-}
-
 gboolean install_module_with_pip(const gchar* module_path, const gchar* user_module_path,
 							const gchar* venv_path, GError** error) {
 	g_return_val_if_fail(module_path != NULL, FALSE);
