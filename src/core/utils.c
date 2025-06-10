@@ -2171,3 +2171,78 @@ gchar *find_file_recursively(gchar *basename, const gchar *top_path) {
 char *strdupnullok(char *data) {
 	return (data) ? strdup(data) : NULL;
 }
+
+// Returns the full path minus the extension
+gchar* remove_extension_from_path(const gchar* filepath) {
+    if (!filepath) return NULL;
+
+    // Find the last dot in the entire path
+    gchar* last_dot = g_strrstr(filepath, ".");
+
+    // Find the last directory separator to ensure the dot is in the filename part
+    gchar* last_sep = g_strrstr(filepath, G_DIR_SEPARATOR_S);
+
+    // Only remove extension if:
+    // 1. There is a dot
+    // 2. The dot comes after the last directory separator (or there's no separator)
+    // 3. The dot is not at the end of the string
+    if (last_dot &&
+        (!last_sep || last_dot > last_sep) &&
+        *(last_dot + 1) != '\0') {
+
+        // Create new string up to (but not including) the dot
+        return g_strndup(filepath, last_dot - filepath);
+    }
+
+    // No extension found, return copy of original
+    return g_strdup(filepath);
+}
+
+gboolean delete_directory(const gchar *dir_path, GError **error) {
+	GDir *dir;
+	const gchar *name;
+	gchar *full_path;
+	GFile *file;
+	gboolean success = TRUE;
+
+	dir = g_dir_open(dir_path, 0, error);
+	if (!dir) {
+		return FALSE;
+	}
+
+	siril_debug_print("Deleting %s...\n", dir_path);
+
+	while ((name = g_dir_read_name(dir))) {
+		full_path = g_build_filename(dir_path, name, NULL);
+
+		if (g_file_test(full_path, G_FILE_TEST_IS_DIR)) {
+			if (!delete_directory(full_path, error)) {
+				success = FALSE;
+				break;
+			}
+		} else {
+			file = g_file_new_for_path(full_path);
+			if (!g_file_delete(file, NULL, error)) {
+				g_object_unref(file);
+				success = FALSE;
+				break;
+			}
+			g_object_unref(file);
+		}
+
+		g_free(full_path);
+	}
+
+	g_dir_close(dir);
+
+	if (success) {
+		file = g_file_new_for_path(dir_path);
+		if (!g_file_delete(file, NULL, error)) {
+			g_object_unref(file);
+			return FALSE;
+		}
+		g_object_unref(file);
+	}
+
+	return success;
+}

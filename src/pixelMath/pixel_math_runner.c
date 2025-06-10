@@ -723,7 +723,11 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = (double) var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					x[nb_rows] = (double) gfit.fdata[px];
+					if (gfit.type == DATA_USHORT) {
+						x[nb_rows] = (double) gfit.data[px] / USHRT_MAX_DOUBLE;
+					} else {
+						x[nb_rows] = (double) gfit.fdata[px];
+					}
 				}
 
 				if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
@@ -761,7 +765,11 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					x[nb_rows] = gfit.fdata[px];
+					if (gfit.type == DATA_USHORT) {
+						x[nb_rows] = gfit.data[px] / USHRT_MAX_DOUBLE;
+					} else {
+						x[nb_rows] = gfit.fdata[px];
+					}
 				}
 
 				if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB

@@ -31,7 +31,8 @@ typedef enum {
 	OUTPUT_LOGS
 } main_tabs;
 
-
+void gui_mutex_lock();
+void gui_mutex_unlock();
 GtkWidget* lookup_widget (const gchar *widget_name);
 GObject* lookup_gobject(const gchar *gobject_name);
 GtkAdjustment* lookup_adjustment(const gchar *adjustment_name);

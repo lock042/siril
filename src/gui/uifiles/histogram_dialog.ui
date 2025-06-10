@@ -907,7 +907,7 @@ Clip is fastest: set one of the other modes when you're happy with your stretch 
                             <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which stretches based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; independent channel values, which applies the stretch independently to each channel of the pixel; and saturation, which applies the stretch to the S component in HSL space. In saturation mode the saturation histogram curve is shown in yellow.
 Note: human-weighted luminance is not allowed if less than 3 colour channels are selected as it doesn't make sense.</property>
                             <property name="hexpand">True</property>
-                            <property name="active">1</property>
+                            <property name="active">0</property>
                             <items>
                               <item translatable="yes">Independent channel values</item>
                               <item translatable="yes">Human weighted luminance</item>

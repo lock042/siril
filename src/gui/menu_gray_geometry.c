@@ -107,7 +107,8 @@ void on_button_rotation_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 gboolean rotation_hide_on_delete(GtkWidget *widget) {
-	on_button_rotation_close_clicked(GTK_BUTTON(widget), NULL);
+	delete_selected_area();
+	siril_close_dialog("rotation_dialog");
 	return TRUE;
 }
 
@@ -202,7 +203,7 @@ void on_button_binning_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 gboolean binxy_hide_on_delete(GtkWidget *widget) {
-	on_button_binning_close_clicked(GTK_BUTTON(widget), NULL);
+	siril_close_dialog("binxy_dialog");
 	return TRUE;
 }
 
@@ -238,7 +239,7 @@ void on_button_resample_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 gboolean resample_hide_on_delete(GtkWidget *widget) {
-	on_button_resample_close_clicked(GTK_BUTTON(widget), NULL);
+	siril_close_dialog("resample_dialog");
 	return TRUE;
 }
 
@@ -423,6 +424,6 @@ void on_crop_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 gboolean crop_hide_on_delete(GtkWidget *widget) {
-	on_crop_close_clicked(GTK_BUTTON(widget), NULL);
+	siril_close_dialog("crop_dialog");
 	return TRUE;
 }

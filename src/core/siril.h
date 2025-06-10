@@ -571,7 +571,7 @@ typedef enum {
 	SPCC_GREEN = 1 << GLAYER,
 	SPCC_BLUE = 1 << BLAYER,
 	SPCC_CLEAR = SPCC_RED | SPCC_GREEN | SPCC_BLUE,
-	SPCC_INVIS = 0
+	SPCC_INVIS = 1 << 7
 } spcc_channel;
 
 /* Filter spectral responses are defined by unevenly spaced frequency samples
@@ -787,7 +787,7 @@ struct guiinf {
 	void (*draw_extra)(draw_data_t *dd);
 
 	/* List of all scripts from the repository */
-	GList* repo_scripts; // the list of selected scripts is in com.pref
+	GSList* repo_scripts; // the list of selected scripts is in com.pref
 	/* gboolean to confirm the script repository has been opened without error */
 	gboolean script_repo_available;
 	gboolean spcc_repo_available;
@@ -876,6 +876,7 @@ struct cominf {
 	GThread *python_init_thread; // python initialization thread, used to monitor startup completion
 	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread
+	GMutex env_mutex;		// a mutex used for updating environment vars (g_setenv is not threadsafe)
 	GThread *python_thread;	// the thread for the python interpreter
 	gboolean run_thread;		// the main thread loop condition
 	gboolean python_claims_thread;	// prevent other things acquiring the processing thread while a python script has it
