@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-06 16:56+0200\n"
-"PO-Revision-Date: 2025-06-07 18:13+0000\n"
+"PO-Revision-Date: 2025-06-10 18:53+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -8000,6 +8000,9 @@ msgid ""
 "ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg "
 "etc.)"
 msgstr ""
+"Use isto junto com a opção \"De arquivos\" acima. Isso deve ser um perfil "
+"ICC RGB na sua gama de cores preferida (por exemplo, ProPhoto, ClayRGB, "
+"ACEScg etc.)"
 
 #: src/gui/uifiles/settings_window.ui:4220
 msgid ""
@@ -8007,6 +8010,9 @@ msgid ""
 "Gray (mono) ICC profile with a tone response curve that matches that of the "
 "RGB profile you set above."
 msgstr ""
+"Use isso junto com a opção \"De arquivos\" acima. Isso deve ser um perfil "
+"ICC Gray (mono) com uma curva de resposta tonal que corresponda à do perfil "
+"RGB que você definiu acima."
 
 #: src/gui/uifiles/settings_window.ui:4237
 msgid "Working Color Spaces"
@@ -8021,6 +8027,9 @@ msgid ""
 "To use a custom monitor ICC profile, set it here. If no custom profile is "
 "set, sRGB with D65 white point and gamma = 2.2 will be used."
 msgstr ""
+"Para usar um perfil ICC de monitor personalizado, defina-o aqui. Se nenhum "
+"perfil personalizado for definido, será utilizado o sRGB com ponto branco "
+"D65 e gama = 2.2."
 
 #: src/gui/uifiles/settings_window.ui:4295
 msgid ""
@@ -8028,6 +8037,9 @@ msgid ""
 "set or is inactive, the monitor profile (or sRGB by default) will be used as "
 "the soft proofing target."
 msgstr ""
+"Especifique um perfil de dispositivo de saída para fins de prova suave. Se "
+"isso não estiver configurado ou estiver inativo, o perfil do monitor (ou "
+"sRGB por padrão) será utilizado como o alvo de prova suave."
 
 #: src/gui/uifiles/settings_window.ui:4309
 msgid "Output device proofing profile:"
@@ -8059,7 +8071,7 @@ msgstr "Saturação"
 #: src/gui/uifiles/settings_window.ui:4339
 #: src/gui/uifiles/settings_window.ui:4537
 msgid "Absolute Colorimetric"
-msgstr ""
+msgstr "Colorimetria absoluta"
 
 #: src/gui/uifiles/settings_window.ui:4350
 msgid "Black point compensation"
@@ -8070,25 +8082,30 @@ msgid ""
 "Enable BPC for rendering. This is not normally required but may be useful if "
 "an image has a malformed source profile."
 msgstr ""
+"Ative o BPC para renderização. Isso normalmente não é necessário, mas pode "
+"ser útil se uma imagem tiver um perfil de origem malformado."
 
 #: src/gui/uifiles/settings_window.ui:4373
 msgid "Clear the profile and revert to the default"
-msgstr ""
+msgstr "Limpe o perfil e volte para o padrão"
 
 #: src/gui/uifiles/settings_window.ui:4384
 #: src/gui/uifiles/settings_window.ui:4425
 msgid "active"
-msgstr ""
+msgstr "ativo"
 
 #: src/gui/uifiles/settings_window.ui:4388
 msgid ""
 "Whether or not to use the custom monitor profile. This will take effect when "
 "Apply is clicked. The setting is ignored if no custom monitor profile is set."
 msgstr ""
+"Se deve ou não usar o perfil de monitor personalizado. Isso terá efeito "
+"quando Aplicar for clicado. A configuração é ignorada se nenhum perfil de "
+"monitor personalizado estiver definido."
 
 #: src/gui/uifiles/settings_window.ui:4414
 msgid "Clear the profile: soft proofing will be unavailable"
-msgstr ""
+msgstr "Limpe o perfil: prova suave não estará disponível"
 
 #: src/gui/uifiles/settings_window.ui:4429
 msgid ""
@@ -8096,6 +8113,9 @@ msgid ""
 "effect when Apply is clicked. The setting is ignored if no custom monitor "
 "profile is set."
 msgstr ""
+"Se deve ou não usar o perfil de prova suave personalizado. Isso terá efeito "
+"quando Aplicar for clicado. A configuração é ignorada se nenhum perfil de "
+"monitor personalizado estiver definido."
 
 #: src/gui/uifiles/settings_window.ui:4453
 msgid "Custom Profiles"
@@ -8109,10 +8129,15 @@ msgid ""
 "These options do not affect the profiles saved in FITS files, which is "
 "configured in FITS Options"
 msgstr ""
+"Esta seção contém configurações que afetam como os espaços de cor são "
+"aplicados aos arquivos salvos. \n"
+"\n"
+"Essas opções não afetam os perfis salvos em arquivos FITS, que são "
+"configurados nas Opções FITS"
 
 #: src/gui/uifiles/settings_window.ui:4489
 msgid "Export high bit depth images using:"
-msgstr ""
+msgstr "Exporte imagens de alta profundidade de bits usando:"
 
 #: src/gui/uifiles/settings_window.ui:4500
 msgid ""
@@ -8121,11 +8146,15 @@ msgid ""
 "Note: if the format does not support ICC profile embedding, images will "
 "always be exported as sRGB."
 msgstr ""
+"Seleciona em qual espaço de cor exportar imagens com profundidade de bits "
+">8bpp. O perfil de cor ICC será incorporado no arquivo.\n"
+"Nota: se o formato não suportar a incorporação do perfil ICC, as imagens "
+"sempre serão exportadas como sRGB."
 
 #: src/gui/uifiles/settings_window.ui:4505
 #: src/gui/uifiles/settings_window.ui:4585
 msgid "Working gamut"
-msgstr ""
+msgstr "Gama de trabalho"
 
 #: src/gui/uifiles/settings_window.ui:4506
 #: src/gui/uifiles/settings_window.ui:4586
@@ -8134,15 +8163,18 @@ msgstr "Perfil ICC atual da imagem"
 
 #: src/gui/uifiles/settings_window.ui:4520
 msgid "Conversion and export intent:"
-msgstr ""
+msgstr "Intenção de conversão e exportação:"
 
 #: src/gui/uifiles/settings_window.ui:4531
 msgid "Select the color management intent for conversion / export"
 msgstr ""
+"Selecione a intenção de gerenciamento de cores para conversão / exportação"
 
 #: src/gui/uifiles/settings_window.ui:4548
 msgid "Treat non color-managed files as sRGB for export to supported formats"
 msgstr ""
+"Tratar arquivos não gerenciados por cor como sRGB para exportação para "
+"formatos suportados"
 
 #: src/gui/uifiles/settings_window.ui:4552
 msgid ""
@@ -8152,10 +8184,16 @@ msgid ""
 "reproduction when opening the exported files in other applications.\n"
 "If this option is unchecked, no ICC profile will be embedded."
 msgstr ""
+"Para arquivos sem um perfil de cor designado, ao exportar para TIFF / PNG / "
+"JPG, incorpore um perfil ICC sRGB (ou Gray com TRC sRGB). Isso não oferece "
+"um fluxo de trabalho verdadeiramente gerenciado por cores e não garante uma "
+"reprodução de cores consistente ao abrir os arquivos exportados em outros "
+"aplicativos.\n"
+"Se esta opção não estiver marcada, nenhum perfil ICC será incorporado."
 
 #: src/gui/uifiles/settings_window.ui:4569
 msgid "Export 8-bit images using:"
-msgstr ""
+msgstr "Exporte imagens de 8 bits usando:"
 
 #: src/gui/uifiles/settings_window.ui:4580
 msgid ""
@@ -8164,37 +8202,43 @@ msgid ""
 "Note: if the format does not support ICC profile embedding, images will "
 "always be exported as sRGB."
 msgstr ""
+"Seleciona qual espaço de cor exportar imagens de 8 bits, se o formato "
+"suportar perfis ICC. O perfil de cor ICC será incorporado no arquivo.\n"
+"Nota: se o formato não suportar a incorporação de perfis ICC, as imagens "
+"sempre serão exportadas como sRGB."
 
 #: src/gui/uifiles/settings_window.ui:4603
 msgid "File Import / Export Options"
-msgstr ""
+msgstr "Opções de Importação / Exportação de Arquivo"
 
 #: src/gui/uifiles/settings_window.ui:4637
 msgid "Auto assign working color space:"
-msgstr ""
+msgstr "Atribuir automaticamente o espaço de cor de trabalho:"
 
 #: src/gui/uifiles/settings_window.ui:4650
 msgid "Convert other color profiles to the working profile?"
-msgstr ""
+msgstr "Converter outros perfis de cores para o perfil de trabalho?"
 
 #: src/gui/uifiles/settings_window.ui:4661
 msgid ""
 "This option sets the behaviour if an image is loaded and it already contains "
 "an ICC profile."
 msgstr ""
+"Esta opção define o comportamento se uma imagem for carregada e já contiver "
+"um perfil ICC."
 
 #: src/gui/uifiles/settings_window.ui:4664
 #: src/gui/uifiles/settings_window.ui:4718
 msgid "Never"
-msgstr ""
+msgstr "Nunca"
 
 #: src/gui/uifiles/settings_window.ui:4665
 msgid "Ask every time"
-msgstr ""
+msgstr "Pergunte toda vez"
 
 #: src/gui/uifiles/settings_window.ui:4666
 msgid "Always"
-msgstr ""
+msgstr "Sempre"
 
 #: src/gui/uifiles/settings_window.ui:4676
 msgid "On load"
@@ -8206,7 +8250,7 @@ msgstr "No empilhamento"
 
 #: src/gui/uifiles/settings_window.ui:4704
 msgid "On stretching"
-msgstr ""
+msgstr "No alongamento (stretching)"
 
 #: src/gui/uifiles/settings_window.ui:4733
 msgid "Output of RGB composition / PixelMath"
@@ -8214,7 +8258,7 @@ msgstr "Saída da composição RGB / PixelMath"
 
 #: src/gui/uifiles/settings_window.ui:4747
 msgid "Pedantically assign linear ICC profiles"
-msgstr ""
+msgstr "Atribuir perfis ICC lineares de forma pedante"
 
 #: src/gui/uifiles/settings_window.ui:4751
 msgid ""
@@ -8225,10 +8269,16 @@ msgid ""
 "assign a linear ICC profile. This is technically correct but generally "
 "unnecessary."
 msgstr ""
+"Ao atribuir uma imagem ICC a:\n"
+"* uma imagem carregada que não mostra distorções no HISTÓRICO\n"
+"* uma imagem recém-composta\n"
+"* uma imagem recém-empilhada\n"
+"atribua um perfil ICC linear. Isso é tecnicamente correto, mas geralmente "
+"desnecessário."
 
 #: src/gui/uifiles/settings_window.ui:4772
 msgid "Auto Conversion / Assignment Options"
-msgstr ""
+msgstr "Opções de Conversão Automática / Atribuição"
 
 #: src/gui/uifiles/settings_window.ui:4808
 #: src/gui/uifiles/settings_window.ui:4839
@@ -8237,15 +8287,15 @@ msgstr "Funções de correspondência de cores"
 
 #: src/gui/uifiles/settings_window.ui:4821
 msgid "CIE 1931 2 degree standard observer"
-msgstr ""
+msgstr "observador padrão de 2 graus CIE 1931"
 
 #: src/gui/uifiles/settings_window.ui:4822
 msgid "CIE 1964 10 degree supplementary standard observer"
-msgstr ""
+msgstr "Observador suplementar padrão CIE 1964 de 10 graus"
 
 #: src/gui/uifiles/settings_window.ui:4865
 msgid "Export built-in profiles"
-msgstr ""
+msgstr "Exportar perfis embutidos"
 
 #: src/gui/uifiles/settings_window.ui:4869
 msgid ""
@@ -8254,6 +8304,10 @@ msgid ""
 "Siril binary, this export function serves to comply with the \"share-alike\" "
 "provision of the licence."
 msgstr ""
+"Exporte os perfis embutidos para o diretório de trabalho. Os perfis de Elle "
+"Stone são distribuídos sob a licença CC BY-SA-3.0. Como eles estão "
+"integrados no binário do Siril, essa função de exportação serve para cumprir "
+"a disposição de 'compartilhar igual' da licença."
 
 #: src/gui/uifiles/settings_window.ui:4886
 msgid "<b>Built-in Profiles</b>"
@@ -8262,7 +8316,7 @@ msgstr "<b>Perfis integrados</b>"
 #: src/gui/uifiles/settings_window.ui:4927
 #: src/gui/uifiles/settings_window.ui:5341 src/gui/uifiles/siril.ui:10643
 msgid "Scripts"
-msgstr ""
+msgstr "Scritps"
 
 #: src/gui/uifiles/settings_window.ui:4958
 msgid ""
@@ -8271,6 +8325,10 @@ msgid ""
 "want. However you have to keep in mind that more paths are checked the "
 "longer is the startup."
 msgstr ""
+"Os caminhos escritos nesta caixa de texto serão verificados para carregar os "
+"scripts que foram colocados dentro. Escreva um caminho por linha, com "
+"quantas linhas você quiser. No entanto, você deve ter em mente que quanto "
+"mais caminhos são verificados, mais longa é a inicialização."
 
 #: src/gui/uifiles/settings_window.ui:4971
 msgid "<b>Scripts Storage Directories</b>"
@@ -8278,15 +8336,15 @@ msgstr "<b>Diretórios de armazenamento de scripts</b>"
 
 #: src/gui/uifiles/settings_window.ui:4988
 msgid "Rescans the scripts folders and updates scripts menu."
-msgstr ""
+msgstr "Reescanea as pastas de scripts e atualiza o menu de scripts."
 
 #: src/gui/uifiles/settings_window.ui:5019
 msgid "Show warning before script execution"
-msgstr ""
+msgstr "Mostrar aviso antes da execução do script"
 
 #: src/gui/uifiles/settings_window.ui:5035
 msgid "\"Requires\" command is mandatory in scripts"
-msgstr ""
+msgstr "O comando \"Requires\" é obrigatório em scripts"
 
 #: src/gui/uifiles/settings_window.ui:5039
 msgid ""
@@ -8305,7 +8363,7 @@ msgstr "Diálogos de aviso"
 
 #: src/gui/uifiles/settings_window.ui:5088
 msgid "Enable use of the siril-scripts online repository"
-msgstr ""
+msgstr "Habilitar o uso do repositório online de scripts siril"
 
 #: src/gui/uifiles/settings_window.ui:5092
 msgid ""
@@ -8325,7 +8383,7 @@ msgstr "Atualizações automáticas"
 
 #: src/gui/uifiles/settings_window.ui:5118
 msgid "Automatically update the repository at startup."
-msgstr ""
+msgstr "Atualizar o repositório automaticamente na inicialização."
 
 #: src/gui/uifiles/settings_window.ui:5130
 msgid "Manual update"
@@ -8337,6 +8395,9 @@ msgid ""
 "commit messages will be shown and you will be asked to confirm applying the "
 "changes."
 msgstr ""
+"Atualize o repositório de scripts agora. Se houver alterações pendentes, as "
+"mensagens de commit serão exibidas e você será solicitado a confirmar a "
+"aplicação das alterações."
 
 #: src/gui/uifiles/settings_window.ui:5162
 msgid ""
@@ -8344,14 +8405,18 @@ msgid ""
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
 "(This can be used to make and save local changes to a script.)"
 msgstr ""
+"Lista de scripts disponíveis. Os scripts selecionados estarão disponíveis no "
+"menu Scripts. Clique duas vezes em uma linha para abrir o script no Editor "
+"de Scripts. (Isso pode ser usado para fazer e salvar alterações locais em um "
+"script.)"
 
 #: src/gui/uifiles/settings_window.ui:5177
 msgid "Category"
-msgstr ""
+msgstr "Categoria"
 
 #: src/gui/uifiles/settings_window.ui:5193
 msgid "Script"
-msgstr ""
+msgstr "Script"
 
 #: src/gui/uifiles/settings_window.ui:5209
 msgid "Type"
@@ -8377,7 +8442,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5321
 msgid "Python Interface"
-msgstr ""
+msgstr "Interface Python"
 
 #: src/gui/uifiles/settings_window.ui:5355
 #: src/gui/uifiles/settings_window.ui:5753
@@ -8401,7 +8466,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5406
 msgid "Fixed amount (GB)"
-msgstr ""
+msgstr "Quantidade fixa (GB)"
 
 #: src/gui/uifiles/settings_window.ui:5410
 msgid ""
@@ -8410,6 +8475,10 @@ msgid ""
 "Configuring a memory amount larger than what is available on your system may "
 "result in a crash of siril or of the operating system."
 msgstr ""
+"O Siril limitará a uma quantidade fixa de memória e diminuirá o tamanho das "
+"tarefas de trabalho, se necessário.\n"
+"Configurar uma quantidade de memória maior do que a disponível em seu "
+"sistema pode resultar em uma falha do Siril ou do sistema operacional."
 
 #: src/gui/uifiles/settings_window.ui:5426
 msgid ""
@@ -8419,6 +8488,12 @@ msgid ""
 "used for stacking above 1 will require the use of on-disk memory, which is "
 "very slow and unrecommended"
 msgstr ""
+"Define uma nova proporção de memória livre em relação à memória usada para "
+"empilhamento. O valor deve estar entre 0,05 e 2, dependendo de outras "
+"atividades da máquina. Uma proporção maior deve permitir que o Siril empilhe "
+"mais rápido, mas definir a proporção de memória usada para empilhamento "
+"acima de 1 exigirá o uso de memória em disco, que é muito lenta e não "
+"recomendada"
 
 #: src/gui/uifiles/settings_window.ui:5471
 msgid "<b>Memory management</b>"
@@ -8426,7 +8501,7 @@ msgstr "<b>Gerenciamento de Memória</b>"
 
 #: src/gui/uifiles/settings_window.ui:5504
 msgid "Default bit depth for HD AutoStretch"
-msgstr ""
+msgstr "Profundidade de bits padrão para HD AutoStretch"
 
 #: src/gui/uifiles/settings_window.ui:5520
 msgid ""
@@ -8437,10 +8512,17 @@ msgid ""
 "will apply from the next viewer mode change, and can be applied now using "
 "the button to the right."
 msgstr ""
+"Define a profundidade de bits padrão para o modo de exibição HD AutoStretch. "
+"Profundidades de bits mais altas exigem exponencialmente mais memória para a "
+"LUT e levam mais tempo para recalculá-la, mas fazem um trabalho muito melhor "
+"na suavização de artefatos de quantização ao exibir imagens com picos de "
+"histograma muito estreitos. A profundidade de bits padrão será aplicada a "
+"partir da próxima mudança de modo de visualização e pode ser aplicada agora "
+"usando o botão à direita."
 
 #: src/gui/uifiles/settings_window.ui:5537
 msgid "Apply bit depth"
-msgstr ""
+msgstr "Aplicar profundidade de bits"
 
 #: src/gui/uifiles/settings_window.ui:5541
 msgid "Set the selected HD AutoStretch bit depth now"
@@ -8452,7 +8534,7 @@ msgstr "HD Auto estiramento"
 
 #: src/gui/uifiles/settings_window.ui:5595
 msgid "Multithreaded FFTW"
-msgstr ""
+msgstr "FFTW multithreaded"
 
 #: src/gui/uifiles/settings_window.ui:5599
 msgid ""
@@ -8460,10 +8542,14 @@ msgid ""
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
 msgstr ""
+"Se selecionado, o FFTW usará múltiplos threads. Isso geralmente acelera o "
+"processamento de imagens grandes, mas aumentará o tempo de planejamento "
+"inicial na primeira vez que o FFTW operar em uma imagem de um determinado "
+"tamanho."
 
 #: src/gui/uifiles/settings_window.ui:5614 src/core/settings.c:382
 msgid "FFTW planning strategy"
-msgstr ""
+msgstr "Estratégia de planejamento FFTW"
 
 #: src/gui/uifiles/settings_window.ui:5625
 msgid ""
@@ -8486,23 +8572,23 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:5630 src/gui/uifiles/siril.ui:5073
 #: src/gui/uifiles/siril.ui:6943
 msgid "Estimate"
-msgstr ""
+msgstr "Estimar"
 
 #: src/gui/uifiles/settings_window.ui:5631
 msgid "Measure"
-msgstr ""
+msgstr "Medir"
 
 #: src/gui/uifiles/settings_window.ui:5632
 msgid "Patient"
-msgstr ""
+msgstr "Paciente"
 
 #: src/gui/uifiles/settings_window.ui:5633
 msgid "Exhaustive"
-msgstr ""
+msgstr "Exaustivo"
 
 #: src/gui/uifiles/settings_window.ui:5646
 msgid "FFTW planning time limit (seconds)"
-msgstr ""
+msgstr "Limite de tempo de planejamento do FFTW (segundos)"
 
 #: src/gui/uifiles/settings_window.ui:5657
 msgid ""
@@ -8514,7 +8600,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5672
 msgid "Minimum PSF size to use FFT convolutions"
-msgstr ""
+msgstr "Tamanho mínimo de PSF para usar convoluções FFT"
 
 #: src/gui/uifiles/settings_window.ui:5683
 msgid ""
@@ -8526,10 +8612,18 @@ msgid ""
 "is therefore configurable. This parameter sets the minimum size for which "
 "Fourier Transforms will be used."
 msgstr ""
+"Siril pode calcular convoluções somando sobre o kernel em cada pixel ou "
+"usando Transformadas de Fourier. O primeiro método torna-se muito "
+"ineficiente para tamanhos de kernel grandes, enquanto o segundo envolve "
+"algum tempo de configuração. Portanto, as Transformadas de Fourier são mais "
+"rápidas para kernels maiores, e a soma é mais rápida para kernels menores. O "
+"ponto exato de transição dependerá do seu hardware e, portanto, é "
+"configurável. Este parâmetro define o tamanho mínimo para o qual as "
+"Transformadas de Fourier serão usadas."
 
 #: src/gui/uifiles/settings_window.ui:5699
 msgid "Maximum slice size for sliced image operations"
-msgstr ""
+msgstr "Tamanho máximo de fatia para operações com imagem fatiada"
 
 #: src/gui/uifiles/settings_window.ui:5710
 msgid ""
@@ -8538,10 +8632,15 @@ msgid ""
 "limited range of sizes in order to utilise a limited range of FFTW3 wisdom "
 "more effectively. It is always safe to leave this at the default setting."
 msgstr ""
+"Define o tamanho máximo da fatia para operações de imagem que podem usar "
+"processamento em fatias. O principal objetivo disso é restringir fatias "
+"típicas a uma faixa limitada de tamanhos, a fim de utilizar uma faixa "
+"limitada de sabedoria do FFTW3 de maneira mais eficaz. É sempre seguro "
+"deixar isso na configuração padrão."
 
 #: src/gui/uifiles/settings_window.ui:5713
 msgid "Unlimited"
-msgstr ""
+msgstr "Ilimitado"
 
 #: src/gui/uifiles/settings_window.ui:5739
 msgid "<b>FFTW Options</b>"
@@ -8550,7 +8649,7 @@ msgstr "<b>Opções FFTW</b>"
 #: src/gui/uifiles/settings_window.ui:5767
 #: src/gui/uifiles/settings_window.ui:6210
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Miscelânea"
 
 #: src/gui/uifiles/settings_window.ui:5795
 msgid ""
@@ -8586,17 +8685,19 @@ msgstr "Não perguntar antes de sair"
 
 #: src/gui/uifiles/settings_window.ui:5888
 msgid "Don't ask before saving when display is not linear"
-msgstr ""
+msgstr "Não pergunte antes de salvar quando a exibição não for linear"
 
 #: src/gui/uifiles/settings_window.ui:5903
 msgid "Don't explain about ROI processing in related dialogs"
-msgstr ""
+msgstr "Não explique sobre processamento de ROI em diálogos relacionados"
 
 #: src/gui/uifiles/settings_window.ui:5907
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
 msgstr ""
+"Suprimir o diálogo de informação explicando sobre o processamento de ROI ao "
+"abrir um diálogo apropriado"
 
 #: src/gui/uifiles/settings_window.ui:5946
 msgid "Play introduction"
@@ -8619,7 +8720,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:6000
 msgid "Select StarNet executable"
-msgstr ""
+msgstr "Selecione o executável StarNet"
 
 #: src/gui/uifiles/settings_window.ui:6014
 msgid "Must point to a valid StarNet executable."
@@ -8647,6 +8748,8 @@ msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
 msgstr ""
+"Pode apontar para um arquivo de pesos da rede neural StarNet.\n"
+"Apenas versões StarNet baseadas em Torch."
 
 #: src/gui/uifiles/settings_window.ui:6101
 msgid "Must point to a valid GraXpert executable."
@@ -8658,23 +8761,23 @@ msgstr "Localização do software"
 
 #: src/gui/uifiles/settings_window.ui:6143
 msgid "Copyright when saving image as TIFF"
-msgstr ""
+msgstr "Direitos autorais ao salvar imagem como TIFF"
 
 #: src/gui/uifiles/settings_window.ui:6155
 msgid "Copyright TIFF"
-msgstr ""
+msgstr "Copyright TIFF"
 
 #: src/gui/uifiles/settings_window.ui:6177
 msgid "Check update at startup"
-msgstr ""
+msgstr "Verificar atualização na inicialização"
 
 #: src/gui/uifiles/settings_window.ui:6193 src/core/siril_actions.c:823
 msgid "Update"
-msgstr ""
+msgstr "Atualização"
 
 #: src/gui/uifiles/siril.ui:296
 msgid "Clear all curves displayed in photometry."
-msgstr ""
+msgstr "Limpe todas as curvas exibidas na fotometria."
 
 #: src/gui/uifiles/siril.ui:297
 msgid "Clear all"
@@ -8682,7 +8785,7 @@ msgstr "Limpar tudo"
 
 #: src/gui/uifiles/siril.ui:312
 msgid "Clear the last curve added in photometry."
-msgstr ""
+msgstr "Limpe a última curva adicionada na fotometria."
 
 #: src/gui/uifiles/siril.ui:313
 msgid "Clear latest"
@@ -8690,15 +8793,15 @@ msgstr "Limpar mais recente"
 
 #: src/gui/uifiles/siril.ui:335
 msgid "Julian Date"
-msgstr ""
+msgstr "Data Juliana"
 
 #: src/gui/uifiles/siril.ui:357
 msgid "Nothing to change"
-msgstr ""
+msgstr "Nada a mudar"
 
 #: src/gui/uifiles/siril.ui:367
 msgid "arcsec"
-msgstr ""
+msgstr "arcsec"
 
 #: src/gui/uifiles/siril.ui:499
 msgid "Siril Manual"
@@ -8706,15 +8809,15 @@ msgstr "Manual do Siril"
 
 #: src/gui/uifiles/siril.ui:513
 msgid "Check For Updates"
-msgstr ""
+msgstr "Verificar se há atualizações"
 
 #: src/gui/uifiles/siril.ui:527
 msgid "Get Scripts"
-msgstr ""
+msgstr "Obter scritps"
 
 #: src/gui/uifiles/siril.ui:541
 msgid "Keyboard Shortcuts"
-msgstr ""
+msgstr "Atalhos de Teclado"
 
 #: src/gui/uifiles/siril.ui:555 src/gui/about_dialog.c:70
 msgid "About Siril"
@@ -8726,7 +8829,7 @@ msgstr "AutoEstirar"
 
 #: src/gui/uifiles/siril.ui:644
 msgid "High definition"
-msgstr ""
+msgstr "Alta definição"
 
 #: src/gui/uifiles/siril.ui:668
 msgid "Exclude frame %d"
@@ -8755,6 +8858,9 @@ msgid ""
 "otherwise if the checkbox 'follow star movement' is checked in the "
 "registration tab, it will run with this option."
 msgstr ""
+"Usará os dados de registro se houver algum disponível na camada de registro; "
+"caso contrário, se a caixa de seleção 'seguir o movimento das estrelas' "
+"estiver marcada na aba de registro, ele será executado com essa opção."
 
 #: src/gui/uifiles/siril.ui:789
 msgid "PSF for the Sequence"
@@ -27220,6 +27326,7 @@ msgstr ""
 #: src/stacking/upscaling.c:147
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
+"A empilhamento será feito sem aumentar a escala (desativando 'drizzle')\n"
 
 #~ msgid "Siril GraXpert Interface"
 #~ msgstr "Interface Siril GraXpert"
