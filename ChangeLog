@@ -17,6 +17,7 @@ xx/xx/25
 * Fixed issues with updating the script repository - no longer cloned with depth=1
 * Fixed handling of star cluster names containing * characters
 * Fixed an issue with git repositories where they could be unable to update after changes to the remote (!900)
+* Fixed an inconsistency between GList / GSList that caused crashes relating to the scripts menu for some users (!899)
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
@@ -26,6 +27,7 @@ xx/xx/25
 * Improved compatibility of sirilpy.tkfilebrowser with tkinter.filedialog (allows replacing the awful Linux tk filedialog)
 * Improved the GPU module helper methods in sirilpy
 * Fixed a crash with RGB compositing (#1562)
+* Changed the default GHT colour mode from human weighed luminance to independent (!899)
 
 siril 1.4.0-beta2
 05/21/25
