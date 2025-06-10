@@ -399,16 +399,16 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	if (com.pref.use_scripts_repository && com.pref.selected_scripts) {
 		// Remove NULL entries from selected_scripts in-place
 		// Sort selected_scripts in-place
-		com.pref.selected_scripts = g_list_sort(com.pref.selected_scripts, compare_basenames);
+		com.pref.selected_scripts = g_slist_sort(com.pref.selected_scripts, compare_basenames);
 		// Iterate and prune any items not found in repo (if purge_removed)
-		GList *l = com.pref.selected_scripts;
+		GSList *l = com.pref.selected_scripts;
 		l = com.pref.selected_scripts;
 		while (l != NULL) {
-			GList *next = l->next;
+			GSList *next = l->next;
 			gchar *path = l->data;
 			// Remove any scripts with a NULL path
 			if (!path) {
-				com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, l);
+				com.pref.selected_scripts = g_slist_delete_link(com.pref.selected_scripts, l);
 				l = next;
 				continue;
 			}
@@ -416,7 +416,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 			gboolean included = !gui.repo_scripts;
 
 			if (gui.repo_scripts != NULL && exists) {
-				for (GList *it = gui.repo_scripts; it; it = it->next) {
+				for (GSList *it = gui.repo_scripts; it; it = it->next) {
 					if (g_strrstr(path, it->data)) {
 						included = TRUE;
 						break;
@@ -428,10 +428,10 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", path);
 				// Remove the list element and free it as well as its data
 				g_free(path);
-				com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, l);
+				com.pref.selected_scripts = g_slist_delete_link(com.pref.selected_scripts, l);
 			} else if (included) {
 				// Build menu entry
-				GtkWidget *menu_item;
+				GtkWidget *menu_item = NULL;
 				gchar *basename = g_path_get_basename(path);
 				const char *extension = get_filename_ext(basename);
 
@@ -459,12 +459,12 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	}
 
 	// Add core scripts if they're not already in the menu
-	for (GList *core_iter = gui.repo_scripts; core_iter; core_iter = core_iter->next) {
+	for (GSList *core_iter = gui.repo_scripts; core_iter; core_iter = core_iter->next) {
 		const gchar *script_path = (gchar*)core_iter->data;
 		if (test_last_subdir(script_path, "core")) {
 			// Check if this core script is already in selected_scripts
 			gboolean already_added = FALSE;
-			for (GList *selected = com.pref.selected_scripts; selected; selected = selected->next) {
+			for (GSList *selected = com.pref.selected_scripts; selected; selected = selected->next) {
 				if (!selected->data) continue;
 				if (g_strrstr((gchar*)selected->data, script_path)) {
 					already_added = TRUE;

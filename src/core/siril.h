@@ -786,7 +786,7 @@ struct guiinf {
 	void (*draw_extra)(draw_data_t *dd);
 
 	/* List of all scripts from the repository */
-	GList* repo_scripts; // the list of selected scripts is in com.pref
+	GSList* repo_scripts; // the list of selected scripts is in com.pref
 	/* gboolean to confirm the script repository has been opened without error */
 	gboolean script_repo_available;
 	gboolean spcc_repo_available;
