@@ -296,6 +296,12 @@ class ONNXHelper:
             list: a list of confirmed working ONNXRuntime ExecutionProviders in priority order
         """
         import onnx
+        if ort is None:
+            try:
+                import onnxruntime as ort
+            except ImportError:
+                print("(x) Unable to import onnxruntime. Test failed.")
+                return []
 
         print("=== ONNX Execution Provider Tester ===")
         print("Creating ONNX model...")
@@ -1430,7 +1436,7 @@ class JaxHelper:
             # Using rtol=1e-5, atol=1e-6 for float32 precision
             if not np.allclose(jax_result, numpy_result, rtol=1e-5, atol=1e-6):
                 raise RuntimeError(f"JAX result {jax_result} does not match numpy result {numpy_result} within tolerance")
-            print("Accuracy cross-check between jax.numpy and numpy succeeded")
+            print("(OK) Accuracy cross-check between jax.numpy and numpy succeeded")
 
             # Check the platform of the device that was actually used
             if default_device.platform.lower() == 'gpu':
@@ -1453,8 +1459,11 @@ class JaxHelper:
                 numpy_sum = np.sum(test_array_np)
 
                 if not np.allclose(jax_sum, numpy_sum, rtol=1e-7, atol=1e-8):
-                    raise RuntimeError(f"Basic JAX operation failed accuracy check: {jax_sum} vs {numpy_sum}") from e
+                    print(f"(x) Basic JAX operation failed accuracy check: {jax_sum} vs {numpy_sum}. Error: {e}")
+                    return False, None
 
+                print("(OK) Jax available using CPU only. This is likely to perform less "
+                    "well than numpy but support is hoped to improve in the future.")
                 return True, "cpu"
             except Exception:
                 # If even CPU fails, something is seriously wrong
