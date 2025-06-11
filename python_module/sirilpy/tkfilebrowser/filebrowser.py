@@ -229,7 +229,27 @@ class FileBrowser(tk.Toplevel):
             for name, exts in filetypes:
                 if name not in self.filetypes:
                     self.filetypes[name] = []
-                self.filetypes[name] = r'%s$' % exts.strip().replace('.', r'\.').replace('*', '.*')
+
+                # Split extensions by both | and space, then filter out empty strings
+                import re
+                # Split by | first, then split each part by spaces
+                ext_parts = []
+                for part in exts.split('|'):
+                    ext_parts.extend(part.split())
+
+                # Process each extension and join with |
+                processed_exts = []
+                for ext in ext_parts:
+                    if ext.strip():  # Skip empty strings
+                        processed_ext = ext.strip().replace('.', r'\.').replace('*', '.*')
+                        processed_exts.append(processed_ext)
+
+                # Join all processed extensions with | for regex alternation
+                if processed_exts:
+                    self.filetypes[name] = r'(%s)$' % '|'.join(processed_exts)
+                else:
+                    self.filetypes[name] = r'.*$'  # fallback for empty/invalid patterns
+
             values = list(self.filetypes.keys())
             w = max([len(f) for f in values] + [5])
             b_filetype = ttk.Combobox(self, textvariable=self.filetype,
