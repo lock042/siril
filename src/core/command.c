@@ -8526,7 +8526,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 	return CMD_OK;
 }
 
-gboolean stack_stop_thread(gpointer user_data) {
+static gboolean stack_stop_thread(gpointer user_data) {
 	stop_processing_thread();
 	return FALSE;
 }
