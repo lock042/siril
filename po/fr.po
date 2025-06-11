@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-11 11:12+0200\n"
-"PO-Revision-Date: 2025-06-06 21:05+0000\n"
+"PO-Revision-Date: 2025-06-11 20:06+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -9332,8 +9332,7 @@ msgid ""
 msgstr ""
 "Ouvrez la boîte de dialogue d'étalonnage des couleurs par photométrie.\n"
 "\n"
-"<b>AVERTISSEMENT : l'image doit être étalonnée avant d'ouvrir la boîte de "
-"dialogue.</b>"
+"<b>ATTENTION : l'image doit être résolue astrométriquement au préalable</b>"
 
 #: src/gui/uifiles/siril.ui:1623
 msgid "Photometric Color Calibration..."
@@ -9345,11 +9344,10 @@ msgid ""
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
 msgstr ""
-"Ouvrez la boîte de dialogue d'étalonnage des couleurs par "
-"spectrophotométrie.\n"
+"Ouvrez la boîte de dialogue d'étalonnage des couleurs par spectrophotométrie."
 "\n"
-"<b>AVERTISSEMENT : l'image doit être étalonnée avant d'ouvrir la boîte de "
-"dialogue.</b>"
+"\n"
+"<b>ATTENTION : l'image doit être résolue astrométriquement au préalable</b>"
 
 #: src/gui/uifiles/siril.ui:1640
 msgid "Spectrophotometric Color Calibration..."
@@ -17655,9 +17653,10 @@ msgid "Error: command %s is not available\n"
 msgstr "Erreur : la commande %s n'est pas disponible\n"
 
 #: src/core/command.c:9549
-#, fuzzy
 msgid "Error: cannot reload script menu when running headless\n"
-msgstr "Erreur : impossible de lire le fichier des poids du réseau neuronal.\n"
+msgstr ""
+"Erreur : impossible de recharger le menu des scripts en mode ligne de "
+"commande\n"
 
 #: src/core/command.c:9569
 #, c-format
@@ -24172,6 +24171,9 @@ msgid ""
 "<b>EXPERIMENTAL</b>: python scripts are currently an experimental feature. "
 "Please read the documentation for details..."
 msgstr ""
+"<b>EXPÉRIMENTAL</b> : les scripts python sont actuellement une "
+"fonctionnalité expérimentale. Veuillez lire la documentation pour plus de "
+"détails…"
 
 #: src/gui/script_menu.c:306
 msgid "Script Editor..."
@@ -26889,11 +26891,13 @@ msgstr ""
 msgid ""
 "Detected 1.4.0-beta2 bug condition. Removing and re-cloning repository...\n"
 msgstr ""
+"Condition de bug détectée dans la version 1.4.0-beta2. Suppression et re-"
+"clonage du dépôt…\n"
 
 #: src/io/siril_git.c:372
-#, fuzzy, c-format
+#, c-format
 msgid "Error removing repository directory: %s\n"
-msgstr "Erreur lors du clonage du dépôt dans %s : %s\n"
+msgstr "Erreur lors de la suppression du répertoire du dépôt : %s\n"
 
 #: src/io/siril_git.c:381 src/io/siril_git.c:794
 #, c-format
@@ -26901,15 +26905,17 @@ msgid "Error cloning repository into %s: %s\n"
 msgstr "Erreur lors du clonage du dépôt dans %s : %s\n"
 
 #: src/io/siril_git.c:385
-#, fuzzy
 msgid "Repository re-cloned successfully!\n"
-msgstr "Le dépôt a été cloné avec succès !\n"
+msgstr "Le dépôt a été re-cloné avec succès !\n"
 
 #: src/io/siril_git.c:389
 msgid ""
 "Error fetching remote: Remote repository or references not found. Check the "
 "repository URL and your connectivity.\n"
 msgstr ""
+"Erreur dans l'extraction des données à distance : Le dépôt distant ou les "
+"références ne sont pas trouvés. Vérifiez l'URL du dépôt et votre "
+"connectivité.\n"
 
 #. Generic fallback
 #: src/io/siril_git.c:394
@@ -26989,23 +26995,21 @@ msgid "Local scripts repository is up-to-date!\n"
 msgstr "Le dépôt local de scripts est à jour !\n"
 
 #: src/io/siril_git.c:884
-#, fuzzy
 msgid "Error accessing repository index.\n"
-msgstr "Erreur de clonage du dépôt : %s\n"
+msgstr "Erreur d'accès à l'index du dépôt.\n"
 
 #: src/io/siril_git.c:902
-#, fuzzy
 msgid "Warning: failed to get repository index entry.\n"
-msgstr "Échec de la lecture de l'entrée de l'index du catalogue.\n"
+msgstr "Avertissement : échec de l'obtention de l'entrée d'index du dépôt.\n"
 
 #: src/io/siril_git.c:908
 msgid "Warning: skipping script with invalid UTF-8 path.\n"
-msgstr ""
+msgstr "Avertissement : ignore le script avec un chemin UTF-8 invalide.\n"
 
 #: src/io/siril_git.c:918
-#, fuzzy
 msgid "Warning: memory allocation failed for script path.\n"
-msgstr "Erreur : L'allocation de mémoire a échoué.\n"
+msgstr ""
+"Avertissement : échec de l'allocation mémoire pour le chemin du script.\n"
 
 #: src/io/siril_git.c:973
 #, c-format
