@@ -1091,15 +1091,12 @@ class TorchHelper:
         print("\n" + "="*50)
         return True
 
-    def test_torch(self, cuda_version: str = "cu126"):
+    def test_torch(self):
         """
-        Run all available tests.
+        Run tests to verify that torch is installed and runs correctly.
 
-        Args:
-            auto_install: Whether to automatically install PyTorch if not found
-            cuda_version: CUDA version to install if auto_install is True
         """
-        if not self.install_torch(cuda_version=cuda_version):
+        if not self.ensure_torch():
             print("Cannot run tests - PyTorch not available")
             print("Use helper.install_torch() or helper.test_torch(auto_install=True)")
             return False
