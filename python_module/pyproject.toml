@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sirilpy"
-version = "0.7.22"
+version = "0.7.25"
 authors = [
   { name = "Team free-astro" },
 ]

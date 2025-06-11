@@ -18,7 +18,7 @@ import platform
 import tempfile
 import importlib
 import subprocess
-from typing import Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any
 from packaging import version as pkg_version
 import requests
 import numpy as np
@@ -176,8 +176,8 @@ class ONNXHelper:
 
     .. code-block:: python
 
-       installer = sirilpy.ONNXHelper()
-       installer.install_onnxruntime()
+       oh = sirilpy.ONNXHelper()
+       oh.ensure_onnxruntime()
 
     """
 
@@ -444,6 +444,14 @@ class ONNXHelper:
                 return False
         return True
 
+    def ensure_onnxruntime(self) -> bool:
+        """
+        Wrapper for install_onnxruntime() that only installs it if needed, with
+        negligible overhead if it is already installed.
+        """
+        if not self.is_onnxruntime_installed():
+            self.install_onnxruntime()
+
     def is_onnxruntime_installed(self):
         """
         Check if any onnxruntime package is already installed and usable.
@@ -699,7 +707,7 @@ class ONNXHelper:
         return uninstalled
 
 class TorchHelper:
-    """Helper class for PyTorch GPU testing and benchmarking with optional installation."""
+    """Helper class for PyTorch detection, installation and testing."""
 
     def __init__(self):
         """Initialize TorchHelper without importing torch at module level."""
@@ -797,6 +805,14 @@ class TorchHelper:
         except Exception as e:
             print(f"(x) Unexpected error during installation: {e}")
             return False
+
+    def ensure_torch(self) -> bool:
+        """
+        Wrapper for install_torch() that only installs it if needed, with
+        negligible overhead if it is already installed.
+        """
+        if not self.is_torch_installed():
+            self.install_torch()
 
     def _detect_compute_platform(self) -> str:
         """
@@ -1199,13 +1215,13 @@ class JaxHelper:
 
     def is_jax_installed(self) -> bool:
         """Check if PyTorch is installed without importing it."""
-        if self._jax_installed:
+        if self.jax_installed:
             return True
 
         # Check if torch is available
         jax_spec = importlib.util.find_spec("torch")
         if jax_spec is not None:
-            self._jax_installed = True
+            self.jax_installed = True
             return True
         return False
 
@@ -1351,12 +1367,22 @@ class JaxHelper:
             print(f"Failed to install {variant}: {e}")
             return False
 
-    def test_jax(self) -> str:
+    def ensure_jax(self) -> bool:
+        """
+        Wrapper for install_jax() that only installs it if needed, with
+        negligible overhead if it is already installed.
+        """
+        if not self.is_jax_installed():
+            self.install_jax()
+
+    def test_jax(self) -> Tuple[bool, Optional[str]]:
         """
         Test JAX functionality and return execution provider.
 
         Returns:
-            str: "gpu" if JAX is using GPU, "cpu" if using CPU
+            Tuple[bool,str]: the bool returned is True if jax works or False if
+            it does not, and the str is "gpu" if JAX is using GPU, "cpu" if
+            using CPU or None if
 
         Raises:
             RuntimeError: If JAX computation fails or accuracy check fails
@@ -1408,14 +1434,14 @@ class JaxHelper:
 
             # Check the platform of the device that was actually used
             if default_device.platform.lower() == 'gpu':
-                return "gpu"
-            return "cpu"
+                return True, "gpu"
+            return True, "cpu"
 
         except Exception as e:
             # If main test fails, try fallback to basic CPU operations
             if "does not match numpy" in str(e):
                 # Re-raise accuracy errors immediately
-                raise
+                return False, None
 
             try:
                 # Try basic CPU operations with accuracy check
@@ -1429,10 +1455,11 @@ class JaxHelper:
                 if not np.allclose(jax_sum, numpy_sum, rtol=1e-7, atol=1e-8):
                     raise RuntimeError(f"Basic JAX operation failed accuracy check: {jax_sum} vs {numpy_sum}") from e
 
-                return "cpu"
+                return True, "cpu"
             except Exception:
                 # If even CPU fails, something is seriously wrong
-                raise RuntimeError("JAX is not functioning properly") from e
+                print("Jax test failed: {e}")
+                return False, None
 
     def _get_jax_info(self) -> Dict[str, Any]:
         """
