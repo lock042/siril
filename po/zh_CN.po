@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-11 11:12+0200\n"
-"PO-Revision-Date: 2025-06-08 17:11+0000\n"
+"PO-Revision-Date: 2025-06-11 21:18+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -10172,9 +10172,9 @@ msgid ""
 "Note that the Gaussian and Lanczos models do not conserve flux and should "
 "not be used f you wish to use the output for accurate photometry."
 msgstr ""
-"选择液滴模型。详细信息请参阅文档\n"
-"注意：高斯模型和 Lanczos 模型不保持通量守恒。如果您希望使用输出进行精确测光，"
-"则不应使用它们。"
+"选择液滴模型。详细信息请参阅说明文档\n"
+"注意：高斯模型和 Lanczos "
+"模型不保持通量守恒。如果您希望使用输出进行精确测光，则不应使用它们。"
 
 #: src/gui/uifiles/siril.ui:7184
 msgid "Square"
@@ -16057,9 +16057,8 @@ msgid "Error: command %s is not available\n"
 msgstr "错误：命令 %s 不可用\n"
 
 #: src/core/command.c:9549
-#, fuzzy
 msgid "Error: cannot reload script menu when running headless\n"
-msgstr "错误：无法读取神经网络权重文件。\n"
+msgstr "错误：在 headless 模式下运行时无法重新加载脚本菜单\n"
 
 #: src/core/command.c:9569
 #, c-format
@@ -20794,9 +20793,9 @@ msgid ""
 "changed, the dialog can also be used to view current mouse action "
 "assignments and also provides a button to reset them to default settings."
 msgstr ""
-"警告：此对话框允许您重新配置鼠标行为，使其可能不再与文档匹配。如果您忘记更改"
-"了哪些设置，该对话框还可用于查看当前的鼠标动作分配，并提供一个按钮将其重置为"
-"默认设置。"
+"警告：此对话框允许您重新配置鼠标行为，使其可能不再与说明文档相符。如果您忘记"
+"更改了哪些设置，该对话框还可用于查看当前的鼠标动作分配，并提供一个按钮将其重"
+"置为默认设置。"
 
 #. Make the spin button editable and set digits to 0
 #. Connect the edited signal
@@ -22009,7 +22008,7 @@ msgstr "Python 脚本"
 msgid ""
 "<b>EXPERIMENTAL</b>: python scripts are currently an experimental feature. "
 "Please read the documentation for details..."
-msgstr ""
+msgstr "<b>实验性功能</b>：python脚本现为实验性功能。详见说明文档..."
 
 #: src/gui/script_menu.c:306
 msgid "Script Editor..."
@@ -22184,8 +22183,7 @@ msgid ""
 "The hamburger menu has been streamlined and now includes quick access to the "
 "documentation, preferences, keyboard shortcuts help, and the script tab in "
 "the preferences, making it easy to add new scripts."
-msgstr ""
-"三横菜单现已拆分为文件的快捷访问功能、首选项、键盘快捷键帮助以及偏好设置中的"
+msgstr "三横菜单现已拆分为说明文档的快捷方式、首选项、键盘快捷键帮助以及偏好设置中的"
 "脚本选项卡，从而可以轻松添加新脚本。"
 
 #: src/gui/siril_intro.c:52
@@ -24469,12 +24467,12 @@ msgstr "无法为仓库创建匿名远程。检查您的连接并重试。\n"
 #: src/io/siril_git.c:367
 msgid ""
 "Detected 1.4.0-beta2 bug condition. Removing and re-cloning repository...\n"
-msgstr ""
+msgstr "检测到 1.4.0-beta2 的 bug 。删除并重新克隆存储库...\n"
 
 #: src/io/siril_git.c:372
-#, fuzzy, c-format
+#, c-format
 msgid "Error removing repository directory: %s\n"
-msgstr "将仓库克隆到%s时出错：%s\n"
+msgstr "移除仓库目录时出错：%s\n"
 
 #: src/io/siril_git.c:381 src/io/siril_git.c:794
 #, c-format
@@ -24482,15 +24480,14 @@ msgid "Error cloning repository into %s: %s\n"
 msgstr "将仓库克隆到%s时出错：%s\n"
 
 #: src/io/siril_git.c:385
-#, fuzzy
 msgid "Repository re-cloned successfully!\n"
-msgstr "仓库克隆成功！\n"
+msgstr "仓库重新克隆成功！\n"
 
 #: src/io/siril_git.c:389
 msgid ""
 "Error fetching remote: Remote repository or references not found. Check the "
 "repository URL and your connectivity.\n"
-msgstr ""
+msgstr "远程获取出错：找不到远程仓库或引用。请检查仓库URL和网络连接。\n"
 
 #. Generic fallback
 #: src/io/siril_git.c:394
@@ -24562,23 +24559,20 @@ msgid "Local scripts repository is up-to-date!\n"
 msgstr "本地脚本仓库是最新的！\n"
 
 #: src/io/siril_git.c:884
-#, fuzzy
 msgid "Error accessing repository index.\n"
-msgstr "克隆仓库时出错：%s\n"
+msgstr "访问存储库索引时出错。\n"
 
 #: src/io/siril_git.c:902
-#, fuzzy
 msgid "Warning: failed to get repository index entry.\n"
-msgstr "无法读取目录索引条目。\n"
+msgstr "警告：获取仓库索引条目失败。\n"
 
 #: src/io/siril_git.c:908
 msgid "Warning: skipping script with invalid UTF-8 path.\n"
-msgstr ""
+msgstr "警告：跳过UTF-8路径无效的脚本。\n"
 
 #: src/io/siril_git.c:918
-#, fuzzy
 msgid "Warning: memory allocation failed for script path.\n"
-msgstr "错误：内存分配失败。\n"
+msgstr "警告：为脚本路径分配内存失败。\n"
 
 #: src/io/siril_git.c:973
 #, c-format
@@ -24694,7 +24688,7 @@ msgstr "未知星表类型"
 
 #: src/io/siril_pythoncommands.c:1047
 msgid "Undo not supported in headless mode"
-msgstr "无文件头模式下不支持撤销"
+msgstr "headless 模式下不支持撤销"
 
 #. Handle error
 #. Handle error retrieving the working directory
