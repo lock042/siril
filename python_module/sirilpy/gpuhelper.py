@@ -228,7 +228,7 @@ class ONNXHelper:
             "the ONNXHelper.run() method is provided to manage this (see the method docstring "
             "for details).")
 
-    def create_simple_onnx_model(self):
+    def _create_simple_onnx_model(self):
         """Create a simple ONNX model with matrix multiplication and ReLU."""
         import onnx
         from onnx import helper, TensorProto
@@ -259,7 +259,7 @@ class ONNXHelper:
         onnx.checker.check_model(model)
         return model
 
-    def try_provider(self, ort, model_path, input_data, provider, reference_output=None):
+    def _try_provider(self, ort, model_path, input_data, provider, reference_output=None):
         """Try executing the model with a specific provider (no fallback)."""
         try:
             sess_options = ort.SessionOptions()
@@ -287,7 +287,7 @@ class ONNXHelper:
             print(f"(x) {provider} failed: {e}")
             return False
 
-    def onnx_test(self, ort):
+    def test_onnxruntime(self, ort):
         """
         Test an imported onnxruntime.
         Args:
@@ -299,7 +299,7 @@ class ONNXHelper:
 
         print("=== ONNX Execution Provider Tester ===")
         print("Creating ONNX model...")
-        model = self.create_simple_onnx_model()
+        model = self._create_simple_onnx_model()
 
         # Create temporary file for the model - Windows compatible approach
         temp_file = tempfile.NamedTemporaryFile(suffix='.onnx', delete=False)
@@ -333,7 +333,7 @@ class ONNXHelper:
             for provider in all_providers:
                 print(f"\nTesting {provider}...")
                 with SuppressedStderr():
-                    if self.try_provider(ort, model_path, input_data, provider, reference_output=cpu_output):
+                    if self._try_provider(ort, model_path, input_data, provider, reference_output=cpu_output):
                         working_providers.append(provider)
 
             print("\n=== Summary ===")
@@ -407,14 +407,14 @@ class ONNXHelper:
                         back to the CPU-only package purely because of network issues
         """
         # First check if any onnxruntime is already installed
-        is_installed, package_name = self.check_onnxruntime_installed()
+        is_installed, package_name = self.is_onnxruntime_installed()
 
         if is_installed:
             print(f"ONNX Runtime is already installed: {package_name}")
             return True
 
         # If not installed, get recommended package
-        onnxruntime_pkg, from_url, index_url = self.get_onnxruntime_package()
+        onnxruntime_pkg, from_url, index_url = self._get_onnxruntime_package()
 
         # Check if the package exists
         if not self._check_onnxruntime_availability(onnxruntime_pkg):
@@ -444,7 +444,7 @@ class ONNXHelper:
                 return False
         return True
 
-    def check_onnxruntime_installed(self):
+    def is_onnxruntime_installed(self):
         """
         Check if any onnxruntime package is already installed and usable.
 
@@ -488,7 +488,7 @@ class ONNXHelper:
 
         return True, package_name
 
-    def get_onnxruntime_package(self):
+    def _get_onnxruntime_package(self):
         """
         Determine the appropriate ONNX Runtime package based on system and available hardware.
 
@@ -588,7 +588,7 @@ class ONNXHelper:
             return self.providers
 
         # If no valid cache, run the test
-        return self.onnx_test(ort)
+        return self.test_onnxruntime(ort)
 
     def _load_cached_providers(self, ort):
         """
@@ -756,7 +756,9 @@ class TorchHelper:
 
     def install_torch(self, cuda_version: str = "auto", force_reinstall: bool = False) -> bool:
         """
-        Install PyTorch with GPU compute platform support where available and stable.
+        Install PyTorch with GPU compute platform support where available and stable. Use this in
+        place of ensure_installed() to make sure that the correct Torch package is installed for the
+        user's hardware and OS.
 
         Args:
             cuda_version: compute platform to install (e.g., 'cu118', 'cu126', 'cu128', 'rocm', 'cpu', 'auto')
@@ -766,7 +768,7 @@ class TorchHelper:
             bool: True if installation successful, False otherwise
         """
         if self.is_torch_installed() and not force_reinstall:
-            print("PyTorch is already installed. Use force_reinstall=True to reinstall.")
+            print("PyTorch is already installed.")
             return self._import_torch()
 
         # Auto-detect GPU if needed
@@ -849,27 +851,6 @@ class TorchHelper:
             print(f"(x) Unexpected error importing PyTorch: {e}")
             return False
 
-    def ensure_torch(self, cuda_version: str = "cu126") -> bool:
-        """
-        Ensure PyTorch is available. Optionally install if not found.
-
-        Args:
-            auto_install: Whether to automatically install PyTorch if not found
-            cuda_version: CUDA version to install if auto_install is True
-
-        Returns:
-            bool: True if PyTorch is available, False otherwise
-        """
-        if self.torch is not None:
-            return True
-
-        # check it imports correctly
-        if self.is_torch_installed() and self._import_torch():
-            return True
-
-        print("PyTorch not found. Attempting automatic installation...")
-        return self.install_torch(cuda_version=cuda_version)
-
     def _get_device_info(self) -> dict:
         """Get information about available devices."""
         if self.torch is None:
@@ -892,7 +873,7 @@ class TorchHelper:
     def _create_simple_model(self, input_dim=256, hidden_dim=512, output_dim=128):
         """Create a simple neural network model."""
         if self.torch is None or self.nn is None:
-            raise RuntimeError("PyTorch not available. Call ensure_torch() first.")
+            raise RuntimeError("PyTorch not available. Call install_torch() first.")
 
         nn = self.nn
         F = self.torch.nn.functional
@@ -916,16 +897,16 @@ class TorchHelper:
 
         return SimpleModel(input_dim, hidden_dim, output_dim)
 
-    def create_test_data(self, batch_size=32, input_dim=256):
+    def _create_test_data(self, batch_size=32, input_dim=256):
         """Create random test input data."""
         if self.torch is None:
-            raise RuntimeError("PyTorch not available. Call ensure_torch() first.")
+            raise RuntimeError("PyTorch not available. Call install_torch() first.")
         return self.torch.randn(batch_size, input_dim)
 
-    def benchmark_model(self, model, input_data, device, num_runs=10):
+    def _benchmark_model(self, model, input_data, device, num_runs=10):
         """Benchmark model execution on specified device."""
         if self.torch is None:
-            raise RuntimeError("PyTorch not available. Call ensure_torch() first.")
+            raise RuntimeError("PyTorch not available. Call install_torch() first.")
 
         # Set model to evaluation mode to disable dropout
         model.eval()
@@ -953,9 +934,9 @@ class TorchHelper:
         avg_time = (end_time - start_time) / num_runs
         return output, avg_time
 
-    def print_device_info(self):
+    def _print_device_info(self):
         """Print device information."""
-        if not self.ensure_torch():
+        if not self.install_torch():
             print("PyTorch not available - cannot display device info")
             return
 
@@ -969,23 +950,23 @@ class TorchHelper:
             for i, name in enumerate(self.device_info['gpu_names']):
                 print(f"  GPU {i}: {name}")
 
-    def test_torch_gpu(self):
+    def _test_torch_gpu(self):
         """Test PyTorch model execution on GPU."""
         print("=== PyTorch GPU Test ===")
 
-        if not self.ensure_torch():
+        if not self.install_torch():
             print("PyTorch not available. Please install it first using install_torch()")
             return False
 
         # Print device info
-        self.print_device_info()
+        self._print_device_info()
 
         # Create model and test data with fixed seeds for reproducible results
         print("\nCreating model and test data...")
         self.torch.manual_seed(42)  # Set seed for reproducible results
         model = self._create_simple_model()
         self.torch.manual_seed(42)  # Reset seed for consistent input data
-        input_data = self.create_test_data(batch_size=64, input_dim=256)
+        input_data = self._create_test_data(batch_size=64, input_dim=256)
 
         print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
         print(f"Input shape: {input_data.shape}")
@@ -996,7 +977,7 @@ class TorchHelper:
         model_cpu = self._create_simple_model()  # Create fresh model
         self.torch.manual_seed(42)  # Ensure same initialization
         model_cpu.load_state_dict(model.state_dict())  # Copy weights
-        cpu_output, _ = self.benchmark_model(model_cpu, input_data, cpu_device)
+        cpu_output, _ = self._benchmark_model(model_cpu, input_data, cpu_device)
 
         # Test GPU execution
         if self.torch.cuda.is_available():
@@ -1006,7 +987,7 @@ class TorchHelper:
             try:
                 model_gpu = self._create_simple_model()  # Create fresh model for GPU
                 model_gpu.load_state_dict(model.state_dict())  # Copy same weights
-                gpu_output, _ = self.benchmark_model(model_gpu, input_data, gpu_device)
+                gpu_output, _ = self._benchmark_model(model_gpu, input_data, gpu_device)
                 print("OK: GPU execution successful!")
 
                 # Compare outputs using appropriate tolerance for CPU vs GPU
@@ -1032,11 +1013,11 @@ class TorchHelper:
         print("\n" + "="*50)
         return True
 
-    def test_tensor_operations(self):
+    def _test_tensor_operations(self):
         """Test basic tensor operations on GPU."""
         print("=== Tensor Operations Test ===")
 
-        if not self.ensure_torch():
+        if not self.install_torch():
             print("PyTorch not available. Please install it first using install_torch()")
             return False
 
@@ -1088,7 +1069,7 @@ class TorchHelper:
         print("\n" + "="*50)
         return True
 
-    def run_all_tests(self, cuda_version: str = "cu126"):
+    def test_torch(self, cuda_version: str = "cu126"):
         """
         Run all available tests.
 
@@ -1096,13 +1077,13 @@ class TorchHelper:
             auto_install: Whether to automatically install PyTorch if not found
             cuda_version: CUDA version to install if auto_install is True
         """
-        if not self.ensure_torch(cuda_version=cuda_version):
+        if not self.install_torch(cuda_version=cuda_version):
             print("Cannot run tests - PyTorch not available")
-            print("Use helper.install_torch() or helper.run_all_tests(auto_install=True)")
+            print("Use helper.install_torch() or helper.test_torch(auto_install=True)")
             return False
 
-        self.test_torch_gpu()
-        self.test_tensor_operations()
+        self._test_torch_gpu()
+        self._test_tensor_operations()
         return True
 
     def uninstall_torch(self):
@@ -1216,7 +1197,19 @@ class JaxHelper:
             "cannot be used in the same script and can cause problems if both are used together in the "
             "same venv. It is recommended to use jax only for development purposes at present.")
 
-    def detect_hardware_config(self) -> Dict[str, Any]:
+    def is_jax_installed(self) -> bool:
+        """Check if PyTorch is installed without importing it."""
+        if self._jax_installed:
+            return True
+
+        # Check if torch is available
+        jax_spec = importlib.util.find_spec("torch")
+        if jax_spec is not None:
+            self._jax_installed = True
+            return True
+        return False
+
+    def _detect_hardware_config(self) -> Dict[str, Any]:
         """
         Detect the hardware configuration and determine the appropriate JAX variant.
 
@@ -1320,7 +1313,8 @@ class JaxHelper:
     def install_jax(self, force_variant: Optional[str] = None,
                    version_constraint: Optional[str] = None) -> bool:
         """
-        Install JAX with the appropriate variant for the detected hardware.
+        Install JAX with the appropriate variant for the detected hardware. Use this instead of
+        ensure_installed() to ensure that jax is installed correctly for the given hardware / OS
 
         Args:
             force_variant: Override auto-detection with specific variant (e.g., 'jax[cpu]')
@@ -1329,8 +1323,12 @@ class JaxHelper:
         Returns:
             bool: True if installation succeeded, False otherwise
         """
+        if self.is_jax_installed():
+            print("Jax is already installed.")
+            return
+
         if not self.detected_config:
-            self.detect_hardware_config()
+            self._detect_hardware_config()
 
         variant = force_variant or self.detected_config['recommended_jax_variant']
 
@@ -1436,7 +1434,7 @@ class JaxHelper:
                 # If even CPU fails, something is seriously wrong
                 raise RuntimeError("JAX is not functioning properly") from e
 
-    def get_jax_info(self) -> Dict[str, Any]:
+    def _get_jax_info(self) -> Dict[str, Any]:
         """
         Get information about the current JAX installation.
 
@@ -1455,68 +1453,6 @@ class JaxHelper:
             return {'error': 'JAX not installed'}
         except Exception as e:
             return {'error': f'Error getting JAX info: {e}'}
-
-    def setup_jax(self, force_variant: Optional[str] = None,
-                  version_constraint: Optional[str] = None,
-                  test_after_install: bool = True) -> Dict[str, Any]:
-        """
-        Complete setup: detect hardware, install JAX, and optionally test.
-
-        Args:
-            force_variant: Override auto-detection with specific variant
-            version_constraint: Version constraint for JAX installation
-            test_after_install: Whether to test JAX after installation
-
-        Returns:
-            Dict containing setup results and information
-        """
-        results = {
-            'detection_successful': False,
-            'installation_successful': False,
-            'test_successful': False,
-            'execution_provider': None,
-            'detected_config': None,
-            'jax_info': None,
-            'errors': []
-        }
-
-        try:
-            # Step 1: Detect hardware configuration
-            print("Detecting hardware configuration...")
-            config = self.detect_hardware_config()
-            results['detected_config'] = config
-            results['detection_successful'] = True
-            print(f"Detected configuration: {config['recommended_jax_variant']}")
-
-            # Step 2: Install JAX
-            print("Installing JAX...")
-            install_success = self.install_jax(force_variant, version_constraint)
-            results['installation_successful'] = install_success
-
-            if install_success:
-                # Step 3: Get JAX info
-                jax_info = self.get_jax_info()
-                results['jax_info'] = jax_info
-
-                # Step 4: Test if requested
-                if test_after_install:
-                    print("Testing JAX installation...")
-                    try:
-                        execution_provider = self.test_jax()
-                        results['test_successful'] = True
-                        results['execution_provider'] = execution_provider
-                        print(f"JAX test successful! Using: {execution_provider}")
-                    except Exception as e:
-                        results['errors'].append(f"Test failed: {e}")
-                        print(f"JAX test failed: {e}")
-            else:
-                results['errors'].append("JAX installation failed")
-
-        except Exception as e:
-            results['errors'].append(f"Setup error: {e}")
-            print(f"Setup error: {e}")
-
-        return results
 
     def uninstall_jax(self, dry_run: bool = False) -> Dict[str, Any]:
         """
@@ -1646,40 +1582,6 @@ class JaxHelper:
             print(error_msg)
 
         return results
-
-    def clean_install_jax(self, force_variant: Optional[str] = None,
-                         version_constraint: Optional[str] = None) -> bool:
-        """
-        Clean install JAX by first uninstalling any existing versions.
-
-        This is useful when switching between JAX variants or fixing problematic installations.
-
-        Args:
-            force_variant: JAX variant to install (e.g., 'jax[cpu]', 'jax[cuda12]')
-            version_constraint: Version constraint for installation
-
-        Returns:
-            bool: True if clean installation succeeded, False otherwise
-        """
-        print("Performing clean JAX installation...")
-
-        # Step 1: Detect and uninstall existing JAX
-        uninstall_results = self.uninstall_jax(dry_run=False)
-
-        if uninstall_results['errors']:
-            print("Warning: Some errors occurred during uninstallation:")
-            for error in uninstall_results['errors']:
-                print(f"  - {error}")
-
-        # Step 2: Install fresh JAX
-        success = self.install_jax(force_variant, version_constraint)
-
-        if success:
-            print("Clean installation completed successfully.")
-        else:
-            print("Clean installation failed.")
-
-        return success
 
     def __repr__(self) -> str:
         return f"JaxHelper(system={self.system}, jax_installed={self.jax_installed})"
