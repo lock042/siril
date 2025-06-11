@@ -287,11 +287,12 @@ class ONNXHelper:
             print(f"(x) {provider} failed: {e}")
             return False
 
-    def test_onnxruntime(self, ort):
+    def test_onnxruntime(self, ort=None):
         """
         Test an imported onnxruntime.
-        Args:
-            ort: The ONNX runtime module to test
+        Args:install_torch(cuda_version=cuda_version)
+            ort: The ONNX runtime module to test. If None, the method will
+            attempt to import onnxruntime for the test.
         Returns:
             list: a list of confirmed working ONNXRuntime ExecutionProviders in priority order
         """
