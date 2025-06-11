@@ -37,6 +37,8 @@
 #include <assert.h>
 #include <inttypes.h>
 
+#define REPO_REPAIRED 999
+
 // #define DEBUG_GITSCRIPTS
 
 #ifdef HAVE_LIBGIT2
@@ -335,26 +337,69 @@ int reset_repository(const gchar *local_path) {
 static int lg2_fetch(git_repository *repo) {
 	git_remote *remote = NULL;
 	git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
-
-	// Reference to the remote
 	const char *remote_name = "origin";
 
-	/* Figure out whether it's a named remote or a URL */
 	siril_debug_print("Fetching %s for repo %p\n", remote_name, repo);
 
+	int val;
 	if (git_remote_lookup(&remote, repo, remote_name)) {
 		if (git_remote_create_anonymous(&remote, repo, remote_name)) {
-		siril_log_message(_("Unable to create anonymous remote for the repository. Check your connectivity and try again.\n"));
-		goto on_error;
+			siril_log_message(_("Unable to create anonymous remote for the repository. Check your connectivity and try again.\n"));
+			val = 1;
+			goto on_error;
 		}
 	}
 
-	if (git_remote_fetch(remote, NULL, &fetch_opts, "fetch") < 0)
-		siril_log_message(_("Error fetching remote. This may be a temporary error, check your connectivity and try again.\n"));
+	val = git_remote_fetch(remote, NULL, &fetch_opts, "fetch");
+	if (val < 0) {
+		if (val == GIT_ENOTFOUND) {
+			// Test if we can connect to the remote to rule out network issues
+			git_remote_callbacks callbacks = GIT_REMOTE_CALLBACKS_INIT;
+			int can_connect = 0;
 
-	on_error:
-	git_remote_free(remote);
-	return -1;
+			// Try to connect to the remote
+			if (git_remote_connect(remote, GIT_DIRECTION_FETCH, &callbacks, NULL, NULL) == 0) {
+				can_connect = 1;
+				git_remote_disconnect(remote);
+			}
+			// If we can connect, assume this is probably the 1.4.0-beta2 bug
+			if (can_connect) {
+				siril_log_message(_("Detected 1.4.0-beta2 bug condition. Removing and re-cloning repository...\n"));
+				const char *repo_root = git_repository_workdir(repo);
+				GError *gerror = NULL;
+				delete_directory(repo_root, &gerror);
+				if (gerror) {
+					siril_log_color_message(_("Error removing repository directory: %s\n"), "red", gerror->message);
+					g_clear_error(&gerror);
+					goto on_error;
+				}
+				// Clone options
+				git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
+				int value = git_clone(&repo, SCRIPT_REPOSITORY_URL, repo_root, &clone_opts);
+				if (value != 0) {
+					const git_error *e = giterr_last();
+					siril_log_color_message(_("Error cloning repository into %s: %s\n"), "red", repo_root, e->message);
+					gui.script_repo_available = FALSE;
+					goto on_error;
+				} else {
+					siril_log_message(_("Repository re-cloned successfully!\n"));
+					val = REPO_REPAIRED;
+				}
+			} else {
+				siril_log_message(_("Error fetching remote: Remote repository or references not found. "
+								"Check the repository URL and your connectivity.\n"));
+			}
+		} else {
+			// Generic fallback
+			siril_log_message(_("Error fetching remote. This may be a temporary error, check your connectivity and try again.\n"));
+		}
+	}
+
+on_error:
+	if (remote) {
+		git_remote_free(remote);
+	}
+	return val;
 }
 
 static char *find_str_before_comment(const char *str1, const char *str2, const char *str3) {
@@ -717,6 +762,10 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 
 int auto_update_gitscripts(gboolean sync) {
 	int retval = 0;
+	git_repository *repo = NULL;
+	git_remote *remote = NULL;
+	git_index *index = NULL;
+
 	// Initialize libgit2
 	git_libgit2_init();
 
@@ -728,8 +777,6 @@ int auto_update_gitscripts(gboolean sync) {
 
 	// Clone options
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
-
-	git_repository *repo = NULL;
 
 	// See if the repository already exists
 	int error = siril_repository_open(&repo, local_path);
@@ -746,16 +793,16 @@ int auto_update_gitscripts(gboolean sync) {
 				e = giterr_last();
 				siril_log_color_message(_("Error cloning repository into %s: %s\n"), "red", local_path, e->message);
 				gui.script_repo_available = FALSE;
-				git_libgit2_shutdown();
-				return 1;
+				retval = 1;
+				goto cleanup;
 			} else {
 				siril_log_message(_("Repository cloned successfully!\n"));
 			}
 		} else {
 			siril_log_message(_("Siril is in offline mode. Will not attempt to clone remote repository.\n"));
 			gui.script_repo_available = FALSE;
-			git_libgit2_shutdown();
-			return 1;
+			retval = 1;
+			goto cleanup;
 		}
 	} else {
 		siril_debug_print("Local scripts repository opened successfully!\n");
@@ -763,27 +810,24 @@ int auto_update_gitscripts(gboolean sync) {
 	gui.script_repo_available = TRUE;
 
 	// Check we are using the correct repository
-	git_remote *remote = NULL;
 	const char *remote_name = "origin";
 	error = git_remote_lookup(&remote, repo, remote_name);
 	if (error != 0) {
 		siril_log_color_message(_("Failed to lookup remote.\n"), "red");
-		git_repository_free(repo);
-		git_libgit2_shutdown();
-		return 1;
+		retval = 1;
+		goto cleanup;
 	}
 
 	const char *remote_url = git_remote_url(remote);
-	if (remote_url != NULL) {
-		siril_debug_print("Remote URL: %s\n", remote_url);
-	} else {
+	if (remote_url == NULL) {
 		siril_log_color_message(
 			_("Error: cannot identify local repository's configured remote.\n"), "red");
-		git_remote_free(remote);
-		git_repository_free(repo);
-		git_libgit2_shutdown();
-		return 1;
+		retval = 1;
+		goto cleanup;
 	}
+
+	siril_debug_print("Remote URL: %s\n", remote_url);
+
 	if (strcmp(remote_url, SCRIPT_REPOSITORY_URL)) {
 		gchar *msg = g_strdup_printf(
 			_("Error: local siril-scripts repository folder is not "
@@ -796,13 +840,14 @@ int auto_update_gitscripts(gboolean sync) {
 		// Make scripts unavailable, as the contents of a random git repository
 		// could be complete rubbish
 		gui.script_repo_available = FALSE;
+		retval = 1;
 		goto cleanup;
 	}
 
 	// Synchronise the repository
-	if (error == 0 && sync) {
+	if (sync) {
 		// fetch, analyse and merge changes from the remote
-		lg2_fetch(repo);
+		int fetch_val = lg2_fetch(repo);
 
 		// Get the FETCH_HEAD reference
 		git_object *target_commit = NULL;
@@ -812,10 +857,8 @@ int auto_update_gitscripts(gboolean sync) {
 					"persists you may need to delete the local git repository and "
 					"allow Siril to re-clone it.\n"), "red");
 			gui.script_repo_available = FALSE;
-			git_remote_free(remote);
-			git_repository_free(repo);
-			git_libgit2_shutdown();
-			return -1;
+			retval = -1;
+			goto cleanup;
 		}
 
 		// Perform the reset
@@ -825,36 +868,58 @@ int auto_update_gitscripts(gboolean sync) {
 			siril_log_color_message(_("Error performing hard reset. If the problem persists "
 					"you may need to delete the local git repository and allow Siril to "
 					"re-clone it.\n"), "red");
-			git_remote_free(remote);
-			git_repository_free(repo);
-			git_libgit2_shutdown();
-			return -1;
+			retval = -1;
+			goto cleanup;
 		}
-		siril_log_color_message(_("Local scripts repository is up-to-date!\n"), "green");
+
+		// Print the "up-to-date" status message
+		if (!fetch_val || fetch_val == REPO_REPAIRED) {
+			siril_log_color_message(_("Local scripts repository is up-to-date!\n"), "green");
+		}
 	}
 
 	/*** Populate the list of available repository scripts ***/
-	size_t i;
-	const git_index_entry *entry;
-	git_index *index = NULL;
 	error = git_repository_index(&index, repo);
-	if (error < 0)
+	if (error < 0) {
+		siril_log_color_message(_("Error accessing repository index.\n"), "red");
 		retval = 1;
+		goto cleanup;
+	}
 
 	gui_repo_scripts_mutex_lock();
+
 	/* populate gui.repo_scripts with all the scripts in the index.
 	* We ignore anything not ending in SCRIPT_EXT */
 	size_t entry_count = git_index_entrycount(index);
 	if (gui.repo_scripts) {
-		g_list_free_full(gui.repo_scripts, g_free);
+		g_slist_free_full(gui.repo_scripts, g_free);
 		gui.repo_scripts = NULL;
 	}
-	for (i = 0; i < entry_count; i++) {
-		entry = git_index_get_byindex(index, i);
+
+	for (size_t i = 0; i < entry_count; i++) {
+		const git_index_entry *entry = git_index_get_byindex(index, i);
+		if (entry == NULL) {
+			siril_log_color_message(_("Warning: failed to get repository index entry.\n"), "red");
+			continue;  // Skip this entry but continue processing
+		}
+
+		// Validate that the path is valid UTF-8
+		if (!g_utf8_validate(entry->path, -1, NULL)) {
+			siril_log_color_message(_("Warning: skipping script with invalid UTF-8 path.\n"), "red");
+			continue;
+		}
+
 		if ((g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) ||
 			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && pyscript_version_check(entry->path)) ||
 			(g_str_has_suffix(entry->path, PYCSCRIPT_EXT))) {
-			gui.repo_scripts = g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
+
+			gchar *path_copy = g_strdup(entry->path);
+			if (path_copy == NULL) {
+				siril_log_color_message(_("Warning: memory allocation failed for script path.\n"), "red");
+				continue;  // Skip this entry but continue processing
+			}
+
+			gui.repo_scripts = g_slist_prepend(gui.repo_scripts, path_copy);
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", entry->path);
 #endif
@@ -863,9 +928,16 @@ int auto_update_gitscripts(gboolean sync) {
 	gui_repo_scripts_mutex_unlock();
 
 	// Cleanup
-	cleanup:
-	git_remote_free(remote);
-	git_repository_free(repo);
+cleanup:
+	if (index) {
+		git_index_free(index);
+	}
+	if (remote) {
+		git_remote_free(remote);
+	}
+	if (repo) {
+		git_repository_free(repo);
+	}
 	git_libgit2_shutdown();
 
 	return retval;
@@ -873,6 +945,9 @@ int auto_update_gitscripts(gboolean sync) {
 
 int auto_update_gitspcc(gboolean sync) {
 	int retval = 0;
+	git_repository *repo = NULL;
+	git_remote *remote = NULL;
+
 	// Initialize libgit2
 	git_libgit2_init();
 
@@ -885,9 +960,6 @@ int auto_update_gitspcc(gboolean sync) {
 	// Clone options
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
 
-	git_repository *repo = NULL;
-	git_remote *remote = NULL;
-
 	// See if the repository already exists
 	int error = siril_repository_open(&repo, local_path);
 
@@ -896,13 +968,12 @@ int auto_update_gitspcc(gboolean sync) {
 		siril_debug_print("Cannot open repository: %s\nAttempting to clone from remote source...\n", e ? e->message : "");
 		// Perform the clone operation
 		error = git_clone(&repo, SPCC_REPOSITORY_URL, local_path, &clone_opts);
-
 		if (error != 0) {
-		e = giterr_last();
+			e = giterr_last();
 			siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
 			gui.spcc_repo_available = FALSE;
-			git_libgit2_shutdown();
-			return 1;
+			retval = 1;
+			goto cleanup;
 		} else {
 			siril_log_message(_("Repository cloned successfully!\n"));
 		}
@@ -916,22 +987,20 @@ int auto_update_gitspcc(gboolean sync) {
 	error = git_remote_lookup(&remote, repo, remote_name);
 	if (error != 0) {
 		siril_log_color_message(_("Failed to lookup remote.\n"), "red");
-		git_repository_free(repo);
-		git_libgit2_shutdown();
-		return 1;
+		retval = 1;
+		goto cleanup;
 	}
 
 	const char *remote_url = git_remote_url(remote);
-	if (remote_url != NULL) {
-		siril_debug_print("Remote URL: %s\n", remote_url);
-	} else {
+	if (remote_url == NULL) {
 		siril_log_color_message(
 			_("Error: cannot identify local repository's configured remote.\n"), "red");
-		git_remote_free(remote);
-		git_repository_free(repo);
-		git_libgit2_shutdown();
-		return 1;
+		retval = 1;
+		goto cleanup;
 	}
+
+	siril_debug_print("Remote URL: %s\n", remote_url);
+
 	if (strcmp(remote_url, SPCC_REPOSITORY_URL)) {
 		gchar *msg = g_strdup_printf(
 			_("Error: local siril-spcc-database repository folder is not "
@@ -944,11 +1013,12 @@ int auto_update_gitspcc(gboolean sync) {
 		// Make scripts unavailable, as the contents of a random git repository
 		// could be complete rubbish
 		gui.spcc_repo_available = FALSE;
+		retval = 1;
 		goto cleanup;
 	}
 
 	// Synchronise the repository
-	if (error == 0 && sync) {
+	if (sync) {
 		// fetch, analyse and merge changes from the remote
 		lg2_fetch(repo);
 
@@ -960,10 +1030,8 @@ int auto_update_gitspcc(gboolean sync) {
 					"persists you may need to delete the local git repository and "
 					"allow Siril to re-clone it.\n"), "red");
 			gui.spcc_repo_available = FALSE;
-			git_remote_free(remote);
-			git_repository_free(repo);
-			git_libgit2_shutdown();
-			return -1;
+			retval = -1;
+			goto cleanup;
 		}
 
 		// Perform the reset
@@ -973,18 +1041,20 @@ int auto_update_gitspcc(gboolean sync) {
 			siril_log_color_message(_("Error performing hard reset. If the problem "
 					"persists you may need to delete the local git repository and "
 					"allow Siril to re-clone it.\n"), "red");
-			git_remote_free(remote);
-			git_repository_free(repo);
-			git_libgit2_shutdown();
-			return -1;
+			retval = -1;
+			goto cleanup;
 		}
 		siril_log_color_message(_("Local SPCC database repository is up-to-date!\n"), "green");
 	}
 
 	// Cleanup
-	cleanup:
-	git_remote_free(remote);
-	git_repository_free(repo);
+cleanup:
+	if (remote) {
+		git_remote_free(remote);
+	}
+	if (repo) {
+		git_repository_free(repo);
+	}
 	git_libgit2_shutdown();
 
 	return retval;

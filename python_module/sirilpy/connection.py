@@ -444,7 +444,7 @@ class SirilInterface:
                         raise NoImageError(_("No image is currently loaded in Siril"))
                     if "no seqeunce loaded" in error_msg:
                         raise NoSequenceError(_("No sequence is currently loaded in Siril"))
-                    raise SirilError(_("Interface error: {}").format(error_msg))
+                    raise SirilError(_("Interface error in _execute_command: {}").format(error_msg))
                 raise SirilError(_("Error: unknown interface error"))
 
             return True
@@ -496,7 +496,7 @@ class SirilInterface:
                         raise NoImageError(_("No image is currently loaded in Siril"))
                     if "no seqeunce loaded" in error_msg:
                         raise NoSequenceError(_("No sequence is currently loaded in Siril"))
-                    raise SirilConnectionError(_("Interface error: {}").format(error_msg))
+                    raise SirilConnectionError(_("Interface error in _request_data: {}").format(error_msg))
                 raise SirilConnectionError(_("Error: unknown interface error"))
 
             return response
