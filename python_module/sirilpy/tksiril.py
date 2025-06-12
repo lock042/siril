@@ -8,6 +8,7 @@ TKsiril submodule for Siril, providing utility methods to achieve consistent
 script GUI appearance using the TKinter toolkit.
 """
 
+import platform
 from time import sleep
 import tkinter as tk
 from tkinter import ttk
@@ -307,7 +308,7 @@ class ScrollableFrame(ttk.Frame):
         self.bind('<Enter>', _bind_mousewheel)
         self.bind('<Leave>', _unbind_mousewheel)
 
-    def add_mousewheel_binding(self, widget):
+    def add_mousewheel_binding(self, widget=None):
         """
         Add mouse wheel scrolling support to a widget and its children.
 
@@ -318,6 +319,8 @@ class ScrollableFrame(ttk.Frame):
         Args:
             widget: The tkinter widget to bind mouse wheel events to.
                    The binding will be applied recursively to all children.
+                   If no widget is specified it will default to the ScrollableFrame
+                   itself.
 
         Example:
             # Add a complex widget to the scrollable frame
@@ -328,6 +331,9 @@ class ScrollableFrame(ttk.Frame):
             # Bind mouse wheel to the entire widget hierarchy
             scrollable.add_mousewheel_binding(frame)
         """
+        if widget is None:
+            widget = self
+
         system = platform.system()
 
         def _on_mousewheel_windows_mac(event):
