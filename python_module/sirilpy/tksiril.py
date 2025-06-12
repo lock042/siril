@@ -169,8 +169,185 @@ def elevate(root):
     calls to sirilpy methods that present child windows of the main Siril
     window such as info_messagebox().
 
-    NOTE: Does not work on KDE desktops. Currently no workaround is available.
+    NOTE: For this to work on KDE desktops, focus-stealing prevention must
+    be disabled.
     """
-
     root.lift()
     root.focus_force()
+
+class ScrollableFrame(ttk.Frame):
+    """
+    A scrollable frame widget that can contain other widgets.
+
+    This class creates a frame with vertical scrolling capability using a Canvas
+    widget and Scrollbar. It supports both scrollbar and mouse wheel scrolling
+    across all platforms (Windows, Mac, Linux).
+
+    Usage:
+        scrollable = ScrollableFrame(parent)
+        scrollable.pack(fill="both", expand=True)
+
+        # Add widgets to scrollable.scrollable_frame
+        label = ttk.Label(scrollable.scrollable_frame, text="Hello")
+        label.pack()
+
+        # Optionally bind mouse wheel to child widgets
+        scrollable.add_mousewheel_binding(label)
+    """
+
+    def __init__(self, container, *args, **kwargs):
+        """
+        Initialize the ScrollableFrame.
+
+        Args:
+            container: The parent widget
+            *args: Additional arguments passed to ttk.Frame
+            **kwargs: Additional keyword arguments passed to ttk.Frame
+        """
+        super().__init__(container, *args, **kwargs)
+
+        # Create canvas and scrollbar
+        self.canvas = tk.Canvas(self, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
+
+        # Configure canvas to work with scrollbar
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Pack scrollbar and canvas
+        self.scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+
+        # Create window in canvas for the scrollable frame
+        self.canvas_window = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+
+        # Bind events
+        self.scrollable_frame.bind("<Configure>", self._on_frame_configure)
+        self.canvas.bind("<Configure>", self._on_canvas_configure)
+
+        # Mouse wheel binding - this approach works more reliably
+        self._setup_mousewheel()
+
+    def _on_frame_configure(self, event):
+        """
+        Handle frame configuration changes.
+
+        This method is called when the scrollable frame's size changes.
+        It updates the canvas scroll region to encompass all the content.
+
+        Args:
+            event: The tkinter event object
+        """
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def _on_canvas_configure(self, event):
+        """
+        Handle canvas configuration changes.
+
+        This method is called when the canvas size changes (e.g., window resize).
+        It adjusts the width of the scrollable frame to match the canvas width,
+        preventing unwanted horizontal scrolling.
+
+        Args:
+            event: The tkinter event object containing the new canvas dimensions
+        """
+        canvas_width = event.width
+        self.canvas.itemconfig(self.canvas_window, width=canvas_width)
+
+    def _setup_mousewheel(self):
+        """
+        Setup cross-platform mouse wheel scrolling.
+
+        This method configures mouse wheel event bindings that work across
+        Windows, Mac, and Unix-like platforms. It uses platform detection to
+        apply the appropriate event bindings:
+        - Windows/Mac: <MouseWheel> with event.delta
+        - Linux/BSD/Unix: <Button-4> (scroll up) and <Button-5> (scroll down)
+
+        Platform-specific binding prevents conflicts where Button-4/5 might
+        represent different mouse buttons on Windows/Mac systems.
+
+        The bindings are applied when the mouse enters the widget area
+        and removed when it leaves to avoid conflicts with other scrollable widgets.
+        """
+        system = platform.system()
+
+        def _on_mousewheel_windows_mac(event):
+            """Handle mouse wheel events on Windows and Mac"""
+            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def _on_mousewheel_linux(event):
+            """Handle mouse wheel events on Linux, BSD, and other Unix-like systems"""
+            if event.num == 4:
+                self.canvas.yview_scroll(-1, "units")
+            elif event.num == 5:
+                self.canvas.yview_scroll(1, "units")
+
+        def _bind_mousewheel(event):
+            """Bind platform-appropriate mouse wheel events"""
+            if system in ("Windows", "Darwin"):  # Darwin is macOS
+                self.canvas.bind_all("<MouseWheel>", _on_mousewheel_windows_mac)
+            else:  # Linux, BSD, and other Unix-like systems
+                self.canvas.bind_all("<Button-4>", _on_mousewheel_linux)
+                self.canvas.bind_all("<Button-5>", _on_mousewheel_linux)
+
+        def _unbind_mousewheel(event):
+            """Unbind platform-appropriate mouse wheel events"""
+            if system in ("Windows", "Darwin"):
+                self.canvas.unbind_all("<MouseWheel>")
+            else:  # Linux, BSD, and other Unix-like systems
+                self.canvas.unbind_all("<Button-4>")
+                self.canvas.unbind_all("<Button-5>")
+
+        # Bind to canvas enter/leave events
+        self.canvas.bind('<Enter>', _bind_mousewheel)
+        self.canvas.bind('<Leave>', _unbind_mousewheel)
+
+        # Also bind to the main frame
+        self.bind('<Enter>', _bind_mousewheel)
+        self.bind('<Leave>', _unbind_mousewheel)
+
+    def add_mousewheel_binding(self, widget):
+        """
+        Add mouse wheel scrolling support to a widget and its children.
+
+        This method recursively binds mouse wheel events to the specified widget
+        and all its child widgets. It uses platform detection to apply the
+        appropriate event bindings for each operating system.
+
+        Args:
+            widget: The tkinter widget to bind mouse wheel events to.
+                   The binding will be applied recursively to all children.
+
+        Example:
+            # Add a complex widget to the scrollable frame
+            frame = ttk.Frame(scrollable.scrollable_frame)
+            label = ttk.Label(frame, text="Hello")
+            button = ttk.Button(frame, text="Click me")
+
+            # Bind mouse wheel to the entire widget hierarchy
+            scrollable.add_mousewheel_binding(frame)
+        """
+        system = platform.system()
+
+        def _on_mousewheel_windows_mac(event):
+            """Handle mouse wheel events on Windows and Mac"""
+            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def _on_mousewheel_linux(event):
+            """Handle mouse wheel events on Linux, BSD, and other Unix-like systems"""
+            if event.num == 4:
+                self.canvas.yview_scroll(-1, "units")
+            elif event.num == 5:
+                self.canvas.yview_scroll(1, "units")
+
+        # Bind platform-appropriate events
+        if system in ("Windows", "Darwin"):  # Darwin is macOS
+            widget.bind("<MouseWheel>", _on_mousewheel_windows_mac)
+        else:  # Linux, BSD, and other Unix-like systems
+            widget.bind("<Button-4>", _on_mousewheel_linux)
+            widget.bind("<Button-5>", _on_mousewheel_linux)
+
+        # Recursively bind to all children
+        for child in widget.winfo_children():
+            self.add_mousewheel_binding(child)
