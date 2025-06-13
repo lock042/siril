@@ -703,14 +703,20 @@ void shrink(float *out, float *in, int outw, int outh, int inw, int inh, float s
 #endif
 
 float half_to_float(const uint16_t val) {
+	// Union for type conversion without undefined behavior
+	union {
+		uint32_t u;
+		float f;
+	} converter;
+
 	// Extract the sign from the bits
 	const uint32_t sign = (uint32_t)(val & 0x8000) << 16;
 	// Extract the exponent from the bits
 	const uint8_t exp16 = (val & 0x7c00) >> 10;
 	// Extract the fraction from the bits
 	uint16_t frac16 = val & 0x3ff;
-
 	uint32_t exp32 = 0;
+
 	if (exp16 == 0x1f) {
 		exp32 = 0xff; // Infinity or NaN
 	} else if (exp16 != 0) {
@@ -718,9 +724,9 @@ float half_to_float(const uint16_t val) {
 	} else {
 		if (frac16 == 0) {
 			// Zero
-			return *(float*)&sign;
+			converter.u = sign;
+			return converter.f;
 		}
-
 		// Denormal number: normalize it
 		uint8_t offset;
 		#if HAS_BUILTIN_CLZ
@@ -736,16 +742,11 @@ float half_to_float(const uint16_t val) {
 		frac16 &= 0x3ff; // Mask off the implicit leading bit
 		exp32 = 113 - offset;
 	}
-
 	uint32_t frac32 = (uint32_t)frac16 << 13;
 
 	// Compose the final FP32 binary representation
-	uint32_t bits = 0;
-	bits |= sign;
-	bits |= (exp32 << 23);
-	bits |= frac32;
-
-	return *(float *)&bits;
+	converter.u = sign | (exp32 << 23) | frac32;
+	return converter.f;
 }
 
 int round_down_to_multiple(int value, int multiple) {
