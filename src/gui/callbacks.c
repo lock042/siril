@@ -1535,18 +1535,7 @@ gboolean is_gui_ready() {
 	return gui_ready;
 }
 
-static GMutex repos_mutex = {0};
-
-void lock_repos_mutex() {
-	g_mutex_lock(&repos_mutex);
-}
-
-void unlock_repos_mutex() {
-	g_mutex_unlock(&repos_mutex);
-}
-
 gpointer update_spcc(gpointer user_data) {
-	g_mutex_lock(&repos_mutex);
 	// 1. Update the repository
 	if (com.pref.spcc.auto_spcc_update && is_online()) {
 		auto_update_gitspcc(TRUE);
@@ -1555,13 +1544,11 @@ gpointer update_spcc(gpointer user_data) {
 		// populate_spcc_combos is run from it in an idle in the GTK thread
 		populate_spcc_combos_async(NULL);
 	}
-	g_mutex_unlock(&repos_mutex);
 	return GINT_TO_POINTER(0);
 }
 
 // Updates the repository and then refreshes the scripts menu.
 gpointer update_scripts(gpointer user_data) {
-	g_mutex_lock(&repos_mutex);
 	// 1. Update the repository
 	if (is_online()) {
 		auto_update_gitscripts(TRUE);
@@ -1571,7 +1558,6 @@ gpointer update_scripts(gpointer user_data) {
 		execute_idle_and_wait_for_it(refresh_script_menu_idle, GINT_TO_POINTER(0));
 		gui_mutex_unlock();
 	}
-	g_mutex_unlock(&repos_mutex);
 	return GINT_TO_POINTER(0);
 }
 
@@ -1587,7 +1573,6 @@ gpointer initialize_script_menu_and_spcc_widgets_serially(gpointer user_data) {
 
 // Only called from preferences when reactivating the SPCC repository
 gpointer initialize_spcc(gpointer user_data) {
-	g_mutex_lock(&repos_mutex);
 	// 1. Initialize the SPCC combos
 	// populate_spcc_combos_async runs in this thread but the actual call to
 	// populate_spcc_combos is run from it in an idle in the GTK thread
@@ -1600,7 +1585,6 @@ gpointer initialize_spcc(gpointer user_data) {
 		// populate_spcc_combos is run from it in an idle in the GTK thread
 		populate_spcc_combos_async(NULL); // controls the GUI mutex again
 	}
-	g_mutex_unlock(&repos_mutex);
 	return GINT_TO_POINTER(0);
 }
 
@@ -1620,7 +1604,6 @@ gpointer initialize_scripts(gpointer user_data) {
 		execute_idle_and_wait_for_it(refresh_script_menu_idle, GINT_TO_POINTER(0));
 		gui_mutex_unlock();
 	}
-	g_mutex_unlock(&repos_mutex);
 	return GINT_TO_POINTER(0);
 }
 
