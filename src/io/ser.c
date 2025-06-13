@@ -217,7 +217,7 @@ static ser_color convert_bayer_pattern_to_color_id(sensor_pattern pattern) {
 	}
 }
 
-static ser_color adjust_SER_pattern(ser_color type_ser, gboolean bayer_verbose) {
+static ser_color adjust_SER_pattern(ser_color type_ser) {
 	ser_color pattern = type_ser;
 	if (com.pref.debayer.use_bayer_header) {
 		// we always assume orientation is always top-bottom
@@ -228,23 +228,21 @@ static ser_color adjust_SER_pattern(ser_color type_ser, gboolean bayer_verbose) 
 			case SER_BAYER_GRBG:
 				return pattern;
 			case SER_MONO:
-				if (bayer_verbose)
-					siril_log_color_message(_("Forcing SER frame as CFA instead of monochrome, because Bayer information from file has been overridden in preferences\n"), "salmon");;
+				siril_log_color_message(_("Forcing SER frame as CFA instead of monochrome, because Bayer information from file has been overridden in preferences\n"), "salmon");
+				break;
 			default:
 				siril_log_color_message(_("Unknown SER type to debayer (%d), should not happen\n"), "red", type_ser);
 				return BAYER_FILTER_NONE;
 		}
 	}
 	sensor_pattern bayer_pattern = com.pref.debayer.bayer_pattern;
-	if (bayer_verbose) {
-		const char *pattern_str = filter_pattern[bayer_pattern];
-		siril_log_color_message(_("Forcing SER Bayer pattern to %s as configured in the preferences\n"), "salmon", pattern_str);
-	}
+	const char *pattern_str = filter_pattern[bayer_pattern];
+	siril_log_color_message(_("Forcing SER Bayer pattern to %s as configured in the preferences\n"), "salmon", pattern_str);
 	pattern = convert_bayer_pattern_to_color_id(bayer_pattern);
 	return pattern;
 }
 
-static int ser_read_header(struct ser_struct *ser_file, gboolean bayer_verbose) {
+static int ser_read_header(struct ser_struct *ser_file) {
 	char header[SER_HEADER_LEN];
 	int ret;
 	if (!ser_file || ser_file->file == NULL)
@@ -292,7 +290,7 @@ static int ser_read_header(struct ser_struct *ser_file, gboolean bayer_verbose) 
 			// we read the Bayer pattern using the preferences settings
 			// correct in the header if necessary
 			// Then if we won't debayer now, we reset the debayer_type_ser
-			ser_file->debayer_type_ser = adjust_SER_pattern(type_ser, bayer_verbose);
+			ser_file->debayer_type_ser = adjust_SER_pattern(type_ser);
 			ser_file->color_id = ser_file->debayer_type_ser;  //we update with prefs values if necessary
 			if (!com.pref.debayer.open_debayer)	{
 				ser_file->debayer_type_ser = SER_MONO;
@@ -300,7 +298,7 @@ static int ser_read_header(struct ser_struct *ser_file, gboolean bayer_verbose) 
 			break;
 		case SER_MONO:
 			if (com.pref.debayer.open_debayer) { // we are forcing this to CFA, this will read the preferences
-				ser_file->debayer_type_ser = adjust_SER_pattern(type_ser, bayer_verbose);
+				ser_file->debayer_type_ser = adjust_SER_pattern(type_ser);
 				ser_file->color_id = ser_file->debayer_type_ser;  //we update with prefs values if necessary
 				siril_log_color_message(_("Forcing debayer mono SER\n"), "salmon");
 			}
@@ -446,7 +444,7 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 	if (ser_file->color_id == SER_RGB)
 		ser_file->number_of_planes = 3;
 	else {
-		// the fits will be filled if bottom-up when written to SER file
+		// the fits will be flipped if bottom-up when written to SER file
 		if (!g_strcmp0(fit->keywords.bayer_pattern, "RGGB")) {
 			ser_file->color_id = fit->top_down ? SER_BAYER_RGGB : SER_BAYER_GBRG;
 		} else if (!g_strcmp0(fit->keywords.bayer_pattern, "BGGR")) {
@@ -729,7 +727,7 @@ static int ser_write_image_for_writer(struct seqwriter_data *writer, fits *image
 	return ser_write_frame_from_fit_internal(ser_file, image, index);
 }
 
-int ser_open_file(const char *filename, struct ser_struct *ser_file, gboolean bayer_verbose) {
+int ser_open_file(const char *filename, struct ser_struct *ser_file) {
 	if (ser_file->file) {
 		fprintf(stderr, "SER: file already opened, or badly closed\n");
 		return SER_GENERIC_ERROR;
@@ -743,7 +741,7 @@ int ser_open_file(const char *filename, struct ser_struct *ser_file, gboolean ba
 	omp_init_lock(&ser_file->fd_lock);
 	omp_init_lock(&ser_file->ts_lock);
 #endif
-	if (ser_read_header(ser_file, bayer_verbose)) {
+	if (ser_read_header(ser_file)) {
 		fprintf(stderr, "SER: reading header failed, closing file %s\n",
 				filename);
 		ser_close_file(ser_file);
@@ -872,6 +870,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	ser_manage_endianess_and_depth(ser_file, fit->data, frame_size);
 
 	fit->bitpix = (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
+	fit->orig_bitpix = fit->bitpix;
 	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 
 	ser_color debayer_type_ser = ser_file->debayer_type_ser; // this was set in accordance with prefs when reading the header
@@ -1209,10 +1208,10 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	if (!fit)
 		return SER_GENERIC_ERROR;
 
-	// return bottom-up fits to top-down ser row_order (not if the image is already top-down)
-	if (fit->top_down) {
-		snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
-	}
+	// // return bottom-up fits to top-down ser row_order (not if the image is already top-down)
+	// if (fit->top_down) {
+	// 	snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
+	// }
 	fits_flip_top_to_bottom(fit);
 
 	if (!ser_file || ser_file->file == NULL)
@@ -1353,7 +1352,7 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	fits fit = { 0 };
 
 	ser_init_struct(&ser);
-	if (ser_open_file(filename, &ser, FALSE)) {
+	if (ser_open_file(filename, &ser)) {
 		return NULL;
 	}
 	float *pix = malloc(MAX_SIZE * sizeof(float));

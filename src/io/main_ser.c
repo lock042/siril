@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
 		fprintf(stdout, "Usage: %s ser_file_name\n", *argv);
 		exit(1);
 	}
-	ser_open_file(argv[1], &ser_file, TRUE);
+	ser_open_file(argv[1], &ser_file);
 	display_ser_info(&ser_file);
 	return 0;
 }

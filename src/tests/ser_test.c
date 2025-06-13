@@ -79,7 +79,7 @@ int test_ser_image_number() {
 	fits *fit3 = create_image(20, 10, 1);
 	CHECK(!ser_write_frame_from_fit(ser, fit3, 2), "writing image\n");
 	CHECK(!ser_write_and_close(ser), "close file\n");
-	CHECK(!ser_open_file(TMP_FILE1, ser, FALSE), "reopen\n");
+	CHECK(!ser_open_file(TMP_FILE1, ser), "reopen\n");
 	CHECK(ser->frame_count == 3, "wrong number of frames\n");
 	free(ser);
 	CHECK(!unlink(TMP_FILE1), "error unlinking file " TMP_FILE1);
@@ -97,7 +97,7 @@ int test_ser_image_overwrite() {
 	CHECK(!ser_write_frame_from_fit(ser, fit2, 0), "writing image 2\n");
 	CHECK(ser_write_and_close(ser), "close file succeeded with lost image\n");
 
-	CHECK(ser_open_file(TMP_FILE2, ser, FALSE), "reopen found a file\n");
+	CHECK(ser_open_file(TMP_FILE2, ser), "reopen found a file\n");
 
 	free(ser);
 	unlink(TMP_FILE2);
@@ -115,7 +115,7 @@ int test_ser_image_sizes() {
 	CHECK(!ser_write_frame_from_fit(ser, fit2, 1), "writing image\n");
 	CHECK(ser_write_and_close(ser), "close file succeeded for error write\n");
 
-	CHECK(ser_open_file(TMP_FILE3, ser, FALSE), "reopen found a file\n");
+	CHECK(ser_open_file(TMP_FILE3, ser), "reopen found a file\n");
 
 	free(ser);
 	unlink(TMP_FILE3);
@@ -142,7 +142,7 @@ int test_ser_dates() {
 	CHECK(!ser_write_frame_from_fit(ser, fit3, 2), "writing image\n");
 	CHECK(!ser_write_and_close(ser), "close file\n");
 
-	CHECK(!ser_open_file(TMP_FILE4, ser, FALSE), "reopen\n");
+	CHECK(!ser_open_file(TMP_FILE4, ser), "reopen\n");
 	CHECK(ser->frame_count == 3, "wrong number of frames\n");
 	CHECK(ser->ts, "no date information in SER\n");
 	CHECK(g_date_time_to_unix(ser_timestamp_to_date_time(ser->ts[0])) == 100,
@@ -170,7 +170,7 @@ int test_ser_with_holes() {
 	CHECK(!ser_write_frame_from_fit(ser, fit3, 2), "writing image 3\n");
 	CHECK(!ser_write_and_close(ser), "close file\n");
 
-	CHECK(!ser_open_file(TMP_FILE5, ser, FALSE), "reopen\n");
+	CHECK(!ser_open_file(TMP_FILE5, ser), "reopen\n");
 	CHECK(ser->frame_count == 3, "wrong number of frames\n");
 
 	free(ser);
@@ -198,7 +198,7 @@ int test_ser_ooo_write() {
 	CHECK(!ser_write_frame_from_fit(ser, NULL, 5), "writing image\n");
 	CHECK(!ser_write_and_close(ser), "close file\n");
 
-	CHECK(!ser_open_file(TMP_FILE6, ser, FALSE), "reopen\n");
+	CHECK(!ser_open_file(TMP_FILE6, ser), "reopen\n");
 	CHECK(ser->frame_count == 3, "wrong number of frames\n");
 	CHECK(ser->ts, "no date information in SER\n");
 	CHECK(g_date_time_to_unix(ser_timestamp_to_date_time(ser->ts[0])) == 100,
@@ -256,7 +256,7 @@ int test_ser_create_from_copy() {
 	CHECK(!ser_write_frame_from_fit(ser, fit3, 2), "writing image\n");
 	CHECK(!ser_write_and_close(ser), "close file\n");
 
-	CHECK(!ser_open_file(TMP_FILE7, ser, FALSE), "reopen\n");
+	CHECK(!ser_open_file(TMP_FILE7, ser), "reopen\n");
 	CHECK(ser->color_id == SER_RGB, "wrong image color id\n");
 	CHECK(ser->image_width == 40, "wrong image width\n");
 	CHECK(ser->image_height == 20, "wrong image width\n");

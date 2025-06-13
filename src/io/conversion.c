@@ -1294,7 +1294,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		convert->current_ser = malloc(sizeof(struct ser_struct)); // no need for calloc as init follows
 		ser_init_struct(convert->current_ser);
 		siril_log_message(_("Reading %s\n"), src_filename);
-		if (ser_open_file(src_filename, convert->current_ser, TRUE)) {
+		if (ser_open_file(src_filename, convert->current_ser)) {
 			siril_log_message(_("Error while opening ser file %s, aborting.\n"), src_filename);
 			free(convert->current_ser);
 			convert->current_ser = NULL;

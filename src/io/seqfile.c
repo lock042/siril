@@ -415,7 +415,7 @@ sequence * readseqfile(const char *name){
 					seq->ser_file = malloc(sizeof(struct ser_struct));
 					ser_init_struct(seq->ser_file);
 					seqfilename[strlen(seqfilename)-1] = 'r';
-					if (ser_open_file(seqfilename, seq->ser_file, FALSE)) {
+					if (ser_open_file(seqfilename, seq->ser_file)) {
 						free(seq->ser_file);
 						seq->ser_file = NULL;
 						goto error;
