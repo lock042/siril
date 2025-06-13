@@ -53,7 +53,11 @@ from .utility import (
     check_module_version,
     SuppressedStdout,
     SuppressedStderr,
-    ONNXHelper
+)
+from .gpuhelper import (
+    ONNXHelper,
+    TorchHelper,
+    JaxHelper,
 )
 from .exceptions import (
     SirilError,
@@ -68,19 +72,7 @@ from .exceptions import (
 )
 from .connection import SirilInterface
 
-try:  # import from the packaging specification
-    from importlib.metadata import metadata, PackageNotFoundError
-    meta = metadata("sirilpy")
-    __version__ = meta.get("version", "unknown")
-    __author__ = meta.get("author", "unknown")
-    __license__ = meta.get("license", "unknown")
-except (ImportError, PackageNotFoundError):
-    # Specific exceptions rather than general Exception
-    __version__ = "unknown"
-    __author__ = "unknown"
-    __license__ = "unknown"
-
-__copyright__ = " (c) Team free-astro 2024-2025"  # not a standard metadata
+from .version import __version__, __author__, __license__, __copyright__
 
 # Define public API
 __all__ = [
@@ -116,6 +108,8 @@ __all__ = [
     'SuppressedStdout',
     'SuppressedStderr',
     'ONNXHelper',
+    'TorchHelper',
+    'JaxHelper',
     'human_readable_size',
     'download_with_progress',
     'LogColor',

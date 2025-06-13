@@ -2244,24 +2244,14 @@ CLEANUP:
 		}
 
 		case CMD_ADD_USER_POLYGON: {
-			UserPolygon *polygon = deserialize_polygon((const uint8_t*) payload, payload_length);
-			if (!(single_image_is_loaded() || sequence_is_loaded())) {
-				siril_debug_print("Failed to add user polygon\n");
-				const char* error_msg = _("Failed to add user polygon: no image loaded");
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-				break;
-			}
-			if (polygon) {
-				int id = get_unused_polygon_id();
-				polygon->id = id;
-				gui.user_polygons = g_list_append(gui.user_polygons, polygon);
-				redraw(REDRAW_OVERLAY);
-				int id_be = GINT32_TO_BE(id);
-				success = send_response(conn, STATUS_OK, &id_be, 4);
 			} else {
-				siril_debug_print("Failed to add user polygon\n");
-				const char* error_msg = _("Failed to add user polygon");
-				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_add_user_polygon_request(conn, info);
 			}
 			break;
 		}

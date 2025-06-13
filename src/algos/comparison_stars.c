@@ -204,6 +204,7 @@ void write_nina_file(struct compstars_arg *args) {
 				catalog_to_str(args->cat));
 	}
 	replace_spaces_from_str(args->nina_file, '_');
+	replace_char_from_str(args->nina_file, '*', '-');
 
 	siril_log_message(_("Creating csv output file %s\n"), args->nina_file);
 

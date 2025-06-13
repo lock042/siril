@@ -2368,6 +2368,9 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 // for FITSEQ and SER, we don't accept this as original sequence is not altered by platesolving
 // we cannot use st_mtime because it is not reliable on all systems
 cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_filename) {
+	if (seq->type == SEQ_INTERNAL)
+		return CACHE_NOT_FOUND; // internal sequences don't have filenames or cache files
+
 	if (!g_file_test(cache_filename, G_FILE_TEST_EXISTS))
 		return CACHE_NOT_FOUND;
 

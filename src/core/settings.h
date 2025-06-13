@@ -436,7 +436,7 @@ struct pref_struct {
 	fftw_params fftw_conf;
 	int max_slice_size; // Used when processing img_t in slices to limit the wisdom required
 	icc_params icc;
-	GList *selected_scripts;
+	GSList *selected_scripts;
 	gboolean use_scripts_repository;
 	gboolean auto_script_update; // automatically update scripts repository at startup
 };

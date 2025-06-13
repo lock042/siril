@@ -8540,7 +8540,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 	return CMD_OK;
 }
 
-gboolean stack_stop_thread(gpointer user_data) {
+static gboolean stack_stop_thread(gpointer user_data) {
 	stop_processing_thread();
 	return FALSE;
 }
@@ -9559,7 +9559,14 @@ int process_extract(int nb) {
 }
 
 int process_reloadscripts(int nb){
-	return refresh_scripts(FALSE, NULL);
+	if (com.headless) {
+		siril_log_color_message(_("Error: cannot reload script menu when running headless\n"), "red");
+		return CMD_GENERIC_ERROR;
+	} else {
+		GThread *thread = g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL);
+		g_thread_join(thread);
+	}
+	return CMD_OK;
 }
 
 int process_requires(int nb) {

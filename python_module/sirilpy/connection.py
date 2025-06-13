@@ -444,7 +444,7 @@ class SirilInterface:
                         raise NoImageError(_("No image is currently loaded in Siril"))
                     if "no seqeunce loaded" in error_msg:
                         raise NoSequenceError(_("No sequence is currently loaded in Siril"))
-                    raise SirilError(_("Interface error: {}").format(error_msg))
+                    raise SirilError(_("Interface error in _execute_command: {}").format(error_msg))
                 raise SirilError(_("Error: unknown interface error"))
 
             return True
@@ -496,7 +496,7 @@ class SirilInterface:
                         raise NoImageError(_("No image is currently loaded in Siril"))
                     if "no seqeunce loaded" in error_msg:
                         raise NoSequenceError(_("No sequence is currently loaded in Siril"))
-                    raise SirilConnectionError(_("Interface error: {}").format(error_msg))
+                    raise SirilConnectionError(_("Interface error in _request_data: {}").format(error_msg))
                 raise SirilConnectionError(_("Error: unknown interface error"))
 
             return response
@@ -3881,40 +3881,89 @@ class SirilInterface:
                 except Exception as e:
                     pass
 
-    def overlay_add_polygon(self, polygon: Polygon)-> Polygon:
+    def overlay_add_polygon(self, polygon: Polygon) -> Polygon:
         """
         Adds a user polygon to the Siril display overlay
-
         Args:
-            polyon: Polygon defining the polygon to be added
-
+            polygon: Polygon defining the polygon to be added
         Returns:
             Polygon: the input updated with the ID assigned by Siril
-
         Raises:
+            TypeError: invalid data provided,
             SirilConnectionError: on a connection failure,
             DataError: on receipt of invalid data,
             SirilError: on any failure
         """
-
+        shm = None
+        shm_info = None
         try:
             # Serialize the provided polygon
             polygon_bytes = polygon.serialize()
-            # Send it using _execute_command
-            response = self._request_data(_Command.ADD_USER_POLYGON, polygon_bytes)
-            if response is None:
-                raise SirilConnectionError(_("Failed to get a response from the SirilInterface"))
 
+            # Calculate total size needed
+            total_bytes = len(polygon_bytes)
+
+            # Create shared memory using our wrapper
             try:
-                # Assuming the response is in the format: !i (ID) (4 bytes)
-                polygon_id = struct.unpack('!i', response)[0]
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to create shared memory: {}").format(e)) from e
+
+            # Copy polygon data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                buffer[:len(polygon_bytes)] = polygon_bytes
+
+                # Delete transient objects used to structure copy
+                del buffer
+            except Exception as e:
+                raise SirilError(_("Failed to copy data to shared memory: {}").format(e)) from e
+
+            # Pack the polygon info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                0,  # unused field 1
+                0,  # unused field 2
+                0,  # unused field 3
+                0,  # unused field 4
+                total_bytes,  # size of polygon data
+                shm_info.shm_name  # shared memory name
+            )
+
+            # Send command using the existing _execute_command method
+            response = self._request_data(_Command.ADD_USER_POLYGON, info)
+            if response is None:
+                raise SirilConnectionError(("Failed to get a response from the SirilInterface"))
+            try:
+                polygon_id = struct.unpack('!i', response[:4])[0]
                 polygon.polygon_id = polygon_id
                 return polygon
+
             except struct.error as e:
                 raise DataError(_("Error unpacking polygon ID")) from e
 
+        except (TypeError, SirilError, DataError, SirilConnectionError, SharedMemoryError):
+            raise
         except Exception as e:
             raise SirilError(f"Error in overlay_add_polygon(): {e}") from e
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    if shm_info is not None:
+                        self._execute_command(_Command.RELEASE_SHM, shm_info)
+                except Exception:
+                    pass
 
     def overlay_delete_polygon(self, polygon_id: int):
         """
