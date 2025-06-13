@@ -457,7 +457,8 @@ class ONNXHelper:
         negligible overhead if it is already installed.
         """
         if not self.is_onnxruntime_installed():
-            self.install_onnxruntime()
+            return self.install_onnxruntime()
+        return True
 
     def is_onnxruntime_installed(self):
         """
@@ -754,7 +755,7 @@ class TorchHelper:
                 "sufficietly stable to support in this helper module.")
         elif self.system == 'linux':
             print("Linux: TorchHelper will install Torch.  A version may be specified but by default "
-                "autodetection will take place. The CUDA 12.8 version will be installed for NVidia GPUs "
+                "autodetection will taklookinge place. The CUDA 12.8 version will be installed for NVidia GPUs "
                 "but other CUDA versions may be specified manually as well as a ROCm version for AMD GPUs. "
                 "There is not yet an Intel Torch runtime that is sufficietly stable to support in this "
                 "helper module.")
@@ -819,7 +820,8 @@ class TorchHelper:
         negligible overhead if it is already installed.
         """
         if not self.is_torch_installed():
-            self.install_torch()
+            return self.install_torch()
+        return self._import_torch()
 
     def _detect_compute_platform(self) -> str:
         """
@@ -1039,6 +1041,7 @@ class TorchHelper:
     def _test_tensor_operations(self):
         """Test basic tensor operations on GPU."""
         print("=== Tensor Operations Test ===")
+        retval = None
 
         if not self.install_torch():
             print("PyTorch not available. Please install it first using install_torch()")
@@ -1082,15 +1085,17 @@ class TorchHelper:
 
         if are_close:
             print("OK: Results match within tolerance!")
+            retval = True
         else:
             print("(!) Results differ more than expected")
+            retval = False
 
         print(f"CPU time: {cpu_time:.4f}s")
         print(f"GPU time: {gpu_time:.4f}s")
         print(f"Speedup: {cpu_time/gpu_time:.2f}x")
 
         print("\n" + "="*50)
-        return True
+        return retval
 
     def test_torch(self):
         """
@@ -1103,8 +1108,7 @@ class TorchHelper:
             return False
 
         self._test_torch_gpu()
-        self._test_tensor_operations()
-        return True
+        return self._test_tensor_operations()
 
     def uninstall_torch(self):
         """
@@ -1377,7 +1381,8 @@ class JaxHelper:
         negligible overhead if it is already installed.
         """
         if not self.is_jax_installed():
-            self.install_jax()
+            return self.install_jax()
+        return True
 
     def test_jax(self) -> Tuple[bool, Optional[str]]:
         """
