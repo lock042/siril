@@ -917,10 +917,12 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 					 (has_drizzle && gfit.naxes[2] == 1); // drizzle or bayer-drizzle will be applied to produce the output
 
 	// if not debayered, check that the bayer pattern is known
+	// at this stage it does not need to be correct, we just need to know there's one to identify if it's a valid bayer pattern
 	// TODO: we can't force drizzle as we do for debayer because here, we rely on the header having a bayer_pattern keyword
-	// Note that get_bayer_pattern will still get the bayer pattern according to prefs, so not necessarily the header
+	// This would need either to add a force bayer button in the registration tab (ugly)
+	// or direct the user to correcting the bayer pattern in the images headers (prefered)
 	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
-		pattern = get_bayer_pattern(&gfit);
+		pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
 	}
 
 	// checking if it requires same size sequence
@@ -967,7 +969,8 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(combo_driz_kernel));
 	driz->pixel_fraction = gtk_spin_button_get_value(spin_driz_dropsize);
-	driz->is_bayer = gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0';
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern); // no need to get the validated version
+	driz->is_bayer = gfit.naxes[2] == 1 && pattern > BAYER_FILTER_MIN && pattern < BAYER_FILTER_MAX;
 	int status;
 	gchar *error = NULL;
 	gchar *expression = NULL;

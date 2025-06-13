@@ -446,14 +446,15 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 	if (ser_file->color_id == SER_RGB)
 		ser_file->number_of_planes = 3;
 	else {
+		// the fits will be filled if bottom-up when written to SER file
 		if (!g_strcmp0(fit->keywords.bayer_pattern, "RGGB")) {
-			ser_file->color_id = SER_BAYER_RGGB;
+			ser_file->color_id = fit->top_down ? SER_BAYER_RGGB : SER_BAYER_GBRG;
 		} else if (!g_strcmp0(fit->keywords.bayer_pattern, "BGGR")) {
-			ser_file->color_id = SER_BAYER_BGGR;
+			ser_file->color_id = fit->top_down ? SER_BAYER_BGGR : SER_BAYER_GRBG;
 		} else if (!g_strcmp0(fit->keywords.bayer_pattern, "GBRG")) {
-			ser_file->color_id = SER_BAYER_GBRG;
+			ser_file->color_id = fit->top_down ? SER_BAYER_GBRG : SER_BAYER_RGGB;
 		} else if (!g_strcmp0(fit->keywords.bayer_pattern, "GRBG")) {
-			ser_file->color_id = SER_BAYER_GRBG;
+			ser_file->color_id = fit->top_down ? SER_BAYER_GRBG : SER_BAYER_BGGR;
 		}
 		ser_file->number_of_planes = 1;
 	}
@@ -805,6 +806,10 @@ int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
 	fit->bitpix = (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
 	fit->orig_bitpix = fit->bitpix;
 	fit->keywords.binning_x = fit->keywords.binning_y = 1;
+	if (type_ser >= SER_BAYER_RGGB && type_ser <= SER_BAYER_BGGR) {
+		fit->top_down = FALSE; // SER frames are always top-down and we always flip them so they are bottom-up when consumed as FITS
+		sprintf(fit->keywords.bayer_pattern, convert_color_id_to_char(type_ser));
+	}
 	return SER_OK;
 }
 
@@ -956,6 +961,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		const char *new_pattern_str = flip_bayer_pattern(pattern_str);
 		// No need to inform the user as the FITS header details for a sequence frame are not accessible
 		strncpy(fit->keywords.bayer_pattern, new_pattern_str, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
+		fit->debayer_checked = TRUE;
 	}
 
 	// FITS are BOTTOM-UP, so we flip the image

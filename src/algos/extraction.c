@@ -168,7 +168,7 @@ int extractGreen_float(fits *in, fits *green, sensor_pattern pattern) {
 int extractGreen_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	fits f_green = { 0 };
-	sensor_pattern pattern = get_bayer_pattern(fit);
+	sensor_pattern pattern = get_validated_cfa_pattern(fit, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_message(_("Extract Green: unsupported Bayer pattern.\n"));
 		return 1;
@@ -326,7 +326,7 @@ int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct simple_extract_data *data = (struct simple_extract_data *) args->user;
 	int ret = 1;
 	fits f_Ha = { 0 };
-	sensor_pattern pattern = get_bayer_pattern(fit);
+	sensor_pattern pattern = get_validated_cfa_pattern(fit, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_message(_("Extract Ha: unsupported Bayer pattern.\n"));
 		return 1;
@@ -838,7 +838,7 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
-	sensor_pattern pattern = get_bayer_pattern(fit);
+	sensor_pattern pattern = get_validated_cfa_pattern(fit, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_message(_("Extract HaOIII: unsupported Bayer pattern.\n"));
 		return 1;
@@ -957,13 +957,6 @@ int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	update_filter_information(cfa2, "CFA2", TRUE);
 	update_filter_information(cfa3, "CFA3", TRUE);
 
-	/* Remove Bayer pattern information */
-	cfa0->keywords.bayer_pattern[0] = '\0';
-	cfa1->keywords.bayer_pattern[0] = '\0';
-	cfa2->keywords.bayer_pattern[0] = '\0';
-	cfa3->keywords.bayer_pattern[0] = '\0';
-
-
 	/* Remove any WCS data */
 	free_wcs(cfa0);
 	free_wcs(cfa1);
@@ -1033,12 +1026,6 @@ int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	update_filter_information(cfa1, "CFA1", TRUE);
 	update_filter_information(cfa2, "CFA2", TRUE);
 	update_filter_information(cfa3, "CFA3", TRUE);
-
-	/* Remove Bayer pattern information */
-	cfa0->keywords.bayer_pattern[0] = '\0';
-	cfa1->keywords.bayer_pattern[0] = '\0';
-	cfa2->keywords.bayer_pattern[0] = '\0';
-	cfa3->keywords.bayer_pattern[0] = '\0';
 
 	/* Remove any WCS data */
 	free_wcs(cfa0);

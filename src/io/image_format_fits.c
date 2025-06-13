@@ -3682,6 +3682,9 @@ int fits_swap_image_data(fits *a, fits *b) {
 	gboolean btmp = a->top_down;
 	a->top_down = b->top_down;
 	b->top_down = btmp;
+	gboolean ctmp = a->debayer_checked;
+	a->debayer_checked = b->debayer_checked;
+	b->debayer_checked = ctmp;
 	imstats **stmp = a->stats;
 	a->stats = b->stats;
 	b->stats = stmp;
@@ -3745,7 +3748,7 @@ const char* get_cfa_from_pattern(sensor_pattern pattern) {
 // These interpolation routines will work for X-Trans as well as Bayer patterns
 
 static void interpolate_nongreen_float(fits *fit) {
-	sensor_pattern pattern = get_bayer_pattern(fit);
+	sensor_pattern pattern = get_validated_cfa_pattern(fit, FALSE);
 	const char *cfa = get_cfa_from_pattern(pattern);
 	if (!cfa)
 		return;
@@ -3784,7 +3787,7 @@ static void interpolate_nongreen_float(fits *fit) {
 }
 
 static void interpolate_nongreen_ushort(fits *fit) {
-	sensor_pattern pattern = get_bayer_pattern(fit);
+	sensor_pattern pattern = get_validated_cfa_pattern(fit, FALSE);
 	const char *cfa = get_cfa_from_pattern(pattern);
 	if (!cfa)
 		return;

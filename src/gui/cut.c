@@ -45,7 +45,7 @@ gboolean reset_cut_gui_filedependent(gpointer user_data) { // Separated out to a
 	GtkWidget *cfabutton = (GtkWidget*) lookup_widget("cut_cfa");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
 	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
-	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
+	gboolean cfa_disabled = (gfit.naxes[2] > 1 || pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX);
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 	GtkToggleButton* as = (GtkToggleButton*) lookup_widget("cut_dist_pref_as");
 	gtk_toggle_button_set_active(as, gfit.keywords.wcsdata.pltsolvd);

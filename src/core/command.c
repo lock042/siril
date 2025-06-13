@@ -5975,10 +5975,8 @@ int process_subsky(int nb) {
 		args->fit = &gfit;
 
 		// Check if the image has a Bayer CFA pattern
-		gboolean is_cfa = gfit.naxes[2] == 1 && (!strncmp(gfit.keywords.bayer_pattern, "RGGB", 4) ||
-						  !strncmp(gfit.keywords.bayer_pattern, "BGGR", 4) ||
-						  !strncmp(gfit.keywords.bayer_pattern, "GBRG", 4) ||
-						  !strncmp(gfit.keywords.bayer_pattern, "GRBG", 4));
+		sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
+		gboolean is_cfa = gfit.naxes[2] == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
 
 		int retval = 1;
 		if (use_existing) {
@@ -6261,7 +6259,7 @@ int process_extractGreen(int nb) {
 		}
 	}
 
-	sensor_pattern pattern = get_bayer_pattern(&gfit);
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract green channel.\n"), "red");
 		g_free(filename);
@@ -6306,7 +6304,7 @@ int extract_Ha(extraction_scaling scaling) {
 			free(tmp);
 		}
 	}
-	sensor_pattern pattern = get_bayer_pattern(&gfit);
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha.\n"), "red");
 		g_free(filename);
@@ -6354,7 +6352,7 @@ int extract_HaOIII(extraction_scaling scaling) {
 			free(tmp);
 		}
 	}
-	sensor_pattern pattern = get_bayer_pattern(&gfit);
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha/OIII channels.\n"), "red");
 		g_free(filename);
@@ -7913,7 +7911,7 @@ int process_register(int nb) {
 			preffit = &gfit;
 		if (preffit->naxes[2] == 1 && preffit->keywords.bayer_pattern[0] != '\0') {
 			// TODO: same remark as in gui/registration.c
-			sensor_pattern pattern = get_bayer_pattern(preffit);
+			sensor_pattern pattern = get_cfa_pattern_index_from_string(preffit->keywords.bayer_pattern);
 			if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 				siril_log_color_message(_("Cannot use drizzle on non-bayer sensors, aborting.\n"), "red");
 				clearfits(preffit);
@@ -8377,7 +8375,7 @@ int process_seq_applyreg(int nb) {
 		} else
 			preffit = &gfit;
 		if (preffit->naxes[2] == 1 && preffit->keywords.bayer_pattern[0] != '\0') {
-			sensor_pattern pattern = get_bayer_pattern(preffit);
+			sensor_pattern pattern = get_cfa_pattern_index_from_string(preffit->keywords.bayer_pattern);
 			if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 				siril_log_color_message(_("Cannot use drizzle on non-bayer sensors, aborting.\n"), "red");
 				clearfits(preffit);
@@ -10965,8 +10963,8 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			} else {
 				reffit = gfit;
 			}
-			sensor_pattern pattern = get_cfa_pattern_index_from_string(reffit.keywords.bayer_pattern);
-			if ((reffit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG)))) {
+			sensor_pattern pattern = get_cfa_pattern_index_from_string(reffit.keywords.bayer_pattern); // we don't need the validated value here because we just want to know if it's CFA or not
+			if (reffit.naxes[2] > 1 || pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 				siril_log_color_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"), "red");
 				*err = CMD_ARG_ERROR;
 				break;

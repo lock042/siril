@@ -797,41 +797,10 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	if (seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
 	}
-	sensor_pattern pattern;
-	if (args->seq->type == SEQ_SER && args->seq->ser_file ) {
-		driz->is_bayer = TRUE;
-		switch (args->seq->ser_file->color_id) {
-			case SER_MONO:
-				pattern = get_cfa_pattern_index_from_string("");
-				driz->is_bayer = FALSE;
-				break;
-			case SER_BAYER_RGGB:
-				pattern = get_cfa_pattern_index_from_string("RGGB");
-				break;
-			case SER_BAYER_GRBG:
-				pattern = get_cfa_pattern_index_from_string("GRBG");
-				break;
-			case SER_BAYER_GBRG:
-				pattern = get_cfa_pattern_index_from_string("GBRG");
-				break;
-			case SER_BAYER_BGGR:
-				pattern = get_cfa_pattern_index_from_string("BGGR");
-				break;
-			default:
-				siril_log_message(_("Unsupported SER CFA pattern detected. Treating as mono.\n"));
-				driz->is_bayer = FALSE;
-		}
-	} else {
-		const gchar bayertest = fit.keywords.bayer_pattern[0];
-		driz->is_bayer = (bayertest == 'R' || bayertest == 'G' || bayertest == 'B'); // If there is a CFA pattern we need to CFA drizzle
-		pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.keywords.bayer_pattern) : com.pref.debayer.bayer_pattern;
-	}
-	if (driz->is_bayer) {
-		adjust_Bayer_pattern(&fit, &pattern);
+	sensor_pattern pattern = get_validated_cfa_pattern(&fit, FALSE);
+	driz->is_bayer = fit.naxes[2] == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
+	if (driz->is_bayer)
 		driz->cfa = get_cfa_from_pattern(pattern);
-		if (!driz->cfa) // if fit.bayer_pattern exists and get_cfa_from_pattern returns NULL then there is a problem.
-			return 1;
-	}
 	return 0;
 }
 
