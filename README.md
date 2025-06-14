@@ -61,14 +61,8 @@ their support won't be included.
 - **libjxl** for JPEG XL format support
 - **libheif** for HEIF format files import
 - **libpng** (>= 1.6) for PNG format support
-- **libavformat**, **libavutil** (>= 55.20), **libavcodec**, **libswscale** and
-  **libswresample** for avi export (usually provided by ffmpeg)
+- **libavformat**, **libavutil** (>= 55.20), **libavcodec**, **libswscale** and **libswresample** for avi export (usually provided by ffmpeg)
 - **libgit2** for git integration to sync with the official siril-scripts repository
-  *Note* currently the maximum permitted version of libgit2 is 1.8.0 owing to a
-  very serious performance regression on some distributions from 1.8.1 onwards.
-  On recent distributions you may need to downgrade the installed version or override
-  it with a locally compiled version of 1.8.0.
-  Once the upstream bug is resolved this constraint will be removed.
 - **criterion** for unit testing with meson (development)
 
 All these libraries and programs are available in most Linux distributions and
