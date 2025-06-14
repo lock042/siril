@@ -427,7 +427,7 @@ endif
 
 libgit2_dep = no_dep
 if enable_libgit2
-  libgit2_dep = dependency('libgit2', version: '<1.8.1', required: true)
+  libgit2_dep = dependency('libgit2', required : true)
 endif
 
 ffms2_dep = no_dep
