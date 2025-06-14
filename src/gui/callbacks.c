@@ -1538,7 +1538,9 @@ gboolean is_gui_ready() {
 gpointer update_spcc(gpointer user_data) {
 	// 1. Update the repository
 	if (com.pref.spcc.auto_spcc_update && is_online()) {
+#ifdef HAVE_LIBGIT2
 		auto_update_gitspcc(TRUE);
+#endif
 		// 2. Update the SPCC combos
 		// populate_spcc_combos_async runs in this thread but the actual call to
 		// populate_spcc_combos is run from it in an idle in the GTK thread
@@ -1551,7 +1553,9 @@ gpointer update_spcc(gpointer user_data) {
 gpointer update_scripts(gpointer user_data) {
 	// 1. Update the repository
 	if (is_online()) {
+#ifdef HAVE_LIBGIT2
 		auto_update_gitscripts(TRUE);
+#endif
 		// 2. Update the menu (not verbose)
 		// refresh_script_menu runs in an idle in the GTK thread
 		gui_mutex_lock();
@@ -1579,7 +1583,9 @@ gpointer initialize_spcc(gpointer user_data) {
 	populate_spcc_combos_async(NULL); // controls the GUI mutex
 	// 2. Update the repository
 	if (com.pref.spcc.auto_spcc_update && is_online()) {
+#ifdef HAVE_LIBGIT2
 		auto_update_gitspcc(TRUE);
+#endif
 		// 3. Update the SPCC combos
 		// populate_spcc_combos_async runs in this thread but the actual call to
 		// populate_spcc_combos is run from it in an idle in the GTK thread
@@ -1597,7 +1603,9 @@ gpointer initialize_scripts(gpointer user_data) {
 	gui_mutex_unlock();
 	// 2. Update the repository
 	if (com.pref.auto_script_update && is_online()) {
+#ifdef HAVE_LIBGIT2
 		auto_update_gitscripts(TRUE);
+#endif
 		// 3. Update the menu (not verbose)
 		// refresh_script_menu runs in an idle in the GTK thread
 		gui_mutex_lock();
