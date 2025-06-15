@@ -2016,13 +2016,6 @@ int register_manual(struct registration_args *regargs) {
 	return regargs->retval;
 }
 
-int internal_crop_finalize_hook(struct generic_seq_args *args) {
-	struct crop_sequence_data *data = (struct crop_sequence_data *) args->user;
-	int retval = seq_finalize_hook(args);
-	free(data);
-	return retval;
-}
-
 int crop_rgbcomp_seq() {
 	if (!seq) {
 		siril_log_color_message(_("Error: internal RGB composition sequence does not exist\n"), "red");
@@ -2040,7 +2033,7 @@ int crop_rgbcomp_seq() {
 	args->nb_filtered_images = crop_args->seq->selnum;
 	args->compute_size_hook = crop_compute_size_hook;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = internal_crop_finalize_hook;
+	args->finalize_hook = crop_finalize_hook;
 	args->image_hook = crop_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Crop Sequence");
