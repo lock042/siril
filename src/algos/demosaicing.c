@@ -1285,9 +1285,13 @@ sensor_pattern get_validated_cfa_pattern(fits *fit, gboolean force_debayer) {
 		siril_debug_print("No FITS file provided to get_validated_cfa_pattern\n");
 		return BAYER_FILTER_NONE;
 	}
+	sensor_pattern pattern = BAYER_FILTER_NONE;
 	if (fit->debayer_checked) // TRUE for SER images
-		return get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern);
-	return get_bayer_pattern(fit, force_debayer);
+		pattern = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern);
+	else
+		pattern = get_bayer_pattern(fit, force_debayer);
+	siril_debug_print("Pattern to debayer: %s (%d)\n", filter_pattern[pattern], fit->debayer_checked);
+	return pattern;
 }
 
 // debayers the image if it's a FITS image and if debayer is activated globally

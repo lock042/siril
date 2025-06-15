@@ -485,6 +485,19 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 	return SER_OK;
 }
 
+static const gchar *flip_bayer_pattern(const gchar *old_pattern) {
+	if (!strcmp(old_pattern, "RGGB"))
+		return "GBRG";
+	else if (!strcmp(old_pattern, "GBRG"))
+		return "RGGB";
+	else if (!strcmp(old_pattern, "BGGR"))
+		return "GRBG";
+	else if (!strcmp(old_pattern, "GRBG"))
+		return "BGGR";
+	else
+		return NULL;
+}
+
 /* once a buffer (data) has been acquired from the file, with frame_size pixels
  * read in it, depending on ser_file's endianess and pixel depth, data is
  * reorganized to match Siril's data format . */
@@ -781,16 +794,16 @@ void ser_init_struct(struct ser_struct *ser_file) {
 }
 
 int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
-	ser_color type_ser = ser_file->debayer_type_ser;
+	ser_color type_ser = ser_file->color_id;
 	switch (type_ser) {
 	case SER_MONO:
-		fit->naxis = 2;
-		fit->naxes[2] = 1;
-		break;
 	case SER_BAYER_RGGB:
 	case SER_BAYER_BGGR:
 	case SER_BAYER_GBRG:
 	case SER_BAYER_GRBG:
+		fit->naxis = 2;
+		fit->naxes[2] = 1;
+		break;
 	case SER_BGR:
 	case SER_RGB:
 		fit->naxis = 3;
@@ -805,23 +818,13 @@ int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
 	fit->orig_bitpix = fit->bitpix;
 	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	if (type_ser >= SER_BAYER_RGGB && type_ser <= SER_BAYER_BGGR) {
-		fit->top_down = FALSE; // SER frames are always top-down and we always flip them so they are bottom-up when consumed as FITS
-		sprintf(fit->keywords.bayer_pattern, convert_color_id_to_char(type_ser));
+		const gchar *ser_pattern = convert_color_id_to_char(type_ser);
+		sprintf(fit->keywords.bayer_pattern, flip_bayer_pattern(ser_pattern));
+		fit->debayer_checked = TRUE;
+		fit->top_down = TRUE;
+		snprintf(fit->keywords.row_order, FLEN_VALUE, "TOP-DOWN");
 	}
 	return SER_OK;
-}
-
-static const gchar *flip_bayer_pattern(const gchar *old_pattern) {
-	if (!strcmp(old_pattern, "RGGB"))
-		return "GBRG";
-	else if (!strcmp(old_pattern, "GBRG"))
-		return "RGGB";
-	else if (!strcmp(old_pattern, "BGGR"))
-		return "GRBG";
-	else if (!strcmp(old_pattern, "GRBG"))
-		return "BGGR";
-	else
-		return NULL;
 }
 
 /* reads a frame on an already opened SER sequence.
@@ -965,8 +968,8 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 
 	// FITS are BOTTOM-UP, so we flip the image
 	fits_flip_top_to_bottom(fit);
-	fit->top_down = FALSE;
-	snprintf(fit->keywords.row_order, FLEN_VALUE, "BOTTOM-UP");
+	fit->top_down = TRUE;
+	snprintf(fit->keywords.row_order, FLEN_VALUE, "TOP-DOWN");
 	return SER_OK;
 }
 

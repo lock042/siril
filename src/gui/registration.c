@@ -844,7 +844,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	has_drizzle = has_output && gtk_stack_get_visible_child(interp_drizzle_stack) == GTK_WIDGET(grid_drizzle_controls);
 	/* must enforce drizzle/interp */
 	must_have_drizzle = has_output && gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0';
-	must_have_interp  = has_output && gfit.naxes[2] == 3 && com.seq.type != SEQ_SER; // we can drizzle not-yet-debayered SER when undebayered on-the-fly
+	must_have_interp  = has_output && gfit.naxes[2] == 3;
 
 
 	/* initialize default */
@@ -909,13 +909,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_KOMBAT);
 	}
 
-	// checking bayer status is ok
-	check_bayer_ok = !has_output || //if no output, we don't need to check
-					 (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] == '\0') || // mono sequence
-					 gfit.naxes[2] == 3 || // debayered sequence
-					 com.seq.type == SEQ_SER || // SER can be debayered on-the-fly
-					 (has_drizzle && gfit.naxes[2] == 1); // drizzle or bayer-drizzle will be applied to produce the output
-
 	// if not debayered, check that the bayer pattern is known
 	// at this stage it does not need to be correct, we just need to know there's one to identify if it's a valid bayer pattern
 	// TODO: we can't force drizzle as we do for debayer because here, we rely on the header having a bayer_pattern keyword
@@ -925,6 +918,14 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
 	}
 
+	// checking bayer status is ok
+	check_bayer_ok = !has_output || //if no output, we don't need to check
+					 (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] == '\0') || // mono sequence
+					 (gfit.naxes[2] == 1 && has_drizzle && pattern > BAYER_FILTER_MIN && pattern < BAYER_FILTER_MAX) || // bayer-drizzle sequence
+					 gfit.naxes[2] == 3 || // debayered sequence
+					 com.seq.type == SEQ_SER || // SER can be debayered on-the-fly
+					 (has_drizzle && gfit.naxes[2] == 1); // drizzle or bayer-drizzle will be applied to produce the output
+
 	// checking if it requires same size sequence
 	samesizeseq_required = (regindex >= REG_3STARS && regindex <= REG_KOMBAT) || ((is_star_align || isapplyreg) && has_drizzle);
 
@@ -933,8 +934,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			check_bayer_ok &&
 			(!samesizeseq_required || (samesizeseq_required && !com.seq.is_variable)) &&
 			(selection_is_done || method->sel == REQUIRES_NO_SELECTION) &&
-			pattern <= BAYER_FILTER_MAX &&
-			pattern >= BAYER_FILTER_MIN &&
 			(!isapplyreg || has_reg) && // must have reg data if applyreg
 			check_applyreg(regindex) &&
 			check_comet(regindex) &&
