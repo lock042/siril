@@ -780,7 +780,7 @@ struct guiinf {
 	point measure_start;	// quick alt-drag measurement
 	point measure_end;
 
-	GList *user_polygons;	// user defined polygons for the overlay
+	GSList *user_polygons;	// user defined polygons for the overlay
 
 	void (*draw_extra)(draw_data_t *dd);
 

@@ -4037,7 +4037,8 @@ class SirilInterface:
         Gets a single user polygon from the Siril overlay, specified by ID
 
         Args:
-            id: int specifying the polygon ID to be deleted
+            id: int specifying the polygon ID to be retrieved. The special ID -1 will
+        retrieve the most recently added polygon.
 
         Returns:
             Polygon: the specified Polygon if it exists, None otherwise

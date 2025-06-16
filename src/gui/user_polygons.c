@@ -29,41 +29,37 @@ do { \
 	(dest) = conv.v; \
 } while(0)
 
-UserPolygon *find_polygon_by_id(int id) {
-	GList *node;
+static gint unused_polygon_id = 0;
 
+UserPolygon *find_polygon_by_id(int id) {
+	GSList *node;
+
+	// Special case: if id is -1, find most recently created polygon
+	if (id == -1) {
+		int highest_id = g_atomic_int_get(&unused_polygon_id) - 1;
+		if (highest_id < 0) return NULL; // No polygons exist
+
+		for (node = gui.user_polygons; node != NULL; node = node->next) {
+			UserPolygon *polygon = (UserPolygon *)node->data;
+			if (polygon->id == highest_id) {
+				return polygon;
+			}
+		}
+		return NULL; // Polygon with highest ID was deleted
+	}
+
+	// Normal case: find polygon with matching id
 	for (node = gui.user_polygons; node != NULL; node = node->next) {
 		UserPolygon *polygon = (UserPolygon *)node->data;
 		if (polygon->id == id) {
 			return polygon;
 		}
 	}
-
 	return NULL;
 }
 
 int get_unused_polygon_id(void) {
-	int candidate_id = 1;
-	GList *l;
-
-	// Sort the list by ID (if not already sorted)
-	// This step might be needed depending on your implementation
-
-	// Check each ID in the list against our candidate
-	for (l = gui.user_polygons; l != NULL; l = l->next) {
-		UserPolygon *polygon = (UserPolygon *)l->data;
-
-		if (polygon->id == candidate_id) {
-			// This ID is taken, try the next one
-			candidate_id++;
-		} else if (polygon->id > candidate_id) {
-			// We found a gap - candidate_id is available
-			return candidate_id;
-		}
-	}
-
-	// If we get here, all IDs up to candidate_id are taken
-	return candidate_id;
+	return g_atomic_int_add(&unused_polygon_id, 1);
 }
 
 UserPolygon* create_user_polygon_from_points(GSList *point_list) {
@@ -124,7 +120,7 @@ int add_user_polygon(point *points, int n_points, const GdkRGBA *color, gboolean
 		polygon->points[i] = points[i];
 	}
 
-	gui.user_polygons = g_list_append(gui.user_polygons, polygon);
+	gui.user_polygons = g_slist_prepend(gui.user_polygons, polygon);
 
 	return id; // Return the generated ID to the caller
 }
@@ -136,7 +132,7 @@ int add_existing_polygon(UserPolygon* polygon, const GdkRGBA *color, gboolean fi
 	if (color) {
 		polygon->color = *color;
 	}
-	gui.user_polygons = g_list_append(gui.user_polygons, polygon);
+	gui.user_polygons = g_slist_prepend(gui.user_polygons, polygon);
 	return id; // Return the generated ID to the caller
 }
 
@@ -151,11 +147,11 @@ static void free_user_polygon(gpointer data) {
 }
 
 gboolean delete_user_polygon(int id) {
-	GList *l;
+	GSList *l;
 	for (l = gui.user_polygons; l != NULL; l = l->next) {
 		UserPolygon *polygon = (UserPolygon *)l->data;
 		if (polygon->id == id) {
-			gui.user_polygons = g_list_delete_link(gui.user_polygons, l);
+			gui.user_polygons = g_slist_delete_link(gui.user_polygons, l);
 			free_user_polygon(polygon);
 			return TRUE;
 		}
@@ -164,8 +160,9 @@ gboolean delete_user_polygon(int id) {
 }
 
 void clear_user_polygons(void) {
-	g_list_free_full(gui.user_polygons, free_user_polygon);
+	g_slist_free_full(gui.user_polygons, free_user_polygon);
 	gui.user_polygons = NULL;
+	g_atomic_int_set(&unused_polygon_id, 0);
 }
 
 UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
@@ -327,14 +324,14 @@ uint8_t* serialize_polygon(UserPolygon *polygon, size_t *size) {
 	return buffer;
 }
 
-uint8_t* serialize_polygon_list(GList *polygons, size_t *out_size) {
+uint8_t* serialize_polygon_list(GSList *polygons, size_t *out_size) {
 	if (!polygons) {
 		*out_size = 0;
 		return NULL;
 	}
 
 	size_t total_size = sizeof(uint32_t); // Space for number of polygons
-	GList *node;
+	GSList *node;
 	for (node = polygons; node != NULL; node = node->next) {
 		UserPolygon *polygon = (UserPolygon *)node->data;
 		size_t polygon_size;
@@ -356,7 +353,7 @@ uint8_t* serialize_polygon_list(GList *polygons, size_t *out_size) {
 	uint8_t *ptr = buffer;
 
 	// Write number of polygons
-	*(uint32_t *)ptr = g_htonl(g_list_length(polygons));
+	*(uint32_t *)ptr = g_htonl(g_slist_length(polygons));
 	ptr += sizeof(uint32_t);
 
 	for (node = polygons; node != NULL; node = node->next) {

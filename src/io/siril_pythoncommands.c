@@ -2321,7 +2321,7 @@ CLEANUP:
 
 		case CMD_GET_USER_POLYGON_LIST: {
 			size_t polygon_list_size;
-			if (g_list_length(gui.user_polygons) == 0) {
+			if (g_slist_length(gui.user_polygons) == 0) {
 				siril_debug_print("No user polygons defined\n");
 				const char* error_msg = _("No user polygons to serialize");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
@@ -2417,7 +2417,9 @@ CLEANUP:
 		}
 
 		case CMD_DRAW_POLYGON: {
-			if (get_mouse_status() > MOUSE_ACTION_SELECT_REG_AREA) {
+			mouse_status_enum mouse_status = get_mouse_status();
+			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
+				siril_debug_print("## Mouse mode: %d\n", (int) mouse_status);
 				const char* error_msg = _("Wrong mouse mode");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			}

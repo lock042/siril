@@ -1017,7 +1017,7 @@ static void draw_user_polygons(const draw_data_t *dd) {
 	static double dash_format[] = { 4.0, 2.0 };
 	cairo_set_line_width(cr, 1.5 / dd->zoom);
 	cairo_set_dash(cr, dash_format, 2, 0);
-	GList *l;
+	GSList *l;
 	for (l = gui.user_polygons; l != NULL; l = l->next) {
 		UserPolygon *polygon = (UserPolygon *)l->data;
 		if (polygon->n_points < 2)
