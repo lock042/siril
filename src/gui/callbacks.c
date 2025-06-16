@@ -33,7 +33,7 @@
 #include "core/siril_networking.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
-//#include "core/arithm.h"
+#include "compositing/compositing.h"
 #include "gui/cut.h"
 #include "gui/keywords_tree.h"
 #include "gui/registration.h"
@@ -711,7 +711,7 @@ gboolean update_MenuItem(gpointer user_data) {
 	/* selection is needed */
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
-	siril_window_enable_if_selection_sequence_actions(app_win, com.selection.w && com.selection.h && sequence_is_loaded());
+	siril_window_enable_if_selection_sequence_actions(app_win, com.selection.w && com.selection.h && (sequence_is_loaded() || valid_rgbcomp_seq()));
 	/* selectoin and isrgb is needed */
 	siril_window_enable_if_selection_rgb_actions(app_win, com.selection.w && com.selection.h && isrgb(&gfit));
 
