@@ -497,3 +497,15 @@ gboolean value_check(fits *fit) {
 	}
 	return TRUE;
 }
+
+GdkRGBA uint32_to_gdk_rgba(uint32_t packed_rgba) {
+    GdkRGBA rgba;
+
+    // Extract each 8-bit component (assuming RGBA order)
+    rgba.red   = ((packed_rgba >> 24) & 0xFF) / 255.0;
+    rgba.green = ((packed_rgba >> 16) & 0xFF) / 255.0;
+    rgba.blue  = ((packed_rgba >> 8)  & 0xFF) / 255.0;
+    rgba.alpha = (packed_rgba & 0xFF) / 255.0;
+
+    return rgba;
+}

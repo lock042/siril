@@ -1291,6 +1291,27 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 	}
 }
 
+static void draw_in_progress_poly(const draw_data_t* dd) {
+	if (!gui.drawing_polypoints) return;
+
+	cairo_t *cr = dd->cr;
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	gdk_cairo_set_source_rgba(cr, &gui.poly_ink);
+
+	GSList *list = gui.drawing_polypoints;
+	const point* start = (point*) list->data;
+	cairo_move_to(cr, start->x + 0.5, start->y + 0.5);
+
+	// Build the complete path first
+	for (list = list->next; list; list = list->next) {
+		const point* position = (point*) list->data;
+		cairo_line_to(cr, position->x + 0.5, position->y + 0.5);
+	}
+
+	// Now stroke the entire path at once
+	cairo_stroke(cr);
+}
+
 static void draw_compass(const draw_data_t* dd) {
 	int pos = com.pref.gui.position_compass;
 	if (!pos) return; // User chose None
@@ -2189,6 +2210,7 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	draw_measurement_line(&dd);
 
 	/* draw user polygons */
+	draw_in_progress_poly(&dd);
 	draw_user_polygons(&dd);
 
 	/* detected stars and highlight the selected star */

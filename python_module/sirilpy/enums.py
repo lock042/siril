@@ -123,6 +123,7 @@ class _Command(IntEnum):
     GET_SEQ_FRAME_HEADER = 63
     CREATE_NEW_SEQ = 64
     CLEAR_BGSAMPLES = 65
+    DRAW_POLYGON = 66
     ERROR = 0xFF
 
 @unique

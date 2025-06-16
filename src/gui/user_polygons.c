@@ -66,6 +66,50 @@ int get_unused_polygon_id(void) {
 	return candidate_id;
 }
 
+UserPolygon* create_user_polygon_from_points(GSList *point_list) {
+	if (!point_list) {
+		return NULL;  // Handle empty list
+	}
+
+	// Allocate memory for the UserPolygon
+	UserPolygon *polygon = g_malloc(sizeof(UserPolygon));
+	if (!polygon) {
+		return NULL;  // Memory allocation failed
+	}
+
+	// Count the number of points in the list
+	int n_points = g_slist_length(point_list);
+
+	// Allocate memory for the points array
+	polygon->points = g_malloc(n_points * sizeof(point));
+	if (!polygon->points) {
+		g_free(polygon);
+		return NULL;  // Memory allocation failed
+	}
+
+	// Copy points from GSList to the array
+	GSList *current = point_list;
+	for (int i = 0; i < n_points; i++) {
+		polygon->points[i] = *(point*)current->data;
+		current = current->next;
+	}
+
+	// Initialize the struct fields
+	polygon->id = -1;
+	polygon->n_points = n_points;
+
+	// Set color to 0xFFFFFF40 (green with alpha)
+	polygon->color.red = 0.0;
+	polygon->color.green = 1.0;
+	polygon->color.blue = 0.0;
+	polygon->color.alpha = 0.25;
+
+	polygon->fill = TRUE;
+	polygon->legend = NULL;
+
+	return polygon;
+}
+
 int add_user_polygon(point *points, int n_points, const GdkRGBA *color, gboolean fill) {
 	int id = get_unused_polygon_id();
 
@@ -84,6 +128,18 @@ int add_user_polygon(point *points, int n_points, const GdkRGBA *color, gboolean
 
 	return id; // Return the generated ID to the caller
 }
+
+int add_existing_polygon(UserPolygon* polygon, const GdkRGBA *color, gboolean fill) {
+	int id = get_unused_polygon_id();
+	polygon->id = id;
+	polygon->fill = fill;
+	if (color) {
+		polygon->color = *color;
+	}
+	gui.user_polygons = g_list_append(gui.user_polygons, polygon);
+	return id; // Return the generated ID to the caller
+}
+
 
 static void free_user_polygon(gpointer data) {
 	UserPolygon *polygon = (UserPolygon *)data;

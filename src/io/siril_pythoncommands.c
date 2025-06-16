@@ -2416,6 +2416,24 @@ CLEANUP:
 			break;
 		}
 
+		case CMD_DRAW_POLYGON: {
+			if (get_mouse_status() > MOUSE_ACTION_SELECT_REG_AREA) {
+				const char* error_msg = _("Wrong mouse mode");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+			}
+			if (payload_length == 5) {
+				uint32_t color = GUINT32_FROM_BE(*(uint32_t*) payload);
+				gui.poly_fill = (gboolean) (*(uint8_t*) (payload + 4) != 0);
+				gui.poly_ink = uint32_to_gdk_rgba(color);
+				init_draw_poly();
+				success = send_response(conn, STATUS_OK, NULL, 0);
+			} else {
+				const char* error_msg = _("Invalid payload for CMD_DRAW_POLYGON");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
 		default:
 			siril_debug_print("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");

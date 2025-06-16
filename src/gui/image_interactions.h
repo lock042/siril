@@ -76,6 +76,7 @@ typedef enum {
 	MOUSE_ACTION_CUT_SELECT,
 	MOUSE_ACTION_CUT_WN1,
 	MOUSE_ACTION_CUT_WN2,
+	MOUSE_ACTION_DRAW_POLY,
 } mouse_status_enum;
 
 typedef enum {
@@ -163,7 +164,9 @@ typedef struct _release_action {
 } release_action;
 
 void init_mouse();
+mouse_status_enum get_mouse_status();
 void initialize_mouse_actions();
+void init_draw_poly();
 void initialize_scroll_actions();
 void load_or_initialize_mouse_actions();
 void load_or_initialize_scroll_actions();

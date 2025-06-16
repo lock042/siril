@@ -833,6 +833,10 @@ struct guiinf {
 	roi_t roi; // Region of interest struct
 	GSList *mouse_actions;
 	GSList *scroll_actions;
+	gboolean drawing_polygon; // whether drawing a polygon or not
+	GSList *drawing_polypoints; // list of points drawn in MOUSE_ACTION_DRAW_POLY mode
+	GdkRGBA poly_ink; // Color and alpha for drawing polygons
+	gboolean poly_fill; // Whether to fill drawn polygons
 };
 
 struct common_icc {
