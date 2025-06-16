@@ -662,7 +662,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean result = single_image_is_loaded();
 
 			if (result) {
-				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
+				if (com.selection.w == 0 && com.selection.h == 0) {
+					// No selection: return STATUS_NONE and sirilpy will return None
+					success = send_response(conn, STATUS_NONE, NULL, 0);
+					break;
+				}
+				// Prepare the response data
 				uint8_t response_data[16]; // 4 x 4 bytes for x,y, w, h
 
 				// Convert the integers to BE format for consistency across the UNIX socket
