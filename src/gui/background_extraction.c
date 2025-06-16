@@ -126,8 +126,10 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
+	sample_mutex_lock();
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
+	sample_mutex_unlock();
 
 	redraw(REDRAW_OVERLAY);
 	set_cursor_waiting(FALSE);
@@ -245,8 +247,10 @@ gboolean bge_hide_on_delete(GtkWidget *widget) {
 }
 
 void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data) {
+	sample_mutex_lock();
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
+	sample_mutex_unlock();
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	redraw(REDRAW_OVERLAY);
 
