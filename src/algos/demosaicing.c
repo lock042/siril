@@ -828,18 +828,24 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 
 static gboolean get_debayer_orientation(fits *fit, gboolean *forced, gboolean *header) {
 	gboolean top_down = FALSE;
-	*header = FALSE;
-	*forced = com.pref.debayer.orientation == ROW_ORDER_FORCE_BOTTOMUP || com.pref.debayer.orientation == ROW_ORDER_FORCE_TOPDOWN;
+	if (header)
+		*header = FALSE;
+	if (forced)
+		*forced = com.pref.debayer.orientation == ROW_ORDER_FORCE_BOTTOMUP || com.pref.debayer.orientation == ROW_ORDER_FORCE_TOPDOWN;
 	if (com.pref.debayer.orientation == ROW_ORDER_FORCE_BOTTOMUP)
 		return FALSE;
 	if (com.pref.debayer.orientation == ROW_ORDER_FORCE_TOPDOWN)
 		return TRUE;
 	if (com.pref.debayer.orientation == ROW_ORDER_HEADER_TOPDOWN || com.pref.debayer.orientation == ROW_ORDER_HEADER_BOTTOMUP) {
 		if (!g_strcmp0(fit->keywords.row_order, "TOP-DOWN")) {
-			*header = TRUE;
-			top_down = TRUE; 
+			if (header)
+				*header = TRUE;
+			top_down = TRUE;
 		} else if (!g_strcmp0(fit->keywords.row_order, "BOTTOM-UP")) {
-			*header = TRUE;
+			if (forced)
+				*forced = TRUE;
+			if (header)
+				*header = TRUE;
 			top_down = FALSE;
 		} else {
 			top_down = com.pref.debayer.orientation == ROW_ORDER_HEADER_TOPDOWN;
@@ -928,42 +934,9 @@ static int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern, gboolean top
 	return 0;
 }
 
-static int adjust_XTrans_pattern(fits *fit, sensor_pattern *pattern, gboolean top_down) {
-	if (!fit || !pattern) {
-		siril_log_color_message(_("Invalid FITS file or pattern for debayering\n"), "red");
-		return 1;
-	}
-	if (*pattern < XTRANS_FILTER_1 || *pattern > XTRANS_FILTER_4)
-		siril_log_color_message(_("Invalid X Trans pattern for debayering: %d\n"), "red", *pattern);
-
-	siril_debug_print("X-Trans pattern will be used %s\n", top_down ? "top-down" : "bottom-up (inverted)");
-
-	int offset = fit->ry % 6;
-	if (offset)
-		siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
-	if (!top_down && !offset) {
-		switch (*pattern) {
-		case XTRANS_FILTER_1:
-			*pattern = XTRANS_FILTER_2;
-			break;
-		case XTRANS_FILTER_2:
-			*pattern = XTRANS_FILTER_1;
-			break;
-		case XTRANS_FILTER_3:
-			*pattern = XTRANS_FILTER_4;
-			break;
-		case XTRANS_FILTER_4:
-			*pattern = XTRANS_FILTER_3;
-			break;
-		default:
-			return 1;
-		}
-	}
-	return 0;
-}
 
 /* convert the string-described X-Trans pattern into an int array with value corresponding to filter */
-static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6]) {
+static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6], gboolean flip, int offset) {
 	int i = 0;
 
 	if (strlen(bayer) != 36) {
@@ -988,6 +961,16 @@ static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6]) 
 				return 1;
 			}
 			i++;
+		}
+	}
+	if (flip) {
+		unsigned int orig[6][6];
+		memcpy(orig, xtrans, 36 * sizeof(unsigned int));
+		for (int i = 0; i < 6; i++) {
+			int y = (5 - i + offset) % 6;
+			for (int j = 0; j < 6; j++) {
+				xtrans[i][j] = orig[y][j];
+			}
 		}
 	}
 	return 0;
@@ -1123,8 +1106,14 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	WORD *buf = fit->data;
 
 	unsigned int xtrans[6][6];
-	if (interpolation == XTRANS && compile_XTrans_pattern(fit->keywords.bayer_pattern, xtrans))
-		return 1;
+	if (interpolation == XTRANS) {
+		gboolean top_down = get_debayer_orientation(fit, NULL, NULL);
+		int offset = fit->ry % 6;
+		if (offset)
+			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
+		if (compile_XTrans_pattern(fit->keywords.bayer_pattern, xtrans, !top_down, offset))
+			return 1;
+	}
 
 	if (USE_SIRIL_DEBAYER) {
 		WORD *newbuf = debayer_buffer_siril(buf, &width, &height, interpolation, pattern, xtrans, fit->bitpix);
@@ -1177,8 +1166,14 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	float *buf = fit->fdata;
 
 	unsigned int xtrans[6][6];
-	if (interpolation == XTRANS && compile_XTrans_pattern(fit->keywords.bayer_pattern, xtrans))
-		return 1;
+	if (interpolation == XTRANS) {
+		gboolean top_down = get_debayer_orientation(fit, NULL, NULL);
+		int offset = fit->ry % 6;
+		if (offset)
+			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
+		if (compile_XTrans_pattern(fit->keywords.bayer_pattern, xtrans, !top_down, offset))
+			return 1;
+	}
 
 	float *newbuf = debayer_buffer_new_float(buf, &width, &height, interpolation, pattern, xtrans);
 	if (!newbuf)
@@ -1203,6 +1198,7 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 }
 
 int debayer(fits *fit, interpolation_method interpolation, sensor_pattern pattern) {
+
 	if (fit->type == DATA_USHORT)
 		return debayer_ushort(fit, interpolation, pattern);
 	else if (fit->type == DATA_FLOAT)
@@ -1239,16 +1235,9 @@ static sensor_pattern get_bayer_pattern(fits *fit, gboolean force_debayer) {
 				return BAYER_FILTER_NONE;
 		} else if (bayer <= BAYER_FILTER_MAX) {
 			from_header = TRUE;
-			// if (bayer != tmp_pattern) {
-			// 	siril_log_color_message(_("Bayer pattern found in header (%s) is different"
-			// 				" from Bayer pattern in settings (%s). Overriding settings.\n"),
-			// 			"blue", filter_pattern[bayer], filter_pattern[com.pref.debayer.bayer_pattern]);
-			// 	tmp_pattern = bayer;
-			// }
 			tmp_pattern = bayer;
 		} else { // Xtrans detected
 			from_header = TRUE;
-			// siril_log_message(_("XTRANS pattern detected.\n"));
 			tmp_pattern = bayer;
 		}
 	}
@@ -1266,10 +1255,11 @@ static sensor_pattern get_bayer_pattern(fits *fit, gboolean force_debayer) {
 	if (tmp_pattern >= BAYER_FILTER_MIN && tmp_pattern <= BAYER_FILTER_MAX) {
 	 	if (adjust_Bayer_pattern(fit, &tmp_pattern, top_down))
 			return BAYER_FILTER_NONE;
-	} else if (tmp_pattern >= XTRANS_FILTER_1) {
-		if (adjust_XTrans_pattern(fit, &tmp_pattern, top_down))
-			return BAYER_FILTER_NONE;
 	}
+	// For X-trans, we don't update the pattern here or in the header,
+	// it will be handled in debayer or get_compiled_pattern
+	// just in time when needed. This enables to handle bottom-up images
+	// and images with a height not multiple of 6 (or both).
 	return tmp_pattern;
 }
 
@@ -1619,8 +1609,12 @@ static int get_compiled_pattern(fits *fit, int layer, BYTE pattern[36], int *pat
 	else if (idx >= XTRANS_FILTER_1 && idx <= XTRANS_FILTER_4) {
 		/* 6x6 X-Trans matrix */
 		unsigned int xtrans[6][6];
-		const gchar *xtrans_str = get_cfa_from_pattern(idx);
-		compile_XTrans_pattern(xtrans_str, xtrans);
+		const gchar *xtrans_str = filter_pattern[idx];
+		gboolean top_down = get_debayer_orientation(fit, NULL, NULL);
+		int offset = fit->ry % 6;
+		if (offset)
+			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
+		compile_XTrans_pattern(xtrans_str, xtrans, !top_down, offset);
 		for (int i = 0; i < 36; i++)
 			pattern[i] = (BYTE)(((unsigned int *)xtrans)[i]);
 		*pattern_size = 6;
