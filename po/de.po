@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-11 11:12+0200\n"
-"PO-Revision-Date: 2025-05-26 18:51+0000\n"
+"PO-Revision-Date: 2025-06-17 10:22+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -17499,11 +17499,9 @@ msgid "Error: command %s is not available\n"
 msgstr "Fehler: Befehl %s ist nicht verfügbar\n"
 
 #: src/core/command.c:9549
-#, fuzzy
 msgid "Error: cannot reload script menu when running headless\n"
 msgstr ""
-"Fehler: Die Datei mit den Gewichtungen des neuronalen Netzes kann nicht "
-"gelesen werden.\n"
+"Fehler: Skriptmenü kann bei Headless-Ausführung nicht neu geladen werden\n"
 
 #: src/core/command.c:9569
 #, c-format
@@ -23945,6 +23943,8 @@ msgid ""
 "<b>EXPERIMENTAL</b>: python scripts are currently an experimental feature. "
 "Please read the documentation for details..."
 msgstr ""
+"<b>EXPERIMENTELL</b>: Phython-Skripte sind derzeit ein experimentelles "
+"Feature. Bitte lies Die Dokumentation für Dateils..."
 
 #: src/gui/script_menu.c:306
 msgid "Script Editor..."
@@ -25744,6 +25744,14 @@ msgid ""
 "using the Catalog_Installer.py script. This is faster and does not rely on "
 "third party servers.\n"
 msgstr ""
+"Fehler: Der Remote-Katalog konnte nicht vom Server unter %s abgerufen "
+"werden. Dies ist kein Siril-Fehler. Es bedeutet, dass der Katalogserver "
+"nicht verfügbar ist. Dies ist normalerweise ein kurzzeitiges Problem, jedoch "
+"ist dieser Server nicht mit Siril verbunden und wird vom Siril-Team nicht "
+"kontrolliert. Wir empfehlen dringend die Verwendung eines lokalen Servers, "
+"wie z. B. des optimierten Siril-Extrakts aus Gaia DR3, der mit dem Skript "
+"Catalog_Installer.py installiert werden kann. Dies ist schneller und "
+"benötigt keine Drittanbieter-Server.\n"
 
 #: src/io/remote_catalogues.c:656
 #, c-format
@@ -26633,11 +26641,12 @@ msgstr ""
 msgid ""
 "Detected 1.4.0-beta2 bug condition. Removing and re-cloning repository...\n"
 msgstr ""
+"Fehler in 1.4.0-beta2 erkannt. Repository wird entfernt und neu geklont …\n"
 
 #: src/io/siril_git.c:372
-#, fuzzy, c-format
+#, c-format
 msgid "Error removing repository directory: %s\n"
-msgstr "Fehler beim Klonen des Repositories in %s: %s\n"
+msgstr "Fehler beim Entfernen des Repository-Verzeichnisses: %s\n"
 
 #: src/io/siril_git.c:381 src/io/siril_git.c:794
 #, c-format
@@ -26645,15 +26654,17 @@ msgid "Error cloning repository into %s: %s\n"
 msgstr "Fehler beim Klonen des Repositories in %s: %s\n"
 
 #: src/io/siril_git.c:385
-#, fuzzy
 msgid "Repository re-cloned successfully!\n"
-msgstr "Repository erfolgreich geklont!\n"
+msgstr "Repository erfolgreich neu geklont!\n"
 
 #: src/io/siril_git.c:389
 msgid ""
 "Error fetching remote: Remote repository or references not found. Check the "
 "repository URL and your connectivity.\n"
 msgstr ""
+"Fehler beim Abrufen des Remote-Repositorys: Remote-Repository oder -"
+"Referenzen nicht gefunden. Überprüfen Sie die Repository-URL und Ihre "
+"Konnektivität.\n"
 
 #. Generic fallback
 #: src/io/siril_git.c:394
@@ -26735,23 +26746,20 @@ msgid "Local scripts repository is up-to-date!\n"
 msgstr "Lokales Skript-Repository ist aktuell!\n"
 
 #: src/io/siril_git.c:884
-#, fuzzy
 msgid "Error accessing repository index.\n"
-msgstr "Fehler beim Klonen des Repositorys: %s\n"
+msgstr "Fehler beim Zugriff auf den Repository-Index.\n"
 
 #: src/io/siril_git.c:902
-#, fuzzy
 msgid "Warning: failed to get repository index entry.\n"
-msgstr "Der Katalogindexeintrag konnte nicht gelesen werden.\n"
+msgstr "Warnung: Der Repository-Indexeintrag konnte nicht abgerufen werden.\n"
 
 #: src/io/siril_git.c:908
 msgid "Warning: skipping script with invalid UTF-8 path.\n"
-msgstr ""
+msgstr "Warnung: Skript mit ungültigem UTF-8-Pfad wird übersprungen.\n"
 
 #: src/io/siril_git.c:918
-#, fuzzy
 msgid "Warning: memory allocation failed for script path.\n"
-msgstr "Fehler: Speicherzuweisung fehlgeschlagen.\n"
+msgstr "Warnung: Die Speicherzuweisung für den Skriptpfad ist fehlgeschlagen.\n"
 
 #: src/io/siril_git.c:973
 #, c-format
@@ -27223,11 +27231,14 @@ msgid ""
 "Error: Siril has been compiled with a version of Cairo that does not provide "
 "SVG surface support. Saving plots as SVG is not possible with this build.\n"
 msgstr ""
+"Fehler: Siril wurde mit einer Version von Cairo kompiliert, die keine SVG-"
+"Oberflächenunterstützung bietet. Das Speichern von Plots als SVG ist mit "
+"dieser Version nicht möglich.\n"
 
 #: src/io/siril_pythonmodule.c:816
-#, fuzzy, c-format
+#, c-format
 msgid "Saved plot to %s\n"
-msgstr "Speichere Grafik als Bild %s\n"
+msgstr "Speichere Grafik unter %s\n"
 
 #: src/io/siril_pythonmodule.c:975
 msgid "Failed to add user polygon: no image loaded"
@@ -28358,17 +28369,15 @@ msgstr ""
 "ändern Sie die Rahmungsmethode auf max\n"
 
 #: src/registration/applyreg.c:1084
-#, fuzzy
 msgid "Images will be larger than what Siril can display for now.\n"
 msgstr ""
-"Die Bilder werden größer sein als das, was Siril im Moment anzeigen kann."
+"Die Bilder werden größer sein als das, was Siril im Moment anzeigen kann.\n"
 
 #: src/registration/applyreg.c:1085
-#, fuzzy
 msgid "Tune scale ratio to get max dimension smaller than 32767 pixels.\n"
 msgstr ""
 "Passe die Skalierung an um maximale Abmessungen kleiner als 32767 Pixel zu "
-"erhalten"
+"erhalten\n"
 
 #: src/registration/applyreg.c:1093
 msgid ""

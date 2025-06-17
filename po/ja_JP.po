@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-11 11:12+0200\n"
-"PO-Revision-Date: 2025-06-07 22:52+0000\n"
+"PO-Revision-Date: 2025-06-16 14:24+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -243,7 +243,7 @@ msgstr "明るさを維持"
 
 #: src/gui/uifiles/SCNR_dialog.ui:226
 msgid "Preserves the original CIE L* component in the processed image."
-msgstr ""
+msgstr "処理された画像で元のCIE L*成分を保持する。"
 
 #: src/gui/uifiles/StatWindow.ui:48 src/gui/uifiles/livestacking_player.ui:191
 #: src/gui/uifiles/siril.ui:717 src/algos/statistics.c:927
@@ -252,9 +252,8 @@ msgstr "統計"
 
 #: src/gui/uifiles/StatWindow.ui:62 src/gui/uifiles/starnet_dialog.ui:76
 #: src/gui/uifiles/wavelets_dialog.ui:242
-#, fuzzy
 msgid "Execute"
-msgstr "実行時間"
+msgstr "実行"
 
 #: src/gui/uifiles/StatWindow.ui:66
 msgid "Run statistic calculation"
@@ -266,7 +265,7 @@ msgstr "ウインドウを閉じる"
 
 #: src/gui/uifiles/StatWindow.ui:105
 msgid "Normalized Real [0, 1]"
-msgstr ""
+msgstr "[0, 1]の実数に正規化"
 
 #: src/gui/uifiles/StatWindow.ui:120
 #, fuzzy
@@ -288,9 +287,8 @@ msgid "Name"
 msgstr "名前"
 
 #: src/gui/uifiles/StatWindow.ui:161
-#, fuzzy
 msgid "No Selection"
-msgstr "Rejection:"
+msgstr "選択なし"
 
 #: src/gui/uifiles/StatWindow.ui:200 src/gui/uifiles/color_calibration.ui:389
 #: src/gui/uifiles/siril.ui:3028 src/compositing/compositing.c:678
@@ -4193,9 +4191,8 @@ msgid "Load profile from file"
 msgstr "ファイルを保存"
 
 #: src/gui/uifiles/icc_dialog.ui:424
-#, fuzzy
 msgid "<b>Color Management Operations</b>"
-msgstr "<b>メモリー管理</b>"
+msgstr "<b>カラーマネージメント操作</b>"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:32
 #: src/gui/uifiles/settings_window.ui:4148
@@ -4229,9 +4226,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/keywords_dialog.ui:27
-#, fuzzy
 msgid "FITS Header"
-msgstr "FITS ヘッダー..."
+msgstr "FITS ヘッダ"
 
 #: src/gui/uifiles/keywords_dialog.ui:42
 #, fuzzy
@@ -7077,7 +7073,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4103
 msgid "This section contains options relating to working color spaces"
-msgstr ""
+msgstr "このセクションには、作業色空間に関するオプションが含まれています"
 
 #: src/gui/uifiles/settings_window.ui:4119
 msgid ""
@@ -7087,9 +7083,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4121
-#, fuzzy
 msgid "Preferred Color Space:"
-msgstr "色空間:"
+msgstr "優先される色空間:"
 
 #: src/gui/uifiles/settings_window.ui:4132
 msgid ""
@@ -7110,9 +7105,8 @@ msgid "Rec2020"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4137
-#, fuzzy
 msgid "From files"
-msgstr "サポートされているファイルのタイプ:"
+msgstr "ファイルから"
 
 #: src/gui/uifiles/settings_window.ui:4152
 msgid ""
@@ -7165,9 +7159,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4237
-#, fuzzy
 msgid "Working Color Spaces"
-msgstr "色空間:"
+msgstr "作業色空間"
 
 #: src/gui/uifiles/settings_window.ui:4270
 msgid "Custom monitor profile:"
@@ -8583,14 +8576,12 @@ msgid "AAVSO file format"
 msgstr "サンプル形式"
 
 #: src/gui/uifiles/siril.ui:2785
-#, fuzzy
 msgid "Color Management..."
-msgstr "彩度..."
+msgstr "カラーマネージメント..."
 
 #: src/gui/uifiles/siril.ui:2798
-#, fuzzy
 msgid "Open the CCM dialog"
-msgstr "ダイアログを閉じる."
+msgstr "CMMダイアログを開く"
 
 #: src/gui/uifiles/siril.ui:2800
 #, fuzzy
@@ -8599,7 +8590,7 @@ msgstr "整列完了."
 
 #: src/gui/uifiles/siril.ui:2814
 msgid "FITS Header..."
-msgstr "FITS ヘッダー..."
+msgstr "FITS ヘッダ..."
 
 #: src/gui/uifiles/siril.ui:2828
 msgid "Image Information..."
@@ -10625,7 +10616,7 @@ msgstr "準備完了."
 
 #: src/gui/uifiles/siril.ui:9655
 msgid "Hide the control panel to show only the image panel (toggle)."
-msgstr ""
+msgstr "コントロールパネルを非表示にして、画像パネルのみを表示します（トグル）。"
 
 #: src/gui/uifiles/siril.ui:9700
 msgid "Click to Set the name of the item to clipboard (green-ed label)"
@@ -13701,7 +13692,7 @@ msgstr ""
 #: src/core/OS_utils.c:635
 #, c-format
 msgid "Parallel processing enabled: using %d logical %s%s.\n"
-msgstr ""
+msgstr "並列処理は有効: %d 論理 %s%s を使用。\n"
 
 #: src/core/OS_utils.c:638
 msgid ", nesting not supported"
@@ -16482,11 +16473,11 @@ msgstr ""
 
 #: src/core/icc_profile.c:490
 msgid "Color management active.\n"
-msgstr ""
+msgstr "カラーマネジメントは有効。\n"
 
 #: src/core/icc_profile.c:493
 msgid "JPEG ICC profiles supported.\n"
-msgstr ""
+msgstr "JPEG ICCプロファイルに対応。\n"
 
 #: src/core/icc_profile.c:495
 msgid ""
@@ -17147,11 +17138,8 @@ msgid "current working directory"
 msgstr "現在の作業ディレクトリ"
 
 #: src/core/settings.c:348
-#, fuzzy
 msgid "FITS file extension"
-msgstr ""
-"FITS 拡張子 不明: %s\n"
-"\n"
+msgstr "FITSファイル拡張子"
 
 #: src/core/settings.c:349
 msgid "don't use 32 bits for pixel depth"

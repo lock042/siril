@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-11 11:12+0200\n"
-"PO-Revision-Date: 2025-06-06 12:57+0000\n"
+"PO-Revision-Date: 2025-06-17 10:22+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -354,12 +354,14 @@ msgid "The filter used for the observation."
 msgstr "El filtro utilizado para la observación."
 
 #: src/gui/uifiles/aavso_dialog.ui:170
+#, fuzzy
 msgid "Cname: "
-msgstr ""
+msgstr "Cname: "
 
 #: src/gui/uifiles/aavso_dialog.ui:182
+#, fuzzy
 msgid "Kname: "
-msgstr ""
+msgstr "Kname: "
 
 #: src/gui/uifiles/aavso_dialog.ui:193
 msgid ""
@@ -413,8 +415,9 @@ msgid "The number of the comparison star."
 msgstr "El número de la estrella de comparación."
 
 #: src/gui/uifiles/aavso_dialog.ui:297
+#, fuzzy
 msgid "Cstd: "
-msgstr ""
+msgstr "Cstd: "
 
 #: src/gui/uifiles/aavso_dialog.ui:308
 msgid ""
@@ -565,28 +568,32 @@ msgid "automatic"
 msgstr "automática"
 
 #: src/gui/uifiles/annotate_dialog.ui:134
+#, fuzzy
 msgid "tycho2 (TYCHO2)"
-msgstr ""
+msgstr "tycho2 (TYCHO2)"
 
 #: src/gui/uifiles/annotate_dialog.ui:135
+#, fuzzy
 msgid "nomad (NOMAD)"
-msgstr ""
+msgstr "nomad (NOMAD)"
 
 #: src/gui/uifiles/annotate_dialog.ui:136
 msgid "gaia (GAIA DR3)"
 msgstr "gaia (GAIA DR3)"
 
 #: src/gui/uifiles/annotate_dialog.ui:137
+#, fuzzy
 msgid "ppmxl (PPMXL)"
-msgstr ""
+msgstr "ppmxl (PPMXL)"
 
 #: src/gui/uifiles/annotate_dialog.ui:138
 msgid "bsc (Bright Stars)"
 msgstr "bsc (Estrellas brillantes)"
 
 #: src/gui/uifiles/annotate_dialog.ui:139
+#, fuzzy
 msgid "apass (APASS DR9)"
-msgstr ""
+msgstr "apass (APASS DR9)"
 
 #: src/gui/uifiles/annotate_dialog.ui:140
 msgid "gcvs (General Catalogue of Variable Stars)"
@@ -5092,8 +5099,9 @@ msgid "Remove the selected mouse action"
 msgstr "Eliminar la imagen seleccionada"
 
 #: src/gui/uifiles/mouse_actions.ui:144 src/gui/mouse_action_preferences.c:725
+#, fuzzy
 msgid "Mouse button / scroll check"
-msgstr ""
+msgstr "Botón de ratón / comprobación scroll"
 
 #: src/gui/uifiles/mouse_actions.ui:161
 msgid ""
@@ -5147,11 +5155,12 @@ msgstr "Lista de secuencia"
 #: src/gui/uifiles/pixelmath.ui:123 src/gui/uifiles/pixelmath.ui:190
 #: src/gui/uifiles/pixelmath.ui:257
 msgid "Save expression in presets"
-msgstr ""
+msgstr "Guardar expresión en ajustes preestablecidos"
 
 #: src/gui/uifiles/pixelmath.ui:145 src/pixelMath/pixel_math_runner.c:351
+#, fuzzy
 msgid "RGB/K"
-msgstr ""
+msgstr "RGB/K"
 
 #: src/gui/uifiles/pixelmath.ui:212 src/gui/cut.c:729
 msgid "G"
@@ -5164,13 +5173,15 @@ msgstr "B"
 
 #: src/gui/uifiles/pixelmath.ui:313
 msgid "Use single RGB/K expression"
-msgstr ""
+msgstr "Utilice expresión única RGB/K"
 
 #: src/gui/uifiles/pixelmath.ui:317
 msgid ""
 "Unchecking this option will give you an RGB image where each output channel "
 "is expressed by a formula."
 msgstr ""
+"Desmarcar esta opción generará una imagen RGB donde cada canal de salida se "
+"expresa como fórmula."
 
 #: src/gui/uifiles/pixelmath.ui:371
 msgid "Variable"
@@ -5187,7 +5198,7 @@ msgstr "Ruta"
 
 #: src/gui/uifiles/pixelmath.ui:417
 msgid "Width"
-msgstr ""
+msgstr "Ancho"
 
 #: src/gui/uifiles/pixelmath.ui:431
 msgid "Height"
@@ -5318,7 +5329,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:169
 msgid "Open a script from a file"
-msgstr ""
+msgstr "Abrir script desde fichero"
 
 #: src/gui/uifiles/python_scratchpad.ui:171 src/gui/dialogs.c:254
 #: src/gui/python_gui.c:769 src/pixelMath/pixel_math_runner.c:1260
@@ -5482,7 +5493,7 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:424
 msgid "Enable bracket matching"
-msgstr ""
+msgstr "Habilitar coincidencia de corchete"
 
 #: src/gui/uifiles/python_scratchpad.ui:433
 #, fuzzy
@@ -5495,7 +5506,7 @@ msgstr "Mostrar números de línea"
 
 #: src/gui/uifiles/python_scratchpad.ui:443
 msgid "Show line markers in the left margin"
-msgstr ""
+msgstr "Mostrar marcadores de línea en el margen izquierdo"
 
 #: src/gui/uifiles/python_scratchpad.ui:444
 #, fuzzy
