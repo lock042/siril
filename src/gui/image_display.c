@@ -1291,7 +1291,6 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 	}
 }
 
-
 static void draw_compass(const draw_data_t* dd) {
 	int pos = com.pref.gui.position_compass;
 	if (!pos) return; // User chose None
@@ -2095,6 +2094,20 @@ void redraw(remap_type doremap) {
 static gboolean redraw_idle(gpointer p) {
 	redraw((remap_type)GPOINTER_TO_INT(p)); // draw stars
 	return FALSE;
+}
+
+static gpointer redraw_idle_thread_func(gpointer data) {
+	sample_mutex_lock();
+	execute_idle_and_wait_for_it(redraw_idle, data);
+	sample_mutex_unlock();
+	return FALSE;
+}
+
+void queue_redraw_and_wait_for_it(remap_type doremap) {
+	if (!com.script && !com.python_command && !com.headless) {
+		GThread *thread = g_thread_new("redraw", redraw_idle_thread_func, GINT_TO_POINTER((int)doremap));
+		g_thread_join(thread);
+	}
 }
 
 void queue_redraw(remap_type doremap) {

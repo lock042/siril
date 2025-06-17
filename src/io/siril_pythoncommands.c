@@ -1254,6 +1254,16 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
+		case CMD_CLEAR_BGSAMPLES: {
+			sample_mutex_lock();
+			free_background_sample_list(com.grad_samples);
+			com.grad_samples = NULL;
+			sample_mutex_unlock();
+			queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+			success = send_response(conn, STATUS_OK, NULL, 0);
+			break;
+		}
+
 		case CMD_GET_IMAGE_STATS: {
 			if (payload_length != sizeof(uint32_t)) {
 				siril_debug_print("Invalid payload length for GET_IMAGE_STATS: %u\n", payload_length);
@@ -1786,10 +1796,12 @@ CLEANUP:
 
 		case CMD_GET_BGSAMPLES: {
 			int nb_samples = 0;
+			sample_mutex_lock();
 			if (com.grad_samples) {
 				// Count the number of stars in com.grad_samples
 				nb_samples = g_slist_length(com.grad_samples);
 			}
+			sample_mutex_unlock();
 			if (!nb_samples) {
 				const char* error_msg = _("No background samples list available");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
@@ -2182,7 +2194,7 @@ CLEANUP:
 				}
 				com.seq.imgparam[index].incl = incl;
 				if (index == com.seq.current && !com.headless)
-					redraw(REDRAW_OVERLAY);
+					queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
 				const char* error_msg = _("Incorrect payload length");

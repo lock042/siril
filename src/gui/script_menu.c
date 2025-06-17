@@ -534,7 +534,9 @@ gboolean refresh_script_menu_idle(gpointer user_data) {
 		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), NULL);
 	}
 	initialize_script_menu(verbose, FALSE);
+#ifdef HAVE_LIBGIT2
 	fill_script_repo_tree(FALSE);
+#endif
 	return FALSE;
 }
 

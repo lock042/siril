@@ -400,7 +400,11 @@ void crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_dat
 }
 
 void seq_crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("crop_dialog");
+	if (valid_rgbcomp_seq()) {
+		crop_rgbcomp_seq();
+	} else {
+		siril_open_dialog("crop_dialog");
+	}
 }
 
 void annotate_dialog_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

@@ -454,7 +454,9 @@ gboolean main_action_click(mouse_data *data) {
 
 				if (pt.x + radius < gfit.rx && pt.y + radius < gfit.ry
 						&& pt.x - radius > 0 && pt.y - radius > 0) {
+					sample_mutex_lock();
 					com.grad_samples = add_background_sample(com.grad_samples, &gfit, pt);
+					sample_mutex_unlock();
 
 					redraw(REDRAW_OVERLAY);
 					gui_function(redraw_previews, NULL);
@@ -555,7 +557,9 @@ gboolean second_action_click(mouse_data *data) {
 
 			if (pt.x + radius <= gfit.rx && pt.y + radius <= gfit.ry
 					&& pt.x - radius >= 0 && pt.y - radius >= 0) {
+				sample_mutex_lock();
 				com.grad_samples = remove_background_sample(com.grad_samples, &gfit, pt);
+				sample_mutex_unlock();
 
 				redraw(REDRAW_OVERLAY);
 				gui_function(redraw_previews, NULL);

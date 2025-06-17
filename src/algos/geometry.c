@@ -697,7 +697,11 @@ int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct crop_sequence_data *c_args = (struct crop_sequence_data*) args->user;
 
 	int ret = crop(fit, &(c_args->area));
-
+	if (args->seq->type == SEQ_INTERNAL) {
+		// For SEQ_INTERNAL we update the sequence in place, we must update the metadata too
+		args->seq->imgparam[o].rx = c_args->area.w;
+		args->seq->imgparam[o].ry = c_args->area.h;
+	}
 	if (!ret) {
 		char log[90];
 		sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
@@ -802,6 +806,7 @@ int scale_finalize_hook(struct generic_seq_args *args) {
 /* TODO: should we use the partial image? */
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	struct generic_seq_args *args = create_default_seqargs(crop_sequence_data->seq);
+	args->already_in_a_thread = args->seq->type == SEQ_INTERNAL;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = crop_sequence_data->seq->selnum;
 	args->compute_size_hook = crop_compute_size_hook;

@@ -95,7 +95,7 @@ class SirilInterface:
 
         if self.connected is True:
             print(_("Already connected"))
-            return
+            return True
 
         if SirilInterface._connected:
             raise SirilConnectionError(_("Error: a SirilInterface is already connected to Siril"))
@@ -549,9 +549,9 @@ class SirilInterface:
                 # Catch parsing errors and raise a descriptive exception.
                 raise ValueError(_("Invalid shared memory information received: {}").format(e)) from e
 
-        except SirilConnectionError as re:
+        except SirilConnectionError as connerr:
             # Let specific SharedMemoryErrors propagate
-            raise SharedMemoryError("Error creating shared memory allocation") from re
+            raise SharedMemoryError("Error creating shared memory allocation") from connerr
 
         except Exception as e:
             raise SirilError(
@@ -703,21 +703,20 @@ class SirilInterface:
         """
         try:
             status, response = self._send_command(_Command.CLAIM_THREAD, None)
-            if status == _Status.NONE or status == _Status.ERROR:
+            if status in (_Status.NONE, _Status.ERROR):
                 response_str = response.decode('utf-8')
                 print(f"image_lock: {response_str}", file=sys.stderr)
 
                 if "processing thread is locked" in response_str:
                     raise ProcessingThreadBusyError("Processing thread is already in use")
-                elif "processing dialog is open" in response_str:
+                if "processing dialog is open" in response_str:
                     raise ImageDialogOpenError("Image processing dialog is open")
-                else:
-                    raise SirilError(f"Failed to claim processing thread: {response_str}")
+                raise SirilError(f"Failed to claim processing thread: {response_str}")
         except (ProcessingThreadBusyError, ImageDialogOpenError):
             # Re-raise specific exceptions
             raise
         except Exception as e:
-            raise SirilError(f"Error claiming processing thread: {e}")
+            raise SirilError(f"Error claiming processing thread: {e}") from e
 
     def _release_thread(self) -> None:
         """
@@ -1822,6 +1821,12 @@ class SirilInterface:
                 except Exception as e:
                     pass
 
+    def clear_image_bgsamples(self):
+        """
+        Clears all background sample points from the image.
+        """
+        self._execute_command(_Command.CLEAR_BGSAMPLES, None)
+
     def set_image_bgsamples(self, points: Union[List[Tuple[float, float]], List[BGSample]], show_samples: bool = False, recalculate = True):
         """
         Serialize a set of background sample points and send via shared memory.
@@ -2304,10 +2309,9 @@ class SirilInterface:
 
             if return_as == 'dict':
                 return parse_fits_header(result)
-            elif return_as == 'str':
+            if return_as == 'str':
                 return result
-            else:
-                raise ValueError(_(f"Invalid return_as value: {return_as}"))
+            raise ValueError(_(f"Invalid return_as value: {return_as}"))
 
         except SirilError:
             # Re-raise NoImageError and other SirilErrors without wrapping
@@ -3452,10 +3456,9 @@ class SirilInterface:
 
             if return_as == 'dict':
                 return parse_fits_header(result)
-            elif return_as == 'str':
+            if return_as == 'str':
                 return result
-            else:
-                raise ValueError(_(f"Invalid return_as value: {return_as}"))
+            raise ValueError(_(f"Invalid return_as value: {return_as}"))
 
         except SirilError:
             # Re-raise NoSequenceError and other SirilErrors without wrapping
@@ -4003,7 +4006,7 @@ class SirilInterface:
             return
 
         except Exception as e:
-            raise(f"Error in overlay_clear_polygons(): {e}") from e
+            raise SirilError(f"Error in overlay_clear_polygons(): {e}") from e
 
     def overlay_get_polygon(self, polygon_id: int) -> 'Polygon':
         """
@@ -4187,7 +4190,6 @@ class SirilInterface:
 
         except Exception as e:
             raise SirilError(f"Error in create_new_seq(): {e}") from e
-
 
     def is_cli(self) -> bool:
         """

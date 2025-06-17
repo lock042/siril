@@ -349,7 +349,6 @@ static int lg2_fetch(git_repository *repo) {
 			goto on_error;
 		}
 	}
-
 	val = git_remote_fetch(remote, NULL, &fetch_opts, "fetch");
 	if (val < 0) {
 		if (val == GIT_ENOTFOUND) {

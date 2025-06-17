@@ -730,6 +730,16 @@ static void remove_gradient(double *img, const double *background, double backgr
 
 /************* PUBLIC FUNCTIONS *************/
 
+static GMutex bgsamples_mutex = { 0 };
+
+void sample_mutex_lock() {
+	g_mutex_lock(&bgsamples_mutex);
+}
+
+void sample_mutex_unlock() {
+	g_mutex_unlock(&bgsamples_mutex);
+}
+
 int get_background_sample_radius() {
        return SAMPLE_SIZE / 2;
 }
@@ -822,11 +832,13 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 
 /* generates samples and stores them in com.grad_samples */
 int generate_background_samples(int nb_of_samples, double tolerance) {
+	g_mutex_lock(&bgsamples_mutex);
 	free_background_sample_list(com.grad_samples);
 	const char *err;
 	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE, &err, MULTI_THREADED);
 	if (!com.grad_samples) {
 		siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
+		g_mutex_unlock(&bgsamples_mutex);
 		return 1;
 	}
 
@@ -834,6 +846,7 @@ int generate_background_samples(int nb_of_samples, double tolerance) {
 		/* If RGB we need to update all local median, not only the first one */
 		com.grad_samples = update_median_samples(com.grad_samples, &gfit);
 	}
+	g_mutex_unlock(&bgsamples_mutex);
 	return 0;
 }
 
@@ -862,7 +875,9 @@ gpointer remove_gradient_from_image(gpointer p) {
 	}
 
 	/* Make sure to update local median. Useful if undo is pressed */
+	g_mutex_lock(&bgsamples_mutex);
 	update_median_samples(com.grad_samples, &gfit);
+	g_mutex_unlock(&bgsamples_mutex);
 
 	double background_mean = get_background_mean(com.grad_samples, gfit.naxes[2]);
 	struct timeval t_start, t_end;
@@ -883,8 +898,10 @@ gpointer remove_gradient_from_image(gpointer p) {
 			free(background);
 			queue_error_message_dialog(_("Not enough samples."), error ? error : _("Insufficient samples"));
 			if (!args->from_ui) {
+				g_mutex_lock(&bgsamples_mutex);
 				free_background_sample_list(com.grad_samples);
 				com.grad_samples = NULL;
+				g_mutex_unlock(&bgsamples_mutex);
 			}
 			free(args);
 			siril_add_idle(end_background, NULL);
@@ -911,8 +928,10 @@ gpointer remove_gradient_from_image(gpointer p) {
 	free(background);
 	invalidate_stats_from_fit(&gfit);
 	if (!args->from_ui) {
+		g_mutex_lock(&bgsamples_mutex);
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
+		g_mutex_unlock(&bgsamples_mutex);
 	}
 	siril_add_idle(end_background, args);
 	return GINT_TO_POINTER(0);
@@ -1046,8 +1065,10 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 			free(background);
 			queue_error_message_dialog(_("Not enough samples."), error);
 			if (!args->from_ui) {
+				g_mutex_lock(&bgsamples_mutex);
 				free_background_sample_list(com.grad_samples);
 				com.grad_samples = NULL;
+				g_mutex_unlock(&bgsamples_mutex);
 			}
 			cfachans_cleanup(cfachans);
 			free(args);
@@ -1075,8 +1096,10 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 	cfachans_cleanup(cfachans);
 	invalidate_stats_from_fit(&gfit);
 	if (!args->from_ui) {
+		g_mutex_lock(&bgsamples_mutex);
 		free_background_sample_list(com.grad_samples);
 		com.grad_samples = NULL;
+		g_mutex_unlock(&bgsamples_mutex);
 	}
 	siril_add_idle(end_background, args);
 	return GINT_TO_POINTER(0);
