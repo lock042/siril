@@ -28,6 +28,9 @@ xx/xx/25
 * Improved the GPU module helper methods in sirilpy
 * Fixed a crash with RGB compositing (#1562)
 * Changed the default GHT colour mode from human weighed luminance to independent (!899)
+* Added / improved GPU helper modules to assist with installation and testing of key GPU-related modules. (!895)
+* Allow "Crop Sequence" with the internal sequence used in RGB composition, to aid with LRGB workflows. (!902)
+* Add python method to draw Polygons in the Siril overlay.
 
 siril 1.4.0-beta2
 05/21/25

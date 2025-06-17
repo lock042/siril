@@ -31,7 +31,9 @@ void mirrorx(fits *fit, gboolean verbose);
 void mirrory(fits *fit, gboolean verbose);
 
 int crop(fits *fit, rectangle *bounds);
+
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data);
+
 gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data);
 
 const char *interp_to_str(opencv_interpolation interpolation);

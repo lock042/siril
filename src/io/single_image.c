@@ -99,8 +99,10 @@ static gboolean free_image_data_gui(gpointer p) {
 	g_signal_handlers_block_by_func(binning, on_combobinning_changed, NULL);
 	clear_stars_list(TRUE);
 	clear_sampling_setting_box();	// clear focal and pixel pitch info
+	sample_mutex_lock();
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
+	sample_mutex_unlock();
 	cleanup_annotation_catalogues(TRUE);
 	reset_display_offset();
 	reset_menu_toggle_button();
