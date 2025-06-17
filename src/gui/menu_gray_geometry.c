@@ -106,6 +106,12 @@ void on_button_rotation_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("rotation_dialog");
 }
 
+gboolean rotation_hide_on_delete(GtkWidget *widget) {
+	delete_selected_area();
+	siril_close_dialog("rotation_dialog");
+	return TRUE;
+}
+
 void on_button_rotation_ok_clicked(GtkButton *button, gpointer user_data) {
 	rotate_gui(&gfit);
 }
@@ -196,6 +202,11 @@ void on_button_binning_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("binxy_dialog");
 }
 
+gboolean binxy_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("binxy_dialog");
+	return TRUE;
+}
+
 /*************
  * RESAMPLE
  */
@@ -225,6 +236,11 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 
 void on_button_resample_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("resample_dialog");
+}
+
+gboolean resample_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("resample_dialog");
+	return TRUE;
 }
 
 void on_spinbutton_resample_X_value_changed(GtkSpinButton *spinbutton, gpointer user_data);
@@ -407,3 +423,7 @@ void on_crop_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("crop_dialog");
 }
 
+gboolean crop_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("crop_dialog");
+	return TRUE;
+}

@@ -993,3 +993,9 @@ gboolean end_platesolve_sequence(gpointer p) {
 	free(p);	
 	return end_generic(NULL);
 }
+
+gboolean astrometry_hide_on_delete(GtkWidget *widget) {
+	mark_imgproc_dialog_closed();
+	gtk_widget_hide(widget);
+	return TRUE;
+}

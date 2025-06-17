@@ -319,7 +319,7 @@ static gboolean check_files_dimensions(guint *width, guint* height, guint *chann
 
 static gboolean end_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
-	stop_processing_thread();// can it be done here in case there is no thread?
+	stop_processing_thread();
 
 	if (!args->ret) {
 		/* write to gfit in the graphical thread */
@@ -723,7 +723,11 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = (double) var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					x[nb_rows] = (double) gfit.fdata[px];
+					if (gfit.type == DATA_USHORT) {
+						x[nb_rows] = (double) gfit.data[px] / USHRT_MAX_DOUBLE;
+					} else {
+						x[nb_rows] = (double) gfit.fdata[px];
+					}
 				}
 
 				if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
@@ -761,7 +765,11 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					x[nb_rows] = gfit.fdata[px];
+					if (gfit.type == DATA_USHORT) {
+						x[nb_rows] = gfit.data[px] / USHRT_MAX_DOUBLE;
+					} else {
+						x[nb_rows] = gfit.fdata[px];
+					}
 				}
 
 				if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
@@ -846,10 +854,9 @@ failure: // failure before the eval loop
 		free(args->fit);
 		free(args);
 	}
-	else if (com.script || com.python_script)
+	else {
 		execute_idle_and_wait_for_it(end_pixel_math_operation, args);
-	else
-		siril_add_idle(end_pixel_math_operation, args);
+	}
 	return GINT_TO_POINTER((gint)failed);
 }
 

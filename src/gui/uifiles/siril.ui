@@ -4064,7 +4064,6 @@ Colour image target also applies to the debayer result for conversion.</property
                                     <property name="margin-bottom">2</property>
                                     <property name="label" translatable="yes">Conversion</property>
                                     <property name="justify">center</property>
-                                    <property name="wrap">True</property>
                                   </object>
                                   <packing>
                                     <property name="tab-fill">False</property>

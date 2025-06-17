@@ -33,12 +33,13 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
+#include "core/command_line_processor.h"
 #include "core/OS_utils.h"
-#include "filters/graxpert.h" // for set_graxpert_aborted()
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
+#include "gui/utils.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/seqwriter.h"
@@ -501,8 +502,10 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 	if (!(args->seq->type == SEQ_INTERNAL))
 		g_assert(args->new_seq_prefix); // don't call this hook otherwise
 	//removing existing files
-	remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
-	remove_prefixed_star_files(args->seq, args->new_seq_prefix);
+	if (args->seq->type != SEQ_INTERNAL) {
+		remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
+		remove_prefixed_star_files(args->seq, args->new_seq_prefix);
+	}
 	if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
 		gchar *dest;
 		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
@@ -846,7 +849,8 @@ gpointer waiting_for_thread() {
 	com.thread = NULL;
 	thread_being_waited = FALSE;
 	set_thread_run(FALSE);	// do it anyway in case of wait without stop
-	return retval;
+
+	return GINT_TO_POINTER(GPOINTER_TO_INT(retval) & ~CMD_NOTIFY_GFIT_MODIFIED);
 }
 
 int claim_thread_for_python() {
@@ -889,16 +893,56 @@ void python_releases_thread() {
 	return;
 }
 
+
+static gboolean stop_processing_requested = FALSE;
+
+static gboolean stop_processing_thread_idle(gpointer user_data) {
+    if (com.thread == NULL) {
+        siril_debug_print("The processing thread is not running.\n");
+        return FALSE;
+    }
+    remove_child_from_children((GPid) -2); // magic number indicating the processing thread
+    set_thread_run(FALSE);
+    if (!thread_being_waited)
+        waiting_for_thread();
+    set_cursor_waiting(FALSE);
+    return FALSE;
+}
+
+static gboolean check_stop_processing_request(gpointer user_data) {
+    if (stop_processing_requested) {
+        stop_processing_requested = FALSE;
+        stop_processing_thread_idle(NULL);
+    }
+    return FALSE; // Remove this idle callback
+}
+
 void stop_processing_thread() {
-	if (com.thread == NULL) {
-		siril_debug_print("The processing thread is not running.\n");
-		return;
-	}
-	remove_child_from_children((GPid) -2); // magic number indicating the processing thread
-	set_thread_run(FALSE);
-	if (!thread_being_waited)
-		waiting_for_thread();
-	set_cursor_waiting(FALSE);
+    // Check if we're in headless mode first
+    if (com.headless) {
+        // In headless mode, we can call the function directly
+        if (com.thread == NULL) {
+            siril_debug_print("The processing thread is not running.\n");
+            return;
+        }
+        remove_child_from_children((GPid) -2);
+        set_thread_run(FALSE);
+        if (!thread_being_waited)
+            waiting_for_thread();
+        return;
+    }
+
+    // Check if we're already in the main thread
+    if (g_main_context_is_owner(g_main_context_default())) {
+        // We're in the main thread, but we might be inside execute_idle_and_wait_for_it
+        // Set a flag and queue an idle to handle it asynchronously
+        stop_processing_requested = TRUE;
+        gdk_threads_add_idle(check_stop_processing_request, NULL);
+    } else {
+        // We're not in the main thread, so we need to queue it as an idle
+        // and wait for it to complete
+        execute_idle_and_wait_for_it(stop_processing_thread_idle, NULL);
+    }
 }
 
 static void set_thread_run(gboolean b) {
@@ -1025,7 +1069,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 			if (child->program == INT_PROC_THREAD) {
 				stop_processing_thread();
 			} else {
-				if (child->program == EXT_STARNET || child->program == EXT_GRAXPERT || child->program == EXT_PYTHON) {
+				if (child->program == EXT_STARNET || child->program == EXT_PYTHON) {
 #ifdef _WIN32
 					TerminateProcess((void *) child->childpid, 1);
 #else
@@ -1126,8 +1170,6 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 		kill_child_process(pid, FALSE);
 	} else if (children == 1) {
 		child_info *child = (child_info*) com.children->data;
-		if (child->program == EXT_GRAXPERT)
-			set_graxpert_aborted(TRUE);
 		kill_child_process(child->childpid, FALSE);
 	} else {
 		com.stop_script = TRUE;

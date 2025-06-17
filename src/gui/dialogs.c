@@ -72,11 +72,9 @@ static const SirilDialogEntry entries[] =
 	{"extract_channel_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"extract_wavelets_layers_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"file_information", NULL, INFORMATION_DIALOG, FALSE, NULL},
-	{"graxpert_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL },
 	{"histogram_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_histo_cancel},
 	{"keywords_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"icc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, median_close},
 	{"merge_cfa_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
@@ -200,6 +198,10 @@ void siril_close_preview_dialogs() {
 	}
 }
 
+// WARNING: do not use siril_widget_hide_on_delete() for IMAGE_PROCESSING_DIALOGs. These
+// must call siril_close_dialog(builder_id) and therefore must have a custom handler
+// as the GtkBuilder ID does not have a reverse lookup function.
+
 gboolean siril_widget_hide_on_delete(GtkWidget *widget) {
     dialog_is_opened = FALSE;
     gtk_widget_hide(widget);
@@ -212,6 +214,12 @@ gboolean is_a_dialog_opened() {
 
 gboolean is_an_image_processing_dialog_opened() {
 	return processing_dialog_is_opened;
+}
+
+void mark_imgproc_dialog_closed() {
+	siril_debug_print("### Closing imgproc dialog via custom hide_on_delete callback\n");
+	dialog_is_opened = FALSE;
+	processing_dialog_is_opened = FALSE;
 }
 
 /************ file chooser ************/

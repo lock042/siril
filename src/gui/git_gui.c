@@ -107,9 +107,9 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 	gui_repo_scripts_mutex_lock();
 	if (gui.repo_scripts) {
 		int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
-		GList *iterator;
+		GSList *iterator;
 		for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
-			// here we populate the GtkTreeView from GList gui.repo_scripts
+			// here we populate the GtkTreeView from GSList gui.repo_scripts
 			const gchar *category;
 			gboolean included = FALSE;
 			gboolean core = FALSE;
@@ -138,7 +138,7 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 			printf("%s\n", scriptpath);
 #endif
 			// Check whether the script appears in the list
-			GList *iterator2 = NULL;
+			GSList *iterator2 = NULL;
 			if (!included && !core) {
 				for (iterator2 = com.pref.selected_scripts; iterator2;
 					iterator2 = iterator2->next) {
@@ -234,20 +234,20 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 
 	if (!val) {
 		// Checkbox is now checked - add to list if not already present
-		if (!g_list_find_custom(com.pref.selected_scripts, script_path,
+		if (!g_slist_find_custom(com.pref.selected_scripts, script_path,
 							(GCompareFunc)g_strcmp0)) {
 #ifdef DEBUG_GITSCRIPTS
 			printf("Adding script: %s\n", script_path);
 #endif
-			// g_list_prepend takes ownership of script_path
-			com.pref.selected_scripts = g_list_prepend(com.pref.selected_scripts, script_path);
+			// g_slist_prepend takes ownership of script_path
+			com.pref.selected_scripts = g_slist_prepend(com.pref.selected_scripts, script_path);
 		} else {
 			// Already in list, free our copy
 			g_free(script_path);
 		}
 	} else {
 		// Checkbox is now unchecked - remove from list
-		GList *found = g_list_find_custom(com.pref.selected_scripts, script_path,
+		GSList *found = g_slist_find_custom(com.pref.selected_scripts, script_path,
 										(GCompareFunc)g_strcmp0);
 		if (found) {
 #ifdef DEBUG_GITSCRIPTS
@@ -256,7 +256,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 			// Free the data stored in the list
 			g_free(found->data);
 			// Remove the element and update the list
-			com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, found);
+			com.pref.selected_scripts = g_slist_delete_link(com.pref.selected_scripts, found);
 		}
 
 		// Free our copy of script_path
@@ -274,14 +274,14 @@ void on_disable_gitscripts() {
 	liststore = NULL;
 
 	gui_repo_scripts_mutex_lock();
-	g_list_free_full(gui.repo_scripts, g_free);
+	g_slist_free_full(gui.repo_scripts, g_free);
 	gui_repo_scripts_mutex_unlock();
 
 	gui.repo_scripts = NULL;
 	if (com.pref.selected_scripts)
-		g_list_free_full(com.pref.selected_scripts, g_free);
+		g_slist_free_full(com.pref.selected_scripts, g_free);
 	com.pref.selected_scripts = NULL;
-	refresh_script_menu(GINT_TO_POINTER(1));
+	g_thread_unref(g_thread_new("refresh_script_menu", refresh_script_menu_in_thread, GINT_TO_POINTER(1)));
 }
 
 void on_manual_script_sync_button_clicked(GtkButton *button, gpointer user_data) {

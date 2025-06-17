@@ -260,7 +260,6 @@ struct gui_config {
 	double mouse_speed_limit; // Defines a mximum step size for GDK_SCROLL_SMOOTH actions
 	struct mouse_config mouse_cfg; // String representation of mouse & scroll actions
 	struct editor_config editor_cfg; // Configuration for the script editor
-	gboolean graxpert_gpu; // Persistent variable for whether to use the GPU for GraXpert
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
@@ -430,7 +429,7 @@ struct pref_struct {
 	fftw_params fftw_conf;
 	int max_slice_size; // Used when processing img_t in slices to limit the wisdom required
 	icc_params icc;
-	GList *selected_scripts;
+	GSList *selected_scripts;
 	gboolean use_scripts_repository;
 	gboolean auto_script_update; // automatically update scripts repository at startup
 };

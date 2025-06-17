@@ -314,6 +314,16 @@ static void apply_asinh_changes() {
 void apply_asinh_cancel() {
 	asinh_close(TRUE);
 	siril_close_dialog("asinh_dialog");
+
+}
+
+void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
+	apply_asinh_cancel();
+}
+
+gboolean asinh_hide_on_delete(GtkWidget *widget) {
+	apply_asinh_cancel();
+	return TRUE;
 }
 
 /*** callbacks **/
@@ -343,10 +353,6 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	set_notify_block(FALSE);
 
 	/* default parameters do not transform image, no need to update preview */
-}
-
-void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
-	apply_asinh_cancel();
 }
 
 void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {

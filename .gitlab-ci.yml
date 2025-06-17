@@ -176,7 +176,7 @@ macos:
     - macos
     - ${ARCHITECTURE}
   cache:
-    - key: ccache
+    - key: ccache-$CI_JOB_NAME_SLUG
       paths:
         - ccache
   variables:

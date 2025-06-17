@@ -662,7 +662,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean result = single_image_is_loaded();
 
 			if (result) {
-				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
+				if (com.selection.w == 0 && com.selection.h == 0) {
+					// No selection: return STATUS_NONE and sirilpy will return None
+					success = send_response(conn, STATUS_NONE, NULL, 0);
+					break;
+				}
+				// Prepare the response data
 				uint8_t response_data[16]; // 4 x 4 bytes for x,y, w, h
 
 				// Convert the integers to BE format for consistency across the UNIX socket
@@ -824,7 +829,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_STATS_FOR_SELECTION: {
 			int layer = 0;
 			rectangle selection = { 0 };
+
 			if (payload_length == 16 || payload_length == 20) {
+				// Shape provided (with or without channel)
 				rectangle region_BE = *(rectangle*) payload;
 				selection = (rectangle) {GUINT32_FROM_BE(region_BE.x),
 									GUINT32_FROM_BE(region_BE.y),
@@ -837,13 +844,22 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 				}
 			} else {
+				// No shape provided, use current selection
 				memcpy(&selection, &com.selection, sizeof(rectangle));
 			}
+
+			// Determine layer/channel
 			if (payload_length == 20) {
+				// Shape + channel provided
 				layer = GUINT32_FROM_BE(*((int*) payload + 4));
+			} else if (payload_length == 4) {
+				// Only channel provided
+				layer = GUINT32_FROM_BE(*(int*) payload);
 			} else {
+				// No channel specified, use default
 				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
 			}
+
 			// Check an image is loaded
 			if (!single_image_is_loaded()) {
 				const char* error_msg = _("No image loaded");
@@ -857,6 +873,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
+
 			// Check selection is valid
 			if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
 				selection.w * selection.h < 3 ||
@@ -865,9 +882,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 			}
+
 			// Compute stats
 			imstats *stats = statistics(NULL, -1, &gfit, layer, &selection, STATS_MAIN, MULTI_THREADED);
-
 			const size_t total_size = 14 * sizeof(double);
 			unsigned char* response_buffer = g_try_malloc0(total_size);
 			unsigned char* ptr = response_buffer;
@@ -954,7 +971,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Create null-terminated string from remaining payload
 			char* log_msg = g_strndup(payload + 1, payload_length - 1);
-			siril_log_color_message(log_msg, log_color_to_str(color));  // Assuming function name updated to handle color
+			siril_log_literal_color_message(log_msg, log_color_to_str(color));  // Assuming function name updated to handle color
 			g_free(log_msg);
 
 			// Send success response
@@ -1239,6 +1256,16 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				gboolean recalculate = (gboolean) info->channels;
 				success = handle_set_bgsamples_request(conn, info, show_samples, recalculate);
 			}
+			break;
+		}
+
+		case CMD_CLEAR_BGSAMPLES: {
+			sample_mutex_lock();
+			free_background_sample_list(com.grad_samples);
+			com.grad_samples = NULL;
+			sample_mutex_unlock();
+			queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
 
@@ -1774,10 +1801,12 @@ CLEANUP:
 
 		case CMD_GET_BGSAMPLES: {
 			int nb_samples = 0;
+			sample_mutex_lock();
 			if (com.grad_samples) {
 				// Count the number of stars in com.grad_samples
 				nb_samples = g_slist_length(com.grad_samples);
 			}
+			sample_mutex_unlock();
 			if (!nb_samples) {
 				const char* error_msg = _("No background samples list available");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
@@ -2013,7 +2042,8 @@ CLEANUP:
 					FROM_BE64_INTO(y, y_BE, double);
 					double ra, dec, ra_BE, dec_BE;
 					double fx, fy;
-					display_to_siril(x, y, &fx, &fy, gfit.ry);
+					fx = x;
+					fy = gfit.ry - y;
 					pix2wcs2(gfit.keywords.wcslib, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					TO_BE64_INTO(ra_BE, ra, double);
@@ -2052,7 +2082,8 @@ CLEANUP:
 					FROM_BE64_INTO(dec, dec_BE, double);
 					double x, y, fx, fy, x_BE, y_BE;
 					wcs2pix(&gfit, ra, dec, &fx, &fy);
-					siril_to_display(fx, fy, &x, &y, gfit.ry);
+					x = fx;
+					y = gfit.ry - fy;
 					TO_BE64_INTO(x_BE, x, double);
 					TO_BE64_INTO(y_BE, y, double);
 					unsigned char* payload = g_try_malloc0(2 * sizeof(double));
@@ -2168,7 +2199,7 @@ CLEANUP:
 				}
 				com.seq.imgparam[index].incl = incl;
 				if (index == com.seq.current && !com.headless)
-					redraw(REDRAW_OVERLAY);
+					queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
 				const char* error_msg = _("Incorrect payload length");
@@ -2230,24 +2261,14 @@ CLEANUP:
 		}
 
 		case CMD_ADD_USER_POLYGON: {
-			UserPolygon *polygon = deserialize_polygon((const uint8_t*) payload, payload_length);
-			if (!(single_image_is_loaded() || sequence_is_loaded())) {
-				siril_debug_print("Failed to add user polygon\n");
-				const char* error_msg = _("Failed to add user polygon: no image loaded");
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-				break;
-			}
-			if (polygon) {
-				int id = get_unused_polygon_id();
-				polygon->id = id;
-				gui.user_polygons = g_list_append(gui.user_polygons, polygon);
-				redraw(REDRAW_OVERLAY);
-				int id_be = GINT32_TO_BE(id);
-				success = send_response(conn, STATUS_OK, &id_be, 4);
 			} else {
-				siril_debug_print("Failed to add user polygon\n");
-				const char* error_msg = _("Failed to add user polygon");
-				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_add_user_polygon_request(conn, info);
 			}
 			break;
 		}
@@ -2305,23 +2326,23 @@ CLEANUP:
 
 		case CMD_GET_USER_POLYGON_LIST: {
 			size_t polygon_list_size;
-			if (g_list_length(gui.user_polygons) == 0) {
+			if (g_slist_length(gui.user_polygons) == 0) {
 				siril_debug_print("No user polygons defined\n");
 				const char* error_msg = _("No user polygons to serialize");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
-			}
+			} else {
+				uint8_t *serialized = serialize_polygon_list(gui.user_polygons, &polygon_list_size);
+				if (!serialized) {
+					siril_debug_print("Failed to serialize the user polygon list\n");
+					const char* error_msg = _("Failed to serialize user polygon list");
+					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				}
 
-			uint8_t *serialized = serialize_polygon_list(gui.user_polygons, &polygon_list_size);
-			if (!serialized) {
-				siril_debug_print("Failed to serialize the user polygon list\n");
-				const char* error_msg = _("Failed to serialize user polygon list");
-				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_list_size);
+				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+				g_free(serialized);
+				free(info);
 			}
-
-			shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_list_size);
-			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-			g_free(serialized);
-			free(info);
 			break;
 		}
 
@@ -2395,6 +2416,26 @@ CLEANUP:
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
 				const char* error_msg = _("Could not create the new sequence");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_DRAW_POLYGON: {
+			mouse_status_enum mouse_status = get_mouse_status();
+			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
+				siril_debug_print("## Mouse mode: %d\n", (int) mouse_status);
+				const char* error_msg = _("Wrong mouse mode");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+			}
+			if (payload_length == 5) {
+				uint32_t color = GUINT32_FROM_BE(*(uint32_t*) payload);
+				gui.poly_fill = (gboolean) (*(uint8_t*) (payload + 4) != 0);
+				gui.poly_ink = uint32_to_gdk_rgba(color);
+				init_draw_poly();
+				success = send_response(conn, STATUS_OK, NULL, 0);
+			} else {
+				const char* error_msg = _("Invalid payload for CMD_DRAW_POLYGON");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;

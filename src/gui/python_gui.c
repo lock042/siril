@@ -72,6 +72,8 @@ static GtkButton *go_down_button = NULL;
 
 static gint active_language = LANG_PYTHON;
 static gboolean buffer_modified = FALSE;
+static gboolean from_cli = FALSE;
+static gboolean python_debug = FALSE;
 
 // Forward declarations
 void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -1155,13 +1157,12 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
             if (gtk_check_menu_item_get_active(useargs)) {
                 const gchar *args_string = gtk_entry_get_text(args_entry);
                 script_args = g_strsplit(args_string, " ", -1);
-                g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);
-            } else
-                g_unsetenv("SIRIL_PYTHON_CLI");
+                from_cli = TRUE;
+            }
 
             // Execute the script with the path to the temp file instead of the text content
             // Passing TRUE as the last parameter to indicate this is a temporary file
-            execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE);
+            execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE, from_cli, python_debug);
             g_strfreev(script_args);
             g_free(text);
             break;
@@ -1330,9 +1331,9 @@ void on_editor_minimap_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 void on_editor_useargs_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gtk_widget_set_visible(GTK_WIDGET(args_box), gtk_check_menu_item_get_active(item));
 	if (gtk_check_menu_item_get_active(item)) {
-		g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);
+		from_cli = TRUE;
 	} else {
-		g_unsetenv("SIRIL_PYTHON_CLI");
+		from_cli = FALSE;
 	}
 }
 
@@ -1359,8 +1360,12 @@ void on_pythondebug_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	g_signal_handlers_unblock_by_func(scriptmenuwidget, on_pythondebug_toggled, NULL);
 
 	if (state) {
-		g_setenv("SIRIL_PYTHON_DEBUG", "1", TRUE);  // TRUE to overwrite if it exists
+		python_debug = TRUE;  // TRUE to overwrite if it exists
 	} else {
-		g_unsetenv("SIRIL_PYTHON_DEBUG");
+		python_debug = FALSE;
 	}
+}
+
+gboolean get_python_debug_mode() {
+	return python_debug;
 }

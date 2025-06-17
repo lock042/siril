@@ -1,9 +1,36 @@
 siril 1.4.0-beta3
 xx/xx/25
 
-**Fixes**
+**Fixes:**
 * Fixed crash when opening 8-bit XISF file (#1638)
 * Fixed `match stars in selection` option for global registration (#1644)
+* Fixed an issue where image processing dialogs could fail to unblock python scripts when closed.
+* Fixed an issue where the python pix2radec and radec2pix commands failed with coords outside the image (!887)
+* Fixed an issue that meant the pyscript command was not waiting for the python interpreter to exit (#1660)
+* Fixed an issue with some commands e.g. denoise that meant they would always indicate failure in a script (#1661)
+* Fixed Crash in pixelmath command with 16-bit images (#1672)
+* Fixed incorrect handling of sirilpy.connection.SirilInterface.log() strings (#1662)
+* Fixed incorrect channel handling in get_selection_stats() when no shape is provided (#1673)
+* FIxed incorrect thread handling after spawning a python script (thread pointer not set to NULL) (#1654)
+* Fixed idle handling to eliminate a hang where a thread was stuck waiting for itself to exit  during stacking (#1665)
+* Fixed potential thread safety issues setting environment variables
+* Fixed issues with updating the script repository - no longer cloned with depth=1
+* Fixed handling of star cluster names containing * characters
+* Fixed an issue with git repositories where they could be unable to update after changes to the remote (!900)
+* Fixed an inconsistency between GList / GSList that caused crashes relating to the scripts menu for some users (!899)
+
+**Improvements**
+* Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
+* Allow saving plots to files using sirilpy.connection.SirilInterface.xy_plot() (#1670)
+* Filechoosers in the calibration tab and calibration preferences remember the last directory (#1664)
+* Updated overlay_add_polygon() to use shared memory, to handle polygons with large numbers of sides
+* Improved compatibility of sirilpy.tkfilebrowser with tkinter.filedialog (allows replacing the awful Linux tk filedialog)
+* Improved the GPU module helper methods in sirilpy
+* Fixed a crash with RGB compositing (#1562)
+* Changed the default GHT colour mode from human weighed luminance to independent (!899)
+* Added / improved GPU helper modules to assist with installation and testing of key GPU-related modules. (!895)
+* Allow "Crop Sequence" with the internal sequence used in RGB composition, to aid with LRGB workflows. (!902)
+* Add python method to draw Polygons in the Siril overlay.
 
 siril 1.4.0-beta2
 05/21/25

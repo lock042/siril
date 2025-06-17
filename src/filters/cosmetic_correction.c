@@ -751,6 +751,11 @@ void on_button_cosmetic_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("cosmetic_dialog");
 }
 
+gboolean cosmetic_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("cosmetic_dialog");
+	return TRUE;
+}
+
 void on_checkSigCosme_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	static GtkWidget *cosmeticApply = NULL;
 	static GtkToggleButton *checkCosmeSigCold = NULL;

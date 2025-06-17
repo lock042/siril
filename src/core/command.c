@@ -91,7 +91,6 @@
 #include "filters/deconvolution/deconvolution.h"
 #include "filters/linear_match.h"
 #include "filters/median.h"
-#include "filters/graxpert.h"
 #include "filters/mtf.h"
 #include "filters/fft.h"
 #include "filters/rgradient.h"
@@ -4100,7 +4099,7 @@ int process_pm(int nb) {
 	gchar *cleaned_expression = g_regex_replace(regex, expression, -1, 0, "gfit", 0, NULL);
 	g_regex_unref(regex);
 
-	// Check if a replacement was made to set some flags and check if an image is really laoded
+	// Check if a replacement was made to set some flags and check if an image is really loaded
 	if (g_strcmp0(expression, cleaned_expression) != 0) {
 		if (!single_image_is_loaded()) {
 			g_free(cleaned_expression);
@@ -8527,6 +8526,11 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 	return CMD_OK;
 }
 
+static gboolean stack_stop_thread(gpointer user_data) {
+	stop_processing_thread();
+	return FALSE;
+}
+
 static int stack_one_seq(struct stacking_configuration *arg) {
 	sequence *seq = readseqfile(arg->seqfile);
 	if (!seq) {
@@ -8639,7 +8643,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	free(args.critical_value);
 
 	if (retval == CMD_OK) {
-		stop_processing_thread();
+		execute_idle_and_wait_for_it(stack_stop_thread, NULL);
 		bgnoise_async(&args.result, TRUE);
 		// preparing the output filename
 		// needs to be done after stack is completed to have
@@ -9541,7 +9545,14 @@ int process_extract(int nb) {
 }
 
 int process_reloadscripts(int nb){
-	return refresh_scripts(FALSE, NULL);
+	if (com.headless) {
+		siril_log_color_message(_("Error: cannot reload script menu when running headless\n"), "red");
+		return CMD_GENERIC_ERROR;
+	} else {
+		GThread *thread = g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL);
+		g_thread_join(thread);
+	}
+	return CMD_OK;
 }
 
 int process_requires(int nb) {
@@ -11145,308 +11156,6 @@ int process_seq_profile(int nb) {
 	return CMD_OK;
 }
 
-static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
-		graxpert_operation operation) {
-	graxpert_data *data = new_graxpert_data();
-	int start = (seq == NULL) ? 1 : 2;
-	if (seq)
-		data->seq = seq;
-	else
-		data->fit = &gfit;
-	if (operation == GRAXPERT_BG) {
-		data->operation = GRAXPERT_BG;
-	} else if (operation == GRAXPERT_DENOISE) {
-		data->operation = GRAXPERT_DENOISE;
-	} else if (operation == GRAXPERT_DECONV) {
-		data->operation = GRAXPERT_DECONV;
-	} else if (operation == GRAXPERT_DECONV_STELLAR) {
-		data->operation = GRAXPERT_DECONV_STELLAR;
-	} else {
-		siril_log_color_message(_("Error: unknown GraXpert operation!\n"), "red");
-		free_graxpert_data(data);
-		return NULL;
-	}
-	for (int i = start; i < nb; i++) {
-		char *arg = word[i], *end;
-		if (!word[i])
-			break;
-		else if (!g_ascii_strncasecmp(arg, "-gpu", 3)) {
-			data->use_gpu = TRUE;
-		} else if (!g_ascii_strncasecmp(arg, "-cpu", 3)) {
-			data->use_gpu = FALSE;
-		} else if (!g_ascii_strncasecmp(arg, "-keep_bg", 8)) {
-			data->keep_bg = TRUE;
-		} else if (!g_ascii_strncasecmp(arg, "-ai_version=", 12)) {
-			arg += 12;
-			data->ai_version = g_strdup(arg);
-		} else {
-			if (operation == GRAXPERT_BG) {
-				if (g_str_has_prefix(arg, "-algo=")) {
-					arg += 6;
-					if (!g_ascii_strncasecmp(arg, "ai", 2)) {
-						data->bg_algo = GRAXPERT_BG_AI;
-					} else if (!g_ascii_strncasecmp(arg, "rbf", 3)) {
-						data->bg_algo = GRAXPERT_BG_RBF;
-					} else if (!g_ascii_strncasecmp(arg, "kriging", 7)) {
-						data->bg_algo = GRAXPERT_BG_KRIGING;
-					} else if (!g_ascii_strncasecmp(arg, "spline", 6)) {
-						data->bg_algo = GRAXPERT_BG_SPLINE;
-					} else {
-						siril_log_color_message(_("Error: unknown background extraction algorithm!\n"), "red");
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-mode=")) {
-					arg += 6;
-					if (!g_ascii_strncasecmp(arg, "sub", 3)) {
-						data->bg_mode = GRAXPERT_SUBTRACTION;
-					} else if (!g_ascii_strncasecmp(arg, "div", 3)) {
-						data->bg_mode = GRAXPERT_DIVISION;
-					} else {
-						siril_log_color_message(_("Error: unknown correction mode!\n"), "red");
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-kernel=")) {
-					arg += 8;
-					if (!g_ascii_strncasecmp(arg, "thinplate", 9)) {
-						data->kernel = GRAXPERT_THIN_PLATE;
-					} else if (!g_ascii_strncasecmp(arg, "quintic", 7)) {
-						data->kernel = GRAXPERT_QUINTIC;
-					} else if (!g_ascii_strncasecmp(arg, "cubic", 5)) {
-						data->kernel = GRAXPERT_CUBIC;
-					} else if (!g_ascii_strncasecmp(arg, "linear", 6)) {
-						data->kernel = GRAXPERT_LINEAR;
-					} else {
-						siril_log_color_message(_("Error: unknown RBF kernel!\n"), "red");
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-ai_batch_size=")) {
-					arg += 15;
-					data->ai_batch_size = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no AI batch size specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-pts_per_row=")) {
-					arg += 13;
-					data->bg_pts_option = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no pts_per_row specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-splineorder=")) {
-					arg += 13;
-					data->spline_order = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no spline order specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-samplesize=")) {
-					arg += 12;
-					data->sample_size = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no sample size specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-smoothing=")) {
-					arg += 11;
-					data->bg_smoothing = g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no smoothing value specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-bgtol=")) {
-					arg += 7;
-					data->bg_tol_option = g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no background tolerance value specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else {
-					siril_log_color_message(_("Error: unknown argument!\n"), "red");
-					goto GRAX_ARG_ERROR;
-				}
-			} else if (operation == GRAXPERT_DENOISE) {
-				if (g_str_has_prefix(arg, "-strength=")) {
-					arg += 10;
-					data->denoise_strength = g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no strength value specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else {
-					siril_log_color_message(_("Error: unknown argument!\n"), "red");
-					goto GRAX_ARG_ERROR;
-				}
-			} else { // operation must be GRAXPERT_DECONV or GRAXPERT_DECONV_STELLAR because of the earlier check
-				if (g_str_has_prefix(arg, "-strength=")) {
-					arg += 10;
-					data->deconv_strength = g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no strength value specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-psfsize=")) {
-					arg += 9;
-					data->deconv_blur_psf_size = g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no psf size value specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else {
-					siril_log_color_message(_("Error: unknown argument!\n"), "red");
-					goto GRAX_ARG_ERROR;
-				}
-			}
-		}
-	}
-
-	// Enforce bounds on data submitted
-	if (data->bg_smoothing < 0.0)
-		data->bg_smoothing = 0.0;
-	else if (data->bg_smoothing > 1.0)
-		data->bg_smoothing = 1.0;
-	if (data->denoise_strength < 0.0)
-		data->denoise_strength = 0.0;
-	else if (data->denoise_strength > 1.0)
-		data->denoise_strength = 1.0;
-	else if (data->deconv_strength > 1.0)
-		data->deconv_strength = 1.0;
-	else if (data->deconv_blur_psf_size > 14.0)
-		data->deconv_blur_psf_size = 14.0;
-	if (data->bg_tol_option < -2.0)
-		data->bg_tol_option = -2.0;
-	else if (data->bg_tol_option > 6.0)
-		data->bg_tol_option = 6.0;
-	if (data->operation == GRAXPERT_DENOISE || data->operation == GRAXPERT_DECONV
-			|| data->operation == GRAXPERT_DECONV_STELLAR || data->bg_algo == GRAXPERT_BG_AI) {
-		if (data->ai_version != NULL && !check_graxpert_version(data->ai_version, data->operation)) {
-			siril_log_color_message(_("Error: the requested AI model version is unavailable. Available versions are:\n"),"red");
-			ai_versions_to_log(operation);
-			goto GRAX_ARG_ERROR;
-		}
-	}
-
-	return data;
-
-	GRAX_ARG_ERROR:
-
-	free_graxpert_data(data);
-	return NULL;
-}
-
-int process_graxpert_bg(int nb) {
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, NULL,
-			GRAXPERT_BG);
-	if (!data)
-		return CMD_ARG_ERROR;
-
-	if (data->bg_algo != GRAXPERT_BG_AI) {
-		const char *err;
-		data->bg_samples = generate_samples(&gfit, data->bg_pts_option,
-				data->bg_tol_option, data->sample_size, &err, MULTI_THREADED);
-		if (!data->bg_samples) {
-			siril_log_color_message(
-					_("Failed to generate background samples for image: %s\n"),
-					"red", _(err));
-			free_graxpert_data(data);
-			return CMD_GENERIC_ERROR;
-		}
-	}
-	if (!start_in_new_thread(do_graxpert, data)) {
-		free_graxpert_data(data);
-		return CMD_GENERIC_ERROR;
-	}
-	return CMD_OK;
-}
-
-int process_graxpert_denoise(int nb) {
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, NULL, GRAXPERT_DENOISE);
-	if (!data)
-		return CMD_ARG_ERROR;
-
-	if (!start_in_new_thread(do_graxpert, data)) {
-		free_graxpert_data(data);
-		return CMD_GENERIC_ERROR;
-	}
-	return CMD_OK;
-}
-
-int process_graxpert_deconv(int nb) {
-	graxpert_operation operation;
-
-	if (g_ascii_strcasecmp(word[1], "object") == 0) {
-		operation = GRAXPERT_DECONV;
-	} else if (g_ascii_strcasecmp(word[1], "stellar") == 0) {
-		operation = GRAXPERT_DECONV_STELLAR;
-	} else {
-		return CMD_ARG_ERROR;
-	}
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, NULL, operation);
-	if (!data)
-		return CMD_ARG_ERROR;
-
-	if (!start_in_new_thread(do_graxpert, data)) {
-		free_graxpert_data(data);
-		return CMD_GENERIC_ERROR;
-	}
-	return CMD_OK;
-}
-
-int process_seq_graxpert_bg(int nb) {
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
-		siril_log_color_message(_("Error: unable to load sequence\n"), "red");
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq, GRAXPERT_BG);
-	if (!data) {
-		free_sequence(seq, TRUE);
-		return CMD_ARG_ERROR;
-	}
-	apply_graxpert_to_sequence(data);
-	return CMD_OK;
-}
-
-int process_seq_graxpert_denoise(int nb) {
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
-		siril_log_color_message(_("Error: unable to load sequence\n"), "red");
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq, GRAXPERT_DENOISE);
-	if (!data) {
-		free_sequence(seq, TRUE);
-		return CMD_ARG_ERROR;
-	}
-	apply_graxpert_to_sequence(data);
-	return CMD_OK;
-}
-
-int process_seq_graxpert_deconv(int nb) {
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
-		siril_log_color_message(_("Error: unable to load sequence\n"), "red");
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
-	graxpert_operation operation;
-
-	if (g_ascii_strcasecmp(word[2], "object") == 0) {
-		operation = GRAXPERT_DECONV;
-	} else if (g_ascii_strcasecmp(word[2], "stellar") == 0) {
-		operation = GRAXPERT_DECONV_STELLAR;
-	} else {
-		free_sequence(seq, TRUE);
-		return CMD_ARG_ERROR;
-	}
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq, operation);
-	if (!data) {
-		free_sequence(seq, TRUE);
-		return CMD_ARG_ERROR;
-	}
-	apply_graxpert_to_sequence(data);
-	return CMD_OK;
-}
-
 int process_icc_assign(int nb) {
 	if(!com.headless) on_clear_roi();
 	char *arg = word[1];
@@ -11707,11 +11416,12 @@ int process_pwd(int nb) {
 typedef struct _pyscript_data {
 	gchar *script_name;
 	gchar **argv_script;
+	gboolean from_cli;
 } pyscript_data;
 
 gpointer execute_python_script_wrapper(gpointer user_data) {
 	pyscript_data *data = (pyscript_data*) user_data;
-	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE);
+	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE, data->from_cli, FALSE);
 	g_strfreev(data->argv_script);
 	free(data);
 	return GINT_TO_POINTER(0);
@@ -11751,10 +11461,11 @@ int process_pyscript(int nb) {
 		pyscript_data *data = calloc(1, sizeof(pyscript_data));
 		data->script_name = script_name;
 		data->argv_script = argv_script;
-		g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);  // TRUE to overwrite if it exists
+		data->from_cli = TRUE;
 		// Cannot use start_in_new_thread here because of the possibility of the python script
 		// calling siril.cmd() and running commands that themselves require the processing thread
 		// so we use a generic GThread
+		gboolean already_in_a_python_script = com.python_script;
 		GThread *thread = g_thread_new("pyscript_thread", execute_python_script_wrapper, data);
 		if (!thread) {
 			free(data);
@@ -11762,7 +11473,11 @@ int process_pyscript(int nb) {
 			g_strfreev(argv_script);
 			return CMD_GENERIC_ERROR;
 		} else {
-			g_thread_unref(thread);
+			if (com.script || already_in_a_python_script) {
+				g_thread_join(thread);
+			} else {
+				g_thread_unref(thread);
+			}
 		}
 		return CMD_OK;
 	} else {

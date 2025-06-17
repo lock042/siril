@@ -159,7 +159,7 @@ brew install siril
 ## Building Siril for Windows
 
 The build process using [msys2](https://www.msys2.org) is documented
-[here](https://free-astro.org/index.php?title=Siril:install#Building_on_Windows_with_msys2).
+[here](https://siril.readthedocs.io/en/stable/installation/windows.html#building-on-windows-with-msys2).
 
 ## Translation instructions for Siril
 
