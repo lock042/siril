@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-11 11:12+0200\n"
+"POT-Creation-Date: 2025-06-17 12:49+0200\n"
 "PO-Revision-Date: 2016-11-20 10:20+0100\n"
 "Last-Translator: زنادي أمين <amine-zennadi@hotmail.com>\n"
 "Language-Team: \n"
@@ -299,7 +299,7 @@ msgid "No Selection"
 msgstr "بدون تحديد"
 
 #: src/gui/uifiles/StatWindow.ui:200 src/gui/uifiles/color_calibration.ui:389
-#: src/gui/uifiles/siril.ui:3028 src/compositing/compositing.c:678
+#: src/gui/uifiles/siril.ui:3028 src/compositing/compositing.c:680
 #: src/gui/callbacks.c:899 src/gui/callbacks.c:1282
 msgid "Red"
 msgstr "أحمر"
@@ -1267,7 +1267,7 @@ msgid "Sequence / Astrometric Registration"
 msgstr "تطبيق تحول الرسم البياني"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:55
-#: src/algos/background_extraction.c:1388
+#: src/algos/background_extraction.c:1411
 msgid "Background Extraction"
 msgstr "استخراج الخلفية"
 
@@ -2420,9 +2420,9 @@ msgid "Multi-layer image composition"
 msgstr "تركيب  الصورة"
 
 #. don't destroy it on removal from grid
-#: src/gui/uifiles/composition_dialog.ui:207 src/compositing/compositing.c:223
-#: src/compositing/compositing.c:224 src/compositing/compositing.c:526
-#: src/compositing/compositing.c:1583 src/compositing/compositing.c:1584
+#: src/gui/uifiles/composition_dialog.ui:207 src/compositing/compositing.c:225
+#: src/compositing/compositing.c:226 src/compositing/compositing.c:528
+#: src/compositing/compositing.c:1590 src/compositing/compositing.c:1591
 msgid "not loaded"
 msgstr "غير محمل"
 
@@ -2461,7 +2461,7 @@ msgstr ""
 msgid "rotation"
 msgstr "دوران"
 
-#: src/gui/uifiles/composition_dialog.ui:289 src/compositing/compositing.c:245
+#: src/gui/uifiles/composition_dialog.ui:289 src/compositing/compositing.c:247
 #, fuzzy
 msgid "Set rotation center for this layer"
 msgstr "إعادة حساب تسجيل القائمة بالفعل لهذه الطبقة\n"
@@ -3828,7 +3828,7 @@ msgid "Interpolation: "
 msgstr "استيفاء"
 
 #: src/gui/uifiles/file_information_dialog.ui:34
-#: src/io/siril_pythoncommands.c:1004
+#: src/io/siril_pythoncommands.c:1009
 msgid "Information"
 msgstr "معلومات"
 
@@ -7877,7 +7877,7 @@ msgstr ""
 msgid "Check update at startup"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6193 src/core/siril_actions.c:823
+#: src/gui/uifiles/settings_window.ui:6193 src/core/siril_actions.c:827
 msgid "Update"
 msgstr ""
 
@@ -9000,7 +9000,7 @@ msgstr ""
 "يتم التلاعب الصور في تسلسل. Siril أن تجد تسلسل في CWD، ويمكنك تصفية الصور "
 "بها."
 
-#: src/gui/uifiles/siril.ui:4623 src/gui/callbacks.c:2317
+#: src/gui/uifiles/siril.ui:4623 src/gui/callbacks.c:2308
 msgid "Sequence"
 msgstr "التسلسل"
 
@@ -10008,7 +10008,7 @@ msgstr ""
 msgid "Set second preview"
 msgstr "تعيين المعاينة الثانية"
 
-#: src/gui/uifiles/siril.ui:7611 src/compositing/compositing.c:1985
+#: src/gui/uifiles/siril.ui:7611 src/compositing/compositing.c:1996
 msgid "Manual registration"
 msgstr "التسجيل اليدوي"
 
@@ -11699,7 +11699,7 @@ msgstr ""
 msgid "relative"
 msgstr "مُضَافٌ"
 
-#: src/algos/PSF.c:1026 src/algos/background_extraction.c:898
+#: src/algos/PSF.c:1026 src/algos/background_extraction.c:915
 msgid "monochrome"
 msgstr ""
 
@@ -11937,7 +11937,7 @@ msgstr ""
 msgid "Plate Solve"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1048 src/gui/callbacks.c:1933
+#: src/algos/astrometry_solver.c:1048 src/gui/callbacks.c:1924
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr ""
@@ -12135,39 +12135,40 @@ msgid ""
 "cannot be computed.\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:829
+#: src/algos/background_extraction.c:840
 #, c-format
 msgid "Failed to generate background samples for image: %s\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:884 src/algos/background_extraction.c:1055
+#: src/algos/background_extraction.c:899 src/algos/background_extraction.c:1074
 msgid "Not enough samples."
 msgstr ""
 
-#: src/algos/background_extraction.c:884
+#: src/algos/background_extraction.c:899
 msgid "Insufficient samples"
 msgstr ""
 
-#: src/algos/background_extraction.c:899
+#: src/algos/background_extraction.c:916
 #, fuzzy, c-format
 msgid "Background extraction from %s channel.\n"
 msgstr "استخراج الخلفية: تجهيز ...\n"
 
-#: src/algos/background_extraction.c:905
+#: src/algos/background_extraction.c:922
 #, fuzzy, c-format
 msgid "Background with %s interpolation computed.\n"
 msgstr "خطأ : بيانات غير صالحة .\n"
 
-#: src/algos/background_extraction.c:968 src/algos/background_extraction.c:1189
+#: src/algos/background_extraction.c:987 src/algos/background_extraction.c:1212
 msgid "Error: unsupported CFA pattern for this operation.\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:990 src/algos/background_extraction.c:1208
+#: src/algos/background_extraction.c:1009
+#: src/algos/background_extraction.c:1231
 #, fuzzy
 msgid "Error splitting into CFA subcannels, aborting...\n"
 msgstr "خطأ أثناء فتح الفيلم %s، إجهاض.\n"
 
-#: src/algos/background_extraction.c:999 src/algos/colors.c:1098
+#: src/algos/background_extraction.c:1018 src/algos/colors.c:1098
 #: src/algos/colors.c:1189 src/algos/noise.c:86 src/algos/photometric_cc.c:689
 #: src/algos/star_finder.c:65 src/algos/statistics.c:761
 #: src/core/preprocess.c:78 src/core/preprocess.c:349 src/core/siril.c:449
@@ -12180,47 +12181,47 @@ msgstr "خطأ أثناء فتح الفيلم %s، إجهاض.\n"
 msgid "Error: statistics computation failed.\n"
 msgstr "خطأ: لا توجد بيانات \n"
 
-#: src/algos/background_extraction.c:1006
+#: src/algos/background_extraction.c:1025
 msgid ""
 "Subchannel with negative median detected: removing the gradient on negative "
 "images is not supported\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:1018
+#: src/algos/background_extraction.c:1037
 msgid "Failed to adapt background samples for CFA image\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:1026
-#: src/algos/background_extraction.c:1102
-#: src/algos/background_extraction.c:1226
+#: src/algos/background_extraction.c:1045
+#: src/algos/background_extraction.c:1125
+#: src/algos/background_extraction.c:1249
 #, fuzzy
 msgid "Out of memory - aborting"
 msgstr "ذاكرة غير كافية - إجهاض\n"
 
-#: src/algos/background_extraction.c:1078
+#: src/algos/background_extraction.c:1099
 #, fuzzy, c-format
 msgid "Background with %s interpolation computed for CFA image.\n"
 msgstr "خطأ : بيانات غير صالحة .\n"
 
-#: src/algos/background_extraction.c:1109
-#: src/algos/background_extraction.c:1234
+#: src/algos/background_extraction.c:1132
+#: src/algos/background_extraction.c:1257
 #, c-format
 msgid "Failed to generate background samples for image %d: %s\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:1175
+#: src/algos/background_extraction.c:1198
 msgid ""
 "Warning: RBF background removal is not recommended for CFA images. Only "
 "linear background removal is recommended.\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:1177
+#: src/algos/background_extraction.c:1200
 msgid ""
 "Warning: polynomial background removal order > 1 is not recommended for CFA "
 "images. Only linear background removal is recommended.\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:1335 src/algos/demosaicing.c:1298
+#: src/algos/background_extraction.c:1358 src/algos/demosaicing.c:1298
 #: src/algos/extraction.c:1158 src/algos/star_finder.c:1146
 #: src/algos/statistics.c:901 src/core/preprocess.c:283
 #: src/core/processing.c:467 src/filters/banding.c:85
@@ -12231,7 +12232,7 @@ msgid ""
 "considered available)\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:1371
+#: src/algos/background_extraction.c:1394
 #, fuzzy
 msgid "Error reading reference metadata.\n"
 msgstr "خطأ: لا توجد بيانات \n"
@@ -12710,13 +12711,13 @@ msgstr "مرآة العمودي: تجهيز ...\n"
 msgid "Rounding selection to match CFA pattern\n"
 msgstr ""
 
-#: src/algos/geometry.c:703 src/core/command.c:2146
+#: src/algos/geometry.c:707 src/core/command.c:2146
 #: src/gui/menu_gray_geometry.c:366 src/gui/menu_gray_geometry.c:381
 #, c-format
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
 msgstr ""
 
-#: src/algos/geometry.c:755 src/registration/applyreg.c:763
+#: src/algos/geometry.c:759 src/registration/applyreg.c:763
 #: src/registration/global.c:587 src/stacking/blending.c:116
 #, c-format
 msgid ""
@@ -12724,12 +12725,12 @@ msgid ""
 "considered available)\n"
 msgstr ""
 
-#: src/algos/geometry.c:812
+#: src/algos/geometry.c:817 src/compositing/compositing.c:2039
 #, fuzzy
 msgid "Crop Sequence"
 msgstr "تسلسل المحاصيل"
 
-#: src/algos/geometry.c:839
+#: src/algos/geometry.c:844
 #, fuzzy
 msgid "Scale Sequence"
 msgstr "التسلسل"
@@ -13311,7 +13312,7 @@ msgstr "تم إنشاء الملف stars.lst .\n"
 msgid "FindStar"
 msgstr ""
 
-#: src/algos/star_finder.c:1340 src/compositing/compositing.c:1836
+#: src/algos/star_finder.c:1340 src/compositing/compositing.c:1847
 #: src/io/sequence.c:2270 src/io/sequence.c:2288
 #: src/registration/applyreg.c:326 src/registration/applyreg.c:798
 #: src/registration/applyreg.c:989 src/registration/comet.c:138
@@ -13399,38 +13400,38 @@ msgstr "تسجيل نجمة واحدة (في أعماق السماء)"
 msgid "Error in channels alignment."
 msgstr "خطأ في محاذاة الطبقات."
 
-#: src/compositing/align_rgb.c:200 src/compositing/compositing.c:933
-#: src/compositing/compositing.c:970
+#: src/compositing/align_rgb.c:200 src/compositing/compositing.c:940
+#: src/compositing/compositing.c:977
 msgid "Error in layers alignment."
 msgstr "خطأ في محاذاة الطبقات."
 
-#: src/compositing/align_rgb.c:202 src/compositing/compositing.c:976
+#: src/compositing/align_rgb.c:202 src/compositing/compositing.c:983
 #: src/gui/registration.c:1240
 msgid "Registration complete."
 msgstr "تم التسجيل بنجاح"
 
-#: src/compositing/compositing.c:170
+#: src/compositing/compositing.c:172
 msgid ""
 "Warning: memory limit check determines that fewer than 3 images of this size "
 "can be composited. RGB composition is not possible without freeing up more "
 "memory.\n"
 msgstr ""
 
-#: src/compositing/compositing.c:172
+#: src/compositing/compositing.c:174
 msgid ""
 "Warning: memory limit check determines that fewer than 4 images of this size "
 "can be composited. LRGB composition is not possible without freeing up more "
 "memory.\n"
 msgstr ""
 
-#: src/compositing/compositing.c:174
+#: src/compositing/compositing.c:176
 #, c-format
 msgid ""
 "Based on the available memory and initial image dimensions, up to %d images "
 "may be composited (the maximum can never exceed 8).\n"
 msgstr ""
 
-#: src/compositing/compositing.c:411
+#: src/compositing/compositing.c:413
 msgid ""
 "Disabling debayer-on-open setting: this must be unset in order to open "
 "monochrome images in the compositing tool.\n"
@@ -13439,148 +13440,148 @@ msgstr ""
 #. the list below depends on the content of the glade file. It
 #. * should be done in the same way as in registration.c, but it
 #. * woud be easier if the two glades are merged.
-#: src/compositing/compositing.c:454
+#: src/compositing/compositing.c:456
 #, fuzzy
 msgid "Deep Sky (two-step global star registration)"
 msgstr "التسجيل اليدوي"
 
-#: src/compositing/compositing.c:455
+#: src/compositing/compositing.c:457
 msgid "Planetary (DFT image pattern alignment)"
 msgstr ""
 
-#: src/compositing/compositing.c:456
+#: src/compositing/compositing.c:458
 msgid "Planetary (KOMBAT image pattern alignment)"
 msgstr ""
 
-#: src/compositing/compositing.c:457
+#: src/compositing/compositing.c:459
 #, fuzzy
 msgid "Manual alignment"
 msgstr "تحالفات الطبقة"
 
-#: src/compositing/compositing.c:565
+#: src/compositing/compositing.c:567
 msgid "Could not display image, unloading it\n"
 msgstr ""
 
-#: src/compositing/compositing.c:573
+#: src/compositing/compositing.c:575
 msgid "Unsaved compositing result"
 msgstr "نتيجة التركيب غير المحفوظة"
 
-#: src/compositing/compositing.c:575
+#: src/compositing/compositing.c:577
 #, fuzzy
 msgid "Compositing result image"
 msgstr "نتيجة التركيب غير المحفوظة"
 
-#: src/compositing/compositing.c:655 src/gui/epf.c:294 src/gui/merge_cfa.c:97
+#: src/compositing/compositing.c:657 src/gui/epf.c:294 src/gui/merge_cfa.c:97
 #: src/gui/merge_cfa.c:111 src/gui/merge_cfa.c:124 src/gui/merge_cfa.c:137
 #: src/gui/remixer.c:1125 src/gui/remixer.c:1214
 msgid "Error: image could not be loaded"
 msgstr ""
 
-#: src/compositing/compositing.c:655
+#: src/compositing/compositing.c:657
 msgid ""
 "The maximum number of images of this size has been reached based on "
 "available memory limits."
 msgstr ""
 
-#: src/compositing/compositing.c:666 src/compositing/compositing.c:671
+#: src/compositing/compositing.c:668 src/compositing/compositing.c:673
 #: src/core/preprocess.c:1027 src/core/preprocess.c:1028
 #, fuzzy, c-format
 msgid "<span foreground=\"red\">ERROR</span>"
 msgstr "<span foreground=\"red\">الساخنة: % ld px</span>"
 
-#: src/compositing/compositing.c:667
+#: src/compositing/compositing.c:669
 #, fuzzy
 msgid "Cannot load the file, See the log for more information."
 msgstr "كان هناك خطأ عند فتح هذه الصورة. راجع سجل لمزيد من المعلومات."
 
-#: src/compositing/compositing.c:672
+#: src/compositing/compositing.c:674
 msgid "Only single channel images can be loaded"
 msgstr ""
 
-#: src/compositing/compositing.c:695
+#: src/compositing/compositing.c:697
 msgid ""
 "ICC profile differs to that of the first image loaded. Converting this image "
 "to match the first one loaded.\n"
 msgstr ""
 
-#: src/compositing/compositing.c:699
+#: src/compositing/compositing.c:701
 msgid ""
 "Input images have inconsistent ICC profiles. First image had no ICC profile. "
 "All input layers will be treated as raw data.\n"
 msgstr ""
 
-#: src/compositing/compositing.c:711
+#: src/compositing/compositing.c:713
 msgid "The first loaded image should have the greatest sizes for now\n"
 msgstr "يجب أن يكون أول صورة تحميل أكبر الأحجام الآن\n"
 
-#: src/compositing/compositing.c:712
+#: src/compositing/compositing.c:714
 #, c-format
 msgid "NOT OK %ux%u"
 msgstr "غير موافق %ux%u"
 
-#: src/compositing/compositing.c:714
+#: src/compositing/compositing.c:716
 #, fuzzy
 msgid "The first loaded image should have the greatest sizes for now"
 msgstr "يجب أن يكون أول صورة تحميل أكبر الأحجام الآن\n"
 
-#: src/compositing/compositing.c:717
+#: src/compositing/compositing.c:719
 #, c-format
 msgid "Resizing the loaded image from %dx%d to %dx%d\n"
 msgstr "تغيير حجم صورة تحميل من %dx%d to %dx%d\n"
 
-#: src/compositing/compositing.c:720
+#: src/compositing/compositing.c:722
 #, c-format
 msgid "OK upscaled from %ux%u"
 msgstr "موافق نشرا من %ux%u"
 
-#: src/compositing/compositing.c:726
+#: src/compositing/compositing.c:728
 msgid "Image loaded, and upscaled"
 msgstr ""
 
-#: src/compositing/compositing.c:732
+#: src/compositing/compositing.c:734
 #, c-format
 msgid "OK %ux%u"
 msgstr " موافق %ux%u"
 
-#: src/compositing/compositing.c:734
+#: src/compositing/compositing.c:736
 #, fuzzy
 msgid "Image loaded"
 msgstr "غير محمل"
 
-#: src/compositing/compositing.c:779
+#: src/compositing/compositing.c:786
 msgid "You must at least load two layers before!\n"
 msgstr "يجب عليك على الأقل حمولة طبقتين من قبل!\n"
 
-#: src/compositing/compositing.c:780 src/filters/wavelets.c:258
+#: src/compositing/compositing.c:787 src/filters/wavelets.c:258
 #: src/filters/wavelets.c:267 src/filters/wavelets.c:328 src/gui/colors.c:571
 #: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:1177
-#: src/gui/script_menu.c:551 src/gui/utils.c:486
-#: src/io/siril_pythoncommands.c:998
+#: src/gui/script_menu.c:553 src/gui/utils.c:486
+#: src/io/siril_pythoncommands.c:1003
 msgid "Warning"
 msgstr "إنذار"
 
-#: src/compositing/compositing.c:877
+#: src/compositing/compositing.c:884
 #, fuzzy, c-format
 msgid "NOT OK: %ux%u"
 msgstr "غير موافق %ux%u"
 
-#: src/compositing/compositing.c:883
+#: src/compositing/compositing.c:890
 msgid ""
 "The image sizes are not consistent. This may happen as the result of "
 "previous alignment operations. Please reload the input images.\n"
 msgstr ""
 
-#: src/compositing/compositing.c:923
+#: src/compositing/compositing.c:930
 #, c-format
 msgid "Starting registration using method: %s\n"
 msgstr "بدء التسجيل باستخدام الأسلوب:%s\n"
 
-#: src/compositing/compositing.c:949
+#: src/compositing/compositing.c:956
 #, fuzzy
 msgid "Incomplete alignment"
 msgstr "تحالفات الطبقة"
 
-#: src/compositing/compositing.c:950
+#: src/compositing/compositing.c:957
 msgid ""
 "Some images did not align correctly. Proceed to see the partially aligned "
 "result? (This may alter image dimensions in which case the images must be re-"
@@ -13588,7 +13589,7 @@ msgid ""
 msgstr ""
 
 #. Register button was pressed, we ask for confirmation
-#: src/compositing/compositing.c:953 src/gui/keywords_tree.c:196
+#: src/compositing/compositing.c:960 src/gui/keywords_tree.c:196
 #: src/gui/keywords_tree.c:601 src/gui/mouse_action_preferences.c:117
 #: src/gui/preferences.c:1099 src/gui/python_gui.c:687 src/gui/python_gui.c:706
 #: src/gui/python_gui.c:735 src/gui/python_gui.c:761 src/gui/python_gui.c:832
@@ -13597,20 +13598,20 @@ msgstr ""
 msgid "Proceed"
 msgstr "ما قبل المعالجة"
 
-#: src/compositing/compositing.c:962
+#: src/compositing/compositing.c:969
 msgid "Using Luminance channel as reference.\n"
 msgstr ""
 
 #. DFT shift ad KOMBAT require a selection to be made
-#: src/compositing/compositing.c:1088
+#: src/compositing/compositing.c:1095
 msgid "An image area must be selected for align"
 msgstr "يجب تحديد مساحة الصورة لمحاذاة"
 
-#: src/compositing/compositing.c:1094
+#: src/compositing/compositing.c:1101
 msgid "At least 2 channels must be loaded for align"
 msgstr "يجب أن يتم تحميل لا يقل عن 2 قنوات لمحاذاة"
 
-#: src/compositing/compositing.c:1168
+#: src/compositing/compositing.c:1175
 msgid ""
 "Attention: channels are dated more than 24 hours apart. DATE_OBS set to the "
 "earliest observation start date but for some purposes this field may be of "
@@ -13618,20 +13619,20 @@ msgid ""
 "channels).\n"
 msgstr ""
 
-#: src/compositing/compositing.c:1629
+#: src/compositing/compositing.c:1636
 msgid "No overflow with the current colours, redrawing only\n"
 msgstr "لا تفيض الألوان الحالية، وإعادة رسم فقط \n"
 
-#: src/compositing/compositing.c:1632
+#: src/compositing/compositing.c:1639
 msgid "Nothing to adjust, no overflow\n"
 msgstr "لا شيئ للضبط، لا تجاوز\n"
 
-#: src/compositing/compositing.c:1665
+#: src/compositing/compositing.c:1672
 #, c-format
 msgid "Readjusting layer %d to %g times bright\n"
 msgstr "إعادة تعديل طبقة %d في الأوقات%g مشرق\n"
 
-#: src/compositing/compositing.c:1729
+#: src/compositing/compositing.c:1733
 #, fuzzy
 msgid "All images reloaded successfully.\n"
 msgstr "مكدسة %d متواليات%sالصورة.\n"
@@ -13641,7 +13642,7 @@ msgstr "مكدسة %d متواليات%sالصورة.\n"
 #. Tests if the file is in the CWD
 #. Is the current image properly plate solved
 #. fail
-#: src/compositing/compositing.c:1735 src/compositing/compositing.c:1760
+#: src/compositing/compositing.c:1746 src/compositing/compositing.c:1771
 #: src/core/icc_profile.c:1166 src/core/icc_profile.c:1176
 #: src/core/icc_profile.c:1207 src/filters/fft.c:585 src/filters/fft.c:591
 #: src/filters/fft.c:610 src/gui/PSF_list.c:303 src/gui/PSF_list.c:308
@@ -13656,63 +13657,63 @@ msgstr "مكدسة %d متواليات%sالصورة.\n"
 #: src/gui/nina_light_curve.c:279 src/gui/open_dialog.c:414
 #: src/gui/preferences.c:551 src/gui/preferences.c:570
 #: src/gui/preferences.c:604 src/gui/save_dialog.c:466
-#: src/io/siril_pythoncommands.c:992
+#: src/io/siril_pythoncommands.c:997
 msgid "Error"
 msgstr "خطأ"
 
-#: src/compositing/compositing.c:1735
+#: src/compositing/compositing.c:1746
 msgid "No layers loaded: no files to save"
 msgstr ""
 
-#: src/compositing/compositing.c:1751
+#: src/compositing/compositing.c:1762
 msgid "All layer images saved correctly.\n"
 msgstr ""
 
-#: src/compositing/compositing.c:1753
+#: src/compositing/compositing.c:1764
 msgid ""
 "Error encountered in saving one or more files. Check previous log messages "
 "for details.\n"
 msgstr ""
 
-#: src/compositing/compositing.c:1760
+#: src/compositing/compositing.c:1771
 #, fuzzy
 msgid "At least 2 images must be loaded to perform linear matching."
 msgstr "يجب أن يتم تحميل لا يقل عن 2 قنوات لمحاذاة"
 
-#: src/compositing/compositing.c:1782
+#: src/compositing/compositing.c:1793
 #, c-format
 msgid "Unable to find linear match coefficients for layer %d. Skipping...\n"
 msgstr ""
 
-#: src/compositing/compositing.c:1786
+#: src/compositing/compositing.c:1797
 #, fuzzy
 msgid "Linear match layers"
 msgstr "خطي"
 
-#: src/compositing/compositing.c:1788
+#: src/compositing/compositing.c:1799
 msgid "Linear match layers complete"
 msgstr ""
 
-#: src/compositing/compositing.c:1790
+#: src/compositing/compositing.c:1801
 #, c-format
 msgid "Error: failed to match %d layers with the reference layer.\n"
 msgstr ""
 
-#: src/compositing/compositing.c:1842
+#: src/compositing/compositing.c:1853
 msgid "Registering a sequence opened as CFA is a bad idea.\n"
 msgstr ""
 
-#: src/compositing/compositing.c:1844 src/registration/global.c:125
+#: src/compositing/compositing.c:1855 src/registration/global.c:125
 msgid "Reference Image:\n"
 msgstr "صورة مرجعية\n"
 
-#: src/compositing/compositing.c:1951 src/registration/3stars.c:546
+#: src/compositing/compositing.c:1962 src/registration/3stars.c:546
 #: src/registration/global.c:474 src/registration/shift_methods.c:333
 #: src/registration/shift_methods.c:554 src/registration/shift_methods.c:654
 msgid "Registration finished.\n"
 msgstr "انتهى التسجيل.\n"
 
-#: src/compositing/compositing.c:1952 src/registration/applyreg.c:625
+#: src/compositing/compositing.c:1963 src/registration/applyreg.c:625
 #: src/registration/global.c:475
 #, fuzzy, c-format
 msgid "%d image processed.\n"
@@ -13724,15 +13725,19 @@ msgstr[3] "%d صور معالجتها.\n"
 msgstr[4] "%d صور معالجتها.\n"
 msgstr[5] "%d صور معالجتها.\n"
 
-#: src/compositing/compositing.c:1955 src/registration/3stars.c:547
+#: src/compositing/compositing.c:1966 src/registration/3stars.c:547
 #: src/registration/global.c:478 src/registration/global.c:1090
 #, c-format
 msgid "Total: %d failed, %d registered.\n"
 msgstr "فشل%d، %d تسجيل: مجموع.\n"
 
-#: src/compositing/compositing.c:1960 src/registration/global.c:489
+#: src/compositing/compositing.c:1971 src/registration/global.c:489
 msgid "Registration aborted.\n"
 msgstr "تسجيل إحباط.\n"
+
+#: src/compositing/compositing.c:2021
+msgid "Error: internal RGB composition sequence does not exist\n"
+msgstr ""
 
 #: src/core/OS_utils.c:359
 msgid "Error while computing available free disk space.\n"
@@ -14532,7 +14537,7 @@ msgstr "حدث خطأ أثناء البحث متواليات أو فتح الد�
 msgid "This type of sequence cannot be created by Siril, aborting the merge\n"
 msgstr ""
 
-#: src/core/command.c:3055 src/core/command.c:9028 src/io/single_image.c:208
+#: src/core/command.c:3055 src/core/command.c:9028 src/io/single_image.c:210
 #, c-format
 msgid "Error opening image %s: file not found or not supported.\n"
 msgstr "خطأ في فتح %s الصورة: ملف لم يتم العثور أو غير معتمد.\n"
@@ -14676,7 +14681,7 @@ msgid "Wrong magnitude value.\n"
 msgstr "حجم النجوم (المطلق)"
 
 #: src/core/command.c:3663 src/core/command.c:4334 src/core/command.c:4515
-#: src/core/siril_actions.c:787
+#: src/core/siril_actions.c:791
 msgid ""
 "Current selection is too large. To determine the PSF, please make a "
 "selection around a single star.\n"
@@ -14929,7 +14934,7 @@ msgstr ""
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr ""
 
-#: src/core/command.c:4571 src/gui/callbacks.c:2484
+#: src/core/command.c:4571 src/gui/callbacks.c:2475
 #, fuzzy, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "تشغيل قوات الأمن الفلسطينية على تسلسل تحميل، طبقة%d\n"
@@ -16325,7 +16330,7 @@ msgstr "إشارة البيضاء"
 msgid "Unknown SPCC list\n"
 msgstr ""
 
-#: src/core/command.c:11327 src/core/siril_actions.c:531
+#: src/core/command.c:11327 src/core/siril_actions.c:535
 msgid ""
 "This command only works on plate solved images with distortions included\n"
 msgstr ""
@@ -17101,7 +17106,7 @@ msgstr ""
 "قد تكون هذه القيمة إلى مرتفع. من فضلك، تنظر إلى تغيير قيمة سيغما أو قم "
 "بإلغاء تحديد المربع."
 
-#: src/core/processing.c:78 src/core/processing.c:1202
+#: src/core/processing.c:78 src/core/processing.c:1204
 #, fuzzy
 msgid "No image selected for processing, aborting\n"
 msgstr "لم يتم تحديد لالتراص (حدد على الأقل 2) الإطار. إجهاض.\n"
@@ -17117,7 +17122,7 @@ msgstr ""
 msgid "Preparing sequence processing failed.\n"
 msgstr "إعداد وتجهيز تسلسل فشلت.\n"
 
-#: src/core/processing.c:143 src/core/processing.c:1225
+#: src/core/processing.c:143 src/core/processing.c:1227
 #, c-format
 msgid "Output index mapping failed (%d/%d).\n"
 msgstr "فشل رسم الخرائط مؤشر الناتج (d% d%).\n"
@@ -17169,16 +17174,16 @@ msgstr "نجح معالجة التسلسل."
 msgid "Sequence processing succeeded.\n"
 msgstr "نجح معالجة التسلسل.\n"
 
-#: src/core/processing.c:691
+#: src/core/processing.c:693
 #, c-format
 msgid "Image %d not found for writing\n"
 msgstr ""
 
-#: src/core/processing.c:1103
+#: src/core/processing.c:1105
 msgid "Process aborted by user\n"
 msgstr "عملية إحباط من قبل المستخدم\n"
 
-#: src/core/processing.c:1115
+#: src/core/processing.c:1117
 #, c-format
 msgid "Failed to find GPid %d, it may already have exited...\n"
 msgstr ""
@@ -18155,11 +18160,11 @@ msgid "To determine the PSF, please make a selection around a star."
 msgstr ""
 "التحديد الحالي كبيرة جدا. لتحديد PSF، يرجى التأكد التحديد حول نجم واحد.\n"
 
-#: src/core/siril_actions.c:469
+#: src/core/siril_actions.c:473
 msgid "Save your changes before loading a frame of the sequence."
 msgstr ""
 
-#: src/core/siril_actions.c:470
+#: src/core/siril_actions.c:474
 msgid ""
 "The image currently displayed is the result of the previous stack. If you "
 "load an image from the sequence, you might lose the entire process you "
@@ -18167,50 +18172,50 @@ msgid ""
 "before doing this."
 msgstr ""
 
-#: src/core/siril_actions.c:473
+#: src/core/siril_actions.c:477
 #, fuzzy
 msgid "Load another image"
 msgstr "مرحلة من الصورة:"
 
-#: src/core/siril_actions.c:713 src/core/siril_actions.c:721
+#: src/core/siril_actions.c:717 src/core/siril_actions.c:725
 #, fuzzy
 msgid "Close current image?"
 msgstr "غلق النافذة الحالية"
 
-#: src/core/siril_actions.c:713
+#: src/core/siril_actions.c:717
 msgid ""
 "Opening the RGB Composition dialog will close the current image without "
 "saving. Are you sure?"
 msgstr ""
 
-#: src/core/siril_actions.c:713 src/core/siril_actions.c:721
+#: src/core/siril_actions.c:717 src/core/siril_actions.c:725
 msgid "Yes"
 msgstr ""
 
-#: src/core/siril_actions.c:721
+#: src/core/siril_actions.c:725
 msgid ""
 "Opening the Star Recomposition dialog will close the current image without "
 "saving. Are you sure?"
 msgstr ""
 
-#: src/core/siril_actions.c:770
+#: src/core/siril_actions.c:774
 msgid "RGB alignment (DFT)"
 msgstr ""
 
-#: src/core/siril_actions.c:775
+#: src/core/siril_actions.c:779
 msgid "RGB alignment (Global stars)"
 msgstr ""
 
-#: src/core/siril_actions.c:780
+#: src/core/siril_actions.c:784
 #, fuzzy
 msgid "RGB alignment (KOMBAT)"
 msgstr "تحالفات الطبقة"
 
-#: src/core/siril_actions.c:785
+#: src/core/siril_actions.c:789
 msgid "RGB alignment (PSF)"
 msgstr ""
 
-#: src/core/siril_actions.c:823
+#: src/core/siril_actions.c:827
 msgid ""
 "The original GraXpert interface has been removed for technical reasons and "
 "unreliability. Please use the GraXpert_AI.py script available in the scripts "
@@ -19265,11 +19270,11 @@ msgstr ""
 msgid "(local catalogue)"
 msgstr ""
 
-#: src/gui/background_extraction.c:185
+#: src/gui/background_extraction.c:187
 msgid "Polynomial order seems too high."
 msgstr ""
 
-#: src/gui/background_extraction.c:186
+#: src/gui/background_extraction.c:188
 msgid ""
 "You are about to process a sequence of preprocessed files with a polynomial "
 "degree greater than 1. This is unlikely because such gradients are often "
@@ -19277,17 +19282,17 @@ msgid ""
 "enough."
 msgstr ""
 
-#: src/gui/background_extraction.c:189 src/gui/background_extraction.c:200
+#: src/gui/background_extraction.c:191 src/gui/background_extraction.c:202
 #, fuzzy
 msgid "Extract Background"
 msgstr "الخلفية"
 
-#: src/gui/background_extraction.c:196
+#: src/gui/background_extraction.c:198
 #, fuzzy
 msgid "Using wrong interpolation method"
 msgstr "اختيار طريقة التسجيل:"
 
-#: src/gui/background_extraction.c:197
+#: src/gui/background_extraction.c:199
 msgid ""
 "You are about to process a sequence of preprocessed files with an RBF "
 "algorithm. This algorithm may not be very well suited for automated "
@@ -19295,17 +19300,17 @@ msgid ""
 "order of 1."
 msgstr ""
 
-#: src/gui/background_extraction.c:222
+#: src/gui/background_extraction.c:224
 #, fuzzy, c-format
 msgid "Background extraction (Correction: %s)"
 msgstr "استخراج الخلفية: تجهيز ...\n"
 
-#: src/gui/background_extraction.c:228
+#: src/gui/background_extraction.c:230
 #, fuzzy
 msgid "No Background model computed"
 msgstr "قيمة الخلفية"
 
-#: src/gui/background_extraction.c:229
+#: src/gui/background_extraction.c:231
 #, fuzzy
 msgid "You must first compute the background model."
 msgstr "وهذا حساب خلفية الاصطناعية."
@@ -19440,23 +19445,23 @@ msgstr "الصورة غير معروفة"
 msgid "Binning %d x %d is not supported\n"
 msgstr "تحويل من SER غير معتمد حتى الآن\n"
 
-#: src/gui/callbacks.c:1677
+#: src/gui/callbacks.c:1668
 msgid ""
 "Siril started in offline mode. Will not attempt to update siril-scripts or "
 "siril-spcc-database...\n"
 msgstr ""
 
-#: src/gui/callbacks.c:1735
+#: src/gui/callbacks.c:1726
 #, c-format
 msgid "Default FITS extension is set to %s\n"
 msgstr ""
 
-#: src/gui/callbacks.c:1758
+#: src/gui/callbacks.c:1749
 #, fuzzy, c-format
 msgid "Welcome to %s"
 msgstr "مرحبا بكم في %s v %s\n"
 
-#: src/gui/callbacks.c:1761
+#: src/gui/callbacks.c:1752
 msgid ""
 "Hello, this is the first time you use this new version of Siril. Please, "
 "have a seat and take the time to watch the short introduction we have "
@@ -19464,133 +19469,133 @@ msgid ""
 "the Miscellaneous tab of the preferences dialog box."
 msgstr ""
 
-#: src/gui/callbacks.c:1764
+#: src/gui/callbacks.c:1755
 #, fuzzy
 msgid "See Introduction"
 msgstr "استيفاء"
 
-#: src/gui/callbacks.c:2026
+#: src/gui/callbacks.c:2017
 #, fuzzy
 msgid "Unsaved script changes"
 msgstr "نتيجة التراص غير المحفوظة"
 
-#: src/gui/callbacks.c:2027
+#: src/gui/callbacks.c:2018
 msgid "There are unsaved changes in the script editor. Quit anyway?"
 msgstr ""
 
-#: src/gui/callbacks.c:2028
+#: src/gui/callbacks.c:2019
 msgid "Quit"
 msgstr ""
 
-#: src/gui/callbacks.c:2037
+#: src/gui/callbacks.c:2028
 #, fuzzy
 msgid "Closing application"
 msgstr " معايرة اللون"
 
-#: src/gui/callbacks.c:2038
+#: src/gui/callbacks.c:2029
 #, fuzzy
 msgid "Are you sure you want to quit?"
 msgstr "هل تريد فعلا إغلاق البرنامج ؟"
 
-#: src/gui/callbacks.c:2038
+#: src/gui/callbacks.c:2029
 msgid "Exit"
 msgstr ""
 
-#: src/gui/callbacks.c:2198
+#: src/gui/callbacks.c:2189
 #, c-format
 msgid "Selected %s sequence %s..."
 msgstr "اختيار %s تسلسل %s ..."
 
-#: src/gui/callbacks.c:2247
+#: src/gui/callbacks.c:2238
 msgid "Searching for sequences in the current working directory..."
 msgstr "البحث عن متواليات في دليل العمل الحالي ..."
 
-#: src/gui/callbacks.c:2298
+#: src/gui/callbacks.c:2289
 msgid "This erases the following data, and there's no possible undo:\n"
 msgstr ""
 
-#: src/gui/callbacks.c:2299
+#: src/gui/callbacks.c:2290
 #, fuzzy
 msgid ""
 "\n"
 "- Registration"
 msgstr "التسجيل"
 
-#: src/gui/callbacks.c:2300
+#: src/gui/callbacks.c:2291
 #, fuzzy
 msgid ""
 "\n"
 "- Statistics"
 msgstr "إحصائيات"
 
-#: src/gui/callbacks.c:2301
+#: src/gui/callbacks.c:2292
 #, fuzzy
 msgid ""
 "\n"
 "- Selection"
 msgstr "بدون تحديد"
 
-#: src/gui/callbacks.c:2305
+#: src/gui/callbacks.c:2296
 #, fuzzy
 msgid "Clear Sequence Data?"
 msgstr "التسلسل"
 
-#: src/gui/callbacks.c:2305
+#: src/gui/callbacks.c:2296
 #, fuzzy
 msgid "Clear Data"
 msgstr "استبعاد جميع"
 
-#: src/gui/callbacks.c:2317
+#: src/gui/callbacks.c:2308
 msgid "The requested data of the sequence has been cleaned."
 msgstr ""
 
-#: src/gui/callbacks.c:2325
+#: src/gui/callbacks.c:2316
 #, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
 "the manually added objects will be deleted. This operation cannot be undone."
 msgstr ""
 
-#: src/gui/callbacks.c:2327
+#: src/gui/callbacks.c:2318
 msgid "SOLAR SYSTEM"
 msgstr ""
 
-#: src/gui/callbacks.c:2327
+#: src/gui/callbacks.c:2318
 msgid "DEEP SKY"
 msgstr ""
 
-#: src/gui/callbacks.c:2329
+#: src/gui/callbacks.c:2320
 #, fuzzy
 msgid "Catalog deletion"
 msgstr "الكشف التلقائي"
 
-#: src/gui/callbacks.c:2329
+#: src/gui/callbacks.c:2320
 msgid "Purge Catalogue"
 msgstr ""
 
-#: src/gui/callbacks.c:2355
+#: src/gui/callbacks.c:2346
 #, fuzzy
 msgid "Select task to stop"
 msgstr "تحديد المنطقة"
 
-#: src/gui/callbacks.c:2358 src/gui/dialogs.c:253 src/gui/dialogs.c:262
+#: src/gui/callbacks.c:2349 src/gui/dialogs.c:253 src/gui/dialogs.c:262
 #: src/gui/dialogs.c:268 src/gui/keywords_tree.c:508 src/gui/python_gui.c:768
 #: src/gui/python_gui.c:845 src/io/image_formats_libraries.c:2489
 #: src/pixelMath/pixel_math_runner.c:1260
 msgid "_Cancel"
 msgstr "_إلغاء"
 
-#: src/gui/callbacks.c:2359
+#: src/gui/callbacks.c:2350
 #, fuzzy
 msgid "_Stop Process"
 msgstr "بدء مرحلة ما قبل المعالجة"
 
-#: src/gui/callbacks.c:2403
+#: src/gui/callbacks.c:2394
 #, fuzzy
 msgid "Process Name"
 msgstr "ما قبل المعالجة"
 
-#: src/gui/callbacks.c:2413
+#: src/gui/callbacks.c:2404
 #, fuzzy
 msgid "Start Time"
 msgstr "بدء التراص"
@@ -20686,89 +20691,89 @@ msgstr "لا يمكن تحميل صورة %d  من تسلسل%s\n"
 msgid "Merge CFA cannot proceed"
 msgstr "قنوات ..."
 
-#: src/gui/mouse_action_functions.c:304
+#: src/gui/mouse_action_functions.c:318
 msgid "This action opens a new image if there is no image currently loaded"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:319
+#: src/gui/mouse_action_functions.c:333
 msgid ""
 "This action starts a measurement from one point in the image to another. "
 "Releasing the button ends the measurement."
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:333
+#: src/gui/mouse_action_functions.c:347
 msgid ""
 "This action toggles the image zoom level as configured in Preferences / User "
 "Interface"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:373
+#: src/gui/mouse_action_functions.c:387
 msgid "This action drags the image around the viewport"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:388
+#: src/gui/mouse_action_functions.c:402
 msgid ""
 "This is the main Siril mouse action used for making selections, selecting "
 "background samples and previews, doing quick photometry etc."
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:540
+#: src/gui/mouse_action_functions.c:565
 msgid ""
 "Remove background samples or photometry boxes, or show the mouse context menu"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:583
+#: src/gui/mouse_action_functions.c:610
 msgid "This action sets the photometry box"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:614
+#: src/gui/mouse_action_functions.c:641
 msgid "This action saves the current image"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:626
+#: src/gui/mouse_action_functions.c:653
 msgid "This action saves the current image with a new name"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:634
+#: src/gui/mouse_action_functions.c:661
 msgid "This action saves a snapshot of the current image"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:642
+#: src/gui/mouse_action_functions.c:669
 msgid "This action undoes the last operation"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:652
+#: src/gui/mouse_action_functions.c:679
 msgid "This action redoes the last operation"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:662
+#: src/gui/mouse_action_functions.c:689
 #, fuzzy
 msgid "This action finds stars in the current image"
 msgstr "تسجيل: تعذر تحميل الصورة الأولى للتسجيل، إجهاض.\n"
 
-#: src/gui/mouse_action_functions.c:674
+#: src/gui/mouse_action_functions.c:701
 msgid "This action plate solves the current image"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:682
+#: src/gui/mouse_action_functions.c:709
 #, fuzzy
 msgid "This action opens the spectrophotometric color calibration dialog"
 msgstr "تصحيح مستحضرات التجميل "
 
-#: src/gui/mouse_action_functions.c:700
+#: src/gui/mouse_action_functions.c:727
 msgid "Scroll wheel zooms in / out"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:761
+#: src/gui/mouse_action_functions.c:788
 msgid "Scroll wheel scrolls through the frames in the current sequence"
 msgstr ""
 
-#: src/gui/mouse_action_functions.c:805
+#: src/gui/mouse_action_functions.c:832
 #, fuzzy
 msgid "Error: image load failed, reloading reference image!\n"
 msgstr "صورة العرض المرجعي"
 
-#: src/gui/mouse_action_functions.c:812
+#: src/gui/mouse_action_functions.c:839
 msgid "Scroll wheel scrolls through the Siril GUI tabs"
 msgstr ""
 
@@ -21066,12 +21071,12 @@ msgstr "عينات خلفية واضحة."
 
 #: src/gui/nina_light_curve.c:221 src/gui/sequence_list.c:150
 #: src/gui/starnetgui.c:220 src/io/path_parse.c:74
-#: src/io/siril_pythoncommands.c:1148 src/io/siril_pythoncommands.c:1376
-#: src/io/siril_pythoncommands.c:1421 src/io/siril_pythoncommands.c:1455
-#: src/io/siril_pythoncommands.c:1502 src/io/siril_pythoncommands.c:1534
-#: src/io/siril_pythoncommands.c:1594 src/io/siril_pythoncommands.c:1679
-#: src/io/siril_pythoncommands.c:2163 src/io/siril_pythoncommands.c:2196
-#: src/io/siril_pythoncommands.c:2358
+#: src/io/siril_pythoncommands.c:1153 src/io/siril_pythoncommands.c:1391
+#: src/io/siril_pythoncommands.c:1436 src/io/siril_pythoncommands.c:1470
+#: src/io/siril_pythoncommands.c:1517 src/io/siril_pythoncommands.c:1549
+#: src/io/siril_pythoncommands.c:1609 src/io/siril_pythoncommands.c:1694
+#: src/io/siril_pythoncommands.c:2180 src/io/siril_pythoncommands.c:2213
+#: src/io/siril_pythoncommands.c:2375
 #, fuzzy
 msgid "No sequence loaded"
 msgstr "لم يتم تحديد تسلسل"
@@ -22062,7 +22067,7 @@ msgstr "بدءا التراص ...\n"
 msgid "Adding core script to menu: %s\n"
 msgstr "بدءا التراص ...\n"
 
-#: src/gui/script_menu.c:550
+#: src/gui/script_menu.c:552
 msgid "Cannot refresh the scripts if the list is empty.\n"
 msgstr ""
 
@@ -24278,28 +24283,28 @@ msgstr "للحصول على صورة demosaiced، طبقة يجب أن تكون 
 msgid "Trying to add an image of different size in a SER\n"
 msgstr "في محاولة لإضافة صورة من أحجام مختلفة في SER\n"
 
-#: src/io/single_image.c:218
+#: src/io/single_image.c:220
 #, fuzzy
 msgid "Cannot open a sequence from here\n"
 msgstr "لا يمكن تحميل تسلسل\n"
 
-#: src/io/single_image.c:233
+#: src/io/single_image.c:235
 #, c-format
 msgid "Opening %s failed.\n"
 msgstr "فتح %s الفاشلة.\n"
 
-#: src/io/single_image.c:279
+#: src/io/single_image.c:281
 msgid ""
 "Cannot open another file while the processing thread is still operating on "
 "the current one!\n"
 msgstr ""
 
-#: src/io/single_image.c:291
+#: src/io/single_image.c:293
 #, fuzzy
 msgid "Error opening file"
 msgstr "خطأ في فتح ملف s% : GIF\n"
 
-#: src/io/single_image.c:292
+#: src/io/single_image.c:294
 msgid ""
 "There was an error when opening this image. See the log for more information."
 msgstr "كان هناك خطأ عند فتح هذه الصورة. راجع سجل لمزيد من المعلومات."
@@ -24502,77 +24507,89 @@ msgid ""
 "connectivity and try again.\n"
 msgstr ""
 
-#: src/io/siril_git.c:367
+#: src/io/siril_git.c:366
 msgid ""
 "Detected 1.4.0-beta2 bug condition. Removing and re-cloning repository...\n"
 msgstr ""
 
-#: src/io/siril_git.c:372
+#: src/io/siril_git.c:371
 #, fuzzy, c-format
 msgid "Error removing repository directory: %s\n"
 msgstr "خطأ في فتح ملف s% : GIF\n"
 
-#: src/io/siril_git.c:381 src/io/siril_git.c:794
+#: src/io/siril_git.c:380 src/io/siril_git.c:813 src/io/siril_git.c:838
 #, fuzzy, c-format
 msgid "Error cloning repository into %s: %s\n"
 msgstr "خطأ في فتح ملف s% : GIF\n"
 
-#: src/io/siril_git.c:385
+#: src/io/siril_git.c:384
 #, fuzzy
 msgid "Repository re-cloned successfully!\n"
 msgstr "مكدسة %d متواليات%sالصورة.\n"
 
-#: src/io/siril_git.c:389
+#: src/io/siril_git.c:388
 msgid ""
 "Error fetching remote: Remote repository or references not found. Check the "
 "repository URL and your connectivity.\n"
 msgstr ""
 
 #. Generic fallback
-#: src/io/siril_git.c:394
+#: src/io/siril_git.c:393
 msgid ""
 "Error fetching remote. This may be a temporary error, check your "
 "connectivity and try again.\n"
 msgstr ""
 
-#: src/io/siril_git.c:633
+#: src/io/siril_git.c:632
 #, c-format
 msgid "libgit2: repository is in unexpected state %d. Cleaning up...\n"
 msgstr ""
 
-#: src/io/siril_git.c:637
+#: src/io/siril_git.c:636
 msgid "libgit2: repository failed to clean up properly. Cannot continue.\n"
 msgstr ""
 
-#: src/io/siril_git.c:724 src/io/siril_git.c:728
+#: src/io/siril_git.c:723 src/io/siril_git.c:727
 #, fuzzy, c-format
 msgid "Commit message: %s\n"
 msgstr "الاستعمال:%s\n"
 
-#: src/io/siril_git.c:788
+#: src/io/siril_git.c:794 src/io/siril_git.c:1020
+msgid "Existing directory is not a valid git repository. Cleaning up...\n"
+msgstr ""
+
+#: src/io/siril_git.c:799 src/io/siril_git.c:1025
+#, fuzzy, c-format
+msgid "Error deleting existing directory %s: %s\n"
+msgstr "خطأ في فتح ملف s% : GIF\n"
+
+#. Now attempt to clone into the clean directory
+#: src/io/siril_git.c:809 src/io/siril_git.c:834 src/io/siril_git.c:1034
+#: src/io/siril_git.c:1050
 msgid "Attempting to clone from remote source...\n"
 msgstr ""
 
-#: src/io/siril_git.c:799 src/io/siril_git.c:978
+#: src/io/siril_git.c:819 src/io/siril_git.c:844 src/io/siril_git.c:1043
+#: src/io/siril_git.c:1060
 #, fuzzy
 msgid "Repository cloned successfully!\n"
 msgstr "مكدسة %d متواليات%sالصورة.\n"
 
-#: src/io/siril_git.c:802
+#: src/io/siril_git.c:823 src/io/siril_git.c:848
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:816 src/io/siril_git.c:989
+#: src/io/siril_git.c:859 src/io/siril_git.c:1069
 #, fuzzy
 msgid "Failed to lookup remote.\n"
 msgstr "فشل في تحويل البيانات إلى GIF\n"
 
-#: src/io/siril_git.c:824 src/io/siril_git.c:997
+#: src/io/siril_git.c:867 src/io/siril_git.c:1077
 msgid "Error: cannot identify local repository's configured remote.\n"
 msgstr ""
 
-#: src/io/siril_git.c:833
+#: src/io/siril_git.c:876
 #, c-format
 msgid ""
 "Error: local siril-scripts repository folder is not configured with %s as "
@@ -24580,46 +24597,46 @@ msgid ""
 "the correct repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:838 src/io/siril_git.c:1011
+#: src/io/siril_git.c:881 src/io/siril_git.c:1091
 msgid "Repository Error"
 msgstr ""
 
-#: src/io/siril_git.c:856 src/io/siril_git.c:868 src/io/siril_git.c:1029
-#: src/io/siril_git.c:1041
+#: src/io/siril_git.c:899 src/io/siril_git.c:911 src/io/siril_git.c:1109
+#: src/io/siril_git.c:1121
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
 msgstr ""
 
-#: src/io/siril_git.c:877
+#: src/io/siril_git.c:920
 msgid "Local scripts repository is up-to-date!\n"
 msgstr ""
 
-#: src/io/siril_git.c:884
+#: src/io/siril_git.c:927
 #, fuzzy
 msgid "Error accessing repository index.\n"
 msgstr "خطأ في فتح ملف s% : GIF\n"
 
-#: src/io/siril_git.c:902
+#: src/io/siril_git.c:945
 #, fuzzy
 msgid "Warning: failed to get repository index entry.\n"
 msgstr "Siril يحتاج مكتبة برمجية مفتوحة للرؤية الحاسوبية لتغيير حجم الصور\n"
 
-#: src/io/siril_git.c:908
+#: src/io/siril_git.c:951
 msgid "Warning: skipping script with invalid UTF-8 path.\n"
 msgstr ""
 
-#: src/io/siril_git.c:918
+#: src/io/siril_git.c:961
 #, fuzzy
 msgid "Warning: memory allocation failed for script path.\n"
 msgstr "فشل التطبيع."
 
-#: src/io/siril_git.c:973
+#: src/io/siril_git.c:1038 src/io/siril_git.c:1055
 #, fuzzy, c-format
 msgid "Error cloning repository: %s\n"
 msgstr "خطأ في فتح ملف s% : GIF\n"
 
-#: src/io/siril_git.c:1006
+#: src/io/siril_git.c:1086
 #, c-format
 msgid ""
 "Error: local siril-spcc-database repository folder is not configured with %s "
@@ -24627,16 +24644,16 @@ msgid ""
 "the correct repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:1047
+#: src/io/siril_git.c:1127
 msgid "Local SPCC database repository is up-to-date!\n"
 msgstr ""
 
-#: src/io/siril_git.c:1074
+#: src/io/siril_git.c:1154
 #, fuzzy
 msgid "Error: unable to open local scripts repository.\n"
 msgstr "أبحث عن تسلسل في دليل العمل الحالي ... _\n"
 
-#: src/io/siril_git.c:1099
+#: src/io/siril_git.c:1179
 #, fuzzy
 msgid "Error: unable to open local spcc-database repository.\n"
 msgstr "أبحث عن تسلسل في دليل العمل الحالي ... _\n"
@@ -24656,349 +24673,357 @@ msgid "Received incomplete command payload: length = %u, expected %u\n"
 msgstr ""
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:655 src/io/siril_pythoncommands.c:684
+#: src/io/siril_pythoncommands.c:655 src/io/siril_pythoncommands.c:689
 #, fuzzy
 msgid "Failed to retrieve image dimensions - no image loaded"
 msgstr "Siril يحتاج مكتبة برمجية مفتوحة للرؤية الحاسوبية لتغيير حجم الصور\n"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:707
+#: src/io/siril_pythoncommands.c:712
 msgid "Failed to retrieve current vport - no image loaded"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:724
+#: src/io/siril_pythoncommands.c:729
 msgid "Failed to set selection - selection exceeds image bounds"
 msgstr ""
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:736 src/io/siril_pythoncommands.c:2044
-#: src/io/siril_pythoncommands.c:2082
+#: src/io/siril_pythoncommands.c:741 src/io/siril_pythoncommands.c:2061
+#: src/io/siril_pythoncommands.c:2099
 #, fuzzy
 msgid "Failed to set selection - no image loaded"
 msgstr "Siril يحتاج مكتبة برمجية مفتوحة للرؤية الحاسوبية لتغيير حجم الصور\n"
 
-#: src/io/siril_pythoncommands.c:751
+#: src/io/siril_pythoncommands.c:756
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:779 src/io/siril_pythoncommands.c:876
+#: src/io/siril_pythoncommands.c:784 src/io/siril_pythoncommands.c:881
 #, fuzzy
 msgid "Invalid selection"
 msgstr "بدون تحديد"
 
-#: src/io/siril_pythoncommands.c:784 src/io/siril_pythoncommands.c:867
-#: src/io/siril_pythoncommands.c:1278
+#: src/io/siril_pythoncommands.c:789 src/io/siril_pythoncommands.c:872
+#: src/io/siril_pythoncommands.c:1293
 #, fuzzy
 msgid "Invalid channel"
 msgstr "القناة الحمراء"
 
-#: src/io/siril_pythoncommands.c:794
+#: src/io/siril_pythoncommands.c:799
 #, fuzzy
 msgid "Failed to find a star"
 msgstr "Siril يحتاج مكتبة برمجية مفتوحة للرؤية الحاسوبية لتغيير حجم الصور\n"
 
-#: src/io/siril_pythoncommands.c:813 src/io/siril_pythoncommands.c:887
-#: src/io/siril_pythoncommands.c:1301 src/io/siril_pythoncommands.c:1365
-#: src/io/siril_pythoncommands.c:1491 src/io/siril_pythoncommands.c:1523
-#: src/io/siril_pythoncommands.c:1636 src/io/siril_pythoncommands.c:1644
-#: src/io/siril_pythoncommands.c:1654 src/io/siril_pythoncommands.c:1691
-#: src/io/siril_pythoncommands.c:1764 src/io/siril_pythoncommands.c:1831
-#: src/io/siril_pythoncommands.c:1862 src/io/siril_pythoncommands.c:2224
+#: src/io/siril_pythoncommands.c:818 src/io/siril_pythoncommands.c:892
+#: src/io/siril_pythoncommands.c:1316 src/io/siril_pythoncommands.c:1380
+#: src/io/siril_pythoncommands.c:1506 src/io/siril_pythoncommands.c:1538
+#: src/io/siril_pythoncommands.c:1651 src/io/siril_pythoncommands.c:1659
+#: src/io/siril_pythoncommands.c:1669 src/io/siril_pythoncommands.c:1706
+#: src/io/siril_pythoncommands.c:1779 src/io/siril_pythoncommands.c:1848
+#: src/io/siril_pythoncommands.c:1879 src/io/siril_pythoncommands.c:2241
 #, fuzzy
 msgid "Memory allocation error"
 msgstr "تطبيع"
 
-#: src/io/siril_pythoncommands.c:837
+#: src/io/siril_pythoncommands.c:842
 msgid "Invalid region: selection breaches image dimensions"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:860 src/io/siril_pythoncommands.c:1271
-#: src/io/siril_pythoncommands.c:1352 src/io/siril_pythoncommands.c:1850
-#: src/io/siril_pythoncommands.c:1873 src/io/siril_pythoncommands.c:1894
-#: src/io/siril_pythoncommands.c:1914 src/io/siril_pythoncommands.c:1947
+#: src/io/siril_pythoncommands.c:865 src/io/siril_pythoncommands.c:1286
+#: src/io/siril_pythoncommands.c:1367 src/io/siril_pythoncommands.c:1867
+#: src/io/siril_pythoncommands.c:1890 src/io/siril_pythoncommands.c:1911
+#: src/io/siril_pythoncommands.c:1931 src/io/siril_pythoncommands.c:1964
 #, fuzzy
 msgid "No image loaded"
 msgstr "%d الملفات المحملة"
 
-#: src/io/siril_pythoncommands.c:910
+#: src/io/siril_pythoncommands.c:915
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA_REGION\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:922
+#: src/io/siril_pythoncommands.c:927
 msgid "Invalid FINISHED_WITH_SHM payload"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1008
+#: src/io/siril_pythoncommands.c:1013
 #, fuzzy
 msgid "Unknown dialog type"
 msgstr "الصورة غير معروفة"
 
-#: src/io/siril_pythoncommands.c:1047
+#: src/io/siril_pythoncommands.c:1052
 msgid "Undo not supported in headless mode"
 msgstr ""
 
 #. Handle error
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1060 src/io/siril_pythoncommands.c:1129
+#: src/io/siril_pythoncommands.c:1065 src/io/siril_pythoncommands.c:1134
 #, fuzzy
 msgid "Image not loaded"
 msgstr "غير محمل"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1073
+#: src/io/siril_pythoncommands.c:1078
 #, fuzzy
 msgid "Working directory not set"
 msgstr "التحويل: أي مجموعة دليل العمل.\n"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1087
+#: src/io/siril_pythoncommands.c:1092
 #, fuzzy
 msgid "Error: user config directory not set"
 msgstr "التحويل: أي مجموعة دليل العمل.\n"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1102
+#: src/io/siril_pythoncommands.c:1107
 #, fuzzy
 msgid "Error: user data directory not set"
 msgstr "التحويل: أي مجموعة دليل العمل.\n"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1116
+#: src/io/siril_pythoncommands.c:1121
 #, fuzzy
 msgid "Error: system data directory not set"
 msgstr "التحويل: أي مجموعة دليل العمل.\n"
 
-#: src/io/siril_pythoncommands.c:1138 src/io/siril_pythoncommands.c:1154
-#: src/io/siril_pythoncommands.c:1230 src/io/siril_pythoncommands.c:1243
-#: src/io/siril_pythoncommands.c:1260 src/io/siril_pythoncommands.c:1313
-#: src/io/siril_pythoncommands.c:2236 src/io/siril_pythoncommands.c:2249
-#: src/io/siril_pythoncommands.c:2265 src/io/siril_pythoncommands.c:2271
-#: src/io/siril_pythoncommands.c:2304
+#: src/io/siril_pythoncommands.c:1143 src/io/siril_pythoncommands.c:1159
+#: src/io/siril_pythoncommands.c:1235 src/io/siril_pythoncommands.c:1248
+#: src/io/siril_pythoncommands.c:1275 src/io/siril_pythoncommands.c:1328
+#: src/io/siril_pythoncommands.c:2253 src/io/siril_pythoncommands.c:2266
+#: src/io/siril_pythoncommands.c:2282 src/io/siril_pythoncommands.c:2288
+#: src/io/siril_pythoncommands.c:2321
 msgid "Invalid payload length"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1160 src/io/siril_pythoncommands.c:1168
+#: src/io/siril_pythoncommands.c:1165 src/io/siril_pythoncommands.c:1173
 #, fuzzy
 msgid "Failed to load sequence frame"
 msgstr "فشل لPSF  لتسلسل. جاهز."
 
-#: src/io/siril_pythoncommands.c:1184
+#: src/io/siril_pythoncommands.c:1189
 #, fuzzy
 msgid "Failed to compute output index"
 msgstr "لا يمكن فتح ملف: %s\n"
 
-#: src/io/siril_pythoncommands.c:1219
+#: src/io/siril_pythoncommands.c:1224
 #, c-format
 msgid "Error writing sequence frame %i from Python\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1288
+#: src/io/siril_pythoncommands.c:1303
 #, fuzzy
 msgid "No stats"
 msgstr "عدد من الطبقات يجب أن تكون 1 أو 3\n"
 
-#: src/io/siril_pythoncommands.c:1386 src/io/siril_pythoncommands.c:1430
-#: src/io/siril_pythoncommands.c:1465 src/io/siril_pythoncommands.c:2205
+#: src/io/siril_pythoncommands.c:1401 src/io/siril_pythoncommands.c:1445
+#: src/io/siril_pythoncommands.c:1480 src/io/siril_pythoncommands.c:2222
 msgid "Incorrect command arguments"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1396 src/io/siril_pythoncommands.c:1735
-#: src/io/siril_pythoncommands.c:1804
+#: src/io/siril_pythoncommands.c:1411 src/io/siril_pythoncommands.c:1750
+#: src/io/siril_pythoncommands.c:1821
 #, fuzzy
 msgid "Memory allocation failed"
 msgstr "فشل التطبيع."
 
-#: src/io/siril_pythoncommands.c:1401 src/io/siril_pythoncommands.c:1410
+#: src/io/siril_pythoncommands.c:1416 src/io/siril_pythoncommands.c:1425
 #, fuzzy
 msgid "No regdata available"
 msgstr "غير متاح"
 
-#: src/io/siril_pythoncommands.c:1446
+#: src/io/siril_pythoncommands.c:1461
 #, fuzzy
 msgid "Error building frame filename"
 msgstr "خطأ في ملف إغلاق s% : GIF\n"
 
-#: src/io/siril_pythoncommands.c:1477
+#: src/io/siril_pythoncommands.c:1492
 #, fuzzy
 msgid "No stats for this sequence"
 msgstr "PSF للتسلسل"
 
-#: src/io/siril_pythoncommands.c:1485
+#: src/io/siril_pythoncommands.c:1500
 msgid "No stats for this channel for this frame"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1511 src/io/siril_pythoncommands.c:1609
-#: src/io/siril_pythoncommands.c:2367
+#: src/io/siril_pythoncommands.c:1526 src/io/siril_pythoncommands.c:1624
+#: src/io/siril_pythoncommands.c:2384
 #, fuzzy
 msgid "Incorrect command argument"
 msgstr "غير معروف معلمة سطر الأوامر '%c'\n"
 
-#: src/io/siril_pythoncommands.c:1540
+#: src/io/siril_pythoncommands.c:1555
 msgid "Incorrect payload"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1560
+#: src/io/siril_pythoncommands.c:1575
 msgid "Selection cropped to frame boundaries\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1566
+#: src/io/siril_pythoncommands.c:1581
 #, fuzzy
 msgid "Failed to read sequence frame"
 msgstr "فشل لPSF  لتسلسل. جاهز."
 
-#: src/io/siril_pythoncommands.c:1579
+#: src/io/siril_pythoncommands.c:1594
 #, fuzzy
 msgid "Invalid dimensions"
 msgstr "تحويل ملف"
 
-#: src/io/siril_pythoncommands.c:1616 src/io/siril_pythoncommands.c:2375
+#: src/io/siril_pythoncommands.c:1631 src/io/siril_pythoncommands.c:2392
 #, fuzzy
 msgid "Failed to read frame metadata"
 msgstr "خطأ: لا توجد بيانات \n"
 
-#: src/io/siril_pythoncommands.c:1725
+#: src/io/siril_pythoncommands.c:1740
 #, fuzzy
 msgid "No stars in image"
 msgstr "غير متاح"
 
-#: src/io/siril_pythoncommands.c:1743
+#: src/io/siril_pythoncommands.c:1758
 msgid "Stars array was cleared mid-process"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1751
+#: src/io/siril_pythoncommands.c:1766
 msgid "Unexpected null star entry"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1794
+#: src/io/siril_pythoncommands.c:1811
 #, fuzzy
 msgid "No background samples list available"
 msgstr "غير متاح"
 
-#: src/io/siril_pythoncommands.c:1813
+#: src/io/siril_pythoncommands.c:1830
 #, fuzzy
 msgid "Mismatch in samples count"
 msgstr "النجوم المختارة"
 
-#: src/io/siril_pythoncommands.c:1821
+#: src/io/siril_pythoncommands.c:1838
 #, fuzzy
 msgid "Unexpected null background sample"
 msgstr "عينات خلفية غير كافية.\n"
 
-#: src/io/siril_pythoncommands.c:1878
+#: src/io/siril_pythoncommands.c:1895
 #, fuzzy
 msgid "Image has no ICC profile"
 msgstr "ملف الأزرق الحالي"
 
-#: src/io/siril_pythoncommands.c:1900 src/io/siril_pythoncommands.c:2380
+#: src/io/siril_pythoncommands.c:1917 src/io/siril_pythoncommands.c:2397
 msgid "Image has no FITS header"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1920
+#: src/io/siril_pythoncommands.c:1937
 msgid "Image has no history entries"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1953
+#: src/io/siril_pythoncommands.c:1970
 msgid "Image has no unknown keys"
 msgstr ""
 
 #. Need at least two null-terminated strings
-#: src/io/siril_pythoncommands.c:1968
+#: src/io/siril_pythoncommands.c:1985
 #, fuzzy
 msgid "Group and key must be provided"
 msgstr "يجب أن يكون x و y القيم الإيجابية: المحاصيل. \n"
 
-#: src/io/siril_pythoncommands.c:1977
+#: src/io/siril_pythoncommands.c:1994
 msgid "Malformed group/key data"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1988
+#: src/io/siril_pythoncommands.c:2005
 #, fuzzy
 msgid "Configuration key not found"
 msgstr "الملف غير موجود"
 
 #. Handle no WCS error
-#: src/io/siril_pythoncommands.c:2015 src/io/siril_pythoncommands.c:2055
+#: src/io/siril_pythoncommands.c:2032 src/io/siril_pythoncommands.c:2072
 #, fuzzy
 msgid "Siril image is not plate solved"
 msgstr "لا يتم التعامل مع هذه binning \n"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:2098
+#: src/io/siril_pythoncommands.c:2115
 #, fuzzy
 msgid "Failed to retrieve bundle path"
 msgstr "فشل لPSF  لتسلسل. جاهز."
 
 #. Handle error: OS is not Windows
-#: src/io/siril_pythoncommands.c:2103
+#: src/io/siril_pythoncommands.c:2120
 msgid "_get_bundle_path() only applicable on Windows"
 msgstr ""
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2113
+#: src/io/siril_pythoncommands.c:2130
 msgid ""
 "the processing thread is locked. Wait for the current processing task to "
 "finish."
 msgstr ""
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2118
+#: src/io/siril_pythoncommands.c:2135
 msgid ""
 "an image processing dialog is open. Close it to release the image lock and "
 "try again."
 msgstr ""
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2127
+#: src/io/siril_pythoncommands.c:2144
 #, fuzzy
 msgid "Unknown error"
 msgstr "ملف TIFF غير معروف.\n"
 
-#: src/io/siril_pythoncommands.c:2153 src/io/siril_pythoncommands.c:2188
+#: src/io/siril_pythoncommands.c:2170 src/io/siril_pythoncommands.c:2205
 #, fuzzy
 msgid "Incorrect payload length"
 msgstr "البعد البؤري (مم):"
 
-#: src/io/siril_pythoncommands.c:2179
+#: src/io/siril_pythoncommands.c:2196
 msgid "Index is out of range"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2210
+#: src/io/siril_pythoncommands.c:2227
 #, fuzzy
 msgid "No distodata available"
 msgstr "غير متاح"
 
-#: src/io/siril_pythoncommands.c:2288
+#: src/io/siril_pythoncommands.c:2305
 msgid "No polygon found matching id"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2295
+#: src/io/siril_pythoncommands.c:2312
 #, fuzzy
 msgid "Failed to serialize user polygon"
 msgstr "فشل لPSF  لتسلسل. جاهز."
 
-#: src/io/siril_pythoncommands.c:2314
+#: src/io/siril_pythoncommands.c:2331
 msgid "No user polygons to serialize"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2321
+#: src/io/siril_pythoncommands.c:2337
 #, fuzzy
 msgid "Failed to serialize user polygon list"
 msgstr "فشل لPSF  لتسلسل. جاهز."
 
-#: src/io/siril_pythoncommands.c:2335 src/io/siril_pythoncommands.c:2341
-#: src/io/siril_pythoncommands.c:2347
+#: src/io/siril_pythoncommands.c:2352 src/io/siril_pythoncommands.c:2358
+#: src/io/siril_pythoncommands.c:2364
 #, fuzzy
 msgid "Argument error"
 msgstr "مرآة العمودية"
 
-#: src/io/siril_pythoncommands.c:2401
+#: src/io/siril_pythoncommands.c:2418
 #, fuzzy
 msgid "Could not create the new sequence"
 msgstr "لا يمكن فتح ملف TIFF %s\n"
 
-#: src/io/siril_pythoncommands.c:2409
+#: src/io/siril_pythoncommands.c:2428
+msgid "Wrong mouse mode"
+msgstr ""
+
+#: src/io/siril_pythoncommands.c:2438
+msgid "Invalid payload for CMD_DRAW_POLYGON"
+msgstr ""
+
+#: src/io/siril_pythoncommands.c:2446
 #, fuzzy
 msgid "Unknown command"
 msgstr "غير معروف معلمة سطر الأوامر '%c'\n"
@@ -25086,15 +25111,15 @@ msgid "Error in send_response: image exceeds available memory\n"
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:619 src/io/siril_pythonmodule.c:749
-#: src/io/siril_pythonmodule.c:847 src/io/siril_pythonmodule.c:937
-#: src/io/siril_pythonmodule.c:1000
+#: src/io/siril_pythonmodule.c:847 src/io/siril_pythonmodule.c:938
+#: src/io/siril_pythonmodule.c:1001
 #, fuzzy
 msgid "Failed to open shared memory"
 msgstr "Siril يحتاج مكتبة برمجية مفتوحة للرؤية الحاسوبية لتغيير حجم الصور\n"
 
 #: src/io/siril_pythonmodule.c:628 src/io/siril_pythonmodule.c:755
-#: src/io/siril_pythonmodule.c:853 src/io/siril_pythonmodule.c:943
-#: src/io/siril_pythonmodule.c:1006
+#: src/io/siril_pythonmodule.c:853 src/io/siril_pythonmodule.c:944
+#: src/io/siril_pythonmodule.c:1007
 #, fuzzy
 msgid "Failed to map shared memory"
 msgstr "فشل في تحويل البيانات إلى GIF\n"
@@ -25105,7 +25130,7 @@ msgid "Failed to allocate image buffer"
 msgstr "Siril يحتاج مكتبة برمجية مفتوحة للرؤية الحاسوبية لتغيير حجم الصور\n"
 
 #: src/io/siril_pythonmodule.c:760 src/io/siril_pythonmodule.c:858
-#: src/io/siril_pythonmodule.c:948 src/io/siril_pythonmodule.c:1013
+#: src/io/siril_pythonmodule.c:949 src/io/siril_pythonmodule.c:1014
 #, fuzzy
 msgid "Error: could not open shared memory"
 msgstr "لا يمكن تحميل صورة المرجعية\n"
@@ -25121,131 +25146,131 @@ msgstr ""
 msgid "Saved plot to %s\n"
 msgstr "حفظ الصورة s%"
 
-#: src/io/siril_pythonmodule.c:975
+#: src/io/siril_pythonmodule.c:976
 #, fuzzy
 msgid "Failed to add user polygon: no image loaded"
 msgstr "Siril يحتاج مكتبة برمجية مفتوحة للرؤية الحاسوبية لتغيير حجم الصور\n"
 
-#: src/io/siril_pythonmodule.c:1046
+#: src/io/siril_pythonmodule.c:1047
 #, fuzzy
 msgid "Failed to add user polygon"
 msgstr "فشل في تحويل البيانات إلى GIF\n"
 
-#: src/io/siril_pythonmodule.c:1066
+#: src/io/siril_pythonmodule.c:1067
 #, fuzzy, c-format
 msgid "Error reading stdout: %s\n"
 msgstr "بدءا التراص ...\n"
 
-#: src/io/siril_pythonmodule.c:1090
+#: src/io/siril_pythonmodule.c:1091
 #, fuzzy, c-format
 msgid "Error reading stderr: %s\n"
 msgstr "خطأ في فتح ملف s% : GIF\n"
 
-#: src/io/siril_pythonmodule.c:1318
+#: src/io/siril_pythonmodule.c:1319
 msgid "Python communication worker finished...\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1669
+#: src/io/siril_pythonmodule.c:1670
 msgid ""
 "Installing / updating python module in the background. This may take a few "
 "seconds...\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1734
+#: src/io/siril_pythonmodule.c:1735
 #, c-format
 msgid "Preparing python virtual environment: %s.\n"
 msgstr ""
 
 #. Check the sirilpy python module is the latest version and install or
 #. update it using the venv pip if not.
-#: src/io/siril_pythonmodule.c:1775
+#: src/io/siril_pythonmodule.c:1776
 msgid "Checking the python module is up-to-date...\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1780
+#: src/io/siril_pythonmodule.c:1781
 msgid "Warning: unable to install or update the Siril python module.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1786
+#: src/io/siril_pythonmodule.c:1787
 msgid "Python module is up-to-date\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1846
+#: src/io/siril_pythonmodule.c:1847
 msgid ""
 "Error: msys2 environment detected. Siril Python support cannot be correctly "
 "initialized.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1847
+#: src/io/siril_pythonmodule.c:1848
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1848
+#: src/io/siril_pythonmodule.c:1849
 msgid ""
 "Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it "
 "from there.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1849
+#: src/io/siril_pythonmodule.c:1850
 msgid ""
 "Next time you need to start siril, you can go back to starting it from msys2 "
 "terminal.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1883
+#: src/io/siril_pythonmodule.c:1884
 #, fuzzy
 msgid "No python installation found in the system or in the bundle, aborting\n"
 msgstr "تسجيل: تعذر تحميل الصورة الأولى للتسجيل، إجهاض.\n"
 
-#: src/io/siril_pythonmodule.c:1909
+#: src/io/siril_pythonmodule.c:1910
 #, fuzzy, c-format
 msgid "Error in venv creation command: %s\n"
 msgstr "خطأ في libraw %s\n"
 
-#: src/io/siril_pythonmodule.c:1949
+#: src/io/siril_pythonmodule.c:1950
 #, fuzzy, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
 msgstr "Siril يحتاج مكتبة برمجية مفتوحة للرؤية الحاسوبية لتغيير حجم الصور\n"
 
-#: src/io/siril_pythonmodule.c:1960
+#: src/io/siril_pythonmodule.c:1961
 #, fuzzy
 msgid "Failed to prepare virtual environment\n"
 msgstr "Siril يحتاج مكتبة برمجية مفتوحة للرؤية الحاسوبية لتغيير حجم الصور\n"
 
-#: src/io/siril_pythonmodule.c:2026 src/io/siril_pythonmodule.c:2034
+#: src/io/siril_pythonmodule.c:2027 src/io/siril_pythonmodule.c:2035
 #, c-format
 msgid "Python process (PID: %d) exited with status %d\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2037
+#: src/io/siril_pythonmodule.c:2038
 #, c-format
 msgid "Python process (PID: %d) terminated by signal %d\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2101
+#: src/io/siril_pythonmodule.c:2102
 msgid ""
 "Error: python not ready yet. This may happen at first run if the python venv "
 "and module setup has not yet completed. Please wait a short time for a "
 "completion message in the log and try again.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2128
+#: src/io/siril_pythonmodule.c:2129
 #, fuzzy
 msgid "Error: failed to create Python connection.\n"
 msgstr "فشل في تحويل البيانات إلى GIF\n"
 
-#: src/io/siril_pythonmodule.c:2143
+#: src/io/siril_pythonmodule.c:2144
 #, fuzzy
 msgid "Error: Python connection not available.\n"
 msgstr "غير متاح"
 
-#: src/io/siril_pythonmodule.c:2208
+#: src/io/siril_pythonmodule.c:2209
 msgid "Error finding venv python path, unable to spawn python.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2293
+#: src/io/siril_pythonmodule.c:2294
 #, fuzzy, c-format
 msgid "Failed to execute Python script: %s\n"
 msgstr "تعذرت قراءة الملف : %s\n"
