@@ -23,7 +23,8 @@ from .translations import _
 from .shm import SharedMemoryWrapper, _SharedMemoryInfo
 from .plot import PlotData
 from .exceptions import SirilError, DataError, SirilConnectionError, CommandError, \
-        NoImageError, NoSequenceError, SharedMemoryError, ProcessingThreadBusyError, ImageDialogOpenError
+        NoImageError, NoSequenceError, SharedMemoryError, ProcessingThreadBusyError, \
+        ImageDialogOpenError, MouseModeError
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, \
         DistoData, Sequence, SequenceType, Polygon
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
