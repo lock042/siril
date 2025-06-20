@@ -122,6 +122,8 @@ class _Command(IntEnum):
     CONFIRM_MESSAGEBOX = 62
     GET_SEQ_FRAME_HEADER = 63
     CREATE_NEW_SEQ = 64
+    CLEAR_BGSAMPLES = 65
+    DRAW_POLYGON = 66
     ERROR = 0xFF
 
 @unique

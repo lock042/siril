@@ -868,9 +868,9 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 	GSList *pts = NULL;
 
 	// Reset the list in com.
+	sample_mutex_lock();
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
-
 	// If we need to recalculate, build samples from the positions and call
 	// add_background_samples
 	if (recalculate) {
@@ -892,10 +892,11 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 			com.grad_samples = g_slist_append(com.grad_samples, s);
 		}
 	}
+	sample_mutex_unlock();
 
 	// Redraw if necessary
 	if (show_samples && !com.headless) {
-		redraw(REDRAW_OVERLAY);
+		queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
 	}
 
 	// Free the positions list
@@ -1037,7 +1038,7 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 	if (polygon) {
 		int id = get_unused_polygon_id();
 		polygon->id = id;
-		gui.user_polygons = g_list_append(gui.user_polygons, polygon);
+		gui.user_polygons = g_slist_append(gui.user_polygons, polygon);
 		redraw(REDRAW_OVERLAY);
 		int id_be = GINT32_TO_BE(id);
 		result = send_response(conn, STATUS_OK, &id_be, 4);
@@ -1580,55 +1581,6 @@ cleanup_files:
 	g_object_unref(src_file);
 	g_object_unref(dest_file);
 	g_dir_close(dir);
-
-	return success;
-}
-
-gboolean delete_directory(const gchar *dir_path, GError **error) {
-	GDir *dir;
-	const gchar *name;
-	gchar *full_path;
-	GFile *file;
-	gboolean success = TRUE;
-
-	dir = g_dir_open(dir_path, 0, error);
-	if (!dir) {
-		return FALSE;
-	}
-
-	siril_debug_print("Deleting %s...\n", dir_path);
-
-	while ((name = g_dir_read_name(dir))) {
-		full_path = g_build_filename(dir_path, name, NULL);
-
-		if (g_file_test(full_path, G_FILE_TEST_IS_DIR)) {
-			if (!delete_directory(full_path, error)) {
-				success = FALSE;
-				break;
-			}
-		} else {
-			file = g_file_new_for_path(full_path);
-			if (!g_file_delete(file, NULL, error)) {
-				g_object_unref(file);
-				success = FALSE;
-				break;
-			}
-			g_object_unref(file);
-		}
-
-		g_free(full_path);
-	}
-
-	g_dir_close(dir);
-
-	if (success) {
-		file = g_file_new_for_path(dir_path);
-		if (!g_file_delete(file, NULL, error)) {
-			g_object_unref(file);
-			return FALSE;
-		}
-		g_object_unref(file);
-	}
 
 	return success;
 }

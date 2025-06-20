@@ -625,12 +625,7 @@ void on_play_introduction_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_reload_script_button_clicked(GtkButton *button, gpointer user_data) {
-	gchar *error;
-	int retval = refresh_scripts(FALSE, &error);
-
-	if (retval) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Cannot refresh script list"), error);
-	}
+	g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
 }
 
 void on_check_button_pref_bias_bis_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -1018,7 +1013,8 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 			on_disable_gitscripts();
 		else
 #endif
-			refresh_script_menu(GINT_TO_POINTER((int) scripts_updated));	// To update the UI with scripts from the repo
+			g_thread_unref(g_thread_new("refresh_script_menu", refresh_script_menu_in_thread, GINT_TO_POINTER((int) scripts_updated)));
+			// To update the UI with scripts from the repo
 			// Note this line is part of the if/else with the #ifdef and always runs
 			// otherwise. This is intentional.
 		scripts_updated = FALSE;

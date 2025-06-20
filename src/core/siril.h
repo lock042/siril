@@ -100,7 +100,6 @@ typedef unsigned short WORD;	// default type for internal image data
 #define ZOOM_DEFAULT	ZOOM_FIT
 
 /* Some statistic constants */
-#define SIGMA_PER_FWHM 2.35482
 #define AVGDEV_NORM 1.2533
 #define MAD_NORM 1.4826
 #define BWMV_NORM 0.9901
@@ -570,7 +569,7 @@ typedef enum {
 	SPCC_GREEN = 1 << GLAYER,
 	SPCC_BLUE = 1 << BLAYER,
 	SPCC_CLEAR = SPCC_RED | SPCC_GREEN | SPCC_BLUE,
-	SPCC_INVIS = 0
+	SPCC_INVIS = 1 << 7
 } spcc_channel;
 
 /* Filter spectral responses are defined by unevenly spaced frequency samples
@@ -781,12 +780,12 @@ struct guiinf {
 	point measure_start;	// quick alt-drag measurement
 	point measure_end;
 
-	GList *user_polygons;	// user defined polygons for the overlay
+	GSList *user_polygons;	// user defined polygons for the overlay
 
 	void (*draw_extra)(draw_data_t *dd);
 
 	/* List of all scripts from the repository */
-	GList* repo_scripts; // the list of selected scripts is in com.pref
+	GSList* repo_scripts; // the list of selected scripts is in com.pref
 	/* gboolean to confirm the script repository has been opened without error */
 	gboolean script_repo_available;
 	gboolean spcc_repo_available;
@@ -834,6 +833,10 @@ struct guiinf {
 	roi_t roi; // Region of interest struct
 	GSList *mouse_actions;
 	GSList *scroll_actions;
+	gboolean drawing_polygon; // whether drawing a polygon or not
+	GSList *drawing_polypoints; // list of points drawn in MOUSE_ACTION_DRAW_POLY mode
+	GdkRGBA poly_ink; // Color and alpha for drawing polygons
+	gboolean poly_fill; // Whether to fill drawn polygons
 };
 
 struct common_icc {

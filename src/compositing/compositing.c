@@ -32,8 +32,10 @@
 #include "core/command.h" // process_close
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "compositing/compositing.h"
 #include "algos/colors.h"
 #include "algos/fitting.h"
+#include "algos/geometry.h"
 #include "filters/linear_match.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -770,6 +772,11 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 	gui_function(update_MenuItem, NULL);
 }
 
+gboolean valid_rgbcomp_seq() {
+	if (!seq) return FALSE;
+	return (number_of_images_loaded() > 1);
+}
+
 void create_the_internal_sequence() {
 	int i, j, nb_layers;
 	if (seq) free_sequence(seq, TRUE);
@@ -1323,7 +1330,7 @@ static void clear_pixel(GdkRGBA *pixel) {
 	pixel->alpha = 1.0f;
 }
 
-/* recompute the layer composition and optionnally refresh the displayed result image */
+/* recompute the layer composition and optionally refresh the displayed result image */
 static void update_result(int and_refresh) {
 	icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
 
@@ -1694,10 +1701,7 @@ static void coeff_clear() {
 	}
 }
 
-void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
-	if (number_of_images_loaded() < 1)
-		return;
-
+static void reload_all() {
 	// Clear the image data and the sequence, if populated
 	for (int layer = 0 ; layer < maximum_layers ; layer++) {
 		if (layers[layer] && layers[layer]->the_fit.rx != 0)
@@ -1728,6 +1732,13 @@ void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
 	}
 	siril_log_message(_("All images reloaded successfully.\n"));
 	update_result(1);
+}
+
+void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
+	if (number_of_images_loaded() < 1)
+		return;
+
+	reload_all();
 }
 
 void on_compositing_save_all_clicked(GtkButton *button, gpointer user_data) {
@@ -2005,3 +2016,36 @@ int register_manual(struct registration_args *regargs) {
 	return regargs->retval;
 }
 
+int crop_rgbcomp_seq() {
+	if (!seq) {
+		siril_log_color_message(_("Error: internal RGB composition sequence does not exist\n"), "red");
+		return 1;
+	}
+	struct crop_sequence_data *crop_args = calloc(1, sizeof(struct crop_sequence_data));
+
+	crop_args->seq = seq;
+	memcpy(&crop_args->area, &com.selection, sizeof(rectangle));
+	crop_args->prefix = strdup("crop_");
+
+	struct generic_seq_args *args = create_default_seqargs(crop_args->seq);
+	args->already_in_a_thread = TRUE;
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = crop_args->seq->selnum;
+	args->compute_size_hook = crop_compute_size_hook;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = crop_finalize_hook;
+	args->image_hook = crop_image_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("Crop Sequence");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->new_seq_prefix = strdup(crop_args->prefix);
+	args->load_new_sequence = TRUE;
+	args->user = crop_args;
+
+	start_in_new_thread(generic_sequence_worker, args);
+	waiting_for_thread();
+	free_generic_seq_args(args, FALSE);
+	update_result(TRUE);
+	return args->retval;
+}
