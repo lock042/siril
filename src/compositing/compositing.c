@@ -476,16 +476,16 @@ void open_compositing_window() {
 	} else {
 		/* not the first load, update the CWD just in case it changed in the meantime */
 		i = 0;
-
-//		close_sequence(FALSE);
-//		close_single_image();
+		if (reference) {
+			cmsCloseProfile(reference);
+			reference = NULL;
+		}
 		do {
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(layers[i]->chooser), com.wd);
 			if (!reference)
 				reference = copyICCProfile(layers[i]->the_fit.icc_profile);
 			i++;
 		} while (layers[i]);
-//		update_result(1);
 		gui_function(update_MenuItem, NULL);
 	}
 	if (compositing_loaded == 1)

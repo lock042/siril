@@ -1130,13 +1130,17 @@ cmsUInt8Number *siril_icc_profile_to_buffer(cmsHPROFILE profile, cmsUInt32Number
  * are guaranteed to be the same.
  */
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b) {
+	if (!a && !b)
+		return TRUE;
+
+	cmsBool retval = FALSE;
+
+	if (!a || !b)
+		goto ERROR_OR_FINISH;
+
 	cmsUInt8Number *block_a = NULL, *block_b = NULL;
 	cmsUInt32Number length_a = 0, length_b = 0;
-	cmsBool retval = FALSE;
 	const gsize header_len = sizeof (cmsICCHeader);
-
-	if ((!a && !b) || (!a || !b))
-		goto ERROR_OR_FINISH;
 
 	if (a) {
 		block_a = siril_icc_profile_to_buffer(a, &length_a);
