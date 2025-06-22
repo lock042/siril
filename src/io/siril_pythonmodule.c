@@ -1038,7 +1038,7 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 	if (polygon) {
 		int id = get_unused_polygon_id();
 		polygon->id = id;
-		gui.user_polygons = g_list_append(gui.user_polygons, polygon);
+		gui.user_polygons = g_slist_append(gui.user_polygons, polygon);
 		redraw(REDRAW_OVERLAY);
 		int id_be = GINT32_TO_BE(id);
 		result = send_response(conn, STATUS_OK, &id_be, 4);

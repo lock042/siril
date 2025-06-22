@@ -44,6 +44,7 @@
 #include "gui/utils.h"
 #include "progress_and_log.h"
 #include "registration_preview.h"
+#include "gui/user_polygons.h"
 
 // Tracks whether double middle click will zoom to fit or zoom to 1:1, for the
 // toggle
@@ -291,6 +292,19 @@ static gboolean measure_release (mouse_data *data) {
 	return TRUE;
 }
 
+static gboolean draw_poly_release(mouse_data *data) {
+	// Parse gui.drawing_polypoints into a Polygon and add it using add_user_polygon
+	gui.drawing_polygon = FALSE;
+	*data->mouse_status = MOUSE_ACTION_NONE;
+	UserPolygon *poly = create_user_polygon_from_points(gui.drawing_polypoints);
+	add_existing_polygon(poly, &gui.poly_ink, gui.poly_fill);
+	queue_redraw(REDRAW_OVERLAY);
+	// Free and NULL gui.drawing_polypoints
+	g_slist_free_full(gui.drawing_polypoints, free);
+	gui.drawing_polypoints = NULL;
+	return TRUE;
+}
+
 static gboolean show_popup_menu(mouse_data *data) {
 	if (*data->mouse_status != MOUSE_ACTION_DRAW_SAMPLES && *data->mouse_status != MOUSE_ACTION_PHOTOMETRY) {
 			do_popup_graymenu(data->widget, NULL);
@@ -530,6 +544,15 @@ gboolean main_action_click(mouse_data *data) {
 				break;
 			case MOUSE_ACTION_CUT_WN2:
 				register_release_callback(cut_wn2_release, data->event->button);
+				break;
+			case MOUSE_ACTION_DRAW_POLY:
+				g_assert(gui.drawing_polypoints == NULL);
+				point *ev = malloc(sizeof(point));
+				ev->x = data->zoomed.x;
+				ev->y = data->zoomed.y;
+				gui.drawing_polypoints = g_slist_prepend(gui.drawing_polypoints, ev);
+				register_release_callback(draw_poly_release, data->event->button);
+				gui.drawing_polygon = TRUE;
 				break;
 			default:
 				break;

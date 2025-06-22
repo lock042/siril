@@ -66,6 +66,7 @@ from .exceptions import (
     CommandError,
     DataError,
     NoImageError,
+    MouseModeError,
     NoSequenceError,
     ProcessingThreadBusyError,
     ImageDialogOpenError
@@ -101,6 +102,7 @@ __all__ = [
     'DataError',
     'NoImageError',
     'NoSequenceError',
+    'MouseModeError',
     'ProcessingThreadBusyError',
     'ImageDialogOpenError',
     'SharedMemoryWrapper',

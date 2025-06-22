@@ -662,7 +662,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean result = single_image_is_loaded();
 
 			if (result) {
-				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
+				if (com.selection.w == 0 && com.selection.h == 0) {
+					// No selection: return STATUS_NONE and sirilpy will return None
+					success = send_response(conn, STATUS_NONE, NULL, 0);
+					break;
+				}
+				// Prepare the response data
 				uint8_t response_data[16]; // 4 x 4 bytes for x,y, w, h
 
 				// Convert the integers to BE format for consistency across the UNIX socket
@@ -2321,23 +2326,23 @@ CLEANUP:
 
 		case CMD_GET_USER_POLYGON_LIST: {
 			size_t polygon_list_size;
-			if (g_list_length(gui.user_polygons) == 0) {
+			if (g_slist_length(gui.user_polygons) == 0) {
 				siril_debug_print("No user polygons defined\n");
 				const char* error_msg = _("No user polygons to serialize");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
-			}
+			} else {
+				uint8_t *serialized = serialize_polygon_list(gui.user_polygons, &polygon_list_size);
+				if (!serialized) {
+					siril_debug_print("Failed to serialize the user polygon list\n");
+					const char* error_msg = _("Failed to serialize user polygon list");
+					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				}
 
-			uint8_t *serialized = serialize_polygon_list(gui.user_polygons, &polygon_list_size);
-			if (!serialized) {
-				siril_debug_print("Failed to serialize the user polygon list\n");
-				const char* error_msg = _("Failed to serialize user polygon list");
-				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_list_size);
+				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+				g_free(serialized);
+				free(info);
 			}
-
-			shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_list_size);
-			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-			g_free(serialized);
-			free(info);
 			break;
 		}
 
@@ -2411,6 +2416,26 @@ CLEANUP:
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
 				const char* error_msg = _("Could not create the new sequence");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_DRAW_POLYGON: {
+			mouse_status_enum mouse_status = get_mouse_status();
+			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
+				siril_debug_print("## Mouse mode: %d\n", (int) mouse_status);
+				const char* error_msg = _("Wrong mouse mode");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+			}
+			if (payload_length == 5) {
+				uint32_t color = GUINT32_FROM_BE(*(uint32_t*) payload);
+				gui.poly_fill = (gboolean) (*(uint8_t*) (payload + 4) != 0);
+				gui.poly_ink = uint32_to_gdk_rgba(color);
+				init_draw_poly();
+				success = send_response(conn, STATUS_OK, NULL, 0);
+			} else {
+				const char* error_msg = _("Invalid payload for CMD_DRAW_POLYGON");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;

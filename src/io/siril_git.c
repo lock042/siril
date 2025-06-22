@@ -458,40 +458,20 @@ static gboolean script_version_check(const gchar *filename) {
 	return retval;
 }
 
-static gboolean version_meets_constraint(version_number *current, version_number *constraint, const gchar *op) {
-	if (strcmp(op, "==") == 0)
-		return compare_version(*current, *constraint);
-	if (strcmp(op, "!=") == 0)
-		return !compare_version(*current, *constraint);
-	if (strcmp(op, "<") == 0) {
-		if (current->major_version < constraint->major_version) return TRUE;
-		if (current->major_version > constraint->major_version) return FALSE;
-		if (current->minor_version < constraint->minor_version) return TRUE;
-		if (current->minor_version > constraint->minor_version) return FALSE;
-		if (current->micro_version < constraint->micro_version) return TRUE;
-		if (current->micro_version > constraint->micro_version) return FALSE;
-		if (current->patched_version < constraint->patched_version) return TRUE;
-		return FALSE;
-	}
-	if (strcmp(op, ">") == 0) {
-		if (current->major_version > constraint->major_version) return TRUE;
-		if (current->major_version < constraint->major_version) return FALSE;
-		if (current->minor_version > constraint->minor_version) return TRUE;
-		if (current->minor_version < constraint->minor_version) return FALSE;
-		if (current->micro_version > constraint->micro_version) return TRUE;
-		if (current->micro_version < constraint->micro_version) return FALSE;
-		if (current->patched_version > constraint->patched_version) return TRUE;
-		return FALSE;
-	}
-	if (strcmp(op, "<=") == 0) {
-		return version_meets_constraint(current, constraint, "<") ||
-			version_meets_constraint(current, constraint, "==");
-	}
-	if (strcmp(op, ">=") == 0) {
-		return version_meets_constraint(current, constraint, ">") ||
-			version_meets_constraint(current, constraint, "==");
-	}
-	return FALSE;
+static gboolean
+version_meets_constraint(const version_number *current, const version_number *required, const gchar *op)
+{
+    int cmp = compare_version(*current, *required);
+
+    if (g_strcmp0(op, "==") == 0) return cmp == 0;
+    if (g_strcmp0(op, "!=") == 0) return cmp != 0;
+    if (g_strcmp0(op, ">=") == 0) return cmp >= 0;
+    if (g_strcmp0(op, "<=") == 0) return cmp <= 0;
+    if (g_strcmp0(op, ">")  == 0) return cmp > 0;
+    if (g_strcmp0(op, "<")  == 0) return cmp < 0;
+
+    // Unknown operator
+    return FALSE;
 }
 
 static gboolean parse_version_string(const gchar *version_str, version_number *ver) {
@@ -777,25 +757,72 @@ int auto_update_gitscripts(gboolean sync) {
 	// Clone options
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
 
-	// See if the repository already exists
-	int error = siril_repository_open(&repo, local_path);
+	// Check if directory exists
+	if (g_file_test(local_path, G_FILE_TEST_IS_DIR)) {
+		siril_debug_print("Directory exists, attempting to open repository...\n");
 
-	if (error != 0) {
-		const git_error *e = giterr_last();
-		siril_debug_print("Cannot open repository: %s\n", e ? e->message : "");
+		// Try to open existing repository
+		int error = siril_repository_open(&repo, local_path);
+		if (error == 0) {
+			// Repository opened successfully
+			siril_debug_print("Local scripts repository opened successfully!\n");
+			gui.script_repo_available = TRUE;
+		} else {
+			// Failed to open repository - directory exists but isn't a valid repo
+			const git_error *e = giterr_last();
+			siril_debug_print("Cannot open repository: %s\n", e ? e->message : "");
+			siril_log_message(_("Existing directory is not a valid git repository. Cleaning up...\n"));
+
+			// Delete the existing directory
+			GError *delete_error = NULL;
+			if (!delete_directory(local_path, &delete_error)) {
+				siril_log_color_message(_("Error deleting existing directory %s: %s\n"),
+					"red", local_path, delete_error->message);
+				g_error_free(delete_error);
+				gui.script_repo_available = FALSE;
+				retval = 1;
+				goto cleanup;
+			}
+
+			// Now attempt to clone into the clean directory
+			if (is_online()) {
+				siril_log_message(_("Attempting to clone from remote source...\n"));
+				error = git_clone(&repo, SCRIPT_REPOSITORY_URL, local_path, &clone_opts);
+				if (error != 0) {
+					e = giterr_last();
+					siril_log_color_message(_("Error cloning repository into %s: %s\n"),
+						"red", local_path, e->message);
+					gui.script_repo_available = FALSE;
+					retval = 1;
+					goto cleanup;
+				} else {
+					siril_log_message(_("Repository cloned successfully!\n"));
+					gui.script_repo_available = TRUE;
+				}
+			} else {
+				siril_log_message(_("Siril is in offline mode. Will not attempt to clone remote repository.\n"));
+				gui.script_repo_available = FALSE;
+				retval = 1;
+				goto cleanup;
+			}
+		}
+	} else {
+		// Directory doesn't exist - clone it
+		siril_debug_print("Directory doesn't exist, attempting to clone...\n");
+
 		if (is_online()) {
 			siril_log_message(_("Attempting to clone from remote source...\n"));
-			// Perform the clone operation
-			error = git_clone(&repo, SCRIPT_REPOSITORY_URL, local_path, &clone_opts);
-
+			int error = git_clone(&repo, SCRIPT_REPOSITORY_URL, local_path, &clone_opts);
 			if (error != 0) {
-				e = giterr_last();
-				siril_log_color_message(_("Error cloning repository into %s: %s\n"), "red", local_path, e->message);
+				const git_error *e = giterr_last();
+				siril_log_color_message(_("Error cloning repository into %s: %s\n"),
+					"red", local_path, e->message);
 				gui.script_repo_available = FALSE;
 				retval = 1;
 				goto cleanup;
 			} else {
 				siril_log_message(_("Repository cloned successfully!\n"));
+				gui.script_repo_available = TRUE;
 			}
 		} else {
 			siril_log_message(_("Siril is in offline mode. Will not attempt to clone remote repository.\n"));
@@ -803,14 +830,11 @@ int auto_update_gitscripts(gboolean sync) {
 			retval = 1;
 			goto cleanup;
 		}
-	} else {
-		siril_debug_print("Local scripts repository opened successfully!\n");
 	}
-	gui.script_repo_available = TRUE;
 
 	// Check we are using the correct repository
 	const char *remote_name = "origin";
-	error = git_remote_lookup(&remote, repo, remote_name);
+	int error = git_remote_lookup(&remote, repo, remote_name);
 	if (error != 0) {
 		siril_log_color_message(_("Failed to lookup remote.\n"), "red");
 		retval = 1;
@@ -959,31 +983,68 @@ int auto_update_gitspcc(gboolean sync) {
 	// Clone options
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
 
-	// See if the repository already exists
-	int error = siril_repository_open(&repo, local_path);
+	// Check if directory exists
+	if (g_file_test(local_path, G_FILE_TEST_IS_DIR)) {
+		siril_debug_print("Directory exists, attempting to open repository...\n");
 
-	if (error != 0) {
-		const git_error *e = giterr_last();
-		siril_debug_print("Cannot open repository: %s\nAttempting to clone from remote source...\n", e ? e->message : "");
-		// Perform the clone operation
-		error = git_clone(&repo, SPCC_REPOSITORY_URL, local_path, &clone_opts);
+		// Try to open existing repository
+		int error = siril_repository_open(&repo, local_path);
+		if (error == 0) {
+			// Repository opened successfully
+			siril_debug_print("Local SPCC database repository opened successfully!\n");
+			gui.spcc_repo_available = TRUE;
+		} else {
+			// Failed to open repository - directory exists but isn't a valid repo
+			const git_error *e = giterr_last();
+			siril_debug_print("Cannot open repository: %s\n", e ? e->message : "");
+			siril_log_message(_("Existing directory is not a valid git repository. Cleaning up...\n"));
+
+			// Delete the existing directory
+			GError *delete_error = NULL;
+			if (!delete_directory(local_path, &delete_error)) {
+				siril_log_color_message(_("Error deleting existing directory %s: %s\n"),
+					"red", local_path, delete_error->message);
+				g_error_free(delete_error);
+				gui.spcc_repo_available = FALSE;
+				retval = 1;
+				goto cleanup;
+			}
+
+			// Now attempt to clone into the clean directory
+			siril_log_message(_("Attempting to clone from remote source...\n"));
+			error = git_clone(&repo, SPCC_REPOSITORY_URL, local_path, &clone_opts);
+			if (error != 0) {
+				e = giterr_last();
+				siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
+				gui.spcc_repo_available = FALSE;
+				retval = 1;
+				goto cleanup;
+			} else {
+				siril_log_message(_("Repository cloned successfully!\n"));
+				gui.spcc_repo_available = TRUE;
+			}
+		}
+	} else {
+		// Directory doesn't exist - clone it
+		siril_debug_print("Directory doesn't exist, attempting to clone...\n");
+		siril_log_message(_("Attempting to clone from remote source...\n"));
+
+		int error = git_clone(&repo, SPCC_REPOSITORY_URL, local_path, &clone_opts);
 		if (error != 0) {
-			e = giterr_last();
+			const git_error *e = giterr_last();
 			siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
 			gui.spcc_repo_available = FALSE;
 			retval = 1;
 			goto cleanup;
 		} else {
 			siril_log_message(_("Repository cloned successfully!\n"));
+			gui.spcc_repo_available = TRUE;
 		}
-	} else {
-		siril_debug_print("Local SPCC database repository opened successfully!\n");
 	}
-	gui.spcc_repo_available = TRUE;
 
 	// Check we are using the correct repository
 	const char *remote_name = "origin";
-	error = git_remote_lookup(&remote, repo, remote_name);
+	int error = git_remote_lookup(&remote, repo, remote_name);
 	if (error != 0) {
 		siril_log_color_message(_("Failed to lookup remote.\n"), "red");
 		retval = 1;

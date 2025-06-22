@@ -884,7 +884,7 @@ static void reset_cursors_and_values(gboolean full_reset) {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP")), _HP);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtBP")), _BP);
 		if (full_reset) {
-			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 1);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 0);
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payneTyp")), 0);
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("histo_clip_mode")), 0);
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")), TRUE);

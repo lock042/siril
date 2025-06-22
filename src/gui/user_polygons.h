@@ -19,7 +19,9 @@ int add_user_polygon(point *points, int num_points, const GdkRGBA *color, gboole
 gboolean delete_user_polygon(int id);
 void clear_user_polygons(void);
 UserPolygon* deserialize_polygon(const uint8_t *data, size_t size);
+UserPolygon* create_user_polygon_from_points(GSList *point_list);
+int add_existing_polygon(UserPolygon* poly, const GdkRGBA *color, gboolean fill);
 uint8_t* serialize_polygon(UserPolygon *polygon, size_t *size);
-uint8_t* serialize_polygon_list(GList *polygons, size_t *out_size);
+uint8_t* serialize_polygon_list(GSList *polygons, size_t *out_size);
 
 #endif // GUI_USER_POLYGONS_H

@@ -23,7 +23,8 @@ from .translations import _
 from .shm import SharedMemoryWrapper, _SharedMemoryInfo
 from .plot import PlotData
 from .exceptions import SirilError, DataError, SirilConnectionError, CommandError, \
-        NoImageError, NoSequenceError, SharedMemoryError, ProcessingThreadBusyError, ImageDialogOpenError
+        NoImageError, NoSequenceError, SharedMemoryError, ProcessingThreadBusyError, \
+        ImageDialogOpenError, MouseModeError
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, \
         DistoData, Sequence, SequenceType, Polygon
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
@@ -4008,12 +4009,37 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(f"Error in overlay_clear_polygons(): {e}") from e
 
+    def overlay_draw_polygon(self, color=0x00FF0040, fill=False):
+        """
+        Enters a mode where the user can draw a Polygon in the Siril window
+        by clicking the main mouse button and dragging. Releasing the mouse
+        button finalises and closes the polygon.
+
+        Args:
+            color: uint32 specifying packed RGBA values. Default: 0x00FF0040, 75% transparent green)
+            fill: bool specifying whether or not to fill the polygon (default: False)
+        """
+        payload = struct.pack('!I?', color, fill)
+        status, response = self._send_command(_Command.DRAW_POLYGON, payload)
+        if status == _Status.ERROR:
+            if response:
+                error_msg = response.decode('utf-8', errors='replace')
+                if "no image loaded" in error_msg.lower():
+                    raise NoImageError(_("No image is currently loaded in Siril"))
+                raise SirilConnectionError(_("Server error: {}").format(error_msg))
+            raise SirilConnectionError(_("Failed to confirm command: Empty response"))
+
+        if status == _Status.NONE:
+            # Not a serious error but raising this allows it to be handled
+            raise MouseModeError(_("Cannot draw a polygon at present"))
+
     def overlay_get_polygon(self, polygon_id: int) -> 'Polygon':
         """
         Gets a single user polygon from the Siril overlay, specified by ID
 
         Args:
-            id: int specifying the polygon ID to be deleted
+            id: int specifying the polygon ID to be retrieved. The special ID -1 will
+        retrieve the most recently added polygon.
 
         Returns:
             Polygon: the specified Polygon if it exists, None otherwise
@@ -4033,7 +4059,7 @@ class SirilInterface:
                     if "no image loaded" in error_msg.lower():
                         raise NoImageError(_("No image is currently loaded in Siril"))
                     raise SirilConnectionError(_("Server error: {}").format(error_msg))
-                raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
+                raise SirilConnectionError(_("Failed to confirm command: Empty response"))
 
             if status == _Status.NONE:
                 return None # May be correct if there are no user polygons defined
