@@ -807,6 +807,8 @@ gpointer cfa_cut(gpointer p) {
 		goto END;
 	}
 	build_profile_filenames(arg, &filename, &imagefilename);
+	sensor_pattern pattern = get_validated_cfa_pattern(arg->fit, FALSE);
+	const gchar* pattern_str = filter_pattern[pattern];
 
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
 	if (arg->fit->type == DATA_USHORT) {
@@ -881,10 +883,15 @@ gpointer cfa_cut(gpointer p) {
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
-	siril_plot_add_xydata(spl_data, "CFA0", nbr_points, x, r[0], NULL, NULL);
-	siril_plot_add_xydata(spl_data, "CFA1", nbr_points, x, r[1], NULL, NULL);
-	siril_plot_add_xydata(spl_data, "CFA2", nbr_points, x, r[2], NULL, NULL);
-	siril_plot_add_xydata(spl_data, "CFA3", nbr_points, x, r[3], NULL, NULL);
+	for (int i = 0; i < 4; i++) {
+		int k = (i + 2) % 4;
+		const char *label = pattern_str[k] == 'R' ? "Red" : pattern_str[k] == 'G' ? "Green" : pattern_str[k] == 'B' ? "Blue" : "Error";
+		siril_plot_add_xydata(spl_data, label, nbr_points, x, r[i], NULL, NULL);
+		double color[3] = { 0.0, 0.0, 0.0 };
+		int j = pattern_str[k] == 'R' ? 0 : pattern_str[k] == 'G' ? 1 : pattern_str[k] == 'B' ? 2 : 3;
+		color[j] = 1.;
+		siril_plot_set_nth_color(spl_data, i + 1, color);
+	}
 	if (arg->save_dat)
 		siril_plot_save_dat(spl_data, filename, FALSE);
 	if (arg->save_png_too || !arg->display_graph)
