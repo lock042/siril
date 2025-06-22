@@ -69,7 +69,6 @@ typedef enum {
 	BAYER_IGV,
 	BAYER_LMMSE,
 	BAYER_RCD,
-	BAYER_SUPER_PIXEL,
 	XTRANS
 } interpolation_method;
 

@@ -1140,8 +1140,8 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		 * to be BAYER_BILINEAR
 		 */
 		sensor_pattern sensortmp = convert_color_id_to_bayer_pattern(type_ser);
-		demosaiced_buf = debayer_buffer(rawbuf, &debayer_area.w,
-				&debayer_area.h, BAYER_BILINEAR, sensortmp, ser_file->bit_pixel_depth);
+		demosaiced_buf = debayer_buffer_new_ushort(rawbuf, &debayer_area.w,
+				&debayer_area.h, BAYER_BILINEAR, sensortmp, NULL, ser_file->bit_pixel_depth);
 		free(rawbuf);
 		if (!demosaiced_buf)
 			return SER_GENERIC_ERROR;
