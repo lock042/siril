@@ -819,7 +819,7 @@ int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
 	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	if (type_ser >= SER_BAYER_RGGB && type_ser <= SER_BAYER_BGGR) {
 		const gchar *ser_pattern = convert_color_id_to_char(type_ser);
-		sprintf(fit->keywords.bayer_pattern, flip_bayer_pattern(ser_pattern));
+		sprintf(fit->keywords.bayer_pattern, "%s", flip_bayer_pattern(ser_pattern));
 		fit->debayer_checked = TRUE;
 		fit->top_down = TRUE;
 		snprintf(fit->keywords.row_order, FLEN_VALUE, "TOP-DOWN");
