@@ -604,7 +604,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 	display_filename();		// display filename in gray window
 	gui_function(set_precision_switch, NULL); // set precision on screen
 	adjust_refimage(seq->current);	// check or uncheck reference image checkbox
-	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
+	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ || seq->type == SEQ_SER); // enable or not the preprobutton
 	update_reg_interface(FALSE);	// change the registration prereq message
 	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
 	adjust_reginfo();		// change registration displayed/editable values

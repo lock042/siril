@@ -73,9 +73,8 @@ const char *filter_pattern[] = {
 };
 const size_t num_filter_patterns = G_N_ELEMENTS(filter_pattern);
 
-/** Calculate the bayer pattern color from the row and column **/
-static inline int FC(const size_t row, const size_t col, const uint32_t filters) {
-	return filters >> (((row << 1 & 14) + (col & 1)) << 1) & 3;
+static int FC(int row, int col, unsigned int filters) {
+	return (filters >> (((row << 1) & 14) + (col & 1)) << 1) & 3;
 }
 
 /* width and height are sizes of the original image */
@@ -913,23 +912,22 @@ static int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern, gboolean top
 	}
 
 	/* read bottom-up */
-	if (!top_down && !(fit->ry % 2)) {
-		switch (*pattern) {
-		case BAYER_FILTER_RGGB:
-			*pattern = BAYER_FILTER_GBRG;
-			break;
-		case BAYER_FILTER_BGGR:
-			*pattern = BAYER_FILTER_GRBG;
-			break;
-		case BAYER_FILTER_GBRG:
-			*pattern = BAYER_FILTER_RGGB;
-			break;
-		case BAYER_FILTER_GRBG:
-			*pattern = BAYER_FILTER_BGGR;
-			break;
-		default:
-			return 1;
+	if (!top_down) {
+		// we perform the pattern flip accounting for offset in case 
+		// the image does not have an even number of rows
+		const char *bayer = filter_pattern[*pattern];
+		char bayer_flipped[5];
+		memset(bayer_flipped, 0, sizeof(bayer_flipped));
+		int offset = fit->ry % 2;
+		for (int i = 0; i < 2; i++) {
+			int y = (1 - i + offset) % 2;
+			for (int j = 0; j < 2; j++) {
+				int index_in = y * 2 + j;
+				int index_out = i * 2 + j;
+				bayer_flipped[index_out] = bayer[index_in];
+			}
 		}
+		*pattern = get_cfa_pattern_index_from_string(bayer_flipped);
 	}
 	return 0;
 }
@@ -1577,33 +1575,19 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 	return out;
 }
 
-static unsigned int compile_bayer_pattern(sensor_pattern pattern) {
-	/* red is 0, green is 1, blue is 2 */
-	switch (pattern) {
-		case BAYER_FILTER_RGGB:
-			return cpu_to_be32(0x00010102);
-		case BAYER_FILTER_BGGR:
-			return cpu_to_be32(0x02010100);
-		case BAYER_FILTER_GBRG:
-			return cpu_to_be32(0x01020001);
-		case BAYER_FILTER_GRBG:
-			return cpu_to_be32(0x01000201);
-		default:
-			return 0x03030303;
-	}
-}
-
-/* from the header description of the color filter array, we create a mask that
- * contains filter values for top-down reading */
-static int get_compiled_pattern(fits *fit, int layer, BYTE pattern[36], int *pattern_size) {
-	g_assert(layer >= 0 && layer < 3);
+/* from the header description of the color filter array, we create a BYTE mask that
+ * contains filter values */
+int get_compiled_pattern(fits *fit, BYTE pattern[36], int *pattern_size) {
 	sensor_pattern idx = get_validated_cfa_pattern(fit, FALSE);
 
 	if (idx >= BAYER_FILTER_MIN && idx <= BAYER_FILTER_MAX) {
 		/* 2x2 Bayer matrix */
-		*((unsigned int *)pattern) = compile_bayer_pattern(idx);
+		const gchar *cfa_str = filter_pattern[idx];
+		for (int i = 0; i < 4; i++)
+			pattern[i] = (BYTE)(cfa_str[i] == 'R' ? RLAYER :
+								cfa_str[i] == 'G' ? GLAYER :
+								cfa_str[i] == 'B' ? BLAYER : 3);
 		*pattern_size = 2;
-		siril_debug_print("extracting CFA data for filter %d on Bayer pattern\n", layer);
 		return 0;
 	}
 	else if (idx >= XTRANS_FILTER_1 && idx <= XTRANS_FILTER_4) {
@@ -1618,16 +1602,37 @@ static int get_compiled_pattern(fits *fit, int layer, BYTE pattern[36], int *pat
 		for (int i = 0; i < 36; i++)
 			pattern[i] = (BYTE)(((unsigned int *)xtrans)[i]);
 		*pattern_size = 6;
-		siril_debug_print("extracting CFA data for filter %d on X-Trans pattern\n", layer);
 		return 0;
 	}
 	return 1;
 }
 
+/** Calculate the filter color from a pattern array(in BYTE) using the row, column and pattern size
+ * For size == 2, it uses bitwise operations that perform faster
+ * Other wise it uses modulo which is slower
+ **/
+int FC_array(int row, int col, BYTE* bpattern, int size) {
+	if (size == 2) {
+		return bpattern[(row & 1) << 1 | (col & 1)];
+	} else {
+		// Direct array access with modulo
+		return bpattern[((row % size) * size + (col % size))];
+	}
+}
+
+gboolean compare_compiled_pattern(BYTE *refpattern, BYTE *pattern, int pattern_size) {
+	int length  = pattern_size * pattern_size;
+	for (int i = 0; i < length; i++) {
+		if (refpattern[i] != pattern[i])
+			return FALSE;
+	}
+	return TRUE;
+}
+
 WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
 	BYTE pattern[36];	// red is 0, green is 1, blue is 2
 	int pattern_size;	// 2 or 6
-	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+	if (get_compiled_pattern(fit, pattern, &pattern_size))
 		return NULL;
 
 	// alloc buffer
@@ -1668,7 +1673,7 @@ WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
 WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, size_t *newsize) {
 	BYTE pattern[36];	// red is 0, green is 1, blue is 2
 	int pattern_size;	// 2 or 6
-	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+	if (get_compiled_pattern(fit, pattern, &pattern_size))
 		return NULL;
 	siril_debug_print("CFA buffer extraction with area\n");
 
@@ -1712,7 +1717,7 @@ WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, si
 float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
 	BYTE pattern[36];	// red is 0, green is 1, blue is 2
 	int pattern_size;	// 2 or 6
-	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+	if (get_compiled_pattern(fit, pattern, &pattern_size))
 		return NULL;
 
 	// alloc buffer
@@ -1753,7 +1758,7 @@ float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
 float *extract_CFA_buffer_area_float(fits *fit, int layer, rectangle *bounds, size_t *newsize) {
 	BYTE pattern[36];	// red is 0, green is 1, blue is 2
 	int pattern_size;	// 2 or 6
-	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+	if (get_compiled_pattern(fit, pattern, &pattern_size))
 		return NULL;
 	siril_debug_print("CFA buffer extraction with area\n");
 

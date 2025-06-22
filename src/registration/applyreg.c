@@ -433,7 +433,20 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->error = malloc(sizeof(struct driz_error_t));
 		p->scale = scale;
 		p->pixel_fraction = driz->pixel_fraction;
-		p->cfa = driz->cfa;
+		BYTE cfa[36];
+		int cfadim = 0;
+		if (get_compiled_pattern(fit, cfa, &cfadim)) {
+			siril_log_color_message(_("Drizzle: Could not get compiled CFA pattern from the image.\n"), "red");
+			free(p->error);
+			free(p->pixmap);
+			free(p);
+			return 1;
+		}
+		if (cfadim != driz->cfadim || !compare_compiled_pattern(driz->cfa, cfa, driz->cfadim)) {
+			siril_log_color_message(_("Drizzle: CFA pattern mismatch between reference image and image #%d, using reference pattern.\n"), "salmon", in_index + 1);
+		}
+		memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
+		p->cfadim = driz->cfadim;
 		// Set bounds equal to whole image
 		p->xmin = p->ymin = 0;
 		p->xmax = fit->rx - 1;
@@ -474,7 +487,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		fits out = { 0 };
 		copyfits(fit, &out, CP_FORMAT, -1);
 		// copy the DATE_OBS
-		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
+		if (fit->keywords.date_obs)
+			out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
 		// keep the astrometry for later
 		wcsprm_t *wcs_out = NULL;
 		if (has_wcs(fit)) {
@@ -506,7 +520,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		clearfits(fit);
 		// copy the DATE_OBS
 		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
+		if (out.keywords.date_obs)
+			fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
 		clearfits(&out);
 		// restore the astrometry
 		if (wcs_out) {
@@ -797,10 +812,15 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	if (seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
 	}
-	sensor_pattern pattern = get_validated_cfa_pattern(&fit, FALSE);
-	driz->is_bayer = fit.naxes[2] == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(fit.keywords.bayer_pattern);
+	driz->is_bayer = fit.naxes[2] == 1 && pattern >= BAYER_FILTER_MIN; // any pattern above BAYER_FILTER_MIN is a valid pattern, that includes XTrans;
+	int cfadim = 0;
+	if (driz->is_bayer && get_compiled_pattern(&fit, driz->cfa, &cfadim)) {
+		siril_log_color_message(_("Warning: the CFA pattern in the reference image is not supported by drizzle.\n"), "red");
+		return 1;
+	}
 	if (driz->is_bayer)
-		driz->cfa = get_cfa_from_pattern(pattern);
+		driz->cfadim = (int)cfadim;
 	return 0;
 }
 
@@ -961,7 +981,8 @@ int register_apply_reg(struct registration_args *regargs) {
 			retval = -1;
 			goto END;
 		}
-		regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
+		if (ref.keywords.date_obs)
+			regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
 		clearfits(&ref);
 	}
 
