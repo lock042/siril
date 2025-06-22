@@ -410,17 +410,6 @@ static void update_misc_preferences() {
 	com.pref.gui.enable_roi_warning = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscHideInfoROI"))) ? FALSE : TRUE;
 }
 
-void on_checkbutton_use_header_toggled(GtkToggleButton *button, gpointer user_data) {
-	gboolean active = !gtk_toggle_button_get_active(button);
-	GtkWidget *combo = lookup_widget("comboBayer_pattern");
-	GtkWidget *spin1 = lookup_widget("xbayeroff_spin");
-	GtkWidget *spin2 = lookup_widget("ybayeroff_spin");
-
-	gtk_widget_set_sensitive(combo, active);
-	gtk_widget_set_sensitive(spin1, active);
-	gtk_widget_set_sensitive(spin2, active);
-}
-
 void on_photometry_force_radius_button_toggled(GtkToggleButton *button, gpointer user_data) {
 //	GtkWidget *spin = (GtkWidget *)user_data;
 	GtkWidget *spin1 = lookup_widget("spinAperture");
