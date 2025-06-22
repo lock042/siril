@@ -883,13 +883,33 @@ gpointer cfa_cut(gpointer p) {
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
+	gboolean first_green = TRUE;
 	for (int i = 0; i < 4; i++) {
-		int k = (i + 2) % 4;
-		const char *label = pattern_str[k] == 'R' ? "Red" : pattern_str[k] == 'G' ? "Green" : pattern_str[k] == 'B' ? "Blue" : "Error";
-		siril_plot_add_xydata(spl_data, label, nbr_points, x, r[i], NULL, NULL);
 		double color[3] = { 0.0, 0.0, 0.0 };
-		int j = pattern_str[k] == 'R' ? 0 : pattern_str[k] == 'G' ? 1 : pattern_str[k] == 'B' ? 2 : 3;
-		color[j] = 1.;
+		const char *label;
+		switch (pattern_str[i]) {
+			case 'R':
+				label = "Red";
+				color[0] = 1.0;
+				break;
+			case 'G':
+			//RGB(0.078, 0.392, 0.078)
+			//RGB(0.196, 1.0, 0.196)
+				label = first_green ? "Green1" : "Green2";
+				color[0] = first_green ? 0.078 : 0.196;
+				color[1] = first_green ? 0.392 : 1.000;
+				color[2] = first_green ? 0.078 : 0.196;
+				first_green = FALSE;
+				break;
+			case 'B':
+				label = "Blue";
+				color[2] = 1.0;
+				break;
+			default:
+				label = "Error";
+				break;
+		}
+		siril_plot_add_xydata(spl_data, label, nbr_points, x, r[i], NULL, NULL);
 		siril_plot_set_nth_color(spl_data, i + 1, color);
 	}
 	if (arg->save_dat)

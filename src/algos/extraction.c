@@ -920,11 +920,10 @@ int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	int j = 0;
 	for (int row = 0; row < in->ry - 1; row += 2) {
 		for (int col = 0; col < in->rx - 1; col += 2) {
-			/* not c0, c1, c2 and c3 because of the read orientation */
-			WORD c2 = in->data[col + row * in->rx];
-			WORD c3 = in->data[1 + col + row * in->rx];
-			WORD c0 = in->data[col + (1 + row) * in->rx];
-			WORD c1 = in->data[1 + col + (1 + row) * in->rx];
+			WORD c0 = in->data[col + row * in->rx];
+			WORD c1 = in->data[1 + col + row * in->rx];
+			WORD c2 = in->data[col + (1 + row) * in->rx];
+			WORD c3 = in->data[1 + col + (1 + row) * in->rx];
 
 			cfa0->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c0) : c0;
 			cfa1->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c1) : c1;
@@ -991,10 +990,10 @@ int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	for (int row = 0; row < in->ry - 1; row += 2) {
 		for (int col = 0; col < in->rx - 1; col += 2) {
 			/* not c0, c1, c2 and c3 because of the read orientation */
-			float c2 = in->fdata[col + row * in->rx];
-			float c3 = in->fdata[1 + col + row * in->rx];
-			float c0 = in->fdata[col + (1 + row) * in->rx];
-			float c1 = in->fdata[1 + col + (1 + row) * in->rx];
+			float c0 = in->fdata[col + row * in->rx];
+			float c1 = in->fdata[1 + col + row * in->rx];
+			float c2 = in->fdata[col + (1 + row) * in->rx];
+			float c3 = in->fdata[1 + col + (1 + row) * in->rx];
 
 			cfa0->fdata[j] = c0;
 			cfa1->fdata[j] = c1;
