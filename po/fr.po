@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-17 12:49+0200\n"
-"PO-Revision-Date: 2025-06-11 20:06+0000\n"
+"PO-Revision-Date: 2025-06-20 02:28+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -15291,7 +15291,7 @@ msgstr "Alignement interrompu.\n"
 
 #: src/compositing/compositing.c:2021
 msgid "Error: internal RGB composition sequence does not exist\n"
-msgstr ""
+msgstr "Erreur : la séquence de composition RVB interne n'existe pas\n"
 
 #: src/core/OS_utils.c:359
 msgid "Error while computing available free disk space.\n"
@@ -26949,12 +26949,12 @@ msgstr "Message de validation : %s\n"
 
 #: src/io/siril_git.c:794 src/io/siril_git.c:1020
 msgid "Existing directory is not a valid git repository. Cleaning up...\n"
-msgstr ""
+msgstr "Le répertoire existant n'est pas un dépôt git valide. Nettoyage...\n"
 
 #: src/io/siril_git.c:799 src/io/siril_git.c:1025
-#, fuzzy, c-format
+#, c-format
 msgid "Error deleting existing directory %s: %s\n"
-msgstr "Erreur d'ouverture du répertoire : %s\n"
+msgstr "Erreur lors de la suppression du répertoire existant %s : %s\n"
 
 #. Now attempt to clone into the clean directory
 #: src/io/siril_git.c:809 src/io/siril_git.c:834 src/io/siril_git.c:1034
@@ -27388,11 +27388,11 @@ msgstr "Impossible de créer la nouvelle séquence"
 
 #: src/io/siril_pythoncommands.c:2428
 msgid "Wrong mouse mode"
-msgstr ""
+msgstr "Mauvais mode de la souris"
 
 #: src/io/siril_pythoncommands.c:2438
 msgid "Invalid payload for CMD_DRAW_POLYGON"
-msgstr ""
+msgstr "Chargement non valide pour CMD_DRAW_POLYGON"
 
 #: src/io/siril_pythoncommands.c:2446
 msgid "Unknown command"

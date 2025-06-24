@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-17 12:49+0200\n"
-"PO-Revision-Date: 2025-06-11 21:18+0000\n"
+"PO-Revision-Date: 2025-06-23 00:12+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -13951,7 +13951,7 @@ msgstr "对齐操作异常中止。\n"
 
 #: src/compositing/compositing.c:2021
 msgid "Error: internal RGB composition sequence does not exist\n"
-msgstr ""
+msgstr "错误：内部RGB合成序列不存在\n"
 
 #: src/core/OS_utils.c:359
 msgid "Error while computing available free disk space.\n"
@@ -24518,12 +24518,12 @@ msgstr "提交消息：%s\n"
 
 #: src/io/siril_git.c:794 src/io/siril_git.c:1020
 msgid "Existing directory is not a valid git repository. Cleaning up...\n"
-msgstr ""
+msgstr "现有的git仓库目录无效。清理中...\n"
 
 #: src/io/siril_git.c:799 src/io/siril_git.c:1025
-#, fuzzy, c-format
+#, c-format
 msgid "Error deleting existing directory %s: %s\n"
-msgstr "打开目录时出错：%s\n"
+msgstr "删除现有目录%s时出错：%s\n"
 
 #. Now attempt to clone into the clean directory
 #: src/io/siril_git.c:809 src/io/siril_git.c:834 src/io/siril_git.c:1034
@@ -24937,11 +24937,11 @@ msgstr "无法创建新序列"
 
 #: src/io/siril_pythoncommands.c:2428
 msgid "Wrong mouse mode"
-msgstr ""
+msgstr "鼠标模式错误"
 
 #: src/io/siril_pythoncommands.c:2438
 msgid "Invalid payload for CMD_DRAW_POLYGON"
-msgstr ""
+msgstr "CMD_DRAW_POLYGON的载荷无效"
 
 #: src/io/siril_pythoncommands.c:2446
 msgid "Unknown command"

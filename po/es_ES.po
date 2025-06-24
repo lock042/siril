@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-17 12:49+0200\n"
-"PO-Revision-Date: 2025-06-17 10:22+0000\n"
+"PO-Revision-Date: 2025-06-24 06:22+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -6970,38 +6970,40 @@ msgid ""
 "Preferred <a href=\"https://minorplanetcenter.net/iau/lists/"
 "ObsCodesF.html\">IAU Observatory Code</a>"
 msgstr ""
+"<a href=\"https://minorplanetcenter.net/iau/lists/ObsCodesF.html\">Código "
+"Observatorio IAU</a> preferido"
 
 #: src/gui/uifiles/settings_window.ui:1221
-#, fuzzy
 msgid ""
 "Purge Solar Sys\n"
 "user Catalog"
-msgstr "Limpiar Catálogo de Usuario"
+msgstr ""
+"Limpiar Catálogo sistema\n"
+"solar de usuario"
 
 #: src/gui/uifiles/settings_window.ui:1226
-#, fuzzy
 msgid ""
 "Purge the SOLAR SYSTEM user catalog by deleting the file. The operation "
 "cannot be undone"
 msgstr ""
-"Vaciar el catálogo de usuario borrando el fichero. Esta operación no se "
-"puede deshacer"
+"Vaciar el catálogo de usuario del SISTEMA SOLAR borrando el fichero. Esta "
+"operación no se puede deshacer"
 
 #: src/gui/uifiles/settings_window.ui:1238
-#, fuzzy
 msgid ""
 "Purge Deep Sky\n"
 "user Catalog"
-msgstr "Limpiar Catálogo de Usuario"
+msgstr ""
+"Limpiar Catálogo Cielo\n"
+"Profundo de usuario"
 
 #: src/gui/uifiles/settings_window.ui:1243
-#, fuzzy
 msgid ""
 "Purge the DEEP SKY user catalog by deleting the file. The operation cannot "
 "be undone"
 msgstr ""
-"Vaciar el catálogo de usuario borrando el fichero. Esta operación no se "
-"puede deshacer"
+"Vaciar el catálogo de usuario de CIELO PROFUNDO borrando el fichero. Esta "
+"operación no se puede deshacer"
 
 #: src/gui/uifiles/settings_window.ui:1285
 msgid "Annotations"
@@ -7083,6 +7085,10 @@ msgid ""
 "\n"
 "<b>namedstars.dat</b>: the brightest stars, all of them have names."
 msgstr ""
+"Estos cuatro catálogos de  KStars se usan para resolver imágenes y "
+"astrometría.\n"
+"\n"
+"<b>namedstars.dat</b>: las estrellas más brillantes, todas tienen nombre."
 
 #: src/gui/uifiles/settings_window.ui:1424
 msgid ""
@@ -7091,24 +7097,32 @@ msgid ""
 "\n"
 "<b>unnamedstars.dat</b>: also bright stars, but down to magnitude 8"
 msgstr ""
+"Estos cuatro catálogos de  KStars se usan para resolver imágenes y "
+"astrometría.\n"
+"\n"
+"<b>unnamedstars.dat</b>: también estrellas  brillantes, pero hasta magnitud "
+"8."
 
 #: src/gui/uifiles/settings_window.ui:1440
-#, fuzzy
 msgid ""
 "Specify the location of the namedstars.dat star catalogue on your system."
-msgstr "No se puede proyectar el catálogo de estrellas."
+msgstr ""
+"Especificar la ubicación del catálogo de estrellas namedstars.dat en el "
+"sistema."
 
 #: src/gui/uifiles/settings_window.ui:1452
-#, fuzzy
 msgid ""
 "Specify the location of the unnamedstars.dat star catalogue on your system."
-msgstr "No se puede descargar el catálogo online de estrellas."
+msgstr ""
+"Especificar la ubicación del catálogo de estrellas unnamedstars.dat en el "
+"sistema."
 
 #: src/gui/uifiles/settings_window.ui:1464
-#, fuzzy
 msgid ""
 "Specify the location of the deepstars.dat star catalogue on your system."
-msgstr "No se puede proyectar el catálogo de estrellas."
+msgstr ""
+"Especificar la ubicación del catálogo de estrellas deepstars.dat en el "
+"sistema."
 
 #: src/gui/uifiles/settings_window.ui:1476
 msgid ""
@@ -7118,12 +7132,18 @@ msgid ""
 "<b>deepstars.dat</b>: fainter stars extracted from The Tycho-2 Catalogue of "
 "the 2.5 Million Brightest Stars, down to magnitude 12.5"
 msgstr ""
+"Estos cuatro catálogos de  KStars se usan para resolver imágenes y "
+"astrometría.\n"
+"\n"
+"<b>deepstars.dat</b>: estrellas débiles extraídas del catálogo Tycho-2 de "
+"2.5 millones de estrellas brillantes hasta magnitud 12.5."
 
 #: src/gui/uifiles/settings_window.ui:1492
-#, fuzzy
 msgid ""
 "Specify the location of the USNO-NOMAD-1e8.dat star catalogue on your system."
-msgstr "No se puede proyectar el catálogo de estrellas."
+msgstr ""
+"Especificar la ubicación del catálogo de estrellas USNO-NOMAD-1e8.dat en el "
+"sistema."
 
 #: src/gui/uifiles/settings_window.ui:1504
 msgid ""
@@ -7134,16 +7154,20 @@ msgid ""
 "B-V photometric information and star proper motion in a compact binary form, "
 "down to magnitude 18."
 msgstr ""
+"Estos cuatro catálogos de  KStars se usan para resolver imágenes y "
+"astrometría.\n"
+"\n"
+"<b>USNO-NOMAD-1e8.dat</b>: un extracto del enorme catálogo NOMAD catalogue "
+"limitado a información fotométrica B-V y a estrellas con movimiento propio "
+"en forma binaria compacta, hasta magnitud 18."
 
 #: src/gui/uifiles/settings_window.ui:1520
-#, fuzzy
 msgid "Gaia astrometric extract:"
-msgstr "Aplicar la transformación del histograma"
+msgstr "Extracto astrométrico de Gaia:"
 
 #: src/gui/uifiles/settings_window.ui:1532
-#, fuzzy
 msgid "Gaia photometric extract:"
-msgstr "Catálogo Fotométrico de Estrellas: "
+msgstr "Extracto fotométrico de Gaia:"
 
 #: src/gui/uifiles/settings_window.ui:1543
 msgid ""
@@ -7151,6 +7175,9 @@ msgid ""
 "of its size this catalogue is divided into chunks, so you need only select "
 "the folder."
 msgstr ""
+"Especificar la ubicación del catálogo fotométrico de Gaia. Debido a su "
+"tamaño, este catálogo es dividido en dos partes, por lo que solo debe "
+"seleccionarse la carpeta."
 
 #: src/gui/uifiles/settings_window.ui:1545
 #, fuzzy
