@@ -428,6 +428,16 @@ endif
 libgit2_dep = no_dep
 if enable_libgit2
   libgit2_dep = dependency('libgit2', required : true)
+  if libgit2_dep.version().version_compare('>=1.8.1') and libgit2_dep.version().version_compare('<1.9.1')
+    libgit2_warning='''
+
+        libgit2 with a version between 1.8.0 and 1.9.0 is known to have serious issues.
+        https://github.com/libgit2/libgit2/issues/7090
+        Please update to 1.9.1 or later.
+    '''
+    warning(libgit2_warning)
+    warnings += libgit2_warning
+  endif
 endif
 
 ffms2_dep = no_dep
