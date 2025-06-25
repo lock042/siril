@@ -156,32 +156,82 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 	gchar *scriptname = NULL, *scriptpath = NULL;
 	gchar *contents = NULL;
 	gsize length;
-//	GError *error = NULL;
 	GtkTreeIter iter;
 	GtkTreeModel *model =
 		gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
 
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
-		contents = get_script_content_string_from_file_revision(scriptpath, 0, &length);
-		if (length > 0) {
-//		if (g_file_get_contents(scriptpath, &contents, &length, &error) &&
-//					length > 0) {
-			const char *ext = get_filename_ext(scriptpath);
-			new_script(contents, length, ext);
-			g_free(contents);
+
+		// Create dialog to ask for revision count
+		GtkWidget *dialog = gtk_dialog_new_with_buttons(
+			_("Select Revision"),
+			GTK_WINDOW(lookup_widget("control_window")), // Adjust parent window as needed
+			GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+			_("_Cancel"), GTK_RESPONSE_CANCEL,
+			_("_OK"), GTK_RESPONSE_OK,
+			NULL);
+
+		// Create content area
+		const gchar *tooltip = _("Leave at 0 to open the current version of the script. If you have a problem with "
+				"a script update you can use this to go back to earlier revisions. Start by going back 1 revison "
+				"and increase the number until you find the last version that worked for you. Note that this will "
+				"only open the previous version in the script editor, it will not revert the script in the local "
+				"repository, but it allows you to save a local copy in one of your script folders for use until the "
+				"upstream script is fixed.");
+		GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+		GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+		GtkWidget *label = gtk_label_new(_("Revisions to go back (leave at 0 to get current revision):"));
+		gtk_widget_set_tooltip_text(label, tooltip);
+		GtkWidget *spin_button = gtk_spin_button_new_with_range(0, 999, 1);
+		gtk_widget_set_tooltip_text(spin_button, tooltip);
+
+		// Set default value to 0 (current version)
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button), 0);
+
+		// Pack widgets
+		gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
+		gtk_box_pack_start(GTK_BOX(hbox), spin_button, FALSE, FALSE, 5);
+		gtk_container_add(GTK_CONTAINER(content_area), hbox);
+
+		// Set some padding
+		gtk_container_set_border_width(GTK_CONTAINER(content_area), 10);
+
+		// Show all widgets
+		gtk_widget_show_all(dialog);
+
+		// Run dialog and get response
+		gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+		if (response == GTK_RESPONSE_OK) {
+			// Get the selected revision count
+			int revisions_back = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button));
+
+			// Destroy dialog before potentially showing error dialogs
+			gtk_widget_destroy(dialog);
+
+			// Load script content with the specified revision
+			contents = get_script_content_string_from_file_revision(scriptpath, revisions_back, &length);
+
+			if (length > 0) {
+				const char *ext = get_filename_ext(scriptpath);
+				new_script(contents, length, ext);
+				g_free(contents);
+			} else {
+				gchar *msg = g_strdup_printf(_("Error loading script contents from %d revisions back: %s\n"),
+					revisions_back, scriptpath);
+				siril_log_color_message(msg, "red");
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
+				g_free(msg);
+			}
 		} else {
-//			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
-			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), scriptpath);
-			siril_log_color_message(msg, "red");
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
-			g_free(msg);
-//			g_error_free(error);
+			// User cancelled - just destroy dialog
+			gtk_widget_destroy(dialog);
 		}
 	}
+
 	g_free(scriptname);
 	g_free(scriptpath);
-
 }
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *char_path, gpointer user_data) {
