@@ -53,32 +53,6 @@ enum {
 	N_COLUMNS
 };
 
-/*
-static int reset_scripts_repository() {
-	// Local directory where the repository will be cloned
-	const gchar *local_path = siril_get_scripts_repo_path();
-	int retval = reset_repository(local_path);
-	if (!retval) {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"),
-			_("Success! The local repository is up-to-date with the remote."));
-	}
-	return retval;
-}
-*/
-
-/*
-static int reset_spcc_repository() {
-	// Local directory where the repository will be cloned
-	const gchar *local_path = siril_get_spcc_repo_path();
-	int retval = reset_repository(local_path);
-	if (!retval) {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"),
-				_("Success! The local repository is up-to-date with the remote."));
-	}
-	return retval;
-}
-*/
-
 static void get_list_store() {
 	if (list_store == NULL) {
 		list_store = GTK_LIST_STORE(
@@ -182,24 +156,27 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 	gchar *scriptname = NULL, *scriptpath = NULL;
 	gchar *contents = NULL;
 	gsize length;
-	GError *error = NULL;
+//	GError *error = NULL;
 	GtkTreeIter iter;
 	GtkTreeModel *model =
 		gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
 
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
-		if (g_file_get_contents(scriptpath, &contents, &length, &error) &&
-					length > 0) {
+		contents = get_script_content_string_from_file_revision(scriptpath, 0, &length);
+		if (length > 0) {
+//		if (g_file_get_contents(scriptpath, &contents, &length, &error) &&
+//					length > 0) {
 			const char *ext = get_filename_ext(scriptpath);
 			new_script(contents, length, ext);
 			g_free(contents);
 		} else {
-			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
+//			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
+			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), scriptpath);
 			siril_log_color_message(msg, "red");
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 			g_free(msg);
-			g_error_free(error);
+//			g_error_free(error);
 		}
 	}
 	g_free(scriptname);

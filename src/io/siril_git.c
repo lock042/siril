@@ -458,20 +458,40 @@ static gboolean script_version_check(const gchar *filename) {
 	return retval;
 }
 
-static gboolean
-version_meets_constraint(const version_number *current, const version_number *required, const gchar *op)
-{
-    int cmp = compare_version(*current, *required);
-
-    if (g_strcmp0(op, "==") == 0) return cmp == 0;
-    if (g_strcmp0(op, "!=") == 0) return cmp != 0;
-    if (g_strcmp0(op, ">=") == 0) return cmp >= 0;
-    if (g_strcmp0(op, "<=") == 0) return cmp <= 0;
-    if (g_strcmp0(op, ">")  == 0) return cmp > 0;
-    if (g_strcmp0(op, "<")  == 0) return cmp < 0;
-
-    // Unknown operator
-    return FALSE;
+static gboolean version_meets_constraint(version_number *current, version_number *constraint, const gchar *op) {
+	if (strcmp(op, "==") == 0)
+		return compare_version(*current, *constraint);
+	if (strcmp(op, "!=") == 0)
+		return !compare_version(*current, *constraint);
+	if (strcmp(op, "<") == 0) {
+		if (current->major_version < constraint->major_version) return TRUE;
+		if (current->major_version > constraint->major_version) return FALSE;
+		if (current->minor_version < constraint->minor_version) return TRUE;
+		if (current->minor_version > constraint->minor_version) return FALSE;
+		if (current->micro_version < constraint->micro_version) return TRUE;
+		if (current->micro_version > constraint->micro_version) return FALSE;
+		if (current->patched_version < constraint->patched_version) return TRUE;
+		return FALSE;
+	}
+	if (strcmp(op, ">") == 0) {
+		if (current->major_version > constraint->major_version) return TRUE;
+		if (current->major_version < constraint->major_version) return FALSE;
+		if (current->minor_version > constraint->minor_version) return TRUE;
+		if (current->minor_version < constraint->minor_version) return FALSE;
+		if (current->micro_version > constraint->micro_version) return TRUE;
+		if (current->micro_version < constraint->micro_version) return FALSE;
+		if (current->patched_version > constraint->patched_version) return TRUE;
+		return FALSE;
+	}
+	if (strcmp(op, "<=") == 0) {
+		return version_meets_constraint(current, constraint, "<") ||
+			version_meets_constraint(current, constraint, "==");
+	}
+	if (strcmp(op, ">=") == 0) {
+		return version_meets_constraint(current, constraint, ">") ||
+			version_meets_constraint(current, constraint, "==");
+	}
+	return FALSE;
 }
 
 static gboolean parse_version_string(const gchar *version_str, version_number *ver) {
@@ -1120,54 +1140,341 @@ cleanup:
 	return retval;
 }
 
-int preview_scripts_update(GString** git_pending_commit_buffer) {
-	// Initialize libgit2
-	git_libgit2_init();
+/**
+ * Checks if a file was modified between two commits
+ *
+ * @param repo Pointer to the git repository
+ * @param filepath Path to the file relative to repository root
+ * @param commit1 First commit to compare
+ * @param commit2 Second commit to compare
+ * @return 1 if file was modified, 0 if not modified, -1 on error
+ */
+static int file_modified_between_commits(git_repository *repo,
+                                       const char *filepath,
+                                       git_commit *commit1,
+                                       git_commit *commit2) {
+    git_tree *tree1 = NULL, *tree2 = NULL;
+    git_tree_entry *entry1 = NULL, *entry2 = NULL;
+    int error = 0;
+    int result = 0;
 
-	// Local directory where the repository will be cloned
-	const gchar *local_path = siril_get_scripts_repo_path();
+    // Get trees from both commits
+    error = git_commit_tree(&tree1, commit1);
+    if (error != 0) goto cleanup;
 
-	git_repository *repo = NULL;
-	int error = siril_repository_open(&repo, local_path);
-	if (error < 0) {
-		siril_debug_print("Error opening repository: %s\n", giterr_last()->message);
-		siril_log_color_message(_("Error: unable to open local scripts repository.\n"), "red");
-		gui.script_repo_available = FALSE;
-		return 1;
-	}
+    error = git_commit_tree(&tree2, commit2);
+    if (error != 0) goto cleanup;
 
-	// Fetch changes
-	lg2_fetch(repo);
-	// Analyse the repository against the remote
-	int retval = analyse(repo, git_pending_commit_buffer);
-	git_repository_free(repo);
-	git_libgit2_shutdown();
-	return retval;
+    // Try to find the file in both trees
+    int found1 = git_tree_entry_bypath(&entry1, tree1, filepath) == 0;
+    int found2 = git_tree_entry_bypath(&entry2, tree2, filepath) == 0;
+
+    // If file exists in one but not the other, it was modified (added/deleted)
+    if (found1 != found2) {
+        result = 1;
+        goto cleanup;
+    }
+
+    // If file doesn't exist in either, no modification
+    if (!found1 && !found2) {
+        result = 0;
+        goto cleanup;
+    }
+
+    // Both exist, compare their OIDs
+    const git_oid *oid1 = git_tree_entry_id(entry1);
+    const git_oid *oid2 = git_tree_entry_id(entry2);
+
+    result = git_oid_equal(oid1, oid2) ? 0 : 1;
+
+cleanup:
+    if (entry1) git_tree_entry_free(entry1);
+    if (entry2) git_tree_entry_free(entry2);
+    if (tree1) git_tree_free(tree1);
+    if (tree2) git_tree_free(tree2);
+
+    if (error != 0) return -1;
+    return result;
 }
 
-int preview_spcc_update(GString **git_pending_commit_buffer) {
+/**
+ * Retrieves the content of a file from a specified number of file-specific revisions back.
+ * Only counts commits that actually modified the specified file.
+ *
+ * @param repo Pointer to the git repository
+ * @param filepath Path to the file relative to repository root
+ * @param file_revisions_to_backtrack Number of file modifications to go back
+ * @param content Pointer to store the file content (caller must free)
+ * @param content_size Pointer to store the size of the content
+ * @return 0 on success, negative error code on failure
+ */
+static int get_file_content_from_file_revision(git_repository *repo,
+                                             const char *filepath,
+                                             int file_revisions_to_backtrack,
+                                             char **content,
+                                             size_t *content_size) {
+    git_object *head_commit_obj = NULL;
+    git_commit *current_commit = NULL;
+    git_commit *target_commit = NULL;
+    git_tree *tree = NULL;
+    git_tree_entry *entry = NULL;
+    git_blob *blob = NULL;
+    int error = 0;
+    int modifications_found = 0;
+    char *relative_path = NULL;
+
+    if (!repo || !filepath || !content || !content_size || file_revisions_to_backtrack < 0) {
+        return -1;
+    }
+
+    *content = NULL;
+    *content_size = 0;
+
+    // Convert absolute path to relative path if necessary
+    const char *workdir = git_repository_workdir(repo);
+    if (workdir && g_path_is_absolute(filepath)) {
+        // Check if the filepath starts with the working directory
+        size_t workdir_len = strlen(workdir);
+        if (strncmp(filepath, workdir, workdir_len) == 0) {
+            // Skip the working directory part and any leading slash
+            const char *rel_start = filepath + workdir_len;
+            while (*rel_start == '/' || *rel_start == '\\') {
+                rel_start++;
+            }
+            relative_path = g_strdup(rel_start);
+            siril_debug_print("Converted absolute path '%s' to relative path '%s'\n", filepath, relative_path);
+        } else {
+            siril_debug_print("Absolute path '%s' is not within repository working directory '%s'\n", filepath, workdir);
+            error = -1;
+            goto cleanup;
+        }
+    } else {
+        // Already relative or no working directory, use as-is
+        relative_path = g_strdup(filepath);
+    }
+
+    // Use the relative path for all Git operations
+    const char *git_filepath = relative_path;
+
+    // Get HEAD commit
+    error = git_revparse_single(&head_commit_obj, repo, "HEAD");
+    if (error != 0) {
+        siril_debug_print("Failed to get HEAD commit: %s\n",
+                         git_error_last() ? git_error_last()->message : "Unknown error");
+        goto cleanup;
+    }
+
+    current_commit = (git_commit *)head_commit_obj;
+
+    // If we want the current version (0 revisions back), use HEAD
+    if (file_revisions_to_backtrack == 0) {
+        target_commit = current_commit;
+        git_commit_dup(&target_commit, current_commit); // Create a copy so cleanup is consistent
+        goto get_file_content;
+    }
+
+    // Walk through commit history looking for file modifications
+    git_commit *parent_commit = NULL;
+    git_commit *prev_commit = current_commit;
+
+    while (modifications_found < file_revisions_to_backtrack) {
+        // Get the first parent of the current commit
+        error = git_commit_parent(&parent_commit, prev_commit, 0);
+        if (error != 0) {
+            if (error == GIT_ENOTFOUND) {
+                siril_debug_print("Reached root commit, only found %d file modifications (requested %d)\n",
+                                 modifications_found, file_revisions_to_backtrack);
+            } else {
+                siril_debug_print("Failed to get parent commit: %s\n",
+                                 git_error_last() ? git_error_last()->message : "Unknown error");
+            }
+            error = -1;
+            goto cleanup;
+        }
+
+        // Check if the file was modified between parent and current
+        int modified = file_modified_between_commits(repo, git_filepath, parent_commit, prev_commit);
+        if (modified < 0) {
+            siril_debug_print("Error checking file modification between commits\n");
+            error = -1;
+            git_commit_free(parent_commit);
+            goto cleanup;
+        }
+
+        if (modified) {
+            modifications_found++;
+            siril_debug_print("Found file modification #%d at commit %s\n",
+                             modifications_found, git_oid_tostr_s(git_commit_id(prev_commit)));
+
+            if (modifications_found == file_revisions_to_backtrack) {
+                // We found our target commit
+                target_commit = prev_commit;
+                git_commit_free(parent_commit);
+                break;
+            }
+        }
+
+        // Move to the parent commit
+        if (prev_commit != current_commit) {
+            git_commit_free(prev_commit);
+        }
+        prev_commit = parent_commit;
+        parent_commit = NULL;
+    }
+
+    if (!target_commit) {
+        siril_debug_print("Could not find enough file modifications in history\n");
+        error = -1;
+        goto cleanup;
+    }
+
+get_file_content:
+    // Get the tree from the target commit
+    error = git_commit_tree(&tree, target_commit);
+    if (error != 0) {
+        siril_debug_print("Failed to get tree from commit: %s\n",
+                         git_error_last() ? git_error_last()->message : "Unknown error");
+        goto cleanup;
+    }
+
+    // Find the file in the tree
+    error = git_tree_entry_bypath(&entry, tree, git_filepath);
+    if (error != 0) {
+        if (error == GIT_ENOTFOUND) {
+            siril_debug_print("File '%s' not found in target revision\n", git_filepath);
+        } else {
+            siril_debug_print("Failed to find file in tree: %s\n",
+                             git_error_last() ? git_error_last()->message : "Unknown error");
+        }
+        goto cleanup;
+    }
+
+    // Check if the entry is a blob (file)
+    if (git_tree_entry_type(entry) != GIT_OBJECT_BLOB) {
+        siril_debug_print("Path '%s' is not a file\n", git_filepath);
+        error = -1;
+        goto cleanup;
+    }
+
+    // Get the blob object
+    error = git_blob_lookup(&blob, repo, git_tree_entry_id(entry));
+    if (error != 0) {
+        siril_debug_print("Failed to lookup blob: %s\n",
+                         git_error_last() ? git_error_last()->message : "Unknown error");
+        goto cleanup;
+    }
+
+    // Get the blob content
+    const void *blob_content = git_blob_rawcontent(blob);
+    git_off_t blob_size = git_blob_rawsize(blob);
+
+    if (blob_size < 0) {
+        siril_debug_print("Invalid blob size\n");
+        error = -1;
+        goto cleanup;
+    }
+
+    // Allocate memory for the content (add 1 for null terminator)
+    *content = malloc(blob_size + 1);
+    if (!*content) {
+        siril_debug_print("Failed to allocate memory for file content\n");
+        error = -1;
+        goto cleanup;
+    }
+
+    // Copy the content and null-terminate
+    memcpy(*content, blob_content, blob_size);
+    (*content)[blob_size] = '\0';
+    *content_size = blob_size;
+
+    siril_debug_print("Successfully retrieved file '%s' content from %d file modifications ago (%zu bytes)\n",
+                     git_filepath, file_revisions_to_backtrack, *content_size);
+
+cleanup:
+    if (relative_path) {
+        g_free(relative_path);
+    }
+    if (blob) {
+        git_blob_free(blob);
+    }
+    if (entry) {
+        git_tree_entry_free(entry);
+    }
+    if (tree) {
+        git_tree_free(tree);
+    }
+    if (target_commit && target_commit != current_commit) {
+        git_commit_free(target_commit);
+    }
+    if (head_commit_obj) {
+        git_object_free(head_commit_obj);
+    }
+
+    // Clean up content on error
+    if (error != 0 && *content) {
+        free(*content);
+        *content = NULL;
+        *content_size = 0;
+    }
+
+    return error;
+}
+
+/**
+* Convenience wrapper that returns the file content as a null-terminated string,
+* counting only commits that modified the specific file.
+* The caller is responsible for freeing the returned string.
+*
+* @param repo Pointer to the git repository
+* @param filepath Path to the file relative to repository root
+* @param file_revisions_to_backtrack Number of file modifications to go back
+* @return Allocated string containing file content, or NULL on error. Caller must free using g_free()
+*/
+gchar *get_script_content_string_from_file_revision(const char *filepath, int file_revisions_to_backtrack, size_t *content_size) {
+	*content_size = 0;
+	git_repository *repo = NULL;
+	gchar *content = NULL;
+
 	// Initialize libgit2
 	git_libgit2_init();
 
-	// Local directory where the repository will be cloned
-	const gchar *local_path = siril_get_spcc_repo_path();
+	// URL of the remote repository
+	siril_debug_print("Repository URL: %s\n", SCRIPT_REPOSITORY_URL);
 
-	git_repository *repo = NULL;
-	int error = siril_repository_open(&repo, local_path);
-	if (error < 0) {
-		siril_debug_print("Error opening repository: %s\n", giterr_last()->message);
-		siril_log_color_message(_("Error: unable to open local spcc-database repository.\n"), "red");
-		gui.spcc_repo_available = FALSE;
-		return 1;
+	// Local repository directory
+	const gchar *local_path = siril_get_scripts_repo_path();
+
+	// Check if directory exists
+	gboolean success = FALSE;
+	if (g_file_test(local_path, G_FILE_TEST_IS_DIR)) {
+		siril_debug_print("Directory exists, attempting to open repository...\n");
+
+		// Try to open existing repository
+		int error = siril_repository_open(&repo, local_path);
+		if (error == 0) {
+			// Repository opened successfully
+			siril_debug_print("Scripts repository opened successfully!\n");
+			success = TRUE;
+		}
+	}
+	if (!success) {
+		siril_log_color_message(_("Error opening scripts repository\n"), "red");
+		goto cleanup;
 	}
 
-	// Fetch changes
-	lg2_fetch(repo);
-	// Analyse the repository against the remote
-	int retval = analyse(repo, git_pending_commit_buffer);
-	git_repository_free(repo);
+	int error = get_file_content_from_file_revision(repo, filepath, file_revisions_to_backtrack,
+												&content, content_size);
+
+	if (error != 0) {
+		siril_debug_print("Error in get_script_content_string_from_file_revision()\n");
+	}
+cleanup:
+	if (repo) {
+		git_repository_free(repo);
+	}
 	git_libgit2_shutdown();
-	return retval;
+
+	return content;
 }
 
 #endif // HAVE_LIBGIT2
