@@ -324,39 +324,19 @@ static gboolean script_version_check(const gchar *filename) {
 	return retval;
 }
 
-static gboolean version_meets_constraint(version_number *current, version_number *constraint, const gchar *op) {
-	if (strcmp(op, "==") == 0)
-		return compare_version(*current, *constraint);
-	if (strcmp(op, "!=") == 0)
-		return !compare_version(*current, *constraint);
-	if (strcmp(op, "<") == 0) {
-		if (current->major_version < constraint->major_version) return TRUE;
-		if (current->major_version > constraint->major_version) return FALSE;
-		if (current->minor_version < constraint->minor_version) return TRUE;
-		if (current->minor_version > constraint->minor_version) return FALSE;
-		if (current->micro_version < constraint->micro_version) return TRUE;
-		if (current->micro_version > constraint->micro_version) return FALSE;
-		if (current->patched_version < constraint->patched_version) return TRUE;
-		return FALSE;
-	}
-	if (strcmp(op, ">") == 0) {
-		if (current->major_version > constraint->major_version) return TRUE;
-		if (current->major_version < constraint->major_version) return FALSE;
-		if (current->minor_version > constraint->minor_version) return TRUE;
-		if (current->minor_version < constraint->minor_version) return FALSE;
-		if (current->micro_version > constraint->micro_version) return TRUE;
-		if (current->micro_version < constraint->micro_version) return FALSE;
-		if (current->patched_version > constraint->patched_version) return TRUE;
-		return FALSE;
-	}
-	if (strcmp(op, "<=") == 0) {
-		return version_meets_constraint(current, constraint, "<") ||
-			version_meets_constraint(current, constraint, "==");
-	}
-	if (strcmp(op, ">=") == 0) {
-		return version_meets_constraint(current, constraint, ">") ||
-			version_meets_constraint(current, constraint, "==");
-	}
+static gboolean
+version_meets_constraint(const version_number *current, const version_number *required, const gchar *op)
+{
+	int cmp = compare_version(*current, *required);
+
+	if (g_strcmp0(op, "==") == 0) return cmp == 0;
+	if (g_strcmp0(op, "!=") == 0) return cmp != 0;
+	if (g_strcmp0(op, ">=") == 0) return cmp >= 0;
+	if (g_strcmp0(op, "<=") == 0) return cmp <= 0;
+	if (g_strcmp0(op, ">")  == 0) return cmp > 0;
+	if (g_strcmp0(op, "<")  == 0) return cmp < 0;
+
+	// Unknown operator
 	return FALSE;
 }
 
