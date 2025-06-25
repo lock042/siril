@@ -795,6 +795,9 @@ void ser_init_struct(struct ser_struct *ser_file) {
 
 int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
 	ser_color type_ser = ser_file->color_id;
+	if (com.pref.debayer.open_debayer && type_ser != SER_BGR) {
+		type_ser = SER_RGB;
+	}
 	switch (type_ser) {
 	case SER_MONO:
 	case SER_BAYER_RGGB:
