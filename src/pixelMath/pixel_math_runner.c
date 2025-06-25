@@ -1261,7 +1261,7 @@ static void select_image(int nb) {
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(dialog), FALSE);
-	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"), FITS_EXTENSIONS, gui.file_ext_filter == TYPEFITS);
+	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz, *.fit.gz, *.fits.gz, *.fts.gz)"), FITS_EXTENSIONS, gui.file_ext_filter == TYPEFITS);
 	siril_file_chooser_add_preview(GTK_FILE_CHOOSER(dialog), preview);
 
 	res = gtk_dialog_run(GTK_DIALOG(dialog));

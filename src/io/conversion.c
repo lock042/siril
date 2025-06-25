@@ -171,6 +171,9 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".fit.fz";
 	supported_extensions[count_ext++] = ".fits.fz";
 	supported_extensions[count_ext++] = ".fts.fz";
+	supported_extensions[count_ext++] = ".fit.gz";
+	supported_extensions[count_ext++] = ".fits.gz";
+	supported_extensions[count_ext++] = ".fts.gz";
 	supported_extensions[count_ext++] = ".bmp";
 	supported_extensions[count_ext++] = ".ppm";
 	supported_extensions[count_ext++] = ".pgm";
@@ -328,6 +331,9 @@ image_type get_type_for_extension(const char *extension) {
 		return TYPEFITS;
 	} else if (!g_ascii_strcasecmp(extension, "fit.fz") || !g_ascii_strcasecmp(extension, "fits.fz") ||
 			!g_ascii_strcasecmp(extension, "fts.fz")) {
+		return TYPEFITS;
+	} else if (!g_ascii_strcasecmp(extension, "fit.gz") || !g_ascii_strcasecmp(extension, "fits.gz") ||
+			!g_ascii_strcasecmp(extension, "fts.gz")) {
 		return TYPEFITS;
 	} else if (!g_ascii_strcasecmp(extension, "xisf")) {
 		return TYPEXISF;

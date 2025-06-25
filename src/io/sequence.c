@@ -250,7 +250,7 @@ int check_seq() {
 		const char *ext = get_filename_ext(file);
 		if (!ext) continue;
 
-		gboolean is_fz = g_str_has_suffix(ext, ".fz");
+		gboolean is_fz = g_str_has_suffix(ext, ".fz") || g_str_has_suffix(ext, ".gz");
 		const gchar *com_ext = get_com_ext(is_fz);
 
 		if ((new_seq = check_seq_one_file(file, FALSE))) {
@@ -460,7 +460,7 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 	}
 #endif
 	else if (check_for_fitseq && TYPEFITS == get_type_for_extension(ext) && fitseq_is_fitseq(name, NULL)) {
-		gboolean is_fz = g_str_has_suffix(ext, ".fz");
+		gboolean is_fz = g_str_has_suffix(ext, ".fz") || g_str_has_suffix(ext, ".gz");
 		const gchar *com_ext = get_com_ext(is_fz);
 
 		/* set the configured extention to the extension of the file, otherwise reading will fail */

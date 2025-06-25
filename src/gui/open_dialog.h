@@ -15,7 +15,7 @@
 #define OD_OFFSETLIB  10
 #define OD_DISTOLIB  11
 
-#define FITS_EXTENSIONS "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.fits.fz;*.fts.fz"
+#define FITS_EXTENSIONS "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.fits.fz;*.fts.fz;*.fit.gz;*.fits.gz;*.fts.gz"
 
 void header_open_button_clicked();
 void cwd_btton_clicked();

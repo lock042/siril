@@ -1795,16 +1795,21 @@ gchar *set_right_extension(const char *name) {
 	gchar *filename = NULL;
 
 	gboolean comp_flag = FALSE;
+	gboolean fz = FALSE;
 	/* first check if there is fz extension */
-	if (g_str_has_suffix(name, ".fz")) {
+	if (g_str_has_suffix(name, ".fz") || g_str_has_suffix(name, ".gz")) {
 		comp_flag = TRUE;
+		if (g_str_has_suffix(name, ".fz")) fz = TRUE;
 	}
 
 	gboolean right_extension = FALSE;
 	for (int i = 0; i < G_N_ELEMENTS(fit_extension); i++) {
 		gchar *extension;
 		if (comp_flag) {
-			extension = g_strdup_printf("%s.fz", fit_extension[i]);
+			if (fz)
+				extension = g_strdup_printf("%s.fz", fit_extension[i]);
+			else
+				extension = g_strdup_printf("%s.gz", fit_extension[i]);
 		} else {
 			extension = g_strdup(fit_extension[i]);
 		}
@@ -1818,6 +1823,7 @@ gchar *set_right_extension(const char *name) {
 
 	if (!right_extension) {
 		if (com.pref.comp.fits_enabled) {
+			/* Here we juste use fz extension */
 			filename = g_strdup_printf("%s%s.fz", name, com.pref.ext);
 		} else {
 			filename = g_strdup_printf("%s%s", name, com.pref.ext);
@@ -1831,6 +1837,7 @@ gchar *set_right_extension(const char *name) {
 
 			g_free(tmp);
 		} else if (!comp_flag && com.pref.comp.fits_enabled) {
+			/* Here we juste use fz extension */
 			filename = g_strdup_printf("%s.fz", name);
 
 		} else {

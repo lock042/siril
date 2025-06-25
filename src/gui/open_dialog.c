@@ -57,7 +57,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 	gchar *pic_filter = "*.pic;*.PIC";
 	gchar *ser_filter = "*.ser;*.SER";
 	if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
-		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
+		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz, *.fit.gz, *.fits.gz, *.fts.gz)"),
 				fits_filter, gui.file_ext_filter == TYPEFITS);
 	} else {
 		all_filter = g_string_new(fits_filter);

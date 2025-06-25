@@ -399,8 +399,8 @@ void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		gtk_filter_add(dialog, _("WCS Files (*.wcs)"),
 				"*.wcs", FALSE);
-		gtk_filter_add(dialog, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
-				"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz", gui.file_ext_filter == TYPEFITS);
+		gtk_filter_add(dialog, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz, *.fit.gz, *.fits.gz, *.fts.gz)"),
+				"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz;*.fit.gz;*.FIT.gz;*.fits.gz;*.FITS.gz;*.fts.gz;*.FTS.gz", gui.file_ext_filter == TYPEFITS);
 		gint res = siril_dialog_run(widgetdialog);
 		if (res == GTK_RESPONSE_ACCEPT) {
 			gchar *file = siril_file_chooser_get_filename(dialog);
