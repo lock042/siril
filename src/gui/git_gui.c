@@ -151,8 +151,38 @@ void fill_script_repo_tree(gboolean as_idle) {
 		fill_script_repo_tree_idle(tview);
 }
 
+typedef struct {
+	const gchar *scriptpath;
+	GtkLabel *message_label;
+} CommitMessageUpdateData;
+
+static void on_script_revision_spin_value_changed(GtkSpinButton *spin, gpointer user_data) {
+	CommitMessageUpdateData *data = (CommitMessageUpdateData *)user_data;
+	int revisions_back = gtk_spin_button_get_value_as_int(spin);
+	if (revisions_back == 0) {
+		gtk_label_set_text(data->message_label, _("Current script version"));
+		return;
+	}
+
+	gchar *commit_message = NULL;
+	size_t message_size = 0;
+	gchar *content = get_script_content_string_from_file_revision(
+		data->scriptpath, revisions_back, &(size_t){0}, &commit_message, &message_size);
+
+	if (content != NULL) {
+		g_free(content); // We only need the message
+	}
+
+	if (commit_message != NULL && message_size > 0) {
+		gtk_label_set_text(data->message_label, commit_message);
+		g_free(commit_message);
+	} else {
+		gtk_label_set_text(data->message_label, _("(No commit message found for this revision)"));
+	}
+}
+
 void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
-                                GtkTreeViewColumn *column, gpointer user_data) {
+                                       GtkTreeViewColumn *column, gpointer user_data) {
 	gchar *scriptname = NULL, *scriptpath = NULL;
 	gchar *contents = NULL;
 	gsize length;
@@ -160,74 +190,88 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 	GtkTreeModel *model =
 		gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
 
-	if (gtk_tree_model_get_iter(model, &iter, path)) {
-		gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
+	if (!gtk_tree_model_get_iter(model, &iter, path))
+		return;
 
-		// Create dialog to ask for revision count
-		GtkWidget *dialog = gtk_dialog_new_with_buttons(
-			_("Select Revision"),
-			GTK_WINDOW(lookup_widget("control_window")), // Adjust parent window as needed
-			GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-			_("_Cancel"), GTK_RESPONSE_CANCEL,
-			_("_OK"), GTK_RESPONSE_OK,
-			NULL);
+	gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
 
-		// Create content area
-		const gchar *tooltip = _("Leave at 0 to open the current version of the script. If you have a problem with "
-				"a script update you can use this to go back to earlier revisions. Start by going back 1 revison "
-				"and increase the number until you find the last version that worked for you. Note that this will "
-				"only open the previous version in the script editor, it will not revert the script in the local "
-				"repository, but it allows you to save a local copy in one of your script folders for use until the "
-				"upstream script is fixed.");
-		GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-		GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-		GtkWidget *label = gtk_label_new(_("Revisions to go back (leave at 0 to get current revision):"));
-		gtk_widget_set_tooltip_text(label, tooltip);
-		GtkWidget *spin_button = gtk_spin_button_new_with_range(0, 999, 1);
-		gtk_widget_set_tooltip_text(spin_button, tooltip);
+	// Create dialog to ask for revision count
+	GtkWidget *dialog = gtk_dialog_new_with_buttons(
+		_("Select Revision"),
+		GTK_WINDOW(lookup_widget("control_window")),
+		GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+		_("_Cancel"), GTK_RESPONSE_CANCEL,
+		_("_OK"), GTK_RESPONSE_OK,
+		NULL);
 
-		// Set default value to 0 (current version)
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button), 0);
+	const gchar *tooltip = _("Leave at 0 to open the current version of the script. If you have a problem with "
+		"a script update you can use this to go back to earlier revisions. Start by going back 1 revison "
+		"and increase the number until you find the last version that worked for you. Note that this will "
+		"only open the previous version in the script editor, it will not revert the script in the local "
+		"repository, but it allows you to save a local copy in one of your script folders for use until the "
+		"upstream script is fixed.");
 
-		// Pack widgets
-		gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
-		gtk_box_pack_start(GTK_BOX(hbox), spin_button, FALSE, FALSE, 5);
-		gtk_container_add(GTK_CONTAINER(content_area), hbox);
+	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+	GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+	GtkWidget *label = gtk_label_new(_("Revisions to go back (leave at 0 to get current revision):"));
+	gtk_widget_set_tooltip_text(label, tooltip);
+	GtkWidget *spin_button = gtk_spin_button_new_with_range(0, 999, 1);
+	gtk_widget_set_tooltip_text(spin_button, tooltip);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button), 0);
 
-		// Set some padding
-		gtk_container_set_border_width(GTK_CONTAINER(content_area), 10);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(hbox), spin_button, FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
 
-		// Show all widgets
-		gtk_widget_show_all(dialog);
+	GtkWidget *message_heading = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(message_heading), "<b>Commit message</b>");
+	gtk_label_set_xalign(GTK_LABEL(message_heading), 0.0);
+	gtk_widget_set_margin_start(message_heading, 5);
+	gtk_widget_set_margin_top(message_heading, 10);
+	gtk_widget_set_margin_bottom(message_heading, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), message_heading, FALSE, FALSE, 5);
 
-		// Run dialog and get response
-		gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+	GtkWidget *message_label = gtk_label_new(_("Loading commit message..."));
+	gtk_label_set_xalign(GTK_LABEL(message_label), 0.0);
+	gtk_widget_set_margin_start(message_label, 5);
+	gtk_widget_set_margin_top(message_label, 2);
+	gtk_widget_set_margin_bottom(message_label, 5);
+	gtk_box_pack_start(GTK_BOX(vbox), message_label, FALSE, FALSE, 5);
 
-		if (response == GTK_RESPONSE_OK) {
-			// Get the selected revision count
-			int revisions_back = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button));
+	// Add to dialog
+	gtk_container_add(GTK_CONTAINER(content_area), vbox);
+	gtk_container_set_border_width(GTK_CONTAINER(content_area), 10);
+	gtk_widget_show_all(dialog);
 
-			// Destroy dialog before potentially showing error dialogs
-			gtk_widget_destroy(dialog);
+	// Set up live updating of commit message
+	CommitMessageUpdateData update_data = {
+		.scriptpath = scriptpath,
+		.message_label = GTK_LABEL(message_label),
+	};
+	on_script_revision_spin_value_changed(GTK_SPIN_BUTTON(spin_button), &update_data); // Initial update
+	g_signal_connect(spin_button, "value-changed", G_CALLBACK(on_script_revision_spin_value_changed), &update_data);
 
-			// Load script content with the specified revision
-			contents = get_script_content_string_from_file_revision(scriptpath, revisions_back, &length);
+	gint response = gtk_dialog_run(GTK_DIALOG(dialog));
 
-			if (length > 0) {
-				const char *ext = get_filename_ext(scriptpath);
-				new_script(contents, length, ext);
-				g_free(contents);
-			} else {
-				gchar *msg = g_strdup_printf(_("Error loading script contents from %d revisions back: %s\n"),
-					revisions_back, scriptpath);
-				siril_log_color_message(msg, "red");
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
-				g_free(msg);
-			}
+	if (response == GTK_RESPONSE_OK) {
+		int revisions_back = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button));
+		gtk_widget_destroy(dialog);
+
+		contents = get_script_content_string_from_file_revision(scriptpath, revisions_back, &length, NULL, NULL);
+		if (length > 0 && contents != NULL) {
+			const char *ext = get_filename_ext(scriptpath);
+			new_script(contents, length, ext);
+			g_free(contents);
 		} else {
-			// User cancelled - just destroy dialog
-			gtk_widget_destroy(dialog);
+			gchar *msg = g_strdup_printf(_("Error loading script contents from %d revisions back: %s\n"),
+				revisions_back, scriptpath);
+			siril_log_color_message(msg, "red");
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
+			g_free(msg);
 		}
+	} else {
+		gtk_widget_destroy(dialog);
 	}
 
 	g_free(scriptname);

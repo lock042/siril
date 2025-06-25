@@ -12,7 +12,11 @@ gboolean is_spcc_repo_cloned();
 gboolean fill_spcc_widgets_in_thread(gpointer user_data);
 void gui_repo_scripts_mutex_lock();
 void gui_repo_scripts_mutex_unlock();
-gchar *get_script_content_string_from_file_revision(const char *filepath, int file_revisions_to_backtrack, size_t *content_size);
+gchar *get_script_content_string_from_file_revision(const char *filepath,
+													int file_revisions_to_backtrack,
+													size_t *content_size,
+													gchar **commit_message,
+													size_t *message_size);
 #else
 void hide_git_widgets();
 #endif
