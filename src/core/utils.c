@@ -670,7 +670,7 @@ const char *get_filename_ext(const char *filename) {
 	g_free(basename);
 
 	p = filename + len;
-	if (g_str_has_suffix(p, ".fz")) {
+	if (g_str_has_suffix(p, ".fz") || g_str_has_suffix(p, ".gz")) {
 		int l = strlen(p);
 		for (int i = l - 1 - 3; i >= 0; i--) {
 			if ((p[i] == '.')) {
