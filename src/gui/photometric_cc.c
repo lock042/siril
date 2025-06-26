@@ -1220,12 +1220,14 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 		spcc_object *sensor = NULL, *filter_r = NULL, *filter_g = NULL, *filter_b = NULL, *whiteref = NULL;
 		if (args.selected_sensor_m >= 0 && args.selected_sensor_m < g_list_length (sensor_list))
 			sensor = (spcc_object*) g_list_nth(sensor_list, args.selected_sensor_m)->data;
-		if (args.selected_filter_r >= 0 && args.selected_filter_r < g_list_length (filter_list_r))
-			filter_r = (spcc_object*) g_list_nth(filter_list_r, args.selected_filter_r)->data;
-		if (args.selected_filter_g >= 0 && args.selected_filter_g < g_list_length (filter_list_g))
-			filter_g = (spcc_object*) g_list_nth(filter_list_g, args.selected_filter_g)->data;
-		if (args.selected_filter_b >= 0 && args.selected_filter_b < g_list_length (filter_list_b))
-			filter_b = (spcc_object*) g_list_nth(filter_list_b, args.selected_filter_b)->data;
+		if (!args.nb_mode) {
+			if (args.selected_filter_r >= 0 && args.selected_filter_r < g_list_length (filter_list_r))
+				filter_r = (spcc_object*) g_list_nth(filter_list_r, args.selected_filter_r)->data;
+			if (args.selected_filter_g >= 0 && args.selected_filter_g < g_list_length (filter_list_g))
+				filter_g = (spcc_object*) g_list_nth(filter_list_g, args.selected_filter_g)->data;
+			if (args.selected_filter_b >= 0 && args.selected_filter_b < g_list_length (filter_list_b))
+				filter_b = (spcc_object*) g_list_nth(filter_list_b, args.selected_filter_b)->data;
+		}
 		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
 			whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
 		// there must not be any NULL spcc_object*s with non-NULL ones after them
@@ -1250,8 +1252,10 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			sensor_g = &osc->channel[GLAYER];
 			sensor_b = &osc->channel[BLAYER];
 		}
-		if (args.selected_filter_osc >= 0 && args.selected_filter_osc < g_list_length (filter_list_osc))
-			filter_osc = (spcc_object*) g_list_nth(filter_list_osc, args.selected_filter_osc)->data;
+		if (!args.nb_mode) {
+			if (args.selected_filter_osc >= 0 && args.selected_filter_osc < g_list_length (filter_list_osc))
+				filter_osc = (spcc_object*) g_list_nth(filter_list_osc, args.selected_filter_osc)->data;
+		}
 		if (args.selected_filter_lpf >= 0 && args.selected_filter_lpf < g_list_length (filter_list_lpf))
 			filter_lpf = (spcc_object*) g_list_nth(filter_list_lpf, args.selected_filter_lpf)->data;
 		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
