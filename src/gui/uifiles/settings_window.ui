@@ -5166,6 +5166,7 @@ Activating the repository will take place immediately, so that you can select sc
                                             <property name="search-column">1</property>
                                             <property name="show-expanders">False</property>
                                             <property name="enable-grid-lines">horizontal</property>
+                                            <signal name="button-press-event" handler="on_treeview_scripts_button_press" swapped="no"/>
                                             <signal name="row-activated" handler="on_treeview_scripts_row_activated" swapped="no"/>
                                             <child internal-child="selection">
                                               <object class="GtkTreeSelection"/>
