@@ -153,14 +153,17 @@ void fill_script_repo_tree(gboolean as_idle) {
 
 typedef struct {
 	const gchar *scriptpath;
-	GtkLabel *message_label;
+	GtkTextView *message_textview;
 } CommitMessageUpdateData;
 
 static void on_script_revision_spin_value_changed(GtkSpinButton *spin, gpointer user_data) {
 	CommitMessageUpdateData *data = (CommitMessageUpdateData *)user_data;
 	int revisions_back = gtk_spin_button_get_value_as_int(spin);
+
+	GtkTextBuffer *buffer = gtk_text_view_get_buffer(data->message_textview);
+
 	if (revisions_back == 0) {
-		gtk_label_set_text(data->message_label, _("Current script version"));
+		gtk_text_buffer_set_text(buffer, _("Current script version"), -1);
 		return;
 	}
 
@@ -168,16 +171,15 @@ static void on_script_revision_spin_value_changed(GtkSpinButton *spin, gpointer 
 	size_t message_size = 0;
 	gchar *content = get_script_content_string_from_file_revision(
 		data->scriptpath, revisions_back, &(size_t){0}, &commit_message, &message_size);
-
 	if (content != NULL) {
 		g_free(content); // We only need the message
 	}
 
 	if (commit_message != NULL && message_size > 0) {
-		gtk_label_set_text(data->message_label, commit_message);
+		gtk_text_buffer_set_text(buffer, commit_message, -1);
 		g_free(commit_message);
 	} else {
-		gtk_label_set_text(data->message_label, _("(No commit message found for this revision)"));
+		gtk_text_buffer_set_text(buffer, _("(No commit message found for this revision)"), -1);
 	}
 }
 
@@ -284,12 +286,27 @@ gboolean on_treeview_scripts_button_press(GtkWidget *widget, GdkEventButton *eve
 				gtk_widget_set_margin_bottom(message_heading, 0);
 				gtk_box_pack_start(GTK_BOX(vbox), message_heading, FALSE, FALSE, 5);
 
-				GtkWidget *message_label = gtk_label_new(_("Loading commit message..."));
-				gtk_label_set_xalign(GTK_LABEL(message_label), 0.0);
-				gtk_widget_set_margin_start(message_label, 5);
-				gtk_widget_set_margin_top(message_label, 2);
-				gtk_widget_set_margin_bottom(message_label, 5);
-				gtk_box_pack_start(GTK_BOX(vbox), message_label, FALSE, FALSE, 5);
+				// Create TextView with ScrolledWindow for commit message
+				GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+				gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
+											  GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+				gtk_widget_set_size_request(scrolled_window, -1, 100); // ~5 lines height
+
+				GtkWidget *message_textview = gtk_text_view_new();
+				gtk_text_view_set_editable(GTK_TEXT_VIEW(message_textview), FALSE);
+				gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(message_textview), FALSE);
+				gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(message_textview), GTK_WRAP_WORD);
+				gtk_widget_set_margin_start(scrolled_window, 5);
+				gtk_widget_set_margin_end(scrolled_window, 5);
+				gtk_widget_set_margin_top(scrolled_window, 2);
+				gtk_widget_set_margin_bottom(scrolled_window, 5);
+
+				// Set initial text
+				GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(message_textview));
+				gtk_text_buffer_set_text(buffer, _("Loading commit message..."), -1);
+
+				gtk_container_add(GTK_CONTAINER(scrolled_window), message_textview);
+				gtk_box_pack_start(GTK_BOX(vbox), scrolled_window, TRUE, TRUE, 5);
 
 				// Add to dialog
 				gtk_container_add(GTK_CONTAINER(content_area), vbox);
@@ -299,7 +316,7 @@ gboolean on_treeview_scripts_button_press(GtkWidget *widget, GdkEventButton *eve
 				// Set up live updating of commit message
 				CommitMessageUpdateData update_data = {
 					.scriptpath = scriptpath,
-					.message_label = GTK_LABEL(message_label),
+					.message_textview = GTK_TEXT_VIEW(message_textview), // Changed from message_label
 				};
 				on_script_revision_spin_value_changed(GTK_SPIN_BUTTON(spin_button), &update_data); // Initial update
 				g_signal_connect(spin_button, "value-changed", G_CALLBACK(on_script_revision_spin_value_changed), &update_data);
