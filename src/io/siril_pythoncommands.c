@@ -1915,6 +1915,7 @@ CLEANUP:
 			fits *fit = &gfit;
 			if (fit->header == NULL) {
 				const char* error_msg = _("Image has no FITS header");
+				siril_debug_print("No FITS header\n");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
