@@ -247,9 +247,6 @@ gboolean on_treeview_scripts_button_press(GtkWidget *widget, GdkEventButton *eve
 
 				gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
 
-				// Your right-click logic here
-				g_print("Right-clicked on script: %s (path: %s)\n", scriptname, scriptpath);
-
 				// Create dialog to ask for revision count
 				GtkWidget *dialog = gtk_dialog_new_with_buttons(
 					_("Select Revision"),
