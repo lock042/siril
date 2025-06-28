@@ -6259,7 +6259,7 @@ int process_extractGreen(int nb) {
 		}
 	}
 
-	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE);
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract green channel.\n"), "red");
 		g_free(filename);
@@ -6304,7 +6304,7 @@ int extract_Ha(extraction_scaling scaling) {
 			free(tmp);
 		}
 	}
-	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE);
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha.\n"), "red");
 		g_free(filename);
@@ -6352,7 +6352,7 @@ int extract_HaOIII(extraction_scaling scaling) {
 			free(tmp);
 		}
 	}
-	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE);
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit,FALSE, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha/OIII channels.\n"), "red");
 		g_free(filename);

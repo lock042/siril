@@ -328,8 +328,8 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 		clearfits(&fit);
 		return 1;
 	}
-	if (!regargs->driz && fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
-		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
+	if (!regargs->driz && fit_is_cfa(&fit))
+		siril_log_color_message(_("Applying interpolation on a sequence opened as CFA is a bad idea.\n"), "red");
 
 	if (regargs->undistort) {
 		siril_log_message(_("Distortion data was found in the sequence file, undistortion will be applied\n"));
@@ -435,7 +435,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->pixel_fraction = driz->pixel_fraction;
 		BYTE cfa[36];
 		int cfadim = 0;
-		if (get_compiled_pattern(fit, cfa, &cfadim)) {
+		if (get_compiled_pattern(fit, cfa, &cfadim, FALSE)) {
 			siril_log_color_message(_("Drizzle: Could not get compiled CFA pattern from the image.\n"), "red");
 			free(p->error);
 			free(p->pixmap);
@@ -815,7 +815,7 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	sensor_pattern pattern = get_cfa_pattern_index_from_string(fit.keywords.bayer_pattern);
 	driz->is_bayer = fit.naxes[2] == 1 && pattern >= BAYER_FILTER_MIN; // any pattern above BAYER_FILTER_MIN is a valid pattern, that includes XTrans;
 	int cfadim = 0;
-	if (driz->is_bayer && get_compiled_pattern(&fit, driz->cfa, &cfadim)) {
+	if (driz->is_bayer && get_compiled_pattern(&fit, driz->cfa, &cfadim, FALSE)) {
 		siril_log_color_message(_("Warning: the CFA pattern in the reference image is not supported by drizzle.\n"), "red");
 		return 1;
 	}

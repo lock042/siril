@@ -807,7 +807,7 @@ gpointer cfa_cut(gpointer p) {
 		goto END;
 	}
 	build_profile_filenames(arg, &filename, &imagefilename);
-	sensor_pattern pattern = get_validated_cfa_pattern(arg->fit, FALSE);
+	sensor_pattern pattern = get_validated_cfa_pattern(arg->fit, FALSE, FALSE);
 	const gchar* pattern_str = filter_pattern[pattern];
 
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]

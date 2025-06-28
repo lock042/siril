@@ -974,7 +974,7 @@ static GSList* rescale_sample_list_for_cfa(GSList *original_list, fits *fit) {
 /* uses samples from com.grad_samples */
 gpointer remove_gradient_from_cfa_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
-	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE);
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_color_message(_("Error: unsupported CFA pattern for this operation.\n"), "red");
 		return GINT_TO_POINTER(1);
@@ -1191,7 +1191,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	} else if (b_args->degree > 1) {
 		siril_log_color_message(_("Warning: polynomial background removal order > 1 is not recommended for CFA images. Only linear background removal is recommended.\n"), "salmon");
 	}
-	sensor_pattern pattern = get_validated_cfa_pattern(fit, FALSE);
+	sensor_pattern pattern = get_validated_cfa_pattern(fit, FALSE, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_color_message(_("Error: unsupported CFA pattern for this operation.\n"), "red");
 		return 1;

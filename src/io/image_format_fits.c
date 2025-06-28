@@ -1462,6 +1462,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 		return -1;
 	}
 
+	read_fits_metadata(fit);
 	fit->naxes[0] = area->w;
 	fit->naxes[1] = area->h;
 	fit->rx = fit->naxes[0];
@@ -1584,6 +1585,7 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 		}
 	}
 
+	read_fits_metadata(fit);
 	fit->naxes[0] = area->w;
 	fit->naxes[1] = area->h;
 	fit->rx = fit->naxes[0];
@@ -3705,11 +3707,7 @@ int fits_swap_image_data(fits *a, fits *b) {
 
 // These interpolation routines will work for X-Trans as well as Bayer patterns
 
-static void interpolate_nongreen_float(fits *fit) {
-	BYTE cfa[36];	// red is 0, green is 1, blue is 2
-	int cfadim = 0;	// 2 or 6 after compilation
-	if (get_compiled_pattern(fit, cfa, &cfadim))
-		return;
+static void interpolate_nongreen_float(fits *fit, BYTE cfa[36], int cfadim) {
 	uint32_t width = fit->rx;
 	uint32_t height = fit->ry;
 	for (int row = 0; row < height - 1; row++) {
@@ -3743,11 +3741,7 @@ static void interpolate_nongreen_float(fits *fit) {
 	fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 }
 
-static void interpolate_nongreen_ushort(fits *fit) {
-	int cfadim = 0;
-	BYTE cfa[36];
-	if (get_compiled_pattern(fit, cfa, &cfadim))
-		return;
+static void interpolate_nongreen_ushort(fits *fit, BYTE cfa[36], int cfadim) {
 	uint32_t width = fit->rx;
 	uint32_t height = fit->ry;
 	for (int row = 0; row < height - 1; row++) {
@@ -3784,10 +3778,14 @@ static void interpolate_nongreen_ushort(fits *fit) {
 #undef RECIPSQRT2
 
 void interpolate_nongreen(fits *fit) {
+	int cfadim = 0;
+	BYTE cfa[36];
+	if (fit->naxes[2] != 1 || get_compiled_pattern(fit, cfa, &cfadim, FALSE))
+		return;
 	if (fit->type == DATA_FLOAT) {
-		interpolate_nongreen_float(fit);
+		interpolate_nongreen_float(fit, cfa, cfadim);
 	} else {
-		interpolate_nongreen_ushort(fit);
+		interpolate_nongreen_ushort(fit, cfa, cfadim);
 	}
 	invalidate_stats_from_fit(fit);
 	siril_debug_print("Interpolating non-green pixels\n");

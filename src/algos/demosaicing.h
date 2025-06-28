@@ -4,10 +4,10 @@
 extern const char *filter_pattern[];
 extern const size_t num_filter_patterns;
 sensor_pattern get_cfa_pattern_index_from_string(const char *bayer);
-sensor_pattern get_validated_cfa_pattern(fits *fit, gboolean force_debayer);
-int get_compiled_pattern(fits *fit, BYTE pattern[36], int *pattern_size);
+sensor_pattern get_validated_cfa_pattern(fits *fit, gboolean force_debayer, gboolean verbose);
 int FC_array(int row, int col, BYTE* bpattern, int size);
-gboolean compare_compiled_pattern(BYTE *refpattern, BYTE *pattern, int pattern_size);
+int get_compiled_pattern(fits *fit, BYTE pattern[36], int *pattern_size, gboolean verbose);
+gboolean fit_is_cfa(fits *fit);
 
 int debayer(fits*, interpolation_method, sensor_pattern pattern);
 

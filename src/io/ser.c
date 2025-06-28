@@ -1194,6 +1194,16 @@ int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 			fit->keywords.date_obs = timestamp;
 		}
 	}
+	ser_color type_ser = ser_file->color_id;
+	if (type_ser >= SER_BAYER_RGGB && type_ser <= SER_BAYER_BGGR) {
+		const gchar *ser_pattern = convert_color_id_to_char(type_ser);
+		// in this case, contrarily to the ser_read_frame() function,
+		// we don't flip the pattern because we don't flip the image area either
+		sprintf(fit->keywords.bayer_pattern, "%s", ser_pattern); 
+		fit->debayer_checked = TRUE;
+		fit->top_down = TRUE;
+		snprintf(fit->keywords.row_order, FLEN_VALUE, "TOP-DOWN");
+	}
 	return ser_read_opened_partial(ser_file, layer, frame_no, fit->pdata[0], area);
 }
 

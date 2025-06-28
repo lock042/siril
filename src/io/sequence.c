@@ -68,6 +68,7 @@
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
+#include "algos/demosaicing.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
 #include "opencv/opencv.h"
@@ -1015,6 +1016,18 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 			extract_region_from_fits(seq->internal_fits[index], 0, dest, area);
 			break;
 	}
+	if (fit_is_cfa(dest)) { // 
+		int xbayeroff, ybayeroff; // we need to account for offsets if already present
+		if (!com.pref.debayer.use_bayer_header) {
+			xbayeroff = com.pref.debayer.xbayeroff;
+			ybayeroff = com.pref.debayer.ybayeroff;
+		} else {
+			xbayeroff = (dest->keywords.bayer_xoffset == DEFAULT_UINT_VALUE) ? 0 : dest->keywords.bayer_xoffset;
+			ybayeroff = (dest->keywords.bayer_yoffset == DEFAULT_UINT_VALUE) ? 0 : dest->keywords.bayer_yoffset;
+		}
+		dest->keywords.bayer_xoffset = xbayeroff;
+		dest->keywords.bayer_yoffset = ybayeroff;
+	}
 
 	return 0;
 }
@@ -1818,12 +1831,10 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	/* Backup the original pointer to fit. If there is a Bayer pattern we need
 	 * to interpolate non-green pixels, so make a copy we can work on. */
 	fits *orig_fit = fit;
-	const char t = spsfargs->bayer_pattern[0];
-	gboolean handle_cfa = (t == 'R' || t == 'G' || t == 'B');
+	gboolean handle_cfa = fit_is_cfa(fit);
 	if (handle_cfa) {
 		fit = calloc(1, sizeof(fits));
 		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		memcpy(fit->keywords.bayer_pattern, spsfargs->bayer_pattern, FLEN_VALUE);
 		interpolate_nongreen(fit);
 	}
 
@@ -2088,20 +2099,6 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
 	spsfargs->init_from_center = init_from_center;
-
-	fits fit = { 0 };
-	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
-		siril_log_color_message(_("Could not load metadata"), "red");
-		free(args);
-		free(spsfargs);
-		return -1;
-	} else {
-		memcpy(spsfargs->bayer_pattern, fit.keywords.bayer_pattern, FLEN_VALUE);
-	}
-	if (seq->type == SEQ_INTERNAL)
-		clearfits_header(&fit); // Mustn't free the pixeldata as we only reference it for internal sequences
-	else
-		clearfits(&fit);
 
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
