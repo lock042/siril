@@ -303,7 +303,7 @@ sensor_pattern get_validated_cfa_pattern(fits *fit, gboolean force_debayer, gboo
 		// we still need to adjust for shifted pattern when used on a selection
 		adjust_Bayer_pattern(fit, &pattern, !fit->top_down, fit->keywords.bayer_xoffset, fit->keywords.bayer_yoffset);
 	} else
-		pattern = get_bayer_pattern(fit, force_debayer);
+		pattern = get_bayer_pattern(fit, force_debayer, verbose);
 	siril_debug_print("Pattern to debayer: %s (%d)\n", filter_pattern[pattern], fit->debayer_checked);
 	return pattern;
 }

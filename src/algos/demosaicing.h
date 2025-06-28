@@ -8,14 +8,18 @@ sensor_pattern get_validated_cfa_pattern(fits *fit, gboolean force_debayer, gboo
 int FC_array(int row, int col, BYTE* bpattern, int size);
 int get_compiled_pattern(fits *fit, BYTE pattern[36], int *pattern_size, gboolean verbose);
 gboolean fit_is_cfa(fits *fit);
+gboolean compare_compiled_pattern(BYTE *refpattern, BYTE *pattern, int pattern_size);
+void update_bayer_pattern_information(fits *fit, sensor_pattern pattern);
+void get_debayer_area(const rectangle *area, rectangle *debayer_area,
+		const rectangle *image_area, int *debayer_offset_x,
+		int *debayer_offset_y);
 
 int debayer(fits*, interpolation_method, sensor_pattern pattern);
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-WORD *debayer_buffer_superpixel_ushort(WORD *buf, int *width, int *height, sensor_pattern pattern);
-float *debayer_buffer_superpixel_float(float *buf, int *width, int *height, sensor_pattern pattern);
 int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer);
 #ifdef __cplusplus
 }
@@ -29,12 +33,8 @@ struct merge_cfa_data {
 	char *seqEntryOut;
 	sensor_pattern pattern;
 };
-void update_bayer_pattern_information(fits *fit, sensor_pattern pattern);
-void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args);
 
-void get_debayer_area(const rectangle *area, rectangle *debayer_area,
-		const rectangle *image_area, int *debayer_offset_x,
-		int *debayer_offset_y);
+void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args);
 
 #ifdef __cplusplus
 extern "C" {
