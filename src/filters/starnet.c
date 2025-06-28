@@ -671,6 +671,8 @@ gpointer do_starnet(gpointer p) {
 	/* we need to copy metadata as they have been removed with readtif     */
 	copy_fits_metadata(current_fit, &workingfit);
 	copy_fits_metadata(current_fit, &fit);
+	workingfit.header = malloc(strlen(current_fit->header)+1);
+	memcpy(workingfit.header, current_fit->header, strlen(current_fit->header)+1);
 
 	// Increase bit depth of starless image to 32 bit to improve precision
 	// for subsequent processing. Only if !force_16bit otherwise there is an error on subtraction
@@ -776,6 +778,8 @@ gpointer do_starnet(gpointer p) {
 		goto CLEANUP;
 	}
 	copy_fits_metadata(&workingfit, current_fit);
+	current_fit->header = malloc(strlen(workingfit.header)+1);
+	memcpy(current_fit->header, workingfit.header, strlen(workingfit.header)+1);
 	// Before CLEANUP so that this doesn't print on failure.
 	if (verbose)
 		siril_log_color_message(_("StarNet: job completed.\n"), "green");
