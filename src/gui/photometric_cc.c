@@ -118,33 +118,33 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 		}
 		switch (retval) {
 			case 0:
-				text = N_("Gaia archive available");
+				text = _("Gaia archive available");
 				colortext = "green";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 				break;
 			case 1:
-				text = N_("Gaia archive running but performing slightly slower\n");
+				text = _("Gaia archive running but performing slightly slower\n");
 				colortext = "green";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 				break;
 			case 2:
-				text = N_("Gaia archive running but performing very slowly");
+				text = _("Gaia archive running but performing very slowly");
 				colortext = "salmon";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 				break;
 			case 3:
 			case 4:
-				text = N_("Gaia archive unavailable");
+				text = _("Gaia archive unavailable");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 				colortext = "red";
 				break;
 			case 5:
-				text = N_("Gaia archive unreachable");
+				text = _("Gaia archive unreachable");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 				colortext = "red";
 				break;
 			default:
-				text = N_("Unknown Gaia archive status");
+				text = _("Unknown Gaia archive status");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
 				colortext = "red";
 		}
