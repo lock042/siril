@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-17 12:49+0200\n"
-"PO-Revision-Date: 2025-06-16 14:24+0000\n"
+"PO-Revision-Date: 2025-06-26 04:43+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -4230,17 +4230,16 @@ msgid "FITS Header"
 msgstr "FITS ヘッダ"
 
 #: src/gui/uifiles/keywords_dialog.ui:42
-#, fuzzy
 msgid "Copy Selection"
-msgstr "Rejection:"
+msgstr "選択をコピー"
 
 #: src/gui/uifiles/keywords_dialog.ui:47
 msgid "Copy selected keywords to clipboard."
-msgstr ""
+msgstr "選択されたキーワードをクリップボードにコピーします。"
 
 #: src/gui/uifiles/keywords_dialog.ui:107
 msgid "Keyword"
-msgstr ""
+msgstr "キーワード"
 
 #: src/gui/uifiles/keywords_dialog.ui:126
 msgid "Value"
@@ -4248,7 +4247,7 @@ msgstr "値"
 
 #: src/gui/uifiles/keywords_dialog.ui:144 src/gui/uifiles/spcc_details.ui:223
 msgid "Comment"
-msgstr ""
+msgstr "コメント"
 
 #: src/gui/uifiles/keywords_dialog.ui:163
 msgid "Dtype"
@@ -4261,26 +4260,26 @@ msgstr "整列方法:"
 
 #: src/gui/uifiles/keywords_dialog.ui:208
 msgid "Add a new keyword in the FITS header."
-msgstr ""
+msgstr "FITSヘッダに新しいキーワードを追加します。"
 
 #: src/gui/uifiles/keywords_dialog.ui:229
 msgid "Delete keyword in the FITS header."
-msgstr ""
+msgstr "FITSヘッダのキーワードを削除します。"
 
 #: src/gui/uifiles/keywords_dialog.ui:250
 msgid ""
 "In <span foreground=\"salmon\">salmon</span>, these are protected keywords, "
 "which cannot be modified."
-msgstr ""
+msgstr "<span foreground=\"salmon\""
+">サーモン色</span>のものは保護されたキーワードで、変更できません。"
 
 #: src/gui/uifiles/keywords_dialog.ui:272
 msgid "Header Editor"
-msgstr ""
+msgstr "ヘッダエディタ"
 
 #: src/gui/uifiles/keywords_dialog.ui:305
-#, fuzzy
 msgid "Saved Header"
-msgstr "FITS ヘッダー..."
+msgstr "保存されたヘッダ"
 
 #: src/gui/uifiles/linearmatch_dialog.ui:46 src/gui/linear_match.c:83
 msgid "Linear Match"
@@ -6255,9 +6254,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1285
-#, fuzzy
 msgid "Annotations"
-msgstr "回転"
+msgstr "注釈"
 
 #: src/gui/uifiles/settings_window.ui:1309
 msgid ""

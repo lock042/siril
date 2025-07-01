@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-17 12:49+0200\n"
-"PO-Revision-Date: 2025-05-30 00:03+0000\n"
+"PO-Revision-Date: 2025-06-29 11:26+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -12786,10 +12786,9 @@ msgid "Open application menu"
 msgstr "Открыть меню приложения"
 
 #: src/gui/siril-shortcuts.ui:156
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Show statistics"
-msgstr "Статистика"
+msgstr "Показать статистику"
 
 #: src/gui/siril-shortcuts.ui:163
 msgctxt "shortcut window"
@@ -13161,13 +13160,13 @@ msgid "online"
 msgstr "удалённый"
 
 #: src/algos/astrometry_solver.c:886
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Plate solving image from %s %s for a field of view of %.2f degrees%s, using "
 "a limit magnitude of %.2f\n"
 msgstr ""
-"Поиск астрономического решения по %s для поля зрения %.2f°%s и ограничением "
-"по блеску %.2f\n"
+"Поиск астрономического решения по %s %s для поля зрения %.2f°%s и "
+"ограничением по блеску %.2f\n"
 
 #: src/algos/astrometry_solver.c:891
 msgid " (uncentered)"
@@ -13303,9 +13302,8 @@ msgid "Could not read the solution from solve-field (expected in file %s)\n"
 msgstr "Не удалось прочитать решение solve-field (ожидается в файле %s)\n"
 
 #: src/algos/astrometry_solver.c:1936
-#, fuzzy
 msgid "Using the current selection to detect stars\n"
-msgstr "Предупреждение: используется текущее выделение для поиска звёзд\n"
+msgstr "Для поиска звёзд используется текущее выделение\n"
 
 #: src/algos/astrometry_solver.c:1981
 msgid "Selection is not used in manual star selection mode\n"
@@ -13333,31 +13331,31 @@ msgid "Image %d already platesolved, skipping\n"
 msgstr "Изображение %d уже имеет астрономическое решение, пропускаем\n"
 
 #: src/algos/astrometry_solver.c:2113
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not retrieve center coordinates from image %s metadata, using "
 "reference image value instead\n"
 msgstr ""
-"Не удалось получить координаты цели из метаданных изображения %s, "
-"пропускаем\n"
+"Не удалось получить координаты центра из метаданных изображения %s, "
+"используем значение опорного изображения\n"
 
 #: src/algos/astrometry_solver.c:2122
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not retrieve pixel size from image %s metadata or settings, using "
 "reference image value instead\n"
 msgstr ""
 "Не удалось получить размер пикселя из метаданных изображения %s или "
-"настроек, пропускаем\n"
+"настроек, используем значение опорного изображения\n"
 
 #: src/algos/astrometry_solver.c:2133
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not retrieve focal length from image %s metadata or settings, using "
 "reference image value instead\n"
 msgstr ""
 "Не удалось получить фокусное расстояние из метаданных изображения %s или "
-"настроек, пропускаем\n"
+"настроек, используем значение опорного изображения\n"
 
 #: src/algos/astrometry_solver.c:2175
 #, c-format
@@ -13399,10 +13397,10 @@ msgid "Computing astrometric registration...\n"
 msgstr "Вычисление астрометрической регистрации...\n"
 
 #: src/algos/astrometry_solver.c:2257
-#, fuzzy
 msgid "Reference image was not platesolved, changing reference\n"
 msgstr ""
-"Опорное изображение не определено, было бы лучше использовать следующее:\n"
+"Опорное изображение не имеет астрономического решение, меняем опорное "
+"изображение\n"
 
 #: src/algos/background_extraction.c:300
 msgid ""
@@ -15653,9 +15651,8 @@ msgid "The size of the key can't exceed 8 characters.\n"
 msgstr "Размер ключа не может превышать восьми символов.\n"
 
 #: src/core/command.c:1955
-#, fuzzy
 msgid "Updating keywords...\n"
-msgstr "Обновление ключевых слов...\n"
+msgstr "Обновляем ключевые слова...\n"
 
 #: src/core/command.c:2027 src/core/command.c:5898
 msgid "There can be only one prefix argument"
@@ -17375,9 +17372,10 @@ msgid "Error: command %s is not available\n"
 msgstr "Ошибка: команда %s недоступна\n"
 
 #: src/core/command.c:9549
-#, fuzzy
 msgid "Error: cannot reload script menu when running headless\n"
-msgstr "Ошибка: не удалось прочитать файл весов нейросети.\n"
+msgstr ""
+"Ошибка: не удалось перезагрузить меню сценариев при работе в автономном "
+"режиме\n"
 
 #: src/core/command.c:9569
 #, c-format
@@ -17463,12 +17461,11 @@ msgstr ""
 "через Vizier\n"
 
 #: src/core/command.c:9849
-#, fuzzy
 msgid ""
 "Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"
 msgstr ""
 "Локальный каталог Gaia недоступен, переходим к удалённому каталогу Gaia "
-"через Vizier\n"
+"через ESA\n"
 
 #: src/core/command.c:9940
 msgid ""
@@ -19677,12 +19674,13 @@ msgstr ""
 "Не удалось проверить обновления с этой версией, отсутствующая зависимость\n"
 
 #: src/core/siril_actions.c:344
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
 "Current state: %s."
 msgstr ""
 "Заблокировать/разблокировать каналы в режиме автоматического растягивания.\n"
+"Состояние: %s."
 
 #: src/core/siril_actions.c:379 src/gui/PSF_list.c:810
 msgid "Current selection is too large"
@@ -19764,6 +19762,16 @@ msgid ""
 "and performs better than the original, and we expect it will be more "
 "reliable too."
 msgstr ""
+"Оригинальный интерфейс к GraXpert удалён по техническим причинам и из-за его "
+"ненадёжности. Пожалуйста, воспользуйтесь сценарием GraXpert_AI.py, доступным "
+"в хранилище скриптов. Вы можете добавить его через пункт меню «Скачать "
+"сценарии» в основном меню.\n"
+"Новый сценарий обрабатывает отдельные изображения и последовательности точно "
+"так же, как оригинальный интерфейс. Он предоставляет доступ как к "
+"графическому интерфейсу, так и к командной строке с помощью команды pyscript "
+"для использования в сценариях. Он менее ресурсоёмкий, лучше интегрирован и "
+"работает лучше, чем оригинал, и мы полагаем, что он также будет более "
+"надёжным."
 
 #: src/core/siril_log.c:105
 #, c-format
@@ -19997,9 +20005,9 @@ msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr "Текущая рабочая директория: '%s'\n"
 
 #: src/core/utils.c:1196
-#, fuzzy, c-format
+#, c-format
 msgid "Could not change directory to '%s'(error code %d: %s).\n"
-msgstr "Не удалось сменить директорию на '%s'.\n"
+msgstr "Не удалось сменить директорию на '%s'(ошибка %d: %s).\n"
 
 #: src/core/utils.c:1222
 msgid "Filename is too long, not expanding it\n"
@@ -21152,9 +21160,8 @@ msgid "Purge Catalogue"
 msgstr "Очистить каталог"
 
 #: src/gui/callbacks.c:2346
-#, fuzzy
 msgid "Select task to stop"
-msgstr "Выберите кадрируемую область"
+msgstr "Выберите задачу для остановки"
 
 #: src/gui/callbacks.c:2349 src/gui/dialogs.c:253 src/gui/dialogs.c:262
 #: src/gui/dialogs.c:268 src/gui/keywords_tree.c:508 src/gui/python_gui.c:768
@@ -21164,9 +21171,8 @@ msgid "_Cancel"
 msgstr "О_тмена"
 
 #: src/gui/callbacks.c:2350
-#, fuzzy
 msgid "_Stop Process"
-msgstr "Обработка звёзд"
+msgstr "_Остановить процесс"
 
 #: src/gui/callbacks.c:2394
 #, fuzzy
@@ -25648,9 +25654,9 @@ msgstr ""
 "расширение FITS в настройках (текущее %s)\n"
 
 #: src/io/sequence.c:368
-#, fuzzy, c-format
+#, c-format
 msgid "Error opening directory: %s\n"
-msgstr "Ошибка клонирования репозитория: %s\n"
+msgstr "Ошибка при открытии директории: %s\n"
 
 #: src/io/sequence.c:404
 #, fuzzy, c-format
@@ -26378,9 +26384,8 @@ msgstr ""
 
 #. Not a valid git path
 #: src/io/siril_git.c:284
-#, fuzzy
 msgid "Invalid Git repository path.\n"
-msgstr "Путь к репозиторию:"
+msgstr "Неверный путь к репозиторию Git.\n"
 
 #: src/io/siril_git.c:300 src/io/siril_git.c:312 src/io/siril_git.c:324
 msgid ""
@@ -26404,19 +26409,18 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_git.c:371
-#, fuzzy, c-format
+#, c-format
 msgid "Error removing repository directory: %s\n"
-msgstr "Ошибка клонирования репозитория: %s\n"
+msgstr "Ошибка удаления директория репозитория: %s\n"
 
 #: src/io/siril_git.c:380 src/io/siril_git.c:813 src/io/siril_git.c:838
-#, fuzzy, c-format
+#, c-format
 msgid "Error cloning repository into %s: %s\n"
-msgstr "Ошибка клонирования репозитория: %s\n"
+msgstr "Ошибка клонирования репозитория в %s: %s\n"
 
 #: src/io/siril_git.c:384
-#, fuzzy
 msgid "Repository re-cloned successfully!\n"
-msgstr "Репозиторий успешно клонирован!\n"
+msgstr "Репозиторий успешно клонирован повторно!\n"
 
 #: src/io/siril_git.c:388
 msgid ""
@@ -26453,9 +26457,9 @@ msgid "Existing directory is not a valid git repository. Cleaning up...\n"
 msgstr ""
 
 #: src/io/siril_git.c:799 src/io/siril_git.c:1025
-#, fuzzy, c-format
+#, c-format
 msgid "Error deleting existing directory %s: %s\n"
-msgstr "Ошибка клонирования репозитория: %s\n"
+msgstr "Ошибка удаления существующей директории %s: %s\n"
 
 #. Now attempt to clone into the clean directory
 #: src/io/siril_git.c:809 src/io/siril_git.c:834 src/io/siril_git.c:1034
@@ -26516,23 +26520,20 @@ msgid "Local scripts repository is up-to-date!\n"
 msgstr "Локальный репозиторий сценариев в актуальном состоянии!\n"
 
 #: src/io/siril_git.c:927
-#, fuzzy
 msgid "Error accessing repository index.\n"
-msgstr "Ошибка клонирования репозитория: %s\n"
+msgstr "Ошибка доступа к индексу репозитория.\n"
 
 #: src/io/siril_git.c:945
-#, fuzzy
 msgid "Warning: failed to get repository index entry.\n"
-msgstr "Не удалось прочитать запись индекса каталога.\n"
+msgstr "Предупреждение: не удалось получить запись индекса репозитория.\n"
 
 #: src/io/siril_git.c:951
 msgid "Warning: skipping script with invalid UTF-8 path.\n"
 msgstr ""
 
 #: src/io/siril_git.c:961
-#, fuzzy
 msgid "Warning: memory allocation failed for script path.\n"
-msgstr "Ошибка: не удалось выделить память.\n"
+msgstr "Предупреждение: не удалось выделить память для пути сценария.\n"
 
 #: src/io/siril_git.c:1038 src/io/siril_git.c:1055
 #, c-format
@@ -26760,9 +26761,8 @@ msgid "Failed to read frame metadata"
 msgstr "Не удалось прочитать метаданные кадра"
 
 #: src/io/siril_pythoncommands.c:1740
-#, fuzzy
 msgid "No stars in image"
-msgstr "Список звёзд недоступен"
+msgstr "На изображении нет звёзд"
 
 #: src/io/siril_pythoncommands.c:1758
 msgid "Stars array was cleared mid-process"
@@ -26879,18 +26879,16 @@ msgstr "Не удалось получить путь к пакету (bundle)"
 
 #: src/io/siril_pythoncommands.c:2352 src/io/siril_pythoncommands.c:2358
 #: src/io/siril_pythoncommands.c:2364
-#, fuzzy
 msgid "Argument error"
-msgstr "Ошибка параметра"
+msgstr "Ошибка аргумента"
 
 #: src/io/siril_pythoncommands.c:2418
-#, fuzzy
 msgid "Could not create the new sequence"
-msgstr "Не удалось создать именованный канал %s\n"
+msgstr "Не удалось создать новую последовательность"
 
 #: src/io/siril_pythoncommands.c:2428
 msgid "Wrong mouse mode"
-msgstr ""
+msgstr "Неверный режим мыши"
 
 #: src/io/siril_pythoncommands.c:2438
 msgid "Invalid payload for CMD_DRAW_POLYGON"
@@ -26972,9 +26970,8 @@ msgstr ""
 "Неверные размеры или формат изображения: д = %u, ш = %u, c = %u, размер = %s"
 
 #: src/io/siril_pythonmodule.c:583
-#, fuzzy
 msgid "Error: image pixelbuffer does not match expected size"
-msgstr "Ошибка: изображения не совпадают"
+msgstr "Ошибка: размер пиксельного буфера изображения не совпадает с ожидаемым"
 
 #: src/io/siril_pythonmodule.c:585
 msgid "Error in send_response: size mismatch\n"
@@ -26985,9 +26982,8 @@ msgid "Error: image dimensions exceed available memory"
 msgstr "Ошибка: размер изображения превысил доступную память"
 
 #: src/io/siril_pythonmodule.c:591
-#, fuzzy
 msgid "Error in send_response: image exceeds available memory\n"
-msgstr "Ошибка: размер изображения превысил доступную память"
+msgstr "Ошибка в send_response: размер изображения превысил доступную память\n"
 
 #: src/io/siril_pythonmodule.c:619 src/io/siril_pythonmodule.c:749
 #: src/io/siril_pythonmodule.c:847 src/io/siril_pythonmodule.c:938
@@ -27017,19 +27013,17 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:816
-#, fuzzy, c-format
+#, c-format
 msgid "Saved plot to %s\n"
-msgstr "График сохранён в изображении %s\n"
+msgstr "График сохранён в %s\n"
 
 #: src/io/siril_pythonmodule.c:976
-#, fuzzy
 msgid "Failed to add user polygon: no image loaded"
-msgstr "Не удалось установить выделение — изображение не загружено"
+msgstr "Не удалось добавить пользовательский полигон — изображение не загружено"
 
 #: src/io/siril_pythonmodule.c:1047
-#, fuzzy
 msgid "Failed to add user polygon"
-msgstr "Ошибка при сопоставлении разделяемой памяти"
+msgstr "Не удалось добавить пользовательский полигон"
 
 #: src/io/siril_pythonmodule.c:1067
 #, c-format
@@ -27165,9 +27159,9 @@ msgid "Failed to execute Python script: %s\n"
 msgstr "Не удалось выполнить сценарий Python: %s\n"
 
 #: src/io/spcc_json.c:64 src/io/spcc_json.c:296 src/io/spcc_json.c:568
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading SPCC JSON file %s: %s (at position %zu)\n"
-msgstr "Ошибка загрузки JSON-файла SPCC: %s\n"
+msgstr "Ошибка загрузки JSON-файла SPCC: %s: %s (в позиции %zu)\n"
 
 #: src/io/spcc_json.c:72
 msgid "Error: The JSON file should contain an array of objects.\n"
