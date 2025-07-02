@@ -4494,6 +4494,15 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 	return CMD_OK;
 }
 
+gboolean get_followstar_idle(gpointer user_data) {
+	framing_mode *framing = (framing_mode*) user_data;
+	GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+	if (gtk_toggle_button_get_active(follow))
+		*framing = FOLLOW_STAR_FRAME;
+	// no need to have an else as framing is already initiated by the caller
+	return FALSE;
+}
+
 /* seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }] */
 int process_seq_psf(int nb) {
 	if (com.script && nb < 4) {
@@ -4563,9 +4572,7 @@ int process_seq_psf(int nb) {
 		if (com.headless)
 			framing = FOLLOW_STAR_FRAME;
 		else {
-			GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
-			if (gtk_toggle_button_get_active(follow))
-				framing = FOLLOW_STAR_FRAME;
+			execute_idle_and_wait_for_it(get_followstar_idle, &framing);
 		}
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
