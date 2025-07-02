@@ -6074,6 +6074,14 @@ int process_findcosme(int nb) {
 	return CMD_OK;
 }
 
+static gboolean select_update_gui(gpointer user_data) {
+	update_stack_interface(TRUE);
+	update_reg_interface(FALSE);
+	adjust_sellabel();
+	drawPlot();
+	return FALSE;
+}
+
 int select_unselect(gboolean select) {
 	char *end1, *end2;
 	int from = g_ascii_strtoull(word[2], &end1, 10);
@@ -6119,10 +6127,8 @@ int select_unselect(gboolean select) {
 	writeseqfile(seq);
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
-		update_stack_interface(TRUE);
-		update_reg_interface(FALSE);
-		adjust_sellabel();
-		drawPlot();
+		if (!com.headless)
+			execute_idle_and_wait_for_it(select_update_gui, NULL);
 	}
 	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
 
