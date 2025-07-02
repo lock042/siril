@@ -22,6 +22,10 @@ class _SharedMemoryInfo(ctypes.Structure):
         ("shm_name", ctypes.c_char * 256)
     ]
 
+    def __len__(self):
+        """Return the size in bytes of this structure."""
+        return ctypes.sizeof(self)
+
 class SharedMemoryWrapper:
     """
     Wrapper class to handle shared memory creation and cleanup across platforms.
