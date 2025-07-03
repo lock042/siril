@@ -32,6 +32,7 @@ xx/xx/25
 * Improved compatibility of sirilpy.tkfilebrowser with tkinter.filedialog (allows replacing the awful Linux tk filedialog)
 * Improved the GPU module helper methods in sirilpy
 * Fixed a crash with RGB compositing (#1562)
+* Improved behaviour of histogram stretch after autostretch if the image ICC profile differs from the display profile.
 * Changed the default GHT colour mode from human weighed luminance to independent (!899)
 * Added / improved GPU helper modules to assist with installation and testing of key GPU-related modules. (!895)
 * Allow "Crop Sequence" with the internal sequence used in RGB composition, to aid with LRGB workflows. (!902)
