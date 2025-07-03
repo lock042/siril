@@ -4513,29 +4513,24 @@ int process_seq_psf(int nb) {
 
 	sequence *seq = NULL;
 	int layer = -1;
-	rectangle area = {0};
 	gboolean has_area = FALSE;
+	rectangle area = { 0 };
+	if (com.selection.w > 0 && com.selection.h > 0) {
+		area = com.selection;
+		has_area = TRUE;
+	}
 	gboolean followstar_set = FALSE;
 	gboolean use_current_seq = FALSE;
 
 	// First argument is always sequence name
-	if (strcmp(word[1], ".") == 0) {
-		use_current_seq = TRUE;
-		if (!sequence_is_loaded()) {
-			siril_log_message(_("No sequence is currently loaded\n"));
-			return CMD_SEQUENCE_NOT_FOUND;
-		}
+	seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (!com.script && seq != &com.seq) {
+		gui_function(set_seq, word[1]);
+		free_sequence(seq, TRUE);
 		seq = &com.seq;
-	} else {
-		seq = load_sequence(word[1], NULL);
-		if (!seq) {
-			return CMD_SEQUENCE_NOT_FOUND;
-		}
-		if (!com.script && seq != &com.seq) {
-			gui_function(set_seq, word[1]);
-			free_sequence(seq, TRUE);
-			seq = &com.seq;
-		}
 	}
 
 	// Parse remaining arguments in any order
@@ -4555,8 +4550,7 @@ int process_seq_psf(int nb) {
 					if (use_current_seq) {
 						// For current sequence, we may not need to read metadata
 						// if we're using current selection
-						if (com.selection.w > 0 && com.selection.h > 0) {
-							area = com.selection;
+						if (area.w > 0 && area.h > 0) {
 							has_area = TRUE;
 							continue;
 						}
@@ -4586,7 +4580,15 @@ int process_seq_psf(int nb) {
 		} else if (!has_area) {
 			// Try to parse as star position
 			fits first = { 0 };
-			if (seq_read_frame_metadata(seq, 0, &first)) {
+				if (use_current_seq) {
+					// For current sequence, we may not need to read metadata
+					// if we're using current selection
+					if (area.w > 0 && area.h > 0) {
+						has_area = TRUE;
+						continue;
+					}
+				}
+				if (seq_read_frame_metadata(seq, 0, &first)) {
 				if (seq != &com.seq) free_sequence(seq, TRUE);
 				return CMD_GENERIC_ERROR;
 			}
