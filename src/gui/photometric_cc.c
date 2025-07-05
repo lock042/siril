@@ -99,7 +99,7 @@ void on_S_PCC_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
 static gboolean end_gaiacheck_idle(gpointer p) {
 	GtkWidget *image = lookup_widget("gaia_status_widget");
 	gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
-	gtk_widget_set_tooltip_text(image, N_("Checking Gaia archive status..."));
+	gtk_widget_set_tooltip_text(image, _("Checking Gaia archive status..."));
 	gtk_widget_show(image);
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	size_t retval;
@@ -107,7 +107,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	stop_processing_thread();
 	if (args->code != 200) {
 		// status page is down
-		text = N_("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
+		text = _("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
 		colortext = "salmon";
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 	} else {
@@ -118,33 +118,33 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 		}
 		switch (retval) {
 			case 0:
-				text = N_("Gaia archive available");
+				text = _("Gaia archive available");
 				colortext = "green";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 				break;
 			case 1:
-				text = N_("Gaia archive running but performing slightly slower\n");
+				text = _("Gaia archive running but performing slightly slower\n");
 				colortext = "green";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 				break;
 			case 2:
-				text = N_("Gaia archive running but performing very slowly");
+				text = _("Gaia archive running but performing very slowly");
 				colortext = "salmon";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 				break;
 			case 3:
 			case 4:
-				text = N_("Gaia archive unavailable");
+				text = _("Gaia archive unavailable");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 				colortext = "red";
 				break;
 			case 5:
-				text = N_("Gaia archive unreachable");
+				text = _("Gaia archive unreachable");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 				colortext = "red";
 				break;
 			default:
-				text = N_("Unknown Gaia archive status");
+				text = _("Unknown Gaia archive status");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
 				colortext = "red";
 		}

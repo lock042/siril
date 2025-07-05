@@ -4494,6 +4494,15 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 	return CMD_OK;
 }
 
+gboolean get_followstar_idle(gpointer user_data) {
+	framing_mode *framing = (framing_mode*) user_data;
+	GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+	if (gtk_toggle_button_get_active(follow))
+		*framing = FOLLOW_STAR_FRAME;
+	// no need to have an else as framing is already initiated by the caller
+	return FALSE;
+}
+
 /* seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }] */
 int process_seq_psf(int nb) {
 	if (com.script && nb < 4) {
@@ -4563,9 +4572,7 @@ int process_seq_psf(int nb) {
 		if (com.headless)
 			framing = FOLLOW_STAR_FRAME;
 		else {
-			GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
-			if (gtk_toggle_button_get_active(follow))
-				framing = FOLLOW_STAR_FRAME;
+			execute_idle_and_wait_for_it(get_followstar_idle, &framing);
 		}
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
@@ -6072,6 +6079,14 @@ int process_findcosme(int nb) {
 	return CMD_OK;
 }
 
+static gboolean select_update_gui(gpointer user_data) {
+	update_stack_interface(TRUE);
+	update_reg_interface(FALSE);
+	adjust_sellabel();
+	drawPlot();
+	return FALSE;
+}
+
 int select_unselect(gboolean select) {
 	char *end1, *end2;
 	int from = g_ascii_strtoull(word[2], &end1, 10);
@@ -6117,10 +6132,8 @@ int select_unselect(gboolean select) {
 	writeseqfile(seq);
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
-		update_stack_interface(TRUE);
-		update_reg_interface(FALSE);
-		adjust_sellabel();
-		drawPlot();
+		if (!com.headless)
+			execute_idle_and_wait_for_it(select_update_gui, NULL);
 	}
 	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
 
@@ -11449,6 +11462,8 @@ int process_pyscript(int nb) {
 		script_name = g_strdup(word[1]);
 	} else {
 		// Search for the file in the user's set script directories and the scripts repository
+		// We search the user's path first so any local modifications are used in preference to
+		// the repository script with the same name.
 		GSList *path = com.pref.gui.script_path;
 		while (path) {
 			siril_debug_print("Searching script path: %s\n", (gchar*) path->data);
