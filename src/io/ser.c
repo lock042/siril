@@ -444,15 +444,14 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 	if (ser_file->color_id == SER_RGB)
 		ser_file->number_of_planes = 3;
 	else {
-		// the fits will be flipped if bottom-up when written to SER file
 		if (!g_strcmp0(fit->keywords.bayer_pattern, "RGGB")) {
-			ser_file->color_id = fit->top_down ? SER_BAYER_RGGB : SER_BAYER_GBRG;
+			ser_file->color_id = SER_BAYER_RGGB;
 		} else if (!g_strcmp0(fit->keywords.bayer_pattern, "BGGR")) {
-			ser_file->color_id = fit->top_down ? SER_BAYER_BGGR : SER_BAYER_GRBG;
+			ser_file->color_id = SER_BAYER_BGGR;
 		} else if (!g_strcmp0(fit->keywords.bayer_pattern, "GBRG")) {
-			ser_file->color_id = fit->top_down ? SER_BAYER_GBRG : SER_BAYER_RGGB;
+			ser_file->color_id = SER_BAYER_GBRG;
 		} else if (!g_strcmp0(fit->keywords.bayer_pattern, "GRBG")) {
-			ser_file->color_id = fit->top_down ? SER_BAYER_GRBG : SER_BAYER_BGGR;
+			ser_file->color_id = SER_BAYER_GRBG;
 		}
 		ser_file->number_of_planes = 1;
 	}

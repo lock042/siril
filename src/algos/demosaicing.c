@@ -272,8 +272,8 @@ static sensor_pattern get_bayer_pattern(fits *fit, gboolean force_debayer, gbool
 			xbayeroff = com.pref.debayer.xbayeroff;
 			ybayeroff = com.pref.debayer.ybayeroff;
 		} else {
-			xbayeroff = (fit->keywords.bayer_xoffset == DEFAULT_UINT_VALUE) ? 0: fit->keywords.bayer_xoffset;
-			ybayeroff = (fit->keywords.bayer_yoffset == DEFAULT_UINT_VALUE) ? 0: fit->keywords.bayer_yoffset;
+			xbayeroff = (fit->keywords.bayer_xoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_xoffset;
+			ybayeroff = (fit->keywords.bayer_yoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_yoffset;
 		}
 	 	if (adjust_Bayer_pattern(fit, &tmp_pattern, !top_down, xbayeroff, ybayeroff)) {
 			return BAYER_FILTER_NONE;
@@ -300,8 +300,6 @@ sensor_pattern get_validated_cfa_pattern(fits *fit, gboolean force_debayer, gboo
 	sensor_pattern pattern = BAYER_FILTER_NONE;
 	if (fit->debayer_checked) {// TRUE for SER images
 		pattern = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern);
-		// we still need to adjust for shifted pattern when used on a selection
-		adjust_Bayer_pattern(fit, &pattern, !fit->top_down, fit->keywords.bayer_xoffset, fit->keywords.bayer_yoffset);
 	} else
 		pattern = get_bayer_pattern(fit, force_debayer, verbose);
 	siril_debug_print("Pattern to debayer: %s (%d)\n", filter_pattern[pattern], fit->debayer_checked);

@@ -26,6 +26,7 @@
 #include "core/siril_log.h"
 #include "drizzle/cdrizzleutil.h"
 #include "algos/quality.h"
+#include "algos/demosaicing.h"
 #include "io/ser.h"
 #include "opencv/opencv.h"
 #include "opencv/kombat/kombat.h"
@@ -68,7 +69,6 @@ int register_shift_dft(struct registration_args *args) {
 	int ref_image;
 	regdata *current_regdata;
 	double q_max = 0, q_min = DBL_MAX;
-	char pattern[37] = { 0 };
 
 	/* the selection needs to be squared for the DFT */
 	assert(args->selection.w == args->selection.h);
@@ -116,6 +116,10 @@ int register_shift_dft(struct registration_args *args) {
 	if (args->seq->nb_layers == 1) {
 		interpolate_nongreen(&fit_ref);
 	}
+#if BAYER_DEBUG
+	const gchar *green_filename = get_sequence_cache_filename(args->seq, ref_image, "fit", "green_");
+	savefits(green_filename, &fit_ref);
+#endif
 	gettimeofday(&t_start, NULL);
 
 	ref = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
@@ -210,6 +214,10 @@ int register_shift_dft(struct registration_args *args) {
 			int x;
 			if (args->seq->nb_layers == 1)
 				interpolate_nongreen(&fit);
+#if BAYER_DEBUG
+			const gchar *green_filename = get_sequence_cache_filename(args->seq, frame, "fit", "green_");
+			savefits(green_filename, &fit);
+#endif
 
 			fftwf_complex *img = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 			fftwf_complex *out2 = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
@@ -375,6 +383,8 @@ int register_kombat(struct registration_args *args) {
 	/* loading reference frame */
 	ref_idx = sequence_find_refimage(args->seq);
 	int q_index = ref_idx;
+	full.w = args->seq->rx;
+	full.h = args->seq->ry;
 
 	set_progress_bar_data(
 			_("Register using KOMBAT: loading and processing reference frame"),
@@ -384,7 +394,7 @@ int register_kombat(struct registration_args *args) {
 	ret_templ = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
 			&args->selection, FALSE, -1);
 	ret_ref = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref,
-			NULL, FALSE, -1);
+			&full, FALSE, -1);
 
 	if (ret_templ || ret_ref) {
 		siril_log_message(
@@ -398,6 +408,10 @@ int register_kombat(struct registration_args *args) {
 	if (args->seq->nb_layers == 1) {
 		interpolate_nongreen(&fit_templ);
 		interpolate_nongreen(&fit_ref);
+#if BAYER_DEBUG
+		const gchar *green_filename = get_sequence_cache_filename(args->seq, ref_idx, "fit", "green_");
+		savefits(green_filename, &fit_ref);
+#endif
 	}
 
 	gettimeofday(&t_start, NULL);
@@ -471,6 +485,10 @@ int register_kombat(struct registration_args *args) {
 				set_shifts(args->seq, frame, args->layer,
 						ref_align.dx - cur_align.dx,
 						(ref_align.dy - cur_align.dy), cur_fit.top_down);
+#if BAYER_DEBUG
+				const gchar *green_filename = get_sequence_cache_filename(args->seq, frame, "fit", "green_");
+				savefits(green_filename, &cur_fit);
+#endif
 			}
 
 			g_atomic_int_inc(&cur_nb);

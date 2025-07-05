@@ -272,7 +272,7 @@ int fitseq_read_frame(fitseq *fitseq, int index, fits *dest, gboolean force_floa
 }
 
 // we read a partial image and return it as fits
-int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, const rectangle *area, gboolean do_photometry, int thread) {
+int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, const rectangle *area, gboolean do_photometry, unsigned int *ry_orig, int thread) {
 	dest->type = get_data_type(fitseq->bitpix);
 	if (dest->type == DATA_UNSUPPORTED) {
 		siril_log_message(_("Unknown FITS data format in internal conversion\n"));
@@ -299,6 +299,8 @@ int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, c
 	status = internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix,
 			dest->type == DATA_USHORT ? (void *)dest->data : (void *)dest->fdata,
 			layer, area);
+	if (!status && ry_orig)
+		*ry_orig = fitseq->naxes[1];
 	dest->icc_profile = NULL;
 	color_manage(dest, FALSE);
 	return status;

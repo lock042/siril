@@ -1350,7 +1350,7 @@ void clearfits(fits *fit) {
  * exact filename. Only layer layer is read.
  * Returned fit->data is upside-down. */
 int readfits_partial(const char *filename, int layer, fits *fit,
-		const rectangle *area, gboolean do_photometry) {
+		const rectangle *area, gboolean do_photometry, unsigned int *ry_orig) {
 	int status;
 	size_t nbdata;
 	double data_max = 0.0;
@@ -1462,6 +1462,8 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 		return -1;
 	}
 
+	if (ry_orig)
+		*ry_orig = fit->naxes[1];
 	read_fits_metadata(fit);
 	fit->naxes[0] = area->w;
 	fit->naxes[1] = area->h;
@@ -1469,6 +1471,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	fit->ry = fit->naxes[1];
 	fit->naxes[2] = 1;
 	fit->naxis = 2;
+
 
 	/* Note: reading one channel of a multi-channel FITS poses a color management challenge:
 	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would

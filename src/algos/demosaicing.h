@@ -1,6 +1,9 @@
 #ifndef _DEMOSAICING_H
 #define _DEMOSAICING_H
 
+// TODO:remove before merging
+// set to 1 to save green_interpolated fits
+#define BAYER_DEBUG 1
 extern const char *filter_pattern[];
 extern const size_t num_filter_patterns;
 sensor_pattern get_cfa_pattern_index_from_string(const char *bayer);
