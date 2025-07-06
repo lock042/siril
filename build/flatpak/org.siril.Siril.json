@@ -21,6 +21,18 @@
     ],
     "modules": [
         {
+            "name": "exiv2",
+            "buildsystem": "simple",
+            "build-commands": [],
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://github.com/flathub/shared-modules.git",
+                    "commit": "master"
+                }
+            ]
+        },
+        {
             "name": "cfitsio",
             "config-opts": [
                 "--enable-reentrant",
@@ -262,35 +274,6 @@
                 "/lib/pkgconfig",
                 "/share/info",
                 "/share/man"
-            ]
-        },
-        {
-            "name": "exiv2",
-            "buildsystem": "cmake-ninja",
-            "config-opts": [
-                "-DCMAKE_BUILD_TYPE=Release",
-                "-DEXIV2_ENABLE_SAMPLES=OFF",
-                "-DEXIV2_ENABLE_NLS=OFF",
-                "-DEXIV2_ENABLE_PRINTUCS2=OFF",
-                "-DEXIV2_ENABLE_LENSDATA=OFF",
-                "-DEXIV2_ENABLE_VIDEO=OFF",
-                "-DEXIV2_ENABLE_WEBREADY=OFF",
-                "-DEXIV2_ENABLE_DYNAMIC_RUNTIME=OFF"
-            ],
-            "cleanup": [
-                "/bin",
-                "/include",
-                "/lib/cmake",
-                "/lib/pkgconfig",
-                "*.a",
-                "/share/man"
-            ],
-            "sources": [
-                {
-                    "type": "archive",
-                    "url": "https://github.com/Exiv2/exiv2/archive/refs/tags/v0.28.5.tar.gz",
-                    "sha256": "e1671f744e379a87ba0c984617406fdf8c0ad0c594e5122f525b2fb7c28d394d"
-                }
             ]
         },
         {
