@@ -267,7 +267,16 @@
         {
             "name": "exiv2",
             "buildsystem": "cmake-ninja",
-            "config-opts": ["-DCMAKE_BUILD_TYPE=Release"],
+            "config-opts": [
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DEXIV2_ENABLE_SAMPLES=OFF",
+                "-DEXIV2_ENABLE_NLS=OFF",
+                "-DEXIV2_ENABLE_PRINTUCS2=OFF",
+                "-DEXIV2_ENABLE_LENSDATA=OFF",
+                "-DEXIV2_ENABLE_VIDEO=OFF",
+                "-DEXIV2_ENABLE_WEBREADY=OFF",
+                "-DEXIV2_ENABLE_DYNAMIC_RUNTIME=OFF"
+            ],
             "cleanup": [
                 "/bin",
                 "/include",
@@ -279,8 +288,8 @@
             "sources": [
                 {
                     "type": "archive",
-                    "url": "https://github.com/Exiv2/exiv2/releases/download/v0.27.5/exiv2-0.27.5-Source.tar.gz",
-                    "sha256": "35a58618ab236a901ca4928b0ad8b31007ebdc0386d904409d825024e45ea6e2"
+                    "url": "https://github.com/Exiv2/exiv2/archive/refs/tags/v0.28.5.tar.gz",
+                    "sha256": "e1671f744e379a87ba0c984617406fdf8c0ad0c594e5122f525b2fb7c28d394d"
                 }
             ]
         },
