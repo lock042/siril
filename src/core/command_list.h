@@ -202,7 +202,7 @@ static command commands[] = {
 	{"seqmodasinh", 2, "seqmodasinh sequence -D= [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_modasinh, STR_SEQMODASINH CMD_CAT(MODASINH) STR_MODASINH, TRUE, REQ_CMD_NONE},
 	{"seqmtf", 4, "seqmtf sequencename low mid high [channels] [-prefix=]", process_seq_mtf, STR_SEQMTF CMD_CAT(MTF) STR_MTF, TRUE, REQ_CMD_NONE},
 	{"seqprofile", 3, "seqprofile sequence -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] [-savedat] [-layer=] [-width=] [-spacing=] [ {-xaxis=wavelength | -xaxis=wavenumber } ] [{-wavenumber1= | -wavelength1=} -wn1at=x,y {-wavenumber2= | -wavelength2=} -wn2at=x,y] [\"-title=My Plot\"]", process_seq_profile, STR_SEQPROFILE CMD_CAT(PROFILE) STR_PROFILE, TRUE, REQ_CMD_NONE},
-	{"seqpsf", 0, "seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
+	{"seqpsf", 0, "seqpsf sequencename [channel] [{ -at=x,y | -wcs=ra,dec }] [-followstar]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
 	{"seqplatesolve", 1, "seqplatesolve sequencename [image_center_coords] [-focal=] [-pixelsize=]\n"
 							"seqplatesolve sequencename ... [-downscale] [-order=] [-radius=] [-force] [-noreg] [-disto=]\n"
 							"seqplatesolve sequencename ... [-limitmag=[+-]] [-catalog=] [-nocrop] [-nocache]\n"
