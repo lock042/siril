@@ -44,10 +44,13 @@
         },
         {
             "name": "libxml2",
-            "buildsystem": "meson",
+            "buildsystem": "autotools",
             "config-opts": [
-                "-Dpython=false",
-                "-Dintrospection=false"
+                "--disable-static",
+                "--disable-python",
+                "--disable-introspection",
+                "--with-history",
+                "--with-icu"
             ],
             "sources": [
                 {
