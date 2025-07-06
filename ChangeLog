@@ -37,7 +37,7 @@ xx/xx/25
 * Allow "Crop Sequence" with the internal sequence used in RGB composition, to aid with LRGB workflows. (!902)
 * Add python method to draw Polygons in the Siril overlay.
 * Allow opening scripts at a previous revision in case of bad updates. Uses the double click to open functionality of the tree view.
-* Added --followstar to the seapsf command: previously this could only be set from the GUI. (!tbc)
+* Added -followstar to the seqpsf command: previously this could only be set from the GUI. (!905)
 
 siril 1.4.0-beta2
 05/21/25
