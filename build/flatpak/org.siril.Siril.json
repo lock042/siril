@@ -25,7 +25,6 @@
             "config-opts": [
                 "--enable-reentrant"
             ],
-            "make-args": ["shared"],
             "cleanup": [
                 "/include",
                 "*.a",
