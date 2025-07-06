@@ -42,6 +42,32 @@
             ]
         },
         {
+            "name": "libxml2",
+            "buildsystem": "meson",
+            "config-opts": [
+                "-Dpython=false",
+                "-Dintrospection=false"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://download.gnome.org/sources/libxml2/2.11/libxml2-2.11.5.tar.xz",
+                    "sha256": "3727b078c360ec69fa869de14bd6f75d7ee8d36987b071e6928d4720a28df3a6"
+                }
+            ],
+            "cleanup": [
+                "/include",
+                "/lib/pkgconfig",
+                "/lib/cmake",
+                "/bin/xmlcatalog",
+                "/bin/xmllint",
+                "/share/aclocal",
+                "/share/doc",
+                "/share/gtk-doc",
+                "/share/man"
+            ]
+        },
+        {
             "name": "gtksourceview4",
             "buildsystem": "meson",
             "sources": [
@@ -131,8 +157,8 @@
                     "sources": [
                         {
                             "type": "archive",
-                            "url": "https://github.com/google/highway/archive/refs/tags/1.0.2.tar.gz",
-                            "sha256": "e8ef71236ac0d97f12d553ec1ffc5b6375d57b5f0b860c7447dd69b6ed1072db"
+                            "url": "https://github.com/google/highway/archive/refs/tags/1.0.7.tar.gz",
+                            "sha256": "5434488108186c170a5e2fca5e3c9b6ef59a1caa4d520b008a9b8be6b8abe6c5"
                         }
                     ]
                 }
@@ -140,8 +166,8 @@
             "sources": [
                 {
                     "type": "archive",
-                    "url": "https://github.com/libjxl/libjxl/archive/refs/tags/v0.7.0.tar.gz",
-                    "sha256": "3114bba1fabb36f6f4adc2632717209aa6f84077bc4e93b420e0d63fa0455c5e"
+                    "url": "https://github.com/libjxl/libjxl/archive/refs/tags/v0.10.2.tar.gz",
+                    "sha256": "95e807f63143856dc4d161c071cca01115d2c6405b3d3209854ac6989dc6bb91"
                 }
             ]
         },
@@ -374,7 +400,8 @@
             "cleanup": [
                 "/bin",
                 "/include",
-                "/lib/pkgconfig"
+                "/lib/pkgconfig",
+                "/lib/cmake"
             ],
             "config-opts": [
                 "-DCMAKE_BUILD_TYPE=Release",
