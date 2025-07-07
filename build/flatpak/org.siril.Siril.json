@@ -22,13 +22,18 @@
     "modules": [
         {
             "name": "exiv2",
-            "buildsystem": "simple",
-            "build-commands": [],
+            "buildsystem": "cmake-ninja",
+            "builddir": true,
+            "config-opts": [
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DEXIV2_BUILD_SAMPLES=OFF",
+                "-DEXIV2_BUILD_UNIT_TESTS=OFF"
+            ],
             "sources": [
                 {
-                    "type": "git",
-                    "url": "https://github.com/flathub/shared-modules.git",
-                    "commit": "master"
+                    "type": "archive",
+                    "url": "https://github.com/Exiv2/exiv2/archive/refs/tags/v0.28.5.tar.gz",
+                    "sha256": "e1671f744e379a87ba0c984617406fdf8c0ad0c594e5122f525b2fb7c28d394d"
                 }
             ]
         },
