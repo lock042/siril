@@ -270,7 +270,7 @@ win64-native:
 flatpak:
   rules:
     *run_ondemand_schedule_tag
-  image: 'registry.gitlab.com/freedesktop-sdk/freedesktop-sdk:24.08'
+  image: 'fedora:latest'
   stage: packaging
   variables:
     MANIFEST_PATH: "build/flatpak/org.siril.Siril.json"
@@ -279,6 +279,10 @@ flatpak:
     RUNTIME_REPO: "https://flathub.org/repo/flathub.flatpakrepo"
     BUNDLE: "org.siril.Siril.flatpak"
     GIT_SUBMODULE_STRATEGY: recursive
+  before_script:
+    - dnf install -y flatpak-builder flatpak git
+    - flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    - flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
   script:
     - flatpak-builder --verbose --disable-rofiles-fuse --ccache --repo=repo ${BRANCH:+--default-branch=$BRANCH} flatpak_app ${MANIFEST_PATH}
     - flatpak build-bundle repo ${BUNDLE} --runtime-repo=${RUNTIME_REPO} ${APP_ID} ${BRANCH}
