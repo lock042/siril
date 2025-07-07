@@ -33,6 +33,64 @@
             ]
         },
         {
+            "name": "opencv",
+            "buildsystem": "cmake-ninja",
+            "builddir": true,
+            "cleanup": [
+                "/bin",
+                "/include",
+                "/lib/cmake"
+            ],
+            "config-opts": [
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DBUILD_EXAMPLES=OFF",
+                "-DOPENCV_GENERATE_PKGCONFIG=ON",
+                "-DBUILD_DOCS=OFF",
+                "-DBUILD_opencv_apps=OFF",
+                "-DBUILD_opencv_python2=OFF",
+                "-DBUILD_opencv_python3=OFF",
+                "-DBUILD_PERF_TESTS=OFF",
+                "-DBUILD_SHARED_LIBS=ON",
+                "-DBUILD_TESTS=OFF",
+                "-DBUILD_opencv_highgui=OFF",
+                "-DBUILD_opencv_ml=OFF",
+                "-DBUILD_opencv_dnn=OFF",
+                "-DBUILD_opencv_imgcodecs=OFF",
+                "-DBUILD_opencv_videoio=OFF",
+                "-DBUILD_opencv_video=OFF",
+                "-DBUILD_opencv_objdetect=OFF",
+                "-DBUILD_opencv_photo=OFF",
+                "-DBUILD_opencv_stitching=ON",
+                "-DBUILD_opencv_gapi=OFF",
+                "-DENABLE_PRECOMPILED_HEADERS=OFF",
+                "-DFORCE_VTK=OFF",
+                "-DWITH_FFMPEG=OFF",
+                "-DWITH_GDAL=OFF",
+                "-DWITH_IPP=OFF",
+                "-DWITH_OPENEXR=OFF",
+                "-DWITH_OPENGL=OFF",
+                "-DWITH_QT=OFF",
+                "-DWITH_TBB=OFF",
+                "-DWITH_XINE=OFF",
+                "-DBUILD_JPEG=ON",
+                "-DBUILD_TIFF=ON",
+                "-DBUILD_PNG=ON"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/opencv/opencv/archive/refs/tags/4.11.0.zip",
+                    "sha256": "11dbd2c8d248fa97ac7d20f33c4bab8559ef32835d1c9274009150bb2cf5218a"
+                },
+                {
+                    "type": "shell",
+                    "commands": [
+                        "sed -i 's/cmake_minimum_required(VERSION 2.8.0)/cmake_minimum_required(VERSION 3.5)/' cmake/OpenCVGenPkgconfig.cmake"
+                    ]
+                }
+            ]
+        },
+        {
             "name": "cfitsio",
             "config-opts": [
                 "--enable-reentrant",
@@ -389,60 +447,6 @@
                 }
             ]
         },
-        {
-            "name": "opencv",
-            "buildsystem": "cmake-ninja",
-            "builddir": true,
-            "cleanup": [
-                "/bin",
-                "/include",
-                "/lib/pkgconfig",
-                "/lib/cmake"
-            ],
-            "config-opts": [
-                "-DCMAKE_BUILD_TYPE=Release",
-                "-DBUILD_EXAMPLES=OFF",
-                "-DOPENCV_GENERATE_PKGCONFIG=OFF",
-                "-DBUILD_DOCS=OFF",
-                "-DBUILD_opencv_apps=OFF",
-                "-DBUILD_opencv_python2=OFF",
-                "-DBUILD_opencv_python3=OFF",
-                "-DBUILD_PERF_TESTS=OFF",
-                "-DBUILD_SHARED_LIBS=ON",
-                "-DBUILD_TESTS=OFF",
-                "-DBUILD_opencv_highgui=OFF",
-                "-DBUILD_opencv_ml=OFF",
-                "-DBUILD_opencv_dnn=OFF",
-                "-DBUILD_opencv_imgcodecs=OFF",
-                "-DBUILD_opencv_videoio=OFF",
-                "-DBUILD_opencv_video=OFF",
-                "-DBUILD_opencv_objdetect=OFF",
-                "-DBUILD_opencv_photo=OFF",
-                "-DBUILD_opencv_stitching=ON",
-                "-DBUILD_opencv_gapi=OFF",
-                "-DENABLE_PRECOMPILED_HEADERS=OFF",
-                "-DFORCE_VTK=OFF",
-                "-DWITH_FFMPEG=OFF",
-                "-DWITH_GDAL=OFF",
-                "-DWITH_IPP=OFF",
-                "-DWITH_OPENEXR=OFF",
-                "-DWITH_OPENGL=OFF",
-                "-DWITH_QT=OFF",
-                "-DWITH_TBB=OFF",
-                "-DWITH_XINE=OFF",
-                "-DBUILD_JPEG=ON",
-                "-DBUILD_TIFF=ON",
-                "-DBUILD_PNG=ON"
-            ],
-            "sources": [
-                {
-                    "type": "archive",
-                    "url": "https://github.com/opencv/opencv/archive/refs/tags/4.11.0.zip",
-                    "sha256": "11dbd2c8d248fa97ac7d20f33c4bab8559ef32835d1c9274009150bb2cf5218a"
-                }
-            ]
-        },
-
         "shared-modules/intltool/intltool-0.51.json",
         {
             "name": "siril",
