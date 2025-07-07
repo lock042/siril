@@ -11,51 +11,13 @@
         "--socket=fallback-x11",
         "--socket=wayland",
         "--filesystem=host",
-        /* For spawning OS-native processes */
         "--talk-name=org.freedesktop.Flatpak",
-        /* Needed for gvfs to work */
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfs",
         "--filesystem=xdg-run/gvfsd",
         "--unset-env=LD_PRELOAD"
     ],
     "modules": [
-        {
-            "name": "tkinter",
-            "buildsystem": "simple",
-            "build-commands": [
-                "pip3 install --prefix=${FLATPAK_DEST} ."
-            ],
-            "sources": [
-                {
-                    "type": "git",
-                    "url": "https://github.com/iwalton3/tkinter-standalone",
-                    "commit": "a0efd61bbd3f929b7b406367e56378b371d5f1d6"
-                }
-            ],
-            "modules": [
-                {
-                    "name": "tcl",
-                    "buildsystem": "autotools",
-                    "subdir": "unix",
-                    "post-install": [
-                        "chmod 755 /app/lib/libtcl*.so"
-                    ],
-                    "cleanup": [
-                        "/bin",
-                        "/lib/pkgconfig",
-                        "/man"
-                    ],
-                    "sources": [
-                        {
-                            "type": "archive",
-                            "url": "https://sourceforge.net/projects/tcl/files/Tcl/8.6.12/tcl8.6.12-src.tar.gz",
-                            "sha256": "26c995dd0f167e48b11961d891ee555f680c175f7173ff8cb829f4ebcde4c1a6"
-                        }
-                    ]
-                }
-            ]
-        },
         {
             "name": "inih",
             "buildsystem": "meson",
