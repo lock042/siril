@@ -23,6 +23,7 @@ xx/xx/25
 * Fixed incorrect SPCC filter plots in "Plot All" in narrowband mode (#1691)
 * Fixed an issue where starnet was not updating a data structure that sirilpy get_image_fits_header() relied on
 * Fixed an issue where shared memory was not being released correctly after use until a python script exited (#1700)
+* Updated flatpak dependencies to fix build issues with recent toolchain (#1709)
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
@@ -32,6 +33,7 @@ xx/xx/25
 * Improved compatibility of sirilpy.tkfilebrowser with tkinter.filedialog (allows replacing the awful Linux tk filedialog)
 * Improved the GPU module helper methods in sirilpy
 * Fixed a crash with RGB compositing (#1562)
+* Improved behaviour of histogram stretch after autostretch if the image ICC profile differs from the display profile.
 * Changed the default GHT colour mode from human weighed luminance to independent (!899)
 * Added / improved GPU helper modules to assist with installation and testing of key GPU-related modules. (!895)
 * Allow "Crop Sequence" with the internal sequence used in RGB composition, to aid with LRGB workflows. (!902)
