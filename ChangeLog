@@ -39,6 +39,7 @@ xx/xx/25
 * Add python method to draw Polygons in the Siril overlay.
 * Allow opening scripts at a previous revision in case of bad updates. Uses the double click to open functionality of the tree view.
 * Make SIP and WCS as protected keywords (#1696)
+* Added -followstar to the seqpsf command: previously this could only be set from the GUI. (!905)
 
 siril 1.4.0-beta2
 05/21/25
