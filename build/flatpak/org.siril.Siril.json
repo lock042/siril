@@ -401,9 +401,8 @@
             ],
             "config-opts": [
                 "-DCMAKE_BUILD_TYPE=Release",
-                "-DCMAKE_POLICY_VERSION=3.16",
                 "-DBUILD_EXAMPLES=OFF",
-                "-DOPENCV_GENERATE_PKGCONFIG=ON",
+                "-DOPENCV_GENERATE_PKGCONFIG=OFF",
                 "-DBUILD_DOCS=OFF",
                 "-DBUILD_opencv_apps=OFF",
                 "-DBUILD_opencv_python2=OFF",
