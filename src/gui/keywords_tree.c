@@ -144,7 +144,7 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 		fits_parse_value(card, value, comment, &status);
 		fits_get_keytype(value, &dtype, &status);
 		status = 0;
-		add_key_to_tree(keyname, value, comment, dtype, keyword_is_protected(card), editable);
+		add_key_to_tree(keyname, value, comment, dtype, keyword_is_protected(card, fit), editable);
 	}
 
 
