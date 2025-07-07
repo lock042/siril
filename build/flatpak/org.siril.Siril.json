@@ -1,5 +1,6 @@
 {
-    "app-id": "org.siril.Siril",
+    "manifest-version": 1,
+    "id": "org.siril.Siril",
     "runtime": "org.gnome.Platform",
     "runtime-version": "master",
     "runtime-extensions": [
