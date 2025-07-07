@@ -270,7 +270,7 @@ win64-native:
 flatpak:
   rules:
     *run_ondemand_schedule_tag
-  image: 'quay.io/freedesktop-sdk/freedesktop-sdk:24.08'
+  image: 'registry.gitlab.com/freedesktop-sdk/freedesktop-sdk:24.08'
   stage: packaging
   variables:
     MANIFEST_PATH: "build/flatpak/org.siril.Siril.json"
