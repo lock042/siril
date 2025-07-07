@@ -44,7 +44,6 @@
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DBUILD_EXAMPLES=OFF",
                 "-DOPENCV_GENERATE_PKGCONFIG=ON",
-                "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
                 "-DBUILD_DOCS=OFF",
                 "-DBUILD_opencv_apps=OFF",
                 "-DBUILD_opencv_python2=OFF",
@@ -79,15 +78,9 @@
             "sources": [
                 {
                     "type": "archive",
-                    "url": "https://github.com/opencv/opencv/archive/refs/tags/4.11.0.zip",
-                    "sha256": "11dbd2c8d248fa97ac7d20f33c4bab8559ef32835d1c9274009150bb2cf5218a"
+                    "url": "https://github.com/opencv/opencv/archive/refs/tags/4.12.0.zip",
+                    "sha256": "fa3faf7581f1fa943c9e670cf57dd6ba1c5b4178f363a188a2c8bff1eb28b7e4"
                 },
-                {
-                    "type": "shell",
-                    "commands": [
-                        "sed -i 's/cmake_minimum_required(VERSION 2.8.0)/cmake_minimum_required(VERSION 3.5)/' cmake/OpenCVGenPkgconfig.cmake"
-                    ]
-                }
             ]
         },
         {
