@@ -38,12 +38,13 @@
             "builddir": true,
             "cleanup": [
                 "/bin",
-                "/include"
+                "/include",
             ],
             "config-opts": [
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DBUILD_EXAMPLES=OFF",
-                "-DOPENCV_GENERATE_PKGCONFIG=OFF",
+                "-DOPENCV_GENERATE_PKGCONFIG=ON",
+                "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
                 "-DBUILD_DOCS=OFF",
                 "-DBUILD_opencv_apps=OFF",
                 "-DBUILD_opencv_python2=OFF",
