@@ -38,7 +38,7 @@
             "builddir": true,
             "cleanup": [
                 "/bin",
-                "/include",
+                "/include"
             ],
             "config-opts": [
                 "-DCMAKE_BUILD_TYPE=Release",
