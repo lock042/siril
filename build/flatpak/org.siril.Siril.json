@@ -1,9 +1,11 @@
 {
     "app-id": "org.siril.Siril",
     "runtime": "org.gnome.Platform",
-    "runtime-version": "47",
+    "runtime-version": "master",
     "sdk": "org.gnome.Sdk",
-    "command": "siril",
+    "sdk-extensions": [
+        "org.gnome.Sdk.Extension.python3-tkinter"
+    ],    "command": "siril",
     "rename-icon": "org.siril.Siril",
     "finish-args": [
         "--share=ipc",
