@@ -1366,7 +1366,7 @@ gboolean keyword_is_protected(char *card, fits *fit) {
 		KeywordInfo *keyword_info = g_hash_table_lookup(keys_hash, keyname);
 		gboolean is_wcslib = FALSE;
 
-		if (keyword_info && g_strcmp0(keyword_info->group, "wcslib") == 0) {
+		if (keyword_info && (g_strcmp0(keyword_info->group, "wcslib") == 0 || g_strcmp0(keyword_info->group, "wcsdata") == 0)) {
 			is_wcslib = TRUE;
 		}
 
