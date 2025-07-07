@@ -21,6 +21,22 @@
     ],
     "modules": [
         {
+            "name": "inih",
+            "buildsystem": "meson",
+            "config-opts": [
+                "-Ddefault_library=shared",
+                "-Ddistro_install=true",
+                "-Dwith_INIReader=true"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/benhoyt/inih/archive/refs/tags/r58.tar.gz",
+                    "sha256": "e79216260d5dffe809bda840be48ab0eec7737b2bb9f02d2275c1b46344ea7b7"
+                }
+            ]
+        },
+        {
             "name": "exiv2",
             "buildsystem": "cmake-ninja",
             "builddir": true,
