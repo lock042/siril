@@ -2,7 +2,7 @@
     "app-id": "org.siril.Siril",
     "runtime": "org.gnome.Platform",
     "runtime-version": "master",
-    "add-extensions": [
+    "runtime-extensions": [
         "org.gnome.Platform.tcltk",
         "org.gnome.Platform.Locale"
     ],
