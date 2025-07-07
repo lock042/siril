@@ -401,6 +401,7 @@
             ],
             "config-opts": [
                 "-DCMAKE_BUILD_TYPE=Release",
+                "-DCMAKE_POLICY_VERSION=3.16",
                 "-DBUILD_EXAMPLES=OFF",
                 "-DOPENCV_GENERATE_PKGCONFIG=ON",
                 "-DBUILD_DOCS=OFF",
@@ -437,8 +438,8 @@
             "sources": [
                 {
                     "type": "archive",
-                    "url": "https://github.com/opencv/opencv/archive/4.8.0.zip",
-                    "sha256": "9dc6a9a95edc133e165e9f6db9412dd899e28d4e5e4979f17cb5966f4b7f3fb1"
+                    "url": "https://github.com/opencv/opencv/archive/refs/tags/4.11.0.zip",
+                    "sha256": "11dbd2c8d248fa97ac7d20f33c4bab8559ef32835d1c9274009150bb2cf5218a"
                 }
             ]
         },
