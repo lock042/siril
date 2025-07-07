@@ -1,8 +1,8 @@
 {
     "app-id": "org.siril.Siril",
-    "runtime": "org.gnome.Platform",
-    "runtime-version": "master",
-    "sdk": "org.gnome.Sdk",
+    "runtime": "org.freedesktop.Platform",
+    "runtime-version": "24.08",
+    "sdk": "org.freedesktop.Sdk",
     "command": "siril",
     "rename-icon": "org.siril.Siril",
     "finish-args": [

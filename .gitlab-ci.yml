@@ -270,13 +270,13 @@ win64-native:
 flatpak:
   rules:
     *run_ondemand_schedule_tag
-  image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-master'
+  image: 'quay.io/freedesktop-sdk/freedesktop-sdk:24.08'
   stage: packaging
   variables:
     MANIFEST_PATH: "build/flatpak/org.siril.Siril.json"
     FLATPAK_MODULE: "siril"
     APP_ID: "org.siril.Siril"
-    RUNTIME_REPO: "https://nightly.gnome.org/gnome-nightly.flatpakrepo"
+    RUNTIME_REPO: "https://flathub.org/repo/flathub.flatpakrepo"
     BUNDLE: "org.siril.Siril.flatpak"
     GIT_SUBMODULE_STRATEGY: recursive
   script:
@@ -299,7 +299,6 @@ flatpak:
       - ".flatpak-builder/ccache"
   needs: []
   allow_failure: true
-
 
 #appimage:
 #  stage: packaging
