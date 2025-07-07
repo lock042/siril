@@ -2,10 +2,12 @@
     "app-id": "org.siril.Siril",
     "runtime": "org.gnome.Platform",
     "runtime-version": "master",
+    "add-extensions": [
+        "org.gnome.Platform.tcltk",
+        "org.gnome.Platform.Locale"
+    ],
     "sdk": "org.gnome.Sdk",
-    "sdk-extensions": [
-        "org.gnome.Sdk.Extension.python3-tkinter"
-    ],    "command": "siril",
+    "command": "siril",
     "rename-icon": "org.siril.Siril",
     "finish-args": [
         "--share=ipc",
