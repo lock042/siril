@@ -231,10 +231,6 @@
                 "-Dgir=false",
                 "-Dvapi=false"
             ],
-            "build-commands": [
-                "ninja -C _flatpak_build",
-                "ninja -C _flatpak_build install"
-            ],
             "sources": [
                 {
                     "type": "archive",
