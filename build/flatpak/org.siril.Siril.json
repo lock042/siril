@@ -1,7 +1,7 @@
 {
     "app-id": "org.siril.Siril",
     "runtime": "org.gnome.Platform",
-    "runtime-version": "48",
+    "runtime-version": "master",
     "sdk": "org.gnome.Sdk",
     "command": "siril",
     "rename-icon": "org.siril.Siril",
