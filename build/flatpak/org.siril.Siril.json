@@ -64,7 +64,6 @@
         ],
         "post-install": [
         "ln -svf ${FLATPAK_DEST}/bin/python3 ${FLATPAK_DEST}/bin/python",
-        "ln -svf ${FLATPAK_DEST}/bin/python3 ${FLATPAK_DEST}/bin/python3.13",
         "echo '/app/lib' > ${FLATPAK_DEST}/lib/python3.13/site-packages/flatpak-python.pth"
         ],
         "sources": [
