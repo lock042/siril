@@ -655,7 +655,7 @@ int remove_all_fits_keywords(fits *fit) {
 	for (int i = nkeys; i > 0; i--) { // we start from the end because the keys are removed in place
 		fits_read_keyn(fit->fptr, i, keyname, value, NULL, &status);
 		siril_debug_print("%3d:%s=%s\n", i, keyname, value);
-		if (!keyword_is_protected(keyname)) {
+		if (!keyword_is_protected(keyname, fit)) {
 			fits_delete_record(fit->fptr, i, &status);
 			siril_debug_print("%s removed\n", keyname);
 		}
@@ -983,7 +983,7 @@ int read_fits_keywords(fits *fit) {
 		status = 0;
 
 		// Skip the FITS structure keys and the DATE-OBS key since they have already been processed.
-		if (g_strcmp0(keyname, "DATE-OBS") == 0 || keyword_is_protected(card)) {
+		if (g_strcmp0(keyname, "DATE-OBS") == 0 || keyword_is_protected(card, fit)) {
 			continue;
 		}
 
@@ -1339,4 +1339,44 @@ int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry) {
 
 void clear_Bayer_information(fits *fit) {
 	memset(fit->keywords.bayer_pattern, 0, FLEN_VALUE);
+}
+
+gboolean keyword_is_protected(char *card, fits *fit) {
+	char keyname[FLEN_KEYWORD];
+	int length = 0;
+	int status = 0;
+
+	fits_get_keyname(card, keyname, &length, &status);
+
+	if (g_strcmp0(keyname, "DATE") == 0) {
+		return TRUE;
+	}
+
+	if (fits_get_keyclass(card) == TYP_STRUC_KEY ||
+		fits_get_keyclass(card) == TYP_CMPRS_KEY ||
+		fits_get_keyclass(card) == TYP_SCAL_KEY ||
+		fits_get_keyclass(card) == TYP_WCS_KEY) {
+		return TRUE;
+		}
+
+	if (fit) {
+		GHashTable *keys_hash;
+		KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
+
+		KeywordInfo *keyword_info = g_hash_table_lookup(keys_hash, keyname);
+		gboolean is_wcslib = FALSE;
+
+		if (keyword_info && g_strcmp0(keyword_info->group, "wcslib") == 0) {
+			is_wcslib = TRUE;
+		}
+
+		g_hash_table_destroy(keys_hash);
+		free(keys);
+
+		if (is_wcslib) {
+			return TRUE;
+		}
+	}
+
+	return FALSE;
 }
