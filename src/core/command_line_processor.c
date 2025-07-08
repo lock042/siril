@@ -455,9 +455,6 @@ static gboolean show_command_help_popup(gpointer user_data) {
 					}
 				}
 				str = g_string_append(str, "</span>\n\n\t");
-				printf("DEBUG: current->definition = %s\n", current->definition);
-				printf("DEBUG: STR_REQUIRES = %s\n", STR_REQUIRES);
-				printf("DEBUG: _(STR_REQUIRES) = %s\n", _(STR_REQUIRES));
 				str = g_string_append(str, _(current->definition));
 				str = g_string_append(str, "\n\n<b>");
 				str = g_string_append(str, _("Can be used in a script: "));
