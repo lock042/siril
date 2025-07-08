@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "gui/user_polygons.h"
+#include "gui/image_display.h"
 
 #define FROM_BE64_INTO(dest, val, type) \
 do { \
@@ -163,6 +164,7 @@ void clear_user_polygons(void) {
 	g_slist_free_full(gui.user_polygons, free_user_polygon);
 	gui.user_polygons = NULL;
 	g_atomic_int_set(&unused_polygon_id, 0);
+	queue_redraw(REDRAW_OVERLAY);
 }
 
 UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
