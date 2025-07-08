@@ -206,7 +206,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn13">
                     <property name="spacing">2</property>
                     <property name="sizing">fixed</property>
-                    <property name="title" translatable="yes">Ch.</property>
+                    <property name="title">Ch.</property>
                     <property name="alignment">0.5</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_ch"/>
@@ -220,7 +220,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn11">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">B</property>
+                    <property name="title">B</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
@@ -240,7 +240,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn12">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">A</property>
+                    <property name="title">A</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
@@ -260,7 +260,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn7">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">x0</property>
+                    <property name="title">x0</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
@@ -280,7 +280,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn8">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">y0</property>
+                    <property name="title">y0</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
@@ -299,7 +299,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn30">
                     <property name="spacing">2</property>
-                    <property name="title" translatable="yes">Ra</property>
+                    <property name="title">Ra</property>
                     <property name="clickable">True</property>
                     <property name="reorderable">True</property>
                     <property name="sort-column-id">5</property>
@@ -314,7 +314,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn31">
                     <property name="spacing">2</property>
-                    <property name="title" translatable="yes">Dec</property>
+                    <property name="title">Dec</property>
                     <property name="clickable">True</property>
                     <property name="reorderable">True</property>
                     <property name="sort-column-id">6</property>
@@ -330,7 +330,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn9">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">FWHMx</property>
+                    <property name="title">FWHMx</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
@@ -350,7 +350,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn10">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">FWHMy</property>
+                    <property name="title">FWHMy</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
@@ -370,7 +370,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn_mag">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">Mag</property>
+                    <property name="title">Mag</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
@@ -389,7 +389,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn29">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">Beta</property>
+                    <property name="title">Beta</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
@@ -409,7 +409,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn14">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">r</property>
+                    <property name="title">r</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
@@ -429,7 +429,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn6">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">Angle</property>
+                    <property name="title">Angle</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
@@ -449,7 +449,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn" id="treeviewcolumn15">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">RMSE</property>
+                    <property name="title">RMSE</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
@@ -469,7 +469,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkTreeViewColumn">
                     <property name="visible">False</property>
                     <property name="spacing">2</property>
-                    <property name="title" translatable="yes">index</property>
+                    <property name="title">index</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_index"/>
                       <attributes>
