@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-06 18:01+0200\n"
-"PO-Revision-Date: 2025-06-26 04:43+0000\n"
+"PO-Revision-Date: 2025-07-08 15:16+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -6703,18 +6703,17 @@ msgstr "外径:"
 msgid ""
 "Inner radius of the annulus used to measure local background. Default value "
 "is 20.00."
-msgstr ""
+msgstr "局所背景の測定に使用される環帯の内半径。デフォルト値は20.00。"
 
 #: src/gui/uifiles/settings_window.ui:2736
 msgid ""
 "Outer radius of the annulus used to measure local background. Default value "
 "is 30.00."
-msgstr ""
+msgstr "局所背景の測定に使用される環帯の外半径。デフォルト値は30.00。"
 
 #: src/gui/uifiles/settings_window.ui:2760
-#, fuzzy
 msgid "Background Annulus"
-msgstr "背景"
+msgstr "背景環帯"
 
 #: src/gui/uifiles/settings_window.ui:2794
 msgid "Aperture radius:"
@@ -6722,7 +6721,7 @@ msgstr "開口半径:"
 
 #: src/gui/uifiles/settings_window.ui:2805
 msgid "Aperture radius where the flux is measured."
-msgstr ""
+msgstr "光束を測定する開口半径。"
 
 #: src/gui/uifiles/settings_window.ui:2823
 msgid "Automatic with a Radius/half-FWHM ratio of:"

@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-06 18:01+0200\n"
-"PO-Revision-Date: 2025-06-29 11:26+0000\n"
+"PO-Revision-Date: 2025-07-07 18:43+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -8434,7 +8434,10 @@ msgstr ""
 "Список доступных сценариев. Выбранные сценарии будут доступные через меню "
 "«Сценарии». После двойного нажатия на строку, код сценария будет открыт в "
 "редакторе (Это позволяет делать локальные изменения в сценарии и сохранять "
-"их)"
+"их).\n"
+"Чтобы открыть более раннюю ревизию (например, для получения более старой "
+"версии после неудачного обновления сценария), нажмите на строку правой "
+"клавишей."
 
 #: src/gui/uifiles/settings_window.ui:5178
 msgid "Category"
@@ -21185,14 +21188,12 @@ msgid "_Stop Process"
 msgstr "_Остановить процесс"
 
 #: src/gui/callbacks.c:2394
-#, fuzzy
 msgid "Process Name"
-msgstr "Обработка"
+msgstr "Название процесса"
 
 #: src/gui/callbacks.c:2404
-#, fuzzy
 msgid "Start Time"
-msgstr "Начало"
+msgstr "Время начала"
 
 #: src/gui/colors.c:52 src/gui/colors.c:138 src/gui/colors.c:171
 #: src/gui/colors.c:257 src/gui/colors.c:268 src/gui/histogram.c:1740
@@ -21796,16 +21797,14 @@ msgid "No selection"
 msgstr "Выделение отсутствует"
 
 #: src/gui/cut.c:1214
-#, fuzzy
 msgid "Siril cannot set the star coordinate as no selection is made"
 msgstr ""
 "Siril не может установить начальную координату, поскольку выделение "
 "отсутствует"
 
 #: src/gui/denoisegui.c:120
-#, fuzzy
 msgid "Modulation is zero: doing nothing.\n"
-msgstr "Масштаб 1.0. Ничего не делаем.\n"
+msgstr "Модуляция равна 0: ничего не делаем.\n"
 
 #: src/gui/dialog_preview.c:114
 msgid "Folder"
@@ -21867,9 +21866,8 @@ msgid "Image loading failed"
 msgstr "Не удалось загрузить изображение"
 
 #: src/gui/epf.c:301
-#, fuzzy
 msgid "Error: image dimensions do not match"
-msgstr "Ошибка: размеры обучающего изображения не совпадают\n"
+msgstr "Ошибка: размеры изображения не совпадают"
 
 #: src/gui/git_gui.c:93
 msgid "Processing"
@@ -21896,9 +21894,8 @@ msgid "Python script"
 msgstr "Сценарий python"
 
 #: src/gui/git_gui.c:166
-#, fuzzy
 msgid "Current script version"
-msgstr "Закрыть редактор сценариев"
+msgstr "Текущая версия сценария"
 
 #: src/gui/git_gui.c:182
 msgid "(No commit message found for this revision)"
@@ -21910,9 +21907,8 @@ msgid "Error loading script contents: %s\n"
 msgstr "Ошибка загрузки содержимого сценария: %s\n"
 
 #: src/gui/git_gui.c:254
-#, fuzzy
 msgid "Select Revision"
-msgstr "Выделение"
+msgstr "Выберите ревизию"
 
 #: src/gui/git_gui.c:261
 msgid ""
@@ -22374,9 +22370,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/merge_cfa.c:349
-#, fuzzy
 msgid "Error: images are not all loaded"
-msgstr "Ошибка: изображение не может быть загружено"
+msgstr "Ошибка: не все изображения загружены"
 
 #: src/gui/merge_cfa.c:350
 #, fuzzy

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-06 18:01+0200\n"
-"PO-Revision-Date: 2025-06-23 00:12+0000\n"
+"PO-Revision-Date: 2025-07-08 08:43+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -20306,9 +20306,8 @@ msgid "Python script"
 msgstr "Python 脚本"
 
 #: src/gui/git_gui.c:166
-#, fuzzy
 msgid "Current script version"
-msgstr "关闭脚本编辑器"
+msgstr "当前脚本版本"
 
 #: src/gui/git_gui.c:182
 msgid "(No commit message found for this revision)"
@@ -20341,7 +20340,7 @@ msgstr ""
 
 #: src/gui/git_gui.c:306
 msgid "Loading commit message..."
-msgstr ""
+msgstr "载入提交信息..."
 
 #: src/gui/git_gui.c:340
 #, fuzzy, c-format
@@ -21289,9 +21288,8 @@ msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
 msgstr "量子效率/透射率/相对光子数"
 
 #: src/gui/photometric_cc.c:1256 src/gui/photometric_cc.c:1297
-#, fuzzy
 msgid "Narrowband filters"
-msgstr "窄带模式"
+msgstr "窄带滤镜"
 
 #: src/gui/photometric_cc.c:1305
 msgid "Atmosphere model"
@@ -24643,9 +24641,8 @@ msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "本地 SPCC 数据库仓库是最新的！\n"
 
 #: src/io/siril_git.c:1162
-#, fuzzy
 msgid "Error opening scripts repository\n"
-msgstr "克隆仓库时出错：%s\n"
+msgstr "打开脚本仓库出错\n"
 
 #: src/io/siril_pythoncommands.c:461
 msgid "Unknown config type"
