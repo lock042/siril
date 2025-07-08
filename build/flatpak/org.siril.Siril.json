@@ -15,60 +15,63 @@
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfs",
         "--filesystem=xdg-run/gvfsd",
-        "--unset-env=LD_PRELOAD"
+        "--unset-env=LD_PRELOAD",
+        "--env=LD_LIBRARY_PATH=/app/lib",
+        "--env=PYTHONPATH=/app/lib/python3.13/site-packages"
     ],
     "modules": [
         {
-        "name": "tkinter",
-        "buildsystem": "simple",
-        "build-commands": [
-            "pip3 install --prefix=${FLATPAK_DEST} ."
+        "name": "tcl",
+        "subdir": "unix",
+        "cleanup": [
+            "/bin"
+        ],
+        "post-install": [
+            "chmod u+w ${FLATPAK_DEST}/lib/libtcl*.so"
         ],
         "sources": [
             {
-            "type": "git",
-            "url": "https://github.com/iwalton3/tkinter-standalone",
-            "commit": "d9cb97c5bd4f814c73678366e0e48220776b6ad3"
+            "type": "archive",
+            "url": "https://prdownloads.sourceforge.net/tcl/tcl8.6.16-src.tar.gz",
+            "sha256": "91cb8fa61771c63c262efb553059b7c7ad6757afa5857af6265e4b0bdc2a14a5"
             }
+        ]
+        },
+        {
+        "name": "tk",
+        "subdir": "unix",
+        "post-install": [
+            "chmod u+w ${FLATPAK_DEST}/lib/libtk*.so"
         ],
-        "modules": [
+        "cleanup": [
+            "/bin"
+        ],
+        "sources": [
             {
-            "name": "tcl8.6",
-            "sources": [
-                {
-                "type": "archive",
-                "url": "https://sourceforge.net/projects/tcl/files/Tcl/8.6.12/tcl8.6.12-src.tar.gz",
-                "sha256": "26c995dd0f167e48b11961d891ee555f680c175f7173ff8cb829f4ebcde4c1a6",
-                "x-checker-data": {
-                    "type": "html",
-                    "url": "https://sourceforge.net/projects/tcl/rss",
-                    "pattern": "<link>(https://sourceforge.net/.+/tcl(8\\.6\\.[\\d\\.]*\\d)-src.tar.gz)/download"
-                }
-                }
-            ],
-            "subdir": "unix",
-            "post-install": [
-                "chmod +w ${FLATPAK_DEST}/lib/libtcl8.6.so"
-            ]
-            },
+            "type": "archive",
+            "url": "https://prdownloads.sourceforge.net/tcl/tk8.6.16-src.tar.gz",
+            "sha256": "be9f94d3575d4b3099d84bc3c10de8994df2d7aa405208173c709cc404a7e5fe"
+            }
+        ]
+        },
+        {
+        "name": "python3.13",
+        "config-opts": [
+            "--enable-shared",
+            "--prefix=/app",
+            "--with-ensurepip=install"
+
+        ],
+        "post-install": [
+        "ln -svf ${FLATPAK_DEST}/bin/python3 ${FLATPAK_DEST}/bin/python",
+        "ln -svf ${FLATPAK_DEST}/bin/python3 ${FLATPAK_DEST}/bin/python3.13",
+        "echo '/app/lib' > ${FLATPAK_DEST}/lib/python3.13/site-packages/flatpak-python.pth"
+        ],
+        "sources": [
             {
-            "name": "tk8.6",
-            "sources": [
-                {
-                "type": "archive",
-                "url": "https://sourceforge.net/projects/tcl/files/Tcl/8.6.12/tk8.6.12-src.tar.gz",
-                "sha256": "12395c1f3fcb6bed2938689f797ea3cdf41ed5cb6c4766eec8ac949560310630",
-                "x-checker-data": {
-                    "type": "html",
-                    "url": "https://sourceforge.net/projects/tcl/rss",
-                    "pattern": "<link>(https://sourceforge.net/.+/tk(8\\.6\\.[\\d\\.]*\\d)-src.tar.gz)/download"
-                }
-                }
-            ],
-            "subdir": "unix",
-            "post-install": [
-                "chmod +w ${FLATPAK_DEST}/lib/libtk8.6.so"
-            ]
+            "type": "archive",
+            "url": "https://www.python.org/ftp/python/3.13.5/Python-3.13.5.tar.xz",
+            "sha256": "93e583f243454e6e9e4588ca2c2662206ad961659863277afcdb96801647d640"
             }
         ]
         },
