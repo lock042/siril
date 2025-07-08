@@ -225,6 +225,37 @@
             ]
         },
         {
+            "name": "gtksourceview4",
+            "buildsystem": "meson",
+            "build-options": {
+                "env": {
+                "PYTHON": "/usr/bin/python3"
+                }
+            },
+            "build-commands": [
+                "mv /app/bin/python3 /app/bin/python3.bak || true",
+                "mv /app/bin/python /app/bin/python.bak || true",
+                "ninja -C _flatpak_build",
+                "ninja -C _flatpak_build install",
+                "mv /app/bin/python3.bak /app/bin/python3 || true",
+                "mv /app/bin/python.bak /app/bin/python || true"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://deb.debian.org/debian/pool/main/g/gtksourceview4/gtksourceview4_4.8.4.orig.tar.xz",
+                    "sha256": "7ec9d18fb283d1f84a3a3eff3b7a72b09a10c9c006597b3fbabbb5958420a87d"
+                }
+            ],
+            "cleanup": [
+                "/include",
+                "*.la",
+                "*.a",
+                "/lib/pkgconfig",
+                "/share/gtk-doc"
+            ]
+        },
+        {
             "name": "libgit2",
             "buildsystem": "cmake",
             "config-opts": [
