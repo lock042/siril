@@ -232,6 +232,14 @@
         {
             "name": "gtksourceview4",
             "buildsystem": "meson",
+            "build-commands": [
+                "mv /app/bin/python3 /app/bin/python3.bak || true",
+                "mv /app/bin/python /app/bin/python.bak || true",
+                "ninja -C _flatpak_build",
+                "ninja -C _flatpak_build install",
+                "mv /app/bin/python3.bak /app/bin/python3 || true",
+                "mv /app/bin/python.bak /app/bin/python || true"
+            ],
             "sources": [
                 {
                     "type": "archive",
