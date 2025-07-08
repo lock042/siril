@@ -2274,6 +2274,7 @@ CLEANUP:
 			if (payload_length == 4) {
 				int32_t id = GINT32_FROM_BE(*(int*) payload);
 				gboolean deleted = delete_user_polygon(id);
+				queue_redraw(REDRAW_OVERLAY);
 				if (!deleted) {
 					siril_debug_print("Failed to delete user polygon with id %d\n", id);
 					const char* error_msg = _("Invalid payload length");
