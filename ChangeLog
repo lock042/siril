@@ -23,6 +23,9 @@ xx/xx/25
 * Fixed incorrect SPCC filter plots in "Plot All" in narrowband mode (#1691)
 * Fixed an issue where starnet was not updating a data structure that sirilpy get_image_fits_header() relied on
 * Fixed an issue where shared memory was not being released correctly after use until a python script exited (#1700)
+* Updated flatpak dependencies to fix build issues with recent toolchain (#1709)
+* Fixed an issue where removing overlay polygons did not immediately update the overlay
+* Fixed an issue where drawing a freehand polygon left the mouse in an unusable state
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)

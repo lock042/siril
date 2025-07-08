@@ -283,7 +283,7 @@ class ONNXHelper:
 
             actual_provider = session.get_providers()[0]
             if actual_provider != provider:
-                print(f"✗ {provider}: fallback occurred (used {actual_provider})")
+                print(f"(x) {provider}: fallback occurred (used {actual_provider})")
                 return False
 
             output = session.run(None, {'input': input_data})
@@ -414,9 +414,12 @@ class ONNXHelper:
                 result = result[0]
             return result, cpu_session
 
-    def install_onnxruntime(self):
+    def install_onnxruntime(self, force=False):
         """
         Detect system configuration and install the appropriate ONNX Runtime package.
+
+        Args:
+            force: bool: If True, force reinstallation even if onnxruntime is already installed.
 
         Returns:
             bool: True if installation was successful or already installed, False otherwise.
@@ -429,8 +432,14 @@ class ONNXHelper:
         is_installed, package_name = self.is_onnxruntime_installed()
 
         if is_installed:
-            print(f"ONNX Runtime is already installed: {package_name}")
-            return True
+            if force:
+                print("ONNX Runtime is already installed. Removing and reinstalling...")
+                self.uninstall_onnxruntime()
+                if self.config_file is not None and os.path.exists(self.config_file):
+                    os.unlink(self.config_file)
+            else:
+                print(f"ONNX Runtime is already installed: {package_name}")
+                return True
 
         # If not installed, get recommended package
         onnxruntime_pkg, from_url, index_url = self._get_onnxruntime_package()
@@ -596,7 +605,7 @@ class ONNXHelper:
             except Exception:
                 return False
 
-    def get_execution_providers_ordered(self, ai_gpu_acceleration=True):
+    def get_execution_providers_ordered(self, ai_gpu_acceleration=True, force_check=False):
         """
         Get execution providers ordered by priority.
         This function returns a list of available ONNX Runtime execution providers
@@ -605,9 +614,16 @@ class ONNXHelper:
         Args:
             ai_gpu_acceleration (bool): Whether to include GPU acceleration providers.
                                         Defaults to True.
+            force_check (bool): Whether to force re-checking even if a cached config exists.
+                                Defaults to False.
         Returns:
             list: Ordered list of available execution providers.
         """
+        if force_check is True: # Clear any previous config so it has to be re-checked
+            self.providers = None
+            if os.path.exists(self.config_file):
+                os.unlink(self.config_file)
+
         if ai_gpu_acceleration is False:
             return ["CPUExecutionProvider"]
 
@@ -657,6 +673,7 @@ class ONNXHelper:
 
         except (json.JSONDecodeError, IOError, KeyError) as e:
             print(f"Failed to load cached providers: {e}", file=sys.stderr)
+            os.unlink(self.config_file)
             return None
 
     def _save_providers_to_cache(self, providers):
@@ -691,6 +708,10 @@ class ONNXHelper:
         Returns:
             list: A list of uninstalled packages
         """
+        # Remove the execution provders config file
+        if os.path.exists(self.config_file):
+            os.unlink(self.config_file)
+
         # Get all installed packages
         try:
             result = subprocess.run(
