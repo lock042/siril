@@ -84,7 +84,7 @@
             {
             "type": "archive",
             "url": "https://pypi.org/packages/source/s/setuptools/setuptools-69.0.3.tar.gz",
-            "sha256": "be1af57fc409f93647f2e8e718a6b2c0a7f44f6d8a3d7e8c3b2d1b4f2a2e5d4b"
+            "sha256": "be1af57fc409f93647f2e8e4573a142ed38724b8cdd389706a867bb4efcf1e78"
             }
         ]
         },
