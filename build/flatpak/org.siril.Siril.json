@@ -233,7 +233,7 @@
             ],
             "build-commands": [
                 "ninja -C _flatpak_build",
-                "ninja -C _flatpak_build install",
+                "ninja -C _flatpak_build install"
             ],
             "sources": [
                 {
