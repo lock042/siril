@@ -60,6 +60,19 @@ static void get_list_store() {
 	}
 }
 
+static gchar *normalize_path_separators(const gchar *path) {
+	gchar *normalized = g_strdup(path);
+	gchar *p = normalized;
+
+	while (*p) {
+		if (*p == '/' || *p == '\\') {
+			*p = G_DIR_SEPARATOR;
+		}
+		p++;
+	}
+	return normalized;
+}
+
 static gboolean fill_script_repo_tree_idle(gpointer p) {
 	GtkTreeView *tview = (GtkTreeView *)p;
 	GtkTreeIter iter;
@@ -84,23 +97,28 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 		GSList *iterator;
 		for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
 			// here we populate the GtkTreeView from GSList gui.repo_scripts
+			gchar *normalized_path = normalize_path_separators((gchar *)iterator->data); // we replace "/" by G_DIR_SEPARATOR
 			const gchar *category;
 			gboolean included = FALSE;
 			gboolean core = FALSE;
-			if (test_last_subdir((gchar *)iterator->data, "preprocessing")) {
+			if (test_last_subdir(normalized_path, "preprocessing")) {
 				category = _("Preprocessing");
-			} else if (test_last_subdir((gchar *)iterator->data, "processing")) {
+			} else if (test_last_subdir(normalized_path, "processing")) {
 				category = _("Processing");
-			} else if (test_last_subdir((gchar *)iterator->data, "utility")) {
+			} else if (test_last_subdir(normalized_path, "utility")) {
 				category = _("Utility");
-			} else if (test_last_subdir((gchar *)iterator->data, "core")) {
+			} else if (test_last_subdir(normalized_path, "core")) {
 				category = _("Core");
 				core = TRUE;
 			} else {
 				category = _("Other");
 			}
-			gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
-			gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
+
+			gchar *scriptname = g_path_get_basename(normalized_path);
+			gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), normalized_path, NULL);
+
+			g_free(normalized_path);
+
 			const gchar *scripttype;
 			if (g_str_has_suffix(scriptname, SCRIPT_EXT))
 				scripttype = _("Siril Script File");
