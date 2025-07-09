@@ -1,5 +1,5 @@
 siril 1.4.0-beta3
-xx/xx/25
+07/11/25
 
 **Fixes:**
 * Fixed crash when opening 8-bit XISF file (#1638)
