@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-08 17:17+0200\n"
-"PO-Revision-Date: 2025-06-20 02:28+0000\n"
+"PO-Revision-Date: 2025-07-09 13:19+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -4521,6 +4521,12 @@ msgid ""
 "become insensitive until either Reset or Apply is clicked. Further tweaks "
 "can be made by clicking Apply and then making a second stretch,"
 msgstr ""
+"Prévisualisation de l'algorithme d'étirement automatique sur l'image. En "
+"raison des particularités de la gestion des couleurs, une fois que l'on a "
+"cliqué sur ce bouton, les curseurs et les widgets de saisie des valeurs "
+"deviennent insensibles jusqu'à ce que l'on clique sur Réinitialiser ou "
+"Appliquer. D'autres ajustements peuvent être effectués en cliquant sur "
+"Appliquer, puis en procédant à un second étirement,"
 
 #: src/gui/uifiles/histogram_dialog.ui:519
 msgid "Highlights: "
@@ -6056,13 +6062,13 @@ msgid "Plot fits"
 msgstr "Tracer fits"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:721
-#, fuzzy
 msgid ""
 "Plot SPCC linear fits for catalog to image R/G and B/G ratios. In narrowband "
 "mode, plots of degenerate ratios will not be shown."
 msgstr ""
-"Tracer les fits linéaires SPCC pour les rapports R/V et B/V entre le "
-"catalogue et l'image"
+"Tracer les ajustements linéaires SPCC pour les rapports R/G et B/G du "
+"catalogue à l'image. En mode bande étroite, les tracés des rapports "
+"dégénérés ne seront pas affichés."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:736
 msgid "Sensor Type:"
@@ -8545,7 +8551,6 @@ msgstr ""
 "de confirmer l'application des modifications."
 
 #: src/gui/uifiles/settings_window.ui:5161
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -8556,7 +8561,10 @@ msgstr ""
 "Liste des scripts disponibles. Les scripts sélectionnés sont accessibles via "
 "le menu Scripts. Double-cliquez sur une ligne pour ouvrir le script dans "
 "l'éditeur de script. (Cette fonction peut être utilisée pour apporter et "
-"enregistrer des modifications locales à un script.)"
+"enregistrer des modifications locales à un script.)\n"
+"Pour ouvrir une révision plus ancienne (par exemple, pour obtenir une "
+"version plus ancienne après une mauvaise mise à jour du script), cliquez "
+"avec le bouton droit de la souris sur une ligne."
 
 #: src/gui/uifiles/settings_window.ui:5178
 msgid "Category"
@@ -16573,29 +16581,29 @@ msgstr "Coordonnées de l'étoile : %.1f, %.1f\n"
 msgid ""
 "Sequence name is required as first argument (use '.' for current sequence)\n"
 msgstr ""
+"Le nom de la séquence est requis comme premier argument (utilisez “.” pour "
+"la séquence en cours).\n"
 
 #: src/core/command.c:4570 src/core/command.c:4575 src/core/command.c:4602
 #: src/core/command.c:4607
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument: %s\n"
-msgstr "arguments non valide"
+msgstr "Arguments non valides : %s\n"
 
 #: src/core/command.c:4628
-#, fuzzy
 msgid ""
 "Layer and star position arguments are required when called from a script\n"
 msgstr ""
-"Les arguments ne sont pas facultatifs lorsqu'ils sont appelés à partir d'un "
-"script.\n"
+"Les arguments relatifs au canal et à la position de l'étoile sont "
+"nécessaires lorsqu'ils sont appelés à partir d'un script.\n"
 
 #: src/core/command.c:4633
-#, fuzzy
 msgid ""
 "Layer and star position arguments are required, or make a selection around a "
 "star\n"
 msgstr ""
-"Les arguments ne sont facultatifs que si une séquence est déjà chargée et "
-"que la sélection autour d'une étoile est effectuée.\n"
+"Les arguments relatifs au canal et à la position de l'étoile sont "
+"nécessaires, ou faire une sélection autour d'une étoile.\n"
 
 #: src/core/command.c:4642 src/core/command.c:4706
 #, c-format
@@ -18569,7 +18577,6 @@ msgstr ""
 "Ferme correctement l'image ouverte et la séquence ouverte, le cas échéant"
 
 #: src/core/command_def.h:27
-#, fuzzy
 msgid ""
 "Displays stars from the local catalog by default for the loaded plate solved "
 "image, down to the provided <b>limit_magnitude</b> (13 by default for most "
@@ -18612,10 +18619,10 @@ msgstr ""
 "gcvs, vsx, simbad, aavso_chart\n"
 "- pour les exoplanètes : exo\n"
 "- pour le ciel profond : pgc\n"
-"- pour les objets du système solaire : solsys (le <a href=\"https://"
-"vo.imcce.fr/webservices/data/displayIAUObsCodes.php\">code d'observatoire "
-"IAU</a> le plus proche peut être passé avec l'argument <b>-obscode=</b> pour "
-"une meilleure précision de position)\n"
+"- pour les objets du système solaire : solsys (le <a href=\"https://vo.imcce."
+"fr/webservices/data/displayIAUObsCodes.php\">code d'observatoire IAU</a> le "
+"plus proche peut être passé avec l'argument <b>-obscode=</b> pour une "
+"meilleure précision de position)\n"
 "\n"
 "Pour les catalogues d'étoiles contenant des données photométriques, les "
 "étoiles sans informations B-V seront conservées ; elles peuvent être exclues "
@@ -20008,7 +20015,6 @@ msgstr ""
 "sont autorisées"
 
 #: src/core/command_def.h:112
-#, fuzzy
 msgid ""
 "Parses the string <b>str</b> using the information contained in the header "
 "of the image currently loaded. Main purpose of this command is to debug path "
@@ -20025,8 +20031,8 @@ msgid ""
 "i> or <i>$defstack</i> respectively.\n"
 "The keyword <i>$seqname$</i> can also be used when a sequence is loaded"
 msgstr ""
-"Analyse la chaîne <b>str</b> en utilisant les informations contenues dans "
-"l'en-tête de l'image actuellement chargée. L'objectif principal de cette "
+"Analyse la chaîne <b>str</b> en utilisant les informations contenues dans l"
+"'en-tête de l'image actuellement chargée. L'objectif principal de cette "
 "commande est de déboguer les chemins utilisant des mots clés de l'en-tête "
 "qui peuvent être utilisées dans d'autres commandes.\n"
 "L'option <b>-r</b> spécifie que la chaîne doit être interprétée en mode "
@@ -20214,7 +20220,6 @@ msgstr ""
 "tels que LIVETIME et STACKCNT"
 
 #: src/core/command_def.h:116
-#, fuzzy
 msgid ""
 "Generates an intensity profile plot between 2 points in the image, also "
 "known as a <i>cut</i>. The arguments may be provided in any order. The "
@@ -20268,24 +20273,11 @@ msgstr ""
 "si les métadonnées ne sont pas disponibles, la distance sera affichée en "
 "unités de pixels.\n"
 "\n"
-"L'argument <b>-savedat</b> provoquera la sauvegarde des fichiers de "
-"données : le nom du fichier sera écrit dans le journal. Alternativement, "
-"l'argument <b>-filename=</b> peut être utilisé pour spécifier un nom de "
-"fichier dans lequel écrire le fichier de données. (L'option <b>-filename=</"
-"b> implique <b>-savedat</b>.)\n"
-"\n"
-"<b>Options spectrométriques</b>\n"
-"\n"
-"Si des options spectrométriques sont fournies, tous les éléments suivants "
-"doivent être fournis : <b>-wavenumber1=</b> et <b>-wavenumber2=</b> "
-"spécifient 2 nombres d'onde en cm<sup>-1</sup>, et <b>-wn1=x,y</b> et <b>-"
-"wn2=x,y</b> spécifient des points dans l'image correspondant à ces numéros "
-"d'onde. Par commodité, <b>-wavelength1=</b> et <b>-wavelength2=</b> peuvent "
-"être utilisés à la place pour fournir des longueurs d'onde en nm. Ceux-ci "
-"sont toujours convertis et l'axe du tracé affiche toujours le nombre d'onde. "
-"L'argument spectrométrique facultatif <b>-width=</b> peut être fourni, qui "
-"spécifie le nombre de pixels dont la moyenne doit être moyenne "
-"perpendiculairement à la ligne de profil.\n"
+"L'argument <b>-savedat</b> provoquera la sauvegarde des fichiers de données :"
+" le nom du fichier sera écrit dans le journal. Alternativement, l'argument "
+"<b>-filename=</b> peut être utilisé pour spécifier un nom de fichier dans "
+"lequel écrire le fichier de données. (L'option <b>-filename=</b> implique "
+"<b>-savedat</b>.)\n"
 "\n"
 "L'argument <b>\"-title=<i>Mon Titre\"</i></b> définit un titre personnalisé "
 "\"Mon Titre\""
@@ -21232,7 +21224,6 @@ msgstr ""
 "prefix=</b> peut être utilisé pour définir un préfixe personnalisé"
 
 #: src/core/command_def.h:163
-#, fuzzy
 msgid ""
 "Merges 4 sequences of images to recombine the Bayer pattern. The sequences "
 "are specified in the arguments <b>sequencename0</b>, <b>sequencename1</b>, "
@@ -21257,8 +21248,8 @@ msgstr ""
 "correspondre à l'ordre des séquences spécifiées).\n"
 "\n"
 "Remarque : les 4 séquences d'entrée <b>doivent</b> être présentes et avoir "
-"les mêmes dimensions, la même profondeur de bits et le même nombre "
-"d'images.\n"
+"les mêmes dimensions, la même profondeur de bits et le même nombre d'images."
+"\n"
 "\n"
 "Le nom de la séquence de sortie commence par le préfixe « mCFA_ » et un "
 "numéro, sauf indication contraire avec l'option <b>-prefixout=</b>"
@@ -21439,7 +21430,6 @@ msgstr ""
 "\" et les numéros seront renseignés automatiquement)"
 
 #: src/core/command_def.h:168
-#, fuzzy
 msgid ""
 "Same command as PSF but runs on sequences. This is similar to the one-star "
 "registration, except results can be used for photometry analysis rather than "
@@ -21475,16 +21465,14 @@ msgstr ""
 "coordonnées de l'étoile peuvent être fournies par des options.\n"
 "C'est cette commande qui est appelée en interne par le menu qui apparaît au "
 "clic droit dans l'image, avec la PSF de la séquence. Par défaut, il "
-"fonctionnera avec la parallélisation activée ; si des données d'alignement "
+"fonctionnera avec la parallélisation activée ; si des données d'alignement "
 "existent déjà pour la séquence, elles seront utilisées pour décaler la "
 "fenêtre de recherche dans chaque image. S'il n'y a pas de données "
 "d'alignement et s'il y a un décalage important entre les images dans la "
 "séquence, les paramètres par défaut ne parviendront pas à trouver les "
 "étoiles dans la position initiale de la zone de recherche.\n"
-"L'option suivre l'étoile peut alors être activée en allant dans l'onglet "
-"Alignement, en sélectionnant l'alignement une étoile et en cochant la case "
-"suivre le mouvement de l'étoile (par défaut en mode console si aucune donnée "
-"d'aligbelebt n'est disponible).\n"
+"L'option suivre l'étoile peut alors être activée avec l'argument<b>t "
+"-followstar</b>.\n"
 "\n"
 "Les résultats seront affichés dans l'onglet Graphique, à partir duquel ils "
 "peuvent également être exportés vers un fichier de valeurs séparées par des "
@@ -21493,15 +21481,18 @@ msgstr ""
 "Lors de la création d'une courbe de lumière, la première étoile pour "
 "laquelle seqpsf a été exécuté, marquée 'V' à l'écran, sera considérée comme "
 "l'étoile variable. Tous les autres sont moyennés pour créer une courbe de "
-"lumière de référence soustraite à la courbe de lumière de l'étoile "
-"variable.\n"
+"lumière de référence soustraite à la courbe de lumière de l'étoile variable."
+"\n"
 "\n"
 "Actuellement, en fonctionnement console, la commande imprime certaines "
 "données analysées dans la console, une autre commande permet d'analyser "
-"plusieurs étoiles et de les tracer sous forme de courbe de lumière : "
-"LIGHT_CURVE. Les arguments sont obligatoires en console, avec -at= "
-"permettant de fournir les coordonnées en pixels de l'étoile cible et -wcs= "
-"permettant de fournir les coordonnées équatoriales J2000"
+"plusieurs étoiles et de les tracer sous forme de courbe de lumière : "
+"LIGHT_CURVE. Les arguments sont obligatoires en console : le nom de la "
+"séquence doit être fourni (\".\"peut être utilisé pour indiquer la séquence "
+"actuellement chargée) et, lorsque l'on est en mode ligne de commande, il est "
+"obligatoire de fournir les coordonnées de l'étoile, avec -at= permettant de "
+"fournir les coordonnées en pixels de l'étoile cible de -wcs= permettant de "
+"fournir les coordonnées équatoriales J2000"
 
 #: src/core/command_def.h:169
 msgid ""
@@ -26698,13 +26689,12 @@ msgid "Python script"
 msgstr "Script Python"
 
 #: src/gui/git_gui.c:166
-#, fuzzy
 msgid "Current script version"
-msgstr "Fermer l'éditeur de scripts"
+msgstr "Version actuelle du script"
 
 #: src/gui/git_gui.c:182
 msgid "(No commit message found for this revision)"
-msgstr ""
+msgstr "(Aucun message de livraison n'a été trouvé pour cette révision)"
 
 #: src/gui/git_gui.c:206
 #, c-format
@@ -26712,9 +26702,8 @@ msgid "Error loading script contents: %s\n"
 msgstr "Erreur de chargement du contenu du script : %s\n"
 
 #: src/gui/git_gui.c:254
-#, fuzzy
 msgid "Select Revision"
-msgstr "Sélection"
+msgstr "Sélectionner la révision"
 
 #: src/gui/git_gui.c:261
 msgid ""
@@ -26726,19 +26715,29 @@ msgid ""
 "repository, but it allows you to save a local copy in one of your script "
 "folders for use until the upstream script is fixed."
 msgstr ""
+"Laissez à 0 pour ouvrir la version actuelle du script. Si vous avez un "
+"problème avec la mise à jour d'un script, vous pouvez utiliser cette "
+"fonction pour revenir à des révisions antérieures. Commencez par remonter "
+"d'une révision et augmentez le nombre jusqu'à ce que vous trouviez la "
+"dernière version qui a fonctionné pour vous. Notez que cela n'ouvrira que la "
+"version précédente dans l'éditeur de scripts, cela ne changera pas le script "
+"dans le dépôt local, mais cela vous permet de sauvegarder une copie locale "
+"dans l'un de vos dossiers de scripts pour l'utiliser jusqu'à ce que le "
+"script en amont soit corrigé."
 
 #: src/gui/git_gui.c:271
 msgid "Revisions to go back (leave at 0 to get current revision):"
-msgstr ""
+msgstr "Révisions à remonter (laisser à 0 pour obtenir la révision actuelle) :"
 
 #: src/gui/git_gui.c:306
 msgid "Loading commit message..."
-msgstr ""
+msgstr "Chargement du message de validation..."
 
 #: src/gui/git_gui.c:340
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading script contents from %d revisions back: %s\n"
-msgstr "Erreur de chargement du contenu du script : %s\n"
+msgstr ""
+"Erreur de chargement du contenu du script à partir de %d révisions : %s\n"
 
 #: src/gui/histogram.c:159 src/gui/histogram.c:165 src/gui/histogram.c:1166
 #: src/gui/histogram.c:1172 src/gui/histogram.c:1833 src/gui/histogram.c:1850
@@ -27808,9 +27807,8 @@ msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
 msgstr "Efficacité quantique / Transmittance / Nombre relatif de photons"
 
 #: src/gui/photometric_cc.c:1256 src/gui/photometric_cc.c:1297
-#, fuzzy
 msgid "Narrowband filters"
-msgstr "Bande étroite"
+msgstr "Filtres à bande étroite"
 
 #: src/gui/photometric_cc.c:1305
 msgid "Atmosphere model"
@@ -31518,9 +31516,8 @@ msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "Le dépôt de la base de données locale SPCC est à jour !\n"
 
 #: src/io/siril_git.c:1162
-#, fuzzy
 msgid "Error opening scripts repository\n"
-msgstr "Erreur de clonage du dépôt : %s\n"
+msgstr "Erreur d'ouverture du dépôt de scripts\n"
 
 #: src/io/siril_pythoncommands.c:461
 msgid "Unknown config type"
