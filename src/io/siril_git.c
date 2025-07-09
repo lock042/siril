@@ -1149,7 +1149,7 @@ gchar *get_script_content_string_from_file_revision(const char *filepath,
 	git_repository *repo = NULL;
 	gchar *content = NULL;
 	gchar *message = NULL;
-
+	char* normalized_path = normalize_path_separators(filepath);
 	// Initialize libgit2
 	git_libgit2_init();
 
@@ -1176,7 +1176,7 @@ gchar *get_script_content_string_from_file_revision(const char *filepath,
 		goto cleanup;
 	}
 
-	int error = get_file_content_from_file_revision(repo, filepath, file_revisions_to_backtrack,
+	int error = get_file_content_from_file_revision(repo, normalized_path, file_revisions_to_backtrack,
 													&content, content_size);
 	if (error != 0) {
 		siril_debug_print("Error retrieving file content in get_script_content_string_from_file_revision()\n");
@@ -1184,7 +1184,7 @@ gchar *get_script_content_string_from_file_revision(const char *filepath,
 	}
 
 	if (commit_message) {
-		error = get_commit_from_file_revision(repo, filepath, file_revisions_to_backtrack,
+		error = get_commit_from_file_revision(repo, normalized_path, file_revisions_to_backtrack,
 											&message, message_size);
 		if (error != 0) {
 			siril_debug_print("Error retrieving commit message in get_script_content_string_from_file_revision()\n");
@@ -1197,6 +1197,7 @@ gchar *get_script_content_string_from_file_revision(const char *filepath,
 	}
 
 cleanup:
+	g_free(normalized_path);
 	if (repo)
 		git_repository_free(repo);
 	git_libgit2_shutdown();
