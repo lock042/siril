@@ -456,6 +456,19 @@ static gboolean pyscript_version_check(const gchar *filename) {
 	return retval;
 }
 
+gchar *normalize_path_separators(const gchar *path) {
+	gchar *normalized = g_strdup(path);
+	gchar *p = normalized;
+
+	while (*p) {
+		if (*p == '/' || *p == '\\') {
+			*p = G_DIR_SEPARATOR;
+		}
+		p++;
+	}
+	return normalized;
+}
+
 int auto_update_gitscripts(gboolean sync) {
 	int retval = 0;
 	git_repository *repo = NULL;
@@ -653,7 +666,7 @@ int auto_update_gitscripts(gboolean sync) {
 			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && pyscript_version_check(entry->path)) ||
 			(g_str_has_suffix(entry->path, PYCSCRIPT_EXT))) {
 
-			gchar *path_copy = g_strdup(entry->path);
+			gchar *path_copy = normalize_path_separators(entry->path);
 			if (path_copy == NULL) {
 				siril_log_color_message(_("Warning: memory allocation failed for script path.\n"), "red");
 				continue;  // Skip this entry but continue processing
