@@ -8,9 +8,9 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-10 15:46+0200\n"
-"PO-Revision-Date: 2025-07-09 16:42+0000\n"
-"Last-Translator: \"Alejandro M. Salinas López\" "
-"<alejandro.salinas.lopez.81@gmail.com>\n"
+"PO-Revision-Date: 2025-07-10 22:18+0000\n"
+"Last-Translator: \"Alejandro M. Salinas López\" <alejandro.salinas.lopez."
+"81@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -21814,7 +21814,7 @@ msgstr ""
 
 #: src/core/settings.c:398
 msgid "inner radius for background annulus"
-msgstr "radio interior del anillo de fondo"
+msgstr "radio interior para el anillo de fondo"
 
 #: src/core/settings.c:399
 #, fuzzy
