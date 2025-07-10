@@ -26,6 +26,7 @@
 
 #include "algos/spcc.h"
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
@@ -894,19 +895,6 @@ cleanup:
 	return result;
 }
 
-static gchar *posix_path_separators(const gchar *path) {
-	gchar *normalized = g_strdup(path);
-	gchar *p = normalized;
-
-	while (*p) {
-		if (*p == '\\') {
-			*p = '/';
-		}
-		p++;
-	}
-	return normalized;
-}
-
 static int find_file_commit_by_modifications(git_repository *repo,
 											const char *filepath,
 											int file_revisions_to_backtrack,
@@ -925,7 +913,6 @@ static int find_file_commit_by_modifications(git_repository *repo,
 
 	const char *workdir = git_repository_workdir(repo);
 	const char *tmpworkdir = g_canonicalize_filename(workdir, NULL);
-	siril_log_message("workdir: %s\n", workdir);
 	if (tmpworkdir && g_path_is_absolute(filepath)) {
 		size_t workdir_len = strlen(tmpworkdir);
 		if (strncmp(filepath, tmpworkdir, workdir_len) == 0) {
