@@ -8,8 +8,9 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-08 17:17+0200\n"
-"PO-Revision-Date: 2025-06-24 06:22+0000\n"
-"Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
+"PO-Revision-Date: 2025-07-09 16:42+0000\n"
+"Last-Translator: \"Alejandro M. Salinas López\" <alejandro.salinas.lopez."
+"81@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -4230,7 +4231,7 @@ msgstr ""
 #: src/gui/uifiles/extract_channel_dialog.ui:35 src/gui/uifiles/siril.ui:1415
 #: src/gui/uifiles/siril.ui:1726
 msgid "Channel Extraction"
-msgstr "Extracción del canal"
+msgstr "Extracción de canales"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:107
 msgid "File name for the first FITS file to save."
@@ -9436,9 +9437,8 @@ msgid "This is the button for outputting photometric data."
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:2646
-#, fuzzy
 msgid "Create Output"
-msgstr "Logs de salida"
+msgstr "Crear salida"
 
 #: src/gui/uifiles/siril.ui:2672
 #, fuzzy
@@ -9975,7 +9975,7 @@ msgstr "Escoja su propio valor de normalización."
 
 #: src/gui/uifiles/siril.ui:4881
 msgid "Fix X-Trans AF artifact"
-msgstr "Corrige los artefactos del AF de X-Trans"
+msgstr "Corregir el artefacto X-Trans AF"
 
 #: src/gui/uifiles/siril.ui:4885
 msgid ""
@@ -10082,9 +10082,8 @@ msgid "Master-dark"
 msgstr "master-dark"
 
 #: src/gui/uifiles/siril.ui:5170
-#, fuzzy
 msgid "Using Master-Dark"
-msgstr "master-dark"
+msgstr "Usando Master-Dark"
 
 #: src/gui/uifiles/siril.ui:5196
 msgid ""
@@ -11181,7 +11180,7 @@ msgstr "Apilar con el promedio con rechazo"
 
 #: src/gui/uifiles/siril.ui:8077
 msgid "Median stacking"
-msgstr "Apilar con la mediana"
+msgstr "Apilamiento mediano"
 
 #: src/gui/uifiles/siril.ui:8078
 msgid "Pixel maximum stacking"
@@ -18149,16 +18148,14 @@ msgstr ""
 "La imagen negra maestra se borrará de todas las imágenes de la secuencia."
 
 #: src/core/command_def.h:39
-#, fuzzy
 msgid ""
 "Computes the entropy of the loaded image on the displayed layer, only in the "
 "selected area if one has been selected or in the whole image. The entropy is "
 "one way of measuring the noise or the details in an image"
 msgstr ""
-"Computa la entropía de la imagen abierta en la capa mostrada, sólo en el "
-"área seleccionada, si se ha seleccionado alguna, o en la imagen completa en "
-"caso contrario. La entropía es una manera de medir el ruido o los detalles "
-"de una imagen"
+"Calcula la entropía de la imagen cargada en la capa mostrada, solo en el "
+"área seleccionada si se ha seleccionado una o en toda la imagen. La entropía "
+"es una forma de medir el ruido o los detalles de una imagen"
 
 #: src/core/command_def.h:40
 msgid ""
@@ -21712,9 +21709,8 @@ msgid "amount of memory in GB"
 msgstr "Desbordamiento de memoria - abortando"
 
 #: src/core/settings.c:355
-#, fuzzy
 msgid "HD AutoStretch bit depth"
-msgstr "AutoExtender"
+msgstr "Profundidad de bits de HD AutoStretch"
 
 #: src/core/settings.c:356
 #, fuzzy
@@ -21773,9 +21769,8 @@ msgid "Path of the local Gaia astrometric catalogue"
 msgstr "No se puede proyectar el catálogo de estrellas."
 
 #: src/core/settings.c:368
-#, fuzzy
 msgid "Path of the local Gaia photometric catalogue"
-msgstr "No se puede proyectar el catálogo de estrellas."
+msgstr "Ruta del catálogo fotométrico local de Gaia"
 
 #: src/core/settings.c:369
 msgid "add CTYPE3='RGB' in the FITS header"
@@ -21869,9 +21864,8 @@ msgid "electrons per ADU for noise estimation"
 msgstr ""
 
 #: src/core/settings.c:398
-#, fuzzy
 msgid "inner radius for background annulus"
-msgstr "Aumento de radio en las esquinas"
+msgstr "radio interior del anillo de fondo"
 
 #: src/core/settings.c:399
 #, fuzzy
@@ -22013,9 +22007,8 @@ msgid "percent below and above the expected sampling to allow"
 msgstr ""
 
 #: src/core/settings.c:434
-#, fuzzy
 msgid "default IAU observatory code"
-msgstr "Modo de visualización"
+msgstr "código predeterminado del observatorio de la IAU"
 
 #: src/core/settings.c:436
 msgid "panel size of aberration inspector"
@@ -22253,9 +22246,8 @@ msgid "warn when launching a script"
 msgstr "Puede usarse en un script: "
 
 #: src/core/settings.c:503
-#, fuzzy
 msgid "show thumbnails in open dialog"
-msgstr "Mostrar vista previa en selección de ficheros"
+msgstr "mostrar miniaturas en el cuadro de diálogo abierto"
 
 #: src/core/settings.c:504
 #, fuzzy
@@ -30264,13 +30256,12 @@ msgid "Arc cosine of x."
 msgstr "Arco coseno de x."
 
 #: src/pixelMath/pixel_math_runner.c:70
-#, fuzzy
 msgid "Hyperbolic arc cosine of x."
-msgstr "Coseno hiperbólico de x."
+msgstr "Arcocoseno hiperbólico de x."
 
 #: src/pixelMath/pixel_math_runner.c:71
 msgid "Arc sine of x."
-msgstr "Arco seno de x."
+msgstr "Arcoseno de x."
 
 #: src/pixelMath/pixel_math_runner.c:72
 #, fuzzy
@@ -30283,7 +30274,7 @@ msgstr "Arco tangente de x."
 
 #: src/pixelMath/pixel_math_runner.c:74
 msgid "Arc tangent of y/x."
-msgstr "Arco tangente de y/x."
+msgstr "Arcotangente de y/x."
 
 #: src/pixelMath/pixel_math_runner.c:75
 #, fuzzy
@@ -30324,7 +30315,7 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:85
 msgid "Highest integer less than or equal to x."
-msgstr "Entero más grande menor o igual que x."
+msgstr "Número entero más alto menor o igual a x."
 
 #: src/pixelMath/pixel_math_runner.c:86
 msgid "Natural logarithm of x."
