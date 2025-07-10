@@ -718,7 +718,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Plot SPCC linear fits for catalog to image R/G and B/G ratios</property>
+                        <property name="tooltip-text" translatable="yes">Plot SPCC linear fits for catalog to image R/G and B/G ratios. In narrowband mode, plots of degenerate ratios will not be shown.</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
                       </object>

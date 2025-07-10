@@ -290,6 +290,8 @@ void cleanup_shm_allocation(Connection *conn, const char* shm_name) {
 #endif
 		conn->g_shm_allocations = g_slist_remove(conn->g_shm_allocations, allocation);
 		g_free(allocation);
+	} else {
+		siril_debug_print("Error cleaning shared memory! No allocation found\n");
 	}
 
 	g_mutex_unlock(&conn->g_shm_mutex);

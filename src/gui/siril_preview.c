@@ -82,6 +82,13 @@ static void copy_backup_icc_to_gfit() {
 	gfit.icc_profile = copyICCProfile(preview_icc_backup);
 }
 
+static void clear_backup_icc() {
+	if (preview_icc_backup) {
+		cmsCloseProfile(preview_icc_backup);
+		preview_icc_backup = NULL;
+	}
+}
+
 int backup_roi() {
 	int retval;
 	if ((retval = copyfits(&gui.roi.fit, &preview_roi_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)))
@@ -152,6 +159,7 @@ gboolean is_preview_active() {
 
 void clear_backup() {
 	clearfits(&preview_gfit_backup);
+	clear_backup_icc();
 	preview_is_active = FALSE;
 }
 

@@ -99,7 +99,7 @@ void on_S_PCC_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
 static gboolean end_gaiacheck_idle(gpointer p) {
 	GtkWidget *image = lookup_widget("gaia_status_widget");
 	gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
-	gtk_widget_set_tooltip_text(image, N_("Checking Gaia archive status..."));
+	gtk_widget_set_tooltip_text(image, _("Checking Gaia archive status..."));
 	gtk_widget_show(image);
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	size_t retval;
@@ -107,7 +107,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	stop_processing_thread();
 	if (args->code != 200) {
 		// status page is down
-		text = N_("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
+		text = _("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
 		colortext = "salmon";
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 	} else {
@@ -118,33 +118,33 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 		}
 		switch (retval) {
 			case 0:
-				text = N_("Gaia archive available");
+				text = _("Gaia archive available");
 				colortext = "green";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 				break;
 			case 1:
-				text = N_("Gaia archive running but performing slightly slower\n");
+				text = _("Gaia archive running but performing slightly slower\n");
 				colortext = "green";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 				break;
 			case 2:
-				text = N_("Gaia archive running but performing very slowly");
+				text = _("Gaia archive running but performing very slowly");
 				colortext = "salmon";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 				break;
 			case 3:
 			case 4:
-				text = N_("Gaia archive unavailable");
+				text = _("Gaia archive unavailable");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 				colortext = "red";
 				break;
 			case 5:
-				text = N_("Gaia archive unreachable");
+				text = _("Gaia archive unreachable");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 				colortext = "red";
 				break;
 			default:
-				text = N_("Unknown Gaia archive status");
+				text = _("Unknown Gaia archive status");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
 				colortext = "red";
 		}
@@ -1220,12 +1220,14 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 		spcc_object *sensor = NULL, *filter_r = NULL, *filter_g = NULL, *filter_b = NULL, *whiteref = NULL;
 		if (args.selected_sensor_m >= 0 && args.selected_sensor_m < g_list_length (sensor_list))
 			sensor = (spcc_object*) g_list_nth(sensor_list, args.selected_sensor_m)->data;
-		if (args.selected_filter_r >= 0 && args.selected_filter_r < g_list_length (filter_list_r))
-			filter_r = (spcc_object*) g_list_nth(filter_list_r, args.selected_filter_r)->data;
-		if (args.selected_filter_g >= 0 && args.selected_filter_g < g_list_length (filter_list_g))
-			filter_g = (spcc_object*) g_list_nth(filter_list_g, args.selected_filter_g)->data;
-		if (args.selected_filter_b >= 0 && args.selected_filter_b < g_list_length (filter_list_b))
-			filter_b = (spcc_object*) g_list_nth(filter_list_b, args.selected_filter_b)->data;
+		if (!args.nb_mode) {
+			if (args.selected_filter_r >= 0 && args.selected_filter_r < g_list_length (filter_list_r))
+				filter_r = (spcc_object*) g_list_nth(filter_list_r, args.selected_filter_r)->data;
+			if (args.selected_filter_g >= 0 && args.selected_filter_g < g_list_length (filter_list_g))
+				filter_g = (spcc_object*) g_list_nth(filter_list_g, args.selected_filter_g)->data;
+			if (args.selected_filter_b >= 0 && args.selected_filter_b < g_list_length (filter_list_b))
+				filter_b = (spcc_object*) g_list_nth(filter_list_b, args.selected_filter_b)->data;
+		}
 		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
 			whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
 		// there must not be any NULL spcc_object*s with non-NULL ones after them
@@ -1242,6 +1244,18 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			spcc_object_free_arrays(structs[i]);
 			i++;
 		}
+		if (args.nb_mode) {
+			double nbx[14] = {400.0,
+				args.nb_center[0] - 0.5*args.nb_bandwidth[0], args.nb_center[0] - 0.5*args.nb_bandwidth[0],
+				args.nb_center[0] + 0.5*args.nb_bandwidth[0], args.nb_center[0] + 0.5*args.nb_bandwidth[0],
+				args.nb_center[1] - 0.5*args.nb_bandwidth[1], args.nb_center[1] - 0.5*args.nb_bandwidth[1],
+				args.nb_center[1] + 0.5*args.nb_bandwidth[1], args.nb_center[1] + 0.5*args.nb_bandwidth[1],
+				args.nb_center[2] - 0.5*args.nb_bandwidth[2], args.nb_center[2] - 0.5*args.nb_bandwidth[2],
+				args.nb_center[2] + 0.5*args.nb_bandwidth[2], args.nb_center[2] + 0.5*args.nb_bandwidth[2], 1000.0};
+			double nby[14] = { 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0};
+			siril_plot_add_xydata(spl_data, _("Narrowband filters"), 14, nbx, nby, NULL, NULL);
+			siril_plot_set_nth_color(spl_data, i+1, (double[3]){0.8, 0.8, 0.0});
+		}
 	} else {
 		spcc_object *sensor_r = NULL, *sensor_g = NULL, *sensor_b = NULL, *filter_osc = NULL, *filter_lpf = NULL, *whiteref = NULL;
 		if (args.selected_sensor_osc >= 0 && args.selected_sensor_osc < g_list_length (sensor_list)) {
@@ -1250,8 +1264,10 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			sensor_g = &osc->channel[GLAYER];
 			sensor_b = &osc->channel[BLAYER];
 		}
-		if (args.selected_filter_osc >= 0 && args.selected_filter_osc < g_list_length (filter_list_osc))
-			filter_osc = (spcc_object*) g_list_nth(filter_list_osc, args.selected_filter_osc)->data;
+		if (!args.nb_mode) {
+			if (args.selected_filter_osc >= 0 && args.selected_filter_osc < g_list_length (filter_list_osc))
+				filter_osc = (spcc_object*) g_list_nth(filter_list_osc, args.selected_filter_osc)->data;
+		}
 		if (args.selected_filter_lpf >= 0 && args.selected_filter_lpf < g_list_length (filter_list_lpf))
 			filter_lpf = (spcc_object*) g_list_nth(filter_list_lpf, args.selected_filter_lpf)->data;
 		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
@@ -1268,6 +1284,18 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			g_free(spl_legend);
 			spcc_object_free_arrays(structs[i]);
 			i++;
+		}
+		if (args.nb_mode) {
+			double nbx[14] = {400.0,
+				args.nb_center[0] - 0.5*args.nb_bandwidth[0], args.nb_center[0] - 0.5*args.nb_bandwidth[0],
+				args.nb_center[0] + 0.5*args.nb_bandwidth[0], args.nb_center[0] + 0.5*args.nb_bandwidth[0],
+				args.nb_center[1] - 0.5*args.nb_bandwidth[1], args.nb_center[1] - 0.5*args.nb_bandwidth[1],
+				args.nb_center[1] + 0.5*args.nb_bandwidth[1], args.nb_center[1] + 0.5*args.nb_bandwidth[1],
+				args.nb_center[2] - 0.5*args.nb_bandwidth[2], args.nb_center[2] - 0.5*args.nb_bandwidth[2],
+				args.nb_center[2] + 0.5*args.nb_bandwidth[2], args.nb_center[2] + 0.5*args.nb_bandwidth[2], 1000.0};
+			double nby[14] = { 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0};
+			siril_plot_add_xydata(spl_data, _("Narrowband filters"), 14, nbx, nby, NULL, NULL);
+			siril_plot_set_nth_color(spl_data, i+1, (double[3]){0.8, 0.8, 0.0});
 		}
 	}
 	if (args.atmos_corr) {

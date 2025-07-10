@@ -604,10 +604,6 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	return plot_data;
 }
 
-typedef struct {
-    char shm_name[256];
-} finished_shm_payload_t;
-
 /**
 * Process the received connection data
 */
@@ -918,8 +914,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_RELEASE_SHM: {
-			if (payload_length >= sizeof(finished_shm_payload_t)) {
-				finished_shm_payload_t* finished_payload = (finished_shm_payload_t*)payload;
+			if (payload_length >= sizeof(shared_memory_info_t)) {
+				shared_memory_info_t* finished_payload = (shared_memory_info_t*) payload;
 				cleanup_shm_allocation(conn, finished_payload->shm_name);
 				// Send acknowledgment
 				success = send_response(conn, STATUS_OK, NULL, 0);
@@ -1915,6 +1911,7 @@ CLEANUP:
 			fits *fit = &gfit;
 			if (fit->header == NULL) {
 				const char* error_msg = _("Image has no FITS header");
+				siril_debug_print("No FITS header\n");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
@@ -2277,6 +2274,7 @@ CLEANUP:
 			if (payload_length == 4) {
 				int32_t id = GINT32_FROM_BE(*(int*) payload);
 				gboolean deleted = delete_user_polygon(id);
+				queue_redraw(REDRAW_OVERLAY);
 				if (!deleted) {
 					siril_debug_print("Failed to delete user polygon with id %d\n", id);
 					const char* error_msg = _("Invalid payload length");
