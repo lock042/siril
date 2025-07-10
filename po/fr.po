@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-10 15:46+0200\n"
-"PO-Revision-Date: 2025-07-09 13:19+0000\n"
+"PO-Revision-Date: 2025-07-10 14:05+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -5582,6 +5582,9 @@ msgid ""
 "Set the position of the right margin indicator in the editor. This visual "
 "guide helps maintain consistent line lengths and improve code readability."
 msgstr ""
+"Définir la position de l'indicateur de marge droite dans l'éditeur. Ce guide "
+"visuel permet de maintenir des longueurs de lignes cohérentes et d'améliorer "
+"la lisibilité du code."
 
 #: src/gui/uifiles/python_scratchpad.ui:416
 msgid "Set right margin position"
@@ -8555,7 +8558,6 @@ msgstr ""
 "de confirmer l'application des modifications."
 
 #: src/gui/uifiles/settings_window.ui:5161
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -8564,10 +8566,7 @@ msgstr ""
 "Liste des scripts disponibles. Les scripts sélectionnés sont accessibles via "
 "le menu Scripts. Double-cliquez sur une ligne pour ouvrir le script dans "
 "l'éditeur de script. (Cette fonction peut être utilisée pour apporter et "
-"enregistrer des modifications locales à un script.)\n"
-"Pour ouvrir une révision plus ancienne (par exemple, pour obtenir une "
-"version plus ancienne après une mauvaise mise à jour du script), cliquez "
-"avec le bouton droit de la souris sur une ligne."
+"enregistrer des modifications locales à un script.)"
 
 #: src/gui/uifiles/settings_window.ui:5176
 msgid "Category"
