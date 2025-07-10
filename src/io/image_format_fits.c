@@ -1350,7 +1350,7 @@ void clearfits(fits *fit) {
  * exact filename. Only layer layer is read.
  * Returned fit->data is upside-down. */
 int readfits_partial(const char *filename, int layer, fits *fit,
-		const rectangle *area, gboolean do_photometry, unsigned int *ry_orig) {
+		const rectangle *area, gboolean do_photometry) {
 	int status;
 	size_t nbdata;
 	double data_max = 0.0;
@@ -1462,9 +1462,10 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 		return -1;
 	}
 
-	if (ry_orig)
-		*ry_orig = fit->naxes[1];
 	read_fits_metadata(fit);
+	fit->orig_ry = fit->naxes[1];
+	fit->x_offset = area->x;
+	fit->y_offset = fit->orig_ry - area->y - area->h;
 	fit->naxes[0] = area->w;
 	fit->naxes[1] = area->h;
 	fit->rx = fit->naxes[0];
@@ -2616,6 +2617,9 @@ void extract_region_from_fits(fits *from, int layer, fits *to,
 		extract_region_from_fits_ushort(from, layer, to, area);
 	else if (from->type == DATA_FLOAT)
 		extract_region_from_fits_float(from, layer, to, area);
+	to->orig_ry = from->ry;
+	to->x_offset = area->x;
+	to->y_offset = to->orig_ry - area->y - area->h;
 }
 
 int new_fit_image(fits **fit, int width, int height, int nblayer, data_type type) {

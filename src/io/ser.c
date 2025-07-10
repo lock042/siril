@@ -1152,7 +1152,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		 * debayer_area is the demosaiced buf area.
 		 * xoffset and yoffset are the x,y offsets of area in the debayer area.
 		 */
-        const int nbpixels = debayer_area.w * debayer_area.h;
+		const int nbpixels = debayer_area.w * debayer_area.h;
 		for (y = 0; y < area->h; y++) {
 			for (x = 0; x < area->w; x++) {
 				buffer[y*area->w + x] = demosaiced_buf[layer * nbpixels + (yoffset+y)*debayer_area.w + xoffset+x];
@@ -1199,8 +1199,11 @@ int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 		// in this case, contrarily to the ser_read_frame() function,
 		// we don't flip the pattern because we don't flip the image area either
 		sprintf(fit->keywords.bayer_pattern, "%s", ser_pattern); 
-		fit->debayer_checked = TRUE;
+		fit->debayer_checked = FALSE; // we will let the generic function handle this as we need to account for offsets
 		fit->top_down = TRUE;
+		fit->orig_ry = ser_file->image_height;
+		fit->x_offset = area->x;
+		fit->y_offset = area->y;
 		snprintf(fit->keywords.row_order, FLEN_VALUE, "TOP-DOWN");
 	}
 	return ser_read_opened_partial(ser_file, layer, frame_no, fit->pdata[0], area);
@@ -1224,9 +1227,9 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		return SER_GENERIC_ERROR;
 
 	// // return bottom-up fits to top-down ser row_order (not if the image is already top-down)
-	// if (fit->top_down) {
-	// 	snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
-	// }
+	if (!g_strcmp0(fit->keywords.row_order, "TOP-DOWN")) {
+		snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
+	}
 	fits_flip_top_to_bottom(fit);
 
 	if (!ser_file || ser_file->file == NULL)

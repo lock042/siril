@@ -31,7 +31,7 @@ int fitseq_is_fitseq(const char *filename, int *frames);
 
 int fitseq_open(const char *filename, fitseq *fitseq, int iomode);
 int fitseq_read_frame(fitseq *fitseq, int index, fits *dest, gboolean force_float, int thread);
-int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, const rectangle *area, gboolean do_photometry, unsigned int *ry_orig, int thread);
+int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, const rectangle *area, gboolean do_photometry, int thread);
 int fitseq_read_partial(fitseq *fitseq, int layer, int index, void *buffer, const rectangle *area, int thread);
 
 int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count);

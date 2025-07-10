@@ -172,7 +172,8 @@ static int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern, gboolean fli
 		siril_log_color_message(_("Invalid Bayer pattern for debayering: %d\n"), "red", *pattern);
 		return 1;
 	}
-	adjust_Bayer_pattern_orientation(pattern, fit->ry, flip);
+	unsigned int ry = (!fit->orig_ry) ? fit->ry : fit->orig_ry;
+	adjust_Bayer_pattern_orientation(pattern, ry, flip);
 	adjust_Bayer_pattern_offset(pattern, xbayeroff, ybayeroff);
 	return 0;
 }
@@ -275,6 +276,9 @@ static sensor_pattern get_bayer_pattern(fits *fit, gboolean force_debayer, gbool
 			xbayeroff = (fit->keywords.bayer_xoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_xoffset;
 			ybayeroff = (fit->keywords.bayer_yoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_yoffset;
 		}
+		// x_offset amd y_offset are non null only when we do a partial read
+		xbayeroff += fit->x_offset;
+		ybayeroff += fit->y_offset;
 	 	if (adjust_Bayer_pattern(fit, &tmp_pattern, !top_down, xbayeroff, ybayeroff)) {
 			return BAYER_FILTER_NONE;
 		}

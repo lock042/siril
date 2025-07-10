@@ -969,20 +969,17 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
  * have a partial RGB image. */
 int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const rectangle *area, gboolean do_photometry, int thread_id) {
 	char filename[256];
-	unsigned int ry_orig = 0; // used to correctly compute the changes in bayer pattern
-	unsigned int firstline = 0;
 #ifdef HAVE_FFMS2
 	fits tmp_fit;
 #endif
 	switch (seq->type) {
 		case SEQ_REGULAR:
 			fit_sequence_get_image_filename(seq, index, filename, TRUE);
-			if (readfits_partial(filename, layer, dest, area, do_photometry, &ry_orig)) {
+			if (readfits_partial(filename, layer, dest, area, do_photometry)) {
 				siril_log_message(_("Could not load partial image %d from sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
-			firstline = ry_orig - area->y - area->h;
 			break;
 		case SEQ_SER:
 			assert(seq->ser_file);
@@ -991,17 +988,14 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 						index, seq->seqname);
 				return 1;
 			}
-			ry_orig = seq->ser_file->image_height;
-			firstline = area->y;
 			break;
 		case SEQ_FITSEQ:
 			assert(seq->fitseq_file);
-			if (fitseq_read_partial_fits(seq->fitseq_file, layer, index, dest, area, do_photometry, &ry_orig, thread_id)) {
+			if (fitseq_read_partial_fits(seq->fitseq_file, layer, index, dest, area, do_photometry, thread_id)) {
 				siril_log_message(_("Could not load partial image %d from sequence %s\n"),
 						index, seq->seqname);
 				return 1;
 			}
-			firstline = ry_orig - area->y - area->h;
 			break;
 
 #ifdef HAVE_FFMS2
@@ -1014,37 +1008,13 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 				return 1;
 			}
 			extract_region_from_fits(&tmp_fit, layer, dest, area);
-			ry_orig = tmp_fit.ry;
-			firstline = ry_orig - area->y - area->h;
 			clearfits(&tmp_fit);
 			break;
 #endif
 		case SEQ_INTERNAL:
 			assert(seq->internal_fits);
 			extract_region_from_fits(seq->internal_fits[index], 0, dest, area);
-			ry_orig = seq->internal_fits[index]->ry;
-			firstline = ry_orig - area->y - area->h;
 			break;
-	}
-	if (fit_is_cfa(dest)) { //
-		fits tmpfit = { 0 };
-		copy_fits_metadata(dest, &tmpfit);
-		tmpfit.ry = ry_orig;
-		int xbayeroff, ybayeroff; // we need to account for offsets if already present
-		if (!com.pref.debayer.use_bayer_header) {
-			xbayeroff = com.pref.debayer.xbayeroff;
-			ybayeroff = com.pref.debayer.ybayeroff;
-		} else {
-			xbayeroff = (dest->keywords.bayer_xoffset == DEFAULT_INT_VALUE) ? 0 : dest->keywords.bayer_xoffset;
-			ybayeroff = (dest->keywords.bayer_yoffset == DEFAULT_INT_VALUE) ? 0 : dest->keywords.bayer_yoffset;
-		}
-		tmpfit.keywords.bayer_xoffset = xbayeroff + area->x;
-		tmpfit.keywords.bayer_yoffset = ybayeroff + firstline;
-		sensor_pattern pattern = get_validated_cfa_pattern(&tmpfit, FALSE, FALSE);
-		if (pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX) {
-			update_bayer_pattern_information(dest, pattern);
-			dest->debayer_checked = TRUE;
-		}
 	}
 	return 0;
 }

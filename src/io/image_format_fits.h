@@ -28,7 +28,7 @@ int import_metadata_from_fitsfile(fitsfile *fptr, fits *to);
 void clearfits(fits*);
 void clearfits_header(fits*);
 int readfits_partial(const char *filename, int layer, fits *fit,
-		const rectangle *area, gboolean do_photometry, unsigned int *ry_orig);
+		const rectangle *area, gboolean do_photometry);
 int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle *area);
 int read_fits_metadata(fits *fit);
 int read_fits_metadata_from_path(const char *filename, fits *fit);
