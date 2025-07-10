@@ -162,11 +162,6 @@ static void on_script_revision_spin_value_changed(GtkSpinButton *spin, gpointer 
 
 	GtkTextBuffer *buffer = gtk_text_view_get_buffer(data->message_textview);
 
-	if (revisions_back == 0) {
-		gtk_text_buffer_set_text(buffer, _("Current script version"), -1);
-		return;
-	}
-
 	gchar *commit_message = NULL;
 	size_t message_size = 0;
 	gchar *content = get_script_content_string_from_file_revision(

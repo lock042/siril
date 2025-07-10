@@ -899,7 +899,8 @@ static int find_file_commit_by_modifications(git_repository *repo,
 											const char *filepath,
 											int file_revisions_to_backtrack,
 											git_commit **out_commit,
-											gchar **out_relative_path) {
+											gchar **out_relative_path,
+											gchar **commit_msg) {
 	git_object *head_commit_obj = NULL;
 	git_commit *current_commit = NULL;
 	git_commit *parent_commit = NULL;
@@ -964,6 +965,10 @@ static int find_file_commit_by_modifications(git_repository *repo,
 			if (modifications_found == file_revisions_to_backtrack) {
 				*out_commit = parent_commit;
 				*out_relative_path = relative_path;
+				if (commit_msg) {
+					const gchar *msg = git_commit_message(prev_commit);
+					*commit_msg = g_strdup(msg);
+				}
 				git_object_free(head_commit_obj);
 				if (prev_commit != current_commit)
 					git_commit_free(prev_commit);
@@ -1002,7 +1007,7 @@ static int get_file_content_from_file_revision(git_repository *repo,
 	*content_size = 0;
 
 	error = find_file_commit_by_modifications(repo, filepath, file_revisions_to_backtrack,
-											&target_commit, &relative_path);
+											&target_commit, &relative_path, NULL);
 	if (error != 0)
 		return -1;
 
@@ -1077,12 +1082,12 @@ static int get_commit_from_file_revision(git_repository *repo,
 	*message = NULL;
 	*message_size = 0;
 
-	error = find_file_commit_by_modifications(repo, filepath, file_revisions_to_backtrack,
-											&target_commit, &relative_path);
+	gchar *msg = NULL;
+	error = find_file_commit_by_modifications(repo, filepath, file_revisions_to_backtrack + 1,
+											&target_commit, &relative_path, &msg);
 	if (error != 0)
 		return -1;
 
-	const char *msg = git_commit_message(target_commit);
 	if (!msg) {
 		error = -1;
 		goto cleanup;
