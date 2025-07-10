@@ -11545,8 +11545,6 @@ int process_pyscript(int nb) {
 		script_name = g_strdup(word[1]);
 	} else {
 		// Search for the file in the user's set script directories and the scripts repository
-		// We search the user's path first so any local modifications are used in preference to
-		// the repository script with the same name.
 		GSList *path = com.pref.gui.script_path;
 		while (path) {
 			siril_debug_print("Searching script path: %s\n", (gchar*) path->data);
