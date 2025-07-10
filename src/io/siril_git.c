@@ -1,28 +1,28 @@
 /*
-* This file is part of Siril, an astronomy image processor.
-* Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-* Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
-* Reference site is https://siril.org
-*
-* Siril is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* Siril is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Siril. If not, see <http://www.gnu.org/licenses/>.
-*
-*
-* FITS sequences are not a sequence of FITS files but a FITS file containing a
-* sequence. It simply has as many elements in the third dimension as the
-* number of images in the sequence multiplied by the number of channels per
-* image. Given its use of the third dimension, it's sometimes called FITS cube.
-*/
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * FITS sequences are not a sequence of FITS files but a FITS file containing a
+ * sequence. It simply has as many elements in the third dimension as the
+ * number of images in the sequence multiplied by the number of channels per
+ * image. Given its use of the third dimension, it's sometimes called FITS cube.
+ */
 
 #include "algos/spcc.h"
 #include "core/siril.h"
@@ -57,59 +57,193 @@ void gui_repo_scripts_mutex_unlock() {
 const gchar *SCRIPT_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
 const gchar *SPCC_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-spcc-database";
 
-/**
-* Removes Git lock files from a repository directory path.
-* This is a path-based version that doesn't require an open repository.
-*
-* @param git_dir Path to the Git repository directory (typically the .git directory)
-* @return 0 on success, or the error code on failure
-*/
-static int remove_git_locks_by_path(const char *git_dir) {
-	GError *error = NULL;
-	gint ret = 0;
-
-	// Remove index.lock
-	gchar *index_lock_path = g_build_filename(git_dir, "index.lock", NULL);
-	if (g_unlink(index_lock_path) != 0 && errno != ENOENT) {
-		g_warning("Error removing index.lock: %s", g_strerror(errno));
-		ret = errno;
+static void *xrealloc(void *oldp, size_t newsz) {
+	void *p = realloc(oldp, newsz);
+	if (p == NULL) {
+		PRINT_ALLOC_ERR;
+		// exit(1);
 	}
-	g_free(index_lock_path);
+	return p;
+}
 
-	// Remove branch lock files
-	GDir *dir = g_dir_open(git_dir, 0, &error);
-	if (dir) {
-		const gchar *entry;
-		while ((entry = g_dir_read_name(dir)) != NULL) {
-			if (g_str_has_suffix(entry, ".lock")) {
-				gchar *lock_path = g_build_filename(git_dir, entry, NULL);
-				if (g_unlink(lock_path) != 0 && errno != ENOENT) {
-					g_warning("Error removing lock file '%s': %s", entry, g_strerror(errno));
-					ret = errno;
-				}
-				g_free(lock_path);
-			}
+enum {
+	FORMAT_DEFAULT = 0,
+	FORMAT_LONG = 1,
+	FORMAT_SHORT = 2,
+	FORMAT_PORCELAIN = 3
+};
+
+struct merge_options {
+	const char **heads;
+	size_t heads_count;
+
+	git_annotated_commit **annotated;
+	size_t annotated_count;
+};
+
+static void merge_options_init(struct merge_options *opts) {
+	memset(opts, 0, sizeof(*opts));
+
+	opts->heads = NULL;
+	opts->heads_count = 0;
+	opts->annotated = NULL;
+	opts->annotated_count = 0;
+}
+
+static void opts_add_refish(struct merge_options *opts, const char *refish) {
+	size_t sz;
+	assert(opts != NULL);
+
+	sz = ++opts->heads_count * sizeof(opts->heads[0]);
+	opts->heads = xrealloc((void *)opts->heads, sz);
+	opts->heads[opts->heads_count - 1] = refish;
+}
+
+static int resolve_refish(git_annotated_commit **commit, git_repository *repo,
+                          const char *refish) {
+	git_reference *ref;
+	git_object *obj;
+	int err = 0;
+
+	assert(commit != NULL);
+
+	err = git_reference_dwim(&ref, repo, refish);
+	if (err == GIT_OK) {
+		git_annotated_commit_from_ref(commit, repo, ref);
+		git_reference_free(ref);
+		return 0;
+	}
+
+	err = git_revparse_single(&obj, repo, refish);
+	if (err == GIT_OK) {
+		err = git_annotated_commit_lookup(commit, repo, git_object_id(obj));
+		git_object_free(obj);
+	}
+
+	return err;
+}
+
+static int resolve_heads(git_repository *repo, struct merge_options *opts) {
+	git_annotated_commit **annotated =
+		calloc(opts->heads_count, sizeof(git_annotated_commit *));
+	size_t annotated_count = 0, i;
+
+	for (i = 0; i < opts->heads_count; i++) {
+		if (!opts->heads[i]) {
+			annotated_count--;
+			continue;
 		}
-		g_dir_close(dir);
-	} else {
-		g_warning("Error opening Git directory '%s': %s", git_dir, error->message);
-		ret = error->code;
-		g_clear_error(&error);
+		int err =
+			resolve_refish(&annotated[annotated_count++], repo, opts->heads[i]);
+		if (err != 0) {
+			siril_debug_print("libgit2: failed to resolve refish %s: %s\n", opts->heads[i], git_error_last()->message);
+			annotated_count--;
+			continue;
+		}
 	}
 
-	return ret;
+	if (annotated_count != opts->heads_count) {
+		siril_log_color_message(_("libgit2: unable to parse some refish\n"), "red");
+		free(annotated);
+		return -1;
+	}
+
+	opts->annotated = annotated;
+	opts->annotated_count = annotated_count;
+	return 0;
+}
+
+static char *get_commit_from_oid(git_repository *repo, git_oid *oid_to_find) {
+	char *retval = NULL;
+	// Convert the OID to a commit
+	git_commit *commit = NULL;
+	if (git_commit_lookup(&commit, repo, oid_to_find) != 0) {
+		siril_log_color_message(_("Failed to find commit with given OID.\n"), "red");
+		return NULL;
+	}
+
+	// Iterate through references to find the ref name
+	git_reference_iterator *ref_iterator = NULL;
+	if (git_reference_iterator_new(&ref_iterator, repo) == 0) {
+		git_reference *ref = NULL;
+		while (git_reference_next(&ref, ref_iterator) == 0) {
+			if (git_reference_type(ref) == GIT_REFERENCE_DIRECT) {
+				const git_oid *target_oid = git_reference_target(ref);
+				if (git_oid_equal(target_oid, git_commit_id(commit))) {
+					retval = strdup(git_reference_name(ref));
+					break;
+				}
+			}
+			git_reference_free(ref);
+		}
+		git_reference_iterator_free(ref_iterator);
+	}
+	return retval;
+}
+
+static int fetchhead_cb(const char *ref_name, const char *remote_url,
+                        const git_oid *oid, unsigned int is_merge,
+                        void *payload) {
+	if (is_merge) {
+		siril_debug_print("reference: '%s' is the reference we should merge\n", ref_name);
+		git_oid_cpy((git_oid *)payload, oid);
+	}
+	return 0;
 }
 
 /**
-* Attempts to open a Git repository. If that fails due to locks,
-* removes lock files and tries again.
-*
-* @param out Pointer to store the opened repository
-* @param path Path to the Git repository
-* @return 0 on success, error code on failure
-* WARNING: a failure here may be due to the path not existing so you cannot
-* rely on git_error_last being set. Check it is non-NULL before printing e->message!!
-*/
+ * Removes Git lock files from a repository directory path.
+ * This is a path-based version that doesn't require an open repository.
+ *
+ * @param git_dir Path to the Git repository directory (typically the .git directory)
+ * @return 0 on success, or the error code on failure
+ */
+static int remove_git_locks_by_path(const char *git_dir) {
+    GError *error = NULL;
+    gint ret = 0;
+
+    // Remove index.lock
+    gchar *index_lock_path = g_build_filename(git_dir, "index.lock", NULL);
+    if (g_unlink(index_lock_path) != 0 && errno != ENOENT) {
+        g_warning("Error removing index.lock: %s", g_strerror(errno));
+        ret = errno;
+    }
+    g_free(index_lock_path);
+
+    // Remove branch lock files
+    GDir *dir = g_dir_open(git_dir, 0, &error);
+    if (dir) {
+        const gchar *entry;
+        while ((entry = g_dir_read_name(dir)) != NULL) {
+            if (g_str_has_suffix(entry, ".lock")) {
+                gchar *lock_path = g_build_filename(git_dir, entry, NULL);
+                if (g_unlink(lock_path) != 0 && errno != ENOENT) {
+                    g_warning("Error removing lock file '%s': %s", entry, g_strerror(errno));
+                    ret = errno;
+                }
+                g_free(lock_path);
+            }
+        }
+        g_dir_close(dir);
+    } else {
+        g_warning("Error opening Git directory '%s': %s", git_dir, error->message);
+        ret = error->code;
+        g_clear_error(&error);
+    }
+
+    return ret;
+}
+
+/**
+ * Attempts to open a Git repository. If that fails due to locks,
+ * removes lock files and tries again.
+ *
+ * @param out Pointer to store the opened repository
+ * @param path Path to the Git repository
+ * @return 0 on success, error code on failure
+ * WARNING: a failure here may be due to the path not existing so you cannot
+ * rely on git_error_last being set. Check it is non-NULL before printing e->message!!
+ */
 static int siril_repository_open(git_repository **out, const gchar *path) {
 	// Check if directory exists first
 	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
@@ -327,17 +461,17 @@ static gboolean script_version_check(const gchar *filename) {
 static gboolean
 version_meets_constraint(const version_number *current, const version_number *required, const gchar *op)
 {
-	int cmp = compare_version(*current, *required);
+    int cmp = compare_version(*current, *required);
 
-	if (g_strcmp0(op, "==") == 0) return cmp == 0;
-	if (g_strcmp0(op, "!=") == 0) return cmp != 0;
-	if (g_strcmp0(op, ">=") == 0) return cmp >= 0;
-	if (g_strcmp0(op, "<=") == 0) return cmp <= 0;
-	if (g_strcmp0(op, ">")  == 0) return cmp > 0;
-	if (g_strcmp0(op, "<")  == 0) return cmp < 0;
+    if (g_strcmp0(op, "==") == 0) return cmp == 0;
+    if (g_strcmp0(op, "!=") == 0) return cmp != 0;
+    if (g_strcmp0(op, ">=") == 0) return cmp >= 0;
+    if (g_strcmp0(op, "<=") == 0) return cmp <= 0;
+    if (g_strcmp0(op, ">")  == 0) return cmp > 0;
+    if (g_strcmp0(op, "<")  == 0) return cmp < 0;
 
-	// Unknown operator
-	return FALSE;
+    // Unknown operator
+    return FALSE;
 }
 
 static gboolean parse_version_string(const gchar *version_str, version_number *ver) {
@@ -454,6 +588,155 @@ static gboolean pyscript_version_check(const gchar *filename) {
 	g_object_unref(stream);
 	g_object_unref(file);
 	return retval;
+}
+
+static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
+	git_remote *remote = NULL;
+
+	// Carry out merge analysis
+	struct merge_options opts;
+	git_merge_analysis_t analysis;
+	git_merge_preference_t preference;
+	git_oid id_to_merge;
+	git_repository_state_t state;
+	int error = 0;
+
+	// Figure out which branch to feed to git_merge()
+	merge_options_init(&opts);
+	git_repository_fetchhead_foreach(repo, fetchhead_cb, &id_to_merge);
+	char *head_to_merge = get_commit_from_oid(repo, &id_to_merge);
+
+	opts_add_refish(&opts, head_to_merge);
+	state = git_repository_state(repo);
+	if (state != GIT_REPOSITORY_STATE_NONE) {
+		siril_log_color_message(_("libgit2: repository is in unexpected state %d. Cleaning up...\n"), "salmon", state);
+		git_repository_state_cleanup(repo);
+		state = git_repository_state(repo);
+		if (state != GIT_REPOSITORY_STATE_NONE) {
+			siril_log_color_message(_("libgit2: repository failed to clean up properly. Cannot continue.\n"), "red");
+			free((char **)opts.heads);
+			free(opts.annotated);
+			return -1;
+		}
+	}
+
+	error = resolve_heads(repo, &opts);
+	if (error != 0) {
+		free((char **)opts.heads);
+		free(opts.annotated);
+
+		return 2;
+	}
+
+	error = git_merge_analysis(&analysis, &preference, repo, (const git_annotated_commit **)opts.annotated, opts.annotated_count);
+
+	// If the merge cannot be fast-forwarded, warn the user that local changes
+	// will be lost if they proceed.
+	if (error < 0) {
+		siril_debug_print("Error carrying out merge analysis: %s\n", giterr_last()->message);
+		return 2;
+	}
+	gboolean can_fastforward = FALSE;
+	if ((analysis & GIT_MERGE_ANALYSIS_FASTFORWARD) || (analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE)) {
+		can_fastforward = TRUE;
+	}
+
+	// If we already know we can't fast forward we can skip the rest of the
+	// function, we just return 2
+	if (!can_fastforward) {
+		siril_debug_print("Cannot be fast forwarded\n");
+		git_remote_free(remote);
+		return 2;
+	}
+
+	// Prepare for looping through unmerged commit messages
+
+	// Get the HEAD reference
+	git_reference *head_ref = NULL;
+	error = git_repository_head(&head_ref, repo);
+	if (error != 0) {
+		siril_debug_print("Error getting HEAD reference: %s\n", git_error_last()->message);
+		goto on_error;
+	}
+
+	// Get the HEAD commit
+	git_commit *head_commit = NULL;
+	error = git_commit_lookup(&head_commit, repo, git_reference_target(head_ref));
+	if (error != 0) {
+		siril_debug_print("Error looking up HEAD commit: %s\n", git_error_last()->message);
+		git_reference_free(head_ref);
+		goto on_error;
+	}
+
+	// Get the reference to the FETCH_HEAD
+	git_oid fetch_head_oid;
+	if (git_reference_name_to_id(&fetch_head_oid, repo, "FETCH_HEAD") != 0) {
+		siril_debug_print("Error getting FETCH_HEAD\n");
+		goto on_error;
+	}
+
+	// Iterate through fetched commits and display commit messages
+	git_commit *commit = NULL;
+	git_oid parent_oid;
+	git_commit *parent_commit = NULL;
+	const char *commit_msg = NULL;
+
+	// Start with the FETCH_HEAD
+	if (git_commit_lookup(&commit, repo, &fetch_head_oid) != 0) {
+		siril_debug_print("Error looking up commit\n");
+		goto on_error;
+	}
+
+	gboolean found_head_ancestor = FALSE;
+
+	while (1) {
+		// Check if the current commit is the HEAD. If not, we print the commit
+		// message. If so, we break and don't show any further messages.
+		if (git_oid_equal(git_commit_id(head_commit), git_commit_id(commit))) {
+			found_head_ancestor = TRUE;
+			break;
+		}
+
+		// We have not yet reached the HEAD so we print the commit message.
+		commit_msg = git_commit_message(commit);
+		if (!*git_pending_commit_buffer) {
+			gchar *buf = g_strdup_printf(_("Commit message: %s\n"), commit_msg);
+			*git_pending_commit_buffer = g_string_new(buf);
+			g_free(buf);
+		} else {
+		g_string_append_printf(*git_pending_commit_buffer, _("Commit message: %s\n"), commit_msg);
+		}
+
+		if (git_commit_parentcount(commit) > 0) {
+			parent_oid = *git_commit_parent_id(commit, 0);
+			if (git_commit_lookup(&parent_commit, repo, &parent_oid) != 0) {
+				break;
+			}
+		} else {
+			break;
+		}
+
+		git_commit_free(commit);
+		commit = parent_commit;
+		parent_commit = NULL;
+	}
+	git_commit_free(commit);
+
+	// If there is no ancestor commit found it indicates the merge cannot be
+	// fast-forwarded
+	if (!found_head_ancestor) {
+		can_fastforward = FALSE;
+		git_remote_free(remote);
+		return 2;
+	}
+
+	git_remote_free(remote);
+
+	return 0;
+
+	on_error:
+	git_remote_free(remote);
+	return -1;
 }
 
 int auto_update_gitscripts(gboolean sync) {
@@ -837,359 +1120,54 @@ cleanup:
 	return retval;
 }
 
-/**
-* Checks if a file was modified between two commits
-*
-* @param repo Pointer to the git repository
-* @param filepath Path to the file relative to repository root
-* @param commit1 First commit to compare
-* @param commit2 Second commit to compare
-* @return 1 if file was modified, 0 if not modified, -1 on error
-*/
-static int file_modified_between_commits(git_repository *repo,
-									const char *filepath,
-									git_commit *commit1,
-									git_commit *commit2) {
-	git_tree *tree1 = NULL, *tree2 = NULL;
-	git_tree_entry *entry1 = NULL, *entry2 = NULL;
-	int error = 0;
-	int result = 0;
-
-	// Get trees from both commits
-	error = git_commit_tree(&tree1, commit1);
-	if (error != 0) goto cleanup;
-
-	error = git_commit_tree(&tree2, commit2);
-	if (error != 0) goto cleanup;
-
-	// Try to find the file in both trees
-	int found1 = git_tree_entry_bypath(&entry1, tree1, filepath) == 0;
-	int found2 = git_tree_entry_bypath(&entry2, tree2, filepath) == 0;
-
-	// If file exists in one but not the other, it was modified (added/deleted)
-	if (found1 != found2) {
-		result = 1;
-		goto cleanup;
-	}
-
-	// If file doesn't exist in either, no modification
-	if (!found1 && !found2) {
-		result = 0;
-		goto cleanup;
-	}
-
-	// Both exist, compare their OIDs
-	const git_oid *oid1 = git_tree_entry_id(entry1);
-	const git_oid *oid2 = git_tree_entry_id(entry2);
-
-	result = git_oid_equal(oid1, oid2) ? 0 : 1;
-
-cleanup:
-	if (entry1) git_tree_entry_free(entry1);
-	if (entry2) git_tree_entry_free(entry2);
-	if (tree1) git_tree_free(tree1);
-	if (tree2) git_tree_free(tree2);
-
-	if (error != 0) return -1;
-	return result;
-}
-
-static int find_file_commit_by_modifications(git_repository *repo,
-											const char *filepath,
-											int file_revisions_to_backtrack,
-											git_commit **out_commit,
-											gchar **out_relative_path) {
-	git_object *head_commit_obj = NULL;
-	git_commit *current_commit = NULL;
-	git_commit *parent_commit = NULL;
-	git_commit *prev_commit = NULL;
-	int error = 0;
-	int modifications_found = 0;
-	gchar *relative_path = NULL;
-
-	if (!repo || !filepath || !out_commit || !out_relative_path || file_revisions_to_backtrack < 0)
-		return -1;
-
-	const char *workdir = git_repository_workdir(repo);
-	if (workdir && g_path_is_absolute(filepath)) {
-		size_t workdir_len = strlen(workdir);
-		if (strncmp(filepath, workdir, workdir_len) == 0) {
-			const char *rel_start = filepath + workdir_len;
-			while (*rel_start == '/' || *rel_start == '\\') rel_start++;
-			relative_path = g_strdup(rel_start);
-		} else {
-			return -1;
-		}
-	} else {
-		relative_path = g_strdup(filepath);
-	}
-
-	error = git_revparse_single(&head_commit_obj, repo, "HEAD");
-	if (error != 0) {
-		g_free(relative_path);
-		return error;
-	}
-
-	current_commit = (git_commit *)head_commit_obj;
-
-	if (file_revisions_to_backtrack == 0) {
-		git_commit_dup(out_commit, current_commit);
-		*out_relative_path = relative_path;
-		return 0;
-	}
-
-	prev_commit = current_commit;
-
-	while (modifications_found < file_revisions_to_backtrack) {
-		error = git_commit_parent(&parent_commit, prev_commit, 0);
-		if (error != 0) {
-			git_object_free(head_commit_obj);
-			g_free(relative_path);
-			return -1;
-		}
-
-		int modified = file_modified_between_commits(repo, relative_path, parent_commit, prev_commit);
-		if (modified < 0) {
-			git_commit_free(parent_commit);
-			git_object_free(head_commit_obj);
-			g_free(relative_path);
-			return -1;
-		}
-
-		if (modified) {
-			modifications_found++;
-			if (modifications_found == file_revisions_to_backtrack) {
-				*out_commit = parent_commit;
-				*out_relative_path = relative_path;
-				git_object_free(head_commit_obj);
-				if (prev_commit != current_commit)
-					git_commit_free(prev_commit);
-				return 0;
-			}
-		}
-
-		if (prev_commit != current_commit)
-			git_commit_free(prev_commit);
-		prev_commit = parent_commit;
-		parent_commit = NULL;
-	}
-
-	git_commit_free(prev_commit);
-	git_object_free(head_commit_obj);
-	g_free(relative_path);
-	return -1;
-}
-
-static int get_file_content_from_file_revision(git_repository *repo,
-											const char *filepath,
-											int file_revisions_to_backtrack,
-											gchar **content,
-											size_t *content_size) {
-	git_commit *target_commit = NULL;
-	git_tree *tree = NULL;
-	git_tree_entry *entry = NULL;
-	git_blob *blob = NULL;
-	int error = 0;
-	gchar *relative_path = NULL;
-
-	if (!repo || !filepath || !content || !content_size || file_revisions_to_backtrack < 0)
-		return -1;
-
-	*content = NULL;
-	*content_size = 0;
-
-	error = find_file_commit_by_modifications(repo, filepath, file_revisions_to_backtrack,
-											&target_commit, &relative_path);
-	if (error != 0)
-		return -1;
-
-	error = git_commit_tree(&tree, target_commit);
-	if (error != 0)
-		goto cleanup;
-
-	error = git_tree_entry_bypath(&entry, tree, relative_path);
-	if (error != 0)
-		goto cleanup;
-
-	if (git_tree_entry_type(entry) != GIT_OBJECT_BLOB) {
-		error = -1;
-		goto cleanup;
-	}
-
-	error = git_blob_lookup(&blob, repo, git_tree_entry_id(entry));
-	if (error != 0)
-		goto cleanup;
-
-	const void *blob_content = git_blob_rawcontent(blob);
-	git_off_t blob_size = git_blob_rawsize(blob);
-
-	if (blob_size < 0) {
-		error = -1;
-		goto cleanup;
-	}
-
-	*content = g_malloc(blob_size + 1);
-	if (!*content) {
-		error = -1;
-		goto cleanup;
-	}
-
-	memcpy(*content, blob_content, blob_size);
-	(*content)[blob_size] = '\0';
-	*content_size = blob_size;
-
-cleanup:
-	if (relative_path)
-		g_free(relative_path);
-	if (blob)
-		git_blob_free(blob);
-	if (entry)
-		git_tree_entry_free(entry);
-	if (tree)
-		git_tree_free(tree);
-	if (target_commit)
-		git_commit_free(target_commit);
-
-	if (error != 0 && *content) {
-		g_free(*content);
-		*content = NULL;
-		*content_size = 0;
-	}
-
-	return error;
-}
-
-static int get_commit_from_file_revision(git_repository *repo,
-										const char *filepath,
-										int file_revisions_to_backtrack,
-										gchar **message,
-										size_t *message_size) {
-	git_commit *target_commit = NULL;
-	int error = 0;
-	gchar *relative_path = NULL;
-
-	if (!repo || !filepath || !message || !message_size || file_revisions_to_backtrack < 0)
-		return -1;
-
-	*message = NULL;
-	*message_size = 0;
-
-	error = find_file_commit_by_modifications(repo, filepath, file_revisions_to_backtrack,
-											&target_commit, &relative_path);
-	if (error != 0)
-		return -1;
-
-	const char *msg = git_commit_message(target_commit);
-	if (!msg) {
-		error = -1;
-		goto cleanup;
-	}
-
-	size_t len = strlen(msg);
-	*message = g_malloc(len + 1);
-	if (!*message) {
-		error = -1;
-		goto cleanup;
-	}
-
-	memcpy(*message, msg, len);
-	(*message)[len] = '\0';
-	*message_size = len;
-
-cleanup:
-	if (relative_path)
-		g_free(relative_path);
-	if (target_commit)
-		git_commit_free(target_commit);
-
-	if (error != 0 && *message) {
-		g_free(*message);
-		*message = NULL;
-		*message_size = 0;
-	}
-
-	return error;
-}
-
-/**
-* Convenience wrapper that returns the file content as a null-terminated string,
-* counting only commits that modified the specific file.
-* Optionally returns the associated commit message.
-* The caller is responsible for freeing the returned strings using g_free().
-*
-* @param filepath Path to the file relative to repository root
-* @param file_revisions_to_backtrack Number of file modifications to go back
-* @param content_size (out) Size of the returned content
-* @param commit_message (out, optional) Pointer to receive commit message string
-* @param message_size (out, optional) Size of the returned commit message
-* @return Allocated string containing file content, or NULL on error.
-*/
-gchar *get_script_content_string_from_file_revision(const char *filepath,
-													int file_revisions_to_backtrack,
-													size_t *content_size,
-													gchar **commit_message,
-													size_t *message_size) {
-	*content_size = 0;
-	if (message_size) *message_size = 0;
-	if (commit_message) *commit_message = NULL;
-
-	git_repository *repo = NULL;
-	gchar *content = NULL;
-	gchar *message = NULL;
-
+int preview_scripts_update(GString** git_pending_commit_buffer) {
 	// Initialize libgit2
 	git_libgit2_init();
 
-	// URL of the remote repository
-	siril_debug_print("Repository URL: %s\n", SCRIPT_REPOSITORY_URL);
-
-	// Local repository directory
+	// Local directory where the repository will be cloned
 	const gchar *local_path = siril_get_scripts_repo_path();
 
-	// Check if directory exists
-	gboolean success = FALSE;
-	if (g_file_test(local_path, G_FILE_TEST_IS_DIR)) {
-		siril_debug_print("Directory exists, attempting to open repository...\n");
-
-		// Try to open existing repository
-		int error = siril_repository_open(&repo, local_path);
-		if (error == 0) {
-			siril_debug_print("Scripts repository opened successfully!\n");
-			success = TRUE;
-		}
-	}
-	if (!success) {
-		siril_log_color_message(_("Error opening scripts repository\n"), "red");
-		goto cleanup;
+	git_repository *repo = NULL;
+	int error = siril_repository_open(&repo, local_path);
+	if (error < 0) {
+		siril_debug_print("Error opening repository: %s\n", giterr_last()->message);
+		siril_log_color_message(_("Error: unable to open local scripts repository.\n"), "red");
+		gui.script_repo_available = FALSE;
+		return 1;
 	}
 
-	int error = get_file_content_from_file_revision(repo, filepath, file_revisions_to_backtrack,
-													&content, content_size);
-	if (error != 0) {
-		siril_debug_print("Error retrieving file content in get_script_content_string_from_file_revision()\n");
-		goto cleanup;
-	}
-
-	if (commit_message) {
-		error = get_commit_from_file_revision(repo, filepath, file_revisions_to_backtrack,
-											&message, message_size);
-		if (error != 0) {
-			siril_debug_print("Error retrieving commit message in get_script_content_string_from_file_revision()\n");
-			g_free(content);
-			content = NULL;
-			*content_size = 0;
-		} else {
-			*commit_message = message;
-		}
-	}
-
-cleanup:
-	if (repo)
-		git_repository_free(repo);
+	// Fetch changes
+	lg2_fetch(repo);
+	// Analyse the repository against the remote
+	int retval = analyse(repo, git_pending_commit_buffer);
+	git_repository_free(repo);
 	git_libgit2_shutdown();
-
-	return content;
+	return retval;
 }
 
+int preview_spcc_update(GString **git_pending_commit_buffer) {
+	// Initialize libgit2
+	git_libgit2_init();
+
+	// Local directory where the repository will be cloned
+	const gchar *local_path = siril_get_spcc_repo_path();
+
+	git_repository *repo = NULL;
+	int error = siril_repository_open(&repo, local_path);
+	if (error < 0) {
+		siril_debug_print("Error opening repository: %s\n", giterr_last()->message);
+		siril_log_color_message(_("Error: unable to open local spcc-database repository.\n"), "red");
+		gui.spcc_repo_available = FALSE;
+		return 1;
+	}
+
+	// Fetch changes
+	lg2_fetch(repo);
+	// Analyse the repository against the remote
+	int retval = analyse(repo, git_pending_commit_buffer);
+	git_repository_free(repo);
+	git_libgit2_shutdown();
+	return retval;
+}
 
 #endif // HAVE_LIBGIT2

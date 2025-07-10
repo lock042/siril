@@ -3214,16 +3214,6 @@ static void strl_with_check(char *dest, const char *src, gsize maxlen, StrlFunc 
 	}
 }
 
-gboolean keyword_is_protected(char *card) {
-	char keyname[9];
-	strncpy(keyname, card, 8);
-	keyname[8] = '\0';
-	if (g_strcmp0(keyname, "DATE    ") == 0) {
-		return TRUE;
-	}
-	return (fits_get_keyclass(card) == TYP_STRUC_KEY || fits_get_keyclass(card) == TYP_CMPRS_KEY || fits_get_keyclass(card) == TYP_SCAL_KEY);
-}
-
 static int ffs2c(const char *instr, /* I - null terminated input string  */
 char *outstr, /* O - null terminated quoted output string */
 const int *status) /* IO - error status */
@@ -3332,7 +3322,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 		siril_debug_print("%s\n", card);
 
 	/* check if this is a protected keyword that must not be changed */
-	if (*card && keyword_is_protected(card)) {
+	if (*card && keyword_is_protected(card, fit)) {
 		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
 		return 1;
 	} else {
