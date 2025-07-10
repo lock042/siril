@@ -2246,3 +2246,16 @@ gboolean delete_directory(const gchar *dir_path, GError **error) {
 
 	return success;
 }
+
+gchar *posix_path_separators(const gchar *path) {
+	gchar *normalized = g_strdup(path);
+	gchar *p = normalized;
+
+	while (*p) {
+		if (*p == '\\') {
+			*p = '/';
+		}
+		p++;
+	}
+	return normalized;
+}

@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-08 17:17+0200\n"
-"PO-Revision-Date: 2025-07-09 16:42+0000\n"
+"POT-Creation-Date: 2025-07-10 15:46+0200\n"
+"PO-Revision-Date: 2025-07-10 22:18+0000\n"
 "Last-Translator: \"Alejandro M. Salinas López\" <alejandro.salinas.lopez."
 "81@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
@@ -510,7 +510,7 @@ msgstr "Anotar"
 #: src/gui/uifiles/settings_window.ui:1896
 #: src/gui/uifiles/settings_window.ui:4368
 #: src/gui/uifiles/settings_window.ui:4409
-#: src/gui/uifiles/settings_window.ui:6048 src/gui/uifiles/siril.ui:3763
+#: src/gui/uifiles/settings_window.ui:6046 src/gui/uifiles/siril.ui:3763
 msgid "Clear"
 msgstr "Borrar"
 
@@ -5131,7 +5131,7 @@ msgstr "Igualar las estrellas en la selección"
 msgid "Remove a scroll action"
 msgstr "normalización"
 
-#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5306
+#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5304
 #: src/gui/uifiles/siril.ui:6357
 msgid " "
 msgstr " "
@@ -5171,8 +5171,7 @@ msgstr "RGB/K"
 msgid "G"
 msgstr "G"
 
-#: src/gui/uifiles/pixelmath.ui:279 src/gui/uifiles/stars_list_window.ui:223
-#: src/gui/cut.c:731
+#: src/gui/uifiles/pixelmath.ui:279 src/gui/cut.c:731
 msgid "B"
 msgstr "B"
 
@@ -5213,7 +5212,7 @@ msgstr "Altura"
 msgid "Function"
 msgstr "Función"
 
-#: src/gui/uifiles/pixelmath.ui:488 src/gui/uifiles/stars_list_window.ui:472
+#: src/gui/uifiles/pixelmath.ui:488
 msgid "index"
 msgstr "índice"
 
@@ -5403,7 +5402,6 @@ msgid "_Script"
 msgstr "_Script"
 
 #: src/gui/uifiles/python_scratchpad.ui:327
-#: src/gui/uifiles/python_scratchpad.ui:414
 msgid "Run the script"
 msgstr "Ejecutar script"
 
@@ -5483,6 +5481,12 @@ msgstr "Resaltado de sintaxis"
 #: src/gui/uifiles/python_scratchpad.ui:405
 msgid "Enable right margin indicator"
 msgstr "Habilitar indicador de margen derecho"
+
+#: src/gui/uifiles/python_scratchpad.ui:414
+msgid ""
+"Set the position of the right margin indicator in the editor. This visual "
+"guide helps maintain consistent line lengths and improve code readability."
+msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:416
 msgid "Set right margin position"
@@ -6441,7 +6445,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
-#: src/gui/uifiles/settings_window.ui:5225
+#: src/gui/uifiles/settings_window.ui:5223
 msgid "Sel"
 msgstr "Seleccionar"
 
@@ -8259,7 +8263,7 @@ msgid "<b>Built-in Profiles</b>"
 msgstr "<b>Tipo de extracción</b>"
 
 #: src/gui/uifiles/settings_window.ui:4926
-#: src/gui/uifiles/settings_window.ui:5342 src/gui/uifiles/siril.ui:10643
+#: src/gui/uifiles/settings_window.ui:5340 src/gui/uifiles/siril.ui:10643
 msgid "Scripts"
 msgstr "Scritps"
 
@@ -8309,7 +8313,7 @@ msgstr ""
 "que está haciendo</b></span>"
 
 #: src/gui/uifiles/settings_window.ui:5059
-#: src/gui/uifiles/settings_window.ui:5925
+#: src/gui/uifiles/settings_window.ui:5923
 msgid "Warning Dialogs"
 msgstr "Diálogos de aviso"
 
@@ -8354,36 +8358,34 @@ msgstr ""
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
-"(This can be used to make and save local changes to a script.)\n"
-"To open an older revision (e.g. to get an older version after a bad script "
-"update) right click on a row."
+"(This can be used to make and save local changes to a script.)"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5178
+#: src/gui/uifiles/settings_window.ui:5176
 msgid "Category"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5194
+#: src/gui/uifiles/settings_window.ui:5192
 #, fuzzy
 msgid "Script"
 msgstr "Scritps"
 
-#: src/gui/uifiles/settings_window.ui:5210
+#: src/gui/uifiles/settings_window.ui:5208
 #, fuzzy
 msgid "Type"
 msgstr "Tipo:"
 
-#: src/gui/uifiles/settings_window.ui:5254
+#: src/gui/uifiles/settings_window.ui:5252
 #, fuzzy
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Directorio de almacenamiento scripts</b>"
 
-#: src/gui/uifiles/settings_window.ui:5287
+#: src/gui/uifiles/settings_window.ui:5285
 #, fuzzy
 msgid "Reset python venv"
 msgstr "Reiniciar cambios"
 
-#: src/gui/uifiles/settings_window.ui:5291
+#: src/gui/uifiles/settings_window.ui:5289
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -8393,21 +8395,21 @@ msgid ""
 "the venv to a pristine state as an aid to troubleshooting."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5322
+#: src/gui/uifiles/settings_window.ui:5320
 #, fuzzy
 msgid "Python Interface"
 msgstr "Interfaz"
 
-#: src/gui/uifiles/settings_window.ui:5356
-#: src/gui/uifiles/settings_window.ui:5754
+#: src/gui/uifiles/settings_window.ui:5354
+#: src/gui/uifiles/settings_window.ui:5752
 msgid "Performances"
 msgstr "Rendimientos"
 
-#: src/gui/uifiles/settings_window.ui:5387
+#: src/gui/uifiles/settings_window.ui:5385
 msgid "Ratio of available"
 msgstr "Ratio de disponibilidad"
 
-#: src/gui/uifiles/settings_window.ui:5391
+#: src/gui/uifiles/settings_window.ui:5389
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -8427,11 +8429,11 @@ msgstr ""
 "valor de 1 o superior probablemente provoque un bloqueo de Siril o de todo "
 "el Sistema Operativo."
 
-#: src/gui/uifiles/settings_window.ui:5407
+#: src/gui/uifiles/settings_window.ui:5405
 msgid "Fixed amount (GB)"
 msgstr "Cantidad fija (GB)"
 
-#: src/gui/uifiles/settings_window.ui:5411
+#: src/gui/uifiles/settings_window.ui:5409
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -8443,7 +8445,7 @@ msgstr ""
 "Configurar más memoria de la que está disponible en el sistema puede causar "
 "un cuelgue de Siril o de todo el Sistema Operativo."
 
-#: src/gui/uifiles/settings_window.ui:5427
+#: src/gui/uifiles/settings_window.ui:5425
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -8457,15 +8459,15 @@ msgstr ""
 "pero estableciendo el ratio permitido por encima de 1 requerirá el uso de "
 "memoria en disco (SWAP), que es mucho más lenta y poco recomendable"
 
-#: src/gui/uifiles/settings_window.ui:5472
+#: src/gui/uifiles/settings_window.ui:5470
 msgid "<b>Memory management</b>"
 msgstr "<b>Gestión de memoria</b>"
 
-#: src/gui/uifiles/settings_window.ui:5505
+#: src/gui/uifiles/settings_window.ui:5503
 msgid "Default bit depth for HD AutoStretch"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5521
+#: src/gui/uifiles/settings_window.ui:5519
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -8475,37 +8477,37 @@ msgid ""
 "the button to the right."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5538
+#: src/gui/uifiles/settings_window.ui:5536
 #, fuzzy
 msgid "Apply bit depth"
 msgstr "Aplicar división CFA"
 
-#: src/gui/uifiles/settings_window.ui:5542
+#: src/gui/uifiles/settings_window.ui:5540
 #, fuzzy
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "AutoExtender"
 
-#: src/gui/uifiles/settings_window.ui:5565
+#: src/gui/uifiles/settings_window.ui:5563
 #, fuzzy
 msgid "HD AutoStretch"
 msgstr "AutoExtender"
 
-#: src/gui/uifiles/settings_window.ui:5596
+#: src/gui/uifiles/settings_window.ui:5594
 msgid "Multithreaded FFTW"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5600
+#: src/gui/uifiles/settings_window.ui:5598
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5615 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5613 src/core/settings.c:382
 msgid "FFTW planning strategy"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5626
+#: src/gui/uifiles/settings_window.ui:5624
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -8523,28 +8525,28 @@ msgid ""
 "the other strategies is not worth it for a single Fourier Transform."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5631 src/gui/uifiles/siril.ui:5073
+#: src/gui/uifiles/settings_window.ui:5629 src/gui/uifiles/siril.ui:5073
 #: src/gui/uifiles/siril.ui:6943
 msgid "Estimate"
 msgstr "Estimar"
 
-#: src/gui/uifiles/settings_window.ui:5632
+#: src/gui/uifiles/settings_window.ui:5630
 msgid "Measure"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5633
+#: src/gui/uifiles/settings_window.ui:5631
 msgid "Patient"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5634
+#: src/gui/uifiles/settings_window.ui:5632
 msgid "Exhaustive"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5647
+#: src/gui/uifiles/settings_window.ui:5645
 msgid "FFTW planning time limit (seconds)"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5658
+#: src/gui/uifiles/settings_window.ui:5656
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -8552,11 +8554,11 @@ msgid ""
 "minimum planning level of Estimate will always be completed."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5673
+#: src/gui/uifiles/settings_window.ui:5671
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5684
+#: src/gui/uifiles/settings_window.ui:5682
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -8567,11 +8569,11 @@ msgid ""
 "Fourier Transforms will be used."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5700
+#: src/gui/uifiles/settings_window.ui:5698
 msgid "Maximum slice size for sliced image operations"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5711
+#: src/gui/uifiles/settings_window.ui:5709
 msgid ""
 "Sets the maximum slice size for image operations that can use sliced "
 "processing. The primary purpose of this is to constrain typical slices to a "
@@ -8579,21 +8581,21 @@ msgid ""
 "more effectively. It is always safe to leave this at the default setting."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5714
+#: src/gui/uifiles/settings_window.ui:5712
 msgid "Unlimited"
 msgstr "Ilimitado"
 
-#: src/gui/uifiles/settings_window.ui:5740
+#: src/gui/uifiles/settings_window.ui:5738
 #, fuzzy
 msgid "<b>FFTW Options</b>"
 msgstr "<b>Compresión FITS</b>"
 
-#: src/gui/uifiles/settings_window.ui:5768
-#: src/gui/uifiles/settings_window.ui:6211
+#: src/gui/uifiles/settings_window.ui:5766
+#: src/gui/uifiles/settings_window.ui:6209
 msgid "Miscellaneous"
 msgstr "Miscelánea"
 
-#: src/gui/uifiles/settings_window.ui:5796
+#: src/gui/uifiles/settings_window.ui:5794
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
@@ -8601,54 +8603,54 @@ msgstr ""
 "Seleccione un directorio existente. Asegúrese que tiene permisos de "
 "escritura y espacio libre suficiente."
 
-#: src/gui/uifiles/settings_window.ui:5799
+#: src/gui/uifiles/settings_window.ui:5797
 msgid "Select Swap Directory"
 msgstr "Seleccione el directorio de intercambio"
 
-#: src/gui/uifiles/settings_window.ui:5812
+#: src/gui/uifiles/settings_window.ui:5810
 msgid "available mem"
 msgstr "memoria disponible"
 
-#: src/gui/uifiles/settings_window.ui:5824
+#: src/gui/uifiles/settings_window.ui:5822
 msgid "Restore to Default"
 msgstr "Restaurar por defecto"
 
-#: src/gui/uifiles/settings_window.ui:5828
+#: src/gui/uifiles/settings_window.ui:5826
 #, fuzzy
 msgid "Restore the default swap storage directory"
 msgstr "Restaurar el directorio de intercambio por defecto"
 
-#: src/gui/uifiles/settings_window.ui:5847
+#: src/gui/uifiles/settings_window.ui:5845
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Directorio de almacenamiento de intercambio</b>"
 
-#: src/gui/uifiles/settings_window.ui:5874
+#: src/gui/uifiles/settings_window.ui:5872
 msgid "Don't ask before quitting"
 msgstr "No preguntar antes de salir"
 
-#: src/gui/uifiles/settings_window.ui:5889
+#: src/gui/uifiles/settings_window.ui:5887
 msgid "Don't ask before saving when display is not linear"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5904
+#: src/gui/uifiles/settings_window.ui:5902
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5908
+#: src/gui/uifiles/settings_window.ui:5906
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5947
+#: src/gui/uifiles/settings_window.ui:5945
 msgid "Play introduction"
 msgstr "Ejecutar introducción"
 
-#: src/gui/uifiles/settings_window.ui:5961
+#: src/gui/uifiles/settings_window.ui:5959
 msgid "Introduction Tips"
 msgstr "Tips de introducción"
 
-#: src/gui/uifiles/settings_window.ui:5993
+#: src/gui/uifiles/settings_window.ui:5991
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -8659,62 +8661,62 @@ msgid ""
 "executable: Siril will automatically find the other one if it exists."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6001
+#: src/gui/uifiles/settings_window.ui:5999
 msgid "Select StarNet executable"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6015
+#: src/gui/uifiles/settings_window.ui:6013
 #, fuzzy
 msgid "Must point to a valid StarNet executable."
 msgstr "Seleccione el directorio de intercambio"
 
-#: src/gui/uifiles/settings_window.ui:6029
+#: src/gui/uifiles/settings_window.ui:6027
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
 "b> be in the same directory as the StarNet executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6035
+#: src/gui/uifiles/settings_window.ui:6033
 #, fuzzy
 msgid "Select StarNet weights file"
 msgstr "Seleccione un área primero\n"
 
-#: src/gui/uifiles/settings_window.ui:6052
+#: src/gui/uifiles/settings_window.ui:6050
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6067
+#: src/gui/uifiles/settings_window.ui:6065
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6102
+#: src/gui/uifiles/settings_window.ui:6100
 #, fuzzy
 msgid "Must point to a valid GraXpert executable."
 msgstr "Seleccione el directorio de intercambio"
 
-#: src/gui/uifiles/settings_window.ui:6121
+#: src/gui/uifiles/settings_window.ui:6119
 #, fuzzy
 msgid "Software Location"
 msgstr "Actualizaciones de software"
 
-#: src/gui/uifiles/settings_window.ui:6144
+#: src/gui/uifiles/settings_window.ui:6142
 msgid "Copyright when saving image as TIFF"
 msgstr "Copyright cuando se guarda la imagen TIFF"
 
-#: src/gui/uifiles/settings_window.ui:6156
+#: src/gui/uifiles/settings_window.ui:6154
 msgid "Copyright TIFF"
 msgstr "Copyright TIFF"
 
-#: src/gui/uifiles/settings_window.ui:6178
+#: src/gui/uifiles/settings_window.ui:6176
 msgid "Check update at startup"
 msgstr "Buscar actualizaciones al inicio"
 
-#: src/gui/uifiles/settings_window.ui:6194 src/core/siril_actions.c:827
+#: src/gui/uifiles/settings_window.ui:6192 src/core/siril_actions.c:827
 msgid "Update"
 msgstr "Actualizar"
 
@@ -12130,59 +12132,6 @@ msgstr "Parámetros medios de PSF para las estrellas seleccionadas"
 msgid "Dynamic PSF"
 msgstr "PSF Dinámico"
 
-#: src/gui/uifiles/stars_list_window.ui:209
-msgid "Ch."
-msgstr "Ch."
-
-#: src/gui/uifiles/stars_list_window.ui:243
-msgid "A"
-msgstr "A"
-
-#: src/gui/uifiles/stars_list_window.ui:263
-msgid "x0"
-msgstr "x0"
-
-#: src/gui/uifiles/stars_list_window.ui:283
-msgid "y0"
-msgstr "y0"
-
-#: src/gui/uifiles/stars_list_window.ui:302
-#, fuzzy
-msgid "Ra"
-msgstr "R"
-
-#: src/gui/uifiles/stars_list_window.ui:317
-msgid "Dec"
-msgstr ""
-
-#: src/gui/uifiles/stars_list_window.ui:333
-msgid "FWHMx"
-msgstr "FWHMx"
-
-#: src/gui/uifiles/stars_list_window.ui:353
-msgid "FWHMy"
-msgstr "FWHMy"
-
-#: src/gui/uifiles/stars_list_window.ui:373
-msgid "Mag"
-msgstr "Mag"
-
-#: src/gui/uifiles/stars_list_window.ui:392
-msgid "Beta"
-msgstr ""
-
-#: src/gui/uifiles/stars_list_window.ui:412
-msgid "r"
-msgstr "r"
-
-#: src/gui/uifiles/stars_list_window.ui:432
-msgid "Angle"
-msgstr "Ángulo"
-
-#: src/gui/uifiles/stars_list_window.ui:452
-msgid "RMSE"
-msgstr "RMSE"
-
 #: src/gui/uifiles/stars_list_window.ui:492
 #, fuzzy
 msgid "Center selected star"
@@ -14757,8 +14706,8 @@ msgstr "Secuencia apilada correctamente.\n"
 #: src/filters/fft.c:610 src/gui/PSF_list.c:303 src/gui/PSF_list.c:308
 #: src/gui/PSF_list.c:313 src/gui/colors.c:461 src/gui/compstars.c:224
 #: src/gui/compstars.c:293 src/gui/compstars.c:301 src/gui/compstars.c:308
-#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:208
-#: src/gui/git_gui.c:343 src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
+#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:200
+#: src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
 #: src/gui/icc_profile.c:543 src/gui/merge_cfa.c:216 src/gui/merge_cfa.c:248
 #: src/gui/merge_cfa.c:259 src/gui/merge_cfa.c:270 src/gui/merge_cfa.c:281
 #: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
@@ -16870,7 +16819,7 @@ msgstr ""
 msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr "Argumento inesperado para apilado '%s', abortando.\n"
 
-#: src/core/command.c:8647 src/core/command_line_processor.c:661
+#: src/core/command.c:8647 src/core/command_line_processor.c:658
 #: src/gui/single_image.c:82 src/main.c:459
 #, c-format
 msgid "No sequence `%s' found.\n"
@@ -17184,11 +17133,11 @@ msgstr "******* LISTA DE COMANDOS DISPONIBLES *******\n"
 msgid "Can be used in a script: %s\n"
 msgstr "Puede usarse en un script: "
 
-#: src/core/command.c:9546 src/core/command_line_processor.c:467
+#: src/core/command.c:9546 src/core/command_line_processor.c:464
 msgid "YES"
 msgstr "SI"
 
-#: src/core/command.c:9546 src/core/command_line_processor.c:470
+#: src/core/command.c:9546 src/core/command_line_processor.c:467
 msgid "NO"
 msgstr "NO"
 
@@ -20881,32 +20830,32 @@ msgstr "Ejecución de script fallida.\n"
 msgid "Please enter an existing command before hitting this button"
 msgstr "Por favor introduzca un comando existente antes de pulsar este botón"
 
-#: src/core/command_line_processor.c:463
+#: src/core/command_line_processor.c:460
 msgid "Can be used in a script: "
 msgstr "Puede usarse en un script: "
 
-#: src/core/command_line_processor.c:482
+#: src/core/command_line_processor.c:479
 msgid "No help for this command"
 msgstr "Escribir help para obtener la lista de comandos soportados"
 
-#: src/core/command_line_processor.c:597 src/core/preprocess.c:649
+#: src/core/command_line_processor.c:594 src/core/preprocess.c:649
 #: src/filters/cosmetic_correction.c:502 src/gui/script_menu.c:204
 #, c-format
 msgid "File [%s] does not exist\n"
 msgstr "El fichero [%s] no existe\n"
 
 #. Run the script
-#: src/core/command_line_processor.c:604 src/gui/script_menu.c:185
+#: src/core/command_line_processor.c:601 src/gui/script_menu.c:185
 #, c-format
 msgid "Starting script %s\n"
 msgstr "Iniciando script %s\n"
 
-#: src/core/command_line_processor.c:620
+#: src/core/command_line_processor.c:617
 #, fuzzy, c-format
 msgid "Command execution failed: %s.\n"
 msgstr "Ejecución de comando fallida.\n"
 
-#: src/core/command_line_processor.c:682
+#: src/core/command_line_processor.c:679
 #, c-format
 msgid "Loading sequence `%s' failed.\n"
 msgstr "Fallo al cargar la secuencia '%s'.\n"
@@ -21338,7 +21287,7 @@ msgstr ""
 "Mapa de negros, la corrección cosmética sólo está soportada con imágenes de "
 "canal único\n"
 
-#: src/core/preprocess.c:502 src/gui/git_gui.c:91
+#: src/core/preprocess.c:502 src/gui/git_gui.c:117
 msgid "Preprocessing"
 msgstr "Pre-procesando"
 
@@ -21865,7 +21814,7 @@ msgstr ""
 
 #: src/core/settings.c:398
 msgid "inner radius for background annulus"
-msgstr "radio interior del anillo de fondo"
+msgstr "radio interior para el anillo de fondo"
 
 #: src/core/settings.c:399
 #, fuzzy
@@ -24017,9 +23966,9 @@ msgid "Select task to stop"
 msgstr "Seleccione un área para recortar"
 
 #: src/gui/callbacks.c:2349 src/gui/dialogs.c:253 src/gui/dialogs.c:262
-#: src/gui/dialogs.c:268 src/gui/git_gui.c:257 src/gui/keywords_tree.c:508
-#: src/gui/python_gui.c:768 src/gui/python_gui.c:845
-#: src/io/image_formats_libraries.c:2489 src/pixelMath/pixel_math_runner.c:1260
+#: src/gui/dialogs.c:268 src/gui/keywords_tree.c:508 src/gui/python_gui.c:768
+#: src/gui/python_gui.c:845 src/io/image_formats_libraries.c:2489
+#: src/pixelMath/pixel_math_runner.c:1260
 msgid "_Cancel"
 msgstr "_Cancelar"
 
@@ -24119,7 +24068,7 @@ msgstr ""
 msgid "_Close"
 msgstr "Cerrar"
 
-#: src/gui/compstars.c:51 src/gui/git_gui.c:258 src/gui/nina_light_curve.c:50
+#: src/gui/compstars.c:51 src/gui/nina_light_curve.c:50
 #: src/io/image_formats_libraries.c:2489
 msgid "_OK"
 msgstr "_OK"
@@ -24699,74 +24648,36 @@ msgstr "Imagen cargada"
 msgid "Error: image dimensions do not match"
 msgstr "Error: fallo en el cálculo estadístico.\n"
 
-#: src/gui/git_gui.c:93
+#: src/gui/git_gui.c:119
 #, fuzzy
 msgid "Processing"
 msgstr "Procesando..."
 
-#: src/gui/git_gui.c:95
+#: src/gui/git_gui.c:121
 msgid "Utility"
 msgstr ""
 
-#: src/gui/git_gui.c:97
+#: src/gui/git_gui.c:123
 msgid "Core"
 msgstr ""
 
-#: src/gui/git_gui.c:100
+#: src/gui/git_gui.c:126
 msgid "Other"
 msgstr ""
 
-#: src/gui/git_gui.c:106 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
+#: src/gui/git_gui.c:132 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
 #, fuzzy
 msgid "Siril Script File"
 msgstr "Nombre del archivo:"
 
-#: src/gui/git_gui.c:108
+#: src/gui/git_gui.c:134
 #, fuzzy
 msgid "Python script"
 msgstr "Ejecutar Scritp"
 
-#: src/gui/git_gui.c:166
-#, fuzzy
-msgid "Current script version"
-msgstr "Cerrar editor de script"
-
-#: src/gui/git_gui.c:182
-msgid "(No commit message found for this revision)"
-msgstr ""
-
-#: src/gui/git_gui.c:206
+#: src/gui/git_gui.c:198
 #, fuzzy, c-format
 msgid "Error loading script contents: %s\n"
-msgstr "Cargando script: %s\n"
-
-#: src/gui/git_gui.c:254
-#, fuzzy
-msgid "Select Revision"
-msgstr "Selección"
-
-#: src/gui/git_gui.c:261
-msgid ""
-"Leave at 0 to open the current version of the script. If you have a problem "
-"with a script update you can use this to go back to earlier revisions. Start "
-"by going back 1 revison and increase the number until you find the last "
-"version that worked for you. Note that this will only open the previous "
-"version in the script editor, it will not revert the script in the local "
-"repository, but it allows you to save a local copy in one of your script "
-"folders for use until the upstream script is fixed."
-msgstr ""
-
-#: src/gui/git_gui.c:271
-msgid "Revisions to go back (leave at 0 to get current revision):"
-msgstr ""
-
-#: src/gui/git_gui.c:306
-msgid "Loading commit message..."
-msgstr ""
-
-#: src/gui/git_gui.c:340
-#, fuzzy, c-format
-msgid "Error loading script contents from %d revisions back: %s\n"
 msgstr "Cargando script: %s\n"
 
 #: src/gui/histogram.c:159 src/gui/histogram.c:165 src/gui/histogram.c:1166
@@ -25572,7 +25483,7 @@ msgstr "Anillo de fondo"
 #: src/io/siril_pythoncommands.c:1513 src/io/siril_pythoncommands.c:1545
 #: src/io/siril_pythoncommands.c:1605 src/io/siril_pythoncommands.c:1690
 #: src/io/siril_pythoncommands.c:2177 src/io/siril_pythoncommands.c:2210
-#: src/io/siril_pythoncommands.c:2372
+#: src/io/siril_pythoncommands.c:2373
 msgid "No sequence loaded"
 msgstr "No hay secuencia cargada"
 
@@ -29065,99 +28976,121 @@ msgstr ""
 msgid "Failed to save list to %s\n"
 msgstr "Asegúrese de cargar la primera imagen"
 
-#: src/io/siril_git.c:141
+#: src/io/siril_git.c:146
+msgid "libgit2: unable to parse some refish\n"
+msgstr ""
+
+#: src/io/siril_git.c:161
+msgid "Failed to find commit with given OID.\n"
+msgstr ""
+
+#: src/io/siril_git.c:275
 msgid ""
 "Error removing Git lock files. You may need to delete the local git "
 "repository and allow Siril to re-clone it.\n"
 msgstr ""
 
 #. Not a valid git path
-#: src/io/siril_git.c:150
+#: src/io/siril_git.c:284
 #, fuzzy
 msgid "Invalid Git repository path.\n"
 msgstr "Argumento faltante %s, abortando.\n"
 
-#: src/io/siril_git.c:166 src/io/siril_git.c:178 src/io/siril_git.c:190
+#: src/io/siril_git.c:300 src/io/siril_git.c:312 src/io/siril_git.c:324
 msgid ""
 "Error performing hard reset. You may need to delete the local git repository "
 "and allow Siril to re-clone it.\n"
 msgstr ""
 
-#: src/io/siril_git.c:213
+#: src/io/siril_git.c:347
 msgid ""
 "Unable to create anonymous remote for the repository. Check your "
 "connectivity and try again.\n"
 msgstr ""
 
-#: src/io/siril_git.c:232
+#: src/io/siril_git.c:366
 msgid ""
 "Detected 1.4.0-beta2 bug condition. Removing and re-cloning repository...\n"
 msgstr ""
 
-#: src/io/siril_git.c:237
+#: src/io/siril_git.c:371
 #, fuzzy, c-format
 msgid "Error removing repository directory: %s\n"
 msgstr "Error abriendo fichero"
 
-#: src/io/siril_git.c:246 src/io/siril_git.c:510 src/io/siril_git.c:535
+#: src/io/siril_git.c:380 src/io/siril_git.c:793 src/io/siril_git.c:818
 #, fuzzy, c-format
 msgid "Error cloning repository into %s: %s\n"
 msgstr "Error abriendo fichero"
 
-#: src/io/siril_git.c:250
+#: src/io/siril_git.c:384
 #, fuzzy
 msgid "Repository re-cloned successfully!\n"
 msgstr "Secuencia apilada correctamente.\n"
 
-#: src/io/siril_git.c:254
+#: src/io/siril_git.c:388
 msgid ""
 "Error fetching remote: Remote repository or references not found. Check the "
 "repository URL and your connectivity.\n"
 msgstr ""
 
 #. Generic fallback
-#: src/io/siril_git.c:259
+#: src/io/siril_git.c:393
 msgid ""
 "Error fetching remote. This may be a temporary error, check your "
 "connectivity and try again.\n"
 msgstr ""
 
-#: src/io/siril_git.c:491 src/io/siril_git.c:717
+#: src/io/siril_git.c:612
+#, c-format
+msgid "libgit2: repository is in unexpected state %d. Cleaning up...\n"
+msgstr ""
+
+#: src/io/siril_git.c:616
+msgid "libgit2: repository failed to clean up properly. Cannot continue.\n"
+msgstr ""
+
+#: src/io/siril_git.c:703 src/io/siril_git.c:707
+#, fuzzy, c-format
+msgid "Commit message: %s\n"
+msgstr "Uso: %s\n"
+
+#: src/io/siril_git.c:774 src/io/siril_git.c:1000
 msgid "Existing directory is not a valid git repository. Cleaning up...\n"
 msgstr ""
 
-#: src/io/siril_git.c:496 src/io/siril_git.c:722
+#: src/io/siril_git.c:779 src/io/siril_git.c:1005
 #, fuzzy, c-format
 msgid "Error deleting existing directory %s: %s\n"
 msgstr "Error abriendo fichero"
 
 #. Now attempt to clone into the clean directory
-#: src/io/siril_git.c:506 src/io/siril_git.c:531 src/io/siril_git.c:731
-#: src/io/siril_git.c:747
+#: src/io/siril_git.c:789 src/io/siril_git.c:814 src/io/siril_git.c:1014
+#: src/io/siril_git.c:1030
 msgid "Attempting to clone from remote source...\n"
 msgstr ""
 
-#: src/io/siril_git.c:516 src/io/siril_git.c:541 src/io/siril_git.c:740
-#: src/io/siril_git.c:757
+#: src/io/siril_git.c:799 src/io/siril_git.c:824 src/io/siril_git.c:1023
+#: src/io/siril_git.c:1040
 #, fuzzy
 msgid "Repository cloned successfully!\n"
 msgstr "Secuencia apilada correctamente.\n"
 
-#: src/io/siril_git.c:520 src/io/siril_git.c:545
+#: src/io/siril_git.c:803 src/io/siril_git.c:828
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:556 src/io/siril_git.c:766
+#: src/io/siril_git.c:839 src/io/siril_git.c:1049
 #, fuzzy
 msgid "Failed to lookup remote.\n"
 msgstr "Fallo al crear el fichero SER de salida '%s'\n"
 
-#: src/io/siril_git.c:564 src/io/siril_git.c:774
+#: src/io/siril_git.c:847 src/io/siril_git.c:1057
 msgid "Error: cannot identify local repository's configured remote.\n"
 msgstr ""
 
-#: src/io/siril_git.c:573
+#: src/io/siril_git.c:856
 #, c-format
 msgid ""
 "Error: local siril-scripts repository folder is not configured with %s as "
@@ -29165,46 +29098,46 @@ msgid ""
 "the correct repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:578 src/io/siril_git.c:788
+#: src/io/siril_git.c:861 src/io/siril_git.c:1071
 msgid "Repository Error"
 msgstr ""
 
-#: src/io/siril_git.c:596 src/io/siril_git.c:608 src/io/siril_git.c:806
-#: src/io/siril_git.c:818
+#: src/io/siril_git.c:879 src/io/siril_git.c:891 src/io/siril_git.c:1089
+#: src/io/siril_git.c:1101
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
 msgstr ""
 
-#: src/io/siril_git.c:617
+#: src/io/siril_git.c:900
 msgid "Local scripts repository is up-to-date!\n"
 msgstr ""
 
-#: src/io/siril_git.c:624
+#: src/io/siril_git.c:907
 #, fuzzy
 msgid "Error accessing repository index.\n"
 msgstr "Error abriendo fichero"
 
-#: src/io/siril_git.c:642
+#: src/io/siril_git.c:925
 #, fuzzy
 msgid "Warning: failed to get repository index entry.\n"
 msgstr "Asegúrese de cargar la primera imagen"
 
-#: src/io/siril_git.c:648
+#: src/io/siril_git.c:931
 msgid "Warning: skipping script with invalid UTF-8 path.\n"
 msgstr ""
 
-#: src/io/siril_git.c:658
+#: src/io/siril_git.c:941
 #, fuzzy
 msgid "Warning: memory allocation failed for script path.\n"
 msgstr "Error: fallo en el cálculo estadístico.\n"
 
-#: src/io/siril_git.c:735 src/io/siril_git.c:752
+#: src/io/siril_git.c:1018 src/io/siril_git.c:1035
 #, fuzzy, c-format
 msgid "Error cloning repository: %s\n"
 msgstr "Error abriendo fichero"
 
-#: src/io/siril_git.c:783
+#: src/io/siril_git.c:1066
 #, c-format
 msgid ""
 "Error: local siril-spcc-database repository folder is not configured with %s "
@@ -29212,14 +29145,19 @@ msgid ""
 "the correct repository.\n"
 msgstr ""
 
-#: src/io/siril_git.c:824
+#: src/io/siril_git.c:1107
 msgid "Local SPCC database repository is up-to-date!\n"
 msgstr ""
 
-#: src/io/siril_git.c:1162
+#: src/io/siril_git.c:1134
 #, fuzzy
-msgid "Error opening scripts repository\n"
-msgstr "Error abriendo fichero"
+msgid "Error: unable to open local scripts repository.\n"
+msgstr "Buscando secuencias en el directorio actual...\n"
+
+#: src/io/siril_git.c:1159
+#, fuzzy
+msgid "Error: unable to open local spcc-database repository.\n"
+msgstr "Buscando secuencias en el directorio actual...\n"
 
 #: src/io/siril_pythoncommands.c:461
 #, fuzzy
@@ -29354,8 +29292,8 @@ msgstr "Conversión: no se ha establecido directorio de trabajo.\n"
 #: src/io/siril_pythoncommands.c:1231 src/io/siril_pythoncommands.c:1244
 #: src/io/siril_pythoncommands.c:1271 src/io/siril_pythoncommands.c:1324
 #: src/io/siril_pythoncommands.c:2250 src/io/siril_pythoncommands.c:2263
-#: src/io/siril_pythoncommands.c:2279 src/io/siril_pythoncommands.c:2285
-#: src/io/siril_pythoncommands.c:2318
+#: src/io/siril_pythoncommands.c:2280 src/io/siril_pythoncommands.c:2286
+#: src/io/siril_pythoncommands.c:2319
 msgid "Invalid payload length"
 msgstr ""
 
@@ -29412,7 +29350,7 @@ msgid "No stats for this channel for this frame"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:1522 src/io/siril_pythoncommands.c:1620
-#: src/io/siril_pythoncommands.c:2381
+#: src/io/siril_pythoncommands.c:2382
 #, fuzzy
 msgid "Incorrect command argument"
 msgstr "parámetro de línea de comandos desconocido '%c'\n"
@@ -29437,7 +29375,7 @@ msgstr ""
 msgid "Invalid dimensions"
 msgstr "Tamaño del entramado"
 
-#: src/io/siril_pythoncommands.c:1627 src/io/siril_pythoncommands.c:2389
+#: src/io/siril_pythoncommands.c:1627 src/io/siril_pythoncommands.c:2390
 #, fuzzy
 msgid "Failed to read frame metadata"
 msgstr "Buscando secuencias en el directorio actual...\n"
@@ -29475,7 +29413,7 @@ msgstr "Borrar las muestras del fondo."
 msgid "Image has no ICC profile"
 msgstr "archivo azul actual"
 
-#: src/io/siril_pythoncommands.c:1913 src/io/siril_pythoncommands.c:2394
+#: src/io/siril_pythoncommands.c:1913 src/io/siril_pythoncommands.c:2395
 msgid "Image has no FITS header"
 msgstr ""
 
@@ -29556,48 +29494,48 @@ msgstr "Rango de valores de píxel"
 msgid "No distodata available"
 msgstr "No disponible"
 
-#: src/io/siril_pythoncommands.c:2302
+#: src/io/siril_pythoncommands.c:2303
 msgid "No polygon found matching id"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2309
+#: src/io/siril_pythoncommands.c:2310
 #, fuzzy
 msgid "Failed to serialize user polygon"
 msgstr ""
 "No se puede cargar la imagen de referencia de la secuencia, abortando.\n"
 "\n"
 
-#: src/io/siril_pythoncommands.c:2328
+#: src/io/siril_pythoncommands.c:2329
 msgid "No user polygons to serialize"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2334
+#: src/io/siril_pythoncommands.c:2335
 #, fuzzy
 msgid "Failed to serialize user polygon list"
 msgstr ""
 "No se puede cargar la imagen de referencia de la secuencia, abortando.\n"
 "\n"
 
-#: src/io/siril_pythoncommands.c:2349 src/io/siril_pythoncommands.c:2355
-#: src/io/siril_pythoncommands.c:2361
+#: src/io/siril_pythoncommands.c:2350 src/io/siril_pythoncommands.c:2356
+#: src/io/siril_pythoncommands.c:2362
 #, fuzzy
 msgid "Argument error"
 msgstr "Error"
 
-#: src/io/siril_pythoncommands.c:2415
+#: src/io/siril_pythoncommands.c:2416
 #, fuzzy
 msgid "Could not create the new sequence"
 msgstr "No se puede crear la tubería con nombre "
 
-#: src/io/siril_pythoncommands.c:2425
+#: src/io/siril_pythoncommands.c:2426
 msgid "Wrong mouse mode"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2435
+#: src/io/siril_pythoncommands.c:2436
 msgid "Invalid payload for CMD_DRAW_POLYGON"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2443
+#: src/io/siril_pythoncommands.c:2444
 #, fuzzy
 msgid "Unknown command"
 msgstr "parámetro de línea de comandos desconocido '%c'\n"
@@ -31939,20 +31877,58 @@ msgstr "Secuencia de escalado para el apilado"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "Se hará el apilado sin escalado (deshabilitando `drizzle`)\n"
 
-#~ msgid "Apply autostretch algorithm to image"
-#~ msgstr "Aplicar algoritmo de auto extensión a la imagen"
+#~ msgid "Ch."
+#~ msgstr "Ch."
+
+#~ msgid "A"
+#~ msgstr "A"
+
+#~ msgid "x0"
+#~ msgstr "x0"
+
+#~ msgid "y0"
+#~ msgstr "y0"
+
+#, fuzzy
+#~ msgid "Ra"
+#~ msgstr "R"
+
+#~ msgid "FWHMx"
+#~ msgstr "FWHMx"
+
+#~ msgid "FWHMy"
+#~ msgstr "FWHMy"
+
+#~ msgid "Mag"
+#~ msgstr "Mag"
+
+#~ msgid "r"
+#~ msgstr "r"
+
+#~ msgid "Angle"
+#~ msgstr "Ángulo"
+
+#~ msgid "RMSE"
+#~ msgstr "RMSE"
+
+#, fuzzy
+#~ msgid "Current script version"
+#~ msgstr "Cerrar editor de script"
+
+#, fuzzy
+#~ msgid "Select Revision"
+#~ msgstr "Selección"
 
 #, fuzzy, c-format
-#~ msgid "Commit message: %s\n"
-#~ msgstr "Uso: %s\n"
+#~ msgid "Error loading script contents from %d revisions back: %s\n"
+#~ msgstr "Cargando script: %s\n"
 
 #, fuzzy
-#~ msgid "Error: unable to open local scripts repository.\n"
-#~ msgstr "Buscando secuencias en el directorio actual...\n"
+#~ msgid "Error opening scripts repository\n"
+#~ msgstr "Error abriendo fichero"
 
-#, fuzzy
-#~ msgid "Error: unable to open local spcc-database repository.\n"
-#~ msgstr "Buscando secuencias en el directorio actual...\n"
+#~ msgid "Apply autostretch algorithm to image"
+#~ msgstr "Aplicar algoritmo de auto extensión a la imagen"
 
 #~ msgid "Cannot refresh script list"
 #~ msgstr "No se puede refrescar la lista de scripts"

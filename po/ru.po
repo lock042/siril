@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-08 17:17+0200\n"
-"PO-Revision-Date: 2025-07-07 18:43+0000\n"
+"POT-Creation-Date: 2025-07-10 15:46+0200\n"
+"PO-Revision-Date: 2025-07-10 12:35+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -504,7 +504,7 @@ msgstr "Аннотировать"
 #: src/gui/uifiles/settings_window.ui:1896
 #: src/gui/uifiles/settings_window.ui:4368
 #: src/gui/uifiles/settings_window.ui:4409
-#: src/gui/uifiles/settings_window.ui:6048 src/gui/uifiles/siril.ui:3763
+#: src/gui/uifiles/settings_window.ui:6046 src/gui/uifiles/siril.ui:3763
 msgid "Clear"
 msgstr "Очистить"
 
@@ -5148,7 +5148,7 @@ msgstr "Добавить действие при прокрутке"
 msgid "Remove a scroll action"
 msgstr "Удалить действие при прокрутке"
 
-#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5306
+#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5304
 #: src/gui/uifiles/siril.ui:6357
 msgid " "
 msgstr " "
@@ -5192,8 +5192,7 @@ msgstr "RGB/K"
 msgid "G"
 msgstr "G"
 
-#: src/gui/uifiles/pixelmath.ui:279 src/gui/uifiles/stars_list_window.ui:223
-#: src/gui/cut.c:731
+#: src/gui/uifiles/pixelmath.ui:279 src/gui/cut.c:731
 msgid "B"
 msgstr "B"
 
@@ -5233,7 +5232,7 @@ msgstr "Высота"
 msgid "Function"
 msgstr "Функция"
 
-#: src/gui/uifiles/pixelmath.ui:488 src/gui/uifiles/stars_list_window.ui:472
+#: src/gui/uifiles/pixelmath.ui:488
 msgid "index"
 msgstr "индекс"
 
@@ -5428,7 +5427,6 @@ msgid "_Script"
 msgstr "_Сценарий"
 
 #: src/gui/uifiles/python_scratchpad.ui:327
-#: src/gui/uifiles/python_scratchpad.ui:414
 msgid "Run the script"
 msgstr "Выполнить этот сценарий"
 
@@ -5507,6 +5505,12 @@ msgstr "Подсветка синтаксиса"
 #: src/gui/uifiles/python_scratchpad.ui:405
 msgid "Enable right margin indicator"
 msgstr "Включить индикатор правой границы"
+
+#: src/gui/uifiles/python_scratchpad.ui:414
+msgid ""
+"Set the position of the right margin indicator in the editor. This visual "
+"guide helps maintain consistent line lengths and improve code readability."
+msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:416
 msgid "Set right margin position"
@@ -6456,7 +6460,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
-#: src/gui/uifiles/settings_window.ui:5225
+#: src/gui/uifiles/settings_window.ui:5223
 msgid "Sel"
 msgstr "Выбор"
 
@@ -8323,7 +8327,7 @@ msgid "<b>Built-in Profiles</b>"
 msgstr "<b>Встроенные профили</b>"
 
 #: src/gui/uifiles/settings_window.ui:4926
-#: src/gui/uifiles/settings_window.ui:5342 src/gui/uifiles/siril.ui:10643
+#: src/gui/uifiles/settings_window.ui:5340 src/gui/uifiles/siril.ui:10643
 msgid "Scripts"
 msgstr "Сценарии"
 
@@ -8372,7 +8376,7 @@ msgstr ""
 "вы знаете, что делаете!</b></span>"
 
 #: src/gui/uifiles/settings_window.ui:5059
-#: src/gui/uifiles/settings_window.ui:5925
+#: src/gui/uifiles/settings_window.ui:5923
 msgid "Warning Dialogs"
 msgstr "Окна с предупреждениями"
 
@@ -8427,39 +8431,37 @@ msgstr ""
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
-"(This can be used to make and save local changes to a script.)\n"
-"To open an older revision (e.g. to get an older version after a bad script "
-"update) right click on a row."
+"(This can be used to make and save local changes to a script.)"
 msgstr ""
 "Список доступных сценариев. Выбранные сценарии будут доступные через меню "
 "«Сценарии». После двойного нажатия на строку, код сценария будет открыт в "
-"редакторе (Это позволяет делать локальные изменения в сценарии и сохранять "
+"редакторе (Это позволяет вносить локальные изменения в сценарии и сохранять "
 "их).\n"
 "Чтобы открыть более раннюю ревизию (например, для получения более старой "
 "версии после неудачного обновления сценария), нажмите на строку правой "
 "клавишей."
 
-#: src/gui/uifiles/settings_window.ui:5178
+#: src/gui/uifiles/settings_window.ui:5176
 msgid "Category"
 msgstr "Категория"
 
-#: src/gui/uifiles/settings_window.ui:5194
+#: src/gui/uifiles/settings_window.ui:5192
 msgid "Script"
 msgstr "Сценарий"
 
-#: src/gui/uifiles/settings_window.ui:5210
+#: src/gui/uifiles/settings_window.ui:5208
 msgid "Type"
 msgstr "Тип"
 
-#: src/gui/uifiles/settings_window.ui:5254
+#: src/gui/uifiles/settings_window.ui:5252
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Репозиторий сценариев Siril</b>"
 
-#: src/gui/uifiles/settings_window.ui:5287
+#: src/gui/uifiles/settings_window.ui:5285
 msgid "Reset python venv"
 msgstr "Сбросить вирт. среду python"
 
-#: src/gui/uifiles/settings_window.ui:5291
+#: src/gui/uifiles/settings_window.ui:5289
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -8476,20 +8478,20 @@ msgstr ""
 "Обычно в этом нет необходимости, и эта возможность является крайней мерой "
 "для восстановления исходного состояния venv при устранении неполадок."
 
-#: src/gui/uifiles/settings_window.ui:5322
+#: src/gui/uifiles/settings_window.ui:5320
 msgid "Python Interface"
 msgstr "Интерфейс Python"
 
-#: src/gui/uifiles/settings_window.ui:5356
-#: src/gui/uifiles/settings_window.ui:5754
+#: src/gui/uifiles/settings_window.ui:5354
+#: src/gui/uifiles/settings_window.ui:5752
 msgid "Performances"
 msgstr "Производительность"
 
-#: src/gui/uifiles/settings_window.ui:5387
+#: src/gui/uifiles/settings_window.ui:5385
 msgid "Ratio of available"
 msgstr "Доля доступной памяти"
 
-#: src/gui/uifiles/settings_window.ui:5391
+#: src/gui/uifiles/settings_window.ui:5389
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -8508,11 +8510,11 @@ msgstr ""
 "Если у вас не настроена директория подкачки на каком-либо разделе, значение "
 "1 или выше, скорее всего, приведет к сбою siril или операционной системы."
 
-#: src/gui/uifiles/settings_window.ui:5407
+#: src/gui/uifiles/settings_window.ui:5405
 msgid "Fixed amount (GB)"
 msgstr "Фикс. объём (Гбайт)"
 
-#: src/gui/uifiles/settings_window.ui:5411
+#: src/gui/uifiles/settings_window.ui:5409
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -8524,7 +8526,7 @@ msgstr ""
 "Указание объёма памяти бо́льшего, чем доступен вашей системе может привести к "
 "падению siril или операционной системы."
 
-#: src/gui/uifiles/settings_window.ui:5427
+#: src/gui/uifiles/settings_window.ui:5425
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -8539,15 +8541,15 @@ msgstr ""
 "укладки, больше 1 потребует использования памяти на диске, что очень "
 "медленно и это не рекомендуется"
 
-#: src/gui/uifiles/settings_window.ui:5472
+#: src/gui/uifiles/settings_window.ui:5470
 msgid "<b>Memory management</b>"
 msgstr "<b>Управление памятью</b>"
 
-#: src/gui/uifiles/settings_window.ui:5505
+#: src/gui/uifiles/settings_window.ui:5503
 msgid "Default bit depth for HD AutoStretch"
 msgstr "Разрядность по умолчанию для расширенного авторастягивания"
 
-#: src/gui/uifiles/settings_window.ui:5521
+#: src/gui/uifiles/settings_window.ui:5519
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -8564,23 +8566,23 @@ msgstr ""
 "переключении режима просмотра, и может быть применена сейчас с помощью "
 "кнопки справа."
 
-#: src/gui/uifiles/settings_window.ui:5538
+#: src/gui/uifiles/settings_window.ui:5536
 msgid "Apply bit depth"
 msgstr "Установить разрядность"
 
-#: src/gui/uifiles/settings_window.ui:5542
+#: src/gui/uifiles/settings_window.ui:5540
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "Установить выбранную разрядность расширенного авторастягивания"
 
-#: src/gui/uifiles/settings_window.ui:5565
+#: src/gui/uifiles/settings_window.ui:5563
 msgid "HD AutoStretch"
 msgstr "Расширенное авторастягивание"
 
-#: src/gui/uifiles/settings_window.ui:5596
+#: src/gui/uifiles/settings_window.ui:5594
 msgid "Multithreaded FFTW"
 msgstr "Мультипотоковое FFTW"
 
-#: src/gui/uifiles/settings_window.ui:5600
+#: src/gui/uifiles/settings_window.ui:5598
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
@@ -8591,11 +8593,11 @@ msgstr ""
 "первоначального планирования при первой работе FFTW с изображением данного "
 "размера."
 
-#: src/gui/uifiles/settings_window.ui:5615 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5613 src/core/settings.c:382
 msgid "FFTW planning strategy"
 msgstr "Стратегия планирования FFTW"
 
-#: src/gui/uifiles/settings_window.ui:5626
+#: src/gui/uifiles/settings_window.ui:5624
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -8632,28 +8634,28 @@ msgstr ""
 "поскольку накладные расходы других стратегий не окупаются для одного "
 "преобразования Фурье."
 
-#: src/gui/uifiles/settings_window.ui:5631 src/gui/uifiles/siril.ui:5073
+#: src/gui/uifiles/settings_window.ui:5629 src/gui/uifiles/siril.ui:5073
 #: src/gui/uifiles/siril.ui:6943
 msgid "Estimate"
 msgstr "Оценка"
 
-#: src/gui/uifiles/settings_window.ui:5632
+#: src/gui/uifiles/settings_window.ui:5630
 msgid "Measure"
 msgstr "Измерить"
 
-#: src/gui/uifiles/settings_window.ui:5633
+#: src/gui/uifiles/settings_window.ui:5631
 msgid "Patient"
 msgstr "Полная"
 
-#: src/gui/uifiles/settings_window.ui:5634
+#: src/gui/uifiles/settings_window.ui:5632
 msgid "Exhaustive"
 msgstr "Исчерпывающая"
 
-#: src/gui/uifiles/settings_window.ui:5647
+#: src/gui/uifiles/settings_window.ui:5645
 msgid "FFTW planning time limit (seconds)"
 msgstr "Ограничение по времени планирования FFTW (в секундах)"
 
-#: src/gui/uifiles/settings_window.ui:5658
+#: src/gui/uifiles/settings_window.ui:5656
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -8666,11 +8668,11 @@ msgstr ""
 "выполнения операции, которая не может быть прервана. Если установлено "
 "значение 0, всегда будет выполнен минимальный уровень планирования «Оценка»."
 
-#: src/gui/uifiles/settings_window.ui:5673
+#: src/gui/uifiles/settings_window.ui:5671
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr "Минимальный размер PSF для использования свёрток FFT"
 
-#: src/gui/uifiles/settings_window.ui:5684
+#: src/gui/uifiles/settings_window.ui:5682
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -8689,11 +8691,11 @@ msgstr ""
 "и, следовательно, может быть настроена. Этот параметр задает минимальный "
 "размер, для которого будут использоваться преобразования Фурье."
 
-#: src/gui/uifiles/settings_window.ui:5700
+#: src/gui/uifiles/settings_window.ui:5698
 msgid "Maximum slice size for sliced image operations"
 msgstr "Максимальный размер блока для операций с изображениями"
 
-#: src/gui/uifiles/settings_window.ui:5711
+#: src/gui/uifiles/settings_window.ui:5709
 msgid ""
 "Sets the maximum slice size for image operations that can use sliced "
 "processing. The primary purpose of this is to constrain typical slices to a "
@@ -8706,20 +8708,20 @@ msgstr ""
 "использовать ограниченный диапазон возможностей FFTW3. Всегда можно оставить "
 "это значение по умолчанию."
 
-#: src/gui/uifiles/settings_window.ui:5714
+#: src/gui/uifiles/settings_window.ui:5712
 msgid "Unlimited"
 msgstr "Без ограничений"
 
-#: src/gui/uifiles/settings_window.ui:5740
+#: src/gui/uifiles/settings_window.ui:5738
 msgid "<b>FFTW Options</b>"
 msgstr "<b>Настройки FFTW</b>"
 
-#: src/gui/uifiles/settings_window.ui:5768
-#: src/gui/uifiles/settings_window.ui:6211
+#: src/gui/uifiles/settings_window.ui:5766
+#: src/gui/uifiles/settings_window.ui:6209
 msgid "Miscellaneous"
 msgstr "Разное"
 
-#: src/gui/uifiles/settings_window.ui:5796
+#: src/gui/uifiles/settings_window.ui:5794
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
@@ -8727,39 +8729,39 @@ msgstr ""
 "Выберите существующую директорию. Убедитесь, что имеете права на запись в "
 "эту директорию и в ней достаточно места."
 
-#: src/gui/uifiles/settings_window.ui:5799
+#: src/gui/uifiles/settings_window.ui:5797
 msgid "Select Swap Directory"
 msgstr "Выберите директорию подкачки"
 
-#: src/gui/uifiles/settings_window.ui:5812
+#: src/gui/uifiles/settings_window.ui:5810
 msgid "available mem"
 msgstr "доступно памяти"
 
-#: src/gui/uifiles/settings_window.ui:5824
+#: src/gui/uifiles/settings_window.ui:5822
 msgid "Restore to Default"
 msgstr "Исходные параметры"
 
-#: src/gui/uifiles/settings_window.ui:5828
+#: src/gui/uifiles/settings_window.ui:5826
 msgid "Restore the default swap storage directory"
 msgstr "Восстановить директорию подкачки по умолчанию"
 
-#: src/gui/uifiles/settings_window.ui:5847
+#: src/gui/uifiles/settings_window.ui:5845
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Директория подкачки</b>"
 
-#: src/gui/uifiles/settings_window.ui:5874
+#: src/gui/uifiles/settings_window.ui:5872
 msgid "Don't ask before quitting"
 msgstr "Не спрашивать перед выходом"
 
-#: src/gui/uifiles/settings_window.ui:5889
+#: src/gui/uifiles/settings_window.ui:5887
 msgid "Don't ask before saving when display is not linear"
 msgstr "Не спрашивать перед сохранением когда отображение нелинейное"
 
-#: src/gui/uifiles/settings_window.ui:5904
+#: src/gui/uifiles/settings_window.ui:5902
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr "Не объяснять обработку ROI в связанных диалогах"
 
-#: src/gui/uifiles/settings_window.ui:5908
+#: src/gui/uifiles/settings_window.ui:5906
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
@@ -8767,15 +8769,15 @@ msgstr ""
 "Отключить информационный диалог, объясняющий обработку ROI при открытии "
 "соответствующего диалога"
 
-#: src/gui/uifiles/settings_window.ui:5947
+#: src/gui/uifiles/settings_window.ui:5945
 msgid "Play introduction"
 msgstr "Посмотреть вступление"
 
-#: src/gui/uifiles/settings_window.ui:5961
+#: src/gui/uifiles/settings_window.ui:5959
 msgid "Introduction Tips"
 msgstr "Ознакомительные подсказки"
 
-#: src/gui/uifiles/settings_window.ui:5993
+#: src/gui/uifiles/settings_window.ui:5991
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -8795,15 +8797,15 @@ msgstr ""
 "директории. Вы можете выбрать любой из них, Siril автоматически найдёт "
 "второй, если он существует."
 
-#: src/gui/uifiles/settings_window.ui:6001
+#: src/gui/uifiles/settings_window.ui:5999
 msgid "Select StarNet executable"
 msgstr "Выберите исполняемый файл StarNet"
 
-#: src/gui/uifiles/settings_window.ui:6015
+#: src/gui/uifiles/settings_window.ui:6013
 msgid "Must point to a valid StarNet executable."
 msgstr "Должен указывать на верный исполняемый файл Starnet."
 
-#: src/gui/uifiles/settings_window.ui:6029
+#: src/gui/uifiles/settings_window.ui:6027
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
@@ -8814,11 +8816,11 @@ msgstr ""
 "оставить пустой, файл с весами <b>должен</b> находиться в директории с "
 "исполняемым файлом StarNet."
 
-#: src/gui/uifiles/settings_window.ui:6035
+#: src/gui/uifiles/settings_window.ui:6033
 msgid "Select StarNet weights file"
 msgstr "Выберите файл с весами для StarNet"
 
-#: src/gui/uifiles/settings_window.ui:6052
+#: src/gui/uifiles/settings_window.ui:6050
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
@@ -8826,7 +8828,7 @@ msgstr ""
 "Очищает расположение весов нейросети. После очистки, файл с весами "
 "<b>должен</b> располагаться в директории с исполняемым файлом StarNet."
 
-#: src/gui/uifiles/settings_window.ui:6067
+#: src/gui/uifiles/settings_window.ui:6065
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
@@ -8834,27 +8836,27 @@ msgstr ""
 "Может указывать на файл с весами нейросети StarNet.\n"
 "Только для версий StarNet, основанных на библиотеке Torch."
 
-#: src/gui/uifiles/settings_window.ui:6102
+#: src/gui/uifiles/settings_window.ui:6100
 msgid "Must point to a valid GraXpert executable."
 msgstr "Должен указывать на верный исполняемый файл GraXpert."
 
-#: src/gui/uifiles/settings_window.ui:6121
+#: src/gui/uifiles/settings_window.ui:6119
 msgid "Software Location"
 msgstr "Расположение программ"
 
-#: src/gui/uifiles/settings_window.ui:6144
+#: src/gui/uifiles/settings_window.ui:6142
 msgid "Copyright when saving image as TIFF"
 msgstr "Авторские права при сохранении в TIFF"
 
-#: src/gui/uifiles/settings_window.ui:6156
+#: src/gui/uifiles/settings_window.ui:6154
 msgid "Copyright TIFF"
 msgstr "Авторские права в TIFF"
 
-#: src/gui/uifiles/settings_window.ui:6178
+#: src/gui/uifiles/settings_window.ui:6176
 msgid "Check update at startup"
 msgstr "Проверка обновлений при запуске"
 
-#: src/gui/uifiles/settings_window.ui:6194 src/core/siril_actions.c:827
+#: src/gui/uifiles/settings_window.ui:6192 src/core/siril_actions.c:827
 msgid "Update"
 msgstr "Обновления"
 
@@ -12323,58 +12325,6 @@ msgstr "Усреднить параметры PSF для выбранных зв
 msgid "Dynamic PSF"
 msgstr "Динамическая PSF"
 
-#: src/gui/uifiles/stars_list_window.ui:209
-msgid "Ch."
-msgstr "Канал"
-
-#: src/gui/uifiles/stars_list_window.ui:243
-msgid "A"
-msgstr "A"
-
-#: src/gui/uifiles/stars_list_window.ui:263
-msgid "x0"
-msgstr "x0"
-
-#: src/gui/uifiles/stars_list_window.ui:283
-msgid "y0"
-msgstr "y0"
-
-#: src/gui/uifiles/stars_list_window.ui:302
-msgid "Ra"
-msgstr "ПВ"
-
-#: src/gui/uifiles/stars_list_window.ui:317
-msgid "Dec"
-msgstr "Скл"
-
-#: src/gui/uifiles/stars_list_window.ui:333
-msgid "FWHMx"
-msgstr "FWHMx"
-
-#: src/gui/uifiles/stars_list_window.ui:353
-msgid "FWHMy"
-msgstr "FWHMy"
-
-#: src/gui/uifiles/stars_list_window.ui:373
-msgid "Mag"
-msgstr "Блеск"
-
-#: src/gui/uifiles/stars_list_window.ui:392
-msgid "Beta"
-msgstr "β"
-
-#: src/gui/uifiles/stars_list_window.ui:412
-msgid "r"
-msgstr "r"
-
-#: src/gui/uifiles/stars_list_window.ui:432
-msgid "Angle"
-msgstr "Угол"
-
-#: src/gui/uifiles/stars_list_window.ui:452
-msgid "RMSE"
-msgstr "RMSE"
-
 #: src/gui/uifiles/stars_list_window.ui:492
 msgid "Center selected star"
 msgstr "Отцентрировать выделенную звезду"
@@ -15000,8 +14950,8 @@ msgstr "Все изображения успешно перезагружены.
 #: src/filters/fft.c:610 src/gui/PSF_list.c:303 src/gui/PSF_list.c:308
 #: src/gui/PSF_list.c:313 src/gui/colors.c:461 src/gui/compstars.c:224
 #: src/gui/compstars.c:293 src/gui/compstars.c:301 src/gui/compstars.c:308
-#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:208
-#: src/gui/git_gui.c:343 src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
+#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:200
+#: src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
 #: src/gui/icc_profile.c:543 src/gui/merge_cfa.c:216 src/gui/merge_cfa.c:248
 #: src/gui/merge_cfa.c:259 src/gui/merge_cfa.c:270 src/gui/merge_cfa.c:281
 #: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
@@ -16333,9 +16283,9 @@ msgstr ""
 
 #: src/core/command.c:4570 src/core/command.c:4575 src/core/command.c:4602
 #: src/core/command.c:4607
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument: %s\n"
-msgstr "неверные аргументы"
+msgstr "Неверный аргумент: %s\n"
 
 #: src/core/command.c:4628
 #, fuzzy
@@ -17055,7 +17005,7 @@ msgstr ""
 msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr "Неожиданный аргумент для укладки `%s', прерывание.\n"
 
-#: src/core/command.c:8647 src/core/command_line_processor.c:661
+#: src/core/command.c:8647 src/core/command_line_processor.c:658
 #: src/gui/single_image.c:82 src/main.c:459
 #, c-format
 msgid "No sequence `%s' found.\n"
@@ -17385,11 +17335,11 @@ msgstr "********* СПИСОК ДОСТУПНЫХ КОМАНД *********\n"
 msgid "Can be used in a script: %s\n"
 msgstr "Можно использовать в сценарии: %s\n"
 
-#: src/core/command.c:9546 src/core/command_line_processor.c:467
+#: src/core/command.c:9546 src/core/command_line_processor.c:464
 msgid "YES"
 msgstr "ДА"
 
-#: src/core/command.c:9546 src/core/command_line_processor.c:470
+#: src/core/command.c:9546 src/core/command_line_processor.c:467
 msgid "NO"
 msgstr "НЕТ"
 
@@ -22468,32 +22418,32 @@ msgid "Please enter an existing command before hitting this button"
 msgstr ""
 "Пожалуйста, введите существующую команду прежде, чем нажимать эту кнопку"
 
-#: src/core/command_line_processor.c:463
+#: src/core/command_line_processor.c:460
 msgid "Can be used in a script: "
 msgstr "Можно использовать в сценарии: "
 
-#: src/core/command_line_processor.c:482
+#: src/core/command_line_processor.c:479
 msgid "No help for this command"
 msgstr "Для этой команды нет справки"
 
-#: src/core/command_line_processor.c:597 src/core/preprocess.c:649
+#: src/core/command_line_processor.c:594 src/core/preprocess.c:649
 #: src/filters/cosmetic_correction.c:502 src/gui/script_menu.c:204
 #, c-format
 msgid "File [%s] does not exist\n"
 msgstr "Файл [%s] не существует\n"
 
 #. Run the script
-#: src/core/command_line_processor.c:604 src/gui/script_menu.c:185
+#: src/core/command_line_processor.c:601 src/gui/script_menu.c:185
 #, c-format
 msgid "Starting script %s\n"
 msgstr "Запускается сценарий %s\n"
 
-#: src/core/command_line_processor.c:620
+#: src/core/command_line_processor.c:617
 #, c-format
 msgid "Command execution failed: %s.\n"
 msgstr "Не удалось выполнить команду: %s.\n"
 
-#: src/core/command_line_processor.c:682
+#: src/core/command_line_processor.c:679
 #, c-format
 msgid "Loading sequence `%s' failed.\n"
 msgstr "Не удалось загрузить последовательность `%s'.\n"
@@ -22984,7 +22934,7 @@ msgstr ""
 "Косметическая коррекция с помощью темновой карты поддерживается только для "
 "одноканальных изображений\n"
 
-#: src/core/preprocess.c:502 src/gui/git_gui.c:91
+#: src/core/preprocess.c:502 src/gui/git_gui.c:117
 msgid "Preprocessing"
 msgstr "Предобработка"
 
@@ -25617,9 +25567,9 @@ msgid "Select task to stop"
 msgstr "Выберите задачу для остановки"
 
 #: src/gui/callbacks.c:2349 src/gui/dialogs.c:253 src/gui/dialogs.c:262
-#: src/gui/dialogs.c:268 src/gui/git_gui.c:257 src/gui/keywords_tree.c:508
-#: src/gui/python_gui.c:768 src/gui/python_gui.c:845
-#: src/io/image_formats_libraries.c:2489 src/pixelMath/pixel_math_runner.c:1260
+#: src/gui/dialogs.c:268 src/gui/keywords_tree.c:508 src/gui/python_gui.c:768
+#: src/gui/python_gui.c:845 src/io/image_formats_libraries.c:2489
+#: src/pixelMath/pixel_math_runner.c:1260
 msgid "_Cancel"
 msgstr "О_тмена"
 
@@ -25717,7 +25667,7 @@ msgstr "Создать список звёзд сравнения"
 msgid "_Close"
 msgstr "_Закрыть"
 
-#: src/gui/compstars.c:51 src/gui/git_gui.c:258 src/gui/nina_light_curve.c:50
+#: src/gui/compstars.c:51 src/gui/nina_light_curve.c:50
 #: src/io/image_formats_libraries.c:2489
 msgid "_OK"
 msgstr "_ОК"
@@ -26309,69 +26259,33 @@ msgstr "Не удалось загрузить изображение"
 msgid "Error: image dimensions do not match"
 msgstr "Ошибка: размеры изображения не совпадают"
 
-#: src/gui/git_gui.c:93
+#: src/gui/git_gui.c:119
 msgid "Processing"
 msgstr "Обработка"
 
-#: src/gui/git_gui.c:95
+#: src/gui/git_gui.c:121
 msgid "Utility"
 msgstr "Утилита"
 
-#: src/gui/git_gui.c:97
+#: src/gui/git_gui.c:123
 msgid "Core"
 msgstr "Базовый"
 
-#: src/gui/git_gui.c:100
+#: src/gui/git_gui.c:126
 msgid "Other"
 msgstr "Другое"
 
-#: src/gui/git_gui.c:106 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
+#: src/gui/git_gui.c:132 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
 msgid "Siril Script File"
 msgstr "Сценарий Siril"
 
-#: src/gui/git_gui.c:108
+#: src/gui/git_gui.c:134
 msgid "Python script"
 msgstr "Сценарий python"
 
-#: src/gui/git_gui.c:166
-msgid "Current script version"
-msgstr "Текущая версия сценария"
-
-#: src/gui/git_gui.c:182
-msgid "(No commit message found for this revision)"
-msgstr ""
-
-#: src/gui/git_gui.c:206
+#: src/gui/git_gui.c:198
 #, c-format
 msgid "Error loading script contents: %s\n"
-msgstr "Ошибка загрузки содержимого сценария: %s\n"
-
-#: src/gui/git_gui.c:254
-msgid "Select Revision"
-msgstr "Выберите ревизию"
-
-#: src/gui/git_gui.c:261
-msgid ""
-"Leave at 0 to open the current version of the script. If you have a problem "
-"with a script update you can use this to go back to earlier revisions. Start "
-"by going back 1 revison and increase the number until you find the last "
-"version that worked for you. Note that this will only open the previous "
-"version in the script editor, it will not revert the script in the local "
-"repository, but it allows you to save a local copy in one of your script "
-"folders for use until the upstream script is fixed."
-msgstr ""
-
-#: src/gui/git_gui.c:271
-msgid "Revisions to go back (leave at 0 to get current revision):"
-msgstr ""
-
-#: src/gui/git_gui.c:306
-msgid "Loading commit message..."
-msgstr ""
-
-#: src/gui/git_gui.c:340
-#, fuzzy, c-format
-msgid "Error loading script contents from %d revisions back: %s\n"
 msgstr "Ошибка загрузки содержимого сценария: %s\n"
 
 #: src/gui/histogram.c:159 src/gui/histogram.c:165 src/gui/histogram.c:1166
@@ -27242,7 +27156,7 @@ msgstr "Внешний радиус кольца фона (пикс.):"
 #: src/io/siril_pythoncommands.c:1513 src/io/siril_pythoncommands.c:1545
 #: src/io/siril_pythoncommands.c:1605 src/io/siril_pythoncommands.c:1690
 #: src/io/siril_pythoncommands.c:2177 src/io/siril_pythoncommands.c:2210
-#: src/io/siril_pythoncommands.c:2372
+#: src/io/siril_pythoncommands.c:2373
 msgid "No sequence loaded"
 msgstr "Нет загруженных последовательностей"
 
@@ -27419,9 +27333,8 @@ msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
 msgstr "Квантовая эф-ть / Коэф. пропускания / Отн. кол-во фотонов"
 
 #: src/gui/photometric_cc.c:1256 src/gui/photometric_cc.c:1297
-#, fuzzy
 msgid "Narrowband filters"
-msgstr "Узкополосный режим"
+msgstr "Узкополосные фильтры"
 
 #: src/gui/photometric_cc.c:1305
 msgid "Atmosphere model"
@@ -27724,9 +27637,9 @@ msgid "Right _margin position"
 msgstr "Положение_правой границы"
 
 #: src/gui/python_gui.c:1141
-#, fuzzy, c-format
+#, c-format
 msgid "Error creating temporary script file: %s\n"
-msgstr "Ошибка чтения stderr: %s\n"
+msgstr "Ошибка создания временного файла сценария: %s\n"
 
 #: src/gui/python_gui.c:1148
 msgid "Error writing to temporary script file\n"
@@ -30854,7 +30767,15 @@ msgstr "Список сохранён в %s\n"
 msgid "Failed to save list to %s\n"
 msgstr "Не удалось сохранить список в %s\n"
 
-#: src/io/siril_git.c:141
+#: src/io/siril_git.c:146
+msgid "libgit2: unable to parse some refish\n"
+msgstr "libgit2: не удалось разобрать некоторые исправления (refish)\n"
+
+#: src/io/siril_git.c:161
+msgid "Failed to find commit with given OID.\n"
+msgstr "Не удалось найти коммит с данным OID.\n"
+
+#: src/io/siril_git.c:275
 msgid ""
 "Error removing Git lock files. You may need to delete the local git "
 "repository and allow Siril to re-clone it.\n"
@@ -30863,11 +30784,11 @@ msgstr ""
 "локальный репозиторий git и позволить Siril клонировать его заново.\n"
 
 #. Not a valid git path
-#: src/io/siril_git.c:150
+#: src/io/siril_git.c:284
 msgid "Invalid Git repository path.\n"
 msgstr "Неверный путь к репозиторию Git.\n"
 
-#: src/io/siril_git.c:166 src/io/siril_git.c:178 src/io/siril_git.c:190
+#: src/io/siril_git.c:300 src/io/siril_git.c:312 src/io/siril_git.c:324
 msgid ""
 "Error performing hard reset. You may need to delete the local git repository "
 "and allow Siril to re-clone it.\n"
@@ -30875,7 +30796,7 @@ msgstr ""
 "Ошибка при выполнении жёсткого сброса (hard reset). Возможно необходимо "
 "удалить локальный репозиторий git и позволить Siril клонировать его заново.\n"
 
-#: src/io/siril_git.c:213
+#: src/io/siril_git.c:347
 msgid ""
 "Unable to create anonymous remote for the repository. Check your "
 "connectivity and try again.\n"
@@ -30883,33 +30804,33 @@ msgstr ""
 "Не удаётся создать анонимное подключение к удалённому репозиторию. Проверьте "
 "ваше соединение с сетью и повторите попытку.\n"
 
-#: src/io/siril_git.c:232
+#: src/io/siril_git.c:366
 msgid ""
 "Detected 1.4.0-beta2 bug condition. Removing and re-cloning repository...\n"
 msgstr ""
 
-#: src/io/siril_git.c:237
+#: src/io/siril_git.c:371
 #, c-format
 msgid "Error removing repository directory: %s\n"
 msgstr "Ошибка удаления директория репозитория: %s\n"
 
-#: src/io/siril_git.c:246 src/io/siril_git.c:510 src/io/siril_git.c:535
+#: src/io/siril_git.c:380 src/io/siril_git.c:793 src/io/siril_git.c:818
 #, c-format
 msgid "Error cloning repository into %s: %s\n"
 msgstr "Ошибка клонирования репозитория в %s: %s\n"
 
-#: src/io/siril_git.c:250
+#: src/io/siril_git.c:384
 msgid "Repository re-cloned successfully!\n"
 msgstr "Репозиторий успешно клонирован повторно!\n"
 
-#: src/io/siril_git.c:254
+#: src/io/siril_git.c:388
 msgid ""
 "Error fetching remote: Remote repository or references not found. Check the "
 "repository URL and your connectivity.\n"
 msgstr ""
 
 #. Generic fallback
-#: src/io/siril_git.c:259
+#: src/io/siril_git.c:393
 msgid ""
 "Error fetching remote. This may be a temporary error, check your "
 "connectivity and try again.\n"
@@ -30917,44 +30838,59 @@ msgstr ""
 "Не удаётся получить данные из удалённого репозитория. Возможно это временная "
 "проблема, проверьте ваше соединение с сетью и повторите попытку.\n"
 
-#: src/io/siril_git.c:491 src/io/siril_git.c:717
+#: src/io/siril_git.c:612
+#, c-format
+msgid "libgit2: repository is in unexpected state %d. Cleaning up...\n"
+msgstr "libgit2: репозиторий в неожиданном состоянии %d. Очистка...\n"
+
+#: src/io/siril_git.c:616
+msgid "libgit2: repository failed to clean up properly. Cannot continue.\n"
+msgstr ""
+"libgit2: не удалось корректно очистить репозиторий. Не могу продолжить.\n"
+
+#: src/io/siril_git.c:703 src/io/siril_git.c:707
+#, c-format
+msgid "Commit message: %s\n"
+msgstr "Сообщение коммита: %s\n"
+
+#: src/io/siril_git.c:774 src/io/siril_git.c:1000
 msgid "Existing directory is not a valid git repository. Cleaning up...\n"
 msgstr ""
 
-#: src/io/siril_git.c:496 src/io/siril_git.c:722
+#: src/io/siril_git.c:779 src/io/siril_git.c:1005
 #, c-format
 msgid "Error deleting existing directory %s: %s\n"
 msgstr "Ошибка удаления существующей директории %s: %s\n"
 
 #. Now attempt to clone into the clean directory
-#: src/io/siril_git.c:506 src/io/siril_git.c:531 src/io/siril_git.c:731
-#: src/io/siril_git.c:747
+#: src/io/siril_git.c:789 src/io/siril_git.c:814 src/io/siril_git.c:1014
+#: src/io/siril_git.c:1030
 msgid "Attempting to clone from remote source...\n"
 msgstr "Попытка клонировать из удалённого источника...\n"
 
-#: src/io/siril_git.c:516 src/io/siril_git.c:541 src/io/siril_git.c:740
-#: src/io/siril_git.c:757
+#: src/io/siril_git.c:799 src/io/siril_git.c:824 src/io/siril_git.c:1023
+#: src/io/siril_git.c:1040
 msgid "Repository cloned successfully!\n"
 msgstr "Репозиторий успешно клонирован!\n"
 
-#: src/io/siril_git.c:520 src/io/siril_git.c:545
+#: src/io/siril_git.c:803 src/io/siril_git.c:828
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
 msgstr ""
 "Siril в режиме без доступа к сети. Удалённый репозиторий не будет "
 "клонирован .\n"
 
-#: src/io/siril_git.c:556 src/io/siril_git.c:766
+#: src/io/siril_git.c:839 src/io/siril_git.c:1049
 msgid "Failed to lookup remote.\n"
 msgstr "Не найден настроенный удалённый сервер\n"
 
-#: src/io/siril_git.c:564 src/io/siril_git.c:774
+#: src/io/siril_git.c:847 src/io/siril_git.c:1057
 msgid "Error: cannot identify local repository's configured remote.\n"
 msgstr ""
 "Ошибка: не удаётся идентифицировать настроенный удалённый сервер для "
 "локального репозитория.\n"
 
-#: src/io/siril_git.c:573
+#: src/io/siril_git.c:856
 #, c-format
 msgid ""
 "Error: local siril-scripts repository folder is not configured with %s as "
@@ -30966,12 +30902,12 @@ msgstr ""
 "директорию %s и перезапустить Siril для повторного клонирования нужного "
 "репозитория.\n"
 
-#: src/io/siril_git.c:578 src/io/siril_git.c:788
+#: src/io/siril_git.c:861 src/io/siril_git.c:1071
 msgid "Repository Error"
 msgstr "Ошибка репозитория"
 
-#: src/io/siril_git.c:596 src/io/siril_git.c:608 src/io/siril_git.c:806
-#: src/io/siril_git.c:818
+#: src/io/siril_git.c:879 src/io/siril_git.c:891 src/io/siril_git.c:1089
+#: src/io/siril_git.c:1101
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
@@ -30980,32 +30916,32 @@ msgstr ""
 "устранена, вам, возможно, потребуется удалить локальный репозиторий git и "
 "позволить Siril повторно клонировать его.\n"
 
-#: src/io/siril_git.c:617
+#: src/io/siril_git.c:900
 msgid "Local scripts repository is up-to-date!\n"
 msgstr "Локальный репозиторий сценариев в актуальном состоянии!\n"
 
-#: src/io/siril_git.c:624
+#: src/io/siril_git.c:907
 msgid "Error accessing repository index.\n"
 msgstr "Ошибка доступа к индексу репозитория.\n"
 
-#: src/io/siril_git.c:642
+#: src/io/siril_git.c:925
 msgid "Warning: failed to get repository index entry.\n"
 msgstr "Предупреждение: не удалось получить запись индекса репозитория.\n"
 
-#: src/io/siril_git.c:648
+#: src/io/siril_git.c:931
 msgid "Warning: skipping script with invalid UTF-8 path.\n"
 msgstr ""
 
-#: src/io/siril_git.c:658
+#: src/io/siril_git.c:941
 msgid "Warning: memory allocation failed for script path.\n"
 msgstr "Предупреждение: не удалось выделить память для пути сценария.\n"
 
-#: src/io/siril_git.c:735 src/io/siril_git.c:752
+#: src/io/siril_git.c:1018 src/io/siril_git.c:1035
 #, c-format
 msgid "Error cloning repository: %s\n"
 msgstr "Ошибка клонирования репозитория: %s\n"
 
-#: src/io/siril_git.c:783
+#: src/io/siril_git.c:1066
 #, c-format
 msgid ""
 "Error: local siril-spcc-database repository folder is not configured with %s "
@@ -31017,14 +30953,17 @@ msgstr ""
 "директорию %s и перезапустить Siril для повторного клонирования нужного "
 "репозитория.\n"
 
-#: src/io/siril_git.c:824
+#: src/io/siril_git.c:1107
 msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "Локальный репозиторий базы данных SPCC в актуальном состоянии!\n"
 
-#: src/io/siril_git.c:1162
-#, fuzzy
-msgid "Error opening scripts repository\n"
-msgstr "Ошибка клонирования репозитория: %s\n"
+#: src/io/siril_git.c:1134
+msgid "Error: unable to open local scripts repository.\n"
+msgstr "Ошибка: не удалось открыть локальный репозиторий сценариев.\n"
+
+#: src/io/siril_git.c:1159
+msgid "Error: unable to open local spcc-database repository.\n"
+msgstr "Ошибка: не удалось открыть локальный репозиторий spcc-database.\n"
 
 #: src/io/siril_pythoncommands.c:461
 msgid "Unknown config type"
@@ -31149,8 +31088,8 @@ msgstr "Ошибка: системная директория не устано�
 #: src/io/siril_pythoncommands.c:1231 src/io/siril_pythoncommands.c:1244
 #: src/io/siril_pythoncommands.c:1271 src/io/siril_pythoncommands.c:1324
 #: src/io/siril_pythoncommands.c:2250 src/io/siril_pythoncommands.c:2263
-#: src/io/siril_pythoncommands.c:2279 src/io/siril_pythoncommands.c:2285
-#: src/io/siril_pythoncommands.c:2318
+#: src/io/siril_pythoncommands.c:2280 src/io/siril_pythoncommands.c:2286
+#: src/io/siril_pythoncommands.c:2319
 msgid "Invalid payload length"
 msgstr "Неверная длина полезной нагрузки"
 
@@ -31198,7 +31137,7 @@ msgid "No stats for this channel for this frame"
 msgstr "Статистика по этому каналу для этого кадра отсутствует"
 
 #: src/io/siril_pythoncommands.c:1522 src/io/siril_pythoncommands.c:1620
-#: src/io/siril_pythoncommands.c:2381
+#: src/io/siril_pythoncommands.c:2382
 msgid "Incorrect command argument"
 msgstr "Некорректный аргумент команды"
 
@@ -31218,7 +31157,7 @@ msgstr "Не удалось прочитать кадр последовател
 msgid "Invalid dimensions"
 msgstr "Неверный размер"
 
-#: src/io/siril_pythoncommands.c:1627 src/io/siril_pythoncommands.c:2389
+#: src/io/siril_pythoncommands.c:1627 src/io/siril_pythoncommands.c:2390
 msgid "Failed to read frame metadata"
 msgstr "Не удалось прочитать метаданные кадра"
 
@@ -31250,7 +31189,7 @@ msgstr "Неожиданный пустой образец фона"
 msgid "Image has no ICC profile"
 msgstr "У изображения нет ICC-профиля"
 
-#: src/io/siril_pythoncommands.c:1913 src/io/siril_pythoncommands.c:2394
+#: src/io/siril_pythoncommands.c:1913 src/io/siril_pythoncommands.c:2395
 msgid "Image has no FITS header"
 msgstr "У изображения нет заголовка FITS"
 
@@ -31321,42 +31260,42 @@ msgstr "Индекс за приделами диапазона"
 msgid "No distodata available"
 msgstr "Данные о дисторсии недоступны"
 
-#: src/io/siril_pythoncommands.c:2302
+#: src/io/siril_pythoncommands.c:2303
 msgid "No polygon found matching id"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2309
+#: src/io/siril_pythoncommands.c:2310
 #, fuzzy
 msgid "Failed to serialize user polygon"
 msgstr "Не удалось получить путь к пакету (bundle)"
 
-#: src/io/siril_pythoncommands.c:2328
+#: src/io/siril_pythoncommands.c:2329
 msgid "No user polygons to serialize"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2334
+#: src/io/siril_pythoncommands.c:2335
 #, fuzzy
 msgid "Failed to serialize user polygon list"
 msgstr "Не удалось получить путь к пакету (bundle)"
 
-#: src/io/siril_pythoncommands.c:2349 src/io/siril_pythoncommands.c:2355
-#: src/io/siril_pythoncommands.c:2361
+#: src/io/siril_pythoncommands.c:2350 src/io/siril_pythoncommands.c:2356
+#: src/io/siril_pythoncommands.c:2362
 msgid "Argument error"
 msgstr "Ошибка аргумента"
 
-#: src/io/siril_pythoncommands.c:2415
+#: src/io/siril_pythoncommands.c:2416
 msgid "Could not create the new sequence"
 msgstr "Не удалось создать новую последовательность"
 
-#: src/io/siril_pythoncommands.c:2425
+#: src/io/siril_pythoncommands.c:2426
 msgid "Wrong mouse mode"
 msgstr "Неверный режим мыши"
 
-#: src/io/siril_pythoncommands.c:2435
+#: src/io/siril_pythoncommands.c:2436
 msgid "Invalid payload for CMD_DRAW_POLYGON"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2443
+#: src/io/siril_pythoncommands.c:2444
 msgid "Unknown command"
 msgstr "Неизвестная команда"
 
@@ -33692,32 +33631,61 @@ msgstr "Увеличение масштаба последовательност
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "Укладка будет выполнена без увеличения масштаба (отключен 'drizzle')\n"
 
+#~ msgid "Ch."
+#~ msgstr "Канал"
+
+#~ msgid "A"
+#~ msgstr "A"
+
+#~ msgid "x0"
+#~ msgstr "x0"
+
+#~ msgid "y0"
+#~ msgstr "y0"
+
+#~ msgid "Ra"
+#~ msgstr "ПВ"
+
+#~ msgid "Dec"
+#~ msgstr "Скл"
+
+#~ msgid "FWHMx"
+#~ msgstr "FWHMx"
+
+#~ msgid "FWHMy"
+#~ msgstr "FWHMy"
+
+#~ msgid "Mag"
+#~ msgstr "Блеск"
+
+#~ msgid "Beta"
+#~ msgstr "β"
+
+#~ msgid "r"
+#~ msgstr "r"
+
+#~ msgid "Angle"
+#~ msgstr "Угол"
+
+#~ msgid "RMSE"
+#~ msgstr "RMSE"
+
+#~ msgid "Current script version"
+#~ msgstr "Текущая версия сценария"
+
+#~ msgid "Select Revision"
+#~ msgstr "Выберите ревизию"
+
+#, fuzzy, c-format
+#~ msgid "Error loading script contents from %d revisions back: %s\n"
+#~ msgstr "Ошибка загрузки содержимого сценария: %s\n"
+
+#, fuzzy
+#~ msgid "Error opening scripts repository\n"
+#~ msgstr "Ошибка клонирования репозитория: %s\n"
+
 #~ msgid "Apply autostretch algorithm to image"
 #~ msgstr "Автоматически растянуть"
-
-#~ msgid "libgit2: unable to parse some refish\n"
-#~ msgstr "libgit2: не удалось разобрать некоторые исправления (refish)\n"
-
-#~ msgid "Failed to find commit with given OID.\n"
-#~ msgstr "Не удалось найти коммит с данным OID.\n"
-
-#, c-format
-#~ msgid "libgit2: repository is in unexpected state %d. Cleaning up...\n"
-#~ msgstr "libgit2: репозиторий в неожиданном состоянии %d. Очистка...\n"
-
-#~ msgid "libgit2: repository failed to clean up properly. Cannot continue.\n"
-#~ msgstr ""
-#~ "libgit2: не удалось корректно очистить репозиторий. Не могу продолжить.\n"
-
-#, c-format
-#~ msgid "Commit message: %s\n"
-#~ msgstr "Сообщение коммита: %s\n"
-
-#~ msgid "Error: unable to open local scripts repository.\n"
-#~ msgstr "Ошибка: не удалось открыть локальный репозиторий сценариев.\n"
-
-#~ msgid "Error: unable to open local spcc-database repository.\n"
-#~ msgstr "Ошибка: не удалось открыть локальный репозиторий spcc-database.\n"
 
 #~ msgid "Cannot refresh script list"
 #~ msgstr "Не удалось обновить список сценариев"
