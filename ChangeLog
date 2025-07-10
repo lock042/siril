@@ -40,7 +40,7 @@ siril 1.4.0-beta3
 * Added / improved GPU helper modules to assist with installation and testing of key GPU-related modules. (!895)
 * Allow "Crop Sequence" with the internal sequence used in RGB composition, to aid with LRGB workflows. (!902)
 * Add python method to draw Polygons in the Siril overlay.
-* Uses the double click to open functionality of the tree view.
+* Uses the double click to open script in the editor.
 * Make SIP and WCS as protected keywords (#1696)
 * Added -followstar to the seqpsf command: previously this could only be set from the GUI. (!905)
 

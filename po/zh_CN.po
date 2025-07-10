@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-08 17:17+0200\n"
+"POT-Creation-Date: 2025-07-10 15:46+0200\n"
 "PO-Revision-Date: 2025-07-08 08:43+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -481,7 +481,7 @@ msgstr "标注"
 #: src/gui/uifiles/settings_window.ui:1896
 #: src/gui/uifiles/settings_window.ui:4368
 #: src/gui/uifiles/settings_window.ui:4409
-#: src/gui/uifiles/settings_window.ui:6048 src/gui/uifiles/siril.ui:3763
+#: src/gui/uifiles/settings_window.ui:6046 src/gui/uifiles/siril.ui:3763
 msgid "Clear"
 msgstr "清除"
 
@@ -4724,7 +4724,7 @@ msgstr "添加滚动动作"
 msgid "Remove a scroll action"
 msgstr "删除滚动动作"
 
-#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5306
+#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5304
 #: src/gui/uifiles/siril.ui:6357
 msgid " "
 msgstr " "
@@ -4764,8 +4764,7 @@ msgstr "RGB/K"
 msgid "G"
 msgstr "G"
 
-#: src/gui/uifiles/pixelmath.ui:279 src/gui/uifiles/stars_list_window.ui:223
-#: src/gui/cut.c:731
+#: src/gui/uifiles/pixelmath.ui:279 src/gui/cut.c:731
 msgid "B"
 msgstr "B"
 
@@ -4803,7 +4802,7 @@ msgstr "高"
 msgid "Function"
 msgstr "函数"
 
-#: src/gui/uifiles/pixelmath.ui:488 src/gui/uifiles/stars_list_window.ui:472
+#: src/gui/uifiles/pixelmath.ui:488
 msgid "index"
 msgstr "指标"
 
@@ -4988,7 +4987,6 @@ msgid "_Script"
 msgstr "脚本"
 
 #: src/gui/uifiles/python_scratchpad.ui:327
-#: src/gui/uifiles/python_scratchpad.ui:414
 msgid "Run the script"
 msgstr "运行脚本"
 
@@ -5063,6 +5061,12 @@ msgstr "语法高亮"
 #: src/gui/uifiles/python_scratchpad.ui:405
 msgid "Enable right margin indicator"
 msgstr "启用右边界指示器"
+
+#: src/gui/uifiles/python_scratchpad.ui:414
+msgid ""
+"Set the position of the right margin indicator in the editor. This visual "
+"guide helps maintain consistent line lengths and improve code readability."
+msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:416
 msgid "Set right margin position"
@@ -5949,7 +5953,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
-#: src/gui/uifiles/settings_window.ui:5225
+#: src/gui/uifiles/settings_window.ui:5223
 msgid "Sel"
 msgstr "选中"
 
@@ -7683,7 +7687,7 @@ msgid "<b>Built-in Profiles</b>"
 msgstr "<b>内置色彩特性文件</b>"
 
 #: src/gui/uifiles/settings_window.ui:4926
-#: src/gui/uifiles/settings_window.ui:5342 src/gui/uifiles/siril.ui:10643
+#: src/gui/uifiles/settings_window.ui:5340 src/gui/uifiles/siril.ui:10643
 msgid "Scripts"
 msgstr "脚本"
 
@@ -7729,7 +7733,7 @@ msgstr ""
 "设置！</b></span>"
 
 #: src/gui/uifiles/settings_window.ui:5059
-#: src/gui/uifiles/settings_window.ui:5925
+#: src/gui/uifiles/settings_window.ui:5923
 msgid "Warning Dialogs"
 msgstr "警告对话框"
 
@@ -7781,34 +7785,32 @@ msgstr ""
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
-"(This can be used to make and save local changes to a script.)\n"
-"To open an older revision (e.g. to get an older version after a bad script "
-"update) right click on a row."
+"(This can be used to make and save local changes to a script.)"
 msgstr ""
 "可用脚本列表。所选脚本将通过脚本菜单提供。双击一行可以在脚本编辑器中打开脚"
 "本。（可以对脚本进行局部修改并保存。）"
 
-#: src/gui/uifiles/settings_window.ui:5178
+#: src/gui/uifiles/settings_window.ui:5176
 msgid "Category"
 msgstr "类别"
 
-#: src/gui/uifiles/settings_window.ui:5194
+#: src/gui/uifiles/settings_window.ui:5192
 msgid "Script"
 msgstr "脚本"
 
-#: src/gui/uifiles/settings_window.ui:5210
+#: src/gui/uifiles/settings_window.ui:5208
 msgid "Type"
 msgstr "类型"
 
-#: src/gui/uifiles/settings_window.ui:5254
+#: src/gui/uifiles/settings_window.ui:5252
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Siril 脚本仓库</b>"
 
-#: src/gui/uifiles/settings_window.ui:5287
+#: src/gui/uifiles/settings_window.ui:5285
 msgid "Reset python venv"
 msgstr "重置python虚拟环境"
 
-#: src/gui/uifiles/settings_window.ui:5291
+#: src/gui/uifiles/settings_window.ui:5289
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -7822,20 +7824,20 @@ msgstr ""
 "\n"
 "通常不必这么做。这是在故障排除时的最后手段，以将venv恢复到原始状态。"
 
-#: src/gui/uifiles/settings_window.ui:5322
+#: src/gui/uifiles/settings_window.ui:5320
 msgid "Python Interface"
 msgstr "Python界面"
 
-#: src/gui/uifiles/settings_window.ui:5356
-#: src/gui/uifiles/settings_window.ui:5754
+#: src/gui/uifiles/settings_window.ui:5354
+#: src/gui/uifiles/settings_window.ui:5752
 msgid "Performances"
 msgstr "性能"
 
-#: src/gui/uifiles/settings_window.ui:5387
+#: src/gui/uifiles/settings_window.ui:5385
 msgid "Ratio of available"
 msgstr "可用比例"
 
-#: src/gui/uifiles/settings_window.ui:5391
+#: src/gui/uifiles/settings_window.ui:5389
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -7852,11 +7854,11 @@ msgstr ""
 "如果操作系统未设置磁盘虚拟内存文件，大于等于1的设定会造成Siril或是操作系统的"
 "崩溃。"
 
-#: src/gui/uifiles/settings_window.ui:5407
+#: src/gui/uifiles/settings_window.ui:5405
 msgid "Fixed amount (GB)"
 msgstr "固定值（GB）"
 
-#: src/gui/uifiles/settings_window.ui:5411
+#: src/gui/uifiles/settings_window.ui:5409
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -7867,7 +7869,7 @@ msgstr ""
 "程。\n"
 "设置大于系统可用内存的值可能会造成Siril或是操作系统的崩溃。"
 
-#: src/gui/uifiles/settings_window.ui:5427
+#: src/gui/uifiles/settings_window.ui:5425
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -7879,15 +7881,15 @@ msgstr ""
 "情况。设定较高的比例可以使得siril叠加运行得更快。但是当内存比例高于1时，磁盘"
 "上的虚拟内存文件将被使用，会造成极大的速度影响，因此不被推荐"
 
-#: src/gui/uifiles/settings_window.ui:5472
+#: src/gui/uifiles/settings_window.ui:5470
 msgid "<b>Memory management</b>"
 msgstr "<b>内存管理</b>"
 
-#: src/gui/uifiles/settings_window.ui:5505
+#: src/gui/uifiles/settings_window.ui:5503
 msgid "Default bit depth for HD AutoStretch"
 msgstr "高分辨率自动拉伸的缺省位深"
 
-#: src/gui/uifiles/settings_window.ui:5521
+#: src/gui/uifiles/settings_window.ui:5519
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -7901,23 +7903,23 @@ msgstr ""
 "平滑量化伪影。默认位深将从下一次查看器模式更改开始应用，现在可以使用右侧的按"
 "钮应用。"
 
-#: src/gui/uifiles/settings_window.ui:5538
+#: src/gui/uifiles/settings_window.ui:5536
 msgid "Apply bit depth"
 msgstr "应用位深"
 
-#: src/gui/uifiles/settings_window.ui:5542
+#: src/gui/uifiles/settings_window.ui:5540
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "立即设置选定的高分辨率自动拉伸位深"
 
-#: src/gui/uifiles/settings_window.ui:5565
+#: src/gui/uifiles/settings_window.ui:5563
 msgid "HD AutoStretch"
 msgstr "高分辨率自动拉伸"
 
-#: src/gui/uifiles/settings_window.ui:5596
+#: src/gui/uifiles/settings_window.ui:5594
 msgid "Multithreaded FFTW"
 msgstr "多线程FFTW"
 
-#: src/gui/uifiles/settings_window.ui:5600
+#: src/gui/uifiles/settings_window.ui:5598
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
@@ -7926,11 +7928,11 @@ msgstr ""
 "如果选中，FFTW将使用多个线程。这通常可以加速大图像的处理，但在FFTW首次对给定"
 "尺寸的图像进行操作时会增加初始规划时间。"
 
-#: src/gui/uifiles/settings_window.ui:5615 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5613 src/core/settings.c:382
 msgid "FFTW planning strategy"
 msgstr "FFTW规划策略"
 
-#: src/gui/uifiles/settings_window.ui:5626
+#: src/gui/uifiles/settings_window.ui:5624
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -7958,28 +7960,28 @@ msgstr ""
 "该设置应用于反卷积运算，而不是傅里叶变换函数。后者始终采用“估算”策略，因为其"
 "他策略产生的计算开销对单次傅里叶变换而言得不偿失。"
 
-#: src/gui/uifiles/settings_window.ui:5631 src/gui/uifiles/siril.ui:5073
+#: src/gui/uifiles/settings_window.ui:5629 src/gui/uifiles/siril.ui:5073
 #: src/gui/uifiles/siril.ui:6943
 msgid "Estimate"
 msgstr "估算"
 
-#: src/gui/uifiles/settings_window.ui:5632
+#: src/gui/uifiles/settings_window.ui:5630
 msgid "Measure"
 msgstr "度量"
 
-#: src/gui/uifiles/settings_window.ui:5633
+#: src/gui/uifiles/settings_window.ui:5631
 msgid "Patient"
 msgstr "耐心"
 
-#: src/gui/uifiles/settings_window.ui:5634
+#: src/gui/uifiles/settings_window.ui:5632
 msgid "Exhaustive"
 msgstr "穷举"
 
-#: src/gui/uifiles/settings_window.ui:5647
+#: src/gui/uifiles/settings_window.ui:5645
 msgid "FFTW planning time limit (seconds)"
 msgstr "FFTW 规划时间限制（秒）"
 
-#: src/gui/uifiles/settings_window.ui:5658
+#: src/gui/uifiles/settings_window.ui:5656
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -7990,11 +7992,11 @@ msgstr ""
 "中达到时间限制，则可能会略微超过此限制。如果设置为 0，将始终完成“估算”的最低"
 "计划级别。"
 
-#: src/gui/uifiles/settings_window.ui:5673
+#: src/gui/uifiles/settings_window.ui:5671
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr "用于 FFT 卷积的最小 PSF 尺寸"
 
-#: src/gui/uifiles/settings_window.ui:5684
+#: src/gui/uifiles/settings_window.ui:5682
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -8009,11 +8011,11 @@ msgstr ""
 "对于较小的内核求和更快。确切的交叉点将取决于您的硬件，因此是可配置的。此参数"
 "设置将使用傅里叶变换的最小内核尺寸。"
 
-#: src/gui/uifiles/settings_window.ui:5700
+#: src/gui/uifiles/settings_window.ui:5698
 msgid "Maximum slice size for sliced image operations"
 msgstr "图像分区操作时的最大分区尺寸"
 
-#: src/gui/uifiles/settings_window.ui:5711
+#: src/gui/uifiles/settings_window.ui:5709
 msgid ""
 "Sets the maximum slice size for image operations that can use sliced "
 "processing. The primary purpose of this is to constrain typical slices to a "
@@ -8024,72 +8026,72 @@ msgstr ""
 "限的尺寸范围内，以便更有效地利用有限范围内的FFTW3预优化方案。保持默认设置始终"
 "是安全的选择。"
 
-#: src/gui/uifiles/settings_window.ui:5714
+#: src/gui/uifiles/settings_window.ui:5712
 msgid "Unlimited"
 msgstr "无限制"
 
-#: src/gui/uifiles/settings_window.ui:5740
+#: src/gui/uifiles/settings_window.ui:5738
 msgid "<b>FFTW Options</b>"
 msgstr "<b>FFTW 选项</b>"
 
-#: src/gui/uifiles/settings_window.ui:5768
-#: src/gui/uifiles/settings_window.ui:6211
+#: src/gui/uifiles/settings_window.ui:5766
+#: src/gui/uifiles/settings_window.ui:6209
 msgid "Miscellaneous"
 msgstr "杂项"
 
-#: src/gui/uifiles/settings_window.ui:5796
+#: src/gui/uifiles/settings_window.ui:5794
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
 msgstr "选择一个已存在的目录，该目录须要具有写权限和足够的空间。"
 
-#: src/gui/uifiles/settings_window.ui:5799
+#: src/gui/uifiles/settings_window.ui:5797
 msgid "Select Swap Directory"
 msgstr "选择Swap目录"
 
-#: src/gui/uifiles/settings_window.ui:5812
+#: src/gui/uifiles/settings_window.ui:5810
 msgid "available mem"
 msgstr "可用内存"
 
-#: src/gui/uifiles/settings_window.ui:5824
+#: src/gui/uifiles/settings_window.ui:5822
 msgid "Restore to Default"
 msgstr "恢复为缺省值"
 
-#: src/gui/uifiles/settings_window.ui:5828
+#: src/gui/uifiles/settings_window.ui:5826
 msgid "Restore the default swap storage directory"
 msgstr "恢复为缺省的swap存储目录"
 
-#: src/gui/uifiles/settings_window.ui:5847
+#: src/gui/uifiles/settings_window.ui:5845
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Swap存储目录</b>"
 
-#: src/gui/uifiles/settings_window.ui:5874
+#: src/gui/uifiles/settings_window.ui:5872
 msgid "Don't ask before quitting"
 msgstr "退出前不询问"
 
-#: src/gui/uifiles/settings_window.ui:5889
+#: src/gui/uifiles/settings_window.ui:5887
 msgid "Don't ask before saving when display is not linear"
 msgstr "当显示不是线性时，保存前不要询问"
 
-#: src/gui/uifiles/settings_window.ui:5904
+#: src/gui/uifiles/settings_window.ui:5902
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr "不要在相关对话框中解释ROI处理"
 
-#: src/gui/uifiles/settings_window.ui:5908
+#: src/gui/uifiles/settings_window.ui:5906
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
 msgstr "打开适当的对话框时禁止解释有关 ROI 处理信息对话框"
 
-#: src/gui/uifiles/settings_window.ui:5947
+#: src/gui/uifiles/settings_window.ui:5945
 msgid "Play introduction"
 msgstr "显示简介"
 
-#: src/gui/uifiles/settings_window.ui:5961
+#: src/gui/uifiles/settings_window.ui:5959
 msgid "Introduction Tips"
 msgstr "简介"
 
-#: src/gui/uifiles/settings_window.ui:5993
+#: src/gui/uifiles/settings_window.ui:5991
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -8106,15 +8108,15 @@ msgstr ""
 "果使用 Windows，则使用 <b>.exe</b>），并且它们必须位于同一目录中。您可以选择"
 "任一可执行文件：Siril 将自动查找另一个可执行文件（如果存在）。"
 
-#: src/gui/uifiles/settings_window.ui:6001
+#: src/gui/uifiles/settings_window.ui:5999
 msgid "Select StarNet executable"
 msgstr "选择 StarNet 可执行文件"
 
-#: src/gui/uifiles/settings_window.ui:6015
+#: src/gui/uifiles/settings_window.ui:6013
 msgid "Must point to a valid StarNet executable."
 msgstr "必须指向有效的 StarNet 可执行文件。"
 
-#: src/gui/uifiles/settings_window.ui:6029
+#: src/gui/uifiles/settings_window.ui:6027
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
@@ -8123,11 +8125,11 @@ msgstr ""
 "选择 StarNet 权重文件。这<b>仅</b>适用于新的 Torch-based StarNet 版本。它是可"
 "选的：如果留空，则权重文件<b>必须</b>与 StarNet 可执行文件位于同一目录中。"
 
-#: src/gui/uifiles/settings_window.ui:6035
+#: src/gui/uifiles/settings_window.ui:6033
 msgid "Select StarNet weights file"
 msgstr "选择 StarNet 权重文件"
 
-#: src/gui/uifiles/settings_window.ui:6052
+#: src/gui/uifiles/settings_window.ui:6050
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
@@ -8135,7 +8137,7 @@ msgstr ""
 "清除神经网络权重位置。清除后，权重文件<b>必须</b>与 StarNet 可执行文件位于同"
 "一目录中。"
 
-#: src/gui/uifiles/settings_window.ui:6067
+#: src/gui/uifiles/settings_window.ui:6065
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
@@ -8143,27 +8145,27 @@ msgstr ""
 "可以指向 StarNet 神经网络权重文件。\n"
 "仅用于 Torch-based StarNet 版本。"
 
-#: src/gui/uifiles/settings_window.ui:6102
+#: src/gui/uifiles/settings_window.ui:6100
 msgid "Must point to a valid GraXpert executable."
 msgstr "必须指向有效的 GraXpert 可执行文件。"
 
-#: src/gui/uifiles/settings_window.ui:6121
+#: src/gui/uifiles/settings_window.ui:6119
 msgid "Software Location"
 msgstr "软件位置"
 
-#: src/gui/uifiles/settings_window.ui:6144
+#: src/gui/uifiles/settings_window.ui:6142
 msgid "Copyright when saving image as TIFF"
 msgstr "保存TIFF图像时嵌入版权信息"
 
-#: src/gui/uifiles/settings_window.ui:6156
+#: src/gui/uifiles/settings_window.ui:6154
 msgid "Copyright TIFF"
 msgstr "TIFF版权信息"
 
-#: src/gui/uifiles/settings_window.ui:6178
+#: src/gui/uifiles/settings_window.ui:6176
 msgid "Check update at startup"
 msgstr "启动时检查更新"
 
-#: src/gui/uifiles/settings_window.ui:6194 src/core/siril_actions.c:827
+#: src/gui/uifiles/settings_window.ui:6192 src/core/siril_actions.c:827
 msgid "Update"
 msgstr "更新"
 
@@ -11367,58 +11369,6 @@ msgstr "所选择星点的平均PSF"
 msgid "Dynamic PSF"
 msgstr "动态PSF"
 
-#: src/gui/uifiles/stars_list_window.ui:209
-msgid "Ch."
-msgstr "Ch."
-
-#: src/gui/uifiles/stars_list_window.ui:243
-msgid "A"
-msgstr "A"
-
-#: src/gui/uifiles/stars_list_window.ui:263
-msgid "x0"
-msgstr "x0"
-
-#: src/gui/uifiles/stars_list_window.ui:283
-msgid "y0"
-msgstr "y0"
-
-#: src/gui/uifiles/stars_list_window.ui:302
-msgid "Ra"
-msgstr "赤经"
-
-#: src/gui/uifiles/stars_list_window.ui:317
-msgid "Dec"
-msgstr "赤纬"
-
-#: src/gui/uifiles/stars_list_window.ui:333
-msgid "FWHMx"
-msgstr "FWHMx"
-
-#: src/gui/uifiles/stars_list_window.ui:353
-msgid "FWHMy"
-msgstr "FWHMy"
-
-#: src/gui/uifiles/stars_list_window.ui:373
-msgid "Mag"
-msgstr "星等"
-
-#: src/gui/uifiles/stars_list_window.ui:392
-msgid "Beta"
-msgstr "Beta"
-
-#: src/gui/uifiles/stars_list_window.ui:412
-msgid "r"
-msgstr "圆度"
-
-#: src/gui/uifiles/stars_list_window.ui:432
-msgid "Angle"
-msgstr "偏角"
-
-#: src/gui/uifiles/stars_list_window.ui:452
-msgid "RMSE"
-msgstr "RMSE"
-
 #: src/gui/uifiles/stars_list_window.ui:492
 msgid "Center selected star"
 msgstr "居中所选星点"
@@ -13879,8 +13829,8 @@ msgstr "已成功重新加载所有图像。\n"
 #: src/filters/fft.c:610 src/gui/PSF_list.c:303 src/gui/PSF_list.c:308
 #: src/gui/PSF_list.c:313 src/gui/colors.c:461 src/gui/compstars.c:224
 #: src/gui/compstars.c:293 src/gui/compstars.c:301 src/gui/compstars.c:308
-#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:208
-#: src/gui/git_gui.c:343 src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
+#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:200
+#: src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
 #: src/gui/icc_profile.c:543 src/gui/merge_cfa.c:216 src/gui/merge_cfa.c:248
 #: src/gui/merge_cfa.c:259 src/gui/merge_cfa.c:270 src/gui/merge_cfa.c:281
 #: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
@@ -15780,7 +15730,7 @@ msgstr "像素剔除图只能在激活像素剔除时创建，已忽略。\n"
 msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr "叠加中出现意外参数“%s”，异常中止。\n"
 
-#: src/core/command.c:8647 src/core/command_line_processor.c:661
+#: src/core/command.c:8647 src/core/command_line_processor.c:658
 #: src/gui/single_image.c:82 src/main.c:459
 #, c-format
 msgid "No sequence `%s' found.\n"
@@ -16072,11 +16022,11 @@ msgstr "********* 可用命令列表 *********\n"
 msgid "Can be used in a script: %s\n"
 msgstr "脚本中可用: %s\n"
 
-#: src/core/command.c:9546 src/core/command_line_processor.c:467
+#: src/core/command.c:9546 src/core/command_line_processor.c:464
 msgid "YES"
 msgstr "YES"
 
-#: src/core/command.c:9546 src/core/command_line_processor.c:470
+#: src/core/command.c:9546 src/core/command_line_processor.c:467
 msgid "NO"
 msgstr "NO"
 
@@ -20381,32 +20331,32 @@ msgstr "脚本执行失败。\n"
 msgid "Please enter an existing command before hitting this button"
 msgstr "请在按下此按钮前键入一个可用的命令"
 
-#: src/core/command_line_processor.c:463
+#: src/core/command_line_processor.c:460
 msgid "Can be used in a script: "
 msgstr "可以在脚本中使用: "
 
-#: src/core/command_line_processor.c:482
+#: src/core/command_line_processor.c:479
 msgid "No help for this command"
 msgstr "此命令没有帮助"
 
-#: src/core/command_line_processor.c:597 src/core/preprocess.c:649
+#: src/core/command_line_processor.c:594 src/core/preprocess.c:649
 #: src/filters/cosmetic_correction.c:502 src/gui/script_menu.c:204
 #, c-format
 msgid "File [%s] does not exist\n"
 msgstr "文件 [%s] 不存在\n"
 
 #. Run the script
-#: src/core/command_line_processor.c:604 src/gui/script_menu.c:185
+#: src/core/command_line_processor.c:601 src/gui/script_menu.c:185
 #, c-format
 msgid "Starting script %s\n"
 msgstr "开始运行脚本%s\n"
 
-#: src/core/command_line_processor.c:620
+#: src/core/command_line_processor.c:617
 #, c-format
 msgid "Command execution failed: %s.\n"
 msgstr "命令执行失败：%s。\n"
 
-#: src/core/command_line_processor.c:682
+#: src/core/command_line_processor.c:679
 #, c-format
 msgid "Loading sequence `%s' failed.\n"
 msgstr "读取序列 “%s”失败。\n"
@@ -20853,7 +20803,7 @@ msgid ""
 "Darkmap cosmetic correction is only supported with single channel images\n"
 msgstr "基于暗场帧的坏点修正只支持单通道图像\n"
 
-#: src/core/preprocess.c:502 src/gui/git_gui.c:91
+#: src/core/preprocess.c:502 src/gui/git_gui.c:117
 msgid "Preprocessing"
 msgstr "预处理"
 
@@ -23367,9 +23317,9 @@ msgid "Select task to stop"
 msgstr "选择要中止的任务"
 
 #: src/gui/callbacks.c:2349 src/gui/dialogs.c:253 src/gui/dialogs.c:262
-#: src/gui/dialogs.c:268 src/gui/git_gui.c:257 src/gui/keywords_tree.c:508
-#: src/gui/python_gui.c:768 src/gui/python_gui.c:845
-#: src/io/image_formats_libraries.c:2489 src/pixelMath/pixel_math_runner.c:1260
+#: src/gui/dialogs.c:268 src/gui/keywords_tree.c:508 src/gui/python_gui.c:768
+#: src/gui/python_gui.c:845 src/io/image_formats_libraries.c:2489
+#: src/pixelMath/pixel_math_runner.c:1260
 msgid "_Cancel"
 msgstr "_取消"
 
@@ -23467,7 +23417,7 @@ msgstr "创建参考星列表"
 msgid "_Close"
 msgstr "_关闭"
 
-#: src/gui/compstars.c:51 src/gui/git_gui.c:258 src/gui/nina_light_curve.c:50
+#: src/gui/compstars.c:51 src/gui/nina_light_curve.c:50
 #: src/io/image_formats_libraries.c:2489
 msgid "_OK"
 msgstr "_OK"
@@ -24009,70 +23959,33 @@ msgstr "图像载入失败"
 msgid "Error: image dimensions do not match"
 msgstr "错误：图像尺寸不匹配"
 
-#: src/gui/git_gui.c:93
+#: src/gui/git_gui.c:119
 msgid "Processing"
 msgstr "处理"
 
-#: src/gui/git_gui.c:95
+#: src/gui/git_gui.c:121
 msgid "Utility"
 msgstr "工具"
 
-#: src/gui/git_gui.c:97
+#: src/gui/git_gui.c:123
 msgid "Core"
 msgstr "核心"
 
-#: src/gui/git_gui.c:100
+#: src/gui/git_gui.c:126
 msgid "Other"
 msgstr "其他"
 
-#: src/gui/git_gui.c:106 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
+#: src/gui/git_gui.c:132 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
 msgid "Siril Script File"
 msgstr "Siril 脚本文件"
 
-#: src/gui/git_gui.c:108
+#: src/gui/git_gui.c:134
 msgid "Python script"
 msgstr "Python 脚本"
 
-#: src/gui/git_gui.c:166
-msgid "Current script version"
-msgstr "当前脚本版本"
-
-#: src/gui/git_gui.c:182
-msgid "(No commit message found for this revision)"
-msgstr ""
-
-#: src/gui/git_gui.c:206
+#: src/gui/git_gui.c:198
 #, c-format
 msgid "Error loading script contents: %s\n"
-msgstr "加载脚本内容时出错：%s\n"
-
-#: src/gui/git_gui.c:254
-#, fuzzy
-msgid "Select Revision"
-msgstr "选择"
-
-#: src/gui/git_gui.c:261
-msgid ""
-"Leave at 0 to open the current version of the script. If you have a problem "
-"with a script update you can use this to go back to earlier revisions. Start "
-"by going back 1 revison and increase the number until you find the last "
-"version that worked for you. Note that this will only open the previous "
-"version in the script editor, it will not revert the script in the local "
-"repository, but it allows you to save a local copy in one of your script "
-"folders for use until the upstream script is fixed."
-msgstr ""
-
-#: src/gui/git_gui.c:271
-msgid "Revisions to go back (leave at 0 to get current revision):"
-msgstr ""
-
-#: src/gui/git_gui.c:306
-msgid "Loading commit message..."
-msgstr "载入提交信息..."
-
-#: src/gui/git_gui.c:340
-#, fuzzy, c-format
-msgid "Error loading script contents from %d revisions back: %s\n"
 msgstr "加载脚本内容时出错：%s\n"
 
 #: src/gui/histogram.c:159 src/gui/histogram.c:165 src/gui/histogram.c:1166
@@ -24856,7 +24769,7 @@ msgstr "圆环的外半径（像素）："
 #: src/io/siril_pythoncommands.c:1513 src/io/siril_pythoncommands.c:1545
 #: src/io/siril_pythoncommands.c:1605 src/io/siril_pythoncommands.c:1690
 #: src/io/siril_pythoncommands.c:2177 src/io/siril_pythoncommands.c:2210
-#: src/io/siril_pythoncommands.c:2372
+#: src/io/siril_pythoncommands.c:2373
 msgid "No sequence loaded"
 msgstr "无序列载入"
 
@@ -28216,7 +28129,15 @@ msgstr "列表已保存至 %s\n"
 msgid "Failed to save list to %s\n"
 msgstr "将列表保存到%s时出错\n"
 
-#: src/io/siril_git.c:141
+#: src/io/siril_git.c:146
+msgid "libgit2: unable to parse some refish\n"
+msgstr "libgit2：无法解析一些 refish\n"
+
+#: src/io/siril_git.c:161
+msgid "Failed to find commit with given OID.\n"
+msgstr "无法找到具有给定 OID 的提交。\n"
+
+#: src/io/siril_git.c:275
 msgid ""
 "Error removing Git lock files. You may need to delete the local git "
 "repository and allow Siril to re-clone it.\n"
@@ -28224,89 +28145,103 @@ msgstr ""
 "删除 Git 锁定文件时出错。可能需要删除本地 Git 仓库并允许 Siril 重新克隆它。\n"
 
 #. Not a valid git path
-#: src/io/siril_git.c:150
+#: src/io/siril_git.c:284
 msgid "Invalid Git repository path.\n"
 msgstr "Git仓库路径无效。\n"
 
-#: src/io/siril_git.c:166 src/io/siril_git.c:178 src/io/siril_git.c:190
+#: src/io/siril_git.c:300 src/io/siril_git.c:312 src/io/siril_git.c:324
 msgid ""
 "Error performing hard reset. You may need to delete the local git repository "
 "and allow Siril to re-clone it.\n"
 msgstr ""
 "执行硬重置时出错。您可能需要删除本地 git 仓库并允许 Siril 重新克隆它。\n"
 
-#: src/io/siril_git.c:213
+#: src/io/siril_git.c:347
 msgid ""
 "Unable to create anonymous remote for the repository. Check your "
 "connectivity and try again.\n"
 msgstr "无法为仓库创建匿名远程。检查您的连接并重试。\n"
 
-#: src/io/siril_git.c:232
+#: src/io/siril_git.c:366
 msgid ""
 "Detected 1.4.0-beta2 bug condition. Removing and re-cloning repository...\n"
 msgstr "检测到 1.4.0-beta2 的 bug 。删除并重新克隆存储库...\n"
 
-#: src/io/siril_git.c:237
+#: src/io/siril_git.c:371
 #, c-format
 msgid "Error removing repository directory: %s\n"
 msgstr "移除仓库目录时出错：%s\n"
 
-#: src/io/siril_git.c:246 src/io/siril_git.c:510 src/io/siril_git.c:535
+#: src/io/siril_git.c:380 src/io/siril_git.c:793 src/io/siril_git.c:818
 #, c-format
 msgid "Error cloning repository into %s: %s\n"
 msgstr "将仓库克隆到%s时出错：%s\n"
 
-#: src/io/siril_git.c:250
+#: src/io/siril_git.c:384
 msgid "Repository re-cloned successfully!\n"
 msgstr "仓库重新克隆成功！\n"
 
-#: src/io/siril_git.c:254
+#: src/io/siril_git.c:388
 msgid ""
 "Error fetching remote: Remote repository or references not found. Check the "
 "repository URL and your connectivity.\n"
 msgstr "远程获取出错：找不到远程仓库或引用。请检查仓库URL和网络连接。\n"
 
 #. Generic fallback
-#: src/io/siril_git.c:259
+#: src/io/siril_git.c:393
 msgid ""
 "Error fetching remote. This may be a temporary error, check your "
 "connectivity and try again.\n"
 msgstr "获取远程时出错。这可能是暂时错误，请检查您的连接并重试。\n"
 
-#: src/io/siril_git.c:491 src/io/siril_git.c:717
+#: src/io/siril_git.c:612
+#, c-format
+msgid "libgit2: repository is in unexpected state %d. Cleaning up...\n"
+msgstr "libgit2：仓库处于意外状态 %d。清理...\n"
+
+#: src/io/siril_git.c:616
+msgid "libgit2: repository failed to clean up properly. Cannot continue.\n"
+msgstr "libgit2：仓库未能正确清理。无法继续。\n"
+
+#: src/io/siril_git.c:703 src/io/siril_git.c:707
+#, c-format
+msgid "Commit message: %s\n"
+msgstr "提交消息：%s\n"
+
+#: src/io/siril_git.c:774 src/io/siril_git.c:1000
 msgid "Existing directory is not a valid git repository. Cleaning up...\n"
 msgstr "现有的git仓库目录无效。清理中...\n"
 
-#: src/io/siril_git.c:496 src/io/siril_git.c:722
+#: src/io/siril_git.c:779 src/io/siril_git.c:1005
 #, c-format
 msgid "Error deleting existing directory %s: %s\n"
 msgstr "删除现有目录%s时出错：%s\n"
 
 #. Now attempt to clone into the clean directory
-#: src/io/siril_git.c:506 src/io/siril_git.c:531 src/io/siril_git.c:731
-#: src/io/siril_git.c:747
+#: src/io/siril_git.c:789 src/io/siril_git.c:814 src/io/siril_git.c:1014
+#: src/io/siril_git.c:1030
 msgid "Attempting to clone from remote source...\n"
 msgstr "正在尝试从远程源克隆...\n"
 
-#: src/io/siril_git.c:516 src/io/siril_git.c:541 src/io/siril_git.c:740
-#: src/io/siril_git.c:757
+#: src/io/siril_git.c:799 src/io/siril_git.c:824 src/io/siril_git.c:1023
+#: src/io/siril_git.c:1040
 msgid "Repository cloned successfully!\n"
 msgstr "仓库克隆成功！\n"
 
-#: src/io/siril_git.c:520 src/io/siril_git.c:545
+#: src/io/siril_git.c:803 src/io/siril_git.c:828
 msgid ""
 "Siril is in offline mode. Will not attempt to clone remote repository.\n"
 msgstr "Siril现为离线模式。不会克隆远程仓库。\n"
 
-#: src/io/siril_git.c:556 src/io/siril_git.c:766
+#: src/io/siril_git.c:839 src/io/siril_git.c:1049
 msgid "Failed to lookup remote.\n"
 msgstr "无法查找远程。\n"
 
-#: src/io/siril_git.c:564 src/io/siril_git.c:774
+#: src/io/siril_git.c:847 src/io/siril_git.c:1057
 msgid "Error: cannot identify local repository's configured remote.\n"
 msgstr "错误：无法识别本地仓库配置的远程仓库。\n"
 
-#: src/io/siril_git.c:573
+#: src/io/siril_git.c:856
 #, c-format
 msgid ""
 "Error: local siril-scripts repository folder is not configured with %s as "
@@ -28316,12 +28251,12 @@ msgstr ""
 "错误：本地 Siril-scripts 仓库文件夹未配置 %s 作为其远程。您应该删除文件夹 %s "
 "并重新启动 Siril 以重新克隆正确的仓库。\n"
 
-#: src/io/siril_git.c:578 src/io/siril_git.c:788
+#: src/io/siril_git.c:861 src/io/siril_git.c:1071
 msgid "Repository Error"
 msgstr "仓库错误"
 
-#: src/io/siril_git.c:596 src/io/siril_git.c:608 src/io/siril_git.c:806
-#: src/io/siril_git.c:818
+#: src/io/siril_git.c:879 src/io/siril_git.c:891 src/io/siril_git.c:1089
+#: src/io/siril_git.c:1101
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
@@ -28329,32 +28264,32 @@ msgstr ""
 "执行硬重置时出错。如果问题仍然存在，您可能需要删除本地 git 仓库并允许 Siril "
 "重新克隆它。\n"
 
-#: src/io/siril_git.c:617
+#: src/io/siril_git.c:900
 msgid "Local scripts repository is up-to-date!\n"
 msgstr "本地脚本仓库是最新的！\n"
 
-#: src/io/siril_git.c:624
+#: src/io/siril_git.c:907
 msgid "Error accessing repository index.\n"
 msgstr "访问存储库索引时出错。\n"
 
-#: src/io/siril_git.c:642
+#: src/io/siril_git.c:925
 msgid "Warning: failed to get repository index entry.\n"
 msgstr "警告：获取仓库索引条目失败。\n"
 
-#: src/io/siril_git.c:648
+#: src/io/siril_git.c:931
 msgid "Warning: skipping script with invalid UTF-8 path.\n"
 msgstr "警告：跳过UTF-8路径无效的脚本。\n"
 
-#: src/io/siril_git.c:658
+#: src/io/siril_git.c:941
 msgid "Warning: memory allocation failed for script path.\n"
 msgstr "警告：为脚本路径分配内存失败。\n"
 
-#: src/io/siril_git.c:735 src/io/siril_git.c:752
+#: src/io/siril_git.c:1018 src/io/siril_git.c:1035
 #, c-format
 msgid "Error cloning repository: %s\n"
 msgstr "克隆仓库时出错：%s\n"
 
-#: src/io/siril_git.c:783
+#: src/io/siril_git.c:1066
 #, c-format
 msgid ""
 "Error: local siril-spcc-database repository folder is not configured with %s "
@@ -28364,13 +28299,17 @@ msgstr ""
 "错误：本地 Siril-spcc-database 仓库文件夹未配置为 %s 作为其远程。您应该删除文"
 "件夹 %s 并重新启动 Siril 以重新克隆正确的仓库。\n"
 
-#: src/io/siril_git.c:824
+#: src/io/siril_git.c:1107
 msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "本地 SPCC 数据库仓库是最新的！\n"
 
-#: src/io/siril_git.c:1162
-msgid "Error opening scripts repository\n"
-msgstr "打开脚本仓库出错\n"
+#: src/io/siril_git.c:1134
+msgid "Error: unable to open local scripts repository.\n"
+msgstr "错误：无法打开本地脚本仓库。\n"
+
+#: src/io/siril_git.c:1159
+msgid "Error: unable to open local spcc-database repository.\n"
+msgstr "错误：无法打开本地 spcc 数据库仓库。\n"
 
 #: src/io/siril_pythoncommands.c:461
 msgid "Unknown config type"
@@ -28491,8 +28430,8 @@ msgstr "错误：系统数据目录未设置"
 #: src/io/siril_pythoncommands.c:1231 src/io/siril_pythoncommands.c:1244
 #: src/io/siril_pythoncommands.c:1271 src/io/siril_pythoncommands.c:1324
 #: src/io/siril_pythoncommands.c:2250 src/io/siril_pythoncommands.c:2263
-#: src/io/siril_pythoncommands.c:2279 src/io/siril_pythoncommands.c:2285
-#: src/io/siril_pythoncommands.c:2318
+#: src/io/siril_pythoncommands.c:2280 src/io/siril_pythoncommands.c:2286
+#: src/io/siril_pythoncommands.c:2319
 msgid "Invalid payload length"
 msgstr "无效载荷长度"
 
@@ -28540,7 +28479,7 @@ msgid "No stats for this channel for this frame"
 msgstr "此帧的此通道无统计数据"
 
 #: src/io/siril_pythoncommands.c:1522 src/io/siril_pythoncommands.c:1620
-#: src/io/siril_pythoncommands.c:2381
+#: src/io/siril_pythoncommands.c:2382
 msgid "Incorrect command argument"
 msgstr "命令参数错误"
 
@@ -28560,7 +28499,7 @@ msgstr "无法读取序列帧"
 msgid "Invalid dimensions"
 msgstr "无效尺寸"
 
-#: src/io/siril_pythoncommands.c:1627 src/io/siril_pythoncommands.c:2389
+#: src/io/siril_pythoncommands.c:1627 src/io/siril_pythoncommands.c:2390
 msgid "Failed to read frame metadata"
 msgstr "无法读取帧的元数据"
 
@@ -28592,7 +28531,7 @@ msgstr "意外的空背景样本"
 msgid "Image has no ICC profile"
 msgstr "图像不含 ICC 色彩特性文件"
 
-#: src/io/siril_pythoncommands.c:1913 src/io/siril_pythoncommands.c:2394
+#: src/io/siril_pythoncommands.c:1913 src/io/siril_pythoncommands.c:2395
 msgid "Image has no FITS header"
 msgstr "图像没有FITS文件头"
 
@@ -28663,40 +28602,40 @@ msgstr "索引越界"
 msgid "No distodata available"
 msgstr "没有可用的畸变数据"
 
-#: src/io/siril_pythoncommands.c:2302
+#: src/io/siril_pythoncommands.c:2303
 msgid "No polygon found matching id"
 msgstr "找不到与id匹配的多边形"
 
-#: src/io/siril_pythoncommands.c:2309
+#: src/io/siril_pythoncommands.c:2310
 msgid "Failed to serialize user polygon"
 msgstr "无法序列化用户多边形"
 
-#: src/io/siril_pythoncommands.c:2328
+#: src/io/siril_pythoncommands.c:2329
 msgid "No user polygons to serialize"
 msgstr "没有要序列化的用户多边形"
 
-#: src/io/siril_pythoncommands.c:2334
+#: src/io/siril_pythoncommands.c:2335
 msgid "Failed to serialize user polygon list"
 msgstr "无法序列化用户多边形列表"
 
-#: src/io/siril_pythoncommands.c:2349 src/io/siril_pythoncommands.c:2355
-#: src/io/siril_pythoncommands.c:2361
+#: src/io/siril_pythoncommands.c:2350 src/io/siril_pythoncommands.c:2356
+#: src/io/siril_pythoncommands.c:2362
 msgid "Argument error"
 msgstr "参数错误"
 
-#: src/io/siril_pythoncommands.c:2415
+#: src/io/siril_pythoncommands.c:2416
 msgid "Could not create the new sequence"
 msgstr "无法创建新序列"
 
-#: src/io/siril_pythoncommands.c:2425
+#: src/io/siril_pythoncommands.c:2426
 msgid "Wrong mouse mode"
 msgstr "鼠标模式错误"
 
-#: src/io/siril_pythoncommands.c:2435
+#: src/io/siril_pythoncommands.c:2436
 msgid "Invalid payload for CMD_DRAW_POLYGON"
 msgstr "CMD_DRAW_POLYGON的载荷无效"
 
-#: src/io/siril_pythoncommands.c:2443
+#: src/io/siril_pythoncommands.c:2444
 msgid "Unknown command"
 msgstr "未知命令"
 
@@ -30864,31 +30803,64 @@ msgstr "将要叠加的超采样序列"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 
+#~ msgid "Ch."
+#~ msgstr "Ch."
+
+#~ msgid "A"
+#~ msgstr "A"
+
+#~ msgid "x0"
+#~ msgstr "x0"
+
+#~ msgid "y0"
+#~ msgstr "y0"
+
+#~ msgid "Ra"
+#~ msgstr "赤经"
+
+#~ msgid "Dec"
+#~ msgstr "赤纬"
+
+#~ msgid "FWHMx"
+#~ msgstr "FWHMx"
+
+#~ msgid "FWHMy"
+#~ msgstr "FWHMy"
+
+#~ msgid "Mag"
+#~ msgstr "星等"
+
+#~ msgid "Beta"
+#~ msgstr "Beta"
+
+#~ msgid "r"
+#~ msgstr "圆度"
+
+#~ msgid "Angle"
+#~ msgstr "偏角"
+
+#~ msgid "RMSE"
+#~ msgstr "RMSE"
+
+#~ msgid "Current script version"
+#~ msgstr "当前脚本版本"
+
+#, fuzzy
+#~ msgid "Select Revision"
+#~ msgstr "选择"
+
+#~ msgid "Loading commit message..."
+#~ msgstr "载入提交信息..."
+
+#, fuzzy, c-format
+#~ msgid "Error loading script contents from %d revisions back: %s\n"
+#~ msgstr "加载脚本内容时出错：%s\n"
+
+#~ msgid "Error opening scripts repository\n"
+#~ msgstr "打开脚本仓库出错\n"
+
 #~ msgid "Apply autostretch algorithm to image"
 #~ msgstr "执行自动拉伸"
-
-#~ msgid "libgit2: unable to parse some refish\n"
-#~ msgstr "libgit2：无法解析一些 refish\n"
-
-#~ msgid "Failed to find commit with given OID.\n"
-#~ msgstr "无法找到具有给定 OID 的提交。\n"
-
-#, c-format
-#~ msgid "libgit2: repository is in unexpected state %d. Cleaning up...\n"
-#~ msgstr "libgit2：仓库处于意外状态 %d。清理...\n"
-
-#~ msgid "libgit2: repository failed to clean up properly. Cannot continue.\n"
-#~ msgstr "libgit2：仓库未能正确清理。无法继续。\n"
-
-#, c-format
-#~ msgid "Commit message: %s\n"
-#~ msgstr "提交消息：%s\n"
-
-#~ msgid "Error: unable to open local scripts repository.\n"
-#~ msgstr "错误：无法打开本地脚本仓库。\n"
-
-#~ msgid "Error: unable to open local spcc-database repository.\n"
-#~ msgstr "错误：无法打开本地 spcc 数据库仓库。\n"
 
 #~ msgid "Cannot refresh script list"
 #~ msgstr "无法刷新脚本列表"
