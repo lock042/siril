@@ -847,7 +847,7 @@ cleanup:
 * @return 1 if file was modified, 0 if not modified, -1 on error
 */
 static int file_modified_between_commits(git_repository *repo,
-									const char *filepath,
+									const char *relpath,
 									git_commit *commit1,
 									git_commit *commit2) {
 	git_tree *tree1 = NULL, *tree2 = NULL;
@@ -863,8 +863,8 @@ static int file_modified_between_commits(git_repository *repo,
 	if (error != 0) goto cleanup;
 
 	// Try to find the file in both trees
-	int found1 = git_tree_entry_bypath(&entry1, tree1, filepath) == 0;
-	int found2 = git_tree_entry_bypath(&entry2, tree2, filepath) == 0;
+	int found1 = git_tree_entry_bypath(&entry1, tree1, relpath) == 0;
+	int found2 = git_tree_entry_bypath(&entry2, tree2, relpath) == 0;
 
 	// If file exists in one but not the other, it was modified (added/deleted)
 	if (found1 != found2) {
@@ -911,17 +911,20 @@ static int find_file_commit_by_modifications(git_repository *repo,
 		return -1;
 
 	const char *workdir = git_repository_workdir(repo);
+	siril_log_message("workdir: %s\n", workdir);
 	if (workdir && g_path_is_absolute(filepath)) {
 		size_t workdir_len = strlen(workdir);
 		if (strncmp(filepath, workdir, workdir_len) == 0) {
 			const char *rel_start = filepath + workdir_len;
 			while (*rel_start == '/' || *rel_start == '\\') rel_start++;
 			relative_path = g_strdup(rel_start);
+			siril_log_message("relative_path identified as: %s\n", relative_path);
 		} else {
 			return -1;
 		}
 	} else {
 		relative_path = g_strdup(filepath);
+		siril_log_message("filepath not absolute: using as relative path: %s\n", relative_path);
 	}
 
 	error = git_revparse_single(&head_commit_obj, repo, "HEAD");
@@ -1000,9 +1003,16 @@ static int get_file_content_from_file_revision(git_repository *repo,
 
 	error = find_file_commit_by_modifications(repo, filepath, file_revisions_to_backtrack,
 											&target_commit, &relative_path);
+	siril_log_message("relative path returned: %s\n", relative_path);
 	if (error != 0)
 		return -1;
 
+	if (!target_commit) {
+		siril_log_message("Error: target commit not found\n");
+		return -1;
+	} else {
+		siril_log_message("Target commit found OK\n");
+	}
 	error = git_commit_tree(&tree, target_commit);
 	if (error != 0)
 		goto cleanup;
@@ -1037,6 +1047,7 @@ static int get_file_content_from_file_revision(git_repository *repo,
 	memcpy(*content, blob_content, blob_size);
 	(*content)[blob_size] = '\0';
 	*content_size = blob_size;
+	siril_log_message("Git blob content size: %zu\n", blob_size);
 
 cleanup:
 	if (relative_path)
@@ -1076,12 +1087,16 @@ static int get_commit_from_file_revision(git_repository *repo,
 
 	error = find_file_commit_by_modifications(repo, filepath, file_revisions_to_backtrack,
 											&target_commit, &relative_path);
-	if (error != 0)
-		return -1;
+	if (error != 0) {
+		error = -1;
+		siril_log_message("Error finding file commit\n");
+		goto cleanup;
+	}
 
 	const char *msg = git_commit_message(target_commit);
 	if (!msg) {
 		error = -1;
+		siril_log_message("Empty commit message\n");
 		goto cleanup;
 	}
 
@@ -1141,10 +1156,13 @@ gchar *get_script_content_string_from_file_revision(const char *filepath,
 	git_libgit2_init();
 
 	// URL of the remote repository
-	siril_debug_print("Repository URL: %s\n", SCRIPT_REPOSITORY_URL);
+	siril_log_message("Repository URL: %s\n", SCRIPT_REPOSITORY_URL);
 
 	// Local repository directory
 	const gchar *local_path = siril_get_scripts_repo_path();
+	siril_log_message("Local path: %s\n", local_path);
+	siril_log_message("Filepath: %s\n", filepath);
+
 
 	// Check if directory exists
 	gboolean success = FALSE;
@@ -1166,7 +1184,7 @@ gchar *get_script_content_string_from_file_revision(const char *filepath,
 	int error = get_file_content_from_file_revision(repo, filepath, file_revisions_to_backtrack,
 													&content, content_size);
 	if (error != 0) {
-		siril_debug_print("Error retrieving file content in get_script_content_string_from_file_revision()\n");
+		siril_log_message("Error retrieving file content in get_script_content_string_from_file_revision()\n");
 		goto cleanup;
 	}
 
@@ -1174,7 +1192,7 @@ gchar *get_script_content_string_from_file_revision(const char *filepath,
 		error = get_commit_from_file_revision(repo, filepath, file_revisions_to_backtrack,
 											&message, message_size);
 		if (error != 0) {
-			siril_debug_print("Error retrieving commit message in get_script_content_string_from_file_revision()\n");
+			siril_log_message("Error retrieving commit message in get_script_content_string_from_file_revision()\n");
 			g_free(content);
 			content = NULL;
 			*content_size = 0;
