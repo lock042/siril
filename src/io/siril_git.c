@@ -894,6 +894,19 @@ cleanup:
 	return result;
 }
 
+static gchar *posix_path_separators(const gchar *path) {
+	gchar *normalized = g_strdup(path);
+	gchar *p = normalized;
+
+	while (*p) {
+		if (*p == '\\') {
+			*p = '/';
+		}
+		p++;
+	}
+	return normalized;
+}
+
 static int find_file_commit_by_modifications(git_repository *repo,
 											const char *filepath,
 											int file_revisions_to_backtrack,
@@ -911,13 +924,15 @@ static int find_file_commit_by_modifications(git_repository *repo,
 		return -1;
 
 	const char *workdir = git_repository_workdir(repo);
+	const char *tmpworkdir = g_canonicalize_filename(workdir, NULL);
 	siril_log_message("workdir: %s\n", workdir);
-	if (workdir && g_path_is_absolute(filepath)) {
-		size_t workdir_len = strlen(workdir);
-		if (strncmp(filepath, workdir, workdir_len) == 0) {
+	if (tmpworkdir && g_path_is_absolute(filepath)) {
+		size_t workdir_len = strlen(tmpworkdir);
+		if (strncmp(filepath, tmpworkdir, workdir_len) == 0) {
 			const char *rel_start = filepath + workdir_len;
 			while (*rel_start == '/' || *rel_start == '\\') rel_start++;
-			relative_path = g_strdup(rel_start);
+			const gchar *tmprelpath =  posix_path_separators(rel_start);
+			relative_path = g_strdup(tmprelpath);
 			siril_log_message("relative_path identified as: %s\n", relative_path);
 		} else {
 			return -1;

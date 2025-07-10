@@ -197,13 +197,14 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 
 	gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
 
-	contents = get_script_content_string_from_file_revision(scriptpath, 0, &length, NULL, NULL);
+	gchar *tmpscriptpath = g_canonicalize_filename(scriptpath, NULL);
+	contents = get_script_content_string_from_file_revision(tmpscriptpath, 0, &length, NULL, NULL);
 	if (length > 0 && contents != NULL) {
-		const char *ext = get_filename_ext(scriptpath);
+		const char *ext = get_filename_ext(tmpscriptpath);
 		new_script(contents, length, ext);
 		g_free(contents);
 	} else {
-		gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), scriptpath);
+		gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), tmpscriptpath);
 		siril_log_color_message(msg, "red");
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 		g_free(msg);
