@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-08 17:17+0200\n"
-"PO-Revision-Date: 2025-07-07 18:43+0000\n"
+"PO-Revision-Date: 2025-07-10 12:35+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -8423,7 +8423,6 @@ msgstr ""
 "применение изменений."
 
 #: src/gui/uifiles/settings_window.ui:5161
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -8433,7 +8432,7 @@ msgid ""
 msgstr ""
 "Список доступных сценариев. Выбранные сценарии будут доступные через меню "
 "«Сценарии». После двойного нажатия на строку, код сценария будет открыт в "
-"редакторе (Это позволяет делать локальные изменения в сценарии и сохранять "
+"редакторе (Это позволяет вносить локальные изменения в сценарии и сохранять "
 "их).\n"
 "Чтобы открыть более раннюю ревизию (например, для получения более старой "
 "версии после неудачного обновления сценария), нажмите на строку правой "
@@ -16333,9 +16332,9 @@ msgstr ""
 
 #: src/core/command.c:4570 src/core/command.c:4575 src/core/command.c:4602
 #: src/core/command.c:4607
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument: %s\n"
-msgstr "неверные аргументы"
+msgstr "Неверный аргумент: %s\n"
 
 #: src/core/command.c:4628
 #, fuzzy
@@ -27419,9 +27418,8 @@ msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
 msgstr "Квантовая эф-ть / Коэф. пропускания / Отн. кол-во фотонов"
 
 #: src/gui/photometric_cc.c:1256 src/gui/photometric_cc.c:1297
-#, fuzzy
 msgid "Narrowband filters"
-msgstr "Узкополосный режим"
+msgstr "Узкополосные фильтры"
 
 #: src/gui/photometric_cc.c:1305
 msgid "Atmosphere model"
@@ -27724,9 +27722,9 @@ msgid "Right _margin position"
 msgstr "Положение_правой границы"
 
 #: src/gui/python_gui.c:1141
-#, fuzzy, c-format
+#, c-format
 msgid "Error creating temporary script file: %s\n"
-msgstr "Ошибка чтения stderr: %s\n"
+msgstr "Ошибка создания временного файла сценария: %s\n"
 
 #: src/gui/python_gui.c:1148
 msgid "Error writing to temporary script file\n"
