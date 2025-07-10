@@ -43,6 +43,7 @@ siril 1.4.0-beta3
 * Uses the double click to open script in the editor.
 * Make SIP and WCS as protected keywords (#1696)
 * Added -followstar to the seqpsf command: previously this could only be set from the GUI. (!905)
+* Added ability to open previous revisions of scripts in the repository (!911)
 
 siril 1.4.0-beta2
 05/21/25
