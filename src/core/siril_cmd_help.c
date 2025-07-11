@@ -23,17 +23,32 @@
 
 #include "core/siril_cmd_help.h"
 
+static GtkWidget *shortcuts_window = NULL;
+
+static void
+on_shortcuts_window_destroyed(gpointer data, GObject *where_the_object_was)
+{
+    GtkWidget **pwindow = data;
+    *pwindow = NULL;
+}
+
 void siril_cmd_help_keyboard_shortcuts(GtkWindow *window) {
-    GtkBuilder *s_builder;
-    GtkWidget *shortcuts_window;
+    if (shortcuts_window == NULL) {
+        GtkBuilder *s_builder;
 
-    s_builder = gtk_builder_new_from_resource("/org/siril/ui/siril-shortcuts.ui");
-    shortcuts_window = GTK_WIDGET(gtk_builder_get_object(s_builder, "shortcuts-siril"));
+        s_builder = gtk_builder_new_from_resource("/org/siril/ui/siril-shortcuts.ui");
+        shortcuts_window = GTK_WIDGET(gtk_builder_get_object(s_builder, "shortcuts-siril"));
 
-    gtk_window_set_transient_for(GTK_WINDOW(shortcuts_window), GTK_WINDOW(window));
+        g_object_weak_ref(G_OBJECT(shortcuts_window), on_shortcuts_window_destroyed, &shortcuts_window);
+
+        g_object_unref(s_builder);
+    }
+
+    if (GTK_WINDOW(window) != gtk_window_get_transient_for(GTK_WINDOW(shortcuts_window))) {
+        gtk_window_set_transient_for(GTK_WINDOW(shortcuts_window), GTK_WINDOW(window));
+    }
+
     gtk_widget_show_all(shortcuts_window);
     gtk_window_present(GTK_WINDOW(shortcuts_window));
-
-    g_object_unref(s_builder);
-    // Window will be automatically destroyed when closed
 }
+
