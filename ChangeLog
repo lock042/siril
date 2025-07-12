@@ -1,3 +1,9 @@
+siril 1.4.0-beta4
+xx/xx/xx
+
+**Fixes:**
+* Fixed incomplete implementation of shared memory bugfix from beta3 (#1719)
+
 siril 1.4.0-beta3
 07/11/25
 
