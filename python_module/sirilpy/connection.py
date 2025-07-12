@@ -1610,8 +1610,7 @@ class SirilInterface:
                     # (We don't unlink it as C wll do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SirilError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -1744,8 +1743,7 @@ class SirilInterface:
                     # (We don't unlink it as C wll do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SirilError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -2238,8 +2236,7 @@ class SirilInterface:
                     # (We don't unlink it as C wll do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -2327,8 +2324,7 @@ class SirilInterface:
                     # (We don't unlink it as C wll do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -2412,8 +2408,7 @@ class SirilInterface:
                     # (We don't unlink it as C wll do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -2497,8 +2492,7 @@ class SirilInterface:
                     # (We don't unlink it as C wll do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -3380,8 +3374,7 @@ class SirilInterface:
                     # (We don't unlink it as C wll do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SirilError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -3474,8 +3467,7 @@ class SirilInterface:
                     # (We don't unlink it as C will do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -3585,8 +3577,7 @@ class SirilInterface:
                     # (We don't unlink it as C wll do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -3777,8 +3768,7 @@ class SirilInterface:
                     # (We don't unlink it as C wll do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SirilError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -4099,8 +4089,7 @@ class SirilInterface:
                     # (We don't unlink it as C wll do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SirilError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -4167,8 +4156,7 @@ class SirilInterface:
                     # (We don't unlink it as C wll do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SirilError(_("Failed to cleanup shared memory"))
 
                 except Exception:
