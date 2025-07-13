@@ -322,8 +322,8 @@ void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointo
 	Mat H = Mat(3, 3, CV_64FC1);
 	convert_H_to_MatH(&Hom, H);
 	refptout = H * Mat(refptin);
-	refpointout->x = refptout.at<double>(0, 0);
-	refpointout->y = refptout.at<double>(0, 1);
+	refpointout->x = refptout.at<double>(0);
+	refpointout->y = refptout.at<double>(1);
 }
 
 static void convert_H_to_MatH(const Homography *from, Mat &to) {

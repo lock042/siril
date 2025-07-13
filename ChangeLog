@@ -33,6 +33,7 @@ siril 1.4.0-beta3
 * Updated flatpak dependencies to fix build issues with recent toolchain (#1709)
 * Fixed an issue where removing overlay polygons did not immediately update the overlay
 * Fixed an issue where drawing a freehand polygon left the mouse in an unusable state
+* Fixed crash with openCV >= 4.12 (#1722, #1723)
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
