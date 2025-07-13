@@ -3380,7 +3380,7 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_seq_frame_header(self, frame: int, return_as = 'str') -> str | dict | None:
+    def get_seq_frame_header(self, frame: int, return_as = 'str') -> Union[str, dict, None]:
         """
         Retrieve the full FITS header of an image from the sequence loaded in Siril.
 
