@@ -458,6 +458,12 @@ class ONNXHelper:
                 if self.system == 'windows' and onnxruntime_pkg == 'onnxruntime-openvino':
                     import onnxruntime.tools.add_openvino_win_libs as utils
                     utils.add_openvino_libs_to_path()
+                try:
+                    import onnxruntime
+                except ImportError as e:
+                    print(f"Checked installed runtime {onnxruntime_pkg} cannot be imported: {e}. Falling back to the basic CPU runtime", file=sys.stderr)
+                    self.uninstall_onnxruntime()
+                    _install_package(onnxruntime, None)
         except TimeoutError as e:
             print(f"Failed to install {onnxruntime_pkg}: timeout error {str(e)}")
             raise TimeoutError("Error: timeout in install_onnxruntime()") from e
