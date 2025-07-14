@@ -1159,11 +1159,25 @@ class Polygon:
         fill (bool): If True, the polygon should be filled when drawn.
         legend (str): Optional legend for the polygon.
     """
-    points: List[FPoint] #: List of points defining the polygon's shape :no-index:
-    polygon_id: int = 0 #: unique identifier :no-index:
-    color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF) :no-index:
-    fill: bool = False #: whether or not the polygon should be filled when drawn :no-index:
-    legend: str = None #: an optional legend :no-index:
+    #: List of points defining the polygon's shape
+    #: :no-index:
+    points: List[FPoint]
+
+    #: unique identifier
+    #: :no-index:
+    polygon_id: int = 0
+
+    #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF)
+    #: :no-index:
+    color: int = 0xFFFFFFFF
+
+    #: whether or not the polygon should be filled when drawn
+    #: :no-index:
+    fill: bool = False
+
+    #: an optional legend
+    #: :no-index:
+    legend: str = None
 
     @classmethod
     def from_rectangle(cls, rect: Tuple[int, int, int, int], **kwargs) -> 'Polygon':
