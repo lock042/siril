@@ -302,9 +302,11 @@ class ONNXHelper:
     def test_onnxruntime(self, ort=None):
         """
         Test an imported onnxruntime.
+
         Args:install_torch(cuda_version=cuda_version)
             ort: The ONNX runtime module to test. If None, the method will
-            attempt to import onnxruntime for the test.
+                attempt to import onnxruntime for the test.
+
         Returns:
             list: a list of confirmed working ONNXRuntime ExecutionProviders in priority order
         """
@@ -619,9 +621,9 @@ class ONNXHelper:
         The CPU provider is always included as the final fallback option.
         Args:
             ai_gpu_acceleration (bool): Whether to include GPU acceleration providers.
-                                        Defaults to True.
+                Defaults to True.
             force_check (bool): Whether to force re-checking even if a cached config exists.
-                                Defaults to False.
+                Defaults to False.
         Returns:
             list: Ordered list of available execution providers.
         """

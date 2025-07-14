@@ -1313,10 +1313,10 @@ class SirilInterface:
                 If None, looks for a star in the selection already made in Siril,
                 if one is made.
             channel: Optional int specifying the channel to retrieve from.
-                    If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
-                    channel is omitted the current viewport will be used if
-                    in GUI mode, or if not in GUI mode the method will fall back
-                    to channel 0
+                If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
+                channel is omitted the current viewport will be used if
+                in GUI mode, or if not in GUI mode the method will fall back
+                to channel 0
         Returns:
             ImageStats: the ImageStats object representing the selection statistics.
         Raises:
