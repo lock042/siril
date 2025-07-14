@@ -4,6 +4,7 @@ xx/xx/xx
 **Fixes:**
 * Fixed incomplete implementation of shared memory bugfix from beta3 (#1719)
 * Fixed type hinting in get_seq_frame_header to work with python 3.11 and earlier (scripts #13)
+* Fixed a deadlock in the `reloadscripts` command
 
 siril 1.4.0-beta3
 07/11/25

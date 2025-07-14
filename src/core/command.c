@@ -9659,8 +9659,7 @@ int process_reloadscripts(int nb){
 		siril_log_color_message(_("Error: cannot reload script menu when running headless\n"), "red");
 		return CMD_GENERIC_ERROR;
 	} else {
-		GThread *thread = g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL);
-		g_thread_join(thread);
+		g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
 	}
 	return CMD_OK;
 }
