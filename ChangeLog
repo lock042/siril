@@ -5,6 +5,8 @@ xx/xx/xx
 * Fixed incomplete implementation of shared memory bugfix from beta3 (#1719)
 * Fixed type hinting in get_seq_frame_header to work with python 3.11 and earlier (scripts #13)
 * Fixed a deadlock in the `reloadscripts` command
+* Fixed crash with openCV >= 4.12 (#1722, #1723)
+* Fixed issue where cold and hot pixels estimation were neve updated (#1724)
 
 siril 1.4.0-beta3
 07/11/25
@@ -34,7 +36,6 @@ siril 1.4.0-beta3
 * Updated flatpak dependencies to fix build issues with recent toolchain (#1709)
 * Fixed an issue where removing overlay polygons did not immediately update the overlay
 * Fixed an issue where drawing a freehand polygon left the mouse in an unusable state
-* Fixed crash with openCV >= 4.12 (#1722, #1723)
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
