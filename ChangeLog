@@ -7,6 +7,7 @@ xx/xx/xx
 * Fixed a deadlock in the `reloadscripts` command
 * Fixed crash with openCV >= 4.12 (#1722, #1723)
 * Fixed issue where cold and hot pixels estimation were neve updated (#1724)
+* Fixed issue with the way python retrieves the current filename (this could omit the extension in some situations)
 
 siril 1.4.0-beta3
 07/11/25
