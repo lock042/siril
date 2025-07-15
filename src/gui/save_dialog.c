@@ -659,7 +659,10 @@ static gpointer mini_save_dialog(gpointer p) {
 			gfit.checksum = args->checksum;
 			args->retval = savefits(args->filename, &gfit);
 			if (!args->retval && single_image_is_loaded()) {
-				com.uniq->filename = strdup(args->filename);
+				// com.uniq->filename is handled by libc functions so we can't use g_strdup_printf directly
+				gchar* tempfilename = g_strdup_printf("%s%s", args->filename, com.pref.ext);
+				com.uniq->filename = strdup(tempfilename);
+				free(tempfilename);
 				com.uniq->fileexist = TRUE;
 			}
 			break;
