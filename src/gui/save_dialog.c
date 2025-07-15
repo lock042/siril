@@ -662,7 +662,7 @@ static gpointer mini_save_dialog(gpointer p) {
 				// com.uniq->filename is handled by libc functions so we can't use g_strdup_printf directly
 				gchar* tempfilename = g_strdup_printf("%s%s", args->filename, com.pref.ext);
 				com.uniq->filename = strdup(tempfilename);
-				free(tempfilename);
+				g_free(tempfilename);
 				com.uniq->fileexist = TRUE;
 			}
 			break;

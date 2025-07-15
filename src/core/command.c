@@ -334,6 +334,15 @@ int process_save(int nb){
 		retval = savefits(savename, &gfit) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
 	}
+	if (com.uniq) {
+		gchar* tempfilename = g_strdup_printf("%s%s", savename, com.pref.ext);
+		com.uniq->filename = strdup(tempfilename);
+		g_free(tempfilename);
+		com.uniq->fileexist = TRUE;
+		if (!com.headless) {
+			display_filename();
+		}
+	}
 	gui_function(set_precision_switch, NULL);
 
 	g_free(filename);
