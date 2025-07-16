@@ -1533,7 +1533,7 @@ gboolean sequence_is_loaded() {
 }
 
 gboolean check_seq_is_comseq(const sequence *seq) {
-	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname))
+	if (sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname))
 		return TRUE;
 	return FALSE;
 }
