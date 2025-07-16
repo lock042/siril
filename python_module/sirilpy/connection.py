@@ -1306,6 +1306,7 @@ class SirilInterface:
         channel: Optional[int] = None) -> Optional[PSFStar]:
         """
         Retrieves statistics for the current selection in Siril.
+
         Args:
             shape: Optional list of [x, y, w, h] specifying the selection to
                 retrieve from.

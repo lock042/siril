@@ -619,11 +619,13 @@ class ONNXHelper:
         This function returns a list of available ONNX Runtime execution providers
         in a reasonable order of priority, covering major GPU platforms:
         The CPU provider is always included as the final fallback option.
+
         Args:
             ai_gpu_acceleration (bool): Whether to include GPU acceleration providers.
                 Defaults to True.
             force_check (bool): Whether to force re-checking even if a cached config exists.
                 Defaults to False.
+
         Returns:
             list: Ordered list of available execution providers.
         """
