@@ -1,3 +1,15 @@
+siril 1.4.0-beta4
+xx/xx/xx
+
+**Fixes:**
+* Fixed incomplete implementation of shared memory bugfix from beta3 (#1719)
+* Fixed type hinting in get_seq_frame_header to work with python 3.11 and earlier (scripts #13)
+* Fixed a deadlock in the `reloadscripts` command
+* Fixed crash with openCV >= 4.12 (#1722, #1723)
+* Fixed issue where cold and hot pixels estimation were neve updated (#1724)
+* Fixed issue with the way python retrieves the current filename (this could omit the extension in some situations)
+* Fixed problems extracting metadata from FITSEQ sequences (#1718, #1720, !915)
+
 siril 1.4.0-beta3
 07/11/25
 
@@ -43,6 +55,7 @@ siril 1.4.0-beta3
 * Uses the double click to open script in the editor.
 * Make SIP and WCS as protected keywords (#1696)
 * Added -followstar to the seqpsf command: previously this could only be set from the GUI. (!905)
+* Added ability to open previous revisions of scripts in the repository (!911)
 
 siril 1.4.0-beta2
 05/21/25

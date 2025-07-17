@@ -334,6 +334,15 @@ int process_save(int nb){
 		retval = savefits(savename, &gfit) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
 	}
+	if (com.uniq) {
+		gchar* tempfilename = g_strdup_printf("%s%s", savename, com.pref.ext);
+		com.uniq->filename = strdup(tempfilename);
+		g_free(tempfilename);
+		com.uniq->fileexist = TRUE;
+		if (!com.headless) {
+			display_filename();
+		}
+	}
 	gui_function(set_precision_switch, NULL);
 
 	g_free(filename);
@@ -9673,8 +9682,7 @@ int process_reloadscripts(int nb){
 		siril_log_color_message(_("Error: cannot reload script menu when running headless\n"), "red");
 		return CMD_GENERIC_ERROR;
 	} else {
-		GThread *thread = g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL);
-		g_thread_join(thread);
+		g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
 	}
 	return CMD_OK;
 }
@@ -11559,6 +11567,8 @@ int process_pyscript(int nb) {
 		script_name = g_strdup(word[1]);
 	} else {
 		// Search for the file in the user's set script directories and the scripts repository
+		// We search the user's path first so any local modifications are used in preference to
+		// the repository script with the same name.
 		GSList *path = com.pref.gui.script_path;
 		while (path) {
 			siril_debug_print("Searching script path: %s\n", (gchar*) path->data);

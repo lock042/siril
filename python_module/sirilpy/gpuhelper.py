@@ -302,9 +302,11 @@ class ONNXHelper:
     def test_onnxruntime(self, ort=None):
         """
         Test an imported onnxruntime.
+
         Args:install_torch(cuda_version=cuda_version)
             ort: The ONNX runtime module to test. If None, the method will
-            attempt to import onnxruntime for the test.
+                attempt to import onnxruntime for the test.
+
         Returns:
             list: a list of confirmed working ONNXRuntime ExecutionProviders in priority order
         """
@@ -458,6 +460,12 @@ class ONNXHelper:
                 if self.system == 'windows' and onnxruntime_pkg == 'onnxruntime-openvino':
                     import onnxruntime.tools.add_openvino_win_libs as utils
                     utils.add_openvino_libs_to_path()
+                try:
+                    import onnxruntime
+                except ImportError as e:
+                    print(f"Checked installed runtime {onnxruntime_pkg} cannot be imported: {e}. Falling back to the basic CPU runtime", file=sys.stderr)
+                    self.uninstall_onnxruntime()
+                    _install_package(onnxruntime, None)
         except TimeoutError as e:
             print(f"Failed to install {onnxruntime_pkg}: timeout error {str(e)}")
             raise TimeoutError("Error: timeout in install_onnxruntime()") from e
@@ -611,11 +619,13 @@ class ONNXHelper:
         This function returns a list of available ONNX Runtime execution providers
         in a reasonable order of priority, covering major GPU platforms:
         The CPU provider is always included as the final fallback option.
+
         Args:
             ai_gpu_acceleration (bool): Whether to include GPU acceleration providers.
-                                        Defaults to True.
+                Defaults to True.
             force_check (bool): Whether to force re-checking even if a cached config exists.
-                                Defaults to False.
+                Defaults to False.
+
         Returns:
             list: Ordered list of available execution providers.
         """
