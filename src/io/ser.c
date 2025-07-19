@@ -959,7 +959,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	fit->icc_profile = NULL;
 
 	if (!open_debayer && ser_file->color_id >= SER_BAYER_RGGB &&
-			ser_file->color_id <= SER_BAYER_GRBG) { // we don't write the pattern if the image has been debayered
+			ser_file->color_id <= SER_BAYER_BGGR) { // we don't write the pattern if the image has been debayered
 		sensor_pattern pattern = convert_color_id_to_bayer_pattern(ser_file->color_id);
 		const char *pattern_str = filter_pattern[pattern];
 		const char *new_pattern_str = flip_bayer_pattern(pattern_str);
