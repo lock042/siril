@@ -209,7 +209,7 @@ static command commands[] = {
 							"seqplatesolve sequencename ... [-localasnet [-blindpos] [-blindres]]", process_platesolve, STR_SEQPLATESOLVE, TRUE, REQ_CMD_NO_THREAD},
 	{"seqresample", 1, "seqresample sequencename { -scale= | -width= | -height= } [-interp=] [-prefix=]", process_seq_resample, STR_SEQRESAMPLE, TRUE, REQ_CMD_NO_THREAD},
 	{"seqrl", 1, "seqrl sequencename [-loadpsf=] [-alpha=] [-iters=] [-stop=] [-gdstep=] [-tv] [-fh] [-mul]", process_seq_rl, STR_SEQRL CMD_CAT(RL) STR_RL, TRUE, REQ_CMD_NONE},
-	{"seqsb", 1, "sb sequencename [-loadpsf=] [-alpha=] [-iters=]", process_seq_sb, STR_SEQSB CMD_CAT(SB) STR_SB, TRUE, REQ_CMD_NONE},
+	{"seqsb", 1, "seqsb sequencename [-loadpsf=] [-alpha=] [-iters=]", process_seq_sb, STR_SEQSB CMD_CAT(SB) STR_SB, TRUE, REQ_CMD_NONE},
 	{"seqsetmag", 1, "seqsetmag magnitude", process_set_mag_seq, STR_SEQSETMAG, FALSE, REQ_CMD_SEQUENCE},
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA CMD_CAT(SPLIT_CFA) STR_SPLIT_CFA, TRUE, REQ_CMD_NO_THREAD},
 #ifdef HAVE_LIBTIFF
