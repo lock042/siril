@@ -576,7 +576,7 @@ int auto_update_gitscripts(gboolean sync) {
 			"and restart Siril to re-clone the correct repository.\n"),
 			SCRIPT_REPOSITORY_URL, local_path);
 		siril_log_color_message(msg, "red");
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Repository Error"), msg);
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("Repository Error"), msg);
 		g_free(msg);
 		// Make scripts unavailable, as the contents of a random git repository
 		// could be complete rubbish
@@ -786,7 +786,7 @@ int auto_update_gitspcc(gboolean sync) {
 			"and restart Siril to re-clone the correct repository.\n"),
 			SPCC_REPOSITORY_URL, local_path);
 		siril_log_color_message(msg, "red");
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Repository Error"), msg);
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("Repository Error"), msg);
 		g_free(msg);
 		// Make scripts unavailable, as the contents of a random git repository
 		// could be complete rubbish
