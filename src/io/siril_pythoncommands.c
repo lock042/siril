@@ -1185,18 +1185,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			success = handle_set_pixeldata_request(conn, fit, info, payload_length - 4);
 			int writer_retval;
 			// Write the sequence frame
-			if (com.seq.type == SEQ_SER) {
-				writer_retval = ser_write_frame_from_fit(com.seq.ser_file, fit, index);
-			} else if (com.seq.type == SEQ_FITSEQ) {
-				writer_retval = fitseq_write_image(com.seq.fitseq_file, fit, index);
-			} else {
-				char *dest = fit_sequence_get_image_filename_prefixed(&com.seq,
-						"", index);
-				siril_debug_print("set_seq_frame_pixeldata dest filename: %s\n", dest);
-				fit->bitpix = fit->orig_bitpix;
-				writer_retval = savefits(dest, fit);
-				free(dest);
-			}
+			char *dest = fit_sequence_get_image_filename_prefixed(&com.seq,
+					"", index);
+			siril_debug_print("set_seq_frame_pixeldata dest filename: %s\n", dest);
+			fit->bitpix = fit->orig_bitpix;
+			writer_retval = savefits(dest, fit);
+			free(dest);
 			if (fit->rx != com.seq.rx || fit->ry != com.seq.ry) {
 				// Mark the sequence as variable
 				com.seq.is_variable = TRUE;
