@@ -392,7 +392,42 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	process_seq_psf(0);
+
+	if (!sequence_is_loaded()) {
+		siril_log_color_message(_("Error: no sequence loaded.\n"), "red");
+		return;
+	}
+
+	// If we reach here, sequence is loaded
+	sequence *seq = &com.seq;
+	int layer = select_vport(gui.cvport);
+
+	// Validate selection size
+	if (com.selection.w > 300 || com.selection.h > 300) {
+		siril_log_color_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"), "red");
+		return;
+	}
+	if (com.selection.w <= 0 || com.selection.h <= 0) {
+		siril_log_color_message(_("Select an area first\n"), "red");
+		return;
+	}
+
+	// Determine framing mode
+	framing_mode framing = REGISTERED_FRAME;
+	if (!seq->regparam[layer])
+		framing = ORIGINAL_FRAME;
+	if (framing == ORIGINAL_FRAME) {
+		// com.headless is FALSE, so we execute the GUI path
+		execute_idle_and_wait_for_it(get_followstar_idle, &framing);
+	}
+
+	// Run PSF
+	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
+	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, FALSE) ? 1 : 0;
+
+	if (retval != 0) {
+		siril_log_color_message(_("Error running the PSF on the sequence\n"), "red");
+	}
 }
 
 void crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

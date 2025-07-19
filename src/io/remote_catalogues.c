@@ -566,6 +566,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	GOutputStream *output_stream = NULL;
 	GFile *file = NULL;
 	gboolean remove_file = FALSE, catalog_is_in_cache = FALSE;
+	int fetch_url_error = 0;
 
 	/* check if catalogue already exists in cache */
 	filepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache, NO_DATALINK_RETRIEVAL);
@@ -600,7 +601,6 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	siril_debug_print("URL: %s\n", url);
 	siril_log_message(_("Contacting server\n"));
 	gsize length;
-	int fetch_url_error;
 	buffer = fetch_url(url, &length, &fetch_url_error, FALSE);
 
 	/* save (and parse if required)*/

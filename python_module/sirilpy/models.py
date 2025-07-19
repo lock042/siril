@@ -1151,19 +1151,13 @@ class Polygon:
     they can be used to display information to the user but they may be cleared
     at any time if the user toggles the overlay button in the main Siril interface
     to clear the overlay.
-
-    Attributes:
-        polygon_id (int): A unique identifier for the polygon.
-        points (List[FPoint]): List of points defining the polygon's shape.
-        color (int): Packed RGBA color (32-bit integer).
-        fill (bool): If True, the polygon should be filled when drawn.
-        legend (str): Optional legend for the polygon.
     """
-    points: List[FPoint] #: List of points defining the polygon's shape :no-index:
-    polygon_id: int = 0 #: unique identifier :no-index:
-    color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF) :no-index:
-    fill: bool = False #: whether or not the polygon should be filled when drawn :no-index:
-    legend: str = None #: an optional legend :no-index:
+    
+    points: List[FPoint] #: List of points defining the polygon's shape
+    polygon_id: int = 0 #: unique identifier
+    color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF)
+    fill: bool = False #: whether or not the polygon should be filled when drawn
+    legend: str = None #: an optional legend
 
     @classmethod
     def from_rectangle(cls, rect: Tuple[int, int, int, int], **kwargs) -> 'Polygon':

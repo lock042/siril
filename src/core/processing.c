@@ -1230,27 +1230,44 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 			goto cleanup;
 		}
 	}
-
+	if (args->seq->type == SEQ_FITSEQ && (!args->seq->fitseq_file || !args->seq->fitseq_file->fptr)) {
+		gchar *seqfilename = g_strdup_printf("%s%s", args->seq->seqname, args->seq->ext);
+		fitseq_open(seqfilename, args->seq->fitseq_file, 0);
+		g_free(seqfilename);
+	}
 	for (frame = 0; frame < nb_frames; frame++) {
 		if (index_mapping)
 			input_idx = index_mapping[frame];
 		else input_idx = frame;
 
 		fits fit = { 0 };
-		if (seq_open_image(args->seq, input_idx)) {
+		if (args->seq->type == SEQ_REGULAR && seq_open_image(args->seq, input_idx)) {
 			retval = 1;
 			goto cleanup;
+		} else if (args->seq->type == SEQ_FITSEQ) {
+			// Need to move to the correct HDU
+			fits_movabs_hdu(args->seq->fitseq_file->fptr, args->seq->fitseq_file->hdu_index[input_idx], NULL, &retval);
+			if (retval) {
+				siril_log_color_message(_("Error finding the HDU for frame %d\n"), "red", input_idx);
+				goto cleanup;
+			}
 		}
 		if (args->seq->type == SEQ_REGULAR)
 			args->image_hook(args, args->seq->fptr[input_idx], input_idx);
 		else args->image_hook(args, args->seq->fitseq_file->fptr, input_idx);
-		seq_close_image(args->seq, input_idx);
+		if (args->seq->type == SEQ_REGULAR)
+			seq_close_image(args->seq, input_idx);
 		clearfits(&fit);
 	}
 cleanup:
+	if (args->seq->type == SEQ_FITSEQ) {
+		int status;
+		fits_movabs_hdu(args->seq->fitseq_file->fptr, args->seq->fitseq_file->hdu_index[0], NULL, &status);
+	}
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	free_sequence(args->seq, TRUE);
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
 	g_slist_free_full(args->keys, g_free);
 	g_free(args->header);
 	if (args->output_stream)

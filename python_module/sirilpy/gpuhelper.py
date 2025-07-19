@@ -14,6 +14,7 @@ import os
 import sys
 import json
 import time
+import shutil
 import platform
 import tempfile
 import importlib
@@ -29,14 +30,18 @@ from .utility import ensure_installed, _check_package_installed, _install_packag
 def _detect_cuda_version(system) -> Optional[str]:
     """
     Detects the CUDA version by parsing the output of 'nvcc -v'.
-
     Returns:
         Optional[str]: The CUDA version as a string (e.g., '11.7') if detected,
                         or "0.0" if nvcc is not installed or version cannot be determined.
     """
-    try:
-        nvcc_command = 'nvcc.exe' if system == 'windows' else 'nvcc'
+    nvcc_command = 'nvcc.exe' if system == 'windows' else 'nvcc'
 
+    # Check if nvcc exists in PATH
+    if shutil.which(nvcc_command) is None:
+        print(f"{nvcc_command} not found in PATH, trying torch fallback")
+        return _try_torch_cuda_version()
+
+    try:
         # Run nvcc -V and capture the output
         result = subprocess.run([nvcc_command, '-V'],
                                 stdout=subprocess.PIPE,
@@ -55,21 +60,28 @@ def _detect_cuda_version(system) -> Optional[str]:
             # Return just the major.minor part (e.g., 11.7 from 11.7.0)
             version_parts = alt_match.group(1).split('.')
             return f"{version_parts[0]}.{version_parts[1]}"
-
+        print("Unable to confirm CUDA availability from nvcc output")
         return "0.0"
+
     except (subprocess.SubprocessError, FileNotFoundError):
-        # nvcc is not installed or an error occurred
-        try:
-            # possibly we hve torch installed (this is a bit slow to import
-            # which is why we don't try it first...)
-            torch_helper = TorchHelper()
-            if torch_helper.is_torch_installed():
-                import torch
-                cuda_version = torch.version.cuda  # e.g., '12.1'
-                return cuda_version
-            return "0.0"
-        except Exception:
-            return "0.0"
+        # nvcc command failed
+        return _try_torch_cuda_version()
+
+def _try_torch_cuda_version():
+    """Helper method to get CUDA version from torch"""
+    try:
+        # possibly we have torch installed (this is a bit slow to import
+        # which is why we don't try it first...)
+        torch_helper = TorchHelper()
+        if torch_helper.is_torch_installed():
+            import torch
+            cuda_version = torch.version.cuda  # e.g., '12.1'
+            return cuda_version
+        print("Torch unavailable, unable to confirm CUDA availability")
+        return "0.0"
+    except Exception:
+        print("Unable to confirm CUDA availability")
+        return "0.0"
 
 def _detect_nvidia_gpu(system):
     """
@@ -271,7 +283,7 @@ class ONNXHelper:
 
             actual_provider = session.get_providers()[0]
             if actual_provider != provider:
-                print(f"✗ {provider}: fallback occurred (used {actual_provider})")
+                print(f"(x) {provider}: fallback occurred (used {actual_provider})")
                 return False
 
             output = session.run(None, {'input': input_data})
@@ -290,9 +302,11 @@ class ONNXHelper:
     def test_onnxruntime(self, ort=None):
         """
         Test an imported onnxruntime.
+
         Args:install_torch(cuda_version=cuda_version)
             ort: The ONNX runtime module to test. If None, the method will
-            attempt to import onnxruntime for the test.
+                attempt to import onnxruntime for the test.
+
         Returns:
             list: a list of confirmed working ONNXRuntime ExecutionProviders in priority order
         """
@@ -402,9 +416,12 @@ class ONNXHelper:
                 result = result[0]
             return result, cpu_session
 
-    def install_onnxruntime(self):
+    def install_onnxruntime(self, force=False):
         """
         Detect system configuration and install the appropriate ONNX Runtime package.
+
+        Args:
+            force: bool: If True, force reinstallation even if onnxruntime is already installed.
 
         Returns:
             bool: True if installation was successful or already installed, False otherwise.
@@ -417,8 +434,14 @@ class ONNXHelper:
         is_installed, package_name = self.is_onnxruntime_installed()
 
         if is_installed:
-            print(f"ONNX Runtime is already installed: {package_name}")
-            return True
+            if force:
+                print("ONNX Runtime is already installed. Removing and reinstalling...")
+                self.uninstall_onnxruntime()
+                if self.config_file is not None and os.path.exists(self.config_file):
+                    os.unlink(self.config_file)
+            else:
+                print(f"ONNX Runtime is already installed: {package_name}")
+                return True
 
         # If not installed, get recommended package
         onnxruntime_pkg, from_url, index_url = self._get_onnxruntime_package()
@@ -437,6 +460,12 @@ class ONNXHelper:
                 if self.system == 'windows' and onnxruntime_pkg == 'onnxruntime-openvino':
                     import onnxruntime.tools.add_openvino_win_libs as utils
                     utils.add_openvino_libs_to_path()
+                try:
+                    import onnxruntime
+                except ImportError as e:
+                    print(f"Checked installed runtime {onnxruntime_pkg} cannot be imported: {e}. Falling back to the basic CPU runtime", file=sys.stderr)
+                    self.uninstall_onnxruntime()
+                    _install_package(onnxruntime, None)
         except TimeoutError as e:
             print(f"Failed to install {onnxruntime_pkg}: timeout error {str(e)}")
             raise TimeoutError("Error: timeout in install_onnxruntime()") from e
@@ -534,11 +563,18 @@ class ONNXHelper:
             onnxruntime_pkg = "onnxruntime"
 
         elif self.system == "linux":
-            if _detect_nvidia_gpu(self.system) and pkg_version.Version(cuda_version).major >= 11:
-                onnxruntime_pkg = "onnxruntime-gpu"
-                if pkg_version.Version(cuda_version).major == 11:
-                    index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
-            elif _detect_amd_gpu():
+            if _detect_nvidia_gpu(self.system):
+                if pkg_version.Version(cuda_version).major >= 11:
+                    onnxruntime_pkg = "onnxruntime-gpu"
+                    if pkg_version.Version(cuda_version).major == 11:
+                        index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
+                    return onnxruntime_pkg, from_url, index_url
+
+                else:
+                    print("Warning: NVIDIA GPU detected but unable to confirm CUDA version. Ensure nvidia libraries are installed "
+                          "and either nvcc is installed on the system or Torch is installed in the Siril venv")
+
+            if _detect_amd_gpu():
                 # ROCm support for AMD GPUs on Linux
                 onnxruntime_pkg = "onnxruntime-rocm"
                 from_url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/"
@@ -577,18 +613,27 @@ class ONNXHelper:
             except Exception:
                 return False
 
-    def get_execution_providers_ordered(self, ai_gpu_acceleration=True):
+    def get_execution_providers_ordered(self, ai_gpu_acceleration=True, force_check=False):
         """
         Get execution providers ordered by priority.
         This function returns a list of available ONNX Runtime execution providers
         in a reasonable order of priority, covering major GPU platforms:
         The CPU provider is always included as the final fallback option.
+
         Args:
             ai_gpu_acceleration (bool): Whether to include GPU acceleration providers.
-                                        Defaults to True.
+                Defaults to True.
+            force_check (bool): Whether to force re-checking even if a cached config exists.
+                Defaults to False.
+
         Returns:
             list: Ordered list of available execution providers.
         """
+        if force_check is True: # Clear any previous config so it has to be re-checked
+            self.providers = None
+            if os.path.exists(self.config_file):
+                os.unlink(self.config_file)
+
         if ai_gpu_acceleration is False:
             return ["CPUExecutionProvider"]
 
@@ -638,6 +683,7 @@ class ONNXHelper:
 
         except (json.JSONDecodeError, IOError, KeyError) as e:
             print(f"Failed to load cached providers: {e}", file=sys.stderr)
+            os.unlink(self.config_file)
             return None
 
     def _save_providers_to_cache(self, providers):
@@ -672,6 +718,10 @@ class ONNXHelper:
         Returns:
             list: A list of uninstalled packages
         """
+        # Remove the execution provders config file
+        if os.path.exists(self.config_file):
+            os.unlink(self.config_file)
+
         # Get all installed packages
         try:
             result = subprocess.run(

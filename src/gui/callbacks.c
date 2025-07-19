@@ -1558,6 +1558,9 @@ gpointer update_scripts(gpointer user_data) {
 #endif
 		// 2. Update the menu (not verbose)
 		// refresh_script_menu runs in an idle in the GTK thread
+		if (com.python_init_thread)
+			g_thread_join(com.python_init_thread);
+		com.python_init_thread = NULL;
 		gui_mutex_lock();
 		execute_idle_and_wait_for_it(refresh_script_menu_idle, GINT_TO_POINTER(0));
 		gui_mutex_unlock();

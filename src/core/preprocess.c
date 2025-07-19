@@ -1014,8 +1014,8 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	set_cursor_waiting(TRUE);
-	sig[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox")));
-	sig[1] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox")));
+	sig[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeCold")));
+	sig[1] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHot")));
 	widget[0] = lookup_widget("GtkLabelColdCC");
 	widget[1] = lookup_widget("GtkLabelHotCC");
 	label[0] = GTK_LABEL(lookup_widget("GtkLabelColdCC"));
@@ -1033,6 +1033,8 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 	find_deviant_pixels(&fit, sig, &icold, &ihot, TRUE);
+	printf("sig[0]=%lf\n", sig[0]);
+	printf("sig[1]=%lf\n", sig[1]);
 	total = fit.rx * fit.ry;
 	clearfits(&fit);
 	rate = (double)icold / total;

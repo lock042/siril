@@ -290,6 +290,8 @@ void cleanup_shm_allocation(Connection *conn, const char* shm_name) {
 #endif
 		conn->g_shm_allocations = g_slist_remove(conn->g_shm_allocations, allocation);
 		g_free(allocation);
+	} else {
+		siril_debug_print("Error cleaning shared memory! No allocation found\n");
 	}
 
 	g_mutex_unlock(&conn->g_shm_mutex);
@@ -1785,6 +1787,7 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 		g_error_free(install_error);
 	} else {
 		siril_log_color_message(_("Python module is up-to-date\n"), "green");
+		g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL)); // this is slow as will require repository syncing
 	}
 	g_free(module_path);
 
@@ -1992,8 +1995,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 }
 
 void initialize_python_venv_in_thread() {
-	GError *error = NULL;
-	com.python_init_thread = g_thread_try_new("initialize python venv", initialize_python_venv, NULL, &error);
+	com.python_init_thread = g_thread_new("initialize python venv", initialize_python_venv, NULL);
 	// We clean up the thread in python_venv_idle
 }
 

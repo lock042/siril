@@ -1,5 +1,17 @@
+siril 1.4.0-beta4
+xx/xx/xx
+
+**Fixes:**
+* Fixed incomplete implementation of shared memory bugfix from beta3 (#1719)
+* Fixed type hinting in get_seq_frame_header to work with python 3.11 and earlier (scripts #13)
+* Fixed a deadlock in the `reloadscripts` command
+* Fixed crash with openCV >= 4.12 (#1722, #1723)
+* Fixed issue where cold and hot pixels estimation were neve updated (#1724)
+* Fixed issue with the way python retrieves the current filename (this could omit the extension in some situations)
+* Fixed problems extracting metadata from FITSEQ sequences (#1718, #1720, !915)
+
 siril 1.4.0-beta3
-xx/xx/25
+07/11/25
 
 **Fixes:**
 * Fixed crash when opening 8-bit XISF file (#1638)
@@ -19,6 +31,13 @@ xx/xx/25
 * Fixed an issue with git repositories where they could be unable to update after changes to the remote (!900)
 * Fixed an inconsistency between GList / GSList that caused crashes relating to the scripts menu for some users (!899)
 * Fixed an issue with linear ICC profile generation where colorants were not correctly adapted to D50 (#1683)
+* Fixed computing output required space for Apply Registration (through GUI) if some images were not selected (#1690)
+* Fixed incorrect SPCC filter plots in "Plot All" in narrowband mode (#1691)
+* Fixed an issue where starnet was not updating a data structure that sirilpy get_image_fits_header() relied on
+* Fixed an issue where shared memory was not being released correctly after use until a python script exited (#1700)
+* Updated flatpak dependencies to fix build issues with recent toolchain (#1709)
+* Fixed an issue where removing overlay polygons did not immediately update the overlay
+* Fixed an issue where drawing a freehand polygon left the mouse in an unusable state
 
 **Improvements**
 * Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
@@ -28,10 +47,15 @@ xx/xx/25
 * Improved compatibility of sirilpy.tkfilebrowser with tkinter.filedialog (allows replacing the awful Linux tk filedialog)
 * Improved the GPU module helper methods in sirilpy
 * Fixed a crash with RGB compositing (#1562)
+* Improved behaviour of histogram stretch after autostretch if the image ICC profile differs from the display profile.
 * Changed the default GHT colour mode from human weighed luminance to independent (!899)
 * Added / improved GPU helper modules to assist with installation and testing of key GPU-related modules. (!895)
 * Allow "Crop Sequence" with the internal sequence used in RGB composition, to aid with LRGB workflows. (!902)
 * Add python method to draw Polygons in the Siril overlay.
+* Uses the double click to open script in the editor.
+* Make SIP and WCS as protected keywords (#1696)
+* Added -followstar to the seqpsf command: previously this could only be set from the GUI. (!905)
+* Added ability to open previous revisions of scripts in the repository (!911)
 
 siril 1.4.0-beta2
 05/21/25

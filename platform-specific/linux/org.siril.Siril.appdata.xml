@@ -99,13 +99,43 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
-    <release version="1.4.0-beta3" date="2025-xx-xx">
+    <release version="1.4.0-beta3" date="2025-07-11">
       <url type="details">https://siril.org/download/1.4.0-beta3</url>
       <description>
         <p>
-         .
+          Third beta release of the 1.4.0 series, delivering comprehensive stability improvements and
+          enhanced Python integration. This version addresses critical crashes, improves script handling,
+          and introduces significant workflow enhancements for both GUI and command-line users.
         </p>
-         .
+        <ul>
+          <li>
+            Fixed multiple critical crashes (8-bit XISF files, pixelmath with 16-bit images, RGB compositing)
+          </li>
+          <li>
+            Resolved Python integration issues including script execution, thread handling, and shared memory management
+          </li>
+          <li>
+            Fixed SPCC filter plotting issues in narrowband mode and improved linear regression
+          </li>
+          <li>
+            Improved script repository handling with better update mechanisms and version control
+          </li>
+          <li>
+            Enhanced calibration workflow with improved file chooser memory and sequence cropping support
+          </li>
+          <li>
+            Added advanced Python features including polygon overlay drawing and improved GPU helper modules
+          </li>
+          <li>
+            Modernized GraXpert integration with new AI-powered script replacing legacy interface
+          </li>
+          <li>
+            Improved ICC profile handling and histogram stretch behavior for better color accuracy
+          </li>
+          <li>
+            Enhanced command-line functionality with -followstar support for seqpsf command
+          </li>
+        </ul>
       </description>
     </release>
     <release version="1.4.0-beta2" date="2025-05-21">
