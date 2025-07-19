@@ -1150,15 +1150,23 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+			if (com.seq.type != SEQ_REGULAR) {
+				siril_debug_print("Invalid sequence type\n");
+				const char* error_msg = _("Invalid sequence type");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
 			if (payload_length != 4 + sizeof(incoming_image_info_t)) {
 				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			int32_t index = GUINT32_FROM_BE((int32_t) *payload);
-			if (index >= com.seq.number) {
-				const char* error_msg = _("Failed to load sequence frame");
+			int32_t index = GINT32_FROM_BE(*(int32_t*)payload) - 1;
+			siril_debug_print("seq_frame_set_pixeldata index: %d\n", index);
+			// Check index is in range
+			if (index < 0 || index >= com.seq.number) {
+				const char* error_msg = _("Failed to load sequence frame: index out of range");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
@@ -1173,38 +1181,16 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 
-			int out_index = -1;
-			// Compute out_index for SER / FITSEQ
-			if (com.seq.type == SEQ_SER || com.seq.type == SEQ_FITSEQ) {
-				for (int temp_index = 0 ; temp_index <= index; temp_index++) {
-					if (com.seq.imgparam[temp_index].incl) {
-						out_index++;
-					}
-				}
-				if (out_index == -1) {
-					const char* error_msg = _("Failed to compute output index");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					clearfits(fit);
-					free(fit);
-					break;
-				}
-			}
-
 			// Update the pixel data in the sequence frame fit
 			success = handle_set_pixeldata_request(conn, fit, info, payload_length - 4);
 			int writer_retval;
 			// Write the sequence frame
-			if (com.seq.type == SEQ_SER) {
-				writer_retval = ser_write_frame_from_fit(com.seq.ser_file, fit, out_index);
-			} else if (com.seq.type == SEQ_FITSEQ) {
-				writer_retval = fitseq_write_image(com.seq.fitseq_file, fit, out_index);
-			} else {
-				char *dest = fit_sequence_get_image_filename_prefixed(&com.seq,
-						"", index);
-				fit->bitpix = fit->orig_bitpix;
-				writer_retval = savefits(dest, fit);
-				free(dest);
-			}
+			char *dest = fit_sequence_get_image_filename_prefixed(&com.seq,
+					"", index);
+			siril_debug_print("set_seq_frame_pixeldata dest filename: %s\n", dest);
+			fit->bitpix = fit->orig_bitpix;
+			writer_retval = savefits(dest, fit);
+			free(dest);
 			if (fit->rx != com.seq.rx || fit->ry != com.seq.ry) {
 				// Mark the sequence as variable
 				com.seq.is_variable = TRUE;

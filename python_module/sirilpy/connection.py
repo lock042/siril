@@ -2054,13 +2054,19 @@ class SirilInterface:
 
     def set_seq_frame_pixeldata(self, index: int, image_data: np.ndarray) -> bool:
         """
-        Send image data to Siril using shared memory.
+        Send sequence frame image data to Siril using shared memory. Note that this
+        method only works with sequences of FITS images: it does **not** work with
+        FITSEQ, SER or AVI single-file sequences.
 
         Args:
-            index: integer specifying which frame to set the pixeldata for.
+            index: integer specifying which frame to set the pixeldata for. This
+                uses a 1-based indexing scheme, i.e. the first frame is frame
+                number 1, not frame numer 0. This matches the indexing used in
+                the frame selector, but is different to the filename indexing
+                pattern used for sequences of FITS files, which is 0-indexed.
             image_data: numpy.ndarray containing the image data.
-                        Must be 2D (single channel) or 3D (multi-channel) array
-                        with dtype either np.float32 or np.uint16.
+                Must be 2D (single channel) or 3D (multi-channel) array
+                with dtype either np.float32 or np.uint16.
 
         Raises:
             NoSequenceError: if no sequence is loaded in Siril,
@@ -2141,6 +2147,7 @@ class SirilInterface:
             )
 
             # Create payload
+            # We don't range check index here as it is done more efficiently in the C code'
             index_bytes = struct.pack('!i', index)
             payload = index_bytes + info
 

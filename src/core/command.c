@@ -335,9 +335,13 @@ int process_save(int nb){
 		set_cursor_waiting(FALSE);
 	}
 	if (com.uniq) {
-		gchar* tempfilename = g_strdup_printf("%s%s", savename, com.pref.ext);
-		com.uniq->filename = strdup(tempfilename);
-		g_free(tempfilename);
+		if (!g_str_has_suffix(savename, com.pref.ext)) {
+			gchar* tempfilename = g_strdup_printf("%s%s", savename, com.pref.ext);
+			com.uniq->filename = strdup(tempfilename);
+			g_free(tempfilename);
+		} else {
+			com.uniq->filename = strdup(savename);
+		}
 		com.uniq->fileexist = TRUE;
 		if (!com.headless) {
 			display_filename();
