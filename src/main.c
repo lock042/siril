@@ -572,7 +572,7 @@ static void siril_macos_setenv(const char *progname) {
 
 		/* astropy does not create its director itself */
 		g_snprintf(tmp, sizeof(tmp), "%s/astropy", g_getenv("XDG_CONFIG_HOME"));
-		g_mkdir_with_parents(tmp, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH); // perm 755
+		siril_mkdir_with_parents(tmp, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH); // perm 755
 	}
 }
 #endif

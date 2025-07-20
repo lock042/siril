@@ -5360,8 +5360,7 @@ cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
 			}
 			/* Make sure path exists */
 			gchar *dirname = g_path_get_dirname(value);
-			if (g_mkdir_with_parents(dirname, 0755) < 0) {
-				siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+			if (siril_mkdir_with_parents(dirname, 0755) < 0) {
 				g_free(dirname);
 				return CMD_GENERIC_ERROR;
 			}
@@ -7408,8 +7407,7 @@ int process_link(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
-				if (g_mkdir_with_parents(value, 0755) < 0) {
-					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
+				if (siril_mkdir_with_parents(value, 0755) < 0) {
 					free(destroot);
 					return CMD_GENERIC_ERROR;
 				}
@@ -7582,8 +7580,7 @@ int process_convert(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
-				if (g_mkdir_with_parents(value, 0755) < 0) {
-					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
+				if (siril_mkdir_with_parents(value, 0755) < 0) {
 					free(destroot);
 					return CMD_GENERIC_ERROR;
 				}
@@ -8795,8 +8792,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		}
 		/* Make sure path exists */
 		gchar *dirname = g_path_get_dirname(arg->result_file);
-		if (g_mkdir_with_parents(dirname, 0755) < 0) {
-			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+		if (siril_mkdir_with_parents(dirname, 0755) < 0) {
 			g_free(dirname);
 			retval = CMD_GENERIC_ERROR;
 		}
