@@ -9,6 +9,7 @@ xx/xx/xx
 * Fixed issue where cold and hot pixels estimation were neve updated (#1724)
 * Fixed issue with the way python retrieves the current filename (this could omit the extension in some situations)
 * Fixed problems extracting metadata from FITSEQ sequences (#1718, #1720, !915)
+* Fixed an issue where an incorrect colourspace transform could be applied when saving a32-bit TIFF (#1730)
 * Fixed wrong cache file name (parent directory twice in the returned path) resulting in impossibility to cache files (#1734)
 
 siril 1.4.0-beta3
