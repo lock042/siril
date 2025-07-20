@@ -156,9 +156,6 @@ static int siril_repository_open(git_repository **out, const gchar *path) {
 }
 
 int reset_repository(const gchar *local_path) {
-	// Initialisation
-	git_libgit2_init();
-
 	// Open the repository
 	git_repository *repo = NULL;
 	int error = siril_repository_open(&repo, local_path);
@@ -167,7 +164,6 @@ int reset_repository(const gchar *local_path) {
 			_("Error performing hard reset. You may need to delete the local git "
 			"repository and allow Siril to re-clone it.\n"), "red");
 		git_repository_free(repo);
-		git_libgit2_shutdown();
 		return -1;
 	}
 
@@ -180,7 +176,6 @@ int reset_repository(const gchar *local_path) {
 			"repository and allow Siril to re-clone it.\n"),
 			"red");
 		git_repository_free(repo);
-		git_libgit2_shutdown();
 		return -1;
 	}
 
@@ -192,12 +187,10 @@ int reset_repository(const gchar *local_path) {
 			"repository and allow Siril to re-clone it.\n"), "red");
 		git_object_free(target_commit);
 		git_repository_free(repo);
-		git_libgit2_shutdown();
 		return -1;
 	}
 
 	git_repository_free(repo);
-	git_libgit2_shutdown();
 	return 0;
 }
 
@@ -463,9 +456,6 @@ int auto_update_gitscripts(gboolean sync) {
 	git_remote *remote = NULL;
 	git_index *index = NULL;
 
-	// Initialize libgit2
-	git_libgit2_init();
-
 	// URL of the remote repository
 	siril_debug_print("Repository URL: %s\n", SCRIPT_REPOSITORY_URL);
 
@@ -711,7 +701,6 @@ cleanup:
 	if (repo) {
 		git_repository_free(repo);
 	}
-	git_libgit2_shutdown();
 
 	return retval;
 }
@@ -720,9 +709,6 @@ int auto_update_gitspcc(gboolean sync) {
 	int retval = 0;
 	git_repository *repo = NULL;
 	git_remote *remote = NULL;
-
-	// Initialize libgit2
-	git_libgit2_init();
 
 	// URL of the remote repository
 	siril_debug_print("Repository URL: %s\n", SPCC_REPOSITORY_URL);
@@ -896,8 +882,6 @@ cleanup:
 	if (repo) {
 		git_repository_free(repo);
 	}
-	git_libgit2_shutdown();
-
 	return retval;
 }
 
@@ -1208,9 +1192,6 @@ gchar *get_script_content_string_from_file_revision(const char *filepath,
 	gchar *content = NULL;
 	gchar *message = NULL;
 
-	// Initialize libgit2
-	git_libgit2_init();
-
 	// URL of the remote repository
 	siril_debug_print("Repository URL: %s\n", SCRIPT_REPOSITORY_URL);
 
@@ -1257,8 +1238,6 @@ gchar *get_script_content_string_from_file_revision(const char *filepath,
 cleanup:
 	if (repo)
 		git_repository_free(repo);
-	git_libgit2_shutdown();
-
 	return content;
 }
 

@@ -1551,17 +1551,17 @@ gpointer update_spcc(gpointer user_data) {
 
 // Updates the repository and then refreshes the scripts menu.
 gpointer update_scripts(gpointer user_data) {
-	// 1. Update the repository
 	if (is_online()) {
 #ifdef HAVE_LIBGIT2
+		// 1. Update the repository
 		auto_update_gitscripts(TRUE);
 #endif
 		// 2. Update the menu (not verbose)
-		// refresh_script_menu runs in an idle in the GTK thread
 		if (com.python_init_thread)
 			g_thread_join(com.python_init_thread);
 		com.python_init_thread = NULL;
 		gui_mutex_lock();
+		// refresh_script_menu runs in an idle in the GTK thread
 		execute_idle_and_wait_for_it(refresh_script_menu_idle, GINT_TO_POINTER(0));
 		gui_mutex_unlock();
 	}
