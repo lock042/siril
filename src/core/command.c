@@ -4396,7 +4396,7 @@ int process_seq_tilt(int nb) {
 	// through GUI, in case the specified sequence is not the loaded sequence
 	// load it before running
 	if (!com.script && seq != &com.seq) {
-		gui_function(set_seq, word[1]);
+		gui_function(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		draw_polygon = TRUE;
@@ -4541,7 +4541,7 @@ int process_seq_psf(int nb) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	if (!com.script && seq != &com.seq) {
-		gui_function(set_seq, word[1]);
+		gui_function(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}

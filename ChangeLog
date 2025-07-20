@@ -10,6 +10,7 @@ xx/xx/xx
 * Fixed issue with the way python retrieves the current filename (this could omit the extension in some situations)
 * Fixed problems extracting metadata from FITSEQ sequences (#1718, #1720, !915)
 * Fixed an issue where an incorrect colourspace transform could be applied when saving a32-bit TIFF (#1730)
+*Fixed crash in commands seqpsf and seqtilt when executed from the command line (#1736)
 
 siril 1.4.0-beta3
 07/11/25
