@@ -991,7 +991,7 @@ gboolean populate_spcc_combos(gpointer user_data) {
 	spcc_debug_print("populate_spcc_combos: setting switch state\n");
 	gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
 
-	spcc_debug_print("populate_spcc_combos: completed successfully\n");
+	siril_debug_print("populate_spcc_combos: completed successfully\n");
 end:
 	return FALSE;
 }
