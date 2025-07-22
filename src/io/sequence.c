@@ -1990,10 +1990,6 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 			g_slist_free_full(spsfargs->list, free);
 		free(spsfargs);
 		args->user = NULL;
-		if (!check_seq_is_comseq(args->seq)) {
-			free_sequence(args->seq, TRUE);
-			args->seq = NULL;
-		}
 	}
 
 	return 0;
@@ -2101,8 +2097,10 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	spsfargs->init_from_center = init_from_center;
 
 	fits fit = { 0 };
+	if (seq->reference_image < 0)
+		seq->reference_image = sequence_find_refimage(seq);
 	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
-		siril_log_color_message(_("Could not load metadata"), "red");
+		siril_log_color_message(_("Could not load metadata\n"), "red");
 		free(args);
 		free(spsfargs);
 		return -1;
