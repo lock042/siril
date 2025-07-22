@@ -1990,9 +1990,10 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 			g_slist_free_full(spsfargs->list, free);
 		free(spsfargs);
 		args->user = NULL;
-		if (!check_seq_is_comseq(args->seq))
+		if (!check_seq_is_comseq(args->seq)) {
 			free_sequence(args->seq, TRUE);
 			args->seq = NULL;
+		}
 	}
 
 	return 0;
