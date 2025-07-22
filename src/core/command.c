@@ -4395,8 +4395,8 @@ int process_seq_tilt(int nb) {
 	}
 	// through GUI, in case the specified sequence is not the loaded sequence
 	// load it before running
-	if (!com.script && seq != &com.seq) {
-		gui_function(set_seq, seq->seqname);
+	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
+		execute_idle_and_wait_for_it(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		draw_polygon = TRUE;
@@ -4540,8 +4540,8 @@ int process_seq_psf(int nb) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	if (!com.script && seq != &com.seq) {
-		gui_function(set_seq, seq->seqname);
+	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
+		execute_idle_and_wait_for_it(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}
@@ -4684,11 +4684,7 @@ int process_seq_psf(int nb) {
 	}
 
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
-	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, com.script) ? CMD_GENERIC_ERROR : CMD_OK;
-
-	if (seq != &com.seq)
-		free_sequence(seq, TRUE);
-
+	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, (com.script || com.python_script)) ? CMD_GENERIC_ERROR : CMD_OK;
 	return retval;
 }
 
