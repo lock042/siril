@@ -1551,17 +1551,17 @@ gpointer update_spcc(gpointer user_data) {
 
 // Updates the repository and then refreshes the scripts menu.
 gpointer update_scripts(gpointer user_data) {
-	// 1. Update the repository
 	if (is_online()) {
 #ifdef HAVE_LIBGIT2
+		// 1. Update the repository
+//		if (com.python_init_thread)
+//			g_thread_join(com.python_init_thread);
+//		com.python_init_thread = NULL;
 		auto_update_gitscripts(TRUE);
 #endif
 		// 2. Update the menu (not verbose)
-		// refresh_script_menu runs in an idle in the GTK thread
-		if (com.python_init_thread)
-			g_thread_join(com.python_init_thread);
-		com.python_init_thread = NULL;
 		gui_mutex_lock();
+		// refresh_script_menu runs in an idle in the GTK thread
 		execute_idle_and_wait_for_it(refresh_script_menu_idle, GINT_TO_POINTER(0));
 		gui_mutex_unlock();
 	}
@@ -1573,8 +1573,10 @@ gpointer initialize_script_menu_and_spcc_widgets_serially(gpointer user_data) {
 	execute_idle_and_wait_for_it(initialize_script_menu_idle, GINT_TO_POINTER(1)); // script menu first as it's quick based on an already loaded list
 	populate_spcc_combos_async(NULL); // this after, as it takes a little time to load the actual files
 	// Now, in threads, update the repositories and then update the combos and menu again to reflect any changes
-	g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL)); // this is slow as will require repository syncing
-	g_thread_unref(g_thread_new("update_spcc", update_spcc, NULL)); // this is slow as will require repository syncing
+	if (com.pref.auto_script_update && is_online())
+		g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL)); // this is slow as will require repository syncing
+	if (com.pref.spcc.auto_spcc_update && is_online())
+		g_thread_unref(g_thread_new("update_spcc", update_spcc, NULL)); // this is slow as will require repository syncing
 	return FALSE;
 }
 
