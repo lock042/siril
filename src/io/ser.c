@@ -484,17 +484,10 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 	return SER_OK;
 }
 
-static const gchar *flip_bayer_pattern(const gchar *old_pattern) {
-	if (!strcmp(old_pattern, "RGGB"))
-		return "GBRG";
-	else if (!strcmp(old_pattern, "GBRG"))
-		return "RGGB";
-	else if (!strcmp(old_pattern, "BGGR"))
-		return "GRBG";
-	else if (!strcmp(old_pattern, "GRBG"))
-		return "BGGR";
-	else
-		return NULL;
+static gchar *flip_bayer_pattern(const gchar *old_pattern, unsigned int ry) {
+	sensor_pattern old_sensor_pattern = get_cfa_pattern_index_from_string(old_pattern);
+	adjust_Bayer_pattern_orientation(&old_sensor_pattern, ry, TRUE);
+	return g_strdup(filter_pattern[old_sensor_pattern]);
 }
 
 /* once a buffer (data) has been acquired from the file, with frame_size pixels
@@ -821,7 +814,9 @@ int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
 	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	if (type_ser >= SER_BAYER_RGGB && type_ser <= SER_BAYER_BGGR) {
 		const gchar *ser_pattern = convert_color_id_to_char(type_ser);
-		sprintf(fit->keywords.bayer_pattern, "%s", flip_bayer_pattern(ser_pattern));
+		gchar *new_pattern = flip_bayer_pattern(ser_pattern, fit->ry);
+		sprintf(fit->keywords.bayer_pattern, "%s", new_pattern);
+		g_free(new_pattern);
 		fit->debayer_checked = TRUE;
 		fit->top_down = TRUE;
 		snprintf(fit->keywords.row_order, FLEN_VALUE, "TOP-DOWN");
@@ -962,9 +957,10 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 			ser_file->color_id <= SER_BAYER_BGGR) { // we don't write the pattern if the image has been debayered
 		sensor_pattern pattern = convert_color_id_to_bayer_pattern(ser_file->color_id);
 		const char *pattern_str = filter_pattern[pattern];
-		const char *new_pattern_str = flip_bayer_pattern(pattern_str);
-		// No need to inform the user as the FITS header details for a sequence frame are not accessible
+		gchar *new_pattern_str = flip_bayer_pattern(pattern_str, fit->ry);
 		strncpy(fit->keywords.bayer_pattern, new_pattern_str, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
+		g_free(new_pattern_str);
+		// No need to inform the user as the FITS header details for a sequence frame are not accessible
 		fit->debayer_checked = TRUE;
 	}
 
@@ -1227,8 +1223,10 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		return SER_GENERIC_ERROR;
 
 	// return bottom-up fits to top-down ser row_order
-	if (!g_strcmp0(fit->keywords.row_order, "TOP-DOWN")) {
-		snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
+	if (!g_strcmp0(fit->keywords.row_order, "TOP-DOWN") && fit_is_cfa(fit)) {
+		const char *pattern_str = fit->keywords.bayer_pattern;
+		gchar *new_pattern_str = flip_bayer_pattern(pattern_str, fit->ry);
+		strncpy(fit->keywords.bayer_pattern, new_pattern_str, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
 	}
 	fits_flip_top_to_bottom(fit);
 

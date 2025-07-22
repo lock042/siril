@@ -6,6 +6,7 @@
 #define BAYER_DEBUG 1
 extern const char *filter_pattern[];
 extern const size_t num_filter_patterns;
+void adjust_Bayer_pattern_orientation(sensor_pattern *pattern, unsigned int ry, gboolean flip);
 sensor_pattern get_cfa_pattern_index_from_string(const char *bayer);
 sensor_pattern get_validated_cfa_pattern(fits *fit, gboolean force_debayer, gboolean verbose);
 int FC_array(int row, int col, BYTE* bpattern, int size);

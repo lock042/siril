@@ -143,26 +143,6 @@ static void adjust_Bayer_pattern_offset(sensor_pattern *pattern, int xbayeroff, 
 	}
 }
 
-static void adjust_Bayer_pattern_orientation(sensor_pattern *pattern, unsigned int ry, gboolean flip) {
-	if (!pattern || !flip)
-		return;
-	// we perform the pattern flip accounting for offset in case 
-	// the image does not have an even number of rows
-	const char *bayer = filter_pattern[*pattern];
-	char bayer_flipped[5];
-	memset(bayer_flipped, 0, sizeof(bayer_flipped));
-	int offset = ry % 2;
-	for (int i = 0; i < 2; i++) {
-		int y = (1 - i + offset) % 2;
-		for (int j = 0; j < 2; j++) {
-			int index_in = y * 2 + j;
-			int index_out = i * 2 + j;
-			bayer_flipped[index_out] = bayer[index_in];
-		}
-	}
-	*pattern = get_cfa_pattern_index_from_string(bayer_flipped);
-}
-
 static int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern, gboolean flip, int xbayeroff, int ybayeroff) {
 	if (!fit || !pattern) {
 		siril_log_color_message(_("Invalid FITS file or pattern for debayering\n"), "red");
@@ -218,6 +198,26 @@ static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6], 
 		}
 	}
 	return 0;
+}
+
+void adjust_Bayer_pattern_orientation(sensor_pattern *pattern, unsigned int ry, gboolean flip) {
+	if (!pattern || !flip || *pattern == BAYER_FILTER_NONE)
+		return;
+	// we perform the pattern flip accounting for offset in case 
+	// the image does not have an even number of rows
+	const char *bayer = filter_pattern[*pattern];
+	char bayer_flipped[5];
+	memset(bayer_flipped, 0, sizeof(bayer_flipped));
+	int offset = ry % 2;
+	for (int i = 0; i < 2; i++) {
+		int y = (1 - i + offset) % 2;
+		for (int j = 0; j < 2; j++) {
+			int index_in = y * 2 + j;
+			int index_out = i * 2 + j;
+			bayer_flipped[index_out] = bayer[index_in];
+		}
+	}
+	*pattern = get_cfa_pattern_index_from_string(bayer_flipped);
 }
 
 // gets the index in filter_pattern
