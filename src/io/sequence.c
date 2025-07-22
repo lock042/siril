@@ -1970,7 +1970,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		seq->photometry[photometry_index][data->image_index] = data->psf;
 	}
 
-	if (args->already_in_a_thread || com.script) { // the idle won't be called
+	if (args->already_in_a_thread || com.script || com.python_script) { // the idle won't be called
 		// printing results ordered, the list isn't
 		gboolean first = TRUE;
 		for (int j = 0; j < seq->number; j++) {
@@ -1990,6 +1990,9 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 			g_slist_free_full(spsfargs->list, free);
 		free(spsfargs);
 		args->user = NULL;
+		if (!check_seq_is_comseq(args->seq))
+			free_sequence(args->seq, TRUE);
+			args->seq = NULL;
 	}
 
 	return 0;
