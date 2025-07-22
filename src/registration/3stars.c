@@ -252,7 +252,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	spsfargs->for_photometry = FALSE;
 	fits fit = { 0 };
 	if (seq_read_frame(regargs->seq, regargs->seq->reference_image, &fit, FALSE, -1)) {
-		siril_log_color_message(_("Could not load metadata"), "red");
+		siril_log_color_message(_("Could not load metadata\n"), "red");
 		free(args);
 		free(spsfargs);
 		return -1;
