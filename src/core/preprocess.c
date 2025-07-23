@@ -184,7 +184,7 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 			return 1;
 		}
 		if (raw->keywords.exposure <= 0.0) {
-			siril_log_color_message(_("The light frame (%d) contains no exposure data or incorrect exposure data.\n"), "red", in_index);
+			siril_log_color_message(_("The light frame (%d) contains no exposure data or incorrect exposure data.\n"), "red", in_index + 1);
 			clearfits(&dark_tmp);
 			return 1;
 		}
