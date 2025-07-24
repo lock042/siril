@@ -4593,16 +4593,17 @@ int process_seq_psf(int nb) {
 		} else if (!has_area) {
 			// Try to parse as star position
 			fits first = { 0 };
-				if (use_current_seq) {
-					// For current sequence, we may not need to read metadata
-					// if we're using current selection
-					if (area.w > 0 && area.h > 0) {
-						has_area = TRUE;
-						continue;
-					}
+			if (use_current_seq) {
+				// For current sequence, we may not need to read metadata
+				// if we're using current selection
+				if (area.w > 0 && area.h > 0) {
+					has_area = TRUE;
+					continue;
 				}
-				if (seq_read_frame_metadata(seq, 0, &first)) {
-				if (seq != &com.seq) free_sequence(seq, TRUE);
+			}
+			if (seq_read_frame_metadata(seq, 0, &first)) {
+				if (seq != &com.seq)
+					free_sequence(seq, TRUE);
 				return CMD_GENERIC_ERROR;
 			}
 			seq->current = 0;

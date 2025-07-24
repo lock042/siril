@@ -1990,6 +1990,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		/* the idle below won't be called, we free data here */
 		if (spsfargs->list)
 			g_slist_free_full(spsfargs->list, free);
+		memset(&com.selection, 0, sizeof(rectangle)); // we don't call delete_selected_area to avoid its idle when running python scripts
 		free(spsfargs);
 		args->user = NULL;
 	}
