@@ -1047,6 +1047,13 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 #ifdef _OPENMP
 				int thread_id = omp_get_thread_num();
 				dest->fptr = seq->fitseq_file->thread_fptr[thread_id];
+				int status = 0;
+				fits_movabs_hdu(dest->fptr, seq->fitseq_file->hdu_index[index], NULL, &status);
+				if (status) {
+					siril_log_message(_("Could not seek frame %d from FITS sequence %s. Error status: %d\n"),
+							index, seq->seqname, status);
+					return 1;
+				}
 				if (read_fits_metadata(dest)) {
 					siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
 							index, seq->seqname);
@@ -1533,7 +1540,7 @@ gboolean sequence_is_loaded() {
 }
 
 gboolean check_seq_is_comseq(const sequence *seq) {
-	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname))
+	if (sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname))
 		return TRUE;
 	return FALSE;
 }
@@ -1963,7 +1970,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		seq->photometry[photometry_index][data->image_index] = data->psf;
 	}
 
-	if (args->already_in_a_thread || com.script) { // the idle won't be called
+	if (args->already_in_a_thread || com.script || com.python_script) { // the idle won't be called
 		// printing results ordered, the list isn't
 		gboolean first = TRUE;
 		for (int j = 0; j < seq->number; j++) {
@@ -2090,8 +2097,10 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	spsfargs->init_from_center = init_from_center;
 
 	fits fit = { 0 };
+	if (seq->reference_image < 0)
+		seq->reference_image = sequence_find_refimage(seq);
 	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
-		siril_log_color_message(_("Could not load metadata"), "red");
+		siril_log_color_message(_("Could not load metadata\n"), "red");
 		free(args);
 		free(spsfargs);
 		return -1;

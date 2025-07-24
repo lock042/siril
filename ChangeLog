@@ -1,3 +1,18 @@
+siril 1.4.0-beta4
+xx/xx/xx
+
+**Fixes:**
+* Fixed incomplete implementation of shared memory bugfix from beta3 (#1719)
+* Fixed type hinting in get_seq_frame_header to work with python 3.11 and earlier (scripts #13)
+* Fixed a deadlock in the `reloadscripts` command
+* Fixed crash with openCV >= 4.12 (#1722, #1723)
+* Fixed issue where cold and hot pixels estimation were neve updated (#1724)
+* Fixed issue with the way python retrieves the current filename (this could omit the extension in some situations)
+* Fixed problems extracting metadata from FITSEQ sequences (#1718, #1720, !915)
+* Fixed an issue where an incorrect colourspace transform could be applied when saving a32-bit TIFF (#1730)
+* Fixed handling of automatic scripts git repository update flag
+* Fixed crash in commands seqpsf and seqtilt when executed from the command line (#1736)
+
 siril 1.4.0-beta3
 07/11/25
 

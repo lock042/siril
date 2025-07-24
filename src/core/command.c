@@ -334,6 +334,19 @@ int process_save(int nb){
 		retval = savefits(savename, &gfit) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
 	}
+	if (com.uniq) {
+		if (!g_str_has_suffix(savename, com.pref.ext)) {
+			gchar* tempfilename = g_strdup_printf("%s%s", savename, com.pref.ext);
+			com.uniq->filename = strdup(tempfilename);
+			g_free(tempfilename);
+		} else {
+			com.uniq->filename = strdup(savename);
+		}
+		com.uniq->fileexist = TRUE;
+		if (!com.headless) {
+			display_filename();
+		}
+	}
 	gui_function(set_precision_switch, NULL);
 
 	g_free(filename);
@@ -4382,8 +4395,8 @@ int process_seq_tilt(int nb) {
 	}
 	// through GUI, in case the specified sequence is not the loaded sequence
 	// load it before running
-	if (!com.script && seq != &com.seq) {
-		gui_function(set_seq, word[1]);
+	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
+		execute_idle_and_wait_for_it(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		draw_polygon = TRUE;
@@ -4527,8 +4540,8 @@ int process_seq_psf(int nb) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	if (!com.script && seq != &com.seq) {
-		gui_function(set_seq, word[1]);
+	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
+		execute_idle_and_wait_for_it(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}
@@ -4671,11 +4684,7 @@ int process_seq_psf(int nb) {
 	}
 
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
-	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, com.script) ? CMD_GENERIC_ERROR : CMD_OK;
-
-	if (seq != &com.seq)
-		free_sequence(seq, TRUE);
-
+	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, (com.script || com.python_script)) ? CMD_GENERIC_ERROR : CMD_OK;
 	return retval;
 }
 
@@ -9659,8 +9668,7 @@ int process_reloadscripts(int nb){
 		siril_log_color_message(_("Error: cannot reload script menu when running headless\n"), "red");
 		return CMD_GENERIC_ERROR;
 	} else {
-		GThread *thread = g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL);
-		g_thread_join(thread);
+		g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
 	}
 	return CMD_OK;
 }
