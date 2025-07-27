@@ -12,6 +12,7 @@ xx/xx/xx
 * Fixed an issue where an incorrect colourspace transform could be applied when saving a32-bit TIFF (#1730)
 * Fixed handling of automatic scripts git repository update flag
 * Fixed crash in commands seqpsf and seqtilt when executed from the command line (#1736)
+* Fixed handling bayer/Xtrans patterns in more robust way accross the codebase (!903)
 
 siril 1.4.0-beta3
 07/11/25
