@@ -1277,7 +1277,7 @@ class JaxHelper:
             return True
 
         # Check if torch is available
-        jax_spec = importlib.util.find_spec("torch")
+        jax_spec = importlib.util.find_spec("jax")
         if jax_spec is not None:
             self.jax_installed = True
             return True
