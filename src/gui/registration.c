@@ -923,8 +923,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 					 (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] == '\0') || // mono sequence
 					 (gfit.naxes[2] == 1 && has_drizzle && pattern > BAYER_FILTER_MIN) || // bayer-drizzle sequence
 					 gfit.naxes[2] == 3 || // debayered sequence
-					 com.seq.type == SEQ_SER || // SER can be debayered on-the-fly
-					 (has_drizzle && gfit.naxes[2] == 1); // drizzle or bayer-drizzle will be applied to produce the output
+					 com.seq.type == SEQ_SER;// SER can be debayered on-the-fly
 
 	// checking if it requires same size sequence
 	samesizeseq_required = (regindex >= REG_3STARS && regindex <= REG_KOMBAT) || ((is_star_align || isapplyreg) && has_drizzle);
@@ -968,8 +967,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(combo_driz_kernel));
 	driz->pixel_fraction = gtk_spin_button_get_value(spin_driz_dropsize);
-	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern); // no need to get the validated version
-	driz->is_bayer = gfit.naxes[2] == 1 && pattern > BAYER_FILTER_MIN && pattern < BAYER_FILTER_MAX;
+	driz->is_bayer = fit_is_cfa(&gfit);
 	int status;
 	gchar *error = NULL;
 	gchar *expression = NULL;

@@ -360,18 +360,18 @@ int register_kombat(struct registration_args *args) {
 	reg_kombat ref_align;
 
 	if (args->seq->regparam[args->layer]) {
-			siril_log_message(
-					_("Recomputing already existing registration for this layer\n"));
-			current_regdata = args->seq->regparam[args->layer];
-			/* we reset all values as we may register different images */
-			memset(current_regdata, 0, args->seq->number * sizeof(regdata));
+		siril_log_message(
+				_("Recomputing already existing registration for this layer\n"));
+		current_regdata = args->seq->regparam[args->layer];
+		/* we reset all values as we may register different images */
+		memset(current_regdata, 0, args->seq->number * sizeof(regdata));
 	} else {
-			current_regdata = (regdata*) calloc(args->seq->number, sizeof(regdata));
-			if (current_regdata == NULL) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-			args->seq->regparam[args->layer] = current_regdata;
+		current_regdata = (regdata*) calloc(args->seq->number, sizeof(regdata));
+		if (current_regdata == NULL) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+		args->seq->regparam[args->layer] = current_regdata;
 	}
 
 
