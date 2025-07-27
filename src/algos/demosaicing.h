@@ -1,9 +1,8 @@
 #ifndef _DEMOSAICING_H
 #define _DEMOSAICING_H
 
-// TODO:remove before merging
 // set to 1 to save green_interpolated fits
-#define BAYER_DEBUG 1
+#define BAYER_DEBUG 0
 extern const char *filter_pattern[];
 extern const size_t num_filter_patterns;
 void adjust_Bayer_pattern_orientation(sensor_pattern *pattern, unsigned int ry, gboolean flip);
