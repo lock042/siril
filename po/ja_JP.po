@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-10 15:46+0200\n"
-"PO-Revision-Date: 2025-07-08 15:16+0000\n"
+"PO-Revision-Date: 2025-07-15 13:09+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -2741,9 +2741,8 @@ msgid "Toggles preview"
 msgstr "フルスクリーン　オン/オフ"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:60
-#, fuzzy
 msgid "Coordinates"
-msgstr "座標なし"
+msgstr "座標"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:122
 #: src/gui/uifiles/cut_coords_dialog.ui:135
@@ -2755,18 +2754,16 @@ msgstr "1"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:149
 msgid "End"
-msgstr ""
+msgstr "終点"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:160
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:281
-#, fuzzy
 msgid "y"
-msgstr "y0"
+msgstr "y"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:172
-#, fuzzy
 msgid "Start"
-msgstr "重ね合わせ"
+msgstr "始点"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:183
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:270 src/gui/uifiles/siril.ui:4529
@@ -2789,9 +2786,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/cut_dialog.ui:107
-#, fuzzy
 msgid "<b>Type of Profile</b>"
-msgstr "<b>FITS 形式</b>"
+msgstr "<b>プロファイルの種類</b>"
 
 #: src/gui/uifiles/cut_dialog.ui:117 src/gui/cut.c:725 src/gui/cut.c:1062
 msgid "Mono"
@@ -2799,7 +2795,7 @@ msgstr "白黒"
 
 #: src/gui/uifiles/cut_dialog.ui:121 src/gui/cut.c:1063
 msgid "Generates a single luminance profile along the profile line"
-msgstr ""
+msgstr "プロファイルの線に沿って単一の輝度プロファイルを生成します"
 
 #: src/gui/uifiles/cut_dialog.ui:132
 msgid "Color"
@@ -2809,14 +2805,12 @@ msgstr "カラー"
 msgid ""
 "Generates separate R, G and B profiles along the profile line. Not "
 "applicable for mono images"
-msgstr ""
-"プロファイルラインに沿って個別のR、G、Bプロファイルを生成します。モノラル画像"
-"には適用されません"
+msgstr "プロファイルの線に沿って個別のR、G、Bプロファイルを生成します。白黒画像には適"
+"用されません"
 
 #: src/gui/uifiles/cut_dialog.ui:147
-#, fuzzy
 msgid "Manual coordinates"
-msgstr "座標なし"
+msgstr "手動座標"
 
 #: src/gui/uifiles/cut_dialog.ui:151
 msgid "Enter coordinates for the start and end points of the profile manually"
@@ -2832,7 +2826,7 @@ msgstr ""
 
 #: src/gui/uifiles/cut_dialog.ui:174
 msgid "Tri-Profile (mono)"
-msgstr ""
+msgstr "トライプロファイル（白黒）"
 
 #: src/gui/uifiles/cut_dialog.ui:178
 #, fuzzy
@@ -2854,9 +2848,8 @@ msgid "1"
 msgstr "1"
 
 #: src/gui/uifiles/cut_dialog.ui:206
-#, fuzzy
 msgid "Save profile datafile"
-msgstr "ファイルを保存"
+msgstr "プロファイルデータファイルを保存"
 
 #: src/gui/uifiles/cut_dialog.ui:210
 #, fuzzy
@@ -2879,20 +2872,18 @@ msgstr ""
 "「プロットを.pngとして保存」オプションが自動的に有効になります。"
 
 #: src/gui/uifiles/cut_dialog.ui:236
-#, fuzzy
 msgid "Save plot as .png"
-msgstr "ファイルを保存"
+msgstr "グラフを.pngとして保存"
 
 #: src/gui/uifiles/cut_dialog.ui:240
-#, fuzzy
 msgid ""
 "Saves the plot in .png format as well as opening the plot window. Sequence "
 "working relies on this so if this option is deactivated, sequence working "
 "will be deactivated too."
 msgstr ""
-"プロットを.png形式で保存し、GNUplotウィンドウを開きます。シーケンス作業はこれ"
-"に依存しているため、このオプションを無効にすると、シーケンス作業も無効になり"
-"ます。"
+"プロットウインドウを開くとともにグラフを.png形式で保存します。シーケンス作業"
+"はこれに依存しているため、このオプションを無効にすると、シーケンス作業も無効"
+"になります。"
 
 #: src/gui/uifiles/cut_dialog.ui:251
 msgid "Measure in pixels"
@@ -5191,7 +5182,7 @@ msgstr "回転に使用するアルゴリズムの種類"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:59 src/gui/photometric_cc.c:102
 msgid "Checking Gaia archive status..."
-msgstr ""
+msgstr "ガイアアーカイブの状態を確認しています..."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:122
 #, fuzzy
@@ -6035,9 +6026,8 @@ msgid "FITS/SER Debayer"
 msgstr "FITS/SER ディベイヤー"
 
 #: src/gui/uifiles/settings_window.ui:611
-#, fuzzy
 msgid "FITS options"
-msgstr "FITS 画像"
+msgstr "FITSオプション"
 
 #: src/gui/uifiles/settings_window.ui:642
 msgid "Choose the type of extension used by Siril. By default it is .fit."
@@ -6219,9 +6209,8 @@ msgid "<b>FITS Compression</b>"
 msgstr "<b>FITS 圧縮</b>"
 
 #: src/gui/uifiles/settings_window.ui:1096
-#, fuzzy
 msgid "FITS Options"
-msgstr "FITS 画像"
+msgstr "FITSオプション"
 
 #: src/gui/uifiles/settings_window.ui:1120
 #: src/gui/uifiles/settings_window.ui:1948 src/gui/uifiles/siril.ui:2418
@@ -6830,7 +6819,7 @@ msgstr "分光測光色補正"
 #: src/gui/uifiles/settings_window.ui:3193
 #: src/gui/uifiles/settings_window.ui:3304
 msgid "Analysis Tools"
-msgstr ""
+msgstr "解析ツール"
 
 #: src/gui/uifiles/settings_window.ui:3225
 msgid ""
@@ -8660,11 +8649,11 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:3833
 msgid "Supported file types:"
-msgstr "サポートされているファイルのタイプ:"
+msgstr "サポートされているファイルの種類:"
 
 #: src/gui/uifiles/siril.ui:3852
 msgid "Source"
-msgstr "ソース ファイル"
+msgstr "ソース"
 
 #: src/gui/uifiles/siril.ui:3882
 msgid ""
@@ -8705,15 +8694,15 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:3930 src/gui/uifiles/siril.ui:4297
 #: src/gui/uifiles/siril.ui:5369
 msgid "FITS images"
-msgstr "FITS 画像"
+msgstr "FITS画像"
 
 #: src/gui/uifiles/siril.ui:3931 src/gui/uifiles/siril.ui:5370
 msgid "SER sequence"
-msgstr "SER 画像シーケンス"
+msgstr "SERシーケンス"
 
 #: src/gui/uifiles/siril.ui:3932 src/gui/uifiles/siril.ui:5371
 msgid "FITS sequence"
-msgstr "FITS 画像シーケンス"
+msgstr "FITSシーケンス"
 
 #: src/gui/uifiles/siril.ui:3947
 #, fuzzy
@@ -8773,7 +8762,7 @@ msgstr "画像シーケンス名:"
 
 #: src/gui/uifiles/siril.ui:4039
 msgid "Destination"
-msgstr "保存先"
+msgstr "変換先"
 
 #: src/gui/uifiles/siril.ui:4062
 msgid ""
@@ -19194,7 +19183,7 @@ msgstr "ファイル: %s を開けない\n"
 #: src/core/initfile.c:172
 #, c-format
 msgid "unknown settings variable %s.%s\n"
-msgstr ""
+msgstr "不明な設定変数 %s.%s\n"
 
 #: src/core/initfile.c:190
 #, c-format
@@ -20439,7 +20428,7 @@ msgstr ""
 #: src/core/settings.c:604
 #, c-format
 msgid "Unknown settings variable %s.%s\n"
-msgstr ""
+msgstr "不明な設定変数 %s.%s\n"
 
 #: src/core/siril.c:177
 msgid "Unsharp: processing...\n"
@@ -23414,7 +23403,7 @@ msgstr ""
 
 #: src/gui/photometric_cc.c:121
 msgid "Gaia archive available"
-msgstr ""
+msgstr "ガイアアーカイブが利用可能です"
 
 #: src/gui/photometric_cc.c:126
 msgid "Gaia archive running but performing slightly slower\n"
@@ -24276,7 +24265,7 @@ msgstr "スクリプトエディタ…"
 
 #: src/gui/script_menu.c:308
 msgid "Enable Python debug mode"
-msgstr ""
+msgstr "Pythonのデバッグモードを有効にする"
 
 #: src/gui/script_menu.c:341
 #, c-format
@@ -27361,7 +27350,8 @@ msgstr ""
 msgid ""
 "Installing / updating python module in the background. This may take a few "
 "seconds...\n"
-msgstr ""
+msgstr "バックグラウンドでpythonモジュールをインストール/更新します。これは数秒掛かる"
+"かもしれません...\n"
 
 #: src/io/siril_pythonmodule.c:1737
 #, c-format

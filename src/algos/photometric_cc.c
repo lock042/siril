@@ -285,8 +285,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	double *crg = malloc(sizeof(double) * nb_stars);
 	double *cbg = malloc(sizeof(double) * nb_stars);
 	double wrg = 0.f, wbg = 0.f;
-	gboolean plotrg = should_plot(RLAYER, args);
-	gboolean plotbg = should_plot(BLAYER, args);
+	gboolean plotrg = args->nb_mode ? should_plot(RLAYER, args) : TRUE;
+	gboolean plotbg = args->nb_mode ? should_plot(BLAYER, args) : TRUE;
 	gboolean *maskrg = NULL, *maskbg = NULL;
 	xpsampled response[3] = { init_xpsampled(), init_xpsampled(), init_xpsampled() };
 

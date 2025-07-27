@@ -52,6 +52,10 @@
 #include <omp.h>
 #endif
 
+#ifdef HAVE_LIBGIT2
+#include <git2.h>
+#endif
+
 #include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
@@ -288,6 +292,9 @@ static void global_initialization() {
 	omp_set_max_active_levels(2);
 #endif
 
+#ifdef HAVE_LIBGIT2
+	git_libgit2_init();
+#endif
 }
 
 static void siril_app_startup(GApplication *application) {
@@ -654,6 +661,9 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
+#ifdef HAVE_LIBGIT2
+	git_libgit2_shutdown();
+#endif
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);
 	return status;
