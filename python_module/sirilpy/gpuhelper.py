@@ -857,7 +857,7 @@ class TorchHelper:
                     "override CUDA dependencies of other packages. Where this is known (e.g. jax) the "
                     "other package will be reinstalled. If you see errors relating to other packages that "
                     "have nvidia dependencies you may need to reinstall those as well, using a simple "
-                    "script calling sirilpy.ensure_installed('package', reinstall=True)". file=sys.stderr)
+                    "script calling sirilpy.ensure_installed('package', reinstall=True)", file=sys.stderr)
                 # Install torch to ensure min deps are met
                 _install_package("torch", index_url=f"https://download.pytorch.org/whl/{cuda_version}")
                 # Reinstall with --no-deps t oensure that torch's punitively restrictive nvidia dependencies
