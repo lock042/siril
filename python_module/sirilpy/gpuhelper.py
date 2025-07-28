@@ -853,7 +853,7 @@ class TorchHelper:
             else:
                 print("NOTE: Torch does not play nicely with other packages because of its excessively "
                     "zealous == nvidia / CUDA dependencies. In order to mitigate this, the package will be "
-                    "installed and then reinstalled with the no-deps flag. The initial installation may "
+                    "installed and then reinstalled with the --no-deps flag. The initial installation may "
                     "override CUDA dependencies of other packages. Where this is known (e.g. jax) the "
                     "other package will be reinstalled. If you see errors relating to other packages that "
                     "have nvidia dependencies you may need to reinstall those as well, using a simple "
