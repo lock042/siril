@@ -833,6 +833,7 @@ class TorchHelper:
         Returns:
             bool: True if installation successful, False otherwise
         """
+
         if self.is_torch_installed() and not force_reinstall:
             print("PyTorch is already installed.")
             return self._import_torch()
@@ -850,7 +851,22 @@ class TorchHelper:
             elif cuda_version.lower() == 'cpu':
                 _install_package("torch", index_url="https://download.pytorch.org/whl/cpu")
             else:
+                print("NOTE: Torch does not play nicely with other packages because of its excessively "
+                    "zealous == nvidia / CUDA dependencies. In order to mitigate this, the package will be "
+                    "installed and then reinstalled with the no-deps flag. The initial installation may "
+                    "override CUDA dependencies of other packages. Where this is known (e.g. jax) the "
+                    "other package will be reinstalled. If you see errors relating to other packages that "
+                    "have nvidia dependencies you may need to reinstall those as well, using a simple "
+                    "script calling sirilpy.ensure_installed('package', reinstall=True)". file=sys.stderr)
+                # Install torch to ensure min deps are met
                 _install_package("torch", index_url=f"https://download.pytorch.org/whl/{cuda_version}")
+                # Reinstall with --no-deps t oensure that torch's punitively restrictive nvidia dependencies
+                # don't cause problems with other packages
+                _install_package("torch", index_url=f"https://download.pytorch.org/whl/{cuda_version}", reinstall=True, nodeps=True)
+                # Check if jax is installed; if so, force reinstallation to restore its minimum CUDA dependencies
+                jh = JaxHelper()
+                if jh.is_jax_installed():
+                    _install_package("jax", reinstall=True)
 
             # Try to import after installation
             return self._import_torch()
@@ -1385,7 +1401,8 @@ class JaxHelper:
         return config
 
     def install_jax(self, force_variant: Optional[str] = None,
-                   version_constraint: Optional[str] = None) -> bool:
+                   version_constraint: Optional[str] = None,
+                   force_reinstall: Optional[bool] = False) -> bool:
         """
         Install JAX with the appropriate variant for the detected hardware. Use this instead of
         ensure_installed() to ensure that jax is installed correctly for the given hardware / OS
@@ -1393,6 +1410,7 @@ class JaxHelper:
         Args:
             force_variant: Override auto-detection with specific variant (e.g., 'jax[cpu]')
             version_constraint: Version constraint string (e.g., '>=0.4.0')
+        force_reinstall: Forces a reinstallation
 
         Returns:
             bool: True if installation succeeded, False otherwise
@@ -1414,7 +1432,8 @@ class JaxHelper:
                 package_name=variant,
                 version_constraint=version_constraint,
                 from_url=self.detected_config.get('install_url'),
-                index_url=self.detected_config.get('index_url')
+                index_url=self.detected_config.get('index_url'),
+                reinstall = force_reinstall
             )
 
             self.jax_installed = True
