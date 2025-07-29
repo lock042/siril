@@ -216,7 +216,8 @@ def download_with_progress(
     raise SirilError(f"Failed to download file from {url} after {max_retries} attempts")
 
 def ensure_installed(*packages: Union[str, List[str]],
-                     version_constraints: Optional[Union[str, List[str]]] = None):
+                     version_constraints: Optional[Union[str, List[str]]] = None,
+                     reinstall: Optional[bool] = False):
     """
     Ensures that the specified package(s) are installed and meet optional version constraints.
 
@@ -224,6 +225,7 @@ def ensure_installed(*packages: Union[str, List[str]],
         *packages (str or List[str]): Name(s) of the package(s) to ensure are installed.
         version_constraints (str or List[str], optional): Version constraint string(s)
             (e.g. ">=1.5", "==2.0"). Can be a single constraint or a list matching packages.
+        reinstall (bool, optional): Forces reinstallation. Defaults to False.
 
     Returns:
         bool: True if all packages are successfully installed or already meet constraints.
@@ -263,7 +265,7 @@ def ensure_installed(*packages: Union[str, List[str]],
                 continue
 
             # Attempt installation
-            _install_package(package, constraint)
+            _install_package(package, constraint, reinstall=reinstall)
 
         except TimeoutError as e:
             all_installed = False
@@ -317,7 +319,8 @@ def _stream_output(process):
     for line in io.TextIOWrapper(process.stdout, encoding='utf-8', errors='replace'):
         print(line.rstrip())
 
-def _install_package(package_name: str, version_constraint: Optional[str] = None, from_url: Optional[str] = None, index_url: Optional[str] = None):
+def _install_package(package_name: str, version_constraint: Optional[str] = None, from_url: Optional[str] = None,
+                     index_url: Optional[str] = None, reinstall: Optional[bool] = False, nodeps: Optional[bool] = False):
     """
     Install a package with optional version constraint, streaming pip output to stdout.
 
@@ -326,6 +329,10 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
         version_constraint (str, optional): Version constraint for installation.
         from_url (str, optional): URL to find packages at, passed as "-f URL" to pip.
         index_url (str, optional): repository URL, passed as "--index-url URL" to pip.
+        reinstall (bool optional): whether to force reinstallation. Defaults to False.
+        nodeps (bool, optional): whether to install without dependencies. Defaults to
+            False, but occasionally useful together with reinstall=True for problematic
+            packages such as torch.
 
     Note: the from_url and index_url parameters are not for general use and are only
     required for certain very specific circustances.
@@ -350,6 +357,14 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
         # Add find-links option if from_url is provided
         if from_url:
             pip_command.extend(["-f", from_url])
+
+        # If required, add the --force-reinstall flag
+        if reinstall:
+            pip_command.append("--force-reinstall")
+
+        # If required, add the --no-deps flag
+        if nodeps:
+            pip_command.append("--no-deps")
 
         # Add the package to install
         pip_command.append(install_target)

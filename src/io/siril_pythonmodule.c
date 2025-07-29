@@ -38,6 +38,7 @@
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/siril_git.h"
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
@@ -1787,7 +1788,10 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 		g_error_free(install_error);
 	} else {
 		siril_log_color_message(_("Python module is up-to-date\n"), "green");
-		g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL)); // this is slow as will require repository syncing
+		// this repopulates gui.repo_scripts and updates the script menu
+		// the reason for doing it on completion of python installation is that pyscript_version_check
+		// cannot check python script versions until it knows what module version is installed
+		g_thread_unref(g_thread_new("update_scripts_list", update_repo_scripts_list_and_menu_in_thread, NULL));
 	}
 	g_free(module_path);
 
