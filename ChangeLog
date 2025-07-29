@@ -13,6 +13,9 @@ xx/xx/xx
 * Fixed handling of automatic scripts git repository update flag
 * Fixed crash in commands seqpsf and seqtilt when executed from the command line (#1736)
 
+**Improvements:**
+* Compiled .pyc scripts are now only shown in the scripts menu if their magic number matches the available intepreter
+
 siril 1.4.0-beta3
 07/11/25
 
