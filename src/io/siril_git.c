@@ -36,6 +36,7 @@
 #include "gui/script_menu.h" // for SCRIPT_EXT TODO: after python3 is merged, move this out of src/gui
 #include "gui/utils.h"
 #include "io/siril_git.h"
+#include "io/siril_pythonmodule.h"
 #include <assert.h>
 #include <inttypes.h>
 
@@ -408,21 +409,30 @@ gboolean check_module_version_constraint(const gchar *line, GMatchInfo *match_in
 
 static gboolean pyscript_version_check(const gchar *filename) {
 	// Open the script and look for the required version number
+	const char *ext = get_filename_ext(filename);
+	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
+	gboolean retval = TRUE; // default to TRUE - if check_module_version() is not called there are no version requirements
+	// For .pyc files, check the Python version magic number matches the inerpreter
+	if (!strcmp(ext, ".pyc") && !pyc_matches_magic(scriptpath, com.python_magic)) {
+		retval = FALSE;
+		goto ERROR_OR_COMPLETE;
+	}
+
 	GFile *file = NULL;
 	GInputStream *stream = NULL;
 	GDataInputStream *data_input = NULL;
 	GError *error = NULL;
 	gchar *buffer = NULL;
 	gsize length = 0;
-	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
-	gboolean retval = TRUE; // default to TRUE - if check_module_version() is not called there are no version requirements
 	#ifdef DEBUG_GITSCRIPTS
 	printf("checking python script version requirements: %s\n", scriptpath);
 	#endif
 	file = g_file_new_for_path(scriptpath);
 	stream = (GInputStream *)g_file_read(file, NULL, &error);
-	if (error)
+	if (error) {
+		retval = FALSE;
 		goto ERROR_OR_COMPLETE;
+	}
 	data_input = g_data_input_stream_new(stream);
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, &error)) && !error) {
 		GRegex *regex;

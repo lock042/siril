@@ -883,6 +883,7 @@ struct cominf {
 	GMutex mutex;			// a mutex we use for this thread
 	GMutex env_mutex;		// a mutex used for updating environment vars (g_setenv is not threadsafe)
 	GThread *python_thread;	// the thread for the python interpreter
+	char python_magic[9];	// magic number for the python interpreter, used to check .pyc compatibility
 	gboolean run_thread;		// the main thread loop condition
 	gboolean python_claims_thread;	// prevent other things acquiring the processing thread while a python script has it
 	gboolean stop_script;		// abort script execution, not just a command

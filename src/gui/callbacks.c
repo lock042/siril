@@ -1537,7 +1537,7 @@ gboolean is_gui_ready() {
 
 gpointer update_spcc(gpointer user_data) {
 	// 1. Update the repository
-	if (com.pref.spcc.auto_spcc_update && is_online()) {
+	if (is_online()) {
 #ifdef HAVE_LIBGIT2
 		auto_update_gitspcc(TRUE);
 #endif

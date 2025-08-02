@@ -789,6 +789,19 @@ int is_symlink_file(const char *filename) {
 	return 0;
 }
 
+/*
+* Wrapper around g_mkdir_with_parents that displays a readable error if it fails
+*/
+gint siril_mkdir_with_parents(const gchar* pathname, gint mode) {
+	gint result = g_mkdir_with_parents(pathname, mode);
+	if (result != 0) {
+		int saved_errno = errno;
+		siril_log_color_message(_("Failed to create directory '%s': %s\n"), "red", pathname, g_strerror(saved_errno));
+	}
+	return result;
+}
+
+
 // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
 // we still allow for '.' though
 static gchar forbidden_char[] = { '/', '\\', '"', '\'' , '?', '%', '*', ':', '|', '<', '>', ';', '='};
