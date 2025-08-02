@@ -665,8 +665,7 @@ gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode
 	parsedname = path_parse(fit, expression, mode, status);
 	if (parsedname && createdir) {
 		dirname = g_path_get_dirname(parsedname);
-		if (g_mkdir_with_parents(dirname, 0755) < 0) {
-			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+		if (siril_mkdir_with_parents(dirname, 0755) < 0) {
 			g_free(parsedname);
 			parsedname = NULL;
 		}

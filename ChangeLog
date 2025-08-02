@@ -14,6 +14,7 @@ xx/xx/xx
 * Fixed crash in commands seqpsf and seqtilt when executed from the command line (#1736)
 * Fixed crash/memory allocation for stack min or max with 16b images (#1746)
 * Fixed magnitude calculation in Dynamic PSF, this affects mostly faint stars for images in 32b (#1739)
+* Fixed wrong cache file name (parent directory twice in the returned path) resulting in impossibility to cache files (#1734)
 
 **Improvements:**
 * Compiled .pyc scripts are now only shown in the scripts menu if their magic number matches the available intepreter
