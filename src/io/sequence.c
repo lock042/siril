@@ -1970,7 +1970,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		seq->photometry[photometry_index][data->image_index] = data->psf;
 	}
 
-	if (args->already_in_a_thread || com.script) { // the idle won't be called
+	if (args->already_in_a_thread || com.script || com.python_script) { // the idle won't be called
 		// printing results ordered, the list isn't
 		gboolean first = TRUE;
 		for (int j = 0; j < seq->number; j++) {
@@ -2097,8 +2097,10 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	spsfargs->init_from_center = init_from_center;
 
 	fits fit = { 0 };
+	if (seq->reference_image < 0)
+		seq->reference_image = sequence_find_refimage(seq);
 	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
-		siril_log_color_message(_("Could not load metadata"), "red");
+		siril_log_color_message(_("Could not load metadata\n"), "red");
 		free(args);
 		free(spsfargs);
 		return -1;

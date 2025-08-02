@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-10 15:46+0200\n"
-"PO-Revision-Date: 2025-06-20 02:28+0000\n"
+"PO-Revision-Date: 2025-07-23 22:17+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -4459,6 +4459,11 @@ msgid ""
 "become insensitive until either Reset or Apply is clicked. Further tweaks "
 "can be made by clicking Apply and then making a second stretch,"
 msgstr ""
+"Visualize o algoritmo de alongamento automático na imagem. Devido às "
+"peculiaridades do gerenciamento de cores, ao clicar nele, os controles "
+"deslizantes e os widgets de entrada de valor ficarão insensíveis até que "
+"Redefinir ou Aplicar seja clicado. Outros ajustes podem ser feitos clicando "
+"em Aplicar e, em seguida, realizando um segundo alongamento,"
 
 #: src/gui/uifiles/histogram_dialog.ui:519
 msgid "Highlights: "
@@ -5502,6 +5507,9 @@ msgid ""
 "Set the position of the right margin indicator in the editor. This visual "
 "guide helps maintain consistent line lengths and improve code readability."
 msgstr ""
+"Defina a posição do indicador de margem direita no editor. Este guia visual "
+"ajuda a manter comprimentos de linha consistentes e melhora a legibilidade "
+"do código."
 
 #: src/gui/uifiles/python_scratchpad.ui:416
 msgid "Set right margin position"
@@ -5983,13 +5991,13 @@ msgid "Plot fits"
 msgstr "Exibir fits"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:721
-#, fuzzy
 msgid ""
 "Plot SPCC linear fits for catalog to image R/G and B/G ratios. In narrowband "
 "mode, plots of degenerate ratios will not be shown."
 msgstr ""
-"Plotar ajustes lineares SPCC para relações R/G e B/G do catálogo para a "
-"imagem"
+"Plote ajustes lineares SPCC para as relações R/G e B/G do catálogo para a "
+"imagem. No modo de banda estreita, gráficos de relações degeneradas não "
+"serão exibidos."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:736
 msgid "Sensor Type:"
@@ -9735,6 +9743,12 @@ msgid ""
 "<b>WARNING: on Windows, the symbolic link operations are only possible in "
 "Development mode.</b>"
 msgstr ""
+"Crie um link simbólico para arquivos FITS em vez de copiá-los. Isso é útil "
+"para renomear uma sequência sem duplicar arquivos no disco. Esta opção "
+"desabilita a compactação.\n"
+"\n"
+"<b>AVISO: no Windows, as operações de link simbólico só são possíveis no "
+"modo de desenvolvimento.</b>"
 
 #: src/gui/uifiles/siril.ui:3985
 msgid ""
@@ -10110,6 +10124,20 @@ msgid ""
 "<b>WARNING:</b> Do not apply dark optimization to the master-dark if the "
 "master-bias has not been subtracted beforehand."
 msgstr ""
+"A subtração de darks pode ser otimizada. O Siril oferece duas maneiras de "
+"fazer isso.\n"
+"- O primeiro método avalia automaticamente os coeficientes a serem aplicados "
+"para que o ruído da imagem resultante (imagem do objeto menos imagem dark) "
+"seja minimizado.\n"
+"- O segundo método leva em consideração os tempos de exposição, caso estes "
+"tenham sido inseridos pelo software de captura.\n"
+"\n"
+"A otimização dos darks é útil quando esses darks não foram capturadas em "
+"condições ideais. Ela compensa as diferenças de temperatura e/ou tempo de "
+"exposição entre imagens dark e dos objetos.\n"
+"\n"
+"<b>AVISO:</b> Não aplique a otimização de darks ao master-dark se master-"
+"bias não tiver sido subtraído previamente."
 
 #: src/gui/uifiles/siril.ui:4909
 #, fuzzy
@@ -10189,6 +10217,18 @@ msgid ""
 "i>.\n"
 "* The line <i>L y 0 type</i> will fix the bad line at coordinates <i>y</i>."
 msgstr ""
+"Insira o nome do arquivo do mapa de pixels defeituoso aqui ou use o botão de "
+"navegação. Este arquivo geralmente é criado pelo comando <i>find_hot</i> "
+"aplicado a um dark ou a um master-dark. O arquivo é estruturado da seguinte "
+"forma:\n"
+"\n"
+"* A linha <i>P x y type</i> fixará o pixel nas coordenadas (x, y). O tipo é "
+"um caractere opcional (<i>C</i> ou <i>H</i>) que especifica ao Siril se o "
+"pixel atual é frio ou quente.\n"
+"* A linha <i>C x 0 type</i> fixará a coluna defeituosa nas coordenadas "
+"<i>x</i>.\n"
+"* A linha <i>L y 0 type</i> fixará a linha defeituosa nas coordenadas "
+"<i>y</i>."
 
 #: src/gui/uifiles/siril.ui:5215
 msgid ""
@@ -15790,9 +15830,9 @@ msgstr ""
 
 #: src/core/command.c:4570 src/core/command.c:4575 src/core/command.c:4602
 #: src/core/command.c:4607
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument: %s\n"
-msgstr "não carregada"
+msgstr "Argumento inválido: %s\n"
 
 #: src/core/command.c:4628
 msgid ""
@@ -17562,9 +17602,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:37
-#, fuzzy
 msgid "Dumps the FITS header of the loaded image in the console"
-msgstr "Exibe o manual do comando escrito no console."
+msgstr "Exibe o cabeçalho FITS da imagem carregada no console"
 
 #: src/core/command_def.h:39
 msgid ""
@@ -17741,7 +17780,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:57
-#, fuzzy
 msgid ""
 "Fixes the Fujifilm X-Trans Auto Focus pixels in the loaded image.\n"
 "\n"
@@ -17750,12 +17788,13 @@ msgid ""
 "The camera compensates for this and increases the values from these specific "
 "photosites giving a visible square in the middle of the dark/bias frames"
 msgstr ""
-"Esta opção ajuda a corrigir os pixels do foco automático Fujifilm X-Trans. "
+"Corrige os pixels do foco automático Fujifilm X-Trans na imagem carregada.\n"
+"\n"
 "De fato, devido ao sistema de foco automático com detecção de fase, os "
 "photosites usados para o foco automático recebem um pouco menos de luz do "
 "que os photosites ao redor. A câmera compensa isso e aumenta os valores "
-"desses photosites específicos, criando um quadrado visível no meio dos "
-"quadros escuros/desfocados."
+"desses photosites específicos, resultando em um quadrado visível no meio dos "
+"quadros darks/bias"
 
 #: src/core/command_def.h:58
 msgid ""
@@ -17991,7 +18030,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:85
-#, fuzzy
 msgid ""
 "Computes and applies a linear function between a <b>reference</b> image and "
 "the loaded image.\n"
@@ -17999,8 +18037,11 @@ msgid ""
 "The algorithm will ignore all reference pixels whose values are outside of "
 "the [<b>low</b>, <b>high</b>] range"
 msgstr ""
-"O algoritmo irá ignorar todos os pixels de referência cujos valores estejam "
-"fora do intervalo [baixo, alto]."
+"Calcula e aplica uma função linear entre uma imagem de <b>referência</b> e a "
+"imagem carregada.\n"
+"\n"
+"O algoritmo ignorará todos os pixels de referência cujos valores estejam "
+"fora do intervalo [<b>baixo</b>, <b>alto</b>]"
 
 #: src/core/command_def.h:86
 msgid ""
@@ -18490,9 +18531,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:123
-#, fuzzy
 msgid "Rescans the scripts folders and updates the Scripts menu"
-msgstr "Reescanea as pastas de scripts e atualiza o menu de scripts."
+msgstr "Reescanea as pastas de scripts e atualiza o menu de scripts"
 
 #: src/core/command_def.h:124
 msgid ""
@@ -18788,7 +18828,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:147
-#, fuzzy
 msgid ""
 "This command clears selection, registration and/or statistics data stored "
 "for the sequence <b>sequencename</b>.\n"
@@ -18797,9 +18836,12 @@ msgid ""
 "<b>-reg</b>, <b>-stat</b> and <b>-sel</b> options respectively. All are "
 "cleared if no option is passed"
 msgstr ""
-"Este botão limpa os dados de seleção, registro e/ou estatísticas armazenados "
-"na sequência carregada. Você pode especificar a limpeza apenas de registro, "
-"estatísticas e/ou seleção com o botão à direita.\n"
+"Este comando limpa os dados de seleção, registro e/ou estatísticas "
+"armazenados para a sequência <b>sequencename</b>.\n"
+"\n"
+"Você pode especificar a limpeza apenas de registro, estatísticas e/ou "
+"seleção com as opções <b>-reg</b>, <b>-stat</b> e <b>-sel</b>, "
+"respectivamente. Todos são limpos se nenhuma opção for passada"
 
 #: src/core/command_def.h:148
 msgid ""
@@ -19274,7 +19316,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:189
-#, fuzzy
 msgid ""
 "Sets a new ratio of used memory on free memory.\n"
 "\n"
@@ -19285,12 +19326,15 @@ msgid ""
 "supported, leading to system crash. A fixed amount of memory can also be set "
 "in the generic settings, with SET, instead of a ratio"
 msgstr ""
-"Define uma nova proporção de memória livre em relação à memória usada para "
-"empilhamento. O valor deve estar entre 0,05 e 2, dependendo de outras "
-"atividades da máquina. Uma proporção maior deve permitir que o Siril empilhe "
-"mais rápido, mas definir a proporção de memória usada para empilhamento "
-"acima de 1 exigirá o uso de memória em disco, que é muito lenta e não "
-"recomendada"
+"Define uma nova proporção de memória usada em relação à memória livre.\n"
+"\n"
+"O valor de <b>Proporção</b> deve estar entre 0,05 e 2, dependendo de outras "
+"atividades da máquina. Uma proporção maior deve permitir que o Siril "
+"processe mais rápido, mas definir a proporção de memória usada acima de 1 "
+"exigirá o uso de memória em disco, o que é muito lento e não recomendado, às "
+"vezes até mesmo não suportado, levando a travamentos do sistema. Uma "
+"quantidade fixa de memória também pode ser definida nas configurações "
+"genéricas, com SET, em vez de uma proporção"
 
 #: src/core/command_def.h:190
 msgid ""

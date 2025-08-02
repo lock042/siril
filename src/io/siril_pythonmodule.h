@@ -195,5 +195,6 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 void initialize_python_venv_in_thread();
 void shutdown_python_communication(CommunicationState *commstate);
 void rebuild_venv();
+gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic);
 
 #endif

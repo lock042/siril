@@ -38,6 +38,7 @@
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/siril_git.h"
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
@@ -1729,6 +1730,46 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	return TRUE;
 }
 
+gboolean get_python_magic_number(char *out_buf, gsize out_buf_size) {
+	gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
+	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
+	gchar *argv[] = {
+		python_path,
+		"-c",
+		"import importlib.util; print(importlib.util.MAGIC_NUMBER.hex())",
+		NULL
+	};
+
+	gchar *stdout_str = NULL;
+	gint exit_status = 0;
+
+	gboolean success = g_spawn_sync(
+		NULL,       // working directory
+		argv,
+		NULL,       // env
+		G_SPAWN_STDERR_TO_DEV_NULL,
+		NULL, NULL, // child setup
+		&stdout_str,
+		NULL,
+		&exit_status,
+		NULL
+	);
+
+	if (!success || exit_status != 0) {
+		g_free(stdout_str);
+		return FALSE;
+	}
+
+	// Trim output (remove trailing newline)
+	g_strstrip(stdout_str);
+	g_strlcpy(out_buf, stdout_str, out_buf_size);
+
+	g_free(stdout_str);
+	g_free(python_path);
+	g_free(venv_path);
+	return TRUE;
+}
+
 static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 	PythonVenvInfo *info = g_new0(PythonVenvInfo, 1);
 	info->venv_path = g_strdup(venv_path);
@@ -1787,7 +1828,11 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 		g_error_free(install_error);
 	} else {
 		siril_log_color_message(_("Python module is up-to-date\n"), "green");
-		g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL)); // this is slow as will require repository syncing
+		get_python_magic_number(com.python_magic, 9);
+		// this repopulates gui.repo_scripts and updates the script menu
+		// the reason for doing it on completion of python installation is that pyscript_version_check
+		// cannot check python script versions until it knows what module version is installed
+		g_thread_unref(g_thread_new("update_scripts_list", update_repo_scripts_list_and_menu_in_thread, NULL));
 	}
 	g_free(module_path);
 
@@ -2090,6 +2135,24 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 		g_free(cleanup->temp_filename);
 		g_free(cleanup);
 	}
+}
+
+gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic) {
+	FILE *f = fopen(pyc_path, "rb");
+	if (!f) return FALSE;
+
+	unsigned char buf[4];
+	if (fread(buf, 1, 4, f) != 4) {
+		fclose(f);
+		return FALSE;
+	}
+	fclose(f);
+
+	char actual_hex[9]; // 8 chars + null terminator
+	snprintf(actual_hex, sizeof(actual_hex), "%02x%02x%02x%02x",
+			buf[0], buf[1], buf[2], buf[3]);
+
+	return g_strcmp0(actual_hex, expected_hex_magic) == 0;
 }
 
 void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync,

@@ -34,7 +34,9 @@
 #include "gui/message_dialog.h"
 #include "gui/photometric_cc.h"
 #include "gui/script_menu.h" // for SCRIPT_EXT TODO: after python3 is merged, move this out of src/gui
+#include "gui/utils.h"
 #include "io/siril_git.h"
+#include "io/siril_pythonmodule.h"
 #include <assert.h>
 #include <inttypes.h>
 
@@ -156,9 +158,6 @@ static int siril_repository_open(git_repository **out, const gchar *path) {
 }
 
 int reset_repository(const gchar *local_path) {
-	// Initialisation
-	git_libgit2_init();
-
 	// Open the repository
 	git_repository *repo = NULL;
 	int error = siril_repository_open(&repo, local_path);
@@ -167,7 +166,6 @@ int reset_repository(const gchar *local_path) {
 			_("Error performing hard reset. You may need to delete the local git "
 			"repository and allow Siril to re-clone it.\n"), "red");
 		git_repository_free(repo);
-		git_libgit2_shutdown();
 		return -1;
 	}
 
@@ -180,7 +178,6 @@ int reset_repository(const gchar *local_path) {
 			"repository and allow Siril to re-clone it.\n"),
 			"red");
 		git_repository_free(repo);
-		git_libgit2_shutdown();
 		return -1;
 	}
 
@@ -192,12 +189,10 @@ int reset_repository(const gchar *local_path) {
 			"repository and allow Siril to re-clone it.\n"), "red");
 		git_object_free(target_commit);
 		git_repository_free(repo);
-		git_libgit2_shutdown();
 		return -1;
 	}
 
 	git_repository_free(repo);
-	git_libgit2_shutdown();
 	return 0;
 }
 
@@ -414,21 +409,30 @@ gboolean check_module_version_constraint(const gchar *line, GMatchInfo *match_in
 
 static gboolean pyscript_version_check(const gchar *filename) {
 	// Open the script and look for the required version number
+	const char *ext = get_filename_ext(filename);
+	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
+	gboolean retval = TRUE; // default to TRUE - if check_module_version() is not called there are no version requirements
+	// For .pyc files, check the Python version magic number matches the inerpreter
+	if (!strcmp(ext, ".pyc") && !pyc_matches_magic(scriptpath, com.python_magic)) {
+		retval = FALSE;
+		goto ERROR_OR_COMPLETE;
+	}
+
 	GFile *file = NULL;
 	GInputStream *stream = NULL;
 	GDataInputStream *data_input = NULL;
 	GError *error = NULL;
 	gchar *buffer = NULL;
 	gsize length = 0;
-	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
-	gboolean retval = TRUE; // default to TRUE - if check_module_version() is not called there are no version requirements
 	#ifdef DEBUG_GITSCRIPTS
 	printf("checking python script version requirements: %s\n", scriptpath);
 	#endif
 	file = g_file_new_for_path(scriptpath);
 	stream = (GInputStream *)g_file_read(file, NULL, &error);
-	if (error)
+	if (error) {
+		retval = FALSE;
 		goto ERROR_OR_COMPLETE;
+	}
 	data_input = g_data_input_stream_new(stream);
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, &error)) && !error) {
 		GRegex *regex;
@@ -457,14 +461,11 @@ static gboolean pyscript_version_check(const gchar *filename) {
 	return retval;
 }
 
-int auto_update_gitscripts(gboolean sync) {
+// gitscripts Repository synchronization and management
+int sync_gitscripts_repository(gboolean sync) {
 	int retval = 0;
 	git_repository *repo = NULL;
 	git_remote *remote = NULL;
-	git_index *index = NULL;
-
-	// Initialize libgit2
-	git_libgit2_init();
 
 	// URL of the remote repository
 	siril_debug_print("Repository URL: %s\n", SCRIPT_REPOSITORY_URL);
@@ -475,6 +476,7 @@ int auto_update_gitscripts(gboolean sync) {
 
 	// Clone options
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
+
 	// Check if directory exists
 	if (g_file_test(local_path, G_FILE_TEST_IS_DIR)) {
 		siril_debug_print("Directory exists, attempting to open repository...\n");
@@ -491,7 +493,6 @@ int auto_update_gitscripts(gboolean sync) {
 				gui.script_repo_available = FALSE;
 				siril_log_color_message(_("Failed to lookup remote.\n"), "red");
 			} else {
-
 				const char *remote_url = git_remote_url(remote);
 				if (remote_url == NULL) {
 					gui.script_repo_available = FALSE;
@@ -583,7 +584,7 @@ int auto_update_gitscripts(gboolean sync) {
 		}
 	}
 
-	// Check we are using the correct repository
+	// Final verification of repository URL
 	int error = git_remote_lookup(&remote, repo, remote_name);
 	if (error != 0) {
 		siril_log_color_message(_("Failed to lookup remote.\n"), "red");
@@ -617,8 +618,10 @@ int auto_update_gitscripts(gboolean sync) {
 		goto cleanup;
 	}
 
-	// Synchronise the repository
+	// Synchronise the repository if requested
 	if (sync) {
+		gui_repo_scripts_mutex_lock();
+
 		// fetch, analyse and merge changes from the remote
 		int fetch_val = lg2_fetch(repo);
 
@@ -626,6 +629,7 @@ int auto_update_gitscripts(gboolean sync) {
 		git_object *target_commit = NULL;
 		error = git_revparse_single(&target_commit, repo, "FETCH_HEAD");
 		if (error != 0) {
+			gui_repo_scripts_mutex_unlock();
 			siril_log_color_message(_("Error performing hard reset. If the problem "
 					"persists you may need to delete the local git repository and "
 					"allow Siril to re-clone it.\n"), "red");
@@ -638,6 +642,7 @@ int auto_update_gitscripts(gboolean sync) {
 		error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
 		git_object_free(target_commit);
 		if (error != 0) {
+			gui_repo_scripts_mutex_unlock();
 			siril_log_color_message(_("Error performing hard reset. If the problem persists "
 					"you may need to delete the local git repository and allow Siril to "
 					"re-clone it.\n"), "red");
@@ -649,9 +654,47 @@ int auto_update_gitscripts(gboolean sync) {
 		if (!fetch_val || fetch_val == REPO_REPAIRED) {
 			siril_log_color_message(_("Local scripts repository is up-to-date!\n"), "green");
 		}
+
+		gui_repo_scripts_mutex_unlock();
 	}
 
-	/*** Populate the list of available repository scripts ***/
+cleanup:
+	if (remote) {
+		git_remote_free(remote);
+	}
+	if (repo) {
+		git_repository_free(repo);
+	}
+
+	return retval;
+}
+
+// Update GUI script list from repository
+int update_repo_scripts_list() {
+	int retval = 0;
+	git_repository *repo = NULL;
+	git_index *index = NULL;
+
+	const gchar *local_path = siril_get_scripts_repo_path();
+
+	// Check if repository directory exists
+	if (!g_file_test(local_path, G_FILE_TEST_IS_DIR)) {
+		siril_log_color_message(_("Scripts repository directory does not exist.\n"), "red");
+		gui.script_repo_available = FALSE;
+		retval = 1;
+		goto cleanup;
+	}
+
+	// Try to open existing repository
+	int error = siril_repository_open(&repo, local_path);
+	if (error != 0) {
+		siril_log_color_message(_("Failed to open scripts repository.\n"), "red");
+		gui.script_repo_available = FALSE;
+		retval = 1;
+		goto cleanup;
+	}
+
+	// Get repository index
 	error = git_repository_index(&index, repo);
 	if (error < 0) {
 		siril_log_color_message(_("Error accessing repository index.\n"), "red");
@@ -700,18 +743,40 @@ int auto_update_gitscripts(gboolean sync) {
 	}
 	gui_repo_scripts_mutex_unlock();
 
-	// Cleanup
 cleanup:
 	if (index) {
 		git_index_free(index);
 	}
-	if (remote) {
-		git_remote_free(remote);
-	}
 	if (repo) {
 		git_repository_free(repo);
 	}
-	git_libgit2_shutdown();
+
+	return retval;
+}
+
+// Called at the end of setting up the venv
+gpointer update_repo_scripts_list_and_menu_in_thread() {
+	update_repo_scripts_list();
+	gui_mutex_lock();
+	execute_idle_and_wait_for_it(refresh_script_menu_idle, NULL);
+	gui_mutex_unlock();
+
+	return GINT_TO_POINTER(0);
+}
+
+int auto_update_gitscripts(gboolean sync) {
+	int retval = 0;
+
+	// First, sync the repository
+	retval = sync_gitscripts_repository(sync);
+	if (retval != 0) {
+		return retval;
+	}
+
+	// Only update script list if repository sync was successful
+	if (gui.script_repo_available) {
+		retval = update_repo_scripts_list();
+	}
 
 	return retval;
 }
@@ -720,9 +785,6 @@ int auto_update_gitspcc(gboolean sync) {
 	int retval = 0;
 	git_repository *repo = NULL;
 	git_remote *remote = NULL;
-
-	// Initialize libgit2
-	git_libgit2_init();
 
 	// URL of the remote repository
 	siril_debug_print("Repository URL: %s\n", SPCC_REPOSITORY_URL);
@@ -896,8 +958,6 @@ cleanup:
 	if (repo) {
 		git_repository_free(repo);
 	}
-	git_libgit2_shutdown();
-
 	return retval;
 }
 
@@ -1208,9 +1268,6 @@ gchar *get_script_content_string_from_file_revision(const char *filepath,
 	gchar *content = NULL;
 	gchar *message = NULL;
 
-	// Initialize libgit2
-	git_libgit2_init();
-
 	// URL of the remote repository
 	siril_debug_print("Repository URL: %s\n", SCRIPT_REPOSITORY_URL);
 
@@ -1257,8 +1314,6 @@ gchar *get_script_content_string_from_file_revision(const char *filepath,
 cleanup:
 	if (repo)
 		git_repository_free(repo);
-	git_libgit2_shutdown();
-
 	return content;
 }
 

@@ -1162,7 +1162,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			int32_t index = GINT32_FROM_BE(*(int32_t*)payload) - 1;
+			int32_t index = GINT32_FROM_BE(*(int32_t*)payload);
 			siril_debug_print("seq_frame_set_pixeldata index: %d\n", index);
 			// Check index is in range
 			if (index < 0 || index >= com.seq.number) {

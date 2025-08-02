@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-10 15:46+0200\n"
-"PO-Revision-Date: 2025-07-08 08:43+0000\n"
+"PO-Revision-Date: 2025-07-12 22:14+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
 "projects/siril/software/siril/zh_Hans/>\n"
@@ -5066,7 +5066,8 @@ msgstr "启用右边界指示器"
 msgid ""
 "Set the position of the right margin indicator in the editor. This visual "
 "guide helps maintain consistent line lengths and improve code readability."
-msgstr ""
+msgstr "在编辑器中设置右边界参考线的位置。该参考线有助于限制统一的行长，从而提升代码"
+"可读性。"
 
 #: src/gui/uifiles/python_scratchpad.ui:416
 msgid "Set right margin position"
@@ -5522,11 +5523,11 @@ msgid "Plot fits"
 msgstr "图表拟合"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:721
-#, fuzzy
 msgid ""
 "Plot SPCC linear fits for catalog to image R/G and B/G ratios. In narrowband "
 "mode, plots of degenerate ratios will not be shown."
-msgstr "绘制目录与图像 R/G 和 B/G 比率的 SPCC 线性拟合"
+msgstr "为星表与图像的R/G、B/"
+"G比值绘制SPCC线性拟合图。在窄带模式下，简并比率图将不予显示。"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:736
 msgid "Sensor Type:"
@@ -7781,14 +7782,12 @@ msgstr ""
 "改。"
 
 #: src/gui/uifiles/settings_window.ui:5161
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
 "(This can be used to make and save local changes to a script.)"
-msgstr ""
-"可用脚本列表。所选脚本将通过脚本菜单提供。双击一行可以在脚本编辑器中打开脚"
-"本。（可以对脚本进行局部修改并保存。）"
+msgstr "可用脚本列表。所选脚本将通过脚本菜单提供。双击某行可在脚本编辑器中打开相应脚"
+"本。（此操作用于对脚本进行局部修改并保存。）"
 
 #: src/gui/uifiles/settings_window.ui:5176
 msgid "Category"
@@ -15064,26 +15063,24 @@ msgstr "恆星坐标: %.1f， %.1f\n"
 #: src/core/command.c:4510
 msgid ""
 "Sequence name is required as first argument (use '.' for current sequence)\n"
-msgstr ""
+msgstr "序列名称是必需的第一个参数（用\".\"表示当前序列）\n"
 
 #: src/core/command.c:4570 src/core/command.c:4575 src/core/command.c:4602
 #: src/core/command.c:4607
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument: %s\n"
-msgstr "Invalid arguments"
+msgstr "无效参数：%s\n"
 
 #: src/core/command.c:4628
-#, fuzzy
 msgid ""
 "Layer and star position arguments are required when called from a script\n"
-msgstr "从脚本调用时，参数不是可选的\n"
+msgstr "当通过脚本调用时，必须提供图层和星体位置参数\n"
 
 #: src/core/command.c:4633
-#, fuzzy
 msgid ""
 "Layer and star position arguments are required, or make a selection around a "
 "star\n"
-msgstr "仅当序列已载入并且框选了一个星点时，参数才是可选的\n"
+msgstr "必须提供图层和星体位置参数，或者选择一个围绕某个星点的选区\n"
 
 #: src/core/command.c:4642 src/core/command.c:4706
 #, c-format
@@ -17956,7 +17953,6 @@ msgstr ""
 "改变的不是预览模式，而是图像本身"
 
 #: src/core/command_def.h:105
-#, fuzzy
 msgid ""
 "Creates a new image filled with zeros with a size of <b>width</b> x "
 "<b>height</b>.\n"
@@ -17968,6 +17964,7 @@ msgid ""
 "image and it is displayed and can be saved afterwards"
 msgstr ""
 "创建一个全黑的新图像，尺寸为<b>width</b> x <b>height</b>。\n"
+"可选参数 <b>[filename]</b> 用于指定新文件的名称。\n"
 "\n"
 "该图像为32位格式，包含<b>nb_channel</b>个通道，<b>nb_channel</b>为1或3。这个"
 "图像不会被直接保存，而会载入成为当前图像，之后可以手动保存"

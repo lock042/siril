@@ -12,6 +12,7 @@ gboolean is_spcc_repo_cloned();
 gboolean fill_spcc_widgets_in_thread(gpointer user_data);
 void gui_repo_scripts_mutex_lock();
 void gui_repo_scripts_mutex_unlock();
+gpointer update_repo_scripts_list_and_menu_in_thread();
 gchar *get_script_content_string_from_file_revision(const char *filepath,
 													int file_revisions_to_backtrack,
 													size_t *content_size,
