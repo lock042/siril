@@ -824,8 +824,7 @@ int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *statu
 	*status = 0;
 	gchar *dirname = g_path_get_dirname(filename);
 	GDir *dir = g_dir_open(dirname, 0, NULL);
-	if (!dir && g_mkdir_with_parents(dirname, 0755) < 0) {
-		siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+	if (!dir && siril_mkdir_with_parents(dirname, 0755) < 0) {
 		*status = 1;
 		g_free(dirname);
 		return *status;

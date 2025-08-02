@@ -1673,7 +1673,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		siril_log_message(_("Installing / updating python module in the background. This may take a few seconds...\n"));
 		// Create user-owned directory and copy module
 		if (!g_file_test(user_module_path, G_FILE_TEST_EXISTS)) {
-			if (g_mkdir_with_parents(user_module_path, 0755) != 0) {
+			if (siril_mkdir_with_parents(user_module_path, 0755) != 0) {
 				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 						"Failed to create directory: %s", user_module_path);
 				g_free(python_path);
