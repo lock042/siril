@@ -8,9 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-10 15:46+0200\n"
-"PO-Revision-Date: 2025-07-10 22:18+0000\n"
-"Last-Translator: \"Alejandro M. Salinas López\" <alejandro.salinas.lopez."
-"81@gmail.com>\n"
+"PO-Revision-Date: 2025-08-03 19:11+0000\n"
+"Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -515,9 +514,8 @@ msgid "Clear"
 msgstr "Borrar"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
-#, fuzzy
 msgid "Clear all current temporary annotations (in red by default)"
-msgstr "Borrar todas las anotaciones actuales."
+msgstr "Borrar todas las anotaciones temporales actuales (en rojo por defecto)"
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -569,12 +567,10 @@ msgid "automatic"
 msgstr "automática"
 
 #: src/gui/uifiles/annotate_dialog.ui:134
-#, fuzzy
 msgid "tycho2 (TYCHO2)"
 msgstr "tycho2 (TYCHO2)"
 
 #: src/gui/uifiles/annotate_dialog.ui:135
-#, fuzzy
 msgid "nomad (NOMAD)"
 msgstr "nomad (NOMAD)"
 
@@ -889,6 +885,18 @@ msgid ""
 "Clip is fastest: set one of the other modes when you're happy with your "
 "stretch if you notice colour artefacts around bright stars."
 msgstr ""
+"Seleccionar modo de mezcla.\n"
+"Recortar: recorta los valores al rango de 0.0 a 1.0. <b>Predeterminado</b>\n"
+"Reescalar: reescala los valores RGB de los píxeles recortados para que no "
+"superen 1.0 por píxel.\n"
+"Fusión RGB: aplica una función de mezcla para suavizar los colores "
+"resaltados reconstruidos.\n"
+"Reescalado global: Igual que Reescalar, pero reescala al valor máximo global "
+"del componente.\n"
+"\n"
+"Recortar es el más rápido: configura uno de los otros modos cuando estés "
+"satisfecho con el estiramiento si observas artefactos de color alrededor de "
+"las estrellas brillantes."
 
 #: src/gui/uifiles/asinh_dialog.ui:297 src/gui/uifiles/dialog_star_remix.ui:166
 #: src/gui/uifiles/histogram_dialog.ui:769 src/gui/utils.c:408
@@ -3882,7 +3890,7 @@ msgstr ""
 #: src/gui/uifiles/histogram_dialog.ui:1200
 #, fuzzy
 msgid "Shadow protection point (LP)"
-msgstr "Corte de altas luces"
+msgstr "Punto de protección de sombra (LP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:652
 #: src/gui/uifiles/dialog_star_remix.ui:677
@@ -3898,13 +3906,20 @@ msgid ""
 "definition in the background. This parameter must be greater than or equal "
 "to 0 and not greater than SP."
 msgstr ""
+"Establece un valor por debajo del cual se modifica el estiramiento para "
+"preservar el contraste en las sombras. Esto se logra mediante un "
+"estiramiento lineal por debajo de LP, reservando el contraste del resto de "
+"la imagen. Al mover LP hacia SP, se modifica tanto el alcance como la "
+"cantidad de reserva de contraste; el efecto neto es aumentar el estiramiento "
+"general a niveles de brillo más altos, manteniendo el contraste y la "
+"definición en el fondo. Este parámetro debe ser mayor o igual a 0 y no mayor "
+"que SP."
 
 #: src/gui/uifiles/dialog_star_remix.ui:712
 #: src/gui/uifiles/dialog_star_remix.ui:1350
 #: src/gui/uifiles/histogram_dialog.ui:1269
-#, fuzzy
 msgid "Highlight protection point (HP)"
-msgstr "Corte de altas luces"
+msgstr "Resaltar el punto de protección (HP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:723
 msgid ""
@@ -3933,9 +3948,8 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:784
 #: src/gui/uifiles/dialog_star_remix.ui:1422
 #: src/gui/uifiles/histogram_dialog.ui:1339
-#, fuzzy
 msgid "Black Point (BP)"
-msgstr "Punto Negro"
+msgstr "Punto Negro (BP)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:795
 #: src/gui/uifiles/dialog_star_remix.ui:821
@@ -4130,9 +4144,8 @@ msgstr ""
 "producir resultados incorrectos."
 
 #: src/gui/uifiles/epf_dialog.ui:211
-#, fuzzy
 msgid "self guided"
-msgstr "Sin guías"
+msgstr "auto guiado"
 
 #: src/gui/uifiles/epf_dialog.ui:216
 #, fuzzy
@@ -4552,14 +4565,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:915
-#, fuzzy
 msgid "Saturation stretch"
-msgstr "Saturación: "
+msgstr "Estiramiento saturación"
 
 #: src/gui/uifiles/histogram_dialog.ui:944
-#, fuzzy
 msgid "Stretch Parameters"
-msgstr "Parámetros de la imagen"
+msgstr "Parámetros de estiramiento"
 
 #: src/gui/uifiles/histogram_dialog.ui:1280
 msgid ""
@@ -4571,6 +4582,14 @@ msgid ""
 "keeping the contrast and definition in the highlights. This parameter must "
 "be less than or equal to 1 and not less than SP."
 msgstr ""
+"Establece un valor por encima del cual se modifica el estiramiento para "
+"preservar el contraste en las estrellas brillantes. Esto se logra mediante "
+"un estiramiento lineal de los datos por encima de HP, reservando el "
+"contraste del resto de la imagen. Al mover HP hacia SP, se aumenta tanto el "
+"alcance como la cantidad de esta reserva de contraste; el efecto neto es "
+"reducir el estiramiento general a niveles de brillo más bajos, manteniendo "
+"el contraste y la definición en las altas luces. Este parámetro debe ser "
+"menor o igual a 1 y no menor que SP."
 
 #: src/gui/uifiles/histogram_dialog.ui:1350
 msgid ""
@@ -4602,9 +4621,8 @@ msgstr ""
 "con sRGB como referencia"
 
 #: src/gui/uifiles/icc_dialog.ui:80
-#, fuzzy
 msgid "Export"
-msgstr "Exportar a CSV"
+msgstr "Exportar"
 
 #: src/gui/uifiles/icc_dialog.ui:84
 msgid ""
@@ -4623,9 +4641,8 @@ msgid "Remove the ICC profile from the image and stop color managing it"
 msgstr "Elimina el perfil ICC de la imagen y detiene la gestión del color"
 
 #: src/gui/uifiles/icc_dialog.ui:110 src/core/icc_profile.c:1306
-#, fuzzy
 msgid "Assign"
-msgstr "Sin asignar"
+msgstr "Asignar"
 
 #: src/gui/uifiles/icc_dialog.ui:114
 msgid ""
@@ -4633,6 +4650,9 @@ msgid ""
 "color space transform. This is useful if the image has an incorrect ICC "
 "profile."
 msgstr ""
+"Asigna el perfil ICC seleccionado a la imagen actual sin realizar ninguna "
+"transformación del espacio de color. Esto resulta útil si la imagen tiene un "
+"perfil ICC incorrecto."
 
 #: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3899
 #: src/core/icc_profile.c:1308
@@ -4652,9 +4672,8 @@ msgid "<b><i>Current ICC profile</i></b>"
 msgstr "<b><i>Perfil ICC actual</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:228
-#, fuzzy
 msgid "<b><i>Target ICC profile</i></b>"
-msgstr "<b>Tipo de extracción</b>"
+msgstr "<b><i>Perfil objetivo ICC</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:254 src/gui/uifiles/icc_dialog.ui:308
 #: src/gui/uifiles/spcc_details.ui:96
@@ -4662,9 +4681,8 @@ msgid "Manufacturer"
 msgstr "Fabricante"
 
 #: src/gui/uifiles/icc_dialog.ui:267 src/gui/uifiles/icc_dialog.ui:321
-#, fuzzy
 msgid "Copyright"
-msgstr "Copyright TIFF"
+msgstr "Copyright"
 
 #: src/gui/uifiles/icc_dialog.ui:332
 msgid "\n"
@@ -4680,16 +4698,18 @@ msgid ""
 "of an image, not its type, so you cannot convert a RGB image to a Gray "
 "profile or vice versa."
 msgstr ""
+"Seleccione un perfil ICC integrado. Esta herramienta solo sirve para "
+"convertir el perfil de una imagen, no su tipo, por lo que no es posible "
+"convertir una imagen RGB a un perfil de grises ni viceversa."
 
 #: src/gui/uifiles/icc_dialog.ui:374
-#, fuzzy
 msgid "None selected"
-msgstr "seleccionada"
+msgstr "Ninguno seleccionado"
 
 #: src/gui/uifiles/icc_dialog.ui:375
 #, fuzzy
 msgid "sRGB (linear TRC)"
-msgstr "Alineación RGB (DFT)"
+msgstr "sRGB (linear TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:376
 msgid "sRGB (standard sRGB TRC)"
@@ -4716,20 +4736,17 @@ msgid "Gray (Rec709 TRC)"
 msgstr "Gray (Rec709 TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:394
-#, fuzzy
 msgid "Load profile from file"
-msgstr "Filtro mediano aplicado"
+msgstr "Leer perfil desde el fichero"
 
 #: src/gui/uifiles/icc_dialog.ui:424
-#, fuzzy
 msgid "<b>Color Management Operations</b>"
-msgstr "<b>Gestión de memoria</b>"
+msgstr "<b>Operaciones de Gestión de Color</b>"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:32
 #: src/gui/uifiles/settings_window.ui:4147
-#, fuzzy
 msgid "Gamut visualisation"
-msgstr "Sólo para virtualización"
+msgstr "Visualización Gamut"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:76
 msgid ""
@@ -4748,13 +4765,32 @@ msgid ""
 "larger gamuts than sRGB, and you will probably want to use a gamut at least "
 "as large as your monitor can display."
 msgstr ""
+"Esta imagen muestra una comparación de las distintas gamas de color "
+"disponibles en Siril. (Nota: P3 no está disponible en Siril: se muestra como "
+"referencia y puede proporcionar un perfil ICC P3 si lo desea).\n"
+"El espacio xy CIE1931 representa todos los colores visibles a simple vista.\n"
+"sRGB es un estándar para publicaciones web y corresponde a la gama de la "
+"mayoría de los monitores.\n"
+"Otros espacios de color ofrecen gamas más amplias que abarcan una mayor "
+"parte del espacio CIE1931. Rec2020 tiene la gama más amplia, que no incluye "
+"colores imaginarios; ProPhoto RGB tiene una gama aún mayor, especialmente en "
+"la región verde/azul, pero sí incluye algunos colores imaginarios.\n"
+"Las fotografías impresas pueden ofrecer colores más ricos y profundos si se "
+"producen a partir de un espacio de color con una gama más amplia. También "
+"hay monitores especializados con gamas más amplias que sRGB, y probablemente "
+"querrá utilizar una gama al menos tan amplia como la que su monitor pueda "
+"mostrar."
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:93
+#, fuzzy
 msgid ""
 "By Myndex - Own work, CC BY-SA 4.0, <a href=\"https://commons.wikimedia.org/"
 "w/index.php?curid=116654642\">https://commons.wikimedia.org/w/index.php?"
 "curid=116654642</a>"
 msgstr ""
+"By Myndex - Own work, CC BY-SA 4.0, <a href=\"https://commons.wikimedia.org/"
+"w/index.php?curid=116654642\">https://commons.wikimedia.org/w/index."
+"php?curid=116654642</a>"
 
 #: src/gui/uifiles/keywords_dialog.ui:27
 msgid "FITS Header"
@@ -5505,9 +5541,8 @@ msgid "Enable bracket matching"
 msgstr "Habilitar coincidencia de corchete"
 
 #: src/gui/uifiles/python_scratchpad.ui:433
-#, fuzzy
 msgid "Enable line numbers in the left margin"
-msgstr "Centrar líneas guía en la selección"
+msgstr "Habilitar números de línea en el margen izquierdo"
 
 #: src/gui/uifiles/python_scratchpad.ui:434
 msgid "Show line numbers"
@@ -5960,22 +5995,32 @@ msgstr ""
 #: src/gui/uifiles/s_pcc_dialog.ui:629
 msgid "Enter the nominal wavelength of the blue channel narrowband filter"
 msgstr ""
+"Introduce la longitud de onda nominal del filtro de banda estrecha del canal "
+"azul"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:645
 msgid "Enter the nominal wavelength of the green channel narrowband filter"
 msgstr ""
+"Introduce la longitud de onda nominal del filtro de banda estrecha del canal "
+"verde"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:661
 msgid "Enter the nominal bandwidth of the red channel narrowband filter"
 msgstr ""
+"Introduce la longitud de onda nominal del filtro de banda estrecha del canal "
+"rojo"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:677
 msgid "Enter the nominal bandwidth of the green channel narrowband filter"
 msgstr ""
+"Introduce el ancho de banda nominal del filtro de banda estrecha del canal "
+"verde"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:693
 msgid "Enter the nominal bandwidth of the blue channel narrowband filter"
 msgstr ""
+"Introduce el ancho de banda nominal del filtro de banda estrecha del canal "
+"azul"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:717
 #, fuzzy
@@ -6369,7 +6414,7 @@ msgstr "Guardar los valores de MIPS-HI y MIPS-LO"
 
 #: src/gui/uifiles/savepopup.ui:777
 msgid "Save CHECKSUM and DATASUM keywords"
-msgstr ""
+msgstr "Guardar las palabras clave CHECKSUM y DATASUM"
 
 #: src/gui/uifiles/savepopup.ui:797
 msgid "Embedded Data"
@@ -6395,7 +6440,7 @@ msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:895
 msgid "Effort:"
-msgstr ""
+msgstr "Esfuerzo:"
 
 #: src/gui/uifiles/savepopup.ui:919
 msgid ""
@@ -6403,10 +6448,14 @@ msgid ""
 "the default: values higher than this are not recommended as they become very "
 "slow and may not result in an improvement in file size."
 msgstr ""
+"Esfuerzo representa el trabajo realizado por el codificador para optimizar "
+"la salida. 7 es el predeterminado: valores mayores que este no se "
+"recomiendan porque se vuelve muy lento y puede no terminar mejorando el "
+"tamaño del fichero."
 
 #: src/gui/uifiles/savepopup.ui:933
 msgid "8 bit output"
-msgstr ""
+msgstr "Salida de 8 bits"
 
 #: src/gui/uifiles/savepopup.ui:937
 msgid ""
@@ -6827,7 +6876,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:801
 msgid "Verify file checksums in FITS header (DATASUM and CHECKSUM)"
-msgstr ""
+msgstr "Verificar los checksums de la cabecera FITS (DATASUM y CHECKSUM)"
 
 #: src/gui/uifiles/settings_window.ui:805
 msgid ""
@@ -7216,6 +7265,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:1598
 msgid "Update default focal length and pixel size from the result"
 msgstr ""
+"Actualizar la longitud focal y el tamaño de pixel por defecto del resultado"
 
 #: src/gui/uifiles/settings_window.ui:1602
 #, fuzzy
@@ -7229,7 +7279,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1622
 msgid "Sampling tolerance (%):"
-msgstr ""
+msgstr "Tolerancia de muestreo (%):"
 
 #: src/gui/uifiles/settings_window.ui:1634
 msgid "Percent below and above the expected sampling to allow."
