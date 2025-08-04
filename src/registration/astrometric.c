@@ -102,7 +102,7 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 	return TRUE;
 }
 
-static int calcH_from_corners(int rx, int ry, wcsprm_t *prm_img, wcsprm_t *prm_ref, Homography *H) {
+static int calcH_from_corners(int rx, int ry, int ry_ref, wcsprm_t *prm_img, wcsprm_t *prm_ref, Homography *H) {
 	// corners in siril coords
 	double corner_x[4] = { 0., (double)rx, (double)rx, 0. };
 	double corner_y[4] = { 0., 0., (double)ry, (double)ry };
@@ -126,7 +126,7 @@ static int calcH_from_corners(int rx, int ry, wcsprm_t *prm_img, wcsprm_t *prm_r
 		corner_x[i] = corner_x[i] - 0.5;
 		corner_y[i] = ry - corner_y[i] - 0.5;
 		corner_ref_x[i] = corner_ref_x[i] - 0.5;
-		corner_ref_y[i] = ry - corner_ref_y[i] - 0.5;
+		corner_ref_y[i] = ry_ref - corner_ref_y[i] - 0.5;
 	}
 	int ret = cvCalcH_from_corners(corner_x, corner_y, corner_ref_x, corner_ref_y, H);
 	if (ret < 0) {
@@ -381,6 +381,8 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 	regdata *current_regdata = seq->regparam[layer];
 	int xmin = INT_MAX, xmax = -INT_MAX;
 	int ymin = INT_MAX, ymax = -INT_MAX;
+	int rx_ref = ((seq->is_variable) ? seq->imgparam[ref_index].rx : seq->rx);
+	int ry_ref = ((seq->is_variable) ? seq->imgparam[ref_index].ry : seq->ry);
 	for (int i = 0;  i < n; i++) {
 		if (!incl[i])
 			continue;
@@ -388,7 +390,7 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 		int rx = ((seq->is_variable) ? seq->imgparam[i].rx : seq->rx);
 		int ry = ((seq->is_variable) ? seq->imgparam[i].ry : seq->ry);
 		wcsprm_t *wcscurr = wcs_copy_linear(WCSDATA + i);
-		calcH_from_corners(rx, ry, wcscurr, wcsref, &H);
+		calcH_from_corners(rx, ry, ry_ref, wcscurr, wcsref, &H);
 		wcsfree(wcscurr);
 		framing_roi roi = { 0 };
 		compute_roi(&H, rx, ry, &roi);
