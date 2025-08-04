@@ -103,36 +103,34 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 }
 
 static int calcH_from_corners(int rx, int ry, wcsprm_t *prm_img, wcsprm_t *prm_ref, Homography *H) {
-	// void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d)
-	double corner[4][2] = {
-		{ 0., 0. },
-		{ (double)rx, 0. },
-		{ (double)rx, (double)ry},
-		{ 0., (double)ry}
-	};
+	// corners in siril coords
 	double corner_x[4] = { 0., (double)rx, (double)rx, 0. };
 	double corner_y[4] = { 0., 0., (double)ry, (double)ry };
+	// other inits
 	double corner_ra[4] = { 0. };
 	double corner_dec[4] = { 0. };
 	double corner_ref_x[4] = { 0. };
 	double corner_ref_y[4] = { 0. };
 	// we compute the world coordinates of the corners of the image with its own wcs solution
 	for (int i = 0; i < 4; i++)
-		pix2wcs2(prm_img, corner[i][0], corner[i][1], &corner_ra[i], &corner_dec[i]);
+		// uses x/y in siril coords
+		pix2wcs2(prm_img, corner_x[i], corner_y[i], &corner_ra[i], &corner_dec[i]);
 
 	// then we compute the corners coordinates from their world position in the reference framing
 	for (int i = 0; i < 4; i++)
+		// returns x/y in siril coords
 		wcs2pix2(prm_ref, corner_ra[i], corner_dec[i], &corner_ref_x[i], &corner_ref_y[i]);
 
-	// we convert all the corner coordinates to display coordinates
-	// TODO: we should convert to opencv, not display coordinates
+	// we convert all the corner coordinates from siril to opencv coordinates
 	for (int i = 0; i < 4; i++) {
-		corner_y[i] = ry - corner_y[i];
-		corner_ref_y[i] = ry - corner_ref_y[i];
+		corner_x[i] = corner_x[i] - 0.5;
+		corner_y[i] = ry - corner_y[i] - 0.5;
+		corner_ref_x[i] = corner_ref_x[i] - 0.5;
+		corner_ref_y[i] = ry - corner_ref_y[i] - 0.5;
 	}
 	int ret = cvCalcH_from_corners(corner_x, corner_y, corner_ref_x, corner_ref_y, H);
 	if (ret < 0) {
-		siril_log_message(_("Failed to compute homography from corners\n"));
+		siril_log_color_message(_("Failed to compute homography from corners\n"), "red");
 		return -1;
 	}
 	return 0;
