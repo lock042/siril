@@ -43,7 +43,7 @@
 #include "registration/matching/degtorad.h"
 
 
-#define DEBUG_ASTROREG
+// #define DEBUG_ASTROREG
 
 // computing center cog dealing with range jumps
 // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
