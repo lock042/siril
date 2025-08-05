@@ -400,12 +400,6 @@ static gboolean computeBackground_Polynom(GSList *list, double *background, int 
 	return TRUE;
 }
 
-
-
-
-
-
-
 static background_sample *get_sample(float *buf, const int xx,
 		const int yy, const int w, const int h) {
 	size_t size = SAMPLE_SIZE * SAMPLE_SIZE;
@@ -603,7 +597,6 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 	int ny = fit->ry;
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	GSList *list = NULL;
-
 	float *image = convert_fits_to_luminance(fit, threads);	// upside down
 	if (!image) {
 		if (error)
@@ -617,13 +610,13 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 		free(image);
 		return NULL;
 	}
-
 	int boxes_width = nb_per_line * size + 2;	// leave a margin of 1 px on the sides
 	float spacing = (nx - boxes_width) / (float)(nb_per_line-1);
 	int radius = size / 2;
-	// solving iteratively n for: ny - 2 = n * size + (n-1) * spacing;
+
+	// Calculate nb_per_column using the same spacing as x-axis
 	int nb_per_column = 1;
-	while (nb_per_column * size + round_to_int((nb_per_column - 1) * spacing) <= (ny - 2))
+	while (nb_per_column * size + round_to_int((nb_per_column - 1) * spacing) < (ny - 2))
 		nb_per_column++;
 	nb_per_column--;
 	if (nb_per_column == 0) {
@@ -633,14 +626,18 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 		return NULL;
 	}
 
+	// Calculate symmetric placement for y-axis
+	int total_grid_height = nb_per_column * size + (nb_per_column - 1) * round_to_int(spacing);
+	int available_height = ny - 2;  // subtract margins
+	int y_offset = (available_height - total_grid_height) / 2 + 1;  // +1 for the margin
+
 	guint nb = nb_per_line * nb_per_column;
 	float *mad = malloc(nb * sizeof(float));
 	int k = 0;
-
 	for (int i = 0; i < nb_per_line; i++) {
 		for (int j = 0; j < nb_per_column; j++) {
 			int x = round_to_int(i * (spacing + size)) + radius + 1;
-			int y = round_to_int(j * (spacing + size)) + radius + 1;
+			int y = y_offset + round_to_int(j * (spacing + size)) + radius;
 			background_sample *sample = get_sample(image, x, y, nx, ny);
 			if (sample) {
 				mad[k++] = fabs(sample->median[RLAYER] - median);
@@ -648,13 +645,11 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 			}
 		}
 	}
-
 	/* compute mad */
 	double mad0 = histogram_median_float(mad, k, TRUE);
 	free(mad);
 	double threshold = median + mad0 * tolerance;
 	siril_debug_print("Background gradient: %d samples per line, threshold %f\n", nb_per_line, threshold);
-
 	/* remove bad samples */
 	GSList *l = list;
 	while (l != NULL) {
@@ -667,7 +662,6 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 		}
 		l = next;
 	}
-
 	list = g_slist_reverse(list);
 	free(image);
 	if (!list && error)

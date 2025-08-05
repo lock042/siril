@@ -18,6 +18,7 @@ xx/xx/xx
 
 **Improvements:**
 * Compiled .pyc scripts are now only shown in the scripts menu if their magic number matches the available intepreter
+* Centre the background extraction grid vertically instead of starting at the image edge and having a gap (#1741)
 
 siril 1.4.0-beta3
 07/11/25
