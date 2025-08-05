@@ -525,6 +525,16 @@ int sync_gitscripts_repository(gboolean sync) {
 			siril_log_message(_("Existing directory is not a valid git repository or is "
 					"misconfigured. Cleaning up...\n"));
 
+			// Free all libgit2 resources before attempting directory deletion
+			if (remote) {
+				git_remote_free(remote);
+				remote = NULL;
+			}
+			if (repo) {
+				git_repository_free(repo);
+				repo = NULL;
+			}
+
 			// Delete the existing directory
 			GError *delete_error = NULL;
 			if (!delete_directory(local_path, &delete_error)) {
