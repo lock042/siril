@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-10 15:46+0200\n"
-"PO-Revision-Date: 2025-07-15 13:09+0000\n"
+"PO-Revision-Date: 2025-08-08 13:36+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -1472,7 +1472,7 @@ msgstr ""
 #: src/gui/uifiles/histogram_dialog.ui:706 src/gui/uifiles/siril.ui:5299
 #: src/gui/uifiles/split_cfa_dialog.ui:118
 msgid "Output prefix:"
-msgstr "出力ファイル名プレフィックス:"
+msgstr "出力プレフィックス:"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:638
 #, fuzzy
@@ -8705,9 +8705,8 @@ msgid "FITS sequence"
 msgstr "FITSシーケンス"
 
 #: src/gui/uifiles/siril.ui:3947
-#, fuzzy
 msgid "Multiple sequences"
-msgstr "出力画像シーケンス"
+msgstr "複数シーケンス"
 
 #: src/gui/uifiles/siril.ui:3950
 msgid ""
@@ -9234,11 +9233,12 @@ msgid ""
 "channel).\n"
 "FITS sequence: one FITS file for the whole sequence."
 msgstr ""
-"これは目的の画像シーケンスのタイプを設定します.\n"
-"FITS 画像: 一つの画像に付き一つのファイル.\n"
-"SER 画像シーケンス: 一つの画像シーケンス全体(各チャンネル毎に16ビットに制限)"
-"に対し一つの SER ファイル.\n"
-"FITS 画像シーケンス: 一つの画像シーケンス全体に対し一つの FITS ファイル."
+"これは目的の画像シーケンスの種類を設定します.\n"
+"FITS画像: 一つの画像に付き一つのファイル.\n"
+"SERシーケンス: "
+"一つのシーケンス全体(各チャンネル毎に16ビットに制限)に対し一つのSERファイル."
+"\n"
+"FITSシーケンス: 一つのシーケンス全体に対し一つのFITSファイル."
 
 #: src/gui/uifiles/siril.ui:5381
 msgid "Calibrate all frames"
@@ -9250,7 +9250,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:5399
 msgid "Output sequence"
-msgstr "出力画像シーケンス"
+msgstr "出力シーケンス"
 
 #: src/gui/uifiles/siril.ui:5425
 #, fuzzy
@@ -9258,9 +9258,8 @@ msgid "Calibration is an optional step to apply to a sequence of images."
 msgstr "前処理は画像シーケンスに適用する為のオプションです."
 
 #: src/gui/uifiles/siril.ui:5427
-#, fuzzy
 msgid "Calibration"
-msgstr "色補正"
+msgstr "補正"
 
 #: src/gui/uifiles/siril.ui:5498
 #, fuzzy
@@ -9878,15 +9877,17 @@ msgstr "マニュアル整列"
 
 #: src/gui/uifiles/siril.ui:7300
 msgid "Go register"
-msgstr "整列開始"
+msgstr "見当合わせ開始"
 
 #: src/gui/uifiles/siril.ui:7305
-#, fuzzy
 msgid ""
 "Start the registration process. It will register images in the loaded "
 "sequence using the selected method and reference layer (loaded in the 'Image "
 "sequences' tab, current sequence name is at the bottom of the window too)."
-msgstr "整列処理を開始. "
+msgstr ""
+"見当合わせのプロセスを開始します。選択した方法と参照レイヤーを使用して、読み"
+"込まれたシーケンス内の画像を見当合わせします（「画像シーケンス」タブで読み込"
+"まれたもの。現在のシーケンス名はウィンドウの下部にも表示されています）。"
 
 #: src/gui/uifiles/siril.ui:7324
 msgid "Load a sequence first"
