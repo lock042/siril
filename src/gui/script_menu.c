@@ -257,7 +257,6 @@ static gint compare_basenames(gconstpointer a, gconstpointer b) {
 static gboolean on_menu_item_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
 	const gchar *scriptpath = (const gchar *)user_data;
-	siril_log_message("event-button %d\n", event->button);
 	if (event->type == GDK_BUTTON_PRESS && event->button == 1) {
 		on_script_execution(GTK_MENU_ITEM(widget), (gpointer)scriptpath);
 		return TRUE;
