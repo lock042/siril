@@ -824,8 +824,7 @@ int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *statu
 	*status = 0;
 	gchar *dirname = g_path_get_dirname(filename);
 	GDir *dir = g_dir_open(dirname, 0, NULL);
-	if (!dir && g_mkdir_with_parents(dirname, 0755) < 0) {
-		siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+	if (!dir && siril_mkdir_with_parents(dirname, 0755) < 0) {
 		*status = 1;
 		g_free(dirname);
 		return *status;
@@ -2769,9 +2768,16 @@ void fit_debayer_buffer(fits *fit, void *newbuf) {
 }
 
 static void gray2rgb(float gray, guchar *rgb) {
-	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
-	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
-	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
+	guchar val = (guchar) roundf_to_BYTE(255.f * gray);
+	*rgb++ = val;
+	*rgb++ = val;
+	*rgb++ = val;
+}
+
+static void set_rgb(float r, float g, float b, guchar *rgb) {
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * r);
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * g);
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * b);
 }
 
 static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
@@ -2789,14 +2795,14 @@ static double logviz(double arg) {
 		status = FALSE; \
 		f(__VA_ARGS__, &status); \
 		if(status){ \
-			free(ima_data); \
+			if(ima_data) free(ima_data); \
 			fits_close_file(fp, &status); \
 			return NULL; \
 		} \
 	} while(0)
 
 /**
- * Create a monochrome preview of a FITS file in a GdkPixbuf
+ * Create a preview of a FITS file in a GdkPixbuf (color if available)
  * @param filename
  * @return a GdkPixbuf containing the preview or NULL
  */
@@ -2821,10 +2827,13 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 
 	const int w = naxes[0];
 	const int h = naxes[1];
+	const int n_channels = (naxis >= 3 && naxes[2] >= 3) ? 3 : 1;
+	const gboolean is_color = (n_channels == 3);
+
 	if (w <= 0 || h <= 0)
 		return(NULL);
 
-	size_t sz = w * h;
+	size_t sz = w * h * n_channels;
 	ima_data = malloc(sz * sizeof(float));
 
 	TRYFITS(fits_read_img, fp, TFLOAT, 1, sz, &nullval, ima_data, &stat);
@@ -2835,120 +2844,151 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	const int Ws = w / pixScale; 			// picture width in pixScale blocks
 	const int Hs = h / pixScale; 			// -//- height pixScale
 
-	const int n_channels = naxis == 3 ? naxis : 1;
-
 	if (fitseq_is_fitseq(filename, &frames)) { // FIXME: we reopen the file in this function
-		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s\n%s", w,
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
 				h, ngettext("pixel", "pixels", h), n_channels,
 				ngettext("channel", "channels", n_channels), abs(dtype), frames,
-				ngettext("frame", "frames", frames), _("(Monochrome Preview)"));
+				ngettext("frame", "frames", frames));
 	} else {
-		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%s", w,
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)", w,
 				h, ngettext("pixel", "pixels", h), n_channels,
-				ngettext("channel", "channels", n_channels), abs(dtype),
-				_("(Monochrome Preview)"));
+				ngettext("channel", "channels", n_channels), abs(dtype));
 	}
+
+	float *preview_data = malloc(Ws * Hs * n_channels * sizeof(float));
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
 	{
-		// array for preview picture line
-		float pix[MAX_SIZE];
 #ifdef _OPENMP
 #pragma omp for
 #endif
-		for (int i = 0; i < Hs; i++) { // cycle through a blocks by lines
+		for (int i = 0; i < Hs; i++) { // cycle through blocks by lines
 			int M = i * pixScale;
-			for (int j = 0; j < MAX_SIZE; j++) { // zero line buffer
-				pix[j] = 0;
-			}
-			unsigned int m = 0; // amount of strings read in block
-			for (int l = 0; l < pixScale; l++, m++) { // cycle through a block lines
-				const float *ptr = &ima_data[M * w];
-				int N = 0; // number of column
-				for (int j = 0; j < Ws; j++) { // cycle through a blocks by columns
-					unsigned int n = 0;	// amount of columns read in block
-					float sum = 0.f; // average intensity in block
-					for (int k = 0; k < pixScale; k++, n++) { // cycle through block pixels
-						if (N++ < w) // row didn't end
-							sum += *ptr++; // sum[(pix-min)/wd]/n = [sum(pix)/n-min]/wd
-						else
-							break;
+
+			for (int j = 0; j < Ws; j++) { // cycle through blocks by columns
+				int N = j * pixScale;
+
+				for (int ch = 0; ch < n_channels; ch++) {
+					float sum = 0.f;
+					unsigned int count = 0;
+
+					for (int l = 0; l < pixScale && (M + l) < h; l++) {
+						for (int k = 0; k < pixScale && (N + k) < w; k++) {
+							int idx;
+							if (is_color) {
+								idx = ch * w * h + (M + l) * w + (N + k);
+							} else {
+								idx = (M + l) * w + (N + k);
+							}
+							sum += ima_data[idx];
+							count++;
+						}
 					}
-					pix[j] += sum / n; //(byte / n - min)/wd;
+
+					int preview_idx = ch * Ws * Hs + i * Ws + j;
+					preview_data[preview_idx] = (count > 0) ? sum / count : 0.0f;
 				}
-				if (++M >= h)
-					break;
 			}
-			// fill unused picture pixels
-			float *ptr = &ima_data[i * Ws];
-			for (int l = 0; l < Ws; l++)
-				*ptr++ = pix[l] / m;
 		}
 	}
 
-	float *ptr = ima_data;
-	sz = Ws * Hs;
-	float max = *ptr;
-	float min = max;
-	float avr = 0.f;
-	for (size_t i = 0; i < sz; i++, ptr++) {
-		const float val = *ptr;
-		max = max(max, val);
-		min = min(min, val);
-		avr += val;
+	float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
+	float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+
+	for (int ch = 0; ch < n_channels; ch++) {
+		for (int i = 0; i < Ws * Hs; i++) {
+			int idx = ch * Ws * Hs + i;
+			float val = preview_data[idx];
+			min_vals[ch] = fminf(min_vals[ch], val);
+			max_vals[ch] = fmaxf(max_vals[ch], val);
+		}
 	}
-	avr /= (float) sz;
 
 	/* use FITS keyword if available for a better visualization */
-	float lo = 0.f;
-	float hi = 0.f;
+	float lo = 0.f, hi = 0.f;
 	status = 0;
 	__tryToFindKeywords(fp, TFLOAT, MIPSLO, &lo, &status);
 	status = 0;
 	__tryToFindKeywords(fp, TFLOAT, MIPSHI, &hi, &status);
 
 	if (hi != lo && hi != 0.f && abs(dtype) <= USHORT_IMG) {
-		min = lo;
-		max = hi;
-	} else if (dtype <= FLOAT_IMG) {	// means float or double image
+		for (int ch = 0; ch < n_channels; ch++) {
+			min_vals[ch] = lo;
+			max_vals[ch] = hi;
+		}
+	} else if (dtype <= FLOAT_IMG) {
 		WORD wlo, whi;
 		if (!try_read_float_lo_hi(fp, &wlo, &whi)) {
-			min = (float) wlo / USHRT_MAX_SINGLE;
-			max = (float) whi / USHRT_MAX_SINGLE;
+			for (int ch = 0; ch < n_channels; ch++) {
+				min_vals[ch] = (float) wlo / USHRT_MAX_SINGLE;
+				max_vals[ch] = (float) whi / USHRT_MAX_SINGLE;
+			}
 		}
 	}
 
-	float wd = max - min;
-	avr = (avr - min) / wd;	// normal average by preview
-	avr = -logf(avr);		// scale factor
-	if (avr > 1.) {
-		wd /= avr;
+	float scales[3];
+	for (int ch = 0; ch < n_channels; ch++) {
+		float wd = max_vals[ch] - min_vals[ch];
+		if (wd <= 0.0f) wd = 1.0f;
+
+		float avr = 0.0f;
+		for (int i = 0; i < Ws * Hs; i++) {
+			int idx = ch * Ws * Hs + i;
+			avr += preview_data[idx];
+		}
+		avr /= (float)(Ws * Hs);
+		avr = (avr - min_vals[ch]) / wd;
+		avr = -logf(fmaxf(avr, 1e-6f));
+
+		scales[ch] = (avr > 1.0f) ? wd / avr : wd;
 	}
 
-	guchar *pixbuf_data = malloc(3 * MAX_SIZE * MAX_SIZE * sizeof(guchar));
+	guchar *pixbuf_data = malloc(3 * Ws * Hs * sizeof(guchar));
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread)
 #endif
-	for (int i = Hs - 1; i > -1; i--) {	// fill pixbuf mirroring image by vertical
-		guchar *pptr = &pixbuf_data[Ws * i * 3];
-		float *p = &ima_data[(Hs - i - 1) * Ws];
+	for (int i = 0; i < Hs; i++) {
 		for (int j = 0; j < Ws; j++) {
-			gray2rgb(logviz((*p++ - min) / wd), pptr);
-			pptr += 3;
+			int pixbuf_idx = ((Hs - 1 - i) * Ws + j) * 3;
+
+			if (is_color) {
+				float r_val = preview_data[0 * Ws * Hs + i * Ws + j]; // Canal R
+				float g_val = preview_data[1 * Ws * Hs + i * Ws + j]; // Canal G
+				float b_val = preview_data[2 * Ws * Hs + i * Ws + j]; // Canal B
+
+				float r_norm = logviz((r_val - min_vals[0]) / scales[0]);
+				float g_norm = logviz((g_val - min_vals[1]) / scales[1]);
+				float b_norm = logviz((b_val - min_vals[2]) / scales[2]);
+
+				r_norm = fmaxf(0.0f, fminf(1.0f, r_norm));
+				g_norm = fmaxf(0.0f, fminf(1.0f, g_norm));
+				b_norm = fmaxf(0.0f, fminf(1.0f, b_norm));
+
+				set_rgb(r_norm, g_norm, b_norm, &pixbuf_data[pixbuf_idx]);
+			} else {
+				float gray_val = preview_data[i * Ws + j];
+				float gray_norm = logviz((gray_val - min_vals[0]) / scales[0]);
+				gray_norm = fmaxf(0.0f, fminf(1.0f, gray_norm));
+
+				gray2rgb(gray_norm, &pixbuf_data[pixbuf_idx]);
+			}
 		}
 	}
+
 	fits_close_file(fp, &status);
 	free(ima_data);
-	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,	// guchar* data
-			GDK_COLORSPACE_RGB,	// only this supported
-			FALSE,				// no alpha
-			8,				// number of bits
-			Ws, Hs,				// size
-			Ws * 3,				// line length in bytes
-			(GdkPixbufDestroyNotify) free_preview_data, // function (*GdkPixbufDestroyNotify) (guchar *pixels, gpointer data);
+	free(preview_data);
+
+	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,
+			GDK_COLORSPACE_RGB,
+			FALSE,
+			8,
+			Ws, Hs,
+			Ws * 3,
+			(GdkPixbufDestroyNotify) free_preview_data,
 			NULL);
 	*descr = description;
 	return pixbuf;

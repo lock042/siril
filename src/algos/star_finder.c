@@ -934,8 +934,7 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 	GError *error = NULL;
 	gchar *dirname = g_path_get_dirname(filename);
 	GDir *dir = g_dir_open(dirname, 0, NULL);
-	if (!dir && g_mkdir_with_parents(dirname, 0755) < 0) {
-		siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+	if (!dir && siril_mkdir_with_parents(dirname, 0755) < 0) {
 		g_free(dirname);
 		return 1;
 	}

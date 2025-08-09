@@ -254,6 +254,33 @@ static gint compare_basenames(gconstpointer a, gconstpointer b) {
 	return result;
 }
 
+static gboolean on_menu_item_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+{
+	const gchar *scriptpath = (const gchar *)user_data;
+	if (event->type == GDK_BUTTON_PRESS && event->button == 1) {
+		on_script_execution(GTK_MENU_ITEM(widget), (gpointer)scriptpath);
+		return TRUE;
+	} else if (event->type == GDK_BUTTON_PRESS && event->button == 3) {
+		gchar *contents = NULL;
+		gsize length = 0;
+		GError *error = NULL;
+		if (g_file_get_contents(scriptpath, &contents, &length, &error) &&
+					length > 0) {
+			const char *ext = get_filename_ext(scriptpath);
+			new_script(contents, length, ext);
+			g_free(contents);
+		} else {
+			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
+			siril_log_color_message(msg, "red");
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
+			g_free(msg);
+			g_error_free(error);
+		}
+		return TRUE;
+	}
+	return FALSE;
+}
+
 // Helper function to get or create Python submenu based on script path
 static GtkWidget* get_py_submenu(const gchar *script_path, GtkWidget *menu_py, GHashTable *py_submenus) {
 	gchar *dir_path = g_path_get_dirname(script_path);
@@ -381,7 +408,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 						gtk_menu_shell_append(GTK_MENU_SHELL(py_submenu), menu_item);
 					}
 
-					g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), full_path);
+					g_signal_connect(G_OBJECT(menu_item), "button-press-event", G_CALLBACK(on_menu_item_button_press), full_path); // right-click will open in editor
 					if (verbose)
 						siril_log_message(_("Loading script: %s\n"), l->data);
 
@@ -444,7 +471,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 					gtk_menu_shell_append(GTK_MENU_SHELL(py_submenu), menu_item);
 				}
 
-				g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), g_strdup(path));
+				g_signal_connect(G_OBJECT(menu_item), "button-press-event", G_CALLBACK(on_menu_item_button_press), path); // right-click will open in editor
 
 				if (verbose) {
 					siril_log_message(_("Loading script from repository: %s\n"), basename);
@@ -494,8 +521,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 					continue;
 				}
 
-				g_signal_connect(G_OBJECT(menu_item), "activate",
-								 G_CALLBACK(on_script_execution), full_path);
+				g_signal_connect(G_OBJECT(menu_item), "button-press-event", G_CALLBACK(on_menu_item_button_press), full_path); // right-click will open in editor
 
 				if (verbose)
 					siril_log_message(_("Adding core script to menu: %s\n"), basename);

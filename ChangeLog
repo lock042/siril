@@ -12,6 +12,15 @@ xx/xx/xx
 * Fixed an issue where an incorrect colourspace transform could be applied when saving a32-bit TIFF (#1730)
 * Fixed handling of automatic scripts git repository update flag
 * Fixed crash in commands seqpsf and seqtilt when executed from the command line (#1736)
+* Fixed crash/memory allocation for stack min or max with 16b images (#1746)
+* Fixed magnitude calculation in Dynamic PSF, this affects mostly faint stars for images in 32b (#1739)
+* Fixed wrong cache file name (parent directory twice in the returned path) resulting in impossibility to cache files (#1734)
+
+**Improvements:**
+* Compiled .pyc scripts are now only shown in the scripts menu if their magic number matches the available intepreter
+* Centre the background extraction grid vertically instead of starting at the image edge and having a gap (#1741)
+* Right-click scripts directly from the script menu to open them in the editor
+* Allow image preview to be displayed in color if needed for FITS files
 
 siril 1.4.0-beta3
 07/11/25

@@ -1623,13 +1623,15 @@ class SirilInterface:
         Retrieves the pixel data from a frame in the sequence currently loaded in Siril.
 
         Args:
-            frame: selects the frame to retrieve pixel data from
+            frame: selects the frame to retrieve pixel data from. This
+                uses a 0-based indexing scheme, i.e. the first frame is frame
+                number 0, not frame numer 1.
             shape: Optional list of [x, y, w, h] specifying the region to retrieve.
-                   If provided, gets pixeldata for just that region.
-                   If None, gets pixeldata for the entire image.
+                If provided, gets pixeldata for just that region.
+                If None, gets pixeldata for the entire image.
             preview: optional bool specifying whether to get pixeldata as a preview
-                     (i.e. 8-bit autostretched data) or as real image data. Defaults
-                     to False (i.e. real image data).
+                (i.e. 8-bit autostretched data) or as real image data. Defaults
+                to False (i.e. real image data).
 
         Returns:
             numpy.ndarray: The image data as a numpy array
@@ -2060,10 +2062,8 @@ class SirilInterface:
 
         Args:
             index: integer specifying which frame to set the pixeldata for. This
-                uses a 1-based indexing scheme, i.e. the first frame is frame
-                number 1, not frame numer 0. This matches the indexing used in
-                the frame selector, but is different to the filename indexing
-                pattern used for sequences of FITS files, which is 0-indexed.
+                uses a 0-based indexing scheme, i.e. the first frame is frame
+                number 0, not frame numer 1.
             image_data: numpy.ndarray containing the image data.
                 Must be 2D (single channel) or 3D (multi-channel) array
                 with dtype either np.float32 or np.uint16.
@@ -2676,6 +2676,11 @@ class SirilInterface:
         """
         Request the filename of the specified frame of the loaded sequence from Siril.
 
+        Args:
+            frame (int): Specifies the frame index. This
+                uses a 0-based indexing scheme, i.e. the first frame is frame
+                number 0, not frame numer 1.
+
         Returns:
             The filename as a string.
 
@@ -2739,7 +2744,9 @@ class SirilInterface:
 
         Args:
             frame: Integer specifying which frame in the sequence to get registration
-                   data for (between 0 and Sequence.number),
+                data for (between 0 and Sequence.number). This
+                uses a 0-based indexing scheme, i.e. the first frame is frame
+                number 0, not frame numer 1.
             channel: Integer specifying which channel to get registration data
                      for (typically 0, 1, or 2)
 
@@ -2776,7 +2783,9 @@ class SirilInterface:
 
         Args:
             frame: Integer specifying which frame in the sequence to get statistics
-                   data for (between 0 and Sequence.number)
+                data for (between 0 and Sequence.number). This
+                uses a 0-based indexing scheme, i.e. the first frame is frame
+                number 0, not frame numer 1.
             channel: Integer specifying which channel to get statistics
                      for (typically 0, 1, or 2)
 
@@ -2811,7 +2820,9 @@ class SirilInterface:
 
         Args:
             frame: Integer specifying which frame in the sequence to get image
-                   metadata for (between 0 and Sequence.number)
+                metadata for (between 0 and Sequence.number). This
+                uses a 0-based indexing scheme, i.e. the first frame is frame
+                number 0, not frame numer 1.
 
         Returns:
             ImgData object containing the frame metadata, or None if an error occurred
@@ -3098,12 +3109,13 @@ class SirilInterface:
 
         Args:
             frame: Integer specifying which frame in the sequence to retrieve data for
-                   (between 0 and Sequence.number)
+                (between 0 and Sequence.number - 1). This uses a 0-based indexing scheme,
+                i.e. the first frame is frame number 0, not frame numer 1.
             with_pixels: bool specifying whether or not to return the pixel data for the
-                         frame (default is True).
+                frame (default is True).
             preview: bool specifying whether or not to return the real pixel data or an
-                     autostretched uint8_t preview version. Only has an effect in
-                     conjunction with with_pixels = True
+                autostretched uint8_t preview version. Only has an effect in
+                conjunction with with_pixels = True
 
         Returns:
             FFit object containing the frame data
@@ -3394,9 +3406,10 @@ class SirilInterface:
 
         Args:
             frame: Integer specifying which frame in the sequence to retrieve data for
-            (between 0 and Sequence.number)
+                (between 0 and Sequence.number - 1). This uses a 0-based indexing scheme, i.e.
+                the first frame is frame number 0, not frame numer 1.
             return_as: Optional string specifying the format of the returned header.
-                        Can be 'str' for a string or 'dict' for a dictionary.
+                Can be 'str' for a string or 'dict' for a dictionary.
 
         Returns:
             str: The image FITS header as a string, or None if there is no header.
@@ -3657,7 +3670,9 @@ class SirilInterface:
         filters.
 
         Args:
-            index: integer specifying which frame to set the pixeldata for.
+            index: integer specifying which frame to set the pixeldata for. This
+                uses a 0-based indexing scheme, i.e. the first frame is frame
+                number 0, not frame numer 1.
             incl: bool specifying whether the frame is included or not.
 
         Raises:
