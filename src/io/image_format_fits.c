@@ -2846,103 +2846,42 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 		fits_close_file(fp, &status);
 		return NULL;
 	}
-
-	// Build a summed-average table to speed up preview generation
-	const size_t sat_w = (size_t)w + 1;
-	const size_t sat_h = (size_t)h + 1;
-	const size_t sat_sz = sat_w * sat_h;
-
-	float *sats = malloc((size_t)n_channels * sat_sz * sizeof(float));
-	if (!sats) {
-		free(ima_data);
-		free(preview_data);
-		fits_close_file(fp, &status);
-		return NULL;
-	}
-
-	// Initialize first row and column of SATs to zero
-	for (int ch = 0; ch < n_channels; ch++) {
-		float *sat = sats + (size_t)ch * sat_sz;
-		for (int i = 0; i < sat_w; i++) sat[i] = 0.f; // first row
-		for (int i = 0; i < sat_h; i++) sat[i * sat_w] = 0.f; // first column
-	}
-
-	// First pass: horizontal prefix sums (row-wise)
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static)
+#pragma omp parallel
 #endif
-	for (int ch = 0; ch < n_channels; ch++) {
-		float *sat = sats + (size_t)ch * sat_sz;
-		const float *src = ima_data + (size_t)ch * w * h;
-
-		for (int y = 0; y < h; y++) {
-			float row_sum = 0.0f;
-			size_t sat_row = (size_t)(y + 1) * sat_w;
-			size_t src_row = (size_t)y * w;
-
-			// SIMD vectorize horizontal prefix sum
+	{
 #ifdef _OPENMP
-#pragma omp simd
+#pragma omp for
 #endif
-			for (int x = 0; x < w; x++) {
-				row_sum += src[src_row + x];
-				sat[sat_row + (x + 1)] = row_sum;
-			}
-		}
-	}
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static)
-#endif
-	for (int ch_x = 0; ch_x < n_channels * (sat_w - 1); ch_x++) {
-		int ch = ch_x / (sat_w - 1);
-		int x = (ch_x % (sat_w - 1)) + 1; // skip first column (0)
+		for (int i = 0; i < Hs; i++) { // cycle through blocks by lines
+			int M = i * pixScale;
 
-		float *sat = sats + (size_t)ch * sat_sz;
-
-		float col_sum = 0.0f;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-		for (int y = 0; y < h; y++) {
-			col_sum += sat[(y + 1) * sat_w + x];
-			sat[(y + 1) * sat_w + x] = col_sum;
-		}
-	}
-
-	/* Compute preview pixels from SATs */
-	for (int ch = 0; ch < n_channels; ch++) {
-		float *sat = sats + (size_t)ch * sat_sz;
-		float *dst = preview_data + (size_t)ch * prev_size;
-
-#ifdef _OPENMP
-#pragma omp parallel for collapse(2) schedule(dynamic)
-#endif
-		for (int i = 0; i < Hs; i++) {
-			for (int j = 0; j < Ws; j++) {
-				int M = i * pixScale;
+			for (int j = 0; j < Ws; j++) { // cycle through blocks by columns
 				int N = j * pixScale;
 
-				int x1 = N;
-				int y1 = M;
-				int x2 = N + pixScale - 1;
-				int y2 = M + pixScale - 1;
-				if (x2 >= w) x2 = w - 1;
-				if (y2 >= h) y2 = h - 1;
+				for (int ch = 0; ch < n_channels; ch++) {
+					float sum = 0.f;
+					unsigned int count = 0;
 
-				size_t A = (size_t)(y2 + 1) * sat_w + (size_t)(x2 + 1);
-				size_t B = (size_t)(y1)     * sat_w + (size_t)(x2 + 1);
-				size_t C = (size_t)(y2 + 1) * sat_w + (size_t)(x1);
-				size_t D = (size_t)(y1)     * sat_w + (size_t)(x1);
+					for (int l = 0; l < pixScale && (M + l) < h; l++) {
+						for (int k = 0; k < pixScale && (N + k) < w; k++) {
+							int idx;
+							if (is_color) {
+								idx = ch * w * h + (M + l) * w + (N + k);
+							} else {
+								idx = (M + l) * w + (N + k);
+							}
+							sum += ima_data[idx];
+							count++;
+						}
+					}
 
-				float sum = sat[A] - sat[B] - sat[C] + sat[D];
-				unsigned int count = (unsigned int)((y2 - y1 + 1) * (x2 - x1 + 1));
-
-				dst[i * Ws + j] = (count > 0) ? (sum / (float)count) : 0.0f;
+					int preview_idx = ch * Ws * Hs + i * Ws + j;
+					preview_data[preview_idx] = (count > 0) ? sum / count : 0.0f;
+				}
 			}
 		}
 	}
-
-	free(sats);
 
 	/* Find per-channel min/max */
 	float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
