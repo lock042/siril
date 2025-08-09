@@ -1354,15 +1354,30 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	w = ser.image_width;
 	h = ser.image_height;
 	sz = w * h;
-	ima_data = malloc(sz * sizeof(float));
+
+	switch (ser.color_id) {
+	case SER_MONO:
+		n_channels = 1;
+		break;
+	default:
+		n_channels = 3;
+	}
+
+	ima_data = malloc(sz * n_channels * sizeof(float));
 	pixbuf_data = malloc(3 * MAX_SIZE * MAX_SIZE * sizeof(guchar));
 
-	/* here no need to debayer, for performance purposes
-	 * we just display monochrome display */
 	ser_read_frame(&ser, 0, &fit, FALSE, FALSE);
 
-	for (i = 0; i < sz; i++) {
-		ima_data[i + 0] = (float)fit.pdata[RLAYER][i];
+	if (n_channels == 1) {
+		for (i = 0; i < sz; i++) {
+			ima_data[i] = (float)fit.pdata[RLAYER][i];
+		}
+	} else {
+		for (i = 0; i < sz; i++) {
+			ima_data[i * 3 + 0] = (float)fit.pdata[RLAYER][i];
+			ima_data[i * 3 + 1] = (float)fit.pdata[GLAYER][i];
+			ima_data[i * 3 + 2] = (float)fit.pdata[BLAYER][i];
+		}
 	}
 	clearfits(&fit);
 
@@ -1380,72 +1395,143 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	n_frames = ser.frame_count;
 	bit = ser.bit_pixel_depth;
 
-	switch (ser.color_id) {
-	case SER_MONO:
-		n_channels = 1;
-		break;
-	default:
-		n_channels = 3;
+	if (n_channels == 1) {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), bit, n_frames,
+				ngettext("frame", "frames", n_frames));
+	} else {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), bit, n_frames,
+				ngettext("frame", "frames", n_frames));
 	}
 
-	description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s\n%s", w,
-			h, ngettext("pixel", "pixels", h), n_channels,
-			ngettext("channel", "channels", n_channels), bit, n_frames,
-			ngettext("frame", "frames", n_frames), _("(Monochrome Preview)"));
+	float *pix_r = malloc(MAX_SIZE * sizeof(float));
+	float *pix_g = malloc(MAX_SIZE * sizeof(float));
+	float *pix_b = malloc(MAX_SIZE * sizeof(float));
 
 	M = 0; // line number
 	for (i = 0; i < Hs; i++) { // cycle through a blocks by lines
-		//pptr = &pixbuf_data[i * Ws * 3];
-		for (j = 0; j < MAX_SIZE; j++)
-			pix[j] = 0;
+		for (j = 0; j < MAX_SIZE; j++) {
+			if (n_channels == 1) {
+				pix[j] = 0;
+			} else {
+				pix_r[j] = 0;
+				pix_g[j] = 0;
+				pix_b[j] = 0;
+			}
+		}
 		float m = 0.f; // amount of strings read in block
 		for (l = 0; l < pixScale; l++, m++) { // cycle through a block lines
-			ptr = &ima_data[M * w];
+			if (n_channels == 1) {
+				ptr = &ima_data[M * w];
+			} else {
+				ptr = &ima_data[M * w * 3];
+			}
 			N = 0; // number of column
 			for (j = 0; j < Ws; j++) { // cycle through a blocks by columns
 				n = 0.;	// amount of columns read in block
-				byte = 0.; // average intensity in block
-				for (k = 0; k < pixScale; k++, n++) { // cycle through block pixels
-					if (N++ < w) // row didn't end
-						byte += *ptr++; // sum[(pix-min)/wd]/n = [sum(pix)/n-min]/wd
-					else
-						break;
+				if (n_channels == 1) {
+					byte = 0.; // average intensity in block
+					for (k = 0; k < pixScale; k++, n++) { // cycle through block pixels
+						if (N++ < w) // row didn't end
+							byte += *ptr++; // sum[(pix-min)/wd]/n = [sum(pix)/n-min]/wd
+						else
+							break;
+					}
+					pix[j] += byte / n;
+				} else {
+					float byte_r = 0., byte_g = 0., byte_b = 0.;
+					for (k = 0; k < pixScale; k++, n++) { // cycle through block pixels
+						if (N++ < w) { // row didn't end
+							byte_r += *ptr++;
+							byte_g += *ptr++;
+							byte_b += *ptr++;
+						} else {
+							break;
+						}
+					}
+					pix_r[j] += byte_r / n;
+					pix_g[j] += byte_g / n;
+					pix_b[j] += byte_b / n;
 				}
-				pix[j] += byte / n; //(byte / n - min)/wd;
 			}
 			if (++M >= h)
 				break;
 		}
 		// fill unused picture pixels
-		ptr = &ima_data[i * Ws];
-		for (l = 0; l < Ws; l++)
-			*ptr++ = pix[l] / m;
+		if (n_channels == 1) {
+			ptr = &ima_data[i * Ws];
+			for (l = 0; l < Ws; l++)
+				*ptr++ = pix[l] / m;
+		} else {
+			for (l = 0; l < Ws; l++) {
+				ima_data[(i * Ws + l) * 3 + 0] = pix_r[l] / m;
+				ima_data[(i * Ws + l) * 3 + 1] = pix_g[l] / m;
+				ima_data[(i * Ws + l) * 3 + 2] = pix_b[l] / m;
+			}
+		}
 	}
-	ptr = ima_data;
-	sz = Ws * Hs;
-	max = min = *ptr;
-	avr = 0;
-	for (i = 0; i < sz; i++, ptr++) {
-		float tmp = *ptr;
-		if (tmp > max)
-			max = tmp;
-		else if (tmp < min)
-			min = tmp;
-		avr += tmp;
-	}
-	avr /= (float) sz;
-	wd = max - min;
-	avr = (avr - min) / wd;	// normal average by preview
-	if (avr > 1.)
-		wd /= avr;
-	ptr = ima_data;
-	for (i = Hs - 1; i > -1; i--) {	// fill pixbuf mirroring image by vertical
-		guchar *pptr = &pixbuf_data[Ws * i * 3];
-		for (j = 0; j < Ws; j++) {
-			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
-			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
-			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
-			ptr++;
+
+	if (n_channels == 1) {
+		ptr = ima_data;
+		sz = Ws * Hs;
+		max = min = *ptr;
+		avr = 0;
+		for (i = 0; i < sz; i++, ptr++) {
+			float tmp = *ptr;
+			if (tmp > max)
+				max = tmp;
+			else if (tmp < min)
+				min = tmp;
+			avr += tmp;
+		}
+		avr /= (float) sz;
+		wd = max - min;
+		avr = (avr - min) / wd;	// normal average by preview
+		if (avr > 1.)
+			wd /= avr;
+		ptr = ima_data;
+		for (i = Hs - 1; i > -1; i--) {	// fill pixbuf mirroring image by vertical
+			guchar *pptr = &pixbuf_data[Ws * i * 3];
+			for (j = 0; j < Ws; j++) {
+				guchar val = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
+				*pptr++ = val;
+				*pptr++ = val;
+				*pptr++ = val;
+				ptr++;
+			}
+		}
+	} else {
+		// Normalize each channel separately
+		float max_r = ima_data[0], min_r = ima_data[0];
+		float max_g = ima_data[1], min_g = ima_data[1];
+		float max_b = ima_data[2], min_b = ima_data[2];
+
+		sz = Ws * Hs;
+		for (i = 0; i < sz; i++) {
+			float r = ima_data[i * 3 + 0];
+			float g = ima_data[i * 3 + 1];
+			float b = ima_data[i * 3 + 2];
+
+			if (r > max_r) max_r = r; else if (r < min_r) min_r = r;
+			if (g > max_g) max_g = g; else if (g < min_g) min_g = g;
+			if (b > max_b) max_b = b; else if (b < min_b) min_b = b;
+		}
+
+		float wd_r = max_r - min_r;
+		float wd_g = max_g - min_g;
+		float wd_b = max_b - min_b;
+
+		for (i = Hs - 1; i > -1; i--) {	// fill pixbuf mirroring image by vertical
+			guchar *pptr = &pixbuf_data[Ws * i * 3];
+			for (j = 0; j < Ws; j++) {
+				int idx = ((Hs - 1 - i) * Ws + j) * 3;
+				*pptr++ = (guchar) roundf_to_BYTE(255.f * (ima_data[idx + 0] - min_r) / wd_r);
+				*pptr++ = (guchar) roundf_to_BYTE(255.f * (ima_data[idx + 1] - min_g) / wd_g);
+				*pptr++ = (guchar) roundf_to_BYTE(255.f * (ima_data[idx + 2] - min_b) / wd_b);
+			}
 		}
 	}
 
@@ -1461,6 +1547,11 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 			);
 	free(ima_data);
 	free(pix);
+	if (n_channels > 1) {
+		free(pix_r);
+		free(pix_g);
+		free(pix_b);
+	}
 	*descr = description;
 	return pixbuf;
 }
