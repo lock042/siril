@@ -56,8 +56,6 @@ const char *fit_extension[] = {
 		".fts"
 };
 
-static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
-static char *MIPSLO[] = {"MIPS-LO", "CBLACK", "DATAMIN", NULL };
 static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
 static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
 
@@ -187,22 +185,6 @@ static void fits_read_history(fitsfile *fptr, GSList **history) {
 	list = g_slist_reverse(list);
 	*history = list;
 }
-
-static int try_read_float_lo_hi(fitsfile *fptr, WORD *lo, WORD *hi) {
-	float fhi, flo;
-	int status = 0;
-	fits_read_key(fptr, TFLOAT, "MIPS-FHI", &fhi, NULL, &status);
-	if (!status) {
-		*hi = float_to_ushort_range(fhi);
-		status = 0;
-		fits_read_key(fptr, TFLOAT, "MIPS-FLO", &flo, NULL, &status);
-		if (!status) {
-			*lo = float_to_ushort_range(flo);
-		}
-	}
-	return status;
-}
-
 
 /* reading the FITS header to get useful information
  * stored in the fit, requires an opened file descriptor */
@@ -2787,10 +2769,6 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
 	return FALSE;
 }
 
-static double logviz(double arg) {
-	return log1p(arg);
-} // for PREVIEW_LOG
-
 #define TRYFITS(f, ...) \
 	do{ \
 		status = FALSE; \
@@ -2808,212 +2786,237 @@ static double logviz(double arg) {
  * @return a GdkPixbuf containing the preview or NULL
  */
 GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
-    fitsfile *fp;
-    gchar *description;
-    const int MAX_SIZE = com.pref.gui.thumbnail_size;
-    float nullval = 0.;
-    int naxis, dtype, stat, status, frames;
+	fitsfile *fp;
+	gchar *description;
+	const int MAX_SIZE = com.pref.gui.thumbnail_size;
+	float nullval = 0.;
+	int naxis, dtype, stat, status, frames;
 
-    long naxes[4];
-    float *ima_data = NULL;
+	long naxes[4];
+	float *ima_data = NULL;
 
-    TRYFITS(siril_fits_open_diskfile, &fp, filename, READONLY);
+	TRYFITS(siril_fits_open_diskfile, &fp, filename, READONLY);
 
-    if (siril_fits_move_first_image(fp)) {
-        siril_log_message(_("Selecting the primary header failed, is the FITS file '%s' malformed?\n"), filename);
-        return NULL;
-    }
+	if (siril_fits_move_first_image(fp)) {
+		siril_log_message(_("Selecting the primary header failed, is the FITS file '%s' malformed?\n"), filename);
+		return NULL;
+	}
 
-    TRYFITS(fits_get_img_param, fp, 4, &dtype, &naxis, naxes);
+	TRYFITS(fits_get_img_param, fp, 4, &dtype, &naxis, naxes);
 
-    const int w = naxes[0];
-    const int h = naxes[1];
-    const int n_channels = (naxis >= 3 && naxes[2] >= 3) ? 3 : 1;
-    const gboolean is_color = (n_channels == 3);
+	const int w = naxes[0];
+	const int h = naxes[1];
+	const int n_channels = (naxis >= 3 && naxes[2] >= 3) ? 3 : 1;
+	const gboolean is_color = (n_channels == 3);
 
-    if (w <= 0 || h <= 0)
-        return NULL;
+	if (w <= 0 || h <= 0)
+		return NULL;
 
-    size_t sz = (size_t)w * h * n_channels;
-    ima_data = malloc(sz * sizeof(float));
-    if (!ima_data) {
-        fits_close_file(fp, &status);
-        return NULL;
-    }
+	size_t sz = (size_t)w * h * n_channels;
+	ima_data = malloc(sz * sizeof(float));
+	if (!ima_data) {
+		fits_close_file(fp, &status);
+		return NULL;
+	}
 
-    TRYFITS(fits_read_img, fp, TFLOAT, 1, sz, &nullval, ima_data, &stat);
+	TRYFITS(fits_read_img, fp, TFLOAT, 1, sz, &nullval, ima_data, &stat);
 
-    const int x = (int) ceil((float) w / MAX_SIZE);
-    const int y = (int) ceil((float) h / MAX_SIZE);
-    const int pixScale = (x > y) ? x : y;   // picture scale factor
-    const int Ws = w / pixScale;            // preview width
-    const int Hs = h / pixScale;            // preview height
+	const int x = (int) ceil((float) w / MAX_SIZE);
+	const int y = (int) ceil((float) h / MAX_SIZE);
+	const int pixScale = (x > y) ? x : y;   // picture scale factor
+	const int Ws = w / pixScale;            // preview width
+	const int Hs = h / pixScale;            // preview height
 
-    if (fitseq_is_fitseq(filename, &frames)) {
-        description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
-                h, ngettext("pixel", "pixels", h), n_channels,
-                ngettext("channel", "channels", n_channels), abs(dtype), frames,
-                ngettext("frame", "frames", frames));
-    } else {
-        description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)", w,
-                h, ngettext("pixel", "pixels", h), n_channels,
-                ngettext("channel", "channels", n_channels), abs(dtype));
-    }
+	if (fitseq_is_fitseq(filename, &frames)) {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), abs(dtype), frames,
+				ngettext("frame", "frames", frames));
+	} else {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), abs(dtype));
+	}
 
-    /* Allocate preview_data */
-    size_t prev_size = (size_t)Ws * Hs;
-    float *preview_data = malloc(prev_size * n_channels * sizeof(float));
-    if (!preview_data) {
-        free(ima_data);
-        fits_close_file(fp, &status);
-        return NULL;
-    }
+	/* Allocate preview_data */
+	size_t prev_size = (size_t)Ws * Hs;
+	float *preview_data = malloc(prev_size * n_channels * sizeof(float));
+	if (!preview_data) {
+		free(ima_data);
+		fits_close_file(fp, &status);
+		return NULL;
+	}
 
-    /* --- Summed-area table method for fast block averaging --- */
-    size_t sat_w = (size_t)w + 1;
-    size_t sat_h = (size_t)h + 1;
-    size_t sat_sz = sat_w * sat_h;
+	// Build a summed-average table to speed up preview generation
+	const size_t sat_w = (size_t)w + 1;
+	const size_t sat_h = (size_t)h + 1;
+	const size_t sat_sz = sat_w * sat_h;
 
-    float *sats = calloc((size_t)n_channels * sat_sz, sizeof(float));
-    if (!sats) {
-        free(ima_data);
-        free(preview_data);
-        fits_close_file(fp, &status);
-        return NULL;
-    }
+	float *sats = malloc((size_t)n_channels * sat_sz * sizeof(float));
+	if (!sats) {
+		free(ima_data);
+		free(preview_data);
+		fits_close_file(fp, &status);
+		return NULL;
+	}
 
-    /* Build summed-area tables per channel */
+	// Initialize first row and column of SATs to zero
+	for (int ch = 0; ch < n_channels; ch++) {
+		float *sat = sats + (size_t)ch * sat_sz;
+		for (int i = 0; i < sat_w; i++) sat[i] = 0.f; // first row
+		for (int i = 0; i < sat_h; i++) sat[i * sat_w] = 0.f; // first column
+	}
+
+	// First pass: horizontal prefix sums (row-wise)
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static)
 #endif
-    for (int ch = 0; ch < n_channels; ch++) {
-        float *sat = sats + (size_t)ch * sat_sz;
-        const float *src = ima_data + (size_t)ch * w * h;
+	for (int ch = 0; ch < n_channels; ch++) {
+		float *sat = sats + (size_t)ch * sat_sz;
+		const float *src = ima_data + (size_t)ch * w * h;
 
-        for (int y = 0; y < h; y++) {
-            float row_sum = 0.0f;
-            size_t sat_row = (size_t)(y + 1) * sat_w;
-            size_t src_row = (size_t)y * w;
-            for (int x = 0; x < w; x++) {
-                row_sum += src[src_row + x];
-                sat[sat_row + (x + 1)] = row_sum + sat[(size_t)y * sat_w + (x + 1)];
-            }
-        }
-    }
+		for (int y = 0; y < h; y++) {
+			float row_sum = 0.0f;
+			size_t sat_row = (size_t)(y + 1) * sat_w;
+			size_t src_row = (size_t)y * w;
 
-    /* Compute preview pixels from SATs */
-    for (int ch = 0; ch < n_channels; ch++) {
-        float *sat = sats + (size_t)ch * sat_sz;
-        float *dst = preview_data + (size_t)ch * prev_size;
+			// SIMD vectorize horizontal prefix sum
+#ifdef _OPENMP
+#pragma omp simd
+#endif
+			for (int x = 0; x < w; x++) {
+				row_sum += src[src_row + x];
+				sat[sat_row + (x + 1)] = row_sum;
+			}
+		}
+	}
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+	for (int ch_x = 0; ch_x < n_channels * (sat_w - 1); ch_x++) {
+		int ch = ch_x / (sat_w - 1);
+		int x = (ch_x % (sat_w - 1)) + 1; // skip first column (0)
+
+		float *sat = sats + (size_t)ch * sat_sz;
+
+		float col_sum = 0.0f;
+#ifdef _OPENMP
+#pragma omp simd
+#endif
+		for (int y = 0; y < h; y++) {
+			col_sum += sat[(y + 1) * sat_w + x];
+			sat[(y + 1) * sat_w + x] = col_sum;
+		}
+	}
+
+	/* Compute preview pixels from SATs */
+	for (int ch = 0; ch < n_channels; ch++) {
+		float *sat = sats + (size_t)ch * sat_sz;
+		float *dst = preview_data + (size_t)ch * prev_size;
 
 #ifdef _OPENMP
 #pragma omp parallel for collapse(2) schedule(dynamic)
 #endif
-        for (int i = 0; i < Hs; i++) {
-            for (int j = 0; j < Ws; j++) {
-                int M = i * pixScale;
-                int N = j * pixScale;
+		for (int i = 0; i < Hs; i++) {
+			for (int j = 0; j < Ws; j++) {
+				int M = i * pixScale;
+				int N = j * pixScale;
 
-                int x1 = N;
-                int y1 = M;
-                int x2 = N + pixScale - 1;
-                int y2 = M + pixScale - 1;
-                if (x2 >= w) x2 = w - 1;
-                if (y2 >= h) y2 = h - 1;
+				int x1 = N;
+				int y1 = M;
+				int x2 = N + pixScale - 1;
+				int y2 = M + pixScale - 1;
+				if (x2 >= w) x2 = w - 1;
+				if (y2 >= h) y2 = h - 1;
 
-                size_t A = (size_t)(y2 + 1) * sat_w + (size_t)(x2 + 1);
-                size_t B = (size_t)(y1)     * sat_w + (size_t)(x2 + 1);
-                size_t C = (size_t)(y2 + 1) * sat_w + (size_t)(x1);
-                size_t D = (size_t)(y1)     * sat_w + (size_t)(x1);
+				size_t A = (size_t)(y2 + 1) * sat_w + (size_t)(x2 + 1);
+				size_t B = (size_t)(y1)     * sat_w + (size_t)(x2 + 1);
+				size_t C = (size_t)(y2 + 1) * sat_w + (size_t)(x1);
+				size_t D = (size_t)(y1)     * sat_w + (size_t)(x1);
 
-                float sum = sat[A] - sat[B] - sat[C] + sat[D];
-                unsigned int count = (unsigned int)((y2 - y1 + 1) * (x2 - x1 + 1));
+				float sum = sat[A] - sat[B] - sat[C] + sat[D];
+				unsigned int count = (unsigned int)((y2 - y1 + 1) * (x2 - x1 + 1));
 
-                dst[i * Ws + j] = (count > 0) ? (sum / (float)count) : 0.0f;
-            }
-        }
-    }
+				dst[i * Ws + j] = (count > 0) ? (sum / (float)count) : 0.0f;
+			}
+		}
+	}
 
-    free(sats);
-    /* --- End SAT code --- */
+	free(sats);
 
-    /* Find per-channel min/max */
-    float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
-    float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+	/* Find per-channel min/max */
+	float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
+	float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 
-    for (int ch = 0; ch < n_channels; ch++) {
-        for (size_t i = 0; i < prev_size; i++) {
-            int idx = ch * prev_size + i;
-            float val = preview_data[idx];
-            if (val < min_vals[ch]) min_vals[ch] = val;
-            if (val > max_vals[ch]) max_vals[ch] = val;
-        }
-    }
+	for (int ch = 0; ch < n_channels; ch++) {
+		for (size_t i = 0; i < prev_size; i++) {
+			int idx = ch * prev_size + i;
+			float val = preview_data[idx];
+			if (val < min_vals[ch]) min_vals[ch] = val;
+			if (val > max_vals[ch]) max_vals[ch] = val;
+		}
+	}
 
-    siril_debug_print("Preview min_vals: %f, %f, %f\n", min_vals[0], min_vals[1], min_vals[2]);
-    siril_debug_print("Preview max_vals: %f, %f, %f\n", max_vals[0], max_vals[1], max_vals[2]);
-
-    int chans = is_color ? 3 : 1;
-    float scales[3];
-    for (int ch = 0; ch < n_channels; ch++) {
-        scales[ch] = 1.f / (max_vals[ch] - min_vals[ch]);
-    }
-    siril_debug_print("Preview scales: %f, %f, %f\n", scales[0], scales[1], scales[2]);
+	int chans = is_color ? 3 : 1;
+	float scales[3];
+	for (int ch = 0; ch < n_channels; ch++) {
+		scales[ch] = 1.f / (max_vals[ch] - min_vals[ch]);
+	}
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread)
 #endif
-    for (int idx = 0 ; idx < (int)(prev_size * chans); idx++) {
-        int chan = idx / prev_size;
-        preview_data[idx] = (preview_data[idx] - min_vals[chan]) * scales[chan];
-    }
+	for (int idx = 0 ; idx < (int)(prev_size * chans); idx++) {
+		int chan = idx / prev_size;
+		preview_data[idx] = (preview_data[idx] - min_vals[chan]) * scales[chan];
+	}
 
-    fits *tmp = NULL;
-    new_fit_image_with_data(&tmp, Ws, Hs, chans, DATA_FLOAT, preview_data);
-    struct mtf_params mtfp = { 0.f, 0.f, 0.f, TRUE, TRUE, TRUE };
-    find_linked_midtones_balance_default(tmp, &mtfp);
-    siril_debug_print("Preview MTF params: %f, %f, %f\n", mtfp.shadows, mtfp.midtones, mtfp.highlights);
-    apply_linked_mtf_to_fits(tmp, tmp, mtfp, TRUE);
-    tmp->fdata = NULL;
-    tmp->fpdata[0] = NULL;
-    tmp->fpdata[1] = NULL;
-    tmp->fpdata[2] = NULL;
-    clearfits(tmp);
-    free(tmp);
+	fits *tmp = NULL;
+	new_fit_image_with_data(&tmp, Ws, Hs, chans, DATA_FLOAT, preview_data);
+	struct mtf_params mtfp = { 0.f, 0.f, 0.f, TRUE, TRUE, TRUE };
+	find_linked_midtones_balance_default(tmp, &mtfp);
+	siril_debug_print("Preview MTF params: %f, %f, %f\n", mtfp.shadows, mtfp.midtones, mtfp.highlights);
+	apply_linked_mtf_to_fits(tmp, tmp, mtfp, TRUE);
+	tmp->fdata = NULL;
+	tmp->fpdata[0] = NULL;
+	tmp->fpdata[1] = NULL;
+	tmp->fpdata[2] = NULL;
+	clearfits(tmp);
+	free(tmp);
 
-    guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
+	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread)
+#pragma omp parallel for collapse(2) num_threads(com.max_thread)
 #endif
-    for (int i = 0; i < Hs; i++) {
-        for (int j = 0; j < Ws; j++) {
-            int pixbuf_idx = ((Hs - 1 - i) * Ws + j) * 3;
-            if (is_color) {
-                float r_val = preview_data[0 * prev_size + i * Ws + j];
-                float g_val = preview_data[1 * prev_size + i * Ws + j];
-                float b_val = preview_data[2 * prev_size + i * Ws + j];
-                set_rgb(r_val, g_val, b_val, &pixbuf_data[pixbuf_idx]);
-            } else {
-                float gray_val = preview_data[i * Ws + j];
-                gray2rgb(gray_val, &pixbuf_data[pixbuf_idx]);
-            }
-        }
-    }
+	for (int i = 0; i < Hs; i++) {
+		for (int j = 0; j < Ws; j++) {
+			int pixbuf_idx = ((Hs - 1 - i) * Ws + j) * 3;
+			if (is_color) {
+				float r_val = preview_data[0 * prev_size + i * Ws + j];
+				float g_val = preview_data[1 * prev_size + i * Ws + j];
+				float b_val = preview_data[2 * prev_size + i * Ws + j];
+				set_rgb(r_val, g_val, b_val, &pixbuf_data[pixbuf_idx]);
+			} else {
+				float gray_val = preview_data[i * Ws + j];
+				gray2rgb(gray_val, &pixbuf_data[pixbuf_idx]);
+			}
+		}
+	}
 
-    fits_close_file(fp, &status);
-    free(ima_data);
-    free(preview_data);
+	fits_close_file(fp, &status);
+	free(ima_data);
+	free(preview_data);
 
-    GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,
-            GDK_COLORSPACE_RGB,
-            FALSE,
-            8,
-            Ws, Hs,
-            Ws * 3,
-            (GdkPixbufDestroyNotify) free_preview_data,
-            NULL);
-    *descr = description;
-    return pixbuf;
+	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,
+			GDK_COLORSPACE_RGB,
+			FALSE,
+			8,
+			Ws, Hs,
+			Ws * 3,
+			(GdkPixbufDestroyNotify) free_preview_data,
+			NULL);
+	*descr = description;
+	return pixbuf;
 }
 
 /* verify that the parameters of the image pointed by fptr are the same as some reference values */
