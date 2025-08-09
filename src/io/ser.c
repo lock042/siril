@@ -1366,8 +1366,6 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	ima_data = malloc(sz * n_channels * sizeof(float));
 	pixbuf_data = malloc(3 * MAX_SIZE * MAX_SIZE * sizeof(guchar));
 
-	/* here no need to debayer, for performance purposes
-	 * we just display monochrome display */
 	ser_read_frame(&ser, 0, &fit, FALSE, FALSE);
 
 	if (n_channels == 1) {
@@ -1400,7 +1398,8 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	if (n_channels == 1) {
 		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
 				h, ngettext("pixel", "pixels", h), n_channels,
-				ngettext("channel", "channels", n_channels), bit, n_frames);
+				ngettext("channel", "channels", n_channels), bit, n_frames,
+				ngettext("frame", "frames", n_frames));
 	} else {
 		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
 				h, ngettext("pixel", "pixels", h), n_channels,
