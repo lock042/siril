@@ -309,6 +309,23 @@ class ONNXHelper:
             print(f"(x) {expected_provider_name} failed: {e}")
             return False
 
+    def import_onnxruntime():
+        """
+        Import onnxruntime, add it to the global dict, test if it's built against
+        CUDA and if so preload the CUDA and CUDNN libraries to improve the chances
+        of finding them if Torch[CUDA] happens to be installed.
+        """
+        import onnxruntime
+        globals()['onnxruntime'] = onnxruntime  # Add to the global dict
+        providers = onnxruntime.get_available_providers()
+        if 'CUDAExecutionProvider' in providers:
+            # Attempt to preload CUDA / CUDnn libraries
+            # This helps on some systems where the system-wide libraries are not found but
+            # torch is installed with nvidia library dependencies installed in the venv
+            onnxruntime.preload_dlls()
+            # Set logging to only report critical issues by default
+            onnxruntime.set_default_logger_severity(4)
+
     def test_onnxruntime(self, ort=None):
         """
         Test an imported onnxruntime.
