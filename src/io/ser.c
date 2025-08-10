@@ -34,6 +34,7 @@
 #include "core/siril_date.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
+#include "filters/mtf.h"
 #include "gui/progress_and_log.h"
 #include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
@@ -1472,6 +1473,50 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 				ima_data[(i * Ws + l) * 3 + 2] = pix_b[l] / m;
 			}
 		}
+	}
+
+	// If we have a 16-bit SER (lucky imaging), apply autostretch to the preview
+	// 8-bit SERs do not require autostretch
+	if (bit > 8) {
+		int prev_size = Ws * Hs;
+		/* Find per-channel min/max */
+		float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
+		float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+
+		for (int ch = 0; ch < n_channels; ch++) {
+			for (size_t i = 0; i < prev_size; i++) {
+				int idx = ch * prev_size + i;
+				float val = ima_data[idx];
+				if (val < min_vals[ch]) min_vals[ch] = val;
+				if (val > max_vals[ch]) max_vals[ch] = val;
+			}
+		}
+
+		float scales[3];
+		for (int ch = 0; ch < n_channels; ch++) {
+			scales[ch] = 1.f / (max_vals[ch] - min_vals[ch]);
+		}
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread)
+#endif
+		for (int idx = 0 ; idx < (int)(prev_size * n_channels); idx++) {
+			int ch = idx / prev_size;
+			ima_data[idx] = (ima_data[idx] - min_vals[ch]) * scales[ch];
+		}
+
+		fits *tmp = NULL;
+		new_fit_image_with_data(&tmp, Ws, Hs, n_channels, DATA_FLOAT, ima_data);
+		struct mtf_params mtfp = { 0.f, 0.f, 0.f, TRUE, TRUE, TRUE };
+		find_linked_midtones_balance_default(tmp, &mtfp);
+		siril_debug_print("Preview MTF params: %f, %f, %f\n", mtfp.shadows, mtfp.midtones, mtfp.highlights);
+		apply_linked_mtf_to_fits(tmp, tmp, mtfp, TRUE);
+		tmp->fdata = NULL;
+		tmp->fpdata[0] = NULL;
+		tmp->fpdata[1] = NULL;
+		tmp->fpdata[2] = NULL;
+		clearfits(tmp);
+		free(tmp);
 	}
 
 	if (n_channels == 1) {
