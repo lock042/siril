@@ -1363,7 +1363,6 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	default:
 		n_channels = 3;
 	}
-	gboolean ser_is_cfa = (ser.color_id != 0 && ser.color_id <= SER_BAYER_BGGR) ? TRUE : FALSE;
 
 	ima_data = malloc(sz * n_channels * sizeof(float));
 	pixbuf_data = malloc(3 * MAX_SIZE * MAX_SIZE * sizeof(guchar));
@@ -1515,7 +1514,6 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 			float scales[3];
 			for (int ch = 0; ch < n_channels; ch++) {
 				float range = max_vals[ch] - min_vals[ch];
-				if (range <= 0.f) rangeset:; // handle constant channel
 				if (range <= 0.f) {
 					/* avoid division by zero: use 1.0 (will zero the channel after subtract) */
 					scales[ch] = 1.f;
