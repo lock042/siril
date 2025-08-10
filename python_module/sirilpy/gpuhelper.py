@@ -197,10 +197,10 @@ class ONNXHelper:
         """Initialize the ONNXHelper."""
         ensure_installed("platformdirs")
         ensure_installed("onnx")
-        from platformdirs import user_data_dir
+        from platformdirs import user_config_dir
         self.system = platform.system().lower()
         self.providers = None
-        self.config_file = os.path.join(user_data_dir(appname="siril"), "siril_onnx.conf")
+        self.config_file = os.path.join(user_config_dir(appname="siril"), "siril_onnx.conf")
 
     def status(self):
         """
