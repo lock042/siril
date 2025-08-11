@@ -42,9 +42,14 @@ RUN sed -i 's/oldstable\/updates/oldstable-security\/updates/' /etc/apt/sources.
         python3-tk \
         libjson-glib-dev \
         libzstd-dev \
-    && python3 -m pip install cmake==3.22.6 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m venv /opt/python-env
+ENV PATH="/opt/python-env/bin:$PATH"
+
+RUN pip install cmake==3.22.6
+
 RUN git clone https://github.com/LibRaw/LibRaw.git \
     && cd LibRaw \
     && autoreconf -fi \
@@ -62,6 +67,7 @@ RUN git clone https://github.com/LibRaw/LibRaw.git \
     && cmake --install . \
     && cd ../.. \
     && rm -rf libjxl
+
 RUN git clone https://github.com/mm2/Little-CMS \
     && cd Little-CMS \
     && git checkout lcms2.14 \
@@ -69,6 +75,7 @@ RUN git clone https://github.com/mm2/Little-CMS \
     && make install \
     && cd .. \
     && rm -rf Little-CMS
+
 RUN git clone --branch v0.2.12 --single-branch https://gitea.nouspiro.space/nou/libXISF.git \
     && cd libXISF \
     && mkdir -p build && cd build \
@@ -76,6 +83,7 @@ RUN git clone --branch v0.2.12 --single-branch https://gitea.nouspiro.space/nou/
     && make install \
     && cd ../.. \
     && rm -rf libXISF
+
 RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
     && unzip opencv.zip && cd opencv-4.5.3 \
     && mkdir -p build && cd build \
@@ -105,6 +113,6 @@ RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
         -DBUILD_PNG=ON ..\
     && make install \
     && cd ../.. \
-    && rm -rf opencv-4.5.3 opencv.zip \
-    && python3 -m pip install meson \
-    && python3 -m pip install ninja!=1.11.1
+    && rm -rf opencv-4.5.3 opencv.zip
+
+RUN pip install meson ninja!=1.11.1
