@@ -197,10 +197,10 @@ class ONNXHelper:
         """Initialize the ONNXHelper."""
         ensure_installed("platformdirs")
         ensure_installed("onnx")
-        from platformdirs import user_data_dir
+        from platformdirs import user_config_dir
         self.system = platform.system().lower()
         self.providers = None
-        self.config_file = os.path.join(user_data_dir(appname="siril"), "siril_onnx.conf")
+        self.config_file = os.path.join(user_config_dir(appname="siril"), "siril_onnx.conf")
 
     def status(self):
         """
@@ -308,6 +308,23 @@ class ONNXHelper:
         except Exception as e:
             print(f"(x) {expected_provider_name} failed: {e}")
             return False
+
+    def import_onnxruntime():
+        """
+        Import onnxruntime, add it to the global dict, test if it's built against
+        CUDA and if so preload the CUDA and CUDNN libraries to improve the chances
+        of finding them if Torch[CUDA] happens to be installed.
+        """
+        import onnxruntime
+        globals()['onnxruntime'] = onnxruntime  # Add to the global dict
+        providers = onnxruntime.get_available_providers()
+        if 'CUDAExecutionProvider' in providers:
+            # Attempt to preload CUDA / CUDnn libraries
+            # This helps on some systems where the system-wide libraries are not found but
+            # torch is installed with nvidia library dependencies installed in the venv
+            onnxruntime.preload_dlls()
+            # Set logging to only report critical issues by default
+            onnxruntime.set_default_logger_severity(4)
 
     def test_onnxruntime(self, ort=None):
         """
@@ -668,10 +685,16 @@ class ONNXHelper:
         import onnxruntime as ort
 
         # Try to load cached providers first
-        cached_providers = self._load_cached_providers(ort)
-        if cached_providers:
-            self.providers = cached_providers
-            return self.providers
+        try:
+            cached_providers = self._load_cached_providers(ort)
+            if cached_providers:
+                self.providers = cached_providers
+                return self.providers
+        except Exception:
+            # If an error occurs with _load_cached_providers() delete the config file and do
+            # the full test to re-cache them
+            if os.path.exists(self.config_file):
+                os.unlink(self.config_file)
 
         # If no valid cache, run the test
         return self.test_onnxruntime(ort)
@@ -705,21 +728,8 @@ class ONNXHelper:
             if not cached_providers:
                 return None
 
-            # Check if all cached providers are still available
-            available_providers = set(ort.get_available_providers())
-            valid_providers = []
-
-            for p in cached_providers:
-                name = p[0] if isinstance(p, tuple) else p
-                if name in available_providers:
-                    valid_providers.append(p)
-
-            # Only use cache if all providers are still available
-            if len(valid_providers) == len(available_providers):
-                print(f"Using cached execution providers from {self.config_file}")
-                return valid_providers
-            print("Cached providers outdated, will re-test")
-            return None
+            print(f"Using cached execution providers from {self.config_file}")
+            return valid_providers
 
         except (json.JSONDecodeError, IOError, KeyError) as e:
             print(f"Failed to load cached providers: {e}", file=sys.stderr)
