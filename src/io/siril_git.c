@@ -280,9 +280,9 @@ static gboolean script_version_check(const gchar *filename) {
 	gsize length = 0;
 	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
 	gboolean retval = FALSE;
-	#ifdef DEBUG_GITSCRIPTS
+#ifdef DEBUG_GITSCRIPTS
 	printf("checking script version requirements: %s\n", scriptpath);
-	#endif
+#endif
 	file = g_file_new_for_path(scriptpath);
 	stream = (GInputStream *)g_file_read(file, NULL, &error);
 	if (error)
@@ -459,6 +459,20 @@ static gboolean pyscript_version_check(const gchar *filename) {
 	g_object_unref(stream);
 	g_object_unref(file);
 	return retval;
+}
+
+static gboolean is_menu_script(const char* script_path) {
+	if (!script_path) {
+		return FALSE;
+	}
+
+	for (GSList *l = com.pref.selected_scripts; l != NULL; l = l->next) {
+		const char *selected_path = l->data;
+		if (selected_path && g_str_has_suffix(selected_path, script_path)) {
+			return TRUE;
+		}
+	}
+	return FALSE;
 }
 
 // gitscripts Repository synchronization and management
@@ -734,10 +748,13 @@ int update_repo_scripts_list() {
 			siril_log_color_message(_("Warning: skipping script with invalid UTF-8 path.\n"), "red");
 			continue;
 		}
-
-		if ((g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) ||
-			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && pyscript_version_check(entry->path)) ||
-			(g_str_has_suffix(entry->path, PYCSCRIPT_EXT))) {
+		// Add the script to gui.repo_scripts if it passes its version check or if it is already in com.pref.selected_scripts
+		// The latter test allows for scripts that are in use but which have been updated to require a higher version of sirilpy
+		// This allows for users to go back to the last compatible version using the right-click functionality in the repository
+		// GTKTreeView.
+		if ((g_str_has_suffix(entry->path, SCRIPT_EXT) && (script_version_check(entry->path) || is_menu_script(entry->path))) ||
+			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && (pyscript_version_check(entry->path )|| is_menu_script(entry->path))) ||
+			(g_str_has_suffix(entry->path, PYCSCRIPT_EXT) && (pyscript_version_check(entry->path) || is_menu_script(entry->path)))) {
 
 			gchar *path_copy = g_strdup(entry->path);
 			if (path_copy == NULL) {
