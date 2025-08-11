@@ -34,6 +34,7 @@
 #include "core/siril_date.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
+#include "filters/mtf.h"
 #include "gui/progress_and_log.h"
 #include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
@@ -1383,14 +1384,14 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 
 	i = (int) ceil((float) w / MAX_SIZE);
 	j = (int) ceil((float) h / MAX_SIZE);
-	pixScale = (i > j) ? i : j;	// picture scale factor
+	pixScale = (i > j) ? i : j;    // picture scale factor
 	if (pixScale == 0) {
 		free(ima_data);
 		free(pixbuf_data);
 		return NULL;
 	}
-	Ws = w / pixScale; 			// picture width in pixScale blocks
-	Hs = h / pixScale; 			// -//- height pixScale
+	Ws = w / pixScale;             // picture width in pixScale blocks
+	Hs = h / pixScale;             // -//- height pixScale
 
 	n_frames = ser.frame_count;
 	bit = ser.bit_pixel_depth;
@@ -1431,7 +1432,7 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 			}
 			N = 0; // number of column
 			for (j = 0; j < Ws; j++) { // cycle through a blocks by columns
-				n = 0.;	// amount of columns read in block
+				n = 0.;    // amount of columns read in block
 				if (n_channels == 1) {
 					byte = 0.; // average intensity in block
 					for (k = 0; k < pixScale; k++, n++) { // cycle through block pixels
@@ -1474,6 +1475,96 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 		}
 	}
 
+	// If we have a 16-bit SER (lucky imaging), apply autostretch to the preview
+	// 8-bit SERs do not require autostretch
+	if (bit > 8) {
+		int prev_size = Ws * Hs;
+		/* Convert interleaved (h,w,c) -> channel-major (c, h, w) for processing */
+		float *ima_ch = NULL;
+		if (n_channels > 1) {
+			ima_ch = malloc(prev_size * n_channels * sizeof(float));
+			if (!ima_ch) {
+				// allocation failed: skip autostretch but continue gracefully
+				ima_ch = NULL;
+			} else {
+				for (i = 0; i < prev_size; i++) {
+					ima_ch[0 * prev_size + i] = ima_data[i * 3 + 0];
+					ima_ch[1 * prev_size + i] = ima_data[i * 3 + 1];
+					ima_ch[2 * prev_size + i] = ima_data[i * 3 + 2];
+				}
+			}
+		} else {
+			/* mono: we can use ima_data directly as channel-major (single channel) */
+			ima_ch = ima_data;
+		}
+
+		if (ima_ch != NULL) {
+			/* Find per-channel min/max assuming channel-major layout in ima_ch */
+			float min_vals[3], max_vals[3];
+			for (int ch = 0; ch < n_channels; ch++) {
+				min_vals[ch] = FLT_MAX;
+				max_vals[ch] = -FLT_MAX;
+				for (int idx = 0; idx < prev_size; idx++) {
+					float val = ima_ch[ch * prev_size + idx];
+					if (val < min_vals[ch]) min_vals[ch] = val;
+					if (val > max_vals[ch]) max_vals[ch] = val;
+				}
+			}
+
+			float scales[3];
+			for (int ch = 0; ch < n_channels; ch++) {
+				float range = max_vals[ch] - min_vals[ch];
+				if (range <= 0.f) {
+					/* avoid division by zero: use 1.0 (will zero the channel after subtract) */
+					scales[ch] = 1.f;
+				} else {
+					scales[ch] = 1.f / range;
+				}
+			}
+
+			/* Normalize values to [0..1] on channel-major buffer */
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread)
+#endif
+			for (int idx = 0 ; idx < prev_size * n_channels; idx++) {
+				int ch = idx / prev_size;
+				ima_ch[idx] = (ima_ch[idx] - min_vals[ch]) * scales[ch];
+			}
+
+			/* Create a temporary fits with channel-major float data for MTF */
+			fits *tmp = NULL;
+			new_fit_image_with_data(&tmp, Ws, Hs, n_channels, DATA_FLOAT, ima_ch);
+			struct mtf_params mtfp = { 0.f, 0.f, 0.f, TRUE, TRUE, TRUE };
+			find_linked_midtones_balance_default(tmp, &mtfp);
+			siril_debug_print("Preview MTF params: %f, %f, %f\n", mtfp.shadows, mtfp.midtones, mtfp.highlights);
+			apply_linked_mtf_to_fits(tmp, tmp, mtfp, TRUE);
+
+			/* After MTF, the modified data is still present in ima_ch (tmp used it); we must
+			* convert back to interleaved if we had created a separate ima_ch. */
+			if (n_channels > 1) {
+				for (i = 0; i < prev_size; i++) {
+					ima_data[i * 3 + 0] = ima_ch[0 * prev_size + i];
+					ima_data[i * 3 + 1] = ima_ch[1 * prev_size + i];
+					ima_data[i * 3 + 2] = ima_ch[2 * prev_size + i];
+				}
+			} else {
+				/* mono: ima_ch == ima_data already updated */
+			}
+
+			/* Prevent clearfits from freeing the ima_ch memory (we own/free it) */
+			tmp->fdata = NULL;
+			tmp->fpdata[0] = NULL;
+			tmp->fpdata[1] = NULL;
+			tmp->fpdata[2] = NULL;
+			clearfits(tmp);
+			free(tmp);
+
+			if (n_channels > 1) {
+				free(ima_ch);
+			}
+		}
+	}
+
 	if (n_channels == 1) {
 		ptr = ima_data;
 		sz = Ws * Hs;
@@ -1489,11 +1580,13 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 		}
 		avr /= (float) sz;
 		wd = max - min;
-		avr = (avr - min) / wd;	// normal average by preview
+		/* guard against zero width */
+		if (wd == 0.f) wd = 1.f;
+		avr = (avr - min) / wd;    // normal average by preview
 		if (avr > 1.)
 			wd /= avr;
 		ptr = ima_data;
-		for (i = Hs - 1; i > -1; i--) {	// fill pixbuf mirroring image by vertical
+		for (i = Hs - 1; i > -1; i--) {    // fill pixbuf mirroring image by vertical
 			guchar *pptr = &pixbuf_data[Ws * i * 3];
 			for (j = 0; j < Ws; j++) {
 				guchar val = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
@@ -1504,7 +1597,7 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 			}
 		}
 	} else {
-		// Normalize each channel separately
+		// Normalize each channel separately (ima_data is interleaved again)
 		float max_r = ima_data[0], min_r = ima_data[0];
 		float max_g = ima_data[1], min_g = ima_data[1];
 		float max_b = ima_data[2], min_b = ima_data[2];
@@ -1523,8 +1616,11 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 		float wd_r = max_r - min_r;
 		float wd_g = max_g - min_g;
 		float wd_b = max_b - min_b;
+		if (wd_r == 0.f) wd_r = 1.f;
+		if (wd_g == 0.f) wd_g = 1.f;
+		if (wd_b == 0.f) wd_b = 1.f;
 
-		for (i = Hs - 1; i > -1; i--) {	// fill pixbuf mirroring image by vertical
+		for (i = Hs - 1; i > -1; i--) {    // fill pixbuf mirroring image by vertical
 			guchar *pptr = &pixbuf_data[Ws * i * 3];
 			for (j = 0; j < Ws; j++) {
 				int idx = ((Hs - 1 - i) * Ws + j) * 3;
@@ -1536,12 +1632,12 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	}
 
 	ser_close_file(&ser);
-	pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,		// guchar* data
-			GDK_COLORSPACE_RGB,	// only this supported
-			FALSE,				// no alpha
-			8,				// number of bits
-			Ws, Hs,				// size
-			Ws * 3,				// line length in bytes
+	pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,        // guchar* data
+			GDK_COLORSPACE_RGB,    // only this supported
+			FALSE,                // no alpha
+			8,                // number of bits
+			Ws, Hs,                // size
+			Ws * 3,                // line length in bytes
 			(GdkPixbufDestroyNotify) free_preview_data, // function (*GdkPixbufDestroyNotify) (guchar *pixels, gpointer data);
 			NULL
 			);
