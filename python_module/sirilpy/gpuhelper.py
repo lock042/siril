@@ -281,30 +281,42 @@ class ONNXHelper:
             else:
                 expected_provider_name = provider
                 providers_for_session = [provider]
-            
+
             sess_options = ort.SessionOptions()
             session = ort.InferenceSession(
                 model_path,
                 sess_options=sess_options,
                 providers=providers_for_session
             )
-            
+
             actual_provider = session.get_providers()[0]
-            
+
             if actual_provider != expected_provider_name:
                 print(f"(x) {provider}: fallback occurred (used {actual_provider})")
                 return False
+
+            # Determine TF32 usage
+            provider_opts = session.get_provider_options().get(expected_provider_name, {})
+            use_tf32 = provider_opts.get("use_tf32", "0")  # default to "0" if missing
+
+            # Set tolerances
+            if use_tf32 == "1":
+                rtol = 5e-2
+                atol = 1e-3
+            else:
+                rtol = 1e-3
+                atol = 1e-5
 
             output = session.run(None, {'input': input_data})
 
             print(f"OK: {expected_provider_name} ran successfully")
             if reference_output is not None:
-                if not np.allclose(reference_output, output[0], rtol=1e-3, atol=1e-5):
-                    print("(!) Output mismatch with CPU")
+                if not np.allclose(reference_output, output[0], rtol=rtol, atol=atol):
+                    print(f"(!) Output mismatch with CPU (rtol={rtol}, atol={atol})")
                     return False
-            
+
             return True
-            
+
         except Exception as e:
             print(f"(x) {expected_provider_name} failed: {e}")
             return False
