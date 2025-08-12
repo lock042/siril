@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-12 14:13+0200\n"
-"PO-Revision-Date: 2025-07-10 14:05+0000\n"
+"PO-Revision-Date: 2025-08-12 12:56+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -5688,18 +5688,16 @@ msgid "_Help"
 msgstr "_Aide"
 
 #: src/gui/uifiles/python_scratchpad.ui:544
-#, fuzzy
 msgid "Open Python API reference documentation"
-msgstr "Référence de l'API Python"
+msgstr "Documentation de référence de l'API Python ouverte"
 
 #: src/gui/uifiles/python_scratchpad.ui:546
 msgid "Python API reference"
 msgstr "Référence de l'API Python"
 
 #: src/gui/uifiles/python_scratchpad.ui:553
-#, fuzzy
 msgid "Open Siril command reference documentation"
-msgstr "Référence des commandes Siril"
+msgstr "Ouvrir la documentation de référence des commandes Siril"
 
 #: src/gui/uifiles/python_scratchpad.ui:555
 msgid "Siril Command Reference"
@@ -6650,17 +6648,17 @@ msgstr ""
 "CFA avec le motif configuré."
 
 #: src/gui/uifiles/settings_window.ui:375
-#, fuzzy
 msgid ""
 "Due to algorithm constraints more complex demosaicing algorithms cannot be "
 "used in the rejection stacking. Our tests also showed that there is no gain "
 "in quality when many images are used, while processing time increases 20-"
 "fold."
 msgstr ""
-"En raison de contraintes d’algorithme, des algorithmes de dématriçage plus "
-"complexes ne peuvent pas être utilisés dans l’empilement de rejet. Nos tests "
-"ont également montré qu'il n'y a aucun gain de qualité lorsque de nombreuses "
-"images sont utilisées, alors que le temps de traitement est multiplié par 20."
+"En raison des contraintes algorithmiques, il n'est pas possible d'utiliser "
+"des algorithmes de dématriçage plus complexes dans l'empilement avec rejet. "
+"Nos tests ont également montré qu'il n'y a aucun gain de qualité lorsque de "
+"nombreuses images sont utilisées, alors que le temps de traitement est "
+"multiplié par 20."
 
 #: src/gui/uifiles/settings_window.ui:377
 msgid ""
@@ -6818,9 +6816,8 @@ msgid "X-Trans demosaicing quality"
 msgstr "Qualité de dématriçage X-Trans"
 
 #: src/gui/uifiles/settings_window.ui:561
-#, fuzzy
 msgid "Row-order preference:"
-msgstr "Ouvrir les préférences"
+msgstr "Préférences d'orientation :"
 
 #: src/gui/uifiles/settings_window.ui:572
 msgid ""
@@ -6833,23 +6830,32 @@ msgid ""
 "This setting is ignored with SER files which are always assumed Top-Down as "
 "per their standard."
 msgstr ""
+"Siril lit les données FITS dans l'orientation ascendante (Bottom-Up), mais "
+"de nombreux logiciels de capture ne répondent pas à cette spécification. La "
+"plupart d'entre eux écrivent désormais un mot clé ROWORDER dans les "
+"métadonnées des images pour indiquer comment les données ont été stockées.\n"
+"Sélectionnez dans cette liste l'option que vous préférez. Les deux premières "
+"options essaient d'abord de lire ROWORDER dans l'en-tête, puis utilisent une "
+"solution de secours. Les deux dernières options forcent soit Top-Down, soit "
+"Bottom-Up.\n"
+"Ce paramètre est ignoré avec les fichiers SER qui sont toujours considérés "
+"comme Top-Down conformément à leur norme."
 
 #: src/gui/uifiles/settings_window.ui:578
 msgid "Header then Top-Down"
-msgstr ""
+msgstr "Entête puis Top-Down"
 
 #: src/gui/uifiles/settings_window.ui:579
 msgid "Header then Bottom-Up"
-msgstr ""
+msgstr "Entête puis Bottom-Up"
 
 #: src/gui/uifiles/settings_window.ui:580
-#, fuzzy
 msgid "Force Top-Down"
-msgstr "forcer dématriçage de haut en bas"
+msgstr "Forcer Top-Down"
 
 #: src/gui/uifiles/settings_window.ui:581
 msgid "Force Bottom-Up"
-msgstr ""
+msgstr "Forcer Bottom-Up"
 
 #: src/gui/uifiles/settings_window.ui:597 src/gui/uifiles/siril.ui:3966
 #: src/gui/open_dialog.c:191
@@ -8583,7 +8589,6 @@ msgstr ""
 "de confirmer l'application des modifications."
 
 #: src/gui/uifiles/settings_window.ui:5177
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -8591,10 +8596,13 @@ msgid ""
 "To open an older revision (e.g. to get an older version after a bad script "
 "update) right click on a row."
 msgstr ""
-"Liste des scripts disponibles. Les scripts sélectionnés sont accessibles via "
-"le menu Scripts. Double-cliquez sur une ligne pour ouvrir le script dans "
-"l'éditeur de script. (Cette fonction peut être utilisée pour apporter et "
-"enregistrer des modifications locales à un script.)"
+"Liste des scripts disponibles. Les scripts sélectionnés seront disponibles "
+"via le menu Scripts. Double-cliquez sur une ligne pour ouvrir le script dans "
+"l'éditeur de scripts. (Cette fonction peut être utilisée pour apporter et "
+"enregistrer des modifications locales à un script.)\n"
+"Pour ouvrir une ancienne révision (par exemple, pour obtenir une ancienne "
+"version après une mise à jour incorrecte du script), cliquez avec le bouton "
+"droit de la souris sur une ligne."
 
 #: src/gui/uifiles/settings_window.ui:5194
 msgid "Category"
@@ -13590,9 +13598,8 @@ msgstr ""
 "Erreur : le modèle CFA n'est pas pris en charge pour cette opération.\n"
 
 #: src/algos/background_extraction.c:995 src/algos/background_extraction.c:1209
-#, fuzzy
 msgid "Error splitting into CFA subchannels, aborting...\n"
-msgstr "Erreur de découpage en sous-canaux CFA, abandon...\n"
+msgstr "Erreur lors de la division en sous-canaux CFA, interruption...\n"
 
 #: src/algos/background_extraction.c:1004 src/algos/colors.c:1098
 #: src/algos/colors.c:1189 src/algos/noise.c:86 src/algos/photometric_cc.c:772
@@ -13907,14 +13914,13 @@ msgid "stars within"
 msgstr "étoiles dans la plage"
 
 #: src/algos/demosaicing.c:148
-#, fuzzy
 msgid "Invalid FITS file or pattern for debayering\n"
-msgstr "Descripteur de fichier non valide après shm_open\n"
+msgstr "Fichier FITS ou modèle invalide pour le dématriçage\n"
 
 #: src/algos/demosaicing.c:152
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid Bayer pattern for debayering: %d\n"
-msgstr "Fusion du motif Bayer non sauvegardé"
+msgstr "Modèle Bayer invalide pour le dématriçage : %d\n"
 
 #: src/algos/demosaicing.c:166
 msgid ""
@@ -13932,25 +13938,23 @@ msgstr "Caractère non valide dans le modèle de filtre X-Trans : %c\n"
 #: src/algos/demosaicing.c:262
 #, c-format
 msgid "Filter Pattern: %s %s, Orientation: %s %s %s\n"
-msgstr ""
+msgstr "Motif du filtre : %s %s, Orientation : %s %s %s\n"
 
 #: src/algos/demosaicing.c:264 src/algos/demosaicing.c:266
 msgid "from header"
-msgstr ""
+msgstr "à partir de l'entête"
 
 #: src/algos/demosaicing.c:264 src/algos/demosaicing.c:266
-#, fuzzy
 msgid "from settings"
-msgstr "Paramètres"
+msgstr "à partir des préférences"
 
 #: src/algos/demosaicing.c:265
 msgid "top-down"
-msgstr ""
+msgstr "top-down"
 
 #: src/algos/demosaicing.c:265
-#, fuzzy
 msgid "bottom-up"
-msgstr "En bas à gauche"
+msgstr "bottom-up"
 
 #: src/algos/demosaicing.c:267 src/core/command.c:3839
 msgid "forced"
@@ -13963,9 +13967,8 @@ msgstr ""
 "1\n"
 
 #: src/algos/demosaicing.c:554
-#, fuzzy
 msgid "No pattern found to debayer\n"
-msgstr "Aucun motif de Bayer trouvé dans l'entête du fichier.\n"
+msgstr "Aucun motif trouvé pour le dématriçage\n"
 
 #: src/algos/demosaicing.c:566
 msgid "Cannot perform debayering\n"
@@ -14035,7 +14038,7 @@ msgstr "%s : extraction du canal vert\n"
 
 #: src/algos/extraction.c:173
 msgid "Extract Green: unsupported Bayer pattern.\n"
-msgstr ""
+msgstr "Extraction du vert : motif de Bayer non pris en charge.\n"
 
 #: src/algos/extraction.c:217 src/algos/extraction.c:273
 msgid "Extract_Ha does not work on non-Bayer filter camera images!\n"
@@ -14049,9 +14052,8 @@ msgid "Ha channel"
 msgstr "Canal Ha"
 
 #: src/algos/extraction.c:331
-#, fuzzy
 msgid "Extract Ha: unsupported Bayer pattern.\n"
-msgstr "Fusion du motif Bayer non sauvegardé"
+msgstr "Extraction Ha : motif Bayer non pris en charge.\n"
 
 #: src/algos/extraction.c:385 src/algos/extraction.c:618
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
@@ -14077,7 +14079,7 @@ msgstr "Canal OIII\n"
 
 #: src/algos/extraction.c:843
 msgid "Extract HaOIII: unsupported Bayer pattern.\n"
-msgstr ""
+msgstr "Extraction HaOIII : motif Bayer non pris en charge.\n"
 
 #: src/algos/extraction.c:892
 msgid "Extract Ha and OIII"
@@ -16883,10 +16885,14 @@ msgstr "CieLAB"
 msgid ""
 "This image does not have a Bayer CFA pattern, cannot extract green channel.\n"
 msgstr ""
+"Cette image ne présente pas de motif CFA de Bayer et ne permet pas "
+"d'extraire le canal vert.\n"
 
 #: src/core/command.c:6428
 msgid "This image does not have a Bayer CFA pattern, cannot extract Ha.\n"
 msgstr ""
+"Cette image ne présente pas de motif CFA de Bayer et ne permet pas "
+"d'extraire le Ha.\n"
 
 #: src/core/command.c:6454
 msgid "Upscaling x2\n"
@@ -16897,6 +16903,8 @@ msgid ""
 "This image does not have a Bayer CFA pattern, cannot extract Ha/OIII "
 "channels.\n"
 msgstr ""
+"Cette image ne présente pas de motif CFA de Bayer et ne permet pas "
+"d'extraire Ha et OIII.\n"
 
 #: src/core/command.c:6718 src/gui/merge_cfa.c:298
 msgid ""
@@ -20500,6 +20508,11 @@ msgid ""
 "update will happen asynchronously (i.e. the command will trigger the update "
 "but will not wait for the update to complete)"
 msgstr ""
+"Réanalyse les dossiers de scripts et met à jour le menu Scripts. Notez que "
+"cette commande ne peut pas être utilisée en mode ligne de commande (c'est-à-"
+"dire à partir de siril-cli) et que la mise à jour s'effectuera de manière "
+"asynchrone (c'est-à-dire que la commande déclenchera la mise à jour, mais "
+"n'attendra pas qu'elle soit terminée)"
 
 #: src/core/command_def.h:124
 msgid ""
@@ -23469,9 +23482,9 @@ msgstr ""
 "Échec de la recherche du GPid %d, il se peut qu'il se soit déjà arrêté...\n"
 
 #: src/core/processing.c:1250
-#, fuzzy, c-format
+#, c-format
 msgid "Error finding the HDU for frame %d\n"
-msgstr "Erreur lors de l'ouverture du fichier %s\n"
+msgstr "Erreur lors de la recherche du HDU pour l'image %d\n"
 
 #: src/core/sequence_filtering.c:229
 msgid "Sequence filter: values can only be either literal or percent\n"
@@ -23778,9 +23791,8 @@ msgid "type of interpolation"
 msgstr "type d'interpolation"
 
 #: src/core/settings.c:392
-#, fuzzy
 msgid "row-order preference"
-msgstr "Ouvrir les préférences"
+msgstr "préférences de row-order"
 
 #: src/core/settings.c:393
 msgid "Bayer matrix offset X"
@@ -24465,9 +24477,8 @@ msgid "Error: no sequence loaded.\n"
 msgstr "Erreur : Aucune séquence chargée.\n"
 
 #: src/core/siril_actions.c:429
-#, fuzzy
 msgid "Error running the PSF on the sequence\n"
-msgstr "Exécution du PSF sur la séquence, canal %d\n"
+msgstr "Erreur lors de l'exécution de la PSF sur la séquence\n"
 
 #: src/core/siril_actions.c:508
 msgid "Save your changes before loading a frame of the sequence."
@@ -24747,9 +24758,9 @@ msgid "blue"
 msgstr "bleu"
 
 #: src/core/utils.c:799
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create directory '%s': %s\n"
-msgstr "Échec de la création du répertoire de configuration %s\n"
+msgstr "Échec de la création du répertoire « %s » : %s\n"
 
 #: src/core/utils.c:1174
 msgid "Unknown error\n"
@@ -26514,10 +26525,8 @@ msgid "Measured background"
 msgstr "Fond de ciel mesuré"
 
 #: src/gui/cut.c:812
-#, fuzzy
 msgid "Error: failed to read CFA pattern or invalid found.\n"
-msgstr ""
-"Erreur : le modèle CFA n'est pas pris en charge pour cette opération.\n"
+msgstr "Erreur : impossible de lire le motif CFA ou motif invalide détecté.\n"
 
 #: src/gui/cut.c:823 src/gui/cut.c:831
 msgid "Error: failed to split FITS into CFA sub-patterns.\n"
@@ -30711,9 +30720,11 @@ msgid "Could not load partial image %d from sequence %s\n"
 msgstr "Impossible de charger l'image partielle %d de la séquence %s\n"
 
 #: src/io/sequence.c:1053
-#, fuzzy, c-format
+#, c-format
 msgid "Could not seek frame %d from FITS sequence %s. Error status: %d\n"
-msgstr "Impossible de charger l'image %d de la séquence FITS %s\n"
+msgstr ""
+"Impossible de rechercher l'image %d dans la séquence FITS %s. Statut "
+"d'erreur : %d\n"
 
 #: src/io/sequence.c:1153
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
@@ -31069,6 +31080,7 @@ msgstr ""
 #, c-format
 msgid "Unknown SER type to debayer (%d), should not happen\n"
 msgstr ""
+"Type SER inconnu pour le dématriçage (%d), cela ne devrait pas se produire.\n"
 
 #: src/io/ser.c:241
 #, c-format
@@ -31079,12 +31091,12 @@ msgstr ""
 #. we update with prefs values if necessary
 #: src/io/ser.c:304
 msgid "Forcing debayer mono SER\n"
-msgstr ""
+msgstr "Forcer le dématriçage\n"
 
 #: src/io/ser.c:312
 #, c-format
 msgid "Cannot handle this SER type (%d)\n"
-msgstr ""
+msgstr "Impossible de traiter ce type de fichier SER (%d)\n"
 
 #: src/io/ser.c:352
 msgid "SER file has been fixed...\n"
@@ -31422,9 +31434,8 @@ msgstr ""
 "temporaire, vérifiez votre connectivité et réessayez.\n"
 
 #: src/io/siril_git.c:502 src/io/siril_git.c:833
-#, fuzzy
 msgid "Failed to open repository.\n"
-msgstr "Échec de la recherche de l'adresse distante.\n"
+msgstr "Échec de l'ouverture du dépôt.\n"
 
 #: src/io/siril_git.c:508 src/io/siril_git.c:614 src/io/siril_git.c:839
 #: src/io/siril_git.c:919
@@ -31432,27 +31443,25 @@ msgid "Failed to lookup remote.\n"
 msgstr "Échec de la recherche de l'adresse distante.\n"
 
 #: src/io/siril_git.c:515 src/io/siril_git.c:847
-#, fuzzy
 msgid "Cannot identify local repository's configured remote.\n"
-msgstr ""
-"Erreur : impossible d'identifier le dépôt local configuré à distance.\n"
+msgstr "Impossible d'identifier le dépôt distant configuré du dépôt local.\n"
 
 #: src/io/siril_git.c:522
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local siril-scripts repository folder %s is not configured with %s as its "
 "remote.\n"
 msgstr ""
-"Erreur : le dossier local du dépôt siril-scripts n'est pas configuré avec %s "
-"comme répertoire distant. Vous devez supprimer le dossier %s et redémarrer "
-"Siril pour recréer le bon dépôt.\n"
+"Le dossier du dépôt local siril-scripts %s n'est pas configuré avec %s comme "
+"distant.\n"
 
 #: src/io/siril_git.c:539
-#, fuzzy
 msgid ""
 "Existing directory is not a valid git repository or is misconfigured. "
 "Cleaning up...\n"
-msgstr "Le répertoire existant n'est pas un dépôt git valide. Nettoyage...\n"
+msgstr ""
+"Le répertoire existant n'est pas un dépôt git valide ou est mal configuré. "
+"Nettoyage...\n"
 
 #: src/io/siril_git.c:555 src/io/siril_git.c:876
 #, c-format
@@ -31511,14 +31520,12 @@ msgid "Local scripts repository is up-to-date!\n"
 msgstr "Le dépôt local de scripts est à jour !\n"
 
 #: src/io/siril_git.c:706
-#, fuzzy
 msgid "Scripts repository directory does not exist.\n"
-msgstr "Erreur lors de la suppression du répertoire du dépôt : %s\n"
+msgstr "Le répertoire du dépôt des scripts n'existe pas.\n"
 
 #: src/io/siril_git.c:715
-#, fuzzy
 msgid "Failed to open scripts repository.\n"
-msgstr "Erreur : Impossible d'ouvrir le dépôt local de scripts.\n"
+msgstr "Impossible d'ouvrir le dépôt de scripts.\n"
 
 #: src/io/siril_git.c:724
 msgid "Error accessing repository index.\n"
@@ -31538,14 +31545,13 @@ msgstr ""
 "Avertissement : échec de l'allocation mémoire pour le chemin du script.\n"
 
 #: src/io/siril_git.c:854
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local siril-spcc-database repository folder %s is not configured with %s as "
 "its remote.\n"
 msgstr ""
-"Erreur : le dossier local du dépôt siril-spcc-database n'est pas configuré "
-"avec %s comme répertoire distant. Vous devez supprimer le dossier %s et "
-"redémarrer Siril pour recréer le dépôt correct.\n"
+"Le dossier du dépôt local siril-spcc-database %s n'est pas configuré avec %s "
+"comme distant.\n"
 
 #: src/io/siril_git.c:871
 msgid "Existing directory is not a valid git repository. Cleaning up...\n"
@@ -31709,14 +31715,12 @@ msgid "Invalid payload length"
 msgstr "Longueur de la charge utile non valide"
 
 #: src/io/siril_pythoncommands.c:1155
-#, fuzzy
 msgid "Invalid sequence type"
-msgstr "Type de noyau non valide"
+msgstr "Type de séquence non valide"
 
 #: src/io/siril_pythoncommands.c:1169
-#, fuzzy
 msgid "Failed to load sequence frame: index out of range"
-msgstr "Échec du chargement de l'image de la séquence"
+msgstr "Échec du chargement de l'image de la séquence : index hors limites"
 
 #: src/io/siril_pythoncommands.c:1177
 msgid "Failed to load sequence frame"
@@ -33095,11 +33099,10 @@ msgid "Framing: Shift from reference origin: %d, %d\n"
 msgstr "Cadrage : Décalage de l'origine de référence : %d, %d\n"
 
 #: src/registration/applyreg.c:333
-#, fuzzy
 msgid "Applying interpolation on a sequence opened as CFA is a bad idea.\n"
 msgstr ""
-"Appliquer une transformation sur une séquence ouverte comme CFA est une "
-"mauvaise idée.\n"
+"Appliquer une interpolation sur une séquence ouverte en tant que CFA n'est "
+"pas une bonne idée.\n"
 
 #: src/registration/applyreg.c:336
 msgid ""
@@ -33121,6 +33124,7 @@ msgstr "Image %d :\n"
 #: src/registration/applyreg.c:440
 msgid "Drizzle: Could not get compiled CFA pattern from the image.\n"
 msgstr ""
+"Drizzle : Impossible d'obtenir le motif CFA compilé à partir de l'image.\n"
 
 #: src/registration/applyreg.c:447
 #, c-format
@@ -33128,6 +33132,8 @@ msgid ""
 "Drizzle: CFA pattern mismatch between reference image and image #%d, using "
 "reference pattern.\n"
 msgstr ""
+"Drizzle : incompatibilité entre le motif CFA de l'image de référence et "
+"l'image n° %d, en utilisant le motif de référence.\n"
 
 #: src/registration/applyreg.c:468
 msgid "Error generating mapping array.\n"
@@ -33155,6 +33161,8 @@ msgid ""
 "Warning: the CFA pattern in the reference image is not supported by "
 "drizzle.\n"
 msgstr ""
+"Avertissement : le motif CFA de l'image de référence n'est pas pris en "
+"charge par drizzle.\n"
 
 #: src/registration/applyreg.c:876
 msgid ""
