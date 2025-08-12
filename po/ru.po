@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-09 23:02+0200\n"
-"PO-Revision-Date: 2025-07-12 22:14+0000\n"
+"PO-Revision-Date: 2025-08-12 01:43+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -8427,7 +8427,6 @@ msgstr ""
 "применение изменений."
 
 #: src/gui/uifiles/settings_window.ui:5161
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -8438,7 +8437,10 @@ msgstr ""
 "Список доступных сценариев. Выбранные сценарии будут доступные через меню "
 "«Сценарии». После двойного нажатия на строку, код сценария будет открыт в "
 "редакторе (Это позволяет вносить локальные изменения в сценарии и сохранять "
-"их)."
+"их).\n"
+"Чтобы открыть одну из предыдущих ревизий (например, чтобы получить более "
+"старую версию после неудачного обновления сценария), щёлкните правой кнопкой "
+"мыши на строке."
 
 #: src/gui/uifiles/settings_window.ui:5178
 msgid "Category"
@@ -24072,9 +24074,8 @@ msgid "Error: no sequence loaded.\n"
 msgstr "Ошибка: нет загруженных последовательностей.\n"
 
 #: src/core/siril_actions.c:429
-#, fuzzy
 msgid "Error running the PSF on the sequence\n"
-msgstr "Запуск PSF для последовательности, слой %d\n"
+msgstr "Ошибка запуска PSF для последовательности\n"
 
 #: src/core/siril_actions.c:508
 msgid "Save your changes before loading a frame of the sequence."
@@ -24344,9 +24345,9 @@ msgid "blue"
 msgstr "синий"
 
 #: src/core/utils.c:799
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create directory '%s': %s\n"
-msgstr "Не удалось создать конфигурационную директорию %s\n"
+msgstr "Не удалось создать директорию '%s': %s\n"
 
 #: src/core/utils.c:1174
 msgid "Unknown error\n"
@@ -26250,7 +26251,7 @@ msgstr "Сценарий python"
 
 #: src/gui/git_gui.c:177
 msgid "(No commit message found for this revision)"
-msgstr ""
+msgstr "(Для этой ревизии не найдено сообщение коммита)"
 
 #: src/gui/git_gui.c:202 src/gui/script_menu.c:273
 #, c-format
@@ -26271,14 +26272,23 @@ msgid ""
 "repository, but it allows you to save a local copy in one of your script "
 "folders for use until the upstream script is fixed."
 msgstr ""
+"Оставьте значение 0, чтобы открыть текущую версию сценария. Если у вас "
+"возникли проблемы с обновлением сценария, вы можете использовать это, чтобы "
+"вернуться к более ранним ревизиям. Начните с возврата на 1 ревизию и "
+"увеличивайте это значение, пока не найдёте последнюю рабочую версию. "
+"Обратите внимание, что предыдущая версия будет открыта только в редакторе "
+"сценариев, но при этом не вернёт сценарий в локальный репозиторий. Это "
+"позволит вам сохранить локальную копию в одной из папок со сценариями для "
+"использования до тех пор, пока исходный сценарий не будет исправлен."
 
 #: src/gui/git_gui.c:267
 msgid "Revisions to go back (leave at 0 to get current revision):"
 msgstr ""
+"На сколько ревизий вернуться (оставьте 0 для получения текущей ревизии):"
 
 #: src/gui/git_gui.c:302
 msgid "Loading commit message..."
-msgstr ""
+msgstr "Загрузка сообщения коммита..."
 
 #: src/gui/git_gui.c:336
 #, fuzzy, c-format
@@ -30840,9 +30850,8 @@ msgstr ""
 "проблема, проверьте ваше соединение с сетью и повторите попытку.\n"
 
 #: src/io/siril_git.c:488 src/io/siril_git.c:816
-#, fuzzy
 msgid "Failed to open repository.\n"
-msgstr "Не найден настроенный удалённый сервер\n"
+msgstr "Не удалось открыть репозиторий.\n"
 
 #: src/io/siril_git.c:494 src/io/siril_git.c:600 src/io/siril_git.c:822
 #: src/io/siril_git.c:902
@@ -30850,22 +30859,19 @@ msgid "Failed to lookup remote.\n"
 msgstr "Не найден настроенный удалённый сервер\n"
 
 #: src/io/siril_git.c:501 src/io/siril_git.c:830
-#, fuzzy
 msgid "Cannot identify local repository's configured remote.\n"
 msgstr ""
-"Ошибка: не удаётся идентифицировать настроенный удалённый сервер для "
-"локального репозитория.\n"
+"Не удаётся определить настроенный удалённый сервер для локального "
+"репозитория.\n"
 
 #: src/io/siril_git.c:508
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local siril-scripts repository folder %s is not configured with %s as its "
 "remote.\n"
 msgstr ""
-"Ошибка: локальная директория репозитория siril-scripts не настроена для "
-"использования %s в качестве удалённого сервера. Вам следует удалить "
-"директорию %s и перезапустить Siril для повторного клонирования нужного "
-"репозитория.\n"
+"Локальная директория репозитория siril-scripts %s не настроена для "
+"использования %s в качестве удалённого сервера.\n"
 
 #: src/io/siril_git.c:525
 msgid ""
@@ -30933,14 +30939,12 @@ msgid "Local scripts repository is up-to-date!\n"
 msgstr "Локальный репозиторий сценариев в актуальном состоянии!\n"
 
 #: src/io/siril_git.c:692
-#, fuzzy
 msgid "Scripts repository directory does not exist.\n"
-msgstr "Ошибка удаления директория репозитория: %s\n"
+msgstr "Директория репозитория сценариев не существует.\n"
 
 #: src/io/siril_git.c:701
-#, fuzzy
 msgid "Failed to open scripts repository.\n"
-msgstr "Ошибка: не удалось открыть локальный репозиторий сценариев.\n"
+msgstr "Не удалось открыть локальный репозиторий сценариев.\n"
 
 #: src/io/siril_git.c:710
 msgid "Error accessing repository index.\n"
@@ -30959,15 +30963,13 @@ msgid "Warning: memory allocation failed for script path.\n"
 msgstr "Предупреждение: не удалось выделить память для пути сценария.\n"
 
 #: src/io/siril_git.c:837
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local siril-spcc-database repository folder %s is not configured with %s as "
 "its remote.\n"
 msgstr ""
-"Ошибка: локальная директория репозитория siril-spcc-database не настроена "
-"для использования %s в качестве удалённого сервера. Вам следует удалить "
-"директорию %s и перезапустить Siril для повторного клонирования нужного "
-"репозитория.\n"
+"Локальная директория репозитория siril-spcc-database %s не настроена для "
+"использования %s в качестве удалённого сервера.\n"
 
 #: src/io/siril_git.c:854
 msgid "Existing directory is not a valid git repository. Cleaning up...\n"
@@ -30995,9 +30997,8 @@ msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "Локальный репозиторий базы данных SPCC в актуальном состоянии!\n"
 
 #: src/io/siril_git.c:1300
-#, fuzzy
 msgid "Error opening scripts repository\n"
-msgstr "Ошибка клонирования репозитория: %s\n"
+msgstr "Ошибка при открытии репозитория сценариев\n"
 
 #: src/io/siril_pythoncommands.c:461
 msgid "Unknown config type"
@@ -31127,14 +31128,13 @@ msgid "Invalid payload length"
 msgstr "Неверная длина полезной нагрузки"
 
 #: src/io/siril_pythoncommands.c:1155
-#, fuzzy
 msgid "Invalid sequence type"
-msgstr "Неверный тип ядра"
+msgstr "Неверный тип последовательности"
 
 #: src/io/siril_pythoncommands.c:1169
-#, fuzzy
 msgid "Failed to load sequence frame: index out of range"
-msgstr "Не удалось загрузить кадр последовательности"
+msgstr ""
+"Не удалось загрузить кадр последовательности: индекс за приделами диапазона"
 
 #: src/io/siril_pythoncommands.c:1177
 msgid "Failed to load sequence frame"

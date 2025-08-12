@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-09 23:02+0200\n"
-"PO-Revision-Date: 2025-08-08 13:36+0000\n"
+"PO-Revision-Date: 2025-08-11 18:11+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -1451,7 +1451,7 @@ msgstr ""
 #: src/gui/uifiles/split_cfa_dialog.ui:127
 #: src/gui/uifiles/starnet_dialog.ui:248
 msgid "Apply to sequence"
-msgstr "画像シーケンスに適用"
+msgstr "シーケンスに適用"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:612
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:263
@@ -1461,9 +1461,8 @@ msgstr "画像シーケンスに適用"
 msgid ""
 "If a sequence is loaded and this is activated, perform the processing on all "
 "images of the sequence instead of only the loaded image."
-msgstr ""
-"シーケンスがロードされ、これがアクティブになっている場合は、ロードされたイ"
-"メージだけでなく、シーケンスのすべてのイメージに対して処理を実行します。"
+msgstr "シーケンスが読み込まれ、これがアクティブになっている場合は、読み込まれた画像"
+"だけでなく、シーケンスのすべての画像に対して処理を実行します。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:626
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:278
@@ -1475,10 +1474,9 @@ msgid "Output prefix:"
 msgstr "出力プレフィックス:"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:638
-#, fuzzy
 msgid ""
 "Prefix of the image names resulting from the background extraction process."
-msgstr "整列の結果得られた画像のファイル名プレフィックス."
+msgstr "背景抽出プロセスにより生成された画像名のプレフィックス。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:249
 msgid "Deconvolution"
@@ -2357,14 +2355,12 @@ msgstr ""
 "可視光線の波長をナノメートル単位で入力"
 
 #: src/gui/uifiles/composition_dialog.ui:51
-#, fuzzy
 msgid "Image compositing"
-msgstr "HSL 色空間"
+msgstr "画像合成"
 
 #: src/gui/uifiles/composition_dialog.ui:66
-#, fuzzy
 msgid "Reload all"
-msgstr "全てを消去"
+msgstr "すべて再読み込み"
 
 #: src/gui/uifiles/composition_dialog.ui:70
 msgid ""
@@ -2374,9 +2370,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/composition_dialog.ui:81
-#, fuzzy
 msgid "Save all"
-msgstr "ファイルを保存"
+msgstr "すべて保存"
 
 #: src/gui/uifiles/composition_dialog.ui:85
 msgid ""
@@ -2618,8 +2613,8 @@ msgid ""
 "Check if the target frames are CFA images.\n"
 "Uncheck if images come from a monochrome sensor."
 msgstr ""
-"ターゲットフレームが CFA 画像かどうかを確認.\n"
-"画像がモノクロセンサーによるものの場合, チェックを外して下さい."
+"ターゲットフレームが CFA 画像の場合にチェックしてください.\n"
+"画像が白黒センサーによるものの場合, チェックを外してください."
 
 #: src/gui/uifiles/crop_dialog.ui:35
 msgid "Crop sequence"
@@ -2862,15 +2857,15 @@ msgstr ""
 "す。ファイル名は現在の画像に基づいており、タイムスタンプが含まれています。"
 
 #: src/gui/uifiles/cut_dialog.ui:225
-#, fuzzy
 msgid ""
 "Apply to the current sequence. If this is selected, plots will be generated "
 "in .png format in the working directory: the plot window will not appear. "
 "This mode automatically enables the \"Save plot as .png\" option."
 msgstr ""
-"現在のシーケンスに適用します。これを選択すると、プロットは作業ディレクトリ"
-"に.png形式で生成されます:GNUplotウィンドウは表示されません。このモードでは、"
-"「プロットを.pngとして保存」オプションが自動的に有効になります。"
+"現在のシーケンスに適用します。これを選択すると、グラフは作業ディレクトリに."
+"png形式で生成されます: "
+"plotウインドウは表示されません。このモードでは、「グラフを."
+"pngとして保存」オプションが自動的に有効になります。"
 
 #: src/gui/uifiles/cut_dialog.ui:236
 msgid "Save plot as .png"
@@ -8489,9 +8484,8 @@ msgid "Annotate..."
 msgstr "回転"
 
 #: src/gui/uifiles/siril.ui:2460 src/gui/uifiles/siril.ui:2716
-#, fuzzy
 msgid "Image Analysis"
-msgstr "画像処理"
+msgstr "画像解析"
 
 #: src/gui/uifiles/siril.ui:2477
 msgid "Statistics..."
@@ -8540,9 +8534,8 @@ msgid "This is the button for outputting photometric data."
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:2631
-#, fuzzy
 msgid "Create Output"
-msgstr "出力ファイル名プレフィックス:"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:2657
 #, fuzzy
@@ -9881,7 +9874,7 @@ msgid ""
 msgstr ""
 "見当合わせのプロセスを開始します。選択した方法と参照レイヤーを使用して、読み"
 "込まれたシーケンス内の画像を見当合わせします（「画像シーケンス」タブで読み込"
-"まれたもの。現在のシーケンス名はウィンドウの下部にも表示されています）。"
+"まれたもの。現在のシーケンス名はウインドウの下部にも表示されています）。"
 
 #: src/gui/uifiles/siril.ui:7309
 msgid "Load a sequence first"
@@ -20492,19 +20485,19 @@ msgid "Load another image"
 msgstr "他のフィルターを追加"
 
 #: src/core/siril_actions.c:752 src/core/siril_actions.c:760
-#, fuzzy
 msgid "Close current image?"
-msgstr "このウィンドウを閉じる"
+msgstr "現在の画像を閉じますか？"
 
 #: src/core/siril_actions.c:752
 msgid ""
 "Opening the RGB Composition dialog will close the current image without "
 "saving. Are you sure?"
-msgstr ""
+msgstr "RGB合成ダイアログを開くと、現在の画像が保存されずに閉じられます。本当によろし"
+"いですか？"
 
 #: src/core/siril_actions.c:752 src/core/siril_actions.c:760
 msgid "Yes"
-msgstr ""
+msgstr "はい"
 
 #: src/core/siril_actions.c:760
 msgid ""
@@ -24732,7 +24725,7 @@ msgstr "標準偏差"
 
 #: src/gui/statistics_list.c:50
 msgid "avgDev"
-msgstr ""
+msgstr "平均偏差"
 
 #: src/gui/statistics_list.c:51
 msgid "MAD"
