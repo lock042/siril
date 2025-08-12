@@ -541,7 +541,7 @@ This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli()
                           <object class="GtkMenuItem">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Close the script editor</property>
+                            <property name="tooltip-text" translatable="yes">Open Python API reference documentation</property>
                             <property name="action-name">editor.python_doc</property>
                             <property name="label" translatable="yes">Python API reference</property>
                           </object>
@@ -550,7 +550,7 @@ This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli()
                           <object class="GtkMenuItem">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Close the script editor</property>
+                            <property name="tooltip-text" translatable="yes">Open Siril command reference documentation</property>
                             <property name="action-name">editor.command_doc</property>
                             <property name="label" translatable="yes">Siril Command Reference</property>
                           </object>
