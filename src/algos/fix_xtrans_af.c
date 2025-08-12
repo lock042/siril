@@ -219,7 +219,8 @@ int fix_xtrans_ac(fits *fit) {
 	// This matches logic in demosaicing.c.
 	read_bottom_up = (com.pref.debayer.use_bayer_header
 			&& !g_strcmp0(fit->keywords.row_order, "BOTTOM-UP"))
-			|| (!com.pref.debayer.top_down);
+			// || (!com.pref.debayer.top_down);
+			;
 	if (read_bottom_up) { fits_flip_top_to_bottom(fit); }
 
 

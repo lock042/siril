@@ -630,7 +630,7 @@ int crop(fits *fit, rectangle *bounds) {
 	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
 	if (bounds->x + bounds->w > fit->rx) return -1;
 	if (bounds->y + bounds->h > fit->ry) return -1;
-	int cfa = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern);
+	int cfa = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern); // we don't need the validated value here because we just want to know if it's CFA, XTRANS or NONE
 	switch (cfa) {
 		case BAYER_FILTER_NONE:
 			break;

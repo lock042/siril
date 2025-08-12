@@ -81,7 +81,7 @@ static void reset_swapdir() {
 
 static void update_debayer_preferences() {
 	com.pref.debayer.use_bayer_header = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_use_header")));
-	com.pref.debayer.top_down = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")));
+	com.pref.debayer.orientation = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_roworder")));
 	com.pref.debayer.xbayeroff = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin")));
 	com.pref.debayer.ybayeroff = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("ybayeroff_spin")));
 	com.pref.debayer.bayer_pattern = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboBayer_pattern")));
@@ -410,17 +410,6 @@ static void update_misc_preferences() {
 	com.pref.gui.enable_roi_warning = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscHideInfoROI"))) ? FALSE : TRUE;
 }
 
-void on_checkbutton_use_header_toggled(GtkToggleButton *button, gpointer user_data) {
-	gboolean active = !gtk_toggle_button_get_active(button);
-	GtkWidget *combo = lookup_widget("comboBayer_pattern");
-	GtkWidget *spin1 = lookup_widget("xbayeroff_spin");
-	GtkWidget *spin2 = lookup_widget("ybayeroff_spin");
-
-	gtk_widget_set_sensitive(combo, active);
-	gtk_widget_set_sensitive(spin1, active);
-	gtk_widget_set_sensitive(spin2, active);
-}
-
 void on_photometry_force_radius_button_toggled(GtkToggleButton *button, gpointer user_data) {
 //	GtkWidget *spin = (GtkWidget *)user_data;
 	GtkWidget *spin1 = lookup_widget("spinAperture");
@@ -661,7 +650,7 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboBayer_inter")), pref->debayer.bayer_inter);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin")), pref->debayer.xbayeroff);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("ybayeroff_spin")), pref->debayer.ybayeroff);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")), pref->debayer.top_down);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_roworder")),  pref->debayer.orientation);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("xtranspass_spin")), pref->debayer.xtrans_passes);
 
 	/* tab FITS Options */

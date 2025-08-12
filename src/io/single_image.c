@@ -224,7 +224,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			return 1;
 		}
 	} else {
-		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float, com.pref.debayer.open_debayer);
+		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float);
 		if (!retval)
 			debayer_if_needed(imagetype, dest, FALSE);
 		if (com.pref.debayer.open_debayer || imagetype != TYPEFITS)
