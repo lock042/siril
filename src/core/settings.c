@@ -185,7 +185,7 @@ preferences pref_init = {
 		.use_bayer_header = TRUE,
 		.bayer_pattern = BAYER_FILTER_RGGB,
 		.bayer_inter = BAYER_RCD,
-		.top_down = TRUE,
+		.orientation = ROW_ORDER_HEADER_TOPDOWN,
 		.xbayeroff = 0,
 		.ybayeroff = 0,
 		.xtrans_passes = 1
@@ -389,7 +389,7 @@ struct settings_access all_settings[] = {
 	{ "debayer", "use_bayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },
 	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER_4 } } },
 	{ "debayer", "interpolation", STYPE_INT, N_("type of interpolation"), &com.pref.debayer.bayer_inter, { .range_int = { 0, XTRANS } } },
-	{ "debayer", "top_down", STYPE_BOOL, N_("force debayer top-down"), &com.pref.debayer.top_down },
+	{ "debayer", "orientation", STYPE_INT, N_("row-order preference"), &com.pref.debayer.orientation, { .range_int = { 0, ROW_ORDER_FORCE_BOTTOMUP } } },
 	{ "debayer", "offset_x", STYPE_INT, N_("Bayer matrix offset X"), &com.pref.debayer.xbayeroff, { .range_int = { 0, 1 } } },
 	{ "debayer", "offset_y", STYPE_INT, N_("Bayer matrix offset Y"), &com.pref.debayer.ybayeroff, { .range_int = { 0, 1 } } },
 	{ "debayer", "xtrans_passes", STYPE_INT, N_("Number of passes for the X-Trans Markesteijn algorithm"), &com.pref.debayer.xtrans_passes, { .range_int = { 1, 4 } } },

@@ -67,7 +67,7 @@ int savepng(const char *filename, fits *fit, uint32_t bytes_per_sample,
 #endif
 
 #ifdef HAVE_LIBRAW
-int open_raw_files(const char*, fits*, gboolean);
+int open_raw_files(const char*, fits*);
 #endif
 
 #ifdef HAVE_LIBHEIF

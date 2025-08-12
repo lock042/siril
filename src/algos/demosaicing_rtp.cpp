@@ -75,10 +75,6 @@ static bool progress(double p) {
 WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 		interpolation_method interpolation, sensor_pattern pattern, unsigned int xtrans[6][6], int bit_depth) {
 
-	// super-pixel is handled by siril code, not librtprocess
-	if (interpolation == BAYER_SUPER_PIXEL)
-		return debayer_buffer_superpixel_ushort(buf, width, height, pattern);
-
 	unsigned int cfarray[2][2];
 	float rgb_cam[3][4] = { { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } }; // our white balance: we don't care
 	int i, rx = *width, ry = *height;
@@ -217,10 +213,6 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 // freeing buf is left to the caller
 float *debayer_buffer_new_float(float *buf, int *width, int *height,
 		interpolation_method interpolation, sensor_pattern pattern, unsigned int xtrans[6][6]) {
-
-	// super-pixel is handled by siril code, not librtprocess
-	if (interpolation == BAYER_SUPER_PIXEL)
-		return debayer_buffer_superpixel_float(buf, width, height, pattern);
 
 	unsigned int cfarray[2][2];
 	float rgb_cam[3][4] = { { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } }; // our white balance: we don't care

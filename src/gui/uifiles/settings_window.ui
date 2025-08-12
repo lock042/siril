@@ -361,7 +361,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
 If unchecked, the Bayer pattern given below will be used instead. Warning: to allow SER files converted from films to be demosaiced, monochrome SER will be forced as CFA with the configured pattern.</property>
                                 <property name="halign">start</property>
                                 <property name="draw-indicator">True</property>
-                                <signal name="toggled" handler="on_checkbutton_use_header_toggled" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -370,26 +369,10 @@ If unchecked, the Bayer pattern given below will be used instead. Warning: to al
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkCheckButton" id="checkbutton_debayer_compatibility">
-                                <property name="label" translatable="yes">Debayer FITS files in top-down if no explicit keywords found</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="tooltip-markup" translatable="yes">Siril read FITS data in the bottom-up orientation but a lot of capture software do not meet this specification. If data are stored in top-down orientation (as they usual do), you need to check this box in order to debayer the file in the right orientation.</property>
-                                <property name="halign">start</property>
-                                <property name="draw-indicator">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">0</property>
-                                <property name="width">2</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkLabel" id="label_warning_debayer">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Due to algorithm constraints more complex demosaicing algorithms cannot be used in the rejection stacking. Our tests also showed that there is no gain in quaity when many images are used, while processing time increases 20-fold.</property>
+                                <property name="tooltip-text" translatable="yes">Due to algorithm constraints more complex demosaicing algorithms cannot be used in the rejection stacking. Our tests also showed that there is no gain in quality when many images are used, while processing time increases 20-fold.</property>
                                 <property name="valign">center</property>
                                 <property name="label" translatable="yes">Warning: For SER on-the-fly demosaicing, the RCD algorithm is always used.</property>
                                 <property name="wrap">True</property>
@@ -568,6 +551,39 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                               <packing>
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">7</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Row-order preference:</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBoxText" id="combo_roworder">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Siril read FITS data in the bottom-up orientation but a lot of capture software do not meet this specification. Most of them now write a ROW-ORDER key in the images metadata to indicate how data was stored.
+Pick in this list your preferred option. The first two will first try to read ROW-ORDER from the header then use a fallback solution. The last two options force either Top-Down or Bottom-Up.
+This setting is ignored with SER files which are always assumed Top-Down as per their standard.</property>
+                                <property name="active">0</property>
+                                <property name="active-id">0</property>
+                                <items>
+                                  <item translatable="yes">Header then Top-Down</item>
+                                  <item translatable="yes">Header then Bottom-Up</item>
+                                  <item translatable="yes">Force Top-Down</item>
+                                  <item translatable="yes">Force Bottom-Up</item>
+                                </items>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
                               </packing>
                             </child>
                           </object>

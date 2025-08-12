@@ -2321,18 +2321,13 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	return 1;
 }
 
-int open_raw_files(const char *name, fits *fit, gboolean debayer) {
+int open_raw_files(const char *name, fits *fit) {
 	int retval = readraw_in_cfa(name, fit);
 
 	if (retval >= 0) {
-		if (debayer) {
-			debayer_if_needed(TYPEFITS, fit, TRUE);
-		}
-
-		gchar *basename = g_path_get_basename(name);
+		const gchar *basename = g_path_get_basename(name);
 		siril_log_message(_("Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"),
-				basename, fit->naxes[2], fit->rx, fit->ry);
-		g_free(basename);
+				basename, fit->naxes[2], fit->rx, fit->ry);;
 	}
 	return retval;
 }

@@ -166,7 +166,8 @@ struct driz_args_t {
   fits *flat; /* Flat, for multiplying the pixel_count */
   gboolean use_flats; /* Whether to use master flat as weights */
   float pixel_fraction;
-  const char* cfa;
+  BYTE cfa[36];
+  size_t cfadim;
 };
 
 struct driz_param_t {
@@ -191,7 +192,8 @@ struct driz_param_t {
   float scale;
 
   /* CFA filter pattern */
-  const char* cfa;
+  BYTE cfa[36];
+  size_t cfadim; /*1, 2 or 6*/
 
   /* Image subset */
   integer_t xmin;
@@ -292,9 +294,6 @@ set_pixel(fits *image, integer_t xpix, integer_t ypix, integer_t chan, float val
   return;
 }
 
-static inline_macro int FC(const size_t row, const size_t col, const size_t dim, const char *cfa) {
-	return !cfa ? 0 : cfa[(col % dim) + (row % dim) * dim] - '0';
-}
 
 /*****************************************************************
  STRING TO ENUMERATION CONVERSIONS

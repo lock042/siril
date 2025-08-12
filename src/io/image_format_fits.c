@@ -1461,12 +1461,17 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 		return -1;
 	}
 
+	read_fits_metadata(fit);
+	fit->orig_ry = fit->naxes[1];
+	fit->x_offset = area->x;
+	fit->y_offset = fit->orig_ry - area->y - area->h;
 	fit->naxes[0] = area->w;
 	fit->naxes[1] = area->h;
 	fit->rx = fit->naxes[0];
 	fit->ry = fit->naxes[1];
 	fit->naxes[2] = 1;
 	fit->naxis = 2;
+
 
 	/* Note: reading one channel of a multi-channel FITS poses a color management challenge:
 	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
@@ -1583,6 +1588,7 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 		}
 	}
 
+	read_fits_metadata(fit);
 	fit->naxes[0] = area->w;
 	fit->naxes[1] = area->h;
 	fit->rx = fit->naxes[0];
@@ -2610,6 +2616,9 @@ void extract_region_from_fits(fits *from, int layer, fits *to,
 		extract_region_from_fits_ushort(from, layer, to, area);
 	else if (from->type == DATA_FLOAT)
 		extract_region_from_fits_float(from, layer, to, area);
+	to->orig_ry = from->ry;
+	to->x_offset = area->x;
+	to->y_offset = to->orig_ry - area->y - area->h;
 }
 
 int new_fit_image(fits **fit, int width, int height, int nblayer, data_type type) {
@@ -3671,6 +3680,9 @@ int fits_swap_image_data(fits *a, fits *b) {
 	gboolean btmp = a->top_down;
 	a->top_down = b->top_down;
 	b->top_down = btmp;
+	gboolean ctmp = a->debayer_checked;
+	a->debayer_checked = b->debayer_checked;
+	b->debayer_checked = ctmp;
 	imstats **stmp = a->stats;
 	a->stats = b->stats;
 	b->stats = stmp;
@@ -3689,61 +3701,14 @@ int fits_swap_image_data(fits *a, fits *b) {
 
 /** Calculate the bayer pattern color from the row and column **/
 
-static inline int FC(const size_t row, const size_t col, const size_t dim, const char *cfa) {
-	return !cfa ? 0 : cfa[(col % dim) + (row % dim) * dim] - '0';
-}
-
-const char* get_cfa_from_pattern(sensor_pattern pattern) {
-	const char* cfa;
-	switch (pattern) {
-		case BAYER_FILTER_BGGR:
-			cfa = "2110";
-			break;
-		case BAYER_FILTER_GRBG:
-			cfa = "1021";
-			break;
-		case BAYER_FILTER_RGGB:
-			cfa = "0112";
-			break;
-		case BAYER_FILTER_GBRG:
-			cfa = "1201";
-			break;
-		case XTRANS_FILTER_1:
-//				  "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"
-			cfa = "110112112110201021112110110112021201";
-			break;
-		case XTRANS_FILTER_2:
-//				  "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB";
-			cfa = "021201110112112110201021112110110112";
-			break;
-		case XTRANS_FILTER_3:
-//				  "GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG";
-			cfa = "101121212010101121121101010212121101";
-			break;
-		case XTRANS_FILTER_4:
-//				  "GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG";
-			cfa = "121101010212121101101121212010101121";
-			break;
-		default:
-			siril_log_color_message(_("Error: unknown CFA pattern\n"), "red");
-			return NULL;
-	}
-	return cfa;
-}
-
 // These interpolation routines will work for X-Trans as well as Bayer patterns
 
-static void interpolate_nongreen_float(fits *fit) {
-	sensor_pattern pattern = get_bayer_pattern(fit);
-	const char *cfa = get_cfa_from_pattern(pattern);
-	if (!cfa)
-		return;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+static void interpolate_nongreen_float(fits *fit, BYTE cfa[36], int cfadim) {
 	uint32_t width = fit->rx;
 	uint32_t height = fit->ry;
 	for (int row = 0; row < height - 1; row++) {
 		for (int col = 0; col < width - 1; col++) {
-			if (FC(row, col, cfadim, cfa) == 1)
+			if (FC_array(row, col, cfa, cfadim) == 1)
 				continue;
 			uint32_t index = col + row * width;
 			float interp = 0.f;
@@ -3754,7 +3719,7 @@ static void interpolate_nongreen_float(fits *fit) {
 						// Check if the neighboring pixel is within the image bounds and green
 						int nx = col + dx;
 						int ny = row + dy;
-						if (FC(nx, ny, cfadim, cfa) == 1 && nx >= 0 && nx < width && ny >= 0 && ny < height) {
+						if (FC_array(nx, ny, cfa, cfadim) == 1 && nx >= 0 && nx < width && ny >= 0 && ny < height) {
 							// Calculate distance from the current pixel
 							float distance = dx + dy;
 							// Calculate weight for the neighboring pixel
@@ -3772,17 +3737,12 @@ static void interpolate_nongreen_float(fits *fit) {
 	fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 }
 
-static void interpolate_nongreen_ushort(fits *fit) {
-	sensor_pattern pattern = get_bayer_pattern(fit);
-	const char *cfa = get_cfa_from_pattern(pattern);
-	if (!cfa)
-		return;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+static void interpolate_nongreen_ushort(fits *fit, BYTE cfa[36], int cfadim) {
 	uint32_t width = fit->rx;
 	uint32_t height = fit->ry;
 	for (int row = 0; row < height - 1; row++) {
 		for (int col = 0; col < width - 1; col++) {
-			if (FC(row, col, cfadim, cfa) == 1)
+			if (FC_array(row, col, cfa, cfadim) == 1)
 				continue;
 			uint32_t index = col + row * width;
 			float interp = 0.f;
@@ -3793,7 +3753,7 @@ static void interpolate_nongreen_ushort(fits *fit) {
 						// Check if the neighboring pixel is within the image bounds and green
 						int nx = col + dx;
 						int ny = row + dy;
-						if (nx >= 0 && nx < width && ny >= 0 && ny < height && FC(nx, ny, cfadim, cfa) == 1) {
+						if (nx >= 0 && nx < width && ny >= 0 && ny < height && FC_array(nx, ny, cfa, cfadim) == 1) {
 							// Calculate distance from the current pixel
 							float distance = dx + dy;
 							// Calculate weight for the neighboring pixel
@@ -3814,10 +3774,14 @@ static void interpolate_nongreen_ushort(fits *fit) {
 #undef RECIPSQRT2
 
 void interpolate_nongreen(fits *fit) {
+	int cfadim = 0;
+	BYTE cfa[36];
+	if (fit->naxes[2] != 1 || get_compiled_pattern(fit, cfa, &cfadim, FALSE))
+		return;
 	if (fit->type == DATA_FLOAT) {
-		interpolate_nongreen_float(fit);
+		interpolate_nongreen_float(fit, cfa, cfadim);
 	} else {
-		interpolate_nongreen_ushort(fit);
+		interpolate_nongreen_ushort(fit, cfa, cfadim);
 	}
 	invalidate_stats_from_fit(fit);
 	siril_debug_print("Interpolating non-green pixels\n");

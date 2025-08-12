@@ -28,6 +28,7 @@
 #include "gui/registration_preview.h"
 #include "gui/sequence_list.h"
 #include "registration/registration.h"
+#include "opencv/opencv.h"
 
 gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	int current_preview, shiftx = 0, shifty = 0;
@@ -330,6 +331,7 @@ void on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data
 			PRINT_ALLOC_ERR;
 			return;
 		}
+		cvGetEye(&com.seq.regparam[current_layer][com.seq.reference_image].H);
 	}
 
 	new_value = gtk_spin_button_get_value_as_int(spinbutton);

@@ -299,8 +299,13 @@ int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, c
 	status = internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix,
 			dest->type == DATA_USHORT ? (void *)dest->data : (void *)dest->fdata,
 			layer, area);
-	dest->icc_profile = NULL;
-	color_manage(dest, FALSE);
+	if (!status) {
+		dest->orig_ry = fitseq->naxes[1];
+		dest->x_offset = area->x;
+		dest->y_offset = dest->orig_ry - area->y - area->h;
+		dest->icc_profile = NULL;
+		color_manage(dest, FALSE);
+	}
 	return status;
 }
 
