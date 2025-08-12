@@ -2763,7 +2763,7 @@ int process_ls(int nb){
 	}
 
 #ifndef _WIN32
-	struct dirent **list;
+	struct dirent **list = NULL;
 
 	int n = scandir(path, &list, 0, alphasort);
 	if (n < 0) {

@@ -2320,12 +2320,12 @@ CLEANUP:
 					siril_debug_print("Failed to serialize the user polygon list\n");
 					const char* error_msg = _("Failed to serialize user polygon list");
 					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				} else {
+					shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_list_size);
+					success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+					g_free(serialized);
+					free(info);
 				}
-
-				shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_list_size);
-				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-				g_free(serialized);
-				free(info);
 			}
 			break;
 		}

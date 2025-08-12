@@ -1008,7 +1008,6 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 	if (shm_ptr == MAP_FAILED) {
 		close(fd);
 		const char* error_msg = _("Failed to map shared memory");
-		close(fd);
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 	#endif
@@ -2131,7 +2130,8 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 		gui_function(script_widgets_idle, NULL);
 
 		// Free the cleanup structure
-		g_unlink(cleanup->temp_filename);
+		if (cleanup->temp_filename && g_unlink(cleanup->temp_filename))
+			siril_debug_print("g_unlink() failed in python_process_cleanup()\n");
 		g_free(cleanup->temp_filename);
 		g_free(cleanup);
 	}
@@ -2194,7 +2194,8 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		siril_log_color_message(_("Error: failed to create Python connection.\n"), "red");
 		// Clean up the temporary file if it's one
 		if (is_temp_file && script_name) {
-			g_unlink(script_name);
+			if (g_unlink(script_name))
+				siril_debug_print("g_unlink() failed in execute_python_script()\n");
 			g_free(script_name);
 		}
 		return;

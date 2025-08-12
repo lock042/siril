@@ -1121,76 +1121,75 @@ void setup_python_editor_window() {
 	g_signal_connect(main_window, "window-state-event", G_CALLBACK(on_main_window_state_changed), editor_window);
 }
 
-// 4. Update the on_action_file_execute function to use the new parameter
 void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-    if (!accept_script_warning_dialog())
-        return;
-    gchar** script_args = NULL;
-    // Get the start and end iterators
-    GtkTextIter start, end;
-    gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-    // Get the text
-    char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
-    switch (active_language) {
-        case LANG_PYTHON:;
-            // Create a temporary file for the script
-            GError *error = NULL;
-            gchar *temp_filename = NULL;
-            int fd = g_file_open_tmp("siril-script-XXXXXX.py", &temp_filename, &error);
-            if (fd == -1) {
-                siril_log_message(_("Error creating temporary script file: %s\n"), error->message);
-                g_error_free(error);
-                g_free(text);
-                return;
-            }
-            // Write script content to the temporary file
-            if (write(fd, text, strlen(text)) == -1) {
-                siril_log_message(_("Error writing to temporary script file\n"));
-                close(fd);
-                g_unlink(temp_filename);
-                g_free(temp_filename);
-                g_free(text);
-                return;
-            }
-            close(fd);
-            // Add args if we need to
-            if (gtk_check_menu_item_get_active(useargs)) {
-                const gchar *args_string = gtk_entry_get_text(args_entry);
-                script_args = g_strsplit(args_string, " ", -1);
-                from_cli = TRUE;
-            }
+	if (!accept_script_warning_dialog())
+		return;
+	gchar** script_args = NULL;
+	// Get the start and end iterators
+	GtkTextIter start, end;
+	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+	// Get the text
+	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
+	switch (active_language) {
+		case LANG_PYTHON:;
+			// Create a temporary file for the script
+			GError *error = NULL;
+			gchar *temp_filename = NULL;
+			int fd = g_file_open_tmp("siril-script-XXXXXX.py", &temp_filename, &error);
+			if (fd == -1) {
+				siril_log_message(_("Error creating temporary script file: %s\n"), error->message);
+				g_error_free(error);
+				g_free(text);
+				return;
+			}
+			// Write script content to the temporary file
+			if (write(fd, text, strlen(text)) == -1) {
+				siril_log_message(_("Error writing to temporary script file\n"));
+				close(fd);
+				if (g_unlink(temp_filename))
+					siril_debug_print("g_unlink() failed in on_action_file_execute()\n");
+				g_free(temp_filename);
+				g_free(text);
+				return;
+			}
+			close(fd);
+			// Add args if we need to
+			if (gtk_check_menu_item_get_active(useargs)) {
+				const gchar *args_string = gtk_entry_get_text(args_entry);
+				script_args = g_strsplit(args_string, " ", -1);
+				from_cli = TRUE;
+			}
 
-            // Execute the script with the path to the temp file instead of the text content
-            // Passing TRUE as the last parameter to indicate this is a temporary file
-            execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE, from_cli, python_debug);
-            g_strfreev(script_args);
-            g_free(text);
-            break;
-        case LANG_SSF:;
-            GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);
-            g_free(text);
-            if (get_thread_run()) {
-                PRINT_ANOTHER_THREAD_RUNNING;
-                g_object_unref(input_stream);
-                return;
-            }
-            if (com.script_thread)
-                g_thread_join(com.script_thread);
-            /* Switch to console tab */
-            control_window_switch_to_tab(OUTPUT_LOGS);
-            /* Last thing before running the script, disable widgets except for Stop */
-            script_widgets_enable(FALSE);
-            /* Run the script */
-            siril_log_message(_("Starting script\n"));
-            com.script_thread = g_thread_new("script", execute_script, input_stream);
-            break;
-        default:
-            siril_debug_print("Error: unknown script language\n");
-            g_free(text);
-            break;
-    }
+			// Execute the script with the path to the temp file instead of the text content
+			// Passing TRUE as the last parameter to indicate this is a temporary file
+			execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE, from_cli, python_debug);
+			g_strfreev(script_args);
+			g_free(text);
+			break;
+		case LANG_SSF:;
+			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);
+			g_free(text);
+			if (get_thread_run()) {
+				PRINT_ANOTHER_THREAD_RUNNING;
+				g_object_unref(input_stream);
+				return;
+			}
+			if (com.script_thread)
+				g_thread_join(com.script_thread);
+			/* Switch to console tab */
+			control_window_switch_to_tab(OUTPUT_LOGS);
+			/* Last thing before running the script, disable widgets except for Stop */
+			script_widgets_enable(FALSE);
+			/* Run the script */
+			siril_log_message(_("Starting script\n"));
+			com.script_thread = g_thread_new("script", execute_script, input_stream);
+			break;
+		default:
+			siril_debug_print("Error: unknown script language\n");
+			g_free(text);
+			break;
+	}
 }
-
 
 static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data) {
 	buffer_modified = gtk_text_buffer_get_modified(buffer);

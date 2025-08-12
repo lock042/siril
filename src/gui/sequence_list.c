@@ -955,7 +955,7 @@ int update_sequences_list(const char *sequence_name_to_select) {
 #ifdef _WIN32
 	number_of_loaded_sequences = ListSequences(com.wd, seqname, seqcombo, &index_of_seq_to_load, &found);
 #else
-	struct dirent **list;
+	struct dirent **list = NULL;
 	int i, n;
 
 
