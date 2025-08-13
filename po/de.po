@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-12 14:13+0200\n"
-"PO-Revision-Date: 2025-07-01 19:46+0000\n"
-"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
+"PO-Revision-Date: 2025-08-13 12:22+0000\n"
+"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -23358,9 +23358,9 @@ msgstr ""
 "beendet ...\n"
 
 #: src/core/processing.c:1250
-#, fuzzy, c-format
+#, c-format
 msgid "Error finding the HDU for frame %d\n"
-msgstr "Fehler beim Öffnen der Datei %s\n"
+msgstr "Fehler: kann HDU für Bild  %d nicht finden\n"
 
 #: src/core/sequence_filtering.c:229
 msgid "Sequence filter: values can only be either literal or percent\n"
@@ -24336,9 +24336,8 @@ msgid "Error: no sequence loaded.\n"
 msgstr "Fehler: Keine Sequenz geladen.\n"
 
 #: src/core/siril_actions.c:429
-#, fuzzy
 msgid "Error running the PSF on the sequence\n"
-msgstr "PSF läuft für geladene Sequenz auf Layer %d\n"
+msgstr "Fehler die PSF für die geladene Sequenz durchzuführen\n"
 
 #: src/core/siril_actions.c:508
 msgid "Save your changes before loading a frame of the sequence."
@@ -24613,9 +24612,9 @@ msgid "blue"
 msgstr "Blau"
 
 #: src/core/utils.c:799
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create directory '%s': %s\n"
-msgstr "Konfigurationsverzeichnis %s konnte nicht erstellt werden\n"
+msgstr "Verzeichnis '%s': %s konnte nicht erstellt werden\n"
 
 #: src/core/utils.c:1174
 msgid "Unknown error\n"
@@ -26535,7 +26534,7 @@ msgstr "Pythonskript"
 
 #: src/gui/git_gui.c:177
 msgid "(No commit message found for this revision)"
-msgstr ""
+msgstr "(keine Commit-Bemerkung für diese Revision gefunden)"
 
 #: src/gui/git_gui.c:202 src/gui/script_menu.c:273
 #, c-format
@@ -26564,7 +26563,7 @@ msgstr ""
 
 #: src/gui/git_gui.c:302
 msgid "Loading commit message..."
-msgstr ""
+msgstr "Commit-Bemerkung wird geladen..."
 
 #: src/gui/git_gui.c:336
 #, fuzzy, c-format
