@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-14 08:30+0200\n"
-"PO-Revision-Date: 2025-08-12 12:56+0000\n"
+"PO-Revision-Date: 2025-08-14 20:05+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -7944,7 +7944,7 @@ msgstr "Normale (256x256)"
 
 #: src/gui/uifiles/settings_window.ui:3589
 msgid "Large (512x512)"
-msgstr ""
+msgstr "Grand (512 x 512)"
 
 #: src/gui/uifiles/settings_window.ui:3605
 msgid "Image Thumbnails"

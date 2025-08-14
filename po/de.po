@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-14 08:30+0200\n"
-"PO-Revision-Date: 2025-08-13 12:22+0000\n"
-"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
+"PO-Revision-Date: 2025-08-14 14:07+0000\n"
+"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -4494,6 +4494,12 @@ msgid ""
 "become insensitive until either Reset or Apply is clicked. Further tweaks "
 "can be made by clicking Apply and then making a second stretch,"
 msgstr ""
+"Vorschau des Algorithmus zur automatischen Streckung des Bildes. Aufgrund "
+"der Besonderheiten des Farbmanagements werden die Schieberegler und "
+"Eingabefelder für Werte nach dem Anklicken unempfindlich, bis entweder "
+"„Zurücksetzen“ oder „Übernehmen“ angeklickt wird. Weitere Anpassungen können "
+"vorgenommen werden, indem Sie auf „Übernehmen“ klicken und dann eine zweite "
+"Streckung vornehmen."
 
 #: src/gui/uifiles/histogram_dialog.ui:519
 msgid "Highlights: "
@@ -5544,6 +5550,9 @@ msgid ""
 "Set the position of the right margin indicator in the editor. This visual "
 "guide helps maintain consistent line lengths and improve code readability."
 msgstr ""
+"Legen Sie die Position der rechten Randmarkierung im Editor fest. Diese "
+"visuelle Hilfe trägt dazu bei, einheitliche Zeilenlängen beizubehalten und "
+"die Lesbarkeit des Codes zu verbessern."
 
 #: src/gui/uifiles/python_scratchpad.ui:416
 msgid "Set right margin position"
@@ -6779,14 +6788,24 @@ msgid ""
 "This setting is ignored with SER files which are always assumed Top-Down as "
 "per their standard."
 msgstr ""
+"Siril liest FITS-Daten in der Bottom-Up-Ausrichtung, aber viele "
+"Erfassungsprogramme beachten diese Spezifikation nicht. Die meisten von "
+"ihnen schreiben mittlerweile einen ROW-ORDER-Schlüssel in die Metadaten der "
+"Bilder, um anzugeben, wie die Daten gespeichert wurden.\n"
+"Wählen Sie aus dieser Liste Ihre bevorzugte Option aus. Die ersten beiden "
+"Optionen versuchen zunächst, ROW-ORDER aus dem Header zu lesen, und "
+"verwenden dann eine Fallback-Lösung. Die letzten beiden Optionen erzwingen "
+"entweder Top-Down oder Bottom-Up.\n"
+"Diese Einstellung wird bei SER-Dateien ignoriert, die gemäß ihrem Standard "
+"immer als Top-Down angenommen werden."
 
 #: src/gui/uifiles/settings_window.ui:578
 msgid "Header then Top-Down"
-msgstr ""
+msgstr "Header, dann Top-Down"
 
 #: src/gui/uifiles/settings_window.ui:579
 msgid "Header then Bottom-Up"
-msgstr ""
+msgstr "Header, dann Bottom-Up"
 
 #: src/gui/uifiles/settings_window.ui:580
 #, fuzzy
@@ -6795,7 +6814,7 @@ msgstr "erzwing debayern von oben nach unten"
 
 #: src/gui/uifiles/settings_window.ui:581
 msgid "Force Bottom-Up"
-msgstr ""
+msgstr "Bottom-Up erzwingen"
 
 #: src/gui/uifiles/settings_window.ui:597 src/gui/uifiles/siril.ui:3966
 #: src/gui/open_dialog.c:191
@@ -7869,7 +7888,7 @@ msgstr "Miniaturbilder"
 
 #: src/gui/uifiles/settings_window.ui:3589
 msgid "Large (512x512)"
-msgstr ""
+msgstr "Groß (512x512)"
 
 #: src/gui/uifiles/settings_window.ui:3605
 msgid "Image Thumbnails"
@@ -13836,11 +13855,11 @@ msgstr "Ungültiges Zeichen im X-Trans-Filtermuster: %c\n"
 #: src/algos/demosaicing.c:262
 #, c-format
 msgid "Filter Pattern: %s %s, Orientation: %s %s %s\n"
-msgstr ""
+msgstr "Filtermuster: %s %s, Orientierung: %s %s %s\n"
 
 #: src/algos/demosaicing.c:264 src/algos/demosaicing.c:266
 msgid "from header"
-msgstr ""
+msgstr "aus dem Header"
 
 #: src/algos/demosaicing.c:264 src/algos/demosaicing.c:266
 #, fuzzy
@@ -13935,7 +13954,7 @@ msgstr "%s: Grünkanal extrahieren\n"
 
 #: src/algos/extraction.c:173
 msgid "Extract Green: unsupported Bayer pattern.\n"
-msgstr ""
+msgstr "Grünextraktion: Nicht unterstütztes Bayermuster.\n"
 
 #: src/algos/extraction.c:217 src/algos/extraction.c:273
 msgid "Extract_Ha does not work on non-Bayer filter camera images!\n"
@@ -13973,7 +13992,7 @@ msgstr "OIII-Kanal\n"
 
 #: src/algos/extraction.c:843
 msgid "Extract HaOIII: unsupported Bayer pattern.\n"
-msgstr ""
+msgstr "HaOIII-Extraktion: Nicht unterstütztes Bayermuster.\n"
 
 #: src/algos/extraction.c:892
 msgid "Extract Ha and OIII"
@@ -16426,6 +16445,8 @@ msgstr "Koordinaten des Sterns: %.1f,%.1f\n"
 msgid ""
 "Sequence name is required as first argument (use '.' for current sequence)\n"
 msgstr ""
+"Der Name der Sequenz wird als erstes Argument benötigt (benutze '.' für die "
+"aktuelle Sequenz)\n"
 
 #: src/core/command.c:4583 src/core/command.c:4588 src/core/command.c:4616
 #: src/core/command.c:4621
@@ -16738,10 +16759,14 @@ msgstr "CieLAB"
 msgid ""
 "This image does not have a Bayer CFA pattern, cannot extract green channel.\n"
 msgstr ""
+"Dieses Bild hat kein Bayer-CFA-Muster, eine Extraktion des Grünkanals ist "
+"nicht möglich.\n"
 
 #: src/core/command.c:6428
 msgid "This image does not have a Bayer CFA pattern, cannot extract Ha.\n"
 msgstr ""
+"Dieses Bild hat kein Bayer-CFA-Muster, eine Extraktion des Ha-Kanals ist "
+"nicht möglich.\n"
 
 #: src/core/command.c:6454
 msgid "Upscaling x2\n"
@@ -16752,6 +16777,8 @@ msgid ""
 "This image does not have a Bayer CFA pattern, cannot extract Ha/OIII "
 "channels.\n"
 msgstr ""
+"Dieses Bild hat kein Bayer-CFA-Muster, eine Extraktion des Ha/OIII-Kanals "
+"ist nicht möglich.\n"
 
 #: src/core/command.c:6718 src/gui/merge_cfa.c:298
 msgid ""
