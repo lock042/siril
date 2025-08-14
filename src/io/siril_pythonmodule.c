@@ -822,7 +822,9 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 			g_free(lext);
 		}
 	}
-
+	if (!display) { // if we are displaying, we mustn't free the plot data here
+		free_siril_plot_data(plot_data);
+	}
 	return send_response(conn, STATUS_OK, NULL, 0);
 }
 
@@ -2198,6 +2200,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 				siril_debug_print("g_unlink() failed in execute_python_script()\n");
 			g_free(script_name);
 		}
+		g_free(connection_path);
 		return;
 	}
 
@@ -2206,13 +2209,14 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 										connection_worker,
 										commstate.python_conn);
 
-	if (!commstate.python_conn) {
-		siril_log_color_message(_("Error: Python connection not available.\n"), "red");
+	if (!commstate.worker_thread) {
+		siril_log_color_message(_("Error: Python worker thread not available.\n"), "red");
 		// Clean up the temporary file if it's one
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
 			g_free(script_name);
 		}
+		g_free(connection_path);
 		return;
 	}
 	init_shm_tracking(commstate.python_conn);

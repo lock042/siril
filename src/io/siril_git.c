@@ -1063,7 +1063,7 @@ static int find_file_commit_by_modifications(git_repository *repo,
 		return -1;
 
 	const char *workdir = git_repository_workdir(repo);
-	const char *tmpworkdir = g_canonicalize_filename(workdir, NULL);
+	char *tmpworkdir = g_canonicalize_filename(workdir, NULL);
 	if (tmpworkdir && g_path_is_absolute(filepath)) {
 		size_t workdir_len = strlen(tmpworkdir);
 		if (strncmp(filepath, tmpworkdir, workdir_len) == 0) {
@@ -1077,6 +1077,7 @@ static int find_file_commit_by_modifications(git_repository *repo,
 	} else {
 		relative_path = g_strdup(filepath);
 	}
+	g_free(tmpworkdir);
 
 	error = git_revparse_single(&head_commit_obj, repo, "HEAD");
 	if (error != 0) {

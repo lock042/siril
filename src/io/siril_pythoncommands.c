@@ -2395,13 +2395,14 @@ CLEANUP:
 		}
 
 		case CMD_CREATE_NEW_SEQ: {
-			const gchar* seqname = g_strndup(payload, payload_length);
+			gchar* seqname = g_strndup(payload, payload_length);
 			if (create_one_seq(seqname, SEQ_REGULAR)) {
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
 				const char* error_msg = _("Could not create the new sequence");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
+			g_free(seqname);
 			break;
 		}
 
