@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-12 14:13+0200\n"
+"POT-Creation-Date: 2025-08-14 08:30+0200\n"
 "PO-Revision-Date: 2025-08-12 01:43+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
@@ -502,9 +502,9 @@ msgstr "Аннотировать"
 #: src/gui/uifiles/composition_dialog.ui:96
 #: src/gui/uifiles/file_information_dialog.ui:171
 #: src/gui/uifiles/settings_window.ui:1912
-#: src/gui/uifiles/settings_window.ui:4384
-#: src/gui/uifiles/settings_window.ui:4425
-#: src/gui/uifiles/settings_window.ui:6064 src/gui/uifiles/siril.ui:3748
+#: src/gui/uifiles/settings_window.ui:4385
+#: src/gui/uifiles/settings_window.ui:4426
+#: src/gui/uifiles/settings_window.ui:6065 src/gui/uifiles/siril.ui:3748
 msgid "Clear"
 msgstr "Очистить"
 
@@ -4281,8 +4281,8 @@ msgid "Type of algorithm"
 msgstr "Тип алгоритма"
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:134
-#: src/gui/uifiles/settings_window.ui:3651
-#: src/gui/uifiles/settings_window.ui:3720 src/gui/uifiles/siril.ui:577
+#: src/gui/uifiles/settings_window.ui:3652
+#: src/gui/uifiles/settings_window.ui:3721 src/gui/uifiles/siril.ui:577
 #: src/gui/uifiles/siril.ui:10015 src/gui/uifiles/wavelets_dialog.ui:184
 msgid "Linear"
 msgstr "Линейный"
@@ -4584,8 +4584,8 @@ msgstr ""
 "изображения. ЗАМЕЧАНИЕ: изменение точки чёрного может привести к обрезке "
 "пикселей. В этом случае данное преобразование необратимо."
 
-#: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4102
-#: src/gui/uifiles/settings_window.ui:4919 src/core/icc_profile.c:1306
+#: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4103
+#: src/gui/uifiles/settings_window.ui:4920 src/core/icc_profile.c:1306
 #: src/core/icc_profile.c:1308
 msgid "Color Management"
 msgstr "Управление цветом"
@@ -4729,7 +4729,7 @@ msgid "<b>Color Management Operations</b>"
 msgstr "<b>Операции управления цветом</b>"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:32
-#: src/gui/uifiles/settings_window.ui:4163
+#: src/gui/uifiles/settings_window.ui:4164
 msgid "Gamut visualisation"
 msgstr "Визуализация цветового охвата"
 
@@ -5148,7 +5148,7 @@ msgstr "Добавить действие при прокрутке"
 msgid "Remove a scroll action"
 msgstr "Удалить действие при прокрутке"
 
-#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5322
+#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5323
 #: src/gui/uifiles/siril.ui:6342
 msgid " "
 msgstr " "
@@ -6468,7 +6468,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
-#: src/gui/uifiles/settings_window.ui:5241
+#: src/gui/uifiles/settings_window.ui:5242
 msgid "Sel"
 msgstr "Выбор"
 
@@ -7729,7 +7729,7 @@ msgid "<b>Aberration Inspector</b>"
 msgstr "<b>Аберрации</b>"
 
 #: src/gui/uifiles/settings_window.ui:3334
-#: src/gui/uifiles/settings_window.ui:4078
+#: src/gui/uifiles/settings_window.ui:4079
 msgid "User Interface"
 msgstr "Интерфейс"
 
@@ -7817,56 +7817,60 @@ msgstr "Маленькие (128×128)"
 msgid "Normal (256x256)"
 msgstr "Обычные (256×256)"
 
-#: src/gui/uifiles/settings_window.ui:3604
+#: src/gui/uifiles/settings_window.ui:3589
+msgid "Large (512x512)"
+msgstr ""
+
+#: src/gui/uifiles/settings_window.ui:3605
 msgid "Image Thumbnails"
 msgstr "Миниатюры изображений"
 
-#: src/gui/uifiles/settings_window.ui:3638
+#: src/gui/uifiles/settings_window.ui:3639
 msgid "Default screen transfer function:"
 msgstr "Режим просмотра по умолчанию:"
 
-#: src/gui/uifiles/settings_window.ui:3652
-#: src/gui/uifiles/settings_window.ui:3721 src/gui/uifiles/siril.ui:588
+#: src/gui/uifiles/settings_window.ui:3653
+#: src/gui/uifiles/settings_window.ui:3722 src/gui/uifiles/siril.ui:588
 msgid "Logarithm"
 msgstr "Логарифмический"
 
-#: src/gui/uifiles/settings_window.ui:3653 src/gui/uifiles/siril.ui:599
+#: src/gui/uifiles/settings_window.ui:3654 src/gui/uifiles/siril.ui:599
 msgid "Square root"
 msgstr "Квадрат. корень"
 
-#: src/gui/uifiles/settings_window.ui:3654 src/gui/uifiles/siril.ui:610
+#: src/gui/uifiles/settings_window.ui:3655 src/gui/uifiles/siril.ui:610
 msgid "Squared"
 msgstr "Квадратичный"
 
-#: src/gui/uifiles/settings_window.ui:3655 src/gui/uifiles/siril.ui:621
+#: src/gui/uifiles/settings_window.ui:3656 src/gui/uifiles/siril.ui:621
 msgid "Asinh"
 msgstr "Asinh"
 
-#: src/gui/uifiles/settings_window.ui:3656
+#: src/gui/uifiles/settings_window.ui:3657
 msgid "Autostretch"
 msgstr "Авторастягивание"
 
-#: src/gui/uifiles/settings_window.ui:3657 src/gui/uifiles/siril.ui:653
+#: src/gui/uifiles/settings_window.ui:3658 src/gui/uifiles/siril.ui:653
 msgid "Histogram"
 msgstr "Гистограмма"
 
-#: src/gui/uifiles/settings_window.ui:3673
+#: src/gui/uifiles/settings_window.ui:3674
 msgid "Image Display"
 msgstr "Экран"
 
-#: src/gui/uifiles/settings_window.ui:3707
+#: src/gui/uifiles/settings_window.ui:3708
 msgid "Default display mode:"
 msgstr "Режим показа по умолчанию:"
 
-#: src/gui/uifiles/settings_window.ui:3737
+#: src/gui/uifiles/settings_window.ui:3738
 msgid "Histogram Display"
 msgstr "Гистограмма"
 
-#: src/gui/uifiles/settings_window.ui:3771
+#: src/gui/uifiles/settings_window.ui:3772
 msgid "Type of selection:"
 msgstr "Тип выделения:"
 
-#: src/gui/uifiles/settings_window.ui:3782
+#: src/gui/uifiles/settings_window.ui:3783
 msgid ""
 "Sets the method of selecting a ROI.\n"
 "<b>Manual</b> requires the ROI to be selected and cleared manually using the "
@@ -7880,77 +7884,77 @@ msgstr ""
 "<b>Автоматически</b> — область интереса автоматически синхронизируется с "
 "текущим выделением и очищается вместе с ним."
 
-#: src/gui/uifiles/settings_window.ui:3787
+#: src/gui/uifiles/settings_window.ui:3788
 msgid "Manual"
 msgstr "Вручную"
 
-#: src/gui/uifiles/settings_window.ui:3788
+#: src/gui/uifiles/settings_window.ui:3789
 msgid "Automatic from selection"
 msgstr "Автоматически из выделения"
 
-#: src/gui/uifiles/settings_window.ui:3804
+#: src/gui/uifiles/settings_window.ui:3805
 msgid "Region of Interest"
 msgstr "Область интереса"
 
-#: src/gui/uifiles/settings_window.ui:3837
+#: src/gui/uifiles/settings_window.ui:3838
 msgid "Middle button double click"
 msgstr "Двойной клик средней кнопкой"
 
-#: src/gui/uifiles/settings_window.ui:3850
+#: src/gui/uifiles/settings_window.ui:3851
 msgid "Zoom to fit"
 msgstr "Уместить в окне"
 
-#: src/gui/uifiles/settings_window.ui:3851
+#: src/gui/uifiles/settings_window.ui:3852
 msgid "Zoom 100% centred on mouse"
 msgstr "Полный размер в позиции курсора"
 
-#: src/gui/uifiles/settings_window.ui:3852
+#: src/gui/uifiles/settings_window.ui:3853
 msgid "Zoom toggles between fit and 100%"
 msgstr "Уместить в окне или Полный размер"
 
-#: src/gui/uifiles/settings_window.ui:3862
+#: src/gui/uifiles/settings_window.ui:3863
 msgid "Configure mouse button actions"
 msgstr "Настройка кнопок мыши"
 
-#: src/gui/uifiles/settings_window.ui:3866
+#: src/gui/uifiles/settings_window.ui:3867
 msgid "Open the mouse action configuration dialog"
 msgstr "Диалог настройки поведения кнопок мыши"
 
-#: src/gui/uifiles/settings_window.ui:3885
+#: src/gui/uifiles/settings_window.ui:3886
 msgid "Mouse Behaviour"
 msgstr "Поведение мыши"
 
-#: src/gui/uifiles/settings_window.ui:3932
+#: src/gui/uifiles/settings_window.ui:3933
 msgid "Background extraction samples:"
 msgstr "Образцы для извлечения фона:"
 
-#: src/gui/uifiles/settings_window.ui:3944
+#: src/gui/uifiles/settings_window.ui:3945
 msgid "Standard annotations:"
 msgstr "Стандартные аннотации:"
 
-#: src/gui/uifiles/settings_window.ui:3956
+#: src/gui/uifiles/settings_window.ui:3957
 msgid "Deep Sky Object (user) annotations:"
 msgstr "Пользовательские аннотации объектов глубокого космоса:"
 
-#: src/gui/uifiles/settings_window.ui:3968
+#: src/gui/uifiles/settings_window.ui:3969
 msgid "Solar System Object (user) annotations:"
 msgstr "Пользовательские аннотации объектов Солнечной системы:"
 
-#: src/gui/uifiles/settings_window.ui:3980
+#: src/gui/uifiles/settings_window.ui:3981
 msgid "Temporary Object (user) annotations:"
 msgstr "Пользовательские аннотации временных объектов:"
 
-#: src/gui/uifiles/settings_window.ui:4051
+#: src/gui/uifiles/settings_window.ui:4052
 msgid "Overlay Colors"
 msgstr "Наложение цвета"
 
-#: src/gui/uifiles/settings_window.ui:4118
+#: src/gui/uifiles/settings_window.ui:4119
 msgid "This section contains options relating to working color spaces"
 msgstr ""
 "В этом разделе собраны настройки, связанные с рабочими цветовыми "
 "пространствами"
 
-#: src/gui/uifiles/settings_window.ui:4134
+#: src/gui/uifiles/settings_window.ui:4135
 msgid ""
 "This selects the family of RGB profiles that will be used throughout most of "
 "the workflow. For a discussion of which gamut to pick, see the Color "
@@ -7960,11 +7964,11 @@ msgstr ""
 "бо́льшей части рабочего процесса. Подробнее о том, какой цветовой охват "
 "выбрать, рассказано в разделе документации, посвящённом управлению цветом."
 
-#: src/gui/uifiles/settings_window.ui:4136
+#: src/gui/uifiles/settings_window.ui:4137
 msgid "Preferred Color Space:"
 msgstr "Предпочитаемое цветовое пространство:"
 
-#: src/gui/uifiles/settings_window.ui:4147
+#: src/gui/uifiles/settings_window.ui:4148
 msgid ""
 "This sets your preferred family of color spaces for use as working color "
 "spaces: it comprises a RGB color profile and a matching Gray color profile. "
@@ -7977,21 +7981,21 @@ msgstr ""
 "используется опциями автоматического преобразования / назначения, а так же — "
 "опциями экспорта файлов."
 
-#: src/gui/uifiles/settings_window.ui:4150
-#: src/gui/uifiles/settings_window.ui:4519
-#: src/gui/uifiles/settings_window.ui:4599 src/core/icc_profile.c:1570
+#: src/gui/uifiles/settings_window.ui:4151
+#: src/gui/uifiles/settings_window.ui:4520
+#: src/gui/uifiles/settings_window.ui:4600 src/core/icc_profile.c:1570
 msgid "sRGB"
 msgstr "sRGB"
 
-#: src/gui/uifiles/settings_window.ui:4151
+#: src/gui/uifiles/settings_window.ui:4152
 msgid "Rec2020"
 msgstr "Rec2020"
 
-#: src/gui/uifiles/settings_window.ui:4152
+#: src/gui/uifiles/settings_window.ui:4153
 msgid "From files"
 msgstr "Из файлов"
 
-#: src/gui/uifiles/settings_window.ui:4167
+#: src/gui/uifiles/settings_window.ui:4168
 msgid ""
 "Show the CIE1931 xy space and a representation of various color gamuts "
 "within it."
@@ -7999,7 +8003,7 @@ msgstr ""
 "Демонстрирует пространство CIE 1931 xy и представление различных цветовых "
 "охватов в нём."
 
-#: src/gui/uifiles/settings_window.ui:4179
+#: src/gui/uifiles/settings_window.ui:4180
 msgid ""
 "Use these opions together with the \"From files\" option for Preferred Color "
 "Spaces above."
@@ -8007,11 +8011,11 @@ msgstr ""
 "Используйте эти опции вместе с опцией «Из файлов» для предпочитаемых "
 "цветовых пространств, указанных выше."
 
-#: src/gui/uifiles/settings_window.ui:4182
+#: src/gui/uifiles/settings_window.ui:4183
 msgid "External color profiles:"
 msgstr "Внешние цветовые профили:"
 
-#: src/gui/uifiles/settings_window.ui:4194
+#: src/gui/uifiles/settings_window.ui:4195
 msgid ""
 "This should be an ICC profile in your preferred gamut with the color space's "
 "native nonlinear tone response curve."
@@ -8019,11 +8023,11 @@ msgstr ""
 "Это должен быть ICC-профиль с предпочитаемым вами цветовым охватом с "
 "собственной нелинейной кривой передачи тона (TRC) цветового пространства."
 
-#: src/gui/uifiles/settings_window.ui:4196
+#: src/gui/uifiles/settings_window.ui:4197
 msgid "RGB ICC profile"
 msgstr "RGB ICC-профиль"
 
-#: src/gui/uifiles/settings_window.ui:4207
+#: src/gui/uifiles/settings_window.ui:4208
 msgid ""
 "This should be a Gray ICC profile with a tone response curve that matches "
 "that of the nonlinear TRC profile you set above."
@@ -8031,11 +8035,11 @@ msgstr ""
 "Это должен быть Ч/Б ICC-профиль с кривой воспроизведения тона, которая "
 "соответствует таковой нелинейного профиля TRC, указанного выше."
 
-#: src/gui/uifiles/settings_window.ui:4209
+#: src/gui/uifiles/settings_window.ui:4210
 msgid "Gray ICC profile"
 msgstr "Ч/Б ICC-профиль"
 
-#: src/gui/uifiles/settings_window.ui:4221
+#: src/gui/uifiles/settings_window.ui:4222
 msgid ""
 "Use this together with the \"From files\" option above. This should be a RGB "
 "ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg "
@@ -8045,7 +8049,7 @@ msgstr ""
 "RGB ICC-профиль с предпочитаемым вами цветовым охватом (например, ProPhoto, "
 "ClayRGB, ACEScg, пр.)"
 
-#: src/gui/uifiles/settings_window.ui:4235
+#: src/gui/uifiles/settings_window.ui:4236
 msgid ""
 "Use this together with the \"From files\" option above. This should be a "
 "Gray (mono) ICC profile with a tone response curve that matches that of the "
@@ -8055,15 +8059,15 @@ msgstr ""
 "Ч/Б ICC-профиль с кривой передачи тонов, соответствующей таковой профиля "
 "RGB, установленного выше."
 
-#: src/gui/uifiles/settings_window.ui:4252
+#: src/gui/uifiles/settings_window.ui:4253
 msgid "Working Color Spaces"
 msgstr "Рабочие цветовые пространства"
 
-#: src/gui/uifiles/settings_window.ui:4285
+#: src/gui/uifiles/settings_window.ui:4286
 msgid "Custom monitor profile:"
 msgstr "Пользовательский профиль монитора:"
 
-#: src/gui/uifiles/settings_window.ui:4297
+#: src/gui/uifiles/settings_window.ui:4298
 msgid ""
 "To use a custom monitor ICC profile, set it here. If no custom profile is "
 "set, sRGB with D65 white point and gamma = 2.2 will be used."
@@ -8072,7 +8076,7 @@ msgstr ""
 "Если пользовательский профиль не установлен, будет использован профиль sRGB "
 "с точкой белого D65 и гаммой = 2.2."
 
-#: src/gui/uifiles/settings_window.ui:4310
+#: src/gui/uifiles/settings_window.ui:4311
 msgid ""
 "Specify an output device profile for soft proofing purposes. If this is not "
 "set or is inactive, the monitor profile (or sRGB by default) will be used as "
@@ -8082,43 +8086,43 @@ msgstr ""
 "не установлен или неактивен, для проверки будет использован профиль монитора "
 "(или, по умолчанию, sRGB)."
 
-#: src/gui/uifiles/settings_window.ui:4324
+#: src/gui/uifiles/settings_window.ui:4325
 msgid "Output device proofing profile:"
 msgstr "Профиль цветопробы устройства вывода:"
 
-#: src/gui/uifiles/settings_window.ui:4337
+#: src/gui/uifiles/settings_window.ui:4338
 msgid "Rendering intent:"
 msgstr "Тип цветопередачи:"
 
-#: src/gui/uifiles/settings_window.ui:4348
+#: src/gui/uifiles/settings_window.ui:4349
 msgid "Select the display intent. The default is perceptual rendering."
 msgstr "Выберите тип цветопередачи. По умолчанию — воспринимаемая."
 
-#: src/gui/uifiles/settings_window.ui:4351
-#: src/gui/uifiles/settings_window.ui:4549
+#: src/gui/uifiles/settings_window.ui:4352
+#: src/gui/uifiles/settings_window.ui:4550
 msgid "Perceptual"
 msgstr "Воспринимаемая"
 
-#: src/gui/uifiles/settings_window.ui:4352
-#: src/gui/uifiles/settings_window.ui:4550
+#: src/gui/uifiles/settings_window.ui:4353
+#: src/gui/uifiles/settings_window.ui:4551
 msgid "Relative Colorimetric"
 msgstr "Относительная колориметрическая"
 
-#: src/gui/uifiles/settings_window.ui:4353
-#: src/gui/uifiles/settings_window.ui:4551
+#: src/gui/uifiles/settings_window.ui:4354
+#: src/gui/uifiles/settings_window.ui:4552
 msgid "Saturation"
 msgstr "Насыщенность"
 
-#: src/gui/uifiles/settings_window.ui:4354
-#: src/gui/uifiles/settings_window.ui:4552
+#: src/gui/uifiles/settings_window.ui:4355
+#: src/gui/uifiles/settings_window.ui:4553
 msgid "Absolute Colorimetric"
 msgstr "Абсолютная колориметрическая"
 
-#: src/gui/uifiles/settings_window.ui:4365
+#: src/gui/uifiles/settings_window.ui:4366
 msgid "Black point compensation"
 msgstr "Компенсация точки чёрного"
 
-#: src/gui/uifiles/settings_window.ui:4369
+#: src/gui/uifiles/settings_window.ui:4370
 msgid ""
 "Enable BPC for rendering. This is not normally required but may be useful if "
 "an image has a malformed source profile."
@@ -8126,16 +8130,16 @@ msgstr ""
 "Включает компенсацию точки чёрного для отображения. Обычно это не требуется, "
 "но может быть полезно, если исходный профиль изображения искажён."
 
-#: src/gui/uifiles/settings_window.ui:4388
+#: src/gui/uifiles/settings_window.ui:4389
 msgid "Clear the profile and revert to the default"
 msgstr "Очистить профиль и вернуться к настройкам по умолчанию"
 
-#: src/gui/uifiles/settings_window.ui:4399
-#: src/gui/uifiles/settings_window.ui:4440
+#: src/gui/uifiles/settings_window.ui:4400
+#: src/gui/uifiles/settings_window.ui:4441
 msgid "active"
 msgstr "активен"
 
-#: src/gui/uifiles/settings_window.ui:4403
+#: src/gui/uifiles/settings_window.ui:4404
 msgid ""
 "Whether or not to use the custom monitor profile. This will take effect when "
 "Apply is clicked. The setting is ignored if no custom monitor profile is set."
@@ -8144,11 +8148,11 @@ msgstr ""
 "после нажатия кнопки «Применить». Если пользовательский профиль монитора не "
 "установлен, настройка игнорируется."
 
-#: src/gui/uifiles/settings_window.ui:4429
+#: src/gui/uifiles/settings_window.ui:4430
 msgid "Clear the profile: soft proofing will be unavailable"
 msgstr "Очистить профиль: программная цветопроба будет недоступна"
 
-#: src/gui/uifiles/settings_window.ui:4444
+#: src/gui/uifiles/settings_window.ui:4445
 msgid ""
 "Whether or not to use the custom soft proofing profile. This will take "
 "effect when Apply is clicked. The setting is ignored if no custom monitor "
@@ -8158,11 +8162,11 @@ msgstr ""
 "будет включена после нажатия кнопки «Применить». Если пользовательский "
 "профиль монитора не установлен, настройка игнорируется."
 
-#: src/gui/uifiles/settings_window.ui:4468
+#: src/gui/uifiles/settings_window.ui:4469
 msgid "Custom Profiles"
 msgstr "Пользовательские профили"
 
-#: src/gui/uifiles/settings_window.ui:4485
+#: src/gui/uifiles/settings_window.ui:4486
 msgid ""
 "This section contains settings affecting how color spaces are applied to "
 "saved files\n"
@@ -8176,11 +8180,11 @@ msgstr ""
 "Эти настройки не влияют на профили, сохранённые в файлах FITS, которые были "
 "указаны в параметрах FITS"
 
-#: src/gui/uifiles/settings_window.ui:4504
+#: src/gui/uifiles/settings_window.ui:4505
 msgid "Export high bit depth images using:"
 msgstr "Экспорт снимков с большой глубиной цвета:"
 
-#: src/gui/uifiles/settings_window.ui:4515
+#: src/gui/uifiles/settings_window.ui:4516
 msgid ""
 "Selects which color space to export >8bpp bit depth images to. The ICC color "
 "profile will be embedded in the file.\n"
@@ -8193,31 +8197,31 @@ msgstr ""
 "Примечание: если формат не поддерживает встраивание ICC-профиля, изображения "
 "всегда будут экспортированы в формате sRGB."
 
-#: src/gui/uifiles/settings_window.ui:4520
-#: src/gui/uifiles/settings_window.ui:4600
+#: src/gui/uifiles/settings_window.ui:4521
+#: src/gui/uifiles/settings_window.ui:4601
 msgid "Working gamut"
 msgstr "Рабочий цветовой охват"
 
-#: src/gui/uifiles/settings_window.ui:4521
-#: src/gui/uifiles/settings_window.ui:4601
+#: src/gui/uifiles/settings_window.ui:4522
+#: src/gui/uifiles/settings_window.ui:4602
 msgid "Image's current ICC profile"
 msgstr "Текущий ICC-профиль изображения"
 
-#: src/gui/uifiles/settings_window.ui:4535
+#: src/gui/uifiles/settings_window.ui:4536
 msgid "Conversion and export intent:"
 msgstr "Цветопередача при преобразовании и экспорте:"
 
-#: src/gui/uifiles/settings_window.ui:4546
+#: src/gui/uifiles/settings_window.ui:4547
 msgid "Select the color management intent for conversion / export"
 msgstr "Выберите способ управления цветом для преобразования / экспорта"
 
-#: src/gui/uifiles/settings_window.ui:4563
+#: src/gui/uifiles/settings_window.ui:4564
 msgid "Treat non color-managed files as sRGB for export to supported formats"
 msgstr ""
 "Трактовать файлы, не поддерживающие управление цветом, как sRGB при экспорте "
 "в поддерживаемые форматы"
 
-#: src/gui/uifiles/settings_window.ui:4567
+#: src/gui/uifiles/settings_window.ui:4568
 msgid ""
 "For files with no assigned color profile, when exporting to TIFF / PNG / "
 "JPG, embed a sRGB (or Gray with sRGB TRC) ICC profile. This does not give a "
@@ -8232,11 +8236,11 @@ msgstr ""
 "файлов в других приложениях.\n"
 "Если этот параметр не установлен, ICC-профиль встроен не будет."
 
-#: src/gui/uifiles/settings_window.ui:4584
+#: src/gui/uifiles/settings_window.ui:4585
 msgid "Export 8-bit images using:"
 msgstr "Экспорт 8-битных изображений используя:"
 
-#: src/gui/uifiles/settings_window.ui:4595
+#: src/gui/uifiles/settings_window.ui:4596
 msgid ""
 "Selects which color space to export 8-bit images to, if the format supports "
 "ICC profiles. The ICC color profile will be embedded in the file.\n"
@@ -8248,59 +8252,59 @@ msgstr ""
 "Примечание: если формат не поддерживает встраивание ICC-профиля, изображения "
 "всегда будут экспортированы в формате sRGB."
 
-#: src/gui/uifiles/settings_window.ui:4618
+#: src/gui/uifiles/settings_window.ui:4619
 msgid "File Import / Export Options"
 msgstr "Опции импорта / экспорта файлов"
 
-#: src/gui/uifiles/settings_window.ui:4652
+#: src/gui/uifiles/settings_window.ui:4653
 msgid "Auto assign working color space:"
 msgstr "Автоматически назначить рабочее цветовое пространство:"
 
-#: src/gui/uifiles/settings_window.ui:4665
+#: src/gui/uifiles/settings_window.ui:4666
 msgid "Convert other color profiles to the working profile?"
 msgstr "Преобразовать другие цветовые профили в рабочий профиль?"
 
-#: src/gui/uifiles/settings_window.ui:4676
+#: src/gui/uifiles/settings_window.ui:4677
 msgid ""
 "This option sets the behaviour if an image is loaded and it already contains "
 "an ICC profile."
 msgstr ""
 "Определяет поведение, если загружено изображение, содержащие ICC-профиль."
 
-#: src/gui/uifiles/settings_window.ui:4679
-#: src/gui/uifiles/settings_window.ui:4733
+#: src/gui/uifiles/settings_window.ui:4680
+#: src/gui/uifiles/settings_window.ui:4734
 msgid "Never"
 msgstr "Никогда"
 
-#: src/gui/uifiles/settings_window.ui:4680
+#: src/gui/uifiles/settings_window.ui:4681
 msgid "Ask every time"
 msgstr "Всегда спрашивать"
 
-#: src/gui/uifiles/settings_window.ui:4681
+#: src/gui/uifiles/settings_window.ui:4682
 msgid "Always"
 msgstr "Всегда"
 
-#: src/gui/uifiles/settings_window.ui:4691
+#: src/gui/uifiles/settings_window.ui:4692
 msgid "On load"
 msgstr "При загрузке"
 
-#: src/gui/uifiles/settings_window.ui:4705
+#: src/gui/uifiles/settings_window.ui:4706
 msgid "On stacking"
 msgstr "При укладке"
 
-#: src/gui/uifiles/settings_window.ui:4719
+#: src/gui/uifiles/settings_window.ui:4720
 msgid "On stretching"
 msgstr "При растягивании"
 
-#: src/gui/uifiles/settings_window.ui:4748
+#: src/gui/uifiles/settings_window.ui:4749
 msgid "Output of RGB composition / PixelMath"
 msgstr "Вывод совмещения в RGB / Математических операций"
 
-#: src/gui/uifiles/settings_window.ui:4762
+#: src/gui/uifiles/settings_window.ui:4763
 msgid "Pedantically assign linear ICC profiles"
 msgstr "Тщательно назначать линейные ICC-профили"
 
-#: src/gui/uifiles/settings_window.ui:4766
+#: src/gui/uifiles/settings_window.ui:4767
 msgid ""
 "When assigning an ICC image to:\n"
 "* a loaded image that doesn't show stretches in HISTORY\n"
@@ -8316,28 +8320,28 @@ msgstr ""
 "назначается линейный ICC-профиль. Это технически правильно, но, как правило, "
 "не требуется."
 
-#: src/gui/uifiles/settings_window.ui:4787
+#: src/gui/uifiles/settings_window.ui:4788
 msgid "Auto Conversion / Assignment Options"
 msgstr "Автоматическое преобразование / назначение"
 
-#: src/gui/uifiles/settings_window.ui:4823
-#: src/gui/uifiles/settings_window.ui:4854
+#: src/gui/uifiles/settings_window.ui:4824
+#: src/gui/uifiles/settings_window.ui:4855
 msgid "Color Matching Functions"
 msgstr "Функции подбора цветов"
 
-#: src/gui/uifiles/settings_window.ui:4836
+#: src/gui/uifiles/settings_window.ui:4837
 msgid "CIE 1931 2 degree standard observer"
 msgstr "CIE 1931 2° стандартный наблюдатель"
 
-#: src/gui/uifiles/settings_window.ui:4837
+#: src/gui/uifiles/settings_window.ui:4838
 msgid "CIE 1964 10 degree supplementary standard observer"
 msgstr "CIE 1964 10° вспомогательный стандартный наблюдатель"
 
-#: src/gui/uifiles/settings_window.ui:4880
+#: src/gui/uifiles/settings_window.ui:4881
 msgid "Export built-in profiles"
 msgstr "Экспорт встроенных профилей"
 
-#: src/gui/uifiles/settings_window.ui:4884
+#: src/gui/uifiles/settings_window.ui:4885
 msgid ""
 "Export the built-in profiles to the working directory. Elle Stone's profiles "
 "are distributed with the CC BY-SA-3.0 licence. As they are built into the "
@@ -8349,16 +8353,16 @@ msgstr ""
 "встроены в двоичный файл Siril, эта функция экспорта служит для соблюдения "
 "положения лицензии о совместном использовании."
 
-#: src/gui/uifiles/settings_window.ui:4901
+#: src/gui/uifiles/settings_window.ui:4902
 msgid "<b>Built-in Profiles</b>"
 msgstr "<b>Встроенные профили</b>"
 
-#: src/gui/uifiles/settings_window.ui:4942
-#: src/gui/uifiles/settings_window.ui:5358 src/gui/uifiles/siril.ui:10628
+#: src/gui/uifiles/settings_window.ui:4943
+#: src/gui/uifiles/settings_window.ui:5359 src/gui/uifiles/siril.ui:10628
 msgid "Scripts"
 msgstr "Сценарии"
 
-#: src/gui/uifiles/settings_window.ui:4973
+#: src/gui/uifiles/settings_window.ui:4974
 msgid ""
 "The paths written in this text box will be checked in order to load scripts "
 "that have been put inside. Write a path per line with as many lines you "
@@ -8370,23 +8374,23 @@ msgstr ""
 "неограниченно. Следует иметь в виду, что чем больше путей проверяется, тем "
 "дольше запуск программы."
 
-#: src/gui/uifiles/settings_window.ui:4986
+#: src/gui/uifiles/settings_window.ui:4987
 msgid "<b>Scripts Storage Directories</b>"
 msgstr "<b>Директории хранения сценариев</b>"
 
-#: src/gui/uifiles/settings_window.ui:5003
+#: src/gui/uifiles/settings_window.ui:5004
 msgid "Rescans the scripts folders and updates scripts menu."
 msgstr "Пересматривает директории со сценариями и обновляет меню сценариев."
 
-#: src/gui/uifiles/settings_window.ui:5034
+#: src/gui/uifiles/settings_window.ui:5035
 msgid "Show warning before script execution"
 msgstr "Показывать предупреждение перед выполнением сценария"
 
-#: src/gui/uifiles/settings_window.ui:5050
+#: src/gui/uifiles/settings_window.ui:5051
 msgid "\"Requires\" command is mandatory in scripts"
 msgstr "Команда «requires» в сценариях обязательна"
 
-#: src/gui/uifiles/settings_window.ui:5054
+#: src/gui/uifiles/settings_window.ui:5055
 msgid ""
 "If this option is checked, scripts cannot be executed without the "
 "\"requires\" command. That ensures the compatibility between scripts and "
@@ -8402,16 +8406,16 @@ msgstr ""
 "<span foreground=\"red\"><b>ПРЕДУПРЕЖДЕНИЕ: снимайте этот флажок только если "
 "вы знаете, что делаете!</b></span>"
 
-#: src/gui/uifiles/settings_window.ui:5075
-#: src/gui/uifiles/settings_window.ui:5941
+#: src/gui/uifiles/settings_window.ui:5076
+#: src/gui/uifiles/settings_window.ui:5942
 msgid "Warning Dialogs"
 msgstr "Окна с предупреждениями"
 
-#: src/gui/uifiles/settings_window.ui:5103
+#: src/gui/uifiles/settings_window.ui:5104
 msgid "Enable use of the siril-scripts online repository"
 msgstr "Включить использование удалённого репозитория сценариев siril-scripts"
 
-#: src/gui/uifiles/settings_window.ui:5107
+#: src/gui/uifiles/settings_window.ui:5108
 msgid ""
 "Siril will fetch and update scripts from the official siril-scripts "
 "repository. These will be available offline and specific scripts can be "
@@ -8431,19 +8435,19 @@ msgstr ""
 "как только их список будет получен. Выключение репозитория произойдёт только "
 "после нажатия кнопки «Применить»."
 
-#: src/gui/uifiles/settings_window.ui:5129
+#: src/gui/uifiles/settings_window.ui:5130
 msgid "Automatic updates"
 msgstr "Автоматическое обновление"
 
-#: src/gui/uifiles/settings_window.ui:5133
+#: src/gui/uifiles/settings_window.ui:5134
 msgid "Automatically update the repository at startup."
 msgstr "Автоматически обновлять репозиторий при запуске."
 
-#: src/gui/uifiles/settings_window.ui:5145
+#: src/gui/uifiles/settings_window.ui:5146
 msgid "Manual update"
 msgstr "Обновить вручную"
 
-#: src/gui/uifiles/settings_window.ui:5150
+#: src/gui/uifiles/settings_window.ui:5151
 msgid ""
 "Update the scripts repository now. If there are any pending changes, the "
 "commit messages will be shown and you will be asked to confirm applying the "
@@ -8453,7 +8457,7 @@ msgstr ""
 "будут показаны сообщения о фиксации и вам будет предложено подтвердить "
 "применение изменений."
 
-#: src/gui/uifiles/settings_window.ui:5177
+#: src/gui/uifiles/settings_window.ui:5178
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -8469,27 +8473,27 @@ msgstr ""
 "старую версию после неудачного обновления сценария), щёлкните правой кнопкой "
 "мыши на строке."
 
-#: src/gui/uifiles/settings_window.ui:5194
+#: src/gui/uifiles/settings_window.ui:5195
 msgid "Category"
 msgstr "Категория"
 
-#: src/gui/uifiles/settings_window.ui:5210
+#: src/gui/uifiles/settings_window.ui:5211
 msgid "Script"
 msgstr "Сценарий"
 
-#: src/gui/uifiles/settings_window.ui:5226
+#: src/gui/uifiles/settings_window.ui:5227
 msgid "Type"
 msgstr "Тип"
 
-#: src/gui/uifiles/settings_window.ui:5270
+#: src/gui/uifiles/settings_window.ui:5271
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Репозиторий сценариев Siril</b>"
 
-#: src/gui/uifiles/settings_window.ui:5303
+#: src/gui/uifiles/settings_window.ui:5304
 msgid "Reset python venv"
 msgstr "Сбросить вирт. среду python"
 
-#: src/gui/uifiles/settings_window.ui:5307
+#: src/gui/uifiles/settings_window.ui:5308
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -8506,20 +8510,20 @@ msgstr ""
 "Обычно в этом нет необходимости, и эта возможность является крайней мерой "
 "для восстановления исходного состояния venv при устранении неполадок."
 
-#: src/gui/uifiles/settings_window.ui:5338
+#: src/gui/uifiles/settings_window.ui:5339
 msgid "Python Interface"
 msgstr "Интерфейс Python"
 
-#: src/gui/uifiles/settings_window.ui:5372
-#: src/gui/uifiles/settings_window.ui:5770
+#: src/gui/uifiles/settings_window.ui:5373
+#: src/gui/uifiles/settings_window.ui:5771
 msgid "Performances"
 msgstr "Производительность"
 
-#: src/gui/uifiles/settings_window.ui:5403
+#: src/gui/uifiles/settings_window.ui:5404
 msgid "Ratio of available"
 msgstr "Доля доступной памяти"
 
-#: src/gui/uifiles/settings_window.ui:5407
+#: src/gui/uifiles/settings_window.ui:5408
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -8538,11 +8542,11 @@ msgstr ""
 "Если у вас не настроена директория подкачки на каком-либо разделе, значение "
 "1 или выше, скорее всего, приведет к сбою siril или операционной системы."
 
-#: src/gui/uifiles/settings_window.ui:5423
+#: src/gui/uifiles/settings_window.ui:5424
 msgid "Fixed amount (GB)"
 msgstr "Фикс. объём (Гбайт)"
 
-#: src/gui/uifiles/settings_window.ui:5427
+#: src/gui/uifiles/settings_window.ui:5428
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -8554,7 +8558,7 @@ msgstr ""
 "Указание объёма памяти бо́льшего, чем доступен вашей системе может привести к "
 "падению siril или операционной системы."
 
-#: src/gui/uifiles/settings_window.ui:5443
+#: src/gui/uifiles/settings_window.ui:5444
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -8569,15 +8573,15 @@ msgstr ""
 "укладки, больше 1 потребует использования памяти на диске, что очень "
 "медленно и это не рекомендуется"
 
-#: src/gui/uifiles/settings_window.ui:5488
+#: src/gui/uifiles/settings_window.ui:5489
 msgid "<b>Memory management</b>"
 msgstr "<b>Управление памятью</b>"
 
-#: src/gui/uifiles/settings_window.ui:5521
+#: src/gui/uifiles/settings_window.ui:5522
 msgid "Default bit depth for HD AutoStretch"
 msgstr "Разрядность по умолчанию для расширенного авторастягивания"
 
-#: src/gui/uifiles/settings_window.ui:5537
+#: src/gui/uifiles/settings_window.ui:5538
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -8594,23 +8598,23 @@ msgstr ""
 "переключении режима просмотра, и может быть применена сейчас с помощью "
 "кнопки справа."
 
-#: src/gui/uifiles/settings_window.ui:5554
+#: src/gui/uifiles/settings_window.ui:5555
 msgid "Apply bit depth"
 msgstr "Установить разрядность"
 
-#: src/gui/uifiles/settings_window.ui:5558
+#: src/gui/uifiles/settings_window.ui:5559
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "Установить выбранную разрядность расширенного авторастягивания"
 
-#: src/gui/uifiles/settings_window.ui:5581
+#: src/gui/uifiles/settings_window.ui:5582
 msgid "HD AutoStretch"
 msgstr "Расширенное авторастягивание"
 
-#: src/gui/uifiles/settings_window.ui:5612
+#: src/gui/uifiles/settings_window.ui:5613
 msgid "Multithreaded FFTW"
 msgstr "Мультипотоковое FFTW"
 
-#: src/gui/uifiles/settings_window.ui:5616
+#: src/gui/uifiles/settings_window.ui:5617
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
@@ -8621,11 +8625,11 @@ msgstr ""
 "первоначального планирования при первой работе FFTW с изображением данного "
 "размера."
 
-#: src/gui/uifiles/settings_window.ui:5631 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5632 src/core/settings.c:382
 msgid "FFTW planning strategy"
 msgstr "Стратегия планирования FFTW"
 
-#: src/gui/uifiles/settings_window.ui:5642
+#: src/gui/uifiles/settings_window.ui:5643
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -8662,28 +8666,28 @@ msgstr ""
 "поскольку накладные расходы других стратегий не окупаются для одного "
 "преобразования Фурье."
 
-#: src/gui/uifiles/settings_window.ui:5647 src/gui/uifiles/siril.ui:5058
+#: src/gui/uifiles/settings_window.ui:5648 src/gui/uifiles/siril.ui:5058
 #: src/gui/uifiles/siril.ui:6928
 msgid "Estimate"
 msgstr "Оценка"
 
-#: src/gui/uifiles/settings_window.ui:5648
+#: src/gui/uifiles/settings_window.ui:5649
 msgid "Measure"
 msgstr "Измерить"
 
-#: src/gui/uifiles/settings_window.ui:5649
+#: src/gui/uifiles/settings_window.ui:5650
 msgid "Patient"
 msgstr "Полная"
 
-#: src/gui/uifiles/settings_window.ui:5650
+#: src/gui/uifiles/settings_window.ui:5651
 msgid "Exhaustive"
 msgstr "Исчерпывающая"
 
-#: src/gui/uifiles/settings_window.ui:5663
+#: src/gui/uifiles/settings_window.ui:5664
 msgid "FFTW planning time limit (seconds)"
 msgstr "Ограничение по времени планирования FFTW (в секундах)"
 
-#: src/gui/uifiles/settings_window.ui:5674
+#: src/gui/uifiles/settings_window.ui:5675
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -8696,11 +8700,11 @@ msgstr ""
 "выполнения операции, которая не может быть прервана. Если установлено "
 "значение 0, всегда будет выполнен минимальный уровень планирования «Оценка»."
 
-#: src/gui/uifiles/settings_window.ui:5689
+#: src/gui/uifiles/settings_window.ui:5690
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr "Минимальный размер PSF для использования свёрток FFT"
 
-#: src/gui/uifiles/settings_window.ui:5700
+#: src/gui/uifiles/settings_window.ui:5701
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -8719,11 +8723,11 @@ msgstr ""
 "и, следовательно, может быть настроена. Этот параметр задает минимальный "
 "размер, для которого будут использоваться преобразования Фурье."
 
-#: src/gui/uifiles/settings_window.ui:5716
+#: src/gui/uifiles/settings_window.ui:5717
 msgid "Maximum slice size for sliced image operations"
 msgstr "Максимальный размер блока для операций с изображениями"
 
-#: src/gui/uifiles/settings_window.ui:5727
+#: src/gui/uifiles/settings_window.ui:5728
 msgid ""
 "Sets the maximum slice size for image operations that can use sliced "
 "processing. The primary purpose of this is to constrain typical slices to a "
@@ -8736,20 +8740,20 @@ msgstr ""
 "использовать ограниченный диапазон возможностей FFTW3. Всегда можно оставить "
 "это значение по умолчанию."
 
-#: src/gui/uifiles/settings_window.ui:5730
+#: src/gui/uifiles/settings_window.ui:5731
 msgid "Unlimited"
 msgstr "Без ограничений"
 
-#: src/gui/uifiles/settings_window.ui:5756
+#: src/gui/uifiles/settings_window.ui:5757
 msgid "<b>FFTW Options</b>"
 msgstr "<b>Настройки FFTW</b>"
 
-#: src/gui/uifiles/settings_window.ui:5784
-#: src/gui/uifiles/settings_window.ui:6227
+#: src/gui/uifiles/settings_window.ui:5785
+#: src/gui/uifiles/settings_window.ui:6228
 msgid "Miscellaneous"
 msgstr "Разное"
 
-#: src/gui/uifiles/settings_window.ui:5812
+#: src/gui/uifiles/settings_window.ui:5813
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
@@ -8757,39 +8761,39 @@ msgstr ""
 "Выберите существующую директорию. Убедитесь, что имеете права на запись в "
 "эту директорию и в ней достаточно места."
 
-#: src/gui/uifiles/settings_window.ui:5815
+#: src/gui/uifiles/settings_window.ui:5816
 msgid "Select Swap Directory"
 msgstr "Выберите директорию подкачки"
 
-#: src/gui/uifiles/settings_window.ui:5828
+#: src/gui/uifiles/settings_window.ui:5829
 msgid "available mem"
 msgstr "доступно памяти"
 
-#: src/gui/uifiles/settings_window.ui:5840
+#: src/gui/uifiles/settings_window.ui:5841
 msgid "Restore to Default"
 msgstr "Исходные параметры"
 
-#: src/gui/uifiles/settings_window.ui:5844
+#: src/gui/uifiles/settings_window.ui:5845
 msgid "Restore the default swap storage directory"
 msgstr "Восстановить директорию подкачки по умолчанию"
 
-#: src/gui/uifiles/settings_window.ui:5863
+#: src/gui/uifiles/settings_window.ui:5864
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Директория подкачки</b>"
 
-#: src/gui/uifiles/settings_window.ui:5890
+#: src/gui/uifiles/settings_window.ui:5891
 msgid "Don't ask before quitting"
 msgstr "Не спрашивать перед выходом"
 
-#: src/gui/uifiles/settings_window.ui:5905
+#: src/gui/uifiles/settings_window.ui:5906
 msgid "Don't ask before saving when display is not linear"
 msgstr "Не спрашивать перед сохранением когда отображение нелинейное"
 
-#: src/gui/uifiles/settings_window.ui:5920
+#: src/gui/uifiles/settings_window.ui:5921
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr "Не объяснять обработку ROI в связанных диалогах"
 
-#: src/gui/uifiles/settings_window.ui:5924
+#: src/gui/uifiles/settings_window.ui:5925
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
@@ -8797,15 +8801,15 @@ msgstr ""
 "Отключить информационный диалог, объясняющий обработку ROI при открытии "
 "соответствующего диалога"
 
-#: src/gui/uifiles/settings_window.ui:5963
+#: src/gui/uifiles/settings_window.ui:5964
 msgid "Play introduction"
 msgstr "Посмотреть вступление"
 
-#: src/gui/uifiles/settings_window.ui:5977
+#: src/gui/uifiles/settings_window.ui:5978
 msgid "Introduction Tips"
 msgstr "Ознакомительные подсказки"
 
-#: src/gui/uifiles/settings_window.ui:6009
+#: src/gui/uifiles/settings_window.ui:6010
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -8825,15 +8829,15 @@ msgstr ""
 "директории. Вы можете выбрать любой из них, Siril автоматически найдёт "
 "второй, если он существует."
 
-#: src/gui/uifiles/settings_window.ui:6017
+#: src/gui/uifiles/settings_window.ui:6018
 msgid "Select StarNet executable"
 msgstr "Выберите исполняемый файл StarNet"
 
-#: src/gui/uifiles/settings_window.ui:6031
+#: src/gui/uifiles/settings_window.ui:6032
 msgid "Must point to a valid StarNet executable."
 msgstr "Должен указывать на верный исполняемый файл Starnet."
 
-#: src/gui/uifiles/settings_window.ui:6045
+#: src/gui/uifiles/settings_window.ui:6046
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
@@ -8844,11 +8848,11 @@ msgstr ""
 "оставить пустой, файл с весами <b>должен</b> находиться в директории с "
 "исполняемым файлом StarNet."
 
-#: src/gui/uifiles/settings_window.ui:6051
+#: src/gui/uifiles/settings_window.ui:6052
 msgid "Select StarNet weights file"
 msgstr "Выберите файл с весами для StarNet"
 
-#: src/gui/uifiles/settings_window.ui:6068
+#: src/gui/uifiles/settings_window.ui:6069
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
@@ -8856,7 +8860,7 @@ msgstr ""
 "Очищает расположение весов нейросети. После очистки, файл с весами "
 "<b>должен</b> располагаться в директории с исполняемым файлом StarNet."
 
-#: src/gui/uifiles/settings_window.ui:6083
+#: src/gui/uifiles/settings_window.ui:6084
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
@@ -8864,27 +8868,27 @@ msgstr ""
 "Может указывать на файл с весами нейросети StarNet.\n"
 "Только для версий StarNet, основанных на библиотеке Torch."
 
-#: src/gui/uifiles/settings_window.ui:6118
+#: src/gui/uifiles/settings_window.ui:6119
 msgid "Must point to a valid GraXpert executable."
 msgstr "Должен указывать на верный исполняемый файл GraXpert."
 
-#: src/gui/uifiles/settings_window.ui:6137
+#: src/gui/uifiles/settings_window.ui:6138
 msgid "Software Location"
 msgstr "Расположение программ"
 
-#: src/gui/uifiles/settings_window.ui:6160
+#: src/gui/uifiles/settings_window.ui:6161
 msgid "Copyright when saving image as TIFF"
 msgstr "Авторские права при сохранении в TIFF"
 
-#: src/gui/uifiles/settings_window.ui:6172
+#: src/gui/uifiles/settings_window.ui:6173
 msgid "Copyright TIFF"
 msgstr "Авторские права в TIFF"
 
-#: src/gui/uifiles/settings_window.ui:6194
+#: src/gui/uifiles/settings_window.ui:6195
 msgid "Check update at startup"
 msgstr "Проверка обновлений при запуске"
 
-#: src/gui/uifiles/settings_window.ui:6210
+#: src/gui/uifiles/settings_window.ui:6211
 msgid "Update"
 msgstr "Обновления"
 
@@ -14932,7 +14936,7 @@ msgstr ""
 #. Register button was pressed, we ask for confirmation
 #: src/compositing/compositing.c:960 src/gui/keywords_tree.c:196
 #: src/gui/keywords_tree.c:601 src/gui/mouse_action_preferences.c:117
-#: src/gui/preferences.c:1088 src/gui/python_gui.c:687 src/gui/python_gui.c:706
+#: src/gui/preferences.c:1104 src/gui/python_gui.c:687 src/gui/python_gui.c:706
 #: src/gui/python_gui.c:735 src/gui/python_gui.c:761 src/gui/python_gui.c:832
 #: src/gui/utils.c:320 src/registration/applyreg.c:1049
 msgid "Proceed"
@@ -14998,8 +15002,8 @@ msgstr "Все изображения успешно перезагружены.
 #: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
 #: src/gui/nina_light_curve.c:232 src/gui/nina_light_curve.c:241
 #: src/gui/nina_light_curve.c:279 src/gui/open_dialog.c:414
-#: src/gui/preferences.c:540 src/gui/preferences.c:559
-#: src/gui/preferences.c:593 src/gui/save_dialog.c:466
+#: src/gui/preferences.c:556 src/gui/preferences.c:575
+#: src/gui/preferences.c:609 src/gui/save_dialog.c:466
 #: src/gui/script_menu.c:275 src/io/siril_pythoncommands.c:993
 msgid "Error"
 msgstr "Ошибка"
@@ -27573,22 +27577,22 @@ msgstr ""
 "Ошибка: из файла настроек получен неверный код МАС для обсерватории. Код "
 "должен быть трёхсимвольным.\n"
 
-#: src/gui/preferences.c:539
+#: src/gui/preferences.c:555
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr "Нет прав на запись в директорию %s\n"
 
-#: src/gui/preferences.c:558
+#: src/gui/preferences.c:574
 #, c-format
 msgid "You don't have permission to execute this file: %s\n"
 msgstr "Отсутствуют права на выполнение файла: %s\n"
 
-#: src/gui/preferences.c:592
+#: src/gui/preferences.c:608
 #, c-format
 msgid "You don't have permission to read this file: %s\n"
 msgstr "Отсутствуют права на чтение файла: %s\n"
 
-#: src/gui/preferences.c:975
+#: src/gui/preferences.c:991
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
@@ -27596,7 +27600,7 @@ msgstr ""
 "Внутренний радиус должен быть меньше внешнего. Пожалуйста, измените значение "
 "на вкладке «Фотометрия»."
 
-#: src/gui/preferences.c:984
+#: src/gui/preferences.c:1000
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
@@ -27604,27 +27608,27 @@ msgstr ""
 "Установка значения квантования в 0 имеет смысл только при сжатии GZIP, а "
 "GZIP 2 часто обеспечивает лучшее сжатие изображений с плавающей точкой."
 
-#: src/gui/preferences.c:996
+#: src/gui/preferences.c:1012
 msgid "Wrong value"
 msgstr "Неверное значение"
 
-#: src/gui/preferences.c:1041
+#: src/gui/preferences.c:1057
 msgid "Reset all preferences"
 msgstr "Вернуть исходные параметры"
 
-#: src/gui/preferences.c:1042
+#: src/gui/preferences.c:1058
 msgid "Do you really want to reset all preferences to default value?"
 msgstr "Действительно хотите вернуть все параметры к исходным?"
 
-#: src/gui/preferences.c:1043
+#: src/gui/preferences.c:1059
 msgid "Reset Preferences"
 msgstr "Вернуть исходные параметры"
 
-#: src/gui/preferences.c:1058
+#: src/gui/preferences.c:1074
 msgid "External ICC Profiles"
 msgstr "Внешние ICC-профили"
 
-#: src/gui/preferences.c:1058
+#: src/gui/preferences.c:1074
 msgid ""
 "In order to use ICC profiles loaded from files as your preferred color space "
 "you must set the Preferred Color Space drop-down to \"From files\"."
@@ -27633,11 +27637,11 @@ msgstr ""
 "предпочитаемого цветового пространства, вы должны установить в выпадающем "
 "списке «Предпочитаемое цветовое пространство» значение «Из файлов»."
 
-#: src/gui/preferences.c:1083
+#: src/gui/preferences.c:1099
 msgid "WARNING!"
 msgstr "ПРЕДУПРЕЖДЕНИЕ!"
 
-#: src/gui/preferences.c:1083
+#: src/gui/preferences.c:1099
 msgid ""
 "This will kill all running python processes and delete and reinstall the "
 "python venv directory. This is not normally necessary for upgrades or "

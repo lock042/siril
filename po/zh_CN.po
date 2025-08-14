@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-12 14:13+0200\n"
+"POT-Creation-Date: 2025-08-14 08:30+0200\n"
 "PO-Revision-Date: 2025-07-12 22:14+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -479,9 +479,9 @@ msgstr "标注"
 #: src/gui/uifiles/composition_dialog.ui:96
 #: src/gui/uifiles/file_information_dialog.ui:171
 #: src/gui/uifiles/settings_window.ui:1912
-#: src/gui/uifiles/settings_window.ui:4384
-#: src/gui/uifiles/settings_window.ui:4425
-#: src/gui/uifiles/settings_window.ui:6064 src/gui/uifiles/siril.ui:3748
+#: src/gui/uifiles/settings_window.ui:4385
+#: src/gui/uifiles/settings_window.ui:4426
+#: src/gui/uifiles/settings_window.ui:6065 src/gui/uifiles/siril.ui:3748
 msgid "Clear"
 msgstr "清除"
 
@@ -3924,8 +3924,8 @@ msgid "Type of algorithm"
 msgstr "算法类型"
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:134
-#: src/gui/uifiles/settings_window.ui:3651
-#: src/gui/uifiles/settings_window.ui:3720 src/gui/uifiles/siril.ui:577
+#: src/gui/uifiles/settings_window.ui:3652
+#: src/gui/uifiles/settings_window.ui:3721 src/gui/uifiles/siril.ui:577
 #: src/gui/uifiles/siril.ui:10015 src/gui/uifiles/wavelets_dialog.ui:184
 msgid "Linear"
 msgstr "线性"
@@ -4194,8 +4194,8 @@ msgstr ""
 "黑点调节。这是从图像中减去的常量值。注意：更改 BP 可能会切除像素，在这种情况"
 "下，此变换是不可逆的。"
 
-#: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4102
-#: src/gui/uifiles/settings_window.ui:4919 src/core/icc_profile.c:1306
+#: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4103
+#: src/gui/uifiles/settings_window.ui:4920 src/core/icc_profile.c:1306
 #: src/core/icc_profile.c:1308
 msgid "Color Management"
 msgstr "色彩管理"
@@ -4332,7 +4332,7 @@ msgid "<b>Color Management Operations</b>"
 msgstr "<b>色彩管理操作</b>"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:32
-#: src/gui/uifiles/settings_window.ui:4163
+#: src/gui/uifiles/settings_window.ui:4164
 msgid "Gamut visualisation"
 msgstr "色域可视化"
 
@@ -4724,7 +4724,7 @@ msgstr "添加滚动动作"
 msgid "Remove a scroll action"
 msgstr "删除滚动动作"
 
-#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5322
+#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5323
 #: src/gui/uifiles/siril.ui:6342
 msgid " "
 msgstr " "
@@ -5964,7 +5964,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
-#: src/gui/uifiles/settings_window.ui:5241
+#: src/gui/uifiles/settings_window.ui:5242
 msgid "Sel"
 msgstr "选中"
 
@@ -7131,7 +7131,7 @@ msgid "<b>Aberration Inspector</b>"
 msgstr "<b>像差检查器</b>"
 
 #: src/gui/uifiles/settings_window.ui:3334
-#: src/gui/uifiles/settings_window.ui:4078
+#: src/gui/uifiles/settings_window.ui:4079
 msgid "User Interface"
 msgstr "用户界面"
 
@@ -7212,56 +7212,60 @@ msgstr "小 (128x128)"
 msgid "Normal (256x256)"
 msgstr "中 (256x256)"
 
-#: src/gui/uifiles/settings_window.ui:3604
+#: src/gui/uifiles/settings_window.ui:3589
+msgid "Large (512x512)"
+msgstr ""
+
+#: src/gui/uifiles/settings_window.ui:3605
 msgid "Image Thumbnails"
 msgstr "缩略图"
 
-#: src/gui/uifiles/settings_window.ui:3638
+#: src/gui/uifiles/settings_window.ui:3639
 msgid "Default screen transfer function:"
 msgstr "缺省屏幕变换函数："
 
-#: src/gui/uifiles/settings_window.ui:3652
-#: src/gui/uifiles/settings_window.ui:3721 src/gui/uifiles/siril.ui:588
+#: src/gui/uifiles/settings_window.ui:3653
+#: src/gui/uifiles/settings_window.ui:3722 src/gui/uifiles/siril.ui:588
 msgid "Logarithm"
 msgstr "对数"
 
-#: src/gui/uifiles/settings_window.ui:3653 src/gui/uifiles/siril.ui:599
+#: src/gui/uifiles/settings_window.ui:3654 src/gui/uifiles/siril.ui:599
 msgid "Square root"
 msgstr "方根"
 
-#: src/gui/uifiles/settings_window.ui:3654 src/gui/uifiles/siril.ui:610
+#: src/gui/uifiles/settings_window.ui:3655 src/gui/uifiles/siril.ui:610
 msgid "Squared"
 msgstr "平方"
 
-#: src/gui/uifiles/settings_window.ui:3655 src/gui/uifiles/siril.ui:621
+#: src/gui/uifiles/settings_window.ui:3656 src/gui/uifiles/siril.ui:621
 msgid "Asinh"
 msgstr "反双曲正弦"
 
-#: src/gui/uifiles/settings_window.ui:3656
+#: src/gui/uifiles/settings_window.ui:3657
 msgid "Autostretch"
 msgstr "自动拉伸"
 
-#: src/gui/uifiles/settings_window.ui:3657 src/gui/uifiles/siril.ui:653
+#: src/gui/uifiles/settings_window.ui:3658 src/gui/uifiles/siril.ui:653
 msgid "Histogram"
 msgstr "直方图"
 
-#: src/gui/uifiles/settings_window.ui:3673
+#: src/gui/uifiles/settings_window.ui:3674
 msgid "Image Display"
 msgstr "图像显示"
 
-#: src/gui/uifiles/settings_window.ui:3707
+#: src/gui/uifiles/settings_window.ui:3708
 msgid "Default display mode:"
 msgstr "缺省显示模式："
 
-#: src/gui/uifiles/settings_window.ui:3737
+#: src/gui/uifiles/settings_window.ui:3738
 msgid "Histogram Display"
 msgstr "直方图显示"
 
-#: src/gui/uifiles/settings_window.ui:3771
+#: src/gui/uifiles/settings_window.ui:3772
 msgid "Type of selection:"
 msgstr "选择类型："
 
-#: src/gui/uifiles/settings_window.ui:3782
+#: src/gui/uifiles/settings_window.ui:3783
 msgid ""
 "Sets the method of selecting a ROI.\n"
 "<b>Manual</b> requires the ROI to be selected and cleared manually using the "
@@ -7273,75 +7277,75 @@ msgstr ""
 "<b>手动</b>需要使用鼠标右键菜单手动选择和清除 ROI。\n"
 "<b>自动</b>自动将 ROI 与当前选择同步，并在清除选择时清除 ROI。"
 
-#: src/gui/uifiles/settings_window.ui:3787
+#: src/gui/uifiles/settings_window.ui:3788
 msgid "Manual"
 msgstr "手动"
 
-#: src/gui/uifiles/settings_window.ui:3788
+#: src/gui/uifiles/settings_window.ui:3789
 msgid "Automatic from selection"
 msgstr "自动选择"
 
-#: src/gui/uifiles/settings_window.ui:3804
+#: src/gui/uifiles/settings_window.ui:3805
 msgid "Region of Interest"
 msgstr "感兴趣区域（ROI）"
 
-#: src/gui/uifiles/settings_window.ui:3837
+#: src/gui/uifiles/settings_window.ui:3838
 msgid "Middle button double click"
 msgstr "双击中键"
 
-#: src/gui/uifiles/settings_window.ui:3850
+#: src/gui/uifiles/settings_window.ui:3851
 msgid "Zoom to fit"
 msgstr "缩放到适合"
 
-#: src/gui/uifiles/settings_window.ui:3851
+#: src/gui/uifiles/settings_window.ui:3852
 msgid "Zoom 100% centred on mouse"
 msgstr "以鼠标为中心缩放 100%"
 
-#: src/gui/uifiles/settings_window.ui:3852
+#: src/gui/uifiles/settings_window.ui:3853
 msgid "Zoom toggles between fit and 100%"
 msgstr "缩放在适合和 100% 之间切换"
 
-#: src/gui/uifiles/settings_window.ui:3862
+#: src/gui/uifiles/settings_window.ui:3863
 msgid "Configure mouse button actions"
 msgstr "配置鼠标按键动作"
 
-#: src/gui/uifiles/settings_window.ui:3866
+#: src/gui/uifiles/settings_window.ui:3867
 msgid "Open the mouse action configuration dialog"
 msgstr "打开鼠标动作配置对话框"
 
-#: src/gui/uifiles/settings_window.ui:3885
+#: src/gui/uifiles/settings_window.ui:3886
 msgid "Mouse Behaviour"
 msgstr "鼠标行为"
 
-#: src/gui/uifiles/settings_window.ui:3932
+#: src/gui/uifiles/settings_window.ui:3933
 msgid "Background extraction samples:"
 msgstr "背景提取的样本："
 
-#: src/gui/uifiles/settings_window.ui:3944
+#: src/gui/uifiles/settings_window.ui:3945
 msgid "Standard annotations:"
 msgstr "标准标注："
 
-#: src/gui/uifiles/settings_window.ui:3956
+#: src/gui/uifiles/settings_window.ui:3957
 msgid "Deep Sky Object (user) annotations:"
 msgstr "深空天体（用户）标注："
 
-#: src/gui/uifiles/settings_window.ui:3968
+#: src/gui/uifiles/settings_window.ui:3969
 msgid "Solar System Object (user) annotations:"
 msgstr "太阳系天体（用户）标注："
 
-#: src/gui/uifiles/settings_window.ui:3980
+#: src/gui/uifiles/settings_window.ui:3981
 msgid "Temporary Object (user) annotations:"
 msgstr "临时天体（用户）标注："
 
-#: src/gui/uifiles/settings_window.ui:4051
+#: src/gui/uifiles/settings_window.ui:4052
 msgid "Overlay Colors"
 msgstr "覆盖色彩"
 
-#: src/gui/uifiles/settings_window.ui:4118
+#: src/gui/uifiles/settings_window.ui:4119
 msgid "This section contains options relating to working color spaces"
 msgstr "本节包含与工作色彩空间相关的选项"
 
-#: src/gui/uifiles/settings_window.ui:4134
+#: src/gui/uifiles/settings_window.ui:4135
 msgid ""
 "This selects the family of RGB profiles that will be used throughout most of "
 "the workflow. For a discussion of which gamut to pick, see the Color "
@@ -7350,11 +7354,11 @@ msgstr ""
 "该选择将在大部分工作流程中使用 RGB 特性文件系列。有关选择哪个色域的讨论，请参"
 "阅手册的色彩管理部分。"
 
-#: src/gui/uifiles/settings_window.ui:4136
+#: src/gui/uifiles/settings_window.ui:4137
 msgid "Preferred Color Space:"
 msgstr "首选的色彩空间:"
 
-#: src/gui/uifiles/settings_window.ui:4147
+#: src/gui/uifiles/settings_window.ui:4148
 msgid ""
 "This sets your preferred family of color spaces for use as working color "
 "spaces: it comprises a RGB color profile and a matching Gray color profile. "
@@ -7364,37 +7368,37 @@ msgstr ""
 "这将设置您首选的色彩空间以用作工作色彩空间：它包含 RGB 色彩特性文件和匹配的灰"
 "度色彩特性文件。此首选项由自动转换/分配选项使用，也可由文件导出选项使用。"
 
-#: src/gui/uifiles/settings_window.ui:4150
-#: src/gui/uifiles/settings_window.ui:4519
-#: src/gui/uifiles/settings_window.ui:4599 src/core/icc_profile.c:1570
+#: src/gui/uifiles/settings_window.ui:4151
+#: src/gui/uifiles/settings_window.ui:4520
+#: src/gui/uifiles/settings_window.ui:4600 src/core/icc_profile.c:1570
 msgid "sRGB"
 msgstr "sRGB"
 
-#: src/gui/uifiles/settings_window.ui:4151
+#: src/gui/uifiles/settings_window.ui:4152
 msgid "Rec2020"
 msgstr "Rec2020"
 
-#: src/gui/uifiles/settings_window.ui:4152
+#: src/gui/uifiles/settings_window.ui:4153
 msgid "From files"
 msgstr "来自文件"
 
-#: src/gui/uifiles/settings_window.ui:4167
+#: src/gui/uifiles/settings_window.ui:4168
 msgid ""
 "Show the CIE1931 xy space and a representation of various color gamuts "
 "within it."
 msgstr "显示 CIE1931 xy 空间以及其中各种色域的表示。"
 
-#: src/gui/uifiles/settings_window.ui:4179
+#: src/gui/uifiles/settings_window.ui:4180
 msgid ""
 "Use these opions together with the \"From files\" option for Preferred Color "
 "Spaces above."
 msgstr "将这些选项与上述首选色彩空间的“来自文件”选项一起使用。"
 
-#: src/gui/uifiles/settings_window.ui:4182
+#: src/gui/uifiles/settings_window.ui:4183
 msgid "External color profiles:"
 msgstr "外部色彩特性文件："
 
-#: src/gui/uifiles/settings_window.ui:4194
+#: src/gui/uifiles/settings_window.ui:4195
 msgid ""
 "This should be an ICC profile in your preferred gamut with the color space's "
 "native nonlinear tone response curve."
@@ -7402,11 +7406,11 @@ msgstr ""
 "这应该是您首选色域中的 ICC 色彩特性文件，具有色彩空间的原生非线性色调响应曲"
 "线。"
 
-#: src/gui/uifiles/settings_window.ui:4196
+#: src/gui/uifiles/settings_window.ui:4197
 msgid "RGB ICC profile"
 msgstr "RGB ICC色彩特性文件"
 
-#: src/gui/uifiles/settings_window.ui:4207
+#: src/gui/uifiles/settings_window.ui:4208
 msgid ""
 "This should be a Gray ICC profile with a tone response curve that matches "
 "that of the nonlinear TRC profile you set above."
@@ -7414,11 +7418,11 @@ msgstr ""
 "这应该是一个灰度 ICC 色彩特性文件，其色调响应曲线与您上面设置的非线性 TRC 特"
 "性文件的曲线相匹配。"
 
-#: src/gui/uifiles/settings_window.ui:4209
+#: src/gui/uifiles/settings_window.ui:4210
 msgid "Gray ICC profile"
 msgstr "灰度 ICC 色彩特性文件"
 
-#: src/gui/uifiles/settings_window.ui:4221
+#: src/gui/uifiles/settings_window.ui:4222
 msgid ""
 "Use this together with the \"From files\" option above. This should be a RGB "
 "ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg "
@@ -7427,7 +7431,7 @@ msgstr ""
 "将此选项与上面的“来自文件”选项一起使用。这应该是您首选色域中的 RGB ICC 色彩特"
 "性文件（例如 ProPhoto、ClayRGB、ACEScg 等）"
 
-#: src/gui/uifiles/settings_window.ui:4235
+#: src/gui/uifiles/settings_window.ui:4236
 msgid ""
 "Use this together with the \"From files\" option above. This should be a "
 "Gray (mono) ICC profile with a tone response curve that matches that of the "
@@ -7436,15 +7440,15 @@ msgstr ""
 "将此选项与上面的“来自文件”选项一起使用。这应该是一个灰度（单色）ICC 色彩特性"
 "文件，其色调响应曲线与您上面设置的 RGB 特性文件相匹配。"
 
-#: src/gui/uifiles/settings_window.ui:4252
+#: src/gui/uifiles/settings_window.ui:4253
 msgid "Working Color Spaces"
 msgstr "工作色彩空间"
 
-#: src/gui/uifiles/settings_window.ui:4285
+#: src/gui/uifiles/settings_window.ui:4286
 msgid "Custom monitor profile:"
 msgstr "自定义显示器特性文件："
 
-#: src/gui/uifiles/settings_window.ui:4297
+#: src/gui/uifiles/settings_window.ui:4298
 msgid ""
 "To use a custom monitor ICC profile, set it here. If no custom profile is "
 "set, sRGB with D65 white point and gamma = 2.2 will be used."
@@ -7452,7 +7456,7 @@ msgstr ""
 "要使用自定义显示器 ICC 色彩特性文件，请在此处进行设置。如果未设置自定义特性文"
 "件，则将使用具有 D65 白点和 gamma = 2.2 的 sRGB。"
 
-#: src/gui/uifiles/settings_window.ui:4310
+#: src/gui/uifiles/settings_window.ui:4311
 msgid ""
 "Specify an output device profile for soft proofing purposes. If this is not "
 "set or is inactive, the monitor profile (or sRGB by default) will be used as "
@@ -7461,43 +7465,43 @@ msgstr ""
 "指定用于软打样目的的输出设备特性文件。如果未设置或未启用状态，则显示器特性文"
 "件（默认情况下为 sRGB）将用作软打样目标。"
 
-#: src/gui/uifiles/settings_window.ui:4324
+#: src/gui/uifiles/settings_window.ui:4325
 msgid "Output device proofing profile:"
 msgstr "输出设备打样特性文件："
 
-#: src/gui/uifiles/settings_window.ui:4337
+#: src/gui/uifiles/settings_window.ui:4338
 msgid "Rendering intent:"
 msgstr "渲染意图："
 
-#: src/gui/uifiles/settings_window.ui:4348
+#: src/gui/uifiles/settings_window.ui:4349
 msgid "Select the display intent. The default is perceptual rendering."
 msgstr "选择颜色渲染显示意图。默认值是可感知。"
 
-#: src/gui/uifiles/settings_window.ui:4351
-#: src/gui/uifiles/settings_window.ui:4549
+#: src/gui/uifiles/settings_window.ui:4352
+#: src/gui/uifiles/settings_window.ui:4550
 msgid "Perceptual"
 msgstr "可感知"
 
-#: src/gui/uifiles/settings_window.ui:4352
-#: src/gui/uifiles/settings_window.ui:4550
+#: src/gui/uifiles/settings_window.ui:4353
+#: src/gui/uifiles/settings_window.ui:4551
 msgid "Relative Colorimetric"
 msgstr "相对比色"
 
-#: src/gui/uifiles/settings_window.ui:4353
-#: src/gui/uifiles/settings_window.ui:4551
+#: src/gui/uifiles/settings_window.ui:4354
+#: src/gui/uifiles/settings_window.ui:4552
 msgid "Saturation"
 msgstr "维持饱和度"
 
-#: src/gui/uifiles/settings_window.ui:4354
-#: src/gui/uifiles/settings_window.ui:4552
+#: src/gui/uifiles/settings_window.ui:4355
+#: src/gui/uifiles/settings_window.ui:4553
 msgid "Absolute Colorimetric"
 msgstr "绝对比色"
 
-#: src/gui/uifiles/settings_window.ui:4365
+#: src/gui/uifiles/settings_window.ui:4366
 msgid "Black point compensation"
 msgstr "黑点补偿"
 
-#: src/gui/uifiles/settings_window.ui:4369
+#: src/gui/uifiles/settings_window.ui:4370
 msgid ""
 "Enable BPC for rendering. This is not normally required but may be useful if "
 "an image has a malformed source profile."
@@ -7505,16 +7509,16 @@ msgstr ""
 "启用黑点补偿进行渲染。通常不必这么做，但如果图像具有格式错误的源色彩特性文"
 "件，这可能会很有用。"
 
-#: src/gui/uifiles/settings_window.ui:4388
+#: src/gui/uifiles/settings_window.ui:4389
 msgid "Clear the profile and revert to the default"
 msgstr "清除特性文件并恢复为默认值"
 
-#: src/gui/uifiles/settings_window.ui:4399
-#: src/gui/uifiles/settings_window.ui:4440
+#: src/gui/uifiles/settings_window.ui:4400
+#: src/gui/uifiles/settings_window.ui:4441
 msgid "active"
 msgstr "启用"
 
-#: src/gui/uifiles/settings_window.ui:4403
+#: src/gui/uifiles/settings_window.ui:4404
 msgid ""
 "Whether or not to use the custom monitor profile. This will take effect when "
 "Apply is clicked. The setting is ignored if no custom monitor profile is set."
@@ -7522,11 +7526,11 @@ msgstr ""
 "是否使用自定义显示器色彩特性文件。单击“应用”后，这将生效。如果未设置自定义显"
 "示器特性文件，则该设置将被忽略。"
 
-#: src/gui/uifiles/settings_window.ui:4429
+#: src/gui/uifiles/settings_window.ui:4430
 msgid "Clear the profile: soft proofing will be unavailable"
 msgstr "清除色彩特性文件：软打样将不可用"
 
-#: src/gui/uifiles/settings_window.ui:4444
+#: src/gui/uifiles/settings_window.ui:4445
 msgid ""
 "Whether or not to use the custom soft proofing profile. This will take "
 "effect when Apply is clicked. The setting is ignored if no custom monitor "
@@ -7535,11 +7539,11 @@ msgstr ""
 "是否使用自定义软打样色彩特性文件。单击“应用”后，这将生效。如果未设置自定义显"
 "示器特性文件，则该设置将被忽略。"
 
-#: src/gui/uifiles/settings_window.ui:4468
+#: src/gui/uifiles/settings_window.ui:4469
 msgid "Custom Profiles"
 msgstr "自定义色彩特性文件"
 
-#: src/gui/uifiles/settings_window.ui:4485
+#: src/gui/uifiles/settings_window.ui:4486
 msgid ""
 "This section contains settings affecting how color spaces are applied to "
 "saved files\n"
@@ -7552,11 +7556,11 @@ msgstr ""
 "这些选项不会影响保存在 FITS 文件中的特性文件，这些特性文件是在 FITS 选项中配"
 "置的"
 
-#: src/gui/uifiles/settings_window.ui:4504
+#: src/gui/uifiles/settings_window.ui:4505
 msgid "Export high bit depth images using:"
 msgstr "使用以下方法导出高位深图像："
 
-#: src/gui/uifiles/settings_window.ui:4515
+#: src/gui/uifiles/settings_window.ui:4516
 msgid ""
 "Selects which color space to export >8bpp bit depth images to. The ICC color "
 "profile will be embedded in the file.\n"
@@ -7566,29 +7570,29 @@ msgstr ""
 "选择用于导出大于 8bpp 位深图像的色彩空间。 ICC 色彩特性文件将嵌入到文件中。\n"
 "注意：如果格式不支持 ICC 色彩特性文件嵌入，则图像将始终导出为 sRGB。"
 
-#: src/gui/uifiles/settings_window.ui:4520
-#: src/gui/uifiles/settings_window.ui:4600
+#: src/gui/uifiles/settings_window.ui:4521
+#: src/gui/uifiles/settings_window.ui:4601
 msgid "Working gamut"
 msgstr "工作色域"
 
-#: src/gui/uifiles/settings_window.ui:4521
-#: src/gui/uifiles/settings_window.ui:4601
+#: src/gui/uifiles/settings_window.ui:4522
+#: src/gui/uifiles/settings_window.ui:4602
 msgid "Image's current ICC profile"
 msgstr "图像当前的 ICC 色彩特性文件"
 
-#: src/gui/uifiles/settings_window.ui:4535
+#: src/gui/uifiles/settings_window.ui:4536
 msgid "Conversion and export intent:"
 msgstr "转换和导出意图："
 
-#: src/gui/uifiles/settings_window.ui:4546
+#: src/gui/uifiles/settings_window.ui:4547
 msgid "Select the color management intent for conversion / export"
 msgstr "选择转换/导出的色彩管理意图"
 
-#: src/gui/uifiles/settings_window.ui:4563
+#: src/gui/uifiles/settings_window.ui:4564
 msgid "Treat non color-managed files as sRGB for export to supported formats"
 msgstr "将无色彩管理的文件视为 sRGB 以导出为支持的格式"
 
-#: src/gui/uifiles/settings_window.ui:4567
+#: src/gui/uifiles/settings_window.ui:4568
 msgid ""
 "For files with no assigned color profile, when exporting to TIFF / PNG / "
 "JPG, embed a sRGB (or Gray with sRGB TRC) ICC profile. This does not give a "
@@ -7601,11 +7605,11 @@ msgstr ""
 "保证在其他应用程序中打开导出的文件时提供一致的色彩再现。\n"
 "如果未选中此选项，则不会嵌入 ICC 色彩特性文件。"
 
-#: src/gui/uifiles/settings_window.ui:4584
+#: src/gui/uifiles/settings_window.ui:4585
 msgid "Export 8-bit images using:"
 msgstr "导出 8 位图像时使用："
 
-#: src/gui/uifiles/settings_window.ui:4595
+#: src/gui/uifiles/settings_window.ui:4596
 msgid ""
 "Selects which color space to export 8-bit images to, if the format supports "
 "ICC profiles. The ICC color profile will be embedded in the file.\n"
@@ -7616,58 +7620,58 @@ msgstr ""
 "性将嵌入到文件中。\n"
 "注意：如果格式不支持 ICC 色彩特性文件嵌入，则图像将始终导出为 sRGB。"
 
-#: src/gui/uifiles/settings_window.ui:4618
+#: src/gui/uifiles/settings_window.ui:4619
 msgid "File Import / Export Options"
 msgstr "文件导入/导出选项"
 
-#: src/gui/uifiles/settings_window.ui:4652
+#: src/gui/uifiles/settings_window.ui:4653
 msgid "Auto assign working color space:"
 msgstr "自动分配工作色彩空间："
 
-#: src/gui/uifiles/settings_window.ui:4665
+#: src/gui/uifiles/settings_window.ui:4666
 msgid "Convert other color profiles to the working profile?"
 msgstr "将其他色彩特性文件转换为工作中的特性文件？"
 
-#: src/gui/uifiles/settings_window.ui:4676
+#: src/gui/uifiles/settings_window.ui:4677
 msgid ""
 "This option sets the behaviour if an image is loaded and it already contains "
 "an ICC profile."
 msgstr "此选项设置加载图像且图像已包含 ICC 色彩特性文件时的行为。"
 
-#: src/gui/uifiles/settings_window.ui:4679
-#: src/gui/uifiles/settings_window.ui:4733
+#: src/gui/uifiles/settings_window.ui:4680
+#: src/gui/uifiles/settings_window.ui:4734
 msgid "Never"
 msgstr "从不"
 
-#: src/gui/uifiles/settings_window.ui:4680
+#: src/gui/uifiles/settings_window.ui:4681
 msgid "Ask every time"
 msgstr "每次询问"
 
-#: src/gui/uifiles/settings_window.ui:4681
+#: src/gui/uifiles/settings_window.ui:4682
 msgid "Always"
 msgstr "总是"
 
-#: src/gui/uifiles/settings_window.ui:4691
+#: src/gui/uifiles/settings_window.ui:4692
 msgid "On load"
 msgstr "加载"
 
-#: src/gui/uifiles/settings_window.ui:4705
+#: src/gui/uifiles/settings_window.ui:4706
 msgid "On stacking"
 msgstr "叠加"
 
-#: src/gui/uifiles/settings_window.ui:4719
+#: src/gui/uifiles/settings_window.ui:4720
 msgid "On stretching"
 msgstr "拉伸"
 
-#: src/gui/uifiles/settings_window.ui:4748
+#: src/gui/uifiles/settings_window.ui:4749
 msgid "Output of RGB composition / PixelMath"
 msgstr "输出RGB合成 / PixelMath"
 
-#: src/gui/uifiles/settings_window.ui:4762
+#: src/gui/uifiles/settings_window.ui:4763
 msgid "Pedantically assign linear ICC profiles"
 msgstr "学术式地分配线性 ICC 色彩特性文件"
 
-#: src/gui/uifiles/settings_window.ui:4766
+#: src/gui/uifiles/settings_window.ui:4767
 msgid ""
 "When assigning an ICC image to:\n"
 "* a loaded image that doesn't show stretches in HISTORY\n"
@@ -7682,28 +7686,28 @@ msgstr ""
 "* 新叠加的图像\n"
 "分配线性 ICC 色彩特性文件。这在技术上是正确的，但通常是不必要的。"
 
-#: src/gui/uifiles/settings_window.ui:4787
+#: src/gui/uifiles/settings_window.ui:4788
 msgid "Auto Conversion / Assignment Options"
 msgstr "自动转换/分配选项"
 
-#: src/gui/uifiles/settings_window.ui:4823
-#: src/gui/uifiles/settings_window.ui:4854
+#: src/gui/uifiles/settings_window.ui:4824
+#: src/gui/uifiles/settings_window.ui:4855
 msgid "Color Matching Functions"
 msgstr "颜色匹配函数"
 
-#: src/gui/uifiles/settings_window.ui:4836
+#: src/gui/uifiles/settings_window.ui:4837
 msgid "CIE 1931 2 degree standard observer"
 msgstr "CIE 1931 标准观察者（2度视场）"
 
-#: src/gui/uifiles/settings_window.ui:4837
+#: src/gui/uifiles/settings_window.ui:4838
 msgid "CIE 1964 10 degree supplementary standard observer"
 msgstr "CIE 1964 标准观察者（10度补充视场）"
 
-#: src/gui/uifiles/settings_window.ui:4880
+#: src/gui/uifiles/settings_window.ui:4881
 msgid "Export built-in profiles"
 msgstr "导出内置色彩特性文件"
 
-#: src/gui/uifiles/settings_window.ui:4884
+#: src/gui/uifiles/settings_window.ui:4885
 msgid ""
 "Export the built-in profiles to the working directory. Elle Stone's profiles "
 "are distributed with the CC BY-SA-3.0 licence. As they are built into the "
@@ -7714,16 +7718,16 @@ msgstr ""
 "许可证分发的。由于它们内置于 Siril 二进制文件中，因此此导出功能旨在遵守许可证"
 "的“相同方式共享”条款。"
 
-#: src/gui/uifiles/settings_window.ui:4901
+#: src/gui/uifiles/settings_window.ui:4902
 msgid "<b>Built-in Profiles</b>"
 msgstr "<b>内置色彩特性文件</b>"
 
-#: src/gui/uifiles/settings_window.ui:4942
-#: src/gui/uifiles/settings_window.ui:5358 src/gui/uifiles/siril.ui:10628
+#: src/gui/uifiles/settings_window.ui:4943
+#: src/gui/uifiles/settings_window.ui:5359 src/gui/uifiles/siril.ui:10628
 msgid "Scripts"
 msgstr "脚本"
 
-#: src/gui/uifiles/settings_window.ui:4973
+#: src/gui/uifiles/settings_window.ui:4974
 msgid ""
 "The paths written in this text box will be checked in order to load scripts "
 "that have been put inside. Write a path per line with as many lines you "
@@ -7733,23 +7737,23 @@ msgstr ""
 "该文本窗口中的路径用于载入脚本文件。每行存放一个路径，行数不限。注意：路径越"
 "多，启动时间越长。"
 
-#: src/gui/uifiles/settings_window.ui:4986
+#: src/gui/uifiles/settings_window.ui:4987
 msgid "<b>Scripts Storage Directories</b>"
 msgstr "<b>脚本存放目录</b>"
 
-#: src/gui/uifiles/settings_window.ui:5003
+#: src/gui/uifiles/settings_window.ui:5004
 msgid "Rescans the scripts folders and updates scripts menu."
 msgstr "重新扫描脚本目录以更新脚本菜单。"
 
-#: src/gui/uifiles/settings_window.ui:5034
+#: src/gui/uifiles/settings_window.ui:5035
 msgid "Show warning before script execution"
 msgstr "脚本运行前显示警告"
 
-#: src/gui/uifiles/settings_window.ui:5050
+#: src/gui/uifiles/settings_window.ui:5051
 msgid "\"Requires\" command is mandatory in scripts"
 msgstr "强制脚本中需有“Requires”命令"
 
-#: src/gui/uifiles/settings_window.ui:5054
+#: src/gui/uifiles/settings_window.ui:5055
 msgid ""
 "If this option is checked, scripts cannot be executed without the "
 "\"requires\" command. That ensures the compatibility between scripts and "
@@ -7764,16 +7768,16 @@ msgstr ""
 "<span foreground=\"red\"><b>警告：只在你明确知道你在干什么的情况才可以改变此"
 "设置！</b></span>"
 
-#: src/gui/uifiles/settings_window.ui:5075
-#: src/gui/uifiles/settings_window.ui:5941
+#: src/gui/uifiles/settings_window.ui:5076
+#: src/gui/uifiles/settings_window.ui:5942
 msgid "Warning Dialogs"
 msgstr "警告对话框"
 
-#: src/gui/uifiles/settings_window.ui:5103
+#: src/gui/uifiles/settings_window.ui:5104
 msgid "Enable use of the siril-scripts online repository"
 msgstr "启用 Siril-scripts 在线仓库的使用"
 
-#: src/gui/uifiles/settings_window.ui:5107
+#: src/gui/uifiles/settings_window.ui:5108
 msgid ""
 "Siril will fetch and update scripts from the official siril-scripts "
 "repository. These will be available offline and specific scripts can be "
@@ -7791,19 +7795,19 @@ msgstr ""
 "激活仓库将立即发生，以便您可以在列表填充后选择脚本。仅当以通常的方式单击“应"
 "用”按钮时才会停用仓库。"
 
-#: src/gui/uifiles/settings_window.ui:5129
+#: src/gui/uifiles/settings_window.ui:5130
 msgid "Automatic updates"
 msgstr "自动更新"
 
-#: src/gui/uifiles/settings_window.ui:5133
+#: src/gui/uifiles/settings_window.ui:5134
 msgid "Automatically update the repository at startup."
 msgstr "启动时自动更新仓库。"
 
-#: src/gui/uifiles/settings_window.ui:5145
+#: src/gui/uifiles/settings_window.ui:5146
 msgid "Manual update"
 msgstr "手动更新"
 
-#: src/gui/uifiles/settings_window.ui:5150
+#: src/gui/uifiles/settings_window.ui:5151
 msgid ""
 "Update the scripts repository now. If there are any pending changes, the "
 "commit messages will be shown and you will be asked to confirm applying the "
@@ -7812,7 +7816,7 @@ msgstr ""
 "立即更新脚本仓库。如果有任何待处理的更改，将显示提交消息，并要求您确认应用更"
 "改。"
 
-#: src/gui/uifiles/settings_window.ui:5177
+#: src/gui/uifiles/settings_window.ui:5178
 #, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
@@ -7824,27 +7828,27 @@ msgstr ""
 "可用脚本列表。所选脚本将通过脚本菜单提供。双击某行可在脚本编辑器中打开相应脚"
 "本。（此操作用于对脚本进行局部修改并保存。）"
 
-#: src/gui/uifiles/settings_window.ui:5194
+#: src/gui/uifiles/settings_window.ui:5195
 msgid "Category"
 msgstr "类别"
 
-#: src/gui/uifiles/settings_window.ui:5210
+#: src/gui/uifiles/settings_window.ui:5211
 msgid "Script"
 msgstr "脚本"
 
-#: src/gui/uifiles/settings_window.ui:5226
+#: src/gui/uifiles/settings_window.ui:5227
 msgid "Type"
 msgstr "类型"
 
-#: src/gui/uifiles/settings_window.ui:5270
+#: src/gui/uifiles/settings_window.ui:5271
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Siril 脚本仓库</b>"
 
-#: src/gui/uifiles/settings_window.ui:5303
+#: src/gui/uifiles/settings_window.ui:5304
 msgid "Reset python venv"
 msgstr "重置python虚拟环境"
 
-#: src/gui/uifiles/settings_window.ui:5307
+#: src/gui/uifiles/settings_window.ui:5308
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -7858,20 +7862,20 @@ msgstr ""
 "\n"
 "通常不必这么做。这是在故障排除时的最后手段，以将venv恢复到原始状态。"
 
-#: src/gui/uifiles/settings_window.ui:5338
+#: src/gui/uifiles/settings_window.ui:5339
 msgid "Python Interface"
 msgstr "Python界面"
 
-#: src/gui/uifiles/settings_window.ui:5372
-#: src/gui/uifiles/settings_window.ui:5770
+#: src/gui/uifiles/settings_window.ui:5373
+#: src/gui/uifiles/settings_window.ui:5771
 msgid "Performances"
 msgstr "性能"
 
-#: src/gui/uifiles/settings_window.ui:5403
+#: src/gui/uifiles/settings_window.ui:5404
 msgid "Ratio of available"
 msgstr "可用比例"
 
-#: src/gui/uifiles/settings_window.ui:5407
+#: src/gui/uifiles/settings_window.ui:5408
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -7888,11 +7892,11 @@ msgstr ""
 "如果操作系统未设置磁盘虚拟内存文件，大于等于1的设定会造成Siril或是操作系统的"
 "崩溃。"
 
-#: src/gui/uifiles/settings_window.ui:5423
+#: src/gui/uifiles/settings_window.ui:5424
 msgid "Fixed amount (GB)"
 msgstr "固定值（GB）"
 
-#: src/gui/uifiles/settings_window.ui:5427
+#: src/gui/uifiles/settings_window.ui:5428
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -7903,7 +7907,7 @@ msgstr ""
 "程。\n"
 "设置大于系统可用内存的值可能会造成Siril或是操作系统的崩溃。"
 
-#: src/gui/uifiles/settings_window.ui:5443
+#: src/gui/uifiles/settings_window.ui:5444
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -7915,15 +7919,15 @@ msgstr ""
 "情况。设定较高的比例可以使得siril叠加运行得更快。但是当内存比例高于1时，磁盘"
 "上的虚拟内存文件将被使用，会造成极大的速度影响，因此不被推荐"
 
-#: src/gui/uifiles/settings_window.ui:5488
+#: src/gui/uifiles/settings_window.ui:5489
 msgid "<b>Memory management</b>"
 msgstr "<b>内存管理</b>"
 
-#: src/gui/uifiles/settings_window.ui:5521
+#: src/gui/uifiles/settings_window.ui:5522
 msgid "Default bit depth for HD AutoStretch"
 msgstr "高分辨率自动拉伸的缺省位深"
 
-#: src/gui/uifiles/settings_window.ui:5537
+#: src/gui/uifiles/settings_window.ui:5538
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -7937,23 +7941,23 @@ msgstr ""
 "平滑量化伪影。默认位深将从下一次查看器模式更改开始应用，现在可以使用右侧的按"
 "钮应用。"
 
-#: src/gui/uifiles/settings_window.ui:5554
+#: src/gui/uifiles/settings_window.ui:5555
 msgid "Apply bit depth"
 msgstr "应用位深"
 
-#: src/gui/uifiles/settings_window.ui:5558
+#: src/gui/uifiles/settings_window.ui:5559
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "立即设置选定的高分辨率自动拉伸位深"
 
-#: src/gui/uifiles/settings_window.ui:5581
+#: src/gui/uifiles/settings_window.ui:5582
 msgid "HD AutoStretch"
 msgstr "高分辨率自动拉伸"
 
-#: src/gui/uifiles/settings_window.ui:5612
+#: src/gui/uifiles/settings_window.ui:5613
 msgid "Multithreaded FFTW"
 msgstr "多线程FFTW"
 
-#: src/gui/uifiles/settings_window.ui:5616
+#: src/gui/uifiles/settings_window.ui:5617
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
@@ -7962,11 +7966,11 @@ msgstr ""
 "如果选中，FFTW将使用多个线程。这通常可以加速大图像的处理，但在FFTW首次对给定"
 "尺寸的图像进行操作时会增加初始规划时间。"
 
-#: src/gui/uifiles/settings_window.ui:5631 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5632 src/core/settings.c:382
 msgid "FFTW planning strategy"
 msgstr "FFTW规划策略"
 
-#: src/gui/uifiles/settings_window.ui:5642
+#: src/gui/uifiles/settings_window.ui:5643
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -7994,28 +7998,28 @@ msgstr ""
 "该设置应用于反卷积运算，而不是傅里叶变换函数。后者始终采用“估算”策略，因为其"
 "他策略产生的计算开销对单次傅里叶变换而言得不偿失。"
 
-#: src/gui/uifiles/settings_window.ui:5647 src/gui/uifiles/siril.ui:5058
+#: src/gui/uifiles/settings_window.ui:5648 src/gui/uifiles/siril.ui:5058
 #: src/gui/uifiles/siril.ui:6928
 msgid "Estimate"
 msgstr "估算"
 
-#: src/gui/uifiles/settings_window.ui:5648
+#: src/gui/uifiles/settings_window.ui:5649
 msgid "Measure"
 msgstr "度量"
 
-#: src/gui/uifiles/settings_window.ui:5649
+#: src/gui/uifiles/settings_window.ui:5650
 msgid "Patient"
 msgstr "耐心"
 
-#: src/gui/uifiles/settings_window.ui:5650
+#: src/gui/uifiles/settings_window.ui:5651
 msgid "Exhaustive"
 msgstr "穷举"
 
-#: src/gui/uifiles/settings_window.ui:5663
+#: src/gui/uifiles/settings_window.ui:5664
 msgid "FFTW planning time limit (seconds)"
 msgstr "FFTW 规划时间限制（秒）"
 
-#: src/gui/uifiles/settings_window.ui:5674
+#: src/gui/uifiles/settings_window.ui:5675
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -8026,11 +8030,11 @@ msgstr ""
 "中达到时间限制，则可能会略微超过此限制。如果设置为 0，将始终完成“估算”的最低"
 "计划级别。"
 
-#: src/gui/uifiles/settings_window.ui:5689
+#: src/gui/uifiles/settings_window.ui:5690
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr "用于 FFT 卷积的最小 PSF 尺寸"
 
-#: src/gui/uifiles/settings_window.ui:5700
+#: src/gui/uifiles/settings_window.ui:5701
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -8045,11 +8049,11 @@ msgstr ""
 "对于较小的内核求和更快。确切的交叉点将取决于您的硬件，因此是可配置的。此参数"
 "设置将使用傅里叶变换的最小内核尺寸。"
 
-#: src/gui/uifiles/settings_window.ui:5716
+#: src/gui/uifiles/settings_window.ui:5717
 msgid "Maximum slice size for sliced image operations"
 msgstr "图像分区操作时的最大分区尺寸"
 
-#: src/gui/uifiles/settings_window.ui:5727
+#: src/gui/uifiles/settings_window.ui:5728
 msgid ""
 "Sets the maximum slice size for image operations that can use sliced "
 "processing. The primary purpose of this is to constrain typical slices to a "
@@ -8060,72 +8064,72 @@ msgstr ""
 "限的尺寸范围内，以便更有效地利用有限范围内的FFTW3预优化方案。保持默认设置始终"
 "是安全的选择。"
 
-#: src/gui/uifiles/settings_window.ui:5730
+#: src/gui/uifiles/settings_window.ui:5731
 msgid "Unlimited"
 msgstr "无限制"
 
-#: src/gui/uifiles/settings_window.ui:5756
+#: src/gui/uifiles/settings_window.ui:5757
 msgid "<b>FFTW Options</b>"
 msgstr "<b>FFTW 选项</b>"
 
-#: src/gui/uifiles/settings_window.ui:5784
-#: src/gui/uifiles/settings_window.ui:6227
+#: src/gui/uifiles/settings_window.ui:5785
+#: src/gui/uifiles/settings_window.ui:6228
 msgid "Miscellaneous"
 msgstr "杂项"
 
-#: src/gui/uifiles/settings_window.ui:5812
+#: src/gui/uifiles/settings_window.ui:5813
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
 msgstr "选择一个已存在的目录，该目录须要具有写权限和足够的空间。"
 
-#: src/gui/uifiles/settings_window.ui:5815
+#: src/gui/uifiles/settings_window.ui:5816
 msgid "Select Swap Directory"
 msgstr "选择Swap目录"
 
-#: src/gui/uifiles/settings_window.ui:5828
+#: src/gui/uifiles/settings_window.ui:5829
 msgid "available mem"
 msgstr "可用内存"
 
-#: src/gui/uifiles/settings_window.ui:5840
+#: src/gui/uifiles/settings_window.ui:5841
 msgid "Restore to Default"
 msgstr "恢复为缺省值"
 
-#: src/gui/uifiles/settings_window.ui:5844
+#: src/gui/uifiles/settings_window.ui:5845
 msgid "Restore the default swap storage directory"
 msgstr "恢复为缺省的swap存储目录"
 
-#: src/gui/uifiles/settings_window.ui:5863
+#: src/gui/uifiles/settings_window.ui:5864
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Swap存储目录</b>"
 
-#: src/gui/uifiles/settings_window.ui:5890
+#: src/gui/uifiles/settings_window.ui:5891
 msgid "Don't ask before quitting"
 msgstr "退出前不询问"
 
-#: src/gui/uifiles/settings_window.ui:5905
+#: src/gui/uifiles/settings_window.ui:5906
 msgid "Don't ask before saving when display is not linear"
 msgstr "当显示不是线性时，保存前不要询问"
 
-#: src/gui/uifiles/settings_window.ui:5920
+#: src/gui/uifiles/settings_window.ui:5921
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr "不要在相关对话框中解释ROI处理"
 
-#: src/gui/uifiles/settings_window.ui:5924
+#: src/gui/uifiles/settings_window.ui:5925
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
 msgstr "打开适当的对话框时禁止解释有关 ROI 处理信息对话框"
 
-#: src/gui/uifiles/settings_window.ui:5963
+#: src/gui/uifiles/settings_window.ui:5964
 msgid "Play introduction"
 msgstr "显示简介"
 
-#: src/gui/uifiles/settings_window.ui:5977
+#: src/gui/uifiles/settings_window.ui:5978
 msgid "Introduction Tips"
 msgstr "简介"
 
-#: src/gui/uifiles/settings_window.ui:6009
+#: src/gui/uifiles/settings_window.ui:6010
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -8142,15 +8146,15 @@ msgstr ""
 "果使用 Windows，则使用 <b>.exe</b>），并且它们必须位于同一目录中。您可以选择"
 "任一可执行文件：Siril 将自动查找另一个可执行文件（如果存在）。"
 
-#: src/gui/uifiles/settings_window.ui:6017
+#: src/gui/uifiles/settings_window.ui:6018
 msgid "Select StarNet executable"
 msgstr "选择 StarNet 可执行文件"
 
-#: src/gui/uifiles/settings_window.ui:6031
+#: src/gui/uifiles/settings_window.ui:6032
 msgid "Must point to a valid StarNet executable."
 msgstr "必须指向有效的 StarNet 可执行文件。"
 
-#: src/gui/uifiles/settings_window.ui:6045
+#: src/gui/uifiles/settings_window.ui:6046
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
@@ -8159,11 +8163,11 @@ msgstr ""
 "选择 StarNet 权重文件。这<b>仅</b>适用于新的 Torch-based StarNet 版本。它是可"
 "选的：如果留空，则权重文件<b>必须</b>与 StarNet 可执行文件位于同一目录中。"
 
-#: src/gui/uifiles/settings_window.ui:6051
+#: src/gui/uifiles/settings_window.ui:6052
 msgid "Select StarNet weights file"
 msgstr "选择 StarNet 权重文件"
 
-#: src/gui/uifiles/settings_window.ui:6068
+#: src/gui/uifiles/settings_window.ui:6069
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
@@ -8171,7 +8175,7 @@ msgstr ""
 "清除神经网络权重位置。清除后，权重文件<b>必须</b>与 StarNet 可执行文件位于同"
 "一目录中。"
 
-#: src/gui/uifiles/settings_window.ui:6083
+#: src/gui/uifiles/settings_window.ui:6084
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
@@ -8179,27 +8183,27 @@ msgstr ""
 "可以指向 StarNet 神经网络权重文件。\n"
 "仅用于 Torch-based StarNet 版本。"
 
-#: src/gui/uifiles/settings_window.ui:6118
+#: src/gui/uifiles/settings_window.ui:6119
 msgid "Must point to a valid GraXpert executable."
 msgstr "必须指向有效的 GraXpert 可执行文件。"
 
-#: src/gui/uifiles/settings_window.ui:6137
+#: src/gui/uifiles/settings_window.ui:6138
 msgid "Software Location"
 msgstr "软件位置"
 
-#: src/gui/uifiles/settings_window.ui:6160
+#: src/gui/uifiles/settings_window.ui:6161
 msgid "Copyright when saving image as TIFF"
 msgstr "保存TIFF图像时嵌入版权信息"
 
-#: src/gui/uifiles/settings_window.ui:6172
+#: src/gui/uifiles/settings_window.ui:6173
 msgid "Copyright TIFF"
 msgstr "TIFF版权信息"
 
-#: src/gui/uifiles/settings_window.ui:6194
+#: src/gui/uifiles/settings_window.ui:6195
 msgid "Check update at startup"
 msgstr "启动时检查更新"
 
-#: src/gui/uifiles/settings_window.ui:6210
+#: src/gui/uifiles/settings_window.ui:6211
 msgid "Update"
 msgstr "更新"
 
@@ -13817,7 +13821,7 @@ msgstr ""
 #. Register button was pressed, we ask for confirmation
 #: src/compositing/compositing.c:960 src/gui/keywords_tree.c:196
 #: src/gui/keywords_tree.c:601 src/gui/mouse_action_preferences.c:117
-#: src/gui/preferences.c:1088 src/gui/python_gui.c:687 src/gui/python_gui.c:706
+#: src/gui/preferences.c:1104 src/gui/python_gui.c:687 src/gui/python_gui.c:706
 #: src/gui/python_gui.c:735 src/gui/python_gui.c:761 src/gui/python_gui.c:832
 #: src/gui/utils.c:320 src/registration/applyreg.c:1049
 msgid "Proceed"
@@ -13882,8 +13886,8 @@ msgstr "已成功重新加载所有图像。\n"
 #: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
 #: src/gui/nina_light_curve.c:232 src/gui/nina_light_curve.c:241
 #: src/gui/nina_light_curve.c:279 src/gui/open_dialog.c:414
-#: src/gui/preferences.c:540 src/gui/preferences.c:559
-#: src/gui/preferences.c:593 src/gui/save_dialog.c:466
+#: src/gui/preferences.c:556 src/gui/preferences.c:575
+#: src/gui/preferences.c:609 src/gui/save_dialog.c:466
 #: src/gui/script_menu.c:275 src/io/siril_pythoncommands.c:993
 msgid "Error"
 msgstr "错误"
@@ -25186,28 +25190,28 @@ msgid ""
 "a 3-character code.\n"
 msgstr "错误：从偏好设置中读取的IAU天文台编号无效。代码必须是 3 字符代码。\n"
 
-#: src/gui/preferences.c:539
+#: src/gui/preferences.c:555
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr "当前用户对目录%s没有写权限\n"
 
-#: src/gui/preferences.c:558
+#: src/gui/preferences.c:574
 #, c-format
 msgid "You don't have permission to execute this file: %s\n"
 msgstr "您没有权限以执行该文件: %s\n"
 
-#: src/gui/preferences.c:592
+#: src/gui/preferences.c:608
 #, c-format
 msgid "You don't have permission to read this file: %s\n"
 msgstr "您没有权限以读取该文件: %s\n"
 
-#: src/gui/preferences.c:975
+#: src/gui/preferences.c:991
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
 msgstr "内半径必须小于外半径，请在测光标签中更改。"
 
-#: src/gui/preferences.c:984
+#: src/gui/preferences.c:1000
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
@@ -25215,27 +25219,27 @@ msgstr ""
 "将量化设置为 0 仅在使用 GZIP 压缩时有效；对于压缩浮点图像，GZIP 2 通常效果更"
 "好。"
 
-#: src/gui/preferences.c:996
+#: src/gui/preferences.c:1012
 msgid "Wrong value"
 msgstr "无效值"
 
-#: src/gui/preferences.c:1041
+#: src/gui/preferences.c:1057
 msgid "Reset all preferences"
 msgstr "重置所有偏好设置"
 
-#: src/gui/preferences.c:1042
+#: src/gui/preferences.c:1058
 msgid "Do you really want to reset all preferences to default value?"
 msgstr "您确定要将所有偏好设置恢复为缺省值？"
 
-#: src/gui/preferences.c:1043
+#: src/gui/preferences.c:1059
 msgid "Reset Preferences"
 msgstr "重置偏好设置"
 
-#: src/gui/preferences.c:1058
+#: src/gui/preferences.c:1074
 msgid "External ICC Profiles"
 msgstr "外部ICC色彩特性文件"
 
-#: src/gui/preferences.c:1058
+#: src/gui/preferences.c:1074
 msgid ""
 "In order to use ICC profiles loaded from files as your preferred color space "
 "you must set the Preferred Color Space drop-down to \"From files\"."
@@ -25243,11 +25247,11 @@ msgstr ""
 "为了使用从文件载入的 ICC 色彩特性文件作为您的首选色彩空间，您必须将首选色彩空"
 "间下拉列表设置为“来自文件”。"
 
-#: src/gui/preferences.c:1083
+#: src/gui/preferences.c:1099
 msgid "WARNING!"
 msgstr "警告！"
 
-#: src/gui/preferences.c:1083
+#: src/gui/preferences.c:1099
 msgid ""
 "This will kill all running python processes and delete and reinstall the "
 "python venv directory. This is not normally necessary for upgrades or "
