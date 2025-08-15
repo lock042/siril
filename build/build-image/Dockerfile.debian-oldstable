@@ -1,5 +1,8 @@
 FROM debian:oldstable
-RUN sed -i 's/oldstable\/updates/oldstable-security\/updates/' /etc/apt/sources.list \
+RUN if [ ! -f /etc/apt/sources.list ]; then \
+        echo "deb http://deb.debian.org/debian oldstable main" > /etc/apt/sources.list && \
+        echo "deb http://deb.debian.org/debian-security oldstable-security main" >> /etc/apt/sources.list; \
+    fi \
     && apt-get update -qyy \
     && apt-get install -y --no-install-recommends \
         at-spi2-core \

@@ -3586,6 +3586,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                             <items>
                                               <item translatable="yes">Small (128x128)</item>
                                               <item translatable="yes">Normal (256x256)</item>
+                                              <item translatable="yes">Large (512x512)</item>
                                             </items>
                                           </object>
                                           <packing>

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-12 14:13+0200\n"
+"POT-Creation-Date: 2025-08-14 08:30+0200\n"
 "PO-Revision-Date: 2025-08-11 18:11+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
@@ -464,9 +464,9 @@ msgstr "回転"
 #: src/gui/uifiles/composition_dialog.ui:96
 #: src/gui/uifiles/file_information_dialog.ui:171
 #: src/gui/uifiles/settings_window.ui:1912
-#: src/gui/uifiles/settings_window.ui:4384
-#: src/gui/uifiles/settings_window.ui:4425
-#: src/gui/uifiles/settings_window.ui:6064 src/gui/uifiles/siril.ui:3748
+#: src/gui/uifiles/settings_window.ui:4385
+#: src/gui/uifiles/settings_window.ui:4426
+#: src/gui/uifiles/settings_window.ui:6065 src/gui/uifiles/siril.ui:3748
 msgid "Clear"
 msgstr "クリア"
 
@@ -3792,8 +3792,8 @@ msgid "Type of algorithm"
 msgstr "アルゴリズムの種類"
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:134
-#: src/gui/uifiles/settings_window.ui:3651
-#: src/gui/uifiles/settings_window.ui:3720 src/gui/uifiles/siril.ui:577
+#: src/gui/uifiles/settings_window.ui:3652
+#: src/gui/uifiles/settings_window.ui:3721 src/gui/uifiles/siril.ui:577
 #: src/gui/uifiles/siril.ui:10015 src/gui/uifiles/wavelets_dialog.ui:184
 msgid "Linear"
 msgstr "線形"
@@ -4052,8 +4052,8 @@ msgid ""
 "is non-reversible."
 msgstr ""
 
-#: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4102
-#: src/gui/uifiles/settings_window.ui:4919 src/core/icc_profile.c:1306
+#: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:4103
+#: src/gui/uifiles/settings_window.ui:4920 src/core/icc_profile.c:1306
 #: src/core/icc_profile.c:1308
 msgid "Color Management"
 msgstr "カラーマネージメント"
@@ -4186,7 +4186,7 @@ msgid "<b>Color Management Operations</b>"
 msgstr "<b>カラーマネージメント操作</b>"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:32
-#: src/gui/uifiles/settings_window.ui:4163
+#: src/gui/uifiles/settings_window.ui:4164
 #, fuzzy
 msgid "Gamut visualisation"
 msgstr "可視化の為のみ"
@@ -4558,7 +4558,7 @@ msgstr "選択されたゾーン内の星をマッチさせる"
 msgid "Remove a scroll action"
 msgstr ""
 
-#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5322
+#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5323
 #: src/gui/uifiles/siril.ui:6342
 msgid " "
 msgstr ""
@@ -5800,7 +5800,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
-#: src/gui/uifiles/settings_window.ui:5241
+#: src/gui/uifiles/settings_window.ui:5242
 msgid "Sel"
 msgstr ""
 
@@ -6871,7 +6871,7 @@ msgid "<b>Aberration Inspector</b>"
 msgstr "<b>収差検査</b>"
 
 #: src/gui/uifiles/settings_window.ui:3334
-#: src/gui/uifiles/settings_window.ui:4078
+#: src/gui/uifiles/settings_window.ui:4079
 msgid "User Interface"
 msgstr "ユーザインタフェース"
 
@@ -6957,62 +6957,66 @@ msgstr ""
 msgid "Normal (256x256)"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3604
+#: src/gui/uifiles/settings_window.ui:3589
+msgid "Large (512x512)"
+msgstr ""
+
+#: src/gui/uifiles/settings_window.ui:3605
 msgid "Image Thumbnails"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3638
+#: src/gui/uifiles/settings_window.ui:3639
 #, fuzzy
 msgid "Default screen transfer function:"
 msgstr "カラー反転"
 
-#: src/gui/uifiles/settings_window.ui:3652
-#: src/gui/uifiles/settings_window.ui:3721 src/gui/uifiles/siril.ui:588
+#: src/gui/uifiles/settings_window.ui:3653
+#: src/gui/uifiles/settings_window.ui:3722 src/gui/uifiles/siril.ui:588
 msgid "Logarithm"
 msgstr "対数"
 
-#: src/gui/uifiles/settings_window.ui:3653 src/gui/uifiles/siril.ui:599
+#: src/gui/uifiles/settings_window.ui:3654 src/gui/uifiles/siril.ui:599
 msgid "Square root"
 msgstr "平方根"
 
-#: src/gui/uifiles/settings_window.ui:3654 src/gui/uifiles/siril.ui:610
+#: src/gui/uifiles/settings_window.ui:3655 src/gui/uifiles/siril.ui:610
 msgid "Squared"
 msgstr "平方"
 
-#: src/gui/uifiles/settings_window.ui:3655 src/gui/uifiles/siril.ui:621
+#: src/gui/uifiles/settings_window.ui:3656 src/gui/uifiles/siril.ui:621
 msgid "Asinh"
 msgstr "Arcsinh"
 
-#: src/gui/uifiles/settings_window.ui:3656
+#: src/gui/uifiles/settings_window.ui:3657
 #, fuzzy
 msgid "Autostretch"
 msgstr "自動イコライゼーション"
 
-#: src/gui/uifiles/settings_window.ui:3657 src/gui/uifiles/siril.ui:653
+#: src/gui/uifiles/settings_window.ui:3658 src/gui/uifiles/siril.ui:653
 msgid "Histogram"
 msgstr "ヒストグラム"
 
-#: src/gui/uifiles/settings_window.ui:3673
+#: src/gui/uifiles/settings_window.ui:3674
 #, fuzzy
 msgid "Image Display"
 msgstr "画像処理"
 
-#: src/gui/uifiles/settings_window.ui:3707
+#: src/gui/uifiles/settings_window.ui:3708
 #, fuzzy
 msgid "Default display mode:"
 msgstr "ディスプレーモード"
 
-#: src/gui/uifiles/settings_window.ui:3737
+#: src/gui/uifiles/settings_window.ui:3738
 #, fuzzy
 msgid "Histogram Display"
 msgstr "ヒストグラム"
 
-#: src/gui/uifiles/settings_window.ui:3771
+#: src/gui/uifiles/settings_window.ui:3772
 #, fuzzy
 msgid "Type of selection:"
 msgstr "fwhm: 選択なし"
 
-#: src/gui/uifiles/settings_window.ui:3782
+#: src/gui/uifiles/settings_window.ui:3783
 msgid ""
 "Sets the method of selecting a ROI.\n"
 "<b>Manual</b> requires the ROI to be selected and cleared manually using the "
@@ -7021,95 +7025,95 @@ msgid ""
 "selection, and clears it when the selection is cleared."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3787
+#: src/gui/uifiles/settings_window.ui:3788
 msgid "Manual"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3788
+#: src/gui/uifiles/settings_window.ui:3789
 #, fuzzy
 msgid "Automatic from selection"
 msgstr "自動検出"
 
-#: src/gui/uifiles/settings_window.ui:3804
+#: src/gui/uifiles/settings_window.ui:3805
 msgid "Region of Interest"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3837
+#: src/gui/uifiles/settings_window.ui:3838
 msgid "Middle button double click"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3850
+#: src/gui/uifiles/settings_window.ui:3851
 #, fuzzy
 msgid "Zoom to fit"
 msgstr "ズームアウト"
 
-#: src/gui/uifiles/settings_window.ui:3851
+#: src/gui/uifiles/settings_window.ui:3852
 msgid "Zoom 100% centred on mouse"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3852
+#: src/gui/uifiles/settings_window.ui:3853
 msgid "Zoom toggles between fit and 100%"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3862
+#: src/gui/uifiles/settings_window.ui:3863
 #, fuzzy
 msgid "Configure mouse button actions"
 msgstr "情報"
 
-#: src/gui/uifiles/settings_window.ui:3866
+#: src/gui/uifiles/settings_window.ui:3867
 #, fuzzy
 msgid "Open the mouse action configuration dialog"
 msgstr "測光色補正アルゴリズムを開始."
 
-#: src/gui/uifiles/settings_window.ui:3885
+#: src/gui/uifiles/settings_window.ui:3886
 msgid "Mouse Behaviour"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3932
+#: src/gui/uifiles/settings_window.ui:3933
 #, fuzzy
 msgid "Background extraction samples:"
 msgstr "Background Extraction…"
 
-#: src/gui/uifiles/settings_window.ui:3944
+#: src/gui/uifiles/settings_window.ui:3945
 #, fuzzy
 msgid "Standard annotations:"
 msgstr "選択されたゾーン内の星をマッチさせる"
 
-#: src/gui/uifiles/settings_window.ui:3956
+#: src/gui/uifiles/settings_window.ui:3957
 #, fuzzy
 msgid "Deep Sky Object (user) annotations:"
 msgstr "選択されたゾーン内の星をマッチさせる"
 
-#: src/gui/uifiles/settings_window.ui:3968
+#: src/gui/uifiles/settings_window.ui:3969
 #, fuzzy
 msgid "Solar System Object (user) annotations:"
 msgstr "画像シーケンスを検索"
 
-#: src/gui/uifiles/settings_window.ui:3980
+#: src/gui/uifiles/settings_window.ui:3981
 #, fuzzy
 msgid "Temporary Object (user) annotations:"
 msgstr "選択されたゾーン内の星をマッチさせる"
 
-#: src/gui/uifiles/settings_window.ui:4051
+#: src/gui/uifiles/settings_window.ui:4052
 msgid "Overlay Colors"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4118
+#: src/gui/uifiles/settings_window.ui:4119
 msgid "This section contains options relating to working color spaces"
 msgstr "このセクションには、作業色空間に関するオプションが含まれています"
 
-#: src/gui/uifiles/settings_window.ui:4134
+#: src/gui/uifiles/settings_window.ui:4135
 msgid ""
 "This selects the family of RGB profiles that will be used throughout most of "
 "the workflow. For a discussion of which gamut to pick, see the Color "
 "Management section of the manual."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4136
+#: src/gui/uifiles/settings_window.ui:4137
 msgid "Preferred Color Space:"
 msgstr "優先される色空間:"
 
-#: src/gui/uifiles/settings_window.ui:4147
+#: src/gui/uifiles/settings_window.ui:4148
 msgid ""
 "This sets your preferred family of color spaces for use as working color "
 "spaces: it comprises a RGB color profile and a matching Gray color profile. "
@@ -7117,167 +7121,167 @@ msgid ""
 "also be used by the file export options."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4150
-#: src/gui/uifiles/settings_window.ui:4519
-#: src/gui/uifiles/settings_window.ui:4599 src/core/icc_profile.c:1570
+#: src/gui/uifiles/settings_window.ui:4151
+#: src/gui/uifiles/settings_window.ui:4520
+#: src/gui/uifiles/settings_window.ui:4600 src/core/icc_profile.c:1570
 msgid "sRGB"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4151
+#: src/gui/uifiles/settings_window.ui:4152
 msgid "Rec2020"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4152
+#: src/gui/uifiles/settings_window.ui:4153
 msgid "From files"
 msgstr "ファイルから"
 
-#: src/gui/uifiles/settings_window.ui:4167
+#: src/gui/uifiles/settings_window.ui:4168
 msgid ""
 "Show the CIE1931 xy space and a representation of various color gamuts "
 "within it."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4179
+#: src/gui/uifiles/settings_window.ui:4180
 msgid ""
 "Use these opions together with the \"From files\" option for Preferred Color "
 "Spaces above."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4182
+#: src/gui/uifiles/settings_window.ui:4183
 msgid "External color profiles:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4194
+#: src/gui/uifiles/settings_window.ui:4195
 msgid ""
 "This should be an ICC profile in your preferred gamut with the color space's "
 "native nonlinear tone response curve."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4196
+#: src/gui/uifiles/settings_window.ui:4197
 msgid "RGB ICC profile"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4207
+#: src/gui/uifiles/settings_window.ui:4208
 msgid ""
 "This should be a Gray ICC profile with a tone response curve that matches "
 "that of the nonlinear TRC profile you set above."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4209
+#: src/gui/uifiles/settings_window.ui:4210
 msgid "Gray ICC profile"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4221
+#: src/gui/uifiles/settings_window.ui:4222
 msgid ""
 "Use this together with the \"From files\" option above. This should be a RGB "
 "ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg "
 "etc.)"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4235
+#: src/gui/uifiles/settings_window.ui:4236
 msgid ""
 "Use this together with the \"From files\" option above. This should be a "
 "Gray (mono) ICC profile with a tone response curve that matches that of the "
 "RGB profile you set above."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4252
+#: src/gui/uifiles/settings_window.ui:4253
 msgid "Working Color Spaces"
 msgstr "作業色空間"
 
-#: src/gui/uifiles/settings_window.ui:4285
+#: src/gui/uifiles/settings_window.ui:4286
 msgid "Custom monitor profile:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4297
+#: src/gui/uifiles/settings_window.ui:4298
 msgid ""
 "To use a custom monitor ICC profile, set it here. If no custom profile is "
 "set, sRGB with D65 white point and gamma = 2.2 will be used."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4310
+#: src/gui/uifiles/settings_window.ui:4311
 msgid ""
 "Specify an output device profile for soft proofing purposes. If this is not "
 "set or is inactive, the monitor profile (or sRGB by default) will be used as "
 "the soft proofing target."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4324
+#: src/gui/uifiles/settings_window.ui:4325
 msgid "Output device proofing profile:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4337
+#: src/gui/uifiles/settings_window.ui:4338
 msgid "Rendering intent:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4348
+#: src/gui/uifiles/settings_window.ui:4349
 msgid "Select the display intent. The default is perceptual rendering."
-msgstr ""
-
-#: src/gui/uifiles/settings_window.ui:4351
-#: src/gui/uifiles/settings_window.ui:4549
-msgid "Perceptual"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4352
 #: src/gui/uifiles/settings_window.ui:4550
-msgid "Relative Colorimetric"
+msgid "Perceptual"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4353
 #: src/gui/uifiles/settings_window.ui:4551
+msgid "Relative Colorimetric"
+msgstr ""
+
+#: src/gui/uifiles/settings_window.ui:4354
+#: src/gui/uifiles/settings_window.ui:4552
 #, fuzzy
 msgid "Saturation"
 msgstr "彩度: "
 
-#: src/gui/uifiles/settings_window.ui:4354
-#: src/gui/uifiles/settings_window.ui:4552
+#: src/gui/uifiles/settings_window.ui:4355
+#: src/gui/uifiles/settings_window.ui:4553
 msgid "Absolute Colorimetric"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4365
+#: src/gui/uifiles/settings_window.ui:4366
 #, fuzzy
 msgid "Black point compensation"
 msgstr "可逆圧縮"
 
-#: src/gui/uifiles/settings_window.ui:4369
+#: src/gui/uifiles/settings_window.ui:4370
 msgid ""
 "Enable BPC for rendering. This is not normally required but may be useful if "
 "an image has a malformed source profile."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4388
+#: src/gui/uifiles/settings_window.ui:4389
 msgid "Clear the profile and revert to the default"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4399
-#: src/gui/uifiles/settings_window.ui:4440
+#: src/gui/uifiles/settings_window.ui:4400
+#: src/gui/uifiles/settings_window.ui:4441
 msgid "active"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4403
+#: src/gui/uifiles/settings_window.ui:4404
 msgid ""
 "Whether or not to use the custom monitor profile. This will take effect when "
 "Apply is clicked. The setting is ignored if no custom monitor profile is set."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4429
+#: src/gui/uifiles/settings_window.ui:4430
 msgid "Clear the profile: soft proofing will be unavailable"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4444
+#: src/gui/uifiles/settings_window.ui:4445
 msgid ""
 "Whether or not to use the custom soft proofing profile. This will take "
 "effect when Apply is clicked. The setting is ignored if no custom monitor "
 "profile is set."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4468
+#: src/gui/uifiles/settings_window.ui:4469
 #, fuzzy
 msgid "Custom Profiles"
 msgstr "サポートされているファイルのタイプ:"
 
-#: src/gui/uifiles/settings_window.ui:4485
+#: src/gui/uifiles/settings_window.ui:4486
 msgid ""
 "This section contains settings affecting how color spaces are applied to "
 "saved files\n"
@@ -7286,11 +7290,11 @@ msgid ""
 "configured in FITS Options"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4504
+#: src/gui/uifiles/settings_window.ui:4505
 msgid "Export high bit depth images using:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4515
+#: src/gui/uifiles/settings_window.ui:4516
 msgid ""
 "Selects which color space to export >8bpp bit depth images to. The ICC color "
 "profile will be embedded in the file.\n"
@@ -7298,30 +7302,30 @@ msgid ""
 "always be exported as sRGB."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4520
-#: src/gui/uifiles/settings_window.ui:4600
+#: src/gui/uifiles/settings_window.ui:4521
+#: src/gui/uifiles/settings_window.ui:4601
 msgid "Working gamut"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4521
-#: src/gui/uifiles/settings_window.ui:4601
+#: src/gui/uifiles/settings_window.ui:4522
+#: src/gui/uifiles/settings_window.ui:4602
 #, fuzzy
 msgid "Image's current ICC profile"
 msgstr "この青色のデーターのファイル"
 
-#: src/gui/uifiles/settings_window.ui:4535
+#: src/gui/uifiles/settings_window.ui:4536
 msgid "Conversion and export intent:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4546
+#: src/gui/uifiles/settings_window.ui:4547
 msgid "Select the color management intent for conversion / export"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4563
+#: src/gui/uifiles/settings_window.ui:4564
 msgid "Treat non color-managed files as sRGB for export to supported formats"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4567
+#: src/gui/uifiles/settings_window.ui:4568
 msgid ""
 "For files with no assigned color profile, when exporting to TIFF / PNG / "
 "JPG, embed a sRGB (or Gray with sRGB TRC) ICC profile. This does not give a "
@@ -7330,11 +7334,11 @@ msgid ""
 "If this option is unchecked, no ICC profile will be embedded."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4584
+#: src/gui/uifiles/settings_window.ui:4585
 msgid "Export 8-bit images using:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4595
+#: src/gui/uifiles/settings_window.ui:4596
 msgid ""
 "Selects which color space to export 8-bit images to, if the format supports "
 "ICC profiles. The ICC color profile will be embedded in the file.\n"
@@ -7342,60 +7346,60 @@ msgid ""
 "always be exported as sRGB."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4618
+#: src/gui/uifiles/settings_window.ui:4619
 msgid "File Import / Export Options"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4652
+#: src/gui/uifiles/settings_window.ui:4653
 msgid "Auto assign working color space:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4665
+#: src/gui/uifiles/settings_window.ui:4666
 msgid "Convert other color profiles to the working profile?"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4676
+#: src/gui/uifiles/settings_window.ui:4677
 msgid ""
 "This option sets the behaviour if an image is loaded and it already contains "
 "an ICC profile."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4679
-#: src/gui/uifiles/settings_window.ui:4733
+#: src/gui/uifiles/settings_window.ui:4680
+#: src/gui/uifiles/settings_window.ui:4734
 msgid "Never"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4680
+#: src/gui/uifiles/settings_window.ui:4681
 msgid "Ask every time"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4681
+#: src/gui/uifiles/settings_window.ui:4682
 msgid "Always"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4691
+#: src/gui/uifiles/settings_window.ui:4692
 msgid "On load"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4705
+#: src/gui/uifiles/settings_window.ui:4706
 #, fuzzy
 msgid "On stacking"
 msgstr "重ね合わせ開始"
 
-#: src/gui/uifiles/settings_window.ui:4719
+#: src/gui/uifiles/settings_window.ui:4720
 msgid "On stretching"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4748
+#: src/gui/uifiles/settings_window.ui:4749
 #, fuzzy
 msgid "Output of RGB composition / PixelMath"
 msgstr "測光色補正アルゴリズムを開始."
 
-#: src/gui/uifiles/settings_window.ui:4762
+#: src/gui/uifiles/settings_window.ui:4763
 msgid "Pedantically assign linear ICC profiles"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4766
+#: src/gui/uifiles/settings_window.ui:4767
 msgid ""
 "When assigning an ICC image to:\n"
 "* a loaded image that doesn't show stretches in HISTORY\n"
@@ -7405,29 +7409,29 @@ msgid ""
 "unnecessary."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4787
+#: src/gui/uifiles/settings_window.ui:4788
 msgid "Auto Conversion / Assignment Options"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4823
-#: src/gui/uifiles/settings_window.ui:4854
+#: src/gui/uifiles/settings_window.ui:4824
+#: src/gui/uifiles/settings_window.ui:4855
 #, fuzzy
 msgid "Color Matching Functions"
 msgstr "彩度"
 
-#: src/gui/uifiles/settings_window.ui:4836
+#: src/gui/uifiles/settings_window.ui:4837
 msgid "CIE 1931 2 degree standard observer"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4837
+#: src/gui/uifiles/settings_window.ui:4838
 msgid "CIE 1964 10 degree supplementary standard observer"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4880
+#: src/gui/uifiles/settings_window.ui:4881
 msgid "Export built-in profiles"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4884
+#: src/gui/uifiles/settings_window.ui:4885
 msgid ""
 "Export the built-in profiles to the working directory. Elle Stone's profiles "
 "are distributed with the CC BY-SA-3.0 licence. As they are built into the "
@@ -7435,17 +7439,17 @@ msgid ""
 "provision of the licence."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4901
+#: src/gui/uifiles/settings_window.ui:4902
 #, fuzzy
 msgid "<b>Built-in Profiles</b>"
 msgstr "<b>FITS 形式</b>"
 
-#: src/gui/uifiles/settings_window.ui:4942
-#: src/gui/uifiles/settings_window.ui:5358 src/gui/uifiles/siril.ui:10628
+#: src/gui/uifiles/settings_window.ui:4943
+#: src/gui/uifiles/settings_window.ui:5359 src/gui/uifiles/siril.ui:10628
 msgid "Scripts"
 msgstr "スクリプト"
 
-#: src/gui/uifiles/settings_window.ui:4973
+#: src/gui/uifiles/settings_window.ui:4974
 msgid ""
 "The paths written in this text box will be checked in order to load scripts "
 "that have been put inside. Write a path per line with as many lines you "
@@ -7453,23 +7457,23 @@ msgid ""
 "longer is the startup."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4986
+#: src/gui/uifiles/settings_window.ui:4987
 msgid "<b>Scripts Storage Directories</b>"
 msgstr "<b>スクリプト保存ディレクトリ</b>"
 
-#: src/gui/uifiles/settings_window.ui:5003
+#: src/gui/uifiles/settings_window.ui:5004
 msgid "Rescans the scripts folders and updates scripts menu."
 msgstr "スクリプトフォルダを再スキャンし、スクリプトメニューを更新します。"
 
-#: src/gui/uifiles/settings_window.ui:5034
+#: src/gui/uifiles/settings_window.ui:5035
 msgid "Show warning before script execution"
 msgstr "スクリプト実行前に警告を表示"
 
-#: src/gui/uifiles/settings_window.ui:5050
+#: src/gui/uifiles/settings_window.ui:5051
 msgid "\"Requires\" command is mandatory in scripts"
 msgstr "\"requires\"コマンドはスクリプトでは必須"
 
-#: src/gui/uifiles/settings_window.ui:5054
+#: src/gui/uifiles/settings_window.ui:5055
 msgid ""
 "If this option is checked, scripts cannot be executed without the "
 "\"requires\" command. That ensures the compatibility between scripts and "
@@ -7479,16 +7483,16 @@ msgid ""
 "what you are doing!</b></span>"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5075
-#: src/gui/uifiles/settings_window.ui:5941
+#: src/gui/uifiles/settings_window.ui:5076
+#: src/gui/uifiles/settings_window.ui:5942
 msgid "Warning Dialogs"
 msgstr "警告ダイアログ"
 
-#: src/gui/uifiles/settings_window.ui:5103
+#: src/gui/uifiles/settings_window.ui:5104
 msgid "Enable use of the siril-scripts online repository"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5107
+#: src/gui/uifiles/settings_window.ui:5108
 msgid ""
 "Siril will fetch and update scripts from the official siril-scripts "
 "repository. These will be available offline and specific scripts can be "
@@ -7500,19 +7504,19 @@ msgid ""
 "only take place when the Apply button is clicked, in the usual way."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5129
+#: src/gui/uifiles/settings_window.ui:5130
 msgid "Automatic updates"
 msgstr "自動アップデート"
 
-#: src/gui/uifiles/settings_window.ui:5133
+#: src/gui/uifiles/settings_window.ui:5134
 msgid "Automatically update the repository at startup."
 msgstr "開始時に自動的にリポジトリを更新します。"
 
-#: src/gui/uifiles/settings_window.ui:5145
+#: src/gui/uifiles/settings_window.ui:5146
 msgid "Manual update"
 msgstr "手動アップデート"
 
-#: src/gui/uifiles/settings_window.ui:5150
+#: src/gui/uifiles/settings_window.ui:5151
 msgid ""
 "Update the scripts repository now. If there are any pending changes, the "
 "commit messages will be shown and you will be asked to confirm applying the "
@@ -7521,7 +7525,7 @@ msgstr ""
 "スクリプトリポジトリを今更新します。保留中の変更がある場合は、コミットメッ"
 "セージが表示され、変更の適用を確認するよう求められます。"
 
-#: src/gui/uifiles/settings_window.ui:5177
+#: src/gui/uifiles/settings_window.ui:5178
 #, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
@@ -7535,28 +7539,28 @@ msgstr ""
 "す。（これは、スクリプトにローカルな変更を加えて保存するために使用できま"
 "す。）"
 
-#: src/gui/uifiles/settings_window.ui:5194
+#: src/gui/uifiles/settings_window.ui:5195
 msgid "Category"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5210
+#: src/gui/uifiles/settings_window.ui:5211
 #, fuzzy
 msgid "Script"
 msgstr "スクリプト"
 
-#: src/gui/uifiles/settings_window.ui:5226
+#: src/gui/uifiles/settings_window.ui:5227
 msgid "Type"
 msgstr "タイプ"
 
-#: src/gui/uifiles/settings_window.ui:5270
+#: src/gui/uifiles/settings_window.ui:5271
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Sirilスクリプトリポジトリ</b>"
 
-#: src/gui/uifiles/settings_window.ui:5303
+#: src/gui/uifiles/settings_window.ui:5304
 msgid "Reset python venv"
 msgstr "python venvをリセット"
 
-#: src/gui/uifiles/settings_window.ui:5307
+#: src/gui/uifiles/settings_window.ui:5308
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -7566,20 +7570,20 @@ msgid ""
 "the venv to a pristine state as an aid to troubleshooting."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5338
+#: src/gui/uifiles/settings_window.ui:5339
 msgid "Python Interface"
 msgstr "Pythonインタフェース"
 
-#: src/gui/uifiles/settings_window.ui:5372
-#: src/gui/uifiles/settings_window.ui:5770
+#: src/gui/uifiles/settings_window.ui:5373
+#: src/gui/uifiles/settings_window.ui:5771
 msgid "Performances"
 msgstr "パフォーマンス"
 
-#: src/gui/uifiles/settings_window.ui:5403
+#: src/gui/uifiles/settings_window.ui:5404
 msgid "Ratio of available"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5407
+#: src/gui/uifiles/settings_window.ui:5408
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -7590,11 +7594,11 @@ msgid ""
 "above will likely result in a crash of siril or of the operating system."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5423
+#: src/gui/uifiles/settings_window.ui:5424
 msgid "Fixed amount (GB)"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5427
+#: src/gui/uifiles/settings_window.ui:5428
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -7602,7 +7606,7 @@ msgid ""
 "result in a crash of siril or of the operating system."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5443
+#: src/gui/uifiles/settings_window.ui:5444
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -7611,15 +7615,15 @@ msgid ""
 "very slow and unrecommended"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5488
+#: src/gui/uifiles/settings_window.ui:5489
 msgid "<b>Memory management</b>"
 msgstr "<b>メモリー管理</b>"
 
-#: src/gui/uifiles/settings_window.ui:5521
+#: src/gui/uifiles/settings_window.ui:5522
 msgid "Default bit depth for HD AutoStretch"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5537
+#: src/gui/uifiles/settings_window.ui:5538
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -7629,37 +7633,37 @@ msgid ""
 "the button to the right."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5554
+#: src/gui/uifiles/settings_window.ui:5555
 #, fuzzy
 msgid "Apply bit depth"
 msgstr "Split CFA を適用"
 
-#: src/gui/uifiles/settings_window.ui:5558
+#: src/gui/uifiles/settings_window.ui:5559
 #, fuzzy
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "自動イコライゼーション"
 
-#: src/gui/uifiles/settings_window.ui:5581
+#: src/gui/uifiles/settings_window.ui:5582
 #, fuzzy
 msgid "HD AutoStretch"
 msgstr "自動イコライゼーション"
 
-#: src/gui/uifiles/settings_window.ui:5612
+#: src/gui/uifiles/settings_window.ui:5613
 msgid "Multithreaded FFTW"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5616
+#: src/gui/uifiles/settings_window.ui:5617
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5631 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5632 src/core/settings.c:382
 msgid "FFTW planning strategy"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5642
+#: src/gui/uifiles/settings_window.ui:5643
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -7677,28 +7681,28 @@ msgid ""
 "the other strategies is not worth it for a single Fourier Transform."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5647 src/gui/uifiles/siril.ui:5058
+#: src/gui/uifiles/settings_window.ui:5648 src/gui/uifiles/siril.ui:5058
 #: src/gui/uifiles/siril.ui:6928
 msgid "Estimate"
 msgstr "評価"
 
-#: src/gui/uifiles/settings_window.ui:5648
+#: src/gui/uifiles/settings_window.ui:5649
 msgid "Measure"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5649
+#: src/gui/uifiles/settings_window.ui:5650
 msgid "Patient"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5650
+#: src/gui/uifiles/settings_window.ui:5651
 msgid "Exhaustive"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5663
+#: src/gui/uifiles/settings_window.ui:5664
 msgid "FFTW planning time limit (seconds)"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5674
+#: src/gui/uifiles/settings_window.ui:5675
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -7706,11 +7710,11 @@ msgid ""
 "minimum planning level of Estimate will always be completed."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5689
+#: src/gui/uifiles/settings_window.ui:5690
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5700
+#: src/gui/uifiles/settings_window.ui:5701
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -7721,11 +7725,11 @@ msgid ""
 "Fourier Transforms will be used."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5716
+#: src/gui/uifiles/settings_window.ui:5717
 msgid "Maximum slice size for sliced image operations"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5727
+#: src/gui/uifiles/settings_window.ui:5728
 msgid ""
 "Sets the maximum slice size for image operations that can use sliced "
 "processing. The primary purpose of this is to constrain typical slices to a "
@@ -7733,20 +7737,20 @@ msgid ""
 "more effectively. It is always safe to leave this at the default setting."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5730
+#: src/gui/uifiles/settings_window.ui:5731
 msgid "Unlimited"
 msgstr "制限無し"
 
-#: src/gui/uifiles/settings_window.ui:5756
+#: src/gui/uifiles/settings_window.ui:5757
 msgid "<b>FFTW Options</b>"
 msgstr "<b>FFTWオプション</b>"
 
-#: src/gui/uifiles/settings_window.ui:5784
-#: src/gui/uifiles/settings_window.ui:6227
+#: src/gui/uifiles/settings_window.ui:5785
+#: src/gui/uifiles/settings_window.ui:6228
 msgid "Miscellaneous"
 msgstr "その他"
 
-#: src/gui/uifiles/settings_window.ui:5812
+#: src/gui/uifiles/settings_window.ui:5813
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
@@ -7754,54 +7758,54 @@ msgstr ""
 "既存のディレクトリを選択します。書き込み権限と十分な空き容量があることを確認"
 "してください。"
 
-#: src/gui/uifiles/settings_window.ui:5815
+#: src/gui/uifiles/settings_window.ui:5816
 #, fuzzy
 msgid "Select Swap Directory"
 msgstr "切り抜き範囲を選択"
 
-#: src/gui/uifiles/settings_window.ui:5828
+#: src/gui/uifiles/settings_window.ui:5829
 msgid "available mem"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5840
+#: src/gui/uifiles/settings_window.ui:5841
 msgid "Restore to Default"
 msgstr "デフォルトに戻す"
 
-#: src/gui/uifiles/settings_window.ui:5844
+#: src/gui/uifiles/settings_window.ui:5845
 msgid "Restore the default swap storage directory"
 msgstr "デフォルトのスワップストレージディレクトリに戻す"
 
-#: src/gui/uifiles/settings_window.ui:5863
+#: src/gui/uifiles/settings_window.ui:5864
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>スワップストレージディレクトリ</b>"
 
-#: src/gui/uifiles/settings_window.ui:5890
+#: src/gui/uifiles/settings_window.ui:5891
 msgid "Don't ask before quitting"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5905
+#: src/gui/uifiles/settings_window.ui:5906
 msgid "Don't ask before saving when display is not linear"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5920
+#: src/gui/uifiles/settings_window.ui:5921
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5924
+#: src/gui/uifiles/settings_window.ui:5925
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5963
+#: src/gui/uifiles/settings_window.ui:5964
 msgid "Play introduction"
 msgstr "紹介を再生"
 
-#: src/gui/uifiles/settings_window.ui:5977
+#: src/gui/uifiles/settings_window.ui:5978
 msgid "Introduction Tips"
 msgstr "ヒントの紹介"
 
-#: src/gui/uifiles/settings_window.ui:6009
+#: src/gui/uifiles/settings_window.ui:6010
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -7812,59 +7816,59 @@ msgid ""
 "executable: Siril will automatically find the other one if it exists."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6017
+#: src/gui/uifiles/settings_window.ui:6018
 msgid "Select StarNet executable"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6031
+#: src/gui/uifiles/settings_window.ui:6032
 msgid "Must point to a valid StarNet executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6045
+#: src/gui/uifiles/settings_window.ui:6046
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
 "b> be in the same directory as the StarNet executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6051
+#: src/gui/uifiles/settings_window.ui:6052
 #, fuzzy
 msgid "Select StarNet weights file"
 msgstr "選択したファイルを削除"
 
-#: src/gui/uifiles/settings_window.ui:6068
+#: src/gui/uifiles/settings_window.ui:6069
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6083
+#: src/gui/uifiles/settings_window.ui:6084
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6118
+#: src/gui/uifiles/settings_window.ui:6119
 msgid "Must point to a valid GraXpert executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6137
+#: src/gui/uifiles/settings_window.ui:6138
 msgid "Software Location"
 msgstr "ソフトウェアの位置"
 
-#: src/gui/uifiles/settings_window.ui:6160
+#: src/gui/uifiles/settings_window.ui:6161
 msgid "Copyright when saving image as TIFF"
 msgstr "画像をTIFFとして保存する場合の著作権情報"
 
-#: src/gui/uifiles/settings_window.ui:6172
+#: src/gui/uifiles/settings_window.ui:6173
 msgid "Copyright TIFF"
 msgstr "TIFFの著作権情報"
 
-#: src/gui/uifiles/settings_window.ui:6194
+#: src/gui/uifiles/settings_window.ui:6195
 msgid "Check update at startup"
 msgstr "起動時にアップデートを確認"
 
-#: src/gui/uifiles/settings_window.ui:6210
+#: src/gui/uifiles/settings_window.ui:6211
 msgid "Update"
 msgstr "アップデート"
 
@@ -13464,7 +13468,7 @@ msgstr ""
 #. Register button was pressed, we ask for confirmation
 #: src/compositing/compositing.c:960 src/gui/keywords_tree.c:196
 #: src/gui/keywords_tree.c:601 src/gui/mouse_action_preferences.c:117
-#: src/gui/preferences.c:1088 src/gui/python_gui.c:687 src/gui/python_gui.c:706
+#: src/gui/preferences.c:1104 src/gui/python_gui.c:687 src/gui/python_gui.c:706
 #: src/gui/python_gui.c:735 src/gui/python_gui.c:761 src/gui/python_gui.c:832
 #: src/gui/utils.c:320 src/registration/applyreg.c:1049
 #, fuzzy
@@ -13528,8 +13532,8 @@ msgstr "スクリプトの実行を無事に終了.\n"
 #: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
 #: src/gui/nina_light_curve.c:232 src/gui/nina_light_curve.c:241
 #: src/gui/nina_light_curve.c:279 src/gui/open_dialog.c:414
-#: src/gui/preferences.c:540 src/gui/preferences.c:559
-#: src/gui/preferences.c:593 src/gui/save_dialog.c:466
+#: src/gui/preferences.c:556 src/gui/preferences.c:575
+#: src/gui/preferences.c:609 src/gui/save_dialog.c:466
 #: src/gui/script_menu.c:275 src/io/siril_pythoncommands.c:993
 msgid "Error"
 msgstr "エラー"
@@ -23755,64 +23759,64 @@ msgid ""
 "a 3-character code.\n"
 msgstr ""
 
-#: src/gui/preferences.c:539
+#: src/gui/preferences.c:555
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:558
+#: src/gui/preferences.c:574
 #, c-format
 msgid "You don't have permission to execute this file: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:592
+#: src/gui/preferences.c:608
 #, c-format
 msgid "You don't have permission to read this file: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:975
+#: src/gui/preferences.c:991
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
 msgstr ""
 
-#: src/gui/preferences.c:984
+#: src/gui/preferences.c:1000
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
 msgstr ""
 
-#: src/gui/preferences.c:996
+#: src/gui/preferences.c:1012
 msgid "Wrong value"
 msgstr ""
 
-#: src/gui/preferences.c:1041
+#: src/gui/preferences.c:1057
 msgid "Reset all preferences"
 msgstr "環境設定をすべてリセット"
 
-#: src/gui/preferences.c:1042
+#: src/gui/preferences.c:1058
 msgid "Do you really want to reset all preferences to default value?"
 msgstr "環境設定をすべてデフォルト値にリセットしますか?"
 
-#: src/gui/preferences.c:1043
+#: src/gui/preferences.c:1059
 msgid "Reset Preferences"
 msgstr "環境設定をリセット"
 
-#: src/gui/preferences.c:1058
+#: src/gui/preferences.c:1074
 msgid "External ICC Profiles"
 msgstr ""
 
-#: src/gui/preferences.c:1058
+#: src/gui/preferences.c:1074
 msgid ""
 "In order to use ICC profiles loaded from files as your preferred color space "
 "you must set the Preferred Color Space drop-down to \"From files\"."
 msgstr ""
 
-#: src/gui/preferences.c:1083
+#: src/gui/preferences.c:1099
 msgid "WARNING!"
 msgstr ""
 
-#: src/gui/preferences.c:1083
+#: src/gui/preferences.c:1099
 msgid ""
 "This will kill all running python processes and delete and reinstall the "
 "python venv directory. This is not normally necessary for upgrades or "

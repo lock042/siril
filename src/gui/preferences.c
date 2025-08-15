@@ -258,7 +258,23 @@ static void update_user_interface_preferences() {
 	com.pref.gui.icon_symbolic = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_iconstyle")));
 	com.pref.gui.remember_windows = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")));
 	com.pref.gui.show_thumbnails = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")));
-	com.pref.gui.thumbnail_size = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size"))) == 1 ? 256 : 128;
+	int selected_index = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")));
+
+	switch (selected_index) {
+	    case 0:
+	        com.pref.gui.thumbnail_size = 128; // First option (index 0)
+	        break;
+	    case 1:
+	        com.pref.gui.thumbnail_size = 256; // Second option (index 1)
+	        break;
+	    case 2:
+	        com.pref.gui.thumbnail_size = 512; // Third option (index 2)
+	        break;
+	    default:
+	        com.pref.gui.thumbnail_size = 128; // Default value in case of an unexpected index
+	        break;
+	}
+
 	com.pref.gui.default_rendering_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")));
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 	com.pref.gui.roi_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")));
