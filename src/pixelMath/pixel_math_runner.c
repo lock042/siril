@@ -1301,7 +1301,7 @@ static void select_image(int nb) {
 						}
 
 						int idx = search_for_free_index();
-						if (idx > 9) {
+						if (idx >= MAX_IMAGES) {
 							siril_log_color_message(_("Error: maximum variable index exceeded - too many variables!\n"), "red");
 							g_free(filename);
 							clearfits(&f);
