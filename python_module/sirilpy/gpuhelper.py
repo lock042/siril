@@ -197,10 +197,10 @@ class ONNXHelper:
         """Initialize the ONNXHelper."""
         ensure_installed("platformdirs")
         ensure_installed("onnx")
-        from platformdirs import user_data_dir
+        from platformdirs import user_config_dir
         self.system = platform.system().lower()
         self.providers = None
-        self.config_file = os.path.join(user_data_dir(appname="siril"), "siril_onnx.conf")
+        self.config_file = os.path.join(user_config_dir(appname="siril"), "siril_onnx.conf")
 
     def status(self):
         """
@@ -274,30 +274,69 @@ class ONNXHelper:
     def _try_provider(self, ort, model_path, input_data, provider, reference_output=None):
         """Try executing the model with a specific provider (no fallback)."""
         try:
+            # Handle provider format and extract expected provider name
+            if isinstance(provider, tuple):
+                expected_provider_name, provider_options = provider
+                providers_for_session = [(expected_provider_name, provider_options)]
+            else:
+                expected_provider_name = provider
+                providers_for_session = [provider]
+
             sess_options = ort.SessionOptions()
             session = ort.InferenceSession(
                 model_path,
                 sess_options=sess_options,
-                providers=[provider]
+                providers=providers_for_session
             )
 
             actual_provider = session.get_providers()[0]
-            if actual_provider != provider:
+
+            if actual_provider != expected_provider_name:
                 print(f"(x) {provider}: fallback occurred (used {actual_provider})")
                 return False
 
+            # Determine TF32 usage
+            provider_opts = session.get_provider_options().get(expected_provider_name, {})
+            use_tf32 = provider_opts.get("use_tf32", "0")  # default to "0" if missing
+
+            # Set tolerances
+            if use_tf32 == "1":
+                rtol = 5e-2
+                atol = 1e-3
+            else:
+                rtol = 1e-3
+                atol = 1e-5
+
             output = session.run(None, {'input': input_data})
 
-            print(f"OK: {provider} ran successfully")
+            print(f"OK: {expected_provider_name} ran successfully")
             if reference_output is not None:
-                if not np.allclose(reference_output, output[0], rtol=1e-3, atol=1e-5):
-                    print("(!) Output mismatch with CPU")
+                if not np.allclose(reference_output, output[0], rtol=rtol, atol=atol):
+                    print(f"(!) Output mismatch with CPU (rtol={rtol}, atol={atol})")
                     return False
+
             return True
 
         except Exception as e:
-            print(f"(x) {provider} failed: {e}")
+            print(f"(x) {expected_provider_name} failed: {e}")
             return False
+
+    def import_onnxruntime():
+        """
+        Import onnxruntime, add it to the global dict, test if it's built against
+        CUDA and if so preload the CUDA and CUDNN libraries to improve the chances
+        of finding them if Torch[CUDA] happens to be installed.
+        """
+        import onnxruntime
+        globals()['onnxruntime'] = onnxruntime  # Add to the global dict
+        providers = onnxruntime.get_available_providers()
+        if 'CUDAExecutionProvider' in providers:
+            # Attempt to preload CUDA / CUDnn libraries
+            # This helps on some systems where the system-wide libraries are not found but
+            # torch is installed with nvidia library dependencies installed in the venv
+            onnxruntime.preload_dlls()
+            # Set logging to only report critical issues by default
+            onnxruntime.set_default_logger_severity(4)
 
     def test_onnxruntime(self, ort=None):
         """
@@ -343,7 +382,22 @@ class ONNXHelper:
                 print(f"(x) Failed to run on CPU: {e}")
                 return []
 
-            all_providers = ort.get_available_providers()
+            all_providers_raw = ort.get_available_providers()
+            all_providers = []
+
+            for p in all_providers_raw:
+                if p == "OpenVINOExecutionProvider":
+                    all_providers.append((p, {
+                                                'device_type': 'GPU',
+                                                'precision': 'FP32'
+                                            },))
+                    all_providers.append((p, {
+                                                'device_type': 'CPU',
+                                                'precision': 'FP32'
+                                            }))
+                else:
+                    all_providers.append(p)
+            
             print("\nAvailable execution providers:")
             for p in all_providers:
                 print(f"  - {p}")
@@ -643,10 +697,16 @@ class ONNXHelper:
         import onnxruntime as ort
 
         # Try to load cached providers first
-        cached_providers = self._load_cached_providers(ort)
-        if cached_providers:
-            self.providers = cached_providers
-            return self.providers
+        try:
+            cached_providers = self._load_cached_providers(ort)
+            if cached_providers:
+                self.providers = cached_providers
+                return self.providers
+        except Exception:
+            # If an error occurs with _load_cached_providers() delete the config file and do
+            # the full test to re-cache them
+            if os.path.exists(self.config_file):
+                os.unlink(self.config_file)
 
         # If no valid cache, run the test
         return self.test_onnxruntime(ort)
@@ -666,20 +726,22 @@ class ONNXHelper:
             with open(self.config_file, 'r', encoding='utf-8') as f:
                 cached_data = json.load(f)
 
-            cached_providers = cached_data.get('execution_providers', [])
+            raw_providers = cached_data.get('execution_providers', [])
+            cached_providers = []
+
+            for p in raw_providers:
+                name = p["name"]
+                options = p["options"]
+                if options is not None:
+                    cached_providers.append((name, options))
+                else:
+                    cached_providers.append(name)
+
             if not cached_providers:
                 return None
 
-            # Check if all cached providers are still available
-            available_providers = set(ort.get_available_providers())
-            valid_providers = [p for p in cached_providers if p in available_providers]
-
-            # Only use cache if all providers are still available
-            if len(valid_providers) == len(cached_providers):
-                print(f"Using cached execution providers from {self.config_file}")
-                return valid_providers
-            print("Cached providers outdated, will re-test")
-            return None
+            print(f"Using cached execution providers from {self.config_file}")
+            return valid_providers
 
         except (json.JSONDecodeError, IOError, KeyError) as e:
             print(f"Failed to load cached providers: {e}", file=sys.stderr)
@@ -695,9 +757,17 @@ class ONNXHelper:
         try:
             # Ensure directory exists
             os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+            
+            serialized_providers = []
+            for p in providers:
+                if isinstance(p, tuple):
+                    provider_name, options = p
+                    serialized_providers.append({"name": provider_name, "options": options})
+                else:
+                    serialized_providers.append({"name": p, "options": None})
 
             cache_data = {
-                'execution_providers': providers,
+                'execution_providers': serialized_providers,
                 'system': self.system,
                 'cached_at': platform.platform()
             }

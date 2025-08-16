@@ -45,7 +45,7 @@ gboolean reset_cut_gui_filedependent(gpointer user_data) { // Separated out to a
 	GtkWidget *cfabutton = (GtkWidget*) lookup_widget("cut_cfa");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
 	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
-	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
+	gboolean cfa_disabled = (gfit.naxes[2] > 1 || pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX);
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 	GtkToggleButton* as = (GtkToggleButton*) lookup_widget("cut_dist_pref_as");
 	gtk_toggle_button_set_active(as, gfit.keywords.wcsdata.pltsolvd);
@@ -807,6 +807,15 @@ gpointer cfa_cut(gpointer p) {
 		goto END;
 	}
 	build_profile_filenames(arg, &filename, &imagefilename);
+	sensor_pattern pattern = get_validated_cfa_pattern(arg->fit, FALSE, FALSE);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+			siril_log_color_message(_("Error: failed to read CFA pattern or invalid found.\n"), "red");
+			retval = 1;
+			free_siril_plot_data(spl_data);
+			spl_data = NULL;
+			goto END;	
+	}
+	const gchar* pattern_str = filter_pattern[pattern];
 
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
 	if (arg->fit->type == DATA_USHORT) {
@@ -881,10 +890,35 @@ gpointer cfa_cut(gpointer p) {
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
-	siril_plot_add_xydata(spl_data, "CFA0", nbr_points, x, r[0], NULL, NULL);
-	siril_plot_add_xydata(spl_data, "CFA1", nbr_points, x, r[1], NULL, NULL);
-	siril_plot_add_xydata(spl_data, "CFA2", nbr_points, x, r[2], NULL, NULL);
-	siril_plot_add_xydata(spl_data, "CFA3", nbr_points, x, r[3], NULL, NULL);
+	gboolean first_green = TRUE;
+	for (int i = 0; i < 4; i++) {
+		double color[3] = { 0.0, 0.0, 0.0 };
+		const char *label;
+		switch (pattern_str[i]) {
+			case 'R':
+				label = "Red";
+				color[0] = 1.0;
+				break;
+			case 'G':
+			//RGB(0.078, 0.392, 0.078)
+			//RGB(0.196, 1.0, 0.196)
+				label = first_green ? "Green1" : "Green2";
+				color[0] = first_green ? 0.078 : 0.196;
+				color[1] = first_green ? 0.392 : 1.000;
+				color[2] = first_green ? 0.078 : 0.196;
+				first_green = FALSE;
+				break;
+			case 'B':
+				label = "Blue";
+				color[2] = 1.0;
+				break;
+			default:
+				label = "Error";
+				break;
+		}
+		siril_plot_add_xydata(spl_data, label, nbr_points, x, r[i], NULL, NULL);
+		siril_plot_set_nth_color(spl_data, i + 1, color);
+	}
 	if (arg->save_dat)
 		siril_plot_save_dat(spl_data, filename, FALSE);
 	if (arg->save_png_too || !arg->display_graph)
