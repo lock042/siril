@@ -2908,13 +2908,11 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	float maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
 	float minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
 	float scale = 1.f / (maxmax - minmin);
-	printf("#### minmin %f maxmax %f scale %f ####\n", minmin, maxmax, scale);
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread)
 #endif
 	for (int idx = 0 ; idx < (int)(prev_size * chans); idx++) {
-		int chan = idx / prev_size;
 		preview_data[idx] = (preview_data[idx] - minmin) * scale;
 	}
 
