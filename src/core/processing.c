@@ -33,11 +33,13 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
+#include "core/command_line_processor.h"
 #include "core/OS_utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
+#include "gui/utils.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/seqwriter.h"
@@ -500,9 +502,11 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 	if (!(args->seq->type == SEQ_INTERNAL))
 		g_assert(args->new_seq_prefix); // don't call this hook otherwise
 	//removing existing files
-	remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
-	remove_prefixed_star_files(args->seq, args->new_seq_prefix);
-	remove_prefixed_drizzle_files(args->seq, args->new_seq_prefix);
+	if (args->seq->type != SEQ_INTERNAL) {
+		remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
+		remove_prefixed_star_files(args->seq, args->new_seq_prefix);
+		remove_prefixed_drizzle_files(args->seq, args->new_seq_prefix);
+	}
 	if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
 		gchar *dest;
 		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
@@ -846,7 +850,8 @@ gpointer waiting_for_thread() {
 	com.thread = NULL;
 	thread_being_waited = FALSE;
 	set_thread_run(FALSE);	// do it anyway in case of wait without stop
-	return retval;
+
+	return GINT_TO_POINTER(GPOINTER_TO_INT(retval) & ~CMD_NOTIFY_GFIT_MODIFIED);
 }
 
 int claim_thread_for_python() {
@@ -890,26 +895,55 @@ void python_releases_thread() {
 }
 
 
+static gboolean stop_processing_requested = FALSE;
+
 static gboolean stop_processing_thread_idle(gpointer user_data) {
-	if (com.thread == NULL) {
-		siril_debug_print("The processing thread is not running.\n");
-		return FALSE;
-	}
-	remove_child_from_children((GPid) -2); // magic number indicating the processing thread
-	set_thread_run(FALSE);
-	if (!thread_being_waited)
-		waiting_for_thread();
-	set_cursor_waiting(FALSE);
-	return FALSE;
+    if (com.thread == NULL) {
+        siril_debug_print("The processing thread is not running.\n");
+        return FALSE;
+    }
+    remove_child_from_children((GPid) -2); // magic number indicating the processing thread
+    set_thread_run(FALSE);
+    if (!thread_being_waited)
+        waiting_for_thread();
+    set_cursor_waiting(FALSE);
+    return FALSE;
 }
 
-static gpointer stop_processing_thread_idle_caller(gpointer user_data) {
-	gdk_threads_add_idle(stop_processing_thread_idle, NULL);
-	return GINT_TO_POINTER(0);
+static gboolean check_stop_processing_request(gpointer user_data) {
+    if (stop_processing_requested) {
+        stop_processing_requested = FALSE;
+        stop_processing_thread_idle(NULL);
+    }
+    return FALSE; // Remove this idle callback
 }
 
 void stop_processing_thread() {
-	g_thread_unref(g_thread_new("processing thread stopper", stop_processing_thread_idle_caller, NULL));
+    // Check if we're in headless mode first
+    if (com.headless) {
+        // In headless mode, we can call the function directly
+        if (com.thread == NULL) {
+            siril_debug_print("The processing thread is not running.\n");
+            return;
+        }
+        remove_child_from_children((GPid) -2);
+        set_thread_run(FALSE);
+        if (!thread_being_waited)
+            waiting_for_thread();
+        return;
+    }
+
+    // Check if we're already in the main thread
+    if (g_main_context_is_owner(g_main_context_default())) {
+        // We're in the main thread, but we might be inside execute_idle_and_wait_for_it
+        // Set a flag and queue an idle to handle it asynchronously
+        stop_processing_requested = TRUE;
+        gdk_threads_add_idle(check_stop_processing_request, NULL);
+    } else {
+        // We're not in the main thread, so we need to queue it as an idle
+        // and wait for it to complete
+        execute_idle_and_wait_for_it(stop_processing_thread_idle, NULL);
+    }
 }
 
 static void set_thread_run(gboolean b) {
@@ -1196,27 +1230,44 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 			goto cleanup;
 		}
 	}
-
+	if (args->seq->type == SEQ_FITSEQ && (!args->seq->fitseq_file || !args->seq->fitseq_file->fptr)) {
+		gchar *seqfilename = g_strdup_printf("%s%s", args->seq->seqname, args->seq->ext);
+		fitseq_open(seqfilename, args->seq->fitseq_file, 0);
+		g_free(seqfilename);
+	}
 	for (frame = 0; frame < nb_frames; frame++) {
 		if (index_mapping)
 			input_idx = index_mapping[frame];
 		else input_idx = frame;
 
 		fits fit = { 0 };
-		if (seq_open_image(args->seq, input_idx)) {
+		if (args->seq->type == SEQ_REGULAR && seq_open_image(args->seq, input_idx)) {
 			retval = 1;
 			goto cleanup;
+		} else if (args->seq->type == SEQ_FITSEQ) {
+			// Need to move to the correct HDU
+			fits_movabs_hdu(args->seq->fitseq_file->fptr, args->seq->fitseq_file->hdu_index[input_idx], NULL, &retval);
+			if (retval) {
+				siril_log_color_message(_("Error finding the HDU for frame %d\n"), "red", input_idx);
+				goto cleanup;
+			}
 		}
 		if (args->seq->type == SEQ_REGULAR)
 			args->image_hook(args, args->seq->fptr[input_idx], input_idx);
 		else args->image_hook(args, args->seq->fitseq_file->fptr, input_idx);
-		seq_close_image(args->seq, input_idx);
+		if (args->seq->type == SEQ_REGULAR)
+			seq_close_image(args->seq, input_idx);
 		clearfits(&fit);
 	}
 cleanup:
+	if (args->seq->type == SEQ_FITSEQ) {
+		int status;
+		fits_movabs_hdu(args->seq->fitseq_file->fptr, args->seq->fitseq_file->hdu_index[0], NULL, &status);
+	}
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	free_sequence(args->seq, TRUE);
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
 	g_slist_free_full(args->keys, g_free);
 	g_free(args->header);
 	if (args->output_stream)

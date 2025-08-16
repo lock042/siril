@@ -52,6 +52,10 @@
 #include <omp.h>
 #endif
 
+#ifdef HAVE_LIBGIT2
+#include <git2.h>
+#endif
+
 #include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
@@ -288,6 +292,9 @@ static void global_initialization() {
 	omp_set_max_active_levels(2);
 #endif
 
+#ifdef HAVE_LIBGIT2
+	git_libgit2_init();
+#endif
 }
 
 static void siril_app_startup(GApplication *application) {
@@ -513,10 +520,11 @@ static void siril_macos_setenv(const char *progname) {
 			return;
 		}
 
+		g_mutex_lock(&com.env_mutex);
 		/* store canonical path to resources directory in environment variable. */
 		g_setenv("SIRIL_RELOCATED_RES_DIR", res_dir, TRUE);
 
-    /* prepend PATH with our exe_dir (Foo.app/Contents/MacOS) */
+		/* prepend PATH with our exe_dir (Foo.app/Contents/MacOS) */
 		gchar *path = g_try_malloc(PATH_MAX);
 		if (path == NULL) {
 			g_warning("Failed to allocate memory");
@@ -567,6 +575,7 @@ static void siril_macos_setenv(const char *progname) {
 		/* set PYTHONPAH to our bundled packages */
 		g_snprintf(tmp, sizeof(tmp), "%s/lib/python3.12/site-packages", res_dir);
 		g_setenv("PYTHONPATH", tmp, TRUE);
+		g_mutex_unlock(&com.env_mutex);
 
 		/* astropy does not create its director itself */
 		g_snprintf(tmp, sizeof(tmp), "%s/astropy", g_getenv("XDG_CONFIG_HOME"));
@@ -652,6 +661,9 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
+#ifdef HAVE_LIBGIT2
+	git_libgit2_shutdown();
+#endif
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);
 	return status;

@@ -53,32 +53,6 @@ enum {
 	N_COLUMNS
 };
 
-/*
-static int reset_scripts_repository() {
-	// Local directory where the repository will be cloned
-	const gchar *local_path = siril_get_scripts_repo_path();
-	int retval = reset_repository(local_path);
-	if (!retval) {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"),
-			_("Success! The local repository is up-to-date with the remote."));
-	}
-	return retval;
-}
-*/
-
-/*
-static int reset_spcc_repository() {
-	// Local directory where the repository will be cloned
-	const gchar *local_path = siril_get_spcc_repo_path();
-	int retval = reset_repository(local_path);
-	if (!retval) {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"),
-				_("Success! The local repository is up-to-date with the remote."));
-	}
-	return retval;
-}
-*/
-
 static void get_list_store() {
 	if (list_store == NULL) {
 		list_store = GTK_LIST_STORE(
@@ -107,9 +81,9 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 	gui_repo_scripts_mutex_lock();
 	if (gui.repo_scripts) {
 		int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
-		GList *iterator;
+		GSList *iterator;
 		for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
-			// here we populate the GtkTreeView from GList gui.repo_scripts
+			// here we populate the GtkTreeView from GSList gui.repo_scripts
 			const gchar *category;
 			gboolean included = FALSE;
 			gboolean core = FALSE;
@@ -138,7 +112,7 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 			printf("%s\n", scriptpath);
 #endif
 			// Check whether the script appears in the list
-			GList *iterator2 = NULL;
+			GSList *iterator2 = NULL;
 			if (!included && !core) {
 				for (iterator2 = com.pref.selected_scripts; iterator2;
 					iterator2 = iterator2->next) {
@@ -177,34 +151,213 @@ void fill_script_repo_tree(gboolean as_idle) {
 		fill_script_repo_tree_idle(tview);
 }
 
+typedef struct {
+	const gchar *scriptpath;
+	GtkTextView *message_textview;
+} CommitMessageUpdateData;
+
+static void on_script_revision_spin_value_changed(GtkSpinButton *spin, gpointer user_data) {
+	CommitMessageUpdateData *data = (CommitMessageUpdateData *)user_data;
+	int revisions_back = gtk_spin_button_get_value_as_int(spin);
+
+	GtkTextBuffer *buffer = gtk_text_view_get_buffer(data->message_textview);
+
+	gchar *commit_message = NULL;
+	size_t message_size = 0;
+	gchar *content = get_script_content_string_from_file_revision(
+		data->scriptpath, revisions_back, &(size_t){0}, &commit_message, &message_size);
+	if (content != NULL) {
+		g_free(content); // We only need the message
+	}
+
+	if (commit_message != NULL && message_size > 0) {
+		gtk_text_buffer_set_text(buffer, commit_message, -1);
+		g_free(commit_message);
+	} else {
+		gtk_text_buffer_set_text(buffer, _("(No commit message found for this revision)"), -1);
+	}
+}
+
 void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
-                                GtkTreeViewColumn *column, gpointer user_data) {
+                                       GtkTreeViewColumn *column, gpointer user_data) {
 	gchar *scriptname = NULL, *scriptpath = NULL;
 	gchar *contents = NULL;
 	gsize length;
-	GError *error = NULL;
 	GtkTreeIter iter;
 	GtkTreeModel *model =
 		gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
 
-	if (gtk_tree_model_get_iter(model, &iter, path)) {
-		gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
-		if (g_file_get_contents(scriptpath, &contents, &length, &error) &&
-					length > 0) {
-			const char *ext = get_filename_ext(scriptpath);
-			new_script(contents, length, ext);
-			g_free(contents);
-		} else {
-			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
-			siril_log_color_message(msg, "red");
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
-			g_free(msg);
-			g_error_free(error);
-		}
+	if (!gtk_tree_model_get_iter(model, &iter, path))
+		return;
+
+	gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
+
+	gchar *tmpscriptpath = g_canonicalize_filename(scriptpath, NULL);
+	contents = get_script_content_string_from_file_revision(tmpscriptpath, 0, &length, NULL, NULL);
+	if (length > 0 && contents != NULL) {
+		const char *ext = get_filename_ext(tmpscriptpath);
+		new_script(contents, length, ext);
+		g_free(contents);
+	} else {
+		gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), tmpscriptpath);
+		siril_log_color_message(msg, "red");
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
+		g_free(msg);
 	}
+
 	g_free(scriptname);
 	g_free(scriptpath);
+}
 
+// Callback function for right-click events
+gboolean on_treeview_scripts_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+	// Check if it's a right-click (button 3)
+	if (event->type == GDK_BUTTON_PRESS && event->button == 3) {
+		GtkTreeView *treeview = GTK_TREE_VIEW(widget);
+		GtkTreePath *path = NULL;
+		GtkTreeViewColumn *column = NULL;
+		gint cell_x, cell_y;
+
+		// Get the path at the click coordinates
+		if (gtk_tree_view_get_path_at_pos(treeview,
+										(gint)event->x,
+										(gint)event->y,
+										&path,
+										&column,
+										&cell_x,
+										&cell_y)) {
+
+			// We have a valid path - the click was on a row
+			GtkTreeIter iter;
+			GtkTreeModel *model = gtk_tree_view_get_model(treeview);
+
+			if (gtk_tree_model_get_iter(model, &iter, path)) {
+				gchar *scriptname = NULL, *scriptpath = NULL;
+				gchar *contents = NULL;  // Declare contents here
+				gsize length;            // Declare length here
+
+				// Select the right-clicked row and make it active
+				GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
+				gtk_tree_selection_select_path(selection, path);
+
+				// Queue a redraw to show the selection immediately
+				gtk_widget_queue_draw(GTK_WIDGET(treeview));
+
+				gtk_tree_model_get(model, &iter, 1, &scriptname, 3, &scriptpath, -1);
+
+				// Create dialog to ask for revision count
+				GtkWidget *dialog = gtk_dialog_new_with_buttons(
+					_("Select Revision"),
+					GTK_WINDOW(lookup_widget("control_window")),
+					GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+					_("_Cancel"), GTK_RESPONSE_CANCEL,
+					_("_OK"), GTK_RESPONSE_OK,
+					NULL);
+
+				const gchar *tooltip = _("Leave at 0 to open the current version of the script. If you have a problem with "
+					"a script update you can use this to go back to earlier revisions. Start by going back 1 revison "
+					"and increase the number until you find the last version that worked for you. Note that this will "
+					"only open the previous version in the script editor, it will not revert the script in the local "
+					"repository, but it allows you to save a local copy in one of your script folders for use until the "
+					"upstream script is fixed.");
+
+				GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+				GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+				GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+				GtkWidget *label = gtk_label_new(_("Revisions to go back (leave at 0 to get current revision):"));
+				gtk_widget_set_tooltip_text(label, tooltip);
+				GtkWidget *spin_button = gtk_spin_button_new_with_range(0, 999, 1);
+				gtk_widget_set_tooltip_text(spin_button, tooltip);
+				gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_button), 0);
+
+				gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
+				gtk_box_pack_start(GTK_BOX(hbox), spin_button, FALSE, FALSE, 5);
+				gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
+
+				GtkWidget *message_heading = gtk_label_new(NULL);
+				gtk_label_set_markup(GTK_LABEL(message_heading), "<b>Commit message</b>");
+				gtk_label_set_xalign(GTK_LABEL(message_heading), 0.0);
+				gtk_widget_set_margin_start(message_heading, 5);
+				gtk_widget_set_margin_top(message_heading, 10);
+				gtk_widget_set_margin_bottom(message_heading, 0);
+				gtk_box_pack_start(GTK_BOX(vbox), message_heading, FALSE, FALSE, 5);
+
+				// Create TextView with ScrolledWindow for commit message
+				GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+				gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
+											  GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+				gtk_widget_set_size_request(scrolled_window, -1, 100); // ~5 lines height
+
+				GtkWidget *message_textview = gtk_text_view_new();
+				gtk_text_view_set_editable(GTK_TEXT_VIEW(message_textview), FALSE);
+				gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(message_textview), FALSE);
+				gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(message_textview), GTK_WRAP_WORD);
+				gtk_widget_set_margin_start(scrolled_window, 5);
+				gtk_widget_set_margin_end(scrolled_window, 5);
+				gtk_widget_set_margin_top(scrolled_window, 2);
+				gtk_widget_set_margin_bottom(scrolled_window, 5);
+
+				// Set initial text
+				GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(message_textview));
+				gtk_text_buffer_set_text(buffer, _("Loading commit message..."), -1);
+
+				gtk_container_add(GTK_CONTAINER(scrolled_window), message_textview);
+				gtk_box_pack_start(GTK_BOX(vbox), scrolled_window, TRUE, TRUE, 5);
+
+				// Add to dialog
+				gtk_container_add(GTK_CONTAINER(content_area), vbox);
+				gtk_container_set_border_width(GTK_CONTAINER(content_area), 10);
+				gtk_widget_show_all(dialog);
+
+				// Set up live updating of commit message
+				CommitMessageUpdateData update_data = {
+					.scriptpath = scriptpath,
+					.message_textview = GTK_TEXT_VIEW(message_textview), // Changed from message_label
+				};
+				on_script_revision_spin_value_changed(GTK_SPIN_BUTTON(spin_button), &update_data); // Initial update
+				g_signal_connect(spin_button, "value-changed", G_CALLBACK(on_script_revision_spin_value_changed), &update_data);
+
+				gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+				// Check if user clicked OK before processing
+				if (response == GTK_RESPONSE_OK) {
+					// Get the spin button value BEFORE destroying the dialog
+					int revisions_back = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_button));
+					gtk_widget_destroy(dialog);
+
+					// Now use the revisions_back value, not the response
+					contents = get_script_content_string_from_file_revision(scriptpath, revisions_back, &length, NULL, NULL);
+
+					if (length > 0 && contents != NULL) {
+						const char *ext = get_filename_ext(scriptpath);
+						new_script(contents, length, ext);
+						g_free(contents);
+					} else {
+						gchar *msg = g_strdup_printf(_("Error loading script contents from %d revisions back: %s\n"),
+							revisions_back, scriptpath);
+						siril_log_color_message(msg, "red");
+						siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
+						g_free(msg);
+					}
+				} else {
+					// User cancelled - just destroy the dialog
+					gtk_widget_destroy(dialog);
+				}
+
+				g_free(scriptname);
+				g_free(scriptpath);
+			}
+
+			gtk_tree_path_free(path);
+			return TRUE; // Event handled
+		}
+
+		// Right-click on empty area - you might want to show a different menu
+		// or just ignore it
+		return TRUE;
+	}
+
+	return FALSE; // Let other handlers process the event
 }
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *char_path, gpointer user_data) {
@@ -234,20 +387,20 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 
 	if (!val) {
 		// Checkbox is now checked - add to list if not already present
-		if (!g_list_find_custom(com.pref.selected_scripts, script_path,
+		if (!g_slist_find_custom(com.pref.selected_scripts, script_path,
 							(GCompareFunc)g_strcmp0)) {
 #ifdef DEBUG_GITSCRIPTS
 			printf("Adding script: %s\n", script_path);
 #endif
-			// g_list_prepend takes ownership of script_path
-			com.pref.selected_scripts = g_list_prepend(com.pref.selected_scripts, script_path);
+			// g_slist_prepend takes ownership of script_path
+			com.pref.selected_scripts = g_slist_prepend(com.pref.selected_scripts, script_path);
 		} else {
 			// Already in list, free our copy
 			g_free(script_path);
 		}
 	} else {
 		// Checkbox is now unchecked - remove from list
-		GList *found = g_list_find_custom(com.pref.selected_scripts, script_path,
+		GSList *found = g_slist_find_custom(com.pref.selected_scripts, script_path,
 										(GCompareFunc)g_strcmp0);
 		if (found) {
 #ifdef DEBUG_GITSCRIPTS
@@ -256,7 +409,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 			// Free the data stored in the list
 			g_free(found->data);
 			// Remove the element and update the list
-			com.pref.selected_scripts = g_list_delete_link(com.pref.selected_scripts, found);
+			com.pref.selected_scripts = g_slist_delete_link(com.pref.selected_scripts, found);
 		}
 
 		// Free our copy of script_path
@@ -274,14 +427,14 @@ void on_disable_gitscripts() {
 	liststore = NULL;
 
 	gui_repo_scripts_mutex_lock();
-	g_list_free_full(gui.repo_scripts, g_free);
+	g_slist_free_full(gui.repo_scripts, g_free);
 	gui_repo_scripts_mutex_unlock();
 
 	gui.repo_scripts = NULL;
 	if (com.pref.selected_scripts)
-		g_list_free_full(com.pref.selected_scripts, g_free);
+		g_slist_free_full(com.pref.selected_scripts, g_free);
 	com.pref.selected_scripts = NULL;
-	refresh_script_menu(GINT_TO_POINTER(1));
+	g_thread_unref(g_thread_new("refresh_script_menu", refresh_script_menu_in_thread, GINT_TO_POINTER(1)));
 }
 
 void on_manual_script_sync_button_clicked(GtkButton *button, gpointer user_data) {

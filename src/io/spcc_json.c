@@ -117,7 +117,22 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	if (!model || !name || !manufacturer || !source) {
 		goto validation_error;
 	}
-
+	if (!g_utf8_validate(model, -1, NULL)) {
+		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'model'\n", jsonFilePath);
+		goto validation_error;
+	}
+	if (!g_utf8_validate(name, -1, NULL)) {
+		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'name'\n", jsonFilePath);
+		goto validation_error;
+	}
+	if (!g_utf8_validate(manufacturer, -1, NULL)) {
+		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'manufacturer'\n", jsonFilePath);
+		goto validation_error;
+	}
+	if (!g_utf8_validate(source, -1, NULL)) {
+		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'source'\n", jsonFilePath);
+		goto validation_error;
+	}
 	data->model = g_strdup(model);
 	data->name = g_strdup(name);
 	data->manufacturer = g_strdup(manufacturer);
@@ -328,7 +343,11 @@ static gboolean processJsonFile(const char *file_path) {
 							// to another we MUST make a copy, otherwise we get corruption when reloading
 							// the objects
 							spcc_object *copy = spcc_object_copy(data);
-							com.spcc_data.mono_filters[chan] = g_list_append(com.spcc_data.mono_filters[chan], copy);
+							if (copy) {
+								com.spcc_data.mono_filters[chan] = g_list_append(com.spcc_data.mono_filters[chan], copy);
+							} else {
+								siril_debug_print("Error copying SPCC object for channel duplication\n");
+							}
 						}
 					}
 				}
@@ -385,18 +404,46 @@ static gboolean processJsonFile(const char *file_path) {
 
 spcc_object* spcc_object_copy(spcc_object *data) {
 	spcc_object *copy = malloc(sizeof(spcc_object));
-	if (!copy) return NULL;
-	memcpy(copy, data, sizeof(spcc_object));
+	if (!copy) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+
+	memcpy(copy, data, sizeof(spcc_object));  // Copies primitive values and pointers
+
+	// Set string pointers to NULL before duplicating
+	copy->model = copy->name = copy->filepath = copy->comment = copy->manufacturer = copy->source = NULL;
+	// Duplicate strings individually
 	copy->model = g_strdup(data->model);
 	copy->name = g_strdup(data->name);
 	copy->filepath = g_strdup(data->filepath);
 	copy->comment = g_strdup(data->comment);
 	copy->manufacturer = g_strdup(data->manufacturer);
 	copy->source = g_strdup(data->source);
+	if ((!copy->model && data->model != NULL) ||
+		(!copy->name && data->name != NULL) ||
+		(!copy->filepath && data->filepath != NULL) ||
+		(!copy->comment && data->comment != NULL) ||
+		(!copy->manufacturer && data->manufacturer != NULL) ||
+		(!copy->source && data->source != NULL)) {
+		siril_debug_print("Error copying strings in spcc_object %s\n", data->filepath);
+		// Free anything that was already allocated
+		g_free(copy->model);
+		g_free(copy->name);
+		g_free(copy->filepath);
+		g_free(copy->comment);
+		g_free(copy->manufacturer);
+		g_free(copy->source);
+		free(copy);
+		return NULL;
+	}
+
+	// Reset fields that shouldn't be copied
 	copy->arrays_loaded = FALSE;
 	copy->x = NULL;
 	copy->y = NULL;
 	copy->n = 0;
+
 	return copy;
 }
 
@@ -718,12 +765,24 @@ static void processDirectory(const gchar *directory_path) {
 gint compare_spcc_object_names(gconstpointer a, gconstpointer b) {
 	const spcc_object *object1 = a;
 	const spcc_object *object2 = b;
+	if (!object1 && !object2)
+		return 0;
+	if (!object1)
+		return -1;
+	if (!object2)
+		return 1;
 	return g_strcmp0(object1->name, object2->name);
 }
 
 gint compare_osc_object_models(gconstpointer a, gconstpointer b) {
 	const osc_sensor *object1 = a;
 	const osc_sensor *object2 = b;
+	if (!object1 && !object2)
+		return 0;
+	if (!object1)
+		return -1;
+	if (!object2)
+		return 1;
 	return g_strcmp0(object1->channel[0].model, object2->channel[0].model);
 }
 
@@ -735,6 +794,32 @@ static void spcc_object_destroy(void *user_data) {
 static void osc_sensor_destroy(void *user_data) {
 	osc_sensor *object = (osc_sensor*) user_data;
 	osc_sensor_free(object, TRUE);
+}
+
+static void debug_null_list_entries(GList **list) {
+	for (GList *iter = *list; iter != NULL; iter = iter->next) {
+		if (iter->data == NULL) {
+			const gchar *prev_name = NULL;
+			const gchar *next_name = NULL;
+
+			if (iter->prev && iter->prev->data) {
+				spcc_object *prev_obj = (spcc_object *)iter->prev->data;
+				prev_name = prev_obj->name;
+			}
+
+			if (iter->next && iter->next->data) {
+				spcc_object *next_obj = (spcc_object *)iter->next->data;
+				next_name = next_obj->name;
+			}
+
+			g_print("Found NULL entry in list\n");
+			g_print("Previous entry name: %s\n", prev_name ? prev_name : "(null)");
+			g_print("Next entry name: %s\n", next_name ? next_name : "(null)");
+			// Remove the entry with NULL data
+			*list = g_list_delete_link(*list, iter);
+			g_print("NULL entry removed\n");
+		}
+	}
 }
 
 void load_all_spcc_metadata() {
@@ -757,6 +842,11 @@ void load_all_spcc_metadata() {
 	const gchar *path = siril_get_spcc_repo_path();
 	processDirectory(path);
 	siril_debug_print("SPCC JSON metadata loaded\n");
+
+	debug_null_list_entries(&com.spcc_data.wb_ref);
+	debug_null_list_entries(&com.spcc_data.osc_lpf);
+	debug_null_list_entries(&com.spcc_data.osc_filters);
+	debug_null_list_entries(&com.spcc_data.mono_sensors);
 
 	com.spcc_data.wb_ref = g_list_sort(com.spcc_data.wb_ref, compare_spcc_object_names);
 	com.spcc_data.osc_sensors = g_list_sort(com.spcc_data.osc_sensors, compare_osc_object_models);

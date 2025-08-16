@@ -334,6 +334,19 @@ int process_save(int nb){
 		retval = savefits(savename, &gfit) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
 	}
+	if (com.uniq) {
+		if (!g_str_has_suffix(savename, com.pref.ext)) {
+			gchar* tempfilename = g_strdup_printf("%s%s", savename, com.pref.ext);
+			com.uniq->filename = strdup(tempfilename);
+			g_free(tempfilename);
+		} else {
+			com.uniq->filename = strdup(savename);
+		}
+		com.uniq->fileexist = TRUE;
+		if (!com.headless) {
+			display_filename();
+		}
+	}
 	gui_function(set_precision_switch, NULL);
 
 	g_free(filename);
@@ -4099,7 +4112,7 @@ int process_pm(int nb) {
 	gchar *cleaned_expression = g_regex_replace(regex, expression, -1, 0, "gfit", 0, NULL);
 	g_regex_unref(regex);
 
-	// Check if a replacement was made to set some flags and check if an image is really laoded
+	// Check if a replacement was made to set some flags and check if an image is really loaded
 	if (g_strcmp0(expression, cleaned_expression) != 0) {
 		if (!single_image_is_loaded()) {
 			g_free(cleaned_expression);
@@ -4382,8 +4395,8 @@ int process_seq_tilt(int nb) {
 	}
 	// through GUI, in case the specified sequence is not the loaded sequence
 	// load it before running
-	if (!com.script && seq != &com.seq) {
-		gui_function(set_seq, word[1]);
+	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
+		execute_idle_and_wait_for_it(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		draw_polygon = TRUE;
@@ -4494,84 +4507,184 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 	return CMD_OK;
 }
 
-/* seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }] */
+gboolean get_followstar_idle(gpointer user_data) {
+	framing_mode *framing = (framing_mode*) user_data;
+	GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+	if (gtk_toggle_button_get_active(follow))
+		*framing = FOLLOW_STAR_FRAME;
+	// no need to have an else as framing is already initiated by the caller
+	return FALSE;
+}
+
+/* seqpsf sequencename [channel] [{ -at=x,y | -wcs=ra,dec }] [-followstar] */
 int process_seq_psf(int nb) {
-	if (com.script && nb < 4) {
-		siril_log_message(_("Arguments are not optional when called from a script\n"));
-		return CMD_ARG_ERROR;
-	}
-	if (!com.headless && !sequence_is_loaded() && nb < 4) {
-		siril_log_message(_("Arguments are optional only if a sequence is already loaded and selection around a star made\n"));
+	// Must have at least sequence name argument
+	if (nb < 2) {
+		siril_log_message(_("Sequence name is required as first argument (use '.' for current sequence)\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	sequence *seq = NULL;
-	int layer;
-	if (nb < 4) {
+	int layer = -1;
+	gboolean has_area = FALSE;
+	rectangle area = { 0 };
+	if (com.selection.w > 0 && com.selection.h > 0) {
+		area = com.selection;
+		has_area = TRUE;
+	}
+	gboolean followstar_set = FALSE;
+	gboolean use_current_seq = FALSE;
+
+	// First argument is always sequence name
+	seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
+		execute_idle_and_wait_for_it(set_seq, seq->seqname);
+		free_sequence(seq, TRUE);
 		seq = &com.seq;
-		layer = select_vport(gui.cvport);
+	}
 
-		if (com.selection.w > 300 || com.selection.h > 300) {
+	// Parse remaining arguments in any order
+	for (int i = 2; i < nb; i++) {
+		if (strcmp(word[i], "-followstar") == 0) {
+			followstar_set = TRUE;
+		} else if (layer == -1) {
+			// Try to parse as layer number
+			gchar *end;
+			int potential_layer = g_ascii_strtoull(word[i], &end, 10);
+			if (end != word[i] && potential_layer < seq->nb_layers) {
+				layer = potential_layer;
+			} else {
+				// Not a valid layer number, try as star position
+				if (!has_area) {
+					fits first = { 0 };
+					if (use_current_seq) {
+						// For current sequence, we may not need to read metadata
+						// if we're using current selection
+						if (area.w > 0 && area.h > 0) {
+							has_area = TRUE;
+							continue;
+						}
+					}
+
+					if (seq_read_frame_metadata(seq, 0, &first)) {
+						if (seq != &com.seq) free_sequence(seq, TRUE);
+						return CMD_GENERIC_ERROR;
+					}
+					seq->current = 0;
+
+					if (parse_star_position_arg(word[i], seq, &first, &area, NULL) == 0) {
+						has_area = TRUE;
+						clearfits(&first);
+					} else {
+						clearfits(&first);
+						siril_log_message(_("Invalid argument: %s\n"), word[i]);
+						if (seq != &com.seq) free_sequence(seq, TRUE);
+						return CMD_ARG_ERROR;
+					}
+				} else {
+					siril_log_message(_("Invalid argument: %s\n"), word[i]);
+					if (seq != &com.seq) free_sequence(seq, TRUE);
+					return CMD_ARG_ERROR;
+				}
+			}
+		} else if (!has_area) {
+			// Try to parse as star position
+			fits first = { 0 };
+				if (use_current_seq) {
+					// For current sequence, we may not need to read metadata
+					// if we're using current selection
+					if (area.w > 0 && area.h > 0) {
+						has_area = TRUE;
+						continue;
+					}
+				}
+				if (seq_read_frame_metadata(seq, 0, &first)) {
+				if (seq != &com.seq) free_sequence(seq, TRUE);
+				return CMD_GENERIC_ERROR;
+			}
+			seq->current = 0;
+
+			if (parse_star_position_arg(word[i], seq, &first, &area, NULL) == 0) {
+				has_area = TRUE;
+				clearfits(&first);
+			} else {
+				clearfits(&first);
+				siril_log_message(_("Invalid argument: %s\n"), word[i]);
+				if (seq != &com.seq) free_sequence(seq, TRUE);
+				return CMD_ARG_ERROR;
+			}
+		} else {
+			siril_log_message(_("Invalid argument: %s\n"), word[i]);
+			if (seq != &com.seq) free_sequence(seq, TRUE);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	// Set defaults for missing arguments
+	if (layer == -1) {
+		if (use_current_seq) {
+			layer = select_vport(gui.cvport);
+		} else {
+			layer = 0; // Default to first layer
+		}
+	}
+
+	if (!has_area) {
+		if (use_current_seq && com.selection.w > 0 && com.selection.h > 0) {
+			area = com.selection;
+			has_area = TRUE;
+		} else {
+			if (com.script) {
+				siril_log_message(_("Layer and star position arguments are required when called from a script\n"));
+				if (seq != &com.seq) free_sequence(seq, TRUE);
+				return CMD_ARG_ERROR;
+			}
+			if (!com.headless) {
+				siril_log_message(_("Layer and star position arguments are required, or make a selection around a star\n"));
+				if (seq != &com.seq) free_sequence(seq, TRUE);
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+
+	// Validate layer
+	if (layer >= seq->nb_layers) {
+		siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
+		if (seq != &com.seq) free_sequence(seq, TRUE);
+		return CMD_ARG_ERROR;
+	}
+
+	// Validate selection area
+	if (has_area) {
+		if (area.w > 300 || area.h > 300) {
 			siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
+			if (seq != &com.seq) free_sequence(seq, TRUE);
 			return CMD_SELECTION_ERROR;
 		}
-		if (com.selection.w <= 0 || com.selection.h <= 0) {
+		if (area.w <= 0 || area.h <= 0) {
 			siril_log_message(_("Select an area first\n"));
+			if (seq != &com.seq) free_sequence(seq, TRUE);
 			return CMD_SELECTION_ERROR;
-		}
-	} else {
-		seq = load_sequence(word[1], NULL);
-		if (!seq) {
-			return CMD_SEQUENCE_NOT_FOUND;
-		}
-		if (!com.script && seq != &com.seq) {
-			gui_function(set_seq, word[1]);
-			free_sequence(seq, TRUE);
-			seq = &com.seq;
-		}
-
-		fits first = { 0 };
-		if (seq_read_frame_metadata(seq, 0, &first)) {
-			free_sequence(seq, TRUE);
-			return CMD_GENERIC_ERROR;
-		}
-		seq->current = 0;
-
-		gchar *end;
-		layer = g_ascii_strtoull(word[2], &end, 10);
-		if (end == word[2] || layer >= seq->nb_layers) {
-			siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
-			free_sequence(seq, TRUE);
-			clearfits(&first);
-			return CMD_ARG_ERROR;
-		}
-
-		rectangle area;
-		if (parse_star_position_arg(word[3], seq, &first, &area, NULL)) {
-			free_sequence(seq, TRUE);
-			clearfits(&first);
-			return CMD_ARG_ERROR;
 		}
 		com.selection = area;
-		clearfits(&first);
 	}
 
-	framing_mode framing = REGISTERED_FRAME;
-	if (framing == REGISTERED_FRAME && !seq->regparam[layer])
-		framing = ORIGINAL_FRAME;
-	if (framing == ORIGINAL_FRAME) {
-		if (com.headless)
-			framing = FOLLOW_STAR_FRAME;
-		else {
-			GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
-			if (gtk_toggle_button_get_active(follow))
-				framing = FOLLOW_STAR_FRAME;
+	// Set framing mode
+	framing_mode framing = ORIGINAL_FRAME;
+	if (followstar_set) {
+		framing = FOLLOW_STAR_FRAME;
+	} else {
+		// Try registered frame first if available
+		if (seq->regparam[layer]) {
+			framing = REGISTERED_FRAME;
 		}
 	}
+
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
-	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, com.script) ? CMD_GENERIC_ERROR : CMD_OK;
-	if (seq != &com.seq)
-		free_sequence(seq, TRUE);
+	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, (com.script || com.python_script)) ? CMD_GENERIC_ERROR : CMD_OK;
 	return retval;
 }
 
@@ -6074,6 +6187,14 @@ int process_findcosme(int nb) {
 	return CMD_OK;
 }
 
+static gboolean select_update_gui(gpointer user_data) {
+	update_stack_interface(TRUE);
+	update_reg_interface(FALSE);
+	adjust_sellabel();
+	drawPlot();
+	return FALSE;
+}
+
 int select_unselect(gboolean select) {
 	char *end1, *end2;
 	int from = g_ascii_strtoull(word[2], &end1, 10);
@@ -6119,10 +6240,8 @@ int select_unselect(gboolean select) {
 	writeseqfile(seq);
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
-		update_stack_interface(TRUE);
-		update_reg_interface(FALSE);
-		adjust_sellabel();
-		drawPlot();
+		if (!com.headless)
+			execute_idle_and_wait_for_it(select_update_gui, NULL);
 	}
 	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
 
@@ -8526,6 +8645,11 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 	return CMD_OK;
 }
 
+static gboolean stack_stop_thread(gpointer user_data) {
+	stop_processing_thread();
+	return FALSE;
+}
+
 static int stack_one_seq(struct stacking_configuration *arg) {
 	sequence *seq = readseqfile(arg->seqfile);
 	if (!seq) {
@@ -8638,7 +8762,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	free(args.critical_value);
 
 	if (retval == CMD_OK) {
-		stop_processing_thread();
+		execute_idle_and_wait_for_it(stack_stop_thread, NULL);
 		bgnoise_async(&args.result, TRUE);
 		// preparing the output filename
 		// needs to be done after stack is completed to have
@@ -9540,7 +9664,13 @@ int process_extract(int nb) {
 }
 
 int process_reloadscripts(int nb){
-	return refresh_scripts(FALSE, NULL);
+	if (com.headless) {
+		siril_log_color_message(_("Error: cannot reload script menu when running headless\n"), "red");
+		return CMD_GENERIC_ERROR;
+	} else {
+		g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
+	}
+	return CMD_OK;
 }
 
 int process_requires(int nb) {
@@ -11404,11 +11534,12 @@ int process_pwd(int nb) {
 typedef struct _pyscript_data {
 	gchar *script_name;
 	gchar **argv_script;
+	gboolean from_cli;
 } pyscript_data;
 
 gpointer execute_python_script_wrapper(gpointer user_data) {
 	pyscript_data *data = (pyscript_data*) user_data;
-	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE);
+	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE, data->from_cli, FALSE);
 	g_strfreev(data->argv_script);
 	free(data);
 	return GINT_TO_POINTER(0);
@@ -11422,6 +11553,8 @@ int process_pyscript(int nb) {
 		script_name = g_strdup(word[1]);
 	} else {
 		// Search for the file in the user's set script directories and the scripts repository
+		// We search the user's path first so any local modifications are used in preference to
+		// the repository script with the same name.
 		GSList *path = com.pref.gui.script_path;
 		while (path) {
 			siril_debug_print("Searching script path: %s\n", (gchar*) path->data);
@@ -11448,10 +11581,11 @@ int process_pyscript(int nb) {
 		pyscript_data *data = calloc(1, sizeof(pyscript_data));
 		data->script_name = script_name;
 		data->argv_script = argv_script;
-		g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);  // TRUE to overwrite if it exists
+		data->from_cli = TRUE;
 		// Cannot use start_in_new_thread here because of the possibility of the python script
 		// calling siril.cmd() and running commands that themselves require the processing thread
 		// so we use a generic GThread
+		gboolean already_in_a_python_script = com.python_script;
 		GThread *thread = g_thread_new("pyscript_thread", execute_python_script_wrapper, data);
 		if (!thread) {
 			free(data);
@@ -11459,7 +11593,11 @@ int process_pyscript(int nb) {
 			g_strfreev(argv_script);
 			return CMD_GENERIC_ERROR;
 		} else {
-			g_thread_unref(thread);
+			if (com.script || already_in_a_python_script) {
+				g_thread_join(thread);
+			} else {
+				g_thread_unref(thread);
+			}
 		}
 		return CMD_OK;
 	} else {

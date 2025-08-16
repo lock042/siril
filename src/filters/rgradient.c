@@ -220,7 +220,7 @@ void on_rgradient_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 gboolean rgradient_hide_on_delete(GtkWidget *widget) {
-	on_rgradient_cancel_clicked(GTK_BUTTON(widget), NULL);
+	siril_close_dialog("rgradient_dialog");
 	return TRUE;
 }
 

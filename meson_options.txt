@@ -90,6 +90,12 @@ option('criterion',
  description: 'build with criterion support'
 )
 
+option('arch_native',
+ type : 'boolean',
+ value : false,
+ description : 'Enable -march=native optimization'
+)
+
 option('flatpak-id',
  type : 'string',
  value : '',

@@ -380,7 +380,7 @@ void on_button_ok_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 }
 
 gboolean banding_hide_on_delete(GtkWidget *widget) {
-	on_button_ok_fixbanding_clicked(GTK_BUTTON(widget), NULL);
+	siril_close_dialog("canon_fixbanding_dialog");
 	return TRUE;
 }
 

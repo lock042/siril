@@ -660,6 +660,13 @@ static gpointer mini_save_dialog(gpointer p) {
 			args->retval = savefits(args->filename, &gfit);
 			if (!args->retval && single_image_is_loaded()) {
 				com.uniq->filename = strdup(args->filename);
+				// com.uniq->filename is handled by libc functions so we can't use g_strdup_printf directly
+				if (!g_str_has_suffix(args->filename, com.pref.ext)) {
+					gchar* tempfilename = g_strdup_printf("%s%s", args->filename, com.pref.ext);
+					free(com.uniq->filename);  // Free the previously allocated memory
+					com.uniq->filename = strdup(tempfilename);
+					g_free(tempfilename);  // Use g_free for GLib allocated memory
+				}
 				com.uniq->fileexist = TRUE;
 			}
 			break;

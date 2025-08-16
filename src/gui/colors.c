@@ -292,7 +292,7 @@ void on_calibration_close_button_clicked(GtkButton *button, gpointer user_data) 
 }
 
 gboolean calibration_hide_on_delete(GtkWidget *widget) {
-	on_calibration_close_button_clicked(GTK_BUTTON(widget), NULL);
+	siril_close_dialog("color_calibration");
 	return TRUE;
 }
 
@@ -580,6 +580,6 @@ void on_ccm_close_clicked(GtkButton* button, gpointer user_data) {
 }
 
 gboolean ccm_hide_on_delete(GtkWidget *widget) {
-	on_ccm_close_clicked(GTK_BUTTON(widget), NULL);
+	siril_close_dialog("ccm_dialog");
 	return TRUE;
 }

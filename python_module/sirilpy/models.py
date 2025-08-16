@@ -1151,19 +1151,39 @@ class Polygon:
     they can be used to display information to the user but they may be cleared
     at any time if the user toggles the overlay button in the main Siril interface
     to clear the overlay.
-
-    Attributes:
-        polygon_id (int): A unique identifier for the polygon.
-        points (List[FPoint]): List of points defining the polygon's shape.
-        color (int): Packed RGBA color (32-bit integer).
-        fill (bool): If True, the polygon should be filled when drawn.
-        legend (str): Optional legend for the polygon.
     """
-    points: List[FPoint] #: List of points defining the polygon's shape :no-index:
-    polygon_id: int = 0 #: unique identifier :no-index:
-    color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF) :no-index:
-    fill: bool = False #: whether or not the polygon should be filled when drawn :no-index:
-    legend: str = None #: an optional legend :no-index:
+    
+    points: List[FPoint] #: List of points defining the polygon's shape
+    polygon_id: int = 0 #: unique identifier
+    color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF)
+    fill: bool = False #: whether or not the polygon should be filled when drawn
+    legend: str = None #: an optional legend
+
+    @classmethod
+    def from_rectangle(cls, rect: Tuple[int, int, int, int], **kwargs) -> 'Polygon':
+        """
+        Create a Polygon from a rectangle of the kind returned by
+        sirilpy.connection.get_siril_selection().
+
+        Args:
+            rect (Tuple[int, int, int, int]): Rectangle as (x, y, width, height)
+            **kwargs: Additional keyword arguments to pass to Polygon constructor
+                    (polygon_id, color, fill, legend)
+
+        Returns:
+            Polygon: A new Polygon instance representing the rectangle
+        """
+        x, y, width, height = rect
+
+        # Create the four corner points of the rectangle
+        points = [
+            FPoint(float(x), float(y)),                    # top-left
+            FPoint(float(x + width), float(y)),            # top-right
+            FPoint(float(x + width), float(y + height)),   # bottom-right
+            FPoint(float(x), float(y + height))            # bottom-left
+        ]
+
+        return cls(points=points, **kwargs)
 
     def __str__(self):
         """For pretty-printing polygon information"""
@@ -1174,6 +1194,103 @@ class Polygon:
         for i, point in enumerate(self.points):
             pretty += f'\nPoint {i}: {point.x}, {point.y}'
         return pretty
+
+    def get_bounds(self) -> Tuple[float, float, float, float]:
+        """
+        Get the bounding box of the polygon.
+
+        Returns:
+            Tuple[float, float, float, float]: (min_x, min_y, max_x, max_y)
+
+        Raises:
+            ValueError: If the polygon has no points.
+        """
+        if not self.points:
+            raise ValueError("Polygon has no points")
+
+        min_x = min(point.x for point in self.points)
+        max_x = max(point.x for point in self.points)
+        min_y = min(point.y for point in self.points)
+        max_y = max(point.y for point in self.points)
+
+        return min_x, min_y, max_x, max_y
+
+    def get_min_x(self) -> float:
+        """Get the minimum x coordinate of the polygon."""
+        if not self.points:
+            raise ValueError("Polygon has no points")
+        return min(point.x for point in self.points)
+
+    def get_max_x(self) -> float:
+        """Get the maximum x coordinate of the polygon."""
+        if not self.points:
+            raise ValueError("Polygon has no points")
+        return max(point.x for point in self.points)
+
+    def get_min_y(self) -> float:
+        """Get the minimum y coordinate of the polygon."""
+        if not self.points:
+            raise ValueError("Polygon has no points")
+        return min(point.y for point in self.points)
+
+    def get_max_y(self) -> float:
+        """Get the maximum y coordinate of the polygon."""
+        if not self.points:
+            raise ValueError("Polygon has no points")
+        return max(point.y for point in self.points)
+
+    def contains_point(self, x: float, y: float) -> bool:
+        """
+        Determine if a point is inside the polygon using Dan Sunday's optimized winding number algorithm.
+
+        This algorithm is more robust than ray casting for complex polygons and handles
+        edge cases better, including points on edges and self-intersecting polygons.
+
+        Args:
+            x (float): X coordinate of the point to test.
+            y (float): Y coordinate of the point to test.
+
+        Returns:
+            bool: True if the point is inside the polygon, False otherwise.
+        """
+        if len(self.points) < 3:
+            return False
+
+        def _is_left(p0_x: float, p0_y: float, p1_x: float, p1_y: float, p2_x: float, p2_y: float) -> float:
+            """
+            Test if point P2 is left|on|right of an infinite line P0P1.
+
+            Returns:
+                >0 for P2 left of the line through P0 and P1
+                =0 for P2 on the line
+                <0 for P2 right of the line
+            """
+            return ((p1_x - p0_x) * (p2_y - p0_y) - (p2_x - p0_x) * (p1_y - p0_y))
+
+        winding_number = 0    # the winding number counter
+        n = len(self.points)
+
+        # Loop through all edges of the polygon
+        for i in range(n):
+            # Edge from vertex i to vertex i+1
+            if i == n - 1:
+                # Last edge connects to first vertex
+                v1_x, v1_y = self.points[i].x, self.points[i].y
+                v2_x, v2_y = self.points[0].x, self.points[0].y
+            else:
+                v1_x, v1_y = self.points[i].x, self.points[i].y
+                v2_x, v2_y = self.points[i + 1].x, self.points[i + 1].y
+
+            if v1_y <= y:          # start y <= P.y
+                if v2_y > y:      # an upward crossing
+                    if _is_left(v1_x, v1_y, v2_x, v2_y, x, y) > 0:  # P left of edge
+                        winding_number += 1            # have a valid up intersect
+            else:                        # start y > P.y (no test needed)
+                if v2_y <= y:     # a downward crossing
+                    if _is_left(v1_x, v1_y, v2_x, v2_y, x, y) < 0:  # P right of edge
+                        winding_number -= 1            # have a valid down intersect
+
+        return winding_number != 0
 
     def serialize(self) -> bytes:
         """

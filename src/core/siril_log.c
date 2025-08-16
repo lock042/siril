@@ -76,6 +76,19 @@ char* siril_log_color_message(const char* format, const char* color, ...) {
 	return msg;
 }
 
+// Use these functions for literal color messages, i.e. from external sources
+// like python. In this case we do not want the message to be interpreted as a
+// printf-style format string!
+char* siril_log_literal_color_message(const char* message, const char* color) {
+    // Use the existing function but with %s format to treat message as literal
+    return siril_log_color_message("%s", color, message);
+}
+
+char* siril_log_literal_message(const char* message) {
+    // Use the existing function but with %s format to treat message as literal
+    return siril_log_message("%s", message);
+}
+
 const char *format_time_diff(struct timeval t_start, struct timeval t_end) {
 	static char str[32];
 	double start = (double) (t_start.tv_sec + t_start.tv_usec / 1.0E6);

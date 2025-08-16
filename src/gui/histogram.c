@@ -61,7 +61,7 @@ static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0
 static clip_mode_t _clip_mode = CLIP;
 static gboolean do_channel[3];
 static int _stretchtype = STRETCH_PAYNE_NORMAL;
-static int _payne_colourstretchmodel = COL_HUMANLUM;
+static int _payne_colourstretchmodel = COL_INDEP;
 static ght_compute_params compute_params;
 
 static fits* fit = &gfit;
@@ -133,7 +133,17 @@ static void init_toggles() {
 	}
 }
 
+static gboolean active_sliders = TRUE;
+
+static void set_controls_active(gboolean state) {
+	gtk_widget_set_sensitive(lookup_widget("histoShadEntry"), state);
+	gtk_widget_set_sensitive(lookup_widget("histoMidEntry"), state);
+	gtk_widget_set_sensitive(lookup_widget("histoHighEntry"), state);
+	active_sliders = state;
+}
+
 static void histo_startup() {
+	set_controls_active(TRUE);
 	add_roi_callback(histo_change_between_roi_and_image);
 	roi_supported(TRUE);
 	copy_gfit_to_backup();
@@ -884,7 +894,7 @@ static void reset_cursors_and_values(gboolean full_reset) {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP")), _HP);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtBP")), _BP);
 		if (full_reset) {
-			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 1);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 0);
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payneTyp")), 0);
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("histo_clip_mode")), 0);
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")), TRUE);
@@ -1211,6 +1221,7 @@ gboolean on_scale_key_release_event(GtkWidget *widget, GdkEvent *event,
 void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
+	set_controls_active(TRUE);
 	if (invocation == HISTO_STRETCH) {
 		if ((_midtones == 0.5f) && (_shadows == 0.0f) && (_highlights == 1.0f)) {
 			return;
@@ -1380,6 +1391,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 		if (fit->color_managed && !profiles_identical(fit->icc_profile, gui.icc.monitor))
 			auto_display_compensation = TRUE;
 		notify_update((gpointer) param);
+		set_controls_active(FALSE);
 	} else {
 		siril_log_color_message(_("Could not compute autostretch parameters, using default values\n"), "salmon");
 	}
@@ -1524,7 +1536,7 @@ gboolean on_drawingarea_histograms_motion_notify_event(GtkWidget *widget, GdkEve
 				xpos = 0.0;
 			if (xpos > 1.0)
 				xpos = 1.0;
-		if (invocation == HISTO_STRETCH) {
+		if (invocation == HISTO_STRETCH && active_sliders) {
 			gchar *buffer = NULL;
 			GtkEntry *histoMidEntry = GTK_ENTRY(lookup_widget("histoMidEntry"));
 			GtkEntry *histoShadEntry = GTK_ENTRY(lookup_widget("histoShadEntry"));
@@ -1582,7 +1594,7 @@ gboolean on_drawingarea_histograms_button_press_event(GtkWidget *widget,
 	width = get_width_of_histo();
 	int height = 281;
 	height = get_height_of_histo();
-	if (invocation == HISTO_STRETCH) {
+	if (invocation == HISTO_STRETCH && active_sliders) {
 		if (on_gradient((GdkEvent *) event, width, height)) {
 			float delta = ((_highlights - _shadows) * _midtones) + _shadows;
 

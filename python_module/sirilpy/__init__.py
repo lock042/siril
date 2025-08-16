@@ -13,7 +13,47 @@ from Python, enabling advanced astronomical image processing workflows.
 import io
 import os
 import sys
+
 import locale
+def _fix_locale():
+    """
+    Aggressive locale fix - clear all locale environment variables and set to en_US.UTF-8 or C
+    """
+    # First, clear ALL locale-related environment variables
+    locale_vars = ['LC_ALL', 'LC_CTYPE', 'LC_NUMERIC', 'LC_TIME', 'LC_COLLATE',
+                   'LC_MONETARY', 'LC_MESSAGES', 'LC_PAPER', 'LC_NAME',
+                   'LC_ADDRESS', 'LC_TELEPHONE', 'LC_MEASUREMENT',
+                   'LC_IDENTIFICATION', 'LANG', 'LANGUAGE']
+
+    for var in locale_vars:
+        if var in os.environ:
+            del os.environ[var]
+
+    # Try to set to a proper locale that returns valid language info
+    fallback_locales = ['en_US.UTF-8', 'en_US', 'C.UTF-8', 'C']
+
+    for loc in fallback_locales:
+        try:
+            os.environ['LC_ALL'] = loc
+            os.environ['LANG'] = loc
+            locale.setlocale(locale.LC_ALL, loc)
+
+            # Test that it works and returns valid language info
+            lang, encoding = locale.getdefaultlocale()
+            if lang is not None:  # Make sure we get a valid language
+                break
+
+        except Exception:
+            continue
+    else:
+        # If all locales fail, set basic fallback
+        os.environ['LC_ALL'] = 'en_US.UTF-8'
+        os.environ['LANG'] = 'en_US.UTF-8'
+        try:
+            locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+        except Exception as e:
+            print(f"Warning: Could not fix locale: {e}", file=sys.stderr)
+_fix_locale()
 
 # Import translation functions first
 from .translations import _
@@ -53,7 +93,11 @@ from .utility import (
     check_module_version,
     SuppressedStdout,
     SuppressedStderr,
-    ONNXHelper
+)
+from .gpuhelper import (
+    ONNXHelper,
+    TorchHelper,
+    JaxHelper,
 )
 from .exceptions import (
     SirilError,
@@ -62,25 +106,14 @@ from .exceptions import (
     CommandError,
     DataError,
     NoImageError,
+    MouseModeError,
     NoSequenceError,
     ProcessingThreadBusyError,
     ImageDialogOpenError
 )
 from .connection import SirilInterface
 
-try:  # import from the packaging specification
-    from importlib.metadata import metadata, PackageNotFoundError
-    meta = metadata("sirilpy")
-    __version__ = meta.get("version", "unknown")
-    __author__ = meta.get("author", "unknown")
-    __license__ = meta.get("license", "unknown")
-except (ImportError, PackageNotFoundError):
-    # Specific exceptions rather than general Exception
-    __version__ = "unknown"
-    __author__ = "unknown"
-    __license__ = "unknown"
-
-__copyright__ = " (c) Team free-astro 2024-2025"  # not a standard metadata
+from .version import __version__, __author__, __license__, __copyright__
 
 # Define public API
 __all__ = [
@@ -109,6 +142,7 @@ __all__ = [
     'DataError',
     'NoImageError',
     'NoSequenceError',
+    'MouseModeError',
     'ProcessingThreadBusyError',
     'ImageDialogOpenError',
     'SharedMemoryWrapper',
@@ -116,6 +150,8 @@ __all__ = [
     'SuppressedStdout',
     'SuppressedStderr',
     'ONNXHelper',
+    'TorchHelper',
+    'JaxHelper',
     'human_readable_size',
     'download_with_progress',
     'LogColor',
@@ -145,46 +181,3 @@ def _safe_reconfigure_stream(stream_name):
 
 _safe_reconfigure_stream("stdout")
 _safe_reconfigure_stream("stderr")
-
-def _fix_locale():
-    """Fix problematic locales by testing compatibility and falling back to en_US."""
-    try:
-        current_locale = locale.getlocale()
-
-        # Test if current locale might cause issues by trying to use it
-        try:
-            # Test the locale by trying to set it again (this will fail for problematic locales)
-            if current_locale[0]:
-                locale.setlocale(locale.LC_ALL, current_locale)
-
-            # Additional test: try to format a number
-            test_val = locale.format_string("%.2f", 3.14)
-
-        except (locale.Error, ValueError, TypeError):
-            # Current locale is problematic, switch to en_US.UTF-8 (typical known-good locale)
-            try:
-                locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-                os.environ['LC_ALL'] = 'en_US.UTF-8'
-                os.environ['LANG'] = 'en_US.UTF-8'
-            except locale.Error:
-                # If en_US.UTF-8 isn't available, try en_US
-                try:
-                    locale.setlocale(locale.LC_ALL, 'en_GB')
-                    os.environ['LC_ALL'] = 'en_US'
-                    os.environ['LANG'] = 'en_US'
-                except locale.Error:
-                    # Final fallback to C locale
-                    try:
-                        locale.setlocale(locale.LC_ALL, 'C')
-                        os.environ['LC_ALL'] = 'C'
-                        os.environ['LANG'] = 'C'
-                    except locale.Error:
-                        print("Warning: locale appears invalid and unable to set "
-                                "safe fallback", file=sys.stderr)
-                        pass  # If even C locale fails, leave as is, but with a warning
-
-    except (locale.Error, AttributeError, TypeError):
-        # If we can't detect or test locale, don't change anything
-        pass
-
-_fix_locale()

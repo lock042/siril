@@ -1134,8 +1134,10 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 
 	/* We check that available disk space is enough when
 	the registration method produces a new sequence with images
+	Note: for applyreg, this is done by check_applyreg_output(), 
+	as we need to make a more complex calc for frame sizes accounting for framing method
 	*/
-	if (has_output_images) {
+	if (has_output_images && regindex != REG_APPLY) {
 		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
 		gint64 size = seq_compute_size(regargs->seq, nb_frames, get_data_type(regargs->seq->bitpix));
 		if (regargs->output_scale != 1.f)
