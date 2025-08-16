@@ -2904,19 +2904,18 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 			if (val > max_vals[ch]) max_vals[ch] = val;
 		}
 	}
-
 	int chans = is_color ? 3 : 1;
-	float scales[3];
-	for (int ch = 0; ch < n_channels; ch++) {
-		scales[ch] = 1.f / (max_vals[ch] - min_vals[ch]);
-	}
+	float maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
+	float minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
+	float scale = 1.f / (maxmax - minmin);
+	printf("#### minmin %f maxmax %f scale %f ####\n", minmin, maxmax, scale);
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread)
 #endif
 	for (int idx = 0 ; idx < (int)(prev_size * chans); idx++) {
 		int chan = idx / prev_size;
-		preview_data[idx] = (preview_data[idx] - min_vals[chan]) * scales[chan];
+		preview_data[idx] = (preview_data[idx] - minmin) * scale;
 	}
 
 	fits *tmp = NULL;
