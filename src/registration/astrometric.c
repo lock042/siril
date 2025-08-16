@@ -102,6 +102,40 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 	return TRUE;
 }
 
+static int calcH_from_corners(int rx, int ry, int ry_ref, wcsprm_t *prm_img, wcsprm_t *prm_ref, Homography *H) {
+	// corners in siril coords
+	double corner_x[4] = { 0., (double)rx, (double)rx, 0. };
+	double corner_y[4] = { 0., 0., (double)ry, (double)ry };
+	// other inits
+	double corner_ra[4] = { 0. };
+	double corner_dec[4] = { 0. };
+	double corner_ref_x[4] = { 0. };
+	double corner_ref_y[4] = { 0. };
+	// we compute the world coordinates of the corners of the image with its own wcs solution
+	for (int i = 0; i < 4; i++)
+		// uses x/y in siril coords
+		pix2wcs2(prm_img, corner_x[i], corner_y[i], &corner_ra[i], &corner_dec[i]);
+
+	// then we compute the corners coordinates from their world position in the reference framing
+	for (int i = 0; i < 4; i++)
+		// returns x/y in siril coords
+		wcs2pix2(prm_ref, corner_ra[i], corner_dec[i], &corner_ref_x[i], &corner_ref_y[i]);
+
+	// we convert all the corner coordinates from siril to opencv coordinates
+	for (int i = 0; i < 4; i++) {
+		corner_x[i] = corner_x[i] - 0.5;
+		corner_y[i] = ry - corner_y[i] - 0.5;
+		corner_ref_x[i] = corner_ref_x[i] - 0.5;
+		corner_ref_y[i] = ry_ref - corner_ref_y[i] - 0.5;
+	}
+	int ret = cvCalcH_from_corners(corner_x, corner_y, corner_ref_x, corner_ref_y, H);
+	if (ret < 0) {
+		siril_log_color_message(_("Failed to compute homography from corners\n"), "red");
+		return -1;
+	}
+	return 0;
+}
+
 typedef struct {
 	double ra;
 	double dec;
@@ -209,13 +243,12 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 	double *RA = calloc(n, sizeof(double)); // calloc to prevent possibility of uninit variable highlighted by coverity
 	double *DEC = calloc(n, sizeof(double)); // as above
 	double *dist = calloc(n, sizeof(double));
-	Homography *Rs = NULL, *Ks = NULL, *Rstmp = NULL;
-	Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
+	Homography *Ks = NULL, *Rstmp = NULL;
 	Rstmp = calloc(n, sizeof(Homography)); // camera tmp rotation matrices
 	Ks = calloc(n, sizeof(Homography)); // camera intrinsic matrices
 	gboolean *incl = calloc(n, sizeof(gboolean));
 	gboolean included_passed = included != NULL;
-	if (!RA || !DEC || !dist || !WCSDATA || !Rs || !Ks || !incl) {
+	if (!RA || !DEC || !dist || !WCSDATA || !Rstmp || !Ks || !incl) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto free_all;
@@ -291,21 +324,23 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 	}
 	framingref /= anglecount;
 
-	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
-	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
-	// We add to the seq in order to display the alignment
-	float fscale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
-	Homography Kref = { 0 };
-	cvGetEye(&Kref);
-	Kref.h00 = fscale;
-	Kref.h11 = fscale;
-	Kref.h02 = Ks[refindex].h02;
-	Kref.h12 = Ks[refindex].h12;
-	siril_debug_print("Scale: %.3f\n", fscale);
-#ifdef DEBUG_ASTROREG
-	print_H(&Kref);
-#endif
 	if (framing == FRAMING_MAX) {
+		// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
+		// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
+		// We use that to optimize the framing angle of the resulting mosaic
+		// For the final mosaics, we will use instead computing H from the 4 corners of the image
+		// and the reference image, as it is more accurate if there's a bit of skew in the solution.
+		float fscale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
+		Homography Kref = { 0 };
+		cvGetEye(&Kref);
+		Kref.h00 = fscale;
+		Kref.h11 = fscale;
+		Kref.h02 = Ks[refindex].h02;
+		Kref.h12 = Ks[refindex].h12;
+#ifdef DEBUG_ASTROREG
+		siril_debug_print("Scale: %.3f\n", fscale);
+		print_H(&Kref);
+#endif
 		optim_params_t params = { ra0, dec0, seq, incl, &Kref, Ks, Rstmp};
 		int status = optimize_max_framing(&framingref, &params);
 		if (!status)
@@ -317,52 +352,54 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 	}
 
 	// computing relative rotations wrt to proj center + central image framing
-	Homography Rref = { 0 };
-	double angles[3] = { 0 };
-	switch (framing) {
-		case FRAMING_CURRENT:
-		default:
-			angles[0] = 90. - RA[seq->reference_image];
-			angles[1] = 90. - DEC[seq->reference_image];
-			break;
-		case FRAMING_COG:
-		case FRAMING_MAX:
-		case FRAMING_MIN:
-			angles[0] = 90. - ra0;
-			angles[1] = 90. - dec0;
-			break;
-	}
-	angles[2] = framingref;
-	cvRotMat3(angles, rottypes, TRUE, &Rref);
-	for (int i = 0; i < n; i++) {
-		if (!incl[i])
-			continue;
-		cvRelRot(&Rref, Rstmp + i, Rs + i);
+	wcsprm_t *wcsref = NULL;
+	if (framing == FRAMING_CURRENT) {
+		wcsref = wcs_copy_linear(WCSDATA + refindex);
+		if (image_is_flipped_from_wcs(wcsref)) {
+			Homography H = { 0 };
+			cvGetEye(&H);
+			int ry = (seq->is_variable) ? seq->imgparam[refindex].ry : seq->ry;
+			H.h11 = -1.;
+			H.h12 = (double)ry;
+			reframe_wcs(wcsref, &H);
+		}
+	} else {
+		wcsref = calloc(1, sizeof(wcsprm_t));
+		double scale = 0.5 * (fabs((WCSDATA + refindex)->cdelt[0])+fabs((WCSDATA + refindex)->cdelt[1]));
+		create_wcs(ra0, dec0, scale, framingref, 
+			(seq->is_variable) ? seq->imgparam[refindex].rx : seq->rx, 
+			(seq->is_variable) ? seq->imgparam[refindex].ry : seq->ry, 
+			wcsref);
 	}
 
-	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
-	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
-	// We add to the seq in order to display a first alignment
+	if (!wcsref) {
+		siril_log_color_message(_("Could not create WCS structure for framing, aborting\n"), "red");
+		retval = 1;
+		goto free_all;
+	}
+
 	regdata *current_regdata = seq->regparam[layer];
 	int xmin = INT_MAX, xmax = -INT_MAX;
 	int ymin = INT_MAX, ymax = -INT_MAX;
+	int rx_ref = ((seq->is_variable) ? seq->imgparam[ref_index].rx : seq->rx);
+	int ry_ref = ((seq->is_variable) ? seq->imgparam[ref_index].ry : seq->ry);
 	for (int i = 0;  i < n; i++) {
 		if (!incl[i])
 			continue;
 		Homography H = { 0 };
-		cvcalcH_fromKKR(&Kref, Ks + i, Rs + i, &H);
-		framing_roi roi = { 0 };
 		int rx = ((seq->is_variable) ? seq->imgparam[i].rx : seq->rx);
 		int ry = ((seq->is_variable) ? seq->imgparam[i].ry : seq->ry);
+		wcsprm_t *wcscurr = wcs_copy_linear(WCSDATA + i);
+		calcH_from_corners(rx, ry, ry_ref, wcscurr, wcsref, &H);
+		wcsfree(wcscurr);
+		framing_roi roi = { 0 };
 		compute_roi(&H, rx, ry, &roi);
 		current_regdata[i].H = H;
-#ifdef DEBUG_ASTROREG
 		siril_debug_print("Image %d\n", i + 1);
-		print_H(Ks + i);
-		print_H(Rs + i);
+#ifdef DEBUG_ASTROREG
 		print_H(&H);
-#endif
 		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, roi.x, roi.y, roi.w, roi.h);
+#endif
 		xmin = min(xmin, roi.x);
 		ymin = min(ymin, roi.y);
 		xmax = max(xmax, roi.x + roi.w);
@@ -371,14 +408,11 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 	siril_debug_print("Framing: %d,%d,%d,%d\n", xmin, ymin, xmax - xmin, ymax - ymin);
 	seq->reference_image = refindex;
 
-	if (prmout) {
-		if (framing != FRAMING_CURRENT) {
-			*prmout = calloc(1, sizeof(wcsprm_t));
-			double scale = 0.5 * (fabs((WCSDATA + refindex)->cdelt[0])+fabs((WCSDATA + refindex)->cdelt[1]));
-			create_wcs(ra0, dec0, scale, framingref, (seq->is_variable) ? seq->imgparam[refindex].rx : seq->rx, (seq->is_variable) ? seq->imgparam[refindex].ry : seq->ry, *prmout);
-		} else {
-			*prmout = wcs_deepcopy(WCSDATA + refindex, NULL);
-		}
+	if (prmout)
+		*prmout = wcsref;
+	else {
+		wcsfree(wcsref);
+		wcsref = NULL;
 	}
 
 free_all:
@@ -387,7 +421,6 @@ free_all:
 	free(dist);
 	free(incl);
 	free(Ks);
-	free(Rs);
 	free(Rstmp);
 	siril_log_message(_("Astrometric registration computed.\n"));
 	if (Hout) {

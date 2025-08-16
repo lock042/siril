@@ -16,6 +16,7 @@ xx/xx/xx
 * Fixed magnitude calculation in Dynamic PSF, this affects mostly faint stars for images in 32b (#1739)
 * Fixed wrong cache file name (parent directory twice in the returned path) resulting in impossibility to cache files (#1734)
 * Fixed handling bayer/Xtrans patterns in more robust way accross the codebase (!903)
+* Fixed astrometric alignement for mosaics with some slight skew in the solution (#1747)
 * Fix issues identifed by static analysis (MR tbc)
 
 **Improvements:**

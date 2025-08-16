@@ -176,7 +176,7 @@ gboolean load_WCS_from_fits(fits* fit) {
 	return TRUE;
 }
 
-void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d) {
+void pix2wcs2(wcsprm_t *wcslib, double x, double y, double *r, double *d) {
 	*r = 0.0;
 	*d = 0.0;
 	int status, stat[NWCSFIX];
@@ -201,16 +201,19 @@ void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
 		pix2wcs2(fit->keywords.wcslib, x, y, r, d);
 }
 
-// ra in degrees
-int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
+int wcs2pix2(wcsprm_t *wcslib, double ra, double dec, double *x, double *y) {
 	if (x) *x = -1.0;
 	if (y) *y = -1.0;
+	if (!wcslib) {
+		siril_debug_print("No WCS data available.\n");
+		return WCSERR_UNSET;
+	}
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 	world[0] = ra;
 	world[1] = dec;
 
-	status = wcss2p(fit->keywords.wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
+	status = wcss2p(wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
 
 	if (!status) {
 		double xx = pixcrd[0];
@@ -221,11 +224,24 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 		// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
 		if (x) *x = xx - 0.5;
 		if (y) *y = yy - 0.5;
-		if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
-			//siril_debug_print("outside image but valid return\n");
-			// wcss2p returns values between 0 and 9, picking a new one
-			status = 10;
-		}
+	}
+	return status;
+}
+
+
+// ra in degrees
+int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
+	if (x) *x = -1.0;
+	if (y) *y = -1.0;
+	if (!fit->keywords.wcslib) {
+		siril_debug_print("No WCS data available.\n");
+		return WCSERR_UNSET;
+	}
+	int status = wcs2pix2(fit->keywords.wcslib, ra, dec, x, y);
+	if (*x < 0.0 || *y < 0.0 || *x > (double)fit->rx || *y > (double)fit->ry) {
+		// siril_debug_print("outside image but valid return\n");
+		// wcss2p returns values between 0 and 9, picking a new one
+		status = 10;
 	}
 	return status;
 }
@@ -557,4 +573,16 @@ void create_wcs(double ra0, double dec0, double scale, double framing_angle, int
 		strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
 	}
 	wcsset(prm);
+}
+
+wcsprm_t *wcs_copy_linear(wcsprm_t *prm_in) {
+	int status = 0;
+	wcsprm_t *prm = wcs_deepcopy(prm_in, &status);
+	if (status != 0) {
+		siril_debug_print("wcs_copy_linear: error copying WCS structure: %d\n", status);
+		free(prm);
+		return NULL;
+	}
+	remove_dis_from_wcs(prm);
+	return prm;
 }
