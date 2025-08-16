@@ -68,6 +68,7 @@ void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int 
 gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Homography *Hom);
 void cvRelRot(Homography *Ref, Homography *R, Homography *Rout);
 void cvcalcH_fromKKR(Homography *Kref, Homography *K, Homography *R, Homography *H);
+int cvCalcH_from_corners(double *x_img, double *y_img, double *x_ref, double *y_ref, Homography *Hom);
 
 #ifdef __cplusplus
 }
