@@ -316,10 +316,11 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 			double *from = ssdata->fsum[layer];
 			double *fromw = ssdata->fweight[layer];
 			float *to = fit->fpdata[layer];
+			float factor = ssdata->input_32bits ? 1.f : INV_USHRT_MAX_SINGLE;
 			for (i = 0; i < nbdata; ++i) {
 				if (ssdata->output_32bits) {
 					if (*fromw > 0.0)
-						*to++ = (float)((*from++) / (*fromw++));
+						*to++ = (float)((*from++) / (*fromw++)) * factor;
 					else {
 						*to++ = 0.0f; // avoid division by zero
 						++from;

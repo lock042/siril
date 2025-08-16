@@ -2425,7 +2425,7 @@ gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *cachef
 	else
 		cache_filename = g_strdup_printf("%s.%s", root, ext);
 	const gchar *base_cache_filename = g_path_get_basename(cache_filename);
-	gchar *cache_path = g_build_path(G_DIR_SEPARATOR_S, com.wd, "cache", base_cache_filename, NULL);
+	gchar *cache_path = g_build_path(G_DIR_SEPARATOR_S, com.wd, cachefolder, base_cache_filename, NULL);
 	g_free(cache_filename);
 	return cache_path;
 }
