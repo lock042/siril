@@ -115,6 +115,7 @@ struct ser_struct {			// size and offset from header
 
 	gint64 filesize;		// size of the file
 
+	ser_color debayer_type_ser; // same as color_id but taking into account preferences
 	// internal representations of header data
 	ser_pixdepth byte_pixel_depth;	// more useful representation of the bit_pixel_depth
 	unsigned int number_of_planes;	// derived from the color_id

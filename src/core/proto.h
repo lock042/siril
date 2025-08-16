@@ -67,7 +67,7 @@ int savepng(const char *filename, fits *fit, uint32_t bytes_per_sample,
 #endif
 
 #ifdef HAVE_LIBRAW
-int open_raw_files(const char*, fits*, gboolean);
+int open_raw_files(const char*, fits*);
 #endif
 
 #ifdef HAVE_LIBHEIF
@@ -135,6 +135,7 @@ gchar *replace_ext(const char *path, const char *new_ext);
 gboolean string_is_a_path(const char *file);
 int is_readable_file(const char *filename);
 int is_symlink_file(const char *filename);
+gint siril_mkdir_with_parents(const gchar* pathname, gint mode);
 gboolean is_forbiden_in_filename(gchar c);
 gboolean file_name_has_invalid_chars(const char *name);
 void replace_invalid_chars(char *name, char repl);

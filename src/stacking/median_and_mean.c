@@ -219,11 +219,6 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			type_ser = SER_MONO;
 		naxes[2] = type_ser == SER_MONO ? 1 : 3;
 		*naxis = type_ser == SER_MONO ? 2 : 3;
-		/* case of Super Pixel not handled yet */
-		if (com.pref.debayer.open_debayer && com.pref.debayer.bayer_inter == BAYER_SUPER_PIXEL) {
-			siril_log_message(_("Super-pixel is not handled yet for on the fly SER stacking\n"));
-			return ST_GENERIC_ERROR;
-		}
 
 		import_metadata_from_serfile(args->seq->ser_file, fit);
 		for (int i = 0; i < nb_frames; ++i) {

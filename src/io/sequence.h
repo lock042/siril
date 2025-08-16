@@ -58,7 +58,6 @@ struct seqpsf_args {
 	gboolean init_from_center;
 	super_bool allow_use_as_regdata;
 	framing_mode framing;
-	char bayer_pattern[FLEN_VALUE];
 
 	/* The seqpsf result for each image, list of seqpsf_data */
 	GSList *list;

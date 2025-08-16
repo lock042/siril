@@ -828,8 +828,7 @@ gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *fi
 	/* First we test if root directory already exists */
 	gchar *root = g_path_get_dirname(filename);
 	if (!g_file_test(root, G_FILE_TEST_IS_DIR)) {
-		if (g_mkdir_with_parents(root, 0755) < 0) {
-			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", root);
+		if (siril_mkdir_with_parents(root, 0755) < 0) {
 			g_free(root);
 			return FALSE;
 		}

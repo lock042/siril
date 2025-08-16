@@ -406,6 +406,45 @@ def check_module_version(requires=None):
     must check the running sirilpy module supports your script by
     calling this function.
 
+    Siril will not show scripts with unsatisfied check_module_version()
+    calls in the repository list in 'Get Scripts', so if you want a
+    function that enables different code paths for different versions
+    you should use `needs_module_version()` instead.
+
+    Args:
+        requires (str): A version format specifier string following the
+                        same format used by pip, i.e. it may contain
+                        '==1.2', '!=3.4', '>5.6', '>=7.8', or a
+                        combination such as '>=1.2,<3.4'
+
+    Returns:
+        True if requires = None or if the available sirilpy module version
+        satisfies the version specifier, otherwise False
+
+    Raises:
+        ValueError: if requires is an invalid version specifier.
+    """
+    import sirilpy  # pylint: disable=import-outside-toplevel
+
+    if requires is None:
+        return True  # No version requirement
+
+    try:
+        # Create a SpecifierSet from the `requires` string
+        specifiers = SpecifierSet(requires)
+        # Use pkg_version from top-level import
+        return pkg_version.parse(sirilpy.__version__) in specifiers
+    except (pkg_version.InvalidVersion, ValueError) as exc:
+        raise ValueError(f"Invalid version specifier: {requires}") from exc
+
+def needs_module_version(requires=None):
+    """
+    Check the version of the Siril module is sufficient to support a
+    feature. This allows writing optional code paths for different sirilpy
+    API levels. The function works the same as check_module_version() but
+    the presence of an unsatisfied needs_module_version() call will not
+    prevent a script from showing up in the list in 'Get Scripts'
+
     Args:
         requires (str): A version format specifier string following the
                         same format used by pip, i.e. it may contain
