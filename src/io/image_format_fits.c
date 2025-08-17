@@ -2904,37 +2904,68 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 		}
 	}
 
-	/* Find per-channel min/max */
-	float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
-	float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+	// Set min, max and scale, avoiding caclulations where possible
+	float maxmax = 1.f;
+	float minmin = 0.f;
+	float scale = 1.f;
+	switch (dtype) {
+		case BYTE_IMG:
+			scale = INV_UCHAR_MAX_SINGLE;
+			break;
+		case SHORT_IMG:
+			scale = INV_USHRT_MAX_SINGLE;
+			break;
+		case USHORT_IMG:
+			scale = INV_USHRT_MAX_SINGLE;
+			minmin = -32768.f; // min value for 16-bit signed
+			break;
+		default: // FLOAT_IMG, LONG_IMG, ULONG_IMG
+			/* Find per-channel min/max */
+			float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
+			float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 
-	for (int ch = 0; ch < n_channels; ch++) {
-		for (size_t i = 0; i < prev_size; i++) {
-			int idx = ch * prev_size + i;
-			float val = preview_data[idx];
-			if (val < min_vals[ch]) min_vals[ch] = val;
-			if (val > max_vals[ch]) max_vals[ch] = val;
-		}
+			for (int ch = 0; ch < n_channels; ch++) {
+				for (size_t i = 0; i < prev_size; i++) {
+					int idx = ch * prev_size + i;
+					float val = preview_data[idx];
+					if (val < min_vals[ch]) min_vals[ch] = val;
+					if (val > max_vals[ch]) max_vals[ch] = val;
+				}
+			}
+			maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
+			if (maxmax < 10.f) maxmax = 1.f;	// Allow maxmax to handle integer-range and JWST images but clamp
+												// to typical 0-1 range otherwise, for consistent preview
+			minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
+			if (minmin > -1.f) minmin = 0.f; // Allow minmin to handle SHORT_IMG but clamp to 0.f otherwise
+
+			if (dtype == FLOAT_IMG) {
+				scale = (maxmax > 10.f) ? INV_USHRT_MAX_SINGLE : 1.f;
+				break;
+			}
+			maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
+			minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
+			scale = 1.f / (maxmax - minmin);
+			break;
 	}
-	int chans = is_color ? 3 : 1;
-	float maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
-	float minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
-	float scale = 1.f / (maxmax - minmin);
 
 	int num_threads = choose_num_threads(Ws, Hs, com.max_thread);
-	#ifdef _OPENMP
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(num_threads) if (num_threads > 1)
 #endif
-	for (int idx = 0 ; idx < (int)(prev_size * chans); idx++) {
+	for (int idx = 0 ; idx < (int)(prev_size * n_channels); idx++) {
 		preview_data[idx] = (preview_data[idx] - minmin) * scale;
 	}
 
 	fits *tmp = NULL;
-	new_fit_image_with_data(&tmp, Ws, Hs, chans, DATA_FLOAT, preview_data);
-	struct mtf_params mtfp = { 0.f, 0.f, 0.f, TRUE, TRUE, TRUE };
-	find_linked_midtones_balance_default(tmp, &mtfp);
-	siril_debug_print("Preview MTF params: %f, %f, %f\n", mtfp.shadows, mtfp.midtones, mtfp.highlights);
-	apply_linked_mtf_to_fits(tmp, tmp, mtfp, TRUE);
+	new_fit_image_with_data(&tmp, Ws, Hs, n_channels, DATA_FLOAT, preview_data);
+	struct mtf_params mtfp[3] = {
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE }
+	};
+
+	find_unlinked_midtones_balance_default(tmp, mtfp);
+	apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
 	tmp->fdata = NULL;
 	tmp->fpdata[0] = NULL;
 	tmp->fpdata[1] = NULL;
