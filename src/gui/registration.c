@@ -750,6 +750,8 @@ static gboolean check_3stars(regmethod_index index) {
 		return TRUE;
 	if (_3stars_check_selection()) {// checks that the right image is loaded based on doall and dofollow
 		int nbselstars = _3stars_get_number_selected_stars();
+		if (nbselstars == 0)
+			gtk_label_set_text(labelregisterinfo, _("Pick at least one star"));
 		return nbselstars > 0;
 	}
 	return FALSE;
