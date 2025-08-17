@@ -1524,7 +1524,7 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 
 		if (ima_ch != NULL) {
 			/* Find per-channel min/max assuming channel-major layout in ima_ch */
-			float min_vals[3], max_vals[3];
+			float min_vals[3] = { 0.f }, max_vals[3] = { 0.f };
 			for (int ch = 0; ch < n_channels; ch++) {
 				min_vals[ch] = FLT_MAX;
 				max_vals[ch] = -FLT_MAX;
@@ -1535,24 +1535,18 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 				}
 			}
 
-			float scales[3];
-			for (int ch = 0; ch < n_channels; ch++) {
-				float range = max_vals[ch] - min_vals[ch];
-				if (range <= 0.f) {
-					/* avoid division by zero: use 1.0 (will zero the channel after subtract) */
-					scales[ch] = 1.f;
-				} else {
-					scales[ch] = 1.f / range;
-				}
-			}
+			// Compute the overall max, min and scale to preserve inter-channel scaling
+			gboolean is_color = n_channels > 1;
+			float maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
+			float minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
+			float scale = 1.f / (maxmax - minmin);
 
 			/* Normalize values to [0..1] on channel-major buffer */
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread)
 #endif
 			for (int idx = 0 ; idx < prev_size * n_channels; idx++) {
-				int ch = idx / prev_size;
-				ima_ch[idx] = (ima_ch[idx] - min_vals[ch]) * scales[ch];
+				ima_ch[idx] = (ima_ch[idx] - minmin) * scale;
 			}
 
 			/* Create a temporary fits with channel-major float data for MTF */
