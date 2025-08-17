@@ -2759,17 +2759,29 @@ void fit_debayer_buffer(fits *fit, void *newbuf) {
 	}
 }
 
-static void gray2rgb(float gray, guchar *rgb) {
+static inline void gray2rgb(float gray, guchar *rgb) {
 	guchar val = (guchar) roundf_to_BYTE(255.f * gray);
 	*rgb++ = val;
 	*rgb++ = val;
 	*rgb++ = val;
 }
 
-static void set_rgb(float r, float g, float b, guchar *rgb) {
+static inline void set_rgb(float r, float g, float b, guchar *rgb) {
 	*rgb++ = (guchar) roundf_to_BYTE(255.f * r);
 	*rgb++ = (guchar) roundf_to_BYTE(255.f * g);
 	*rgb++ = (guchar) roundf_to_BYTE(255.f * b);
+}
+
+// Choose thread count based on workload
+static inline int choose_num_threads(int W, int H, int max_threads) {
+	int pixels = W * H;
+	if (pixels < 65536) { // < 64k pixels → single-thread
+		return 1;
+	}
+	int threads = pixels / 16384; // aim ~16k pixels per thread
+	if (threads > max_threads) threads = max_threads;
+	if (threads < 1) threads = 1;
+	return threads;
 }
 
 static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
@@ -2909,8 +2921,9 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	float minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
 	float scale = 1.f / (maxmax - minmin);
 
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread)
+	int num_threads = choose_num_threads(Ws, Hs, com.max_thread);
+	#ifdef _OPENMP
+#pragma omp parallel for num_threads(num_threads) if (num_threads > 1)
 #endif
 	for (int idx = 0 ; idx < (int)(prev_size * chans); idx++) {
 		preview_data[idx] = (preview_data[idx] - minmin) * scale;
@@ -2930,20 +2943,35 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	free(tmp);
 
 	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
+
+	// Move this outside the loop to avoid unnecessary multiplications
+	// in the loop
+	int twice_prev_size = prev_size * 2;
+
+	// Recalculate num_threads as we rely on simd in the inner loop
+	num_threads = choose_num_threads(1, Hs, com.max_thread);
 #ifdef _OPENMP
-#pragma omp parallel for collapse(2) num_threads(com.max_thread)
+#pragma omp parallel for num_threads(num_threads) if(num_threads > 1)
 #endif
 	for (int i = 0; i < Hs; i++) {
+		int src_row_offset  = i * Ws;
+		int dest_row_offset = (Hs - 1 - i) * Ws * 3;
+
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 		for (int j = 0; j < Ws; j++) {
-			int pixbuf_idx = ((Hs - 1 - i) * Ws + j) * 3;
+			int src_idx  = src_row_offset + j;
+			int dest_idx = dest_row_offset + j * 3;
+
 			if (is_color) {
-				float r_val = preview_data[0 * prev_size + i * Ws + j];
-				float g_val = preview_data[1 * prev_size + i * Ws + j];
-				float b_val = preview_data[2 * prev_size + i * Ws + j];
-				set_rgb(r_val, g_val, b_val, &pixbuf_data[pixbuf_idx]);
+				float r = preview_data[src_idx];
+				float g = preview_data[prev_size + src_idx];
+				float b = preview_data[twice_prev_size + src_idx];
+				set_rgb(r, g, b, &pixbuf_data[dest_idx]);
 			} else {
-				float gray_val = preview_data[i * Ws + j];
-				gray2rgb(gray_val, &pixbuf_data[pixbuf_idx]);
+				float gray = preview_data[src_idx];
+				gray2rgb(gray, &pixbuf_data[dest_idx]);
 			}
 		}
 	}
