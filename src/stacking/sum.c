@@ -112,13 +112,14 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	size_t nbdata = ssdata->output_size[0] * ssdata->output_size[1];
 	gboolean is_drizzle = args->seq->is_drizzle;
 	float **weights = NULL;
+	float *dweights = NULL;
 	if (is_drizzle) {
 		const gchar *drizzfile = get_sequence_cache_filename(args->seq, i, "drizztmp", "fit", NULL);
 		int rx = (args->seq->is_variable) ? args->seq->imgparam[i].rx : args->seq->rx;
 		int ry = (args->seq->is_variable) ? args->seq->imgparam[i].ry : args->seq->ry;
 		rectangle drizz_area = { 0, 0, rx, ry};
-		float *dweights = calloc(rx * ry, sizeof(float) * args->seq->nb_layers);
-		int layer = (args->seq->nb_layers == 1) ? -1 : 4; // 4 means all layers, 1 means only the first layer
+		dweights = calloc(rx * ry, sizeof(float) * args->seq->nb_layers);
+		int layer = (args->seq->nb_layers == 1) ? 0 : 4; // 4 means all layers, 0 means only the first layer
 		if (read_drizz_fits_area(drizzfile, layer, &drizz_area, ry, dweights)) {
 			siril_log_color_message(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), "red", i + 1,
 			drizz_area.x, drizz_area.y, drizz_area.w, drizz_area.h);
@@ -201,6 +202,10 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 			}
 			++pixel;
 		}
+	}
+	if (is_drizzle) {
+		free(dweights);
+		free(weights);
 	}
 	return ST_OK;
 }

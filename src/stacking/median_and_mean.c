@@ -100,8 +100,9 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			if (args->seq->is_drizzle) {
 				const gchar *drizztmp = get_sequence_cache_filename(args->seq, image_index, "drizztmp", "fit", NULL);
 				if (!g_file_test(drizztmp, G_FILE_TEST_EXISTS)) {
-					const gchar *basename = g_path_get_basename(drizztmp);
+					gchar *basename = g_path_get_basename(drizztmp);
 					siril_log_color_message(_("Drizzle file %s not found in ./drizztmp folder, aborting\n"), "red", basename);
+					g_free(basename);
 					drizzle = FALSE;
 				}
 			}
@@ -519,7 +520,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			int rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
 			int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
 			rectangle drizz_area = { 0, area.y, rx, area.h};
-			int layer = args->seq->nb_layers == 3 ? (int)my_block->channel : -1;
+			int layer = args->seq->nb_layers == 3 ? (int)my_block->channel : 0;
 			if (read_drizz_fits_area(drizzfile, layer, &drizz_area, ry, dbuffer)) {
 				siril_log_color_message(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
 				drizz_area.x, drizz_area.y, drizz_area.w, drizz_area.h);
@@ -1376,7 +1377,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		data_pool[i].pix = malloc(nb_frames * sizeof(void *));
 		if (masking)
 			data_pool[i].mask = malloc(nb_frames * sizeof(float *));
-		if (args)
+		if (args->drizzle)
 			data_pool[i].drizz = malloc(nb_frames * sizeof(float *));
 		data_pool[i].tmp = malloc(bufferSize);
 		if (!data_pool[i].pix || !data_pool[i].tmp || (masking && !data_pool[i].mask)) {
