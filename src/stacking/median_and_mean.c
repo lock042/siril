@@ -519,13 +519,14 @@ static int stack_read_block_data(struct stacking_args *args,
 			float *dbuffer = data->drizz[frame] + offset;
 			int rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
 			int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
-			rectangle drizz_area = { 0, area.y, rx, area.h};
 			int layer = args->seq->nb_layers == 3 ? (int)my_block->channel : 0;
-			if (read_drizz_fits_area(drizzfile, layer, &drizz_area, ry, dbuffer)) {
+			if (read_drizz_fits_area(drizzfile, layer, &area, ry, dbuffer)) {
 				siril_log_color_message(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
-				drizz_area.x, drizz_area.y, drizz_area.w, drizz_area.h);
+				area.x, area.y, area.w, area.h);
 				return ST_SEQUENCE_ERROR;
 			}
+			flip_buffer(FLOAT_IMG, dbuffer, &area);
+			siril_debug_print("frame: %d, channel: %d, area.y: %d, area.h: %d, val: %.2f\n", frame, my_block->channel, area.y, area.h, dbuffer[0]);
 			if (args->maximize_framing) {
 				rearrange_block_data(dbuffer, DATA_FLOAT, naxes[0], area.h, rx);
 			}
@@ -1380,7 +1381,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		if (args->drizzle)
 			data_pool[i].drizz = malloc(nb_frames * sizeof(float *));
 		data_pool[i].tmp = malloc(bufferSize);
-		if (!data_pool[i].pix || !data_pool[i].tmp || (masking && !data_pool[i].mask)) {
+		if (!data_pool[i].pix || !data_pool[i].tmp || (masking && !data_pool[i].mask) || (args->drizzle && !data_pool[i].drizz)) {
 			PRINT_ALLOC_ERR;
 			gchar *available = g_format_size_full(get_available_memory(), G_FORMAT_SIZE_IEC_UNITS);
 			fprintf(stderr, "Cannot allocate %zu (free memory: %s)\n", bufferSize / BYTES_IN_A_MB, available);
@@ -1399,7 +1400,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		}
 		size_t mask_offset = 0;
 		if (masking) {
-			data_pool[i].mstack = (float *)((char *)data_pool[i].tmp + stack_offset + ielem_mask_size * nb_frames * npixels_in_block); // mast stack is stored after the masks
+			data_pool[i].mstack = (float *)((char *)data_pool[i].tmp + stack_offset + ielem_mask_size * nb_frames * npixels_in_block); // mask stack is stored after the pixels
 			mask_offset = (size_t)ielem_mask_size * nb_frames * (npixels_in_block + 1);
 			temp = mask_offset % sizeof(int);
 			if (temp > 0) { // align buffer
@@ -1408,7 +1409,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		}
 		size_t drizz_offset = 0;
 		if (args->drizzle) {
-			data_pool[i].dstack = (float *)((char *)data_pool[i].tmp + stack_offset + mask_offset + ielem_drizz_size * nb_frames * npixels_in_block); // mast stack is stored after the masks
+			data_pool[i].dstack = (float *)((char *)data_pool[i].tmp + stack_offset + mask_offset + ielem_drizz_size * nb_frames * npixels_in_block); // drizz weight stack is stored after the masks
 			drizz_offset = (size_t)ielem_drizz_size * nb_frames * (npixels_in_block + 1);
 			temp = drizz_offset % sizeof(int);
 			if (temp > 0) { // align buffer
@@ -1425,7 +1426,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			} else if (args->type_of_rejection == GESDT) {
 				data_pool[i].w_stack = (void*)((char*)data_pool[i].o_stack + ielem_size * nb_frames);
 				int max_outliers = (int) floor(nb_frames * args->sig[0]);
-				args->critical_value = malloc(max_outliers * sizeof(float));
+				args->critical_value = malloc(max_outliers * sizeof(float)); // why do we malloc here? space has already been booked in tmp
 				for (int j = 0, size = nb_frames; j < max_outliers; j++, size--) {
 					float t_dist = gsl_cdf_tdist_Pinv(1 - args->sig[1] / (2 * size), size - 2);
 					float numerator = (size - 1) * t_dist;
