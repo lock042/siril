@@ -237,12 +237,17 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 		siril_debug_print("No WCS data available.\n");
 		return WCSERR_UNSET;
 	}
-	int status = wcs2pix2(fit->keywords.wcslib, ra, dec, x, y);
-	if (*x < 0.0 || *y < 0.0 || *x > (double)fit->rx || *y > (double)fit->ry) {
+	double xx = -1., yy = -1.;
+	int status = wcs2pix2(fit->keywords.wcslib, ra, dec, &xx, &yy);
+	if (status)
+		return status;
+	if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
 		// siril_debug_print("outside image but valid return\n");
 		// wcss2p returns values between 0 and 9, picking a new one
 		status = 10;
 	}
+	if (x) *x = xx;
+	if (y) *y = yy;
 	return status;
 }
 
