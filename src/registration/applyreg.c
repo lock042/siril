@@ -436,18 +436,20 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->pixel_fraction = driz->pixel_fraction;
 		BYTE cfa[36];
 		int cfadim = 0;
-		if (get_compiled_pattern(fit, cfa, &cfadim, FALSE)) {
-			siril_log_color_message(_("Drizzle: Could not get compiled CFA pattern from the image.\n"), "red");
-			free(p->error);
-			free(p->pixmap);
-			free(p);
-			return 1;
+		if (fit_is_cfa(fit)) {
+			if (get_compiled_pattern(fit, cfa, &cfadim, FALSE)) {
+				siril_log_color_message(_("Drizzle: Could not get compiled CFA pattern from the image.\n"), "red");
+				free(p->error);
+				free(p->pixmap);
+				free(p);
+				return 1;
+			}
+			if (cfadim != driz->cfadim || !compare_compiled_pattern(driz->cfa, cfa, driz->cfadim)) {
+				siril_log_color_message(_("Drizzle: CFA pattern mismatch between reference image and image #%d, using reference pattern.\n"), "salmon", in_index + 1);
+			}
+			memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
+			p->cfadim = driz->cfadim;
 		}
-		if (cfadim != driz->cfadim || !compare_compiled_pattern(driz->cfa, cfa, driz->cfadim)) {
-			siril_log_color_message(_("Drizzle: CFA pattern mismatch between reference image and image #%d, using reference pattern.\n"), "salmon", in_index + 1);
-		}
-		memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
-		p->cfadim = driz->cfadim;
 		// Set bounds equal to whole image
 		p->xmin = p->ymin = 0;
 		p->xmax = fit->rx - 1;
