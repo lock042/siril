@@ -320,22 +320,23 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 		for (layer = 0; layer<args->seq->nb_layers; ++layer){
 			double *from = ssdata->fsum[layer];
 			double *fromw = ssdata->fweight[layer];
-			float *to = fit->fpdata[layer];
+			float *tof = (ssdata->output_32bits) ? fit->fpdata[layer] : NULL;
+			WORD *tos = (ssdata->output_32bits) ? NULL : fit->pdata[layer];
 			float factor = ssdata->input_32bits ? 1.f : INV_USHRT_MAX_SINGLE;
 			for (i = 0; i < nbdata; ++i) {
 				if (ssdata->output_32bits) {
 					if (*fromw > 0.0)
-						*to++ = (float)((*from++) / (*fromw++)) * factor;
+						*tof++ = (float)((*from++) / (*fromw++)) * factor;
 					else {
-						*to++ = 0.0f; // avoid division by zero
+						*tof++ = 0.0f; // avoid division by zero
 						++from;
 						++fromw;
 					}
 				} else {
 					if (*fromw > 0.0)
-						*to++ = round_to_WORD((*from++) * INV_USHRT_MAX_SINGLE / (*fromw++));
+						*tos++ = round_to_WORD((*from++) / (*fromw++));
 					else {
-						*to++ = 0; // avoid division by zero
+						*tos++ = 0; // avoid division by zero
 						++from;
 						++fromw;
 					}
