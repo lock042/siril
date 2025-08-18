@@ -2419,14 +2419,14 @@ gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *cachef
 	if (!fit_sequence_get_image_filename(seq, index, root, FALSE)) {
 		return NULL;
 	}
+	gchar *base_root = g_path_get_basename(root);
 	gchar *cache_filename = NULL;
 	if (prefix)
-		cache_filename = g_strdup_printf("%s%s.%s", prefix, root, ext);
+		cache_filename = g_strdup_printf("%s%s.%s", prefix, base_root, ext);
 	else
-		cache_filename = g_strdup_printf("%s.%s", root, ext);
-	gchar *base_cache_filename = g_path_get_basename(cache_filename);
-	gchar *cache_path = g_build_path(G_DIR_SEPARATOR_S, com.wd, cachefolder, base_cache_filename, NULL);
+		cache_filename = g_strdup_printf("%s.%s", base_root, ext);
+	gchar *cache_path = g_build_path(G_DIR_SEPARATOR_S, com.wd, cachefolder, cache_filename, NULL);
 	g_free(cache_filename);
-	g_free(base_cache_filename);
+	g_free(base_root);
 	return cache_path;
 }
