@@ -575,6 +575,19 @@ static inline float
 area(struct vertex a, struct vertex b) {
 	return (a.x * b.y - a.y * b.x);
 }
+static inline double
+area_d(struct vertex a, struct vertex b) {
+	return (a.x * b.y - a.y * b.x);
+}
+
+// tests whether a point is in a half-plane of the vector going from
+// vertex v_ to vertex v (including the case of the point lying on the
+// vector (v_, v)). Specifically, it tests (v - v_) x (pt - v_) > 0:
+static inline int
+is_point_strictly_in_hp(const struct vertex pt, const struct vertex v_,
+                        const struct vertex v) {
+    return ((area(v, pt) - area(v_, pt) - area(v, v_)) > 0.0);
+}
 
 /**
 * Append a vertex to a polygon.
@@ -716,10 +729,13 @@ int
 clip_polygon_to_window(struct polygon *p, struct polygon *wnd,
 					struct polygon *cp) {
 	int k, j;
+	int v1_inside, v2_inside;
 	struct polygon p1, p2, *ppin, *ppout, *tpp;
-	struct vertex *pv, *pv_, *wv, *wv_, dp, dw, vi;
-	float d_recip, app_, aww_;
-	const float EPSILON = 1e-10;
+	struct vertex *pv, *pv_, *wv, *wv_, dp, dw, vii;
+	point vi;
+	float app_, aww_;
+	double d;
+	const double MIN_DETERMINANT = 1e-12;
 
 	// Check minimum vertex counts
 	if ((p->npv < 3) || (wnd->npv < 3)) {
@@ -761,52 +777,42 @@ clip_polygon_to_window(struct polygon *p, struct polygon *wnd,
 			dp.x = pv->x - pv_->x;
 			dp.y = pv->y - pv_->y;
 
-			// Check if either point lies exactly on the window edge
-			aww_ = area(*wv, *wv_);
-			float v1_signed_distance = area(*wv, *pv_) - area(*wv_, *pv_) - aww_;
-			float v2_signed_distance = area(*wv, *pv) - area(*wv_, *pv) - aww_;
-			int v1_on_line = fabs(v1_signed_distance) <= EPSILON;
-			int v2_on_line = fabs(v2_signed_distance) <= EPSILON;
+			v1_inside = is_point_strictly_in_hp(*wv_, *wv, *pv_);
+			v2_inside = is_point_strictly_in_hp(*wv_, *wv, *pv);
 
-			int v1_inside = v1_signed_distance > EPSILON;
-			int v2_inside = v2_signed_distance > EPSILON;
-			if (!v1_on_line && !v2_on_line) {
-				// Normal case - neither point on window edge
-				if (v2_inside != v1_inside) {
-					// Points are on opposite sides - calculate intersection
-					d_recip = 1.f / area(dp, dw);
+			if (v2_inside != v1_inside) {
+				// compute intersection point:
+				// https://en.wikipedia.org/wiki/Line–line_intersection
+				d = area_d(dp, dw);  // d != 0 because (v2_inside != v1_inside)
+
+                if (fabs(d) < MIN_DETERMINANT) {
+					// Lines are too close to parallel - skip intersection
+					if (v2_inside) {
+						// outside to inside:
+						append_vertex(ppout, *pv);
+					}
+				} else {
 					app_ = area(*pv, *pv_);
-					vi.x = (app_ * dw.x - aww_ * dp.x) * d_recip;
-					vi.y = (app_ * dw.y - aww_ * dp.y) * d_recip;
-					append_vertex(ppout, vi);
+					aww_ = area(*wv, *wv_);
 
+					vi.x = (app_ * dw.x - aww_ * dp.x) / d;
+					vi.y = (app_ * dw.y - aww_ * dp.y) / d;
+
+					vii = (struct vertex) { (float) vi.x, (float) vi.y };
+					append_vertex(ppout, vii);
 					if (v2_inside) {
-						// If second point is inside, include it
+						// outside to inside:
 						append_vertex(ppout, *pv);
 					}
-				} else if (v1_inside) {
-					// Both points inside, include second point
-					append_vertex(ppout, *pv);
 				}
-				// Both points outside - nothing to add
-			} else {
-				// Point on the line is considered an intersection point
-				if (v1_on_line) {
-					append_vertex(ppout, *pv_);
-					if (v2_inside) {
-						// If second point is inside, include it
-						append_vertex(ppout, *pv);
-					}
-				} else if (v2_on_line) {
-					if (v1_inside) {
-						// If first point is inside, include it
-						append_vertex(ppout, *pv_);
-					}
-					append_vertex(ppout, *pv);
-				}
+			} else if (v1_inside) {
+				// both edge vertices are inside
+				append_vertex(ppout, *pv);
 			}
 
-			// Move to next edge
+			// nothing to do when both edge vertices are outside
+
+			// advance polygon edge:
 			pv_ = pv;
 			pv = pv + 1;
 		}
