@@ -923,7 +923,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	// checking bayer status is ok
 	check_bayer_ok = !has_output || //if no output, we don't need to check
 					 (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] == '\0') || // mono sequence
-					 (gfit.naxes[2] == 1 && has_drizzle && pattern > BAYER_FILTER_MIN) || // bayer-drizzle sequence
+					 (gfit.naxes[2] == 1 && has_drizzle && pattern >= BAYER_FILTER_MIN) || // bayer-drizzle sequence
 					 gfit.naxes[2] == 3 || // debayered sequence
 					 com.seq.type == SEQ_SER;// SER can be debayered on-the-fly
 
