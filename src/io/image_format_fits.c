@@ -2909,17 +2909,17 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	float minmin = 0.f;
 	float scale = 1.f;
 	switch (dtype) {
-		case BYTE_IMG:
+		case BYTE_IMG:;
 			scale = INV_UCHAR_MAX_SINGLE;
 			break;
-		case SHORT_IMG:
+		case SHORT_IMG:;
 			scale = INV_USHRT_MAX_SINGLE;
 			break;
-		case USHORT_IMG:
+		case USHORT_IMG:;
 			scale = INV_USHRT_MAX_SINGLE;
 			minmin = -32768.f; // min value for 16-bit signed
 			break;
-		default: // FLOAT_IMG, LONG_IMG, ULONG_IMG
+		default:; // FLOAT_IMG, LONG_IMG, ULONG_IMG
 			/* Find per-channel min/max */
 			float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
 			float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
