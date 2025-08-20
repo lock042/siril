@@ -2017,26 +2017,38 @@ void gtk_main_quit() {
 	exit(EXIT_SUCCESS);
 }
 
-void siril_quit() {
+gboolean on_siril_window_delete(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+	return !siril_quit();
+}
+
+// Returns TRUE if quitting should proceed, FALSE to cancel
+gboolean siril_quit(void) {
 	if (script_editor_has_unsaved_changes()) {
-		gboolean quit_anyway = siril_confirm_dialog(_("Unsaved script changes"),
-				_("There are unsaved changes in the script editor. Quit anyway?"),
-				_("Quit"));
+		gboolean quit_anyway = siril_confirm_dialog(
+			_("Unsaved script changes"),
+			_("There are unsaved changes in the script editor. Quit anyway?"),
+			_("Quit")
+		);
 		if (!quit_anyway) {
 			on_open_pythonpad(NULL, NULL);
-			return;
+			return FALSE; // Cancel quit
 		}
 	}
-	if (com.pref.gui.silent_quit) {
-		gtk_main_quit();
+
+	if (!com.pref.gui.silent_quit) {
+		gboolean quit = siril_confirm_dialog_and_remember(
+			_("Closing application"),
+			_("Are you sure you want to quit?"), _("Exit"),
+			&com.pref.gui.silent_quit
+		);
+		if (!quit) {
+			fprintf(stdout, "Staying on the application.\n");
+			return FALSE; // Cancel quit
+		}
 	}
-	gboolean quit = siril_confirm_dialog_and_remember(_("Closing application"),
-			_("Are you sure you want to quit?"), _("Exit"), &com.pref.gui.silent_quit);
-	if (quit) {
-		gtk_main_quit();
-	} else {
-		fprintf(stdout, "Staying on the application.\n");
-	}
+
+	gtk_main_quit();
+	return TRUE; // Proceed with quit
 }
 
 /* We give one signal event by toggle button to fix a bug. Without this solution

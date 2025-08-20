@@ -1353,9 +1353,10 @@ class JaxHelper:
             "with Torch, which is currently excessively strict about required versions of some "
             "dependencies including CUDnn: it requires an exact version match rather than at least a "
             "certain version, and the version Torch requires is older than the version that jax is "
-            "built against. This issue has been raised upstream with Torch but for now the two modules "
-            "cannot be used in the same script and can cause problems if both are used together in the "
-            "same venv. It is recommended to use jax only for development purposes at present.")
+            "built against. This issue is best handled by using TorchHelper.install_torch() to install "
+            "Torch first (this auto-reinstalls with --no-deps), and then using JaxHelper.install_jax() to "
+            "install Jax. (You can do this the other way round and it will still work but will be less "
+            "efficient.)")
 
     def is_jax_installed(self) -> bool:
         """Check if PyTorch is installed without importing it."""

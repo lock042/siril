@@ -2763,7 +2763,7 @@ int process_ls(int nb){
 	}
 
 #ifndef _WIN32
-	struct dirent **list;
+	struct dirent **list = NULL;
 
 	int n = scandir(path, &list, 0, alphasort);
 	if (n < 0) {
@@ -4335,6 +4335,8 @@ int process_pm(int nb) {
 
 	if (!start_in_new_thread(apply_pixel_math_operation, args)) {
 		g_free(args->expression1);
+		clearfits(fit);
+		g_strfreev(args->varname);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
@@ -7622,6 +7624,7 @@ int process_convert(int nb) {
 	if (in_cwd && (output == SEQ_SER || output == SEQ_FITSEQ) && g_file_test(destroot, G_FILE_TEST_EXISTS)) {
 		siril_log_color_message(_("Destination sequence %s already exists in the current folder, cannot proceed.\n"), "red", destroot);
 		free(destroot);
+		g_dir_close(dir);
 		return CMD_GENERIC_ERROR;
 	}
 

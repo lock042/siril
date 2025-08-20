@@ -212,7 +212,7 @@ int readbmp(const char *name, fits *fit) {
 	FILE *file;
 	long int count;
 	unsigned char *buf;
-	unsigned long data_offset = 0;
+	long data_offset = 0;
 	unsigned long width = 0, height = 0;
 	unsigned short nbplane = 0;
 

@@ -1186,6 +1186,9 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			fit->data = (WORD *)malloc(npixels * fit->naxes[2] * sizeof(WORD));
 			if (!fit->data) {
 				siril_log_message(_("Memory allocation error for image data.\n"));
+				free(xdata->fitsHeader);
+				free(xdata->icc_buffer);
+				free(xdata->data);
 				free(xdata);
 				return -1;
 			}
@@ -1252,6 +1255,9 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 		break;
 	default:
 		siril_log_message(_("This image type is not handled.\n"));
+		free(xdata->fitsHeader);
+		free(xdata->icc_buffer);
+		free(xdata->data);
 		free(xdata);
 		return -1;
 	}
@@ -1293,7 +1299,7 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			name, fit->naxes[2], fit->rx, fit->ry);
 
 	/* free data */
-	if (xdata->fitsHeader) free(xdata->fitsHeader);
+	free(xdata->fitsHeader);
 	free(xdata);
 
 	return 0;
@@ -2325,9 +2331,10 @@ int open_raw_files(const char *name, fits *fit) {
 	int retval = readraw_in_cfa(name, fit);
 
 	if (retval >= 0) {
-		const gchar *basename = g_path_get_basename(name);
+		gchar *basename = g_path_get_basename(name);
 		siril_log_message(_("Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"),
-				basename, fit->naxes[2], fit->rx, fit->ry);;
+				basename, fit->naxes[2], fit->rx, fit->ry);
+		g_free(basename);
 	}
 	return retval;
 }

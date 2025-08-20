@@ -2808,7 +2808,7 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
  */
 GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	fitsfile *fp;
-	gchar *description;
+	gchar *description = NULL;
 	const int MAX_SIZE = com.pref.gui.thumbnail_size;
 	float nullval = 0.;
 	int naxis, dtype, stat, status, frames;
@@ -2865,6 +2865,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	if (!preview_data) {
 		free(ima_data);
 		fits_close_file(fp, &status);
+		g_free(description);
 		return NULL;
 	}
 #ifdef _OPENMP
