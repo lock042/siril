@@ -2759,17 +2759,29 @@ void fit_debayer_buffer(fits *fit, void *newbuf) {
 	}
 }
 
-static void gray2rgb(float gray, guchar *rgb) {
+static inline void gray2rgb(float gray, guchar *rgb) {
 	guchar val = (guchar) roundf_to_BYTE(255.f * gray);
 	*rgb++ = val;
 	*rgb++ = val;
 	*rgb++ = val;
 }
 
-static void set_rgb(float r, float g, float b, guchar *rgb) {
+static inline void set_rgb(float r, float g, float b, guchar *rgb) {
 	*rgb++ = (guchar) roundf_to_BYTE(255.f * r);
 	*rgb++ = (guchar) roundf_to_BYTE(255.f * g);
 	*rgb++ = (guchar) roundf_to_BYTE(255.f * b);
+}
+
+// Choose thread count based on workload
+static inline int choose_num_threads(int W, int H, int max_threads) {
+	int pixels = W * H;
+	if (pixels < 65536) { // < 64k pixels → single-thread
+		return 1;
+	}
+	int threads = pixels / 16384; // aim ~16k pixels per thread
+	if (threads > max_threads) threads = max_threads;
+	if (threads < 1) threads = 1;
+	return threads;
 }
 
 static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
@@ -2796,7 +2808,7 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
  */
 GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	fitsfile *fp;
-	gchar *description;
+	gchar *description = NULL;
 	const int MAX_SIZE = com.pref.gui.thumbnail_size;
 	float nullval = 0.;
 	int naxis, dtype, stat, status, frames;
@@ -2853,6 +2865,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	if (!preview_data) {
 		free(ima_data);
 		fits_close_file(fp, &status);
+		g_free(description);
 		return NULL;
 	}
 #ifdef _OPENMP
@@ -2892,39 +2905,68 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 		}
 	}
 
-	/* Find per-channel min/max */
-	float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
-	float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+	// Set min, max and scale, avoiding caclulations where possible
+	float maxmax = 1.f;
+	float minmin = 0.f;
+	float scale = 1.f;
+	switch (dtype) {
+		case BYTE_IMG:;
+			scale = INV_UCHAR_MAX_SINGLE;
+			break;
+		case SHORT_IMG:;
+			scale = INV_USHRT_MAX_SINGLE;
+			break;
+		case USHORT_IMG:;
+			scale = INV_USHRT_MAX_SINGLE;
+			minmin = -32768.f; // min value for 16-bit signed
+			break;
+		default:; // FLOAT_IMG, LONG_IMG, ULONG_IMG
+			/* Find per-channel min/max */
+			float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
+			float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 
-	for (int ch = 0; ch < n_channels; ch++) {
-		for (size_t i = 0; i < prev_size; i++) {
-			int idx = ch * prev_size + i;
-			float val = preview_data[idx];
-			if (val < min_vals[ch]) min_vals[ch] = val;
-			if (val > max_vals[ch]) max_vals[ch] = val;
-		}
+			for (int ch = 0; ch < n_channels; ch++) {
+				for (size_t i = 0; i < prev_size; i++) {
+					int idx = ch * prev_size + i;
+					float val = preview_data[idx];
+					if (val < min_vals[ch]) min_vals[ch] = val;
+					if (val > max_vals[ch]) max_vals[ch] = val;
+				}
+			}
+			maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
+			if (maxmax < 10.f) maxmax = 1.f;	// Allow maxmax to handle integer-range and JWST images but clamp
+												// to typical 0-1 range otherwise, for consistent preview
+			minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
+			if (minmin > -1.f) minmin = 0.f; // Allow minmin to handle SHORT_IMG but clamp to 0.f otherwise
+
+			if (dtype == FLOAT_IMG) {
+				scale = (maxmax > 10.f) ? INV_USHRT_MAX_SINGLE : 1.f;
+				break;
+			}
+			maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
+			minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
+			scale = 1.f / (maxmax - minmin);
+			break;
 	}
 
-	int chans = is_color ? 3 : 1;
-	float scales[3];
-	for (int ch = 0; ch < n_channels; ch++) {
-		scales[ch] = 1.f / (max_vals[ch] - min_vals[ch]);
-	}
-
+	int num_threads = choose_num_threads(Ws, Hs, com.max_thread);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread)
+#pragma omp parallel for num_threads(num_threads) if (num_threads > 1)
 #endif
-	for (int idx = 0 ; idx < (int)(prev_size * chans); idx++) {
-		int chan = idx / prev_size;
-		preview_data[idx] = (preview_data[idx] - min_vals[chan]) * scales[chan];
+	for (int idx = 0 ; idx < (int)(prev_size * n_channels); idx++) {
+		preview_data[idx] = (preview_data[idx] - minmin) * scale;
 	}
 
 	fits *tmp = NULL;
-	new_fit_image_with_data(&tmp, Ws, Hs, chans, DATA_FLOAT, preview_data);
-	struct mtf_params mtfp = { 0.f, 0.f, 0.f, TRUE, TRUE, TRUE };
-	find_linked_midtones_balance_default(tmp, &mtfp);
-	siril_debug_print("Preview MTF params: %f, %f, %f\n", mtfp.shadows, mtfp.midtones, mtfp.highlights);
-	apply_linked_mtf_to_fits(tmp, tmp, mtfp, TRUE);
+	new_fit_image_with_data(&tmp, Ws, Hs, n_channels, DATA_FLOAT, preview_data);
+	struct mtf_params mtfp[3] = {
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE }
+	};
+
+	find_unlinked_midtones_balance_default(tmp, mtfp);
+	apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
 	tmp->fdata = NULL;
 	tmp->fpdata[0] = NULL;
 	tmp->fpdata[1] = NULL;
@@ -2933,20 +2975,35 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	free(tmp);
 
 	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
+
+	// Move this outside the loop to avoid unnecessary multiplications
+	// in the loop
+	int twice_prev_size = prev_size * 2;
+
+	// Recalculate num_threads as we rely on simd in the inner loop
+	num_threads = choose_num_threads(1, Hs, com.max_thread);
 #ifdef _OPENMP
-#pragma omp parallel for collapse(2) num_threads(com.max_thread)
+#pragma omp parallel for num_threads(num_threads) if(num_threads > 1)
 #endif
 	for (int i = 0; i < Hs; i++) {
+		int src_row_offset  = i * Ws;
+		int dest_row_offset = (Hs - 1 - i) * Ws * 3;
+
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 		for (int j = 0; j < Ws; j++) {
-			int pixbuf_idx = ((Hs - 1 - i) * Ws + j) * 3;
+			int src_idx  = src_row_offset + j;
+			int dest_idx = dest_row_offset + j * 3;
+
 			if (is_color) {
-				float r_val = preview_data[0 * prev_size + i * Ws + j];
-				float g_val = preview_data[1 * prev_size + i * Ws + j];
-				float b_val = preview_data[2 * prev_size + i * Ws + j];
-				set_rgb(r_val, g_val, b_val, &pixbuf_data[pixbuf_idx]);
+				float r = preview_data[src_idx];
+				float g = preview_data[prev_size + src_idx];
+				float b = preview_data[twice_prev_size + src_idx];
+				set_rgb(r, g, b, &pixbuf_data[dest_idx]);
 			} else {
-				float gray_val = preview_data[i * Ws + j];
-				gray2rgb(gray_val, &pixbuf_data[pixbuf_idx]);
+				float gray = preview_data[src_idx];
+				gray2rgb(gray, &pixbuf_data[dest_idx]);
 			}
 		}
 	}

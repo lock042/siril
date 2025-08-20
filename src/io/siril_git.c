@@ -408,6 +408,12 @@ gboolean check_module_version_constraint(const gchar *line, GMatchInfo *match_in
 }
 
 static gboolean pyscript_version_check(const gchar *filename) {
+	GFile *file = NULL;
+	GInputStream *stream = NULL;
+	GDataInputStream *data_input = NULL;
+	GError *error = NULL;
+	gchar *buffer = NULL;
+	gsize length = 0;
 	// Open the script and look for the required version number
 	const char *ext = get_filename_ext(filename);
 	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
@@ -418,12 +424,6 @@ static gboolean pyscript_version_check(const gchar *filename) {
 		goto ERROR_OR_COMPLETE;
 	}
 
-	GFile *file = NULL;
-	GInputStream *stream = NULL;
-	GDataInputStream *data_input = NULL;
-	GError *error = NULL;
-	gchar *buffer = NULL;
-	gsize length = 0;
 	#ifdef DEBUG_GITSCRIPTS
 	printf("checking python script version requirements: %s\n", scriptpath);
 	#endif
@@ -1063,7 +1063,7 @@ static int find_file_commit_by_modifications(git_repository *repo,
 		return -1;
 
 	const char *workdir = git_repository_workdir(repo);
-	const char *tmpworkdir = g_canonicalize_filename(workdir, NULL);
+	char *tmpworkdir = g_canonicalize_filename(workdir, NULL);
 	if (tmpworkdir && g_path_is_absolute(filepath)) {
 		size_t workdir_len = strlen(tmpworkdir);
 		if (strncmp(filepath, tmpworkdir, workdir_len) == 0) {
@@ -1077,6 +1077,7 @@ static int find_file_commit_by_modifications(git_repository *repo,
 	} else {
 		relative_path = g_strdup(filepath);
 	}
+	g_free(tmpworkdir);
 
 	error = git_revparse_single(&head_commit_obj, repo, "HEAD");
 	if (error != 0) {
