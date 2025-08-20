@@ -172,10 +172,10 @@ static void on_script_revision_spin_value_changed(GtkSpinButton *spin, gpointer 
 
 	if (commit_message != NULL && message_size > 0) {
 		gtk_text_buffer_set_text(buffer, commit_message, -1);
-		g_free(commit_message);
 	} else {
 		gtk_text_buffer_set_text(buffer, _("(No commit message found for this revision)"), -1);
 	}
+	g_free(commit_message);
 }
 
 void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,

@@ -1301,6 +1301,12 @@ static void select_image(int nb) {
 						}
 
 						int idx = search_for_free_index();
+						if (idx >= MAX_IMAGES) {
+							siril_log_color_message(_("Error: maximum variable index exceeded - too many variables!\n"), "red");
+							g_free(filename);
+							clearfits(&f);
+							break;
+						}
 						add_image_to_variable_list(filename, variables[idx], filter, f.naxes[2], f.naxes[0], f.naxes[1]);
 
 						pos++;
@@ -1319,7 +1325,6 @@ static void select_image(int nb) {
 
 	siril_preview_free(preview);
 	gtk_widget_destroy(dialog);
-
 }
 
 gboolean on_pixel_math_entry_r_focus_in_event(GtkWidget *widget,
