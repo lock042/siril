@@ -745,7 +745,7 @@ do_kernel_turbo(struct driz_param_t* p) {
     integer_t i, j, ii, jj, nxi, nxa, nyi, nya, nhit, iis, iie, jjs, jje;
     integer_t osize[2];
     float vc[3], d, dow;
-    float pf2, pfo, scale2, ac;
+    float pfo, scale2, ac;
     float xxi, xxa, yyi, yya, w, dover;
     int xmin, xmax, ymin, ymax, n;
     BYTE *cfa = p->cfa;
@@ -983,38 +983,40 @@ do_kernel_square(struct driz_param_t* p) {
 				mxii = max_ii;
 			}
 
-			for (jj = min_jj; jj <= max_jj; ++jj) {
-				for (ii = min_ii; ii <= max_ii; ++ii) {
-					/* Call compute_area to calculate overlap */
-					dover = boxer((float)ii, (float)jj, xout, yout);
+            for (jj = min_jj; jj <= max_jj; ++jj) {
+                for (ii = min_ii; ii <= max_ii; ++ii) {
+                    /* Call compute_area to calculate overlap */
+                    // dover = compute_area((float)ii, (float)jj, xout, yout);
+                    dover = boxer((float)ii, (float)jj, xout, yout);
 
-					/* Call boxer to calculate overlap */
-					if (dover != 0.0) {
-						vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
+                    /* Call boxer to calculate overlap */
+                    // dover = compute_area((float)ii, (float)jj, xout, yout);
+                    if (dover != 0.0) {
+                        vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
 
-						dow = (float)(dover * w);
+                        dow = (float)(dover * w);
 
-						/* Count the hits */
-						++nhit;
+                        /* Count the hits */
+                        ++nhit;
 
-						if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
-							return 1;
-						}
-					}
-				}
-			}
+                        if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
+                            return 1;
+                        }
+                    }
+                }
+            }
 
-			/* Count cases where the pixel is off the output image */
-			_miss:
-			if (nhit == 0) {
-				++ p->nmiss;
-			}
-		}
-	}
+            /* Count cases where the pixel is off the output image */
+            _miss:
+            if (nhit == 0) {
+                ++ p->nmiss;
+            }
+        }
+    }
 
-	printf("do_square max area: %d. (%d, %d) to (%d, %d)\n", maxarea, mnii, mnjj, mxii, mxjj);
-	siril_debug_print("ending do_kernel_square\n");
-	return 0;
+    printf("do_square max area: %d. (%d, %d) to (%d, %d)\n", maxarea, mnii, mnjj, mxii, mxjj);
+    siril_debug_print("ending do_kernel_square\n");
+    return 0;
 }
 
 /** --------------------------------------------------------------------------------------------------
