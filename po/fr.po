@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-21 22:43+0200\n"
-"PO-Revision-Date: 2025-08-14 20:05+0000\n"
+"PO-Revision-Date: 2025-08-21 20:50+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -6820,7 +6820,6 @@ msgid "Row-order preference:"
 msgstr "Préférences d'orientation :"
 
 #: src/gui/uifiles/settings_window.ui:572
-#, fuzzy
 msgid ""
 "Siril read FITS data in the bottom-up orientation but a lot of capture "
 "software do not meet this specification. Most of them now write a ROWORDER "
@@ -14894,9 +14893,9 @@ msgid "Bad argument to stats option\n"
 msgstr "Argument non valide dans les options des stats\n"
 
 #: src/algos/statistics.c:863
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to write seqstat data: %s"
-msgstr "Échec de la lecture des entrées de données.\n"
+msgstr "Échec de l'écriture des données seqstat : %s"
 
 #. Success path
 #: src/algos/statistics.c:870
@@ -14905,9 +14904,9 @@ msgid "Statistic file %s was successfully created.\n"
 msgstr "Le fichier de statistique %s a été créé avec succès.\n"
 
 #: src/algos/statistics.c:878
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to close seqstat output stream: %s"
-msgstr "La création du fichier de sortie a échoué : %s\n"
+msgstr "Échec de la fermeture du flux de sortie seqstat : %s"
 
 #: src/algos/statistics.c:995 src/registration/global.c:317
 msgid ""
@@ -32197,9 +32196,8 @@ msgid "Error: failed to create Python connection.\n"
 msgstr "Erreur : échec de la création d'une connexion Python.\n"
 
 #: src/io/siril_pythonmodule.c:2213
-#, fuzzy
 msgid "Error: Python worker thread not available.\n"
-msgstr "Erreur : La connexion Python n'est pas disponible.\n"
+msgstr "Erreur : le thread de travail Python n'est pas disponible.\n"
 
 #: src/io/siril_pythonmodule.c:2279
 msgid "Error finding venv python path, unable to spawn python.\n"
@@ -32993,7 +32991,7 @@ msgstr "Les images doivent avoir les mêmes dimensions"
 
 #: src/pixelMath/pixel_math_runner.c:1305
 msgid "Error: maximum variable index exceeded - too many variables!\n"
-msgstr ""
+msgstr "Erreur : indice variable maximal dépassé - trop de variables !\n"
 
 #: src/pixelMath/pixel_math_runner.c:1368
 msgid "Cannot load new image"
@@ -33369,9 +33367,8 @@ msgstr ""
 "est utilisée à la place.\n"
 
 #: src/registration/astrometric.c:133
-#, fuzzy
 msgid "Failed to compute homography from corners\n"
-msgstr "Échec du calcul de l'indice de sortie"
+msgstr "Échec du calcul de l'homographie à partir des coins\n"
 
 #: src/registration/astrometric.c:271
 #, c-format
@@ -33406,9 +33403,10 @@ msgid "Sequence framing: %.1f\n"
 msgstr "Cadrage de la séquence : %.1f\n"
 
 #: src/registration/astrometric.c:376
-#, fuzzy
 msgid "Could not create WCS structure for framing, aborting\n"
-msgstr "Impossible de créer %s, abandon\n"
+msgstr ""
+"Impossible de créer la structure WCS pour le cadrage, abandon de l'opération."
+"\n"
 
 #: src/registration/astrometric.c:424
 msgid "Astrometric registration computed.\n"
