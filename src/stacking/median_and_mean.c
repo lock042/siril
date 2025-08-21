@@ -1737,6 +1737,8 @@ free_and_close:
 	if (data_pool) {
 		for (i=0; i<pool_size; i++) {
 			if (data_pool[i].pix) free(data_pool[i].pix);
+			if (data_pool[i].mask) free(data_pool[i].mask);
+			if (data_pool[i].drizz) free(data_pool[i].drizz);
 			if (data_pool[i].tmp) free(data_pool[i].tmp);
 		}
 		free(data_pool);
