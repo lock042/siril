@@ -5765,6 +5765,50 @@ This setting is used in Deconvolution, but is ignored by the Fourier Transform f
                         <property name="position">3</property>
                       </packing>
                     </child>
+                    <child>
+                      <!-- n-columns=1 n-rows=2 -->
+                      <object class="GtkGrid">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="column-homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Drizzle</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="pref_match_drizzweight_bitpix">
+                            <property name="label" translatable="yes">High resolution Drizzle weight files</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">False</property>
+                            <property name="tooltip-text" translatable="yes">By default, Drizzle uses 8-bit weight files. This is good enough for many purposes and is relatively economical with storage requirements.
+Checking this box provides enhanced precision: drizzle weights will be saved with the same bit depth as the drizzled sequence, meaning that the weights files will take up as much space as an extra copy of the drizzled sequence.
+Weight files are saved in the drizztmp subfolder of the working directory and can be deleted when stacking is finished: if a sequence is re-drizzled, any existing drizzle weights will be overwritten.</property>
+                            <property name="draw-indicator">True</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="name">preferences_p6</property>

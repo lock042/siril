@@ -236,6 +236,7 @@ static void update_scripts_preferences() {
 	com.pref.gui.script_path = get_list_from_preferences_dialog();
 	com.pref.gui.warn_scripts_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
 	com.pref.script_check_requires = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
+	com.pref.drizz_weight_match_bitpix = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_match_drizzweight_bitpix")));
 #ifdef HAVE_LIBGIT2
 	com.pref.use_scripts_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")));
 	com.pref.auto_script_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")));
@@ -893,6 +894,7 @@ void update_preferences_from_model() {
 		}
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_max_slice_size")), pref->max_slice_size > 32768 || pref->max_slice_size <= 0 ? 0 : max_slice_size - 8);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_match_drizzweight_bitpix")), pref->drizz_weight_match_bitpix);
 
 	/* tab Miscellaneous */
 	initialize_path_directory(pref->swap_dir);
