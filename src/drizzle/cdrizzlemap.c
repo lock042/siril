@@ -1013,25 +1013,25 @@ get_scanline_limits(struct scanner *s, int y, int *x1, int *x2) {
 	er_max = ((struct edge *)s->right_edges) + (s->nright - 1);
 
 	if (s->ymax >= s->ymin && (y < 0 || y > s->ymax)) {
-		return 2;
+		return SCANLINE_PIXEL_OUT_OF_LIMITS;
 	}
 
 	pyb = (float)y - 0.5;
 	pyt = (float)y + 0.5;
 
 	if (pyt <= s->min_y || pyb >= s->max_y + 1) {
-		return 2;
+		return SCANLINE_PIXEL_OUT_OF_LIMITS;
 	}
 
 	if (s->left == NULL || s->right == NULL) {
-		return 1;
+		return SCANLINE_ENDED;
 	}
 
 	while (pyb > s->left->v2.y) {
 		if (s->left == el_max) {
 			s->left = NULL;
 			s->right = NULL;
-			return 1;
+			return SCANLINE_ENDED;
 		}
 		++s->left;
 	};
@@ -1040,7 +1040,7 @@ get_scanline_limits(struct scanner *s, int y, int *x1, int *x2) {
 		if (s->right == er_max) {
 			s->left = NULL;
 			s->right = NULL;
-			return 1;
+			return SCANLINE_ENDED;
 		}
 		++s->right;
 	};
@@ -1053,7 +1053,7 @@ get_scanline_limits(struct scanner *s, int y, int *x1, int *x2) {
 		if (s->left == el_max) {
 			s->left = NULL;
 			s->right = NULL;
-			return 1;
+			return SCANLINE_ENDED;
 		}
 		++s->left;
 		edge_ymax = s->left->v2.y + 0.5 + MAX_INV_ERR;
@@ -1064,7 +1064,7 @@ get_scanline_limits(struct scanner *s, int y, int *x1, int *x2) {
 		if (s->right == er_max) {
 			s->left = NULL;
 			s->right = NULL;
-			return 1;
+			return SCANLINE_ENDED;
 		}
 		++s->right;
 		edge_ymax = s->right->v2.y + 0.5 + MAX_INV_ERR;
@@ -1094,7 +1094,7 @@ get_scanline_limits(struct scanner *s, int y, int *x1, int *x2) {
 		*x1 = (int)round(xlb);
 		*x2 = (int)round(xrb);
 		if (xlb >= xrb) {
-			return 3;
+			return SCANLINE_LIMITS_ARE_EQUAL;
 		}
 	} else if (xlb >= xrb) {
 		*x1 = (int)round(xlt);
@@ -1104,7 +1104,7 @@ get_scanline_limits(struct scanner *s, int y, int *x1, int *x2) {
 		*x2 = (int)round((xrb < xrt) ? xrb : xrt);
 	}
 
-	return 0;
+	return SCANLINE_OK;
 }
 
 /**

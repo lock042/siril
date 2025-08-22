@@ -624,8 +624,8 @@ do_kernel_lanczos(struct driz_param_t* p) {
     BYTE *cfa = p->cfa;
     size_t cfadim = p->cfadim;
 
-    dx = 1.0;
-    dy = 1.0;
+    dx = 0.5f;
+    dy = 0.5f;
 
     scale2 = p->scale * p->scale;
     kernel_order = (p->kernel == kernel_lanczos2) ? 2 : 3;
@@ -653,19 +653,18 @@ do_kernel_lanczos(struct driz_param_t* p) {
     for (j = ymin; j <= ymax; ++j) {
         /* Check the overlap with the output */
         n = get_scanline_limits(&s, j, &xmin, &xmax);
-        if (n == 1) {
+        if (n == SCANLINE_ENDED) {
             // scan ended (y reached the top vertex/edge)
             p->nskip += (ymax + 1 - j);
             p->nmiss += (ymax + 1 - j) * (p->xmax - p->xmin);
             break;
-        } else if (n == 2 || n == 3) {
+        } else if (n == SCANLINE_PIXEL_OUT_OF_LIMITS || n == SCANLINE_LIMITS_ARE_EQUAL) {
             // pixel centered on y is outside of scanner's limits or image [0, height - 1]
             // OR: limits (x1, x2) are equal (line width is 0)
             p->nmiss += (p->xmax - p->xmin);
             ++p->nskip;
             continue;
         } else {
-            // limits (x1, x2) are equal (line width is 0)
             p->nmiss += (p->xmax - p->xmin) - (xmax + 1 - xmin);
         }
 
@@ -676,14 +675,14 @@ do_kernel_lanczos(struct driz_param_t* p) {
 
             } else {
                 xxi = xx - dx - pfo;
-                xxa = xx - dx + pfo;
+                xxa = xx + dx + pfo;
                 yyi = yy - dy - pfo;
-                yya = yy - dy + pfo;
+                yya = yy + dy + pfo;
 
-                nxi = MAX(fortran_round(xxi), 0);
-                nxa = MIN(fortran_round(xxa), osize[0]-1);
-                nyi = MAX(fortran_round(yyi), 0);
-                nya = MIN(fortran_round(yya), osize[1]-1);
+                nxi = MAX(floorf(xxi), 0);
+                nxa = MIN(ceilf(xxa), osize[0]-1);
+                nyi = MAX(floorf(yyi), 0);
+                nya = MIN(ceilf(yya), osize[1]-1);
 
                 nhit = 0;
 
@@ -699,11 +698,11 @@ do_kernel_lanczos(struct driz_param_t* p) {
                 }
 
                 /* Loop over output pixels which could be affected */
-                for (jj = nyi; jj <= nya; ++jj) {
-                    for (ii = nxi; ii <= nxa; ++ii) {
+                for (jj = nyi; jj < nya; ++jj) {
+                    for (ii = nxi; ii < nxa; ++ii) {
                         /* X and Y offsets */
-                        ix = fortran_round(fabs(xx - (float)ii) * lanczos.sdp) + 1;
-                        iy = fortran_round(fabs(yy - (float)jj) * lanczos.sdp) + 1;
+                        ix = fortran_round(fabs(xx - (float)ii) * lanczos.sdp);
+                        iy = fortran_round(fabs(yy - (float)jj) * lanczos.sdp);
 
                         /* Weight is product of Lanczos function values in X and Y */
                         dover = lanczos.lut[ix] * lanczos.lut[iy];
