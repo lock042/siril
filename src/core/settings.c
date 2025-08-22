@@ -68,6 +68,7 @@ preferences pref_init = {
 	.selected_scripts = NULL,
 	.use_scripts_repository = TRUE,
 	.auto_script_update = TRUE,
+	.drizz_weight_match_bitpix = FALSE,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -467,6 +468,7 @@ struct settings_access all_settings[] = {
 	{ "gui_registration", "method", STYPE_INT, N_("index of the selected registration method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
 	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },
 	{ "gui_registration", "clamping", STYPE_BOOL, N_("use clamping method with Lanczos and Cubic interpolation"), &com.pref.gui.reg_clamping },
+	{ "gui_registration", "drizz_weight_match_bitpix", STYPE_BOOL, N_("Match Drizzle weights bitpix to sequence"), &com.pref.drizz_weight_match_bitpix },
 
 	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, STACK_MIN } } },
 	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },
