@@ -569,8 +569,8 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                               <object class="GtkComboBoxText" id="combo_roworder">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Siril read FITS data in the bottom-up orientation but a lot of capture software do not meet this specification. Most of them now write a ROW-ORDER key in the images metadata to indicate how data was stored.
-Pick in this list your preferred option. The first two will first try to read ROW-ORDER from the header then use a fallback solution. The last two options force either Top-Down or Bottom-Up.
+                                <property name="tooltip-text" translatable="yes">Siril read FITS data in the bottom-up orientation but a lot of capture software do not meet this specification. Most of them now write a ROWORDER key in the images metadata to indicate how data was stored.
+Pick in this list your preferred option. The first two will first try to read ROWORDER from the header then use a fallback solution. The last two options force either Top-Down or Bottom-Up.
 This setting is ignored with SER files which are always assumed Top-Down as per their standard.</property>
                                 <property name="active">0</property>
                                 <property name="active-id">0</property>
