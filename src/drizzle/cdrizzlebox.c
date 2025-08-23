@@ -493,7 +493,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
     float vc[3], d, dow;
     float gaussian_efac, gaussian_es;
     float pfo, ac,  scale2, xxi, xxa, yyi, yya, w, ddx, ddy, r2, dover;
-    const float nsig = 2.5;
+    const float nsig = 2.5f;
     int xmin, xmax, ymin, ymax, n;
     BYTE *cfa = p->cfa;
     size_t cfadim = p->cfadim;
@@ -502,14 +502,20 @@ do_kernel_gaussian(struct driz_param_t* p) {
        divided by the scale so that there are never holes in the
        output */
 
-    pfo = nsig * p->pixel_fraction / 2.3548 / p->scale;
-    pfo = CLAMP_ABOVE(pfo, 1.2 / p->scale);
+    pfo = nsig * p->pixel_fraction / 2.3548f / p->scale;
+    pfo = CLAMP_ABOVE(pfo, 1.2f / p->scale);
 
-    ac = 1.0 / (p->pixel_fraction * p->pixel_fraction);
+    ac = 1.0f / (p->pixel_fraction * p->pixel_fraction);
     scale2 = p->scale * p->scale;
 
-    gaussian_efac = (2.3548*2.3548) * scale2 * ac / 2.0;
-    gaussian_es = gaussian_efac / M_PI;
+	/* gaussian_efac corrected in Siril - the original calculation causes
+	 * the Gaussian to become extremely narrow for scale > 1, whereas since
+	 * its fwhm is based on pixfrac * input pixel size it should become
+	 * more spread out when scale is increased - the error was having scale2
+	 * in the numerator. */
+//    gaussian_efac = (2.3548f*2.3548f) * scale2 * ac / 2.0f;
+	gaussian_efac = (2.3548f * 2.3548f) * ac / (2.f * scale2);
+	gaussian_es = gaussian_efac / M_PI;
 
     if (init_image_scanner(p, &s, &ymin, &ymax)) return 1;
 
@@ -552,10 +558,10 @@ do_kernel_gaussian(struct driz_param_t* p) {
                 yyi = oy - pfo;
                 yya = oy + pfo;
 
-                nxi = MAX(fortran_round(xxi), 0);
-                nxa = MIN(fortran_round(xxa), osize[0]-1);
-                nyi = MAX(fortran_round(yyi), 0);
-                nya = MIN(fortran_round(yya), osize[1]-1);
+                nxi = MAX((int)floorf(xxi), 0);
+                nxa = MIN((int)ceilf(xxa), osize[0]-1);
+                nyi = MAX((int)floorf(yyi), 0);
+                nya = MIN((int)ceilf(yya), osize[1]-1);
 
                 nhit = 0;
 
@@ -580,7 +586,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
 
                         /* Weight is a scaled Gaussian function of radial
                            distance */
-                        dover = gaussian_es * exp(-r2 * gaussian_efac);
+                        dover = gaussian_es * expf(-r2 * gaussian_efac);
 
                         /* Count the hits */
                         ++nhit;
