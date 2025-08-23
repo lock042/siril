@@ -493,17 +493,15 @@ do_kernel_gaussian(struct driz_param_t* p) {
     float vc[3], d, dow;
     float gaussian_efac, gaussian_es;
     float pfo, ac,  scale2, xxi, xxa, yyi, yya, w, ddx, ddy, r2, dover;
-    const float nsig = 2.5f;
+    const float nsig = 3.0f;
     int xmin, xmax, ymin, ymax, n;
     BYTE *cfa = p->cfa;
     size_t cfadim = p->cfadim;
 
-    /* Added in V2.9 - make sure pfo doesn't get less than 1.2
-       divided by the scale so that there are never holes in the
-       output */
-
-    pfo = nsig * p->pixel_fraction / 2.3548f / p->scale;
-    pfo = CLAMP_ABOVE(pfo, 1.2f / p->scale);
+	// sigma_out = (pixfrac * scale) / 2.3548
+	const float sigma_out = p->pixel_fraction * p->scale / 2.3548f;
+	// truncate at nsig * sigma_out
+	pfo = nsig * sigma_out;
 
     ac = 1.0f / (p->pixel_fraction * p->pixel_fraction);
     scale2 = p->scale * p->scale;
@@ -803,10 +801,10 @@ do_kernel_turbo(struct driz_param_t* p) {
                 yyi = oy - pfo;
                 yya = oy + pfo;
 
-                nxi = fortran_round(xxi);
-                nxa = fortran_round(xxa);
-                nyi = fortran_round(yyi);
-                nya = fortran_round(yya);
+                nxi = floorf(xxi);
+                nxa = ceilf(xxa);
+                nyi = floorf(yyi);
+                nya = ceilf(yya);
                 iis = MAX(nxi, 0);  /* Needed to be set to 0 to avoid edge effects */
                 iie = MIN(nxa, osize[0]-1);
                 jjs = MAX(nyi, 0);  /* Needed to be set to 0 to avoid edge effects */
@@ -975,11 +973,11 @@ do_kernel_square(struct driz_param_t* p) {
             }
 
             /* Loop over output pixels which could be affected */
-            min_jj = MAX(fortran_round(min_floats(yout, 4)), 0);
-            max_jj = MIN(fortran_round(max_floats(yout, 4)), osize[1]-1);
-            min_ii = MAX(fortran_round(min_floats(xout, 4)), 0);
-            max_ii = MIN(fortran_round(max_floats(xout, 4)), osize[0]-1);
-			int area = (max_jj - min_jj) - (max_ii - min_ii);
+            min_jj = MAX(floorf(min_floats(yout, 4)), 0);
+            max_jj = MIN(ceilf(max_floats(yout, 4)), osize[1]-1);
+            min_ii = MAX(floorf(min_floats(xout, 4)), 0);
+            max_ii = MIN(ceilf(max_floats(xout, 4)), osize[0]-1);
+			int area = (max_jj - min_jj) * (max_ii - min_ii);
 			if (area > maxarea) {
 				maxarea = area;
 				mnjj = min_jj;
