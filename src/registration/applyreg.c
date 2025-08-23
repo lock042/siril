@@ -48,6 +48,7 @@
 #include "opencv/opencv.h"
 
 #define MIN_RATIO 0.1 // minimum fraction of ref image dimensions to validate output sequence is worth creating
+#define DRIZZLE_WEIGHT_CALC_SIZE 6  // size of the area used for drizzle weight calculation, 6 is for XTRANS
 
 static int new_ref_index = -1;
 static gboolean check_applyreg_output(struct registration_args *regargs);
@@ -501,17 +502,20 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		out.rx = out.naxes[0] = dst_rx;
 		out.ry = out.naxes[1] = dst_ry;
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
-		size_t chansize = out.rx * out.ry * sizeof(float);
-		out.fdata = calloc(out.naxes[2] * chansize, 1);
-		out.fpdata[0] = out.fdata;
-		out.fpdata[1] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
-		out.fpdata[2] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
+		size_t chansize = out.rx * out.ry;
+		out.fdata = calloc(out.naxes[2] * chansize, sizeof(float));
+		out.fpdata[RLAYER] = out.fdata;
+		out.fpdata[GLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
+		out.fpdata[BLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
 		p->output_data = &out;
 
 		// Set up the output_counts fits to store pixel hit counts
 		fits *output_counts = calloc(1, sizeof(fits));
 		copyfits(&out, output_counts, CP_FORMAT, -1);
 		output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+		output_counts->fpdata[RLAYER] = output_counts->fdata;
+		output_counts->fpdata[GLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + chansize;
+		output_counts->fpdata[BLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + 2 * chansize;
 		p->output_counts = output_counts;
 
 		p->weights = driz->flat;
@@ -551,6 +555,24 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 		// Save drizzle weights to the drizztmp folder
 		const gchar *count_filename = get_sequence_cache_filename(args->seq, in_index, "drizztmp", "fit", args->new_seq_prefix);
+		// if original data is USHORT or drizz_weight_match_bitpix is FALSE,
+		// weights need to be renormed in the [0,1] range, because they will be saved as 8b or 16b
+		if (fit->type == DATA_USHORT || !com.pref.drizz_weight_match_bitpix) {
+			size_t nbpix_per_channel = output_counts->rx * output_counts->ry;
+			for (int c = 0; c < output_counts->naxes[2]; c++) {
+				float *counts = output_counts->fpdata[c];
+				float factor = 1.f / p->max_weight[c];
+				for (size_t i = 0; i < nbpix_per_channel; i++) {
+					counts[i] *= factor;
+				}
+			}
+		}
+		if (!com.pref.drizz_weight_match_bitpix || fit->bitpix == BYTE_IMG) { // we save as 8b
+			output_counts->bitpix = BYTE_IMG;
+		} else if (fit->type == DATA_USHORT) { // we save as 16b
+			output_counts->bitpix = USHORT_IMG;
+		} // else we save as 32b
+
 		savefits(count_filename, output_counts);
 		clearfits(output_counts);
 		free(output_counts);
@@ -811,6 +833,105 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 	return limit;
 }
 
+static int compute_max_drizzle_weights(struct driz_args_t *driz) {
+	struct driz_param_t *p = calloc(1, sizeof(struct driz_param_t));
+	driz_param_init(p);
+	p->kernel = driz->kernel;
+	p->driz = driz;
+	p->error = malloc(sizeof(struct driz_error_t));
+	p->scale = driz->scale;
+	p->pixel_fraction = driz->pixel_fraction;
+	memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
+	p->cfadim = driz->cfadim;
+	int size_in = (driz->scale >= 1) ? DRIZZLE_WEIGHT_CALC_SIZE : (int)(DRIZZLE_WEIGHT_CALC_SIZE / driz->scale);
+	// Set bounds equal to whole image
+	p->xmin = p->ymin = 0;
+	p->xmax = size_in - 1;
+	p->ymax = size_in - 1;
+	p->pixmap = calloc(1, sizeof(imgmap_t));
+	p->pixmap->rx = size_in;
+	p->pixmap->ry = size_in;
+
+	float *buffer = calloc(size_in * size_in, sizeof(float));
+	for (size_t i = 0; i < size_in * size_in; i++)
+		buffer[i] = 1.f;
+	fits *fit = NULL;
+	new_fit_image_with_data(&fit, size_in, size_in, 1, DATA_FLOAT, buffer);
+	int dst_rx = (int)(size_in * driz->scale);
+	int dst_ry = (int)(size_in * driz->scale);
+	Homography H = { 0 };
+	cvGetEye(&H);
+
+	if (map_image_coordinates_h(fit, H, p->pixmap, dst_rx, dst_ry, driz->scale, NULL, 1)) {
+		free(p->error);
+		free(p->pixmap);
+		free(p);
+		return 1;
+	}
+
+	if (!p->pixmap->xmap) {
+		siril_log_color_message(_("Error generating mapping array.\n"), "red");
+		free(p->error);
+		free(p->pixmap);
+		free(p);
+		return 1;
+	}
+	p->data = fit;
+
+	/* Set up output fits */
+	fits out = { 0 };
+	copyfits(fit, &out, CP_FORMAT, -1);
+	out.rx = out.naxes[0] = dst_rx;
+	out.ry = out.naxes[1] = dst_ry;
+	out.naxes[2] = driz->is_bayer ? 3 : 1;
+	size_t chansize = out.rx * out.ry * sizeof(float);
+	out.fdata = calloc(out.naxes[2] * chansize, 1);
+	out.fpdata[RLAYER] = out.fdata;
+	out.fpdata[GLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
+	out.fpdata[BLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
+	p->output_data = &out;
+
+	// Set up the output_counts fits to store pixel hit counts
+	fits *output_counts = calloc(1, sizeof(fits));
+	copyfits(&out, output_counts, CP_FORMAT, -1);
+	output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+	output_counts->fpdata[RLAYER] = output_counts->fdata;
+	output_counts->fpdata[GLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + out.rx * out.ry;
+	output_counts->fpdata[BLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + 2 * out.rx * out.ry;
+	p->output_counts = output_counts;
+
+	// p->weights = driz->flat;
+
+	if (dobox(p)) { // Do the drizzle
+		siril_log_color_message("s\n", p->error->last_message);
+		return 1;
+	}
+	clearfits(fit);
+	int retval = 0;
+	for (int c = 0; c < output_counts->naxes[2]; c++) {
+		imstats *stat = statistics(NULL, -1, output_counts, c, NULL, STATS_MINMAX, 1);
+		if (!stat) {
+			siril_log_color_message(_("Error computing statistics for drizzle weights.\n"), "red");
+			retval = 1;
+			continue;
+		}
+		if (stat->max <= 1e-3f) {
+			siril_log_color_message(_("Max drizzle weight for layer %d is invalid.\n"), "red", c);
+			retval = 1;
+			continue;
+		}
+		siril_log_message("Max drizzle weight for layer %d: %f\n", c, stat->max);
+		p->max_weight[c] = stat->max;
+	}
+	clearfits(&out);
+	clearfits(output_counts);
+	free(p->pixmap->xmap);
+	free(p->pixmap);
+	free(p->error);
+	free(p);
+	return retval;
+}
+
 // Used by both apply_reg and global methods: definition is in registration.h
 int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs) {
 	struct driz_args_t *driz = regargs->driz;
@@ -833,7 +954,7 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	}
 	if (driz->is_bayer)
 		driz->cfadim = (int)cfadim;
-	return 0;
+	return compute_max_drizzle_weights(driz);
 }
 
 int register_apply_reg(struct registration_args *regargs) {
