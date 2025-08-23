@@ -613,76 +613,114 @@ do_kernel_gaussian(struct driz_param_t* p) {
  * p: structure containing options, input, and output
  */
 
+/**
+ * Corrected Lanczos drizzle kernel function - distributes input pixel values onto
+ * output grid using a Lanczos interpolation kernel.
+ *
+ * Key fixes:
+ * 1. Corrected footprint calculation: pfo now grows with scale (not shrinks)
+ * 2. Fixed LUT indexing: distances converted to input pixel units before lookup
+ * 3. Added bounds checking for LUT access
+ * 4. Improved comments explaining coordinate system conversions
+ *
+ * @param p Drizzle parameters structure containing input/output images and settings
+ * @return 0 on success, 1 on error
+ */
 static int
 do_kernel_lanczos(struct driz_param_t* p) {
     struct scanner s;
     integer_t i, j, ii, jj, nxi, nxa, nyi, nya, nhit, ix, iy;
-    integer_t /*ybounds[2],*/ osize[2];
-    float scale2, vc[3], d, dow;
+    integer_t osize[2];                  // Output image dimensions [width, height]
+    float scale2, vc[3], d, dow;         // Scale factor squared, counts, data, weighted data
     float pfo, xx, yy, xxi, xxa, yyi, yya, w, dx, dy, dover;
-    int kernel_order;
-    struct lanczos_param_t lanczos;
-    const size_t nlut = 512;
-    const float del = 0.01;
-    int xmin, xmax, ymin, ymax, n;
-    BYTE *cfa = p->cfa;
-    size_t cfadim = p->cfadim;
+    int kernel_order;                    // Lanczos kernel order (2 or 3)
+    struct lanczos_param_t lanczos;      // Lanczos lookup table parameters
+    const size_t nlut = 512;             // Lookup table size
+    const float del = 0.01;              // LUT resolution in input pixel units
+    int xmin, xmax, ymin, ymax, n;       // Scan line limits
+    BYTE *cfa = p->cfa;                  // Color Filter Array pattern
+    size_t cfadim = p->cfadim;           // CFA dimensions
+    float input_pixel_size_in_output;    // Size of input pixel in output coordinates
 
+    /* Half-pixel offsets for pixel center alignment */
     dx = 0.5f;
     dy = 0.5f;
 
     scale2 = p->scale * p->scale;
     kernel_order = (p->kernel == kernel_lanczos2) ? 2 : 3;
-    pfo = (float)kernel_order * p->pixel_fraction / p->scale;
 
+    /* Calculate input pixel size in output coordinate system.
+     * This represents how large an input pixel appears in the output grid. */
+    input_pixel_size_in_output = p->pixel_fraction * p->scale;
+
+    /* Lanczos kernel extends ±kernel_order pixels in INPUT coordinate system.
+     * Convert this to output coordinate system for footprint calculation. */
+    pfo = (float)kernel_order * input_pixel_size_in_output;
+
+    /* Allocate memory for Lanczos lookup table */
     if ((lanczos.lut = malloc(nlut * sizeof(float))) == NULL) {
         driz_error_set_message(p->error, _("Out of memory"));
         return driz_error_is_set(p->error);
     }
 
-    /* Set up a look-up-table for Lanczos-style interpolation
-       kernels */
+    /* Create lookup table for Lanczos kernel values.
+     * LUT is indexed by distance in INPUT pixel units, with resolution 'del' */
     create_lanczos_lut(kernel_order, nlut, del, lanczos.lut);
-    lanczos.sdp = p->scale / del / p->pixel_fraction;
+
+    /* Store parameters for LUT access */
     lanczos.nlut = nlut;
 
-    if (init_image_scanner(p, &s, &ymin, &ymax)) return 1;
+    if (init_image_scanner(p, &s, &ymin, &ymax)) {
+        free(lanczos.lut);
+        return 1;
+    }
 
     p->nskip = (p->ymax - p->ymin) - (ymax - ymin);
     p->nmiss = p->nskip * (p->xmax - p->xmin);
 
-    /* This is the outer loop over all the lines in the input image */
-
     get_dimensions(p->output_data, osize);
+
     for (j = ymin; j <= ymax; ++j) {
-        /* Check the overlap with the output */
+        /* Determine x-range of input pixels on this line that affect output */
         n = get_scanline_limits(&s, j, &xmin, &xmax);
+
         if (n == SCANLINE_ENDED) {
-            // scan ended (y reached the top vertex/edge)
+            /* Scan ended - remaining lines are outside output bounds */
             p->nskip += (ymax + 1 - j);
             p->nmiss += (ymax + 1 - j) * (p->xmax - p->xmin);
             break;
+
         } else if (n == SCANLINE_PIXEL_OUT_OF_LIMITS || n == SCANLINE_LIMITS_ARE_EQUAL) {
-            // pixel centered on y is outside of scanner's limits or image [0, height - 1]
-            // OR: limits (x1, x2) are equal (line width is 0)
+            /* Line doesn't intersect output or has zero width */
             p->nmiss += (p->xmax - p->xmin);
             ++p->nskip;
             continue;
+
         } else {
+            /* Normal case - count pixels outside x-range as missed */
             p->nmiss += (p->xmax - p->xmin) - (xmax + 1 - xmin);
         }
 
         for (i = xmin; i <= xmax; ++i) {
+            /* Determine color channel for multi-channel data */
             int chan = FC_array(j, i, cfa, cfadim);
+
+            /* Map input pixel (i,j) to output coordinates (xx,yy) */
             if (map_pixel(p->pixmap, i, j, &xx, &yy)) {
+                /* Pixel maps outside valid output region */
                 nhit = 0;
 
             } else {
-                xxi = xx - dx - pfo;
-                xxa = xx + dx + pfo;
-                yyi = yy - dy - pfo;
-                yya = yy + dy + pfo;
+                /* Calculate bounding box of output pixels affected by this input pixel.
+                 * Include half-pixel offsets (dx, dy) for proper pixel center alignment.
+                 *
+                 * The footprint extends ±pfo from the mapped pixel center */
+                xxi = xx - dx - pfo;  // Left edge
+                xxa = xx + dx + pfo;  // Right edge
+                yyi = yy - dy - pfo;  // Bottom edge
+                yya = yy + dy + pfo;  // Top edge
 
+                /* Convert to integer pixel indices, clipping to output image bounds */
                 nxi = MAX(floorf(xxi), 0);
                 nxa = MIN(ceilf(xxa), osize[0]-1);
                 nyi = MAX(floorf(yyi), 0);
@@ -690,26 +728,50 @@ do_kernel_lanczos(struct driz_param_t* p) {
 
                 nhit = 0;
 
-                /* Allow for stretching because of scale change */
+                /* Get input pixel value and scale for flux conservation */
                 d = get_pixel(p->data, i, j, 0) * scale2;
 
-                /* Scale the weighting mask by the scale factor and inversely by
-                   the Jacobian to ensure conservation of weight in the output */
+                /* Get input pixel weight (or default to 1.0) */
                 if (p->weights) {
                     w = get_pixel(p->weights, i, j, 0) * p->weight_scale;
                 } else {
                     w = 1.0;
                 }
 
-                /* Loop over output pixels which could be affected */
-                for (jj = nyi; jj < nya; ++jj) {
-                    for (ii = nxi; ii < nxa; ++ii) {
-                        /* X and Y offsets */
-                        ix = fortran_round(fabs(xx - (float)ii) * lanczos.sdp);
-                        iy = fortran_round(fabs(yy - (float)jj) * lanczos.sdp);
+                /* Loop over all output pixels within the footprint */
+                for (jj = nyi; jj <= nya; ++jj) {
+                    for (ii = nxi; ii <= nxa; ++ii) {
 
-                        /* Weight is product of Lanczos function values in X and Y */
+                        /* Calculate distances from input pixel center to output pixel center
+                         * in output coordinate system */
+                        float dist_x = fabs(xx - (float)ii);
+                        float dist_y = fabs(yy - (float)jj);
+
+                        /* Convert distances from output coordinates to input pixel units.
+                         * The Lanczos LUT is indexed by distance in input pixel units.
+                         *
+                         * input_pixel_units = output_units / input_pixel_size_in_output */
+                        float input_dist_x = dist_x / input_pixel_size_in_output;
+                        float input_dist_y = dist_y / input_pixel_size_in_output;
+
+                        /* Convert distances to LUT indices */
+                        ix = fortran_round(input_dist_x / del);
+                        iy = fortran_round(input_dist_y / del);
+
+                        /* Check if distances are within LUT range.
+                         * If outside range, Lanczos kernel value should be 0. */
+                        if (ix >= nlut || iy >= nlut) {
+                            /* Distance too large - Lanczos kernel is 0 */
+                            continue;
+                        }
+
+                        /* Look up Lanczos kernel values and compute separable product */
                         dover = lanczos.lut[ix] * lanczos.lut[iy];
+
+                        /* Skip if kernel value is effectively zero */
+                        if (dover == 0.0f) {
+                            continue;
+                        }
 
                         /* Count the hits */
                         ++nhit;
@@ -718,17 +780,21 @@ do_kernel_lanczos(struct driz_param_t* p) {
                         dow = (float)(dover * w);
 
                         if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
+                            free(lanczos.lut);
                             return 1;
                         }
                     }
                 }
             }
 
-            /* Count cases where the pixel is off the output image */
-            if (nhit == 0) ++ p->nmiss;
+            /* Count input pixels that don't affect any output pixels */
+            if (nhit == 0) {
+                ++p->nmiss;
+            }
         }
     }
 
+    /* Clean up allocated memory */
     free(lanczos.lut);
     lanczos.lut = NULL;
 
