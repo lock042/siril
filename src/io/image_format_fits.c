@@ -1901,7 +1901,7 @@ int savefits(const char *name, fits *f) {
 	if (!status) {
 		siril_log_message(_("Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"),
 				filename, f->naxes[2], f->rx, f->ry,
-				f->type == DATA_USHORT ? 16 : 32);
+				f->bitpix == FLOAT_IMG ? 32 : (f->bitpix == SHORT_IMG || f->bitpix == USHORT_IMG ? 16 : 8));
 	}
 	g_free(filename);
 	return 0;
