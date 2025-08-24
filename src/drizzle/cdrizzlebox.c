@@ -304,6 +304,10 @@ do_kernel_point(struct driz_param_t* p) {
         }
 
         for (i = xmin; i <= xmax; ++i) {
+            /* Allow for stretching because of scale change */
+            d = get_pixel(p->data, i, j, 0) * scale2;
+            if (!d)
+                continue;
             float ox, oy;
             int chan = FC_array(j, i, cfa, cfadim);
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
@@ -319,9 +323,6 @@ do_kernel_point(struct driz_param_t* p) {
 
                 } else {
                     vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
-
-                    /* Allow for stretching because of scale change */
-                    d = get_pixel(p->data, i, j, 0) * scale2;
 
                     /* Scale the weighting mask by the scale factor.  Note that we
                        DON'T scale by the Jacobian as it hasn't been calculated */
@@ -402,6 +403,10 @@ do_kernel_gaussian(struct driz_param_t* p) {
         }
 
         for (i = xmin; i <= xmax; ++i) {
+            /* Allow for stretching because of scale change */
+            d = get_pixel(p->data, i, j, 0) * scale2;
+            if (!d)
+                continue;
             float ox, oy;
             int chan = FC_array(j, i, cfa, cfadim);
 
@@ -421,9 +426,6 @@ do_kernel_gaussian(struct driz_param_t* p) {
                 nya = MIN(fortran_round(yya), osize[1]-1);
 
                 nhit = 0;
-
-                /* Allow for stretching because of scale change */
-                d = get_pixel(p->data, i, j, 0) * scale2;
 
                 /* Scale the weighting mask by the scale factor and inversely by
                    the Jacobian to ensure conservation of weight in the output */
@@ -533,6 +535,10 @@ do_kernel_lanczos(struct driz_param_t* p) {
         }
 
         for (i = xmin; i <= xmax; ++i) {
+            /* Allow for stretching because of scale change */
+            d = get_pixel(p->data, i, j, 0) * scale2;
+            if (!d)
+                continue;
             int chan = FC_array(j, i, cfa, cfadim);
             if (map_pixel(p->pixmap, i, j, &xx, &yy)) {
                 nhit = 0;
@@ -549,9 +555,6 @@ do_kernel_lanczos(struct driz_param_t* p) {
                 nya = MIN(fortran_round(yya), osize[1]-1);
 
                 nhit = 0;
-
-                /* Allow for stretching because of scale change */
-                d = get_pixel(p->data, i, j, 0) * scale2;
 
                 /* Scale the weighting mask by the scale factor and inversely by
                    the Jacobian to ensure conservation of weight in the output */
@@ -648,6 +651,10 @@ do_kernel_turbo(struct driz_param_t* p) {
         }
 
         for (i = xmin; i <= xmax; ++i) {
+            /* Allow for stretching because of scale change */
+            d = get_pixel(p->data, i, j, 0) * scale2;
+            if (!d)
+                continue;
             float ox, oy;
             int chan = FC_array(j, i, cfa, cfadim);
 
@@ -671,9 +678,6 @@ do_kernel_turbo(struct driz_param_t* p) {
                 jje = MIN(nya, osize[1]-1);
 
                 nhit = 0;
-
-                /* Allow for stretching because of scale change */
-                d = get_pixel(p->data, i, j, 0) * (float)scale2;
 
                 /* Scale the weighting mask by the scale factor and inversely by
                    the Jacobian to ensure conservation of weight in the output. */
@@ -777,6 +781,10 @@ do_kernel_square(struct driz_param_t* p) {
         yin[3] = yin[2] = (float) j - dh;
 
         for (i = xmin; i <= xmax; ++i) {
+            /* Allow for stretching because of scale change */
+            d = get_pixel(p->data, i, j, 0) * scale2;
+            if (!d)
+                continue;
             nhit = 0;
             int chan = FC_array(j, i, cfa, cfadim);
 
@@ -802,9 +810,6 @@ do_kernel_square(struct driz_param_t* p) {
                 tem = xout[1]; xout[1] = xout[3]; xout[3] = tem;
                 tem = yout[1]; yout[1] = yout[3]; yout[3] = tem;
             }
-
-            /* Allow for stretching because of scale change */
-            d = get_pixel(p->data, i, j, 0) * scale2;
 
             /* Scale the weighting mask by the scale factor and inversely by
                the Jacobian to ensure conservation of weight in the output */
