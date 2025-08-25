@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-21 22:43+0200\n"
-"PO-Revision-Date: 2025-08-11 18:11+0000\n"
+"PO-Revision-Date: 2025-08-25 21:14+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -145,9 +145,8 @@ msgstr "閉じる"
 
 #: src/gui/uifiles/Median_dialog.ui:80 src/gui/uifiles/SCNR_dialog.ui:73
 #: src/gui/uifiles/bdeconv_dialog.ui:284 src/gui/uifiles/denoise_dialog.ui:84
-#, fuzzy
 msgid "ROI Preview"
-msgstr "プレビュー"
+msgstr "ROIプレビュー"
 
 #: src/gui/uifiles/Median_dialog.ui:84
 msgid ""
@@ -243,7 +242,7 @@ msgstr "明るさを維持"
 
 #: src/gui/uifiles/SCNR_dialog.ui:226
 msgid "Preserves the original CIE L* component in the processed image."
-msgstr "処理された画像で元のCIE L*成分を保持する。"
+msgstr "処理された画像で元のCIE L*成分を保持します。"
 
 #: src/gui/uifiles/StatWindow.ui:48 src/gui/uifiles/livestacking_player.ui:191
 #: src/gui/uifiles/siril.ui:717 src/algos/statistics.c:943
@@ -257,20 +256,19 @@ msgstr "実行"
 
 #: src/gui/uifiles/StatWindow.ui:66
 msgid "Run statistic calculation"
-msgstr "統計計算を実行"
+msgstr "統計計算を実行します"
 
 #: src/gui/uifiles/StatWindow.ui:83
 msgid "Close the window"
-msgstr "ウインドウを閉じる"
+msgstr "ウインドウを閉じます"
 
 #: src/gui/uifiles/StatWindow.ui:105
 msgid "Normalized Real [0, 1]"
 msgstr "[0, 1]の実数に正規化"
 
 #: src/gui/uifiles/StatWindow.ui:120
-#, fuzzy
 msgid "Per CFA channel"
-msgstr "赤チャンネル"
+msgstr "CFAチャネルごと"
 
 #: src/gui/uifiles/StatWindow.ui:125
 msgid ""
@@ -4740,9 +4738,8 @@ msgid "unsaved"
 msgstr "未保存"
 
 #: src/gui/uifiles/python_scratchpad.ui:148
-#, fuzzy
 msgid "_File"
-msgstr "ファイル"
+msgstr "_ファイル"
 
 #: src/gui/uifiles/python_scratchpad.ui:158
 msgid "Clear the current script"
@@ -4779,9 +4776,8 @@ msgid "Save the current script (choose filename)"
 msgstr "現在のスクリプトを保存します（ファイル名を選択してください）"
 
 #: src/gui/uifiles/python_scratchpad.ui:213
-#, fuzzy
 msgid "_Save As"
-msgstr "保存"
+msgstr "_別名で保存"
 
 #: src/gui/uifiles/python_scratchpad.ui:222
 msgid "Close the script editor"
@@ -4803,50 +4799,49 @@ msgstr "やり直し"
 
 #: src/gui/uifiles/python_scratchpad.ui:266
 #: src/gui/uifiles/python_scratchpad.ui:268
-#, fuzzy
 msgid "Cut"
-msgstr "切り抜き"
+msgstr "カット"
 
 #: src/gui/uifiles/python_scratchpad.ui:276
 #: src/gui/uifiles/python_scratchpad.ui:278
 msgid "Copy"
-msgstr ""
+msgstr "コピー"
 
 #: src/gui/uifiles/python_scratchpad.ui:286
 #: src/gui/uifiles/python_scratchpad.ui:288
 msgid "Paste"
-msgstr ""
+msgstr "貼り付け"
 
 #: src/gui/uifiles/python_scratchpad.ui:317
-#, fuzzy
 msgid "_Script"
-msgstr "スクリプト"
+msgstr "_スクリプト"
 
 #: src/gui/uifiles/python_scratchpad.ui:327
-#, fuzzy
 msgid "Run the script"
-msgstr "スクリプト"
+msgstr "スクリプトを実行します"
 
 #: src/gui/uifiles/python_scratchpad.ui:329
 msgid "Run"
-msgstr ""
+msgstr "実行"
 
 #: src/gui/uifiles/python_scratchpad.ui:339
 msgid ""
 "Set scripting language to Python. Ensure you have the correct scripting "
 "language set before executing a script from the editor."
-msgstr ""
+msgstr "スクリプト言語をPythonに設定します。エディタからスクリプトを実行する前に、正"
+"しいスクリプト言語が設定されていることを確認してください。"
 
 #: src/gui/uifiles/python_scratchpad.ui:340
-#, fuzzy
 msgid "Python scripts"
-msgstr "スクリプト"
+msgstr "Pythonスクリプト"
 
 #: src/gui/uifiles/python_scratchpad.ui:350
 msgid ""
 "Set scripting language to Siril Script File. Ensure you have the correct "
 "scripting language set before executing a script from the editor."
 msgstr ""
+"スクリプト言語をSirilスクリプトファイルに設定します。エディタからスクリプトを"
+"実行する前に、正しいスクリプト言語が設定されていることを確認してください。"
 
 #: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:331
 msgid "Siril Script Files"
@@ -4874,16 +4869,15 @@ msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:372
 msgid "Enable python debug mode"
-msgstr ""
+msgstr "pythonデバッグモードを有効にする"
 
 #: src/gui/uifiles/python_scratchpad.ui:384
-#, fuzzy
 msgid "_Preferences"
-msgstr "環境設定"
+msgstr "_設定"
 
 #: src/gui/uifiles/python_scratchpad.ui:394
 msgid "Enable syntax highlighting"
-msgstr ""
+msgstr "シンタックスハイライトを有効にする"
 
 #: src/gui/uifiles/python_scratchpad.ui:395
 #, fuzzy
@@ -4902,9 +4896,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:416
-#, fuzzy
 msgid "Set right margin position"
-msgstr "ウィンドーサイズと位置を記憶"
+msgstr "右マージン位置を設定する"
 
 #: src/gui/uifiles/python_scratchpad.ui:423
 msgid ""
@@ -4917,13 +4910,12 @@ msgid "Enable bracket matching"
 msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:433
-#, fuzzy
 msgid "Enable line numbers in the left margin"
-msgstr "この選択を用いる"
+msgstr "左の余白に行番号を表示する"
 
 #: src/gui/uifiles/python_scratchpad.ui:434
 msgid "Show line numbers"
-msgstr ""
+msgstr "行番号を表示する"
 
 #: src/gui/uifiles/python_scratchpad.ui:443
 msgid "Show line markers in the left margin"
@@ -4984,9 +4976,8 @@ msgid "Show newline characters in the editor view"
 msgstr ""
 
 #: src/gui/uifiles/python_scratchpad.ui:513
-#, fuzzy
 msgid "Show newlines"
-msgstr "B-スプライン"
+msgstr "改行を表示する"
 
 #: src/gui/uifiles/python_scratchpad.ui:521
 msgid "Show minimap in the editor view"
@@ -4999,27 +4990,23 @@ msgstr "ファイル: %s を開けない\n"
 
 #: src/gui/uifiles/python_scratchpad.ui:534
 msgid "_Help"
-msgstr ""
+msgstr "_ヘルプ"
 
 #: src/gui/uifiles/python_scratchpad.ui:544
-#, fuzzy
 msgid "Open Python API reference documentation"
-msgstr "ユーザー インターフェイス"
+msgstr "Python APIリファレンス文書を開きます"
 
 #: src/gui/uifiles/python_scratchpad.ui:546
-#, fuzzy
 msgid "Python API reference"
-msgstr "ユーザー インターフェイス"
+msgstr "Python APIリファレンス"
 
 #: src/gui/uifiles/python_scratchpad.ui:553
-#, fuzzy
 msgid "Open Siril command reference documentation"
-msgstr "リファレンス背景"
+msgstr "Sirilコマンドリファレンス文書を開きます"
 
 #: src/gui/uifiles/python_scratchpad.ui:555
-#, fuzzy
 msgid "Siril Command Reference"
-msgstr "リファレンス背景"
+msgstr "Sirilコマンドリファレンス"
 
 #: src/gui/uifiles/python_scratchpad.ui:573
 #, fuzzy
@@ -5859,7 +5846,7 @@ msgstr "エクスポートされた CSV 形式のファイルのファイル名�
 
 #: src/gui/uifiles/settings_window.ui:223 src/gui/uifiles/siril.ui:474
 msgid "Preferences"
-msgstr "環境設定"
+msgstr "設定"
 
 #: src/gui/uifiles/settings_window.ui:326
 msgid "FITS/SER debayer"
@@ -8044,7 +8031,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:1059
 msgid "Set ROI to selection"
-msgstr "選択をROIに設定"
+msgstr "選択領域をROIに設定"
 
 #: src/gui/uifiles/siril.ui:1067
 msgid "Clear ROI"
@@ -13482,9 +13469,8 @@ msgstr ""
 #: src/gui/preferences.c:1104 src/gui/python_gui.c:687 src/gui/python_gui.c:706
 #: src/gui/python_gui.c:735 src/gui/python_gui.c:761 src/gui/python_gui.c:832
 #: src/gui/utils.c:320 src/registration/applyreg.c:1051
-#, fuzzy
 msgid "Proceed"
-msgstr "前処理"
+msgstr "続行"
 
 #: src/compositing/compositing.c:969
 msgid "Using Luminance channel as reference.\n"
@@ -21687,6 +21673,12 @@ msgid ""
 "While a ROI is active, processing will only preview the ROI. When the Apply "
 "button is clicked, the operation will apply to the whole image."
 msgstr ""
+"この画像処理はROI処理をサポートしています。これは、ROI周囲の緑色の枠線で示さ"
+"れます。ROI処理をサポートしない画像処理ダイアログや、ダイアログが開かれていな"
+"い場合、ROIは赤色の枠線で表示されます。\n"
+"\n"
+"ROIがアクティブになっている間、処理はROIのみをプレビュー表示します。適用ボタ"
+"ンをクリックすると、処理は画像全体に適用されます。"
 
 #: src/gui/callbacks.c:321 src/gui/message_dialog.c:280
 msgid "_Do not show this dialog again"
@@ -23858,39 +23850,35 @@ msgstr "Log ファイルをクリア"
 #: src/gui/python_gui.c:687 src/gui/python_gui.c:706 src/gui/python_gui.c:735
 #: src/gui/python_gui.c:761 src/gui/python_gui.c:832
 msgid "Are you sure?"
-msgstr ""
+msgstr "本当によろしいですか?"
 
 #: src/gui/python_gui.c:687 src/gui/python_gui.c:706 src/gui/python_gui.c:735
 msgid ""
 "This will clear the entry buffer. You will not be able to recover any "
 "contents."
-msgstr ""
+msgstr "これはエントリバッファをクリアします。コンテンツを復元することはできません。"
 
 #: src/gui/python_gui.c:761 src/gui/python_gui.c:832
 msgid ""
 "This will replace the entry buffer. You will not be able to recover any "
 "contents."
-msgstr ""
+msgstr "これはエントリバッファを置き換えます。コンテンツを復元することはできません。"
 
 #: src/gui/python_gui.c:765
-#, fuzzy
 msgid "Open Script"
-msgstr "スクリプト"
+msgstr "スクリプトを開く"
 
 #: src/gui/python_gui.c:775 src/gui/python_gui.c:856
-#, fuzzy
 msgid "Script Files (*.py, *.ssf)"
-msgstr "JPEG ファイル (*.jpg, *.jpeg)"
+msgstr "スクリプトファイル(*.py, *.ssf)"
 
 #: src/gui/python_gui.c:842
-#, fuzzy
 msgid "Save Script As"
-msgstr "スクリプトを入手"
+msgstr "別名でスクリプトを保存"
 
 #: src/gui/python_gui.c:926 src/gui/python_gui.c:1092
-#, fuzzy
 msgid "Python Script"
-msgstr "スクリプト"
+msgstr "Pythonスクリプト"
 
 #: src/gui/python_gui.c:1016
 msgid "Right Margin Position"
@@ -24398,9 +24386,9 @@ msgid "Loading script from repository: %s\n"
 msgstr "%d: ‘%s’ 行目にエラー.\n"
 
 #: src/gui/script_menu.c:531
-#, fuzzy, c-format
+#, c-format
 msgid "Adding core script to menu: %s\n"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr "コアスクリプトをメニューに追加しています: %s\n"
 
 #: src/gui/script_menu.c:582
 msgid "Cannot refresh the scripts if the list is empty.\n"

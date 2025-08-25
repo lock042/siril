@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-21 22:43+0200\n"
-"PO-Revision-Date: 2025-08-12 01:43+0000\n"
+"PO-Revision-Date: 2025-08-25 21:15+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -5509,6 +5509,8 @@ msgid ""
 "Set the position of the right margin indicator in the editor. This visual "
 "guide helps maintain consistent line lengths and improve code readability."
 msgstr ""
+"Устанавливает положение указателя правой границы в редакторе. Этот указатель "
+"помогает поддерживать постоянную длину строк и улучшает читаемость кода."
 
 #: src/gui/uifiles/python_scratchpad.ui:416
 msgid "Set right margin position"
@@ -6564,7 +6566,6 @@ msgstr ""
 "шаблоном."
 
 #: src/gui/uifiles/settings_window.ui:375
-#, fuzzy
 msgid ""
 "Due to algorithm constraints more complex demosaicing algorithms cannot be "
 "used in the rejection stacking. Our tests also showed that there is no gain "
@@ -6730,9 +6731,8 @@ msgid "X-Trans demosaicing quality"
 msgstr "Качество дебайеризации X-Trans"
 
 #: src/gui/uifiles/settings_window.ui:561
-#, fuzzy
 msgid "Row-order preference:"
-msgstr "Открыть параметры программы"
+msgstr "Порядок строк:"
 
 #: src/gui/uifiles/settings_window.ui:572
 msgid ""
@@ -6745,23 +6745,32 @@ msgid ""
 "This setting is ignored with SER files which are always assumed Top-Down as "
 "per their standard."
 msgstr ""
+"Siril читает данные FITS в ориентации сверху вниз, но многие программы "
+"захвата не соответствуют этой спецификации. Большинство в настоящее время "
+"записывают ключ ROWORDER в метаданные изображения для указания в каком "
+"порядке сохранены данные.\n"
+"Выберите подходящую опцию из списка. При выборе первых двух программа "
+"сначала пытается прочитать ROWORDER из заголовка файла, а потом "
+"переключается на резервный вариант. Две последние опции принудительно "
+"устанавливают порядок сверху вниз или снизу вверх.\n"
+"Эта настройка игнорируется при работе с файлам SER, в которых ориентация, по "
+"стандарту, всегда предполагается сверху вниз."
 
 #: src/gui/uifiles/settings_window.ui:578
 msgid "Header then Top-Down"
-msgstr ""
+msgstr "Заголовок, потом сверху вниз"
 
 #: src/gui/uifiles/settings_window.ui:579
 msgid "Header then Bottom-Up"
-msgstr ""
+msgstr "Заголовок, потом снизу вверх"
 
 #: src/gui/uifiles/settings_window.ui:580
-#, fuzzy
 msgid "Force Top-Down"
-msgstr "принудительная дебайеризация сверху вниз"
+msgstr "Принудительно сверху вниз"
 
 #: src/gui/uifiles/settings_window.ui:581
 msgid "Force Bottom-Up"
-msgstr ""
+msgstr "Принудительно снизу вверх"
 
 #: src/gui/uifiles/settings_window.ui:597 src/gui/uifiles/siril.ui:3966
 #: src/gui/open_dialog.c:191
@@ -7819,7 +7828,7 @@ msgstr "Обычные (256×256)"
 
 #: src/gui/uifiles/settings_window.ui:3589
 msgid "Large (512x512)"
-msgstr ""
+msgstr "Большие (512x512)"
 
 #: src/gui/uifiles/settings_window.ui:3605
 msgid "Image Thumbnails"
@@ -13731,14 +13740,13 @@ msgid "stars within"
 msgstr "звёзды внутри"
 
 #: src/algos/demosaicing.c:148
-#, fuzzy
 msgid "Invalid FITS file or pattern for debayering\n"
-msgstr "Неверный файловый дескриптор после shm_open\n"
+msgstr "Неверный файл FITS или шаблон для дебайеризации\n"
 
 #: src/algos/demosaicing.c:152
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid Bayer pattern for debayering: %d\n"
-msgstr "Несохранённое слияние шаблона Байера"
+msgstr "Неверный шаблон Байера для дебайеризации: %d\n"
 
 #: src/algos/demosaicing.c:166
 msgid ""
@@ -13756,25 +13764,23 @@ msgstr "Некорректный символ в шаблоне фильтра X
 #: src/algos/demosaicing.c:262
 #, c-format
 msgid "Filter Pattern: %s %s, Orientation: %s %s %s\n"
-msgstr ""
+msgstr "Шаблон фильтра: %s %s, ориентация: %s %s %s\n"
 
 #: src/algos/demosaicing.c:264 src/algos/demosaicing.c:266
 msgid "from header"
-msgstr ""
+msgstr "из заголовка"
 
 #: src/algos/demosaicing.c:264 src/algos/demosaicing.c:266
-#, fuzzy
 msgid "from settings"
-msgstr "Параметры"
+msgstr "из настроек"
 
 #: src/algos/demosaicing.c:265
 msgid "top-down"
-msgstr ""
+msgstr "сверху вниз"
 
 #: src/algos/demosaicing.c:265
-#, fuzzy
 msgid "bottom-up"
-msgstr "Внизу слева"
+msgstr "снизу вверх"
 
 #: src/algos/demosaicing.c:267 src/core/command.c:3839
 msgid "forced"
@@ -13786,9 +13792,8 @@ msgstr ""
 "Нельзя выполнить дебайеризацию изображения, имеющего более одного канала\n"
 
 #: src/algos/demosaicing.c:554
-#, fuzzy
 msgid "No pattern found to debayer\n"
-msgstr "В заголовке файла шаблон Байера не найден.\n"
+msgstr "Не найден шаблон для дебайеризации\n"
 
 #: src/algos/demosaicing.c:566
 msgid "Cannot perform debayering\n"
@@ -13858,7 +13863,7 @@ msgstr "%s: извлечь зелёный канал\n"
 
 #: src/algos/extraction.c:173
 msgid "Extract Green: unsupported Bayer pattern.\n"
-msgstr ""
+msgstr "Извлечь зелёный: неподдерживаемый шаблон Байера.\n"
 
 #: src/algos/extraction.c:217 src/algos/extraction.c:273
 msgid "Extract_Ha does not work on non-Bayer filter camera images!\n"
@@ -13872,9 +13877,8 @@ msgid "Ha channel"
 msgstr "канал Ha"
 
 #: src/algos/extraction.c:331
-#, fuzzy
 msgid "Extract Ha: unsupported Bayer pattern.\n"
-msgstr "Несохранённое слияние шаблона Байера"
+msgstr "Извлечь Ha: неподдерживаемый шаблон Байера.\n"
 
 #: src/algos/extraction.c:385 src/algos/extraction.c:618
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
@@ -13900,7 +13904,7 @@ msgstr "канал OIII\n"
 
 #: src/algos/extraction.c:843
 msgid "Extract HaOIII: unsupported Bayer pattern.\n"
-msgstr ""
+msgstr "Извлечь HaOIII: неподдерживаемый шаблон Байера.\n"
 
 #: src/algos/extraction.c:892
 msgid "Extract Ha and OIII"
@@ -14685,9 +14689,9 @@ msgid "Bad argument to stats option\n"
 msgstr "Неверный аргумент для опции stats\n"
 
 #: src/algos/statistics.c:863
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to write seqstat data: %s"
-msgstr "Не удалось прочитать записи данных.\n"
+msgstr "Не удалось записать данные seqstat: %s"
 
 #. Success path
 #: src/algos/statistics.c:870
@@ -14696,9 +14700,9 @@ msgid "Statistic file %s was successfully created.\n"
 msgstr "Файл статистики %s успешно создан.\n"
 
 #: src/algos/statistics.c:878
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to close seqstat output stream: %s"
-msgstr "Не удалось создать итоговый файл: %s\n"
+msgstr "Не удалось закрыть исходящий поток seqstat: %s"
 
 #: src/algos/statistics.c:995 src/registration/global.c:317
 msgid ""
@@ -20225,6 +20229,10 @@ msgid ""
 "update will happen asynchronously (i.e. the command will trigger the update "
 "but will not wait for the update to complete)"
 msgstr ""
+"Выполняет повторное сканирование директорий со сценариями и обновляет меню "
+"Сценарии. Обратите внимание, что эта команда не работает в автономном "
+"режиме, т.е. через siril-cli, и что обновление происходит асинхронно, т.е. "
+"программа запускает обновление, но не дожидается окончания процесса"
 
 #: src/core/command_def.h:124
 msgid ""
@@ -23177,9 +23185,9 @@ msgid "Failed to find GPid %d, it may already have exited...\n"
 msgstr "Не найден GPid %d, возможно он уже завершён...\n"
 
 #: src/core/processing.c:1261
-#, fuzzy, c-format
+#, c-format
 msgid "Error finding the HDU for frame %d\n"
-msgstr "Ошибка при открытии файла %s\n"
+msgstr "Ошибка при поиске HDU для кадра %d\n"
 
 #: src/core/sequence_filtering.c:229
 msgid "Sequence filter: values can only be either literal or percent\n"
@@ -25127,7 +25135,9 @@ msgstr "Программа для обработки астрономическ�
 
 #: src/gui/about_dialog.c:78
 msgid "translator-credits"
-msgstr "Александр Прокудин <alexandre.prokoudine@gmail.com>"
+msgstr ""
+"Александр Прокудин <alexandre.prokoudine@gmail.com>\n"
+"Александр Калачёв <akalachev.imb@gmail.com>"
 
 #: src/gui/about_dialog.c:80
 msgid "Visit the Siril website"
@@ -25992,9 +26002,8 @@ msgstr[1] "Выбраны %d файла"
 msgstr[2] "Выбрано %d файлов"
 
 #: src/gui/curves.c:156
-#, fuzzy
 msgid "Toggles whether to apply the curve to the monochrome channel"
-msgstr "Применить растягивание к монохромному каналу"
+msgstr "Применить ли кривую к монохромному каналу"
 
 #: src/gui/curves.c:547
 #, fuzzy, c-format
@@ -31511,7 +31520,7 @@ msgstr "Ошибка: размер пиксельного буфера изоб�
 
 #: src/io/siril_pythonmodule.c:588
 msgid "Error in send_response: size mismatch\n"
-msgstr ""
+msgstr "Ошибка в send_response: несовпадение размера\n"
 
 #: src/io/siril_pythonmodule.c:592
 msgid "Error: image dimensions exceed available memory"
@@ -31547,6 +31556,9 @@ msgid ""
 "Error: Siril has been compiled with a version of Cairo that does not provide "
 "SVG surface support. Saving plots as SVG is not possible with this build.\n"
 msgstr ""
+"Ошибка: Siril был скомпилирован с версией Cairo, которая не предоставляет "
+"поддержку поверхностей SVG. Сохранение графиков в формате SVG с этой сборкой "
+"невозможно.\n"
 
 #: src/io/siril_pythonmodule.c:819
 #, c-format
@@ -32599,10 +32611,9 @@ msgid "Framing: Shift from reference origin: %d, %d\n"
 msgstr "Кадрирование: Сдвиг от исходной точки: %d, %d\n"
 
 #: src/registration/applyreg.c:333
-#, fuzzy
 msgid "Applying interpolation on a sequence opened as CFA is a bad idea.\n"
 msgstr ""
-"Применение трансформации к последовательности, открытой как CFA это плохая "
+"Применение интерполяции к последовательности, открытой как CFA это плохая "
 "идея.\n"
 
 #: src/registration/applyreg.c:336
@@ -32625,6 +32636,7 @@ msgstr "Кадр %d:\n"
 #: src/registration/applyreg.c:441
 msgid "Drizzle: Could not get compiled CFA pattern from the image.\n"
 msgstr ""
+"Сверхразрешение: Не удалось получить собранный шаблон CFA из изображения.\n"
 
 #: src/registration/applyreg.c:448
 #, c-format
@@ -32823,9 +32835,8 @@ msgstr ""
 "изображение №%d\n"
 
 #: src/registration/astrometric.c:133
-#, fuzzy
 msgid "Failed to compute homography from corners\n"
-msgstr "Не удалось вычислить итоговый индекс"
+msgstr "Не удалось вычислить гомографию для углов\n"
 
 #: src/registration/astrometric.c:271
 #, c-format
@@ -32859,9 +32870,8 @@ msgid "Sequence framing: %.1f\n"
 msgstr "Кадрирование последовательности: %.1f\n"
 
 #: src/registration/astrometric.c:376
-#, fuzzy
 msgid "Could not create WCS structure for framing, aborting\n"
-msgstr "Не удалось создать %s, прерывание.\n"
+msgstr "Не удалось создать структуру WCS для кадрирования, прерывание\n"
 
 #: src/registration/astrometric.c:424
 msgid "Astrometric registration computed.\n"
