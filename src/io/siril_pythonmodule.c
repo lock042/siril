@@ -414,7 +414,7 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 
 					for (int j = region.x; j < right; j++) {
 						int dest_index = (j - region.x) + dest_row_start + dest_chan_start;
-						shm_byte_ptr[dest_index] = (uint8_t)(stretched.pdata[chan][j + rowindex] / (UCHAR_MAX + 1));
+						shm_byte_ptr[dest_index] = roundw_to_BYTE(stretched.pdata[chan][j + rowindex]);
 					}
 				}
 			}

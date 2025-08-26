@@ -207,6 +207,13 @@ BYTE truncate_to_BYTE(WORD x) {
 	return (BYTE)x;
 }
 
+BYTE roundw_to_BYTE(WORD input) {
+	if (input >= USHRT_MAX - 127) {
+		return UCHAR_MAX;
+	}
+	return (uint8_t)((input + 128) >> 8);
+}
+
 /**
  * Clamp an integer value in the interval given by [low, high]
  * @param val value to be checked
