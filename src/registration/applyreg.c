@@ -1003,13 +1003,15 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 		driz->cfadim = (int)cfadim;
 	disto_data *disto = NULL;
 	if (regargs->undistort) {
+		disto = calloc(1, sizeof(disto_data));
 		if (regargs->disto->dtype == DISTO_MAP_D2S || regargs->disto->dtype == DISTO_MAP_S2D) {
-			disto = regargs->disto;
+			copy_disto(regargs->disto, disto);
 		} else {
-			disto = &regargs->disto[regargs->reference_image];
+			copy_disto(&regargs->disto[regargs->reference_image], disto);
 		}
 	}
 	int status = compute_max_drizzle_weights(driz, &fit, disto);
+	free_disto_args(disto);
 	clearfits(&fit);
 	return status;
 }
@@ -1084,12 +1086,6 @@ int register_apply_reg(struct registration_args *regargs) {
 
 	if (regargs->no_output) {
 		retval = 0;
-		goto END;
-
-	}
-
-	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
-		retval = -1;
 		goto END;
 
 	}
@@ -1174,6 +1170,12 @@ int register_apply_reg(struct registration_args *regargs) {
 		if (ref.keywords.date_obs)
 			regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
 		clearfits(&ref);
+	}
+
+	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
+		retval = -1;
+		goto END;
+
 	}
 
 	generic_sequence_worker(args);
