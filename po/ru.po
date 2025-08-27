@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-21 22:43+0200\n"
-"PO-Revision-Date: 2025-08-25 21:15+0000\n"
+"PO-Revision-Date: 2025-08-26 06:13+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -13433,9 +13433,8 @@ msgid "Error: unsupported CFA pattern for this operation.\n"
 msgstr "Ошибка: неподдерживаемый шаблон CFA для этой операции.\n"
 
 #: src/algos/background_extraction.c:995 src/algos/background_extraction.c:1209
-#, fuzzy
 msgid "Error splitting into CFA subchannels, aborting...\n"
-msgstr "Ошибка извлечения подканалов CFA, прерывание...\n"
+msgstr "Ошибка разбиения на подканалы CFA, прерывание...\n"
 
 #: src/algos/background_extraction.c:1004 src/algos/colors.c:1098
 #: src/algos/colors.c:1189 src/algos/noise.c:86 src/algos/photometric_cc.c:772
@@ -23479,9 +23478,8 @@ msgid "type of interpolation"
 msgstr "тип интерполяции"
 
 #: src/core/settings.c:392
-#, fuzzy
 msgid "row-order preference"
-msgstr "Открыть параметры программы"
+msgstr "настройка порядка строк"
 
 #: src/core/settings.c:393
 msgid "Bayer matrix offset X"
@@ -25135,9 +25133,7 @@ msgstr "Программа для обработки астрономическ�
 
 #: src/gui/about_dialog.c:78
 msgid "translator-credits"
-msgstr ""
-"Александр Прокудин <alexandre.prokoudine@gmail.com>\n"
-"Александр Калачёв <akalachev.imb@gmail.com>"
+msgstr "Александр Прокудин <alexandre.prokoudine@gmail.com>"
 
 #: src/gui/about_dialog.c:80
 msgid "Visit the Siril website"
@@ -26006,9 +26002,9 @@ msgid "Toggles whether to apply the curve to the monochrome channel"
 msgstr "Применить ли кривую к монохромному каналу"
 
 #: src/gui/curves.c:547
-#, fuzzy, c-format
+#, c-format
 msgid "Applying %s curve transformation with %d points\n"
-msgstr "Применить преобразование кривых"
+msgstr "Применить преобразование кривых (%s) с %d точек\n"
 
 #: src/gui/curves.c:615
 msgid "Curves Transform"
@@ -26168,9 +26164,8 @@ msgid "Measured background"
 msgstr "Измеренный фон"
 
 #: src/gui/cut.c:812
-#, fuzzy
 msgid "Error: failed to read CFA pattern or invalid found.\n"
-msgstr "Ошибка: неподдерживаемый шаблон CFA для этой операции.\n"
+msgstr "Ошибка: не удалось прочесть шаблон CFA или найден неверный шаблон.\n"
 
 #: src/gui/cut.c:823 src/gui/cut.c:831
 msgid "Error: failed to split FITS into CFA sub-patterns.\n"
@@ -26813,9 +26808,9 @@ msgid "Error: input sequence CFA marker not found"
 msgstr "Ошибка: нет загруженных последовательностей.\n"
 
 #: src/gui/merge_cfa.c:221
-#, fuzzy, c-format
+#, c-format
 msgid "Identified the loaded sequence as CFA%d\n"
-msgstr "Не удалось загрузить кадр последовательности"
+msgstr "Загруженная последовательность определена как CFA %d\n"
 
 #: src/gui/merge_cfa.c:249 src/gui/merge_cfa.c:260 src/gui/merge_cfa.c:271
 #: src/gui/merge_cfa.c:282
@@ -30168,12 +30163,12 @@ msgid "Error opening directory: %s\n"
 msgstr "Ошибка при открытии директории: %s\n"
 
 #: src/io/sequence.c:409
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot create sequence %s. Need at least 2 frames to be usable in Siril.\n"
 msgstr ""
-"Не удалось загрузить последовательность SER. Необходимо хотя бы 2 кадра, "
-"чтобы быть практичной в Siril. Конвертируйте файл SER в FITS.\n"
+"Не удалось создать последовательность %s. Необходимы хотя бы 2 кадра, чтобы "
+"быть практичными в Siril.\n"
 
 #: src/io/sequence.c:503
 msgid ""
@@ -30253,9 +30248,10 @@ msgstr ""
 "Не удалось частично загрузить изображение %d из последовательности %s\n"
 
 #: src/io/sequence.c:1058
-#, fuzzy, c-format
+#, c-format
 msgid "Could not seek frame %d from FITS sequence %s. Error status: %d\n"
-msgstr "Не удалось загрузить кадр %d из последовательности FITS %s\n"
+msgstr ""
+"Не удалось найти кадр %d из последовательности FITS %s. Статус ошибки: %d\n"
 
 #: src/io/sequence.c:1158
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
@@ -31693,9 +31689,8 @@ msgid "Error: failed to create Python connection.\n"
 msgstr "Ошибка: не удалось создать соединение Python.\n"
 
 #: src/io/siril_pythonmodule.c:2213
-#, fuzzy
 msgid "Error: Python worker thread not available.\n"
-msgstr "Ошибка: соединение с Python недоступно.\n"
+msgstr "Ошибка: рабочий поток Python недоступен.\n"
 
 #: src/io/siril_pythonmodule.c:2279
 msgid "Error finding venv python path, unable to spawn python.\n"
