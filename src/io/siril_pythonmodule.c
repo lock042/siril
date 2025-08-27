@@ -331,8 +331,8 @@ void cleanup_shm_resources(Connection *conn) {
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
 shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview) {
-	if (!single_image_is_loaded() && !sequence_is_loaded()) {
-		const char* error_msg = _("Failed to retrieve pixel data - no image loaded");
+	if (!fit || (fit->type == DATA_USHORT && !fit->data) || (fit->type == DATA_FLOAT && !fit->fdata)) {
+		const char* error_msg = _("Failed to retrieve pixel data - no FITS image");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_log_message("Error in send_response\n");
 		return NULL;

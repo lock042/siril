@@ -24,6 +24,8 @@ xx/xx/xx
 * Centre the background extraction grid vertically instead of starting at the image edge and having a gap (#1741)
 * Right-click scripts directly from the script menu to open them in the editor
 * Optimize image preview, allow colour previews and improve preview stretching to use autostretch, add new large preview size at 512px
+* Add SirilInterface.get_image_from_file() method
+
 siril 1.4.0-beta3
 07/11/25
 
