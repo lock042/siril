@@ -26,6 +26,7 @@
 #include "io/image_format_fits.h"
 #include "io/siril_pythonmodule.h"
 #include "filters/synthstar.h"
+#include "siril_pythonmodule.h"
 #ifdef _WIN32
 #include "core/OS_utils.h"
 #endif
@@ -200,6 +201,20 @@ static int homography_to_py(const Homography* H, unsigned char *ptr, size_t maxl
 	COPY_BE64((double) H->h22, double);
 	COPY_BE64((int64_t) H->pair_matched, int64_t);
 	COPY_BE64((int64_t) H->Inliers, int64_t);
+	return 0;
+}
+
+static int analysis_to_py(const double bgnoise, const double fwhm, const double wfwhm, const int64_t nbstars, const double roundness, unsigned char *ptr, size_t maxlen) {
+	if (!ptr)
+		return 1;
+
+	unsigned char *start_ptr = ptr;
+
+	COPY_BE64(bgnoise, double);
+	COPY_BE64(fwhm, double);
+	COPY_BE64(wfwhm, double);
+	COPY_BE64(nbstars, int64_t);
+	COPY_BE64(roundness, double);
 	return 0;
 }
 
@@ -2535,6 +2550,102 @@ CLEANUP:
 			g_free(response_buffer);
 			clearfits(fit);
 			free(fit);
+			break;
+		}
+
+		case CMD_ANALYSE_IMAGE_FROM_FILE: {
+			if (payload_length < 1) {
+				const char* error_msg = _("Incorrect command argument");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			if (payload_length >= PATH_MAX) {
+				const char* error_msg = _("Invalid filepath length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Null-terminate the filepath string
+			char* filepath = g_malloc0(payload_length + 1);
+			memcpy(filepath, payload, payload_length);
+			filepath[payload_length] = '\0';
+
+			// Check if file exists
+			if (!g_file_test(filepath, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR)) {
+				const char* error_msg = _("File does not exist or is not accessible");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				g_free(filepath);
+				break;
+			}
+
+			fits *fit = calloc(1, sizeof(fits));
+			if (read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE)) {
+				free(fit);
+				g_free(filepath);
+				const char* error_msg = _("Failed to read image file");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			g_free(filepath);
+
+			// We now have the file open that we want to analyse, so let's analyse it:
+			// Compute stats
+			int layer = fit->naxes[2] == 1 ? 0 : 1; // layer 1 for mono images, green for RGB
+			rectangle selection = { 0, 0, fit->rx, fit->ry };
+			imstats *stats = statistics(NULL, -1, fit, layer, &selection, STATS_SIGMEAN, MULTI_THREADED);
+			double bgnoise = stats->bgnoise;
+			if (fit->type == DATA_USHORT)
+				bgnoise /= (USHRT_MAX_DOUBLE);
+
+			free_stats(stats); // finished with the stats
+
+			// Count stars
+			int nb_stars = 0;
+			psf_star **stars = NULL;
+			image *input_image = NULL;
+			input_image = calloc(1, sizeof(image));
+			input_image->fit = fit;
+			input_image->from_seq = NULL;
+			input_image->index_in_seq = -1;
+			stars = peaker(input_image, layer, &com.pref.starfinder_conf, &nb_stars,
+					NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
+			free(input_image);
+
+			// Compute average roundness, fwhm
+			double roundness = 0.0;
+			double fwhm = 0.0;
+			for (int i = 0; i < nb_stars ; i++) {
+				psf_star *star = stars[i];
+				roundness += fabs(star->fwhmy / star->fwhmx);
+				fwhm += (star->fwhmx + star->fwhmy);
+			}
+			roundness /= nb_stars;
+			fwhm /= (2 * nb_stars); // saves division in the loop
+			free_psf_starstarstar(stars); // finished with the stars array
+
+			// Finished with fit
+			clearfits(fit);
+			free(fit);
+
+			// Prepare to transmit
+			// Calculate size needed for response
+			size_t total_size = 5 * sizeof(double);
+				// The representation of Homography is 11 x 64-bit vars
+			unsigned char *response_buffer = g_try_malloc0(total_size);
+			if (!response_buffer) {
+				const char* error_msg = _("Memory allocation failed");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			unsigned char *ptr = response_buffer;
+			if (analysis_to_py(bgnoise, fwhm, 0.0, (int64_t) nb_stars, roundness, ptr, total_size)) {
+				const char* error_message = _("No analysis available");
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+			} else {
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
+			}
+			g_free(response_buffer);
 			break;
 		}
 

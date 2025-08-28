@@ -26,7 +26,7 @@ from .exceptions import SirilError, DataError, SirilConnectionError, CommandErro
         NoImageError, NoSequenceError, SharedMemoryError, ProcessingThreadBusyError, \
         ImageDialogOpenError, MouseModeError
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, \
-        DistoData, Sequence, SequenceType, Polygon
+        DistoData, Sequence, SequenceType, Polygon, ImageAnalysis
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
 from .utility import truncate_utf8, parse_fits_header
 
@@ -4546,3 +4546,43 @@ class SirilInterface:
 
                 except Exception:
                     pass
+
+    def analyse_image_from_file(self, filepath: str) -> ImageAnalysis:
+        """
+        Request Siril to load an image from a file and analyse it. This
+        method does not change the image currently loaded in Siril. Any image format
+        supported by Siril is supported. An ImageAnalysis object is returned, containing
+        parameters that may be used to assess the quality of an image for use in culling.
+
+        Args:
+            filepath: String specifying the path to the image file to load.
+
+        Returns:
+            ImageAnalysis object containing quality metrics for the analysed image.
+
+        Raises:
+            FileNotFoundError: if the specified file does not exist,
+            DataError: on receipt of incorrect data,
+            SirilError: if an error occurs.
+        """
+
+        if not filepath or not isinstance(filepath, str):
+            raise ValueError("filepath must be a non-empty string")
+
+        if not os.path.isfile(filepath):
+            raise FileNotFoundError(f"No such file: {filepath}")
+
+        # Convert filepath to bytes for transmission
+        filepath_bytes = filepath.encode('utf-8')
+        if len(filepath_bytes) > 4000:  # Reasonable limit for filepath length
+            raise ValueError("filepath is too long")
+
+        response = self._request_data(_Command.ANALYSE_IMAGE_FILE, filepath_bytes, timeout=None)
+        if response is None:
+            raise SirilError(f"Error: no response received in SirilInterface.analyse_image_from_file()")
+
+        try:
+            analysis = ImageAnalysis.deserialize(response)
+            return analysis
+        except Exception as e:
+            raise SirilError(f"Error unpacking data in SirilInterface.analyse_image_from_file(): {e}") from e

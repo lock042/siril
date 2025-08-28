@@ -1401,3 +1401,37 @@ class Polygon:
             polygons.append(polygon)
 
         return polygons
+
+@dataclass
+class ImageAnalysis:
+    """
+    Structure to hold image analysis data, used for culling
+    """
+
+    bgnoise: float = 0.0    #: RMS background noise
+    fwhm: float = 0.0 #: Mean fwhm
+    wfwhm: float = 0.0 #: Mean weighted fwhm
+    nbstars: int = 0 #: Number of stars detected
+    roundness: float = 0.0 #: Mean star roundness
+
+    # Network-safe format:
+    # ! = network (big-endian), standard sizes, no padding
+    # d = 8-byte double, q = 8-byte int
+    _struct_fmt = "!dddqd"
+    _struct = struct.Struct(_struct_fmt)
+
+    def serialize(self) -> bytes:
+        """Pack the dataclass into a network-safe binary struct."""
+        return self._struct.pack(
+            self.bgnoise,
+            self.fwhm,
+            self.wfwhm,
+            self.nbstars,
+            self.roundness,
+        )
+
+    @classmethod
+    def deserialize(cls, data: bytes) -> "ImageAnalysis":
+        """Unpack a network-safe binary struct into an ImageAnalysis instance."""
+        bgnoise, fwhm, wfwhm, nbstars, roundness = cls._struct.unpack(data)
+        return cls(bgnoise, fwhm, wfwhm, nbstars, roundness)

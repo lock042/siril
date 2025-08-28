@@ -125,6 +125,7 @@ class _Command(IntEnum):
     CLEAR_BGSAMPLES = 65
     DRAW_POLYGON = 66
     GET_IMAGE_FILE = 67
+    ANALYSE_IMAGE_FILE = 68
     ERROR = 0xFF
 
 @unique
