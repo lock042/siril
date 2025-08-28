@@ -2631,7 +2631,6 @@ CLEANUP:
 			// Prepare to transmit
 			// Calculate size needed for response
 			size_t total_size = 5 * sizeof(double);
-				// The representation of Homography is 11 x 64-bit vars
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			if (!response_buffer) {
 				const char* error_msg = _("Memory allocation failed");
