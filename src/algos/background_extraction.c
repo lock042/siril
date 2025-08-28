@@ -968,16 +968,8 @@ static GSList* rescale_sample_list_for_cfa(GSList *original_list, fits *fit) {
 /* uses samples from com.grad_samples */
 gpointer remove_gradient_from_cfa_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
-	sensor_pattern pattern;
-	if (!strncmp(gfit.keywords.bayer_pattern, "RGGB", 4)) {
-		pattern = BAYER_FILTER_RGGB;
-	} else if (!strncmp(gfit.keywords.bayer_pattern, "BGGR", 4)) {
-		pattern = BAYER_FILTER_BGGR;
-	} else if (!strncmp(gfit.keywords.bayer_pattern, "GBRG", 4)) {
-		pattern = BAYER_FILTER_GBRG;
-	} else if (!strncmp(gfit.keywords.bayer_pattern, "GRBG", 4)) {
-		pattern = BAYER_FILTER_GBRG;
-	} else {
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE, FALSE);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_color_message(_("Error: unsupported CFA pattern for this operation.\n"), "red");
 		return GINT_TO_POINTER(1);
 	}
@@ -1000,7 +992,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 		ret = split_cfa_float(&gfit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
 	}
 	if (ret) {
-		siril_log_color_message(_("Error splitting into CFA subcannels, aborting...\n"), "red");
+		siril_log_color_message(_("Error splitting into CFA subchannels, aborting...\n"), "red");
 		cfachans_cleanup(cfachans);
 		return GINT_TO_POINTER(1);
 	}
@@ -1193,16 +1185,8 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	} else if (b_args->degree > 1) {
 		siril_log_color_message(_("Warning: polynomial background removal order > 1 is not recommended for CFA images. Only linear background removal is recommended.\n"), "salmon");
 	}
-	sensor_pattern pattern;
-	if (!strncmp(fit->keywords.bayer_pattern, "RGGB", 4)) {
-		pattern = BAYER_FILTER_RGGB;
-	} else if (!strncmp(fit->keywords.bayer_pattern, "BGGR", 4)) {
-		pattern = BAYER_FILTER_BGGR;
-	} else if (!strncmp(fit->keywords.bayer_pattern, "GBRG", 4)) {
-		pattern = BAYER_FILTER_GBRG;
-	} else if (!strncmp(fit->keywords.bayer_pattern, "GRBG", 4)) {
-		pattern = BAYER_FILTER_GBRG;
-	} else {
+	sensor_pattern pattern = get_validated_cfa_pattern(fit, FALSE, FALSE);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_color_message(_("Error: unsupported CFA pattern for this operation.\n"), "red");
 		return 1;
 	}
@@ -1222,7 +1206,7 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 		ret = split_cfa_float(fit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
 	}
 	if (ret) {
-		siril_log_color_message(_("Error splitting into CFA subcannels, aborting...\n"), "red");
+		siril_log_color_message(_("Error splitting into CFA subchannels, aborting...\n"), "red");
 		cfachans_cleanup(cfachans);
 		return 1;
 	}
@@ -1391,10 +1375,8 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 		free_generic_seq_args(args, TRUE);
 		return;
 	}
-	background_args->is_cfa = background_args->seq->nb_layers == 1 && (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4) ||
-							!strncmp(metadata.keywords.bayer_pattern, "BGGR", 4) ||
-							!strncmp(metadata.keywords.bayer_pattern, "GBRG", 4) ||
-							!strncmp(metadata.keywords.bayer_pattern, "GRBG", 4));
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(metadata.keywords.bayer_pattern);
+	background_args->is_cfa = background_args->seq->nb_layers == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = background_args->seq->selnum;
 	args->compute_mem_limits_hook = background_mem_limits_hook;

@@ -331,8 +331,8 @@ void cleanup_shm_resources(Connection *conn) {
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
 shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview) {
-	if (!single_image_is_loaded() && !sequence_is_loaded()) {
-		const char* error_msg = _("Failed to retrieve pixel data - no image loaded");
+	if (!fit || (fit->type == DATA_USHORT && !fit->data) || (fit->type == DATA_FLOAT && !fit->fdata)) {
+		const char* error_msg = _("Failed to retrieve pixel data - no FITS image");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_log_message("Error in send_response\n");
 		return NULL;
@@ -414,7 +414,7 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 
 					for (int j = region.x; j < right; j++) {
 						int dest_index = (j - region.x) + dest_row_start + dest_chan_start;
-						shm_byte_ptr[dest_index] = (uint8_t)(stretched.pdata[chan][j + rowindex] / UCHAR_MAX);
+						shm_byte_ptr[dest_index] = roundw_to_BYTE(stretched.pdata[chan][j + rowindex]);
 					}
 				}
 			}
@@ -822,7 +822,9 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 			g_free(lext);
 		}
 	}
-
+	if (!display) { // if we are displaying, we mustn't free the plot data here
+		free_siril_plot_data(plot_data);
+	}
 	return send_response(conn, STATUS_OK, NULL, 0);
 }
 
@@ -1008,7 +1010,6 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 	if (shm_ptr == MAP_FAILED) {
 		close(fd);
 		const char* error_msg = _("Failed to map shared memory");
-		close(fd);
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 	#endif
@@ -2131,7 +2132,8 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 		gui_function(script_widgets_idle, NULL);
 
 		// Free the cleanup structure
-		g_unlink(cleanup->temp_filename);
+		if (cleanup->temp_filename && g_unlink(cleanup->temp_filename))
+			siril_debug_print("g_unlink() failed in python_process_cleanup()\n");
 		g_free(cleanup->temp_filename);
 		g_free(cleanup);
 	}
@@ -2194,9 +2196,11 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		siril_log_color_message(_("Error: failed to create Python connection.\n"), "red");
 		// Clean up the temporary file if it's one
 		if (is_temp_file && script_name) {
-			g_unlink(script_name);
+			if (g_unlink(script_name))
+				siril_debug_print("g_unlink() failed in execute_python_script()\n");
 			g_free(script_name);
 		}
+		g_free(connection_path);
 		return;
 	}
 
@@ -2205,13 +2209,14 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 										connection_worker,
 										commstate.python_conn);
 
-	if (!commstate.python_conn) {
-		siril_log_color_message(_("Error: Python connection not available.\n"), "red");
+	if (!commstate.worker_thread) {
+		siril_log_color_message(_("Error: Python worker thread not available.\n"), "red");
 		// Clean up the temporary file if it's one
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
 			g_free(script_name);
 		}
+		g_free(connection_path);
 		return;
 	}
 	init_shm_tracking(commstate.python_conn);

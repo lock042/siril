@@ -67,7 +67,7 @@ int savepng(const char *filename, fits *fit, uint32_t bytes_per_sample,
 #endif
 
 #ifdef HAVE_LIBRAW
-int open_raw_files(const char*, fits*, gboolean);
+int open_raw_files(const char*, fits*);
 #endif
 
 #ifdef HAVE_LIBHEIF
@@ -92,6 +92,7 @@ int round_to_ceiling_multiple(int x, int factor);
 BYTE conv_to_BYTE(double x);
 int truncate_to_int32(uint64_t x);
 WORD truncate_to_WORD(int x);
+BYTE roundw_to_BYTE(WORD input);
 BYTE truncate_to_BYTE(WORD x);
 int set_int_in_interval(int val, int low, int high);
 float set_float_in_interval(float val, float low, float high);

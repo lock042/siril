@@ -81,6 +81,7 @@ typedef enum {
 	CMD_CREATE_NEW_SEQ = 64,
 	CMD_CLEAR_BGSAMPLES = 65,
 	CMD_DRAW_POLYGON = 66,
+	CMD_GET_IMAGE_FILE = 67,
 	CMD_ERROR = 0xFF
 } CommandType;
 

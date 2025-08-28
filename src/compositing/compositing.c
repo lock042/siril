@@ -2043,9 +2043,15 @@ int crop_rgbcomp_seq() {
 	args->load_new_sequence = TRUE;
 	args->user = crop_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(crop_args->prefix);
+		free(crop_args);
+		free_generic_seq_args(args, FALSE);
+		return 1;
+	}
 	waiting_for_thread();
+	int retval = args->retval;
 	free_generic_seq_args(args, FALSE);
 	update_result(TRUE);
-	return args->retval;
+	return retval;
 }

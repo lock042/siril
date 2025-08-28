@@ -2173,6 +2173,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 	if (!nb_stars) {
 		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
+		free(aargs);
 		return 1;
 	}
 

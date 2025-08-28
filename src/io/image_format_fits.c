@@ -36,6 +36,7 @@
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
+#include "filters/mtf.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
 #include "gui/progress_and_log.h"
@@ -55,8 +56,6 @@ const char *fit_extension[] = {
 		".fts"
 };
 
-static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
-static char *MIPSLO[] = {"MIPS-LO", "CBLACK", "DATAMIN", NULL };
 static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
 static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
 
@@ -186,22 +185,6 @@ static void fits_read_history(fitsfile *fptr, GSList **history) {
 	list = g_slist_reverse(list);
 	*history = list;
 }
-
-static int try_read_float_lo_hi(fitsfile *fptr, WORD *lo, WORD *hi) {
-	float fhi, flo;
-	int status = 0;
-	fits_read_key(fptr, TFLOAT, "MIPS-FHI", &fhi, NULL, &status);
-	if (!status) {
-		*hi = float_to_ushort_range(fhi);
-		status = 0;
-		fits_read_key(fptr, TFLOAT, "MIPS-FLO", &flo, NULL, &status);
-		if (!status) {
-			*lo = float_to_ushort_range(flo);
-		}
-	}
-	return status;
-}
-
 
 /* reading the FITS header to get useful information
  * stored in the fit, requires an opened file descriptor */
@@ -1461,12 +1444,17 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 		return -1;
 	}
 
+	read_fits_metadata(fit);
+	fit->orig_ry = fit->naxes[1];
+	fit->x_offset = area->x;
+	fit->y_offset = fit->orig_ry - area->y - area->h;
 	fit->naxes[0] = area->w;
 	fit->naxes[1] = area->h;
 	fit->rx = fit->naxes[0];
 	fit->ry = fit->naxes[1];
 	fit->naxes[2] = 1;
 	fit->naxis = 2;
+
 
 	/* Note: reading one channel of a multi-channel FITS poses a color management challenge:
 	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
@@ -1583,6 +1571,7 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 		}
 	}
 
+	read_fits_metadata(fit);
 	fit->naxes[0] = area->w;
 	fit->naxes[1] = area->h;
 	fit->rx = fit->naxes[0];
@@ -2610,6 +2599,9 @@ void extract_region_from_fits(fits *from, int layer, fits *to,
 		extract_region_from_fits_ushort(from, layer, to, area);
 	else if (from->type == DATA_FLOAT)
 		extract_region_from_fits_float(from, layer, to, area);
+	to->orig_ry = from->ry;
+	to->x_offset = area->x;
+	to->y_offset = to->orig_ry - area->y - area->h;
 }
 
 int new_fit_image(fits **fit, int width, int height, int nblayer, data_type type) {
@@ -2767,17 +2759,29 @@ void fit_debayer_buffer(fits *fit, void *newbuf) {
 	}
 }
 
-static void gray2rgb(float gray, guchar *rgb) {
+static inline void gray2rgb(float gray, guchar *rgb) {
 	guchar val = (guchar) roundf_to_BYTE(255.f * gray);
 	*rgb++ = val;
 	*rgb++ = val;
 	*rgb++ = val;
 }
 
-static void set_rgb(float r, float g, float b, guchar *rgb) {
+static inline void set_rgb(float r, float g, float b, guchar *rgb) {
 	*rgb++ = (guchar) roundf_to_BYTE(255.f * r);
 	*rgb++ = (guchar) roundf_to_BYTE(255.f * g);
 	*rgb++ = (guchar) roundf_to_BYTE(255.f * b);
+}
+
+// Choose thread count based on workload
+static inline int choose_num_threads(int W, int H, int max_threads) {
+	int pixels = W * H;
+	if (pixels < 65536) { // < 64k pixels → single-thread
+		return 1;
+	}
+	int threads = pixels / 16384; // aim ~16k pixels per thread
+	if (threads > max_threads) threads = max_threads;
+	if (threads < 1) threads = 1;
+	return threads;
 }
 
 static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
@@ -2785,10 +2789,6 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
 	free(data);
 	return FALSE;
 }
-
-static double logviz(double arg) {
-	return log1p(arg);
-} // for PREVIEW_LOG
 
 #define TRYFITS(f, ...) \
 	do{ \
@@ -2808,7 +2808,7 @@ static double logviz(double arg) {
  */
 GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	fitsfile *fp;
-	gchar *description;
+	gchar *description = NULL;
 	const int MAX_SIZE = com.pref.gui.thumbnail_size;
 	float nullval = 0.;
 	int naxis, dtype, stat, status, frames;
@@ -2831,20 +2831,24 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	const gboolean is_color = (n_channels == 3);
 
 	if (w <= 0 || h <= 0)
-		return(NULL);
+		return NULL;
 
-	size_t sz = w * h * n_channels;
+	size_t sz = (size_t)w * h * n_channels;
 	ima_data = malloc(sz * sizeof(float));
+	if (!ima_data) {
+		fits_close_file(fp, &status);
+		return NULL;
+	}
 
 	TRYFITS(fits_read_img, fp, TFLOAT, 1, sz, &nullval, ima_data, &stat);
 
 	const int x = (int) ceil((float) w / MAX_SIZE);
 	const int y = (int) ceil((float) h / MAX_SIZE);
-	const int pixScale = (x > y) ? x : y;	// picture scale factor
-	const int Ws = w / pixScale; 			// picture width in pixScale blocks
-	const int Hs = h / pixScale; 			// -//- height pixScale
+	const int pixScale = (x > y) ? x : y;   // picture scale factor
+	const int Ws = w / pixScale;            // preview width
+	const int Hs = h / pixScale;            // preview height
 
-	if (fitseq_is_fitseq(filename, &frames)) { // FIXME: we reopen the file in this function
+	if (fitseq_is_fitseq(filename, &frames)) {
 		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
 				h, ngettext("pixel", "pixels", h), n_channels,
 				ngettext("channel", "channels", n_channels), abs(dtype), frames,
@@ -2855,8 +2859,15 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 				ngettext("channel", "channels", n_channels), abs(dtype));
 	}
 
-	float *preview_data = malloc(Ws * Hs * n_channels * sizeof(float));
-
+	/* Allocate preview_data */
+	size_t prev_size = (size_t)Ws * Hs;
+	float *preview_data = malloc(prev_size * n_channels * sizeof(float));
+	if (!preview_data) {
+		free(ima_data);
+		fits_close_file(fp, &status);
+		g_free(description);
+		return NULL;
+	}
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -2894,86 +2905,105 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 		}
 	}
 
-	float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
-	float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+	// Set min, max and scale, avoiding caclulations where possible
+	float maxmax = 1.f;
+	float minmin = 0.f;
+	float scale = 1.f;
+	switch (dtype) {
+		case BYTE_IMG:;
+			scale = INV_UCHAR_MAX_SINGLE;
+			break;
+		case SHORT_IMG:;
+			scale = INV_USHRT_MAX_SINGLE;
+			break;
+		case USHORT_IMG:;
+			scale = INV_USHRT_MAX_SINGLE;
+			minmin = -32768.f; // min value for 16-bit signed
+			break;
+		default:; // FLOAT_IMG, LONG_IMG, ULONG_IMG
+			/* Find per-channel min/max */
+			float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
+			float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 
-	for (int ch = 0; ch < n_channels; ch++) {
-		for (int i = 0; i < Ws * Hs; i++) {
-			int idx = ch * Ws * Hs + i;
-			float val = preview_data[idx];
-			min_vals[ch] = fminf(min_vals[ch], val);
-			max_vals[ch] = fmaxf(max_vals[ch], val);
-		}
-	}
-
-	/* use FITS keyword if available for a better visualization */
-	float lo = 0.f, hi = 0.f;
-	status = 0;
-	__tryToFindKeywords(fp, TFLOAT, MIPSLO, &lo, &status);
-	status = 0;
-	__tryToFindKeywords(fp, TFLOAT, MIPSHI, &hi, &status);
-
-	if (hi != lo && hi != 0.f && abs(dtype) <= USHORT_IMG) {
-		for (int ch = 0; ch < n_channels; ch++) {
-			min_vals[ch] = lo;
-			max_vals[ch] = hi;
-		}
-	} else if (dtype <= FLOAT_IMG) {
-		WORD wlo, whi;
-		if (!try_read_float_lo_hi(fp, &wlo, &whi)) {
 			for (int ch = 0; ch < n_channels; ch++) {
-				min_vals[ch] = (float) wlo / USHRT_MAX_SINGLE;
-				max_vals[ch] = (float) whi / USHRT_MAX_SINGLE;
+				for (size_t i = 0; i < prev_size; i++) {
+					int idx = ch * prev_size + i;
+					float val = preview_data[idx];
+					if (val < min_vals[ch]) min_vals[ch] = val;
+					if (val > max_vals[ch]) max_vals[ch] = val;
+				}
 			}
-		}
+			maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
+			if (maxmax < 10.f) maxmax = 1.f;	// Allow maxmax to handle integer-range and JWST images but clamp
+												// to typical 0-1 range otherwise, for consistent preview
+			minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
+			if (minmin > -1.f) minmin = 0.f; // Allow minmin to handle SHORT_IMG but clamp to 0.f otherwise
+
+			if (dtype == FLOAT_IMG) {
+				scale = (maxmax > 10.f) ? INV_USHRT_MAX_SINGLE : 1.f;
+				break;
+			}
+			maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
+			minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
+			scale = 1.f / (maxmax - minmin);
+			break;
 	}
 
-	float scales[3];
-	for (int ch = 0; ch < n_channels; ch++) {
-		float wd = max_vals[ch] - min_vals[ch];
-		if (wd <= 0.0f) wd = 1.0f;
-
-		float avr = 0.0f;
-		for (int i = 0; i < Ws * Hs; i++) {
-			int idx = ch * Ws * Hs + i;
-			avr += preview_data[idx];
-		}
-		avr /= (float)(Ws * Hs);
-		avr = (avr - min_vals[ch]) / wd;
-		avr = -logf(fmaxf(avr, 1e-6f));
-
-		scales[ch] = (avr > 1.0f) ? wd / avr : wd;
-	}
-
-	guchar *pixbuf_data = malloc(3 * Ws * Hs * sizeof(guchar));
-
+	int num_threads = choose_num_threads(Ws, Hs, com.max_thread);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread)
+#pragma omp parallel for num_threads(num_threads) if (num_threads > 1)
+#endif
+	for (int idx = 0 ; idx < (int)(prev_size * n_channels); idx++) {
+		preview_data[idx] = (preview_data[idx] - minmin) * scale;
+	}
+
+	fits *tmp = NULL;
+	new_fit_image_with_data(&tmp, Ws, Hs, n_channels, DATA_FLOAT, preview_data);
+	struct mtf_params mtfp[3] = {
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE }
+	};
+
+	find_unlinked_midtones_balance_default(tmp, mtfp);
+	apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
+	tmp->fdata = NULL;
+	tmp->fpdata[0] = NULL;
+	tmp->fpdata[1] = NULL;
+	tmp->fpdata[2] = NULL;
+	clearfits(tmp);
+	free(tmp);
+
+	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
+
+	// Move this outside the loop to avoid unnecessary multiplications
+	// in the loop
+	int twice_prev_size = prev_size * 2;
+
+	// Recalculate num_threads as we rely on simd in the inner loop
+	num_threads = choose_num_threads(1, Hs, com.max_thread);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(num_threads) if(num_threads > 1)
 #endif
 	for (int i = 0; i < Hs; i++) {
+		int src_row_offset  = i * Ws;
+		int dest_row_offset = (Hs - 1 - i) * Ws * 3;
+
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 		for (int j = 0; j < Ws; j++) {
-			int pixbuf_idx = ((Hs - 1 - i) * Ws + j) * 3;
+			int src_idx  = src_row_offset + j;
+			int dest_idx = dest_row_offset + j * 3;
 
 			if (is_color) {
-				float r_val = preview_data[0 * Ws * Hs + i * Ws + j]; // Canal R
-				float g_val = preview_data[1 * Ws * Hs + i * Ws + j]; // Canal G
-				float b_val = preview_data[2 * Ws * Hs + i * Ws + j]; // Canal B
-
-				float r_norm = logviz((r_val - min_vals[0]) / scales[0]);
-				float g_norm = logviz((g_val - min_vals[1]) / scales[1]);
-				float b_norm = logviz((b_val - min_vals[2]) / scales[2]);
-
-				r_norm = fmaxf(0.0f, fminf(1.0f, r_norm));
-				g_norm = fmaxf(0.0f, fminf(1.0f, g_norm));
-				b_norm = fmaxf(0.0f, fminf(1.0f, b_norm));
-
-				set_rgb(r_norm, g_norm, b_norm, &pixbuf_data[pixbuf_idx]);
+				float r = preview_data[src_idx];
+				float g = preview_data[prev_size + src_idx];
+				float b = preview_data[twice_prev_size + src_idx];
+				set_rgb(r, g, b, &pixbuf_data[dest_idx]);
 			} else {
-				float gray_val = preview_data[i * Ws + j];
-				float gray_norm = logviz((gray_val - min_vals[0]) / scales[0]);
-				gray_norm = fmaxf(0.0f, fminf(1.0f, gray_norm));
-
-				gray2rgb(gray_norm, &pixbuf_data[pixbuf_idx]);
+				float gray = preview_data[src_idx];
+				gray2rgb(gray, &pixbuf_data[dest_idx]);
 			}
 		}
 	}
@@ -3712,6 +3742,9 @@ int fits_swap_image_data(fits *a, fits *b) {
 	gboolean btmp = a->top_down;
 	a->top_down = b->top_down;
 	b->top_down = btmp;
+	gboolean ctmp = a->debayer_checked;
+	a->debayer_checked = b->debayer_checked;
+	b->debayer_checked = ctmp;
 	imstats **stmp = a->stats;
 	a->stats = b->stats;
 	b->stats = stmp;
@@ -3730,61 +3763,14 @@ int fits_swap_image_data(fits *a, fits *b) {
 
 /** Calculate the bayer pattern color from the row and column **/
 
-static inline int FC(const size_t row, const size_t col, const size_t dim, const char *cfa) {
-	return !cfa ? 0 : cfa[(col % dim) + (row % dim) * dim] - '0';
-}
-
-const char* get_cfa_from_pattern(sensor_pattern pattern) {
-	const char* cfa;
-	switch (pattern) {
-		case BAYER_FILTER_BGGR:
-			cfa = "2110";
-			break;
-		case BAYER_FILTER_GRBG:
-			cfa = "1021";
-			break;
-		case BAYER_FILTER_RGGB:
-			cfa = "0112";
-			break;
-		case BAYER_FILTER_GBRG:
-			cfa = "1201";
-			break;
-		case XTRANS_FILTER_1:
-//				  "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"
-			cfa = "110112112110201021112110110112021201";
-			break;
-		case XTRANS_FILTER_2:
-//				  "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB";
-			cfa = "021201110112112110201021112110110112";
-			break;
-		case XTRANS_FILTER_3:
-//				  "GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG";
-			cfa = "101121212010101121121101010212121101";
-			break;
-		case XTRANS_FILTER_4:
-//				  "GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG";
-			cfa = "121101010212121101101121212010101121";
-			break;
-		default:
-			siril_log_color_message(_("Error: unknown CFA pattern\n"), "red");
-			return NULL;
-	}
-	return cfa;
-}
-
 // These interpolation routines will work for X-Trans as well as Bayer patterns
 
-static void interpolate_nongreen_float(fits *fit) {
-	sensor_pattern pattern = get_bayer_pattern(fit);
-	const char *cfa = get_cfa_from_pattern(pattern);
-	if (!cfa)
-		return;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+static void interpolate_nongreen_float(fits *fit, BYTE cfa[36], int cfadim) {
 	uint32_t width = fit->rx;
 	uint32_t height = fit->ry;
 	for (int row = 0; row < height - 1; row++) {
 		for (int col = 0; col < width - 1; col++) {
-			if (FC(row, col, cfadim, cfa) == 1)
+			if (FC_array(row, col, cfa, cfadim) == 1)
 				continue;
 			uint32_t index = col + row * width;
 			float interp = 0.f;
@@ -3795,7 +3781,7 @@ static void interpolate_nongreen_float(fits *fit) {
 						// Check if the neighboring pixel is within the image bounds and green
 						int nx = col + dx;
 						int ny = row + dy;
-						if (FC(nx, ny, cfadim, cfa) == 1 && nx >= 0 && nx < width && ny >= 0 && ny < height) {
+						if (FC_array(nx, ny, cfa, cfadim) == 1 && nx >= 0 && nx < width && ny >= 0 && ny < height) {
 							// Calculate distance from the current pixel
 							float distance = dx + dy;
 							// Calculate weight for the neighboring pixel
@@ -3813,17 +3799,12 @@ static void interpolate_nongreen_float(fits *fit) {
 	fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 }
 
-static void interpolate_nongreen_ushort(fits *fit) {
-	sensor_pattern pattern = get_bayer_pattern(fit);
-	const char *cfa = get_cfa_from_pattern(pattern);
-	if (!cfa)
-		return;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+static void interpolate_nongreen_ushort(fits *fit, BYTE cfa[36], int cfadim) {
 	uint32_t width = fit->rx;
 	uint32_t height = fit->ry;
 	for (int row = 0; row < height - 1; row++) {
 		for (int col = 0; col < width - 1; col++) {
-			if (FC(row, col, cfadim, cfa) == 1)
+			if (FC_array(row, col, cfa, cfadim) == 1)
 				continue;
 			uint32_t index = col + row * width;
 			float interp = 0.f;
@@ -3834,7 +3815,7 @@ static void interpolate_nongreen_ushort(fits *fit) {
 						// Check if the neighboring pixel is within the image bounds and green
 						int nx = col + dx;
 						int ny = row + dy;
-						if (nx >= 0 && nx < width && ny >= 0 && ny < height && FC(nx, ny, cfadim, cfa) == 1) {
+						if (nx >= 0 && nx < width && ny >= 0 && ny < height && FC_array(nx, ny, cfa, cfadim) == 1) {
 							// Calculate distance from the current pixel
 							float distance = dx + dy;
 							// Calculate weight for the neighboring pixel
@@ -3855,10 +3836,14 @@ static void interpolate_nongreen_ushort(fits *fit) {
 #undef RECIPSQRT2
 
 void interpolate_nongreen(fits *fit) {
+	int cfadim = 0;
+	BYTE cfa[36];
+	if (fit->naxes[2] != 1 || get_compiled_pattern(fit, cfa, &cfadim, FALSE))
+		return;
 	if (fit->type == DATA_FLOAT) {
-		interpolate_nongreen_float(fit);
+		interpolate_nongreen_float(fit, cfa, cfadim);
 	} else {
-		interpolate_nongreen_ushort(fit);
+		interpolate_nongreen_ushort(fit, cfa, cfadim);
 	}
 	invalidate_stats_from_fit(fit);
 	siril_debug_print("Interpolating non-green pixels\n");

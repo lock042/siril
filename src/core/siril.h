@@ -555,6 +555,9 @@ struct ffit {
 	float *fpdata[3];	// same with float
 
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
+	gboolean debayer_checked; // whether bayer pattern has already been checked and adjusted or not. This is set true for SER upon opening, not for other formats
+	unsigned int orig_ry; // original ry of the image (only set when reading partial)
+	int x_offset, y_offset; // x and y offset of partial read wrt to original image
 	gboolean focalkey, pixelkey; // flag to define if pixel and focal lengths were read from prefs or from the header keys
 
 	GSList *history;	// Former HISTORY comments of FITS file

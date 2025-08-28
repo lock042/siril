@@ -78,7 +78,7 @@ gboolean save_main_window_state(gpointer user_data);
 gboolean load_main_window_state(gpointer user_data);
 GPid show_child_process_selection_dialog(GSList *children);
 gboolean set_seq_browser_active(gpointer user_data);
-void siril_quit();
+gboolean siril_quit(void);
 
 /* for image_display */
 void set_viewer_mode_widgets_sensitive(gboolean sensitive);

@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cdrizzlemap.h"
 #include "cdrizzlebox.h"
 #include "cdrizzleutil.h"
+#include "algos/demosaicing.h"
 
 #include <assert.h>
 #define _USE_MATH_DEFINES       /* needed for MS Windows to define M_PI */
@@ -271,8 +272,8 @@ do_kernel_point(struct driz_param_t* p) {
     integer_t /*ybounds[2],*/ osize[2];
     float scale2, vc[3], d, dow;
     int xmin, xmax, ymin, ymax, n;
-	const char* cfa = p->cfa;
-	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
+	BYTE *cfa = p->cfa;
+	size_t cfadim = p->cfadim;
 
     scale2 = p->scale * p->scale;
 
@@ -304,7 +305,7 @@ do_kernel_point(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-            int chan = FC(j, i, cfadim, cfa);
+            int chan = FC_array(j, i, cfa, cfadim);
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
               ++ p->nmiss;
 
@@ -357,8 +358,8 @@ do_kernel_gaussian(struct driz_param_t* p) {
     float pfo, ac,  scale2, xxi, xxa, yyi, yya, w, ddx, ddy, r2, dover;
     const float nsig = 2.5;
     int xmin, xmax, ymin, ymax, n;
-	const char* cfa = p->cfa;
-	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
+    BYTE *cfa = p->cfa;
+    size_t cfadim = p->cfadim;
 
     /* Added in V2.9 - make sure pfo doesn't get less than 1.2
        divided by the scale so that there are never holes in the
@@ -402,7 +403,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-            int chan = FC(j, i, cfadim, cfa);
+            int chan = FC_array(j, i, cfa, cfadim);
 
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
                 nhit = 0;
@@ -483,8 +484,8 @@ do_kernel_lanczos(struct driz_param_t* p) {
     const size_t nlut = 512;
     const float del = 0.01;
     int xmin, xmax, ymin, ymax, n;
-	const char* cfa = p->cfa;
-	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
+    BYTE *cfa = p->cfa;
+    size_t cfadim = p->cfadim;
 
     dx = 1.0;
     dy = 1.0;
@@ -532,7 +533,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
         }
 
         for (i = xmin; i <= xmax; ++i) {
-            int chan = FC(j, i, cfadim, cfa);
+            int chan = FC_array(j, i, cfa, cfadim);
             if (map_pixel(p->pixmap, i, j, &xx, &yy)) {
                 nhit = 0;
 
@@ -610,8 +611,8 @@ do_kernel_turbo(struct driz_param_t* p) {
     float pfo, scale2, ac;
     float xxi, xxa, yyi, yya, w, dover;
     int xmin, xmax, ymin, ymax, n;
-	const char* cfa = p->cfa;
-	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
+    BYTE *cfa = p->cfa;
+    size_t cfadim = p->cfadim;
 
     siril_debug_print("starting do_kernel_turbo\n");
     ac = 1.0 / (p->pixel_fraction * p->pixel_fraction);
@@ -648,7 +649,7 @@ do_kernel_turbo(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-            int chan = FC(j, i, cfadim, cfa);
+            int chan = FC_array(j, i, cfa, cfadim);
 
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
                 nhit = 0;
@@ -733,8 +734,8 @@ do_kernel_square(struct driz_param_t* p) {
     float xin[4], yin[4], xout[4], yout[4];
     struct scanner s;
     int xmin, xmax, ymin, ymax, n;
-	const char* cfa = p->cfa;
-	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
+    BYTE *cfa = p->cfa;
+    size_t cfadim = p->cfadim;
 	integer_t maxarea = 0, mnii = 0, mxii = 0, mnjj = 0, mxjj = 0;
 
     siril_debug_print("starting do_kernel_square\n");
@@ -777,7 +778,7 @@ do_kernel_square(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             nhit = 0;
-            int chan = FC(j, i, cfadim, cfa);
+            int chan = FC_array(j, i, cfa, cfadim);
 
             xin[3] = xin[0] = (float) i - dh;
             xin[2] = xin[1] = (float) i + dh;

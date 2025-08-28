@@ -207,6 +207,13 @@ BYTE truncate_to_BYTE(WORD x) {
 	return (BYTE)x;
 }
 
+BYTE roundw_to_BYTE(WORD input) {
+	if (input >= USHRT_MAX - 127) {
+		return UCHAR_MAX;
+	}
+	return (uint8_t)((input + 128) >> 8);
+}
+
 /**
  * Clamp an integer value in the interval given by [low, high]
  * @param val value to be checked
@@ -1340,9 +1347,14 @@ gchar* siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
 
 	if (pixbuf_file_info != NULL) {
 		/* Pixel size of image: width x height in pixel */
-		return g_strdup_printf("%d x %d %s\n%d %s", width, height,
-				ngettext("pixel", "pixels", height), n_channel,
-				ngettext("channel", "channels", n_channel));
+		if (n_channel > 0) {
+			return g_strdup_printf("%d x %d %s\n%d %s", width, height,
+					ngettext("pixel", "pixels", height), n_channel,
+					ngettext("channel", "channels", n_channel));
+		} else {
+			return g_strdup_printf("%d x %d %s", width, height,
+				ngettext("pixel", "pixels", height));
+		}
 	}
 	return NULL;
 }

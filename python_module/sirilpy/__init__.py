@@ -91,6 +91,7 @@ from .utility import (
     download_with_progress,
     ensure_installed,
     check_module_version,
+    needs_module_version,
     SuppressedStdout,
     SuppressedStderr,
 )
@@ -119,6 +120,7 @@ from .version import __version__, __author__, __license__, __copyright__
 __all__ = [
     'ensure_installed',
     'check_module_version',
+    'needs_module_version',
     'SirilInterface',
     'ImageStats',
     'FKeywords',

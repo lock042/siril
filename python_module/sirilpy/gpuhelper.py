@@ -197,10 +197,10 @@ class ONNXHelper:
         """Initialize the ONNXHelper."""
         ensure_installed("platformdirs")
         ensure_installed("onnx")
-        from platformdirs import user_data_dir
+        from platformdirs import user_config_dir
         self.system = platform.system().lower()
         self.providers = None
-        self.config_file = os.path.join(user_data_dir(appname="siril"), "siril_onnx.conf")
+        self.config_file = os.path.join(user_config_dir(appname="siril"), "siril_onnx.conf")
 
     def status(self):
         """
@@ -281,33 +281,62 @@ class ONNXHelper:
             else:
                 expected_provider_name = provider
                 providers_for_session = [provider]
-            
+
             sess_options = ort.SessionOptions()
             session = ort.InferenceSession(
                 model_path,
                 sess_options=sess_options,
                 providers=providers_for_session
             )
-            
+
             actual_provider = session.get_providers()[0]
-            
+
             if actual_provider != expected_provider_name:
                 print(f"(x) {provider}: fallback occurred (used {actual_provider})")
                 return False
+
+            # Determine TF32 usage
+            provider_opts = session.get_provider_options().get(expected_provider_name, {})
+            use_tf32 = provider_opts.get("use_tf32", "0")  # default to "0" if missing
+
+            # Set tolerances
+            if use_tf32 == "1":
+                rtol = 5e-2
+                atol = 1e-3
+            else:
+                rtol = 1e-3
+                atol = 1e-5
 
             output = session.run(None, {'input': input_data})
 
             print(f"OK: {expected_provider_name} ran successfully")
             if reference_output is not None:
-                if not np.allclose(reference_output, output[0], rtol=1e-3, atol=1e-5):
-                    print("(!) Output mismatch with CPU")
+                if not np.allclose(reference_output, output[0], rtol=rtol, atol=atol):
+                    print(f"(!) Output mismatch with CPU (rtol={rtol}, atol={atol})")
                     return False
-            
+
             return True
-            
+
         except Exception as e:
             print(f"(x) {expected_provider_name} failed: {e}")
             return False
+
+    def import_onnxruntime():
+        """
+        Import onnxruntime, add it to the global dict, test if it's built against
+        CUDA and if so preload the CUDA and CUDNN libraries to improve the chances
+        of finding them if Torch[CUDA] happens to be installed.
+        """
+        import onnxruntime
+        globals()['onnxruntime'] = onnxruntime  # Add to the global dict
+        providers = onnxruntime.get_available_providers()
+        if 'CUDAExecutionProvider' in providers:
+            # Attempt to preload CUDA / CUDnn libraries
+            # This helps on some systems where the system-wide libraries are not found but
+            # torch is installed with nvidia library dependencies installed in the venv
+            onnxruntime.preload_dlls()
+            # Set logging to only report critical issues by default
+            onnxruntime.set_default_logger_severity(4)
 
     def test_onnxruntime(self, ort=None):
         """
@@ -668,10 +697,16 @@ class ONNXHelper:
         import onnxruntime as ort
 
         # Try to load cached providers first
-        cached_providers = self._load_cached_providers(ort)
-        if cached_providers:
-            self.providers = cached_providers
-            return self.providers
+        try:
+            cached_providers = self._load_cached_providers(ort)
+            if cached_providers:
+                self.providers = cached_providers
+                return self.providers
+        except Exception:
+            # If an error occurs with _load_cached_providers() delete the config file and do
+            # the full test to re-cache them
+            if os.path.exists(self.config_file):
+                os.unlink(self.config_file)
 
         # If no valid cache, run the test
         return self.test_onnxruntime(ort)
@@ -705,21 +740,8 @@ class ONNXHelper:
             if not cached_providers:
                 return None
 
-            # Check if all cached providers are still available
-            available_providers = set(ort.get_available_providers())
-            valid_providers = []
-
-            for p in cached_providers:
-                name = p[0] if isinstance(p, tuple) else p
-                if name in available_providers:
-                    valid_providers.append(p)
-
-            # Only use cache if all providers are still available
-            if len(valid_providers) == len(available_providers):
-                print(f"Using cached execution providers from {self.config_file}")
-                return valid_providers
-            print("Cached providers outdated, will re-test")
-            return None
+            print(f"Using cached execution providers from {self.config_file}")
+            return valid_providers
 
         except (json.JSONDecodeError, IOError, KeyError) as e:
             print(f"Failed to load cached providers: {e}", file=sys.stderr)
@@ -1331,9 +1353,10 @@ class JaxHelper:
             "with Torch, which is currently excessively strict about required versions of some "
             "dependencies including CUDnn: it requires an exact version match rather than at least a "
             "certain version, and the version Torch requires is older than the version that jax is "
-            "built against. This issue has been raised upstream with Torch but for now the two modules "
-            "cannot be used in the same script and can cause problems if both are used together in the "
-            "same venv. It is recommended to use jax only for development purposes at present.")
+            "built against. This issue is best handled by using TorchHelper.install_torch() to install "
+            "Torch first (this auto-reinstalls with --no-deps), and then using JaxHelper.install_jax() to "
+            "install Jax. (You can do this the other way round and it will still work but will be less "
+            "efficient.)")
 
     def is_jax_installed(self) -> bool:
         """Check if PyTorch is installed without importing it."""

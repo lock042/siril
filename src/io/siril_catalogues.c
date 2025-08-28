@@ -1472,6 +1472,8 @@ gpointer conesearch_worker(gpointer p) {
 		}
 	}
 
+	retval = 0;
+
 	if (args->has_GUI && args->compare) {
 		spl_data = init_siril_plot_data();
 		if (!spl_data) {
@@ -1489,8 +1491,6 @@ gpointer conesearch_worker(gpointer p) {
 		free(dyf);
 		dyf = NULL;
 	}
-
-	retval = 0;
 
 	exit_conesearch:
 	{

@@ -124,6 +124,7 @@ class _Command(IntEnum):
     CREATE_NEW_SEQ = 64
     CLEAR_BGSAMPLES = 65
     DRAW_POLYGON = 66
+    GET_IMAGE_FILE = 67
     ERROR = 0xFF
 
 @unique

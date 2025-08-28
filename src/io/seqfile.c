@@ -440,13 +440,24 @@ sequence * readseqfile(const char *name){
 					seq->ext = get_com_ext(seq->fz) + 1;
 #endif
 					if (seq->fitseq_file) break;
-					seq->fitseq_file = malloc(sizeof(struct fits_sequence));
+					seq->fitseq_file = calloc(1, sizeof(struct fits_sequence));
 					fitseq_init_struct(seq->fitseq_file);
-					GString *fileString = g_string_new(filename);
-					g_string_append(fileString, get_com_ext(seq->fz));
-					seq->fitseq_file->filename = g_string_free(fileString, FALSE);
-					if (fitseq_open(seq->fitseq_file->filename, seq->fitseq_file, READONLY)) {
-						g_free(seq->fitseq_file->filename);
+					int i = 0;
+					static const char *fitseq_ext[] = { ".fit", ".fits", ".fts", ".fit.fz", ".fits.fz", ".fts.fz", NULL };
+					// We only look for lowercase extensions as FITSEQ will only have been created by Siril, and should
+					// have used a lowercase extensions set in com.pref.ext
+					while (fitseq_ext[i]) {
+						GString *fileString = g_string_new(filename);
+						g_string_append(fileString, fitseq_ext[i++]);
+						gchar *test_filename = g_string_free(fileString, FALSE);
+						if (g_file_test(test_filename, G_FILE_TEST_EXISTS) && !fitseq_open(test_filename, seq->fitseq_file, READONLY)) {
+							seq->fitseq_file->filename = test_filename;
+							break;
+						} else {
+							g_free(test_filename);
+						}
+					}
+					if (!seq->fitseq_file->filename) {
 						free(seq->fitseq_file);
 						seq->fitseq_file = NULL;
 						goto error;

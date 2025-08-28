@@ -280,9 +280,9 @@ static gboolean script_version_check(const gchar *filename) {
 	gsize length = 0;
 	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
 	gboolean retval = FALSE;
-	#ifdef DEBUG_GITSCRIPTS
+#ifdef DEBUG_GITSCRIPTS
 	printf("checking script version requirements: %s\n", scriptpath);
-	#endif
+#endif
 	file = g_file_new_for_path(scriptpath);
 	stream = (GInputStream *)g_file_read(file, NULL, &error);
 	if (error)
@@ -408,6 +408,12 @@ gboolean check_module_version_constraint(const gchar *line, GMatchInfo *match_in
 }
 
 static gboolean pyscript_version_check(const gchar *filename) {
+	GFile *file = NULL;
+	GInputStream *stream = NULL;
+	GDataInputStream *data_input = NULL;
+	GError *error = NULL;
+	gchar *buffer = NULL;
+	gsize length = 0;
 	// Open the script and look for the required version number
 	const char *ext = get_filename_ext(filename);
 	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
@@ -418,12 +424,6 @@ static gboolean pyscript_version_check(const gchar *filename) {
 		goto ERROR_OR_COMPLETE;
 	}
 
-	GFile *file = NULL;
-	GInputStream *stream = NULL;
-	GDataInputStream *data_input = NULL;
-	GError *error = NULL;
-	gchar *buffer = NULL;
-	gsize length = 0;
 	#ifdef DEBUG_GITSCRIPTS
 	printf("checking python script version requirements: %s\n", scriptpath);
 	#endif
@@ -459,6 +459,20 @@ static gboolean pyscript_version_check(const gchar *filename) {
 	g_object_unref(stream);
 	g_object_unref(file);
 	return retval;
+}
+
+static gboolean is_menu_script(const char* script_path) {
+	if (!script_path) {
+		return FALSE;
+	}
+
+	for (GSList *l = com.pref.selected_scripts; l != NULL; l = l->next) {
+		const char *selected_path = l->data;
+		if (selected_path && g_str_has_suffix(selected_path, script_path)) {
+			return TRUE;
+		}
+	}
+	return FALSE;
 }
 
 // gitscripts Repository synchronization and management
@@ -734,10 +748,13 @@ int update_repo_scripts_list() {
 			siril_log_color_message(_("Warning: skipping script with invalid UTF-8 path.\n"), "red");
 			continue;
 		}
-
-		if ((g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) ||
-			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && pyscript_version_check(entry->path)) ||
-			(g_str_has_suffix(entry->path, PYCSCRIPT_EXT))) {
+		// Add the script to gui.repo_scripts if it passes its version check or if it is already in com.pref.selected_scripts
+		// The latter test allows for scripts that are in use but which have been updated to require a higher version of sirilpy
+		// This allows for users to go back to the last compatible version using the right-click functionality in the repository
+		// GTKTreeView.
+		if ((g_str_has_suffix(entry->path, SCRIPT_EXT) && (script_version_check(entry->path) || is_menu_script(entry->path))) ||
+			(g_str_has_suffix(entry->path, PYSCRIPT_EXT) && (pyscript_version_check(entry->path )|| is_menu_script(entry->path))) ||
+			(g_str_has_suffix(entry->path, PYCSCRIPT_EXT) && (pyscript_version_check(entry->path) || is_menu_script(entry->path)))) {
 
 			gchar *path_copy = g_strdup(entry->path);
 			if (path_copy == NULL) {
@@ -1046,7 +1063,7 @@ static int find_file_commit_by_modifications(git_repository *repo,
 		return -1;
 
 	const char *workdir = git_repository_workdir(repo);
-	const char *tmpworkdir = g_canonicalize_filename(workdir, NULL);
+	char *tmpworkdir = g_canonicalize_filename(workdir, NULL);
 	if (tmpworkdir && g_path_is_absolute(filepath)) {
 		size_t workdir_len = strlen(tmpworkdir);
 		if (strncmp(filepath, tmpworkdir, workdir_len) == 0) {
@@ -1060,6 +1077,7 @@ static int find_file_commit_by_modifications(git_repository *repo,
 	} else {
 		relative_path = g_strdup(filepath);
 	}
+	g_free(tmpworkdir);
 
 	error = git_revparse_single(&head_commit_obj, repo, "HEAD");
 	if (error != 0) {

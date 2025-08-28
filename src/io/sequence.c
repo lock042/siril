@@ -68,6 +68,7 @@
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
+#include "algos/demosaicing.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
 #include "opencv/opencv.h"
@@ -354,19 +355,23 @@ int check_seq() {
 /* Creates a .seq file for regular FITS sequence passed in argument */
 static sequence *create_one_regular_seq(const char *seqname) {
 
-	const gchar *abs_path = g_canonicalize_filename(seqname, com.wd);
-	const gchar *search_folder = g_path_get_dirname(abs_path);
-	const gchar *filename = g_path_get_basename(abs_path);
+	gchar *abs_path = g_canonicalize_filename(seqname, com.wd);
+	gchar *search_folder = g_path_get_dirname(abs_path);
+	gchar *filename = g_path_get_basename(abs_path);
+	g_free(abs_path);
 
-	const char *root = remove_ext_from_filename(filename);
+	char *root = remove_ext_from_filename(filename);
+	g_free(filename);
 	int fixed = 5; // TODO: isn't it defined somewhere else?
 	const gchar *ext = get_com_ext(com.pref.comp.fits_enabled);
 
 	GError* error = NULL;
 	GDir* dir = g_dir_open(search_folder, 0, &error);
+	g_free(search_folder);
 	if (error) {
 		siril_log_color_message(_("Error opening directory: %s\n"), "red", error->message);
 		g_error_free(error);
+		free(root);
 		return NULL;
     }
 	const gchar* pattern = g_strdup_printf("^%s(\\d{%d})\\%s$", 
@@ -377,7 +382,7 @@ static sequence *create_one_regular_seq(const char *seqname) {
  
 	sequence *new_seq = calloc(1, sizeof(sequence));
 	initialize_sequence(new_seq, TRUE);
-	new_seq->seqname = g_strdup(root);
+	new_seq->seqname = root; // move it as we don't need it any more in this fn
 	new_seq->beg = INT_MAX;
 	new_seq->end = 0;
 	new_seq->number = 0;
@@ -566,13 +571,14 @@ gboolean create_one_seq(const char *seqname, sequence_type seqtype) {
 			break;
 		case SEQ_FITSEQ:
 		case SEQ_SER:;
-			const char *root = remove_ext_from_filename(seqname);
+			char *root = remove_ext_from_filename(seqname);
 			const gchar *ext;
 			if (seqtype == SEQ_FITSEQ)
 				ext = get_com_ext(com.pref.comp.fits_enabled);
 			else
 				ext = ".ser";
 			const gchar *filename = g_strdup_printf("%s%s", root, ext);
+			g_free(root);
 			seq = check_seq_one_file(filename, seqtype == SEQ_FITSEQ);
 			break;
 		default:
@@ -604,7 +610,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 	display_filename();		// display filename in gray window
 	gui_function(set_precision_switch, NULL); // set precision on screen
 	adjust_refimage(seq->current);	// check or uncheck reference image checkbox
-	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
+	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ || seq->type == SEQ_SER); // enable or not the preprobutton
 	update_reg_interface(FALSE);	// change the registration prereq message
 	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
 	adjust_reginfo();		// change registration displayed/editable values
@@ -1015,7 +1021,6 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 			extract_region_from_fits(seq->internal_fits[index], 0, dest, area);
 			break;
 	}
-
 	return 0;
 }
 
@@ -1825,14 +1830,16 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	/* Backup the original pointer to fit. If there is a Bayer pattern we need
 	 * to interpolate non-green pixels, so make a copy we can work on. */
 	fits *orig_fit = fit;
-	const char t = spsfargs->bayer_pattern[0];
-	gboolean handle_cfa = (t == 'R' || t == 'G' || t == 'B');
+	gboolean handle_cfa = fit_is_cfa(fit);
 	if (handle_cfa) {
 		fit = calloc(1, sizeof(fits));
 		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		memcpy(fit->keywords.bayer_pattern, spsfargs->bayer_pattern, FLEN_VALUE);
 		interpolate_nongreen(fit);
 	}
+#if BAYER_DEBUG
+	const gchar *green_filename = get_sequence_cache_filename(args->seq, index, "fit", "green_");
+	savefits(green_filename, fit);
+#endif
 
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	psf_error error;
@@ -1988,6 +1995,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		/* the idle below won't be called, we free data here */
 		if (spsfargs->list)
 			g_slist_free_full(spsfargs->list, free);
+		memset(&com.selection, 0, sizeof(rectangle)); // we don't call delete_selected_area to avoid its idle when running python scripts
 		free(spsfargs);
 		args->user = NULL;
 	}
@@ -2095,22 +2103,6 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
 	spsfargs->init_from_center = init_from_center;
-
-	fits fit = { 0 };
-	if (seq->reference_image < 0)
-		seq->reference_image = sequence_find_refimage(seq);
-	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
-		siril_log_color_message(_("Could not load metadata\n"), "red");
-		free(args);
-		free(spsfargs);
-		return -1;
-	} else {
-		memcpy(spsfargs->bayer_pattern, fit.keywords.bayer_pattern, FLEN_VALUE);
-	}
-	if (seq->type == SEQ_INTERNAL)
-		clearfits_header(&fit); // Mustn't free the pixeldata as we only reference it for internal sequences
-	else
-		clearfits(&fit);
 
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
