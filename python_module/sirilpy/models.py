@@ -9,7 +9,7 @@ from typing import Optional, Tuple, List
 import struct
 import logging
 import numpy as np
-from .enums import BitpixType, StarProfile, SequenceType, DistoType, _Defaults
+from .enums import BitpixType, StarProfile, SequenceType, DistoType, _Defaults, ImageType
 from .translations import _
 from .exceptions import SirilError
 
@@ -1413,11 +1413,13 @@ class ImageAnalysis:
     wfwhm: float = 0.0 #: Mean weighted fwhm
     nbstars: int = 0 #: Number of stars detected
     roundness: float = 0.0 #: Mean star roundness
+    imagetype: "ImageType" = 0 #: Image type enum (0 = unknown, 1 = light, 2 = dark, 3 = flat, 4 = bias)
+    timestamp: int = 0 #: UNIX timestamp (64-bit seconds since 1970/1/1 00:00 UTC)
 
     # Network-safe format:
     # ! = network (big-endian), standard sizes, no padding
     # d = 8-byte double, q = 8-byte int
-    _struct_fmt = "!dddqd"
+    _struct_fmt = "!dddqdqq"
     _struct = struct.Struct(_struct_fmt)
 
     def serialize(self) -> bytes:
@@ -1428,10 +1430,12 @@ class ImageAnalysis:
             self.wfwhm,
             self.nbstars,
             self.roundness,
+            self.imagetype,
+            self.timestamp
         )
 
     @classmethod
     def deserialize(cls, data: bytes) -> "ImageAnalysis":
         """Unpack a network-safe binary struct into an ImageAnalysis instance."""
-        bgnoise, fwhm, wfwhm, nbstars, roundness = cls._struct.unpack(data)
-        return cls(bgnoise, fwhm, wfwhm, nbstars, roundness)
+        bgnoise, fwhm, wfwhm, nbstars, roundness, imagetype, timestamp = cls._struct.unpack(data)
+        return cls(bgnoise, fwhm, wfwhm, nbstars, roundness, imagetype, timestamp)

@@ -31,6 +31,14 @@
 #include "core/OS_utils.h"
 #endif
 
+typedef enum {
+	UNKNOWN = 0,
+	LIGHT = 1,
+	DARK = 2,
+	FLAT = 3,
+	BIAS = 4
+} imagetype_t;
+
 // Helper macros
 #define COPY_FLEN_STRING(str) \
 	{ \
@@ -204,7 +212,8 @@ static int homography_to_py(const Homography* H, unsigned char *ptr, size_t maxl
 	return 0;
 }
 
-static int analysis_to_py(const double bgnoise, const double fwhm, const double wfwhm, const int64_t nbstars, const double roundness, unsigned char *ptr, size_t maxlen) {
+static int analysis_to_py(const double bgnoise, const double fwhm, const double wfwhm, const int64_t nbstars,
+						  const double roundness, const int64_t imagetype, int64_t unix_timestamp, unsigned char *ptr, size_t maxlen) {
 	if (!ptr)
 		return 1;
 
@@ -215,6 +224,8 @@ static int analysis_to_py(const double bgnoise, const double fwhm, const double 
 	COPY_BE64(wfwhm, double);
 	COPY_BE64(nbstars, int64_t);
 	COPY_BE64(roundness, double);
+	COPY_BE64(imagetype, int64_t);
+	COPY_BE64(unix_timestamp, int64_t);
 	return 0;
 }
 
@@ -2600,29 +2611,48 @@ CLEANUP:
 
 			free_stats(stats); // finished with the stats
 
-			// Count stars
-			int nb_stars = 0;
-			psf_star **stars = NULL;
-			image *input_image = NULL;
-			input_image = calloc(1, sizeof(image));
-			input_image->fit = fit;
-			input_image->from_seq = NULL;
-			input_image->index_in_seq = -1;
-			stars = peaker(input_image, layer, &com.pref.starfinder_conf, &nb_stars,
-					NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
-			free(input_image);
+			// Get image type
+			imagetype_t imagetype = UNKNOWN;
+			gchar *lower_image_type = g_ascii_strdown(fit->keywords.image_type, -1);
+			if (g_strstr_len(lower_image_type, -1, "light") != NULL) {
+				imagetype = LIGHT;
+			} else if (g_strstr_len(lower_image_type, -1, "dark") != NULL) {
+				imagetype = DARK;
+			} else if (g_strstr_len(lower_image_type, -1, "flat") != NULL) {
+				imagetype = FLAT;
+			} else if (g_strstr_len(lower_image_type, -1, "bias") != NULL) {
+				imagetype = BIAS;
+			}
+			g_free(lower_image_type);
 
-			// Compute average roundness, fwhm
+			// Count stars (skip this for darks, flats, bias)
+			int nb_stars = 0;
 			double roundness = 0.0;
 			double fwhm = 0.0;
-			for (int i = 0; i < nb_stars ; i++) {
-				psf_star *star = stars[i];
-				roundness += fabs(star->fwhmy / star->fwhmx);
-				fwhm += (star->fwhmx + star->fwhmy);
+			if (imagetype != DARK && imagetype != FLAT && imagetype != BIAS) {
+				psf_star **stars = NULL;
+				image *input_image = NULL;
+				input_image = calloc(1, sizeof(image));
+				input_image->fit = fit;
+				input_image->from_seq = NULL;
+				input_image->index_in_seq = -1;
+				stars = peaker(input_image, layer, &com.pref.starfinder_conf, &nb_stars,
+						NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
+				free(input_image);
+
+				// Compute average roundness, fwhm
+				for (int i = 0; i < nb_stars ; i++) {
+					psf_star *star = stars[i];
+					roundness += fabs(star->fwhmy / star->fwhmx);
+					fwhm += (star->fwhmx + star->fwhmy);
+				}
+				roundness /= nb_stars;
+				fwhm /= (2 * nb_stars); // saves division in the loop
+				free_psf_starstarstar(stars); // finished with the stars array
 			}
-			roundness /= nb_stars;
-			fwhm /= (2 * nb_stars); // saves division in the loop
-			free_psf_starstarstar(stars); // finished with the stars array
+
+			// Get timestamp
+			int64_t unix_timestamp = g_date_time_to_unix(fit->keywords.date_obs);
 
 			// Finished with fit
 			clearfits(fit);
@@ -2630,7 +2660,7 @@ CLEANUP:
 
 			// Prepare to transmit
 			// Calculate size needed for response
-			size_t total_size = 5 * sizeof(double);
+			size_t total_size = 7 * sizeof(double); // 6 * 64-bit values
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			if (!response_buffer) {
 				const char* error_msg = _("Memory allocation failed");
@@ -2638,7 +2668,7 @@ CLEANUP:
 				break;
 			}
 			unsigned char *ptr = response_buffer;
-			if (analysis_to_py(bgnoise, fwhm, 0.0, (int64_t) nb_stars, roundness, ptr, total_size)) {
+			if (analysis_to_py(bgnoise, fwhm, 0.0, (int64_t) nb_stars, roundness, imagetype, unix_timestamp, ptr, total_size)) {
 				const char* error_message = _("No analysis available");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 			} else {

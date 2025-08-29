@@ -11,6 +11,15 @@ within sirilpy.
 from enum import IntEnum, unique
 
 @unique
+class ImageType(IntEnum):
+    """ enum representing image functional types """
+    UNKNOWN = 0
+    LIGHT = 1
+    DARK = 2
+    FLAT = 3
+    BIAS = 4
+
+@unique
 class _Status(IntEnum):
     """
     Returns the status of a command. NONE is for commands that
