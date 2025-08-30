@@ -213,7 +213,9 @@ static int homography_to_py(const Homography* H, unsigned char *ptr, size_t maxl
 }
 
 static int analysis_to_py(const double bgnoise, const double fwhm, const double wfwhm, const int64_t nbstars,
-						  const double roundness, const int64_t imagetype, int64_t unix_timestamp, unsigned char *ptr, size_t maxlen) {
+						  const double roundness, const int64_t imagetype, int64_t unix_timestamp,
+						  const int64_t channels, const int64_t height, const int64_t width,
+						  unsigned char *ptr, size_t maxlen) {
 	if (!ptr)
 		return 1;
 
@@ -226,6 +228,9 @@ static int analysis_to_py(const double bgnoise, const double fwhm, const double 
 	COPY_BE64(roundness, double);
 	COPY_BE64(imagetype, int64_t);
 	COPY_BE64(unix_timestamp, int64_t);
+	COPY_BE64(channels, int64_t);
+	COPY_BE64(height, int64_t);
+	COPY_BE64(width, int64_t);
 	return 0;
 }
 
@@ -2591,7 +2596,12 @@ CLEANUP:
 			}
 
 			fits *fit = calloc(1, sizeof(fits));
-			if (read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE)) {
+			gboolean debayer_pref = com.pref.debayer;
+			com.pref.debayer = FALSE; // disable debayering, it is slow and we want to report
+				// CFA images as single-channel for the purposes of analysis
+			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE));
+			com.pref.debayer = debayer_pref; // restore debayer setting
+			if (retval) {
 				free(fit);
 				g_free(filepath);
 				const char* error_msg = _("Failed to read image file");
@@ -2654,13 +2664,17 @@ CLEANUP:
 			// Get timestamp
 			int64_t unix_timestamp = g_date_time_to_unix(fit->keywords.date_obs);
 
+			// Get dimensions
+			int64_t channels = fit->naxes[2];
+			int64_t height = fit->naxes[1];
+			int64_t width = fit->naxes[0];
 			// Finished with fit
 			clearfits(fit);
 			free(fit);
 
 			// Prepare to transmit
 			// Calculate size needed for response
-			size_t total_size = 7 * sizeof(double); // 6 * 64-bit values
+			size_t total_size = 10 * sizeof(double); // 6 * 64-bit values
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			if (!response_buffer) {
 				const char* error_msg = _("Memory allocation failed");
@@ -2668,7 +2682,8 @@ CLEANUP:
 				break;
 			}
 			unsigned char *ptr = response_buffer;
-			if (analysis_to_py(bgnoise, fwhm, 0.0, (int64_t) nb_stars, roundness, imagetype, unix_timestamp, ptr, total_size)) {
+			if (analysis_to_py(bgnoise, fwhm, 0.0, (int64_t) nb_stars, roundness, imagetype,
+				unix_timestamp, channels, height, width, ptr, total_size)) {
 				const char* error_message = _("No analysis available");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 			} else {
