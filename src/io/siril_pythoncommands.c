@@ -2596,11 +2596,11 @@ CLEANUP:
 			}
 
 			fits *fit = calloc(1, sizeof(fits));
-			gboolean debayer_pref = com.pref.debayer;
-			com.pref.debayer = FALSE; // disable debayering, it is slow and we want to report
+			gboolean debayer_pref = com.pref.debayer.open_debayer;
+			com.pref.debayer.open_debayer = FALSE; // disable debayering, it is slow and we want to report
 				// CFA images as single-channel for the purposes of analysis
-			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE));
-			com.pref.debayer = debayer_pref; // restore debayer setting
+			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE);
+			com.pref.debayer.open_debayer = debayer_pref; // restore debayer setting
 			if (retval) {
 				free(fit);
 				g_free(filepath);
