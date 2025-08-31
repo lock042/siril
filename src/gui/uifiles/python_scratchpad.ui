@@ -2,7 +2,6 @@
 <!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
-  <requires lib="gtksourceview" version="4.0"/>
   <!-- interface-local-resource-path ../.. -->
   <!-- interface-css-provider-path siril.css -->
   <!-- interface-license-type gplv3 -->
@@ -328,8 +327,8 @@
                             <property name="action-name">editor.execute</property>
                             <property name="label" translatable="yes">Run</property>
                             <property name="use-underline">True</property>
-                            <accelerator key="F5" signal="activate"/>
                             <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                            <accelerator key="F5" signal="activate"/>
                           </object>
                         </child>
                         <child>
@@ -588,39 +587,7 @@ This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli()
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <child>
-                      <object class="GtkScrolledWindow" id="python_scrolled_window">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="shadow-type">in</property>
-                        <property name="min-content-width">400</property>
-                        <property name="min-content-height">600</property>
-                        <property name="propagate-natural-width">True</property>
-                        <property name="propagate-natural-height">True</property>
-                        <child>
-                          <object class="GtkSourceView" id="code_view">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="left-margin">2</property>
-                            <property name="right-margin">2</property>
-                            <property name="monospace">True</property>
-                            <property name="show-line-numbers">True</property>
-                            <property name="show-line-marks">True</property>
-                            <property name="tab-width">4</property>
-                            <property name="indent-width">4</property>
-                            <property name="auto-indent">True</property>
-                            <property name="insert-spaces-instead-of-tabs">True</property>
-                            <property name="show-right-margin">True</property>
-                            <property name="smart-home-end">always</property>
-                            <property name="highlight-current-line">True</property>
-                            <property name="smart-backspace">True</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                   </object>
                   <packing>

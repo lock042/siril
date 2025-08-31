@@ -31,16 +31,13 @@ enum {
 static GtkButton *button_python_pad_close = NULL, *button_python_pad_clear = NULL, *button_python_pad_open = NULL, *button_python_pad_save = NULL, *button_python_pad_execute = NULL;
 static GtkLabel *language_label = NULL;
 static GtkLabel *find_label = NULL;
-static GtkSourceView *code_view = NULL;
-static GtkSourceBuffer *sourcebuffer = NULL;
-static GtkSourceMap *map = NULL;
+static GtkNotebook *notebook = NULL;
 static GtkScrolledWindow *scrolled_window = NULL;
 static GtkComboBox *combo_language = NULL;
 static GtkSourceLanguageManager *language_manager = NULL;
 static GtkSourceLanguage *language = NULL;
 static GtkSourceStyleSchemeManager *stylemanager = NULL;
 static GtkSourceStyleScheme *scheme = NULL;
-static GFile *current_file = NULL;
 static GtkWindow *editor_window = NULL;
 static GtkWindow *main_window = NULL;
 static GtkCheckMenuItem *radio_py = NULL;
@@ -59,7 +56,6 @@ static GtkCheckMenuItem *showspaces = NULL;
 static GtkCheckMenuItem *shownewlines = NULL;
 static GtkCheckMenuItem *minimap = NULL;
 static GtkCheckMenuItem *useargs = NULL;
-static GtkSourceSpaceDrawer* space_drawer = NULL;
 static GtkBox *codeviewbox = NULL;
 static GtkBox *args_box = NULL;
 static GtkEntry *args_entry = NULL;
@@ -70,8 +66,8 @@ GtkWidget *find_overlay = NULL;
 static GtkButton *go_up_button = NULL;
 static GtkButton *go_down_button = NULL;
 
-static gint active_language = LANG_PYTHON;
-static gboolean buffer_modified = FALSE;
+static GList *tabs = NULL;
+static TabInfo *current_tab = NULL;
 static gboolean from_cli = FALSE;
 static gboolean python_debug = FALSE;
 
@@ -91,8 +87,21 @@ void on_cut(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data);
-static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data);
+static void on_tab_buffer_modified_changed(GtkTextBuffer *buffer, TabInfo *tab);
 void set_language();
+void setup_search_for_tab(TabInfo *tab);
+static void apply_editor_settings_to_tab(TabInfo *tab);
+
+// Tab management functions
+static TabInfo* find_tab_by_widget(GtkWidget *widget);
+static void update_current_tab(gint current_page);
+static void update_ui_for_current_tab(void);
+static void update_tab_title(TabInfo *tab);
+static TabInfo* create_new_tab(const gchar *title, const gchar *content);
+static void close_tab(TabInfo *tab);
+static void on_tab_close_clicked(GtkButton *button, TabInfo *tab);
+static void on_notebook_switch_page(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer user_data);
+static void apply_editor_settings_to_tab(TabInfo *tab);
 
 static GActionEntry editor_actions[] = {
 	{ "open", on_action_file_open, NULL, NULL, NULL },
@@ -118,12 +127,13 @@ void set_code_view_theme() {
 	stylemanager = gtk_source_style_scheme_manager_get_default();
 	scheme = gtk_source_style_scheme_manager_get_scheme(stylemanager,
 										com.pref.gui.combo_theme == 0 ? "oblivion" : "classic");
-	if (scheme)
-		gtk_source_buffer_set_style_scheme(sourcebuffer, scheme);
+	if (scheme && current_tab) {
+		gtk_source_buffer_set_style_scheme(current_tab->source_buffer, scheme);
+	}
 }
 
 gboolean code_view_exists() {
-	return (code_view != NULL);
+	return (current_tab != NULL && current_tab->source_view != NULL);
 }
 
 // Add this function to initialize the actions
@@ -146,71 +156,352 @@ static void setup_editor_actions(GtkWindow *window) {
 }
 
 gboolean script_editor_has_unsaved_changes() {
-	return buffer_modified;
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		if (tab->modified) {
+			return TRUE;
+		}
+	}
+	return FALSE;
 }
 
-void add_code_view(GtkBuilder *builder) {
-	// Create a new GtkSourceBuffer (glade doesn't handle this properly)
-	sourcebuffer = gtk_source_buffer_new(NULL);
-	gtk_text_view_set_buffer(GTK_TEXT_VIEW(code_view), GTK_TEXT_BUFFER(sourcebuffer));
-	/* initialize minimap */
-	map = GTK_SOURCE_MAP(gtk_source_map_new());
-
- // Apply CSS to force font size to 1
-
-	GtkCssProvider* provider = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(provider,
-		"* { font-size: 1px; }",
-		-1, NULL);
-	gtk_style_context_add_provider(
-		gtk_widget_get_style_context(GTK_WIDGET(map)),
-		GTK_STYLE_PROVIDER(provider),
-		GTK_STYLE_PROVIDER_PRIORITY_USER
-	);
-	g_object_unref(provider);
-
-	gtk_widget_show(GTK_WIDGET(map));
-	gtk_source_map_set_view(map, code_view);
-	gtk_box_pack_end(GTK_BOX(codeviewbox), GTK_WIDGET(map), FALSE, FALSE, 0);
-
+static void set_source_view_properties(GtkSourceView *source_view, GtkSourceBuffer *source_buffer) {
 	// Set the GtkSourceView style depending on whether the Siril light or dark
 	// theme is set.
-	set_code_view_theme();
+	if (scheme) {
+		gtk_source_buffer_set_style_scheme(source_buffer, scheme);
+	}
 
 	// Get the GtkSourceLanguageManager and set the Python language
-	language_manager = gtk_source_language_manager_get_default();
+	if (!language_manager) {
+		language_manager = gtk_source_language_manager_get_default();
+	}
 	language = gtk_source_language_manager_get_language(language_manager, "python3");
 	if (language == NULL) {
 		siril_debug_print("Could not find Python language definition\n");
 	} else {
-		gtk_source_buffer_set_language(sourcebuffer, language);
+		gtk_source_buffer_set_language(source_buffer, language);
 	}
-
 
 	// Force monospace
 	GtkCssProvider *css = gtk_css_provider_new();
 	gtk_css_provider_load_from_data(css, "* { font-family: monospace;}",-1,NULL);
-	GtkStyleContext *context = gtk_widget_get_style_context(GTK_WIDGET(code_view));
+	GtkStyleContext *context = gtk_widget_get_style_context(GTK_WIDGET(source_view));
 	gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
 	g_object_unref(css);
 
 	// Enable syntax highlighting
-	gtk_source_buffer_set_highlight_syntax(sourcebuffer, TRUE);
+	gtk_source_buffer_set_highlight_syntax(source_buffer, TRUE);
+}
 
-	// Get the space drawer
-	space_drawer = gtk_source_view_get_space_drawer(code_view);
+static TabInfo* create_new_tab(const gchar *title, const gchar *content) {
+    TabInfo *tab = g_new0(TabInfo, 1);
 
-	// Configure which types of spaces to show
-	GtkSourceSpaceTypeFlags space_types = 0;
+    // Create tab content container
+    GtkWidget *tab_content = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-	GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
+    // Create source view and buffer
+    tab->source_buffer = gtk_source_buffer_new(NULL);
+    tab->source_view = GTK_SOURCE_VIEW(gtk_source_view_new_with_buffer(tab->source_buffer));
 
-	// Enable space drawing with marks
-	gtk_source_space_drawer_set_types_for_locations(space_drawer,
-												space_locations,
-												space_types);
+    // Apply styling and properties
+    set_source_view_properties(tab->source_view, tab->source_buffer);
 
-	gtk_source_space_drawer_set_enable_matrix(space_drawer, TRUE);
+    // Create scrolled window for source view FIRST
+    GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled),
+                                  GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(scrolled), GTK_WIDGET(tab->source_view));
+
+    // Create minimap
+    tab->minimap = GTK_SOURCE_MAP(gtk_source_map_new());
+
+    // Apply CSS to force font size to 1 for minimap
+    GtkCssProvider* provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(provider,
+        "* { font-size: 1px; }",
+        -1, NULL);
+    gtk_style_context_add_provider(
+        gtk_widget_get_style_context(GTK_WIDGET(tab->minimap)),
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_USER
+    );
+    g_object_unref(provider);
+
+    gtk_widget_show(GTK_WIDGET(tab->minimap));
+    gtk_source_map_set_view(tab->minimap, tab->source_view);
+
+    // Get the space drawer for this source view
+    tab->space_drawer = gtk_source_view_get_space_drawer(tab->source_view);
+
+    // Configure which types of spaces to show
+    GtkSourceSpaceTypeFlags space_types = 0;
+    GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
+
+    // Enable space drawing with marks
+    gtk_source_space_drawer_set_types_for_locations(tab->space_drawer,
+                                                space_locations,
+                                                space_types);
+    gtk_source_space_drawer_set_enable_matrix(tab->space_drawer, TRUE);
+
+    // Pack into tab content - FIX: Ensure proper packing order and properties
+    gtk_box_pack_start(GTK_BOX(tab_content), scrolled, TRUE, TRUE, 0);
+    gtk_box_pack_end(GTK_BOX(tab_content), GTK_WIDGET(tab->minimap), FALSE, FALSE, 0);
+
+    // Create tab label with close button
+    GtkWidget *tab_label_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    tab->tab_label = GTK_LABEL(gtk_label_new(title ? title : "untitled"));
+    GtkWidget *close_button = gtk_button_new_from_icon_name("window-close-symbolic", GTK_ICON_SIZE_MENU);
+    gtk_button_set_relief(GTK_BUTTON(close_button), GTK_RELIEF_NONE);
+
+    gtk_box_pack_start(GTK_BOX(tab_label_box), GTK_WIDGET(tab->tab_label), FALSE, FALSE, 0);
+    gtk_box_pack_end(GTK_BOX(tab_label_box), close_button, FALSE, FALSE, 0);
+    gtk_widget_show_all(tab_label_box);
+
+    // Add tab to notebook
+    gint page_num = gtk_notebook_append_page(notebook, tab_content, tab_label_box);
+    tab->tab_widget = tab_content;
+
+    // Set initial content
+    if (content) {
+        gtk_text_buffer_set_text(GTK_TEXT_BUFFER(tab->source_buffer), content, -1);
+    }
+
+    // Initialize other properties
+    tab->file = NULL;
+    tab->modified = FALSE;
+    tab->language = LANG_PYTHON;
+    tab->title = g_strdup(title ? title : "untitled");
+
+    // Setup search for this tab
+    setup_search_for_tab(tab);
+
+    // Connect signals
+    g_signal_connect(tab->source_buffer, "modified-changed",
+                     G_CALLBACK(on_tab_buffer_modified_changed), tab);
+    g_signal_connect(close_button, "clicked",
+                     G_CALLBACK(on_tab_close_clicked), tab);
+
+    // Add to tabs list
+    tabs = g_list_append(tabs, tab);
+
+    gtk_widget_show_all(tab_content);
+
+    gtk_notebook_set_current_page(notebook, page_num);
+
+    // Apply editor settings to the new tab
+    apply_editor_settings_to_tab(tab);
+
+    return tab;
+}
+
+static void close_tab(TabInfo *tab) {
+    if (!tab) return;
+
+    // If this is the last tab, don't close it - just clear it
+    if (g_list_length(tabs) <= 1) {
+        // Clear the content but keep the tab
+        GtkTextIter start, end;
+        gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(tab->source_buffer), &start, &end);
+        if (tab->modified && !siril_confirm_dialog(_("Are you sure?"),
+                                                   _("This will clear the entry buffer. You will not be able to recover any contents."),
+                                                   _("Proceed"))) {
+            return;
+        }
+
+        if (tab->file) {
+            g_object_unref(tab->file);
+            tab->file = NULL;
+        }
+
+        gtk_source_buffer_begin_not_undoable_action(tab->source_buffer);
+        gtk_text_buffer_delete(GTK_TEXT_BUFFER(tab->source_buffer), &start, &end);
+        tab->modified = FALSE;
+        gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(tab->source_buffer), FALSE);
+        gtk_source_buffer_end_not_undoable_action(tab->source_buffer);
+
+        g_free(tab->title);
+        tab->title = g_strdup("untitled");
+        update_tab_title(tab);
+        return;
+    }
+
+    // Check for unsaved changes
+    if (tab->modified) {
+        if (!siril_confirm_dialog(_("Are you sure?"),
+                                  _("This tab has unsaved changes. Close anyway?"),
+                                  _("Close"))) {
+            return;
+        }
+    }
+
+    // Remove from notebook
+    gint page_num = gtk_notebook_page_num(notebook, tab->tab_widget);
+    gtk_notebook_remove_page(notebook, page_num);
+
+    // Clean up tab data
+    if (tab->file) g_object_unref(tab->file);
+    if (tab->search_data) g_free(tab->search_data);
+    g_free(tab->title);
+
+    // Remove from list
+    tabs = g_list_remove(tabs, tab);
+
+    // Update current tab
+    if (current_tab == tab) {
+        current_tab = NULL;
+        gint current_page = gtk_notebook_get_current_page(notebook);
+        if (current_page >= 0) {
+            update_current_tab(current_page);
+        }
+    }
+
+    g_free(tab);
+}
+
+static TabInfo* find_tab_by_widget(GtkWidget *widget) {
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *tab = l->data;
+        if (tab->tab_widget == widget) {
+            return tab;
+        }
+    }
+    return NULL;
+}
+
+static void update_current_tab(gint current_page) {
+    if (current_page < 0) {
+        current_tab = NULL;
+        return;
+    }
+
+    GtkWidget *page_widget = gtk_notebook_get_nth_page(notebook, current_page);
+    current_tab = find_tab_by_widget(page_widget);
+
+    if (current_tab) {
+        // Update UI to reflect current tab state
+        update_ui_for_current_tab();
+    }
+}
+
+static void update_ui_for_current_tab() {
+    if (!current_tab) return;
+
+    // Update language label
+    gtk_label_set_text(language_label,
+                      current_tab->language == LANG_PYTHON ?
+                      _("Python Script") : _("Siril Script File"));
+
+    // Update menu items
+    gtk_check_menu_item_set_active(radio_py, current_tab->language == LANG_PYTHON);
+    gtk_check_menu_item_set_active(radio_ssf, current_tab->language == LANG_SSF);
+
+    // Update style scheme for current tab
+    set_code_view_theme();
+
+    // Update minimap visibility based on preferences
+    gtk_widget_set_visible(GTK_WIDGET(current_tab->minimap), com.pref.gui.editor_cfg.minimap);
+
+    // Apply all editor settings to ensure consistency
+    apply_editor_settings_to_tab(current_tab);
+
+    // Focus the current source view
+    gtk_widget_grab_focus(GTK_WIDGET(current_tab->source_view));
+}
+
+static void update_tab_title(TabInfo *tab) {
+    if (!tab) return;
+
+    gchar *display_title;
+    if (tab->file) {
+        char *basename = g_file_get_basename(tab->file);
+        if (tab->modified) {
+            display_title = g_strdup_printf("%s*", basename);
+        } else {
+            display_title = g_strdup(basename);
+        }
+        g_free(basename);
+    } else {
+        if (tab->modified) {
+            display_title = g_strdup("untitled*");
+        } else {
+            display_title = g_strdup("untitled");
+        }
+    }
+
+    gtk_label_set_text(tab->tab_label, display_title);
+    g_free(display_title);
+}
+
+static void on_tab_close_clicked(GtkButton *button, TabInfo *tab) {
+    close_tab(tab);
+}
+
+static void apply_editor_settings_to_tab(TabInfo *tab) {
+    if (!tab) return;
+
+    // Apply all the editor preferences to this tab
+    gtk_source_buffer_set_highlight_syntax(tab->source_buffer, com.pref.gui.editor_cfg.highlight_syntax);
+    gtk_source_buffer_set_highlight_matching_brackets(tab->source_buffer, com.pref.gui.editor_cfg.highlight_bracketmatch);
+    gtk_source_view_set_show_right_margin(tab->source_view, com.pref.gui.editor_cfg.rmargin);
+    gtk_source_view_set_right_margin_position(tab->source_view, com.pref.gui.editor_cfg.rmargin_pos);
+    gtk_source_view_set_show_line_numbers(tab->source_view, com.pref.gui.editor_cfg.show_linenums);
+    gtk_source_view_set_show_line_marks(tab->source_view, com.pref.gui.editor_cfg.show_linemarks);
+    gtk_source_view_set_highlight_current_line(tab->source_view, com.pref.gui.editor_cfg.highlight_currentline);
+    gtk_source_view_set_auto_indent(tab->source_view, com.pref.gui.editor_cfg.autoindent);
+    gtk_source_view_set_indent_on_tab(tab->source_view, com.pref.gui.editor_cfg.indentontab);
+    gtk_source_view_set_smart_backspace(tab->source_view, com.pref.gui.editor_cfg.smartbs);
+    gtk_source_view_set_smart_home_end(tab->source_view, com.pref.gui.editor_cfg.smarthomeend);
+
+    // Apply space drawer settings
+    GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
+    GtkSourceSpaceTypeFlags space_types = 0;
+
+    if (com.pref.gui.editor_cfg.showspaces) {
+        space_types |= GTK_SOURCE_SPACE_TYPE_SPACE | GTK_SOURCE_SPACE_TYPE_TAB;
+    }
+    if (com.pref.gui.editor_cfg.shownewlines) {
+        space_types |= GTK_SOURCE_SPACE_TYPE_NEWLINE;
+    }
+
+    gtk_source_space_drawer_set_types_for_locations(tab->space_drawer, space_locations, space_types);
+
+    // Update minimap visibility
+    gtk_widget_set_visible(GTK_WIDGET(tab->minimap), com.pref.gui.editor_cfg.minimap);
+}
+
+static void on_notebook_switch_page(GtkNotebook *notebook, GtkWidget *page,
+                                   guint page_num, gpointer user_data) {
+    update_current_tab(page_num);
+
+    // Additional UI updates when switching tabs
+    if (current_tab) {
+        // Apply editor settings to the newly active tab
+        apply_editor_settings_to_tab(current_tab);
+    }
+}
+
+void add_code_view(GtkBuilder *builder) {
+	// Create notebook for tabs
+	notebook = GTK_NOTEBOOK(gtk_notebook_new());
+	gtk_notebook_set_tab_pos(notebook, GTK_POS_TOP);
+	gtk_notebook_set_scrollable(notebook, TRUE);
+
+	// Add notebook to codeviewbox
+	gtk_box_pack_start(GTK_BOX(codeviewbox), GTK_WIDGET(notebook), TRUE, TRUE, 0);
+
+	// Connect notebook signals
+	g_signal_connect(notebook, "switch-page", G_CALLBACK(on_notebook_switch_page), NULL);
+
+	// Set up style scheme manager and scheme
+	stylemanager = gtk_source_style_scheme_manager_get_default();
+	scheme = gtk_source_style_scheme_manager_get_scheme(stylemanager,
+		com.pref.gui.combo_theme == 0 ? "oblivion" : "classic");
+
+	// Create initial tab
+	current_tab = create_new_tab("untitled", NULL);
+
+	gtk_widget_show_all(GTK_WIDGET(notebook));
 }
 
 /** Code for the find feature ***/
@@ -265,7 +556,6 @@ gboolean on_find_entry_focus_out_event(GtkWidget *widget, gpointer user_data) {
 	hide_find_box();
 	return FALSE;
 }
-
 
 void on_find_entry_activate(GtkEntry *entry, gpointer user_data) {
 	hide_find_box();
@@ -342,8 +632,9 @@ gboolean on_find_entry_key_press_event(GtkWidget *widget, GdkEventKey *event, gp
 	/* Close window */
 	if (event->keyval == GDK_KEY_Tab || event->keyval == GDK_KEY_Escape) {
 		hide_find_box();
-		gtk_widget_grab_focus(GTK_WIDGET(code_view));
-
+		if (current_tab) {
+			gtk_widget_grab_focus(GTK_WIDGET(current_tab->source_view));
+		}
 		return TRUE;
 	}
 
@@ -361,7 +652,6 @@ gboolean on_find_entry_key_press_event(GtkWidget *widget, GdkEventKey *event, gp
 
 	return FALSE;
 }
-
 
 /**
  * Clear any existing search highlighting
@@ -408,7 +698,6 @@ static gboolean perform_search(SearchData *search_data) {
 	// Clear previous highlighting and positions
 	clear_search_highlighting(search_data);
 	clear_match_positions(search_data);
-
 
 	search_data->total_matches = 0;
 	search_data->current_match = 0;
@@ -465,47 +754,26 @@ void on_find_entry_changed(GtkEntry *entry, SearchData *search_data) {
     perform_search(search_data);
 }
 
+void setup_search_for_tab(TabInfo *tab) {
+	if (!tab) return;
+
+	SearchData *search_data = g_new0(SearchData, 1);
+	search_data->source_view = tab->source_view;
+	search_data->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tab->source_view));
+	search_data->search_entry = find_entry; // Shared search entry
+	search_data->info_label = find_label;   // Shared info label
+
+	// Create search tag for this buffer
+	search_data->search_tag = gtk_text_buffer_create_tag(
+			search_data->buffer, "search_match",
+			"background", "yellow", "foreground", "black", NULL);
+
+	tab->search_data = search_data;
+}
+
 void setup_search(GtkSourceView *source_view, GtkEntry *search_entry) {
-	if (!source_view || !search_entry)
-		return;
-
-	// First, check if we already have search data
-	SearchData *search_data = g_object_get_data(G_OBJECT(source_view), "search-data");
-
-	if (search_data) {
-		// Update existing search data
-		search_data->search_entry = search_entry;
-		return;
-	}
-
-	// Create new search data only if it doesn't exist
-	search_data = g_new0(SearchData, 1);
-	search_data->source_view = source_view;
-	search_data->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(source_view));
-	search_data->search_entry = search_entry;
-	search_data->info_label = find_label;
-
-	// Get the tag table
-	GtkTextTagTable *tag_table = gtk_text_buffer_get_tag_table(search_data->buffer);
-
-	// Check if the tag already exists
-	search_data->search_tag = gtk_text_tag_table_lookup(tag_table, "search_match");
-
-	// Create the tag only if it doesn't exist
-	if (search_data->search_tag == NULL) {
-		search_data->search_tag = gtk_text_buffer_create_tag(
-				search_data->buffer, "search_match", "background", "yellow",
-				"foreground", "black",
-				NULL);
-	}
-
-	g_signal_connect(search_entry, "changed", G_CALLBACK(on_find_entry_changed), search_data);
-	g_signal_connect(search_entry, "key-press-event", G_CALLBACK(on_find_entry_key_press_event), search_data);
-	g_signal_connect(go_down_button, "clicked", G_CALLBACK(on_next_match), search_data);
-	g_signal_connect(go_up_button, "clicked", G_CALLBACK(on_previous_match), search_data);
-
-	// Store the search data
-	g_object_set_data_full(G_OBJECT(source_view), "search-data", search_data, g_free);
+	// This function is now handled by setup_search_for_tab for each individual tab
+	// Keep for compatibility but don't use
 }
 
 // Statics init
@@ -514,9 +782,6 @@ void python_scratchpad_init_statics() {
 		// GtkWindow
 		editor_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "python_window"));
 		main_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
-		// GtkSourceView
-		code_view = GTK_SOURCE_VIEW(gtk_builder_get_object(gui.builder, "code_view"));
-		sourcebuffer = GTK_SOURCE_BUFFER(gtk_builder_get_object(gui.builder, "sourcebuffer"));
 		// GtkCheckMenuItem
 		radio_py = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "radio_py"));
 		radio_ssf = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "radio_ssf"));
@@ -542,7 +807,7 @@ void python_scratchpad_init_statics() {
 		button_python_pad_open = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_open"));
 		button_python_pad_save = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_save"));
 		button_python_pad_execute = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_execute"));
-		// GtkSCrolledWindow
+		// GtkScrolledWindow
 		scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "python_scrolled_window"));
 		// GtkLabel
 		language_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "script_language_label"));
@@ -559,62 +824,44 @@ void python_scratchpad_init_statics() {
 		// GtkEntry
 		args_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "editor_args_entry"));
 
-		// GtkSourceView setup
+		// GtkSourceView setup - now creates tabbed interface
 		add_code_view(gui.builder);
 		gtk_window_set_transient_for(GTK_WINDOW(editor_window), GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
-		g_signal_connect(sourcebuffer, "modified-changed", G_CALLBACK(on_buffer_modified_changed), NULL);
 
 		/* initialize find box */
 		setup_find_overlay();
-		setup_search(code_view, find_entry);
-
-		// Initialize with "unsaved" if no file is loaded
-		if (!current_file) {
-			gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
-		}
-	}
-}
-
-static void update_title_with_modification() {
-	const gchar *current_text = gtk_window_get_title(GTK_WINDOW(editor_window));
-	if (!current_text || !*current_text) return;
-
-	// If the title already ends with *, don't add another
-	if (g_str_has_suffix(current_text, "*")) {
-		if (!buffer_modified) {
-			gchar *base_name = g_strndup(current_text, strlen(current_text) - 1);
-			gtk_window_set_title(GTK_WINDOW(editor_window), base_name);
-			g_free(base_name);
-		}
-	} else if (buffer_modified) {
-		gchar *new_title = g_strdup_printf("%s*", current_text);
-		gtk_window_set_title(GTK_WINDOW(editor_window), new_title);
-		g_free(new_title);
 	}
 }
 
 static void update_title(GFile *file) {
+	if (!current_tab) return;
+
 	if (file) {
 		char *basename = g_file_get_basename(file);
-		gtk_window_set_title(GTK_WINDOW(editor_window), basename);
-
+		g_free(current_tab->title);
+		current_tab->title = g_strdup(basename);
 
 		char *suffix = strrchr(basename, '.');
 		if (suffix != NULL) {
 			if (g_ascii_strcasecmp(suffix, ".py") == 0) {
+				current_tab->language = LANG_PYTHON;
 				gtk_check_menu_item_set_active(radio_py, TRUE);
 			} else if (g_ascii_strcasecmp(suffix, ".ssf") == 0) {
+				current_tab->language = LANG_SSF;
 				gtk_check_menu_item_set_active(radio_ssf, TRUE);
 			}
 		}
 
 		g_free(basename);
 	} else {
-		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
+		g_free(current_tab->title);
+		current_tab->title = g_strdup("untitled");
 	}
-	buffer_modified = FALSE;
-	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
-	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+
+	current_tab->modified = FALSE;
+	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(current_tab->source_buffer), FALSE);
+	update_tab_title(current_tab);
+	set_language();
 }
 
 // File handling
@@ -622,18 +869,18 @@ void load_file_complete(GObject *loader, GAsyncResult *result, gpointer user_dat
 	GError *error = NULL;
 	if (!gtk_source_file_loader_load_finish(GTK_SOURCE_FILE_LOADER(loader), result, &error)) {
 		g_printerr("Error loading file: %s\n", error->message);
-		gtk_window_set_title(GTK_WINDOW(editor_window), "");
 		g_error_free(error);
 	}
 	g_object_unref(loader);
 }
 
-void load_file(GFile *file) {
-	GtkSourceBuffer *buffer = sourcebuffer;
+void load_file_into_tab(GFile *file, TabInfo *tab) {
+	if (!tab) return;
+
 	GtkSourceFile *source_file = gtk_source_file_new();
 	gtk_source_file_set_location(source_file, file);
 
-	GtkSourceFileLoader *loader = gtk_source_file_loader_new(buffer, source_file);
+	GtkSourceFileLoader *loader = gtk_source_file_loader_new(tab->source_buffer, source_file);
 
 	// Start the async load operation
 	gtk_source_file_loader_load_async(loader,
@@ -643,9 +890,22 @@ void load_file(GFile *file) {
 									NULL,  // No progress data
 									NULL,  // No progress notify
 									load_file_complete,
-									loader); // No user data
+									tab); // Pass tab as user data
+
+	// Update tab file reference
+	if (tab->file) g_object_unref(tab->file);
+	tab->file = g_object_ref(file);
+	update_title(file);
+
 	g_object_unref(source_file);
 	// loader will be unreferenced in the callback
+}
+
+void load_file(GFile *file) {
+	// Legacy function - now loads into current tab
+	if (current_tab) {
+		load_file_into_tab(file, current_tab);
+	}
 }
 
 // If you need to save the file:
@@ -658,12 +918,13 @@ void save_file_complete(GObject *saver, GAsyncResult *result, gpointer user_data
 	g_object_unref(saver);
 }
 
-void save_file(GFile *file) {
-	GtkSourceBuffer *buffer = sourcebuffer;
-	GtkSourceFile *source_file = gtk_source_file_new();
-	gtk_source_file_set_location(source_file, file);
+void save_tab_file(TabInfo *tab) {
+	if (!tab || !tab->file) return;
 
-	GtkSourceFileSaver *saver = gtk_source_file_saver_new(buffer, source_file);
+	GtkSourceFile *source_file = gtk_source_file_new();
+	gtk_source_file_set_location(source_file, tab->file);
+
+	GtkSourceFileSaver *saver = gtk_source_file_saver_new(tab->source_buffer, source_file);
 
 	// Start the async save operation
 	gtk_source_file_saver_save_async(saver,
@@ -673,121 +934,92 @@ void save_file(GFile *file) {
 								NULL,  // No progress data
 								NULL,  // No progress notify
 								save_file_complete,
-								NULL); // No user data
-	buffer_modified = FALSE;
-	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
-	update_title(file);
+								tab); // Pass tab as user data
+	tab->modified = FALSE;
+	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(tab->source_buffer), FALSE);
+	update_tab_title(tab);
 	g_object_unref(source_file);
 }
 
-void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	// Get the start and end iterators
-	GtkTextIter start, end;
-	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
-		if (G_IS_OBJECT(current_file))
-			g_object_unref(current_file);
-		current_file = NULL;
-		gtk_source_buffer_begin_not_undoable_action(sourcebuffer);
-		gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-		buffer_modified = FALSE;
-		gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
-		gtk_source_buffer_end_not_undoable_action(sourcebuffer);
-		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
-		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+void save_file(GFile *file) {
+	// Legacy function - now saves current tab
+	if (current_tab) {
+		if (current_tab->file) g_object_unref(current_tab->file);
+		current_tab->file = g_object_ref(file);
+		save_tab_file(current_tab);
 	}
+}
+
+void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	TabInfo *tab = create_new_tab("untitled", NULL);
+	current_tab = tab;
+	update_ui_for_current_tab();
 }
 
 void new_script(const gchar *contents, gint length, const char *ext) {
 	on_open_pythonpad(NULL, NULL);
-	// Get the start and end iterators
-	GtkTextIter start, end;
-	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
-		if (G_IS_OBJECT(current_file))
-			g_object_unref(current_file);
-		current_file = NULL;
-		gtk_source_buffer_begin_not_undoable_action(sourcebuffer);
-		gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-		gtk_text_buffer_set_text(GTK_TEXT_BUFFER(sourcebuffer), contents, (gint) length);
-		buffer_modified = FALSE;
-		gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
-		gtk_source_buffer_end_not_undoable_action(sourcebuffer);
-		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
-		if (!g_ascii_strcasecmp(ext, "ssf")) {
-			active_language = LANG_SSF;
-			gtk_check_menu_item_set_active(radio_ssf, TRUE);
-		} else {
-			active_language = LANG_PYTHON;
-			gtk_check_menu_item_set_active(radio_py, TRUE);
-		}
-		gtk_window_present_with_time(editor_window, GDK_CURRENT_TIME);
-		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+
+	TabInfo *tab = create_new_tab("untitled", contents);
+	current_tab = tab;
+
+	if (!g_ascii_strcasecmp(ext, "ssf")) {
+		current_tab->language = LANG_SSF;
+		gtk_check_menu_item_set_active(radio_ssf, TRUE);
+	} else {
+		current_tab->language = LANG_PYTHON;
+		gtk_check_menu_item_set_active(radio_py, TRUE);
 	}
+
+	set_language();
+	gtk_window_present_with_time(editor_window, GDK_CURRENT_TIME);
+	update_ui_for_current_tab();
 }
 
 void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	gint char_count = gtk_text_buffer_get_char_count(GTK_TEXT_BUFFER(sourcebuffer));
-	gboolean is_empty = (char_count == 0);
-	if (!is_empty) {
-		GtkTextIter start, end;
-		gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-		if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
-			if (G_IS_OBJECT(current_file))
-				g_object_unref(current_file);
-			current_file = NULL;
-			gtk_source_buffer_begin_not_undoable_action(sourcebuffer);
-			gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-			buffer_modified = FALSE;
-			gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
-			gtk_source_buffer_end_not_undoable_action(sourcebuffer);
-			gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
-			gtk_widget_queue_draw(GTK_WIDGET(editor_window));
-			gtk_widget_hide(GTK_WIDGET(editor_window));
-			return;
-		} else {
-			return;
-		}
+	if (!current_tab) return;
+
+	if (g_list_length(tabs) <= 1) {
+		// This is the last tab, just hide the window instead of closing the tab
+		gtk_widget_hide(GTK_WIDGET(editor_window));
 	} else {
-		if (G_IS_OBJECT(current_file))
-			g_object_unref(current_file);
-		current_file = NULL;
-		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
+		close_tab(current_tab);
 	}
-	gtk_widget_hide(GTK_WIDGET(editor_window));
 }
 
 void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will replace the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
-		if (G_IS_OBJECT(current_file))
-			g_object_unref(current_file);
-		current_file = NULL;
-		GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Open Script"),
-				GTK_WINDOW(lookup_widget("control_window")),
-				GTK_FILE_CHOOSER_ACTION_OPEN,
-				_("_Cancel"), GTK_RESPONSE_CANCEL,
-				_("_Open"), GTK_RESPONSE_ACCEPT,
-				NULL);
+	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Open Script"),
+			GTK_WINDOW(lookup_widget("control_window")),
+			GTK_FILE_CHOOSER_ACTION_OPEN,
+			_("_Cancel"), GTK_RESPONSE_CANCEL,
+			_("_Open"), GTK_RESPONSE_ACCEPT,
+			NULL);
 
-		GtkFileFilter *filter = gtk_file_filter_new();
-		gtk_file_filter_add_pattern(filter, "*.py");
-		gtk_file_filter_add_pattern(filter, "*.ssf");
-		gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
-		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	GtkFileFilter *filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter, "*.py");
+	gtk_file_filter_add_pattern(filter, "*.ssf");
+	gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
-		gint res = gtk_dialog_run(GTK_DIALOG(dialog));
-		if (res == GTK_RESPONSE_ACCEPT) {
-			GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
-			control_window_switch_to_tab(OUTPUT_LOGS);
-			load_file(file);
-			current_file = g_object_ref(file);
-			update_title(current_file);
-			g_object_unref(file);
-		}
+	gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+	if (res == GTK_RESPONSE_ACCEPT) {
+		GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
+		char *basename = g_file_get_basename(file);
 
-		gtk_widget_destroy(dialog);
-		gtk_window_present(editor_window);
+		// Create new tab for the file
+		TabInfo *tab = create_new_tab(basename, NULL);
+		current_tab = tab;
+
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		load_file_into_tab(file, tab);
+
+		g_free(basename);
+		g_object_unref(file);
+
+		update_ui_for_current_tab();
 	}
+
+	gtk_widget_destroy(dialog);
+	gtk_window_present(editor_window);
 }
 
 void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer user_data) {
@@ -829,16 +1061,22 @@ void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer use
 		return;
 	}
 
-	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will replace the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
-		load_file(file);
-		current_file = g_object_ref(file);
-		update_title(current_file);
-	}
+	// Create new tab for recent file
+	char *basename = g_file_get_basename(file);
+	TabInfo *tab = create_new_tab(basename, NULL);
+	current_tab = tab;
+
+	load_file_into_tab(file, tab);
+	update_ui_for_current_tab();
+
+	g_free(basename);
 	g_object_unref(file);
 	g_free(uri);
 }
 
 void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!current_tab) return;
+
 	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Save Script As"),
 			GTK_WINDOW(lookup_widget("control_window")),
 			GTK_FILE_CHOOSER_ACTION_SAVE,
@@ -857,8 +1095,8 @@ void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
 	// If there's a current file, set it as the default
-	if (G_IS_OBJECT(current_file)) {
-		gtk_file_chooser_set_file(GTK_FILE_CHOOSER(dialog), current_file, NULL);
+	if (current_tab->file) {
+		gtk_file_chooser_set_file(GTK_FILE_CHOOSER(dialog), current_tab->file, NULL);
 	}
 
 	gint res = gtk_dialog_run(GTK_DIALOG(dialog));
@@ -866,13 +1104,13 @@ void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer
 		GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
-		// Update current_file with the newly selected file
-		if (G_IS_OBJECT(current_file))
-			g_object_unref(current_file);
-		current_file = g_object_ref(file);
-		update_title(current_file);
+		// Update current_tab with the newly selected file
+		if (current_tab->file)
+			g_object_unref(current_tab->file);
+		current_tab->file = g_object_ref(file);
+		update_title(current_tab->file);
 
-		save_file(file);  // This now uses the async version
+		save_tab_file(current_tab);
 		g_object_unref(file);
 	}
 
@@ -881,7 +1119,9 @@ void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void on_action_file_save(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!current_file) {
+	if (!current_tab) return;
+
+	if (!current_tab->file) {
 		// No file has been saved yet, so call Save As
 		on_action_file_save_as(action, parameter, user_data);
 		return;
@@ -889,7 +1129,7 @@ void on_action_file_save(GSimpleAction *action, GVariant *parameter, gpointer us
 
 	// We have a current file, just save directly to it
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	save_file(current_file);
+	save_tab_file(current_tab);
 }
 
 int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
@@ -923,20 +1163,24 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 		gtk_window_move(editor_window, main_x + 50, main_y + 50);
 	}
 
-	gtk_label_set_text(language_label, active_language == LANG_PYTHON ? _("Python Script") : _("Siril Script File"));
+	if (current_tab) {
+		gtk_label_set_text(language_label, current_tab->language == LANG_PYTHON ? _("Python Script") : _("Siril Script File"));
+	}
 
 	// Show the window and bring it to front
 	gtk_window_present_with_time(editor_window, GDK_CURRENT_TIME);
 
-	// Set the correct check menu item active
-	gtk_check_menu_item_set_active(radio_py, active_language == LANG_PYTHON);
-	gtk_check_menu_item_set_active(radio_ssf, active_language == LANG_SSF);
+	if (current_tab) {
+		// Set the correct check menu item active
+		gtk_check_menu_item_set_active(radio_py, current_tab->language == LANG_PYTHON);
+		gtk_check_menu_item_set_active(radio_ssf, current_tab->language == LANG_SSF);
 
-	// Set the right margin position
-	gtk_source_view_set_right_margin_position(code_view, com.pref.gui.editor_cfg.rmargin_pos);
+		// Set the right margin position
+		gtk_source_view_set_right_margin_position(current_tab->source_view, com.pref.gui.editor_cfg.rmargin_pos);
 
-	// Focus the SourceView
-	gtk_widget_grab_focus(GTK_WIDGET(code_view));
+		// Focus the SourceView
+		gtk_widget_grab_focus(GTK_WIDGET(current_tab->source_view));
+	}
 
 	// Initialize the View menu based on com.pref.gui.editor_cfg
 	gtk_check_menu_item_set_active(syncheck, com.pref.gui.editor_cfg.highlight_syntax);
@@ -952,26 +1196,34 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	gtk_check_menu_item_set_active(showspaces, com.pref.gui.editor_cfg.showspaces);
 	gtk_check_menu_item_set_active(shownewlines, com.pref.gui.editor_cfg.shownewlines);
 	gtk_check_menu_item_set_active(minimap, com.pref.gui.editor_cfg.minimap);
-	gtk_widget_set_visible(GTK_WIDGET(map), com.pref.gui.editor_cfg.minimap);
+	if (current_tab) {
+		gtk_widget_set_visible(GTK_WIDGET(current_tab->minimap), com.pref.gui.editor_cfg.minimap);
+	}
 	gtk_widget_set_visible(GTK_WIDGET(args_box), gtk_check_menu_item_get_active(useargs));
 	return 0;
 }
 
 void on_undo(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (gtk_source_buffer_can_undo(sourcebuffer)) {
-		gtk_source_buffer_undo(sourcebuffer);
+	if (!current_tab) return;
+
+	if (gtk_source_buffer_can_undo(current_tab->source_buffer)) {
+		gtk_source_buffer_undo(current_tab->source_buffer);
 	}
 }
 
 void on_redo(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (gtk_source_buffer_can_redo(sourcebuffer)) {
-		gtk_source_buffer_redo(sourcebuffer);
+	if (!current_tab) return;
+
+	if (gtk_source_buffer_can_redo(current_tab->source_buffer)) {
+		gtk_source_buffer_redo(current_tab->source_buffer);
 	}
 }
 
 void on_cut(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkTextBuffer *buffer = GTK_TEXT_BUFFER(sourcebuffer);
-	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
+	if (!current_tab) return;
+
+	GtkTextBuffer *buffer = GTK_TEXT_BUFFER(current_tab->source_buffer);
+	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(current_tab->source_view), GDK_SELECTION_CLIPBOARD);
 	GtkTextIter start, end;
 
 	// Check if there's a selection
@@ -990,24 +1242,46 @@ void on_cut(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	}
 
 	// Cut the selected text (either the original selection or the entire line)
-	gtk_text_buffer_cut_clipboard(buffer, clipboard, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
+	gtk_text_buffer_cut_clipboard(buffer, clipboard, gtk_text_view_get_editable(GTK_TEXT_VIEW(current_tab->source_view)));
 }
 
 void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
-	gtk_text_buffer_copy_clipboard(GTK_TEXT_BUFFER(sourcebuffer), clipboard);
+	if (!current_tab) return;
+
+	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(current_tab->source_view), GDK_SELECTION_CLIPBOARD);
+	gtk_text_buffer_copy_clipboard(GTK_TEXT_BUFFER(current_tab->source_buffer), clipboard);
 }
 
 void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (gtk_revealer_get_reveal_child(GTK_REVEALER(find_revealer))) {
 		gtk_editable_paste_clipboard(GTK_EDITABLE(find_entry));
-	} else {
-		GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
-		gtk_text_buffer_paste_clipboard(GTK_TEXT_BUFFER(sourcebuffer), clipboard, NULL, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
+	} else if (current_tab) {
+		GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(current_tab->source_view), GDK_SELECTION_CLIPBOARD);
+		gtk_text_buffer_paste_clipboard(GTK_TEXT_BUFFER(current_tab->source_buffer), clipboard, NULL, gtk_text_view_get_editable(GTK_TEXT_VIEW(current_tab->source_view)));
 	}
 }
 
 void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!current_tab) return;
+
+	// Update search to work with current tab - disconnect any existing signals first
+	g_signal_handlers_disconnect_by_func(find_entry, on_find_entry_changed, NULL);
+	g_signal_handlers_disconnect_by_func(find_entry, on_find_entry_key_press_event, NULL);
+	g_signal_handlers_disconnect_by_func(go_down_button, on_next_match, NULL);
+	g_signal_handlers_disconnect_by_func(go_up_button, on_previous_match, NULL);
+
+	SearchData *search_data = current_tab->search_data;
+	if (search_data) {
+		search_data->search_entry = find_entry;
+		search_data->info_label = find_label;
+
+		// Connect signals for current tab
+		g_signal_connect(find_entry, "changed", G_CALLBACK(on_find_entry_changed), search_data);
+		g_signal_connect(find_entry, "key-press-event", G_CALLBACK(on_find_entry_key_press_event), search_data);
+		g_signal_connect(go_down_button, "clicked", G_CALLBACK(on_next_match), search_data);
+		g_signal_connect(go_up_button, "clicked", G_CALLBACK(on_previous_match), search_data);
+	}
+
 	toggle_find_overlay(TRUE);
 }
 
@@ -1043,7 +1317,7 @@ void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
 
 	// Create a spin button
-	gint current_pos = gtk_source_view_get_right_margin_position(code_view);
+	gint current_pos = current_tab ? gtk_source_view_get_right_margin_position(current_tab->source_view) : com.pref.gui.editor_cfg.rmargin_pos;
 	GtkWidget *spin = gtk_spin_button_new_with_range(20, 200, 1);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin), current_pos);
 
@@ -1065,7 +1339,11 @@ void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user
 	gint response = gtk_dialog_run(GTK_DIALOG(dialog));
 	if (response == GTK_RESPONSE_APPLY) {
 		com.pref.gui.editor_cfg.rmargin_pos = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin));
-		gtk_source_view_set_right_margin_position(code_view, com.pref.gui.editor_cfg.rmargin_pos);
+		// Apply to all tabs
+		for (GList *l = tabs; l; l = l->next) {
+			TabInfo *tab = l->data;
+			gtk_source_view_set_right_margin_position(tab->source_view, com.pref.gui.editor_cfg.rmargin_pos);
+		}
 		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
 	}
 
@@ -1087,25 +1365,29 @@ gboolean on_main_window_state_changed(GtkWidget *widget, GdkEventWindowState *ev
 }
 
 void set_language() {
-	if (active_language == LANG_PYTHON) {
+	if (!current_tab) return;
+
+	if (current_tab->language == LANG_PYTHON) {
 		language = gtk_source_language_manager_get_language(language_manager, "python");
 		gtk_label_set_text(language_label, _("Python Script"));
-	} else if (active_language == LANG_SSF) {
+	} else if (current_tab->language == LANG_SSF) {
 		language = gtk_source_language_manager_get_language(language_manager, "sh");
 		gtk_label_set_text(language_label, _("Siril Script File"));
 	}
 	if (language == NULL) {
 		siril_debug_print("Could not find language definition\n");
 	} else {
-		gtk_source_buffer_set_language(sourcebuffer, language);
+		gtk_source_buffer_set_language(current_tab->source_buffer, language);
 	}
 }
 
 void on_language_set(GtkRadioMenuItem *item, gpointer user_data) {
+	if (!current_tab) return;
+
 	if (gtk_check_menu_item_get_active(radio_py)) {
-		active_language = LANG_PYTHON;
+		current_tab->language = LANG_PYTHON;
 	} else {
-		active_language = LANG_SSF;
+		current_tab->language = LANG_SSF;
 	}
 	set_language();
 }
@@ -1122,15 +1404,17 @@ void setup_python_editor_window() {
 }
 
 void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!current_tab) return;
+
 	if (!accept_script_warning_dialog())
 		return;
 	gchar** script_args = NULL;
 	// Get the start and end iterators
 	GtkTextIter start, end;
-	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(current_tab->source_buffer), &start, &end);
 	// Get the text
-	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
-	switch (active_language) {
+	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(current_tab->source_buffer), &start, &end, FALSE);
+	switch (current_tab->language) {
 		case LANG_PYTHON:;
 			// Create a temporary file for the script
 			GError *error = NULL;
@@ -1191,9 +1475,9 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 	}
 }
 
-static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data) {
-	buffer_modified = gtk_text_buffer_get_modified(buffer);
-	update_title_with_modification();
+static void on_tab_buffer_modified_changed(GtkTextBuffer *buffer, TabInfo *tab) {
+	tab->modified = gtk_text_buffer_get_modified(buffer);
+	update_tab_title(tab);
 }
 
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -1206,125 +1490,184 @@ void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer 
 
 void on_editor_syntax_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
-	gtk_source_buffer_set_highlight_syntax(sourcebuffer, status);
 	com.pref.gui.editor_cfg.highlight_syntax = status;
+
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		gtk_source_buffer_set_highlight_syntax(tab->source_buffer, status);
+	}
 }
 
 void on_editor_bracketmatch_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
-	gtk_source_buffer_set_highlight_matching_brackets(sourcebuffer, status);
 	com.pref.gui.editor_cfg.highlight_bracketmatch = status;
+
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		gtk_source_buffer_set_highlight_matching_brackets(tab->source_buffer, status);
+	}
 }
 
 void on_editor_rmargin_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
-	gtk_source_view_set_show_right_margin(code_view, status);
 	com.pref.gui.editor_cfg.rmargin = status;
+
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		gtk_source_view_set_show_right_margin(tab->source_view, status);
+	}
 }
 
 void on_editor_linenums_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
-	gtk_source_view_set_show_line_numbers(code_view, status);
 	com.pref.gui.editor_cfg.show_linenums = status;
+
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		gtk_source_view_set_show_line_numbers(tab->source_view, status);
+	}
 }
 
 void on_editor_linemarks_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
-	gtk_source_view_set_show_line_marks(code_view, status);
 	com.pref.gui.editor_cfg.show_linemarks = status;
+
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		gtk_source_view_set_show_line_marks(tab->source_view, status);
+	}
 }
 
 void on_editor_highlightcurrentline_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
-	gtk_source_view_set_highlight_current_line(code_view, status);
 	com.pref.gui.editor_cfg.highlight_currentline = status;
+
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		gtk_source_view_set_highlight_current_line(tab->source_view, status);
+	}
 }
 
 void on_editor_autoindent_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
-	gtk_source_view_set_auto_indent(code_view, status);
 	com.pref.gui.editor_cfg.autoindent = status;
+
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		gtk_source_view_set_auto_indent(tab->source_view, status);
+	}
 }
 
 void on_editor_indentontab_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
-	gtk_source_view_set_indent_on_tab(code_view, status);
 	com.pref.gui.editor_cfg.indentontab = status;
+
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		gtk_source_view_set_indent_on_tab(tab->source_view, status);
+	}
 }
 
 void on_editor_smartbs_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
-	gtk_source_view_set_smart_backspace(code_view, status);
 	com.pref.gui.editor_cfg.smartbs = status;
+
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		gtk_source_view_set_smart_backspace(tab->source_view, status);
+	}
 }
 
 void on_editor_smarthomeend_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
-	gtk_source_view_set_smart_home_end(code_view, status);
 	com.pref.gui.editor_cfg.smarthomeend = status;
+
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		gtk_source_view_set_smart_home_end(tab->source_view, status);
+	}
 }
 
 void on_editor_showspaces_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	// Define where spaces should be displayed (e.g., everywhere)
-	GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
-
-	// Get the current space types for the specified locations
-	GtkSourceSpaceTypeFlags space_types = gtk_source_space_drawer_get_types_for_locations(space_drawer, space_locations);
-
-	// Determine the new status (enabled or disabled)
 	gboolean status = gtk_check_menu_item_get_active(item);
+	com.pref.gui.editor_cfg.showspaces = status;
 
-	// Define the space types to toggle (spaces and tabs)
-	GtkSourceSpaceTypeFlags spaces_and_tabs = GTK_SOURCE_SPACE_TYPE_SPACE | GTK_SOURCE_SPACE_TYPE_TAB;
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
 
-	// Update the space types based on the status
-	if (status) {
-		space_types |= spaces_and_tabs; // Enable spaces and tabs
-	} else {
-		space_types &= ~spaces_and_tabs; // Disable spaces and tabs
+		// Define where spaces should be displayed (e.g., everywhere)
+		GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
+
+		// Get the current space types for the specified locations
+		GtkSourceSpaceTypeFlags space_types = gtk_source_space_drawer_get_types_for_locations(tab->space_drawer, space_locations);
+
+		// Define the space types to toggle (spaces and tabs)
+		GtkSourceSpaceTypeFlags spaces_and_tabs = GTK_SOURCE_SPACE_TYPE_SPACE | GTK_SOURCE_SPACE_TYPE_TAB;
+
+		// Update the space types based on the status
+		if (status) {
+			space_types |= spaces_and_tabs; // Enable spaces and tabs
+		} else {
+			space_types &= ~spaces_and_tabs; // Disable spaces and tabs
+		}
+
+		// Apply the updated space types to the drawer
+		gtk_source_space_drawer_set_types_for_locations(tab->space_drawer, space_locations, space_types);
 	}
-
-	// Apply the updated space types to the drawer
-	gtk_source_space_drawer_set_types_for_locations(space_drawer, space_locations, space_types);
 
 	// Redraw the editor window to reflect the changes
 	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
-
-	// Update the configuration
-	com.pref.gui.editor_cfg.showspaces = status;
 }
 
 void on_editor_shownewlines_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	// Define where spaces should be displayed (e.g., everywhere)
-	GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
-
-	// Get the current space types for the specified locations
-	GtkSourceSpaceTypeFlags space_types = gtk_source_space_drawer_get_types_for_locations(space_drawer, space_locations);
-
-	// Determine the new status (enabled or disabled)
 	gboolean status = gtk_check_menu_item_get_active(item);
+	com.pref.gui.editor_cfg.shownewlines = status;
 
-	// Update the space types based on the status
-	if (status) {
-		space_types |= GTK_SOURCE_SPACE_TYPE_NEWLINE; // Enable newlines
-	} else {
-		space_types &= ~GTK_SOURCE_SPACE_TYPE_NEWLINE; // Disable newlines
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+
+		// Define where spaces should be displayed (e.g., everywhere)
+		GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
+
+		// Get the current space types for the specified locations
+		GtkSourceSpaceTypeFlags space_types = gtk_source_space_drawer_get_types_for_locations(tab->space_drawer, space_locations);
+
+		// Update the space types based on the status
+		if (status) {
+			space_types |= GTK_SOURCE_SPACE_TYPE_NEWLINE; // Enable newlines
+		} else {
+			space_types &= ~GTK_SOURCE_SPACE_TYPE_NEWLINE; // Disable newlines
+		}
+
+		// Apply the updated space types to the drawer
+		gtk_source_space_drawer_set_types_for_locations(tab->space_drawer, space_locations, space_types);
 	}
-
-	// Apply the updated space types to the drawer
-	gtk_source_space_drawer_set_types_for_locations(space_drawer, space_locations, space_types);
 
 	// Redraw the editor window to reflect the changes
 	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
-
-	// Update the configuration
-	com.pref.gui.editor_cfg.shownewlines = status;
 }
 
 void on_editor_minimap_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
-	gtk_widget_set_visible(GTK_WIDGET(map), status);
 	com.pref.gui.editor_cfg.minimap = status;
+
+	// Apply to all tabs
+	for (GList *l = tabs; l; l = l->next) {
+		TabInfo *tab = l->data;
+		gtk_widget_set_visible(GTK_WIDGET(tab->minimap), status);
+	}
 }
 
 void on_editor_useargs_toggled(GtkCheckMenuItem *item, gpointer user_data) {
