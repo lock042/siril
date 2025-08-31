@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-21 22:43+0200\n"
-"PO-Revision-Date: 2025-08-27 22:19+0000\n"
-"Last-Translator: Kei Mizuta <kmzt1013@gmail.com>\n"
+"PO-Revision-Date: 2025-08-30 14:46+0000\n"
+"Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
 "Language: ja_JP\n"
@@ -280,7 +280,8 @@ msgstr "CFAチャネルごと"
 msgid ""
 "Compute statistics on pixels that have the same filter as the corresponding "
 "channel, for CFA (non-demosaiced) images."
-msgstr ""
+msgstr "CFA（非デモザイク処理済み）画像において、対応するチャンネルと同じフィルターを"
+"持つピクセルの統計情報を計算します。"
 
 #. Connect the edited signal
 #: src/gui/uifiles/StatWindow.ui:148 src/gui/uifiles/astrometry_dialog.ui:492
@@ -328,7 +329,7 @@ msgstr ""
 msgid ""
 "The official AAVSO Observer Code for the observer which was previously "
 "assigned by the AAVSO."
-msgstr ""
+msgstr "AAVSOによって割当済のAAVSO公式観測者コード"
 
 #: src/gui/uifiles/aavso_dialog.ui:100
 msgid "Obscode: "
@@ -21564,7 +21565,7 @@ msgstr "座標なし"
 
 #: src/gui/astrometry_solver.c:690
 msgid "There are no keywords stored in the FITS header.\n"
-msgstr ""
+msgstr "FITSヘッダ内にキーワードがありません。\n"
 
 #: src/gui/astrometry_solver.c:691
 msgid "No metadata"
