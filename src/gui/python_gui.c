@@ -944,7 +944,6 @@ void load_file_into_tab(GFile *file, TabInfo *tab) {
 }
 
 void load_file(GFile *file) {
-	// Legacy function - now loads into current tab
 	if (current_tab) {
 		load_file_into_tab(file, current_tab);
 	}
@@ -1047,10 +1046,16 @@ void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer us
 		GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
 		char *basename = g_file_get_basename(file);
 
-		// Create new tab for the file
-		TabInfo *tab = create_new_tab(basename, NULL);
-		current_tab = tab;
-
+		// Create new tab for the file, unless in the "untitled" tab without unsaved changes
+		TabInfo *tab = NULL;
+		if (!current_tab ||
+				g_strcmp0(gtk_label_get_text(GTK_LABEL(current_tab->tab_label)), "untitled") != 0 ||
+				current_tab->modified) {
+			tab = create_new_tab(basename, NULL);
+			current_tab = tab;
+		} else {
+			tab = current_tab;
+		}
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		load_file_into_tab(file, tab);
 
@@ -1105,9 +1110,16 @@ void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer use
 
 	// Create new tab for recent file
 	char *basename = g_file_get_basename(file);
-	TabInfo *tab = create_new_tab(basename, NULL);
-	current_tab = tab;
-
+	// Create new tab for the file, unless in the "untitled" tab without unsaved changes
+	TabInfo *tab = NULL;
+	if (!current_tab ||
+			g_strcmp0(gtk_label_get_text(GTK_LABEL(current_tab->tab_label)), "untitled") != 0 ||
+			current_tab->modified) {
+		tab = create_new_tab(basename, NULL);
+		current_tab = tab;
+	} else {
+		tab = current_tab;
+	}
 	load_file_into_tab(file, tab);
 	update_ui_for_current_tab();
 
