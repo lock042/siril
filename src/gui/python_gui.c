@@ -32,7 +32,6 @@ static GtkButton *button_python_pad_close = NULL, *button_python_pad_clear = NUL
 static GtkLabel *language_label = NULL;
 static GtkLabel *find_label = NULL;
 static GtkNotebook *notebook = NULL;
-static GtkScrolledWindow *scrolled_window = NULL;
 static GtkComboBox *combo_language = NULL;
 static GtkSourceLanguageManager *language_manager = NULL;
 static GtkSourceLanguage *language = NULL;
@@ -514,12 +513,10 @@ static void setup_find_overlay(void) {
 
     gtk_widget_show(new_overlay);
 
-    /* Prefer wrapping the notebook (tabbed UI). Fall back to the old
-     * scrolled_window if present, otherwise use the first child of codeviewbox. */
+    /* Prefer wrapping the notebook (tabbed UI). Otherwise use the
+	 * first child of codeviewbox. */
     if (GTK_IS_NOTEBOOK(notebook)) {
         target = GTK_WIDGET(notebook);
-    } else if (GTK_IS_SCROLLED_WINDOW(scrolled_window)) {
-        target = GTK_WIDGET(scrolled_window);
     } else if (codeviewbox && GTK_IS_WIDGET(GTK_WIDGET(codeviewbox))) {
         children = gtk_container_get_children(GTK_CONTAINER(codeviewbox));
         if (children) {
@@ -854,8 +851,6 @@ void python_scratchpad_init_statics() {
 		button_python_pad_open = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_open"));
 		button_python_pad_save = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_save"));
 		button_python_pad_execute = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_execute"));
-		// GtkScrolledWindow
-		scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "python_scrolled_window"));
 		// GtkLabel
 		language_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "script_language_label"));
 		// Findbox
