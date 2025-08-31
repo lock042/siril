@@ -327,8 +327,8 @@
                             <property name="action-name">editor.execute</property>
                             <property name="label" translatable="yes">Run</property>
                             <property name="use-underline">True</property>
-                            <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                             <accelerator key="F5" signal="activate"/>
+                            <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                           </object>
                         </child>
                         <child>

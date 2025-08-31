@@ -506,38 +506,85 @@ void add_code_view(GtkBuilder *builder) {
 
 /** Code for the find feature ***/
 
-static void setup_find_overlay() {
-	// Create a new overlay
-	GtkWidget *new_overlay = gtk_overlay_new();
-	gtk_widget_show(new_overlay);
+static void setup_find_overlay(void) {
+    GtkWidget *new_overlay = gtk_overlay_new();
+    GtkWidget *target = NULL;
+    GtkWidget *parent = NULL;
+    GList *children = NULL;
 
-	// Replace scrolled window with overlay in its parent
-	GtkWidget *scrolled_parent = gtk_widget_get_parent(GTK_WIDGET(scrolled_window));
-	g_object_ref(scrolled_window);
-	gtk_container_remove(GTK_CONTAINER(scrolled_parent), GTK_WIDGET(scrolled_window));
-	gtk_container_add(GTK_CONTAINER(scrolled_parent), new_overlay);
+    gtk_widget_show(new_overlay);
 
-	// Add scrolled window to overlay
-	gtk_container_add(GTK_CONTAINER(new_overlay), GTK_WIDGET(scrolled_window));
-	gtk_widget_set_vexpand(GTK_WIDGET(scrolled_window), TRUE);
-	gtk_widget_set_hexpand(GTK_WIDGET(scrolled_window), TRUE);
-	g_object_unref(scrolled_window);
+    /* Prefer wrapping the notebook (tabbed UI). Fall back to the old
+     * scrolled_window if present, otherwise use the first child of codeviewbox. */
+    if (GTK_IS_NOTEBOOK(notebook)) {
+        target = GTK_WIDGET(notebook);
+    } else if (GTK_IS_SCROLLED_WINDOW(scrolled_window)) {
+        target = GTK_WIDGET(scrolled_window);
+    } else if (codeviewbox && GTK_IS_WIDGET(GTK_WIDGET(codeviewbox))) {
+        children = gtk_container_get_children(GTK_CONTAINER(codeviewbox));
+        if (children) {
+            target = GTK_WIDGET(children->data); /* first child */
+        }
+    }
 
-	// Move find_overlay to new overlay
-	g_object_ref(find_overlay);
-	gtk_overlay_add_overlay(GTK_OVERLAY(new_overlay), GTK_WIDGET(find_overlay));
+    if (!target) {
+        if (children) g_list_free(children);
+        g_warning("setup_find_overlay: no suitable widget found to attach overlay to");
+        return;
+    }
 
-	// Configure find_overlay position
-	gtk_widget_set_halign(GTK_WIDGET(find_overlay), GTK_ALIGN_END);
-	gtk_widget_set_valign(GTK_WIDGET(find_overlay), GTK_ALIGN_START);
-	gtk_widget_set_margin_top(GTK_WIDGET(find_overlay), 6);
-	gtk_widget_set_margin_end(GTK_WIDGET(find_overlay), 6);
+    parent = gtk_widget_get_parent(target);
 
-	gtk_revealer_set_transition_type(find_revealer, GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
-	gtk_revealer_set_reveal_child(find_revealer, FALSE);
+    if (parent) {
+        /* Keep a ref while we reparent the widget */
+        g_object_ref(target);
+        gtk_container_remove(GTK_CONTAINER(parent), target);
 
-	g_object_unref(find_overlay);
+        /* Put overlay into the parent's place */
+        gtk_container_add(GTK_CONTAINER(parent), new_overlay);
+
+        /* Make the original target the main child of the overlay */
+        gtk_container_add(GTK_CONTAINER(new_overlay), target);
+        gtk_widget_set_vexpand(target, TRUE);
+        gtk_widget_set_hexpand(target, TRUE);
+
+        /* release the ref we took earlier */
+        g_object_unref(target);
+    } else {
+        /* No parent: pack overlay into codeviewbox if possible */
+        if (codeviewbox && GTK_IS_BOX(codeviewbox)) {
+            gtk_container_add(GTK_CONTAINER(new_overlay), target);
+            gtk_box_pack_start(GTK_BOX(codeviewbox), new_overlay, TRUE, TRUE, 0);
+            gtk_widget_show_all(new_overlay);
+        } else {
+            if (children) g_list_free(children);
+            g_warning("setup_find_overlay: cannot attach overlay (no parent and cannot pack)");
+            return;
+        }
+    }
+
+    if (children) g_list_free(children);
+
+    /* Move the find overlay widget from the builder into our new overlay */
+    if (find_overlay) {
+        g_object_ref(find_overlay);
+        gtk_overlay_add_overlay(GTK_OVERLAY(new_overlay), find_overlay);
+
+        /* position the find overlay (same as original behaviour) */
+        gtk_widget_set_halign(GTK_WIDGET(find_overlay), GTK_ALIGN_END);
+        gtk_widget_set_valign(GTK_WIDGET(find_overlay), GTK_ALIGN_START);
+        gtk_widget_set_margin_top(GTK_WIDGET(find_overlay), 6);
+        gtk_widget_set_margin_end(GTK_WIDGET(find_overlay), 6);
+
+        gtk_revealer_set_transition_type(find_revealer, GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
+        gtk_revealer_set_reveal_child(find_revealer, FALSE);
+
+        g_object_unref(find_overlay);
+    } else {
+        g_warning("setup_find_overlay: find_overlay is NULL");
+    }
 }
+
 
 void toggle_find_overlay(gboolean show) {
 	gtk_revealer_set_reveal_child(find_revealer, show);
@@ -1262,6 +1309,7 @@ void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 }
 
 void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+//	update_current_tab(); // TODO: Shouldn't be needed if the switch-page handler works properly
 	if (!current_tab) return;
 
 	// Update search to work with current tab - disconnect any existing signals first
