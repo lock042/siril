@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-21 22:43+0200\n"
+"POT-Creation-Date: 2025-09-01 13:34+0200\n"
 "PO-Revision-Date: 2025-07-12 22:14+0000\n"
 "Last-Translator: GarthTB <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -481,7 +481,7 @@ msgstr "标注"
 #: src/gui/uifiles/settings_window.ui:1912
 #: src/gui/uifiles/settings_window.ui:4385
 #: src/gui/uifiles/settings_window.ui:4426
-#: src/gui/uifiles/settings_window.ui:6065 src/gui/uifiles/siril.ui:3748
+#: src/gui/uifiles/settings_window.ui:6097 src/gui/uifiles/siril.ui:3748
 msgid "Clear"
 msgstr "清除"
 
@@ -3946,7 +3946,7 @@ msgid "Interpolation: "
 msgstr "插值: "
 
 #: src/gui/uifiles/file_information_dialog.ui:34
-#: src/io/siril_pythoncommands.c:1005
+#: src/io/siril_pythoncommands.c:1036
 msgid "Information"
 msgstr "信息"
 
@@ -4724,7 +4724,7 @@ msgstr "添加滚动动作"
 msgid "Remove a scroll action"
 msgstr "删除滚动动作"
 
-#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5323
+#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5355
 #: src/gui/uifiles/siril.ui:6342
 msgid " "
 msgstr " "
@@ -5964,7 +5964,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
-#: src/gui/uifiles/settings_window.ui:5242
+#: src/gui/uifiles/settings_window.ui:5267
 msgid "Sel"
 msgstr "选中"
 
@@ -7723,7 +7723,7 @@ msgid "<b>Built-in Profiles</b>"
 msgstr "<b>内置色彩特性文件</b>"
 
 #: src/gui/uifiles/settings_window.ui:4943
-#: src/gui/uifiles/settings_window.ui:5359 src/gui/uifiles/siril.ui:10628
+#: src/gui/uifiles/settings_window.ui:5391 src/gui/uifiles/siril.ui:10628
 msgid "Scripts"
 msgstr "脚本"
 
@@ -7769,7 +7769,7 @@ msgstr ""
 "设置！</b></span>"
 
 #: src/gui/uifiles/settings_window.ui:5076
-#: src/gui/uifiles/settings_window.ui:5942
+#: src/gui/uifiles/settings_window.ui:5974
 msgid "Warning Dialogs"
 msgstr "警告对话框"
 
@@ -7816,7 +7816,13 @@ msgstr ""
 "立即更新脚本仓库。如果有任何待处理的更改，将显示提交消息，并要求您确认应用更"
 "改。"
 
-#: src/gui/uifiles/settings_window.ui:5178
+#: src/gui/uifiles/settings_window.ui:5179
+msgid ""
+"Type here to filter the list of scripts. The search matches any part of the "
+"script name. Filtering is case-insensitive and updates instantly as you type."
+msgstr ""
+
+#: src/gui/uifiles/settings_window.ui:5203
 #, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
@@ -7828,27 +7834,27 @@ msgstr ""
 "可用脚本列表。所选脚本将通过脚本菜单提供。双击某行可在脚本编辑器中打开相应脚"
 "本。（此操作用于对脚本进行局部修改并保存。）"
 
-#: src/gui/uifiles/settings_window.ui:5195
+#: src/gui/uifiles/settings_window.ui:5220
 msgid "Category"
 msgstr "类别"
 
-#: src/gui/uifiles/settings_window.ui:5211
+#: src/gui/uifiles/settings_window.ui:5236
 msgid "Script"
 msgstr "脚本"
 
-#: src/gui/uifiles/settings_window.ui:5227
+#: src/gui/uifiles/settings_window.ui:5252
 msgid "Type"
 msgstr "类型"
 
-#: src/gui/uifiles/settings_window.ui:5271
+#: src/gui/uifiles/settings_window.ui:5303
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Siril 脚本仓库</b>"
 
-#: src/gui/uifiles/settings_window.ui:5304
+#: src/gui/uifiles/settings_window.ui:5336
 msgid "Reset python venv"
 msgstr "重置python虚拟环境"
 
-#: src/gui/uifiles/settings_window.ui:5308
+#: src/gui/uifiles/settings_window.ui:5340
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -7862,20 +7868,20 @@ msgstr ""
 "\n"
 "通常不必这么做。这是在故障排除时的最后手段，以将venv恢复到原始状态。"
 
-#: src/gui/uifiles/settings_window.ui:5339
+#: src/gui/uifiles/settings_window.ui:5371
 msgid "Python Interface"
 msgstr "Python界面"
 
-#: src/gui/uifiles/settings_window.ui:5373
-#: src/gui/uifiles/settings_window.ui:5771
+#: src/gui/uifiles/settings_window.ui:5405
+#: src/gui/uifiles/settings_window.ui:5803
 msgid "Performances"
 msgstr "性能"
 
-#: src/gui/uifiles/settings_window.ui:5404
+#: src/gui/uifiles/settings_window.ui:5436
 msgid "Ratio of available"
 msgstr "可用比例"
 
-#: src/gui/uifiles/settings_window.ui:5408
+#: src/gui/uifiles/settings_window.ui:5440
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -7892,11 +7898,11 @@ msgstr ""
 "如果操作系统未设置磁盘虚拟内存文件，大于等于1的设定会造成Siril或是操作系统的"
 "崩溃。"
 
-#: src/gui/uifiles/settings_window.ui:5424
+#: src/gui/uifiles/settings_window.ui:5456
 msgid "Fixed amount (GB)"
 msgstr "固定值（GB）"
 
-#: src/gui/uifiles/settings_window.ui:5428
+#: src/gui/uifiles/settings_window.ui:5460
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -7907,7 +7913,7 @@ msgstr ""
 "程。\n"
 "设置大于系统可用内存的值可能会造成Siril或是操作系统的崩溃。"
 
-#: src/gui/uifiles/settings_window.ui:5444
+#: src/gui/uifiles/settings_window.ui:5476
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -7919,15 +7925,15 @@ msgstr ""
 "情况。设定较高的比例可以使得siril叠加运行得更快。但是当内存比例高于1时，磁盘"
 "上的虚拟内存文件将被使用，会造成极大的速度影响，因此不被推荐"
 
-#: src/gui/uifiles/settings_window.ui:5489
+#: src/gui/uifiles/settings_window.ui:5521
 msgid "<b>Memory management</b>"
 msgstr "<b>内存管理</b>"
 
-#: src/gui/uifiles/settings_window.ui:5522
+#: src/gui/uifiles/settings_window.ui:5554
 msgid "Default bit depth for HD AutoStretch"
 msgstr "高分辨率自动拉伸的缺省位深"
 
-#: src/gui/uifiles/settings_window.ui:5538
+#: src/gui/uifiles/settings_window.ui:5570
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -7941,23 +7947,23 @@ msgstr ""
 "平滑量化伪影。默认位深将从下一次查看器模式更改开始应用，现在可以使用右侧的按"
 "钮应用。"
 
-#: src/gui/uifiles/settings_window.ui:5555
+#: src/gui/uifiles/settings_window.ui:5587
 msgid "Apply bit depth"
 msgstr "应用位深"
 
-#: src/gui/uifiles/settings_window.ui:5559
+#: src/gui/uifiles/settings_window.ui:5591
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "立即设置选定的高分辨率自动拉伸位深"
 
-#: src/gui/uifiles/settings_window.ui:5582
+#: src/gui/uifiles/settings_window.ui:5614
 msgid "HD AutoStretch"
 msgstr "高分辨率自动拉伸"
 
-#: src/gui/uifiles/settings_window.ui:5613
+#: src/gui/uifiles/settings_window.ui:5645
 msgid "Multithreaded FFTW"
 msgstr "多线程FFTW"
 
-#: src/gui/uifiles/settings_window.ui:5617
+#: src/gui/uifiles/settings_window.ui:5649
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
@@ -7966,11 +7972,11 @@ msgstr ""
 "如果选中，FFTW将使用多个线程。这通常可以加速大图像的处理，但在FFTW首次对给定"
 "尺寸的图像进行操作时会增加初始规划时间。"
 
-#: src/gui/uifiles/settings_window.ui:5632 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5664 src/core/settings.c:382
 msgid "FFTW planning strategy"
 msgstr "FFTW规划策略"
 
-#: src/gui/uifiles/settings_window.ui:5643
+#: src/gui/uifiles/settings_window.ui:5675
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -7998,28 +8004,28 @@ msgstr ""
 "该设置应用于反卷积运算，而不是傅里叶变换函数。后者始终采用“估算”策略，因为其"
 "他策略产生的计算开销对单次傅里叶变换而言得不偿失。"
 
-#: src/gui/uifiles/settings_window.ui:5648 src/gui/uifiles/siril.ui:5058
+#: src/gui/uifiles/settings_window.ui:5680 src/gui/uifiles/siril.ui:5058
 #: src/gui/uifiles/siril.ui:6928
 msgid "Estimate"
 msgstr "估算"
 
-#: src/gui/uifiles/settings_window.ui:5649
+#: src/gui/uifiles/settings_window.ui:5681
 msgid "Measure"
 msgstr "度量"
 
-#: src/gui/uifiles/settings_window.ui:5650
+#: src/gui/uifiles/settings_window.ui:5682
 msgid "Patient"
 msgstr "耐心"
 
-#: src/gui/uifiles/settings_window.ui:5651
+#: src/gui/uifiles/settings_window.ui:5683
 msgid "Exhaustive"
 msgstr "穷举"
 
-#: src/gui/uifiles/settings_window.ui:5664
+#: src/gui/uifiles/settings_window.ui:5696
 msgid "FFTW planning time limit (seconds)"
 msgstr "FFTW 规划时间限制（秒）"
 
-#: src/gui/uifiles/settings_window.ui:5675
+#: src/gui/uifiles/settings_window.ui:5707
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -8030,11 +8036,11 @@ msgstr ""
 "中达到时间限制，则可能会略微超过此限制。如果设置为 0，将始终完成“估算”的最低"
 "计划级别。"
 
-#: src/gui/uifiles/settings_window.ui:5690
+#: src/gui/uifiles/settings_window.ui:5722
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr "用于 FFT 卷积的最小 PSF 尺寸"
 
-#: src/gui/uifiles/settings_window.ui:5701
+#: src/gui/uifiles/settings_window.ui:5733
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -8049,11 +8055,11 @@ msgstr ""
 "对于较小的内核求和更快。确切的交叉点将取决于您的硬件，因此是可配置的。此参数"
 "设置将使用傅里叶变换的最小内核尺寸。"
 
-#: src/gui/uifiles/settings_window.ui:5717
+#: src/gui/uifiles/settings_window.ui:5749
 msgid "Maximum slice size for sliced image operations"
 msgstr "图像分区操作时的最大分区尺寸"
 
-#: src/gui/uifiles/settings_window.ui:5728
+#: src/gui/uifiles/settings_window.ui:5760
 msgid ""
 "Sets the maximum slice size for image operations that can use sliced "
 "processing. The primary purpose of this is to constrain typical slices to a "
@@ -8064,72 +8070,72 @@ msgstr ""
 "限的尺寸范围内，以便更有效地利用有限范围内的FFTW3预优化方案。保持默认设置始终"
 "是安全的选择。"
 
-#: src/gui/uifiles/settings_window.ui:5731
+#: src/gui/uifiles/settings_window.ui:5763
 msgid "Unlimited"
 msgstr "无限制"
 
-#: src/gui/uifiles/settings_window.ui:5757
+#: src/gui/uifiles/settings_window.ui:5789
 msgid "<b>FFTW Options</b>"
 msgstr "<b>FFTW 选项</b>"
 
-#: src/gui/uifiles/settings_window.ui:5785
-#: src/gui/uifiles/settings_window.ui:6228
+#: src/gui/uifiles/settings_window.ui:5817
+#: src/gui/uifiles/settings_window.ui:6260
 msgid "Miscellaneous"
 msgstr "杂项"
 
-#: src/gui/uifiles/settings_window.ui:5813
+#: src/gui/uifiles/settings_window.ui:5845
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
 msgstr "选择一个已存在的目录，该目录须要具有写权限和足够的空间。"
 
-#: src/gui/uifiles/settings_window.ui:5816
+#: src/gui/uifiles/settings_window.ui:5848
 msgid "Select Swap Directory"
 msgstr "选择Swap目录"
 
-#: src/gui/uifiles/settings_window.ui:5829
+#: src/gui/uifiles/settings_window.ui:5861
 msgid "available mem"
 msgstr "可用内存"
 
-#: src/gui/uifiles/settings_window.ui:5841
+#: src/gui/uifiles/settings_window.ui:5873
 msgid "Restore to Default"
 msgstr "恢复为缺省值"
 
-#: src/gui/uifiles/settings_window.ui:5845
+#: src/gui/uifiles/settings_window.ui:5877
 msgid "Restore the default swap storage directory"
 msgstr "恢复为缺省的swap存储目录"
 
-#: src/gui/uifiles/settings_window.ui:5864
+#: src/gui/uifiles/settings_window.ui:5896
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Swap存储目录</b>"
 
-#: src/gui/uifiles/settings_window.ui:5891
+#: src/gui/uifiles/settings_window.ui:5923
 msgid "Don't ask before quitting"
 msgstr "退出前不询问"
 
-#: src/gui/uifiles/settings_window.ui:5906
+#: src/gui/uifiles/settings_window.ui:5938
 msgid "Don't ask before saving when display is not linear"
 msgstr "当显示不是线性时，保存前不要询问"
 
-#: src/gui/uifiles/settings_window.ui:5921
+#: src/gui/uifiles/settings_window.ui:5953
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr "不要在相关对话框中解释ROI处理"
 
-#: src/gui/uifiles/settings_window.ui:5925
+#: src/gui/uifiles/settings_window.ui:5957
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
 msgstr "打开适当的对话框时禁止解释有关 ROI 处理信息对话框"
 
-#: src/gui/uifiles/settings_window.ui:5964
+#: src/gui/uifiles/settings_window.ui:5996
 msgid "Play introduction"
 msgstr "显示简介"
 
-#: src/gui/uifiles/settings_window.ui:5978
+#: src/gui/uifiles/settings_window.ui:6010
 msgid "Introduction Tips"
 msgstr "简介"
 
-#: src/gui/uifiles/settings_window.ui:6010
+#: src/gui/uifiles/settings_window.ui:6042
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -8146,15 +8152,15 @@ msgstr ""
 "果使用 Windows，则使用 <b>.exe</b>），并且它们必须位于同一目录中。您可以选择"
 "任一可执行文件：Siril 将自动查找另一个可执行文件（如果存在）。"
 
-#: src/gui/uifiles/settings_window.ui:6018
+#: src/gui/uifiles/settings_window.ui:6050
 msgid "Select StarNet executable"
 msgstr "选择 StarNet 可执行文件"
 
-#: src/gui/uifiles/settings_window.ui:6032
+#: src/gui/uifiles/settings_window.ui:6064
 msgid "Must point to a valid StarNet executable."
 msgstr "必须指向有效的 StarNet 可执行文件。"
 
-#: src/gui/uifiles/settings_window.ui:6046
+#: src/gui/uifiles/settings_window.ui:6078
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
@@ -8163,11 +8169,11 @@ msgstr ""
 "选择 StarNet 权重文件。这<b>仅</b>适用于新的 Torch-based StarNet 版本。它是可"
 "选的：如果留空，则权重文件<b>必须</b>与 StarNet 可执行文件位于同一目录中。"
 
-#: src/gui/uifiles/settings_window.ui:6052
+#: src/gui/uifiles/settings_window.ui:6084
 msgid "Select StarNet weights file"
 msgstr "选择 StarNet 权重文件"
 
-#: src/gui/uifiles/settings_window.ui:6069
+#: src/gui/uifiles/settings_window.ui:6101
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
@@ -8175,7 +8181,7 @@ msgstr ""
 "清除神经网络权重位置。清除后，权重文件<b>必须</b>与 StarNet 可执行文件位于同"
 "一目录中。"
 
-#: src/gui/uifiles/settings_window.ui:6084
+#: src/gui/uifiles/settings_window.ui:6116
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
@@ -8183,27 +8189,27 @@ msgstr ""
 "可以指向 StarNet 神经网络权重文件。\n"
 "仅用于 Torch-based StarNet 版本。"
 
-#: src/gui/uifiles/settings_window.ui:6119
+#: src/gui/uifiles/settings_window.ui:6151
 msgid "Must point to a valid GraXpert executable."
 msgstr "必须指向有效的 GraXpert 可执行文件。"
 
-#: src/gui/uifiles/settings_window.ui:6138
+#: src/gui/uifiles/settings_window.ui:6170
 msgid "Software Location"
 msgstr "软件位置"
 
-#: src/gui/uifiles/settings_window.ui:6161
+#: src/gui/uifiles/settings_window.ui:6193
 msgid "Copyright when saving image as TIFF"
 msgstr "保存TIFF图像时嵌入版权信息"
 
-#: src/gui/uifiles/settings_window.ui:6173
+#: src/gui/uifiles/settings_window.ui:6205
 msgid "Copyright TIFF"
 msgstr "TIFF版权信息"
 
-#: src/gui/uifiles/settings_window.ui:6195
+#: src/gui/uifiles/settings_window.ui:6227
 msgid "Check update at startup"
 msgstr "启动时检查更新"
 
-#: src/gui/uifiles/settings_window.ui:6211
+#: src/gui/uifiles/settings_window.ui:6243
 msgid "Update"
 msgstr "更新"
 
@@ -13179,11 +13185,11 @@ msgid ""
 "and limit magnitude %.2f\n"
 msgstr "从 PCC 的本地星表中%s获取恒星%s，半径为%.2f度，极限星等为%.2f\n"
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:991
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
 msgid "SPCC"
 msgstr "SPCC"
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:991
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
 msgid "PCC"
 msgstr "PCC"
 
@@ -13198,20 +13204,20 @@ msgid ""
 "degrees and limit magnitude %.2f\n"
 msgstr "从 PCC 的在线星表 %s 获取恒星，半径为 %.2f 度，极限星等为 %.2f\n"
 
-#: src/algos/photometric_cc.c:992
+#: src/algos/photometric_cc.c:996
 #, c-format
 msgid "Photometric CC (algorithm: %s)"
 msgstr "测光发色彩校准（算法：%s）"
 
-#: src/algos/photometric_cc.c:999
+#: src/algos/photometric_cc.c:1003
 msgid "Catalog error, no stars identified!\n"
 msgstr "星表错误，无星点可识别！\n"
 
-#: src/algos/photometric_cc.c:1008
+#: src/algos/photometric_cc.c:1012
 msgid "Spectrophotometric Color Calibration succeeded.\n"
 msgstr "分光光度色彩校准成功。\n"
 
-#: src/algos/photometric_cc.c:1010
+#: src/algos/photometric_cc.c:1014
 msgid "Photometric Color Calibration succeeded.\n"
 msgstr "测光法色彩校准成功。\n"
 
@@ -13796,7 +13802,7 @@ msgstr "必须先期载入至少两个图层！\n"
 #: src/filters/wavelets.c:267 src/filters/wavelets.c:328 src/gui/colors.c:571
 #: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:1177
 #: src/gui/script_menu.c:583 src/gui/utils.c:486
-#: src/io/siril_pythoncommands.c:999
+#: src/io/siril_pythoncommands.c:1030
 msgid "Warning"
 msgstr "警告"
 
@@ -13890,8 +13896,8 @@ msgstr "已成功重新加载所有图像。\n"
 #: src/filters/fft.c:610 src/gui/PSF_list.c:303 src/gui/PSF_list.c:308
 #: src/gui/PSF_list.c:313 src/gui/colors.c:461 src/gui/compstars.c:224
 #: src/gui/compstars.c:293 src/gui/compstars.c:301 src/gui/compstars.c:308
-#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:204
-#: src/gui/git_gui.c:339 src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
+#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:266
+#: src/gui/git_gui.c:401 src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
 #: src/gui/icc_profile.c:543 src/gui/merge_cfa.c:216 src/gui/merge_cfa.c:248
 #: src/gui/merge_cfa.c:259 src/gui/merge_cfa.c:270 src/gui/merge_cfa.c:281
 #: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
@@ -13899,7 +13905,7 @@ msgstr "已成功重新加载所有图像。\n"
 #: src/gui/nina_light_curve.c:279 src/gui/open_dialog.c:414
 #: src/gui/preferences.c:556 src/gui/preferences.c:575
 #: src/gui/preferences.c:609 src/gui/save_dialog.c:466
-#: src/gui/script_menu.c:279 src/io/siril_pythoncommands.c:993
+#: src/gui/script_menu.c:279 src/io/siril_pythoncommands.c:1024
 msgid "Error"
 msgstr "错误"
 
@@ -20874,7 +20880,7 @@ msgid ""
 "Darkmap cosmetic correction is only supported with single channel images\n"
 msgstr "基于暗场帧的坏点修正只支持单通道图像\n"
 
-#: src/core/preprocess.c:502 src/gui/git_gui.c:91
+#: src/core/preprocess.c:502 src/gui/git_gui.c:141
 msgid "Preprocessing"
 msgstr "预处理"
 
@@ -22247,69 +22253,69 @@ msgstr "恢复：“%s”"
 msgid "Nothing to redo"
 msgstr "没有可恢复的"
 
-#: src/core/utils.c:630
+#: src/core/utils.c:637
 msgid "red"
 msgstr "红色"
 
-#: src/core/utils.c:632
+#: src/core/utils.c:639
 msgid "green"
 msgstr "绿色"
 
-#: src/core/utils.c:634
+#: src/core/utils.c:641
 msgid "blue"
 msgstr "蓝色"
 
-#: src/core/utils.c:799
+#: src/core/utils.c:806
 #, fuzzy, c-format
 msgid "Failed to create directory '%s': %s\n"
 msgstr "无法创建配置目录 %s\n"
 
-#: src/core/utils.c:1174
+#: src/core/utils.c:1181
 msgid "Unknown error\n"
 msgstr "未知错误\n"
 
-#: src/core/utils.c:1177
+#: src/core/utils.c:1184
 #, c-format
 msgid "'%s' No such file or directory\n"
 msgstr "‘%s’文件或目录不存在\n"
 
-#: src/core/utils.c:1180
+#: src/core/utils.c:1187
 #, c-format
 msgid "'%s' is not a directory\n"
 msgstr "‘%s’不是一个目录\n"
 
-#: src/core/utils.c:1183
+#: src/core/utils.c:1190
 #, c-format
 msgid "You don't have permission to write in this directory: '%s'\n"
 msgstr "当前用户对目录 ‘%s’ 没有写权限\n"
 
-#: src/core/utils.c:1205
+#: src/core/utils.c:1212
 #, c-format
 msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr "设置当前工作目录 (CWD) 为 '%s'\n"
 
-#: src/core/utils.c:1209
+#: src/core/utils.c:1216
 #, c-format
 msgid "Could not change directory to '%s'(error code %d: %s).\n"
 msgstr "无法将目录更改为'%s'（错误代码%d: %s）。\n"
 
-#: src/core/utils.c:1235
+#: src/core/utils.c:1242
 msgid "Filename is too long, not expanding it\n"
 msgstr "文件名太长了\n"
 
-#: src/core/utils.c:1345 src/core/utils.c:1349 src/io/image_format_fits.c:2853
+#: src/core/utils.c:1352 src/core/utils.c:1356 src/io/image_format_fits.c:2853
 #: src/io/image_format_fits.c:2858 src/io/ser.c:1425 src/io/ser.c:1430
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "像素"
 
-#: src/core/utils.c:1346 src/io/image_format_fits.c:2854
+#: src/core/utils.c:1353 src/io/image_format_fits.c:2854
 #: src/io/image_format_fits.c:2859 src/io/ser.c:1426 src/io/ser.c:1431
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "通道"
 
-#: src/core/utils.c:1742 src/core/utils.c:1745
+#: src/core/utils.c:1749 src/core/utils.c:1752
 msgid "(invalid UTF-8 string)"
 msgstr "（UTF-8 字符串无效）"
 
@@ -23390,7 +23396,7 @@ msgid "Select task to stop"
 msgstr "选择要中止的任务"
 
 #: src/gui/callbacks.c:2366 src/gui/dialogs.c:253 src/gui/dialogs.c:262
-#: src/gui/dialogs.c:268 src/gui/git_gui.c:253 src/gui/keywords_tree.c:508
+#: src/gui/dialogs.c:268 src/gui/git_gui.c:315 src/gui/keywords_tree.c:508
 #: src/gui/python_gui.c:768 src/gui/python_gui.c:845
 #: src/io/image_formats_libraries.c:2497 src/pixelMath/pixel_math_runner.c:1260
 msgid "_Cancel"
@@ -23490,7 +23496,7 @@ msgstr "创建参考星列表"
 msgid "_Close"
 msgstr "_关闭"
 
-#: src/gui/compstars.c:51 src/gui/git_gui.c:254 src/gui/nina_light_curve.c:50
+#: src/gui/compstars.c:51 src/gui/git_gui.c:316 src/gui/nina_light_curve.c:50
 #: src/io/image_formats_libraries.c:2497
 msgid "_OK"
 msgstr "_OK"
@@ -24037,45 +24043,45 @@ msgstr "图像载入失败"
 msgid "Error: image dimensions do not match"
 msgstr "错误：图像尺寸不匹配"
 
-#: src/gui/git_gui.c:93
+#: src/gui/git_gui.c:143
 msgid "Processing"
 msgstr "处理"
 
-#: src/gui/git_gui.c:95
+#: src/gui/git_gui.c:145
 msgid "Utility"
 msgstr "工具"
 
-#: src/gui/git_gui.c:97
+#: src/gui/git_gui.c:147
 msgid "Core"
 msgstr "核心"
 
-#: src/gui/git_gui.c:100
+#: src/gui/git_gui.c:150
 msgid "Other"
 msgstr "其他"
 
-#: src/gui/git_gui.c:106 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
+#: src/gui/git_gui.c:156 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
 msgid "Siril Script File"
 msgstr "Siril 脚本文件"
 
-#: src/gui/git_gui.c:108
+#: src/gui/git_gui.c:158
 msgid "Python script"
 msgstr "Python 脚本"
 
-#: src/gui/git_gui.c:176
+#: src/gui/git_gui.c:238
 msgid "(No commit message found for this revision)"
 msgstr ""
 
-#: src/gui/git_gui.c:202 src/gui/script_menu.c:277
+#: src/gui/git_gui.c:264 src/gui/script_menu.c:277
 #, c-format
 msgid "Error loading script contents: %s\n"
 msgstr "加载脚本内容时出错：%s\n"
 
-#: src/gui/git_gui.c:250
+#: src/gui/git_gui.c:312
 #, fuzzy
 msgid "Select Revision"
 msgstr "选择"
 
-#: src/gui/git_gui.c:257
+#: src/gui/git_gui.c:319
 msgid ""
 "Leave at 0 to open the current version of the script. If you have a problem "
 "with a script update you can use this to go back to earlier revisions. Start "
@@ -24086,15 +24092,15 @@ msgid ""
 "folders for use until the upstream script is fixed."
 msgstr ""
 
-#: src/gui/git_gui.c:267
+#: src/gui/git_gui.c:329
 msgid "Revisions to go back (leave at 0 to get current revision):"
 msgstr ""
 
-#: src/gui/git_gui.c:302
+#: src/gui/git_gui.c:364
 msgid "Loading commit message..."
 msgstr "载入提交信息..."
 
-#: src/gui/git_gui.c:336
+#: src/gui/git_gui.c:398
 #, fuzzy, c-format
 msgid "Error loading script contents from %d revisions back: %s\n"
 msgstr "加载脚本内容时出错：%s\n"
@@ -24875,12 +24881,12 @@ msgstr "圆环的外半径（像素）："
 
 #: src/gui/nina_light_curve.c:221 src/gui/sequence_list.c:150
 #: src/gui/starnetgui.c:220 src/io/path_parse.c:74
-#: src/io/siril_pythoncommands.c:1149 src/io/siril_pythoncommands.c:1373
-#: src/io/siril_pythoncommands.c:1418 src/io/siril_pythoncommands.c:1452
-#: src/io/siril_pythoncommands.c:1499 src/io/siril_pythoncommands.c:1531
-#: src/io/siril_pythoncommands.c:1591 src/io/siril_pythoncommands.c:1676
-#: src/io/siril_pythoncommands.c:2163 src/io/siril_pythoncommands.c:2196
-#: src/io/siril_pythoncommands.c:2359
+#: src/io/siril_pythoncommands.c:1180 src/io/siril_pythoncommands.c:1404
+#: src/io/siril_pythoncommands.c:1449 src/io/siril_pythoncommands.c:1483
+#: src/io/siril_pythoncommands.c:1530 src/io/siril_pythoncommands.c:1562
+#: src/io/siril_pythoncommands.c:1622 src/io/siril_pythoncommands.c:1707
+#: src/io/siril_pythoncommands.c:2194 src/io/siril_pythoncommands.c:2227
+#: src/io/siril_pythoncommands.c:2390
 msgid "No sequence loaded"
 msgstr "无序列载入"
 
@@ -28449,337 +28455,375 @@ msgstr "本地 SPCC 数据库仓库是最新的！\n"
 msgid "Error opening scripts repository\n"
 msgstr "打开脚本仓库出错\n"
 
-#: src/io/siril_pythoncommands.c:461
+#: src/io/siril_pythoncommands.c:492
 msgid "Unknown config type"
 msgstr "未知配置类型"
 
-#: src/io/siril_pythoncommands.c:612
+#: src/io/siril_pythoncommands.c:643
 msgid "Received incomplete command header\n"
 msgstr "收到的命令头不完整\n"
 
-#: src/io/siril_pythoncommands.c:621
+#: src/io/siril_pythoncommands.c:652
 #, c-format
 msgid "Received incomplete command payload: length = %u, expected %u\n"
 msgstr "收到不完整的命令数据载荷：实际长度 = %u，预期长度应为 %u\n"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:651 src/io/siril_pythoncommands.c:685
+#: src/io/siril_pythoncommands.c:682 src/io/siril_pythoncommands.c:716
 msgid "Failed to retrieve image dimensions - no image loaded"
 msgstr "无法获取图像尺寸 - 未加载图像"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:708
+#: src/io/siril_pythoncommands.c:739
 msgid "Failed to retrieve current vport - no image loaded"
 msgstr "检索当前vport失败 - 未加载图像"
 
-#: src/io/siril_pythoncommands.c:725
+#: src/io/siril_pythoncommands.c:756
 msgid "Failed to set selection - selection exceeds image bounds"
 msgstr "无法设置选区 - 超出图像边界"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:737 src/io/siril_pythoncommands.c:2044
-#: src/io/siril_pythoncommands.c:2082
+#: src/io/siril_pythoncommands.c:768 src/io/siril_pythoncommands.c:2075
+#: src/io/siril_pythoncommands.c:2113
 msgid "Failed to set selection - no image loaded"
 msgstr "无法设置选区 - 未载入图像"
 
-#: src/io/siril_pythoncommands.c:752
+#: src/io/siril_pythoncommands.c:783
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA\n"
 msgstr "GET_PIXELDATA收到了意外的载荷长度：%u\n"
 
-#: src/io/siril_pythoncommands.c:780 src/io/siril_pythoncommands.c:877
+#: src/io/siril_pythoncommands.c:811 src/io/siril_pythoncommands.c:908
 msgid "Invalid selection"
 msgstr "无效选区"
 
-#: src/io/siril_pythoncommands.c:785 src/io/siril_pythoncommands.c:868
-#: src/io/siril_pythoncommands.c:1275
+#: src/io/siril_pythoncommands.c:816 src/io/siril_pythoncommands.c:899
+#: src/io/siril_pythoncommands.c:1306
 msgid "Invalid channel"
 msgstr "无效通道"
 
-#: src/io/siril_pythoncommands.c:795
+#: src/io/siril_pythoncommands.c:826
 msgid "Failed to find a star"
 msgstr "无法找到一个星点"
 
-#: src/io/siril_pythoncommands.c:814 src/io/siril_pythoncommands.c:888
-#: src/io/siril_pythoncommands.c:1298 src/io/siril_pythoncommands.c:1362
-#: src/io/siril_pythoncommands.c:1488 src/io/siril_pythoncommands.c:1520
-#: src/io/siril_pythoncommands.c:1633 src/io/siril_pythoncommands.c:1641
-#: src/io/siril_pythoncommands.c:1651 src/io/siril_pythoncommands.c:1688
-#: src/io/siril_pythoncommands.c:1761 src/io/siril_pythoncommands.c:1830
-#: src/io/siril_pythoncommands.c:1861 src/io/siril_pythoncommands.c:2224
+#: src/io/siril_pythoncommands.c:845 src/io/siril_pythoncommands.c:919
+#: src/io/siril_pythoncommands.c:1329 src/io/siril_pythoncommands.c:1393
+#: src/io/siril_pythoncommands.c:1519 src/io/siril_pythoncommands.c:1551
+#: src/io/siril_pythoncommands.c:1664 src/io/siril_pythoncommands.c:1672
+#: src/io/siril_pythoncommands.c:1682 src/io/siril_pythoncommands.c:1719
+#: src/io/siril_pythoncommands.c:1792 src/io/siril_pythoncommands.c:1861
+#: src/io/siril_pythoncommands.c:1892 src/io/siril_pythoncommands.c:2255
 msgid "Memory allocation error"
 msgstr "内存分配错误"
 
-#: src/io/siril_pythoncommands.c:838
+#: src/io/siril_pythoncommands.c:869
 msgid "Invalid region: selection breaches image dimensions"
 msgstr "无效区域：选区与图像的维度不同"
 
-#: src/io/siril_pythoncommands.c:861 src/io/siril_pythoncommands.c:1268
-#: src/io/siril_pythoncommands.c:1349 src/io/siril_pythoncommands.c:1849
-#: src/io/siril_pythoncommands.c:1872 src/io/siril_pythoncommands.c:1893
-#: src/io/siril_pythoncommands.c:1914 src/io/siril_pythoncommands.c:1947
+#: src/io/siril_pythoncommands.c:892 src/io/siril_pythoncommands.c:1299
+#: src/io/siril_pythoncommands.c:1380 src/io/siril_pythoncommands.c:1880
+#: src/io/siril_pythoncommands.c:1903 src/io/siril_pythoncommands.c:1924
+#: src/io/siril_pythoncommands.c:1945 src/io/siril_pythoncommands.c:1978
 msgid "No image loaded"
 msgstr "未载入图像"
 
-#: src/io/siril_pythoncommands.c:911
+#: src/io/siril_pythoncommands.c:942
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA_REGION\n"
 msgstr "GET_PIXELDATA_REGION收到了意外的载荷长度：%u\n"
 
-#: src/io/siril_pythoncommands.c:923
+#: src/io/siril_pythoncommands.c:954
 msgid "Invalid FINISHED_WITH_SHM payload"
 msgstr "FINISHED_WITH_SHM载荷无效"
 
-#: src/io/siril_pythoncommands.c:1009
+#: src/io/siril_pythoncommands.c:1040
 msgid "Unknown dialog type"
 msgstr "未知星表类型"
 
-#: src/io/siril_pythoncommands.c:1048
+#: src/io/siril_pythoncommands.c:1079
 msgid "Undo not supported in headless mode"
 msgstr "headless 模式下不支持撤销"
 
 #. Handle error
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1061 src/io/siril_pythoncommands.c:1130
+#: src/io/siril_pythoncommands.c:1092 src/io/siril_pythoncommands.c:1161
 msgid "Image not loaded"
 msgstr "图像未载入"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1074
+#: src/io/siril_pythoncommands.c:1105
 msgid "Working directory not set"
 msgstr "链接：工作目录未设置"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1088
+#: src/io/siril_pythoncommands.c:1119
 msgid "Error: user config directory not set"
 msgstr "错误：用户配置目录未设置"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1103
+#: src/io/siril_pythoncommands.c:1134
 msgid "Error: user data directory not set"
 msgstr "错误：用户数据目录未设置"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1117
+#: src/io/siril_pythoncommands.c:1148
 msgid "Error: system data directory not set"
 msgstr "错误：系统数据目录未设置"
 
-#: src/io/siril_pythoncommands.c:1139 src/io/siril_pythoncommands.c:1161
-#: src/io/siril_pythoncommands.c:1217 src/io/siril_pythoncommands.c:1230
-#: src/io/siril_pythoncommands.c:1257 src/io/siril_pythoncommands.c:1310
-#: src/io/siril_pythoncommands.c:2236 src/io/siril_pythoncommands.c:2249
-#: src/io/siril_pythoncommands.c:2266 src/io/siril_pythoncommands.c:2272
-#: src/io/siril_pythoncommands.c:2305
+#: src/io/siril_pythoncommands.c:1170 src/io/siril_pythoncommands.c:1192
+#: src/io/siril_pythoncommands.c:1248 src/io/siril_pythoncommands.c:1261
+#: src/io/siril_pythoncommands.c:1288 src/io/siril_pythoncommands.c:1341
+#: src/io/siril_pythoncommands.c:2267 src/io/siril_pythoncommands.c:2280
+#: src/io/siril_pythoncommands.c:2297 src/io/siril_pythoncommands.c:2303
+#: src/io/siril_pythoncommands.c:2336
 msgid "Invalid payload length"
 msgstr "无效载荷长度"
 
-#: src/io/siril_pythoncommands.c:1155
+#: src/io/siril_pythoncommands.c:1186
 #, fuzzy
 msgid "Invalid sequence type"
 msgstr "内核类型无效"
 
-#: src/io/siril_pythoncommands.c:1169
+#: src/io/siril_pythoncommands.c:1200
 #, fuzzy
 msgid "Failed to load sequence frame: index out of range"
 msgstr "无法载入序列帧"
 
-#: src/io/siril_pythoncommands.c:1177
+#: src/io/siril_pythoncommands.c:1208
 msgid "Failed to load sequence frame"
 msgstr "无法载入序列帧"
 
-#: src/io/siril_pythoncommands.c:1206
+#: src/io/siril_pythoncommands.c:1237
 #, c-format
 msgid "Error writing sequence frame %i from Python\n"
 msgstr "利用Python写入序列的第%i帧时出错\n"
 
-#: src/io/siril_pythoncommands.c:1285
+#: src/io/siril_pythoncommands.c:1316
 msgid "No stats"
 msgstr "无数据"
 
-#: src/io/siril_pythoncommands.c:1383 src/io/siril_pythoncommands.c:1427
-#: src/io/siril_pythoncommands.c:1462 src/io/siril_pythoncommands.c:2205
+#: src/io/siril_pythoncommands.c:1414 src/io/siril_pythoncommands.c:1458
+#: src/io/siril_pythoncommands.c:1493 src/io/siril_pythoncommands.c:2236
 msgid "Incorrect command arguments"
 msgstr "不正确的命令参数"
 
-#: src/io/siril_pythoncommands.c:1393 src/io/siril_pythoncommands.c:1732
-#: src/io/siril_pythoncommands.c:1803
+#: src/io/siril_pythoncommands.c:1424 src/io/siril_pythoncommands.c:1763
+#: src/io/siril_pythoncommands.c:1834 src/io/siril_pythoncommands.c:2680
 msgid "Memory allocation failed"
 msgstr "内存分配失败"
 
-#: src/io/siril_pythoncommands.c:1398 src/io/siril_pythoncommands.c:1407
+#: src/io/siril_pythoncommands.c:1429 src/io/siril_pythoncommands.c:1438
 msgid "No regdata available"
 msgstr "没有可用的对齐数据"
 
-#: src/io/siril_pythoncommands.c:1443
+#: src/io/siril_pythoncommands.c:1474
 msgid "Error building frame filename"
 msgstr "创建当前帧的文件名时出错"
 
-#: src/io/siril_pythoncommands.c:1474
+#: src/io/siril_pythoncommands.c:1505
 msgid "No stats for this sequence"
 msgstr "此序列没有统计数据"
 
-#: src/io/siril_pythoncommands.c:1482
+#: src/io/siril_pythoncommands.c:1513
 msgid "No stats for this channel for this frame"
 msgstr "此帧的此通道无统计数据"
 
-#: src/io/siril_pythoncommands.c:1508 src/io/siril_pythoncommands.c:1606
-#: src/io/siril_pythoncommands.c:2368
+#: src/io/siril_pythoncommands.c:1539 src/io/siril_pythoncommands.c:1637
+#: src/io/siril_pythoncommands.c:2399 src/io/siril_pythoncommands.c:2465
+#: src/io/siril_pythoncommands.c:2574
 msgid "Incorrect command argument"
 msgstr "命令参数错误"
 
-#: src/io/siril_pythoncommands.c:1537
+#: src/io/siril_pythoncommands.c:1568
 msgid "Incorrect payload"
 msgstr "错误的载荷"
 
-#: src/io/siril_pythoncommands.c:1557
+#: src/io/siril_pythoncommands.c:1588
 msgid "Selection cropped to frame boundaries\n"
 msgstr "已将帧边界裁切至选区\n"
 
-#: src/io/siril_pythoncommands.c:1563
+#: src/io/siril_pythoncommands.c:1594
 msgid "Failed to read sequence frame"
 msgstr "无法读取序列帧"
 
-#: src/io/siril_pythoncommands.c:1576
+#: src/io/siril_pythoncommands.c:1607
 msgid "Invalid dimensions"
 msgstr "无效尺寸"
 
-#: src/io/siril_pythoncommands.c:1613 src/io/siril_pythoncommands.c:2376
+#: src/io/siril_pythoncommands.c:1644 src/io/siril_pythoncommands.c:2407
 msgid "Failed to read frame metadata"
 msgstr "无法读取帧的元数据"
 
-#: src/io/siril_pythoncommands.c:1722
+#: src/io/siril_pythoncommands.c:1753
 msgid "No stars in image"
 msgstr "图中没有星"
 
-#: src/io/siril_pythoncommands.c:1740
+#: src/io/siril_pythoncommands.c:1771
 msgid "Stars array was cleared mid-process"
 msgstr "星点数组在处理中被清空"
 
-#: src/io/siril_pythoncommands.c:1748
+#: src/io/siril_pythoncommands.c:1779
 msgid "Unexpected null star entry"
 msgstr "意外的空星点输入"
 
-#: src/io/siril_pythoncommands.c:1793
+#: src/io/siril_pythoncommands.c:1824
 msgid "No background samples list available"
 msgstr "没有可用的背景样本列表"
 
-#: src/io/siril_pythoncommands.c:1812
+#: src/io/siril_pythoncommands.c:1843
 msgid "Mismatch in samples count"
 msgstr "样本数量不匹配"
 
-#: src/io/siril_pythoncommands.c:1820
+#: src/io/siril_pythoncommands.c:1851
 msgid "Unexpected null background sample"
 msgstr "意外的空背景样本"
 
-#: src/io/siril_pythoncommands.c:1877
+#: src/io/siril_pythoncommands.c:1908
 msgid "Image has no ICC profile"
 msgstr "图像不含 ICC 色彩特性文件"
 
-#: src/io/siril_pythoncommands.c:1899 src/io/siril_pythoncommands.c:2381
+#: src/io/siril_pythoncommands.c:1930 src/io/siril_pythoncommands.c:2412
 msgid "Image has no FITS header"
 msgstr "图像没有FITS文件头"
 
-#: src/io/siril_pythoncommands.c:1920
+#: src/io/siril_pythoncommands.c:1951
 msgid "Image has no history entries"
 msgstr "图像没有历史输入"
 
-#: src/io/siril_pythoncommands.c:1953
+#: src/io/siril_pythoncommands.c:1984
 msgid "Image has no unknown keys"
 msgstr "图像有未知关键字"
 
 #. Need at least two null-terminated strings
-#: src/io/siril_pythoncommands.c:1968
+#: src/io/siril_pythoncommands.c:1999
 msgid "Group and key must be provided"
 msgstr "必须提供组和键"
 
-#: src/io/siril_pythoncommands.c:1977
+#: src/io/siril_pythoncommands.c:2008
 msgid "Malformed group/key data"
 msgstr "畸形的键值数据"
 
-#: src/io/siril_pythoncommands.c:1988
+#: src/io/siril_pythoncommands.c:2019
 msgid "Configuration key not found"
 msgstr "找不到配置的键"
 
 #. Handle no WCS error
-#: src/io/siril_pythoncommands.c:2015 src/io/siril_pythoncommands.c:2055
+#: src/io/siril_pythoncommands.c:2046 src/io/siril_pythoncommands.c:2086
 msgid "Siril image is not plate solved"
 msgstr "Siril 图像未解析"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:2098
+#: src/io/siril_pythoncommands.c:2129
 msgid "Failed to retrieve bundle path"
 msgstr "无法获取捆绑包路径"
 
 #. Handle error: OS is not Windows
-#: src/io/siril_pythoncommands.c:2103
+#: src/io/siril_pythoncommands.c:2134
 msgid "_get_bundle_path() only applicable on Windows"
 msgstr "_get_bundle_path()仅在Windows上可用"
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2113
+#: src/io/siril_pythoncommands.c:2144
 msgid ""
 "the processing thread is locked. Wait for the current processing task to "
 "finish."
 msgstr "处理中的线程已锁定。请等待当前处理任务完成。"
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2118
+#: src/io/siril_pythoncommands.c:2149
 msgid ""
 "an image processing dialog is open. Close it to release the image lock and "
 "try again."
 msgstr "有已打开的图像处理对话框。请将其关闭，以解除图像锁定，然后再试。"
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2127
+#: src/io/siril_pythoncommands.c:2158
 msgid "Unknown error"
 msgstr "未知错误"
 
-#: src/io/siril_pythoncommands.c:2153 src/io/siril_pythoncommands.c:2188
+#: src/io/siril_pythoncommands.c:2184 src/io/siril_pythoncommands.c:2219
 msgid "Incorrect payload length"
 msgstr "无效载荷长度"
 
-#: src/io/siril_pythoncommands.c:2179
+#: src/io/siril_pythoncommands.c:2210
 msgid "Index is out of range"
 msgstr "索引越界"
 
-#: src/io/siril_pythoncommands.c:2210
+#: src/io/siril_pythoncommands.c:2241
 msgid "No distodata available"
 msgstr "没有可用的畸变数据"
 
-#: src/io/siril_pythoncommands.c:2289
+#: src/io/siril_pythoncommands.c:2320
 msgid "No polygon found matching id"
 msgstr "找不到与id匹配的多边形"
 
-#: src/io/siril_pythoncommands.c:2296
+#: src/io/siril_pythoncommands.c:2327
 msgid "Failed to serialize user polygon"
 msgstr "无法序列化用户多边形"
 
-#: src/io/siril_pythoncommands.c:2315
+#: src/io/siril_pythoncommands.c:2346
 msgid "No user polygons to serialize"
 msgstr "没有要序列化的用户多边形"
 
-#: src/io/siril_pythoncommands.c:2321
+#: src/io/siril_pythoncommands.c:2352
 msgid "Failed to serialize user polygon list"
 msgstr "无法序列化用户多边形列表"
 
-#: src/io/siril_pythoncommands.c:2336 src/io/siril_pythoncommands.c:2342
-#: src/io/siril_pythoncommands.c:2348
+#: src/io/siril_pythoncommands.c:2367 src/io/siril_pythoncommands.c:2373
+#: src/io/siril_pythoncommands.c:2379
 msgid "Argument error"
 msgstr "参数错误"
 
-#: src/io/siril_pythoncommands.c:2402
+#: src/io/siril_pythoncommands.c:2433
 msgid "Could not create the new sequence"
 msgstr "无法创建新序列"
 
-#: src/io/siril_pythoncommands.c:2413
+#: src/io/siril_pythoncommands.c:2444
 msgid "Wrong mouse mode"
 msgstr "鼠标模式错误"
 
-#: src/io/siril_pythoncommands.c:2423
+#: src/io/siril_pythoncommands.c:2454
 msgid "Invalid payload for CMD_DRAW_POLYGON"
 msgstr "CMD_DRAW_POLYGON的载荷无效"
 
-#: src/io/siril_pythoncommands.c:2431
+#: src/io/siril_pythoncommands.c:2479 src/io/siril_pythoncommands.c:2580
+#, fuzzy
+msgid "Invalid filepath length"
+msgstr "无效载荷长度"
+
+#: src/io/siril_pythoncommands.c:2491 src/io/siril_pythoncommands.c:2592
+msgid "File does not exist or is not accessible"
+msgstr ""
+
+#: src/io/siril_pythoncommands.c:2501 src/io/siril_pythoncommands.c:2607
+#, fuzzy
+msgid "Failed to read image file"
+msgstr "无法分配图像缓冲区"
+
+#: src/io/siril_pythoncommands.c:2520
+#, fuzzy
+msgid "Memory allocation error: response buffer"
+msgstr "内存分配错误"
+
+#: src/io/siril_pythoncommands.c:2530
+msgid "fits_to_py conversion error"
+msgstr ""
+
+#: src/io/siril_pythoncommands.c:2538
+msgid "keywords_to_py conversion error"
+msgstr ""
+
+#: src/io/siril_pythoncommands.c:2548
+#, fuzzy
+msgid "Shared memory allocation error"
+msgstr "内存分配错误"
+
+#: src/io/siril_pythoncommands.c:2687
+#, fuzzy
+msgid "No analysis available"
+msgstr "没有可用的对齐数据"
+
+#: src/io/siril_pythoncommands.c:2698
 msgid "Unknown command"
 msgstr "未知命令"
 
@@ -28807,7 +28851,8 @@ msgid "Failed to map shared memory: %s\n"
 msgstr "无法映射共享内存：%s\n"
 
 #: src/io/siril_pythonmodule.c:335
-msgid "Failed to retrieve pixel data - no image loaded"
+#, fuzzy
+msgid "Failed to retrieve pixel data - no FITS image"
 msgstr "无法获取像素数据 - 未加载图像"
 
 #: src/io/siril_pythonmodule.c:360 src/io/siril_pythonmodule.c:369

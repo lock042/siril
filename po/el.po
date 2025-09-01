@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-21 22:43+0200\n"
+"POT-Creation-Date: 2025-09-01 13:34+0200\n"
 "PO-Revision-Date: 2024-02-10 20:54+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Greek <https://weblate.pixls.us/projects/siril/siril-"
@@ -476,7 +476,7 @@ msgstr "Σχόλια"
 #: src/gui/uifiles/settings_window.ui:1912
 #: src/gui/uifiles/settings_window.ui:4385
 #: src/gui/uifiles/settings_window.ui:4426
-#: src/gui/uifiles/settings_window.ui:6065 src/gui/uifiles/siril.ui:3748
+#: src/gui/uifiles/settings_window.ui:6097 src/gui/uifiles/siril.ui:3748
 msgid "Clear"
 msgstr "Καθαρισμός"
 
@@ -3963,7 +3963,7 @@ msgid "Interpolation: "
 msgstr "Παρεμβολή: "
 
 #: src/gui/uifiles/file_information_dialog.ui:34
-#: src/io/siril_pythoncommands.c:1005
+#: src/io/siril_pythoncommands.c:1036
 msgid "Information"
 msgstr "Πληροφορίες"
 
@@ -4733,7 +4733,7 @@ msgstr "Ταίριασμα αστεριών στην επιλογή"
 msgid "Remove a scroll action"
 msgstr "ομαλοποίηση"
 
-#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5323
+#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5355
 #: src/gui/uifiles/siril.ui:6342
 msgid " "
 msgstr ""
@@ -6014,7 +6014,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
-#: src/gui/uifiles/settings_window.ui:5242
+#: src/gui/uifiles/settings_window.ui:5267
 msgid "Sel"
 msgstr "Eπιλεγμένο"
 
@@ -7842,7 +7842,7 @@ msgid "<b>Built-in Profiles</b>"
 msgstr "<b>Τύπος Εξαγωγής</b>"
 
 #: src/gui/uifiles/settings_window.ui:4943
-#: src/gui/uifiles/settings_window.ui:5359 src/gui/uifiles/siril.ui:10628
+#: src/gui/uifiles/settings_window.ui:5391 src/gui/uifiles/siril.ui:10628
 msgid "Scripts"
 msgstr "Δέσμες Ενεργειών"
 
@@ -7894,7 +7894,7 @@ msgstr ""
 "μόνο αν ξέρετε τι κάνετε!</b></span>"
 
 #: src/gui/uifiles/settings_window.ui:5076
-#: src/gui/uifiles/settings_window.ui:5942
+#: src/gui/uifiles/settings_window.ui:5974
 msgid "Warning Dialogs"
 msgstr "Διάλογοι Προειδοποίησης"
 
@@ -7935,7 +7935,13 @@ msgid ""
 "changes."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5178
+#: src/gui/uifiles/settings_window.ui:5179
+msgid ""
+"Type here to filter the list of scripts. The search matches any part of the "
+"script name. Filtering is case-insensitive and updates instantly as you type."
+msgstr ""
+
+#: src/gui/uifiles/settings_window.ui:5203
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -7944,31 +7950,31 @@ msgid ""
 "update) right click on a row."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5195
+#: src/gui/uifiles/settings_window.ui:5220
 msgid "Category"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5211
+#: src/gui/uifiles/settings_window.ui:5236
 #, fuzzy
 msgid "Script"
 msgstr "Δέσμες Ενεργειών"
 
-#: src/gui/uifiles/settings_window.ui:5227
+#: src/gui/uifiles/settings_window.ui:5252
 #, fuzzy
 msgid "Type"
 msgstr "Τύπος:"
 
-#: src/gui/uifiles/settings_window.ui:5271
+#: src/gui/uifiles/settings_window.ui:5303
 #, fuzzy
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Κατάλογοι Αποθήκευσης Δεσμών Ενεργειών</b>"
 
-#: src/gui/uifiles/settings_window.ui:5304
+#: src/gui/uifiles/settings_window.ui:5336
 #, fuzzy
 msgid "Reset python venv"
 msgstr "Επαναφορά αλλαγών"
 
-#: src/gui/uifiles/settings_window.ui:5308
+#: src/gui/uifiles/settings_window.ui:5340
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -7978,21 +7984,21 @@ msgid ""
 "the venv to a pristine state as an aid to troubleshooting."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5339
+#: src/gui/uifiles/settings_window.ui:5371
 #, fuzzy
 msgid "Python Interface"
 msgstr "Διασύνδεση"
 
-#: src/gui/uifiles/settings_window.ui:5373
-#: src/gui/uifiles/settings_window.ui:5771
+#: src/gui/uifiles/settings_window.ui:5405
+#: src/gui/uifiles/settings_window.ui:5803
 msgid "Performances"
 msgstr "Επιδόσεις"
 
-#: src/gui/uifiles/settings_window.ui:5404
+#: src/gui/uifiles/settings_window.ui:5436
 msgid "Ratio of available"
 msgstr "Λόγος διαθεσιμότητας"
 
-#: src/gui/uifiles/settings_window.ui:5408
+#: src/gui/uifiles/settings_window.ui:5440
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -8012,11 +8018,11 @@ msgstr ""
 "τιμή 1 ή άνω θα έχει ως αποτέλεσμα το κρασάρισμα του siril ή του "
 "λειτουργικού συστήματος."
 
-#: src/gui/uifiles/settings_window.ui:5424
+#: src/gui/uifiles/settings_window.ui:5456
 msgid "Fixed amount (GB)"
 msgstr "Σταθερή ποσότητα (GB)"
 
-#: src/gui/uifiles/settings_window.ui:5428
+#: src/gui/uifiles/settings_window.ui:5460
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -8029,7 +8035,7 @@ msgstr ""
 "σύστημά σας μπορεί να οδηγήσει σε κρασάρισμα του siril ή του λειτουργικού "
 "συστήματος."
 
-#: src/gui/uifiles/settings_window.ui:5444
+#: src/gui/uifiles/settings_window.ui:5476
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -8044,15 +8050,15 @@ msgstr ""
 "χρησιμοποιείται για σώρευση πάνω από 1 θα απαιτήσει τη χρήση της μνήμης από "
 "τον δίσκο, η οποία είναι πολύ αργή και δεν συνιστάται"
 
-#: src/gui/uifiles/settings_window.ui:5489
+#: src/gui/uifiles/settings_window.ui:5521
 msgid "<b>Memory management</b>"
 msgstr "<b>Διαχείρηση Μνήμης</b>"
 
-#: src/gui/uifiles/settings_window.ui:5522
+#: src/gui/uifiles/settings_window.ui:5554
 msgid "Default bit depth for HD AutoStretch"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5538
+#: src/gui/uifiles/settings_window.ui:5570
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -8062,37 +8068,37 @@ msgid ""
 "the button to the right."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5555
+#: src/gui/uifiles/settings_window.ui:5587
 #, fuzzy
 msgid "Apply bit depth"
 msgstr "Εφαρμογή Διαχωρισμού CFA"
 
-#: src/gui/uifiles/settings_window.ui:5559
+#: src/gui/uifiles/settings_window.ui:5591
 #, fuzzy
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "Αυτόματο Τέντωμα"
 
-#: src/gui/uifiles/settings_window.ui:5582
+#: src/gui/uifiles/settings_window.ui:5614
 #, fuzzy
 msgid "HD AutoStretch"
 msgstr "Αυτόματο Τέντωμα"
 
-#: src/gui/uifiles/settings_window.ui:5613
+#: src/gui/uifiles/settings_window.ui:5645
 msgid "Multithreaded FFTW"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5617
+#: src/gui/uifiles/settings_window.ui:5649
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5632 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5664 src/core/settings.c:382
 msgid "FFTW planning strategy"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5643
+#: src/gui/uifiles/settings_window.ui:5675
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -8110,28 +8116,28 @@ msgid ""
 "the other strategies is not worth it for a single Fourier Transform."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5648 src/gui/uifiles/siril.ui:5058
+#: src/gui/uifiles/settings_window.ui:5680 src/gui/uifiles/siril.ui:5058
 #: src/gui/uifiles/siril.ui:6928
 msgid "Estimate"
 msgstr "Εκτίμηση"
 
-#: src/gui/uifiles/settings_window.ui:5649
+#: src/gui/uifiles/settings_window.ui:5681
 msgid "Measure"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5650
+#: src/gui/uifiles/settings_window.ui:5682
 msgid "Patient"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5651
+#: src/gui/uifiles/settings_window.ui:5683
 msgid "Exhaustive"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5664
+#: src/gui/uifiles/settings_window.ui:5696
 msgid "FFTW planning time limit (seconds)"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5675
+#: src/gui/uifiles/settings_window.ui:5707
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -8139,11 +8145,11 @@ msgid ""
 "minimum planning level of Estimate will always be completed."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5690
+#: src/gui/uifiles/settings_window.ui:5722
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5701
+#: src/gui/uifiles/settings_window.ui:5733
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -8154,11 +8160,11 @@ msgid ""
 "Fourier Transforms will be used."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5717
+#: src/gui/uifiles/settings_window.ui:5749
 msgid "Maximum slice size for sliced image operations"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5728
+#: src/gui/uifiles/settings_window.ui:5760
 msgid ""
 "Sets the maximum slice size for image operations that can use sliced "
 "processing. The primary purpose of this is to constrain typical slices to a "
@@ -8166,21 +8172,21 @@ msgid ""
 "more effectively. It is always safe to leave this at the default setting."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5731
+#: src/gui/uifiles/settings_window.ui:5763
 msgid "Unlimited"
 msgstr "Χωρίς όριο"
 
-#: src/gui/uifiles/settings_window.ui:5757
+#: src/gui/uifiles/settings_window.ui:5789
 #, fuzzy
 msgid "<b>FFTW Options</b>"
 msgstr "<b>Συμπίεση FITS </b>"
 
-#: src/gui/uifiles/settings_window.ui:5785
-#: src/gui/uifiles/settings_window.ui:6228
+#: src/gui/uifiles/settings_window.ui:5817
+#: src/gui/uifiles/settings_window.ui:6260
 msgid "Miscellaneous"
 msgstr "Διάφορα"
 
-#: src/gui/uifiles/settings_window.ui:5813
+#: src/gui/uifiles/settings_window.ui:5845
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
@@ -8188,54 +8194,54 @@ msgstr ""
 "Επιλέξτε ένα υπάρχων κατάλογο. Σιγουρευτείτε ότι έχετε άδειες εγγραφής και "
 "αρκετό χώρο."
 
-#: src/gui/uifiles/settings_window.ui:5816
+#: src/gui/uifiles/settings_window.ui:5848
 msgid "Select Swap Directory"
 msgstr "Επιλέξτε κατάλογο αποθήκευσης αναίρεσης"
 
-#: src/gui/uifiles/settings_window.ui:5829
+#: src/gui/uifiles/settings_window.ui:5861
 msgid "available mem"
 msgstr "διαθέσιμη μνήμη"
 
-#: src/gui/uifiles/settings_window.ui:5841
+#: src/gui/uifiles/settings_window.ui:5873
 msgid "Restore to Default"
 msgstr "Επαναφορά των προεπιλογών"
 
-#: src/gui/uifiles/settings_window.ui:5845
+#: src/gui/uifiles/settings_window.ui:5877
 #, fuzzy
 msgid "Restore the default swap storage directory"
 msgstr "Επαναφορά του προεπιλεγμένου καταλόγου αποθήκευσης αναίρεσης"
 
-#: src/gui/uifiles/settings_window.ui:5864
+#: src/gui/uifiles/settings_window.ui:5896
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Κατάλογος Αποθήκευσης Αναίρεσης</b>"
 
-#: src/gui/uifiles/settings_window.ui:5891
+#: src/gui/uifiles/settings_window.ui:5923
 msgid "Don't ask before quitting"
 msgstr "Να μην ρωτηθώ πριν την έξοδο"
 
-#: src/gui/uifiles/settings_window.ui:5906
+#: src/gui/uifiles/settings_window.ui:5938
 msgid "Don't ask before saving when display is not linear"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5921
+#: src/gui/uifiles/settings_window.ui:5953
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5925
+#: src/gui/uifiles/settings_window.ui:5957
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5964
+#: src/gui/uifiles/settings_window.ui:5996
 msgid "Play introduction"
 msgstr "Αναπαραγωγή Εισαγωγής"
 
-#: src/gui/uifiles/settings_window.ui:5978
+#: src/gui/uifiles/settings_window.ui:6010
 msgid "Introduction Tips"
 msgstr "Συμβουλές εισαγωγής"
 
-#: src/gui/uifiles/settings_window.ui:6010
+#: src/gui/uifiles/settings_window.ui:6042
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -8246,62 +8252,62 @@ msgid ""
 "executable: Siril will automatically find the other one if it exists."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6018
+#: src/gui/uifiles/settings_window.ui:6050
 msgid "Select StarNet executable"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6032
+#: src/gui/uifiles/settings_window.ui:6064
 #, fuzzy
 msgid "Must point to a valid StarNet executable."
 msgstr "Επιλέξτε κατάλογο αποθήκευσης αναίρεσης"
 
-#: src/gui/uifiles/settings_window.ui:6046
+#: src/gui/uifiles/settings_window.ui:6078
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
 "b> be in the same directory as the StarNet executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6052
+#: src/gui/uifiles/settings_window.ui:6084
 #, fuzzy
 msgid "Select StarNet weights file"
 msgstr "Επιλέξτε πρώτα μια περιοχή\n"
 
-#: src/gui/uifiles/settings_window.ui:6069
+#: src/gui/uifiles/settings_window.ui:6101
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6084
+#: src/gui/uifiles/settings_window.ui:6116
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6119
+#: src/gui/uifiles/settings_window.ui:6151
 #, fuzzy
 msgid "Must point to a valid GraXpert executable."
 msgstr "Επιλέξτε κατάλογο αποθήκευσης αναίρεσης"
 
-#: src/gui/uifiles/settings_window.ui:6138
+#: src/gui/uifiles/settings_window.ui:6170
 #, fuzzy
 msgid "Software Location"
 msgstr "Ενημέρωση λογισμικού"
 
-#: src/gui/uifiles/settings_window.ui:6161
+#: src/gui/uifiles/settings_window.ui:6193
 msgid "Copyright when saving image as TIFF"
 msgstr "Πνευματικά δικαιώματα κατά την αποθήκευση εικόνας ως TIFF"
 
-#: src/gui/uifiles/settings_window.ui:6173
+#: src/gui/uifiles/settings_window.ui:6205
 msgid "Copyright TIFF"
 msgstr "Πνευματικά δικαιώματα TIFF"
 
-#: src/gui/uifiles/settings_window.ui:6195
+#: src/gui/uifiles/settings_window.ui:6227
 msgid "Check update at startup"
 msgstr "Έλεγχος ενημέρωσης κατά την εκκίνηση"
 
-#: src/gui/uifiles/settings_window.ui:6211
+#: src/gui/uifiles/settings_window.ui:6243
 msgid "Update"
 msgstr "Ενημέρωση"
 
@@ -13584,11 +13590,11 @@ msgid ""
 "and limit magnitude %.2f\n"
 msgstr ""
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:991
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
 msgid "SPCC"
 msgstr ""
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:991
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
 #, fuzzy
 msgid "PCC"
 msgstr "PPG"
@@ -13605,22 +13611,22 @@ msgid ""
 "degrees and limit magnitude %.2f\n"
 msgstr ""
 
-#: src/algos/photometric_cc.c:992
+#: src/algos/photometric_cc.c:996
 #, fuzzy, c-format
 msgid "Photometric CC (algorithm: %s)"
 msgstr "Φωτομετρικό CC"
 
-#: src/algos/photometric_cc.c:999
+#: src/algos/photometric_cc.c:1003
 #, fuzzy
 msgid "Catalog error, no stars identified!\n"
 msgstr "Δεν είναι δυνατή η φόρτωση του initfile: %s\n"
 
-#: src/algos/photometric_cc.c:1008
+#: src/algos/photometric_cc.c:1012
 #, fuzzy
 msgid "Spectrophotometric Color Calibration succeeded.\n"
 msgstr "H Φωτομετρική Βαθμονόμηση Χρώματος απέτυχε"
 
-#: src/algos/photometric_cc.c:1010
+#: src/algos/photometric_cc.c:1014
 #, fuzzy
 msgid "Photometric Color Calibration succeeded.\n"
 msgstr "H Φωτομετρική Βαθμονόμηση Χρώματος απέτυχε"
@@ -14235,7 +14241,7 @@ msgstr "Πρέπει να φορτώσετε τουλάχιστον δυο επ�
 #: src/filters/wavelets.c:267 src/filters/wavelets.c:328 src/gui/colors.c:571
 #: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:1177
 #: src/gui/script_menu.c:583 src/gui/utils.c:486
-#: src/io/siril_pythoncommands.c:999
+#: src/io/siril_pythoncommands.c:1030
 msgid "Warning"
 msgstr "Προειδοποίηση"
 
@@ -14328,8 +14334,8 @@ msgstr "Έγινε σώρευση της ακολουθίας με επιτυχ�
 #: src/filters/fft.c:610 src/gui/PSF_list.c:303 src/gui/PSF_list.c:308
 #: src/gui/PSF_list.c:313 src/gui/colors.c:461 src/gui/compstars.c:224
 #: src/gui/compstars.c:293 src/gui/compstars.c:301 src/gui/compstars.c:308
-#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:204
-#: src/gui/git_gui.c:339 src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
+#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:266
+#: src/gui/git_gui.c:401 src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
 #: src/gui/icc_profile.c:543 src/gui/merge_cfa.c:216 src/gui/merge_cfa.c:248
 #: src/gui/merge_cfa.c:259 src/gui/merge_cfa.c:270 src/gui/merge_cfa.c:281
 #: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
@@ -14337,7 +14343,7 @@ msgstr "Έγινε σώρευση της ακολουθίας με επιτυχ�
 #: src/gui/nina_light_curve.c:279 src/gui/open_dialog.c:414
 #: src/gui/preferences.c:556 src/gui/preferences.c:575
 #: src/gui/preferences.c:609 src/gui/save_dialog.c:466
-#: src/gui/script_menu.c:279 src/io/siril_pythoncommands.c:993
+#: src/gui/script_menu.c:279 src/io/siril_pythoncommands.c:1024
 msgid "Error"
 msgstr "Σφάλμα"
 
@@ -20929,7 +20935,7 @@ msgid ""
 msgstr ""
 "Η αισθητική διόρθωση Darkmap υποστηρίζεται μόνο με εικόνες μονού καναλιού\n"
 
-#: src/core/preprocess.c:502 src/gui/git_gui.c:91
+#: src/core/preprocess.c:502 src/gui/git_gui.c:141
 msgid "Preprocessing"
 msgstr "Γίνεται Προ-επεξεργασία"
 
@@ -22422,71 +22428,71 @@ msgstr "Επανάληψη: \"%s\""
 msgid "Nothing to redo"
 msgstr "Δεν υπάρχει κάτι για επανάληψη"
 
-#: src/core/utils.c:630
+#: src/core/utils.c:637
 msgid "red"
 msgstr "κόκκινο"
 
-#: src/core/utils.c:632
+#: src/core/utils.c:639
 msgid "green"
 msgstr "πράσινο"
 
-#: src/core/utils.c:634
+#: src/core/utils.c:641
 msgid "blue"
 msgstr "μπλε"
 
-#: src/core/utils.c:799
+#: src/core/utils.c:806
 #, fuzzy, c-format
 msgid "Failed to create directory '%s': %s\n"
 msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
 
-#: src/core/utils.c:1174
+#: src/core/utils.c:1181
 msgid "Unknown error\n"
 msgstr "Άγνωστο σφάλμα\n"
 
-#: src/core/utils.c:1177
+#: src/core/utils.c:1184
 #, c-format
 msgid "'%s' No such file or directory\n"
 msgstr "'%s' Δεν υπάρχει αυτό το αρχείο ή ο κατάλογος\n"
 
-#: src/core/utils.c:1180
+#: src/core/utils.c:1187
 #, c-format
 msgid "'%s' is not a directory\n"
 msgstr "Το '%s' δεν είναι κατάλογος\n"
 
-#: src/core/utils.c:1183
+#: src/core/utils.c:1190
 #, c-format
 msgid "You don't have permission to write in this directory: '%s'\n"
 msgstr "Δεν έχετε άδεια να γράψετε σε αυτό τον κατάλογο: '%s'\n"
 
-#: src/core/utils.c:1205
+#: src/core/utils.c:1212
 #, c-format
 msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr "Γίνεται ορισμός του τρέχοντος καταλόγου εργασίας στο '%s'\n"
 
-#: src/core/utils.c:1209
+#: src/core/utils.c:1216
 #, fuzzy, c-format
 msgid "Could not change directory to '%s'(error code %d: %s).\n"
 msgstr "Δεν ήταν δυνατή η αλλαγή του καταλόγου στο '%s'.\n"
 
-#: src/core/utils.c:1235
+#: src/core/utils.c:1242
 msgid "Filename is too long, not expanding it\n"
 msgstr "Το όνομα του αρχείου είναι πολύ μεγάλο, δεν γίνεται επέκταση του\n"
 
-#: src/core/utils.c:1345 src/core/utils.c:1349 src/io/image_format_fits.c:2853
+#: src/core/utils.c:1352 src/core/utils.c:1356 src/io/image_format_fits.c:2853
 #: src/io/image_format_fits.c:2858 src/io/ser.c:1425 src/io/ser.c:1430
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "pixel"
 msgstr[1] "pixels"
 
-#: src/core/utils.c:1346 src/io/image_format_fits.c:2854
+#: src/core/utils.c:1353 src/io/image_format_fits.c:2854
 #: src/io/image_format_fits.c:2859 src/io/ser.c:1426 src/io/ser.c:1431
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "κανάλι"
 msgstr[1] "κανάλια"
 
-#: src/core/utils.c:1742 src/core/utils.c:1745
+#: src/core/utils.c:1749 src/core/utils.c:1752
 msgid "(invalid UTF-8 string)"
 msgstr ""
 
@@ -23639,7 +23645,7 @@ msgid "Select task to stop"
 msgstr "Επιλέξτε περιοχή για περικοπή"
 
 #: src/gui/callbacks.c:2366 src/gui/dialogs.c:253 src/gui/dialogs.c:262
-#: src/gui/dialogs.c:268 src/gui/git_gui.c:253 src/gui/keywords_tree.c:508
+#: src/gui/dialogs.c:268 src/gui/git_gui.c:315 src/gui/keywords_tree.c:508
 #: src/gui/python_gui.c:768 src/gui/python_gui.c:845
 #: src/io/image_formats_libraries.c:2497 src/pixelMath/pixel_math_runner.c:1260
 msgid "_Cancel"
@@ -23741,7 +23747,7 @@ msgstr ""
 msgid "_Close"
 msgstr "Κλείσιμο"
 
-#: src/gui/compstars.c:51 src/gui/git_gui.c:254 src/gui/nina_light_curve.c:50
+#: src/gui/compstars.c:51 src/gui/git_gui.c:316 src/gui/nina_light_curve.c:50
 #: src/io/image_formats_libraries.c:2497
 msgid "_OK"
 msgstr "_OK"
@@ -24331,48 +24337,48 @@ msgstr "Η εικόνα φορτώθηκε"
 msgid "Error: image dimensions do not match"
 msgstr "Σφάλμα: ο υπολογισμός των στατιστικών απέτυχε.\n"
 
-#: src/gui/git_gui.c:93
+#: src/gui/git_gui.c:143
 #, fuzzy
 msgid "Processing"
 msgstr "Γίνεται επεξεργασία..."
 
-#: src/gui/git_gui.c:95
+#: src/gui/git_gui.c:145
 msgid "Utility"
 msgstr ""
 
-#: src/gui/git_gui.c:97
+#: src/gui/git_gui.c:147
 msgid "Core"
 msgstr ""
 
-#: src/gui/git_gui.c:100
+#: src/gui/git_gui.c:150
 msgid "Other"
 msgstr ""
 
-#: src/gui/git_gui.c:106 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
+#: src/gui/git_gui.c:156 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
 #, fuzzy
 msgid "Siril Script File"
 msgstr "Όνομα αρχείου:"
 
-#: src/gui/git_gui.c:108
+#: src/gui/git_gui.c:158
 #, fuzzy
 msgid "Python script"
 msgstr "Εκτέλεση Δέσμης Ενεργειών"
 
-#: src/gui/git_gui.c:176
+#: src/gui/git_gui.c:238
 msgid "(No commit message found for this revision)"
 msgstr ""
 
-#: src/gui/git_gui.c:202 src/gui/script_menu.c:277
+#: src/gui/git_gui.c:264 src/gui/script_menu.c:277
 #, fuzzy, c-format
 msgid "Error loading script contents: %s\n"
 msgstr "Φόρτωση δέσμης ενεργειών %s\n"
 
-#: src/gui/git_gui.c:250
+#: src/gui/git_gui.c:312
 #, fuzzy
 msgid "Select Revision"
 msgstr "Επιλογή"
 
-#: src/gui/git_gui.c:257
+#: src/gui/git_gui.c:319
 msgid ""
 "Leave at 0 to open the current version of the script. If you have a problem "
 "with a script update you can use this to go back to earlier revisions. Start "
@@ -24383,15 +24389,15 @@ msgid ""
 "folders for use until the upstream script is fixed."
 msgstr ""
 
-#: src/gui/git_gui.c:267
+#: src/gui/git_gui.c:329
 msgid "Revisions to go back (leave at 0 to get current revision):"
 msgstr ""
 
-#: src/gui/git_gui.c:302
+#: src/gui/git_gui.c:364
 msgid "Loading commit message..."
 msgstr ""
 
-#: src/gui/git_gui.c:336
+#: src/gui/git_gui.c:398
 #, fuzzy, c-format
 msgid "Error loading script contents from %d revisions back: %s\n"
 msgstr "Φόρτωση δέσμης ενεργειών %s\n"
@@ -25198,12 +25204,12 @@ msgstr "Δακτύλιος Υποβάθρου"
 
 #: src/gui/nina_light_curve.c:221 src/gui/sequence_list.c:150
 #: src/gui/starnetgui.c:220 src/io/path_parse.c:74
-#: src/io/siril_pythoncommands.c:1149 src/io/siril_pythoncommands.c:1373
-#: src/io/siril_pythoncommands.c:1418 src/io/siril_pythoncommands.c:1452
-#: src/io/siril_pythoncommands.c:1499 src/io/siril_pythoncommands.c:1531
-#: src/io/siril_pythoncommands.c:1591 src/io/siril_pythoncommands.c:1676
-#: src/io/siril_pythoncommands.c:2163 src/io/siril_pythoncommands.c:2196
-#: src/io/siril_pythoncommands.c:2359
+#: src/io/siril_pythoncommands.c:1180 src/io/siril_pythoncommands.c:1404
+#: src/io/siril_pythoncommands.c:1449 src/io/siril_pythoncommands.c:1483
+#: src/io/siril_pythoncommands.c:1530 src/io/siril_pythoncommands.c:1562
+#: src/io/siril_pythoncommands.c:1622 src/io/siril_pythoncommands.c:1707
+#: src/io/siril_pythoncommands.c:2194 src/io/siril_pythoncommands.c:2227
+#: src/io/siril_pythoncommands.c:2390
 msgid "No sequence loaded"
 msgstr "Δεν έχει φορτωθεί ακολουθία"
 
@@ -28954,378 +28960,416 @@ msgstr ""
 msgid "Error opening scripts repository\n"
 msgstr "Σφάλμα στο κλείσιμο του αρχείου GIF: %s\n"
 
-#: src/io/siril_pythoncommands.c:461
+#: src/io/siril_pythoncommands.c:492
 #, fuzzy
 msgid "Unknown config type"
 msgstr "άγνωστη εικόνα"
 
-#: src/io/siril_pythoncommands.c:612
+#: src/io/siril_pythoncommands.c:643
 msgid "Received incomplete command header\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:621
+#: src/io/siril_pythoncommands.c:652
 #, c-format
 msgid "Received incomplete command payload: length = %u, expected %u\n"
 msgstr ""
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:651 src/io/siril_pythoncommands.c:685
+#: src/io/siril_pythoncommands.c:682 src/io/siril_pythoncommands.c:716
 #, fuzzy
 msgid "Failed to retrieve image dimensions - no image loaded"
 msgstr "Βεβαιωθείτε ότι έχετε φορτώσει την πρώτη εικόνα"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:708
+#: src/io/siril_pythoncommands.c:739
 msgid "Failed to retrieve current vport - no image loaded"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:725
+#: src/io/siril_pythoncommands.c:756
 msgid "Failed to set selection - selection exceeds image bounds"
 msgstr ""
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:737 src/io/siril_pythoncommands.c:2044
-#: src/io/siril_pythoncommands.c:2082
+#: src/io/siril_pythoncommands.c:768 src/io/siril_pythoncommands.c:2075
+#: src/io/siril_pythoncommands.c:2113
 #, fuzzy
 msgid "Failed to set selection - no image loaded"
 msgstr "Βεβαιωθείτε ότι έχετε φορτώσει την πρώτη εικόνα"
 
-#: src/io/siril_pythoncommands.c:752
+#: src/io/siril_pythoncommands.c:783
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:780 src/io/siril_pythoncommands.c:877
+#: src/io/siril_pythoncommands.c:811 src/io/siril_pythoncommands.c:908
 #, fuzzy
 msgid "Invalid selection"
 msgstr "Δεν υπάρχει επιλογή"
 
-#: src/io/siril_pythoncommands.c:785 src/io/siril_pythoncommands.c:868
-#: src/io/siril_pythoncommands.c:1275
+#: src/io/siril_pythoncommands.c:816 src/io/siril_pythoncommands.c:899
+#: src/io/siril_pythoncommands.c:1306
 #, fuzzy
 msgid "Invalid channel"
 msgstr "Μη έγκυρος χαρακτήρας"
 
-#: src/io/siril_pythoncommands.c:795
+#: src/io/siril_pythoncommands.c:826
 #, fuzzy
 msgid "Failed to find a star"
 msgstr "Βεβαιωθείτε ότι έχετε φορτώσει την πρώτη εικόνα"
 
-#: src/io/siril_pythoncommands.c:814 src/io/siril_pythoncommands.c:888
-#: src/io/siril_pythoncommands.c:1298 src/io/siril_pythoncommands.c:1362
-#: src/io/siril_pythoncommands.c:1488 src/io/siril_pythoncommands.c:1520
-#: src/io/siril_pythoncommands.c:1633 src/io/siril_pythoncommands.c:1641
-#: src/io/siril_pythoncommands.c:1651 src/io/siril_pythoncommands.c:1688
-#: src/io/siril_pythoncommands.c:1761 src/io/siril_pythoncommands.c:1830
-#: src/io/siril_pythoncommands.c:1861 src/io/siril_pythoncommands.c:2224
+#: src/io/siril_pythoncommands.c:845 src/io/siril_pythoncommands.c:919
+#: src/io/siril_pythoncommands.c:1329 src/io/siril_pythoncommands.c:1393
+#: src/io/siril_pythoncommands.c:1519 src/io/siril_pythoncommands.c:1551
+#: src/io/siril_pythoncommands.c:1664 src/io/siril_pythoncommands.c:1672
+#: src/io/siril_pythoncommands.c:1682 src/io/siril_pythoncommands.c:1719
+#: src/io/siril_pythoncommands.c:1792 src/io/siril_pythoncommands.c:1861
+#: src/io/siril_pythoncommands.c:1892 src/io/siril_pythoncommands.c:2255
 #, fuzzy
 msgid "Memory allocation error"
 msgstr "ομαλοποίηση"
 
-#: src/io/siril_pythoncommands.c:838
+#: src/io/siril_pythoncommands.c:869
 msgid "Invalid region: selection breaches image dimensions"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:861 src/io/siril_pythoncommands.c:1268
-#: src/io/siril_pythoncommands.c:1349 src/io/siril_pythoncommands.c:1849
-#: src/io/siril_pythoncommands.c:1872 src/io/siril_pythoncommands.c:1893
-#: src/io/siril_pythoncommands.c:1914 src/io/siril_pythoncommands.c:1947
+#: src/io/siril_pythoncommands.c:892 src/io/siril_pythoncommands.c:1299
+#: src/io/siril_pythoncommands.c:1380 src/io/siril_pythoncommands.c:1880
+#: src/io/siril_pythoncommands.c:1903 src/io/siril_pythoncommands.c:1924
+#: src/io/siril_pythoncommands.c:1945 src/io/siril_pythoncommands.c:1978
 #, fuzzy
 msgid "No image loaded"
 msgstr "Δεν φορτώθηκαν εικόνες"
 
-#: src/io/siril_pythoncommands.c:911
+#: src/io/siril_pythoncommands.c:942
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA_REGION\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:923
+#: src/io/siril_pythoncommands.c:954
 msgid "Invalid FINISHED_WITH_SHM payload"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1009
+#: src/io/siril_pythoncommands.c:1040
 #, fuzzy
 msgid "Unknown dialog type"
 msgstr "άγνωστη εικόνα"
 
-#: src/io/siril_pythoncommands.c:1048
+#: src/io/siril_pythoncommands.c:1079
 msgid "Undo not supported in headless mode"
 msgstr ""
 
 #. Handle error
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1061 src/io/siril_pythoncommands.c:1130
+#: src/io/siril_pythoncommands.c:1092 src/io/siril_pythoncommands.c:1161
 #, fuzzy
 msgid "Image not loaded"
 msgstr "Η εικόνα φορτώθηκε"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1074
+#: src/io/siril_pythoncommands.c:1105
 #, fuzzy
 msgid "Working directory not set"
 msgstr "Σύνδεση: δεν έχει οριστεί κατάλογος εργασίας.\n"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1088
+#: src/io/siril_pythoncommands.c:1119
 #, fuzzy
 msgid "Error: user config directory not set"
 msgstr "Μετατροπή: δεν έχει οριστεί κατάλογος εργασίας.\n"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1103
+#: src/io/siril_pythoncommands.c:1134
 #, fuzzy
 msgid "Error: user data directory not set"
 msgstr "Μετατροπή: δεν έχει οριστεί κατάλογος εργασίας.\n"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1117
+#: src/io/siril_pythoncommands.c:1148
 #, fuzzy
 msgid "Error: system data directory not set"
 msgstr "Μετατροπή: δεν έχει οριστεί κατάλογος εργασίας.\n"
 
-#: src/io/siril_pythoncommands.c:1139 src/io/siril_pythoncommands.c:1161
-#: src/io/siril_pythoncommands.c:1217 src/io/siril_pythoncommands.c:1230
-#: src/io/siril_pythoncommands.c:1257 src/io/siril_pythoncommands.c:1310
-#: src/io/siril_pythoncommands.c:2236 src/io/siril_pythoncommands.c:2249
-#: src/io/siril_pythoncommands.c:2266 src/io/siril_pythoncommands.c:2272
-#: src/io/siril_pythoncommands.c:2305
+#: src/io/siril_pythoncommands.c:1170 src/io/siril_pythoncommands.c:1192
+#: src/io/siril_pythoncommands.c:1248 src/io/siril_pythoncommands.c:1261
+#: src/io/siril_pythoncommands.c:1288 src/io/siril_pythoncommands.c:1341
+#: src/io/siril_pythoncommands.c:2267 src/io/siril_pythoncommands.c:2280
+#: src/io/siril_pythoncommands.c:2297 src/io/siril_pythoncommands.c:2303
+#: src/io/siril_pythoncommands.c:2336
 msgid "Invalid payload length"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1155
+#: src/io/siril_pythoncommands.c:1186
 #, fuzzy
 msgid "Invalid sequence type"
 msgstr "εσωτερική ακολουθία"
 
-#: src/io/siril_pythoncommands.c:1169
+#: src/io/siril_pythoncommands.c:1200
 #, fuzzy
 msgid "Failed to load sequence frame: index out of range"
 msgstr "Η αρχικοποίηση της αλληλουχίας FITS απέτυχε, γίνετε ακύρωση\n"
 
-#: src/io/siril_pythoncommands.c:1177
+#: src/io/siril_pythoncommands.c:1208
 #, fuzzy
 msgid "Failed to load sequence frame"
 msgstr "Η αρχικοποίηση της αλληλουχίας FITS απέτυχε, γίνετε ακύρωση\n"
 
-#: src/io/siril_pythoncommands.c:1206
+#: src/io/siril_pythoncommands.c:1237
 #, fuzzy, c-format
 msgid "Error writing sequence frame %i from Python\n"
 msgstr "Σφάλμα κατά την ανάγνωση του καρέ %d από %s, γίνεται ακύρωση.\n"
 
-#: src/io/siril_pythoncommands.c:1285
+#: src/io/siril_pythoncommands.c:1316
 #, fuzzy
 msgid "No stats"
 msgstr "%d αστέρι"
 
-#: src/io/siril_pythoncommands.c:1383 src/io/siril_pythoncommands.c:1427
-#: src/io/siril_pythoncommands.c:1462 src/io/siril_pythoncommands.c:2205
+#: src/io/siril_pythoncommands.c:1414 src/io/siril_pythoncommands.c:1458
+#: src/io/siril_pythoncommands.c:1493 src/io/siril_pythoncommands.c:2236
 msgid "Incorrect command arguments"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1393 src/io/siril_pythoncommands.c:1732
-#: src/io/siril_pythoncommands.c:1803
+#: src/io/siril_pythoncommands.c:1424 src/io/siril_pythoncommands.c:1763
+#: src/io/siril_pythoncommands.c:1834 src/io/siril_pythoncommands.c:2680
 #, fuzzy
 msgid "Memory allocation failed"
 msgstr "Σφάλμα: ο υπολογισμός των στατιστικών απέτυχε.\n"
 
-#: src/io/siril_pythoncommands.c:1398 src/io/siril_pythoncommands.c:1407
+#: src/io/siril_pythoncommands.c:1429 src/io/siril_pythoncommands.c:1438
 #, fuzzy
 msgid "No regdata available"
 msgstr "Δεν είναι διαθέσιμο"
 
-#: src/io/siril_pythoncommands.c:1443
+#: src/io/siril_pythoncommands.c:1474
 #, fuzzy
 msgid "Error building frame filename"
 msgstr "Σφάλμα στο άνοιγμα του αρχείου"
 
-#: src/io/siril_pythoncommands.c:1474
+#: src/io/siril_pythoncommands.c:1505
 #, fuzzy
 msgid "No stats for this sequence"
 msgstr "PSF για την Aκολουθία"
 
-#: src/io/siril_pythoncommands.c:1482
+#: src/io/siril_pythoncommands.c:1513
 msgid "No stats for this channel for this frame"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1508 src/io/siril_pythoncommands.c:1606
-#: src/io/siril_pythoncommands.c:2368
+#: src/io/siril_pythoncommands.c:1539 src/io/siril_pythoncommands.c:1637
+#: src/io/siril_pythoncommands.c:2399 src/io/siril_pythoncommands.c:2465
+#: src/io/siril_pythoncommands.c:2574
 #, fuzzy
 msgid "Incorrect command argument"
 msgstr "άγνωστη παράμετρος γραμμής εντολής '%c'\n"
 
-#: src/io/siril_pythoncommands.c:1537
+#: src/io/siril_pythoncommands.c:1568
 msgid "Incorrect payload"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1557
+#: src/io/siril_pythoncommands.c:1588
 msgid "Selection cropped to frame boundaries\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1563
+#: src/io/siril_pythoncommands.c:1594
 #, fuzzy
 msgid "Failed to read sequence frame"
 msgstr "Η αρχικοποίηση της αλληλουχίας FITS απέτυχε, γίνετε ακύρωση\n"
 
-#: src/io/siril_pythoncommands.c:1576
+#: src/io/siril_pythoncommands.c:1607
 #, fuzzy
 msgid "Invalid dimensions"
 msgstr "Διαστάσεις πλακιδίου"
 
-#: src/io/siril_pythoncommands.c:1613 src/io/siril_pythoncommands.c:2376
+#: src/io/siril_pythoncommands.c:1644 src/io/siril_pythoncommands.c:2407
 #, fuzzy
 msgid "Failed to read frame metadata"
 msgstr "Γίνεται αναζήτηση για ακολουθίες στον τρέχων κατάλογο...\n"
 
-#: src/io/siril_pythoncommands.c:1722
+#: src/io/siril_pythoncommands.c:1753
 #, fuzzy
 msgid "No stars in image"
 msgstr "Δεν είναι διαθέσιμο"
 
-#: src/io/siril_pythoncommands.c:1740
+#: src/io/siril_pythoncommands.c:1771
 msgid "Stars array was cleared mid-process"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1748
+#: src/io/siril_pythoncommands.c:1779
 msgid "Unexpected null star entry"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1793
+#: src/io/siril_pythoncommands.c:1824
 #, fuzzy
 msgid "No background samples list available"
 msgstr "Δεν είναι διαθέσιμο"
 
-#: src/io/siril_pythoncommands.c:1812
+#: src/io/siril_pythoncommands.c:1843
 #, fuzzy
 msgid "Mismatch in samples count"
 msgstr "Ταίριασμα αστεριών στην επιλογή"
 
-#: src/io/siril_pythoncommands.c:1820
+#: src/io/siril_pythoncommands.c:1851
 #, fuzzy
 msgid "Unexpected null background sample"
 msgstr "Καθαρισμός των δειγμάτων υποβάθρου."
 
-#: src/io/siril_pythoncommands.c:1877
+#: src/io/siril_pythoncommands.c:1908
 #, fuzzy
 msgid "Image has no ICC profile"
 msgstr "τρέχων μπλέ αρχείο"
 
-#: src/io/siril_pythoncommands.c:1899 src/io/siril_pythoncommands.c:2381
+#: src/io/siril_pythoncommands.c:1930 src/io/siril_pythoncommands.c:2412
 msgid "Image has no FITS header"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1920
+#: src/io/siril_pythoncommands.c:1951
 msgid "Image has no history entries"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1953
+#: src/io/siril_pythoncommands.c:1984
 msgid "Image has no unknown keys"
 msgstr ""
 
 #. Need at least two null-terminated strings
-#: src/io/siril_pythoncommands.c:1968
+#: src/io/siril_pythoncommands.c:1999
 #, fuzzy
 msgid "Group and key must be provided"
 msgstr "Περικοπή: το x και το y πρέπει να είναι θετικές τιμές.\n"
 
-#: src/io/siril_pythoncommands.c:1977
+#: src/io/siril_pythoncommands.c:2008
 msgid "Malformed group/key data"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1988
+#: src/io/siril_pythoncommands.c:2019
 #, fuzzy
 msgid "Configuration key not found"
 msgstr "Το αρχείο δεν βρέθηκε"
 
 #. Handle no WCS error
-#: src/io/siril_pythoncommands.c:2015 src/io/siril_pythoncommands.c:2055
+#: src/io/siril_pythoncommands.c:2046 src/io/siril_pythoncommands.c:2086
 #, fuzzy
 msgid "Siril image is not plate solved"
 msgstr "Επίλυση Εικόνας"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:2098
+#: src/io/siril_pythoncommands.c:2129
 #, fuzzy
 msgid "Failed to retrieve bundle path"
 msgstr "Η αρχικοποίηση της αλληλουχίας FITS απέτυχε, γίνετε ακύρωση\n"
 
 #. Handle error: OS is not Windows
-#: src/io/siril_pythoncommands.c:2103
+#: src/io/siril_pythoncommands.c:2134
 msgid "_get_bundle_path() only applicable on Windows"
 msgstr ""
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2113
+#: src/io/siril_pythoncommands.c:2144
 msgid ""
 "the processing thread is locked. Wait for the current processing task to "
 "finish."
 msgstr ""
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2118
+#: src/io/siril_pythoncommands.c:2149
 msgid ""
 "an image processing dialog is open. Close it to release the image lock and "
 "try again."
 msgstr ""
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2127
+#: src/io/siril_pythoncommands.c:2158
 #, fuzzy
 msgid "Unknown error"
 msgstr "Άγνωστο σφάλμα\n"
 
-#: src/io/siril_pythoncommands.c:2153 src/io/siril_pythoncommands.c:2188
+#: src/io/siril_pythoncommands.c:2184 src/io/siril_pythoncommands.c:2219
 #, fuzzy
 msgid "Incorrect payload length"
 msgstr "Εστιακή απόσταση (mm): "
 
-#: src/io/siril_pythoncommands.c:2179
+#: src/io/siril_pythoncommands.c:2210
 #, fuzzy
 msgid "Index is out of range"
 msgstr "Εύρος τιμών pixel"
 
-#: src/io/siril_pythoncommands.c:2210
+#: src/io/siril_pythoncommands.c:2241
 #, fuzzy
 msgid "No distodata available"
 msgstr "Δεν είναι διαθέσιμο"
 
-#: src/io/siril_pythoncommands.c:2289
+#: src/io/siril_pythoncommands.c:2320
 msgid "No polygon found matching id"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2296
+#: src/io/siril_pythoncommands.c:2327
 #, fuzzy
 msgid "Failed to serialize user polygon"
 msgstr "Η αρχικοποίηση της αλληλουχίας FITS απέτυχε, γίνετε ακύρωση\n"
 
-#: src/io/siril_pythoncommands.c:2315
+#: src/io/siril_pythoncommands.c:2346
 msgid "No user polygons to serialize"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2321
+#: src/io/siril_pythoncommands.c:2352
 #, fuzzy
 msgid "Failed to serialize user polygon list"
 msgstr "Η αρχικοποίηση της αλληλουχίας FITS απέτυχε, γίνετε ακύρωση\n"
 
-#: src/io/siril_pythoncommands.c:2336 src/io/siril_pythoncommands.c:2342
-#: src/io/siril_pythoncommands.c:2348
+#: src/io/siril_pythoncommands.c:2367 src/io/siril_pythoncommands.c:2373
+#: src/io/siril_pythoncommands.c:2379
 #, fuzzy
 msgid "Argument error"
 msgstr "Σφάλμα"
 
-#: src/io/siril_pythoncommands.c:2402
+#: src/io/siril_pythoncommands.c:2433
 #, fuzzy
 msgid "Could not create the new sequence"
 msgstr "Δεν ήταν δυνατή η δημιουργία της ονομασμένης σωλήνωσης "
 
-#: src/io/siril_pythoncommands.c:2413
+#: src/io/siril_pythoncommands.c:2444
 msgid "Wrong mouse mode"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2423
+#: src/io/siril_pythoncommands.c:2454
 msgid "Invalid payload for CMD_DRAW_POLYGON"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2431
+#: src/io/siril_pythoncommands.c:2479 src/io/siril_pythoncommands.c:2580
+#, fuzzy
+msgid "Invalid filepath length"
+msgstr "Δεν υπάρχει επιλογή"
+
+#: src/io/siril_pythoncommands.c:2491 src/io/siril_pythoncommands.c:2592
+msgid "File does not exist or is not accessible"
+msgstr ""
+
+#: src/io/siril_pythoncommands.c:2501 src/io/siril_pythoncommands.c:2607
+#, fuzzy
+msgid "Failed to read image file"
+msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας εισόδου, γίνεται ματαίωση\n"
+
+#: src/io/siril_pythoncommands.c:2520
+#, fuzzy
+msgid "Memory allocation error: response buffer"
+msgstr "ομαλοποίηση"
+
+#: src/io/siril_pythoncommands.c:2530
+msgid "fits_to_py conversion error"
+msgstr ""
+
+#: src/io/siril_pythoncommands.c:2538
+msgid "keywords_to_py conversion error"
+msgstr ""
+
+#: src/io/siril_pythoncommands.c:2548
+#, fuzzy
+msgid "Shared memory allocation error"
+msgstr "ομαλοποίηση"
+
+#: src/io/siril_pythoncommands.c:2687
+#, fuzzy
+msgid "No analysis available"
+msgstr "Δεν είναι διαθέσιμο"
+
+#: src/io/siril_pythoncommands.c:2698
 #, fuzzy
 msgid "Unknown command"
 msgstr "άγνωστη παράμετρος γραμμής εντολής '%c'\n"
@@ -29356,7 +29400,7 @@ msgstr "Απέτυχε η δημιουργία του αρχείου εξόδο�
 
 #: src/io/siril_pythonmodule.c:335
 #, fuzzy
-msgid "Failed to retrieve pixel data - no image loaded"
+msgid "Failed to retrieve pixel data - no FITS image"
 msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
 
 #: src/io/siril_pythonmodule.c:360 src/io/siril_pythonmodule.c:369
