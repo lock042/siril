@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-01 13:34+0200\n"
-"PO-Revision-Date: 2025-08-21 20:50+0000\n"
+"PO-Revision-Date: 2025-09-01 11:48+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -8597,6 +8597,9 @@ msgid ""
 "Type here to filter the list of scripts. The search matches any part of the "
 "script name. Filtering is case-insensitive and updates instantly as you type."
 msgstr ""
+"Tapez ici pour filtrer la liste des scripts. La recherche correspond à "
+"n'importe quelle partie du nom du script. Le filtrage n'est pas sensible à "
+"la casse et se met à jour instantanément au fur et à mesure que vous tapez."
 
 #: src/gui/uifiles/settings_window.ui:5203
 msgid ""
@@ -31945,41 +31948,36 @@ msgid "Invalid payload for CMD_DRAW_POLYGON"
 msgstr "Chargement non valide pour CMD_DRAW_POLYGON"
 
 #: src/io/siril_pythoncommands.c:2479 src/io/siril_pythoncommands.c:2580
-#, fuzzy
 msgid "Invalid filepath length"
-msgstr "Longueur de la charge utile non valide"
+msgstr "Longueur du chemin d'accès au fichier non valide"
 
 #: src/io/siril_pythoncommands.c:2491 src/io/siril_pythoncommands.c:2592
 msgid "File does not exist or is not accessible"
-msgstr ""
+msgstr "Le fichier n'existe pas ou n'est pas accessible"
 
 #: src/io/siril_pythoncommands.c:2501 src/io/siril_pythoncommands.c:2607
-#, fuzzy
 msgid "Failed to read image file"
-msgstr "Échec de l'allocation de la mémoire tampon de l'image"
+msgstr "Échec de la lecture du fichier image"
 
 #: src/io/siril_pythoncommands.c:2520
-#, fuzzy
 msgid "Memory allocation error: response buffer"
-msgstr "Erreur d'allocation mémoire"
+msgstr "Erreur d'allocation de mémoire : tampon de réponse"
 
 #: src/io/siril_pythoncommands.c:2530
 msgid "fits_to_py conversion error"
-msgstr ""
+msgstr "Erreur de conversion fits_to_py"
 
 #: src/io/siril_pythoncommands.c:2538
 msgid "keywords_to_py conversion error"
-msgstr ""
+msgstr "Erreur de conversion keywords_to_py"
 
 #: src/io/siril_pythoncommands.c:2548
-#, fuzzy
 msgid "Shared memory allocation error"
-msgstr "erreur d'allocation de mémoire"
+msgstr "Erreur d'allocation de mémoire partagée"
 
 #: src/io/siril_pythoncommands.c:2687
-#, fuzzy
 msgid "No analysis available"
-msgstr "Aucune regdata disponible"
+msgstr "Aucune analyse disponible"
 
 #: src/io/siril_pythoncommands.c:2698
 msgid "Unknown command"
@@ -32011,10 +32009,8 @@ msgid "Failed to map shared memory: %s\n"
 msgstr "Échec du mappage de la mémoire partagée : %s\n"
 
 #: src/io/siril_pythonmodule.c:335
-#, fuzzy
 msgid "Failed to retrieve pixel data - no FITS image"
-msgstr ""
-"Échec de la récupération des données de pixels - aucune image n'a été chargée"
+msgstr "Échec de la récupération des données pixel - aucune image FITS"
 
 #: src/io/siril_pythonmodule.c:360 src/io/siril_pythonmodule.c:369
 #: src/io/siril_pythonmodule.c:378 src/io/siril_pythonmodule.c:482
