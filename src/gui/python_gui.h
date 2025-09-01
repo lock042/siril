@@ -16,16 +16,21 @@ typedef struct {
 } SearchData;
 
 typedef struct {
+    GtkSourceBuffer *buffer;
+    GFile *file;
+    gchar *title;
+    gint language;
+    gboolean modified;
+    gint ref_count; // Number of tabs using this buffer
+} SharedBufferInfo;
+
+typedef struct {
     GtkWidget *tab_widget;
     GtkLabel *tab_label;
     GtkSourceView *source_view;
-    GtkSourceBuffer *source_buffer;  // Changed from GtkTextBuffer
+    SharedBufferInfo *shared_buffer; // Replaced individual buffer fields
     GtkSourceMap *minimap;
-    GFile *file;
-    gboolean modified;
-    gint language;
     SearchData *search_data;
-    gchar *title;
     GtkSourceSpaceDrawer *space_drawer;
 } TabInfo;
 

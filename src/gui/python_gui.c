@@ -66,6 +66,7 @@ static GtkButton *go_up_button = NULL;
 static GtkButton *go_down_button = NULL;
 
 static GList *tabs = NULL;
+static GList *shared_buffers = NULL;
 static TabInfo *current_tab = NULL;
 static gboolean from_cli = FALSE;
 static gboolean python_debug = FALSE;
@@ -86,11 +87,14 @@ void on_cut(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data);
-static void on_tab_buffer_modified_changed(GtkTextBuffer *buffer, TabInfo *tab);
 void set_language();
 void setup_search_for_tab(TabInfo *tab);
 static void apply_editor_settings_to_tab(TabInfo *tab);
-
+static SharedBufferInfo* create_shared_buffer(GFile *file, const gchar *title, const gchar *content, gint language);
+static SharedBufferInfo* find_shared_buffer_by_file(GFile *file);
+static void shared_buffer_ref(SharedBufferInfo *shared_buffer);
+static void shared_buffer_unref(SharedBufferInfo *shared_buffer);
+static void on_shared_buffer_modified_changed(GtkTextBuffer *buffer, SharedBufferInfo *shared_buffer);
 // Tab management functions
 static TabInfo* find_tab_by_widget(GtkWidget *widget);
 static void update_current_tab(gint current_page);
@@ -101,6 +105,76 @@ static void close_tab(TabInfo *tab);
 static void on_tab_close_clicked(GtkButton *button, TabInfo *tab);
 static void on_notebook_switch_page(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer user_data);
 static void apply_editor_settings_to_tab(TabInfo *tab);
+
+static SharedBufferInfo* create_shared_buffer(GFile *file, const gchar *title, const gchar *content, gint language) {
+    SharedBufferInfo *shared_buffer = g_new0(SharedBufferInfo, 1);
+
+    shared_buffer->buffer = gtk_source_buffer_new(NULL);
+    shared_buffer->file = file ? g_object_ref(file) : NULL;
+    shared_buffer->title = g_strdup(title ? title : "untitled");
+    shared_buffer->language = language;
+    shared_buffer->modified = FALSE;
+    shared_buffer->ref_count = 1;
+
+    if (content) {
+        gtk_text_buffer_set_text(GTK_TEXT_BUFFER(shared_buffer->buffer), content, -1);
+    }
+
+    // Connect modified signal to the shared buffer
+    g_signal_connect(shared_buffer->buffer, "modified-changed",
+                     G_CALLBACK(on_shared_buffer_modified_changed), shared_buffer);
+
+    shared_buffers = g_list_append(shared_buffers, shared_buffer);
+
+    return shared_buffer;
+}
+
+static SharedBufferInfo* find_shared_buffer_by_file(GFile *file) {
+    if (!file) return NULL;
+
+    for (GList *l = shared_buffers; l; l = l->next) {
+        SharedBufferInfo *shared_buffer = l->data;
+        if (shared_buffer->file && g_file_equal(shared_buffer->file, file)) {
+            return shared_buffer;
+        }
+    }
+    return NULL;
+}
+
+static void shared_buffer_ref(SharedBufferInfo *shared_buffer) {
+    if (shared_buffer) {
+        shared_buffer->ref_count++;
+    }
+}
+
+static void shared_buffer_unref(SharedBufferInfo *shared_buffer) {
+    if (!shared_buffer) return;
+
+    shared_buffer->ref_count--;
+
+    if (shared_buffer->ref_count <= 0) {
+        // Remove from global list
+        shared_buffers = g_list_remove(shared_buffers, shared_buffer);
+
+        // Clean up
+        if (shared_buffer->file) g_object_unref(shared_buffer->file);
+        g_free(shared_buffer->title);
+        g_object_unref(shared_buffer->buffer);
+        g_free(shared_buffer);
+    }
+}
+
+static void on_shared_buffer_modified_changed(GtkTextBuffer *buffer, SharedBufferInfo *shared_buffer) {
+    shared_buffer->modified = gtk_text_buffer_get_modified(buffer);
+
+    // Update all tabs that use this shared buffer
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *tab = l->data;
+        if (tab->shared_buffer == shared_buffer) {
+            update_tab_title(tab);
+        }
+    }
+}
 
 static GActionEntry editor_actions[] = {
 	{ "open", on_action_file_open, NULL, NULL, NULL },
@@ -121,14 +195,13 @@ static GActionEntry editor_actions[] = {
 };
 
 void set_code_view_theme() {
-	// Set the style scheme based on whether the Siril theme is light or dark
-	// The core "Classic" and "Oblivion" themes are used: these should always be available
-	stylemanager = gtk_source_style_scheme_manager_get_default();
-	scheme = gtk_source_style_scheme_manager_get_scheme(stylemanager,
-										com.pref.gui.combo_theme == 0 ? "oblivion" : "classic");
-	if (scheme && current_tab) {
-		gtk_source_buffer_set_style_scheme(current_tab->source_buffer, scheme);
-	}
+    // Set the style scheme based on whether the Siril theme is light or dark
+    stylemanager = gtk_source_style_scheme_manager_get_default();
+    scheme = gtk_source_style_scheme_manager_get_scheme(stylemanager,
+                                        com.pref.gui.combo_theme == 0 ? "oblivion" : "classic");
+    if (scheme && current_tab) {
+        gtk_source_buffer_set_style_scheme(current_tab->shared_buffer->buffer, scheme);
+    }
 }
 
 gboolean code_view_exists() {
@@ -155,56 +228,58 @@ static void setup_editor_actions(GtkWindow *window) {
 }
 
 gboolean script_editor_has_unsaved_changes() {
-	for (GList *l = tabs; l; l = l->next) {
-		TabInfo *tab = l->data;
-		if (tab->modified) {
-			return TRUE;
-		}
-	}
-	return FALSE;
+    for (GList *l = shared_buffers; l; l = l->next) {
+        SharedBufferInfo *shared_buffer = l->data;
+        if (shared_buffer->modified) {
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 static void set_source_view_properties(GtkSourceView *source_view, GtkSourceBuffer *source_buffer) {
-	// Set the GtkSourceView style depending on whether the Siril light or dark
-	// theme is set.
-	if (scheme) {
-		gtk_source_buffer_set_style_scheme(source_buffer, scheme);
-	}
+    // Set the GtkSourceView style depending on whether the Siril light or dark
+    // theme is set.
+    if (scheme) {
+        gtk_source_buffer_set_style_scheme(source_buffer, scheme);
+    }
 
-	// Get the GtkSourceLanguageManager and set the Python language
-	if (!language_manager) {
-		language_manager = gtk_source_language_manager_get_default();
-	}
-	language = gtk_source_language_manager_get_language(language_manager, "python3");
-	if (language == NULL) {
-		siril_debug_print("Could not find Python language definition\n");
-	} else {
-		gtk_source_buffer_set_language(source_buffer, language);
-	}
+    // Get the GtkSourceLanguageManager and set the Python language
+    if (!language_manager) {
+        language_manager = gtk_source_language_manager_get_default();
+    }
+    language = gtk_source_language_manager_get_language(language_manager, "python3");
+    if (language == NULL) {
+        siril_debug_print("Could not find Python language definition\n");
+    } else {
+        gtk_source_buffer_set_language(source_buffer, language);
+    }
 
-	// Force monospace
-	GtkCssProvider *css = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(css, "* { font-family: monospace;}",-1,NULL);
-	GtkStyleContext *context = gtk_widget_get_style_context(GTK_WIDGET(source_view));
-	gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
-	g_object_unref(css);
+    // Force monospace
+    GtkCssProvider *css = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(css, "* { font-family: monospace;}",-1,NULL);
+    GtkStyleContext *context = gtk_widget_get_style_context(GTK_WIDGET(source_view));
+    gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
+    g_object_unref(css);
 
-	// Enable syntax highlighting
-	gtk_source_buffer_set_highlight_syntax(source_buffer, TRUE);
+    // Enable syntax highlighting
+    gtk_source_buffer_set_highlight_syntax(source_buffer, TRUE);
 }
 
 static TabInfo* create_new_tab(const gchar *title, const gchar *content) {
     TabInfo *tab = g_new0(TabInfo, 1);
 
+    // Create or find shared buffer
+    tab->shared_buffer = create_shared_buffer(NULL, title, content, LANG_PYTHON);
+
     // Create tab content container
     GtkWidget *tab_content = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-    // Create source view and buffer
-    tab->source_buffer = gtk_source_buffer_new(NULL);
-    tab->source_view = GTK_SOURCE_VIEW(gtk_source_view_new_with_buffer(tab->source_buffer));
+    // Create source view with shared buffer
+    tab->source_view = GTK_SOURCE_VIEW(gtk_source_view_new_with_buffer(tab->shared_buffer->buffer));
 
     // Apply styling and properties
-    set_source_view_properties(tab->source_view, tab->source_buffer);
+    set_source_view_properties(tab->source_view, tab->shared_buffer->buffer);
 
     // Create scrolled window for source view FIRST
     GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
@@ -243,7 +318,7 @@ static TabInfo* create_new_tab(const gchar *title, const gchar *content) {
                                                 space_types);
     gtk_source_space_drawer_set_enable_matrix(tab->space_drawer, TRUE);
 
-    // Pack into tab content - FIX: Ensure proper packing order and properties
+    // Pack into tab content
     gtk_box_pack_start(GTK_BOX(tab_content), scrolled, TRUE, TRUE, 0);
     gtk_box_pack_end(GTK_BOX(tab_content), GTK_WIDGET(tab->minimap), FALSE, FALSE, 0);
 
@@ -261,23 +336,10 @@ static TabInfo* create_new_tab(const gchar *title, const gchar *content) {
     gint page_num = gtk_notebook_append_page(notebook, tab_content, tab_label_box);
     tab->tab_widget = tab_content;
 
-    // Set initial content
-    if (content) {
-        gtk_text_buffer_set_text(GTK_TEXT_BUFFER(tab->source_buffer), content, -1);
-    }
-
-    // Initialize other properties
-    tab->file = NULL;
-    tab->modified = FALSE;
-    tab->language = LANG_PYTHON;
-    tab->title = g_strdup(title ? title : "untitled");
-
     // Setup search for this tab
     setup_search_for_tab(tab);
 
     // Connect signals
-    g_signal_connect(tab->source_buffer, "modified-changed",
-                     G_CALLBACK(on_tab_buffer_modified_changed), tab);
     g_signal_connect(close_button, "clicked",
                      G_CALLBACK(on_tab_close_clicked), tab);
 
@@ -285,7 +347,96 @@ static TabInfo* create_new_tab(const gchar *title, const gchar *content) {
     tabs = g_list_append(tabs, tab);
 
     gtk_widget_show_all(tab_content);
+    gtk_notebook_set_current_page(notebook, page_num);
 
+    // Apply editor settings to the new tab
+    apply_editor_settings_to_tab(tab);
+
+    return tab;
+}
+
+static TabInfo* create_new_tab_with_shared_buffer(SharedBufferInfo *shared_buffer) {
+    TabInfo *tab = g_new0(TabInfo, 1);
+
+    // Reference the shared buffer
+    tab->shared_buffer = shared_buffer;
+    shared_buffer_ref(shared_buffer);
+
+    // Create tab content container
+    GtkWidget *tab_content = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+
+    // Create source view with shared buffer
+    tab->source_view = GTK_SOURCE_VIEW(gtk_source_view_new_with_buffer(shared_buffer->buffer));
+
+    // Apply styling and properties
+    set_source_view_properties(tab->source_view, shared_buffer->buffer);
+
+    // Create scrolled window for source view
+    GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled),
+                                  GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(scrolled), GTK_WIDGET(tab->source_view));
+
+    // Create minimap
+    tab->minimap = GTK_SOURCE_MAP(gtk_source_map_new());
+
+    // Apply CSS to force font size to 1 for minimap
+    GtkCssProvider* provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(provider,
+        "* { font-size: 1px; }",
+        -1, NULL);
+    gtk_style_context_add_provider(
+        gtk_widget_get_style_context(GTK_WIDGET(tab->minimap)),
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_USER
+    );
+    g_object_unref(provider);
+
+    gtk_widget_show(GTK_WIDGET(tab->minimap));
+    gtk_source_map_set_view(tab->minimap, tab->source_view);
+
+    // Get the space drawer for this source view
+    tab->space_drawer = gtk_source_view_get_space_drawer(tab->source_view);
+
+    // Configure which types of spaces to show
+    GtkSourceSpaceTypeFlags space_types = 0;
+    GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
+
+    // Enable space drawing with marks
+    gtk_source_space_drawer_set_types_for_locations(tab->space_drawer,
+                                                space_locations,
+                                                space_types);
+    gtk_source_space_drawer_set_enable_matrix(tab->space_drawer, TRUE);
+
+    // Pack into tab content
+    gtk_box_pack_start(GTK_BOX(tab_content), scrolled, TRUE, TRUE, 0);
+    gtk_box_pack_end(GTK_BOX(tab_content), GTK_WIDGET(tab->minimap), FALSE, FALSE, 0);
+
+    // Create tab label with close button
+    GtkWidget *tab_label_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    tab->tab_label = GTK_LABEL(gtk_label_new(shared_buffer->title));
+    GtkWidget *close_button = gtk_button_new_from_icon_name("window-close-symbolic", GTK_ICON_SIZE_MENU);
+    gtk_button_set_relief(GTK_BUTTON(close_button), GTK_RELIEF_NONE);
+
+    gtk_box_pack_start(GTK_BOX(tab_label_box), GTK_WIDGET(tab->tab_label), FALSE, FALSE, 0);
+    gtk_box_pack_end(GTK_BOX(tab_label_box), close_button, FALSE, FALSE, 0);
+    gtk_widget_show_all(tab_label_box);
+
+    // Add tab to notebook
+    gint page_num = gtk_notebook_append_page(notebook, tab_content, tab_label_box);
+    tab->tab_widget = tab_content;
+
+    // Setup search for this tab
+    setup_search_for_tab(tab);
+
+    // Connect signals
+    g_signal_connect(close_button, "clicked",
+                     G_CALLBACK(on_tab_close_clicked), tab);
+
+    // Add to tabs list
+    tabs = g_list_append(tabs, tab);
+
+    gtk_widget_show_all(tab_content);
     gtk_notebook_set_current_page(notebook, page_num);
 
     // Apply editor settings to the new tab
@@ -301,32 +452,29 @@ static void close_tab(TabInfo *tab) {
     if (g_list_length(tabs) <= 1) {
         // Clear the content but keep the tab
         GtkTextIter start, end;
-        gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(tab->source_buffer), &start, &end);
-        if (tab->modified && !siril_confirm_dialog(_("Are you sure?"),
+        gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(tab->shared_buffer->buffer), &start, &end);
+        if (tab->shared_buffer->modified && !siril_confirm_dialog(_("Are you sure?"),
                                                    _("This will clear the entry buffer. You will not be able to recover any contents."),
                                                    _("Proceed"))) {
             return;
         }
 
-        if (tab->file) {
-            g_object_unref(tab->file);
-            tab->file = NULL;
-        }
+        // Unreference current shared buffer and create a new empty one
+        shared_buffer_unref(tab->shared_buffer);
+        tab->shared_buffer = create_shared_buffer(NULL, "untitled", NULL, LANG_PYTHON);
 
-        gtk_source_buffer_begin_not_undoable_action(tab->source_buffer);
-        gtk_text_buffer_delete(GTK_TEXT_BUFFER(tab->source_buffer), &start, &end);
-        tab->modified = FALSE;
-        gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(tab->source_buffer), FALSE);
-        gtk_source_buffer_end_not_undoable_action(tab->source_buffer);
+        // Update the source view to use the new buffer
+        gtk_text_view_set_buffer(GTK_TEXT_VIEW(tab->source_view), GTK_TEXT_BUFFER(tab->shared_buffer->buffer));
+        set_source_view_properties(tab->source_view, tab->shared_buffer->buffer);
+        setup_search_for_tab(tab);
+        apply_editor_settings_to_tab(tab);
 
-        g_free(tab->title);
-        tab->title = g_strdup("untitled");
         update_tab_title(tab);
         return;
     }
 
     // Check for unsaved changes
-    if (tab->modified) {
+    if (tab->shared_buffer->modified) {
         if (!siril_confirm_dialog(_("Are you sure?"),
                                   _("This tab has unsaved changes. Close anyway?"),
                                   _("Close"))) {
@@ -339,9 +487,8 @@ static void close_tab(TabInfo *tab) {
     gtk_notebook_remove_page(notebook, page_num);
 
     // Clean up tab data
-    if (tab->file) g_object_unref(tab->file);
+    shared_buffer_unref(tab->shared_buffer);
     if (tab->search_data) g_free(tab->search_data);
-    g_free(tab->title);
 
     // Remove from list
     tabs = g_list_remove(tabs, tab);
@@ -388,12 +535,12 @@ static void update_ui_for_current_tab() {
 
     // Update language label
     gtk_label_set_text(language_label,
-                      current_tab->language == LANG_PYTHON ?
+                      current_tab->shared_buffer->language == LANG_PYTHON ?
                       _("Python Script") : _("Siril Script File"));
 
     // Update menu items
-    gtk_check_menu_item_set_active(radio_py, current_tab->language == LANG_PYTHON);
-    gtk_check_menu_item_set_active(radio_ssf, current_tab->language == LANG_SSF);
+    gtk_check_menu_item_set_active(radio_py, current_tab->shared_buffer->language == LANG_PYTHON);
+    gtk_check_menu_item_set_active(radio_ssf, current_tab->shared_buffer->language == LANG_SSF);
 
     // Update style scheme for current tab
     set_code_view_theme();
@@ -412,16 +559,16 @@ static void update_tab_title(TabInfo *tab) {
     if (!tab) return;
 
     gchar *display_title;
-    if (tab->file) {
-        char *basename = g_file_get_basename(tab->file);
-        if (tab->modified) {
+    if (tab->shared_buffer->file) {
+        char *basename = g_file_get_basename(tab->shared_buffer->file);
+        if (tab->shared_buffer->modified) {
             display_title = g_strdup_printf("%s*", basename);
         } else {
             display_title = g_strdup(basename);
         }
         g_free(basename);
     } else {
-        if (tab->modified) {
+        if (tab->shared_buffer->modified) {
             display_title = g_strdup("untitled*");
         } else {
             display_title = g_strdup("untitled");
@@ -440,8 +587,8 @@ static void apply_editor_settings_to_tab(TabInfo *tab) {
     if (!tab) return;
 
     // Apply all the editor preferences to this tab
-    gtk_source_buffer_set_highlight_syntax(tab->source_buffer, com.pref.gui.editor_cfg.highlight_syntax);
-    gtk_source_buffer_set_highlight_matching_brackets(tab->source_buffer, com.pref.gui.editor_cfg.highlight_bracketmatch);
+    gtk_source_buffer_set_highlight_syntax(tab->shared_buffer->buffer, com.pref.gui.editor_cfg.highlight_syntax);
+    gtk_source_buffer_set_highlight_matching_brackets(tab->shared_buffer->buffer, com.pref.gui.editor_cfg.highlight_bracketmatch);
     gtk_source_view_set_show_right_margin(tab->source_view, com.pref.gui.editor_cfg.rmargin);
     gtk_source_view_set_right_margin_position(tab->source_view, com.pref.gui.editor_cfg.rmargin_pos);
     gtk_source_view_set_show_line_numbers(tab->source_view, com.pref.gui.editor_cfg.show_linenums);
@@ -799,20 +946,20 @@ void on_find_entry_changed(GtkEntry *entry, SearchData *search_data) {
 }
 
 void setup_search_for_tab(TabInfo *tab) {
-	if (!tab) return;
+    if (!tab) return;
 
-	SearchData *search_data = g_new0(SearchData, 1);
-	search_data->source_view = tab->source_view;
-	search_data->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tab->source_view));
-	search_data->search_entry = find_entry; // Shared search entry
-	search_data->info_label = find_label;   // Shared info label
+    SearchData *search_data = g_new0(SearchData, 1);
+    search_data->source_view = tab->source_view;
+    search_data->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tab->source_view));
+    search_data->search_entry = find_entry; // Shared search entry
+    search_data->info_label = find_label;   // Shared info label
 
-	// Create search tag for this buffer
-	search_data->search_tag = gtk_text_buffer_create_tag(
-			search_data->buffer, "search_match",
-			"background", "yellow", "foreground", "black", NULL);
+    // Create search tag for this buffer
+    search_data->search_tag = gtk_text_buffer_create_tag(
+            search_data->buffer, "search_match",
+            "background", "yellow", "foreground", "black", NULL);
 
-	tab->search_data = search_data;
+    tab->search_data = search_data;
 }
 
 void setup_search(GtkSourceView *source_view, GtkEntry *search_entry) {
@@ -876,35 +1023,45 @@ void python_scratchpad_init_statics() {
 }
 
 static void update_title(GFile *file) {
-	if (!current_tab) return;
+    if (!current_tab) return;
 
-	if (file) {
-		char *basename = g_file_get_basename(file);
-		g_free(current_tab->title);
-		current_tab->title = g_strdup(basename);
+    if (file) {
+        char *basename = g_file_get_basename(file);
+        g_free(current_tab->shared_buffer->title);
+        current_tab->shared_buffer->title = g_strdup(basename);
 
-		char *suffix = strrchr(basename, '.');
-		if (suffix != NULL) {
-			if (g_ascii_strcasecmp(suffix, ".py") == 0) {
-				current_tab->language = LANG_PYTHON;
-				gtk_check_menu_item_set_active(radio_py, TRUE);
-			} else if (g_ascii_strcasecmp(suffix, ".ssf") == 0) {
-				current_tab->language = LANG_SSF;
-				gtk_check_menu_item_set_active(radio_ssf, TRUE);
-			}
-		}
+        char *suffix = strrchr(basename, '.');
+        if (suffix != NULL) {
+            if (g_ascii_strcasecmp(suffix, ".py") == 0) {
+                current_tab->shared_buffer->language = LANG_PYTHON;
+                gtk_check_menu_item_set_active(radio_py, TRUE);
+            } else if (g_ascii_strcasecmp(suffix, ".ssf") == 0) {
+                current_tab->shared_buffer->language = LANG_SSF;
+                gtk_check_menu_item_set_active(radio_ssf, TRUE);
+            }
+        }
 
-		g_free(basename);
-	} else {
-		g_free(current_tab->title);
-		current_tab->title = g_strdup("untitled");
-	}
+        g_free(basename);
+    } else {
+        g_free(current_tab->shared_buffer->title);
+        current_tab->shared_buffer->title = g_strdup("untitled");
+    }
 
-	current_tab->modified = FALSE;
-	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(current_tab->source_buffer), FALSE);
-	update_tab_title(current_tab);
-	set_language();
+    current_tab->shared_buffer->modified = FALSE;
+    gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(current_tab->shared_buffer->buffer), FALSE);
+
+    // Update all tabs that share this buffer
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *tab = l->data;
+        if (tab->shared_buffer == current_tab->shared_buffer) {
+            update_tab_title(tab);
+        }
+    }
+
+    set_language();
 }
+
+
 
 // File handling
 void load_file_complete(GObject *loader, GAsyncResult *result, gpointer user_data) {
@@ -917,31 +1074,51 @@ void load_file_complete(GObject *loader, GAsyncResult *result, gpointer user_dat
 }
 
 void load_file_into_tab(GFile *file, TabInfo *tab) {
-	if (!tab) return;
+    if (!tab) return;
 
-	GtkSourceFile *source_file = gtk_source_file_new();
-	gtk_source_file_set_location(source_file, file);
+    // Check if we already have a shared buffer for this file
+    SharedBufferInfo *existing_buffer = find_shared_buffer_by_file(file);
 
-	GtkSourceFileLoader *loader = gtk_source_file_loader_new(tab->source_buffer, source_file);
+    if (existing_buffer) {
+        // Use existing shared buffer
+        shared_buffer_unref(tab->shared_buffer);
+        tab->shared_buffer = existing_buffer;
+        shared_buffer_ref(existing_buffer);
 
-	// Start the async load operation
-	gtk_source_file_loader_load_async(loader,
-									G_PRIORITY_DEFAULT,
-									NULL,  // No cancellable
-									NULL,  // No progress callback
-									NULL,  // No progress data
-									NULL,  // No progress notify
-									load_file_complete,
-									tab); // Pass tab as user data
+        // Update the source view to use the existing buffer
+        gtk_text_view_set_buffer(GTK_TEXT_VIEW(tab->source_view), GTK_TEXT_BUFFER(existing_buffer->buffer));
+        set_source_view_properties(tab->source_view, existing_buffer->buffer);
+        setup_search_for_tab(tab);
+        apply_editor_settings_to_tab(tab);
 
-	// Update tab file reference
-	if (tab->file) g_object_unref(tab->file);
-	tab->file = g_object_ref(file);
-	update_title(file);
+        // Update tab title
+        update_tab_title(tab);
+    } else {
+        // Create new shared buffer and load file into it
+        GtkSourceFile *source_file = gtk_source_file_new();
+        gtk_source_file_set_location(source_file, file);
 
-	g_object_unref(source_file);
-	// loader will be unreferenced in the callback
+        GtkSourceFileLoader *loader = gtk_source_file_loader_new(tab->shared_buffer->buffer, source_file);
+
+        // Start the async load operation
+        gtk_source_file_loader_load_async(loader,
+                                        G_PRIORITY_DEFAULT,
+                                        NULL,  // No cancellable
+                                        NULL,  // No progress callback
+                                        NULL,  // No progress data
+                                        NULL,  // No progress notify
+                                        load_file_complete,
+                                        tab); // Pass tab as user data
+
+        // Update shared buffer file reference
+        if (tab->shared_buffer->file) g_object_unref(tab->shared_buffer->file);
+        tab->shared_buffer->file = g_object_ref(file);
+        update_title(file);
+
+        g_object_unref(source_file);
+    }
 }
+
 
 void load_file(GFile *file) {
 	if (current_tab) {
@@ -960,35 +1137,44 @@ void save_file_complete(GObject *saver, GAsyncResult *result, gpointer user_data
 }
 
 void save_tab_file(TabInfo *tab) {
-	if (!tab || !tab->file) return;
+    if (!tab || !tab->shared_buffer->file) return;
 
-	GtkSourceFile *source_file = gtk_source_file_new();
-	gtk_source_file_set_location(source_file, tab->file);
+    GtkSourceFile *source_file = gtk_source_file_new();
+    gtk_source_file_set_location(source_file, tab->shared_buffer->file);
 
-	GtkSourceFileSaver *saver = gtk_source_file_saver_new(tab->source_buffer, source_file);
+    GtkSourceFileSaver *saver = gtk_source_file_saver_new(tab->shared_buffer->buffer, source_file);
 
-	// Start the async save operation
-	gtk_source_file_saver_save_async(saver,
-								G_PRIORITY_DEFAULT,
-								NULL,  // No cancellable
-								NULL,  // No progress callback
-								NULL,  // No progress data
-								NULL,  // No progress notify
-								save_file_complete,
-								tab); // Pass tab as user data
-	tab->modified = FALSE;
-	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(tab->source_buffer), FALSE);
-	update_tab_title(tab);
-	g_object_unref(source_file);
+    // Start the async save operation
+    gtk_source_file_saver_save_async(saver,
+                                G_PRIORITY_DEFAULT,
+                                NULL,  // No cancellable
+                                NULL,  // No progress callback
+                                NULL,  // No progress data
+                                NULL,  // No progress notify
+                                save_file_complete,
+                                tab); // Pass tab as user data
+
+    tab->shared_buffer->modified = FALSE;
+    gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(tab->shared_buffer->buffer), FALSE);
+
+    // Update all tabs that share this buffer
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *other_tab = l->data;
+        if (other_tab->shared_buffer == tab->shared_buffer) {
+            update_tab_title(other_tab);
+        }
+    }
+
+    g_object_unref(source_file);
 }
 
 void save_file(GFile *file) {
-	// Legacy function - now saves current tab
-	if (current_tab) {
-		if (current_tab->file) g_object_unref(current_tab->file);
-		current_tab->file = g_object_ref(file);
-		save_tab_file(current_tab);
-	}
+    // Legacy function - now saves current tab
+    if (current_tab) {
+        if (current_tab->shared_buffer->file) g_object_unref(current_tab->shared_buffer->file);
+        current_tab->shared_buffer->file = g_object_ref(file);
+        save_tab_file(current_tab);
+    }
 }
 
 void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -998,22 +1184,22 @@ void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer use
 }
 
 void new_script(const gchar *contents, gint length, const char *ext) {
-	on_open_pythonpad(NULL, NULL);
+    on_open_pythonpad(NULL, NULL);
 
-	TabInfo *tab = create_new_tab("untitled", contents);
-	current_tab = tab;
+    TabInfo *tab = create_new_tab("untitled", contents);
+    current_tab = tab;
 
-	if (!g_ascii_strcasecmp(ext, "ssf")) {
-		current_tab->language = LANG_SSF;
-		gtk_check_menu_item_set_active(radio_ssf, TRUE);
-	} else {
-		current_tab->language = LANG_PYTHON;
-		gtk_check_menu_item_set_active(radio_py, TRUE);
-	}
+    if (!g_ascii_strcasecmp(ext, "ssf")) {
+        current_tab->shared_buffer->language = LANG_SSF;
+        gtk_check_menu_item_set_active(radio_ssf, TRUE);
+    } else {
+        current_tab->shared_buffer->language = LANG_PYTHON;
+        gtk_check_menu_item_set_active(radio_py, TRUE);
+    }
 
-	set_language();
-	gtk_window_present_with_time(editor_window, GDK_CURRENT_TIME);
-	update_ui_for_current_tab();
+    set_language();
+    gtk_window_present_with_time(editor_window, GDK_CURRENT_TIME);
+    update_ui_for_current_tab();
 }
 
 void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -1028,291 +1214,327 @@ void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer u
 }
 
 void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Open Script"),
-			GTK_WINDOW(lookup_widget("control_window")),
-			GTK_FILE_CHOOSER_ACTION_OPEN,
-			_("_Cancel"), GTK_RESPONSE_CANCEL,
-			_("_Open"), GTK_RESPONSE_ACCEPT,
-			NULL);
+    GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Open Script"),
+            GTK_WINDOW(lookup_widget("control_window")),
+            GTK_FILE_CHOOSER_ACTION_OPEN,
+            _("_Cancel"), GTK_RESPONSE_CANCEL,
+            _("_Open"), GTK_RESPONSE_ACCEPT,
+            NULL);
 
-	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter, "*.py");
-	gtk_file_filter_add_pattern(filter, "*.ssf");
-	gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+    GtkFileFilter *filter = gtk_file_filter_new();
+    gtk_file_filter_add_pattern(filter, "*.py");
+    gtk_file_filter_add_pattern(filter, "*.ssf");
+    gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
-	gint res = gtk_dialog_run(GTK_DIALOG(dialog));
-	if (res == GTK_RESPONSE_ACCEPT) {
-		GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
-		char *basename = g_file_get_basename(file);
+    gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+    if (res == GTK_RESPONSE_ACCEPT) {
+        GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
+        char *basename = g_file_get_basename(file);
 
-		// Create new tab for the file, unless in the "untitled" tab without unsaved changes
-		TabInfo *tab = NULL;
-		if (!current_tab ||
-				g_strcmp0(gtk_label_get_text(GTK_LABEL(current_tab->tab_label)), "untitled") != 0 ||
-				current_tab->modified) {
-			tab = create_new_tab(basename, NULL);
-			current_tab = tab;
-		} else {
-			tab = current_tab;
-		}
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		load_file_into_tab(file, tab);
+        // Check if we already have this file open in a shared buffer
+        SharedBufferInfo *existing_buffer = find_shared_buffer_by_file(file);
+        TabInfo *tab = NULL;
 
-		g_free(basename);
-		g_object_unref(file);
+        if (existing_buffer) {
+            // Create new tab with existing shared buffer
+            tab = create_new_tab_with_shared_buffer(existing_buffer);
+        } else {
+            // Create new tab for the file, unless in the "untitled" tab without unsaved changes
+            if (!current_tab ||
+                    g_strcmp0(current_tab->shared_buffer->title, "untitled") != 0 ||
+                    current_tab->shared_buffer->modified) {
+                tab = create_new_tab(basename, NULL);
+                current_tab = tab;
+            } else {
+                tab = current_tab;
+            }
+            load_file_into_tab(file, tab);
+        }
 
-		update_ui_for_current_tab();
-	}
+        current_tab = tab;
+        control_window_switch_to_tab(OUTPUT_LOGS);
 
-	gtk_widget_destroy(dialog);
-	gtk_window_present(editor_window);
+        g_free(basename);
+        g_object_unref(file);
+
+        update_ui_for_current_tab();
+    }
+
+    gtk_widget_destroy(dialog);
+    gtk_window_present(editor_window);
 }
 
+
 void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer user_data) {
-	gchar *uri;
-	GFile *file;
-	GError *error = NULL;
+    gchar *uri;
+    GFile *file;
+    GError *error = NULL;
 
-	uri = gtk_recent_chooser_get_current_uri(chooser);
-	if (!uri) {
-		g_warning("Failed to get URI from recent chooser");
-		return;
-	}
+    uri = gtk_recent_chooser_get_current_uri(chooser);
+    if (!uri) {
+        g_warning("Failed to get URI from recent chooser");
+        return;
+    }
 
-	file = g_file_new_for_uri(uri);
-	if (!file) {
-		g_warning("Failed to create GFile from URI: %s", uri);
-		g_free(uri);
-		return;
-	}
+    file = g_file_new_for_uri(uri);
+    if (!file) {
+        g_warning("Failed to create GFile from URI: %s", uri);
+        g_free(uri);
+        return;
+    }
 
-	if (!g_file_query_exists(file, NULL)) {
-		GtkWidget *dialog;
-		GtkRecentManager *manager;
+    if (!g_file_query_exists(file, NULL)) {
+        GtkWidget *dialog;
+        GtkRecentManager *manager;
 
-		manager = gtk_recent_manager_get_default();
+        manager = gtk_recent_manager_get_default();
 
-		gtk_recent_manager_remove_item(manager, uri, &error);
-		if (error != NULL) {
-			g_warning("Failed to remove recent item: %s", error->message);
-			g_error_free(error);
-		}
+        gtk_recent_manager_remove_item(manager, uri, &error);
+        if (error != NULL) {
+            g_warning("Failed to remove recent item: %s", error->message);
+            g_error_free(error);
+        }
 
-		dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "The file '%s' no longer exists.", uri);
-		gtk_dialog_run(GTK_DIALOG(dialog));
-		gtk_widget_destroy(dialog);
+        dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "The file '%s' no longer exists.", uri);
+        gtk_dialog_run(GTK_DIALOG(dialog));
+        gtk_widget_destroy(dialog);
 
-		g_object_unref(file);
-		g_free(uri);
-		return;
-	}
+        g_object_unref(file);
+        g_free(uri);
+        return;
+    }
 
-	// Create new tab for recent file
-	char *basename = g_file_get_basename(file);
-	// Create new tab for the file, unless in the "untitled" tab without unsaved changes
-	TabInfo *tab = NULL;
-	if (!current_tab ||
-			g_strcmp0(gtk_label_get_text(GTK_LABEL(current_tab->tab_label)), "untitled") != 0 ||
-			current_tab->modified) {
-		tab = create_new_tab(basename, NULL);
-		current_tab = tab;
-	} else {
-		tab = current_tab;
-	}
-	load_file_into_tab(file, tab);
-	update_ui_for_current_tab();
+    // Check if we already have this file open in a shared buffer
+    SharedBufferInfo *existing_buffer = find_shared_buffer_by_file(file);
+    TabInfo *tab = NULL;
 
-	g_free(basename);
-	g_object_unref(file);
-	g_free(uri);
+    if (existing_buffer) {
+        // Create new tab with existing shared buffer
+        tab = create_new_tab_with_shared_buffer(existing_buffer);
+    } else {
+        // Create new tab for the file, unless in the "untitled" tab without unsaved changes
+        char *basename = g_file_get_basename(file);
+        if (!current_tab ||
+                g_strcmp0(current_tab->shared_buffer->title, "untitled") != 0 ||
+                current_tab->shared_buffer->modified) {
+            tab = create_new_tab(basename, NULL);
+            current_tab = tab;
+        } else {
+            tab = current_tab;
+        }
+        load_file_into_tab(file, tab);
+        g_free(basename);
+    }
+
+    current_tab = tab;
+    update_ui_for_current_tab();
+
+    g_object_unref(file);
+    g_free(uri);
 }
 
 void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!current_tab) return;
+    if (!current_tab) return;
 
-	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Save Script As"),
-			GTK_WINDOW(lookup_widget("control_window")),
-			GTK_FILE_CHOOSER_ACTION_SAVE,
-			_("_Cancel"), GTK_RESPONSE_CANCEL,
-			_("_Save"), GTK_RESPONSE_ACCEPT,
-			NULL);
+    GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Save Script As"),
+            GTK_WINDOW(lookup_widget("control_window")),
+            GTK_FILE_CHOOSER_ACTION_SAVE,
+            _("_Cancel"), GTK_RESPONSE_CANCEL,
+            _("_Save"), GTK_RESPONSE_ACCEPT,
+            NULL);
 
-	// Enable overwrite confirmation
-	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
+    // Enable overwrite confirmation
+    gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
 
-	// Set up file filter for script files
-	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter, "*.py");
-	gtk_file_filter_add_pattern(filter, "*.ssf");
-	gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+    // Set up file filter for script files
+    GtkFileFilter *filter = gtk_file_filter_new();
+    gtk_file_filter_add_pattern(filter, "*.py");
+    gtk_file_filter_add_pattern(filter, "*.ssf");
+    gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
-	// If there's a current file, set it as the default
-	if (current_tab->file) {
-		gtk_file_chooser_set_file(GTK_FILE_CHOOSER(dialog), current_tab->file, NULL);
-	}
+    // If there's a current file, set it as the default
+    if (current_tab->shared_buffer->file) {
+        gtk_file_chooser_set_file(GTK_FILE_CHOOSER(dialog), current_tab->shared_buffer->file, NULL);
+    }
 
-	gint res = gtk_dialog_run(GTK_DIALOG(dialog));
-	if (res == GTK_RESPONSE_ACCEPT) {
-		GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
-		control_window_switch_to_tab(OUTPUT_LOGS);
+    gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+    if (res == GTK_RESPONSE_ACCEPT) {
+        GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
+        control_window_switch_to_tab(OUTPUT_LOGS);
 
-		// Update current_tab with the newly selected file
-		if (current_tab->file)
-			g_object_unref(current_tab->file);
-		current_tab->file = g_object_ref(file);
-		update_title(current_tab->file);
+        // Check if this file already has a shared buffer
+        SharedBufferInfo *existing_buffer = find_shared_buffer_by_file(file);
 
-		save_tab_file(current_tab);
-		g_object_unref(file);
-	}
+        if (existing_buffer && existing_buffer != current_tab->shared_buffer) {
+            // We're trying to save to a file that's already open in another buffer
+            // This would create a conflict, so warn the user
+            GtkWidget *warning_dialog = gtk_message_dialog_new(
+                GTK_WINDOW(editor_window),
+                GTK_DIALOG_MODAL,
+                GTK_MESSAGE_WARNING,
+                GTK_BUTTONS_OK,
+                _("The file '%s' is already open in another tab. Please close that tab first or choose a different filename."),
+                g_file_get_basename(file)
+            );
+            gtk_dialog_run(GTK_DIALOG(warning_dialog));
+            gtk_widget_destroy(warning_dialog);
+            g_object_unref(file);
+        } else {
+            // Update current shared buffer with the newly selected file
+            if (current_tab->shared_buffer->file)
+                g_object_unref(current_tab->shared_buffer->file);
+            current_tab->shared_buffer->file = g_object_ref(file);
+            update_title(current_tab->shared_buffer->file);
 
-	gtk_widget_destroy(dialog);
-	gtk_window_present(editor_window);
+            save_tab_file(current_tab);
+            g_object_unref(file);
+        }
+    }
+
+    gtk_widget_destroy(dialog);
+    gtk_window_present(editor_window);
 }
 
 void on_action_file_save(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!current_tab) return;
+    if (!current_tab) return;
 
-	if (!current_tab->file) {
-		// No file has been saved yet, so call Save As
-		on_action_file_save_as(action, parameter, user_data);
-		return;
-	}
+    if (!current_tab->shared_buffer->file) {
+        // No file has been saved yet, so call Save As
+        on_action_file_save_as(action, parameter, user_data);
+        return;
+    }
 
-	// We have a current file, just save directly to it
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	save_tab_file(current_tab);
+    // We have a current file, just save directly to it
+    control_window_switch_to_tab(OUTPUT_LOGS);
+    save_tab_file(current_tab);
 }
+
 
 int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
-	if (!editor_window) {
-		python_scratchpad_init_statics();
-	}
+    if (!editor_window) {
+        python_scratchpad_init_statics();
+    }
 
-	// This is a normal window with normal decorations
-	gtk_window_set_type_hint(GTK_WINDOW(editor_window), GDK_WINDOW_TYPE_HINT_NORMAL);
+    // This is a normal window with normal decorations
+    gtk_window_set_type_hint(GTK_WINDOW(editor_window), GDK_WINDOW_TYPE_HINT_NORMAL);
 
-	// Decouple window behaviour from main window
-	gtk_window_set_transient_for(editor_window, NULL);
-	// (Note, if the editor window is minimized and there isn't an icon in the system tray
-	// it can be restored just by clicking on the script editor menu item again - no work
-	// will be lost...)
+    // Decouple window behaviour from main window
+    gtk_window_set_transient_for(editor_window, NULL);
 
-	// Hide on delete
-	g_signal_connect(editor_window, "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+    // Hide on delete
+    g_signal_connect(editor_window, "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 
-	setup_editor_actions(editor_window);
+    setup_editor_actions(editor_window);
 
-	// If the window isn't visible, let's position it relative to the main window
-	if (!gtk_widget_get_visible(GTK_WIDGET(editor_window))) {
-		// Get the main window's position and size
-		gint main_x, main_y, main_width, main_height;
-		gtk_window_get_position(main_window, &main_x, &main_y);
-		gtk_window_get_size(main_window, &main_width, &main_height);
+    // If the window isn't visible, let's position it relative to the main window
+    if (!gtk_widget_get_visible(GTK_WIDGET(editor_window))) {
+        // Get the main window's position and size
+        gint main_x, main_y, main_width, main_height;
+        gtk_window_get_position(main_window, &main_x, &main_y);
+        gtk_window_get_size(main_window, &main_width, &main_height);
 
-		// Position the editor window slightly offset from the main window
-		// This creates a cascading effect common in MDI applications
-		gtk_window_move(editor_window, main_x + 50, main_y + 50);
-	}
+        // Position the editor window slightly offset from the main window
+        gtk_window_move(editor_window, main_x + 50, main_y + 50);
+    }
 
-	if (current_tab) {
-		gtk_label_set_text(language_label, current_tab->language == LANG_PYTHON ? _("Python Script") : _("Siril Script File"));
-	}
+    if (current_tab) {
+        gtk_label_set_text(language_label, current_tab->shared_buffer->language == LANG_PYTHON ? _("Python Script") : _("Siril Script File"));
+    }
 
-	// Show the window and bring it to front
-	gtk_window_present_with_time(editor_window, GDK_CURRENT_TIME);
+    // Show the window and bring it to front
+    gtk_window_present_with_time(editor_window, GDK_CURRENT_TIME);
 
-	if (current_tab) {
-		// Set the correct check menu item active
-		gtk_check_menu_item_set_active(radio_py, current_tab->language == LANG_PYTHON);
-		gtk_check_menu_item_set_active(radio_ssf, current_tab->language == LANG_SSF);
+    if (current_tab) {
+        // Set the correct check menu item active
+        gtk_check_menu_item_set_active(radio_py, current_tab->shared_buffer->language == LANG_PYTHON);
+        gtk_check_menu_item_set_active(radio_ssf, current_tab->shared_buffer->language == LANG_SSF);
 
-		// Set the right margin position
-		gtk_source_view_set_right_margin_position(current_tab->source_view, com.pref.gui.editor_cfg.rmargin_pos);
+        // Set the right margin position
+        gtk_source_view_set_right_margin_position(current_tab->source_view, com.pref.gui.editor_cfg.rmargin_pos);
 
-		// Focus the SourceView
-		gtk_widget_grab_focus(GTK_WIDGET(current_tab->source_view));
-	}
+        // Focus the SourceView
+        gtk_widget_grab_focus(GTK_WIDGET(current_tab->source_view));
+    }
 
-	// Initialize the View menu based on com.pref.gui.editor_cfg
-	gtk_check_menu_item_set_active(syncheck, com.pref.gui.editor_cfg.highlight_syntax);
-	gtk_check_menu_item_set_active(bracketcheck, com.pref.gui.editor_cfg.highlight_bracketmatch);
-	gtk_check_menu_item_set_active(rmargincheck, com.pref.gui.editor_cfg.rmargin);
-	gtk_check_menu_item_set_active(linenumcheck, com.pref.gui.editor_cfg.show_linenums);
-	gtk_check_menu_item_set_active(linemarkcheck, com.pref.gui.editor_cfg.show_linemarks);
-	gtk_check_menu_item_set_active(currentlinecheck, com.pref.gui.editor_cfg.highlight_currentline);
-	gtk_check_menu_item_set_active(autoindentcheck, com.pref.gui.editor_cfg.autoindent);
-	gtk_check_menu_item_set_active(indenttabcheck, com.pref.gui.editor_cfg.indentontab);
-	gtk_check_menu_item_set_active(smartbscheck, com.pref.gui.editor_cfg.smartbs);
-	gtk_check_menu_item_set_active(homeendcheck, com.pref.gui.editor_cfg.smarthomeend);
-	gtk_check_menu_item_set_active(showspaces, com.pref.gui.editor_cfg.showspaces);
-	gtk_check_menu_item_set_active(shownewlines, com.pref.gui.editor_cfg.shownewlines);
-	gtk_check_menu_item_set_active(minimap, com.pref.gui.editor_cfg.minimap);
-	if (current_tab) {
-		gtk_widget_set_visible(GTK_WIDGET(current_tab->minimap), com.pref.gui.editor_cfg.minimap);
-	}
-	gtk_widget_set_visible(GTK_WIDGET(args_box), gtk_check_menu_item_get_active(useargs));
-	return 0;
-}
-
-void on_undo(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!current_tab) return;
-
-	if (gtk_source_buffer_can_undo(current_tab->source_buffer)) {
-		gtk_source_buffer_undo(current_tab->source_buffer);
-	}
-}
-
-void on_redo(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!current_tab) return;
-
-	if (gtk_source_buffer_can_redo(current_tab->source_buffer)) {
-		gtk_source_buffer_redo(current_tab->source_buffer);
-	}
+    // Initialize the View menu based on com.pref.gui.editor_cfg
+    gtk_check_menu_item_set_active(syncheck, com.pref.gui.editor_cfg.highlight_syntax);
+    gtk_check_menu_item_set_active(bracketcheck, com.pref.gui.editor_cfg.highlight_bracketmatch);
+    gtk_check_menu_item_set_active(rmargincheck, com.pref.gui.editor_cfg.rmargin);
+    gtk_check_menu_item_set_active(linenumcheck, com.pref.gui.editor_cfg.show_linenums);
+    gtk_check_menu_item_set_active(linemarkcheck, com.pref.gui.editor_cfg.show_linemarks);
+    gtk_check_menu_item_set_active(currentlinecheck, com.pref.gui.editor_cfg.highlight_currentline);
+    gtk_check_menu_item_set_active(autoindentcheck, com.pref.gui.editor_cfg.autoindent);
+    gtk_check_menu_item_set_active(indenttabcheck, com.pref.gui.editor_cfg.indentontab);
+    gtk_check_menu_item_set_active(smartbscheck, com.pref.gui.editor_cfg.smartbs);
+    gtk_check_menu_item_set_active(homeendcheck, com.pref.gui.editor_cfg.smarthomeend);
+    gtk_check_menu_item_set_active(showspaces, com.pref.gui.editor_cfg.showspaces);
+    gtk_check_menu_item_set_active(shownewlines, com.pref.gui.editor_cfg.shownewlines);
+    gtk_check_menu_item_set_active(minimap, com.pref.gui.editor_cfg.minimap);
+    if (current_tab) {
+        gtk_widget_set_visible(GTK_WIDGET(current_tab->minimap), com.pref.gui.editor_cfg.minimap);
+    }
+    gtk_widget_set_visible(GTK_WIDGET(args_box), gtk_check_menu_item_get_active(useargs));
+    return 0;
 }
 
 void on_cut(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!current_tab) return;
+    if (!current_tab) return;
 
-	GtkTextBuffer *buffer = GTK_TEXT_BUFFER(current_tab->source_buffer);
-	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(current_tab->source_view), GDK_SELECTION_CLIPBOARD);
-	GtkTextIter start, end;
+    GtkTextBuffer *buffer = GTK_TEXT_BUFFER(current_tab->shared_buffer->buffer);
+    GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(current_tab->source_view), GDK_SELECTION_CLIPBOARD);
+    GtkTextIter start, end;
 
-	// Check if there's a selection
-	if (!gtk_text_buffer_get_selection_bounds(buffer, &start, &end)) {
-		// No selection, so select the entire line
-		gtk_text_buffer_get_iter_at_mark(buffer, &start, gtk_text_buffer_get_insert(buffer));
-		gtk_text_iter_set_line_offset(&start, 0);
+    // Check if there's a selection
+    if (!gtk_text_buffer_get_selection_bounds(buffer, &start, &end)) {
+        // No selection, so select the entire line
+        gtk_text_buffer_get_iter_at_mark(buffer, &start, gtk_text_buffer_get_insert(buffer));
+        gtk_text_iter_set_line_offset(&start, 0);
 
-		gtk_text_buffer_get_iter_at_mark(buffer, &end, gtk_text_buffer_get_insert(buffer));
-		gtk_text_iter_forward_to_line_end(&end);
-		// Move end to the start of the next line to include the newline
-		if (!gtk_text_iter_is_end(&end)) {
-			gtk_text_iter_forward_line(&end);
-		}
-		gtk_text_buffer_select_range(buffer, &start, &end);
-	}
+        gtk_text_buffer_get_iter_at_mark(buffer, &end, gtk_text_buffer_get_insert(buffer));
+        gtk_text_iter_forward_to_line_end(&end);
+        // Move end to the start of the next line to include the newline
+        if (!gtk_text_iter_is_end(&end)) {
+            gtk_text_iter_forward_line(&end);
+        }
+        gtk_text_buffer_select_range(buffer, &start, &end);
+    }
 
-	// Cut the selected text (either the original selection or the entire line)
-	gtk_text_buffer_cut_clipboard(buffer, clipboard, gtk_text_view_get_editable(GTK_TEXT_VIEW(current_tab->source_view)));
+    // Cut the selected text (either the original selection or the entire line)
+    gtk_text_buffer_cut_clipboard(buffer, clipboard, gtk_text_view_get_editable(GTK_TEXT_VIEW(current_tab->source_view)));
 }
 
 void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!current_tab) return;
+    if (!current_tab) return;
 
-	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(current_tab->source_view), GDK_SELECTION_CLIPBOARD);
-	gtk_text_buffer_copy_clipboard(GTK_TEXT_BUFFER(current_tab->source_buffer), clipboard);
+    GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(current_tab->source_view), GDK_SELECTION_CLIPBOARD);
+    gtk_text_buffer_copy_clipboard(GTK_TEXT_BUFFER(current_tab->shared_buffer->buffer), clipboard);
 }
 
 void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (gtk_revealer_get_reveal_child(GTK_REVEALER(find_revealer))) {
-		gtk_editable_paste_clipboard(GTK_EDITABLE(find_entry));
-	} else if (current_tab) {
-		GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(current_tab->source_view), GDK_SELECTION_CLIPBOARD);
-		gtk_text_buffer_paste_clipboard(GTK_TEXT_BUFFER(current_tab->source_buffer), clipboard, NULL, gtk_text_view_get_editable(GTK_TEXT_VIEW(current_tab->source_view)));
-	}
+    if (gtk_revealer_get_reveal_child(GTK_REVEALER(find_revealer))) {
+        gtk_editable_paste_clipboard(GTK_EDITABLE(find_entry));
+    } else if (current_tab) {
+        GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(current_tab->source_view), GDK_SELECTION_CLIPBOARD);
+        gtk_text_buffer_paste_clipboard(GTK_TEXT_BUFFER(current_tab->shared_buffer->buffer), clipboard, NULL, gtk_text_view_get_editable(GTK_TEXT_VIEW(current_tab->source_view)));
+    }
+}
+
+void on_undo(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+    if (!current_tab) return;
+
+    if (gtk_source_buffer_can_undo(current_tab->shared_buffer->buffer)) {
+        gtk_source_buffer_undo(current_tab->shared_buffer->buffer);
+    }
+}
+
+void on_redo(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+    if (!current_tab) return;
+
+    if (gtk_source_buffer_can_redo(current_tab->shared_buffer->buffer)) {
+        gtk_source_buffer_redo(current_tab->shared_buffer->buffer);
+    }
 }
 
 void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -1420,31 +1642,31 @@ gboolean on_main_window_state_changed(GtkWidget *widget, GdkEventWindowState *ev
 }
 
 void set_language() {
-	if (!current_tab) return;
+    if (!current_tab) return;
 
-	if (current_tab->language == LANG_PYTHON) {
-		language = gtk_source_language_manager_get_language(language_manager, "python");
-		gtk_label_set_text(language_label, _("Python Script"));
-	} else if (current_tab->language == LANG_SSF) {
-		language = gtk_source_language_manager_get_language(language_manager, "sh");
-		gtk_label_set_text(language_label, _("Siril Script File"));
-	}
-	if (language == NULL) {
-		siril_debug_print("Could not find language definition\n");
-	} else {
-		gtk_source_buffer_set_language(current_tab->source_buffer, language);
-	}
+    if (current_tab->shared_buffer->language == LANG_PYTHON) {
+        language = gtk_source_language_manager_get_language(language_manager, "python");
+        gtk_label_set_text(language_label, _("Python Script"));
+    } else if (current_tab->shared_buffer->language == LANG_SSF) {
+        language = gtk_source_language_manager_get_language(language_manager, "sh");
+        gtk_label_set_text(language_label, _("Siril Script File"));
+    }
+    if (language == NULL) {
+        siril_debug_print("Could not find language definition\n");
+    } else {
+        gtk_source_buffer_set_language(current_tab->shared_buffer->buffer, language);
+    }
 }
 
 void on_language_set(GtkRadioMenuItem *item, gpointer user_data) {
-	if (!current_tab) return;
+    if (!current_tab) return;
 
-	if (gtk_check_menu_item_get_active(radio_py)) {
-		current_tab->language = LANG_PYTHON;
-	} else {
-		current_tab->language = LANG_SSF;
-	}
-	set_language();
+    if (gtk_check_menu_item_get_active(radio_py)) {
+        current_tab->shared_buffer->language = LANG_PYTHON;
+    } else {
+        current_tab->shared_buffer->language = LANG_SSF;
+    }
+    set_language();
 }
 
 void setup_python_editor_window() {
@@ -1459,80 +1681,74 @@ void setup_python_editor_window() {
 }
 
 void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!current_tab) return;
+    if (!current_tab) return;
 
-	if (!accept_script_warning_dialog())
-		return;
-	gchar** script_args = NULL;
-	// Get the start and end iterators
-	GtkTextIter start, end;
-	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(current_tab->source_buffer), &start, &end);
-	// Get the text
-	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(current_tab->source_buffer), &start, &end, FALSE);
-	switch (current_tab->language) {
-		case LANG_PYTHON:;
-			// Create a temporary file for the script
-			GError *error = NULL;
-			gchar *temp_filename = NULL;
-			int fd = g_file_open_tmp("siril-script-XXXXXX.py", &temp_filename, &error);
-			if (fd == -1) {
-				siril_log_message(_("Error creating temporary script file: %s\n"), error->message);
-				g_error_free(error);
-				g_free(text);
-				return;
-			}
-			// Write script content to the temporary file
-			if (write(fd, text, strlen(text)) == -1) {
-				siril_log_message(_("Error writing to temporary script file\n"));
-				close(fd);
-				if (g_unlink(temp_filename))
-					siril_debug_print("g_unlink() failed in on_action_file_execute()\n");
-				g_free(temp_filename);
-				g_free(text);
-				return;
-			}
-			close(fd);
-			// Add args if we need to
-			if (gtk_check_menu_item_get_active(useargs)) {
-				const gchar *args_string = gtk_entry_get_text(args_entry);
-				script_args = g_strsplit(args_string, " ", -1);
-				from_cli = TRUE;
-			}
+    if (!accept_script_warning_dialog())
+        return;
+    gchar** script_args = NULL;
+    // Get the start and end iterators
+    GtkTextIter start, end;
+    gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(current_tab->shared_buffer->buffer), &start, &end);
+    // Get the text
+    char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(current_tab->shared_buffer->buffer), &start, &end, FALSE);
+    switch (current_tab->shared_buffer->language) {
+        case LANG_PYTHON:;
+            // Create a temporary file for the script
+            GError *error = NULL;
+            gchar *temp_filename = NULL;
+            int fd = g_file_open_tmp("siril-script-XXXXXX.py", &temp_filename, &error);
+            if (fd == -1) {
+                siril_log_message(_("Error creating temporary script file: %s\n"), error->message);
+                g_error_free(error);
+                g_free(text);
+                return;
+            }
+            // Write script content to the temporary file
+            if (write(fd, text, strlen(text)) == -1) {
+                siril_log_message(_("Error writing to temporary script file\n"));
+                close(fd);
+                if (g_unlink(temp_filename))
+                    siril_debug_print("g_unlink() failed in on_action_file_execute()\n");
+                g_free(temp_filename);
+                g_free(text);
+                return;
+            }
+            close(fd);
+            // Add args if we need to
+            if (gtk_check_menu_item_get_active(useargs)) {
+                const gchar *args_string = gtk_entry_get_text(args_entry);
+                script_args = g_strsplit(args_string, " ", -1);
+                from_cli = TRUE;
+            }
 
-			// Execute the script with the path to the temp file instead of the text content
-			// Passing TRUE as the last parameter to indicate this is a temporary file
-			execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE, from_cli, python_debug);
-			g_strfreev(script_args);
-			g_free(text);
-			break;
-		case LANG_SSF:;
-			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);
-			g_free(text);
-			if (get_thread_run()) {
-				PRINT_ANOTHER_THREAD_RUNNING;
-				g_object_unref(input_stream);
-				return;
-			}
-			if (com.script_thread)
-				g_thread_join(com.script_thread);
-			/* Switch to console tab */
-			control_window_switch_to_tab(OUTPUT_LOGS);
-			/* Last thing before running the script, disable widgets except for Stop */
-			script_widgets_enable(FALSE);
-			/* Run the script */
-			siril_log_message(_("Starting script\n"));
-			com.script_thread = g_thread_new("script", execute_script, input_stream);
-			break;
-		default:
-			siril_debug_print("Error: unknown script language\n");
-			g_free(text);
-			break;
-	}
-}
-
-static void on_tab_buffer_modified_changed(GtkTextBuffer *buffer, TabInfo *tab) {
-	tab->modified = gtk_text_buffer_get_modified(buffer);
-	update_tab_title(tab);
+            // Execute the script with the path to the temp file instead of the text content
+            execute_python_script(temp_filename, TRUE, FALSE, script_args, TRUE, from_cli, python_debug);
+            g_strfreev(script_args);
+            g_free(text);
+            break;
+        case LANG_SSF:;
+            GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);
+            g_free(text);
+            if (get_thread_run()) {
+                PRINT_ANOTHER_THREAD_RUNNING;
+                g_object_unref(input_stream);
+                return;
+            }
+            if (com.script_thread)
+                g_thread_join(com.script_thread);
+            /* Switch to console tab */
+            control_window_switch_to_tab(OUTPUT_LOGS);
+            /* Last thing before running the script, disable widgets except for Stop */
+            script_widgets_enable(FALSE);
+            /* Run the script */
+            siril_log_message(_("Starting script\n"));
+            com.script_thread = g_thread_new("script", execute_script, input_stream);
+            break;
+        default:
+            siril_debug_print("Error: unknown script language\n");
+            g_free(text);
+            break;
+    }
 }
 
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -1544,113 +1760,114 @@ void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer 
 }
 
 void on_editor_syntax_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gboolean status = gtk_check_menu_item_get_active(item);
-	com.pref.gui.editor_cfg.highlight_syntax = status;
+    gboolean status = gtk_check_menu_item_get_active(item);
+    com.pref.gui.editor_cfg.highlight_syntax = status;
 
-	// Apply to all tabs
-	for (GList *l = tabs; l; l = l->next) {
-		TabInfo *tab = l->data;
-		gtk_source_buffer_set_highlight_syntax(tab->source_buffer, status);
-	}
+    // Apply to all shared buffers
+    for (GList *l = shared_buffers; l; l = l->next) {
+        SharedBufferInfo *shared_buffer = l->data;
+        gtk_source_buffer_set_highlight_syntax(shared_buffer->buffer, status);
+    }
 }
 
 void on_editor_bracketmatch_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gboolean status = gtk_check_menu_item_get_active(item);
-	com.pref.gui.editor_cfg.highlight_bracketmatch = status;
+    gboolean status = gtk_check_menu_item_get_active(item);
+    com.pref.gui.editor_cfg.highlight_bracketmatch = status;
 
-	// Apply to all tabs
-	for (GList *l = tabs; l; l = l->next) {
-		TabInfo *tab = l->data;
-		gtk_source_buffer_set_highlight_matching_brackets(tab->source_buffer, status);
-	}
+    // Apply to all shared buffers
+    for (GList *l = shared_buffers; l; l = l->next) {
+        SharedBufferInfo *shared_buffer = l->data;
+        gtk_source_buffer_set_highlight_matching_brackets(shared_buffer->buffer, status);
+    }
 }
 
 void on_editor_rmargin_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gboolean status = gtk_check_menu_item_get_active(item);
-	com.pref.gui.editor_cfg.rmargin = status;
+    gboolean status = gtk_check_menu_item_get_active(item);
+    com.pref.gui.editor_cfg.rmargin = status;
 
-	// Apply to all tabs
-	for (GList *l = tabs; l; l = l->next) {
-		TabInfo *tab = l->data;
-		gtk_source_view_set_show_right_margin(tab->source_view, status);
-	}
+    // Apply to all tabs
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *tab = l->data;
+        gtk_source_view_set_show_right_margin(tab->source_view, status);
+    }
 }
 
 void on_editor_linenums_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gboolean status = gtk_check_menu_item_get_active(item);
-	com.pref.gui.editor_cfg.show_linenums = status;
+    gboolean status = gtk_check_menu_item_get_active(item);
+    com.pref.gui.editor_cfg.show_linenums = status;
 
-	// Apply to all tabs
-	for (GList *l = tabs; l; l = l->next) {
-		TabInfo *tab = l->data;
-		gtk_source_view_set_show_line_numbers(tab->source_view, status);
-	}
+    // Apply to all tabs
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *tab = l->data;
+        gtk_source_view_set_show_line_numbers(tab->source_view, status);
+    }
 }
 
 void on_editor_linemarks_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gboolean status = gtk_check_menu_item_get_active(item);
-	com.pref.gui.editor_cfg.show_linemarks = status;
+    gboolean status = gtk_check_menu_item_get_active(item);
+    com.pref.gui.editor_cfg.show_linemarks = status;
 
-	// Apply to all tabs
-	for (GList *l = tabs; l; l = l->next) {
-		TabInfo *tab = l->data;
-		gtk_source_view_set_show_line_marks(tab->source_view, status);
-	}
+    // Apply to all tabs
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *tab = l->data;
+        gtk_source_view_set_show_line_marks(tab->source_view, status);
+    }
 }
 
 void on_editor_highlightcurrentline_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gboolean status = gtk_check_menu_item_get_active(item);
-	com.pref.gui.editor_cfg.highlight_currentline = status;
+    gboolean status = gtk_check_menu_item_get_active(item);
+    com.pref.gui.editor_cfg.highlight_currentline = status;
 
-	// Apply to all tabs
-	for (GList *l = tabs; l; l = l->next) {
-		TabInfo *tab = l->data;
-		gtk_source_view_set_highlight_current_line(tab->source_view, status);
-	}
+    // Apply to all tabs
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *tab = l->data;
+        gtk_source_view_set_highlight_current_line(tab->source_view, status);
+    }
 }
 
 void on_editor_autoindent_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gboolean status = gtk_check_menu_item_get_active(item);
-	com.pref.gui.editor_cfg.autoindent = status;
+    gboolean status = gtk_check_menu_item_get_active(item);
+    com.pref.gui.editor_cfg.autoindent = status;
 
-	// Apply to all tabs
-	for (GList *l = tabs; l; l = l->next) {
-		TabInfo *tab = l->data;
-		gtk_source_view_set_auto_indent(tab->source_view, status);
-	}
+    // Apply to all tabs
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *tab = l->data;
+        gtk_source_view_set_auto_indent(tab->source_view, status);
+    }
 }
 
 void on_editor_indentontab_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gboolean status = gtk_check_menu_item_get_active(item);
-	com.pref.gui.editor_cfg.indentontab = status;
+    gboolean status = gtk_check_menu_item_get_active(item);
+    com.pref.gui.editor_cfg.indentontab = status;
 
-	// Apply to all tabs
-	for (GList *l = tabs; l; l = l->next) {
-		TabInfo *tab = l->data;
-		gtk_source_view_set_indent_on_tab(tab->source_view, status);
-	}
+    // Apply to all tabs
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *tab = l->data;
+        gtk_source_view_set_indent_on_tab(tab->source_view, status);
+    }
 }
 
 void on_editor_smartbs_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gboolean status = gtk_check_menu_item_get_active(item);
-	com.pref.gui.editor_cfg.smartbs = status;
+    gboolean status = gtk_check_menu_item_get_active(item);
+    com.pref.gui.editor_cfg.smartbs = status;
 
-	// Apply to all tabs
-	for (GList *l = tabs; l; l = l->next) {
-		TabInfo *tab = l->data;
-		gtk_source_view_set_smart_backspace(tab->source_view, status);
-	}
+    // Apply to all tabs
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *tab = l->data;
+        gtk_source_view_set_smart_backspace(tab->source_view, status);
+    }
 }
 
-void on_editor_smarthomeend_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gboolean status = gtk_check_menu_item_get_active(item);
-	com.pref.gui.editor_cfg.smarthomeend = status;
 
-	// Apply to all tabs
-	for (GList *l = tabs; l; l = l->next) {
-		TabInfo *tab = l->data;
-		gtk_source_view_set_smart_home_end(tab->source_view, status);
-	}
+void on_editor_smarthomeend_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+    gboolean status = gtk_check_menu_item_get_active(item);
+    com.pref.gui.editor_cfg.smarthomeend = status;
+
+    // Apply to all tabs
+    for (GList *l = tabs; l; l = l->next) {
+        TabInfo *tab = l->data;
+        gtk_source_view_set_smart_home_end(tab->source_view, status);
+    }
 }
 
 void on_editor_showspaces_toggled(GtkCheckMenuItem *item, gpointer user_data) {
