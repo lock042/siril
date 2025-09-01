@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-21 22:43+0200\n"
-"PO-Revision-Date: 2025-08-13 12:22+0000\n"
-"Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
+"PO-Revision-Date: 2025-09-01 06:58+0000\n"
+"Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -7365,11 +7365,11 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1738
 msgid "10.00"
-msgstr ""
+msgstr "10.00"
 
 #: src/gui/uifiles/settings_window.ui:1768
 msgid "Maximum seconds to try solving. 0 to disable it"
-msgstr ""
+msgstr "Segundo máximos para intentar resolver. 0 para desactivarlo"
 
 #: src/gui/uifiles/settings_window.ui:1780
 msgid ""
@@ -7377,6 +7377,9 @@ msgid ""
 "total solve time only if solve-field is configured to do so in its "
 "configuration file."
 msgstr ""
+"Tiempo permitido para solucionar cada fichero del catálogo. Puede usarse "
+"como tiempo total sólo si el campo solucionador está configurado así en el "
+"fichero de configuración."
 
 #: src/gui/uifiles/settings_window.ui:1783
 #, fuzzy
@@ -7390,7 +7393,7 @@ msgstr "Abrir diálogo  resolución de placas"
 
 #: src/gui/uifiles/settings_window.ui:1840
 msgid "Do not delete .xyls FITS tables"
-msgstr ""
+msgstr "No borrar las tablas .xyls de los FITS"
 
 #: src/gui/uifiles/settings_window.ui:1844
 msgid ""
