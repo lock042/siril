@@ -21,6 +21,7 @@ typedef struct {
     gchar *title;
     gint language;
     gboolean modified;
+	GtkTextTag *search_tag;
     gint ref_count; // Number of tabs using this buffer
 } SharedBufferInfo;
 
