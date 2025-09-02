@@ -16,11 +16,11 @@
     "priority": 2
   },
   {
-    "valid-from": "2025-08-30T00:00:00+02:00",
-    "valid-to": "2025-09-06T23:59:00+02:00",
+    "valid-from": "2025-09-01T00:00:00+02:00",
+    "valid-to": "2025-09-03T23:59:00+02:00",
     "version-from": "1.3.0",
     "version-to": "1.4.1",
-    "message": "Gaia’s online server is currently experiencing issues, which may cause Siril to crash when trying to access it. The crash has already been fixed for upcoming versions of Siril, but the server problem itself remains and is beyond our control. To work around this, please install the local Gaia catalog that we have built specifically for this purpose.",
+    "message": "The Gaia online server experienced issues over the weekend, which could previously cause Siril to crash when accessing it. The server problem is now resolved. You can continue using Siril normally.",
     "priority": 2
   }
 ]
