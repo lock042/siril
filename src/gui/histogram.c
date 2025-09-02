@@ -58,7 +58,7 @@ static gboolean closing = FALSE;
 static gboolean sequence_working = FALSE;
 // Parameters for use in calculations
 static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0f;
-static clip_mode_t _clip_mode = CLIP;
+static clip_mode_t _clip_mode = RGBBLEND;
 static gboolean do_channel[3];
 static int _stretchtype = STRETCH_PAYNE_NORMAL;
 static int _payne_colourstretchmodel = COL_INDEP;
@@ -896,7 +896,7 @@ static void reset_cursors_and_values(gboolean full_reset) {
 		if (full_reset) {
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 0);
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payneTyp")), 0);
-			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("histo_clip_mode")), 0);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("histo_clip_mode")), RGBBLEND);
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")), TRUE);
 		}
 	}
