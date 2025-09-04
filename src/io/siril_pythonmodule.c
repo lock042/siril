@@ -1757,6 +1757,7 @@ gboolean get_python_magic_number(char *out_buf, gsize out_buf_size) {
 	);
 
 	if (!success || exit_status != 0) {
+		siril_log_color_message(_("Error checking python magic number: pyc files will not work"), "salmon");
 		g_free(stdout_str);
 		return FALSE;
 	}
