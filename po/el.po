@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-01 13:34+0200\n"
+"POT-Creation-Date: 2025-09-04 10:24+0200\n"
 "PO-Revision-Date: 2024-02-10 20:54+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Greek <https://weblate.pixls.us/projects/siril/siril-"
@@ -22612,8 +22612,8 @@ msgstr "Ανοίξτε πρώτα μια εικόνα!\n"
 msgid "Select magnitude and phase before !\n"
 msgstr "Επιλέξτε πρώτα το μέγεθος και την φάση!\n"
 
-#: src/filters/ght.c:341 src/filters/ght.c:450 src/filters/ght.c:488
-#: src/filters/ght.c:614
+#: src/filters/ght.c:341 src/filters/ght.c:448 src/filters/ght.c:486
+#: src/filters/ght.c:613
 msgid "Error: no channels selected. Doing nothing.\n"
 msgstr ""
 
@@ -29549,76 +29549,94 @@ msgid ""
 "initialized.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1897
+#: src/io/siril_pythonmodule.c:1899
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1898
+#: src/io/siril_pythonmodule.c:1902
 msgid ""
 "Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it "
 "from there.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1899
+#: src/io/siril_pythonmodule.c:1905
 msgid ""
 "Next time you need to start siril, you can go back to starting it from msys2 "
 "terminal.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1933
+#: src/io/siril_pythonmodule.c:1934
 #, fuzzy
 msgid "No python installation found in the system or in the bundle, aborting\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας εισόδου, γίνεται ματαίωση\n"
 
-#: src/io/siril_pythonmodule.c:1959
+#: src/io/siril_pythonmodule.c:1971
 #, fuzzy, c-format
 msgid "Error in venv creation command: %s\n"
 msgstr "Σφάλμα στη γραμμή %d: '%s'.\n"
 
-#: src/io/siril_pythonmodule.c:1999
+#: src/io/siril_pythonmodule.c:1978
+#, fuzzy, c-format
+msgid "Failed to create virtual environment: %s\n"
+msgstr "Βεβαιωθείτε ότι έχετε φορτώσει την πρώτη εικόνα"
+
+#: src/io/siril_pythonmodule.c:1981
+#, fuzzy, c-format
+msgid ""
+"Python stderr:\n"
+"%s\n"
+msgstr "Εκτέλεση Δέσμης Ενεργειών"
+
+#: src/io/siril_pythonmodule.c:1986
+msgid ""
+"Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' "
+"package.\n"
+msgstr ""
+
+#: src/io/siril_pythonmodule.c:2043
 #, fuzzy, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
 msgstr "Βεβαιωθείτε ότι έχετε φορτώσει την πρώτη εικόνα"
 
-#: src/io/siril_pythonmodule.c:2010
+#: src/io/siril_pythonmodule.c:2054
 #, fuzzy
 msgid "Failed to prepare virtual environment\n"
 msgstr "Βεβαιωθείτε ότι έχετε φορτώσει την πρώτη εικόνα"
 
-#: src/io/siril_pythonmodule.c:2075 src/io/siril_pythonmodule.c:2083
+#: src/io/siril_pythonmodule.c:2119 src/io/siril_pythonmodule.c:2127
 #, c-format
 msgid "Python process (PID: %d) exited with status %d\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2086
+#: src/io/siril_pythonmodule.c:2130
 #, c-format
 msgid "Python process (PID: %d) terminated by signal %d\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2169
+#: src/io/siril_pythonmodule.c:2213
 msgid ""
 "Error: python not ready yet. This may happen at first run if the python venv "
 "and module setup has not yet completed. Please wait a short time for a "
 "completion message in the log and try again.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2196
+#: src/io/siril_pythonmodule.c:2240
 #, fuzzy
 msgid "Error: failed to create Python connection.\n"
 msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
 
-#: src/io/siril_pythonmodule.c:2213
+#: src/io/siril_pythonmodule.c:2257
 #, fuzzy
 msgid "Error: Python worker thread not available.\n"
 msgstr "Δεν είναι διαθέσιμο"
 
-#: src/io/siril_pythonmodule.c:2279
+#: src/io/siril_pythonmodule.c:2323
 msgid "Error finding venv python path, unable to spawn python.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2364
+#: src/io/siril_pythonmodule.c:2408
 #, fuzzy, c-format
 msgid "Failed to execute Python script: %s\n"
 msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
