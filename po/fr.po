@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-04 10:24+0200\n"
-"PO-Revision-Date: 2025-09-01 11:48+0000\n"
+"PO-Revision-Date: 2025-09-04 09:50+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -32203,22 +32203,26 @@ msgid "Error in venv creation command: %s\n"
 msgstr "Erreur dans la commande de création de venv : %s\n"
 
 #: src/io/siril_pythonmodule.c:1978
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create virtual environment: %s\n"
-msgstr "Échec de la préparation de l'environnement virtuel\n"
+msgstr "Échec de la création de l'environnement virtuel : %s\n"
 
 #: src/io/siril_pythonmodule.c:1981
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Python stderr:\n"
 "%s\n"
-msgstr "Scripts Python"
+msgstr ""
+"Python stderr :\n"
+"%s\n"
 
 #: src/io/siril_pythonmodule.c:1986
 msgid ""
 "Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' "
 "package.\n"
 msgstr ""
+"Astuce : sous Debian/Ubuntu, vous devrez probablement installer le paquet « "
+"python3-venv ».\n"
 
 #: src/io/siril_pythonmodule.c:2043
 #, c-format
