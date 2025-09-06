@@ -168,6 +168,7 @@ struct driz_args_t {
   float pixel_fraction;
   BYTE cfa[36];
   size_t cfadim;
+  float max_weight[3]; /* stores the max output weight per channel to renormalize the final output */
 };
 
 struct driz_param_t {
@@ -209,7 +210,6 @@ struct driz_param_t {
   /* Output images */
   fits *output_data;
   fits *output_counts;  /* was: COU */
-  float max_weight[3]; /* stores the max output weight per channel to renormalize the final output */
 
   /* Other output */
   integer_t nmiss;

@@ -615,8 +615,11 @@ gboolean validate_disto_params(fits *reffit, const gchar *text, disto_source ind
 void free_disto_args(disto_data *disto) {
 	if (!disto)
 		return;
-	free(disto->xmap);
-	free(disto->ymap);
+	// we only need to free the maps for the 2 types which store them (disto has only one element in that case)
+	if (disto->dtype == DISTO_MAP_D2S || disto->dtype == DISTO_MAP_S2D) {
+		free(disto->xmap);
+		free(disto->ymap);
+	}
 	free(disto);
 }
 
@@ -624,10 +627,10 @@ void copy_disto(disto_data *disto_in, disto_data *disto_out) {
 	if (!disto_in || !disto_out)
 		return;
 	disto_out->dtype = disto_in->dtype;
-	memccpy(disto_in->A,  disto_out->A,  sizeof(double), MAX_DISTO_SIZE * MAX_DISTO_SIZE);
-	memccpy(disto_in->B,  disto_out->B,  sizeof(double), MAX_DISTO_SIZE * MAX_DISTO_SIZE);
-	memccpy(disto_in->AP, disto_out->AP, sizeof(double), MAX_DISTO_SIZE * MAX_DISTO_SIZE);
-	memccpy(disto_in->BP, disto_out->BP, sizeof(double), MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->A,  disto_in->A,  sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->B,  disto_in->B,  sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->AP, disto_in->AP, sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->BP, disto_in->BP, sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
 	disto_out->order = disto_in->order;
 	disto_out->xref = disto_in->xref;
 	disto_out->yref = disto_in->yref;

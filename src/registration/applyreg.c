@@ -345,6 +345,16 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 		clearfits(&fit);
 		return 1;
 	}
+
+	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
+		siril_log_color_message(
+				_("Could not init drizzle\n"), "red");
+		args->seq->regparam[regargs->layer] = NULL;
+		free(sadata->current_regdata);
+		clearfits(&fit);
+		return 1;
+	}
+
 	clearfits(&fit);
 	return registration_prepare_results(args);
 }
@@ -560,7 +570,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			size_t nbpix_per_channel = output_counts->rx * output_counts->ry;
 			for (int c = 0; c < output_counts->naxes[2]; c++) {
 				float *counts = output_counts->fpdata[c];
-				float factor = 1.f / p->max_weight[c];
+				float factor = 1.f / driz->max_weight[c];
 				for (size_t i = 0; i < nbpix_per_channel; i++) {
 					counts[i] *= factor;
 				}
@@ -840,10 +850,12 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	p->error = malloc(sizeof(struct driz_error_t));
 	p->scale = driz->scale;
 	p->pixel_fraction = driz->pixel_fraction;
-	memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
-	p->cfadim = driz->cfadim;
+	if (driz->is_bayer) {
+		p->cfadim = driz->cfadim;
+		memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
+	}
 	int src_rx = 0, src_ry = 0;
-	int patch_size_in = (p->cfadim > 0) ? p->cfadim : 2;
+	int patch_size_in = max(20, p->cfadim);
 	patch_size_in *= 2;
 	int extent = (driz->scale >= 1) ? patch_size_in : (int)(patch_size_in / driz->scale);
 	siril_debug_print("Drizzle scale: %f, patch size: %d, extent: %d\n", driz->scale, patch_size_in, extent);
@@ -968,7 +980,7 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 			continue;
 		}
 		siril_log_message("Max drizzle weight for layer %d: %f\n", c, stat->max);
-		p->max_weight[c] = stat->max;
+		driz->max_weight[c] = stat->max;
 	}
 	clearfits(&out);
 	clearfits(output_counts);
@@ -1002,16 +1014,19 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	if (driz->is_bayer)
 		driz->cfadim = (int)cfadim;
 	disto_data *disto = NULL;
+	gboolean free_disto = FALSE;
 	if (regargs->undistort) {
-		disto = calloc(1, sizeof(disto_data));
 		if (regargs->disto->dtype == DISTO_MAP_D2S || regargs->disto->dtype == DISTO_MAP_S2D) {
-			copy_disto(regargs->disto, disto);
+			disto = regargs->disto;
 		} else {
+			disto = calloc(1, sizeof(disto_data));
 			copy_disto(&regargs->disto[regargs->reference_image], disto);
+			free_disto = TRUE;
 		}
 	}
 	int status = compute_max_drizzle_weights(driz, &fit, disto);
-	free_disto_args(disto);
+	if (free_disto)
+		free_disto_args(disto);
 	clearfits(&fit);
 	return status;
 }
@@ -1170,12 +1185,6 @@ int register_apply_reg(struct registration_args *regargs) {
 		if (ref.keywords.date_obs)
 			regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
 		clearfits(&ref);
-	}
-
-	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
-		retval = -1;
-		goto END;
-
 	}
 
 	generic_sequence_worker(args);
