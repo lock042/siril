@@ -1523,45 +1523,28 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 		}
 
 		if (ima_ch != NULL) {
-			/* Find per-channel min/max assuming channel-major layout in ima_ch */
-			float min_vals[3], max_vals[3];
-			for (int ch = 0; ch < n_channels; ch++) {
-				min_vals[ch] = FLT_MAX;
-				max_vals[ch] = -FLT_MAX;
-				for (int idx = 0; idx < prev_size; idx++) {
-					float val = ima_ch[ch * prev_size + idx];
-					if (val < min_vals[ch]) min_vals[ch] = val;
-					if (val > max_vals[ch]) max_vals[ch] = val;
-				}
-			}
-
-			float scales[3];
-			for (int ch = 0; ch < n_channels; ch++) {
-				float range = max_vals[ch] - min_vals[ch];
-				if (range <= 0.f) {
-					/* avoid division by zero: use 1.0 (will zero the channel after subtract) */
-					scales[ch] = 1.f;
-				} else {
-					scales[ch] = 1.f / range;
-				}
-			}
+			float maxmax = 65535.f;
+			float minmin = 0.f;
+			float scale = 1.f / (maxmax - minmin);
 
 			/* Normalize values to [0..1] on channel-major buffer */
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread)
 #endif
 			for (int idx = 0 ; idx < prev_size * n_channels; idx++) {
-				int ch = idx / prev_size;
-				ima_ch[idx] = (ima_ch[idx] - min_vals[ch]) * scales[ch];
+				ima_ch[idx] = (ima_ch[idx] - minmin) * scale;
 			}
 
 			/* Create a temporary fits with channel-major float data for MTF */
 			fits *tmp = NULL;
 			new_fit_image_with_data(&tmp, Ws, Hs, n_channels, DATA_FLOAT, ima_ch);
-			struct mtf_params mtfp = { 0.f, 0.f, 0.f, TRUE, TRUE, TRUE };
-			find_linked_midtones_balance_default(tmp, &mtfp);
-			siril_debug_print("Preview MTF params: %f, %f, %f\n", mtfp.shadows, mtfp.midtones, mtfp.highlights);
-			apply_linked_mtf_to_fits(tmp, tmp, mtfp, TRUE);
+			struct mtf_params mtfp[3] = {
+				{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+				{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+				{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE }
+			};
+			find_unlinked_midtones_balance_default(tmp, mtfp);
+			apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
 
 			/* After MTF, the modified data is still present in ima_ch (tmp used it); we must
 			* convert back to interleaved if we had created a separate ima_ch. */

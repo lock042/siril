@@ -1231,9 +1231,20 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 		}
 	}
 	if (args->seq->type == SEQ_FITSEQ && (!args->seq->fitseq_file || !args->seq->fitseq_file->fptr)) {
-		gchar *seqfilename = g_strdup_printf("%s%s", args->seq->seqname, args->seq->ext);
-		fitseq_open(seqfilename, args->seq->fitseq_file, 0);
-		g_free(seqfilename);
+		int i = 0;
+		static const char *fitseq_ext[] = { ".fit", ".fits", ".fts", ".fit.fz", ".fits.fz", ".fts.fz", NULL };
+		// We only look for lowercase extensions as FITSEQ will only have been created by Siril, and should
+		// have used a lowercase extensions set in com.pref.ext
+		retval = 1; // For this loop, default to fail status
+		while (fitseq_ext[i]) {
+			gchar *seqfilename = g_strdup_printf("%s%s", args->seq->seqname, fitseq_ext[i++]);
+			if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
+				retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0); // Success clears the fail status
+			}
+			g_free(seqfilename);
+			if (!retval) break;
+		}
+		if (retval) goto cleanup;
 	}
 	for (frame = 0; frame < nb_frames; frame++) {
 		if (index_mapping)

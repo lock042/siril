@@ -355,19 +355,23 @@ int check_seq() {
 /* Creates a .seq file for regular FITS sequence passed in argument */
 static sequence *create_one_regular_seq(const char *seqname) {
 
-	const gchar *abs_path = g_canonicalize_filename(seqname, com.wd);
-	const gchar *search_folder = g_path_get_dirname(abs_path);
-	const gchar *filename = g_path_get_basename(abs_path);
+	gchar *abs_path = g_canonicalize_filename(seqname, com.wd);
+	gchar *search_folder = g_path_get_dirname(abs_path);
+	gchar *filename = g_path_get_basename(abs_path);
+	g_free(abs_path);
 
-	const char *root = remove_ext_from_filename(filename);
+	char *root = remove_ext_from_filename(filename);
+	g_free(filename);
 	int fixed = 5; // TODO: isn't it defined somewhere else?
 	const gchar *ext = get_com_ext(com.pref.comp.fits_enabled);
 
 	GError* error = NULL;
 	GDir* dir = g_dir_open(search_folder, 0, &error);
+	g_free(search_folder);
 	if (error) {
 		siril_log_color_message(_("Error opening directory: %s\n"), "red", error->message);
 		g_error_free(error);
+		free(root);
 		return NULL;
     }
 	const gchar* pattern = g_strdup_printf("^%s(\\d{%d})\\%s$", 
@@ -378,7 +382,7 @@ static sequence *create_one_regular_seq(const char *seqname) {
  
 	sequence *new_seq = calloc(1, sizeof(sequence));
 	initialize_sequence(new_seq, TRUE);
-	new_seq->seqname = g_strdup(root);
+	new_seq->seqname = root; // move it as we don't need it any more in this fn
 	new_seq->beg = INT_MAX;
 	new_seq->end = 0;
 	new_seq->number = 0;
@@ -567,13 +571,14 @@ gboolean create_one_seq(const char *seqname, sequence_type seqtype) {
 			break;
 		case SEQ_FITSEQ:
 		case SEQ_SER:;
-			const char *root = remove_ext_from_filename(seqname);
+			char *root = remove_ext_from_filename(seqname);
 			const gchar *ext;
 			if (seqtype == SEQ_FITSEQ)
 				ext = get_com_ext(com.pref.comp.fits_enabled);
 			else
 				ext = ".ser";
 			const gchar *filename = g_strdup_printf("%s%s", root, ext);
+			g_free(root);
 			seq = check_seq_one_file(filename, seqtype == SEQ_FITSEQ);
 			break;
 		default:

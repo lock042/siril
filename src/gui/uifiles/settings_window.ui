@@ -569,8 +569,8 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                               <object class="GtkComboBoxText" id="combo_roworder">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Siril read FITS data in the bottom-up orientation but a lot of capture software do not meet this specification. Most of them now write a ROW-ORDER key in the images metadata to indicate how data was stored.
-Pick in this list your preferred option. The first two will first try to read ROW-ORDER from the header then use a fallback solution. The last two options force either Top-Down or Bottom-Up.
+                                <property name="tooltip-text" translatable="yes">Siril read FITS data in the bottom-up orientation but a lot of capture software do not meet this specification. Most of them now write a ROWORDER key in the images metadata to indicate how data was stored.
+Pick in this list your preferred option. The first two will first try to read ROWORDER from the header then use a fallback solution. The last two options force either Top-Down or Bottom-Up.
 This setting is ignored with SER files which are always assumed Top-Down as per their standard.</property>
                                 <property name="active">0</property>
                                 <property name="active-id">0</property>
@@ -5165,99 +5165,131 @@ Activating the repository will take place immediately, so that you can select sc
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkScrolledWindow">
+                                      <object class="GtkBox">
                                         <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="shadow-type">in</property>
-                                        <property name="min-content-height">200</property>
-                                        <property name="max-content-height">350</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="orientation">vertical</property>
                                         <child>
-                                          <object class="GtkTreeView" id="treeview_scripts">
+                                          <object class="GtkSearchEntry" id="find_script_entry">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
-                                            <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to open the script in the Script Editor. (This can be used to make and save local changes to a script.)
+                                            <property name="has-focus">True</property>
+                                            <property name="is-focus">True</property>
+                                            <property name="events">GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK</property>
+                                            <property name="tooltip-text" translatable="yes">Type here to filter the list of scripts. The search matches any part of the script name. Filtering is case-insensitive and updates instantly as you type.</property>
+                                            <property name="width-chars">30</property>
+                                            <property name="primary-icon-name">edit-find-symbolic</property>
+                                            <property name="primary-icon-activatable">False</property>
+                                            <property name="primary-icon-sensitive">False</property>
+                                            <signal name="changed" handler="on_find_script_entry_changed" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkScrolledWindow">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="shadow-type">in</property>
+                                            <property name="min-content-height">200</property>
+                                            <property name="max-content-height">350</property>
+                                            <child>
+                                              <object class="GtkTreeView" id="treeview_scripts">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to open the script in the Script Editor. (This can be used to make and save local changes to a script.)
 To open an older revision (e.g. to get an older version after a bad script update) right click on a row.</property>
-                                            <property name="hscroll-policy">natural</property>
-                                            <property name="vscroll-policy">natural</property>
-                                            <property name="model">liststore_script_repo</property>
-                                            <property name="headers-clickable">False</property>
-                                            <property name="search-column">1</property>
-                                            <property name="show-expanders">False</property>
-                                            <property name="enable-grid-lines">horizontal</property>
-                                            <signal name="button-press-event" handler="on_treeview_scripts_button_press" swapped="no"/>
-                                            <signal name="row-activated" handler="on_treeview_scripts_row_activated" swapped="no"/>
-                                            <child internal-child="selection">
-                                              <object class="GtkTreeSelection"/>
-                                            </child>
-                                            <child>
-                                              <object class="GtkTreeViewColumn" id="treeviewcolumn33">
-                                                <property name="resizable">True</property>
-                                                <property name="title" translatable="yes">Category</property>
-                                                <property name="expand">True</property>
-                                                <property name="clickable">True</property>
-                                                <property name="sort-column-id">0</property>
-                                                <child>
-                                                  <object class="GtkCellRendererText" id="cellrenderertext13"/>
-                                                  <attributes>
-                                                    <attribute name="background">4</attribute>
-                                                    <attribute name="text">0</attribute>
-                                                  </attributes>
+                                                <property name="hscroll-policy">natural</property>
+                                                <property name="vscroll-policy">natural</property>
+                                                <property name="model">liststore_script_repo</property>
+                                                <property name="headers-clickable">False</property>
+                                                <property name="search-column">1</property>
+                                                <property name="show-expanders">False</property>
+                                                <property name="enable-grid-lines">horizontal</property>
+                                                <signal name="button-press-event" handler="on_treeview_scripts_button_press" swapped="no"/>
+                                                <signal name="row-activated" handler="on_treeview_scripts_row_activated" swapped="no"/>
+                                                <child internal-child="selection">
+                                                  <object class="GtkTreeSelection"/>
                                                 </child>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkTreeViewColumn" id="treeviewcolumn32">
-                                                <property name="resizable">True</property>
-                                                <property name="title" translatable="yes">Script</property>
-                                                <property name="expand">True</property>
-                                                <property name="clickable">True</property>
-                                                <property name="sort-column-id">1</property>
                                                 <child>
-                                                  <object class="GtkCellRendererText" id="cellrenderertext12"/>
-                                                  <attributes>
-                                                    <attribute name="background">4</attribute>
-                                                    <attribute name="text">1</attribute>
-                                                  </attributes>
-                                                </child>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkTreeViewColumn">
-                                                <property name="resizable">True</property>
-                                                <property name="title" translatable="yes">Type</property>
-                                                <property name="clickable">True</property>
-                                                <property name="sort-column-id">5</property>
-                                                <child>
-                                                  <object class="GtkCellRendererText" id="cellrenderertype"/>
-                                                  <attributes>
-                                                    <attribute name="background">4</attribute>
-                                                    <attribute name="text">5</attribute>
-                                                  </attributes>
-                                                </child>
-                                              </object>
-                                            </child>
-                                            <child>
-                                              <object class="GtkTreeViewColumn" id="script_repo_treeview_sel">
-                                                <property name="resizable">True</property>
-                                                <property name="title" translatable="yes">Sel</property>
-                                                <property name="clickable">True</property>
-                                                <property name="sort-column-id">2</property>
-                                                <child>
-                                                  <object class="GtkCellRendererToggle" id="cellrenderertoggle16">
-                                                    <signal name="toggled" handler="on_script_list_active_toggled" swapped="no"/>
+                                                  <object class="GtkTreeViewColumn" id="treeviewcolumn33">
+                                                    <property name="resizable">True</property>
+                                                    <property name="title" translatable="yes">Category</property>
+                                                    <property name="expand">True</property>
+                                                    <property name="clickable">True</property>
+                                                    <property name="sort-column-id">0</property>
+                                                    <child>
+                                                      <object class="GtkCellRendererText" id="cellrenderertext13"/>
+                                                      <attributes>
+                                                        <attribute name="background">4</attribute>
+                                                        <attribute name="text">0</attribute>
+                                                      </attributes>
+                                                    </child>
                                                   </object>
-                                                  <attributes>
-                                                    <attribute name="cell-background">4</attribute>
-                                                    <attribute name="active">2</attribute>
-                                                  </attributes>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkTreeViewColumn" id="treeviewcolumn32">
+                                                    <property name="resizable">True</property>
+                                                    <property name="title" translatable="yes">Script</property>
+                                                    <property name="expand">True</property>
+                                                    <property name="clickable">True</property>
+                                                    <property name="sort-column-id">1</property>
+                                                    <child>
+                                                      <object class="GtkCellRendererText" id="cellrenderertext12"/>
+                                                      <attributes>
+                                                        <attribute name="background">4</attribute>
+                                                        <attribute name="text">1</attribute>
+                                                      </attributes>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkTreeViewColumn">
+                                                    <property name="resizable">True</property>
+                                                    <property name="title" translatable="yes">Type</property>
+                                                    <property name="clickable">True</property>
+                                                    <property name="sort-column-id">5</property>
+                                                    <child>
+                                                      <object class="GtkCellRendererText" id="cellrenderertype"/>
+                                                      <attributes>
+                                                        <attribute name="background">4</attribute>
+                                                        <attribute name="text">5</attribute>
+                                                      </attributes>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkTreeViewColumn" id="script_repo_treeview_sel">
+                                                    <property name="resizable">True</property>
+                                                    <property name="title" translatable="yes">Sel</property>
+                                                    <property name="clickable">True</property>
+                                                    <property name="sort-column-id">2</property>
+                                                    <child>
+                                                      <object class="GtkCellRendererToggle" id="cellrenderertoggle16">
+                                                        <signal name="toggled" handler="on_script_list_active_toggled" swapped="no"/>
+                                                      </object>
+                                                      <attributes>
+                                                        <attribute name="cell-background">4</attribute>
+                                                        <attribute name="active">2</attribute>
+                                                      </attributes>
+                                                    </child>
+                                                  </object>
                                                 </child>
                                               </object>
                                             </child>
                                           </object>
+                                          <packing>
+                                            <property name="expand">True</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
                                         </child>
                                       </object>
                                       <packing>
-                                        <property name="expand">True</property>
+                                        <property name="expand">False</property>
                                         <property name="fill">True</property>
                                         <property name="position">2</property>
                                       </packing>

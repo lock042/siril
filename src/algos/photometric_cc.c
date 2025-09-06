@@ -970,10 +970,14 @@ gpointer photometric_cc_standalone(gpointer p) {
 	/* Fetching the catalog*/
 	if (args->spcc && siril_cat->cat_index == CAT_GAIADR3_DIRECT) {
 		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, 5000);
-		for (int i = 0 ; i < siril_cat->nbitems ; i++) {
-			// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
-			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
-			get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
+		if (args->datalink_path == NULL) {
+			retval = 1;
+		} else {
+			for (int i = 0 ; i < siril_cat->nbitems ; i++) {
+				// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
+				siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
+				get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
+			}
 		}
 	} else if (siril_catalog_conesearch(siril_cat) <= 0) {
 		retval = 1;

@@ -2832,7 +2832,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
     <property name="default-height">768</property>
     <property name="icon">pixmaps/siril.svg</property>
     <property name="show-menubar">False</property>
-    <signal name="delete-event" handler="siril_quit" swapped="no"/>
+    <signal name="delete-event" handler="on_siril_window_delete" swapped="no"/>
     <child>
       <object class="GtkBox" id="box9">
         <property name="visible">True</property>

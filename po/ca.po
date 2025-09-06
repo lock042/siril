@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-14 08:30+0200\n"
+"POT-Creation-Date: 2025-09-04 10:24+0200\n"
 "PO-Revision-Date: 2025-04-29 22:01+0000\n"
 "Last-Translator: Victor Gandia <victorix@gmail.com>\n"
 "Language-Team: Catalan <https://weblate.siril.org/projects/siril/software/"
@@ -255,7 +255,7 @@ msgid "Preserves the original CIE L* component in the processed image."
 msgstr "Conservar el component CIE L* original en la imatge processada."
 
 #: src/gui/uifiles/StatWindow.ui:48 src/gui/uifiles/livestacking_player.ui:191
-#: src/gui/uifiles/siril.ui:717 src/algos/statistics.c:927
+#: src/gui/uifiles/siril.ui:717 src/algos/statistics.c:943
 msgid "Statistics"
 msgstr "Estadístiques"
 
@@ -508,7 +508,7 @@ msgstr "Anotar"
 #: src/gui/uifiles/settings_window.ui:1912
 #: src/gui/uifiles/settings_window.ui:4385
 #: src/gui/uifiles/settings_window.ui:4426
-#: src/gui/uifiles/settings_window.ui:6065 src/gui/uifiles/siril.ui:3748
+#: src/gui/uifiles/settings_window.ui:6097 src/gui/uifiles/siril.ui:3748
 msgid "Clear"
 msgstr "Netejar"
 
@@ -4106,15 +4106,15 @@ msgid "Select the color space corresponding to the three extracted images"
 msgstr "Selecciona l'espai de colors corresponent a les tres imatges extretes"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:193 src/gui/uifiles/siril.ui:3555
-#: src/core/command.c:6295 src/core/command.c:6299
+#: src/core/command.c:6297 src/core/command.c:6301
 msgid "RGB"
 msgstr "RGB"
 
-#: src/gui/uifiles/extract_channel_dialog.ui:194 src/core/command.c:6286
+#: src/gui/uifiles/extract_channel_dialog.ui:194 src/core/command.c:6288
 msgid "HSL"
 msgstr "HLS"
 
-#: src/gui/uifiles/extract_channel_dialog.ui:195 src/core/command.c:6289
+#: src/gui/uifiles/extract_channel_dialog.ui:195 src/core/command.c:6291
 msgid "HSV"
 msgstr "HSV"
 
@@ -4168,7 +4168,7 @@ msgid "Interpolation: "
 msgstr "Interpolació: "
 
 #: src/gui/uifiles/file_information_dialog.ui:34
-#: src/io/siril_pythoncommands.c:1005
+#: src/io/siril_pythoncommands.c:1036
 msgid "Information"
 msgstr "Informació"
 
@@ -4943,7 +4943,7 @@ msgstr "Relació d'aspecte de la selecció"
 msgid "Remove a scroll action"
 msgstr ""
 
-#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5323
+#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5355
 #: src/gui/uifiles/siril.ui:6342
 msgid " "
 msgstr ""
@@ -5246,7 +5246,7 @@ msgid ""
 "scripting language set before executing a script from the editor."
 msgstr ""
 
-#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:327
+#: src/gui/uifiles/python_scratchpad.ui:351 src/gui/script_menu.c:331
 msgid "Siril Script Files"
 msgstr ""
 
@@ -6024,7 +6024,7 @@ msgstr ""
 "el fons."
 
 #: src/gui/uifiles/savepopup.ui:87 src/gui/uifiles/siril.ui:10736
-#: src/io/sequence.c:2029
+#: src/io/sequence.c:2034
 msgid "Save"
 msgstr "Guarda"
 
@@ -6226,7 +6226,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
-#: src/gui/uifiles/settings_window.ui:5242
+#: src/gui/uifiles/settings_window.ui:5267
 msgid "Sel"
 msgstr "Sel"
 
@@ -6454,10 +6454,10 @@ msgstr "Referència: "
 #: src/gui/uifiles/settings_window.ui:572
 msgid ""
 "Siril read FITS data in the bottom-up orientation but a lot of capture "
-"software do not meet this specification. Most of them now write a ROW-ORDER "
+"software do not meet this specification. Most of them now write a ROWORDER "
 "key in the images metadata to indicate how data was stored.\n"
 "Pick in this list your preferred option. The first two will first try to "
-"read ROW-ORDER from the header then use a fallback solution. The last two "
+"read ROWORDER from the header then use a fallback solution. The last two "
 "options force either Top-Down or Bottom-Up.\n"
 "This setting is ignored with SER files which are always assumed Top-Down as "
 "per their standard."
@@ -7885,7 +7885,7 @@ msgid "<b>Built-in Profiles</b>"
 msgstr "<b>Tipus de Perfil</b>"
 
 #: src/gui/uifiles/settings_window.ui:4943
-#: src/gui/uifiles/settings_window.ui:5359 src/gui/uifiles/siril.ui:10628
+#: src/gui/uifiles/settings_window.ui:5391 src/gui/uifiles/siril.ui:10628
 #, fuzzy
 msgid "Scripts"
 msgstr "Obtenir scripts"
@@ -7925,7 +7925,7 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5076
-#: src/gui/uifiles/settings_window.ui:5942
+#: src/gui/uifiles/settings_window.ui:5974
 msgid "Warning Dialogs"
 msgstr ""
 
@@ -7966,7 +7966,13 @@ msgid ""
 "changes."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5178
+#: src/gui/uifiles/settings_window.ui:5179
+msgid ""
+"Type here to filter the list of scripts. The search matches any part of the "
+"script name. Filtering is case-insensitive and updates instantly as you type."
+msgstr ""
+
+#: src/gui/uifiles/settings_window.ui:5203
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -7975,30 +7981,30 @@ msgid ""
 "update) right click on a row."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5195
+#: src/gui/uifiles/settings_window.ui:5220
 msgid "Category"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5211
+#: src/gui/uifiles/settings_window.ui:5236
 #, fuzzy
 msgid "Script"
 msgstr "Obtenir scripts"
 
-#: src/gui/uifiles/settings_window.ui:5227
+#: src/gui/uifiles/settings_window.ui:5252
 #, fuzzy
 msgid "Type"
 msgstr "Tipus:"
 
-#: src/gui/uifiles/settings_window.ui:5271
+#: src/gui/uifiles/settings_window.ui:5303
 msgid "<b>Siril Scripts Repository</b>"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5304
+#: src/gui/uifiles/settings_window.ui:5336
 #, fuzzy
 msgid "Reset python venv"
 msgstr "Restableix canvis"
 
-#: src/gui/uifiles/settings_window.ui:5308
+#: src/gui/uifiles/settings_window.ui:5340
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -8008,22 +8014,22 @@ msgid ""
 "the venv to a pristine state as an aid to troubleshooting."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5339
+#: src/gui/uifiles/settings_window.ui:5371
 msgid "Python Interface"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5373
-#: src/gui/uifiles/settings_window.ui:5771
+#: src/gui/uifiles/settings_window.ui:5405
+#: src/gui/uifiles/settings_window.ui:5803
 #, fuzzy
 msgid "Performances"
 msgstr "Preferències"
 
-#: src/gui/uifiles/settings_window.ui:5404
+#: src/gui/uifiles/settings_window.ui:5436
 #, fuzzy
 msgid "Ratio of available"
 msgstr "No disponible"
 
-#: src/gui/uifiles/settings_window.ui:5408
+#: src/gui/uifiles/settings_window.ui:5440
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -8034,11 +8040,11 @@ msgid ""
 "above will likely result in a crash of siril or of the operating system."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5424
+#: src/gui/uifiles/settings_window.ui:5456
 msgid "Fixed amount (GB)"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5428
+#: src/gui/uifiles/settings_window.ui:5460
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -8046,7 +8052,7 @@ msgid ""
 "result in a crash of siril or of the operating system."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5444
+#: src/gui/uifiles/settings_window.ui:5476
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -8055,16 +8061,16 @@ msgid ""
 "very slow and unrecommended"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5489
+#: src/gui/uifiles/settings_window.ui:5521
 #, fuzzy
 msgid "<b>Memory management</b>"
 msgstr "<b>Nom de fitxer</b>"
 
-#: src/gui/uifiles/settings_window.ui:5522
+#: src/gui/uifiles/settings_window.ui:5554
 msgid "Default bit depth for HD AutoStretch"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5538
+#: src/gui/uifiles/settings_window.ui:5570
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -8074,37 +8080,37 @@ msgid ""
 "the button to the right."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5555
+#: src/gui/uifiles/settings_window.ui:5587
 #, fuzzy
 msgid "Apply bit depth"
 msgstr "Aplica Separació de CFA"
 
-#: src/gui/uifiles/settings_window.ui:5559
+#: src/gui/uifiles/settings_window.ui:5591
 #, fuzzy
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "Estirat Automàtic"
 
-#: src/gui/uifiles/settings_window.ui:5582
+#: src/gui/uifiles/settings_window.ui:5614
 #, fuzzy
 msgid "HD AutoStretch"
 msgstr "Estirat Automàtic"
 
-#: src/gui/uifiles/settings_window.ui:5613
+#: src/gui/uifiles/settings_window.ui:5645
 msgid "Multithreaded FFTW"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5617
+#: src/gui/uifiles/settings_window.ui:5649
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5632 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5664 src/core/settings.c:382
 msgid "FFTW planning strategy"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5643
+#: src/gui/uifiles/settings_window.ui:5675
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -8122,28 +8128,28 @@ msgid ""
 "the other strategies is not worth it for a single Fourier Transform."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5648 src/gui/uifiles/siril.ui:5058
+#: src/gui/uifiles/settings_window.ui:5680 src/gui/uifiles/siril.ui:5058
 #: src/gui/uifiles/siril.ui:6928
 msgid "Estimate"
 msgstr "Estimar"
 
-#: src/gui/uifiles/settings_window.ui:5649
+#: src/gui/uifiles/settings_window.ui:5681
 msgid "Measure"
 msgstr "Mesurar"
 
-#: src/gui/uifiles/settings_window.ui:5650
+#: src/gui/uifiles/settings_window.ui:5682
 msgid "Patient"
 msgstr "Pacient"
 
-#: src/gui/uifiles/settings_window.ui:5651
+#: src/gui/uifiles/settings_window.ui:5683
 msgid "Exhaustive"
 msgstr "Exhaustiu"
 
-#: src/gui/uifiles/settings_window.ui:5664
+#: src/gui/uifiles/settings_window.ui:5696
 msgid "FFTW planning time limit (seconds)"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5675
+#: src/gui/uifiles/settings_window.ui:5707
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -8151,11 +8157,11 @@ msgid ""
 "minimum planning level of Estimate will always be completed."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5690
+#: src/gui/uifiles/settings_window.ui:5722
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5701
+#: src/gui/uifiles/settings_window.ui:5733
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -8166,11 +8172,11 @@ msgid ""
 "Fourier Transforms will be used."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5717
+#: src/gui/uifiles/settings_window.ui:5749
 msgid "Maximum slice size for sliced image operations"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5728
+#: src/gui/uifiles/settings_window.ui:5760
 msgid ""
 "Sets the maximum slice size for image operations that can use sliced "
 "processing. The primary purpose of this is to constrain typical slices to a "
@@ -8178,75 +8184,75 @@ msgid ""
 "more effectively. It is always safe to leave this at the default setting."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5731
+#: src/gui/uifiles/settings_window.ui:5763
 msgid "Unlimited"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5757
+#: src/gui/uifiles/settings_window.ui:5789
 #, fuzzy
 msgid "<b>FFTW Options</b>"
 msgstr "<b>Compressió</b>"
 
-#: src/gui/uifiles/settings_window.ui:5785
-#: src/gui/uifiles/settings_window.ui:6228
+#: src/gui/uifiles/settings_window.ui:5817
+#: src/gui/uifiles/settings_window.ui:6260
 msgid "Miscellaneous"
 msgstr "Miscel·lània"
 
-#: src/gui/uifiles/settings_window.ui:5813
+#: src/gui/uifiles/settings_window.ui:5845
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5816
+#: src/gui/uifiles/settings_window.ui:5848
 msgid "Select Swap Directory"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5829
+#: src/gui/uifiles/settings_window.ui:5861
 #, fuzzy
 msgid "available mem"
 msgstr "No disponible"
 
-#: src/gui/uifiles/settings_window.ui:5841
+#: src/gui/uifiles/settings_window.ui:5873
 msgid "Restore to Default"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5845
+#: src/gui/uifiles/settings_window.ui:5877
 msgid "Restore the default swap storage directory"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5864
+#: src/gui/uifiles/settings_window.ui:5896
 #, fuzzy
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Factor de les mostres</b>"
 
-#: src/gui/uifiles/settings_window.ui:5891
+#: src/gui/uifiles/settings_window.ui:5923
 msgid "Don't ask before quitting"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5906
+#: src/gui/uifiles/settings_window.ui:5938
 msgid "Don't ask before saving when display is not linear"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5921
+#: src/gui/uifiles/settings_window.ui:5953
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5925
+#: src/gui/uifiles/settings_window.ui:5957
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5964
+#: src/gui/uifiles/settings_window.ui:5996
 msgid "Play introduction"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5978
+#: src/gui/uifiles/settings_window.ui:6010
 msgid "Introduction Tips"
 msgstr "Consells d'introducció"
 
-#: src/gui/uifiles/settings_window.ui:6010
+#: src/gui/uifiles/settings_window.ui:6042
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -8257,60 +8263,60 @@ msgid ""
 "executable: Siril will automatically find the other one if it exists."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6018
+#: src/gui/uifiles/settings_window.ui:6050
 msgid "Select StarNet executable"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6032
+#: src/gui/uifiles/settings_window.ui:6064
 msgid "Must point to a valid StarNet executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6046
+#: src/gui/uifiles/settings_window.ui:6078
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
 "b> be in the same directory as the StarNet executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6052
+#: src/gui/uifiles/settings_window.ui:6084
 msgid "Select StarNet weights file"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6069
+#: src/gui/uifiles/settings_window.ui:6101
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6084
+#: src/gui/uifiles/settings_window.ui:6116
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6119
+#: src/gui/uifiles/settings_window.ui:6151
 msgid "Must point to a valid GraXpert executable."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6138
+#: src/gui/uifiles/settings_window.ui:6170
 #, fuzzy
 msgid "Software Location"
 msgstr "Calibració ce color"
 
-#: src/gui/uifiles/settings_window.ui:6161
+#: src/gui/uifiles/settings_window.ui:6193
 msgid "Copyright when saving image as TIFF"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6173
+#: src/gui/uifiles/settings_window.ui:6205
 msgid "Copyright TIFF"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:6195
+#: src/gui/uifiles/settings_window.ui:6227
 #, fuzzy
 msgid "Check update at startup"
 msgstr "Comprovar Actualitzacions"
 
-#: src/gui/uifiles/settings_window.ui:6211
+#: src/gui/uifiles/settings_window.ui:6243
 msgid "Update"
 msgstr "Actualitzar"
 
@@ -9408,7 +9414,7 @@ msgid ""
 "you can filter images out."
 msgstr ""
 
-#: src/gui/uifiles/siril.ui:4608 src/gui/callbacks.c:2313
+#: src/gui/uifiles/siril.ui:4608 src/gui/callbacks.c:2325
 msgid "Sequence"
 msgstr "Seqüència"
 
@@ -12325,7 +12331,7 @@ msgstr ""
 msgid "Running sequence plate solving using the %s catalogue\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2082 src/algos/astrometry_solver.c:2187
+#: src/algos/astrometry_solver.c:2082 src/algos/astrometry_solver.c:2188
 #, c-format
 msgid "Image %d already platesolved, skipping\n"
 msgstr ""
@@ -12359,42 +12365,42 @@ msgstr ""
 msgid "Image %d: no stars found\n"
 msgstr "Imatge %d no trobada per escriure\n"
 
-#: src/algos/astrometry_solver.c:2183 src/algos/astrometry_solver.c:2235
+#: src/algos/astrometry_solver.c:2184 src/algos/astrometry_solver.c:2236
 #, c-format
 msgid "Could not copy WCS data, skipping image %d\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2209
+#: src/algos/astrometry_solver.c:2210
 #, c-format
 msgid "Image %s did not solve\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2223
+#: src/algos/astrometry_solver.c:2224
 #, c-format
 msgid "Image %s platesolved and updated\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2225
+#: src/algos/astrometry_solver.c:2226
 #, c-format
 msgid "Image %s platesolved but could not be saved\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2249
+#: src/algos/astrometry_solver.c:2250
 #, c-format
 msgid "%d images successfully platesolved out of %d included\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2251
+#: src/algos/astrometry_solver.c:2252
 #, c-format
 msgid "(%d were already solved and skipped)\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2255
+#: src/algos/astrometry_solver.c:2256
 #, fuzzy
 msgid "Computing astrometric registration...\n"
 msgstr "Aplica la transformació d'histograma"
 
-#: src/algos/astrometry_solver.c:2257
+#: src/algos/astrometry_solver.c:2258
 msgid "Reference image was not platesolved, changing reference\n"
 msgstr ""
 
@@ -12489,7 +12495,7 @@ msgstr ""
 
 #: src/algos/background_extraction.c:1336 src/algos/demosaicing.c:591
 #: src/algos/extraction.c:1124 src/algos/star_finder.c:1145
-#: src/algos/statistics.c:901 src/core/preprocess.c:283
+#: src/algos/statistics.c:917 src/core/preprocess.c:283
 #: src/core/processing.c:467 src/filters/banding.c:85
 #: src/filters/cosmetic_correction.c:401 src/gui/cut.c:1362
 #, c-format
@@ -12692,8 +12698,8 @@ msgstr "Factor de compensació"
 msgid "Comparison stars: processing...\n"
 msgstr "Correcció Cosmètica: processant...\n"
 
-#: src/algos/comparison_stars.c:440 src/core/command.c:9904
-#: src/core/command.c:10614 src/core/command.c:10767 src/core/command.c:10787
+#: src/algos/comparison_stars.c:440 src/core/command.c:9907
+#: src/core/command.c:10617 src/core/command.c:10770 src/core/command.c:10790
 #: src/io/siril_catalogues.c:1118 src/io/siril_catalogues.c:1167
 msgid "This command only works on plate solved images\n"
 msgstr ""
@@ -13001,7 +13007,7 @@ msgstr ""
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
 msgstr ""
 
-#: src/algos/geometry.c:759 src/registration/applyreg.c:779
+#: src/algos/geometry.c:759 src/registration/applyreg.c:781
 #: src/registration/global.c:587 src/stacking/blending.c:116
 #, c-format
 msgid ""
@@ -13206,11 +13212,11 @@ msgid ""
 "and limit magnitude %.2f\n"
 msgstr ""
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:991
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
 msgid "SPCC"
 msgstr ""
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:991
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
 #, fuzzy
 msgid "PCC"
 msgstr "CDS"
@@ -13226,21 +13232,21 @@ msgid ""
 "degrees and limit magnitude %.2f\n"
 msgstr ""
 
-#: src/algos/photometric_cc.c:992
+#: src/algos/photometric_cc.c:996
 #, fuzzy, c-format
 msgid "Photometric CC (algorithm: %s)"
 msgstr "Photometric Star Catalague: "
 
-#: src/algos/photometric_cc.c:999
+#: src/algos/photometric_cc.c:1003
 msgid "Catalog error, no stars identified!\n"
 msgstr ""
 
-#: src/algos/photometric_cc.c:1008
+#: src/algos/photometric_cc.c:1012
 #, fuzzy
 msgid "Spectrophotometric Color Calibration succeeded.\n"
 msgstr "Calibració Fotomètrica de Color executada amb èxit.\n"
 
-#: src/algos/photometric_cc.c:1010
+#: src/algos/photometric_cc.c:1014
 msgid "Photometric Color Calibration succeeded.\n"
 msgstr "Calibració Fotomètrica de Color executada amb èxit.\n"
 
@@ -13559,7 +13565,7 @@ msgstr ""
 msgid "Cannot save star list %s: %s\n"
 msgstr ""
 
-#: src/algos/star_finder.c:1006 src/core/command.c:7353
+#: src/algos/star_finder.c:1006 src/core/command.c:7355
 #, c-format
 msgid "The file %s has been created.\n"
 msgstr ""
@@ -13570,9 +13576,9 @@ msgid "FindStar"
 msgstr "Troba"
 
 #: src/algos/star_finder.c:1339 src/compositing/compositing.c:1847
-#: src/io/sequence.c:2266 src/io/sequence.c:2284
-#: src/registration/applyreg.c:327 src/registration/applyreg.c:814
-#: src/registration/applyreg.c:979 src/registration/comet.c:138
+#: src/io/sequence.c:2271 src/io/sequence.c:2289
+#: src/registration/applyreg.c:327 src/registration/applyreg.c:816
+#: src/registration/applyreg.c:981 src/registration/comet.c:138
 #: src/registration/global.c:119
 msgid "Could not load reference image\n"
 msgstr ""
@@ -13609,23 +13615,34 @@ msgstr ""
 msgid "Bad argument to stats option\n"
 msgstr ""
 
+#: src/algos/statistics.c:863
+#, fuzzy, c-format
+msgid "Failed to write seqstat data: %s"
+msgstr "Impossible obrir el fitxer %s : %s\n"
+
+#. Success path
 #: src/algos/statistics.c:870
 #, c-format
 msgid "Statistic file %s was successfully created.\n"
 msgstr ""
 
-#: src/algos/statistics.c:979 src/registration/global.c:317
+#: src/algos/statistics.c:878
+#, fuzzy, c-format
+msgid "Failed to close seqstat output stream: %s"
+msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
+
+#: src/algos/statistics.c:995 src/registration/global.c:317
 msgid ""
 "It looks like your sequence contains a mix of monochrome and RGB images.\n"
 msgstr ""
 
-#: src/algos/statistics.c:1005 src/algos/statistics.c:1075
+#: src/algos/statistics.c:1021 src/algos/statistics.c:1091
 msgid ""
 "Threading statistics computation per channel, but enabling threading in "
 "channels too is not supported.\n"
 msgstr ""
 
-#: src/algos/statistics.c:1207
+#: src/algos/statistics.c:1223
 msgid ""
 "Error: statistics computation failed. Unable to check for out-of-range "
 "values.\n"
@@ -13803,8 +13820,8 @@ msgstr ""
 #: src/compositing/compositing.c:787 src/filters/wavelets.c:258
 #: src/filters/wavelets.c:267 src/filters/wavelets.c:328 src/gui/colors.c:571
 #: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:1177
-#: src/gui/script_menu.c:579 src/gui/utils.c:486
-#: src/io/siril_pythoncommands.c:999
+#: src/gui/script_menu.c:583 src/gui/utils.c:486
+#: src/io/siril_pythoncommands.c:1030
 msgid "Warning"
 msgstr "Alerta"
 
@@ -13841,7 +13858,7 @@ msgstr ""
 #: src/gui/keywords_tree.c:601 src/gui/mouse_action_preferences.c:117
 #: src/gui/preferences.c:1104 src/gui/python_gui.c:687 src/gui/python_gui.c:706
 #: src/gui/python_gui.c:735 src/gui/python_gui.c:761 src/gui/python_gui.c:832
-#: src/gui/utils.c:320 src/registration/applyreg.c:1049
+#: src/gui/utils.c:320 src/registration/applyreg.c:1051
 #, fuzzy
 msgid "Proceed"
 msgstr "Procés"
@@ -13895,8 +13912,8 @@ msgstr ""
 #: src/filters/fft.c:610 src/gui/PSF_list.c:303 src/gui/PSF_list.c:308
 #: src/gui/PSF_list.c:313 src/gui/colors.c:461 src/gui/compstars.c:224
 #: src/gui/compstars.c:293 src/gui/compstars.c:301 src/gui/compstars.c:308
-#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:204
-#: src/gui/git_gui.c:339 src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
+#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:266
+#: src/gui/git_gui.c:401 src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
 #: src/gui/icc_profile.c:543 src/gui/merge_cfa.c:216 src/gui/merge_cfa.c:248
 #: src/gui/merge_cfa.c:259 src/gui/merge_cfa.c:270 src/gui/merge_cfa.c:281
 #: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
@@ -13904,7 +13921,7 @@ msgstr ""
 #: src/gui/nina_light_curve.c:279 src/gui/open_dialog.c:414
 #: src/gui/preferences.c:556 src/gui/preferences.c:575
 #: src/gui/preferences.c:609 src/gui/save_dialog.c:466
-#: src/gui/script_menu.c:275 src/io/siril_pythoncommands.c:993
+#: src/gui/script_menu.c:279 src/io/siril_pythoncommands.c:1024
 msgid "Error"
 msgstr "Error"
 
@@ -13959,7 +13976,7 @@ msgstr ""
 msgid "Registration finished.\n"
 msgstr ""
 
-#: src/compositing/compositing.c:1963 src/registration/applyreg.c:641
+#: src/compositing/compositing.c:1963 src/registration/applyreg.c:643
 #: src/registration/global.c:475
 #, c-format
 msgid "%d image processed.\n"
@@ -14042,7 +14059,7 @@ msgid ""
 "Questionable parallel processing detection - openmp reports %d %s, glib %d.\n"
 msgstr ""
 
-#: src/core/OS_utils.c:622 src/core/OS_utils.c:637 src/core/command.c:9590
+#: src/core/OS_utils.c:622 src/core/OS_utils.c:637 src/core/command.c:9593
 msgid "processor"
 msgid_plural "processors"
 msgstr[0] "processador"
@@ -14120,13 +14137,13 @@ msgstr ""
 #: src/core/command.c:883 src/core/command.c:1445 src/core/command.c:1501
 #: src/core/command.c:1656 src/core/command.c:1679 src/core/command.c:1769
 #: src/core/command.c:3422 src/core/command.c:3472 src/core/command.c:3583
-#: src/core/command.c:3757 src/core/command.c:4046 src/core/command.c:5398
-#: src/core/command.c:5883 src/core/command.c:5948 src/core/command.c:6062
-#: src/core/command.c:6638 src/core/command.c:6786 src/core/command.c:6842
-#: src/core/command.c:6895 src/core/command.c:7073 src/core/command.c:7083
-#: src/core/command.c:7117 src/core/command.c:7433 src/core/command.c:7605
-#: src/core/command.c:8007 src/core/command.c:8476 src/core/command.c:9374
-#: src/core/command.c:11471 src/core/command.c:11489
+#: src/core/command.c:3757 src/core/command.c:4046 src/core/command.c:5400
+#: src/core/command.c:5885 src/core/command.c:5950 src/core/command.c:6064
+#: src/core/command.c:6640 src/core/command.c:6788 src/core/command.c:6844
+#: src/core/command.c:6897 src/core/command.c:7075 src/core/command.c:7085
+#: src/core/command.c:7119 src/core/command.c:7435 src/core/command.c:7607
+#: src/core/command.c:8010 src/core/command.c:8479 src/core/command.c:9377
+#: src/core/command.c:11474 src/core/command.c:11492
 #, c-format
 msgid "Unknown parameter %s, aborting.\n"
 msgstr ""
@@ -14137,11 +14154,11 @@ msgstr ""
 #: src/core/command.c:1213 src/core/command.c:1863 src/core/command.c:1868
 #: src/core/command.c:2678 src/core/command.c:3203 src/core/command.c:3210
 #: src/core/command.c:3222 src/core/command.c:3230 src/core/command.c:3238
-#: src/core/command.c:3327 src/core/command.c:4503 src/core/command.c:5517
-#: src/core/command.c:5522 src/core/command.c:9443 src/core/command.c:10048
-#: src/core/command.c:10056 src/core/command.c:10061 src/core/command.c:10372
-#: src/core/command.c:10733 src/core/command.c:10937 src/core/command.c:10981
-#: src/core/command.c:10999
+#: src/core/command.c:3327 src/core/command.c:4505 src/core/command.c:5519
+#: src/core/command.c:5524 src/core/command.c:9446 src/core/command.c:10051
+#: src/core/command.c:10059 src/core/command.c:10064 src/core/command.c:10375
+#: src/core/command.c:10736 src/core/command.c:10940 src/core/command.c:10984
+#: src/core/command.c:11002
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr ""
@@ -14300,7 +14317,7 @@ msgstr ""
 msgid "Reconstructing GRBG Bayer matrix.\n"
 msgstr ""
 
-#: src/core/command.c:957 src/core/command.c:6750
+#: src/core/command.c:957 src/core/command.c:6752
 msgid "Invalid Bayer matrix specified!\n"
 msgstr ""
 
@@ -14507,26 +14524,26 @@ msgstr ""
 msgid "Updating keywords...\n"
 msgstr "esperant fitxers d'entrada"
 
-#: src/core/command.c:2040 src/core/command.c:6011
+#: src/core/command.c:2040 src/core/command.c:6013
 msgid "There can be only one prefix argument"
 msgstr ""
 
 #: src/core/command.c:2046 src/core/command.c:2286 src/core/command.c:3397
 #: src/core/command.c:3404 src/core/command.c:3411 src/core/command.c:3444
-#: src/core/command.c:3551 src/core/command.c:3629 src/core/command.c:4783
-#: src/core/command.c:4890 src/core/command.c:4928 src/core/command.c:4998
-#: src/core/command.c:5355 src/core/command.c:5386 src/core/command.c:5649
-#: src/core/command.c:5937 src/core/command.c:6017 src/core/command.c:6167
-#: src/core/command.c:6514 src/core/command.c:6584 src/core/command.c:6625
-#: src/core/command.c:6770 src/core/command.c:6828 src/core/command.c:6882
-#: src/core/command.c:6933 src/core/command.c:7335 src/core/command.c:7415
-#: src/core/command.c:7588 src/core/command.c:7750 src/core/command.c:7795
-#: src/core/command.c:7805 src/core/command.c:7821 src/core/command.c:7836
-#: src/core/command.c:7870 src/core/command.c:7878 src/core/command.c:8143
-#: src/core/command.c:8161 src/core/command.c:8180 src/core/command.c:8199
-#: src/core/command.c:8218 src/core/command.c:8236 src/core/command.c:8391
-#: src/core/command.c:8401 src/core/command.c:8434 src/core/command.c:8628
-#: src/core/command.c:9278 src/core/command.c:9318 src/core/command.c:10721
+#: src/core/command.c:3551 src/core/command.c:3629 src/core/command.c:4785
+#: src/core/command.c:4892 src/core/command.c:4930 src/core/command.c:5000
+#: src/core/command.c:5357 src/core/command.c:5388 src/core/command.c:5651
+#: src/core/command.c:5939 src/core/command.c:6019 src/core/command.c:6169
+#: src/core/command.c:6516 src/core/command.c:6586 src/core/command.c:6627
+#: src/core/command.c:6772 src/core/command.c:6830 src/core/command.c:6884
+#: src/core/command.c:6935 src/core/command.c:7337 src/core/command.c:7417
+#: src/core/command.c:7590 src/core/command.c:7753 src/core/command.c:7798
+#: src/core/command.c:7808 src/core/command.c:7824 src/core/command.c:7839
+#: src/core/command.c:7873 src/core/command.c:7881 src/core/command.c:8146
+#: src/core/command.c:8164 src/core/command.c:8183 src/core/command.c:8202
+#: src/core/command.c:8221 src/core/command.c:8239 src/core/command.c:8394
+#: src/core/command.c:8404 src/core/command.c:8437 src/core/command.c:8631
+#: src/core/command.c:9281 src/core/command.c:9321 src/core/command.c:10724
 #, c-format
 msgid "Missing argument to %s, aborting.\n"
 msgstr ""
@@ -14554,25 +14571,25 @@ msgid ""
 "active. Please consider to close the filter dialog first.\n"
 msgstr ""
 
-#: src/core/command.c:2136 src/core/command.c:4848
+#: src/core/command.c:2136 src/core/command.c:4850
 msgid "Crop: x and y must be positive values.\n"
 msgstr ""
 
-#: src/core/command.c:2142 src/core/command.c:4854
+#: src/core/command.c:2142 src/core/command.c:4856
 msgid "Crop: width and height must be greater than 0.\n"
 msgstr ""
 
-#: src/core/command.c:2146 src/core/command.c:4870
+#: src/core/command.c:2146 src/core/command.c:4872
 #, c-format
 msgid "Crop: width and height, respectively, must be less than %d and %d.\n"
 msgstr ""
 
-#: src/core/command.c:2151 src/core/command.c:4860
+#: src/core/command.c:2151 src/core/command.c:4862
 msgid "Crop: select a region or provide x, y, width, height\n"
 msgstr ""
 
-#: src/core/command.c:2214 src/core/command.c:5327 src/core/command.c:5340
-#: src/core/command.c:5749 src/core/command.c:5767 src/core/command.c:5778
+#: src/core/command.c:2214 src/core/command.c:5329 src/core/command.c:5342
+#: src/core/command.c:5751 src/core/command.c:5769 src/core/command.c:5780
 msgid "Wrong parameters.\n"
 msgstr ""
 
@@ -14626,7 +14643,7 @@ msgstr ""
 msgid "Error: cannot apply saturation stretch to a mono image.\n"
 msgstr ""
 
-#: src/core/command.c:2567 src/core/command.c:9659 src/filters/wavelets.c:256
+#: src/core/command.c:2567 src/core/command.c:9662 src/filters/wavelets.c:256
 #: src/filters/wavelets.c:326
 #, c-format
 msgid "Wavelet: maximum number of plans for this image size is %d\n"
@@ -14692,7 +14709,7 @@ msgstr ""
 msgid "Image: %s\n"
 msgstr ""
 
-#: src/core/command.c:2870 src/core/command.c:9574
+#: src/core/command.c:2870 src/core/command.c:9577
 msgid "********* END OF THE LIST *********\n"
 msgstr ""
 
@@ -14700,7 +14717,7 @@ msgstr ""
 msgid "Merge: no working directory set.\n"
 msgstr ""
 
-#: src/core/command.c:2884 src/core/command.c:7394 src/core/command.c:7553
+#: src/core/command.c:2884 src/core/command.c:7396 src/core/command.c:7555
 #, c-format
 msgid "Specified output name %s contains forbidden characters, aborting\n"
 msgstr ""
@@ -14745,7 +14762,7 @@ msgstr ""
 msgid "This type of sequence cannot be created by Siril, aborting the merge\n"
 msgstr ""
 
-#: src/core/command.c:3068 src/core/command.c:9158 src/io/single_image.c:212
+#: src/core/command.c:3068 src/core/command.c:9161 src/io/single_image.c:212
 #, c-format
 msgid "Error opening image %s: file not found or not supported.\n"
 msgstr ""
@@ -14762,8 +14779,8 @@ msgid ""
 "not a FITS cube.\n"
 msgstr ""
 
-#: src/core/command.c:3085 src/core/command.c:3099 src/core/command.c:5539
-#: src/core/command.c:10916 src/pixelMath/pixel_math_runner.c:1286
+#: src/core/command.c:3085 src/core/command.c:3099 src/core/command.c:5541
+#: src/core/command.c:10919 src/pixelMath/pixel_math_runner.c:1286
 #, c-format
 msgid "Could not open file: %s\n"
 msgstr ""
@@ -14781,18 +14798,18 @@ msgstr ""
 msgid "Could not save mirrored image: %s\n"
 msgstr "Impossible guardar la imatge emmirallada : %s\n"
 
-#: src/core/command.c:3147 src/core/command.c:4458 src/core/command.c:4465
-#: src/core/command.c:4470 src/core/command.c:6027 src/core/command.c:6036
-#: src/core/command.c:6045 src/core/command.c:6547 src/core/command.c:7408
-#: src/core/command.c:7581 src/core/command.c:7927 src/core/command.c:7938
-#: src/core/command.c:7957 src/core/command.c:8307 src/core/command.c:8318
-#: src/core/command.c:8337 src/core/command.c:8465 src/core/command.c:9933
-#: src/core/command.c:9944 src/core/command.c:9967 src/core/command.c:9983
-#: src/core/command.c:10278 src/core/command.c:10289 src/core/command.c:10301
-#: src/core/command.c:10314 src/core/command.c:10325 src/core/command.c:10353
-#: src/core/command.c:10361 src/core/command.c:10661 src/core/command.c:10807
-#: src/core/command.c:10816 src/core/command.c:10825 src/core/command.c:10834
-#: src/core/command.c:10841
+#: src/core/command.c:3147 src/core/command.c:4460 src/core/command.c:4467
+#: src/core/command.c:4472 src/core/command.c:6029 src/core/command.c:6038
+#: src/core/command.c:6047 src/core/command.c:6549 src/core/command.c:7410
+#: src/core/command.c:7583 src/core/command.c:7930 src/core/command.c:7941
+#: src/core/command.c:7960 src/core/command.c:8310 src/core/command.c:8321
+#: src/core/command.c:8340 src/core/command.c:8468 src/core/command.c:9936
+#: src/core/command.c:9947 src/core/command.c:9970 src/core/command.c:9986
+#: src/core/command.c:10281 src/core/command.c:10292 src/core/command.c:10304
+#: src/core/command.c:10317 src/core/command.c:10328 src/core/command.c:10356
+#: src/core/command.c:10364 src/core/command.c:10664 src/core/command.c:10810
+#: src/core/command.c:10819 src/core/command.c:10828 src/core/command.c:10837
+#: src/core/command.c:10844
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr ""
@@ -14842,8 +14859,8 @@ msgstr ""
 msgid "Scale is 1.0. Not doing anything.\n"
 msgstr ""
 
-#: src/core/command.c:3467 src/core/command.c:3574 src/core/command.c:5026
-#: src/core/command.c:7774 src/core/command.c:7863 src/core/command.c:8428
+#: src/core/command.c:3467 src/core/command.c:3574 src/core/command.c:5028
+#: src/core/command.c:7777 src/core/command.c:7866 src/core/command.c:8431
 #, c-format
 msgid "Unknown transformation type %s, aborting.\n"
 msgstr ""
@@ -14885,15 +14902,15 @@ msgstr ""
 msgid "Wrong magnitude value.\n"
 msgstr ""
 
-#: src/core/command.c:3676 src/core/command.c:4347 src/core/command.c:4664
+#: src/core/command.c:3676 src/core/command.c:4349 src/core/command.c:4666
 #: src/core/siril_actions.c:407 src/core/siril_actions.c:826
 msgid ""
 "Current selection is too large. To determine the PSF, please make a "
 "selection around a single star.\n"
 msgstr ""
 
-#: src/core/command.c:3680 src/core/command.c:4351 src/core/command.c:4669
-#: src/core/siril_actions.c:411 src/io/sequence.c:2087
+#: src/core/command.c:3680 src/core/command.c:4353 src/core/command.c:4671
+#: src/core/siril_actions.c:411 src/io/sequence.c:2092
 msgid "Select an area first\n"
 msgstr ""
 
@@ -15084,927 +15101,927 @@ msgstr ""
 msgid "Image must have same dimension\n"
 msgstr "Apilonament: la imatge de la seqüència no té les mateixes dimensions\n"
 
-#: src/core/command.c:4356
+#: src/core/command.c:4358
 msgid ""
 "Please display the channel on which you want to compute the PSF or use "
 "-channel argument\n"
 msgstr ""
 
-#: src/core/command.c:4365
+#: src/core/command.c:4367
 msgid "Please provide the channel number starting from 0 for red\n"
 msgstr ""
 
-#: src/core/command.c:4440 src/core/command.c:4480 src/core/command.c:4495
+#: src/core/command.c:4442 src/core/command.c:4482 src/core/command.c:4497
 msgid "The given coordinates are not in the image, aborting\n"
 msgstr ""
 
-#: src/core/command.c:4445
+#: src/core/command.c:4447
 msgid ""
 "Selection was not completely inside the first image of the sequence, "
 "aborting.\n"
 msgstr ""
 
-#: src/core/command.c:4475
+#: src/core/command.c:4477
 msgid ""
 "The reference image of the sequence does not have the WCS information "
 "required for star selection by equatorial coordinates\n"
 msgstr ""
 
-#: src/core/command.c:4498
+#: src/core/command.c:4500
 #, c-format
 msgid "Coordinates of the star: %.1f, %.1f\n"
 msgstr ""
 
-#: src/core/command.c:4523
+#: src/core/command.c:4525
 msgid ""
 "Sequence name is required as first argument (use '.' for current sequence)\n"
 msgstr ""
 
-#: src/core/command.c:4583 src/core/command.c:4588 src/core/command.c:4616
-#: src/core/command.c:4621
+#: src/core/command.c:4585 src/core/command.c:4590 src/core/command.c:4618
+#: src/core/command.c:4623
 #, fuzzy, c-format
 msgid "Invalid argument: %s\n"
 msgstr "Regla de terços"
 
-#: src/core/command.c:4642
+#: src/core/command.c:4644
 msgid ""
 "Layer and star position arguments are required when called from a script\n"
 msgstr ""
 
-#: src/core/command.c:4647
+#: src/core/command.c:4649
 msgid ""
 "Layer and star position arguments are required, or make a selection around a "
 "star\n"
 msgstr ""
 
-#: src/core/command.c:4656 src/core/command.c:4716
+#: src/core/command.c:4658 src/core/command.c:4718
 #, c-format
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr ""
 
 #. Run PSF
-#: src/core/command.c:4687 src/core/siril_actions.c:425
-#: src/gui/callbacks.c:2480
+#: src/core/command.c:4689 src/core/siril_actions.c:425
+#: src/gui/callbacks.c:2492
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr ""
 
-#: src/core/command.c:4730
+#: src/core/command.c:4732
 msgid "Missing argument to command\n"
 msgstr ""
 
-#: src/core/command.c:4747
+#: src/core/command.c:4749
 #, fuzzy
 msgid "Could not find stars in the reference image, aborting.\n"
 msgstr "No s'han pogut trobar estels a la imatge, avortant.\n"
 
-#: src/core/command.c:4757
+#: src/core/command.c:4759
 #, c-format
 msgid ""
 "Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"
 msgstr ""
 
-#: src/core/command.c:4766 src/gui/nina_light_curve.c:267
+#: src/core/command.c:4768 src/gui/nina_light_curve.c:267
 #, c-format
 msgid ""
 "Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"
 msgstr ""
 
-#: src/core/command.c:4790
+#: src/core/command.c:4792
 msgid ""
 "No image in the sequence was found with the WCS information required for "
 "star selection by equatorial coordinates, plate solve the reference or the "
 "current\n"
 msgstr ""
 
-#: src/core/command.c:4942
+#: src/core/command.c:4944
 #, fuzzy
 msgid "Error: height cannot be less than 10, aborting.\n"
 msgstr "Error en obrir el fitxer SER %s, abortant.\n"
 
-#: src/core/command.c:4954
+#: src/core/command.c:4956
 #, fuzzy
 msgid "Error: width cannot be less than 10, aborting.\n"
 msgstr "Error en obrir el fitxer SER %s, abortant.\n"
 
-#: src/core/command.c:4965
+#: src/core/command.c:4967
 #, fuzzy
 msgid "Error: max dimension cannot be less than 10, aborting.\n"
 msgstr "Error en obrir el fitxer SER %s, abortant.\n"
 
-#: src/core/command.c:4980 src/core/command.c:5032
+#: src/core/command.c:4982 src/core/command.c:5034
 #, fuzzy
 msgid "Error: scale cannot be less than 0.01, aborting.\n"
 msgstr "Error en obrir el fitxer SER %s, abortant.\n"
 
-#: src/core/command.c:4987
+#: src/core/command.c:4989
 #, fuzzy, c-format
 msgid "Error parsing argument to -scale= (%s), aborting.\n"
 msgstr "Error en obrir el fitxer SER %s, abortant.\n"
 
-#: src/core/command.c:5040
+#: src/core/command.c:5042
 msgid "Scale is 1.0, nothing to do.\n"
 msgstr ""
 
-#: src/core/command.c:5063
+#: src/core/command.c:5065
 #, c-format
 msgid "Background value (channel: #%d): %d (%.3e)\n"
 msgstr ""
 
-#: src/core/command.c:5119
+#: src/core/command.c:5121
 #, c-format
 msgid "The file %s has been created for the %s layer.\n"
 msgstr ""
 
-#: src/core/command.c:5130
+#: src/core/command.c:5132
 msgid "Clearing tilt information\n"
 msgstr ""
 
-#: src/core/command.c:5151 src/core/command.c:5156 src/core/command.c:5177
-#: src/core/command.c:5193 src/core/command.c:5216
+#: src/core/command.c:5153 src/core/command.c:5158 src/core/command.c:5179
+#: src/core/command.c:5195 src/core/command.c:5218
 #, c-format
 msgid "Replacement value is out of range (0 - %d)\n"
 msgstr ""
 
-#: src/core/command.c:5160
+#: src/core/command.c:5162
 msgid "lo must be strictly smaller than hi\n"
 msgstr ""
 
-#: src/core/command.c:5231
+#: src/core/command.c:5233
 msgid "Level value is incorrect\n"
 msgstr ""
 
-#: src/core/command.c:5236
+#: src/core/command.c:5238
 msgid "Coeff value is incorrect\n"
 msgstr ""
 
-#: src/core/command.c:5241
+#: src/core/command.c:5243
 msgid "Sigma value is incorrect\n"
 msgstr ""
 
-#: src/core/command.c:5258
+#: src/core/command.c:5260
 msgid "Number of layers MUST be 1 or 3\n"
 msgstr ""
 
-#: src/core/command.c:5262
+#: src/core/command.c:5264
 msgid "Width and Height must be positive values.\n"
 msgstr ""
 
-#: src/core/command.c:5270
+#: src/core/command.c:5272
 msgid "new empty image"
 msgstr ""
 
-#: src/core/command.c:5301
+#: src/core/command.c:5303
 #, c-format
 msgid "Values must be positive and less than %d.\n"
 msgstr ""
 
-#: src/core/command.c:5313 src/core/command.c:5762
+#: src/core/command.c:5315 src/core/command.c:5764
 #, c-format
 msgid "Value must be positive and less than %d.\n"
 msgstr ""
 
-#: src/core/command.c:5332
+#: src/core/command.c:5334
 msgid "Fill2: select a region or provide x, y, width, height\n"
 msgstr ""
 
 #. handling mono case
-#: src/core/command.c:5370 src/core/command.c:7778 src/core/command.c:8457
+#: src/core/command.c:5372 src/core/command.c:7781 src/core/command.c:8460
 msgid "This sequence is mono, ignoring layer number.\n"
 msgstr ""
 
-#: src/core/command.c:5377 src/core/command.c:7786
+#: src/core/command.c:5379 src/core/command.c:7789
 #, c-format
 msgid ""
 "Unknown layer number %s, must be between 0 and 2, will use green layer.\n"
 msgstr ""
 
 #. limiting values to avoid too long computation or too low number of candidates
-#: src/core/command.c:5393 src/core/command.c:7828
+#: src/core/command.c:5395 src/core/command.c:7831
 #, c-format
 msgid "Max number of stars %s not allowed. Should be between %d and %d.\n"
 msgstr ""
 
-#: src/core/command.c:5487
+#: src/core/command.c:5489
 msgid "Option -out= is not available for sequences, ignoring\n"
 msgstr ""
 
-#: src/core/command.c:5499
+#: src/core/command.c:5501
 msgid ""
 "Warning: sequence contains undebayered CFA images. Star detection may "
 "produce results for this sequence but will not perform optimally and star "
 "parameters may be inaccurate.\n"
 msgstr ""
 
-#: src/core/command.c:5507
+#: src/core/command.c:5509
 msgid "find_hot must be applied on an one-channel master-dark frame"
 msgstr ""
 
-#: src/core/command.c:5527
+#: src/core/command.c:5529
 #, c-format
 msgid "%ld cold and %ld hot pixels\n"
 msgstr ""
 
-#: src/core/command.c:5589 src/core/command.c:5626
+#: src/core/command.c:5591 src/core/command.c:5628
 #, c-format
 msgid "File [%s] does not exist.\n"
 msgstr ""
 
-#: src/core/command.c:5604
+#: src/core/command.c:5606
 msgid "There were some errors, please check your input file.\n"
 msgstr ""
 
-#: src/core/command.c:5674
+#: src/core/command.c:5676
 msgid "The size of the kernel MUST be odd and in the range [3, 15].\n"
 msgstr ""
 
-#: src/core/command.c:5679
+#: src/core/command.c:5681
 msgid "Modulation value MUST be between 0 and 1\n"
 msgstr ""
 
-#: src/core/command.c:5700
+#: src/core/command.c:5702
 msgid "Center of gravity coordinates are (%.3lf, %.3lf)\n"
 msgstr ""
 
-#: src/core/command.c:5803
+#: src/core/command.c:5805
 msgid ""
 "Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum "
 "mask) or 3 (additive mask)\n"
 msgstr ""
 
-#: src/core/command.c:5814
+#: src/core/command.c:5816
 msgid "Amount can only be [0, 1]\n"
 msgstr ""
 
-#: src/core/command.c:5862 src/core/command.c:5911
+#: src/core/command.c:5864 src/core/command.c:5913
 msgid "Amount value must be in the [0, 4] range.\n"
 msgstr ""
 
-#: src/core/command.c:5868 src/core/command.c:5919
+#: src/core/command.c:5870 src/core/command.c:5921
 msgid "1/sigma value must be in the [0, 5] range.\n"
 msgstr ""
 
-#: src/core/command.c:6001
+#: src/core/command.c:6003
 msgid "Polynomial degree order must be within the [1, 4] range.\n"
 msgstr ""
 
-#: src/core/command.c:6050
+#: src/core/command.c:6052
 msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:6097
+#: src/core/command.c:6099
 #, fuzzy
 msgid "Error, no existing samples available\n"
 msgstr "No disponible"
 
-#: src/core/command.c:6110
+#: src/core/command.c:6112
 #, fuzzy
 msgid "Error generating background samples\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/core/command.c:6139
+#: src/core/command.c:6141
 msgid "Sigma low must be positive.\n"
 msgstr "El sigma baix ha de ser positiu.\n"
 
-#: src/core/command.c:6145
+#: src/core/command.c:6147
 msgid "Sigma high must be positive.\n"
 msgstr "El sigma alt ha de ser positiu.\n"
 
-#: src/core/command.c:6209
+#: src/core/command.c:6211
 msgid "The second argument must be between 1 and the number of images.\n"
 msgstr ""
 
-#: src/core/command.c:6215
+#: src/core/command.c:6217
 msgid ""
 "The third argument must be larger or equal than the \"from\" argument.\n"
 msgstr ""
 
-#: src/core/command.c:6221
+#: src/core/command.c:6223
 msgid "The third argument is larger than the number of images.\n"
 msgstr ""
 
-#: src/core/command.c:6222
+#: src/core/command.c:6224
 #, c-format
 msgid "Re-adjusting to %d.\n"
 msgstr ""
 
-#: src/core/command.c:6244 src/gui/sequence_list.c:635
+#: src/core/command.c:6246 src/gui/sequence_list.c:635
 #, c-format
 msgid "Selection update finished, %d images are selected in the sequence\n"
 msgstr ""
 
-#: src/core/command.c:6273 src/gui/colors.c:395
+#: src/core/command.c:6275 src/gui/colors.c:395
 msgid "Could not copy the input image, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:6292
+#: src/core/command.c:6294
 msgid "CieLAB"
 msgstr "CieLAB"
 
-#: src/core/command.c:6383
+#: src/core/command.c:6385
 msgid ""
 "This image does not have a Bayer CFA pattern, cannot extract green channel.\n"
 msgstr ""
 
-#: src/core/command.c:6428
+#: src/core/command.c:6430
 msgid "This image does not have a Bayer CFA pattern, cannot extract Ha.\n"
 msgstr ""
 
-#: src/core/command.c:6454
+#: src/core/command.c:6456
 msgid "Upscaling x2\n"
 msgstr ""
 
-#: src/core/command.c:6476
+#: src/core/command.c:6478
 msgid ""
 "This image does not have a Bayer CFA pattern, cannot extract Ha/OIII "
 "channels.\n"
 msgstr ""
 
-#: src/core/command.c:6718 src/gui/merge_cfa.c:298
+#: src/core/command.c:6720 src/gui/merge_cfa.c:298
 msgid ""
 "Error: sequences don't match (dimensions, bitdepth, number of images must "
 "all be the same)\n"
 msgstr ""
 
-#: src/core/command.c:6759
+#: src/core/command.c:6761
 #, c-format
 msgid "Reconstructing %s Bayer matrix.\n"
 msgstr ""
 
-#: src/core/command.c:6968
+#: src/core/command.c:6970
 msgid ""
 "Statistics cannot be made on CFA images with a selection smaller than a 2x2 "
 "square, aborting\n"
 msgstr ""
 
-#: src/core/command.c:6982
+#: src/core/command.c:6984
 #, c-format
 msgid "Statistics computation failed for channel %d (all nil?).\n"
 msgstr ""
 
-#: src/core/command.c:7003
+#: src/core/command.c:7005
 #, c-format
 msgid ""
 "%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.6f\n"
 msgstr ""
 
-#: src/core/command.c:7008
+#: src/core/command.c:7010
 #, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f\n"
 msgstr ""
 
-#: src/core/command.c:7020 src/core/command.c:7027
+#: src/core/command.c:7022 src/core/command.c:7029
 #, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 msgstr ""
 
-#: src/core/command.c:7111
+#: src/core/command.c:7113
 #, c-format
 msgid "No image appears to be loaded, reloading from '%s'\n"
 msgstr ""
 
-#: src/core/command.c:7222
+#: src/core/command.c:7224
 #, c-format
 msgid "Failed to save the JSON file %s: %s\n"
 msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
 
-#: src/core/command.c:7226
+#: src/core/command.c:7228
 #, c-format
 msgid "Save metadata to the JSON file '%s'\n"
 msgstr ""
 
-#: src/core/command.c:7289
+#: src/core/command.c:7291
 #, fuzzy, c-format
 msgid "Image %d, %s\n"
 msgstr "Imatge %d: '%s'\n"
 
-#: src/core/command.c:7306
+#: src/core/command.c:7308
 msgid "This command can only run for FITS images\n"
 msgstr ""
 
-#: src/core/command.c:7344
+#: src/core/command.c:7346
 #, fuzzy, c-format
 msgid "Failed to create output file: %s\n"
 msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
 
-#: src/core/command.c:7350
+#: src/core/command.c:7352
 msgid "Failed to write to output file\n"
 msgstr ""
 
-#: src/core/command.c:7390 src/core/command.c:7549
+#: src/core/command.c:7392 src/core/command.c:7551
 msgid ""
 "First argument is the converted sequence name and shall not start with a -\n"
 msgstr ""
 
-#: src/core/command.c:7442
+#: src/core/command.c:7444
 #, c-format
 msgid "Link: error opening working directory %s.\n"
 msgstr ""
 
-#: src/core/command.c:7465
+#: src/core/command.c:7467
 msgid "No FITS files were found for link\n"
 msgstr ""
 
-#: src/core/command.c:7479
+#: src/core/command.c:7481
 #, c-format
 msgid ""
 "Sorting by date could not be done, file %s doesn't have DATE-OBS, not "
 "sorting\n"
 msgstr ""
 
-#: src/core/command.c:7502 src/core/command.c:7663
+#: src/core/command.c:7504 src/core/command.c:7666
 msgid ""
 "You should pass an extra argument -fitseq to convert your sequence to fitseq "
 "format.\n"
 msgstr ""
 
-#: src/core/command.c:7508
+#: src/core/command.c:7510
 #, c-format
 msgid "Link: processing %d FITS file...\n"
 msgid_plural "Link: processing %d FITS files...\n"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/core/command.c:7514
+#: src/core/command.c:7516
 msgid "Link: no working directory set.\n"
 msgstr ""
 
-#: src/core/command.c:7544
+#: src/core/command.c:7546
 msgid "Conversion: no working directory set.\n"
 msgstr ""
 
-#: src/core/command.c:7614
+#: src/core/command.c:7616
 #, c-format
 msgid "Conversion: error opening working directory %s.\n"
 msgstr ""
 
-#: src/core/command.c:7623
+#: src/core/command.c:7625
 #, c-format
 msgid ""
 "Destination sequence %s already exists in the current folder, cannot "
 "proceed.\n"
 msgstr ""
 
-#: src/core/command.c:7637 src/gui/conversion.c:197
+#: src/core/command.c:7640 src/gui/conversion.c:197
 msgid ""
 "FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. "
 "You may use FITS sequences instead."
 msgstr ""
 
-#: src/core/command.c:7651
+#: src/core/command.c:7654
 msgid "No RAW files were found for conversion\n"
 msgstr ""
 
-#: src/core/command.c:7652
+#: src/core/command.c:7655
 msgid "No files were found for conversion\n"
 msgstr ""
 
-#: src/core/command.c:7669
+#: src/core/command.c:7672
 #, fuzzy, c-format
 msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
 msgstr[0] "Convertint fitxers"
 msgstr[1] "Convertint fitxers"
 
-#: src/core/command.c:7758 src/gui/registration.c:1132
+#: src/core/command.c:7761 src/gui/registration.c:1132
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
 msgstr ""
 
 #. using absolute min_pairs required by homography
-#: src/core/command.c:7811
+#: src/core/command.c:7814
 #, c-format
 msgid "%d smaller than minimum allowable star pairs: %d, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:7885
+#: src/core/command.c:7888
 #, fuzzy, c-format
 msgid "Unknown distortion type %s, aborting.\n"
 msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 
-#: src/core/command.c:7894 src/core/command.c:8024 src/core/command.c:8489
-#: src/core/command.c:9151 src/core/command.c:10396 src/core/command.c:11081
+#: src/core/command.c:7897 src/core/command.c:8027 src/core/command.c:8492
+#: src/core/command.c:9154 src/core/command.c:10399 src/core/command.c:11084
 #: src/core/preprocess.c:685 src/core/preprocess.c:1008
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr ""
 
 #. handling mono case
-#: src/core/command.c:7916 src/core/command.c:8296
+#: src/core/command.c:7919 src/core/command.c:8299
 msgid "This sequence is not mono / CFA, cannot drizzle.\n"
 msgstr ""
 
-#: src/core/command.c:7962 src/core/command.c:8342
+#: src/core/command.c:7965 src/core/command.c:8345
 #, fuzzy
 msgid "Error: flat image already set. Aborting.\n"
 msgstr "Error en obrir el fitxer SER %s, abortant.\n"
 
-#: src/core/command.c:7966 src/core/command.c:8346
+#: src/core/command.c:7969 src/core/command.c:8349
 #, fuzzy
 msgid "Error: flat image cannot work with variable sized sequence.\n"
 msgstr "Error: no es pot obrir la seqüència\n"
 
-#: src/core/command.c:7974 src/core/command.c:8354 src/gui/registration.c:977
+#: src/core/command.c:7977 src/core/command.c:8357 src/gui/registration.c:977
 msgid "NOT USING FLAT: Could not load reference image\n"
 msgstr ""
 
-#: src/core/command.c:7981 src/core/command.c:8361 src/core/preprocess.c:879
+#: src/core/command.c:7984 src/core/command.c:8364 src/core/preprocess.c:879
 #: src/gui/registration.c:986
 msgid "NOT USING FLAT: could not parse the expression"
 msgstr ""
 
-#: src/core/command.c:7985 src/core/command.c:8365 src/gui/registration.c:991
+#: src/core/command.c:7988 src/core/command.c:8368 src/gui/registration.c:991
 msgid "Error: no master flat specified in the preprocessing tab.\n"
 msgstr ""
 
-#: src/core/command.c:7991 src/core/command.c:8371 src/core/preprocess.c:886
+#: src/core/command.c:7994 src/core/command.c:8374 src/core/preprocess.c:886
 #: src/gui/registration.c:999
 msgid "NOT USING FLAT: number of channels is different"
 msgstr ""
 
-#: src/core/command.c:7994 src/core/command.c:8374 src/core/preprocess.c:889
+#: src/core/command.c:7997 src/core/command.c:8377 src/core/preprocess.c:889
 #: src/gui/registration.c:1002
 msgid "NOT USING FLAT: image dimensions are different"
 msgstr ""
 
 #. no need to deal with bitdepth conversion as readfits has already forced conversion to float
-#: src/core/command.c:7997 src/core/command.c:8377 src/gui/registration.c:1005
+#: src/core/command.c:8000 src/core/command.c:8380 src/gui/registration.c:1005
 msgid "Master flat read for use as initial pixel weight\n"
 msgstr ""
 
-#: src/core/command.c:8000 src/core/command.c:8380 src/core/preprocess.c:895
+#: src/core/command.c:8003 src/core/command.c:8383 src/core/preprocess.c:895
 #: src/gui/registration.c:1007 src/livestacking/gui.c:281
 msgid "NOT USING FLAT: cannot open the file"
 msgstr ""
 
-#: src/core/command.c:8014
+#: src/core/command.c:8017
 msgid "Cannot drizzle sequences with images of different sizes, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:8033 src/core/command.c:8497
+#: src/core/command.c:8036 src/core/command.c:8500
 msgid "Cannot use drizzle on non-bayer sensors, aborting.\n"
 msgstr ""
 
 #. we register 2-pass but we won't add it to the combo/tooltip
-#: src/core/command.c:8049 src/gui/registration.c:276
+#: src/core/command.c:8052 src/gui/registration.c:276
 msgid "Two-Pass Global Star Alignment (deep-sky)"
 msgstr ""
 
-#: src/core/command.c:8052 src/gui/registration.c:263
+#: src/core/command.c:8055 src/gui/registration.c:263
 msgid "Global Star Alignment (deep-sky)"
 msgstr ""
 
-#: src/core/command.c:8066 src/core/processing.c:155
+#: src/core/command.c:8069 src/core/processing.c:155
 #: src/gui/registration.c:1149
 msgid "Not enough space to save the output images, aborting\n"
 msgstr ""
 
-#: src/core/command.c:8070
+#: src/core/command.c:8073
 msgid "Scaling a sequence with -2pass has no effect, ignoring\n"
 msgstr ""
 
-#: src/core/command.c:8076
+#: src/core/command.c:8079
 msgid ""
 "Forcing the registration transformation to shift, which is the only "
 "transformation compatible with no interpolation\n"
 msgstr ""
 
-#: src/core/command.c:8079
+#: src/core/command.c:8082
 msgid ""
 "Forcing the registration transformation to shift, which is the only "
 "transformation compatible with no interpolation, is not compatible with "
 "OpenCV below 4.4. Aborting\n"
 msgstr ""
 
-#: src/core/command.c:8085 src/gui/registration.c:1156
+#: src/core/command.c:8088 src/gui/registration.c:1156
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "scaling can be applied. Aborting\n"
 msgstr ""
 
 #. don't load it for command line execution
-#: src/core/command.c:8093 src/gui/registration.c:1211
+#: src/core/command.c:8096 src/gui/registration.c:1211
 #, c-format
 msgid "Registration: processing using method: %s\n"
 msgstr ""
 
-#: src/core/command.c:8104 src/core/command.c:8516 src/gui/registration.c:1216
+#: src/core/command.c:8107 src/core/command.c:8519 src/gui/registration.c:1216
 msgid "Interpolation clamping active\n"
 msgstr "Interpolació continguda activa\n"
 
-#: src/core/command.c:8134 src/core/command.c:8152 src/core/command.c:8171
-#: src/core/command.c:8190 src/core/command.c:8209 src/core/command.c:8227
+#: src/core/command.c:8137 src/core/command.c:8155 src/core/command.c:8174
+#: src/core/command.c:8193 src/core/command.c:8212 src/core/command.c:8230
 #, c-format
 msgid "Could not parse argument `%s' to the filter `%s', aborting.\n"
 msgstr ""
 
-#: src/core/command.c:8276
+#: src/core/command.c:8279
 msgid "No registration data exists for this sequence, aborting\n"
 msgstr ""
 
-#: src/core/command.c:8453
+#: src/core/command.c:8456
 #, c-format
 msgid "Unknown framing type %s, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:8469
+#: src/core/command.c:8472
 #, c-format
 msgid ""
 "Registration data does not exist for layer #%d, will use layer #%d instead.\n"
 msgstr ""
 
-#: src/core/command.c:8518
+#: src/core/command.c:8521
 msgid "Registration: Applying existing data"
 msgstr ""
 
-#: src/core/command.c:8545
+#: src/core/command.c:8548
 msgid ""
 "Output normalization is allowed only with median or mean stacking, "
 "ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8553
+#: src/core/command.c:8556
 msgid "Overlap normalization is allowed only with mean stacking, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8559
+#: src/core/command.c:8562
 msgid "Weighting is allowed only with mean stacking, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8571 src/core/command.c:8605
+#: src/core/command.c:8574 src/core/command.c:8608
 #, fuzzy, c-format
 msgid "Unknown argument to %s, aborting.\n"
 msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 
-#: src/core/command.c:8577
+#: src/core/command.c:8580
 msgid "Fast normalization is allowed only with average stacking, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8579
+#: src/core/command.c:8582
 msgid ""
 "Fast normalization is allowed only if normalization has been activated, "
 "ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8585
+#: src/core/command.c:8588
 msgid "Normalization options are not allowed in this context, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8599
+#: src/core/command.c:8602
 msgid "Blending option is not allowed in this context, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8609
+#: src/core/command.c:8612
 #, c-format
 msgid ""
 "Blending distance must be between 0 and 2000 pixels, got %d, forcing to "
 "2000.\n"
 msgstr ""
 
-#: src/core/command.c:8616
+#: src/core/command.c:8619
 msgid "RGB equalization is allowed only with average stacking, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8618
+#: src/core/command.c:8621
 msgid ""
 "RGB equalization is allowed only if normalization has been activated, "
 "ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8634
+#: src/core/command.c:8637
 msgid "Output filename option is not allowed in this context, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8638
+#: src/core/command.c:8641
 msgid "Rejection maps can only be created with rejection stacking, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8640
+#: src/core/command.c:8643
 msgid ""
 "Rejection maps can only be created if rejection has been activated, "
 "ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8652
+#: src/core/command.c:8655
 #, c-format
 msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr ""
 
-#: src/core/command.c:8668 src/core/command_line_processor.c:658
+#: src/core/command.c:8671 src/core/command_line_processor.c:658
 #: src/gui/single_image.c:82 src/main.c:466
 #, c-format
 msgid "No sequence `%s' found.\n"
 msgstr ""
 
-#: src/core/command.c:8676
+#: src/core/command.c:8679
 #, c-format
 msgid "Stacking sequence %s\n"
 msgstr ""
 
-#: src/core/command.c:8691
+#: src/core/command.c:8694
 msgid "Not using rejection for stacking\n"
 msgstr ""
 
-#: src/core/command.c:8708
+#: src/core/command.c:8711
 #, c-format
 msgid ""
 "Stacking has detected registration data on layer %d with more than simple "
 "shifts. You should apply existing registration before stacking\n"
 msgstr ""
 
-#: src/core/command.c:8719
+#: src/core/command.c:8722
 msgid ""
 "No registration data in the sequence. Maximize framing will be ignored\n"
 msgstr ""
 
-#: src/core/command.c:8723
+#: src/core/command.c:8726
 msgid ""
 "The sequence has different image sizes and registration data. Forcing to "
 "maximize framing\n"
 msgstr ""
 
-#: src/core/command.c:8727
+#: src/core/command.c:8730
 msgid ""
 "The sequence has different image sizes but no registration data, cannot "
 "stack. Aborting\n"
 msgstr ""
 
-#: src/core/command.c:8732
+#: src/core/command.c:8735
 msgid ""
 "No registration data in the sequence or images with different sizes. Upscale "
 "at stacking will be ignored\n"
 msgstr ""
 
-#: src/core/command.c:8736
+#: src/core/command.c:8739
 msgid "Cannot upscale or maximize framing with median stacking. Disabling\n"
 msgstr ""
 
-#: src/core/command.c:8741
+#: src/core/command.c:8744
 msgid ""
 "Cannot compute overlap statistics if -maximize is not enabled. Disabling\n"
 msgstr ""
 
-#: src/core/command.c:8745
+#: src/core/command.c:8748
 msgid ""
 "Weighting is allowed only if normalization has been activated, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:8765
+#: src/core/command.c:8768
 #, c-format
 msgid "Normalizing on overlaps for more than %d images can be slow\n"
 msgstr ""
 
-#: src/core/command.c:8812
+#: src/core/command.c:8815
 #, c-format
 msgid "Could not save the stacking result %s\n"
 msgstr ""
 
-#: src/core/command.c:8819 src/stacking/stacking.c:470
+#: src/core/command.c:8822 src/stacking/stacking.c:470
 msgid "Saving rejection maps\n"
 msgstr "Guardant mapes de rebuig\n"
 
-#: src/core/command.c:8848 src/stacking/stacking.c:521
+#: src/core/command.c:8851 src/stacking/stacking.c:521
 msgid "Stacking failed, please check the log to fix your issue.\n"
 msgstr ""
 
-#: src/core/command.c:8873
+#: src/core/command.c:8876
 msgid "Looking for sequences in current working directory...\n"
 msgstr ""
 
-#: src/core/command.c:8875
+#: src/core/command.c:8878
 msgid "Error while searching sequences or opening the directory.\n"
 msgstr ""
 
-#: src/core/command.c:8884
+#: src/core/command.c:8887
 msgid "Starting stacking of found sequences...\n"
 msgstr ""
 
-#: src/core/command.c:8896
+#: src/core/command.c:8899
 #, c-format
 msgid "Stacked %d sequences successfully.\n"
 msgstr ""
 
-#: src/core/command.c:8953 src/core/command.c:9084
+#: src/core/command.c:8956 src/core/command.c:9087
 msgid ""
 "The average stacking with rejection requires two extra arguments: sigma low "
 "and high.\n"
 msgstr ""
 
-#: src/core/command.c:8958 src/core/command.c:9092
+#: src/core/command.c:8961 src/core/command.c:9095
 msgid ""
 "Extra parameters of GESDT rejection algorithm must be between 0 and 1, "
 "default is 0.3 and 0.05.\n"
 msgstr ""
 
-#: src/core/command.c:8963 src/core/command.c:9097
+#: src/core/command.c:8966 src/core/command.c:9100
 msgid ""
 "Extra parameters of percentile rejection algorithm must be between 0 and 1, "
 "default is 0.2 and 0.1.\n"
 msgstr ""
 
-#: src/core/command.c:8972 src/core/command.c:9106
+#: src/core/command.c:8975 src/core/command.c:9109
 #, c-format
 msgid "Stacking method type '%s' is invalid\n"
 msgstr ""
 
-#: src/core/command.c:9007 src/stacking/stacking.c:523
+#: src/core/command.c:9010 src/stacking/stacking.c:523
 msgid ""
 "It looks like there is a memory allocation error, change memory settings and "
 "try to fix it.\n"
 msgstr ""
 
-#: src/core/command.c:9010
+#: src/core/command.c:9013
 msgid "Stacked sequence successfully.\n"
 msgstr ""
 
-#: src/core/command.c:9054
+#: src/core/command.c:9057
 msgid "Missing arguments for rejection stacking.\n"
 msgstr ""
 
-#: src/core/command.c:9163 src/core/preprocess.c:578
+#: src/core/command.c:9166 src/core/preprocess.c:578
 msgid "Could not load the image, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9188
+#: src/core/command.c:9191
 #, c-format
 msgid "The offset value could not be parsed from expression: %s, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9194 src/core/preprocess.c:708
+#: src/core/command.c:9197 src/core/preprocess.c:708
 #, c-format
 msgid "Synthetic offset: Level = %d\n"
 msgstr ""
 
 #. not excluding all neg values here to allow defining a pedestal
-#: src/core/command.c:9197
+#: src/core/command.c:9200
 #, c-format
 msgid "The offset value is out of allowable bounds [-%d,%d], aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9285
+#: src/core/command.c:9288
 msgid "Dark optimization: This process cannot be applied to 8b images\n"
 msgstr ""
 
-#: src/core/command.c:9294
+#: src/core/command.c:9297
 #, c-format
 msgid "Missing or wrong argument to %s, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9324
+#: src/core/command.c:9327
 msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9342
+#: src/core/command.c:9345
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"
 msgstr ""
 
-#: src/core/command.c:9344
+#: src/core/command.c:9347
 msgid "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
 msgstr ""
 
-#: src/core/command.c:9346
+#: src/core/command.c:9349
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"
 msgstr ""
 
-#: src/core/command.c:9348
+#: src/core/command.c:9351
 msgid "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
 msgstr ""
 
-#: src/core/command.c:9355
+#: src/core/command.c:9358
 #, c-format
 msgid "Could not open file %s, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9359
+#: src/core/command.c:9362
 #, c-format
 msgid "Cosmetic correction from Bad Pixel Map: %s.\n"
 msgstr ""
 
-#: src/core/command.c:9363
+#: src/core/command.c:9366
 msgid "You must specify a bad pixel map file with -cc=bpm option, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9368
+#: src/core/command.c:9371
 #, c-format
 msgid "Unknown argument %s, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9406 src/core/command.c:9424 src/core/preprocess.c:945
+#: src/core/command.c:9409 src/core/command.c:9427 src/core/preprocess.c:945
 msgid "Preprocessing...\n"
 msgstr "Preprocessant...\n"
 
-#: src/core/command.c:9435
+#: src/core/command.c:9438
 msgid "16-bit per channel in processed images mode is active\n"
 msgstr ""
 
-#: src/core/command.c:9436
+#: src/core/command.c:9439
 msgid "32-bit per channel in processed images mode is active\n"
 msgstr ""
 
@@ -16021,44 +16038,44 @@ msgstr ""
 #. comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);
 #. }
 #. siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
-#: src/core/command.c:9481
+#: src/core/command.c:9484
 msgid "Wrong type of compression. Choices are rice, gzip1, gzip2\n"
 msgstr ""
 
-#: src/core/command.c:9488
+#: src/core/command.c:9491
 msgid "Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"
 msgstr ""
 
-#: src/core/command.c:9494
+#: src/core/command.c:9497
 msgid ""
 "Compression enabled with the %s algorithm and a quantization value of %.2lf\n"
 msgstr ""
 
-#: src/core/command.c:9497
+#: src/core/command.c:9500
 msgid "No compression enabled.\n"
 msgstr ""
 
-#: src/core/command.c:9515
+#: src/core/command.c:9518
 #, c-format
 msgid ""
 "Number of logical processors MUST be greater than 0 and lower or equal to "
 "%d.\n"
 msgstr ""
 
-#: src/core/command.c:9526
+#: src/core/command.c:9529
 #, c-format
 msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/core/command.c:9542
+#: src/core/command.c:9545
 msgid ""
 "The accepted range for the ratio of memory used for stacking is [0.05, 4], "
 "with values below the available memory recommended\n"
 msgstr ""
 
-#: src/core/command.c:9546
+#: src/core/command.c:9549
 #, c-format
 msgid ""
 "Setting the ratio of memory used for stacking above 1 will require the use "
@@ -16066,466 +16083,466 @@ msgid ""
 "requested)\n"
 msgstr ""
 
-#: src/core/command.c:9551
+#: src/core/command.c:9554
 #, c-format
 msgid "Usable memory for stacking changed to %g\n"
 msgstr ""
 
-#: src/core/command.c:9558
+#: src/core/command.c:9561
 msgid "********* LIST OF AVAILABLE COMMANDS *********\n"
 msgstr ""
 
-#: src/core/command.c:9566
+#: src/core/command.c:9569
 #, c-format
 msgid "Can be used in a script: %s\n"
 msgstr ""
 
-#: src/core/command.c:9566 src/core/command_line_processor.c:464
+#: src/core/command.c:9569 src/core/command_line_processor.c:464
 msgid "YES"
 msgstr "SÍ"
 
-#: src/core/command.c:9566 src/core/command_line_processor.c:467
+#: src/core/command.c:9569 src/core/command_line_processor.c:467
 msgid "NO"
 msgstr "NO"
 
-#: src/core/command.c:9576
+#: src/core/command.c:9579
 #, c-format
 msgid "Error: command %s is not available\n"
 msgstr ""
 
-#: src/core/command.c:9679
+#: src/core/command.c:9682
 #, fuzzy
 msgid "Error: cannot reload script menu when running headless\n"
 msgstr "Error: no es poden llegir els pesos neuronals del fitxer.\n"
 
-#: src/core/command.c:9698
+#: src/core/command.c:9701
 #, c-format
 msgid ""
 "A newer version (>= %lu.%lu.%lu-%s%lu) of Siril is required in order to run "
 "this script: please update your installation.\n"
 msgstr ""
 
-#: src/core/command.c:9698
+#: src/core/command.c:9701
 #, fuzzy
 msgid "beta"
 msgstr "beta (β)"
 
-#: src/core/command.c:9698
+#: src/core/command.c:9701
 #, fuzzy
 msgid "RC"
 msgstr "CDS"
 
-#: src/core/command.c:9701
+#: src/core/command.c:9704
 msgid ""
 "This script has been marked as obsolete for this version of Siril, please "
 "check for an update to the script.\n"
 msgstr ""
 
-#: src/core/command.c:9704
+#: src/core/command.c:9707
 msgid "OK! This script is compatible with this version of Siril.\n"
 msgstr ""
 
-#: src/core/command.c:9712 src/core/command.c:9763
+#: src/core/command.c:9715 src/core/command.c:9766
 #, c-format
 msgid "Current selection [x, y, w, h]: %d %d %d %d\n"
 msgstr ""
 
-#: src/core/command.c:9715
+#: src/core/command.c:9718
 msgid "No current selection in image\n"
 msgstr "Cap imatge seleccionada\n"
 
-#: src/core/command.c:9722
+#: src/core/command.c:9725
 msgid ""
 "Too many arguments to boxselect, use either -clear or the coordinates, not "
 "both.\n"
 msgstr ""
 
-#: src/core/command.c:9726
+#: src/core/command.c:9729
 msgid "Selected area in image was cleared\n"
 msgstr ""
 
-#: src/core/command.c:9732 src/core/command.c:9748
+#: src/core/command.c:9735 src/core/command.c:9751
 msgid "Please specify x, y, w and h, aborting\n"
 msgstr ""
 
-#: src/core/command.c:9752
+#: src/core/command.c:9755
 #, c-format
 msgid ""
 "The provided coordinates are outside the dimension of the currently loaded "
 "image (%d x %d).\n"
 msgstr ""
 
-#: src/core/command.c:9757
+#: src/core/command.c:9760
 msgid "Overriding previous selection\n"
 msgstr ""
 
-#: src/core/command.c:9834 src/core/command.c:9868
+#: src/core/command.c:9837 src/core/command.c:9871
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr ""
 
-#: src/core/command.c:9894
+#: src/core/command.c:9897
 #, c-format
 msgid "Successful RGB composition with metadata accumulate option %s.\n"
 msgstr ""
 
-#: src/core/command.c:9961 src/core/command.c:10343
+#: src/core/command.c:9964 src/core/command.c:10346
 msgid ""
 "Local Gaia catalog is unavailable, reverting to online Gaia catalog via "
 "Vizier\n"
 msgstr ""
 
-#: src/core/command.c:9978
+#: src/core/command.c:9981
 msgid ""
 "Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"
 msgstr ""
 
-#: src/core/command.c:10069
+#: src/core/command.c:10072
 msgid ""
 "Found linear plate solve data, you may need to solve your image with "
 "distortions to ensure correct calibration of stars near image corners.\n"
 msgstr ""
 
-#: src/core/command.c:10080
+#: src/core/command.c:10083
 msgid "NB wavelength out of range (must be 380 <= wl <= 700)\n"
 msgstr ""
 
-#: src/core/command.c:10085
+#: src/core/command.c:10088
 msgid "NB bandwidth out of range (must be 1.0 <= wl <= 40.0)\n"
 msgstr ""
 
-#: src/core/command.c:10097
+#: src/core/command.c:10100
 #, c-format
 msgid "Using remote %s instead of local NOMAD catalogue\n"
 msgstr ""
 
-#: src/core/command.c:10132
+#: src/core/command.c:10135
 msgid ""
 "Either the sensor or a filter / LPF was not specified as argument or "
 "guessable from previous use. Ensure all necessary data is set.\n"
 msgstr ""
 
-#: src/core/command.c:10139
+#: src/core/command.c:10142
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\", filter \"%s\" and DSLR LPF \"%s\"\n"
 msgstr ""
 
-#: src/core/command.c:10141
+#: src/core/command.c:10144
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\" and filter \"%s\"\n"
 msgstr ""
 
-#: src/core/command.c:10149
+#: src/core/command.c:10152
 msgid ""
 "Either the sensor or a filter was not specified as argument or guessable "
 "from previous use. Ensure all necessary data is set.\n"
 msgstr ""
 
-#: src/core/command.c:10155
+#: src/core/command.c:10158
 #, c-format
 msgid "SPCC will use mono senor \"%s\" and filters \"%s\", \"%s\" and \"%s\n"
 msgstr ""
 
-#: src/core/command.c:10191
+#: src/core/command.c:10194
 msgid ""
 "Siril has been compiled without libcurl support for network operations; SPCC "
 "is therefore not available. Recompile with libcurl support to enable SPCC.\n"
 msgstr ""
 
-#: src/core/command.c:10220
+#: src/core/command.c:10223
 msgid ""
 "SER cannot contain WCS info, plate solving will export to FITS cube format\n"
 msgstr ""
 
-#: src/core/command.c:10236 src/core/command.c:10249 src/core/command.c:11017
+#: src/core/command.c:10239 src/core/command.c:10252 src/core/command.c:11020
 msgid "Could not parse target coordinates\n"
 msgstr ""
 
-#: src/core/command.c:10369
+#: src/core/command.c:10372
 msgid "Specifying a catalog has no effect for astrometry.net solving\n"
 msgstr ""
 
-#: src/core/command.c:10380
+#: src/core/command.c:10383
 msgid "Image is already plate solved. Nothing will be done.\n"
 msgstr ""
 
-#: src/core/command.c:10385
+#: src/core/command.c:10388
 msgid ""
 "The local astrometry.net solver was not found, aborting. Please check the "
 "settings.\n"
 msgstr ""
 
-#: src/core/command.c:10405 src/core/command.c:10409
+#: src/core/command.c:10408 src/core/command.c:10412
 #, c-format
 msgid "Siril internal solver cannot be set blind in %s\n"
 msgstr ""
 
-#: src/core/command.c:10405 src/core/command.c:10433
+#: src/core/command.c:10408 src/core/command.c:10436
 #, fuzzy
 msgid "position"
 msgstr "Composició HSL"
 
-#: src/core/command.c:10409 src/core/command.c:10446 src/core/command.c:10471
+#: src/core/command.c:10412 src/core/command.c:10449 src/core/command.c:10474
 #, fuzzy
 msgid "resolution"
 msgstr "Resolució: "
 
-#: src/core/command.c:10417
+#: src/core/command.c:10420
 msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
 msgstr ""
 
-#: src/core/command.c:10424
+#: src/core/command.c:10427
 #, c-format
 msgid "Using target coordinate from image header: %f, %f\n"
 msgstr ""
 "Utilitzant les coordenades de destí de la capçalera de la imatge: %f, %f\n"
 
-#: src/core/command.c:10433 src/core/command.c:10446 src/core/command.c:10471
+#: src/core/command.c:10436 src/core/command.c:10449 src/core/command.c:10474
 #, c-format
 msgid "%s is ignored when using local astrometry.net blind in %s\n"
 msgstr ""
 
-#: src/core/command.c:10433
+#: src/core/command.c:10436
 #, fuzzy
 msgid "Center position"
 msgstr "Composició HSL"
 
-#: src/core/command.c:10446
+#: src/core/command.c:10449
 #, fuzzy
 msgid "Pixel size"
 msgstr "Mida del píxel (µm):"
 
-#: src/core/command.c:10452
+#: src/core/command.c:10455
 #, c-format
 msgid "Using provided pixel size: %.2f\n"
 msgstr ""
 
-#: src/core/command.c:10458
+#: src/core/command.c:10461
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
 msgstr ""
 
-#: src/core/command.c:10464
+#: src/core/command.c:10467
 #, c-format
 msgid "Using pixel size from preferences: %.2f\n"
 msgstr ""
 
-#: src/core/command.c:10466
+#: src/core/command.c:10469
 #, c-format
 msgid "Using pixel size from image: %.2f\n"
 msgstr "Utilitzant mida de píxel de la imatge: %.2f\n"
 
-#: src/core/command.c:10471
+#: src/core/command.c:10474
 #, fuzzy
 msgid "Focal length"
 msgstr "Distància focal / mm)"
 
-#: src/core/command.c:10477
+#: src/core/command.c:10480
 #, c-format
 msgid "Using provided focal length: %.2f\n"
 msgstr "Utilitzant distancia focal proveïda: %.2f\n"
 
-#: src/core/command.c:10483
+#: src/core/command.c:10486
 msgid "Focal length not found in image or in settings, cannot proceed\n"
 msgstr ""
 
-#: src/core/command.c:10489
+#: src/core/command.c:10492
 #, c-format
 msgid "Using focal length from preferences: %.2f\n"
 msgstr "Utilitzant distancia focal de la configuració: %.2f\n"
 
-#: src/core/command.c:10491
+#: src/core/command.c:10494
 #, c-format
 msgid "Using focal length from image: %.2f\n"
 msgstr "Utilitzant distancia focal de la imatge: %.2f\n"
 
-#: src/core/command.c:10496 src/core/command.c:10503
+#: src/core/command.c:10499 src/core/command.c:10506
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr ""
 
-#: src/core/command.c:10522
+#: src/core/command.c:10525
 msgid ""
 "Cannot force null radius for localasnet if not blind solving, using default "
 "instead\n"
 msgstr ""
 
-#: src/core/command.c:10655 src/gui/annotate.c:136
+#: src/core/command.c:10658 src/gui/annotate.c:136
 msgid ""
 "This option only works on images that have observation date information\n"
 msgstr ""
 
-#: src/core/command.c:10669
+#: src/core/command.c:10672
 msgid "The observatory should be coded as a 3-letter word\n"
 msgstr ""
 
-#: src/core/command.c:10680
+#: src/core/command.c:10683
 msgid "No local catalogues found, ignoring -trix option\n"
 msgstr ""
 
-#: src/core/command.c:10686
+#: src/core/command.c:10689
 msgid "Trixel number must be between 0 and 511\n"
 msgstr ""
 
-#: src/core/command.c:10701
+#: src/core/command.c:10704
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:10713
+#: src/core/command.c:10716
 msgid "Wrong parameter values. Tag must be set to on or off, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:10749
+#: src/core/command.c:10752
 msgid "Cannot use -compare argument with non-star catalogues, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:10846 src/core/command.c:10894
+#: src/core/command.c:10849 src/core/command.c:10897
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr ""
 
-#: src/core/command.c:10905 src/core/command.c:10926
+#: src/core/command.c:10908 src/core/command.c:10929
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
 
-#: src/core/command.c:10909
+#: src/core/command.c:10912
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr ""
 
-#: src/core/command.c:10951
+#: src/core/command.c:10954
 #, c-format
 msgid "String in: %s\n"
 msgstr ""
 
-#: src/core/command.c:10952
+#: src/core/command.c:10955
 #, c-format
 msgid "String out: %s\n"
 msgstr ""
 
-#: src/core/command.c:11090
+#: src/core/command.c:11093
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
 msgstr ""
 
-#: src/core/command.c:11130
+#: src/core/command.c:11133
 msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:11165
+#: src/core/command.c:11168
 #, fuzzy
 msgid "Error: Could not parse -from values.\n"
 msgstr "Error: la imatge no s'ha pogut carregar"
 
-#: src/core/command.c:11173
+#: src/core/command.c:11176
 #, fuzzy
 msgid "Error: Could not parse -to values.\n"
 msgstr "Error: la imatge no s'ha pogut carregar"
 
-#: src/core/command.c:11195
+#: src/core/command.c:11198
 #, fuzzy
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr "Error: no es pot obrir la seqüència\n"
 
-#: src/core/command.c:11225
+#: src/core/command.c:11228
 #, fuzzy
 msgid "Error: sequence has variable sized images.\n"
 msgstr "Error: no es pot obrir la seqüència\n"
 
-#: src/core/command.c:11314
+#: src/core/command.c:11317
 #, fuzzy
 msgid "Error opening target ICC profile.\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/core/command.c:11318
+#: src/core/command.c:11321
 msgid "Color profile assignment complete.\n"
 msgstr ""
 
-#: src/core/command.c:11321 src/core/command.c:11385
+#: src/core/command.c:11324 src/core/command.c:11388
 #, fuzzy
 msgid "Error opening ICC profile.\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/core/command.c:11338
+#: src/core/command.c:11341
 msgid ""
 "Image has no color profile assigned to convert from. Assign a profile "
 "first.\n"
 msgstr ""
 
-#: src/core/command.c:11352
+#: src/core/command.c:11355
 msgid ""
 "Specified intent not recognized. Specify one of \"perceptual\", "
 "\"relative\", \"saturation\" or \"absolute\"\n"
 msgstr ""
 
-#: src/core/command.c:11383
+#: src/core/command.c:11386
 #, fuzzy
 msgid "Color space conversion complete.\n"
 msgstr "Estimació del nucli completada.\n"
 
-#: src/core/command.c:11419
+#: src/core/command.c:11422
 msgid "OSC Sensors"
 msgstr ""
 
-#: src/core/command.c:11422
+#: src/core/command.c:11425
 msgid "Mono Sensors"
 msgstr ""
 
-#: src/core/command.c:11425
+#: src/core/command.c:11428
 #, fuzzy
 msgid "Red Filters"
 msgstr "Filtre de Mediana"
 
-#: src/core/command.c:11428
+#: src/core/command.c:11431
 #, fuzzy
 msgid "Green Filters"
 msgstr "Filtre de Mediana"
 
-#: src/core/command.c:11431
+#: src/core/command.c:11434
 #, fuzzy
 msgid "Blue Filters"
 msgstr "Filtre de Mediana"
 
-#: src/core/command.c:11434
+#: src/core/command.c:11437
 msgid "OSC Filters"
 msgstr ""
 
-#: src/core/command.c:11437
+#: src/core/command.c:11440
 msgid "OSC Low-Pass Filters"
 msgstr ""
 
-#: src/core/command.c:11440
+#: src/core/command.c:11443
 #, fuzzy
 msgid "White References"
 msgstr "Preferències"
 
-#: src/core/command.c:11442
+#: src/core/command.c:11445
 msgid "Unknown SPCC list\n"
 msgstr ""
 
-#: src/core/command.c:11456 src/core/siril_actions.c:570
+#: src/core/command.c:11459 src/core/siril_actions.c:570
 msgid ""
 "This command only works on plate solved images with distortions included\n"
 msgstr ""
 
-#: src/core/command.c:11499
+#: src/core/command.c:11502
 msgid "16-bit images cannot have out-of-range pixels: nothing to do.\n"
 msgstr ""
 
-#: src/core/command.c:11509
+#: src/core/command.c:11512
 msgid "No pixels require clipping. Nothing to do...\n"
 msgstr ""
 
-#: src/core/command.c:11521
+#: src/core/command.c:11524
 #, fuzzy
 msgid "Error: unknown argument!\n"
 msgstr "Error: no es pot obrir la seqüència\n"
 
-#: src/core/command.c:11526
+#: src/core/command.c:11529
 msgid "Pixel limits applied successfully.\n"
 msgstr ""
 
-#: src/core/command.c:11541
+#: src/core/command.c:11544
 #, fuzzy, c-format
 msgid "Current working directory: '%s'\n"
 msgstr "Canvia el directori de treball"
@@ -19778,7 +19795,7 @@ msgid ""
 "Darkmap cosmetic correction is only supported with single channel images\n"
 msgstr ""
 
-#: src/core/preprocess.c:502 src/gui/git_gui.c:91
+#: src/core/preprocess.c:502 src/gui/git_gui.c:141
 msgid "Preprocessing"
 msgstr "Preprocessant"
 
@@ -19905,7 +19922,7 @@ msgstr ""
 msgid "%s: processing...\n"
 msgstr ""
 
-#: src/core/processing.c:276 src/io/sequence.c:950
+#: src/core/processing.c:276 src/io/sequence.c:955
 #, c-format
 msgid ""
 "Image #%d: number of layers (%d) is not consistent with sequence (%d), "
@@ -19960,7 +19977,7 @@ msgstr ""
 msgid "Failed to find GPid %d, it may already have exited...\n"
 msgstr ""
 
-#: src/core/processing.c:1250
+#: src/core/processing.c:1261
 #, fuzzy, c-format
 msgid "Error finding the HDU for frame %d\n"
 msgstr "Error obrint fitxer %s\n"
@@ -21174,71 +21191,71 @@ msgstr ""
 msgid "Nothing to redo"
 msgstr ""
 
-#: src/core/utils.c:630
+#: src/core/utils.c:637
 msgid "red"
 msgstr "vermell"
 
-#: src/core/utils.c:632
+#: src/core/utils.c:639
 msgid "green"
 msgstr "verd"
 
-#: src/core/utils.c:634
+#: src/core/utils.c:641
 msgid "blue"
 msgstr "blau"
 
-#: src/core/utils.c:799
+#: src/core/utils.c:806
 #, fuzzy, c-format
 msgid "Failed to create directory '%s': %s\n"
 msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
 
-#: src/core/utils.c:1174
+#: src/core/utils.c:1181
 msgid "Unknown error\n"
 msgstr ""
 
-#: src/core/utils.c:1177
+#: src/core/utils.c:1184
 #, c-format
 msgid "'%s' No such file or directory\n"
 msgstr ""
 
-#: src/core/utils.c:1180
+#: src/core/utils.c:1187
 #, c-format
 msgid "'%s' is not a directory\n"
 msgstr ""
 
-#: src/core/utils.c:1183
+#: src/core/utils.c:1190
 #, c-format
 msgid "You don't have permission to write in this directory: '%s'\n"
 msgstr ""
 
-#: src/core/utils.c:1205
+#: src/core/utils.c:1212
 #, c-format
 msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr ""
 
-#: src/core/utils.c:1209
+#: src/core/utils.c:1216
 #, c-format
 msgid "Could not change directory to '%s'(error code %d: %s).\n"
 msgstr ""
 
-#: src/core/utils.c:1235
+#: src/core/utils.c:1242
 msgid "Filename is too long, not expanding it\n"
 msgstr ""
 
-#: src/core/utils.c:1344 src/io/image_format_fits.c:2841
-#: src/io/image_format_fits.c:2846 src/io/ser.c:1425 src/io/ser.c:1430
+#: src/core/utils.c:1352 src/core/utils.c:1356 src/io/image_format_fits.c:2853
+#: src/io/image_format_fits.c:2858 src/io/ser.c:1425 src/io/ser.c:1430
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "píxel"
 msgstr[1] "píxels"
 
-#: src/core/utils.c:1345 src/io/image_format_fits.c:2842
-#: src/io/image_format_fits.c:2847 src/io/ser.c:1426 src/io/ser.c:1431
+#: src/core/utils.c:1353 src/io/image_format_fits.c:2854
+#: src/io/image_format_fits.c:2859 src/io/ser.c:1426 src/io/ser.c:1431
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "canal"
 msgstr[1] "canals"
 
-#: src/core/utils.c:1737 src/core/utils.c:1740
+#: src/core/utils.c:1749 src/core/utils.c:1752
 msgid "(invalid UTF-8 string)"
 msgstr ""
 
@@ -21354,8 +21371,8 @@ msgstr ""
 msgid "Select magnitude and phase before !\n"
 msgstr ""
 
-#: src/filters/ght.c:341 src/filters/ght.c:450 src/filters/ght.c:488
-#: src/filters/ght.c:614
+#: src/filters/ght.c:341 src/filters/ght.c:448 src/filters/ght.c:486
+#: src/filters/ght.c:613
 msgid "Error: no channels selected. Doing nothing.\n"
 msgstr ""
 
@@ -21377,7 +21394,7 @@ msgstr ""
 msgid "Applying inverse MTF with values %f, %f, %f\n"
 msgstr ""
 
-#: src/filters/mtf.c:263 src/filters/mtf.c:276
+#: src/filters/mtf.c:258 src/filters/mtf.c:271
 #, c-format
 msgid "Applying MTF to channel %d with values %f, %f, %f\n"
 msgstr ""
@@ -21926,57 +21943,57 @@ msgid ""
 "linear image."
 msgstr ""
 
-#: src/gui/astrometry_solver.c:573
+#: src/gui/astrometry_solver.c:571
 msgid "No object found\n"
 msgstr ""
 
-#: src/gui/astrometry_solver.c:680
+#: src/gui/astrometry_solver.c:678
 msgid ""
 "There are no available coordinates with this name, try with another name\n"
 msgstr ""
 
-#: src/gui/astrometry_solver.c:681 src/gui/astrometry_solver.c:844
+#: src/gui/astrometry_solver.c:679 src/gui/astrometry_solver.c:842
 msgid "No coordinates"
 msgstr ""
 
-#: src/gui/astrometry_solver.c:692
+#: src/gui/astrometry_solver.c:690
 msgid "There are no keywords stored in the FITS header.\n"
 msgstr ""
 
-#: src/gui/astrometry_solver.c:693
+#: src/gui/astrometry_solver.c:691
 msgid "No metadata"
 msgstr ""
 
-#: src/gui/astrometry_solver.c:759
+#: src/gui/astrometry_solver.c:757
 msgid "wcs files (*.wcs)"
 msgstr ""
 
-#: src/gui/astrometry_solver.c:845
+#: src/gui/astrometry_solver.c:843
 msgid "Please enter object coordinates."
 msgstr ""
 
-#: src/gui/astrometry_solver.c:880
+#: src/gui/astrometry_solver.c:878
 msgid "Selection is not used with the astrometry.net solver\n"
 msgstr ""
 
-#: src/gui/astrometry_solver.c:917
+#: src/gui/astrometry_solver.c:915
 msgid "Astrometric solution detected"
 msgstr ""
 
-#: src/gui/astrometry_solver.c:918
+#: src/gui/astrometry_solver.c:916
 msgid ""
 "The astrometric solution contained in the image will be erased by the "
 "geometric transformation and no undo will be possible."
 msgstr ""
 
-#: src/gui/astrometry_solver.c:920
+#: src/gui/astrometry_solver.c:918
 msgid "Process"
 msgstr "Procés"
 
 #. APASS
 #. GAIA
 #. Gaia archive
-#: src/gui/astrometry_solver.c:934 src/gui/photometric_cc.c:508
+#: src/gui/astrometry_solver.c:932 src/gui/photometric_cc.c:508
 #: src/gui/photometric_cc.c:511 src/gui/photometric_cc.c:514
 #: src/gui/photometric_cc.c:528
 msgid "(online catalogue)"
@@ -21984,7 +22001,7 @@ msgstr "(catàleg en línia)"
 
 #. NOMAD
 #. Local Gaia xp_sampled
-#: src/gui/astrometry_solver.c:936 src/gui/photometric_cc.c:508
+#: src/gui/astrometry_solver.c:934 src/gui/photometric_cc.c:508
 #: src/gui/photometric_cc.c:531
 msgid "(local catalogue)"
 msgstr "(catàleg local)"
@@ -22184,45 +22201,45 @@ msgstr ""
 msgid "See Introduction"
 msgstr ""
 
-#: src/gui/callbacks.c:2022
+#: src/gui/callbacks.c:2028
 #, fuzzy
 msgid "Unsaved script changes"
 msgstr "Resultats d'apilonament no guardats"
 
-#: src/gui/callbacks.c:2023
+#: src/gui/callbacks.c:2029
 msgid "There are unsaved changes in the script editor. Quit anyway?"
 msgstr ""
 
-#: src/gui/callbacks.c:2024
+#: src/gui/callbacks.c:2030
 msgid "Quit"
 msgstr ""
 
-#: src/gui/callbacks.c:2033
+#: src/gui/callbacks.c:2040
 msgid "Closing application"
 msgstr ""
 
-#: src/gui/callbacks.c:2034
+#: src/gui/callbacks.c:2041
 msgid "Are you sure you want to quit?"
 msgstr ""
 
-#: src/gui/callbacks.c:2034
+#: src/gui/callbacks.c:2041
 msgid "Exit"
 msgstr "Sortir"
 
-#: src/gui/callbacks.c:2194
+#: src/gui/callbacks.c:2206
 #, c-format
 msgid "Selected %s sequence %s..."
 msgstr ""
 
-#: src/gui/callbacks.c:2243
+#: src/gui/callbacks.c:2255
 msgid "Searching for sequences in the current working directory..."
 msgstr ""
 
-#: src/gui/callbacks.c:2294
+#: src/gui/callbacks.c:2306
 msgid "This erases the following data, and there's no possible undo:\n"
 msgstr ""
 
-#: src/gui/callbacks.c:2295
+#: src/gui/callbacks.c:2307
 msgid ""
 "\n"
 "- Registration"
@@ -22230,7 +22247,7 @@ msgstr ""
 "\n"
 "- Registrat"
 
-#: src/gui/callbacks.c:2296
+#: src/gui/callbacks.c:2308
 msgid ""
 "\n"
 "- Statistics"
@@ -22238,7 +22255,7 @@ msgstr ""
 "\n"
 "- Estadístiques"
 
-#: src/gui/callbacks.c:2297
+#: src/gui/callbacks.c:2309
 msgid ""
 "\n"
 "- Selection"
@@ -22246,66 +22263,66 @@ msgstr ""
 "\n"
 "- Selecció"
 
-#: src/gui/callbacks.c:2301
+#: src/gui/callbacks.c:2313
 msgid "Clear Sequence Data?"
 msgstr "Netejar dades de la seqüència?"
 
-#: src/gui/callbacks.c:2301
+#: src/gui/callbacks.c:2313
 #, fuzzy
 msgid "Clear Data"
 msgstr "Netejar"
 
-#: src/gui/callbacks.c:2313
+#: src/gui/callbacks.c:2325
 msgid "The requested data of the sequence has been cleaned."
 msgstr ""
 
-#: src/gui/callbacks.c:2321
+#: src/gui/callbacks.c:2333
 #, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
 "the manually added objects will be deleted. This operation cannot be undone."
 msgstr ""
 
-#: src/gui/callbacks.c:2323
+#: src/gui/callbacks.c:2335
 msgid "SOLAR SYSTEM"
 msgstr ""
 
-#: src/gui/callbacks.c:2323
+#: src/gui/callbacks.c:2335
 msgid "DEEP SKY"
 msgstr ""
 
-#: src/gui/callbacks.c:2325
+#: src/gui/callbacks.c:2337
 #, fuzzy
 msgid "Catalog deletion"
 msgstr "Detecció manual"
 
-#: src/gui/callbacks.c:2325
+#: src/gui/callbacks.c:2337
 msgid "Purge Catalogue"
 msgstr ""
 
-#: src/gui/callbacks.c:2351
+#: src/gui/callbacks.c:2363
 #, fuzzy
 msgid "Select task to stop"
 msgstr "Selecciona Fase"
 
-#: src/gui/callbacks.c:2354 src/gui/dialogs.c:253 src/gui/dialogs.c:262
-#: src/gui/dialogs.c:268 src/gui/git_gui.c:253 src/gui/keywords_tree.c:508
+#: src/gui/callbacks.c:2366 src/gui/dialogs.c:253 src/gui/dialogs.c:262
+#: src/gui/dialogs.c:268 src/gui/git_gui.c:315 src/gui/keywords_tree.c:508
 #: src/gui/python_gui.c:768 src/gui/python_gui.c:845
-#: src/io/image_formats_libraries.c:2490 src/pixelMath/pixel_math_runner.c:1260
+#: src/io/image_formats_libraries.c:2497 src/pixelMath/pixel_math_runner.c:1260
 msgid "_Cancel"
 msgstr "_Cancel·lar"
 
-#: src/gui/callbacks.c:2355
+#: src/gui/callbacks.c:2367
 #, fuzzy
 msgid "_Stop Process"
 msgstr "Processament d'estels"
 
-#: src/gui/callbacks.c:2399
+#: src/gui/callbacks.c:2411
 #, fuzzy
 msgid "Process Name"
 msgstr "Procés"
 
-#: src/gui/callbacks.c:2409
+#: src/gui/callbacks.c:2421
 #, fuzzy
 msgid "Start Time"
 msgstr "StarNet"
@@ -22390,8 +22407,8 @@ msgstr ""
 msgid "_Close"
 msgstr "Tancar"
 
-#: src/gui/compstars.c:51 src/gui/git_gui.c:254 src/gui/nina_light_curve.c:50
-#: src/io/image_formats_libraries.c:2490
+#: src/gui/compstars.c:51 src/gui/git_gui.c:316 src/gui/nina_light_curve.c:50
+#: src/io/image_formats_libraries.c:2497
 msgid "_OK"
 msgstr "_OK"
 
@@ -22949,47 +22966,47 @@ msgstr ""
 msgid "Error: image dimensions do not match"
 msgstr "Error: la imatge no s'ha pogut carregar"
 
-#: src/gui/git_gui.c:93
+#: src/gui/git_gui.c:143
 #, fuzzy
 msgid "Processing"
 msgstr "Preprocessant"
 
-#: src/gui/git_gui.c:95
+#: src/gui/git_gui.c:145
 msgid "Utility"
 msgstr ""
 
-#: src/gui/git_gui.c:97
+#: src/gui/git_gui.c:147
 msgid "Core"
 msgstr ""
 
-#: src/gui/git_gui.c:100
+#: src/gui/git_gui.c:150
 msgid "Other"
 msgstr ""
 
-#: src/gui/git_gui.c:106 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
+#: src/gui/git_gui.c:156 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
 msgid "Siril Script File"
 msgstr ""
 
-#: src/gui/git_gui.c:108
+#: src/gui/git_gui.c:158
 #, fuzzy
 msgid "Python script"
 msgstr "Obtenir scripts"
 
-#: src/gui/git_gui.c:177
+#: src/gui/git_gui.c:238
 msgid "(No commit message found for this revision)"
 msgstr ""
 
-#: src/gui/git_gui.c:202 src/gui/script_menu.c:273
+#: src/gui/git_gui.c:264 src/gui/script_menu.c:277
 #, fuzzy, c-format
 msgid "Error loading script contents: %s\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/gui/git_gui.c:250
+#: src/gui/git_gui.c:312
 #, fuzzy
 msgid "Select Revision"
 msgstr "Selecció"
 
-#: src/gui/git_gui.c:257
+#: src/gui/git_gui.c:319
 msgid ""
 "Leave at 0 to open the current version of the script. If you have a problem "
 "with a script update you can use this to go back to earlier revisions. Start "
@@ -23000,15 +23017,15 @@ msgid ""
 "folders for use until the upstream script is fixed."
 msgstr ""
 
-#: src/gui/git_gui.c:267
+#: src/gui/git_gui.c:329
 msgid "Revisions to go back (leave at 0 to get current revision):"
 msgstr ""
 
-#: src/gui/git_gui.c:302
+#: src/gui/git_gui.c:364
 msgid "Loading commit message..."
 msgstr ""
 
-#: src/gui/git_gui.c:336
+#: src/gui/git_gui.c:398
 #, fuzzy, c-format
 msgid "Error loading script contents from %d revisions back: %s\n"
 msgstr "Error obrint fitxer %s\n"
@@ -23783,12 +23800,12 @@ msgstr ""
 
 #: src/gui/nina_light_curve.c:221 src/gui/sequence_list.c:150
 #: src/gui/starnetgui.c:220 src/io/path_parse.c:74
-#: src/io/siril_pythoncommands.c:1149 src/io/siril_pythoncommands.c:1373
-#: src/io/siril_pythoncommands.c:1418 src/io/siril_pythoncommands.c:1452
-#: src/io/siril_pythoncommands.c:1499 src/io/siril_pythoncommands.c:1531
-#: src/io/siril_pythoncommands.c:1591 src/io/siril_pythoncommands.c:1676
-#: src/io/siril_pythoncommands.c:2163 src/io/siril_pythoncommands.c:2196
-#: src/io/siril_pythoncommands.c:2359
+#: src/io/siril_pythoncommands.c:1180 src/io/siril_pythoncommands.c:1404
+#: src/io/siril_pythoncommands.c:1449 src/io/siril_pythoncommands.c:1483
+#: src/io/siril_pythoncommands.c:1530 src/io/siril_pythoncommands.c:1562
+#: src/io/siril_pythoncommands.c:1622 src/io/siril_pythoncommands.c:1707
+#: src/io/siril_pythoncommands.c:2194 src/io/siril_pythoncommands.c:2227
+#: src/io/siril_pythoncommands.c:2390
 msgid "No sequence loaded"
 msgstr ""
 
@@ -24246,12 +24263,12 @@ msgstr "Alta definició"
 msgid "Right _margin position"
 msgstr "Composició HSL"
 
-#: src/gui/python_gui.c:1141
+#: src/gui/python_gui.c:1140
 #, fuzzy, c-format
 msgid "Error creating temporary script file: %s\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/gui/python_gui.c:1148
+#: src/gui/python_gui.c:1147
 #, fuzzy
 msgid "Error writing to temporary script file\n"
 msgstr "esperant fitxers d'entrada"
@@ -24697,52 +24714,52 @@ msgstr ""
 msgid "Unknown script type: %s\n"
 msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 
-#: src/gui/script_menu.c:328
+#: src/gui/script_menu.c:332
 #, fuzzy
 msgid "Python Scripts"
 msgstr "Obtenir scripts"
 
-#: src/gui/script_menu.c:330
+#: src/gui/script_menu.c:334
 msgid ""
 "<b>EXPERIMENTAL</b>: python scripts are currently an experimental feature. "
 "Please read the documentation for details..."
 msgstr ""
 
-#: src/gui/script_menu.c:333
+#: src/gui/script_menu.c:337
 msgid "Script Editor..."
 msgstr ""
 
-#: src/gui/script_menu.c:335
+#: src/gui/script_menu.c:339
 msgid "Enable Python debug mode"
 msgstr ""
 
-#: src/gui/script_menu.c:368
+#: src/gui/script_menu.c:372
 #, c-format
 msgid "Searching for scripts in: \"%s\"...\n"
 msgstr ""
 
-#: src/gui/script_menu.c:413
+#: src/gui/script_menu.c:417
 #, c-format
 msgid "Loading script: %s\n"
 msgstr ""
 
-#: src/gui/script_menu.c:455
+#: src/gui/script_menu.c:459
 #, c-format
 msgid ""
 "Script %s no longer exists in repository, removing from Scripts menu...\n"
 msgstr ""
 
-#: src/gui/script_menu.c:477
+#: src/gui/script_menu.c:481
 #, fuzzy, c-format
 msgid "Loading script from repository: %s\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/gui/script_menu.c:527
+#: src/gui/script_menu.c:531
 #, fuzzy, c-format
 msgid "Adding core script to menu: %s\n"
 msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 
-#: src/gui/script_menu.c:578
+#: src/gui/script_menu.c:582
 msgid "Cannot refresh the scripts if the list is empty.\n"
 msgstr ""
 
@@ -25789,39 +25806,39 @@ msgstr ""
 msgid "ERROR: trying to save a FITS image with an unsupported format (%d).\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:2810
+#: src/io/image_format_fits.c:2822
 #, c-format
 msgid "Selecting the primary header failed, is the FITS file '%s' malformed?\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:2843 src/io/ser.c:1427 src/io/ser.c:1432
+#: src/io/image_format_fits.c:2855 src/io/ser.c:1427 src/io/ser.c:1432
 msgid "frame"
 msgid_plural "frames"
 msgstr[0] "imatge"
 msgstr[1] "imatges"
 
-#: src/io/image_format_fits.c:2977
+#: src/io/image_format_fits.c:3034
 msgid "Opening image failed\n"
 msgstr "Obertura d'imatge fallida\n"
 
-#: src/io/image_format_fits.c:2982
+#: src/io/image_format_fits.c:3039
 msgid "Stacking error: images with > 3 dimensions are not supported\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:2992
+#: src/io/image_format_fits.c:3049
 msgid "Stacking error: input images have different sizes\n"
 msgstr "Error d'apilonament: imatges d'entrada tenen mides diferents\n"
 
-#: src/io/image_format_fits.c:3005
+#: src/io/image_format_fits.c:3062
 msgid "Stacking error: input images have different precision\n"
 msgstr "Error d'apilonament: imatges d'entrada tenen precisions diferents\n"
 
-#: src/io/image_format_fits.c:3542
+#: src/io/image_format_fits.c:3599
 #, fuzzy, c-format
 msgid "Saving WCS file %s\n"
 msgstr "La utilització de starnet ha fallat: %s\n"
 
-#: src/io/image_format_fits.c:3581
+#: src/io/image_format_fits.c:3638
 #, fuzzy, c-format
 msgid "Saving mask file %s\n"
 msgstr "La utilització de starnet ha fallat: %s\n"
@@ -26000,157 +26017,157 @@ msgstr ""
 msgid "Memory allocation error for image data.\n"
 msgstr "No disponible"
 
-#: src/io/image_formats_libraries.c:1254
+#: src/io/image_formats_libraries.c:1257
 msgid "This image type is not handled.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1292
+#: src/io/image_formats_libraries.c:1298
 #, c-format
 msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1313 src/io/image_formats_libraries.c:1607
-#: src/io/image_formats_libraries.c:3029
+#: src/io/image_formats_libraries.c:1319 src/io/image_formats_libraries.c:1613
+#: src/io/image_formats_libraries.c:3036
 #, c-format
 msgid "Sorry but Siril cannot open the file: %s.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1353
+#: src/io/image_formats_libraries.c:1359
 msgid "Read ICC profile from JPEG.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1356
+#: src/io/image_formats_libraries.c:1362
 msgid "Cannot read an ICC profile from this JPEG, assuming sRGB.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1359
+#: src/io/image_formats_libraries.c:1365
 msgid "JPEG ICC profile support unavailable, assuming sRGB.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1395
+#: src/io/image_formats_libraries.c:1401
 #, c-format
 msgid "Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1418
+#: src/io/image_formats_libraries.c:1424
 msgid "Siril cannot create JPG file.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1568
+#: src/io/image_formats_libraries.c:1574
 msgid "Error: failed to write ICC profile to JPG\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1589
+#: src/io/image_formats_libraries.c:1595
 #, c-format
 msgid "Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1621
+#: src/io/image_formats_libraries.c:1627
 #, c-format
 msgid "Error opening the file %s\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1766
+#: src/io/image_formats_libraries.c:1772
 #, c-format
 msgid "Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2056
+#: src/io/image_formats_libraries.c:2062
 #, c-format
 msgid "Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2191
+#: src/io/image_formats_libraries.c:2197
 msgid "Siril cannot open this file in CFA mode: no RAW data available.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2220
+#: src/io/image_formats_libraries.c:2226
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2223
+#: src/io/image_formats_libraries.c:2229
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=%0.1f sec)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2246
+#: src/io/image_formats_libraries.c:2252
 #, c-format
 msgid "Filter pattern: %s\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2329
+#: src/io/image_formats_libraries.c:2335
 #, c-format
 msgid "Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2379
+#: src/io/image_formats_libraries.c:2386
 msgid "primary"
 msgstr "primari"
 
-#: src/io/image_formats_libraries.c:2488
+#: src/io/image_formats_libraries.c:2495
 msgid "Load HEIF image content"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2496
+#: src/io/image_formats_libraries.c:2503
 msgid "Select image"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2711
+#: src/io/image_formats_libraries.c:2718
 msgid ""
 "Error: the specified NCLX TRC is not yet supported in Siril. A linear TRC "
 "will be used: you may need to fix this file up manually.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2759
+#: src/io/image_formats_libraries.c:2766
 msgid "Input file contains no readable images.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2792
+#: src/io/image_formats_libraries.c:2799
 #, c-format
 msgid "This is a sequence of %d images: loading the primary one.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2827
+#: src/io/image_formats_libraries.c:2834
 msgid ""
 "Error getting ICC profile from HEIF file. Continuing: you will need to "
 "manually assign an ICC profile\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:2852
+#: src/io/image_formats_libraries.c:2859
 msgid "Input image has undefined bit-depth.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:3013
+#: src/io/image_formats_libraries.c:3020
 #, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:3130
+#: src/io/image_formats_libraries.c:3137
 #, c-format
 msgid "Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:3150
+#: src/io/image_formats_libraries.c:3157
 #, fuzzy
 msgid "Error interleaving image\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/io/image_formats_libraries.c:3260
+#: src/io/image_formats_libraries.c:3267
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit "
 "depth: %d\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:3263
+#: src/io/image_formats_libraries.c:3270
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, "
 "bit depth: %d\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:3271
+#: src/io/image_formats_libraries.c:3278
 #, fuzzy
 msgid "Save complete.\n"
 msgstr "Apilonament finalitzat."
@@ -26433,29 +26450,29 @@ msgid ""
 msgstr ""
 
 #. for versions up to 4
-#: src/io/seqfile.c:512
+#: src/io/seqfile.c:523
 msgid ""
 "Seq file had info to upscale at stacking. This must now be passed as a "
 "stacking option\n"
 msgstr ""
 
-#: src/io/seqfile.c:623
+#: src/io/seqfile.c:634
 #, c-format
 msgid "The sequence file %s seems to be corrupted\n"
 msgstr ""
 
-#: src/io/seqfile.c:636
+#: src/io/seqfile.c:647
 #, c-format
 msgid ""
 "%s: Copying registration data from non-demosaiced layer to green layer\n"
 msgstr ""
 
-#: src/io/seqfile.c:651
+#: src/io/seqfile.c:662
 #, c-format
 msgid "Could not load sequence %s\n"
 msgstr ""
 
-#: src/io/seqfile.c:906
+#: src/io/seqfile.c:917
 #, c-format
 msgid ""
 "The sequence %s doesn't start at the frame number %d with the specified "
@@ -26467,7 +26484,7 @@ msgstr ""
 msgid "Checking sequences in the directory: %s.\n"
 msgstr ""
 
-#: src/io/sequence.c:228 src/io/sequence.c:419
+#: src/io/sequence.c:228 src/io/sequence.c:423
 msgid "Current working directory is not set, aborting.\n"
 msgstr ""
 
@@ -26483,28 +26500,28 @@ msgid ""
 "settings (current is %s)\n"
 msgstr ""
 
-#: src/io/sequence.c:369
+#: src/io/sequence.c:372
 #, fuzzy, c-format
 msgid "Error opening directory: %s\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/io/sequence.c:405
+#: src/io/sequence.c:409
 #, c-format
 msgid ""
 "Cannot create sequence %s. Need at least 2 frames to be usable in Siril.\n"
 msgstr ""
 
-#: src/io/sequence.c:499
+#: src/io/sequence.c:503
 msgid ""
 "Cannot load SER sequence. Need at least 2 frames to be usable in Siril. "
 "Please convert the SER file into FITS file.\n"
 msgstr ""
 
-#: src/io/sequence.c:652
+#: src/io/sequence.c:657
 msgid "Deprecated sequence"
 msgstr ""
 
-#: src/io/sequence.c:653
+#: src/io/sequence.c:658
 msgid ""
 "Film sequences are now deprecated in Siril: some features are disabled and "
 "others may crash. We strongly encourage you to convert this sequence into a "
@@ -26512,11 +26529,11 @@ msgid ""
 "uncompressed films."
 msgstr ""
 
-#: src/io/sequence.c:655
+#: src/io/sequence.c:660
 msgid "Convert to SER"
 msgstr ""
 
-#: src/io/sequence.c:658
+#: src/io/sequence.c:663
 msgid ""
 "Warning: deprecated sequence. Film sequences are now deprecated in Siril: "
 "some features are disabled and others may crash. Continuing, but we strongly "
@@ -26524,158 +26541,158 @@ msgid ""
 "simple image sequence format, similar to uncompressed films.\n"
 msgstr ""
 
-#: src/io/sequence.c:677
+#: src/io/sequence.c:682
 #, fuzzy
 msgid "could not load reference image from sequence\n"
 msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 
-#: src/io/sequence.c:687
+#: src/io/sequence.c:692
 #, c-format
 msgid "Sequence loaded: %s (%d->%d)\n"
 msgstr ""
 
-#: src/io/sequence.c:896 src/io/sequence.c:1031
-#: src/registration/astrometric.c:408
+#: src/io/sequence.c:901 src/io/sequence.c:1036
+#: src/registration/astrometric.c:440
 #, c-format
 msgid "Could not load image %d from sequence %s\n"
 msgstr ""
 
-#: src/io/sequence.c:904 src/io/sequence.c:987 src/io/sequence.c:1039
+#: src/io/sequence.c:909 src/io/sequence.c:992 src/io/sequence.c:1044
 #, c-format
 msgid "Could not load frame %d from SER sequence %s\n"
 msgstr ""
 
-#: src/io/sequence.c:912 src/io/sequence.c:1058 src/io/sequence.c:1069
+#: src/io/sequence.c:917 src/io/sequence.c:1063 src/io/sequence.c:1074
 #, c-format
 msgid "Could not load frame %d from FITS sequence %s\n"
 msgstr ""
 
-#: src/io/sequence.c:922 src/io/sequence.c:1006 src/io/sequence.c:1081
+#: src/io/sequence.c:927 src/io/sequence.c:1011 src/io/sequence.c:1086
 #, c-format
 msgid "Could not load frame %d from AVI sequence %s\n"
 msgstr ""
 
-#: src/io/sequence.c:979 src/io/sequence.c:995
+#: src/io/sequence.c:984 src/io/sequence.c:1000
 #, c-format
 msgid "Could not load partial image %d from sequence %s\n"
 msgstr ""
 
-#: src/io/sequence.c:1053
+#: src/io/sequence.c:1058
 #, c-format
 msgid "Could not seek frame %d from FITS sequence %s. Error status: %d\n"
 msgstr ""
 
-#: src/io/sequence.c:1153
+#: src/io/sequence.c:1158
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
 msgstr ""
 
-#: src/io/sequence.c:1157
+#: src/io/sequence.c:1162
 msgid ""
 "This operation is not supported on internal sequences (seq_open_image)\n"
 msgstr ""
 
-#: src/io/sequence.c:1594
+#: src/io/sequence.c:1599
 #, c-format
 msgid "Closing sequence %s\n"
 msgstr ""
 
-#: src/io/sequence.c:1703
+#: src/io/sequence.c:1708
 #, c-format
 msgid "This operation will use registration data of layer %d\n"
 msgstr ""
 
-#: src/io/sequence.c:1723
+#: src/io/sequence.c:1728
 msgid "internal sequence"
 msgstr ""
 
-#: src/io/sequence.c:1850
+#: src/io/sequence.c:1855
 #, c-format
 msgid "Photometry analysis failed for image %d (%s)\n"
 msgstr ""
 
-#: src/io/sequence.c:1877
+#: src/io/sequence.c:1882
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use a larger "
 "area?)\n"
 msgstr ""
 
-#: src/io/sequence.c:1881
+#: src/io/sequence.c:1886
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use 'follow star' "
 "option?)\n"
 msgstr ""
 
-#: src/io/sequence.c:1966
+#: src/io/sequence.c:1971
 msgid ""
 "Star analysis does not give consistent results when exposure changes across "
 "the sequence.\n"
 msgstr ""
 
-#: src/io/sequence.c:1982
+#: src/io/sequence.c:1987
 #, c-format
 msgid "Photometry for star at %.1f, %.1f in image %d\n"
 msgstr ""
 
-#: src/io/sequence.c:2027
+#: src/io/sequence.c:2032
 msgid "No registration data stored for this layer"
 msgstr ""
 
-#: src/io/sequence.c:2028
+#: src/io/sequence.c:2033
 msgid ""
 "Some registration data was found for another layer.\n"
 "Do you want to save the psf data as registration data for this layer?"
 msgstr ""
 
-#: src/io/sequence.c:2107 src/registration/3stars.c:264
+#: src/io/sequence.c:2112 src/registration/3stars.c:264
 msgid ""
 "The reference image has a null matrix and was not previously registered. "
 "Please select another one.\n"
 msgstr ""
 
-#: src/io/sequence.c:2115
+#: src/io/sequence.c:2120
 msgid ""
 "The current image has a null matrix and was not previously registered. "
 "Please load another one to select the star.\n"
 msgstr ""
 
-#: src/io/sequence.c:2123 src/registration/3stars.c:280
+#: src/io/sequence.c:2128 src/registration/3stars.c:280
 msgid ""
 "This area is outside of the reference image. Please select the reference "
 "image to select another star.\n"
 msgstr ""
 
-#: src/io/sequence.c:2132
+#: src/io/sequence.c:2137
 msgid ""
 "The sequence analysis of the PSF will use a sliding selection area centred "
 "on the previous found star; this disables parallel processing.\n"
 msgstr ""
 
-#: src/io/sequence.c:2134
+#: src/io/sequence.c:2139
 msgid ""
 "The sequence analysis of the PSF will use registration data to move the "
 "selection area for each image; this is compatible with parallel processing.\n"
 msgstr ""
 
-#: src/io/sequence.c:2146
+#: src/io/sequence.c:2151
 msgid "PSF on area"
 msgstr ""
 
-#: src/io/sequence.c:2257
+#: src/io/sequence.c:2262
 #, c-format
 msgid ""
 "Fixing the selection number in the .seq file (%d) to the actual value (%d) "
 "(not saved)\n"
 msgstr ""
 
-#: src/io/sequence.c:2296
+#: src/io/sequence.c:2301
 #, c-format
 msgid ""
 "Sequence drift could not be checked as sequence has no regdata on layer %d\n"
 msgstr ""
 
-#: src/io/sequence.c:2308
+#: src/io/sequence.c:2313
 #, c-format
 msgid ""
 "Warning: the sequence appears to have heavy drifted images (%d pixels for "
@@ -26683,27 +26700,27 @@ msgid ""
 "exclude some images\n"
 msgstr ""
 
-#: src/io/sequence.c:2322
+#: src/io/sequence.c:2327
 #, c-format
 msgid "Registration data cleared for layer %d\n"
 msgstr ""
 
-#: src/io/sequence.c:2332
+#: src/io/sequence.c:2337
 #, c-format
 msgid "Registration (back-up) data cleared for layer %d\n"
 msgstr ""
 
-#: src/io/sequence.c:2339
+#: src/io/sequence.c:2344
 #, c-format
 msgid "Statistics data cleared for layer %d\n"
 msgstr ""
 
-#: src/io/sequence.c:2345
+#: src/io/sequence.c:2350
 #, c-format
 msgid "Statistics data (back-up) cleared for layer %d\n"
 msgstr ""
 
-#: src/io/sequence.c:2387 src/io/sequence.c:2402
+#: src/io/sequence.c:2392 src/io/sequence.c:2407
 #, c-format
 msgid "Removed outdated cache file %s failed\n"
 msgstr ""
@@ -27313,377 +27330,415 @@ msgstr ""
 msgid "Local SPCC database repository is up-to-date!\n"
 msgstr ""
 
-#: src/io/siril_git.c:1317
+#: src/io/siril_git.c:1318
 #, fuzzy
 msgid "Error opening scripts repository\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/io/siril_pythoncommands.c:461
+#: src/io/siril_pythoncommands.c:492
 #, fuzzy
 msgid "Unknown config type"
 msgstr "imatge desconeguda"
 
-#: src/io/siril_pythoncommands.c:612
+#: src/io/siril_pythoncommands.c:643
 msgid "Received incomplete command header\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:621
+#: src/io/siril_pythoncommands.c:652
 #, c-format
 msgid "Received incomplete command payload: length = %u, expected %u\n"
 msgstr ""
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:651 src/io/siril_pythoncommands.c:685
+#: src/io/siril_pythoncommands.c:682 src/io/siril_pythoncommands.c:716
 #, fuzzy
 msgid "Failed to retrieve image dimensions - no image loaded"
 msgstr "Error en obrir la primera imatge"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:708
+#: src/io/siril_pythoncommands.c:739
 msgid "Failed to retrieve current vport - no image loaded"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:725
+#: src/io/siril_pythoncommands.c:756
 msgid "Failed to set selection - selection exceeds image bounds"
 msgstr ""
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:737 src/io/siril_pythoncommands.c:2044
-#: src/io/siril_pythoncommands.c:2082
+#: src/io/siril_pythoncommands.c:768 src/io/siril_pythoncommands.c:2075
+#: src/io/siril_pythoncommands.c:2113
 #, fuzzy
 msgid "Failed to set selection - no image loaded"
 msgstr "Error en obrir la primera imatge"
 
-#: src/io/siril_pythoncommands.c:752
+#: src/io/siril_pythoncommands.c:783
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:780 src/io/siril_pythoncommands.c:877
+#: src/io/siril_pythoncommands.c:811 src/io/siril_pythoncommands.c:908
 #, fuzzy
 msgid "Invalid selection"
 msgstr "Selecció d'imatges:"
 
-#: src/io/siril_pythoncommands.c:785 src/io/siril_pythoncommands.c:868
-#: src/io/siril_pythoncommands.c:1275
+#: src/io/siril_pythoncommands.c:816 src/io/siril_pythoncommands.c:899
+#: src/io/siril_pythoncommands.c:1306
 #, fuzzy
 msgid "Invalid channel"
 msgstr "canal"
 
-#: src/io/siril_pythoncommands.c:795
+#: src/io/siril_pythoncommands.c:826
 #, fuzzy
 msgid "Failed to find a star"
 msgstr "Error en obrir la primera imatge"
 
-#: src/io/siril_pythoncommands.c:814 src/io/siril_pythoncommands.c:888
-#: src/io/siril_pythoncommands.c:1298 src/io/siril_pythoncommands.c:1362
-#: src/io/siril_pythoncommands.c:1488 src/io/siril_pythoncommands.c:1520
-#: src/io/siril_pythoncommands.c:1633 src/io/siril_pythoncommands.c:1641
-#: src/io/siril_pythoncommands.c:1651 src/io/siril_pythoncommands.c:1688
-#: src/io/siril_pythoncommands.c:1761 src/io/siril_pythoncommands.c:1830
-#: src/io/siril_pythoncommands.c:1861 src/io/siril_pythoncommands.c:2224
+#: src/io/siril_pythoncommands.c:845 src/io/siril_pythoncommands.c:919
+#: src/io/siril_pythoncommands.c:1329 src/io/siril_pythoncommands.c:1393
+#: src/io/siril_pythoncommands.c:1519 src/io/siril_pythoncommands.c:1551
+#: src/io/siril_pythoncommands.c:1664 src/io/siril_pythoncommands.c:1672
+#: src/io/siril_pythoncommands.c:1682 src/io/siril_pythoncommands.c:1719
+#: src/io/siril_pythoncommands.c:1792 src/io/siril_pythoncommands.c:1861
+#: src/io/siril_pythoncommands.c:1892 src/io/siril_pythoncommands.c:2255
 msgid "Memory allocation error"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:838
+#: src/io/siril_pythoncommands.c:869
 msgid "Invalid region: selection breaches image dimensions"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:861 src/io/siril_pythoncommands.c:1268
-#: src/io/siril_pythoncommands.c:1349 src/io/siril_pythoncommands.c:1849
-#: src/io/siril_pythoncommands.c:1872 src/io/siril_pythoncommands.c:1893
-#: src/io/siril_pythoncommands.c:1914 src/io/siril_pythoncommands.c:1947
+#: src/io/siril_pythoncommands.c:892 src/io/siril_pythoncommands.c:1299
+#: src/io/siril_pythoncommands.c:1380 src/io/siril_pythoncommands.c:1880
+#: src/io/siril_pythoncommands.c:1903 src/io/siril_pythoncommands.c:1924
+#: src/io/siril_pythoncommands.c:1945 src/io/siril_pythoncommands.c:1978
 #, fuzzy
 msgid "No image loaded"
 msgstr "no carregat"
 
-#: src/io/siril_pythoncommands.c:911
+#: src/io/siril_pythoncommands.c:942
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA_REGION\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:923
+#: src/io/siril_pythoncommands.c:954
 msgid "Invalid FINISHED_WITH_SHM payload"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1009
+#: src/io/siril_pythoncommands.c:1040
 #, fuzzy
 msgid "Unknown dialog type"
 msgstr "imatge desconeguda"
 
-#: src/io/siril_pythoncommands.c:1048
+#: src/io/siril_pythoncommands.c:1079
 msgid "Undo not supported in headless mode"
 msgstr ""
 
 #. Handle error
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1061 src/io/siril_pythoncommands.c:1130
+#: src/io/siril_pythoncommands.c:1092 src/io/siril_pythoncommands.c:1161
 #, fuzzy
 msgid "Image not loaded"
 msgstr "no carregat"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1074
+#: src/io/siril_pythoncommands.c:1105
 #, fuzzy
 msgid "Working directory not set"
 msgstr "Canvia el directori de treball"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1088
+#: src/io/siril_pythoncommands.c:1119
 #, fuzzy
 msgid "Error: user config directory not set"
 msgstr "Error obrint fitxer %s\n"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1103
+#: src/io/siril_pythoncommands.c:1134
 #, fuzzy
 msgid "Error: user data directory not set"
 msgstr "Error obrint fitxer %s\n"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1117
+#: src/io/siril_pythoncommands.c:1148
 #, fuzzy
 msgid "Error: system data directory not set"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/io/siril_pythoncommands.c:1139 src/io/siril_pythoncommands.c:1161
-#: src/io/siril_pythoncommands.c:1217 src/io/siril_pythoncommands.c:1230
-#: src/io/siril_pythoncommands.c:1257 src/io/siril_pythoncommands.c:1310
-#: src/io/siril_pythoncommands.c:2236 src/io/siril_pythoncommands.c:2249
-#: src/io/siril_pythoncommands.c:2266 src/io/siril_pythoncommands.c:2272
-#: src/io/siril_pythoncommands.c:2305
+#: src/io/siril_pythoncommands.c:1170 src/io/siril_pythoncommands.c:1192
+#: src/io/siril_pythoncommands.c:1248 src/io/siril_pythoncommands.c:1261
+#: src/io/siril_pythoncommands.c:1288 src/io/siril_pythoncommands.c:1341
+#: src/io/siril_pythoncommands.c:2267 src/io/siril_pythoncommands.c:2280
+#: src/io/siril_pythoncommands.c:2297 src/io/siril_pythoncommands.c:2303
+#: src/io/siril_pythoncommands.c:2336
 msgid "Invalid payload length"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1155
+#: src/io/siril_pythoncommands.c:1186
 #, fuzzy
 msgid "Invalid sequence type"
 msgstr "Aplicar a la seqüència"
 
-#: src/io/siril_pythoncommands.c:1169
+#: src/io/siril_pythoncommands.c:1200
 #, fuzzy
 msgid "Failed to load sequence frame: index out of range"
 msgstr "Error: no es pot obrir la seqüència\n"
 
-#: src/io/siril_pythoncommands.c:1177
+#: src/io/siril_pythoncommands.c:1208
 #, fuzzy
 msgid "Failed to load sequence frame"
 msgstr "Error: no es pot obrir la seqüència\n"
 
-#: src/io/siril_pythoncommands.c:1206
+#: src/io/siril_pythoncommands.c:1237
 #, c-format
 msgid "Error writing sequence frame %i from Python\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1285
+#: src/io/siril_pythoncommands.c:1316
 #, fuzzy
 msgid "No stats"
 msgstr "Regla de terços"
 
-#: src/io/siril_pythoncommands.c:1383 src/io/siril_pythoncommands.c:1427
-#: src/io/siril_pythoncommands.c:1462 src/io/siril_pythoncommands.c:2205
+#: src/io/siril_pythoncommands.c:1414 src/io/siril_pythoncommands.c:1458
+#: src/io/siril_pythoncommands.c:1493 src/io/siril_pythoncommands.c:2236
 msgid "Incorrect command arguments"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1393 src/io/siril_pythoncommands.c:1732
-#: src/io/siril_pythoncommands.c:1803
+#: src/io/siril_pythoncommands.c:1424 src/io/siril_pythoncommands.c:1763
+#: src/io/siril_pythoncommands.c:1834 src/io/siril_pythoncommands.c:2680
 #, fuzzy
 msgid "Memory allocation failed"
 msgstr "No disponible"
 
-#: src/io/siril_pythoncommands.c:1398 src/io/siril_pythoncommands.c:1407
+#: src/io/siril_pythoncommands.c:1429 src/io/siril_pythoncommands.c:1438
 #, fuzzy
 msgid "No regdata available"
 msgstr "No disponible"
 
-#: src/io/siril_pythoncommands.c:1443
+#: src/io/siril_pythoncommands.c:1474
 #, fuzzy
 msgid "Error building frame filename"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/io/siril_pythoncommands.c:1474
+#: src/io/siril_pythoncommands.c:1505
 #, fuzzy
 msgid "No stats for this sequence"
 msgstr "PSF per la Seqüència"
 
-#: src/io/siril_pythoncommands.c:1482
+#: src/io/siril_pythoncommands.c:1513
 msgid "No stats for this channel for this frame"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1508 src/io/siril_pythoncommands.c:1606
-#: src/io/siril_pythoncommands.c:2368
+#: src/io/siril_pythoncommands.c:1539 src/io/siril_pythoncommands.c:1637
+#: src/io/siril_pythoncommands.c:2399 src/io/siril_pythoncommands.c:2465
+#: src/io/siril_pythoncommands.c:2574
 msgid "Incorrect command argument"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1537
+#: src/io/siril_pythoncommands.c:1568
 msgid "Incorrect payload"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1557
+#: src/io/siril_pythoncommands.c:1588
 msgid "Selection cropped to frame boundaries\n"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1563
+#: src/io/siril_pythoncommands.c:1594
 #, fuzzy
 msgid "Failed to read sequence frame"
 msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
 
-#: src/io/siril_pythoncommands.c:1576
+#: src/io/siril_pythoncommands.c:1607
 msgid "Invalid dimensions"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1613 src/io/siril_pythoncommands.c:2376
+#: src/io/siril_pythoncommands.c:1644 src/io/siril_pythoncommands.c:2407
 #, fuzzy
 msgid "Failed to read frame metadata"
 msgstr "Impossible obrir el fitxer %s : %s\n"
 
-#: src/io/siril_pythoncommands.c:1722
+#: src/io/siril_pythoncommands.c:1753
 #, fuzzy
 msgid "No stars in image"
 msgstr "No disponible"
 
-#: src/io/siril_pythoncommands.c:1740
+#: src/io/siril_pythoncommands.c:1771
 msgid "Stars array was cleared mid-process"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1748
+#: src/io/siril_pythoncommands.c:1779
 msgid "Unexpected null star entry"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1793
+#: src/io/siril_pythoncommands.c:1824
 #, fuzzy
 msgid "No background samples list available"
 msgstr "No disponible"
 
-#: src/io/siril_pythoncommands.c:1812
+#: src/io/siril_pythoncommands.c:1843
 #, fuzzy
 msgid "Mismatch in samples count"
 msgstr "Relació d'aspecte de la selecció"
 
-#: src/io/siril_pythoncommands.c:1820
+#: src/io/siril_pythoncommands.c:1851
 #, fuzzy
 msgid "Unexpected null background sample"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/io/siril_pythoncommands.c:1877
+#: src/io/siril_pythoncommands.c:1908
 #, fuzzy
 msgid "Image has no ICC profile"
 msgstr "fitxer blau actual"
 
-#: src/io/siril_pythoncommands.c:1899 src/io/siril_pythoncommands.c:2381
+#: src/io/siril_pythoncommands.c:1930 src/io/siril_pythoncommands.c:2412
 msgid "Image has no FITS header"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1920
+#: src/io/siril_pythoncommands.c:1951
 msgid "Image has no history entries"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1953
+#: src/io/siril_pythoncommands.c:1984
 msgid "Image has no unknown keys"
 msgstr ""
 
 #. Need at least two null-terminated strings
-#: src/io/siril_pythoncommands.c:1968
+#: src/io/siril_pythoncommands.c:1999
 msgid "Group and key must be provided"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1977
+#: src/io/siril_pythoncommands.c:2008
 msgid "Malformed group/key data"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:1988
+#: src/io/siril_pythoncommands.c:2019
 #, fuzzy
 msgid "Configuration key not found"
 msgstr "Configuració"
 
 #. Handle no WCS error
-#: src/io/siril_pythoncommands.c:2015 src/io/siril_pythoncommands.c:2055
+#: src/io/siril_pythoncommands.c:2046 src/io/siril_pythoncommands.c:2086
 msgid "Siril image is not plate solved"
 msgstr ""
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:2098
+#: src/io/siril_pythoncommands.c:2129
 #, fuzzy
 msgid "Failed to retrieve bundle path"
 msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
 
 #. Handle error: OS is not Windows
-#: src/io/siril_pythoncommands.c:2103
+#: src/io/siril_pythoncommands.c:2134
 msgid "_get_bundle_path() only applicable on Windows"
 msgstr ""
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2113
+#: src/io/siril_pythoncommands.c:2144
 msgid ""
 "the processing thread is locked. Wait for the current processing task to "
 "finish."
 msgstr ""
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2118
+#: src/io/siril_pythoncommands.c:2149
 msgid ""
 "an image processing dialog is open. Close it to release the image lock and "
 "try again."
 msgstr ""
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2127
+#: src/io/siril_pythoncommands.c:2158
 #, fuzzy
 msgid "Unknown error"
 msgstr "imatge desconeguda"
 
-#: src/io/siril_pythoncommands.c:2153 src/io/siril_pythoncommands.c:2188
+#: src/io/siril_pythoncommands.c:2184 src/io/siril_pythoncommands.c:2219
 #, fuzzy
 msgid "Incorrect payload length"
 msgstr "Distància focal / mm)"
 
-#: src/io/siril_pythoncommands.c:2179
+#: src/io/siril_pythoncommands.c:2210
 msgid "Index is out of range"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2210
+#: src/io/siril_pythoncommands.c:2241
 #, fuzzy
 msgid "No distodata available"
 msgstr "No disponible"
 
-#: src/io/siril_pythoncommands.c:2289
+#: src/io/siril_pythoncommands.c:2320
 msgid "No polygon found matching id"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2296
+#: src/io/siril_pythoncommands.c:2327
 #, fuzzy
 msgid "Failed to serialize user polygon"
 msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
 
-#: src/io/siril_pythoncommands.c:2315
+#: src/io/siril_pythoncommands.c:2346
 msgid "No user polygons to serialize"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2321
+#: src/io/siril_pythoncommands.c:2352
 #, fuzzy
 msgid "Failed to serialize user polygon list"
 msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
 
-#: src/io/siril_pythoncommands.c:2336 src/io/siril_pythoncommands.c:2342
-#: src/io/siril_pythoncommands.c:2348
+#: src/io/siril_pythoncommands.c:2367 src/io/siril_pythoncommands.c:2373
+#: src/io/siril_pythoncommands.c:2379
 #, fuzzy
 msgid "Argument error"
 msgstr "Miralla Verticalment"
 
-#: src/io/siril_pythoncommands.c:2402
+#: src/io/siril_pythoncommands.c:2433
 #, fuzzy
 msgid "Could not create the new sequence"
 msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 
-#: src/io/siril_pythoncommands.c:2412
+#: src/io/siril_pythoncommands.c:2444
 msgid "Wrong mouse mode"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2422
+#: src/io/siril_pythoncommands.c:2454
 msgid "Invalid payload for CMD_DRAW_POLYGON"
 msgstr ""
 
-#: src/io/siril_pythoncommands.c:2430
+#: src/io/siril_pythoncommands.c:2479 src/io/siril_pythoncommands.c:2580
+#, fuzzy
+msgid "Invalid filepath length"
+msgstr "Selecció d'imatges:"
+
+#: src/io/siril_pythoncommands.c:2491 src/io/siril_pythoncommands.c:2592
+msgid "File does not exist or is not accessible"
+msgstr ""
+
+#: src/io/siril_pythoncommands.c:2501 src/io/siril_pythoncommands.c:2607
+#, fuzzy
+msgid "Failed to read image file"
+msgstr "Error en obrir la primera imatge"
+
+#: src/io/siril_pythoncommands.c:2520
+#, fuzzy
+msgid "Memory allocation error: response buffer"
+msgstr "No disponible"
+
+#: src/io/siril_pythoncommands.c:2530
+msgid "fits_to_py conversion error"
+msgstr ""
+
+#: src/io/siril_pythoncommands.c:2538
+msgid "keywords_to_py conversion error"
+msgstr ""
+
+#: src/io/siril_pythoncommands.c:2548
+#, fuzzy
+msgid "Shared memory allocation error"
+msgstr "No disponible"
+
+#: src/io/siril_pythoncommands.c:2687
+#, fuzzy
+msgid "No analysis available"
+msgstr "No disponible"
+
+#: src/io/siril_pythoncommands.c:2698
 #, fuzzy
 msgid "Unknown command"
 msgstr "imatge desconeguda"
@@ -27713,7 +27768,7 @@ msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
 
 #: src/io/siril_pythonmodule.c:335
 #, fuzzy
-msgid "Failed to retrieve pixel data - no image loaded"
+msgid "Failed to retrieve pixel data - no FITS image"
 msgstr "Error en obrir la primera imatge"
 
 #: src/io/siril_pythonmodule.c:360 src/io/siril_pythonmodule.c:369
@@ -27772,15 +27827,15 @@ msgid "Error in send_response: image exceeds available memory\n"
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:622 src/io/siril_pythonmodule.c:752
-#: src/io/siril_pythonmodule.c:850 src/io/siril_pythonmodule.c:941
-#: src/io/siril_pythonmodule.c:1004
+#: src/io/siril_pythonmodule.c:852 src/io/siril_pythonmodule.c:943
+#: src/io/siril_pythonmodule.c:1006
 #, fuzzy
 msgid "Failed to open shared memory"
 msgstr "Error en obrir la primera imatge"
 
 #: src/io/siril_pythonmodule.c:631 src/io/siril_pythonmodule.c:758
-#: src/io/siril_pythonmodule.c:856 src/io/siril_pythonmodule.c:947
-#: src/io/siril_pythonmodule.c:1010
+#: src/io/siril_pythonmodule.c:858 src/io/siril_pythonmodule.c:949
+#: src/io/siril_pythonmodule.c:1012
 msgid "Failed to map shared memory"
 msgstr ""
 
@@ -27789,8 +27844,8 @@ msgstr ""
 msgid "Failed to allocate image buffer"
 msgstr "Error en obrir la primera imatge"
 
-#: src/io/siril_pythonmodule.c:763 src/io/siril_pythonmodule.c:861
-#: src/io/siril_pythonmodule.c:952 src/io/siril_pythonmodule.c:1017
+#: src/io/siril_pythonmodule.c:763 src/io/siril_pythonmodule.c:863
+#: src/io/siril_pythonmodule.c:954 src/io/siril_pythonmodule.c:1018
 #, fuzzy
 msgid "Error: could not open shared memory"
 msgstr "Error: la imatge no s'ha pogut carregar"
@@ -27806,130 +27861,148 @@ msgstr ""
 msgid "Saved plot to %s\n"
 msgstr "Gràfica guardada a la imatge %s\n"
 
-#: src/io/siril_pythonmodule.c:979
+#: src/io/siril_pythonmodule.c:981
 #, fuzzy
 msgid "Failed to add user polygon: no image loaded"
 msgstr "Error en obrir la primera imatge"
 
-#: src/io/siril_pythonmodule.c:1050
+#: src/io/siril_pythonmodule.c:1051
 msgid "Failed to add user polygon"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1070
+#: src/io/siril_pythonmodule.c:1071
 #, fuzzy, c-format
 msgid "Error reading stdout: %s\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/io/siril_pythonmodule.c:1094
+#: src/io/siril_pythonmodule.c:1095
 #, fuzzy, c-format
 msgid "Error reading stderr: %s\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/io/siril_pythonmodule.c:1322
+#: src/io/siril_pythonmodule.c:1323
 msgid "Python communication worker finished...\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1673
+#: src/io/siril_pythonmodule.c:1674
 msgid ""
 "Installing / updating python module in the background. This may take a few "
 "seconds...\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1778
+#: src/io/siril_pythonmodule.c:1779
 #, c-format
 msgid "Preparing python virtual environment: %s.\n"
 msgstr ""
 
 #. Check the sirilpy python module is the latest version and install or
 #. update it using the venv pip if not.
-#: src/io/siril_pythonmodule.c:1819
+#: src/io/siril_pythonmodule.c:1820
 msgid "Checking the python module is up-to-date...\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1824
+#: src/io/siril_pythonmodule.c:1825
 msgid "Warning: unable to install or update the Siril python module.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1830
+#: src/io/siril_pythonmodule.c:1831
 msgid "Python module is up-to-date\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1895
+#: src/io/siril_pythonmodule.c:1896
 msgid ""
 "Error: msys2 environment detected. Siril Python support cannot be correctly "
 "initialized.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1896
+#: src/io/siril_pythonmodule.c:1899
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1897
+#: src/io/siril_pythonmodule.c:1902
 msgid ""
 "Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it "
 "from there.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1898
+#: src/io/siril_pythonmodule.c:1905
 msgid ""
 "Next time you need to start siril, you can go back to starting it from msys2 "
 "terminal.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:1932
+#: src/io/siril_pythonmodule.c:1934
 #, fuzzy
 msgid "No python installation found in the system or in the bundle, aborting\n"
 msgstr "No s'han pogut trobar estels a la imatge, avortant.\n"
 
-#: src/io/siril_pythonmodule.c:1958
+#: src/io/siril_pythonmodule.c:1971
 #, fuzzy, c-format
 msgid "Error in venv creation command: %s\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/io/siril_pythonmodule.c:1998
+#: src/io/siril_pythonmodule.c:1978
+#, fuzzy, c-format
+msgid "Failed to create virtual environment: %s\n"
+msgstr "Error en obrir la primera imatge"
+
+#: src/io/siril_pythonmodule.c:1981
+#, fuzzy, c-format
+msgid ""
+"Python stderr:\n"
+"%s\n"
+msgstr "Obtenir scripts"
+
+#: src/io/siril_pythonmodule.c:1986
+msgid ""
+"Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' "
+"package.\n"
+msgstr ""
+
+#: src/io/siril_pythonmodule.c:2043
 #, fuzzy, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
 msgstr "Error en obrir la primera imatge"
 
-#: src/io/siril_pythonmodule.c:2009
+#: src/io/siril_pythonmodule.c:2054
 #, fuzzy
 msgid "Failed to prepare virtual environment\n"
 msgstr "Error en obrir la primera imatge"
 
-#: src/io/siril_pythonmodule.c:2074 src/io/siril_pythonmodule.c:2082
+#: src/io/siril_pythonmodule.c:2119 src/io/siril_pythonmodule.c:2127
 #, c-format
 msgid "Python process (PID: %d) exited with status %d\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2085
+#: src/io/siril_pythonmodule.c:2130
 #, c-format
 msgid "Python process (PID: %d) terminated by signal %d\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2167
+#: src/io/siril_pythonmodule.c:2213
 msgid ""
 "Error: python not ready yet. This may happen at first run if the python venv "
 "and module setup has not yet completed. Please wait a short time for a "
 "completion message in the log and try again.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2194
+#: src/io/siril_pythonmodule.c:2240
 #, fuzzy
 msgid "Error: failed to create Python connection.\n"
 msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
 
-#: src/io/siril_pythonmodule.c:2209
+#: src/io/siril_pythonmodule.c:2257
 #, fuzzy
-msgid "Error: Python connection not available.\n"
+msgid "Error: Python worker thread not available.\n"
 msgstr "No disponible"
 
-#: src/io/siril_pythonmodule.c:2274
+#: src/io/siril_pythonmodule.c:2323
 msgid "Error finding venv python path, unable to spawn python.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2359
+#: src/io/siril_pythonmodule.c:2408
 #, fuzzy, c-format
 msgid "Failed to execute Python script: %s\n"
 msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
@@ -28652,15 +28725,19 @@ msgstr ""
 msgid "Image must have same dimension"
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1363
+#: src/pixelMath/pixel_math_runner.c:1305
+msgid "Error: maximum variable index exceeded - too many variables!\n"
+msgstr ""
+
+#: src/pixelMath/pixel_math_runner.c:1368
 msgid "Cannot load new image"
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1364
+#: src/pixelMath/pixel_math_runner.c:1369
 msgid "You've reached the maximum of loaded image file."
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:1411
+#: src/pixelMath/pixel_math_runner.c:1416
 msgid "Error evaluating pixelmath expression.\n"
 msgstr ""
 
@@ -28784,72 +28861,72 @@ msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 msgid "Frame %d:\n"
 msgstr ""
 
-#: src/registration/applyreg.c:440
+#: src/registration/applyreg.c:441
 msgid "Drizzle: Could not get compiled CFA pattern from the image.\n"
 msgstr ""
 
-#: src/registration/applyreg.c:447
+#: src/registration/applyreg.c:448
 #, c-format
 msgid ""
 "Drizzle: CFA pattern mismatch between reference image and image #%d, using "
 "reference pattern.\n"
 msgstr ""
 
-#: src/registration/applyreg.c:468
+#: src/registration/applyreg.c:470
 #, fuzzy
 msgid "Error generating mapping array.\n"
 msgstr "Error obrint fitxer %s\n"
 
-#: src/registration/applyreg.c:640 src/registration/comet.c:239
+#: src/registration/applyreg.c:642 src/registration/comet.c:239
 msgid "Applying registration completed.\n"
 msgstr ""
 
-#: src/registration/applyreg.c:644
+#: src/registration/applyreg.c:646
 #, c-format
 msgid "Total: %d failed, %d exported.\n"
 msgstr ""
 
-#: src/registration/applyreg.c:655
+#: src/registration/applyreg.c:657
 msgid "Transformation aborted.\n"
 msgstr "Transformació avortada.\n"
 
-#: src/registration/applyreg.c:806
+#: src/registration/applyreg.c:808
 msgid "Initializing drizzle data..."
 msgstr ""
 
-#: src/registration/applyreg.c:820
+#: src/registration/applyreg.c:822
 msgid ""
 "Warning: the CFA pattern in the reference image is not supported by "
 "drizzle.\n"
 msgstr ""
 
-#: src/registration/applyreg.c:876
+#: src/registration/applyreg.c:878
 msgid ""
 "Warning: the number of images after collecting astrometry is different from "
 "the number of images before filtering.\n"
 msgstr ""
 
-#: src/registration/applyreg.c:877
+#: src/registration/applyreg.c:879
 msgid "The registration will be applied to the filtered images only.\n"
 msgstr ""
 
-#: src/registration/applyreg.c:917
+#: src/registration/applyreg.c:919
 msgid "Apply registration"
 msgstr "Aplica registrat"
 
-#: src/registration/applyreg.c:942 src/registration/global.c:631
+#: src/registration/applyreg.c:944 src/registration/global.c:631
 #: src/registration/global.c:853
 #, fuzzy
 msgid "Could not initialize distortion data, aborting\n"
 msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 
-#: src/registration/applyreg.c:958
+#: src/registration/applyreg.c:960
 msgid ""
 "Distortion was found in reference image astrometry but you did not include "
 "distortion correction when registering the images\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1043
+#: src/registration/applyreg.c:1045
 msgid ""
 "Images will be larger than what Siril can display for now. Tune scale ratio "
 "to get max dimension smaller than 32767 pixels or proceed and post process "
@@ -28857,147 +28934,157 @@ msgid ""
 msgstr ""
 
 #. Estimate button was pressed, we just warn
-#: src/registration/applyreg.c:1047 src/registration/applyreg.c:1048
+#: src/registration/applyreg.c:1049 src/registration/applyreg.c:1050
 #, fuzzy
 msgid "Output too large"
 msgstr "Prefix de sortida:"
 
-#: src/registration/applyreg.c:1061
+#: src/registration/applyreg.c:1063
 msgid ""
 "Unselect the images generating the error or change framing method to max\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1075
+#: src/registration/applyreg.c:1077
 msgid "Images will be larger than what Siril can display for now.\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1076
+#: src/registration/applyreg.c:1078
 msgid "Tune scale ratio to get max dimension smaller than 32767 pixels.\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1084
+#: src/registration/applyreg.c:1086
 msgid ""
 "The output sequence is too small compared to reference image (too much "
 "rotation or little overlap?)\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1085
+#: src/registration/applyreg.c:1087
 msgid "You should change framing method, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1105
+#: src/registration/applyreg.c:1107
 #, fuzzy
 msgid "Not enough space to save the output images\n"
 msgstr "Guarda la imatge actual en un nom diferent"
 
-#: src/registration/applyreg.c:1116
+#: src/registration/applyreg.c:1118
 msgid ""
 "The reference image has a null matrix and was not previously aligned, choose "
 "another one, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1123
+#: src/registration/applyreg.c:1125
 #, c-format
 msgid ""
 "Applying registration computed with higher degree of freedom (%d) than shift "
 "is not allowed when interpolation is set to none, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1129
+#: src/registration/applyreg.c:1131
 msgid ""
 "Applying registration with changes in output image size is not allowed when "
 "interpolation is set to none , aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1135
+#: src/registration/applyreg.c:1137
 msgid ""
 "Applying registration on images with different sizes when interpolation is "
 "set to none is not allowed, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1140
+#: src/registration/applyreg.c:1142
 msgid ""
 "Applying registration on images with distortions when interpolation is set "
 "to none is not allowed, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1146
+#: src/registration/applyreg.c:1148
 msgid ""
 "Existing registration data is a set of identity matrices, no transformation "
 "would be applied, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1152
+#: src/registration/applyreg.c:1154
 msgid ""
 "Existing registration data is a set of null matrices, no transformation "
 "would be applied, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1158
+#: src/registration/applyreg.c:1160
 msgid "Some images were not registered, excluding them\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1168
+#: src/registration/applyreg.c:1170
 msgid ""
 "Framing method \"cog\" requires all images to be of same size, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1174
+#: src/registration/applyreg.c:1176
 msgid ""
 "Framing method \"max\" cannot export to FITSEQ or SER format, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1184
+#: src/registration/applyreg.c:1186
 msgid "Reference image is not included in the filtered list, aborting\n"
 msgstr ""
 
-#: src/registration/applyreg.c:1185
+#: src/registration/applyreg.c:1187
 msgid ""
 "This is not compatible with framing mode \"current\", change reference image"
 msgstr ""
 
-#: src/registration/applyreg.c:1194
+#: src/registration/applyreg.c:1196
 #, c-format
 msgid ""
 "Reference image is not included in the filtered list, using image #%d "
 "instead\n"
 msgstr ""
 
-#: src/registration/astrometric.c:238
+#: src/registration/astrometric.c:133
+#, fuzzy
+msgid "Failed to compute homography from corners\n"
+msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
+
+#: src/registration/astrometric.c:271
 #, c-format
 msgid "Sequence COG - RA:%7.3f - DEC:%+7.3f\n"
 msgstr ""
 
-#: src/registration/astrometric.c:271
+#: src/registration/astrometric.c:304
 #, c-format
 msgid "Could not compute camera parameters of image %d from sequence %s\n"
 msgstr ""
 
-#: src/registration/astrometric.c:286
+#: src/registration/astrometric.c:319
 #, c-format
 msgid "Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"
 msgstr ""
 
-#: src/registration/astrometric.c:289
+#: src/registration/astrometric.c:322
 msgid "No image selected after computing transformations, aborting\n"
 msgstr ""
 
-#: src/registration/astrometric.c:312
+#: src/registration/astrometric.c:347
 #, c-format
 msgid "Sequence optimal framing: %.1f\n"
 msgstr ""
 
-#: src/registration/astrometric.c:314 src/registration/astrometric.c:316
+#: src/registration/astrometric.c:349 src/registration/astrometric.c:351
 #, fuzzy, c-format
 msgid "Sequence framing: %.1f\n"
 msgstr "Llista de seqüencia"
 
-#: src/registration/astrometric.c:392
+#: src/registration/astrometric.c:376
+#, fuzzy
+msgid "Could not create WCS structure for framing, aborting\n"
+msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
+
+#: src/registration/astrometric.c:424
 #, fuzzy
 msgid "Astrometric registration computed.\n"
 msgstr "Aplica la transformació d'histograma"
 
-#: src/registration/astrometric.c:414
+#: src/registration/astrometric.c:446
 #, c-format
 msgid "Image %d has not been plate-solved, unselecting\n"
 msgstr ""
@@ -29869,10 +29956,6 @@ msgstr ""
 #, fuzzy
 #~ msgid "Error: unable to open local spcc-database repository.\n"
 #~ msgstr "Error obrint fitxer %s\n"
-
-#, fuzzy
-#~ msgid "Failed to compute output index"
-#~ msgstr "No s'ha pogut guardar el fitxer JSON %s: %s\n"
 
 #~ msgid "Ch."
 #~ msgstr "Ch."

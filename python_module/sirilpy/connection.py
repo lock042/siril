@@ -26,7 +26,7 @@ from .exceptions import SirilError, DataError, SirilConnectionError, CommandErro
         NoImageError, NoSequenceError, SharedMemoryError, ProcessingThreadBusyError, \
         ImageDialogOpenError, MouseModeError
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, \
-        DistoData, Sequence, SequenceType, Polygon
+        DistoData, Sequence, SequenceType, Polygon, ImageAnalysis
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
 from .utility import truncate_utf8, parse_fits_header
 
@@ -4239,3 +4239,350 @@ class SirilInterface:
             bool: True if running in CLI mode, False otherwise.
         """
         return self._is_cli
+
+    def load_image_from_file(self, filepath: str, with_pixels: Optional[bool] = True,
+                             preview: Optional[bool] = False) -> Optional[FFit]:
+        """
+        Request Siril to load an image from a file and transfer it to sirilpy. This
+        method does not change the image currently loaded in Siril. Any image format
+        supported by Siril is supported. This may be used as an alternative to loading
+        an image using astropy.io.fits, however perhaps the main benefit to using it
+        is that it supports the preview option which can be used to obtain an 8-bit
+        autostretched rendering of the image more quickly than is possible using astropy
+        and applying an autostretch using numpy.
+        Note that as with get_seq_frame, the FFit header, history and icc_profile
+        properties are not populated, though most of the useful metadata is available
+        in other FFit properties.
+
+        Args:
+            filepath: String specifying the path to the image file to load.
+            with_pixels: bool specifying whether or not to return the pixel data for the
+                image (default is True).
+            preview: bool specifying whether or not to return the real pixel data or an
+                autostretched uint8_t preview version. Only has an effect in
+                conjunction with with_pixels = True
+
+        Returns:
+            FFit object containing the image data
+
+        Raises:
+            FileNotFoundError: if the specified file does not exist,
+            DataError: on receipt of incorrect data,
+            SirilError: if an error occurs.
+        """
+
+        if not filepath or not isinstance(filepath, str):
+            raise ValueError("filepath must be a non-empty string")
+
+        # Convert filepath to bytes for transmission
+        filepath_bytes = filepath.encode('utf-8')
+        if len(filepath_bytes) > 4000:  # Reasonable limit for filepath length
+            raise ValueError("filepath is too long")
+
+        shm = None
+        # Pack boolean flags + filepath
+        data_payload = struct.pack('!??', with_pixels, preview) + filepath_bytes
+        response = self._request_data(_Command.GET_IMAGE_FILE, data_payload, timeout=None)
+        if response is None:
+            return None
+
+        try:
+            # Build format string for struct unpacking (identical to get_seq_frame)
+            # Network byte order for all values
+            FLEN_VALUE = 71  # Standard FITS keyword length
+            format_parts = [
+                # Core FFfit (start at index 0)
+                'q',  # rx padded to 64bit
+                'q',  # ry padded to 64bit
+                'q',  # naxes[2] padded to 64bit
+                'q',  # bitpix padded to 64bit
+                'q',  # orig_bitpix padded to 64bit
+                'Q',  # gboolean checksum padded to 64bit
+                'd',  # mini
+                'd',  # maxi
+                'd',  # neg_ratio padded to 64bit
+                'Q',  # gboolean top_down (padded to uint64_t)
+                'Q',  # gboolean focalkey (padded to uint64_t)
+                'Q',  # gboolean pixelkey (padded to uint64_t)
+                'Q',  # gboolean color_managed (padded to uint64_t)
+                # Keywords (start at index 14)
+                f'{FLEN_VALUE}s',  # program
+                f'{FLEN_VALUE}s',  # filename
+                f'{FLEN_VALUE}s',  # row_order
+                f'{FLEN_VALUE}s',  # filter
+                f'{FLEN_VALUE}s',  # image_type
+                f'{FLEN_VALUE}s',  # object
+                f'{FLEN_VALUE}s',  # instrume
+                f'{FLEN_VALUE}s',  # telescop
+                f'{FLEN_VALUE}s',  # observer
+                f'{FLEN_VALUE}s',  # sitelat_str
+                f'{FLEN_VALUE}s',  # sitelong_str
+                f'{FLEN_VALUE}s',  # bayer_pattern
+                f'{FLEN_VALUE}s',  # focname
+                'd',  # bscale
+                'd',  # bzero
+                'Q',  # lo padded to 64bit
+                'Q',  # hi padded to 64bit
+                'd',  # flo padded to 64bit
+                'd',  # fhi padded to 64bit
+                'd',  # data_max
+                'd',  # data_min
+                'd',  # pixel_size_x
+                'd',  # pixel_size_y
+                'Q',  # binning_x (padded to uint64_t)
+                'Q',  # binning_y (padded to uint64_t)
+                'd',  # expstart
+                'd',  # expend
+                'd',  # centalt
+                'd',  # centaz
+                'd',  # sitelat
+                'd',  # sitelong
+                'd',  # siteelev
+                'q',  # bayer_xoffset
+                'q',  # bayer_yoffset
+                'd',  # airmass
+                'd',  # focal_length
+                'd',  # flength
+                'd',  # iso_speed
+                'd',  # exposure
+                'd',  # aperture
+                'd',  # ccd_temp
+                'd',  # set_temp
+                'd',  # livetime
+                'Q',  # stackcnt
+                'd',  # cvf
+                'q',  # key_gain
+                'q',  # key_offset
+                'q',  # focuspos
+                'q',  # focussz
+                'd',  # foctemp
+                'q',  # date (int64 unix timestamp)
+                'q'  # date_obs (int64 unix timestamp)
+            ]
+            if with_pixels:
+                # Starts at index 65
+                format_parts.extend([
+                    'Q',  # size (size_t)
+                    'i',  # data_type
+                    'i',  # width
+                    'i',  # height
+                    'i',  # channels
+                    '256s'  # shm_name (char[256])
+                ])
+
+            format_string = '!' + ''.join(format_parts)
+
+            # Verify data size
+            expected_size = struct.calcsize(format_string)
+            if len(response) != expected_size:
+                raise DataError(f"Received image data size {len(response)} doesn't match expected size {expected_size}")
+
+            # Unpack the binary data
+            values = struct.unpack(format_string, response)
+
+            # Helper function to decode and strip null-terminated strings
+            def decode_string(s: bytes) -> str:
+                return s.decode('utf-8').rstrip('\x00')
+
+            # Helper function to convert timestamp to datetime
+            def timestamp_to_datetime(timestamp: int) -> Optional[datetime]:
+                return datetime.fromtimestamp(timestamp) if timestamp != 0 else None
+
+            # Get pixeldata if requested
+            pixeldata = None
+            if with_pixels:
+                try:
+                    shm_info = _SharedMemoryInfo(
+                        size=values[65],
+                        data_type=values[66],
+                        width=values[67],
+                        height=values[68],
+                        channels=values[69],
+                        shm_name=values[70]
+                    )
+                    # Validate dimensions
+                    if any(dim <= 0 for dim in (shm_info.width, shm_info.height)):
+                        raise DataError(_("Invalid image dimensions: {}x{}").format(shm_info.width, shm_info.height))
+
+                    if shm_info.channels <= 0 or shm_info.channels > 3:
+                        raise DataError(_("Invalid number of channels: {}").format(shm_info.channels))
+
+                    # Map the shared memory
+                    try:
+                        shm = self._map_shared_memory(
+                            shm_info.shm_name.decode('utf-8'),
+                            shm_info.size
+                        )
+                    except (OSError, ValueError) as e:
+                        raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+                    buffer = bytearray(shm.buf)[:shm_info.size]
+                    # Create numpy array from shared memory
+                    if preview:
+                        dtype = np.uint8
+                    else:
+                        dtype = np.float32 if shm_info.data_type == 1 else np.uint16
+                    try:
+                        arr = np.frombuffer(buffer, dtype=dtype)
+                    except (BufferError, ValueError, TypeError) as e:
+                        raise SharedMemoryError(_("Failed to create array from shared memory: {}").format(e)) from e
+
+                    # Validate array size matches expected dimensions
+                    expected_size = shm_info.width * shm_info.height * shm_info.channels
+                    if arr.size < expected_size:
+                        raise DataError(
+                            f"Data size mismatch: got {arr.size} elements, "
+                            f"expected {expected_size} for dimensions "
+                            f"{shm_info.width}x{shm_info.height}x{shm_info.channels}"
+                        )
+
+                    # Reshape the array according to the image dimensions
+                    try:
+                        if shm_info.channels > 1:
+                            arr = arr.reshape((shm_info.channels, shm_info.height, shm_info.width))
+                        else:
+                            arr = arr.reshape((shm_info.height, shm_info.width))
+                    except ValueError as e:
+                        raise DataError(_("Error in get_image_file(): Failed to reshape array to image dimensions: {}").format(e)) from e
+
+                    # Make a copy of the data since we'll be releasing the shared memory
+                    pixeldata = np.copy(arr)
+
+                except SirilError:
+                    raise
+                except Exception as e:
+                    raise SirilError(f"Error obtaining pixeldata: {e}") from e
+
+            fits_keywords = FKeywords(
+                program=decode_string(values[13]),
+                filename=decode_string(values[14]),
+                row_order=decode_string(values[15]),
+                filter=decode_string(values[16]),
+                image_type=decode_string(values[17]),
+                object=decode_string(values[18]),
+                instrume=decode_string(values[19]),
+                telescop=decode_string(values[20]),
+                observer=decode_string(values[21]),
+                sitelat_str=decode_string(values[22]),
+                sitelong_str=decode_string(values[23]),
+                bayer_pattern=decode_string(values[24]),
+                focname=decode_string(values[25]),
+                bscale=values[26],
+                bzero=values[27],
+                lo=values[28],
+                hi=values[29],
+                flo=values[30],
+                fhi=values[31],
+                data_max=values[32],
+                data_min=values[33],
+                pixel_size_x=values[34],
+                pixel_size_y=values[35],
+                binning_x=values[36],
+                binning_y=values[37],
+                expstart=values[38],
+                expend=values[39],
+                centalt=values[40],
+                centaz=values[41],
+                sitelat=values[42],
+                sitelong=values[43],
+                siteelev=values[44],
+                bayer_xoffset=values[45],
+                bayer_yoffset=values[46],
+                airmass=values[47],
+                focal_length=values[48],
+                flength=values[49],
+                iso_speed=values[50],
+                exposure=values[51],
+                aperture=values[52],
+                ccd_temp=values[53],
+                set_temp=values[54],
+                livetime=values[55],
+                stackcnt=values[56],
+                cvf=values[57],
+                gain=values[58],
+                offset=values[59],
+                focuspos=values[60],
+                focussz=values[61],
+                foctemp=values[62],
+                date=timestamp_to_datetime(values[63]),
+                date_obs=timestamp_to_datetime(values[64])
+            )
+
+            fit = FFit(
+                _naxes=(values[0], values[1], values[2]),
+                naxis=2 if values[2] == 1 else 3,
+                bitpix=values[3],
+                orig_bitpix=values[4],
+                checksum=bool(values[5]),
+                mini=values[6],
+                maxi=values[7],
+                neg_ratio=values[8],
+                top_down=bool(values[9]),
+                _focalkey=bool(values[10]),
+                _pixelkey=bool(values[11]),
+                color_managed=bool(values[12]),
+                _data=pixeldata,
+                stats=[None, None, None],
+                keywords=fits_keywords,
+                _icc_profile=None,
+                header=None, # This method does not populate the header property
+                unknown_keys=None,
+                history=None
+            )
+            return fit
+
+        except Exception as e:
+            raise SirilError(f"Error in get_image_file(): {e}") from e
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C will do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                        raise SirilError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass
+
+    def analyse_image_from_file(self, filepath: str) -> ImageAnalysis:
+        """
+        Request Siril to load an image from a file and analyse it. This
+        method does not change the image currently loaded in Siril. Any image format
+        supported by Siril is supported. An ImageAnalysis object is returned, containing
+        parameters that may be used to assess the quality of an image for use in culling.
+
+        Args:
+            filepath: String specifying the path to the image file to load.
+
+        Returns:
+            ImageAnalysis object containing quality metrics for the analysed image.
+
+        Raises:
+            FileNotFoundError: if the specified file does not exist,
+            DataError: on receipt of incorrect data,
+            SirilError: if an error occurs.
+        """
+
+        if not filepath or not isinstance(filepath, str):
+            raise ValueError("filepath must be a non-empty string")
+
+        if not os.path.isfile(filepath):
+            raise FileNotFoundError(f"No such file: {filepath}")
+
+        # Convert filepath to bytes for transmission
+        filepath_bytes = filepath.encode('utf-8')
+        if len(filepath_bytes) > 4000:  # Reasonable limit for filepath length
+            raise ValueError("filepath is too long")
+
+        response = self._request_data(_Command.ANALYSE_IMAGE_FILE, filepath_bytes, timeout=None)
+        if response is None:
+            raise SirilError(f"Error: no response received in SirilInterface.analyse_image_from_file()")
+
+        try:
+            analysis = ImageAnalysis.deserialize(response)
+            return analysis
+        except Exception as e:
+            raise SirilError(f"Error unpacking data in SirilInterface.analyse_image_from_file(): {e}") from e
