@@ -48,7 +48,6 @@
 #include "opencv/opencv.h"
 
 #define MIN_RATIO 0.1 // minimum fraction of ref image dimensions to validate output sequence is worth creating
-#define DRIZZLE_WEIGHT_CALC_SIZE 6  // size of the area used for drizzle weight calculation, 6 is for XTRANS
 
 static int new_ref_index = -1;
 static gboolean check_applyreg_output(struct registration_args *regargs);
@@ -346,6 +345,16 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 		clearfits(&fit);
 		return 1;
 	}
+
+	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
+		siril_log_color_message(
+				_("Could not init drizzle\n"), "red");
+		args->seq->regparam[regargs->layer] = NULL;
+		free(sadata->current_regdata);
+		clearfits(&fit);
+		return 1;
+	}
+
 	clearfits(&fit);
 	return registration_prepare_results(args);
 }
@@ -561,7 +570,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			size_t nbpix_per_channel = output_counts->rx * output_counts->ry;
 			for (int c = 0; c < output_counts->naxes[2]; c++) {
 				float *counts = output_counts->fpdata[c];
-				float factor = 1.f / p->max_weight[c];
+				float factor = 1.f / driz->max_weight[c];
 				for (size_t i = 0; i < nbpix_per_channel; i++) {
 					counts[i] *= factor;
 				}
@@ -833,7 +842,7 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 	return limit;
 }
 
-static int compute_max_drizzle_weights(struct driz_args_t *driz) {
+static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, disto_data *disto) {
 	struct driz_param_t *p = calloc(1, sizeof(struct driz_param_t));
 	driz_param_init(p);
 	p->kernel = driz->kernel;
@@ -841,28 +850,78 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz) {
 	p->error = malloc(sizeof(struct driz_error_t));
 	p->scale = driz->scale;
 	p->pixel_fraction = driz->pixel_fraction;
-	memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
-	p->cfadim = driz->cfadim;
-	int size_in = (driz->scale >= 1) ? DRIZZLE_WEIGHT_CALC_SIZE : (int)(DRIZZLE_WEIGHT_CALC_SIZE / driz->scale);
+	if (driz->is_bayer) {
+		p->cfadim = driz->cfadim;
+		memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
+	}
+	int src_rx = 0, src_ry = 0;
+	int patch_size_in = max(20, p->cfadim);
+	patch_size_in *= 2;
+	int extent = (driz->scale >= 1) ? patch_size_in : (int)(patch_size_in / driz->scale);
+	siril_debug_print("Drizzle scale: %f, patch size: %d, extent: %d\n", driz->scale, patch_size_in, extent);
+
+	if (disto) {
+		src_rx = reffits->rx;
+		src_ry = reffits->ry;
+	} else {
+		src_rx = extent;
+		src_ry = extent;
+	}
+
 	// Set bounds equal to whole image
 	p->xmin = p->ymin = 0;
-	p->xmax = size_in - 1;
-	p->ymax = size_in - 1;
+	p->xmax = src_rx - 1;
+	p->ymax = src_ry - 1;
 	p->pixmap = calloc(1, sizeof(imgmap_t));
-	p->pixmap->rx = size_in;
-	p->pixmap->ry = size_in;
+	p->pixmap->rx = src_rx;
+	p->pixmap->ry = src_ry;
+	size_t size_in = src_rx * src_ry;
 
-	float *buffer = calloc(size_in * size_in, sizeof(float));
-	for (size_t i = 0; i < size_in * size_in; i++)
-		buffer[i] = 1.f;
+	float *buffer = calloc(size_in, sizeof(float));
+
+	if (disto) {
+		// we will fill patches:
+		// - at the 4 corners
+		// - in the center
+		// the rest of the mock-up image will be black so that most of the pixels are skipped during this fake calc
+
+		// Fill 4 corners
+		for (int y = 0; y < extent; y++) {
+			for (int x = 0; x < extent; x++) {
+				buffer[y * src_rx + x] = 1.f;
+				buffer[y * src_rx + (src_rx - extent + x)] = 1.f;
+				buffer[(src_ry - extent + y) * src_rx + x] = 1.f;
+				buffer[(src_ry - extent + y) * src_rx + (src_rx - extent + x)] = 1.f;
+			}
+		}
+
+		// Fill center patch (2*extent x 2*extent)
+		int cx = src_rx / 2 - extent;
+		int cy = src_ry / 2 - extent;
+		for (int y = 0; y < 2 * extent; y++) {
+			int yy = cy + y;
+			if (yy < 0 || yy >= src_ry)
+				continue;
+			for (int x = 0; x < 2 * extent; x++) {
+				int xx = cx + x;
+				if (xx < 0 || xx >= src_rx)
+					continue;
+				buffer[yy * src_rx + xx] = 1.f;
+			}
+		}
+	} else { // we just fill the whole (tiny) image with 1.f
+		for (size_t i = 0; i < size_in; i++)
+			buffer[i] = 1.0f;
+	}
+
 	fits *fit = NULL;
-	new_fit_image_with_data(&fit, size_in, size_in, 1, DATA_FLOAT, buffer);
-	int dst_rx = (int)(size_in * driz->scale);
-	int dst_ry = (int)(size_in * driz->scale);
+	new_fit_image_with_data(&fit, src_rx, src_ry, 1, DATA_FLOAT, buffer);
+	int dst_rx = (int)(src_rx * driz->scale);
+	int dst_ry = (int)(src_ry * driz->scale);
 	Homography H = { 0 };
 	cvGetEye(&H);
 
-	if (map_image_coordinates_h(fit, H, p->pixmap, dst_rx, dst_ry, driz->scale, NULL, 1)) {
+	if (map_image_coordinates_h(fit, H, p->pixmap, dst_rx, dst_ry, driz->scale, disto, 1)) {
 		free(p->error);
 		free(p->pixmap);
 		free(p);
@@ -921,7 +980,7 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz) {
 			continue;
 		}
 		siril_log_message("Max drizzle weight for layer %d: %f\n", c, stat->max);
-		p->max_weight[c] = stat->max;
+		driz->max_weight[c] = stat->max;
 	}
 	clearfits(&out);
 	clearfits(output_counts);
@@ -954,7 +1013,22 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	}
 	if (driz->is_bayer)
 		driz->cfadim = (int)cfadim;
-	return compute_max_drizzle_weights(driz);
+	disto_data *disto = NULL;
+	gboolean free_disto = FALSE;
+	if (regargs->undistort) {
+		if (regargs->disto->dtype == DISTO_MAP_D2S || regargs->disto->dtype == DISTO_MAP_S2D) {
+			disto = regargs->disto;
+		} else {
+			disto = calloc(1, sizeof(disto_data));
+			copy_disto(&regargs->disto[regargs->reference_image], disto);
+			free_disto = TRUE;
+		}
+	}
+	int status = compute_max_drizzle_weights(driz, &fit, disto);
+	if (free_disto)
+		free_disto_args(disto);
+	clearfits(&fit);
+	return status;
 }
 
 int register_apply_reg(struct registration_args *regargs) {
@@ -1027,12 +1101,6 @@ int register_apply_reg(struct registration_args *regargs) {
 
 	if (regargs->no_output) {
 		retval = 0;
-		goto END;
-
-	}
-
-	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
-		retval = -1;
 		goto END;
 
 	}

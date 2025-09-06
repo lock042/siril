@@ -124,6 +124,7 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcs_pc2mat(wcs, pc);
 						wcs_pc_to_cd(pc, wcs->cdelt, cd);
 						wcs_mat2cd(wcs, cd);
+						wcs_decompose_cd(wcs, cd); // we decompose again CD in case PC/CDELT do not follow the expected formalism (CDELT to unity instead of scales)
 						wcs->flag = 0;
 						wcsset(wcs);
 						// siril_debug_print("contains PC\n");

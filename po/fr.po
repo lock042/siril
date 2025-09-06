@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-21 22:43+0200\n"
-"PO-Revision-Date: 2025-08-21 20:50+0000\n"
+"POT-Creation-Date: 2025-09-04 10:24+0200\n"
+"PO-Revision-Date: 2025-09-04 09:50+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -506,7 +506,7 @@ msgstr "Annoter"
 #: src/gui/uifiles/settings_window.ui:1912
 #: src/gui/uifiles/settings_window.ui:4385
 #: src/gui/uifiles/settings_window.ui:4426
-#: src/gui/uifiles/settings_window.ui:6065 src/gui/uifiles/siril.ui:3748
+#: src/gui/uifiles/settings_window.ui:6097 src/gui/uifiles/siril.ui:3748
 msgid "Clear"
 msgstr "Effacer"
 
@@ -4364,7 +4364,7 @@ msgid "Interpolation: "
 msgstr "Interpolation : "
 
 #: src/gui/uifiles/file_information_dialog.ui:34
-#: src/io/siril_pythoncommands.c:1005
+#: src/io/siril_pythoncommands.c:1036
 msgid "Information"
 msgstr "Information"
 
@@ -5217,7 +5217,7 @@ msgstr "Ajouter une action de défilement"
 msgid "Remove a scroll action"
 msgstr "Supprimer une action de défilement"
 
-#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5323
+#: src/gui/uifiles/mouse_actions.ui:260 src/gui/uifiles/settings_window.ui:5355
 #: src/gui/uifiles/siril.ui:6342
 msgid " "
 msgstr " "
@@ -6552,7 +6552,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:150
-#: src/gui/uifiles/settings_window.ui:5242
+#: src/gui/uifiles/settings_window.ui:5267
 msgid "Sel"
 msgstr "Sel"
 
@@ -8492,7 +8492,7 @@ msgid "<b>Built-in Profiles</b>"
 msgstr "<b>Profils embarqués</b>"
 
 #: src/gui/uifiles/settings_window.ui:4943
-#: src/gui/uifiles/settings_window.ui:5359 src/gui/uifiles/siril.ui:10628
+#: src/gui/uifiles/settings_window.ui:5391 src/gui/uifiles/siril.ui:10628
 msgid "Scripts"
 msgstr "Scripts"
 
@@ -8541,7 +8541,7 @@ msgstr ""
 "savez ce que vous faites !</b></span>"
 
 #: src/gui/uifiles/settings_window.ui:5076
-#: src/gui/uifiles/settings_window.ui:5942
+#: src/gui/uifiles/settings_window.ui:5974
 msgid "Warning Dialogs"
 msgstr "Avertissements"
 
@@ -8592,7 +8592,16 @@ msgstr ""
 "attente, les messages de validation seront affichés et il vous sera demandé "
 "de confirmer l'application des modifications."
 
-#: src/gui/uifiles/settings_window.ui:5178
+#: src/gui/uifiles/settings_window.ui:5179
+msgid ""
+"Type here to filter the list of scripts. The search matches any part of the "
+"script name. Filtering is case-insensitive and updates instantly as you type."
+msgstr ""
+"Tapez ici pour filtrer la liste des scripts. La recherche correspond à "
+"n'importe quelle partie du nom du script. Le filtrage n'est pas sensible à "
+"la casse et se met à jour instantanément au fur et à mesure que vous tapez."
+
+#: src/gui/uifiles/settings_window.ui:5203
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -8608,27 +8617,27 @@ msgstr ""
 "version après une mise à jour incorrecte du script), cliquez avec le bouton "
 "droit de la souris sur une ligne."
 
-#: src/gui/uifiles/settings_window.ui:5195
+#: src/gui/uifiles/settings_window.ui:5220
 msgid "Category"
 msgstr "Catégorie"
 
-#: src/gui/uifiles/settings_window.ui:5211
+#: src/gui/uifiles/settings_window.ui:5236
 msgid "Script"
 msgstr "Script"
 
-#: src/gui/uifiles/settings_window.ui:5227
+#: src/gui/uifiles/settings_window.ui:5252
 msgid "Type"
 msgstr "Type"
 
-#: src/gui/uifiles/settings_window.ui:5271
+#: src/gui/uifiles/settings_window.ui:5303
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Répertoires des scripts</b>"
 
-#: src/gui/uifiles/settings_window.ui:5304
+#: src/gui/uifiles/settings_window.ui:5336
 msgid "Reset python venv"
 msgstr "Réinitialisation de la venv python"
 
-#: src/gui/uifiles/settings_window.ui:5308
+#: src/gui/uifiles/settings_window.ui:5340
 msgid ""
 "<b>WARNING!!</b> <i>This will kill all running python scripts and reset the "
 "virtual environment \"venv\" directory to an as-new state. Any modules that "
@@ -8645,20 +8654,20 @@ msgstr ""
 "Ceci n'est normalement pas nécessaire, mais est fourni en dernier recours "
 "pour restaurer le venv à un état impeccable afin de faciliter le dépannage."
 
-#: src/gui/uifiles/settings_window.ui:5339
+#: src/gui/uifiles/settings_window.ui:5371
 msgid "Python Interface"
 msgstr "Interface Python"
 
-#: src/gui/uifiles/settings_window.ui:5373
-#: src/gui/uifiles/settings_window.ui:5771
+#: src/gui/uifiles/settings_window.ui:5405
+#: src/gui/uifiles/settings_window.ui:5803
 msgid "Performances"
 msgstr "Performances"
 
-#: src/gui/uifiles/settings_window.ui:5404
+#: src/gui/uifiles/settings_window.ui:5436
 msgid "Ratio of available"
 msgstr "Ratio de disponible"
 
-#: src/gui/uifiles/settings_window.ui:5408
+#: src/gui/uifiles/settings_window.ui:5440
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -8676,11 +8685,11 @@ msgstr ""
 "Si vous n'avez pas de mémoire paginée une valeur de 1 ou supérieure "
 "entraînera probablement un crash de siril ou du système d'exploitation."
 
-#: src/gui/uifiles/settings_window.ui:5424
+#: src/gui/uifiles/settings_window.ui:5456
 msgid "Fixed amount (GB)"
 msgstr "Montant fixe (Go)"
 
-#: src/gui/uifiles/settings_window.ui:5428
+#: src/gui/uifiles/settings_window.ui:5460
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -8692,7 +8701,7 @@ msgstr ""
 "Configurer une quantité de mémoire supérieure à celle disponible sur votre "
 "système peut provoquer un crash de Siril ou du système d'exploitation."
 
-#: src/gui/uifiles/settings_window.ui:5444
+#: src/gui/uifiles/settings_window.ui:5476
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -8707,15 +8716,15 @@ msgstr ""
 "mémoire utilisé pour l’empilement au-dessus de 1, il faudra utiliser de la "
 "mémoire disque, ce qui est très lent et non recommandé"
 
-#: src/gui/uifiles/settings_window.ui:5489
+#: src/gui/uifiles/settings_window.ui:5521
 msgid "<b>Memory management</b>"
 msgstr "<b>Gestion de la mémoire</b>"
 
-#: src/gui/uifiles/settings_window.ui:5522
+#: src/gui/uifiles/settings_window.ui:5554
 msgid "Default bit depth for HD AutoStretch"
 msgstr "Profondeur de bit par défaut pour l'auto-ajustement HD"
 
-#: src/gui/uifiles/settings_window.ui:5538
+#: src/gui/uifiles/settings_window.ui:5570
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -8733,24 +8742,24 @@ msgstr ""
 "changement de mode de visualisation, et peut être appliquée maintenant en "
 "utilisant le bouton à droite."
 
-#: src/gui/uifiles/settings_window.ui:5555
+#: src/gui/uifiles/settings_window.ui:5587
 msgid "Apply bit depth"
 msgstr "Appliquer la profondeur de bit"
 
-#: src/gui/uifiles/settings_window.ui:5559
+#: src/gui/uifiles/settings_window.ui:5591
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr ""
 "Définissez maintenant la profondeur de bits auto-ajustement HD sélectionnée"
 
-#: src/gui/uifiles/settings_window.ui:5582
+#: src/gui/uifiles/settings_window.ui:5614
 msgid "HD AutoStretch"
 msgstr "Auto ajustement HD"
 
-#: src/gui/uifiles/settings_window.ui:5613
+#: src/gui/uifiles/settings_window.ui:5645
 msgid "Multithreaded FFTW"
 msgstr "FFTW multithreadée"
 
-#: src/gui/uifiles/settings_window.ui:5617
+#: src/gui/uifiles/settings_window.ui:5649
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
@@ -8761,11 +8770,11 @@ msgstr ""
 "augmente le temps de planification initial la première fois que la FFTW "
 "travaille sur une image d'une taille donnée."
 
-#: src/gui/uifiles/settings_window.ui:5632 src/core/settings.c:382
+#: src/gui/uifiles/settings_window.ui:5664 src/core/settings.c:382
 msgid "FFTW planning strategy"
 msgstr "Stratégie de planification de la FFTW"
 
-#: src/gui/uifiles/settings_window.ui:5643
+#: src/gui/uifiles/settings_window.ui:5675
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -8801,28 +8810,28 @@ msgstr ""
 "générée par les autres stratégies n'en vaut pas la peine pour une seule "
 "transformée de Fourier."
 
-#: src/gui/uifiles/settings_window.ui:5648 src/gui/uifiles/siril.ui:5058
+#: src/gui/uifiles/settings_window.ui:5680 src/gui/uifiles/siril.ui:5058
 #: src/gui/uifiles/siril.ui:6928
 msgid "Estimate"
 msgstr "Estimer"
 
-#: src/gui/uifiles/settings_window.ui:5649
+#: src/gui/uifiles/settings_window.ui:5681
 msgid "Measure"
 msgstr "Mesure"
 
-#: src/gui/uifiles/settings_window.ui:5650
+#: src/gui/uifiles/settings_window.ui:5682
 msgid "Patient"
 msgstr "Patient"
 
-#: src/gui/uifiles/settings_window.ui:5651
+#: src/gui/uifiles/settings_window.ui:5683
 msgid "Exhaustive"
 msgstr "Exhaustive"
 
-#: src/gui/uifiles/settings_window.ui:5664
+#: src/gui/uifiles/settings_window.ui:5696
 msgid "FFTW planning time limit (seconds)"
 msgstr "Limite de temps de planification de la FFTW (secondes)"
 
-#: src/gui/uifiles/settings_window.ui:5675
+#: src/gui/uifiles/settings_window.ui:5707
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -8835,11 +8844,11 @@ msgstr ""
 "ininterrompue. S'il est défini à 0, un niveau de planification minimum "
 "d'Estimation sera toujours effectué."
 
-#: src/gui/uifiles/settings_window.ui:5690
+#: src/gui/uifiles/settings_window.ui:5722
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr "Taille minimale de la PSF pour utiliser les convolutions par FFT"
 
-#: src/gui/uifiles/settings_window.ui:5701
+#: src/gui/uifiles/settings_window.ui:5733
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -8859,11 +8868,11 @@ msgstr ""
 "définit la taille minimale pour laquelle les transformations de Fourier "
 "seront utilisées."
 
-#: src/gui/uifiles/settings_window.ui:5717
+#: src/gui/uifiles/settings_window.ui:5749
 msgid "Maximum slice size for sliced image operations"
 msgstr "Taille max de tranche image"
 
-#: src/gui/uifiles/settings_window.ui:5728
+#: src/gui/uifiles/settings_window.ui:5760
 msgid ""
 "Sets the maximum slice size for image operations that can use sliced "
 "processing. The primary purpose of this is to constrain typical slices to a "
@@ -8876,20 +8885,20 @@ msgstr ""
 "plus efficacement une gamme limitée de sagesse de FFTW3. Il est toujours "
 "prudent de laisser ce paramètre par défaut."
 
-#: src/gui/uifiles/settings_window.ui:5731
+#: src/gui/uifiles/settings_window.ui:5763
 msgid "Unlimited"
 msgstr "Illimité"
 
-#: src/gui/uifiles/settings_window.ui:5757
+#: src/gui/uifiles/settings_window.ui:5789
 msgid "<b>FFTW Options</b>"
 msgstr "<b>Options FFTW</b>"
 
-#: src/gui/uifiles/settings_window.ui:5785
-#: src/gui/uifiles/settings_window.ui:6228
+#: src/gui/uifiles/settings_window.ui:5817
+#: src/gui/uifiles/settings_window.ui:6260
 msgid "Miscellaneous"
 msgstr "Divers"
 
-#: src/gui/uifiles/settings_window.ui:5813
+#: src/gui/uifiles/settings_window.ui:5845
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
@@ -8897,40 +8906,40 @@ msgstr ""
 "Sélectionner un répertoire existant. Soyez sûr d'avoir les droits en "
 "écriture et assez de place."
 
-#: src/gui/uifiles/settings_window.ui:5816
+#: src/gui/uifiles/settings_window.ui:5848
 msgid "Select Swap Directory"
 msgstr "Sélectionner le Répertoire de Swap"
 
-#: src/gui/uifiles/settings_window.ui:5829
+#: src/gui/uifiles/settings_window.ui:5861
 msgid "available mem"
 msgstr "mem disonible"
 
-#: src/gui/uifiles/settings_window.ui:5841
+#: src/gui/uifiles/settings_window.ui:5873
 msgid "Restore to Default"
 msgstr "Restaurer"
 
-#: src/gui/uifiles/settings_window.ui:5845
+#: src/gui/uifiles/settings_window.ui:5877
 msgid "Restore the default swap storage directory"
 msgstr "Restaurer le répertoire de stockage par défaut du swap"
 
-#: src/gui/uifiles/settings_window.ui:5864
+#: src/gui/uifiles/settings_window.ui:5896
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Répertoire swap</b>"
 
-#: src/gui/uifiles/settings_window.ui:5891
+#: src/gui/uifiles/settings_window.ui:5923
 msgid "Don't ask before quitting"
 msgstr "Quitter sans confirmation"
 
-#: src/gui/uifiles/settings_window.ui:5906
+#: src/gui/uifiles/settings_window.ui:5938
 msgid "Don't ask before saving when display is not linear"
 msgstr ""
 "Ne pas demander avant de sauvegarder lorsque l'affichage n'est pas linéaire"
 
-#: src/gui/uifiles/settings_window.ui:5921
+#: src/gui/uifiles/settings_window.ui:5953
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr "Ne pas donner l'explication des ROI dans les dialogues connexes"
 
-#: src/gui/uifiles/settings_window.ui:5925
+#: src/gui/uifiles/settings_window.ui:5957
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
@@ -8938,15 +8947,15 @@ msgstr ""
 "Suppression de la boîte de dialogue expliquant le traitement avec ROI lors "
 "de l'ouverture d'une boîte de dialogue appropriée"
 
-#: src/gui/uifiles/settings_window.ui:5964
+#: src/gui/uifiles/settings_window.ui:5996
 msgid "Play introduction"
 msgstr "Jouer l'introduction"
 
-#: src/gui/uifiles/settings_window.ui:5978
+#: src/gui/uifiles/settings_window.ui:6010
 msgid "Introduction Tips"
 msgstr "Astuces de l'introduction"
 
-#: src/gui/uifiles/settings_window.ui:6010
+#: src/gui/uifiles/settings_window.ui:6042
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -8967,15 +8976,15 @@ msgstr ""
 "sélectionner l'un ou l'autre des exécutables : Siril trouvera "
 "automatiquement l'autre s'il existe."
 
-#: src/gui/uifiles/settings_window.ui:6018
+#: src/gui/uifiles/settings_window.ui:6050
 msgid "Select StarNet executable"
 msgstr "Sélectionner l'exécutable StarNet"
 
-#: src/gui/uifiles/settings_window.ui:6032
+#: src/gui/uifiles/settings_window.ui:6064
 msgid "Must point to a valid StarNet executable."
 msgstr "Doit pointer vers un exécutable StarNet valide."
 
-#: src/gui/uifiles/settings_window.ui:6046
+#: src/gui/uifiles/settings_window.ui:6078
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
@@ -8986,11 +8995,11 @@ msgstr ""
 "s'il est laissé vide, le fichier de poids <b>doit</b> se trouver dans le "
 "même répertoire que l'exécutable StarNet."
 
-#: src/gui/uifiles/settings_window.ui:6052
+#: src/gui/uifiles/settings_window.ui:6084
 msgid "Select StarNet weights file"
 msgstr "Sélectionner le fichier de poids StarNet"
 
-#: src/gui/uifiles/settings_window.ui:6069
+#: src/gui/uifiles/settings_window.ui:6101
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
@@ -8999,7 +9008,7 @@ msgstr ""
 "fichier des poids <b>doit</b> se trouver dans le même répertoire que "
 "l'exécutable StarNet."
 
-#: src/gui/uifiles/settings_window.ui:6084
+#: src/gui/uifiles/settings_window.ui:6116
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
@@ -9007,27 +9016,27 @@ msgstr ""
 "Peut pointer vers un fichier de poids de réseau neuronal StarNet.\n"
 "Versions de StarNet basées sur Torch uniquement."
 
-#: src/gui/uifiles/settings_window.ui:6119
+#: src/gui/uifiles/settings_window.ui:6151
 msgid "Must point to a valid GraXpert executable."
 msgstr "Doit pointer vers un exécutable GraXpert valide."
 
-#: src/gui/uifiles/settings_window.ui:6138
+#: src/gui/uifiles/settings_window.ui:6170
 msgid "Software Location"
 msgstr "Emplacement des logiciels"
 
-#: src/gui/uifiles/settings_window.ui:6161
+#: src/gui/uifiles/settings_window.ui:6193
 msgid "Copyright when saving image as TIFF"
 msgstr "Copyright lors de l'enregistrement de l'image au format TIFF"
 
-#: src/gui/uifiles/settings_window.ui:6173
+#: src/gui/uifiles/settings_window.ui:6205
 msgid "Copyright TIFF"
 msgstr "Copyright TIFF"
 
-#: src/gui/uifiles/settings_window.ui:6195
+#: src/gui/uifiles/settings_window.ui:6227
 msgid "Check update at startup"
 msgstr "Vérification des mises à jour au démarrage"
 
-#: src/gui/uifiles/settings_window.ui:6211
+#: src/gui/uifiles/settings_window.ui:6243
 msgid "Update"
 msgstr "Mise à jour"
 
@@ -14445,11 +14454,11 @@ msgstr ""
 "Obtention des étoiles du catalogue local %s pour %s, avec un rayon de %.2f "
 "degrés et une magnitude limite de %.2f\n"
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:991
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
 msgid "SPCC"
 msgstr "SPCC"
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:991
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
 msgid "PCC"
 msgstr "PCC"
 
@@ -14466,20 +14475,20 @@ msgstr ""
 "Obtenir des étoiles du catalogue en ligne %s pour PCC, avec un rayon de %.2f "
 "degrés et une magnitude limite de %.2f\n"
 
-#: src/algos/photometric_cc.c:992
+#: src/algos/photometric_cc.c:996
 #, c-format
 msgid "Photometric CC (algorithm: %s)"
 msgstr "Photométrie CC (algorithme : %s)"
 
-#: src/algos/photometric_cc.c:999
+#: src/algos/photometric_cc.c:1003
 msgid "Catalog error, no stars identified!\n"
 msgstr "Erreur de catalogue, aucune étoile identifiée !\n"
 
-#: src/algos/photometric_cc.c:1008
+#: src/algos/photometric_cc.c:1012
 msgid "Spectrophotometric Color Calibration succeeded.\n"
 msgstr "L'étalonnage des couleurs par spectrophotométrie a réussi\n"
 
-#: src/algos/photometric_cc.c:1010
+#: src/algos/photometric_cc.c:1014
 msgid "Photometric Color Calibration succeeded.\n"
 msgstr "L'étalonnage des couleurs par photométrie a réussi\n"
 
@@ -15124,7 +15133,7 @@ msgstr "Vous devez au moins charger 2 canaux\n"
 #: src/filters/wavelets.c:267 src/filters/wavelets.c:328 src/gui/colors.c:571
 #: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:1177
 #: src/gui/script_menu.c:583 src/gui/utils.c:486
-#: src/io/siril_pythoncommands.c:999
+#: src/io/siril_pythoncommands.c:1030
 msgid "Warning"
 msgstr "Attention"
 
@@ -15225,8 +15234,8 @@ msgstr "Toutes les images ont été rechargées avec succès.\n"
 #: src/filters/fft.c:610 src/gui/PSF_list.c:303 src/gui/PSF_list.c:308
 #: src/gui/PSF_list.c:313 src/gui/colors.c:461 src/gui/compstars.c:224
 #: src/gui/compstars.c:293 src/gui/compstars.c:301 src/gui/compstars.c:308
-#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:204
-#: src/gui/git_gui.c:339 src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
+#: src/gui/compstars.c:315 src/gui/dialogs.c:144 src/gui/git_gui.c:266
+#: src/gui/git_gui.c:401 src/gui/icc_profile.c:299 src/gui/icc_profile.c:367
 #: src/gui/icc_profile.c:543 src/gui/merge_cfa.c:216 src/gui/merge_cfa.c:248
 #: src/gui/merge_cfa.c:259 src/gui/merge_cfa.c:270 src/gui/merge_cfa.c:281
 #: src/gui/nina_light_curve.c:221 src/gui/nina_light_curve.c:226
@@ -15234,7 +15243,7 @@ msgstr "Toutes les images ont été rechargées avec succès.\n"
 #: src/gui/nina_light_curve.c:279 src/gui/open_dialog.c:414
 #: src/gui/preferences.c:556 src/gui/preferences.c:575
 #: src/gui/preferences.c:609 src/gui/save_dialog.c:466
-#: src/gui/script_menu.c:279 src/io/siril_pythoncommands.c:993
+#: src/gui/script_menu.c:279 src/io/siril_pythoncommands.c:1024
 msgid "Error"
 msgstr "Erreur"
 
@@ -23302,7 +23311,7 @@ msgstr ""
 "La correction cosmétique utilisant le master-dark ne supporte que des images "
 "à un canal\n"
 
-#: src/core/preprocess.c:502 src/gui/git_gui.c:91
+#: src/core/preprocess.c:502 src/gui/git_gui.c:141
 msgid "Preprocessing"
 msgstr "Pré-traitement"
 
@@ -24760,72 +24769,72 @@ msgstr "Restaurer : \"%s\""
 msgid "Nothing to redo"
 msgstr "Rien à rétablir"
 
-#: src/core/utils.c:630
+#: src/core/utils.c:637
 msgid "red"
 msgstr "rouge"
 
-#: src/core/utils.c:632
+#: src/core/utils.c:639
 msgid "green"
 msgstr "vert"
 
-#: src/core/utils.c:634
+#: src/core/utils.c:641
 msgid "blue"
 msgstr "bleu"
 
-#: src/core/utils.c:799
+#: src/core/utils.c:806
 #, c-format
 msgid "Failed to create directory '%s': %s\n"
 msgstr "Échec de la création du répertoire « %s » : %s\n"
 
-#: src/core/utils.c:1174
+#: src/core/utils.c:1181
 msgid "Unknown error\n"
 msgstr "Erreur inconnue\n"
 
-#: src/core/utils.c:1177
+#: src/core/utils.c:1184
 #, c-format
 msgid "'%s' No such file or directory\n"
 msgstr "'%s' Aucun fichier ou dossier de ce type\n"
 
-#: src/core/utils.c:1180
+#: src/core/utils.c:1187
 #, c-format
 msgid "'%s' is not a directory\n"
 msgstr "'%s' n'est pas un répertoire\n"
 
-#: src/core/utils.c:1183
+#: src/core/utils.c:1190
 #, c-format
 msgid "You don't have permission to write in this directory: '%s'\n"
 msgstr "Vous n'avez pas la permission d'écrire dans ce dossier : '%s'\n"
 
-#: src/core/utils.c:1205
+#: src/core/utils.c:1212
 #, c-format
 msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr "Définir le répertoire de travail à '%s'\n"
 
-#: src/core/utils.c:1209
+#: src/core/utils.c:1216
 #, c-format
 msgid "Could not change directory to '%s'(error code %d: %s).\n"
 msgstr ""
 "Impossible de changer de répertoire vers '%s' (code d'erreur %d : %s).\n"
 
-#: src/core/utils.c:1235
+#: src/core/utils.c:1242
 msgid "Filename is too long, not expanding it\n"
 msgstr "Nom de fichier trop long, ne fera rien\n"
 
-#: src/core/utils.c:1345 src/core/utils.c:1349 src/io/image_format_fits.c:2853
+#: src/core/utils.c:1352 src/core/utils.c:1356 src/io/image_format_fits.c:2853
 #: src/io/image_format_fits.c:2858 src/io/ser.c:1425 src/io/ser.c:1430
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "pixel"
 msgstr[1] "pixels"
 
-#: src/core/utils.c:1346 src/io/image_format_fits.c:2854
+#: src/core/utils.c:1353 src/io/image_format_fits.c:2854
 #: src/io/image_format_fits.c:2859 src/io/ser.c:1426 src/io/ser.c:1431
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "canal"
 msgstr[1] "canaux"
 
-#: src/core/utils.c:1742 src/core/utils.c:1745
+#: src/core/utils.c:1749 src/core/utils.c:1752
 msgid "(invalid UTF-8 string)"
 msgstr "(chaîne UTF-8 non valide)"
 
@@ -24942,8 +24951,8 @@ msgstr "Veuillez d'abord ouvrir une image !\n"
 msgid "Select magnitude and phase before !\n"
 msgstr "Veuillez d'abord sélectionner des fichiers de module et de phase !\n"
 
-#: src/filters/ght.c:341 src/filters/ght.c:450 src/filters/ght.c:488
-#: src/filters/ght.c:614
+#: src/filters/ght.c:341 src/filters/ght.c:448 src/filters/ght.c:486
+#: src/filters/ght.c:613
 msgid "Error: no channels selected. Doing nothing.\n"
 msgstr "Erreur : aucun canal sélectionné. Ne rien faire.\n"
 
@@ -25981,7 +25990,7 @@ msgid "Select task to stop"
 msgstr "Sélectionner la tâche à arrêter"
 
 #: src/gui/callbacks.c:2366 src/gui/dialogs.c:253 src/gui/dialogs.c:262
-#: src/gui/dialogs.c:268 src/gui/git_gui.c:253 src/gui/keywords_tree.c:508
+#: src/gui/dialogs.c:268 src/gui/git_gui.c:315 src/gui/keywords_tree.c:508
 #: src/gui/python_gui.c:768 src/gui/python_gui.c:845
 #: src/io/image_formats_libraries.c:2497 src/pixelMath/pixel_math_runner.c:1260
 msgid "_Cancel"
@@ -26081,7 +26090,7 @@ msgstr "Créer une liste d'étoiles de comparaison"
 msgid "_Close"
 msgstr "_Fermer"
 
-#: src/gui/compstars.c:51 src/gui/git_gui.c:254 src/gui/nina_light_curve.c:50
+#: src/gui/compstars.c:51 src/gui/git_gui.c:316 src/gui/nina_light_curve.c:50
 #: src/io/image_formats_libraries.c:2497
 msgid "_OK"
 msgstr "_OK"
@@ -26692,44 +26701,44 @@ msgstr "Le chargement de l'image a échoué"
 msgid "Error: image dimensions do not match"
 msgstr "Erreur : les dimensions de l'image ne correspondent pas"
 
-#: src/gui/git_gui.c:93
+#: src/gui/git_gui.c:143
 msgid "Processing"
 msgstr "Traitement"
 
-#: src/gui/git_gui.c:95
+#: src/gui/git_gui.c:145
 msgid "Utility"
 msgstr "Utilitaire"
 
-#: src/gui/git_gui.c:97
+#: src/gui/git_gui.c:147
 msgid "Core"
 msgstr "Essentiel"
 
-#: src/gui/git_gui.c:100
+#: src/gui/git_gui.c:150
 msgid "Other"
 msgstr "Autre"
 
-#: src/gui/git_gui.c:106 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
+#: src/gui/git_gui.c:156 src/gui/python_gui.c:926 src/gui/python_gui.c:1095
 msgid "Siril Script File"
 msgstr "Fichier de Script Siril"
 
-#: src/gui/git_gui.c:108
+#: src/gui/git_gui.c:158
 msgid "Python script"
 msgstr "Script Python"
 
-#: src/gui/git_gui.c:176
+#: src/gui/git_gui.c:238
 msgid "(No commit message found for this revision)"
 msgstr "(Aucun message de livraison n'a été trouvé pour cette révision)"
 
-#: src/gui/git_gui.c:202 src/gui/script_menu.c:277
+#: src/gui/git_gui.c:264 src/gui/script_menu.c:277
 #, c-format
 msgid "Error loading script contents: %s\n"
 msgstr "Erreur de chargement du contenu du script : %s\n"
 
-#: src/gui/git_gui.c:250
+#: src/gui/git_gui.c:312
 msgid "Select Revision"
 msgstr "Sélectionner la révision"
 
-#: src/gui/git_gui.c:257
+#: src/gui/git_gui.c:319
 msgid ""
 "Leave at 0 to open the current version of the script. If you have a problem "
 "with a script update you can use this to go back to earlier revisions. Start "
@@ -26749,15 +26758,15 @@ msgstr ""
 "dans l'un de vos dossiers de scripts pour l'utiliser jusqu'à ce que le "
 "script en amont soit corrigé."
 
-#: src/gui/git_gui.c:267
+#: src/gui/git_gui.c:329
 msgid "Revisions to go back (leave at 0 to get current revision):"
 msgstr "Révisions à remonter (laisser à 0 pour obtenir la révision actuelle) :"
 
-#: src/gui/git_gui.c:302
+#: src/gui/git_gui.c:364
 msgid "Loading commit message..."
 msgstr "Chargement du message de validation..."
 
-#: src/gui/git_gui.c:336
+#: src/gui/git_gui.c:398
 #, c-format
 msgid "Error loading script contents from %d revisions back: %s\n"
 msgstr ""
@@ -27647,12 +27656,12 @@ msgstr "Rayon externe de l'anneau de fond de ciel (px) :"
 
 #: src/gui/nina_light_curve.c:221 src/gui/sequence_list.c:150
 #: src/gui/starnetgui.c:220 src/io/path_parse.c:74
-#: src/io/siril_pythoncommands.c:1149 src/io/siril_pythoncommands.c:1373
-#: src/io/siril_pythoncommands.c:1418 src/io/siril_pythoncommands.c:1452
-#: src/io/siril_pythoncommands.c:1499 src/io/siril_pythoncommands.c:1531
-#: src/io/siril_pythoncommands.c:1591 src/io/siril_pythoncommands.c:1676
-#: src/io/siril_pythoncommands.c:2163 src/io/siril_pythoncommands.c:2196
-#: src/io/siril_pythoncommands.c:2359
+#: src/io/siril_pythoncommands.c:1180 src/io/siril_pythoncommands.c:1404
+#: src/io/siril_pythoncommands.c:1449 src/io/siril_pythoncommands.c:1483
+#: src/io/siril_pythoncommands.c:1530 src/io/siril_pythoncommands.c:1562
+#: src/io/siril_pythoncommands.c:1622 src/io/siril_pythoncommands.c:1707
+#: src/io/siril_pythoncommands.c:2194 src/io/siril_pythoncommands.c:2227
+#: src/io/siril_pythoncommands.c:2390
 msgid "No sequence loaded"
 msgstr "Aucune séquence chargée"
 
@@ -31596,281 +31605,282 @@ msgstr "Le dépôt de la base de données locale SPCC est à jour !\n"
 msgid "Error opening scripts repository\n"
 msgstr "Erreur d'ouverture du dépôt de scripts\n"
 
-#: src/io/siril_pythoncommands.c:461
+#: src/io/siril_pythoncommands.c:492
 msgid "Unknown config type"
 msgstr "Type de configuration inconnu"
 
-#: src/io/siril_pythoncommands.c:612
+#: src/io/siril_pythoncommands.c:643
 msgid "Received incomplete command header\n"
 msgstr "Réception d'un en-tête de commande incomplet\n"
 
-#: src/io/siril_pythoncommands.c:621
+#: src/io/siril_pythoncommands.c:652
 #, c-format
 msgid "Received incomplete command payload: length = %u, expected %u\n"
 msgstr "Réception d'une commande incomplète : longueur = %u, attendue %u\n"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:651 src/io/siril_pythoncommands.c:685
+#: src/io/siril_pythoncommands.c:682 src/io/siril_pythoncommands.c:716
 msgid "Failed to retrieve image dimensions - no image loaded"
 msgstr ""
 "Échec de l'extraction des dimensions de l'image - aucune image n'a été "
 "chargée"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:708
+#: src/io/siril_pythoncommands.c:739
 msgid "Failed to retrieve current vport - no image loaded"
 msgstr ""
 "Échec de la récupération du port virtuel actuel - aucune image n'a été "
 "chargée"
 
-#: src/io/siril_pythoncommands.c:725
+#: src/io/siril_pythoncommands.c:756
 msgid "Failed to set selection - selection exceeds image bounds"
 msgstr ""
 "Échec de la définition de la sélection - la sélection dépasse les limites de "
 "l'image"
 
 #. Handle error retrieving dimensions
-#: src/io/siril_pythoncommands.c:737 src/io/siril_pythoncommands.c:2044
-#: src/io/siril_pythoncommands.c:2082
+#: src/io/siril_pythoncommands.c:768 src/io/siril_pythoncommands.c:2075
+#: src/io/siril_pythoncommands.c:2113
 msgid "Failed to set selection - no image loaded"
 msgstr "Échec de la sélection - aucune image n'a été chargée"
 
-#: src/io/siril_pythoncommands.c:752
+#: src/io/siril_pythoncommands.c:783
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA\n"
 msgstr "Longueur inattendue de la charge utile %u reçue pour GET_PIXELDATA\n"
 
-#: src/io/siril_pythoncommands.c:780 src/io/siril_pythoncommands.c:877
+#: src/io/siril_pythoncommands.c:811 src/io/siril_pythoncommands.c:908
 msgid "Invalid selection"
 msgstr "Sélection non valide"
 
-#: src/io/siril_pythoncommands.c:785 src/io/siril_pythoncommands.c:868
-#: src/io/siril_pythoncommands.c:1275
+#: src/io/siril_pythoncommands.c:816 src/io/siril_pythoncommands.c:899
+#: src/io/siril_pythoncommands.c:1306
 msgid "Invalid channel"
 msgstr "Canal non valide"
 
-#: src/io/siril_pythoncommands.c:795
+#: src/io/siril_pythoncommands.c:826
 msgid "Failed to find a star"
 msgstr "N'a pas trouvé d'étoile"
 
-#: src/io/siril_pythoncommands.c:814 src/io/siril_pythoncommands.c:888
-#: src/io/siril_pythoncommands.c:1298 src/io/siril_pythoncommands.c:1362
-#: src/io/siril_pythoncommands.c:1488 src/io/siril_pythoncommands.c:1520
-#: src/io/siril_pythoncommands.c:1633 src/io/siril_pythoncommands.c:1641
-#: src/io/siril_pythoncommands.c:1651 src/io/siril_pythoncommands.c:1688
-#: src/io/siril_pythoncommands.c:1761 src/io/siril_pythoncommands.c:1830
-#: src/io/siril_pythoncommands.c:1861 src/io/siril_pythoncommands.c:2224
+#: src/io/siril_pythoncommands.c:845 src/io/siril_pythoncommands.c:919
+#: src/io/siril_pythoncommands.c:1329 src/io/siril_pythoncommands.c:1393
+#: src/io/siril_pythoncommands.c:1519 src/io/siril_pythoncommands.c:1551
+#: src/io/siril_pythoncommands.c:1664 src/io/siril_pythoncommands.c:1672
+#: src/io/siril_pythoncommands.c:1682 src/io/siril_pythoncommands.c:1719
+#: src/io/siril_pythoncommands.c:1792 src/io/siril_pythoncommands.c:1861
+#: src/io/siril_pythoncommands.c:1892 src/io/siril_pythoncommands.c:2255
 msgid "Memory allocation error"
 msgstr "Erreur d'allocation mémoire"
 
-#: src/io/siril_pythoncommands.c:838
+#: src/io/siril_pythoncommands.c:869
 msgid "Invalid region: selection breaches image dimensions"
 msgstr ""
 "Région non valide : la sélection ne respecte pas les dimensions de l'image"
 
-#: src/io/siril_pythoncommands.c:861 src/io/siril_pythoncommands.c:1268
-#: src/io/siril_pythoncommands.c:1349 src/io/siril_pythoncommands.c:1849
-#: src/io/siril_pythoncommands.c:1872 src/io/siril_pythoncommands.c:1893
-#: src/io/siril_pythoncommands.c:1914 src/io/siril_pythoncommands.c:1947
+#: src/io/siril_pythoncommands.c:892 src/io/siril_pythoncommands.c:1299
+#: src/io/siril_pythoncommands.c:1380 src/io/siril_pythoncommands.c:1880
+#: src/io/siril_pythoncommands.c:1903 src/io/siril_pythoncommands.c:1924
+#: src/io/siril_pythoncommands.c:1945 src/io/siril_pythoncommands.c:1978
 msgid "No image loaded"
 msgstr "Aucune image chargée"
 
-#: src/io/siril_pythoncommands.c:911
+#: src/io/siril_pythoncommands.c:942
 #, c-format
 msgid "Unexpected payload length %u received for GET_PIXELDATA_REGION\n"
 msgstr ""
 "Longueur inattendue de la charge utile %u reçue pour GET_PIXELDATA_REGION\n"
 
-#: src/io/siril_pythoncommands.c:923
+#: src/io/siril_pythoncommands.c:954
 msgid "Invalid FINISHED_WITH_SHM payload"
 msgstr "Charge utile FINISHED_WITH_SHM non valide"
 
-#: src/io/siril_pythoncommands.c:1009
+#: src/io/siril_pythoncommands.c:1040
 msgid "Unknown dialog type"
 msgstr "Type de dialogue inconnu"
 
-#: src/io/siril_pythoncommands.c:1048
+#: src/io/siril_pythoncommands.c:1079
 msgid "Undo not supported in headless mode"
 msgstr "L'annulation n'est pas prise en charge en mode ligne de commande"
 
 #. Handle error
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1061 src/io/siril_pythoncommands.c:1130
+#: src/io/siril_pythoncommands.c:1092 src/io/siril_pythoncommands.c:1161
 msgid "Image not loaded"
 msgstr "Image non chargée"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1074
+#: src/io/siril_pythoncommands.c:1105
 msgid "Working directory not set"
 msgstr "Le répertoire de travail n'est pas défini"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1088
+#: src/io/siril_pythoncommands.c:1119
 msgid "Error: user config directory not set"
 msgstr ""
 "Erreur : le répertoire de configuration de l'utilisateur n'est pas défini"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1103
+#: src/io/siril_pythoncommands.c:1134
 msgid "Error: user data directory not set"
 msgstr "Erreur : le répertoire de données de l'utilisateur n'est pas défini"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:1117
+#: src/io/siril_pythoncommands.c:1148
 msgid "Error: system data directory not set"
 msgstr "Erreur : le répertoire des données du système n'est pas défini"
 
-#: src/io/siril_pythoncommands.c:1139 src/io/siril_pythoncommands.c:1161
-#: src/io/siril_pythoncommands.c:1217 src/io/siril_pythoncommands.c:1230
-#: src/io/siril_pythoncommands.c:1257 src/io/siril_pythoncommands.c:1310
-#: src/io/siril_pythoncommands.c:2236 src/io/siril_pythoncommands.c:2249
-#: src/io/siril_pythoncommands.c:2266 src/io/siril_pythoncommands.c:2272
-#: src/io/siril_pythoncommands.c:2305
+#: src/io/siril_pythoncommands.c:1170 src/io/siril_pythoncommands.c:1192
+#: src/io/siril_pythoncommands.c:1248 src/io/siril_pythoncommands.c:1261
+#: src/io/siril_pythoncommands.c:1288 src/io/siril_pythoncommands.c:1341
+#: src/io/siril_pythoncommands.c:2267 src/io/siril_pythoncommands.c:2280
+#: src/io/siril_pythoncommands.c:2297 src/io/siril_pythoncommands.c:2303
+#: src/io/siril_pythoncommands.c:2336
 msgid "Invalid payload length"
 msgstr "Longueur de la charge utile non valide"
 
-#: src/io/siril_pythoncommands.c:1155
+#: src/io/siril_pythoncommands.c:1186
 msgid "Invalid sequence type"
 msgstr "Type de séquence non valide"
 
-#: src/io/siril_pythoncommands.c:1169
+#: src/io/siril_pythoncommands.c:1200
 msgid "Failed to load sequence frame: index out of range"
 msgstr "Échec du chargement de l'image de la séquence : index hors limites"
 
-#: src/io/siril_pythoncommands.c:1177
+#: src/io/siril_pythoncommands.c:1208
 msgid "Failed to load sequence frame"
 msgstr "Échec du chargement de l'image de la séquence"
 
-#: src/io/siril_pythoncommands.c:1206
+#: src/io/siril_pythoncommands.c:1237
 #, c-format
 msgid "Error writing sequence frame %i from Python\n"
 msgstr "Erreur d'écriture de l'image de la séquence %i depuis Python\n"
 
-#: src/io/siril_pythoncommands.c:1285
+#: src/io/siril_pythoncommands.c:1316
 msgid "No stats"
 msgstr "Aucune stats"
 
-#: src/io/siril_pythoncommands.c:1383 src/io/siril_pythoncommands.c:1427
-#: src/io/siril_pythoncommands.c:1462 src/io/siril_pythoncommands.c:2205
+#: src/io/siril_pythoncommands.c:1414 src/io/siril_pythoncommands.c:1458
+#: src/io/siril_pythoncommands.c:1493 src/io/siril_pythoncommands.c:2236
 msgid "Incorrect command arguments"
 msgstr "Arguments de commande incorrects"
 
-#: src/io/siril_pythoncommands.c:1393 src/io/siril_pythoncommands.c:1732
-#: src/io/siril_pythoncommands.c:1803
+#: src/io/siril_pythoncommands.c:1424 src/io/siril_pythoncommands.c:1763
+#: src/io/siril_pythoncommands.c:1834 src/io/siril_pythoncommands.c:2680
 msgid "Memory allocation failed"
 msgstr "Échec de l'allocation de mémoire"
 
-#: src/io/siril_pythoncommands.c:1398 src/io/siril_pythoncommands.c:1407
+#: src/io/siril_pythoncommands.c:1429 src/io/siril_pythoncommands.c:1438
 msgid "No regdata available"
 msgstr "Aucune regdata disponible"
 
-#: src/io/siril_pythoncommands.c:1443
+#: src/io/siril_pythoncommands.c:1474
 msgid "Error building frame filename"
 msgstr "Erreur dans la construction du nom de fichier de l'image"
 
-#: src/io/siril_pythoncommands.c:1474
+#: src/io/siril_pythoncommands.c:1505
 msgid "No stats for this sequence"
 msgstr "Pas de statistiques pour cette séquence"
 
-#: src/io/siril_pythoncommands.c:1482
+#: src/io/siril_pythoncommands.c:1513
 msgid "No stats for this channel for this frame"
 msgstr "Pas de statistiques pour le canal de cette image"
 
-#: src/io/siril_pythoncommands.c:1508 src/io/siril_pythoncommands.c:1606
-#: src/io/siril_pythoncommands.c:2368
+#: src/io/siril_pythoncommands.c:1539 src/io/siril_pythoncommands.c:1637
+#: src/io/siril_pythoncommands.c:2399 src/io/siril_pythoncommands.c:2465
+#: src/io/siril_pythoncommands.c:2574
 msgid "Incorrect command argument"
 msgstr "Argument de commande incorrect"
 
-#: src/io/siril_pythoncommands.c:1537
+#: src/io/siril_pythoncommands.c:1568
 msgid "Incorrect payload"
 msgstr "Charge utile incorrecte"
 
-#: src/io/siril_pythoncommands.c:1557
+#: src/io/siril_pythoncommands.c:1588
 msgid "Selection cropped to frame boundaries\n"
 msgstr "Sélection recadrée aux limites de l'image\n"
 
-#: src/io/siril_pythoncommands.c:1563
+#: src/io/siril_pythoncommands.c:1594
 msgid "Failed to read sequence frame"
 msgstr "Échec de la lecture de l'image de la séquence"
 
-#: src/io/siril_pythoncommands.c:1576
+#: src/io/siril_pythoncommands.c:1607
 msgid "Invalid dimensions"
 msgstr "Dimension non valide"
 
-#: src/io/siril_pythoncommands.c:1613 src/io/siril_pythoncommands.c:2376
+#: src/io/siril_pythoncommands.c:1644 src/io/siril_pythoncommands.c:2407
 msgid "Failed to read frame metadata"
 msgstr "Échec de la lecture des métadonnées de l'image"
 
-#: src/io/siril_pythoncommands.c:1722
+#: src/io/siril_pythoncommands.c:1753
 msgid "No stars in image"
 msgstr "Pas d'étoiles dans l'image"
 
-#: src/io/siril_pythoncommands.c:1740
+#: src/io/siril_pythoncommands.c:1771
 msgid "Stars array was cleared mid-process"
 msgstr "Le tableau des étoiles a été effacé en cours de processus"
 
-#: src/io/siril_pythoncommands.c:1748
+#: src/io/siril_pythoncommands.c:1779
 msgid "Unexpected null star entry"
 msgstr "Entrée étoile nulle inattendue"
 
-#: src/io/siril_pythoncommands.c:1793
+#: src/io/siril_pythoncommands.c:1824
 msgid "No background samples list available"
 msgstr "Pas de liste d'échantillons de fond de ciel disponible"
 
-#: src/io/siril_pythoncommands.c:1812
+#: src/io/siril_pythoncommands.c:1843
 msgid "Mismatch in samples count"
 msgstr "Incohérence dans le nombre d'échantillons"
 
-#: src/io/siril_pythoncommands.c:1820
+#: src/io/siril_pythoncommands.c:1851
 msgid "Unexpected null background sample"
 msgstr "Échantillon de fond nul inattendu"
 
-#: src/io/siril_pythoncommands.c:1877
+#: src/io/siril_pythoncommands.c:1908
 msgid "Image has no ICC profile"
 msgstr "L'image n'a pas de profil ICC"
 
-#: src/io/siril_pythoncommands.c:1899 src/io/siril_pythoncommands.c:2381
+#: src/io/siril_pythoncommands.c:1930 src/io/siril_pythoncommands.c:2412
 msgid "Image has no FITS header"
 msgstr "L'image n'a pas d'en-tête FITS"
 
-#: src/io/siril_pythoncommands.c:1920
+#: src/io/siril_pythoncommands.c:1951
 msgid "Image has no history entries"
 msgstr "L'image n'a pas d'entrées dans l'historique"
 
-#: src/io/siril_pythoncommands.c:1953
+#: src/io/siril_pythoncommands.c:1984
 msgid "Image has no unknown keys"
 msgstr "L'image n'a pas de clés inconnues"
 
 #. Need at least two null-terminated strings
-#: src/io/siril_pythoncommands.c:1968
+#: src/io/siril_pythoncommands.c:1999
 msgid "Group and key must be provided"
 msgstr "Le groupe et la clé doivent être fournis"
 
-#: src/io/siril_pythoncommands.c:1977
+#: src/io/siril_pythoncommands.c:2008
 msgid "Malformed group/key data"
 msgstr "Données de groupe/clé malformées"
 
-#: src/io/siril_pythoncommands.c:1988
+#: src/io/siril_pythoncommands.c:2019
 msgid "Configuration key not found"
 msgstr "Clé de configuration introuvable"
 
 #. Handle no WCS error
-#: src/io/siril_pythoncommands.c:2015 src/io/siril_pythoncommands.c:2055
+#: src/io/siril_pythoncommands.c:2046 src/io/siril_pythoncommands.c:2086
 msgid "Siril image is not plate solved"
 msgstr "L'image de Siril n'est pas résolue en astrométrie"
 
 #. Handle error retrieving the working directory
-#: src/io/siril_pythoncommands.c:2098
+#: src/io/siril_pythoncommands.c:2129
 msgid "Failed to retrieve bundle path"
 msgstr "Échec de la récupération du chemin d'accès du bundle"
 
 #. Handle error: OS is not Windows
-#: src/io/siril_pythoncommands.c:2103
+#: src/io/siril_pythoncommands.c:2134
 msgid "_get_bundle_path() only applicable on Windows"
 msgstr "_get_bundle_path() applicable uniquement sous Windows"
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2113
+#: src/io/siril_pythoncommands.c:2144
 msgid ""
 "the processing thread is locked. Wait for the current processing task to "
 "finish."
@@ -31879,7 +31889,7 @@ msgstr ""
 "traitement en cours."
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2118
+#: src/io/siril_pythoncommands.c:2149
 msgid ""
 "an image processing dialog is open. Close it to release the image lock and "
 "try again."
@@ -31888,56 +31898,88 @@ msgstr ""
 "déverrouiller l'image et réessayez."
 
 #. Unable to claim the thread
-#: src/io/siril_pythoncommands.c:2127
+#: src/io/siril_pythoncommands.c:2158
 msgid "Unknown error"
 msgstr "Erreur inconnue"
 
-#: src/io/siril_pythoncommands.c:2153 src/io/siril_pythoncommands.c:2188
+#: src/io/siril_pythoncommands.c:2184 src/io/siril_pythoncommands.c:2219
 msgid "Incorrect payload length"
 msgstr "Longueur incorrecte de la charge utile"
 
-#: src/io/siril_pythoncommands.c:2179
+#: src/io/siril_pythoncommands.c:2210
 msgid "Index is out of range"
 msgstr "L'indice est en dehors de la plage"
 
-#: src/io/siril_pythoncommands.c:2210
+#: src/io/siril_pythoncommands.c:2241
 msgid "No distodata available"
 msgstr "Aucune distodata disponible"
 
-#: src/io/siril_pythoncommands.c:2289
+#: src/io/siril_pythoncommands.c:2320
 msgid "No polygon found matching id"
 msgstr "Aucun polygone correspondant à l'identifiant n'a été trouvé"
 
-#: src/io/siril_pythoncommands.c:2296
+#: src/io/siril_pythoncommands.c:2327
 msgid "Failed to serialize user polygon"
 msgstr "Échec de la sérialisation du polygone utilisateur"
 
-#: src/io/siril_pythoncommands.c:2315
+#: src/io/siril_pythoncommands.c:2346
 msgid "No user polygons to serialize"
 msgstr "Pas de polygones utilisateur à sérialiser"
 
-#: src/io/siril_pythoncommands.c:2321
+#: src/io/siril_pythoncommands.c:2352
 msgid "Failed to serialize user polygon list"
 msgstr "Échec de la sérialisation de la liste des polygones de l'utilisateur"
 
-#: src/io/siril_pythoncommands.c:2336 src/io/siril_pythoncommands.c:2342
-#: src/io/siril_pythoncommands.c:2348
+#: src/io/siril_pythoncommands.c:2367 src/io/siril_pythoncommands.c:2373
+#: src/io/siril_pythoncommands.c:2379
 msgid "Argument error"
 msgstr "Erreur d'argument"
 
-#: src/io/siril_pythoncommands.c:2402
+#: src/io/siril_pythoncommands.c:2433
 msgid "Could not create the new sequence"
 msgstr "Impossible de créer la nouvelle séquence"
 
-#: src/io/siril_pythoncommands.c:2413
+#: src/io/siril_pythoncommands.c:2444
 msgid "Wrong mouse mode"
 msgstr "Mauvais mode de la souris"
 
-#: src/io/siril_pythoncommands.c:2423
+#: src/io/siril_pythoncommands.c:2454
 msgid "Invalid payload for CMD_DRAW_POLYGON"
 msgstr "Chargement non valide pour CMD_DRAW_POLYGON"
 
-#: src/io/siril_pythoncommands.c:2431
+#: src/io/siril_pythoncommands.c:2479 src/io/siril_pythoncommands.c:2580
+msgid "Invalid filepath length"
+msgstr "Longueur du chemin d'accès au fichier non valide"
+
+#: src/io/siril_pythoncommands.c:2491 src/io/siril_pythoncommands.c:2592
+msgid "File does not exist or is not accessible"
+msgstr "Le fichier n'existe pas ou n'est pas accessible"
+
+#: src/io/siril_pythoncommands.c:2501 src/io/siril_pythoncommands.c:2607
+msgid "Failed to read image file"
+msgstr "Échec de la lecture du fichier image"
+
+#: src/io/siril_pythoncommands.c:2520
+msgid "Memory allocation error: response buffer"
+msgstr "Erreur d'allocation de mémoire : tampon de réponse"
+
+#: src/io/siril_pythoncommands.c:2530
+msgid "fits_to_py conversion error"
+msgstr "Erreur de conversion fits_to_py"
+
+#: src/io/siril_pythoncommands.c:2538
+msgid "keywords_to_py conversion error"
+msgstr "Erreur de conversion keywords_to_py"
+
+#: src/io/siril_pythoncommands.c:2548
+msgid "Shared memory allocation error"
+msgstr "Erreur d'allocation de mémoire partagée"
+
+#: src/io/siril_pythoncommands.c:2687
+msgid "No analysis available"
+msgstr "Aucune analyse disponible"
+
+#: src/io/siril_pythoncommands.c:2698
 msgid "Unknown command"
 msgstr "Commande inconnue"
 
@@ -31967,9 +32009,8 @@ msgid "Failed to map shared memory: %s\n"
 msgstr "Échec du mappage de la mémoire partagée : %s\n"
 
 #: src/io/siril_pythonmodule.c:335
-msgid "Failed to retrieve pixel data - no image loaded"
-msgstr ""
-"Échec de la récupération des données de pixels - aucune image n'a été chargée"
+msgid "Failed to retrieve pixel data - no FITS image"
+msgstr "Échec de la récupération des données pixel - aucune image FITS"
 
 #: src/io/siril_pythonmodule.c:360 src/io/siril_pythonmodule.c:369
 #: src/io/siril_pythonmodule.c:378 src/io/siril_pythonmodule.c:482
@@ -32126,7 +32167,7 @@ msgstr ""
 "Erreur : environnement msys2 détecté. Le support Siril Python ne peut pas "
 "être initialisé correctement.\n"
 
-#: src/io/siril_pythonmodule.c:1897
+#: src/io/siril_pythonmodule.c:1899
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
@@ -32134,7 +32175,7 @@ msgstr ""
 "Pour compléter le processus, assurez-vous d'abord que vous avez une "
 "installation de Python (>=3.9) sur votre ordinateur.\n"
 
-#: src/io/siril_pythonmodule.c:1898
+#: src/io/siril_pythonmodule.c:1902
 msgid ""
 "Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it "
 "from there.\n"
@@ -32142,7 +32183,7 @@ msgstr ""
 "Localisez siril.exe (généralement situé dans C:\\msys64\\mingw64\\bin) et "
 "démarrez-le à partir de là.\n"
 
-#: src/io/siril_pythonmodule.c:1899
+#: src/io/siril_pythonmodule.c:1905
 msgid ""
 "Next time you need to start siril, you can go back to starting it from msys2 "
 "terminal.\n"
@@ -32150,37 +32191,59 @@ msgstr ""
 "La prochaine fois que vous devrez démarrer siril, vous pourrez revenir au "
 "démarrage à partir du terminal msys2.\n"
 
-#: src/io/siril_pythonmodule.c:1933
+#: src/io/siril_pythonmodule.c:1934
 msgid "No python installation found in the system or in the bundle, aborting\n"
 msgstr ""
 "Aucune installation de python n'a été trouvée dans le système ou dans le "
 "bundle, abandon\n"
 
-#: src/io/siril_pythonmodule.c:1959
+#: src/io/siril_pythonmodule.c:1971
 #, c-format
 msgid "Error in venv creation command: %s\n"
 msgstr "Erreur dans la commande de création de venv : %s\n"
 
-#: src/io/siril_pythonmodule.c:1999
+#: src/io/siril_pythonmodule.c:1978
+#, c-format
+msgid "Failed to create virtual environment: %s\n"
+msgstr "Échec de la création de l'environnement virtuel : %s\n"
+
+#: src/io/siril_pythonmodule.c:1981
+#, c-format
+msgid ""
+"Python stderr:\n"
+"%s\n"
+msgstr ""
+"Python stderr :\n"
+"%s\n"
+
+#: src/io/siril_pythonmodule.c:1986
+msgid ""
+"Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' "
+"package.\n"
+msgstr ""
+"Astuce : sous Debian/Ubuntu, vous devrez probablement installer le paquet « "
+"python3-venv ».\n"
+
+#: src/io/siril_pythonmodule.c:2043
 #, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
 msgstr "Échec de l'initialisation de l'environnement virtuel Python : %s\n"
 
-#: src/io/siril_pythonmodule.c:2010
+#: src/io/siril_pythonmodule.c:2054
 msgid "Failed to prepare virtual environment\n"
 msgstr "Échec de la préparation de l'environnement virtuel\n"
 
-#: src/io/siril_pythonmodule.c:2075 src/io/siril_pythonmodule.c:2083
+#: src/io/siril_pythonmodule.c:2119 src/io/siril_pythonmodule.c:2127
 #, c-format
 msgid "Python process (PID: %d) exited with status %d\n"
 msgstr "Le processus Python (PID : %d) s'est arrêté avec le statut %d\n"
 
-#: src/io/siril_pythonmodule.c:2086
+#: src/io/siril_pythonmodule.c:2130
 #, c-format
 msgid "Python process (PID: %d) terminated by signal %d\n"
 msgstr "Processus Python (PID : %d) terminé par le signal %d\n"
 
-#: src/io/siril_pythonmodule.c:2169
+#: src/io/siril_pythonmodule.c:2213
 msgid ""
 "Error: python not ready yet. This may happen at first run if the python venv "
 "and module setup has not yet completed. Please wait a short time for a "
@@ -32191,21 +32254,21 @@ msgstr ""
 "encore terminée. Attendez qu'un message de fin de processus apparaisse dans "
 "le journal et réessayez.\n"
 
-#: src/io/siril_pythonmodule.c:2196
+#: src/io/siril_pythonmodule.c:2240
 msgid "Error: failed to create Python connection.\n"
 msgstr "Erreur : échec de la création d'une connexion Python.\n"
 
-#: src/io/siril_pythonmodule.c:2213
+#: src/io/siril_pythonmodule.c:2257
 msgid "Error: Python worker thread not available.\n"
 msgstr "Erreur : le thread de travail Python n'est pas disponible.\n"
 
-#: src/io/siril_pythonmodule.c:2279
+#: src/io/siril_pythonmodule.c:2323
 msgid "Error finding venv python path, unable to spawn python.\n"
 msgstr ""
 "Erreur dans la recherche du chemin d'accès à python, impossible de lancer "
 "python.\n"
 
-#: src/io/siril_pythonmodule.c:2364
+#: src/io/siril_pythonmodule.c:2408
 #, c-format
 msgid "Failed to execute Python script: %s\n"
 msgstr "Échec de l'exécution du script Python : %s\n"
@@ -33405,8 +33468,8 @@ msgstr "Cadrage de la séquence : %.1f\n"
 #: src/registration/astrometric.c:376
 msgid "Could not create WCS structure for framing, aborting\n"
 msgstr ""
-"Impossible de créer la structure WCS pour le cadrage, abandon de l'opération."
-"\n"
+"Impossible de créer la structure WCS pour le cadrage, abandon de "
+"l'opération.\n"
 
 #: src/registration/astrometric.c:424
 msgid "Astrometric registration computed.\n"

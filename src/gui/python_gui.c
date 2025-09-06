@@ -82,6 +82,7 @@ void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer
 void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_action_file_reload(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -93,6 +94,7 @@ void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data);
 void set_language();
+gboolean on_editor_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data);
 
 static GActionEntry editor_actions[] = {
 	{ "open", on_action_file_open, NULL, NULL, NULL },
@@ -109,7 +111,8 @@ static GActionEntry editor_actions[] = {
 	{ "cut", on_cut, NULL, NULL, NULL },
 	{ "copy", on_copy, NULL, NULL, NULL },
 	{ "paste", on_paste, NULL, NULL, NULL },
-	{ "find", on_find, NULL, NULL, NULL }
+	{ "find", on_find, NULL, NULL, NULL },
+	{ "reload", on_action_file_reload, NULL, NULL, NULL }
 };
 
 void set_code_view_theme() {
@@ -513,6 +516,7 @@ void python_scratchpad_init_statics() {
 	if (editor_window == NULL) {
 		// GtkWindow
 		editor_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "python_window"));
+		g_signal_connect(editor_window, "key-press-event", G_CALLBACK(on_editor_key_press), NULL);
 		main_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
 		// GtkSourceView
 		code_view = GTK_SOURCE_VIEW(gtk_builder_get_object(gui.builder, "code_view"));
@@ -695,6 +699,26 @@ void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer use
 		gtk_source_buffer_end_not_undoable_action(sourcebuffer);
 		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
 		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+	}
+}
+
+gboolean on_editor_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+	if ((event->state & GDK_CONTROL_MASK) && (event->state & GDK_SHIFT_MASK) && event->keyval == GDK_KEY_R) {
+		on_action_file_reload(NULL, NULL, NULL);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+void on_action_file_reload(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!current_file) {
+		siril_log_message(_("No file is currently loaded to reload.\n"));
+		return;
+	}
+
+	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will replace the entry buffer with the last saved version of the file. You will not be able to recover any contents."), _("Proceed"))) {
+		load_file(current_file);
+		update_title(current_file);
 	}
 }
 

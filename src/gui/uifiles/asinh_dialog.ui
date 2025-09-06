@@ -292,7 +292,7 @@ RGB blend: applies a blending function for smooth reconstructed highlight colors
 Global rescale: Same as Rescale, but rescales to the global maximum component value
 
 Clip is fastest: set one of the other modes when you're happy with your stretch if you notice colour artefacts around bright stars.</property>
-                <property name="active">0</property>
+                <property name="active">2</property>
                 <items>
                   <item translatable="yes">Clip</item>
                   <item translatable="yes">Rescale</item>

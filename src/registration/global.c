@@ -173,6 +173,15 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		clearfits(&fit);
 		return 1;
 	}
+	
+	if (!regargs->no_output && regargs->driz && initialize_drizzle_params(args, regargs)) {
+		siril_log_color_message(
+				_("Could not init drizzle\n"), "red");
+		args->seq->regparam[regargs->layer] = NULL;
+		free(sadata->current_regdata);
+		clearfits(&fit);
+		return 1;
+	}
 
 	// we correct the reference stars for distortions
 	// we'll do the same for each imagebefore matching the 2 lists
@@ -624,10 +633,6 @@ int register_star_alignment(struct registration_args *regargs) {
 	if (regargs->filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
-	}
-	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
-		free(args);
-		return -1;
 	}
 
 	args->compute_mem_limits_hook = star_align_compute_mem_limits;

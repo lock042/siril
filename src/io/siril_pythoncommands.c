@@ -26,9 +26,18 @@
 #include "io/image_format_fits.h"
 #include "io/siril_pythonmodule.h"
 #include "filters/synthstar.h"
+#include "siril_pythonmodule.h"
 #ifdef _WIN32
 #include "core/OS_utils.h"
 #endif
+
+typedef enum {
+	UNKNOWN = 0,
+	LIGHT = 1,
+	DARK = 2,
+	FLAT = 3,
+	BIAS = 4
+} imagetype_t;
 
 // Helper macros
 #define COPY_FLEN_STRING(str) \
@@ -200,6 +209,28 @@ static int homography_to_py(const Homography* H, unsigned char *ptr, size_t maxl
 	COPY_BE64((double) H->h22, double);
 	COPY_BE64((int64_t) H->pair_matched, int64_t);
 	COPY_BE64((int64_t) H->Inliers, int64_t);
+	return 0;
+}
+
+static int analysis_to_py(const double bgnoise, const double fwhm, const double wfwhm, const int64_t nbstars,
+						  const double roundness, const int64_t imagetype, int64_t unix_timestamp,
+						  const int64_t channels, const int64_t height, const int64_t width,
+						  unsigned char *ptr, size_t maxlen) {
+	if (!ptr)
+		return 1;
+
+	unsigned char *start_ptr = ptr;
+
+	COPY_BE64(bgnoise, double);
+	COPY_BE64(fwhm, double);
+	COPY_BE64(wfwhm, double);
+	COPY_BE64(nbstars, int64_t);
+	COPY_BE64(roundness, double);
+	COPY_BE64(imagetype, int64_t);
+	COPY_BE64(unix_timestamp, int64_t);
+	COPY_BE64(channels, int64_t);
+	COPY_BE64(height, int64_t);
+	COPY_BE64(width, int64_t);
 	return 0;
 }
 
@@ -2423,6 +2454,242 @@ CLEANUP:
 				const char* error_msg = _("Invalid payload for CMD_DRAW_POLYGON");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
+			break;
+		}
+
+		case CMD_GET_IMAGE_FILE: {
+			gboolean with_pixels = TRUE;
+			gboolean as_preview = FALSE;
+
+			if (payload_length < 2) {
+				const char* error_msg = _("Incorrect command argument");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Extract boolean flags from the first 2 bytes
+			const char* pixelbool = payload;
+			const char* previewbool = payload + 1;
+			with_pixels = BOOL_FROM_BYTE(*pixelbool);
+			as_preview = BOOL_FROM_BYTE(*previewbool);
+
+			// Extract the filepath string from remaining payload
+			size_t filepath_length = payload_length - 2;
+			if (filepath_length == 0 || filepath_length >= PATH_MAX) {
+				const char* error_msg = _("Invalid filepath length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Null-terminate the filepath string
+			char* filepath = g_malloc0(filepath_length + 1);
+			memcpy(filepath, payload + 2, filepath_length);
+			filepath[filepath_length] = '\0';
+
+			// Check if file exists
+			if (!g_file_test(filepath, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR)) {
+				const char* error_msg = _("File does not exist or is not accessible");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				g_free(filepath);
+				break;
+			}
+
+			fits *fit = calloc(1, sizeof(fits));
+			if (read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE)) {
+				free(fit);
+				g_free(filepath);
+				const char* error_msg = _("Failed to read image file");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			g_free(filepath);
+
+			// Calculate size needed for the response (same as sequence frame)
+			size_t ffit_size = sizeof(uint64_t) * 13; // 13 vars packed to 64-bit
+			size_t strings_size = FLEN_VALUE * 13;  // 13 string fields of FLEN_VALUE
+			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
+			size_t total_size = ffit_size + strings_size + numeric_size;
+			if (with_pixels) {
+				size_t shminfo_size = sizeof(shared_memory_info_t);
+				total_size += shminfo_size;
+			}
+
+			unsigned char *response_buffer = g_try_malloc0(total_size);
+			if (!response_buffer) {
+				const char* error_message = _("Memory allocation error: response buffer");
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+				clearfits(fit);
+				free(fit);
+				break;
+			}
+
+			unsigned char *ptr = response_buffer;
+			int ret = fits_to_py(fit, ptr, ffit_size);
+			if (ret) {
+				const char* error_message = _("fits_to_py conversion error");
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+				goto CLEANUP_FILE;
+			}
+
+			ptr = response_buffer + ffit_size;
+			ret = keywords_to_py(fit, ptr, (strings_size + numeric_size));
+			if (ret) {
+				const char* error_message = _("keywords_to_py conversion error");
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+				goto CLEANUP_FILE;
+			}
+
+			if (with_pixels) {
+				ptr += strings_size + numeric_size;
+				rectangle region = (rectangle) {0, 0, fit->rx, fit->ry};
+				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview);
+				if (!info) {
+					const char* error_message = _("Shared memory allocation error");
+					success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+					goto CLEANUP_FILE;
+				}
+
+				// Convert the values to BE
+				TO_BE64_INTO(info->size, info->size, size_t);
+				info->data_type = GUINT32_TO_BE(info->data_type);
+				info->width = GUINT32_TO_BE(info->width);
+				info->height = GUINT32_TO_BE(info->height);
+				info->channels = GUINT32_TO_BE(info->channels);
+				memcpy(ptr, info, sizeof(shared_memory_info_t));
+				free(info);
+			}
+
+			success = send_response(conn, STATUS_OK, response_buffer, total_size);
+
+		CLEANUP_FILE:
+			g_free(response_buffer);
+			clearfits(fit);
+			free(fit);
+			break;
+		}
+
+		case CMD_ANALYSE_IMAGE_FROM_FILE: {
+			if (payload_length < 1) {
+				const char* error_msg = _("Incorrect command argument");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			if (payload_length >= PATH_MAX) {
+				const char* error_msg = _("Invalid filepath length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Null-terminate the filepath string
+			char* filepath = g_malloc0(payload_length + 1);
+			memcpy(filepath, payload, payload_length);
+			filepath[payload_length] = '\0';
+
+			// Check if file exists
+			if (!g_file_test(filepath, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR)) {
+				const char* error_msg = _("File does not exist or is not accessible");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				g_free(filepath);
+				break;
+			}
+
+			fits *fit = calloc(1, sizeof(fits));
+			gboolean debayer_pref = com.pref.debayer.open_debayer;
+			com.pref.debayer.open_debayer = FALSE; // disable debayering, it is slow and we want to report
+				// CFA images as single-channel for the purposes of analysis
+			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE);
+			com.pref.debayer.open_debayer = debayer_pref; // restore debayer setting
+			if (retval) {
+				free(fit);
+				g_free(filepath);
+				const char* error_msg = _("Failed to read image file");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			g_free(filepath);
+
+			// We now have the file open that we want to analyse, so let's analyse it:
+			// Compute stats
+			int layer = fit->naxes[2] == 1 ? 0 : 1; // layer 1 for mono images, green for RGB
+			rectangle selection = { 0, 0, fit->rx, fit->ry };
+			imstats *stats = statistics(NULL, -1, fit, layer, &selection, STATS_SIGMEAN, MULTI_THREADED);
+			double bgnoise = stats->bgnoise;
+			if (fit->type == DATA_USHORT)
+				bgnoise /= (USHRT_MAX_DOUBLE);
+
+			free_stats(stats); // finished with the stats
+
+			// Get image type
+			imagetype_t imagetype = UNKNOWN;
+			gchar *lower_image_type = g_ascii_strdown(fit->keywords.image_type, -1);
+			if (g_strstr_len(lower_image_type, -1, "light") != NULL) {
+				imagetype = LIGHT;
+			} else if (g_strstr_len(lower_image_type, -1, "dark") != NULL) {
+				imagetype = DARK;
+			} else if (g_strstr_len(lower_image_type, -1, "flat") != NULL) {
+				imagetype = FLAT;
+			} else if (g_strstr_len(lower_image_type, -1, "bias") != NULL) {
+				imagetype = BIAS;
+			}
+			g_free(lower_image_type);
+
+			// Count stars (skip this for darks, flats, bias)
+			int nb_stars = 0;
+			double roundness = 0.0;
+			double fwhm = 0.0;
+			if (imagetype != DARK && imagetype != FLAT && imagetype != BIAS) {
+				psf_star **stars = NULL;
+				image *input_image = NULL;
+				input_image = calloc(1, sizeof(image));
+				input_image->fit = fit;
+				input_image->from_seq = NULL;
+				input_image->index_in_seq = -1;
+				stars = peaker(input_image, layer, &com.pref.starfinder_conf, &nb_stars,
+						NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
+				free(input_image);
+
+				// Compute average roundness, fwhm
+				for (int i = 0; i < nb_stars ; i++) {
+					psf_star *star = stars[i];
+					roundness += fabs(star->fwhmy / star->fwhmx);
+					fwhm += (star->fwhmx + star->fwhmy);
+				}
+				roundness /= nb_stars;
+				fwhm /= (2 * nb_stars); // saves division in the loop
+				free_psf_starstarstar(stars); // finished with the stars array
+			}
+
+			// Get timestamp
+			int64_t unix_timestamp = g_date_time_to_unix(fit->keywords.date_obs);
+
+			// Get dimensions
+			int64_t channels = fit->naxes[2];
+			int64_t height = fit->naxes[1];
+			int64_t width = fit->naxes[0];
+			// Finished with fit
+			clearfits(fit);
+			free(fit);
+
+			// Prepare to transmit
+			// Calculate size needed for response
+			size_t total_size = 10 * sizeof(double); // 6 * 64-bit values
+			unsigned char *response_buffer = g_try_malloc0(total_size);
+			if (!response_buffer) {
+				const char* error_msg = _("Memory allocation failed");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			unsigned char *ptr = response_buffer;
+			if (analysis_to_py(bgnoise, fwhm, 0.0, (int64_t) nb_stars, roundness, imagetype,
+				unix_timestamp, channels, height, width, ptr, total_size)) {
+				const char* error_message = _("No analysis available");
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+			} else {
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
+			}
+			g_free(response_buffer);
 			break;
 		}
 
