@@ -27,6 +27,8 @@ xx/xx/xx
 * Added SirilInterface.get_image_from_file() method
 * Added Search box in the Script treeview
 * Made reading astrometric solution more robust to CDELT/PC matrices not following the expected formalism (#1770)
+* Added SirilInterface.analyse_image_from_file(), SirilInterface.undo() and SirilInterface.redo()
+* Approved use of PyQt6 for creating python script GUIs (now confident it is problem free on all target OSes)
 
 siril 1.4.0-beta3
 07/11/25
