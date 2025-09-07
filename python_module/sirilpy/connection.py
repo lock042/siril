@@ -4586,3 +4586,32 @@ class SirilInterface:
             return analysis
         except Exception as e:
             raise SirilError(f"Error unpacking data in SirilInterface.analyse_image_from_file(): {e}") from e
+
+    def undo(self):
+        """
+        Undoes the last operation, if there is an undo history available.
+        """
+
+        try:
+            if self._execute_command(_Command.UNDO, None):
+                return True
+            else:
+                raise SirilError(f"Error in undo(): {e}") from e
+
+        except Exception as e:
+            raise SirilError(f"Error in undo(): {e}") from e
+
+    def redo(self):
+        """
+        Redoes the last undone operation, if there is an undo history and
+        an undone operation available to be redone.
+        """
+
+        try:
+            if self._execute_command(_Command.REDO, None):
+                return True
+            else:
+                raise SirilError(f"Error in redo(): {e}") from e
+
+        except Exception as e:
+            raise SirilError(f"Error in redo(): {e}") from e

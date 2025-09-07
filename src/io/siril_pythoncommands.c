@@ -2693,6 +2693,18 @@ CLEANUP:
 			break;
 		}
 
+		case CMD_UNDO: {
+			siril_add_pythonsafe_idle(undo_in_thread, NULL);
+			success = send_response(conn, STATUS_OK, NULL, 0);
+			break;
+		}
+
+		case CMD_REDO: {
+			siril_add_pythonsafe_idle(redo_in_thread, NULL);
+			success = send_response(conn, STATUS_OK, NULL, 0);
+			break;
+		}
+
 		default:
 			siril_debug_print("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");
