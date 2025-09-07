@@ -1040,7 +1040,7 @@ do_kernel_square(struct driz_param_t* p) {
             if (jaco < 0.0) {
                 jaco *= -1.0;
                 /* Swap */
-                tem = xout[1]; xout[1] = xout[3]; xout[3] = tem;
+                float tem = xout[1]; xout[1] = xout[3]; xout[3] = tem;
                 tem = yout[1]; yout[1] = yout[3]; yout[3] = tem;
             }
 
