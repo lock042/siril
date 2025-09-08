@@ -1037,13 +1037,6 @@ do_kernel_square(struct driz_param_t* p) {
             jaco = 0.5f * ((xout[1] - xout[3]) * (yout[0] - yout[2]) -
                            (xout[0] - xout[2]) * (yout[1] - yout[3]));
 
-            if (jaco < 0.0) {
-                jaco *= -1.0;
-                /* Swap */
-                tem = xout[1]; xout[1] = xout[3]; xout[3] = tem;
-                tem = yout[1]; yout[1] = yout[3]; yout[3] = tem;
-            }
-
             /* Allow for stretching because of scale change */
             d = get_pixel(p->data, i, j, 0) * scale2;
 
