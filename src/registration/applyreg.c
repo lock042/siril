@@ -566,7 +566,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		const gchar *count_filename = get_sequence_cache_filename(args->seq, in_index, "drizztmp", "fit", args->new_seq_prefix);
 		// if original data is USHORT or drizz_weight_match_bitpix is FALSE,
 		// weights need to be renormed in the [0,1] range, because they will be saved as 8b or 16b
-		if (fit->type == DATA_USHORT || !com.pref.drizz_weight_match_bitpix) {
+		if ((fit->type == DATA_USHORT && !com.pref.force_16bit) || !com.pref.drizz_weight_match_bitpix) {
 			size_t nbpix_per_channel = output_counts->rx * output_counts->ry;
 			for (int c = 0; c < output_counts->naxes[2]; c++) {
 				float *counts = output_counts->fpdata[c];
@@ -578,7 +578,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		}
 		if (!com.pref.drizz_weight_match_bitpix || fit->bitpix == BYTE_IMG) { // we save as 8b
 			output_counts->bitpix = BYTE_IMG;
-		} else if (fit->type == DATA_USHORT) { // we save as 16b
+		} else if (fit->type == DATA_USHORT && !com.pref.force_16bit) { // we save as 16b
 			output_counts->bitpix = USHORT_IMG;
 		} // else we save as 32b
 
@@ -1013,20 +1013,26 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	}
 	if (driz->is_bayer)
 		driz->cfadim = (int)cfadim;
-	disto_data *disto = NULL;
-	gboolean free_disto = FALSE;
-	if (regargs->undistort) {
-		if (regargs->disto->dtype == DISTO_MAP_D2S || regargs->disto->dtype == DISTO_MAP_S2D) {
-			disto = regargs->disto;
-		} else {
-			disto = calloc(1, sizeof(disto_data));
-			copy_disto(&regargs->disto[regargs->reference_image], disto);
-			free_disto = TRUE;
+	int status = 0;
+	if 	(!(com.pref.drizz_weight_match_bitpix && (fit.bitpix == DATA_FLOAT || !com.pref.force_16bit))) { // we save as 32b, we don't need to renorm the weights
+		disto_data *disto = NULL;
+		gboolean free_disto = FALSE;
+		if (regargs->undistort) {
+			if (regargs->disto->dtype == DISTO_MAP_D2S || regargs->disto->dtype == DISTO_MAP_S2D) {
+				disto = regargs->disto;
+			} else {
+				disto = calloc(1, sizeof(disto_data));
+				copy_disto(&regargs->disto[regargs->reference_image], disto);
+				free_disto = TRUE;
+			}
 		}
+		status = compute_max_drizzle_weights(driz, &fit, disto);
+		if (free_disto)
+			free_disto_args(disto);
+	} else { // just to be sure it's correctly initialized
+		for (int c = 0; c < 3; c++)
+			driz->max_weight[c] = 1.f;
 	}
-	int status = compute_max_drizzle_weights(driz, &fit, disto);
-	if (free_disto)
-		free_disto_args(disto);
 	clearfits(&fit);
 	return status;
 }
