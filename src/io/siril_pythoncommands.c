@@ -2460,16 +2460,19 @@ CLEANUP:
 		case CMD_GET_IMAGE_FILE: {
 			gboolean with_pixels = TRUE;
 			gboolean as_preview = FALSE;
+
 			if (payload_length < 2) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			// Extract boolean flags from the first 2 bytes
 			const char* pixelbool = payload;
 			const char* previewbool = payload + 1;
 			with_pixels = BOOL_FROM_BYTE(*pixelbool);
 			as_preview = BOOL_FROM_BYTE(*previewbool);
+
 			// Extract the filepath string from remaining payload
 			size_t filepath_length = payload_length - 2;
 			if (filepath_length == 0 || filepath_length >= PATH_MAX) {
@@ -2477,10 +2480,12 @@ CLEANUP:
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			// Null-terminate the filepath string
 			char* filepath = g_malloc0(filepath_length + 1);
 			memcpy(filepath, payload + 2, filepath_length);
 			filepath[filepath_length] = '\0';
+
 			// Check if file exists
 			if (!g_file_test(filepath, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR)) {
 				const char* error_msg = _("File does not exist or is not accessible");
@@ -2488,6 +2493,7 @@ CLEANUP:
 				g_free(filepath);
 				break;
 			}
+
 			fits *fit = calloc(1, sizeof(fits));
 			if (read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE)) {
 				free(fit);
@@ -2496,21 +2502,19 @@ CLEANUP:
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			g_free(filepath);
 
 			// Calculate size needed for the response (same as sequence frame)
 			size_t ffit_size = sizeof(uint64_t) * 13; // 13 vars packed to 64-bit
 			size_t strings_size = FLEN_VALUE * 13;  // 13 string fields of FLEN_VALUE
 			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
-
-			// Add stats size - 14 doubles per channel, up to 3 channels
-			size_t stats_size = 3 * 14 * sizeof(double); // Stats for up to 3 channels
-
-			size_t total_size = ffit_size + strings_size + numeric_size + stats_size;
+			size_t total_size = ffit_size + strings_size + numeric_size;
 			if (with_pixels) {
 				size_t shminfo_size = sizeof(shared_memory_info_t);
 				total_size += shminfo_size;
 			}
+
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			if (!response_buffer) {
 				const char* error_message = _("Memory allocation error: response buffer");
@@ -2519,6 +2523,7 @@ CLEANUP:
 				free(fit);
 				break;
 			}
+
 			unsigned char *ptr = response_buffer;
 			int ret = fits_to_py(fit, ptr, ffit_size);
 			if (ret) {
@@ -2526,6 +2531,7 @@ CLEANUP:
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				goto CLEANUP_FILE;
 			}
+
 			ptr = response_buffer + ffit_size;
 			ret = keywords_to_py(fit, ptr, (strings_size + numeric_size));
 			if (ret) {
@@ -2534,39 +2540,8 @@ CLEANUP:
 				goto CLEANUP_FILE;
 			}
 
-			// Ensure stats are computed
-			gboolean cfa = fit->keywords.bayer_pattern[0] != '\0';
-			fit->stats = calloc(fit->naxes[2], sizeof(imstats*));
-			for (int layer = 0; layer < fit->naxes[2]; layer++) {
-				int super_layer = layer;
-				if (cfa)
-					super_layer = -layer - 1;
-				imstats* stat = statistics(NULL, -1, fit, super_layer, &com.selection, STATS_MAIN, MULTI_THREADED);
-				if (!stat) {
-					siril_log_message(_("Statistics computation failed for channel %d (all nil?).\n"), layer);
-					continue;
-				}
-				fit->stats[layer] = stat;
-			}
-
-			// Add stats serialization
-			ptr += strings_size + numeric_size;
-			for (int channel = 0; channel < 3; channel++) {
-				if (fit->stats[channel]) {
-					ret = imstats_to_py(fit->stats[channel], ptr, 14 * sizeof(double));
-					if (ret) {
-						const char* error_message = _("imstats_to_py conversion error");
-						success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
-						goto CLEANUP_FILE;
-					}
-				} else {
-					// Fill with zeros if no stats available for this channel
-					memset(ptr, 0, 14 * sizeof(double));
-				}
-				ptr += 14 * sizeof(double);
-			}
-
 			if (with_pixels) {
+				ptr += strings_size + numeric_size;
 				rectangle region = (rectangle) {0, 0, fit->rx, fit->ry};
 				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview);
 				if (!info) {
@@ -2574,6 +2549,7 @@ CLEANUP:
 					success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 					goto CLEANUP_FILE;
 				}
+
 				// Convert the values to BE
 				TO_BE64_INTO(info->size, info->size, size_t);
 				info->data_type = GUINT32_TO_BE(info->data_type);
@@ -2583,7 +2559,9 @@ CLEANUP:
 				memcpy(ptr, info, sizeof(shared_memory_info_t));
 				free(info);
 			}
+
 			success = send_response(conn, STATUS_OK, response_buffer, total_size);
+
 		CLEANUP_FILE:
 			g_free(response_buffer);
 			clearfits(fit);
