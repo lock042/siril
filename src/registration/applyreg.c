@@ -854,10 +854,13 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 		p->cfadim = driz->cfadim;
 		memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
 	}
+	int retval = 0;
 	int src_rx = 0, src_ry = 0;
 	int patch_size_in = max(20, p->cfadim);
 	patch_size_in *= 2;
 	int extent = (driz->scale >= 1) ? patch_size_in : (int)(patch_size_in / driz->scale);
+	fits *tiny_flat = NULL;
+	float *flatbuf = NULL;
 	siril_debug_print("Drizzle scale: %f, patch size: %d, extent: %d\n", driz->scale, patch_size_in, extent);
 
 	if (disto) {
@@ -878,6 +881,19 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	size_t size_in = src_rx * src_ry;
 
 	float *buffer = calloc(size_in, sizeof(float));
+	if (!buffer) {
+		siril_log_color_message(_("Drizzle: Could not allocate memory for weight calculation.\n"), "red");
+		retval = 1;
+		goto clean_and_exit;
+	}
+	if (driz->flat && !disto) {
+		flatbuf = calloc(size_in, sizeof(float));
+		if (!flatbuf) {
+			siril_log_color_message(_("Drizzle: Could not allocate memory for tiny flat calculation.\n"), "red");
+			retval = 1;
+			goto clean_and_exit;
+		}
+	}
 
 	if (disto) {
 		// we will fill patches:
@@ -922,18 +938,15 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	cvGetEye(&H);
 
 	if (map_image_coordinates_h(fit, H, p->pixmap, dst_rx, dst_ry, driz->scale, disto, 1)) {
-		free(p->error);
-		free(p->pixmap);
-		free(p);
-		return 1;
+		siril_log_color_message(_("Drizzle: Could not compute mapping for weights calculation.\n"), "red");
+		retval = 1;
+		goto clean_and_exit;
 	}
 
 	if (!p->pixmap->xmap) {
-		siril_log_color_message(_("Error generating mapping array.\n"), "red");
-		free(p->error);
-		free(p->pixmap);
-		free(p);
-		return 1;
+		siril_log_color_message(_("Drizzle:Error generating mapping array.\n"), "red");
+		retval = 1;
+		goto clean_and_exit;
 	}
 	p->data = fit;
 
@@ -959,14 +972,47 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	output_counts->fpdata[BLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + 2 * out.rx * out.ry;
 	p->output_counts = output_counts;
 
-	// p->weights = driz->flat;
+	if (driz->flat) {
+		if (disto)
+			p->weights = driz->flat;
+		else {
+			if (output_counts->naxes[2] == 1) {
+				imstats *stat = statistics(NULL, -1, driz->flat, 0, NULL, STATS_MINMAX, 1);
+				if (!stat || stat->max <= 1e-3f) {
+					siril_log_color_message(_("Drizzle: Statistics for drizzle flat on layer %d is invalid.\n"), "red", 0);
+					retval = 1;
+					goto clean_and_exit;
+				}
+				for (size_t i = 0; i < size_in; i++)
+					flatbuf[i] = stat->max;
+			} else {
+				float max[3] = { 0.f, 0.f, 0.f };
+				for (int c = 0; c < 3; c++) { // we need to do the stats on cfa channels to create the mock-up tiny flat
+					imstats *stat = statistics(NULL, -1, driz->flat, -(c + 1), NULL, STATS_MINMAX, 1);
+					if (!stat || stat->max <= 1e-3f) {
+						siril_log_color_message(_("Drizzle: Statistics for drizzle flat on layer %d is invalid.\n"), "red", c - 1);
+						retval = 1;
+						goto clean_and_exit;
+					}
+					max[c] = stat->max;
+				}
+				for (size_t i = 0; i < extent; i++) { // column
+					for (size_t j = 0; j < extent; j++) { // row
+						int c = FC_array(j, i, driz->cfa, driz->cfadim);
+						flatbuf[i * src_rx + j] = max[c];
+					}
+				}
+			}
+			new_fit_image_with_data(&tiny_flat, src_rx, src_ry, 1, DATA_FLOAT, flatbuf);
+			p->weights = tiny_flat;
+		}
+	}
 
 	if (dobox(p)) { // Do the drizzle
 		siril_log_color_message("s\n", p->error->last_message);
 		return 1;
 	}
 	clearfits(fit);
-	int retval = 0;
 	for (int c = 0; c < output_counts->naxes[2]; c++) {
 		imstats *stat = statistics(NULL, -1, output_counts, c, NULL, STATS_MINMAX, 1);
 		if (!stat) {
@@ -982,8 +1028,14 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 		siril_log_message("Max drizzle weight for layer %d: %f\n", c, stat->max);
 		driz->max_weight[c] = stat->max;
 	}
+clean_and_exit:
 	clearfits(&out);
 	clearfits(output_counts);
+	free(output_counts);
+	if (tiny_flat) {
+		clearfits(tiny_flat);
+		free(tiny_flat);
+	}
 	free(p->pixmap->xmap);
 	free(p->pixmap);
 	free(p->error);
