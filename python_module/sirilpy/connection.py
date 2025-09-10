@@ -4241,7 +4241,7 @@ class SirilInterface:
         return self._is_cli
 
     def load_image_from_file(self, filepath: str, with_pixels: Optional[bool] = True,
-                             preview: Optional[bool] = False) -> Optional[FFit]:
+                            preview: Optional[bool] = False) -> Optional[FFit]:
         """
         Request Siril to load an image from a file and transfer it to sirilpy. This
         method does not change the image currently loaded in Siril. Any image format
@@ -4359,8 +4359,13 @@ class SirilInterface:
                 'q',  # date (int64 unix timestamp)
                 'q'  # date_obs (int64 unix timestamp)
             ]
+
+            # Add stats for 3 channels (14 doubles each)
+            for i in range(3):
+                format_parts.extend(['d'] * 14)  # 14 doubles per channel
+
             if with_pixels:
-                # Starts at index 65
+                # Starts at index 65 + 42 (stats)
                 format_parts.extend([
                     'Q',  # size (size_t)
                     'i',  # data_type
@@ -4388,17 +4393,45 @@ class SirilInterface:
             def timestamp_to_datetime(timestamp: int) -> Optional[datetime]:
                 return datetime.fromtimestamp(timestamp) if timestamp != 0 else None
 
+            # Extract stats data (starts at index 65)
+            stats = [None, None, None]
+            stats_start_idx = 65
+            for channel in range(3):
+                start_idx = stats_start_idx + (channel * 14)
+                # Check if this channel has valid stats (non-zero values)
+                channel_stats = values[start_idx:start_idx + 14]
+                if any(stat != 0.0 for stat in channel_stats):
+                    # Create ImageStats object directly from values
+                    stats[channel] = ImageStats(
+                        total=int(channel_stats[0]),
+                        ngoodpix=int(channel_stats[1]),
+                        mean=channel_stats[2],
+                        median=channel_stats[3],
+                        sigma=channel_stats[4],
+                        avgDev=channel_stats[5],
+                        mad=channel_stats[6],
+                        sqrtbwmv=channel_stats[7],
+                        location=channel_stats[8],
+                        scale=channel_stats[9],
+                        min=channel_stats[10],
+                        max=channel_stats[11],
+                        normValue=channel_stats[12],
+                        bgnoise=channel_stats[13]
+                    )
+
             # Get pixeldata if requested
             pixeldata = None
             if with_pixels:
                 try:
+                    # Pixel data info starts after stats (index 65 + 42)
+                    pixel_start_idx = stats_start_idx + 42
                     shm_info = _SharedMemoryInfo(
-                        size=values[65],
-                        data_type=values[66],
-                        width=values[67],
-                        height=values[68],
-                        channels=values[69],
-                        shm_name=values[70]
+                        size=values[pixel_start_idx],
+                        data_type=values[pixel_start_idx + 1],
+                        width=values[pixel_start_idx + 2],
+                        height=values[pixel_start_idx + 3],
+                        channels=values[pixel_start_idx + 4],
+                        shm_name=values[pixel_start_idx + 5]
                     )
                     # Validate dimensions
                     if any(dim <= 0 for dim in (shm_info.width, shm_info.height)):
@@ -4522,7 +4555,7 @@ class SirilInterface:
                 _pixelkey=bool(values[11]),
                 color_managed=bool(values[12]),
                 _data=pixeldata,
-                stats=[None, None, None],
+                stats=stats,  # Now populated with ImageStats objects
                 keywords=fits_keywords,
                 _icc_profile=None,
                 header=None, # This method does not populate the header property
@@ -4586,3 +4619,32 @@ class SirilInterface:
             return analysis
         except Exception as e:
             raise SirilError(f"Error unpacking data in SirilInterface.analyse_image_from_file(): {e}") from e
+
+    def undo(self):
+        """
+        Undoes the last operation, if there is an undo history available.
+        """
+
+        try:
+            if self._execute_command(_Command.UNDO, None):
+                return True
+            else:
+                raise SirilError(f"Error in undo(): {e}") from e
+
+        except Exception as e:
+            raise SirilError(f"Error in undo(): {e}") from e
+
+    def redo(self):
+        """
+        Redoes the last undone operation, if there is an undo history and
+        an undone operation available to be redone.
+        """
+
+        try:
+            if self._execute_command(_Command.REDO, None):
+                return True
+            else:
+                raise SirilError(f"Error in redo(): {e}") from e
+
+        except Exception as e:
+            raise SirilError(f"Error in redo(): {e}") from e

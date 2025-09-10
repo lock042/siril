@@ -135,6 +135,8 @@ class _Command(IntEnum):
     DRAW_POLYGON = 66
     GET_IMAGE_FILE = 67
     ANALYSE_IMAGE_FILE = 68
+    UNDO = 69
+    REDO = 70
     ERROR = 0xFF
 
 @unique
