@@ -260,6 +260,10 @@ gpointer register_thread_func(gpointer p) {
 		free_disto_args(args->disto);
 	}
 	if (args->driz) {
+		if (args->driz->flat) {
+			clearfits(args->driz->flat);
+			free(args->driz->flat);
+		}
 		free(args->driz);
 	}
 	if (args->reference_date)

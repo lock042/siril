@@ -856,6 +856,10 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	}
 	int retval = 0;
 	int src_rx = 0, src_ry = 0;
+	fits out = { 0 };
+	fits *fit = NULL;
+	fits *output_counts = NULL;
+
 	int patch_size_in = max(20, p->cfadim);
 	patch_size_in *= 2;
 	int extent = (driz->scale >= 1) ? patch_size_in : (int)(patch_size_in / driz->scale);
@@ -930,7 +934,6 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 			buffer[i] = 1.0f;
 	}
 
-	fits *fit = NULL;
 	new_fit_image_with_data(&fit, src_rx, src_ry, 1, DATA_FLOAT, buffer);
 	int dst_rx = (int)(src_rx * driz->scale);
 	int dst_ry = (int)(src_ry * driz->scale);
@@ -951,7 +954,6 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	p->data = fit;
 
 	/* Set up output fits */
-	fits out = { 0 };
 	copyfits(fit, &out, CP_FORMAT, -1);
 	out.rx = out.naxes[0] = dst_rx;
 	out.ry = out.naxes[1] = dst_ry;
@@ -964,7 +966,7 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	p->output_data = &out;
 
 	// Set up the output_counts fits to store pixel hit counts
-	fits *output_counts = calloc(1, sizeof(fits));
+	output_counts = calloc(1, sizeof(fits));
 	copyfits(&out, output_counts, CP_FORMAT, -1);
 	output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
 	output_counts->fpdata[RLAYER] = output_counts->fdata;
@@ -1012,7 +1014,6 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 		siril_log_color_message("s\n", p->error->last_message);
 		return 1;
 	}
-	clearfits(fit);
 	for (int c = 0; c < output_counts->naxes[2]; c++) {
 		imstats *stat = statistics(NULL, -1, output_counts, c, NULL, STATS_MINMAX, 1);
 		if (!stat) {
@@ -1029,8 +1030,10 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 		driz->max_weight[c] = stat->max;
 	}
 clean_and_exit:
+	clearfits(fit);
 	clearfits(&out);
 	clearfits(output_counts);
+	free(fit);
 	free(output_counts);
 	if (tiny_flat) {
 		clearfits(tiny_flat);
