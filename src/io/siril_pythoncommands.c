@@ -1742,6 +1742,19 @@ CLEANUP:
 						NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
 				free(input_image);
 				stars_needs_freeing = TRUE;
+				// Populate some data for each star if we are plate solved
+				for (int i = 0 ; i < nb_stars ; i++) {
+					psf_star *psf = stars[i];
+					psf->xpos = psf->x0;
+					psf->ypos = gfit.ry - psf->y0;
+					if (gfit.keywords.wcslib) {
+						double fx, fy;
+						display_to_siril(psf->xpos, psf->ypos, &fx, &fy, gfit.ry);
+						pix2wcs2(gfit.keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
+						fwhm_to_arcsec_if_needed(&gfit, psf);
+					}
+				}
+
 			} else {
 				stars = com.stars;
 				stars_needs_freeing = FALSE;
