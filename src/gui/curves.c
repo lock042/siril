@@ -69,6 +69,10 @@ static gsl_histogram *display_histogram[MAXVPORT] = {NULL, NULL, NULL, NULL};
 
 static gboolean is_drawingarea_pressed = FALSE;
 
+// Original ICC profile, in case we don't apply a stretch and need to revert
+static cmsHPROFILE original_icc = NULL;
+static gboolean single_image_stretch_applied = FALSE;
+
 // compare function for points
 int compare_points(const void *a, const void *b) {
 	point *point_a = (point *) a;
@@ -209,7 +213,7 @@ static void curves_startup() {
 		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
 }
 
-static void curves_close(gboolean update_image_if_needed) {
+static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_profile) {
 	for (int i = 0; i < fit->naxes[2]; i++) {
 		set_histogram(display_histogram[i], i);
 		display_histogram[i] = NULL;
@@ -217,6 +221,13 @@ static void curves_close(gboolean update_image_if_needed) {
 	if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 		set_cursor_waiting(TRUE);
 		notify_gfit_modified();
+	}
+
+	if (revert_icc_profile && !single_image_stretch_applied) {
+		if (gfit.icc_profile)
+			cmsCloseProfile(gfit.icc_profile);
+		gfit.icc_profile = copyICCProfile(original_icc);
+		color_manage(&gfit, gfit.icc_profile != NULL);
 	}
 
 	clear_backup();
@@ -526,7 +537,7 @@ void on_curves_window_show(GtkWidget *object, gpointer user_data) {
 void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
 	closing = TRUE;
 	set_cursor_waiting(TRUE);
-	curves_close(TRUE);
+	curves_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("curves_dialog");
 }
@@ -534,7 +545,7 @@ void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
 void on_curves_reset_button_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values(FALSE);
-	curves_close(TRUE);
+	curves_close(TRUE, FALSE);
 	curves_startup();
 	gtk_widget_queue_draw(curves_drawingarea);
 	set_cursor_waiting(FALSE);
@@ -565,7 +576,7 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 			args->seq_entry = strdup("stretch_");
 		}
 
-		curves_close(FALSE);
+		curves_close(FALSE, TRUE);
 		siril_close_dialog("curves_dialog");
 
 		gtk_toggle_button_set_active(curves_sequence_check, FALSE);
@@ -573,13 +584,19 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		// the apply button resets everything after recomputing with the current values
 		fit = &gfit;
+		// janky undo preparation to account for ICC usage
+		// this is purely a shallow copy, it MUST NOT be cleared with clearfits
+		fits undo_fit = {0};
+		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
+		undo_fit.icc_profile = original_icc;
+		undo_fit.color_managed = original_icc != NULL;
 		if (!gtk_toggle_button_get_active(curves_preview_check) || gui.roi.active) {
 			copy_backup_to_gfit();
-
 			curves_recompute();
 		}
+		single_image_stretch_applied = TRUE;
 		populate_roi();
-		undo_save_state(get_preview_gfit_backup(), "Curves Transformation with %d points", g_list_length(curve_points));
+		undo_save_state(&undo_fit, "Curves Transformation with %d points", g_list_length(curve_points));
 
 		clear_backup();
 		clear_display_histogram();
@@ -628,7 +645,7 @@ void apply_curve_to_sequence(struct curve_data *curve_args) {
 
 void apply_curves_cancel() {
 	set_cursor_waiting(TRUE);
-	curves_close(TRUE);
+	curves_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("curves_dialog");
 }
@@ -661,17 +678,31 @@ void toggle_curves_window_visibility() {
 	// Initialize UI elements
 	curves_dialog_init_statics();
 
-	for (int i = 0; i < 3; i++) {
-		do_channel[i] = TRUE;
-	}
-	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
-
 	if (gtk_widget_get_visible(curves_dialog)) {
 		set_cursor_waiting(TRUE);
-		curves_close(TRUE);
+		curves_close(TRUE, TRUE);
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("curves_dialog");
 	} else {
+		for (int i = 0; i < 3; i++) {
+			do_channel[i] = TRUE;
+		}
+		single_image_stretch_applied = FALSE;
+		// When opening the dialog with a single image loaded, we cache the original ICC
+		// profile (may be NULL) in case the user closes the dialog without applying a
+		// stretch, in which case we will revert.
+		if (single_image_is_loaded()) {
+			if (original_icc) {
+				cmsCloseProfile(original_icc);
+				original_icc = copyICCProfile(gfit.icc_profile);
+			}
+			icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
+		} else {
+			if (original_icc) {
+				cmsCloseProfile(original_icc);
+				original_icc = NULL;
+			}
+		}
 		reset_cursors_and_values(TRUE);
 		copy_gfit_to_backup();
 		setup_curve_dialog();
