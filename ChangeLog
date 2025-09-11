@@ -18,6 +18,7 @@ xx/xx/xx
 * Fixed handling bayer/Xtrans patterns in more robust way accross the codebase (!903)
 * Fixed astrometric alignement for mosaics with some slight skew in the solution (#1747)
 * Fix issues identifed by static analysis (MR tbc)
+* Fix issue with findstar command when running from a python script (#1782)
 
 **Improvements:**
 * Compiled .pyc scripts are now only shown in the scripts menu if their magic number matches the available intepreter
@@ -29,6 +30,7 @@ xx/xx/xx
 * Made reading astrometric solution more robust to CDELT/PC matrices not following the expected formalism (#1770)
 * Added SirilInterface.analyse_image_from_file(), SirilInterface.undo() and SirilInterface.redo()
 * Approved use of PyQt6 for creating python script GUIs (now confident it is problem free on all target OSes)
+* Added some plate solution-related keywords to FKeywords sirilpy class. (#1779)
 
 siril 1.4.0-beta3
 07/11/25
