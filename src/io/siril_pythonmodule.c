@@ -1757,6 +1757,7 @@ gboolean get_python_magic_number(char *out_buf, gsize out_buf_size) {
 	);
 
 	if (!success || exit_status != 0) {
+		siril_log_color_message(_("Error checking python magic number: pyc files will not work"), "salmon");
 		g_free(stdout_str);
 		return FALSE;
 	}
@@ -1879,106 +1880,150 @@ void rebuild_venv() {
 }
 
 static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
-
-	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
-	siril_debug_print("venv path: %s\n", venv_path);
-	gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
-	if (python_exe) {
-		siril_debug_print("Found python executable in venv: %s\n", python_exe);
-	} else {
-		siril_debug_print("Did not find python executable in venv. Recreating the venv...\n");
+    gchar *venv_path = g_build_filename(project_path, "venv", NULL);
+    siril_debug_print("venv path: %s\n", venv_path);
+    gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
+    if (python_exe) {
+        siril_debug_print("Found python executable in venv: %s\n", python_exe);
+    } else {
+        siril_debug_print("Did not find python executable in venv. Recreating the venv...\n");
 #ifdef _WIN32
-		// Check we aren't in a msys2 environment for the first init
-		gchar **env = g_get_environ();
-		const gchar *msys = g_environ_getenv(env, "MSYSTEM");
-		g_strfreev(env);
-		if (msys) {
-			siril_log_color_message(_("Error: msys2 environment detected. Siril Python support cannot be correctly initialized.\n"), "red");
-			siril_log_color_message(_("To complete the process, first make sure you have a Python installation (>=3.9) on your computer.\n"), "red");
-			siril_log_color_message(_("Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it from there.\n"), "red");
-			siril_log_color_message(_("Next time you need to start siril, you can go back to starting it from msys2 terminal.\n"), "red");
-			return FALSE;
-		}
+        /* Check we aren't in a msys2 environment for the first init */
+        gchar **env = g_get_environ();
+        const gchar *msys = g_environ_getenv(env, "MSYSTEM");
+        g_strfreev(env);
+        if (msys) {
+            siril_log_color_message(
+                _("Error: msys2 environment detected. Siril Python support cannot be correctly initialized.\n"),
+                "red");
+            siril_log_color_message(
+                _("To complete the process, first make sure you have a Python installation (>=3.9) on your computer.\n"),
+                "red");
+            siril_log_color_message(
+                _("Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it from there.\n"),
+                "red");
+            siril_log_color_message(
+                _("Next time you need to start siril, you can go back to starting it from msys2 terminal.\n"),
+                "red");
+            g_free(venv_path);
+            return FALSE;
+        }
 #endif
-	}
+    }
 
+    gboolean success = FALSE;
+    GError *local_error = NULL;
+    gchar *sys_python_exe = NULL;
+    gchar **argv = NULL;
 
-	gboolean success = FALSE;
-	GError *local_error = NULL;
-	gchar *sys_python_exe = NULL;
-	gchar **argv = NULL;
-
-	// Check if venv exists
-	if (!python_exe) {
-
+    if (!python_exe) {
 #ifdef _WIN32
-		gchar *bundle_python_exe = NULL;
-		const gchar *sirilrootpath = get_siril_bundle_path();
-		printf("Siril bundle path: %s\n", sirilrootpath);
-		bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
-		printf("Bundle python path: %s\n", bundle_python_exe);
-		if (g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE))
-			printf("Python found in bundle: %s\n", bundle_python_exe);
-		else {
-			g_free(bundle_python_exe);
-			bundle_python_exe = NULL;
-		}
-		if (!bundle_python_exe)
-			sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL); // we want to find system python not mingw64 python
+        gchar *bundle_python_exe = NULL;
+        const gchar *sirilrootpath = get_siril_bundle_path();
+        printf("Siril bundle path: %s\n", sirilrootpath);
+        bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
+        printf("Bundle python path: %s\n", bundle_python_exe);
+        if (!g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE)) {
+            g_free(bundle_python_exe);
+            bundle_python_exe = NULL;
+        }
 
-		if (sys_python_exe)
-			printf("Python found in system: %s\n", sys_python_exe);
+        if (!bundle_python_exe)
+            sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL);
 
-		if (!sys_python_exe && !bundle_python_exe) {
-			siril_log_color_message(_("No python installation found in the system or in the bundle, aborting\n"), "red");
-			success = FALSE;
-			goto cleanup;
-		}
-		if (!sys_python_exe) {
-			sys_python_exe = g_strdup(bundle_python_exe);
-			g_free(bundle_python_exe);
-		}
-		printf("Python executable: %s\n", sys_python_exe);
+        if (!sys_python_exe && !bundle_python_exe) {
+            siril_log_color_message(_("No python installation found in the system or in the bundle, aborting\n"), "red");
+            success = FALSE;
+            goto cleanup;
+        }
+
+        if (!sys_python_exe) {
+            /* transfer ownership */
+            sys_python_exe = bundle_python_exe;
+            bundle_python_exe = NULL;
+        }
+
+        printf("Python executable: %s\n", sys_python_exe);
+        g_free(bundle_python_exe);  /* safe if NULL */
 #else
-		sys_python_exe = g_find_program_in_path(PYTHON_EXE);
+        sys_python_exe = g_find_program_in_path(PYTHON_EXE);
 #endif
 
-		argv = g_new0(gchar*, 5);
-		argv[0] = sys_python_exe;
-		argv[1] = g_strdup("-m");
-		argv[2] = g_strdup("venv");
-		argv[3] = g_strdup(venv_path);
-		argv[4] = NULL;
-		siril_debug_print("Trying venv creation command: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
-		gint exit_status;
-		if (!g_spawn_sync(NULL, argv, NULL,
-						G_SPAWN_SEARCH_PATH,
-						NULL, NULL,
-						NULL, NULL,
-						&exit_status, &local_error)) {
-			siril_log_color_message(_("Error in venv creation command: %s\n"), "red", local_error->message);
-			g_propagate_error(error, local_error);
-			success = FALSE;
-			goto cleanup;
-		}
+        argv = g_new0(gchar*, 5);
+        argv[0] = sys_python_exe;
+        argv[1] = g_strdup("-m");
+        argv[2] = g_strdup("venv");
+        argv[3] = g_strdup(venv_path);
+        argv[4] = NULL;
 
-		success = (exit_status == 0);
-		if (!success) {
-			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-					"Failed to create virtual environment (exit status: %d)", exit_status);
-			goto cleanup;
-		}
+        siril_debug_print("Trying venv creation command: %s %s %s %s\n",
+                          argv[0] ? argv[0] : "(null)",
+                          argv[1], argv[2], argv[3]);
+
+        gchar *std_out = NULL;
+        gchar *std_err = NULL;
+        gint exit_status;
+
+        if (!g_spawn_sync(NULL, argv, NULL,
+                          G_SPAWN_SEARCH_PATH,
+                          NULL, NULL,
+                          &std_out, &std_err,
+                          &exit_status, &local_error)) {
+            siril_log_color_message(_("Error in venv creation command: %s\n"), "red", local_error->message);
+            g_propagate_error(error, local_error);
+            success = FALSE;
+            goto cleanup;
+        }
+
+        if (!g_spawn_check_wait_status(exit_status, &local_error)) {
+            siril_log_color_message(_("Failed to create virtual environment: %s\n"), "red", local_error->message);
+
+            if (std_err && *std_err) {
+                siril_log_color_message(_("Python stderr:\n%s\n"), "red", std_err);
+
+                /* Special-case: common Debian/Ubuntu error */
+                if (g_strrstr(std_err, "ensurepip is not available")) {
+                    siril_log_color_message(
+                        _("Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' package.\n"),
+                        "salmon");
+                }
+            }
+
+            if (std_out && *std_out) {
+                siril_debug_print("Python stdout:\n%s\n", std_out);
+            }
+
+            g_propagate_error(error, local_error);
+            success = FALSE;
+            g_free(std_out);
+            g_free(std_err);
+            goto cleanup;
+        }
+
+        success = TRUE;
+        g_free(std_out);
+        g_free(std_err);
+    }
 
 cleanup:
-		g_strfreev(argv);
-	} else {
-		success = TRUE;
-		g_free(python_exe);
-	}
+    if (argv) {
+        g_strfreev(argv);
+        argv = NULL;
+        sys_python_exe = NULL;  /* freed by g_strfreev */
+    } else {
+        g_free(sys_python_exe);
+        sys_python_exe = NULL;
+    }
 
-	g_free(venv_path);
-	return success;
+    if (python_exe) {
+        success = TRUE;  /* venv already existed */
+        g_free(python_exe);
+    }
+
+    g_free(venv_path);
+    return success;
 }
+
 
 gboolean python_venv_idle(gpointer user_data) {
 //	g_thread_unref(com.python_init_thread);

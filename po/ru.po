@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-01 13:34+0200\n"
+"POT-Creation-Date: 2025-09-04 10:24+0200\n"
 "PO-Revision-Date: 2025-08-26 06:13+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
@@ -24606,8 +24606,8 @@ msgstr "Сначала откройте изображение!\n"
 msgid "Select magnitude and phase before !\n"
 msgstr "Сначала выберите амплитуду и фазу!\n"
 
-#: src/filters/ght.c:341 src/filters/ght.c:450 src/filters/ght.c:488
-#: src/filters/ght.c:614
+#: src/filters/ght.c:341 src/filters/ght.c:448 src/filters/ght.c:486
+#: src/filters/ght.c:613
 msgid "Error: no channels selected. Doing nothing.\n"
 msgstr "Ошибка: каналы не выбраны. Ничего не делаем.\n"
 
@@ -31665,7 +31665,7 @@ msgstr ""
 "Ошибка: обнаружена среда msys2. Поддержка Python в Siril не может быть "
 "корректно инициализирована.\n"
 
-#: src/io/siril_pythonmodule.c:1897
+#: src/io/siril_pythonmodule.c:1899
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
@@ -31673,7 +31673,7 @@ msgstr ""
 "Для завершения процесса, убедитесь, что на вашем компьютере установлен "
 "Python (>=3.9).\n"
 
-#: src/io/siril_pythonmodule.c:1898
+#: src/io/siril_pythonmodule.c:1902
 msgid ""
 "Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it "
 "from there.\n"
@@ -31681,7 +31681,7 @@ msgstr ""
 "Найдите siril.exe (обычно находится в C:\\msys64\\mingw64\\bin) и запустите "
 "его оттуда.\n"
 
-#: src/io/siril_pythonmodule.c:1899
+#: src/io/siril_pythonmodule.c:1905
 msgid ""
 "Next time you need to start siril, you can go back to starting it from msys2 "
 "terminal.\n"
@@ -31689,36 +31689,54 @@ msgstr ""
 "В следующий раз, когда вам понадобится запустить siril, вы можете вернуться "
 "к его запуску из терминала msys2.\n"
 
-#: src/io/siril_pythonmodule.c:1933
+#: src/io/siril_pythonmodule.c:1934
 msgid "No python installation found in the system or in the bundle, aborting\n"
 msgstr ""
 "В системе или пакете (bundle) не найдена установка python, прерывание\n"
 
-#: src/io/siril_pythonmodule.c:1959
+#: src/io/siril_pythonmodule.c:1971
 #, c-format
 msgid "Error in venv creation command: %s\n"
 msgstr "Ошибка в команде создания venv: %s\n"
 
-#: src/io/siril_pythonmodule.c:1999
+#: src/io/siril_pythonmodule.c:1978
+#, fuzzy, c-format
+msgid "Failed to create virtual environment: %s\n"
+msgstr "Не удалось подготовить виртуальное окружение\n"
+
+#: src/io/siril_pythonmodule.c:1981
+#, fuzzy, c-format
+msgid ""
+"Python stderr:\n"
+"%s\n"
+msgstr "Сценарии Python"
+
+#: src/io/siril_pythonmodule.c:1986
+msgid ""
+"Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' "
+"package.\n"
+msgstr ""
+
+#: src/io/siril_pythonmodule.c:2043
 #, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
 msgstr "Не удалось инициализировать виртуальное окружения Python: %s\n"
 
-#: src/io/siril_pythonmodule.c:2010
+#: src/io/siril_pythonmodule.c:2054
 msgid "Failed to prepare virtual environment\n"
 msgstr "Не удалось подготовить виртуальное окружение\n"
 
-#: src/io/siril_pythonmodule.c:2075 src/io/siril_pythonmodule.c:2083
+#: src/io/siril_pythonmodule.c:2119 src/io/siril_pythonmodule.c:2127
 #, c-format
 msgid "Python process (PID: %d) exited with status %d\n"
 msgstr "Процесс Python (PID: %d) завершён со статусом выхода %d\n"
 
-#: src/io/siril_pythonmodule.c:2086
+#: src/io/siril_pythonmodule.c:2130
 #, c-format
 msgid "Python process (PID: %d) terminated by signal %d\n"
 msgstr "Процесс Python (PID: %d) остановлен сигналом %d\n"
 
-#: src/io/siril_pythonmodule.c:2169
+#: src/io/siril_pythonmodule.c:2213
 msgid ""
 "Error: python not ready yet. This may happen at first run if the python venv "
 "and module setup has not yet completed. Please wait a short time for a "
@@ -31729,21 +31747,21 @@ msgstr ""
 "подождите некоторое время, пока в журнале не появится сообщение о "
 "завершении, и повторите попытку.\n"
 
-#: src/io/siril_pythonmodule.c:2196
+#: src/io/siril_pythonmodule.c:2240
 msgid "Error: failed to create Python connection.\n"
 msgstr "Ошибка: не удалось создать соединение Python.\n"
 
-#: src/io/siril_pythonmodule.c:2213
+#: src/io/siril_pythonmodule.c:2257
 msgid "Error: Python worker thread not available.\n"
 msgstr "Ошибка: рабочий поток Python недоступен.\n"
 
-#: src/io/siril_pythonmodule.c:2279
+#: src/io/siril_pythonmodule.c:2323
 msgid "Error finding venv python path, unable to spawn python.\n"
 msgstr ""
 "Ошибка поиска пути к venv python, невозможно запустить дочерний процесс "
 "python.\n"
 
-#: src/io/siril_pythonmodule.c:2364
+#: src/io/siril_pythonmodule.c:2408
 #, c-format
 msgid "Failed to execute Python script: %s\n"
 msgstr "Не удалось выполнить сценарий Python: %s\n"

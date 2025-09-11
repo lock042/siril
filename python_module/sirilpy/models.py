@@ -158,6 +158,14 @@ class FKeywords:
     sitelong: float = 0.0 #: [deg] Observation site longitude
     siteelev: float = 0.0 #: [m] Observation site elevation
 
+    # Plate solution data:
+    objctra: Optional[str] = None #: object RA as string, if available
+    objctdec: Optional[str] = None #: object Dec as string, if available
+    ra: Optional[float] = None #: RA as float, if available
+    dec: Optional[float] = None #: Dec as float, if available
+    pltsolvd: bool = False #: whether plate solved or not
+    pltsolvd_comment: Optional[str] = None #: plate solution comment
+
     @classmethod
     def deserialize(cls, data: bytes) -> 'FKeywords':
         """
@@ -189,6 +197,9 @@ class FKeywords:
             f'{FLEN_VALUE}s',  # sitelong_str
             f'{FLEN_VALUE}s',  # bayer_pattern
             f'{FLEN_VALUE}s',  # focname
+            f'{FLEN_VALUE}s',  # objctra (RA as a string)
+            f'{FLEN_VALUE}s',  # objctdec (Dec as a string)
+            f'{FLEN_VALUE}s',  # pltsolvd_comment
             'd',  # bscale
             'd',  # bzero
             'Q',  # lo padded to 64bit
@@ -227,7 +238,10 @@ class FKeywords:
             'q',  # focussz
             'd',  # foctemp
             'q',  # date (int64 unix timestamp)
-            'q'  # date_obs (int64 unix timestamp)
+            'q',  # date_obs (int64 unix timestamp)
+            'd',  # Right Ascension
+            'd',  # Declination
+            '?',  # pltsolvd
         ]
 
         format_string = '!' + ''.join(format_parts)
@@ -270,10 +284,10 @@ class FKeywords:
 
             # Replace default values and unphysical values
             values = [None if val in _Defaults.VALUES else val for val in values]
-            if values[9] == "" and values[29]: # sitelat_str
-                values[9] = decimal_to_dms(values[29])
-            if values[10] == "" and values[30]: # sitelong_str
-                values[10] = decimal_to_dms(values[30])
+            if values[9] == "" and values[32]: # sitelat_str
+                values[9] = decimal_to_dms(values[32])
+            if values[10] == "" and values[33]: # sitelong_str
+                values[10] = decimal_to_dms(values[33])
 
             # Create FKeywords object
             return cls(
@@ -290,46 +304,52 @@ class FKeywords:
                 sitelong_str=decode_string(values[10]),
                 bayer_pattern=decode_string(values[11]),
                 focname=decode_string(values[12]),
-                bscale=values[13],
-                bzero=values[14],
-                lo=values[15],
-                hi=values[16],
+                objctra=decode_string(values[13]),
+                objctdec=decode_string(values[14]),
+                pltsolvd_comment=decode_string(values[15]),
+                bscale=values[16],
+                bzero=values[17],
+                lo=values[18],
+                hi=values[19],
                 # if fhi is 0.0, set both fhi and flo to None
-                flo=values[17] if values[18] != 0.0 else None,
-                fhi=values[18] if values[18] != 0.0 else None,
-                data_max=values[19],
-                data_min=values[20],
-                pixel_size_x=values[21] if values[21] and values[21] > 0.0 else None,
-                pixel_size_y=values[22] if values[22] and values[21] > 0.0 else None,
-                binning_x=values[23] if values[23] and values[24] > 1 else 1,
-                binning_y=values[24] if values[24] and values[24] > 1 else 1,
-                expstart=values[25],
-                expend=values[26],
-                centalt=values[27],
-                centaz=values[28],
-                sitelat=values[29],
-                sitelong=values[30],
-                siteelev=values[31],
-                bayer_xoffset=values[32],
-                bayer_yoffset=values[33],
-                airmass=values[34],
-                focal_length=values[35] if values[35] and values[35] > 0.0 else None,
-                flength=values[36] if values[36] and values[36] > 0.0 else None,
-                iso_speed=values[37],
-                exposure=values[38],
-                aperture=values[39],
-                ccd_temp=values[40],
-                set_temp=values[41],
-                livetime=values[42],
-                stackcnt=values[43],
-                cvf=values[44],
-                gain=values[45],
-                offset=values[46],
-                focuspos=values[47],
-                focussz=values[48],
-                foctemp=values[49],
-                date=timestamp_to_datetime(values[50]),
-                date_obs=timestamp_to_datetime(values[51])
+                flo=values[20] if values[21] != 0.0 else None,
+                fhi=values[21] if values[21] != 0.0 else None,
+                data_max=values[22],
+                data_min=values[23],
+                pixel_size_x=values[24] if values[24] and values[24] > 0.0 else None,
+                pixel_size_y=values[25] if values[25] and values[25] > 0.0 else None,
+                binning_x=values[26] if values[26] and values[26] > 1 else 1,
+                binning_y=values[27] if values[27] and values[27] > 1 else 1,
+                expstart=values[28],
+                expend=values[29],
+                centalt=values[30],
+                centaz=values[31],
+                sitelat=values[32],
+                sitelong=values[33],
+                siteelev=values[34],
+                bayer_xoffset=values[35],
+                bayer_yoffset=values[36],
+                airmass=values[37],
+                focal_length=values[38] if values[38] and values[38] > 0.0 else None,
+                flength=values[39] if values[39] and values[39] > 0.0 else None,
+                iso_speed=values[40],
+                exposure=values[41],
+                aperture=values[42],
+                ccd_temp=values[43],
+                set_temp=values[44],
+                livetime=values[45],
+                stackcnt=values[46],
+                cvf=values[47],
+                gain=values[48],
+                offset=values[49],
+                focuspos=values[50],
+                focussz=values[51],
+                foctemp=values[52],
+                date=timestamp_to_datetime(values[53]),
+                date_obs=timestamp_to_datetime(values[54]),
+                ra=values[55],
+                dec=values[56],
+                pltsolvd=values[57]
             )
         except Exception as e:
             raise SirilError(f"Deserialization error: {e}") from e

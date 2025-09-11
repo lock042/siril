@@ -83,6 +83,8 @@ typedef enum {
 	CMD_DRAW_POLYGON = 66,
 	CMD_GET_IMAGE_FILE = 67,
 	CMD_ANALYSE_IMAGE_FROM_FILE = 68,
+	CMD_UNDO = 69,
+	CMD_REDO = 70,
 	CMD_ERROR = 0xFF
 } CommandType;
 
