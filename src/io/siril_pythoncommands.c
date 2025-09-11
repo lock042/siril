@@ -103,7 +103,6 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 		return 1;
 
 	unsigned char *start_ptr = ptr;
-
 	// Convert GDateTime to Unix timestamp
 	int64_t date_ts = fit->keywords.date ? g_date_time_to_unix(fit->keywords.date) : 0;
 	int64_t date_obs_ts = fit->keywords.date_obs ? g_date_time_to_unix(fit->keywords.date_obs) : 0;
@@ -121,7 +120,9 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	COPY_FLEN_STRING(fit->keywords.sitelong_str);
 	COPY_FLEN_STRING(fit->keywords.bayer_pattern);
 	COPY_FLEN_STRING(fit->keywords.focname);
-
+	COPY_FLEN_STRING(fit->keywords.wcsdata.objctra);
+	COPY_FLEN_STRING(fit->keywords.wcsdata.objctdec);
+	COPY_FLEN_STRING(fit->keywords.wcsdata.pltsolvd_comment);
 	// Copy numeric values with proper byte order conversion. All
 	// types shorter than 64bit are converted to 64bit types before
 	// endianness conversion and transmission, to simplify the data
@@ -164,6 +165,12 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	COPY_BE64(fit->keywords.foctemp, double);
 	COPY_BE64(date_ts, int64_t);
 	COPY_BE64(date_obs_ts, int64_t);
+	double ra = fit->keywords.wcsdata.ra;
+	double dec = fit->keywords.wcsdata.dec;
+	uint8_t solved = fit->keywords.wcsdata.pltsolvd;
+	COPY_BE64(ra, double);
+	COPY_BE64(dec, double);
+	memcpy(ptr, &solved, sizeof(uint8_t));
 	return 0;
 }
 
@@ -1383,8 +1390,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for the response
-			size_t strings_size = FLEN_VALUE * 13;  // 13 string fields of FLEN_VALUE
-			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
+			size_t strings_size = FLEN_VALUE * 16;  // 13 string fields of FLEN_VALUE
+			size_t numeric_size = sizeof(uint64_t) * 41 + sizeof(uint8_t); // 41 vars packed to 64-bit + 1 byte bool
 
 			size_t total_size = strings_size + numeric_size;
 			unsigned char *response_buffer = g_try_malloc0(total_size);
@@ -1648,8 +1655,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Calculate size needed for the response
 			size_t ffit_size = sizeof(uint64_t) * 13; // 14 vars packed to 64-bit
-			size_t strings_size = FLEN_VALUE * 13;  // 13 string fields of FLEN_VALUE
-			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
+			size_t strings_size = FLEN_VALUE * 16;  // 13 string fields of FLEN_VALUE
+			size_t numeric_size = sizeof(uint64_t) * 41 + sizeof(uint8_t); // 41 vars packed to 64-bit + 1 byte bool
 			size_t total_size = ffit_size + strings_size + numeric_size;
 			if (with_pixels) {
 				size_t shminfo_size = sizeof(shared_memory_info_t);
@@ -2513,8 +2520,8 @@ CLEANUP:
 
 			// Calculate size needed for the response (same as sequence frame)
 			size_t ffit_size = sizeof(uint64_t) * 13; // 13 vars packed to 64-bit
-			size_t strings_size = FLEN_VALUE * 13;  // 13 string fields of FLEN_VALUE
-			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
+			size_t strings_size = FLEN_VALUE * 16;  // 13 string fields of FLEN_VALUE
+			size_t numeric_size = sizeof(uint64_t) * 41 + sizeof(uint8_t); // 41 vars packed to 64-bit + 1-byte bool
 
 			// Add stats size - 14 doubles per channel, up to 3 channels
 			size_t stats_size = 3 * 14 * sizeof(double); // Stats for up to 3 channels
