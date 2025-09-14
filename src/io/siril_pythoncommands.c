@@ -2231,9 +2231,23 @@ CLEANUP:
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				}
+
+				// Update number of included frames if there is a change
+				gboolean was_incl = com.seq.imgparam[index].incl;
+				if (!was_incl && incl)
+					com.seq.selnum++;
+				else if (was_incl && !incl)
+					com.seq.selnum--;
+
+				// Set inclusion for this frame
 				com.seq.imgparam[index].incl = incl;
-				if (index == com.seq.current && !com.headless)
+
+				// Update GUI
+				if (!com.headless) {
+					GThread *thread = g_thread_new("update_sequence_overlay", update_seq_gui_idle_thread_func, NULL);
+					g_thread_join(thread);
 					queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+				}
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
 				const char* error_msg = _("Incorrect payload length");

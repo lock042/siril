@@ -33,6 +33,7 @@ void set_display_mode();
 void set_unlink_channels(gboolean unlinked);
 void adjust_exclude(int n, gboolean changed);
 void adjust_sellabel();
+gpointer update_seq_gui_idle_thread_func(gpointer data);
 gboolean set_GUI_CWD(gpointer user_data);
 void set_icon_entry(GtkEntry *entry, gchar *string);
 gboolean update_MenuItem(gpointer user_data);

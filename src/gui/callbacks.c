@@ -636,6 +636,21 @@ void adjust_sellabel() {
 	g_free(buffer_title);
 }
 
+static gboolean update_seq_gui_idle(gpointer p) {
+	adjust_sellabel();
+	update_reg_interface(FALSE);
+	update_stack_interface(FALSE);
+	redraw(REDRAW_OVERLAY);
+	drawPlot();
+	writeseqfile(&com.seq);
+	return FALSE;
+}
+
+gpointer update_seq_gui_idle_thread_func(gpointer data) {
+	execute_idle_and_wait_for_it(update_seq_gui_idle, NULL);
+	return FALSE;
+}
+
 void set_icon_entry(GtkEntry *entry, gchar *string) {
 
 	gtk_entry_set_icon_from_icon_name(entry, GTK_ENTRY_ICON_SECONDARY, string);
