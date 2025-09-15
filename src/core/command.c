@@ -8714,7 +8714,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	}
 	// manage reframing and upscale
 	gboolean can_reframe = layer_has_usable_registration(seq, args.reglayer);
-	gboolean can_upscale = can_reframe && !seq->is_variable;
+	gboolean can_upscale = can_reframe && !seq->is_variable && !seq->is_drizzle;
 	gboolean must_reframe = can_reframe && seq->is_variable;
 	args.maximize_framing = arg->maximize_framing;
 	args.upscale_at_stacking = arg->upscale_at_stacking;
@@ -8732,7 +8732,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		return CMD_GENERIC_ERROR;
 	}
 	if (args.upscale_at_stacking && !can_upscale) {
-		siril_log_color_message(_("No registration data in the sequence or images with different sizes. Upscale at stacking will be ignored\n"), "red");
+		siril_log_color_message(_("No registration data in the sequence or images with different sizes or drizzled. Upscale at stacking will be ignored\n"), "red");
 		args.upscale_at_stacking = FALSE;
 	}
 	if ((args.upscale_at_stacking || args.maximize_framing) && arg->method == stack_median) {
