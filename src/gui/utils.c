@@ -369,7 +369,7 @@ void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gc
 	if (add_filter)
 		gtk_file_chooser_add_filter(chooser, filter);
 }
-
+/*
 static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title, const gchar *message) {
 	GtkWidget *dialog;
 	GtkWidget *content_area;
@@ -439,8 +439,9 @@ static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title,
 
 	return dialog;
 }
-
+*/
 // Function to apply limits based on the chosen method
+
 OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
 	switch (method) {
 		case RESPONSE_CLIP:;
@@ -480,7 +481,21 @@ gboolean value_check(fits *fit) {
 	int retval = quick_minmax(fit, &minval, &maxval);
 	if (retval)
 		return TRUE;
-
+	OverrangeResponse result;
+	if (maxval > 10)
+		// All FITS files are scaled to [0,1] on opening, so if we have extreme values at this stage then these are highly likely hot pixels and we should clip
+		result = RESPONSE_CLIP;
+	// Now we know we need a scaling response
+	else if (minval < -0.1)
+		// As above, images are opened in [0,1] so significant negative values are outliers and should be cropped, so
+		result = RESPONSE_RESCALE_CLIPNEG;
+	else
+		// Small negative values may be legitimate as the result of noise, and in this case we should rescale all
+		result = RESPONSE_RESCALE_ALL;
+	result = apply_limits(fit, minval, maxval, result);
+	return result == RESPONSE_CANCEL ? FALSE : TRUE;
+}
+/*
 	if (maxval > 1.0 || minval < 0.0) {
 		gchar *msg = g_strdup_printf(_("This image contains pixel values outside the range 0.0 - 1.0 (min = %.3f, max = %.3f). This can cause unwanted behaviour. Choose how to handle this.\n"), minval, maxval);
 		GtkWidget *dialog = create_overrange_dialog(siril_get_active_window(), _("Warning"), msg);
@@ -497,6 +512,7 @@ gboolean value_check(fits *fit) {
 	}
 	return TRUE;
 }
+*/
 
 GdkRGBA uint32_to_gdk_rgba(uint32_t packed_rgba) {
     GdkRGBA rgba;
