@@ -475,6 +475,11 @@ void set_cutoff_sliders_values() {
 	gtk_toggle_button_set_active(cutmax, gui.cut_over);
 }
 
+gboolean set_cutoff_sliders_values_idle(gpointer p) {
+	set_cutoff_sliders_values();
+	return FALSE;
+}
+
 void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
 	if (!gtk_check_menu_item_get_active(checkmenuitem)) return;
 
@@ -587,6 +592,11 @@ void set_display_mode() {
 
 	gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(button)));
 
+}
+
+gboolean set_display_mode_idle(gpointer user_data) {
+	set_display_mode();
+	return FALSE;
 }
 
 void set_unlink_channels(gboolean unlinked) {
@@ -769,6 +779,12 @@ void sliders_mode_set_state(sliders_mode sliders) {
 	g_signal_handlers_block_by_func(radiobutton, func[sliders], NULL);
 	gtk_toggle_button_set_active(radiobutton, TRUE);
 	g_signal_handlers_unblock_by_func(radiobutton, func[sliders], NULL);
+}
+
+gboolean sliders_mode_set_state_idle(gpointer p) {
+	sliders_mode sliders = *(sliders_mode*) p;
+	sliders_mode_set_state(sliders);
+	return FALSE;
 }
 
 display_mode get_display_mode_from_menu() {

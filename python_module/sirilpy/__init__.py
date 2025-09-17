@@ -68,7 +68,9 @@ from .enums import (
     DistoType,
     PlotType,
     SirilVport,
-    ImageType
+    ImageType,
+    STFType,
+    SlidersMode
 )
 from .models import (
     ImageStats,
@@ -168,6 +170,8 @@ __all__ = [
     'SirilVport',
     'ImageAnalysis',
     'ImageType',
+    'STFType',
+    'SlidersMode',
     '_'
 ]
 

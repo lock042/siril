@@ -2761,6 +2761,256 @@ CLEANUP:
 			break;
 		}
 
+		case CMD_CLEAR_UNDO_HISTORY: {
+			undo_flush();
+			success = send_response(conn, STATUS_OK, NULL, 0);
+			break;
+		}
+
+		case CMD_SET_IMAGE_ICCPROFILE: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for SET_IMAGE_ICCPROFILE: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_set_iccprofile_request(conn, info);
+			}
+			break;
+		}
+
+		case CMD_GET_SLIDER_STATE: {
+			// Prepare the response data
+			uint8_t response_data[8]; // 2 x 2 bytes for lo, hi + 4 for sliders_mode
+
+			// Convert the integers to BE format for consistency across the UNIX socket
+			uint16_t lo_BE = GUINT16_TO_BE(gui.lo);
+			uint16_t hi_BE = GUINT16_TO_BE(gui.hi);
+			uint32_t mode_BE = GUINT32_TO_BE((uint32_t) gui.sliders);
+
+			// Copy the packed data into the response buffer
+			memcpy(response_data, &lo_BE, sizeof(uint16_t));
+			memcpy(response_data + 2, &hi_BE, sizeof(uint16_t));
+			memcpy(response_data + 4, &mode_BE, sizeof(uint32_t));
+
+			// Send success response with dimensions
+			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			break;
+		}
+
+		case CMD_GET_STFMODE: {
+			// Prepare the response data
+			uint8_t response_data[4]; // 4 for STF mode
+
+			// Convert the integers to BE format for consistency across the UNIX socket
+			uint32_t mode_BE = GUINT32_TO_BE((uint32_t) gui.rendering_mode);
+
+			// Copy the packed data into the response buffer
+			memcpy(response_data, &mode_BE, sizeof(uint32_t));
+
+			// Send success response with dimensions
+			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			break;
+		}
+
+		case CMD_SET_STFMODE: {
+			if (com.headless)
+				break; // Ignore this command if we are headless
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
+			if (result) {
+				// Validate payload length - can be 4 (mode only), 8 (lo+hi), or 12 (lo+hi+mode)
+				if (payload_length == 4) {
+					// Mode only
+					guint32 mode_BE = *(guint32*) payload;
+					guint32 mode = GUINT32_FROM_BE(mode_BE);
+					display_mode stf = (display_mode) mode;
+
+					if (mode > DISPLAY_MODE_MAX) {
+						const char* error_msg = _("Failed to set STF - invalid mode value");
+						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+						if (!success)
+							siril_debug_print("Error in send_response\n");
+					} else {
+						// Set STF
+						gui.rendering_mode = stf;
+						execute_idle_and_wait_for_it(set_display_mode_idle, NULL);
+						queue_redraw_and_wait_for_it(REMAP_ALL);
+						success = send_response(conn, STATUS_OK, NULL, 0);
+					}
+				} else {
+					const char* error_msg = _("Failed to set slider state - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				// Handle error - no image loaded
+				const char* error_msg = _("Failed to set slider state - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_GET_PANZOOM: {
+			// Prepare the response data
+			uint8_t response_data[3 * sizeof(double)];
+
+			double x_off = gui.display_offset.x;
+			double y_off = gui.display_offset.y;
+			double zoom = get_zoom_val();
+			TO_BE64_INTO(x_off, x_off, double);
+			TO_BE64_INTO(y_off, y_off, double);
+			TO_BE64_INTO(zoom, zoom, double);
+
+			// Copy the packed data into the response buffer
+			memcpy(response_data, &x_off, sizeof(double));
+			memcpy(response_data + sizeof(double), &y_off, sizeof(double));
+			memcpy(response_data + 2 * sizeof(double), &zoom, sizeof(double));
+
+			// Send success response with dimensions
+			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			break;
+		}
+
+		case CMD_SET_SLIDER_MODE: {
+			if (com.headless)
+				break; // Ignore this command if we are headless
+			gboolean result = single_image_is_loaded();
+			if (result) {
+				// Validate payload length - must be 4
+				if (payload_length == 4) {
+					// Mode only
+					guint32 mode_BE = *(guint32*) payload;
+					guint32 mode = GUINT32_FROM_BE(mode_BE);
+					sliders_mode sliders = (sliders_mode) mode;
+
+					if (mode > USER) {
+						const char* error_msg = _("Failed to set slider state - invalid mode value");
+						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+						if (!success)
+							siril_debug_print("Error in send_response\n");
+					} else {
+						// Set slider mode only
+						execute_idle_and_wait_for_it(sliders_mode_set_state_idle, &sliders);
+						queue_redraw_and_wait_for_it(REMAP_ALL);
+						success = send_response(conn, STATUS_OK, NULL, 0);
+					}
+				} else {
+					const char* error_msg = _("Failed to set slider state - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				// Handle error - no image loaded
+				const char* error_msg = _("Failed to set slider state - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_SET_SLIDER_LOHI: {
+			if (com.headless)
+				break; // Ignore this command if we are headless
+			gboolean result = single_image_is_loaded();
+			if (result) {
+				// Validate payload length - can be 4 (mode only), 8 (lo+hi), or 12 (lo+hi+mode)
+				if (payload_length == 8) {
+					// Mode only
+					guint32* values = (guint32*) payload;
+					guint32 lo = GUINT32_FROM_BE(values[0]);
+					guint32 hi = GUINT32_FROM_BE(values[1]);
+					if (lo >= hi || lo < 0 || hi < 0 || lo > 65535 || hi > 65535) {
+						const char* error_msg = _("Error: invalid slider values");
+						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+						if (!success)
+							siril_debug_print("Error in send_response\n");
+					}  else {
+						sliders_mode sliders = USER; // Setting slider values implies USER mode
+						gui.lo = lo;
+						gui.hi = hi;
+						execute_idle_and_wait_for_it(sliders_mode_set_state_idle, &sliders);
+						execute_idle_and_wait_for_it(set_cutoff_sliders_values_idle, NULL);
+						queue_redraw_and_wait_for_it(REMAP_ALL);
+						success = send_response(conn, STATUS_OK, NULL, 0);
+					}
+				} else {
+					const char* error_msg = _("Failed to set slider values - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				// Handle error - no image loaded
+				const char* error_msg = _("Failed to set slider values - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_SET_PAN: {
+			if (com.headless)
+				break; // Ignore this command if we are headless
+			gboolean result = single_image_is_loaded();
+			if (result) {
+				// Validate payload length
+				if (payload_length == 2 * sizeof(double)) {
+					// Mode only
+					double* values = (double*) payload;
+					double xoff, yoff;
+					TO_BE64_INTO(xoff, values[0], double);
+					TO_BE64_INTO(yoff, values[1], double);
+					gui.display_offset.x = xoff;
+					gui.display_offset.y = yoff;
+					queue_redraw_and_wait_for_it(REDRAW_IMAGE);
+					success = send_response(conn, STATUS_OK, NULL, 0);
+				} else {
+					const char* error_msg = _("Failed to set display offset - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				// Handle error - no image loaded
+				const char* error_msg = _("Failed to set display offset - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_SET_ZOOM: {
+			if (com.headless)
+				break; // Ignore this command if we are headless
+			gboolean result = single_image_is_loaded();
+			if (result) {
+				// Validate payload length
+				if (payload_length == sizeof(double)) {
+					double* values = (double*) payload;
+					double zoom;
+					TO_BE64_INTO(zoom, values[0], double);
+					if (zoom <= 0.0)
+						zoom = ZOOM_FIT;
+					gui.zoom_value = zoom;
+					if (zoom == ZOOM_FIT)
+						reset_display_offset();
+					execute_idle_and_wait_for_it(update_zoom_label_idle, NULL);
+					queue_redraw_and_wait_for_it(REDRAW_IMAGE);
+					success = send_response(conn, STATUS_OK, NULL, 0);
+				} else {
+					const char* error_msg = _("Failed to set display offset - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				// Handle error - no image loaded
+				const char* error_msg = _("Failed to set display offset - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
 		default:
 			siril_debug_print("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");

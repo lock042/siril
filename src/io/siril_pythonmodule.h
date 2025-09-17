@@ -85,6 +85,16 @@ typedef enum {
 	CMD_ANALYSE_IMAGE_FROM_FILE = 68,
 	CMD_UNDO = 69,
 	CMD_REDO = 70,
+	CMD_SET_IMAGE_ICCPROFILE = 71,
+	CMD_CLEAR_UNDO_HISTORY = 72,
+	CMD_GET_SLIDER_STATE = 73,
+	CMD_SET_SLIDER_MODE = 74,
+	CMD_SET_SLIDER_LOHI = 75,
+	CMD_GET_STFMODE = 76,
+	CMD_SET_STFMODE = 77,
+	CMD_GET_PANZOOM = 78,
+	CMD_SET_PAN = 79,
+	CMD_SET_ZOOM = 80,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -194,6 +204,7 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples, gboolean recalculate);
 gboolean handle_set_image_header_request(Connection* conn, const incoming_image_info_t* info);
 gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_info_t* info);
+gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_info_t* info);
 void cleanup_shm_allocation(Connection *conn, const char* shm_name);
 shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 void initialize_python_venv_in_thread();

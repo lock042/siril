@@ -27,7 +27,8 @@ from .exceptions import SirilError, DataError, SirilConnectionError, CommandErro
         ImageDialogOpenError, MouseModeError
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, \
         DistoData, Sequence, SequenceType, Polygon, ImageAnalysis
-from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
+from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport, \
+        STFType, SlidersMode
 from .utility import truncate_utf8, parse_fits_header
 
 DEFAULT_TIMEOUT = 5.
@@ -4648,3 +4649,312 @@ class SirilInterface:
 
         except Exception as e:
             raise SirilError(f"Error in redo(): {e}") from e
+
+    def clear_undo_history(self):
+        """
+        Clears the image undo history, if there is undo history to be cleared
+        """
+
+        try:
+            if self._execute_command(_Command.CLEAR_UNDO_HISTORY, None):
+                return True
+            else:
+                raise SirilError(f"Error in clear_undo_history(): {e}") from e
+
+        except Exception as e:
+            raise SirilError(f"Error in clear_undo_history(): {e}") from e
+
+    def set_image_iccprofile(self, iccprofile: bytes):
+        """
+        Set the image ICC profile in Siril
+
+        Args:
+            iccprofile (bytes): The ICC profile to send to Siril. This will
+            replace an existing ICC profile, if one is set. If None,
+            any existing image ICC profile will be removed.
+
+        Returns: True if the command succeeded, otherwise False
+
+        Raises:
+            NoImageError: if no image is loaded in Siril,
+            ValueError: if iccprofile is not valid type,
+            SirilError: if there was a Siril error in handling the command.
+        """
+        try:
+            if not self.is_image_loaded():
+                raise NoImageError(_("Error in set_image_bgsamples(): no image loaded"))
+
+            if iccprofile is None: # Remove the ICC profile
+                return self.cmd("icc_remove")
+
+            total_bytes = len(iccprofile)
+
+            # Create shared memory using our wrapper
+            try:
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to create shared memory: {}").format(e)) from e
+
+            # Copy serialized data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                buffer[:total_bytes] = iccprofile
+                del buffer
+            except Exception as e:
+                raise SharedMemoryError(f"Failed to copy data to shared memory: {e}") from e
+
+            # Pack the plot info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                0,  # width (not used for ICC profile)
+                0,  # height (not used for ICC profile)
+                0, # not used
+                0, # not used
+                total_bytes,
+                shm_info.shm_name
+            )
+
+            if not self._execute_command(_Command.SET_IMAGE_ICCPROFILE, info):
+                raise SirilError(_("Failed to send set_image_iccprofile() command"))
+            return True
+
+        except (ValueError, SirilError):
+            raise
+        except Exception as e:
+            raise SirilError(f"Error in set_image_iccprofile(): {e}") from e
+        finally:
+            # Ensure shared memory is closed and unlinked
+            if 'shm' in locals() and shm is not None:
+                try:
+                    shm.close()
+                except Exception as e:
+                    pass
+
+    def get_siril_slider_state(self, float_range: Optional[bool] = False) -> Tuple[int, int, 'SlidersMode']:
+
+        """
+        Request the display slider state from Siril.
+
+        Returns:
+            A tuple (min, max, slider mode) representing the current slider state.
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_SLIDER_STATE)
+        if response is None:
+            return None
+
+        try:
+            lo, hi, mode = struct.unpack('!HHI', response)
+            if float_range:
+                lo = lo / 65535.0
+                hi = hi / 65535.0
+            return lo, hi, mode  # Returning as (lo, hi, mode)
+        except struct.error as e:
+            raise SirilError(_("Error occurred in get_siril_slider_state(): {}").format(e)) from e
+
+    def set_siril_slider_mode(self, mode: 'SlidersMode') -> bool:
+        """
+        Set the slider state in Siril using the provided lo, hi and mode values.
+        Args:
+            mode: SlidersMode enum value
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the slider state was set successfully
+        """
+        try:
+            # Check for valid argument combinations
+
+            # Validate that mode is a SlidersMode enum if provided
+            if not isinstance(mode, SlidersMode):
+                raise ValueError("Mode must be a SlidersMode enum value")
+
+            # Pack the values into bytes using network byte order (!)
+            # Format depends on which arguments are provided
+            payload = struct.pack('!I', mode.value)
+            self._execute_command(_Command.SET_SLIDER_STATE, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_siril_slider_state(): {e}") from e
+
+    def set_siril_slider_lohi(self,
+                            lo: Union[float, int] = None,
+                            hi: Union[float, int] = None) -> bool:
+        """
+        Set the slider values in Siril using the provided lo and hi values.
+        If the sliders mode is not already set to USER, it is set to that mode
+        as setting slider values is only relevant in that mode.
+        Args:
+            lo: Low value for the slider (float [0,1] or uint16)
+            hi: High value for the slider (float [0,1] or uint16)
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the slider state was set successfully
+        """
+        try:
+
+            # Convert float values to uint16 if necessary (but pack as uint32)
+            def convert_value(value):
+                if value is None:
+                    return None
+                if isinstance(value, float):
+                    if not 0.0 <= value <= 1.0:
+                        raise ValueError("Float values must be in range [0,1]")
+                    return int(value * 65535)
+                elif isinstance(value, int):
+                    if not 0 <= value <= 65535:
+                        raise ValueError("Integer values must be uint16 (0-65535)")
+                    return value
+                else:
+                    raise ValueError("Values must be float or int")
+
+            converted_lo = convert_value(lo)
+            converted_hi = convert_value(hi)
+
+            # Pack the values into bytes using network byte order (!)
+            # All values packed as 32-bit integers for consistency
+            payload = struct.pack('!II', converted_lo, converted_hi)
+            self._execute_command(_Command.SET_SLIDER_LOHI, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_siril_slider_state(): {e}") from e
+
+    def get_siril_stf(self) -> 'STFType':
+
+        """
+        Request the Screen Transfer Function in use in Siril.
+
+        Returns:
+            An int representing the current STF state. TODO: create an enum for this
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_STFMODE)
+        if response is None:
+            return None
+
+        try:
+            mode = struct.unpack('!I', response)
+            return mode[0]
+        except struct.error as e:
+            raise SirilError(_("Error occurred in get_siril_stf(): {}").format(e)) from e
+
+    def set_siril_stf(self, mode: 'SlidersMode') -> bool:
+        """
+        Set the screen transfer function in Siril using the provided enum value.
+        Args:
+            mode: STFType enum value
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the slider state was set successfully
+        """
+        try:
+            # Check for valid argument combinations
+
+            # Validate that mode is a STFType enum
+            if not isinstance(mode, STFType):
+                raise ValueError("Mode must be a STFType enum value")
+
+            # Pack the values into bytes using network byte order (!)
+            # Format depends on which arguments are provided
+            payload = struct.pack('!I', mode.value)
+            self._execute_command(_Command.SET_STFMODE, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_siril_stftype(): {e}") from e
+
+    def get_siril_panzoom(self) -> Tuple[float, float, float]:
+
+        """
+        Request the pan and zoom state from Siril.
+
+        Returns:
+            A tuple (x offset, y offset, zoomlevel) representing the current image pan and zoom state.
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_PANZOOM)
+        if response is None:
+            return None
+
+        try:
+            x_off, y_off, zoomlevel = struct.unpack('!ddd', response)
+            return x_off, y_off, zoomlevel
+        except struct.error as e:
+            raise SirilError(_("Error occurred in get_siril_slider_state(): {}").format(e)) from e
+
+    def set_siril_pan(self,
+                            xoff: float,
+                            yoff: float) -> bool:
+        """
+        Set the display offset (pan) in Siril to (xoff, yoff).
+        Args:
+            xoff (float): x display offset
+            yoff (float): y display offset
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the display offset was set successfully
+        """
+        try:
+
+            # Pack the values into bytes using network byte order (!)
+            # All values packed as 32-bit integers for consistency
+            payload = struct.pack('!dd', xoff, yoff)
+            self._execute_command(_Command.SET_PAN, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_siril_pan(): {e}") from e
+
+    def set_siril_zoom(self, zoom: float) -> bool:
+        """
+        Set the display zoom. Passing any negative value will set 'zoom to fit'.
+        Args:
+            zoom (float): zoom level
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the display offset was set successfully
+        """
+        try:
+
+            # Pack the values into bytes using network byte order (!)
+            # All values packed as 32-bit integers for consistency
+            payload = struct.pack('!d', zoom)
+            self._execute_command(_Command.SET_ZOOM, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_siril_zoom(): {e}") from e
