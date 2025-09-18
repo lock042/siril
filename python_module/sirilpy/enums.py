@@ -164,6 +164,7 @@ class _Command(IntEnum):
     GET_PANZOOM = 78
     SET_PAN = 79
     SET_ZOOM = 80
+    GET_DISPLAY_ICC_PROFILE = 81
     ERROR = 0xFF
 
 @unique

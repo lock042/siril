@@ -1939,6 +1939,23 @@ CLEANUP:
 			break;
 		}
 
+		case CMD_GET_DISPLAY_ICCPROFILE: {
+			if (com.headless) {
+				const char* error_msg = _("Siril is running headless, no display ICC profile");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Prepare data
+			guint32 profile_size;
+			unsigned char* profile_data = get_icc_profile_data(gui.icc.monitor, &profile_size);
+
+			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
+			break;
+		}
+
 		case CMD_GET_FITS_HEADER: {
 			if (!single_image_is_loaded()) {
 				const char* error_msg = _("No image loaded");

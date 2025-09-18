@@ -1060,7 +1060,7 @@ class SirilInterface:
 
         Example:
             .. code-block:: python
-            
+
                 siril.cmd("ght", "-D=0.5", "-b=2.0")
         """
         try:
@@ -4233,7 +4233,7 @@ class SirilInterface:
         """
         Check if the current instance is running in CLI mode. This method is useful
         to detect how the script was invoked and whether to show or not a GUI.
-        This is False when the script is called by clicking in the Script menu, 
+        This is False when the script is called by clicking in the Script menu,
         True otherwise.
 
         Returns:
@@ -4958,3 +4958,84 @@ class SirilInterface:
             return True
         except Exception as e:
             raise SirilError(f"Error in set_siril_zoom(): {e}") from e
+
+    def get_siril_display_iccprofile(self) -> Optional[bytes]:
+        """
+        Retrieve the Siril display ICC profile.
+
+        Args:
+        none.
+
+        Returns:
+            bytes: The display ICC profile as a byte array, or None
+            if Siril is running in headless mode.
+
+        Raises:
+            NoImageError: If no image is currently loaded,
+            SirilError: If any other error occurs.
+        """
+
+        shm = None
+        try:
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_DISPLAY_ICC_PROFILE)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("Error in get_siril_display_iccprofile(): no image is currently loaded in Siril"))
+                    raise SirilConnectionError(_("Server error: {}").format(error_msg))
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
+
+            if status == _Status.NONE:
+                return None
+
+            if not response:
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
+
+            if len(response) < 280: # Not a correct SharedMemoryInfo payload
+                raise SharedMemoryError(_("Invalid shared memory information received (size < 280 bytes)"))
+            try:
+                # Parse the shared memory information
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise SharedMemoryError(_("Invalid shared memory information received: {}").format(e)) from e
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            try:
+                buffer = bytearray(shm.buf)[:shm_info.size]
+                result = bytes(buffer)
+            except (BufferError, ValueError, TypeError) as e:
+                raise SirilError(_("Failed to create bytes from shared memory: {}").format(e)) from e
+
+            return result
+
+        except SirilError:
+            # Re-raise NoImageError without wrapping
+            raise
+        except Exception as e:
+            # Wrap all other exceptions with context
+            raise SirilError(_("Error in get_siril_display_iccprofile(): {}").format(e)) from e
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass

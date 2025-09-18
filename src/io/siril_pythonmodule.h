@@ -95,6 +95,7 @@ typedef enum {
 	CMD_GET_PANZOOM = 78,
 	CMD_SET_PAN = 79,
 	CMD_SET_ZOOM = 80,
+	CMD_GET_DISPLAY_ICCPROFILE = 81,
 	CMD_ERROR = 0xFF
 } CommandType;
 
