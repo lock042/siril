@@ -3111,28 +3111,6 @@ class SirilInterface:
             raise SirilError(f"Error in get_image(): {e}") from e
 
     def get_seq_frame(self, frame: int, with_pixels: Optional[bool] = True, preview: Optional[bool] = False, linked: Optional[bool] = False) -> Optional[FFit]:
-        """
-        Request sequence frame as a FFit from Siril.
-
-        Args:
-            frame: Integer specifying which frame in the sequence to retrieve data for
-                (between 0 and Sequence.number - 1). This uses a 0-based indexing scheme,
-                i.e. the first frame is frame number 0, not frame numer 1.
-            with_pixels: bool specifying whether or not to return the pixel data for the
-                frame (default is True).
-            preview: bool specifying whether or not to return the real pixel data or an
-                autostretched uint8_t preview version. Only has an effect in
-                conjunction with with_pixels = True
-
-        Returns:
-            FFit object containing the frame data
-
-        Raises:
-            NoSequenceError: if no sequence is loaded in Siril,
-            DataError: on receipt of incorrect data,
-            SirilError: if an error occurs.
-        """
-
         if not self.is_sequence_loaded():
             raise NoSequenceError(_("Error in get_seq_frame(): no sequence is loaded"))
 
@@ -3143,245 +3121,137 @@ class SirilInterface:
             return None
 
         try:
-            # Build format string for struct unpacking
-            # Network byte order for all values
-            FLEN_VALUE = 71  # Standard FITS keyword length
-            format_parts = [
-                # Core FFfit (start at index 0)
-                'q',  # rx padded to 64bit
-                'q',  # ry padded to 64bit
-                'q',  # naxes[2] padded to 64bit
-                'q',  # bitpix padded to 64bit
-                'q',  # orig_bitpix padded to 64bit
-                'Q',  # gboolean checksum padded to 64bit
+            # --- Unpack the core FFit (the fields before the keyword block) ---
+            # define core format parts (these should match fits_to_py / fits_to_py C layout)
+            core_format_parts = [
+                'q',  # rx
+                'q',  # ry
+                'q',  # naxes[2]
+                'q',  # bitpix
+                'q',  # orig_bitpix
+                'Q',  # checksum (padded boolean)
                 'd',  # mini
                 'd',  # maxi
-                'd',  # neg_ratio padded to 64bit
-                'Q',  # gboolean top_down (padded to uint64_t)
-                'Q',  # gboolean focalkey (padded to uint64_t)
-                'Q',  # gboolean pixelkey (padded to uint64_t)
-                'Q',  # gboolean color_managed (padded to uint64_t)
-                # Keywords (start at index 14)
-                f'{FLEN_VALUE}s',  # program
-                f'{FLEN_VALUE}s',  # filename
-                f'{FLEN_VALUE}s',  # row_order
-                f'{FLEN_VALUE}s',  # filter
-                f'{FLEN_VALUE}s',  # image_type
-                f'{FLEN_VALUE}s',  # object
-                f'{FLEN_VALUE}s',  # instrume
-                f'{FLEN_VALUE}s',  # telescop
-                f'{FLEN_VALUE}s',  # observer
-                f'{FLEN_VALUE}s',  # sitelat_str
-                f'{FLEN_VALUE}s',  # sitelong_str
-                f'{FLEN_VALUE}s',  # bayer_pattern
-                f'{FLEN_VALUE}s',  # focname
-                'd',  # bscale
-                'd',  # bzero
-                'Q',  # lo padded to 64bit
-                'Q',  # hi padded to 64bit
-                'd',  # flo padded to 64bit
-                'd',  # fhi padded to 64bit
-                'd',  # data_max
-                'd',  # data_min
-                'd',  # pixel_size_x
-                'd',  # pixel_size_y
-                'Q',  # binning_x (padded to uint64_t)
-                'Q',  # binning_y (padded to uint64_t)
-                'd',  # expstart
-                'd',  # expend
-                'd',  # centalt
-                'd',  # centaz
-                'd',  # sitelat
-                'd',  # sitelong
-                'd',  # siteelev
-                'q',  # bayer_xoffset
-                'q',  # bayer_yoffset
-                'd',  # airmass
-                'd',  # focal_length
-                'd',  # flength
-                'd',  # iso_speed
-                'd',  # exposure
-                'd',  # aperture
-                'd',  # ccd_temp
-                'd',  # set_temp
-                'd',  # livetime
-                'Q',  # stackcnt
-                'd',  # cvf
-                'q',  # key_gain
-                'q',  # key_offset
-                'q',  # focuspos
-                'q',  # focussz
-                'd',  # foctemp
-                'q',  # date (int64 unix timestamp)
-                'q'  # date_obs (int64 unix timestamp)
+                'd',  # neg_ratio
+                'Q',  # top_down
+                'Q',  # focalkey
+                'Q',  # pixelkey
+                'Q',  # color_managed
             ]
-            if with_pixels:
-                # Starts at index 65
-                format_parts.extend([
-                    'Q',  # size (size_t)
-                    'i',  # data_type
-                    'i',  # width
-                    'i',  # height
-                    'i',  # channels
-                    '256s'  # shm_name (char[256])
-                ])
+            core_format = '!' + ''.join(core_format_parts)
+            core_size = struct.calcsize(core_format)
 
-            format_string = '!' + ''.join(format_parts)
+            # Make sure response at least contains core + keywords
+            if len(response) < core_size + FKeywords.KEYWORDS_SIZE:
+                raise DataError(
+                    f"Received image data size {len(response)} doesn't match minimum expected size {core_size + FKeywords.KEYWORDS_SIZE}"
+                )
 
-            # Verify data size
-            expected_size = struct.calcsize(format_string)
-            if len(response) != expected_size:
-                raise DataError(f"Received image data size {len(response)} doesn't match expected size {expected_size}")
+            # Unpack core part
+            core_vals = struct.unpack_from(core_format, response, 0)
 
-            # Unpack the binary data
-            values = struct.unpack(format_string, response)
+            # Extract keyword block bytes and deserialize them
+            kw_offset = core_size
+            kw_bytes = response[kw_offset: kw_offset + FKeywords.KEYWORDS_SIZE]
+            fits_keywords = FKeywords.deserialize(kw_bytes)
 
-            # Helper function to decode and strip null-terminated strings
-            def decode_string(s: bytes) -> str:
-                return s.decode('utf-8').rstrip('\x00')
+            # After keywords comes optional shared-memory info block (if with_pixels)
+            shminfo_offset = kw_offset + FKeywords.KEYWORDS_SIZE
 
-            # Helper function to convert timestamp to datetime
-            def timestamp_to_datetime(timestamp: int) -> Optional[datetime]:
-                return datetime.fromtimestamp(timestamp) if timestamp != 0 else None
-
-            # Create FFit object:
-            # Get pixeldata if requested
             pixeldata = None
+            shm_info = None
+
             if with_pixels:
-                try:
-                    shm_info = _SharedMemoryInfo(
-                        size = values[65],
-                        data_type = values[66],
-                        width = values[67],
-                        height = values[68],
-                        channels = values[69],
-                        shm_name = values[70]
+                # shared_memory_info_t on C side is (size_t -> Q), data_type (uint32 -> i),
+                # width (uint32 -> i), height (uint32 -> i), channels (uint32 -> i),
+                # shm_name char[256]
+                shminfo_format = '!Qi i i i256s'.replace(' ', '')  # just to be explicit
+                # We build explicit format string:
+                shminfo_format = '!Qiiii256s'
+                shminfo_size = struct.calcsize(shminfo_format)
+
+                # Validate total response size
+                expected_total = core_size + FKeywords.KEYWORDS_SIZE + shminfo_size
+                if len(response) != expected_total:
+                    raise DataError(
+                        f"Received image data size {len(response)} doesn't match expected size {expected_total}"
                     )
-                    # Validate dimensions
-                    if any(dim <= 0 for dim in (shm_info.width, shm_info.height)):
-                        raise DataError(_("Invalid image dimensions: {}x{}").format(shm_info.width, shm_info.height))
 
-                    if shm_info.channels <= 0 or shm_info.channels > 3:
-                        raise DataError(_("Invalid number of channels: {}").format(shm_info.channels))
+                # Unpack shared memory info
+                (size_be, data_type_be, width_be, height_be, channels_be, shm_name_bytes) = struct.unpack_from(shminfo_format, response, shminfo_offset)
 
-                    # Map the shared memory
-                    try:
-                        shm = self._map_shared_memory(
-                            shm_info.shm_name.decode('utf-8'),
-                            shm_info.size
-                        )
-                    except (OSError, ValueError) as e:
-                        raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+                # Convert back network -> host order for 32bit fields if needed:
+                # struct.unpack_from with '!' already converted to native Python ints,
+                # so the names are directly usable. Keep them as-is:
+                shm_info = _SharedMemoryInfo(
+                    size = size_be,
+                    data_type = data_type_be,
+                    width = width_be,
+                    height = height_be,
+                    channels = channels_be,
+                    shm_name = shm_name_bytes
+                )
 
-                    buffer = bytearray(shm.buf)[:shm_info.size]
-                    # Create numpy array from shared memory
-                    if preview:
-                        dtype = np.uint8
+                # Validate dims
+                if any(dim <= 0 for dim in (shm_info.width, shm_info.height)):
+                    raise DataError(_("Invalid image dimensions: {}x{}").format(shm_info.width, shm_info.height))
+
+                if shm_info.channels <= 0 or shm_info.channels > 3:
+                    raise DataError(_("Invalid number of channels: {}").format(shm_info.channels))
+
+                # Map shared memory and build numpy array
+                try:
+                    shm = self._map_shared_memory(shm_info.shm_name.decode('utf-8').rstrip('\x00'), shm_info.size)
+                except (OSError, ValueError) as e:
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+                buffer = bytearray(shm.buf)[:shm_info.size]
+
+                if preview:
+                    dtype = np.uint8
+                else:
+                    dtype = np.float32 if shm_info.data_type == 1 else np.uint16
+
+                try:
+                    arr = np.frombuffer(buffer, dtype=dtype)
+                except (BufferError, ValueError, TypeError) as e:
+                    raise SharedMemoryError(_("Failed to create array from shared memory: {}").format(e)) from e
+
+                expected_elems = shm_info.width * shm_info.height * shm_info.channels
+                if arr.size < expected_elems:
+                    raise DataError(
+                        f"Data size mismatch: got {arr.size} elements, expected {expected_elems} for dimensions {shm_info.width}x{shm_info.height}x{shm_info.channels}"
+                    )
+
+                try:
+                    if shm_info.channels > 1:
+                        arr = arr.reshape((shm_info.channels, shm_info.height, shm_info.width))
                     else:
-                        dtype = np.float32 if shm_info.data_type == 1 else np.uint16
-                    try:
-                        arr = np.frombuffer(buffer, dtype=dtype)
-                    except (BufferError, ValueError, TypeError) as e:
-                        raise SharedMemoryError(_("Failed to create array from shared memory: {}").format(e)) from e
+                        arr = arr.reshape((shm_info.height, shm_info.width))
+                except ValueError as e:
+                    raise DataError(_("Error in get_seq_frame(): Failed to reshape array to image dimensions: {}").format(e)) from e
 
-                    # Validate array size matches expected dimensions
-                    expected_size = shm_info.width * shm_info.height * shm_info.channels
-                    if arr.size < expected_size:
-                        raise DataError(
-                            f"Data size mismatch: got {arr.size} elements, "
-                            f"expected {expected_size} for dimensions "
-                            f"{shm_info.width}x{shm_info.height}x{shm_info.channels}"
-                        )
+                pixeldata = np.copy(arr)
 
-                    # Reshape the array according to the image dimensions
-                    try:
-                        if shm_info.channels > 1:
-                            arr = arr.reshape((shm_info.channels, shm_info.height, shm_info.width))
-                        else:
-                            arr = arr.reshape((shm_info.height, shm_info.width))
-                    except ValueError as e:
-                        raise DataError(_("Error in get_seq_frame(): Failed to reshape array to image dimensions: {}").format(e)) from e
-
-                    # Make a copy of the data since we'll be releasing the shared memory
-                    pixeldata = np.copy(arr)
-
-                except SirilError:
-                    raise
-                except Exception as e:
-                    raise SirilError(f"Error obtaining pixeldata: {e}") from e
-
-            fits_keywords = FKeywords(
-                program=decode_string(values[13]),
-                filename=decode_string(values[14]),
-                row_order=decode_string(values[15]),
-                filter=decode_string(values[16]),
-                image_type=decode_string(values[17]),
-                object=decode_string(values[18]),
-                instrume=decode_string(values[19]),
-                telescop=decode_string(values[20]),
-                observer=decode_string(values[21]),
-                sitelat_str=decode_string(values[22]),
-                sitelong_str=decode_string(values[23]),
-                bayer_pattern=decode_string(values[24]),
-                focname=decode_string(values[25]),
-                bscale=values[26],
-                bzero=values[27],
-                lo=values[28],
-                hi=values[29],
-                flo=values[30],
-                fhi=values[31],
-                data_max=values[32],
-                data_min=values[33],
-                pixel_size_x=values[34],
-                pixel_size_y=values[35],
-                binning_x=values[36],
-                binning_y=values[37],
-                expstart=values[38],
-                expend=values[39],
-                centalt=values[40],
-                centaz=values[41],
-                sitelat=values[42],
-                sitelong=values[43],
-                siteelev=values[44],
-                bayer_xoffset=values[45],
-                bayer_yoffset=values[46],
-                airmass=values[47],
-                focal_length=values[48],
-                flength=values[49],
-                iso_speed=values[50],
-                exposure=values[51],
-                aperture=values[52],
-                ccd_temp=values[53],
-                set_temp=values[54],
-                livetime=values[55],
-                stackcnt=values[56],
-                cvf=values[57],
-                gain=values[58],
-                offset=values[59],
-                focuspos=values[60],
-                focussz=values[61],
-                foctemp=values[62],
-                date=timestamp_to_datetime(values[63]),
-                date_obs=timestamp_to_datetime(values[64])
-            )
+            # Build FFit object using core_vals and fits_keywords
             fit = FFit(
-                _naxes = (values[0], values[1], values[2]),
-                naxis = 2 if values[2] == 1 else 3,
-                bitpix=values[3],
-                orig_bitpix=values[4],
-                checksum=bool(values[5]),
-                mini=values[6],
-                maxi=values[7],
-                neg_ratio=values[8],
-                top_down=bool(values[9]),
-                _focalkey=bool(values[10]),
-                _pixelkey=bool(values[11]),
-                color_managed=bool(values[12]),
+                _naxes = (core_vals[0], core_vals[1], core_vals[2]),
+                naxis = 2 if core_vals[2] == 1 else 3,
+                bitpix = core_vals[3],
+                orig_bitpix = core_vals[4],
+                checksum = bool(core_vals[5]),
+                mini = core_vals[6],
+                maxi = core_vals[7],
+                neg_ratio = core_vals[8],
+                top_down = bool(core_vals[9]),
+                _focalkey = bool(core_vals[10]),
+                _pixelkey = bool(core_vals[11]),
+                color_managed = bool(core_vals[12]),
                 _data = pixeldata,
-                stats=[
+                stats = [
                     self.get_seq_stats(frame, 0),
-                    self.get_seq_stats(frame, 1) if values[2] > 1 else None,
-                    self.get_seq_stats(frame, 2) if values[2] > 1 else None,
+                    self.get_seq_stats(frame, 1) if core_vals[2] > 1 else None,
+                    self.get_seq_stats(frame, 2) if core_vals[2] > 1 else None,
                 ],
                 keywords = fits_keywords,
                 _icc_profile = None,
@@ -3397,13 +3267,9 @@ class SirilInterface:
         finally:
             if shm is not None:
                 try:
-                    shm.close()  # First close the memory mapping as we have finished with it
-                    # (We don't unlink it as C wll do that)
-
-                    # Signal that Python is done with the shared memory and wait for C to finish
+                    shm.close()
                     if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SirilError(_("Failed to cleanup shared memory"))
-
                 except Exception:
                     pass
 
