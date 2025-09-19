@@ -2567,10 +2567,8 @@ CLEANUP:
 			size_t stats_size = 3 * 14 * sizeof(double); // Stats for up to 3 channels
 
 			size_t total_size = ffit_size + strings_size + numeric_size + stats_size;
-			if (with_pixels) {
-				size_t shminfo_size = sizeof(shared_memory_info_t);
-				total_size += shminfo_size;
-			}
+			size_t shminfo_size = sizeof(shared_memory_info_t);
+			total_size += shminfo_size * 3; // pixels, header, icc_profile
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			if (!response_buffer) {
 				const char* error_message = _("Memory allocation error: response buffer");
@@ -2626,7 +2624,7 @@ CLEANUP:
 				ptr += 14 * sizeof(double);
 			}
 
-			if (with_pixels) {
+			if (with_pixels) { // Add pixeldata as a shm region (if requested)
 				rectangle region = (rectangle) {0, 0, fit->rx, fit->ry};
 				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview, linked);
 				if (!info) {
@@ -2643,6 +2641,46 @@ CLEANUP:
 				memcpy(ptr, info, sizeof(shared_memory_info_t));
 				free(info);
 			}
+			ptr += sizeof(shared_memory_info_t);
+
+			// Add header here as another shm region (always)
+			guint32 headerlength = strlen(fit->header) + 1;
+			shared_memory_info_t *headerinfo = handle_rawdata_request(conn, fit->header, headerlength);
+			if (!headerinfo) {
+				const char* error_message = _("Shared memory allocation error");
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+				goto CLEANUP_FILE;
+			}
+			// Convert the values to BE
+			TO_BE64_INTO(headerinfo->size, headerinfo->size, size_t);
+			headerinfo->data_type = GUINT32_TO_BE(headerinfo->data_type);
+			headerinfo->width = GUINT32_TO_BE(headerinfo->width);
+			headerinfo->height = GUINT32_TO_BE(headerinfo->height);
+			headerinfo->channels = GUINT32_TO_BE(headerinfo->channels);
+			memcpy(ptr, headerinfo, sizeof(shared_memory_info_t));
+			free(headerinfo);
+			ptr += sizeof(shared_memory_info_t);
+
+			// Add icc profile here as another shm (if there is an ICC profile)
+			if (fit->icc_profile) {
+				guint32 profile_size;
+				unsigned char* profile_data = get_icc_profile_data(fit->icc_profile, &profile_size);
+				shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
+				if (!info) {
+					const char* error_message = _("Shared memory allocation error");
+					success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+					goto CLEANUP_FILE;
+				}
+				// Convert the values to BE
+				TO_BE64_INTO(info->size, info->size, size_t);
+				info->data_type = GUINT32_TO_BE(info->data_type);
+				info->width = GUINT32_TO_BE(info->width);
+				info->height = GUINT32_TO_BE(info->height);
+				info->channels = GUINT32_TO_BE(info->channels);
+				memcpy(ptr, info, sizeof(shared_memory_info_t));
+				free(info);
+			}
+
 			success = send_response(conn, STATUS_OK, response_buffer, total_size);
 		CLEANUP_FILE:
 			g_free(response_buffer);
@@ -2650,6 +2688,7 @@ CLEANUP:
 			free(fit);
 			break;
 		}
+
 		case CMD_ANALYSE_IMAGE_FROM_FILE: {
 			if (payload_length < 1) {
 				const char* error_msg = _("Incorrect command argument");
