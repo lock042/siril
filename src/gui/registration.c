@@ -1143,10 +1143,9 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	as we need to make a more complex calc for frame sizes accounting for framing method
 	*/
 	if (has_output_images && regindex != REG_APPLY) {
-		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
-		gint64 size = seq_compute_size(regargs->seq, nb_frames, get_data_type(regargs->seq->bitpix));
-		if (regargs->output_scale != 1.f)
-			size = (int64_t)(regargs->output_scale * regargs->output_scale * (float)size);
+		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+		gint64 size = compute_registration_output_size(regargs, rx, ry, 1.);
 		if (test_available_space(size)) {
 			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			return 1;

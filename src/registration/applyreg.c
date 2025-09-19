@@ -1347,18 +1347,7 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 		return FALSE;
 	}
 
-	int nb_frames = regargs->seq->selnum;
-	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
-	int64_t size = (int64_t) regargs->framingd.roi_out.w * regargs->framingd.roi_out.h * regargs->seq->nb_layers;
-	if (regargs->seq->type == SEQ_SER) {
-		size *= regargs->seq->ser_file->byte_pixel_depth;
-		size *= nb_frames;
-		size += SER_HEADER_LEN;
-	} else {
-		size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
-		size += FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size
-		size *= nb_frames;
-	}
+	int64_t size = compute_registration_output_size(regargs, regargs->framingd.roi_out.w, regargs->framingd.roi_out.h, 1.);
 	gchar* size_msg = g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS);
 	siril_debug_print("Apply Registration: sequence out size: %s\n", size_msg);
 	g_free(size_msg);

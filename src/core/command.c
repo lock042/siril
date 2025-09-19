@@ -8061,10 +8061,9 @@ int process_register(int nb) {
 
 	// testing free space
 	if (!regargs->no_output) {
-		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
-		int64_t size = seq_compute_size(regargs->seq, nb_frames, get_data_type(seq->bitpix));
-		if (regargs->output_scale != 1.f)
-			size = (int64_t)(regargs->output_scale * regargs->output_scale * (float)size);
+		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+		gint64 size = compute_registration_output_size(regargs, rx, ry, 1.);
 		if (test_available_space(size)) {
 			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			goto terminate_register_on_error;

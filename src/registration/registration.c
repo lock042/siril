@@ -371,3 +371,38 @@ struct registration_method *new_reg_method(const char *name, registration_functi
 	reg->type = t;
 	return reg;
 }
+
+int64_t compute_registration_output_size(struct registration_args *regargs, int w_out, int h_out, float scale) {
+	if (!regargs || w_out == 0 || h_out == 0 || scale == 0) {
+		return -1;
+	}
+	int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
+	// image_size including scale
+	// for applyreg, we pass already upscaled sizes so scale is forced to 1.
+	int64_t im_size = (int64_t)w_out * h_out * scale * scale;
+	// nblayers
+	int output_nb_layers = regargs->seq->nb_layers;
+	if (regargs->driz && regargs->driz->is_bayer)
+		output_nb_layers = 3;
+	im_size *= output_nb_layers;
+
+	int64_t output_depth = 0;
+	int64_t header_size = 0;
+	int64_t size = 0;
+	if (regargs->seq->type == SEQ_SER) {
+		output_depth = (regargs->seq->ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? sizeof(BYTE) : sizeof(WORD);
+		header_size += SER_HEADER_LEN;
+	} else {
+		output_depth = (com.pref.force_16bit) ? sizeof(WORD) : sizeof(float);
+		header_size = nb_frames *  FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size for nb_frames images
+	}
+	size = im_size * output_depth * nb_frames + header_size;
+	if (regargs->driz) {
+		if (com.pref.drizz_weight_match_bitpix) {
+			size += im_size * output_depth * nb_frames + nb_frames *  FITS_DOUBLE_BLOC_SIZE;
+		} else {
+			size += im_size * sizeof(BYTE) * nb_frames + nb_frames *  FITS_DOUBLE_BLOC_SIZE;
+		}
+	}
+	return size;
+}
