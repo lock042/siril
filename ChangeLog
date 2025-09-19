@@ -33,6 +33,7 @@ xx/xx/xx
 * Added SirilInterface.analyse_image_from_file(), SirilInterface.undo() and SirilInterface.redo()
 * Approved use of PyQt6 for creating python script GUIs (now confident it is problem free on all target OSes)
 * Added some plate solution-related keywords to FKeywords sirilpy class. (#1779)
+* Replaced the confusing clip/rescale popup with a heuristic that generally does the right thing. (!931)
 
 siril 1.4.0-beta3
 07/11/25
