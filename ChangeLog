@@ -20,7 +20,8 @@ xx/xx/xx
 * Fixed issues identifed by static analysis (MR tbc)
 * Fixed issue with findstar command when running from a python script (#1782)
 * Fixed issue with auto-applying ICC profiles in stretch tools if nothing is done (reverts correctly) (#1768)
-* Fix issue in SPCC where it would complain about missing OSC BB filter when in NB mode
+* Fixed issue in SPCC where it would complain about missing OSC BB filter when in NB mode
+* Fixed drizzle calculations by exporting weight files during registration and using them for stacking (!882)
 
 **Improvements:**
 * Compiled .pyc scripts are now only shown in the scripts menu if their magic number matches the available intepreter
