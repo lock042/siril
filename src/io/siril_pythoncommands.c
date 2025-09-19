@@ -2518,7 +2518,7 @@ CLEANUP:
 			gboolean with_pixels = TRUE;
 			gboolean as_preview = FALSE;
 			gboolean linked = FALSE;
-			if (payload_length < 2) {
+			if (payload_length < 3) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -2650,7 +2650,6 @@ CLEANUP:
 			free(fit);
 			break;
 		}
-
 		case CMD_ANALYSE_IMAGE_FROM_FILE: {
 			if (payload_length < 1) {
 				const char* error_msg = _("Incorrect command argument");
@@ -2969,7 +2968,6 @@ CLEANUP:
 						if (!success)
 							siril_debug_print("Error in send_response\n");
 					}  else {
-						sliders_mode sliders = USER; // Setting slider values implies USER mode
 						gui.lo = lo;
 						gui.hi = hi;
 						execute_idle_and_wait_for_it(set_cutoff_sliders_values_idle, NULL);

@@ -4269,9 +4269,8 @@ class SirilInterface:
             preview: bool specifying whether or not to return the real pixel data or an
                 autostretched uint8_t preview version. Only has an effect in
                 conjunction with with_pixels = True
-            linked: bool specifying whether the autostretch preview returned by the preview
-                    option should be linked or not. Ignored if preview == False.
-
+            linked: bool specifying if the autostretch preview is linked or not. Ignored
+                    if preview is False
         Returns:
             FFit object containing the image data
 
@@ -4329,6 +4328,9 @@ class SirilInterface:
                 f'{FLEN_VALUE}s',  # sitelong_str
                 f'{FLEN_VALUE}s',  # bayer_pattern
                 f'{FLEN_VALUE}s',  # focname
+                f'{FLEN_VALUE}s',  # objctra (RA as a string)
+                f'{FLEN_VALUE}s',  # objctdec (Dec as a string)
+                f'{FLEN_VALUE}s',  # pltsolvd_comment
                 'd',  # bscale
                 'd',  # bzero
                 'Q',  # lo padded to 64bit
@@ -4367,7 +4369,10 @@ class SirilInterface:
                 'q',  # focussz
                 'd',  # foctemp
                 'q',  # date (int64 unix timestamp)
-                'q'  # date_obs (int64 unix timestamp)
+                'q',  # date_obs (int64 unix timestamp)
+                'd',  # Right Ascension
+                'd',  # Declination
+                '?'   # pltsolvd
             ]
 
             # Add stats for 3 channels (14 doubles each)
@@ -4405,7 +4410,7 @@ class SirilInterface:
 
             # Extract stats data (starts at index 65)
             stats = [None, None, None]
-            stats_start_idx = 65
+            stats_start_idx = 71
             for channel in range(3):
                 start_idx = stats_start_idx + (channel * 14)
                 # Check if this channel has valid stats (non-zero values)
@@ -4510,45 +4515,51 @@ class SirilInterface:
                 sitelong_str=decode_string(values[23]),
                 bayer_pattern=decode_string(values[24]),
                 focname=decode_string(values[25]),
-                bscale=values[26],
-                bzero=values[27],
-                lo=values[28],
-                hi=values[29],
-                flo=values[30],
-                fhi=values[31],
-                data_max=values[32],
-                data_min=values[33],
-                pixel_size_x=values[34],
-                pixel_size_y=values[35],
-                binning_x=values[36],
-                binning_y=values[37],
-                expstart=values[38],
-                expend=values[39],
-                centalt=values[40],
-                centaz=values[41],
-                sitelat=values[42],
-                sitelong=values[43],
-                siteelev=values[44],
-                bayer_xoffset=values[45],
-                bayer_yoffset=values[46],
-                airmass=values[47],
-                focal_length=values[48],
-                flength=values[49],
-                iso_speed=values[50],
-                exposure=values[51],
-                aperture=values[52],
-                ccd_temp=values[53],
-                set_temp=values[54],
-                livetime=values[55],
-                stackcnt=values[56],
-                cvf=values[57],
-                gain=values[58],
-                offset=values[59],
-                focuspos=values[60],
-                focussz=values[61],
-                foctemp=values[62],
-                date=timestamp_to_datetime(values[63]),
-                date_obs=timestamp_to_datetime(values[64])
+                objctra=decode_string(values[26]),
+                objctdec=decode_string(values[27]),
+                pltsolvd_comment=decode_string(values[28]),
+                bscale=values[29],
+                bzero=values[30],
+                lo=values[31],
+                hi=values[32],
+                flo=values[33],
+                fhi=values[34],
+                data_max=values[35],
+                data_min=values[36],
+                pixel_size_x=values[37],
+                pixel_size_y=values[38],
+                binning_x=values[39],
+                binning_y=values[40],
+                expstart=values[41],
+                expend=values[42],
+                centalt=values[43],
+                centaz=values[44],
+                sitelat=values[45],
+                sitelong=values[46],
+                siteelev=values[47],
+                bayer_xoffset=values[48],
+                bayer_yoffset=values[49],
+                airmass=values[50],
+                focal_length=values[51],
+                flength=values[52],
+                iso_speed=values[53],
+                exposure=values[54],
+                aperture=values[55],
+                ccd_temp=values[56],
+                set_temp=values[57],
+                livetime=values[58],
+                stackcnt=values[59],
+                cvf=values[60],
+                gain=values[61],
+                offset=values[62],
+                focuspos=values[63],
+                focussz=values[64],
+                foctemp=values[65],
+                date=timestamp_to_datetime(values[66]),
+                date_obs=timestamp_to_datetime(values[67]),
+                ra=values[68],
+                dec=values[69],
+                pltsolvd=values[70]
             )
 
             fit = FFit(
