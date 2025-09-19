@@ -26,6 +26,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
@@ -330,7 +331,7 @@ void cleanup_shm_resources(Connection *conn) {
 
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
-shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview) {
+shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview, gboolean linked) {
 	if (!fit || (fit->type == DATA_USHORT && !fit->data) || (fit->type == DATA_FLOAT && !fit->fdata)) {
 		const char* error_msg = _("Failed to retrieve pixel data - no FITS image");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
@@ -383,9 +384,16 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 	if (as_preview) {
 		fits stretched = {0};
 		copyfits(fit, &stretched, CP_ALLOC | CP_FORMAT, -1);
-		struct mtf_params params[3];
-		find_unlinked_midtones_balance(fit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, params);
-		apply_unlinked_mtf_to_fits(fit, &stretched, params);
+		if (linked) {
+			struct mtf_params params;
+			find_linked_midtones_balance_default(fit, &params);
+			params.do_red = params.do_green = params.do_blue = TRUE;
+			apply_linked_mtf_to_fits(fit, &stretched, params, TRUE);
+		} else {
+			struct mtf_params params[3];
+			find_unlinked_midtones_balance_default(fit, params);
+			apply_unlinked_mtf_to_fits(fit, &stretched, params);
+		}
 		// Copy data from gfit to shared memory
 		int top = region.y + region.h;
 		int right = region.x + region.w;
@@ -961,6 +969,60 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 	update_fits_header(&gfit);
 
 	gui_function(update_MenuItem, NULL);
+
+	// Cleanup shared memory
+	#ifdef _WIN32
+	UnmapViewOfFile(shm_ptr);
+	CloseHandle(win_handle.mapping);
+	#else
+	munmap(shm_ptr, info->size);
+	close(fd);
+	#endif
+
+	return send_response(conn, STATUS_OK, NULL, 0);
+}
+
+gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_info_t* info) {
+	// Open shared memory
+	void* shm_ptr = NULL;
+	#ifdef _WIN32
+	win_shm_handle_t win_handle = {NULL, NULL};
+	HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
+	if (mapping == NULL) {
+		const char* error_msg = "Failed to open shared memory mapping";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
+	if (shm_ptr == NULL) {
+		CloseHandle(mapping);
+		const char* error_msg = "Failed to map shared memory view";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	win_handle.mapping = mapping;
+	win_handle.ptr = shm_ptr;
+	#else
+	int fd = shm_open(info->shm_name, O_RDONLY, 0);
+	if (fd == -1) {
+		const char* error_msg = _("Failed to open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
+	if (shm_ptr == MAP_FAILED) {
+		close(fd);
+		const char* error_msg = _("Failed to map shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	#endif
+	if (!shm_ptr) {
+		const char* error_msg = _("Error: could not open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// convert the bytes into a cmsPROFILE
+	if (gfit.icc_profile)
+		cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = cmsOpenProfileFromMem(shm_ptr, info->size);
+	color_manage(&gfit, TRUE);
 
 	// Cleanup shared memory
 	#ifdef _WIN32

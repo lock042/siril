@@ -27,7 +27,8 @@ from .exceptions import SirilError, DataError, SirilConnectionError, CommandErro
         ImageDialogOpenError, MouseModeError
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, \
         DistoData, Sequence, SequenceType, Polygon, ImageAnalysis
-from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport
+from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport, \
+        STFType, SlidersMode
 from .utility import truncate_utf8, parse_fits_header
 
 DEFAULT_TIMEOUT = 5.
@@ -1059,7 +1060,7 @@ class SirilInterface:
 
         Example:
             .. code-block:: python
-            
+
                 siril.cmd("ght", "-D=0.5", "-b=2.0")
         """
         try:
@@ -1483,7 +1484,7 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(_("Error in radec2pix(): {e}")) from e
 
-    def get_image_pixeldata(self, shape: Optional[list[int]] = None, preview: Optional[bool] = False) -> Optional[np.ndarray]:
+    def get_image_pixeldata(self, shape: Optional[list[int]] = None, preview: Optional[bool] = False, linked: Optional[bool] = False) -> Optional[np.ndarray]:
 
         """
         Retrieves the pixel data from the image currently loaded in Siril.
@@ -1495,6 +1496,9 @@ class SirilInterface:
             preview: optional bool specifying whether to get pixeldata as a preview
                      (i.e. 8-bit autostretched data) or as real image data. Defaults
                      to False (i.e. real image data)
+            linked: optional bool specifying whether the autostretch preview should
+                    be linked or unlinked. If preview == False then this option is
+                    ignored.
 
         Returns:
             numpy.ndarray: The image data as a numpy array
@@ -1508,7 +1512,7 @@ class SirilInterface:
 
         shm = None
         try:
-            preview_data = struct.pack('!?', preview)
+            preview_data = struct.pack('!??', preview, linked)
             # Validate shape if provided
             if shape is not None:
                 if len(shape) != 4:
@@ -1617,7 +1621,8 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_seq_frame_pixeldata(self, frame: int, shape: Optional[List[int]] = None, preview: Optional[bool] = False) -> Optional[np.ndarray]:
+    def get_seq_frame_pixeldata(self, frame: int, shape: Optional[List[int]] = None,
+                                preview: Optional[bool] = False, linked: Optional[bool] = False) -> Optional[np.ndarray]:
 
         """
         Retrieves the pixel data from a frame in the sequence currently loaded in Siril.
@@ -1632,6 +1637,8 @@ class SirilInterface:
             preview: optional bool specifying whether to get pixeldata as a preview
                 (i.e. 8-bit autostretched data) or as real image data. Defaults
                 to False (i.e. real image data).
+            linked: optional bool specifying whether the autostretched preview should
+                    be linked or unlinked. This option is ignored if preview is not True
 
         Returns:
             numpy.ndarray: The image data as a numpy array
@@ -1646,7 +1653,7 @@ class SirilInterface:
         # Convert channel number to network byte order bytes
 
         try:
-            preview_payload = struct.pack('!?', preview)
+            preview_payload = struct.pack('!??', preview, linked)
             frame_payload = struct.pack('!I', frame)
             # Validate shape if provided
             if shape is not None:
@@ -3103,278 +3110,148 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(f"Error in get_image(): {e}") from e
 
-    def get_seq_frame(self, frame: int, with_pixels: Optional[bool] = True, preview: Optional[bool] = False) -> Optional[FFit]:
-        """
-        Request sequence frame as a FFit from Siril.
-
-        Args:
-            frame: Integer specifying which frame in the sequence to retrieve data for
-                (between 0 and Sequence.number - 1). This uses a 0-based indexing scheme,
-                i.e. the first frame is frame number 0, not frame numer 1.
-            with_pixels: bool specifying whether or not to return the pixel data for the
-                frame (default is True).
-            preview: bool specifying whether or not to return the real pixel data or an
-                autostretched uint8_t preview version. Only has an effect in
-                conjunction with with_pixels = True
-
-        Returns:
-            FFit object containing the frame data
-
-        Raises:
-            NoSequenceError: if no sequence is loaded in Siril,
-            DataError: on receipt of incorrect data,
-            SirilError: if an error occurs.
-        """
-
+    def get_seq_frame(self, frame: int, with_pixels: Optional[bool] = True, preview: Optional[bool] = False, linked: Optional[bool] = False) -> Optional[FFit]:
         if not self.is_sequence_loaded():
             raise NoSequenceError(_("Error in get_seq_frame(): no sequence is loaded"))
 
         shm = None
-        data_payload = struct.pack('!I??', frame, with_pixels, preview)
+        data_payload = struct.pack('!I???', frame, with_pixels, preview, linked)
         response = self._request_data(_Command.GET_SEQ_IMAGE, data_payload, timeout = None)
         if response is None:
             return None
 
         try:
-            # Build format string for struct unpacking
-            # Network byte order for all values
-            FLEN_VALUE = 71  # Standard FITS keyword length
-            format_parts = [
-                # Core FFfit (start at index 0)
-                'q',  # rx padded to 64bit
-                'q',  # ry padded to 64bit
-                'q',  # naxes[2] padded to 64bit
-                'q',  # bitpix padded to 64bit
-                'q',  # orig_bitpix padded to 64bit
-                'Q',  # gboolean checksum padded to 64bit
+            # --- Unpack the core FFit (the fields before the keyword block) ---
+            # define core format parts (these should match fits_to_py / fits_to_py C layout)
+            core_format_parts = [
+                'q',  # rx
+                'q',  # ry
+                'q',  # naxes[2]
+                'q',  # bitpix
+                'q',  # orig_bitpix
+                'Q',  # checksum (padded boolean)
                 'd',  # mini
                 'd',  # maxi
-                'd',  # neg_ratio padded to 64bit
-                'Q',  # gboolean top_down (padded to uint64_t)
-                'Q',  # gboolean focalkey (padded to uint64_t)
-                'Q',  # gboolean pixelkey (padded to uint64_t)
-                'Q',  # gboolean color_managed (padded to uint64_t)
-                # Keywords (start at index 14)
-                f'{FLEN_VALUE}s',  # program
-                f'{FLEN_VALUE}s',  # filename
-                f'{FLEN_VALUE}s',  # row_order
-                f'{FLEN_VALUE}s',  # filter
-                f'{FLEN_VALUE}s',  # image_type
-                f'{FLEN_VALUE}s',  # object
-                f'{FLEN_VALUE}s',  # instrume
-                f'{FLEN_VALUE}s',  # telescop
-                f'{FLEN_VALUE}s',  # observer
-                f'{FLEN_VALUE}s',  # sitelat_str
-                f'{FLEN_VALUE}s',  # sitelong_str
-                f'{FLEN_VALUE}s',  # bayer_pattern
-                f'{FLEN_VALUE}s',  # focname
-                'd',  # bscale
-                'd',  # bzero
-                'Q',  # lo padded to 64bit
-                'Q',  # hi padded to 64bit
-                'd',  # flo padded to 64bit
-                'd',  # fhi padded to 64bit
-                'd',  # data_max
-                'd',  # data_min
-                'd',  # pixel_size_x
-                'd',  # pixel_size_y
-                'Q',  # binning_x (padded to uint64_t)
-                'Q',  # binning_y (padded to uint64_t)
-                'd',  # expstart
-                'd',  # expend
-                'd',  # centalt
-                'd',  # centaz
-                'd',  # sitelat
-                'd',  # sitelong
-                'd',  # siteelev
-                'q',  # bayer_xoffset
-                'q',  # bayer_yoffset
-                'd',  # airmass
-                'd',  # focal_length
-                'd',  # flength
-                'd',  # iso_speed
-                'd',  # exposure
-                'd',  # aperture
-                'd',  # ccd_temp
-                'd',  # set_temp
-                'd',  # livetime
-                'Q',  # stackcnt
-                'd',  # cvf
-                'q',  # key_gain
-                'q',  # key_offset
-                'q',  # focuspos
-                'q',  # focussz
-                'd',  # foctemp
-                'q',  # date (int64 unix timestamp)
-                'q'  # date_obs (int64 unix timestamp)
+                'd',  # neg_ratio
+                'Q',  # top_down
+                'Q',  # focalkey
+                'Q',  # pixelkey
+                'Q',  # color_managed
             ]
-            if with_pixels:
-                # Starts at index 65
-                format_parts.extend([
-                    'Q',  # size (size_t)
-                    'i',  # data_type
-                    'i',  # width
-                    'i',  # height
-                    'i',  # channels
-                    '256s'  # shm_name (char[256])
-                ])
+            core_format = '!' + ''.join(core_format_parts)
+            core_size = struct.calcsize(core_format)
 
-            format_string = '!' + ''.join(format_parts)
+            # Make sure response at least contains core + keywords
+            if len(response) < core_size + FKeywords.KEYWORDS_SIZE:
+                raise DataError(
+                    f"Received image data size {len(response)} doesn't match minimum expected size {core_size + FKeywords.KEYWORDS_SIZE}"
+                )
 
-            # Verify data size
-            expected_size = struct.calcsize(format_string)
-            if len(response) != expected_size:
-                raise DataError(f"Received image data size {len(response)} doesn't match expected size {expected_size}")
+            # Unpack core part
+            core_vals = struct.unpack_from(core_format, response, 0)
 
-            # Unpack the binary data
-            values = struct.unpack(format_string, response)
+            # Extract keyword block bytes and deserialize them
+            kw_offset = core_size
+            kw_bytes = response[kw_offset: kw_offset + FKeywords.KEYWORDS_SIZE]
+            fits_keywords = FKeywords.deserialize(kw_bytes)
 
-            # Helper function to decode and strip null-terminated strings
-            def decode_string(s: bytes) -> str:
-                return s.decode('utf-8').rstrip('\x00')
+            # After keywords comes optional shared-memory info block (if with_pixels)
+            shminfo_offset = kw_offset + FKeywords.KEYWORDS_SIZE
 
-            # Helper function to convert timestamp to datetime
-            def timestamp_to_datetime(timestamp: int) -> Optional[datetime]:
-                return datetime.fromtimestamp(timestamp) if timestamp != 0 else None
-
-            # Create FFit object:
-            # Get pixeldata if requested
             pixeldata = None
+            shm_info = None
+
             if with_pixels:
-                try:
-                    shm_info = _SharedMemoryInfo(
-                        size = values[65],
-                        data_type = values[66],
-                        width = values[67],
-                        height = values[68],
-                        channels = values[69],
-                        shm_name = values[70]
+                # shared_memory_info_t on C side is (size_t -> Q), data_type (uint32 -> i),
+                # width (uint32 -> i), height (uint32 -> i), channels (uint32 -> i),
+                # shm_name char[256]
+                shminfo_format = '!Qi i i i256s'.replace(' ', '')  # just to be explicit
+                # We build explicit format string:
+                shminfo_format = '!Qiiii256s'
+                shminfo_size = struct.calcsize(shminfo_format)
+
+                # Validate total response size
+                expected_total = core_size + FKeywords.KEYWORDS_SIZE + shminfo_size
+                if len(response) != expected_total:
+                    raise DataError(
+                        f"Received image data size {len(response)} doesn't match expected size {expected_total}"
                     )
-                    # Validate dimensions
-                    if any(dim <= 0 for dim in (shm_info.width, shm_info.height)):
-                        raise DataError(_("Invalid image dimensions: {}x{}").format(shm_info.width, shm_info.height))
 
-                    if shm_info.channels <= 0 or shm_info.channels > 3:
-                        raise DataError(_("Invalid number of channels: {}").format(shm_info.channels))
+                # Unpack shared memory info
+                (size_be, data_type_be, width_be, height_be, channels_be, shm_name_bytes) = struct.unpack_from(shminfo_format, response, shminfo_offset)
 
-                    # Map the shared memory
-                    try:
-                        shm = self._map_shared_memory(
-                            shm_info.shm_name.decode('utf-8'),
-                            shm_info.size
-                        )
-                    except (OSError, ValueError) as e:
-                        raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+                # Convert back network -> host order for 32bit fields if needed:
+                # struct.unpack_from with '!' already converted to native Python ints,
+                # so the names are directly usable. Keep them as-is:
+                shm_info = _SharedMemoryInfo(
+                    size = size_be,
+                    data_type = data_type_be,
+                    width = width_be,
+                    height = height_be,
+                    channels = channels_be,
+                    shm_name = shm_name_bytes
+                )
 
-                    buffer = bytearray(shm.buf)[:shm_info.size]
-                    # Create numpy array from shared memory
-                    if preview:
-                        dtype = np.uint8
+                # Validate dims
+                if any(dim <= 0 for dim in (shm_info.width, shm_info.height)):
+                    raise DataError(_("Invalid image dimensions: {}x{}").format(shm_info.width, shm_info.height))
+
+                if shm_info.channels <= 0 or shm_info.channels > 3:
+                    raise DataError(_("Invalid number of channels: {}").format(shm_info.channels))
+
+                # Map shared memory and build numpy array
+                try:
+                    shm = self._map_shared_memory(shm_info.shm_name.decode('utf-8').rstrip('\x00'), shm_info.size)
+                except (OSError, ValueError) as e:
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+                buffer = bytearray(shm.buf)[:shm_info.size]
+
+                if preview:
+                    dtype = np.uint8
+                else:
+                    dtype = np.float32 if shm_info.data_type == 1 else np.uint16
+
+                try:
+                    arr = np.frombuffer(buffer, dtype=dtype)
+                except (BufferError, ValueError, TypeError) as e:
+                    raise SharedMemoryError(_("Failed to create array from shared memory: {}").format(e)) from e
+
+                expected_elems = shm_info.width * shm_info.height * shm_info.channels
+                if arr.size < expected_elems:
+                    raise DataError(
+                        f"Data size mismatch: got {arr.size} elements, expected {expected_elems} for dimensions {shm_info.width}x{shm_info.height}x{shm_info.channels}"
+                    )
+
+                try:
+                    if shm_info.channels > 1:
+                        arr = arr.reshape((shm_info.channels, shm_info.height, shm_info.width))
                     else:
-                        dtype = np.float32 if shm_info.data_type == 1 else np.uint16
-                    try:
-                        arr = np.frombuffer(buffer, dtype=dtype)
-                    except (BufferError, ValueError, TypeError) as e:
-                        raise SharedMemoryError(_("Failed to create array from shared memory: {}").format(e)) from e
+                        arr = arr.reshape((shm_info.height, shm_info.width))
+                except ValueError as e:
+                    raise DataError(_("Error in get_seq_frame(): Failed to reshape array to image dimensions: {}").format(e)) from e
 
-                    # Validate array size matches expected dimensions
-                    expected_size = shm_info.width * shm_info.height * shm_info.channels
-                    if arr.size < expected_size:
-                        raise DataError(
-                            f"Data size mismatch: got {arr.size} elements, "
-                            f"expected {expected_size} for dimensions "
-                            f"{shm_info.width}x{shm_info.height}x{shm_info.channels}"
-                        )
+                pixeldata = np.copy(arr)
 
-                    # Reshape the array according to the image dimensions
-                    try:
-                        if shm_info.channels > 1:
-                            arr = arr.reshape((shm_info.channels, shm_info.height, shm_info.width))
-                        else:
-                            arr = arr.reshape((shm_info.height, shm_info.width))
-                    except ValueError as e:
-                        raise DataError(_("Error in get_seq_frame(): Failed to reshape array to image dimensions: {}").format(e)) from e
-
-                    # Make a copy of the data since we'll be releasing the shared memory
-                    pixeldata = np.copy(arr)
-
-                except SirilError:
-                    raise
-                except Exception as e:
-                    raise SirilError(f"Error obtaining pixeldata: {e}") from e
-
-            fits_keywords = FKeywords(
-                program=decode_string(values[13]),
-                filename=decode_string(values[14]),
-                row_order=decode_string(values[15]),
-                filter=decode_string(values[16]),
-                image_type=decode_string(values[17]),
-                object=decode_string(values[18]),
-                instrume=decode_string(values[19]),
-                telescop=decode_string(values[20]),
-                observer=decode_string(values[21]),
-                sitelat_str=decode_string(values[22]),
-                sitelong_str=decode_string(values[23]),
-                bayer_pattern=decode_string(values[24]),
-                focname=decode_string(values[25]),
-                bscale=values[26],
-                bzero=values[27],
-                lo=values[28],
-                hi=values[29],
-                flo=values[30],
-                fhi=values[31],
-                data_max=values[32],
-                data_min=values[33],
-                pixel_size_x=values[34],
-                pixel_size_y=values[35],
-                binning_x=values[36],
-                binning_y=values[37],
-                expstart=values[38],
-                expend=values[39],
-                centalt=values[40],
-                centaz=values[41],
-                sitelat=values[42],
-                sitelong=values[43],
-                siteelev=values[44],
-                bayer_xoffset=values[45],
-                bayer_yoffset=values[46],
-                airmass=values[47],
-                focal_length=values[48],
-                flength=values[49],
-                iso_speed=values[50],
-                exposure=values[51],
-                aperture=values[52],
-                ccd_temp=values[53],
-                set_temp=values[54],
-                livetime=values[55],
-                stackcnt=values[56],
-                cvf=values[57],
-                gain=values[58],
-                offset=values[59],
-                focuspos=values[60],
-                focussz=values[61],
-                foctemp=values[62],
-                date=timestamp_to_datetime(values[63]),
-                date_obs=timestamp_to_datetime(values[64])
-            )
+            # Build FFit object using core_vals and fits_keywords
             fit = FFit(
-                _naxes = (values[0], values[1], values[2]),
-                naxis = 2 if values[2] == 1 else 3,
-                bitpix=values[3],
-                orig_bitpix=values[4],
-                checksum=bool(values[5]),
-                mini=values[6],
-                maxi=values[7],
-                neg_ratio=values[8],
-                top_down=bool(values[9]),
-                _focalkey=bool(values[10]),
-                _pixelkey=bool(values[11]),
-                color_managed=bool(values[12]),
+                _naxes = (core_vals[0], core_vals[1], core_vals[2]),
+                naxis = 2 if core_vals[2] == 1 else 3,
+                bitpix = core_vals[3],
+                orig_bitpix = core_vals[4],
+                checksum = bool(core_vals[5]),
+                mini = core_vals[6],
+                maxi = core_vals[7],
+                neg_ratio = core_vals[8],
+                top_down = bool(core_vals[9]),
+                _focalkey = bool(core_vals[10]),
+                _pixelkey = bool(core_vals[11]),
+                color_managed = bool(core_vals[12]),
                 _data = pixeldata,
-                stats=[
+                stats = [
                     self.get_seq_stats(frame, 0),
-                    self.get_seq_stats(frame, 1) if values[2] > 1 else None,
-                    self.get_seq_stats(frame, 2) if values[2] > 1 else None,
+                    self.get_seq_stats(frame, 1) if core_vals[2] > 1 else None,
+                    self.get_seq_stats(frame, 2) if core_vals[2] > 1 else None,
                 ],
                 keywords = fits_keywords,
                 _icc_profile = None,
@@ -3390,13 +3267,9 @@ class SirilInterface:
         finally:
             if shm is not None:
                 try:
-                    shm.close()  # First close the memory mapping as we have finished with it
-                    # (We don't unlink it as C wll do that)
-
-                    # Signal that Python is done with the shared memory and wait for C to finish
+                    shm.close()
                     if not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SirilError(_("Failed to cleanup shared memory"))
-
                 except Exception:
                     pass
 
@@ -4232,7 +4105,7 @@ class SirilInterface:
         """
         Check if the current instance is running in CLI mode. This method is useful
         to detect how the script was invoked and whether to show or not a GUI.
-        This is False when the script is called by clicking in the Script menu, 
+        This is False when the script is called by clicking in the Script menu,
         True otherwise.
 
         Returns:
@@ -4241,7 +4114,8 @@ class SirilInterface:
         return self._is_cli
 
     def load_image_from_file(self, filepath: str, with_pixels: Optional[bool] = True,
-                            preview: Optional[bool] = False) -> Optional[FFit]:
+                            preview: Optional[bool] = False,
+                            linked: Optional[bool] = False) -> Optional[FFit]:
         """
         Request Siril to load an image from a file and transfer it to sirilpy. This
         method does not change the image currently loaded in Siril. Any image format
@@ -4261,7 +4135,8 @@ class SirilInterface:
             preview: bool specifying whether or not to return the real pixel data or an
                 autostretched uint8_t preview version. Only has an effect in
                 conjunction with with_pixels = True
-
+            linked: bool specifying if the autostretch preview is linked or not. Ignored
+                    if preview is False
         Returns:
             FFit object containing the image data
 
@@ -4281,7 +4156,7 @@ class SirilInterface:
 
         shm = None
         # Pack boolean flags + filepath
-        data_payload = struct.pack('!??', with_pixels, preview) + filepath_bytes
+        data_payload = struct.pack('!???', with_pixels, preview, linked) + filepath_bytes
         response = self._request_data(_Command.GET_IMAGE_FILE, data_payload, timeout=None)
         if response is None:
             return None
@@ -4319,6 +4194,9 @@ class SirilInterface:
                 f'{FLEN_VALUE}s',  # sitelong_str
                 f'{FLEN_VALUE}s',  # bayer_pattern
                 f'{FLEN_VALUE}s',  # focname
+                f'{FLEN_VALUE}s',  # objctra (RA as a string)
+                f'{FLEN_VALUE}s',  # objctdec (Dec as a string)
+                f'{FLEN_VALUE}s',  # pltsolvd_comment
                 'd',  # bscale
                 'd',  # bzero
                 'Q',  # lo padded to 64bit
@@ -4357,7 +4235,10 @@ class SirilInterface:
                 'q',  # focussz
                 'd',  # foctemp
                 'q',  # date (int64 unix timestamp)
-                'q'  # date_obs (int64 unix timestamp)
+                'q',  # date_obs (int64 unix timestamp)
+                'd',  # Right Ascension
+                'd',  # Declination
+                '?'   # pltsolvd
             ]
 
             # Add stats for 3 channels (14 doubles each)
@@ -4395,7 +4276,7 @@ class SirilInterface:
 
             # Extract stats data (starts at index 65)
             stats = [None, None, None]
-            stats_start_idx = 65
+            stats_start_idx = 71
             for channel in range(3):
                 start_idx = stats_start_idx + (channel * 14)
                 # Check if this channel has valid stats (non-zero values)
@@ -4500,45 +4381,51 @@ class SirilInterface:
                 sitelong_str=decode_string(values[23]),
                 bayer_pattern=decode_string(values[24]),
                 focname=decode_string(values[25]),
-                bscale=values[26],
-                bzero=values[27],
-                lo=values[28],
-                hi=values[29],
-                flo=values[30],
-                fhi=values[31],
-                data_max=values[32],
-                data_min=values[33],
-                pixel_size_x=values[34],
-                pixel_size_y=values[35],
-                binning_x=values[36],
-                binning_y=values[37],
-                expstart=values[38],
-                expend=values[39],
-                centalt=values[40],
-                centaz=values[41],
-                sitelat=values[42],
-                sitelong=values[43],
-                siteelev=values[44],
-                bayer_xoffset=values[45],
-                bayer_yoffset=values[46],
-                airmass=values[47],
-                focal_length=values[48],
-                flength=values[49],
-                iso_speed=values[50],
-                exposure=values[51],
-                aperture=values[52],
-                ccd_temp=values[53],
-                set_temp=values[54],
-                livetime=values[55],
-                stackcnt=values[56],
-                cvf=values[57],
-                gain=values[58],
-                offset=values[59],
-                focuspos=values[60],
-                focussz=values[61],
-                foctemp=values[62],
-                date=timestamp_to_datetime(values[63]),
-                date_obs=timestamp_to_datetime(values[64])
+                objctra=decode_string(values[26]),
+                objctdec=decode_string(values[27]),
+                pltsolvd_comment=decode_string(values[28]),
+                bscale=values[29],
+                bzero=values[30],
+                lo=values[31],
+                hi=values[32],
+                flo=values[33],
+                fhi=values[34],
+                data_max=values[35],
+                data_min=values[36],
+                pixel_size_x=values[37],
+                pixel_size_y=values[38],
+                binning_x=values[39],
+                binning_y=values[40],
+                expstart=values[41],
+                expend=values[42],
+                centalt=values[43],
+                centaz=values[44],
+                sitelat=values[45],
+                sitelong=values[46],
+                siteelev=values[47],
+                bayer_xoffset=values[48],
+                bayer_yoffset=values[49],
+                airmass=values[50],
+                focal_length=values[51],
+                flength=values[52],
+                iso_speed=values[53],
+                exposure=values[54],
+                aperture=values[55],
+                ccd_temp=values[56],
+                set_temp=values[57],
+                livetime=values[58],
+                stackcnt=values[59],
+                cvf=values[60],
+                gain=values[61],
+                offset=values[62],
+                focuspos=values[63],
+                focussz=values[64],
+                foctemp=values[65],
+                date=timestamp_to_datetime(values[66]),
+                date_obs=timestamp_to_datetime(values[67]),
+                ra=values[68],
+                dec=values[69],
+                pltsolvd=values[70]
             )
 
             fit = FFit(
@@ -4648,3 +4535,415 @@ class SirilInterface:
 
         except Exception as e:
             raise SirilError(f"Error in redo(): {e}") from e
+
+    def clear_undo_history(self):
+        """
+        Clears the image undo history, if there is undo history to be cleared
+        """
+
+        try:
+            if self._execute_command(_Command.CLEAR_UNDO_HISTORY, None):
+                return True
+            else:
+                raise SirilError(f"Error in clear_undo_history(): {e}") from e
+
+        except Exception as e:
+            raise SirilError(f"Error in clear_undo_history(): {e}") from e
+
+    def set_image_iccprofile(self, iccprofile: bytes):
+        """
+        Set the image ICC profile in Siril
+
+        Args:
+            iccprofile (bytes): The ICC profile to send to Siril. This will
+            replace an existing ICC profile, if one is set. If None,
+            any existing image ICC profile will be removed.
+
+        Returns: True if the command succeeded, otherwise False
+
+        Raises:
+            NoImageError: if no image is loaded in Siril,
+            ValueError: if iccprofile is not valid type,
+            SirilError: if there was a Siril error in handling the command.
+        """
+        try:
+            if not self.is_image_loaded():
+                raise NoImageError(_("Error in set_image_bgsamples(): no image loaded"))
+
+            if iccprofile is None: # Remove the ICC profile
+                return self.cmd("icc_remove")
+
+            total_bytes = len(iccprofile)
+
+            # Create shared memory using our wrapper
+            try:
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to create shared memory: {}").format(e)) from e
+
+            # Copy serialized data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                buffer[:total_bytes] = iccprofile
+                del buffer
+            except Exception as e:
+                raise SharedMemoryError(f"Failed to copy data to shared memory: {e}") from e
+
+            # Pack the plot info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                0,  # width (not used for ICC profile)
+                0,  # height (not used for ICC profile)
+                0, # not used
+                0, # not used
+                total_bytes,
+                shm_info.shm_name
+            )
+
+            if not self._execute_command(_Command.SET_IMAGE_ICCPROFILE, info):
+                raise SirilError(_("Failed to send set_image_iccprofile() command"))
+            return True
+
+        except (ValueError, SirilError):
+            raise
+        except Exception as e:
+            raise SirilError(f"Error in set_image_iccprofile(): {e}") from e
+        finally:
+            # Ensure shared memory is closed and unlinked
+            if 'shm' in locals() and shm is not None:
+                try:
+                    shm.close()
+                except Exception as e:
+                    pass
+
+    def get_siril_slider_state(self, float_range: Optional[bool] = False) -> Tuple[int, int, 'SlidersMode']:
+
+        """
+        Request the display slider state from Siril.
+
+        Returns:
+            A tuple (min, max, slider mode) representing the current slider state.
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_SLIDER_STATE)
+        if response is None:
+            return None
+
+        try:
+            lo, hi, mode = struct.unpack('!HHI', response)
+            if float_range:
+                lo = lo / 65535.0
+                hi = hi / 65535.0
+            return lo, hi, mode  # Returning as (lo, hi, mode)
+        except struct.error as e:
+            raise SirilError(_("Error occurred in get_siril_slider_state(): {}").format(e)) from e
+
+    def set_siril_slider_mode(self, mode: 'SlidersMode') -> bool:
+        """
+        Set the slider state in Siril using the provided lo, hi and mode values.
+        Args:
+            mode: SlidersMode enum value
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the slider state was set successfully
+        """
+        try:
+            # Check for valid argument combinations
+
+            # Validate that mode is a SlidersMode enum if provided
+            if not isinstance(mode, SlidersMode):
+                raise ValueError("Mode must be a SlidersMode enum value")
+
+            # Pack the values into bytes using network byte order (!)
+            # Format depends on which arguments are provided
+            payload = struct.pack('!I', mode.value)
+            self._execute_command(_Command.SET_SLIDER_STATE, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_siril_slider_state(): {e}") from e
+
+    def set_siril_slider_lohi(self,
+                            lo: Union[float, int] = None,
+                            hi: Union[float, int] = None) -> bool:
+        """
+        Set the slider values in Siril using the provided lo and hi values.
+        If the sliders mode is not already set to USER, it is set to that mode
+        as setting slider values is only relevant in that mode.
+        Args:
+            lo: Low value for the slider (float [0,1] or uint16)
+            hi: High value for the slider (float [0,1] or uint16)
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the slider state was set successfully
+        """
+        try:
+
+            # Convert float values to uint16 if necessary (but pack as uint32)
+            def convert_value(value):
+                if value is None:
+                    return None
+                if isinstance(value, float):
+                    if not 0.0 <= value <= 1.0:
+                        raise ValueError("Float values must be in range [0,1]")
+                    return int(value * 65535)
+                elif isinstance(value, int):
+                    if not 0 <= value <= 65535:
+                        raise ValueError("Integer values must be uint16 (0-65535)")
+                    return value
+                else:
+                    raise ValueError("Values must be float or int")
+
+            converted_lo = convert_value(lo)
+            converted_hi = convert_value(hi)
+
+            # Pack the values into bytes using network byte order (!)
+            # All values packed as 32-bit integers for consistency
+            payload = struct.pack('!II', converted_lo, converted_hi)
+            self._execute_command(_Command.SET_SLIDER_LOHI, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_siril_slider_state(): {e}") from e
+
+    def get_siril_stf(self) -> 'STFType':
+
+        """
+        Request the Screen Transfer Function in use in Siril.
+
+        Returns:
+            A STFType representing the current STF state.
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_STFMODE)
+        if response is None:
+            return None
+
+        try:
+            mode = struct.unpack('!I', response)
+            return mode[0]
+        except struct.error as e:
+            raise SirilError(_("Error occurred in get_siril_stf(): {}").format(e)) from e
+
+    def set_siril_stf(self, mode: 'SlidersMode') -> bool:
+        """
+        Set the screen transfer function in Siril using the provided enum value.
+        Args:
+            mode: STFType enum value
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the slider state was set successfully
+        """
+        try:
+            # Check for valid argument combinations
+
+            # Validate that mode is a STFType enum
+            if not isinstance(mode, STFType):
+                raise ValueError("Mode must be a STFType enum value")
+
+            # Pack the values into bytes using network byte order (!)
+            # Format depends on which arguments are provided
+            payload = struct.pack('!I', mode.value)
+            self._execute_command(_Command.SET_STFMODE, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_siril_stftype(): {e}") from e
+
+    def get_siril_panzoom(self) -> Tuple[float, float, float]:
+
+        """
+        Request the pan and zoom state from Siril.
+
+        Returns:
+            A tuple (x offset, y offset, zoomlevel) representing the current image pan and zoom state.
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_PANZOOM)
+        if response is None:
+            return None
+
+        try:
+            x_off, y_off, zoomlevel = struct.unpack('!ddd', response)
+            return x_off, y_off, zoomlevel
+        except struct.error as e:
+            raise SirilError(_("Error occurred in get_siril_slider_state(): {}").format(e)) from e
+
+    def set_siril_pan(self,
+                            xoff: float,
+                            yoff: float) -> bool:
+        """
+        Set the display offset (pan) in Siril to (xoff, yoff).
+        Args:
+            xoff (float): x display offset
+            yoff (float): y display offset
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the display offset was set successfully
+        """
+        try:
+
+            # Pack the values into bytes using network byte order (!)
+            # All values packed as 32-bit integers for consistency
+            payload = struct.pack('!dd', xoff, yoff)
+            self._execute_command(_Command.SET_PAN, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_siril_pan(): {e}") from e
+
+    def set_siril_zoom(self, zoom: float) -> bool:
+        """
+        Set the display zoom. Passing any negative value will set 'zoom to fit'.
+        Args:
+            zoom (float): zoom level
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the display offset was set successfully
+        """
+        try:
+
+            # Pack the values into bytes using network byte order (!)
+            # All values packed as 32-bit integers for consistency
+            payload = struct.pack('!d', zoom)
+            self._execute_command(_Command.SET_ZOOM, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_siril_zoom(): {e}") from e
+
+    def get_siril_display_iccprofile(self) -> Optional[bytes]:
+        """
+        Retrieve the Siril display ICC profile.
+
+        Args:
+        none.
+
+        Returns:
+            bytes: The display ICC profile as a byte array, or None
+            if Siril is running in headless mode.
+
+        Raises:
+            NoImageError: If no image is currently loaded,
+            SirilError: If any other error occurs.
+        """
+
+        shm = None
+        try:
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_DISPLAY_ICC_PROFILE)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("Error in get_siril_display_iccprofile(): no image is currently loaded in Siril"))
+                    raise SirilConnectionError(_("Server error: {}").format(error_msg))
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
+
+            if status == _Status.NONE:
+                return None
+
+            if not response:
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
+
+            if len(response) < 280: # Not a correct SharedMemoryInfo payload
+                raise SharedMemoryError(_("Invalid shared memory information received (size < 280 bytes)"))
+            try:
+                # Parse the shared memory information
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise SharedMemoryError(_("Invalid shared memory information received: {}").format(e)) from e
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            try:
+                buffer = bytearray(shm.buf)[:shm_info.size]
+                result = bytes(buffer)
+            except (BufferError, ValueError, TypeError) as e:
+                raise SirilError(_("Failed to create bytes from shared memory: {}").format(e)) from e
+
+            return result
+
+        except SirilError:
+            # Re-raise NoImageError without wrapping
+            raise
+        except Exception as e:
+            # Wrap all other exceptions with context
+            raise SirilError(_("Error in get_siril_display_iccprofile(): {}").format(e)) from e
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass
+
+    def get_siril_stf_linked(self) -> bool:
+
+        """
+        Determine whether the AutoStretch STF is configured to be linked or not
+
+        Returns:
+            A bool representing the current STF channel-linked state.
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_STF_LINKED)
+        if response is None:
+            return None
+
+        try:
+            mode = struct.unpack('!I', response)
+            return bool(mode[0])
+        except struct.error as e:
+            raise SirilError(_("Error occurred in get_siril_stf(): {}").format(e)) from e

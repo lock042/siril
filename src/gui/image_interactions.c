@@ -757,6 +757,11 @@ void update_zoom_label() {
 	gdk_threads_add_idle(set_label_zoom_text_idle, zoom_buffer);
 }
 
+gboolean update_zoom_label_idle(gpointer user_data) {
+	update_zoom_label();
+	return FALSE;
+}
+
 gboolean update_zoom(gdouble x, gdouble y, double scale) {
 	// event position in image coordinates before changing the zoom value
 	point evpos = { x, y };

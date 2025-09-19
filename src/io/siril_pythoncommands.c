@@ -103,7 +103,6 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 		return 1;
 
 	unsigned char *start_ptr = ptr;
-
 	// Convert GDateTime to Unix timestamp
 	int64_t date_ts = fit->keywords.date ? g_date_time_to_unix(fit->keywords.date) : 0;
 	int64_t date_obs_ts = fit->keywords.date_obs ? g_date_time_to_unix(fit->keywords.date_obs) : 0;
@@ -121,7 +120,9 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	COPY_FLEN_STRING(fit->keywords.sitelong_str);
 	COPY_FLEN_STRING(fit->keywords.bayer_pattern);
 	COPY_FLEN_STRING(fit->keywords.focname);
-
+	COPY_FLEN_STRING(fit->keywords.wcsdata.objctra);
+	COPY_FLEN_STRING(fit->keywords.wcsdata.objctdec);
+	COPY_FLEN_STRING(fit->keywords.wcsdata.pltsolvd_comment);
 	// Copy numeric values with proper byte order conversion. All
 	// types shorter than 64bit are converted to 64bit types before
 	// endianness conversion and transmission, to simplify the data
@@ -164,6 +165,12 @@ static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	COPY_BE64(fit->keywords.foctemp, double);
 	COPY_BE64(date_ts, int64_t);
 	COPY_BE64(date_obs_ts, int64_t);
+	double ra = fit->keywords.wcsdata.ra;
+	double dec = fit->keywords.wcsdata.dec;
+	uint8_t solved = fit->keywords.wcsdata.pltsolvd;
+	COPY_BE64(ra, double);
+	COPY_BE64(dec, double);
+	memcpy(ptr, &solved, sizeof(uint8_t));
 	return 0;
 }
 
@@ -772,10 +779,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_PIXELDATA: {
-			if (payload_length == 1) {
+			if (payload_length == 2) {
 				gboolean as_preview = (gboolean) (uint8_t) payload[0];
+				gboolean linked = (gboolean) (uint8_t) payload[1];
 				rectangle region = {0, 0, gfit.rx, gfit.ry};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview);
+				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview, linked);
 				// Send shared memory info to Python
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
@@ -929,13 +937,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_PIXELDATA_REGION: {
 			if (payload_length == 17) {
 				gboolean as_preview = (gboolean) (uint8_t) payload[0];
-				unsigned char* rectptr = (unsigned char*) payload + 1;
+				gboolean linked = (gboolean) (uint8_t) payload[1];
+				unsigned char* rectptr = (unsigned char*) payload + 2;
 				rectangle region_BE = *(rectangle*) rectptr;
 				rectangle region = {GUINT32_FROM_BE(region_BE.x),
 									GUINT32_FROM_BE(region_BE.y),
 									GUINT32_FROM_BE(region_BE.w),
 									GUINT32_FROM_BE(region_BE.h)};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview);
+				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview, linked);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
 			} else {
@@ -1383,8 +1392,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for the response
-			size_t strings_size = FLEN_VALUE * 13;  // 13 string fields of FLEN_VALUE
-			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
+			size_t strings_size = FLEN_VALUE * 16;  // 13 string fields of FLEN_VALUE
+			size_t numeric_size = sizeof(uint64_t) * 41 + sizeof(uint8_t); // 41 vars packed to 64-bit + 1 byte bool
 
 			size_t total_size = strings_size + numeric_size;
 			unsigned char *response_buffer = g_try_malloc0(total_size);
@@ -1564,20 +1573,21 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			printf("payload length: %d\n", payload_length);
-			if (payload_length != 21 && payload_length != 5) {
+			if (payload_length != 22 && payload_length != 6) {
 				const char* error_msg = _("Incorrect payload");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			gboolean as_preview = (uint8_t)payload[0] ? TRUE : FALSE;
-			const char *indexptr = payload + 1;
+			gboolean linked = (uint8_t) payload[1] ? TRUE : FALSE;
+			const char *indexptr = payload + 2;
 			int index = GUINT32_FROM_BE(*(int*) indexptr);
 			rectangle region = com.seq.is_variable ?
 						(rectangle) {0, 0, com.seq.imgparam[index].rx, com.seq.imgparam[index].ry} :
 						(rectangle) {0, 0, com.seq.rx, com.seq.ry};
-			if (payload_length == 21) {
+			if (payload_length == 22) {
 				// Use the provided rectangle instead of the full image
-				const char *rectptr = payload + 4;
+				const char *rectptr = payload + 6;
 				region = *(rectangle*) rectptr;
 				region.x = GUINT32_FROM_BE(region.x);
 				region.y = GUINT32_FROM_BE(region.y);
@@ -1609,7 +1619,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 				}
 			}
-			shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview);
+			shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview, linked);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 			free(info);
 			clearfits(fit);
@@ -1625,15 +1635,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			gboolean with_pixels = TRUE;
 			gboolean as_preview = FALSE;
+			gboolean linked = FALSE;
 			int index;
-			if (payload_length == 6) {
+			if (payload_length == 7) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 				const char* pixelbool = payload + 4;
 				const char* previewbool = payload + 5;
+				const char* linkedbool = payload + 6;
 				with_pixels = BOOL_FROM_BYTE(*pixelbool);
 				as_preview = BOOL_FROM_BYTE(*previewbool);
+				linked = BOOL_FROM_BYTE(*linkedbool);
 			}
-			if (payload_length != 6 || index >= com.seq.number) {
+			if (payload_length != 7 || index >= com.seq.number) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1648,8 +1661,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Calculate size needed for the response
 			size_t ffit_size = sizeof(uint64_t) * 13; // 14 vars packed to 64-bit
-			size_t strings_size = FLEN_VALUE * 13;  // 13 string fields of FLEN_VALUE
-			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
+			size_t strings_size = FLEN_VALUE * 16;  // 13 string fields of FLEN_VALUE
+			size_t numeric_size = sizeof(uint64_t) * 41 + sizeof(uint8_t); // 41 vars packed to 64-bit + 1 byte bool
 			size_t total_size = ffit_size + strings_size + numeric_size;
 			if (with_pixels) {
 				size_t shminfo_size = sizeof(shared_memory_info_t);
@@ -1677,7 +1690,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (with_pixels) {
 				ptr += strings_size + numeric_size;
 				rectangle region = (rectangle) {0, 0, fit->rx, fit->ry};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview);
+				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview, linked);
 				if (!info) {
 					const char* error_message = _("Memory allocation error");
 					success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
@@ -1925,6 +1938,23 @@ CLEANUP:
 			// Prepare data
 			guint32 profile_size;
 			unsigned char* profile_data = get_icc_profile_data(gfit.icc_profile, &profile_size);
+
+			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
+			break;
+		}
+
+		case CMD_GET_DISPLAY_ICCPROFILE: {
+			if (com.headless) {
+				const char* error_msg = _("Siril is running headless, no display ICC profile");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Prepare data
+			guint32 profile_size;
+			unsigned char* profile_data = get_icc_profile_data(gui.icc.monitor, &profile_size);
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
@@ -2224,9 +2254,23 @@ CLEANUP:
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				}
+
+				// Update number of included frames if there is a change
+				gboolean was_incl = com.seq.imgparam[index].incl;
+				if (!was_incl && incl)
+					com.seq.selnum++;
+				else if (was_incl && !incl)
+					com.seq.selnum--;
+
+				// Set inclusion for this frame
 				com.seq.imgparam[index].incl = incl;
-				if (index == com.seq.current && !com.headless)
+
+				// Update GUI
+				if (!com.headless) {
+					GThread *thread = g_thread_new("update_sequence_overlay", update_seq_gui_idle_thread_func, NULL);
+					g_thread_join(thread);
 					queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+				}
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
 				const char* error_msg = _("Incorrect payload length");
@@ -2473,7 +2517,8 @@ CLEANUP:
 		case CMD_GET_IMAGE_FILE: {
 			gboolean with_pixels = TRUE;
 			gboolean as_preview = FALSE;
-			if (payload_length < 2) {
+			gboolean linked = FALSE;
+			if (payload_length < 3) {
 				const char* error_msg = _("Incorrect command argument");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -2481,10 +2526,12 @@ CLEANUP:
 			// Extract boolean flags from the first 2 bytes
 			const char* pixelbool = payload;
 			const char* previewbool = payload + 1;
+			const char* linkedbool = payload + 2;
 			with_pixels = BOOL_FROM_BYTE(*pixelbool);
 			as_preview = BOOL_FROM_BYTE(*previewbool);
+			linked = BOOL_FROM_BYTE(*linkedbool);
 			// Extract the filepath string from remaining payload
-			size_t filepath_length = payload_length - 2;
+			size_t filepath_length = payload_length - 3;
 			if (filepath_length == 0 || filepath_length >= PATH_MAX) {
 				const char* error_msg = _("Invalid filepath length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -2492,7 +2539,7 @@ CLEANUP:
 			}
 			// Null-terminate the filepath string
 			char* filepath = g_malloc0(filepath_length + 1);
-			memcpy(filepath, payload + 2, filepath_length);
+			memcpy(filepath, payload + 3, filepath_length);
 			filepath[filepath_length] = '\0';
 			// Check if file exists
 			if (!g_file_test(filepath, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_REGULAR)) {
@@ -2513,8 +2560,8 @@ CLEANUP:
 
 			// Calculate size needed for the response (same as sequence frame)
 			size_t ffit_size = sizeof(uint64_t) * 13; // 13 vars packed to 64-bit
-			size_t strings_size = FLEN_VALUE * 13;  // 13 string fields of FLEN_VALUE
-			size_t numeric_size = sizeof(uint64_t) * 39; // 39 vars packed to 64-bit
+			size_t strings_size = FLEN_VALUE * 16;  // 13 string fields of FLEN_VALUE
+			size_t numeric_size = sizeof(uint64_t) * 41 + sizeof(uint8_t); // 41 vars packed to 64-bit + 1-byte bool
 
 			// Add stats size - 14 doubles per channel, up to 3 channels
 			size_t stats_size = 3 * 14 * sizeof(double); // Stats for up to 3 channels
@@ -2581,7 +2628,7 @@ CLEANUP:
 
 			if (with_pixels) {
 				rectangle region = (rectangle) {0, 0, fit->rx, fit->ry};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview);
+				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview, linked);
 				if (!info) {
 					const char* error_message = _("Shared memory allocation error");
 					success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
@@ -2603,7 +2650,6 @@ CLEANUP:
 			free(fit);
 			break;
 		}
-
 		case CMD_ANALYSE_IMAGE_FROM_FILE: {
 			if (payload_length < 1) {
 				const char* error_msg = _("Incorrect command argument");
@@ -2737,6 +2783,270 @@ CLEANUP:
 		case CMD_REDO: {
 			siril_add_pythonsafe_idle(redo_in_thread, NULL);
 			success = send_response(conn, STATUS_OK, NULL, 0);
+			break;
+		}
+
+		case CMD_CLEAR_UNDO_HISTORY: {
+			undo_flush();
+			success = send_response(conn, STATUS_OK, NULL, 0);
+			break;
+		}
+
+		case CMD_SET_IMAGE_ICCPROFILE: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for SET_IMAGE_ICCPROFILE: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_set_iccprofile_request(conn, info);
+			}
+			break;
+		}
+
+		case CMD_GET_SLIDER_STATE: {
+			// Prepare the response data
+			uint8_t response_data[8]; // 2 x 2 bytes for lo, hi + 4 for sliders_mode
+
+			// Convert the integers to BE format for consistency across the UNIX socket
+			uint16_t lo_BE = GUINT16_TO_BE(gui.lo);
+			uint16_t hi_BE = GUINT16_TO_BE(gui.hi);
+			uint32_t mode_BE = GUINT32_TO_BE((uint32_t) gui.sliders);
+
+			// Copy the packed data into the response buffer
+			memcpy(response_data, &lo_BE, sizeof(uint16_t));
+			memcpy(response_data + 2, &hi_BE, sizeof(uint16_t));
+			memcpy(response_data + 4, &mode_BE, sizeof(uint32_t));
+
+			// Send success response with dimensions
+			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			break;
+		}
+
+		case CMD_GET_STFMODE: {
+			// Prepare the response data
+			uint8_t response_data[4]; // 4 for STF mode
+
+			// Convert the integers to BE format for consistency across the UNIX socket
+			uint32_t mode_BE = GUINT32_TO_BE((uint32_t) gui.rendering_mode);
+
+			// Copy the packed data into the response buffer
+			memcpy(response_data, &mode_BE, sizeof(uint32_t));
+
+			// Send success response with dimensions
+			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			break;
+		}
+
+		case CMD_GET_STF_LINKED: {
+			// Prepare the response data
+			uint8_t response_data[4]; // 4 for STF mode
+
+			// Convert the integers to BE format for consistency across the UNIX socket
+			gboolean linked = !gui.unlink_channels;
+			uint32_t linked_BE = GUINT32_TO_BE((uint32_t) linked);
+
+			// Copy the packed data into the response buffer
+			memcpy(response_data, &linked_BE, sizeof(uint32_t));
+
+			// Send success response with dimensions
+			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			break;
+		}
+
+		case CMD_SET_STFMODE: {
+			if (com.headless)
+				break; // Ignore this command if we are headless
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
+			if (result) {
+				// Validate payload length - can be 4 (mode only), 8 (lo+hi), or 12 (lo+hi+mode)
+				if (payload_length == 4) {
+					// Mode only
+					guint32 mode_BE = *(guint32*) payload;
+					guint32 mode = GUINT32_FROM_BE(mode_BE);
+					display_mode stf = (display_mode) mode;
+
+					if (mode > DISPLAY_MODE_MAX) {
+						const char* error_msg = _("Failed to set STF - invalid mode value");
+						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+						if (!success)
+							siril_debug_print("Error in send_response\n");
+					} else {
+						// Set STF
+						gui.rendering_mode = stf;
+						execute_idle_and_wait_for_it(set_display_mode_idle, NULL);
+						queue_redraw_and_wait_for_it(REMAP_ALL);
+						success = send_response(conn, STATUS_OK, NULL, 0);
+					}
+				} else {
+					const char* error_msg = _("Failed to set slider state - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				// Handle error - no image loaded
+				const char* error_msg = _("Failed to set slider state - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_GET_PANZOOM: {
+			// Prepare the response data
+			uint8_t response_data[3 * sizeof(double)];
+
+			double x_off = gui.display_offset.x;
+			double y_off = gui.display_offset.y;
+			double zoom = get_zoom_val();
+			TO_BE64_INTO(x_off, x_off, double);
+			TO_BE64_INTO(y_off, y_off, double);
+			TO_BE64_INTO(zoom, zoom, double);
+
+			// Copy the packed data into the response buffer
+			memcpy(response_data, &x_off, sizeof(double));
+			memcpy(response_data + sizeof(double), &y_off, sizeof(double));
+			memcpy(response_data + 2 * sizeof(double), &zoom, sizeof(double));
+
+			// Send success response with dimensions
+			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			break;
+		}
+
+		case CMD_SET_SLIDER_MODE: {
+			if (com.headless)
+				break; // Ignore this command if we are headless
+			gboolean result = single_image_is_loaded();
+			if (result) {
+				// Validate payload length - must be 4
+				if (payload_length == 4) {
+					// Mode only
+					guint32 mode_BE = *(guint32*) payload;
+					guint32 mode = GUINT32_FROM_BE(mode_BE);
+					sliders_mode sliders = (sliders_mode) mode;
+
+					if (mode > USER) {
+						const char* error_msg = _("Failed to set slider state - invalid mode value");
+						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+						if (!success)
+							siril_debug_print("Error in send_response\n");
+					} else {
+						// Set slider mode only
+						execute_idle_and_wait_for_it(sliders_mode_set_state_idle, &sliders);
+						queue_redraw_and_wait_for_it(REMAP_ALL);
+						success = send_response(conn, STATUS_OK, NULL, 0);
+					}
+				} else {
+					const char* error_msg = _("Failed to set slider state - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				// Handle error - no image loaded
+				const char* error_msg = _("Failed to set slider state - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_SET_SLIDER_LOHI: {
+			if (com.headless)
+				break; // Ignore this command if we are headless
+			gboolean result = single_image_is_loaded();
+			if (result) {
+				// Validate payload length - can be 4 (mode only), 8 (lo+hi), or 12 (lo+hi+mode)
+				if (payload_length == 8) {
+					// Mode only
+					guint32* values = (guint32*) payload;
+					guint32 lo = GUINT32_FROM_BE(values[0]);
+					guint32 hi = GUINT32_FROM_BE(values[1]);
+					if (lo >= hi || lo < 0 || hi < 0 || lo > 65535 || hi > 65535) {
+						const char* error_msg = _("Error: invalid slider values");
+						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+						if (!success)
+							siril_debug_print("Error in send_response\n");
+					}  else {
+						gui.lo = lo;
+						gui.hi = hi;
+						execute_idle_and_wait_for_it(set_cutoff_sliders_values_idle, NULL);
+						queue_redraw_and_wait_for_it(REMAP_ALL);
+						success = send_response(conn, STATUS_OK, NULL, 0);
+					}
+				} else {
+					const char* error_msg = _("Failed to set slider values - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				// Handle error - no image loaded
+				const char* error_msg = _("Failed to set slider values - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_SET_PAN: {
+			if (com.headless)
+				break; // Ignore this command if we are headless
+			gboolean result = single_image_is_loaded();
+			if (result) {
+				// Validate payload length
+				if (payload_length == 2 * sizeof(double)) {
+					// Mode only
+					double* values = (double*) payload;
+					double xoff, yoff;
+					TO_BE64_INTO(xoff, values[0], double);
+					TO_BE64_INTO(yoff, values[1], double);
+					gui.display_offset.x = xoff;
+					gui.display_offset.y = yoff;
+					queue_redraw_and_wait_for_it(REDRAW_IMAGE);
+					success = send_response(conn, STATUS_OK, NULL, 0);
+				} else {
+					const char* error_msg = _("Failed to set display offset - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				// Handle error - no image loaded
+				const char* error_msg = _("Failed to set display offset - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_SET_ZOOM: {
+			if (com.headless)
+				break; // Ignore this command if we are headless
+			gboolean result = single_image_is_loaded();
+			if (result) {
+				// Validate payload length
+				if (payload_length == sizeof(double)) {
+					double* values = (double*) payload;
+					double zoom;
+					TO_BE64_INTO(zoom, values[0], double);
+					if (zoom <= 0.0)
+						zoom = ZOOM_FIT;
+					gui.zoom_value = zoom;
+					if (zoom == ZOOM_FIT)
+						reset_display_offset();
+					execute_idle_and_wait_for_it(update_zoom_label_idle, NULL);
+					queue_redraw_and_wait_for_it(REDRAW_IMAGE);
+					success = send_response(conn, STATUS_OK, NULL, 0);
+				} else {
+					const char* error_msg = _("Failed to set display offset - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				// Handle error - no image loaded
+				const char* error_msg = _("Failed to set display offset - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
 			break;
 		}
 
