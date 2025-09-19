@@ -27,6 +27,7 @@
 #include "core/arithm.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
+#include "core/siril_log.h"
 #include "utils.h"
 #include "message_dialog.h"
 
