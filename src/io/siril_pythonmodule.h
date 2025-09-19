@@ -96,6 +96,7 @@ typedef enum {
 	CMD_SET_PAN = 79,
 	CMD_SET_ZOOM = 80,
 	CMD_GET_DISPLAY_ICCPROFILE = 81,
+	CMD_GET_STF_LINKED = 82,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -198,7 +199,7 @@ typedef struct {
 //int release_python_channel();
 void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file, gboolean from_cli, gboolean debug_mode);
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
-shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview);
+shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview, gboolean linked);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
 siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size);
 gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info);

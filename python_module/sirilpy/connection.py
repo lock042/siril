@@ -1484,7 +1484,7 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(_("Error in radec2pix(): {e}")) from e
 
-    def get_image_pixeldata(self, shape: Optional[list[int]] = None, preview: Optional[bool] = False) -> Optional[np.ndarray]:
+    def get_image_pixeldata(self, shape: Optional[list[int]] = None, preview: Optional[bool] = False, linked: Optional[bool] = False) -> Optional[np.ndarray]:
 
         """
         Retrieves the pixel data from the image currently loaded in Siril.
@@ -1496,6 +1496,9 @@ class SirilInterface:
             preview: optional bool specifying whether to get pixeldata as a preview
                      (i.e. 8-bit autostretched data) or as real image data. Defaults
                      to False (i.e. real image data)
+            linked: optional bool specifying whether the autostretch preview should
+                    be linked or unlinked. If preview == False then this option is
+                    ignored.
 
         Returns:
             numpy.ndarray: The image data as a numpy array
@@ -1509,7 +1512,7 @@ class SirilInterface:
 
         shm = None
         try:
-            preview_data = struct.pack('!?', preview)
+            preview_data = struct.pack('!??', preview, linked)
             # Validate shape if provided
             if shape is not None:
                 if len(shape) != 4:
@@ -1618,7 +1621,8 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_seq_frame_pixeldata(self, frame: int, shape: Optional[List[int]] = None, preview: Optional[bool] = False) -> Optional[np.ndarray]:
+    def get_seq_frame_pixeldata(self, frame: int, shape: Optional[List[int]] = None,
+                                preview: Optional[bool] = False, linked: Optional[bool] = False) -> Optional[np.ndarray]:
 
         """
         Retrieves the pixel data from a frame in the sequence currently loaded in Siril.
@@ -1633,6 +1637,8 @@ class SirilInterface:
             preview: optional bool specifying whether to get pixeldata as a preview
                 (i.e. 8-bit autostretched data) or as real image data. Defaults
                 to False (i.e. real image data).
+            linked: optional bool specifying whether the autostretched preview should
+                    be linked or unlinked. This option is ignored if preview is not True
 
         Returns:
             numpy.ndarray: The image data as a numpy array
@@ -1647,7 +1653,7 @@ class SirilInterface:
         # Convert channel number to network byte order bytes
 
         try:
-            preview_payload = struct.pack('!?', preview)
+            preview_payload = struct.pack('!??', preview, linked)
             frame_payload = struct.pack('!I', frame)
             # Validate shape if provided
             if shape is not None:
@@ -3104,7 +3110,7 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(f"Error in get_image(): {e}") from e
 
-    def get_seq_frame(self, frame: int, with_pixels: Optional[bool] = True, preview: Optional[bool] = False) -> Optional[FFit]:
+    def get_seq_frame(self, frame: int, with_pixels: Optional[bool] = True, preview: Optional[bool] = False, linked: Optional[bool] = False) -> Optional[FFit]:
         """
         Request sequence frame as a FFit from Siril.
 
@@ -3131,7 +3137,7 @@ class SirilInterface:
             raise NoSequenceError(_("Error in get_seq_frame(): no sequence is loaded"))
 
         shm = None
-        data_payload = struct.pack('!I??', frame, with_pixels, preview)
+        data_payload = struct.pack('!I???', frame, with_pixels, preview, linked)
         response = self._request_data(_Command.GET_SEQ_IMAGE, data_payload, timeout = None)
         if response is None:
             return None
@@ -4242,7 +4248,8 @@ class SirilInterface:
         return self._is_cli
 
     def load_image_from_file(self, filepath: str, with_pixels: Optional[bool] = True,
-                            preview: Optional[bool] = False) -> Optional[FFit]:
+                            preview: Optional[bool] = False,
+                            linked: Optional[bool] = False) -> Optional[FFit]:
         """
         Request Siril to load an image from a file and transfer it to sirilpy. This
         method does not change the image currently loaded in Siril. Any image format
@@ -4262,6 +4269,8 @@ class SirilInterface:
             preview: bool specifying whether or not to return the real pixel data or an
                 autostretched uint8_t preview version. Only has an effect in
                 conjunction with with_pixels = True
+            linked: bool specifying whether the autostretch preview returned by the preview
+                    option should be linked or not. Ignored if preview == False.
 
         Returns:
             FFit object containing the image data
@@ -4282,7 +4291,7 @@ class SirilInterface:
 
         shm = None
         # Pack boolean flags + filepath
-        data_payload = struct.pack('!??', with_pixels, preview) + filepath_bytes
+        data_payload = struct.pack('!???', with_pixels, preview, linked) + filepath_bytes
         response = self._request_data(_Command.GET_IMAGE_FILE, data_payload, timeout=None)
         if response is None:
             return None
@@ -4844,7 +4853,7 @@ class SirilInterface:
         Request the Screen Transfer Function in use in Siril.
 
         Returns:
-            An int representing the current STF state. TODO: create an enum for this
+            A STFType representing the current STF state.
 
         Raises:
             SirilError: if an error occurred.
@@ -5039,3 +5048,25 @@ class SirilInterface:
 
                 except Exception:
                     pass
+
+    def get_siril_stf_linked(self) -> bool:
+
+        """
+        Determine whether the AutoStretch STF is configured to be linked or not
+
+        Returns:
+            A bool representing the current STF channel-linked state.
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_STF_LINKED)
+        if response is None:
+            return None
+
+        try:
+            mode = struct.unpack('!I', response)
+            return bool(mode[0])
+        except struct.error as e:
+            raise SirilError(_("Error occurred in get_siril_stf(): {}").format(e)) from e

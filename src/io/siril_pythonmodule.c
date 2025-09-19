@@ -331,7 +331,7 @@ void cleanup_shm_resources(Connection *conn) {
 
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
-shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview) {
+shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview, gboolean linked) {
 	if (!fit || (fit->type == DATA_USHORT && !fit->data) || (fit->type == DATA_FLOAT && !fit->fdata)) {
 		const char* error_msg = _("Failed to retrieve pixel data - no FITS image");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
@@ -384,9 +384,16 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 	if (as_preview) {
 		fits stretched = {0};
 		copyfits(fit, &stretched, CP_ALLOC | CP_FORMAT, -1);
-		struct mtf_params params[3];
-		find_unlinked_midtones_balance(fit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, params);
-		apply_unlinked_mtf_to_fits(fit, &stretched, params);
+		if (linked) {
+			struct mtf_params params;
+			find_linked_midtones_balance_default(fit, &params);
+			params.do_red = params.do_green = params.do_blue = TRUE;
+			apply_linked_mtf_to_fits(fit, &stretched, params, TRUE);
+		} else {
+			struct mtf_params params[3];
+			find_unlinked_midtones_balance_default(fit, params);
+			apply_unlinked_mtf_to_fits(fit, &stretched, params);
+		}
 		// Copy data from gfit to shared memory
 		int top = region.y + region.h;
 		int right = region.x + region.w;
