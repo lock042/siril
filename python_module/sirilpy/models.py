@@ -1418,26 +1418,33 @@ class ImageAnalysis:
     """
     Structure to hold image analysis data, used for culling
     """
+    # constants used for packing/unpacking
+    FLEN: ClassVar[int] = 71
 
     bgnoise: float = 0.0    #: RMS background noise
-    fwhm: float = 0.0 #: Mean fwhm
-    wfwhm: float = 0.0 #: Mean weighted fwhm
-    nbstars: int = 0 #: Number of stars detected
-    roundness: float = 0.0 #: Mean star roundness
-    imagetype: "ImageType" = 0 #: Image type enum (0 = unknown, 1 = light, 2 = dark, 3 = flat, 4 = bias)
-    timestamp: int = 0 #: UNIX timestamp (64-bit seconds since 1970/1/1 00:00 UTC)
-    channels: int = 0 #: number of channels in the image
-    height: int = 0 #: image height
-    width: int = 0 #: image width
+    fwhm: float = 0.0       #: Mean fwhm
+    wfwhm: float = 0.0      #: Mean weighted fwhm
+    nbstars: int = 0        #: Number of stars detected
+    roundness: float = 0.0  #: Mean star roundness
+    imagetype: "ImageType" = 0  #: Image type enum
+    timestamp: int = 0      #: UNIX timestamp (64-bit seconds since 1970/1/1 00:00 UTC)
+    channels: int = 0       #: number of channels in the image
+    height: int = 0         #: image height
+    width: int = 0          #: image width
+    filter: str = ""        #: filter name (fixed-length string from C, max 70 chars)
 
     # Network-safe format:
     # ! = network (big-endian), standard sizes, no padding
-    # d = 8-byte double, q = 8-byte int
-    _struct_fmt = "!dddqdqqqqq"
+    # d = 8-byte double, q = 8-byte int, 70s = 70-byte string
+    _struct_fmt = f"!dddqdqqqqq{FLEN}s"
     _struct = struct.Struct(_struct_fmt)
 
     def serialize(self) -> bytes:
         """Pack the dataclass into a network-safe binary struct."""
+        # Ensure filter fits FLEN, pad with null bytes if shorter
+        filter_bytes = self.filter.encode("utf-8")[:FLEN]
+        filter_bytes = filter_bytes.ljust(FLEN, b"\x00")
+
         return self._struct.pack(
             self.bgnoise,
             self.fwhm,
@@ -1448,11 +1455,40 @@ class ImageAnalysis:
             self.timestamp,
             self.channels,
             self.height,
-            self.width
+            self.width,
+            filter_bytes,
         )
 
     @classmethod
     def deserialize(cls, data: bytes) -> "ImageAnalysis":
         """Unpack a network-safe binary struct into an ImageAnalysis instance."""
-        bgnoise, fwhm, wfwhm, nbstars, roundness, imagetype, timestamp, channels, height, width = cls._struct.unpack(data)
-        return cls(bgnoise, fwhm, wfwhm, nbstars, roundness, imagetype, timestamp, channels, height, width)
+        (
+            bgnoise,
+            fwhm,
+            wfwhm,
+            nbstars,
+            roundness,
+            imagetype,
+            timestamp,
+            channels,
+            height,
+            width,
+            filter_bytes,
+        ) = cls._struct.unpack(data)
+
+        # Decode filter string, stripping null terminators
+        filter_str = filter_bytes.split(b"\x00", 1)[0].decode("utf-8", errors="ignore")
+
+        return cls(
+            bgnoise,
+            fwhm,
+            wfwhm,
+            nbstars,
+            roundness,
+            imagetype,
+            timestamp,
+            channels,
+            height,
+            width,
+            filter_str,
+        )

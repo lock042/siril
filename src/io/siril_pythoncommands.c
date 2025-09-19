@@ -221,7 +221,7 @@ static int homography_to_py(const Homography* H, unsigned char *ptr, size_t maxl
 
 static int analysis_to_py(const double bgnoise, const double fwhm, const double wfwhm, const int64_t nbstars,
 						  const double roundness, const int64_t imagetype, int64_t unix_timestamp,
-						  const int64_t channels, const int64_t height, const int64_t width,
+						  const int64_t channels, const int64_t height, const int64_t width, const char *filter,
 						  unsigned char *ptr, size_t maxlen) {
 	if (!ptr)
 		return 1;
@@ -238,6 +238,7 @@ static int analysis_to_py(const double bgnoise, const double fwhm, const double 
 	COPY_BE64(channels, int64_t);
 	COPY_BE64(height, int64_t);
 	COPY_BE64(width, int64_t);
+	COPY_FLEN_STRING(filter);
 	return 0;
 }
 
@@ -2779,10 +2780,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			fits *fit = calloc(1, sizeof(fits));
 			gboolean debayer_pref = com.pref.debayer.open_debayer;
-			com.pref.debayer.open_debayer = FALSE; // disable debayering, it is slow and we want to report
-				// CFA images as single-channel for the purposes of analysis
+			com.pref.debayer.open_debayer = FALSE; // disable debayering
 			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE);
-			com.pref.debayer.open_debayer = debayer_pref; // restore debayer setting
+			com.pref.debayer.open_debayer = debayer_pref;
 			if (retval) {
 				free(fit);
 				g_free(filepath);
@@ -2792,18 +2792,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			g_free(filepath);
 
-			// We now have the file open that we want to analyse, so let's analyse it:
-			// Compute stats
-			int layer = fit->naxes[2] == 1 ? 0 : 1; // layer 1 for mono images, green for RGB
+			// --- Image analysis ---
+			int layer = fit->naxes[2] == 1 ? 0 : 1;
 			rectangle selection = { 0, 0, fit->rx, fit->ry };
 			imstats *stats = statistics(NULL, -1, fit, layer, &selection, STATS_SIGMEAN, MULTI_THREADED);
 			double bgnoise = stats->bgnoise;
 			if (fit->type == DATA_USHORT)
 				bgnoise /= (USHRT_MAX_DOUBLE);
+			free_stats(stats);
 
-			free_stats(stats); // finished with the stats
-
-			// Get image type
 			imagetype_t imagetype = UNKNOWN;
 			gchar *lower_image_type = g_ascii_strdown(fit->keywords.image_type, -1);
 			if (g_strstr_len(lower_image_type, -1, "light") != NULL) {
@@ -2817,14 +2814,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			g_free(lower_image_type);
 
-			// Count stars (skip this for darks, flats, bias)
 			int nb_stars = 0;
 			double roundness = 0.0;
 			double fwhm = 0.0;
 			if (imagetype != DARK && imagetype != FLAT && imagetype != BIAS) {
 				psf_star **stars = NULL;
-				image *input_image = NULL;
-				input_image = calloc(1, sizeof(image));
+				image *input_image = calloc(1, sizeof(image));
 				input_image->fit = fit;
 				input_image->from_seq = NULL;
 				input_image->index_in_seq = -1;
@@ -2832,40 +2827,43 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
 				free(input_image);
 
-				// Compute average roundness, fwhm
 				for (int i = 0; i < nb_stars ; i++) {
 					psf_star *star = stars[i];
 					roundness += fabs(star->fwhmy / star->fwhmx);
 					fwhm += (star->fwhmx + star->fwhmy);
 				}
-				roundness /= nb_stars;
-				fwhm /= (2 * nb_stars); // saves division in the loop
-				free_psf_starstarstar(stars); // finished with the stars array
+				if (nb_stars > 0) {
+					roundness /= nb_stars;
+					fwhm /= (2 * nb_stars);
+				}
+				free_psf_starstarstar(stars);
 			}
 
-			// Get timestamp
 			int64_t unix_timestamp = g_date_time_to_unix(fit->keywords.date_obs);
-
-			// Get dimensions
 			int64_t channels = fit->naxes[2];
-			int64_t height = fit->naxes[1];
-			int64_t width = fit->naxes[0];
-			// Finished with fit
+			int64_t height   = fit->naxes[1];
+			int64_t width    = fit->naxes[0];
+
+			// Capture filter string
+			char filter_str[FLEN_VALUE];
+			memset(filter_str, 0, sizeof(filter_str));
+			g_strlcpy(filter_str, fit->keywords.filter, FLEN_VALUE-1);
+
 			clearfits(fit);
 			free(fit);
 
-			// Prepare to transmit
-			// Calculate size needed for response
-			size_t total_size = 10 * sizeof(double); // 6 * 64-bit values
+			// --- Response ---
+			size_t total_size = 10 * sizeof(int64_t) + FLEN_VALUE; // numeric fields + filter string
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			if (!response_buffer) {
 				const char* error_msg = _("Memory allocation failed");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			unsigned char *ptr = response_buffer;
 			if (analysis_to_py(bgnoise, fwhm, 0.0, (int64_t) nb_stars, roundness, imagetype,
-				unix_timestamp, channels, height, width, ptr, total_size)) {
+				unix_timestamp, channels, height, width, filter_str, ptr, total_size)) {
 				const char* error_message = _("No analysis available");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 			} else {

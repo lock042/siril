@@ -3134,7 +3134,8 @@ class SirilInterface:
             NoSequenceError: if no sequence is loaded in Siril,
             DataError: on receipt of incorrect data,
             SirilError: if an error occurs.
-        """        if not self.is_sequence_loaded():
+        """
+        if not self.is_sequence_loaded():
             raise NoSequenceError(_("Error in get_seq_frame(): no sequence is loaded"))
 
         shm_pixels = None
