@@ -5642,7 +5642,6 @@ int process_seq_cosme(int nb) {
 		char *current = word[3], *value;
 		value = current + 8;
 		if (value[0] == '\0') {
-			free_sequence(seq, TRUE);
 			g_object_unref(file);
 			if (!check_seq_is_comseq(seq))
 				free_sequence(seq, TRUE);
