@@ -221,7 +221,7 @@ static int homography_to_py(const Homography* H, unsigned char *ptr, size_t maxl
 
 static int analysis_to_py(const double bgnoise, const double fwhm, const double wfwhm, const int64_t nbstars,
 						  const double roundness, const int64_t imagetype, int64_t unix_timestamp,
-						  const int64_t channels, const int64_t height, const int64_t width,
+						  const int64_t channels, const int64_t height, const int64_t width, const char *filter,
 						  unsigned char *ptr, size_t maxlen) {
 	if (!ptr)
 		return 1;
@@ -238,6 +238,7 @@ static int analysis_to_py(const double bgnoise, const double fwhm, const double 
 	COPY_BE64(channels, int64_t);
 	COPY_BE64(height, int64_t);
 	COPY_BE64(width, int64_t);
+	COPY_FLEN_STRING(filter);
 	return 0;
 }
 
@@ -1660,21 +1661,33 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Calculate size needed for the response
-			size_t ffit_size = sizeof(uint64_t) * 13; // 14 vars packed to 64-bit
-			size_t strings_size = FLEN_VALUE * 16;  // 13 string fields of FLEN_VALUE
+			size_t ffit_size = sizeof(uint64_t) * 13; // 13 vars packed to 64-bit
+			size_t strings_size = FLEN_VALUE * 16;  // 16 string fields of FLEN_VALUE
 			size_t numeric_size = sizeof(uint64_t) * 41 + sizeof(uint8_t); // 41 vars packed to 64-bit + 1 byte bool
 			size_t total_size = ffit_size + strings_size + numeric_size;
+
+			// Always include space for header and ICC profile shared memory info
+			// Pixel shared memory info is only included if with_pixels is true
+			size_t shminfo_size = sizeof(shared_memory_info_t) * 2; // header + icc_profile
 			if (with_pixels) {
-				size_t shminfo_size = sizeof(shared_memory_info_t);
-				total_size += shminfo_size;
+				shminfo_size += sizeof(shared_memory_info_t); // + pixels
 			}
+			total_size += shminfo_size;
 
 			unsigned char *response_buffer = g_try_malloc0(total_size);
+			if (!response_buffer) {
+				const char* error_message = _("Memory allocation error: response buffer");
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+				clearfits(fit);
+				free(fit);
+				break;
+			}
+
 			unsigned char *ptr = response_buffer;
 
 			int ret = fits_to_py(fit, ptr, ffit_size);
 			if (ret) {
-				const char* error_message = _("Memory allocation error");
+				const char* error_message = _("fits_to_py conversion error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				goto CLEANUP;
 			}
@@ -1682,33 +1695,83 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			ptr = response_buffer + ffit_size;
 			ret = keywords_to_py(fit, ptr, (strings_size + numeric_size));
 			if (ret) {
-				const char* error_message = _("Memory allocation error");
+				const char* error_message = _("keywords_to_py conversion error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				goto CLEANUP;
 			}
 
+			ptr += strings_size + numeric_size;
+
+			// Handle pixel data only if requested
 			if (with_pixels) {
-				ptr += strings_size + numeric_size;
 				rectangle region = (rectangle) {0, 0, fit->rx, fit->ry};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview, linked);
-				if (!info) {
-					const char* error_message = _("Memory allocation error");
+				shared_memory_info_t *pixel_info = handle_pixeldata_request(conn, fit, region, as_preview, linked);
+				if (!pixel_info) {
+					const char* error_message = _("Pixel shared memory allocation error");
 					success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
-					free(info);
 					goto CLEANUP;
 				}
 				// Convert the values to BE
-				TO_BE64_INTO(info->size, info->size, size_t);
-				info->data_type = GUINT32_TO_BE(info->data_type);
-				info->width = GUINT32_TO_BE(info->width);
-				info->height = GUINT32_TO_BE(info->height);
-				info->channels = GUINT32_TO_BE(info->channels);
-				memcpy(ptr, info, sizeof(shared_memory_info_t));
-				free(info);
+				TO_BE64_INTO(pixel_info->size, pixel_info->size, size_t);
+				pixel_info->data_type = GUINT32_TO_BE(pixel_info->data_type);
+				pixel_info->width = GUINT32_TO_BE(pixel_info->width);
+				pixel_info->height = GUINT32_TO_BE(pixel_info->height);
+				pixel_info->channels = GUINT32_TO_BE(pixel_info->channels);
+				memcpy(ptr, pixel_info, sizeof(shared_memory_info_t));
+				free(pixel_info);
+				ptr += sizeof(shared_memory_info_t);
 			}
+
+			// Always handle header data (if available)
+			shared_memory_info_t *header_info = NULL;
+			size_t header_size = 0;
+			if (fit->header) {
+				header_size = strlen(fit->header);
+			}
+			if (header_size > 0) {
+				header_info = handle_rawdata_request(conn, fit->header, header_size);
+			}
+			if (header_info) {
+				// Convert the values to BE
+				TO_BE64_INTO(header_info->size, header_info->size, size_t);
+				header_info->data_type = GUINT32_TO_BE(header_info->data_type);
+				header_info->width = GUINT32_TO_BE(header_info->width);
+				header_info->height = GUINT32_TO_BE(header_info->height);
+				header_info->channels = GUINT32_TO_BE(header_info->channels);
+				memcpy(ptr, header_info, sizeof(shared_memory_info_t));
+				free(header_info);
+			} else {
+				// Fill with zeros if no header available
+				memset(ptr, 0, sizeof(shared_memory_info_t));
+			}
+			ptr += sizeof(shared_memory_info_t);
+
+			// Always handle ICC profile data (if available)
+			shared_memory_info_t *icc_info = NULL;
+			if (fit->icc_profile) {
+				guint32 profile_size;
+				unsigned char* profile_data = get_icc_profile_data(fit->icc_profile, &profile_size);
+				if (profile_data && profile_size > 0) {
+					icc_info = handle_rawdata_request(conn, profile_data, profile_size);
+				}
+			}
+			if (icc_info) {
+				// Convert the values to BE
+				TO_BE64_INTO(icc_info->size, icc_info->size, size_t);
+				icc_info->data_type = GUINT32_TO_BE(icc_info->data_type);
+				icc_info->width = GUINT32_TO_BE(icc_info->width);
+				icc_info->height = GUINT32_TO_BE(icc_info->height);
+				icc_info->channels = GUINT32_TO_BE(icc_info->channels);
+				memcpy(ptr, icc_info, sizeof(shared_memory_info_t));
+				free(icc_info);
+			} else {
+				// Fill with zeros if no ICC profile available
+				memset(ptr, 0, sizeof(shared_memory_info_t));
+			}
+
 			success = send_response(conn, STATUS_OK, response_buffer, total_size);
 
-CLEANUP:
+		CLEANUP:
 			g_free(response_buffer);
 			clearfits(fit);
 			free(fit);
@@ -2567,10 +2630,8 @@ CLEANUP:
 			size_t stats_size = 3 * 14 * sizeof(double); // Stats for up to 3 channels
 
 			size_t total_size = ffit_size + strings_size + numeric_size + stats_size;
-			if (with_pixels) {
-				size_t shminfo_size = sizeof(shared_memory_info_t);
-				total_size += shminfo_size;
-			}
+			size_t shminfo_size = sizeof(shared_memory_info_t);
+			total_size += shminfo_size * 3; // pixels, header, icc_profile
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			if (!response_buffer) {
 				const char* error_message = _("Memory allocation error: response buffer");
@@ -2626,7 +2687,7 @@ CLEANUP:
 				ptr += 14 * sizeof(double);
 			}
 
-			if (with_pixels) {
+			if (with_pixels) { // Add pixeldata as a shm region (if requested)
 				rectangle region = (rectangle) {0, 0, fit->rx, fit->ry};
 				shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview, linked);
 				if (!info) {
@@ -2643,6 +2704,46 @@ CLEANUP:
 				memcpy(ptr, info, sizeof(shared_memory_info_t));
 				free(info);
 			}
+			ptr += sizeof(shared_memory_info_t);
+
+			// Add header here as another shm region (always)
+			guint32 headerlength = strlen(fit->header) + 1;
+			shared_memory_info_t *headerinfo = handle_rawdata_request(conn, fit->header, headerlength);
+			if (!headerinfo) {
+				const char* error_message = _("Shared memory allocation error");
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+				goto CLEANUP_FILE;
+			}
+			// Convert the values to BE
+			TO_BE64_INTO(headerinfo->size, headerinfo->size, size_t);
+			headerinfo->data_type = GUINT32_TO_BE(headerinfo->data_type);
+			headerinfo->width = GUINT32_TO_BE(headerinfo->width);
+			headerinfo->height = GUINT32_TO_BE(headerinfo->height);
+			headerinfo->channels = GUINT32_TO_BE(headerinfo->channels);
+			memcpy(ptr, headerinfo, sizeof(shared_memory_info_t));
+			free(headerinfo);
+			ptr += sizeof(shared_memory_info_t);
+
+			// Add icc profile here as another shm (if there is an ICC profile)
+			if (fit->icc_profile) {
+				guint32 profile_size;
+				unsigned char* profile_data = get_icc_profile_data(fit->icc_profile, &profile_size);
+				shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
+				if (!info) {
+					const char* error_message = _("Shared memory allocation error");
+					success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+					goto CLEANUP_FILE;
+				}
+				// Convert the values to BE
+				TO_BE64_INTO(info->size, info->size, size_t);
+				info->data_type = GUINT32_TO_BE(info->data_type);
+				info->width = GUINT32_TO_BE(info->width);
+				info->height = GUINT32_TO_BE(info->height);
+				info->channels = GUINT32_TO_BE(info->channels);
+				memcpy(ptr, info, sizeof(shared_memory_info_t));
+				free(info);
+			}
+
 			success = send_response(conn, STATUS_OK, response_buffer, total_size);
 		CLEANUP_FILE:
 			g_free(response_buffer);
@@ -2650,6 +2751,7 @@ CLEANUP:
 			free(fit);
 			break;
 		}
+
 		case CMD_ANALYSE_IMAGE_FROM_FILE: {
 			if (payload_length < 1) {
 				const char* error_msg = _("Incorrect command argument");
@@ -2678,10 +2780,9 @@ CLEANUP:
 
 			fits *fit = calloc(1, sizeof(fits));
 			gboolean debayer_pref = com.pref.debayer.open_debayer;
-			com.pref.debayer.open_debayer = FALSE; // disable debayering, it is slow and we want to report
-				// CFA images as single-channel for the purposes of analysis
+			com.pref.debayer.open_debayer = FALSE; // disable debayering
 			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE);
-			com.pref.debayer.open_debayer = debayer_pref; // restore debayer setting
+			com.pref.debayer.open_debayer = debayer_pref;
 			if (retval) {
 				free(fit);
 				g_free(filepath);
@@ -2691,18 +2792,15 @@ CLEANUP:
 			}
 			g_free(filepath);
 
-			// We now have the file open that we want to analyse, so let's analyse it:
-			// Compute stats
-			int layer = fit->naxes[2] == 1 ? 0 : 1; // layer 1 for mono images, green for RGB
+			// --- Image analysis ---
+			int layer = fit->naxes[2] == 1 ? 0 : 1;
 			rectangle selection = { 0, 0, fit->rx, fit->ry };
 			imstats *stats = statistics(NULL, -1, fit, layer, &selection, STATS_SIGMEAN, MULTI_THREADED);
 			double bgnoise = stats->bgnoise;
 			if (fit->type == DATA_USHORT)
 				bgnoise /= (USHRT_MAX_DOUBLE);
+			free_stats(stats);
 
-			free_stats(stats); // finished with the stats
-
-			// Get image type
 			imagetype_t imagetype = UNKNOWN;
 			gchar *lower_image_type = g_ascii_strdown(fit->keywords.image_type, -1);
 			if (g_strstr_len(lower_image_type, -1, "light") != NULL) {
@@ -2716,14 +2814,12 @@ CLEANUP:
 			}
 			g_free(lower_image_type);
 
-			// Count stars (skip this for darks, flats, bias)
 			int nb_stars = 0;
 			double roundness = 0.0;
 			double fwhm = 0.0;
 			if (imagetype != DARK && imagetype != FLAT && imagetype != BIAS) {
 				psf_star **stars = NULL;
-				image *input_image = NULL;
-				input_image = calloc(1, sizeof(image));
+				image *input_image = calloc(1, sizeof(image));
 				input_image->fit = fit;
 				input_image->from_seq = NULL;
 				input_image->index_in_seq = -1;
@@ -2731,40 +2827,43 @@ CLEANUP:
 						NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
 				free(input_image);
 
-				// Compute average roundness, fwhm
 				for (int i = 0; i < nb_stars ; i++) {
 					psf_star *star = stars[i];
 					roundness += fabs(star->fwhmy / star->fwhmx);
 					fwhm += (star->fwhmx + star->fwhmy);
 				}
-				roundness /= nb_stars;
-				fwhm /= (2 * nb_stars); // saves division in the loop
-				free_psf_starstarstar(stars); // finished with the stars array
+				if (nb_stars > 0) {
+					roundness /= nb_stars;
+					fwhm /= (2 * nb_stars);
+				}
+				free_psf_starstarstar(stars);
 			}
 
-			// Get timestamp
 			int64_t unix_timestamp = g_date_time_to_unix(fit->keywords.date_obs);
-
-			// Get dimensions
 			int64_t channels = fit->naxes[2];
-			int64_t height = fit->naxes[1];
-			int64_t width = fit->naxes[0];
-			// Finished with fit
+			int64_t height   = fit->naxes[1];
+			int64_t width    = fit->naxes[0];
+
+			// Capture filter string
+			char filter_str[FLEN_VALUE];
+			memset(filter_str, 0, sizeof(filter_str));
+			g_strlcpy(filter_str, fit->keywords.filter, FLEN_VALUE-1);
+
 			clearfits(fit);
 			free(fit);
 
-			// Prepare to transmit
-			// Calculate size needed for response
-			size_t total_size = 10 * sizeof(double); // 6 * 64-bit values
+			// --- Response ---
+			size_t total_size = 10 * sizeof(int64_t) + FLEN_VALUE; // numeric fields + filter string
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			if (!response_buffer) {
 				const char* error_msg = _("Memory allocation failed");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			unsigned char *ptr = response_buffer;
 			if (analysis_to_py(bgnoise, fwhm, 0.0, (int64_t) nb_stars, roundness, imagetype,
-				unix_timestamp, channels, height, width, ptr, total_size)) {
+				unix_timestamp, channels, height, width, filter_str, ptr, total_size)) {
 				const char* error_message = _("No analysis available");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 			} else {
