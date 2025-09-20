@@ -17,10 +17,11 @@ xx/xx/xx
 * Fixed wrong cache file name (parent directory twice in the returned path) resulting in impossibility to cache files (#1734)
 * Fixed handling bayer/Xtrans patterns in more robust way accross the codebase (!903)
 * Fixed astrometric alignement for mosaics with some slight skew in the solution (#1747)
-* Fixed issues identifed by static analysis (MR tbc)
+* Fixed issues identifed by static analysis (!926)
 * Fixed issue with findstar command when running from a python script (#1782)
 * Fixed issue with auto-applying ICC profiles in stretch tools if nothing is done (reverts correctly) (#1768)
-* Fix issue in SPCC where it would complain about missing OSC BB filter when in NB mode
+* Fixed issue in SPCC where it would complain about missing OSC BB filter when in NB mode
+* Fixed a crash in the seqcosme command
 
 **Improvements:**
 * Compiled .pyc scripts are now only shown in the scripts menu if their magic number matches the available intepreter
@@ -28,9 +29,11 @@ xx/xx/xx
 * Right-click scripts directly from the script menu to open them in the editor
 * Optimize image preview, allow colour previews and improve preview stretching to use autostretch, add new large preview size at 512px
 * Added SirilInterface.get_image_from_file() method
+* Added new sirilpy methods for getting and setting GUI properties (sliders, STF, pan offsets, zoomlevel)
+* Improved sirilpy get_seq_frame() and get_image_from_file() so they now populate FFit.header and .icc_profile
 * Added Search box in the Script treeview
 * Made reading astrometric solution more robust to CDELT/PC matrices not following the expected formalism (#1770)
-* Added SirilInterface.analyse_image_from_file(), SirilInterface.undo() and SirilInterface.redo()
+* Added SirilInterface.analyse_image_from_file(), .undo(), .redo() and .clear_undo_history()
 * Approved use of PyQt6 for creating python script GUIs (now confident it is problem free on all target OSes)
 * Added some plate solution-related keywords to FKeywords sirilpy class. (#1779)
 * Replaced the confusing clip/rescale popup with a heuristic that generally does the right thing. (!931)
