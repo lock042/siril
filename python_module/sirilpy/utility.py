@@ -17,7 +17,7 @@ import platform
 import threading
 import subprocess
 from importlib import metadata, util
-from typing import Union, List, Optional, TYPE_CHECKING, Tuple
+from typing import Union, List, Optional, TYPE_CHECKING, Tuple, Dict
 import requests
 from packaging import version as pkg_version
 from packaging.specifiers import SpecifierSet
@@ -27,6 +27,94 @@ from .exceptions import SirilError
 if TYPE_CHECKING:
     from .connection import SirilInterface
 
+def siril_header_to_dict(header_string: str, include_comments: bool = False) -> Dict[str, Union[str, int, float, bool]]:
+    """
+    Convert Siril's newline-separated FITS header format to a dictionary compatible with astropy.wcs.WCS.
+
+    Siril provides FITS headers as human-readable strings with one header card per line,
+    separated by newline characters. This function parses that format and converts it
+    to a dictionary that can be directly used with astropy's WCS constructor.
+
+    Args:
+        header_string: Raw header string from Siril, with header cards separated by newlines.
+                      Expected format: "KEYWORD = value / comment"
+        include_comments: If True, includes COMMENT and HISTORY cards in the output.
+                         If False (default), these cards are skipped.
+
+    Returns:
+        Dictionary mapping FITS header keywords (str) to their parsed values.
+        Values are converted to appropriate Python types:
+        - 'T'/'F' -> bool
+        - Quoted strings -> str (quotes removed)
+        - Numeric strings -> int or float
+        - Everything else -> str
+        - COMMENT/HISTORY cards -> str (content after keyword, if include_comments=True)
+
+    Notes:
+        - Filters out warning messages, tracebacks, and other non-header content
+        - By default ignores COMMENT and HISTORY cards (set include_comments=True to include)
+        - Skips malformed cards or invalid keywords
+        - Keywords must be ≤8 characters and alphanumeric (plus underscore/hyphen)
+        - Comments after '/' are ignored in this implementation for regular cards
+
+    Example:
+        >>> header_str = "SIMPLE  = T / file conforms to FITS standard\\nBITPIX  = -32 / bits per pixel\\nCOMMENT Test comment"
+        >>> result = siril_header_to_dict(header_str)
+        >>> result['SIMPLE']
+        True
+        >>> result['BITPIX']
+        -32
+        >>> 'COMMENT' in result
+        False
+        >>> result_with_comments = siril_header_to_dict(header_str, include_comments=True)
+        >>> result_with_comments['COMMENT']
+        'Test comment'
+    """
+    header_dict: Dict[str, Union[str, int, float, bool]] = {}
+    lines = header_string.strip().split('\n')
+
+    for line in lines:
+        line = line.strip()
+
+        # Skip problematic lines
+        if (not line or
+            line.startswith(('WARNING', 'Traceback', 'ValueError', 'File ', 'During', 'Python'))):
+            continue
+
+        # Handle COMMENT and HISTORY cards
+        if line.startswith(('COMMENT', 'HISTORY')) and include_comments:
+            keyword = line.split()[0]
+            content = line[len(keyword):].strip()
+            header_dict[keyword] = content
+            continue
+
+        if '=' in line and not line.startswith(('COMMENT', 'HISTORY')):
+            try:
+                key, rest = line.split('=', 1)
+                key = key.strip()
+
+                if len(key) <= 8 and key.replace('_', '').replace('-', '').isalnum():
+                    # Extract value (ignore comment for simplicity)
+                    value_str = rest.split('/')[0].strip()
+
+                    # Parse value
+                    if value_str == 'T':
+                        value = True
+                    elif value_str == 'F':
+                        value = False
+                    elif value_str.startswith("'") and value_str.endswith("'"):
+                        value = value_str[1:-1]
+                    else:
+                        try:
+                            value = float(value_str) if '.' in value_str or 'E' in value_str.upper() else int(value_str)
+                        except ValueError:
+                            value = value_str
+
+                    header_dict[key] = value
+            except Exception:
+                continue
+
+    return header_dict
 def truncate_utf8(data, max_bytes):
     """
     Truncates utf8 input. Accepts either bytes or str as input and

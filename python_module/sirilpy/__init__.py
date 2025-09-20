@@ -90,6 +90,7 @@ from .models import (
 from .plot import SeriesData, PlotData
 from .shm import SharedMemoryWrapper
 from .utility import (
+    siril_header_to_dict,
     truncate_utf8,
     human_readable_size,
     download_with_progress,
@@ -172,6 +173,7 @@ __all__ = [
     'ImageType',
     'STFType',
     'SlidersMode',
+    'siril_header_to_dict',
     '_'
 ]
 
