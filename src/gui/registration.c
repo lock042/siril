@@ -1137,21 +1137,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	}
 #endif
 
-	/* We check that available disk space is enough when
-	the registration method produces a new sequence with images
-	Note: for applyreg, this is done by check_applyreg_output(), 
-	as we need to make a more complex calc for frame sizes accounting for framing method
-	*/
-	if (has_output_images && regindex != REG_APPLY) {
-		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-		gint64 size = compute_registration_output_size(regargs, rx, ry, 1.);
-		if (test_available_space(size)) {
-			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
-			return 1;
-		}
-	}
-
 	if (regindex == REG_GLOBAL && regargs->interpolation == OPENCV_NONE) { // seqpplyreg case is dealt with in the sanity checks of the method
 		if (regargs->output_scale != 1.f || com.seq.is_variable) {
 			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no scaling can be applied. Aborting\n"), "red");

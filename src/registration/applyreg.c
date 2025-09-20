@@ -1167,6 +1167,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	}
 
 	args->upscale_ratio = regargs->output_scale;
+	args->compute_size_hook = compute_registration_size_hook;
 	args->prepare_hook = apply_reg_prepare_hook;
 	args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
 	args->finalize_hook = apply_reg_finalize_hook;
@@ -1347,14 +1348,6 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 		return FALSE;
 	}
 
-	int64_t size = compute_registration_output_size(regargs, regargs->framingd.roi_out.w, regargs->framingd.roi_out.h, 1.);
-	gchar* size_msg = g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS);
-	siril_debug_print("Apply Registration: sequence out size: %s\n", size_msg);
-	g_free(size_msg);
-	if (test_available_space(size)) {
-		siril_log_color_message(_("Not enough space to save the output images\n"), "red");
-		return FALSE;
-	}
 	return TRUE;
 }
 

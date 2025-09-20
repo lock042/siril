@@ -372,23 +372,36 @@ struct registration_method *new_reg_method(const char *name, registration_functi
 	return reg;
 }
 
-int64_t compute_registration_output_size(struct registration_args *regargs, int w_out, int h_out, float scale) {
-	if (!regargs || w_out == 0 || h_out == 0 || scale == 0) {
+gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_frames) {
+	struct star_align_data *sadata = args->user;
+	if (!sadata || !sadata->regargs)
+		return -1;
+	struct registration_args *regargs = sadata->regargs;
+	int w_out = 0, h_out = 0;
+	float scale = 1.0;
+	if (regargs->func == &register_star_alignment) {// global registration
+		w_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+		h_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+		scale = regargs->output_scale;
+	} else if (regargs->func == &register_apply_reg) { // applyreg
+		w_out = regargs->framingd.roi_out.w;
+		h_out = regargs->framingd.roi_out.h;
+	} else {
+		siril_debug_print("Unsupported registration function for size computation\n");
 		return -1;
 	}
-	int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
 	// image_size including scale
 	// for applyreg, we pass already upscaled sizes so scale is forced to 1.
-	int64_t im_size = (int64_t)w_out * h_out * scale * scale;
+	gint64 im_size = (gint64)w_out * h_out * scale * scale;
 	// nblayers
 	int output_nb_layers = regargs->seq->nb_layers;
 	if (regargs->driz && regargs->driz->is_bayer)
 		output_nb_layers = 3;
 	im_size *= output_nb_layers;
 
-	int64_t output_depth = 0;
-	int64_t header_size = 0;
-	int64_t size = 0;
+	gint64 output_depth = 0;
+	gint64 header_size = 0;
+	gint64 size = 0;
 	if (regargs->seq->type == SEQ_SER) {
 		output_depth = (regargs->seq->ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? sizeof(BYTE) : sizeof(WORD);
 		header_size += SER_HEADER_LEN;

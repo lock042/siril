@@ -8059,16 +8059,7 @@ int process_register(int nb) {
 	method->type = REGTYPE_DEEPSKY;
 	regargs->func = method->method_ptr;
 
-	// testing free space
-	if (!regargs->no_output) {
-		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-		gint64 size = compute_registration_output_size(regargs, rx, ry, 1.);
-		if (test_available_space(size)) {
-			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
-			goto terminate_register_on_error;
-		}
-	} else if (regargs->output_scale != 1.f) {
+	if (regargs->no_output && regargs->output_scale != 1.f) {
 		siril_log_color_message(_("Scaling a sequence with -2pass has no effect, ignoring\n"), "salmon");
 	}
 

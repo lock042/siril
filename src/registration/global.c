@@ -665,6 +665,7 @@ int register_star_alignment(struct registration_args *regargs) {
 		regargs->matchSelection = FALSE;
 	}
 
+	args->compute_size_hook = compute_registration_size_hook;
 	args->prepare_hook = star_align_prepare_hook;
 	args->image_hook = star_align_image_hook;
 	args->finalize_hook = star_align_finalize_hook;
