@@ -402,30 +402,9 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		}
 	}
 
-	if (!regargs->no_output) {
-		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->imgparam[out_index].rx = sadata->ref.x;
-		regargs->imgparam[out_index].ry = sadata->ref.y;
-		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
-		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
-		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
-		regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
-		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
-		cvGetEye(&regargs->regparam[out_index].H);
-
-		if (regargs->output_scale != 1.f) { // Removed in favour of proper drizzle after registration
-			fit->keywords.pixel_size_x /= regargs->output_scale;
-			fit->keywords.pixel_size_y /= regargs->output_scale;
-			regargs->regparam[out_index].fwhm *= regargs->output_scale;
-			regargs->regparam[out_index].weighted_fwhm *= regargs->output_scale;
-		}
-	} else {
-		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
-		// seems like not but this could backfire at some point
-		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	}
-	sadata->success[out_index] = 1;
+	// updating regparam for the output sequence if any and updating pixel size 
+	// is handled in apply_reg_image_hook
+	args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	return 0;
 }
 
