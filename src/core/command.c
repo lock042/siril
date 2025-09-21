@@ -4535,14 +4535,14 @@ int process_seq_psf(int nb) {
 		has_area = TRUE;
 	}
 	gboolean followstar_set = FALSE;
-	gboolean use_current_seq = FALSE;
 
 	// First argument is always sequence name
 	seq = load_sequence(word[1], NULL);
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
+	gboolean use_current_seq = check_seq_is_comseq(seq);
+	if (!com.script && !com.python_script && !use_current_seq) {
 		execute_idle_and_wait_for_it(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;

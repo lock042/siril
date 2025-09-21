@@ -1072,6 +1072,7 @@ static int find_file_commit_by_modifications(git_repository *repo,
 			const gchar *tmprelpath =  posix_path_separators(rel_start);
 			relative_path = g_strdup(tmprelpath);
 		} else {
+			g_free(tmpworkdir);
 			return -1;
 		}
 	} else {
