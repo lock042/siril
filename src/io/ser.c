@@ -1412,6 +1412,7 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	if (pixScale == 0) {
 		free(ima_data);
 		free(pixbuf_data);
+		free(pix);
 		return NULL;
 	}
 	Ws = w / pixScale;             // picture width in pixScale blocks
@@ -1650,11 +1651,11 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 			);
 	free(ima_data);
 	free(pix);
-	if (n_channels > 1) {
-		free(pix_r);
-		free(pix_g);
-		free(pix_b);
-	}
+
+	free(pix_r);
+	free(pix_g);
+	free(pix_b);
+
 	*descr = description;
 	return pixbuf;
 }

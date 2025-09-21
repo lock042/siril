@@ -4535,14 +4535,14 @@ int process_seq_psf(int nb) {
 		has_area = TRUE;
 	}
 	gboolean followstar_set = FALSE;
-	gboolean use_current_seq = FALSE;
 
 	// First argument is always sequence name
 	seq = load_sequence(word[1], NULL);
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
+	gboolean use_current_seq = check_seq_is_comseq(seq);
+	if (!com.script && !com.python_script && !use_current_seq) {
 		execute_idle_and_wait_for_it(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
@@ -5642,7 +5642,6 @@ int process_seq_cosme(int nb) {
 		char *current = word[3], *value;
 		value = current + 8;
 		if (value[0] == '\0') {
-			free_sequence(seq, TRUE);
 			g_object_unref(file);
 			if (!check_seq_is_comseq(seq))
 				free_sequence(seq, TRUE);

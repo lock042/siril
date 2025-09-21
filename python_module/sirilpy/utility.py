@@ -17,7 +17,7 @@ import platform
 import threading
 import subprocess
 from importlib import metadata, util
-from typing import Union, List, Optional, TYPE_CHECKING, Tuple
+from typing import Union, List, Optional, TYPE_CHECKING, Tuple, Dict
 import requests
 from packaging import version as pkg_version
 from packaging.specifiers import SpecifierSet
@@ -538,51 +538,188 @@ class SuppressedStderr:
         sys.stderr = self.original_stderr  # Restore Python stderr
         self.devnull.close()
 
-def parse_fits_header(header_text: str) -> dict:
+def parse_fits_header(header_text: str, include_comments: bool = False) -> Dict[str, Union[str, int, float, bool]]:
     """
-    Parse FITS header from text content into a dictionary
+    Parse FITS header from text content into a dictionary with support for HIERARCH and CONTINUE keywords.
 
-    Parameters:
-    header_text (str): Content of the FITS header text file
+    Handles Siril's newline-separated FITS header format and converts it to a dictionary
+    compatible with astropy.wcs.WCS. Supports extended FITS keywords via HIERARCH and
+    long string values via CONTINUE.
+
+    Args:
+        header_text: Raw header string with header cards separated by newlines.
+                    Expected format: "KEYWORD = value / comment"
+        include_comments: If True, includes COMMENT and HISTORY cards in the output.
+                         If False (default), these cards are skipped.
 
     Returns:
-    dict: Dictionary containing all header keywords and values
+        Dictionary mapping FITS header keywords (str) to their parsed values.
+        Values are converted to appropriate Python types:
+        - 'T'/'F' -> bool
+        - Quoted strings -> str (quotes removed, with CONTINUE support for long strings)
+        - Numeric strings -> int or float
+        - Everything else -> str
+        - COMMENT/HISTORY cards -> str (content after keyword, if include_comments=True)
+        - HIERARCH keywords -> str (full hierarchical keyword preserved)
+
+    Notes:
+        - Filters out warning messages, tracebacks, and other non-header content
+        - By default ignores COMMENT and HISTORY cards (set include_comments=True to include)
+        - Skips malformed cards or invalid keywords
+        - Standard keywords must be ≤8 characters and alphanumeric (plus underscore/hyphen)
+        - HIERARCH keywords can be longer and contain spaces/dots
+        - CONTINUE cards are automatically merged with the previous string value
+        - Comments after '/' are ignored for regular cards
+
+    Example:
+        >>> header_str = '''SIMPLE  = T / file conforms to FITS standard
+        ... BITPIX  = -32 / bits per pixel
+        ... HIERARCH ESO DET CHIP1 NAME = 'CCD #1' / detector name
+        ... LONGSTR = 'This is a very long string that needs to be '
+        ... CONTINUE  'continued on the next line'
+        ... COMMENT Test comment'''
+        >>> result = parse_fits_header(header_str)
+        >>> result['SIMPLE']
+        True
+        >>> result['BITPIX']
+        -32
+        >>> result['HIERARCH ESO DET CHIP1 NAME']
+        'CCD #1'
+        >>> result['LONGSTR']
+        'This is a very long string that needs to be continued on the next line'
     """
-    header_dict = {}
+    from typing import Dict, Union
 
-    for line in header_text.split('\n'):
-        # Skip empty lines, COMMENT, HISTORY, and END
-        if not line.strip() or line.startswith('COMMENT') or line.startswith('HISTORY') or line.startswith('END'):
+    header_dict: Dict[str, Union[str, int, float, bool]] = {}
+    lines = header_text.strip().split('\n')
+
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # Skip problematic lines
+        if (not line or
+            line.startswith(('WARNING', 'Traceback', 'ValueError', 'File ', 'During',
+                'Python')) or line.strip() == 'END'):
+            i += 1
             continue
 
-        # Split the line into key and value parts
-        parts = line.split('=')
-        if len(parts) != 2:
+        # Handle COMMENT and HISTORY cards
+        if line.startswith(('COMMENT', 'HISTORY')):
+            if include_comments:
+                keyword = line.split()[0]
+                content = line[len(keyword):].strip()
+                # Handle multiple COMMENT/HISTORY cards by creating a list
+                if keyword in header_dict:
+                    if isinstance(header_dict[keyword], list):
+                        header_dict[keyword].append(content)
+                    else:
+                        header_dict[keyword] = [header_dict[keyword], content]
+                else:
+                    header_dict[keyword] = content
+            i += 1
             continue
 
-        key = parts[0].strip()
-        value_part = parts[1].strip()
+        # Handle CONTINUE cards (must follow a string value)
+        if line.startswith('CONTINUE'):
+            if i > 0:  # Make sure there's a previous card
+                # Find the last added string value to continue
+                last_key = None
+                for key in reversed(list(header_dict.keys())):
+                    if isinstance(header_dict[key], str):
+                        last_key = key
+                        break
 
-        # Handle the value part (removing comments after /)
-        if '/' in value_part:
-            value_part = value_part.split('/')[0].strip()
+                if last_key:
+                    # Extract the continuation string
+                    continue_part = line[8:].strip()  # Skip 'CONTINUE'
+                    if '/' in continue_part:
+                        continue_part = continue_part.split('/')[0].strip()
 
-        # Convert value to appropriate type
-        try:
-            # Try converting to float first
-            if value_part.startswith("'") and value_part.endswith("'"):
-                # String value
-                value = value_part.strip("'").strip()
-            elif value_part == 'T':
-                value = True
-            elif value_part == 'F':
-                value = False
-            else:
-                value = float(value_part)
-        except ValueError:
-            # If conversion fails, keep as string
-            value = value_part.strip()
+                    # Remove quotes if present
+                    if continue_part.startswith("'") and continue_part.endswith("'"):
+                        continue_part = continue_part[1:-1]
 
-        header_dict[key] = value
+                    # Append to the previous string value
+                    header_dict[last_key] += continue_part
+            i += 1
+            continue
+
+        # Handle HIERARCH cards
+        if line.startswith('HIERARCH'):
+            if '=' in line:
+                try:
+                    # For HIERARCH, the keyword can contain spaces and extends until '='
+                    equals_pos = line.find('=')
+                    key = line[8:equals_pos].strip()  # Skip 'HIERARCH' prefix
+                    rest = line[equals_pos + 1:]
+
+                    # Use the actual keyword (without HIERARCH prefix) as the key
+
+                    # Extract value (ignore comment for simplicity)
+                    value_str = rest.split('/')[0].strip()
+
+                    # Parse value
+                    value = _parse_fits_value(value_str)
+                    header_dict[key] = value
+
+                except Exception:
+                    pass
+            i += 1
+            continue
+
+        # Handle regular FITS cards
+        if '=' in line:
+            try:
+                key, rest = line.split('=', 1)
+                key = key.strip()
+
+                # Validate standard FITS keyword (not HIERARCH)
+                if len(key) <= 8 and key.replace('_', '').replace('-', '').isalnum():
+                    # Extract value (ignore comment for simplicity)
+                    value_str = rest.split('/')[0].strip()
+
+                    # Parse value
+                    value = _parse_fits_value(value_str)
+                    header_dict[key] = value
+
+            except Exception:
+                pass
+
+        i += 1
 
     return header_dict
+
+def _parse_fits_value(value_str: str) -> Union[str, int, float, bool]:
+    """
+    Helper function to parse a FITS value string into the appropriate Python type.
+
+    Args:
+        value_str: The value portion of a FITS header card
+
+    Returns:
+        Parsed value as bool, int, float, or str
+    """
+    value_str = value_str.strip()
+
+    # Handle boolean values
+    if value_str == 'T':
+        return True
+    elif value_str == 'F':
+        return False
+
+    # Handle quoted strings
+    elif value_str.startswith("'") and value_str.endswith("'"):
+        return value_str[1:-1]
+
+    # Handle numeric values
+    else:
+        try:
+            # Check if it's a float (contains decimal point or scientific notation)
+            if '.' in value_str or 'E' in value_str.upper() or 'D' in value_str.upper():
+                return float(value_str.replace('D', 'E'))  # Handle Fortran double precision
+            else:
+                return int(value_str)
+        except ValueError:
+            # If conversion fails, return as string
+            return value_str
