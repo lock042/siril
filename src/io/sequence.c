@@ -897,7 +897,10 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 	switch (seq->type) {
 		case SEQ_REGULAR:
 			fit_sequence_get_image_filename(seq, index, filename, TRUE);
-			if (readfits(filename, dest, NULL, force_float)) {
+			char *base = remove_all_ext_from_filename(filename);
+			int ret = readfits(base, dest, NULL, force_float);
+			free(base);
+			if (ret) {
 				siril_log_message(_("Could not load image %d from sequence %s\n"),
 						index, seq->seqname);
 				return 1;

@@ -132,6 +132,7 @@ const char *channel_number_to_name(int channel);
 int get_extension_index(const char *filename);
 image_type get_type_from_filename(const gchar *filename);
 char* remove_ext_from_filename(const char *basename);
+char *remove_all_ext_from_filename(const char *filename);
 gchar *replace_ext(const char *path, const char *new_ext);
 gboolean string_is_a_path(const char *file);
 int is_readable_file(const char *filename);
