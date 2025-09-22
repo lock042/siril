@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-22 21:16+0200\n"
-"PO-Revision-Date: 2025-09-04 09:50+0000\n"
+"PO-Revision-Date: 2025-09-22 19:37+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -2878,7 +2878,6 @@ msgid "One star registration (deep-sky)"
 msgstr "Alignement sur une étoile (ciel profond)"
 
 #: src/gui/uifiles/composition_dialog.ui:487
-#, fuzzy
 msgid ""
 "Select framing method for deep-sky alignment:\n"
 "First channel - frame to the first channel (always L in luminance mode);\n"
@@ -2886,11 +2885,10 @@ msgid ""
 "COG - frame to the centre of gravity of the pixels in the set of aligned "
 "images."
 msgstr ""
-"Sélectionner la méthode de cadrage pour l'alignement du ciel profond :\n"
-"Premier canal - cadrage sur le premier canal (toujours L en mode "
-"luminance) ;\n"
-"Max - cadre sur l'étendue maximale des images alignées ;\n"
-"Min - cadre sur le chevauchement minimum de toutes les images alignées ;\n"
+"Sélectionner la méthode de cadrage pour l'alignement du ciel profond :\n"
+"Premier canal - cadrage sur le premier canal (toujours L en mode luminance) ;"
+"\n"
+"Min - cadre sur le chevauchement minimum de toutes les images alignées ;\n"
 "COG - cadre sur le centre de gravité des pixels dans l'ensemble des images "
 "alignées."
 
@@ -27817,13 +27815,12 @@ msgstr ""
 "référence des blancs sont sélectionnés.\n"
 
 #: src/gui/photometric_cc.c:609
-#, fuzzy
 msgid ""
 "Error: ensure OSC sensor, OSC filter or NB filter values, and white "
 "reference are selected.\n"
 msgstr ""
-"Erreur : s'assurer que le capteur couleur, le filtre couleur et la référence "
-"des blancs sont sélectionnés.\n"
+"Erreur : s'assurer que le capteur couleur, le filtre couleur ou filtre à "
+"bande étroit et la référence des blancs sont sélectionnés.\n"
 
 #: src/gui/photometric_cc.c:1031
 msgid "one-shot color (OSC)"
@@ -28125,16 +28122,15 @@ msgstr ""
 
 #: src/gui/python_gui.c:715
 msgid "No file is currently loaded to reload.\n"
-msgstr ""
+msgstr "Aucun fichier n'est actuellement chargé pour être rechargé.\n"
 
 #: src/gui/python_gui.c:719
-#, fuzzy
 msgid ""
 "This will replace the entry buffer with the last saved version of the file. "
 "You will not be able to recover any contents."
 msgstr ""
-"Cela remplacera la mémoire tampon d'entrée. Vous ne pourrez pas en récupérer "
-"le contenu."
+"Cela remplacera le tampon d'entrée par la dernière version enregistrée du "
+"fichier. Vous ne pourrez récupérer aucun contenu."
 
 #: src/gui/python_gui.c:785 src/gui/python_gui.c:856
 msgid ""
@@ -29318,14 +29314,16 @@ msgstr ""
 #: src/gui/utils.c:378
 msgid "Significantly out of range pixels detected: clipping outliers\n"
 msgstr ""
+"Pixels détectés nettement hors plage : suppression des valeurs aberrantes\n"
 
 #: src/gui/utils.c:382
 msgid "Negative-valued pixels detected: clipping and scaling to [0,1]\n"
 msgstr ""
+"Pixels à valeur négative détectés : écrêtage et mise à l'échelle à [0,1]\n"
 
 #: src/gui/utils.c:388
 msgid "Marginally out of range pixels detected: scaling to [0,1]\n"
-msgstr ""
+msgstr "Pixels légèrement hors plage détectés : mise à l'échelle à [0,1]\n"
 
 #: src/io/FITS_symlink.c:78
 msgid ""
@@ -31799,9 +31797,8 @@ msgid "keywords_to_py conversion error"
 msgstr "Erreur de conversion keywords_to_py"
 
 #: src/io/siril_pythoncommands.c:1710
-#, fuzzy
 msgid "Pixel shared memory allocation error"
-msgstr "Erreur d'allocation de mémoire partagée"
+msgstr "Erreur d'allocation de mémoire partagée des pixels"
 
 #: src/io/siril_pythoncommands.c:1842
 msgid "No stars in image"
@@ -31833,7 +31830,7 @@ msgstr "L'image n'a pas de profil ICC"
 
 #: src/io/siril_pythoncommands.c:2013
 msgid "Siril is running headless, no display ICC profile"
-msgstr ""
+msgstr "Siril fonctionne en mode console, sans profil ICC"
 
 #: src/io/siril_pythoncommands.c:2036 src/io/siril_pythoncommands.c:2532
 msgid "Image has no FITS header"
@@ -31956,9 +31953,8 @@ msgid "Failed to read image file"
 msgstr "Échec de la lecture du fichier image"
 
 #: src/io/siril_pythoncommands.c:2679
-#, fuzzy
 msgid "imstats_to_py conversion error"
-msgstr "Erreur de conversion fits_to_py"
+msgstr "Erreur de conversion imstats_to_py"
 
 #: src/io/siril_pythoncommands.c:2694 src/io/siril_pythoncommands.c:2713
 #: src/io/siril_pythoncommands.c:2733
@@ -31970,52 +31966,52 @@ msgid "No analysis available"
 msgstr "Aucune analyse disponible"
 
 #: src/io/siril_pythoncommands.c:2970
-#, fuzzy
 msgid "Failed to set STF - invalid mode value"
-msgstr "Échec de la sélection - aucune image n'a été chargée"
+msgstr "Échec de la mise en place de la STF - valeur de mode non valide"
 
 #: src/io/siril_pythoncommands.c:2982 src/io/siril_pythoncommands.c:3040
-#, fuzzy
 msgid "Failed to set slider state - invalid payload length"
-msgstr "Échec de la sélection - aucune image n'a été chargée"
+msgstr ""
+"Échec de la configuration de l'état du curseur - longueur de charge utile "
+"non valide"
 
 #. Handle error - no image loaded
 #: src/io/siril_pythoncommands.c:2989 src/io/siril_pythoncommands.c:3047
-#, fuzzy
 msgid "Failed to set slider state - no image loaded"
-msgstr "Échec de la sélection - aucune image n'a été chargée"
+msgstr ""
+"Échec de la configuration de l'état du curseur - aucune image n'a été chargée"
 
 #: src/io/siril_pythoncommands.c:3029
-#, fuzzy
 msgid "Failed to set slider state - invalid mode value"
-msgstr "Échec de la sélection - aucune image n'a été chargée"
+msgstr "Échec de la configuration de l'état du curseur - mode invalide"
 
 #: src/io/siril_pythoncommands.c:3065
-#, fuzzy
 msgid "Error: invalid slider values"
-msgstr "Erreur : Tableaux de valeurs manquants ou non valides.\n"
+msgstr "Erreur : valeurs du curseur non valides"
 
 #: src/io/siril_pythoncommands.c:3077
-#, fuzzy
 msgid "Failed to set slider values - invalid payload length"
-msgstr "Échec de la sélection - aucune image n'a été chargée"
+msgstr ""
+"Échec de la définition des valeurs du curseur - longueur de charge utile non "
+"valide"
 
 #. Handle error - no image loaded
 #: src/io/siril_pythoncommands.c:3084
-#, fuzzy
 msgid "Failed to set slider values - no image loaded"
-msgstr "Échec de la sélection - aucune image n'a été chargée"
+msgstr "Échec de la définition des valeurs du curseur - aucune image chargée"
 
 #: src/io/siril_pythoncommands.c:3107 src/io/siril_pythoncommands.c:3139
-#, fuzzy
 msgid "Failed to set display offset - invalid payload length"
-msgstr "Échec de la sélection - aucune image n'a été chargée"
+msgstr ""
+"Échec de la configuration du décalage d'affichage - longueur de charge utile "
+"non valide"
 
 #. Handle error - no image loaded
 #: src/io/siril_pythoncommands.c:3114 src/io/siril_pythoncommands.c:3146
-#, fuzzy
 msgid "Failed to set display offset - no image loaded"
-msgstr "Échec de la sélection - aucune image n'a été chargée"
+msgstr ""
+"Échec de la configuration du décalage d'affichage - aucune image n'a été "
+"chargée"
 
 #: src/io/siril_pythoncommands.c:3154
 msgid "Unknown command"
@@ -32180,6 +32176,8 @@ msgstr ""
 #: src/io/siril_pythonmodule.c:1822
 msgid "Error checking python magic number: pyc files will not work"
 msgstr ""
+"Erreur lors de la vérification du nombre magique Python : les fichiers pyc "
+"ne fonctionneront pas"
 
 #: src/io/siril_pythonmodule.c:1842
 #, c-format
