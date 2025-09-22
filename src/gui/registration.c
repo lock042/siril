@@ -916,7 +916,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	// TODO: we can't force drizzle as we do for debayer because here, we rely on the header having a bayer_pattern keyword
 	// This would need either to add a force bayer button in the registration tab (ugly)
 	// or direct the user to correcting the bayer pattern in the images headers (prefered)
-	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
+	if (fit_is_cfa(&gfit) && gfit.keywords.bayer_pattern[0] != '\0') {
 		pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
 	}
 
@@ -950,7 +950,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_label_set_text(labelregisterinfo, _("Select a layer with existing registration"));
 		} else if (samesizeseq_required && com.seq.is_variable) {
 			gtk_label_set_text(labelregisterinfo, _("not available for sequences with variable image sizes"));
-		} else if (pattern > BAYER_FILTER_MAX || pattern < BAYER_FILTER_MIN) {
+		} else if (fit_is_cfa(&gfit) && (pattern > BAYER_FILTER_MAX || pattern < BAYER_FILTER_MIN)) {
 			gtk_label_set_text(labelregisterinfo, _("Unsupported CFA pattern detected"));
 			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
 		} else if (!check_bayer_ok) {
