@@ -171,18 +171,24 @@ static gint64 find_space(const gchar *name) {
 			return result;
 		}
 
-		// For APFS or HFS+, use important usage key
+		// For APFS or HFS+, try important usage key first, then fallback
 		if ([fsType containsString:@"APFS"] || [fsType containsString:@"HFS"]) {
 			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
-			if (!results) {
-				NSLog(@"Error getting space info: %@", error);
+			NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
+			if (!freeSpace) {
+				// fallback to opportunistic usage key
+				results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForOpportunisticUsageKey] error:&error];
+				freeSpace = results[NSURLVolumeAvailableCapacityForOpportunisticUsageKey];
+			}
+			if (!freeSpace) {
+				// fallback to basic capacity
+				results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey] error:&error];
+				freeSpace = results[NSURLVolumeAvailableCapacityKey];
+			}
+			if (freeSpace) {
+				result = (gint64)[freeSpace longLongValue];
 			} else {
-				NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
-				if (freeSpace) {
-					result = (gint64)[freeSpace longLongValue];
-				} else {
-					NSLog(@"Error: no free space information available");
-				}
+				NSLog(@"Error: no free space information available for %@", fsType);
 			}
 		} else {
 			// For other filesystems (FAT32, etc.), use basic capacity
