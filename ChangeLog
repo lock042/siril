@@ -22,6 +22,7 @@ xx/xx/xx
 * Fixed issue with auto-applying ICC profiles in stretch tools if nothing is done (reverts correctly) (#1768)
 * Fixed issue in SPCC where it would complain about missing OSC BB filter when in NB mode
 * Fixed a crash in the seqcosme command
+* Fixed an issue where sequences would not load correctly if the file extensions did not match the preferred FITS extension (#1793)
 
 **Improvements:**
 * Compiled .pyc scripts are now only shown in the scripts menu if their magic number matches the available intepreter

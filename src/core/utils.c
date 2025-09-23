@@ -730,6 +730,28 @@ char *remove_ext_from_filename(const char *filename) {
 	return file;
 }
 
+char *remove_all_ext_from_filename(const char *filename) {
+    char *file = NULL;
+    int ext_index = -1;
+
+    // Find the first dot after the last path separator
+    for (int i = strlen(filename) - 1; i > 0; i--) {
+        if (filename[i] == '\\' || filename[i] == '/')
+            break;
+        if (filename[i] == '.') {
+            ext_index = i;  // Keep updating to find the first dot, not the last
+        }
+    }
+
+    if (ext_index == -1)
+        return strdup(filename);
+
+    file = malloc(ext_index + 1);
+    strncpy(file, filename, ext_index);
+    file[ext_index] = '\0';
+    return file;
+}
+
 /**
  * Replaces the extension of a file name or path
  * @param path the original path
