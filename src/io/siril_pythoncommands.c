@@ -2673,7 +2673,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Add stats serialization
 			ptr += strings_size + numeric_size;
 			for (int channel = 0; channel < 3; channel++) {
-				if (fit->stats[channel]) {
+				if (channel < fit->naxes[2] && fit->stats[channel]) {
 					ret = imstats_to_py(fit->stats[channel], ptr, 14 * sizeof(double));
 					if (ret) {
 						const char* error_message = _("imstats_to_py conversion error");
