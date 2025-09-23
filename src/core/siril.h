@@ -388,6 +388,7 @@ struct sequ {
 	unsigned int rx;	// first image width (or ref if set)
 	unsigned int ry;	// first image height (or ref if set)
 	gboolean is_variable;	// sequence has images of different sizes (imgparam->r[xy])
+	gboolean is_drizzle; 	// sequence is a drizzle sequence, weights files are stored in ./drizzletmp
 	int bitpix;		// image pixel format, from fits
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence

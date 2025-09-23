@@ -8058,17 +8058,7 @@ int process_register(int nb) {
 	method->type = REGTYPE_DEEPSKY;
 	regargs->func = method->method_ptr;
 
-	// testing free space
-	if (!regargs->no_output) {
-		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
-		int64_t size = seq_compute_size(regargs->seq, nb_frames, get_data_type(seq->bitpix));
-		if (regargs->output_scale != 1.f)
-			size = (int64_t)(regargs->output_scale * regargs->output_scale * (float)size);
-		if (test_available_space(size)) {
-			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
-			goto terminate_register_on_error;
-		}
-	} else if (regargs->output_scale != 1.f) {
+	if (regargs->no_output && regargs->output_scale != 1.f) {
 		siril_log_color_message(_("Scaling a sequence with -2pass has no effect, ignoring\n"), "salmon");
 	}
 
@@ -8713,7 +8703,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	}
 	// manage reframing and upscale
 	gboolean can_reframe = layer_has_usable_registration(seq, args.reglayer);
-	gboolean can_upscale = can_reframe && !seq->is_variable;
+	gboolean can_upscale = can_reframe && !seq->is_variable && !seq->is_drizzle;
 	gboolean must_reframe = can_reframe && seq->is_variable;
 	args.maximize_framing = arg->maximize_framing;
 	args.upscale_at_stacking = arg->upscale_at_stacking;
@@ -8731,7 +8721,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		return CMD_GENERIC_ERROR;
 	}
 	if (args.upscale_at_stacking && !can_upscale) {
-		siril_log_color_message(_("No registration data in the sequence or images with different sizes. Upscale at stacking will be ignored\n"), "red");
+		siril_log_color_message(_("No registration data in the sequence or images with different sizes or drizzled. Upscale at stacking will be ignored\n"), "red");
 		args.upscale_at_stacking = FALSE;
 	}
 	if ((args.upscale_at_stacking || args.maximize_framing) && arg->method == stack_median) {

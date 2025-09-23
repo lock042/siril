@@ -37,6 +37,7 @@ char *	get_possible_image_filename(sequence *seq, int image_number, char *name_b
 int	get_index_and_basename(const char *filename, char **basename, int *index, int *fixed, const gchar *com_ext);
 void	remove_prefixed_sequence_files(sequence *seq, const char *prefix);
 void	remove_prefixed_star_files(sequence *seq, const char *prefix);
+void 	remove_prefixed_drizzle_files(sequence *seq, const char *prefix);
 void	initialize_sequence(sequence *seq, gboolean is_zeroed);
 void	free_sequence(sequence *seq, gboolean free_seq_too);
 void	free_photometry_set(sequence *seq, int set);
@@ -101,6 +102,6 @@ struct wcsprm *get_wcs_ref(sequence *seq);
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold);
 
 void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboolean cleansel);
-gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix);
+gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *cachefolder, const gchar *ext, const gchar *prefix);
 
 #endif

@@ -750,6 +750,8 @@ static gboolean check_3stars(regmethod_index index) {
 		return TRUE;
 	if (_3stars_check_selection()) {// checks that the right image is loaded based on doall and dofollow
 		int nbselstars = _3stars_get_number_selected_stars();
+		if (nbselstars == 0)
+			gtk_label_set_text(labelregisterinfo, _("Pick at least one star"));
 		return nbselstars > 0;
 	}
 	return FALSE;
@@ -914,7 +916,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	// TODO: we can't force drizzle as we do for debayer because here, we rely on the header having a bayer_pattern keyword
 	// This would need either to add a force bayer button in the registration tab (ugly)
 	// or direct the user to correcting the bayer pattern in the images headers (prefered)
-	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
+	if (fit_is_cfa(&gfit) && gfit.keywords.bayer_pattern[0] != '\0') {
 		pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
 	}
 
@@ -948,7 +950,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_label_set_text(labelregisterinfo, _("Select a layer with existing registration"));
 		} else if (samesizeseq_required && com.seq.is_variable) {
 			gtk_label_set_text(labelregisterinfo, _("not available for sequences with variable image sizes"));
-		} else if (pattern > BAYER_FILTER_MAX || pattern < BAYER_FILTER_MIN) {
+		} else if (fit_is_cfa(&gfit) && (pattern > BAYER_FILTER_MAX || pattern < BAYER_FILTER_MIN)) {
 			gtk_label_set_text(labelregisterinfo, _("Unsupported CFA pattern detected"));
 			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
 		} else if (!check_bayer_ok) {
@@ -1134,22 +1136,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		return 1;
 	}
 #endif
-
-	/* We check that available disk space is enough when
-	the registration method produces a new sequence with images
-	Note: for applyreg, this is done by check_applyreg_output(), 
-	as we need to make a more complex calc for frame sizes accounting for framing method
-	*/
-	if (has_output_images && regindex != REG_APPLY) {
-		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
-		gint64 size = seq_compute_size(regargs->seq, nb_frames, get_data_type(regargs->seq->bitpix));
-		if (regargs->output_scale != 1.f)
-			size = (int64_t)(regargs->output_scale * regargs->output_scale * (float)size);
-		if (test_available_space(size)) {
-			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
-			return 1;
-		}
-	}
 
 	if (regindex == REG_GLOBAL && regargs->interpolation == OPENCV_NONE) { // seqpplyreg case is dealt with in the sanity checks of the method
 		if (regargs->output_scale != 1.f || com.seq.is_variable) {

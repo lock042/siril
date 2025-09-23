@@ -438,6 +438,7 @@ struct pref_struct {
 	GSList *selected_scripts;
 	gboolean use_scripts_repository;
 	gboolean auto_script_update; // automatically update scripts repository at startup
+	gboolean drizz_weight_match_bitpix; // Drizzle weights match seq bitpix. Default: FALSE
 };
 
 typedef struct pref_struct preferences;

@@ -1172,7 +1172,7 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	}
 	curr_findstar_args->threading = SINGLE_THREADED;
 
-	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "lst", NULL);
+	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "cache", "lst", NULL);
 	if (!star_filename) {
 		free(curr_findstar_args);
 		return TRUE;
@@ -1223,7 +1223,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 
 	if (can_use_cache) {// otherwise, we don't try to read the lst nor save it
 		// build the star list file name in all cases to try reading it
-		star_filename = get_sequence_cache_filename(seq, i, "lst", NULL);
+		star_filename = get_sequence_cache_filename(seq, i, "cache", "lst", NULL);
 		if (!star_filename) {
 			if (curr_findstar_args->onepass == TRUE) {
 				free(curr_findstar_args->nb_stars);
@@ -1251,7 +1251,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			interpolate_nongreen(green_fit);
 			curr_findstar_args->im.fit = green_fit;
 			// uncomment these lines to save the green fit for each image
-			// const gchar *green_filename = get_sequence_cache_filename(seq, i, "fit", "green_");
+			// const gchar *green_filename = get_sequence_cache_filename(seq, i, "cache", "fit", "green_");
 			// savefits(green_filename, green_fit);
 		}
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
