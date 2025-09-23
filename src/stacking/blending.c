@@ -60,7 +60,7 @@ void compute_downscaled_mask_size(int rx, int ry, int *rx_out, int *ry_out, doub
 
 // check if we need to create the mask or if it already exists
 static gboolean compute_mask_read_hook(struct generic_seq_args *args, int i) {
-	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "msk", NULL);
+	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "cache", "msk", NULL);
 	if (!mask_filename) {
 		return TRUE;
 	}
@@ -173,7 +173,7 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 	cvDownscaleBlendMask(rx, ry, rx_out, ry_out, buffer8in, buffer32out);
 
 	//we save the mask
-	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "msk", NULL);
+	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "cache", "msk", NULL);
 	if (!mask_filename) {
 		siril_debug_print("failed to create the mask filename");
 		free(buffer8in);

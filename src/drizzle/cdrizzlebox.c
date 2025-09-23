@@ -50,7 +50,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //static char buf[1024];
 
-
 /** ------------------------------------------------------------------------------
  * Update the flux and counts in the output image using a weighted average
  *
@@ -99,6 +98,144 @@ update_data(struct driz_param_t* p, const integer_t ii, const integer_t jj,
   }
 
   return 0;
+}
+
+static inline_macro float sgarea(const float x1,
+								  const float y1,
+								  const float x2,
+								  const float y2) {
+	float xlo, xhi, ylo, yhi, xtop;
+	float dx, dy, det, sgn_dx;
+
+	dx = x2 - x1;
+	dy = y2 - y1;
+
+	/* Trap vertical line */
+	if (dx == 0) {
+		return 0.0;
+	}
+
+	if (dx < 0) {
+		sgn_dx = -1.0;
+		xlo = x2;
+		xhi = x1;
+	} else {
+		sgn_dx = 1.0;
+		xlo = x1;
+		xhi = x2;
+	}
+
+	/* And determine the bounds ignoring y for now */
+	if (xlo >= 1.0 || xhi <= 0.0) {
+		return 0.0;
+	}
+
+	xlo = MAX(xlo, 0.0);
+	xhi = MIN(xhi, 1.0);
+
+	/* Now look at y */
+	float slope = dy / dx;
+	ylo = y1 + slope * (xlo - x1);
+	yhi = y1 + slope * (xhi - x1);
+
+	/* Alternative code that may be more stable under certain circumstances */
+	/*
+		if (xlo < 0.0) {
+			xlo = 0.0;
+		ylo = y1 + (dy / dx) * (xlo - x1);
+		} else {
+			ylo = (sgn_dx > 0.0) ? y1 : y2;
+		}
+
+		if (xhi > 1.0) {
+			xhi = 1.0;
+			yhi = y1 + (dy / dx) * (xhi - x1);
+		} else {
+			yhi = (sgn_dx > 0.0) ? y2 : y1;
+		}
+	*/
+
+	/* Trap segment entirely below axis */
+	if (ylo <= 0.0 && yhi <= 0.0) {
+		return 0.0;
+	}
+
+	/* There are four possibilities: both y below 1, both y above 1 and
+	one of each. */
+	if (ylo >= 1.0 && yhi >= 1.0) {
+		/* Line segment is entirely above square */
+		return sgn_dx * (xhi - xlo);
+	}
+
+	det = x1 * y2 - y1 * x2;
+
+	/* Adjust bounds if segment crosses axis (to exclude anything below
+	axis) */
+	if (ylo < 0.0) {
+		ylo = 0.0;
+		xlo = det / dy;
+	}
+
+	if (yhi < 0.0) {
+		yhi = 0.0;
+		xhi = det / dy;
+	}
+
+	if (ylo <= 1.0) {
+		if (yhi <= 1.0) {
+			/* Segment is entirely within the square.
+			The case of zero slope will end up here. */
+			return sgn_dx * 0.5 * (xhi - xlo) * (yhi + ylo);
+		}
+
+		/* Otherwise, it must cross the top of the square */
+		xtop = (dx + det) / dy;
+		return sgn_dx * (0.5 * (xtop - xlo) * (1.0 + ylo) + xhi - xtop);
+	}
+
+	xtop = (dx + det) / dy;
+	return sgn_dx * (0.5 * (xhi - xtop) * (1.0 + yhi) + xtop - xlo);
+}
+
+/**
+compute area of box overlap
+
+Calculate the area common to input clockwise polygon x(n), y(n) with
+square (is, js) to (is+1, js+1).
+This version is for a quadrilateral.
+
+Used by do_square_kernel.
+*/
+
+float
+boxer(float is, float js, const float x[4], const float y[4]) {
+	integer_t i;
+	float sum;
+	float px[4], py[4];
+
+	assert(x);
+	assert(y);
+
+	is -= 0.5;
+	js -= 0.5;
+	/* Set up coords relative to unit square at origin Note that the
+	+0.5s were added when this code was included in DRIZZLE */
+
+	for (i = 0; i < 4; ++i) {
+		px[i] = x[i] - is;
+		py[i] = y[i] - js;
+	}
+
+	/* For each line in the polygon (or at this stage, input
+	quadrilateral) calculate the area common to the unit square
+	(allow negative area for subsequent `vector' addition of
+	subareas). */
+	sum = 0.0;
+	for (i = 0; i < 4; ++i) {
+		sum += sgarea(px[i], py[i], px[(i + 1) & 0x3], py[(i + 1) & 0x3]);
+	}
+
+	return sum;
 }
 
 /** --------------------------------------------------------------------------------------------------
@@ -177,7 +314,7 @@ compute_area(float is, float js, const float x[4], const float y[4]) {
                * and is negative or zero for the segment inside the square
                */
               width = segment[1][0] - segment[0][0];
-              area += 0.5 * width * ((1.0 + delta[0]) + (1.0 + delta[1]));
+			  area += 0.5 * width * (2.0f + delta[0] + delta[1]);
             }
           }
 
@@ -204,13 +341,13 @@ compute_area(float is, float js, const float x[4], const float y[4]) {
               area += width;
               width = segment[1][0] - midpoint[0];
               /* Delta[0] is at the crossing point and thus zero */
-              area += 0.5 * width * (1.0 + (1.0 + delta[1]));
+              area += 0.5 * width * (2.0 + delta[1]);;
             } else {
               width = segment[1][0] - midpoint[0];
               area += width;
               width =  midpoint[0] - segment[0][0];
               /* Delta[1] is at the crossing point and thus zero */
-              area += 0.5 * width * ((1.0 + delta[0]) + 1.0);
+              area += 0.5 * width * (2.0 + delta[0]);
             }
 
           } else {
@@ -304,6 +441,10 @@ do_kernel_point(struct driz_param_t* p) {
         }
 
         for (i = xmin; i <= xmax; ++i) {
+            /* Allow for stretching because of scale change */
+            d = get_pixel(p->data, i, j, 0) * scale2;
+            if (!d)
+                continue;
             float ox, oy;
             int chan = FC_array(j, i, cfa, cfadim);
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
@@ -319,9 +460,6 @@ do_kernel_point(struct driz_param_t* p) {
 
                 } else {
                     vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
-
-                    /* Allow for stretching because of scale change */
-                    d = get_pixel(p->data, i, j, 0) * scale2;
 
                     /* Scale the weighting mask by the scale factor.  Note that we
                        DON'T scale by the Jacobian as it hasn't been calculated */
@@ -356,23 +494,27 @@ do_kernel_gaussian(struct driz_param_t* p) {
     float vc[3], d, dow;
     float gaussian_efac, gaussian_es;
     float pfo, ac,  scale2, xxi, xxa, yyi, yya, w, ddx, ddy, r2, dover;
-    const float nsig = 2.5;
+    const float nsig = 3.0f;
     int xmin, xmax, ymin, ymax, n;
     BYTE *cfa = p->cfa;
     size_t cfadim = p->cfadim;
 
-    /* Added in V2.9 - make sure pfo doesn't get less than 1.2
-       divided by the scale so that there are never holes in the
-       output */
+	// sigma_out = (pixfrac * scale) / 2.3548
+	const float sigma_out = p->pixel_fraction * p->scale / 2.3548f;
+	// truncate at nsig * sigma_out
+	pfo = nsig * sigma_out;
 
-    pfo = nsig * p->pixel_fraction / 2.3548 / p->scale;
-    pfo = CLAMP_ABOVE(pfo, 1.2 / p->scale);
-
-    ac = 1.0 / (p->pixel_fraction * p->pixel_fraction);
+    ac = 1.0f / (p->pixel_fraction * p->pixel_fraction);
     scale2 = p->scale * p->scale;
 
-    gaussian_efac = (2.3548*2.3548) * scale2 * ac / 2.0;
-    gaussian_es = gaussian_efac / M_PI;
+	/* gaussian_efac corrected in Siril - the original calculation causes
+	 * the Gaussian to become extremely narrow for scale > 1, whereas since
+	 * its fwhm is based on pixfrac * input pixel size it should become
+	 * more spread out when scale is increased - the error was having scale2
+	 * in the numerator. */
+//    gaussian_efac = (2.3548f*2.3548f) * scale2 * ac / 2.0f;
+	gaussian_efac = (2.3548f * 2.3548f) * ac / (2.f * scale2);
+	gaussian_es = gaussian_efac / M_PI;
 
     if (init_image_scanner(p, &s, &ymin, &ymax)) return 1;
 
@@ -402,6 +544,10 @@ do_kernel_gaussian(struct driz_param_t* p) {
         }
 
         for (i = xmin; i <= xmax; ++i) {
+            /* Allow for stretching because of scale change */
+            d = get_pixel(p->data, i, j, 0) * scale2;
+            if (!d)
+                continue;
             float ox, oy;
             int chan = FC_array(j, i, cfa, cfadim);
 
@@ -415,15 +561,12 @@ do_kernel_gaussian(struct driz_param_t* p) {
                 yyi = oy - pfo;
                 yya = oy + pfo;
 
-                nxi = MAX(fortran_round(xxi), 0);
-                nxa = MIN(fortran_round(xxa), osize[0]-1);
-                nyi = MAX(fortran_round(yyi), 0);
-                nya = MIN(fortran_round(yya), osize[1]-1);
+                nxi = MAX((int)floorf(xxi), 0);
+                nxa = MIN((int)ceilf(xxa), osize[0]-1);
+                nyi = MAX((int)floorf(yyi), 0);
+                nya = MIN((int)ceilf(yya), osize[1]-1);
 
                 nhit = 0;
-
-                /* Allow for stretching because of scale change */
-                d = get_pixel(p->data, i, j, 0) * scale2;
 
                 /* Scale the weighting mask by the scale factor and inversely by
                    the Jacobian to ensure conservation of weight in the output */
@@ -443,7 +586,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
 
                         /* Weight is a scaled Gaussian function of radial
                            distance */
-                        dover = gaussian_es * exp(-r2 * gaussian_efac);
+                        dover = gaussian_es * expf(-r2 * gaussian_efac);
 
                         /* Count the hits */
                         ++nhit;
@@ -472,104 +615,168 @@ do_kernel_gaussian(struct driz_param_t* p) {
  * p: structure containing options, input, and output
  */
 
+/**
+ * Corrected Lanczos drizzle kernel function - distributes input pixel values onto
+ * output grid using a Lanczos interpolation kernel.
+ *
+ * Key fixes:
+ * 1. Corrected footprint calculation: pfo now grows with scale (not shrinks)
+ * 2. Fixed LUT indexing: distances converted to input pixel units before lookup
+ * 3. Added bounds checking for LUT access
+ * 4. Improved comments explaining coordinate system conversions
+ *
+ * @param p Drizzle parameters structure containing input/output images and settings
+ * @return 0 on success, 1 on error
+ */
 static int
 do_kernel_lanczos(struct driz_param_t* p) {
     struct scanner s;
     integer_t i, j, ii, jj, nxi, nxa, nyi, nya, nhit, ix, iy;
-    integer_t /*ybounds[2],*/ osize[2];
-    float scale2, vc[3], d, dow;
+    integer_t osize[2];                  // Output image dimensions [width, height]
+    float scale2, vc[3], d, dow;         // Scale factor squared, counts, data, weighted data
     float pfo, xx, yy, xxi, xxa, yyi, yya, w, dx, dy, dover;
-    int kernel_order;
-    struct lanczos_param_t lanczos;
-    const size_t nlut = 512;
-    const float del = 0.01;
-    int xmin, xmax, ymin, ymax, n;
-    BYTE *cfa = p->cfa;
-    size_t cfadim = p->cfadim;
+    int kernel_order;                    // Lanczos kernel order (2 or 3)
+    struct lanczos_param_t lanczos;      // Lanczos lookup table parameters
+    const size_t nlut = 512;             // Lookup table size
+    const float del = 0.01;              // LUT resolution in input pixel units
+    int xmin, xmax, ymin, ymax, n;       // Scan line limits
+    BYTE *cfa = p->cfa;                  // Color Filter Array pattern
+    size_t cfadim = p->cfadim;           // CFA dimensions
+    float input_pixel_size_in_output;    // Size of input pixel in output coordinates
 
-    dx = 1.0;
-    dy = 1.0;
+    /* Half-pixel offsets for pixel center alignment */
+    dx = 0.5f;
+    dy = 0.5f;
 
     scale2 = p->scale * p->scale;
     kernel_order = (p->kernel == kernel_lanczos2) ? 2 : 3;
-    pfo = (float)kernel_order * p->pixel_fraction / p->scale;
 
+    /* Calculate input pixel size in output coordinate system.
+     * This represents how large an input pixel appears in the output grid. */
+    input_pixel_size_in_output = p->pixel_fraction * p->scale;
+
+    /* Lanczos kernel extends ±kernel_order pixels in INPUT coordinate system.
+     * Convert this to output coordinate system for footprint calculation. */
+    pfo = (float)kernel_order * input_pixel_size_in_output;
+
+    /* Allocate memory for Lanczos lookup table */
     if ((lanczos.lut = malloc(nlut * sizeof(float))) == NULL) {
         driz_error_set_message(p->error, _("Out of memory"));
         return driz_error_is_set(p->error);
     }
 
-    /* Set up a look-up-table for Lanczos-style interpolation
-       kernels */
+    /* Create lookup table for Lanczos kernel values.
+     * LUT is indexed by distance in INPUT pixel units, with resolution 'del' */
     create_lanczos_lut(kernel_order, nlut, del, lanczos.lut);
-    lanczos.sdp = p->scale / del / p->pixel_fraction;
+
+    /* Store parameters for LUT access */
     lanczos.nlut = nlut;
 
-    if (init_image_scanner(p, &s, &ymin, &ymax)) return 1;
+    if (init_image_scanner(p, &s, &ymin, &ymax)) {
+        free(lanczos.lut);
+        return 1;
+    }
 
     p->nskip = (p->ymax - p->ymin) - (ymax - ymin);
     p->nmiss = p->nskip * (p->xmax - p->xmin);
 
-    /* This is the outer loop over all the lines in the input image */
-
     get_dimensions(p->output_data, osize);
+
     for (j = ymin; j <= ymax; ++j) {
-        /* Check the overlap with the output */
+        /* Determine x-range of input pixels on this line that affect output */
         n = get_scanline_limits(&s, j, &xmin, &xmax);
-        if (n == 1) {
-            // scan ended (y reached the top vertex/edge)
+
+        if (n == SCANLINE_ENDED) {
+            /* Scan ended - remaining lines are outside output bounds */
             p->nskip += (ymax + 1 - j);
             p->nmiss += (ymax + 1 - j) * (p->xmax - p->xmin);
             break;
-        } else if (n == 2 || n == 3) {
-            // pixel centered on y is outside of scanner's limits or image [0, height - 1]
-            // OR: limits (x1, x2) are equal (line width is 0)
+
+        } else if (n == SCANLINE_PIXEL_OUT_OF_LIMITS || n == SCANLINE_LIMITS_ARE_EQUAL) {
+            /* Line doesn't intersect output or has zero width */
             p->nmiss += (p->xmax - p->xmin);
             ++p->nskip;
             continue;
+
         } else {
-            // limits (x1, x2) are equal (line width is 0)
+            /* Normal case - count pixels outside x-range as missed */
             p->nmiss += (p->xmax - p->xmin) - (xmax + 1 - xmin);
         }
 
         for (i = xmin; i <= xmax; ++i) {
+            /* Allow for stretching because of scale change */
+            d = get_pixel(p->data, i, j, 0) * scale2;
+            if (!d)
+                continue;
             int chan = FC_array(j, i, cfa, cfadim);
+
+            /* Map input pixel (i,j) to output coordinates (xx,yy) */
             if (map_pixel(p->pixmap, i, j, &xx, &yy)) {
+                /* Pixel maps outside valid output region */
                 nhit = 0;
 
             } else {
-                xxi = xx - dx - pfo;
-                xxa = xx - dx + pfo;
-                yyi = yy - dy - pfo;
-                yya = yy - dy + pfo;
+                /* Calculate bounding box of output pixels affected by this input pixel.
+                 * Include half-pixel offsets (dx, dy) for proper pixel center alignment.
+                 *
+                 * The footprint extends ±pfo from the mapped pixel center */
+                xxi = xx - dx - pfo;  // Left edge
+                xxa = xx + dx + pfo;  // Right edge
+                yyi = yy - dy - pfo;  // Bottom edge
+                yya = yy + dy + pfo;  // Top edge
 
-                nxi = MAX(fortran_round(xxi), 0);
-                nxa = MIN(fortran_round(xxa), osize[0]-1);
-                nyi = MAX(fortran_round(yyi), 0);
-                nya = MIN(fortran_round(yya), osize[1]-1);
+                /* Convert to integer pixel indices, clipping to output image bounds */
+                nxi = MAX(floorf(xxi), 0);
+                nxa = MIN(ceilf(xxa), osize[0]-1);
+                nyi = MAX(floorf(yyi), 0);
+                nya = MIN(ceilf(yya), osize[1]-1);
 
                 nhit = 0;
 
                 /* Allow for stretching because of scale change */
                 d = get_pixel(p->data, i, j, 0) * scale2;
 
-                /* Scale the weighting mask by the scale factor and inversely by
-                   the Jacobian to ensure conservation of weight in the output */
+                /* Get input pixel weight (or default to 1.0) */
                 if (p->weights) {
                     w = get_pixel(p->weights, i, j, 0) * p->weight_scale;
                 } else {
                     w = 1.0;
                 }
 
-                /* Loop over output pixels which could be affected */
+                /* Loop over all output pixels within the footprint */
                 for (jj = nyi; jj <= nya; ++jj) {
                     for (ii = nxi; ii <= nxa; ++ii) {
-                        /* X and Y offsets */
-                        ix = fortran_round(fabs(xx - (float)ii) * lanczos.sdp) + 1;
-                        iy = fortran_round(fabs(yy - (float)jj) * lanczos.sdp) + 1;
 
-                        /* Weight is product of Lanczos function values in X and Y */
+                        /* Calculate distances from input pixel center to output pixel center
+                         * in output coordinate system */
+                        float dist_x = fabs(xx - (float)ii);
+                        float dist_y = fabs(yy - (float)jj);
+
+                        /* Convert distances from output coordinates to input pixel units.
+                         * The Lanczos LUT is indexed by distance in input pixel units.
+                         *
+                         * input_pixel_units = output_units / input_pixel_size_in_output */
+                        float input_dist_x = dist_x / input_pixel_size_in_output;
+                        float input_dist_y = dist_y / input_pixel_size_in_output;
+
+                        /* Convert distances to LUT indices */
+                        ix = fortran_round(input_dist_x / del);
+                        iy = fortran_round(input_dist_y / del);
+
+                        /* Check if distances are within LUT range.
+                         * If outside range, Lanczos kernel value should be 0. */
+                        if (ix >= nlut || iy >= nlut) {
+                            /* Distance too large - Lanczos kernel is 0 */
+                            continue;
+                        }
+
+                        /* Look up Lanczos kernel values and compute separable product */
                         dover = lanczos.lut[ix] * lanczos.lut[iy];
+
+                        /* Skip if kernel value is effectively zero */
+                        if (dover == 0.0f) {
+                            continue;
+                        }
 
                         /* Count the hits */
                         ++nhit;
@@ -578,17 +785,21 @@ do_kernel_lanczos(struct driz_param_t* p) {
                         dow = (float)(dover * w);
 
                         if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
+                            free(lanczos.lut);
                             return 1;
                         }
                     }
                 }
             }
 
-            /* Count cases where the pixel is off the output image */
-            if (nhit == 0) ++ p->nmiss;
+            /* Count input pixels that don't affect any output pixels */
+            if (nhit == 0) {
+                ++p->nmiss;
+            }
         }
     }
 
+    /* Clean up allocated memory */
     free(lanczos.lut);
     lanczos.lut = NULL;
 
@@ -648,6 +859,10 @@ do_kernel_turbo(struct driz_param_t* p) {
         }
 
         for (i = xmin; i <= xmax; ++i) {
+            /* Allow for stretching because of scale change */
+            d = get_pixel(p->data, i, j, 0) * scale2;
+            if (!d)
+                continue;
             float ox, oy;
             int chan = FC_array(j, i, cfa, cfadim);
 
@@ -661,19 +876,16 @@ do_kernel_turbo(struct driz_param_t* p) {
                 yyi = oy - pfo;
                 yya = oy + pfo;
 
-                nxi = fortran_round(xxi);
-                nxa = fortran_round(xxa);
-                nyi = fortran_round(yyi);
-                nya = fortran_round(yya);
+                nxi = floorf(xxi);
+                nxa = ceilf(xxa);
+                nyi = floorf(yyi);
+                nya = ceilf(yya);
                 iis = MAX(nxi, 0);  /* Needed to be set to 0 to avoid edge effects */
                 iie = MIN(nxa, osize[0]-1);
                 jjs = MAX(nyi, 0);  /* Needed to be set to 0 to avoid edge effects */
                 jje = MIN(nya, osize[1]-1);
 
                 nhit = 0;
-
-                /* Allow for stretching because of scale change */
-                d = get_pixel(p->data, i, j, 0) * (float)scale2;
 
                 /* Scale the weighting mask by the scale factor and inversely by
                    the Jacobian to ensure conservation of weight in the output. */
@@ -728,9 +940,9 @@ do_kernel_turbo(struct driz_param_t* p) {
 int
 do_kernel_square(struct driz_param_t* p) {
     integer_t i, j, ii, jj, min_ii, max_ii, min_jj, max_jj, nhit;
-    integer_t osize[2];
+    integer_t osize[2],mapsize[2];
     float scale2, vc[3], d, dow;
-    float dh, jaco, tem, dover, w;
+    float dh, jaco, dover, w;
     float xin[4], yin[4], xout[4], yout[4];
     struct scanner s;
     int xmin, xmax, ymin, ymax, n;
@@ -751,7 +963,9 @@ do_kernel_square(struct driz_param_t* p) {
     p->nmiss = p->nskip * (p->xmax - p->xmin);
 
     /* This is the outer loop over all the lines in the input image */
-    get_dimensions(p->output_data, osize);
+	get_dimensions(p->output_data, osize);
+    mapsize[0] = p->pixmap->rx;
+	mapsize[1] = p->pixmap->ry;
     for (j = ymin; j <= ymax; ++j) {
         /* Check the overlap with the output */
         n = get_scanline_limits(&s, j, &xmin, &xmax);
@@ -772,36 +986,56 @@ do_kernel_square(struct driz_param_t* p) {
         }
 
         /* Set the input corner positions */
-
         yin[1] = yin[0] = (float) j + dh;
         yin[3] = yin[2] = (float) j - dh;
 
         for (i = xmin; i <= xmax; ++i) {
+            /* Allow for stretching because of scale change */
+            d = get_pixel(p->data, i, j, 0) * scale2;
+            if (!d)
+                continue;
             nhit = 0;
             int chan = FC_array(j, i, cfa, cfadim);
 
-            xin[3] = xin[0] = (float) i - dh;
-            xin[2] = xin[1] = (float) i + dh;
+            // xin[3] = xin[0] = (float)i - dh;
+            // xin[2] = xin[1] = (float)i + dh;
 
-            for (ii = 0; ii < 4; ++ii) {
-                if (interpolate_point(p, xin[ii], yin[ii], xout + ii, yout + ii)) {
+            // for (ii = 0; ii < 4; ++ii) {
+            //     if (interpolate_point(p, xin[ii], yin[ii], xout + ii,
+            //                           yout + ii)) {
+            //         goto _miss;
+            //     }
+            // }
+
+            /* Assuming we don't need to extrapolate, call a more
+             * efficient interpolator that takes advantage of the fact
+             * that pixfrac<1 and that we are using a square grid.
+             */
+            if (i > 0 && i < mapsize[0] - 2 && j > 0 && j < mapsize[1] - 2) {
+                if (interpolate_four_points(p, i, j, dh, xout, xout + 1,
+                                            xout + 2, xout + 3, yout, yout + 1,
+                                            yout + 2, yout + 3))
                     goto _miss;
-                }
+            } else {
+                xin[3] = xin[0] = (float)i - dh;
+                xin[2] = xin[1] = (float)i + dh;
+                for (ii = 0; ii < 4; ++ii) {
+                    if (interpolate_point(p, xin[ii], yin[ii], xout + ii,
+                                          yout + ii))
+                        goto _miss;
+                 }
             }
 
-            /* Work out the area of the quadrilateral on the output grid.
-               Note that this expression expects the points to be in clockwise
-               order */
+            /* Work out the area of the quadrilateral on the output
+             * grid.  If the points are in clockwise order we get a
+             * postive area.  If they are in anticlockwise order, jaco
+             * will be negative, but so will the areas computed by
+             * boxer, so it doesn't actually matter once we divide it
+             * out.
+             */
 
             jaco = 0.5f * ((xout[1] - xout[3]) * (yout[0] - yout[2]) -
                            (xout[0] - xout[2]) * (yout[1] - yout[3]));
-
-            if (jaco < 0.0) {
-                jaco *= -1.0;
-                /* Swap */
-                tem = xout[1]; xout[1] = xout[3]; xout[3] = tem;
-                tem = yout[1]; yout[1] = yout[3]; yout[3] = tem;
-            }
 
             /* Allow for stretching because of scale change */
             d = get_pixel(p->data, i, j, 0) * scale2;
@@ -809,17 +1043,17 @@ do_kernel_square(struct driz_param_t* p) {
             /* Scale the weighting mask by the scale factor and inversely by
                the Jacobian to ensure conservation of weight in the output */
             if (p->weights) {
-                w = get_pixel(p->weights, i, j,0) * p->weight_scale;
+                w = get_pixel(p->weights, i, j, 0) * p->weight_scale / jaco;
             } else {
-                w = 1.0;
+                w = 1.0 / jaco;
             }
 
             /* Loop over output pixels which could be affected */
-            min_jj = MAX(fortran_round(min_floats(yout, 4)), 0);
-            max_jj = MIN(fortran_round(max_floats(yout, 4)), osize[1]-1);
-            min_ii = MAX(fortran_round(min_floats(xout, 4)), 0);
-            max_ii = MIN(fortran_round(max_floats(xout, 4)), osize[0]-1);
-			int area = (max_jj - min_jj) - (max_ii - min_ii);
+            min_jj = MAX(floorf(min_floats(yout, 4)), 0);
+            max_jj = MIN(ceilf(max_floats(yout, 4)), osize[1]-1);
+            min_ii = MAX(floorf(min_floats(xout, 4)), 0);
+            max_ii = MIN(ceilf(max_floats(xout, 4)), osize[0]-1);
+			int area = (max_jj - min_jj) * (max_ii - min_ii);
 			if (area > maxarea) {
 				maxarea = area;
 				mnjj = min_jj;
@@ -831,13 +1065,14 @@ do_kernel_square(struct driz_param_t* p) {
             for (jj = min_jj; jj <= max_jj; ++jj) {
                 for (ii = min_ii; ii <= max_ii; ++ii) {
                     /* Call compute_area to calculate overlap */
-                    dover = compute_area((float)ii, (float)jj, xout, yout);
+                    // dover = compute_area((float)ii, (float)jj, xout, yout);
+                    dover = boxer((float)ii, (float)jj, xout, yout);
 
-                    if (dover > 0.0) {
+                    /* Call boxer to calculate overlap */
+                    // dover = compute_area((float)ii, (float)jj, xout, yout);
+                    if (dover != 0.0) {
                         vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
 
-                        /* Re-normalise the area overlap using the Jacobian */
-                        dover /= jaco;
                         dow = (float)(dover * w);
 
                         /* Count the hits */
