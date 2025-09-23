@@ -39,7 +39,7 @@ static void normalizeQualityData(struct registration_args *args, double q_min, d
 	/* this case occurs when all images but one are excluded */
 	if (diff == 0) {
 		q_min = 0;
-		diff = q_max;
+		diff = (q_max == 0.) ? 1.: q_max;
 	}
 
 	for (frame = 0; frame < args->seq->number; ++frame) {

@@ -109,6 +109,14 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		translation_from_H(com.seq.regparam[cvport][com.seq.current].H, &dx, &dy);
 		shiftx = round_to_int(dx);
 		shifty = round_to_int(dy);
+		if (shiftx == INT_MIN) { // mainly to avoid static checker warning
+			g_printf(_("Error: image #%d has a wrong shift x value\n"), "red", com.seq.current + 1);
+			shiftx += 1;
+		}
+		if (shifty == INT_MIN) { // mainly to avoid static checker warning
+			g_printf(_("Error: image #%d has a wrong shift y value\n"), "red", com.seq.current + 1);
+			shifty += 1;
+		}
 	}
 	if (shiftx || shifty)
 		cairo_translate(cr, shiftx, -shifty);

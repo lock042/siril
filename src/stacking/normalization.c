@@ -425,6 +425,14 @@ static size_t compute_overlap(struct stacking_args *args, int i, int j, rectangl
 	translation_from_H(seq->regparam[args->reglayer][j].H, &dxj, &dyj);
 	dx = round_to_int(dxj - dxi);
 	dy = round_to_int(dyi - dyj);
+	if (dx == INT_MIN) { // mainly to avoid static checker warning
+		g_printf(_("Error: images #%d and #%d have a wrong dx value\n"), "red", i, j);
+		dx += 1;
+	}
+	if (dy == INT_MIN) { // mainly to avoid static checker warning
+		g_printf(_("Error: images #%d and #%d have a wrong dy value\n"), "red", i, j);
+		dy += 1;
+	}
 	int rxi = (seq->is_variable) ? seq->imgparam[i].rx : seq->rx;
 	int ryi = (seq->is_variable) ? seq->imgparam[i].ry : seq->ry;
 	int rxj = (seq->is_variable) ? seq->imgparam[j].rx : seq->rx;

@@ -195,6 +195,14 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		}
 
 		/* stack current image */
+		if (shiftx == INT_MIN) { // mainly to avoid static checker warning
+			g_printf(_("Error: image #%d has a wrong shiftx value\n"), "red", j + 1);
+			shiftx += 1;
+		}
+		if (shifty == INT_MIN) { // mainly to avoid static checker warning
+			g_printf(_("Error: image #%d has a wrong shifty value\n"), "red", j + 1);
+			shifty += 1;
+		}
 		size_t i = 0;	// index in final_pixel[0]
 		for (int y = 0; y < output_size[1]; ++y) {
 			int ny = y - shifty;

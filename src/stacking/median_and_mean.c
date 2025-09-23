@@ -439,6 +439,10 @@ static int stack_read_block_data(struct stacking_args *args,
 				if (area.h <= 0) { // as a last safety net
 					clear = TRUE; readdata = FALSE;
 				}
+				if (area.h == INT_MIN) { // mainly to avoid static checker warning
+					g_printf(_("Error: image #%d has a wrong area height\n"), "red", args->image_indices[frame] + 1);
+					area.h += 1;
+				}
 			}
 #ifdef STACK_DEBUG
 			else fprintf(stderr, "NO REGPARAM\n");
