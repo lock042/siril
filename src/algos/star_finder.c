@@ -30,6 +30,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "algos/demosaicing.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
@@ -1377,7 +1378,7 @@ gpointer findstar_worker(gpointer p) {
 	fits *green_fit = NULL;
 	fits *orig = NULL;
 	gboolean has_selection = args->selection.w != 0 && args->selection.h != 0;
-	if (args->im.fit->keywords.bayer_pattern[0] != '\0') {
+	if (fit_is_cfa(args->im.fit)) {
 		green_fit = calloc(1, sizeof(fits));
 		orig = args->im.fit;
 		copyfits(args->im.fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
@@ -1409,16 +1410,12 @@ gpointer findstar_worker(gpointer p) {
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;
 					display_to_siril(dx, dy, &fx, &fy, args->im.fit->ry);
-					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
+					pix2wcs2(args->im.fit->keywords.wcslib, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;
-				}
-				else if (!seq->regparam[args->layer] ||
-						guess_transform_from_H(seq->regparam[args->layer][args->im.index_in_seq].H) == NULL_TRANSFORMATION) {
-					// image was not registered, ignore
-				}
-				else {
+				} else if (seq && seq->regparam[args->layer] &&
+					guess_transform_from_H(seq->regparam[args->layer][args->im.index_in_seq].H) > NULL_TRANSFORMATION) {
 					cvTransfPoint(&dx, &dy, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H, 1.);
 					double ra = 0.0, dec = 0.0;
 					// coordinates of the star in FITS/WCS coordinates
@@ -1428,6 +1425,9 @@ gpointer findstar_worker(gpointer p) {
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;
+				} else { // fallback to a default invalid value
+					stars[i]->ra = 9.99E9;
+					stars[i]->dec = 9.99E9;
 				}
 			}
 			i++;
