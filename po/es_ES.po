@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-22 21:16+0200\n"
-"PO-Revision-Date: 2025-09-01 06:58+0000\n"
+"PO-Revision-Date: 2025-09-25 12:23+0000\n"
 "Last-Translator: Víctor López <dsi.victor@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -7400,10 +7400,12 @@ msgid ""
 "The list of stars is passed to solve-field as a FITS table, check this to "
 "keep the file in the working directory."
 msgstr ""
+"La lista de estrellas se pasa al resolutor como una tabla FITS, activa esto "
+"para mantenerlo en el directorio de trabajo."
 
 #: src/gui/uifiles/settings_window.ui:1854
 msgid "Do not delete .wcs result files"
-msgstr ""
+msgstr "No borrar los ficheros .wcs de salida"
 
 #: src/gui/uifiles/settings_window.ui:1858
 msgid ""
