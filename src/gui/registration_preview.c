@@ -110,11 +110,11 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		shiftx = round_to_int(dx);
 		shifty = round_to_int(dy);
 		if (shiftx == INT_MIN) { // mainly to avoid static checker warning
-			g_printf(_("Error: image #%d has a wrong shift x value\n"), "red", com.seq.current + 1);
+			siril_debug_print("Error: image #%d has a wrong shift x value\n", com.seq.current + 1);
 			shiftx += 1;
 		}
 		if (shifty == INT_MIN) { // mainly to avoid static checker warning
-			g_printf(_("Error: image #%d has a wrong shift y value\n"), "red", com.seq.current + 1);
+			siril_debug_print("Error: image #%d has a wrong shift y value\n", com.seq.current + 1);
 			shifty += 1;
 		}
 	}

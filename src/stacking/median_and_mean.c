@@ -440,7 +440,7 @@ static int stack_read_block_data(struct stacking_args *args,
 					clear = TRUE; readdata = FALSE;
 				}
 				if (area.h == INT_MIN) { // mainly to avoid static checker warning
-					g_printf(_("Error: image #%d has a wrong area height\n"), "red", args->image_indices[frame] + 1);
+					siril_debug_print("Error: image #%d has a wrong area height\n", args->image_indices[frame] + 1);
 					area.h += 1;
 				}
 			}
