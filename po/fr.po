@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-09-22 19:37+0000\n"
+"PO-Revision-Date: 2025-09-26 14:55+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -8892,13 +8892,12 @@ msgid "<b>FFTW Options</b>"
 msgstr "<b>Options FFTW</b>"
 
 #: src/gui/uifiles/settings_window.ui:5811
-#, fuzzy
 msgid "Drizzle"
-msgstr "Échelle du Drizzle"
+msgstr "Drizzle"
 
 #: src/gui/uifiles/settings_window.ui:5823
 msgid "High resolution Drizzle weight files"
-msgstr ""
+msgstr "Fichiers de poids du Drizzle"
 
 #: src/gui/uifiles/settings_window.ui:5827
 msgid ""
@@ -8911,6 +8910,17 @@ msgid ""
 "and can be deleted when stacking is finished: if a sequence is re-drizzled, "
 "any existing drizzle weights will be overwritten."
 msgstr ""
+"Par défaut, Drizzle utilise des fichiers de poids 8 bits. Cela est suffisant "
+"pour de nombreuses applications et relativement économique en termes "
+"d'exigences de stockage.\n"
+"Cocher cette case offre une précision améliorée : les poids drizzle seront "
+"sauvegardés avec la même profondeur de bits que la séquence drizzlée, ce qui "
+"signifie que les fichiers de poids occuperont autant d'espace qu'une copie "
+"supplémentaire de la séquence drizzlée.\n"
+"Les fichiers de poids sont sauvegardés dans le sous-dossier drizztmp du "
+"répertoire de travail et peuvent être supprimés une fois l'empilement "
+"terminé : si une séquence est re-drizzlée, tous les poids drizzle existants "
+"seront écrasés."
 
 #: src/gui/uifiles/settings_window.ui:5861
 #: src/gui/uifiles/settings_window.ui:6304
@@ -11221,13 +11231,12 @@ msgid "Pixel Fraction"
 msgstr "Fraction de pixel"
 
 #: src/gui/uifiles/siril.ui:7151
-#, fuzzy
 msgid ""
 "Select the droplet model. See the documentation for details of when to use "
 "each model."
 msgstr ""
-"Choisissez le type de filtre. Voir la documentation pour une explication des "
-"différences."
+"Sélectionnez le modèle de gouttelette. Consultez la documentation pour les "
+"détails sur quand utiliser chaque modèle."
 
 #: src/gui/uifiles/siril.ui:7154
 msgid "Square"
@@ -17426,13 +17435,12 @@ msgstr ""
 "d'alignement, elle ne peut pas être empilée. Abandon\n"
 
 #: src/core/command.c:8724
-#, fuzzy
 msgid ""
 "No registration data in the sequence or images with different sizes or "
 "drizzled. Upscale at stacking will be ignored\n"
 msgstr ""
-"Pas de données d'alignement dans la séquence ou images de tailles "
-"différentes. La mise à l'échelle lors de l'empilement sera ignorée.\n"
+"Aucune donnée d'alignement dans la séquence ou images de tailles différentes "
+"ou drizzlées. La mise à l'échelle lors de l'empilement sera ignorée\n"
 
 #: src/core/command.c:8728
 msgid "Cannot upscale or maximize framing with median stacking. Disabling\n"
@@ -24091,6 +24099,7 @@ msgstr ""
 #: src/core/settings.c:471
 msgid "Match Drizzle weights bitpix to sequence"
 msgstr ""
+"Faire correspondre la profondeur de bits des poids Drizzle à la séquence"
 
 #: src/core/settings.c:473
 msgid "index of the selected method"
@@ -28375,9 +28384,8 @@ msgid "Pick object in two images"
 msgstr "Pointer l'objet dans les deux images"
 
 #: src/gui/registration.c:754
-#, fuzzy
 msgid "Pick at least one star"
-msgstr "Pointer l'étoile 1"
+msgstr "Pointer au moins un étoile"
 
 #: src/gui/registration.c:832
 msgid "Failed to determine registration method...\n"
@@ -29702,6 +29710,8 @@ msgstr ""
 #, c-format
 msgid "Cannot find FITS file %s or any variant with supported extensions\n"
 msgstr ""
+"Impossible de trouver le fichier FITS %s ou toute variante avec des "
+"extensions prises en charge\n"
 
 #: src/io/fits_sequence.c:211
 #, c-format
@@ -33272,9 +33282,8 @@ msgid "Could not init distortion mapping\n"
 msgstr "Impossible d'initier le mappage des distorsions\n"
 
 #: src/registration/applyreg.c:351 src/registration/global.c:179
-#, fuzzy
 msgid "Could not init drizzle\n"
-msgstr "Impossible d'ouvrir le fichier : %s\n"
+msgstr "Impossible d'initialiser le drizzle\n"
 
 #: src/registration/applyreg.c:380 src/registration/global.c:319
 #, c-format
@@ -33300,9 +33309,8 @@ msgid "Error generating mapping array.\n"
 msgstr "Erreur de génération du tableau de correspondance.\n"
 
 #: src/registration/applyreg.c:642 src/registration/global.c:427
-#, fuzzy
 msgid "No image was registered to the reference\n"
-msgstr "L'image %d n'a pas de recouvrement avec la référence\n"
+msgstr "Aucune image n'a été alignée sur la référence\n"
 
 #: src/registration/applyreg.c:682 src/registration/comet.c:239
 msgid "Applying registration completed.\n"
@@ -33319,35 +33327,37 @@ msgstr "Transformation interrompue.\n"
 
 #: src/registration/applyreg.c:889
 msgid "Drizzle: Could not allocate memory for weight calculation.\n"
-msgstr ""
+msgstr "Drizzle : Impossible d'allouer la mémoire pour le calcul des poids.\n"
 
 #: src/registration/applyreg.c:896
 msgid "Drizzle: Could not allocate memory for tiny flat calculation.\n"
-msgstr ""
+msgstr "Drizzle : Impossible d'allouer la mémoire pour le calcul du flat.\n"
 
 #: src/registration/applyreg.c:944
-#, fuzzy
 msgid "Drizzle: Could not compute mapping for weights calculation.\n"
-msgstr "Impossible de calculer la résolution de l'image\n"
+msgstr ""
+"Drizzle : Impossible de calculer la correspondance pour le calcul des poids."
+"\n"
 
 #: src/registration/applyreg.c:950
-#, fuzzy
 msgid "Drizzle:Error generating mapping array.\n"
-msgstr "Erreur de génération du tableau de correspondance.\n"
+msgstr "Drizzle : Erreur lors de la génération du tableau de correspondance.\n"
 
 #: src/registration/applyreg.c:984 src/registration/applyreg.c:995
 #, c-format
 msgid "Drizzle: Statistics for drizzle flat on layer %d is invalid.\n"
 msgstr ""
+"Drizzle : Les statistiques pour le flat drizzle sur la couche %d sont "
+"invalides.\n"
 
 #: src/registration/applyreg.c:1020
 msgid "Error computing statistics for drizzle weights.\n"
-msgstr ""
+msgstr "Erreur lors du calcul des statistiques pour les poids drizzle.\n"
 
 #: src/registration/applyreg.c:1025
 #, c-format
 msgid "Max drizzle weight for layer %d is invalid.\n"
-msgstr ""
+msgstr "Le poids drizzle maximum pour la couche %d est invalide.\n"
 
 #: src/registration/applyreg.c:1052
 msgid "Initializing drizzle data..."
@@ -33625,9 +33635,9 @@ msgstr ""
 "sa spécification est vide dans les préférences.\n"
 
 #: src/registration/distorsion.c:434
-#, fuzzy, c-format
+#, c-format
 msgid "Could not load image# %d, aborting\n"
-msgstr "Impossible de charger l'image, abandon.\n"
+msgstr "Impossible de charger l'image # %d, abandon.\n"
 
 #: src/registration/distorsion.c:444
 msgid "Could not parse master file name for distortion, aborting\n"
@@ -34041,7 +34051,7 @@ msgstr "Ouverture de l'image pour l'empilement"
 #: src/stacking/median_and_mean.c:104
 #, c-format
 msgid "Drizzle file %s not found in ./drizztmp folder, aborting\n"
-msgstr ""
+msgstr "Fichier drizzle %s introuvable dans le dossier ./drizztmp, abandon\n"
 
 #: src/stacking/median_and_mean.c:117 src/stacking/median_and_mean.c:123
 #, c-format
@@ -34066,14 +34076,15 @@ msgstr ""
 "Utiliser l'empilement par somme à la place.\n"
 
 #: src/stacking/median_and_mean.c:241
-#, fuzzy
 msgid "Drizzle stacking will be used.\n"
-msgstr "le live stacking dématricera les images\n"
+msgstr "L'empilement drizzle sera utilisé.\n"
 
 #: src/stacking/median_and_mean.c:244
 msgid ""
 "Drizzle stacking cannot be performed because drizzle weights are missing.\n"
 msgstr ""
+"L'empilement drizzle ne peut pas être effectué, car les poids drizzle sont "
+"manquants.\n"
 
 #: src/stacking/median_and_mean.c:305
 #, c-format
@@ -34099,9 +34110,11 @@ msgid "Error reading one of the masks areas (%d: %d %d %d %d)\n"
 msgstr "Erreur de lecture d'une des zones de masques (%d : %d %d %d %d)\n"
 
 #: src/stacking/median_and_mean.c:528 src/stacking/sum.c:124
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"
-msgstr "Erreur de lecture d'une des zones de l'image (%d : %d %d %d %d)\n"
+msgstr ""
+"Erreur lors de la lecture d'une des zones de poids drizzle (%d : %d %d %d %d)"
+"\n"
 
 #: src/stacking/median_and_mean.c:1098 src/stacking/median_and_mean.c:1145
 #, c-format
