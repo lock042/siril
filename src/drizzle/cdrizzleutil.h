@@ -57,6 +57,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #define MAX_DRIZ_ERROR_LEN 512
 
+enum {
+	SCANLINE_OK,
+	SCANLINE_ENDED,
+	SCANLINE_PIXEL_OUT_OF_LIMITS,
+	SCANLINE_LIMITS_ARE_EQUAL
+};
+
 struct driz_error_t {
   char last_message[MAX_DRIZ_ERROR_LEN];
 };
@@ -168,6 +175,7 @@ struct driz_args_t {
   float pixel_fraction;
   BYTE cfa[36];
   size_t cfadim;
+  float max_weight[3]; /* stores the max output weight per channel to renormalize the final output */
 };
 
 struct driz_param_t {

@@ -505,6 +505,7 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 	if (args->seq->type != SEQ_INTERNAL) {
 		remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
 		remove_prefixed_star_files(args->seq, args->new_seq_prefix);
+		remove_prefixed_drizzle_files(args->seq, args->new_seq_prefix);
 	}
 	if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
 		gchar *dest;

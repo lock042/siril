@@ -897,10 +897,16 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 	switch (seq->type) {
 		case SEQ_REGULAR:
 			fit_sequence_get_image_filename(seq, index, filename, TRUE);
-			if (readfits(filename, dest, NULL, force_float)) {
-				siril_log_message(_("Could not load image %d from sequence %s\n"),
-						index, seq->seqname);
-				return 1;
+			int ret = readfits(filename, dest, NULL, force_float);
+			if (ret) {
+				char *base = remove_all_ext_from_filename(filename);
+				ret = readfits(base, dest, NULL, force_float);
+				free(base);
+				if (ret) {
+					siril_log_message(_("Could not load image %d from sequence %s\n"),
+							index, seq->seqname);
+					return 1;
+				}
 			}
 			break;
 		case SEQ_SER:
@@ -1377,11 +1383,19 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 
 void remove_prefixed_star_files(sequence *seq, const char *prefix) {
 	for (int i = 0; i < seq->number; i++) {
-		gchar *star_filename = get_sequence_cache_filename(seq, i, "lst", NULL);
+		const gchar *star_filename = get_sequence_cache_filename(seq, i, "cache", "lst", NULL);
 		siril_debug_print("Removing %s\n", star_filename);
 		if (g_unlink(star_filename))
 			siril_debug_print("g_unlink() failed\n");
-		g_free(star_filename);
+	}
+}
+
+void remove_prefixed_drizzle_files(sequence *seq, const char *prefix) {
+	for (int i = 0; i < seq->number; i++) {
+		const gchar *drizzle_filename = get_sequence_cache_filename(seq, i, "drizztmp", "fit", NULL);
+		siril_debug_print("Removing %s\n", drizzle_filename);
+		if (g_unlink(drizzle_filename))
+			siril_debug_print("g_unlink() failed\n");
 	}
 }
 
@@ -2411,18 +2425,19 @@ cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_f
 	return CACHE_NEWER;
 }
 
-gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix) {
+gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *cachefolder, const gchar *ext, const gchar *prefix) {
 	char root[256];
 	if (!fit_sequence_get_image_filename(seq, index, root, FALSE)) {
 		return NULL;
 	}
+	gchar *base_root = g_path_get_basename(root);
 	gchar *cache_filename = NULL;
 	if (prefix)
-		cache_filename = g_strdup_printf("%s%s.%s", prefix, root, ext);
+		cache_filename = g_strdup_printf("%s%s.%s", prefix, base_root, ext);
 	else
-		cache_filename = g_strdup_printf("%s.%s", root, ext);
-	const gchar *base_cache_filename = g_path_get_basename(cache_filename);
-	gchar *cache_path = g_build_path(G_DIR_SEPARATOR_S, com.wd, "cache", base_cache_filename, NULL);
+		cache_filename = g_strdup_printf("%s.%s", base_root, ext);
+	gchar *cache_path = g_build_path(G_DIR_SEPARATOR_S, com.wd, cachefolder, cache_filename, NULL);
 	g_free(cache_filename);
+	g_free(base_root);
 	return cache_path;
 }
