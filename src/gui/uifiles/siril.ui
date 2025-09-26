@@ -519,20 +519,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
-          <object class="GtkModelButton" id="main_menu_scripts">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.scripts</property>
-            <property name="text" translatable="yes">Get Scripts</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">6</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkModelButton" id="main_menu_shortcuts">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
