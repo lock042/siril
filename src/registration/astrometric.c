@@ -154,8 +154,8 @@ static void get_maxframing(double framing, void *params, int *width,  int *heigh
 	double angles[3] = { 90. - p->ra,  90. - p->dec, framing};
 	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
 	cvRotMat3(angles, rottypes, TRUE, &Rref);
-	int xmin = INT_MAX, xmax = -INT_MAX;
-	int ymin = INT_MAX, ymax = -INT_MAX;
+	int xmin = INT_MAX, xmax = INT_MIN;
+	int ymin = INT_MAX, ymax = INT_MIN;
 	for (int i = 0;  i < n; i++) {
 		if (!p->incl[i])
 			continue;
@@ -171,11 +171,11 @@ static void get_maxframing(double framing, void *params, int *width,  int *heigh
 		xmax = max(xmax, roi.x + roi.w);
 		ymax = max(ymax, roi.y + roi.h);
 	}
-	if (width)
+	if (width && !(xmin == INT_MAX || ymin == INT_MAX || xmax == INT_MIN || ymax == INT_MIN))
 		*width = (xmax - xmin);
-	if (height)
+	if (height && !(xmin == INT_MAX || ymin == INT_MAX || xmax == INT_MIN || ymax == INT_MIN))
 		*height = (ymax - ymin);
-	if (area)
+	if (area && !(xmin == INT_MAX || ymin == INT_MAX || xmax == INT_MIN || ymax == INT_MIN))
 		*area = (double)(xmax - xmin) * (ymax - ymin);
 }
 
